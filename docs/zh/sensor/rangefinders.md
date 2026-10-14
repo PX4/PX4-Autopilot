@@ -128,8 +128,7 @@ PX4 提供以下通过 I2C总线连接的型号：TeraRanger One, TeraRanger Evo
 ### Ainstein US-D1 标准雷达高度计
 
 The _Ainstein_ [US-D1 Standard Radar Altimeter](../sensor/ulanding_radar.md) is compact microwave rangefinder that has been optimised for use on UAVs.
-它有大约50米的感测范围。
-该产品的一个特别优势是它可以在所有天气条件下和所有地形类型（包括水）上有效运行。
+它有大约50米的感测范围。该产品的一个特别优势是它可以在所有天气条件下和所有地形类型（包括水）上有效运行。
 
 ### LeddarOne
 
@@ -158,7 +157,7 @@ The [Avionics Anonymous UAVCAN Laser Altimeter Interface](../dronecan/avanon_las
 
 ### RaccoonLab Cyphal and DroneCAN Rangefinder Adapter
 
-The [RaccoonLab Cyphal and DroneCAN Rangefinder Adapter](https://raccoonlab.co/tproduct/360882105-910084093051-cyphal-and-dronecan-rangefinder-adapter) allows several common rangefinders to be connected to the CAN bus via Cyphal or DroneCAN, providing a more robust interface than I2C or UART.
+The [RaccoonLab Cyphal and DroneCAN Rangefinder Adapter](https://docs.raccoonlab.co/guide/rangefinder/) allows several common rangefinders to be connected to the CAN bus via Cyphal or DroneCAN, providing a more robust interface than I2C or UART.
 This adapter efficiently reads measurements via I2C or UART and publishes range data in meters, making it a versatile solution for UAVs, robotics, and technical documentation applications.
 
 Supported rangefinders include:

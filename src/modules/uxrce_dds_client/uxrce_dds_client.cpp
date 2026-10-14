@@ -367,12 +367,12 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 		px4_usleep(10'000);
 	}
 
-	if (!_pubs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
+	if (!_pubs->init(session, _reliable_out, reliable_in, _participant_id, _client_namespace)) {
 		PX4_ERR("pubs init failed");
 		return false;
 	}
 
-	if (!_subs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
+	if (!_subs->init(session, _reliable_out, reliable_in, _participant_id, _client_namespace)) {
 		PX4_ERR("subs init failed");
 		return false;
 	}
@@ -384,6 +384,11 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 			PX4_ERR("replier init failed");
 			return false;
 		}
+	}
+
+	if (!_pubs->request_data(session, _reliable_out, best_effort_in)) {
+		PX4_ERR("pubs request data failed");
+		return false;
 	}
 
 	_connected = true;

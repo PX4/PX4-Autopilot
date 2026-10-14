@@ -23,10 +23,6 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
     # Run Gazebo (gz)
     . px4-rc.gzsim
 
-elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "10017" ]; then
-    # Run jMAVSim
-    . px4-rc.jmavsim
-
 elif [ "$PX4_SIMULATOR" = "xplane" ]; then
     # Run X-Plane through the mavlink simulator bridge
     . px4-rc.mavlinksim

@@ -46,6 +46,7 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	}),
 	initSPIBus(SPI::Bus::SPI3, {
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortE, GPIO::Pin12}),
+		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM6DSV, SPI::CS{GPIO::PortE, GPIO::Pin12}, SPI::DRDY{GPIO::PortE, GPIO::Pin15}),
 	}),
 };
 

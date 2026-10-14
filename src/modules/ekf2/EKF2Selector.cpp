@@ -57,6 +57,18 @@ EKF2Selector::~EKF2Selector()
 	Stop();
 }
 
+EKF2Selector::EstimatorInstance::EstimatorInstance(EKF2Selector *selector, uint8_t i) :
+	estimator_attitude_sub{selector, ORB_ID(estimator_attitude), i},
+	estimator_status_sub{selector, ORB_ID(estimator_status), i},
+	estimator_local_position_sub{ORB_ID(estimator_local_position), i},
+	estimator_global_position_sub{ORB_ID(estimator_global_position), i},
+	estimator_odometry_sub{ORB_ID(estimator_odometry), i},
+	estimator_wind_sub{ORB_ID(estimator_wind), i},
+	instance(i)
+{
+	healthy.set_hysteresis_time_from(false, 1_s);
+}
+
 void EKF2Selector::Stop()
 {
 	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {

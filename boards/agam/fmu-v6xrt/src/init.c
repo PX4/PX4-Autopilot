@@ -152,7 +152,7 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void board_on_reset(int status)
 {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_gpio_output(i)));
+		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
 	}
 
 	/*
@@ -163,6 +163,12 @@ __EXPORT void board_on_reset(int status)
 	if (status >= 0) {
 		up_mdelay(100);
 	}
+}
+
+/* This board is fitted with one flash type, see g_flash_fast_config */
+const char *board_get_flash_type_name(void)
+{
+	return "MX25UM51345G";
 }
 
 #if defined(CONFIG_BOARD_BOOTLOADER_FIXUP)

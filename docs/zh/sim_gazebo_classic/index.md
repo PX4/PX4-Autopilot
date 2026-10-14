@@ -6,8 +6,7 @@ Until then you can continue to use Gazebo-Classic on Ubuntu 22.04 for the few ca
 For more information see [PX4-Autopilot#23602: GZ Feature tracker](https://github.com/PX4/PX4-Autopilot/issues/23602).
 :::
 
-Gazebo Classic 是一个功能强大的三维仿真环境，专门用于测试避障和计算机视觉等自主机器人技术。
-本页描述了在SITL和单一载具上的使用方式。
+Gazebo Classic 是一个功能强大的三维仿真环境，专门用于测试避障和计算机视觉等自主机器人技术。本页描述了在SITL和单一载具上的使用方式。
 Gazebo Classic can also be used with [HITL](../simulation/hitl.md) and for [multi-vehicle simulation](../sim_gazebo_classic/multi_vehicle_simulation.md).
 
 **Supported Vehicles:** Quad ([Iris](../airframes/airframe_reference.md#copter_quadrotor_x_generic_quadcopter), Hex (Typhoon H480), [Generic Standard VTOL (QuadPlane)](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol), Tailsitter, Plane, Rover, Submarine/UUV.

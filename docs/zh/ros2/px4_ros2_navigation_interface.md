@@ -7,9 +7,7 @@ Experimental
 在撰写本文时，PX4 ROS 2 接口库的部分内容仍处于试验阶段，因此可能会发生变动。
 :::
 
-[PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) 中的导航接口，支持开发者直接从 ROS 2 应用（如视觉惯性里程计系统或地图匹配系统）向 PX4 发送位置测量数据。
-该接口提供了对 PX4 和 uORB 消息框架的抽象层，并对通过该接口发送的请求状态估计更新引入了一些合理性检查。
-这些测量数据随后会被融合到扩展EKF中，其处理方式与 PX4 内部生成的测量数据完全一致。
+[PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) 中的导航接口，支持开发者直接从 ROS 2 应用（如视觉惯性里程计系统或地图匹配系统）向 PX4 发送位置测量数据。该接口提供了对 PX4 和 uORB 消息框架的抽象层，并对通过该接口发送的请求状态估计更新引入了一些合理性检查。这些测量数据随后会被融合到扩展EKF中，其处理方式与 PX4 内部生成的测量数据完全一致。
 
 库提供两个类，[`LocalPositionMeasurementInterface`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1LocalPositionMeasurementInterface.html) 和 [`GlobalPositionMeasureInterface`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1GlobalPositionMeasurementInterface.html) 它都会暴露出一个类似的 "update" 方法来提供一个本地位置或全球位置更新到 PX4。
 `update`方法需要一个位置测量`struct`(`LocalPositionMeasure`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1LocalPositionMeasurement.html)或[\`GlobalPositionMeasure\`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1GlobalPositionMeasurement.html)]，开发者可以在其中填入自己生成的位置测量数据。
@@ -28,8 +26,7 @@ Experimental
    ```
 
    提示信息
-   为确保兼容性，请使用 PX4、px4_msgs（PX4 消息包）及该库的最新 main 分支。
-   另请参阅 [here]（https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4）
+   为确保兼容性，请使用 PX4、px4_msgs（PX4 消息包）及该库的最新 main 分支。另请参阅 [here]（https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4）
 
 :::
 
@@ -101,8 +98,7 @@ Experimental
 
 ## 如何使用代码库
 
-要发送位置测量数据，你需要用所测量的值填充位置结构体。
-然后以此结构调用接口的更新功能作为参数。
+要发送位置测量数据，你需要用所测量的值填充位置结构体。然后以此结构调用接口的更新功能作为参数。
 
 For a basic example of how to use this interface, check out the [examples](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation) in the `Auterion/px4-ros2-interface-lib` repository, such as [examples/cpp/navigation/local_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/local_navigation/include/local_navigation.hpp) or [examples/cpp/navigation/global_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/global_navigation/include/global_navigation.hpp).
 
@@ -303,5 +299,4 @@ private:
 
 ## 接口的多个实例
 
-使用同一接口的多个实例（例如，多个局部接口实例）发送估计更新时，会将所有更新消息发送到同一个主题，从而导致串扰。
-这不应影响计量并入EKF，但不同的计量来源将无法区分。
+使用同一接口的多个实例（例如，多个局部接口实例）发送估计更新时，会将所有更新消息发送到同一个主题，从而导致串扰。这不应影响计量并入EKF，但不同的计量来源将无法区分。

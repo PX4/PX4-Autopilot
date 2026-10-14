@@ -45,7 +45,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleAttitudeSetpoint](VehicleAttitudeSetpoint.md)
 - [VehicleCommand](VehicleCommand.md) — Vehicle Command uORB message. Used for commanding a mission / action / etc. Follows the MAVLink COMMAND_INT / COMMAND_LONG definition.
 - [VehicleCommandAck](VehicleCommandAck.md) — Vehicle Command Acknowledgement uORB message.
-- [VehicleGlobalPosition](VehicleGlobalPosition.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
+- [VehicleGlobalPosition](VehicleGlobalPosition.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gnss). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 - [VehicleLandDetected](VehicleLandDetected.md)
 - [VehicleLocalPosition](VehicleLocalPosition.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 - [VehicleOdometry](VehicleOdometry.md) — Vehicle odometry data.
@@ -125,20 +125,20 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorBias3d](EstimatorBias3d.md)
 - [EstimatorEventFlags](EstimatorEventFlags.md)
 - [EstimatorFusionControl](EstimatorFusionControl.md)
-- [EstimatorGpsStatus](EstimatorGpsStatus.md)
 - [EstimatorInnovations](EstimatorInnovations.md)
 - [EstimatorSelectorStatus](EstimatorSelectorStatus.md)
 - [EstimatorSensorBias](EstimatorSensorBias.md) — Sensor readings and in-run biases in SI-unit form. Sensor readings are compensated for static offsets,. scale errors, in-run bias and thermal drift (if thermal compensation is enabled and available).
 - [EstimatorStates](EstimatorStates.md)
 - [EstimatorStatus](EstimatorStatus.md)
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
+- [ExternalGimbalManagerStatus](ExternalGimbalManagerStatus.md) — External gimbal manager status.
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
 - [FailureInjection](FailureInjection.md) — Failure injection configuration.
 - [FiducialMarkerPosReport](FiducialMarkerPosReport.md) — Relative position of a precision-landing target detected by a vision pipeline (e.g. an ArUco marker).
 - [FiducialMarkerYawReport](FiducialMarkerYawReport.md) — Yaw of a precision-landing target relative to the NED (North, East, Down) frame, reported by a vision pipeline.
 - [FigureEightStatus](FigureEightStatus.md)
-- [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs.
+- [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message. Published by fw_mode_manager module to report the resultant lateral setpoints and NPFG debug outputs.
 - [FixedWingLateralStatus](FixedWingLateralStatus.md) — Fixed Wing Lateral Status message. Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint.
 - [FixedWingRunwayControl](FixedWingRunwayControl.md) — Auxiliary control fields for fixed-wing runway takeoff/landing.
 - [FixedWingTakeoffStatus](FixedWingTakeoffStatus.md) — Status of a fixed-wing takeoff. Passes information from the FixedWingModeManager to the Navigator.
@@ -158,6 +158,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [GimbalManagerInformation](GimbalManagerInformation.md)
 - [GimbalManagerSetAttitude](GimbalManagerSetAttitude.md)
 - [GimbalManagerSetManualControl](GimbalManagerSetManualControl.md)
+- [GimbalManagerSetPitchyaw](GimbalManagerSetPitchyaw.md) — Gimbal manager pitch/yaw setpoint.
 - [GimbalManagerStatus](GimbalManagerStatus.md)
 - [GpioConfig](GpioConfig.md) — GPIO configuration.
 - [GpioIn](GpioIn.md) — GPIO mask and state.
@@ -169,7 +170,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [HeaterStatus](HeaterStatus.md)
 - [HoverThrustEstimate](HoverThrustEstimate.md)
 - [InputRc](InputRc.md)
-- [InternalCombustionEngineControl](InternalCombustionEngineControl.md)
+- [InternalCombustionEngineControl](InternalCombustionEngineControl.md) — Internal combustion engine (ICE) actuator setpoints.
 - [InternalCombustionEngineStatus](InternalCombustionEngineStatus.md)
 - [IridiumsbdStatus](IridiumsbdStatus.md)
 - [IrlockReport](IrlockReport.md) — IRLOCK_REPORT message data.
@@ -253,11 +254,11 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorBaro](SensorBaro.md) — Barometer sensor.
 - [SensorCombined](SensorCombined.md) — Sensor readings in SI-unit form. These fields are scaled and offset-compensated where possible and do not. change with board revisions and sensor updates.
 - [SensorCorrection](SensorCorrection.md) — Sensor corrections in SI-unit form for the voted sensor.
+- [SensorGnss](SensorGnss.md) — GNSS receiver report, position in WGS84.
 - [SensorGnssRelative](SensorGnssRelative.md) — GNSS relative positioning information in NED frame. The NED frame is defined as the local topological system at the reference station.
 - [SensorGnssRf](SensorGnssRf.md) — GNSS RF status.
 - [SensorGnssSpectrum](SensorGnssSpectrum.md) — GNSS spectrum analysis.
 - [SensorGnssStatus](SensorGnssStatus.md) — Gnss quality indicators.
-- [SensorGps](SensorGps.md) — GPS position in WGS84 coordinates. the field 'timestamp' is for the position & velocity (microseconds).
 - [SensorGyro](SensorGyro.md)
 - [SensorGyroFft](SensorGyroFft.md)
 - [SensorGyroFifo](SensorGyroFifo.md)
@@ -269,6 +270,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorTemp](SensorTemp.md)
 - [SensorUwb](SensorUwb.md) — Ultra-wideband (UWB) distance sensor.
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
+- [SensorsStatusGnss](SensorsStatusGnss.md) — Per-receiver GNSS health and check diagnostics.
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
@@ -290,6 +292,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleAirData](VehicleAirData.md) — Vehicle air data.
 - [VehicleConstraints](VehicleConstraints.md) — Local setpoint constraints in NED frame. setting something to NaN means that no limit is provided.
 - [VehicleControlMode](VehicleControlMode.md) — Defines which controllers should run.
+- [VehicleGnss](VehicleGnss.md) — Selected GNSS solution.
+- [VehicleGnssHeading](VehicleGnssHeading.md) — GNSS heading from a dual-antenna or moving-baseline receiver.
 - [VehicleImu](VehicleImu.md) — IMU readings in SI-unit form.
 - [VehicleImuStatus](VehicleImuStatus.md)
 - [VehicleLocalPositionSetpoint](VehicleLocalPositionSetpoint.md) — Local position setpoint in NED frame. Telemetry of PID position controller to monitor tracking. NaN means the state was not controlled.

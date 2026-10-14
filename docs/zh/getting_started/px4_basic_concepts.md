@@ -2,8 +2,7 @@
 
 这个话题提供了一次关于无人机的基本介绍，并使用了PX4（它主要针对新手用户，但也是对经验较丰富的用户的良好介绍）。
 
-如果你已经熟悉了基本概念，你可以转到 [基本组装](../assembly/index.md) 以了解如何连接特定的自驾仪硬件。
-要加载固件并使用 _QGC 地面站_ 设置机体，请查看 [基本配置](../config/index.md)。
+如果你已经熟悉了基本概念，你可以转到 [基本组装](../assembly/index.md) 以了解如何连接特定的自驾仪硬件。要加载固件并使用 _QGC 地面站_ 设置机体，请查看 [基本配置](../config/index.md)。
 
 ## 无人机是什么？
 
@@ -208,7 +207,7 @@ Vehicles may include a _safety switch_ that must be engaged before the vehicle c
 This switch is almost always integrated into the [GPS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [buzzer](#buzzer) and [UI LED](#leds).
 
 The switch may be disabled by default, though this depends on the particular flight controller and airframe configuration.
-You can disable/enable use of the switch with the [CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY) parameter.
+You can disable/enable use of the switch with the [COM_SAFETY_MODE](../advanced_config/parameter_reference.md#COM_SAFETY_MODE) parameter.
 
 :::info
 Safety switches are optional.
@@ -260,8 +259,7 @@ The maximum supported SD card size on Pixhawk boards is 32GB.
 The _SanDisk Extreme U3 32GB_ and _Samsung EVO Plus 32_ are [highly recommended](../dev_log/logging.md#sd-cards).
 :::
 
-尽管如此，SD卡也只是可选的。
-不包含 SD 卡槽的飞行控制器可以：
+尽管如此，SD卡也只是可选的。不包含 SD 卡槽的飞行控制器可以：
 
 - Disable notification beeps are disabled using the parameter [CBRK_BUZZER](../advanced_config/parameter_reference.md#CBRK_BUZZER).
 - [Stream logs](../dev_log/logging.md#log-streaming) to another component (companion).

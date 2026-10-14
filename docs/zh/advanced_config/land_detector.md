@@ -1,7 +1,6 @@
 # 着陆探测器配置
 
-着陆探测器是一个动态飞行器模型，代表了从接触地面到着陆的关键飞行器状态。
-本节主题说明您可能希望调整的主要参数，以改善飞行器着陆行为。
+着陆探测器是一个动态飞行器模型，代表了从接触地面到着陆的关键飞行器状态。本节主题说明您可能希望调整的主要参数，以改善飞行器着陆行为。
 
 ## 自动上锁
 
@@ -20,8 +19,7 @@ Information about how the parameters affect landing can be found below in [Land 
 为了改善特定机架上的着陆，您可能需要调整的其他关键参数包括:
 
 - [MPC_THR_HOVER](../advanced_config/parameter_reference.md#MPC_THR_HOVER) - the hover throttle of the system (default is 50%).
-  正确设置这一点是很重要的, 因为它使高度控制更加准确, 并确保正确的地面检测。
-  没有安装有效载荷的穿越机或大型相机的无人机可能需要更低的悬停油门 (例如 35%)。
+  正确设置这一点是很重要的, 因为它使高度控制更加准确, 并确保正确的地面检测。没有安装有效载荷的穿越机或大型相机的无人机可能需要更低的悬停油门 (例如 35%)。
 
   ::: info
   Incorrectly setting `MPC_THR_HOVER` may result in ground-contact or maybe-landed detection while still in air (in particular, while descending in [Position mode](../flight_modes_mc/position.md) or [Altitude mode](../flight_modes_mc/altitude.md)).
@@ -36,8 +34,7 @@ Information about how the parameters affect landing can be found below in [Land 
 
 ### MC Land Detector States
 
-为了探测着陆，多旋翼首先必须经历三个不同的状态，其中每个状态都包含来自先前状态的条件以及更严格的约束。
-如果由于缺少传感器而无法达到条件，则默认情况下认为该条件为真。
+为了探测着陆，多旋翼首先必须经历三个不同的状态，其中每个状态都包含来自先前状态的条件以及更严格的约束。如果由于缺少传感器而无法达到条件，则默认情况下认为该条件为真。
 For instance, in [Acro mode](../flight_modes_mc/acro.md) and no sensor is active except for the gyro sensor, then the detection solely relies on thrust output and time.
 
 In order to proceed to the next state, each condition has to be true for 300ms.

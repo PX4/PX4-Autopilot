@@ -1,11 +1,13 @@
 # syntax=docker/dockerfile:1
 # Build ROS independently of the changing SIH/Gazebo firmware package.
 ARG ROS_DISTRO=jazzy
+ARG INCLUDE_GAZEBO=0
 FROM ubuntu:22.04 AS ros2-base-humble
 FROM ubuntu:24.04 AS ros2-base-jazzy
 FROM ros2-base-${ROS_DISTRO} AS ros2-base
 
 ARG ROS_DISTRO
+ARG INCLUDE_GAZEBO
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ROS_DISTRO=${ROS_DISTRO}
 ENV LANG=C.UTF-8
@@ -18,7 +20,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     --mount=type=bind,source=setup,target=/px4-setup \
     --mount=type=bind,source=ros2-install-dependencies.sh,target=/ros2-install-dependencies.sh \
-    bash /ros2-install-dependencies.sh
+    bash /ros2-install-dependencies.sh ${INCLUDE_GAZEBO}
 
 # Keep ROS libraries intact and statically link the same pinned, private
 # Fast DDS/CDR dependencies into the Agent on both distributions.
@@ -131,12 +133,13 @@ ENV RUNS_IN_DOCKER=true
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG ROS_APT_SOURCE_VERSION=1.2.0
+ARG INCLUDE_GAZEBO=0
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     --mount=type=bind,source=setup,target=/px4-setup \
     --mount=type=bind,source=ros2-install-dependencies.sh,target=/ros2-install-dependencies.sh \
     --mount=type=bind,from=ros2-sources,source=/opt/px4_ros2/src,target=/opt/px4_ros2/src \
-    bash /ros2-install-dependencies.sh /opt/px4_ros2/src
+    bash /ros2-install-dependencies.sh ${INCLUDE_GAZEBO} /opt/px4_ros2/src
 
 # Copy only the staged Agent/logger install, never the builder's pip packages.
 COPY --from=agent /opt/agent-install/usr/local/ /usr/local/

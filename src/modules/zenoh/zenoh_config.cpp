@@ -174,8 +174,9 @@ int Zenoh_Config::DeletePubSub(char *topic, const char *filename)
 		return -1;
 	}
 
-	char line[TOPIC_INFO_SIZE];
-	char line_copy[TOPIC_INFO_SIZE];
+	// Same line size as the mapping parser, a shorter buffer splits long lines in two
+	char line[MAX_LINE_SIZE];
+	char line_copy[MAX_LINE_SIZE];
 	const char *fields[1];  // We only need the topic
 	int found = 0;
 
@@ -433,8 +434,11 @@ int Zenoh_Config::parse_csv_line(char *line, const char **fields, int max_fields
 }
 void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 {
+	mode[0] = '\0';
+	locator[0] = '\0';
+
 	FILE *fp;
-	char buffer[NET_CONFIG_LINE_SIZE];
+	char buffer[NET_CONFIG_LINE_SIZE] {};
 
 	fp = fopen(ZENOH_NET_CONFIG_PATH, "r");
 
@@ -455,6 +459,7 @@ void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 		if (config_mode) {
 			config_mode[strcspn(config_mode, "\n")] = 0;
 			strncpy(mode, config_mode, NET_MODE_SIZE);
+			mode[NET_MODE_SIZE - 1] = '\0';
 
 		} else {
 			mode[0] = 0;
@@ -463,6 +468,7 @@ void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 		if (nfields >= 2) {
 			const char *config_locator = fields[1];
 			strncpy(locator, config_locator, NET_LOCATOR_SIZE);
+			locator[NET_LOCATOR_SIZE - 1] = '\0';
 
 		} else {
 			locator[0] = 0;
@@ -470,6 +476,7 @@ void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 
 	} else {
 		printf("Failed to open the file\n");
+		return;
 	}
 
 	//Close the file
@@ -480,14 +487,21 @@ int Zenoh_Config::getLineCount(const char *filename)
 {
 	int lines = 0;
 	int ch;
+	bool line_start = true;
 
-	// Open file in write mode
 	FILE *fp = fopen(filename, "r");
 
+	if (!fp) {
+		return 0;
+	}
+
+	// Count the lines getPubSubMapping() parses: it skips empty lines and reads a last line without newline
 	while ((ch = fgetc(fp)) != EOF) {
-		if (ch == '\n') {
+		if (line_start && ch != '\n') {
 			lines++;
 		}
+
+		line_start = (ch == '\n');
 	}
 
 	//Close the file

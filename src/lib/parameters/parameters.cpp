@@ -92,7 +92,6 @@ using namespace time_literals;
 #include "flashparams/flashparams.h"
 #else
 inline static int flash_param_save(param_filter_func filter) { return -1; }
-inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
 #endif
 
@@ -104,6 +103,12 @@ static ParamAutosave *autosave_instance {nullptr};
 
 static px4::AtomicBitset<param_info_count> params_active;  // params found
 static px4::AtomicBitset<param_info_count> params_unsaved;
+
+// Params the save in progress is writing. They are moved out of params_unsaved
+// before their values are read, so a param_set that lands while the save runs
+// marks its param again and reaches the next save. Flash-param saves write only
+// unsaved params, so nothing else would ever write that change.
+static px4::AtomicBitset<param_info_count> params_saving;
 
 static ConstLayer firmware_defaults;
 static DynamicSparseLayer runtime_defaults{&firmware_defaults};
@@ -290,7 +295,7 @@ int param_get_used_index(param_t param)
 bool
 param_value_unsaved(param_t param)
 {
-	return handle_in_range(param) ? params_unsaved[param] : false;
+	return handle_in_range(param) ? (params_unsaved[param] || params_saving[param]) : false;
 }
 
 int
@@ -411,7 +416,8 @@ param_control_autosave(bool enable)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool update_remote = true)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool update_remote = true,
+		   bool autosave = true)
 {
 	if (!handle_in_range(param)) {
 		PX4_ERR("set invalid param %d", param);
@@ -453,7 +459,10 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 	if (user_config.store(param, new_value)) {
-		params_unsaved.set(param, !mark_saved && param_changed);
+		if (param_changed) {
+			params_unsaved.set(param, !mark_saved);
+		}
+
 		result = PX4_OK;
 
 	} else {
@@ -461,7 +470,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		result = PX4_ERROR;
 	}
 
-	if ((result == PX4_OK) && param_changed && !mark_saved) { // this is false when importing parameters
+	if ((result == PX4_OK) && param_changed && !mark_saved && autosave) { // this is false when importing parameters
 		param_autosave();
 	}
 
@@ -643,6 +652,13 @@ static int param_reset_internal(param_t param, bool notify = true, bool autosave
 
 	if (handle_in_range(param)) {
 		user_config.reset(param);
+	}
+
+	if (param_found) {
+		/* Persist the reset. Flash-param saves append only unsaved params,
+		 * so a reset has to show up as a tombstone or replay keeps the
+		 * previous override. */
+		params_unsaved.set(param, true);
 	}
 
 	if (autosave) {
@@ -830,6 +846,13 @@ int param_save_default(bool blocking)
 	int res = PX4_ERROR;
 	const char *filename = param_get_default_file();
 
+	for (param_t param = 0; handle_in_range(param); param++) {
+		if (params_unsaved[param]) {
+			params_saving.set(param, true);
+			params_unsaved.set(param, false);
+		}
+	}
+
 	if (filename) {
 		static constexpr int MAX_ATTEMPTS = 3;
 
@@ -869,9 +892,16 @@ int param_save_default(bool blocking)
 	if (res != PX4_OK) {
 		PX4_ERR("param export failed (%d)", res);
 
-	} else {
-		params_unsaved.reset();
+		for (param_t param = 0; handle_in_range(param); param++) {
+			if (params_saving[param]) {
+				params_unsaved.set(param, true);
+			}
+		}
+	}
 
+	params_saving.reset();
+
+	if (res == PX4_OK) {
 		// backup file
 		if (param_backup_file) {
 			int fd_backup_file = ::open(param_backup_file, O_WRONLY | O_CREAT | O_TRUNC, PX4_O_MODE_666);
@@ -912,7 +942,7 @@ param_load_default()
 	const char *filename = param_get_default_file();
 
 	if (!filename) {
-		return flash_param_load();
+		return param_load(-1);
 	}
 
 	int fd_load = ::open(filename, O_RDONLY);
@@ -1179,6 +1209,14 @@ out:
 	return result;
 }
 
+#if defined(FLASH_BASED_PARAMS)
+// A file is never the flash backend's store, so what an import changes is unsaved until a delta carries it.
+// As on the file backend, the import itself does not save.
+static constexpr bool file_import_is_saved = false;
+#else
+static constexpr bool file_import_is_saved = true;
+#endif
+
 static int
 param_import_callback(bson_decoder_t decoder, bson_node_t node)
 {
@@ -1191,8 +1229,12 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 		return 0;
 	}
 
+	// A tombstone has no value. The decoder leaves the previous node's in the union and the translations
+	// read it without a type check.
+	const bool tombstone = node->type == BSON_nullptr || node->type == BSON_UNDEFINED;
+
 	// if we do param_set() directly in the translation, set PARAM_SKIP_IMPORT as return value and return here
-	if (param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
+	if (!tombstone && param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
 		return 1;
 	}
 
@@ -1206,10 +1248,15 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 
 	// Handle setting the parameter from the node
 	switch (node->type) {
+	case BSON_nullptr:
+	case BSON_UNDEFINED:
+		param_reset_internal(param, true, false);
+		return 1;
+
 	case BSON_INT32: {
 			if (param_type(param) == PARAM_TYPE_INT32) {
 				int32_t i = node->i32;
-				param_set_internal(param, &i, true, true);
+				param_set_internal(param, &i, file_import_is_saved, true, true, false);
 				PX4_DEBUG("Imported %s with value %" PRIi32, param_name(param), i);
 
 			} else {
@@ -1221,7 +1268,7 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	case BSON_DOUBLE: {
 			if (param_type(param) == PARAM_TYPE_FLOAT) {
 				float f = node->d;
-				param_set_internal(param, &f, true, true);
+				param_set_internal(param, &f, file_import_is_saved, true, true, false);
 				PX4_DEBUG("Imported %s with value %f", param_name(param), (double)f);
 
 			} else {
@@ -1323,11 +1370,54 @@ param_import_internal(int fd)
 	return -1;
 }
 
+#if defined(FLASH_BASED_PARAMS)
+static int flash_backend_locked(int (*op)())
+{
+	/* Same order as param_save_default: mutex then shutdown lock. Autosave
+	 * uses a trylock, so a compact holds it off the flash programming. */
+	pthread_mutex_lock(&file_mutex);
+
+	int shutdown_lock_ret = px4_shutdown_lock();
+
+	if (shutdown_lock_ret != 0) {
+		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
+	}
+
+	int result = op();
+
+	pthread_mutex_unlock(&file_mutex);
+
+	if (shutdown_lock_ret == 0) {
+		px4_shutdown_unlock();
+	}
+
+	return result;
+}
+
+static int flash_load_locked()
+{
+	/* Reset under the lock so a pending autosave cannot append tombstones
+	 * of the just-cleared RAM before import/compact run. */
+	param_reset_all_internal(false);
+	int result = flash_param_import();
+
+	if (result == 0 || result == 1) {
+		params_unsaved.reset();
+	}
+
+	return result;
+}
+#endif
+
 int
 param_import(int fd)
 {
 	if (fd < 0) {
+#if defined(FLASH_BASED_PARAMS)
+		return flash_backend_locked(flash_param_import);
+#else
 		return flash_param_import();
+#endif
 	}
 
 	return param_import_internal(fd);
@@ -1337,11 +1427,25 @@ int
 param_load(int fd)
 {
 	if (fd < 0) {
-		return flash_param_load();
+#if defined(FLASH_BASED_PARAMS)
+		return flash_backend_locked(flash_load_locked);
+#else
+		return PX4_ERROR;
+#endif
 	}
 
 	param_reset_all_internal(false);
-	return param_import_internal(fd);
+	int result = param_import_internal(fd);
+
+#if !defined(FLASH_BASED_PARAMS)
+
+	if (result >= 0) {
+		params_unsaved.reset();
+	}
+
+#endif
+
+	return result;
 }
 
 void

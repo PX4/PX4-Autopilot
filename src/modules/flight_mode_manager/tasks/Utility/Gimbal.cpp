@@ -81,7 +81,7 @@ void Gimbal::acquireGimbalControlIfNeeded()
 			vehicle_command.source_system = _param_mav_sys_id.get();
 			vehicle_command.source_component = _param_mav_comp_id.get();
 			vehicle_command.target_system = _param_mav_sys_id.get();
-			vehicle_command.target_component = _param_mav_sys_id.get();
+			vehicle_command.target_component = _param_mav_comp_id.get();
 			vehicle_command.from_external = false;
 			_vehicle_command_pub.publish(vehicle_command);
 		}

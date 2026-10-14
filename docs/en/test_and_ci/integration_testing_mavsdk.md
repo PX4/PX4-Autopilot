@@ -90,7 +90,7 @@ Run a single test by specifying the `model` and test `case` as command line opti
 For example, to test a multicopter mission using the SIH simulator:
 
 ```sh
-test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sih-sitl.json --speed-factor 10 --model quadx --case 'Fly square Multicopter Missions including RTL'
+test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sih-sitl.json --speed-factor 10 --model quadx --case 'Fly square Multicopter Missions including Return'
 ```
 
 The easiest way to find out the current set of models and their associated test cases is to run all PX4 tests [as shown above](#run-all-px4-tests) (note, you can then cancel the build if you wish to test just one).
@@ -108,8 +108,8 @@ About to run 39 test cases for 3 selected models (1 iteration):
     - 'Continue on baro stuck during mission (baro height mode)'
     - 'Continue on baro stuck during mission (GPS height mode)'
     - 'Takeoff and Land'
-    - 'Fly square Multicopter Missions including RTL'
-    - 'Fly square Multicopter Missions with manual RTL'
+    - 'Fly square Multicopter Missions including Return'
+    - 'Fly square Multicopter Missions with manual Return'
     - 'Fly straight Multicopter Mission'
     - 'Offboard takeoff and land'
     - 'Offboard position control'
@@ -124,8 +124,8 @@ About to run 39 test cases for 3 selected models (1 iteration):
     - 'Continue on baro stuck during mission (baro height mode)'
     - 'Continue on baro stuck during mission (GPS height mode)'
     - 'Takeoff and Land'
-    - 'Fly square Multicopter Missions including RTL'
-    - 'Fly square Multicopter Missions with manual RTL'
+    - 'Fly square Multicopter Missions including Return'
+    - 'Fly square Multicopter Missions with manual Return'
     - 'Fly forward in position control'
     - 'Fly forward in altitude control'
   - tailsitter:
@@ -137,8 +137,8 @@ About to run 39 test cases for 3 selected models (1 iteration):
     - 'Continue on baro stuck during mission (baro height mode)'
     - 'Continue on baro stuck during mission (GPS height mode)'
     - 'Takeoff and Land'
-    - 'Fly square Multicopter Missions including RTL'
-    - 'Fly square Multicopter Missions with manual RTL'
+    - 'Fly square Multicopter Missions including Return'
+    - 'Fly square Multicopter Missions with manual Return'
     - 'Fly forward in position control'
     - 'Fly forward in altitude control'
 ```

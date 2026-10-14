@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "FixedwingAttitudeControl.hpp"
+#include <lib/airspeed/airspeed.h>
 #include <lib/geo/geo.h>
 
 
@@ -148,7 +149,7 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 	}
 }
 
-float FixedwingAttitudeControl::get_airspeed_constrained()
+float FixedwingAttitudeControl::get_true_airspeed_constrained()
 {
 	_airspeed_validated_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
@@ -171,7 +172,15 @@ float FixedwingAttitudeControl::get_airspeed_constrained()
 		}
 	}
 
-	return math::constrain(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_max.get());
+	vehicle_air_data_s air_data;
+
+	if (_vehicle_air_data_sub.update(&air_data) && PX4_ISFINITE(air_data.rho) && (air_data.rho > FLT_EPSILON)) {
+		_air_density = air_data.rho;
+	}
+
+	// limits are calibrated airspeeds, so convert after constraining
+	return calc_true_from_calibrated_airspeed(
+		       math::constrain(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_max.get()), _air_density);
 }
 
 void FixedwingAttitudeControl::Run()
@@ -273,7 +282,7 @@ void FixedwingAttitudeControl::Run()
 					body_rates_setpoint = _proportional_gain.emult(att_err);
 
 					// Turn coordination
-					const float V = math::max(get_airspeed_constrained(), 0.1f);
+					const float V = math::max(get_true_airspeed_constrained(), 0.1f);
 					const float q1 = 2.f * (q_current(0) * q_current(1) + q_current(2) * q_current(3)); // equivalent to 2.f * sin(roll) * cos(pitch)
 					const float yawrate_ff = CONSTANTS_ONE_G * q1 / V;
 					const float pitchrate_ff = q1 * yawrate_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));

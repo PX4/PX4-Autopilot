@@ -13,7 +13,7 @@ After setting up the virtual machine, the installation and setup of PX4 within t
 While using a VM is a very easy way to set up and test an environment for building firmware, users should be aware:
 
 1. 固件的编译速度比原生 Linux 要更慢一些。
-2. The JMAVSim simulation, frame rate be much slower than on native Linux.
+2. Simulation frame rates will be much slower than on native Linux.
    虚拟机运行资源不足可能导致特定情况下无人机坠毁。
 3. 可以安装 Gazebo 和 ROS，但运行速度非常慢。
 
@@ -41,7 +41,7 @@ VMWare performance is acceptable for basic usage (building Firmware) but not for
 5. Enable 3D acceleration in the VM's settings: **VM > Settings > Hardware > Display > Accelerate 3D graphics**
 
    ::: info
-   This option is required to properly run 3D simulation environments like jMAVSim and Gazebo Classic.
+   This option is required to properly run 3D simulation environments like Gazebo and Gazebo Classic.
    We recommend this is done before installing Linux in the virtual environment.
 
 :::

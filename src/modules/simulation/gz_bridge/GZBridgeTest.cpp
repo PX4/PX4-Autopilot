@@ -38,7 +38,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/failure_injection.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 class GZBridgeTestPeer
 {
@@ -85,41 +85,41 @@ TEST(GZBridge, AppliesGpsFailureInjectionAtNavSatPublication)
 {
 	GZBridge bridge{"default", "x500"};
 	uORB::Publication<failure_injection_s> failure_pub{ORB_ID(failure_injection)};
-	uORB::Subscription gps_sub{ORB_ID(sensor_gps)};
+	uORB::Subscription sensor_gnss_sub{ORB_ID(sensor_gnss)};
 
 	// Initialize the map reference.
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.397742, 8.545594));
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.397742, 8.545594));
 
-	sensor_gps_s baseline{};
-	ASSERT_TRUE(gps_sub.update(&baseline));
-	ASSERT_EQ(baseline.fix_type, sensor_gps_s::FIX_TYPE_3D);
+	sensor_gnss_s baseline{};
+	ASSERT_TRUE(sensor_gnss_sub.update(&baseline));
+	ASSERT_EQ(baseline.fix_type, sensor_gnss_s::FIX_TYPE_3D);
 
 	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_STUCK)));
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.407742, 8.555594));
 
-	sensor_gps_s stuck{};
-	ASSERT_TRUE(gps_sub.update(&stuck));
-	EXPECT_DOUBLE_EQ(stuck.latitude_deg, baseline.latitude_deg);
-	EXPECT_DOUBLE_EQ(stuck.longitude_deg, baseline.longitude_deg);
+	sensor_gnss_s stuck{};
+	ASSERT_TRUE(sensor_gnss_sub.update(&stuck));
+	EXPECT_DOUBLE_EQ(stuck.latitude, baseline.latitude);
+	EXPECT_DOUBLE_EQ(stuck.longitude, baseline.longitude);
 
 	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_WRONG)));
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.407742, 8.555594));
 
-	sensor_gps_s wrong{};
-	ASSERT_TRUE(gps_sub.update(&wrong));
-	EXPECT_EQ(wrong.fix_type, sensor_gps_s::FIX_TYPE_2D);
+	sensor_gnss_s wrong{};
+	ASSERT_TRUE(sensor_gnss_sub.update(&wrong));
+	EXPECT_EQ(wrong.fix_type, sensor_gnss_s::FIX_TYPE_2D);
 
 	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_OFF)));
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.407742, 8.555594));
-	EXPECT_FALSE(gps_sub.updated());
+	EXPECT_FALSE(sensor_gnss_sub.updated());
 
 	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_OK)));
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.407742, 8.555594));
 
-	sensor_gps_s recovered{};
-	ASSERT_TRUE(gps_sub.update(&recovered));
-	EXPECT_EQ(recovered.fix_type, sensor_gps_s::FIX_TYPE_3D);
-	EXPECT_NE(recovered.latitude_deg, baseline.latitude_deg);
-	EXPECT_NE(recovered.longitude_deg, baseline.longitude_deg);
+	sensor_gnss_s recovered{};
+	ASSERT_TRUE(sensor_gnss_sub.update(&recovered));
+	EXPECT_EQ(recovered.fix_type, sensor_gnss_s::FIX_TYPE_3D);
+	EXPECT_NE(recovered.latitude, baseline.latitude);
+	EXPECT_NE(recovered.longitude, baseline.longitude);
 }

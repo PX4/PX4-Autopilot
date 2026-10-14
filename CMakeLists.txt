@@ -104,7 +104,17 @@ cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE FILEPATH "PX4 source directory" FORCE)
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE FILEPATH "PX4 binary directory" FORCE)
 
-list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
+# PX4 can be built as a subproject, with add_subdirectory() from another
+# project, which then owns the build type, the compiler launcher, the CMake
+# cache and the firmware image.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+	set(PX4_SUBPROJECT OFF)
+else()
+	set(PX4_SUBPROJECT ON)
+endif()
+
+# prepend, so that the PX4 modules take precedence over those of a parent project
+set(CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 include(px4_parse_function_args)
 
 #=============================================================================
@@ -184,6 +194,14 @@ set(Python3_FIND_STRATEGY LOCATION)
 set(Python3_FIND_FRAMEWORK LAST)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+# macOS installs Gazebo into a project-local pixi environment
+# (Tools/setup/macos/pixi.toml). Search it like the .venv above, so the
+# gz modules still build when the venv is not activated.
+set(PX4_MACOS_GZ_PREFIX "${CMAKE_CURRENT_LIST_DIR}/Tools/setup/macos/.pixi/envs/default")
+if(APPLE AND EXISTS "${PX4_MACOS_GZ_PREFIX}")
+	list(APPEND CMAKE_PREFIX_PATH "${PX4_MACOS_GZ_PREFIX}")
+endif()
+
 # Preserve PYTHON_EXECUTABLE as passed if any (e.g. via -D on command
 # line, or from the top Makefile); or else default to what
 # find_package(Python3) resolved. Promote to a CACHE FILEPATH entry so
@@ -230,7 +248,7 @@ endif()
 set_property(GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
 
 include(platforms/${PX4_PLATFORM}/cmake/px4_impl_os.cmake)
-list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
+set(CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake ${CMAKE_MODULE_PATH})
 
 if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
 	include(init)
@@ -264,7 +282,7 @@ if(APPLE)
 endif()
 
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
-if(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE AND NOT PX4_SUBPROJECT)
 	if(${PX4_PLATFORM} STREQUAL "nuttx")
 		set(PX4_BUILD_TYPE "MinSizeRel")
 	else()
@@ -367,7 +385,9 @@ if(${PX4_PLATFORM} STREQUAL "posix")
 	include(mavsdk_tests)
 endif()
 
-include(ccache)
+if(NOT PX4_SUBPROJECT)
+	include(ccache)
+endif()
 
 #=============================================================================
 # get chip and chip manufacturer
@@ -428,7 +448,9 @@ include(px4_metadata)
 
 add_subdirectory(msg EXCLUDE_FROM_ALL)
 
-px4_generate_airframes_xml(BOARD ${PX4_BOARD})
+if(NOT PX4_SUBPROJECT)
+	px4_generate_airframes_xml(BOARD ${PX4_BOARD})
+endif()
 
 #=============================================================================
 # external projects
@@ -525,19 +547,20 @@ add_custom_command(OUTPUT ${uorb_graph_config}
 add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
 
 
-include(bloaty)
+if(NOT PX4_SUBPROJECT)
+	include(bloaty)
 
+	include(metadata)
+	include(package)
+	include(sbom)
 
-include(metadata)
-include(package)
-include(sbom)
-
-# install python requirements using configured python
-add_custom_target(install_python_requirements
-	COMMAND ${PYTHON_EXECUTABLE} -m pip install --break-system-packages --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
-	DEPENDS ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
-	USES_TERMINAL
-)
+	# install python requirements using configured python
+	add_custom_target(install_python_requirements
+		COMMAND ${PYTHON_EXECUTABLE} -m pip install --break-system-packages --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
+		DEPENDS ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
+		USES_TERMINAL
+	)
+endif()
 
 if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/finalize.cmake")
 	include(finalize)
