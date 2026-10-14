@@ -228,7 +228,8 @@ These parameters can be [set on moving base and rover RTK CAN nodes](#qgc-cannod
 - [CANNODE_PUB_MBD](../advanced_config/parameter_reference.md#CANNODE_PUB_MBD) causes a moving base GPS unit to publish [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata)RTCM messages onto the bus (for the rover)
 - [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) tells the rover that it should subscribe to [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata) RTCM messages on the bus (from the moving base).
 
-On the autopilot, set [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Moving base rover` for the rover's slot (matched by [SENS_GNSSn_ID](../advanced_config/parameter_reference.md#SENS_GNSS0_ID)) and the antenna offsets of both nodes (see [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
+On the autopilot, set [SENS_GNSS0_ID](../advanced_config/parameter_reference.md#SENS_GNSS0_ID) and [SENS_GNSS1_ID](../advanced_config/parameter_reference.md#SENS_GNSS1_ID) to the device IDs of the two nodes, [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Moving base rover` for the rover's slot, and the antenna offsets of both nodes (see [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
+With [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) at `Auto` (default), the moving base is then the [primary receiver](../gps_compass/index.md#multiple-receivers).
 A node running older firmware subtracts its own `GPS_YAW_OFFSET`; leave that at 0.
 
 #### Barometer
