@@ -371,6 +371,14 @@ For an HD air unit on the `DIGI VTX` connector, the firmware also includes the M
 Set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `TELEM 2` to run it on USART2, which is the connector's serial port.
 The two OSDs are independent and can run at the same time, one on the analog video path and one on the air unit.
 
+### VTX {#vtx}
+
+SmartAudio and Tramp video transmitters can be controlled over a serial port.
+Set [VTX_SER_CFG](../advanced_config/parameter_reference.md#VTX_SER_CFG) to the port the transmitter is wired to, and [VTX_PROTOCOL](../advanced_config/parameter_reference.md#VTX_PROTOCOL) to match it.
+The port is used in single-wire mode, so wire the transmitter to the `T` pad of the pair and leave `R` unconnected.
+
+Band, channel and power are then set with [VTX_BAND](../advanced_config/parameter_reference.md#VTX_BAND), [VTX_CHANNEL](../advanced_config/parameter_reference.md#VTX_CHANNEL) and [VTX_POWER](../advanced_config/parameter_reference.md#VTX_POWER), or from an RC switch with [VTX_MAP_CONFIG](../advanced_config/parameter_reference.md#VTX_MAP_CONFIG).
+
 ## PX4 Bootloader Update {#bootloader}
 
 The board ships with non-PX4 firmware pre-installed.
