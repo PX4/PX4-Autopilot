@@ -21,7 +21,7 @@ FAILURE_TYPE_NAMES = {0: 'ok', 1: 'off', 2: 'stuck', 3: 'garbage', 4: 'wrong', 5
                       7: 'intermittent', 8: 'drift'}
 
 # vehicle_gnss.selection_reason
-SELECTION_REASONS = {0: 'preferred', 1: 'only', 2: 'ranked', 3: 'timeout', 4: 'unhealthy', 5: 'requirements',
+SELECTION_REASONS = {0: 'preferred', 1: 'only', 2: 'ranked', 3: 'timeout', 4: 'unhealthy', 5: 'strict checks',
                      6: 'RTK fixed'}
 FAILURE_REASONS = {3, 4}
 RANKING_REASONS = {5, 6}
