@@ -47,17 +47,35 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	ERROR_QUIET
 	)
-if(px4_git_dir)
+# No lock where check_submodules.sh exits at once (GIT_SUBMODULES_ARE_EVIL). A
+# lock that can't be taken, such as in a read-only git directory, or after the
+# timeout, only warns: the check then runs without it, as before the lock.
+set(px4_submodules_lock)
+if(px4_git_dir AND "$ENV{GIT_SUBMODULES_ARE_EVIL}" STREQUAL "")
 	get_filename_component(px4_git_dir ${px4_git_dir} ABSOLUTE BASE_DIR ${PX4_SOURCE_DIR})
-	file(LOCK ${px4_git_dir}/px4_submodules.lock GUARD FILE TIMEOUT 1800)
+	set(px4_submodules_lock ${px4_git_dir}/px4_submodules.lock)
+	# file(LOCK) fails the configure when it can't create the lock file, whatever its RESULT_VARIABLE
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E touch ${px4_submodules_lock}
+		RESULT_VARIABLE px4_submodules_lock_result
+		OUTPUT_QUIET
+		ERROR_QUIET
+		)
+	if(px4_submodules_lock_result EQUAL 0)
+		file(LOCK ${px4_submodules_lock} GUARD FILE TIMEOUT 1800 RESULT_VARIABLE px4_submodules_lock_result)
+	endif()
+	if(NOT px4_submodules_lock_result STREQUAL "0")
+		message(WARNING "Could not lock ${px4_submodules_lock} (${px4_submodules_lock_result}): checking the submodules without the lock")
+		set(px4_submodules_lock)
+	endif()
 endif()
 execute_process(
 	COMMAND Tools/check_submodules.sh
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	RESULT_VARIABLE check_submodules_result
 	)
-if(px4_git_dir)
-	file(LOCK ${px4_git_dir}/px4_submodules.lock RELEASE)
+if(px4_submodules_lock)
+	file(LOCK ${px4_submodules_lock} RELEASE)
 endif()
 if(NOT check_submodules_result EQUAL 0)
 	message(FATAL_ERROR "Tools/check_submodules.sh failed")
