@@ -292,7 +292,7 @@ private:
 	List<uORB::SubscriptionCallback *>	_callbacks;
 
 	const uint8_t _instance; /**< orb multi instance identifier */
-	px4::atomic_bool _advertised{false};  /**< has ever been advertised (not necessarily published data yet) */
+	px4::atomic_bool _advertised{false};  /**< set on advertise, cleared on unadvertise; subscribers only read while set */
 
 	int8_t _subscriber_count{0};
 
