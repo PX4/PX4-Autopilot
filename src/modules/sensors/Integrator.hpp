@@ -173,9 +173,9 @@ public:
 			// Strapdown Inertial Navigation Integration Algorithm Design Part 1: Attitude Algorithms
 			// Sourced: https://arc.aiaa.org/doi/pdf/10.2514/2.4228
 			// Simulated: https://github.com/priseborough/InertialNav/blob/master/models/imu_error_modelling.m
-			_beta += ((_last_alpha + _last_delta_alpha * (1.f / 6.f)) % delta_alpha) * 0.5f;
+			// _alpha is still the angle accumulated through the previous sample
+			_beta += ((_alpha + _last_delta_alpha * (1.f / 6.f)) % delta_alpha) * 0.5f;
 			_last_delta_alpha = delta_alpha;
-			_last_alpha = _alpha;
 
 			// accumulate delta integrals
 			_alpha += delta_alpha;
@@ -183,6 +183,7 @@ public:
 		} else {
 			reset();
 			_last_val = val;
+			_last_delta_alpha.zero();
 		}
 	}
 
@@ -190,7 +191,6 @@ public:
 	{
 		Integrator::reset();
 		_beta.zero();
-		_last_alpha.zero();
 	}
 
 	const matrix::Vector3f &accumulated_coning_corrections() const { return _beta; }
@@ -206,7 +206,6 @@ public:
 			// apply coning corrections
 			integral += _beta;
 			_beta.zero();
-			_last_alpha.zero();
 			return true;
 		}
 
@@ -215,9 +214,7 @@ public:
 
 private:
 	matrix::Vector3f _beta{0.f, 0.f, 0.f};             /**< accumulated coning corrections */
-	matrix::Vector3f _last_delta_alpha{0.f, 0.f, 0.f}; /**< integral from previous previous sampling interval */
-	matrix::Vector3f _last_alpha{0.f, 0.f, 0.f};       /**< previous value of _alpha */
-
+	matrix::Vector3f _last_delta_alpha{0.f, 0.f, 0.f}; /**< integral from the previous sampling interval */
 };
 
 }; // namespace sensors
