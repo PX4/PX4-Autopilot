@@ -110,7 +110,13 @@ void McAutotuneAttitudeControl::Run()
 
 		if (_vehicle_command_sub.copy(&vehicle_command)) {
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE) {
-				if (fabsf(vehicle_command.param1 - 1.0f) < FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
+				vehicle_status_s vehicle_status{};
+				_vehicle_status_sub.copy(&vehicle_status);
+
+				// Both autotune modules run on VTOL; only the active vehicle type owns the command.
+				if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+				    && !vehicle_status.in_transition_mode
+				    && fabsf(vehicle_command.param1 - 1.0f) < FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
 					_vehicle_cmd_start_autotune = true;
 				}
 			}
@@ -278,6 +284,32 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 {
 	// when identifying an axis, check if the estimate has converged
 	const float converged_thr = 50.f;
+
+	// Abort only the active identification/test sequence. Landing and pilot inputs
+	// must not turn a completed tune into a failure while its result is being reported.
+	if (_state != state::idle && _state != state::wait_for_disarm
+	    && _state != state::complete && _state != state::fail) {
+		manual_control_setpoint_s manual_control_setpoint{};
+		_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+
+		const bool timeout = (now - _state_start_time) > 20_s;
+		const bool mode_changed = (_start_flight_mode != _nav_state);
+		const bool pilot_intervention = (fabsf(manual_control_setpoint.roll) > 0.05f)
+						|| (fabsf(manual_control_setpoint.pitch) > 0.05f);
+
+		if (timeout || mode_changed || pilot_intervention) {
+			PX4_WARN("Autotune aborted in state %u: %s", static_cast<unsigned>(_state),
+				 timeout ? "timeout" : (mode_changed ? "flight mode changed" : "pilot intervention"));
+
+			if (_state == state::test) {
+				revertParamGains();
+			}
+
+			_state = state::fail;
+			_state_start_time = now;
+			return;
+		}
+	}
 
 	switch (_state) {
 	case state::idle:
@@ -448,26 +480,6 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 		break;
 	}
-
-	// In case of convergence timeout, pilot intervention or mode change,
-	// the identification sequence is aborted immediately
-	manual_control_setpoint_s manual_control_setpoint{};
-	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
-
-	const bool timeout = (now - _state_start_time) > 20_s;
-	const bool mode_changed = (_start_flight_mode != _nav_state);
-	const bool pilot_intervention = ((fabsf(manual_control_setpoint.roll) > 0.05f)
-					 || (fabsf(manual_control_setpoint.pitch) > 0.05f));
-
-	const bool should_abort = timeout || mode_changed || pilot_intervention;
-
-	if (_state != state::wait_for_disarm
-	    && _state != state::idle && should_abort) {
-
-		_state = state::fail;
-		_start_flight_mode = _nav_state;
-		_state_start_time = now;
-	}
 }
 
 void McAutotuneAttitudeControl::backupAndSaveGainsToParams()
@@ -545,6 +557,10 @@ void McAutotuneAttitudeControl::copyGains(int index)
 
 bool McAutotuneAttitudeControl::areGainsGood() const
 {
+	if (!_rate_k.isAllFinite() || !_rate_i.isAllFinite() || !_rate_d.isAllFinite() || !_att_p.isAllFinite()) {
+		return false;
+	}
+
 	const bool are_positive = _rate_k.min() > 0.f
 				  && _rate_i.min() > 0.f
 				  && _rate_d.min() >= 0.f

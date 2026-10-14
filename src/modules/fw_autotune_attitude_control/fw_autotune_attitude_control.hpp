@@ -96,6 +96,7 @@ public:
 	int print_status() override;
 
 private:
+	friend class AutotuneVtolTest;
 	enum Axes : int32_t {
 		roll = (1 << 0),
 		pitch = (1 << 1),
