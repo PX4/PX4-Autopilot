@@ -449,6 +449,10 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return -1;
 	}
 
+	// the node ID and bit rate validated by uavcan_main(), which Run() uses to initialize the node
+	_instance->_node_id = node_id;
+	_instance->_bitrate = bitrate;
+
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
@@ -703,32 +707,20 @@ void
 UavcanNode::Run()
 {
 	if (!_node_init) {
-		// Node ID
-		int32_t node_id = 1;
-		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
-
-		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
-			PX4_ERR("Invalid Node ID %" PRId32, node_id);
-			ScheduleClear();
-			return;
-		}
-
-		// CAN bitrate
-		int32_t bitrate = 1000000;
-		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
-
 		/*
 		* CAN driver init
 		 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
 		 * shipped with libuavcan does not support deinitialization.
 		 */
+		// a const bit rate, which the init() that detects the bit rate (by reference) can't take
+		const uint32_t bitrate = _bitrate;
 		const int can_init_res = can->init(bitrate);
 
 		if (can_init_res < 0) {
 			PX4_ERR("CAN driver init failed %i", can_init_res);
 
 		} else {
-			_instance->init(node_id, can->driver.updateEvent());
+			_instance->init(_node_id, can->driver.updateEvent());
 
 			_node_init = true;
 		}

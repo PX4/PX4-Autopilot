@@ -268,6 +268,8 @@ private:
 	uavcan_node::Allocator	 _pool_allocator;
 
 	bool                    _node_init{false};
+	uavcan::NodeID		_node_id;			///< node ID, validated by uavcan_main()
+	uint32_t		_bitrate{1000000};		///< CAN bit rate in bit/s
 	uavcan::Node<>			_node;				///< library instance
 	pthread_mutex_t			_node_mutex;
 
