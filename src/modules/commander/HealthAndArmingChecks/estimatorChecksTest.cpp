@@ -150,7 +150,8 @@ public:
 		gnss.receiver.fix_type = 3;
 		gnss.selected_instance = instance;
 		gnss.usable = (failed_checks == 0);
-		gnss.failed_checks = failed_checks;
+		gnss.strict = true;
+		gnss.failed_strict_checks = failed_checks;
 		_receiver_pub.publish(gnss);
 	}
 

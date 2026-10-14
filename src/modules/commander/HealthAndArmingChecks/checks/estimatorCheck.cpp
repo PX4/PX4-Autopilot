@@ -268,12 +268,16 @@ void EstimatorChecks::checkGnssFusion(const Context &context, Report &reporter, 
 {
 	const bool gnss_fused = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GNSS_POS);
 
+	// The checks that decide whether the sample is usable
+	const uint16_t deciding_checks = vehicle_gnss.strict ? vehicle_gnss.failed_strict_checks
+					 : vehicle_gnss.failed_relaxed_checks;
+
 	// A sample is marked usable again only after its checks passed for a while, and the estimator, a sample delay
 	// behind, keeps fusing for longer still, so the check that kept GNSS out may have passed again by the time the
 	// position goes. Each check is remembered for a while after it last failed, on its own, so one that keeps failing
 	// doesn't keep the others alive.
 	for (int i = 0; i < kNumGnssChecks; i++) {
-		if (vehicle_gnss.failed_checks & (1 << i)) {
+		if (deciding_checks & (1 << i)) {
 			_last_gnss_check_fail_time_us[i] = vehicle_gnss.timestamp;
 		}
 	}
@@ -283,7 +287,7 @@ void EstimatorChecks::checkGnssFusion(const Context &context, Report &reporter, 
 	const uint8_t gnss_fusion_state = estimator_status_flags.gnss_fusion_state;
 	const bool gnss_checks_apply = (gnss_fusion_state != estimator_status_flags_s::GNSS_FUSION_INACTIVE)
 				       && (gnss_fusion_state != estimator_status_flags_s::GNSS_FUSION_NO_DATA);
-	const uint16_t failed_checks = gnss_checks_apply ? vehicle_gnss.failed_checks : 0;
+	const uint16_t failed_checks = gnss_checks_apply ? deciding_checks : 0;
 
 	if (gnss_fused) {
 		reporter.setIsPresent(health_component_t::gps); // should be based on the sensor data directly
