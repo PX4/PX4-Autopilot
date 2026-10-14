@@ -67,6 +67,9 @@ public:
 		// Disable autosaving parameters to avoid busy loop in param_set()
 		param_control_autosave(false);
 
+		// Discard valid stick input retained from the previous test.
+		_manual_control_input_pub.publish({});
+
 		// Set stick input timeout to half a second
 		const float com_rc_loss_t = .5f;
 		param_set(param_find("COM_RC_LOSS_T"), &com_rc_loss_t);

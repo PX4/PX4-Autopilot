@@ -45,7 +45,7 @@
 namespace uORB
 {
 
-PublicationBase::~PublicationBase()
+PublicationMultiBase::~PublicationMultiBase()
 {
 	if (_handle != nullptr) {
 		// don't automatically unadvertise queued publications (eg vehicle_command)
