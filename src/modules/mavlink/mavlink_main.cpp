@@ -1409,6 +1409,9 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 {
 	PX4_DEBUG("configure_stream(%s, %.3f)", stream_name, (double)rate);
 
+	// the rate multiplier depends on the stream intervals
+	_rate_mult_update_time = 0;
+
 	/* calculate interval in us, -1 means unlimited stream, 0 means disabled */
 	int interval = 0;
 
@@ -2807,7 +2810,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 		const hrt_abstime t = hrt_absolute_time();
 
-		update_rate_mult();
+		if (t - _rate_mult_update_time >= RATE_MULT_UPDATE_INTERVAL) {
+			update_rate_mult();
+			_rate_mult_update_time = t;
+		}
 
 		// check for parameter updates
 		if (_parameter_update_sub.updated()) {

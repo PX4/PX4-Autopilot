@@ -573,6 +573,10 @@ private:
 	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
 	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};
 
+	/* the rate multiplier follows the TX rates, updated at 1 Hz, and the RADIO_STATUS messages, at about 1 Hz:
+	 * computing it in each iteration of the main loop only costs CPU time */
+	static constexpr hrt_abstime RATE_MULT_UPDATE_INTERVAL{100_ms};
+
 	/* states */
 	bool			_hil_enabled{false};		/**< Hardware In the Loop mode */
 	bool			_is_usb_uart{false};		/**< Port is USB */
@@ -605,6 +609,7 @@ private:
 	int			_baudrate{57600};
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
+	hrt_abstime		_rate_mult_update_time{0};	///< last update of _rate_mult, 0 to update it in the next iteration of the main loop
 	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};
