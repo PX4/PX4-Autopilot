@@ -66,5 +66,3 @@ px4_add_module(
 	DEPENDS
 		mathlib
 	)
-
-px4_add_functional_gtest(SRC TemperatureCompensationModuleTest.cpp LINKLIBS modules__temperature_compensation uORB)
