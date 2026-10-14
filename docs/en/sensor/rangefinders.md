@@ -22,7 +22,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m            | DroneCAN, UART         | ✔️   |                                     |
 | [Benewake TFmini]                           | ToF (IR laser)  | ~12 m                    | UART                   | ~    |                                     |
 | [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m               | I2C                    | ~    |                                     |
-| [JRT PTGL-100]                              | ToF (laser)     | 0.2 m – 100 m            | UART                   | ~    | High update rate (100 Hz)           |
+| [JRT PTGL-100]                              | Laser (905 nm)  | 0.2 m – 100 m            | UART                   |      | High update rate (100 Hz)           |
 | [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m              | UART                   | ~    |                                     |
 | [Lidar-Lite]                                | ToF (IR laser)  | 5 cm – 40 m              | I2C, PWM               | ~    |                                     |
 | [LightWare SF11/C]                          | ToF (IR laser)  | up to ~120 m             | UART, I2C              | ~    |                                     |
