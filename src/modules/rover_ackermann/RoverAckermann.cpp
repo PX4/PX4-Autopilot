@@ -106,6 +106,9 @@ void RoverAckermann::Run()
 		reset();
 		_ackermann_act_control.stopVehicle();
 		_was_armed = false;
+
+	} else {
+		_ackermann_act_control.stopVehicle();
 	}
 
 	// reschedule backup

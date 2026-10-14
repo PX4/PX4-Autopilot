@@ -55,12 +55,11 @@ using namespace time_literals;
 const char *const UavcanGnssBridge::NAME = "gnss";
 
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
-	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps), node_info_publisher),
+	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gnss), node_info_publisher),
 	_node(node),
 	_sub_auxiliary(node),
 	_sub_fix(node),
 	_sub_fix2(node),
-	_sub_gnss_heading(node),
 	_sub_moving_baseline_data(node),
 	_pub_moving_baseline_data(node),
 	_pub_rtcm_stream(node),
@@ -104,13 +103,6 @@ UavcanGnssBridge::init()
 
 	if (res < 0) {
 		PX4_WARN("GNSS fix2 sub failed %i", res);
-		return res;
-	}
-
-	res = _sub_gnss_heading.start(RelPosHeadingCbBinder(this, &UavcanGnssBridge::gnss_relative_sub_cb));
-
-	if (res < 0) {
-		PX4_WARN("GNSS relative sub failed %i", res);
 		return res;
 	}
 
@@ -179,7 +171,7 @@ UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 	float vel_cov[9];
 	msg.velocity_covariance.unpackSquareMatrix(vel_cov);
 
-	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov, NAN, NAN, NAN, -1, -1, 0, 0);
+	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov, -1, -1, 0, 0);
 }
 
 void
@@ -319,32 +311,14 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		}
 	}
 
-	// Invalidate the heading fields
-	float heading = NAN;
-	float heading_offset = NAN;
-	float heading_accuracy = NAN;
-
 	int32_t noise_per_ms = -1;
 	int32_t jamming_indicator = -1;
 	uint8_t jamming_state = 0;
 	uint8_t spoofing_state = 0;
 
-	// TODO: this hack should eventually be removed now that we have the RelPosHeading message
-	// HACK: Use ecef_position_velocity for heading, noise, jamming and spoofing.
-	// A valid RelPosHeading overrides the heading in process_fixx(), but nothing else carries the rest.
+	// HACK: Use ecef_position_velocity for noise, jamming and spoofing, which Fix2 has no fields for. Its velocity_xyz
+	// carried the heading from older node firmware, which is ignored: heading only comes from RelPosHeading.
 	if (!msg.ecef_position_velocity.empty()) {
-		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[0])) {
-			heading = msg.ecef_position_velocity[0].velocity_xyz[0];
-		}
-
-		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[1])) {
-			heading_offset = msg.ecef_position_velocity[0].velocity_xyz[1];
-		}
-
-		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[2])) {
-			heading_accuracy = msg.ecef_position_velocity[0].velocity_xyz[2];
-		}
-
 		noise_per_ms = msg.ecef_position_velocity[0].position_xyz_mm[0];
 		jamming_indicator = msg.ecef_position_velocity[0].position_xyz_mm[1];
 
@@ -352,17 +326,8 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		spoofing_state = msg.ecef_position_velocity[0].position_xyz_mm[2] & 0xFF;
 	}
 
-	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, heading, heading_offset,
-		     heading_accuracy, noise_per_ms, jamming_indicator, jamming_state, spoofing_state);
-}
-
-void UavcanGnssBridge::gnss_relative_sub_cb(const
-		uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg)
-{
-	_rel_heading_valid = msg.reported_heading_acc_available;
-	_rel_heading = math::radians(msg.reported_heading_deg);
-	_rel_heading_accuracy = math::radians(msg.reported_heading_acc_deg);
-
+	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, noise_per_ms,
+		     jamming_indicator, jamming_state, spoofing_state);
 }
 
 void UavcanGnssBridge::moving_baseline_data_sub_cb(const
@@ -404,58 +369,57 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    uint8_t fix_type,
 				    const float (&pos_cov)[9], const float (&vel_cov)[9],
 				    const bool valid_pos_cov, const bool valid_vel_cov,
-				    const float heading, const float heading_offset,
-				    const float heading_accuracy, const int32_t noise_per_ms,
+				    const int32_t noise_per_ms,
 				    const int32_t jamming_indicator, const uint8_t jamming_state,
 				    const uint8_t spoofing_state)
 {
-	sensor_gps_s sensor_gps{};
+	sensor_gnss_s sensor_gnss{};
 
-	sensor_gps.device_id = make_uavcan_device_id(msg);
+	sensor_gnss.device_id = make_uavcan_device_id(msg);
 
 	// Register GPS capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				sensor_gps.device_id,
+				sensor_gnss.device_id,
 				NodeInfoPublisher::DeviceCapability::GPS);
 	}
 
 	/*
 	 * FIXME HACK
 	 * There used to be the following line of code:
-	 * 	sensor_gps.timestamp_position = msg.getMonotonicTimestamp().toUSec();
+	 * 	sensor_gnss.timestamp_position = msg.getMonotonicTimestamp().toUSec();
 	 * It stopped working when the time sync feature has been introduced, because it caused libuavcan
 	 * to use an independent time source (based on hardware TIM5) instead of HRT.
 	 * The proper solution is to be developed.
 	 */
-	sensor_gps.timestamp = hrt_absolute_time();
+	sensor_gnss.timestamp = hrt_absolute_time();
 
-	sensor_gps.latitude_deg         = msg.latitude_deg_1e8 / 1e8;
-	sensor_gps.longitude_deg        = msg.longitude_deg_1e8 / 1e8;
-	sensor_gps.altitude_msl_m       = msg.height_msl_mm / 1e3;
-	sensor_gps.altitude_ellipsoid_m = msg.height_ellipsoid_mm / 1e3;
+	sensor_gnss.latitude           = msg.latitude_deg_1e8 / 1e8;
+	sensor_gnss.longitude          = msg.longitude_deg_1e8 / 1e8;
+	sensor_gnss.altitude_msl       = msg.height_msl_mm / 1e3;
+	sensor_gnss.altitude_ellipsoid = msg.height_ellipsoid_mm / 1e3;
 
 	if (valid_pos_cov) {
 		// Horizontal position uncertainty
 		const float horizontal_pos_variance = math::max(pos_cov[0], pos_cov[4]);
-		sensor_gps.eph = (horizontal_pos_variance > 0) ? sqrtf(horizontal_pos_variance) : -1.0F;
+		sensor_gnss.eph = (horizontal_pos_variance > 0) ? sqrtf(horizontal_pos_variance) : -1.0F;
 
 		// Vertical position uncertainty
-		sensor_gps.epv = (pos_cov[8] > 0) ? sqrtf(pos_cov[8]) : -1.0F;
+		sensor_gnss.epv = (pos_cov[8] > 0) ? sqrtf(pos_cov[8]) : -1.0F;
 
 	} else {
-		sensor_gps.eph = -1.0F;
-		sensor_gps.epv = -1.0F;
+		sensor_gnss.eph = -1.0F;
+		sensor_gnss.epv = -1.0F;
 	}
 
 	if (valid_vel_cov) {
-		sensor_gps.s_variance_m_s = math::max(vel_cov[0], vel_cov[4], vel_cov[8]);
+		sensor_gnss.speed_accuracy = math::max(vel_cov[0], vel_cov[4], vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
 		 * Use Jacobian to transform velocity covariance to heading covariance
 		 *
 		 * Nonlinear equation:
-		 * heading = atan2(vel_e_m_s, vel_n_m_s)
+		 * heading = atan2(vel_east, vel_north)
 		 * For math, see http://en.wikipedia.org/wiki/Atan2#Derivative
 		 *
 		 * To calculate the variance of heading from the variance of velocity,
@@ -465,44 +429,44 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		float vel_e = msg.ned_velocity[1];
 		float vel_n_sq = vel_n * vel_n;
 		float vel_e_sq = vel_e * vel_e;
-		sensor_gps.c_variance_rad =
+		sensor_gnss.course_accuracy =
 			(vel_e_sq * vel_cov[0] +
 			 -2 * vel_n * vel_e * vel_cov[1] +	// Covariance matrix is symmetric
 			 vel_n_sq * vel_cov[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
 
 	} else {
-		sensor_gps.s_variance_m_s = -1.0F;
-		sensor_gps.c_variance_rad = -1.0F;
+		sensor_gnss.speed_accuracy = -1.0F;
+		sensor_gnss.course_accuracy = -1.0F;
 	}
 
-	sensor_gps.fix_type = fix_type;
+	sensor_gnss.fix_type = fix_type;
 
-	sensor_gps.vel_n_m_s = msg.ned_velocity[0];
-	sensor_gps.vel_e_m_s = msg.ned_velocity[1];
-	sensor_gps.vel_d_m_s = msg.ned_velocity[2];
-	sensor_gps.vel_m_s = matrix::Vector3f(msg.ned_velocity[0], msg.ned_velocity[1], msg.ned_velocity[2]).norm();
-	sensor_gps.cog_rad = atan2f(sensor_gps.vel_e_m_s, sensor_gps.vel_n_m_s);
-	sensor_gps.vel_ned_valid = true;
+	sensor_gnss.vel_north = msg.ned_velocity[0];
+	sensor_gnss.vel_east = msg.ned_velocity[1];
+	sensor_gnss.vel_down = msg.ned_velocity[2];
+	sensor_gnss.ground_speed = matrix::Vector3f(msg.ned_velocity[0], msg.ned_velocity[1], msg.ned_velocity[2]).norm();
+	sensor_gnss.course = atan2f(sensor_gnss.vel_east, sensor_gnss.vel_north);
+	sensor_gnss.vel_ned_valid = true;
 
-	sensor_gps.timestamp_time_relative = 0;
+	sensor_gnss.timestamp_time_relative = 0;
 
 	const uint64_t gnss_ts_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();
 
 	switch (msg.gnss_time_standard) {
 	case FixType::GNSS_TIME_STANDARD_UTC:
-		sensor_gps.time_utc_usec = gnss_ts_usec;
+		sensor_gnss.time_utc_usec = gnss_ts_usec;
 		break;
 
 	case FixType::GNSS_TIME_STANDARD_GPS:
 		if (msg.num_leap_seconds > 0) {
-			sensor_gps.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds + 9;
+			sensor_gnss.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds + 9;
 		}
 
 		break;
 
 	case FixType::GNSS_TIME_STANDARD_TAI:
 		if (msg.num_leap_seconds > 0) {
-			sensor_gps.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds - 10;
+			sensor_gnss.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds - 10;
 		}
 
 		break;
@@ -515,13 +479,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	// into HRT, then subtract (msg.timestamp - msg.gnss_timestamp), which is
 	// the node-measured receiver processing delay. Nodes that leave
 	// msg.timestamp unset or on a non-UTC timebase fail the guard and fall
-	// through to the SENS_GPS*_DELAY path in VehicleGPSPosition.
+	// through to the SENS_GNSS*_DELAY path in VehicleGPSPosition.
 	const uint64_t msg_ts_usec = uavcan::UtcTime(msg.timestamp).toUSec();
 
 	// Sanity-bound the node-measured processing delay before it drives the clock
 	// estimator: a remote UTC discontinuity (leap second, receiver glitch) must
 	// not pin the offset low for the rest of the flight. Implausible values fall
-	// through to the SENS_GPS*_DELAY path.
+	// through to the SENS_GNSS*_DELAY path.
 	static constexpr uint64_t kMaxProcessingDelayUs = 500'000;
 
 	if (msg_ts_usec > gnss_ts_usec && gnss_ts_usec > 0
@@ -547,21 +511,21 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		}
 
 		if (estimator != nullptr) {
-			const hrt_abstime send_hrt = estimator->toLocal(msg_ts_usec, sensor_gps.timestamp);
+			const hrt_abstime send_hrt = estimator->toLocal(msg_ts_usec, sensor_gnss.timestamp);
 
 			if (send_hrt > 0) {
 				const int64_t processing_us = static_cast<int64_t>(msg_ts_usec - gnss_ts_usec);
 				const int64_t pvt_hrt = static_cast<int64_t>(send_hrt) - processing_us;
 
-				if (pvt_hrt > 0 && pvt_hrt < static_cast<int64_t>(sensor_gps.timestamp)) {
-					sensor_gps.timestamp_sample = static_cast<hrt_abstime>(pvt_hrt);
+				if (pvt_hrt > 0 && pvt_hrt < static_cast<int64_t>(sensor_gnss.timestamp)) {
+					sensor_gnss.timestamp_sample = static_cast<hrt_abstime>(pvt_hrt);
 				}
 			}
 		}
 	}
 
 	// If we haven't already done so, set the system clock using GPS data
-	if (sensor_gps.time_utc_usec != 0 && (fix_type >= sensor_gps_s::FIX_TYPE_2D) && !_system_clock_set) {
+	if (sensor_gnss.time_utc_usec != 0 && (fix_type >= sensor_gnss_s::FIX_TYPE_2D) && !_system_clock_set) {
 		int32_t sys_time_src = 0;
 		param_get(param_find("SYS_TIME_SRC"), &sys_time_src);
 
@@ -569,10 +533,10 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 			timespec ts{};
 
 			// get the whole microseconds
-			ts.tv_sec = sensor_gps.time_utc_usec / 1000000ULL;
+			ts.tv_sec = sensor_gnss.time_utc_usec / 1000000ULL;
 
 			// get the remainder microseconds and convert to nanoseconds
-			ts.tv_nsec = (sensor_gps.time_utc_usec % 1000000ULL) * 1000;
+			ts.tv_nsec = (sensor_gnss.time_utc_usec % 1000000ULL) * 1000;
 
 			px4_clock_settime(CLOCK_REALTIME, &ts);
 		}
@@ -580,41 +544,26 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		_system_clock_set = true;
 	}
 
-	sensor_gps.satellites_used = msg.sats_used;
+	sensor_gnss.satellites_used = msg.sats_used;
 
 	if (hrt_elapsed_time(&_last_gnss_auxiliary_timestamp) < 2_s) {
-		sensor_gps.hdop = _last_gnss_auxiliary_hdop;
-		sensor_gps.vdop = _last_gnss_auxiliary_vdop;
+		sensor_gnss.hdop = _last_gnss_auxiliary_hdop;
+		sensor_gnss.vdop = _last_gnss_auxiliary_vdop;
 
 	} else {
 		// Using PDOP for HDOP and VDOP
 		// Relevant discussion: https://github.com/PX4/Firmware/issues/5153
-		sensor_gps.hdop = msg.pdop;
-		sensor_gps.vdop = msg.pdop;
+		sensor_gnss.hdop = msg.pdop;
+		sensor_gnss.vdop = msg.pdop;
 	}
 
-	if (_rel_heading_valid) {
-		sensor_gps.heading = _rel_heading;
-		sensor_gps.heading_offset = NAN;
-		sensor_gps.heading_accuracy = _rel_heading_accuracy;
+	sensor_gnss.noise = noise_per_ms;
+	sensor_gnss.jamming_indicator = jamming_indicator;
+	sensor_gnss.jamming_state = jamming_state;
+	sensor_gnss.spoofing_state = spoofing_state;
 
-		_rel_heading = NAN;
-		_rel_heading_accuracy = NAN;
-		_rel_heading_valid = false;
-
-	} else {
-		sensor_gps.heading = heading;
-		sensor_gps.heading_offset = heading_offset;
-		sensor_gps.heading_accuracy = heading_accuracy;
-	}
-
-	sensor_gps.noise_per_ms = noise_per_ms;
-	sensor_gps.jamming_indicator = jamming_indicator;
-	sensor_gps.jamming_state = jamming_state;
-	sensor_gps.spoofing_state = spoofing_state;
-
-	sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
-	sensor_gps.rtcm_injection_rate = _rtcm_injection_rate;
+	sensor_gnss.selected_rtcm_instance = _selected_rtcm_instance;
+	sensor_gnss.rtcm_injection_rate = _rtcm_injection_rate;
 
 	_failure_config.update();
 
@@ -623,11 +572,11 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	const int instance = get_orb_instance_for_node(node_id);
 
 	if (channel >= 0 && instance >= 0
-	    && !failure_injection::process_gnss(_failure_config, instance, sensor_gps, _stuck[channel])) {
+	    && !failure_injection::process_gnss(_failure_config, instance, sensor_gnss, _stuck[channel])) {
 		return;
 	}
 
-	publish(msg.getSrcNodeID().get(), &sensor_gps);
+	publish(msg.getSrcNodeID().get(), &sensor_gnss);
 }
 
 void UavcanGnssBridge::update()

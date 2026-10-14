@@ -12,5 +12,6 @@ Claude Code reads neither location directly. Each `CLAUDE.md` is a one-line `@AG
 | `rebase-onto-main` | Rebase, including onto a squash-merged parent |
 | `build-px4-linux` | Board or SITL build on a Linux host |
 | `build-px4-macos` | Board build on macOS, in the `px4-dev` container |
+| `grilling` | Plan or design stress test, one question at a time |
 
 Create worktrees where the user's own agent instructions put them. Without such a rule, put them next to the repository in `../PX4-Autopilot-worktrees/<name>/`, never inside it.

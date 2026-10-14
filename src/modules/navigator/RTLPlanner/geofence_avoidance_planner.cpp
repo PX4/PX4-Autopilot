@@ -35,13 +35,64 @@
 #include <lib/geo/geo.h>
 #include <lib/geofence/geofence_utils.h>
 #include <lib/dijkstra/dijkstra.h>
+#include <lib/mathlib/mathlib.h>
 
 GeofenceAvoidancePlanner::~GeofenceAvoidancePlanner()
 {
+	freeBuffers();
 	perf_free(_update_polygons_perf);
 	perf_free(_update_edge_costs_perf);
 	perf_free(_plan_path_perf);
 	perf_free(_lookup_path_perf);
+}
+
+bool GeofenceAvoidancePlanner::init(int max_nodes)
+{
+	freeBuffers();
+
+	max_nodes = math::constrain(max_nodes, 0, geofence_utils::PlannerPolygons::kMaxNodesForAnyStorableFence);
+
+	if (max_nodes > 0) {
+		_best_distance = new float[max_nodes];
+		_distances = new float[max_nodes * (max_nodes - 1) / 2];
+		_next_node_buffer = new int[max_nodes];
+		_visited_buffer = new bool[max_nodes];
+		_path = new matrix::Vector2d[max_nodes + 1];
+
+		if (_best_distance && _distances && _next_node_buffer && _visited_buffer != nullptr && _path
+		    && _polygons.allocate(max_nodes)) {
+			_max_nodes = max_nodes;
+
+		} else {
+			freeBuffers();
+		}
+	}
+
+	_status = enabled() ? Status::NoFence : Status::Disabled;
+
+	return _max_nodes == max_nodes;
+}
+
+void GeofenceAvoidancePlanner::freeBuffers()
+{
+	delete[] _best_distance;
+	delete[] _distances;
+	delete[] _next_node_buffer;
+	delete[] _visited_buffer;
+	delete[] _path;
+	_best_distance = nullptr;
+	_distances = nullptr;
+	_next_node_buffer = nullptr;
+	_visited_buffer = nullptr;
+	_path = nullptr;
+	_polygons.allocate(0);
+	_max_nodes = 0;
+	_required_nodes = 0;
+	_polygons_healthy = false;
+	_destination_healthy = false;
+	_path_length = 0;
+	_path_cursor = 0;
+	_straight_line_fallback = false;
 }
 
 static matrix::Vector2f get_vertex_local_position(int poly_index, int vertex_idx,
@@ -77,6 +128,14 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 	// Polygons are about to change; any previously latched fallback start may no longer be valid.
 	_saved_valid_start = matrix::Vector2<double> {(double)NAN, (double)NAN};
 
+	_required_nodes = 0;
+
+	if (!enabled()) {
+		_polygons_healthy = false;
+		_status = Status::Disabled;
+		return;
+	}
+
 	_polygons_healthy = true;
 
 	const int num_polygons = geofence.getNumPolygons();
@@ -95,15 +154,17 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 		}
 	}
 
+	_required_nodes = num_vertices + 1; // +1 for the destination slot
+
 	if (num_vertices == 0) {
 		_polygons_healthy = false;
 		_status = Status::NoFence;
 		return;
 	}
 
-	if (num_vertices > kMaxNodes - 1) { // -1 to reserve the destination slot
-		// Fence larger than the per-board budget (kMaxNodes). On boards where
-		// kMaxNodes >= kMaxNodesForAnyStorableFence this cannot happen.
+	if (_required_nodes > _max_nodes) {
+		// Fence larger than the configured node budget. With a budget
+		// >= kMaxNodesForAnyStorableFence this cannot happen.
 		_polygons_healthy = false;
 		_status = Status::BudgetExceeded;
 		return;
@@ -295,8 +356,8 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 	if (!_polygons_healthy || !_destination_healthy) {
 		_path_length = 0;
 		_path_cursor = 0;
-		// Without any fence there is nothing to avoid, so flying directly is not a fallback.
-		_straight_line_fallback = (_status != Status::NoFence);
+		// Without any fence (or planner) there is nothing to avoid, so flying directly is not a fallback.
+		_straight_line_fallback = enabled() && (_status != Status::NoFence);
 		return 0;
 	}
 

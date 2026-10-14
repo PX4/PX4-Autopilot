@@ -160,3 +160,27 @@ TEST(BoardIdentityTest, PX4GUIDBufferOverflow)
 	board_get_px4_guid_formated(buf_40, sizeof(buf_40));
 	EXPECT_EQ(0, strncmp(groundtruth_px4_guid, buf_40, sizeof(buf_40) - 1));
 }
+
+/**
+ * @brief Test that `board_get_px4_guid` and `board_get_mfguid` give the bytes of the formatted GUID
+ */
+TEST(BoardIdentityTest, PX4GUIDBytes)
+{
+	char formatted[PX4_GUID_FORMAT_SIZE];
+	board_get_px4_guid_formated(formatted, sizeof(formatted));
+
+	px4_guid_t px4_guid;
+	EXPECT_EQ(PX4_GUID_BYTE_LENGTH, board_get_px4_guid(px4_guid));
+
+	char bytes[PX4_GUID_FORMAT_SIZE] {};
+
+	for (int i = 0; i < PX4_GUID_BYTE_LENGTH; i++) {
+		snprintf(&bytes[2 * i], sizeof(bytes) - 2 * i, "%02x", px4_guid[i]);
+	}
+
+	EXPECT_STREQ(formatted, bytes);
+
+	mfguid_t mfguid;
+	EXPECT_EQ(PX4_CPU_MFGUID_BYTE_LENGTH, board_get_mfguid(mfguid));
+	EXPECT_EQ(0, memcmp(&px4_guid[PX4_GUID_BYTE_LENGTH - PX4_CPU_MFGUID_BYTE_LENGTH], mfguid, sizeof(mfguid)));
+}

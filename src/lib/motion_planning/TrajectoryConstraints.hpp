@@ -80,8 +80,10 @@ inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, co
 	if (target_next_different &&
 	    !waypoint_overlap
 	   ) {
-		const float alpha = acosf(Vector2f((target - start_position).xy()).unit_or_zero().dot(
-						  Vector2f((target - next_target).xy()).unit_or_zero()));
+		// rounding can push the dot product of two unit vectors past 1, which acosf turns into NaN
+		const float cos_alpha = constrain(Vector2f((target - start_position).xy()).unit_or_zero().dot(
+				Vector2f((target - next_target).xy()).unit_or_zero()), -1.f, 1.f);
+		const float alpha = acosf(cos_alpha);
 		const float safe_alpha = constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
 		float accel_tmp = config.max_acc_xy_radius_scale * config.max_acc_xy;
 		float max_speed_in_turn = computeMaxSpeedInWaypoint(safe_alpha, accel_tmp, config.xy_accept_rad);

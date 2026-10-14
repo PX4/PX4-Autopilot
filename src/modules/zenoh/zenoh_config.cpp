@@ -174,8 +174,9 @@ int Zenoh_Config::DeletePubSub(char *topic, const char *filename)
 		return -1;
 	}
 
-	char line[TOPIC_INFO_SIZE];
-	char line_copy[TOPIC_INFO_SIZE];
+	// Same line size as the mapping parser, a shorter buffer splits long lines in two
+	char line[MAX_LINE_SIZE];
+	char line_copy[MAX_LINE_SIZE];
 	const char *fields[1];  // We only need the topic
 	int found = 0;
 
@@ -486,14 +487,21 @@ int Zenoh_Config::getLineCount(const char *filename)
 {
 	int lines = 0;
 	int ch;
+	bool line_start = true;
 
-	// Open file in write mode
 	FILE *fp = fopen(filename, "r");
 
+	if (!fp) {
+		return 0;
+	}
+
+	// Count the lines getPubSubMapping() parses: it skips empty lines and reads a last line without newline
 	while ((ch = fgetc(fp)) != EOF) {
-		if (ch == '\n') {
+		if (line_start && ch != '\n') {
 			lines++;
 		}
+
+		line_start = (ch == '\n');
 	}
 
 	//Close the file

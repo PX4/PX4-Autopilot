@@ -93,7 +93,10 @@ void Ekf::reset()
 	_fault_status.value = 0;
 
 #if defined(CONFIG_EKF2_GNSS)
-	_gnss_checks.resetHard();
+	_gnss_usable = false;
+	_gnss_checks_passed_reported = false;
+	_time_last_gnss_sample_accepted_us = 0;
+	_time_last_gnss_fusion_stop_us = 0;
 #endif // CONFIG_EKF2_GNSS
 	_local_origin_alt = NAN;
 
@@ -230,7 +233,9 @@ bool Ekf::initialiseTilt()
 
 void Ekf::predictState(const imuSample &imu_delayed)
 {
-	if (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)) {
+	if (global_origin_valid()
+	    && (!PX4_ISFINITE(_earth_rate_lat_ref_rad)
+		|| (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)))) {
 		_earth_rate_lat_ref_rad = _gpos.latitude_rad();
 		_earth_rate_NED = calcEarthRateNED((float)_earth_rate_lat_ref_rad);
 		_gravity = LatLonAlt::Wgs84::gravity(_earth_rate_lat_ref_rad);
@@ -241,8 +246,9 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	const Vector3f delta_ang_bias_scaled = getGyroBias() * imu_delayed.delta_ang_dt;
 	Vector3f corrected_delta_ang = imu_delayed.delta_ang - delta_ang_bias_scaled;
 
-	// subtract component of angular rate due to earth rotation
-	corrected_delta_ang -= _R_to_earth.transpose() * _earth_rate_NED * imu_delayed.delta_ang_dt;
+	// subtract the rotation of the NED frame due to earth rotation and motion over the curved earth
+	const Vector3f transport_rate = _gpos.computeAngularRateNavFrame(_state.vel);
+	corrected_delta_ang -= _R_to_earth.transpose() * (_earth_rate_NED + transport_rate) * imu_delayed.delta_ang_dt;
 
 	const Quatf dq(AxisAnglef{corrected_delta_ang});
 
@@ -264,8 +270,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// compensate for acceleration due to gravity, Coriolis and transport rate
 	const Vector3f gravity_acceleration(0.f, 0.f, _gravity);
 	const Vector3f coriolis_acceleration = -2.f * _earth_rate_NED.cross(vel_last);
-	const Vector3f transport_rate = -_gpos.computeAngularRateNavFrame(vel_last).cross(vel_last);
-	_state.vel += (gravity_acceleration + coriolis_acceleration + transport_rate) * imu_delayed.delta_vel_dt;
+	const Vector3f transport_rate_acceleration = -transport_rate.cross(vel_last);
+	_state.vel += (gravity_acceleration + coriolis_acceleration + transport_rate_acceleration) * imu_delayed.delta_vel_dt;
 
 	// predict position states via trapezoidal integration of velocity
 	_gpos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
@@ -275,8 +281,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
 
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
-	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt,
-				static_cast<uint64_t>(imu_delayed.delta_vel_dt * 1e6f));
+	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
 }
 
 bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const double longitude, const float altitude,

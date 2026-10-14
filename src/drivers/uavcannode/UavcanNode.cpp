@@ -47,6 +47,14 @@ extern "C" __attribute__((weak)) const char *board_get_uavcan_hw_name(void)
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+#include <lib/bl_update/bl_update_flash.h>
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
+
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+#include <errno.h>
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
+
 #if defined(CONFIG_UAVCANNODE_BATTERY_INFO)
 #include "Publishers/BatteryInfo.hpp"
 #endif // CONFIG_UAVCANNODE_BATTERY_INFO
@@ -176,6 +184,9 @@ UavcanNode::UavcanNode(CanInitHelper *can_init, uint32_t bitrate, uavcan::ICanDr
 	_node(can_driver, system_clock, _pool_allocator),
 	_time_sync_slave(_node),
 	_fw_update_listner(_node),
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+	_command_shell_server(_node),
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
 	_param_server(_node),
 	_dyn_node_id_client(_node),
 	_reset_timer(_node)
@@ -213,6 +224,10 @@ UavcanNode::~UavcanNode()
 
 		} while (_instance);
 	}
+
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+	close_shell();
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
 
 	_publisher_list.clear();
 	_subscriber_list.clear();
@@ -316,6 +331,8 @@ void UavcanNode::busevent_signal_trampoline()
 static void cb_reboot(const uavcan::TimerEvent &)
 {
 	watchdog_pet();
+	// Params persist only through the deferred autosave, which board_reset() does not wait for
+	param_save_default(true);
 	board_reset(0);
 }
 
@@ -356,6 +373,83 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 	}
 }
 
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+
+void UavcanNode::close_shell()
+{
+	delete _shell;
+	_shell = nullptr;
+}
+
+bool UavcanNode::shell_recv(const uavcan::ReceivedDataStructure<UavcanNode::AccessCommandShell::Request> &req)
+{
+	// no early return on an empty request: write() flushes whatever is still queued,
+	// and an idle poll is the only thing that arrives while the user is not typing
+	uint8_t input_buf[decltype(req.input)::MaxSize];
+
+	for (size_t i = 0; i < req.input.size(); ++i) {
+		input_buf[i] = req.input[i];
+	}
+
+	return _shell->write(input_buf, req.input.size());
+}
+
+void UavcanNode::shell_send(uavcan::ServiceResponseDataStructure<UavcanNode::AccessCommandShell::Response> &rsp)
+{
+	uint8_t output_buf[decltype(rsp.output)::MaxSize];
+	const size_t available = _shell->available();
+	// cap to the response's max payload size
+	const size_t to_read = math::min(available, sizeof(output_buf));
+	const size_t n = to_read > 0 ? _shell->read(output_buf, to_read) : 0;
+
+	for (size_t i = 0; i < n; ++i) {
+		rsp.output.push_back(output_buf[i]);
+	}
+}
+
+void UavcanNode::cb_access_command_shell(const uavcan::ReceivedDataStructure<UavcanNode::AccessCommandShell::Request>
+		&req, uavcan::ServiceResponseDataStructure<UavcanNode::AccessCommandShell::Response> &rsp)
+{
+	const uavcan::NodeID source = req.getSrcNodeID();
+
+	// reset applies regardless of current owner; otherwise a single shared session
+	if ((req.flags & req.FLAG_RESET_SHELL) || (_shell != nullptr && _shell_owner != source)) {
+		close_shell();
+	}
+
+	if (_shell != nullptr && !_shell->is_running()) {
+		close_shell();
+	}
+
+	if (_shell == nullptr) {
+		_shell = new uavcannode::UavcanNodeShell();
+
+		if (_shell == nullptr || _shell->start() < 0) {
+			PX4_ERR("AccessCommandShell: failed to start shell");
+			delete _shell;
+			_shell = nullptr;
+			rsp.flags = rsp.FLAG_SHELL_ERROR;
+			return;
+		}
+
+		_shell_owner = source;
+	}
+
+	if (!shell_recv(req)) {
+		PX4_ERR("AccessCommandShell: shell stdin backed up, input dropped");
+		rsp.flags |= rsp.FLAG_SHELL_ERROR;
+	}
+
+	shell_send(rsp);
+
+	// shell_send() may not have drained everything that fit in one response
+	if (_shell->available() > 0) {
+		rsp.flags |= rsp.FLAG_HAS_PENDING_STDOUT;
+	}
+}
+
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
+
 int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
 	_node.setName(board_get_uavcan_hw_name());
@@ -369,10 +463,31 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	fill_node_info();
 
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+	// Only setting SYS_BL_UPDATE while running triggers an update, never a
+	// value left over from before this boot.
+	int32_t bl_update = 0;
+
+	if (param_get(_param_sys_bl_update, &bl_update) == PX4_OK && bl_update != 0) {
+		bl_update = 0;
+		param_set(_param_sys_bl_update, &bl_update);
+	}
+
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
+
 	if (_fw_update_listner.start(BeginFirmwareUpdateCallBack(this, &UavcanNode::cb_beginfirmware_update)) < 0) {
 		PX4_ERR("firmware update listener start failed");
 		return PX4_ERROR;
 	}
+
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+
+	if (_command_shell_server.start(AccessCommandShellCallback(this, &UavcanNode::cb_access_command_shell)) < 0) {
+		PX4_ERR("command shell server start failed");
+		return PX4_ERROR;
+	}
+
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
 
 #if defined(CONFIG_UAVCANNODE_BATTERY_INFO)
 	_publisher_list.add(new BatteryInfo(this, _node));
@@ -511,15 +626,34 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	return 1;
 }
 
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+void UavcanNode::update_bootloader()
+{
+	// The bootloader only runs at reset, so no reboot is needed. The result
+	// goes out over CAN through the log_message forwarding in Run().
+	const bl_update::Result result = bl_update::flash(UAVCANNODE_BOOTLOADER_FILE);
+
+	if (result == bl_update::Result::Updated || result == bl_update::Result::Unchanged) {
+		PX4_INFO("%s", bl_update::result_str(result));
+
+	} else {
+		PX4_ERR("bootloader update failed: %s", bl_update::result_str(result));
+	}
+}
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
+
 // Restart handler
 class RestartRequestHandler: public uavcan::IRestartRequestHandler
 {
 	bool handleRestartRequest(uavcan::NodeID request_source) override
 	{
-		PX4_INFO("UAVCAN: Restarting by request from %i\n", int(request_source.get()));
-		usleep(20 * 1000 * 1000);
-		board_reset(0);
-		return true; // Will never be executed BTW
+		PX4_INFO("UAVCAN: Restarting by request from %i", int(request_source.get()));
+
+		// The response is only sent after this returns, so reset from a timer
+		UavcanNode *node = UavcanNode::instance();
+		node->_reset_timer.setCallback(cb_reboot);
+		node->_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
+		return true;
 	}
 } restart_request_handler;
 
@@ -626,7 +760,29 @@ void UavcanNode::Run()
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
+
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+		int32_t bl_update = 0;
+
+		if (param_get(_param_sys_bl_update, &bl_update) == PX4_OK && bl_update != 0) {
+			bl_update = 0;
+			param_set(_param_sys_bl_update, &bl_update);
+
+			// let the param set response and the autosave go out before flashing stalls everything
+			_bootloader_update_time = hrt_absolute_time() + 1_s;
+		}
+
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
 	}
+
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+
+	if (_bootloader_update_time != 0 && hrt_absolute_time() >= _bootloader_update_time) {
+		_bootloader_update_time = 0;
+		update_bootloader();
+	}
+
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
 
 	_node.spinOnce();
 

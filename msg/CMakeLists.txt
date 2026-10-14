@@ -80,7 +80,6 @@ set(msg_files
 	EstimatorBias3d.msg
 	EstimatorEventFlags.msg
 	EstimatorFusionControl.msg
-	EstimatorGpsStatus.msg
 	EstimatorInnovations.msg
 	EstimatorSelectorStatus.msg
 	EstimatorSensorBias.msg
@@ -206,10 +205,10 @@ set(msg_files
 	SensorBaro.msg
 	SensorCombined.msg
 	SensorCorrection.msg
+	SensorGnss.msg
 	SensorGnssRelative.msg
 	SensorGnssRf.msg
 	SensorGnssStatus.msg
-	SensorGps.msg
 	SensorGyro.msg
 	SensorGyroFft.msg
 	SensorGyroFifo.msg
@@ -219,6 +218,7 @@ set(msg_files
 	SensorPreflightMag.msg
 	SensorSelection.msg
 	SensorsStatus.msg
+	SensorsStatusGnss.msg
 	SensorsStatusImu.msg
 	SensorTemp.msg
 	SensorUwb.msg
@@ -242,6 +242,8 @@ set(msg_files
 	VehicleAirData.msg
 	VehicleConstraints.msg
 	VehicleControlMode.msg
+	VehicleGnss.msg
+	VehicleGnssHeading.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLocalPositionSetpoint.msg

@@ -3,8 +3,6 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-param set-default CBRK_IO_SAFETY 0
-
 neopixel start
 safety_button start
 tone_alarm start

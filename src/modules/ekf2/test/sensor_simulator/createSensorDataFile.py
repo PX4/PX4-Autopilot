@@ -54,9 +54,9 @@ def main() -> None:
 		print("Baro data not detected: {}: {}".format(type(e).__name__, e))
 
 	try:
-		gps = util.getGpsData(ulog)
+		gnss = util.getGnssData(ulog)
 		print("GPS data detected")
-		table = pd.concat([table, gps], ignore_index=True, sort=False)
+		table = pd.concat([table, gnss], ignore_index=True, sort=False)
 	except Exception as e:
 		print("GPS data not detected: {}: {}".format(type(e).__name__, e))
 

@@ -121,8 +121,10 @@ float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 	const bool target_next_different = fabsf(target(2) - next_target(2)) > 0.001f;
 
 	if (target_next_different) {
-		const float alpha = acosf(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
-						  Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()));
+		// rounding can push the dot product of two unit vectors past 1, which acosf turns into NaN
+		const float cos_alpha = math::constrain(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
+				Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()), -1.f, 1.f);
+		const float alpha = acosf(cos_alpha);
 
 		const float safe_alpha = math::constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
 		float accel_tmp = _trajectory[2].getMaxAccel();

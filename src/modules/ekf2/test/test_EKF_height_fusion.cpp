@@ -236,6 +236,29 @@ TEST_F(EkfHeightFusionTest, gpsHeightFusionStopsWhenGpsNotEnabled)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
 }
 
+TEST_F(EkfHeightFusionTest, gpsHeightFusionContinuesThroughHorizontalStop)
+{
+	// GIVEN: GNSS height and horizontal fusion active
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.runSeconds(1);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// WHEN: horizontal GNSS fusion stops while the GNSS checks keep passing
+	_ekf_wrapper.disableGpsFusion();
+	const uint64_t time_stopped = _sensor_simulator.getTime();
+	_sensor_simulator.runSeconds(0.5);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// THEN: height fusion continues, both during the horizontal restart hold-off (1 s) and after it
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_GT(_ekf->aid_src_gnss_hgt().time_last_fuse, time_stopped);
+	_sensor_simulator.runSeconds(1.5);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+}
+
 TEST_F(EkfHeightFusionTest, gpsRefNoAltFusion)
 {
 	// GIVEN: GNSS alt reference but not selected as an aiding source
@@ -639,7 +662,20 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 	const float baro_bias_prev = _ekf->getBaroBiasEstimatorStatus().bias;
 
 	const float alt_increment = 4478.f;
+	const float pos_z_prev = _ekf->getPosition()(2);
+	const float hagl_prev = _ekf->getHagl();
+	const uint8_t hagl_reset_count_prev = _ekf->get_hagl_reset_count();
 	_ekf->setEkfGlobalOrigin(lat, lon, alt + alt_increment);
+
+	// The local z jump must be reported so consumers (e.g. position controller) can shift their references.
+	// HAGL and terrain altitude are independent of the origin and must not report a reset.
+	float delta_z;
+	uint8_t z_reset_counter;
+	_ekf->get_posD_reset(&delta_z, &z_reset_counter);
+	EXPECT_NEAR(delta_z, _ekf->getPosition()(2) - pos_z_prev, 0.01f);
+	EXPECT_NEAR(_ekf->getHagl(), hagl_prev, 0.01f);
+	EXPECT_EQ(_ekf->get_hagl_reset_count(), hagl_reset_count_prev);
+
 	_sensor_simulator.runSeconds(10);
 
 	// The origin moves up by some altitude, the current position (down) is then higher
@@ -654,4 +690,78 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+}
+
+TEST_F(EkfHeightFusionTest, gpsHeightNoiseCappedWhenOnlyHeightSource)
+{
+	// GIVEN: GNSS is the only height source and reports a vertical accuracy above EKF2_NOAID_NOISE
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	gnssSample gps = _sensor_simulator._gps.getData();
+	gps.vacc = 30.f;
+	_sensor_simulator._gps.setData(gps);
+	_sensor_simulator.runSeconds(2);
+
+	ASSERT_TRUE(_ekf->control_status_flags().gps_hgt);
+	ASSERT_EQ(_ekf->getNumberOfActiveVerticalPositionAidingSources(), 1);
+
+	// THEN: the observation noise is capped at EKF2_NOAID_NOISE, the height has nothing else to rely on
+	EXPECT_NEAR(sqrtf(_ekf->aid_src_gnss_hgt().observation_variance), _ekf->getParamHandle()->ekf2_noaid_noise, 0.5f);
+}
+
+TEST_F(EkfHeightFusionTest, gpsHeightNoiseNotCappedNextToAnotherHeightSource)
+{
+	// GIVEN: baro and GNSS height are both fused and GNSS reports a vertical accuracy above EKF2_NOAID_NOISE
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	gnssSample gps = _sensor_simulator._gps.getData();
+	gps.vacc = 30.f;
+	_sensor_simulator._gps.setData(gps);
+	_sensor_simulator.runSeconds(2);
+
+	ASSERT_TRUE(_ekf->control_status_flags().gps_hgt);
+	ASSERT_EQ(_ekf->getNumberOfActiveVerticalPositionAidingSources(), 2);
+
+	// THEN: the reported accuracy is used, the baro keeps the height constrained
+	EXPECT_NEAR(sqrtf(_ekf->aid_src_gnss_hgt().observation_variance), 30.f, 0.5f);
+}
+
+TEST_F(EkfHeightFusionTest, gpsHeightStartsWithoutResetNextToAnotherHeightSource)
+{
+	// GIVEN: GNSS as the height reference with only the baro fused, and GNSS reporting a vertical
+	// accuracy above EKF2_NOAID_NOISE with an altitude offset that is within that accuracy
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	const float vacc = 30.f;
+	ASSERT_GT(vacc, _ekf->getParamHandle()->ekf2_noaid_noise);
+
+	gnssSample gps = _sensor_simulator._gps.getData();
+	gps.vacc = vacc;
+	_sensor_simulator._gps.setData(gps);
+	_sensor_simulator._gps.stepHeightByMeters(60.f);
+	_sensor_simulator.runSeconds(1);
+
+	const float height_before = _ekf->getPosition()(2);
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	// WHEN: GNSS height fusion is enabled
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the start test uses the reported accuracy, GNSS height starts by fusion and the height is not reset
+	reset_logging_checker.capturePostResetState();
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(0));
+	EXPECT_NEAR(_ekf->getPosition()(2), height_before, 1.f);
 }

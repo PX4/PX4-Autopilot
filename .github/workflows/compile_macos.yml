@@ -6,11 +6,21 @@ on:
     - 'main'
     paths-ignore:
       - 'docs/**'
+  # macOS runners are the most expensive in CI. Pull requests only run this
+  # when they touch the macOS setup; main and the weekly run catch the rest.
   pull_request:
     branches:
       - '**'
-    paths-ignore:
-      - 'docs/**'
+    paths:
+      - 'Tools/setup/macos.sh'
+      - 'Tools/setup/macos_ci_pins.sh'
+      - 'Tools/setup/macos/**'
+      - 'Tools/setup/homebrew-pins.txt'
+      - 'Tools/setup/requirements.txt'
+      - '.github/workflows/compile_macos.yml'
+  schedule:
+    - cron: '0 6 * * 1' # Every Monday at 06:00 UTC
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -63,13 +73,13 @@ jobs:
     - name: Build px4_fmu-v5_default
       run: make px4_fmu-v5_default
 
-    # Only main saves: the 10 GB Actions cache cannot hold an entry for every
-    # PR run, and PRs restore from main's newest entry anyway.
+    # Only non-PR runs save: the 10 GB Actions cache cannot hold an entry for
+    # every PR run, and PRs restore from main's newest entry anyway.
     - name: Cache - Stats
-      if: always() && github.event_name != 'push'
+      if: always() && github.event_name == 'pull_request'
       run: ccache -s
 
     - uses: ./.github/actions/save-ccache
-      if: always() && github.event_name == 'push'
+      if: always() && github.event_name != 'pull_request'
       with:
         cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}

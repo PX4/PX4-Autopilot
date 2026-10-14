@@ -772,8 +772,13 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	}
 
 	// TODO: send differential pressure instead?
+	device::Device::DeviceId device_id{};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
+	airspeed.device_id = device_id.devid;
 
 	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);
