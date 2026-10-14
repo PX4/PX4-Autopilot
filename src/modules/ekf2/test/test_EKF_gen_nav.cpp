@@ -47,10 +47,49 @@
 #include <lib/gen_nav/gen_nav.hpp>
 #include <lib/world_magnetic_model/geo_mag_declination.h>
 
-class EkfGenNavTest : public ::testing::Test
+struct Errors {
+	float attitude_deg{0.f};
+	float velocity{0.f};
+	float horizontal_position{0.f};
+	float vertical_position{0.f};
+
+	void keepMax(const Errors &other)
+	{
+		attitude_deg = math::max(attitude_deg, other.attitude_deg);
+		velocity = math::max(velocity, other.velocity);
+		horizontal_position = math::max(horizontal_position, other.horizontal_position);
+		vertical_position = math::max(vertical_position, other.vertical_position);
+	}
+
+	void print() const
+	{
+		printf("max errors: attitude %.4f deg, velocity %.4f m/s, horizontal %.4f m, vertical %.4f m\n",
+		       (double)attitude_deg, (double)velocity, (double)horizontal_position, (double)vertical_position);
+	}
+
+	void expectBelow(const Errors &limits) const
+	{
+		EXPECT_LT(attitude_deg, limits.attitude_deg);
+		EXPECT_LT(velocity, limits.velocity);
+		EXPECT_LT(horizontal_position, limits.horizontal_position);
+		EXPECT_LT(vertical_position, limits.vertical_position);
+	}
+};
+
+struct FlightCondition {
+	const char *name;
+	double latitude_deg;
+	double longitude_deg;
+	float cruise_vel_north;
+	float cruise_vel_east;
+	Errors aided_limits;
+	Errors dead_reckoning_limits;
+};
+
+class EkfGenNavTest : public ::testing::TestWithParam<FlightCondition>
 {
 public:
-	EkfGenNavTest(): ::testing::Test(),
+	EkfGenNavTest(): ::testing::TestWithParam<FlightCondition>(),
 		_ekf{std::make_shared<Ekf>()},
 		_sensor_simulator(_ekf),
 		_ekf_wrapper(_ekf),
@@ -69,27 +108,16 @@ public:
 	// mirrors the delay Gps::send() subtracts from the sample timestamp
 	static constexpr double kGpsDelay = 0.11;
 
-	static GenNav::Profile profile()
+	GenNav::Profile profile() const
 	{
 		GenNav::Profile profile{};
+		profile.latitude_deg = GetParam().latitude_deg;
+		profile.longitude_deg = GetParam().longitude_deg;
+		profile.cruise_vel_north = GetParam().cruise_vel_north;
+		profile.cruise_vel_east = GetParam().cruise_vel_east;
 		profile.t_start_s = static_cast<float>(kMotionStart);
 		return profile;
 	}
-
-	struct Errors {
-		float attitude_deg{0.f};
-		float velocity{0.f};
-		float horizontal_position{0.f};
-		float vertical_position{0.f};
-
-		void keepMax(const Errors &other)
-		{
-			attitude_deg = math::max(attitude_deg, other.attitude_deg);
-			velocity = math::max(velocity, other.velocity);
-			horizontal_position = math::max(horizontal_position, other.horizontal_position);
-			vertical_position = math::max(vertical_position, other.vertical_position);
-		}
-	};
 
 	void SetUp() override
 	{
@@ -196,7 +224,7 @@ public:
 	}
 };
 
-TEST_F(EkfGenNavTest, perfectSensorsTrackTruth)
+TEST_P(EkfGenNavTest, perfectSensorsTrackTruth)
 {
 	// GIVEN: the vehicle at rest while GNSS becomes healthy and the filter aligns
 	run(kMotionStart);
@@ -204,20 +232,14 @@ TEST_F(EkfGenNavTest, perfectSensorsTrackTruth)
 
 	// WHEN: it accelerates, climbs, cruises and maneuvers in roll, pitch and yaw
 	const Errors max_errors = run(70.0);
-
-	printf("max errors: attitude %.4f deg, velocity %.4f m/s, horizontal %.4f m, vertical %.4f m\n",
-	       (double)max_errors.attitude_deg, (double)max_errors.velocity,
-	       (double)max_errors.horizontal_position, (double)max_errors.vertical_position);
+	max_errors.print();
 
 	// THEN: with exact sensors only the filter's own approximations remain. The horizontal
 	// floor comes from GNSS validity times falling 1 ms off the 10 ms fusion grid.
-	EXPECT_LT(max_errors.attitude_deg, 0.02f);
-	EXPECT_LT(max_errors.velocity, 0.008f);
-	EXPECT_LT(max_errors.horizontal_position, 0.04f);
-	EXPECT_LT(max_errors.vertical_position, 0.012f);
+	max_errors.expectBelow(GetParam().aided_limits);
 }
 
-TEST_F(EkfGenNavTest, inertialDeadReckoning)
+TEST_P(EkfGenNavTest, inertialDeadReckoning)
 {
 	// GIVEN: the position is known before the first prediction so that the Earth rate is
 	// compensated during the whole alignment, which is done at rest with all aiding sources
@@ -238,14 +260,63 @@ TEST_F(EkfGenNavTest, inertialDeadReckoning)
 	const Errors max_errors = run(70.0);
 	EXPECT_TRUE(_ekf->control_status_flags().inertial_dead_reckoning);
 
-	printf("max errors: attitude %.4f deg, velocity %.4f m/s, horizontal %.4f m, vertical %.4f m\n",
-	       (double)max_errors.attitude_deg, (double)max_errors.velocity,
-	       (double)max_errors.horizontal_position, (double)max_errors.vertical_position);
+	max_errors.print();
 
 	// THEN: with exact sensors the drift comes from the alignment residuals and the filter's
 	// own approximations
-	EXPECT_LT(max_errors.attitude_deg, 0.005f);
-	EXPECT_LT(max_errors.velocity, 0.016f);
-	EXPECT_LT(max_errors.horizontal_position, 0.35f);
-	EXPECT_LT(max_errors.vertical_position, 0.014f);
+	max_errors.expectBelow(GetParam().dead_reckoning_limits);
 }
+
+static std::string conditionName(const ::testing::TestParamInfo<FlightCondition> &info)
+{
+	return info.param.name;
+}
+
+// Errors limits: {attitude deg, velocity m/s, horizontal m, vertical m}
+static const FlightCondition kMidLatitude {
+	.name = "MidLatitude",
+	.latitude_deg = 47.3566094, .longitude_deg = 8.5190237,
+	.cruise_vel_north = 15.f, .cruise_vel_east = -10.f,
+	.aided_limits = {0.02f, 0.008f, 0.04f, 0.012f},
+	.dead_reckoning_limits = {0.005f, 0.016f, 0.35f, 0.014f}
+};
+
+static const FlightCondition kHighLatitude {
+	.name = "HighLatitude",
+	.latitude_deg = 80.0, .longitude_deg = 16.0,
+	.cruise_vel_north = 15.f, .cruise_vel_east = -10.f,
+	.aided_limits = {0.1f, 0.02f, 0.05f, 0.04f},
+	.dead_reckoning_limits = {0.005f, 0.025f, 0.55f, 0.02f}
+};
+
+static const FlightCondition kEquatorCrossing {
+	.name = "EquatorCrossing",
+	.latitude_deg = -0.005, .longitude_deg = -78.5,
+	.cruise_vel_north = 15.f, .cruise_vel_east = -10.f,
+	.aided_limits = {0.1f, 0.02f, 0.05f, 0.04f},
+	.dead_reckoning_limits = {0.005f, 0.005f, 0.12f, 0.01f}
+};
+
+static const FlightCondition kFastCruise {
+	.name = "FastCruise",
+	.latitude_deg = 47.3566094, .longitude_deg = 8.5190237,
+	.cruise_vel_north = 32.f, .cruise_vel_east = -24.f,
+	.aided_limits = {0.03f, 0.015f, 0.09f, 0.012f},
+	.dead_reckoning_limits = {0.005f, 0.018f, 0.37f, 0.02f}
+};
+
+INSTANTIATE_TEST_SUITE_P(EkfGenNav, EkfGenNavTest,
+			 ::testing::Values(kMidLatitude, kHighLatitude, kEquatorCrossing, kFastCruise),
+			 conditionName);
+
+// EKF2 does not handle the pole yet: its latitude runs past 90 deg while the navigation frame
+// flips by 180 deg in yaw. Run with --gtest_also_run_disabled_tests.
+static const FlightCondition kNorthPoleCrossing {
+	.name = "NorthPoleCrossing",
+	.latitude_deg = 89.997, .longitude_deg = 8.5190237,
+	.cruise_vel_north = 15.f, .cruise_vel_east = 0.f,
+	.aided_limits = {0.1f, 0.02f, 0.05f, 0.04f},
+	.dead_reckoning_limits = {0.005f, 0.025f, 0.55f, 0.02f}
+};
+
+INSTANTIATE_TEST_SUITE_P(DISABLED_EkfGenNav, EkfGenNavTest, ::testing::Values(kNorthPoleCrossing), conditionName);
