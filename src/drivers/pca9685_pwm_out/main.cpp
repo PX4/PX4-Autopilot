@@ -53,7 +53,6 @@
 
 #define PCA9685_DEFAULT_IICBUS  1
 #define PCA9685_DEFAULT_ADDRESS (0x40)
-#define PCA9685_DEFAULT_CLOCK_FREQ 25000000
 
 using namespace drv_pca9685_pwm;
 using namespace time_literals;
@@ -106,8 +105,6 @@ private:
 	float param_pwm_freq{50.f}, previous_pwm_freq{0.f};
 	bool param_update_failed = false;
 	uint32_t param_duty_mode;
-	bool param_external_clock{false};
-	uint32_t param_clock_frequency{PCA9685_DEFAULT_CLOCK_FREQ};
 
 	static constexpr uint8_t _transfer_fails_threshold = 10;
 	uint8_t _register_transfer_fails = 0;
@@ -344,8 +341,8 @@ int PCA9685Wrapper::print_status() {
 		pca9685->get_device_bus(),
 		pca9685->get_device_address(),
 		(double)(pca9685->getFreq()),
-		param_external_clock ? "external" : "internal",
-		(double)param_clock_frequency / 1e6);
+		pca9685->hasExternalClock() ? "external" : "internal",
+		(double)pca9685->getClockFreq() / 1e6);
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_comms_errors);
@@ -372,17 +369,7 @@ int PCA9685Wrapper::task_spawn(int argc, char **argv) {
         desc.object.store(instance);
         desc.task_id = task_id_is_work_queue;
 
-		// clock source is fixed for the driver lifetime (EXTCLK is sticky), so read it once at start
-		int32_t external_clock = 0;
-		param_get(param_find("PCA9685_EXT_CLK"), &external_clock);
-		instance->param_external_clock = (external_clock != 0);
-
-		int32_t clock_frequency = PCA9685_DEFAULT_CLOCK_FREQ;
-		param_get(param_find("PCA9685_CLK_FREQ"), &clock_frequency);
-		instance->param_clock_frequency = (uint32_t)clock_frequency;
-
-		instance->pca9685 = new PCA9685(cli.requested_bus, cli.i2c_address, instance->param_external_clock,
-						instance->param_clock_frequency);
+		instance->pca9685 = new PCA9685(cli.requested_bus, cli.i2c_address);
 
 		if(instance->pca9685==nullptr){
 			PX4_ERR("alloc failed");

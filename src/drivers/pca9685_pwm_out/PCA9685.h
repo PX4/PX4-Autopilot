@@ -83,6 +83,7 @@
 // common sense
 #define PCA9685_PWM_CHANNEL_COUNT 16
 #define PCA9685_PWM_RES 4096
+#define PCA9685_DEFAULT_CLOCK_FREQ 25000000
 
 namespace drv_pca9685_pwm
 {
@@ -91,7 +92,7 @@ namespace drv_pca9685_pwm
 class PCA9685 : public device::I2C
 {
 public:
-	PCA9685(int bus, int addr, bool external_clock, uint32_t clock_frequency);
+	PCA9685(int bus, int addr);
 	~PCA9685() override = default;
 
 	int init() override;
@@ -118,6 +119,12 @@ public:
 	 * Get the real frequency
 	 */
 	float inline getFreq() {return currentFreq;}
+
+	/*
+	 * Get the clock source, read from the parameters when the driver starts
+	 */
+	bool inline hasExternalClock() {return externalClock;}
+	uint32_t inline getClockFreq() {return clockReference;}
 
 	uint16_t inline calcRawFromPulse(uint16_t pulse_width)
 	{
@@ -167,8 +174,8 @@ protected:
 	int writePWM(uint8_t idx, const uint16_t *value, uint8_t num);
 
 private:
-	const bool externalClock;
-	const uint32_t clockReference;
+	bool externalClock{false};
+	uint32_t clockReference{PCA9685_DEFAULT_CLOCK_FREQ};
 	float currentFreq;
 };
 

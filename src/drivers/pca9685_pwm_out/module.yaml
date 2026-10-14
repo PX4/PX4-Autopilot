@@ -42,6 +42,10 @@ parameters:
             When enabled, the clock signal on the EXTCLK pin is used instead.
             Only enable this if the board provides a clock on the EXTCLK pin,
             otherwise the PCA9685 does not generate any PWM output.
+            The EXTCLK setting is sticky in the PCA9685: once enabled, the chip keeps using
+            the external clock until it is powered off. Switching from external to internal
+            clock requires a power cycle of the board with the PCA9685, a reboot of the
+            flight controller is not enough.
         type: boolean
         reboot_required: true
         default: 0

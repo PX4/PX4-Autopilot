@@ -34,6 +34,7 @@
 #include <px4_log.h>
 #include <px4_defines.h>
 #include <cmath>
+#include <lib/parameters/param.h>
 #include "PCA9685.h"
 
 
@@ -42,13 +43,17 @@
 
 using namespace drv_pca9685_pwm;
 
-PCA9685::PCA9685(int bus, int addr, bool external_clock, uint32_t clock_frequency):
+PCA9685::PCA9685(int bus, int addr):
 	I2C(DRV_PWM_DEVTYPE_PCA9685, MODULE_NAME, bus, addr, 400000),
-	externalClock(external_clock),
-	clockReference(clock_frequency),
 	currentFreq(0.0)
 {
+	int32_t external_clock = 0;
+	param_get(param_find("PCA9685_EXT_CLK"), &external_clock);
+	externalClock = (external_clock != 0);
 
+	int32_t clock_frequency = PCA9685_DEFAULT_CLOCK_FREQ;
+	param_get(param_find("PCA9685_CLK_FREQ"), &clock_frequency);
+	clockReference = (uint32_t)clock_frequency;
 }
 
 int PCA9685::init()

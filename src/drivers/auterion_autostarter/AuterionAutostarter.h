@@ -185,6 +185,7 @@ private:
 
 	void try_eeprom_start();
 	void try_probe_start();
+	void try_pca9685_start();
 
 	int ina226_probe(const uint32_t instance) const;
 	int eeprom_read(const uint32_t instance);
@@ -213,6 +214,11 @@ private:
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};		///< system armed control topic
 	int _eeprom_only_run{0};
 
+	bool _pca9685_started{false};
+	bool _pca9685_in_eeprom{false};
+	uint8_t _pca9685_bus{PCA9685_DEFAULT_BUS};
+	uint16_t _pca9685_addr{PCA9685_DEFAULT_ADDR};
+
 	static constexpr int RUN_INTERVAL{500_ms};
 	static constexpr int EEPROM_ONLY_RUNS{2};
 	static constexpr int BUSES_NUMBERS{2};
@@ -224,6 +230,8 @@ private:
 	static constexpr uint8_t EEPROM_BLOCK_TYPE_VERSION = 1;
 
 	static constexpr int32_t PCA9685_NOMINAL_CLOCK_FREQ = 25'000'000;
+	static constexpr uint8_t PCA9685_DEFAULT_BUS = 1;
+	static constexpr uint16_t PCA9685_DEFAULT_ADDR = 0x40;
 
 	static constexpr size_t BUS_MAX_LEN = 4;
 	static constexpr size_t I2C_ADDR_MAX_LEN = 4;
