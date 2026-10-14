@@ -5,6 +5,7 @@
 uint64 timestamp # [us] Time since system start
 
 uint32 device_id_selected # [-] Receiver that vehicle_gnss carries
+bool primary_offline      # A primary receiver is configured and is not publishing
 
 uint8 MAX_RECEIVERS = 4 # Length of the per-receiver arrays
 
@@ -12,6 +13,7 @@ uint32[4] device_ids                 # [-] One entry per receiver, 0 where unuse
 int8[4] order                        # [-] Fixed position of the receiver: 0 for the preferred one, otherwise for the first to publish, then in order of first publication. Changes only with the preference, -1 until the receiver publishes
 bool[4] healthy                      # Usable within the last 2 s: passed its checks for long enough and published without gaps. The selection fails over from a receiver that isn't
 float32[4] availability              # [-] Fraction of recent time the receiver passed its checks and published without gaps, 0 to 1
+float32[4] inconsistency             # [m] [@invalid NaN] Absolute difference between the horizontal distance to the selected receiver's position at the time of its sample and the horizontal distance between their antennas. 0 for the selected receiver
 uint16[4] failed_strict_checks       # [-] Enabled checks the latest sample fails at the strict thresholds, VehicleGnss CHECK_* bits
 uint16[4] failed_relaxed_checks      # [-] Enabled checks the latest sample fails at the relaxed thresholds, VehicleGnss CHECK_* bits
 bool[4] strict                       # The strict checks decide whether its samples are usable, as VehicleGnss strict

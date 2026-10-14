@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 #include "gnssRedundancyCheck.hpp"
-#include <lib/geo/geo.h>
+
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 
 using namespace matrix;
 using namespace time_literals;
@@ -48,8 +50,9 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 {
 	bool gps_online[GPS_MAX_INSTANCES] {};
 	bool gnss_healthy[GPS_MAX_INSTANCES] {};
+	float eph[GPS_MAX_INSTANCES] {};
 	uint8_t healthy_count = 0;
-	sensor_gnss_s healthy_gnss[GPS_MAX_INSTANCES] {};
+	int selected = -1;
 
 	sensors_status_gnss_s status{};
 	const bool status_valid = _sensors_status_gnss_sub.copy(&status) && (hrt_elapsed_time(&status.timestamp) < 1_s);
@@ -65,7 +68,12 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 			// The sensors module indexes its status by the same sensor_gnss instance
 			if (status_valid && (status.device_ids[i] == gnss.device_id) && status.healthy[i]) {
 				gnss_healthy[i] = true;
-				healthy_gnss[healthy_count++] = gnss;
+				eph[i] = gnss.eph;
+				healthy_count++;
+
+				if (gnss.device_id == status.device_id_selected) {
+					selected = i;
+				}
 			}
 		}
 	}
@@ -75,38 +83,32 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		_peak_healthy_count = healthy_count;
 	}
 
-	// Position divergence check: flag if two healthy receivers disagree beyond their
-	// combined uncertainty. Gate = 3 * RSS(eph), centered on the expected lever-arm separation.
+	// Position divergence check: flag if a healthy receiver disagrees with the selected one beyond their combined
+	// uncertainty. Gate = 3 * RSS(eph), on the disagreement the sensors module finds after the lever arms.
 	float divergence_m = 0.f;
+	bool diverged = false;
 
-	if (healthy_count >= 2) {
-		float north, east;
-		get_vector_to_next_waypoint(healthy_gnss[0].latitude, healthy_gnss[0].longitude,
-					    healthy_gnss[1].latitude, healthy_gnss[1].longitude,
-					    &north, &east);
-		const float separation_m = Vector2f(north, east).length();
+	// EKF2 might not be part of the build, in that case fall back to the EKF2_GPS_P_NOISE default
+	float eph_min = 0.5f;
 
-		const Vector2f offset0(_param_sens_gnss0_offx.get(), _param_sens_gnss0_offy.get());
-		const Vector2f offset1(_param_sens_gnss1_offx.get(), _param_sens_gnss1_offy.get());
-		const float expected_d = (offset0 - offset1).length();
-		divergence_m = fabsf(separation_m - expected_d);
-		// Use quadrature sum for standard deviation of the difference taking the firmware dependent eph as standard deviation
-		// and a heuristic factor of 3 because then it's unlikely just noise.
-		// Receivers might report an optimistic eph, so floor it with the minimum GNSS position noise.
-		// EKF2 might not be part of the build, in that case fall back to the EKF2_GPS_P_NOISE default.
-		float eph_min = 0.5f;
+	if (_param_ekf2_gps_p_noise_handle != PARAM_INVALID) {
+		param_get(_param_ekf2_gps_p_noise_handle, &eph_min);
+	}
 
-		if (_param_ekf2_gps_p_noise_handle != PARAM_INVALID) {
-			param_get(_param_ekf2_gps_p_noise_handle, &eph_min);
+	for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
+		if ((selected < 0) || (i == selected) || !gnss_healthy[i] || !PX4_ISFINITE(status.inconsistency[i])) {
+			continue;
 		}
 
-		const float divergence_gate_m = 3.f * Vector2f(math::max(healthy_gnss[0].eph, eph_min),
-						math::max(healthy_gnss[1].eph, eph_min)).length();
-		_divergence_hysteresis.set_state_and_update(divergence_m > divergence_gate_m, hrt_absolute_time());
-
-	} else {
-		_divergence_hysteresis.set_state_and_update(false, hrt_absolute_time());
+		// Use quadrature sum for standard deviation of the difference taking the firmware dependent eph as standard
+		// deviation and a heuristic factor of 3 because then it's unlikely just noise. Receivers might report an
+		// optimistic eph, so it is floored with the minimum GNSS position noise.
+		const float divergence_gate_m = 3.f * Vector2f(math::max(eph[i], eph_min), math::max(eph[selected], eph_min)).length();
+		divergence_m = math::max(divergence_m, status.inconsistency[i]);
+		diverged |= status.inconsistency[i] > divergence_gate_m;
 	}
+
+	_divergence_hysteresis.set_state_and_update(diverged, hrt_absolute_time());
 
 	const bool below_required = (_param_sys_has_num_gnss.get() > 0) && (healthy_count < _param_sys_has_num_gnss.get());
 	const bool dropped_below_peak = (_peak_healthy_count > 1) && (healthy_count < _peak_healthy_count);
@@ -166,5 +168,20 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 					      log_level,
 					      "GPS receivers disagree by {1:.1}m",
 					      (double)divergence_m);
+	}
+
+	// The selection falls back to another receiver, so like any other receiver the primary blocks arming only when
+	// SYS_HAS_NUM_GNSS counts it
+	if (!context.isArmed() && status_valid && status.primary_offline) {
+		/* EVENT
+		 * @description
+		 * Another receiver, if any, is used until the primary one publishes.
+		 *
+		 * <profile name="dev">
+		 * The primary receiver is set with <param>SENS_GNSS_PRIME</param>, or is the moving base of a moving base pair.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(NavModes::None, health_component_t::gps, events::ID("check_gnss_primary_offline"),
+					    events::Log::Warning, "Primary GPS offline");
 	}
 }
