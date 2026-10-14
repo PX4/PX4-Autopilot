@@ -22,3 +22,50 @@ parameters:
       default: 10
       min: 0
       max: 50
+    SIM_GNSS_NUM:
+      description:
+        short: Number of simulated GNSS receivers
+        long: |-
+          Each receiver has its own noise and SIM_GNSSn_BIAS_N/E/D, and reports the
+          position of its antenna at SENS_GNSSn_OFFX/Y/Z. A receiver with
+          SENS_GNSSn_HDG set also reports a heading along that baseline.
+      type: int32
+      default: 1
+      min: 1
+      max: 2
+    SIM_GNSS${i}_BIAS_N:
+      description:
+        short: Simulated GNSS ${i} north position bias
+        long: |-
+          Constant error of the receiver's position, as from a different correction
+          source or datum.
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 2
+      num_instances: 2
+      instance_start: 0
+    SIM_GNSS${i}_BIAS_E:
+      description:
+        short: Simulated GNSS ${i} east position bias
+        long: |-
+          Constant error of the receiver's position, as from a different correction
+          source or datum.
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 2
+      num_instances: 2
+      instance_start: 0
+    SIM_GNSS${i}_BIAS_D:
+      description:
+        short: Simulated GNSS ${i} down position bias
+        long: |-
+          Constant error of the receiver's height, positive down, as from a different
+          geoid model or correction source.
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 2
+      num_instances: 2
+      instance_start: 0

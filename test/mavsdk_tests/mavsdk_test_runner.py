@@ -43,7 +43,8 @@ class TesterInterfaceMavsdk(test_runner.TesterInterface):
             config['mavlink_connection'],
             speed_factor,
             verbose,
-            build_dir)
+            build_dir,
+            os.path.join(workspace_dir, build_dir, self.rootfs_base_dirname(), "rootfs"))
 
     def rootfs_base_dirname(self) -> str:
         return "tmp_mavsdk_tests"

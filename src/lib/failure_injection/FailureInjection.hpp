@@ -112,12 +112,13 @@ private:
 
 /**
  * Per-(consumer, instance) state for stateful failures. Holds the last good
- * sample so Stuck can replay it.
+ * sample so Stuck can replay it, and counts samples so Slow can pass one in N.
  */
 template<typename MsgT>
 struct Stuck {
 	bool valid{false};
 	MsgT value{};
+	uint16_t slow_count{0};
 };
 
 template<typename...>
@@ -208,9 +209,10 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
 
 /**
  * GNSS counterpart to process(): on FAILURE_UNIT_SENSOR_GPS for the receiver publishing on the
- * given 0-based uORB instance, Off and Stuck behave as in the generic process() and Wrong reports
- * the fix type selected by SYS_FAIL_GPS_WRG and the jamming state selected by SYS_FAIL_GPS_JAM
- * while leaving the position untouched.
+ * given 0-based uORB instance, Off and Stuck behave as in the generic process(). Wrong overrides
+ * the fix type, accuracies, satellite count, jamming and spoofing state from the SYS_FAIL_GPS_*
+ * parameters, each left unchanged at 0, and leaves the position untouched. Slow passes one sample
+ * in SYS_FAIL_GPS_DIV.
  *
  * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
  * @return false if the sensor_gnss publication must be suppressed (Off), true otherwise.

@@ -11,31 +11,33 @@ What differs is whether a _consumer_ applies the failure, and that depends on th
 
 ## Supported Failure Types
 
-The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
+The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong`, `slow` (`ok` is not listed, but clears an active injection on all environments).
 A `—` means the module still accepts the command, but no consumer applies it in that environment.
 
-| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic) | Hardware                |
-| ----------------- | ----------------------- | ----------------------- | ------------------------------------ | ----------------------- |
-| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`              | `off`, `stuck`, `wrong` |
-| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                       | —                       |
-| `vio`             | —                       | —                       | `off`                                | —                       |
-| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
-| `traffic`         | `off`                   | `off`                   | `off`                                | `off`                   |
-| `motor`           | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
-| `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
-| `can`             | —                       | —                       | —                                    | `off`                   |
+| Component         | [Gazebo] (gz)                   | [SIH]                           | `simulator_mavlink` (Gazebo Classic) | Hardware                        |
+| ----------------- | ------------------------------- | ------------------------------- | ------------------------------------ | ------------------------------- |
+| `gyro`            | `off`, `stuck`                  | `off`, `stuck`                  | `off`, `stuck`                       | `off`, `stuck`                  |
+| `accel`           | `off`, `stuck`                  | `off`, `stuck`                  | `off`, `stuck`                       | `off`, `stuck`                  |
+| `mag`             | `off`, `stuck`                  | `off`, `stuck`                  | `off`, `stuck`                       | `off`, `stuck`                  |
+| `baro`            | `off`, `stuck`                  | `off`, `stuck`                  | `off`, `stuck`                       | `off`, `stuck`                  |
+| `distance_sensor` | `off`, `stuck`                  | `off`, `stuck`                  | `off`, `stuck`                       | `off`, `stuck`                  |
+| `gps`             | `off`, `stuck`, `wrong`, `slow` | `off`, `stuck`, `wrong`, `slow` | `off`, `stuck`, `wrong`, `slow`      | `off`, `stuck`, `wrong`, `slow` |
+| `airspeed`        | `off`, `stuck`, `wrong`         | —                               | `off`, `wrong`                       | —                               |
+| `vio`             | —                               | —                               | `off`                                | —                               |
+| `battery`         | `off`, `wrong`                  | `off`, `wrong`                  | `off`, `wrong`                       | `off`, `wrong`                  |
+| `traffic`         | `off`                           | `off`                           | `off`                                | `off`                           |
+| `motor`           | `off`, `wrong`                  | `off`, `wrong`                  | `off`, `wrong`                       | `off`, `wrong`                  |
+| `esc`             | `off`, `wrong`                  | `off`, `wrong`                  | `off`, `wrong`                       | `off`, `wrong`                  |
+| `can`             | —                               | —                               | —                                    | `off`                           |
 
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md
 
 ::: info
 
-- `gps off | stuck | wrong` on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
+- `gps` failures on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
+- `gps` failures apply to the addressed receiver's heading as well (`sensor_gnss_relative`), so `gps off` on a dual-antenna receiver also stops its heading.
+  A moving-base rover's heading is dropped while its moving base is silent, whether that receiver failed or was injected `off`.
 - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
@@ -108,8 +110,29 @@ where:
   Example: `-m 0x5` targets instances 1 and 3.
 
 ::: info
-GPS implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
-`gps wrong` makes the addressed receiver report the fix type selected by [SYS_FAIL_GPS_WRG](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_WRG) and the jamming state selected by [SYS_FAIL_GPS_JAM](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_JAM) (`Unchanged` keeps the receiver's own state), and leaves the reported position untouched.
+GPS implements the `off`, `stuck`, `wrong` and `slow` failure modes; the other failure types have no effect on it.
+`gps wrong` leaves the reported position untouched and reports the fields set by these parameters; `0` (`Unchanged`) keeps the receiver's own value:
+
+| Parameter                   | Reported field                   |
+| --------------------------- | -------------------------------- |
+| [SYS_FAIL_GPS_WRG]          | Fix type (default 2D)            |
+| [SYS_FAIL_GPS_EPH]          | Horizontal position accuracy [m] |
+| [SYS_FAIL_GPS_EPV]          | Vertical position accuracy [m]   |
+| [SYS_FAIL_GPS_SAC]          | Speed accuracy [m/s]             |
+| [SYS_FAIL_GPS_SAT]          | Satellites used                  |
+| [SYS_FAIL_GPS_JAM]          | Jamming state                    |
+| [SYS_FAIL_GPS_SPF]          | Spoofing state                   |
+
+`gps slow` publishes one sample in [SYS_FAIL_GPS_DIV].
+
+[SYS_FAIL_GPS_WRG]: ../advanced_config/parameter_reference.md#SYS_FAIL_GPS_WRG
+[SYS_FAIL_GPS_EPH]: ../advanced_config/parameter_reference.md#SYS_FAIL_GPS_EPH
+[SYS_FAIL_GPS_EPV]: ../advanced_config/parameter_reference.md#SYS_FAIL_GPS_EPV
+[SYS_FAIL_GPS_SAC]: ../advanced_config/parameter_reference.md#SYS_FAIL_GPS_SAC
+[SYS_FAIL_GPS_SAT]: ../advanced_config/parameter_reference.md#SYS_FAIL_GPS_SAT
+[SYS_FAIL_GPS_JAM]: ../advanced_config/parameter_reference.md#SYS_FAIL_GPS_JAM
+[SYS_FAIL_GPS_SPF]: ../advanced_config/parameter_reference.md#SYS_FAIL_GPS_SPF
+[SYS_FAIL_GPS_DIV]: ../advanced_config/parameter_reference.md#SYS_FAIL_GPS_DIV
 :::
 
 ## RC Switch Trigger
@@ -144,6 +167,48 @@ To test the GPS failsafe by stopping GPS:
    # Restart GPS publishing
    failure gps ok
    ```
+
+## Example: GNSS Receiver Failover
+
+With two receivers, failing the selected one tests the switch to the other receiver and the estimator reset that comes with it.
+In SIH, set [SIM_GNSS_NUM](../advanced_config/parameter_reference.md#SIM_GNSS_NUM) to `2` and give the receivers different [SIM_GNSSx_BIAS_N](../advanced_config/parameter_reference.md#SIM_GNSS1_BIAS_N), `_E` and `_D`, so that the switch shows as a reset by the difference of the biases.
+
+```sh
+# Accuracy above the in-flight limit of the GNSS checks, fix type unchanged
+param set SYS_FAIL_GPS_WRG 0
+param set SYS_FAIL_GPS_EPH 60
+failure gps wrong -i 1
+
+# Update rate below a third: one sample in SYS_FAIL_GPS_DIV
+failure gps slow -i 1
+
+failure gps ok -i 1
+```
+
+The `[gnss_failover]` cases in [test/mavsdk_tests](https://github.com/PX4/PX4-Autopilot/tree/main/test/mavsdk_tests) run these failures in SIH.
+
+### Companion Computer Tool
+
+`gnss_failover` injects one GNSS failure from a companion computer while a pilot flies, using the same scenario code as the SIH tests.
+It never arms or changes the mode, refuses to inject unless [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) is set, both receivers report a 3D fix on `GPS_RAW_INT` and `GPS2_RAW`, and the vehicle is armed, in the air and in a position-controlled mode (`--ground` allows a bench test).
+It sends `ok` when it ends, including on `SIGINT` and `SIGTERM`; an injection stays active in the vehicle until then.
+The firmware needs the failure-injection module, which only `px4_sitl` builds by default.
+
+```sh
+cmake -S test/mavsdk_tests -B build/gnss_failover && cmake --build build/gnss_failover --target gnss_failover
+build/gnss_failover/gnss_failover --url serial:///dev/ttyS1:921600 --instance 1 --type off --duration 20 --record flight.csv
+```
+
+The record holds every injection and acknowledgement, both receivers, estimator resets, position validity, mode changes and events, with wall and vehicle time.
+
+### Log Report
+
+[Tools/gnss_failover_report.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/gnss_failover_report.py) grades every injected GNSS failure in a ULog (SIH or flight): the switch to the standby, one horizontal reset by the offset between the receivers (and one height reset with GNSS as the height reference), position validity, mode and failsafes, no return to the failed receiver while armed, GNSS yaw, and the switch event, fusion state and receiver inconsistency the sensors module and EKF2 report.
+In SIH it also checks against ground truth that the vehicle held its position in Hold.
+
+```sh
+Tools/gnss_failover_report.py log.ulg
+```
 
 ## Example: Motor
 

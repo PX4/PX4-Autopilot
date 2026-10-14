@@ -42,6 +42,7 @@
 
 std::string connection_url {"udp://"};
 std::optional<float> speed_factor {std::nullopt};
+std::string px4_rootfs {};
 
 AutopilotTester::AutopilotTester() :
 	_real_time_report_thread([this]()
@@ -81,7 +82,7 @@ void AutopilotTester::connect(const std::string uri)
 	_events.reset(new Events(system));
 	_mavlink_passthrough.reset(new MavlinkPassthrough(system));
 
-	_events_handle = _events->subscribe_events([](const Events::Event & event) {
+	_events_handle = _events->subscribe_events([this](const Events::Event & event) {
 		std::cout << "[" << event.log_level << "] " << event.message << std::endl;
 
 		if (!event.description.empty()) {
@@ -90,6 +91,10 @@ void AutopilotTester::connect(const std::string uri)
 
 		std::cout << "    Event name: " << event.event_namespace << "/" << event.event_name
 			  << std::endl;
+
+		if (_event_callback) {
+			_event_callback(event);
+		}
 	});
 }
 

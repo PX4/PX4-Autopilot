@@ -20,6 +20,8 @@ if(MAVSDK_FOUND)
         autopilot_tester_rtl.cpp
         autopilot_tester_figure_eight.cpp
         autopilot_tester_loiter.cpp
+        autopilot_tester_gnss.cpp
+        gnss_failover.cpp
         # follow-me needs a MAVSDK update:
         # https://github.com/mavlink/MAVSDK/pull/1770
         # autopilot_tester_follow_me.cpp
@@ -27,6 +29,7 @@ if(MAVSDK_FOUND)
         test_multicopter_control_allocation.cpp
         test_multicopter_failure_injection.cpp
         test_multicopter_failsafe.cpp
+        test_multicopter_gnss_failover.cpp
         test_multicopter_mission.cpp
         test_multicopter_mission_do_jump.cpp
         test_multicopter_rtl.cpp
@@ -53,6 +56,25 @@ if(MAVSDK_FOUND)
     target_include_directories(mavsdk_tests PUBLIC ${CMAKE_BINARY_DIR}/..)
 
     target_compile_options(mavsdk_tests
+        PRIVATE
+            -Wall
+            -Wextra
+            -Werror
+            -Wno-error=deprecated-declarations
+    )
+
+    # Companion computer tool for the GNSS failover flight test, on the same scenario code as the SIH tests
+    add_executable(gnss_failover
+        gnss_failover.cpp
+        gnss_failover_main.cpp
+    )
+
+    target_link_libraries(gnss_failover
+        MAVSDK::mavsdk
+        ${CMAKE_THREAD_LIBS_INIT}
+    )
+
+    target_compile_options(gnss_failover
         PRIVATE
             -Wall
             -Wextra
