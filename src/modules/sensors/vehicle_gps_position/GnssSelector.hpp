@@ -154,6 +154,13 @@ public:
 	// The latest sample passed its checks and neither it nor the next one is late
 	bool isUsable(int instance, uint64_t hrt_now_us) const;
 
+	// No usable sample for FAIL_TIME_US, or never one: the selection fails over from it
+	bool hasFailed(int instance, uint64_t hrt_now_us) const
+	{
+		return isSilent(instance) || (_time_last_usable_us[instance] == 0)
+		       || (hrt_now_us >= _time_last_usable_us[instance] + FAIL_TIME_US);
+	}
+
 	float getAvailability(int instance) const
 	{
 		return ((instance >= 0) && (instance < GNSS_MAX_RECEIVERS)) ? _availability[instance].getState() : 0.f;
@@ -197,12 +204,6 @@ private:
 
 
 	hrt_abstime lateIntervalUs(int instance) const;
-
-	bool hasFailed(int instance, uint64_t hrt_now_us) const
-	{
-		return isSilent(instance) || (_time_last_usable_us[instance] == 0)
-		       || (hrt_now_us >= _time_last_usable_us[instance] + FAIL_TIME_US);
-	}
 
 	enum Rank : int8_t {
 		RANK_UNUSABLE = -1,

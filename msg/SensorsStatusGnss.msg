@@ -10,7 +10,7 @@ uint8 MAX_RECEIVERS = 4 # Length of the per-receiver arrays
 
 uint32[4] device_ids                 # [-] One entry per receiver, 0 where unused
 int8[4] order                        # [-] Fixed position of the receiver: 0 for the preferred one, otherwise for the first to publish, then in order of first publication. Changes only with the preference, -1 until the receiver publishes
-bool[4] healthy                      # Passed its checks for long enough and publishes without gaps: usable by the selection
+bool[4] healthy                      # Usable within the last 2 s: passed its checks for long enough and published without gaps. The selection fails over from a receiver that isn't
 float32[4] availability              # [-] Fraction of recent time the receiver passed its checks and published without gaps, 0 to 1
 uint16[4] failed_strict_checks       # [-] Enabled checks the latest sample fails at the strict thresholds, VehicleGnss CHECK_* bits
 uint16[4] failed_relaxed_checks      # [-] Enabled checks the latest sample fails at the relaxed thresholds, VehicleGnss CHECK_* bits

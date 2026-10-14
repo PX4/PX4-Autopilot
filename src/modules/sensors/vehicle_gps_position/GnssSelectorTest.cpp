@@ -1279,3 +1279,34 @@ TEST_F(GnssSelectorTest, strictRankRequalifiesAfterFailure)
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
 	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_STRICT);
 }
+
+TEST_F(GnssSelectorTest, lateSampleDoesNotFail)
+{
+	GnssSelector selector;
+
+	// GIVEN: a receiver publishing at 10 Hz
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	runSeconds(5.f, selector, gnss_data0, 0);
+
+	// WHEN: one sample comes 400 ms after the previous one
+	_time_now_us += 250_ms;
+	selector.update(_time_now_us);
+
+	// THEN: it is unusable during the gap and for the late sample, but hasn't failed
+	EXPECT_FALSE(selector.isUsable(0, _time_now_us));
+	EXPECT_FALSE(selector.hasFailed(0, _time_now_us));
+
+	gnss_data0.timestamp += 300_ms;
+	_time_now_us += 50_ms;
+	selector.setGnssData(gnss_data0, true, true, true, 0);
+	selector.update(_time_now_us);
+
+	EXPECT_FALSE(selector.isUsable(0, _time_now_us));
+	EXPECT_FALSE(selector.hasFailed(0, _time_now_us));
+
+	gnss_data0.timestamp += 100_ms;
+	_time_now_us += 100_ms;
+	runSeconds(0.2f, selector, gnss_data0, 0);
+
+	EXPECT_TRUE(selector.isUsable(0, _time_now_us - 100_ms));
+}

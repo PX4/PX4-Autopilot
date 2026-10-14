@@ -487,7 +487,7 @@ void VehicleGPSPosition::PublishStatus()
 		const sensor_gnss_s &sample = _latest_sample[i];
 
 		status.device_ids[i] = sample.device_id;
-		status.healthy[i] = _gnss_selector.isUsable(i, now);
+		status.healthy[i] = !_gnss_selector.hasFailed(i, now);
 		status.availability[i] = _gnss_selector.getAvailability(i);
 		status.failed_strict_checks[i] = checks.getStrictFailFlags();
 		status.failed_relaxed_checks[i] = checks.getRelaxedFailFlags();
