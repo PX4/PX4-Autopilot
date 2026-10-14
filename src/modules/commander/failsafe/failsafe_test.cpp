@@ -966,3 +966,37 @@ TEST_F(FailsafeTest, RoverUnsupportedDescendToDisarm)
 	// 4. Verify that because Descend is unsupported, the action safely diverted to Disarm
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Disarm);
 }
+
+TEST_F(FailsafeTest, GnssLostUsesGnssLossActParam)
+{
+	// Each param value is exercised on its own fresh Failsafe instance, to avoid
+	// action hysteresis/clear-conditions from one value leaking into the next.
+	auto selectedActionFor = [](int32_t com_gnssloss_act) {
+		param_set(param_handle(px4::params::COM_GNSSLOSS_ACT), &com_gnssloss_act);
+
+		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
+		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+		Failsafe failsafe(nullptr);
+
+		failsafe_flags_s failsafe_flags{};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+		failsafe_flags.gnss_lost = true;
+
+		FailsafeBase::State state{};
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		failsafe.update(5_s, state, false, false, failsafe_flags);
+		return failsafe.selectedAction();
+	};
+
+	EXPECT_EQ(selectedActionFor(0), FailsafeBase::Action::Warn); // Warning
+	EXPECT_EQ(selectedActionFor(1), FailsafeBase::Action::RTL); // Return
+	EXPECT_EQ(selectedActionFor(2), FailsafeBase::Action::Land); // Land
+	EXPECT_EQ(selectedActionFor(3), FailsafeBase::Action::Terminate); // Terminate
+	// "Warning, block arming" only differs from Warning on the ground, in flight both just warn
+	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Warn); // Warning, block arming
+}
