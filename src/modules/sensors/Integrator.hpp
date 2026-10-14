@@ -175,10 +175,10 @@ public:
 			// Simulated: https://github.com/priseborough/InertialNav/blob/master/models/imu_error_modelling.m
 			_beta += ((_last_alpha + _last_delta_alpha * (1.f / 6.f)) % delta_alpha) * 0.5f;
 			_last_delta_alpha = delta_alpha;
-			_last_alpha = _alpha;
 
 			// accumulate delta integrals
 			_alpha += delta_alpha;
+			_last_alpha = _alpha;
 
 		} else {
 			reset();
