@@ -421,15 +421,14 @@ TECSControl::SpecificEnergyRates TECSControl::_calcPitchControlEnergyRates(const
 	pitch_specific_energy_rates.ske_rate.setpoint = _calcPitchControlSkeRateSetpoint(setpoint, input, limit, param, flag,
 			weight);
 
-	// Between trim airspeed and the airspeed setpoint the throttle alone accelerates the vehicle. Capping the pitch
-	// loop's airspeed setpoint is not enough there: the throttle's acceleration would still show up in the kinetic
-	// energy rate estimate, and the pitch loop would pitch up to turn it into height. Remove the kinetic term from
-	// the pitch loop in this band, so pitch controls height only. As for the setpoint cap, this is faded out with
-	// speed priority, where pitch is the only way to track the airspeed setpoint.
+	// Between trim airspeed and the airspeed setpoint the throttle alone accelerates the vehicle. The capped setpoint
+	// above already removes the kinetic setpoint of the pitch loop there, faded in with speed priority. But the
+	// throttle's acceleration would still show up in the kinetic energy rate estimate, and the pitch loop would pitch
+	// up to turn it into height. Remove the estimate from the pitch loop in this band as well, with the same fade, so
+	// that pitch controls height only. The setpoint must not be scaled again, or it would be faded twice.
 	const bool throttle_accelerates = input.tas > param.tas_trim && input.tas < setpoint.tas_setpoint;
-	const float kinetic_gain = throttle_accelerates ? constrain(weight.ske_weighting - 1.f, 0.f, 1.f) : 1.f;
-	pitch_specific_energy_rates.ske_rate.setpoint *= kinetic_gain;
-	pitch_specific_energy_rates.ske_rate.estimate *= kinetic_gain;
+	const float kinetic_estimate_gain = throttle_accelerates ? constrain(weight.ske_weighting - 1.f, 0.f, 1.f) : 1.f;
+	pitch_specific_energy_rates.ske_rate.estimate *= kinetic_estimate_gain;
 
 	return pitch_specific_energy_rates;
 }

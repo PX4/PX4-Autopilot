@@ -851,3 +851,26 @@ TEST(TECSControlTest, PitchUpOnOverspeed)
 	// THEN the pitch loop pitches up to slow down
 	EXPECT_GT(pitch, 0.f);
 }
+
+// Between trim airspeed and the setpoint, a speed weight between 1 and 2 must fade the pitch loop's kinetic setpoint
+// and estimate equally: accelerating exactly as commanded while holding altitude leaves no energy balance error.
+TEST(TECSControlTest, KineticSetpointAndEstimateFadeEquallyAboveTrim)
+{
+	TECSControl::Param param = makeParam();
+	param.pitch_speed_weight = 1.5f;
+	TECSControl::Flag flag = makeFlag();
+	flag.detect_underspeed_enabled = false;
+
+	TECSControl::Setpoint setpoint = makeSetpoint(); // altitude reference at the current altitude
+	setpoint.tas_setpoint = 18.f;
+
+	TECSControl::Input input = makeInput();
+	input.tas = 17.f; // between trim (15 m/s) and the setpoint
+	input.tas_rate = (setpoint.tas_setpoint - input.tas) * param.airspeed_error_gain; // the commanded acceleration
+
+	TECSControl control;
+	control.initialize(setpoint, input, param, flag);
+
+	const TECSControl::DebugOutput &debug = control.getDebugOutput();
+	EXPECT_NEAR(debug.energy_balance_rate_sp, debug.energy_balance_rate_estimate, 1e-4f);
+}

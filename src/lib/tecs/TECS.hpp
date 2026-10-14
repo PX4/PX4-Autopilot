@@ -505,7 +505,8 @@ private:
 	 * @brief Specific energy rates as seen by the pitch loop.
 	 *
 	 * The airspeed setpoint is capped as in _calcPitchControlSkeRateSetpoint, and between trim airspeed and the
-	 * airspeed setpoint the kinetic energy term is removed, so that pitch does not counter the throttle's acceleration.
+	 * airspeed setpoint the kinetic energy rate estimate is removed as well, so that pitch does not counter the
+	 * throttle's acceleration.
 	 *
 	 * @param setpoint is the control setpoints.
 	 * @param input is the current input measurement of the UAS.
