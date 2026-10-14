@@ -214,7 +214,7 @@ public:
 
 private:
 	matrix::Vector3f _beta{0.f, 0.f, 0.f};             /**< accumulated coning corrections */
-	matrix::Vector3f _last_delta_alpha{0.f, 0.f, 0.f}; /**< integral from previous previous sampling interval */
+	matrix::Vector3f _last_delta_alpha{0.f, 0.f, 0.f}; /**< integral from the previous sampling interval */
 };
 
 }; // namespace sensors
