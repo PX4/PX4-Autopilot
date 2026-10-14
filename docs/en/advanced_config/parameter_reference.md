@@ -26760,6 +26760,7 @@ Action the system takes when a GNSS failure is detected during flight.
 Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
 when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
 with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
+The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
 Any value above Warning also blocks arming.
 
 
@@ -26769,6 +26770,7 @@ Any value above Warning also blocks arming.
 - `1`: Return
 - `2`: Land
 - `3`: Terminate
+- `4`: Warning, block arming
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31138,7 +31140,10 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Maximum manual pitch angle.
 
-Applies to both directions in all manual modes with attitude stabilization but without altitude control
+Pitch angle commanded by full stick deflection, relative to FW_PSP_OFF (the centred-stick pitch).
+The resulting pitch setpoint is additionally limited to this angle around level,
+so with a non-zero FW_PSP_OFF the range is not symmetric.
+Applies in all manual modes with attitude stabilization but without altitude control.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31184,9 +31189,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Pitch setpoint offset (pitch at level flight).
 
-An airframe specific offset of the pitch setpoint in degrees, the value is
-added to the pitch setpoint and should correspond to the pitch at
-typical cruise speed of the airframe.
+Pitch angle of the body x-axis above the horizon in level flight at trim airspeed (FW_AIRSPD_TRIM).
+
+The altitude and airspeed controller (TECS) uses it as the pitch at zero climb angle,
+and in Stabilized mode the centred pitch stick commands it.
+Pitch setpoints and pitch limits set elsewhere, for example FW_P_LIM_MIN and FW_P_LIM_MAX,
+are absolute and do not include it.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31493,7 +31501,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_LND_FL_PMAX (`FLOAT`) {#FW_LND_FL_PMAX}
 
-Flare, maximum pitch.
+Flare, maximum absolute pitch.
 
 Maximum pitch during landing flare.
 
@@ -31508,7 +31516,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_LND_FL_PMIN (`FLOAT`) {#FW_LND_FL_PMIN}
 
-Flare, minimum pitch.
+Flare, minimum absolute pitch.
 
 Minimum pitch during landing flare.
 
@@ -31893,7 +31901,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_TKO_PITCH_MIN (`FLOAT`) {#FW_TKO_PITCH_MIN}
 
-Minimum pitch during takeoff.
+Minimum absolute pitch during takeoff.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -31964,7 +31972,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_P_LIM_MAX (`FLOAT`) {#FW_P_LIM_MAX}
 
-Maximum pitch angle setpoint.
+Maximum absolute pitch angle setpoint.
 
 Applies in any altitude controlled flight mode.
 
@@ -31979,7 +31987,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_P_LIM_MIN (`FLOAT`) {#FW_P_LIM_MIN}
 
-Minimum pitch angle setpoint.
+Minimum absolute pitch angle setpoint.
 
 Applies in any altitude controlled flight mode.
 
@@ -33018,6 +33026,7 @@ Chose source for manual setting of flaps in manual flight modes.
 - `4`: Aux4
 - `5`: Aux5
 - `6`: Flaps channel
+- `7`: Aux6
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -33276,6 +33285,7 @@ Chose source for manual setting of spoilers in manual flight modes.
 - `4`: Aux3
 - `5`: Aux4
 - `6`: Aux5
+- `7`: Aux6
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -45376,8 +45386,8 @@ Select your RC input protocol or auto to scan.
 - `1`: PPM
 - `2`: SBUS
 - `3`: DSM
-- `4`: ST24
-- `5`: SUMD
+- `4`: SUMD
+- `5`: ST24
 - `6`: CRSF
 - `7`: GHST
 
@@ -48802,7 +48812,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### RWTO_PSP (`FLOAT`) {#RWTO_PSP}
 
-Pitch setpoint during taxi / before rotation.
+Absolute pitch setpoint during taxi / before rotation.
 
 Pitch setpoint during taxi / before takeoff rotation airspeed is reached
 
@@ -53276,12 +53286,11 @@ IMU gyro FFT length.
 - `256`: 256
 - `512`: 512
 - `1024`: 1024
-- `4096`: 4096
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 512 | Hz | &nbsp;
+&check; |  |  |  | 512 |  | &nbsp;
 
 </div>
 

@@ -196,6 +196,8 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
+/* Capture channels (FMU_CAP1) run from this index to the end */
+#define DIRECT_PWM_FIRST_CAPTURE_CHANNEL  8
 
 
 /* Power supply control and monitoring GPIOs */
