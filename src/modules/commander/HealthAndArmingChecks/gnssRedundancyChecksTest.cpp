@@ -271,11 +271,11 @@ TEST_F(GnssRedundancyChecksTest, BelowRequiredSetsGnssLost)
 	EXPECT_FALSE(_can_arm_all_modes);
 }
 
-// COM_GNSSLOSS_ACT = Block arming + In-flight warning blocks arming without any in-flight action (gnss_lost is still set for the warning).
+// COM_GNSSLOSS_ACT = "Warning, block arming" blocks arming without any in-flight action (gnss_lost is still set for the warning).
 TEST_F(GnssRedundancyChecksTest, BelowRequiredBlockArmingBlocksArming)
 {
 	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
-	setGnssLossAct(4); // Block arming + In-flight warning
+	setGnssLossAct(4); // Warning, block arming
 
 	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
 	runCheck();

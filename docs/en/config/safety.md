@@ -283,13 +283,13 @@ At least a warning is emitted, additional failsafe actions can be configured usi
 Loss of a single GPS when none are required is handled by other GPS health checks.
 
 When `COM_GNSSLOSS_ACT` is set to `Warning`, both triggers produce a warning only and never block arming.
-When set to `Block arming + In-flight warning`, both triggers block arming and only produce a warning in flight.
+When set to `Warning, block arming`, both triggers block arming and only produce a warning in flight.
 When set to `Return`, `Land`, or `Terminate`, both triggers block arming and fire the configured in-flight failsafe action (subject to the `SYS_HAS_NUM_GNSS` condition above).
 
 | Parameter                                                                                                   | Description                                                                                                                                                                                          |
 | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required. If two are required then they also need to be consistent.                                                                                                  |
-| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected. `0`: Warning only (default), `1`: Return, `2`: Land, `3`: Terminate, `4`: Block arming + In-flight warning. Values above Warning also block arming. |
+| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected. `0`: Warning only (default), `1`: Return, `2`: Land, `3`: Terminate, `4`: Warning, block arming. Values above Warning also block arming. |
 
 ## Offboard Loss Failsafe
 

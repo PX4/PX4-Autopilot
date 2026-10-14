@@ -997,6 +997,6 @@ TEST_F(FailsafeTest, GnssLostUsesGnssLossActParam)
 	EXPECT_EQ(selectedActionFor(1), FailsafeBase::Action::RTL); // Return
 	EXPECT_EQ(selectedActionFor(2), FailsafeBase::Action::Land); // Land
 	EXPECT_EQ(selectedActionFor(3), FailsafeBase::Action::Terminate); // Terminate
-	// Block arming + In-flight warning only differs from Warning on the ground, in flight both just warn
-	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Warn); // Block arming + In-flight warning
+	// "Warning, block arming" only differs from Warning on the ground, in flight both just warn
+	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Warn); // Warning, block arming
 }

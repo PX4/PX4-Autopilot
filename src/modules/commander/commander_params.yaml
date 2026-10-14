@@ -133,7 +133,7 @@ parameters:
         1: Return
         2: Land
         3: Terminate
-        4: Block arming + In-flight warning
+        4: Warning, block arming
       default: 0
     COM_ARM_SWISBTN:
       description:
