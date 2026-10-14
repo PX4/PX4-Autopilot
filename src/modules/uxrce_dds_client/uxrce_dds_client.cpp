@@ -670,6 +670,9 @@ void UxrceddsClient::run()
 
 		hrt_abstime last_sync_session = 0;
 		int poll_error_counter = 0;
+#if defined(__PX4_NUTTX)
+		bool transport_poll_error = false;
+#endif
 		resetConnectivityCounters();
 
 		while (!should_exit() && _connected) {
@@ -686,7 +689,10 @@ void UxrceddsClient::run()
 			// On NuttX the transport fd is a regular file descriptor: poll it together with the
 			// uORB subscriptions so the loop only wakes up on topic updates or incoming agent data,
 			// instead of spinning on a 1ms timeout. The timeout is only a fallback for housekeeping.
-			if (_fd >= 0) {
+			// If the transport fd reported an error on the previous iteration (e.g. POLLHUP on a
+			// disconnected USB link), skip it once and wait on uORB with the short timeout instead,
+			// so a persistent error can't make poll() return immediately and spin the loop.
+			if (_fd >= 0 && !transport_poll_error) {
 				_subs->fds[num_orb_fds].fd = _fd;
 				_subs->fds[num_orb_fds].events = POLLIN;
 				_subs->fds[num_orb_fds].revents = 0;
@@ -713,6 +719,11 @@ void UxrceddsClient::run()
 
 			/* Wait for topic updates (and incoming agent data on NuttX) */
 			int poll = px4_poll(_subs->fds, num_poll_fds, poll_timeout_ms);
+
+#if defined(__PX4_NUTTX)
+			transport_poll_error = (num_poll_fds > num_orb_fds)
+					       && (_subs->fds[num_orb_fds].revents & (POLLERR | POLLHUP | POLLNVAL));
+#endif
 
 			/* Handle the poll results */
 			if (poll > 0) {
