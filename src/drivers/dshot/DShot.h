@@ -237,6 +237,7 @@ private:
 		int num_repetitions{0};
 		uint16_t motor_mask{(1u << DSHOT_MAXIMUM_CHANNELS) - 1};
 		bool save{false};
+		bool is_save{false}; // programming address and value frames can also carry DSHOT_CMD_SAVE_SETTINGS
 		bool expect_response{false};
 
 		bool finished() const { return num_repetitions == 0; }
@@ -246,6 +247,7 @@ private:
 			num_repetitions = 0;
 			motor_mask = 0;
 			save = false;
+			is_save = false;
 			expect_response = false;
 		}
 	};

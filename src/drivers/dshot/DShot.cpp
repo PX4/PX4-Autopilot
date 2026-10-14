@@ -316,6 +316,7 @@ void DShot::select_next_command()
 				PX4_DEBUG("All settings written at time %.2fs", (double)hrt_absolute_time() / 1000000.);
 
 				_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
+				_current_command.is_save = true;
 				_current_command.num_repetitions = 6;
 				_current_command.motor_mask = programming_motor_mask;
 				_programming_state = ProgrammingState::Idle;
@@ -425,7 +426,7 @@ void DShot::update_motor_commands(int num_outputs)
 	if (command_sent) {
 		--_current_command.num_repetitions;
 
-		if (_current_command.finished() && _current_command.command == DSHOT_CMD_SAVE_SETTINGS) {
+		if (_current_command.finished() && _current_command.is_save) {
 			// Programming ends with the save: anything sent in its place leaves the ESC on unsaved settings.
 			_dshot_programming_active = false;
 			_telemetry.invalidateSettings(_current_command.motor_mask);
@@ -436,6 +437,7 @@ void DShot::update_motor_commands(int num_outputs)
 		// Queue a save command if it has been requested
 		if (_current_command.num_repetitions == 0 && _current_command.save) {
 			_current_command.save = false;
+			_current_command.is_save = true;
 			_current_command.num_repetitions = 10;
 			_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
 		}
