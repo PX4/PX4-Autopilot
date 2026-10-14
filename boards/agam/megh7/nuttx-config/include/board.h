@@ -460,40 +460,10 @@
  */
 
 
-/* Board provides GPIO or other Hardware for signaling to timing analyzer */
+/* No timing-analyzer probe pins on this board */
 
-#if defined(CONFIG_BOARD_USE_PROBES)
-# include "stm32_gpio.h"
-# define PROBE_N(n) (1<<((n)-1))
-# define PROBE_1    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTI|GPIO_PIN0)   /* PI0 AUX1 */
-# define PROBE_2    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN12)  /* PH12 AUX2 */
-# define PROBE_3    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN11)  /* PH11 AUX3 */
-# define PROBE_4    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN10)  /* PH10 AUX4 */
-# define PROBE_5    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)  /* PD13 AUX5 */
-# define PROBE_6    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)  /* PD14 AUX6 */
-# define PROBE_7    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN6)   /* PH6  AUX7 */
-# define PROBE_8    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN9)   /* PH9  AUX8 */
-# define PROBE_9    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN11)  /* PE11  CAP1 */
-
-# define PROBE_INIT(mask) \
-	do { \
-		if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
-		if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
-		if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
-		if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
-		if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
-		if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
-		if ((mask)& PROBE_N(7)) { stm32_configgpio(PROBE_7); } \
-		if ((mask)& PROBE_N(8)) { stm32_configgpio(PROBE_8); } \
-		if ((mask)& PROBE_N(9)) { stm32_configgpio(PROBE_9); } \
-	} while(0)
-
-# define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
-# define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
-#else
-# define PROBE_INIT(mask)
-# define PROBE(n,s)
-# define PROBE_MARK(n)
-#endif
+#define PROBE_INIT(mask)
+#define PROBE(n,s)
+#define PROBE_MARK(n)
 
 #endif  /*__NUTTX_CONFIG_AGAM_MEGH7_INCLUDE_BOARD_H  */
