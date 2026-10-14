@@ -1337,3 +1337,38 @@ TEST_F(GnssSelectorTest, groundOutageDoesNotCountInFlight)
 	EXPECT_EQ(selector.getSelectedInstance(), 0);
 	EXPECT_EQ(selector.getSelectionCount(), 0);
 }
+
+TEST_F(GnssSelectorTest, preferredQualifyingAtArmingIsTakenLater)
+{
+	GnssSelector selector;
+
+	// GIVEN: gps0, the preferred receiver, publishes but hasn't passed its checks yet when the vehicle arms
+	selector.setPreferredInstance(0);
+
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	sensor_gnss_s gnss_data1 = getDefaultGnssData();
+
+	_checks_passed[0] = false;
+	_passed_strict[0] = false;
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+
+	selector.setArmed(true);
+	runSeconds(0.1f, selector, gnss_data0, gnss_data1);
+
+	// THEN: the selection moves to gps1 at once
+	EXPECT_EQ(selector.getSelectedInstance(), 1);
+
+	// WHEN: gps0 passes its checks
+	_checks_passed[0] = true;
+	_passed_strict[0] = true;
+	runSeconds(9.5f, selector, gnss_data0, gnss_data1);
+
+	// THEN: it is taken once it has been usable for the hold time, as it never failed in flight
+	EXPECT_EQ(selector.getSelectedInstance(), 1);
+
+	runSeconds(1.f, selector, gnss_data0, gnss_data1);
+
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_PREFERRED);
+}

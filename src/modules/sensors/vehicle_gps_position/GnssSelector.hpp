@@ -138,8 +138,9 @@ public:
 		_armed = armed;
 
 		if (!armed) {
-			for (bool &failed : _failed_while_armed) {
-				failed = false;
+			for (int i = 0; i < GNSS_MAX_RECEIVERS; i++) {
+				_failed_while_armed[i] = false;
+				_working_while_armed[i] = false;
 			}
 
 			_rank_switches_while_armed = 0;
@@ -240,7 +241,8 @@ private:
 	// Records the vehicle_gnss_s::SELECTION_* reason for switching to instance
 	int switchTo(int instance, uint8_t reason);
 
-	// Switches away from the selected receiver because it failed
+	// Switches away from the selected receiver because it failed. One that had already failed when the vehicle armed
+	// didn't fail in flight: it is still qualifying, like one that starts publishing after arming, and stays eligible.
 	int failOver(int instance, uint8_t reason);
 
 	// No switch led to the selected receiver: it was the first one selected
@@ -272,6 +274,7 @@ private:
 	bool _armed{false};
 	uint8_t _rank_switches_while_armed{0};
 	bool _failed_while_armed[GNSS_MAX_RECEIVERS] {}; ///< left because it failed, until disarmed
+	bool _working_while_armed[GNSS_MAX_RECEIVERS] {}; ///< not failed at some point since arming
 
 	bool _selected_has_new_sample{false};
 };

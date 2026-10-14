@@ -152,7 +152,13 @@ void GnssSelector::updateAvailability(uint64_t hrt_now_us)
 			_time_usable_since_us[i] = 0;
 		}
 
-		if (hasFailed(i, hrt_now_us)) {
+		const bool failed = hasFailed(i, hrt_now_us);
+
+		if (_armed && !failed) {
+			_working_while_armed[i] = true;
+		}
+
+		if (failed) {
 			_strict_qualified[i] = false;
 
 		} else if (_sample[i].passed_strict) {
@@ -295,7 +301,7 @@ int GnssSelector::switchTo(int instance, uint8_t reason)
 
 int GnssSelector::failOver(int instance, uint8_t reason)
 {
-	if (_armed) {
+	if (_armed && _working_while_armed[_selected_instance]) {
 		_failed_while_armed[_selected_instance] = true;
 	}
 
