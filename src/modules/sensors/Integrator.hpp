@@ -183,6 +183,7 @@ public:
 		} else {
 			reset();
 			_last_val = val;
+			_last_delta_alpha.zero();
 		}
 	}
 
