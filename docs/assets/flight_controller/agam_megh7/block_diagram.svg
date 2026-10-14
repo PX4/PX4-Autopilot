@@ -56,7 +56,7 @@
 
   <rect class="blk sens" x="60" y="254" width="280" height="56"/>
   <text class="hdr" x="72" y="276">BMP390 barometer</text>
-  <text class="mono" x="72" y="296">I2C2 PB10/PB11 · SPL06 also probed</text>
+  <text class="mono" x="72" y="296">I2C2 PB10/PB11</text>
   <path class="wire" d="M340 282 H390"/>
 
   <rect class="blk sens" x="60" y="328" width="280" height="56"/>
@@ -76,7 +76,7 @@
 
   <rect class="blk conn" x="890" y="92" width="260" height="66"/>
   <text class="hdr" x="902" y="114">ESC — 8 pin</text>
-  <text class="fn"   x="902" y="132">VBAT, GND, curr sense, telemetry, M1-M4</text>
+  <text class="fn"   x="902" y="132">VBAT, GND, current sense, telemetry, M1-M4</text>
   <text class="mono" x="902" y="148">PC1 · UART8 PE0 · PB0 PB1 PA0 PA1</text>
   <path class="wire" d="M820 190 H854 V125 H890"/>
 
