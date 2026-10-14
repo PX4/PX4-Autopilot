@@ -378,6 +378,42 @@ TEST_F(MissionBaseFeasibilityTest, SpentFenceRetriesLetTheCheckReject)
 	EXPECT_TRUE(_mission_base.missionChecked());
 }
 
+TEST_F(MissionBaseFeasibilityTest, SecondCheckerReusesVerdictAfterFenceReload)
+{
+	// Mission and an RTL mission handle are two checkers sharing one mission_result.
+	MissionBaseTestPeer second{&_navigator};
+	_mission_base.on_inactive();
+	second.on_inactive();
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+
+	mission_stats_entry_s stats{};
+	stats.dataman_id = DM_KEY_FENCE_POINTS_0;
+	stats.opaque_id = _navigator.get_mission_result()->geofence_id + 1;
+	stats.num_items = 1;
+	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
+					      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = _navigator.get_mission_result()->mission_id;
+	mission.geofence_id = stats.opaque_id;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.count = 1;
+	_mission_pub.publish(mission);
+	_navigator.get_geofence().updateFence();
+	_mission_base.on_inactive();
+	second.on_inactive();
+	ASSERT_TRUE(finishFenceUpdate());
+
+	_mission_base.on_inactive();
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+
+	// Change storage without changing IDs: only a redundant second check would see it.
+	ASSERT_TRUE(writeWaypoint(200.f));
+	second.on_inactive();
+	EXPECT_TRUE(second.missionChecked());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
 TEST_F(MissionBaseFeasibilityTest, NewMissionCannotReuseVerdictWhileFenceLoads)
 {
 	_mission_base.on_inactive();
