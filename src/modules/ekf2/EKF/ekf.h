@@ -210,7 +210,7 @@ public:
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	void getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
-	__attribute__((noinline)) bool checkLatLonValidity(double latitude, double longitude);
+	bool checkLatLonValidity(double latitude, double longitude);
 	bool checkAltitudeValidity(float altitude);
 	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float hpos_var = NAN, float vpos_var = NAN);
 	bool resetGlobalPositionTo(double latitude, double longitude, float altitude, float hpos_var = NAN,
@@ -788,11 +788,11 @@ private:
 	LatLonAlt localToGlobalPosition(const Vector2f &pos_ne) const;
 
 	Vector2f computeDeltaHorizontalPosition(const double &new_latitude, const double &new_longitude) const;
-	__attribute__((noinline)) void updateHorizontalPositionResetStatus(const Vector2f &delta);
+	void updateHorizontalPositionResetStatus(const Vector2f &delta);
 
 	void resetWindTo(const Vector2f &wind, const Vector2f &wind_var);
 
-	__attribute__((noinline)) bool isHeightResetRequired() const;
+	bool isHeightResetRequired() const;
 
 	void resetAltitudeTo(float new_altitude, float new_vert_pos_var = NAN);
 	void updateVerticalPositionResetStatus(const float delta_z);
@@ -954,7 +954,7 @@ private:
 		       : math::max((uint64_t)1e6, (uint64_t)(_min_gps_health_time_us / 10));
 	}
 
-	__attribute__((noinline)) bool isGnssRestartHoldOffElapsed() const
+	bool isGnssRestartHoldOffElapsed() const
 	{
 		return isTimedOut(_time_last_gnss_fusion_stop_us, gnssRestartHoldOffUs());
 	}
@@ -1081,17 +1081,17 @@ private:
 
 	void resetGyroBiasZCov();
 
-	__attribute__((noinline)) bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t timeout_period) const
+	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t timeout_period) const
 	{
 		return (last_sensor_timestamp == 0) || (last_sensor_timestamp + timeout_period < _time_delayed_us);
 	}
 
-	__attribute__((noinline)) bool isRecent(uint64_t sensor_timestamp, uint64_t acceptance_interval) const
+	bool isRecent(uint64_t sensor_timestamp, uint64_t acceptance_interval) const
 	{
 		return (sensor_timestamp != 0) && (sensor_timestamp + acceptance_interval > _time_delayed_us);
 	}
 
-	__attribute__((noinline)) bool isNewestSampleRecent(uint64_t sensor_timestamp, uint64_t acceptance_interval) const
+	bool isNewestSampleRecent(uint64_t sensor_timestamp, uint64_t acceptance_interval) const
 	{
 		return (sensor_timestamp != 0) && (sensor_timestamp + acceptance_interval > _time_latest_us);
 	}
@@ -1119,7 +1119,7 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	// state was reset to aid source, keep observation and update all other fields appropriately (zero innovation, etc)
-	__attribute__((noinline)) void resetAidSourceStatusZeroInnovation(estimator_aid_source1d_s &status) const;
+	void resetAidSourceStatusZeroInnovation(estimator_aid_source1d_s &status) const;
 
 	// helper used for populating and filtering estimator aid source struct for logging
 	void updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t &timestamp_sample,
@@ -1129,7 +1129,6 @@ private:
 
 	// state was reset to aid source, keep observation and update all other fields appropriately (zero innovation, etc)
 	template <typename T>
-	__attribute__((noinline))
 	void resetAidSourceStatusZeroInnovation(T &status) const
 	{
 		status.time_last_fuse = _time_delayed_us;
@@ -1149,7 +1148,6 @@ private:
 
 	// helper used for populating and filtering estimator aid source struct for logging
 	template <typename T, typename S, typename D>
-	__attribute__((noinline))
 	void updateAidSourceStatus(T &status, const uint64_t &timestamp_sample,
 				   const D &observation, const S &observation_variance,
 				   const S &innovation, const S &innovation_variance,

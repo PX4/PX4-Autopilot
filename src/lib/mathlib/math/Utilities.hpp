@@ -181,7 +181,7 @@ inline matrix::Dcm<T> updateEuler312YawInRotMat(T yaw, const matrix::Dcm<T> &rot
 
 // Checks which euler rotation sequence to use and update yaw in rotation matrix
 template<typename T = float>
-__attribute__((noinline)) matrix::Dcm<T> updateYawInRotMat(T yaw, const matrix::Dcm<T> &rot_in)
+inline matrix::Dcm<T> updateYawInRotMat(T yaw, const matrix::Dcm<T> &rot_in)
 {
 	if (shouldUse321RotationSequence(rot_in)) {
 		return updateEuler321YawInRotMat(yaw, rot_in);

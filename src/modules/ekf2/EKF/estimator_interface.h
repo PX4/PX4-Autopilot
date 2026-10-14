@@ -240,7 +240,7 @@ public:
 	bool isVerticalAidingActive() const;
 	bool isNorthEastAidingActive() const;
 
-	__attribute__((noinline)) int getNumberOfActiveHorizontalAidingSources() const;
+	int getNumberOfActiveHorizontalAidingSources() const;
 	int getNumberOfActiveHorizontalPositionAidingSources() const;
 	int getNumberOfActiveHorizontalVelocityAidingSources() const;
 
