@@ -176,10 +176,10 @@ int DShotTelemetry::getSettingsRequest(uint16_t motor_mask)
 
 void DShotTelemetry::requestSettings(uint16_t motor_mask)
 {
-	_settings_request_mask |= motor_mask;
-
 	for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
-		if (motor_mask & (1u << i)) {
+		// Only an ESC with a settings handler is ever read, so a request for any other would stay pending
+		if ((motor_mask & (1u << i)) && _settings_handlers[i]) {
+			_settings_request_mask |= 1u << i;
 			_settings_attempts[i] = 0;
 		}
 	}

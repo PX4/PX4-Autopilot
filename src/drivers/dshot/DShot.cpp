@@ -187,13 +187,21 @@ void DShot::select_next_command()
 				PX4_ERR("esc_eeprom_write lost, generation %u -> %u", last_generation, current_generation);
 			}
 
-			if (_esc_eeprom_write.index != 255 && _esc_eeprom_write.index >= DSHOT_MAX_MOTORS) {
+			// A command for a motor without an output is never sent, so it never finishes and blocks every
+			// later command and the serial telemetry.
+			uint16_t write_mask = _motor_mask;
+
+			if (_esc_eeprom_write.index != 255) {
+				write_mask = _esc_eeprom_write.index < DSHOT_MAX_MOTORS ? (_motor_mask & (1u << _esc_eeprom_write.index)) : 0;
+			}
+
+			if (write_mask == 0) {
 				PX4_ERR("esc_eeprom_write: invalid index %u", _esc_eeprom_write.index);
 
 			} else {
 				PX4_DEBUG("ESC%u: starting programming mode", _esc_eeprom_write.index + 1);
 				_dshot_programming_active = true;
-				_telemetry.invalidateSettings(_esc_eeprom_write.index == 255 ? _motor_mask : (1u << _esc_eeprom_write.index));
+				_telemetry.invalidateSettings(write_mask);
 			}
 		}
 	}
