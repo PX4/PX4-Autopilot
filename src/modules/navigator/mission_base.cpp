@@ -779,7 +779,11 @@ MissionBase::check_mission_valid(bool forced)
 	if (geofence.isFenceUpdatePending()) {
 		// Keep the last verdict and recheck once the fence is loaded: an invalid mission now
 		// would make Commander treat it as missing and fail over out of Mission mode.
-		_mission_check_state = MissionCheckState::Deferred;
+		// Only a forced request must run again with matching inputs.
+		if (forced) {
+			_mission_check_state = MissionCheckState::Deferred;
+		}
+
 		return;
 	}
 
@@ -804,8 +808,8 @@ MissionBase::check_mission_valid(bool forced)
 				    || (result.home_position_counter != _navigator->get_home_position()->update_count);
 
 	// Parameter changes are not tracked, so forced and deferred checks always run.
-	// A failed fence must be rejected even when the cached IDs match.
-	if (forced || _mission_check_state == MissionCheckState::Deferred || inputs_changed || !fence_ready) {
+	// A failed fence must reject a cached valid verdict even when the IDs match.
+	if (forced || _mission_check_state == MissionCheckState::Deferred || inputs_changed || (!fence_ready && result.valid)) {
 		result.mission_id = _mission.mission_id;
 		result.geofence_id = _mission.geofence_id;
 		result.home_position_counter = _navigator->get_home_position()->update_count;
