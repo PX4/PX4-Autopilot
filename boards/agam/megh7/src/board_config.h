@@ -101,6 +101,11 @@
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL    /* PC4  */  ADC1_CH(4)
 #define ADC_RC_RSSI_CHANNEL             /* PC5  */  ADC1_CH(8)
 
+/* A1 and A2 have no resistive divider, so the analog airspeed reading is the
+ * pin voltage rather than the 2:1 default in board_common.h
+ */
+#define ADC_DP_V_DIV                    (1.0f)
+
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
 	 (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
