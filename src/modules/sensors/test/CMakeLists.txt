@@ -32,3 +32,4 @@
 ############################################################################
 
 px4_add_functional_gtest(SRC VotedSensorsUpdateTest.cpp LINKLIBS modules__sensors)
+px4_add_unit_gtest(SRC IntegratorConingTest.cpp)
