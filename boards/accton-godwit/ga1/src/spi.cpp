@@ -40,17 +40,14 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM56686, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		// An LSM6DSV-family part (LSM6DSV32X, LSM6DSK320X) is an alternate on the Invensense
-		// footprint. Declared without DRDY (polled) because the ST INT1 pad mapping on this
-		// footprint is unconfirmed; the driver falls back to scheduled FIFO reads when drdy_gpio == 0.
+		// LSM6DSV: polled, INT1 mapping unconfirmed
 		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM6DSV, SPI::CS{GPIO::PortI, GPIO::Pin9}),
 	}, {GPIO::PortI, GPIO::Pin11}),
 	initSPIBus(SPI::Bus::SPI2, {
-		// On this socket only INT2 (pin 9) reaches the MCU (PA10); INT1 goes to a test point.
-		// The icm42688p and icm45686 drivers signal data ready on INT1, so they are polled.
+		// Only INT2 reaches the MCU (PA10), so the INT1-only drivers are polled
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}),
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortH, GPIO::Pin5}),
-		// icm56686 is started with -2 to route its FIFO interrupt to INT2.
+		// icm56686 is started with -2 (INT2)
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM56686, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
 		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM6DSV, SPI::CS{GPIO::PortH, GPIO::Pin5}),
 	}, {GPIO::PortF, GPIO::Pin4}),
