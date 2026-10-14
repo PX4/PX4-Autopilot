@@ -739,7 +739,7 @@ For a binary pass/fail summary for each sensor, refer to innovation_check_flags 
 
 The EKF applies a number of GPS quality checks before commencing GPS aiding.
 These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
-The pass/fail status for these checks is logged in [VehicleGnss](../msg_docs/VehicleGnss.md) `failed_checks` for the selected receiver, and in [SensorsStatusGnss](../msg_docs/SensorsStatusGnss.md) `failed_checks` for each receiver.
+The pass/fail status for these checks is logged in [VehicleGnss](../msg_docs/VehicleGnss.md) `failed_strict_checks` and `failed_relaxed_checks` for the selected receiver, and in [SensorsStatusGnss](../msg_docs/SensorsStatusGnss.md) for each receiver.
 This integer will be zero when all required GPS checks have passed.
 If the EKF is not commencing GPS alignment, check the value of the integer against the `CHECK_*` bits in [VehicleGnss](../msg_docs/VehicleGnss.md), and why the EKF does not fuse the samples in [EstimatorStatusFlags](../msg_docs/EstimatorStatusFlags.md) `gnss_fusion_state`.
 

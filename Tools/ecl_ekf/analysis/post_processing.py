@@ -26,7 +26,11 @@ def get_gnss_failed_checks(vehicle_gnss: dict) -> dict:
         'gfix_fail': 10,
     }
 
-    return {name: ((2 ** bit & vehicle_gnss['failed_checks']) > 0) * 1 for name, bit in check_bits.items()}
+    # The checks that decided whether each sample was usable
+    failed_checks = np.where(vehicle_gnss['strict'], vehicle_gnss['failed_strict_checks'],
+                             vehicle_gnss['failed_relaxed_checks'])
+
+    return {name: ((2 ** bit & failed_checks) > 0) * 1 for name, bit in check_bits.items()}
 
 
 def magnetic_field_estimates_from_states(estimator_states: dict) -> Tuple[float, float, float]:

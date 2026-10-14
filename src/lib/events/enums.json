@@ -346,7 +346,7 @@
                 },
                 "gnss_check_fail_t": {
                     "type": "uint16_t",
-                    "description": "Bitfield of failing GNSS receiver checks, the bits of vehicle_gnss.failed_checks",
+                    "description": "Bitfield of failing GNSS receiver checks, the vehicle_gnss CHECK_* bits",
                     "is_bitfield": true,
                     "entries": {
                         "1": {

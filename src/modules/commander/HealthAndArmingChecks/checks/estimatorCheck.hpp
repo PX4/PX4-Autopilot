@@ -132,8 +132,8 @@ private:
 	bool _gps_was_fused{false};
 	hrt_abstime _last_gnss_fusion_time_us{0};
 
-	// when each GNSS quality check last failed, indexed by its bit in vehicle_gnss.failed_checks
-	static constexpr int kNumGnssChecks = sizeof(vehicle_gnss_s::failed_checks) * 8;
+	// when each GNSS quality check last failed, indexed by its vehicle_gnss CHECK_* bit
+	static constexpr int kNumGnssChecks = sizeof(vehicle_gnss_s::failed_strict_checks) * 8;
 	hrt_abstime _last_gnss_check_fail_time_us[kNumGnssChecks] {};
 
 	// estimator_status_flags is published at least once a second
