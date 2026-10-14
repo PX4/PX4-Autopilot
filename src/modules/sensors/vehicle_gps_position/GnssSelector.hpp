@@ -56,12 +56,15 @@ using namespace time_literals;
  * armed it is selected again only when the selected one fails, as one that failed is likely to fail again in the same
  * flight. Intermittent failures are caught by the availability: the fraction of recent time a receiver was usable.
  *
- * Receivers rank by being usable, then by passing the strict checks (GNSS_REQ_* and the other pre-arm thresholds), then, without a
- * preferred receiver, by an RTK fixed solution. The selection moves to the best receiver once it has been clearly
- * better than the selected one through the hold time. A receiver more available by AVAILABILITY_MARGIN is better
- * whatever its rank; otherwise the higher rank is better, then the preferred receiver while it passes the strict checks.
- * So the preferred receiver is kept while it passes them, whatever the other one reports, and left when it has failed
- * them through the hold while the other one passed them. A moving-base rover reports a better fix and accuracy while being the
+ * Receivers rank by being usable, then by passing the strict checks (GNSS_REQ_* and the other pre-arm thresholds),
+ * then, without a preferred receiver, by an RTK fixed solution. A receiver gains the strict rank once its strict checks
+ * held for GNSS_REQ_TIME, and keeps it while its samples pass them until it fails. In flight a failed sample restarts
+ * GNSS_REQ_TIME, as long as the switch hold, so without this a one-second failure would still switch. The selection
+ * moves to the best receiver once it has been clearly better than the selected one through the hold time. A receiver
+ * more available by AVAILABILITY_MARGIN is better whatever its rank; otherwise the higher rank is better, then the
+ * preferred receiver while it passes the strict checks. So the preferred receiver is kept while it passes them and is
+ * about as available as the other one, and left when it has failed them through the hold while the other one passed
+ * them. A moving-base rover reports a better fix and accuracy while being the
  * worse position source, so an RTK fixed solution never outranks the preferred receiver. While disarmed the preferred
  * receiver is selected whenever it publishes: a vehicle whose preferred receiver fails its checks shouldn't take off
  * on the other one.
@@ -105,11 +108,13 @@ public:
 	GnssSelector();
 	~GnssSelector() = default;
 
-	// checks_passed and passed_strict are the results of the receiver's own GnssChecks for this sample
-	void setGnssData(const sensor_gnss_s &gnss_data, bool checks_passed, bool passed_strict, uint8_t instance)
+	// The results of the receiver's own GnssChecks for this sample: checks_passed decides usable, strict_checks_pass is
+	// whether the sample is within the strict thresholds, and passed_strict whether they also held for GNSS_REQ_TIME
+	void setGnssData(const sensor_gnss_s &gnss_data, bool checks_passed, bool strict_checks_pass, bool passed_strict,
+			 uint8_t instance)
 	{
 		if (instance < GNSS_MAX_RECEIVERS) {
-			_sample[instance] = {gnss_data.timestamp, checks_passed, passed_strict,
+			_sample[instance] = {gnss_data.timestamp, checks_passed, strict_checks_pass, passed_strict,
 					     gnss_data.fix_type == sensor_gnss_s::FIX_TYPE_RTK_FIXED
 					    };
 			_updated[instance] = true;
@@ -159,6 +164,7 @@ private:
 	struct Sample {
 		uint64_t timestamp{0}; ///< 0 when never published or timed out
 		bool checks_passed{false};
+		bool strict_checks_pass{false};
 		bool passed_strict{false};
 		bool rtk_fixed{false};
 	};
@@ -201,7 +207,7 @@ private:
 	enum Rank : int8_t {
 		RANK_UNUSABLE = -1,
 		RANK_USABLE = 0,
-		RANK_STRICT = 1,       ///< passes the strict checks
+		RANK_STRICT = 1,       ///< passes the strict checks and has qualified for them
 		RANK_RTK_FIXED = 2,    ///< passes the strict checks with an RTK fixed solution, without a preferred receiver
 	};
 
@@ -240,6 +246,7 @@ private:
 
 	uint64_t _time_last_usable_us[GNSS_MAX_RECEIVERS] {};
 	uint64_t _time_usable_since_us[GNSS_MAX_RECEIVERS] {}; ///< start of the current usable period, 0 while unusable
+	bool _strict_qualified[GNSS_MAX_RECEIVERS] {}; ///< strict checks held for GNSS_REQ_TIME, and it hasn't failed since
 
 	uint64_t _time_prev_us[GNSS_MAX_RECEIVERS] {};  ///< timestamp of the previous sample, to detect new data
 

@@ -227,7 +227,8 @@ void VehicleGPSPosition::Run()
 				_first_publication[i] = ++_receivers_published;
 			}
 
-			_gnss_selector.setGnssData(gnss_data, checks_passed, _gnss_checks[i].passedStrict(), i);
+			_gnss_selector.setGnssData(gnss_data, checks_passed, _gnss_checks[i].getStrictFailFlags() == 0,
+						   _gnss_checks[i].passedStrict(), i);
 
 			if (!_sensor_gnss_sub[i].registered()) {
 				_sensor_gnss_sub[i].registerCallback();

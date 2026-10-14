@@ -58,6 +58,11 @@ public:
 	// Results of each receiver's checks, which the sensors module passes along with every sample
 	bool _checks_passed[2] {true, true};
 	bool _passed_strict[2] {true, true};
+
+	// The sample is within the strict thresholds, but they haven't held for GNSS_REQ_TIME since the last failure
+	bool _strict_requalifying[2] {false, false};
+
+	bool strictChecksPass(int instance) const { return _passed_strict[instance] || _strict_requalifying[instance]; }
 };
 
 sensor_gnss_s GnssSelectorTest::getDefaultGnssData()
@@ -96,7 +101,7 @@ void GnssSelectorTest::runSeconds(float duration_s, GnssSelector &selector, sens
 	const uint64_t dt_us = static_cast<uint64_t>(dt * 1e6f);
 
 	for (int k = 0; k < lroundf(duration_s / dt); k++) {
-		selector.setGnssData(gnss_data, _checks_passed[instance], _passed_strict[instance], instance);
+		selector.setGnssData(gnss_data, _checks_passed[instance], strictChecksPass(instance), _passed_strict[instance], instance);
 		selector.update(_time_now_us);
 
 		_time_now_us += dt_us;
@@ -118,10 +123,10 @@ void GnssSelectorTest::runSecondsSlowGps0(float duration_s, GnssSelector &select
 
 	for (int k = 0; k < lroundf(duration_s / dt); k++) {
 		if ((k % gps0_divider) == 0) {
-			selector.setGnssData(gnss_data0, _checks_passed[0], _passed_strict[0], 0);
+			selector.setGnssData(gnss_data0, _checks_passed[0], strictChecksPass(0), _passed_strict[0], 0);
 		}
 
-		selector.setGnssData(gnss_data1, _checks_passed[1], _passed_strict[1], 1);
+		selector.setGnssData(gnss_data1, _checks_passed[1], strictChecksPass(1), _passed_strict[1], 1);
 
 		selector.update(_time_now_us);
 
@@ -150,12 +155,12 @@ TEST_F(GnssSelectorTest, singleReceiver)
 
 	sensor_gnss_s gnss_data = getDefaultGnssData();
 
-	selector.setGnssData(gnss_data, true, true, 1);
+	selector.setGnssData(gnss_data, true, true, true, 1);
 	selector.update(_time_now_us);
 
 	_time_now_us += 200e3;
 	gnss_data.timestamp = _time_now_us - 10e3;
-	selector.setGnssData(gnss_data, true, true, 1);
+	selector.setGnssData(gnss_data, true, true, true, 1);
 	selector.update(_time_now_us);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
@@ -441,11 +446,15 @@ TEST_F(GnssSelectorTest, occasionalFailureDoesNotSwitch)
 	runSeconds(5.f, selector, gnss_data0, gnss_data1);
 	selector.setArmed(true);
 
-	// WHEN: gps0 fails one sample every 10 s, unusable 10% of the time
+	// WHEN: gps0 fails one sample every 10 s, unusable 10% of the time. Each failure restarts GNSS_REQ_TIME, so its strict
+	// checks never hold for it again.
 	for (int cycle = 0; cycle < 6; cycle++) {
 		_checks_passed[0] = false;
+		_passed_strict[0] = false;
+		_strict_requalifying[0] = false;
 		runSeconds(1.f, selector, gnss_data0, gnss_data1);
 		_checks_passed[0] = true;
+		_strict_requalifying[0] = true;
 		runSeconds(9.f, selector, gnss_data0, gnss_data1);
 	}
 
@@ -1160,14 +1169,14 @@ TEST_F(GnssSelectorTest, noOutputWithoutNewData)
 	sensor_gnss_s gnss_data0 = getDefaultGnssData();
 	sensor_gnss_s gnss_data1 = getDefaultGnssData();
 
-	selector.setGnssData(gnss_data1, true, true, 1);
+	selector.setGnssData(gnss_data1, true, true, true, 1);
 	selector.update(_time_now_us);
 
 	_time_now_us += 100e3;
 	gnss_data0.timestamp = _time_now_us - 10e3;
 	gnss_data1.timestamp = _time_now_us - 10e3;
-	selector.setGnssData(gnss_data0, true, true, 0);
-	selector.setGnssData(gnss_data1, true, true, 1);
+	selector.setGnssData(gnss_data0, true, true, true, 0);
+	selector.setGnssData(gnss_data1, true, true, true, 1);
 	selector.update(_time_now_us);
 
 	EXPECT_EQ(selector.getSelectedInstance(), 1);
@@ -1205,4 +1214,68 @@ TEST_F(GnssSelectorTest, availability)
 
 	// THEN: its availability decays like a first order filter
 	EXPECT_NEAR(selector.getAvailability(0), expf(-1.f), 0.01f);
+}
+
+TEST_F(GnssSelectorTest, relaxedFailureDoesNotSwitch)
+{
+	GnssSelector selector;
+
+	// GIVEN: an armed vehicle using gps0, the preferred receiver
+	selector.setPreferredInstance(0);
+
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	sensor_gnss_s gnss_data1 = getDefaultGnssData();
+
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+	selector.setArmed(true);
+
+	// WHEN: gps0 fails its checks for a second, which restarts GNSS_REQ_TIME for its strict checks, as long as the hold
+	_checks_passed[0] = false;
+	_passed_strict[0] = false;
+	runSeconds(1.f, selector, gnss_data0, gnss_data1);
+	_checks_passed[0] = true;
+	_strict_requalifying[0] = true;
+	runSeconds(10.f, selector, gnss_data0, gnss_data1);
+	_passed_strict[0] = true;
+	_strict_requalifying[0] = false;
+	runSeconds(30.f, selector, gnss_data0, gnss_data1);
+
+	// THEN: it keeps the strict rank, as it didn't fail, and stays selected
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+	EXPECT_EQ(selector.getSelectionCount(), 0);
+}
+
+TEST_F(GnssSelectorTest, strictRankRequalifiesAfterFailure)
+{
+	GnssSelector selector;
+
+	// GIVEN: an armed vehicle without a preferred receiver on gps0, which fails the strict checks but stays usable
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	sensor_gnss_s gnss_data1 = getDefaultGnssData();
+
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+	selector.setArmed(true);
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+
+	_passed_strict[0] = false;
+
+	// WHEN: gps1 fails for 3 s, then passes its checks again, but its strict checks haven't held for GNSS_REQ_TIME
+	_checks_passed[1] = false;
+	_passed_strict[1] = false;
+	runSeconds(3.f, selector, gnss_data0, gnss_data1);
+	_checks_passed[1] = true;
+	_strict_requalifying[1] = true;
+	runSeconds(20.f, selector, gnss_data0, gnss_data1);
+
+	// THEN: it doesn't rank higher until they have
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+
+	_passed_strict[1] = true;
+	_strict_requalifying[1] = false;
+	runSeconds(9.5f, selector, gnss_data0, gnss_data1);
+	EXPECT_EQ(selector.getSelectedInstance(), 0);
+
+	runSeconds(1.f, selector, gnss_data0, gnss_data1);
+	EXPECT_EQ(selector.getSelectedInstance(), 1);
+	EXPECT_EQ(selector.getSelectionReason(), vehicle_gnss_s::SELECTION_STRICT);
 }

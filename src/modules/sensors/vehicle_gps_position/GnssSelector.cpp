@@ -152,6 +152,13 @@ void GnssSelector::updateAvailability(uint64_t hrt_now_us)
 			_time_usable_since_us[i] = 0;
 		}
 
+		if (hasFailed(i, hrt_now_us)) {
+			_strict_qualified[i] = false;
+
+		} else if (_sample[i].passed_strict) {
+			_strict_qualified[i] = true;
+		}
+
 		if (usable && !_has_passed[i]) {
 			// A receiver first passes after the strict checks held for GNSS_REQ_TIME, which already proves it
 			_availability[i].reset(1.f);
@@ -188,7 +195,7 @@ GnssSelector::Rank GnssSelector::rank(int instance, uint64_t hrt_now_us) const
 		return RANK_UNUSABLE;
 	}
 
-	if (!_sample[instance].passed_strict) {
+	if (!_sample[instance].strict_checks_pass || !_strict_qualified[instance]) {
 		return RANK_USABLE;
 	}
 
