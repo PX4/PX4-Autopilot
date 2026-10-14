@@ -69,7 +69,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [DroneCAN](../dronecan/index.md) batteries that set the charging flag in `BatteryInfo` now report a charging state (shown in MAVLink `BATTERY_STATUS.charge_state`) as long as the pack has no low, critical or emergency warning. Charging does not count as a battery warning, so it does not affect the [battery level failsafe](../config/safety.md#battery-level-failsafe) or the arming checks. ([PX4-Autopilot#28422](https://github.com/PX4/PX4-Autopilot/pull/28422), [PX4-Autopilot#29012](https://github.com/PX4/PX4-Autopilot/pull/29012))
 - [Serial Passthrough](../uart/serial_passthrough.md): new reference [bridge application](../uart/serial_passthrough.md#bridge-application), `Tools/mavlink_serial_bridge.py`, exposes a flight controller serial port or ESC signal pin as a virtual serial port on a Linux/macOS host, so ESC configuration and GPS tools can connect to it over MAVLink.
   ([PX4-Autopilot#28782: feat(tools): add mavlink_serial_bridge.py reference bridge application](https://github.com/PX4/PX4-Autopilot/pull/28782))
-- New board: [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md), i.MX 95 with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
+
+#### New Flight Controllers
+
+- [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md): an i.MX 95 board with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores. ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
 
 ### Common
 

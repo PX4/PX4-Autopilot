@@ -10,9 +10,10 @@ Contact the [manufacturer](https://www.nxp.com) for hardware support or complian
 The [MR-NavQ95](https://github.com/NXP-Robotics/MR-NAVQ95) is a vehicle computer reference design from NXP Mobile Robotics, built around the NXP i.MX 95.
 Linux runs on the Cortex-A55 cores, and PX4 runs on the Cortex-M7 real-time core, started by MCUboot from the on-board octal NOR flash.
 The two sides talk over RPMsg: PX4 keeps its parameters, dataman and logs on a filesystem served by Linux, and exposes its shell and two MAVLink links as virtual ttys on the Linux side.
-The main board carries the i.MX 95 and the ICM-45686, BMM350 and BMP581 sensors, and the NAVQ95-IO expansion board carries the BMI088, the CAN, PWM, GPS, TELEM and I2C connectors and the USB console.
+The main board carries the i.MX 95 and the ICM-45686, BMM350 and BMP581 sensors.
+The NAVQ95-IO expansion board (the "IO board") carries the BMI088, the USB console, and the CAN, PWM, GPS, TELEM and I2C connectors.
 
-![MR-NavQ95 Overview](../../assets/flight_controller/nxp_mr-navq95/mr-navq95b-overview.png)
+![MR-NavQ95 Overview](../../assets/flight_controller/nxp_mr_navq95/mr_navq95b_overview.png)
 
 Because the i.MX 95 is an applications processor, the Linux side is a full companion computer rather than just a storage and telemetry bridge.
 It brings the parts of a mobile robotics stack that do not belong on a flight controller:
@@ -47,13 +48,13 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Sensors {#sensors}
 
-- **IMU:** TDK InvenSense ICM-45686 (SPI1, on the main board), Bosch BMI088 (SPI8, on the IO board)
-- **Barometer:** Bosch BMP581 (I2C1, on the main board)
-- **Magnetometer:** Bosch BMM350 (I2C1, on the main board)
+- **IMU:** [TDK InvenSense ICM-45686](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686) (SPI1, on the main board), [Bosch BMI088](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088/) (SPI8, on the IO board)
+- **Barometer:** [Bosch BMP581](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp581/) (I2C1, on the main board)
+- **Magnetometer:** [Bosch BMM350](https://www.bosch-sensortec.com/en/products/motion-sensors/magnetometers/bmm350) (I2C1, on the main board)
 
 ### Interfaces {#interfaces}
 
-- **PWM outputs:** 8 FMU outputs, all [DShot](../peripherals/dshot.md) capable, including bidirectional DShot 300 and 600 (7 when output 8 is configured as the buzzer)
+- **PWM outputs:** 8 FMU outputs (7 when output 8 is configured as the buzzer), all [DShot](../peripherals/dshot.md) capable, including bidirectional DShot 300 and 600
 - **Serial ports:** 3 (`GPS1`, `TELEM1` with flow control, RC on the main board `J2 CONSOLE`), plus RPMsg virtual ports to Linux (shell, two MAVLink links)
 - **I2C buses:** 2 (I2C1 internal, I2C6 external)
 - **SPI buses:** 2, both internal
@@ -85,11 +86,11 @@ Its release will be announced in the [MR-NAVQ95 repository](https://github.com/N
 
 ## Pinouts {#pinouts}
 
-![MR-NavQ95 top view with connectors labelled](../../assets/flight_controller/nxp_mr-navq95/overview-top.svg)
+![MR-NavQ95 top view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_top.svg)
 
-![MR-NavQ95 side view with connectors labelled](../../assets/flight_controller/nxp_mr-navq95/overview-side.svg)
+![MR-NavQ95 side view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_side.svg)
 
-![MR-NavQ95 bottom view with connectors labelled](../../assets/flight_controller/nxp_mr-navq95/overview-bottom.svg)
+![MR-NavQ95 bottom view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_bottom.svg)
 
 Hardware details, schematics and the pinout of every connector are in the [MR-NAVQ95 repository](https://github.com/NXP-Robotics/MR-NAVQ95).
 The [connector index](https://github.com/NXP-Robotics/MR-NAVQ95#connector-index) has a drawing and a pin table for each connector.
@@ -123,7 +124,7 @@ Outputs in a group share the same protocol and rate, which are set per group wit
 LPUART2 is the M7 console port: it reaches the CP2105 USB serial bridge on the IO board (`J1 CONSOLE`, `ttyUSB1` on a Linux host) and the main board `J2 CONSOLE` header (pins 4 and 5).
 It is the RC input by default, and the board configuration (**LPUART2** under **MR-NavQ95 board options** in `make nxp_mr-navq95_default boardconfig`) can run an NSH console on it instead.
 If you select the console, also clear `CONFIG_BOARD_SERIAL_RC` in the same board configuration; the build fails otherwise.
-UART2 is the schematic name for the LPUART2 pins.
+The schematic and connector drawings name the LPUARTn ports UARTn (UART2 is LPUART2, and so on).
 UART2 TX is also the BT_MODE1 boot strap, so leave that line idle while the board resets.
 
 ::: warning
@@ -131,7 +132,9 @@ With LPUART2 used for RC, do not connect a PC to the second CP2105 port (`ttyUSB
 Its transmitter shares the line with the RC receiver and interferes with the RC UART.
 :::
 
-## Radio Control {#radio_control}
+## Assembly {#assembly}
+
+### Radio Control {#radio_control}
 
 A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 
@@ -153,8 +156,9 @@ You can enable other protocols by mapping them to the port using their associate
 Note that only one protocol can be active on a port, so you will have to first disable `RC_CRSF_PRT_CFG`.
 
 There is no PPM input.
+PX4 can't bind DSM receivers on this board; use the receiver's or transmitter's own bind procedure.
 
-## GPS & Compass {#gps_compass}
+### GPS & Compass {#gps_compass}
 
 PX4 supports GPS modules connected to the GPS port described below.
 The module should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction marker pointing towards the front of the vehicle.
@@ -167,7 +171,10 @@ The GPS port is the IO board `J8 GPS` connector, a standard DS-009 GPS and compa
 - Safety LED (on the IO board I/O expander, not driven yet)
 - Buzzer (needs DIP switch `S1` closed and the **GPIO_IO23** buzzer option, see [PWM Outputs](#pwm_outputs))
 
-## Telemetry Radios (Optional) {#telemetry}
+The main board has an onboard Bosch BMM350 magnetometer.
+An external compass on `J8 GPS` or `J7 I2C` (I2C6) is detected automatically at boot.
+
+### Telemetry Radios (Optional) {#telemetry}
 
 [Telemetry radios](../telemetry/index.md) may be used to communicate and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
 
@@ -175,7 +182,7 @@ The vehicle-based radio should be connected to the IO board `J6 TELEM` connector
 A radio on `TELEM1` needs no further configuration.
 Without a radio, MAVLink runs over RPMsg to Linux (see [MAVLink and QGroundControl](#mavlink-and-qgroundcontrol)).
 
-## CAN {#can}
+### CAN {#can}
 
 PX4 uses two of the three CAN FD buses:
 
@@ -195,11 +202,13 @@ The board is powered through the main board `J9 PWR_IN` connector (Molex Micro-F
 Battery monitoring is analog and voltage only, with [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) set to 64.4 by default.
 For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
 
-The servo rail on IO board `J9 PWM` pin 1 (`VDD_CON_PWM`) is not powered by the board: it is linked to the board 5 V only through R60 (0 ohm), which is not fitted.
+The PWM output rail is not powered by the board's power input (main board `J9 PWR_IN`).
+The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
+The rail (IO board `J9 PWM` pin 1, `VDD_CON_PWM`) can only be linked to the board 5 V by fitting R60 (0 ohm), which is not fitted by default.
 Do not put more than 5 V on the servo rail while R60 is fitted.
 
 ::: warning
-Never feed power into a 5 V pin of a JST-GH connector; they are outputs.
+Never feed power into the 5 V pins of the JST-GH connectors; they are outputs.
 :::
 
 ## Voltage Ratings {#voltage_ratings}
@@ -221,7 +230,7 @@ It provides the RPMsg links PX4 depends on:
 | Linux device     | PX4 side                  | Purpose                                                          |
 | ---------------- | ------------------------- | ---------------------------------------------------------------- |
 | `/dev/ttynsh`    | NSH console               | PX4 shell (the system console)                                   |
-| `/dev/ttyproxy`  | `mavlink` in onboard mode | MAVLink at 921600 baud for the companion                         |
+| `/dev/ttyproxy`  | `mavlink` in onboard mode | MAVLink at 921600 baud for the companion computer                |
 | `/dev/ttymavmin` | `mavlink` in minimal mode | Second MAVLink link at 115200 baud (flags in `rc.board_mavlink`) |
 | `/dev/ttyros`    | none                      | Reserved for a future ROS/uXRCE-DDS link, unused today           |
 
@@ -245,10 +254,10 @@ PX4 (M7)  --RPMsg-->  /dev/ttyproxy  -->  mavlink-router  -->  UDP/TCP on Wi-Fi 
 ```
 
 [_QGroundControl_](../getting_started/px4_basic_concepts.md#qgc) connects to that endpoint over either the on-board Wi-Fi or the Ethernet port, and on-board software (MAVSDK, ROS 2 via the uXRCE-DDS bridge, or a camera or mission application) can attach to further endpoints in parallel.
-mavlink-router reads its endpoints and ports from its configuration in `/etc/mavlink-router/` on the Linux image; add your ground station address there.
+_mavlink-router_ reads its endpoints and ports from its configuration in `/etc/mavlink-router/` on the Linux image; add your ground station address there.
 
 ::: tip
-If _QGroundControl_ does not find the vehicle, check that the RPMsg links came up on Linux (`ls /dev/ttyproxy`) and that mavlink-router is running (`systemctl status mavlink-router`) before looking at PX4.
+If _QGroundControl_ does not find the vehicle, check that the RPMsg links came up on Linux (`ls /dev/ttyproxy`) and that _mavlink-router_ is running (`systemctl status mavlink-router`) before looking at PX4.
 :::
 
 ## Building Firmware {#building_firmware}
@@ -270,7 +279,7 @@ The MCUboot header size, slot size and alignment are set in `default.px4board` (
 
 The `ddr` label (`make nxp_mr-navq95_ddr`) runs from SDRAM and is loaded by Linux instead of MCUboot, so it has no signed image.
 
-### Signing With a Key
+### Signing with a Key
 
 The default image carries only a SHA256 trailer and boots on an MCUboot built with `CONFIG_BOOT_SIGNATURE_TYPE_NONE`.
 For an MCUboot that verifies signatures, generate a key, pass it in the environment when configuring the build, and bake the matching public key into MCUboot:
@@ -292,8 +301,8 @@ MCUboot boots PX4 from slot0 reliably, but the update path is still a developer 
 A convenient field update (image upload through Linux into slot1 and an MCUboot swap) is not in place yet; see [Current Status](#current_status).
 :::
 
-The firmware is flashed into MCUboot slot0 over SWD with pyOCD.
-Mainline pyOCD has no i.MX 95 support; use the NXP-Robotics fork, branch `pr-imx95`, which adds the `mimx95_*` targets and the NOR flash algorithm:
+The firmware is flashed into MCUboot slot0 over SWD with _pyOCD_.
+Mainline _pyOCD_ has no i.MX 95 support; use the NXP-Robotics fork, branch `pr-imx95`, which adds the `mimx95_*` targets and the NOR flash algorithm:
 
 ```sh
 git clone https://github.com/NXP-Robotics/pyOCD -b pr-imx95
@@ -310,9 +319,9 @@ pyocd reset -t mimx95_cm33 -f 20M
 ```
 
 - `-a 0x28020000` is slot0.
-  pyOCD would otherwise default to the start of the flash region (`0x28000000`), which is MCUboot's own partition.
-- `-O vtor=0x28020800` is slot0 plus the 0x800 byte header, i.e. the application vector table.
-  pyOCD's CM7 reset on this SoC is a core-only restart: it writes VTOR, loads MSP/PC from that table and resumes, so the application starts directly without going through MCUboot.
+  _pyOCD_ would otherwise default to the start of the flash region (`0x28000000`), which is MCUboot's own partition.
+- `-O vtor=0x28020800` is slot0 plus the 0x800-byte header, i.e. the application vector table.
+  _pyOCD_'s CM7 reset on this SoC is a core-only restart: it writes VTOR, loads MSP/PC from that table and resumes, so the application starts directly without going through MCUboot.
 - The debugger-initiated reset after flashing (`pyocd reset -t mimx95_cm33`) does not chain-load slot0: MCUboot stays in its serial-recovery loop ("Unable to find bootable image") even though the image in slot0 is valid.
   Power-cycle the board to boot PX4 from slot0.
 
@@ -320,11 +329,11 @@ pyocd reset -t mimx95_cm33 -f 20M
 
 The PX4 [system console](../debug/system_console.md) is `/dev/ttynsh` on the Linux side; there is no dedicated console UART.
 
-The [SWD interface](../debug/swd_debug.md) is on the main board `J7 DEBUG` connector, a standard Arm Cortex 10-pin header (2x5, 1.27 mm), for an external debug probe (J-Link, CMSIS-DAP or any probe pyOCD supports; see the `J7` card in the [MR-NAVQ95 repository](https://github.com/NXP-Robotics/MR-NAVQ95#connector-index)).
+The [SWD interface](../debug/swd_debug.md) is on the main board `J7 DEBUG` connector, a standard Arm Cortex 10-pin header (2x5, 1.27 mm), for an external debug probe (J-Link, CMSIS-DAP or any probe _pyOCD_ supports; see the `J7` card in the [MR-NAVQ95 repository](https://github.com/NXP-Robotics/MR-NAVQ95#connector-index)).
 It is not a Pixhawk Debug Full or Debug Mini connector.
 VTref is 1.8 V, so the probe must support 1.8 V targets.
 nRESET is connected through a diode, so the probe can only pull it low.
-With pyOCD, the M7 core is reached with `pyocd gdb -t mimx95_cm7_mx25um`.
+With _pyOCD_, the M7 core is reached with `pyocd gdb -t mimx95_cm7_mx25um`.
 
 ## Current Status {#current_status}
 
@@ -332,20 +341,21 @@ The MR-NavQ95 is a reference design under active development, and the PX4 port i
 Known gaps at the time of writing:
 
 - Firmware update:
-  MCUboot in the NOR flash boots the signed PX4 image from slot0, but the only supported way to get an image in there is SWD with pyOCD.
+  MCUboot in the NOR flash boots the signed PX4 image from slot0, but the only supported way to get an image in there is SWD with _pyOCD_.
   There is no Linux-side updater or serial-recovery flow yet, so updating PX4 still needs a debug probe and the boot switches set for flashing.
 - Parameter and log storage:
   Parameters, dataman and logs live on the RPMsg filesystem served by Linux.
   Moving the parameter storage to the on-board octal NOR flash, so that PX4 can boot and arm independently of the Linux side, is in progress.
 - Virtual Ethernet for PX4:
-  All networking is handled by Linux today; PX4 reaches the network only indirectly through the RPMsg MAVLink tty and mavlink-router.
-  A VSI (virtual station interface) network driver for PX4/NuttX is in progress, which would give PX4 its own virtual Ethernet interface on the shared MAC.
+  All networking is handled by Linux today; PX4 reaches the network only indirectly through the RPMsg MAVLink tty and _mavlink-router_.
+  A VSI (virtual station interface) network driver for PX4/NuttX, which would give PX4 its own virtual Ethernet interface on the shared MAC, is in progress.
   With that in place, MAVLink over UDP, [uXRCE-DDS](../middleware/uxrce_dds.md), [Zenoh-pico](../middleware/zenoh.md) and native ROS 2 publishing can run directly from the M7 instead of being proxied by Linux.
 - Reboot:
   The `reboot` command, `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN` and the reboot that _QGroundControl_ requests after calibration or airframe selection do not restart the M7 yet; power-cycle the board instead.
   An M7 reset through the i.MX 95 System Manager is planned.
 - PWM timing and input capture:
-  Output group 1 (TPM3) runs from a 133 MHz clock root and OneShot is not supported yet; bidirectional DShot 150 is not supported either.
+  Output group 1 (TPM3) runs from a 133 MHz clock root.
+  OneShot is not supported yet on any output, and neither is bidirectional DShot 150.
   The PWM timing code is being reworked, and PWM input capture is not available.
 - Defaults may change:
   Port assignments, PWM groups and board defaults can still change as the design and the BSP evolve; check the board files and the BSP manifest against the version you are running.
