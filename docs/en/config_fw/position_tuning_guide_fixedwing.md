@@ -76,6 +76,13 @@ Fly in stabilized mode, reduce throttle to `FW_THR_MIN` and adjust the pitch ang
 - [FW_T_SINK_MIN](../advanced_config/parameter_reference.md#FW_T_SINK_MIN) - set to the sink rate achieved while maintaining `FW_AIRSPD_TRIM`.
 
 Specify the target climb and sink rate for autonomous missions by adjusting [FW_T_CLMB_R_SP](../advanced_config/parameter_reference.md#FW_T_CLMB_R_SP) and [FW_T_SINK_R_SP](../advanced_config/parameter_reference.md#FW_T_SINK_R_SP).
+
+:::info
+Avoid flying pitch limited for more than a transient.
+`FW_P_LIM_MAX` and `FW_P_LIM_MIN` measured as above are exactly the pitch needed for `FW_T_CLMB_MAX` and `FW_T_SINK_MAX`, so leave a few degrees of margin on top, and keep `FW_T_CLMB_R_SP` and `FW_T_SINK_R_SP` well inside them.
+While the pitch setpoint sits on a limit the altitude loop has no authority left: the climb or sink rate demand is clipped to what the limit can fly, the altitude error grows without any feedback acting on it, and the pitch integrator cannot correct it.
+The controller warns when the configured climb or sink rate setpoint cannot be flown within the pitch limits at trim airspeed.
+:::
 These specify the height rates at which the vehicle will climb or descend in order to change altitude.
 Furthermore, these two values define the height rate limits commanded by the user in [Altitude mode](../flight_modes_fw/altitude.md) and [Cruise mode](../flight_modes_fw/cruise.md).
 
