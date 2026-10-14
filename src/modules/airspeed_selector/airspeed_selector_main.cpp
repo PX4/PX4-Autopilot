@@ -854,7 +854,7 @@ void AirspeedModule::select_airspeed_and_publish()
 			events::send(events::ID("airspeed_selector_estimation_valid"), events::Log::Info,
 				     "Airspeed estimation valid");
 
-		} else if (_prev_airspeed_src == AirspeedSource::DISABLED) {
+		} else if (_prev_airspeed_src == AirspeedSource::DISABLED && airspeed_sensor_added) {
 			// sensor detected after boot, nothing to report
 
 		} else {
