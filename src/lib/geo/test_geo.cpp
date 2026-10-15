@@ -320,3 +320,51 @@ TEST_F(GeoTest, getDistanceToArcNegativeSweep)
 	// THEN: it is NOT treated as on the arc (the old negative-sweep sector math returned ~zero here)
 	EXPECT_GT(err.distance, radius);
 }
+
+
+TEST_F(GeoTest, distanceToNextWaypointAntipodal)
+{
+	// Two antipodal geographic coordinates.
+	const double lat_now = 65.20356686222277;
+	const double lon_now = 115.1480498393297;
+	const double lat_next = -65.20356686222277;
+	const double lon_next = -64.8519501606703;
+
+	const float distance = get_distance_to_next_waypoint(
+		lat_now, lon_now, lat_next, lon_next);
+
+	EXPECT_TRUE(std::isfinite(distance));
+	EXPECT_NEAR(distance, static_cast<float>(M_PI * CONSTANTS_RADIUS_OF_EARTH),
+		    100.f);
+}
+
+
+TEST_F(GeoTest, distanceToPointGlobalWgs84Antipodal)
+{
+	const double lat_now = 65.20356686222277;
+	const double lon_now = 115.1480498393297;
+	const double lat_next = -65.20356686222277;
+	const double lon_next = -64.8519501606703;
+
+	const float alt_now = 100.0f;
+	const float alt_next = 100.0f;
+
+	float dist_xy = 0.0f;
+	float dist_z = 0.0f;
+
+	const float distance = get_distance_to_point_global_wgs84(
+		lat_now, lon_now, alt_now,
+		lat_next, lon_next, alt_next,
+		&dist_xy, &dist_z);
+
+	const float expected_xy =
+		static_cast<float>(M_PI * CONSTANTS_RADIUS_OF_EARTH);
+
+	EXPECT_TRUE(std::isfinite(dist_xy));
+	EXPECT_TRUE(std::isfinite(dist_z));
+	EXPECT_TRUE(std::isfinite(distance));
+
+	EXPECT_NEAR(dist_xy, expected_xy, 100.f);
+	EXPECT_FLOAT_EQ(dist_z, 0.0f);
+	EXPECT_NEAR(distance, expected_xy, 100.f);
+}
