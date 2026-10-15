@@ -6,6 +6,18 @@
     [
         {
             "model": "quadx",
+            "test_filter": "[vision_target]",
+            "timeout_min": 3,
+            "max_speed_factor": 4,
+            "env": {
+                "PX4_PARAM_VTE_EN": 1,
+                "PX4_PARAM_VTE_POS_EN": 1,
+                "PX4_PARAM_VTE_YAW_EN": 0,
+                "PX4_PARAM_VTE_TASK_MASK": 1
+            }
+        },
+        {
+            "model": "quadx",
             "test_filter": "[multicopter],[offboard],[offboard_attitude]",
             "timeout_min": 10
         },
