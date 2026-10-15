@@ -78,9 +78,11 @@ UavcanNode *UavcanNode::_instance;
 
 static UavcanNode::CanInitHelper *can = nullptr;
 
-UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
+UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id, uint32_t bitrate) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
+	_node_id(node_id),
+	_bitrate(bitrate),
 	_node(can_driver, system_clock, _pool_allocator),
 #if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	_arming_status_controller(_node),
@@ -442,16 +444,12 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance());
+	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance(), node_id, bitrate);
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
 		return -1;
 	}
-
-	// the node ID and bit rate validated by uavcan_main(), which Run() uses to initialize the node
-	_instance->_node_id = node_id;
-	_instance->_bitrate = bitrate;
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
 
@@ -712,9 +710,7 @@ UavcanNode::Run()
 		 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
 		 * shipped with libuavcan does not support deinitialization.
 		 */
-		// a const bit rate, which the init() that detects the bit rate (by reference) can't take
-		const uint32_t bitrate = _bitrate;
-		const int can_init_res = can->init(bitrate);
+		const int can_init_res = can->init(_bitrate);
 
 		if (can_init_res < 0) {
 			PX4_ERR("CAN driver init failed %i", can_init_res);
