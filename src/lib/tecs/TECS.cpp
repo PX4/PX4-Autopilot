@@ -357,18 +357,13 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 		return;
 	}
 
-	// this is the expected (something like standard) deviation from the airspeed setpoint that we allow the airspeed
-	// to vary in before ramping in underspeed mitigation
-	const float tas_error_bound = param.tas_error_percentage * param.equivalent_airspeed_trim;
+	// Ramp underspeed ratio from 0 at tas_min to 1 at 90% of tas_min, or halfway to tas_stall if that is higher
+	const float tas_fully_undersped = math::min(param.tas_min,
+					  math::max(0.9f * param.tas_min, 0.5f * (param.tas_min + param.tas_stall)));
+	const float underspeed_ramp_width = param.tas_min - tas_fully_undersped;
 
-	// this is the soft boundary where underspeed mitigation is ramped in
-	const float tas_underspeed_soft_bound = tas_error_bound;
-
-	const float tas_fully_undersped = math::max(param.tas_min - tas_error_bound - tas_underspeed_soft_bound, 0.0f);
-	const float tas_starting_to_underspeed = math::max(param.tas_min - tas_error_bound, tas_fully_undersped);
-
-	_ratio_undersped = 1.0f - math::constrain((input.tas - tas_fully_undersped) /
-			   math::max(tas_starting_to_underspeed - tas_fully_undersped, FLT_EPSILON), 0.0f, 1.0f);
+	_ratio_undersped = math::constrain((param.tas_min - input.tas) / math::max(underspeed_ramp_width, FLT_EPSILON),
+					   0.0f, 1.0f);
 }
 
 TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(const Param &param, const Flag &flag)
@@ -708,6 +703,7 @@ void TECS::initControlParams(const Input &input)
 	_reference_param.target_sinkrate = input.target_sinkrate;
 	// Control
 	_control_param.tas_min = input.eas_to_tas * _equivalent_airspeed_min;
+	_control_param.tas_stall = input.eas_to_tas * _equivalent_airspeed_stall;
 	_control_param.tas_max = input.eas_to_tas * _equivalent_airspeed_max;
 	_control_param.tas_trim = input.eas_to_tas * _control_param.equivalent_airspeed_trim;
 	_control_param.pitch_max = input.pitch_max;
@@ -786,6 +782,14 @@ void TECS::update(const Input &input)
 		// Update Reference model submodule
 		if (fastDescendFullyEngaged(_fast_descend)) {
 			// Reset the altitude reference model, while we are in fast descend.
+			const TECSAltitudeReferenceModel::AltitudeReferenceState init_state{
+				.alt = input.altitude,
+				.alt_rate = input.altitude_rate};
+			_altitude_reference_model.initialize(init_state);
+
+		} else if (_control.getUnderspeedRatio() > 0.5f) {
+			// Reset altitude reference during underspeed to prevent altitude error accumulation
+			// that would cause aggressive pitch-up (and potential secondary stall) on recovery.
 			const TECSAltitudeReferenceModel::AltitudeReferenceState init_state{
 				.alt = input.altitude,
 				.alt_rate = input.altitude_rate};
