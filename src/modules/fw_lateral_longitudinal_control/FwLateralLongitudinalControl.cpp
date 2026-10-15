@@ -323,9 +323,6 @@ void FwLateralLongitudinalControl::Run()
 						       radians(_param_fw_p_lim_max.get()));
 			}
 
-			// roll slew rate
-			roll_body = _roll_slew_rate.update(roll_body, control_interval);
-
 			// Reduce max roll angle during underspeed to lower load factor
 			const float underspeed_ratio = _tecs.get_underspeed_ratio();
 
@@ -334,8 +331,10 @@ void FwLateralLongitudinalControl::Run()
 				const float roll_limit = math::lerp(roll_limit_normal,
 								    math::min(radians(ROLL_LIMIT_UNDERSPEED), roll_limit_normal), underspeed_ratio);
 				roll_body = constrain(roll_body, -roll_limit, roll_limit);
-				_roll_slew_rate.setForcedValue(roll_body);
 			}
+
+			// roll slew rate
+			roll_body = _roll_slew_rate.update(roll_body, control_interval);
 
 			_att_sp.timestamp = now;
 			const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
