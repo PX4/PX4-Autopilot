@@ -320,3 +320,23 @@ TEST_F(GeoTest, getDistanceToArcNegativeSweep)
 	// THEN: it is NOT treated as on the arc (the old negative-sweep sector math returned ~zero here)
 	EXPECT_GT(err.distance, radius);
 }
+
+TEST_F(GeoTest, haversineAntipodalIsFinite)
+{
+	// Antipodal coordinates: the Haversine intermediate `a` rounds just past 1.0, so an unclamped
+	// sqrt(1 - a) takes a negative argument and the distance comes back NaN (#29211). After clamping `a`
+	// to [0, 1] the result is finite and ~half the Earth's circumference.
+	const double lat_now = 65.20356686222277;
+	const double lon_now = 115.1480498393297;
+	const double lat_next = -65.20356686222277;
+	const double lon_next = -64.8519501606703;
+
+	const float d = get_distance_to_next_waypoint(lat_now, lon_now, lat_next, lon_next);
+	EXPECT_TRUE(PX4_ISFINITE(d));
+	EXPECT_NEAR(d, static_cast<float>(M_PI * CONSTANTS_RADIUS_OF_EARTH), 1000.f);
+
+	float dist_xy = NAN;
+	float dist_z = NAN;
+	get_distance_to_point_global_wgs84(lat_now, lon_now, 0.f, lat_next, lon_next, 0.f, &dist_xy, &dist_z);
+	EXPECT_TRUE(PX4_ISFINITE(dist_xy));
+}
