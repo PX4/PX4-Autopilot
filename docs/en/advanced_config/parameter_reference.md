@@ -32103,6 +32103,9 @@ Adjusts the amount of weighting that the pitch control
 applies to speed vs height errors.
 0 -> control height only
 2 -> control speed only (gliders)
+Up to a weight of 1, pitch only trades height for speed up to trim airspeed;
+accelerating above trim is left to the throttle. Between 1 and 2, pitch
+increasingly tracks airspeed setpoints above trim as well.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
