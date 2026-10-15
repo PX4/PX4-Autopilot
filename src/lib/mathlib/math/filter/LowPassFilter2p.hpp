@@ -111,9 +111,33 @@ public:
 	// Filter array of samples in place using the Direct form II.
 	inline void applyArray(T samples[], int num_samples)
 	{
+		Biquad filter{*this};
+
 		for (int n = 0; n < num_samples; n++) {
-			samples[n] = apply(samples[n]);
+			samples[n] = filter.apply(samples[n]);
 		}
+
+		filter.store(*this);
+	}
+
+	// Filter the arrays of samples of three filters in place, with the same results as applyArray() on each.
+	// Interleaving the three filters lets their per-sample computations, each serial, overlap.
+	static void applyArrays(LowPassFilter2p &filter0, T samples0[], LowPassFilter2p &filter1, T samples1[],
+				LowPassFilter2p &filter2, T samples2[], int num_samples)
+	{
+		Biquad f0{filter0};
+		Biquad f1{filter1};
+		Biquad f2{filter2};
+
+		for (int n = 0; n < num_samples; n++) {
+			samples0[n] = f0.apply(samples0[n]);
+			samples1[n] = f1.apply(samples1[n]);
+			samples2[n] = f2.apply(samples2[n]);
+		}
+
+		f0.store(filter0);
+		f1.store(filter1);
+		f2.store(filter2);
 	}
 
 	// Return the cutoff frequency
@@ -161,6 +185,38 @@ public:
 	}
 
 protected:
+
+	// The coefficients and the delay elements in local variables, to filter arrays: as members, they would be
+	// reloaded and stored for every sample, since the samples may alias them.
+	struct Biquad {
+		explicit Biquad(const LowPassFilter2p &f) :
+			a1(f._a1), a2(f._a2), b0(f._b0), b1(f._b1), b2(f._b2),
+			delay_element_1(f._delay_element_1), delay_element_2(f._delay_element_2) {}
+
+		// same computation as apply()
+		T apply(const T &sample)
+		{
+			// Direct Form II implementation
+			T delay_element_0{sample - delay_element_1 *a1 - delay_element_2 * a2};
+
+			T output{delay_element_0 *b0 + delay_element_1 *b1 + delay_element_2 * b2};
+
+			delay_element_2 = delay_element_1;
+			delay_element_1 = delay_element_0;
+
+			return output;
+		}
+
+		void store(LowPassFilter2p &f) const
+		{
+			f._delay_element_1 = delay_element_1;
+			f._delay_element_2 = delay_element_2;
+		}
+
+		const float a1, a2, b0, b1, b2;
+		T delay_element_1, delay_element_2;
+	};
+
 	T _delay_element_1{}; // buffered sample -1
 	T _delay_element_2{}; // buffered sample -2
 

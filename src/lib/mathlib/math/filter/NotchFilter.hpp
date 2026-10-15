@@ -82,9 +82,43 @@ public:
 			_initialized = true;
 		}
 
+		Biquad filter{*this};
+
 		for (int n = 0; n < num_samples; n++) {
-			samples[n] = applyInternal(samples[n]);
+			samples[n] = filter.apply(samples[n]);
 		}
+
+		filter.store(*this);
+	}
+
+	// Filter the arrays of samples of three filters in place, with the same results as applyArray() on each.
+	// Interleaving the three filters lets their per-sample computations, each serial, overlap.
+	static void applyArrays(NotchFilter &filter0, T samples0[], NotchFilter &filter1, T samples1[],
+				NotchFilter &filter2, T samples2[], int num_samples)
+	{
+		NotchFilter *filters[3] {&filter0, &filter1, &filter2};
+		T *samples[3] {samples0, samples1, samples2};
+
+		for (int i = 0; i < 3; i++) {
+			if (!filters[i]->_initialized) {
+				filters[i]->reset(samples[i][0]);
+				filters[i]->_initialized = true;
+			}
+		}
+
+		Biquad f0{filter0};
+		Biquad f1{filter1};
+		Biquad f2{filter2};
+
+		for (int n = 0; n < num_samples; n++) {
+			samples0[n] = f0.apply(samples0[n]);
+			samples1[n] = f1.apply(samples1[n]);
+			samples2[n] = f2.apply(samples2[n]);
+		}
+
+		f0.store(filter0);
+		f1.store(filter1);
+		f2.store(filter2);
 	}
 
 	float getNotchFreq() const { return _notch_freq; }
@@ -164,6 +198,41 @@ public:
 	}
 
 protected:
+
+	// The coefficients and the delay elements in local variables, to filter arrays: as members, they would be
+	// reloaded and stored for every sample, since the samples may alias them.
+	struct Biquad {
+		explicit Biquad(const NotchFilter &f) :
+			a1(f._a1), a2(f._a2), b0(f._b0), b1(f._b1), b2(f._b2),
+			delay_element_1(f._delay_element_1), delay_element_2(f._delay_element_2),
+			delay_element_output_1(f._delay_element_output_1), delay_element_output_2(f._delay_element_output_2) {}
+
+		// same computation as applyInternal()
+		T apply(const T &sample)
+		{
+			T output = b0 * sample + b1 * delay_element_1 + b2 * delay_element_2 - a1 * delay_element_output_1 - a2 *
+				   delay_element_output_2;
+
+			delay_element_2 = delay_element_1;
+			delay_element_1 = sample;
+
+			delay_element_output_2 = delay_element_output_1;
+			delay_element_output_1 = output;
+
+			return output;
+		}
+
+		void store(NotchFilter &f) const
+		{
+			f._delay_element_1 = delay_element_1;
+			f._delay_element_2 = delay_element_2;
+			f._delay_element_output_1 = delay_element_output_1;
+			f._delay_element_output_2 = delay_element_output_2;
+		}
+
+		const float a1, a2, b0, b1, b2;
+		T delay_element_1, delay_element_2, delay_element_output_1, delay_element_output_2;
+	};
 
 	/**
 	 * Add a new raw value to the filter using the Direct Form I

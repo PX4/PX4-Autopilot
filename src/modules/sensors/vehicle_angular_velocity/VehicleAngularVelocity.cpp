@@ -729,8 +729,38 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(const hrt_abstime &time_now_u
 #endif // !CONSTRAINED_FLASH
 }
 
-float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int N)
+// Apply the notch filters of the three axes together, interleaved. Holding three filters needs the callee-saved FPU
+// registers: kept out of line, so that only this path saves and restores them.
+__attribute__((noinline)) static void ApplyNotchFiltersInterleaved(math::NotchFilter<float> &x,
+		math::NotchFilter<float> &y, math::NotchFilter<float> &z, float *const data[3], int N)
 {
+	math::NotchFilter<float>::applyArrays(x, data[0], y, data[1], z, data[2], N);
+}
+
+// Apply the notch filter of each axis to the samples of that axis, the three axes together when all are enabled
+// and there are several samples (on a single sample, saving those registers costs more than the overlap saves)
+static void ApplyNotchFilters(math::NotchFilter<float> &x, math::NotchFilter<float> &y, math::NotchFilter<float> &z,
+			      float *const data[3], int N)
+{
+	if ((N > 1) && (x.getNotchFreq() > 0.f) && (y.getNotchFreq() > 0.f) && (z.getNotchFreq() > 0.f)) {
+		ApplyNotchFiltersInterleaved(x, y, z, data, N);
+
+	} else {
+		math::NotchFilter<float> *filters[3] {&x, &y, &z};
+
+		for (int axis = 0; axis < 3; axis++) {
+			if (filters[axis]->getNotchFreq() > 0.f) {
+				filters[axis]->applyArray(data[axis], N);
+			}
+		}
+	}
+}
+
+Vector3f VehicleAngularVelocity::FilterAngularVelocity(float *const data[3], int N)
+{
+	// Each axis goes through the same filters in the same order as when filtered on its own. The three axes
+	// are filtered together, filter by filter, so that their computations overlap.
+
 #if !defined(CONSTRAINED_FLASH)
 
 	// Apply dynamic notch filter from ESC RPM
@@ -738,9 +768,9 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 		for (int esc = 0; esc < MAX_NUM_ESCS; esc++) {
 			if (_esc_available[esc]) {
 				for (int harmonic = 0; harmonic < _esc_rpm_harmonics; harmonic++) {
-					if (_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].getNotchFreq() > 0.f) {
-						_dynamic_notch_filter_esc_rpm[harmonic][axis][esc].applyArray(data, N);
-					}
+					ApplyNotchFilters(_dynamic_notch_filter_esc_rpm[harmonic][0][esc],
+							  _dynamic_notch_filter_esc_rpm[harmonic][1][esc],
+							  _dynamic_notch_filter_esc_rpm[harmonic][2][esc], data, N);
 				}
 			}
 		}
@@ -749,29 +779,25 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 	// Apply dynamic notch filter from FFT
 	if (_dynamic_notch_fft_available) {
 		for (int peak = MAX_NUM_FFT_PEAKS - 1; peak >= 0; peak--) {
-			if (_dynamic_notch_filter_fft[axis][peak].getNotchFreq() > 0.f) {
-				_dynamic_notch_filter_fft[axis][peak].applyArray(data, N);
-			}
+			ApplyNotchFilters(_dynamic_notch_filter_fft[0][peak], _dynamic_notch_filter_fft[1][peak],
+					  _dynamic_notch_filter_fft[2][peak], data, N);
 		}
 	}
 
 #endif // !CONSTRAINED_FLASH
 
 	// Apply general notch filter 0 (IMU_GYRO_NF0_FRQ)
-	if (_notch_filter0_velocity[axis].getNotchFreq() > 0.f) {
-		_notch_filter0_velocity[axis].applyArray(data, N);
-	}
+	ApplyNotchFilters(_notch_filter0_velocity[0], _notch_filter0_velocity[1], _notch_filter0_velocity[2], data, N);
 
 	// Apply general notch filter 1 (IMU_GYRO_NF1_FRQ)
-	if (_notch_filter1_velocity[axis].getNotchFreq() > 0.f) {
-		_notch_filter1_velocity[axis].applyArray(data, N);
-	}
+	ApplyNotchFilters(_notch_filter1_velocity[0], _notch_filter1_velocity[1], _notch_filter1_velocity[2], data, N);
 
 	// Apply general low-pass filter (IMU_GYRO_CUTOFF)
-	_lp_filter_velocity[axis].applyArray(data, N);
+	math::LowPassFilter2p<float>::applyArrays(_lp_filter_velocity[0], data[0], _lp_filter_velocity[1], data[1],
+			_lp_filter_velocity[2], data[2], N);
 
 	// return last filtered sample
-	return data[N - 1];
+	return Vector3f{data[0][N - 1], data[1][N - 1], data[2][N - 1]};
 }
 
 float VehicleAngularVelocity::FilterAngularAcceleration(int axis, float inverse_dt_s, float data[], int N)
@@ -840,22 +866,24 @@ void VehicleAngularVelocity::Run()
 			static constexpr int FIFO_SIZE_MAX = sizeof(sensor_fifo_data.x) / sizeof(sensor_fifo_data.x[0]);
 
 			if ((sensor_fifo_data.dt > 0) && (N > 0) && (N <= FIFO_SIZE_MAX)) {
-				Vector3f angular_velocity_uncalibrated;
-				Vector3f angular_acceleration_uncalibrated;
-
 				int16_t *raw_data_array[] {sensor_fifo_data.x, sensor_fifo_data.y, sensor_fifo_data.z};
 
+				// copy raw int16 sensor samples to float arrays for filtering
+				float data[3][FIFO_SIZE_MAX];
+				float *const axis_data[3] {data[0], data[1], data[2]};
+
 				for (int axis = 0; axis < 3; axis++) {
-					// copy raw int16 sensor samples to float array for filtering
-					float data[FIFO_SIZE_MAX];
-
 					for (int n = 0; n < N; n++) {
-						data[n] = sensor_fifo_data.scale * raw_data_array[axis][n];
+						data[axis][n] = sensor_fifo_data.scale * raw_data_array[axis][n];
 					}
+				}
 
-					// save last filtered sample
-					angular_velocity_uncalibrated(axis) = FilterAngularVelocity(axis, data, N);
-					angular_acceleration_uncalibrated(axis) = FilterAngularAcceleration(axis, inverse_dt_s, data, N);
+				// save last filtered sample
+				const Vector3f angular_velocity_uncalibrated{FilterAngularVelocity(axis_data, N)};
+				Vector3f angular_acceleration_uncalibrated;
+
+				for (int axis = 0; axis < 3; axis++) {
+					angular_acceleration_uncalibrated(axis) = FilterAngularAcceleration(axis, inverse_dt_s, data[axis], N);
 				}
 
 				// Publish
@@ -889,18 +917,16 @@ void VehicleAngularVelocity::Run()
 							   0.00002f, 0.02f);
 				_timestamp_sample_last = sensor_data.timestamp_sample;
 
-				Vector3f angular_velocity_uncalibrated;
+				// copy sensor sample to float arrays for filtering
+				float data[3][1] {{sensor_data.x}, {sensor_data.y}, {sensor_data.z}};
+				float *const axis_data[3] {data[0], data[1], data[2]};
+
+				// save last filtered sample
+				const Vector3f angular_velocity_uncalibrated{FilterAngularVelocity(axis_data)};
 				Vector3f angular_acceleration_uncalibrated;
 
-				float raw_data_array[] {sensor_data.x, sensor_data.y, sensor_data.z};
-
 				for (int axis = 0; axis < 3; axis++) {
-					// copy sensor sample to float array for filtering
-					float data[1] {raw_data_array[axis]};
-
-					// save last filtered sample
-					angular_velocity_uncalibrated(axis) = FilterAngularVelocity(axis, data);
-					angular_acceleration_uncalibrated(axis) = FilterAngularAcceleration(axis, inverse_dt_s, data);
+					angular_acceleration_uncalibrated(axis) = FilterAngularAcceleration(axis, inverse_dt_s, data[axis]);
 				}
 
 				// Publish
