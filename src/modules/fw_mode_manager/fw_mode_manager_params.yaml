@@ -153,7 +153,7 @@ parameters:
 
           NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
 
-          Set FW_LND_FLALT or FW_LND_FL_TIME negative to -1 to disable the flare (land on the glide slope at landing airspeed).
+          Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
       type: float
       default: 1.0
       unit: s
