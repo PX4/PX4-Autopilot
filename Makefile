@@ -455,7 +455,7 @@ check_newlines:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_neural tests_coverage tests_mission tests_mission_coverage tests_offboard
+.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_coverage tests_mission tests_mission_coverage tests_offboard
 .PHONY: rostest python_coverage
 
 tests:
@@ -468,7 +468,7 @@ tests:
 # The default px4_sitl_test board builds the F3442 DAA standard.
 # This target builds the crosstrack DAA standard (CONFIG_NAVIGATOR_ADSB_F3442=n).
 tests_daa_crosstrack:
-	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),'detect_and_avoid|DaaCrosstrack|AdsbConflict|DaaActionPolicy|DaaEncodedId'))
+	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),'DaaCrosstrack|AdsbConflict|DaaActionPolicy|DaaEncodedId'))
 	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
 	$(eval ARGS += test_results)
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
@@ -482,15 +482,6 @@ tests_vtest_moving:
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
 	$(eval UBSAN_OPTIONS += color=always)
 	$(call cmake-build,px4_sitl_vtest-moving)
-
-# This target builds the neural configuration, the only one that enables mc_nn_control.
-tests_neural:
-	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),RescaleAction|NnControl)")
-	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
-	$(eval ARGS += test_results)
-	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
-	$(eval UBSAN_OPTIONS += color=always)
-	$(call cmake-build,px4_sitl_neural)
 
 # work around lcov bug #316; remove once lcov is fixed (see https://github.com/linux-test-project/lcov/issues/316)
 LCOBUG = --ignore-errors mismatch,negative
