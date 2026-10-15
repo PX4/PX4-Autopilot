@@ -331,7 +331,7 @@ TEST_F(GeoTest, distanceToNextWaypointAntipodal)
 	const double lon_next = -64.8519501606703;
 
 	const float distance = get_distance_to_next_waypoint(
-		lat_now, lon_now, lat_next, lon_next);
+				       lat_now, lon_now, lat_next, lon_next);
 
 	EXPECT_TRUE(std::isfinite(distance));
 	EXPECT_NEAR(distance, static_cast<float>(M_PI * CONSTANTS_RADIUS_OF_EARTH),
@@ -353,9 +353,9 @@ TEST_F(GeoTest, distanceToPointGlobalWgs84Antipodal)
 	float dist_z = 0.0f;
 
 	const float distance = get_distance_to_point_global_wgs84(
-		lat_now, lon_now, alt_now,
-		lat_next, lon_next, alt_next,
-		&dist_xy, &dist_z);
+				       lat_now, lon_now, alt_now,
+				       lat_next, lon_next, alt_next,
+				       &dist_xy, &dist_z);
 
 	const float expected_xy =
 		static_cast<float>(M_PI * CONSTANTS_RADIUS_OF_EARTH);
