@@ -31490,10 +31490,12 @@ Landing flare altitude (relative to landing altitude).
 
 NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
 
+Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 |  | 0.5 | 0.5 | m | &nbsp;
+&nbsp; | -1.0 |  | 0.5 | 0.5 | m | &nbsp;
 
 </div>
 
@@ -31553,10 +31555,12 @@ to trigger the flare.
 
 NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
 
+Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 5.0 | 0.1 | 1.0 | s | &nbsp;
+&nbsp; | -1.0 | 5.0 | 0.1 | 1.0 | s | &nbsp;
 
 </div>
 
