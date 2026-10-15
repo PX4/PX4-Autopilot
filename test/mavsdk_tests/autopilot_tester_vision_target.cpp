@@ -46,6 +46,7 @@ using Vector3d = std::array<double, 3>;
 namespace
 {
 constexpr double mission_offset_north_m = -3.0;
+constexpr double target_yaw_deg = 120.0;
 constexpr auto telemetry_timeout = 2s;
 constexpr auto observation_poll_interval = 1ms;
 }
@@ -124,6 +125,7 @@ void AutopilotTesterVisionTarget::precision_land(Scenario scenario, std::chrono:
 	}
 
 	REQUIRE(getParams()->set_param_int("VTE_AID_MASK", aid_mask) == Param::Result::Success);
+	REQUIRE(getTelemetry()->set_rate_attitude_euler(15) == Telemetry::Result::Success);
 
 	if (scenario == Scenario::Mission) {
 		start_landing_mission();
@@ -149,6 +151,7 @@ void AutopilotTesterVisionTarget::precision_land(Scenario scenario, std::chrono:
 	unsigned spoofed_samples = 0;
 	bool vision_enabled = scenario != Scenario::Mission;
 	bool mission_correction_checked = false;
+	bool yaw_checked = false;
 	constexpr float minimum_disturbance_height_m = 3.f;
 	constexpr double acquisition_radius_m = 0.75;
 	constexpr double corrected_radius_m = 0.5;
@@ -195,6 +198,9 @@ void AutopilotTesterVisionTarget::precision_land(Scenario scenario, std::chrono:
 			    && height_m < vision_loss_height_m && height_m > minimum_disturbance_height_m
 			    && distance_m < corrected_radius_m
 			    && std::chrono::microseconds(vehicle.timestamp_us - start_us) >= minimum_bias_overlap) {
+				// Verify yaw acquisition before vision disappears and the orientation estimate expires.
+				check_target_yaw();
+				yaw_checked = true;
 				vision_enabled = false;
 				vision_loss_us = vehicle.timestamp_us;
 			}
@@ -213,6 +219,12 @@ void AutopilotTesterVisionTarget::precision_land(Scenario scenario, std::chrono:
 			}
 
 			send_target_observations(scenario, vehicle, vision_enabled, gnss_offset_east_m);
+			constexpr float yaw_check_height_m = 4.f;
+
+			if (scenario != Scenario::Gnss && vision_enabled && height_m < yaw_check_height_m) {
+				check_target_yaw();
+				yaw_checked = true;
+			}
 
 			if (spoof_gnss) {
 				++spoofed_samples;
@@ -240,6 +252,10 @@ void AutopilotTesterVisionTarget::precision_land(Scenario scenario, std::chrono:
 	}
 
 	REQUIRE_FALSE(getTelemetry()->armed());
+
+	if (scenario != Scenario::Gnss) {
+		REQUIRE(yaw_checked);
+	}
 
 	if (scenario == Scenario::Mission) {
 		REQUIRE(mission_correction_checked);
@@ -270,12 +286,17 @@ void AutopilotTesterVisionTarget::send_target_observations(Scenario scenario, co
 		const Vector3d target_sensor_m{target_ned_m[1], -target_ned_m[0], target_ned_m[2]};
 		constexpr int frame_other = 3; // TARGET_OBS_FRAME_OTHER
 		constexpr Vector3d position_std_m{0.1, 0.1, 0.1};
+		constexpr double sensor_yaw_deg = 90.0;
+		constexpr double yaw_std_rad = 0.1;
+		const double half_yaw_in_sensor_rad = (target_yaw_deg - sensor_yaw_deg) * M_PI / 360.0;
 		std::ostringstream fields;
 		fields << std::setprecision(10) << "\"frame\":" << frame_other
 		       << ",\"type\":" << LANDING_TARGET_TYPE_VISION_FIDUCIAL
 		       << ",\"x\":" << target_sensor_m[0] << ",\"y\":" << target_sensor_m[1] << ",\"z\":" << target_sensor_m[2]
 		       << ",\"pos_std\":[" << position_std_m[0] << ',' << position_std_m[1] << ',' << position_std_m[2] << ']'
-		       << R"(,"q_sensor":[0.70710678,0,0,0.70710678])";
+		       << R"(,"q_sensor":[0.70710678,0,0,0.70710678])"
+		       << ",\"q_target\":[" << std::cos(half_yaw_in_sensor_rad) << ",0,0," << std::sin(half_yaw_in_sensor_rad) << ']'
+		       << ",\"yaw_std\":" << yaw_std_rad;
 		send_message("TARGET_RELATIVE", fields.str());
 	}
 
@@ -304,6 +325,20 @@ void AutopilotTesterVisionTarget::send_message(const std::string &name, const st
 	message.message_name = name;
 	message.fields_json = "{\"timestamp\":" + std::to_string(timestamp_us) + "," + fields + "}";
 	REQUIRE(_direct->send_message(message) == MavlinkDirect::Result::Success);
+}
+
+void AutopilotTesterVisionTarget::check_target_yaw()
+{
+	const auto attitude = getTelemetry()->attitude_euler();
+	const double sample_age_us = std::abs(static_cast<double>(getTelemetry()->ground_truth().timestamp_us)
+					      - attitude.timestamp_us);
+	constexpr double maximum_attitude_age_us = 1e6;
+	CAPTURE(sample_age_us);
+	REQUIRE(sample_age_us < maximum_attitude_age_us);
+	const double yaw_error_deg = std::abs(std::remainder(attitude.yaw_deg - target_yaw_deg, 360.0));
+	constexpr double yaw_acceptance_deg = 5.0;
+	CAPTURE(attitude.yaw_deg, yaw_error_deg);
+	REQUIRE(yaw_error_deg < yaw_acceptance_deg);
 }
 
 void AutopilotTesterVisionTarget::check_landed_at_target(float acceptance_radius_m)
