@@ -362,12 +362,7 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 					  math::max(0.9f * param.tas_min, 0.5f * (param.tas_min + param.tas_stall)));
 	const float underspeed_ramp_width = param.tas_min - tas_fully_undersped;
 
-	// Predict effective TAS using airspeed rate (only when decelerating), limited to the ramp width
-	constexpr float UNDERSPEED_LOOKAHEAD_TIME = 1.0f; // [s]
-	const float lookahead = math::constrain(input.tas_rate * UNDERSPEED_LOOKAHEAD_TIME, -underspeed_ramp_width, 0.0f);
-	const float effective_tas = math::max(input.tas + lookahead, 0.0f);
-
-	_ratio_undersped = math::constrain((param.tas_min - effective_tas) / math::max(underspeed_ramp_width, FLT_EPSILON),
+	_ratio_undersped = math::constrain((param.tas_min - input.tas) / math::max(underspeed_ramp_width, FLT_EPSILON),
 					   0.0f, 1.0f);
 }
 

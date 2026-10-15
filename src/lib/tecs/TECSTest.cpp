@@ -107,12 +107,11 @@ TECSControl::Setpoint makeSetpoint()
 }
 
 // Run the detector for one cycle and report the resulting underspeed ratio.
-float underspeedRatio(float tas, float tas_rate, TECSControl::Param param, const TECSControl::Flag &flag)
+float underspeedRatio(float tas, TECSControl::Param param, const TECSControl::Flag &flag)
 {
 	TECSControl control;
 	TECSControl::Input input = makeInput();
 	input.tas = tas;
-	input.tas_rate = tas_rate;
 
 	control.initialize(makeSetpoint(), input, param, flag);
 	control.update(0.02f, makeSetpoint(), input, param, flag);
@@ -776,9 +775,9 @@ TEST(TECSUnderspeedTest, NoMitigationAtOrAboveMinimumAirspeed)
 	TECSControl::Param param = makeParam(); // tas_min = 10, trim = 15
 	const TECSControl::Flag flag = makeFlag();
 
-	EXPECT_FLOAT_EQ(underspeedRatio(20.f, 0.f, param, flag), 0.f);
-	EXPECT_FLOAT_EQ(underspeedRatio(12.f, 0.f, param, flag), 0.f);
-	EXPECT_FLOAT_EQ(underspeedRatio(10.f, 0.f, param, flag), 0.f); // exactly at tas_min
+	EXPECT_FLOAT_EQ(underspeedRatio(20.f, param, flag), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(12.f, param, flag), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(10.f, param, flag), 0.f); // exactly at tas_min
 }
 
 TEST(TECSUnderspeedTest, RampsLinearlyOverBandBelowMinimumAirspeed)
@@ -786,9 +785,9 @@ TEST(TECSUnderspeedTest, RampsLinearlyOverBandBelowMinimumAirspeed)
 	TECSControl::Param param = makeParam(); // band is [9, 10] m/s
 	const TECSControl::Flag flag = makeFlag();
 
-	EXPECT_NEAR(underspeedRatio(9.75f, 0.f, param, flag), 0.25f, 1e-5f);
-	EXPECT_NEAR(underspeedRatio(9.5f, 0.f, param, flag), 0.5f, 1e-5f);
-	EXPECT_NEAR(underspeedRatio(9.25f, 0.f, param, flag), 0.75f, 1e-5f);
+	EXPECT_NEAR(underspeedRatio(9.75f, param, flag), 0.25f, 1e-5f);
+	EXPECT_NEAR(underspeedRatio(9.5f, param, flag), 0.5f, 1e-5f);
+	EXPECT_NEAR(underspeedRatio(9.25f, param, flag), 0.75f, 1e-5f);
 }
 
 TEST(TECSUnderspeedTest, SaturatesAtFullMitigationBelowBand)
@@ -796,9 +795,9 @@ TEST(TECSUnderspeedTest, SaturatesAtFullMitigationBelowBand)
 	TECSControl::Param param = makeParam();
 	const TECSControl::Flag flag = makeFlag();
 
-	EXPECT_FLOAT_EQ(underspeedRatio(9.f, 0.f, param, flag), 1.f); // bottom of the band
-	EXPECT_FLOAT_EQ(underspeedRatio(5.f, 0.f, param, flag), 1.f);
-	EXPECT_FLOAT_EQ(underspeedRatio(0.f, 0.f, param, flag), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(9.f, param, flag), 1.f); // bottom of the band
+	EXPECT_FLOAT_EQ(underspeedRatio(5.f, param, flag), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(0.f, param, flag), 1.f);
 }
 
 // The ramp width scales with tas_min rather than being a fixed airspeed offset.
@@ -808,9 +807,9 @@ TEST(TECSUnderspeedTest, RampWidthScalesWithMinimumAirspeed)
 	param.tas_min = 20.f; // band is [18, 20] m/s
 	const TECSControl::Flag flag = makeFlag();
 
-	EXPECT_FLOAT_EQ(underspeedRatio(20.f, 0.f, param, flag), 0.f);
-	EXPECT_NEAR(underspeedRatio(19.f, 0.f, param, flag), 0.5f, 1e-5f);
-	EXPECT_FLOAT_EQ(underspeedRatio(18.f, 0.f, param, flag), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(20.f, param, flag), 0.f);
+	EXPECT_NEAR(underspeedRatio(19.f, param, flag), 0.5f, 1e-5f);
+	EXPECT_FLOAT_EQ(underspeedRatio(18.f, param, flag), 1.f);
 }
 
 // With the stall airspeed close to tas_min the band ends halfway between the two.
@@ -820,13 +819,9 @@ TEST(TECSUnderspeedTest, RampEndsHalfwayToStallAirspeed)
 	param.tas_stall = 9.f; // band is [9.5, 10] m/s
 	const TECSControl::Flag flag = makeFlag();
 
-	EXPECT_FLOAT_EQ(underspeedRatio(10.f, 0.f, param, flag), 0.f);
-	EXPECT_NEAR(underspeedRatio(9.75f, 0.f, param, flag), 0.5f, 1e-5f);
-	EXPECT_FLOAT_EQ(underspeedRatio(9.5f, 0.f, param, flag), 1.f);
-
-	// The lookahead is limited to the narrower band as well.
-	EXPECT_FLOAT_EQ(underspeedRatio(10.5f, -5.f, param, flag), 0.f);
-	EXPECT_NEAR(underspeedRatio(10.25f, -5.f, param, flag), 0.5f, 1e-5f);
+	EXPECT_FLOAT_EQ(underspeedRatio(10.f, param, flag), 0.f);
+	EXPECT_NEAR(underspeedRatio(9.75f, param, flag), 0.5f, 1e-5f);
+	EXPECT_FLOAT_EQ(underspeedRatio(9.5f, param, flag), 1.f);
 }
 
 // A stall airspeed at or above tas_min collapses the band to a step at tas_min.
@@ -837,49 +832,9 @@ TEST(TECSUnderspeedTest, StallAirspeedAtOrAboveMinimumAirspeed)
 
 	for (const float tas_stall : {10.f, 12.f}) {
 		param.tas_stall = tas_stall;
-		EXPECT_FLOAT_EQ(underspeedRatio(10.f, 0.f, param, flag), 0.f);
-		EXPECT_FLOAT_EQ(underspeedRatio(10.5f, -2.f, param, flag), 0.f);
-		EXPECT_FLOAT_EQ(underspeedRatio(10.5f, 2.f, param, flag), 0.f);
-		EXPECT_FLOAT_EQ(underspeedRatio(9.99f, 0.f, param, flag), 1.f);
+		EXPECT_FLOAT_EQ(underspeedRatio(10.f, param, flag), 0.f);
+		EXPECT_FLOAT_EQ(underspeedRatio(9.99f, param, flag), 1.f);
 	}
-}
-
-// Deceleration is extrapolated one second ahead, so mitigation starts while the
-// measured airspeed is still above tas_min.
-TEST(TECSUnderspeedTest, LookaheadTriggersOnDeceleration)
-{
-	TECSControl::Param param = makeParam();
-	const TECSControl::Flag flag = makeFlag();
-
-	// Same airspeed, decelerating: 10.5 - 1.0 * 1 s = 9.5 -> halfway into the band.
-	EXPECT_NEAR(underspeedRatio(10.5f, -1.f, param, flag), 0.5f, 1e-5f);
-
-	// The lookahead is limited to the ramp width, so a hard deceleration only saturates
-	// the ratio at tas_min and cannot trigger mitigation further above it.
-	EXPECT_FLOAT_EQ(underspeedRatio(10.f, -5.f, param, flag), 1.f);
-	EXPECT_FLOAT_EQ(underspeedRatio(11.f, -5.f, param, flag), 0.f);
-}
-
-// Acceleration must not be credited: an accelerating aircraft that is currently below
-// tas_min still gets the full mitigation its measured airspeed calls for.
-TEST(TECSUnderspeedTest, LookaheadIgnoresAcceleration)
-{
-	TECSControl::Param param = makeParam();
-	const TECSControl::Flag flag = makeFlag();
-
-	EXPECT_NEAR(underspeedRatio(9.5f, 5.f, param, flag), 0.5f, 1e-5f);
-	EXPECT_FLOAT_EQ(underspeedRatio(9.5f, 5.f, param, flag), underspeedRatio(9.5f, 0.f, param, flag));
-}
-
-// The lookahead can only predict down to zero airspeed, never below it.
-TEST(TECSUnderspeedTest, LookaheadClampsPredictedAirspeedAtZero)
-{
-	TECSControl::Param param = makeParam();
-	const TECSControl::Flag flag = makeFlag();
-
-	const float ratio = underspeedRatio(0.5f, -50.f, param, flag);
-	EXPECT_TRUE(PX4_ISFINITE(ratio));
-	EXPECT_FLOAT_EQ(ratio, 1.f);
 }
 
 TEST(TECSUnderspeedTest, NoMitigationWhenDetectionDisabled)
@@ -888,11 +843,11 @@ TEST(TECSUnderspeedTest, NoMitigationWhenDetectionDisabled)
 
 	TECSControl::Flag flag = makeFlag();
 	flag.detect_underspeed_enabled = false;
-	EXPECT_FLOAT_EQ(underspeedRatio(5.f, -2.f, param, flag), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(5.f, param, flag), 0.f);
 
 	flag = makeFlag();
 	flag.airspeed_enabled = false;
-	EXPECT_FLOAT_EQ(underspeedRatio(5.f, -2.f, param, flag), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(5.f, param, flag), 0.f);
 }
 
 namespace
