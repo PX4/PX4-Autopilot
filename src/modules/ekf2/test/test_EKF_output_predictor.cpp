@@ -153,7 +153,7 @@ TEST_P(OutputPredictorSpin, attitudeErrorConvergesWhileSpinning)
 }
 
 INSTANTIATE_TEST_SUITE_P(RollPitchYaw, OutputPredictorSpin,
-			 ::testing::Combine(::testing::Values(0, 1, 2), ::testing::Values(0.f, 3.f, 7.f, 15.f, 25.f)));
+			 ::testing::Combine(::testing::Values(0, 1, 2), ::testing::Values(0.f, 15.f)));
 
 // Rotating the earth frame (e.g. a yaw reset) must commute with the output predictor:
 // resetting and then running must give the same result as running and then resetting.

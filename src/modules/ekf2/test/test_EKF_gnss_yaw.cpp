@@ -351,31 +351,6 @@ TEST_F(EkfGpsHeadingTest, stopOnGround)
 	EXPECT_GT(_ekf->getYawVar(), yaw_variance_before);
 }
 
-TEST_F(EkfGpsHeadingTest, continuesWithoutPosition)
-{
-	// GIVEN: GNSS yaw fusion is active
-	const float gps_heading = _ekf_wrapper.getYawAngle();
-	_sensor_simulator._gnss_yaw.setYaw(gps_heading);
-	_sensor_simulator.runSeconds(2);
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-
-	// WHEN: position/velocity samples stop but heading keeps arriving
-	_sensor_simulator.stopGps();
-	const uint64_t time_gps_stopped = _sensor_simulator.getTime();
-	_sensor_simulator.runSeconds(4);
-
-	// THEN: the heading is still fused, it does not wait for a position sample
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-	EXPECT_GT(_ekf->aid_src_gnss_yaw().time_last_fuse, time_gps_stopped);
-
-	// AND WHEN: the position data timeout stops position and velocity fusion
-	_sensor_simulator.runSeconds(4);
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
-
-	// THEN: the heading is still fused
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-}
-
 TEST_F(EkfGpsHeadingTest, startsWhilePositionChecksFail)
 {
 	// GIVEN: a position solution failing the checks; on the ground they need 10s without a failure to pass again

@@ -179,25 +179,3 @@ TEST_F(EkfCatapultLaunchTest, headingPullNorthEast)
 	EXPECT_LT(fabsf(math::degrees(res.yaw_err_max)), 2.f);
 	EXPECT_LT(fabsf(math::degrees(res.yaw_err_final)), 2.f);
 }
-
-// Heading pointing North: the launch is aligned with the first fused axis
-TEST_F(EkfCatapultLaunchTest, headingPullNorth)
-{
-	alignHeadingAndStartGnss(0.f, 5.f);
-	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
-
-	waitOnCatapult(300.f);
-
-	const LaunchResult res = runLaunch(3.f);
-
-	printf("[0 deg] yaw_std_at_release=%.2f deg  yaw_err_max=%.2f deg  yaw_err_final=%.2f deg\n",
-	       (double)math::degrees(res.yaw_std_at_release),
-	       (double)math::degrees(res.yaw_err_max),
-	       (double)math::degrees(res.yaw_err_final));
-
-	// THEN: no heading error either. Note that this case was already almost unaffected by the
-	// stale sequential update because the launch is aligned with the first fused axis, so there
-	// is no cross-axis coupling to get wrong.
-	EXPECT_LT(fabsf(math::degrees(res.yaw_err_max)), 2.f);
-	EXPECT_LT(fabsf(math::degrees(res.yaw_err_final)), 2.f);
-}

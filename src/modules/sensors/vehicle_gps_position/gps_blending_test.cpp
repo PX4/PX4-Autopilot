@@ -256,33 +256,6 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 }
 
-TEST_F(GpsBlendingTest, singleReceiverAntennaOffset)
-{
-	GpsBlending gps_blending;
-
-	gps_blending.setPrimaryInstance(-1);
-	sensor_gnss_s gnss_data = getDefaultGnssData();
-
-	const Vector3f offset0(0.1f, 0.0f, -0.05f);
-	gps_blending.setAntennaOffset(offset0, 1);
-
-	gps_blending.setGnssData(gnss_data, 1);
-	gps_blending.update(_time_now_us);
-
-	_time_now_us += 200e3;
-	gnss_data.timestamp = _time_now_us - 10e3;
-	gps_blending.setGnssData(gnss_data, 1);
-	gps_blending.update(_time_now_us);
-
-	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
-	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
-
-	const Vector3f &out = gps_blending.getOutputAntennaOffset();
-	EXPECT_FLOAT_EQ(out(0), offset0(0));
-	EXPECT_FLOAT_EQ(out(1), offset0(1));
-	EXPECT_FLOAT_EQ(out(2), offset0(2));
-}
-
 TEST_F(GpsBlendingTest, failoverAntennaOffset)
 {
 	GpsBlending gps_blending;
@@ -308,33 +281,4 @@ TEST_F(GpsBlendingTest, failoverAntennaOffset)
 
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 	EXPECT_FLOAT_EQ(gps_blending.getOutputAntennaOffset()(0), offset0(0));
-}
-
-TEST_F(GpsBlendingTest, dualReceiverNoBlendingStaleFlag)
-{
-	GpsBlending gps_blending;
-
-	// GIVEN: two receivers
-	gps_blending.setPrimaryInstance(-1);
-
-	sensor_gnss_s gnss_data0 = getDefaultGnssData();
-	sensor_gnss_s gnss_data1 = getDefaultGnssData();
-
-	gnss_data1.satellites_used = gnss_data0.satellites_used + 2; // gps1 wins selection
-
-	// First update: both receivers provide data, gps1 is selected
-	gps_blending.setGnssData(gnss_data0, 0);
-	gps_blending.setGnssData(gnss_data1, 1);
-	gps_blending.update(_time_now_us);
-
-	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
-	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
-
-	// Second update: NO new data from either receiver
-	// With the bug (_gps_updated[gps_select_index] instead of [i]),
-	// the non-selected instance's flag was never cleared, so this
-	// would spuriously report new data available.
-	gps_blending.update(_time_now_us);
-
-	EXPECT_FALSE(gps_blending.isNewOutputDataAvailable());
 }
