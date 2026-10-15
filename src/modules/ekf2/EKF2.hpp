@@ -192,12 +192,12 @@ private:
 	estimator_bias_s fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
 					      uint64_t timestamp, uint32_t device_id = 0);
 	void PublishEventFlags(const hrt_abstime &timestamp);
-	void PublishGlobalPosition(const hrt_abstime &timestamp);
+	void PublishGlobalPosition(const hrt_abstime &timestamp, const LatLonAlt &lla);
 	void PublishInnovations(const hrt_abstime &timestamp);
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
-	void PublishLocalPosition(const hrt_abstime &timestamp);
-	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample);
+	void PublishLocalPosition(const hrt_abstime &timestamp, const Vector3f &position);
+	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample, const Vector3f &position);
 	void PublishSensorBias(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
