@@ -33,8 +33,7 @@
 
 /**
  * @file nn_control_model.hpp
- * The operations the shipped network needs, shared by the module and the test
- * that loads the shipped model through the real interpreter.
+ * The operations the shipped network needs.
  */
 
 #pragma once

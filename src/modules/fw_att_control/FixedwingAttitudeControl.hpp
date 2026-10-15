@@ -111,13 +111,12 @@ public:
 
 	bool init();
 
-	// Tailsitter body frame conversion:
-	// vector in FW body frame = _q_mc_to_fw.rotateVector(vector in MC body frame);
-	// (public so we can use it in FixedwingAttitudeControlTest)
-	inline static const matrix::Quatf _q_mc_to_fw{matrix::Eulerf{0.f, -M_PI_2_F, 0.f}};
-
 private:
 	void Run() override;
+
+	// Tailsitter body frame conversion:
+	// vector in FW body frame = _q_mc_to_fw.rotateVector(vector in MC body frame);
+	inline static const matrix::Quatf _q_mc_to_fw{matrix::Eulerf{0.f, -M_PI_2_F, 0.f}};
 
 	uORB::SubscriptionCallbackWorkItem _att_sub{this, ORB_ID(vehicle_attitude)};		/**< vehicle attitude */
 

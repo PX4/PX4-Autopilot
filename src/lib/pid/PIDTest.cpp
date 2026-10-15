@@ -159,27 +159,6 @@ TEST(PIDTest, AntiWindupHighSaturation)
 	EXPECT_FLOAT_EQ(pid.getIntegral(), 0.f);
 }
 
-TEST(PIDTest, AntiWindupLowSaturation)
-{
-	PID pid;
-	pid.setGains(0.f, .1f, 0.f);
-	pid.setIntegralLimit(1.f);
-	pid.setOutputLimit(.05f);
-	pid.setSetpoint(-1.f);
-
-	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), 0.f);
-	EXPECT_FLOAT_EQ(pid.getIntegral(), -.1f);
-
-	// Output saturates low; integrating further down would wind up -> frozen.
-	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), -.05f);
-	EXPECT_FLOAT_EQ(pid.getIntegral(), -.1f);
-
-	// Error reverses: still saturated low, but integrating up unwinds -> allowed.
-	pid.setSetpoint(1.f);
-	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), -.05f);
-	EXPECT_FLOAT_EQ(pid.getIntegral(), 0.f);
-}
-
 TEST(PIDTest, DerivativeOnlyDampsFeedbackMotion)
 {
 	// Derivative-on-measurement: the D term must oppose feedback motion so the

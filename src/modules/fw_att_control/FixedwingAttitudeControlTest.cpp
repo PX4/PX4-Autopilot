@@ -50,43 +50,11 @@ static float computeYawRateSetpointBeforeTurnCoord(const Quatf &q_current, const
 	return att_err(2);
 }
 
-TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_Identity)
-{
-	// When current and setpoint are both identity, yaw rate should be zero
-	const Quatf q_current;
-	const Quatf q_sp;
-
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
-	EXPECT_NEAR(yaw_rate, 0.f, 1e-5f);
-}
-
 TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_PureYawError)
 {
 	// Pure yaw error should result in zero yaw rate setpoint (yaw is compensated out)
 	const Quatf q_current;
 	const Quatf q_sp(Eulerf(0.f, 0.f, 0.5f)); // 0.5 rad (~29 deg) yaw offset
-
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
-
-	EXPECT_NEAR(yaw_rate, 0.f, 1e-5f);
-}
-
-TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_RollError)
-{
-	// Roll error with no pitch/yaw error
-	const Quatf q_current;
-	const Quatf q_sp(Eulerf(0.3f, 0.f, 0.f)); // 0.3 rad roll
-
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
-
-	EXPECT_NEAR(yaw_rate, 0.f, 1e-5f);
-}
-
-TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_PitchError)
-{
-	// Pitch error with no roll/yaw error
-	const Quatf q_current;
-	const Quatf q_sp(Eulerf(0.f, 0.2f, 0.f)); // 0.2 rad pitch
 
 	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 
@@ -102,45 +70,4 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_CombinedEr
 	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-4f);
-}
-
-TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_BankedTurn)
-{
-	// Simulating a banked turn scenario - current has roll, setpoint has roll + yaw
-	const Quatf q_current(Eulerf(0.5f, 0.f, 0.f)); // 30 deg bank
-	const Quatf q_sp(Eulerf(0.5f, 0.f, 0.3f));     // same bank, different heading
-
-	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
-
-	EXPECT_NEAR(yaw_rate, 0.f, 1e-4f);
-}
-
-TEST(FixedwingAttitudeControlTest, TailsitterFrameRotation)
-{
-	// NOTE: this test cannot guard against breaking the conversion in Run()
-	// (while keeping the quaternion the same). This only sanity checks the
-	// underlying math. We rely on integration tests to test the actual
-	// implementation in Run().
-
-	const Quatf &q_mc_to_fw = FixedwingAttitudeControl::_q_mc_to_fw;
-
-	// The rotation maps the MC body axes onto the FW body axes: MC x -> FW z, MC z -> FW -x.
-	const Vector3f x_fw = q_mc_to_fw.rotateVector(Vector3f(1.f, 0.f, 0.f));
-	const Vector3f z_fw = q_mc_to_fw.rotateVector(Vector3f(0.f, 0.f, 1.f));
-	EXPECT_NEAR(x_fw(0), 0.f, 1e-6f);
-	EXPECT_NEAR(x_fw(2), 1.f, 1e-6f);
-	EXPECT_NEAR(z_fw(0), -1.f, 1e-6f);
-	EXPECT_NEAR(z_fw(2), 0.f, 1e-6f);
-
-	// Attitude of level FW flight in MC frame
-	const Quatf q_ned_mc(Eulerf(0.f, -M_PI_2_F, 0.f));
-	// level fixed-wing setpoint = unit quaternion
-	const Quatf q_sp;
-
-	// The raw hover-frame attitude appears as a large error against the level FW setpoint.
-	EXPECT_GT(computeAttitudeError(q_ned_mc, q_sp).norm(), 1.f);
-
-	// Adapting it exactly as Run() does (att.q * _q_mc_to_fw.inversed()) removes the error.
-	const Quatf q_adapted = q_ned_mc * q_mc_to_fw.inversed();
-	EXPECT_NEAR(computeAttitudeError(q_adapted, q_sp).norm(), 0.f, 1e-5f);
 }

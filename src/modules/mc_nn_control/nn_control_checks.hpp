@@ -34,8 +34,7 @@
 /**
  * @file nn_control_checks.hpp
  * Checks the neural controller runs before it trusts its model, its observations
- * and its output. Header only and free of module dependencies so they can be unit
- * tested directly.
+ * and its output.
  */
 
 #pragma once

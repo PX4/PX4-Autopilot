@@ -87,8 +87,6 @@ class MulticopterNeuralNetworkControl : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
-	friend class NnControlStartupTestPeer;
-
 
 	static Descriptor desc;
 

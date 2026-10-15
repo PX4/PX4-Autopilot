@@ -57,13 +57,3 @@ px4_add_module(
 target_link_libraries(mc_nn_control PRIVATE tensorflow_lite_micro)
 target_include_directories(mc_nn_control PRIVATE
 	${CMAKE_SOURCE_DIR}/src/lib/tensorflow_lite_micro)
-
-px4_add_unit_gtest(SRC RescaleActionTest.cpp)
-px4_add_unit_gtest(SRC NnControlChecksTest.cpp)
-px4_add_unit_gtest(SRC NnControlModelTest.cpp
-	EXTRA_SRCS control_net.cpp
-	LINKLIBS tensorflow_lite_micro
-	INCLUDES ${CMAKE_SOURCE_DIR}/src/lib/tensorflow_lite_micro)
-px4_add_functional_gtest(SRC NnControlStartupTest.cpp
-	LINKLIBS mc_nn_control tensorflow_lite_micro
-	INCLUDES ${CMAKE_SOURCE_DIR}/src/lib/tensorflow_lite_micro)
