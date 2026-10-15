@@ -265,6 +265,9 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 TECSControl::SpecificEnergyRates TECSControl::_updateOuterLoops(const Setpoint &setpoint, const Input &input,
 		const STERateLimit &limit, const Param &param, const Flag &flag)
 {
+	// Underspeed first: the envelope clip below fades with the current underspeed ratio
+	_detectUnderspeed(input, param, flag);
+
 	OuterLoopSetpoints control_setpoint;
 
 	control_setpoint.tas_rate_setpoint = _calcAirspeedControlOutput(setpoint, input, limit, param, flag);
@@ -278,9 +281,9 @@ TECSControl::SpecificEnergyRates TECSControl::_updateOuterLoops(const Setpoint &
 		control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
 	}
 
-	const SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
+	_clipAltitudeRateSetpointToEnvelope(control_setpoint, input, limit, param);
 
-	_detectUnderspeed(input, param, flag);
+	const SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
 
 	_debug_output.altitude_rate_control = control_setpoint.altitude_rate_setpoint;
 	_debug_output.true_airspeed_derivative_control = control_setpoint.tas_rate_setpoint;
@@ -334,6 +337,35 @@ float TECSControl::_airspeedForClimbAngle(const Input &input, const Param &param
 {
 	// max() returns its second argument for a NaN first one, so a NaN airspeed falls back to the minimum airspeed
 	return max(input.tas, param.tas_min, FLT_EPSILON);
+}
+
+void TECSControl::_clipAltitudeRateSetpointToEnvelope(OuterLoopSetpoints &control_setpoint, const Input &input,
+		const STERateLimit &limit, const Param &param) const
+{
+	float altitude_rate_setpoint = control_setpoint.altitude_rate_setpoint;
+
+	// Throttle envelope: the total energy rate the throttle can deliver, less the induced drag rise in turns it
+	// also has to fund. In fast descend and underspeed the envelope fades to the minimum throttle: altitude is
+	// given up for airspeed. The kinetic energy rate demand is deliberately not taken out here: the pitch loop
+	// owns that split. Below trim airspeed it trades altitude for it through the weighted kinetic energy rate
+	// demand in its output; above trim it holds altitude and the speed gets what the envelope leaves. Taking it
+	// out of the altitude rate demand as well would count it twice on the pitch.
+	const float ste_rate_max = math::lerp(limit.STE_rate_max, limit.STE_rate_min,
+					      math::max(param.fast_descend, _ratio_undersped));
+	const float turn_drag = param.load_factor_correction * (param.load_factor - 1.f);
+	const float airspeed = _airspeedForClimbAngle(input, param);
+	altitude_rate_setpoint = math::constrain(altitude_rate_setpoint, (limit.STE_rate_min - turn_drag) / CONSTANTS_ONE_G,
+				 (ste_rate_max - turn_drag) / CONSTANTS_ONE_G);
+
+	// Pitch envelope: the climb angle within the absolute pitch limits, less the level-flight pitch and the
+	// integrator state that holds the remaining pitch-to-flight-path offset.
+	const float pitch_to_climb_angle = param.level_flight_pitch + _pitch_integ_state;
+	altitude_rate_setpoint = math::constrain(altitude_rate_setpoint, (param.pitch_min - pitch_to_climb_angle) * airspeed,
+				 (param.pitch_max - pitch_to_climb_angle) * airspeed);
+
+	if (PX4_ISFINITE(altitude_rate_setpoint)) {
+		control_setpoint.altitude_rate_setpoint = altitude_rate_setpoint;
+	}
 }
 
 TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint,

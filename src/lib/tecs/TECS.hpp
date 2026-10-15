@@ -463,7 +463,8 @@ private:
 	static float _airspeedForClimbAngle(const Input &input, const Param &param);
 
 	/**
-	 * @brief Run the airspeed and altitude outer loops and the underspeed detection.
+	 * @brief Run the underspeed detection and the airspeed and altitude outer loops, and clip the altitude rate
+	 *        demand to the flyable envelope.
 	 *
 	 * Uses the direct height rate setpoint if it is finite, the altitude loop otherwise.
 	 *
@@ -476,6 +477,22 @@ private:
 	 */
 	SpecificEnergyRates _updateOuterLoops(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
 					      const Param &param, const Flag &flag);
+
+	/**
+	 * @brief Clip the altitude rate setpoint to the energy rate the throttle can fund and to the pitch limits.
+	 *
+	 * In fast descend and underspeed the throttle envelope fades to the minimum throttle energy rate, so altitude
+	 * is given up for airspeed. The kinetic energy rate demand is not taken out of the envelope: the pitch output
+	 * already trades it against altitude, see _calcPitchControlOutput.
+	 *
+	 * @param control_setpoint is the outer loop setpoints, the altitude rate setpoint is clipped in place.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param param is the control parameters.
+	 */
+	void _clipAltitudeRateSetpointToEnvelope(OuterLoopSetpoints &control_setpoint, const Input &input,
+			const STERateLimit &limit, const Param &param) const;
+
 	/**
 	 * @brief Calculate specific energy rates.
 	 *
