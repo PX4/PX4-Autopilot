@@ -1098,24 +1098,22 @@ void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 	//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
 	//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
 
-	// Step 1: conventional update
-	// Compute P_temp and store it in P to avoid allocating more memory
+	// P_temp = P - K * PH^T is never stored: each entry is evaluated where it is used, first in
+	// P_temp * H (its column state_index), then in the stabilized update of the lower triangle,
+	// which is mirrored to the upper one. This is the same arithmetic as storing P_temp first.
 	// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
-	VectorState PH = P.row(state_index);
+	const VectorState PH = P.row(state_index);
+	VectorState P_temp_H;
 
 	for (unsigned i = 0; i < State::size; i++) {
-		for (unsigned j = 0; j < State::size; j++) {
-			P(i, j) -= K(i) * PH(j); // P is now not symmetric if K is not optimal (e.g.: some gains have been zeroed)
-		}
+		P_temp_H(i) = P(i, state_index) - K(i) * PH(state_index);
 	}
-
-	// Step 2: stabilized update
-	// P (or "P_temp") is not symmetric so we must take the column
-	PH = P.col(state_index);
 
 	for (unsigned i = 0; i < State::size; i++) {
 		for (unsigned j = 0; j <= i; j++) {
-			P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
+			// P_temp is not symmetric if K is not optimal (e.g.: some gains have been zeroed)
+			const float P_temp = P(i, j) - K(i) * PH(j);
+			P(i, j) = P_temp - P_temp_H(i) * K(j) + K(i) * R * K(j);
 			P(j, i) = P(i, j);
 		}
 	}
@@ -1157,24 +1155,31 @@ bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R,
 	//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
 	//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
 
-	// Step 1: conventional update
-	// Compute P_temp and store it in P to avoid allocating more memory
-	// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
+	// P_temp = P - K * PH^T is never stored: each entry is evaluated where it is used, first in
+	// P_temp * H (only its columns selected by H), then in the stabilized update of the lower
+	// triangle, which is mirrored to the upper one. This is the same arithmetic as storing P_temp first.
+	const VectorState K_local = K; // stores to P cannot alias the gain
 	const NonZeroIndices H_nz(H);
-	VectorState PH = multiplySparse(P, H, H_nz); // H is stored as a column vector. H is in fact H.T
+	const VectorState PH = multiplySparse(P, H, H_nz); // H is stored as a column vector. H is in fact H.T
+	VectorState P_temp_H;
 
 	for (unsigned i = 0; i < State::size; i++) {
-		for (unsigned j = 0; j < State::size; j++) {
-			P(i, j) -= K(i) * PH(j); // P is now not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
-		}
-	}
+		float sum = 0.f;
 
-	// Step 2: stabilized update
-	PH = multiplySparse(P, H, H_nz); // H is stored as a column vector. H is in fact H.T
+		for (unsigned k = 0; k < H_nz.count; k++) {
+			const unsigned j = H_nz.idx[k];
+			const float P_temp = P(i, j) - K_local(i) * PH(j);
+			sum += P_temp * H(j);
+		}
+
+		P_temp_H(i) = sum;
+	}
 
 	for (unsigned i = 0; i < State::size; i++) {
 		for (unsigned j = 0; j <= i; j++) {
-			P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
+			// P_temp is not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
+			const float P_temp = P(i, j) - K_local(i) * PH(j);
+			P(i, j) = P_temp - P_temp_H(i) * K_local(j) + K_local(i) * R * K_local(j);
 			P(j, i) = P(i, j);
 		}
 	}
