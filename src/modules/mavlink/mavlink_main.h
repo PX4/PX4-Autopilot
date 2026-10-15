@@ -672,6 +672,11 @@ private:
 	float			_rate_mult{1.0f};
 	px4::atomic_bool	_ftp_burst_active{false};       /**< True while an FTP burst is streaming */
 	px4::atomic_bool	_log_download_active{false};    /**< True while LOG_DATA is streaming */
+
+	float			_streams_const_rate{0.f};	///< theoretical bandwidth of the constant-rate streams, B/s
+	float			_streams_rate{0.f};		///< theoretical bandwidth of the other streams, B/s
+	hrt_abstime		_streams_rate_update{0};	///< when the stream bandwidths were last computed
+	bool			_streams_changed{true};		///< stream set or interval changed since then
 	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};
