@@ -109,7 +109,6 @@ public:
 	int print_status() override;
 
 private:
-	friend class GZBridgeTestPeer;
 
 	void Run() override;
 
