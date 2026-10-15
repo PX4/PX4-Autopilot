@@ -68,9 +68,6 @@
 #include "tasks/PrecTakeoffTask.h"
 #include "tasks/VteTask.h"
 
-class VisionTargetEstTest;
-class VisionTargetEstTestable;
-
 namespace vision_target_estimator
 {
 
@@ -97,9 +94,6 @@ public:
 	bool init();
 
 	static int task_spawn(int argc, char *argv[]);
-
-	friend class ::VisionTargetEstTest;
-	friend class ::VisionTargetEstTestable;
 
 protected:
 	static constexpr hrt_abstime kPosUpdatePeriodUs{kEstimatorUpdatePeriodUs};        // 50 Hz position filter cadence.

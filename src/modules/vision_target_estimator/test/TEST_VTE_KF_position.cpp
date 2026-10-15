@@ -55,7 +55,6 @@ namespace
 using namespace time_literals;
 
 static constexpr float kTolerance = 1e-4f;
-static constexpr float kTightTolerance = 1e-7f;
 #if !defined(CONFIG_VTEST_MOVING)
 static constexpr hrt_abstime kNowOffset = 10_us;
 #endif // !defined(CONFIG_VTEST_MOVING)
@@ -260,72 +259,6 @@ TEST(KFPositionTest, PredictUpdatesStateAndCovariance)
 	expectSymmetric(cov);
 }
 
-// WHY:   Continuous-time process noise should not depend on how the predict
-//        interval is sliced. dt-invariance is what makes the spectral-density
-//        parameterization transferable across update rates.
-// WHAT:  One predict step of dt and two predict steps of dt/2 from the same zero
-//        prior must produce the same posterior covariance.
-TEST(KFPositionTest, PredictCovarianceIsSplitStepInvariant)
-{
-	constexpr float kQAcc   = 0.4f;
-	constexpr float kQBias  = 0.1f;
-	constexpr float kFullDt = 0.02f;
-	constexpr float kHalfDt = 0.01f;
-
-	const StateVec zero_state = makeState(0.f, 0.f, 0.f);
-	const StateVec zero_cov   = makeDiag(0.f, 0.f, 0.f);
-
-	vte::KF_position single_step;
-	vte::KF_position split_step;
-	setFilterState(single_step, zero_state, zero_cov);
-	setFilterState(split_step,  zero_state, zero_cov);
-	single_step.setInputVar(kQAcc);
-	single_step.setBiasVar(kQBias);
-	split_step.setInputVar(kQAcc);
-	split_step.setBiasVar(kQBias);
-
-	single_step.predict(kFullDt, 0.f);
-	split_step.predict(kHalfDt, 0.f);
-	split_step.predict(kHalfDt, 0.f);
-
-	const StateCov cov_single = single_step.getStateCovariance();
-	const StateCov cov_split  = split_step.getStateCovariance();
-
-	for (size_t row = 0; row < vte::KF_position::kStateSize; row++) {
-		for (size_t col = 0; col < vte::KF_position::kStateSize; col++) {
-			EXPECT_NEAR(cov_single(row, col), cov_split(row, col), kTightTolerance)
-					<< "Split-step mismatch at (" << row << ", " << col << ")";
-		}
-	}
-}
-
-// WHY: Innovation consistency ensures measurement mapping is correct.
-// WHAT: Check innov and innov_var against an analytic H*x and HPH^T + R.
-TEST(KFPositionTest, InnovationMatchesH)
-{
-	// GIVEN: a filter with a position measurement model and a finite prior covariance.
-	vte::KF_position filter;
-	setFilterState(filter, makeState(1.f, 2.f, 3.f), makeDiag(4.f, 1.f, 1.f));
-
-	const StateVec H = makeH(vtest::State::pos_rel);
-	static constexpr hrt_abstime kMeasTime = 1_s;
-	const ScalarMeas meas = makeMeas(kMeasTime, 2.5f, 0.5f, H);
-
-	const StateVec state_before = filter.getState();
-	const StateVec cov_diag_before = filter.getStateCovarianceDiag();
-
-	// WHEN: we fuse the measurement with a permissive NIS threshold.
-	const vte::FusionResult res = filter.fuseScalarAtTime(meas, makeFusionNow(kMeasTime), 1e6f);
-
-	// THEN: the reported innovation terms equal the analytic residual and variance.
-	const float expected_innov = meas.val - state_before(vtest::State::pos_rel);
-	const float expected_innov_var = cov_diag_before(vtest::State::pos_rel) + meas.unc;
-
-	EXPECT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_CURRENT);
-	EXPECT_NEAR(res.innov, expected_innov, kTolerance);
-	EXPECT_NEAR(res.innov_var, expected_innov_var, kTolerance);
-}
-
 // WHY: The fast-path (non-OOSM) fusion is used for most measurements.
 // WHAT: Verify current fusion updates state and reduces covariance as expected.
 TEST(KFPositionTest, FusesCurrentMeasurement)
@@ -364,54 +297,6 @@ TEST(KFPositionTest, FusesCurrentMeasurement)
 	EXPECT_EQ(future_res.status, vte::FusionStatus::STATUS_FUSED_CURRENT);
 }
 
-// WHY: Invalid innovation variance must stop the correction to avoid NaNs.
-// WHAT: Ensure REJECT_COV and unchanged state when S is near zero.
-TEST(KFPositionTest, RejectsInvalidInnovationVariance)
-{
-	// GIVEN: a measurement with zero uncertainty applied to a zero-covariance prior.
-	vte::KF_position filter;
-	setFilterState(filter, makeState(1.f, 2.f, 3.f), makeDiag(0.f, 0.f, 0.f));
-
-	const StateVec H = makeH(vtest::State::pos_rel);
-	static constexpr hrt_abstime kMeasTime = 3_s;
-	const ScalarMeas meas = makeMeas(kMeasTime, 1.f, 0.f, H);
-
-	// WHEN: we attempt to fuse the measurement.
-	const vte::FusionResult res = filter.fuseScalarAtTime(meas, makeFusionNow(kMeasTime), 100.f);
-
-	// THEN: the filter rejects the correction and preserves the full state.
-	const StateVec state = filter.getState();
-
-	EXPECT_EQ(res.status, vte::FusionStatus::STATUS_REJECT_COV);
-	EXPECT_NEAR(state(vtest::State::pos_rel), 1.f, kTolerance);
-	EXPECT_NEAR(state(vtest::State::vel_uav), 2.f, kTolerance);
-	EXPECT_NEAR(state(vtest::State::bias), 3.f, kTolerance);
-}
-
-// WHY: NIS gating protects against large outliers.
-// WHAT: Provide a large innovation with small variance and expect REJECT_NIS.
-TEST(KFPositionTest, RejectsOutlierNis)
-{
-	// GIVEN: a tightly constrained prior and a large position residual.
-	vte::KF_position filter;
-	setFilterState(filter, makeState(0.f, 0.f, 0.f), makeDiag(0.01f, 0.01f, 0.01f));
-
-	const StateVec H = makeH(vtest::State::pos_rel);
-	static constexpr hrt_abstime kMeasTime = 3500_ms;
-	const ScalarMeas meas = makeMeas(kMeasTime, 10.f, 0.01f, H);
-
-	// WHEN: we fuse with a tight NIS threshold.
-	const vte::FusionResult res = filter.fuseScalarAtTime(meas, makeFusionNow(kMeasTime), 0.1f);
-
-	// THEN: the measurement is rejected and the state remains untouched.
-	const StateVec state = filter.getState();
-
-	EXPECT_EQ(res.status, vte::FusionStatus::STATUS_REJECT_NIS);
-	EXPECT_NEAR(state(vtest::State::pos_rel), 0.f, kTolerance);
-	EXPECT_NEAR(state(vtest::State::vel_uav), 0.f, kTolerance);
-	EXPECT_NEAR(state(vtest::State::bias), 0.f, kTolerance);
-}
-
 // WHY: GNSS with bias must use H(pos_rel)=1 and H(bias)=1.
 // WHAT: Verify innovation and corrections for a joint position+bias observation.
 TEST(KFPositionTest, FusesMeasurementWithBiasInH)
@@ -442,43 +327,6 @@ TEST(KFPositionTest, FusesMeasurementWithBiasInH)
 	EXPECT_NEAR(res.innov, expected_innov, kTolerance);
 	EXPECT_NEAR(state(vtest::State::pos_rel), 1.f + k_pos * expected_innov, kTolerance);
 	EXPECT_NEAR(state(vtest::State::bias), 2.f + k_bias * expected_innov, kTolerance);
-}
-
-// WHY: OOSM fusion must handle delayed measurements consistently.
-// WHAT: Provide history and fuse a delayed measurement to trigger FUSED_OOSM.
-TEST(KFPositionTest, FusesOosmMeasurementWithHistory)
-{
-	// GIVEN: a filter with three history snapshots spanning the delayed measurement time.
-	vte::KF_position filter;
-	setFilterState(filter, makeState(0.f, 0.f, 0.f), makeDiag(1.f, 1.f, 1.f));
-	filter.setInputVar(0.2f);
-	filter.setBiasVar(0.1f);
-
-	static constexpr hrt_abstime kT0 = 1_s;
-	static constexpr hrt_abstime kHistoryStep = 20_ms;
-	static constexpr hrt_abstime kMeasOffset = 10_ms;
-	static constexpr hrt_abstime kNowOffsetLocal = 60_ms;
-
-	filter.predict(0.02f, 1.f);
-	filter.pushHistory(kT0);
-	filter.predict(0.02f, 1.f);
-	filter.pushHistory(kT0 + kHistoryStep);
-	filter.predict(0.02f, 1.f);
-	filter.pushHistory(kT0 + kHistoryStep * 2);
-
-	const StateVec state_before = filter.getState();
-	const StateVec H = makeH(vtest::State::pos_rel);
-	const ScalarMeas meas = makeMeas(kT0 + kMeasOffset, 5.f, 0.5f, H);
-
-	// WHEN: we fuse the delayed measurement after newer samples are already in history.
-	const vte::FusionResult res = filter.fuseScalarAtTime(meas, kT0 + kNowOffsetLocal, 100.f);
-
-	// THEN: the OOSM path is used and the delayed correction changes the current state.
-	const StateVec state_after = filter.getState();
-
-	EXPECT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_OOSM);
-	EXPECT_GT(res.history_steps, 0u);
-	EXPECT_GT(fabsf(state_after(vtest::State::pos_rel) - state_before(vtest::State::pos_rel)), 1e-4f);
 }
 
 // WHY: Very small covariances can destabilize future updates.

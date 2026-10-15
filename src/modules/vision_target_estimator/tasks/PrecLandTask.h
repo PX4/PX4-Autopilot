@@ -50,9 +50,6 @@
 
 #include "VteTask.h"
 
-class VisionTargetEstTest;
-class VisionTargetEstTestable;
-
 namespace vision_target_estimator
 {
 
@@ -70,7 +67,7 @@ public:
 	void onActivate() override;
 	void onPosEstStart(VTEPosition &pos) override;
 
-	/* Helpers used by tests and by VisionTargetEst logging */
+private:
 	// Select the first valid LAND setpoint in the live triplet (next preferred over current).
 	const position_setpoint_s *findLandSetpoint();
 	// Resolve and cache the precision-landing target from navigator_mission_item
@@ -78,10 +75,6 @@ public:
 	bool updateMissionSetpoint();
 	bool cacheMissionSetpoint(const navigator_mission_item_s &mission_item);
 	void resetMissionSetpoint() { _cached_mission_setpoint = {}; }
-
-private:
-	friend class ::VisionTargetEstTest;
-	friend class ::VisionTargetEstTestable;
 
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _navigator_mission_item_sub{ORB_ID(navigator_mission_item)};

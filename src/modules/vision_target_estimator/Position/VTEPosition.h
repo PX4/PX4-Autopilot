@@ -63,8 +63,6 @@
 #include <uORB/topics/vte_aid_source3d.h>
 #include <vtest_derivation/generated/state.h>
 
-class VisionTargetEstTestable;
-
 namespace vision_target_estimator
 {
 
@@ -175,8 +173,6 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
-	friend class ::VisionTargetEstTestable;
-
 	// Observation types used by the estimator. Keep ordering stable for array indexing.
 	enum class ObsType : uint8_t {
 		kTargetGpsPos,

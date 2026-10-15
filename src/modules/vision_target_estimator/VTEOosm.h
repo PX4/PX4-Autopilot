@@ -351,10 +351,6 @@ public:
 	}
 
 private:
-	// Test-only access: the companion struct is defined in the unit test translation unit and reaches
-	// the private helpers without needing any #ifdef or production-side wrappers.
-	template <typename> friend struct OOSMManagerTestAccess;
-
 	// Run NIS / covariance gating and compute the Kalman gain K for the given (state, cov, meas).
 	// Returns true iff the measurement is accepted; out_res is populated with innov/innov_var/test_ratio.
 	template <typename ScalarMeasT>

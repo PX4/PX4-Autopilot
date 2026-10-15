@@ -46,7 +46,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/fiducial_marker_pos_report.h>
-#include <uORB/topics/fiducial_marker_yaw_report.h>
 #include <uORB/topics/target_gnss.h>
 #include <uORB/topics/vehicle_gnss.h>
 #include <matrix/Quaternion.hpp>
@@ -79,25 +78,6 @@ public:
 		}
 
 		if (param_type(handle) != PARAM_TYPE_FLOAT) {
-			return false;
-		}
-
-		if (!storeOriginal(handle)) {
-			return false;
-		}
-
-		return param_set(handle, &value) == 0;
-	}
-
-	bool setInt(const char *name, int32_t value)
-	{
-		param_t handle = param_find(name);
-
-		if (handle == PARAM_INVALID) {
-			return false;
-		}
-
-		if (param_type(handle) != PARAM_TYPE_INT32) {
 			return false;
 		}
 
@@ -173,12 +153,6 @@ inline matrix::Quaternionf identityQuat()
 }
 
 template<typename Subscription>
-void flushSubscription(Subscription &sub)
-{
-	while (sub.update()) {}
-}
-
-template<typename Subscription>
 void flushSubscription(std::unique_ptr<Subscription> &sub)
 {
 	if (!sub) {
@@ -186,14 +160,6 @@ void flushSubscription(std::unique_ptr<Subscription> &sub)
 	}
 
 	while (sub->update()) {}
-}
-
-template<typename Msg, typename Subscription>
-void flushSubscription(Subscription &sub)
-{
-	Msg msg{};
-
-	while (sub.update(&msg)) {}
 }
 
 inline hrt_abstime &testClockNowStorage()
@@ -231,17 +197,6 @@ inline hrt_abstime nowUs()
 	return testClockNowStorage();
 }
 
-inline bool publishVisionYaw(uORB::Publication<fiducial_marker_yaw_report_s> &pub,
-			     float yaw, float yaw_var, hrt_abstime timestamp)
-{
-	fiducial_marker_yaw_report_s msg{};
-	msg.timestamp = timestamp;
-	msg.timestamp_sample = timestamp;
-	msg.yaw_ned = yaw;
-	msg.yaw_var_ned = yaw_var;
-	return pub.publish(msg);
-}
-
 inline bool publishVisionPos(uORB::Publication<fiducial_marker_pos_report_s> &pub,
 			     const matrix::Vector3f &rel_pos, const matrix::Quaternionf &q,
 			     const matrix::Vector3f &cov, hrt_abstime timestamp)
@@ -261,8 +216,7 @@ inline bool publishVisionPos(uORB::Publication<fiducial_marker_pos_report_s> &pu
 
 inline bool publishUavGnss(uORB::Publication<vehicle_gnss_s> &pub, double lat, double lon, float alt,
 			   float eph, float epv, const matrix::Vector3f &vel_ned, float vel_var,
-			   bool vel_valid, hrt_abstime timestamp,
-			   const matrix::Vector3f &antenna_offset = matrix::Vector3f{})
+			   bool vel_valid, hrt_abstime timestamp)
 {
 	vehicle_gnss_s msg{};
 	msg.timestamp = timestamp;
@@ -277,9 +231,6 @@ inline bool publishUavGnss(uORB::Publication<vehicle_gnss_s> &pub, double lat, d
 	msg.receiver.vel_down = vel_ned(2);
 	msg.receiver.speed_accuracy = vel_var;
 	msg.receiver.vel_ned_valid = vel_valid;
-	msg.antenna_offset[0] = antenna_offset(0);
-	msg.antenna_offset[1] = antenna_offset(1);
-	msg.antenna_offset[2] = antenna_offset(2);
 	return pub.publish(msg);
 }
 
