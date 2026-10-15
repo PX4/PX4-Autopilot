@@ -1,6 +1,7 @@
 # This workflow will triage pull requests and apply labels based on the
-# PR title prefix and paths that are modified in the pull request.
-# The path labels are set up in .github/labeler.yml
+# PR title and paths that are modified in the pull request.
+# The path labels are set up in .github/labeler.yml, the scope label in
+# Tools/ci/label_pr_scope.py
 #
 # See: https://github.com/actions/labeler
 
@@ -8,6 +9,11 @@ name: Labeler
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened, ready_for_review]
+
+# Runs that overlap would race to add and remove the scope label.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   label:
@@ -57,3 +63,15 @@ jobs:
     - uses: actions/labeler@v6
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+    # pull_request_target checks out the base branch: the script never runs PR code.
+    - uses: actions/checkout@v6
+      with:
+        sparse-checkout: Tools/ci
+        fetch-depth: 1
+
+    - name: Label PR scope
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: python3 Tools/ci/label_pr_scope.py --pr "$PR_NUMBER"

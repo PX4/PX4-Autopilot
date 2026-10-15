@@ -12,7 +12,7 @@ pageClass: is-wide-page
 | ----------------------------------------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------------------------------- |
 | <a id="fld_timestamp"></a>timestamp                   | `uint64`  |              |            | time since system start (microseconds)                                                        |
 | <a id="fld_valid"></a>valid                           | `bool`    |              |            | Flag indicating whether the time estiamtes are valid                                          |
-| <a id="fld_time_estimate"></a>time_estimate           | `float32` | s            |            | Estimated time for RTL                                                                        |
+| <a id="fld_time_estimate"></a>time_estimate           | `float32` | s            |            | Estimated time for Return                                                                     |
 | <a id="fld_safe_time_estimate"></a>safe_time_estimate | `float32` | s            |            | Same as time_estimate, but with safety factor and safety margin included (factor\*t + margin) |
 
 ## Source Message
@@ -25,7 +25,7 @@ pageClass: is-wide-page
 uint64 timestamp # time since system start (microseconds)
 
 bool valid			# Flag indicating whether the time estiamtes are valid
-float32 time_estimate		# [s] Estimated time for RTL
+float32 time_estimate		# [s] Estimated time for Return
 float32 safe_time_estimate	# [s] Same as time_estimate, but with safety factor and safety margin included (factor*t + margin)
 ```
 

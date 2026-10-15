@@ -7,10 +7,10 @@
 - [Finding/Updating Parameters](../advanced_config/parameters.md)
 - [完整参数参考](../advanced_config/parameter_reference.md)
 
-## Feature Configuration
+## 功能配置
 
 - [使用 PX4 的导航滤波器 (EKF2)](../advanced_config/tuning_the_ecl_ekf.md)
-- [GNSS-Denied and Degraded Flight](../advanced_config/gnss_degraded_or_denied_flight.md)
+- [无 GNSS 及 GNSS 信号降级的飞行](../advanced_config/gnss_degraded_or_denied_flight.md)
 - [飞行终止配置](../advanced_config/flight_termination.md)
 - [着陆探测器配置](../advanced_config/land_detector.md)
 - [解锁前/解锁/加锁 配置](../advanced_config/prearm_arm_disarm.md)
@@ -19,7 +19,7 @@
 
 - [OEM/Factory Configuration](../advanced_config/oem.md)
 
-## Serial port/Ethernet Configuration
+## 串口/以太网配置
 
 - [串口配置](../peripherals/serial_configuration.md)
 - [MAVLink Telemetry (OSD/GCS)](../peripherals/mavlink_peripherals.md)

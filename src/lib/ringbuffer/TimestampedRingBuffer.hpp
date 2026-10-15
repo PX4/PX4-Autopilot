@@ -197,7 +197,10 @@ public:
 
 		_size = static_cast<uint8_t>(size);
 
-		reset();
+		// new[]{} already zeroed time_us, only reset the indices
+		_head = 0;
+		_tail = 0;
+		_first_write = true;
 
 		return true;
 	}

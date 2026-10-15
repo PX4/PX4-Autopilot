@@ -128,6 +128,17 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 
 	if (already_active || major_movement) {
 
+		// Roll and pitch are relative to the horizon, for yaw it depends on whether
+		// the user wants it locked or following the vehicle. This applies to angles
+		// as well as to rates. For rates it needs to be set too, otherwise the
+		// outputs keep using the frame of whatever setpoint came before (e.g. the
+		// yaw lock of a ROI).
+		control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+		control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+		control_data.type_data.angle.frames[2] = (_parameters.mnt_do_stab == MntDoStabilize::ALL_AXES
+				|| _parameters.mnt_do_stab == MntDoStabilize::YAW_LOCK) ?
+				ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame : ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+
 		if (_parameters.mnt_rc_in_mode == 0) {
 			// We scale manual input from roll -180..180, pitch -90..90, yaw, -180..180 degrees.
 			// We use 179.99 instead of 180 so to avoid that the conversion between quaternions and Euler representation
@@ -138,12 +149,6 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 
 			matrix::Quatf q(euler);
 			q.copyTo(control_data.type_data.angle.q);
-
-			control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-			control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-			control_data.type_data.angle.frames[2] = (_parameters.mnt_do_stab == MntDoStabilize::ALL_AXES
-					|| _parameters.mnt_do_stab == MntDoStabilize::YAW_LOCK) ?
-					ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame : ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 			control_data.type_data.angle.angular_velocity[0] = NAN;
 			control_data.type_data.angle.angular_velocity[1] = NAN;
@@ -158,10 +163,6 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 			control_data.type_data.angle.angular_velocity[0] = 0.f;
 			control_data.type_data.angle.angular_velocity[1] = math::radians(_parameters.mnt_rate_pitch) * new_aux_values[1];
 			control_data.type_data.angle.angular_velocity[2] = math::radians(_parameters.mnt_rate_yaw) * new_aux_values[2];
-
-			control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
-			control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
-			control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
 		}
 
 		for (int i = 0; i < 3; ++i) {

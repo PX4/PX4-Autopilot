@@ -16,26 +16,29 @@ Before calibration they must be [enabled via the corresponding parameter](../adv
 
 ## Performing the Calibration
 
-To calibrate the airspeed sensor:
+All connected airspeed sensors are calibrated in one run.
+The zero reading is taken from every sensor at the same time, but you are prompted to blow into each pitot in turn.
+
+To calibrate the airspeed sensor(s):
 
 1. Start _QGroundControl_ and connect the vehicle.
-1. Enable the airspeed sensors if not already done (as in _warning_ above).
-1. Select **"Q" icon > Vehicle Setup > Sensors** (sidebar) to open _Sensor Setup_.
-1. Click the **Airspeed** sensor button.
+2. Enable the airspeed sensors if not already done (as in _warning_ above).
+3. Select **"Q" icon > Vehicle Setup > Sensors** (sidebar) to open _Sensor Setup_.
+4. Click the **Airspeed** sensor button.
 
    ![Airspeed calibration](../../assets/qgc/setup/sensor/sensor_airspeed.jpg)
 
-1. Shield the sensor from the wind (i.e. cup it with your hand).
+5. Shield the sensor from the wind (i.e. cup it with your hand).
    Take care not to block any of its holes.
-1. Click **OK** to start the calibration.
-1. Once asked for, blow into the tip of the pitot tube to signal the end of calibration.
+6. Click **OK** to start the calibration.
+7. Once asked for, blow into the tip of each pitot tube to signal the end of its calibration.
 
    :::tip
    Blowing into the tube is also a basic check that the dynamic and static ports are installed correctly.
    If they are swapped then the sensor will read a large negative differential pressure when you blow into the tube, and the calibration will abort with an error.
    :::
 
-1. _QGroundControl_ then tells you if the calibration was successful or not.
+8. _QGroundControl_ then tells you if the calibration was successful or not.
 
 ## Further Information
 

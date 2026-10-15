@@ -264,13 +264,13 @@ The following selection tree can be used to select the right option:
 
 - Використання GPS увімкнено через налаштування параметра [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL).
 - Перевірка якості GPS пройдена.
-  Ці перевірки контролюються параметрами [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) і `EKF2_REQ_*`.
+  These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
 
 Для отримання додаткової інформації про налаштування джерел висоти [натисніть тут](#height).
 
 #### Вимірювання повороту
 
-Some GPS receivers such as the [Trimble MB-Two RTK GPS receiver](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) can be used to provide a heading measurement that replaces the use of magnetometer data.
+Dual-antenna and moving base GNSS receivers (see [GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)) can be used to provide a heading measurement that replaces the use of magnetometer data.
 Це може бути значним перевагою при роботі в середовищі, де присутні великі магнітні аномалії, або на широтах, де магнітне поле Землі має високий нахил.
 Використання вимірювань курсу від GPS увімкнено, встановивши біт на позиції 3 на 1 (додаючи 8) у параметрі [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL).
 
@@ -297,47 +297,47 @@ Weightings applied by the GSF to the individual 3-state EKF outputs are in the`w
 
 Дані з приймачів GPS можуть бути змішані за допомогою алгоритму, який вагує дані на основі звітної точності (це працює найкраще, якщо обидва приймачі виводять дані з однаковою частотою та використовують однакову точність).
 Механізм також забезпечує автоматичний перехід на резервний варіант, якщо дані від приймача втрачаються (це дозволяє, наприклад, використовувати стандартний GPS як резервний варіант для більш точного приймача RTK).
-Це контролюється параметром [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK).
+This is controlled by the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter.
 
-Параметр [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) за замовчуванням встановлений для вимкнення змішування і завжди використовує перший приймач, тому його потрібно встановити, щоб вибрати, які метрики точності приймача використовуються для визначення внеску кожного виходу приймача в змішане рішення.
-У випадку використання різних моделей приймачів важливо, щоб параметр [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) був встановлений на значення, яке використовує метрики точності, які підтримуються обома приймачами.
-Наприклад, не встановлюйте позицію біта 0 в значення `true`, якщо драйвери для обох приймачів не публікують значення у полі `s_variance_m_s` повідомлення `vehicle_gps_position`, які можна порівняти.
+The [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set by default to disable blending and always use the first receiver, so it will have to be set to select which receiver accuracy metrics are used to decide how much each receiver output contributes to the blended solution.
+Where different receiver models are used, it is important that the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set to a value that uses accuracy metrics that are supported by both receivers.
+For example do not set bit position 0 to `true` unless the drivers for both receivers publish values in the `speed_accuracy` field of the `sensor_gnss` message that are comparable.
 Це може бути складним з приймачами від різних виробників через різний спосіб визначення точності, наприклад, CEP проти 1-сигма і т.д.
 
 Наступні елементи слід перевірити під час налаштування:
 
 - Перевірте, що дані для другого приймача присутні.
-  Буде зареєстровано як `vehicle_gps_position_1` і також може бути перевірено під час підключення через _консоль nsh_ за допомогою команди `listener vehicle_gps_position -i 1`.
+  This will be logged as `sensor_gnss_1` and can also be checked when connected via the _nsh console_ using the command `listener sensor_gnss -i 1`.
   Параметр [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) повинен бути встановлений правильно.
-- Перевірте дані `s_variance_m_s`, `eph` і `epv` від кожного приймача та вирішіть, які показники точності можна використовувати.
-  Якщо обидва приймачі видають зрозумілі дані `s_variance_m_s` та `eph`, і вертикальна позиція GPS не використовується безпосередньо для навігації, то рекомендується встановити [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) на 3.
-  Якщо доступні лише дані `eph` і обидва приймачі не виводять дані `s_variance_m_s`, встановіть [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) на.
+- Check the `speed_accuracy`, `eph` and `epv` data from each receiver and decide which accuracy metrics can be used.
+  If both receivers output sensible `speed_accuracy` and `eph` data, and GPS vertical position is not being used directly for navigation, then setting [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 3 is recommended.
+  Where only `eph` data is available and both receivers do not output `speed_accuracy` data, set [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 2.
   Позиція біта 2 буде встановлена, лише якщо GPS було вибрано як джерело опорної висоти за допомогою параметра [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) і обидва приймачі видають чутливі дані `epv`.
-- Дані з змішаного приймача реєструються як `ekf_gps_position` і можуть бути перевірені під час підключення через термінал nsh за допомогою команди слухача `ekf_gps_position`.
+- The output from the blended receiver data is logged as `vehicle_gnss`, and can be checked whilst connect via the nsh terminal using the command `listener vehicle_gnss`.
 - У випадку, якщо приймачі видають дані на різних швидкостях, вихідне змішане значення буде відповідати швидкості повільнішого приймача.
   Де це можливо, приймачі повинні бути налаштовані на видачу даних з однаковою швидкістю.
 
 #### Вимоги до продуктивності GNSS
 
-Для того щоб ECL приймав дані GNSS для навігації, необхідно, щоб певні мінімальні вимоги були виконані протягом певного часу, визначеного параметром [EKF2_REQ_GPS_H](../advanced_config/parameter_reference.md#EKF2_REQ_GPS_H) (за замовчуванням 10 секунд).
+For the ECL to accept GNSS data for navigation, certain minimum requirements need to be satisfied over a period of time, defined by [GNSS_REQ_TIME](../advanced_config/parameter_reference.md#GNSS_REQ_TIME) (10 seconds by default).
 
-Мінімуми визначаються у параметрах [EKF2_REQ_\*](../advanced_config/parameter_reference.md#EKF2_REQ_EPH), і кожна перевірка може бути увімкнена/вимкнена за допомогою параметра [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK).
+Minima are defined in the [GNS&#x53;_&#x52;EQ_\*](../advanced_config/parameter_reference.md#GNSS_REQ_EPH) parameters and each check can be enabled/disabled using the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) parameter.
 
 Нижче наведена таблиця, яка показує різні метри, які безпосередньо повідомляються або обчислюються на основі даних GNSS, а також мінімальні значення, необхідні для того, щоб ці дані використовувалися ECL.
 Крім того, стовпчик _Середнє значення_ показує типові значення, які можуть бути розумними для отримання зі стандартного модуля GNSS (наприклад, серія u-blox M8) - тобто значення, які вважаються хорошими/прийнятними.
 
 | Метрика               | Мінімальна вимога                                                                                                                                                                                                   | Середнє значення     | Units | Примітки                                                                                                                                                                                                                                                                                        |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| eph                   | <&nbsp;3 ([EKF2_REQ_EPH](../advanced_config/parameter_reference.md#EKF2_REQ_EPH))                         | 0.8  | m     | Стандартне відхилення помилки горизонтальної позиції                                                                                                                                                                                                                                            |
-| epv                   | <&nbsp;5 ([EKF2_REQ_EPV](../advanced_config/parameter_reference.md#EKF2_REQ_EPV))                         | 1.5  | m     | Стандартне відхилення помилки вертикальної позиції                                                                                                                                                                                                                                              |
-| Кількість супутників  | ≥6&nbsp;([EKF2_REQ_NSATS](../advanced_config/parameter_reference.md#EKF2_REQ_NSATS))                                               | 14                   | -     |                                                                                                                                                                                                                                                                                                 |
-| sacc                  | <&nbsp;0.5 ([EKF2_REQ_SACC](../advanced_config/parameter_reference.md#EKF2_REQ_SACC))     | 0.2  | m/s   | Стандартне відхилення помилки горизонтальної швидкості                                                                                                                                                                                                                                          |
+| eph                   | <&nbsp;3 ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH))                         | 0.8  | m     | Стандартне відхилення помилки горизонтальної позиції                                                                                                                                                                                                                                            |
+| epv                   | <&nbsp;5 ([GNSS_REQ_EPV](../advanced_config/parameter_reference.md#GNSS_REQ_EPV))                         | 1.5  | m     | Стандартне відхилення помилки вертикальної позиції                                                                                                                                                                                                                                              |
+| Кількість супутників  | ≥6&nbsp;([GNSS_REQ_NSATS](../advanced_config/parameter_reference.md#GNSS_REQ_NSATS))                                               | 14                   | -     |                                                                                                                                                                                                                                                                                                 |
+| sacc                  | <&nbsp;0.5 ([GNSS_REQ_SACC](../advanced_config/parameter_reference.md#GNSS_REQ_SACC))     | 0.2  | m/s   | Стандартне відхилення помилки горизонтальної швидкості                                                                                                                                                                                                                                          |
 | fix type              | ≥&nbsp;3                                                                                                                                                                                        | 4                    | -     | 0-1: відсутній фікс, 2: 2D фікс, 3: 3D фікс, 4: диференційний код RTCM, 5: кінематика в реальному часі, плаваюча, 6: кінематика в реальному часі, фіксована, 8: екстрапольована |
-| PDOP                  | <&nbsp;2.5 ([EKF2_REQ_PDOP](../advanced_config/parameter_reference.md#EKF2_REQ_PDOP))     | 1.0  | -     | Дільник точності положення                                                                                                                                                                                                                                                                      |
-| hpos швидкість дрейфу | <&nbsp;0.1 ([EKF2_REQ_HDRIFT](../advanced_config/parameter_reference.md#EKF2_REQ_HDRIFT)) | 0.01 | m/s   | Швидкість дрейфу, обчислена з відомого положення GNSS (при безрухомості).                                                                                                                                                                                    |
-| vpos швидкість дрейфу | <&nbsp;0.2 ([EKF2_REQ_VDRIFT](../advanced_config/parameter_reference.md#EKF2_REQ_VDRIFT)) | 0.02 | m/s   | Швидкість дрейфу, обчислена з відомої висоти GNSS (при безрухомості).                                                                                                                                                                                        |
-| hspd                  | <&nbsp;0.1 ([EKF2_REQ_HDRIFT](../advanced_config/parameter_reference.md#EKF2_REQ_HDRIFT)) | 0.01 | m/s   | Фільтрована величина звітної горизонтальної швидкості GNSS.                                                                                                                                                                                                                     |
-| vspd                  | <&nbsp;0.2 ([EKF2_REQ_VDRIFT](../advanced_config/parameter_reference.md#EKF2_REQ_VDRIFT)) | 0.02 | m/s   | Фільтрована величина звітної вертикальної швидкості GNSS.                                                                                                                                                                                                                       |
+| PDOP                  | <&nbsp;2.5 ([GNSS_REQ_PDOP](../advanced_config/parameter_reference.md#GNSS_REQ_PDOP))     | 1.0  | -     | Дільник точності положення                                                                                                                                                                                                                                                                      |
+| hpos швидкість дрейфу | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01 | m/s   | Швидкість дрейфу, обчислена з відомого положення GNSS (при безрухомості).                                                                                                                                                                                    |
+| vpos швидкість дрейфу | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02 | m/s   | Швидкість дрейфу, обчислена з відомої висоти GNSS (при безрухомості).                                                                                                                                                                                        |
+| hspd                  | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01 | m/s   | Фільтрована величина звітної горизонтальної швидкості GNSS.                                                                                                                                                                                                                     |
+| vspd                  | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02 | m/s   | Фільтрована величина звітної вертикальної швидкості GNSS.                                                                                                                                                                                                                       |
 
 :::info
 Параметри `hpos_drift_rate`, `vpos_drift_rate` та `hspd` обчислюються протягом 10 секунд і публікуються у темі `ekf2_gps_drift`.
@@ -735,7 +735,7 @@ EKF містить внутрішню перевірку помилок для �
 ### Перевірка якості GPS
 
 EKF проводить кілька перевірок якості GPS перед початком допомоги GPS.
-Ці перевірки контролюються параметрами [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) і `EKF2_REQ_*`.
+These checks are controlled by the [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) and `GNSS_REQ_*` parameters.
 Статус успішності/невдачі цих перевірок реєструється у повідомленні [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).gps_check_fail_flags.
 Це ціле число буде рівне нулю, коли всі необхідні перевірки GPS будуть пройдені.
 Якщо EKF не розпочинає вирівнювання GPS, перевірте значення цілочисельної величини порівняно з визначенням бітової маски `gps_check_fail_flags` у [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).
@@ -805,7 +805,7 @@ EKF можна зробити більш стійким до розходжен�
 - Намалюйте відношення інноваційного тесту горизонтального положення - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).pos_test_ratio
 - Намалюйте відношення інноваційного тесту висоти - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).hgt_test_ratio
 - Намалюйте відношення інноваційного тесту магнітометра - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).mag_test_ratio
-- Намалюйте точність швидкості, звіщену GPS-приймачем - [SensorGps.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorGps.msg).s_variance_m_s
+- Plot the GPS receiver reported speed accuracy - [SensorGnss.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorGnss.msg).speed_accuracy
 - Намалюйте оцінки стану кутових зміщень IMU - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).states\[10\], states\[11\] та states\[12\]
 - Діаграма внутрішніх частотних частотних метрик EKF:
   - Конічна вібрація під кутом дельта - [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg).vibe\[0\]
@@ -871,7 +871,7 @@ The rise in [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg
 ### Визначення втрат даних GPS
 
 Втрата даних GPS буде відображатися стійким "заповзанням" в тестових відношеннях інновацій швидкості та позиції.
-Якщо це сталося, перевірте інші дані про статус GPS у `vehicle_gps_position` для отримання додаткової інформації.
+If this occurs, check the other GPS status data in `vehicle_gnss` for further information.
 
 Наступний графік показує інновації швидкості GPS NED `ekf2_innovations_0.vel_pos_innov[0 ... 2]`, the GPS NE position innovations `ekf2_innovations_0.vel_pos_innov[3 ... 4]` and the Baro vertical position innovation `ekf2_innovations_0.vel_pos_innov[5]` generated from a simulated VTOL flight using SITL Gazebo.
 

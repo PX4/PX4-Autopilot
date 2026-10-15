@@ -14,7 +14,7 @@ The [Windows WSL2-Based Development Environment](../dev_setup/dev_env_windows_ws
 Це середовище може бути використане для збірки PX4 для:
 
 - Pixhawk та іншого апаратного забезпечення на основі NuttX
-- [jMAVSim Simulation](../sim_jmavsim/index.md)
+- jMAVSim simulation (removed from PX4, see the note in [Getting Started](#getting-started))
 
 <a id="installation"></a>
 
@@ -72,6 +72,12 @@ The toolchain uses a specially configured console window (started by running the
    Тепер можна використовувати консоль/PX4-Autopilot репозиторій для збірки PX4.
 
 4. Наприклад, для запуску JMAVSim:
+
+   ::: info
+   jMAVSim has been removed from PX4, so this example only works with PX4 versions that still include it.
+   Current PX4 uses [SIH](../sim_sih/index.md) with the [Hawkeye](../sim_hawkeye/index.md) visualizer instead.
+
+:::
 
    ```sh
    # Navigate to PX4-Autopilot repo

@@ -1196,15 +1196,18 @@ bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsig
 			}
 		}
 
-		// Reversible motors: send reverse as a signed RawCommand (negative = reverse). Encoded in
-		// place so actuator_outputs reflects the actual wire value sent to the ESC. Done here rather
-		// than via minValue()/maxValue() (as DShot does for its 3D range) because those are uint16_t
-		// and can't hold the negative bound a signed RawCommand would need.
-		const uint32_t reversible = mixingOutput().reversibleOutputs();
+		// Reversible channels: send reverse as a signed RawCommand (negative = reverse). Sourced
+		// from the mixer's reversible mask (CA_R_REV motors) and UAVCAN_EC_SIGNED (non-motor
+		// channels). Encoded in place so actuator_outputs reflects the actual wire value sent to
+		// the ESC. Done here rather than via minValue()/maxValue() (as DShot does for its 3D
+		// range) because those are uint16_t and can't hold the negative bound a signed RawCommand
+		// would need.
+		uint32_t reversible = mixingOutput().reversibleOutputs();
+
+		reversible |= _signed_non_motor_mask;
 
 		for (unsigned i = 0; i < output_array_size; i++) {
-			// Encode armed outputs only; a stopped channel sits at the disarmed value and must
-			// not be inverted to full reverse (the disarmed < min invariant is not guaranteed).
+			// Encode reversible outputs above the disarmed value.
 			if ((reversible & (1u << i)) && outputs[i] > (float)mixingOutput().disarmedValue(i)) {
 				const float min_i = (float)mixingOutput().minValue(i);
 				const float max_i = (float)mixingOutput().maxValue(i);
@@ -1229,12 +1232,20 @@ void UavcanMixingInterfaceESC::Run()
 void UavcanMixingInterfaceESC::mixerChanged()
 {
 	int rotor_count = 0;
+	_signed_non_motor_mask = 0;
 
 	for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
 		rotor_count += _mixing_output.isFunctionSet(i);
 
 		if (i < esc_status_s::CONNECTED_ESC_MAX) {
 			_esc_controller.esc_status().esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
+		}
+
+		if ((_signed_mask & (1u << i)) && _mixing_output.isMotor(i)) {
+			PX4_WARN("UAVCAN_EC_SIGNED bit %u ignored: ESC %u is a motor, use CA_R_REV", i, i + 1);
+
+		} else if ((_signed_mask & (1u << i)) && _mixing_output.isFunctionSet(i)) {
+			_signed_non_motor_mask |= (1u << i);
 		}
 	}
 

@@ -45,10 +45,10 @@
 namespace uORB
 {
 
-PublicationBase::~PublicationBase()
+PublicationMultiBase::~PublicationMultiBase()
 {
 	if (_handle != nullptr) {
-		// don't automatically unadvertise queued publications (eg vehicle_command)
+		// free the instance for the next advertiser, but keep queued publications advertised
 		if (Manager::orb_get_queue_size(_handle) == 1) {
 			unadvertise();
 		}

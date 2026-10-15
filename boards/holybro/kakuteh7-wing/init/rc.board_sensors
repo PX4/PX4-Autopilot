@@ -4,8 +4,11 @@
 #------------------------------------------------------------------------------
 board_adc start
 
-# Internal SPI bus ICM42688p
-icm42688p -R 2 -s start
+# Internal SPI IMU on SPI3 (same CS): ICM42688P or LSM6DSV
+if ! icm42688p -R 2 -s -q start
+then
+	lsm6dsv -R 2 -s start
+fi
 
 # Internal baro
 if ! bmp280 -I -b 4 -q start

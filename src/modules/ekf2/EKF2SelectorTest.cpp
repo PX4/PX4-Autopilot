@@ -42,6 +42,7 @@
 
 #include "EKF2Selector.hpp"
 
+#include <drivers/drv_hrt.h>
 #include <hrt_work.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
@@ -90,7 +91,11 @@ public:
 		if (!wq_manager_started) {
 			// the gtest harness starts no platform threads: the hrt callout
 			// worker must exist before the selector's delayed self-scheduling
-			// runs, or the work queue blocks on an uninitialized semaphore
+			// runs, or the work queue blocks on an uninitialized semaphore.
+			// Without hrt_init() the callout lock is not recursive, so the
+			// worker deadlocks on its own nested lock the first time a
+			// callout is due
+			hrt_init();
 			hrt_work_queue_init();
 			ASSERT_EQ(px4::WorkQueueManagerStart(), 0);
 			wq_manager_started = true;

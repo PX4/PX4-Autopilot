@@ -19,8 +19,7 @@ PX4 also supports [Real Time Kinematic (RTK)](../gps_compass/rtk_gps.md) and **P
 
 任何运行在PX4的元件应通过u-blox、MTK Ashtech 或 Emlid 协议或UAVCAN进行通信。
 
-下表包括了一些无RTK的GPS模块（其中大部分也有指南针）。
-下面的设备PX4开发团队测试过了，或者是在PX4社区中受欢迎的。
+下表包括了一些无RTK的GPS模块（其中大部分也有指南针）。下面的设备PX4开发团队测试过了，或者是在PX4社区中受欢迎的。
 
 | 设备                                                           |     GPS     |             罗盘            | [CAN](../dronecan/index.md) | Buzzer / SafeSw / LED | 备注                                                          |
 | :----------------------------------------------------------- | :---------: | :-----------------------: | :-------------------------: | :-------------------: | :---------------------------------------------------------- |
@@ -179,7 +178,7 @@ Compass calibration for an included compass part is covered in: [Compass Configu
 ## GNSS Data Overview
 
 PX4 uses the subset of information that can be provided by most GNSS modules.
-This is written to the [SensorGps](../msg_docs/SensorGps.md) uORB message and used by the estimator as an input to global position estimation.
+This is written to the [SensorGnss](../msg_docs/SensorGnss.md) uORB message, and the selected receiver is passed to the estimator in [VehicleGnss](../msg_docs/VehicleGnss.md) as an input to global position estimation.
 It is also streamed via MAVLink using messages such as [GPS_RAW_INT](https://mavlink.io/en/messages/common.html#GPS_RAW_INT) and [GPS2_RAW](https://mavlink.io/en/messages/common.html#GPS2_RAW).
 
 Some of GNSS terms that are useful for interpreting the data include:

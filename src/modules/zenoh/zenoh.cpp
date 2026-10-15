@@ -44,6 +44,13 @@
 #include <ctype.h>
 #include <string.h>
 
+#ifdef __PX4_NUTTX
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
+
 #include <zenoh-pico.h>
 
 // CycloneDDS CDR Deserializer
@@ -86,7 +93,7 @@ void toCamelCase(char *input)
 ZENOH::ZENOH():
 	ModuleParams(nullptr)
 {
-
+	z_internal_null(&_s);
 }
 
 ZENOH::~ZENOH()
@@ -213,6 +220,71 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 #endif
 }
 
+bool ZENOH::waitForLink(const char *locator)
+{
+#ifdef __PX4_NUTTX
+
+	// Only IP transports and scouting use the network interface.
+	if (locator[0] != '\0' && strncmp(locator, "tcp/", 4) != 0 && strncmp(locator, "udp/", 4) != 0) {
+		return !should_exit();
+	}
+
+	ifreq req {};
+	strncpy(req.ifr_name, "eth0", sizeof(req.ifr_name) - 1);
+
+	// Locator configuration is a semicolon-separated list after '#'.
+	for (const char *entry = strchr(locator, '#'); entry; entry = strchr(entry, ';')) {
+		entry++;
+
+		if (strncmp(entry, "iface=", 6) == 0) {
+			entry += 6;
+			const size_t len = strcspn(entry, ";");
+
+			if (len == 0 || len >= sizeof(req.ifr_name)) {
+				return !should_exit();
+			}
+
+			memcpy(req.ifr_name, entry, len);
+			req.ifr_name[len] = '\0';
+			break;
+		}
+	}
+
+	const int fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+	if (fd < 0) {
+		PX4_WARN("%s: cannot check the link (%d), opening the session anyway", req.ifr_name, errno);
+		return !should_exit();
+	}
+
+	constexpr unsigned max_retries = 50;
+	constexpr useconds_t retry_interval_us = 100000; // 100 ms, up to 5 s total
+	constexpr unsigned link_flags = IFF_UP | IFF_RUNNING;
+	bool link_up = false;
+
+	for (unsigned retry = 0; retry < max_retries && !should_exit(); retry++) {
+		if (ioctl(fd, SIOCGIFFLAGS, &req) >= 0 && (req.ifr_flags & link_flags) == link_flags) {
+			link_up = true;
+			break;
+		}
+
+		px4_usleep(retry_interval_us);
+	}
+
+	close(fd);
+
+	if (!link_up && !should_exit()) {
+		// Driver flags do not guarantee router readiness. Still attempt the session on timeout.
+		PX4_WARN("%s: link wait timed out, opening the session anyway", req.ifr_name);
+	}
+
+#else
+	(void)locator;
+#endif
+
+	return !should_exit();
+}
+
 int ZENOH::setupSession()
 {
 	char mode[NET_MODE_SIZE];
@@ -221,6 +293,10 @@ int ZENOH::setupSession()
 	int ret = 0;
 
 	_config.getNetworkConfig(mode, locator);
+
+	if (!waitForLink(locator)) {
+		return -EINTR;
+	}
 
 	PX4_INFO("Opening session...");
 
@@ -470,7 +546,7 @@ void ZENOH::cleanupSession()
 		z_drop(z_session_move(&_s));
 	}
 
-	connected = false;
+	_connected.store(false);
 }
 
 void ZENOH::run()
@@ -481,14 +557,25 @@ void ZENOH::run()
 	_sub_count =  _config.getSubCount();
 	px4_pollfd_struct_t pfds[_pub_count];
 
-	if (setupSession() < 0) {
-		PX4_ERR("Failed to setup Zenoh session");
+	// Publishers that fail to set up never get a poll fd assigned, a negative fd makes poll skip them
+	for (i = 0; i < _pub_count; i++) {
+		pfds[i] = {};
+		pfds[i].fd = -1;
+	}
+
+	const int setup_ret = setupSession();
+
+	if (setup_ret < 0) {
+		if (setup_ret != -EINTR) {
+			PX4_ERR("Failed to setup Zenoh session");
+		}
+
 		cleanupSession();
 		exit_and_cleanup(desc);
 		return;
 	}
 
-	connected = true;
+	_connected.store(true);
 
 	PX4_INFO("Starting reading/writing tasks...");
 
@@ -506,15 +593,27 @@ void ZENOH::run()
 		}
 	}
 
+	static constexpr hrt_abstime POLL_ERROR_WARN_INTERVAL = 1000000; // 1 s
+	hrt_abstime last_poll_warn = 0;
+
 	while (!should_exit()) {
 		int pret = px4_poll(pfds, _pub_count, 100);
 
 		if (pret == 0) {
 			//PX4_INFO("Zenoh poll timeout\n");
 
+		} else if (pret < 0) {
+			if (hrt_elapsed_time(&last_poll_warn) >= POLL_ERROR_WARN_INTERVAL) {
+				last_poll_warn = hrt_absolute_time();
+				PX4_ERR("poll error %d", errno);
+			}
+
+			// Back off instead of spinning, a failing poll returns immediately
+			px4_usleep(10000);
+
 		} else {
 			for (i = 0; i < _pub_count; i++) {
-				if (pfds[i].revents & POLLIN) {
+				if (_zenoh_publishers[i] && (pfds[i].revents & POLLIN)) {
 					ret = _zenoh_publishers[i]->update();
 
 					if (ret < 0) {
@@ -580,7 +679,7 @@ Zenoh demo bridge
 
 int ZENOH::print_status()
 {
-	if (connected) {
+	if (_connected.load()) {
 		PX4_INFO("Connected");
 
 	} else {

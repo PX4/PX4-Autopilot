@@ -20,7 +20,7 @@ uint32 mode_req_wind_and_flight_time_compliance # if set, mode cannot be entered
 uint32 mode_req_prevent_arming    # if set, cannot arm while in this mode
 uint32 mode_req_manual_control
 uint32 mode_req_other             # other requirements, not covered above (for external modes)
-
+uint32 mode_not_supported			# if set, mode is not supported by the current vehicle architecture
 
 # Mode requirements
 bool angular_velocity_invalid         # Angular velocity invalid
@@ -62,4 +62,4 @@ bool navigator_failure        	      # Navigator failed to execute a mode
 bool parachute_unhealthy              # Parachute system missing or unhealthy
 bool traffic_avoidance_unhealthy      # Traffic avoidance (ADS-B/FLARM) system missing or unhealthy
 bool remote_id_unhealthy              # Remote ID (Open Drone ID) system missing or unhealthy
-bool gnss_lost                        # Active GNSS count dropped below SYS_HAS_NUM_GNSS, or two receivers report inconsistent positions
+bool gnss_lost                        # Fewer GNSS receivers are healthy than required, or two receivers report inconsistent positions

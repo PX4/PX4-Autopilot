@@ -77,6 +77,12 @@ int ExternalChecks::addRegistration(int8_t nav_mode_id, int8_t replaces_nav_stat
 		if (!_registrations[free_registration_index].reply) {
 			_registrations[free_registration_index].reply = new arming_check_reply_s();
 		}
+
+		if (_registrations[free_registration_index].reply) {
+			// a reused slot must not carry the reply of the component that had it before
+			*_registrations[free_registration_index].reply = arming_check_reply_s{};
+			_registrations[free_registration_index].reply->registration_id = free_registration_index;
+		}
 	}
 
 	return free_registration_index;
@@ -142,9 +148,9 @@ void ExternalChecks::checkAndReport(const Context &context, Report &reporter)
 
 		arming_check_reply_s &reply = *_registrations[reg_idx].reply;
 
-		int8_t nav_mode_id = _registrations[reply.registration_id].nav_mode_id;
+		int8_t nav_mode_id = _registrations[reg_idx].nav_mode_id;
 
-		if (_registrations[reply.registration_id].unresponsive) {
+		if (_registrations[reg_idx].unresponsive) {
 
 			if (nav_mode_id != -1) {
 				unresponsive_modes = unresponsive_modes | reporter.getModeGroup(nav_mode_id);
@@ -163,7 +169,7 @@ void ExternalChecks::checkAndReport(const Context &context, Report &reporter)
 			} else {
 				modes = reporter.getModeGroup(nav_mode_id);
 
-				int8_t replaces_nav_state = _registrations[reply.registration_id].replaces_nav_state;
+				int8_t replaces_nav_state = _registrations[reg_idx].replaces_nav_state;
 
 				if (replaces_nav_state != -1) {
 					modes = modes | reporter.getModeGroup(replaces_nav_state);
@@ -260,6 +266,15 @@ void ExternalChecks::update()
 			}
 
 			if (_registrations[reply.registration_id].reply) {
+				// num_events is a uint8 arriving on an externally writable topic, while events is
+				// a fixed-size array. Clamp it here, next to the registration_id check, so
+				// checkAndReport() cannot iterate past the end of the array.
+				static constexpr uint8_t max_num_events = sizeof(reply.events) / sizeof(reply.events[0]);
+
+				if (reply.num_events > max_num_events) {
+					reply.num_events = max_num_events;
+				}
+
 				*_registrations[reply.registration_id].reply = reply;
 			}
 

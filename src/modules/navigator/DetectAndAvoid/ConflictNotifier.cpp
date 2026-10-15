@@ -228,8 +228,7 @@ void ConflictNotifier::notify_traffic_ignored(const conflict_info_s &conflict_in
 
 void ConflictNotifier::notify_traffic_removed(const conflict_info_s &conflict_info, const RemoveBufferCause cause)
 {
-	const uint32_t time_since_last_comm = static_cast<uint32_t>((hrt_absolute_time() -
-					      conflict_info.latest_update_timestamp) / 1_s);
+	const uint32_t time_since_last_comm = static_cast<uint32_t>((hrt_absolute_time() - conflict_info.latest_update_timestamp) / 1_s);
 
 	char encoded_id_str[kUtmGuidMsgLength];
 	conflict_info.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
