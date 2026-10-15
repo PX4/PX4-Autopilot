@@ -205,6 +205,30 @@ TEST(PurePursuitTest, CurrAndPrevSameNorthCoordinate)
 	EXPECT_NEAR(fabsf(target_bearing4), M_PI_F, 1e-6f); // Fallback: Bearing to closest point on path, +-pi is the same bearing
 }
 
+TEST(PurePursuitTest, VehiclePastCurrentWaypoint)
+{
+	pure_pursuit_status_s pure_pursuit{};
+	const float lookahead_distance{5.f};
+	// The vehicle has passed the current waypoint by more than the lookahead and sits on the extended path.
+	// The lookahead intersection would lie even further along the extension; the waypoint has to be targeted instead.
+	//	P ------ C ------ V
+	const float target_bearing1 = PurePursuit::calcTargetBearing(pure_pursuit, 1.f, 10.f, 1.f, Vector2f(0.f, 10.f),
+				      Vector2f(0.f, 0.f), Vector2f(0.f, 20.f), lookahead_distance);
+	// Off the extended path, but within the lookahead corridor
+	//		   V
+	//	P ------ C
+	const float target_bearing2 = PurePursuit::calcTargetBearing(pure_pursuit, 1.f, 10.f, 1.f, Vector2f(0.f, 10.f),
+				      Vector2f(0.f, 0.f), Vector2f(2.f, 20.f), lookahead_distance);
+	// Still ahead of the current waypoint: regular pure pursuit is unaffected
+	//	P -- V -- C
+	const float target_bearing3 = PurePursuit::calcTargetBearing(pure_pursuit, 1.f, 10.f, 1.f, Vector2f(0.f, 10.f),
+				      Vector2f(0.f, 0.f), Vector2f(0.f, 2.f), lookahead_distance);
+
+	EXPECT_NEAR(target_bearing1, -M_PI_2_F, FLT_EPSILON);			 // Back to the current waypoint
+	EXPECT_NEAR(target_bearing2, atan2f(-10.f, -2.f), FLT_EPSILON); // Back to the current waypoint
+	EXPECT_NEAR(target_bearing3, M_PI_2_F, FLT_EPSILON);			 // Along the path
+}
+
 TEST(PurePursuitTest, CrosstrackError)
 {
 	pure_pursuit_status_s pure_pursuit{};

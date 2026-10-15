@@ -988,7 +988,8 @@ void Mavlink::send_finish()
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
 	if (!_tx_buffer_low) {
-		if (_buf_fill + packet_len < sizeof(_buf)) {
+		// _buf holds exactly one maximum-length frame (280 bytes for a signed frame with a 255-byte payload)
+		if (_buf_fill + packet_len <= sizeof(_buf)) {
 			memcpy(&_buf[_buf_fill], buf, packet_len);
 			_buf_fill += packet_len;
 
@@ -1546,7 +1547,7 @@ Mavlink::pass_message(const mavlink_message_t *msg)
 MavlinkShell *
 Mavlink::get_shell()
 {
-	if (!_mavlink_shell) {
+	if (!_mavlink_shell.load()) {
 		MavlinkShell *shell = new MavlinkShell();
 
 		if (!shell) {
@@ -1556,7 +1557,7 @@ Mavlink::get_shell()
 			int ret = shell->start();
 
 			if (ret == 0) {
-				_mavlink_shell = shell;
+				_mavlink_shell.store(shell);
 
 			} else {
 				PX4_ERR("Failed to start shell (%i)", ret);
@@ -1565,15 +1566,17 @@ Mavlink::get_shell()
 		}
 	}
 
-	return _mavlink_shell;
+	return _mavlink_shell.load();
 }
 
 void
 Mavlink::close_shell()
 {
-	if (_mavlink_shell) {
-		delete _mavlink_shell;
-		_mavlink_shell = nullptr;
+	MavlinkShell *shell = _mavlink_shell.load();
+
+	if (shell) {
+		_mavlink_shell.store(nullptr);
+		delete shell;
 	}
 }
 
@@ -3051,21 +3054,23 @@ void Mavlink::handleSerialPassthroughOutput()
 
 void Mavlink::handleMavlinkShellOutput()
 {
-	if (_mavlink_shell) { // First do a fast check before taking the lock
+	if (_mavlink_shell.load()) { // First do a fast check before taking the lock
 		mavlink_serial_control_t msg;
 		msg.count = 0;
 		{
 			const LockGuard lg{_mavlink_shell_mutex};
 
-			if (_mavlink_shell && _mavlink_shell->available() > 0) {
+			MavlinkShell *shell = _mavlink_shell.load();
+
+			if (shell && shell->available() > 0) {
 				if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
 					msg.baudrate = 0;
 					msg.flags = SERIAL_CONTROL_FLAG_REPLY;
 					msg.timeout = 0;
 					msg.device = SERIAL_CONTROL_DEV_SHELL;
-					msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
-					msg.target_system = _mavlink_shell->targetSysid();
-					msg.target_component = _mavlink_shell->targetCompid();
+					msg.count = shell->read(msg.data, sizeof(msg.data));
+					msg.target_system = shell->targetSysid();
+					msg.target_component = shell->targetCompid();
 				}
 			}
 		}

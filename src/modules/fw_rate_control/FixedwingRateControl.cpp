@@ -521,6 +521,10 @@ void FixedwingRateControl::Run()
 				flaps_control = PX4_ISFINITE(_manual_control_setpoint.flaps) ? math::max(_manual_control_setpoint.flaps, 0.f) : 0.f;
 				break;
 
+			case 7:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux6) ? math::max(_manual_control_setpoint.aux6, 0.f) : 0.f;
+				break;
+
 
 			}
 
@@ -554,6 +558,14 @@ void FixedwingRateControl::Run()
 
 			case 5:
 				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux4) ? math::max(_manual_control_setpoint.aux4, 0.f) : 0.f;
+				break;
+
+			case 6:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux5) ? math::max(_manual_control_setpoint.aux5, 0.f) : 0.f;
+				break;
+
+			case 7:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux6) ? math::max(_manual_control_setpoint.aux6, 0.f) : 0.f;
 				break;
 			}
 

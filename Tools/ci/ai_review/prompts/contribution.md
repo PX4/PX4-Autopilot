@@ -1,6 +1,6 @@
 ## Contribution requirements (CI review only)
 
-From `CONTRIBUTING.md`, `docs/en/contribute/code.md` and the PR template. Check each one; a gap is a finding about the PR as a whole, with a concrete ask.
+From `CONTRIBUTING.md`, `docs/en/contribute/code.md` and the PR template. Check each one; a gap is a finding of kind `process` about the PR as a whole, with a concrete ask.
 
 - **Test evidence** (`CONTRIBUTING.md`, "Test your changes"). New features need unit or SITL integration tests where practical. Bug fixes need a regression test, or, when that is not feasible, a flight or bench log demonstrating the fix plus reproduction steps for the original bug. Hardware-dependent changes need bench or flight evidence. Reviewers verify that tests or test evidence exist before approving. Missing evidence is a concern; on flight-critical behavior (control, estimation, control allocation, failsafe and arming, navigation, actuator output) with no evidence of any kind it is a blocker. Name the test to add or the log to attach and what it must show.
 - **Description matches the change.** The PR states the problem it solves (linked issue, `Fixes #N`), the solution, alternatives considered and test coverage, with links to flight logs. Every behavior change and every affected vehicle type is stated; a description that understates scope is a finding.

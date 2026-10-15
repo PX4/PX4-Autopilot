@@ -43,21 +43,31 @@ check.
 2. **Review** (`agent.py`, `prompts/reviewer.md`): Claude Code runs headless
    on the PR head checkout with read-only tools and returns findings as
    JSON (`findings.py` defines the schema). Each finding carries a severity,
-   the trigger that makes it go wrong, a concrete suggestion, and what the
+   a kind (`code`, or `process` for test evidence, description, upgrade
+   notes and docs), the one-sentence comment that gets posted, and the
+   evidence behind it: the trigger, a concrete suggestion, and what the
    model could not confirm.
 3. **Validate** (`prompts/validator.md`): a separate call per finding sees
    only that finding and its file's diff, checks it against the code, and
    returns keep or drop plus a confidence. Confidence comes from this
    independent check, not from the reviewer grading itself.
 4. **Route** (`route.py`): code, not the model, decides where findings go.
-   Inline only when the validator kept it with high confidence, it is not a
-   nit, its suggestion is more than "please verify", and its lines are in
-   the diff; at most 10. Everything else that survived goes to a collapsed
-   section of the review body, one non-blocker per file. A GitHub
-   suggestion block is attached only when the replacement fully fixes the
-   issue, is at most 6 lines, changes something, and keeps the indentation.
+   Nits are never posted. A code finding goes inline only when the
+   validator kept it with high confidence, its suggestion is more than
+   "please verify", and its lines are in the diff; at most 10. PR-level
+   code findings kept with high or medium confidence are listed as
+   must-fix, and the remaining code findings as worth checking, one
+   non-blocker per file. Process findings get a one-line list of their
+   own, at most 4, and never change the verdict. A GitHub suggestion block
+   is attached only when the replacement fully fixes the issue, is at most
+   6 lines, changes something, and keeps the indentation.
 5. **Render** (`render.py`): writes the `pr-review` artifact in the format
-   `pr-review-poster.yml` consumes, and a report for the job summary.
+   `pr-review-poster.yml` consumes. The review body is the verdict (don't
+   merge, merge after fixes, or no code issues found) with the title of
+   the finding that decides it, then one sentence per posted finding. The
+   model's summary, the checklist, nits and each finding's evidence and
+   validator reasoning go to the report in the job summary, which the
+   review links to.
 
 The review criteria themselves live in
 `.agents/skills/review-pr/review-criteria.md`, shared with the interactive

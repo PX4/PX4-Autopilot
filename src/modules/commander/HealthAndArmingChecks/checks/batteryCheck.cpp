@@ -131,8 +131,11 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %i disconnected\t", index + 1);
 			}
 
-			// trigger a battery failsafe action if a battery disconnects in flight
-			worst_warning = battery_status_s::WARNING_CRITICAL;
+			// trigger a battery failsafe action if a battery disconnects in flight, without hiding a
+			// worse warning from another battery
+			if (worst_warning < battery_status_s::WARNING_CRITICAL) {
+				worst_warning = battery_status_s::WARNING_CRITICAL;
+			}
 		}
 
 		if (battery.connected) {

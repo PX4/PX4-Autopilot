@@ -838,9 +838,8 @@ void Navigator::run()
 
 				_vtol_takeoff.setTransitionAltitudeAbsolute(cmd.param7);
 
-				if (std::fabs(cmd.param2 - 3.0f) < FLT_EPSILON) { // Specified transition direction
-					_vtol_takeoff.setTransitionDirection(cmd.param4);
-				}
+				// Specified transition direction, otherwise NAN to head for the loiter location
+				_vtol_takeoff.setTransitionDirection(std::fabs(cmd.param2 - 3.0f) < FLT_EPSILON ? cmd.param4 : NAN);
 
 				// after the transition the vehicle will establish on a loiter at this position
 				_vtol_takeoff.setLoiterLocation(matrix::Vector2d(cmd.param5, cmd.param6));

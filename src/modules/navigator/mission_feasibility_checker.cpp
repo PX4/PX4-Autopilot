@@ -109,51 +109,178 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 bool
 MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid)
 {
-	if (_navigator->get_geofence().isHomeRequired() && !home_valid) {
+	Geofence &geofence = _navigator->get_geofence();
+
+	if (geofence.isHomeRequired() && !home_valid) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position\t");
 		events::send(events::ID("navigator_mis_geofence_no_home"), {events::Log::Error, events::LogInternal::Info},
 			     "Geofence requires a valid home position");
 		return false;
 	}
 
-	/* Check if all mission items are inside the geofence (if we have a valid geofence) */
-	if (_navigator->get_geofence().valid()) {
-		for (size_t i = 0; i < mission.count; i++) {
-			struct mission_item_s missionitem = {};
+	if (!geofence.isReadyForPathChecks()) {
+		logGeofenceUnavailable();
+		return false;
+	}
 
-			bool success = _dataman_client.readSync((dm_item_t)mission.mission_dataman_id, i,
-								reinterpret_cast<uint8_t *>(&missionitem),
-								sizeof(mission_item_s));
+	if (!geofence.valid()) {
+		return true;
+	}
 
-			if (!success) {
-				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-				logDatamanReadFailure(i, mission.mission_dataman_id);
-				return false;
+	enum class Failure { None, DatamanRead, NoHome, Waypoint } failure = Failure::None;
+	size_t failed_item = 0;
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	/* Check mission positions and the paths between them. */
+	static GeofencePathBatch batch{}; // keep the shared batch off the stack.
+	batch.count = 0;
+	matrix::Vector2d previous_position{};
+	bool have_previous_position = false;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
+	for (size_t i = 0; i < mission.count; i++) {
+		struct mission_item_s missionitem = {};
+
+		bool success = _dataman_client.readSync((dm_item_t)mission.mission_dataman_id, i,
+							reinterpret_cast<uint8_t *>(&missionitem),
+							sizeof(mission_item_s));
+
+		if (!success) {
+			failure = Failure::DatamanRead;
+			failed_item = i;
+			break;
+		}
+
+		if (!mission_item_contains_position(missionitem)) {
+			continue;
+		}
+
+		if (missionitem.altitude_is_relative && !home_valid) {
+			failure = Failure::NoHome;
+			failed_item = i;
+			break;
+		}
+
+		// Geofence function checks against home altitude amsl
+		missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
+
+		bool point_valid = PX4_ISFINITE(missionitem.lat) && PX4_ISFINITE(missionitem.lon)
+				   && PX4_ISFINITE(missionitem.altitude)
+				   && fabs(missionitem.lat) <= 90.0 && fabs(missionitem.lon) <= 180.0;
+
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+
+		if (point_valid) {
+			if (!have_previous_position) {
+				// Check polygon membership once; the paths check all later positions.
+				point_valid = geofence.checkPointAgainstAllGeofences(missionitem.lat, missionitem.lon, missionitem.altitude);
+
+			} else {
+				// Home-distance and altitude limits are separate from the horizontal fence shapes.
+				point_valid = geofence.isCloserThanMaxDistToHome(missionitem.lat, missionitem.lon, missionitem.altitude)
+					      && geofence.isBelowMaxAltitude(missionitem.altitude)
+					      && geofence.isWithinAltitudeBand(missionitem.altitude);
 			}
+		}
 
-			if (missionitem.altitude_is_relative && !home_valid) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position\t");
-				events::send(events::ID("navigator_mis_geofence_no_home2"), {events::Log::Error, events::LogInternal::Info},
-					     "Geofence requires a valid home position");
-				return false;
-			}
+#else
+		// Without path checks every position is checked against the whole fence.
+		point_valid = point_valid && geofence.checkPointAgainstAllGeofences(missionitem.lat, missionitem.lon,
+				missionitem.altitude);
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
-			// Geofence function checks against home altitude amsl
-			missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
+		if (!point_valid) {
+			failure = Failure::Waypoint;
+			failed_item = i;
+			break;
+		}
 
-			if (mission_item_contains_position(missionitem) && !_navigator->get_geofence().checkPointAgainstAllGeofences(
-				    missionitem.lat, missionitem.lon, missionitem.altitude)) {
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+		const matrix::Vector2d position {missionitem.lat, missionitem.lon};
 
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu\t", i + 1);
-				events::send<int16_t>(events::ID("navigator_mis_geofence_violation"), {events::Log::Error, events::LogInternal::Info},
-						      "Geofence violation for waypoint {1}",
-						      i + 1);
-				return false;
-			}
+		if (!have_previous_position) {
+			// A zero-length path also rejects a lone waypoint on a fence boundary.
+			previous_position = position;
+			have_previous_position = true;
+		}
+
+		batch.paths[batch.count] = {previous_position, position};
+		batch.mission_indices[batch.count++] = static_cast<uint16_t>(i);
+		previous_position = position;
+
+		if (batch.count == kGeofencePathBatchSize && !checkGeofencePathBatch(batch)) {
+			return false;
+		}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+	}
+
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+
+	// Report an earlier buffered path breach before the current item's failure.
+	if (!checkGeofencePathBatch(batch)) {
+		return false;
+	}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
+	switch (failure) {
+	case Failure::None:
+		return true;
+
+	case Failure::DatamanRead:
+		logDatamanReadFailure(failed_item, mission.mission_dataman_id);
+		break;
+
+	case Failure::NoHome:
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position\t");
+		events::send(events::ID("navigator_mis_geofence_no_home2"), {events::Log::Error, events::LogInternal::Info},
+			     "Geofence requires a valid home position");
+		break;
+
+	case Failure::Waypoint:
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu\t", failed_item + 1);
+		events::send<int16_t>(events::ID("navigator_mis_geofence_violation"), {events::Log::Error, events::LogInternal::Info},
+				      "Geofence violation for waypoint {1}", failed_item + 1);
+		break;
+	}
+
+	return false;
+}
+
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+bool MissionFeasibilityChecker::checkGeofencePathBatch(GeofencePathBatch &batch)
+{
+	if (batch.count == 0) {
+		return true;
+	}
+
+	if (!_navigator->get_geofence().checkPathBatch(batch.paths, batch.count, batch.results)) {
+		logGeofenceUnavailable();
+		return false;
+	}
+
+	for (size_t i = 0; i < batch.count; ++i) {
+		if (!batch.results[i]) {
+			const uint16_t waypoint = batch.mission_indices[i] + 1;
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence breach on path to waypoint %u\t",
+					     static_cast<unsigned>(waypoint));
+			events::send<uint16_t>(events::ID("navigator_mis_geofence_path_violation"),
+			{events::Log::Error, events::LogInternal::Info},
+			"Geofence breach on path to waypoint {1}", waypoint);
+			return false;
 		}
 	}
 
+	batch.count = 0;
 	return true;
+}
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
+void MissionFeasibilityChecker::logGeofenceUnavailable()
+{
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: geofence path check unavailable\t");
+	events::send(events::ID("navigator_mis_geofence_unavailable"), {events::Log::Error, events::LogInternal::Info},
+		     "Mission rejected: geofence path check unavailable");
 }
 
 void MissionFeasibilityChecker::logDatamanReadFailure(const size_t mission_item, const uint8_t dataman_id)

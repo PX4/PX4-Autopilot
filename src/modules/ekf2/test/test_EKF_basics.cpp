@@ -193,17 +193,17 @@ TEST_F(EkfBasicsTest, gravityIsStandardBeforeGlobalPosition)
 	EXPECT_FLOAT_EQ(_ekf->getGravityMss(), CONSTANTS_ONE_G);
 }
 
-TEST_F(EkfBasicsTest, gravityStaysStandardNearEquator)
+TEST_F(EkfBasicsTest, gravityUpdatesNearEquator)
 {
 	// GIVEN: GPS fixed within 1 deg of the equator
 	_sensor_simulator.setGpsLatitude(0.5);
 	_sensor_simulator.startGps();
 	_sensor_simulator.runSeconds(11);
 
-	// THEN: GPS is fused but the latitude is within the recompute threshold of the
-	// 0-reference, so gravity remains the standard constant (matches legacy behavior)
+	// THEN: gravity is evaluated at the first known latitude, however close to the equator
 	ASSERT_EQ(1, (int) _ekf->control_status_flags().gnss_pos);
-	EXPECT_FLOAT_EQ(_ekf->getGravityMss(), CONSTANTS_ONE_G);
+	EXPECT_FLOAT_EQ(_ekf->getGravityMss(), LatLonAlt::Wgs84::gravity(math::radians(0.5)));
+	EXPECT_LT(_ekf->getGravityMss(), CONSTANTS_ONE_G - 0.02f);
 }
 
 TEST_F(EkfBasicsTest, gravityUpdatesAtHighLatitude)

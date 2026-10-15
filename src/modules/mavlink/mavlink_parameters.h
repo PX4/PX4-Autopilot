@@ -152,6 +152,8 @@ protected:
 
 	_uavcan_open_request_list_item *_uavcan_open_request_list{nullptr}; ///< Pointer to the first item in the linked list
 	bool _uavcan_waiting_for_request_response{false}; ///< We have reqested a parameter and wait for the response
+	hrt_abstime _uavcan_request_time{0}; ///< When the request at the head of the list was sent
+	static constexpr hrt_abstime UAVCAN_REQUEST_TIMEOUT{1000000}; ///< Drop a request without a reply after this time (us)
 	uint16_t _uavcan_queued_request_items{0};	///< Number of stored parameter requests currently in the list
 
 	uORB::Publication<uavcan_parameter_request_s> _uavcan_parameter_request_pub{ORB_ID(uavcan_parameter_request)};

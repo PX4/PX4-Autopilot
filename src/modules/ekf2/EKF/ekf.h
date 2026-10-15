@@ -300,6 +300,9 @@ public:
 	// latitude-dependent gravity magnitude
 	float getGravityMss() const { return _gravity; }
 
+	// latitude-dependent Earth rotation rate in rad/s
+	const Vector3f &getEarthRateNED() const { return _earth_rate_NED; }
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
 
@@ -538,7 +541,7 @@ private:
 	LatLonAlt _last_known_gpos{};
 
 	Vector3f _earth_rate_NED{}; ///< earth rotation vector (NED) in rad/s
-	double _earth_rate_lat_ref_rad{0.0}; ///< latitude at which the earth rate was evaluated (radians)
+	double _earth_rate_lat_ref_rad{static_cast<double>(NAN)}; ///< latitude at which the earth rate was evaluated (radians)
 
 	float _gravity{CONSTANTS_ONE_G}; ///< latitude-dependent gravity magnitude (m/s^2)
 

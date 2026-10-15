@@ -26760,6 +26760,7 @@ Action the system takes when a GNSS failure is detected during flight.
 Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
 when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
 with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
+The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
 Any value above Warning also blocks arming.
 
 
@@ -26769,6 +26770,7 @@ Any value above Warning also blocks arming.
 - `1`: Return
 - `2`: Land
 - `3`: Terminate
+- `4`: Warning, block arming
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31138,7 +31140,10 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Maximum manual pitch angle.
 
-Applies to both directions in all manual modes with attitude stabilization but without altitude control
+Pitch angle commanded by full stick deflection, relative to FW_PSP_OFF (the centred-stick pitch).
+The resulting pitch setpoint is additionally limited to this angle around level,
+so with a non-zero FW_PSP_OFF the range is not symmetric.
+Applies in all manual modes with attitude stabilization but without altitude control.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31184,9 +31189,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Pitch setpoint offset (pitch at level flight).
 
-An airframe specific offset of the pitch setpoint in degrees, the value is
-added to the pitch setpoint and should correspond to the pitch at
-typical cruise speed of the airframe.
+Pitch angle of the body x-axis above the horizon in level flight at trim airspeed (FW_AIRSPD_TRIM).
+
+The altitude and airspeed controller (TECS) uses it as the pitch at zero climb angle,
+and in Stabilized mode the centred pitch stick commands it.
+Pitch setpoints and pitch limits set elsewhere, for example FW_P_LIM_MIN and FW_P_LIM_MAX,
+are absolute and do not include it.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31493,7 +31501,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_LND_FL_PMAX (`FLOAT`) {#FW_LND_FL_PMAX}
 
-Flare, maximum pitch.
+Flare, maximum absolute pitch.
 
 Maximum pitch during landing flare.
 
@@ -31508,7 +31516,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_LND_FL_PMIN (`FLOAT`) {#FW_LND_FL_PMIN}
 
-Flare, minimum pitch.
+Flare, minimum absolute pitch.
 
 Minimum pitch during landing flare.
 
@@ -31893,7 +31901,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_TKO_PITCH_MIN (`FLOAT`) {#FW_TKO_PITCH_MIN}
 
-Minimum pitch during takeoff.
+Minimum absolute pitch during takeoff.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -31964,7 +31972,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_P_LIM_MAX (`FLOAT`) {#FW_P_LIM_MAX}
 
-Maximum pitch angle setpoint.
+Maximum absolute pitch angle setpoint.
 
 Applies in any altitude controlled flight mode.
 
@@ -31979,7 +31987,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_P_LIM_MIN (`FLOAT`) {#FW_P_LIM_MIN}
 
-Minimum pitch angle setpoint.
+Minimum absolute pitch angle setpoint.
 
 Applies in any altitude controlled flight mode.
 
@@ -32095,6 +32103,9 @@ Adjusts the amount of weighting that the pitch control
 applies to speed vs height errors.
 0 -> control height only
 2 -> control speed only (gliders)
+Up to a weight of 1, pitch only trades height for speed up to trim airspeed;
+accelerating above trim is left to the throttle. Between 1 and 2, pitch
+increasingly tracks airspeed setpoints above trim as well.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -33018,6 +33029,7 @@ Chose source for manual setting of flaps in manual flight modes.
 - `4`: Aux4
 - `5`: Aux5
 - `6`: Flaps channel
+- `7`: Aux6
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -33276,6 +33288,7 @@ Chose source for manual setting of spoilers in manual flight modes.
 - `4`: Aux3
 - `5`: Aux4
 - `6`: Aux5
+- `7`: Aux6
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -45376,8 +45389,8 @@ Select your RC input protocol or auto to scan.
 - `1`: PPM
 - `2`: SBUS
 - `3`: DSM
-- `4`: ST24
-- `5`: SUMD
+- `4`: SUMD
+- `5`: ST24
 - `6`: CRSF
 - `7`: GHST
 
@@ -48802,7 +48815,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### RWTO_PSP (`FLOAT`) {#RWTO_PSP}
 
-Pitch setpoint during taxi / before rotation.
+Absolute pitch setpoint during taxi / before rotation.
 
 Pitch setpoint during taxi / before takeoff rotation airspeed is reached
 
@@ -49277,7 +49290,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensor Calibration
 
-<div class="param-group" style="--param-count: 151">
+<div class="param-group" style="--param-count: 157">
 
 <div class="param">
 
@@ -50184,6 +50197,96 @@ Barometer 3 priority.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES0_ID (`INT32`) {#CAL_DPRES0_ID}
+
+Differential pressure sensor 0 calibration device ID.
+
+Device ID of the differential pressure sensor this calibration applies to.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES0_OFF (`FLOAT`) {#CAL_DPRES0_OFF}
+
+Differential pressure sensor 0 offset.
+
+The zero-reading of this differential pressure sensor, in Pascal.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES1_ID (`INT32`) {#CAL_DPRES1_ID}
+
+Differential pressure sensor 1 calibration device ID.
+
+Device ID of the differential pressure sensor this calibration applies to.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES1_OFF (`FLOAT`) {#CAL_DPRES1_OFF}
+
+Differential pressure sensor 1 offset.
+
+The zero-reading of this differential pressure sensor, in Pascal.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES2_ID (`INT32`) {#CAL_DPRES2_ID}
+
+Differential pressure sensor 2 calibration device ID.
+
+Device ID of the differential pressure sensor this calibration applies to.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES2_OFF (`FLOAT`) {#CAL_DPRES2_OFF}
+
+Differential pressure sensor 2 offset.
+
+The zero-reading of this differential pressure sensor, in Pascal.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 |  | &nbsp;
 
 </div>
 
@@ -52055,9 +52158,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SENS_DPRES_OFF (`FLOAT`) {#SENS_DPRES_OFF}
 
-Differential pressure sensor offset.
+Differential pressure sensor offset of the first airspeed sensor.
 
-The offset (zero-reading) in Pascal
+The offset (zero-reading) in Pascal of the sensor holding calibration slot 0.
+
+Kept as a mirror of CAL_DPRES0_OFF so that ground stations can still detect whether
+airspeed has been calibrated. The firmware applies CAL_DPRESx_OFF, not this value.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -53183,12 +53289,11 @@ IMU gyro FFT length.
 - `256`: 256
 - `512`: 512
 - `1024`: 1024
-- `4096`: 4096
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 512 | Hz | &nbsp;
+&check; |  |  |  | 512 |  | &nbsp;
 
 </div>
 
@@ -58569,7 +58674,42 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Simulation
 
-<div class="param-group" style="--param-count: 8">
+<div class="param-group" style="--param-count: 9">
+
+<div class="param">
+
+### SIM_GZ_EC_SIGNED (`INT32`) {#SIM_GZ_EC_SIGNED}
+
+Signed command for non-motor ESC channels.
+
+For motors, use CA_R_REV; bits set here for motor channels are ignored. Select simulated ESC channels assigned a non-motor function (e.g. Peripheral via Actuator Set or Servo) to send values from -MAX (full reverse) to +MAX (full forward), with 0 as neutral. For signed channels, keep DISARMED at 0, set MIN to 1, and use FAILSAFE 0 for neutral failsafe behavior. Failsafe values use the same MIN/MAX-to-signed mapping as normal outputs. Mirrors UAVCAN_EC_SIGNED.
+
+
+**Bitmask:**
+
+- `0`: ESC1
+- `1`: ESC2
+- `2`: ESC3
+- `3`: ESC4
+- `4`: ESC5
+- `5`: ESC6
+- `6`: ESC7
+- `7`: ESC8
+- `8`: ESC9
+- `9`: ESC10
+- `10`: ESC11
+- `11`: ESC12
+- `12`: ESC13
+- `13`: ESC14
+- `14`: ESC15
+- `15`: ESC16
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 65535 |  | 0 |  | &nbsp;
+
+</div>
 
 <div class="param">
 
@@ -63130,7 +63270,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## UAVCAN
 
-<div class="param-group" style="--param-count: 49">
+<div class="param-group" style="--param-count: 50">
 
 <div class="param">
 
@@ -63401,6 +63541,37 @@ Maximum fuel capacity of fuel tank 3.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 0.0 | 100000.0 | 0.1 | 15.0 | liters | &nbsp;
+
+</div>
+
+<div class="param">
+
+### UAVCAN_EC_SIGNED (`INT32`) {#UAVCAN_EC_SIGNED}
+
+Signed command for non-motor ESC channels.
+
+For motors, use CA_R_REV; bits set here for motor channels are ignored. Select ESC channels assigned a non-motor function (e.g. Peripheral via Actuator Set or Servo) to send signed RawCommand values from -MAX (full reverse) to +MAX (full forward), with 0 as neutral. Keep MIN at its default of 1 so full reverse remains distinct from disarmed and failsafe values of 0. Failsafe values use the same MIN/MAX-to-signed mapping as normal outputs.
+
+
+**Bitmask:**
+
+- `0`: ESC1
+- `1`: ESC2
+- `2`: ESC3
+- `3`: ESC4
+- `4`: ESC5
+- `5`: ESC6
+- `6`: ESC7
+- `7`: ESC8
+- `8`: ESC9
+- `9`: ESC10
+- `10`: ESC11
+- `11`: ESC12
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 4095 |  | 0 |  | &nbsp;
 
 </div>
 

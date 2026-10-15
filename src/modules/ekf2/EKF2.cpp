@@ -258,9 +258,13 @@ EKF2::~EKF2()
 
 void EKF2::AdvertiseTopics()
 {
-	// advertise expected minimal topic set immediately for logging
+	// Advertise up front: these are PublicationMulti, so whoever advertises first owns
+	// instance 0. In multi mode the handles point at estimator_* and ekf2_selector owns
+	// the vehicle_* topics, so this is a no-op there.
 	_attitude_pub.advertise();
 	_local_position_pub.advertise();
+	_global_position_pub.advertise();
+	_odometry_pub.advertise();
 	_estimator_event_flags_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_status_pub.advertise();
@@ -270,15 +274,9 @@ void EKF2::AdvertiseTopics()
 		_estimator_fc_pub.advertise();
 	}
 
-	if (_multi_mode) {
-		// only force advertise these in multi mode to ensure consistent uORB instance numbering
-		_global_position_pub.advertise();
-		_odometry_pub.advertise();
-
 #if defined(CONFIG_EKF2_WIND)
-		_wind_pub.advertise();
+	_wind_pub.advertise();
 #endif // CONFIG_EKF2_WIND
-	}
 
 #if defined(CONFIG_EKF2_GNSS)
 
@@ -1128,6 +1126,22 @@ void EKF2::syncSensEnParam()
 
 	_param_ekf2_sens_en.set(sens_en);
 	_param_ekf2_sens_en.commit_no_notification();
+}
+
+template <typename T>
+void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp, const T &status, hrt_abstime &status_publish_last,
+				  uORB::PublicationMulti<T> &pub)
+{
+	if (status.timestamp_sample > status_publish_last) {
+		// publish if updated
+		T status_out{status};
+		status_out.estimator_instance = _instance;
+		status_out.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		pub.publish(status_out);
+
+		// record timestamp sample
+		status_publish_last = status.timestamp_sample;
+	}
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
@@ -2188,7 +2202,7 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AIRSPEED
 #if defined(CONFIG_EKF2_SIDESLIP)
 		wind.beta_innov = _ekf.aid_src_sideslip().innovation;
-		wind.beta_innov = _ekf.aid_src_sideslip().innovation_variance;
+		wind.beta_innov_var = _ekf.aid_src_sideslip().innovation_variance;
 #endif // CONFIG_EKF2_SIDESLIP
 
 		wind.windspeed_north = wind_vel(0);
