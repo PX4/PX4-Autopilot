@@ -38,7 +38,6 @@
 #include <AttitudeControl.hpp>
 
 #include <mathlib/math/Functions.hpp>
-#include <mathlib/math/TrajMath.hpp>
 
 using namespace matrix;
 
@@ -46,13 +45,30 @@ static __attribute__((noinline)) Quatf qmul(const Quatf &a, const Quatf &b) { re
 static __attribute__((noinline)) Quatf qinv(const Quatf &q) { return q.inversed(); }
 static __attribute__((noinline)) Vector3f qzaxis(const Quatf &q) { return q.dcm_z(); }
 
-// The acceleration-limited trajectory is advanced in substeps no longer than this, so that its rate
-// setpoint is refreshed from the remaining error often enough; the substep count is bounded to keep
-// the work per update finite. Together they define the longest gap between setpoints that is shaped,
-// beyond it the axis snaps to the setpoint (see propagateLimitedAxis).
-static constexpr float kMaxShapingStep = 0.01f; // [s]
+// The acceleration-limited reference is advanced in substeps no longer than this, so that the rate setpoint of
+// its angle loop is refreshed from the remaining error often enough; the substep count is bounded to keep the work
+// per update finite. Longer gaps between setpoints are still closed, only with longer, more conservative substeps.
+static constexpr float kMaxShapingStep = 0.001f; // [s]
 static constexpr int kMaxShapingSubsteps = 50;
-static constexpr float kMaxShapingGap = kMaxShapingStep * kMaxShapingSubsteps; // [s]
+
+/**
+ * Angle loop of the cascaded reference model: proportional to the error close to the setpoint, and following the
+ * braking curve sqrt(2 * accel_max * error) further out so that it never asks for more deceleration than the limit.
+ * Both parts meet with the same value and slope at |error| = accel_max / gain^2.
+ * @param error [rad] remaining angle error
+ * @param gain [1/s] proportional gain of the angle loop
+ * @param accel_max [rad/s^2] angular acceleration limit (> 0)
+ * @return [rad/s] rate setpoint
+ */
+static float brakingRate(const float error, const float gain, const float accel_max)
+{
+	const float linear_error = accel_max / (gain * gain);
+	const float abs_error = fabsf(error);
+	const float rate = (abs_error <= linear_error) ? gain * abs_error
+			   : sqrtf(2.f * accel_max * (abs_error - 0.5f * linear_error));
+
+	return (error < 0.f) ? -rate : rate;
+}
 
 void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight)
 {
@@ -71,18 +87,16 @@ void AttitudeControl::setRefModelFrequency(float omega_n)
 	_kq      = _omega_n * _omega_n;
 }
 
-void AttitudeControl::setRefModelAccelerationLimit(const Vector3f &accel_max, const float jerk_max)
+void AttitudeControl::setRefModelAccelerationLimit(const Vector3f &accel_max)
 {
 	for (int i = 0; i < 3; i++) {
 		_ref_accel_max(i) = math::max(accel_max(i), 0.f);
 	}
-
-	_ref_jerk_max = math::max(jerk_max, 0.f);
 }
 
 bool AttitudeControl::isAxisAccelerationLimited(const int axis) const
 {
-	return (_ref_accel_max(axis) > FLT_EPSILON) && (_ref_jerk_max > FLT_EPSILON);
+	return _ref_accel_max(axis) > FLT_EPSILON;
 }
 
 bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
@@ -109,11 +123,6 @@ bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		_omega_correction.zero();
 		_ref_accel.zero();
 		_omega_command.zero();
-
-		for (auto &trajectory : _rate_trajectory) {
-			trajectory.reset(0.f, 0.f, 0.f);
-		}
-
 		_ref_initialized = true;
 	}
 
@@ -121,49 +130,52 @@ bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 }
 
 void AttitudeControl::propagateLimitedAxis(const int axis, const float error, const float dt, float &rate,
-		float &delta_angle)
+		float &delta_angle, float &accel) const
 {
-	VelocitySmoothing &trajectory = _rate_trajectory[axis];
+	// The linear model omega_dot = _kq * e - 2 * _omega_n * omega written as a cascade: an angle loop with gain
+	// _omega_n / 2 commands the rate, a rate loop with gain 2 * _omega_n commands the acceleration. The acceleration
+	// is saturated at the limit and the rate setpoint at the rate limit. Far from the setpoint the angle loop brakes
+	// along a square root (brakingRate), otherwise the rate it builds up could not be stopped within the limit.
+	const float accel_max = _ref_accel_max(axis);
+	const float angle_gain = 0.5f * _omega_n;
 
-	// A gap longer than the substeps can cover means the setpoint stream was interrupted. Substeps longer than
-	// kMaxShapingStep would let the trajectory coast at a stale rate setpoint past the target and the error
-	// would grow from substep to substep, so restart from the setpoint instead, as on the first setpoint.
-	if (dt > kMaxShapingGap) {
-		trajectory.reset(0.f, 0.f, 0.f);
-		delta_angle = error;
-		rate = 0.f;
-		return;
-	}
-
-	trajectory.setMaxJerk(_ref_jerk_max);
-	trajectory.setMaxAccel(_ref_accel_max(axis));
-	trajectory.setMaxVel(_rate_limit(axis));
-
-	// The rate setpoint is only valid for the error at the start of a step. Advance in substeps and refresh
-	// it from the remaining error, otherwise a long interval between setpoints (low-rate or paused stream)
-	// would carry the reference past the target at the initial rate setpoint.
+	// Advance in substeps so that the rate setpoint follows the remaining error also over long setpoint intervals.
 	const int substeps = math::constrain(static_cast<int>(ceilf(dt / kMaxShapingStep)), 1, kMaxShapingSubsteps);
 	const float substep_dt = dt / substeps;
+
+	// Exact (ZOH) step of the linear model over one substep, same closed form as in propagateReferenceModel()
+	const float w_dt  = _omega_n * substep_dt;
+	const float emt   = expf(-w_dt);
+	const float a     = (1.f + w_dt) * emt;
+	const float b     = substep_dt * emt;
+	const float gamma = _kq * substep_dt * emt;
+	const float delta = (1.f - w_dt) * emt;
+
 	delta_angle = 0.f;
+	accel = 0.f;
 
 	for (int i = 0; i < substeps; i++) {
-		// Rate setpoint: the highest rate from which the remaining angle can still be closed within the
-		// acceleration and jerk limits, i.e. the same braking law the position trajectories use. It is
-		// proportional to the error close to the setpoint and grows with its square root further away.
-		const float remaining_error = error - delta_angle;
-		const float braking_rate = math::trajectory::computeMaxSpeedFromDistance(_ref_jerk_max, _ref_accel_max(axis),
-					   fabsf(remaining_error), 0.f);
-		const float rate_setpoint = (remaining_error < 0.f) ? -braking_rate : braking_rate;
+		const float rate_setpoint = math::constrain(brakingRate(error - delta_angle, angle_gain, accel_max),
+					    -_rate_limit(axis), _rate_limit(axis));
 
-		// Track the rate setpoint with a time-optimal, jerk-limited trajectory. The position state is reset
-		// every substep so that it directly integrates the angle travelled within it.
-		trajectory.updateDurations(rate_setpoint);
-		trajectory.setCurrentPosition(0.f);
-		trajectory.updateTraj(substep_dt);
-		delta_angle += trajectory.getCurrentPosition();
+		// Without saturation the cascade is the linear model driven by the error that maps to this rate setpoint,
+		// which close to the setpoint is the error itself: then the step is exactly the one of the linear model.
+		const float error_equivalent = rate_setpoint / angle_gain;
+		const float rate_linear = gamma * error_equivalent + delta * rate;
+		accel = (rate_linear - rate) / substep_dt;
+
+		if (fabsf(accel) <= accel_max) {
+			delta_angle += (1.f - a) * error_equivalent + b * rate;
+			rate = rate_linear;
+
+		} else {
+			// saturated rate loop: constant acceleration at the limit over the substep
+			accel = math::constrain(accel, -accel_max, accel_max);
+			const float rate_next = rate + accel * substep_dt;
+			delta_angle += 0.5f * (rate + rate_next) * substep_dt;
+			rate = rate_next;
+		}
 	}
-
-	rate = trajectory.getCurrentVelocity();
 }
 
 void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)
@@ -208,29 +220,22 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	Vector3f delta_phi = (1.f - a) * e_filtered + b * _omega_correction + e_heading;
 	Vector3f omega_correction = gamma * e_filtered + delta * _omega_correction;
 
-	// Axes with an angular acceleration limit follow a jerk-limited, time-optimal rate trajectory towards
-	// the setpoint instead of the linear model above; the unlocked heading component is applied unfiltered
-	// on them too. The other axes keep their trajectory state in sync with the linear model so that enabling
-	// the limit at runtime continues from the current rate.
+	// Axes with an angular acceleration limit run the same model in cascaded form with the acceleration saturated
+	// (see propagateLimitedAxis), starting from the same state, so the limit can also be enabled at runtime. The
+	// unlocked heading component is applied unfiltered on them too.
 	// End-of-step error of the linear model (first row of exp(A*dt)), used for its instantaneous acceleration
 	// omega_dot = _kq * e - 2 * _omega_n * omega so that the reference acceleration is also observable on
 	// unconstrained axes.
 	const Vector3f e_end = a * e_filtered - b * _omega_correction;
 
-	// After a gap the limited axes snap onto the whole setpoint, which needs the exact rotation vector
-	// (e is 2*sin(angle/2)); otherwise they shape the filtered error and get the heading component unfiltered.
-	const bool snap = dt > kMaxShapingGap;
-	const Vector3f e_limited = snap ? Vector3f(AxisAnglef(q_err)) : e_filtered;
-
 	for (int i = 0; i < 3; i++) {
 		if (isAxisAccelerationLimited(i)) {
 			float delta_angle;
-			propagateLimitedAxis(i, e_limited(i), dt, omega_correction(i), delta_angle);
-			delta_phi(i) = delta_angle + (snap ? 0.f : e_heading(i));
-			_ref_accel(i) = _rate_trajectory[i].getCurrentAcceleration();
+			omega_correction(i) = _omega_correction(i);
+			propagateLimitedAxis(i, e_filtered(i), dt, omega_correction(i), delta_angle, _ref_accel(i));
+			delta_phi(i) = delta_angle + e_heading(i);
 
 		} else {
-			_rate_trajectory[i].reset(0.f, omega_correction(i), 0.f);
 			_ref_accel(i) = _kq * e_end(i) - 2.f * _omega_n * omega_correction(i);
 		}
 	}

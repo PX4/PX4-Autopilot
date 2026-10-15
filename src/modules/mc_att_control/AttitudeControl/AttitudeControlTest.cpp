@@ -521,19 +521,17 @@ public:
 		_attitude_control.setProportionalGain(Vector3f(6.5f, 6.5f, 2.8f), 0.4f);
 		_attitude_control.setRateLimit(Vector3f(kRateMax, kRateMax, kRateMax));
 		_attitude_control.setFeedForwardGain(1.f);
-		_attitude_control.setRefModelAccelerationLimit(Vector3f(kAccelMax, kAccelMax, kAccelMax), kJerkMax);
+		_attitude_control.setRefModelAccelerationLimit(Vector3f(kAccelMax, kAccelMax, kAccelMax));
 		// reset the reference to the identity attitude
 		_attitude_control.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
 	}
 
 	// Apply a constant setpoint and record the per-step reference rate (body frame, from consecutive q_ref).
-	// Returns the peak rate, acceleration and jerk magnitudes observed on the given axis and the peak angle.
-	void stepSetpoint(const Quatf &q_d, int axis, int steps, float &max_rate, float &max_accel, float &max_jerk,
-			  float &max_angle)
+	// Returns the peak rate and acceleration magnitudes observed on the given axis and the peak angle.
+	void stepSetpoint(const Quatf &q_d, int axis, int steps, float &max_rate, float &max_accel, float &max_angle)
 	{
-		max_rate = max_accel = max_jerk = max_angle = 0.f;
+		max_rate = max_accel = max_angle = 0.f;
 		float rate_prev = 0.f;
-		float accel_prev = 0.f;
 		Quatf q_ref_prev = _attitude_control.getReferenceAttitude();
 
 		for (int i = 0; i < steps; i++) {
@@ -543,15 +541,12 @@ public:
 			const Vector3f delta_phi = 2.f * (q_ref_prev.inversed() * q_ref).canonical().imag();
 			const float rate = delta_phi(axis) / kDt;
 			const float accel = (rate - rate_prev) / kDt;
-			const float jerk = (accel - accel_prev) / kDt;
 
 			max_rate = math::max(max_rate, fabsf(rate));
 			max_accel = math::max(max_accel, fabsf(accel));
-			max_jerk = math::max(max_jerk, fabsf(jerk));
 			max_angle = math::max(max_angle, fabsf(2.f * q_ref.canonical().imag()(axis)));
 
 			rate_prev = rate;
-			accel_prev = accel;
 			q_ref_prev = q_ref;
 		}
 	}
@@ -561,30 +556,32 @@ public:
 	static constexpr float kDt = 0.004f;
 	static constexpr float kRateMax = 2.f;    // rad/s
 	static constexpr float kAccelMax = 5.f;   // rad/s^2
-	static constexpr float kJerkMax = 50.f;   // rad/s^3
+
+	// The cascade brakes along a square root at the full acceleration limit, which its rate loop follows with a small
+	// lag, so the reference can overshoot by a small fraction of the step (in simulation <= 2.2% over MC_REF_W_N
+	// 20..50 rad/s, limits 75..1000 deg/s^2 and steps 5..45 deg).
+	static constexpr float kMaxOvershoot = 0.025f;
 };
 
-TEST_F(AttitudeControlShapingTest, StepRespectsRateAccelJerkLimitsAndConverges)
+TEST_F(AttitudeControlShapingTest, StepRespectsRateAndAccelLimitsAndConverges)
 {
-	// GIVEN: a large roll step that saturates rate, acceleration and jerk
+	// GIVEN: a large roll step that saturates rate and acceleration
 	const float step = 1.5f;
 	const Quatf q_d(AxisAnglef(Vector3f(step, 0.f, 0.f)));
 
 	// WHEN: the reference model is propagated until it settled
-	float max_rate, max_accel, max_jerk, max_angle;
-	stepSetpoint(q_d, 0, 1000, max_rate, max_accel, max_jerk, max_angle);
+	float max_rate, max_accel, max_angle;
+	stepSetpoint(q_d, 0, 1000, max_rate, max_accel, max_angle);
 
-	// THEN: all limits are saturated but never exceeded (the jerk is a second finite difference of
-	// the float quaternion reference and hence carries some numerical noise)
+	// THEN: both limits are saturated but never exceeded (the acceleration is a finite difference of the float
+	// quaternion reference and hence carries some numerical noise)
 	EXPECT_LE(max_rate, kRateMax * 1.01f);
 	EXPECT_GT(max_rate, kRateMax * 0.95f);
 	EXPECT_LE(max_accel, kAccelMax * 1.02f);
 	EXPECT_GT(max_accel, kAccelMax * 0.95f);
-	EXPECT_LE(max_jerk, kJerkMax * 1.15f);
-	EXPECT_GT(max_jerk, kJerkMax * 0.9f);
 
-	// THEN: the reference reached the setpoint without overshoot
-	EXPECT_LE(max_angle, step * 1.005f);
+	// THEN: the reference reached the setpoint without significant overshoot
+	EXPECT_LE(max_angle, step * (1.f + kMaxOvershoot));
 	const Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
 	EXPECT_NEAR(error.norm(), 0.f, 1e-3f);
 
@@ -599,14 +596,13 @@ TEST_F(AttitudeControlShapingTest, SmallStepStaysBelowRateLimit)
 	const float step = 0.1f;
 	const Quatf q_d(AxisAnglef(Vector3f(0.f, step, 0.f)));
 
-	float max_rate, max_accel, max_jerk, max_angle;
-	stepSetpoint(q_d, 1, 1000, max_rate, max_accel, max_jerk, max_angle);
+	float max_rate, max_accel, max_angle;
+	stepSetpoint(q_d, 1, 1000, max_rate, max_accel, max_angle);
 
-	// THEN: rate stays well below the limit, acceleration and jerk limits hold, no overshoot, converged
+	// THEN: rate stays well below the limit, acceleration limit holds, no significant overshoot, converged
 	EXPECT_LT(max_rate, kRateMax * 0.5f);
 	EXPECT_LE(max_accel, kAccelMax * 1.02f);
-	EXPECT_LE(max_jerk, kJerkMax * 1.15f);
-	EXPECT_LE(max_angle, step * 1.005f);
+	EXPECT_LE(max_angle, step * (1.f + kMaxOvershoot));
 	const Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
 	EXPECT_NEAR(error.norm(), 0.f, 1e-3f);
 }
@@ -621,25 +617,24 @@ TEST_F(AttitudeControlShapingTest, LongSetpointGapDoesNotOvershoot)
 
 	// THEN: the reference did not overshoot the setpoint
 	float angle = 2.f * _attitude_control.getReferenceAttitude().canonical().imag()(1);
-	EXPECT_LE(angle, step * 1.005f);
+	EXPECT_LE(angle, step * (1.f + kMaxOvershoot));
 	EXPECT_GT(angle, step * 0.9f);
 
 	// WHEN: the setpoint stream resumes at the nominal rate
-	float max_rate, max_accel, max_jerk, max_angle;
-	stepSetpoint(q_d, 1, 500, max_rate, max_accel, max_jerk, max_angle);
+	float max_rate, max_accel, max_angle;
+	stepSetpoint(q_d, 1, 500, max_rate, max_accel, max_angle);
 
-	// THEN: the reference settles on the setpoint without overshoot
-	EXPECT_LE(max_angle, step * 1.005f);
+	// THEN: the reference settles on the setpoint without significant overshoot
+	EXPECT_LE(max_angle, step * (1.f + kMaxOvershoot));
 	const Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
 	EXPECT_NEAR(error.norm(), 0.f, 1e-3f);
 }
 
-TEST_F(AttitudeControlShapingTest, VeryLongSetpointGapSnapsToSetpoint)
+TEST_F(AttitudeControlShapingTest, VeryLongSetpointGapConvergesToSetpoint)
 {
-	// GIVEN: a roll step arriving after a gap the substeps cannot cover, e.g. the first attitude setpoint after
-	// flying a mode without attitude setpoints (before the snap the capped substep count made each substep
-	// long enough for the trajectory to coast past the target, the error grew from substep to substep and the
-	// reference ended up to 2 rad from the setpoint, bounded only by the rate limit)
+	// GIVEN: a roll step arriving after a gap longer than the substeps cover at their nominal length, e.g. the first
+	// attitude setpoint after flying a mode without attitude setpoints (a reference coasting at a stale rate over
+	// the then long substeps would end up far from the setpoint, bounded only by the rate limit)
 	const float step = 0.3f;
 	const Quatf q_d(AxisAnglef(Vector3f(step, 0.f, 0.f)));
 
@@ -647,19 +642,20 @@ TEST_F(AttitudeControlShapingTest, VeryLongSetpointGapSnapsToSetpoint)
 		_attitude_control.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
 		_attitude_control.setAttitudeSetpoint(q_d, 0.f, gap);
 
-		// THEN: the reference restarted from the setpoint with zero rate
+		// THEN: the reference converged onto the setpoint and came to rest (within one step the model closes the
+		// error 2 * sin(angle / 2), which is slightly less than the angle)
 		Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
-		EXPECT_NEAR(error.norm(), 0.f, 1e-3f) << "gap " << gap;
+		EXPECT_NEAR(error.norm(), 0.f, 0.01f * step) << "gap " << gap;
 		EXPECT_NEAR(_attitude_control.update(_attitude_control.getReferenceAttitude()).norm(), 0.f, 1e-3f) << "gap " << gap;
-		EXPECT_NEAR(_attitude_control.getReferenceAcceleration().norm(), 0.f, 1e-3f) << "gap " << gap;
+		EXPECT_LT(_attitude_control.getReferenceAcceleration().norm(), 0.02f * kAccelMax) << "gap " << gap;
 
 		// WHEN: the setpoint stream resumes at the nominal rate
-		float max_rate, max_accel, max_jerk, max_angle;
-		stepSetpoint(q_d, 0, 250, max_rate, max_accel, max_jerk, max_angle);
+		float max_rate, max_accel, max_angle;
+		stepSetpoint(q_d, 0, 250, max_rate, max_accel, max_angle);
 
-		// THEN: the reference stays on the setpoint
+		// THEN: the reference only closes the small residual and stays on the setpoint
 		EXPECT_LE(max_angle, step * 1.005f) << "gap " << gap;
-		EXPECT_NEAR(max_rate, 0.f, 1e-2f) << "gap " << gap;
+		EXPECT_LT(max_rate, 0.05f * kRateMax) << "gap " << gap;
 		error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
 		EXPECT_NEAR(error.norm(), 0.f, 1e-3f) << "gap " << gap;
 	}
@@ -773,8 +769,8 @@ TEST_F(AttitudeControlShapingTest, TiltedYawRateCommandKeepsAccelerationLimit)
 	}
 
 	// THEN: the roll axis did saturate its acceleration limit, but no axis ever exceeded it (the unfiltered
-	// heading component must not leak into the trajectories: an earlier variant that projected the heading out
-	// of the trajectory state instead ratcheted roll up to ~1.4x the limit here and ~2.7x in flight)
+	// heading component must not leak into the limited reference rate: an earlier variant that projected the heading
+	// out of the rate state instead ratcheted roll up to ~1.4x the limit here and ~2.7x in flight)
 	EXPECT_GT(max_accel(0), kAccelMax * 0.95f);
 
 	for (int axis = 0; axis < 3; axis++) {
@@ -801,7 +797,7 @@ TEST_F(AttitudeControlShapingTest, DisabledAxisKeepsLinearModel)
 	mixed.setProportionalGain(Vector3f(6.5f, 6.5f, 2.8f), 0.4f);
 	mixed.setRateLimit(Vector3f(kRateMax, kRateMax, kRateMax));
 	mixed.setRefModelFrequency(10.f);
-	mixed.setRefModelAccelerationLimit(Vector3f(kAccelMax, 0.f, 0.f), kJerkMax);
+	mixed.setRefModelAccelerationLimit(Vector3f(kAccelMax, 0.f, 0.f));
 	mixed.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
 
 	// WHEN: a pure pitch step is applied to both
@@ -814,6 +810,61 @@ TEST_F(AttitudeControlShapingTest, DisabledAxisKeepsLinearModel)
 		// THEN: the pitch axis (no limit) evolves identically to the pure linear model
 		const Vector3f diff = 2.f * (linear.getReferenceAttitude().inversed() * mixed.getReferenceAttitude()).canonical().imag();
 		EXPECT_NEAR(diff.norm(), 0.f, 1e-5f);
+	}
+}
+
+TEST_F(AttitudeControlShapingTest, LimitNotReachedKeepsLinearModel)
+{
+	// GIVEN: two controllers, one linear, one with limits on all axes that a small step never reaches
+	AttitudeControl linear;
+	linear.setProportionalGain(Vector3f(6.5f, 6.5f, 2.8f), 0.4f);
+	linear.setRateLimit(Vector3f(kRateMax, kRateMax, kRateMax));
+	linear.setRefModelFrequency(10.f);
+	linear.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
+
+	AttitudeControl limited;
+	limited.setProportionalGain(Vector3f(6.5f, 6.5f, 2.8f), 0.4f);
+	limited.setRateLimit(Vector3f(kRateMax, kRateMax, kRateMax));
+	limited.setRefModelFrequency(10.f);
+	limited.setRefModelAccelerationLimit(Vector3f(kAccelMax, kAccelMax, kAccelMax));
+	limited.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
+
+	// WHEN: a step whose linear response peaks at 10^2 * 0.04 = 4 rad/s^2 < kAccelMax is applied to both
+	const Quatf q_d(AxisAnglef(Vector3f(0.04f, -0.03f, 0.02f)));
+
+	for (int i = 0; i < 250; i++) {
+		linear.setAttitudeSetpoint(q_d, 0.f, kDt);
+		limited.setAttitudeSetpoint(q_d, 0.f, kDt);
+
+		// THEN: the cascade is exactly the linear model
+		const Vector3f diff = 2.f * (linear.getReferenceAttitude().inversed() * limited.getReferenceAttitude()).canonical().imag();
+		EXPECT_NEAR(diff.norm(), 0.f, 1e-5f);
+	}
+}
+
+TEST_F(AttitudeControlShapingTest, TightLimitOvershootStaysSmall)
+{
+	// GIVEN: the default reference bandwidth with a limit far below what its linear response would need
+	// (a 45 deg step peaks at 50^2 * 0.79 ~ 2000 rad/s^2), at a typical rate limit
+	const float accel_max = math::radians(75.f);
+	const float rate_max = math::radians(220.f);
+	_attitude_control.setRefModelAccelerationLimit(Vector3f(accel_max, accel_max, accel_max));
+	_attitude_control.setRateLimit(Vector3f(rate_max, rate_max, rate_max));
+
+	for (const float step_deg : {5.f, 20.f, 45.f}) {
+		_attitude_control.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
+		const float step = math::radians(step_deg);
+		const Quatf q_d(AxisAnglef(Vector3f(step, 0.f, 0.f)));
+
+		// WHEN: the reference model is propagated until it settled
+		float max_rate, max_accel, max_angle;
+		stepSetpoint(q_d, 0, 1000, max_rate, max_accel, max_angle);
+
+		// THEN: the limit holds, the overshoot stays small and the reference converged
+		EXPECT_LE(max_accel, accel_max * 1.02f) << "step " << step_deg;
+		EXPECT_LE(max_angle, step * (1.f + kMaxOvershoot)) << "step " << step_deg;
+		const Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
+		EXPECT_NEAR(error.norm(), 0.f, 1e-3f) << "step " << step_deg;
 	}
 }
 
