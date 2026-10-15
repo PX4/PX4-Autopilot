@@ -201,6 +201,13 @@ protected:
 	void	poll_notify(px4_pollevent_t events);
 
 	/**
+	 * Report new poll events, with the driver lock already held.
+	 *
+	 * @param events	The new event(s) being announced.
+	 */
+	void	poll_notify_locked(px4_pollevent_t events);
+
+	/**
 	 * Internal implementation of poll_notify.
 	 *
 	 * @param fds		A poll waiter to notify.

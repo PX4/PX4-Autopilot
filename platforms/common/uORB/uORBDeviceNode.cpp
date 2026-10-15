@@ -204,10 +204,10 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* Mark at least one data has been published */
 	_data_valid = true;
 
-	ATOMIC_LEAVE;
-
 	/* notify any poll waiters */
-	poll_notify(POLLIN);
+	poll_notify_locked(POLLIN);
+
+	ATOMIC_LEAVE;
 
 	return _meta->o_size;
 }
