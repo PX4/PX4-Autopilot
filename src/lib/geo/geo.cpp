@@ -118,7 +118,7 @@ float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_n
 	const double d_lon = math::radians(lon_next) - math::radians(lon_now);
 
 	const double a_raw = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(lat_now_rad) * cos(
-				 lat_next_rad);
+				     lat_next_rad);
 
 	const double a = math::constrain(a_raw, 0.0, 1.0);
 	const double c = atan2(sqrt(a), sqrt(1.0 - a));
