@@ -47,7 +47,7 @@ bool SubscriptionIntervalBase<ATOMIC>::updated()
 {
 	hrt_abstime last_update = _last_update.load();
 
-	if (advertised() && (hrt_elapsed_time(&last_update) >= _interval_us.load())) {
+	if (hrt_elapsed_time(&last_update) >= _interval_us.load()) {
 		return _subscription.updated();
 	}
 
