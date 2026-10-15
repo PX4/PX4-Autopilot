@@ -609,7 +609,7 @@ Test operations on an SD Card
 sd_stress [arguments...]
      [-r <val>]  Number of runs
                  default: 5
-     [-b <val>]  Number of bytes
+     [-b <val>]  Number of bytes (1-10000)
                  default: 100
 ```
 

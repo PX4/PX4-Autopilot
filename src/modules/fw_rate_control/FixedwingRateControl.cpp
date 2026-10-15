@@ -420,9 +420,9 @@ void FixedwingRateControl::Run()
 
 				float thrust_setpoint = _rates_sp.thrust_body[0];
 
-				// Stop motor if its setpoint is below 2%. This value was determined empirically (RC stick inaccuracy).
-				// Motor is stopped by setting the output to NAN (per definition).
-				if (PX4_ISFINITE(thrust_setpoint) && thrust_setpoint > 0.02f) {
+				// Zero thrust is passed through and maps to the motor's minimum output (PWM_MIN etc.).
+				// Motor is stopped by setting the output to NAN (per definition) if the setpoint is invalid.
+				if (PX4_ISFINITE(thrust_setpoint)) {
 					/* scale effort by battery status */
 					if (_param_fw_bat_scale_en.get()) {
 
@@ -521,6 +521,10 @@ void FixedwingRateControl::Run()
 				flaps_control = PX4_ISFINITE(_manual_control_setpoint.flaps) ? math::max(_manual_control_setpoint.flaps, 0.f) : 0.f;
 				break;
 
+			case 7:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux6) ? math::max(_manual_control_setpoint.aux6, 0.f) : 0.f;
+				break;
+
 
 			}
 
@@ -554,6 +558,14 @@ void FixedwingRateControl::Run()
 
 			case 5:
 				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux4) ? math::max(_manual_control_setpoint.aux4, 0.f) : 0.f;
+				break;
+
+			case 6:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux5) ? math::max(_manual_control_setpoint.aux5, 0.f) : 0.f;
+				break;
+
+			case 7:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux6) ? math::max(_manual_control_setpoint.aux6, 0.f) : 0.f;
 				break;
 			}
 

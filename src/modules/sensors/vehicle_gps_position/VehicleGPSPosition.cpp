@@ -33,6 +33,7 @@
 
 #include "VehicleGPSPosition.hpp"
 
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
 #include <lib/geo/geo.h>
 #include <lib/drivers/device/Device.hpp>
@@ -184,6 +185,11 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 			_gnss_param_slots[i].baseline_length = baselines[i].norm();
 			_gnss_param_slots[i].heading_offset = atan2f(baselines[i](1), baselines[i](0));
 		}
+
+		_gnss_param_slots[0].heading_enabled = (_param_sens_gnss0_hdg.get() != static_cast<int32_t>
+							(gnss_heading::BaselineType::Disabled));
+		_gnss_param_slots[1].heading_enabled = (_param_sens_gnss1_hdg.get() != static_cast<int32_t>
+							(gnss_heading::BaselineType::Disabled));
 
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 	}
@@ -339,9 +345,31 @@ void VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const 
 
 	const bool configured = slot && (slot->baseline_length >= gnss_heading::kMinAntennaSeparation);
 
-	if (PX4_ISFINITE(sample.heading) && !configured && !_heading_unconfigured_reported) {
-		PX4_WARN("GNSS heading from %" PRIu32 " not used: set SENS_GNSSn_HDG", sample.device_id);
-		_heading_unconfigured_reported = true;
+	// A receiver that reports a valid heading was set up for one, so what's missing is the autopilot side, for example
+	// after an upgrade from GPS_YAW_OFFSET, which isn't migrated
+	if (PX4_ISFINITE(sample.heading) && !configured) {
+		if (!slot || !slot->heading_enabled) {
+			if (!_heading_unconfigured_reported) {
+				/* EVENT
+				 * @description
+				 * A receiver reports a dual antenna heading, but <param>SENS_GNSS0_HDG</param> or <param>SENS_GNSS1_HDG</param>
+				 * is Disabled for its slot, or no SENS_GNSSn_ID matches it. Set SENS_GNSSn_HDG and the antenna positions.
+				 */
+				events::send(events::ID("sensors_gnss_heading_unconfigured"), events::Log::Warning,
+					     "GPS heading not used: set SENS_GNSSn_HDG");
+				_heading_unconfigured_reported = true;
+			}
+
+		} else if (!_heading_no_baseline_reported) {
+			/* EVENT
+			 * @description
+			 * SENS_GNSSn_HDG is set, but the antenna positions it measures between are less than 5 cm apart.
+			 * Set SENS_GNSSn_OFFX/Y/Z of both receivers for a moving base, or SENS_GNSSn_AUXX/Y/Z for a dual antenna receiver.
+			 */
+			events::send(events::ID("sensors_gnss_heading_no_baseline"), events::Log::Warning,
+				     "GPS heading not used: set the antenna positions");
+			_heading_no_baseline_reported = true;
+		}
 	}
 
 	if (!PX4_ISFINITE(sample.heading) || !configured) {

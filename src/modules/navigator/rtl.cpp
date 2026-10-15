@@ -141,6 +141,13 @@ void RTL::on_activation()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
+
+	// Activation skips the mode's inactive update,
+	// refresh its mission before destination selection.
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->refreshMission();
+	}
+
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {

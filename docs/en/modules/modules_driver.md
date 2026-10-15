@@ -763,6 +763,8 @@ mcp230xx <command> [arguments...]
      [-M <val>]  First minor number
                  default: 0
 
+   write         Set the output pins to the state given with -O
+
    stop
 
    status        print status info

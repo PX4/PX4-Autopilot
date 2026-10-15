@@ -30,7 +30,9 @@ pageClass: is-wide-page
 | <a id="fld_rx_buffer_overruns"></a>rx_buffer_overruns                                                               | `uint32`  |                                                                  |            | number of RX buffer overruns                                                                                                                  |
 | <a id="fld_rx_parse_errors"></a>rx_parse_errors                                                                     | `uint32`  |                                                                  |            | number of parse errors                                                                                                                        |
 | <a id="fld_rx_packet_drop_count"></a>rx_packet_drop_count                                      | `uint32`  |                                                                  |            | number of packet drops                                                                                                                        |
-| <a id="fld_rx_message_lost_rate"></a>rx_message_lost_rate                                      | `float32` |                                                                  |            |                                                                                                                                               |
+| <a id="fld_rx_unknown_message_count"></a>rx_unknown_message_count                              | `uint32`  |                                                                  |            | number of messages not in the dialect, not processed                                                                                          |
+| <a id="fld_rx_bad_signature_count"></a>rx_bad_signature_count                                  | `uint32`  |                                                                  |            | number of messages with missing or invalid signature, not processed                                                                           |
+| <a id="fld_rx_message_lost_rate"></a>rx_message_lost_rate                                      | `float32` |                                                                  |            | fraction of messages lost (0 to 1)                                                                                         |
 | <a id="fld_heartbeat_type_antenna_tracker"></a>heartbeat_type_antenna_tracker                  | `bool`    |                                                                  |            | MAV_TYPE_ANTENNA_TRACKER                                                       |
 | <a id="fld_heartbeat_type_gcs"></a>heartbeat_type_gcs                                                               | `bool`    |                                                                  |            | MAV_TYPE_GCS                                                                                        |
 | <a id="fld_heartbeat_type_onboard_controller"></a>heartbeat_type_onboard_controller            | `bool`    |                                                                  |            | MAV_TYPE_ONBOARD_CONTROLLER                                                    |
@@ -103,7 +105,9 @@ uint32 rx_message_lost_count
 uint32 rx_buffer_overruns               # number of RX buffer overruns
 uint32 rx_parse_errors                  # number of parse errors
 uint32 rx_packet_drop_count             # number of packet drops
-float32 rx_message_lost_rate
+uint32 rx_unknown_message_count         # number of messages not in the dialect, not processed
+uint32 rx_bad_signature_count           # number of messages with missing or invalid signature, not processed
+float32 rx_message_lost_rate            # fraction of messages lost (0 to 1)
 
 
 uint64 HEARTBEAT_TIMEOUT_US = 2500000       # Heartbeat timeout (tolerate missing 1 + jitter)

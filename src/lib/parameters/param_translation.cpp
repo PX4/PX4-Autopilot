@@ -424,5 +424,16 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-10-06: translate CBRK_IO_SAFETY -> COM_SAFETY_MODE. Any value but the breaker key had safety enabled, with
+	// both the switch and the MAVLink command able to turn it off.
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("CBRK_IO_SAFETY", node->name) == 0)) {
+			node->i32 = (node->i32 == 22027) ? 0 : 1;
+			strcpy(node->name, "COM_SAFETY_MODE");
+			PX4_INFO("migrating %s -> %s", "CBRK_IO_SAFETY", "COM_SAFETY_MODE");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

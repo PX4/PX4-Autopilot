@@ -15,6 +15,10 @@
                 {
                     "name": "PX4_SIM_MODEL",
                     "value": "gz_${input:PX4_GZ_MODEL}"
+                },
+                {
+                    "name": "GZ_IP",
+                    "value": "127.0.0.1"
                 }
             ],
             "externalConsole": false,

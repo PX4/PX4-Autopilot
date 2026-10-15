@@ -326,13 +326,13 @@ bool Mavlink::set_channel()
 	case 3:
 		_channel = MAVLINK_COMM_3;
 		return true;
-#ifdef MAVLINK_COMM_4
+#if MAVLINK_COMM_NUM_BUFFERS > 4
 
 	case 4:
 		_channel = MAVLINK_COMM_4;
 		return true;
 #endif
-#ifdef MAVLINK_COMM_5
+#if MAVLINK_COMM_NUM_BUFFERS > 5
 
 	case 5:
 		_channel = MAVLINK_COMM_5;
@@ -988,7 +988,8 @@ void Mavlink::send_finish()
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
 	if (!_tx_buffer_low) {
-		if (_buf_fill + packet_len < sizeof(_buf)) {
+		// _buf holds exactly one maximum-length frame (280 bytes for a signed frame with a 255-byte payload)
+		if (_buf_fill + packet_len <= sizeof(_buf)) {
 			memcpy(&_buf[_buf_fill], buf, packet_len);
 			_buf_fill += packet_len;
 
@@ -1154,7 +1155,15 @@ void Mavlink::init_udp()
 	PX4_DEBUG("Setting up UDP with port %hu", _network_port);
 
 	_myaddr.sin_family = AF_INET;
-	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	// Honor the loopback-only intent of "-n lo" when binding the socket.
+	if (_interface_name && strcmp(_interface_name, "lo") == 0) {
+		_myaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+	} else {
+		_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	}
+
 	_myaddr.sin_port = htons(_network_port);
 
 	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -1207,10 +1216,12 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	mavlink_msg_setup_signing_decode(msg, &setup_signing);
 
 	if (target_is_us_or_broadcast(setup_signing.target_system, setup_signing.target_component)) {
-		// Reject signing changes while armed
+		// Reject signing changes while armed. This runs on the receiver
+		// thread, so use a local subscription instead of _vehicle_status_sub.
+		uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 		vehicle_status_s vehicle_status{};
 
-		if (_vehicle_status_sub.copy(&vehicle_status)
+		if (vehicle_status_sub.copy(&vehicle_status)
 		    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			send_statustext_critical("MAVLink signing: rejected while armed");
 			return;
@@ -1292,9 +1303,12 @@ Mavlink::send_statustext_emergency(const char *string)
 bool
 Mavlink::send_autopilot_capabilities()
 {
+	// Called from both the main and the receiver thread (REQUEST_MESSAGE),
+	// so use a local subscription instead of _vehicle_status_sub.
+	uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 	vehicle_status_s status;
 
-	if (_vehicle_status_sub.copy(&status)) {
+	if (vehicle_status_sub.copy(&status)) {
 		mavlink_autopilot_version_t msg{};
 
 		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
@@ -1533,7 +1547,7 @@ Mavlink::pass_message(const mavlink_message_t *msg)
 MavlinkShell *
 Mavlink::get_shell()
 {
-	if (!_mavlink_shell) {
+	if (!_mavlink_shell.load()) {
 		MavlinkShell *shell = new MavlinkShell();
 
 		if (!shell) {
@@ -1543,7 +1557,7 @@ Mavlink::get_shell()
 			int ret = shell->start();
 
 			if (ret == 0) {
-				_mavlink_shell = shell;
+				_mavlink_shell.store(shell);
 
 			} else {
 				PX4_ERR("Failed to start shell (%i)", ret);
@@ -1552,15 +1566,17 @@ Mavlink::get_shell()
 		}
 	}
 
-	return _mavlink_shell;
+	return _mavlink_shell.load();
 }
 
 void
 Mavlink::close_shell()
 {
-	if (_mavlink_shell) {
-		delete _mavlink_shell;
-		_mavlink_shell = nullptr;
+	MavlinkShell *shell = _mavlink_shell.load();
+
+	if (shell) {
+		_mavlink_shell.store(nullptr);
+		delete shell;
 	}
 }
 
@@ -1586,8 +1602,12 @@ Mavlink::update_rate_mult()
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
 	}
 
-	/* scale up and down as the link permits */
-	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+	/* scale up and down as the link permits, nothing to scale without variable rate streams */
+	float bandwidth_mult = 1.0f;
+
+	if (rate > 0.0f) {
+		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+	}
 
 	/* Reduce rate while sending parameters in low bandwidth mode */
 	if (sending_parameters() && _mode == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) {
@@ -3034,21 +3054,23 @@ void Mavlink::handleSerialPassthroughOutput()
 
 void Mavlink::handleMavlinkShellOutput()
 {
-	if (_mavlink_shell) { // First do a fast check before taking the lock
+	if (_mavlink_shell.load()) { // First do a fast check before taking the lock
 		mavlink_serial_control_t msg;
 		msg.count = 0;
 		{
 			const LockGuard lg{_mavlink_shell_mutex};
 
-			if (_mavlink_shell && _mavlink_shell->available() > 0) {
+			MavlinkShell *shell = _mavlink_shell.load();
+
+			if (shell && shell->available() > 0) {
 				if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
 					msg.baudrate = 0;
 					msg.flags = SERIAL_CONTROL_FLAG_REPLY;
 					msg.timeout = 0;
 					msg.device = SERIAL_CONTROL_DEV_SHELL;
-					msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
-					msg.target_system = _mavlink_shell->targetSysid();
-					msg.target_component = _mavlink_shell->targetCompid();
+					msg.count = shell->read(msg.data, sizeof(msg.data));
+					msg.target_system = shell->targetSysid();
+					msg.target_component = shell->targetCompid();
 				}
 			}
 		}

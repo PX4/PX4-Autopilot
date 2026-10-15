@@ -360,9 +360,19 @@ px4io_update:
 bootloaders_update: \
 	3dr_ctrl-n1_bootloader \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
+	ark_can-flow_canbootloader \
+	ark_can-flow-mr_canbootloader \
+	ark_can-gps_canbootloader \
+	ark_can-rtk-gps_canbootloader \
+	ark_cannode_canbootloader \
+	ark_dist_canbootloader \
+	ark_f9p-gps_canbootloader \
 	ark_fmu-v6x_bootloader \
 	ark_fpv_bootloader \
+	ark_mag_canbootloader \
 	ark_pi6x_bootloader \
+	ark_septentrio-gps_canbootloader \
+	ark_x20-gps_canbootloader \
 	auterion_fmu-v6s_bootloader \
 	auterion_fmu-v6x_bootloader \
 	cuav_nora_bootloader \
@@ -475,7 +485,7 @@ tests_vtest_moving:
 
 # This target builds the neural configuration, the only one that enables mc_nn_control.
 tests_neural:
-	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),RescaleAction))
+	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),RescaleAction|NnControl)")
 	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
 	$(eval ARGS += test_results)
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)

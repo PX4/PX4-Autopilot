@@ -41,6 +41,14 @@ jobs:
         mypy --strict check_usb_ids.py usb_ids_runner.py test_check_usb_ids.py test_usb_ids_runner.py
         flake8 check_usb_ids.py usb_ids_runner.py test_check_usb_ids.py test_usb_ids_runner.py
 
+    - name: Check AI review tooling and the PR review poster
+      working-directory: Tools/ci
+      run: |
+        mypy --strict -p ai_review
+        flake8 ai_review test_pr_review_poster.py
+        python3 -m unittest discover -s ai_review -t . -v
+        python3 -m unittest -v test_pr_review_poster
+
     - name: Check ROS workspace tooling
       run: |
         flake8 Tools/ros2/*.py

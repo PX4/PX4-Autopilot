@@ -59,6 +59,7 @@ void RtlMissionFastReverse::on_inactive()
 	_vehicle_status_sub.update();
 	_mission_index_prior_rtl = _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ?
 				   _mission.current_seq : INT32_C(-1);
+	_mission_id_prior_rtl = _mission.mission_id;
 }
 
 void RtlMissionFastReverse::on_inactivation()
@@ -70,6 +71,11 @@ void RtlMissionFastReverse::on_inactivation()
 void RtlMissionFastReverse::on_activation()
 {
 	_home_pos_sub.update();
+
+	// Discard the saved index if the mission was replaced.
+	if (_mission.mission_id != _mission_id_prior_rtl) {
+		_mission_index_prior_rtl = INT32_C(-1);
+	}
 
 	// set mission item to closest item if not already in mission. If we are in mission, set to the previous item.
 	if (_mission_index_prior_rtl < INT32_C(0)) {
