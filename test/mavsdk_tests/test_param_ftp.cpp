@@ -131,24 +131,14 @@ public:
 	std::shared_ptr<mavsdk::System> system() { return get_system(); }
 };
 
-} // namespace
-
-TEST_CASE("Parameters download via MAVLink FTP", "[multicopter]")
+std::vector<uint8_t> download_param_pck(mavsdk::Ftp &ftp)
 {
 	using namespace std::chrono_literals;
-
-	AutopilotTesterParamFtp tester;
-	tester.connect(connection_url);
-
-	// the reference: the conventional PARAM_VALUE stream
-	const mavsdk::Param::AllParams all = tester.all_params();
-	REQUIRE(all.int_params.size() + all.float_params.size() > 100);
 
 	const std::filesystem::path local_dir = std::filesystem::temp_directory_path() / "px4_mavsdk_tests_param_ftp";
 	std::filesystem::remove_all(local_dir);
 	std::filesystem::create_directories(local_dir);
 
-	mavsdk::Ftp ftp(tester.system());
 	std::promise<mavsdk::Ftp::Result> done;
 	auto result = done.get_future();
 	bool finished = false;
@@ -166,7 +156,39 @@ TEST_CASE("Parameters download via MAVLink FTP", "[multicopter]")
 
 	std::ifstream file(local_dir / "param.pck?withdefaults=1", std::ios::binary);
 	REQUIRE(file.good());
-	const std::vector<uint8_t> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	return std::vector<uint8_t>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+}
+
+} // namespace
+
+TEST_CASE("Parameters download via MAVLink FTP", "[multicopter]")
+{
+	AutopilotTesterParamFtp tester;
+	tester.connect(connection_url);
+
+	// the reference: the conventional PARAM_VALUE stream
+	mavsdk::Param::AllParams all = tester.all_params();
+	REQUIRE(all.int_params.size() + all.float_params.size() > 100);
+
+	// The firmware writes some parameters itself after boot, e.g. CAL_BARO0_OFF from the
+	// baro GNSS calibration, so a value can change between the two downloads. Only compare
+	// a file downloaded between two identical PARAM_VALUE snapshots.
+	mavsdk::Ftp ftp(tester.system());
+	std::vector<uint8_t> data;
+	bool unchanged = false;
+
+	for (int attempt = 0; (attempt < 5) && !unchanged; attempt++) {
+		data = download_param_pck(ftp);
+		const mavsdk::Param::AllParams after = tester.all_params();
+		unchanged = (after == all);
+		all = after;
+
+		if (!unchanged) {
+			std::cout << "Parameters changed during the download (attempt " << attempt + 1 << ")" << std::endl;
+		}
+	}
+
+	REQUIRE(unchanged);
 
 	uint16_t num = 0;
 	uint16_t total = 0;
