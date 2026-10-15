@@ -1202,8 +1202,7 @@ Use this checklist:
    Transition-only work belongs in `onActivate()`.
 5. **Register the task by priority**: add the task instance to `VisionTargetEst` and place it in `_task_registry` in descending priority order.
    If multiple bits are enabled at the same time, the first ready task wins.
-6. **Test lifecycle and cache behaviour**: extend `TEST_VTE_VisionTargetEst.cpp` with coverage for task activation completion, repeated starts, and any cached mission/context data that must survive estimator restarts within the same task.
-7. **Document the operational meaning**: update the overview page, this deep dive, and any feature-specific docs so users understand when the new task is active and which `VTE_TASK_MASK` bit selects it.
+6. **Document the operational meaning**: update the overview page, this deep dive, and any feature-specific docs so users understand when the new task is active and which `VTE_TASK_MASK` bit selects it.
 
 :::
 
@@ -1321,11 +1320,10 @@ A few things to keep in mind when interpreting your own numbers:
 
 The module contains unit tests that cover the Kalman math, the per-filter module logic, and the OOSM history buffer.
 
-- `TEST_VTE_KF_position`: Kalman filter math for the position state (prediction, NIS gating, bias-aware H, OOSM gold standard).
+- `TEST_VTE_KF_position`: Kalman filter math for the position state (prediction, measurement fusion, bias-aware H).
   Static model (state size 3) by default, moving-target tests (state size 5) build only when `CONFIG_VTEST_MOVING` is enabled.
 - `TEST_VTE_KF_orientation`: Kalman filter math for yaw/yaw-rate (wrap logic, process noise, dt edge cases, covariance symmetry).
 - `TEST_VTE_VTEPosition`: Module logic for vision/GNSS fusion, offsets, interpolation, ordering, and uORB innovation topics (static + moving gated by `CONFIG_VTEST_MOVING`).
-- `TEST_VTE_VTEOrientation`: Module logic for yaw fusion, noise models, resets, and OOSM handling.
 - `TEST_VTE_VTEOosm`: Generic OOSM manager behaviour.
 
 Run locally:

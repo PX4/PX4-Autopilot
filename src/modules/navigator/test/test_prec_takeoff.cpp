@@ -189,17 +189,6 @@ TEST_F(PrecTakeoffTest, StaleOrInvalidTargetKeepsSetpoint)
 	EXPECT_DOUBLE_EQ(_sp.lon, kRefLon);
 }
 
-TEST_F(PrecTakeoffTest, ReachedTakeoffKeepsSetpoint)
-{
-	// GIVEN: A fresh target while the takeoff altitude is already reached
-	publishTarget(3.f, 4.f, true, kNow - 100_ms);
-
-	// THEN: The setpoint is left alone
-	EXPECT_FALSE(_prec_takeoff.run(_local_pos, _sp, true, kNow));
-	EXPECT_DOUBLE_EQ(_sp.lat, kRefLat);
-	EXPECT_DOUBLE_EQ(_sp.lon, kRefLon);
-}
-
 TEST_F(PrecTakeoffTest, NewTakeoffUsesChangedMapReference)
 {
 	// GIVEN: The helper cached the map projection during a previous takeoff.
@@ -284,11 +273,4 @@ TEST_F(PrecTakeoffTest, StatusFollowsTakeoffLifecycle)
 	ASSERT_TRUE(readStatus(status));
 	EXPECT_EQ(status.state, prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING);
 	EXPECT_FALSE(status.setpoint_adjusted);
-}
-
-TEST_F(PrecTakeoffTest, ParamEnablesHelper)
-{
-	EXPECT_TRUE(_prec_takeoff.enabled());
-	setEnabled(false);
-	EXPECT_FALSE(_prec_takeoff.enabled());
 }

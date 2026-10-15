@@ -33,8 +33,7 @@
 
 /**
  * @file actions_rescale.hpp
- * Maps a network action to a normalized motor command. Header only and free of
- * module dependencies so it can be unit tested directly.
+ * Maps a network action to a normalized motor command.
  *
  * The network acts in [-1, 1]. An action is read as a per motor thrust of
  * action + 1 in the units the thrust coefficient was fitted in, turned into an

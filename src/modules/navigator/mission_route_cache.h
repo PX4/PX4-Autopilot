@@ -155,8 +155,6 @@ public:
 	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 
 private:
-	friend class MissionRouteCacheTestPeer;
-
 	enum class SafePointDatamanState {
 		kUpdateRequestWait,
 		kRead,

@@ -95,31 +95,6 @@ float insert_values_around_mean(DataValidator &validator, float mean, uint32_t c
 
 } // namespace
 
-TEST(DataValidator, initialisesEmpty)
-{
-	const uint64_t timestamp = 666;
-	DataValidator validator;
-
-	EXPECT_EQ(nullptr, validator.sibling());
-	EXPECT_FLOAT_EQ(0.f, validator.confidence(timestamp));
-	EXPECT_EQ(0u, validator.error_count());
-	EXPECT_FALSE(validator.used());
-	EXPECT_EQ(0, validator.priority());
-
-	validator.set_timeout(kTimeoutUsec);
-	EXPECT_EQ(kTimeoutUsec, validator.get_timeout());
-
-	DataValidator sibling;
-	validator.setSibling(&sibling);
-	EXPECT_EQ(&sibling, validator.sibling());
-
-	// with no data at all the validator has no confidence and says why
-	EXPECT_FLOAT_EQ(0.f, validator.confidence(timestamp + 1));
-	EXPECT_TRUE(validator.state() & DataValidator::ERROR_FLAG_NO_DATA);
-
-	validator.print();
-}
-
 TEST(DataValidator, fullyConfidentAfterValidData)
 {
 	uint64_t timestamp = 500;

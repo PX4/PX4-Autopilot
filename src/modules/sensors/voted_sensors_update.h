@@ -104,7 +104,6 @@ public:
 	void setRelativeTimestamps(sensor_combined_s &raw);
 
 private:
-	friend class VotedSensorsUpdateTestPeer;
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
 

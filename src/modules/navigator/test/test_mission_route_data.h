@@ -92,9 +92,6 @@ static inline std::vector<mission_item_s> safePoints()
 	};
 }
 
-// Typical test velocity magnitude
-static constexpr float kVel = 15.f;
-
 } // namespace default_dataset
 
 
@@ -145,7 +142,6 @@ static inline std::vector<mission_item_s> safePoints()
 	};
 }
 
-static constexpr float kVelFast = 30.f;
 static constexpr float kVelDiag = 15.f;
 
 } // namespace corner_dataset

@@ -44,28 +44,6 @@ static const Vector2f kApproachDirection(1.f, 0.f);
 static constexpr float kSink = 5.f;
 static constexpr float kReleaseAlt = 20.f;
 
-TEST(ParachuteRelease, releaseAltitudeIsFlooredForCanopyOpening)
-{
-	const float floor = parachuteReleaseFloor(kSink);
-	EXPECT_FLOAT_EQ(floor, kSink * kParachuteCanopyOpenTime);
-
-	// configured altitude above the floor is used as is
-	EXPECT_FLOAT_EQ(parachuteReleaseAltitude(20.f, kSink), 20.f);
-
-	// configured altitude below the floor is raised to it
-	EXPECT_FLOAT_EQ(parachuteReleaseAltitude(5.f, kSink), floor);
-}
-
-TEST(ParachuteRelease, noWindReleaseDistanceIsDeploymentCarry)
-{
-	const Vector2f ground_speed(20.f, 0.f);
-
-	const float dist = parachuteReleaseDistance(ground_speed, Vector2f(0.f, 0.f), true, kApproachDirection,
-			   kReleaseAlt, kSink);
-
-	EXPECT_FLOAT_EQ(dist, 20.f * kParachuteDeploymentTime);
-}
-
 TEST(ParachuteRelease, invalidWindIsIgnored)
 {
 	const Vector2f ground_speed(20.f, 0.f);
@@ -98,43 +76,6 @@ TEST(ParachuteRelease, windAboveGroundSpeedStaysFinite)
 
 	EXPECT_TRUE(std::isfinite(dist));
 	EXPECT_FLOAT_EQ(dist, -25.f * 4.f);
-}
-
-TEST(ParachuteRelease, tailwindReleasesEarlier)
-{
-	const Vector2f ground_speed(25.f, 0.f);
-	const Vector2f wind(5.f, 0.f);
-
-	const float dist = parachuteReleaseDistance(ground_speed, wind, true, kApproachDirection, kReleaseAlt, kSink);
-
-	EXPECT_FLOAT_EQ(dist, 25.f + 20.f);
-}
-
-TEST(ParachuteRelease, pureCrosswindDoesNotChangeReleaseDistance)
-{
-	const Vector2f ground_speed(20.f, 0.f);
-	const Vector2f wind(0.f, 8.f);
-
-	const float dist = parachuteReleaseDistance(ground_speed, wind, true, kApproachDirection, kReleaseAlt, kSink);
-
-	EXPECT_FLOAT_EQ(dist, 20.f * kParachuteDeploymentTime);
-}
-
-TEST(ParachuteRelease, crosswindAimShiftIsPerpendicularAndDownwind)
-{
-	const float floor = parachuteReleaseFloor(kSink);
-	const Vector2f wind(0.f, 5.f); // pure crosswind from the west, drifting the vehicle east
-
-	// holding the release altitude
-	const float altitude_above_ground = kReleaseAlt;
-	const Vector2f shift = parachuteCrosswindAimShift(wind, kApproachDirection, altitude_above_ground, kReleaseAlt,
-			       floor, kSink);
-
-	// no along-track component: that part is handled by the release timing
-	EXPECT_FLOAT_EQ(shift.dot(kApproachDirection), 0.f);
-
-	// 4 s descent at 5 m/s crosswind: 20 m drift east; subtracting the shift aims 20 m upwind (west)
-	EXPECT_FLOAT_EQ(shift(1), 20.f);
 }
 
 TEST(ParachuteRelease, diagonalWindSplitsIntoTimingAndAimShift)

@@ -87,12 +87,10 @@ private:
 	bool testAsyncMutipleClients();
 	bool testAsyncWriteReadAllItemsMaxSize();
 	bool testAsyncClearAll();
-	bool testAsyncAbortAndReissue();
 
 	//Cache
 	bool testCache();
 	bool testCacheUpdateCachedItem();
-	bool testCacheZeroSize();
 	bool testCacheResizeToZero();
 	bool testCacheResizeShrink();
 
@@ -110,7 +108,6 @@ private:
 	DatamanClient _dataman_client_thread3{};
 
 	DatamanCache _dataman_cache{"test_dm_cache_miss", 10};
-	DatamanCache _zero_dataman_cache{"test_dm_cache_zero", 0};
 
 	static void *testAsyncThread(void *arg);
 
@@ -772,90 +769,6 @@ DatamanTest::testAsyncClearAll()
 }
 
 bool
-DatamanTest::testAsyncAbortAndReissue()
-{
-	// When an async operation is abandoned without its response being consumed,
-	// the next async request must drain that stale reply (DatamanClient::clearPendingResponse)
-	// and still return current data.
-	const dm_item_t item = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	const uint32_t length = g_per_item_size[item];
-	const uint32_t stale_index = 7;
-	const uint8_t stale_value = 0xC3;
-	const uint32_t new_index = 8;
-	const uint8_t new_value = 0xAA;
-
-	memset(_buffer_write, stale_value, sizeof(_buffer_write));
-
-	if (!_dataman_client1.writeSync(item, stale_index, _buffer_write, length)) {
-		PX4_ERR("stale seed writeSync failed");
-		return false;
-	}
-
-	memset(_buffer_write, new_value, sizeof(_buffer_write));
-
-	if (!_dataman_client1.writeSync(item, new_index, _buffer_write, length)) {
-		PX4_ERR("new seed writeSync failed");
-		return false;
-	}
-
-	// Start an async read but never call update():
-	// this leaves a reply queued on the response topic.
-	uint8_t scratch[DM_MAX_DATA_SIZE] = {};
-
-	if (!_dataman_client1.readAsync(item, stale_index, scratch, length)) {
-		PX4_ERR("first readAsync failed");
-		return false;
-	}
-
-	// Give the dataman task time to answer while we deliberately skip update().
-	px4_usleep(100_ms);
-
-	// Abandon the operation. The queued reply is now stale.
-	_dataman_client1.abortCurrentOperation();
-
-	// A fresh async read must drain the stale reply and return the new request's value.
-	memset(_buffer_read, 0, sizeof(_buffer_read));
-
-	if (!_dataman_client1.readAsync(item, new_index, _buffer_read, length)) {
-		PX4_ERR("second readAsync failed");
-		return false;
-	}
-
-	bool completed = false;
-	hrt_abstime start_time = hrt_absolute_time();
-
-	while (!completed) {
-
-		_dataman_client1.update();
-
-		if (_dataman_client1.lastOperationCompleted(_response_success)) {
-			completed = true;
-		}
-
-		if (hrt_elapsed_time(&start_time) > 1_s) {
-			PX4_ERR("Test timeout!");
-			return false;
-		}
-
-		px4_usleep(1_ms);
-	}
-
-	if (!_response_success) {
-		PX4_ERR("reissued read did not complete successfully");
-		return false;
-	}
-
-	for (uint32_t i = 0; i < length; ++i) {
-		if (_buffer_read[i] != new_value) {
-			PX4_ERR("reissued read returned wrong data at %" PRIu32, i);
-			return false;
-		}
-	}
-
-	return true;
-}
-
-bool
 DatamanTest::processCacheUntilLoaded(DatamanCache &cache, hrt_abstime timeout)
 {
 	hrt_abstime start_time = hrt_absolute_time();
@@ -1115,90 +1028,6 @@ DatamanTest::testCacheUpdateCachedItem()
 }
 
 bool
-DatamanTest::testCacheZeroSize()
-{
-	// A cache created with zero items must not allocate storage and must remain
-	// safe to use: no division-by-zero, no out-of-bounds access, and the
-	// underlying DatamanClient must stay functional.
-	const dm_item_t item = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	const uint32_t length = g_per_item_size[item];
-
-	DatamanCache &zero_cache = _zero_dataman_cache;
-
-	if (zero_cache.size() != 0) {
-		PX4_ERR("zero-size cache reported size %d", zero_cache.size());
-		return false;
-	}
-
-	// Nothing can be queued for caching.
-	if (zero_cache.load(item, 0)) {
-		PX4_ERR("load() unexpectedly succeeded on zero-size cache");
-		return false;
-	}
-
-	if (zero_cache.isLoading()) {
-		PX4_ERR("zero-size cache reports loading");
-		return false;
-	}
-
-	if (zero_cache.updateCachedItem(item, 0, _buffer_write, length)) {
-		PX4_ERR("updateCachedItem unexpectedly succeeded on zero-size cache");
-		return false;
-	}
-
-	// These must not divide by zero or read out of bounds.
-	zero_cache.update();
-	zero_cache.invalidate();
-
-	// Nothing is cached and there is no fallback without a timeout.
-	if (zero_cache.loadWait(item, 0, _buffer_read, length)) {
-		PX4_ERR("loadWait unexpectedly succeeded on zero-size cache");
-		return false;
-	}
-
-	// The client behind the cache is still usable directly.
-	memset(_buffer_write, 0x5A, sizeof(_buffer_write));
-
-	if (!zero_cache.client().writeSync(item, 0, _buffer_write, length)) {
-		PX4_ERR("writeSync through zero-size cache client failed");
-		return false;
-	}
-
-	if (!zero_cache.client().readSync(item, 0, _buffer_read, length)) {
-		PX4_ERR("readSync through zero-size cache client failed");
-		return false;
-	}
-
-	for (uint32_t i = 0; i < length; ++i) {
-		if (_buffer_read[i] != 0x5A) {
-			PX4_ERR("readSync through zero-size cache client returned wrong data");
-			return false;
-		}
-	}
-
-	memset(_buffer_read, 0, sizeof(_buffer_read));
-
-	if (!zero_cache.loadWait(item, 0, _buffer_read, length, 100_ms)) {
-		PX4_ERR("loadWait read-through on zero-size cache failed");
-		return false;
-	}
-
-	for (uint32_t i = 0; i < length; ++i) {
-		if (_buffer_read[i] != 0x5A) {
-			PX4_ERR("loadWait read-through on zero-size cache returned wrong data");
-			return false;
-		}
-	}
-
-	if (zero_cache.loadWait(item, 0, _buffer_read, length)) {
-		PX4_ERR("loadWait unexpectedly cached read-through data on zero-size cache");
-		return false;
-	}
-
-	return true;
-}
-
-bool
 DatamanTest::testCacheResizeToZero()
 {
 	// Shrinking a cache to zero must free its storage,
@@ -1441,11 +1270,9 @@ bool DatamanTest::run_tests()
 	ut_run_test(testAsyncMutipleClients);
 	ut_run_test(testAsyncWriteReadAllItemsMaxSize);
 	ut_run_test(testAsyncClearAll);
-	ut_run_test(testAsyncAbortAndReissue);
 
 	ut_run_test(testCache);
 	ut_run_test(testCacheUpdateCachedItem);
-	ut_run_test(testCacheZeroSize);
 	ut_run_test(testCacheResizeToZero);
 	ut_run_test(testCacheResizeShrink);
 

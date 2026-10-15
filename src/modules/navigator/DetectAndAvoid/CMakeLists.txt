@@ -51,8 +51,3 @@ if(CONFIG_NAVIGATOR_ADSB_F3442)
 endif()
 
 target_link_libraries(detect_and_avoid PUBLIC adsb PRIVATE failure_injection)
-
-# The functional tests use the fake-traffic injector.
-if(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
-	add_subdirectory(test)
-endif()

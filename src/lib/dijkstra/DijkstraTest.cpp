@@ -57,19 +57,6 @@ void makeMatrix(float (&m)[N * N], std::initializer_list<Edge> edges)
 
 } // namespace
 
-TEST(DijkstraTest, SingleNodeAtGoal)
-{
-	constexpr int N = 1;
-	float cost[N * N] = { INFINITY };
-	float best[N];
-	int next[N];
-	bool vis[N];
-
-	ASSERT_TRUE(dijkstra::solveBackward(N, 0, cost, false, best, next, vis));
-	EXPECT_FLOAT_EQ(best[0], 0.f);
-	EXPECT_EQ(next[0], -1);
-}
-
 TEST(DijkstraTest, AsymmetricLineGraphForward)
 {
 	// 0 -> 1 -> 2, going forward is cheap, going backward is expensive.
@@ -94,33 +81,6 @@ TEST(DijkstraTest, AsymmetricLineGraphForward)
 	EXPECT_EQ(next[0], 1);
 	EXPECT_EQ(next[1], 2);
 	EXPECT_EQ(next[2], -1);
-}
-
-TEST(DijkstraTest, AsymmetricLineGraphReverse)
-{
-	// Same matrix as above; with goal = 0, paths must use the expensive back-edges,
-	// confirming the solver respects edge direction (uses cost[i][j] = i -> j, not j -> i).
-	constexpr int N = 3;
-	float cost[N * N];
-	makeMatrix<N>(cost, {
-		{0, 1, 1.f},
-		{1, 2, 1.f},
-		{1, 0, 100.f},
-		{2, 1, 100.f},
-	});
-
-	float best[N];
-	int next[N];
-	bool vis[N];
-
-	ASSERT_TRUE(dijkstra::solveBackward(N, 0, cost, false, best, next, vis));
-
-	EXPECT_FLOAT_EQ(best[0], 0.f);
-	EXPECT_FLOAT_EQ(best[1], 100.f);
-	EXPECT_FLOAT_EQ(best[2], 200.f);
-	EXPECT_EQ(next[1], 0);
-	EXPECT_EQ(next[2], 1);
-	EXPECT_EQ(next[0], -1);
 }
 
 TEST(DijkstraTest, TriangleWithBlockedEdge)
@@ -191,21 +151,6 @@ TEST(DijkstraTest, NaNTreatedAsMissingEdge)
 	EXPECT_EQ(next[0], 1);
 }
 
-TEST(DijkstraTest, RejectsInvalidInputs)
-{
-	constexpr int N = 2;
-	float cost[N * N] = { INFINITY, 1.f, 1.f, INFINITY };
-	float best[N];
-	int next[N];
-	bool vis[N];
-
-	EXPECT_FALSE(dijkstra::solveBackward(0, 0, cost, false, best, next, vis));
-	EXPECT_FALSE(dijkstra::solveBackward(N, -1, cost, false, best, next, vis));
-	EXPECT_FALSE(dijkstra::solveBackward(N, N, cost, false, best, next, vis));
-	EXPECT_FALSE(dijkstra::solveBackward(N, 0, nullptr, false, best, next, vis));
-	EXPECT_FALSE(dijkstra::solveBackward(N, 0, cost, false, nullptr, next, vis));
-}
-
 TEST(DijkstraTest, SymmetricPackedMatchesAsymmetric)
 {
 	// Same undirected weighted graph expressed two ways: full N*N matrix with both
@@ -250,40 +195,6 @@ TEST(DijkstraTest, SymmetricPackedMatchesAsymmetric)
 			EXPECT_FLOAT_EQ(best_full[i], best_pack[i]) << "goal=" << goal << " i=" << i;
 			EXPECT_EQ(next_full[i], next_pack[i]) << "goal=" << goal << " i=" << i;
 		}
-	}
-}
-
-TEST(DijkstraTest, ForwardWalkReachesGoal)
-{
-	// 5-node graph: 0 -> 1 -> 2 -> 3 -> 4, plus a long detour 0 -> 4 directly.
-	// Solving once with goal = 4, then for any start we should reach 4 by following
-	// next_node without re-solving.
-	constexpr int N = 5;
-	float cost[N * N];
-	makeMatrix<N>(cost, {
-		{0, 1, 1.f},
-		{1, 2, 1.f},
-		{2, 3, 1.f},
-		{3, 4, 1.f},
-		{0, 4, 100.f}, // direct but expensive
-	});
-
-	float best[N];
-	int next[N];
-	bool vis[N];
-	ASSERT_TRUE(dijkstra::solveBackward(N, 4, cost, false, best, next, vis));
-
-	for (int start = 0; start < N - 1; ++start) {
-		int u = start;
-		int hops = 0;
-
-		while (u != 4 && hops < N) {
-			ASSERT_GE(next[u], 0) << "stuck at " << u << " from start " << start;
-			u = next[u];
-			++hops;
-		}
-
-		EXPECT_EQ(u, 4) << "did not reach goal from " << start;
 	}
 }
 

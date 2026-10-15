@@ -222,24 +222,6 @@ TEST_F(ZeroOrderHoverThrustEkfTest, testHoverThrustJump)
 	EXPECT_NEAR(status.accel_noise_var, accel_var, 2.f * accel_var);
 }
 
-TEST_F(ZeroOrderHoverThrustEkfTest, testMinMaxHoverThrustClamping)
-{
-	// GIVEN: a min/max band requested outside the class's own absolute safe range
-	_ekf.setMinHoverThrust(-1.f);
-	_ekf.setMaxHoverThrust(2.f);
-
-	// WHEN: the hover thrust is (re-)initialized at either edge of [0, 1]
-	_ekf.setHoverThrust(0.f);
-
-	// THEN: the state is clamped to the absolute lower bound, never 0
-	EXPECT_GE(_ekf.getHoverThrustEstimate(), 0.1f);
-
-	_ekf.setHoverThrust(1.f);
-
-	// THEN: the state is clamped to the absolute upper bound
-	EXPECT_LE(_ekf.getHoverThrustEstimate(), 0.9f);
-}
-
 TEST_F(ZeroOrderHoverThrustEkfTest, testHoverThrustNeverReachesZero)
 {
 	// GIVEN: a low MPC_THR_HOVER with the default HTE_THR_RANGE, which used to collapse

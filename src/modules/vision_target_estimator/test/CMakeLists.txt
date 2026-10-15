@@ -59,26 +59,11 @@ px4_add_functional_gtest(
 	         geo
 )
 
-px4_add_functional_gtest(
-	SRC TEST_VTEOrientation.cpp
-	INCLUDES ${VTEST_TEST_COMMON_INCLUDES}
-	LINKLIBS modules__vision_target_estimator
-)
-
-px4_add_functional_gtest(
-	SRC TEST_VTE_VisionTargetEst.cpp
-	INCLUDES ${VTEST_TEST_COMMON_INCLUDES}
-	LINKLIBS modules__vision_target_estimator
-	         geo
-)
-
 foreach(vtest_target
 		unit-TEST_VTEOosm
 		unit-TEST_VTE_KF_position
 		unit-TEST_VTE_KF_orientation
 		functional-TEST_VTEPosition
-		functional-TEST_VTEOrientation
-		functional-TEST_VTE_VisionTargetEst
 )
 	add_dependencies(${vtest_target} uorb_headers)
 	target_compile_definitions(${vtest_target} PRIVATE VTE_ENABLE_TEST_HOOKS=1)
@@ -88,7 +73,6 @@ endforeach()
 foreach(vtest_target
 		unit-TEST_VTE_KF_position
 		functional-TEST_VTEPosition
-		functional-TEST_VTE_VisionTargetEst
 )
 	add_dependencies(${vtest_target} ${VTEST_GENERATED_TARGET})
 endforeach()

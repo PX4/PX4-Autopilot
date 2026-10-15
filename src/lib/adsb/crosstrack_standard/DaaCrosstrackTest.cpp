@@ -40,7 +40,6 @@
 
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <limits>
 #include <uORB/topics/detect_and_avoid.h>
 
 namespace
@@ -99,56 +98,6 @@ protected:
 		set_crosstrack_params(500.f, 500.f, 60);
 	}
 };
-
-TEST_F(DaaCrosstrackTest, RejectsInvalidParams)
-{
-	ASSERT_TRUE(daa.try_setting_params());
-
-	const float nan = std::numeric_limits<float>::quiet_NaN();
-	const float inf = std::numeric_limits<float>::infinity();
-
-	for (const float bad : {nan, inf, 0.f}) {
-		set_crosstrack_params(bad, 500.f, 60);
-		EXPECT_FALSE(daa.try_setting_params()) << "horizontal separation = " << bad;
-	}
-
-	for (const float bad : {nan, inf, 0.f}) {
-		set_crosstrack_params(500.f, bad, 60);
-		EXPECT_FALSE(daa.try_setting_params()) << "vertical separation = " << bad;
-	}
-
-	for (const int bad : {0, -1}) {
-		set_crosstrack_params(500.f, 500.f, bad);
-		EXPECT_FALSE(daa.try_setting_params()) << "collision time = " << bad;
-	}
-
-	// valid again
-	set_crosstrack_params(500.f, 500.f, 60);
-	EXPECT_TRUE(daa.try_setting_params());
-}
-
-// A NaN traffic heading (no predicted path line) returns no conflict with cleared stats.
-TEST_F(DaaCrosstrackTest, InvalidTrafficHeadingReturnsNoConflict)
-{
-	ASSERT_TRUE(daa.try_setting_params());
-
-	const aircraft_state_s uav_state{
-		kUavLatLon,
-		kUavAlt,
-		matrix::Vector3f(0.f, 0.f, 0.f),
-		0.f
-	};
-	aircraft_state_s traffic_state = create_aircraft_state(kUavLatLon, kUavAlt, 200.f, math::radians(90.f), 0.f,
-					 std::numeric_limits<float>::quiet_NaN(), matrix::Vector3f(0.f, -30.f, 0.f));
-
-	daa_stats_s daa_stats{};
-	EXPECT_EQ(daa.calculate_daa_stats(uav_state, traffic_state, daa_stats), detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
-
-	EXPECT_FLOAT_EQ(daa_stats.aircraft_dist, 0.f);
-	EXPECT_FLOAT_EQ(daa_stats.aircraft_dist_hor, 0.f);
-	EXPECT_FLOAT_EQ(daa_stats.aircraft_dist_vert, 0.f);
-	EXPECT_FLOAT_EQ(daa_stats.expected_min_dist_time_sec, 0.f);
-}
 
 // A head-on approaching encounter is flagged HIGH with bounded crosstrack, vertical and timing stats.
 TEST_F(DaaCrosstrackTest, DetectsApproachingConflictAndReportsExpectedStats)

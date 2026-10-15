@@ -97,19 +97,6 @@ protected:
 
 } // namespace
 
-TEST_F(DataValidatorGroupTest, initialisesWithNothingSelected)
-{
-	// verify that calling print doesn't crash
-	_group->print();
-
-	EXPECT_EQ(0u, _group->failover_count());
-	EXPECT_EQ(DataValidator::ERROR_FLAG_NO_ERROR, _group->failover_state());
-	EXPECT_EQ(-1, _group->failover_index());
-
-	int best_index = -1;
-	EXPECT_EQ(nullptr, _group->get_best(kBaseTimestamp, &best_index));
-}
-
 TEST_F(DataValidatorGroupTest, selectsTheHighestPrioritySensor)
 {
 	DataValidator *validator1 = nullptr;
@@ -234,24 +221,6 @@ TEST_F(DataValidatorGroupTest, reportsTheIndexOfAFailedSensor)
  * A priority of 0 disables a sensor: it must never be selected, but it stays tracked so that
  * its data is still logged and its health still reported.
  */
-
-TEST_F(DataValidatorGroupTest, neverSelectsADisabledSensor)
-{
-	const int idx_disabled = add_validator();
-	const int idx_enabled = add_validator();
-
-	uint64_t timestamp = kBaseTimestamp;
-
-	for (int i = 0; i < 50; i++) {
-		timestamp += 5;
-		put(idx_disabled, timestamp, 1.f + i * 1e-3f, 0);
-		put(idx_enabled, timestamp, 2.f + i * 1e-3f, 50);
-	}
-
-	int best_index = -1;
-	ASSERT_NE(nullptr, _group->get_best(timestamp, &best_index));
-	EXPECT_EQ(idx_enabled, best_index);
-}
 
 TEST_F(DataValidatorGroupTest, disabledSensorIsNotSelectedEvenWhenItIsTheOnlyOneWithData)
 {

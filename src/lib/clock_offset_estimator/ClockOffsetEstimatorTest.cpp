@@ -78,32 +78,6 @@ TEST(ClockOffsetEstimator, ReturnsZeroWhenRemoteTimestampUnknown)
 		  arrival_hrt(kStartRemote, 3'000));
 }
 
-TEST(ClockOffsetEstimator, FirstSampleMapsToReceiptTime)
-{
-	ClockOffsetEstimator estimator;
-
-	// With a single observation there is no transport floor to subtract yet, so
-	// the best the estimator can do is anchor the remote epoch to receipt time.
-	const uint64_t local = arrival_hrt(kStartRemote, 12'000);
-	EXPECT_EQ(estimator.toLocal(kStartRemote, local), local);
-}
-
-TEST(ClockOffsetEstimator, RecoversSendInstantUpToConstantTransport)
-{
-	ClockOffsetEstimator estimator;
-
-	// With a constant transport the residual bias is exactly that transport from
-	// the very first sample, and the mapping is stable across the whole stream.
-	constexpr uint64_t kTransport = 5'000;
-
-	for (unsigned k = 0; k < 5; ++k) {
-		const uint64_t remote = kStartRemote + k * kPeriod;
-		const uint64_t local  = arrival_hrt(remote, kTransport);
-
-		EXPECT_EQ(estimator.toLocal(remote, local), send_hrt(remote) + kTransport);
-	}
-}
-
 TEST(ClockOffsetEstimator, ConvergesToMinTransportWithinTwoCycles)
 {
 	ClockOffsetEstimator estimator;

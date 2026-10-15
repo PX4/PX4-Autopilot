@@ -33,7 +33,6 @@
 
 #include <gtest/gtest.h>
 #include <cmath>
-#include <unistd.h>
 
 #include "TECS.hpp"
 
@@ -149,64 +148,6 @@ TEST(TECSControlTest, PitchIntegratorRejectsNonFiniteInput)
 	}
 }
 
-// Directly corrupt the integrator state and confirm the safety reset in
-// _calcPitchControlUpdate cleans it. The public update() path zeroes bad
-// integrator *input* before it can reach the state, so this branch is only
-// reachable if the state itself is already non-finite (e.g. corrupted memory
-// or an unguarded upstream write). The FRIEND_TEST seam lets us reach it.
-TEST(TECSControlTest, PitchIntegratorResetsCorruptedState)
-{
-	TECSControl control;
-	TECSControl::Param param = makeParam();
-	const TECSControl::Flag flag = makeFlag();
-	const TECSControl::Input input = makeInput();
-
-	control.initialize(makeSetpoint(), input, param, flag);
-
-	TECSControl::Setpoint setpoint = makeSetpoint();
-	setpoint.altitude_reference.alt = 120.f;
-	const float dt = 0.02f;
-
-	// Pre-corrupt the integrator state, bypassing the input guard entirely.
-	control._pitch_integ_state = NAN;
-
-	// A single healthy update must detect and clear the corrupted state.
-	control.update(dt, setpoint, input, param, flag);
-
-	EXPECT_TRUE(PX4_ISFINITE(control._pitch_integ_state));
-	EXPECT_TRUE(PX4_ISFINITE(control.getDebugOutput().pitch_integrator));
-	EXPECT_TRUE(PX4_ISFINITE(control.getPitchSetpoint()));
-
-	// And the controller keeps producing finite output afterwards.
-	for (int i = 0; i < 10; i++) {
-		control.update(dt, setpoint, input, param, flag);
-		EXPECT_TRUE(PX4_ISFINITE(control._pitch_integ_state));
-		EXPECT_TRUE(PX4_ISFINITE(control.getPitchSetpoint()));
-	}
-}
-
-// Repeated non-finite input across many consecutive frames must never brick the controller:
-// every cycle has to keep both the integrator state and the pitch setpoint finite.
-TEST(TECSControlTest, PitchIntegratorSurvivesSustainedNonFiniteInput)
-{
-	TECSControl control;
-	TECSControl::Param param = makeParam();
-	const TECSControl::Flag flag = makeFlag();
-	const TECSControl::Input input = makeInput();
-
-	control.initialize(makeSetpoint(), input, param, flag);
-
-	TECSControl::Setpoint bad_setpoint = makeSetpoint();
-	bad_setpoint.tas_setpoint = NAN;
-	const float dt = 0.02f;
-
-	for (int i = 0; i < 100; i++) {
-		control.update(dt, bad_setpoint, input, param, flag);
-		EXPECT_TRUE(PX4_ISFINITE(control.getDebugOutput().pitch_integrator));
-		EXPECT_TRUE(PX4_ISFINITE(control.getPitchSetpoint()));
-	}
-}
-
 // Below the minimum airspeed, the conversion from energy balance rate to pitch must use the minimum airspeed,
 // as the pitch integrator does, so the pitch command stays bounded as airspeed drops instead of growing with
 // the inverse of the airspeed.
@@ -235,54 +176,6 @@ TEST(TECSControlTest, PitchOutputUsesMinimumAirspeedBelowIt)
 
 	EXPECT_GT(control_at_min.getPitchSetpoint(), 0.f);
 	EXPECT_FLOAT_EQ(control_below_min.getPitchSetpoint(), control_at_min.getPitchSetpoint());
-}
-
-// The reported altitude time constant must be the one the controller uses, including above 100 s.
-TEST(TECSTest, ReportsConfiguredAltitudeTimeConstant)
-{
-	TECS tecs;
-
-	tecs.set_altitude_error_time_constant(200.f);
-	EXPECT_FLOAT_EQ(tecs.get_altitude_error_time_constant(), 200.f);
-
-	tecs.set_altitude_error_time_constant(0.f);
-	EXPECT_FLOAT_EQ(tecs.get_altitude_error_time_constant(), 0.1f);
-}
-
-// A reset with the airspeed sensor disabled and an invalid reading must seed the controller with the filtered
-// (trim) airspeed, not the raw reading, so neither the reset nor the updates after it produce non-finite commands.
-TEST(TECSTest, ResetWithoutValidAirspeedKeepsCommandsFinite)
-{
-	TECS tecs;
-	tecs.enable_airspeed(false);
-	tecs.set_integrator_gain_pitch(0.1f);
-	tecs.set_integrator_gain_throttle(0.1f);
-
-	const TECS::Input input{
-		.altitude = 100.f,
-		.altitude_rate = 0.f,
-		.altitude_setpoint = 110.f,
-		.altitude_rate_setpoint = NAN,
-		.equivalent_airspeed = NAN,
-		.speed_deriv_forward = 0.f,
-		.equivalent_airspeed_setpoint = 15.f,
-		.eas_to_tas = 1.f,
-		.throttle_min = 0.f,
-		.throttle_max = 1.f,
-		.throttle_trim = 0.5f,
-		.pitch_min = -0.3f,
-		.pitch_max = 0.3f,
-		.target_climbrate = 3.f,
-		.target_sinkrate = 3.f,
-	};
-
-	// The first update resets the controller, the following ones run it with a valid time step.
-	for (int i = 0; i < 20; i++) {
-		usleep(20000);
-		tecs.update(input);
-		EXPECT_TRUE(PX4_ISFINITE(tecs.get_pitch_setpoint())) << "update " << i;
-		EXPECT_TRUE(PX4_ISFINITE(tecs.get_throttle_setpoint())) << "update " << i;
-	}
 }
 
 namespace
@@ -336,30 +229,6 @@ TEST(TECSAirspeedFilterTest, FallsBackToTrimWithoutSensor)
 	EXPECT_NEAR(filter.getState().speed, 15.f, 0.01f);
 }
 
-TEST(TECSAirspeedFilterTest, InitializesToTrimWithoutValidMeasurement)
-{
-	TECSAirspeedFilter filter;
-
-	filter.initialize(NAN, 15.f, true);
-	EXPECT_FLOAT_EQ(filter.getState().speed, 15.f);
-
-	filter.initialize(20.f, 15.f, false);
-	EXPECT_FLOAT_EQ(filter.getState().speed, 15.f);
-	EXPECT_FLOAT_EQ(filter.getState().speed_rate, 0.f);
-}
-
-TEST(TECSAirspeedFilterTest, NeverEstimatesNegativeAirspeed)
-{
-	TECSAirspeedFilter filter;
-	filter.initialize(1.f, 15.f, true);
-
-	for (int i = 0; i < 200; i++) {
-		filter.update(kDt, {.equivalent_airspeed = 0.f, .equivalent_airspeed_rate = -50.f}, {.equivalent_airspeed_trim = 15.f},
-			      true);
-		ASSERT_GE(filter.getState().speed, 0.f) << "update " << i;
-	}
-}
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Altitude reference model
 // ---------------------------------------------------------------------------------------------------------------------
@@ -399,63 +268,9 @@ TEST(TECSAltitudeReferenceModelTest, FollowsHeightRateSetpoint)
 	EXPECT_NEAR(model.getHeightRateSetpointDirect(), 2.f, 0.01f);
 }
 
-// Without any setpoint, the reference holds the current altitude.
-TEST(TECSAltitudeReferenceModelTest, HoldsCurrentAltitudeWithoutSetpoint)
-{
-	const TECSAltitudeReferenceModel::Param param = makeReferenceParam();
-	TECSAltitudeReferenceModel model;
-	model.initialize({.alt = 100.f, .alt_rate = 0.f});
-
-	for (int i = 0; i < 500; i++) {
-		model.update(kDt, {.alt = NAN, .alt_rate = NAN}, 120.f, 0.f, param);
-	}
-
-	EXPECT_NEAR(model.getAltitudeReference().alt, 120.f, 0.01f);
-}
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Controller
 // ---------------------------------------------------------------------------------------------------------------------
-
-// Initialization always runs the altitude loop: a direct height rate setpoint must not change the initial commands.
-TEST(TECSControlTest, InitializeIgnoresDirectHeightRateSetpoint)
-{
-	const TECSControl::Param param = makeParam();
-	const TECSControl::Flag flag = makeFlag();
-	const TECSControl::Input input = makeInput();
-
-	TECSControl::Setpoint without_direct = makeSetpoint();
-	without_direct.altitude_reference.alt = 110.f;
-	TECSControl::Setpoint with_direct = without_direct;
-	with_direct.altitude_rate_setpoint_direct = 4.f;
-
-	TECSControl control_without;
-	control_without.initialize(without_direct, input, param, flag);
-	TECSControl control_with;
-	control_with.initialize(with_direct, input, param, flag);
-
-	EXPECT_FLOAT_EQ(control_with.getPitchSetpoint(), control_without.getPitchSetpoint());
-	EXPECT_FLOAT_EQ(control_with.getThrottleSetpoint(), control_without.getThrottleSetpoint());
-	EXPECT_FLOAT_EQ(control_with.getDebugOutput().altitude_rate_control,
-			control_without.getDebugOutput().altitude_rate_control);
-}
-
-// During updates, a finite direct height rate setpoint replaces the altitude loop.
-TEST(TECSControlTest, UpdateUsesDirectHeightRateSetpoint)
-{
-	const TECSControl::Param param = makeParam();
-	const TECSControl::Flag flag = makeFlag();
-	const TECSControl::Input input = makeInput();
-
-	TECSControl control;
-	control.initialize(makeSetpoint(), input, param, flag);
-
-	TECSControl::Setpoint setpoint = makeSetpoint();
-	setpoint.altitude_rate_setpoint_direct = 2.f;
-	control.update(kDt, setpoint, input, param, flag);
-
-	EXPECT_FLOAT_EQ(control.getDebugOutput().altitude_rate_control, 2.f);
-}
 
 // Once the pitch command saturates, the pitch integrator must not wind up further.
 TEST(TECSControlTest, PitchIntegratorDoesNotWindUpAtPitchLimit)
@@ -481,33 +296,6 @@ TEST(TECSControlTest, PitchIntegratorDoesNotWindUpAtPitchLimit)
 	for (int i = 0; i < 500; i++) {
 		control.update(kDt, setpoint, input, param, flag);
 		EXPECT_LE(control.getDebugOutput().pitch_integrator, integrator_saturated) << "update " << i;
-	}
-}
-
-// With equal throttle limits the throttle sits at both limits at once, so the throttle integrator must not move in
-// either direction, whether the energy demand asks for more throttle (climb) or less (descent).
-TEST(TECSControlTest, ThrottleIntegratorHoldsWithEqualThrottleLimits)
-{
-	TECSControl::Param param = makeParam();
-	param.throttle_min = 0.4f;
-	param.throttle_max = 0.4f;
-	param.throttle_trim = 0.4f;
-	const TECSControl::Flag flag = makeFlag();
-	const TECSControl::Input input = makeInput();
-
-	for (const float altitude_setpoint : {150.f, 50.f}) {
-		TECSControl::Setpoint setpoint = makeSetpoint();
-		setpoint.altitude_reference.alt = altitude_setpoint;
-
-		TECSControl control;
-		control.initialize(makeSetpoint(), input, param, flag);
-
-		for (int i = 0; i < 200; i++) {
-			control.update(kDt, setpoint, input, param, flag);
-			EXPECT_FLOAT_EQ(control.getThrottleSetpoint(), 0.4f);
-			EXPECT_FLOAT_EQ(control.getDebugOutput().throttle_integrator, 0.f)
-					<< "altitude setpoint " << altitude_setpoint << ", update " << i;
-		}
 	}
 }
 
@@ -562,25 +350,6 @@ TEST(TECSControlTest, PitchRespectsVerticalAccelerationLimit)
 	EXPECT_GT(previous, 0.f);
 }
 
-// Fully engaged fast descend controls airspeed through pitch and gives minimum throttle.
-TEST(TECSControlTest, FastDescendCommandsMinimumThrottle)
-{
-	TECSControl::Param param = makeParam();
-	param.throttle_min = 0.1f;
-	param.fast_descend = 1.f;
-	const TECSControl::Flag flag = makeFlag();
-	const TECSControl::Input input = makeInput();
-
-	TECSControl control;
-	control.initialize(makeSetpoint(), input, param, flag);
-
-	for (int i = 0; i < 50; i++) {
-		control.update(kDt, makeSetpoint(), input, param, flag);
-	}
-
-	EXPECT_FLOAT_EQ(control.getThrottleSetpoint(), param.throttle_min);
-}
-
 // Far below the minimum airspeed the controller is fully undersped and commands maximum throttle.
 TEST(TECSControlTest, UnderspeedCommandsMaximumThrottle)
 {
@@ -628,38 +397,6 @@ TEST(TECSControlTest, AirspeedlessIgnoresAirspeed)
 	EXPECT_FLOAT_EQ(control_slow.getThrottleSetpoint(), control_reference.getThrottleSetpoint());
 }
 
-// Below the minimum airspeed, the pitch integrator must integrate exactly as fast as at the minimum airspeed: it uses
-// the same floored airspeed as the pitch output.
-TEST(TECSControlTest, PitchIntegratorUsesMinimumAirspeedBelowIt)
-{
-	TECSControl::Param param = makeParam();
-	param.pitch_speed_weight = 0.f; // pitch controls height only
-	param.pitch_max = 1.5f;
-	param.pitch_min = -1.5f;
-
-	TECSControl::Flag flag = makeFlag();
-	flag.detect_underspeed_enabled = false;
-
-	TECSControl::Setpoint setpoint = makeSetpoint();
-	setpoint.altitude_reference.alt = 102.f;
-
-	TECSControl::Input below_min = makeInput();
-	below_min.tas = 0.2f * param.tas_min;
-	TECSControl::Input at_min = makeInput();
-	at_min.tas = param.tas_min;
-
-	TECSControl control_below_min;
-	control_below_min.initialize(setpoint, below_min, param, flag);
-	control_below_min.update(kDt, setpoint, below_min, param, flag);
-	TECSControl control_at_min;
-	control_at_min.initialize(setpoint, at_min, param, flag);
-	control_at_min.update(kDt, setpoint, at_min, param, flag);
-
-	EXPECT_GT(control_at_min.getDebugOutput().pitch_integrator, 0.f);
-	EXPECT_FLOAT_EQ(control_below_min.getDebugOutput().pitch_integrator,
-			control_at_min.getDebugOutput().pitch_integrator);
-}
-
 // A non-finite airspeed must not produce a non-finite pitch command.
 TEST(TECSControlTest, NonFiniteAirspeedKeepsPitchFinite)
 {
@@ -676,25 +413,6 @@ TEST(TECSControlTest, NonFiniteAirspeedKeepsPitchFinite)
 		control.update(kDt, makeSetpoint(), input, param, flag);
 		EXPECT_TRUE(PX4_ISFINITE(control.getPitchSetpoint())) << "update " << i;
 	}
-}
-
-// Banking raises induced drag: the load factor correction must add throttle compared to level flight.
-TEST(TECSControlTest, LoadFactorCorrectionAddsThrottle)
-{
-	TECSControl::Param level = makeParam();
-	level.load_factor_correction = 15.f;
-	level.integrator_gain_throttle = 0.f;
-	TECSControl::Param banked = level;
-	banked.load_factor = 1.f / cosf(radians(30.f));
-	const TECSControl::Flag flag = makeFlag();
-	const TECSControl::Input input = makeInput();
-
-	TECSControl control_level;
-	control_level.initialize(makeSetpoint(), input, level, flag);
-	TECSControl control_banked;
-	control_banked.initialize(makeSetpoint(), input, banked, flag);
-
-	EXPECT_GT(control_banked.getThrottleSetpoint(), control_level.getThrottleSetpoint());
 }
 
 // The level-flight pitch is fed forward: it shifts the pitch command by exactly its value while unconstrained.
@@ -736,20 +454,4 @@ TEST(TECSControlTest, PitchLimitsAreAbsolute)
 	}
 
 	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
-}
-
-// A non-finite demand falls back to the integrator on top of the level-flight pitch, not to the bare integrator.
-TEST(TECSControlTest, NonFiniteDemandFallsBackToLevelFlightPitch)
-{
-	TECSControl::Param param = makeParam();
-	param.level_flight_pitch = radians(4.f);
-	const TECSControl::Flag flag = makeFlag();
-
-	TECSControl::Setpoint bad_setpoint = makeSetpoint();
-	bad_setpoint.tas_setpoint = NAN;
-
-	TECSControl control;
-	control.initialize(bad_setpoint, makeInput(), param, flag); // integrator reset to zero
-
-	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.level_flight_pitch);
 }

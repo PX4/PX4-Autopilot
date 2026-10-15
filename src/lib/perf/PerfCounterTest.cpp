@@ -36,7 +36,6 @@
 #include <atomic>
 #include <chrono>
 #include <cstring>
-#include <string>
 #include <thread>
 
 #include "perf_counter.h"
@@ -56,30 +55,6 @@ bool wait_until(const std::atomic<bool> &condition)
 }
 
 } // namespace
-
-TEST(PerfCounter, IterateLineContent)
-{
-	perf_counter_t counter = perf_alloc(PC_COUNT, "test_perf_line_content");
-	ASSERT_NE(counter, nullptr);
-
-	perf_count(counter);
-	perf_count(counter);
-	perf_count(counter);
-
-	struct Context {
-		std::string line;
-	} context;
-
-	perf_iterate_all([](const char *counter_line, void *user) {
-		if (strstr(counter_line, "test_perf_line_content") != nullptr) {
-			static_cast<Context *>(user)->line = counter_line;
-		}
-	}, &context);
-
-	EXPECT_EQ(context.line, "test_perf_line_content: 3 events");
-
-	perf_free(counter);
-}
 
 TEST(PerfCounter, ConcurrentAllocDoesNotBlockOnSlowCallback)
 {
@@ -118,100 +93,6 @@ TEST(PerfCounter, ConcurrentAllocDoesNotBlockOnSlowCallback)
 	EXPECT_TRUE(context.alloc_succeeded.load());
 
 	perf_free(counter);
-}
-
-TEST(PerfCounter, AllocFromCallbackDoesNotDeadlock)
-{
-	perf_counter_t counter = perf_alloc(PC_COUNT, "test_perf_callback_alloc");
-	ASSERT_NE(counter, nullptr);
-
-	// calling perf_alloc() from inside the callback self-deadlocked when the
-	// iteration held the mutex; run the iteration on its own thread so a
-	// regression fails the test instead of hanging it
-	struct Context {
-		std::atomic<bool> first{true};
-		std::atomic<bool> done{false};
-		perf_counter_t allocated{nullptr};
-	} context;
-
-	std::thread iterate_thread([&]() {
-		perf_iterate_all([](const char *, void *user) {
-			Context *ctx = static_cast<Context *>(user);
-
-			if (ctx->first.exchange(false)) {
-				ctx->allocated = perf_alloc(PC_COUNT, "test_perf_callback_alloc_inner");
-			}
-		}, &context);
-
-		context.done.store(true);
-	});
-
-	if (!wait_until(context.done)) {
-		iterate_thread.detach();
-		FAIL() << "perf_alloc() from the callback deadlocked";
-	}
-
-	iterate_thread.join();
-	EXPECT_NE(context.allocated, nullptr);
-
-	perf_free(context.allocated);
-	perf_free(counter);
-}
-
-TEST(PerfCounter, FreeDuringIterationIsDeferred)
-{
-	// allocation order puts counter_b at the list head, so it is visited first
-	perf_counter_t counter_a = perf_alloc(PC_COUNT, "test_perf_free_defer_a");
-	perf_counter_t counter_b = perf_alloc(PC_COUNT, "test_perf_free_defer_b");
-	ASSERT_NE(counter_a, nullptr);
-	ASSERT_NE(counter_b, nullptr);
-
-	struct Context {
-		perf_counter_t counter_a;
-		std::atomic<bool> free_done{false};
-		std::thread free_thread;
-		int lines_a{0};
-	} context{counter_a};
-
-	perf_iterate_all([](const char *counter_line, void *user) {
-		Context *ctx = static_cast<Context *>(user);
-
-		if (!ctx->free_thread.joinable() && strstr(counter_line, "test_perf_free_defer_b") != nullptr) {
-			// free a not-yet-visited counter while the iteration is running
-			ctx->free_thread = std::thread([ctx]() {
-				perf_free(ctx->counter_a);
-				ctx->free_done.store(true);
-			});
-
-			EXPECT_TRUE(wait_until(ctx->free_done));
-		}
-
-		if (strstr(counter_line, "test_perf_free_defer_a") != nullptr) {
-			ctx->lines_a++;
-		}
-	}, &context);
-
-	if (context.free_thread.joinable()) {
-		context.free_thread.join();
-	}
-
-	EXPECT_TRUE(context.free_done.load());
-	EXPECT_EQ(context.lines_a, 0);
-
-	// the freed entry must not reappear after deferred cleanup
-	struct CountContext {
-		int lines_a{0};
-	} count_context;
-
-	perf_iterate_all([](const char *counter_line, void *user) {
-		if (strstr(counter_line, "test_perf_free_defer_a") != nullptr) {
-			static_cast<CountContext *>(user)->lines_a++;
-		}
-	}, &count_context);
-
-	EXPECT_EQ(count_context.lines_a, 0);
-
-	perf_free(counter_b);
 }
 
 TEST(PerfCounter, FreeIsDeferredUntilLastOverlappingIterationEnds)

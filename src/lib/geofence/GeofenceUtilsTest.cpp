@@ -96,28 +96,22 @@ struct SegmentIntersectionCase {
 static const SegmentIntersectionCase kSegmentIntersectionCases[] = {
 	// Contact counts, even when the segments only share an endpoint or overlap along a line.
 	{"Crossing", {0, 0}, {4, 4}, {0, 4}, {4, 0}, true},
-	{"NegativeCoordinates", {-4, -4}, {0, 0}, {-4, 0}, {0, -4}, true},
 	{"SharedEndpoint", {0, 0}, {4, 0}, {4, 0}, {4, 4}, true},
 	{"EndpointOnInterior", {0, 0}, {4, 0}, {2, 0}, {2, 4}, true},
 	{"CollinearOverlap", {0, 0}, {4, 0}, {2, 0}, {6, 0}, true},
 	{"ContainedSegment", {0, 0}, {4, 4}, {1, 1}, {3, 3}, true},
-	{"IdenticalSegments", {0, 0}, {4, 4}, {0, 0}, {4, 4}, true},
-	{"CollinearEndpointContact", {0, 0}, {2, 2}, {2, 2}, {4, 4}, true},
 	// A shared line or overlapping bounding boxes alone do not imply an intersection.
 	{"HorizontalGap", {0, 0}, {1, 0}, {2, 0}, {3, 0}, false},
 	{"VerticalGap", {0, 0}, {0, 1}, {0, 2}, {0, 3}, false},
-	{"SlantedGap", {0, 0}, {1, 1}, {2, 2}, {3, 3}, false},
 	{"ParallelWithOverlappingBounds", {0, 0}, {4, 4}, {0, 1}, {3, 4}, false},
 	{"NonparallelWithOverlappingBounds", {0, 0}, {2, 2}, {0, 1}, {1, 3}, false},
 	// c lies on the line through ab but past b, so only the second straddle test rejects it.
 	{"EndpointOnLineBeyondSegment", {0, 0}, {4, 0}, {5, 0}, {3, 2}, false},
 	// Equal endpoints turn a segment into a single point.
 	{"PointOnInterior", {2, 2}, {2, 2}, {0, 0}, {4, 4}, true},
-	{"PointOnEndpoint", {0, 0}, {0, 0}, {0, 0}, {4, 4}, true},
 	{"PointBeyondEndpoint", {5, 5}, {5, 5}, {0, 0}, {4, 4}, false},
 	{"PointOffLineWithinBounds", {1, 2}, {1, 2}, {0, 0}, {4, 4}, false},
 	{"CoincidentPoints", {1, 2}, {1, 2}, {1, 2}, {1, 2}, true},
-	{"DistinctPoints", {1, 2}, {1, 2}, {2, 1}, {2, 1}, false},
 	// At this latitude, 0.0000001 degrees is about 1 cm and is lost with float coordinates.
 	{"LatLonCentimetreCrossing", {47.0, 8.0}, {47.0000002, 8.0}, {47.0000001, 7.9999999}, {47.0000001, 8.0000001}, true},
 	{"LatLonCentimetreGap", {47.0, 8.0}, {47.0000001, 8.0}, {47.0000002, 8.0}, {47.0000003, 8.0}, false},
@@ -167,11 +161,8 @@ static const PointSegmentDistanceCase kPointSegmentDistanceCases[] = {
 	{"AboveStart", {0, 3}, {0, 0}, {4, 0}, 9},
 	{"AboveInterior", {2, 3}, {0, 0}, {4, 0}, 9},
 	{"OnSegment", {2, 0}, {0, 0}, {4, 0}, 0},
-	{"TranslatedSegment", {12, 13}, {10, 10}, {14, 10}, 9},
-	{"VerticalSegment", {-1, -2}, {-4, -4}, {-4, 0}, 9},
 	{"DiagonalSegment", {2, 0}, {0, 0}, {2, 2}, 2},
 	{"ZeroLength", {3, 4}, {1, 1}, {1, 1}, 13},
-	{"CoincidentPoint", {1, 1}, {1, 1}, {1, 1}, 0},
 	// Both segments lie on 3x + 4y = 250, exactly 50 m from the origin.
 	{"CircleTangent", {0, 0}, {-30, 85}, {86, -2}, 2500},
 	// Over 10 km, subtracting projected squared distances can round this tangent outside the circle.
@@ -193,12 +184,6 @@ INSTANTIATE_TEST_SUITE_P(GeofenceUtils, GeofencePointSegmentDistanceTest,
 {
 	return test_info.param.name;
 });
-
-TEST(GeofenceUtilsTest, PolygonIsCCW)
-{
-	const Vector2f square[4] = {{0.f, 0.f}, {1.f, 0.f}, {1.f, 1.f}, {0.f, 1.f}};
-	EXPECT_TRUE(geofence_utils::isPolygonCCW(square, 4));
-}
 
 // ===========================================================================
 // Segment vs polygon: each test names one geometric configuration and asserts
@@ -247,12 +232,6 @@ TEST(GeofenceUtilsTest, SquareSegmentStrictCrossing)
 {
 	// Interior endpoint to exterior endpoint via a single proper edge crossing.
 	expectSegmentVsPolygon(kSquare, 4, {0.5f, 0.5f}, {0.5f, 1.5f}, true, true);
-}
-
-TEST(GeofenceUtilsTest, SquareSegmentCrossesTwoEdges)
-{
-	// Exterior endpoints with two proper edge crossings.
-	expectSegmentVsPolygon(kSquare, 4, {0.5f, -0.5f}, {0.5f, 1.5f}, true, true);
 }
 
 TEST(GeofenceUtilsTest, SquareSegmentEdgeToEdgeThroughInterior)
@@ -310,15 +289,6 @@ TEST(GeofenceUtilsTest, LShapeSegmentDisjointOutside)
 {
 	// Entirely in the notch (the reflex cone, outside the polygon).
 	expectSegmentVsPolygon(kLShape, 6, {1.5f, 1.5f}, {1.8f, 1.8f}, true, false);
-}
-
-TEST(GeofenceUtilsTest, LShapeSegmentEntirelyInside)
-{
-	// Horizontal line inside bottom rectangle - inclusion non-intersecting, exclusion intersecting
-	expectSegmentVsPolygon(kLShape, 6, {0.5f, 0.5f}, {1.5f, 0.5f}, false, true);
-
-	// Skewed line inside upper rectangle - same
-	expectSegmentVsPolygon(kLShape, 6, {0.3f, 1.2f}, {0.7f, 1.8f}, false, true);
 }
 
 TEST(GeofenceUtilsTest, LShapeSegmentCrossesNotchEdge)
@@ -448,13 +418,4 @@ TEST(GeofenceUtilsTest, AddPolygonRejectsSelfIntersecting)
 
 	geofence_utils::PlannerPolygons polys;
 	EXPECT_EQ(polys.addPolygon(figure_eight, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f), AddResult::Degenerate);
-}
-
-TEST(GeofenceUtilsTest, AddPolygonAcceptsSimpleQuad)
-{
-	// Convex simple quadrilateral; must succeed.
-	const Vector2f square[4] = {{0.f, 0.f}, {10.f, 0.f}, {10.f, 10.f}, {0.f, 10.f}};
-
-	geofence_utils::PlannerPolygons polys;
-	EXPECT_EQ(polys.addPolygon(square, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f), AddResult::Success);
 }

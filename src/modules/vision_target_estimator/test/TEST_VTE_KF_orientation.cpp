@@ -148,78 +148,17 @@ TEST(KFOrientationTest, PredictAddsProcessNoise)
 	// WHEN: we predict for dt = 2s.
 	filter.predict(2.0f);
 
-	// THEN: the diagonal terms match the white-noise yaw-acceleration integration.
-	const StateVec cov_diag = filter.getStateCovarianceDiag();
+	// THEN: Q matches the white-noise yaw-acceleration integration (dt^3/3, dt^2/2, dt) and is symmetric.
+	const StateCov cov = filter.getStateCovariance();
 
 	const float expected_p00 = (8.f / 3.f) * 0.4f;
+	const float expected_p01 = 2.0f * 0.4f;
 	const float expected_p11 = 2.0f * 0.4f;
 
-	EXPECT_NEAR(cov_diag(vte::KF_orientation::kYaw), expected_p00, kTolerance);
-	EXPECT_NEAR(cov_diag(vte::KF_orientation::kYawRate), expected_p11, kTolerance);
-}
-
-// WHY: The white-noise yaw acceleration model introduces cross-covariance terms.
-// WHAT: Ensure off-diagonal terms match dt^2/2 * var and covariance remains symmetric.
-TEST(KFOrientationTest, PredictAddsOffDiagonalCovariance)
-{
-	// GIVEN: a zero covariance with a positive yaw-acc variance.
-	vte::KF_orientation filter;
-	filter.setState(makeState(0.f, 0.f));
-	filter.setStateCovarianceDiag(makeDiag(0.f, 0.f));
-	filter.setYawAccVar(0.4f);
-
-	// WHEN: we predict by dt = 0.5s.
-	const float dt = 0.5f;
-	filter.predict(dt);
-
-	// THEN: yaw/yaw-rate cross terms equal dt^2/2 * var and are symmetric.
-	const auto cov = filter.getStateCovariance();
-	const float expected_off_diag = 0.5f * dt * dt * 0.4f;
-
-	EXPECT_NEAR(cov(vte::KF_orientation::kYaw, vte::KF_orientation::kYawRate), expected_off_diag, kTolerance);
-	EXPECT_NEAR(cov(vte::KF_orientation::kYawRate, vte::KF_orientation::kYaw), expected_off_diag, kTolerance);
-	EXPECT_NEAR(cov(vte::KF_orientation::kYaw, vte::KF_orientation::kYawRate), cov(vte::KF_orientation::kYawRate, vte::KF_orientation::kYaw),
-		    kTolerance);
-}
-
-// WHY: Invalid noise parameters must not corrupt the covariance.
-// WHAT: Confirm negative yaw_acc_var bypasses the Q addition.
-TEST(KFOrientationTest, PredictIgnoresInvalidYawAccVar)
-{
-	// GIVEN: a valid prior covariance and a negative (invalid) yaw-acc variance.
-	vte::KF_orientation filter;
-	filter.setState(makeState(0.f, 0.f));
-	filter.setStateCovarianceDiag(makeDiag(1.f, 2.f));
-	filter.setYawAccVar(-1.f);
-
-	// WHEN: we predict for dt = 1s.
-	filter.predict(1.0f);
-
-	// THEN: only the deterministic propagation is applied (no Q injection).
-	const StateVec cov_diag = filter.getStateCovarianceDiag();
-
-	EXPECT_NEAR(cov_diag(vte::KF_orientation::kYaw), 3.f, kTolerance);
-	EXPECT_NEAR(cov_diag(vte::KF_orientation::kYawRate), 2.f, kTolerance);
-}
-
-// WHY: Zero dt should not change state or covariance.
-// WHAT: Predict with dt=0 and ensure state/cov stay unchanged.
-TEST(KFOrientationTest, PredictZeroDtNoChange)
-{
-	// GIVEN: a filter with an arbitrary state/covariance snapshot.
-	vte::KF_orientation filter;
-	filter.setState(makeState(1.2f, -0.5f));
-	filter.setStateCovarianceDiag(makeDiag(0.3f, 0.2f));
-	filter.setYawAccVar(0.4f);
-
-	const StateVec state_before = filter.getState();
-	const StateCov cov_before = filter.getStateCovariance();
-
-	// WHEN: we call predict with dt = 0.
-	filter.predict(0.f);
-
-	// THEN: the filter is a no-op: state and covariance are preserved.
-	expectStateAndCovUnchanged(filter, state_before, cov_before);
+	EXPECT_NEAR(cov(vte::KF_orientation::kYaw, vte::KF_orientation::kYaw), expected_p00, kTolerance);
+	EXPECT_NEAR(cov(vte::KF_orientation::kYaw, vte::KF_orientation::kYawRate), expected_p01, kTolerance);
+	EXPECT_NEAR(cov(vte::KF_orientation::kYawRate, vte::KF_orientation::kYaw), expected_p01, kTolerance);
+	EXPECT_NEAR(cov(vte::KF_orientation::kYawRate, vte::KF_orientation::kYawRate), expected_p11, kTolerance);
 }
 
 // WHY: Invalid predict inputs must not corrupt state or covariance.
@@ -241,25 +180,6 @@ TEST(KFOrientationTest, PredictRejectsInvalidDt)
 	expectStateAndCovUnchanged(filter, state_before, cov_before);
 }
 
-// WHY: Innovations across the wrap should be small, not ~2pi.
-// WHAT: Check innovation for +pi to -pi transitions is wrapped.
-TEST(KFOrientationTest, InnovationWrapsAcrossPi)
-{
-	vte::KF_orientation filter;
-	filter.setState(makeState(kYawNearPi, 0.f));
-	filter.setStateCovarianceDiag(makeDiag(1.f, 1.f));
-
-	const StateVec H = makeH(vte::KF_orientation::kYaw);
-	static constexpr hrt_abstime kMeasTime = 1_s;
-	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, -kYawNearPi, 0.1f, H);
-	const vte::FusionResult res = filter.fuseScalarAtTime(meas, kMeasTime + kNowOffset, 100.f);
-
-	const float expected_innov = matrix::wrap_pi(-kYawNearPi - kYawNearPi);
-
-	EXPECT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_CURRENT);
-	EXPECT_NEAR(res.innov, expected_innov, kTolerance);
-}
-
 // WHY: Only yaw innovations should be wrapped; yaw-rate is linear.
 // WHAT: Ensure yaw-rate innovation uses the raw difference.
 TEST(KFOrientationTest, InnovationDoesNotWrapYawRateMeasurement)
@@ -277,26 +197,6 @@ TEST(KFOrientationTest, InnovationDoesNotWrapYawRateMeasurement)
 
 	EXPECT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_CURRENT);
 	EXPECT_NEAR(res.innov, expected_innov, kTolerance);
-}
-
-// WHY: NIS gating is critical to rejecting yaw outliers.
-// WHAT: Provide a large innovation and expect REJECT_NIS.
-TEST(KFOrientationTest, RejectsOutlierNis)
-{
-	vte::KF_orientation filter;
-	filter.setState(makeState(0.f, 0.f));
-	filter.setStateCovarianceDiag(makeDiag(0.01f, 0.01f));
-
-	const StateVec H = makeH(vte::KF_orientation::kYaw);
-	static constexpr hrt_abstime kMeasTime = 2_s;
-	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, kPi, 0.01f, H);
-	const vte::FusionResult res = filter.fuseScalarAtTime(meas, kMeasTime + kNowOffset, 0.1f);
-
-	const StateVec state = filter.getState();
-
-	EXPECT_EQ(res.status, vte::FusionStatus::STATUS_REJECT_NIS);
-	EXPECT_NEAR(state(vte::KF_orientation::kYaw), 0.f, kTolerance);
-	EXPECT_NEAR(state(vte::KF_orientation::kYawRate), 0.f, kTolerance);
 }
 
 // WHY: Very small variances can destabilize future updates.

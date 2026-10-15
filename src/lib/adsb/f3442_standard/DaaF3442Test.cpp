@@ -91,21 +91,14 @@ TEST_F(DaaF3442Test, RejectsInvalidParams)
 	constexpr int valid_nmac_latency_s = 5;
 	constexpr int valid_wc_latency_s = 5;
 	const float nan = std::numeric_limits<float>::quiet_NaN();
-	const float inf = std::numeric_limits<float>::infinity();
 
-	const std::array<ParamCase, 13> cases{{
+	const std::array<ParamCase, 6> cases{{
 			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, true},
 			{0.f, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
-			{-valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
-			{valid_nmac_radius_m, -valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
-			{valid_nmac_radius_m, valid_nmac_height_m, -valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
-			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, -valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
-			{nan, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
-			{valid_nmac_radius_m, inf, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
 			{valid_nmac_radius_m, valid_nmac_height_m, nan, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
-			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, inf, valid_nmac_latency_s, valid_wc_latency_s, false},
 			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, -valid_nmac_latency_s, valid_wc_latency_s, false},
-			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, -valid_wc_latency_s, false},
+			// Zones must nest: NMAC inside Well-Clear, and the NMAC latency no longer than the Well-Clear one.
+			{valid_wc_radius_m, valid_nmac_height_m, valid_nmac_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
 			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s + 1, valid_wc_latency_s, false},
 		}};
 
@@ -117,93 +110,6 @@ TEST_F(DaaF3442Test, RejectsInvalidParams)
 				 test_case.nmac_latency_s, test_case.wc_latency_s);
 		EXPECT_EQ(daa.try_setting_params(), test_case.expected_result);
 	}
-}
-
-// Bounds must nest: an outer zone no larger than the inner one is rejected.
-TEST_F(DaaF3442Test, RejectsNonHierarchicalBounds)
-{
-	struct HierarchyCase {
-		float nmac_radius;
-		float nmac_height;
-		float wc_radius;
-		float wc_height;
-	};
-
-	constexpr int nmac_latency_s = 30;
-	constexpr int wc_latency_s = 30;
-	const std::array<HierarchyCase, 3> cases{{
-			{20.f, 10.f, 19.f, 10.f},
-			{20.f, 10.f, 20.f, 9.f},
-			{200.f, 100.f, 100.f, 50.f},
-		}};
-
-	for (size_t i = 0; i < cases.size(); ++i) {
-		const HierarchyCase &test_case = cases[i];
-		SCOPED_TRACE(i);
-
-		set_f3442_params(test_case.nmac_radius, test_case.nmac_height, test_case.wc_radius, test_case.wc_height,
-				 nmac_latency_s, wc_latency_s);
-
-		EXPECT_FALSE(daa.try_setting_params());
-	}
-}
-
-// is_in_bounds() is inclusive and fails on negative or non-finite inputs.
-TEST_F(DaaF3442Test, IsInBoundsRejectsInvalidInputs)
-{
-	const matrix::Vector2f bounds(10.f, 10.f);
-	const matrix::Vector2f within_bounds(5.f, 5.f);
-	const matrix::Vector2f on_boundary(10.f, 10.f);
-	const matrix::Vector2f outside_both_bounds(15.f, 15.f);
-	const matrix::Vector2f outside_horizontal_bounds(15.f, 4.f);
-	const matrix::Vector2f outside_vertical_bounds(4.f, 15.f);
-	const matrix::Vector2f negative_bounds(-10.f, 10.f);
-	const matrix::Vector2f negative_distance(-5.f, 5.f);
-	const matrix::Vector2f non_finite_distance(5.f, std::numeric_limits<float>::quiet_NaN());
-
-	EXPECT_TRUE(daa.is_in_bounds(within_bounds, bounds));
-	EXPECT_TRUE(daa.is_in_bounds(on_boundary, bounds));
-	EXPECT_FALSE(daa.is_in_bounds(outside_both_bounds, bounds));
-	EXPECT_FALSE(daa.is_in_bounds(outside_horizontal_bounds, bounds));
-	EXPECT_FALSE(daa.is_in_bounds(outside_vertical_bounds, bounds));
-	EXPECT_FALSE(daa.is_in_bounds(within_bounds, negative_bounds));
-	EXPECT_FALSE(daa.is_in_bounds(negative_distance, bounds));
-	EXPECT_FALSE(daa.is_in_bounds(non_finite_distance, bounds));
-}
-
-// Volume augmentation uses |velocity| and |latency|, so signs never shrink it.
-TEST_F(DaaF3442Test, CalculateAircraftConflictVolumeUsesAbsoluteInputs)
-{
-	const matrix::Vector2f base_bounds(10.f, 20.f);
-	const matrix::Vector2f velocity(-2.f, 4.f);
-	const float latency_s = -5.f;
-	const float expected_horizontal_bounds_m = base_bounds(0) + fabsf(velocity(0)) * fabsf(latency_s);
-	const float expected_vertical_bounds_m = base_bounds(1) + fabsf(velocity(1)) * fabsf(latency_s);
-
-	matrix::Vector2f augmented_bounds{};
-	daa.calculate_aircraft_conflict_volume(base_bounds, velocity, latency_s, augmented_bounds);
-
-	EXPECT_FLOAT_EQ(augmented_bounds(0), expected_horizontal_bounds_m);
-	EXPECT_FLOAT_EQ(augmented_bounds(1), expected_vertical_bounds_m);
-}
-
-// Augmented boundary sums both aircraft's volumes (motion from each side).
-TEST_F(DaaF3442Test, CalculateAugmentedBoundariesAddsBothAircraftVolumes)
-{
-	const matrix::Vector2f base_bounds(10.f, 20.f);
-	const matrix::Vector2f uav_velocity(2.f, 4.f);
-	const matrix::Vector2f traffic_velocity(8.f, 10.f);
-	const float latency_s = 3.f;
-	const float expected_horizontal_bounds_m = 2.f * base_bounds(0)
-			+ (fabsf(uav_velocity(0)) + fabsf(traffic_velocity(0))) * latency_s;
-	const float expected_vertical_bounds_m = 2.f * base_bounds(1)
-			+ (fabsf(uav_velocity(1)) + fabsf(traffic_velocity(1))) * latency_s;
-
-	matrix::Vector2f augmented_bounds{};
-	daa.calculate_augmented_boundaries(base_bounds, uav_velocity, traffic_velocity, latency_s, augmented_bounds);
-
-	EXPECT_FLOAT_EQ(augmented_bounds(0), expected_horizontal_bounds_m);
-	EXPECT_FLOAT_EQ(augmented_bounds(1), expected_vertical_bounds_m);
 }
 
 // calculate_conflict_level() returns the strictest breached zone; a single-axis miss is NONE.

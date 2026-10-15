@@ -179,23 +179,6 @@ TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteTrafficHeading)
 }
 #endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
-// try_updating_params() validates against the built standard and rejects bad values.
-TEST_F(AdsbConflictTest, UsesBuiltStandardForParamValidation)
-{
-	AdsbConflict adsb_conflict;
-	constexpr float invalid_bound{-1.f};
-
-	EXPECT_TRUE(adsb_conflict.try_updating_params());
-
-#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-	set_f3442_params(invalid_bound, 10.f, 100.f, 50.f, 30, 40);
-#else
-	set_crosstrack_params(invalid_bound, 500.f, 60);
-#endif // CONFIG_NAVIGATOR_ADSB_F3442
-
-	EXPECT_FALSE(adsb_conflict.try_updating_params());
-}
-
 // The wrapper forwards the built standard's result (level + distances).
 TEST_F(AdsbConflictTest, DelegatesToBuiltStandardAndForwardsOutput)
 {

@@ -48,7 +48,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <initializer_list>
 #include <vector>
 
 #include "navigation.h"
@@ -59,18 +58,11 @@ namespace navigator_test
 class VectorMissionItemStore
 {
 public:
-	/** Replace all stored items and clear any configured load and write failures. */
+	/** Replace all stored items and clear any configured load failures. */
 	void setItems(const std::vector<mission_item_s> &items)
 	{
 		_items = items;
 		clearLoadFailures();
-		clearWriteFailures();
-	}
-
-	/** Configure indices whose loadItem() calls should fail. */
-	void setLoadFailureIndices(std::initializer_list<int32_t> indices)
-	{
-		_load_failure_indices.assign(indices.begin(), indices.end());
 	}
 
 	/** Configure indices whose loadItem() calls should fail. */
@@ -85,28 +77,13 @@ public:
 		_load_failure_indices.clear();
 	}
 
-	/** Configure indices whose writeItem() calls should fail. */
-	void setWriteFailureIndices(std::initializer_list<int32_t> indices)
-	{
-		_write_failure_indices.assign(indices.begin(), indices.end());
-	}
-
-	/** Remove all injected write failures. */
-	void clearWriteFailures()
-	{
-		_write_failure_indices.clear();
-	}
-
 	/** Check write eligibility without changing the stored item. */
 	bool canWriteItem(int32_t index) const
 	{
-		return index >= 0
-		       && static_cast<std::size_t>(index) < _items.size()
-		       && std::find(_write_failure_indices.begin(), _write_failure_indices.end(), index)
-		       == _write_failure_indices.end();
+		return index >= 0 && static_cast<std::size_t>(index) < _items.size();
 	}
 
-	/** Return false for injected failures and out-of-range indices; otherwise store the item. */
+	/** Return false for out-of-range indices; otherwise store the item. */
 	bool writeItem(int32_t index, const mission_item_s &mission_item)
 	{
 		if (!canWriteItem(index)) {
@@ -142,7 +119,6 @@ public:
 private:
 	std::vector<mission_item_s> _items;
 	std::vector<int32_t> _load_failure_indices;
-	std::vector<int32_t> _write_failure_indices;
 };
 
 } // namespace navigator_test

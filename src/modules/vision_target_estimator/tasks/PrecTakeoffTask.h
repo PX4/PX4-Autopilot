@@ -49,9 +49,6 @@
 
 #include "VteTask.h"
 
-class VisionTargetEstTest;
-class VisionTargetEstTestable;
-
 namespace vision_target_estimator
 {
 
@@ -76,9 +73,6 @@ public:
 	bool updateHomeReference(bool report_distance_warning = true);
 
 private:
-	friend class ::VisionTargetEstTest;
-	friend class ::VisionTargetEstTestable;
-
 	struct HomeReference {
 		bool valid{false};
 		double lat_deg{0.0};

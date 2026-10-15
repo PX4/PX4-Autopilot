@@ -42,6 +42,8 @@ namespace
 
 constexpr uint8_t CRSF_HEADER_VALUE = 0xC8;
 constexpr uint8_t CRSF_CHANNEL_TYPE = 0x16;
+constexpr uint8_t CRSF_LINK_STATISTICS_TX_TYPE = 0x1D;
+constexpr uint8_t CRSF_ELRS_STATUS_TYPE = 0x2E;
 constexpr uint8_t CRSF_UNSUPPORTED_TYPE = 0xA8;
 constexpr size_t CRSF_CHANNEL_PAYLOAD_SIZE = 22;
 
@@ -62,6 +64,18 @@ protected:
 		Crc8Init(0xD5);
 		CrsfParser_Init();
 	}
+
+	void expectChannelFrameParses()
+	{
+		const std::vector<uint8_t> channel_frame = makeFrame(CRSF_CHANNEL_TYPE,
+				std::vector<uint8_t>(CRSF_CHANNEL_PAYLOAD_SIZE));
+		ASSERT_TRUE(CrsfParser_LoadBuffer(channel_frame.data(), channel_frame.size()));
+
+		CrsfPacket_t packet{};
+		CrsfParserStatistics_t statistics{};
+		ASSERT_TRUE(CrsfParser_TryParseCrsfPacket(&packet, &statistics));
+		EXPECT_EQ(packet.message_type, CRSF_MESSAGE_TYPE_RC_CHANNELS);
+	}
 };
 
 TEST_F(CrsfParserTest, UnsupportedTypeIsIgnoredAndParserRecovers)
@@ -76,12 +90,49 @@ TEST_F(CrsfParserTest, UnsupportedTypeIsIgnoredAndParserRecovers)
 	EXPECT_EQ(statistics.crcs_valid_unknown_packets, 1u);
 	EXPECT_EQ(CrsfParser_FreeQueueSize(), empty_queue_size);
 
-	const std::vector<uint8_t> channel_frame = makeFrame(CRSF_CHANNEL_TYPE,
-			std::vector<uint8_t>(CRSF_CHANNEL_PAYLOAD_SIZE));
-	ASSERT_TRUE(CrsfParser_LoadBuffer(channel_frame.data(), channel_frame.size()));
-	ASSERT_TRUE(CrsfParser_TryParseCrsfPacket(&packet, &statistics));
-	EXPECT_EQ(packet.message_type, CRSF_MESSAGE_TYPE_RC_CHANNELS);
+	expectChannelFrameParses();
 	EXPECT_EQ(CrsfParser_FreeQueueSize(), empty_queue_size);
+}
+
+TEST_F(CrsfParserTest, TruncatedVariableLengthFramesAreRejectedAndParserRecovers)
+{
+	for (const uint8_t type : {CRSF_LINK_STATISTICS_TX_TYPE, CRSF_ELRS_STATUS_TYPE}) {
+		const std::vector<uint8_t> frame = makeFrame(type, std::vector<uint8_t>(5));
+		ASSERT_TRUE(CrsfParser_LoadBuffer(frame.data(), frame.size()));
+
+		CrsfPacket_t packet{};
+		CrsfParserStatistics_t statistics{};
+		EXPECT_FALSE(CrsfParser_TryParseCrsfPacket(&packet, &statistics));
+		EXPECT_EQ(statistics.invalid_known_packet_sizes, 1u);
+
+		expectChannelFrameParses();
+	}
+}
+
+TEST_F(CrsfParserTest, VariableLengthFramesAcceptMinimumAndTrailingFields)
+{
+	CrsfPacket_t packet{};
+	CrsfParserStatistics_t statistics{};
+	const std::vector<uint8_t> link_statistics = makeFrame(CRSF_LINK_STATISTICS_TX_TYPE,
+			std::vector<uint8_t> {1, 2, 3, 4, 5, 6});
+	ASSERT_TRUE(CrsfParser_LoadBuffer(link_statistics.data(), link_statistics.size()));
+	ASSERT_TRUE(CrsfParser_TryParseCrsfPacket(&packet, &statistics));
+	EXPECT_EQ(packet.message_type, CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX);
+	EXPECT_EQ(packet.link_statistics_tx.uplink_fps, 6);
+
+	const std::vector<uint8_t> elrs_status_min = makeFrame(CRSF_ELRS_STATUS_TYPE,
+			std::vector<uint8_t> {0xEA, 0xEE, 3, 0x01, 0x23, 0x80});
+	ASSERT_TRUE(CrsfParser_LoadBuffer(elrs_status_min.data(), elrs_status_min.size()));
+	ASSERT_TRUE(CrsfParser_TryParseCrsfPacket(&packet, &statistics));
+	EXPECT_EQ(packet.message_type, CRSF_MESSAGE_TYPE_ELRS_STATUS);
+	EXPECT_STREQ(packet.elrs_status.message, "");
+
+	const std::vector<uint8_t> elrs_status = makeFrame(CRSF_ELRS_STATUS_TYPE,
+			std::vector<uint8_t> {0xEA, 0xEE, 3, 0x01, 0x23, 0x80, 'O', 'K'});
+	ASSERT_TRUE(CrsfParser_LoadBuffer(elrs_status.data(), elrs_status.size()));
+	ASSERT_TRUE(CrsfParser_TryParseCrsfPacket(&packet, &statistics));
+	EXPECT_EQ(packet.message_type, CRSF_MESSAGE_TYPE_ELRS_STATUS);
+	EXPECT_STREQ(packet.elrs_status.message, "OK");
 }
 
 } // namespace

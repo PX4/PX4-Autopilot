@@ -101,17 +101,6 @@ protected:
 class DatamanClientTestPeer
 {
 public:
-	static bool completeOperationWithFailure(DatamanClient &client)
-	{
-		if (client._state != DatamanClient::State::RequestSent) {
-			return false;
-		}
-
-		client._response_status = dataman_response_s::STATUS_FAILURE_READ_FAILED;
-		client._state = DatamanClient::State::ResponseReceived;
-		return true;
-	}
-
 	// Point the pending read at an index the dataman rejects and let the client's own retransmit
 	// fetch a genuine failed response, so the regular response handling runs.
 	static bool failPendingReadThroughDataman(DatamanClient &client)
@@ -162,32 +151,5 @@ public:
 
 		client.update();
 		return client._state != DatamanClient::State::RequestSent;
-	}
-};
-
-class DatamanCacheTestPeer
-{
-public:
-	static bool processNextBlocking(DatamanCache &cache, hrt_abstime timeout)
-	{
-		if (cache._item_counter == 0) {
-			return true;
-		}
-
-		cache.update();
-
-		if (cache._item_counter == 0) {
-			return true;
-		}
-
-		if (cache._items[cache._update_index].cache_state == DatamanCache::State::RequestSent) {
-			if (!DatamanClientTestPeer::waitForOperation(cache._client, timeout)) {
-				return false;
-			}
-
-			cache.update();
-		}
-
-		return true;
 	}
 };

@@ -47,8 +47,6 @@
 
 #include "navigation.h"
 
-class MissionRouteCacheTestPeer;
-
 class FullMissionCache
 {
 public:
@@ -92,8 +90,6 @@ public:
 	orb_sub_t responseSubscription() const;
 
 private:
-	friend class MissionRouteCacheTestPeer;
-
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	static constexpr hrt_abstime kCacheRetryBackoff {500000}; // 500 ms
 	static constexpr uint8_t kMaxRetryBackoffShift{3}; // Retry 3+: 500ms << 3 = 4000 ms.
