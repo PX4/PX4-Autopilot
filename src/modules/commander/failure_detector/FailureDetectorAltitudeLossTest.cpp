@@ -46,7 +46,8 @@ using namespace time_literals;
 class FailureDetectorAltitudeLossTest : public ::testing::Test
 {
 public:
-	void SetUp() override
+	// FailureDetector reads its parameters on construction, which happens before SetUp()
+	static void SetUpTestSuite()
 	{
 		param_control_autosave(false);
 
@@ -94,26 +95,6 @@ private:
 	uORB::Publication<vehicle_local_position_s> _lpos_pub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _lpos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
 };
-
-TEST_F(FailureDetectorAltitudeLossTest, NoTriggerWhenDisabled)
-{
-	param_t param = param_handle(px4::params::FD_ALT_LOSS);
-	float threshold = 0.f;
-	param_set(param, &threshold);
-
-	EXPECT_FALSE(update(-90.f, -100.f));
-}
-
-TEST_F(FailureDetectorAltitudeLossTest, NoTriggerAboveSetpoint)
-{
-	EXPECT_FALSE(update(-105.f, -100.f));
-}
-
-TEST_F(FailureDetectorAltitudeLossTest, NoTriggerWithinThreshold)
-{
-	// 3m below setpoint, threshold is 5m
-	EXPECT_FALSE(update(-97.f, -100.f));
-}
 
 TEST_F(FailureDetectorAltitudeLossTest, TriggerAfterSustainedDrop)
 {

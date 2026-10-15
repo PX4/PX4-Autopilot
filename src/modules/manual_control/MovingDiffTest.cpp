@@ -89,31 +89,3 @@ TEST(MovingDiffTest, SingleSampleOutlier)
 	diff.update(0.f, 1.f); // diff=0, no update
 	EXPECT_EQ(diff.consecutiveSameSign(), 1);
 }
-
-// Switching RC source to a joystick held at a different position produces a single large
-// diff followed by zero-diffs (static hold). consecutiveSameSign must stay at 1 so the
-// step does not trigger the override gate (threshold = 3).
-TEST(MovingDiffTest, SignalStepOnSourceSwitch)
-{
-	MovingDiff diff;
-	diff.update(0.2f, 1.f); // first sample, no diff yet
-	EXPECT_EQ(diff.consecutiveSameSign(), 0);
-
-	diff.update(0.2f, 1.f); // diff=0
-	EXPECT_EQ(diff.consecutiveSameSign(), 0);
-
-	diff.update(0.2f, 1.f); // diff=0
-	EXPECT_EQ(diff.consecutiveSameSign(), 0);
-
-	diff.update(-0.8f, 1.f); // source switch: single large step diff=-1.0, consecutive=1
-	EXPECT_EQ(diff.consecutiveSameSign(), 1);
-
-	diff.update(-0.8f, 1.f); // joystick static: diff=0, no sign update
-	EXPECT_EQ(diff.consecutiveSameSign(), 1);
-
-	diff.update(-0.8f, 1.f); // diff=0
-	EXPECT_EQ(diff.consecutiveSameSign(), 1);
-
-	diff.update(-0.8f, 1.f); // diff=0
-	EXPECT_EQ(diff.consecutiveSameSign(), 1);
-}

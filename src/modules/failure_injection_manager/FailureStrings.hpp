@@ -36,8 +36,7 @@
  *
  * Human-readable names for the failure injection announcement: failure unit
  * and type names (matching the keys of the `failure` console command) and the
- * instance-mask-to-phrase formatter. Header-only and free of the uORB runtime
- * so it can be unit tested alongside FailureTable.
+ * instance-mask-to-phrase formatter.
  */
 
 #pragma once

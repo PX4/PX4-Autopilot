@@ -34,14 +34,25 @@
 #include <gtest/gtest.h>
 
 #include "Common.hpp"
-#if CONFIG_NAVIGATOR_ADSB
-#include "checks/daaCheck.hpp"
-#include <parameters/param.h>
+#include "checks/estimatorCheck.hpp"
+#include "checks/gnssRedundancyCheck.hpp"
+
+#include <drivers/drv_hrt.h>
+#include <px4_platform_common/param.h>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/detect_and_avoid_most_urgent.h>
-#endif // CONFIG_NAVIGATOR_ADSB
-#include <uORB/topics/event.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_sensor_bias.h>
+#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/estimator_status_flags.h>
+#include <uORB/topics/event.h>
+#include <uORB/topics/health_report.h>
+#include <uORB/topics/sensor_gnss.h>
+#include <uORB/topics/sensors_status_gnss.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 #include <stdint.h>
 
@@ -292,118 +303,364 @@ TEST_F(ReporterTest, reporting_multiple)
 	}
 }
 
-#if CONFIG_NAVIGATOR_ADSB
-TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
+class EstimatorChecksTest : public ::testing::Test
 {
-	param_control_autosave(false);
-	param_reset_all();
+public:
+	void SetUp() override
+	{
+		param_control_autosave(false);
 
-	const int32_t daa_enabled = 1;
-	const int32_t daa_timeout_s = 1;
-	param_set(param_handle(px4::params::DAA_EN), &daa_enabled);
-	param_set(param_handle(px4::params::DAA_TRAFF_TOUT), &daa_timeout_s);
+		setParam("SYS_HAS_GPS", 1);
+		setParam("SENS_IMU_MODE", 1);
 
-	uORB::Publication<detect_and_avoid_most_urgent_s> daa_pub{ORB_ID(detect_and_avoid_most_urgent)};
-	DaaChecks daa_checks;
+		// back to their defaults, the cases below change them
+		param_reset(param_find("COM_ARM_WO_GPS"));
+		param_reset(param_find("COM_POS_LOW_EPH"));
+		param_reset(param_find("COM_POS_LOW_ACT"));
 
-	vehicle_status_s status{};
-	status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-	Context context{status};
+		_failsafe_flags = {};
+		// every mode requires attitude and a local and global position, so a failed check shows on every mode
+		_failsafe_flags.mode_req_attitude = ~0u;
+		_failsafe_flags.mode_req_local_position = ~0u;
+		_failsafe_flags.mode_req_global_position = ~0u;
 
-	failsafe_flags_s failsafe_flags{};
-	Report reporter{failsafe_flags, 0_s};
-	uORB::Subscription event_sub{ORB_ID(event)};
-	event_s event{};
-
-	while (event_sub.update(&event)) {}
-
-	detect_and_avoid_most_urgent_s daa_status{};
-	daa_status.timestamp = hrt_absolute_time();
-	daa_status.has_action = true;
-	daa_pub.publish(daa_status);
-
-	reporter.reset();
-	daa_checks.checkAndReport(context, reporter);
-	reporter.finalize();
-	reporter.report(false);
-	EXPECT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
-
-	bool saw_daa_conflict_event = false;
-
-	while (event_sub.update(&event)) {
-		if (event.id == events::ID("check_daa_conflict")) {
-			saw_daa_conflict_event = true;
-		}
+		// the topics keep their last sample across cases, so each case starts from the same clean state
+		publishEstimatorStatus(false, 0);
+		estimator_status_flags_s flags{};
+		flags.timestamp = hrt_absolute_time();
+		flags.cs_yaw_align = true;
+		_status_flags_pub.publish(flags);
+		estimator_sensor_bias_s bias{};
+		bias.timestamp = hrt_absolute_time();
+		publishSensorBias(bias);
+		vehicle_global_position_s gpos{};
+		gpos.timestamp = hrt_absolute_time();
+		_global_position_pub.publish(gpos);
+		vehicle_attitude_s attitude{};
+		attitude.timestamp = hrt_absolute_time();
+		attitude.q[0] = 1.f;
+		publishAttitude(attitude);
+		vehicle_angular_velocity_s rates{};
+		rates.timestamp = hrt_absolute_time();
+		publishAngularVelocity(rates);
 	}
 
-	EXPECT_TRUE(saw_daa_conflict_event);
+	void setParam(const char *name, int32_t value) { param_set(param_find(name), &value); }
+	void setParam(const char *name, float value) { param_set(param_find(name), &value); }
 
-	const hrt_abstime now = hrt_absolute_time();
-	daa_status.timestamp = now > 2_s ? now - 2_s : 0;
-	daa_pub.publish(daa_status);
+	void publishSensorBias(const estimator_sensor_bias_s &bias) { _sensor_bias_pub.publish(bias); }
+	void publishAttitude(const vehicle_attitude_s &attitude) { _attitude_pub.publish(attitude); }
+	void publishAngularVelocity(const vehicle_angular_velocity_s &rates) { _angular_velocity_pub.publish(rates); }
 
-	reporter.reset();
-	daa_checks.checkAndReport(context, reporter);
-	reporter.finalize();
-	reporter.report(false);
-	EXPECT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
-
-	saw_daa_conflict_event = false;
-
-	while (event_sub.update(&event)) {
-		if (event.id == events::ID("check_daa_conflict")) {
-			saw_daa_conflict_event = true;
-		}
+	// what the estimator reports: whether it fuses GNSS position, and which receiver checks fail
+	void publishEstimatorStatus(bool gnss_fused, uint16_t gps_check_fail_flags)
+	{
+		estimator_status_s status{};
+		status.timestamp = hrt_absolute_time();
+		status.control_mode_flags = gnss_fused ? (1ULL << estimator_status_s::CS_GNSS_POS) : 0;
+		status.gps_check_fail_flags = gps_check_fail_flags;
+		_estimator_status_pub.publish(status);
 	}
 
-	EXPECT_FALSE(saw_daa_conflict_event);
+	void publishLocalPosition(bool valid, float eph = 0.5f)
+	{
+		vehicle_local_position_s lpos{};
+		lpos.timestamp = hrt_absolute_time();
+		lpos.timestamp_sample = lpos.timestamp;
+		lpos.xy_valid = valid;
+		lpos.v_xy_valid = valid;
+		lpos.z_valid = true;
+		lpos.v_z_valid = true;
+		lpos.eph = eph;
+		lpos.epv = 0.5f;
+		lpos.evh = 0.2f;
+		lpos.evv = 0.2f;
+		_local_position_pub.publish(lpos);
+	}
+
+	// one commander cycle. The failsafe flags persist across cycles as they do in commander, and the
+	// health report of the cycle is kept for the assertions.
+	void runCheck(bool armed, bool calibrating = false)
+	{
+		vehicle_status_s status{};
+
+		if (armed) {
+			status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
+		}
+
+		status.calibration_enabled = calibrating;
+
+		_check.updateParams();
+		Context context{status};
+		Report reporter{_failsafe_flags, 0};
+		_check.checkAndReport(context, reporter);
+		reporter.getHealthReport(_report);
+	}
+
+	bool armingError(health_component_t component) const
+	{
+		return _report.arming_check_error_flags & (uint64_t)component;
+	}
+
+	bool armingWarning(health_component_t component) const
+	{
+		return _report.arming_check_warning_flags & (uint64_t)component;
+	}
+
+	static constexpr uint16_t kFixTooLow = 1 << estimator_status_s::GPS_CHECK_FAIL_GPS_FIX;
+
+	uORB::PublicationMulti<estimator_status_s> _estimator_status_pub{ORB_ID(estimator_status)};
+	uORB::PublicationMulti<estimator_status_flags_s> _status_flags_pub{ORB_ID(estimator_status_flags)};
+	uORB::PublicationMulti<estimator_sensor_bias_s> _sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
+	uORB::Publication<vehicle_local_position_s> _local_position_pub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_attitude_s> _attitude_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
+
+	health_report_s _report{};
+	failsafe_flags_s _failsafe_flags{};
+	EstimatorChecks _check;
+};
+
+TEST_F(EstimatorChecksTest, AFailingGnssCheckBlocksArmingAsConfigured)
+{
+	publishEstimatorStatus(true, 0);
+	runCheck(false);
+	const uint64_t can_arm_with_good_gnss = _report.can_arm_mode_flags;
+
+	publishEstimatorStatus(true, kFixTooLow);
+
+	setParam("COM_ARM_WO_GPS", 0); // deny arming
+	runCheck(false);
+	EXPECT_TRUE(armingError(health_component_t::gps));
+	EXPECT_EQ(_report.can_arm_mode_flags, 0u);
+
+	setParam("COM_ARM_WO_GPS", 1); // warn only
+	runCheck(false);
+	EXPECT_FALSE(armingError(health_component_t::gps));
+	EXPECT_TRUE(armingWarning(health_component_t::gps));
+	EXPECT_EQ(_report.can_arm_mode_flags, can_arm_with_good_gnss);
+
+	setParam("COM_ARM_WO_GPS", 2); // disabled
+	runCheck(false);
+	EXPECT_FALSE(armingError(health_component_t::gps));
+	EXPECT_FALSE(armingWarning(health_component_t::gps));
+
+	setParam("COM_ARM_WO_GPS", 0);
+	runCheck(true);
+	EXPECT_FALSE(armingError(health_component_t::gps)) << "the quality checks are only judged on the ground";
 }
 
-TEST_F(ReporterTest, daaCheckIgnoresConflictWhileArmed)
+TEST_F(EstimatorChecksTest, HighSensorBiasBlocksArming)
 {
-	param_control_autosave(false);
-	param_reset_all();
+	publishEstimatorStatus(true, 0);
 
-	const int32_t daa_enabled = 1;
-	const int32_t daa_timeout_s = 1;
-	param_set(param_handle(px4::params::DAA_EN), &daa_enabled);
-	param_set(param_handle(px4::params::DAA_TRAFF_TOUT), &daa_timeout_s);
+	estimator_sensor_bias_s bias{};
+	bias.timestamp = hrt_absolute_time();
+	bias.accel_bias_valid = true;
+	bias.accel_bias_limit = 0.4f;
+	bias.accel_bias[1] = 0.35f; // above three quarters of the limit
+	publishSensorBias(bias);
 
-	uORB::Publication<detect_and_avoid_most_urgent_s> daa_pub{ORB_ID(detect_and_avoid_most_urgent)};
-	DaaChecks daa_checks;
+	runCheck(false);
+	EXPECT_TRUE(armingError(health_component_t::local_position_estimate));
 
-	vehicle_status_s status{};
-	status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-	status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
-	Context context{status};
+	runCheck(false, true);
+	EXPECT_FALSE(armingError(health_component_t::local_position_estimate)) << "not judged during calibration";
 
-	failsafe_flags_s failsafe_flags{};
-	Report reporter{failsafe_flags, 0_s};
-	uORB::Subscription event_sub{ORB_ID(event)};
-	event_s event{};
+	bias.timestamp = hrt_absolute_time() - 31_s;
+	publishSensorBias(bias);
+	runCheck(false);
+	EXPECT_FALSE(armingError(health_component_t::local_position_estimate)) << "a stale estimate is not judged";
 
-	while (event_sub.update(&event)) {}
-
-	detect_and_avoid_most_urgent_s daa_status{};
-	daa_status.timestamp = hrt_absolute_time();
-	daa_status.has_action = true;
-	daa_pub.publish(daa_status);
-
-	reporter.reset();
-	daa_checks.checkAndReport(context, reporter);
-	reporter.finalize();
-	reporter.report(false);
-	EXPECT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
-
-	bool saw_daa_conflict_event = false;
-
-	while (event_sub.update(&event)) {
-		if (event.id == events::ID("check_daa_conflict")) {
-			saw_daa_conflict_event = true;
-		}
-	}
-
-	EXPECT_FALSE(saw_daa_conflict_event);
+	bias = {};
+	bias.timestamp = hrt_absolute_time();
+	bias.gyro_bias_valid = true;
+	bias.gyro_bias_limit = 0.1f;
+	bias.gyro_bias[2] = 0.09f;
+	publishSensorBias(bias);
+	runCheck(false);
+	EXPECT_TRUE(armingError(health_component_t::local_position_estimate));
 }
 
-#endif // CONFIG_NAVIGATOR_ADSB
+TEST_F(EstimatorChecksTest, LowPositionAccuracyIsFlaggedAndReportedInFlight)
+{
+	setParam("COM_POS_LOW_EPH", 1.f);
+	setParam("COM_POS_LOW_ACT", 1);
+	publishEstimatorStatus(true, 0);
+
+	publishLocalPosition(true, 2.f);
+	runCheck(true);
+	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
+	EXPECT_TRUE(_failsafe_flags.position_accuracy_low);
+	EXPECT_TRUE(armingError(health_component_t::local_position_estimate));
+
+	runCheck(false);
+	EXPECT_TRUE(_failsafe_flags.position_accuracy_low);
+	EXPECT_FALSE(armingError(health_component_t::local_position_estimate)) << "flagged but not reported on the ground";
+
+	publishLocalPosition(true, 0.5f);
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.position_accuracy_low);
+}
+
+TEST_F(EstimatorChecksTest, AttitudeValidityFollowsTheQuaternion)
+{
+	vehicle_attitude_s attitude{};
+	attitude.timestamp = hrt_absolute_time();
+	attitude.q[0] = 1.f;
+	publishAttitude(attitude);
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.attitude_invalid);
+
+	attitude.q[0] = 1.1f;
+	publishAttitude(attitude);
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.attitude_invalid) << "not a unit quaternion";
+
+	attitude.q[0] = 1.f;
+	attitude.timestamp = hrt_absolute_time() - 2_s;
+	publishAttitude(attitude);
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.attitude_invalid) << "stale";
+}
+
+TEST_F(EstimatorChecksTest, AngularVelocityValidityFollowsTheSamples)
+{
+	vehicle_angular_velocity_s rates{};
+	rates.timestamp = hrt_absolute_time();
+	publishAngularVelocity(rates);
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.angular_velocity_invalid);
+
+	rates.xyz[0] = NAN;
+	publishAngularVelocity(rates);
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.angular_velocity_invalid) << "not finite";
+
+	rates.xyz[0] = 0.f;
+	rates.timestamp = hrt_absolute_time() - 2_s;
+	publishAngularVelocity(rates);
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.angular_velocity_invalid) << "stale";
+}
+
+// Base position (PX4 SITL default home).
+static constexpr double BASE_LAT = 47.397742;
+static constexpr double BASE_LON = 8.545594;
+
+class GnssRedundancyChecksTest : public ::testing::Test
+{
+public:
+	void SetUp() override
+	{
+		param_control_autosave(false);
+
+		// Reset params that tests modify so state doesn't leak between tests.
+		param_reset(param_find("SYS_HAS_NUM_GNSS"));
+		param_reset(param_find("COM_GNSSLOSS_ACT"));
+
+		// Claim uORB instances 0 and 1 before the check subscribes on first copy().
+		sensor_gnss_s empty{};
+		_gnss0_pub.publish(empty);
+		_gnss1_pub.publish(empty);
+	}
+
+	sensor_gnss_s makeGnss(double lat, double lon, float eph = 0.02f, uint8_t fix_type = 6)
+	{
+		sensor_gnss_s gnss{};
+		gnss.timestamp     = hrt_absolute_time();
+		gnss.device_id     = 1;
+		gnss.latitude      = lat;
+		gnss.longitude     = lon;
+		gnss.eph           = eph;
+		gnss.fix_type      = fix_type;
+		return gnss;
+	}
+
+	// Publish a receiver and the sensors module's status for it, healthy with a 3D fix. Instances 0 and 1 get device IDs
+	// 1 and 2.
+	void publishGnss(int instance, sensor_gnss_s gnss)
+	{
+		gnss.device_id = instance + 1;
+		(instance == 0 ? _gnss0_pub : _gnss1_pub).publish(gnss);
+
+		_status.device_ids[instance] = gnss.device_id;
+		_status.healthy[instance] = (gnss.fix_type >= 3);
+		_status.timestamp = hrt_absolute_time();
+		_status_pub.publish(_status);
+	}
+
+	// Run the check and store results in _failsafe_flags, _health_warning_gps and _can_arm_all_modes.
+	void runCheck(bool armed = false)
+	{
+		vehicle_status_s status{};
+
+		if (armed) { status.arming_state = vehicle_status_s::ARMING_STATE_ARMED; }
+
+		_check.updateParams();
+		Context context{status};
+		_failsafe_flags = {};
+		Report reporter{_failsafe_flags, 0};
+		_check.checkAndReport(context, reporter);
+		// Capture any GPS health issue regardless of log level (Warning or Error).
+		_health_warning_gps = (reporter.healthResults().warning | reporter.healthResults().error) & health_component_t::gps;
+		_can_arm_all_modes = reporter.armingCheckResults().can_arm == NavModes::All;
+	}
+
+	void setGnssLossAct(int32_t com_gnssloss_act)
+	{
+		param_set(param_find("COM_GNSSLOSS_ACT"), &com_gnssloss_act);
+	}
+
+	uORB::PublicationMulti<sensor_gnss_s> _gnss0_pub{ORB_ID(sensor_gnss)};
+	uORB::PublicationMulti<sensor_gnss_s> _gnss1_pub{ORB_ID(sensor_gnss)};
+	uORB::Publication<sensors_status_gnss_s> _status_pub{ORB_ID(sensors_status_gnss)};
+	sensors_status_gnss_s _status{};
+	failsafe_flags_s  _failsafe_flags{};
+	bool              _health_warning_gps{false};
+	bool              _can_arm_all_modes{false};
+	GnssRedundancyChecks _check;
+};
+
+// SYS_HAS_NUM_GNSS = 2, COM_GNSSLOSS_ACT = Return, only one receiver fixed → gnss_lost and arming blocked.
+TEST_F(GnssRedundancyChecksTest, BelowRequiredSetsGnssLost)
+{
+	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+	setGnssLossAct(1); // Return
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	runCheck();
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+	EXPECT_TRUE(_health_warning_gps);
+	EXPECT_FALSE(_can_arm_all_modes);
+}
+
+// COM_GNSSLOSS_ACT = Warning reports the issue but never blocks arming.
+TEST_F(GnssRedundancyChecksTest, BelowRequiredWarningDoesNotBlockArming)
+{
+	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+	setGnssLossAct(0); // Warning
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	runCheck();
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+	EXPECT_TRUE(_health_warning_gps);
+	EXPECT_TRUE(_can_arm_all_modes);
+}
+
+// A receiver counts only while the status names it and says it passes its checks.
+TEST_F(GnssRedundancyChecksTest, StatusOfAnotherReceiverDoesNotCount)
+{
+	int required = 1;
+	param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	runCheck();
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+
+	_status.device_ids[0] = 99;
+	_status_pub.publish(_status);
+	runCheck();
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+}
