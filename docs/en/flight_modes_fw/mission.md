@@ -325,6 +325,10 @@ Flaring consists of a switch from altitude tracking to a shallow sink rate setpo
 The flaring altitude is calculated during the final approach via "time-to-impact" ([FW_LND_FL_TIME](#FW_LND_FL_TIME)) and the approach descent rate.
 An additional safety parameter [FW_LND_FLALT](#FW_LND_FLALT) sets the minimum altitude at which the vehicle will flare (if the time based altitude is too low to allow a safe flare maneuver).
 
+The flare can be disabled by setting either [FW_LND_FL_TIME](#FW_LND_FL_TIME) or [FW_LND_FLALT](#FW_LND_FLALT) to -1.
+The vehicle then keeps tracking the landing slope at the landing airspeed ([FW_LND_AIRSPD](../advanced_config/parameter_reference.md#FW_LND_AIRSPD), or [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) if not set) until touchdown.
+In this case also set [FW_LND_USETER](#FW_LND_USETER) to `0`, otherwise the landing may abort just before touchdown when the distance sensor stops giving valid readings close to the ground.
+
 If belly landing, the vehicle will continue in the flaring state until touchdown, land detection, and subsequent disarm. For runway landings, [FW_LND_TD_TIME](#FW_LND_TD_TIME) enables setting the time post flare start to pitch down the nose (e.g. consider tricycle gear) onto the runway ([RWTO_PSP](#RWTO_PSP)) and avoid bouncing. This time roughly corresponds to the touchdown post flare, and should be tuned for a given airframe during test flights only after the flare has been tuned.
 
 The parameters that affect flaring are listed below.
