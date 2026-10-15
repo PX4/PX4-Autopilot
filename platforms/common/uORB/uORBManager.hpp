@@ -435,6 +435,12 @@ public:
 
 	static bool orb_device_node_exists(ORB_ID orb_id, uint8_t instance);
 
+	/**
+	 * Changes every time a device node is added, so a failed orb_add_internal_subscriber() cannot
+	 * succeed before it changes. 0 if unknown, e.g. in user space of a protected build.
+	 */
+	static unsigned orb_node_generation();
+
 	static void *orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation);
 
 	static void orb_remove_internal_subscriber(void *node_handle);
