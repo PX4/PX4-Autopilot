@@ -365,7 +365,9 @@ extern int neopixel_write(neopixel::NeoLEDData *led_data, int number_of_packages
 
 	for (uint32_t i = 0, leds = 0; i < arraySize(bits) - 1; i++) {
 		mask = 1 << ((BITS_PER_PACKAGE - 1) - (i % BITS_PER_PACKAGE));
-		bits[i] = led_data[leds].data.l & mask ? T1H : T0H;
+		// only read the packages the caller actually allocated; pad the rest of the fixed-size DMA
+		// buffer with the "off" level so we never read past a shorter led_data array (#28540)
+		bits[i] = ((int)leds < number_of_packages && (led_data[leds].data.l & mask)) ? T1H : T0H;
 
 		if (mask & 1) {
 			leds++;
