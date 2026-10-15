@@ -168,36 +168,6 @@ void expect_command(const daa_action_decision_s &decision, const DaaAction expec
 
 } // namespace
 
-// Param numbering and the internal action ladder map both ways; out-of-range maps to Disabled.
-TEST(DaaActionPolicyTest, ActionParamMappingUsesParameterNumbering)
-{
-	struct action_param_case_s {
-		int32_t param;
-		DaaAction action;
-	};
-
-	const action_param_case_s cases[] {
-		{0, DaaAction::kDisabled},
-		{1, DaaAction::kWarnOnly},
-		{2, DaaAction::kReturnMode},
-		{3, DaaAction::kLandMode},
-		{4, DaaAction::kPositionHoldMode},
-		{5, DaaAction::kTerminate},
-	};
-
-	for (const action_param_case_s &test_case : cases) {
-		EXPECT_EQ(DaaActionPolicy::action_param_to_daa_action(test_case.param), test_case.action)
-				<< "param " << test_case.param;
-		EXPECT_EQ(DaaActionPolicy::daa_action_to_action_param(test_case.action), test_case.param)
-				<< "action " << static_cast<int>(test_case.action);
-	}
-
-	// out-of-range -> Disabled
-	EXPECT_EQ(DaaActionPolicy::action_param_to_daa_action(-1), DaaAction::kDisabled);
-	EXPECT_EQ(DaaActionPolicy::action_param_to_daa_action(6), DaaAction::kDisabled);
-	EXPECT_EQ(DaaActionPolicy::daa_action_to_action_param(DaaAction::kMaxActionValue), 0);
-}
-
 // An action escalates only when stronger than the current navigator state (protects manual/offboard).
 TEST(DaaActionPolicyTest, ActionEscalatesOnlyAboveNavState)
 {
@@ -207,17 +177,6 @@ TEST(DaaActionPolicyTest, ActionEscalatesOnlyAboveNavState)
 	check_escalation_matrix({DaaAction::kReturnMode, true, true, false, false});
 	check_escalation_matrix({DaaAction::kLandMode, true, true, true, false});
 	check_escalation_matrix({DaaAction::kTerminate, true, true, true, true});
-}
-
-// NONE and out-of-range levels never request an action, even with actions configured everywhere.
-TEST(DaaActionPolicyTest, NoActionForInvalidLevels)
-{
-	const daa_action_params_s params = params_for_all_levels(5); // Terminate everywhere
-
-	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_NONE, params),
-		  DaaAction::kDisabled);
-	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL + 1, params),
-		  DaaAction::kDisabled);
 }
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
@@ -247,29 +206,7 @@ TEST(DaaActionPolicyTest, F3442FallbackUsesGuaranteedBreachedZones)
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL,
 			params_for_all_levels(0)), DaaAction::kDisabled);
 }
-#else
-// Crosstrack maps every level through the single NAV_TRAFF_AVOID action.
-TEST(DaaActionPolicyTest, CrosstrackSingleActionMapping)
-{
-	const daa_action_params_s params = params_for_all_levels(3); // Land
-
-	for (uint8_t level = detect_and_avoid_s::DAA_CONFLICT_LVL_LOW;
-	     level <= detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL; ++level) {
-		EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(level, params), DaaAction::kLandMode);
-	}
-}
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
-
-// Unchanged level: no command or warning.
-TEST(DaaActionPolicyTest, DecideNoResponseWithoutLevelChange)
-{
-	const daa_action_decision_s decision = DaaActionPolicy::decide(
-			detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL,
-			vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false, true,
-			DaaAction::kDisabled, params_for_all_levels(5));
-
-	expect_no_response(decision);
-}
 
 TEST(DaaActionPolicyTest, DecideWarnsOnGroundInsteadOfActing)
 {

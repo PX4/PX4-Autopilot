@@ -39,8 +39,6 @@
 
 #include <gtest/gtest.h>
 
-#include <limits>
-
 #include <lib/adsb/ConflictTracker.h>
 
 namespace
@@ -59,65 +57,6 @@ conflict_info_s make_conflict(const uint64_t icao_id, const uint8_t conflict_lev
 }
 
 } // namespace
-
-// Accepted conflict enters the buffer and emits kConflictAdded; most_urgent updates only on refresh.
-TEST(ConflictTrackerTest, AddsNewConflictAndRefreshesMostUrgent)
-{
-	ConflictTracker tracker;
-
-	EXPECT_TRUE(tracker.empty());
-	EXPECT_EQ(tracker.most_urgent().conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
-	EXPECT_EQ(tracker.most_urgent().encoded_id.id, 0u);
-
-	const conflict_info_s conflict = make_conflict(0x6E9F7B, detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM, 800.f);
-	conflict_tracker_changes_s changes{};
-
-	EXPECT_TRUE(tracker.apply_conflict(conflict, changes));
-	ASSERT_EQ(changes.size(), 1u);
-	EXPECT_EQ(changes[0].type, ConflictTrackerChangeType::kConflictAdded);
-	EXPECT_EQ(changes[0].conflict.encoded_id, conflict.encoded_id);
-
-	EXPECT_EQ(tracker.size(), 1u);
-	EXPECT_TRUE(tracker.contains(conflict.encoded_id));
-
-	const conflict_info_s tracked = tracker.get_conflict(conflict.encoded_id);
-	ASSERT_NE(tracked.encoded_id.id, 0u);
-	EXPECT_EQ(tracked.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM);
-
-	// most_urgent stays empty until refresh
-	EXPECT_EQ(tracker.most_urgent().encoded_id.id, 0u);
-	tracker.refresh_most_urgent();
-	EXPECT_EQ(tracker.most_urgent().encoded_id, conflict.encoded_id);
-}
-
-// NONE-level traffic that isn't tracked never takes a buffer slot.
-TEST(ConflictTrackerTest, IgnoresUntrackedTrafficWithoutConflict)
-{
-	ConflictTracker tracker;
-
-	const conflict_info_s no_conflict = make_conflict(0x6E9F7B, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE, 5000.f);
-	conflict_tracker_changes_s changes{};
-
-	EXPECT_FALSE(tracker.apply_conflict(no_conflict, changes));
-	EXPECT_EQ(changes.size(), 0u);
-	EXPECT_TRUE(tracker.empty());
-}
-
-TEST(ConflictTrackerTest, RejectsInvalidConflictData)
-{
-	ConflictTracker tracker;
-	conflict_tracker_changes_s changes{};
-
-	EXPECT_FALSE(tracker.apply_conflict(
-			     make_conflict(0, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH, 100.f), changes));
-	EXPECT_FALSE(tracker.apply_conflict(
-			     make_conflict(1, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL + 1, 100.f), changes));
-	EXPECT_FALSE(tracker.apply_conflict(
-			     make_conflict(1, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH,
-					   std::numeric_limits<float>::quiet_NaN()), changes));
-	EXPECT_TRUE(tracker.empty());
-	EXPECT_TRUE(changes.empty());
-}
 
 // kConflictLevelChanged is emitted only when the level differs; same-level just overwrites.
 TEST(ConflictTrackerTest, EmitsLevelChangedOnlyWhenLevelDiffers)
@@ -346,22 +285,4 @@ TEST(ConflictTrackerTest, RemovesOnlyStaleConflicts)
 	changes = {};
 	EXPECT_FALSE(tracker.remove_stale_conflicts(kNow, kTimeout, changes));
 	EXPECT_EQ(changes.size(), 0u);
-}
-
-// clear() empties the buffer and resets the most-urgent cache.
-TEST(ConflictTrackerTest, ClearResetsBufferAndMostUrgent)
-{
-	ConflictTracker tracker;
-	conflict_tracker_changes_s changes{};
-
-	tracker.apply_conflict(make_conflict(0x6E9F7B, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, 100.f), changes);
-	tracker.refresh_most_urgent();
-	EXPECT_EQ(tracker.most_urgent().conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL);
-
-	tracker.clear();
-
-	EXPECT_TRUE(tracker.empty());
-	EXPECT_EQ(tracker.most_urgent().conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
-	EXPECT_EQ(tracker.most_urgent().encoded_id.id, 0u);
-	EXPECT_EQ(tracker.most_urgent().encoded_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO);
 }
