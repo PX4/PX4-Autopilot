@@ -82,6 +82,16 @@ MavlinkStream::update(const hrt_abstime &t)
 	}
 
 	int64_t dt = t - _last_sent;
+
+	// The rate multiplier is at most 1, so it can only lengthen the interval: a stream that is not
+	// due at its nominal interval is not due at all. Most streams are not due on a given loop, so
+	// check that first, without the scaling below (exact up to 2^24 us, the integer range of a float).
+	const int64_t margin = (_mavlink->get_main_loop_delay() / 10) * 3;
+
+	if ((_interval > 0) && (_interval >= margin) && (_interval <= (1 << 24)) && (dt <= _interval - margin)) {
+		return -1;
+	}
+
 	int interval = _interval;
 
 	if (!const_rate()) {
