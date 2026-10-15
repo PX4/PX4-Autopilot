@@ -48,6 +48,7 @@ public:
 
 private:
 	void start_landing_mission();
+	void check_target_yaw();
 	void send_target_observations(Scenario scenario, const Telemetry::GroundTruth &vehicle,
 				      bool vision_enabled, double gnss_offset_east_m);
 	void send_message(const std::string &name, const std::string &fields);
