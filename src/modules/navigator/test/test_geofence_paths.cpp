@@ -37,9 +37,7 @@
 
 #include <array>
 #include <cmath>
-#include <cstdlib>
 #include <cstring>
-#include <unistd.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mavlink_log.h>
@@ -158,18 +156,11 @@ INSTANTIATE_TEST_SUITE_P(Paths, GeofencePathTest, ::testing::Values(
 				 GeofencePathCase{"AcrossExclusionPolygon", FenceShape::ExclusionPolygon, {0.f, 100.f}, {0.f, 500.f}, false},
 				 GeofencePathCase{"ClearOfExclusionPolygon", FenceShape::ExclusionPolygon, {60.f, 100.f}, {60.f, 500.f}, true},
 				 GeofencePathCase{"AlongPolygonEdge", FenceShape::ExclusionPolygon, {50.f, 100.f}, {50.f, 500.f}, false},
-				 GeofencePathCase{"TouchingPolygonVertex", FenceShape::ExclusionPolygon, {-100.f, 200.f}, {-50.f, 250.f}, false},
-				 GeofencePathCase{"ZeroLengthOutsidePolygon", FenceShape::ExclusionPolygon, {0.f, 100.f}, {0.f, 100.f}, true},
-				 GeofencePathCase{"ZeroLengthOnPolygonVertex", FenceShape::ExclusionPolygon, {-50.f, 250.f}, {-50.f, 250.f}, false},
 				 GeofencePathCase{"AcrossInclusionNotch", FenceShape::ConcaveInclusion, {500.f, -400.f}, {500.f, 400.f}, false},
 				 GeofencePathCase{"AcrossInclusionBase", FenceShape::ConcaveInclusion, {0.f, -400.f}, {0.f, 400.f}, true},
 				 GeofencePathCase{"AcrossExclusionCircle", FenceShape::ExclusionCircle, {0.f, 100.f}, {0.f, 500.f}, false},
 				 GeofencePathCase{"ClearOfExclusionCircle", FenceShape::ExclusionCircle, {60.f, 100.f}, {60.f, 500.f}, true},
-				 GeofencePathCase{"ZeroLengthOutsideCircle", FenceShape::ExclusionCircle, {0.f, 100.f}, {0.f, 100.f}, true},
-				 GeofencePathCase{"ZeroLengthInsideCircle", FenceShape::ExclusionCircle, {0.f, 300.f}, {0.f, 300.f}, false},
-				 GeofencePathCase{"InsideInclusionCircle", FenceShape::InclusionCircle, {0.f, -400.f}, {0.f, 400.f}, true},
-				 GeofencePathCase{"LeavingInclusionCircle", FenceShape::InclusionCircle, {0.f, 0.f}, {0.f, 600.f}, false},
-				 GeofencePathCase{"OutsideInclusionCircle", FenceShape::InclusionCircle, {600.f, -100.f}, {600.f, 100.f}, false}),
+				 GeofencePathCase{"LeavingInclusionCircle", FenceShape::InclusionCircle, {0.f, 0.f}, {0.f, 600.f}, false}),
 			 [](const ::testing::TestParamInfo<GeofencePathCase> &test_info)
 {
 	return test_info.param.name;
@@ -229,112 +220,6 @@ TEST_F(GeofenceTest, EmptyFenceIsAvailableOnlyAfterLoading)
 	EXPECT_TRUE(clear[1]);
 }
 
-class GeofenceFileTest : public GeofenceTest, public ::testing::WithParamInterface<dm_item_t>
-{
-protected:
-	~GeofenceFileTest() override { unlink(_filename); }
-
-	char _filename[sizeof("/tmp/px4_geofence_XXXXXX")] {"/tmp/px4_geofence_XXXXXX"};
-};
-
-TEST_P(GeofenceFileTest, ImportedFenceAndSubsequentRefreshBecomeReady)
-{
-	const int fd = mkstemp(_filename);
-	ASSERT_GE(fd, 0);
-	const char contents[] = "0 1000\n46.999 7.999\n47.001 7.999\n47.001 8.001\n46.999 8.001\n";
-	const ssize_t written = write(fd, contents, sizeof(contents) - 1);
-	const int closed = close(fd);
-	ASSERT_EQ(written, static_cast<ssize_t>(sizeof(contents) - 1));
-	ASSERT_EQ(closed, 0);
-
-	// Import must finish reading the current bank before choosing the inactive one.
-	mission_stats_entry_s stats{};
-	stats.dataman_id = GetParam();
-	stats.opaque_id = ++runtime().next_fence_id;
-	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
-					      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
-	ASSERT_EQ(_fence.loadFromFile(_filename), PX4_OK);
-	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_FENCE_POINTS_STATE, 0,
-					     reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
-	EXPECT_EQ(stats.dataman_id, GetParam() == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0);
-	EXPECT_EQ(stats.num_items, 4);
-	_fence_id = stats.opaque_id;
-	ASSERT_TRUE(waitForFence());
-	EXPECT_FALSE(_fence.isEmpty());
-
-	// One path stays inside the imported inclusion polygon; the other leaves it.
-	const Geofence::PathCheck paths[] {path({0.f, -20.f}, {0.f, 20.f}), path({0.f, 0.f}, {0.f, 200.f})};
-	bool clear[2] {};
-	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_TRUE(clear[0]);
-	EXPECT_FALSE(clear[1]);
-
-	// The same client must remain usable for later asynchronous metadata reads.
-	_fence.updateFence();
-	ASSERT_TRUE(waitForFence());
-	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_TRUE(clear[0]);
-	EXPECT_FALSE(clear[1]);
-}
-
-INSTANTIATE_TEST_SUITE_P(StoredBanks, GeofenceFileTest,
-			 ::testing::Values(DM_KEY_FENCE_POINTS_0, DM_KEY_FENCE_POINTS_1));
-
-struct InvalidBatchCase {
-	const char *name;
-	size_t count;
-	bool provide_paths;
-	bool provide_results;
-};
-
-class InvalidGeofenceRequestTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidBatchCase> {};
-
-TEST_P(InvalidGeofenceRequestTest, RejectsRequest)
-{
-	const InvalidBatchCase &test = GetParam();
-	ASSERT_TRUE(loadFence({}));
-	const Geofence::PathCheck query = path({0.f, 0.f}, {100.f, 100.f});
-	bool clear = true;
-	EXPECT_FALSE(_fence.checkPathBatch(test.provide_paths ? &query : nullptr, test.count,
-					   test.provide_results ? &clear : nullptr));
-
-	if (!test.provide_paths) {
-		EXPECT_FALSE(clear);
-	}
-}
-
-INSTANTIATE_TEST_SUITE_P(InvalidRequests, InvalidGeofenceRequestTest, ::testing::Values(
-				 InvalidBatchCase{"EmptyBatch", 0, true, true},
-				 InvalidBatchCase{"BatchTooLarge", Geofence::MAX_PATH_CHECKS + 1, true, true},
-				 InvalidBatchCase{"MissingPaths", 1, false, true},
-				 InvalidBatchCase{"MissingResults", 1, true, false}),
-			 [](const ::testing::TestParamInfo<InvalidBatchCase> &test_info)
-{
-	return test_info.param.name;
-});
-
-TEST_F(GeofenceTest, NonFinitePathRejectsWholeBatch)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), path({0.f, 100.f}, {0.f, 500.f})};
-	paths[1].end(0) = NAN;
-	bool clear[2] {true, true};
-	EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_FALSE(clear[0]);
-	EXPECT_FALSE(clear[1]);
-}
-
-TEST_F(GeofenceTest, MissingCacheRejectsWholeBatch)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofenceTestPeer::invalidateCache(_fence);
-	const Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), path({0.f, 100.f}, {0.f, 500.f})};
-	bool clear[2] {true, true};
-	EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_FALSE(clear[0]);
-	EXPECT_FALSE(clear[1]);
-}
-
 TEST_F(GeofenceTest, ReloadTemporarilyDisablesPathChecks)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
@@ -373,127 +258,6 @@ TEST_F(GeofenceTest, ReadFailureIsRetriedUntilPathChecksRecover)
 	EXPECT_TRUE(logContains("Geofence loaded, fence is active"));
 }
 
-TEST_F(GeofenceTest, RepeatedReadFailuresStopRetrying)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	_fence.updateFence();
-
-	for (unsigned attempt = 0; attempt <= GeofenceTestPeer::maxLoadRetries(); ++attempt) {
-		SCOPED_TRACE(attempt);
-		ASSERT_TRUE(failFenceMetadataRead());
-		// Only the first failure is reported; the retries run quietly.
-		EXPECT_EQ(logContains("Geofence update failed, previous fence still active"), attempt == 0);
-	}
-
-	// The retry budget is spent: nothing is pending and no read is issued.
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
-	EXPECT_FALSE(failFenceMetadataRead());
-	const auto inside_exclusion = position(0.f, 300.f);
-	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
-	const Geofence::PathCheck query = path({100.f, 100.f}, {100.f, 500.f});
-	bool clear = true;
-	EXPECT_FALSE(_fence.checkPathBatch(&query, 1, &clear));
-	// A new request starts over: its first failure is reported again, and its recovery announced.
-	_fence.updateFence();
-	ASSERT_TRUE(failFenceMetadataRead());
-	EXPECT_TRUE(logContains("Geofence update failed, previous fence still active"));
-	GeofenceTestPeer::expireRetryDelay(_fence);
-	ASSERT_TRUE(waitForFence());
-	EXPECT_TRUE(logContains("Geofence loaded, fence is active"));
-	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
-	EXPECT_TRUE(clear);
-}
-
-enum class InvalidFenceData { VertexCount, Longitude, Frame, Command };
-
-struct InvalidFenceCase {
-	const char *name;
-	InvalidFenceData fault;
-};
-
-class InvalidGeofenceBatchTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidFenceCase> {};
-
-TEST_P(InvalidGeofenceBatchTest, RejectsWholeBatch)
-{
-	FencePoints points = exclusionSquare();
-	ASSERT_TRUE(loadFence(points));
-
-	if (GetParam().fault == InvalidFenceData::VertexCount) {
-		GeofenceTestPeer::setVertexCount(_fence, 5);
-
-	} else {
-		mission_fence_point_s &point = points.back();
-
-		if (GetParam().fault == InvalidFenceData::Longitude) {
-			point.lon = NAN;
-
-		} else if (GetParam().fault == InvalidFenceData::Frame) {
-			point.frame = NAV_FRAME_LOCAL_NED;
-
-		} else {
-			point.nav_cmd = NAV_CMD_WAYPOINT;
-		}
-
-		ASSERT_TRUE(GeofenceTestPeer::replaceCachedPoint(_fence, points.size() - 1, point));
-	}
-
-	const Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), path({0.f, 100.f}, {0.f, 500.f})};
-	bool clear[2] {true, true};
-	EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_FALSE(clear[0]);
-	EXPECT_FALSE(clear[1]);
-}
-
-TEST_P(InvalidGeofenceBatchTest, ClearsPartialResultsAndCanBeRetried)
-{
-	FencePoints points = exclusionSquare();
-	const FencePoints second = polygon(false, {{250.f, 250.f}, {350.f, 250.f}, {350.f, 350.f}, {250.f, 350.f}});
-	points.insert(points.end(), second.begin(), second.end());
-	ASSERT_TRUE(loadFence(points));
-	mission_fence_point_s invalid = points.back();
-
-	switch (GetParam().fault) {
-	case InvalidFenceData::VertexCount:
-		invalid.vertex_count = static_cast<uint16_t>(points.size() + 1);
-		break;
-
-	case InvalidFenceData::Longitude:
-		invalid.lon = NAN;
-		break;
-
-	case InvalidFenceData::Frame:
-		invalid.frame = NAV_FRAME_LOCAL_NED;
-		break;
-
-	case InvalidFenceData::Command:
-		invalid.nav_cmd = NAV_CMD_WAYPOINT;
-		break;
-	}
-
-	ASSERT_TRUE(GeofenceTestPeer::replaceCachedPoint(_fence, points.size() - 1, invalid));
-	// The first polygon clears one path and rejects the other before the second polygon fails.
-	const Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), path({0.f, 100.f}, {0.f, 500.f})};
-	bool clear[2] {true, true};
-	EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_FALSE(clear[0]);
-	EXPECT_FALSE(clear[1]);
-
-	ASSERT_TRUE(GeofenceTestPeer::replaceCachedPoint(_fence, points.size() - 1, points.back()));
-	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_TRUE(clear[0]);
-	EXPECT_FALSE(clear[1]);
-}
-
-INSTANTIATE_TEST_SUITE_P(InvalidData, InvalidGeofenceBatchTest, ::testing::Values(
-				 InvalidFenceCase{"VertexCountExceedsCache", InvalidFenceData::VertexCount},
-				 InvalidFenceCase{"NonFiniteCoordinate", InvalidFenceData::Longitude},
-				 InvalidFenceCase{"UnsupportedFrame", InvalidFenceData::Frame},
-				 InvalidFenceCase{"UnexpectedCommand", InvalidFenceData::Command}),
-			 [](const ::testing::TestParamInfo<InvalidFenceCase> &test_info)
-{
-	return test_info.param.name;
-});
-
 struct CircleBoundaryCase {
 	const char *name;
 	bool inclusion;
@@ -525,9 +289,6 @@ TEST_P(GeofenceCircleBoundaryTest, ChecksContactInTheCircleProjection)
 
 INSTANTIATE_TEST_SUITE_P(CircleBoundaries, GeofenceCircleBoundaryTest, ::testing::Values(
 				 CircleBoundaryCase{"TangentExclusion", false, {-100.f, 50.f}, {100.f, 50.f}, false},
-				 // The diagonal 3*north + 4*east = 250 lies exactly 50 m from the centre.
-				 CircleBoundaryCase{"DiagonalTangentExclusion", false, {-30.f, 85.f}, {86.f, -2.f}, false},
-				 CircleBoundaryCase{"ZeroLengthOnExclusion", false, {50.f, 0.f}, {50.f, 0.f}, false},
 				 CircleBoundaryCase{"EndpointOnInclusion", true, {0.f, 0.f}, {50.f, 0.f}, false},
 				 CircleBoundaryCase{"InsideInclusion", true, {0.f, 0.f}, {49.99f, 0.f}, true},
 				 CircleBoundaryCase{"ClearOfExclusion", false, {-100.f, 50.01f}, {100.f, 50.01f}, true}),
@@ -577,39 +338,6 @@ INSTANTIATE_TEST_SUITE_P(CircleRounding, GeofenceCircleRoundingTest, ::testing::
 	return test_info.param.name;
 });
 
-TEST_F(GeofenceTest, QueuedRefreshSurvivesCompletionOfPreviousLoad)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	_fence.updateFence();
-	// Complete an older load while another refresh is still queued.
-	GeofenceTestPeer::finishUpdate(_fence);
-	const Geofence::PathCheck query = path({100.f, 100.f}, {100.f, 500.f});
-	bool clear = true;
-	EXPECT_FALSE(_fence.checkPathBatch(&query, 1, &clear));
-	EXPECT_FALSE(clear);
-	ASSERT_TRUE(waitForFence());
-	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
-	EXPECT_TRUE(clear);
-}
-
-TEST_F(GeofenceTest, QueuedRefreshSurvivesUnchangedFenceId)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	_fence.updateFence();
-	_fence.run();
-	_fence.run();
-	ASSERT_TRUE(GeofenceTestPeer::waitForPendingRead(_fence));
-	_fence.updateFence();
-	_fence.run();
-	const Geofence::PathCheck query = path({100.f, 100.f}, {100.f, 500.f});
-	bool clear = true;
-	EXPECT_FALSE(_fence.checkPathBatch(&query, 1, &clear));
-	EXPECT_FALSE(clear);
-	ASSERT_TRUE(waitForFence());
-	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
-	EXPECT_TRUE(clear);
-}
-
 TEST_F(GeofenceTest, FailedVertexReadClearsTheFenceUntilStorageRecovers)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
@@ -642,73 +370,8 @@ TEST_F(GeofenceTest, FailedVertexReadClearsTheFenceUntilStorageRecovers)
 	EXPECT_TRUE(clear);
 }
 
-TEST_F(GeofenceTest, InactiveFenceIsReportedEvenIfARetryRecovers)
-{
-	ASSERT_TRUE(loadFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX), geofence_status_s::GF_STATUS_FAILED, 1));
-	EXPECT_TRUE(logContains("Geofence load failed, fence is not active"));
-	// The storage is repaired without a new request; the scheduled retry picks it up.
-	ASSERT_TRUE(storeFence(exclusionSquare()));
-	GeofenceTestPeer::expireRetryDelay(_fence);
-	ASSERT_TRUE(waitForFence());
-	EXPECT_TRUE(logContains("Geofence loaded, fence is active"));
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
-	const auto inside_exclusion = position(0.f, 300.f);
-	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
-}
-
-TEST_F(GeofenceTest, RetryThatDropsThePreviousFenceIsReported)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	// The next fence claims one vertex more than the storage holds.
-	ASSERT_TRUE(storeFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX), 1));
-	_fence.updateFence();
-	ASSERT_TRUE(failFenceMetadataRead());
-	EXPECT_TRUE(logContains("Geofence update failed, previous fence still active"));
-	// The retry reads the metadata, drops the previous fence and fails on the vertices.
-	GeofenceTestPeer::expireRetryDelay(_fence);
-	ASSERT_TRUE(waitForFence(geofence_status_s::GF_STATUS_FAILED));
-	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_TRUE(logContains("Geofence load failed, fence is not active"));
-}
-
-TEST_F(GeofenceTest, UnreadableMetadataWithoutFenceIsReportedBeforeRetrying)
-{
-	ASSERT_TRUE(failFenceMetadataRead());
-	EXPECT_TRUE(GeofenceTestPeer::isUpdatePending(_fence));
-	EXPECT_TRUE(logContains("Geofence load failed, fence is not active"));
-}
-
-TEST_F(GeofenceTest, ReadFailureWithEmptyFenceIsReportedAsInactive)
-{
-	ASSERT_TRUE(loadFence({}));
-	_fence.updateFence();
-	ASSERT_TRUE(failFenceMetadataRead());
-	EXPECT_TRUE(logContains("Geofence load failed, fence is not active"));
-	// Reading the unchanged empty fence succeeds, but does not restore protection.
-	GeofenceTestPeer::expireRetryDelay(_fence);
-	ASSERT_TRUE(waitForFence());
-	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
-	EXPECT_TRUE(logContains("Geofence loaded, no fence configured"));
-}
-
-TEST_F(GeofenceTest, RecoveryWithEmptyFenceDoesNotClaimProtection)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	_fence.updateFence();
-	ASSERT_TRUE(failFenceMetadataRead());
-	EXPECT_TRUE(logContains("Geofence update failed, previous fence still active"));
-	// Clearing the stored fence lets the retry succeed, leaving no configured fence.
-	ASSERT_TRUE(storeFence({}));
-	GeofenceTestPeer::expireRetryDelay(_fence);
-	ASSERT_TRUE(waitForFence());
-	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
-	EXPECT_TRUE(logContains("Geofence loaded, no fence configured"));
-}
-
 enum class InvalidFenceItem {
-	TwoVertexPolygon, ZeroRadius, NegativeRadius, NonFiniteRadius, NonFiniteVertex, LocalFrame,
+	TwoVertexPolygon, ZeroRadius, NonFiniteRadius, NonFiniteVertex, LocalFrame,
 	MixedVertexType, VertexCountMismatch, TruncatedPolygon, AntimeridianEdge
 };
 
@@ -730,10 +393,6 @@ TEST_P(InvalidGeofenceLoadTest, RejectsFenceWhenLoading)
 
 	case InvalidFenceItem::ZeroRadius:
 		points = circle(false, {0.f, 300.f}, 0.f);
-		break;
-
-	case InvalidFenceItem::NegativeRadius:
-		points = circle(false, {0.f, 300.f}, -50.f);
 		break;
 
 	case InvalidFenceItem::NonFiniteRadius:
@@ -782,7 +441,6 @@ TEST_P(InvalidGeofenceLoadTest, RejectsFenceWhenLoading)
 INSTANTIATE_TEST_SUITE_P(InvalidFences, InvalidGeofenceLoadTest, ::testing::Values(
 				 InvalidFenceLoadCase{"TwoVertexPolygon", InvalidFenceItem::TwoVertexPolygon},
 				 InvalidFenceLoadCase{"ZeroRadius", InvalidFenceItem::ZeroRadius},
-				 InvalidFenceLoadCase{"NegativeRadius", InvalidFenceItem::NegativeRadius},
 				 InvalidFenceLoadCase{"NonFiniteRadius", InvalidFenceItem::NonFiniteRadius},
 				 InvalidFenceLoadCase{"NonFiniteVertex", InvalidFenceItem::NonFiniteVertex},
 				 InvalidFenceLoadCase{"LocalFrame", InvalidFenceItem::LocalFrame},

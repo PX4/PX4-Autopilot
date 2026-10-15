@@ -64,23 +64,13 @@ public:
 
 	static void invalidateCache(Geofence &fence) { fence._dataman_cache.invalidate(); }
 
-	static bool replaceCachedPoint(Geofence &fence, uint32_t index, const mission_fence_point_s &point)
-	{
-		return fence._dataman_cache.updateCachedItem(static_cast<dm_item_t>(fence._stats.dataman_id), index,
-				reinterpret_cast<const uint8_t *>(&point), sizeof(point));
-	}
-
 	static void setAltitudeBand(Geofence &fence, float minimum, float maximum)
 	{
 		fence._altitude_min = minimum;
 		fence._altitude_max = maximum;
 	}
 
-	static void setVertexCount(Geofence &fence, uint16_t count) { fence._polygons[0].vertex_count = count; }
-
 	static void useEquatorProjection(Geofence &fence) { fence._projection_reference.initReference(0.0, 0.0); }
-
-	static void finishUpdate(Geofence &fence) { fence._finishFenceUpdate(Geofence::LoadResult::Loaded); }
 
 	static void expireRetryDelay(Geofence &fence)
 	{
@@ -96,11 +86,6 @@ public:
 	{
 		return fence._initiate_fence_updated || fence._dataman_state != Geofence::DatamanState::UpdateRequestWait
 		       || fence._fence_retry_time != 0;
-	}
-
-	static bool waitForPendingRead(Geofence &fence)
-	{
-		return DatamanClientTestPeer::waitForOperation(fence._dataman_client, 1_s);
 	}
 
 	static bool failPendingRead(Geofence &fence)
