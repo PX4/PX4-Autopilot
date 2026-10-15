@@ -253,58 +253,66 @@ void CrsfRc::Run()
 	int new_bytes = _uart->readAtLeast(&_rcs_buf[0], RC_MAX_BUFFER_SIZE, 1, 100);
 
 	if (new_bytes > 0) {
-		_bytes_rx += new_bytes;
+		// A full buffer means more data may be waiting: at 1000 Hz ELRS packet rates
+		// more than a buffer arrives per cycle. Read and parse a buffer at a time,
+		// which the parser queue can take, until the UART is drained.
+		do {
+			_bytes_rx += new_bytes;
 
-		// Load new bytes into the CRSF parser buffer
-		CrsfParser_LoadBuffer(_rcs_buf, new_bytes);
+			// Load new bytes into the CRSF parser buffer
+			CrsfParser_LoadBuffer(_rcs_buf, new_bytes);
 
-		// Scan the parse buffer for messages, one at a time
-		CrsfPacket_t new_crsf_packet;
+			// Scan the parse buffer for messages, one at a time
+			CrsfPacket_t new_crsf_packet;
 
-		while (CrsfParser_TryParseCrsfPacket(&new_crsf_packet, &_packet_parser_statistics)) {
-			switch (new_crsf_packet.message_type) {
-			case CRSF_MESSAGE_TYPE_RC_CHANNELS:
-				_input_rc.timestamp_last_signal = time_now_us;
-				_last_packet_seen = time_now_us;
+			while (CrsfParser_TryParseCrsfPacket(&new_crsf_packet, &_packet_parser_statistics)) {
+				switch (new_crsf_packet.message_type) {
+				case CRSF_MESSAGE_TYPE_RC_CHANNELS:
+					_input_rc.timestamp_last_signal = time_now_us;
+					_last_packet_seen = time_now_us;
 
-				for (int i = 0; i < CRSF_CHANNEL_COUNT; i++) {
-					_input_rc.values[i] = new_crsf_packet.channel_data.channels[i];
+					for (int i = 0; i < CRSF_CHANNEL_COUNT; i++) {
+						_input_rc.values[i] = new_crsf_packet.channel_data.channels[i];
+					}
+
+					break;
+
+				case CRSF_MESSAGE_TYPE_LINK_STATISTICS:
+					_last_packet_seen = time_now_us;
+					_input_rc.rssi_dbm = -(float)(new_crsf_packet.link_statistics.active_antenna ?
+								      new_crsf_packet.link_statistics.uplink_rssi_2 :
+								      new_crsf_packet.link_statistics.uplink_rssi_1);
+
+					if (time_now_us - _last_stats_tx_seen > 500_ms) {
+						// We haven't received link statistics tx in a while, use an approximation
+						_input_rc.rssi = (1.f - _input_rc.rssi_dbm / -130.f) * _input_rc.RSSI_MAX;
+					}
+
+					_input_rc.link_quality = new_crsf_packet.link_statistics.uplink_link_quality;
+					_input_rc.rc_frame_rate = new_crsf_packet.link_statistics.rf_mode;
+					_input_rc.link_snr = new_crsf_packet.link_statistics.uplink_snr;
+					break;
+
+				case CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX:
+					_last_packet_seen = time_now_us;
+					_last_stats_tx_seen = time_now_us;
+					_input_rc.rssi = new_crsf_packet.link_statistics_tx.uplink_rssi_pct;
+					break;
+
+				case CRSF_MESSAGE_TYPE_ELRS_STATUS:
+					_last_packet_seen = time_now_us;
+					_input_rc.rc_lost_frame_count = new_crsf_packet.elrs_status.packets_bad;
+					_input_rc.rc_total_frame_count = new_crsf_packet.elrs_status.packets_good;
+					break;
+
+				default:
+					break;
 				}
-
-				break;
-
-			case CRSF_MESSAGE_TYPE_LINK_STATISTICS:
-				_last_packet_seen = time_now_us;
-				_input_rc.rssi_dbm = -(float)(new_crsf_packet.link_statistics.active_antenna ?
-							      new_crsf_packet.link_statistics.uplink_rssi_2 :
-							      new_crsf_packet.link_statistics.uplink_rssi_1);
-
-				if (time_now_us - _last_stats_tx_seen > 500_ms) {
-					// We haven't received link statistics tx in a while, use an approximation
-					_input_rc.rssi = (1.f - _input_rc.rssi_dbm / -130.f) * _input_rc.RSSI_MAX;
-				}
-
-				_input_rc.link_quality = new_crsf_packet.link_statistics.uplink_link_quality;
-				_input_rc.rc_frame_rate = new_crsf_packet.link_statistics.rf_mode;
-				_input_rc.link_snr = new_crsf_packet.link_statistics.uplink_snr;
-				break;
-
-			case CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX:
-				_last_packet_seen = time_now_us;
-				_last_stats_tx_seen = time_now_us;
-				_input_rc.rssi = new_crsf_packet.link_statistics_tx.uplink_rssi_pct;
-				break;
-
-			case CRSF_MESSAGE_TYPE_ELRS_STATUS:
-				_last_packet_seen = time_now_us;
-				_input_rc.rc_lost_frame_count = new_crsf_packet.elrs_status.packets_bad;
-				_input_rc.rc_total_frame_count = new_crsf_packet.elrs_status.packets_good;
-				break;
-
-			default:
-				break;
 			}
-		}
+
+			new_bytes = (new_bytes == (int)RC_MAX_BUFFER_SIZE) ? _uart->read(&_rcs_buf[0], RC_MAX_BUFFER_SIZE) : 0;
+
+		} while (new_bytes > 0);
 
 		if (_param_rc_crsf_tel_en.get() && !_is_singlewire
 		    && (_input_rc.timestamp > _telemetry_update_last + 100_ms)) {

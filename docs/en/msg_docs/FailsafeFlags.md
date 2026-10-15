@@ -30,6 +30,7 @@ The flag comments are used as label for the failsafe state machine simulation
 | <a id="fld_mode_req_prevent_arming"></a>mode_req_prevent_arming                                   | `uint32` |              |            | if set, cannot arm while in this mode                                                          |
 | <a id="fld_mode_req_manual_control"></a>mode_req_manual_control                                   | `uint32` |              |            |
 | <a id="fld_mode_req_other"></a>mode_req_other                                                     | `uint32` |              |            | other requirements, not covered above (for external modes)                                     |
+| <a id="fld_mode_not_supported"></a>mode_not_supported                                             | `uint32` |              |            | if set, mode is not supported by the current vehicle architecture                              |
 | <a id="fld_angular_velocity_invalid"></a>angular_velocity_invalid                                 | `bool`   |              |            | Angular velocity invalid                                                                       |
 | <a id="fld_attitude_invalid"></a>attitude_invalid                                                 | `bool`   |              |            | Attitude invalid                                                                               |
 | <a id="fld_local_altitude_invalid"></a>local_altitude_invalid                                     | `bool`   |              |            | Local altitude invalid                                                                         |
@@ -92,7 +93,7 @@ uint32 mode_req_wind_and_flight_time_compliance # if set, mode cannot be entered
 uint32 mode_req_prevent_arming    # if set, cannot arm while in this mode
 uint32 mode_req_manual_control
 uint32 mode_req_other             # other requirements, not covered above (for external modes)
-
+uint32 mode_not_supported			# if set, mode is not supported by the current vehicle architecture
 
 # Mode requirements
 bool angular_velocity_invalid         # Angular velocity invalid
