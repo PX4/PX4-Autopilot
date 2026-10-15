@@ -23,7 +23,10 @@ It brings the parts of a mobile robotics stack that do not belong on a flight co
 - Image Signal Processor with multiple MIPI-CSI inputs, so several cameras (for example a stereo pair plus an RGB camera) can be attached at once
 - Arm Mali GPU and hardware H.264/H.265 encode and decode for video streaming and recording
 - Audio subsystem (SAI, microphone array support) for voice interaction and acoustic sensing
-- Networking: a gigabit RJ45 port on the main board straight off the SoC, plus an XFI lane to the expansion header that by default feeds the NAVQ95-T1SW expansion board with an NXP SJA1110 TSN switch for automotive-style multi-drop vehicle networks; the XFI lane can instead be routed to an SFP+ cage module for fibre or higher-speed copper links
+- Networking: a gigabit RJ45 port on the main board straight off the SoC, plus a second SoC Ethernet port brought out as a SerDes lane (SGMII, USXGMII or XFI) on the Hirose board-to-board header `J17 B2B_ETH` for one networking expansion board:
+  - NAVQ95-T1SW: an NXP SJA1110 TSN switch on the SGMII link, with two 1000BASE-T1 and six 100BASE-T1 automotive Ethernet ports for multi-drop vehicle networks
+  - X-MR-NAVQ95E-T1P: a single NXP TJA1103 100BASE-T1 PHY
+  - An SFP+ cage board (to be released): the lane runs as XFI into the SFP+ cage, so the 10 Gbit link can be fibre with an optical module or copper with a direct-attach (DAC) cable
 - PCIe, USB and an on-board Wi-Fi/Bluetooth module for links to the ground station and to other vehicles
 
 ::: info
@@ -43,7 +46,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   PX4 runs on its Arm® Cortex®-M7 core (800 MHz).
   The Cortex®-A55 cores run Linux and the Cortex®-M33 core runs the NXP System Manager.
 - **Code store:** on-board octal NOR flash.
-  MCUboot starts PX4 from slot0 (7 MB).
+  MCUboot starts PX4 from slot0 (7 MB), the primary image slot in the NOR flash (see [Flash Layout](#flash_layout)).
   The `ddr` build runs from SDRAM and is loaded by Linux.
 
 ### Sensors {#sensors}
@@ -54,7 +57,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Interfaces {#interfaces}
 
-- **PWM outputs:** 8 FMU outputs (7 when output 8 is configured as the buzzer), all [DShot](../peripherals/dshot.md) capable, including bidirectional DShot 300 and 600
+- **PWM outputs:** 8 FMU outputs (7 when `GPIO_IO23` is configured as the buzzer or left unused), all [DShot](../peripherals/dshot.md) capable, including bidirectional DShot 300 and 600
 - **Serial ports:** 3 (`GPS1`, `TELEM1` with flow control, RC on the main board `J2 CONSOLE`), plus RPMsg virtual ports to Linux (shell, two MAVLink links)
 - **I2C buses:** 2 (I2C1 internal, I2C6 external)
 - **SPI buses:** 2, both internal
@@ -95,8 +98,36 @@ Its release will be announced in the [MR-NAVQ95 repository](https://github.com/N
 Hardware details, schematics and the pinout of every connector are in the [MR-NAVQ95 repository](https://github.com/NXP-Robotics/MR-NAVQ95).
 The [connector index](https://github.com/NXP-Robotics/MR-NAVQ95#connector-index) has a drawing and a pin table for each connector.
 
-The TELEM, GPS, I2C and CAN connectors and the main board `J2 CONSOLE` header follow the [Dronecode DS-009 connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
+The TELEM, GPS, I2C and CAN connectors follow the [Dronecode DS-009 connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
+The main board `J2 CONSOLE` header has its own pin order: pins 4 and 5 carry the RC UART (see [Radio Control](#radio_control)).
 The PWM header (IO board `J9 PWM`) has its own pin order.
+
+## Power {#power}
+
+The board is powered through the main board `J9 PWR_IN` connector (Molex Micro-Fit 3.0, 2-pin) from 9 V to 52 V.
+
+Battery monitoring is analog and voltage only, with [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) set to 64.4 by default.
+For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
+
+The PWM output rail is not powered by the board's power input (main board `J9 PWR_IN`).
+The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
+The rail (IO board `J9 PWM` pin 1, `VDD_CON_PWM`) can only be linked to the board 5 V by fitting R60 (0 ohm), which is not fitted by default.
+Do not put more than 5 V on the servo rail while R60 is fitted.
+
+::: warning
+Never feed power into the 5 V pins of the JST-GH connectors; they are outputs.
+:::
+
+## Voltage Ratings {#voltage_ratings}
+
+### Normal Operation Maximum Ratings
+
+1. `PWR_IN` (main board `J9`): 9 V to 52 V
+
+### Absolute Maximum Ratings
+
+1. `PWR_IN` (main board `J9`): 60 V
+2. Servo rail (`VDD_CON_PWM`, IO board `J9` pin 1): 12 V with R60 not fitted (the rail is only sensed, through `ADC_IN6`), 5 V with R60 fitted
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -109,6 +140,7 @@ The 8 outputs are on the IO board `J9 PWM` connector (3.3 V logic), in 4 groups:
 
 Output 8 (GPIO_IO23, IO board `J9` pin 9) can be turned into the GPS buzzer output under **GPIO_IO23** in the board configuration, which enables the tone alarm driver.
 The buzzer only sounds with DIP switch `S1` closed.
+To use output 8 as a PWM/DShot output, set `S1` open (off); with `S1` closed the output also drives the buzzer.
 
 All outputs support PWM, [DShot](../peripherals/dshot.md) and [bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) (300 and 600).
 Outputs in a group share the same protocol and rate, which are set per group with the corresponding `PWM_MAIN_TIMx` parameter.
@@ -171,8 +203,8 @@ The GPS port is the IO board `J8 GPS` connector, a standard DS-009 GPS and compa
 - Safety LED (on the IO board I/O expander, not driven yet)
 - Buzzer (needs DIP switch `S1` closed and the **GPIO_IO23** buzzer option, see [PWM Outputs](#pwm_outputs))
 
-The main board has an onboard Bosch BMM350 magnetometer.
-An external compass on `J8 GPS` or `J7 I2C` (I2C6) is detected automatically at boot.
+The main board has an on-board Bosch BMM350 magnetometer.
+An external compass on the IO board `J8 GPS` or `J7 I2C` connector (I2C6) is detected automatically at boot.
 
 ### Telemetry Radios (Optional) {#telemetry}
 
@@ -194,33 +226,6 @@ Each port has 120 ohm split termination, so each port is a bus end.
 
 [DroneCAN](../dronecan/index.md) is off by default.
 The board brings up `can0` and `can1` only when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is above 0.
-
-## Power {#power}
-
-The board is powered through the main board `J9 PWR_IN` connector (Molex Micro-Fit 3.0, 2-pin) from 9 V to 52 V.
-
-Battery monitoring is analog and voltage only, with [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) set to 64.4 by default.
-For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
-
-The PWM output rail is not powered by the board's power input (main board `J9 PWR_IN`).
-The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
-The rail (IO board `J9 PWM` pin 1, `VDD_CON_PWM`) can only be linked to the board 5 V by fitting R60 (0 ohm), which is not fitted by default.
-Do not put more than 5 V on the servo rail while R60 is fitted.
-
-::: warning
-Never feed power into the 5 V pins of the JST-GH connectors; they are outputs.
-:::
-
-## Voltage Ratings {#voltage_ratings}
-
-### Normal Operation Maximum Ratings
-
-1. `PWR_IN` (main board `J9`): 9 V to 52 V
-
-### Absolute Maximum Ratings
-
-1. `PWR_IN` (main board `J9`): 60 V
-2. Servo rail (`VDD_CON_PWM`, IO board `J9` pin 1): 12 V with R60 not fitted (the rail is only sensed, through `ADC_IN6`), 5 V with R60 fitted
 
 ## Linux Side {#linux_side}
 
@@ -301,6 +306,20 @@ MCUboot boots PX4 from slot0 reliably, but the update path is still a developer 
 A convenient field update (image upload through Linux into slot1 and an MCUboot swap) is not in place yet; see [Current Status](#current_status).
 :::
 
+### Flash Layout {#flash_layout}
+
+The octal NOR flash is mapped at `0x28000000` in the Cortex-M7 address space.
+MCUboot, built from Zephyr in the [NavQ95 BSP](https://github.com/NXP-Robotics/meta-nxp-mr) (board `mr_navq95b`), defines the partitions, and the PX4 linker script and `imgtool` arguments match slot0:
+
+| Address      | Size    | Partition         | Use                                                                                         |
+| ------------ | ------- | ----------------- | ------------------------------------------------------------------------------------------- |
+| `0x28000000` | 128 KB  | `mcuboot`         | MCUboot bootloader                                                                          |
+| `0x28020000` | 7 MB    | slot0 (`image-0`) | Primary slot, PX4 runs from here (execute in place)                                         |
+| `0x28720000` | 7 MB    | slot1 (`image-1`) | Secondary slot for an uploaded update, swapped into slot0 by MCUboot                        |
+| `0x28E20000` | 1920 KB | `storage`         | Reserved for the planned on-flash parameter storage (see [Current Status](#current_status)) |
+
+The rest of the flash is unused.
+
 The firmware is flashed into MCUboot slot0 over SWD with _pyOCD_.
 Mainline _pyOCD_ has no i.MX 95 support; use the NXP-Robotics fork, branch `pr-imx95`, which adds the `mimx95_*` targets and the NOR flash algorithm:
 
@@ -318,7 +337,7 @@ pyocd flash -e sector -a 0x28020000 -t mimx95_cm7_mx25um -f 20M \
 pyocd reset -t mimx95_cm33 -f 20M
 ```
 
-- `-a 0x28020000` is slot0.
+- `-a 0x28020000` is slot0 (see [Flash Layout](#flash_layout)).
   _pyOCD_ would otherwise default to the start of the flash region (`0x28000000`), which is MCUboot's own partition.
 - `-O vtor=0x28020800` is slot0 plus the 0x800-byte header, i.e. the application vector table.
   _pyOCD_'s CM7 reset on this SoC is a core-only restart: it writes VTOR, loads MSP/PC from that table and resumes, so the application starts directly without going through MCUboot.
@@ -327,7 +346,8 @@ pyocd reset -t mimx95_cm33 -f 20M
 
 ## Debug Port {#debug_port}
 
-The PX4 [system console](../debug/system_console.md) is `/dev/ttynsh` on the Linux side; there is no dedicated console UART.
+The PX4 [system console](../debug/system_console.md) is `/dev/ttynsh` on the Linux side.
+An NSH shell that does not need Linux can run on LPUART2 (IO board `J1 CONSOLE` or main board `J2 CONSOLE`) instead of the RC input; see [Serial Port Mapping](#serial_port_mapping).
 
 The [SWD interface](../debug/swd_debug.md) is on the main board `J7 DEBUG` connector, a standard Arm Cortex 10-pin header (2x5, 1.27 mm), for an external debug probe (J-Link, CMSIS-DAP or any probe _pyOCD_ supports; see the `J7` card in the [MR-NAVQ95 repository](https://github.com/NXP-Robotics/MR-NAVQ95#connector-index)).
 It is not a Pixhawk Debug Full or Debug Mini connector.
@@ -343,6 +363,7 @@ Known gaps at the time of writing:
 - Firmware update:
   MCUboot in the NOR flash boots the signed PX4 image from slot0, but the only supported way to get an image in there is SWD with _pyOCD_.
   There is no Linux-side updater or serial-recovery flow yet, so updating PX4 still needs a debug probe and the boot switches set for flashing.
+  MCUboot itself is still work in progress.
 - Parameter and log storage:
   Parameters, dataman and logs live on the RPMsg filesystem served by Linux.
   Moving the parameter storage to the on-board octal NOR flash, so that PX4 can boot and arm independently of the Linux side, is in progress.
