@@ -96,6 +96,19 @@ To build PX4 for this target:
 make thepeach_k1_default
 ```
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 5 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+[DShot](../peripherals/dshot.md) is not supported.
+
+The 5 outputs are in 2 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Output 5 in group2 (Timer4)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to buy
 
 Order from [ThePeach](https://thepeach.shop/)

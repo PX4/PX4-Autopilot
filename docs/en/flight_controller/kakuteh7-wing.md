@@ -13,6 +13,28 @@ The [Holybro Kakute H743 Wing](https://holybro.com/products/kakute-h743-wing) is
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 14 FMU PWM outputs (MAIN).
+
+Outputs:
+
+- Outputs 1-8, 11-14 support [DShot](../peripherals/dshot.md).
+- Outputs 9-10 do not support DShot.
+- Outputs 1-5, 7-8, 11-14 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+- Output 6 supports Bidirectional DShot output only (no eRPM capture).
+
+The 14 outputs are in 6 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-6 in group2 (Timer4)
+- Outputs 7-8 in group3 (Timer5)
+- Outputs 9-10 in group4 (Timer15)
+- Outputs 11-13 in group5 (Timer3)
+- Output 14 in group6 (Timer2)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
