@@ -135,25 +135,6 @@ UavcanNode::~UavcanNode()
 		_servers = nullptr;
 	}
 
-	if (_instance) {
-
-		/* tell the task we want it to go away */
-		_task_should_exit.store(true);
-		ScheduleNow();
-
-		unsigned i = 10;
-
-		do {
-			/* wait 5ms - it should wake every 10ms or so worst-case */
-			usleep(5000);
-
-			if (--i == 0) {
-				break;
-			}
-
-		} while (_instance);
-	}
-
 	// Removing the sensor bridges
 	_sensor_bridges.clear();
 
@@ -458,6 +439,33 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	_instance->_mixing_interface_servo.ScheduleNow();
 #endif
 
+	return OK;
+}
+
+int
+UavcanNode::stop()
+{
+	UavcanNode *const inst = _instance;
+
+	if (inst == nullptr) {
+		return -1;
+	}
+
+	inst->_task_should_exit.store(true);
+	inst->ScheduleNow();
+
+	// Run() clears _instance once the node and its outputs are off the work queue
+	for (int i = 0; i < 500 && _instance != nullptr; i++) {
+		px4_usleep(10000);
+	}
+
+	if (_instance != nullptr) {
+		// Run() may still be using it, so freeing it is not safe
+		PX4_ERR("Node did not stop, not freeing it");
+		return -1;
+	}
+
+	delete inst;
 	return OK;
 }
 
@@ -1032,8 +1040,10 @@ UavcanNode::Run()
 		_mixing_interface_servo.mixingOutput().unregister();
 		_mixing_interface_servo.ScheduleClear();
 #endif
-		ScheduleClear();
+		// Cleared first: a bus event interrupt between the two would queue one more Run() that
+		// stop() does not wait for
 		_instance = nullptr;
+		ScheduleClear();
 	}
 }
 
@@ -1704,8 +1714,7 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 	}
 
 	if (!std::strcmp(argv[1], "stop")) {
-		delete inst;
-		return 0;
+		return UavcanNode::stop();
 	}
 
 	print_usage();
