@@ -268,6 +268,7 @@ private:
 	uavcan_node::Allocator	 _pool_allocator;
 
 	bool                    _node_init{false};
+	int                     _can_init_error{0};		///< last CAN driver init error reported
 	const uavcan::NodeID	_node_id;			///< node ID, validated by uavcan_main()
 	const uint32_t		_bitrate;			///< CAN bit rate in bit/s
 	uavcan::Node<>			_node;				///< library instance

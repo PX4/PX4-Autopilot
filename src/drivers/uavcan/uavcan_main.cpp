@@ -713,7 +713,11 @@ UavcanNode::Run()
 		const int can_init_res = can->init(_bitrate);
 
 		if (can_init_res < 0) {
-			PX4_ERR("CAN driver init failed %i", can_init_res);
+			// retried every cycle, so report each error once
+			if (can_init_res != _can_init_error) {
+				PX4_ERR("CAN driver init failed %i at %" PRIu32 " bit/s", can_init_res, _bitrate);
+				_can_init_error = can_init_res;
+			}
 
 		} else {
 			const int node_init_res = _instance->init(_node_id, can->driver.updateEvent());
@@ -1623,12 +1627,6 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 		// CAN bitrate
 		int32_t bitrate = 1000000;
 		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
-
-		// Run() retries a rejected rate on every cycle until restart, so refuse it here
-		if (bitrate < 20000 || bitrate > 1000000) {
-			PX4_ERR("Invalid bitrate %" PRId32, bitrate);
-			return 1;
-		}
 
 		// Start
 		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
