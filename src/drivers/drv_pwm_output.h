@@ -88,6 +88,7 @@ __BEGIN_DECLS
 #define	PWM_RATE_ONESHOT			0u
 #define	PWM_RATE_LOWER_LIMIT		1u
 #define	PWM_RATE_UPPER_LIMIT		10000u
+#define	PWM_RATE_TIMER_MAX		UINT16_MAX
 
 /*
  * Low-level PWM output interface.
