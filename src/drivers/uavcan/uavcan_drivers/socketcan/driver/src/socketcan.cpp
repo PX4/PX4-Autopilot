@@ -49,6 +49,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <nuttx/can.h>
 
@@ -81,6 +82,13 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	_can_fd = can_fd;
 	_index = index;
+
+	// uavcan stop/start and a failed driver init open the interface again; the old
+	// socket would otherwise stay bound and keep queueing received frames
+	if (_fd >= 0) {
+		close(_fd);
+		_fd = -1;
+	}
 
 	/* open socket */
 	if ((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
