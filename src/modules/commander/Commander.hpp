@@ -170,25 +170,12 @@ private:
 	unsigned handleCommandActuatorTest(const vehicle_command_s &cmd);
 
 	/**
-	 * @brief Resolve the altitude a takeoff command will climb to
-	 *
-	 * A takeoff command does not have to carry an altitude. In that case the navigator takes off to
-	 * MIS_TAKEOFF_ALT above the current altitude, so the altitude the command results in has to be resolved
-	 * here to be able to check it. Does not apply to a VTOL takeoff, which has no such default.
-	 *
-	 * @param commanded_altitude_amsl altitude of the takeoff command, NAN if not set [m AMSL]
-	 * @return altitude the vehicle will climb to, NAN if it cannot be determined [m AMSL]
+	 * @brief Resolve the altitude a takeoff command will climb to, see takeoff::resolveAltitudeAmsl()
 	 */
 	float getTakeoffAltitudeAmsl(float commanded_altitude_amsl);
 
 	/**
-	 * @brief Highest altitude a takeoff can be commanded to
-	 *
-	 * Derived from the maximum height above the ground the estimator can support with the currently available
-	 * aiding sources, so that a takeoff is rejected before the vehicle leaves the ground instead of running
-	 * into the limit during the climb.
-	 *
-	 * @return maximum takeoff altitude [m AMSL], NAN if unknown, INFINITY if there is no limit
+	 * @brief Highest altitude a takeoff can be commanded to, see takeoff::maxAltitudeAmsl()
 	 */
 	float getMaxTakeoffAltitudeAmsl();
 

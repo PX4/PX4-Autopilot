@@ -50,6 +50,7 @@
 #include "ModeUtil/conversions.hpp"
 #include <lib/modes/ui.hpp>
 #include <lib/modes/standard_modes.hpp>
+#include <lib/takeoff/takeoff_altitude_limit.hpp>
 
 /* PX4 headers */
 #include <drivers/drv_hrt.h>
@@ -2814,55 +2815,28 @@ void Commander::updateControlMode()
 
 float Commander::getTakeoffAltitudeAmsl(const float commanded_altitude_amsl)
 {
-	if (PX4_ISFINITE(commanded_altitude_amsl)) {
-		return commanded_altitude_amsl;
-	}
-
-	// A takeoff command does not have to carry an altitude. The navigator then takes off to MIS_TAKEOFF_ALT
-	// above the altitude the vehicle is at when the mode is activated, see Takeoff::set_takeoff_position().
 	float mis_takeoff_alt{NAN};
 
 	if (param_get(_param_mis_takeoff_alt_handle, &mis_takeoff_alt) != PX4_OK) {
-		return NAN;
+		mis_takeoff_alt = NAN;
 	}
 
 	_global_position_sub.update();
 
-	if (!_global_position_sub.get().alt_valid) {
-		return NAN;
-	}
-
-	return _global_position_sub.get().alt + mis_takeoff_alt;
+	return takeoff::resolveAltitudeAmsl(commanded_altitude_amsl, _global_position_sub.get(), mis_takeoff_alt);
 }
 
 float Commander::getMaxTakeoffAltitudeAmsl()
 {
-	// The limit is derived from the terrain altitude, which is the altitude the vehicle climbs away from, so it
-	// only applies to a takeoff from the ground. There is nothing to reject once the vehicle is in air, the
-	// navigator limits the altitude setpoint during the climb instead.
-	if (!_vehicle_land_detected.landed) {
-		return NAN;
-	}
-
 	_local_position_sub.update();
 	_global_position_sub.update();
 
-	if (!_global_position_sub.get().terrain_alt_valid) {
-		return NAN;
-	}
-
-	// Same limit as the navigator's max HAGL failsafe, so that a takeoff accepted here does not trigger it. An axis
-	// that is not limited is reported as INFINITY, which results in no limit.
-	const float hagl_max = math::min(_local_position_sub.get().hagl_max_z, _local_position_sub.get().hagl_max_xy);
-
-	return _global_position_sub.get().terrain_alt + hagl_max;
+	return takeoff::maxAltitudeAmsl(_vehicle_land_detected.landed, _global_position_sub.get(), _local_position_sub.get());
 }
 
 bool Commander::isTakeoffAltitudeAboveLimit(const float altitude_amsl)
 {
-	// Either side is NAN when it is unknown, and the limit is INFINITY when unlimited. In both cases the comparison
-	// is false and the takeoff is not rejected.
-	return altitude_amsl > getMaxTakeoffAltitudeAmsl();
+	return takeoff::isAboveLimit(altitude_amsl, getMaxTakeoffAltitudeAmsl());
 }
 
 void Commander::printRejectTakeoffAltitude()
