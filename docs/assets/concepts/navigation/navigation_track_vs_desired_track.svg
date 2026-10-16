@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="224" viewBox="0 0 800 224" role="img" aria-label="Placeholder: Track vs. desired track">
+  <rect x="2" y="2" width="796" height="220" rx="8" fill="#f4f4f5" stroke="#71717a" stroke-width="3" stroke-dasharray="12 8"/>
+  <text x="400" y="60" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold" fill="#b45309" letter-spacing="2">PLACEHOLDER</text>
+  <text x="400" y="95" text-anchor="middle" font-family="sans-serif" font-size="24" font-weight="bold" fill="#27272a">Track vs. desired track</text>
+  <text x="400" y="135" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#3f3f46"><tspan x="400" dy="0">Desired track (dashed line between two waypoints) versus track (the</tspan><tspan x="400" dy="22">actual wavy path), with the course over ground tangent to the track.</tspan></text>
+</svg>
