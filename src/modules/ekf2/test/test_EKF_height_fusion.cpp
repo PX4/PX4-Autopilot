@@ -366,6 +366,50 @@ TEST_F(EkfHeightFusionTest, gpsRefDeadReckoningStopRestartInconsistent)
 	EXPECT_EQ(_ekf->getBaroBiasEstimatorStatus().bias, frozen_baro_bias);
 }
 
+TEST_F(EkfHeightFusionTest, gpsRefDeadReckoningRestartOnAnotherReceiver)
+{
+	// GIVEN: GNSS altitude as the configured height reference, dead-reckoning
+	// GNSS mode, fusing both GNSS and baro height
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.setGnssDeadReckonMode();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(10);
+
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+
+	// WHEN: GNSS height fusion stops (no more data), so that baro becomes the reference
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(10);
+
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	const float previous_height = _ekf->getPosition()(2);
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	// AND: another receiver is selected, which reports a height offset within the innovation gate
+	gnssSample gps_data = _sensor_simulator._gps.getData();
+	gps_data.selection_count++;
+	_sensor_simulator._gps.setData(gps_data);
+
+	const float simulated_height_change = 1.f;
+	_sensor_simulator._gps.stepHeightByMeters(simulated_height_change);
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: since a reset isn't allowed, GNSS height fusion restarts without one and the offset goes into the
+	// GNSS height bias instead of being fused as an error
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(0));
+	EXPECT_NEAR(_ekf->getPosition()(2), previous_height, 0.1f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_hgt().innovation, 0.f, 0.1f);
+}
+
 TEST_F(EkfHeightFusionTest, baroRefFailOver)
 {
 	// GIVEN: baro reference with GPS and range height fusion

@@ -267,6 +267,85 @@ TEST_F(EkfGpsTest, receiverChangeResetsPosition)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
 }
 
+TEST_F(EkfGpsTest, receiverChangeAfterOutageResetsGnssHeight)
+{
+	// GIVEN: EKF that fuses GNSS position, with GNSS as the height reference
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+
+	const float previous_height = _ekf->getPosition()(2);
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	// WHEN: the selected receiver stops publishing long enough for GNSS height fusion to stop
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(1.5);
+
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// AND: another receiver is selected, which reports a height offset within the innovation gate
+	gnssSample gps_data = _sensor_simulator._gps.getData();
+	gps_data.selection_count++;
+	_sensor_simulator._gps.setData(gps_data);
+
+	const float simulated_height_change = 1.f;
+	_sensor_simulator._gps.stepHeightByMeters(simulated_height_change);
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: GNSS height fusion restarts with a height reset to the new receiver
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_NEAR(_ekf->getPosition()(2), previous_height - simulated_height_change, 0.1f);
+}
+
+TEST_F(EkfGpsTest, receiverChangeWhileHeightFusionStoppedResetsGnssHeight)
+{
+	// GIVEN: EKF that fuses GNSS position, with GNSS as the height reference
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+
+	const float previous_height = _ekf->getPosition()(2);
+
+	// WHEN: GNSS height fusion is stopped
+	_ekf_wrapper.disableGpsHeightFusion();
+	_sensor_simulator.runSeconds(0.5);
+
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	// AND: another receiver is selected and publishes a height offset within the innovation gate while it is stopped
+	gnssSample gps_data = _sensor_simulator._gps.getData();
+	gps_data.selection_count++;
+	_sensor_simulator._gps.setData(gps_data);
+
+	const float simulated_height_change = 1.f;
+	_sensor_simulator._gps.stepHeightByMeters(simulated_height_change);
+	_sensor_simulator.runSeconds(1);
+
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	// AND: GNSS height fusion is allowed again
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: GNSS height fusion restarts with a height reset to the new receiver
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_NEAR(_ekf->getPosition()(2), previous_height - simulated_height_change, 0.1f);
+}
+
 TEST_F(EkfGpsTest, receiverChangeKeepsBaroHeight)
 {
 	// GIVEN: EKF that fuses GNSS position and height, with baro as the height reference
