@@ -238,6 +238,19 @@ void MavlinkLogHandler::state_sending_data()
 		}
 
 		msg.count = fread(msg.data, 1, bytes_to_read, _current_entry.fp);
+
+		if (msg.count == 0) {
+			/* EOF or read error mid-download (file truncated or removed,
+			 * SD card error): abort instead of sending empty LOG_DATA
+			 * packets forever with the offset no longer advancing.
+			 */
+			PX4_DEBUG("read error or unexpected EOF");
+			fclose(_current_entry.fp);
+			_current_entry.fp = nullptr;
+			_state = LogHandlerState::Idle;
+			return;
+		}
+
 		msg.id = _current_entry.id;
 		msg.ofs = _current_entry.offset;
 
