@@ -31,8 +31,10 @@
 #
 ############################################################################
 
-px4_add_library(open_drone_id
-	odid_bid_storage.cpp
-)
+if(CONFIG_BOARD_HAS_RID_EEPROM)
+	px4_add_library(open_drone_id
+		odid_bid_storage.cpp
+	)
 
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/odid_params.yaml)
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/odid_params.yaml)
+endif()

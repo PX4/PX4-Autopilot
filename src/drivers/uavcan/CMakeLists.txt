@@ -188,7 +188,6 @@ px4_add_module(
 		drivers_rangefinder
 		led
 		mixer_module
-		open_drone_id
 		version
 
 		git_uavcan_dsdl
@@ -202,3 +201,7 @@ px4_add_module(
 
 		failure_injection
 	)
+
+if(CONFIG_BOARD_HAS_RID_EEPROM)
+	target_link_libraries(drivers__uavcan PRIVATE open_drone_id)
+endif()

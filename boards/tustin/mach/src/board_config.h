@@ -44,6 +44,7 @@
  ****************************************************************************************************/
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_boardconfig.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -155,7 +156,7 @@
 
 #define BOARD_NUM_IO_TIMERS 3
 
-#if defined(BOARD_HAS_RID_EEPROM)
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
 /* Onboard 24LC64 EEPROM on I2C2, address 0x51 (RID variant only). */
 #define PX4_I2C_BUS_MTD       2
 #define BOARD_MTD_NUM_EEPROM  1

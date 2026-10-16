@@ -140,13 +140,16 @@ px4_add_module(
 		sensor_calibration
 		geo
 		mavlink_c
-		open_drone_id
 		timesync
 		tunes
 		variable_length_ringbuffer
 		version
 	UNITY_BUILD
 	)
+
+if(CONFIG_BOARD_HAS_RID_EEPROM)
+	target_link_libraries(modules__mavlink PRIVATE open_drone_id)
+endif()
 
 if(CONFIG_DRIVERS_SERIALPASSTHROUGH)
 	target_link_libraries(modules__mavlink PRIVATE drivers__serialpassthrough)
