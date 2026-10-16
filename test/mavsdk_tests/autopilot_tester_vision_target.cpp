@@ -37,6 +37,7 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
+#include <mutex>
 #include <sstream>
 
 using namespace std::chrono_literals;
@@ -127,6 +128,24 @@ void AutopilotTesterVisionTarget::precision_land(Scenario scenario, std::chrono:
 	REQUIRE(getParams()->set_param_int("VTE_AID_MASK", aid_mask) == Param::Result::Success);
 	REQUIRE(getTelemetry()->set_rate_attitude_euler(15) == Telemetry::Result::Success);
 
+	// PX4 streams the VTE output as LANDING_TARGET, with the relative position in x, y, z.
+	struct TargetEstimate {
+		std::mutex mutex;
+		mavlink_landing_target_t message{};
+	};
+	const auto estimate = std::make_shared<TargetEstimate>();
+	add_mavlink_message_callback(MAVLINK_MSG_ID_LANDING_TARGET, [estimate](const mavlink_message_t &message) {
+		std::lock_guard<std::mutex> lock(estimate->mutex);
+		mavlink_msg_landing_target_decode(&message, &estimate->message);
+	});
+	MavlinkPassthrough::CommandLong interval{};
+	interval.target_sysid = getMavlinkPassthrough()->get_target_sysid();
+	interval.target_compid = getMavlinkPassthrough()->get_target_compid();
+	interval.command = MAV_CMD_SET_MESSAGE_INTERVAL;
+	interval.param1 = static_cast<float>(MAVLINK_MSG_ID_LANDING_TARGET);
+	interval.param2 = 50000.f; // 20 Hz
+	REQUIRE(getMavlinkPassthrough()->send_command_long(interval) == MavlinkPassthrough::Result::Success);
+
 	if (scenario == Scenario::Mission) {
 		start_landing_mission();
 
@@ -169,7 +188,7 @@ void AutopilotTesterVisionTarget::precision_land(Scenario scenario, std::chrono:
 			const float height_m = vehicle.absolute_altitude_m - _target.absolute_altitude_m;
 
 			if (scenario == Scenario::Mission) {
-				// Below the default search altitude, so searching alone cannot expose vision.
+				// Below PLD_SRCH_ALT (pinned in sih-sitl.json), so searching alone cannot expose vision.
 				constexpr float mission_vision_height_m = 9.f;
 
 				if (!vision_enabled && height_m < mission_vision_height_m) {
@@ -239,6 +258,27 @@ void AutopilotTesterVisionTarget::precision_land(Scenario scenario, std::chrono:
 				REQUIRE(distance_m < corrected_radius_m);
 			}
 
+			constexpr float estimate_check_min_height_m = 1.f;
+			constexpr float estimate_check_max_height_m = 4.f;
+
+			if (height_m > estimate_check_min_height_m && height_m < estimate_check_max_height_m) {
+				// VTE must keep a live estimate that matches the pad in 3D, including the height.
+				mavlink_landing_target_t target;
+				{
+					std::lock_guard<std::mutex> lock(estimate->mutex);
+					target = estimate->message;
+				}
+				const double estimate_age_s = (static_cast<double>(vehicle.timestamp_us) - target.time_usec) * 1e-6;
+				const double estimate_error_m = std::hypot(target.x + relative.north_m, target.y + relative.east_m,
+								target.z - height_m);
+				CAPTURE(estimate_age_s, estimate_error_m, target.z, height_m);
+				REQUIRE(target.position_valid);
+				constexpr double maximum_estimate_age_s = 0.25;
+				REQUIRE(std::abs(estimate_age_s) < maximum_estimate_age_s);
+				constexpr double estimate_acceptance_m = 0.5;
+				REQUIRE(estimate_error_m < estimate_acceptance_m);
+			}
+
 			last_sample = vehicle.timestamp_us;
 			last_sample_received = Clock::now();
 		}
@@ -281,21 +321,24 @@ void AutopilotTesterVisionTarget::send_target_observations(Scenario scenario, co
 		const auto vehicle_ne = target_frame.local_from_global({vehicle.latitude_deg, vehicle.longitude_deg});
 		const Vector3d target_ned_m{-vehicle_ne.north_m, -vehicle_ne.east_m,
 					    vehicle.absolute_altitude_m - _target.absolute_altitude_m};
-		// A fixed virtual sensor yawed 90 degrees from NED: sensor (x,y,z) = (east,-north,down).
-		// This exercises q_sensor without relying on the aircraft's estimated attitude.
-		const Vector3d target_sensor_m{target_ned_m[1], -target_ned_m[0], target_ned_m[2]};
+		// Fixed virtual camera looking down (yaw 90, then pitch -90 deg): sensor (x,y,z) = (down,-north,-east).
+		// Independent of the estimated attitude; the pitch stops q_sensor commuting with q_target.
+		const Vector3d target_sensor_m{target_ned_m[2], -target_ned_m[0], -target_ned_m[1]};
 		constexpr int frame_other = 3; // TARGET_OBS_FRAME_OTHER
 		constexpr Vector3d position_std_m{0.1, 0.1, 0.1};
-		constexpr double sensor_yaw_deg = 90.0;
 		constexpr double yaw_std_rad = 0.1;
-		const double half_yaw_in_sensor_rad = (target_yaw_deg - sensor_yaw_deg) * M_PI / 360.0;
+		// q_target = conj(q_sensor) * yaw(target_yaw_deg): the pad lies flat, so q_sensor * q_target is a pure yaw.
+		const double cos_half_yaw = std::cos(target_yaw_deg * M_PI / 360.0);
+		const double sin_half_yaw = std::sin(target_yaw_deg * M_PI / 360.0);
+		const double q_target_wy = 0.5 * (cos_half_yaw + sin_half_yaw);
+		const double q_target_xz = 0.5 * (sin_half_yaw - cos_half_yaw);
 		std::ostringstream fields;
 		fields << std::setprecision(10) << "\"frame\":" << frame_other
 		       << ",\"type\":" << LANDING_TARGET_TYPE_VISION_FIDUCIAL
 		       << ",\"x\":" << target_sensor_m[0] << ",\"y\":" << target_sensor_m[1] << ",\"z\":" << target_sensor_m[2]
 		       << ",\"pos_std\":[" << position_std_m[0] << ',' << position_std_m[1] << ',' << position_std_m[2] << ']'
-		       << R"(,"q_sensor":[0.70710678,0,0,0.70710678])"
-		       << ",\"q_target\":[" << std::cos(half_yaw_in_sensor_rad) << ",0,0," << std::sin(half_yaw_in_sensor_rad) << ']'
+		       << R"(,"q_sensor":[0.5,0.5,-0.5,0.5])"
+		       << ",\"q_target\":[" << q_target_wy << ',' << q_target_xz << ',' << q_target_wy << ',' << q_target_xz << ']'
 		       << ",\"yaw_std\":" << yaw_std_rad;
 		send_message("TARGET_RELATIVE", fields.str());
 	}

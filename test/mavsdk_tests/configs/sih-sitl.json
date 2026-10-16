@@ -14,7 +14,8 @@
                 "PX4_PARAM_VTE_POS_EN": 1,
                 "PX4_PARAM_VTE_YAW_EN": 1,
                 "PX4_PARAM_VTE_TASK_MASK": 1,
-                "PX4_PARAM_PLD_YAW_EN": 1
+                "PX4_PARAM_PLD_YAW_EN": 1,
+                "PX4_PARAM_PLD_SRCH_ALT": 10
             }
         },
         {
