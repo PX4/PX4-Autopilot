@@ -1213,6 +1213,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
 			/* ok, home set, use it to take off */
 			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, getSourceFromCommand(cmd))) {
+				_takeoff_hold_course = PX4_ISFINITE(cmd.param4); // fixed-wing: course to continue on after the climbout
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -2202,6 +2203,10 @@ void Commander::run()
 
 void Commander::checkForMissionUpdate()
 {
+	if (_takeoff_hold_course && _user_mode_intention.get() != vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF) {
+		_takeoff_hold_course = false; // the commanded takeoff was left or completed
+	}
+
 	if (_mission_result_sub.updated()) {
 		const mission_result_s &mission_result = _mission_result_sub.get();
 
@@ -2241,8 +2246,16 @@ void Commander::checkForMissionUpdate()
 
 			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 			    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
-				// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
-				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
+				// A fixed-wing takeoff with a commanded course continues in Guided Course.
+				const bool continue_on_course = _takeoff_hold_course
+								&& _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+								&& _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+								&& _user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE, ModeChangeSource::ModeExecutor);
+
+				if (!continue_on_course) {
+					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
+				}
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 				// Transition to loiter when the mission is cleared and/or finished, and we are still in mission mode.

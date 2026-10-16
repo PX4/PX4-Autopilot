@@ -807,7 +807,11 @@ void Navigator::run()
 				// The yaw setpoint generation is handled by FlightTaskAuto.
 				rep->current.yaw = NAN;
 
-				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
+				// Fixed-wing: a finite yaw field is the course to continue on after the climbout instead of loitering.
+				// The climbout then stays straight, so the takeoff position is not used.
+				const bool hold_course = PX4_ISFINITE(cmd.param4);
+
+				if (!hold_course && PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
 				    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON)) {
 					rep->current.lat = cmd.param5;
 					rep->current.lon = cmd.param6;
@@ -827,8 +831,10 @@ void Navigator::run()
 				rep->next.valid = false;
 
 				// Fixed-wing: vehicle will takeoff towards these coordinates and establish on a loiter there
-				_takeoff.setLoiterPosition(matrix::Vector2d(cmd.param5, cmd.param6));
+				_takeoff.setLoiterPosition(hold_course ? matrix::Vector2d(static_cast<double>(NAN), static_cast<double>(NAN))
+							   : matrix::Vector2d(cmd.param5, cmd.param6));
 				_takeoff.setLoiterAltitudeAmsl(cmd.param7);
+				_takeoff.setHoldCourse(hold_course ? matrix::wrap_pi(math::radians(cmd.param4)) : NAN);
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
