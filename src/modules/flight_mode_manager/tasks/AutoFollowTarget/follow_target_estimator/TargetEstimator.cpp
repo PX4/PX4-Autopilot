@@ -126,6 +126,7 @@ void TargetEstimator::update()
 
 	// Get GPS reference location for NED frame, needed for projection
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
+	shift_states_to_current_reference();
 
 	// Perform sensor fusion update if there's a new GPS message from the follow-target
 	prediction_update(deltatime);
@@ -174,6 +175,8 @@ void TargetEstimator::update()
 	_filter_states.pos_ned_est.copyTo(follow_target_estimator.pos_est);
 	_filter_states.vel_ned_est.copyTo(follow_target_estimator.vel_est);
 	_filter_states.acc_ned_est.copyTo(follow_target_estimator.acc_est);
+	follow_target_estimator.pos_reset_counter = _pos_reset_counter;
+	_delta_pos.copyTo(follow_target_estimator.delta_pos);
 	follow_target_estimator.prediction_count = _prediction_count;
 	follow_target_estimator.fusion_count = _fusion_count;
 	_follow_target_estimator_pub.publish(follow_target_estimator);
@@ -227,12 +230,15 @@ bool TargetEstimator::measurement_can_be_fused(const Vector3f &current_measureme
 
 void TargetEstimator::measurement_update(const follow_target_s &follow_target)
 {
+	if (!_reference_position.isInitialized()) {
+		// nothing to project the measurement into yet
+		return;
+	}
+
 	_fusion_count++;
 	// Decompose follow_target message into the individual measurements for position and velocity
 	const Vector3f vel_measured{follow_target.vx, follow_target.vy, follow_target.vz};
-	Vector3f pos_measured{NAN, NAN, -(follow_target.alt - _vehicle_local_position.ref_alt)};
-	_reference_position.initReference(_vehicle_local_position.ref_lat, _vehicle_local_position.ref_lon,
-					  hrt_absolute_time());
+	Vector3f pos_measured{NAN, NAN, -(follow_target.alt - _state_ref_alt)};
 	_reference_position.project(follow_target.lat, follow_target.lon, pos_measured(0), pos_measured(1));
 
 	// Initialize filter if necessary
@@ -306,6 +312,61 @@ void TargetEstimator::measurement_update(const follow_target_s &follow_target)
 
 }
 
+void TargetEstimator::shift_states_to_current_reference()
+{
+	const vehicle_local_position_s &local_position = _vehicle_local_position;
+
+	// EKF2 publishes NaN and MicroStrain zeros without a reference, and LPE sets xy_global before its
+	// origin exists, so both global flags and finite values are required
+	const bool reference_valid = local_position.xy_global && local_position.z_global
+				     && PX4_ISFINITE(local_position.ref_lat) && PX4_ISFINITE(local_position.ref_lon)
+				     && PX4_ISFINITE(local_position.ref_alt);
+
+	if (!reference_valid) {
+		return;
+	}
+
+	const bool reference_known = _reference_position.isInitialized();
+	const bool reference_changed = !reference_known
+				       || (fabs(local_position.ref_lat - _reference_position.getProjectionReferenceLat()) > 1e-9)
+				       || (fabs(local_position.ref_lon - _reference_position.getProjectionReferenceLon()) > 1e-9)
+				       || (fabsf(local_position.ref_alt - _state_ref_alt) > 1e-3f);
+
+	if (!reference_changed) {
+		return;
+	}
+
+	const MapProjection new_reference(local_position.ref_lat, local_position.ref_lon, hrt_absolute_time());
+
+	if (reference_known) {
+		// the target didn't move, only the frame did, so carry the position states over to the new frame
+		const float alt_offset = local_position.ref_alt - _state_ref_alt;
+
+		const auto shift = [&](Vector3f & position) {
+			if (position.isAllFinite()) {
+				double lat{static_cast<double>(NAN)};
+				double lon{static_cast<double>(NAN)};
+				_reference_position.reproject(position(0), position(1), lat, lon);
+				new_reference.project(lat, lon, position(0), position(1));
+				position(2) += alt_offset;
+			}
+		};
+
+		const Vector3f position_before = _filter_states.pos_ned_est;
+		shift(_filter_states.pos_ned_est);
+		shift(_pos_measurement_old);
+
+		if (position_before.isAllFinite()) {
+			// tell the consumers how far the estimate moved so they can move their own states with it
+			_delta_pos = _filter_states.pos_ned_est - position_before;
+			_pos_reset_counter++;
+		}
+	}
+
+	_reference_position = new_reference;
+	_state_ref_alt = local_position.ref_alt;
+}
+
 void TargetEstimator::prediction_update(float deltatime)
 {
 	_prediction_count++;
@@ -329,7 +390,7 @@ Vector3<double> TargetEstimator::get_lat_lon_alt_est() const
 	if (Vector2f(_filter_states.pos_ned_est).isAllFinite()) {
 		_reference_position.reproject(_filter_states.pos_ned_est(0), _filter_states.pos_ned_est(1), lat_lon_alt(0),
 					      lat_lon_alt(1));
-		lat_lon_alt(2) = -(double)_filter_states.pos_ned_est(2) + (double)_vehicle_local_position.ref_alt;
+		lat_lon_alt(2) = -(double)_filter_states.pos_ned_est(2) + (double)_state_ref_alt;
 	}
 
 	return lat_lon_alt;
