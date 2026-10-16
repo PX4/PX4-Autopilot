@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_INVENSENSE_ICM56686
+	bool "icm56686"
+	default n
+	---help---
+		Enable support for icm56686
