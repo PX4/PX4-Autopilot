@@ -215,6 +215,19 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_pos,
 
 void Ekf::resetAltitudeTo(const float new_altitude, float new_vert_pos_var)
 {
+	const float delta_z = -(new_altitude - _gpos.altitude());
+
+	moveAltitudeTo(new_altitude, new_vert_pos_var);
+
+	updateVerticalPositionResetStatus(delta_z);
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	updateTerrainResetStatus(delta_z);
+#endif // CONFIG_EKF2_TERRAIN
+}
+
+void Ekf::moveAltitudeTo(const float new_altitude, float new_vert_pos_var)
+{
 	const float old_altitude = _gpos.altitude();
 	_gpos.setAltitude(new_altitude);
 
@@ -228,8 +241,6 @@ void Ekf::resetAltitudeTo(const float new_altitude, float new_vert_pos_var)
 	// apply the change in height / height rate to our newest height / height rate estimate
 	// which have already been taken out from the output buffer
 	_output_predictor.resetAltitudeTo(new_altitude, delta_z);
-
-	updateVerticalPositionResetStatus(delta_z);
 
 #if defined(CONFIG_EKF2_BAROMETER)
 
@@ -254,7 +265,6 @@ void Ekf::resetAltitudeTo(const float new_altitude, float new_vert_pos_var)
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	updateTerrainResetStatus(delta_z);
 	_state.terrain += delta_z;
 #endif // CONFIG_EKF2_TERRAIN
 

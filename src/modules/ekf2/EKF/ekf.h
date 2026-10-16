@@ -798,6 +798,8 @@ private:
 	bool isHeightResetRequired() const;
 
 	void resetAltitudeTo(float new_altitude, float new_vert_pos_var = NAN);
+	// resetAltitudeTo without the reset report, for when the origin moves with the altitude
+	void moveAltitudeTo(float new_altitude, float new_vert_pos_var = NAN);
 	void updateVerticalPositionResetStatus(const float delta_z);
 
 	void resetVerticalVelocityToZero();
