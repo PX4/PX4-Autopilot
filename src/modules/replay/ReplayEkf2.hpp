@@ -95,6 +95,7 @@ private:
 	uint16_t _vehicle_magnetometer_msg_id = msg_id_invalid;
 	uint16_t _vehicle_visual_odometry_msg_id = msg_id_invalid;
 	uint16_t _aux_global_position_msg_id = msg_id_invalid;
+	uint16_t _vehicle_imu_status_msg_ids[4] {msg_id_invalid, msg_id_invalid, msg_id_invalid, msg_id_invalid};
 	uint16_t _vehicle_local_position_groundtruth_msg_id = msg_id_invalid;
 	uint16_t _vehicle_global_position_groundtruth_msg_id = msg_id_invalid;
 	uint16_t _vehicle_attitude_groundtruth_msg_id = msg_id_invalid;
