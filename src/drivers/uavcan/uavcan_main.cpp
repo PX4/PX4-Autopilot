@@ -716,7 +716,12 @@ UavcanNode::Run()
 			PX4_ERR("CAN driver init failed %i", can_init_res);
 
 		} else {
-			_instance->init(_node_id, can->driver.updateEvent());
+			const int node_init_res = _instance->init(_node_id, can->driver.updateEvent());
+
+			// Not retried: init() would create the sensor bridges and servers a second time
+			if (node_init_res < 0) {
+				PX4_ERR("Node init failed %i", node_init_res);
+			}
 
 			_node_init = true;
 		}
