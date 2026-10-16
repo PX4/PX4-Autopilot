@@ -554,7 +554,11 @@ MissionBlock::issue_command(const mission_item_s &item)
 	vehicle_command.param6 = static_cast<double>(item.params[5]);
 	vehicle_command.param7 = item.params[6];
 
-	if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION) {
+	const bool is_roi_location = (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION)
+				     || (item.nav_cmd == NAV_CMD_DO_SET_ROI
+					 && static_cast<int>(item.params[0]) == vehicle_command_s::VEHICLE_ROI_LOCATION);
+
+	if (is_roi_location) {
 		// We need to send out the ROI location that was parsed potentially with double precision to lat/lon because mission item parameters 5 and 6 only have float precision
 		vehicle_command.param5 = item.lat;
 		vehicle_command.param6 = item.lon;
