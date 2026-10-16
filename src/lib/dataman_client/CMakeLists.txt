@@ -32,3 +32,5 @@
 ############################################################################
 
 px4_add_library(dataman_client DatamanClient.cpp)
+
+px4_add_functional_gtest(SRC DatamanClientTest.cpp LINKLIBS dataman_client modules__dataman)
