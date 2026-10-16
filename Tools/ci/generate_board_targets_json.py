@@ -41,7 +41,9 @@ default_container = ci_config['containers']['default']
 voxl2_container = ci_config['containers']['voxl2']
 build_configs = []
 grouped_targets = {}
-excluded_boards = ['px4_ros2', 'espressif_esp32']  # TODO: fix and enable
+# TODO: fix and enable. aifoundry_erbium needs the riscv-none-elf toolchain,
+# which the CI image does not have.
+excluded_boards = ['px4_ros2', 'espressif_esp32', 'aifoundry_erbium']
 excluded_manufacturers = ['atlflight']
 excluded_platforms = []
 
