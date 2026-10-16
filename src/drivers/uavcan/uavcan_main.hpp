@@ -216,7 +216,7 @@ public:
 	typedef UAVCAN_DRIVER::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 	enum eServerAction : int {None, Start, Stop, CheckFW, Busy};
 
-	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
+	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id, uint32_t bitrate);
 
 	virtual		~UavcanNode();
 
@@ -268,6 +268,8 @@ private:
 	uavcan_node::Allocator	 _pool_allocator;
 
 	bool                    _node_init{false};
+	const uavcan::NodeID	_node_id;			///< node ID, validated by uavcan_main()
+	const uint32_t		_bitrate;			///< CAN bit rate in bit/s
 	uavcan::Node<>			_node;				///< library instance
 	pthread_mutex_t			_node_mutex;
 
