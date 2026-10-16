@@ -170,14 +170,16 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, co
 static bool circleTouchesEdge(const Geofence::PathCheck &path, const matrix::Vector2d &edge_start,
 			      const matrix::Vector2d &edge_end)
 {
-	// Fixed metre-per-degree scales keep the edge straight in a frame centred on the circle.
 	const matrix::Vector2d &center = path.end;
+	const double radius = static_cast<double>(path.end_radius);
+	// Fixed metre-per-degree scales keep the edge straight in a frame centred on the circle. The longitude
+	// scale at the circle's poleward edge never overstates a distance within the radius.
 	const double north_scale = math::radians(1.0) * CONSTANTS_RADIUS_OF_EARTH;
-	const double east_scale = north_scale * cos(math::radians(center(0)));
+	const double east_scale = north_scale * cos(math::min(math::radians(fabs(center(0))) + radius / CONSTANTS_RADIUS_OF_EARTH,
+				  kHalfPi));
 	const double shift = edgeLongitudeShift(edge_start, edge_end, center(1));
 	const matrix::Vector2d a{(edge_start(0) - center(0)) *north_scale, (edge_start(1) - shift - center(1)) *east_scale};
 	const matrix::Vector2d b{(edge_end(0) - center(0)) *north_scale, (edge_end(1) - shift - center(1)) *east_scale};
-	const double radius = static_cast<double>(path.end_radius);
 	return geofence_utils::pointToSegmentDistanceSquared(matrix::Vector2d {}, a, b) <= math::sq(radius);
 }
 
