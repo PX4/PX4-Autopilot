@@ -978,6 +978,38 @@ TEST_F(AntimeridianGeofenceTest, LoiterRadiusCrossesTheAntimeridian)
 	}
 }
 
+class HighLatitudeGeofenceTest : public GeofenceTest
+{
+protected:
+	HighLatitudeGeofenceTest() : GeofenceTest(70.0, 10.0) {}
+};
+
+TEST_F(HighLatitudeGeofenceTest, LargeCircleTouchesThePolewardEdge)
+{
+	// The first edge is 9,998 m north-east of Home. A longitude scale fixed at 70 deg reads 10,006 m there.
+	const double vertices[3][2] {{70.02985, 10.26065}, {70.07391, 10.16934}, {70.12, 10.4}};
+	FencePoints points;
+
+	for (const auto &vertex : vertices) {
+		mission_fence_point_s point{};
+		point.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
+		point.frame = NAV_FRAME_GLOBAL;
+		point.lat = vertex[0];
+		point.lon = vertex[1];
+		point.vertex_count = 3;
+		points.push_back(point);
+	}
+
+	ASSERT_TRUE(loadFence(points));
+	const matrix::Vector2d center{70.0, 10.0};
+	ASSERT_TRUE(_fence.checkPointAgainstAllGeofences(center(0), center(1), 500.f));
+	const Geofence::PathCheck paths[] {{center, center, 9900.f}, {center, center, 10000.f}};
+	bool clear[2] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+}
+
 TEST_F(AntimeridianGeofenceTest, MultiPiecePathsMayCrossTheAntimeridian)
 {
 	// This 30 km leg needs several pieces and bows about 19 m north of the straight lat/lon line.
