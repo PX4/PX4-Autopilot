@@ -221,6 +221,7 @@ public:
 	virtual		~UavcanNode();
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
+	static int	stop();
 
 	uavcan::Node<>	&get_node() { return _node; }
 
