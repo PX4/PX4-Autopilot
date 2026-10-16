@@ -671,19 +671,23 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 {
 	uint8_t pieces[MAX_PATH_CHECKS];
 	bool pieces_calculated = false;
+	const float max_home_distance = _navigator->home_global_position_valid() ? _param_gf_max_hor_dist.get() : 0.f;
+	const home_position_s &home = *_navigator->get_home_position();
 
 	for (size_t i = 0; i < num_paths; ++i) {
 		const auto &start = paths[i].start;
 		const auto &end = paths[i].end;
 
-		if (!start.isAllFinite() || !end.isAllFinite()
-		    || !PX4_ISFINITE(paths[i].end_radius) || paths[i].end_radius < 0.f
+		// An infinite radius is valid and breaches every configured limit.
+		if (!start.isAllFinite() || !end.isAllFinite() || !(paths[i].end_radius >= 0.f)
 		    || fabs(start(0)) > 90.0 || fabs(end(0)) > 90.0
 		    || fabs(start(1)) > 180.0 || fabs(end(1)) > 180.0) {
 			return false;
 		}
 
-		results[i] = true;
+		// The caller checks path ends against Home; a circle must keep its whole radius inside.
+		results[i] = paths[i].end_radius <= 0.f || max_home_distance <= FLT_EPSILON
+			     || get_distance_to_next_waypoint(home.lat, home.lon, end(0), end(1)) + paths[i].end_radius < max_home_distance;
 	}
 
 	for (int p = 0; p < _num_polygons; ++p) {
@@ -837,7 +841,7 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 	return true;
 }
 
-bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude, float radius)
+bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 {
 	bool inside_fence = true;
 
@@ -849,7 +853,7 @@ bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude,
 		get_distance_to_point_global_wgs84(lat, lon, altitude, _navigator->get_home_position()->lat,
 						   _navigator->get_home_position()->lon, _navigator->get_home_position()->alt, &dist_xy, &dist_z);
 
-		inside_fence = dist_xy + radius < _param_gf_max_hor_dist.get();
+		inside_fence = dist_xy < _param_gf_max_hor_dist.get();
 	}
 
 	return inside_fence;
