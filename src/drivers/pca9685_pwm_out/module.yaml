@@ -33,6 +33,34 @@ parameters:
         min: 0
         max: 10
         default: 0
+      PCA9685_EXT_CLK:
+        description:
+          short: Use external clock for PCA9685
+          long: |
+            Selects the clock reference of the PCA9685.
+            When disabled, the internal oscillator of the chip is used.
+            When enabled, the clock signal on the EXTCLK pin is used instead.
+            Only enable this if the board provides a clock on the EXTCLK pin,
+            otherwise the PCA9685 does not generate any PWM output.
+            The EXTCLK setting is sticky in the PCA9685: once enabled, the chip keeps using
+            the external clock until it is powered off. Switching from external to internal
+            clock requires a power cycle of the board with the PCA9685, a reboot of the
+            flight controller is not enough.
+        type: boolean
+        reboot_required: true
+        default: 0
+      PCA9685_CLK_FREQ:
+        description:
+          short: Clock frequency of PCA9685
+          long: |
+            Frequency of the active clock source of the PCA9685: the internal oscillator
+            or the external clock, depending on PCA9685_EXT_CLK.
+        type: int32
+        unit: Hz
+        min: 1000000
+        max: 50000000
+        reboot_required: true
+        default: 25000000
       PCA9685_I2C_ADDR:
         description:
           short: I2C address of PCA9685

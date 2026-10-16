@@ -101,6 +101,11 @@ private:
 		CLOCK_EXTERNAL_GENERIC = 2,
 	};
 
+	/* Frequency of the clock selected by ClockType */
+	enum ClockFreq : uint8_t {
+		CLOCK_FREQ_25MHZ = 0,
+	};
+
 	struct Buses {
 		const uint16_t eeprom_i2c_addr;
 		const uint8_t bus_number;
@@ -160,7 +165,7 @@ private:
 		uint16_t num_channels; /**< offset 10 */
 		uint16_t offset_channels; /**< offset 12 */
 		ClockType clock_type; /**< offset 14 */
-		uint8_t _padding1; /**< offset 15 */
+		ClockFreq clock_freq; /**< offset 15 */
 		float signal_level; /**< offset 16 */
 	} __attribute__((aligned(4)));
 #pragma pack(pop)
@@ -180,6 +185,7 @@ private:
 
 	void try_eeprom_start();
 	void try_probe_start();
+	void try_pca9685_start();
 
 	int ina226_probe(const uint32_t instance) const;
 	int eeprom_read(const uint32_t instance);
@@ -200,11 +206,18 @@ private:
 	void set_max_current(const uint16_t dev_type, const float max_current) const;
 	void set_shunt_value(const uint16_t dev_type, const float shunt_value) const;
 	void set_float_param(const char *param_name, const float param_val) const;
+	void set_int_param(const char *param_name, const int32_t param_val) const;
+	void set_pwm_expander_clock(const EepromBlockPwmExpander &block) const;
 	const char *get_ina_type(const uint16_t dev_type) const;
 	uint16_t crc16_update(const uint16_t current_crc, const uint8_t *data_p, size_t length) const;
 
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};		///< system armed control topic
 	int _eeprom_only_run{0};
+
+	bool _pca9685_started{false};
+	bool _pca9685_in_eeprom{false};
+	uint8_t _pca9685_bus{PCA9685_DEFAULT_BUS};
+	uint16_t _pca9685_addr{PCA9685_DEFAULT_ADDR};
 
 	static constexpr int RUN_INTERVAL{500_ms};
 	static constexpr int EEPROM_ONLY_RUNS{2};
@@ -215,6 +228,10 @@ private:
 	static constexpr uint16_t EEPROM_VERSION = 1;
 	static constexpr uint16_t EEPROM_MAX_BLOCKS = 5;
 	static constexpr uint8_t EEPROM_BLOCK_TYPE_VERSION = 1;
+
+	static constexpr int32_t PCA9685_NOMINAL_CLOCK_FREQ = 25'000'000;
+	static constexpr uint8_t PCA9685_DEFAULT_BUS = 1;
+	static constexpr uint16_t PCA9685_DEFAULT_ADDR = 0x40;
 
 	static constexpr size_t BUS_MAX_LEN = 4;
 	static constexpr size_t I2C_ADDR_MAX_LEN = 4;

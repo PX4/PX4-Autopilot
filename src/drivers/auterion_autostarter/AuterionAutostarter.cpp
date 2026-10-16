@@ -77,6 +77,7 @@ void AuterionAutostarter::Run()
 	if (_eeprom_only_run >= EEPROM_ONLY_RUNS) {
 		/* Give preference to the EEPROM-based initialization; use probing as a fallback */
 		try_probe_start();
+		try_pca9685_start();
 
 	} else {
 		_eeprom_only_run++;
@@ -111,8 +112,15 @@ void AuterionAutostarter::try_eeprom_start()
 
 					case TYPE_PWM_EXPANDER: {
 							EepromBlockPwmExpander block_pwm_expader = decoded_block.block_pwm_expander;
-							uint16_t dev_type = block_pwm_expader.dev_type;
-							ret_val |= start_i2c_driver(_buses[i].bus_number, dev_type, block_pwm_expader.i2c_addr);
+
+							if (block_pwm_expader.dev_type == DRV_PWM_DEVTYPE_PCA9685) {
+								/* Started from try_pca9685_start(), the only place that starts the PCA9685 */
+								set_pwm_expander_clock(block_pwm_expader);
+								_pca9685_in_eeprom = true;
+								_pca9685_bus = _buses[i].bus_number;
+								_pca9685_addr = block_pwm_expader.i2c_addr;
+							}
+
 							break;
 						}
 					}
@@ -147,6 +155,31 @@ void AuterionAutostarter::try_probe_start()
 				}
 			}
 		}
+	}
+}
+
+void AuterionAutostarter::try_pca9685_start()
+{
+	if (_pca9685_started) {
+		return;
+	}
+
+	const param_t param = param_find("PCA9685_EN_BUS");
+	int32_t en_bus = 0;
+
+	if (param != PARAM_INVALID) {
+		param_get(param, &en_bus);
+	}
+
+	if (_pca9685_in_eeprom || en_bus > 0) {
+		_pca9685_started = true;
+
+		if (_pca9685_in_eeprom && param != PARAM_INVALID) {
+			const int32_t eeprom_bus = _pca9685_bus;
+			param_set_default_value(param, &eeprom_bus);
+		}
+
+		start_i2c_driver(_pca9685_bus, DRV_PWM_DEVTYPE_PCA9685, _pca9685_addr);
 	}
 }
 
@@ -380,9 +413,9 @@ int AuterionAutostarter::start_i2c_driver(const uint8_t bus_number, const uint16
 
 	const char *start_command = get_start_command(dev_type);
 	const char *start_argv[] {
-		start_command,
+		start_command, "start",
 		"-X", "-b", bus_number_str, "-a", i2c_addr_str,
-		"-q", "start", NULL
+		"-q", NULL
 	};
 
 	return start(start_command, start_argv);
@@ -473,6 +506,39 @@ void AuterionAutostarter::set_float_param(const char *param_name, const float pa
 	if (fabsf(current_param_value - param_val) > FLT_EPSILON) {
 		param_set(param_find(param_name), &(param_val));
 	}
+}
+
+void AuterionAutostarter::set_int_param(const char *param_name, const int32_t param_val) const
+{
+	const param_t param = param_find(param_name);
+
+	if (param == PARAM_INVALID) {
+		PX4_WARN("Parameter %s not found", param_name);
+		return;
+	}
+
+	param_reset(param);
+	param_set_default_value(param, &param_val);
+}
+
+void AuterionAutostarter::set_pwm_expander_clock(const EepromBlockPwmExpander &block) const
+{
+	int32_t external_clock = (block.clock_type == CLOCK_EXTERNAL_GENERIC) ? 1 : 0;
+	int32_t clock_frequency = PCA9685_NOMINAL_CLOCK_FREQ;
+
+	switch (block.clock_freq) {
+	case CLOCK_FREQ_25MHZ:
+		break;
+
+	default:
+		/* Unknown frequency: use the internal oscillator, which works on every board */
+		external_clock = 0;
+		PX4_WARN("Unknown PCA9685 clock frequency, using internal oscillator");
+		break;
+	}
+
+	set_int_param("PCA9685_EXT_CLK", external_clock);
+	set_int_param("PCA9685_CLK_FREQ", clock_frequency);
 }
 
 const char *AuterionAutostarter::get_ina_type(const uint16_t dev_type) const
