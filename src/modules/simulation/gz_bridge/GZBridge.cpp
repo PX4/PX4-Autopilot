@@ -284,6 +284,42 @@ bool GZBridge::subscribeDistanceSensor(bool required)
 		return required ? false : true;
 	}
 
+	// Find the lidar link orientation relative to the base_link
+	gz::msgs::Empty req;
+	gz::msgs::Scene scene;
+	bool result = false;
+
+	if (_node.Request("/world/" + _world_name + "/scene/info", req, 1000, scene, result) && result) {
+		for (const auto &model : scene.model()) {
+			if (model.name() != _model_name) { continue; }
+
+			// link poses are relative to the model frame
+			gz::math::Quaterniond q_model_base{gz::math::Quaterniond::Identity};
+			gz::math::Quaterniond q_model_lidar{gz::math::Quaterniond::Identity};
+			bool lidar_found = false;
+
+			for (const auto &link : model.link()) {
+				if (link.name() == "base_link") {
+					q_model_base = gz::msgs::Convert(link.pose()).Rot();
+
+				} else if (link.name() == "lidar_sensor_link") {
+					q_model_lidar = gz::msgs::Convert(link.pose()).Rot();
+					lidar_found = true;
+				}
+			}
+
+			if (lidar_found) {
+				_lidar_link_q = q_model_base.Inverse() * q_model_lidar;
+
+			} else {
+				PX4_WARN("lidar_sensor_link not found in %s, assuming identity", _model_name.c_str());
+			}
+		}
+
+	} else {
+		PX4_WARN("scene/info request failed, assuming lidar link aligned with base_link");
+	}
+
 	return true;
 }
 
@@ -797,33 +833,38 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 			pose_orientation.y(),
 			pose_orientation.z());
 
-	const gz::math::Quaterniond q_left(0.7071068, 0, 0, -0.7071068);
-
-	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
-
-	const gz::math::Quaterniond q_down(0, 1, 0, 0);
-
 	const float distance = static_cast<float>(msg.ranges()[0]);
 
-	if (q_sensor.Equal(q_front, 0.03)) {
+	const gz::math::Quaterniond q_body = _lidar_link_q * q_sensor;
+	const gz::math::Vector3d dir = q_body.RotateVector(gz::math::Vector3d::UnitX);
+
+	auto points_like = [&](const gz::math::Vector3d & ref) {
+		return dir.Dot(ref) > std::cos(3.0 * M_PI / 180.0);
+	};
+
+	const gz::math::Vector3d forward = gz::math::Vector3d::UnitX;
+	const gz::math::Vector3d downward = -gz::math::Vector3d::UnitZ;
+	const gz::math::Vector3d leftward = gz::math::Vector3d::UnitY;
+
+	if (points_like(forward)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_FORWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (q_sensor.Equal(q_down, 0.03)) {
+	} else if (points_like(downward)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_DOWNWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (q_sensor.Equal(q_left, 0.03)) {
+	} else if (points_like(leftward)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_LEFT_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
 	} else {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_CUSTOM);
 		const float q[4] = {
-			static_cast<float>(q_sensor.W()),
-			static_cast<float>(q_sensor.X()),
-			static_cast<float>(q_sensor.Y()),
-			static_cast<float>(q_sensor.Z())
+			static_cast<float>(q_body.W()),
+			static_cast<float>(q_body.X()),
+			static_cast<float>(q_body.Y()),
+			static_cast<float>(q_body.Z())
 		};
 		_px4_rangefinder.update(hrt_absolute_time(), distance, -1, q, 4);
 	}
