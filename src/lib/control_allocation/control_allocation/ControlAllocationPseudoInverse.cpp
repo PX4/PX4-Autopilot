@@ -134,6 +134,13 @@ ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 		float norm_sum = 0.f;
 
 		for (int i = 0; i < _num_actuators; i++) {
+			// Only actuators producing thrust along this axis define its scale. Others can still have mix entries
+			// for it, to cancel the torque of that thrust (e.g. lift rotors for a pusher above the center of
+			// gravity), and counting them would scale up the actuators that do produce the thrust.
+			if (fabsf(_effectiveness(3 + axis_idx, i)) < FLT_EPSILON) {
+				continue;
+			}
+
 			float norm = fabsf(_mix(i, 3 + axis_idx));
 			norm_sum += norm;
 
