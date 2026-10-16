@@ -206,6 +206,7 @@
       - [SVehicle E2](flight_controller/svehicle_e2.md)
       - [ThePeach FCC-K1](flight_controller/thepeach_k1.md)
       - [ThePeach FCC-R1](flight_controller/thepeach_r1.md)
+      - [Tustin MACH](flight_controller/tustin_mach.md)
       - [AP-H743-R1](flight_controller/x-mav_ap-h743r1.md)
       - [VOLOLAND NarinFC-H7](flight_controller/vololand_narinfc_h7.md)
       - [ZenFC H743](flight_controller/zenfc_h743.md)
