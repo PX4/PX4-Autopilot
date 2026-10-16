@@ -650,7 +650,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 
 	/* move to land wp as fixed wing */
 	if (needs_vtol_landing) {
-		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT || _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB) {
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
