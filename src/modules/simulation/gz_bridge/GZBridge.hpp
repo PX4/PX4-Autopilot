@@ -165,6 +165,7 @@ private:
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gnss_s> _gnss_stuck;
+	failure_injection::AirspeedState _airspeed_failure;
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node};
 	GZMixingInterfaceServo _mixing_interface_servo{_node};

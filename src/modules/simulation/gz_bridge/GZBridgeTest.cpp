@@ -37,6 +37,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/failure_injection.h>
 #include <uORB/topics/sensor_gnss.h>
 
@@ -46,6 +47,11 @@ public:
 	static void navSatCallback(GZBridge &bridge, const gz::msgs::NavSat &message)
 	{
 		bridge.navSatCallback(message);
+	}
+
+	static void airspeedCallback(GZBridge &bridge, const gz::msgs::AirSpeed &message)
+	{
+		bridge.airspeedCallback(message);
 	}
 };
 
@@ -64,19 +70,37 @@ gz::msgs::NavSat navSat(double latitude_deg, double longitude_deg)
 	return message;
 }
 
-failure_injection_s gpsFailure(uint8_t failure_type)
+gz::msgs::AirSpeed airSpeed(double diff_pressure)
+{
+	gz::msgs::AirSpeed message;
+	message.set_diff_pressure(diff_pressure);
+	message.set_temperature(288.15);
+	return message;
+}
+
+failure_injection_s sensorFailure(uint8_t unit, uint8_t failure_type)
 {
 	failure_injection_s config{};
 	config.timestamp = hrt_absolute_time();
 
 	if (failure_type != failure_injection_s::FAILURE_TYPE_OK) {
 		config.count = 1;
-		config.unit[0] = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
+		config.unit[0] = unit;
 		config.instance_mask[0] = 1;
 		config.failure_type[0] = failure_type;
 	}
 
 	return config;
+}
+
+failure_injection_s gpsFailure(uint8_t failure_type)
+{
+	return sensorFailure(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, failure_type);
+}
+
+failure_injection_s airspeedFailure(uint8_t failure_type)
+{
+	return sensorFailure(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, failure_type);
 }
 
 } // namespace
@@ -122,4 +146,44 @@ TEST(GZBridge, AppliesGpsFailureInjectionAtNavSatPublication)
 	EXPECT_EQ(recovered.fix_type, sensor_gnss_s::FIX_TYPE_3D);
 	EXPECT_NE(recovered.latitude, baseline.latitude);
 	EXPECT_NE(recovered.longitude, baseline.longitude);
+}
+
+TEST(GZBridge, AppliesAirspeedFailureInjectionAtAirspeedPublication)
+{
+	GZBridge bridge{"default", "x500"};
+	uORB::Publication<failure_injection_s> failure_pub{ORB_ID(failure_injection)};
+	uORB::Subscription differential_pressure_sub{ORB_ID(differential_pressure)};
+
+	GZBridgeTestPeer::airspeedCallback(bridge, airSpeed(100.0));
+
+	differential_pressure_s baseline{};
+	ASSERT_TRUE(differential_pressure_sub.update(&baseline));
+	EXPECT_FLOAT_EQ(baseline.differential_pressure_pa, 100.f);
+
+	ASSERT_TRUE(failure_pub.publish(airspeedFailure(failure_injection_s::FAILURE_TYPE_STUCK)));
+	GZBridgeTestPeer::airspeedCallback(bridge, airSpeed(200.0));
+
+	differential_pressure_s stuck{};
+	ASSERT_TRUE(differential_pressure_sub.update(&stuck));
+	EXPECT_FLOAT_EQ(stuck.differential_pressure_pa, baseline.differential_pressure_pa);
+
+	// Wrong starts the pitot blockage ramp, so the first sample is still unscaled
+	// (the ramp itself is covered by the process_airspeed() tests).
+	ASSERT_TRUE(failure_pub.publish(airspeedFailure(failure_injection_s::FAILURE_TYPE_WRONG)));
+	GZBridgeTestPeer::airspeedCallback(bridge, airSpeed(200.0));
+
+	differential_pressure_s wrong{};
+	ASSERT_TRUE(differential_pressure_sub.update(&wrong));
+	EXPECT_FLOAT_EQ(wrong.differential_pressure_pa, 200.f);
+
+	ASSERT_TRUE(failure_pub.publish(airspeedFailure(failure_injection_s::FAILURE_TYPE_OFF)));
+	GZBridgeTestPeer::airspeedCallback(bridge, airSpeed(200.0));
+	EXPECT_FALSE(differential_pressure_sub.updated());
+
+	ASSERT_TRUE(failure_pub.publish(airspeedFailure(failure_injection_s::FAILURE_TYPE_OK)));
+	GZBridgeTestPeer::airspeedCallback(bridge, airSpeed(200.0));
+
+	differential_pressure_s recovered{};
+	ASSERT_TRUE(differential_pressure_sub.update(&recovered));
+	EXPECT_FLOAT_EQ(recovered.differential_pressure_pa, 200.f);
 }
