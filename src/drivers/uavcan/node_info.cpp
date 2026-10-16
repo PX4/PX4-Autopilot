@@ -84,23 +84,20 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 	const bool is_registering_info = (info != nullptr);
 
 	int multi_capability_index = -1;
+	bool node_info_applied = false;
 
 	for (size_t i = 0; i < _device_informations_size; ++i) {
 		if (is_registering_info) {
-			// Case 1: Check if this entry already has node info - skip this specific entry
-			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].has_node_info) {
+			// Case 1: libuavcan re-requests GetNodeInfo after a node (re)appears, always take the latest response
+			if (_device_informations[i].node_id == node_id) {
+				populateDeviceInfoFields(_device_informations[i], *info);
+				node_info_applied = true;
+
+				if (_device_informations[i].capability != DeviceCapability::NONE) {
+					publishSingleDeviceInformation(_device_informations[i]);
+				}
 
 				continue;  // Continue to check other entries with same node_id
-			}
-
-			// Case 2: Check if node_id already exists with capability but no info - update that entry
-			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].capability != DeviceCapability::NONE &&
-			    !_device_informations[i].has_node_info) {
-				populateDeviceInfoFields(_device_informations[i], *info);
-				publishSingleDeviceInformation(_device_informations[i]);
-				continue;
 			}
 
 		} else { // registering capabilities
@@ -131,7 +128,10 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 		}
 	}
 
-
+	// Node info was applied to existing node, don't add a new entry
+	if (node_info_applied) {
+		return;
+	}
 
 	// Case 3: extend array and add entry at the end
 	if (extendDeviceInformationsArray()) {
