@@ -38,6 +38,9 @@
 
 #include <uavcan/node/publisher.hpp>
 #include <drivers/drv_hrt.h>
+#include <uORB/uORB.h>
+
+namespace px4 { class WorkItem; }
 
 namespace uavcannode
 {
@@ -72,6 +75,12 @@ public:
 	bool operator<=(UavcanPublisherBase &rhs) { return id() <= rhs.id(); }
 
 	uint16_t id() const { return _id; }
+
+	// Override these three in publishers that support dynamic multi-instance discovery.
+	virtual const orb_metadata *multiInstanceOrbTopic() const { return nullptr; }
+	virtual uint8_t multiInstanceIndex() const { return 0; }
+	virtual UavcanPublisherBase *createForInstance(px4::WorkItem *work_item, uavcan::INode &node,
+			uint8_t instance) const { return nullptr; }
 
 private:
 	uint16_t _id{0};
