@@ -118,6 +118,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	Vector2f observation_variance{R_ACC, R_ACC};
 	Vector2f innovation{};
 	Vector2f innovation_variance{};
+	bool fused = false;
 
 	// Apply an innovation consistency check with a 5 Sigma threshold
 	const float innov_gate = 5.f;
@@ -173,7 +174,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 			VectorState K = P * H / innovation_variance(axis_index);
 
-			measurementUpdate(K, H, R_ACC, innovation(axis_index));
+			fused |= measurementUpdate(K, H, R_ACC, innovation(axis_index));
 		}
 	}
 
@@ -185,6 +186,9 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 			      innovation_variance,  // innovation variance
 			      innov_gate);          // innovation gate
 
-	_aid_src_drag.fused = true;
-	_aid_src_drag.time_last_fuse = _time_delayed_us;
+	_aid_src_drag.fused = fused;
+
+	if (fused) {
+		_aid_src_drag.time_last_fuse = _time_delayed_us;
+	}
 }
