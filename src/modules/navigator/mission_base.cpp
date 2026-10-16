@@ -526,6 +526,11 @@ MissionBase::set_mission_items()
 
 			setActiveMissionItems();
 
+			if (_mission_item.nav_cmd == NAV_CMD_DO_CHANGE_SPEED) {
+				// A new speed command supersedes the pending speed replay from mission resume.
+				_last_speed_change_item = {};
+			}
+
 		} else {
 			set_end_of_mission = true;
 		}
