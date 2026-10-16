@@ -55,7 +55,10 @@
 namespace px4_daemon
 {
 
-apps_map_type Pxh::_apps = {};
+// Intentionally leaked, so it is never destroyed. Client handler threads
+// (Server::_handle_client) are detached and keep looking up commands while
+// exit() runs static destructors, e.g. after the shutdown command.
+apps_map_type &Pxh::_apps = *new apps_map_type;
 pthread_once_t Pxh::_apps_once = PTHREAD_ONCE_INIT;
 Pxh *Pxh::_instance = nullptr;
 
