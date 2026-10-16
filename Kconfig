@@ -100,6 +100,17 @@ menu "Toolchain"
         help
             flag to enable constrained flash options (eg limit init script status text)
 
+    config BOARD_OVERRIDE_UPLOAD_TARGET
+        bool "Add upload target"
+        help
+            "Override upload target if not automatically detected"
+
+    config BOARD_EXTERNAL_FLASH
+        bool "External flash"
+	default n
+        help
+            flag to enable external flash
+
     config BOARD_NO_HELP
         bool "No help"
         help
