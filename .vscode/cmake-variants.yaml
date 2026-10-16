@@ -491,6 +491,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: mro_x21-777_default
+    newbeedrone_pixnova_default:
+      short: newbeedrone_pixnova
+      buildType: MinSizeRel
+      settings:
+        CONFIG: newbeedrone_pixnova_default
+    newbeedrone_pixnova_bootloader:
+      short: newbeedrone_pixnova_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: newbeedrone_pixnova_bootloader
     nxp_fmuk66-v3_default:
       short: nxp_fmuk66-v3
       buildType: MinSizeRel
