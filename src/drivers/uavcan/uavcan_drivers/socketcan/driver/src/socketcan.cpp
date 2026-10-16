@@ -107,6 +107,8 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (!ifr.ifr_ifindex) {
 		PX4_ERR("if_nametoindex");
+		// CanDriver::init() polls and sends on any open socket, so do not leave an unbound one
+		socketClose();
 		return -1;
 	}
 
@@ -119,6 +121,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (setsockopt(_fd, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
 		PX4_ERR("SO_TIMESTAMP is disabled");
+		socketClose();
 		return -1;
 	}
 
@@ -128,18 +131,21 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 
 	if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
 		PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
+		socketClose();
 		return -1;
 	}
 
 	if (can_fd) {
 		if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
 			PX4_ERR("no CAN FD support");
+			socketClose();
 			return -1;
 		}
 	}
 
 	if (bind(_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		PX4_ERR("bind");
+		socketClose();
 		return -1;
 	}
 

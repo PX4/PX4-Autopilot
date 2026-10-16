@@ -725,6 +725,12 @@ UavcanNode::Run()
 			// Not retried: init() would create the sensor bridges and servers a second time
 			if (node_init_res < 0) {
 				PX4_ERR("Node init failed %i", node_init_res);
+
+#if defined(UAVCAN_SOCKETCAN_NUTTX)
+				// init() fails before or at _node.start(), and spinOnce() does not read the sockets of a
+				// node that never started, so they would fill the IOB pool
+				can->driver.closeIfaces();
+#endif
 			}
 
 			_node_init = true;
