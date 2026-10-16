@@ -320,7 +320,14 @@ jobs:
     # runs-on: ubuntu-latest
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [setup, group_targets]
-    if: startsWith(github.ref, 'refs/tags/v') || contains(fromJSON('["main","stable","beta"]'), needs.group_targets.outputs.branchname)
+    # Without a status function GitHub adds an implicit success(), which is
+    # false whenever any upstream job was skipped. The seed stage is skipped
+    # whenever every chip family cache is warm, so check the build result
+    # explicitly instead (see actions/runner#491).
+    if: >-
+      !cancelled() &&
+      needs.setup.result == 'success' &&
+      (startsWith(github.ref, 'refs/tags/v') || contains(fromJSON('["main","stable","beta"]'), needs.group_targets.outputs.branchname))
     outputs:
       uploadlocation: ${{ steps.upload-location.outputs.uploadlocation }}
     steps:
