@@ -729,9 +729,8 @@ UavcanNode::Run()
 		const int slave_init_res = _time_sync_slave.start();
 
 		if (slave_init_res < 0) {
+			// not fatal: the slave only follows a higher-priority time master, the node keeps publishing its own time
 			PX4_ERR("Failed to start time_sync_slave");
-			ScheduleClear();
-			return;
 		}
 
 		/* When we have a system wide notion of time update (i.e the transition from the initial
