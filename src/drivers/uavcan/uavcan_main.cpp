@@ -1595,14 +1595,14 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		print_usage();
-		::exit(1);
+		return 1;
 	}
 
 	if (!std::strcmp(argv[1], "start")) {
 		if (UavcanNode::instance()) {
 			// Already running, no error
 			PX4_INFO("already started");
-			::exit(0);
+			return 0;
 		}
 
 		// Node ID
@@ -1611,7 +1611,7 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 
 		if (node_id < 0 || node_id > uavcan::NodeID::MaxRecommendedForRegularNodes || !uavcan::NodeID(node_id).isUnicast()) {
 			PX4_ERR("Invalid Node ID %" PRId32, node_id);
-			::exit(1);
+			return 1;
 		}
 
 		// CAN bitrate
@@ -1636,17 +1636,17 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 		}
 
 		UavcanNode::instance()->requestCheckAllNodesFirmwareAndUpdate();
-		::exit(0);
+		return 0;
 	}
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		inst->print_info();
-		::exit(0);
+		return 0;
 	}
 
 	if (!std::strcmp(argv[1], "shrink")) {
 		inst->shrink();
-		::exit(0);
+		return 0;
 	}
 
 	/*
@@ -1705,9 +1705,9 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "stop")) {
 		delete inst;
-		::exit(0);
+		return 0;
 	}
 
 	print_usage();
-	::exit(1);
+	return 1;
 }
