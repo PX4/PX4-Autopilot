@@ -1252,6 +1252,161 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, MissionLoadFailureIsFatal)
 
 // ---- VTOL segment state ----
 
+TEST_F(MissionRouteProjectionTestBase, InvalidTransitionTargetLeavesModeUndefined)
+{
+	constexpr uint8_t kUndefined = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+	constexpr uint8_t kMc = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	constexpr uint8_t kFw = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+	for (const float target : {NAN, INFINITY, -INFINITY, -1.f, 0.f, 1.f, 2.f, 5.f, 255.f, 256.f, 1e30f}) {
+		SCOPED_TRACE(target);
+		mission_item_s invalid_transition = makeVtolTransitionItem(kMc);
+		invalid_transition.params[0] = target;
+		const VectorProvider provider = makeRouteProvider({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makeVtolTransitionItem(kFw),
+			invalid_transition,
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			makeVtolTransitionItem(kFw),
+		});
+		mission_route::Segment segment{};
+		segment.start = {0, NAV_CMD_WAYPOINT};
+		segment.end = {3, NAV_CMD_WAYPOINT};
+
+		// A malformed last transition blocks both an older mode and inference from a later transition.
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kUndefined);
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, InvalidNextTransitionLeavesPrefixUndefined)
+{
+	constexpr uint8_t kUndefined = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+	constexpr uint8_t kFw = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+	for (const float target : {NAN, INFINITY, -INFINITY, -1.f, 0.f, 1.f, 2.f, 5.f, 255.f, 256.f, 1e30f}) {
+		SCOPED_TRACE(target);
+		mission_item_s invalid_transition = makeVtolTransitionItem(kFw);
+		invalid_transition.params[0] = target;
+		const VectorProvider provider = makeRouteProvider({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			invalid_transition,
+			makeVtolTransitionItem(kFw),
+		});
+		mission_route::Segment segment{};
+		segment.start = {0, NAV_CMD_WAYPOINT};
+		segment.end = {1, NAV_CMD_WAYPOINT};
+
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kUndefined);
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, RepeatedTransitionsPreserveEstablishedMode)
+{
+	constexpr uint8_t kMc = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	constexpr uint8_t kFw = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+	for (const uint8_t target_state : {kMc, kFw}) {
+		SCOPED_TRACE(static_cast<int>(target_state));
+		const VectorProvider provider = makeRouteProvider({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makeVtolTransitionItem(target_state),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			makeVtolTransitionItem(target_state),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		});
+		mission_route::Segment segment{};
+		segment.start = {0, NAV_CMD_WAYPOINT};
+		segment.end = {2, NAV_CMD_WAYPOINT};
+
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), target_state);
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, LookaheadStopsAtExecutionBoundary)
+{
+	for (const uint16_t command : {NAV_CMD_TAKEOFF, NAV_CMD_VTOL_TAKEOFF, NAV_CMD_LAND, NAV_CMD_VTOL_LAND}) {
+		SCOPED_TRACE(command);
+		const mission_item_s boundary = makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt, command);
+
+		const VectorProvider provider = makeRouteProvider({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			boundary,
+			makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
+		});
+		mission_route::Segment segment{};
+		segment.start = {0, NAV_CMD_WAYPOINT};
+		segment.end = {1, NAV_CMD_WAYPOINT};
+
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, LookaheadContinuesPastActiveAndExhaustedJumps)
+{
+	constexpr uint8_t kUndefined = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+	constexpr uint8_t kMc = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	constexpr uint8_t kFw = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+	constexpr uint16_t kRepeatCount = 3;
+
+	for (const uint16_t current_count : {uint16_t{0}, kRepeatCount}) {
+		SCOPED_TRACE(current_count);
+
+		for (const uint8_t target_state : {kUndefined, kMc, kFw}) {
+			SCOPED_TRACE(static_cast<int>(target_state));
+			std::vector<mission_item_s> mission{
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+				makeDoJump(0, kRepeatCount, current_count),
+			};
+
+			if (target_state != kUndefined) {
+				mission.push_back(makeVtolTransitionItem(target_state));
+			}
+
+			mission.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt));
+			const VectorProvider provider = makeRouteProvider(mission);
+			mission_route::Segment segment{};
+			segment.start = {0, NAV_CMD_WAYPOINT};
+			segment.end = {1, NAV_CMD_WAYPOINT};
+			const uint8_t expected_state = target_state == kUndefined ? kUndefined : (target_state == kFw ? kMc : kFw);
+
+			EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), expected_state);
+			mission_item_s jump_item{};
+			ASSERT_TRUE(provider.loadMissionItem(2, jump_item));
+			EXPECT_EQ(jump_item.do_jump_mission_index, 0);
+			EXPECT_EQ(jump_item.do_jump_repeat_count, kRepeatCount);
+			EXPECT_EQ(jump_item.do_jump_current_count, current_count);
+		}
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, LookaheadStopsAtUnreadableItem)
+{
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	VectorProvider provider = makeRouteProvider({
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		speed_change,
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+	});
+	mission_route::Segment segment{};
+	segment.start = {0, NAV_CMD_WAYPOINT};
+	segment.end = {1, NAV_CMD_WAYPOINT};
+
+	// Non-mode commands are transparent when their contents are available.
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+
+	for (const int index : {1, 2}) {
+		SCOPED_TRACE(index);
+		provider.setMissionLoadFailures({index});
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
+	}
+}
+
 // VTOL_TAKEOFF implicitly enters FW; a later explicit transition still takes precedence.
 TEST_F(MissionRouteProjectionTestBase, VtolTakeoffSetsFwUntilNextExplicitTransition)
 {
@@ -1268,11 +1423,11 @@ TEST_F(MissionRouteProjectionTestBase, VtolTakeoffSetsFwUntilNextExplicitTransit
 	segment.start = {1, NAV_CMD_VTOL_TAKEOFF};
 	segment.end = {2, NAV_CMD_WAYPOINT};
 
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, kMc), kFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kFw);
 
 	segment.start = segment.end;
 	segment.end = {4, NAV_CMD_WAYPOINT};
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, kMc), kMc);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kMc);
 }
 
 // Include transitions after the jump source, but exclude commands that follow DO_JUMP itself.
@@ -1299,7 +1454,7 @@ TEST_F(MissionRouteProjectionTestBase, JumpStateIncludesTransitionsAfterSourceWa
 		segment.end = {1, NAV_CMD_WAYPOINT};
 		segment.jump_item_index = 5;
 
-		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, previous_state), target_state);
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), target_state);
 	}
 }
 
@@ -1324,7 +1479,7 @@ TEST_F(MissionRouteProjectionTestBase, JumpTargetTransitionOverridesSourceState)
 		segment.end = {1, NAV_CMD_WAYPOINT};
 		segment.jump_item_index = 4;
 
-		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, source_state), target_state);
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), target_state);
 	}
 }
 
@@ -1348,7 +1503,7 @@ TEST_F(MissionRouteProjectionTestBase, JumpTargetWithoutTransitionKeepsSourceSta
 	segment.end = {2, NAV_CMD_WAYPOINT};
 	segment.jump_item_index = 5;
 
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, kMc), kFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kFw);
 }
 
 // Takeoff and items 1/2 share latitude/longitude. Item 2 starts the first horizontal leg,

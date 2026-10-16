@@ -41,7 +41,33 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	int32_t rtl_type = 0;
 
-	if (param_get(_param_rtl_type_handle, &rtl_type) != 0 || rtl_type != 5) {
+	if (param_get(_param_rtl_type_handle, &rtl_type) != 0) {
+		return;
+	}
+
+#if !(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0)
+	static constexpr int32_t RTL_TYPE_ROUTE_SAFE_POINT = 7; // RTL_TYPE value, see navigator rtl_params.yaml
+
+	if (rtl_type == RTL_TYPE_ROUTE_SAFE_POINT) {
+		/* EVENT
+		 * @description
+		 * This firmware is built without mission route planning, so Return uses the destination selection of
+		 * <param>RTL_TYPE</param> 3 instead of following the mission route.
+		 */
+		reporter.armingCheckFailure(NavModes::None, health_component_t::system,
+					    events::ID("check_rtl_type_route_unsupported"),
+					    events::Log::Warning, "Route-following Return not supported by this firmware");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_warning(reporter.mavlink_log_pub(), "Route-following Return not supported by this firmware\t");
+		}
+
+		return;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	if (rtl_type != 5) {
 		// Only enforce rally point requirement when RTL_TYPE == 5 (safe points only)
 		return;
 	}

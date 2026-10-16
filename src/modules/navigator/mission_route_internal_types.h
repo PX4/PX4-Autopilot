@@ -47,6 +47,7 @@
 
 #include <dataman/dataman.h>
 #include <matrix/math.hpp>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 namespace mission_route
 {
@@ -213,8 +214,6 @@ struct PlannerParameters {
 	float altitude_acceptance_radius_m{0.f};
 	float home_altitude_amsl{NAN};
 	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn (default estimated from turn time and route deviation)*/
-	/** Fallback VTOL state when no preceding explicit or implicit (e.g. VTOL_TAKEOFF) transition establishes the state. */
-	uint8_t vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
 
 	bool validForVehicleProjection() const;
 	bool validForRtlRoute() const;

@@ -44,3 +44,7 @@ px4_add_module(
 		tiltrotor_params.yaml
 		vtol_att_control_params.yaml
 	)
+
+if(BUILD_TESTING)
+	px4_add_functional_gtest(SRC test_vtol_rtl_transition.cpp LINKLIBS modules__vtol_att_control)
+endif()
