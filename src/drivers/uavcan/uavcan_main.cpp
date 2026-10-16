@@ -1610,7 +1610,7 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 		int32_t node_id = 1;
 		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
 
-		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
+		if (node_id < 0 || node_id > uavcan::NodeID::MaxRecommendedForRegularNodes || !uavcan::NodeID(node_id).isUnicast()) {
 			PX4_ERR("Invalid Node ID %" PRId32, node_id);
 			::exit(1);
 		}
