@@ -1619,6 +1619,12 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 		int32_t bitrate = 1000000;
 		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
 
+		// Run() retries a rejected rate on every cycle until restart, so refuse it here
+		if (bitrate < 20000 || bitrate > 1000000) {
+			PX4_ERR("Invalid bitrate %" PRId32, bitrate);
+			::exit(1);
+		}
+
 		// Start
 		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
 		return UavcanNode::start(node_id, bitrate);
