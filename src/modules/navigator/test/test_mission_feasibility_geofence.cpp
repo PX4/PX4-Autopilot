@@ -509,8 +509,10 @@ TEST_P(MissionGeofenceLoiterRadiusTest, ChecksRadiusForCirclingVehicles)
 INSTANTIATE_TEST_SUITE_P(MissionLoiterRadii, MissionGeofenceLoiterRadiusTest, ::testing::Values(
 				 MissionLoiterCase{"CircleFits", NAV_CMD_LOITER_UNLIMITED, 40.f, true},
 				 MissionLoiterCase{"UnlimitedLoiterCrosses", NAV_CMD_LOITER_UNLIMITED, 60.f, false},
-				 MissionLoiterCase{"TimedLoiterNegativeRadius", NAV_CMD_LOITER_TIME_LIMIT, -60.f, false},
-				 MissionLoiterCase{"LoiterToAltitudeCrosses", NAV_CMD_LOITER_TO_ALT, 60.f, false},
+				 MissionLoiterCase{"TimedLoiterNegativeRadius", NAV_CMD_LOITER_TIME_LIMIT, -60.f, false,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false, 40.f, true},
+				 MissionLoiterCase{"LoiterToAltitudeCrosses", NAV_CMD_LOITER_TO_ALT, 60.f, false,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false, 40.f, true},
 				 MissionLoiterCase{"ZeroUsesConfiguredDefault", NAV_CMD_LOITER_UNLIMITED, 0.f, true},
 				 MissionLoiterCase{"ZeroDefaultCrosses", NAV_CMD_LOITER_UNLIMITED, 0.f, false,
 						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false, 60.f},
@@ -539,6 +541,19 @@ TEST_F(MissionGeofenceLoiterTest, EmptyFenceStillChecksCircleDistanceFromHome)
 	EXPECT_TRUE(missionFeasible({loiter(250.f, 40.f)}));
 	EXPECT_FALSE(missionFeasible({loiter(250.f, 60.f)}));
 	expectLoiterViolation(1);
+}
+
+TEST_F(MissionGeofenceLoiterTest, NaNDefaultRadiusRejectsTheEndLoiter)
+{
+	ASSERT_TRUE(configureVehicle());
+	const float radius = NAN;
+	ASSERT_EQ(param_set(param_find("NAV_LOITER_RAD"), &radius), PX4_OK);
+	_navigator.updateParams();
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// The mission ends in a loiter whose circle cannot be checked.
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, -500.f}), waypoint({0.f, 0.f})}));
+	EXPECT_TRUE(logContains("geofence path check unavailable"));
 }
 
 class MissionGeofenceLoiterBatchTest : public MissionGeofenceLoiterTest,

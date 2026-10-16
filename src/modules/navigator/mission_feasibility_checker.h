@@ -72,7 +72,6 @@ private:
 	bool addGeofencePath(GeofencePathBatch &batch, const Geofence::PathCheck &path, size_t mission_index);
 	bool checkGeofencePathBatch(GeofencePathBatch &batch);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
-	void logGeofenceLoiterBreach(uint16_t waypoint);
 	void logGeofenceUnavailable();
 	void logDatamanReadFailure(const size_t mission_item, const uint8_t dataman_id);
 

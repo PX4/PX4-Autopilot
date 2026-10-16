@@ -209,14 +209,17 @@ TEST_P(GeofenceLoiterTest, ChecksCircleClearanceInMixedBatch)
 
 	ASSERT_TRUE(loadFence(points));
 	const auto center = position(0.f, 0.f);
-	// Check a point, a clear circle, boundary contact, and a circle that encloses the entire exclusion.
-	const Geofence::PathCheck paths[] {{center, center}, {center, center, 50.f}, {center, center, 75.f}, {center, center, 150.f}};
-	bool clear[4] {};
-	ASSERT_TRUE(_fence.checkPathBatch(paths, 4, clear));
+	// Check a point, a clear circle, boundary contact, a circle that encloses the entire exclusion and an infinite one.
+	const Geofence::PathCheck paths[] {{center, center}, {center, center, 50.f}, {center, center, 75.f}, {center, center, 150.f},
+		{center, center, INFINITY}
+	};
+	bool clear[5] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 5, clear));
 	EXPECT_TRUE(clear[0]);
 	EXPECT_TRUE(clear[1]);
 	EXPECT_FALSE(clear[2]);
 	EXPECT_FALSE(clear[3]);
+	EXPECT_FALSE(clear[4]);
 }
 
 INSTANTIATE_TEST_SUITE_P(LoiterFences, GeofenceLoiterTest, ::testing::Values(
@@ -261,8 +264,7 @@ TEST_P(InvalidGeofenceRadiusTest, RejectsWholeBatch)
 
 INSTANTIATE_TEST_SUITE_P(InvalidRadii, InvalidGeofenceRadiusTest, ::testing::Values(
 				 InvalidRadiusCase{"Negative", -1.f},
-				 InvalidRadiusCase{"NaN", NAN},
-				 InvalidRadiusCase{"Infinite", INFINITY}),
+				 InvalidRadiusCase{"NaN", NAN}),
 			 [](const ::testing::TestParamInfo<InvalidRadiusCase> &test_info)
 {
 	return test_info.param.name;
