@@ -1040,8 +1040,10 @@ UavcanNode::Run()
 		_mixing_interface_servo.mixingOutput().unregister();
 		_mixing_interface_servo.ScheduleClear();
 #endif
-		ScheduleClear();
+		// Cleared first: a bus event interrupt between the two would queue one more Run() that
+		// stop() does not wait for
 		_instance = nullptr;
+		ScheduleClear();
 	}
 }
 
