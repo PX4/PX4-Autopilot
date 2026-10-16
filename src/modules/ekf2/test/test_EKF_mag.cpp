@@ -532,6 +532,47 @@ TEST_F(EkfMagTest, inFlightResetUsesCurrentFieldAtLowMagRate)
 
 	// THEN: the reset used the field measured shortly before, not a stale one
 	// (a filter that lags by ~0.6 s leaves a ~9 degree error here)
-	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), new_heading, radians(2.f))
-			<< "Yaw after reset: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+	const Vector3f mag_earth = _ekf->getMagEarthField();
+	const float mag_earth_heading = -atan2f(mag_earth(1), mag_earth(0));
+	EXPECT_NEAR(mag_earth_heading, new_heading, radians(2.f))
+			<< "Earth field heading after reset: " << degrees(mag_earth_heading) << " deg";
+}
+
+TEST_F(EkfMagTest, inFlightAlignmentKeepsHeading)
+{
+	// GIVEN: the heading was aligned on the ground with an undisturbed field
+	_sensor_simulator._mag.setData(Vector3f(0.2f, 0.f, 0.4f));
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: an onboard source disturbs the field during the climb (as when the actuators are
+	// enabled at launch), shifting the measured heading by 45 degrees just before the
+	// in-flight alignment at 1.5 m
+	float baro_height = _sensor_simulator._baro.getData();
+	bool disturbance_started = false;
+	int iterations = 0;
+
+	while (!_ekf->control_status_flags().mag_aligned_in_flight && (iterations++ < 1000)) {
+		baro_height += 0.01f;
+		_sensor_simulator._baro.setData(baro_height);
+		_sensor_simulator.runMicroseconds(10000);
+
+		if (!disturbance_started && (_ekf->getHagl() > 1.f)) {
+			_sensor_simulator._mag.setBias(Vector3f(0.f, -0.2f, 0.f));
+			disturbance_started = true;
+		}
+	}
+
+	ASSERT_TRUE(disturbance_started);
+	ASSERT_TRUE(_ekf->control_status_flags().mag_aligned_in_flight);
+
+	// THEN: the heading is not reset to the disturbed field
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f))
+			<< "Yaw after alignment: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
 }
