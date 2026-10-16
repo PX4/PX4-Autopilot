@@ -239,6 +239,8 @@ public:
 	void resetAccelBias();
 	void resetAccelBiasCov();
 
+	void setImuTemperature(uint64_t time_us, float temperature);
+
 	bool isGlobalHorizontalPositionValid() const
 	{
 		return _local_origin_lat_lon.isInitialized() && isLocalHorizontalPositionValid();
@@ -688,6 +690,12 @@ private:
 	bool _gyro_bias_inhibit[3] {};		///< true when the gyro bias learning is being inhibited for the specified axis
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
+
+	// IMU temperature high-pass, a proxy for the thermal gradient across the accelerometer package
+	float _imu_temperature_lpf{NAN};		///< (degC)
+	float _imu_temperature_slow{NAN};		///< (degC)
+	float _imu_temperature_hpf{0.f};		///< (degC)
+	uint64_t _time_last_imu_temperature{0};	///< (uSec)
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)

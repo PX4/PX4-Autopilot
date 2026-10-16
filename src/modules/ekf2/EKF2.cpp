@@ -244,6 +244,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_acclim(_params->ekf2_abl_acclim),
 	_param_ekf2_abl_gyrlim(_params->ekf2_abl_gyrlim),
 	_param_ekf2_abl_tau(_params->ekf2_abl_tau),
+	_param_ekf2_abias_tgrad(_params->ekf2_abias_tgrad),
 	_param_ekf2_gyr_b_lim(_params->ekf2_gyr_b_lim)
 {
 	initFusionControl();
@@ -848,6 +849,7 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 		UpdateRangingBeaconSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGING_BEACON
+		UpdateImuTemperatureSample();
 		UpdateSystemFlagsSample(ekf2_timestamps);
 		UpdateFusionControlFromReplay();
 
@@ -2817,6 +2819,21 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+void EKF2::UpdateImuTemperatureSample()
+{
+	if (_param_ekf2_abias_tgrad.get() <= 0.f) {
+		return;
+	}
+
+	for (unsigned i = 0; i < _vehicle_imu_status_subs.size(); i++) {
+		vehicle_imu_status_s imu_status;
+
+		if (_vehicle_imu_status_subs[i].update(&imu_status) && (imu_status.accel_device_id == _device_id_accel)) {
+			_ekf.setImuTemperature(imu_status.timestamp, imu_status.temperature_accel);
+		}
+	}
+}
 
 void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 {

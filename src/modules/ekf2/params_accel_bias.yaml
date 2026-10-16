@@ -21,6 +21,22 @@ parameters:
       max: 0.01
       unit: m/s^3
       decimal: 6
+    EKF2_ABIAS_TGRAD:
+      description:
+        short: Accelerometer Z bias uncertainty from IMU temperature transients
+        long: The accelerometer Z offset follows the temperature gradient across
+          the sensor package, which changes with heat flow through the board
+          (airflow over a warm board, a heater) faster than the bias process noise
+          allows. The IMU temperature, high-passed with a 5 s time constant, tracks
+          that gradient. Each change of it grows the Z bias standard deviation by
+          this gain (m/s^2 per degC) times the change, so the filter relearns the
+          bias during the transient. Assumes the IMU is mounted flat (its Z axis
+          along the vehicle Z axis). Set to 0 to disable.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1.0
+      decimal: 3
     EKF2_ABL_LIM:
       description:
         short: Accelerometer bias learning limit
