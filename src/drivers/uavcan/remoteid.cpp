@@ -53,8 +53,10 @@ UavcanRemoteIDController::UavcanRemoteIDController(uavcan::INode &node) :
 
 int UavcanRemoteIDController::init()
 {
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
 	// Cache the source of the basic ID
 	_odid_bid_src = static_cast<uint8_t>(_param_odid_bid_src.get());
+#endif
 
 	// Setup timer and call back function for periodic updates
 	_timer.setCallback(TimerCbBinder(this, &UavcanRemoteIDController::periodic_update));
@@ -89,20 +91,26 @@ void UavcanRemoteIDController::send_basic_id()
 	if (_open_drone_id_basic_id.advertised()) {
 		open_drone_id_basic_id_s basic_id {};
 
-		if (!_open_drone_id_basic_id.copy(&basic_id)) {
+		if (_open_drone_id_basic_id.copy(&basic_id)) {
+			msg.id_type = basic_id.id_type;
+			msg.ua_type = basic_id.ua_type;
+
+			using UasIdField = decltype(msg.uas_id);
+			static_assert(sizeof(basic_id.uas_id) == UasIdField::MaxSize, "OpenDroneID Basic ID uas_id size mismatch");
+
+			// uas_id: UAS (Unmanned Aircraft System) ID following the format specified by id_type
+			for (unsigned i = 0; i < UasIdField::MaxSize; ++i) {
+				msg.uas_id.push_back(basic_id.uas_id[i]);
+			}
+
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+
+		} else if (_odid_bid_src == open_drone_id::UAS_ID_MODE_LOCK_FIRST_BASIC_ID) {
 			return;
+#endif
 		}
 
-		msg.id_type = basic_id.id_type;
-		msg.ua_type = basic_id.ua_type;
-
-		using UasIdField = decltype(msg.uas_id);
-		static_assert(sizeof(basic_id.uas_id) == UasIdField::MaxSize, "OpenDroneID Basic ID uas_id size mismatch");
-
-		// uas_id: UAS (Unmanned Aircraft System) ID following the format specified by id_type
-		for (unsigned i = 0; i < UasIdField::MaxSize; ++i) {
-			msg.uas_id.push_back(basic_id.uas_id[i]);
-		}
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
 
 	} else if (_odid_bid_src == open_drone_id::UAS_ID_MODE_LOCK_FIRST_BASIC_ID) {
 		if (!_odid_bid_lock_loaded) {
@@ -120,6 +128,8 @@ void UavcanRemoteIDController::send_basic_id()
 		for (unsigned i = 0; i < open_drone_id::UAS_ID_SIZE; ++i) {
 			msg.uas_id.push_back(_odid_bid_lock_info.id.uas_id[i]);
 		}
+
+#endif
 
 	} else {
 		msg.id_type = dronecan::remoteid::BasicID::ODID_ID_TYPE_SERIAL_NUMBER;
