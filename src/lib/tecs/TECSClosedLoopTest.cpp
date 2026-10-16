@@ -750,6 +750,78 @@ TEST_F(TECSClosedLoopTest, PropulsionFailureClimbHighSpeedWeight)
 	EXPECT_GT(_state.V, _params.tas_min);
 }
 
+// --- Gliding at speed weight 2 ---------------------------------------------------
+//
+// Speed weight 2 is the glider setting: the pitch flies airspeed only. Altitude is the throttle's business and
+// without propulsion it is given up. An altitude demand must then not reach the pitch at all, or it is paid for
+// with airspeed.
+
+TEST_F(TECSClosedLoopTest, GlideSpeedWeightTwoCruise)
+{
+	_params.pitch_speed_weight = 2.f;
+
+	run(10.f);
+	_throttle_failed = true;
+	resetSimStats();
+	run(120.f);
+
+	// Airspeed recovered after the loss of thrust (the dip is feedback only, there is no thrust to feed forward)
+	// and held in the steady glide, which sinks at the minimum sink rate
+	EXPECT_LT(_sim_stats.max_airspeed_error, 2.f) << "V floor " << _V_sp - _sim_stats.max_airspeed_error << " at t=" <<
+			_sim_stats.t_max_airspeed_error << " s";
+	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
+	EXPECT_NEAR(plantAltitudeRate(), -_params.min_sink_rate, 0.1f);
+}
+
+TEST_F(TECSClosedLoopTest, GlideSpeedWeightTwoAltitudeStepUp)
+{
+	_params.pitch_speed_weight = 2.f;
+
+	run(10.f);
+	_throttle_failed = true;
+	run(60.f); // settle into the glide
+	resetSimStats();
+	setAltitudeSetpoint(ALT_INIT + 200.f);
+	run(60.f);
+
+	// The altitude demand must not reach the pitch: airspeed and sink rate unchanged
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "V floor " << _V_sp - _sim_stats.max_airspeed_error <<
+			" at t=" << _sim_stats.t_max_airspeed_error << " s";
+	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
+	EXPECT_NEAR(plantAltitudeRate(), -_params.min_sink_rate, 0.1f);
+}
+
+TEST_F(TECSClosedLoopTest, GlideSpeedWeightTwoAirspeedStep)
+{
+	_params.pitch_speed_weight = 2.f;
+
+	run(10.f);
+	_throttle_failed = true;
+	run(60.f); // settle into the glide
+
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim + 2.f);
+	run(60.f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
+
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim - 2.f);
+	run(60.f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
+}
+
+TEST_F(TECSClosedLoopTest, AltitudeStepUpSpeedWeightTwo)
+{
+	// With propulsion the throttle alone flies the altitude step, the pitch holds the airspeed
+	_params.pitch_speed_weight = 2.f;
+
+	run(10.f);
+	setAltitudeSetpoint(ALT_INIT + 50.f);
+	run(120.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+	EXPECT_NEAR(_state.V, _V_sp, 1e-3f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+}
+
 // --- Airspeed setpoint change -------------------------------------------------
 
 TEST_F(TECSClosedLoopTest, AirspeedStepUpDefaultTuning)
