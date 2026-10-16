@@ -1035,6 +1035,12 @@ UavcanNode::Run()
 
 	if (_task_should_exit.load()) {
 
+#if defined(UAVCAN_SOCKETCAN_NUTTX)
+		// Left bound, the sockets keep queueing received frames into the IOB pool the IP stack
+		// shares. They belong to the work queue's task group, so the shell cannot close them.
+		can->driver.closeIfaces();
+#endif
+
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 		_mixing_interface_esc.mixingOutput().unregister();
 		_mixing_interface_esc.ScheduleClear();

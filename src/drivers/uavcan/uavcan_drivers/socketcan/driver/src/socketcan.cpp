@@ -71,6 +71,14 @@ struct BitTimingSettings {
 
 } // namespace
 
+void CanIface::socketClose()
+{
+	if (_fd >= 0) {
+		close(_fd);
+		_fd = -1;
+	}
+}
+
 uavcan::uint32_t CanIface::socketInit(uint32_t index)
 {
 
@@ -83,12 +91,9 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 	_can_fd = can_fd;
 	_index = index;
 
-	// uavcan stop/start and a failed driver init open the interface again; the old
-	// socket would otherwise stay bound and keep queueing received frames
-	if (_fd >= 0) {
-		close(_fd);
-		_fd = -1;
-	}
+	// a failed driver init is retried and opens the interface again; the old socket
+	// would otherwise stay bound and keep queueing received frames
+	socketClose();
 
 	/* open socket */
 	if ((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
