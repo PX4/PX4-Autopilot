@@ -113,6 +113,35 @@ public:
 	}
 };
 
+TEST_F(EkfTerrainTest, rejectedRangeDoesNotResetTerrainOnTimeout)
+{
+	_ekf_wrapper.enableConditionalRangeHeightFusion();
+	_ekf_wrapper.setBaroHeightRef();
+	_ekf->getParamHandle()->ekf2_rng_noise = 0.01f;
+	_ekf->getParamHandle()->ekf2_rng_sfe = 0.f;
+	_sensor_simulator._rng.setLimits(0.1f, 50.f);
+	_sensor_simulator._rng.setData(1.f, 100);
+	_sensor_simulator.startRangeFinder();
+	_sensor_simulator.runSeconds(8.f);
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.runSeconds(1.f);
+	ASSERT_TRUE(_ekf->control_status_flags().rng_terrain);
+
+	for (int i = 0; i < 250; ++i) {
+		_sensor_simulator._rng.setData(1.f + 0.04f * i, 100);
+		_sensor_simulator.runSeconds(0.02f);
+	}
+
+	ASSERT_FALSE(_ekf->control_status_flags().rng_kin_consistent);
+	ASSERT_TRUE(_ekf->control_status_flags().baro_hgt);
+	const uint8_t resets = _ekf->get_hagl_reset_count();
+	_sensor_simulator.runSeconds(12.f);
+	ASSERT_FALSE(_ekf->control_status_flags().rng_kin_consistent);
+	ASSERT_TRUE(_ekf->control_status_flags().baro_hgt);
+	EXPECT_EQ(_ekf->get_hagl_reset_count(), resets);
+}
+
 TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 {
 	// GIVEN: flow and range are enabled
