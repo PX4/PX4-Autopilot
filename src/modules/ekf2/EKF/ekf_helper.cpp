@@ -403,6 +403,9 @@ void Ekf::resetAccelBias()
 	_state.accel_bias.zero();
 
 	resetAccelBiasCov();
+
+	// a new IMU or calibration: a step to its temperature is not a thermal transient
+	_imu_temperature_lpf = NAN;
 }
 
 void Ekf::setImuTemperature(const uint64_t time_us, const float temperature)
@@ -411,9 +414,11 @@ void Ekf::setImuTemperature(const uint64_t time_us, const float temperature)
 	// with the heat flow through the board (airflow over a warm board, a heater). The IMU temperature
 	// high-passed at a few seconds tracks that gradient, but with a gain and sign that depend on the
 	// installation, so its changes grow the Z bias uncertainty rather than correct the bias.
-	static constexpr float kNoiseFilterTau = 1.f; // (sec)
+	static constexpr float kNoiseFilterTau = 1.5f; // (sec)
 	static constexpr float kGradientTau = 5.f; // (sec)
-	static constexpr float kNoiseRate = 0.03f; // high-pass change rate left by sensor noise (degC/sec)
+	// High-pass swings within this band are not counted: sensor noise, and the ripple of temperatures
+	// that update in coarse steps (BMI088: 0.125 degC every 1.28 s) or less often than they are sampled.
+	static constexpr float kDeadband = 0.1f; // (degC)
 
 	if (!PX4_ISFINITE(temperature)) {
 		return;
@@ -439,8 +444,9 @@ void Ekf::setImuTemperature(const uint64_t time_us, const float temperature)
 	_imu_temperature_slow += dt / (kGradientTau + dt) * (_imu_temperature_lpf - _imu_temperature_slow);
 
 	const float hpf = _imu_temperature_lpf - _imu_temperature_slow;
-	const float change = fabsf(hpf - _imu_temperature_hpf) - kNoiseRate * dt;
-	_imu_temperature_hpf = hpf;
+	const float hpf_held = math::constrain(_imu_temperature_hpf, hpf - kDeadband, hpf + kDeadband);
+	const float change = fabsf(hpf_held - _imu_temperature_hpf);
+	_imu_temperature_hpf = hpf_held;
 
 	if ((_params.ekf2_abias_tgrad > 0.f) && (change > 0.f) && _filter_initialised && !_accel_bias_inhibit[2]) {
 		// the offset moves coherently with the gradient, so the standard deviation grows linearly, not as a random walk

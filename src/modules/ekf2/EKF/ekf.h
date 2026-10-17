@@ -642,7 +642,7 @@ private:
 	// IMU temperature high-pass, a proxy for the thermal gradient across the accelerometer package
 	float _imu_temperature_lpf{NAN};		///< (degC)
 	float _imu_temperature_slow{NAN};		///< (degC)
-	float _imu_temperature_hpf{0.f};		///< (degC)
+	float _imu_temperature_hpf{0.f};		///< high-pass, held within the deadband (degC)
 	uint64_t _time_last_imu_temperature{0};	///< (uSec)
 
 	// imu fault status

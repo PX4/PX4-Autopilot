@@ -319,6 +319,47 @@ TEST_F(EkfAccelerometerTest, thermalTransientNoiseIgnored)
 	EXPECT_LE(_ekf->getAccelBiasVariance()(2), var_steady * 1.01f);
 }
 
+TEST_F(EkfAccelerometerTest, thermalTransientCoarseStepsIgnored)
+{
+	// GIVEN: thermal bias uncertainty growth enabled and an IMU warming at a steady rate, read the way
+	// a BMI088 reports it: 0.125 degC steps, refreshed every 1.28 s
+	_ekf->getParamHandle()->ekf2_abias_tgrad = 0.1f;
+	const auto temperature = [](float t) { return 0.125f * roundf((30.f + 0.2f * 1.28f * floorf(t / 1.28f)) / 0.125f); };
+	float t = 0.f;
+
+	for (; t < 100.f; t += 0.1f) {
+		_ekf->setImuTemperature(_sensor_simulator.getTime(), temperature(t));
+		_sensor_simulator.runSeconds(0.1f);
+	}
+
+	const float var_ramp = _ekf->getAccelBiasVariance()(2);
+
+	// WHEN: the warm-up continues at the same rate
+	for (; t < 160.f; t += 0.1f) {
+		_ekf->setImuTemperature(_sensor_simulator.getTime(), temperature(t));
+		_sensor_simulator.runSeconds(0.1f);
+	}
+
+	// THEN: the steps do not grow the Z bias uncertainty
+	EXPECT_LE(_ekf->getAccelBiasVariance()(2), var_ramp * 1.01f);
+}
+
+TEST_F(EkfAccelerometerTest, thermalTransientImuSwitch)
+{
+	// GIVEN: thermal bias uncertainty growth enabled and a steady IMU temperature
+	_ekf->getParamHandle()->ekf2_abias_tgrad = 0.1f;
+	runWithImuTemperature(20.f, 0.f);
+
+	// WHEN: the EKF switches to another IMU that runs 5 degC warmer
+	_ekf->resetAccelBias();
+	const float var_reset = _ekf->getAccelBiasVariance()(2);
+	_imu_temperature += 5.f;
+	runWithImuTemperature(1.f, 0.f);
+
+	// THEN: the temperature difference between the IMUs does not grow the Z bias uncertainty
+	EXPECT_LE(_ekf->getAccelBiasVariance()(2), var_reset);
+}
+
 TEST_F(EkfAccelerometerTest, thermalTransientBiasTracking)
 {
 	// GIVEN: a steady IMU temperature and a converged bias estimate
@@ -327,14 +368,14 @@ TEST_F(EkfAccelerometerTest, thermalTransientBiasTracking)
 	// WHEN: the IMU cools and its Z offset shifts with it, without and then with thermal uncertainty growth
 	const float bias = 0.3f;
 	_sensor_simulator._imu.setAccelData(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G + bias));
-	runWithImuTemperature(5.f, -0.4f);
+	runWithImuTemperature(10.f, -0.4f);
 	const float error_disabled = fabsf(_ekf->getAccelBias()(2) - bias);
 
 	_sensor_simulator._imu.setAccelData(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G));
 	runWithImuTemperature(60.f, 0.f);
 	_ekf->getParamHandle()->ekf2_abias_tgrad = 0.1f;
 	_sensor_simulator._imu.setAccelData(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G + bias));
-	runWithImuTemperature(5.f, -0.4f);
+	runWithImuTemperature(10.f, -0.4f);
 	const float error_enabled = fabsf(_ekf->getAccelBias()(2) - bias);
 
 	// THEN: the bias is learnt faster with the thermal uncertainty growth
