@@ -269,7 +269,8 @@ private:
 				// busy and PX4 doesn't run fast enough.
 				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
 
-				if (elapsed_time_us > duration_us.count()) {
+				// The condition may have become true during the sleep, so check it again before giving up.
+				if (elapsed_time_us > duration_us.count() && !fun()) {
 					std::cout << time_str() << "Timeout, connected to vehicle but waiting for test for " << static_cast<double>
 						  (elapsed_time_us) / 1e6 << " seconds\n";
 					return false;
@@ -285,7 +286,7 @@ private:
 				const auto elapsed_time_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() -
 							     start_time);
 
-				if (elapsed_time_us > duration_us) {
+				if (elapsed_time_us > duration_us && !fun()) {
 					std::cout << time_str() << "Timeout, waiting for the vehicle for "
 						  << elapsed_time_us.count() * std::chrono::steady_clock::period::num
 						  / static_cast<double>(std::chrono::steady_clock::period::den)
