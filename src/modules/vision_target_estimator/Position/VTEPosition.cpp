@@ -1100,7 +1100,8 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 	}
 
 	// GPS already in NED, no rotation required.
-	// Obs: [pos_rel + bias]
+	// Obs: [pos_rel + bias]. Bias may be initialized later in this update,
+	// so fuseMeas() adds its coefficient to meas_h_xyz when the bias is active.
 	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
@@ -1112,12 +1113,6 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 	obs.meas_unc_xyz(vtest::Axis::x) = gps_unc_horizontal;
 	obs.meas_unc_xyz(vtest::Axis::y) = gps_unc_horizontal;
 	obs.meas_unc_xyz(vtest::Axis::z) = gps_unc_vertical;
-
-	if (_bias.set) {
-		obs.meas_h_xyz(vtest::Axis::x, vtest::State::bias) = 1;
-		obs.meas_h_xyz(vtest::Axis::y, vtest::State::bias) = 1;
-		obs.meas_h_xyz(vtest::Axis::z, vtest::State::bias) = 1;
-	}
 
 	obs.type = ObsType::kMissionGpsPos;
 
@@ -1216,16 +1211,11 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	}
 
 	// GPS already in NED, no rotation required.
-	// Obs: [pos_rel + bias]
+	// Obs: [pos_rel + bias]. Bias may be initialized later in this update,
+	// so fuseMeas() adds its coefficient to meas_h_xyz when the bias is active.
 	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
-
-	if (_bias.set) {
-		obs.meas_h_xyz(vtest::Axis::x, vtest::State::bias) = 1;
-		obs.meas_h_xyz(vtest::Axis::y, vtest::State::bias) = 1;
-		obs.meas_h_xyz(vtest::Axis::z, vtest::State::bias) = 1;
-	}
 
 	obs.timestamp = target_gnss.timestamp_sample;
 
@@ -1271,8 +1261,14 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 			continue; // nothing to do for this axis
 		}
 
-		const KF_position::ScalarMeas meas_input{target_obs.timestamp, target_obs.meas_xyz(j),
-				target_obs.meas_unc_xyz(j), target_obs.meas_h_xyz.row(j)};
+		KF_position::ScalarMeas meas_input{target_obs.timestamp, target_obs.meas_xyz(j),
+						   target_obs.meas_unc_xyz(j), target_obs.meas_h_xyz.row(j)};
+
+		// Bias can become observable after observations were collected in this update.
+		// Build the GNSS model from the state being fused, including on that first cycle.
+		if (_bias.set && (target_obs.type == ObsType::kTargetGpsPos || target_obs.type == ObsType::kMissionGpsPos)) {
+			meas_input.H(vtest::State::bias) = 1.f;
+		}
 
 		target_innov.observation[j] = meas_input.val;
 		target_innov.observation_variance[j] = meas_input.unc;
