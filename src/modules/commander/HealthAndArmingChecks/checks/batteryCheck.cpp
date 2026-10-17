@@ -149,8 +149,28 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 				worst_warning = warning;
 			}
 
-			if (battery.remaining < worst_battery_remaining) {
+			// a negative remaining means the state of charge is unknown, not empty
+			if ((battery.remaining >= 0.f) && (battery.remaining < worst_battery_remaining)) {
 				worst_battery_remaining = battery.remaining;
+			}
+
+			if ((battery.remaining < 0.f) && (battery.cell_count == 0)) {
+				/* EVENT
+				 * @description
+				 * The state of charge can't be estimated without knowing the number of cells.
+				 *
+				 * <profile name="dev">
+				 * Configure the cell count with <param>BAT1_N_CELLS</param> (or the parameter for the respective battery).
+				 * </profile>
+				 */
+				reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::battery,
+								     events::ID("check_battery_cell_count_unknown"), events::Log::Error,
+								     "Battery {1}: charge unknown, configure cell count", index + 1);
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(),
+							     "Preflight Fail: Battery %i charge unknown, configure cell count\t", index + 1);
+				}
 			}
 
 			if (battery.timestamp < oldest_update) {

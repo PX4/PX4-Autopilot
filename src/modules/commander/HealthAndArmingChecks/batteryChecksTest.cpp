@@ -68,12 +68,13 @@ public:
 		publish(1, battery_status_s::WARNING_NONE);
 	}
 
-	static void publish(int index, uint8_t warning, bool connected = true)
+	static void publish(int index, uint8_t warning, bool connected = true, float remaining = 0.5f, uint8_t cell_count = 0)
 	{
 		battery_status_s battery{};
 		battery.timestamp = hrt_absolute_time();
 		battery.connected = connected;
-		battery.remaining = 0.5f;
+		battery.remaining = remaining;
+		battery.cell_count = cell_count;
 		battery.time_remaining_s = NAN;
 		battery.warning = warning;
 		_battery_pubs[index].publish(battery);
@@ -165,4 +166,35 @@ TEST_F(BatteryChecksTest, DisconnectedPackDoesNotHideAnotherPacksEmergency)
 	publish(1, battery_status_s::WARNING_NONE, false);
 	runCheck(true);
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
+}
+
+// a battery without a configured cell count has an unknown state of charge, which must block arming
+// without being treated as an emergency
+TEST_F(BatteryChecksTest, UnknownChargeWithoutCellCountBlocksArming)
+{
+	publish(0, battery_status_s::WARNING_NONE, true, -1.f, 0);
+	runCheck(false);
+	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
+	EXPECT_FALSE(_can_arm);
+
+	publish(0, battery_status_s::WARNING_NONE, true, 0.9f, 3);
+	runCheck(false);
+	EXPECT_TRUE(_can_arm);
+}
+
+// an unknown state of charge must not count as below the configured arming threshold
+TEST_F(BatteryChecksTest, UnknownChargeIsNotBelowArmThreshold)
+{
+	float arm_bat_min = 0.2f;
+	param_set(param_find("COM_ARM_BAT_MIN"), &arm_bat_min);
+
+	publish(0, battery_status_s::WARNING_NONE, true, -1.f, 4);
+	runCheck(false);
+	EXPECT_TRUE(_can_arm);
+
+	publish(1, battery_status_s::WARNING_NONE, true, 0.1f, 4);
+	runCheck(false);
+	EXPECT_FALSE(_can_arm);
+
+	param_reset(param_find("COM_ARM_BAT_MIN"));
 }
