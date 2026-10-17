@@ -151,11 +151,27 @@ A common example is a vision-only setup where the marker leaves the camera frame
 When that applies:
 
 - Raise [VTE_TGT_TOUT](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) past the expected gap so the published target pose stays marked valid.
-  The precision-landing controller stops following the target once this expires.
+  Once this expires, VTE stops publishing `landing_target_pose`.
+  The precision-landing controller can continue using the last published pose for another [PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT); the two timeouts do not measure the same interval.
 - Raise [VTE_BTOUT](../advanced_config/parameter_reference.md#VTE_BTOUT) past the expected gap if you want the filter to coast on its last estimate.
   Otherwise the filter is reset and will restart as soon as enabled fusion sources reappear.
 
 Measurements timestamped in the future relative to the latest filter prediction are always rejected.
+
+### Target Estimate And Visual Detection
+
+`landing_target_pose` describes the current target estimate, not the age of the last camera detection.
+VTE publishes predictions while its position estimate remains valid, and each accepted position source can keep that estimate valid.
+In particular, target GNSS or the mission position can produce a pose before the first vision observation and can maintain it during a vision dropout.
+This supports landing on the corrected absolute reference after vision has established the bias.
+
+Precision landing uses the freshness of this pose stream for [PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT).
+Consequently, _Required_ precision landing does not guarantee a visual acquisition when absolute position aiding is enabled, and losing the marker does not necessarily trigger a search.
+The pose stream may continue for the VTE validity window after all position observations stop, then `PLD_BTOUT` starts expiring against the last published pose.
+
+If landing must depend on vision observations, disable target GNSS and mission position aiding in [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK).
+Vehicle GNSS velocity aiding can remain enabled: it does not keep the position estimate valid by itself.
+Account for both the VTE prediction window and `PLD_BTOUT` when setting the tolerated gap in visual detections.
 
 ### Measurement Freshness
 
@@ -370,7 +386,26 @@ To make them available in PX4 builds the `CONFIG_MAVLINK_DIALECT="development"` 
 
 - When `VTE_EN=0`, the measurement is rotated (using `q_sensor` or the vehicle attitude for body-frame reports) and published straight to `landing_target_pose` so precision-landing can operate without the estimator.
 - When `VTE_EN=1`, the message is split into `fiducial_marker_pos_report` and `fiducial_marker_yaw_report`.
-  `VisionTargetEst` consumes these uORB topics to drive the position and orientation filters (using `fiducial_marker_pos_report.q` to rotate `fiducial_marker_pos_report.rel_pos` into NED at `timestamp_sample`).
+  `VisionTargetEst` consumes these uORB topics to drive the position and orientation filters.
+  The position filter rotates `fiducial_marker_pos_report.rel_pos` into NED using the supplied `fiducial_marker_pos_report.q` and treats the result as an observation at `timestamp_sample`.
+  The receiver does not retrieve historical vehicle attitude or position for that timestamp.
+
+For delayed observations with `VTE_EN=1`, prepare the frame conversion on the companion at capture time:
+
+| Frame              | Capture-Time Input                                                                                                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LOCAL_OFFSET_NED` | Send the target position relative to the vehicle at capture, already resolved in NED. Leave `q_sensor` unset (all zeros) or set it to identity.                         |
+| `BODY_FRD`         | Send the vehicle-relative target position in the body frame at capture and provide the body-to-NED attitude at that same instant in `q_sensor`.                         |
+| `OTHER`            | Send the vehicle-relative target position in the selected sensor axes and provide their rotation into NED at capture in `q_sensor`, including camera mounting rotation. |
+
+If `BODY_FRD` omits `q_sensor`, the receiver uses the latest available vehicle attitude when the message arrives.
+For `LOCAL_NED`, the receiver subtracts the latest available vehicle position from the absolute target coordinates, even if the message carries an older capture timestamp.
+Providing `q_sensor` does not correct this `LOCAL_NED` translation.
+For delayed inputs, convert absolute coordinates to a vehicle-relative frame on the companion using the vehicle position at capture instead.
+
+These fallback conversions remain supported, but their error grows with vehicle motion and latency.
+OOSM processing cannot undo a rotation or translation performed with vehicle state from the wrong instant.
+The direct `VTE_EN=0` path also uses the latest available vehicle state for frame conversions; it does not compensate for capture-time latency.
 
 **TARGET_ABSOLUTE (ID 510)**
 
@@ -398,7 +433,9 @@ If the state visibly diverges between measurements and snaps back when a new sam
 - **Report consistent variances** in `pos_std` and `yaw_std` (for [TARGET_RELATIVE](https://mavlink.io/en/messages/development.html#TARGET_RELATIVE)) and `position_std` / `vel_std` (for `TARGET_ABSOLUTE`).
   Under-reporting variance is the most common cause of overshoots.
   The [Sensor noise floors](#noise) only clamp the lower bound and cannot rescue an over-confident sensor.
-- **Set the coordinate frame** for [TARGET_RELATIVE](https://mavlink.io/en/messages/development.html#TARGET_RELATIVE) (`TARGET_OBS_FRAME`) and provide the `q_sensor` rotation when the camera frame differs from vehicle-carried NED.
+- **Set the coordinate frame** for [TARGET_RELATIVE](https://mavlink.io/en/messages/development.html#TARGET_RELATIVE) (`TARGET_OBS_FRAME`).
+  For delayed inputs, report a vehicle-relative position at capture and supply the capture-time `q_sensor` rotation whenever its axes differ from NED, including for `BODY_FRD`.
+  Do not rely on the receiver's current-state fallbacks to reconstruct the capture-time geometry.
 - **Match the target GNSS position to the active task.** Publish the takeoff pad while `prec_takeoff_status` is `ONGOING` and the landing pad while `prec_land_status` is active.
   The estimator fuses whatever it receives and cannot detect a mismatch.
 
