@@ -269,6 +269,14 @@ protected:
 	 */
 	void		unlock() { px4_sem_post(&_lock); }
 
+	/**
+	 * True once any poll waiter has been registered. Read it under
+	 * ATOMIC_ENTER: poll() setup stores the waiter and then checks
+	 * poll_state() under the same section, so a waiter that registers
+	 * after a false reading sees the state change itself.
+	 */
+	bool		has_poll_waiters() const { return _max_pollwaiters > 0; }
+
 	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
 
 private:

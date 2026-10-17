@@ -441,7 +441,25 @@ public:
 
 	static uint8_t orb_get_queue_size(const void *node_handle);
 
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	/* Inline wherever the node is in the caller's address space (see updates_available below). */
+	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated)
+	{
+		DeviceNode *node = static_cast<DeviceNode *>(node_handle);
+
+		if (!node->is_advertised()) {
+			return false;
+		}
+
+		if (only_if_updated && !node->updates_available(generation)) {
+			return false;
+		}
+
+		return node->copy(dst, generation);
+	}
+#else
 	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated);
+#endif
 
 	static bool register_callback(void *node_handle, SubscriptionCallback *callback_sub);
 
@@ -451,11 +469,31 @@ public:
 
 	virtual ~Manager();
 
-#if defined(CONFIG_BUILD_FLAT)
-	/* These are optimized by inlining in NuttX Flat build */
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	/* Inline wherever the node is in the caller's address space; only the NuttX
+	 * protected build has to cross into the kernel (uORBManagerUsr.cpp). */
 	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return is_advertised(node_handle) ? static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation) : 0; }
 
 	static bool is_advertised(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->is_advertised(); }
+
+	/* Publish through a node handle whose data is known to match its topic (the typed wrappers). */
+	static int orb_publish_node(orb_advert_t handle, const void *data)
+	{
+#ifdef ORB_USE_PUBLISHER_RULES
+
+		if (handle == _Instance) {
+			return PX4_OK; //pretend success
+		}
+
+#endif /* ORB_USE_PUBLISHER_RULES */
+
+		if ((handle == nullptr) || (data == nullptr)) {
+			errno = EFAULT;
+			return PX4_ERROR;
+		}
+
+		return static_cast<DeviceNode *>(handle)->publish_data(data);
+	}
 
 #else
 	static unsigned updates_available(const void *node_handle, unsigned last_generation);

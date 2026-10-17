@@ -59,7 +59,7 @@ class UnitTest;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>
+class uORB::DeviceNode final : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>
 {
 public:
 	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path);
@@ -122,6 +122,13 @@ public:
 	static ssize_t    publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
 
 	static int        unadvertise(orb_advert_t handle);
+
+	/**
+	 * Publish data known to match this node's topic; the typed Publication
+	 * wrappers guarantee that. The static publish() validates first.
+	 * @return PX4_OK, or PX4_ERROR with errno set
+	 */
+	int publish_data(const void *data);
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	/**

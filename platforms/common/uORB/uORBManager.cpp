@@ -443,6 +443,8 @@ void uORB::Manager::orb_remove_internal_subscriber(void *node_handle)
 
 uint8_t uORB::Manager::orb_get_queue_size(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->get_queue_size(); }
 
+/* Inline in the header except for the NuttX protected build (see uORBManager.hpp) */
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
 bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated)
 {
 	if (!is_advertised(node_handle)) {
@@ -455,6 +457,7 @@ bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &genera
 
 	return static_cast<DeviceNode *>(node_handle)->copy(dst, generation);
 }
+#endif
 
 // add item to list of work items to schedule on node update
 bool uORB::Manager::register_callback(void *node_handle, SubscriptionCallback *callback_sub)
@@ -477,8 +480,8 @@ uint8_t uORB::Manager::orb_get_instance(const void *node_handle)
 	return -1;
 }
 
-/* These are optimized by inlining in NuttX Flat build */
-#if !defined(CONFIG_BUILD_FLAT)
+/* Inline in the header except for the NuttX protected build (see uORBManager.hpp) */
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
 unsigned uORB::Manager::updates_available(const void *node_handle, unsigned last_generation)
 {
 	return is_advertised(node_handle) ? static_cast<const uORB::DeviceNode *>(node_handle)->updates_available(

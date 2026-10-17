@@ -37,5 +37,7 @@ px4_add_module(
 	PRIORITY "SCHED_PRIORITY_MAX"
 	SRCS
 		uORB_tests_main.cpp
+		uORBTest_Bench.cpp
+		uORBTest_Flight.cpp
 		uORBTest_UnitTest.cpp
 	)
