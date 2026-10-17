@@ -405,8 +405,8 @@ void LSM6DSV::RunImpl()
 				}
 			}
 
-			// periodically update temperature (~1 Hz)
-			if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
+			// periodically update temperature (~10 Hz)
+			if (hrt_elapsed_time(&_temperature_update_timestamp) >= 100_ms) {
 				UpdateTemperature();
 				_temperature_update_timestamp = now;
 			}

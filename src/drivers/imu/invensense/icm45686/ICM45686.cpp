@@ -248,7 +248,7 @@ void ICM45686::RunImpl()
 					return;
 				}
 
-			} else if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
+			} else if (hrt_elapsed_time(&_temperature_update_timestamp) >= 100_ms) {
 				UpdateTemperature();
 				_temperature_update_timestamp = now;
 			}
