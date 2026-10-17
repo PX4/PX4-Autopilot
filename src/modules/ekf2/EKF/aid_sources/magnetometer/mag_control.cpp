@@ -72,17 +72,21 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			_state.mag_B.zero();
 			resetMagBiasCov();
 
+			if (!_control_status.flags.in_air && _control_status.flags.yaw_align
+			    && !_control_status.flags.yaw_manual
+			    && !_control_status.flags.ev_yaw && !_control_status.flags.gnss_yaw) {
+				// Assume that a reset on the ground is caused by a change in mag calibration.
+				// The heading has to be realigned to the corrected data, but keep the current
+				// alignment until fusion restarts so that the heading estimate doesn't become
+				// unavailable in between.
+				_mag_yaw_reset_req = true;
+			}
+
 			stopMagFusion();
 
 			_mag_lpf.reset(mag_sample.mag);
 			_mag_lpf_time_last_us = mag_sample.time_us;
 			_mag_counter = 1;
-
-			if (!_control_status.flags.in_air && !_control_status.flags.yaw_manual) {
-				// Assume that a reset on the ground is caused by a change in mag calibration
-				// Clear alignment to force a clean reset
-				_control_status.flags.yaw_align = false;
-			}
 
 		} else {
 			// the filter runs once per magnetometer sample, not once per EKF update
@@ -302,6 +306,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 				// activate fusion, reset mag states and initialize variance if first init or in flight reset
 				if (!_control_status.flags.yaw_align
+				    || _mag_yaw_reset_req
 				    || wmm_updated
 				    || !_state.mag_I.longerThan(0.f)
 				    || (getStateVariance<State::mag_I>().min() < kMagVarianceMin)
@@ -309,7 +314,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				   ) {
 					ECL_INFO("starting %s fusion, resetting states", AID_SRC_NAME);
 
-					bool reset_heading = !_control_status.flags.yaw_align;
+					const bool reset_heading = !_control_status.flags.yaw_align || _mag_yaw_reset_req;
 
 					resetMagStates(_mag_lpf.getState(), reset_heading);
 					aid_src.time_last_fuse = imu_sample.time_us;
@@ -319,6 +324,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}
 
+					_mag_yaw_reset_req = false;
 					_control_status.flags.mag = true;
 
 				} else {

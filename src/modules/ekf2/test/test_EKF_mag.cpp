@@ -272,6 +272,47 @@ TEST_F(EkfMagTest, velocityRotationOnYawReset)
 	EXPECT_GT(yaw_change, 0.3f) << "Yaw change: " << degrees(yaw_change) << " deg";
 }
 
+TEST_F(EkfMagTest, calibrationChangeOnGroundKeepsYawAligned)
+{
+	// GIVEN: the vehicle sits on the ground, heading aligned from the mag, with GNSS aiding
+	const float mag_heading = M_PI_F / 4.f;
+	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f));
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	_ekf->set_min_required_gps_health_time(1e6);
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(10.f);
+
+	ASSERT_TRUE(_ekf->control_status_flags().yaw_align);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	ASSERT_TRUE(_ekf->control_status_flags().gnss_pos);
+
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the mag calibration changes, as it does when the bias learned in flight is
+	// saved at disarm, and the corrected data points 10 degrees away from before
+	const float heading_change = radians(10.f);
+	const float new_heading = mag_heading + heading_change;
+	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(new_heading), -0.2f * sinf(new_heading), 0.4f));
+	_sensor_simulator._mag.setCalibrationChanged();
+
+	// THEN: the yaw alignment is never dropped while mag fusion restarts
+	for (int i = 0; i < 200; i++) {
+		_sensor_simulator.runMicroseconds(10e3);
+		EXPECT_TRUE(_ekf->control_status_flags().yaw_align) << "yaw alignment lost at step " << i;
+	}
+
+	// AND: the heading was realigned once to the corrected mag data and fusion resumed
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter + 1);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+
+	_sensor_simulator.runSeconds(10.f);
+	float mag_decl_deg = 0.f;
+	_ekf->get_mag_decl_deg(mag_decl_deg);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), new_heading + radians(mag_decl_deg), radians(1.f));
+}
+
 TEST_F(EkfMagTest, manualYawExpiresWhenHeadingIsFused)
 {
 	// GIVEN: mag fusion is aligned in flight, so the mag remains the heading source
