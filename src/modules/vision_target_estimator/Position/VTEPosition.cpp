@@ -661,7 +661,7 @@ bool VTEPosition::getOffsetUavVel(const hrt_abstime sample_time, Vector3f &uav_v
 
 	if (_gps_pos_is_offset) {
 		if (!_velocity_offset_ned.valid
-		    || !isTimeDifferenceWithin(_velocity_offset_ned.timestamp, _uav_gps_vel.timestamp, _meas_updated_timeout_us)) {
+		    || !isMeasUpdated(_velocity_offset_ned.timestamp)) {
 			return false;
 		}
 
@@ -1080,7 +1080,7 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 	if (_gps_pos_is_offset) {
 
 		if (!_gps_pos_offset_ned.valid
-		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
+		    || !isMeasUpdated(_gps_pos_offset_ned.timestamp)) {
 			return false;
 		}
 
@@ -1188,7 +1188,7 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	// Offset gps relative position to the center of mass:
 	if (_gps_pos_is_offset) {
 		if (!_gps_pos_offset_ned.valid
-		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
+		    || !isMeasUpdated(_gps_pos_offset_ned.timestamp)) {
 
 			return false;
 		}
@@ -1568,6 +1568,8 @@ void VTEPosition::setGpsPosOffset(const matrix::Vector3f &xyz, const bool gps_is
 	_gps_pos_is_offset = gps_is_offset;
 	_gps_pos_offset_ned.xyz = xyz;
 	_gps_pos_offset_ned.valid = xyz.isAllFinite();
+	// This is the freshness of the current attitude correction, not the GNSS sample time.
+	// Using current attitude remains an approximation while the vehicle rotates during GNSS latency.
 	_gps_pos_offset_ned.timestamp = nowUs();
 }
 
