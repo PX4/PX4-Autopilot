@@ -63,6 +63,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [Serial Passthrough](../uart/serial_passthrough.md): new reference [bridge application](../uart/serial_passthrough.md#bridge-application), `Tools/mavlink_serial_bridge.py`, exposes a flight controller serial port or ESC signal pin as a virtual serial port on a Linux/macOS host, so ESC configuration and GPS tools can connect to it over MAVLink.
   ([PX4-Autopilot#28782: feat(tools): add mavlink_serial_bridge.py reference bridge application](https://github.com/PX4/PX4-Autopilot/pull/28782))
 
+#### New Flight Controllers
+
+- [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md): an i.MX 95 board with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores. ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
+
 ### Common
 
 - The unit and functional test suite builds, links and runs on macOS (`make tests`), and `px4_poll()` timeouts on macOS wait for their full duration instead of returning at once. The blended GPS timestamp is accumulated in double and rounded once instead of truncating each weighted term. ([PX4-Autopilot#28516](https://github.com/PX4/PX4-Autopilot/pull/28516))
