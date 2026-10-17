@@ -54,8 +54,6 @@
 #include <parameters/param.h>
 #include <version/version.h>
 
-#include <arch/chip/chip.h>
-
 #include <uORB/topics/esc_status.h>
 
 #include <drivers/drv_hrt.h>
