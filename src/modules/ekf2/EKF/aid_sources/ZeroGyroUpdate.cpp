@@ -59,7 +59,8 @@ bool ZeroGyroUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 		if (zero_gyro_update_data_ready) {
 
-			Vector3f gyro_bias = _zgup_delta_ang / _zgup_delta_ang_dt;
+			const Vector3f earth_rate_body = ekf.state().quat_nominal.rotateVectorInverse(ekf.getEarthRateNED());
+			const Vector3f gyro_bias = _zgup_delta_ang / _zgup_delta_ang_dt - earth_rate_body;
 
 			const float obs_var = sq(math::constrain(ekf.getGyroNoise(), 0.f, 1.f));
 

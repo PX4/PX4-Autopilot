@@ -420,9 +420,9 @@ void FixedwingRateControl::Run()
 
 				float thrust_setpoint = _rates_sp.thrust_body[0];
 
-				// Stop motor if its setpoint is below 2%. This value was determined empirically (RC stick inaccuracy).
-				// Motor is stopped by setting the output to NAN (per definition).
-				if (PX4_ISFINITE(thrust_setpoint) && thrust_setpoint > 0.02f) {
+				// Zero thrust is passed through and maps to the motor's minimum output (PWM_MIN etc.).
+				// Motor is stopped by setting the output to NAN (per definition) if the setpoint is invalid.
+				if (PX4_ISFINITE(thrust_setpoint)) {
 					/* scale effort by battery status */
 					if (_param_fw_bat_scale_en.get()) {
 
