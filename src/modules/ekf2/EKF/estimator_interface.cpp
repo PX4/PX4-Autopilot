@@ -641,7 +641,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	return true;
 }
 
-Vector3f EstimatorInterface::getPosition(const LatLonAlt &lla) const
+Vector3f EstimatorInterface::globalToLocalPosition(const LatLonAlt &lla) const
 {
 	float x;
 	float y;

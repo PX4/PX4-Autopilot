@@ -261,8 +261,8 @@ public:
 	Vector3f getVelocityDerivative() const { return _output_predictor.getVelocityDerivative(); }
 	void resetVelocityDerivativeAccumulation() { return _output_predictor.resetVelocityDerivativeAccumulation(); }
 	float getVerticalPositionDerivative() const { return _output_predictor.getVerticalPositionDerivative(); }
-	Vector3f getPosition() const { return getPosition(getLatLonAlt()); }
-	Vector3f getPosition(const LatLonAlt &lla) const; // local NED position of a global position
+	Vector3f getPosition() const { return globalToLocalPosition(getLatLonAlt()); }
+	Vector3f globalToLocalPosition(const LatLonAlt &lla) const;
 	LatLonAlt getLatLonAlt() const { return _output_predictor.getLatLonAlt(); }
 	const Vector3f &getOutputTrackingError() const { return _output_predictor.getOutputTrackingError(); }
 

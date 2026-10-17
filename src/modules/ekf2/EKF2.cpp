@@ -859,7 +859,7 @@ void EKF2::Run()
 
 			// the output position, reconstructed once for all position publications
 			const LatLonAlt lla = _ekf.getLatLonAlt();
-			const Vector3f position = _ekf.getPosition(lla);
+			const Vector3f position = _ekf.globalToLocalPosition(lla);
 
 			PublishLocalPosition(now, position);
 			PublishOdometry(now, imu_sample_new, position);
