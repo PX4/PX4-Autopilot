@@ -325,14 +325,18 @@ CDev::poll_notify(px4_pollevent_t events)
 
 	/* lock against poll() as well as other wakeups */
 	ATOMIC_ENTER;
+	poll_notify_locked(events);
+	ATOMIC_LEAVE;
+}
 
+void
+CDev::poll_notify_locked(px4_pollevent_t events)
+{
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (nullptr != _pollset[i]) {
 			poll_notify_one(_pollset[i], events);
 		}
 	}
-
-	ATOMIC_LEAVE;
 }
 
 void
