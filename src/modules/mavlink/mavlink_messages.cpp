@@ -128,6 +128,7 @@
 #include "streams/VFR_HUD.hpp"
 #include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
+#include "streams/WHEEL_ENCODER.hpp"
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 #include "streams/FIGURE_EIGHT_EXECUTION_STATUS.hpp"
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
@@ -540,6 +541,9 @@ static constexpr StreamListItem streams_list[] = {
 #if defined(GLOBAL_POSITION_SENSOR_HPP)
 	create_stream_list_item<MavlinkStreamGlobalPositionSensor>(),
 #endif // GLOBAL_POSITION_SENSOR_HPP
+#if defined(WHEEL_ENCODER_HPP)
+	create_stream_list_item<MavlinkStreamWheelEncoder>()
+#endif // WHEEL_ENCODER_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
