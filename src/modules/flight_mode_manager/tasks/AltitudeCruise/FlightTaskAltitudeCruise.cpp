@@ -1,10 +1,5 @@
 #include "FlightTaskAltitudeCruise.hpp"
 
-FlightTaskAltitudeCruise::FlightTaskAltitudeCruise()
-{
-	_sticks_data_required = false; // disable stick requirement to not report flight task failure when they're lost
-}
-
 void FlightTaskAltitudeCruise::reActivate()
 {
 	FlightTaskManualAltitudeSmoothVel::reActivate();

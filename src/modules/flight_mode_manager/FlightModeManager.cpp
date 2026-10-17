@@ -109,6 +109,11 @@ void FlightModeManager::Run()
 		_vehicle_control_mode_sub.update();
 		_vehicle_land_detected_sub.update();
 		_vehicle_status_sub.update();
+		_home_position_sub.update();
+		_sticks.checkAndUpdateStickInputs();
+
+		_available_inputs = FlightTask::availableInputs(vehicle_local_position, _home_position_sub.get().valid_alt,
+				    _sticks.isAvailable(), hrt_absolute_time());
 
 		start_flight_task();
 
@@ -386,6 +391,13 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 		return FlightTaskError::NoError;
 	}
 
+	// Constructing a task reads all of its parameters, so only construct one that can activate
+	const uint8_t required_inputs = _requiredInputs(new_task_index);
+
+	if ((_available_inputs & required_inputs) != required_inputs) {
+		return FlightTaskError::ActivationFailed;
+	}
+
 	// Save current setpoints for the next FlightTask
 	trajectory_setpoint_s last_setpoint = FlightTask::empty_trajectory_setpoint;
 
@@ -403,14 +415,22 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 		return FlightTaskError::NoError;
 	}
 
-	// activation failed
+	// The task evaluates the same inputs the manager just checked, so this only happens when a task's own
+	// checks disagree with its declared inputs or the local position changed in between
 	if (!_current_task.task->updateInitialize() || !_current_task.task->activate(last_setpoint)) {
+		if (!_activation_failed_error_printed) {
+			PX4_ERR("Flight task %" PRIu32 " failed to activate with its required inputs available",
+				static_cast<uint32_t>(new_task_index));
+			_activation_failed_error_printed = true;
+		}
+
 		_current_task.task->~FlightTask();
 		_current_task.task = nullptr;
 		_current_task.index = FlightTaskIndex::None;
 		return FlightTaskError::ActivationFailed;
 	}
 
+	_activation_failed_error_printed = false;
 	_command_failed = false;
 
 	return FlightTaskError::NoError;
@@ -478,6 +498,7 @@ int FlightModeManager::print_status()
 		PX4_INFO("Running, no flight task active");
 	}
 
+	PX4_INFO("Available inputs: 0x%02x", _available_inputs);
 	perf_print_counter(_loop_perf);
 	return 0;
 }
