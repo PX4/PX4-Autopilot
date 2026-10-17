@@ -21,12 +21,13 @@ namespace matrix
 template<typename Type, size_t M, size_t N>
 class Matrix
 {
-	Type _data[M][N] {};
+	// zeroed by the default constructor only: the other constructors write every element
+	Type _data[M][N];
 
 public:
 
 	// Constructors
-	Matrix() = default;
+	Matrix() : _data{} {}
 
 	explicit Matrix(const Type data_[M * N])
 	{
