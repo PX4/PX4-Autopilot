@@ -403,6 +403,61 @@ void Ekf::resetAccelBias()
 	_state.accel_bias.zero();
 
 	resetAccelBiasCov();
+
+	// a new IMU or calibration: a step to its temperature is not a thermal transient
+	_imu_temperature_lpf = NAN;
+}
+
+void Ekf::setImuTemperature(const uint64_t time_us, const float temperature)
+{
+	// The accel Z offset follows the temperature gradient across the sensor package, which changes
+	// with the heat flow through the board (airflow over a warm board, a heater). The IMU temperature
+	// high-passed at a few seconds tracks that gradient, but with a gain and sign that depend on the
+	// installation, so its changes grow the Z bias uncertainty rather than correct the bias.
+	static constexpr float kNoiseFilterTau = 1.5f; // (sec)
+	static constexpr float kGradientTau = 5.f; // (sec)
+	// High-pass swings within this band are not counted: sensor noise, and the ripple of temperatures
+	// that update in coarse steps (BMI088: 0.125 degC every 1.28 s) or less often than they are sampled.
+	static constexpr float kDeadband = 0.1f; // (degC)
+
+	if (!PX4_ISFINITE(temperature)) {
+		return;
+	}
+
+	const float dt = (time_us > _time_last_imu_temperature) ? 1e-6f * (time_us - _time_last_imu_temperature) : 0.f;
+
+	if (!PX4_ISFINITE(_imu_temperature_lpf) || (dt > 2.f)) {
+		_imu_temperature_lpf = temperature;
+		_imu_temperature_slow = temperature;
+		_imu_temperature_hpf = 0.f;
+		_time_last_imu_temperature = time_us;
+		return;
+	}
+
+	if (dt <= 0.f) {
+		return;
+	}
+
+	_time_last_imu_temperature = time_us;
+
+	_imu_temperature_lpf += dt / (kNoiseFilterTau + dt) * (temperature - _imu_temperature_lpf);
+	_imu_temperature_slow += dt / (kGradientTau + dt) * (_imu_temperature_lpf - _imu_temperature_slow);
+
+	const float hpf = _imu_temperature_lpf - _imu_temperature_slow;
+	const float hpf_held = math::constrain(_imu_temperature_hpf, hpf - kDeadband, hpf + kDeadband);
+	const float change = fabsf(hpf_held - _imu_temperature_hpf);
+	_imu_temperature_hpf = hpf_held;
+
+	if ((_params.ekf2_abias_tgrad > 0.f) && (change > 0.f) && _filter_initialised && !_accel_bias_inhibit[2]) {
+		// the offset moves coherently with the gradient, so the standard deviation grows linearly, not as a random walk
+		const unsigned index = State::accel_bias.idx + 2;
+		const float std_dev = sqrtf(fmaxf(P(index, index), 0.f)) + _params.ekf2_abias_tgrad * change;
+		const float var = fminf(sq(std_dev), sq(_params.ekf2_acc_noise));
+
+		if (var > P(index, index)) {
+			P(index, index) = var;
+		}
+	}
 }
 
 float Ekf::getHeadingInnovationTestRatio() const
