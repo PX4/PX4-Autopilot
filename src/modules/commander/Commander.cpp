@@ -50,6 +50,7 @@
 #include "ModeUtil/conversions.hpp"
 #include <lib/modes/ui.hpp>
 #include <lib/modes/standard_modes.hpp>
+#include <lib/takeoff/takeoff_altitude_limit.hpp>
 
 /* PX4 headers */
 #include <drivers/drv_hrt.h>
@@ -1211,8 +1212,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
-			/* ok, home set, use it to take off */
-			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, getSourceFromCommand(cmd))) {
+			// param7: takeoff altitude [m AMSL], not necessarily set
+			if (isTakeoffAltitudeAboveLimit(getTakeoffAltitudeAmsl(cmd.param7))) {
+				printRejectTakeoffAltitude();
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+
+			} else if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF,
+							       getSourceFromCommand(cmd))) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -1225,8 +1231,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_NAV_VTOL_TAKEOFF:
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
-		/* ok, home set, use it to take off */
-		if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, getSourceFromCommand(cmd))) {
+		// param7: altitude [m AMSL] at which the vehicle transitions to forward flight
+		if (isTakeoffAltitudeAboveLimit(cmd.param7)) {
+			printRejectTakeoffAltitude();
+			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+
+		} else if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF,
+						       getSourceFromCommand(cmd))) {
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else {
@@ -2800,6 +2811,50 @@ void Commander::updateControlMode()
 		    || _vehicle_control_mode.flag_control_velocity_enabled);
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
 	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
+}
+
+float Commander::getTakeoffAltitudeAmsl(const float commanded_altitude_amsl)
+{
+	float mis_takeoff_alt{NAN};
+
+	if (param_get(_param_mis_takeoff_alt_handle, &mis_takeoff_alt) != PX4_OK) {
+		mis_takeoff_alt = NAN;
+	}
+
+	_global_position_sub.update();
+
+	return takeoff::resolveAltitudeAmsl(commanded_altitude_amsl, _global_position_sub.get(), mis_takeoff_alt);
+}
+
+float Commander::getMaxTakeoffAltitudeAmsl()
+{
+	_local_position_sub.update();
+	_global_position_sub.update();
+
+	return takeoff::maxAltitudeAmsl(_vehicle_land_detected.landed, _global_position_sub.get(), _local_position_sub.get());
+}
+
+bool Commander::isTakeoffAltitudeAboveLimit(const float altitude_amsl)
+{
+	return takeoff::isAboveLimit(altitude_amsl, getMaxTakeoffAltitudeAmsl());
+}
+
+void Commander::printRejectTakeoffAltitude()
+{
+	// Report the limit as the height the vehicle may still climb rather than as an absolute altitude, which is
+	// what the operator has to act on. The limit only exists while landed, so the difference to the current
+	// altitude is the height above the ground the takeoff can reach.
+	const float max_height_above_ground = getMaxTakeoffAltitudeAmsl() - _global_position_sub.get().alt;
+
+	mavlink_log_critical(&_mavlink_log_pub, "Takeoff denied: altitude above navigation limit of %.1f m above ground\t",
+			     (double)max_height_above_ground);
+	/* EVENT
+	 * @description
+	 * The commanded takeoff altitude is above the maximum height above the ground the estimator can
+	 * support with the currently available aiding sources.
+	 */
+	events::send<float>(events::ID("commander_takeoff_denied_max_hagl"), {events::Log::Critical, events::LogInternal::Info},
+			    "Takeoff denied: altitude above navigation limit of {1:.1m} above ground", max_height_above_ground);
 }
 
 void Commander::printRejectMode(uint8_t nav_state)
