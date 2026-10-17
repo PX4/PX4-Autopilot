@@ -58,18 +58,28 @@ void AckermannPosControl::updatePosControl()
 
 	hrt_abstime timestamp = hrt_absolute_time();
 
-	if (_target_waypoint_ned.isAllFinite()) {
-		float distance_to_target = (_target_waypoint_ned - _curr_pos_ned).norm();
+	// Course control: track the line through the start position towards a target that is kept beyond the maximum lookahead
+	const bool course_control = PX4_ISFINITE(_course) && _start_ned.isAllFinite();
+	Vector2f target_waypoint_ned = _target_waypoint_ned;
+
+	if (course_control) { // takes precedence over the target
+		const Vector2f course_direction(cosf(_course), sinf(_course));
+		const float distance_along_course = fabsf((_curr_pos_ned - _start_ned) * course_direction);
+		target_waypoint_ned = _start_ned + (distance_along_course + _param_pp_lookahd_max.get()) * course_direction;
+	}
+
+	if (target_waypoint_ned.isAllFinite()) {
+		float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
 
 		if (_arrival_speed > FLT_EPSILON) {
 			distance_to_target -= _acceptance_radius; // shift target to the edge of the acceptance radius if arrival speed not zero
 		}
 
-		if (distance_to_target > _acceptance_radius || _arrival_speed > FLT_EPSILON) {
+		if (course_control || distance_to_target > _acceptance_radius || _arrival_speed > FLT_EPSILON) {
 
 			float speed_setpoint{_cruising_speed};
 
-			if (_param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
+			if (!course_control && _param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
 				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
 							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
@@ -78,7 +88,7 @@ void AckermannPosControl::updatePosControl()
 			pure_pursuit_status.timestamp = timestamp;
 
 			const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-						       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _target_waypoint_ned, _start_ned,
+						       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _start_ned,
 						       _curr_pos_ned, fabsf(speed_setpoint));
 
 			if (_param_ro_speed_red.get() > FLT_EPSILON) {
@@ -158,7 +168,8 @@ void AckermannPosControl::updateSubscriptions()
 		_arrival_speed = PX4_ISFINITE(rover_position_setpoint.arrival_speed) ? rover_position_setpoint.arrival_speed : 0.f;
 		_cruising_speed = PX4_ISFINITE(rover_position_setpoint.cruising_speed) ? rover_position_setpoint.cruising_speed :
 				  _param_ro_speed_limit.get();
-		_target_waypoint_ned = Vector2f(rover_position_setpoint.position_ned[0], rover_position_setpoint.position_ned[1]);
+		_target_waypoint_ned = Vector2f(rover_position_setpoint.target_ned[0], rover_position_setpoint.target_ned[1]);
+		_course = rover_position_setpoint.course;
 		_stopped = false;
 	}
 

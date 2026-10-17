@@ -89,7 +89,7 @@ public:
 	/**
 	 * @brief Reset position controller.
 	 */
-	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _course = NAN; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
 
 protected:
 	/**
@@ -118,6 +118,7 @@ private:
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
 	Vector2f _target_waypoint_ned{};
+	float _course{NAN};
 	float _arrival_speed{0.f};
 	float _vehicle_yaw{0.f};
 	float _vehicle_speed{0.f};
