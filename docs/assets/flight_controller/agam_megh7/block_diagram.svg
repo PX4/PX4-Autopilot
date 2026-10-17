@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1190" height="1275" viewBox="0 0 1190 1275" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .blk  { stroke-width: 1.5; rx: 6; }
+    .mcu  { fill: #e9eff8; stroke: #2b4b7e; stroke-width: 2.5; }
+    .sens { fill: #eef6ee; stroke: #3f6f3f; }
+    .conn { fill: #fdf5e9; stroke: #97682c; }
+    .pwr  { fill: #fcefef; stroke: #8b3a3a; }
+    .misc { fill: #f4f4f7; stroke: #555c6e; }
+    .ttl  { font-size: 19px; font-weight: bold; fill: #111; }
+    .sub  { font-size: 11.5px; fill: #666; }
+    .hdr  { font-size: 12.5px; font-weight: bold; fill: #111; }
+    .fn   { font-size: 10.5px; fill: #444; }
+    .det  { font-size: 10px; fill: #555; }
+    .mono { font-size: 10px; fill: #777; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+    .wire { stroke: #777; stroke-width: 1.3; fill: none; }
+    .pwire{ stroke: #8b3a3a; stroke-width: 1.5; fill: none; }
+    .note { font-size: 10.5px; fill: #8b3a3a; font-style: italic; }
+    .grp  { fill: none; stroke: #c3c8d2; stroke-width: 1; stroke-dasharray: 5 4; rx: 8; }
+    .glbl { font-size: 10.5px; fill: #8891a1; letter-spacing: 0.08em; }
+  </style>
+
+  <rect fill="#ffffff" x="0" y="0" width="1190" height="1275"/>
+  <text class="ttl" x="40" y="34">Agam MegH7 — block diagram (hardware rev 1.2)</text>
+  <text class="sub" x="40" y="54">STM32H743VI flight controller. Buses and pin assignments from the board support files; power tree from the schematic.</text>
+
+  <rect class="grp" x="46" y="156" width="304" height="396"/>
+  <text class="glbl" x="58" y="150">ON-BOARD DEVICES</text>
+  <rect class="grp" x="876" y="82" width="288" height="676"/>
+  <text class="glbl" x="888" y="76">EXTERNAL CONNECTORS (bottom of board)</text>
+
+  <rect class="blk mcu" x="390" y="180" width="430" height="480"/>
+  <text class="hdr" x="605" y="214" text-anchor="middle" font-size="15">STM32H743VI</text>
+  <text class="det" x="605" y="234" text-anchor="middle">Cortex-M7 · 480MHz · 2MB flash · 1MB RAM</text>
+  <text class="mono" x="605" y="250" text-anchor="middle">8MHz crystal · 128KB reserved for bootloader</text>
+  <text class="det" x="605" y="420" text-anchor="middle" font-size="11" fill="#2b4b7e">no on-board magnetometer</text>
+  <text class="det" x="605" y="438" text-anchor="middle" font-size="11" fill="#2b4b7e">parameters and logs on the microSD card</text>
+
+  <rect class="blk misc" x="400" y="90" width="132" height="50"/>
+  <text class="hdr" x="466" y="112" text-anchor="middle">USB-C</text>
+  <text class="mono" x="466" y="128" text-anchor="middle">OTG1 PA11/PA12</text>
+  <rect class="blk misc" x="548" y="90" width="132" height="50"/>
+  <text class="hdr" x="614" y="112" text-anchor="middle">SWD pads D / C</text>
+  <text class="mono" x="614" y="128" text-anchor="middle">PA13/PA14 (top)</text>
+  <rect class="blk misc" x="696" y="90" width="114" height="50"/>
+  <text class="hdr" x="753" y="112" text-anchor="middle">BOOT</text>
+  <text class="mono" x="753" y="128" text-anchor="middle">DFU button</text>
+  <path class="wire" d="M466 140 V180"/>
+  <path class="wire" d="M614 140 V180"/>
+  <path class="wire" d="M753 140 V180"/>
+
+  <rect class="blk sens" x="60" y="180" width="280" height="56"/>
+  <text class="hdr" x="72" y="202">ICM-45686 IMU</text>
+  <text class="mono" x="72" y="222">SPI2 · CS PD11 · DRDY PB2</text>
+  <path class="wire" d="M340 208 H390"/>
+
+  <rect class="blk sens" x="60" y="254" width="280" height="56"/>
+  <text class="hdr" x="72" y="276">BMP390 barometer</text>
+  <text class="mono" x="72" y="296">I2C2 PB10/PB11</text>
+  <path class="wire" d="M340 282 H390"/>
+
+  <rect class="blk sens" x="60" y="328" width="280" height="56"/>
+  <text class="hdr" x="72" y="350">AT7456E analog OSD</text>
+  <text class="mono" x="72" y="370">SPI3 · CS PD10 · CAM in / VTX out</text>
+  <path class="wire" d="M340 356 H390"/>
+
+  <rect class="blk sens" x="60" y="402" width="280" height="56"/>
+  <text class="hdr" x="72" y="424">W25Q128 flash — optional</text>
+  <text class="mono" x="72" y="444">SPI1 · CS PE11 · not always fitted</text>
+  <path class="wire" d="M340 430 H390" stroke-dasharray="5 4"/>
+
+  <rect class="blk sens" x="60" y="476" width="280" height="56"/>
+  <text class="hdr" x="72" y="498">microSD card</text>
+  <text class="mono" x="72" y="518">SDMMC1 PC8-PC12, PD2</text>
+  <path class="wire" d="M340 504 H390"/>
+
+  <rect class="blk conn" x="890" y="92" width="260" height="66"/>
+  <text class="hdr" x="902" y="114">ESC — 8 pin</text>
+  <text class="fn"   x="902" y="132">VBAT, GND, current sense, telemetry, M1-M4</text>
+  <text class="mono" x="902" y="148">PC1 · UART8 PE0 · PB0 PB1 PA0 PA1</text>
+  <path class="wire" d="M820 190 H854 V125 H890"/>
+
+  <rect class="blk conn" x="890" y="166" width="260" height="66"/>
+  <text class="hdr" x="902" y="188">GPS — 6 pin</text>
+  <text class="fn"   x="902" y="206">+5V, TX, RX, SCL, SDA, GND</text>
+  <text class="mono" x="902" y="222">USART1 PA9/PA10 · I2C1 PB6/PB7</text>
+  <path class="wire" d="M820 199 H890"/>
+
+  <rect class="blk conn" x="890" y="240" width="260" height="66"/>
+  <text class="hdr" x="902" y="262">TELEM — 6 pin</text>
+  <text class="fn"   x="902" y="280">+5V, TX, RX, CTS, RTS, GND</text>
+  <text class="mono" x="902" y="296">UART7 PE8/PE7 · PE10/PE9</text>
+  <path class="wire" d="M820 273 H890"/>
+
+  <rect class="blk conn" x="890" y="314" width="260" height="66"/>
+  <text class="hdr" x="902" y="336">RX — 4 pin</text>
+  <text class="fn"   x="902" y="354">TX, RX, +5V, GND</text>
+  <text class="mono" x="902" y="370">USART6 PC6/PC7</text>
+  <path class="wire" d="M820 347 H890"/>
+
+  <rect class="blk conn" x="890" y="388" width="260" height="66"/>
+  <text class="hdr" x="902" y="410">CAN — 4 pin</text>
+  <text class="fn"   x="902" y="428">+5V, CAN H, CAN L, GND</text>
+  <text class="mono" x="902" y="444">CAN1 TX PD1 · RX PD0, via transceiver</text>
+  <path class="wire" d="M820 421 H890"/>
+
+  <rect class="blk conn" x="890" y="462" width="260" height="66"/>
+  <text class="hdr" x="902" y="484">DIGI VTX — 6 pin</text>
+  <text class="fn"   x="902" y="502">+10V, GND, TX, RX, GND, SBUS in</text>
+  <text class="mono" x="902" y="518">USART2 PD5/PD6 · USART3 RX PD9</text>
+  <path class="wire" d="M820 495 H890"/>
+
+  <rect class="blk conn" x="890" y="536" width="260" height="66"/>
+  <text class="hdr" x="902" y="558">SPI4 — 8 pin</text>
+  <text class="fn"   x="902" y="576">+5V, SCK, MISO, MOSI, CS, DRDY, EXTI, GND</text>
+  <text class="mono" x="902" y="592">PE12 PE13 PE14 · PB12 · PD4 · PD3</text>
+  <path class="wire" d="M820 569 H890"/>
+
+  <rect class="blk conn" x="890" y="610" width="260" height="66"/>
+  <text class="hdr" x="902" y="632">I2C4 — 4 pin</text>
+  <text class="fn"   x="902" y="650">+5V, SCL, SDA, GND</text>
+  <text class="mono" x="902" y="666">I2C4 PD12/PD13</text>
+  <path class="wire" d="M820 643 H890"/>
+
+  <rect class="blk conn" x="890" y="684" width="260" height="66"/>
+  <text class="hdr" x="902" y="706">B/LD — 4 pin</text>
+  <text class="fn"   x="902" y="724">+5V, buzzer, LED data, GND</text>
+  <text class="mono" x="902" y="740">PA15 · PA8</text>
+  <path class="wire" d="M820 655 H854 V717 H890"/>
+
+  <rect class="blk misc" x="46" y="790" width="400" height="200" fill="#f7f8fa"/>
+  <text class="glbl" x="58" y="784">MOTOR / LED OUTPUTS</text>
+  <text class="hdr" x="62" y="816">Timer groups</text>
+  <text class="mono" x="62" y="840">TIM3   M1 PB0    M2 PB1</text>
+  <text class="mono" x="62" y="860">TIM5   M3 PA0    M4 PA1</text>
+  <text class="mono" x="62" y="880">TIM5   M5 PA2    M6 PA3</text>
+  <text class="mono" x="62" y="900">TIM4   M7 PD14   M8 PD15</text>
+  <text class="mono" x="62" y="920">TIM1   LED strip PA8 (WS2812)</text>
+  <text class="mono" x="62" y="940">TIM2   buzzer PA15</text>
+  <text class="note" x="62" y="966">Bidirectional DShot on M1-M7. TIM4_CH4 (M8)</text>
+  <text class="note" x="62" y="980">has no capture DMA on the STM32H7.</text>
+  <path class="wire" d="M400 660 V790"/>
+
+  <rect class="blk misc" x="486" y="790" width="664" height="200" fill="#f7f8fa"/>
+  <text class="glbl" x="498" y="784">SOLDER PADS (top of board)</text>
+  <text class="hdr" x="502" y="816">Analog inputs</text>
+  <text class="mono" x="502" y="838">RSS PC5 · A1 PC4 · A2 PA4</text>
+  <text class="det"  x="502" y="854">direct to the MCU, 3.3V maximum</text>
+  <text class="hdr" x="502" y="882">Battery sensing</text>
+  <text class="mono" x="502" y="904">voltage PC0, divider 11</text>
+  <text class="mono" x="502" y="920">current PC1, 40A/V from the ESC shunt</text>
+  <text class="hdr" x="840" y="816">User IO</text>
+  <text class="mono" x="840" y="838">P2 PE15 · P3 PE6</text>
+  <text class="mono" x="840" y="854">C13 PC13 · C14 PC14 · C15 PC15</text>
+  <text class="hdr" x="840" y="882">Other</text>
+  <text class="mono" x="840" y="904">camera control PA7</text>
+  <text class="mono" x="840" y="920">status LEDs PE4 blue · PE3 red</text>
+  <text class="mono" x="840" y="936">UART pads T3/R3, T4/R4, T8/R8</text>
+  <text class="det" x="502" y="966">The buzzer and LED strip need a battery to work.</text>
+  <path class="wire" d="M700 660 V790"/>
+
+  <rect class="blk pwr" x="46" y="1020" width="1104" height="225" fill="#fdf7f7"/>
+  <text class="glbl" x="58" y="1014">POWER</text>
+
+  <rect class="blk pwr" x="70" y="1045" width="140" height="46" fill="#fff"/>
+  <text class="hdr" x="140" y="1065" text-anchor="middle" font-size="11.5">VBAT 2S-8S</text>
+  <text class="mono" x="140" y="1081" text-anchor="middle">5.5-36V · 40V max</text>
+
+  <rect class="blk pwr" x="70" y="1115" width="140" height="46" fill="#fff"/>
+  <text class="hdr" x="140" y="1135" text-anchor="middle" font-size="11.5">+5VBUS</text>
+  <text class="mono" x="140" y="1151" text-anchor="middle">USB-C · 4.75-5.25V</text>
+
+  <text class="glbl" x="250" y="1038">5V BEC</text>
+  <rect class="blk pwr" x="250" y="1045" width="170" height="46" fill="#fff"/>
+  <text class="hdr" x="335" y="1065" text-anchor="middle" font-size="11.5">step-down SMPS</text>
+  <text class="mono" x="335" y="1081" text-anchor="middle">+5Volt · 3A</text>
+
+  <text class="glbl" x="250" y="1178">10V BEC</text>
+  <rect class="blk pwr" x="250" y="1185" width="170" height="46" fill="#fff"/>
+  <text class="hdr" x="335" y="1205" text-anchor="middle" font-size="11.5">step-down SMPS</text>
+  <text class="mono" x="335" y="1221" text-anchor="middle">+10V · 3A</text>
+
+  <rect class="blk pwr" x="460" y="1115" width="170" height="46" fill="#fff"/>
+  <text class="hdr" x="545" y="1135" text-anchor="middle" font-size="11.5">P-FET and Schottky</text>
+  <text class="mono" x="545" y="1151" text-anchor="middle">selects +5Volt or +5VBUS</text>
+
+  <rect class="blk pwr" x="670" y="1115" width="110" height="46" fill="#fff"/>
+  <text class="hdr" x="725" y="1135" text-anchor="middle" font-size="11.5">+5V rail</text>
+  <text class="mono" x="725" y="1151" text-anchor="middle">5V pins</text>
+
+  <rect class="blk pwr" x="820" y="1115" width="100" height="46" fill="#fff"/>
+  <text class="hdr" x="870" y="1135" text-anchor="middle" font-size="11.5">LDO</text>
+  <text class="mono" x="870" y="1151" text-anchor="middle">6V max</text>
+
+  <rect class="blk pwr" x="960" y="1115" width="170" height="46" fill="#fff"/>
+  <text class="hdr" x="1045" y="1135" text-anchor="middle" font-size="11.5">+3.3V</text>
+  <text class="mono" x="1045" y="1151" text-anchor="middle">MCU and sensors</text>
+
+  <rect class="blk pwr" x="460" y="1185" width="170" height="46" fill="#fff"/>
+  <text class="hdr" x="545" y="1205" text-anchor="middle" font-size="11.5">PE5 switch</text>
+  <text class="mono" x="545" y="1221" text-anchor="middle">on at boot</text>
+
+  <path class="pwire" d="M210 1068 H250"/>
+  <path class="pwire" d="M228 1068 V1132 A6 6 0 0 1 228 1144 V1208 H250"/>
+  <path class="pwire" d="M420 1068 H545 V1115"/>
+  <path class="pwire" d="M210 1138 H460"/>
+  <path class="pwire" d="M630 1138 H670"/>
+  <path class="pwire" d="M780 1138 H820"/>
+  <path class="pwire" d="M920 1138 H960"/>
+  <path class="pwire" d="M420 1208 H460"/>
+  <path class="pwire" d="M630 1208 H690"/>
+  <text class="mono" x="700" y="1212">HD air unit and analog VTX, 10V · needs 4S or above</text>
+</svg>
