@@ -45,10 +45,10 @@
 namespace uORB
 {
 
-PublicationMultiBase::~PublicationMultiBase()
+PublicationBase::~PublicationBase()
 {
-	if (_handle != nullptr) {
-		// free the instance for the next advertiser, but keep queued publications advertised
+	if (orb_advert_valid(_handle)) {
+		// Keep queued publications available after publisher destruction.
 		if (Manager::orb_get_queue_size(_handle) == 1) {
 			unadvertise();
 		}
