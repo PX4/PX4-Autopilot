@@ -1,0 +1,7 @@
+menuconfig DRIVERS_IMU_TDK_MPU9250
+	bool "TDK MPU9250 SPI driver"
+	depends on !DRIVERS_IMU_INVENSENSE_MPU9250
+	default n
+	help
+	  Independent MPU9250 SPI accelerometer and gyroscope acquisition.
+	  The original product driver remains available.
