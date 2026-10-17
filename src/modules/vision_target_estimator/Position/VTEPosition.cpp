@@ -190,7 +190,7 @@ void VTEPosition::update(const Vector3f &acc_ned)
 	}
 }
 
-bool VTEPosition::initEstimator(const AxisEstimatorStates &state_init)
+bool VTEPosition::initEstimator(const AxisEstimatorStates &state_init, const Vector3f &position_variance)
 {
 	// Get initial variance from params
 	const float state_pos_var = fmaxf(_param_vte_pos_unc_in.get(), kMinVariance);
@@ -198,7 +198,6 @@ bool VTEPosition::initEstimator(const AxisEstimatorStates &state_init)
 	const float state_bias_var = fmaxf(_param_vte_bias_unc_in.get(), kMinVariance);
 
 	EstimatorState state_var_init{};
-	state_var_init(vtest::State::pos_rel) = state_pos_var;
 	state_var_init(vtest::State::vel_uav) = state_vel_var;
 	state_var_init(vtest::State::bias) = state_bias_var;
 
@@ -211,6 +210,7 @@ bool VTEPosition::initEstimator(const AxisEstimatorStates &state_init)
 #endif // CONFIG_VTEST_MOVING
 
 	for (int i = 0; i < vtest::Axis::size; i++) {
+		state_var_init(vtest::State::pos_rel) = fmaxf(state_pos_var, position_variance(i));
 		_target_est_pos[i].setState(state_init[i]);
 		_target_est_pos[i].setStateCovarianceDiag(state_var_init);
 	}
@@ -277,9 +277,8 @@ bool VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned)
 			return false;
 		}
 
-		if (!initializeEstimator(fusion_mask, _obs_buffer)) {
-			return false;
-		}
+		// Initialize only this cycle to avoid using the same measurements twice.
+		return initializeEstimator(fusion_mask, _obs_buffer);
 	}
 
 	if (!_bias.set) {
@@ -394,6 +393,7 @@ bool VTEPosition::updateUavGnssData()
 	const bool vehicle_gnss_updated = _vehicle_gnss_sub.update(&vehicle_gnss);
 
 	if (vehicle_gnss_updated) {
+		// Cache receiver validity independently of lever-arm corrections, which are checked when used.
 		const bool sample_usable = vehicle_gnss.usable && isMeasRecent(vehicle_gnss.timestamp_sample);
 
 		// Position
@@ -407,8 +407,7 @@ bool VTEPosition::updateUavGnssData()
 					  && PX4_ISFINITE(_uav_gps_position.eph) && _uav_gps_position.eph >= 0.f
 					  && PX4_ISFINITE(_uav_gps_position.epv) && _uav_gps_position.epv >= 0.f
 					  && isLatLonAltValid(_uav_gps_position.lat_deg, _uav_gps_position.lon_deg,
-							  _uav_gps_position.alt_m, "UAV GPS ", &_uav_gps_pos_warn_last)
-					  && (!_gps_pos_is_offset || _gps_pos_offset_ned.valid);
+							  _uav_gps_position.alt_m, "UAV GPS ", &_uav_gps_pos_warn_last);
 
 		// Velocity
 		_uav_gps_vel.timestamp = vehicle_gnss.timestamp_sample;
@@ -417,8 +416,7 @@ bool VTEPosition::updateUavGnssData()
 		_uav_gps_vel.xyz(vtest::Axis::z) = vehicle_gnss.receiver.vel_down;
 		_uav_gps_vel.uncertainty = vehicle_gnss.receiver.speed_accuracy;
 		_uav_gps_vel.valid = sample_usable && vehicle_gnss.receiver.vel_ned_valid
-				     && PX4_ISFINITE(_uav_gps_vel.uncertainty) && _uav_gps_vel.uncertainty >= 0.f
-				     && (!_gps_pos_is_offset || _velocity_offset_ned.valid);
+				     && PX4_ISFINITE(_uav_gps_vel.uncertainty) && _uav_gps_vel.uncertainty >= 0.f;
 
 		if (_uav_gps_vel.valid && !_uav_gps_vel.xyz.isAllFinite()) {
 			if (shouldEmitWarning(_uav_gps_vel_warn_last)) {
@@ -512,9 +510,21 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 	const bool has_vision_observation = fusion_mask.flags.fuse_vision;
 	const bool can_average_initial_bias = shouldSetBias(has_vision_observation) && isBiasAveragingEnabled();
 
-	Vector3f initial_position{};
-	const PreBiasReference initial_reference = selectInitialPosition(fusion_mask, observations, initial_position,
-			!can_average_initial_bias);
+	ObsType initial_type = ObsType::kFiducialMarker;
+
+	if (can_average_initial_bias || !has_vision_observation) {
+		if (fusion_mask.flags.fuse_target_gps_pos) {
+			initial_type = ObsType::kTargetGpsPos;
+
+		} else if (fusion_mask.flags.fuse_mission_pos) {
+			initial_type = ObsType::kMissionGpsPos;
+		}
+	}
+
+	const TargetObs &initial_obs = observations[obsIndex(initial_type)];
+	const Vector3f &initial_position = initial_obs.meas_xyz;
+	const PreBiasReference initial_reference = initial_type == ObsType::kFiducialMarker
+			? PreBiasReference::kVision : PreBiasReference::kGnss;
 	const bool average_initial_bias = shouldAverageInitialBias(has_vision_observation, initial_reference);
 
 	Vector3f initial_bias{};
@@ -526,7 +536,7 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 	AxisEstimatorStates state_init{};
 	buildInitialStateArray(initial_position, initial_uav_velocity, initial_bias, state_init);
 
-	if (!initEstimator(state_init)) {
+	if (!initEstimator(state_init, initial_obs.meas_unc_xyz)) {
 		resetFilter();
 		return false;
 	}
@@ -537,9 +547,32 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 	_last_update = nowUs();
 	_last_predict = _last_update;
 
+	if (initial_type == ObsType::kFiducialMarker) {
+		_last_relative_meas_fused_time = _last_update;
+	}
+
+	vte_aid_source3d_s aid{};
+	aid.timestamp = _last_update;
+	aid.timestamp_sample = initial_obs.timestamp;
+	aid.time_last_predict = _last_predict;
+	aid.time_since_meas_ms = (_last_update - initial_obs.timestamp) * kMicrosecondsToMilliseconds;
+
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
 		_target_est_pos[axis].resetHistory();
+		_target_est_pos[axis].pushHistory(initial_obs.timestamp);
+		aid.observation[axis] = initial_obs.meas_xyz(axis);
+		aid.observation_variance[axis] = initial_obs.meas_unc_xyz(axis);
+		// There is no prior prediction against which to compute an innovation at startup.
+		aid.innovation[axis] = NAN;
+		aid.innovation_variance[axis] = NAN;
+		aid.test_ratio[axis] = NAN;
+		aid.fusion_status[axis] = FusionStatus::STATUS_INITIALIZED;
 	}
+
+	// No acceleration history exists yet. Propagate with constant velocity and grow the
+	// covariance with the normal process noise instead of labelling the raw sample as current.
+	predictionStep(Vector3f{}, (_last_update - initial_obs.timestamp) * kMicrosecondsToSeconds);
+	publishInnov(aid, initial_type);
 
 	return true;
 }
@@ -582,35 +615,6 @@ void VTEPosition::buildInitialStateArray(const Vector3f &initial_position,
 		state_init[axis](vtest::State::vel_target) = initial_target_velocity(axis);
 #endif // CONFIG_VTEST_MOVING
 	}
-}
-
-VTEPosition::PreBiasReference VTEPosition::selectInitialPosition(const ObsValidMaskU &fusion_mask,
-		const TargetObs observations[kObsTypeCount], matrix::Vector3f &initial_position,
-		const bool prefer_vision)
-{
-	// Before the GNSS bias is ready, initialize from vision when requested and
-	// otherwise fall back to the available GNSS position source.
-	if (prefer_vision && fusion_mask.flags.fuse_vision) {
-		initial_position = observations[obsIndex(ObsType::kFiducialMarker)].meas_xyz;
-		return PreBiasReference::kVision;
-	}
-
-	if (fusion_mask.flags.fuse_target_gps_pos) {
-		initial_position = observations[obsIndex(ObsType::kTargetGpsPos)].meas_xyz;
-		return PreBiasReference::kGnss;
-	}
-
-	if (fusion_mask.flags.fuse_mission_pos) {
-		initial_position = observations[obsIndex(ObsType::kMissionGpsPos)].meas_xyz;
-		return PreBiasReference::kGnss;
-	}
-
-	if (!prefer_vision && fusion_mask.flags.fuse_vision) {
-		initial_position = observations[obsIndex(ObsType::kFiducialMarker)].meas_xyz;
-		return PreBiasReference::kVision;
-	}
-
-	return PreBiasReference::kUnknown;
 }
 
 bool VTEPosition::getOffsetUavVel(const hrt_abstime sample_time, Vector3f &uav_velocity_ned) const
@@ -683,8 +687,7 @@ void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 		return;
 	}
 
-	Vector3f initial_position{};
-	selectInitialPosition(fusion_mask, observations, initial_position);
+	const Vector3f &initial_position = vision_obs.meas_xyz;
 
 	Vector3f gnss_sample{};
 

@@ -719,7 +719,8 @@ The `fusion_status` field records which fusion branch the filter.
 | 5     | `STATUS_REJECT_TOO_OLD` | Sample older than the OOSM buffer (`kOosmMaxTimeUs = 500 ms`) or older than the oldest stored snapshot.         | Reduce sensor latency, raise the publication rate, or check transport timestamps.                                 |
 | 6     | `STATUS_REJECT_TOO_NEW` | Sample timestamped in the future relative to the latest filter prediction.                                      | Time-sync problem: verify `mavlink_timesync` or the sensor clock.                                                 |
 | 7     | `STATUS_REJECT_STALE`   | Filter history was reset because no prediction had run for longer than the buffer span.                         | Expected after long pauses; otherwise investigate scheduler stalls.                                               |
-| 8     | `STATUS_REJECT_EMPTY`   | History buffer not yet populated when the measurement arrived.                                                  | Expected on the first cycles after the estimator starts; persistent occurrences indicate a startup race.          |
+| 8     | `STATUS_REJECT_EMPTY`   | History buffer not yet populated when the measurement arrived.                                                  | Expected after a history reset; position initialisation itself reports `STATUS_INITIALIZED`.                      |
+| 9     | `STATUS_INITIALIZED`    | Position observation used once to seed the state and its covariance, then propagated to the current time.       | Healthy at position startup or restart. Innovation fields are NaN because no prior prediction exists.             |
 
 :::
 
