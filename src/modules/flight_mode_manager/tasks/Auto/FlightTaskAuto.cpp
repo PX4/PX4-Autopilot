@@ -662,8 +662,16 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 		ref_lon = 0.0;
 	}
 
-	// init projection
-	_reference_position.initReference(ref_lat, ref_lon, _time_stamp_current);
+	// init the projection when its reference moved: the same reference gives the same projection
+	const bool reference_moved = !_reference_position.isInitialized()
+				     || !PX4_ISFINITE(ref_lat) || !PX4_ISFINITE(ref_lon)
+				     || (fabs(ref_lat - _reference_lat) > 0.0) || (fabs(ref_lon - _reference_lon) > 0.0);
+
+	if (reference_moved) {
+		_reference_position.initReference(ref_lat, ref_lon, _time_stamp_current);
+		_reference_lat = ref_lat;
+		_reference_lon = ref_lon;
+	}
 
 	// check if everything is still finite
 	return PX4_ISFINITE(_reference_altitude) && PX4_ISFINITE(ref_lat) && PX4_ISFINITE(ref_lon);
