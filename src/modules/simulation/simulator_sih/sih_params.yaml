@@ -381,3 +381,17 @@ parameters:
       default: 6000.0
       min: 0.1
       decimal: 1
+    SIH_IMU_COUNT:
+      description:
+        short: Number of simulated IMUs
+        long: |-
+          How many IMUs SIH publishes. Set this to 2 together with EKF2_MULTI_IMU 2
+          and SENS_IMU_MODE 0 to run one EKF instance per IMU, which is what the
+          estimator instance selector needs. The default of 1 keeps the single IMU
+          setup, so a simulation that does not need multi-EKF does not pay for a
+          second estimator.
+      type: int32
+      default: 1
+      min: 1
+      max: 2
+      reboot_required: true
