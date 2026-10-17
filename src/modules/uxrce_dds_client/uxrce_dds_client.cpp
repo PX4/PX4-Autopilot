@@ -55,6 +55,13 @@ static constexpr uint8_t TIMESYNC_MAX_TIMEOUTS = 10;
 
 using namespace time_literals;
 
+// Give up on the initial agent ping after this long and force a transport re-init (close/reopen).
+// This recovers from a serial link that got into a bad framing state before the agent ever
+// responded (e.g. noise on the line while the agent wasn't up yet), which otherwise left the
+// client stuck pinging forever on the same broken transport instance and never reconnecting.
+static constexpr hrt_abstime PING_AGENT_TIMEOUT = 5_s;
+
+
 #if defined(UXRCE_DDS_CLIENT_UDP)
 static void configure_udp_socket_nonblocking(int fd)
 {
@@ -150,6 +157,10 @@ bool UxrceddsClient::init()
 		    && setBaudrate(fd, _baudrate)
 		    && uxr_init_serial_transport(_transport_serial, fd, remote_addr, local_addr)
 		   ) {
+			// Discard any stale bytes already buffered on the line (e.g. boot chatter, noise
+			// received before the agent was up) so the framing parser starts from a clean state.
+			tcflush(fd, TCIOFLUSH);
+
 			PX4_INFO("init serial %s @ %d baud", _device, _baudrate);
 
 			_comm = &_transport_serial->comm;
@@ -221,10 +232,21 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
 
 	bool got_response = false;
+	const hrt_abstime ping_start = hrt_absolute_time();
 
 	while (!should_exit() && !got_response) {
 		// Sending ping without initing a XRCE session
 		got_response = uxr_ping_agent_attempts(_comm, 1000, 1);
+
+		if (!got_response && _transport == Transport::Serial && hrt_elapsed_time(&ping_start) > PING_AGENT_TIMEOUT) {
+
+			// Don't get stuck retrying forever on a transport instance that may have gotten into
+			// a bad state (e.g. framing out of sync from noise received before the agent came up).
+			// Returning false makes the caller tear down and re-init the transport (closing and
+			// reopening the underlying fd), which gives the link a clean state to retry from.
+			PX4_DEBUG("no ping response after %" PRIu64 " us, re-initializing transport", PING_AGENT_TIMEOUT);
+			break;
+		}
 	}
 
 	if (!got_response) {
