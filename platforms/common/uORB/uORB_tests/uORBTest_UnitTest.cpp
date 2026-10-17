@@ -500,6 +500,10 @@ int uORBTest::UnitTest::test_multi2()
 		orb_data_fd[i] = orb_subscribe_multi(ORB_ID(orb_test_medium_multi), i);
 	}
 
+	// Nodes persist across runs and a new subscriber is handed the last sample
+	// a previous run left behind, so only messages published from here on count.
+	const hrt_abstime test_start = hrt_absolute_time();
+
 	char *const args[1] = { nullptr };
 	int pubsub_task = px4_task_spawn_cmd("uorb_test_multi",
 					     SCHED_DEFAULT,
@@ -525,6 +529,10 @@ int uORBTest::UnitTest::test_multi2()
 		if (updated) {
 			orb_test_medium_s msg{};
 			orb_copy(ORB_ID(orb_test_medium_multi), orb_data_cur_fd, &msg);
+
+			if (msg.timestamp < test_start) {
+				continue;	// leftover from an earlier run, or the advertise-time sample
+			}
 
 			if (last_time[orb_data_next] >= msg.timestamp && last_time[orb_data_next] != 0) {
 				return test_fail("Timestamp not increasing! (%" PRIu64 " >= %" PRIu64 ")", last_time[orb_data_next], msg.timestamp);
@@ -887,18 +895,18 @@ int uORBTest::UnitTest::test_queue()
 		return test_fail("update flag not set");
 	}
 
-	if (PX4_OK != orb_copy(ORB_ID(orb_test_medium_queue), sfd, &u)) {
-		return test_fail("copy(1) failed: %d", errno);
-	}
+	// A node left by an earlier run hands a new subscriber its last element
+	// first; the advertise-time sample must be the last one delivered.
+	do {
+		if (PX4_OK != orb_copy(ORB_ID(orb_test_medium_queue), sfd, &u)) {
+			return test_fail("copy(1) failed: %d", errno);
+		}
+
+		orb_check(sfd, &updated);
+	} while (updated);
 
 	if (u.val != t.val) {
 		return test_fail("copy(1) mismatch: %d expected %d", u.val, t.val);
-	}
-
-	orb_check(sfd, &updated);
-
-	if (updated) {
-		return test_fail("spurious updated flag");
 	}
 
 #define CHECK_UPDATED(element) \
@@ -1061,6 +1069,10 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(orb_test_medium_queue_poll), sfd, &t);
+
+			if (next_expected_val == 0 && t.val != 0) {
+				continue;	// element left queued by an earlier run
+			}
 
 			if (next_expected_val != t.val) {
 				return test_fail("copy mismatch: %d expected %d", t.val, next_expected_val);

@@ -1,0 +1,4 @@
+CONFIG_BOARD_TESTING=y
+CONFIG_SYSTEMCMDS_MICROBENCH=y
+# its CMake adds a tests directory that does not exist, so it cannot build with PX4_TESTING
+CONFIG_DRIVERS_DISTANCE_SENSOR_LIGHTWARE_SF45_SERIAL=n
