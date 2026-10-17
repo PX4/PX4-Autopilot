@@ -316,7 +316,6 @@ AirspeedModule::init()
 
 		if (_airspeed_subs[i].copy(&airspeed)) {
 			_airspeed_device_id[i] = airspeed.device_id;
-			_time_last_airspeed_update[i] = _time_now_usec;
 		}
 	}
 
@@ -362,6 +361,10 @@ AirspeedModule::check_for_connected_airspeed_sensors()
 		for (int i = 0; i < _airspeed_subs.size(); i++) {
 			if (!_airspeed_subs[i].advertised()) {
 				break;
+			}
+
+			if (i >= _number_of_airspeed_sensors) {
+				_time_last_airspeed_update[i] = _time_now_usec; // newly detected: start stale-data timeout now
 			}
 
 			detected_airspeed_sensors = i + 1;
@@ -849,6 +852,9 @@ void AirspeedModule::select_airspeed_and_publish()
 			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation valid\t");
 			events::send(events::ID("airspeed_selector_estimation_valid"), events::Log::Info,
 				     "Airspeed estimation valid");
+
+		} else if (_prev_airspeed_src == AirspeedSource::DISABLED && airspeed_sensor_added) {
+			// sensor detected after boot, nothing to report
 
 		} else {
 			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor healthy, start using again (%i, %i)\t", prev_airspeed_index,

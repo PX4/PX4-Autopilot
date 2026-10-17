@@ -258,6 +258,7 @@ public:
 
 	/**
 	 * Unadvertise a topic.
+	 * This hides the topic instance from all subscribers, including data from other publishers of a single-instance topic.
 	 *
 	 * @param handle  handle returned by orb_advertise or orb_advertise_multi.
 	 * @return 0 on success

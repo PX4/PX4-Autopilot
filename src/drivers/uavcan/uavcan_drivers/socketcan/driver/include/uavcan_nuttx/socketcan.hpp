@@ -112,6 +112,7 @@ private:
 
 public:
 	uavcan::uint32_t socketInit(uint32_t index);
+	void socketClose();
 
 	uavcan::int16_t send(const uavcan::CanFrame &frame,
 			     uavcan::MonotonicTime tx_deadline,
@@ -185,6 +186,14 @@ public:
 		}
 
 		return if_[index].socketInit(index);
+	}
+
+	void closeIfaces()
+	{
+		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+			if_[i].socketClose();
+			pfds[i].fd = -1;
+		}
 	}
 
 	/**

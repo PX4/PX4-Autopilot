@@ -192,12 +192,12 @@ private:
 	estimator_bias_s fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
 					      uint64_t timestamp, uint32_t device_id = 0);
 	void PublishEventFlags(const hrt_abstime &timestamp);
-	void PublishGlobalPosition(const hrt_abstime &timestamp);
+	void PublishGlobalPosition(const hrt_abstime &timestamp, const LatLonAlt &lla);
 	void PublishInnovations(const hrt_abstime &timestamp);
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
-	void PublishLocalPosition(const hrt_abstime &timestamp);
-	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample);
+	void PublishLocalPosition(const hrt_abstime &timestamp, const Vector3f &position);
+	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample, const Vector3f &position);
 	void PublishSensorBias(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
@@ -266,19 +266,7 @@ private:
 	// publish helper for estimator_aid_source topics
 	template <typename T>
 	void PublishAidSourceStatus(const hrt_abstime &timestamp, const T &status, hrt_abstime &status_publish_last,
-				    uORB::PublicationMulti<T> &pub)
-	{
-		if (status.timestamp_sample > status_publish_last) {
-			// publish if updated
-			T status_out{status};
-			status_out.estimator_instance = _instance;
-			status_out.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-			pub.publish(status_out);
-
-			// record timestamp sample
-			status_publish_last = status.timestamp_sample;
-		}
-	}
+				    uORB::PublicationMulti<T> &pub);
 
 	static constexpr float sq(float x) { return x * x; };
 

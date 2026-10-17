@@ -55,6 +55,7 @@ param set-default PWM_MAIN_TIM0 3921
 param set-default PWM_MAIN_TIM1 3921
 
 # Square quadrotor X clockwise numbering
+param set-default CA_ROTOR_COUNT 4
 param set-default CA_ROTOR0_PX 1
 param set-default CA_ROTOR0_PY 1
 param set-default CA_ROTOR1_PX -1

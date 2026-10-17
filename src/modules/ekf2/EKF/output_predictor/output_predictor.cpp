@@ -410,6 +410,14 @@ void OutputPredictor::applyCorrectionToOutputBuffer(const Vector3f &vel_correcti
 	_output_new = _output_buffer.get_newest();
 }
 
+LatLonAlt OutputPredictor::getLatLonAlt() const
+{
+	// rotate the position of the IMU relative to the boy origin into earth frame
+	const Vector3f pos_offset_earth{_R_to_earth_now * _imu_pos_body};
+	// subtract from the EKF position (which is at the IMU) to get position at the body origin
+	return _global_ref + (_output_new.pos - pos_offset_earth);
+}
+
 matrix::Vector3f OutputPredictor::getVelocityDerivative() const
 {
 	if (_delta_vel_dt > FLT_EPSILON) {
