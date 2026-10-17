@@ -328,20 +328,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 #endif // !CONSTRAINED_FLASH
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
 
 	case MAVLINK_MSG_ID_TARGET_RELATIVE:
 		handle_message_target_relative(msg);
 		break;
-#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
-
-#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
 
 	case MAVLINK_MSG_ID_TARGET_ABSOLUTE:
 		handle_message_target_absolute(msg);
 		break;
-#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
-
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	case MAVLINK_MSG_ID_GIMBAL_MANAGER_SET_ATTITUDE:
@@ -3260,8 +3254,6 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 #endif // !CONSTRAINED_FLASH
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-
-#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
 void
 MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 {
@@ -3275,8 +3267,7 @@ MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 
 	bool updated = false;
 
-	// Position: bit 0
-	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TargetAbsoluteSensorCapability::kPosition))) {
+	if (!(target_absolute.sensor_capabilities & TARGET_ABSOLUTE_SENSOR_CAPABILITY_POSITION)) {
 		target_GNSS_report.abs_pos_updated = false;
 
 	} else {
@@ -3289,8 +3280,7 @@ MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 		updated = true;
 	}
 
-	// Velocity: bit 1
-	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TargetAbsoluteSensorCapability::kVelocity))) {
+	if (!(target_absolute.sensor_capabilities & TARGET_ABSOLUTE_SENSOR_CAPABILITY_VELOCITY)) {
 		target_GNSS_report.vel_ned_updated = false;
 
 	} else {
@@ -3318,9 +3308,7 @@ MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 
 	if (updated) { _target_gnss_pub.publish(target_GNSS_report); }
 }
-#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
 
-#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
 void
 MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 {
@@ -3491,7 +3479,6 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 	}
 
 }
-#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 void
