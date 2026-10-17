@@ -50,6 +50,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - **`DO_JUMP` can only loop back and its repeat count must fit.**
   A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0, and if its repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
+- **Re-check the motor failure trigger thresholds.**
+  `MOTFAIL_OFF` has been renamed to [MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER) and `MOTFAIL_TIME` to [MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME), and both are migrated on parameter import. The check now compares a low-pass filtered current residual instead of the instantaneous value, and can use a separate band and hold time per direction. Detection behaviour is unchanged until [MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER) is set, but the thresholds are worth re-deriving: see [Motor Failure Detection > Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
 ## Other changes
 
@@ -86,6 +88,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - Added `RTL_TYPE=6` for battery-aware home priority return ([PX4-Autopilot#26968](https://github.com/PX4/PX4-Autopilot/pull/26968)).
   Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
+- [Motor failure detection](../config/motor_failure_detection.md) now compares a low-pass filtered current residual against a separate trip band and hold time for the undercurrent and overcurrent directions, instead of one symmetric band on the instantaneous current, and the current model gains an offset term. See [Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27711](https://github.com/PX4/PX4-Autopilot/pull/27711), [PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
 ### Estimation
 
@@ -105,7 +108,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Debug & Logging
 
-- TBD
+- [Offline motor failure replay](../debug/motor_failure_replay.md): a host tool that runs the real motor failure detector over a recorded `.ulg`, for calibrating and verifying the [motor failure detection](../config/motor_failure_detection.md) thresholds against a vehicle's own flights. ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
 ### Ethernet
 
