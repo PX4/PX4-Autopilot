@@ -721,10 +721,25 @@ UavcanNode::Run()
 		const int can_init_res = can->init(_bitrate);
 
 		if (can_init_res < 0) {
-			PX4_ERR("CAN driver init failed %i", can_init_res);
+			// retried every cycle, so report each error once
+			if (can_init_res != _can_init_error) {
+				PX4_ERR("CAN driver init failed %i at %" PRIu32 " bit/s", can_init_res, _bitrate);
+				_can_init_error = can_init_res;
+			}
 
 		} else {
-			_instance->init(_node_id, can->driver.updateEvent());
+			const int node_init_res = _instance->init(_node_id, can->driver.updateEvent());
+
+			// Not retried: init() would create the sensor bridges and servers a second time
+			if (node_init_res < 0) {
+				PX4_ERR("Node init failed %i", node_init_res);
+
+#if defined(UAVCAN_SOCKETCAN_NUTTX)
+				// init() fails before or at _node.start(), and spinOnce() does not read the sockets of a
+				// node that never started, so they would fill the IOB pool
+				can->driver.closeIfaces();
+#endif
+			}
 
 			_node_init = true;
 		}
@@ -1032,6 +1047,12 @@ UavcanNode::Run()
 	pthread_mutex_unlock(&_node_mutex);
 
 	if (_task_should_exit.load()) {
+
+#if defined(UAVCAN_SOCKETCAN_NUTTX)
+		// Left bound, the sockets keep queueing received frames into the IOB pool the IP stack
+		// shares. They belong to the work queue's task group, so the shell cannot close them.
+		can->driver.closeIfaces();
+#endif
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 		_mixing_interface_esc.mixingOutput().unregister();
