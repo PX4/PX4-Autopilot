@@ -1599,6 +1599,45 @@ TEST_F(VTEPositionTest, MissionPositionRejectsInvalidGpsTimestamps)
 	EXPECT_TRUE(_vte_state_sub->get().rel_pos_valid);
 }
 
+// A selected receiver is published even when its checks fail. It must not aid VTE.
+TEST_F(VTEPositionTest, RejectsUnusableVehicleGnssAndRecovers)
+{
+	enableMask({FusionMaskOption::kMissionPos, FusionMaskOption::kUavGpsVel});
+	initializeFromMissionGnss(kZeroVec);
+	ASSERT_TRUE(_aid_gps_mission_sub->update());
+	ASSERT_TRUE(_aid_gps_vel_uav_sub->update());
+
+	for (const bool usable : {false, true}) {
+		const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+		ASSERT_TRUE(vte_test::publishUavGnss(*_uav_gnss_pub, kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f,
+						     kZeroVec, 0.1f, true, now, kZeroVec, usable));
+		_vte->update(kZeroVec);
+		EXPECT_EQ(_aid_gps_mission_sub->update(), usable);
+		EXPECT_EQ(_aid_gps_vel_uav_sub->update(), usable);
+	}
+}
+
+// Noise floors apply to known finite accuracies, not to corrupt/unknown receiver uncertainty.
+TEST_F(VTEPositionTest, RejectsInvalidVehicleGnssAccuracy)
+{
+	enableMask({FusionMaskOption::kMissionPos, FusionMaskOption::kUavGpsVel});
+	initializeFromMissionGnss(kZeroVec);
+	ASSERT_TRUE(_aid_gps_mission_sub->update());
+	ASSERT_TRUE(_aid_gps_vel_uav_sub->update());
+
+	for (const float invalid : {NAN, INFINITY, -1.f}) {
+		for (int field = 0; field < 3; ++field) {
+			matrix::Vector3f accuracy(0.2f, 0.2f, 0.1f); // eph, epv, speed accuracy
+			accuracy(field) = invalid;
+			const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+			publishUavGnss(kUavLat, kUavLon, kUavAltM, accuracy(0), accuracy(1), kZeroVec, accuracy(2), true, now);
+			_vte->update(kZeroVec);
+			EXPECT_EQ(_aid_gps_mission_sub->update(), field == 2);
+			EXPECT_EQ(_aid_gps_vel_uav_sub->update(), field != 2);
+		}
+	}
+}
+
 // WHY: GPS offset should expire if it becomes stale.
 // WHAT: Force an offset timeout and ensure the mission GPS measurement is
 // rejected.
