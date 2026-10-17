@@ -516,12 +516,19 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 		return false;
 	}
 
-	if (!hasInitialVelocityEstimate()) {
-		if (shouldEmitWarning(_init_vel_warn_last)) {
-			PX4_WARN("No UAV velocity estimate. Estimator cannot be started.");
+	// Prefer GNSS velocity corrected to the center of mass, with local velocity as fallback.
+	Vector3f initial_uav_velocity{};
+
+	if (!getOffsetUavVel(_uav_gps_vel.timestamp, initial_uav_velocity)) {
+		if (!_local_velocity.valid || !isMeasRecent(_local_velocity.timestamp)) {
+			if (shouldEmitWarning(_init_vel_warn_last)) {
+				PX4_WARN("No UAV velocity estimate. Estimator cannot be started.");
+			}
+
+			return false;
 		}
 
-		return false;
+		initial_uav_velocity = _local_velocity.xyz;
 	}
 
 	// If both GNSS and vision are available at startup, only keep the GNSS-first
@@ -542,7 +549,7 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 	}
 
 	AxisEstimatorStates state_init{};
-	buildInitialStateArray(initial_position, selectInitialUavVelocity(), initial_bias, state_init);
+	buildInitialStateArray(initial_position, initial_uav_velocity, initial_bias, state_init);
 
 	if (!initEstimator(state_init)) {
 		resetFilter();
@@ -560,26 +567,6 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 	}
 
 	return true;
-}
-
-bool VTEPosition::hasInitialVelocityEstimate() const
-{
-	return (_local_velocity.valid && isMeasRecent(_local_velocity.timestamp))
-	       || (_uav_gps_vel.valid && isMeasRecent(_uav_gps_vel.timestamp));
-}
-
-Vector3f VTEPosition::selectInitialUavVelocity() const
-{
-	// Prefer GNSS-derived velocity when available; local velocity is a fallback.
-	if (_uav_gps_vel.valid && isMeasRecent(_uav_gps_vel.timestamp)) {
-		return _uav_gps_vel.xyz;
-	}
-
-	if (_local_velocity.valid && isMeasRecent(_local_velocity.timestamp)) {
-		return _local_velocity.xyz;
-	}
-
-	return Vector3f{};
 }
 
 void VTEPosition::selectInitialBiasFromGnss(const TargetObs observations[kObsTypeCount],

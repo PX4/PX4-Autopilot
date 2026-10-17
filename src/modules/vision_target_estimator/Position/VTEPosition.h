@@ -310,10 +310,6 @@ private:
 	/** Build the first filter state once a valid mix of observations is available. */
 	bool initializeEstimator(const ObsValidMaskU &fusion_mask,
 				 const TargetObs observations[kObsTypeCount]);
-	/** Check whether we have a fresh UAV velocity source that can seed the state. */
-	bool hasInitialVelocityEstimate() const;
-	/** Prefer GNSS UAV velocity, otherwise fall back to the local EKF velocity. */
-	matrix::Vector3f selectInitialUavVelocity() const;
 	/** Seed the initial GNSS bias directly from the freshest GNSS-relative sample. */
 	void selectInitialBiasFromGnss(const TargetObs observations[kObsTypeCount],
 				       const matrix::Vector3f &initial_position, matrix::Vector3f &initial_bias);

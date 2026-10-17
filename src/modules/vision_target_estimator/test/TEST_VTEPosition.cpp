@@ -1600,6 +1600,59 @@ TEST_F(VTEPositionTest, UavGpsVelocityOffsetTimeoutRejectsMeasurement)
 	EXPECT_FALSE(_aid_gps_vel_uav_sub->update());
 }
 
+// Antenna motion from rotation is not vehicle translation, including at startup.
+TEST_F(VTEPositionTest, InitialVelocityUsesLeverArmCorrection)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	const matrix::Vector3f velocity_offset(0.4f, -0.2f, 0.1f);
+	_vte->setGpsPosOffset(matrix::Vector3f(0.5f, 0.f, 0.f), true);
+	_vte->setVelOffset(velocity_offset);
+	publishNominalUavGnss(velocity_offset, now);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, 1.f), vte_test::identityQuat(), kSmallVisionCov, now);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_NEAR(_vte_state_sub->get().vel_uav[axis], 0.f, kTolerance);
+	}
+}
+
+// A stale antenna correction must not prevent startup when local velocity is available.
+TEST_F(VTEPositionTest, InitialVelocityFallsBackToLocalWhenCorrectionStale)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	_vte->setMeasUpdatedTimeout(1_ms);
+	_vte->setGpsPosOffset(matrix::Vector3f(0.5f, 0.f, 0.f), true);
+	_vte->setVelOffset(matrix::Vector3f(0.4f, -0.2f, 0.1f));
+
+	const hrt_abstime now = vte_test::advanceMicroseconds(2_ms);
+	const matrix::Vector3f local_velocity(1.f, -2.f, 0.5f);
+	setLocalVelocity(local_velocity, now);
+	publishNominalUavGnss(matrix::Vector3f(0.8f, 0.4f, 0.2f), now);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, 1.f), vte_test::identityQuat(), kSmallVisionCov, now);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_NEAR(_vte_state_sub->get().vel_uav[axis], local_velocity(axis), kTolerance);
+	}
+}
+
+// Raw antenna velocity cannot initialize the filter when its correction and local velocity are unavailable.
+TEST_F(VTEPositionTest, InitRequiresVelocityCorrectionWithoutLocalFallback)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	_vte->setGpsPosOffset(matrix::Vector3f(0.5f, 0.f, 0.f), true);
+	publishNominalUavGnss(matrix::Vector3f(0.4f, -0.2f, 0.1f), now);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, 1.f), vte_test::identityQuat(), kSmallVisionCov, now);
+	_vte->update(kZeroVec);
+
+	EXPECT_FALSE(_vte_state_sub->update());
+	EXPECT_FALSE(_aid_fiducial_sub->update());
+}
+
 // WHY: UAV GPS velocity fusion should update state and sign-converted outputs.
 // WHAT: Fuse GPS velocity and verify landing_target_pose uses negative sign.
 TEST_F(VTEPositionTest, UavGpsVelocityFusionAndSign)
