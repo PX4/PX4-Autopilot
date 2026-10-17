@@ -50,6 +50,7 @@ These have been tested by the PX4 dev team, or which are popular within the PX4 
 | [RaccoonLab L1 GNSS NEO-M8N][RccnLabGNSS250]                 |   NEO-M8N   |          RM3100           |              ✓              |          ✘✘✓          | + Baro                      |
 | [Sky-Drones SmartAP GPS](../gps_compass/gps_smartap.md)      |     M8N     | HMC5983, IST8310, LIS3MDL |                             |           ✓           | + Baro                      |
 | [Zubax GNSS 2](https://shop.zubax.com/products/zubax-gnss-2) |   MAX-M8Q   |          LIS3MDL          |                             |           ✘           | + Baro                      |
+| [Globalsat BD-100M GPS](../gps_compass/globalsat_bd_100m_gps.md)| MT-5365M |         IST8310           |                             |           ✓           | + Baro                      |
 
 <!-- links to improve layout of table for editing -->
 

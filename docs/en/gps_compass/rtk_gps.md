@@ -59,6 +59,7 @@ It also highlights devices that connect via the CAN bus, and those which support
 | [SIRIUS RTK GNSS ROVER (F9P)](https://store-drotek.com/911-sirius-rtk-gnss-rover-f9p.html)                         |         F9P          |    ✓     |            |             [Dual F9P]              |     |
 | [SparkFun GPS-RTK2 Board - ZED-F9P](https://www.sparkfun.com/sparkfun-gps-rtk2-board-zed-f9p-qwiic-gps-15136.html) |         F9P          |    ✓     |            |             [Dual F9P]              |     |
 | [Trimble MB-Two](../gps_compass/rtk_gps_trimble_mb_two.md)                                                         |         F9P          |    ✓     |            |                                     |     |
+| [Globalsat BD-100K RTK GPS](../gps_compass/globalsat_bd_100k_gps.md)                                               |       MT-5365A       | IST8310  |            |                                     |     |
 
 <!-- links used in above table -->
 
