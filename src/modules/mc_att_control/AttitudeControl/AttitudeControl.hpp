@@ -74,6 +74,15 @@ public:
 	void setFeedForwardLimit(float limit) { _ff_max = math::max(limit, 0.f); }
 
 	/**
+	 * Set angular acceleration limits for the reference model
+	 * On axes with a limit > 0 the 2nd-order model runs as a cascade of an angle and a rate loop whose acceleration
+	 * output is saturated at the limit, with the reference rate bounded by the rate limit. Below the limits it
+	 * behaves like the linear model.
+	 * @param accel_max [rad/s^2] 3D vector containing limits for roll, pitch, yaw; 0 = disabled (linear model)
+	 */
+	void setRefModelAccelerationLimit(const matrix::Vector3f &accel_max);
+
+	/**
 	 * Set hard limit for output rate setpoints
 	 * @param rate_limit [rad/s] 3D vector containing limits for roll, pitch, yaw
 	 */
@@ -107,6 +116,17 @@ public:
 	 */
 	const matrix::Quatf &getReferenceAttitude() const { return _q_ref; }
 
+	/**
+	 * Angular acceleration of the reference model
+	 * @return [rad/s^2] per-axis reference acceleration at the end of the last step: the (saturated) acceleration
+	 *         of the last substep on acceleration-limited axes, the analytical linear-model acceleration on the others
+	 */
+	const matrix::Vector3f &getReferenceAcceleration() const { return _ref_accel; }
+
+	// TEMPORARY DEBUG accessor for the attitude_reference topic (not meant to be committed)
+	/// Reference angular rate [rad/s] in the reference body frame (correction + commanded)
+	matrix::Vector3f getReferenceRate() const { return _omega_correction + _omega_command; }
+
 private:
 	/**
 	 * Advance the 2nd-order reference model by one step toward the desired attitude
@@ -116,6 +136,22 @@ private:
 	 */
 	void propagateReferenceModel(const matrix::Quatf &qd, const float yawspeed_setpoint, const float dt);
 
+	/// Whether the reference model on an axis has its angular acceleration limited
+	bool isAxisAccelerationLimited(const int axis) const;
+
+	/**
+	 * Advance the acceleration-limited (cascaded) reference model of one axis by one step
+	 * @param axis 0 = roll, 1 = pitch, 2 = yaw
+	 * @param error [rad] angle error to close (reference -> desired)
+	 * @param dt [s] time step (> 0)
+	 * @param rate [rad/s] input: reference correction rate at the start of the step, output: at its end
+	 * @param delta_angle [rad] output: angle travelled during the step
+	 * @param accel [rad/s^2] output: reference acceleration of the last substep
+	 * The step is internally split into substeps so that long intervals between setpoints stay well-behaved.
+	 */
+	void propagateLimitedAxis(const int axis, const float error, const float dt, float &rate, float &delta_angle,
+				  float &accel) const;
+
 	matrix::Vector3f _proportional_gain;
 	matrix::Vector3f _rate_limit;
 	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize compared to roll and pitch
@@ -123,10 +159,13 @@ private:
 	matrix::Quatf _q_ref;                  ///< reference attitude tracked by the 2nd-order ref model
 	matrix::Vector3f _omega_correction;    ///< error-driven correction (2nd-order state); reference rate = _omega_correction + _omega_command
 	matrix::Vector3f _omega_command;       ///< commanded (analytical) reference rate; exempt from the feedforward limit
+	matrix::Vector3f _ref_accel;           ///< reference angular acceleration [rad/s^2] of the last step, see getReferenceAcceleration()
 	bool _ref_initialized{false};
 
 	float _omega_n{50.f};                  ///< ref-model natural frequency [rad/s]
 	float _kq{_omega_n * _omega_n};        ///< stiffness coefficient, kept in sync with _omega_n
+
+	matrix::Vector3f _ref_accel_max;       ///< per-axis angular acceleration limit [rad/s^2]; 0 = linear ref model on that axis
 
 	float _ff_gain{1.f};
 	float _ff_max{0.f};

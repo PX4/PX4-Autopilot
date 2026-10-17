@@ -105,6 +105,10 @@ MulticopterAttitudeControl::parameters_updated()
 	_attitude_control.setFeedForwardGain(_param_mc_ref_ff.get());
 	_attitude_control.setFeedForwardLimit(math::radians(_param_mc_ref_ff_max.get()));
 
+	// angular acceleration limits of the attitude reference model (0 = disabled)
+	_attitude_control.setRefModelAccelerationLimit(Vector3f(radians(_param_mc_ref_acc_r_max.get()),
+			radians(_param_mc_ref_acc_p_max.get()), radians(_param_mc_ref_acc_y_max.get())));
+
 	// Update from hover thrust parameter if there's no valid estimate in use
 	if (!PX4_ISFINITE(_hover_thrust_estimate)) {
 		_hover_thrust_slew_rate.setForcedValue(_param_mpc_thr_hover.get());
@@ -387,6 +391,14 @@ MulticopterAttitudeControl::Run()
 			rates_setpoint.timestamp = hrt_absolute_time();
 
 			_vehicle_rates_setpoint_pub.publish(rates_setpoint);
+
+			// TEMPORARY DEBUG (not meant to be committed): publish the reference model state for log analysis
+			attitude_reference_s attitude_reference{};
+			_attitude_control.getReferenceAttitude().copyTo(attitude_reference.q);
+			_attitude_control.getReferenceRate().copyTo(attitude_reference.rate);
+			_attitude_control.getReferenceAcceleration().copyTo(attitude_reference.acceleration);
+			attitude_reference.timestamp = hrt_absolute_time();
+			_attitude_reference_pub.publish(attitude_reference);
 
 		} else {
 			_man_roll_input_filter.reset(0.f);
