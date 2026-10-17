@@ -355,8 +355,6 @@ private:
 
 	/* UAV GPS data */
 	bool updateUavGnssData();
-	bool isUavGpsPositionValid();
-	bool isUavGpsVelocityValid();
 	bool processObsGNSSPosMission(TargetObs &obs);
 	bool processObsGNSSVelUav(TargetObs &obs) const;
 

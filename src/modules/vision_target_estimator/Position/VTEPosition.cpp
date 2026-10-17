@@ -388,56 +388,14 @@ bool VTEPosition::isVisionDataValid(const fiducial_marker_pos_report_s &fiducial
 	return true;
 }
 
-bool VTEPosition::isUavGpsPositionValid()
-{
-	if (!isMeasRecent(_uav_gps_position.timestamp)) {
-		return false;
-	}
-
-	if (!isLatLonAltValid(_uav_gps_position.lat_deg, _uav_gps_position.lon_deg,
-			      _uav_gps_position.alt_m, "UAV GPS ", &_uav_gps_pos_warn_last)) {
-		return false;
-	}
-
-	if (_gps_pos_is_offset && !_gps_pos_offset_ned.valid) {
-		PX4_DEBUG("Uav Gps position invalid offset!"); // Debug because this message can spam
-		return false;
-	}
-
-	return true;
-}
-
-bool VTEPosition::isUavGpsVelocityValid()
-{
-	// Check freshness first to early-out on stale samples before touching the payload.
-	if (!isMeasRecent(_uav_gps_vel.timestamp)) {
-		return false;
-	}
-
-	if (!_uav_gps_vel.xyz.isAllFinite()) {
-		if (shouldEmitWarning(_uav_gps_vel_warn_last)) {
-			PX4_WARN("UAV GPS velocity not finite! vx: %.1f, vy: %.1f, vz: %.1f",
-				 (double)_uav_gps_vel.xyz(vtest::Axis::x), (double)_uav_gps_vel.xyz(vtest::Axis::y),
-				 (double)_uav_gps_vel.xyz(vtest::Axis::z));
-		}
-
-		return false;
-	}
-
-	if (_gps_pos_is_offset && !_velocity_offset_ned.valid) {
-		PX4_DEBUG("Uav Gps velocity invalid offset!");
-		return false;
-	}
-
-	return true;
-}
-
 bool VTEPosition::updateUavGnssData()
 {
 	vehicle_gnss_s vehicle_gnss;
 	const bool vehicle_gnss_updated = _vehicle_gnss_sub.update(&vehicle_gnss);
 
 	if (vehicle_gnss_updated) {
+		const bool sample_usable = vehicle_gnss.usable && isMeasRecent(vehicle_gnss.timestamp_sample);
+
 		// Position
 		_uav_gps_position.lat_deg = vehicle_gnss.receiver.latitude;
 		_uav_gps_position.lon_deg = vehicle_gnss.receiver.longitude;
@@ -445,7 +403,12 @@ bool VTEPosition::updateUavGnssData()
 		_uav_gps_position.timestamp = vehicle_gnss.timestamp_sample;
 		_uav_gps_position.eph = vehicle_gnss.receiver.eph;
 		_uav_gps_position.epv = vehicle_gnss.receiver.epv;
-		_uav_gps_position.valid = isUavGpsPositionValid();
+		_uav_gps_position.valid = sample_usable
+					  && PX4_ISFINITE(_uav_gps_position.eph) && _uav_gps_position.eph >= 0.f
+					  && PX4_ISFINITE(_uav_gps_position.epv) && _uav_gps_position.epv >= 0.f
+					  && isLatLonAltValid(_uav_gps_position.lat_deg, _uav_gps_position.lon_deg,
+							  _uav_gps_position.alt_m, "UAV GPS ", &_uav_gps_pos_warn_last)
+					  && (!_gps_pos_is_offset || _gps_pos_offset_ned.valid);
 
 		// Velocity
 		_uav_gps_vel.timestamp = vehicle_gnss.timestamp_sample;
@@ -453,7 +416,19 @@ bool VTEPosition::updateUavGnssData()
 		_uav_gps_vel.xyz(vtest::Axis::y) = vehicle_gnss.receiver.vel_east;
 		_uav_gps_vel.xyz(vtest::Axis::z) = vehicle_gnss.receiver.vel_down;
 		_uav_gps_vel.uncertainty = vehicle_gnss.receiver.speed_accuracy;
-		_uav_gps_vel.valid = vehicle_gnss.receiver.vel_ned_valid && isUavGpsVelocityValid();
+		_uav_gps_vel.valid = sample_usable && vehicle_gnss.receiver.vel_ned_valid
+				     && PX4_ISFINITE(_uav_gps_vel.uncertainty) && _uav_gps_vel.uncertainty >= 0.f
+				     && (!_gps_pos_is_offset || _velocity_offset_ned.valid);
+
+		if (_uav_gps_vel.valid && !_uav_gps_vel.xyz.isAllFinite()) {
+			if (shouldEmitWarning(_uav_gps_vel_warn_last)) {
+				PX4_WARN("UAV GPS velocity not finite! vx: %.1f, vy: %.1f, vz: %.1f",
+					 (double)_uav_gps_vel.xyz(vtest::Axis::x), (double)_uav_gps_vel.xyz(vtest::Axis::y),
+					 (double)_uav_gps_vel.xyz(vtest::Axis::z));
+			}
+
+			_uav_gps_vel.valid = false;
+		}
 
 	} else {
 		// Check if stored data is still valid
