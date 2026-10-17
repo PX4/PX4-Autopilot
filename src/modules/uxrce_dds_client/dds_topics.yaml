@@ -203,6 +203,9 @@ subscriptions:
   - topic: /fmu/in/actuator_servos
     type: px4_msgs::msg::ActuatorServos
 
+  - topic: /fmu/in/sensor_gps
+    type: px4_msgs::msg::SensorGps
+
   - topic: /fmu/in/fixed_wing_longitudinal_setpoint
     type: px4_msgs::msg::FixedWingLongitudinalSetpoint
 
