@@ -34,4 +34,18 @@ void GenericSubscriberBase::stop(TransferListener* listener)
     }
 }
 
+bool GenericSubscriberBase::finishDecoding(IncomingTransfer& transfer, int decode_res)
+{
+    // We don't need the data anymore, the memory can be reused from the callback:
+    transfer.release();
+
+    if (decode_res <= 0)
+    {
+        failure_count_++;
+        node_.getDispatcher().getTransferPerfCounter().addError();
+        return false;
+    }
+    return true;
+}
+
 }

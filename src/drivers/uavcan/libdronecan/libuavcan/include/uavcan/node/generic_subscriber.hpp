@@ -109,6 +109,8 @@ protected:
 
     void stop(TransferListener* listener);
 
+    bool finishDecoding(IncomingTransfer& transfer, int decode_res);
+
     /**
      * Type-specific handler for a fully received transfer (message decoding followed by dispatch
      * to the user callback). It is implemented by the templated GenericSubscriber and invoked
@@ -292,15 +294,10 @@ void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomi
 
     const int decode_res = DataStruct::decode(rx_struct, codec);
 
-    // We don't need the data anymore, the memory can be reused from the callback:
-    transfer.release();
-
-    if (decode_res <= 0)
+    if (!this->finishDecoding(transfer, decode_res))
     {
         UAVCAN_TRACE("GenericSubscriber", "Unable to decode the message [%i] [%s]",
                      decode_res, DataSpec::getDataTypeFullName());
-        this->failure_count_++;
-        this->node_.getDispatcher().getTransferPerfCounter().addError();
         return;
     }
 
