@@ -246,25 +246,24 @@ GSF 应用于各个 3 状态 EKF 输出的权重位于 `weight` 字段中。
 
 #### 双 GPS 接收器
 
-可以使用一种算法混合来自 GPS 接收机的数据，该算法根据报告的精度对数据进行加权（如果两个接收机以相同的速率输出数据并使用相同的精度，效果最佳）。如果来自接收机的数据丢失，该机制还提供自动故障转移（例如，它允许使用标准 GPS 作为更精确的 RTK 接收机的备份）。
-This is controlled by the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter.
+When two GPS receivers are connected, PX4 uses the data from one of them at a time, and automatically fails over to the other if the selected receiver is lost or its fix degrades (this allows, for example, a standard GPS to be used as a backup to a more accurate RTK receiver).
 
-The [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set by default to disable blending and always use the first receiver, so it will have to be set to select which receiver accuracy metrics are used to decide how much each receiver output contributes to the blended solution.
-Where different receiver models are used, it is important that the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set to a value that uses accuracy metrics that are supported by both receivers.
-For example do not set bit position 0 to `true` unless the drivers for both receivers publish values in the `speed_accuracy` field of the `sensor_gnss` message that are comparable.
-由于不同制造商定义精度的方式不同（例如 CEP 与 1-sigma 等），这对于来自不同制造商的接收机可能很困难。
+The receiver is selected as follows:
+
+- The preferred receiver, set by [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME), is used while it is publishing data and has at least a 3D fix.
+  By default this is the main serial GPS.
+- Otherwise the receiver with the best fix type is used, and if both have the same fix type, the one using the most satellites.
+- Set [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) to `-1` to give both receivers equal priority, so that the best one is always used.
+- A receiver that has not published data for 2 seconds is not used.
+
+The EKF resets its horizontal position to the new receiver when the selected receiver changes.
 
 设置期间应检查以下项目：
 
 - 验证第二个接收机的数据是否存在。
   This will be logged as `sensor_gnss_1` and can also be checked when connected via the _nsh console_ using the command `listener sensor_gnss -i 1`.
   [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) 参数需要正确设置。
-- Check the `speed_accuracy`, `eph` and `epv` data from each receiver and decide which accuracy metrics can be used.
-  If both receivers output sensible `speed_accuracy` and `eph` data, and GPS vertical position is not being used directly for navigation, then setting [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 3 is recommended.
-  Where only `eph` data is available and both receivers do not output `speed_accuracy` data, set [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 2.
-  只有当 GPS 已通过 [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) 参数被选为参考高度源，且两个接收机都输出合理的 `epv` 数据时，第 2 位才会被置位。
-- The output from the blended receiver data is logged as `vehicle_gnss`, and can be checked whilst connect via the nsh terminal using the command `listener vehicle_gnss`.
-- 若各接收机输出速率不同，融合后的输出速率将与速率较慢的接收机保持一致。在可能的情况下，接收机应配置为以相同的速率输出。
+- The data from the selected receiver is logged as `vehicle_gnss`, and can be checked whilst connected via the nsh terminal using the command `listener vehicle_gnss`.
 
 #### GNSS 性能要求
 
@@ -276,8 +275,8 @@ Minima are defined in the [GNS&#x53;_&#x52;EQ_\*](../advanced_config/parameter_r
 
 | 指标 (Metric)     | 最低要求                                                                                                                                                                                                                | 平均值 (Average Value) | 单位 (Units) | 备注                                                                                                                                                                                                                                            |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| eph                                | <&nbsp;3 ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH))                         | 0.8                    | 米                             | 水平位置误差的标准偏差                                                                                                                                                                                                                                   |
-| epv                                | <&nbsp;5 ([GNSS_REQ_EPV](../advanced_config/parameter_reference.md#GNSS_REQ_EPV))                         | 1.5                    | 米                             | 垂直位置误差的标准偏差                                                                                                                                                                                                                                   |
+| eph                                | <&nbsp;3 ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH))                         | 0.8                    | m                             | 水平位置误差的标准偏差                                                                                                                                                                                                                                   |
+| epv                                | <&nbsp;5 ([GNSS_REQ_EPV](../advanced_config/parameter_reference.md#GNSS_REQ_EPV))                         | 1.5                    | m                             | 垂直位置误差的标准偏差                                                                                                                                                                                                                                   |
 | 卫星数量                               | ≥6&nbsp;([GNSS_REQ_NSATS](../advanced_config/parameter_reference.md#GNSS_REQ_NSATS))                                               | 14                                     | -                             |                                                                                                                                                                                                                                               |
 | sacc                               | <&nbsp;0.5 ([GNSS_REQ_SACC](../advanced_config/parameter_reference.md#GNSS_REQ_SACC))     | 0.2                    | 米/秒                           | 水平速度误差的标准偏差                                                                                                                                                                                                                                   |
 | 定位类型 (fix type) | ≥&nbsp;3                                                                                                                                                                                        | 4                                      | -                             | 0-1: 无定位, 2: 2D 定位, 3: 3D 定位, 4: RTCM 码差分, 5: 实时动态 (RTK) 浮点解, 6: 实时动态 (RTK) 固定解, 8: 外推值 |
