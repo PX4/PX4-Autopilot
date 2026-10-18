@@ -312,6 +312,13 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						} else if (result == 2) {
 							PX4_ERR("Failed loading param from storage: %s", name);
 							send_error(MAV_PARAM_ERROR_READ_FAIL, name, -1, msg->sysid, msg->compid);
+
+						} else if (result == 3) {
+							/* TX buffer full: param exists but could not be sent.
+							 * Skip silently and let the GCS retry on timeout
+							 * instead of reporting DOES_NOT_EXIST.
+							 */
+							PX4_WARN("param '%s' read skipped: TX buffer full", name);
 						}
 					}
 
@@ -327,6 +334,13 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					} else if (ret == 2) {
 						PX4_ERR("Failed loading param from storage index: %i", req_read.param_index);
 						send_error(MAV_PARAM_ERROR_READ_FAIL, nullptr, req_read.param_index, msg->sysid, msg->compid);
+
+					} else if (ret == 3) {
+						/* TX buffer full: param exists but could not be sent.
+						 * Skip silently and let the GCS retry on timeout
+						 * instead of reporting DOES_NOT_EXIST.
+						 */
+						PX4_WARN("param index %i read skipped: TX buffer full", req_read.param_index);
 
 					}
 				}
@@ -597,7 +611,10 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 
 	/* no free TX buf to send this param */
 	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_VALUE_LEN) {
-		return 1;
+		/* distinct from 1 (PARAM_INVALID) so callers do not report
+		 * MAV_PARAM_ERROR_DOES_NOT_EXIST for an existing param
+		 */
+		return 3;
 	}
 
 	mavlink_param_value_t msg;
