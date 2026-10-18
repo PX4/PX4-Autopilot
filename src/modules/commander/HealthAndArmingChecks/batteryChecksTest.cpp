@@ -168,13 +168,13 @@ TEST_F(BatteryChecksTest, DisconnectedPackDoesNotHideAnotherPacksEmergency)
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
 }
 
-// a battery without a configured cell count has an unknown state of charge, which must block arming
-// without being treated as an emergency
+// a battery without a configured cell count has an unknown state of charge, which still blocks arming
+// and still counts as an emergency
 TEST_F(BatteryChecksTest, UnknownChargeWithoutCellCountBlocksArming)
 {
-	publish(0, battery_status_s::WARNING_NONE, true, -1.f, 0);
+	publish(0, battery_status_s::WARNING_EMERGENCY, true, -1.f, 0);
 	runCheck(false);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
+	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
 	EXPECT_FALSE(_can_arm);
 
 	publish(0, battery_status_s::WARNING_NONE, true, 0.9f, 3);
@@ -182,17 +182,21 @@ TEST_F(BatteryChecksTest, UnknownChargeWithoutCellCountBlocksArming)
 	EXPECT_TRUE(_can_arm);
 }
 
-// an unknown state of charge must not count as below the configured arming threshold
-TEST_F(BatteryChecksTest, UnknownChargeIsNotBelowArmThreshold)
+// a source that reports an unknown charge without a warning or cell count must not allow arming either
+TEST_F(BatteryChecksTest, UnknownChargeWithoutWarningBlocksArming)
+{
+	publish(0, battery_status_s::WARNING_NONE, true, -1.f, 0);
+	runCheck(false);
+	EXPECT_FALSE(_can_arm);
+}
+
+// an unknown state of charge still counts as below the configured arming threshold
+TEST_F(BatteryChecksTest, UnknownChargeIsBelowArmThreshold)
 {
 	float arm_bat_min = 0.2f;
 	param_set(param_find("COM_ARM_BAT_MIN"), &arm_bat_min);
 
 	publish(0, battery_status_s::WARNING_NONE, true, -1.f, 4);
-	runCheck(false);
-	EXPECT_TRUE(_can_arm);
-
-	publish(1, battery_status_s::WARNING_NONE, true, 0.1f, 4);
 	runCheck(false);
 	EXPECT_FALSE(_can_arm);
 

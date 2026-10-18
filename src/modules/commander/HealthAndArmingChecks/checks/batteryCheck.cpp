@@ -149,11 +149,11 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 				worst_warning = warning;
 			}
 
-			// a negative remaining means the state of charge is unknown, not empty
-			if ((battery.remaining >= 0.f) && (battery.remaining < worst_battery_remaining)) {
+			if (battery.remaining < worst_battery_remaining) {
 				worst_battery_remaining = battery.remaining;
 			}
 
+			// an unknown state of charge is still treated as empty, this only names the cause
 			if ((battery.remaining < 0.f) && (battery.cell_count == 0)) {
 				/* EVENT
 				 * @description

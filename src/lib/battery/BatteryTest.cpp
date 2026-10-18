@@ -74,18 +74,18 @@ public:
 	}
 };
 
-// without a cell count the state of charge is unknown, which is not an emergency
-TEST_F(BatteryTest, UnknownCellCountIsNoWarning)
+// without a cell count the state of charge is unknown, which is treated as empty
+TEST_F(BatteryTest, UnknownCellCountIsAnEmergency)
 {
 	Battery battery(1, nullptr, 20_ms, battery_status_s::SOURCE_POWER_MODULE);
 	const battery_status_s status = run(battery, 12.4f, 1.f);
 	EXPECT_EQ(status.cell_count, 0);
 	EXPECT_FLOAT_EQ(status.remaining, -1.f);
-	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
+	EXPECT_EQ(status.warning, battery_status_s::WARNING_EMERGENCY);
 }
 
-// a configured capacity doesn't make the state of charge known without a cell count
-TEST_F(BatteryTest, UnknownCellCountWithCapacityIsNoWarning)
+// a configured capacity can't make up for the unknown starting charge, so it stays reported as unknown
+TEST_F(BatteryTest, UnknownCellCountWithCapacityStaysUnknown)
 {
 	float capacity = 5000.f;
 	param_set(param_find("BAT1_CAPACITY"), &capacity);
@@ -93,8 +93,7 @@ TEST_F(BatteryTest, UnknownCellCountWithCapacityIsNoWarning)
 	Battery battery(1, nullptr, 20_ms, battery_status_s::SOURCE_POWER_MODULE);
 	const battery_status_s status = run(battery, 12.4f, 1.f);
 	EXPECT_FLOAT_EQ(status.remaining, -1.f);
-	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
-	EXPECT_FALSE(PX4_ISFINITE(status.time_remaining_s));
+	EXPECT_EQ(status.warning, battery_status_s::WARNING_EMERGENCY);
 }
 
 TEST_F(BatteryTest, KnownCellCountEstimatesCharge)
