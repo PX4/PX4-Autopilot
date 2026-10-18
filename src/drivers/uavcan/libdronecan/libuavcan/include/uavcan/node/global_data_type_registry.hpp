@@ -84,6 +84,8 @@ private:
 
     RegistrationResult remove(Entry* dtd);
     RegistrationResult registImpl(Entry* dtd);
+    RegistrationResult registerEntry(Entry& entry, DataTypeKind kind, DataTypeID id,
+                                     const DataTypeSignature& signature, const char* name);
 
 public:
     /**
@@ -102,7 +104,7 @@ public:
      * @param id        Data Type ID for this data type.
      */
     template <typename Type>
-    RegistrationResult registerDataType(DataTypeID id);
+    UAVCAN_NOINLINE RegistrationResult registerDataType(DataTypeID id);
 
     /**
      * Data Type registry needs to be frozen before a node instance can use it in
@@ -207,33 +209,9 @@ struct UAVCAN_EXPORT DefaultDataTypeRegistrator
 template <typename Type>
 GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::registerDataType(DataTypeID id)
 {
-    if (isFrozen())
-    {
-        return RegistrationResultFrozen;
-    }
-
     static Entry entry;
-
-    {
-        const RegistrationResult remove_res = remove(&entry);
-        if (remove_res != RegistrationResultOk)
-        {
-            return remove_res;
-        }
-    }
-
-    // We can't just overwrite the entry itself because it's noncopyable
-    entry.descriptor = DataTypeDescriptor(DataTypeKind(Type::DataTypeKind), id,
-                                          Type::getDataTypeSignature(), Type::getDataTypeFullName());
-
-    {
-        const RegistrationResult remove_res = remove(&entry);
-        if (remove_res != RegistrationResultOk)
-        {
-            return remove_res;
-        }
-    }
-    return registImpl(&entry);
+    return registerEntry(entry, DataTypeKind(Type::DataTypeKind), id,
+                         Type::getDataTypeSignature(), Type::getDataTypeFullName());
 }
 
 }

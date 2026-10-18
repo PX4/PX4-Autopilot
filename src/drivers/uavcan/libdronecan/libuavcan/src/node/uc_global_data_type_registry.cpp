@@ -125,6 +125,37 @@ GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::registImpl(En
     return RegistrationResultOk;
 }
 
+GlobalDataTypeRegistry::RegistrationResult GlobalDataTypeRegistry::registerEntry(Entry& entry, DataTypeKind kind,
+                                                                                DataTypeID id,
+                                                                                const DataTypeSignature& signature,
+                                                                                const char* name)
+{
+    if (isFrozen())
+    {
+        return RegistrationResultFrozen;
+    }
+
+    {
+        const RegistrationResult remove_res = remove(&entry);
+        if (remove_res != RegistrationResultOk)
+        {
+            return remove_res;
+        }
+    }
+
+    // We can't just overwrite the entry itself because it's noncopyable
+    entry.descriptor = DataTypeDescriptor(kind, id, signature, name);
+
+    {
+        const RegistrationResult remove_res = remove(&entry);
+        if (remove_res != RegistrationResultOk)
+        {
+            return remove_res;
+        }
+    }
+    return registImpl(&entry);
+}
+
 GlobalDataTypeRegistry& GlobalDataTypeRegistry::instance()
 {
     static GlobalDataTypeRegistry singleton;

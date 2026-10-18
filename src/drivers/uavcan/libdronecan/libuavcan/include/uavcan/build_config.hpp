@@ -199,6 +199,14 @@
 # endif
 #endif
 
+#ifndef UAVCAN_NOINLINE
+# if __GNUC__
+#  define UAVCAN_NOINLINE __attribute__((noinline))
+# else
+#  define UAVCAN_NOINLINE
+# endif
+#endif
+
 namespace uavcan
 {
 /**
