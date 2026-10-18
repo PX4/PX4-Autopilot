@@ -9,20 +9,27 @@ reported when the tester is closed.
 """
 
 import datetime
+import json
 import math
 import threading
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from mavsdk import ComponentType, Configuration, ConnectionResult, Mavsdk  # type: ignore
 from mavsdk.plugins.action import Action, ActionError  # type: ignore
 from mavsdk.plugins.events import Events  # type: ignore
+from mavsdk.plugins.failure import Failure, FailureError, FailureResult  # type: ignore
+from mavsdk.plugins.ftp import Ftp, FtpResult  # type: ignore
 from mavsdk.plugins.info import Info, InfoError  # type: ignore
+from mavsdk.plugins.manual_control import ManualControl  # type: ignore
+from mavsdk.plugins.mavlink_direct import MavlinkDirect, MavlinkMessage  # type: ignore
 from mavsdk.plugins.mission import Mission, MissionError, MissionItem, MissionPlan  # type: ignore
+from mavsdk.plugins.mission_raw import (  # type: ignore
+    MissionItem as RawMissionItem, MissionRaw, MissionRawError)
 from mavsdk.plugins.offboard import (  # type: ignore
-    Offboard, OffboardError, PositionNedYaw, VelocityNedYaw)
+    Attitude, Offboard, OffboardError, PositionNedYaw, VelocityNedYaw)
 from mavsdk.plugins.param import Param  # type: ignore
 from mavsdk.plugins.telemetry import FlightMode, LandedState, Telemetry, VtolState  # type: ignore
 
@@ -30,6 +37,40 @@ from geometry import CoordinateTransformation, Vec3, point_to_line_distance
 
 # Only print the first few callback check failures, they can come at telemetry rate.
 MAX_PRINTED_CALLBACK_FAILURES = 10
+
+# MAVLink constants used in raw mission items and messages.
+MAV_CMD_NAV_WAYPOINT = 16
+MAV_CMD_NAV_LAND = 21
+MAV_CMD_NAV_TAKEOFF = 22
+MAV_CMD_NAV_VTOL_LAND = 85
+MAV_CMD_DO_JUMP = 177
+MAV_CMD_REQUEST_MESSAGE = 512
+MAV_FRAME_GLOBAL_RELATIVE_ALT = 3
+MAV_FRAME_MISSION = 2
+MAV_MISSION_TYPE_MISSION = 0
+MAV_COMP_ID_AUTOPILOT1 = 1
+MAVLINK_MSG_ID_HOME_POSITION = 242
+
+# Frames in which x/y of a raw mission item are latitude/longitude.
+MAV_GLOBAL_FRAMES = (0, 3, 5, 6, 10, 11)
+
+MANUAL_CONTROL_RATE_HZ = 50
+OFFBOARD_RATE_HZ = 50
+
+
+def raw_mission_item(seq: int, command: int, frame: int, x: int = 0, y: int = 0, z: float = 0.0,
+                     param1: float = 0.0, param2: float = 0.0, current: int = 0,
+                     autocontinue: int = 1, mission_type: int = MAV_MISSION_TYPE_MISSION) -> Any:
+    return RawMissionItem(
+        seq=seq, frame=frame, command=command, current=current, autocontinue=autocontinue,
+        param1=param1, param2=param2, param3=0.0, param4=0.0, x=x, y=y, z=z,
+        mission_type=mission_type)
+
+
+def raw_item_local(item: Any, ct: CoordinateTransformation) -> Vec3:
+    """Local NED position of a raw mission item in a global frame."""
+    north_m, east_m = ct.local_from_global(item.x / 1e7, item.y / 1e7)
+    return north_m, east_m, -item.z
 
 
 def log(message: str) -> None:
@@ -61,10 +102,16 @@ class AutopilotTester:
     def __init__(self, speed_factor: Optional[float] = None) -> None:
         self._speed_factor = speed_factor
         self._mavsdk: Any = None
+        self._system: Any = None
         self._action: Any = None
         self._events: Any = None
+        self._failure: Any = None
+        self._ftp: Any = None
         self._info: Any = None
+        self._manual_control: Any = None
+        self._mavlink_direct: Any = None
         self._mission: Any = None
+        self._mission_raw: Any = None
         self._offboard: Any = None
         self._param: Any = None
         self._telemetry: Any = None
@@ -92,11 +139,17 @@ class AutopilotTester:
         log("Waiting for system connect")
         system = self._mavsdk.first_autopilot(timeout_s=25.0)
         assert system is not None, "No autopilot found within 25 s"
+        self._system = system
 
         self._action = Action(system)
         self._events = Events(system)
+        self._failure = Failure(system)
+        self._ftp = Ftp(system)
         self._info = Info(system)
+        self._manual_control = ManualControl(system)
+        self._mavlink_direct = MavlinkDirect(system)
         self._mission = Mission(system)
+        self._mission_raw = MissionRaw(system)
         self._offboard = Offboard(system)
         self._param = Param(system)
         self._telemetry = Telemetry(system)
@@ -248,6 +301,18 @@ class AutopilotTester:
     def set_param_float(self, name: str, value: float) -> None:
         self._param.set_param_float(name, value)
 
+    def get_param_float(self, name: str) -> float:
+        return float(self._param.get_param_float(name))
+
+    def wait_until_param_changed_from(self, name: str, value: float, timeout_s: float) -> None:
+        assert self.poll_condition_with_timeout(
+            lambda: self.get_param_float(name) != value, timeout_s), \
+            "{} still {} after {} s".format(name, value, timeout_s)
+
+    def get_all_params(self) -> Any:
+        """All parameters, downloaded with the PARAM_VALUE stream."""
+        return self._param.get_all_params()
+
     def set_takeoff_altitude(self, altitude_m: float) -> None:
         self._action.set_takeoff_altitude(altitude_m)
         actual = float(self._action.get_takeoff_altitude())
@@ -303,6 +368,38 @@ class AutopilotTester:
         self._action.transition_to_multicopter()
 
     # ------------------------------------------------------------------
+    # Failure injection
+    # ------------------------------------------------------------------
+
+    def inject_failure(self, unit: Any, failure_type: Any, instance: int = 0,
+                       expected_result: Any = FailureResult.SUCCESS) -> None:
+        """Inject a failure. Needs SYS_FAILURE_EN to be set to succeed."""
+        try:
+            self._failure.inject(unit, failure_type, instance)
+            result = FailureResult.SUCCESS
+        except FailureError as e:
+            result = e.result
+        assert result == expected_result, \
+            "Failure injection returned {}, expected {}".format(result, expected_result)
+
+    def enable_actuator_output_status(self) -> None:
+        self._telemetry.set_rate_actuator_output_status(20.0)
+
+    def ensure_motors_stopped(self, stopped_mask: int, num_motors: int) -> None:
+        """Check that exactly the motors in stopped_mask (0-based bits) are stopped."""
+        status = self._telemetry.actuator_output_status()
+        assert status.active >= num_motors, \
+            "Only {} actuators active, expected {}".format(status.active, num_motors)
+
+        for i in range(num_motors):
+            if stopped_mask & (1 << i):
+                assert status.actuator[i] <= 901.0, \
+                    "Motor {} output {}, expected stopped".format(i, status.actuator[i])
+            else:
+                assert status.actuator[i] >= 999.0, \
+                    "Motor {} output {}, expected running".format(i, status.actuator[i])
+
+    # ------------------------------------------------------------------
     # Position and home
     # ------------------------------------------------------------------
 
@@ -354,6 +451,34 @@ class AutopilotTester:
     def get_current_position_ned(self) -> Vec3:
         position = self._telemetry.position_velocity_ned().position
         return float(position.north_m), float(position.east_m), float(position.down_m)
+
+    def get_attitude_euler(self) -> Any:
+        return self._telemetry.attitude_euler()
+
+    def get_home_position(self, timeout_s: float = 10) -> Dict[str, Any]:
+        """Request a fresh HOME_POSITION message and return its fields."""
+        received: List[Dict[str, Any]] = []
+
+        def on_message(message: Any, _user_data: Any) -> None:
+            if not received:
+                received.append(json.loads(message.fields_json))
+
+        handle = self._mavlink_direct.subscribe_message("HOME_POSITION", on_message)
+        try:
+            # Ask for it rather than relying on the periodic stream timing.
+            self.send_mavlink_message("COMMAND_LONG", {
+                "target_system": self._target_system_id(),
+                "target_component": MAV_COMP_ID_AUTOPILOT1,
+                "command": MAV_CMD_REQUEST_MESSAGE,
+                "confirmation": 0,
+                "param1": MAVLINK_MSG_ID_HOME_POSITION,
+                "param2": 0, "param3": 0, "param4": 0, "param5": 0, "param6": 0, "param7": 0,
+            })
+            assert self.poll_condition_with_timeout(lambda: bool(received), timeout_s), \
+                "No HOME_POSITION received"
+        finally:
+            self._mavlink_direct.unsubscribe_message(handle)
+        return received[0]
 
     def get_coordinate_transformation(self) -> CoordinateTransformation:
         home = self._telemetry.home()
@@ -489,9 +614,239 @@ class AutopilotTester:
         self._telemetry.set_rate_position_velocity_ned(5)
         self._telemetry.subscribe_position_velocity_ned(check)
 
+    def check_mission_item_speed_above(self, item_index: int, min_speed_m_s: float) -> None:
+        """Fail the test if the horizontal speed is not above min_speed_m_s while flying to
+        mission item item_index."""
+        def check(velocity: Any, _user_data: Any) -> None:
+            if self._mission.mission_progress().current != item_index:
+                return
+            speed_m_s = math.hypot(velocity.north_m_s, velocity.east_m_s)
+            self.check_in_callback(
+                speed_m_s > min_speed_m_s,
+                "Speed {:.2f} m/s to mission item {} not above {} m/s".format(
+                    speed_m_s, item_index, min_speed_m_s))
+
+        self._telemetry.set_rate_velocity_ned(10)
+        self._telemetry.subscribe_velocity_ned(check)
+
+    # ------------------------------------------------------------------
+    # Raw missions
+    # ------------------------------------------------------------------
+
+    def upload_mission_raw(self, items: List[Any]) -> None:
+        self._mission_raw.upload_mission(items)
+        # PX4 needs time to realize that it now has a mission available.
+        self.sleep_for(1)
+
+    def load_qgc_mission_raw_and_move_here(self, plan_file: str) -> None:
+        """Upload a QGC .plan mission, shifted so that it starts at the current position."""
+        items = self._mission_raw.import_qgroundcontrol_mission(plan_file).mission_items
+        self._move_mission_raw_here(items)
+        self.upload_mission_raw(items)
+
+    def _move_mission_raw_here(self, items: List[Any]) -> None:
+        position = self._telemetry.position()
+        assert math.isfinite(position.latitude_deg) and math.isfinite(position.longitude_deg), \
+            "No global position"
+
+        offset_x = items[0].x - int(1e7 * position.latitude_deg)
+        offset_y = items[0].y - int(1e7 * position.longitude_deg)
+        for item in items:
+            if item.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT:
+                item.x -= offset_x
+            item.y -= offset_y
+
+    def prepare_multicopter_mission_with_do_jump(self, options: MissionOptions,
+                                                 jump_repeats: int) -> int:
+        """Upload a mission (relative to home) with a DO_JUMP looping back to an earlier waypoint.
+        The mission lands at the end so it terminates on its own. Return the index of the
+        DO_JUMP item."""
+        ct = self.get_coordinate_transformation()
+        altitude_m = options.relative_altitude_m
+        leg_m = options.leg_length_m
+
+        def position_item(seq: int, command: int, north_m: float, east_m: float, z: float,
+                          current: int = 0) -> Any:
+            latitude_deg, longitude_deg = ct.global_from_local(north_m, east_m)
+            return raw_mission_item(seq, command, MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                                    x=round(latitude_deg * 1e7), y=round(longitude_deg * 1e7),
+                                    z=z, current=current)
+
+        jump_index = 3
+        self.upload_mission_raw([
+            position_item(0, MAV_CMD_NAV_TAKEOFF, 0.0, 0.0, altitude_m, current=1),
+            position_item(1, MAV_CMD_NAV_WAYPOINT, leg_m, 0.0, altitude_m),
+            position_item(2, MAV_CMD_NAV_WAYPOINT, leg_m, leg_m, altitude_m),
+            raw_mission_item(jump_index, MAV_CMD_DO_JUMP, MAV_FRAME_MISSION,
+                             param1=1.0, param2=float(jump_repeats)),
+            position_item(4, MAV_CMD_NAV_WAYPOINT, 0.0, leg_m, altitude_m),
+            position_item(5, MAV_CMD_NAV_LAND, 0.0, 0.0, 0.0),
+        ])
+        return jump_index
+
+    def start_mission_raw_and_wait_for_sequence(self, sequence_number: int,
+                                                timeout_s: float = 180) -> None:
+        self._mission_raw.start_mission()
+        assert self.poll_condition_with_timeout(
+            lambda: self._mission_raw.mission_progress().current >= sequence_number, timeout_s), \
+            "Mission item {} not reached within {} s".format(sequence_number, timeout_s)
+
+    def execute_rtl_when_reaching_mission_sequence(self, sequence_number: int,
+                                                   timeout_s: float = 180) -> None:
+        self.start_mission_raw_and_wait_for_sequence(sequence_number, timeout_s)
+        self.execute_rtl()
+
+    def execute_mission_raw(self) -> None:
+        self._mission_raw.start_mission()
+
+        def finished() -> bool:
+            try:
+                return bool(self._mission_raw.is_mission_finished())
+            except MissionRawError:
+                return False
+
+        assert self.poll_condition_with_timeout(finished, 300), \
+            "Mission not finished within 300 s"
+
+    def send_set_current_mission_item(self, index: int) -> None:
+        """Send a single MISSION_SET_CURRENT, like a one-shot operator/GCS action.
+
+        MissionRaw.set_current_mission_item() is deliberately not used: it re-sends until
+        MISSION_CURRENT echoes the requested seq. For a DO_JUMP item the navigator reports the
+        jump target instead, so MAVSDK would keep re-sending and resetting the mission.
+        """
+        self.send_mavlink_message("MISSION_SET_CURRENT", {
+            "target_system": self._target_system_id(),
+            "target_component": MAV_COMP_ID_AUTOPILOT1,
+            "seq": index,
+        })
+
+    # ------------------------------------------------------------------
+    # MAVLink
+    # ------------------------------------------------------------------
+
+    def _target_system_id(self) -> int:
+        return int(self._system.get_system_id())
+
+    def send_mavlink_message(self, name: str, fields: Dict[str, Any]) -> None:
+        # The sender IDs are filled in by MAVSDK.
+        self._mavlink_direct.send_message(MavlinkMessage(
+            message_name=name, system_id=0, component_id=0, target_system_id=0,
+            target_component_id=0, fields_json=json.dumps(fields)))
+
+    # ------------------------------------------------------------------
+    # FTP
+    # ------------------------------------------------------------------
+
+    def _wait_for_ftp(self, start: Callable[[Callable[[Any, Any, Any], None]], None],
+                      timeout_s: float) -> None:
+        results: List[Any] = []
+        done = threading.Event()
+
+        def on_progress(result: Any, _progress: Any, _user_data: Any) -> None:
+            if result != FtpResult.NEXT and not done.is_set():
+                results.append(result)
+                done.set()
+
+        start(on_progress)
+        # Host time: the transfer is not tied to the simulation.
+        assert done.wait(timeout_s), "FTP transfer did not finish within {} s".format(timeout_s)
+        assert results[0] == FtpResult.SUCCESS, "FTP transfer failed: {}".format(results[0])
+
+    def ftp_download(self, remote_path: str, local_dir: str, use_burst: bool = True,
+                     timeout_s: float = 60) -> None:
+        self._wait_for_ftp(
+            lambda cb: self._ftp.download_async(remote_path, local_dir, use_burst, cb), timeout_s)
+
+    def ftp_upload(self, local_path: str, remote_dir: str, timeout_s: float = 60) -> None:
+        self._wait_for_ftp(
+            lambda cb: self._ftp.upload_async(local_path, remote_dir, cb), timeout_s)
+
+    # ------------------------------------------------------------------
+    # Manual control
+    # ------------------------------------------------------------------
+
+    def _send_manual_control(self, duration_s: float, x: float, y: float, z: float, r: float,
+                             stop_when_landed: bool = False) -> None:
+        for _ in range(int(duration_s * MANUAL_CONTROL_RATE_HZ)):
+            self._manual_control.set_manual_control_input(x, y, z, r)
+            self.sleep_for(1.0 / MANUAL_CONTROL_RATE_HZ)
+            if stop_when_landed and not self._telemetry.in_air():
+                return
+
+    def _fly_forward_manually(self, start_mode: Callable[[], None]) -> None:
+        # Keep sending centered sticks in between so RC stays available.
+        self._send_manual_control(1, 0.0, 0.0, 0.5, 0.0)
+        start_mode()
+        self._send_manual_control(1, 0.0, 0.0, 0.5, 0.0)
+        self.store_home()
+        self._send_manual_control(1, 0.0, 0.0, 0.5, 0.0)
+        self.wait_until_ready()
+        self._send_manual_control(1, 0.0, 0.0, 0.5, 0.0)
+        self.arm()
+        self._send_manual_control(1, 0.0, 0.0, 0.5, 0.0)
+
+        log("Climbing")
+        self._send_manual_control(5, 0.0, 0.0, 1.0, 0.0)
+        log("Flying forward")
+        self._send_manual_control(10, 0.5, 0.0, 0.5, 0.0)
+        log("Descending until landed")
+        self._send_manual_control(60, 0.0, 0.0, 0.0, 0.0, stop_when_landed=True)
+
+    def fly_forward_in_posctl(self) -> None:
+        self._fly_forward_manually(self._manual_control.start_position_control)
+
+    def fly_forward_in_altctl(self) -> None:
+        self._fly_forward_manually(self._manual_control.start_altitude_control)
+
     # ------------------------------------------------------------------
     # Offboard
     # ------------------------------------------------------------------
+
+    def _send_attitude(self, duration_s: float, attitude: Any) -> None:
+        for _ in range(int(duration_s * OFFBOARD_RATE_HZ)):
+            self._offboard.set_attitude(attitude)
+            self.sleep_for(1.0 / OFFBOARD_RATE_HZ)
+
+    def fly_forward_in_offboard_attitude(self) -> None:
+        # This does not depend on a valid position estimate. Wait for raw GPS and a stable
+        # attitude estimate.
+        def ready() -> bool:
+            attitude = self._telemetry.attitude_euler()
+            return bool(self._telemetry.raw_gps().altitude_ellipsoid_m > 0.0
+                        and abs(attitude.roll_deg) < 5.0 and abs(attitude.pitch_deg) < 5.0)
+
+        assert self.poll_condition_with_timeout(ready, 20), "No raw GPS or attitude not stable"
+        start_altitude_m = float(self._telemetry.raw_gps().altitude_ellipsoid_m)
+
+        level = Attitude(roll_deg=0.0, pitch_deg=0.0, yaw_deg=0.0, thrust_value=0.0)
+        self._offboard.set_attitude(level)
+        self._start_offboard_with_retry(lambda: self._offboard.set_attitude(level))
+
+        assert self.poll_condition_with_timeout(
+            lambda: bool(self._telemetry.health().is_armable), 20), "System not armable"
+        self.arm()
+
+        log("Climbing")
+        climb = Attitude(roll_deg=0.0, pitch_deg=0.0, yaw_deg=0.0, thrust_value=0.8)
+        while self._telemetry.raw_gps().altitude_ellipsoid_m - start_altitude_m < 10.0:
+            self._offboard.set_attitude(climb)
+            self.sleep_for(1.0 / OFFBOARD_RATE_HZ)
+
+        log("Flying forward")
+        forward = Attitude(roll_deg=0.0, pitch_deg=-20.0, yaw_deg=0.0, thrust_value=0.8)
+        self._send_attitude(3, forward)
+
+        estimate = self._telemetry.attitude_euler()
+        assert abs(forward.roll_deg - estimate.roll_deg) < 5.0, \
+            "Roll {:.1f} deg, expected {}".format(estimate.roll_deg, forward.roll_deg)
+        assert abs(forward.pitch_deg - estimate.pitch_deg) < 5.0, \
+            "Pitch {:.1f} deg, expected {}".format(estimate.pitch_deg, forward.pitch_deg)
+
+        log("Descending")
+        self._send_attitude(6, Attitude(roll_deg=0.0, pitch_deg=0.0, yaw_deg=0.0,
+                                        thrust_value=0.4))
+        self._offboard.set_attitude(level)
 
     def _start_offboard_with_retry(self, resend_setpoint: Callable[[], None]) -> None:
         # MAVSDK's offboard watchdog resets the setpoint state when a heartbeat without
