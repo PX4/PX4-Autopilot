@@ -13,10 +13,6 @@ For more depth see the [Vision Target Estimator deep dive](../advanced_features/
 VTE is a beta feature, disabled in default board configurations, and should only be enabled on custom builds after careful bench and flight testing.
 :::
 
-## Table of Contents
-
-[[toc]]
-
 ## Building the Module
 
 The estimator is not part of the default PX4 board configurations.

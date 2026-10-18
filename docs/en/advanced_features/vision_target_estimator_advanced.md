@@ -5,10 +5,6 @@
 This guide expands on the [Vision Target Estimator module overview](../advanced_features/vision_target_estimator.md) and targets advanced users who want to tune, extend, and debug the estimator in detail.
 It documents the system architecture of the Vision Target Estimator, and outlines workflows for log analysis and sensor integration.
 
-## Table of Contents
-
-[[toc]]
-
 ## System Architecture
 
 The module has three layers: a scheduler, a task layer, and two independent estimators.
@@ -417,8 +413,11 @@ If the yaw state ends up oscillating, the [Orientation Filter case study](#orien
 
 Vision and GNSS observations can arrive delayed due to transport and processing latency.
 The position and orientation filters handle out-of-sequence measurements (OOSM) by replaying subsequent accepted observations in timestamp order.
-For example, vision captured at 160 ms may already be fused when GNSS captured at 100 ms arrives.
-The filter fuses GNSS at the earlier time, then recalculates the vision update before returning to the present.
+For example, at 200 ms the filter fuses vision captured at 160 ms.
+In the next cycle, at 220 ms, GNSS captured at 100 ms arrives.
+The filter restores the state and covariance from history at or before 100 ms.
+It predicts to 100 ms and fuses GNSS, then predicts to 160 ms and recalculates the vision update.
+Finally, it predicts to 220 ms and replaces the previous estimate with this rebuilt result, so vision is counted only once.
 
 ### OOSM Implementation
 
@@ -1159,7 +1158,9 @@ Reset them with `perf reset` after warmup, and use `top` to measure the `wq:vte`
 Replay cost increases with measurement delay and the number of later accepted observations (see [OOSM Implementation](#oosm-implementation)).
 Check the aid-source `fusion_status` fields alongside timing to confirm that observations are being fused.
 
-### Pixhawk 6C Reference Measurements
+<a id="pixhawk-6c-reference-measurements"></a>
+
+::: details Pixhawk 6C Reference Measurements
 
 Measurements from 18 October 2026 used disarmed SIH with a stationary target and yaw estimation enabled.
 Vision was injected at 100 Hz and target GNSS at 50 Hz; native UAV GNSS ran at approximately 8 Hz.
@@ -1178,6 +1179,8 @@ Delayed inputs had 460 ms added to their capture age; native UAV GNSS had no add
 Each row summarises three 30-second trials; CPU includes position and yaw work, sampled in three approximately 1.2-second `top` windows per trial.
 Fresh inputs have no added delay, but transport and scheduling can still move them across the 20 ms OOSM threshold.
 These are reference measurements, not worst-case timing limits; measure your own board with its expected source rates and delays.
+
+:::
 
 ## Unit Test Suites
 
