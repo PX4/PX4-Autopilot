@@ -327,9 +327,11 @@ class Tester:
 
         if self.config['mode'] == 'sitl':
             if self.config.get('simulator') == 'gazebo':
-                # Use RegEx to extract worldname.world from case name
+                # The world comes from the config, or from "(name.world)" in the case name.
                 match = re.search(r'\((.*?\.world)\)', case)
-                if match:
+                if 'world' in test:
+                    world_name = test['world']
+                elif match:
                     world_name = match.group(1)
                 else:
                     world_name = 'empty.world'

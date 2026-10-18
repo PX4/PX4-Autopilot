@@ -6,8 +6,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, List, Optional, Tuple
 
+from mavsdk.plugins.telemetry import VtolState  # type: ignore
+
 from autopilot_tester import (
-    MAV_FRAME_GLOBAL_RELATIVE_ALT, MAV_GLOBAL_FRAMES, AutopilotTester, log, raw_mission_item)
+    MAV_FRAME_GLOBAL_RELATIVE_ALT, MAV_GLOBAL_FRAMES, AutopilotTester, log, raw_mission_item,
+    raw_item_local)
 from geometry import CoordinateTransformation
 
 MAV_CMD_NAV_LOITER_TO_ALT = 31
@@ -126,6 +129,48 @@ class AutopilotTesterRtl(AutopilotTester):
         assert any(d < acceptance_radius_m for d in distances_m), \
             "Not within {} m of any rally point, distances: {}".format(
                 acceptance_radius_m, ["{:.1f}".format(d) for d in distances_m])
+
+    def check_rtl_approaches(self, acceptance_radius_m: float, timeout_s: float) -> None:
+        """Check that the vehicle descends on one of the rally point approach loiters, down to
+        RTL_DESCEND_ALT."""
+        ct = self.get_coordinate_transformation()
+        return_alt_m = self.get_param_float("RTL_RETURN_ALT")
+        descend_alt_m = self.get_param_float("RTL_DESCEND_ALT")
+        approaches = [(raw_item_local(item, ct), float(item.param2)) for item in self._rally_points
+                      if item.command == MAV_CMD_NAV_LOITER_TO_ALT]
+        results: List[bool] = []
+
+        def done(sample: Any) -> bool:
+            altitude_m = -sample.position.down_m
+            # Started to loiter down, so it should be on an approach loiter.
+            if not (altitude_m < return_alt_m - 3.0 and sample.velocity.down_m_s > 0.05):
+                return False
+
+            for center, radius_m in approaches:
+                distance_m = math.hypot(sample.position.north_m - center[0],
+                                        sample.position.east_m - center[1])
+                # Ported as is from the C++ test. Both bounds being ">" means this only checks
+                # that the vehicle is outside the loiter radius plus the acceptance radius.
+                if distance_m > radius_m - acceptance_radius_m \
+                        and distance_m > radius_m + acceptance_radius_m:
+                    if altitude_m < descend_alt_m + 3.0:
+                        results.append(True)
+                        return True
+                    return False
+
+            results.append(False)
+            return True
+
+        self.wait_for_position_ned(done, timeout_s, rate_hz=50.0)
+        assert results and results[0], "Vehicle descended without being on an approach loiter"
+
+    def wait_until_disarmed_while_in_multicopter_mode(self, timeout_s: float) -> None:
+        start_us = self._autopilot_time_us()
+        while self._telemetry.armed():
+            assert self._telemetry.vtol_state() == VtolState.MC, "Left multicopter mode"
+            assert (self._autopilot_time_us() - start_us) / 1e6 < timeout_s, \
+                "Not disarmed within {} s".format(timeout_s)
+            self.sleep_for(0.1)
 
     # ------------------------------------------------------------------
     # Geofence

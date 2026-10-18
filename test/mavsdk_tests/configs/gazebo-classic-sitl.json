@@ -22,7 +22,14 @@
         {
             "model": "standard_vtol",
             "vehicle": "standard_vtol",
-            "test_filter": "vtol or vtol_wind or vtol_airspeed_fail or loiter",
+            "test_filter": "vtol or vtol_airspeed_fail or loiter",
+            "timeout_min": 10
+        },
+        {
+            "model": "standard_vtol",
+            "vehicle": "standard_vtol",
+            "test_filter": "vtol_wind",
+            "world": "ramped_up_wind.world",
             "timeout_min": 10
         },
         {
