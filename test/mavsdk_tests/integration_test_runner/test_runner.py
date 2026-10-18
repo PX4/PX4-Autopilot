@@ -246,7 +246,9 @@ class Tester:
                                       str(iteration + 1).zfill(digits))
 
         foldername = os.path.join(foldername, model)
-        foldername = os.path.join(foldername, case.replace(" ", "_"))
+        # Case names can be pytest node IDs which contain "::".
+        foldername = os.path.join(foldername,
+                                  re.sub(r'[^A-Za-z0-9._-]+', '_', case))
 
         return foldername
 
