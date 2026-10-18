@@ -119,7 +119,7 @@ For the full state-reset rules, the LPF exit condition, and the stale-GNSS fallb
 
 Vision and GNSS measurements often reach the autopilot with non-negligible transport or processing latency.
 VTE compensates for this by fusing delayed samples against the predicted state at their _original_ timestamp, rather than the current one.
-This relies on an **Out-of-Sequence Measurements (OOSM)** approximation using a history-consistent projected correction strategy.
+Any observations already fused with a later timestamp are then replayed in time order (**Out-of-Sequence Measurement**, or OOSM, handling).
 For buffer sizing and algorithm specifics, see [OOSM Implementation](../advanced_features/vision_target_estimator_advanced.md#oosm-implementation).
 
 ### Fallbacks and Timeouts

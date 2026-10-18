@@ -79,6 +79,8 @@ struct EmptyInput {};
  * @tparam InputT       Control input stored per snapshot (e.g. acceleration for
  *                      the position filter, or EmptyInput for orientation).
  * @tparam HistorySize  Capacity of the ring buffer (max 255).
+ * @tparam MaxObsPerSnapshot  Most scalar observations fused between two snapshots, one per aid
+ *                      source and cycle (up to four for the position filter). Sizes the log.
  *
  * FilterT concept (the OOSM manager never touches the filter's internal state
  * directly, it drives it exclusively through this interface):
@@ -91,9 +93,9 @@ struct EmptyInput {};
  *   - void applyCorrection:
  *       Update (x, P) with an already-computed gain vector K.
  *
- * ScalarMeasT concept: aggregate with time_us, val, unc and H (in this order).
+ * ScalarMeasT concept: default-constructible with members time_us, val, unc and H.
  */
-template <typename FilterT, int StateDim, typename InputT, int HistorySize = 25>
+template <typename FilterT, int StateDim, typename InputT, int HistorySize = 25, int MaxObsPerSnapshot = 4>
 class OOSMManager
 {
 public:
@@ -109,7 +111,12 @@ public:
 
 	static_assert(HistorySize > 0, "HistorySize must be > 0");
 	static_assert(HistorySize <= 255, "HistorySize must fit in uint8_t");
+	static_assert(MaxObsPerSnapshot > 0, "MaxObsPerSnapshot must be > 0");
 	static constexpr uint8_t kHistorySize = static_cast<uint8_t>(HistorySize);
+
+	// Retained observations were fused within the last HistorySize cycles, so the log
+	// only fills if the filter fuses more than MaxObsPerSnapshot per cycle.
+	static constexpr size_t kMeasurementCapacity = static_cast<size_t>(MaxObsPerSnapshot) * HistorySize;
 	static constexpr uint64_t kOosmMinTimeUs = vision_target_estimator::kOosmMinTimeUs;
 	static constexpr uint64_t kOosmMaxTimeUs = vision_target_estimator::kOosmMaxTimeUs;
 
@@ -165,7 +172,7 @@ public:
 	 * observations are replayed through history and into the live state.
 	 *
 	 * @param filter        Filter providing prediction / correction primitives.
-	 * @param meas          The scalar measurement (must provide `time_us` and `H`).
+	 * @param meas          The scalar measurement (see the ScalarMeasT concept).
 	 * @param now_us        Current system time.
 	 * @param nis_threshold NIS (chi-square) threshold; <= 0 disables gating.
 	 * @param curr_state    [In/Out] Live filter state, updated by chronological replay.
@@ -325,10 +332,6 @@ private:
 	// the private helpers without needing any #ifdef or production-side wrappers.
 	template <typename> friend struct OOSMManagerTestAccess;
 
-	// Four scalar observations per prediction snapshot covers position/velocity aiding
-	// at their usual rates. Exhaustion restarts history from the live posterior rather
-	// than silently forgetting an update that a subsequent replay would need.
-	static constexpr size_t kMeasurementCapacity = 4 * HistorySize;
 	struct StoredMeasurement {
 		uint64_t time_us;
 		float val;
@@ -368,6 +371,7 @@ private:
 		pruneMeasurements();
 
 		if (_measurement_count == kMeasurementCapacity) {
+			// Restart from the live posterior rather than drop an update a later replay needs.
 			reset();
 			push(now_us, state, cov, input);
 			return;
@@ -406,7 +410,11 @@ private:
 			}
 
 			predictTo(filter, stored.time_us, input, time_us, state, cov);
-			const ScalarMeasT meas{stored.time_us, stored.val, stored.unc, stored.H};
+			ScalarMeasT meas{};
+			meas.time_us = stored.time_us;
+			meas.val = stored.val;
+			meas.unc = stored.unc;
+			meas.H = stored.H;
 			StateVec K;
 			FusionResult result{};
 

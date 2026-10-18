@@ -41,6 +41,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -365,7 +366,7 @@ TEST_F(VTEOosmTest, MeasurementCapacityRestartsHistoryFromLivePosterior)
 	using Access = vte::OOSMManagerTestAccess<Manager>;
 	pushSample(1_s, state, cov, curr_input);
 	const uint64_t now = 1050_ms;
-	constexpr int measurement_count = 4 * Manager::kHistorySize + 1;
+	constexpr int measurement_count = static_cast<int>(Manager::kMeasurementCapacity) + 1;
 
 	for (int i = 0; i < measurement_count; ++i) {
 		ASSERT_EQ(fuseMeas(makeMeas(now, 0.f, 1.f), now, 0.f).status,
@@ -384,6 +385,35 @@ TEST_F(VTEOosmTest, MeasurementCapacityRestartsHistoryFromLivePosterior)
 	ASSERT_EQ(fuseMeas(makeMeas(now, 0.f, 1.f), now + 30_ms, 0.f).status,
 		  vte::FusionStatus::STATUS_FUSED_OOSM);
 	EXPECT_NEAR(cov, variance_before / (variance_before + 1.f) + 0.003f, kTolerance);
+}
+
+// A log sized for one observation per snapshot must hold one fused observation per cycle
+// indefinitely, so the orientation filter never restarts its history in steady state.
+TEST_F(VTEOosmTest, OneObservationPerCycleFitsMeasurementCapacity)
+{
+	using OneObsManager = vte::OOSMManager<TestFilter, kStateDim, float, 8, 1>;
+	using Access = vte::OOSMManagerTestAccess<OneObsManager>;
+	OneObsManager one_obs{};
+	auto x = makeVec(0.f);
+	auto P = makeCov(4.f);
+	constexpr uint64_t start = 1_s;
+	constexpr uint64_t step = 20_ms;
+	uint64_t now = start;
+	one_obs.push(now, x, P, curr_input);
+
+	for (int cycle = 1; cycle <= 3 * OneObsManager::kHistorySize; ++cycle) {
+		now = start + cycle * step;
+		ASSERT_EQ(one_obs.fuse(filter, makeMeas(now, 0.f, 1.f), now, 0.f, x, P, curr_input).status,
+			  vte::FusionStatus::STATUS_FUSED_CURRENT);
+		one_obs.push(now, x, P, curr_input);
+
+		// A restart would move the oldest snapshot to the current cycle.
+		const int retained = std::min(cycle + 1, static_cast<int>(OneObsManager::kHistorySize));
+		ASSERT_EQ(Access::historyOldestTime(one_obs), now - (retained - 1) * step);
+	}
+
+	EXPECT_EQ(one_obs.fuse(filter, makeMeas(Access::historyOldestTime(one_obs), 0.f, 1.f), now + step, 0.f,
+			       x, P, curr_input).status, vte::FusionStatus::STATUS_FUSED_OOSM);
 }
 
 // WHY: Near-zero innovation variance should never result in a correction.
@@ -512,9 +542,72 @@ TEST_F(VTEOosmTest, UsesCurrentInputWhenFloorIsNewest)
 	// WHEN: the delayed measurement falls between the newest sample and now.
 	const vte::FusionResult res = fuseMeas(meas, t0 + 60_ms, 10.f);
 
-	// THEN: the replay uses the live input rather than stale history input.
+	// THEN: the replay applies the live input from t0, not the input stored with the floor sample.
 	EXPECT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_OOSM);
-	EXPECT_FLOAT_EQ(filter.last_predict_input, curr_input);
+
+	TestFilter truth_filter;
+	auto x_truth = makeVec(0.f);
+	auto P_truth = makeCov(4.f);
+	truth_filter.predictState(0.03f, curr_input, x_truth, P_truth, x_truth, P_truth);
+	float innov = 0.f;
+	float innov_var = 0.f;
+	truth_filter.computeInnovation(x_truth, P_truth, meas, innov, innov_var);
+	const matrix::Vector<float, kStateDim> K = (P_truth * meas.H) / innov_var;
+	truth_filter.applyCorrection(x_truth, P_truth, K, innov, innov_var);
+	truth_filter.predictState(0.03f, curr_input, x_truth, P_truth, x_truth, P_truth);
+
+	EXPECT_NEAR(state, x_truth(0), kTolerance);
+	EXPECT_NEAR(cov, P_truth(0, 0), kTolerance);
+}
+
+// A fast-path observation is fused at now, so a later replay must apply it at that time
+// rather than at its own timestamp, which can be up to 20 ms earlier.
+TEST_F(VTEOosmTest, ReplaysFastPathObservationAtFusionTime)
+{
+	constexpr uint64_t t0 = 1_s;
+	constexpr uint64_t t1 = t0 + 20_ms;
+	constexpr uint64_t now = t1 + 20_ms;
+	constexpr float input = 10.f;
+	auto x = makeVec(0.f);
+	auto P = makeCov(4.f);
+	oosm.push(t0, x, P, input);
+
+	// Cycle at t1: a sample captured 10 ms earlier takes the fast path.
+	filter.predictState(0.02f, input, x, P, x, P);
+	state = x(0);
+	cov = P(0, 0);
+	curr_input = input;
+	const ScalarMeas fast = makeMeas(t1 - 10_ms, 1.f, 0.5f);
+	ASSERT_EQ(fuseMeas(fast, t1, 0.f).status, vte::FusionStatus::STATUS_FUSED_CURRENT);
+	x = makeVec(state);
+	P = makeCov(cov);
+	oosm.push(t1, x, P, input);
+
+	// Next cycle: an older sample arrives and replays the fast one.
+	filter.predictState(0.02f, input, x, P, x, P);
+	state = x(0);
+	cov = P(0, 0);
+	const ScalarMeas late = makeMeas(t0 + 5_ms, 0.2f, 0.5f);
+	ASSERT_EQ(fuseMeas(late, now, 0.f).status, vte::FusionStatus::STATUS_FUSED_OOSM);
+
+	TestFilter truth_filter;
+	auto x_truth = makeVec(0.f);
+	auto P_truth = makeCov(4.f);
+	const auto fuse_truth = [&](const ScalarMeas & m) {
+		float innov = 0.f;
+		float innov_var = 0.f;
+		truth_filter.computeInnovation(x_truth, P_truth, m, innov, innov_var);
+		const matrix::Vector<float, kStateDim> K = (P_truth * m.H) / innov_var;
+		truth_filter.applyCorrection(x_truth, P_truth, K, innov, innov_var);
+	};
+	truth_filter.predictState(0.005f, input, x_truth, P_truth, x_truth, P_truth);
+	fuse_truth(late);
+	truth_filter.predictState(0.015f, input, x_truth, P_truth, x_truth, P_truth);
+	fuse_truth(fast);
+	truth_filter.predictState(0.02f, input, x_truth, P_truth, x_truth, P_truth);
+
+	EXPECT_NEAR(state, x_truth(0), kTolerance);
+	EXPECT_NEAR(cov, P_truth(0, 0), kTolerance);
 }
 
 // WHY: Large time gaps between history and now should reset the buffer.

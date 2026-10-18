@@ -30,7 +30,7 @@ The module has three layers: a scheduler, a task layer, and two independent esti
   - Helper unions `SensorFusionMaskU` and `ObsValidMaskU` mirror the bit layout of [`VTE_AID_MASK`](../advanced_features/vision_target_estimator.md#sensor-fusion-selection), making it straightforward to add new observation types ([Adding new measurement sources](#adding-new-measurement-sources)).
 - `VTEOrientation` (`Orientation/VTEOrientation.cpp`) handles yaw fusion with the same measurement staging helpers as the position filter, on a smaller $[\psi, \dot\psi]$ state.
   The math lives in `Orientation/KF_orientation.cpp`.
-  Prediction and the transition matrix are SymForce-generated, while innovation and correction stay hand-written so yaw can be wrapped to $[-\pi, \pi]$.
+  Prediction is SymForce-generated, while innovation and correction stay hand-written so yaw can be wrapped to $[-\pi, \pi]$.
 - Shared utilities live in `common.h` and `VTEOosm.h` (templated OOSM manager, see [OOSM Implementation](#oosm-implementation)).
 
 ```text
@@ -420,14 +420,12 @@ The position and orientation filters handle out-of-sequence measurements (OOSM) 
 For example, vision captured at 160 ms may already be fused when GNSS captured at 100 ms arrives.
 The filter fuses GNSS at the earlier time, then recalculates the vision update before returning to the present.
 
-<a id="oosm-implementation"></a>
-
 ### OOSM Implementation
 
 Each filter retains up to 25 post-update snapshots of the time, state, covariance and prediction input.
 At 50 Hz, 25 snapshots span 480 ms from oldest to newest.
-Delayed observations update these snapshots without adding extra snapshots or shortening that window.
-A separate fixed-size buffer stores up to 100 accepted scalar observations, including their measurement matrix and variance.
+A separate fixed-size buffer stores the accepted scalar observations, including their measurement matrix and variance.
+It is sized for one observation per aid source and cycle: 100 per position axis (up to four sources in moving-target mode) and 25 for yaw.
 
 For a delayed observation:
 
@@ -467,11 +465,12 @@ Prediction uses the stored piecewise-constant control inputs and current process
 Observations less than 20 ms from the current time retain the direct-update path and are recorded at the effective fusion time (now).
 Observations outside the available history or the 500 ms maximum delay are rejected.
 Accepted observations older than the oldest retained posterior can be discarded because that posterior already contains their information.
-If the observation buffer fills, history restarts from the live posterior: the state is preserved, but older delayed observations are rejected until history accumulates again.
+The buffer cannot overflow while each aid source contributes at most one observation per cycle.
+If adding an observation would exceed its capacity, history restarts from the live posterior: the state is preserved, but older delayed observations are rejected until history accumulates again.
 
-Both storage and replay work are bounded.
-The observation buffer is owned by the filter rather than copied onto the work-queue stack.
-The extra memory and replay cost must be included in target-board resource measurements; timings measured for the earlier projected-correction implementation do not establish the cost of replay.
+Per axis, fusing an accepted delayed observation requires at most `N_snapshots + N_observations + 2` predictions and `N_observations + 1` measurement updates.
+Here, `N_snapshots` counts snapshots after the floor (at most 24), and `N_observations` counts stored observations replayed from the floor to now.
+The two extra predictions advance to the new observation and then to now; predictions with no elapsed time are skipped.
 
 ## Moving-target Mode (experimental)
 
@@ -1115,8 +1114,8 @@ The symbolic state, prediction model, and covariance update are defined in Pytho
 
 | Filter      | Generated headers                                                                                                                                                                                     |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Position    | `state.h`, `predictState.h`, `predictCov.h`, `computeInnovCov.h`, `getTransitionMatrix.h`, `applyCorrection.h`                                                                                        |
-| Orientation | `predictState.h`, `predictCov.h`, `getTransitionMatrix.h` (innovation computation and correction stay hand-written in `Orientation/KF_orientation.cpp` so yaw angles can be wrapped to $[-\pi, \pi]$) |
+| Position    | `state.h`, `predictState.h`, `predictCov.h`, `computeInnovCov.h`, `applyCorrection.h`                                                                                                                  |
+| Orientation | `predictState.h`, `predictCov.h` (innovation computation and correction stay hand-written in `Orientation/KF_orientation.cpp` so yaw angles can be wrapped to $[-\pi, \pi]$)                           |
 
 **Build-time behaviour:**
 
@@ -1141,11 +1140,6 @@ After regenerating, rebuild the module to ensure the Jacobians and code stay in 
 
 ## Runtime Performance on Hardware
 
-Measure the estimator with the expected observation rates and delays to check its runtime against the 20 ms loop budget.
-Expand below for historical per-counter measurements of the earlier projected-correction implementation.
-
-::: details Historical Pixhawk 6c Measurements
-
 The estimator publishes per-section perf counters that can be read at any time on the shell:
 
 ```sh
@@ -1164,42 +1158,14 @@ Six counters cover the vision target estimator:
 | `VTE update`     | The full update step in the position filter, including measurement validation, frame transforms, fusion calls for every active aid source, and OOSM history maintenance. |
 | `VTE fusion`     | Just the per-axis fusion inside an update: innovation, gating, and chronological history replay. Cost depends on both retained snapshots and accepted observations.      |
 
-The numbers below come from a Pixhawk 6c running the static-target filter (`vte_aid_fiducial_marker` + `vte_aid_gps_pos_target` + `vte_aid_gps_vel_uav`) at the default 50 Hz cadence.
-They were recorded before chronological replay was implemented and do not establish its runtime or worst-case cost.
-Repeat these measurements on the target board when evaluating replay performance.
-
-**Baseline (no injected delay):**
-
-```text
-VTE fusion:     20568 events,  297061us elapsed,  14.44us avg, min  1us max  88us 14.138us rms
-VTE update:      6856 events,  318536us elapsed,  46.46us avg, min  3us max 163us 41.827us rms
-VTE prediction: 18567 events,  105034us elapsed,   5.66us avg, min  5us max  52us  1.575us rms
-VTE cycle :     92576 events, 1614647us elapsed,  17.44us avg, min  6us max 281us 27.204us rms
-VTE cycle yaw:  18563 events,  125422us elapsed,   6.76us avg, min  4us max  60us  3.985us rms
-VTE cycle pos:  18569 events,  803841us elapsed,  43.29us avg, min 22us max 253us 38.464us rms
-```
-
-**With bounded delay (≈ 480–500 ms latency, ~20 OOSM steps on average):**
-
-```text
-VTE fusion:     31932 events, 1860362us elapsed,  58.26us avg, min 63us max 135us 23.520us rms
-VTE update:     10644 events, 1894804us elapsed, 178.02us avg, min  4us max 301us 69.331us rms
-VTE prediction: 29156 events,  166179us elapsed,   5.70us avg, min  5us max  52us  1.614us rms
-VTE cycle :    163952 events, 4215369us elapsed,  25.71us avg, min  6us max 511us 57.621us rms
-VTE cycle yaw:  32850 events,  274433us elapsed,   8.35us avg, min  1us max  86us  7.852us rms
-VTE cycle pos:  32861 events, 2703185us elapsed,  82.26us avg, min 10us max 479us 96.704us rms
-```
-
-In these historical runs, average fusion time increased from about 14 us to 58 us with delay, while average prediction time remained about 5.7 us.
-Replay additionally recalculates accepted measurement updates, so these timings cannot be used to infer its cost.
+Replay cost grows with both the number of retained snapshots and the number of observations replayed (see [OOSM Implementation](#oosm-implementation) for the prediction and update bounds).
+Check these counters on the target board, with the expected observation rates and delays, against the 20 ms loop budget.
 
 A few things to keep in mind when interpreting your own numbers:
 
 - The total `VTE cycle ` event count is roughly five times the `VTE cycle pos` count because `Run()` is woken on every input topic update, but the position estimator only ticks at 50 Hz.
 - `history_steps` counts snapshots recomputed after a delayed observation; it does not count replayed observations or report rejected sample age.
   Use `fusion_status` and `time_since_meas_ms` to identify observations rejected as too old.
-
-:::
 
 ## Unit Test Suites
 
