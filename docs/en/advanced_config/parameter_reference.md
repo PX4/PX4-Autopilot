@@ -67406,7 +67406,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial target and drone relative position uncertainty.
 
-Initial variance of the relative target position in x, y, and z direction.
+Minimum initial variance of the relative target position in x, y, and z direction.
+The variance reported by the initializing observation is used if it is larger.
 Changes while the estimator is running are picked up immediately by the module but only take effect
 the next time the estimator initializes or resets.
 
