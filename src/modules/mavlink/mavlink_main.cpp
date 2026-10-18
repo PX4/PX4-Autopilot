@@ -2661,6 +2661,17 @@ Mavlink::task_main(int argc, char *argv[])
 		set_telemetry_status_type(telemetry_status_s::LINK_TYPE_USB);
 	}
 
+#if defined(MAVLINK_UDP)
+
+	/* UDP has no baudrate either. Without this, 0 falls back to the serial
+	 * default below and throttles an ethernet link, including the parameter
+	 * dump, like a 57600 radio. */
+	if ((get_protocol() == Protocol::UDP) && (_datarate == 0)) {
+		_datarate = 100000;
+	}
+
+#endif // MAVLINK_UDP
+
 	if (_mode == MAVLINK_MODE_COUNT) {
 		_mode = MAVLINK_MODE_NORMAL;
 	}
