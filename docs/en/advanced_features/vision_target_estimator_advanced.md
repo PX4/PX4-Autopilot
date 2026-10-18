@@ -455,14 +455,13 @@ P^+ &= P - KSK^T
 $$
 
 Replaying subsequent updates preserves their information, including their effect on position/bias cross-covariance.
-A correction projected through dynamics alone does not account for newer measurements having already reduced the covariance and can make it indefinite.
 
 Previously accepted observations remain accepted during replay: their innovation and gain are recalculated, but their original gate decisions and published diagnostic messages are not revised.
 Rejected observations are not retained or reconsidered.
 The result therefore matches chronological fusion of the accepted observations at their effective fusion times; it does not promise arrival-order-independent outlier decisions.
 Prediction uses the stored piecewise-constant control inputs and current process-noise settings.
 
-Observations less than 20 ms from the current time retain the direct-update path and are recorded at the effective fusion time (now).
+Observations less than 20 ms from the current time take the direct-update path and are recorded at the effective fusion time (now).
 Observations outside the available history or the 500 ms maximum delay are rejected.
 Accepted observations older than the oldest retained posterior can be discarded because that posterior already contains their information.
 The buffer cannot overflow while each aid source contributes at most one observation per cycle.
@@ -1112,10 +1111,10 @@ The symbolic state, prediction model, and covariance update are defined in Pytho
 
 **Generated outputs (C++ headers) used at runtime:**
 
-| Filter      | Generated headers                                                                                                                                                                                     |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Position    | `state.h`, `predictState.h`, `predictCov.h`, `computeInnovCov.h`, `applyCorrection.h`                                                                                                                  |
-| Orientation | `predictState.h`, `predictCov.h` (innovation computation and correction stay hand-written in `Orientation/KF_orientation.cpp` so yaw angles can be wrapped to $[-\pi, \pi]$)                           |
+| Filter      | Generated headers                                                                                                                                                            |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Position    | `state.h`, `predictState.h`, `predictCov.h`, `computeInnovCov.h`, `applyCorrection.h`                                                                                        |
+| Orientation | `predictState.h`, `predictCov.h` (innovation computation and correction stay hand-written in `Orientation/KF_orientation.cpp` so yaw angles can be wrapped to $[-\pi, \pi]$) |
 
 **Build-time behaviour:**
 
@@ -1140,32 +1139,45 @@ After regenerating, rebuild the module to ensure the Jacobians and code stay in 
 
 ## Runtime Performance on Hardware
 
-The estimator publishes per-section perf counters that can be read at any time on the shell:
+Read the estimator's elapsed-time counters from the shell:
 
 ```sh
-perf | grep "vision_target_estimator"
+perf | grep "VTE"
 ```
 
-Each line reports event count, total elapsed time, average, min, max, and standard deviation in microseconds.
-Six counters cover the vision target estimator:
+| Counter          | What It Measures                                                                  |
+| ---------------- | --------------------------------------------------------------------------------- |
+| `VTE cycle`      | Input handling and eligible position/yaw updates in `updateEstimators()`.         |
+| `VTE cycle pos`  | One position update, including input preparation and `vte_input` publication.     |
+| `VTE cycle yaw`  | One orientation update.                                                           |
+| `VTE prediction` | One prediction across all three position axes.                                    |
+| `VTE update`     | Fusion of one position observation across its enabled axes.                       |
+| `VTE fusion`     | One scalar position-axis fusion attempt, including gating and any history replay. |
 
-| Counter          | What it covers                                                                                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `VTE cycle `     | One full work-queue of `VisionTargetEst::Run()`. Includes input subscription polls, task scheduling, and the dispatch into the position/orientation update steps.        |
-| `VTE cycle pos`  | The position-filter part of the cycle (every prediction or measurement update for `VTEPosition`).                                                                        |
-| `VTE cycle yaw`  | The orientation-filter part (same scope, for `VTEOrientation`).                                                                                                          |
-| `VTE prediction` | Just the Kalman prediction inside the position filter: `Predictstate` + `Predictcov` plus OOSM history.                                                                  |
-| `VTE update`     | The full update step in the position filter, including measurement validation, frame transforms, fusion calls for every active aid source, and OOSM history maintenance. |
-| `VTE fusion`     | Just the per-axis fusion inside an update: innovation, gating, and chronological history replay. Cost depends on both retained snapshots and accepted observations.      |
+These counters overlap; do not add their elapsed times to estimate CPU usage.
+Reset them with `perf reset` after warmup, and use `top` to measure the `wq:vte` CPU share.
+Replay cost increases with measurement delay and the number of later accepted observations (see [OOSM Implementation](#oosm-implementation)).
+Check the aid-source `fusion_status` fields alongside timing to confirm that observations are being fused.
 
-Replay cost grows with both the number of retained snapshots and the number of observations replayed (see [OOSM Implementation](#oosm-implementation) for the prediction and update bounds).
-Check these counters on the target board, with the expected observation rates and delays, against the 20 ms loop budget.
+### Pixhawk 6C Reference Measurements
 
-A few things to keep in mind when interpreting your own numbers:
+Measurements from 18 October 2026 used disarmed SIH with a stationary target and yaw estimation enabled.
+Vision was injected at 100 Hz and target GNSS at 50 Hz; native UAV GNSS ran at approximately 8 Hz.
+The moving-model trials enabled target GNSS position and velocity aiding.
+Actual estimator updates ran at approximately 43 to 44 Hz.
+Delayed inputs had 460 ms added to their capture age; native UAV GNSS had no added delay.
 
-- The total `VTE cycle ` event count is roughly five times the `VTE cycle pos` count because `Run()` is woken on every input topic update, but the position estimator only ticks at 50 Hz.
-- `history_steps` counts snapshots recomputed after a delayed observation; it does not count replayed observations or report rejected sample age.
-  Use `fusion_status` and `time_since_meas_ms` to identify observations rejected as too old.
+| Model / Inputs                               | Mean Position Update, µs | Largest Observed, µs | VTE CPU |
+| -------------------------------------------- | -----------------------: | -------------------: | ------: |
+| Static, fresh inputs                         |                     71.5 |                  301 |   0.67% |
+| Static, fresh vision and delayed target GNSS |                    327.1 |                  570 |   1.72% |
+| Static, delayed vision and target GNSS       |                    427.0 |                  667 |   2.28% |
+| Moving, fresh inputs                         |                    117.8 |                  813 |   0.87% |
+| Moving, fresh vision and delayed target GNSS |                  1,437.3 |                1,867 |   6.06% |
+
+Each row summarises three 30-second trials; CPU includes position and yaw work, sampled in three approximately 1.2-second `top` windows per trial.
+Fresh inputs have no added delay, but transport and scheduling can still move them across the 20 ms OOSM threshold.
+These are reference measurements, not worst-case timing limits; measure your own board with its expected source rates and delays.
 
 ## Unit Test Suites
 
