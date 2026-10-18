@@ -11,6 +11,7 @@ reported when the tester is closed.
 import datetime
 import json
 import math
+import os
 import threading
 import time
 from dataclasses import dataclass
@@ -45,6 +46,7 @@ MAV_CMD_NAV_TAKEOFF = 22
 MAV_CMD_NAV_VTOL_LAND = 85
 MAV_CMD_DO_JUMP = 177
 MAV_CMD_REQUEST_MESSAGE = 512
+MAV_FRAME_GLOBAL_INT = 5
 MAV_FRAME_GLOBAL_RELATIVE_ALT = 3
 MAV_FRAME_MISSION = 2
 MAV_MISSION_TYPE_MISSION = 0
@@ -56,6 +58,14 @@ MAV_GLOBAL_FRAMES = (0, 3, 5, 6, 10, 11)
 
 MANUAL_CONTROL_RATE_HZ = 50
 OFFBOARD_RATE_HZ = 50
+
+
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def plan_file(name: str) -> str:
+    """Path of a QGC .plan file next to the tests."""
+    return os.path.join(TEST_DIR, name)
 
 
 def raw_mission_item(seq: int, command: int, frame: int, x: int = 0, y: int = 0, z: float = 0.0,
@@ -117,6 +127,7 @@ class AutopilotTester:
         self._telemetry: Any = None
 
         self._home: Optional[Tuple[float, float]] = None
+        self._home_altitude_m: Optional[float] = None
         self._check_altitude_handle: Any = None
 
         self._failures_lock = threading.Lock()
@@ -367,6 +378,9 @@ class AutopilotTester:
     def transition_to_multicopter(self) -> None:
         self._action.transition_to_multicopter()
 
+    def hold(self) -> None:
+        self._action.hold()
+
     # ------------------------------------------------------------------
     # Failure injection
     # ------------------------------------------------------------------
@@ -414,6 +428,7 @@ class AutopilotTester:
             gt = self._telemetry.ground_truth()
             if math.isfinite(gt.latitude_deg) and math.isfinite(gt.longitude_deg):
                 self._home = (float(gt.latitude_deg), float(gt.longitude_deg))
+                self._home_altitude_m = float(gt.absolute_altitude_m)
                 return True
             return False
 
@@ -422,6 +437,10 @@ class AutopilotTester:
     def _home_or_fail(self) -> Tuple[float, float]:
         assert self._home is not None, "store_home() was not called"
         return self._home
+
+    def home_absolute_altitude_m(self) -> float:
+        assert self._home_altitude_m is not None, "store_home() was not called"
+        return self._home_altitude_m
 
     def check_home_within(self, acceptance_radius_m: float) -> None:
         distance_m = self._ground_truth_horizontal_distance_to(*self._home_or_fail())
@@ -614,6 +633,42 @@ class AutopilotTester:
         self._telemetry.set_rate_position_velocity_ned(5)
         self._telemetry.subscribe_position_velocity_ned(check)
 
+    def check_tracks_mission_raw(self, corridor_radius_m: float = 1.0,
+                                 reverse: bool = False) -> None:
+        """Like check_tracks_mission(), for a mission uploaded with MissionRaw."""
+        items = self._mission_raw.download_mission()
+        ct = self.get_coordinate_transformation()
+        waypoints = {item.seq: raw_item_local(item, ct) for item in items}
+
+        def check(position_velocity_ned: Any, _user_data: Any) -> None:
+            progress = self._mission_raw.mission_progress()
+            if not 0 < progress.current < progress.total:
+                return
+            previous = progress.current + 1 if reverse else progress.current - 1
+            position = position_velocity_ned.position
+            distance_m = point_to_line_distance(
+                (position.north_m, position.east_m, position.down_m),
+                waypoints.get(previous, (0.0, 0.0, 0.0)),
+                waypoints.get(progress.current, (0.0, 0.0, 0.0)))
+            self.check_in_callback(
+                distance_m < corridor_radius_m,
+                "Distance to mission track {:.2f} m exceeds {} m".format(
+                    distance_m, corridor_radius_m))
+
+        self._telemetry.set_rate_position_velocity_ned(5)
+        self._telemetry.subscribe_position_velocity_ned(check)
+
+    def check_mission_land_within(self, acceptance_radius_m: float) -> None:
+        """Check that the vehicle is close to the landing item at the end of the mission."""
+        land_item = self._mission_raw.download_mission()[-1]
+        assert land_item.command in (MAV_CMD_NAV_LAND, MAV_CMD_NAV_VTOL_LAND), \
+            "Last mission item is command {}, not a landing".format(land_item.command)
+        distance_m = self._ground_truth_horizontal_distance_to(land_item.x / 1e7,
+                                                               land_item.y / 1e7)
+        assert distance_m < acceptance_radius_m, \
+            "Distance to mission landing {:.2f} m, expected < {} m".format(
+                distance_m, acceptance_radius_m)
+
     def check_mission_item_speed_above(self, item_index: int, min_speed_m_s: float) -> None:
         """Fail the test if the horizontal speed is not above min_speed_m_s while flying to
         mission item item_index."""
@@ -729,10 +784,91 @@ class AutopilotTester:
         return int(self._system.get_system_id())
 
     def send_mavlink_message(self, name: str, fields: Dict[str, Any]) -> None:
+        # NaN is not valid JSON; MAVSDK takes null as NaN for float fields.
+        def nan_to_null(value: Any) -> Any:
+            if isinstance(value, float) and math.isnan(value):
+                return None
+            if isinstance(value, list):
+                return [nan_to_null(v) for v in value]
+            return value
+
+        fields_json = json.dumps({k: nan_to_null(v) for k, v in fields.items()}, allow_nan=False)
         # The sender IDs are filled in by MAVSDK.
         self._mavlink_direct.send_message(MavlinkMessage(
             message_name=name, system_id=0, component_id=0, target_system_id=0,
-            target_component_id=0, fields_json=json.dumps(fields)))
+            target_component_id=0, fields_json=fields_json))
+
+    def send_command_int(self, command: int, param1: float = 0.0, param2: float = 0.0,
+                         param3: float = 0.0, param4: float = 0.0, x: int = 0, y: int = 0,
+                         z: float = 0.0, frame: int = MAV_FRAME_GLOBAL_INT) -> None:
+        """Send a COMMAND_INT once, without waiting for the ack."""
+        self.send_mavlink_message("COMMAND_INT", {
+            "target_system": self._target_system_id(),
+            "target_component": MAV_COMP_ID_AUTOPILOT1,
+            "frame": frame, "command": command, "current": 0, "autocontinue": 0,
+            "param1": param1, "param2": param2, "param3": param3, "param4": param4,
+            "x": x, "y": y, "z": z,
+        })
+
+    # ------------------------------------------------------------------
+    # Position monitors
+    # ------------------------------------------------------------------
+
+    def wait_for_position_ned(self, condition: Callable[[Any], bool], timeout_s: float,
+                              rate_hz: float = 10.0) -> None:
+        """Wait until condition(position_velocity_ned) is true for a telemetry sample. Unlike
+        polling, this sees every sample, so a short crossing cannot be missed."""
+        reached = threading.Event()
+
+        def on_sample(sample: Any, _user_data: Any) -> None:
+            if condition(sample):
+                reached.set()
+
+        self._telemetry.set_rate_position_velocity_ned(rate_hz)
+        handle = self._telemetry.subscribe_position_velocity_ned(on_sample)
+        try:
+            assert self.poll_condition_with_timeout(reached.is_set, timeout_s), \
+                "Position condition not met within {} s".format(timeout_s)
+        finally:
+            self._telemetry.unsubscribe_position_velocity_ned(handle)
+
+    def check_position_ned_for(self, check: Callable[[Any], Optional[str]], duration_s: float,
+                               rate_hz: float = 10.0) -> None:
+        """Run check(position_velocity_ned) on every sample for duration_s. It returns an error
+        message when the check fails, which then fails the test."""
+        def on_sample(sample: Any, _user_data: Any) -> None:
+            error = check(sample)
+            self.check_in_callback(error is None, error or "")
+
+        self._telemetry.set_rate_position_velocity_ned(rate_hz)
+        handle = self._telemetry.subscribe_position_velocity_ned(on_sample)
+        try:
+            self.sleep_for(duration_s)
+        finally:
+            self._telemetry.unsubscribe_position_velocity_ned(handle)
+        self._assert_no_callback_failures()
+
+    def _assert_no_callback_failures(self) -> None:
+        with self._failures_lock:
+            failures = list(self._callback_failures)
+        assert not failures, "{} checks failed, first: {}".format(len(failures), failures[0])
+
+    # ------------------------------------------------------------------
+    # Fixed-wing metrics
+    # ------------------------------------------------------------------
+
+    def enable_fixedwing_metrics(self) -> None:
+        self._telemetry.set_rate_fixedwing_metrics(10.0)
+
+    def check_airspeed_is_valid(self) -> None:
+        # Once the airspeed is invalidated, it is sent as NaN and stays so with the default
+        # parameters.
+        airspeed = self._telemetry.fixedwing_metrics().airspeed_m_s
+        assert math.isfinite(airspeed), "Airspeed is invalid"
+
+    def check_airspeed_is_invalid(self) -> None:
+        airspeed = self._telemetry.fixedwing_metrics().airspeed_m_s
+        assert not math.isfinite(airspeed), "Airspeed {} m/s is still valid".format(airspeed)
 
     # ------------------------------------------------------------------
     # FTP
