@@ -614,9 +614,12 @@ MavlinkParametersManager::send_one()
 		} while (p != PARAM_INVALID && !param_used(p));
 
 		if (p != PARAM_INVALID) {
-			if (send_param(p) != 0) {
-				// No room in the TX buffer: retry this one next time rather
-				// than dropping it silently, the index was already advanced.
+			// send_param() returns 1 when there is no room in the TX buffer
+			// (p is valid here). Retry this one next time rather than dropping
+			// it silently, the index was already advanced. Any other failure
+			// will not clear by retrying, so skip the parameter instead of
+			// stalling the dump on it.
+			if (send_param(p) == 1) {
 				_send_all_index--;
 				return false;
 			}
