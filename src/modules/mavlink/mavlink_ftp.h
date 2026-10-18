@@ -203,10 +203,6 @@ private:
 	 */
 	static const unsigned	kRadioMaxPacketLength = 118;
 
-
-	/// Cap on credit banked while idle, so a pause cannot be spent at once.
-	static const unsigned	kMaxBurstCredit = 512;
-
 	struct SessionInfo {
 		int		fd;
 		uint32_t	file_size;

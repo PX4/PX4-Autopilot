@@ -1223,16 +1223,9 @@ void MavlinkFTP::send()
 	if (datarate > 0) {
 		const hrt_abstime now = hrt_absolute_time();
 
-		if (_last_burst_send == 0) {
-			// First packet of a burst goes out immediately - but only one. The
-			// credit cap below does not apply on this path, and without this
-			// the loop fills the whole UART buffer, a dozen packets back to
-			// back. A SiK radio only fits about three per transmit window and
-			// drops the rest, so every burst used to start by losing several.
-			_last_burst_send = now;
-			max_bytes_to_send = burst_wire_size();
-
-		} else {
+		// The first packet of a burst goes out immediately, after that wait
+		// until the link has earned one.
+		if (_last_burst_send != 0) {
 			// Scaled by the radio's own txbuf feedback, so the burst finds
 			// whatever the link can actually carry: that differs by more than
 			// two to one depending on whether the radio has error correction
@@ -1243,22 +1236,19 @@ void MavlinkFTP::send()
 			// would count the reduction twice and starve the burst into the
 			// client's inter-packet timeout.
 			const float rate = (float)datarate * _mavlink.bulk_bandwidth_share() * _mavlink.radio_status_mult();
-			uint64_t credit = (uint64_t)(((float)(now - _last_burst_send) * rate) / 1000000.0f);
+			const float credit = (float)(now - _last_burst_send) * rate / 1e6f;
 
-			if (credit > kMaxBurstCredit) {
-				credit = kMaxBurstCredit;
-			}
-
-			if (credit < burst_wire_size()) {
+			if (credit < (float)burst_wire_size()) {
 				return;
 			}
-
-			if ((uint64_t)max_bytes_to_send > credit) {
-				max_bytes_to_send = (unsigned)credit;
-			}
-
-			_last_burst_send = now;
 		}
+
+		// Exactly one packet per call, never a batch. Otherwise the loop below
+		// fills the whole UART buffer, a dozen packets back to back. A SiK
+		// radio only fits about three per transmit window and drops the rest.
+		// Credit is not banked either, so a pause cannot be spent at once.
+		_last_burst_send = now;
+		max_bytes_to_send = burst_wire_size();
 	}
 
 	// Send stream packets until buffer is full
