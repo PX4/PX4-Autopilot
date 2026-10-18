@@ -1871,6 +1871,13 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			return;
 		}
 
+		// A non-finite thrust setpoint stops the motors on that axis (see VehicleThrustSetpoint.msg), so drop the
+		// whole message for the same reason as an unusable attitude.
+		if ((thrust_body && !matrix::Vector3f(attitude_target.thrust_body).isAllFinite())
+		    || (!thrust_body && thrust && !PX4_ISFINITE(attitude_target.thrust))) {
+			return;
+		}
+
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
 
