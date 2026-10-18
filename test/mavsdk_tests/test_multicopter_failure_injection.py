@@ -40,6 +40,9 @@ def take_off_and_hover_for_motor_failure(tester: AutopilotTester) -> None:
     tester.wait_until_hovering()
     tester.wait_until_altitude(FLIGHT_ALTITUDE_M, 30)
     tester.wait_until_speed_lower_than(HOVER_SPEED_TOLERANCE_M_S, 30)
+    # Both waits pass while the vehicle is still slowing down at the top of the climb. Let it
+    # settle, so the altitude reference for the failure is the hover altitude, not mid-climb.
+    tester.sleep_for(5)
 
 
 def fail_and_restore_motor(tester: AutopilotTester, failure_type: FailureType,
