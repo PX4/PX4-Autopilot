@@ -552,18 +552,22 @@ public:
 	bool ftp_burst_active() const { return _ftp_burst_active.load(); }
 	void set_ftp_burst_active(bool active) { _ftp_burst_active.store(active); }
 
+	bool log_download_active() const { return _log_download_active.load(); }
+	void set_log_download_active(bool active) { _log_download_active.store(active); }
+
 	/**
 	 * Share of the link budget that bulk transfers may use between them.
-	 * A parameter dump and an FTP burst each get a part of this, never one
-	 * each, or the two of them together leave the streams nothing.
+	 * A parameter dump, an FTP burst and a log download each get a part of
+	 * this, never one each, or together they leave the streams nothing.
 	 */
 	static constexpr float kBulkBandwidthShare = 0.5f;
 
 	/**
-	 * Share of the link budget for one bulk transfer, which is the whole
-	 * bulk share split between the transfers that are running.
+	 * Number of bulk transfers currently paced against the bulk share. An
+	 * FTP burst and a log download only count behind a radio, which is the
+	 * only case where they are paced at all.
 	 */
-	float bulk_bandwidth_share() const
+	unsigned active_bulk_transfers() const
 	{
 		unsigned active = 0;
 
@@ -571,10 +575,26 @@ public:
 			++active;
 		}
 
-		if (ftp_burst_active() && radio_status_available()) {
-			++active;
+		if (radio_status_available()) {
+			if (ftp_burst_active()) {
+				++active;
+			}
+
+			if (log_download_active()) {
+				++active;
+			}
 		}
 
+		return active;
+	}
+
+	/**
+	 * Share of the link budget for one bulk transfer, which is the whole
+	 * bulk share split between the transfers that are running.
+	 */
+	float bulk_bandwidth_share() const
+	{
+		const unsigned active = active_bulk_transfers();
 		return (active > 1) ? (kBulkBandwidthShare / (float)active) : kBulkBandwidthShare;
 	}
 
@@ -651,6 +671,7 @@ private:
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
 	px4::atomic_bool	_ftp_burst_active{false};       /**< True while an FTP burst is streaming */
+	px4::atomic_bool	_log_download_active{false};    /**< True while LOG_DATA is streaming */
 	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};

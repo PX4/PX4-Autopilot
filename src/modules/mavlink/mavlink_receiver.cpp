@@ -4118,6 +4118,7 @@ MavlinkReceiver::run()
 			}
 
 			_mavlink_log_handler.send();
+			_mavlink.set_log_download_active(_mavlink_log_handler.sending_data());
 			_mavlink.unlock_send();
 			last_send_update = t;
 		}
