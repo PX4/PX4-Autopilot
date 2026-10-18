@@ -140,11 +140,6 @@ def predictState(dt: sf.Scalar, state: VState) -> VState:
     return state_to_matrix(predict_state_with_input(dt, state_values, sf.S(0)))
 
 
-def getTransitionMatrix(dt: sf.Scalar) -> MState:
-    Phi, _ = get_Phi_and_G(dt)
-    return Phi
-
-
 def derive_discrete_process_noise(dt: sf.Scalar, yaw_acc_var: sf.Scalar) -> MState:
     tau = sf.Symbol("tau")
     _, G_tau = get_Phi_and_G(tau)
@@ -170,5 +165,4 @@ def predictCov(dt: sf.Scalar, yaw_acc_var: sf.Scalar, covariance: MState) -> MSt
 
 print("Derive VTEST orientation equations...")
 generate_px4_function(predictState, output_names=["predict_state"])
-generate_px4_function(getTransitionMatrix, output_names=["transition_matrix"])
 generate_px4_function(predictCov, output_names=["cov_updated"])
