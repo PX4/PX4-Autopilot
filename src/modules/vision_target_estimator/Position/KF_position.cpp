@@ -48,7 +48,6 @@
 #include <vtest_derivation/generated/predictCov.h>
 #include <vtest_derivation/generated/computeInnovCov.h>
 #include <vtest_derivation/generated/applyCorrection.h>
-#include <vtest_derivation/generated/getTransitionMatrix.h>
 
 namespace vision_target_estimator
 {
@@ -69,11 +68,6 @@ void KF_position::predict(float dt, float acc_uav)
 
 	_state = state_next;
 	_state_covariance = cov_next;
-}
-
-KF_position::SquareMatrixState KF_position::getTransitionMatrix(float dt) const
-{
-	return sym::Gettransitionmatrix(dt);
 }
 
 void KF_position::predictState(float dt, float acc,

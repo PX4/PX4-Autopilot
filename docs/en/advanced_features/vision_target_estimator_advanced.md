@@ -416,170 +416,62 @@ If the yaw state ends up oscillating, the [Orientation Filter case study](#orien
 ## Time Alignment
 
 Vision and GNSS observations can arrive delayed due to transport and processing latency.
-The position and orientation filters therefore support an **Out-of-Sequence Measurements (OOSM)** approximation which uses a **history-consistent projected correction** strategy.
-
-Open the algorithm below if you need the exact six-step recipe (retrieve, predict, innovate, correct, project, apply) used to fuse a delayed sample against the historical state.
+The position and orientation filters handle out-of-sequence measurements (OOSM) by replaying subsequent accepted observations in timestamp order.
+For example, vision captured at 160 ms may already be fused when GNSS captured at 100 ms arrives.
+The filter fuses GNSS at the earlier time, then recalculates the vision update before returning to the present.
 
 <a id="oosm-implementation"></a>
 
-::: details Click to view OOSM algorithm steps
+### OOSM Implementation
 
-Each filter maintains a fixed-size ring buffer of recent state snapshots spanning roughly the last half second of operation (25 samples ≈ 0.5 s at 50 Hz).
-For the position filter the snapshot stores $(t, x, P, a^{uav})$; for the orientation filter it stores $(t, x, P)$.
-When a delayed scalar measurement arrives with timestamp $t_{meas}$:
+Each filter retains up to 25 post-update snapshots of the time, state, covariance and prediction input.
+At 50 Hz, 25 snapshots span 480 ms from oldest to newest.
+Delayed observations update these snapshots without adding extra snapshots or shortening that window.
+A separate fixed-size buffer stores up to 100 accepted scalar observations, including their measurement matrix and variance.
 
-1. **Retrieve**: fetch the closest:
-   $(x_{old}, P_{old}, a^{uav}_{old})$ before $t_{meas}$.
+For a delayed observation:
 
-   $$
-   t_{old} ≤ t_{meas}
-   $$
+1. Find the newest snapshot at or before its capture time.
+2. Predict to the capture time using the recorded control input, replaying any accepted observations along the way.
+3. Compute the innovation, innovation variance and NIS gate at that time.
+4. If accepted, apply the ordinary scalar Kalman update.
+5. Replay later predictions and accepted observations in time order, recalculating every gain from the updated covariance.
+6. Replace the snapshots at or after the capture time and the live state with the replayed posteriors.
 
-2. **Predict**: use the KF model to predict the state $(x_{meas}, P_{meas})$ using $\Delta t = t_{meas} - t_{old}$ (for the orientation filter the control-input term is omitted).
+Each prediction advances the state and covariance using the transition matrix $\Phi$, control input $u$, input matrix $G$, and process noise $Q$:
 
-   $$
-   \begin{aligned}
-     x_{meas} &= \Phi(\Delta t)\,x_{old} + G\,a^{uav}_{old} \\
-     P_{meas} &= \Phi(\Delta t)\,P_{old}\,\Phi^T(\Delta t) + Q_d(\Delta t)
-   \end{aligned}
-   $$
+$$
+x' = \Phi x + Gu, \qquad P' = \Phi P \Phi^T + Q
+$$
 
-3. **Innovate**: compute the innovation $y$ and innovation variance $S$:
-
-   $$
-   \begin{aligned}
-   y &= z - H\,x_{meas} \\
-   S &= H\,P_{meas}\,H^T + R
-   \end{aligned}
-   $$
-
-4. **Correct**: compute the optimal correction vector:
-
-   $$
-   \begin{aligned}
-     \delta x_{meas} &= K\,y \\
-     K &= P_{meas}\,H^T\,S^{-1}
-   \end{aligned}
-   $$
-
-5. **Project**: project this correction forward with the state transition matrix $\Phi(\Delta t)$:
-
-   $$
-   \delta x(t) = \Phi(t - t_{meas})\thinspace \delta x_{meas} = \Phi(t - t_{meas})\thinspace Ky
-   $$
-
-6. **Apply**: apply the projected correction to the current live state _and_ to every stored history sample $i$ that occurred after $t_{meas}$, i.e. $t_{i} > t_{meas}$.
-   The corrected posterior at $t_{meas}$ is also written back into the history (replacing or inserting a sample at that timestamp), so a second delayed measurement in the same interval replays from the already-corrected state instead of from the stale pre-measurement floor.
-
-   $$
-   \begin{aligned}
-   K_{i} &= \Phi(t_{i} - t_{meas})\,K \\
-   x_{i} &= x_{i} + K_{i}\,y \\
-   P_{i} &= P_{i} - K_{i}\,S\,K_{i}^T
-   \end{aligned}
-   $$
-
-Updating the history buffer keeps it self-consistent for subsequent delayed measurements.
-This gives the practical benefits of a lag-smoother while staying deterministic (fixed buffer, bounded runtime), without running a full backward smoother over the timeline.
-
-The state prediction includes the control input, $x_{k+1} = \Phi x_k + G u_k$.
-When projecting the correction forward, the $Gu_{k}$ term does not need to be used explicitly because it cancels out:
+The ordinary scalar update is:
 
 $$
 \begin{aligned}
-(x'_{k+1} - x_{k+1}) &= (\Phi\,x'_k + G\,u_k) - (\Phi\,x_k + G\,u_k) \\
-\Delta x_{k+1} &= \Phi\,(x'_k - x_k) = \Phi\,\Delta x_k
+y &= z - Hx \\
+S &= HPH^T + R \\
+K &= PH^T S^{-1} \\
+x^+ &= x + Ky \\
+P^+ &= P - KSK^T
 \end{aligned}
 $$
 
-:::
+Replaying subsequent updates preserves their information, including their effect on position/bias cross-covariance.
+A correction projected through dynamics alone does not account for newer measurements having already reduced the covariance and can make it indefinite.
 
-### OOSM Approximation Assumptions
+Previously accepted observations remain accepted during replay: their innovation and gain are recalculated, but their original gate decisions and published diagnostic messages are not revised.
+Rejected observations are not retained or reconsidered.
+The result therefore matches chronological fusion of the accepted observations at their effective fusion times; it does not promise arrival-order-independent outlier decisions.
+Prediction uses the stored piecewise-constant control inputs and current process-noise settings.
 
-Two approximations make the algorithm above tractable on an autopilot.
+Observations less than 20 ms from the current time retain the direct-update path and are recorded at the effective fusion time (now).
+Observations outside the available history or the 500 ms maximum delay are rejected.
+Accepted observations older than the oldest retained posterior can be discarded because that posterior already contains their information.
+If the observation buffer fills, history restarts from the live posterior: the state is preserved, but older delayed observations are rejected until history accumulates again.
 
-- First, the OOSM gain is treated as the standard Kalman gain at the measurement time, propagated forward by the state transition matrix.
-- Second, the past-state estimate is taken from the stored snapshot rather than from a full backward smoother over all intermediate measurements.
-
-::: details Click to view OOSM mathematical proofs
-
-The notation follows _Zhang et al., Optimal Update with Out-of-Sequence Measurements_.
-
-In Algorithm I of the paper, the optimal gain for an Out-of-Sequence Measurement depends on $U_{k,d}$, the cross-covariance between the current state $x_k$ and the past-state error $\tilde{x}_{d|k}$:
-
-$$
-\begin{aligned}
-\hat{x}_{k|k,d} &= \hat{x}_{k|k} + K_d\,(z_d - H_d\,\hat{x}_{d|k}) \\
-K_d &= U_{k,d}\,H_d^T\,S_d^{-1}
-\end{aligned}
-$$
-
-With the optimal recursion (Eq. 5):
-
-$$
-U_{n+1,d} = (I - K_{n+1} H_{n+1})\,F_{n+1,n}\,U_{n,d}
-$$
-
-$F_{n+1,n}$ propagates the correlation forward in time based on system dynamics.
-$(I - K_{n+1}H_{n+1})$ reduces the correlation based on the information gained from intermediate measurements processed between $t_d$ and $t_k$.
-
-#### First approximation: projected gain
-
-To avoid the computational complexity and storage required to track every intermediate gain $K_n$ and measurement matrix $H_n$, the implementation approximates the cross-covariance term.
-The reduction in correlation due to intermediate updates is assumed negligible for the purpose of the OOSM projection.
-Mathematically:
-
-$$
-(I - K_{n}H_{n}) \approx I
-$$
-
-Under this assumption, the recursion in Eq. (5) simplifies to pure dynamic propagation:
-
-$$U_{n+1,d} \approx F_{n+1,n}\,U_{n,d}$$
-
-Iterating this from the measurement time $d$ to the current time $k$, and recognising that the initial cross-covariance $U_{d,d}$ corresponds to the prediction covariance $P_{d|d-1}$ (or $P_{d|k-l}$ in the paper's notation, Eq. 6):
-
-$$U_{k,d} \approx F_{k,d}\,U_{d,d} \approx \Phi_{k,d}\,P_{d|d-1}$$
-
-Substituting back into the gain formula:
-
-$$K_d \approx (\Phi_{k,d}\,P_{d|d-1})\,H_d^T\,S_d^{-1}$$
-
-Since the standard Kalman gain at time $d$ is $K = P_{d|d-1}\,H_d^T\,S_d^{-1}$, the OOSM gain simplifies to:
-
-$$K_d \approx \Phi_{k,d}\,K$$
-
-This justifies the "Project" step in the implementation: the correction vector is computed from the snapshot at $t_{meas}$ and propagated forward by the state transition matrix $\Phi(\Delta t)$ ($F_{k,d}$), ignoring the coupling from intermediate measurements that the optimal recursion accounts for.
-The storage cost drops from $O(N)$ matrices to a fixed-size circular buffer of snapshots, and the correction stays consistent with the system's motion model.
-
-#### Second approximation: stored prediction instead of full smoothing
-
-The paper's globally optimal update uses the smoothed past-state estimate and covariance.
-
-- **Optimal innovation.** The innovation in Eq. (3) is
-
-  $$\tilde{z}_{d|k} = z_d - H_d\,\hat{x}_{d|k}$$
-
-  where $\hat{x}_{d|k}$ is the estimate of the state at time $d$ conditioned on all measurements up to time $k$.
-
-- **Optimal covariance.** The innovation covariance $S_d$ in Eq. (4) uses $P_{d|k}$, the error covariance at time $d$ given all data up to $k$.
-
-The current implementation calculates the innovation using a snapshot retrieved from history ($x_{old}$) and predicted to the measurement time ($x_{meas}$).
-Since this snapshot was saved before the subsequent measurements $z_{d+1}, \dots, z_k$ were processed, it only contains information available up to time $d$.
-
-- **State approximation.** The predicted state $\hat{x}_{d|d^-}$ (or filtered state $\hat{x}_{d|d}$) is substituted for the smoothed state:
-
-  $$\hat{x}_{d|k} \approx \hat{x}_{d|d^-}$$
-
-- **Covariance approximation.** Similarly, $S$ is calculated using $P_{meas}$ (which is $P_{d|d^-}$), substituting the prediction covariance for the smoothed covariance:
-
-  $$P_{d|k} \approx P_{d|d^-}$$
-
-Calculating the exact $\hat{x}_{d|k}$ and $P_{d|k}$ would require the backward-smoothing machinery described in Section 4.1 of the paper, which means storing every intermediate measurement and transition matrix.
-The stored snapshot avoids that overhead.
-The approximation assumes that the measurements received between $t_{meas}$ and $t_{now}$ would not have significantly altered the estimate at $t_{meas}$ had they been available.
-
-:::
+Both storage and replay work are bounded.
+The observation buffer is owned by the filter rather than copied onto the work-queue stack.
+The extra memory and replay cost must be included in target-board resource measurements; timings measured for the earlier projected-correction implementation do not establish the cost of replay.
 
 ## Moving-target Mode (experimental)
 
@@ -727,7 +619,7 @@ Two additional fields make latency tractable without manual timestamp arithmetic
 
 - `time_since_meas_ms = (time_last_predict - timestamp_sample) * 1e-3`.
   Negative values mean the measurement is timestamped after the latest prediction (i.e. the filter has not caught up yet).
-- `history_steps` is non-zero only for `STATUS_FUSED_OOSM` and tells you how many 20 ms snapshots were replayed when projecting the correction forward.
+- `history_steps` is non-zero only for `STATUS_FUSED_OOSM` and tells you how many retained snapshots were recomputed during replay.
 
 ### Main Input Feeds
 
@@ -1249,10 +1141,10 @@ After regenerating, rebuild the module to ensure the Jacobians and code stay in 
 
 ## Runtime Performance on Hardware
 
-Even with ~500 ms induced latency on every measurement the estimator stays inside its 20 ms loop budget on a Pixhawk 6c.
-Expand below for the full per-counter breakdown (baseline vs. delayed runs).
+Measure the estimator with the expected observation rates and delays to check its runtime against the 20 ms loop budget.
+Expand below for historical per-counter measurements of the earlier projected-correction implementation.
 
-::: details Click to view Pixhawk 6c performance expectations
+::: details Historical Pixhawk 6c Measurements
 
 The estimator publishes per-section perf counters that can be read at any time on the shell:
 
@@ -1270,9 +1162,11 @@ Six counters cover the vision target estimator:
 | `VTE cycle yaw`  | The orientation-filter part (same scope, for `VTEOrientation`).                                                                                                          |
 | `VTE prediction` | Just the Kalman prediction inside the position filter: `Predictstate` + `Predictcov` plus OOSM history.                                                                  |
 | `VTE update`     | The full update step in the position filter, including measurement validation, frame transforms, fusion calls for every active aid source, and OOSM history maintenance. |
-| `VTE fusion`     | Just the per-axis fusion inside an update: innovation, gating, gain projection, and history correction. This is where OOSM scales with `history_steps`.                  |
+| `VTE fusion`     | Just the per-axis fusion inside an update: innovation, gating, and chronological history replay. Cost depends on both retained snapshots and accepted observations.      |
 
 The numbers below come from a Pixhawk 6c running the static-target filter (`vte_aid_fiducial_marker` + `vte_aid_gps_pos_target` + `vte_aid_gps_vel_uav`) at the default 50 Hz cadence.
+They were recorded before chronological replay was implemented and do not establish its runtime or worst-case cost.
+Repeat these measurements on the target board when evaluating replay performance.
 
 **Baseline (no injected delay):**
 
@@ -1296,24 +1190,14 @@ VTE cycle yaw:  32850 events,  274433us elapsed,   8.35us avg, min  1us max  86u
 VTE cycle pos:  32861 events, 2703185us elapsed,  82.26us avg, min 10us max 479us 96.704us rms
 ```
 
-How to read these:
-
-- **`VTE prediction` stays constant** (~5.7 us).
-  Predictions do a fixed amount of math regardless of measurement latency.
-- **`VTE fusion` jumps from ~14 us to ~58 us** (≈ 4× increase).
-  This is the OOSM cost: the projection step touches every history sample after `t_meas`, so the runtime grows roughly linearly in `history_steps`.
-  With ~20 history steps the per-fusion cost is still well under 100 us on average.
-- **`VTE update` follows the same trend** (~46 us → ~178 us) since it wraps multiple fusion calls.
-  The worst-case (~300 us) corresponds to a cycle where every aid source hits the OOSM path.
-- **`VTE cycle pos` (~43 us → ~82 us)** confirms the same behaviour at the cycle level.
-  A full position cycle still completes in well under 0.5 ms even in the worst case, which is small relative to the 20 ms (50 Hz) loop budget.
-- **`VTE cycle ` and `VTE cycle yaw` see only minor changes**: these counters are dominated by lightweight scheduling and yaw-only fusion that does not involve OOSM history projection.
+In these historical runs, average fusion time increased from about 14 us to 58 us with delay, while average prediction time remained about 5.7 us.
+Replay additionally recalculates accepted measurement updates, so these timings cannot be used to infer its cost.
 
 A few things to keep in mind when interpreting your own numbers:
 
 - The total `VTE cycle ` event count is roughly five times the `VTE cycle pos` count because `Run()` is woken on every input topic update, but the position estimator only ticks at 50 Hz.
-- `history_steps` saturates at the buffer depth (`kOosmHistorySize = 25`).
-  If you see it pinned at 25 in the logs, the measurement is older than 500 ms and is being rejected as `STATUS_REJECT_TOO_OLD` rather than fused.
+- `history_steps` counts snapshots recomputed after a delayed observation; it does not count replayed observations or report rejected sample age.
+  Use `fusion_status` and `time_since_meas_ms` to identify observations rejected as too old.
 
 :::
 

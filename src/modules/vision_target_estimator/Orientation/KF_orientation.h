@@ -78,9 +78,8 @@ public:
 	void predict(float dt);
 
 	// Primary Fusion Interface (history-consistent OOSM)
-	// Projected correction OOSM approximation:
-	// - Most accurate with bounded delays and when fusions are processed in timestamp order (oldest -> newest).
-	// - Does not replay intermediate measurement updates (unlike EKF2's delayed fusion horizon).
+	// Delayed observations are fused at their timestamp and subsequent accepted observations
+	// are replayed in timestamp order, recomputing their Kalman gains.
 	// Returns FusionResult describing the result for logging.
 	FusionResult fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold);
 
@@ -103,8 +102,6 @@ public:
 	void setYawAccVar(float var) { _yaw_acc_var = var; }
 
 private:
-	SquareMatrixState getTransitionMatrix(float dt) const;
-
 	void predictState(float dt, const EmptyInput &input,
 			  const VectorState &x_in,
 			  const SquareMatrixState &P_in,
