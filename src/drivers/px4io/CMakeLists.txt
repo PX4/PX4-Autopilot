@@ -47,6 +47,7 @@ px4_add_module(
 		button_publisher
 		circuit_breaker
 		mixer_module
+		px4io_protocol
 	)
 
 # include the px4io binary in ROMFS
