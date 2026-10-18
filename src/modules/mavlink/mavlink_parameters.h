@@ -99,12 +99,6 @@ public:
 	 */
 	bool sending_all() const { return _send_all_index >= 0; }
 
-	/**
-	 * Share of the link budget a full parameter dump is allowed to use.
-	 *
-	 * The remainder stays available for the regular streams, which yield via
-	 * Mavlink::update_rate_mult().
-	 */
 	// The share of the link budget a dump may use is decided by Mavlink, which
 	// splits it with an FTP burst when both are running.
 
@@ -125,12 +119,6 @@ protected:
 	/// @return true if a parameter was sent
 	bool send_one();
 
-	/**
-	 * Minimum interval between two PARAM_VALUE messages of a full parameter dump.
-	 *
-	 * Derived from the configured link data rate so that the dump cannot exceed
-	 * its share of the link budget.
-	 */
 	/**
 	 * Take one parameter message worth of budget, if the link has earned it
 	 * since the last one went out. Credit accumulates, so a link with room to

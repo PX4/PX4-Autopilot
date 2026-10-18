@@ -64,21 +64,16 @@ public:
 	/// Handle possible FTP message
 	void handle_message(const mavlink_message_t *msg);
 
-	/// Share of the link budget a burst download may use, the rest stays for
-	/// the regular streams.
-	static constexpr float	kBurstBandwidthShare = 0.5f;
-
 	/// True while a burst download is streaming out.
 	bool burst_active() const { return _session_info.stream_download; }
 
-	/// Burst payload to use for this link.
-	/// On-wire size of one burst packet on this link.
 	/// Framing overhead of one FTP reply, signature block included.
 	unsigned packet_overhead() const;
 
 	/// Reduce a requested payload to what the link carries in one piece.
 	unsigned radio_clamped_length(unsigned requested) const;
 
+	/// Burst payload to use for this link.
 	unsigned burst_data_length() const;
 
 	/// On-wire size of one burst packet on this link.

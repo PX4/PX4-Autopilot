@@ -1604,26 +1604,25 @@ Mavlink::update_rate_mult()
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
 	}
 
-	/* While a full parameter dump is running, reserve its share of the budget
-	 * so that the streams yield instead of the two of them together
-	 * over-subscribing the link. Where there is spare bandwidth this changes
-	 * nothing: bandwidth_mult is capped at 1.0 further down either way. */
 	/* Reserve the bulk share whenever a parameter dump or a paced FTP burst is
-	 * running. Both of them pace themselves against bulk_bandwidth_share(),
-	 * which splits this between them, so reserving it once is what they will
-	 * actually use together. An FTP burst only counts behind a radio, which is
-	 * the only case where it is paced at all. */
-	float param_dump_rate = 0.0f;
+	 * running, so that the streams yield instead of all of them together
+	 * over-subscribing the link. Both transfers pace themselves against
+	 * bulk_bandwidth_share(), which splits this between them, so reserving it
+	 * once is what they will actually use together. An FTP burst only counts
+	 * behind a radio, which is the only case where it is paced at all. Where
+	 * there is spare bandwidth this changes nothing: bandwidth_mult is capped
+	 * at 1.0 further down either way. */
+	float bulk_rate = 0.0f;
 
 	if (sending_all_parameters() || (ftp_burst_active() && radio_status_available())) {
-		param_dump_rate = (float)_datarate * kBulkBandwidthShare;
+		bulk_rate = (float)_datarate * kBulkBandwidthShare;
 	}
 
 	/* scale up and down as the link permits, nothing to scale without variable rate streams */
 	float bandwidth_mult = 1.0f;
 
 	if (rate > 0.0f) {
-		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate - param_dump_rate) / rate;
+		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate - bulk_rate) / rate;
 	}
 
 	/* Reduce rate while sending parameters in low bandwidth mode */
