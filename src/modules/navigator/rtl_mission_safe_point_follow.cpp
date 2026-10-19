@@ -464,38 +464,15 @@ void RtlMissionSafePointFollow::setGoalArrivalMissionItem(mission_item_s &missio
 	arrival.buildMissionItem(*this, mission_item, config, _vehicle_status_sub.get());
 }
 
-void RtlMissionSafePointFollow::setGoalMoveMissionItem(mission_item_s &mission_item) const
-{
-	RtlArrival arrival;
-	arrival.startRouteArrival(false);
-	setGoalArrivalMissionItem(mission_item, arrival);
-}
-
-void RtlMissionSafePointFollow::setGoalApproachMissionItem(mission_item_s &mission_item) const
-{
-	RtlArrival arrival;
-	arrival.startRouteArrival(true);
-	setGoalArrivalMissionItem(mission_item, arrival);
-}
-
-void RtlMissionSafePointFollow::setGoalHoldMissionItem(mission_item_s &mission_item) const
-{
-	RtlArrival arrival;
-	arrival.startRouteArrival(true);
-	arrival.advance(_vehicle_status_sub.get(), _param_rtl_land_delay.get());
-	setGoalArrivalMissionItem(mission_item, arrival);
-}
-
 void RtlMissionSafePointFollow::setGoalMissionItem(mission_item_s &mission_item) const
 {
 	if (goalIsMissionLanding()) {
 		setLandMissionItem(mission_item);
 
-	} else if (useGoalLandApproach()) {
-		setGoalApproachMissionItem(mission_item);
-
 	} else {
-		setGoalMoveMissionItem(mission_item);
+		RtlArrival arrival;
+		arrival.startRouteArrival(useGoalLandApproach());
+		setGoalArrivalMissionItem(mission_item, arrival);
 	}
 }
 

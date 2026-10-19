@@ -49,7 +49,7 @@ public:
 		Move,
 		Descend,
 		Hold,
-		Land
+		Land // Arrival is complete; the caller executes the landing.
 	};
 
 	struct ItemConfig {
@@ -65,9 +65,9 @@ public:
 	};
 
 	struct EstimateContext {
-		matrix::Vector2d direction_origin;
-		float approach_altitude;
-		float remaining_wait;
+		matrix::Vector2d direction_origin; // Flight direction origin; direct RTL may use the last avoidance waypoint.
+		float approach_altitude; // Route altitude for the horizontal leg before the separate descent.
+		float remaining_wait; // Full configured delay for direct RTL, elapsed time removed for route arrival.
 		uint8_t vehicle_type;
 		bool include_descent_and_hold;
 	};
