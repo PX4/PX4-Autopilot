@@ -525,8 +525,12 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		start_state_for_estimate = getActivationState();
 	}
 
-	const RtlArrival::Phase arrival_phase = isActive() && start_state_for_estimate == RTLState::ARRIVAL
-						? _arrival.phase() : RtlArrival::Phase::Move;
+	RtlArrival arrival;
+	arrival.startDirectReturn();
+
+	if (isActive() && start_state_for_estimate == RTLState::ARRIVAL) {
+		arrival = _arrival;
+	}
 
 	// Calculate return time estimate only when there is a valid destination
 	// TODO: Also check if vehicle position is valid
@@ -563,32 +567,24 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 		// FALLTHROUGH
 		case RTLState::ARRIVAL: {
-				if (arrival_phase == RtlArrival::Phase::Move) {
-					matrix::Vector2f direction{};
-					get_vector_to_next_waypoint(pos_before_loiter(0), pos_before_loiter(1),
-								    land_approach.lat, land_approach.lon, &direction(0), &direction(1));
+				const RtlArrival::ItemConfig config{
+					.approach = land_approach,
+					.transit_altitude = _rtl_alt,
+					.land_delay = _param_rtl_land_delay.get()
+				};
+				const RtlArrival::EstimateContext context{
+					.direction_origin = pos_before_loiter,
+					.approach_altitude = _rtl_alt,
+					.remaining_wait = _param_rtl_land_delay.get(),
+					.vehicle_type = _vehicle_status_sub.get().vehicle_type,
+					.include_descent_and_hold = true
+				};
+				RtlArrival::EstimateState estimate_state{
+					.position = matrix::Vector2d{_global_pos_sub.get().lat, _global_pos_sub.get().lon},
+					.altitude = _global_pos_sub.get().alt
+				};
 
-					float move_to_land_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon)};
-
-					if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-						move_to_land_dist = max(0.f, move_to_land_dist - land_approach.loiter_radius_m);
-					}
-
-					_rtl_time_estimator.addDistance(move_to_land_dist, direction, 0.f);
-				}
-
-				if (arrival_phase == RtlArrival::Phase::Move || arrival_phase == RtlArrival::Phase::Descend) {
-					// Use live altitude during descent, otherwise the return altitude.
-					const float initial_altitude = arrival_phase == RtlArrival::Phase::Descend
-								       ? _global_pos_sub.get().alt : _rtl_alt;
-					_rtl_time_estimator.addVertDistance(loiter_altitude - initial_altitude);
-				}
-
-				// Preserve direct RTL's full-delay estimate during the hold.
-				_rtl_time_estimator.addWait(_param_rtl_land_delay.get());
-
-				if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
-					// Indefinite hold: estimate only to the hold, without landing.
+				if (!arrival.addTimeEstimate(_rtl_time_estimator, config, context, estimate_state)) {
 					break;
 				}
 			}

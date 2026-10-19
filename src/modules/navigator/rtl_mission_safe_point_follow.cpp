@@ -947,32 +947,39 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 					    || fabsf(_param_rtl_land_delay.get()) > FLT_EPSILON;
 
 		const bool holding = !inactive && stage == Stage::Arrival && _arrival.phase() == RtlArrival::Phase::Hold;
+		float remaining_wait = _param_rtl_land_delay.get();
 
-		if (!holding) {
-			// Approach horizontally before descending, as the destination stages do.
-			const float approach_altitude = !inactive && stage == Stage::Arrival && _arrival.phase() == RtlArrival::Phase::Descend
-							&& current_setpoint.valid
-							? current_setpoint.alt : arrival_altitude;
-			add_leg(approach.lat, approach.lon, approach_altitude);
-
-			if (hold_requested) {
-				add_leg(approach.lat, approach.lon, approach.height_m);
-			}
+		if (holding && remaining_wait > 0.f && _time_wp_reached != 0) {
+			remaining_wait = math::max(0.f, remaining_wait - hrt_elapsed_time(&_time_wp_reached) * 1e-6f);
 		}
 
-		if (hold_requested) {
-			float remaining_wait = _param_rtl_land_delay.get();
+		RtlArrival arrival = _arrival;
 
-			if (holding && remaining_wait > 0.f && _time_wp_reached != 0) {
-				remaining_wait = math::max(0.f, remaining_wait - hrt_elapsed_time(&_time_wp_reached) * 1e-6f);
-			}
+		if (inactive || stage != Stage::Arrival) {
+			arrival.startRouteArrival(use_approach);
+		}
 
-			_rtl_time_estimator.addWait(remaining_wait);
+		const RtlArrival::ItemConfig config{
+			.approach = approach,
+			.transit_altitude = arrival_altitude,
+			.land_delay = _param_rtl_land_delay.get()
+		};
+		const RtlArrival::EstimateContext context{
+			.direction_origin = hor_pos,
+			.approach_altitude = !inactive && stage == Stage::Arrival
+			&& _arrival.phase() == RtlArrival::Phase::Descend && current_setpoint.valid
+			? current_setpoint.alt : arrival_altitude,
+			.remaining_wait = remaining_wait,
+			.vehicle_type = estimated_vehicle_type,
+			.include_descent_and_hold = hold_requested
+		};
+		RtlArrival::EstimateState arrival_state{hor_pos, altitude};
+		const bool landing_remains = arrival.addTimeEstimate(_rtl_time_estimator, config, context, arrival_state);
+		hor_pos = arrival_state.position;
+		altitude = arrival_state.altitude;
 
-			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
-				// Like direct RTL, estimate time to the indefinite hold rather than a landing.
-				return;
-			}
+		if (!landing_remains) {
+			return;
 		}
 
 		// Fly the landing approach in the arrival mode, then descend as MC for VTOL.
