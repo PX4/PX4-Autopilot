@@ -65,6 +65,8 @@ void CombinedControllerConfigurationHandler::update(const hrt_abstime now)
 
 	_lateral_updated |= floatValueChanged(_lateral_configuration_current_cycle.lateral_accel_max,
 					      _lateral_publisher.get().lateral_accel_max);
+	_lateral_updated |= floatValueChanged(_lateral_configuration_current_cycle.skid_ratio,
+					      _lateral_publisher.get().skid_ratio);
 
 	if (_longitudinal_updated || now - _time_last_longitudinal_publish > 1_s) {
 		_longitudinal_configuration_current_cycle.timestamp = now;
@@ -126,6 +128,11 @@ void CombinedControllerConfigurationHandler::setSinkRateTarget(const float sinkr
 void CombinedControllerConfigurationHandler::setLateralAccelMax(float lateral_accel_max)
 {
 	_lateral_configuration_current_cycle.lateral_accel_max = lateral_accel_max;
+}
+
+void CombinedControllerConfigurationHandler::setSkidRatio(float skid_ratio)
+{
+	_lateral_configuration_current_cycle.skid_ratio = skid_ratio;
 }
 
 void CombinedControllerConfigurationHandler::setEnforceLowHeightCondition(bool low_height_condition)

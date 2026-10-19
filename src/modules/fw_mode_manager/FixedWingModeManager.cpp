@@ -974,6 +974,10 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 		enforce_low_height = true;
 	}
 
+	if (close_to_circle && !enforce_low_height) {
+		_ctrl_configuration_handler.setSkidRatio(_param_fw_skid_ratio.get());
+	}
+
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
 		.altitude = position_sp_alt,
@@ -1021,6 +1025,8 @@ FixedWingModeManager::controlAutoFigureEight(const float control_interval, const
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
 	_closest_point_on_path = _figure_eight.getClosestPoint();
+
+	_ctrl_configuration_handler.setSkidRatio(_param_fw_skid_ratio.get());
 
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
