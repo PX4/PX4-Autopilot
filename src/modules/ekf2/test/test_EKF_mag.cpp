@@ -40,6 +40,7 @@
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
 #include "test_helper/reset_logging_checker.h"
+#include <lib/world_magnetic_model/geo_mag_declination.h>
 
 class EkfMagTest : public ::testing::Test
 {
@@ -534,4 +535,28 @@ TEST_F(EkfMagTest, inFlightResetUsesCurrentFieldAtLowMagRate)
 	// (a filter that lags by ~0.6 s leaves a ~9 degree error here)
 	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), new_heading, radians(2.f))
 			<< "Yaw after reset: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
+
+TEST_F(EkfMagTest, wmmAtOriginWithoutPositionAiding)
+{
+	// GIVEN: mag heading fusion without any position aiding
+	_sensor_simulator._mag.setData(Vector3f(0.2f, 0.f, 0.4f));
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	ASSERT_FALSE(_ekf->isLocalHorizontalPositionValid());
+
+	// and the last update fused the magnetometer, so the origin gets the time of that fusion
+	ASSERT_EQ(_ekf->aid_src_mag().time_last_fuse, _ekf->time_delayed_us());
+
+	// WHEN: the origin is set far from 0N 0E
+	const double latitude = 47.6;
+	const double longitude = -122.3;
+	_ekf->setEkfGlobalOrigin(latitude, longitude, 0.f);
+	_sensor_simulator.runSeconds(1.f);
+
+	// THEN: the WMM is looked up at the origin, not at the uninitialized position estimate
+	float decl_deg = NAN;
+	ASSERT_TRUE(_ekf->get_mag_decl_deg(decl_deg));
+	EXPECT_NEAR(decl_deg, get_mag_declination_degrees(latitude, longitude), 1e-3f);
 }
