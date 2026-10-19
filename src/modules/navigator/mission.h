@@ -99,7 +99,7 @@ private:
 	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff
 	 */
-	bool do_need_move_to_takeoff();
+	bool do_need_move_to_takeoff(const mission_item_s &takeoff_item);
 
 	/**
 	 * Calculate takeoff height for mission item considering ground clearance
