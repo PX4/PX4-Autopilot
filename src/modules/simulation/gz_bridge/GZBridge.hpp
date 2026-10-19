@@ -182,7 +182,7 @@ private:
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>   _lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
-	uORB::PublicationMulti<sensor_gnss_s> 	      _sensor_gnss_pub[_MAX_GNSS_SENSORS]{{ORB_ID(sensor_gnss)}, {ORB_ID(sensor_gnss)}};
+	uORB::PublicationMulti<sensor_gnss_s> 	      _sensor_gnss_pub[_MAX_GNSS_SENSORS] {{ORB_ID(sensor_gnss)}, {ORB_ID(sensor_gnss)}};
 	uORB::PublicationMulti<vehicle_odometry_s>    _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::PublicationMulti<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
@@ -212,12 +212,12 @@ private:
 	gz::transport::Node _node;
 
 	// GPS noise model
-	float _gps_pos_noise_n[_MAX_GNSS_SENSORS]{0.0f, 0.0f};
-	float _gps_pos_noise_e[_MAX_GNSS_SENSORS]{0.0f, 0.0f};
-	float _gps_pos_noise_d[_MAX_GNSS_SENSORS]{0.0f, 0.0f};
-	float _gps_vel_noise_n[_MAX_GNSS_SENSORS]{0.0f, 0.0f};
-	float _gps_vel_noise_e[_MAX_GNSS_SENSORS]{0.0f, 0.0f};
-	float _gps_vel_noise_d[_MAX_GNSS_SENSORS]{0.0f, 0.0f};
+	float _gps_pos_noise_n[_MAX_GNSS_SENSORS] {0.0f, 0.0f};
+	float _gps_pos_noise_e[_MAX_GNSS_SENSORS] {0.0f, 0.0f};
+	float _gps_pos_noise_d[_MAX_GNSS_SENSORS] {0.0f, 0.0f};
+	float _gps_vel_noise_n[_MAX_GNSS_SENSORS] {0.0f, 0.0f};
+	float _gps_vel_noise_e[_MAX_GNSS_SENSORS] {0.0f, 0.0f};
+	float _gps_vel_noise_d[_MAX_GNSS_SENSORS] {0.0f, 0.0f};
 	const float _pos_noise_amplitude = 0.8f;    // Position noise amplitude [m]
 	const float _pos_random_walk = 0.01f;       // Position random walk coefficient
 	const float _pos_markov_time = 0.95f;       // Position Markov process coefficient
