@@ -310,7 +310,7 @@ mission_route::RtlRouteRequest RtlRouteSafePoint::buildPlannerRequest(const miss
 
 	const vehicle_local_position_s *local_position = _navigator->get_local_position();
 
-	if (local_position != nullptr && local_position->v_xy_valid) {
+	if (local_position->v_xy_valid) {
 		request.velocity_north_m_s = local_position->vx;
 		request.velocity_east_m_s = local_position->vy;
 	}
