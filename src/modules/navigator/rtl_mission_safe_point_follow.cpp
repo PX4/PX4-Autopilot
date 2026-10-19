@@ -752,7 +752,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
-	if (handleJoinRouteWorkItems(pos_sp_triplet, current_setpoint_copy)) {
+	if (handleJoinRouteWorkItems()) {
 		return;
 	}
 
