@@ -38,11 +38,13 @@ if(CONFIG_LIB_CDRSTREAM)
 	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/lib/cdrstream/cyclonedds/src/core/ddsc/include)
 endif()
 
-option(PX4_POSIX_SHM_DISABLED "Disable POSIX shm backing for uORB" OFF)
-
-# Ensure shm backing is always disabled for all qurt targets.
-if("${PX4_PLATFORM}" STREQUAL "qurt")
-	set(PX4_POSIX_SHM_DISABLED ON CACHE BOOL "Disable POSIX shm backing for uORB" FORCE)
+# CONFIG_UORB_POSIX_SHM (platforms/common/uORB/Kconfig) is a per-board option
+# selecting whether uORB is backed by real POSIX shared memory (shm_open/mmap,
+# with topics visible under /obj) or plain heap memory. It already defaults to
+# the right value for each platform/build variant (on, except for NuttX FLAT
+# builds and qurt); PX4_POSIX_SHM_DISABLED below is just its inverted sense.
+if(NOT CONFIG_UORB_POSIX_SHM)
+	set(PX4_POSIX_SHM_DISABLED ON)
 endif()
 
 px4_add_library(uORB
