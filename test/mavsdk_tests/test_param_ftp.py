@@ -1,10 +1,10 @@
 import struct
 from pathlib import Path
-from typing import Dict, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Tuple
 
 import pytest
 
-from autopilot_tester import AutopilotTester
+from autopilot_tester import AutopilotTester, log
 
 # ArduPilot packed parameter format, as served by PX4 at @PARAM/param.pck.
 PCK_MAGIC = (0x671B, 0x671C)
@@ -70,40 +70,45 @@ def float_bits(value: float) -> int:
     return int(struct.unpack("<I", struct.pack("<f", value))[0])
 
 
-@pytest.mark.multicopter
-def test_parameters_download_via_ftp(tester: AutopilotTester, tmp_path: Path) -> None:
-    # Parameters still change during startup, e.g. CAL_BAROx_OFF from the baro calibration
-    # against GNSS, which needs a few seconds of stable GNSS and can come after the vehicle is
-    # ready. Wait for the calibration so both downloads see the same values.
-    tester.wait_until_ready()
-    tester.wait_until_param_changed_from("CAL_BARO0_OFF", 0.0, 30)
-
+def compare_downloads(tester: AutopilotTester, local_dir: Path) -> List[str]:
+    """Download all parameters with PARAM_VALUE and with FTP, and return the differences."""
     # The reference: the conventional PARAM_VALUE stream.
     all_params = tester.get_all_params()
     assert len(all_params.int_params) + len(all_params.float_params) > 100
 
-    remote_path = "@PARAM/param.pck?withdefaults=1"
-    tester.ftp_download(remote_path, str(tmp_path))
-    data = (tmp_path / "param.pck?withdefaults=1").read_bytes()
+    local_dir.mkdir()
+    tester.ftp_download("@PARAM/param.pck?withdefaults=1", str(local_dir))
+    data = (local_dir / "param.pck?withdefaults=1").read_bytes()
 
     num, total, packed = decode_param_pck(data)
     assert num == total
 
-    compared = 0
-    for p in all_params.int_params:
-        if p.name == "_HASH_CHECK":
-            continue
-        assert p.name in packed, p.name
-        assert packed[p.name] == PackedParam(PCK_TYPE_INT32, int_bits(p.value)), p.name
-        compared += 1
+    expected = {p.name: PackedParam(PCK_TYPE_INT32, int_bits(p.value))
+                for p in all_params.int_params if p.name != "_HASH_CHECK"}
+    expected.update({p.name: PackedParam(PCK_TYPE_FLOAT, float_bits(p.value))
+                     for p in all_params.float_params})
 
-    for p in all_params.float_params:
-        assert p.name in packed, p.name
-        assert packed[p.name] == PackedParam(PCK_TYPE_FLOAT, float_bits(p.value)), p.name
-        compared += 1
+    differences = ["{}: PARAM_VALUE {}, FTP {}".format(name, value, packed.get(name))
+                   for name, value in expected.items() if packed.get(name) != value]
+    differences += ["{}: only in FTP".format(name) for name in packed if name not in expected]
+    print("Compared {} parameters, {} bytes packed".format(len(expected), len(data)))
+    return differences
 
-    assert compared == len(packed)
-    print("Compared {} parameters, {} bytes packed".format(compared, len(data)))
+
+@pytest.mark.multicopter
+def test_parameters_download_via_ftp(tester: AutopilotTester, tmp_path: Path) -> None:
+    tester.wait_until_ready()
+
+    # Parameters can still change during startup, e.g. CAL_BAROx_OFF from the baro calibration
+    # against GNSS, so the two downloads can see different values. Retry until they agree.
+    for attempt in range(3):
+        differences = compare_downloads(tester, tmp_path / "attempt{}".format(attempt))
+        if not differences:
+            break
+        log("{} parameters differ, retrying: {}".format(len(differences), differences[:5]))
+        tester.sleep_for(5)
+
+    assert not differences, "{} parameters differ: {}".format(len(differences), differences)
 
 
 @pytest.mark.multicopter
