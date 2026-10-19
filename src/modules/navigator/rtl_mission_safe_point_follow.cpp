@@ -304,6 +304,11 @@ void RtlMissionSafePointFollow::on_active()
 	_vtol_status_sub.update();
 
 	MissionBase::on_active();
+
+	// A synthetic goal landing does not end the uploaded mission; report Return complete as direct RTL does.
+	if (_state.stage == Stage::LandAtGoal && !_mission_item.autocontinue && _land_detected_sub.get().landed) {
+		_navigator->mode_completed(getNavigatorStateId());
+	}
 }
 
 void RtlMissionSafePointFollow::advanceRouteTarget()
