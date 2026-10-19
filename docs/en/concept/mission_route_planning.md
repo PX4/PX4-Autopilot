@@ -51,8 +51,8 @@ If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection
 The projection search margin is set by [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) (multicopter) and [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST) (fixed-wing).
 If a join cannot be planned, Mission mode resumes without the smart join and reports a warning.
 This can happen while the mission is still loading into the [route cache](../advanced/mission_route_cache.md).
-After pausing a camera-trigger survey, smart route rejoin can select a branch-in point that conflicts with the return to the previous survey waypoint.
-Use `MIS_ROUTE_JOIN=0` for missions that rely on camera-trigger survey resume.
+Camera-trigger survey resume takes precedence over smart rejoin.
+Mission returns to the previous survey waypoint without a branch-in.
 Selecting a mission item explicitly cancels a pending smart join.
 
 When the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
