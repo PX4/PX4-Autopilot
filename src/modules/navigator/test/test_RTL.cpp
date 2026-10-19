@@ -1225,6 +1225,55 @@ TEST_F(RTLTest, RouteSafePointReturnDoesNotRetryFailedFenceChecksWithLoadedFence
 	EXPECT_FALSE(_rtl.routeRetryPendingForTest());
 }
 
+// A failed route retry keeps the direct fallback that is already flying.
+TEST_F(RTLTest, FailedRouteRetryKeepsActiveDirectFallback)
+{
+	const std::vector<mission_item_s> mission_items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	mission_s mission = loadRoutePlanningCache(mission_items, {makeSafePointFromOffset(kBaseLat, kBaseLon, 40.f, 20.f, kAlt)});
+	const std::vector<mission_fence_point_s> square{
+		exclusionVertex(-10.f, 300.f, 4), exclusionVertex(10.f, 300.f, 4),
+		exclusionVertex(10.f, 320.f, 4), exclusionVertex(-10.f, 320.f, 4),
+	};
+	startFenceUpdate(mission, square);
+	ASSERT_TRUE(finishFenceUpdate());
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	cache.invalidate();
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, -500.f, 0.f, kAlt));
+	publishMission(mission);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
+	publishLandDetected(false);
+	setMissionResultValid(mission);
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+
+	// With the cache still loading, Return flies the type 3 fallback to Home.
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	ASSERT_TRUE(rtl_status_sub.update());
+	ASSERT_EQ(rtl_status_sub.get().safe_point_index, UINT8_MAX);
+	ASSERT_TRUE(rtl_status_sub.get().is_evaluation_pending);
+
+	// Once the inputs are ready, planning fails because every path check is unavailable.
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] {
+		return cache.missionItemsReady(mission) && cache.safePointsReady();
+	}));
+	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 3);
+	_rtl.forceRouteRetryForTest();
+	_rtl.run(true);
+
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	EXPECT_FALSE(_rtl.routeRetryPendingForTest());
+
+	// The status still reports the fallback to Home, no longer pending.
+	ASSERT_TRUE(rtl_status_sub.update());
+	EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
+	EXPECT_EQ(rtl_status_sub.get().safe_point_index, UINT8_MAX);
+	EXPECT_FALSE(rtl_status_sub.get().is_evaluation_pending);
+}
+
 TEST_F(RTLTest, RouteSafePointReturnPromotesWhenCacheBecomesReady)
 {
 	const std::vector<mission_item_s> mission_items{

@@ -189,6 +189,7 @@ private:
 	RtlMissionSafePointFollow *_route_follower {nullptr}; ///< Same executor; lifetime owned through _rtl_mission_type_handle.
 	RtlRouteSafePoint _route_safe_point{this, _navigator};
 	perf_counter_t _route_evaluate_perf{perf_alloc(PC_ELAPSED, "navigator: rtl route evaluate")};
+	rtl_status_s _rtl_status{}; ///< Last published status, republished while a failed retry keeps the fallback
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	RtlType _rtl_type {RtlType::RTL_DIRECT};
 	uint32_t _mission_land_failure_mission_id{0};
