@@ -45,19 +45,18 @@ static __attribute__((noinline)) Quatf qmul(const Quatf &a, const Quatf &b) { re
 static __attribute__((noinline)) Quatf qinv(const Quatf &q) { return q.inversed(); }
 static __attribute__((noinline)) Vector3f qzaxis(const Quatf &q) { return q.dcm_z(); }
 
-// The acceleration-limited reference is advanced in substeps no longer than this, so that the rate setpoint of
-// its angle loop is refreshed from the remaining error often enough; the substep count is bounded to keep the work
-// per update finite. Longer gaps between setpoints are still closed, only with longer, more conservative substeps.
-static constexpr float kMaxShapingStep = 0.001f; // [s]
-static constexpr int kMaxShapingSubsteps = 50;
+// The reference model is advanced in substeps no longer than this so that its angle loop follows the remaining error
+// also over long setpoint intervals. The count is bounded to keep the work per update finite.
+static constexpr float kMaxSubstep = 0.001f; // [s]
+static constexpr int kMaxSubsteps = 50;
 
 /**
- * Angle loop of the cascaded reference model: proportional to the error close to the setpoint, and following the
- * braking curve sqrt(2 * accel_max * error) further out so that it never asks for more deceleration than the limit.
+ * Angle loop of the reference model: proportional to the error close to the setpoint, and following the braking curve
+ * sqrt(2 * accel_max * error) further out so that it never asks for more deceleration than the limit.
  * Both parts meet with the same value and slope at |error| = accel_max / gain^2.
  * @param error [rad] remaining angle error
  * @param gain [1/s] proportional gain of the angle loop
- * @param accel_max [rad/s^2] angular acceleration limit (> 0)
+ * @param accel_max [rad/s^2] angular acceleration limit (> 0, INFINITY for a purely proportional loop)
  * @return [rad/s] rate setpoint
  */
 static float brakingRate(const float error, const float gain, const float accel_max)
@@ -90,15 +89,8 @@ void AttitudeControl::setRefModelFrequency(float omega_n)
 void AttitudeControl::setRefModelAccelerationLimit(const Vector3f &accel_max)
 {
 	for (int i = 0; i < 3; i++) {
-		_ref_accel_max(i) = math::max(accel_max(i), 0.f);
+		_accel_max(i) = (accel_max(i) > FLT_EPSILON) ? accel_max(i) : INFINITY;
 	}
-
-	_yawspeed_command.setSlewRate(_ref_accel_max(2));
-}
-
-bool AttitudeControl::isAxisAccelerationLimited(const int axis) const
-{
-	return _ref_accel_max(axis) > FLT_EPSILON;
 }
 
 bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
@@ -123,7 +115,6 @@ bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		// First call (or dt out of range): snap reference to the current setpoint.
 		_q_ref = qd_normalized;
 		_omega_correction.zero();
-		_ref_accel.zero();
 		_omega_command.zero();
 		_yawspeed_command.setForcedValue(0.f);
 		_ref_initialized = true;
@@ -132,150 +123,97 @@ bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 	return true;
 }
 
-void AttitudeControl::propagateLimitedAxis(const int axis, const float error, const float dt, float &rate,
-		float &delta_angle, float &accel) const
-{
-	// The linear model omega_dot = _kq * e - 2 * _omega_n * omega written as a cascade: an angle loop with gain
-	// _omega_n / 2 commands the rate, a rate loop with gain 2 * _omega_n commands the acceleration. The acceleration
-	// is saturated at the limit and the rate setpoint at the rate limit. Far from the setpoint the angle loop brakes
-	// along a square root (brakingRate), otherwise the rate it builds up could not be stopped within the limit.
-	const float accel_max = _ref_accel_max(axis);
-	const float angle_gain = 0.5f * _omega_n;
-
-	// Advance in substeps so that the rate setpoint follows the remaining error also over long setpoint intervals.
-	const int substeps = math::constrain(static_cast<int>(ceilf(dt / kMaxShapingStep)), 1, kMaxShapingSubsteps);
-	const float substep_dt = dt / substeps;
-
-	// Exact (ZOH) step of the linear model over one substep, same closed form as in propagateReferenceModel()
-	const float w_dt  = _omega_n * substep_dt;
-	const float emt   = expf(-w_dt);
-	const float a     = (1.f + w_dt) * emt;
-	const float b     = substep_dt * emt;
-	const float gamma = _kq * substep_dt * emt;
-	const float delta = (1.f - w_dt) * emt;
-
-	delta_angle = 0.f;
-	accel = 0.f;
-
-	for (int i = 0; i < substeps; i++) {
-		const float rate_setpoint = math::constrain(brakingRate(error - delta_angle, angle_gain, accel_max),
-					    -_rate_limit(axis), _rate_limit(axis));
-
-		// Without saturation the cascade is the linear model driven by the error that maps to this rate setpoint,
-		// which close to the setpoint is the error itself: then the step is exactly the one of the linear model.
-		const float error_equivalent = rate_setpoint / angle_gain;
-		const float rate_linear = gamma * error_equivalent + delta * rate;
-		accel = (rate_linear - rate) / substep_dt;
-
-		if (fabsf(accel) <= accel_max) {
-			delta_angle += (1.f - a) * error_equivalent + b * rate;
-			rate = rate_linear;
-
-		} else {
-			// saturated rate loop: constant acceleration at the limit over the substep
-			accel = math::constrain(accel, -accel_max, accel_max);
-			const float rate_next = rate + accel * substep_dt;
-			delta_angle += 0.5f * (rate + rate_next) * substep_dt;
-			rate = rate_next;
-		}
-	}
-}
-
 void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)
 {
-	// 2nd-order critically damped ref model with exact (ZOH) discretisation.
-	// Repeated eigenvalue at s = -_omega_n; unconditionally stable for any dt.
+	// 2nd-order critically damped ref model omega_dot = _kq * e - 2 * _omega_n * omega, written as a cascade: an angle
+	// loop with gain _omega_n / 2 commands the rate, a rate loop with gain 2 * _omega_n commands the acceleration.
+	// On axes with an acceleration limit the acceleration saturates at it, the rate setpoint at the rate limit, and far
+	// from the setpoint the angle loop brakes along a square root (brakingRate) so the reference stops within the limit.
+	// Within the limits it is the linear model with exact (ZOH) discretisation, unconditionally stable for any dt.
 
 	// Tangent-space inputs: rotate the analytical yaw rate into q_ref's body
 	//    frame, and form the small-angle error vector from q_ref to q_d.
 	const Quatf q_ref_inv = qinv(_q_ref);
 	const Vector3f yaw_axis_body = qzaxis(q_ref_inv); // world yaw axis expressed in q_ref's body frame
 
-	// Commanded (analytical) yaw rate. With a yaw acceleration limit it changes at most at that limit, so that yaw
-	// rate commands (stick, auto) respect it too.
+	// Commanded (analytical) reference rate, kept separate so update() can feed it forward at unity.
+	// It changes at most at the yaw acceleration limit.
 	const float yawspeed_command = PX4_ISFINITE(yawspeed_setpoint) ? yawspeed_setpoint : 0.f;
-	const float yawspeed_command_prev = _yawspeed_command.getState();
-
-	if (isAxisAccelerationLimited(2)) {
-		_yawspeed_command.update(yawspeed_command, dt);
-
-	} else {
-		_yawspeed_command.setForcedValue(yawspeed_command);
-	}
-
-	// Commanded reference rate, kept separate so update() can feed it forward at unity.
-	_omega_command = yaw_axis_body * _yawspeed_command.getState();
+	const float yawspeed_prev = _yawspeed_command.getState();
+	_yawspeed_command.setSlewRate(_accel_max(2));
+	const float yawspeed = _yawspeed_command.update(yawspeed_command, dt);
+	_omega_command = yaw_axis_body * yawspeed;
 
 	Quatf q_err = qmul(q_ref_inv, qd);
 	q_err.canonicalize();
 	const Vector3f e = 2.f * q_err.imag();
 
-	// Entries of exp(A*dt) for A = [0 -1; _kq -2*_omega_n]. A has the repeated eigenvalue lambda = -_omega_n.
+	// The model is advanced in substeps of length h so that its rate setpoint follows the remaining error.
+	const int substeps = static_cast<int>(math::constrain(ceilf(dt / kMaxSubstep), 1.f, static_cast<float>(kMaxSubsteps)));
+	const float h = dt / substeps;
+
+	// Entries of exp(A*dt) for A = [0 -1; _kq -2*_omega_n], evaluated for one substep (dt = h).
+	// A has the repeated eigenvalue lambda = -_omega_n.
 	// The matrix N = A - lambda*I is then nilpotent (a matrix is nilpotent when
 	// N^k = 0 for some k, and here N^2 = 0). Writing exp(A*dt) = e^(lambda*dt) * exp(N*dt) and expanding the
 	// series for exp(N*dt) = I + N*dt + (N*dt)^2/2! + ... , every term from (N*dt)^2
 	// onward vanishes, so the exponential truncates to the exact closed form
 	//     exp(A*dt) = e^(-_omega_n*dt) * [ (1 + _omega_n*dt) I + dt*A ]
 	//               = emt * [ a  -b ;  gamma  delta ].
-	const float w_dt  = _omega_n * dt;
+	const float w_dt  = _omega_n * h;
 	const float emt   = expf(-w_dt);
 	const float a     = (1.f + w_dt) * emt;
-	const float b     = dt * emt;
-	const float gamma = _kq * dt * emt;
+	const float b     = h * emt;
+	const float gamma = _kq * h * emt;
 	const float delta = (1.f - w_dt) * emt;
 
 	// While a yaw rate is commanded, StickYaw unlocks the heading and sets the setpoint yaw to the
-	// measurement, so on that axis q_d carries no reference for the model to filter.
+	// measurement, so on that axis q_d carries no reference for the model to filter. Once the command ended the
+	// heading is locked; an acceleration-limited command that is still decaying keeps turning the reference, and the
+	// model closes the error to the locked heading afterwards.
 	const bool heading_unlocked = fabsf(yawspeed_command) > FLT_EPSILON;
-	// Once the command ended StickYaw locks the heading where the vehicle is. A limited command that is still
-	// decaying keeps turning the reference (and the vehicle with it) past that heading, and only once it stopped the
-	// model closes the error to the locked heading, again within the limit.
-	const bool command_decaying = !heading_unlocked && isAxisAccelerationLimited(2)
-				      && ((fabsf(yawspeed_command_prev) > FLT_EPSILON) || (fabsf(_yawspeed_command.getState()) > FLT_EPSILON));
+	const bool command_decaying = !heading_unlocked && PX4_ISFINITE(_accel_max(2)) && (fabsf(yawspeed_prev) > FLT_EPSILON);
 	const Vector3f e_yaw = e.dot(yaw_axis_body) * yaw_axis_body;
 	const Vector3f e_filtered = (heading_unlocked || command_decaying) ? e - e_yaw : e;
-
-	// Heading rotation applied to the reference unfiltered: the unlocked setpoint heading, or the turn of the decaying
-	// command over the step (it slews linearly until it reaches the command, then stays there)
 	Vector3f e_heading{};
 
 	if (heading_unlocked) {
 		e_heading = e_yaw;
 
 	} else if (command_decaying) {
-		const float yawspeed = _yawspeed_command.getState();
-		const float slew_time = fabsf(yawspeed - yawspeed_command_prev) / _ref_accel_max(2);
-		e_heading = yaw_axis_body * (0.5f * (yawspeed_command_prev + yawspeed) * slew_time + yawspeed * (dt - slew_time));
+		e_heading = yaw_axis_body * (0.5f * (yawspeed_prev + yawspeed) * dt);
 	}
 
 	// Propagate the error-driven correction in tangent space (the 2nd-order state). delta_phi is the integral
-	//    of omega over [0, dt]; the correction part collapses to e(0) - e(dt) since e_dot = -correction.
-	Vector3f delta_phi = (1.f - a) * e_filtered + b * _omega_correction + e_heading;
-	Vector3f omega_correction = gamma * e_filtered + delta * _omega_correction;
+	//    of omega over [0, dt]; within the limits the correction part of a substep collapses to e(0) - e(h) since
+	//    e_dot = -correction.
+	const float angle_gain = 0.5f * _omega_n;
+	Vector3f delta_phi{};
 
-	// Axes with an angular acceleration limit run the same model in cascaded form with the acceleration saturated
-	// (see propagateLimitedAxis), starting from the same state, so the limit can also be enabled at runtime. The
-	// unlocked heading component is applied unfiltered on them too.
-	// End-of-step error of the linear model (first row of exp(A*dt)), used for its instantaneous acceleration
-	// omega_dot = _kq * e - 2 * _omega_n * omega so that the reference acceleration is also observable on
-	// unconstrained axes.
-	const Vector3f e_end = a * e_filtered - b * _omega_correction;
+	for (int step = 0; step < substeps; step++) {
+		for (int i = 0; i < 3; i++) {
+			// angle loop on the remaining error, expressed as the error for which the linear model commands that rate
+			const float rate_max = PX4_ISFINITE(_accel_max(i)) ? _rate_limit(i) : INFINITY;
+			const float rate_setpoint = brakingRate(e_filtered(i) - delta_phi(i), angle_gain, _accel_max(i));
+			const float e_setpoint = math::constrain(rate_setpoint, -rate_max, rate_max) / angle_gain;
 
-	for (int i = 0; i < 3; i++) {
-		if (isAxisAccelerationLimited(i)) {
-			float delta_angle;
-			omega_correction(i) = _omega_correction(i);
-			propagateLimitedAxis(i, e_filtered(i), dt, omega_correction(i), delta_angle, _ref_accel(i));
-			delta_phi(i) = delta_angle + e_heading(i);
+			const float omega = _omega_correction(i);
+			const float omega_linear = gamma * e_setpoint + delta * omega;
+			const float delta_omega_max = _accel_max(i) * h;
 
-		} else {
-			_ref_accel(i) = _kq * e_end(i) - 2.f * _omega_n * omega_correction(i);
+			if (fabsf(omega_linear - omega) <= delta_omega_max) {
+				delta_phi(i) += (1.f - a) * e_setpoint + b * omega;
+				_omega_correction(i) = omega_linear;
+
+			} else {
+				// rate loop saturated: constant acceleration at the limit over the substep
+				_omega_correction(i) = omega + math::constrain(omega_linear - omega, -delta_omega_max, delta_omega_max);
+				delta_phi(i) += 0.5f * (omega + _omega_correction(i)) * h;
+			}
 		}
 	}
 
-	_omega_correction = omega_correction;
-
-	_q_ref     = qmul(_q_ref, Quatf(AxisAnglef(delta_phi)));
+	_q_ref     = qmul(_q_ref, Quatf(AxisAnglef(delta_phi + e_heading)));
 	_q_ref.normalize();
 }
 

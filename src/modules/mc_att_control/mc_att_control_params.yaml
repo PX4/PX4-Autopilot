@@ -136,15 +136,10 @@ parameters:
       description:
         short: Attitude reference-model roll acceleration limit
         long: |-
-          Limits the angular acceleration of the attitude reference model on the roll axis.
-          The reference model then runs as a cascade of an angle and a rate loop with the
-          rate loop output saturated at this limit. Close to the setpoint the cascade is the
-          linear model (MC_REF_W_N), further away the angle loop follows a braking curve so
-          that the reference decelerates within the limit. The reference rate is bounded by
-          MC_ROLLRATE_MAX. Setpoint changes the linear model follows within the limits get the
-          same response as without limit.
-
-          0 disables the limit and the axis uses the linear reference model (MC_REF_W_N).
+          Angular acceleration limit of the attitude reference model on the roll axis.
+          Far from the setpoint the reference brakes so that it stops within the limit,
+          and its rate is bounded by MC_ROLLRATE_MAX. Small setpoint changes keep the
+          response set by MC_REF_W_N. 0 disables the limit.
       type: float
       default: 0.0
       unit: deg/s^2
@@ -156,15 +151,10 @@ parameters:
       description:
         short: Attitude reference-model pitch acceleration limit
         long: |-
-          Limits the angular acceleration of the attitude reference model on the pitch axis.
-          The reference model then runs as a cascade of an angle and a rate loop with the
-          rate loop output saturated at this limit. Close to the setpoint the cascade is the
-          linear model (MC_REF_W_N), further away the angle loop follows a braking curve so
-          that the reference decelerates within the limit. The reference rate is bounded by
-          MC_PITCHRATE_MAX. Setpoint changes the linear model follows within the limits get the
-          same response as without limit.
-
-          0 disables the limit and the axis uses the linear reference model (MC_REF_W_N).
+          Angular acceleration limit of the attitude reference model on the pitch axis.
+          Far from the setpoint the reference brakes so that it stops within the limit,
+          and its rate is bounded by MC_PITCHRATE_MAX. Small setpoint changes keep the
+          response set by MC_REF_W_N. 0 disables the limit.
       type: float
       default: 0.0
       unit: deg/s^2
@@ -176,20 +166,14 @@ parameters:
       description:
         short: Attitude reference-model yaw acceleration limit
         long: |-
-          Limits the angular acceleration of the attitude reference model on the yaw axis.
-          The reference model then runs as a cascade of an angle and a rate loop with the
-          rate loop output saturated at this limit. Close to the setpoint the cascade is the
-          linear model (MC_REF_W_N), further away the angle loop follows a braking curve so
-          that the reference decelerates within the limit. The reference rate is bounded by
-          MC_YAWRATE_MAX. Setpoint changes the linear model follows within the limits get the
-          same response as without limit.
+          Angular acceleration limit of the attitude reference model on the yaw axis.
+          Far from the setpoint the reference brakes so that it stops within the limit,
+          and its rate is bounded by MC_YAWRATE_MAX. Small setpoint changes keep the
+          response set by MC_REF_W_N. 0 disables the limit.
 
-          A commanded yaw rate (yaw stick, auto yaw rate) also changes at most at this limit.
-          If the command stops faster than the limit allows, e.g. releasing the yaw stick at
-          a high yaw rate with a low limit, the vehicle turns past the heading it then holds
-          and comes back to it.
-
-          0 disables the limit and the axis uses the linear reference model (MC_REF_W_N).
+          A commanded yaw rate (yaw stick, auto yaw rate) also changes at most at this
+          limit. When the command stops faster than that, the vehicle turns past the
+          heading it then holds and comes back to it.
       type: float
       default: 0.0
       unit: deg/s^2
