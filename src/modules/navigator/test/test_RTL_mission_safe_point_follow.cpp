@@ -1861,6 +1861,39 @@ TEST_F(RtlMissionSafePointFollowStageTest, DirectStackedLandingPlanPreservesUplo
 	EXPECT_FLOAT_EQ(triplet.current.alt, items[3].altitude);
 }
 
+// A fixed-wing VTOL at an uploaded LAND goal back-transitions first, as Mission does with NAV_FORCE_VT.
+TEST_F(RtlMissionSafePointFollowStageTest, ForcedVtolLandingAtMissionLandGoalBackTransitionsFirst)
+{
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt - 50.f),
+	};
+	ASSERT_EQ(items[2].nav_cmd, NAV_CMD_LAND);
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kMissionLand;
+	plan.first_mission_item_index = 2;
+	plan.fly_direct_to_goal = true;
+	plan.join_position = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	plan.goal_position = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt - 50.f);
+	ASSERT_TRUE(plan.valid());
+
+	Navigator navigator{};
+	RtlMissionSafePointFollowTestPeer executor_with_nav{&navigator};
+	executor_with_nav.loadTestMission(items);
+	executor_with_nav.prepareActiveMissionForTest(43, 2);
+	executor_with_nav.configurePlanForTest(plan, 2);
+	executor_with_nav.setVehicleStatusForTest(true, true, false);
+	executor_with_nav.setLandedForTest(false);
+	executor_with_nav.setGlobalPositionForTest(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt));
+	executor_with_nav.on_activation();
+
+	ASSERT_EQ(executor_with_nav.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
+	EXPECT_EQ(executor_with_nav.currentMissionItemForTest().nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_TRUE(executor_with_nav.currentMissionItemForTest().vtol_back_transition);
+	EXPECT_NE(navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+}
+
 // The first target can be reached over a jump edge whose VTOL state differs
 // from the ordinary segment entering the same target index.
 TEST_F(RtlMissionSafePointFollowStageTest, FirstRouteTargetPreservesPlannerJumpTransitionDecision)
