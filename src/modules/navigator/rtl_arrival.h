@@ -35,9 +35,11 @@
 
 #include "navigation.h"
 #include "safe_point_land.hpp"
+#include <matrix/Vector2.hpp>
 #include <uORB/topics/vehicle_status.h>
 
 class MissionBlock;
+class RtlTimeEstimator;
 
 /** Destination arrival shared by RTL modes; the caller owns setpoints and final landing. */
 class RtlArrival
@@ -57,6 +59,19 @@ public:
 		float yaw{NAN};
 	};
 
+	struct EstimateState {
+		matrix::Vector2d position;
+		float altitude;
+	};
+
+	struct EstimateContext {
+		matrix::Vector2d direction_origin;
+		float approach_altitude;
+		float remaining_wait;
+		uint8_t vehicle_type;
+		bool include_descent_and_hold;
+	};
+
 	Phase phase() const { return _phase; }
 	void reset() { _phase = Phase::Land; }
 	void startDirectReturn();
@@ -68,6 +83,12 @@ public:
 	/** Update arrival fields without clearing caller-owned fields; Land leaves the item unchanged. */
 	void buildMissionItem(const MissionBlock &builder, mission_item_s &item,
 			      const ItemConfig &config, const vehicle_status_s &vehicle) const;
+
+	/** Append unfinished arrival legs without changing execution; false means an indefinite hold prevents landing.
+	 * The caller sets the estimator's vehicle type and adds its route and final landing legs.
+	 */
+	bool addTimeEstimate(RtlTimeEstimator &estimator, const ItemConfig &config,
+			     const EstimateContext &context, EstimateState &state) const;
 
 private:
 	enum class Entry { Direct, Route };
