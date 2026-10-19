@@ -328,11 +328,6 @@ class AutopilotTester:
     def get_param_float(self, name: str) -> float:
         return float(self._param.get_param_float(name))
 
-    def wait_until_param_changed_from(self, name: str, value: float, timeout_s: float) -> None:
-        assert self.poll_condition_with_timeout(
-            lambda: self.get_param_float(name) != value, timeout_s), \
-            "{} still {} after {} s".format(name, value, timeout_s)
-
     def get_all_params(self) -> Any:
         """All parameters, downloaded with the PARAM_VALUE stream."""
         return self._param.get_all_params()
