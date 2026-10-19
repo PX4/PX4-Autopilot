@@ -174,11 +174,6 @@ private:
 	 */
 	bool geofenceAvoidanceActive() const;
 
-	/** RTL_LAND_DELAY, or indefinite where a pure fixed-wing cannot land. */
-	float landDelay() const;
-
-	void setLoiterPosition();
-
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
 	RtlArrival _arrival;
