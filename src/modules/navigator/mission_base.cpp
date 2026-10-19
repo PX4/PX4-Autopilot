@@ -341,6 +341,7 @@ MissionBase::on_active()
 		 || _mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 		 || _mission_item.nav_cmd == NAV_CMD_LAND
 		 || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
+		 || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND
 		 || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING)) {
 		// Mount control is disabled If the vehicle is in ROI-mode, the vehicle
 		// needs to rotate such that ROI is in the field of view.
