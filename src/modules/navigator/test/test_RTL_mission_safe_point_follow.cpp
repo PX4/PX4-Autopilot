@@ -53,6 +53,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/mode_completed.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -510,6 +511,39 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffStartsArrivalMove)
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
 	EXPECT_EQ(executor.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+}
+
+// Touchdown at a rally point completes Return, as direct RTL does.
+TEST_F(RtlMissionSafePointFollowStageTest, SyntheticGoalTouchdownCompletesReturn)
+{
+	Navigator navigator{};
+	RtlMissionSafePointFollowTestPeer follower{&navigator};
+	follower.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+	});
+	follower.prepareActiveMissionForTest(44, 1);
+	follower.setSafePointSelectionForTest(false, 1);
+	follower.setSafePointGeometryForTest({kBaseLat + 0.001, kBaseLon, kAlt}, {kBaseLat + 0.002, kBaseLon, kAlt - 50.f});
+	follower.setVehicleStatusForTest(false, false, false);
+	follower.setLandedForTest(false);
+	follower.setGlobalPositionForTest({kBaseLat + 0.002, kBaseLon, kAlt - 50.f});
+	follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
+	follower.publishActiveMissionItemsForTest();
+	ASSERT_EQ(follower.currentMissionItemForTest().nav_cmd, NAV_CMD_LAND);
+
+	uORB::Subscription mode_completed_sub{ORB_ID(mode_completed)};
+	mode_completed_s completed{};
+
+	while (mode_completed_sub.update(&completed)) {}
+
+	follower.on_active();
+	EXPECT_FALSE(mode_completed_sub.updated());
+
+	follower.setLandedForTest(true);
+	follower.on_active();
+	ASSERT_TRUE(mode_completed_sub.update(&completed));
+	EXPECT_EQ(completed.nav_state, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 }
 
 // The virtual branch-off and the synthetic goal items never report an uploaded item as reached.
