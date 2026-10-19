@@ -452,6 +452,9 @@ protected:
 	/** Publish or advance an active route-join work item. */
 	bool handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet,
 				      const position_setpoint_s &current_setpoint_copy);
+
+	/** True if the camera was triggering where the mission was paused, so on_activation() retraces that leg. */
+	bool cameraWasTriggeringAtPause();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
