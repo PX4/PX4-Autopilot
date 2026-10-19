@@ -37,6 +37,9 @@
 #include "navigator.h"
 #include "rtl_arrival.h"
 #include "support/navigator_dataman_test.h"
+#include <lib/rtl/rtl_time_estimator.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/wind.h>
 
 class RtlArrivalTest : public NavigatorDatamanTestBase
 {
@@ -208,4 +211,108 @@ TEST_F(RtlArrivalTest, NewEntryResetsPreviousArrivalProgress)
 	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Land);
 	arrival.startDirectReturn();
 	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Move);
+}
+
+class RtlArrivalEstimateTest : public RtlArrivalTest
+{
+protected:
+	void SetUp() override
+	{
+		RtlArrivalTest::SetUp();
+		state.position = offsetPosition(100.f);
+		state.altitude = config.transit_altitude;
+		context = {state.position, config.transit_altitude, config.land_delay,
+			   vehicle.vehicle_type, true
+			  };
+		estimator.setVehicleType(vehicle.vehicle_type);
+		wind_s wind{};
+		wind.timestamp = hrt_absolute_time();
+		ASSERT_TRUE(_wind_pub.publish(wind));
+		estimator.update();
+	}
+
+	matrix::Vector2d offsetPosition(float distance) const
+	{
+		matrix::Vector2d position;
+		waypoint_from_heading_and_distance(config.approach.lat, config.approach.lon, M_PI_F, distance,
+						   &position(0), &position(1));
+		return position;
+	}
+
+	float floatParameter(const char *name) const
+	{
+		float value = NAN;
+		EXPECT_EQ(param_get(param_find(name), &value), PX4_OK);
+		return value;
+	}
+
+	void expectEstimate(float seconds) const
+	{
+		const rtl_time_estimate_s estimate = estimator.getEstimate();
+		ASSERT_TRUE(estimate.valid);
+		EXPECT_NEAR(estimate.time_estimate, seconds, 1e-3f);
+		int32_t margin = 0;
+		ASSERT_EQ(param_get(param_find("RTL_TIME_MARGIN"), &margin), PX4_OK);
+		EXPECT_NEAR(estimate.safe_time_estimate, seconds * floatParameter("RTL_TIME_FACTOR") + margin, 0.01f);
+	}
+
+	RtlTimeEstimator estimator;
+	RtlArrival::EstimateState state{};
+	RtlArrival::EstimateContext context{};
+	uORB::Publication<wind_s> _wind_pub{ORB_ID(wind)};
+};
+
+TEST_F(RtlArrivalEstimateTest, DirectZeroDelayForecastKeepsPrefixAndDescentFromReturnAltitude)
+{
+	arrival.startDirectReturn();
+	config.land_delay = 0.f;
+	context.remaining_wait = 0.f;
+	// Direct estimation uses return altitude until descent becomes the active phase.
+	state.altitude = config.transit_altitude + 20.f;
+	static constexpr float kPrefixSeconds = 7.f;
+	estimator.addWait(kPrefixSeconds);
+	ASSERT_TRUE(arrival.addTimeEstimate(estimator, config, context, state));
+	expectEstimate(kPrefixSeconds + 100.f / floatParameter("MPC_XY_CRUISE") + 60.f / floatParameter("MPC_Z_V_AUTO_DN"));
+	EXPECT_DOUBLE_EQ(state.position(0), config.approach.lat);
+	EXPECT_DOUBLE_EQ(state.position(1), config.approach.lon);
+	EXPECT_FLOAT_EQ(state.altitude, config.approach.height_m);
+	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Move);
+}
+
+TEST_F(RtlArrivalEstimateTest, ActiveRouteDescentUsesCurrentApproachSetpointBeforeSeparateDescent)
+{
+	arrival.startRouteArrival(true);
+	context.approach_altitude = 570.f;
+	ASSERT_TRUE(arrival.addTimeEstimate(estimator, config, context, state));
+	const float descend_speed = floatParameter("MPC_Z_V_AUTO_DN");
+	const float entry_time = math::max(100.f / floatParameter("MPC_XY_CRUISE"), 20.f / descend_speed);
+	expectEstimate(entry_time + 40.f / descend_speed + 5.f);
+	EXPECT_FLOAT_EQ(state.altitude, config.approach.height_m);
+	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Descend);
+}
+
+TEST_F(RtlArrivalEstimateTest, ActiveRouteHoldUsesRemainingWaitAndKeepsActualPositionAndAltitude)
+{
+	arrival.startRouteArrival(true);
+	arrival.advance(vehicle, config.land_delay);
+	state.altitude = 545.f;
+	const RtlArrival::EstimateState start = state;
+	context.remaining_wait = 2.f;
+	ASSERT_TRUE(arrival.addTimeEstimate(estimator, config, context, state));
+	expectEstimate(2.f);
+	EXPECT_DOUBLE_EQ(state.position(0), start.position(0));
+	EXPECT_DOUBLE_EQ(state.position(1), start.position(1));
+	EXPECT_FLOAT_EQ(state.altitude, start.altitude);
+	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Hold);
+}
+
+TEST_F(RtlArrivalEstimateTest, NegativeDelayEndsTheForecastAtTheHold)
+{
+	arrival.startRouteArrival(true);
+	config.land_delay = -1.f;
+	context.remaining_wait = -1.f;
+	ASSERT_FALSE(arrival.addTimeEstimate(estimator, config, context, state));
+	expectEstimate(100.f / floatParameter("MPC_XY_CRUISE") + 60.f / floatParameter("MPC_Z_V_AUTO_DN"));
+	EXPECT_FLOAT_EQ(state.altitude, config.approach.height_m);
+	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Descend);
 }

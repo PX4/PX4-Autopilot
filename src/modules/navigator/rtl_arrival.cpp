@@ -33,6 +33,7 @@
 
 #include "rtl_arrival.h"
 #include "mission_block.h"
+#include <lib/rtl/rtl_time_estimator.h>
 
 void RtlArrival::startDirectReturn()
 {
@@ -107,4 +108,60 @@ void RtlArrival::buildMissionItem(const MissionBlock &builder, mission_item_s &i
 	case Phase::Land:
 		break;
 	}
+}
+
+bool RtlArrival::addTimeEstimate(RtlTimeEstimator &estimator, const ItemConfig &config,
+				 const EstimateContext &context, EstimateState &state) const
+{
+	if (_phase == Phase::Land) {
+		return true;
+	}
+
+	const matrix::Vector2d approach_position{config.approach.lat, config.approach.lon};
+	const float approach_height = math::min(config.approach.height_m, config.transit_altitude);
+	const bool move_remaining = _phase == Phase::Move || (_entry == Entry::Route && _phase == Phase::Descend);
+
+	if (move_remaining) {
+		matrix::Vector2f direction{};
+		get_vector_to_next_waypoint(context.direction_origin(0), context.direction_origin(1),
+					    approach_position(0), approach_position(1), &direction(0), &direction(1));
+		float distance = get_distance_to_next_waypoint(state.position(0), state.position(1),
+				 approach_position(0), approach_position(1));
+
+		if (_entry == Entry::Direct && context.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			// Preserve direct RTL's existing signed-radius accounting.
+			distance = math::max(0.f, distance - config.approach.loiter_radius_m);
+		}
+
+		const float altitude_change = _entry == Entry::Route ? context.approach_altitude - state.altitude : 0.f;
+		estimator.addDistance(distance, direction, altitude_change);
+		state.position = approach_position;
+
+		if (_entry == Entry::Route) {
+			state.altitude = context.approach_altitude;
+		}
+	}
+
+	if (context.include_descent_and_hold && (_phase == Phase::Move || _phase == Phase::Descend)) {
+		const float initial_altitude = _entry == Entry::Direct && _phase == Phase::Move
+					       ? config.transit_altitude : state.altitude;
+		estimator.addVertDistance(approach_height - initial_altitude);
+		state.altitude = approach_height;
+	}
+
+	if (_entry == Entry::Direct) {
+		// Direct RTL forecasts landing from the configured approach even during an active hold.
+		state.position = approach_position;
+		state.altitude = approach_height;
+	}
+
+	if (context.include_descent_and_hold) {
+		estimator.addWait(context.remaining_wait);
+
+		if (config.land_delay < -FLT_EPSILON) {
+			return false;
+		}
+	}
+
+	return true;
 }
