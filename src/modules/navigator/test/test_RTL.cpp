@@ -309,6 +309,13 @@ public:
 		return _route_follower != nullptr && _route_follower->_goal_land_approach.isValid();
 	}
 
+	bool routeAtBranchOffForTest() const
+	{
+		return _route_follower != nullptr && _route_follower->_state.stage == RtlMissionSafePointFollow::Stage::BranchOff;
+	}
+
+	bool directActiveForTest() { return _rtl_direct.isActive(); }
+
 	void forceRouteRetryForTest() { _destination_check_time = hrt_absolute_time() - 3'000'000; }
 	void failNextRouteExecutorInitForTest() { _fail_next_route_executor_init = true; }
 
@@ -1738,6 +1745,118 @@ TEST_F(RTLTest, RouteSafePointReturnPreservesLoopAnchorWhenSafePointReloadStarts
 	EXPECT_TRUE(preserved_loop.valid());
 
 	_rtl.run(true);
+	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
+}
+
+TEST_F(RTLTest, RouteArrivalKeepsExecutorAndGoalAcrossSourceReplacement)
+{
+	constexpr float route_altitude = kAlt + 90.f;
+	const std::vector<mission_item_s> mission_items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, route_altitude),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, route_altitude),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, route_altitude),
+	};
+	const auto goal = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
+	const mission_s mission = loadRoutePlanningCache(mission_items,
+	{makeSafePointItem(goal.lat, goal.lon, goal.alt, NAV_FRAME_GLOBAL)});
+	publishMission(mission);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	setMissionResultValid(mission);
+
+	uORB::Subscription vehicle_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription home_sub{ORB_ID(home_position)};
+	uORB::Subscription land_sub{ORB_ID(vehicle_land_detected)};
+	ASSERT_TRUE(vehicle_sub.copy(_navigator.get_vstatus()));
+	ASSERT_TRUE(home_sub.copy(_navigator.get_home_position()));
+	ASSERT_TRUE(land_sub.copy(_navigator.get_land_detected()));
+	const auto fly_to = [&](double lat, double lon, float altitude) {
+		publishGlobalPosition(lat, lon, altitude);
+		uORB::Subscription global_sub{ORB_ID(vehicle_global_position)};
+		ASSERT_TRUE(global_sub.copy(_navigator.get_global_position()));
+	};
+	const auto start = makePositionFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, route_altitude);
+	fly_to(start.lat, start.lon, start.alt);
+
+	// Direct RTL would climb above the route even when already at its mission altitude.
+	const float return_altitude = 200.f;
+	const int32_t cone_angle = 0;
+	ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_altitude), PX4_OK);
+	ASSERT_EQ(param_set(param_find("RTL_CONE_ANG"), &cone_angle), PX4_OK);
+	_rtl.updateParamsForTest();
+	_rtl.set_return_alt_min(true);
+	uORB::SubscriptionData<rtl_status_s> status_sub{ORB_ID(rtl_status)};
+	navigator_test::EventRecorder events;
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	ASSERT_FALSE(_rtl.routePlanForTest().fly_direct_to_goal);
+	RtlBase *const executor = _rtl.missionExecutorForTest();
+	ASSERT_NE(executor, nullptr);
+	ASSERT_TRUE(status_sub.update());
+	EXPECT_EQ(status_sub.get().safe_point_index, 0);
+
+	// Fly the published join and route targets until the real branch-off is active.
+	for (unsigned step = 0; step < mission.count + 2u && !_rtl.routeAtBranchOffForTest(); ++step) {
+		const position_setpoint_s target = _navigator.get_position_setpoint_triplet()->current;
+		ASSERT_TRUE(target.valid);
+		fly_to(target.lat, target.lon, target.alt);
+		_rtl.run(true);
+	}
+
+	ASSERT_TRUE(_rtl.routeAtBranchOffForTest());
+	ASSERT_FALSE(_rtl.isLanding());
+	const position_setpoint_triplet_s before_arrival = *_navigator.get_position_setpoint_triplet();
+	ASSERT_TRUE(before_arrival.current.valid);
+	ASSERT_TRUE(before_arrival.next.valid);
+	fly_to(before_arrival.current.lat, before_arrival.current.lon, before_arrival.current.alt);
+	_rtl.run(true);
+
+	const auto &triplet = *_navigator.get_position_setpoint_triplet();
+	ASSERT_TRUE(_rtl.isLanding());
+	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
+	EXPECT_TRUE(executor->isActive());
+	EXPECT_FALSE(_rtl.directActiveForTest());
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	EXPECT_DOUBLE_EQ(triplet.previous.lat, before_arrival.current.lat);
+	EXPECT_DOUBLE_EQ(triplet.previous.lon, before_arrival.current.lon);
+	EXPECT_DOUBLE_EQ(triplet.current.lat, before_arrival.next.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, before_arrival.next.lon);
+	EXPECT_FLOAT_EQ(triplet.current.alt, route_altitude);
+	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	status_sub.update();
+	EXPECT_EQ(status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
+	EXPECT_EQ(status_sub.get().safe_point_index, 0);
+	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
+
+	// A new mission invalidates the route source after arrival has committed to its goal.
+	mission_s replacement = mission;
+	++replacement.mission_id;
+	replacement.timestamp = hrt_absolute_time();
+	publishMission(replacement);
+	_navigator.get_mission_route_cache().invalidate();
+	_navigator.get_mission_result()->valid = false;
+	fly_to(before_arrival.current.lat, before_arrival.current.lon, route_altitude - 10.f);
+	_rtl.run(true);
+	ASSERT_FALSE(_rtl.routePlanSourceStillValidForTest());
+	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
+	EXPECT_TRUE(executor->isActive());
+	EXPECT_FALSE(_rtl.directActiveForTest());
+	EXPECT_FLOAT_EQ(triplet.current.alt, route_altitude);
+	EXPECT_DOUBLE_EQ(triplet.current.lat, goal.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, goal.lon);
+
+	// The same follower can complete the generated arrival without its old mission cache.
+	fly_to(goal.lat, goal.lon, route_altitude);
+	_rtl.run(true);
+	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_DOUBLE_EQ(triplet.current.lat, goal.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, goal.lon);
+	EXPECT_FLOAT_EQ(triplet.current.alt, goal.alt);
+	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
+	EXPECT_FALSE(_rtl.directActiveForTest());
+	status_sub.update();
+	EXPECT_EQ(status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
+	EXPECT_EQ(status_sub.get().safe_point_index, 0);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
