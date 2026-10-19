@@ -45,6 +45,7 @@
 
 #include "mission_route_types.h"
 #include "rtl_base.h"
+#include "rtl_arrival.h"
 #include <lib/perf/perf_counter.h>
 #include <lib/rtl/rtl_time_estimator.h>
 #include <uORB/topics/vtol_vehicle_status.h>
@@ -75,9 +76,7 @@ private:
 		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
 		TransitionDuringRoute,   /**< Wait for shared transition execution before resuming the route. */
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
-		MoveToGoal,              /**< Approach the destination at the altitude held on leaving the route. */
-		ApproachAtGoal,          /**< Descend in the destination loiter before holding or landing. */
-		HoldAtGoal,              /**< Wait for RTL_LAND_DELAY, or hold indefinitely when landing is disabled. */
+		Arrival,                /**< Shared move, descent and hold sequence at the selected destination. */
 		LandAtGoal               /**< Execute the final landing at the safe point or fallback endpoint. */
 	};
 
@@ -97,6 +96,8 @@ private:
 	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
 	/** @brief Build the landing item: the mission LAND item for that goal, otherwise a synthetic landing at the goal. */
 	void setLandMissionItem(mission_item_s &mission_item) const;
+	/** @brief Build the shared arrival item without changing execution progress. */
+	void setGoalArrivalMissionItem(mission_item_s &mission_item, const RtlArrival &arrival) const;
 	/** @brief Build the horizontal approach to a synthetic destination. */
 	void setGoalMoveMissionItem(mission_item_s &mission_item) const;
 	/** @brief Build the destination descent loiter. */
@@ -184,6 +185,7 @@ private:
 	mission_item_s _goal_mission_land_item{};
 	bool _goal_mission_land_item_valid{false};
 	PlanState _state{};
+	RtlArrival _arrival{};
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 	loiter_point_s _goal_land_approach{};
 	float _goal_arrival_alt{NAN};
