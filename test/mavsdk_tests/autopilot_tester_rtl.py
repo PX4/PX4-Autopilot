@@ -265,6 +265,7 @@ class AutopilotTesterRtl(AutopilotTester):
 
     def check_no_geofence_breach(self) -> None:
         if self._fence_monitor_handle is not None:
-            self._telemetry.unsubscribe_ground_truth(self._fence_monitor_handle)
+            self.unsubscribe(self._telemetry, self._telemetry.unsubscribe_ground_truth,
+                             self._fence_monitor_handle)
             self._fence_monitor_handle = None
         assert not self._fence_breached.is_set(), "Geofence was breached"
