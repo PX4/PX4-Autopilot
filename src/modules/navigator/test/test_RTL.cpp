@@ -1509,6 +1509,51 @@ TEST_F(RTLTest, RouteSafePointReturnPreservesLoopAnchorWhenSafePointReloadStarts
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
+// A direct fallback started mid-Return still applies an enforced return altitude.
+TEST_F(RTLTest, MidReturnDirectFallbackKeepsEnforcedReturnAltitude)
+{
+	constexpr float route_altitude = kAlt + 90.f;
+	const std::vector<mission_item_s> mission_items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, route_altitude),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, route_altitude),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, route_altitude),
+	};
+	const mission_s mission = loadRoutePlanningCache(mission_items,
+	{makeSafePointFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt)});
+	publishMission(mission);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	setMissionResultValid(mission);
+	const auto start = makePositionFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, route_altitude);
+	publishGlobalPosition(start.lat, start.lon, start.alt);
+
+	// Above the return altitude, direct RTL only climbs in place when the altitude is enforced.
+	const float return_altitude = 60.f;
+	const int32_t cone_angle = 0;
+	ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_altitude), PX4_OK);
+	ASSERT_EQ(param_set(param_find("RTL_CONE_ANG"), &cone_angle), PX4_OK);
+	_rtl.updateParamsForTest();
+	_rtl.set_return_alt_min(true);
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	ASSERT_FALSE(_rtl.isLanding());
+
+	// A replacement mission invalidates the route before arrival, so Return falls back to direct.
+	mission_s replacement = mission;
+	++replacement.mission_id;
+	replacement.timestamp = hrt_absolute_time();
+	publishMission(replacement);
+	_navigator.get_mission_route_cache().invalidate();
+	_rtl.run(true);
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	ASSERT_TRUE(_rtl.directActiveForTest());
+
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	ASSERT_TRUE(current.valid);
+	EXPECT_DOUBLE_EQ(current.lat, start.lat);
+	EXPECT_DOUBLE_EQ(current.lon, start.lon);
+}
+
 TEST_F(RTLTest, RouteArrivalKeepsExecutorAndGoalAcrossSourceReplacement)
 {
 	constexpr float route_altitude = kAlt + 90.f;
