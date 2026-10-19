@@ -1,14 +1,18 @@
 """Streamlit flows, with map events injected at the component boundary."""
 
+import importlib.util
 from pathlib import Path
-import tempfile
 import unittest
 from unittest.mock import patch
 
-from streamlit.testing.v1 import AppTest
-
 from planner_visualizer.planner_cli import parse_output
-from test_planner_cli import CLI_OUTPUT
+from test_planner_cli import CLI_OUTPUT, temporary_directory
+
+# The UI packages are optional; the core tests run without them.
+UI_AVAILABLE = all(importlib.util.find_spec(name) for name in ("streamlit", "streamlit_folium", "folium"))
+
+if UI_AVAILABLE:
+    from streamlit.testing.v1 import AppTest
 
 APP = Path(__file__).with_name("mission_planner_tools.py")
 SOURCE = (
@@ -28,6 +32,7 @@ SOURCE = (
 )
 
 
+@unittest.skipUnless(UI_AVAILABLE, "needs streamlit, streamlit-folium and folium")
 class AppTest_(unittest.TestCase):
     def setUp(self):
         patcher = patch("planner_visualizer.app.st_folium", return_value={})
@@ -190,7 +195,7 @@ class AppTest_(unittest.TestCase):
         self.assertIsNone(self.app.session_state["parsed"])
 
     def fake_binary_root(self):
-        root = Path(tempfile.mkdtemp())
+        root = temporary_directory(self)
         (root / "Makefile").write_text("")
         (root / "src/modules/navigator").mkdir(parents=True)
         (root / "build/px4_sitl_test").mkdir(parents=True)
@@ -199,7 +204,7 @@ class AppTest_(unittest.TestCase):
 
     def test_without_the_binary_the_plan_buttons_say_why_they_are_disabled(self):
         self.app.text_area(key="source").set_value(SOURCE)
-        with patch("planner_visualizer.planner_cli.repo_root", return_value=Path(tempfile.mkdtemp())):
+        with patch("planner_visualizer.planner_cli.repo_root", return_value=temporary_directory(self)):
             self.button("Parse").click().run()
         self.assertTrue(any("EXTERNAL_MODULES_LOCATION" in code.value for code in self.app.code))
         for label in ("Plan Return", "Plan Mission rejoin"):

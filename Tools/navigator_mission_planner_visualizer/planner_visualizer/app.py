@@ -569,9 +569,7 @@ def render_request(items: List[Waypoint]) -> PlanRequest:
     mission_land_index = index_input(
         right, "Mission land index (-1 = none)", "req_land_index", planner_cli.land_index(items)
     )
-    left, right = st.columns(2, vertical_alignment="bottom")
-    active_jump_anchor = index_input(left, "Active DO_JUMP item (-1 = none)", "req_jump", -1)
-    reversed_now = right.checkbox("Currently flying the route in reverse", key="req_reversed")
+    reversed_now = st.checkbox("Currently flying the route in reverse", key="req_reversed")
     with st.expander("Parameters", expanded=False):
         home_altitude = st.number_input(
             "Home altitude (m AMSL)", value=defaults.home_altitude_amsl, step=10.0, key="req_home_alt"
@@ -607,14 +605,10 @@ def render_request(items: List[Waypoint]) -> PlanRequest:
         in_transition = st.checkbox(
             "In transition to fixed-wing", key="req_transition", disabled=not is_vtol, help=vtol_only
         )
-        require_approach = st.checkbox(
-            "Require a VTOL landing approach", key="req_approach", disabled=not is_vtol, help=vtol_only
-        )
     return PlanRequest(
         mission_index=mission_index,
         mission_land_index=mission_land_index,
         current_route_direction_reversed=reversed_now,
-        active_jump_anchor=active_jump_anchor,
         home_altitude_amsl=home_altitude,
         projection_search_distance_m=vehicle_margin,
         safe_point_projection_search_distance_m=rally_margin,
@@ -625,7 +619,6 @@ def render_request(items: List[Waypoint]) -> PlanRequest:
         is_fixed_wing=fixed_wing,
         is_vtol=is_vtol,
         in_transition_to_fw=in_transition and is_vtol,
-        require_vtol_approach=require_approach and is_vtol,
     )
 
 
@@ -773,8 +766,10 @@ def render_plan_result(scene: Scene, request: PlanRequest) -> None:
 def render_outputs(editor: Editor, base: Optional[Base], use_offsets: bool) -> None:
     """Under the map: the fixtures' C++, the unit test and the trace of the vehicle shown in the panel."""
     code_tab, test_tab, trace_tab = st.tabs(["Generated C++", "Unit test", "Planner trace"])
+    # Both tabs follow the Coordinates choice.
+    base = base if use_offsets else None
     with code_tab:
-        render_code(editor, base if use_offsets else None)
+        render_code(editor, base)
     plan = st.session_state["plan"]
     run = plan.run_for(st.session_state.get("plan_vehicle")) if plan is not None else None
     with test_tab:

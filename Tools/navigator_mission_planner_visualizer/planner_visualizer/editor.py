@@ -226,7 +226,8 @@ class Editor:
         self.points = _empty_points()
         self.fences = deepcopy(scene.fences)
         self.draft_fence = None
-        self.points[MISSION] = [item for items in scene.missions.values() for item in items]
+        # The first mission only, the one the planner and the exported test use.
+        self.points[MISSION] = list(next((items for items in scene.missions.values() if items), []))
         self.points[SAFE_POINTS] = list(scene.safe_points)
         for position in scene.positions:
             item_type = VEHICLE if position.is_vehicle else POSITION

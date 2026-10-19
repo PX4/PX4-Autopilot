@@ -41,14 +41,14 @@
  *
  * Input, one entry per line, items in mission order:
  *   ITEM <WAYPOINT|TAKEOFF|LAND|...> <lat> <lon> <alt>
- *   JUMP <target index> <repeats> [current count]
- *   TRANSITION <FW|MC>
  *   RALLY <lat> <lon> <alt>
  *   FENCE_POLYGON <INCLUSION|EXCLUSION> <count> <lat1> <lon1> ...
  *   FENCE_CIRCLE <INCLUSION|EXCLUSION> <lat> <lon> <radius_m>
  *   VEHICLE <lat> <lon> <alt>
  *   SET <request field> <value>
  *   ACTION <RTL|RESUME>
+ *
+ * Numbers must be finite and fill their token. A line with a bad value or extra tokens is rejected.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -66,8 +66,11 @@
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_status.h>
-#include <uORB/topics/vtol_vehicle_status.h>
 
+#include <cerrno>
+#include <cfloat>
+#include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -181,82 +184,114 @@ bool parseBool(const std::string &text, bool &value)
 	return false;
 }
 
-bool parseVtolState(const std::string &text, uint8_t &state)
+// The whole token must be a finite number within [min, max].
+bool parseNumber(const std::string &text, double min, double max, double &value)
 {
-	if (text == "UNDEFINED") {
-		state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+	char *end = nullptr;
+	errno = 0;
+	const double parsed = strtod(text.c_str(), &end);
 
-	} else if (text == "MC") {
-		state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-
-	} else if (text == "FW") {
-		state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-
-	} else {
+	if (end == text.c_str() || *end != '\0' || errno == ERANGE || !PX4_ISFINITE(parsed) || parsed < min || parsed > max) {
 		return false;
 	}
 
+	value = parsed;
 	return true;
+}
+
+bool parseFloat(const std::string &text, float &value)
+{
+	double parsed = 0.;
+
+	if (!parseNumber(text, -FLT_MAX, FLT_MAX, parsed)) {
+		return false;
+	}
+
+	value = static_cast<float>(parsed);
+	return true;
+}
+
+bool parseInt32(const std::string &text, int32_t &value)
+{
+	char *end = nullptr;
+	errno = 0;
+	const long long parsed = strtoll(text.c_str(), &end, 10);
+
+	if (end == text.c_str() || *end != '\0' || errno == ERANGE || parsed < INT32_MIN || parsed > INT32_MAX) {
+		return false;
+	}
+
+	value = static_cast<int32_t>(parsed);
+	return true;
+}
+
+// "<lat> <lon>", each a whole token within the coordinate ranges.
+bool readLatLon(std::istringstream &line, double &lat, double &lon)
+{
+	std::string lat_text, lon_text;
+	return static_cast<bool>(line >> lat_text >> lon_text)
+	       && parseNumber(lat_text, -90., 90., lat) && parseNumber(lon_text, -180., 180., lon);
+}
+
+// "<lat> <lon> <alt>"
+bool readPosition(std::istringstream &line, double &lat, double &lon, float &alt)
+{
+	std::string alt_text;
+	return readLatLon(line, lat, lon) && static_cast<bool>(line >> alt_text) && parseFloat(alt_text, alt);
+}
+
+bool lineEnded(std::istringstream &line)
+{
+	std::string extra;
+	return !(line >> extra);
 }
 
 bool setRequestField(RtlRouteRequest &request, const std::string &key, const std::string &value)
 {
-	const float number = strtof(value.c_str(), nullptr);
-	const long integer = strtol(value.c_str(), nullptr, 10);
-	bool flag = false;
+	if (key == "mission_index") { return parseInt32(value, request.mission_index); }
 
-	if (key == "mission_index") { request.mission_index = static_cast<int32_t>(integer); return true; }
+	if (key == "mission_land_index") { return parseInt32(value, request.mission_land_index); }
 
-	if (key == "mission_land_index") { request.mission_land_index = static_cast<int32_t>(integer); return true; }
+	if (key == "home_altitude_amsl") { return parseFloat(value, request.home_altitude_amsl); }
 
-	if (key == "active_jump_anchor") { request.active_jump_anchor.jump_item_index = static_cast<int32_t>(integer); return true; }
+	if (key == "projection_search_distance_m") { return parseFloat(value, request.projection_search_distance_m); }
 
-	if (key == "home_altitude_amsl") { request.home_altitude_amsl = number; return true; }
+	if (key == "safe_point_projection_search_distance_m") { return parseFloat(value, request.safe_point_projection_search_distance_m); }
 
-	if (key == "projection_search_distance_m") { request.projection_search_distance_m = number; return true; }
+	if (key == "acceptance_radius_m") { return parseFloat(value, request.acceptance_radius_m); }
 
-	if (key == "safe_point_projection_search_distance_m") { request.safe_point_projection_search_distance_m = number; return true; }
+	if (key == "direct_goal_acceptance_radius_m") { return parseFloat(value, request.direct_goal_acceptance_radius_m); }
 
-	if (key == "acceptance_radius_m") { request.acceptance_radius_m = number; return true; }
+	if (key == "altitude_acceptance_radius_m") { return parseFloat(value, request.altitude_acceptance_radius_m); }
 
-	if (key == "direct_goal_acceptance_radius_m") { request.direct_goal_acceptance_radius_m = number; return true; }
+	if (key == "fw_u_turn_penalty_m") { return parseFloat(value, request.fw_u_turn_penalty_m); }
 
-	if (key == "altitude_acceptance_radius_m") { request.altitude_acceptance_radius_m = number; return true; }
+	if (key == "velocity_north_m_s") { return parseFloat(value, request.velocity_north_m_s); }
 
-	if (key == "fw_u_turn_penalty_m") { request.fw_u_turn_penalty_m = number; return true; }
+	if (key == "velocity_east_m_s") { return parseFloat(value, request.velocity_east_m_s); }
 
-	if (key == "velocity_north_m_s") { request.velocity_north_m_s = number; return true; }
+	if (key == "current_route_direction_reversed") { return parseBool(value, request.current_route_direction_reversed); }
 
-	if (key == "velocity_east_m_s") { request.velocity_east_m_s = number; return true; }
+	if (key == "is_fixed_wing") { return parseBool(value, request.is_fixed_wing); }
 
-	if (!parseBool(value, flag)) {
-		return false;
-	}
+	if (key == "in_transition_to_fw") { return parseBool(value, request.in_transition_to_fw); }
 
-	if (key == "current_route_direction_reversed") { request.current_route_direction_reversed = flag; return true; }
-
-	if (key == "is_fixed_wing") { request.is_fixed_wing = flag; return true; }
-
-	if (key == "in_transition_to_fw") { request.in_transition_to_fw = flag; return true; }
-
-	if (key == "is_vtol") { request.is_vtol = flag; return true; }
-
-	if (key == "require_vtol_approach") { request.require_vtol_approach = flag; return true; }
+	if (key == "is_vtol") { return parseBool(value, request.is_vtol); }
 
 	return false;
 }
 
 bool readFence(std::istringstream &line, bool circle, std::vector<mission_fence_point_s> &points)
 {
-	std::string type;
+	std::string type, token;
 
 	if (!(line >> type) || (type != "INCLUSION" && type != "EXCLUSION")) {
 		return false;
 	}
 
-	unsigned count = 1;
+	int32_t count = 1;
 
-	if (!circle && (!(line >> count) || count < 3 || count > DM_KEY_FENCE_POINTS_MAX)) {
+	if (!circle && (!(line >> token) || !parseInt32(token, count) || count < 3 || count > DM_KEY_FENCE_POINTS_MAX)) {
 		return false;
 	}
 
@@ -264,19 +299,18 @@ bool readFence(std::istringstream &line, bool circle, std::vector<mission_fence_
 		return false;
 	}
 
-	for (unsigned i = 0; i < count; ++i) {
+	for (int32_t i = 0; i < count; ++i) {
 		mission_fence_point_s point{};
 		point.frame = NAV_FRAME_GLOBAL;
 
-		if (!(line >> point.lat >> point.lon) || !PX4_ISFINITE(point.lat) || !PX4_ISFINITE(point.lon)
-		    || fabs(point.lat) > 90.0 || fabs(point.lon) > 180.0) {
+		if (!readLatLon(line, point.lat, point.lon)) {
 			return false;
 		}
 
 		if (circle) {
 			point.nav_cmd = type == "INCLUSION" ? NAV_CMD_FENCE_CIRCLE_INCLUSION : NAV_CMD_FENCE_CIRCLE_EXCLUSION;
 
-			if (!(line >> point.circle_radius) || !PX4_ISFINITE(point.circle_radius) || point.circle_radius <= 0.f) {
+			if (!(line >> token) || !parseFloat(token, point.circle_radius) || point.circle_radius <= 0.f) {
 				return false;
 			}
 
@@ -288,8 +322,7 @@ bool readFence(std::istringstream &line, bool circle, std::vector<mission_fence_
 		points.push_back(point);
 	}
 
-	std::string extra;
-	return !(line >> extra);
+	return lineEnded(line);
 }
 
 bool readScenario(std::istream &input, Scenario &scenario, std::string &error)
@@ -313,42 +346,17 @@ bool readScenario(std::istream &input, Scenario &scenario, std::string &error)
 			double lat = 0., lon = 0.;
 			float alt = 0.f;
 			uint16_t nav_cmd = NAV_CMD_WAYPOINT;
-			ok = static_cast<bool>(line >> cmd >> lat >> lon >> alt) && parseNavCmd(cmd, nav_cmd);
+			ok = static_cast<bool>(line >> cmd) && parseNavCmd(cmd, nav_cmd) && readPosition(line, lat, lon, alt)
+			     && lineEnded(line);
 
 			if (ok) {
 				scenario.provider.mission.push_back(makePositionItem(nav_cmd, lat, lon, alt));
 			}
 
-		} else if (tag == "JUMP") {
-			int target = -1, repeats = 0, current = 0;
-			ok = static_cast<bool>(line >> target >> repeats);
-			line >> current;
-
-			if (ok) {
-				mission_item_s item{};
-				item.nav_cmd = NAV_CMD_DO_JUMP;
-				item.do_jump_mission_index = static_cast<int16_t>(target);
-				item.do_jump_repeat_count = static_cast<uint16_t>(repeats);
-				item.do_jump_current_count = static_cast<uint16_t>(current);
-				scenario.provider.mission.push_back(item);
-			}
-
-		} else if (tag == "TRANSITION") {
-			std::string state_name;
-			uint8_t state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
-			ok = static_cast<bool>(line >> state_name) && parseVtolState(state_name, state);
-
-			if (ok) {
-				mission_item_s item{};
-				item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-				item.params[0] = static_cast<float>(state);
-				scenario.provider.mission.push_back(item);
-			}
-
 		} else if (tag == "RALLY") {
 			double lat = 0., lon = 0.;
 			float alt = 0.f;
-			ok = static_cast<bool>(line >> lat >> lon >> alt);
+			ok = readPosition(line, lat, lon, alt) && lineEnded(line);
 
 			if (ok) {
 				scenario.provider.safe_points.push_back(makePositionItem(NAV_CMD_RALLY_POINT, lat, lon, alt));
@@ -358,16 +366,22 @@ bool readScenario(std::istream &input, Scenario &scenario, std::string &error)
 			ok = readFence(line, tag == "FENCE_CIRCLE", scenario.fence_points);
 
 		} else if (tag == "VEHICLE") {
-			Position &vehicle = scenario.request.vehicle_position;
-			ok = static_cast<bool>(line >> vehicle.lat >> vehicle.lon >> vehicle.alt);
-			scenario.has_vehicle = ok;
+			double lat = 0., lon = 0.;
+			float alt = 0.f;
+			ok = readPosition(line, lat, lon, alt) && lineEnded(line);
+
+			if (ok) {
+				scenario.request.vehicle_position = Position{lat, lon, alt};
+				scenario.has_vehicle = true;
+			}
 
 		} else if (tag == "SET") {
 			std::string key, value;
-			ok = static_cast<bool>(line >> key >> value) && setRequestField(scenario.request, key, value);
+			ok = static_cast<bool>(line >> key >> value) && lineEnded(line)
+			     && setRequestField(scenario.request, key, value);
 
 		} else if (tag == "ACTION") {
-			ok = static_cast<bool>(line >> scenario.action)
+			ok = static_cast<bool>(line >> scenario.action) && lineEnded(line)
 			     && (scenario.action == "RTL" || scenario.action == "RESUME");
 
 		} else {

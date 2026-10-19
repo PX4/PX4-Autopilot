@@ -56,7 +56,7 @@ class GeneratorTest(unittest.TestCase):
             "makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);\n"
             "\n"
             "request.velocity_north_m_s = 5.f;\n"
-            "request.velocity_east_m_s = 0.f;",
+            "request.velocity_east_m_s = -0.04f;",
         )
 
     def test_absolute_output_uses_the_absolute_helpers(self):
@@ -84,18 +84,26 @@ class GeneratorTest(unittest.TestCase):
         for base in (BASE, None):
             with self.subTest(base=base):
                 parsed = parse_cpp(generate_cpp(scene, base))
-                self.assertEqual(parsed.velocity, (5.0, 0.0))
+                self.assertEqual(parsed.velocity, (5.0, -0.04))
                 parsed_items = parsed.missions["mission"] + parsed.safe_points
                 self.assertEqual([wp.cmd for wp in parsed_items], [wp.cmd for wp in expected_items])
                 for expected, actual in zip(expected_items, parsed_items):
                     self.assertAlmostEqual(expected.lat, actual.lat, places=6)
                     self.assertAlmostEqual(expected.lon, actual.lon, places=6)
-                    self.assertAlmostEqual(expected.alt, actual.alt, places=1)
+                    self.assertAlmostEqual(expected.alt, actual.alt, places=3)
                 self.assertEqual([position.name for position in parsed.positions], ["vehicle_position"])
 
     def test_float_literals(self):
-        values = (200.0, 12.5, -10.0, 0.0, -0.01, 0.06)
-        self.assertEqual([cpp_float(v) for v in values], ["200.f", "12.5f", "-10.f", "0.f", "0.f", "0.1f"])
+        values = (200.0, 12.5, -10.0, 0.0, -0.0004, 0.06, 500.04)
+        expected = ["200.f", "12.5f", "-10.f", "0.f", "0.f", "0.06f", "500.04f"]
+        self.assertEqual([cpp_float(v) for v in values], expected)
+
+    def test_inputs_keep_the_cli_altitude_precision(self):
+        # Rounded to 500 m, these inputs would miss an expected 500.040 m by more than the 0.01 m tolerance.
+        scene = Scene(missions={"mission": [at(0.0, 0.0, 500.04), at(100.0, 0.0, 500.04)]})
+        self.assertIn("makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 0.04f), // 1",
+                      generate_cpp(scene, BASE))
+        self.assertIn(", 500.04f), // 1", generate_cpp(scene, None))
 
     def test_fences_round_trip_without_using_fixture_map_origin(self):
         scene = make_scene()
@@ -148,12 +156,9 @@ class GeneratorTest(unittest.TestCase):
         self.assertEqual(planner_cli.encode(parsed, request), planner_cli.encode(scene, request))
 
     def test_fence_export_runs_the_same_boundary_case_in_the_real_planner(self):
-        from test_planner_cli import make_request, make_scene
+        from test_planner_cli import built_cli_binary, make_request, make_scene
 
-        root = planner_cli.repo_root()
-        binary = planner_cli.binary_path(root)
-        if not binary.is_file() or planner_cli.stale_sources(root, binary):
-            self.skipTest("Build the current mission_route_planner_cli to check fence export behavior.")
+        binary = built_cli_binary()
         scene = make_scene()
         scene.positions = [Position("vehicle_position", *offset_to_latlon(BASE.lat, BASE.lon, 700, 40.04), 500.0)]
         scene.fences = [Fence(False, [offset_to_latlon(BASE.lat, BASE.lon, 700, 20)], 20.02)]
