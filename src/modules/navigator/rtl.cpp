@@ -541,11 +541,14 @@ void RTL::setRtlTypeAndDestination()
 					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND)
 					       || (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 
-	bool should_init_mission_type = new_type_is_mission_based
-					&& (_rtl_type != new_rtl_type || _rtl_mission_type_handle == nullptr);
+	bool should_init_mission_type = new_type_is_mission_based && (_rtl_type != new_rtl_type);
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	should_init_mission_type |= new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
-				    && route_evaluation.executor_source_changed;
+
+	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+		// Reuse the follower kept through a direct fallback unless its source changed.
+		should_init_mission_type = _route_follower == nullptr || route_evaluation.executor_source_changed;
+	}
+
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	if (should_init_mission_type && !initRtlMissionType(new_rtl_type, rtl_alt)) {
