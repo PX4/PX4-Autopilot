@@ -79,8 +79,8 @@ public:
 	/** Prepare per-axis history buffers. Call once at startup. */
 	bool init();
 
-	/** Drop the estimator state so the next valid observation re-initializes it. */
-	void resetFilter();
+	/** Drop the estimator state. A nonzero sample boundary also publishes invalid yaw. */
+	void resetFilter(hrt_abstime min_sample_time = 0);
 
 	/** Timeout after which the whole filter is declared stale (see @c timedOut). */
 	void setVteTimeout(hrt_abstime tout) { _vte_timeout_us = tout; }
@@ -146,7 +146,7 @@ private:
 
 	inline bool isMeasRecent(hrt_abstime ts) const
 	{
-		return !hasTimedOut(ts, _meas_recent_timeout_us);
+		return ts >= _min_sample_time && !hasTimedOut(ts, _meas_recent_timeout_us);
 	}
 
 	bool isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw);
@@ -162,6 +162,7 @@ private:
 	KF_orientation _target_est_yaw{};
 	vte_orientation_s _orientation_msg{};
 
+	hrt_abstime _min_sample_time{0}; // Discard measurements from before an attitude reset.
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 	hrt_abstime _vision_warn_last{0};

@@ -124,8 +124,22 @@ bool VTEPosition::init()
 	return true;
 }
 
-void VTEPosition::resetFilter()
+void VTEPosition::resetFilter(hrt_abstime min_sample_time)
 {
+	// Keep the frame boundary across subsequent timeout/task resets.
+	if (min_sample_time > _min_sample_time) {
+		_min_sample_time = min_sample_time;
+	}
+
+	if (min_sample_time != 0) {
+		// These cached values use the old frame, even if published after the reset's sample time.
+		_local_position.valid = false;
+		_local_velocity.valid = false;
+		_pos_rel_gnss.valid = false;
+		_gps_pos_offset_ned.valid = false;
+		_velocity_offset_ned.valid = false;
+	}
+
 	_estimator_initialized = false;
 	_last_relative_meas_fused_time = 0;
 	_bias.set = false;
