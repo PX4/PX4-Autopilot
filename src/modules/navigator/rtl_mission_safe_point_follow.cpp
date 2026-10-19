@@ -412,6 +412,12 @@ void RtlMissionSafePointFollow::setLandMissionItem(mission_item_s &mission_item)
 {
 	if (goalIsMissionLanding() && _goal_mission_land_item_valid) {
 		mission_item = _goal_mission_land_item;
+
+		// As in MissionBase::set_mission_items(), NAV_FORCE_VT lands a fixed-wing VTOL vertically.
+		if (_navigator->force_vtol() && mission_item.nav_cmd == NAV_CMD_LAND) {
+			mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
+		}
+
 		return;
 	}
 
