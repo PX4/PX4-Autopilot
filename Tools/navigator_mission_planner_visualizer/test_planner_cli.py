@@ -238,9 +238,27 @@ class PlanPathTest(unittest.TestCase):
         self.assertEqual(planner_cli.plan_path([], make_scene().positions[0], result), [])
 
 
+def temporary_directory(test: unittest.TestCase) -> Path:
+    """A fresh directory that is removed when the test ends."""
+    directory = tempfile.TemporaryDirectory()
+    test.addCleanup(directory.cleanup)
+    return Path(directory.name)
+
+
+def built_cli_binary() -> Path:
+    """The current planner CLI of this checkout. Skips the test when there is none."""
+    root = planner_cli.repo_root()
+    if root is None:
+        raise unittest.SkipTest("Not running inside a PX4-Autopilot checkout.")
+    binary = planner_cli.binary_path(root)
+    if not binary.is_file() or planner_cli.stale_sources(root, binary):
+        raise unittest.SkipTest("Build the current mission_route_planner_cli to run real-planner checks.")
+    return binary
+
+
 class BinaryTest(unittest.TestCase):
     def setUp(self):
-        self.root = Path(tempfile.mkdtemp())
+        self.root = temporary_directory(self)
         (self.root / "Makefile").write_text("")
         (self.root / "src/modules/navigator").mkdir(parents=True)
         (self.root / planner_cli.BUILD_DIR).mkdir(parents=True)
@@ -254,7 +272,7 @@ class BinaryTest(unittest.TestCase):
 
     def test_repo_root_walks_up_to_the_checkout(self):
         self.assertEqual(planner_cli.repo_root(self.root / "src/modules/navigator/x.cpp"), self.root)
-        self.assertIsNone(planner_cli.repo_root(Path(tempfile.mkdtemp()) / "x"))
+        self.assertIsNone(planner_cli.repo_root(temporary_directory(self) / "x"))
 
     def test_build_command_points_at_the_cli_directory(self):
         command = planner_cli.build_command(self.root)
@@ -311,10 +329,7 @@ class RealGeofenceIntegrationTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        root = planner_cli.repo_root()
-        cls.binary = planner_cli.binary_path(root)
-        if not cls.binary.is_file() or planner_cli.stale_sources(root, cls.binary):
-            raise unittest.SkipTest("Build the current mission_route_planner_cli to run real-fence checks.")
+        cls.binary = built_cli_binary()
 
     def run_scene(self, scene):
         return planner_cli.run(self.binary, planner_cli.encode(scene, make_request()))
@@ -359,6 +374,9 @@ class RealGeofenceIntegrationTest(unittest.TestCase):
             "FENCE_CIRCLE EXCLUSION 91 8 10",
             "FENCE_POLYGON INCLUSION 2 47 8 47.1 8.1",
             "FENCE_POLYGON INCLUSION 3 47 8 47.1 8.1",
+            # One token each, not a longitude plus a radius or two coordinates.
+            "FENCE_CIRCLE EXCLUSION 47 8.5+100",
+            "FENCE_POLYGON INCLUSION 3 47 8 47.1 8.1+47.1 8.2",
         ):
             with self.subTest(line=fence_line), self.assertRaisesRegex(RuntimeError, "invalid scenario"):
                 planner_cli.run(self.binary, scenario + fence_line + "\n")
@@ -370,6 +388,38 @@ class RealGeofenceIntegrationTest(unittest.TestCase):
             for angle in (2 * math.pi * index / 60 for index in range(60))
         ])]
         self.assertTrue(self.run_scene(scene).ok)
+
+
+class CliInputTest(unittest.TestCase):
+    """The CLI rejects a malformed line instead of guessing a value."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.binary = built_cli_binary()
+
+    def test_valid_scenario_runs(self):
+        self.assertTrue(planner_cli.run(self.binary, planner_cli.encode(make_scene(), make_request())).ok)
+
+    def test_malformed_numbers_and_extra_tokens_are_rejected(self):
+        scenario = planner_cli.encode(make_scene(), make_request())
+        for line in (
+            "SET acceptance_radius_m abc",
+            "SET acceptance_radius_m 10 extra",
+            "SET mission_index 1.9",
+            "SET mission_index 99999999999",
+            "SET home_altitude_amsl nan",
+            "SET velocity_north_m_s 1e999",
+            "SET is_fixed_wing 2",
+            "SET unknown_field 1",
+            "ITEM WAYPOINT 47.41 8.54 500 extra",
+            "ITEM WAYPOINT 47.41 8.54x 500",
+            "RALLY 47.41 8.54",
+            "VEHICLE 95 8.5 500",
+            "ACTION RTL extra",
+            "JUMP 1 2",
+        ):
+            with self.subTest(line=line), self.assertRaisesRegex(RuntimeError, "invalid scenario"):
+                planner_cli.run(self.binary, scenario + line + "\n")
 
 
 class UnitTestGenerationTest(unittest.TestCase):
@@ -404,20 +454,26 @@ class UnitTestGenerationTest(unittest.TestCase):
         self.assertIn("EXPECT_EQ(plan.safe_point_index, 1);", code)
         self.assertIn("EXPECT_EQ(plan.branch_off_mission_item_index, 3);", code)
         self.assertIn("EXPECT_NEAR(plan.join_position.lat, 47.4040373, 1e-6);", code)
+        self.assertIn("EXPECT_NEAR(plan.join_position.alt, 500.000f, 0.01f);", code)
         self.assertIn("EXPECT_FALSE(plan.fly_direct_to_goal);", code)
         self.assertTrue(code.rstrip().endswith("}"))
+
+    def test_interpolated_altitude_keeps_the_cli_precision(self):
+        # Rounded to 501.8 m, this altitude would miss the 0.01 m tolerance.
+        result = planner_cli.parse_output(CLI_OUTPUT.replace("PLAN join_alt 500.000", "PLAN join_alt 501.820"))
+        code = generate_unit_test(self.scene, self.base, make_request(), result, "x")
+        self.assertIn("EXPECT_NEAR(plan.join_position.alt, 501.820f, 0.01f);", code)
 
     def test_non_default_request_fields_are_written(self):
         request = make_request()
         request.projection_search_distance_m = 150.0
         request.is_fixed_wing = True
-        request.active_jump_anchor = 8
         request.mission_land_index = 4
         code = generate_unit_test(self.scene, self.base, request, self.result, "x")
         self.assertIn("request.projection_search_distance_m = 150.f;", code)
         self.assertIn("request.is_fixed_wing = true;", code)
-        self.assertIn("request.active_jump_anchor = {8};", code)
         self.assertIn("request.mission_land_index = 4;", code)
+        self.assertNotIn("active_jump_anchor", code)
 
     def test_resume_test_uses_the_resume_helper(self):
         request = make_request()

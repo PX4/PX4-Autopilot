@@ -21,7 +21,7 @@ Checked with Python 3.8, Streamlit 1.40, folium 0.18, streamlit-folium 0.22 and 
 3. Click one of the new items to select it. **Edit item** in the sidebar shows its offsets from the base (or its lat/lon), its altitude and, for mission items, its command; changes apply as you type. **Move to next map click** puts it where you click next, **Delete** removes it, **Undo** covers all of this. Parsed items are read-only until they are loaded into the editor.
 4. The **Generated C++** tab below the map follows every edit. Copy it with the button in the corner of the code block.
 
-**Load parsed items into the editor** copies the parsed fixtures into the editor, to extend an existing test. DO_JUMP and VTOL transition items have no position and are dropped; add them back by hand.
+**Load parsed items into the editor** copies the parsed fixtures into the editor, to extend an existing test. Only the first mission is loaded, the same one the planner uses for the parsed test. DO_JUMP and VTOL transition items have no position and are dropped; add them back by hand. Dropping them shifts the index of the items after them.
 
 Parsing imports geometry and velocity. Set the mission index and other planner parameters to match the pasted test before running it.
 
@@ -100,7 +100,7 @@ Every vehicle position gets its own run, all with the same request. Each path is
 
 The planned path is drawn as a dashed line, with pins for branch-in, branch-off and the goal. The plan fields appear under the buttons, including `geofence_prevents_shortcut` when a fence requires following the route instead of flying directly to the goal.
 
-The vehicle state sits above the buttons: mission index (`current_seq`), land index, the active `DO_JUMP` item and whether the route is currently flown in reverse. **Parameters** holds the rest, labelled with the PX4 parameter it comes from: cross-track margins (`MIS_MC_SEG_DIST`, `MIS_FW_SEG_DIST`, `RTL_RP_SEG_DIST`), acceptance radii, the fixed-wing U-turn penalty (`RTL_FW_UTURN_PEN`), home altitude, vehicle type and VTOL state. Change them freely between runs; nothing is rebuilt.
+The vehicle state sits above the buttons: mission index (`current_seq`), land index and whether the route is currently flown in reverse. **Parameters** holds the rest, labelled with the PX4 parameter it comes from: cross-track margins (`MIS_MC_SEG_DIST`, `MIS_FW_SEG_DIST`, `RTL_RP_SEG_DIST`), acceptance radii, the fixed-wing U-turn penalty (`RTL_FW_UTURN_PEN`), home altitude, vehicle type and VTOL state. Change them freely between runs; nothing is rebuilt.
 
 Under the map, **Planner trace** shows the planner's own debug output, which the CLI compiles in; the text is informal and may change.
 
@@ -117,6 +117,6 @@ The test asserts what the planner returned. Review the plan on the map first and
 python3 -m unittest discover -s Tools/navigator_mission_planner_visualizer -p 'test_*.py'
 ```
 
-The parser, generator, editor, geometry and CLI protocol tests need only the Python standard library. The rendering and app tests need the UI dependencies.
+The parser, generator, editor, geometry and CLI protocol tests need only the Python standard library. The rendering and app tests need the UI dependencies and are skipped without them.
 
-`test_planner_cli.py` also runs integration tests against the real CLI when it is built and current. Otherwise those tests are skipped. Build the CLI first to check polygon/circle pruning, recovery behavior and invalid fence input.
+`test_planner_cli.py` also runs integration tests against the real CLI when it is built and current. Otherwise those tests are skipped. Build the CLI first to check polygon/circle pruning, recovery behavior and invalid input.

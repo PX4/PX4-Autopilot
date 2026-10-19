@@ -37,7 +37,6 @@ SOURCE_GLOBS = (
     str(BUILD_DIR / "px4_boardconfig.h"),
     str(CLI_LOCATION / "src" / "*"),
 )
-ACTIONS = ("RTL", "RESUME")
 LAND_COMMANDS = ("NAV_CMD_LAND", "NAV_CMD_VTOL_LAND")
 _STRUCTURED_TAGS = ("ACTION", "STATUS", "PLAN", "END")
 
@@ -50,7 +49,6 @@ class PlanRequest:
     mission_index: int = 1
     mission_land_index: int = -1
     current_route_direction_reversed: bool = False
-    active_jump_anchor: int = -1
     home_altitude_amsl: float = 500.0
     projection_search_distance_m: float = 30.0  # MIS_MC_SEG_DIST (MIS_FW_SEG_DIST is 150 m)
     safe_point_projection_search_distance_m: float = 30.0  # RTL_RP_SEG_DIST
@@ -61,7 +59,6 @@ class PlanRequest:
     is_fixed_wing: bool = False
     is_vtol: bool = False
     in_transition_to_fw: bool = False
-    require_vtol_approach: bool = False
 
     def settings(self) -> Dict[str, str]:
         """Field values as the CLI reads them, in declaration order."""

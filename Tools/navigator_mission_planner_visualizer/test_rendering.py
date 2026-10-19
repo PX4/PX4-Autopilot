@@ -1,17 +1,26 @@
 """Map rendering checks without a Streamlit server."""
 
+import importlib.util
 import json
 import unittest
 
-import folium
-
 from planner_visualizer.editor import Editor
-from planner_visualizer.map2d import (
-    NEW_COLORS, PLAN_COLORS, add_plan_layer, build_base_map, build_new_items_layer, legend_html,
-)
 from planner_visualizer.planner_cli import parse_output
-from planner_visualizer.map3d import NEW_RGB, PARSED_RGB, build_deck
 from planner_visualizer.models import MISSION, SAFE_POINTS, VEHICLE, Fence, Position, Scene, Waypoint
+
+# The map packages are optional; the core tests run without them.
+FOLIUM_AVAILABLE = importlib.util.find_spec("folium") is not None
+PYDECK_AVAILABLE = importlib.util.find_spec("pydeck") is not None
+
+if FOLIUM_AVAILABLE:
+    import folium
+
+    from planner_visualizer.map2d import (
+        NEW_COLORS, PLAN_COLORS, add_plan_layer, build_base_map, build_new_items_layer, legend_html,
+    )
+
+if PYDECK_AVAILABLE:
+    from planner_visualizer.map3d import NEW_RGB, PARSED_RGB, build_deck
 
 
 def make_scene():
@@ -36,6 +45,7 @@ PLAN_OUTPUT = (
 )
 
 
+@unittest.skipUnless(FOLIUM_AVAILABLE, "needs folium")
 class Map2dTest(unittest.TestCase):
     def test_fences_and_unfinished_polygon_are_visible(self):
         scene = Scene(fences=[Fence(True, [(47, 8), (47.01, 8), (47.01, 8.01)]),
@@ -143,6 +153,7 @@ class Map2dTest(unittest.TestCase):
         self.assertIn('"radius": 7', html)
 
 
+@unittest.skipUnless(PYDECK_AVAILABLE, "needs pydeck")
 class Map3dTest(unittest.TestCase):
     def test_fences_use_ground_outlines_in_3d(self):
         scene = Scene(fences=[Fence(True, [(47, 8), (47.01, 8), (47.01, 8.01)]),
