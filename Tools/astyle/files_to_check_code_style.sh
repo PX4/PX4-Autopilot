@@ -30,7 +30,6 @@ exec find boards msg src platforms test \
     -path src/modules/mc_raptor/blob -prune -o \
     -path src/modules/simulation/gz_plugins/optical_flow/PX4-OpticalFlow -prune -o \
     -path test/fuzztest -prune -o \
-    -path test/mavsdk_tests/catch2 -prune -o \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/crypto/libtomcrypt -prune -o \
     -path src/lib/crypto/libtommath -prune -o \
