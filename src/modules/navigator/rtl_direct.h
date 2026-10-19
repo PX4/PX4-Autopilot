@@ -60,6 +60,7 @@
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "mission_block.h"
 #include "navigation.h"
+#include "rtl_arrival.h"
 #include "safe_point_land.hpp"
 
 using namespace time_literals;
@@ -113,7 +114,11 @@ public:
 	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos,
 			    bool destination_is_current_position = false);
 
-	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
+	bool isLanding()
+	{
+		return _rtl_state == RTLState::ARRIVAL ? _arrival.phase() != RtlArrival::Phase::Move :
+		       _rtl_state != RTLState::IDLE && _rtl_state >= RTLState::MOVE_TO_LAND;
+	}
 
 private:
 	/**
@@ -123,10 +128,8 @@ private:
 	enum class RTLState {
 		CLIMBING,
 		AVOID_GEOFENCE,
-		MOVE_TO_LOITER,
-		LOITER_DOWN,
-		LOITER_HOLD,
-		MOVE_TO_LAND,
+		ARRIVAL = 2,
+		MOVE_TO_LAND = 5, // Preserve the state numbers published in navigator_mission_item.
 		TRANSITION_TO_MC,
 		MOVE_TO_LAND_HOVER,
 		LAND,
@@ -178,7 +181,7 @@ private:
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
-	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
+	RtlArrival _arrival;
 	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;
 
