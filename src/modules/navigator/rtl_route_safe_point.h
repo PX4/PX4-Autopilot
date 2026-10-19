@@ -140,6 +140,7 @@ private:
 	SourceSnapshot _source{};
 	bool _direction_reversed{false};
 	bool _waiting_for_inputs{false};
+	mission_route::FailureReason _last_failure{mission_route::FailureReason::kNone};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist,
