@@ -990,6 +990,22 @@ void MissionBase::resetJoinRouteState()
 	}
 }
 
+bool MissionBase::cameraWasTriggeringAtPause()
+{
+	if (_inactivation_index <= 0) {
+		return false;
+	}
+
+	resetItemCache();
+	updateCachedItemsUpToIndex(_inactivation_index - 1);
+	const bool camera_was_triggering = cameraWasTriggering();
+
+	// on_activation() rebuilds the cache for the index it resumes at.
+	resetItemCache();
+	_last_speed_change_item = {};
+	return camera_was_triggering;
+}
+
 bool MissionBase::handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet,
 		const position_setpoint_s &current_setpoint_copy)
 {

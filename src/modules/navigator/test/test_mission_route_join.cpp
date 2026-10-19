@@ -73,6 +73,15 @@ static constexpr double kBaseLat = 47.0;
 static constexpr double kBaseLon = 8.0;
 static constexpr float kAlt = 100.f;
 
+static mission_item_s makeCameraTriggerItem(float distance_m)
+{
+	mission_item_s item{};
+	item.nav_cmd = NAV_CMD_DO_SET_CAM_TRIGG_DIST;
+	item.params[0] = distance_m;
+	item.autocontinue = true;
+	return item;
+}
+
 /**
  * @brief Mission peer that exposes smart-rejoin state for navigator-level tests.
  */
@@ -322,6 +331,47 @@ protected:
 		markMissionResultValid();
 		_navigator.get_mission_result()->seq_reached = -1;
 		mission.beginItemForTest(work);
+	}
+
+	// Activates the mission at item 1, flies it to pause_index and pauses with the vehicle at resume_position.
+	void pauseMission(MissionTestPeer &mission, const std::vector<mission_item_s> &items, int32_t pause_index,
+			  const mission_route::Position &resume_position)
+	{
+		writeMissionItems(items);
+		writeSafePointState(0, 71);
+
+		mission_s mission_state{};
+		mission_state.timestamp = hrt_absolute_time();
+		mission_state.current_seq = 1;
+		mission_state.land_start_index = -1;
+		mission_state.land_index = -1;
+		mission_state.mission_id = 71;
+		mission_state.safe_points_id = 71;
+		mission_state.count = items.size();
+		mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+		mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+		publishMission(mission_state);
+		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+		publishLandDetected(false);
+		publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kBaseAlt));
+		publishLocalPosition();
+		publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+		primeNavigatorState();
+		updateRouteCacheUntilReady(mission_state);
+		mission.on_inactive();
+		markMissionResultValid();
+		mission.on_activation();
+
+		while (mission.currentSequenceForTest() < pause_index && mission.advanceMissionForTest()) {}
+
+		ASSERT_EQ(mission.currentSequenceForTest(), pause_index);
+		mission.on_inactivation();
+		publishGlobalPosition(resume_position);
+		publishLocalPosition();
+		primeNavigatorState();
+		mission.on_inactive();
+		markMissionResultValid();
 	}
 
 	Navigator _navigator{};
@@ -943,6 +993,75 @@ TEST_F(MissionRouteJoinTest, RestartedMissionStartsAtFirstItemWithoutJoin)
 	EXPECT_EQ(mission.currentSequenceForTest(), 0);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 	EXPECT_FALSE(mission.joinContextForTest().valid());
+}
+
+// A survey paused while the camera triggers retraces its last leg, even from beside a leg before the survey.
+TEST_F(MissionRouteJoinTest, CameraTriggerResumeTakesPrecedenceOverJoin)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makeCameraTriggerItem(10.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kBaseAlt),
+	};
+
+	// Pause on leg 3-4, resume beside leg 0-1.
+	pauseMission(mission, items, 4, makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 40.f, kBaseAlt));
+	navigator_test::EventRecorder events;
+
+	mission.on_activation();
+
+	EXPECT_EQ(mission.currentSequenceForTest(), 3);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
+	EXPECT_FALSE(events.sent(events::ID("mission_route_rejoin")));
+}
+
+// A join back into a finished survey keeps its target: the camera was not triggering at the pause.
+TEST_F(MissionRouteJoinTest, JoinIntoFinishedCameraSurveyKeepsTarget)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	mission_item_s speed{};
+	speed.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	speed.params[1] = 8.f;
+	speed.autocontinue = true;
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makeCameraTriggerItem(10.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+		makeCameraTriggerItem(0.f),
+		speed,
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kBaseAlt),
+	};
+
+	// Pause on leg 7-8 after the survey and a speed change, resume beside survey leg 3-4.
+	pauseMission(mission, items, 8, makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 40.f, kBaseAlt));
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
+	navigator_test::EventRecorder events;
+
+	mission.on_activation();
+
+	EXPECT_EQ(mission.currentSequenceForTest(), 4);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+	EXPECT_TRUE(mission.joinContextForTest().valid());
+	EXPECT_TRUE(events.sent(events::ID("mission_route_rejoin")));
+
+	// The speed change after the join target is not replayed.
+	while (command_sub.update(&command)) {
+		EXPECT_NE(command.command, NAV_CMD_DO_CHANGE_SPEED);
+	}
 }
 
 // A join selecting a nearby landing executes that item directly, even if the old cursor was elsewhere.
