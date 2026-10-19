@@ -227,8 +227,8 @@ void RTL::on_active()
 
 	if (_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
 	    && !route_landing_started
-	    && !routePlanSourceStillValid()) {
-		stopAndDeleteRtlMissionType(routePlanMissionMatches(_mission_sub.get()));
+	    && !_route_safe_point.sourceStillValid(_mission_sub.get())) {
+		stopAndDeleteRtlMissionType(_route_safe_point.missionMatches(_mission_sub.get()));
 		setRtlTypeAndDestination();
 		applyReturnAltMin();
 		reportRouteFallback();
@@ -319,16 +319,6 @@ bool RTL::isLanding()
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-bool RTL::routePlanSourceStillValid() const
-{
-	return _route_safe_point.sourceStillValid(_mission_sub.get());
-}
-
-bool RTL::routePlanMissionMatches(const mission_s &mission) const
-{
-	return _route_safe_point.missionMatches(mission);
-}
-
 void RTL::applyReturnAltMin()
 {
 	// Executors selected mid-Return follow the same climb rule as at activation.
@@ -435,7 +425,6 @@ void RTL::setRtlTypeAndDestination()
 
 		if (route_evaluation.success) {
 			new_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
-			destination_type = routePlanDestinationType(route_evaluation.plan.goal_type);
 			destination = route_evaluation.destination;
 			safe_point_index = route_evaluation.safe_point_index;
 
@@ -643,24 +632,6 @@ void RTL::setRtlTypeAndDestination()
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-RTL::DestinationType RTL::routePlanDestinationType(mission_route::GoalType goal_type)
-{
-	switch (goal_type) {
-	case mission_route::GoalType::kSafePoint:
-		return DestinationType::DESTINATION_TYPE_SAFE_POINT;
-
-	case mission_route::GoalType::kMissionLand:
-		return DestinationType::DESTINATION_TYPE_MISSION_LAND;
-
-	case mission_route::GoalType::kMissionTakeoff:
-		return DestinationType::DESTINATION_TYPE_MISSION_TAKEOFF;
-
-	case mission_route::GoalType::kNone:
-	default:
-		return DestinationType::DESTINATION_TYPE_HOME;
-	}
-}
-
 void RTL::applyRouteSafePointFallback(RtlType &new_rtl_type, DestinationType &destination_type,
 				      PositionYawSetpoint &destination, uint8_t &safe_point_index)
 {

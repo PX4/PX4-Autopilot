@@ -338,7 +338,7 @@ public:
 	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
 	unsigned routeExecutorInitsForTest() const { return _route_executor_inits; }
 	int32_t missionSequenceForTest() const { return _mission_sub.get().current_seq; }
-	bool routePlanSourceStillValidForTest() const { return routePlanSourceStillValid(); }
+	bool routePlanSourceStillValidForTest() const { return _route_safe_point.sourceStillValid(_mission_sub.get()); }
 	bool routePlanMatchesSourceForTest(const mission_s &mission) const { return _route_safe_point.sourceStillValid(mission); }
 	bool routeRetryPendingForTest() const { return _route_safe_point.retryReady(_mission_sub.get()); }
 	uint32_t routePlanMissionGenerationForTest() const { return _route_safe_point.missionGeneration(); }
