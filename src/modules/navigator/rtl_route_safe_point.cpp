@@ -93,6 +93,7 @@ void RtlRouteSafePoint::reset()
 	_source = {};
 	_direction_reversed = false;
 	_waiting_for_inputs = false;
+	_last_failure = mission_route::FailureReason::kNone;
 }
 
 bool RtlRouteSafePoint::supportsVehicle(const vehicle_status_s &vehicle_status) const
@@ -220,9 +221,16 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 
 	if (failure != mission_route::FailureReason::kNone || !plan.valid()) {
 		// Inputs were ready, so a fence check failure here repeats for this scene: do not retry.
-		PX4_ERR("RTL type 7 plan failed: %s", mission_route::failureReasonString(failure));
+		// Inactive estimates replan every 2 s, so only log a new reason.
+		if (failure != _last_failure) {
+			PX4_ERR("RTL type 7 plan failed: %s", mission_route::failureReasonString(failure));
+			_last_failure = failure;
+		}
+
 		return evaluation;
 	}
+
+	_last_failure = mission_route::FailureReason::kNone;
 
 	// Only accept a plan whose cache inputs did not change while planning.
 	if (!cache.missionViewStillValid(mission_view)
