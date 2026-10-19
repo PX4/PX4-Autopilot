@@ -387,11 +387,7 @@ MissionBase::on_active()
 		 || _mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 		 || _mission_item.nav_cmd == NAV_CMD_LAND
 		 || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-		 || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-		 || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-		)) {
+		 || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING)) {
 		// Mount control is disabled If the vehicle is in ROI-mode, the vehicle
 		// needs to rotate such that ROI is in the field of view.
 		// ROI only makes sense for multicopters.
@@ -492,25 +488,17 @@ void MissionBase::update_mission()
 			checkClimbRequired(_mission.current_seq);
 		}
 
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-		// Route joining is armed before activation reaches update_mission(). Keep it until
-		// it completes; an actual mission definition change clears it in onMissionUpdate().
-		if (!vtolTransitionActive() && _work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
-		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN
-		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN
-		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-		}
-
-#else
-
 		/* Keep a running transition through a feasibility refresh. */
-		if (!vtolTransitionActive()) {
+		bool keep_work_item = vtolTransitionActive();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		// The join is armed before activation reaches update_mission(); onMissionUpdate() clears it on a real change.
+		keep_work_item |= _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+				  || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+		if (!keep_work_item) {
 			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 		}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 		/* reset mission failure if we have an updated valid mission */
 		_navigator->get_mission_result()->failure = false;
@@ -671,8 +659,6 @@ bool MissionBase::shouldReportMissionItemReached() const
 	case WorkItemType::WORK_ITEM_TYPE_CLIMB:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	case WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE:
-	case WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN:
-	case WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN:
 	case WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN:
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		return false;
@@ -836,13 +822,6 @@ void MissionBase::startVtolTransition(const mission_item_s &command, const missi
 	_vtol_transition.completion_work = completion_work;
 	_vtol_transition.hold_current_position = hold_current_position;
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-	if (completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
-		_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
-	}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	reset_mission_item_reached();
 
 	if (updateVtolTransition()) {
@@ -878,21 +857,11 @@ bool MissionBase::updateVtolTransition()
 	}
 
 	position_setpoint_triplet_s &triplet = *_navigator->get_position_setpoint_triplet();
-	bool aligning = _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	aligning |= _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	const bool aligning = _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
 
 	if (front_transition && in_back_transition) {
 		// A back transition can also start during alignment; align again once it finishes.
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-		if (_vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN;
-		}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 
 		// Only the alignment yaw changes, publish once instead of every cycle.
@@ -913,13 +882,6 @@ bool MissionBase::updateVtolTransition()
 	if (needs_alignment && !aligning) {
 		prepareVtolTransitionItem(true);
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-		if (_vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
-		}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	} else {
 		if (needs_alignment && (!is_mission_item_reached_or_completed() || !_mission_item.autocontinue)) {
@@ -984,15 +946,15 @@ void MissionBase::setupJoinRoute(const mission_route::Position &join_position, b
 
 void MissionBase::resetJoinRouteState()
 {
-	if (_vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+	const bool join_transition = _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
+
+	if (join_transition) {
 		resetVtolTransition();
 	}
 
 	_route_join_context = {};
 
-	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
-	    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN
-	    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN
+	if (join_transition || _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
 	    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 	}

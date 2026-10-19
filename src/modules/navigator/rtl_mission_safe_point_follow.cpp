@@ -836,9 +836,8 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 	const Stage stage = inactive ? (_plan.fly_direct_to_goal ? finalGoalStage() : Stage::FollowRoute) : _state.stage;
 	const bool join_remaining = inactive ? !_plan.fly_direct_to_goal
 				    : (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
-				       || _work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN
-				       || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN
-				       || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
+				       || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN
+				       || _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
 	const position_setpoint_s &current_setpoint = _navigator->get_position_setpoint_triplet()->current;
 	matrix::Vector2d hor_pos{global_pos.lat, global_pos.lon};
 	float altitude = global_pos.alt;
