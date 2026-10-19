@@ -512,6 +512,38 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffStartsArrivalMove)
 	EXPECT_EQ(executor.arrivalPhaseForTest(), RtlArrival::Phase::Move);
 }
 
+// The virtual branch-off and the synthetic goal items never report an uploaded item as reached.
+TEST_F(RtlMissionSafePointFollowStageTest, OnlyUploadedTargetsAreReportedReached)
+{
+	executor.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+	});
+	executor.setSafePointSelectionForTest(false, 1);
+
+	using Stage = RtlMissionSafePointFollowTestPeer::Stage;
+	const std::pair<Stage, bool> cases[] {
+		{Stage::FollowRoute, true},
+		{Stage::TransitionDuringRoute, false},
+		{Stage::BranchOff, false},
+		{Stage::Arrival, false},
+		{Stage::LandAtGoal, false},
+	};
+
+	for (const auto &[stage, reported] : cases) {
+		SCOPED_TRACE(static_cast<int>(stage));
+		executor.setStageForTest(stage);
+		EXPECT_EQ(executor.reportsReachedItemForTest(), reported);
+	}
+
+	// An uploaded mission landing is reported once it completes.
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kMissionLand;
+	executor.configurePlanForTest(plan, 1);
+	executor.setStageForTest(Stage::LandAtGoal);
+	EXPECT_TRUE(executor.reportsReachedItemForTest());
+}
+
 // With a valid goal approach, branch-off starts the arrival descent.
 TEST_F(RtlMissionSafePointFollowStageTest, BranchOffStartsArrivalDescentWithValidApproach)
 {
