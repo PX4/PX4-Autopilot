@@ -1319,10 +1319,17 @@ int Navigator::run_trampoline(int argc, char *argv[])
 
 int Navigator::task_spawn(int argc, char *argv[])
 {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// Mission route planning runs on this task; its worst static call chain is about 5.5 KB.
+	static constexpr int kStackSize = 6000;
+#else
+	static constexpr int kStackSize = 2230;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	desc.task_id = px4_task_spawn_cmd("navigator",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_NAVIGATION,
-					  PX4_STACK_ADJUSTED(2230),
+					  PX4_STACK_ADJUSTED(kStackSize),
 					  (px4_main_t)&run_trampoline,
 					  (char *const *)argv);
 
