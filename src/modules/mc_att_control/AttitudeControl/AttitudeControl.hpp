@@ -50,6 +50,7 @@
 
 #include <matrix/matrix/math.hpp>
 #include <mathlib/math/Limits.hpp>
+#include <lib/slew_rate/SlewRate.hpp>
 
 class AttitudeControl
 {
@@ -77,7 +78,7 @@ public:
 	 * Set angular acceleration limits for the reference model
 	 * On axes with a limit > 0 the 2nd-order model runs as a cascade of an angle and a rate loop whose acceleration
 	 * output is saturated at the limit, with the reference rate bounded by the rate limit. Below the limits it
-	 * behaves like the linear model.
+	 * behaves like the linear model. The yaw limit also bounds the rate of change of the commanded yaw rate.
 	 * @param accel_max [rad/s^2] 3D vector containing limits for roll, pitch, yaw; 0 = disabled (linear model)
 	 */
 	void setRefModelAccelerationLimit(const matrix::Vector3f &accel_max);
@@ -155,6 +156,7 @@ private:
 	matrix::Quatf _q_ref;                  ///< reference attitude tracked by the 2nd-order ref model
 	matrix::Vector3f _omega_correction;    ///< error-driven correction (2nd-order state); reference rate = _omega_correction + _omega_command
 	matrix::Vector3f _omega_command;       ///< commanded (analytical) reference rate; exempt from the feedforward limit
+	SlewRate<float> _yawspeed_command;     ///< commanded yaw rate [rad/s] around the world yaw axis, slewed at the yaw acceleration limit
 	matrix::Vector3f _ref_accel;           ///< reference angular acceleration [rad/s^2] of the last step, see getReferenceAcceleration()
 	bool _ref_initialized{false};
 

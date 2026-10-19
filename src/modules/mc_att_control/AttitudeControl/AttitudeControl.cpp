@@ -92,6 +92,8 @@ void AttitudeControl::setRefModelAccelerationLimit(const Vector3f &accel_max)
 	for (int i = 0; i < 3; i++) {
 		_ref_accel_max(i) = math::max(accel_max(i), 0.f);
 	}
+
+	_yawspeed_command.setSlewRate(_ref_accel_max(2));
 }
 
 bool AttitudeControl::isAxisAccelerationLimited(const int axis) const
@@ -123,6 +125,7 @@ bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		_omega_correction.zero();
 		_ref_accel.zero();
 		_omega_command.zero();
+		_yawspeed_command.setForcedValue(0.f);
 		_ref_initialized = true;
 	}
 
@@ -188,8 +191,20 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	const Quatf q_ref_inv = qinv(_q_ref);
 	const Vector3f yaw_axis_body = qzaxis(q_ref_inv); // world yaw axis expressed in q_ref's body frame
 
-	// Commanded (analytical) reference rate, kept separate so update() can feed it forward at unity.
-	_omega_command = PX4_ISFINITE(yawspeed_setpoint) ? yaw_axis_body * yawspeed_setpoint : Vector3f{};
+	// Commanded (analytical) yaw rate. With a yaw acceleration limit it changes at most at that limit, so that yaw
+	// rate commands (stick, auto) respect it too.
+	const float yawspeed_command = PX4_ISFINITE(yawspeed_setpoint) ? yawspeed_setpoint : 0.f;
+	const float yawspeed_command_prev = _yawspeed_command.getState();
+
+	if (isAxisAccelerationLimited(2)) {
+		_yawspeed_command.update(yawspeed_command, dt);
+
+	} else {
+		_yawspeed_command.setForcedValue(yawspeed_command);
+	}
+
+	// Commanded reference rate, kept separate so update() can feed it forward at unity.
+	_omega_command = yaw_axis_body * _yawspeed_command.getState();
 
 	Quatf q_err = qmul(q_ref_inv, qd);
 	q_err.canonicalize();
@@ -211,9 +226,27 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 
 	// While a yaw rate is commanded, StickYaw unlocks the heading and sets the setpoint yaw to the
 	// measurement, so on that axis q_d carries no reference for the model to filter.
-	const bool heading_unlocked = PX4_ISFINITE(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON);
-	const Vector3f e_heading = heading_unlocked ? e.dot(yaw_axis_body) * yaw_axis_body : Vector3f{};
-	const Vector3f e_filtered = e - e_heading;
+	const bool heading_unlocked = fabsf(yawspeed_command) > FLT_EPSILON;
+	// Once the command ended StickYaw locks the heading where the vehicle is. A limited command that is still
+	// decaying keeps turning the reference (and the vehicle with it) past that heading, and only once it stopped the
+	// model closes the error to the locked heading, again within the limit.
+	const bool command_decaying = !heading_unlocked && isAxisAccelerationLimited(2)
+				      && ((fabsf(yawspeed_command_prev) > FLT_EPSILON) || (fabsf(_yawspeed_command.getState()) > FLT_EPSILON));
+	const Vector3f e_yaw = e.dot(yaw_axis_body) * yaw_axis_body;
+	const Vector3f e_filtered = (heading_unlocked || command_decaying) ? e - e_yaw : e;
+
+	// Heading rotation applied to the reference unfiltered: the unlocked setpoint heading, or the turn of the decaying
+	// command over the step (it slews linearly until it reaches the command, then stays there)
+	Vector3f e_heading{};
+
+	if (heading_unlocked) {
+		e_heading = e_yaw;
+
+	} else if (command_decaying) {
+		const float yawspeed = _yawspeed_command.getState();
+		const float slew_time = fabsf(yawspeed - yawspeed_command_prev) / _ref_accel_max(2);
+		e_heading = yaw_axis_body * (0.5f * (yawspeed_command_prev + yawspeed) * slew_time + yawspeed * (dt - slew_time));
+	}
 
 	// Propagate the error-driven correction in tangent space (the 2nd-order state). delta_phi is the integral
 	//    of omega over [0, dt]; the correction part collapses to e(0) - e(dt) since e_dot = -correction.

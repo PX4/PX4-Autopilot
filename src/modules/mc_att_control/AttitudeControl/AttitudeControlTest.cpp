@@ -714,7 +714,7 @@ TEST_F(AttitudeControlShapingTest, ShapedReferenceRateIsFedForward)
 	EXPECT_NEAR(rate_setpoint(2), 0.f, 1e-3f);
 }
 
-TEST_F(AttitudeControlShapingTest, CommandedYawRateBypassesShaping)
+TEST_F(AttitudeControlShapingTest, UnlockedHeadingBypassesShaping)
 {
 	// GIVEN: a manual yaw-rate command (heading slaved to the measurement, small commanded rate)
 	const float commanded = 0.05f;
@@ -732,6 +732,59 @@ TEST_F(AttitudeControlShapingTest, CommandedYawRateBypassesShaping)
 	EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlShapingTest, CommandedYawRateRespectsAccelerationLimit)
+{
+	// GIVEN: a yaw rate command that starts and ends abruptly, for a vehicle tracking its rate setpoint perfectly.
+	// As StickYaw does, the setpoint heading follows the vehicle while the rate is commanded and is locked where the
+	// vehicle is once the command ended.
+	const float commanded = 1.5f;
+	const int command_steps = static_cast<int>(1.f / kDt);
+	const int steps = static_cast<int>(3.f / kDt);
+	float vehicle_yaw = 0.f;
+	float locked_yaw = 0.f;
+	float rate_prev = 0.f;
+	float max_rate = 0.f;
+	float max_accel = 0.f;
+	float max_overshoot = 0.f;
+	Vector3f rate_setpoint{};
+
+	for (int i = 0; i < steps; i++) {
+		const bool commanding = i < command_steps;
+
+		if (i <= command_steps) {
+			locked_yaw = vehicle_yaw;
+		}
+
+		const Quatf q_d(Eulerf(0.f, 0.f, locked_yaw));
+		_attitude_control.setAttitudeSetpoint(q_d, commanding ? commanded : 0.f, kDt);
+
+		const Quatf q_vehicle(Eulerf(0.f, 0.f, vehicle_yaw));
+		rate_setpoint = _attitude_control.update(q_vehicle);
+		vehicle_yaw = wrap_pi(vehicle_yaw + rate_setpoint(2) * kDt);
+
+		max_rate = math::max(max_rate, fabsf(rate_setpoint(2)));
+		max_accel = math::max(max_accel, fabsf(rate_setpoint(2) - rate_prev) / kDt);
+
+		if (!commanding) {
+			max_overshoot = math::max(max_overshoot, wrap_pi(vehicle_yaw - locked_yaw));
+		}
+
+		rate_prev = rate_setpoint(2);
+	}
+
+	// THEN: the yaw rate ramped up to the command and back down within the acceleration limit
+	EXPECT_NEAR(max_rate, commanded, 1e-3f);
+	EXPECT_LE(max_accel, kAccelMax * 1.01f);
+	EXPECT_GT(max_accel, kAccelMax * 0.95f);
+
+	// THEN: the vehicle turned past the locked heading by about the braking distance of the limit, came back to it and
+	// rests there
+	const float braking_distance = commanded * commanded / (2.f * kAccelMax);
+	EXPECT_LT(max_overshoot, braking_distance * 1.1f);
+	EXPECT_NEAR(wrap_pi(vehicle_yaw - locked_yaw), 0.f, 1e-3f);
+	EXPECT_NEAR(rate_setpoint.norm(), 0.f, 1e-3f);
 }
 
 TEST_F(AttitudeControlShapingTest, TiltedYawRateCommandKeepsAccelerationLimit)

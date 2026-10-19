@@ -184,6 +184,11 @@ parameters:
           MC_YAWRATE_MAX. Setpoint changes the linear model follows within the limits get the
           same response as without limit.
 
+          A commanded yaw rate (yaw stick, auto yaw rate) also changes at most at this limit.
+          If the command stops faster than the limit allows, e.g. releasing the yaw stick at
+          a high yaw rate with a low limit, the vehicle turns past the heading it then holds
+          and comes back to it.
+
           0 disables the limit and the axis uses the linear reference model (MC_REF_W_N).
       type: float
       default: 0.0
