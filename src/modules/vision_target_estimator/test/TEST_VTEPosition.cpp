@@ -687,13 +687,22 @@ INSTANTIATE_TEST_SUITE_P(
 		makeInvalidTargetVerticalAccuracyCase()),
 [](const ::testing::TestParamInfo<InvalidTargetGnssCase> &param_info) { return param_info.param.name; });
 
-// WHY: Position fusions follow source order; delayed samples still go through OOSM individually.
-// WHAT: Apply non-zero vision then GNSS updates and verify source ordering in the innovations.
-TEST_F(VTEPositionTest, FusesMeasurementsInSourceOrder)
-{
-	// GIVEN: mission and vision position aiding use matching process noise and no bias initialization delay.
-	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kMissionPos});
+struct SameCycleFusionOrderCase {
+	const char *name;
+	hrt_abstime vision_age;
+	hrt_abstime gnss_age;
+	bool vision_first;
+};
 
+class VTEPositionFusionOrderTest : public VTEPositionTest,
+	public ::testing::WithParamInterface<SameCycleFusionOrderCase> {};
+
+// The later update must see the earlier correction when both samples arrive together.
+// Near-current samples share the live fusion time, so ties retain source priority.
+TEST_P(VTEPositionFusionOrderTest, FusesByEffectiveTime)
+{
+	const auto &test_case = GetParam();
+	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kMissionPos});
 	static constexpr float kPosNoise = 1.f;
 	static constexpr float kPosVar = kPosNoise * kPosNoise;
 	setParamFloat("VTE_EVP_NOISE", kPosNoise);
@@ -703,62 +712,73 @@ TEST_F(VTEPositionTest, FusesMeasurementsInSourceOrder)
 	setParamFloat("VTE_POS_NIS_THRE", kPermissiveNisThreshold);
 	_vte->updateParamsPublic();
 
-	const matrix::Vector3f vel_ned(0.f, 0.f, 0.f);
-	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
-	setLocalVelocity(vel_ned, vel_time);
-
-	static constexpr double kTargetNorthMeters = 20.0;
-
 	const hrt_abstime init_time = vte_test::advanceMicroseconds(kStepUs);
+	setLocalVelocity(kZeroVec, init_time);
 	_vte->setMissionPosition(kUavLat, kUavLon, kUavAltM);
-	publishUavGnss(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, vel_ned, 0.1f, true, init_time);
-	publishVisionPos(matrix::Vector3f{}, vte_test::identityQuat(),
+	publishUavGnss(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, kZeroVec, 0.1f, true, init_time);
+	publishVisionPos(kZeroVec, vte_test::identityQuat(),
 			 matrix::Vector3f(kPosVar, kPosVar, kPosVar), init_time);
-
-	// WHEN: the filter is initialized with aligned mission and vision samples.
-	_vte->update(matrix::Vector3f{});
-
+	_vte->update(kZeroVec);
 	ASSERT_TRUE(_vte_state_sub->update());
 	vte_test::flushSubscription(_aid_fiducial_sub);
 	vte_test::flushSubscription(_aid_gps_mission_sub);
-	vte_test::flushSubscription(_vte_state_sub);
 
-	static constexpr hrt_abstime kBaseAgeUs = 10_ms;
-	static constexpr hrt_abstime kGpsLagUs = 5_ms;
-	const hrt_abstime base_time = vte_test::nowUs() - kBaseAgeUs;
-	const hrt_abstime vision_time = base_time;
-	const hrt_abstime gps_time = base_time + kGpsLagUs;
-
+	const hrt_abstime now = vte_test::advanceMicroseconds(60_ms);
+	static constexpr double kTargetNorthMeters = 4.0;
 	const double mission_lat = kUavLat + (kTargetNorthMeters / kMetersPerDegLat);
 	_vte->setMissionPosition(mission_lat, kUavLon, kUavAltM);
-
-	publishUavGnss(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, vel_ned, 0.1f, true, gps_time);
-
-	const matrix::Vector3f rel_pos(10.f, 0.f, 0.f);
-	publishVisionPos(rel_pos, vte_test::identityQuat(),
-			 matrix::Vector3f(kPosVar, kPosVar, kPosVar), vision_time);
-
-	// WHEN: an older vision sample and a newer GNSS sample arrive together.
-	_vte->update(matrix::Vector3f{});
-
-	// THEN: each delayed same-cycle measurement replays from the previous history snapshot.
-	// Without per-cycle serialization, the older vision OOSM does not use the newer
-	// GNSS correction as its replay floor until the post-cycle history sample is pushed.
+	publishUavGnss(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, kZeroVec, 0.1f, true,
+		       now - test_case.gnss_age);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, 0.f), vte_test::identityQuat(),
+			 matrix::Vector3f(kPosVar, kPosVar, kPosVar), now - test_case.vision_age);
+	_vte->update(kZeroVec);
 	ASSERT_TRUE(_aid_fiducial_sub->update());
 	ASSERT_TRUE(_aid_gps_mission_sub->update());
 
-	const auto aid_vision = _aid_fiducial_sub->get();
-	const auto aid_gps = _aid_gps_mission_sub->get();
+	const auto &vision = _aid_fiducial_sub->get();
+	const auto &gnss = _aid_gps_mission_sub->get();
+	EXPECT_EQ(vision.fusion_status[0], test_case.vision_age < vte::kOosmMinTimeUs
+		  ? vte::FusionStatus::STATUS_FUSED_CURRENT : vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(gnss.fusion_status[0], test_case.gnss_age < vte::kOosmMinTimeUs
+		  ? vte::FusionStatus::STATUS_FUSED_CURRENT : vte::FusionStatus::STATUS_FUSED_OOSM);
+	const auto &first = test_case.vision_first ? vision : gnss;
+	const auto &second = test_case.vision_first ? gnss : vision;
+	EXPECT_NEAR(first.observation[0] - first.innovation[0], 0.f, kTolerance);
+	EXPECT_GT(second.observation[0] - second.innovation[0], 0.5f);
+}
 
-	EXPECT_GT(fabsf(aid_vision.innovation[0]), 1.f);
-	EXPECT_NEAR(aid_vision.observation[0], rel_pos(0), 0.1f);
-	EXPECT_NEAR(aid_gps.observation[0], kTargetNorthMeters, 0.6f);
+INSTANTIATE_TEST_SUITE_P(
+	SameCycle,
+	VTEPositionFusionOrderTest,
+	::testing::Values(
+		SameCycleFusionOrderCase{"OlderVision", 40_ms, 30_ms, true},
+		SameCycleFusionOrderCase{"OlderGnss", 30_ms, 40_ms, false},
+		SameCycleFusionOrderCase{"EqualDelayedTimes", 40_ms, 40_ms, false},
+		SameCycleFusionOrderCase{"NearCurrentTie", 10_ms, 5_ms, false},
+		SameCycleFusionOrderCase{"ExactDelayBoundary", 20_ms, 19_ms, true}),
+[](const ::testing::TestParamInfo<SameCycleFusionOrderCase> &param_info) { return param_info.param.name; });
 
-	const float pred_state_gps = aid_gps.observation[0] - aid_gps.innovation[0];
-	const float pred_state_vision = aid_vision.observation[0] - aid_vision.innovation[0];
+TEST_F(VTEPositionTest, FusesOlderVelocityBeforeSameCycleVision)
+{
+	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kUavGpsVel});
+	const hrt_abstime init_time = vte_test::advanceMicroseconds(kStepUs);
+	setLocalVelocity(kZeroVec, init_time);
+	publishVisionPos(kZeroVec, vte_test::identityQuat(), kSmallVisionCov, init_time);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+	vte_test::flushSubscription(_aid_fiducial_sub);
 
-	EXPECT_NEAR(pred_state_gps, 0.f, 0.5f);
-	EXPECT_NEAR(pred_state_vision, 0.f, 0.5f);
+	const hrt_abstime now = vte_test::advanceMicroseconds(60_ms);
+	publishNominalUavGnss(matrix::Vector3f(1.f, 0.f, 0.f), now - 40_ms);
+	publishVisionPos(kZeroVec, vte_test::identityQuat(), kSmallVisionCov, now - 30_ms);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_aid_gps_vel_uav_sub->update());
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+	const auto &vision = _aid_fiducial_sub->get();
+	EXPECT_EQ(_aid_gps_vel_uav_sub->get().fusion_status[0], vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(vision.fusion_status[0], vte::FusionStatus::STATUS_FUSED_OOSM);
+	// UAV motion reduces relative north position before the vision update is calculated.
+	EXPECT_GT(vision.innovation[0], 0.01f);
 }
 
 // WHY: GNSS alone must constrain position without estimating the unobservable GNSS/vision bias.

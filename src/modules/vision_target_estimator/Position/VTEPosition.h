@@ -76,7 +76,7 @@ public:
 
 	/**
 	 * Run the predict/update cycle once. Pulls in all new sensor samples, initializes the
-	 * filter on the first viable set, fuses them in source-priority order, and publishes the state.
+	 * filter on the first viable set, fuses them in order of effective fusion time, and publishes the state.
 	 * @param acc_ned  Latest UAV acceleration in NED, used as prediction input.
 	 */
 	void update(const matrix::Vector3f &acc_ned);
@@ -322,7 +322,7 @@ private:
 				    const TargetObs observations[kObsTypeCount]);
 	/** Pick the GNSS-relative sample that best matches the requested timestamp. */
 	bool selectBiasGnssSample(hrt_abstime sample_time, matrix::Vector3f &gnss_sample);
-	/** Fuse every ready observation in source-priority order. */
+	/** Fuse every ready observation in order of effective fusion time. */
 	bool fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
 				    const TargetObs observations[kObsTypeCount]);
 	/** Refresh subscriptions and populate the per-cycle observation buffer. */
