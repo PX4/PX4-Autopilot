@@ -173,8 +173,6 @@ private:
 	 */
 	bool geofenceAvoidanceActive() const;
 
-	void setLoiterPosition();
-
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
 	RtlArrival _arrival;

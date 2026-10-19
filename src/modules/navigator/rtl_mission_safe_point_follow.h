@@ -98,13 +98,7 @@ private:
 	void setLandMissionItem(mission_item_s &mission_item) const;
 	/** @brief Build the shared arrival item without changing execution progress. */
 	void setGoalArrivalMissionItem(mission_item_s &mission_item, const RtlArrival &arrival) const;
-	/** @brief Build the horizontal approach to a synthetic destination. */
-	void setGoalMoveMissionItem(mission_item_s &mission_item) const;
-	/** @brief Build the destination descent loiter. */
-	void setGoalApproachMissionItem(mission_item_s &mission_item) const;
-	/** @brief Build the timed or unlimited hold after descending at the destination. */
-	void setGoalHoldMissionItem(mission_item_s &mission_item) const;
-	/** @brief Build the first destination item flown after the branch-off or a route shortcut. */
+	/** @brief Preview the first destination item without changing active arrival progress. */
 	void setGoalMissionItem(mission_item_s &mission_item) const;
 	/** @brief Resolve the destination loiter, capped at the arrival altitude. */
 	loiter_point_s goalLandApproach(float arrival_altitude, bool use_approach) const;
