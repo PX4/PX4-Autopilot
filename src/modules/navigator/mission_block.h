@@ -57,9 +57,12 @@
 static constexpr float kCosineExitCourseThreshold = 0.99619f; // cos(5°)
 
 class Navigator;
+class RtlArrival;
 
 class MissionBlock : public NavigatorMode
 {
+	friend class RtlArrival;
+
 public:
 	/**
 	 * Constructor
