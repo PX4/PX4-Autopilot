@@ -159,13 +159,18 @@ class SceneTest(unittest.TestCase):
         editor = Editor()
         editor.add(MISSION, Waypoint(46.0, 7.0, 400.0))
         scene = Scene(
-            missions={"a": [Waypoint(47.0, 8.0, 500.0)], "b": [Waypoint(47.1, 8.0, 500.0)]},
+            missions={
+                "empty": [],
+                "a": [Waypoint(47.0, 8.0, 500.0)],
+                "b": [Waypoint(47.1, 8.0, 500.0)],
+            },
             safe_points=[Waypoint(47.2, 8.0, 500.0, "NAV_CMD_RALLY_POINT")],
             positions=[Position("vehicle_position", 47.3, 8.0, 500.0), Position("goal", 47.4, 8.0, 500.0)],
             velocity=(1.0, 2.0),
         )
         editor.load(scene)
-        self.assertEqual([wp.lat for wp in editor.points[MISSION]], [47.0, 47.1])
+        # Only the first non-empty mission, the one the planner uses for the parsed test.
+        self.assertEqual([wp.lat for wp in editor.points[MISSION]], [47.0])
         self.assertEqual(len(editor.points[SAFE_POINTS]), 1)
         self.assertEqual([wp.lat for wp in editor.points[VEHICLE]], [47.3])
         self.assertEqual([wp.lat for wp in editor.points[POSITION]], [47.4])

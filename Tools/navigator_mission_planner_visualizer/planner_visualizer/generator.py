@@ -34,12 +34,10 @@ def generate_cpp(scene: Scene, base: Optional[Base]) -> str:
 
 
 def cpp_float(value: float) -> str:
-    """Float literal in the style of the tests: 200.f, 12.5f, -10.f."""
-    if abs(value) < 0.05:
-        value = 0.0
-    text = f"{value:.1f}"
-    if text.endswith(".0"):
-        text = text[:-1]
+    """Float literal in the style of the tests (200.f, 12.5f, -10.f) at the CLI's 1 mm precision."""
+    text = f"{value:.3f}".rstrip("0")
+    if text == "-0.":
+        text = "0."
     return text + "f"
 
 
@@ -48,9 +46,10 @@ def _altitude(alt: float, base: Optional[Base]) -> str:
     if base is None or base.alt is None:
         return cpp_float(alt)
     delta = alt - base.alt
-    if abs(delta) < 0.05:
+    step = cpp_float(abs(delta))
+    if step == "0.f":
         return "kAlt"
-    return f"kAlt {'+' if delta > 0 else '-'} {cpp_float(abs(delta))}"
+    return f"kAlt {'+' if delta > 0 else '-'} {step}"
 
 
 def _location_args(lat: float, lon: float, alt: float, base: Optional[Base], precise: bool = False) -> str:

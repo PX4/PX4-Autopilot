@@ -67,7 +67,13 @@ if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE AND PX4_PLATFORM STREQUAL "posix" AN
 		tinybson
 		uorb_msgs
 		pthread
-		# Daemon app-map stubs, defined later in the configure run, hence no TARGET check here.
-		-Wl,--whole-archive test_stubs -Wl,--no-whole-archive
 	)
+
+	# Daemon app-map stubs, defined later in the configure run, hence no TARGET check here.
+	# ld64 has no --whole-archive; -force_load takes the archive path, as in px4_add_functional_gtest().
+	if(APPLE)
+		target_link_libraries(mission_route_planner_cli PRIVATE test_stubs "-Wl,-force_load,$<TARGET_FILE:test_stubs>")
+	else()
+		target_link_libraries(mission_route_planner_cli PRIVATE -Wl,--whole-archive test_stubs -Wl,--no-whole-archive)
+	endif()
 endif()

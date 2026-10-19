@@ -19,7 +19,6 @@ _TEST_HELPER_DEFAULTS = {
 }
 _RESUME_FIELDS = (
     "current_route_direction_reversed",
-    "active_jump_anchor",
     "home_altitude_amsl",
     "projection_search_distance_m",
     "acceptance_radius_m",
@@ -52,7 +51,6 @@ def generate_unit_test(
     vehicle the plan was made for is emitted; unused positions would fail -Werror.
     """
     rtl = request.action == "RTL"
-    _, items = first_mission(scene)
     vehicle = vehicle or vehicle_position(scene)
     fixtures = _fixtures(scene, base, vehicle)
     fixture = "MissionRouteGeofenceTest" if scene.fences else "MissionRoutePlannerTest"
@@ -106,14 +104,14 @@ def generate_unit_test(
         "\tASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);"
     )
     lines.append("\tEXPECT_TRUE(plan.valid());")
-    lines += [f"\t{line}" for line in _expectations(result, base, rtl, len(items), precise=bool(scene.fences))]
+    lines += [f"\t{line}" for line in _expectations(result, rtl)]
     lines.append("}")
     return "\n".join(lines)
 
 
 def _fixtures(scene: Scene, base: Optional[Base], vehicle: Optional[Position]) -> str:
     # One mission named `mission`, whatever the pasted source called it, and one vehicle.
-    name, items = first_mission(scene)
+    _, items = first_mission(scene)
     named = Scene(
         missions={"mission": items},
         safe_points=scene.safe_points,
@@ -133,10 +131,6 @@ def _request_overrides(request: PlanRequest, scene: Scene, rtl: bool, use_defaul
             continue
         if name == "mission_land_index" and int(value) < 0:
             continue
-        if name == "active_jump_anchor":
-            if int(value) >= 0:
-                yield f"request.active_jump_anchor = {{{value}}};"
-            continue
         if value in ("0", "1") and not name.endswith(("_m", "_amsl", "_index")):
             if value == "1":
                 yield f"request.{name} = true;"
@@ -152,11 +146,11 @@ def _request_overrides(request: PlanRequest, scene: Scene, rtl: bool, use_defaul
             yield f"request.velocity_{axis}_m_s = {literal};"
 
 
-def _expectations(result: PlanResult, base: Optional[Base], rtl: bool, item_count: int, precise: bool = False):
+def _expectations(result: PlanResult, rtl: bool):
     yield f"EXPECT_EQ(plan.first_mission_item_index, {result.int_field('first_mission_item_index')});"
     yield _expect_bool("plan.direction_reversed", result.bool_field("direction_reversed"))
     yield _expect_bool("plan.use_current_altitude", result.bool_field("use_current_altitude"))
-    yield from _expect_position("join_position", result.position("join"), base, precise)
+    yield from _expect_position("join_position", result.position("join"))
     if not rtl:
         return
     goal_type = result.plan.get("goal_type", "")
@@ -164,7 +158,7 @@ def _expectations(result: PlanResult, base: Optional[Base], rtl: bool, item_coun
     if goal_type == "safe_point":
         yield f"EXPECT_EQ(plan.safe_point_index, {result.int_field('safe_point_index')});"
         yield f"EXPECT_EQ(plan.branch_off_mission_item_index, {result.int_field('branch_off_mission_item_index')});"
-        yield from _expect_position("branch_off_position", result.position("branch_off"), base, precise)
+        yield from _expect_position("branch_off_position", result.position("branch_off"))
     yield _expect_bool("plan.fly_direct_to_goal", result.bool_field("fly_direct_to_goal"))
 
 
@@ -180,11 +174,11 @@ def _expect_bool(expression: str, value: bool) -> str:
     return f"EXPECT_{'TRUE' if value else 'FALSE'}({expression});"
 
 
-def _expect_position(field: str, position, base: Optional[Base], precise: bool = False):
+def _expect_position(field: str, position):
     if position is None:
         return
     lat, lon, alt = position
     yield f"EXPECT_NEAR(plan.{field}.lat, {lat:.7f}, {_LAT_LON_TOLERANCE});"
     yield f"EXPECT_NEAR(plan.{field}.lon, {lon:.7f}, {_LAT_LON_TOLERANCE});"
-    literal = f"{alt:.3f}f" if precise else cpp_float(alt)
-    yield f"EXPECT_NEAR(plan.{field}.alt, {literal}, 0.01f);"
+    # Full CLI precision: an interpolated altitude rounded to 0.1 m would miss the 0.01 m tolerance.
+    yield f"EXPECT_NEAR(plan.{field}.alt, {alt:.3f}f, 0.01f);"
