@@ -59,6 +59,10 @@
 #include "mission_block.h"
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 #include "mission_route_types.h"
+// Only route planning modes override these hooks, so they stay plain functions without it.
+#define MISSION_ROUTE_HOOK virtual
+#else
+#define MISSION_ROUTE_HOOK
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 #include "navigation.h"
 
@@ -144,9 +148,9 @@ protected:
 	virtual void prepareVtolTransitionItem(bool aligning);
 	bool vtolTransitionActive() const { return _vtol_transition.command.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION; }
 	void resetVtolTransition() { _vtol_transition = {}; }
-	virtual bool frontTransitionInhibited() const { return false; }
+	MISSION_ROUTE_HOOK bool frontTransitionInhibited() const { return false; }
 	/** Synthetic helper work items must not report an uploaded item reached. */
-	virtual bool shouldReportMissionItemReached() const;
+	MISSION_ROUTE_HOOK bool shouldReportMissionItemReached() const;
 
 	/**
 	 * @brief Get the previous mission position items using this mode's traversal policy.
@@ -314,7 +318,7 @@ protected:
 	 * @return true is mission is valid
 	 * @return false otherwise
 	 */
-	virtual bool isMissionValid() const;
+	MISSION_ROUTE_HOOK bool isMissionValid() const;
 
 	enum class MissionCheckState : uint8_t {
 		Unchecked, ///< Inspect the inputs; a matching cached verdict may be reused.
@@ -331,10 +335,10 @@ protected:
 	void check_mission_valid(bool forced = false);
 
 	/** Handle changes to mission contents or the externally selected sequence. */
-	virtual void onMissionUpdate(bool has_mission_items_changed);
+	MISSION_ROUTE_HOOK void onMissionUpdate(bool has_mission_items_changed);
 
 	/** Notify the mode when an active DO_JUMP is skipped because its counter could not be saved. */
-	virtual void onMissionJumpSkipped(int32_t jump_index) { (void)jump_index; }
+	MISSION_ROUTE_HOOK void onMissionJumpSkipped(int32_t jump_index) { (void)jump_index; }
 
 	/**
 	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
@@ -350,10 +354,10 @@ protected:
 	bool cameraWasTriggering();
 
 	/** Allow modes with external mission ownership to ignore subscription updates. */
-	virtual bool shouldAcceptMissionUpdates() { return true; }
+	MISSION_ROUTE_HOOK bool shouldAcceptMissionUpdates() { return true; }
 
 	/** Allow normal Mission modes to restore persistent action commands on activation. */
-	virtual bool shouldReplayMissionActionItems() const { return true; }
+	MISSION_ROUTE_HOOK bool shouldReplayMissionActionItems() const { return true; }
 
 	/**
 	 * Update mission topic
@@ -681,3 +685,5 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionData<geofence_status_s> _geofence_status_sub{ORB_ID(geofence_status)};
 };
+
+#undef MISSION_ROUTE_HOOK
