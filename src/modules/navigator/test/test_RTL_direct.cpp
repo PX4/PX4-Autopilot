@@ -49,6 +49,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/wind.h>
 
 #include <cfloat>
 #include <memory>
@@ -430,4 +431,103 @@ TEST_F(RtlDirectTest, ReactivationStartsArrivalAgainAfterAnIndefiniteHold)
 	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TO_ALT);
 	EXPECT_TRUE(_rtl->isLanding());
 	expectLoggedItem(kLogDescend);
+}
+
+TEST_F(RtlDirectTest, FixedWingEstimatePreservesSignedLoiterRadius)
+{
+	constexpr float cruise_speed = 20.f;
+	setParameter("FW_AIRSPD_TRIM", cruise_speed);
+	setParameter("FW_GND_SPD_MIN", 5.f);
+	setVehicle(true, false);
+	wind_s wind{};
+	wind.timestamp = hrt_absolute_time();
+	uORB::Publication<wind_s> wind_pub{ORB_ID(wind)};
+	ASSERT_TRUE(wind_pub.publish(wind));
+	loiter_point_s approach{};
+	approach.lat = _destination.lat;
+	approach.lon = _destination.lon;
+	approach.height_m = kDestinationAltitude + kDescentHeight;
+	approach.loiter_radius_m = kLoiterRadius;
+	activate(approach);
+	const auto clockwise = _rtl->calc_rtl_time_estimate();
+	ASSERT_TRUE(clockwise.valid);
+
+	_rtl->run(false);
+	approach.loiter_radius_m = -kLoiterRadius;
+	activate(approach);
+	const auto counterclockwise = _rtl->calc_rtl_time_estimate();
+	ASSERT_TRUE(counterclockwise.valid);
+
+	// Existing direct estimates differ by one orbit diameter when the radius sign changes.
+	EXPECT_NEAR(counterclockwise.time_estimate - clockwise.time_estimate,
+		    2.f * kLoiterRadius / cruise_speed, 0.01f);
+}
+
+TEST_F(RtlDirectTest, ActiveHoldEstimateKeepsFullConfiguredDelay)
+{
+	constexpr float land_delay = 8.f;
+	constexpr float descent_speed = 2.f;
+	setParameter("RTL_LAND_DELAY", land_delay);
+	setParameter("MPC_Z_V_AUTO_DN", descent_speed);
+	activate();
+	completePositionItem();
+	completePositionItem();
+	ASSERT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
+	expectLoggedItem(kLogHold);
+	completePositionItem();
+	const auto initial = _rtl->calc_rtl_time_estimate();
+	ASSERT_TRUE(initial.valid);
+	EXPECT_NEAR(initial.time_estimate, land_delay + kDescentHeight / descent_speed, 0.01f);
+
+	_rtl->ageWaypointReached(3.f);
+	_rtl->run(true);
+	const auto after_wait = _rtl->calc_rtl_time_estimate();
+	ASSERT_TRUE(after_wait.valid);
+	EXPECT_FLOAT_EQ(after_wait.time_estimate, initial.time_estimate);
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
+	EXPECT_FALSE(_mission_item_sub.updated());
+}
+
+TEST_F(RtlDirectTest, RepeatedEstimatesLeaveArrivalExecutionAndLoggingUnchanged)
+{
+	setParameter("RTL_LAND_DELAY", 5.f);
+	activate();
+	expectLoggedItem(kLogMoveToApproach);
+	const auto estimate_without_execution = [&]() {
+		const mission_item_s item = _rtl->missionItem();
+		const position_setpoint_triplet_s setpoints = triplet();
+		const bool landing = _rtl->isLanding();
+		const auto initial = _rtl->calc_rtl_time_estimate();
+		ASSERT_TRUE(initial.valid);
+
+		for (unsigned estimate = 0; estimate < 3u; ++estimate) {
+			const auto repeated = _rtl->calc_rtl_time_estimate();
+			ASSERT_TRUE(repeated.valid);
+			EXPECT_FLOAT_EQ(repeated.time_estimate, initial.time_estimate);
+			EXPECT_FLOAT_EQ(repeated.safe_time_estimate, initial.safe_time_estimate);
+		}
+
+		EXPECT_EQ(_rtl->missionItem().nav_cmd, item.nav_cmd);
+		EXPECT_DOUBLE_EQ(_rtl->missionItem().lat, item.lat);
+		EXPECT_DOUBLE_EQ(_rtl->missionItem().lon, item.lon);
+		EXPECT_FLOAT_EQ(_rtl->missionItem().altitude, item.altitude);
+		EXPECT_FLOAT_EQ(_rtl->missionItem().yaw, item.yaw);
+		EXPECT_FLOAT_EQ(_rtl->missionItem().time_inside, item.time_inside);
+		EXPECT_EQ(_rtl->isLanding(), landing);
+		EXPECT_EQ(triplet().current.type, setpoints.current.type);
+		EXPECT_DOUBLE_EQ(triplet().current.lat, setpoints.current.lat);
+		EXPECT_DOUBLE_EQ(triplet().current.lon, setpoints.current.lon);
+		EXPECT_FLOAT_EQ(triplet().current.alt, setpoints.current.alt);
+		EXPECT_EQ(triplet().previous.valid, setpoints.previous.valid);
+		EXPECT_EQ(triplet().next.valid, setpoints.next.valid);
+		EXPECT_FALSE(_mission_item_sub.updated());
+	};
+	estimate_without_execution();
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TO_ALT);
+	expectLoggedItem(kLogDescend);
+	estimate_without_execution();
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
+	expectLoggedItem(kLogHold);
 }
