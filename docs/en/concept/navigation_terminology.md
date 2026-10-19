@@ -13,21 +13,23 @@ In short: **heading** is where the vehicle _points_, **course** is where it _sho
 
 ## Summary
 
-| Term                                                            | Official meaning                                                                         | Source              | Example in PX4                            |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------- | ----------------------------------------- |
-| [Heading](#heading)                                             | Direction in which the longitudinal axis of the vehicle points.                          | ICAO, FAA, Bowditch | `vehicle_local_position.heading`          |
-| [Course](#course)                                               | Intended direction of motion over the ground.                                            | FAA                 | `fixed_wing_lateral_setpoint.course`      |
-| [Course over ground](#course-over-ground)                       | Actual direction of the path over the ground.                                            | IHO, NMEA           | `sensor_gnss.course`                      |
-| [Track](#track)                                                 | Actual path of the vehicle over the ground.                                              | ICAO, FAA           | Path plotted from a log                   |
-| [Desired track](#track)                                         | Planned or intended track between two waypoints.                                         | FAA                 | Line from previous to current waypoint    |
-| [Track made good](#track-made-good)                             | Net direction from the point of departure to the point of arrival.                       | Bowditch            | —                                         |
-| [Bearing](#bearing)                                             | Direction from one point to another.                                                     | FAA, Bowditch       | `pure_pursuit_status.bearing_to_waypoint` |
-| [Relative bearing](#bearing)                                    | Bearing measured from the vehicle's heading.                                             | Bowditch            | —                                         |
-| [Cross-track error](#cross-track-error)                         | Perpendicular distance from the desired track, and side.                                 | Bowditch, NMEA      | `pure_pursuit_status.crosstrack_error`    |
-| [Drift angle](#drift-angle-and-wind-correction-angle)           | Angle between heading and track.                                                         | FAA                 | —                                         |
-| [Wind correction angle](#drift-angle-and-wind-correction-angle) | Correction applied to the course to obtain a heading that keeps the track on the course. | FAA                 | —                                         |
-| [Leeway](#leeway)                                               | Leeward motion of a vessel due to the wind.                                              | Bowditch            | —                                         |
-| [Set and drift](#set-and-drift)                                 | Direction (toward) and speed of a current.                                               | Bowditch            | —                                         |
+| Term                                                              | Official meaning                                                                         | Source                                    | Example in PX4                                         |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------ |
+| [Heading](#heading)                                               | Direction in which the longitudinal axis of the vehicle points.                          | ICAO, FAA, Bowditch, ISO 8855 (yaw angle) | `vehicle_local_position.heading`                       |
+| [Course](#course)                                                 | Intended direction of motion over the ground.                                            | FAA                                       | `fixed_wing_lateral_setpoint.course`                   |
+| [Course over ground](#course-over-ground)                         | Actual direction of the path over the ground.                                            | IHO, NMEA, ISO 8855 (course angle)        | `sensor_gnss.course`                                   |
+| [Track](#track)                                                   | Actual path of the vehicle over the ground.                                              | ICAO, FAA                                 | Path plotted from a log                                |
+| [Desired track](#track)                                           | Planned or intended track between two waypoints.                                         | FAA                                       | Line from previous to current waypoint                 |
+| [Track made good](#track-made-good)                               | Net direction from the point of departure to the point of arrival.                       | Bowditch                                  | —                                                      |
+| [Bearing](#bearing)                                               | Direction from one point to another.                                                     | FAA, Bowditch                             | `pure_pursuit_status.bearing_to_waypoint`              |
+| [Relative bearing](#bearing)                                      | Bearing measured from the vehicle's heading.                                             | Bowditch                                  | —                                                      |
+| [Cross-track error](#cross-track-error)                           | Perpendicular distance from the desired track, and side.                                 | Bowditch, NMEA                            | `pure_pursuit_status.crosstrack_error`                 |
+| [Drift angle](#drift-angle-and-wind-correction-angle)             | Angle between heading and track.                                                         | FAA, ISO 8855 (vehicle sideslip angle)    | —                                                      |
+| [Wind correction angle](#drift-angle-and-wind-correction-angle)   | Correction applied to the course to obtain a heading that keeps the track on the course. | FAA                                       | —                                                      |
+| [Sideslip angle](#drift-angle-and-wind-correction-angle)          | Angle between the body x-axis and the airflow (air-relative).                            | ISO 1151                                  | `estimator_innovations.beta` (EKF2 synthetic sideslip) |
+| [Tyre slip angle](#ground-vehicles-yaw-course-and-sideslip-angle) | Angle between the wheel plane and the direction of travel of the tyre contact patch.     | ISO 8855, SAE J670                        | —                                                      |
+| [Leeway](#leeway)                                                 | Leeward motion of a vessel due to the wind.                                              | Bowditch                                  | —                                                      |
+| [Set and drift](#set-and-drift)                                   | Direction (toward) and speed of a current.                                               | Bowditch                                  | —                                                      |
 
 ![Overview of navigation terms, seen from above (placeholder)](../../assets/concepts/navigation/navigation_overview.svg)
 
@@ -61,6 +63,18 @@ This section describes the frames PX4 uses, and the official convention each one
 ![Geodetic, local NED and FRD body frames (placeholder)](../../assets/concepts/navigation/navigation_frames.svg)
 
 _The frames together: WGS 84 ellipsoid with latitude/longitude, a local NED tangent plane at the origin, and a vehicle with its FRD body axes._
+
+![Left: PX4 local NED frame and FRD body frame of a multicopter. Right: the same vehicle in the ROS ENU and FLU frames](../../assets/lpe/ref_frames.png)
+
+_Existing graphic. Left: PX4 local earth-fixed NED frame (E) and FRD body frame (B). Right: ROS ENU local frame and FLU body frame, for comparison._
+
+![NED and ENU frames drawn against the north, east and up directions](../../assets/advanced/ENU-NED.png)
+
+_Existing graphic. NED and ENU local frames relative to north, east and up._
+
+![FRD body axes x, y and z with roll, pitch and yaw rotations for a plane, a helicopter and a multicopter](../../assets/concepts/frame_heading.png)
+
+_Existing graphic. FRD body axes (x forward, y right, z down) and the roll, pitch and yaw rotations about them, for a plane, a helicopter and a multicopter._
 
 ### Geodetic Frame (WGS 84)
 
