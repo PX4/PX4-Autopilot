@@ -60,6 +60,8 @@
 #include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
+#include "mavlink_parameters.h"
+#include "mavlink_ftp.h"
 
 #ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 #include <drivers/serialpassthrough/serialpassthrough.hpp>
@@ -1602,11 +1604,23 @@ Mavlink::update_rate_mult()
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
 	}
 
+	/* Reserve the bulk share whenever a paced bulk transfer is running, so
+	 * that the streams yield instead of all of them together over-subscribing
+	 * the link. The transfers pace themselves against bulk_bandwidth_share(),
+	 * which splits this between them, so reserving it once is what they will
+	 * actually use together. Where there is spare bandwidth this changes
+	 * nothing: bandwidth_mult is capped at 1.0 further down either way. */
+	float bulk_rate = 0.0f;
+
+	if (active_bulk_transfers() > 0) {
+		bulk_rate = (float)_datarate * kBulkBandwidthShare;
+	}
+
 	/* scale up and down as the link permits, nothing to scale without variable rate streams */
 	float bandwidth_mult = 1.0f;
 
 	if (rate > 0.0f) {
-		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate - bulk_rate) / rate;
 	}
 
 	/* Reduce rate while sending parameters in low bandwidth mode */
@@ -1662,6 +1676,20 @@ Mavlink::radio_status_critical() const
 {
 	LockGuard lg{_radio_status_mutex};
 	return _radio_status_critical;
+}
+
+bool
+Mavlink::radio_status_available() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_available;
+}
+
+float
+Mavlink::radio_status_mult() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_available ? _radio_status_mult : 1.0f;
 }
 
 void
@@ -2630,6 +2658,17 @@ Mavlink::task_main(int argc, char *argv[])
 
 		set_telemetry_status_type(telemetry_status_s::LINK_TYPE_USB);
 	}
+
+#if defined(MAVLINK_UDP)
+
+	/* UDP has no baudrate either. Without this, 0 falls back to the serial
+	 * default below and throttles an ethernet link, including the parameter
+	 * dump, like a 57600 radio. */
+	if ((get_protocol() == Protocol::UDP) && (_datarate == 0)) {
+		_datarate = 100000;
+	}
+
+#endif // MAVLINK_UDP
 
 	if (_mode == MAVLINK_MODE_COUNT) {
 		_mode = MAVLINK_MODE_NORMAL;

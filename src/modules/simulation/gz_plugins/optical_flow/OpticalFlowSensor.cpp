@@ -99,8 +99,11 @@ bool OpticalFlowSensor::Load(const sdf::Sensor &_sdf)
 
 	// Assume pinhole camera and 1:1 aspect ratio
 	const float focal_length = (image_width / 2.0f) / tanf(hfov / 2.0f);
+
+	// Output rate 0 disables the library's rate limiter: at the camera rate its strict
+	// interval check withholds every other frame and returns quality -1 for it.
 	_optical_flow = std::make_shared<OpticalFlowOpenCV>(focal_length, focal_length,
-			update_rate, image_width, image_height);
+			0, image_width, image_height);
 
 	return true;
 }

@@ -31490,10 +31490,12 @@ Landing flare altitude (relative to landing altitude).
 
 NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
 
+Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 |  | 0.5 | 0.5 | m | &nbsp;
+&nbsp; | -1.0 |  | 0.5 | 0.5 | m | &nbsp;
 
 </div>
 
@@ -31553,10 +31555,12 @@ to trigger the flare.
 
 NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
 
+Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 5.0 | 0.1 | 1.0 | s | &nbsp;
+&nbsp; | -1.0 | 5.0 | 0.1 | 1.0 | s | &nbsp;
 
 </div>
 
@@ -40684,13 +40688,21 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 |  |  | 1200 | B/s | &nbsp;
+&check; | 0 |  |  | 2000 | B/s | &nbsp;
 
 </div>
 
@@ -40922,7 +40934,15 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
@@ -41160,7 +41180,15 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
@@ -67402,7 +67430,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial target and drone relative position uncertainty.
 
-Initial variance of the relative target position in x, y, and z direction.
+Minimum initial variance of the relative target position in x, y, and z direction.
+The variance reported by the initializing observation is used if it is larger.
 Changes while the estimator is running are picked up immediately by the module but only take effect
 the next time the estimator initializes or resets.
 

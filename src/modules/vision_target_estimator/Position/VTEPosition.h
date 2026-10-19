@@ -231,7 +231,7 @@ private:
 	using EstimatorStateCovariance = KF_position::SquareMatrixState;
 	using AxisEstimatorStates = EstimatorState[vtest::Axis::size];
 
-	bool initEstimator(const AxisEstimatorStates &state_init);
+	bool initEstimator(const AxisEstimatorStates &state_init, const matrix::Vector3f &position_variance);
 	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc, float dt);
 	float getMinGpsVelVar() const;
@@ -310,10 +310,6 @@ private:
 	/** Build the first filter state once a valid mix of observations is available. */
 	bool initializeEstimator(const ObsValidMaskU &fusion_mask,
 				 const TargetObs observations[kObsTypeCount]);
-	/** Check whether we have a fresh UAV velocity source that can seed the state. */
-	bool hasInitialVelocityEstimate() const;
-	/** Prefer GNSS UAV velocity, otherwise fall back to the local EKF velocity. */
-	matrix::Vector3f selectInitialUavVelocity() const;
 	/** Seed the initial GNSS bias directly from the freshest GNSS-relative sample. */
 	void selectInitialBiasFromGnss(const TargetObs observations[kObsTypeCount],
 				       const matrix::Vector3f &initial_position, matrix::Vector3f &initial_bias);
@@ -326,10 +322,6 @@ private:
 				    const TargetObs observations[kObsTypeCount]);
 	/** Pick the GNSS-relative sample that best matches the requested timestamp. */
 	bool selectBiasGnssSample(hrt_abstime sample_time, matrix::Vector3f &gnss_sample);
-	/** Decide which position source defines the pre-bias state reference. */
-	PreBiasReference selectInitialPosition(const ObsValidMaskU &fusion_mask,
-					       const TargetObs observations[kObsTypeCount], matrix::Vector3f &initial_position,
-					       bool prefer_vision = true);
 	/** Fuse every ready observation in source-priority order. */
 	bool fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
 				    const TargetObs observations[kObsTypeCount]);
@@ -355,8 +347,6 @@ private:
 
 	/* UAV GPS data */
 	bool updateUavGnssData();
-	bool isUavGpsPositionValid();
-	bool isUavGpsVelocityValid();
 	bool processObsGNSSPosMission(TargetObs &obs);
 	bool processObsGNSSVelUav(TargetObs &obs) const;
 

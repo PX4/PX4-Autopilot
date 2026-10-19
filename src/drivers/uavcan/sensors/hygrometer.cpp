@@ -75,6 +75,6 @@ void UavcanHygrometerBridge::hygro_sub_cb(const uavcan::ReceivedDataStructure<dr
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				report.device_id, NodeInfoPublisher::DeviceCapability::HYGROMETER);
+				report.device_id, device_information_s::DEVICE_TYPE_HYGROMETER);
 	}
 }

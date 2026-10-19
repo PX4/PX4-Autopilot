@@ -361,6 +361,7 @@ bootloaders_update: \
 	3dr_ctrl-n1_bootloader \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
 	ark_can-flow_canbootloader \
+	ark_can-flow-lr_canbootloader \
 	ark_can-flow-mr_canbootloader \
 	ark_can-gps_canbootloader \
 	ark_can-rtk-gps_canbootloader \

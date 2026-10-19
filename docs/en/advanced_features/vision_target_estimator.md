@@ -13,10 +13,6 @@ For more depth see the [Vision Target Estimator deep dive](../advanced_features/
 VTE is a beta feature, disabled in default board configurations, and should only be enabled on custom builds after careful bench and flight testing.
 :::
 
-## Table of Contents
-
-[[toc]]
-
 ## Building the Module
 
 The estimator is not part of the default PX4 board configurations.
@@ -119,7 +115,7 @@ For the full state-reset rules, the LPF exit condition, and the stale-GNSS fallb
 
 Vision and GNSS measurements often reach the autopilot with non-negligible transport or processing latency.
 VTE compensates for this by fusing delayed samples against the predicted state at their _original_ timestamp, rather than the current one.
-This relies on an **Out-of-Sequence Measurements (OOSM)** approximation using a history-consistent projected correction strategy.
+Any observations already fused with a later timestamp are then replayed in time order (**Out-of-Sequence Measurement**, or OOSM, handling).
 For buffer sizing and algorithm specifics, see [OOSM Implementation](../advanced_features/vision_target_estimator_advanced.md#oosm-implementation).
 
 ### Fallbacks and Timeouts
