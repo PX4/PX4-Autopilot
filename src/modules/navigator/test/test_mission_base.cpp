@@ -241,7 +241,8 @@ public:
 
 	bool alignmentAfterJoinActive() const
 	{
-		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN;
+		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING
+		       && _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
 	}
 
 	const RouteJoinContext &joinContext() const

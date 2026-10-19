@@ -1241,7 +1241,7 @@ TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFron
 		primeNavigatorState();
 
 		for (int i = 0; i < 3; ++i) {
-			ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN);
+			ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
 			EXPECT_FALSE(PX4_ISFINITE(_navigator.get_position_setpoint_triplet()->current.yaw));
 			EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, join_projection.lat);
 			EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, join_projection.lon);
@@ -1264,7 +1264,7 @@ TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFron
 		mission.on_active();
 	}
 
-	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
 	const position_setpoint_triplet_s &triplet = *_navigator.get_position_setpoint_triplet();
 	EXPECT_NEAR(triplet.current.yaw, expected_yaw, 1e-4f);
 	EXPECT_DOUBLE_EQ(triplet.current.lat, join_projection.lat);
@@ -1280,7 +1280,7 @@ TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFron
 	// Repeated reach checks must withhold the command while heading is misaligned.
 	for (int i = 0; i < 3; ++i) {
 		mission.on_active();
-		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN);
+		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
 		EXPECT_EQ(mission.currentSequenceForTest(), target_index);
 		EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
 
@@ -1311,7 +1311,7 @@ TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFron
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	primeNavigatorState();
 	mission.on_active();
-	EXPECT_NE(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN);
+	EXPECT_NE(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
 	EXPECT_NE(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
 	EXPECT_EQ(mission.currentSequenceForTest(), target_index);
 	EXPECT_FALSE(mission.joinContextForTest().valid());
