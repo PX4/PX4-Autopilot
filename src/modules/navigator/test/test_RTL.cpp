@@ -323,6 +323,7 @@ public:
 	}
 
 	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
+	unsigned routeExecutorInitsForTest() const { return _route_executor_inits; }
 	int32_t missionSequenceForTest() const { return _mission_sub.get().current_seq; }
 	bool routePlanSourceStillValidForTest() const { return routePlanSourceStillValid(); }
 	bool routePlanMatchesSourceForTest(const mission_s &mission) const { return _route_safe_point.sourceStillValid(mission); }
@@ -333,6 +334,10 @@ public:
 protected:
 	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt) override
 	{
+		if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+			++_route_executor_inits;
+		}
+
 		if (_fail_next_route_executor_init
 		    && new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
 			_fail_next_route_executor_init = false;
@@ -344,6 +349,7 @@ protected:
 
 private:
 	bool _fail_next_route_executor_init{false};
+	unsigned _route_executor_inits{0};
 #endif
 };
 
@@ -1230,6 +1236,40 @@ TEST_F(RTLTest, RouteSafePointReturnDoesNotRetryFailedFenceChecksWithLoadedFence
 	_rtl.activateRouteSafePointReturnForTest();
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	EXPECT_FALSE(_rtl.routeRetryPendingForTest());
+}
+
+// A failed inactive plan keeps the route follower, so the next plan for the same source reuses it.
+TEST_F(RTLTest, RouteFollowerIsReusedAfterTemporaryFallback)
+{
+	const std::vector<mission_item_s> mission_items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	mission_s mission = loadRoutePlanningCache(mission_items, {makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt)});
+	const std::vector<mission_fence_point_s> square{
+		exclusionVertex(-10.f, 300.f, 4), exclusionVertex(10.f, 300.f, 4),
+		exclusionVertex(10.f, 320.f, 4), exclusionVertex(-10.f, 320.f, 4),
+	};
+	startFenceUpdate(mission, square);
+	ASSERT_TRUE(finishFenceUpdate());
+	publishMission(mission);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
+	publishLandDetected(false);
+	setMissionResultValid(mission);
+
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	ASSERT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
+
+	// Path checks become unavailable, then recover with the same mission, rally points and fence.
+	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 3);
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 4);
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 }
 
 // A failed route retry keeps the direct fallback that is already flying.
