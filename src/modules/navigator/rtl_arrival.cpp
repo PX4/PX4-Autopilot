@@ -34,8 +34,25 @@
 #include "rtl_arrival.h"
 #include "mission_block.h"
 
-void RtlArrival::advance(bool land_after_move)
+void RtlArrival::startDirectReturn()
 {
+	_entry = Entry::Direct;
+	_phase = Phase::Move;
+}
+
+void RtlArrival::startRouteArrival(bool use_selected_approach)
+{
+	_entry = Entry::Route;
+	_phase = use_selected_approach ? Phase::Descend : Phase::Move;
+}
+
+void RtlArrival::advance(const vehicle_status_s &vehicle, float land_delay)
+{
+	const bool multicopter = vehicle.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	const bool land_after_move = multicopter && (_entry == Entry::Direct
+				     ? !(fabsf(land_delay) > FLT_EPSILON)
+				     : !vehicle.in_transition_mode && fabsf(land_delay) <= FLT_EPSILON);
+
 	switch (_phase) {
 	case Phase::Move:
 		_phase = land_after_move ? Phase::Land : Phase::Descend;
@@ -55,14 +72,16 @@ void RtlArrival::advance(bool land_after_move)
 }
 
 void RtlArrival::buildMissionItem(const MissionBlock &builder, mission_item_s &item,
-				  const ItemConfig &config, bool fixed_wing) const
+				  const ItemConfig &config, const vehicle_status_s &vehicle) const
 {
+	const bool fixed_wing = vehicle.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				|| (_entry == Entry::Route && vehicle.in_transition_to_fw);
 	const PositionYawSetpoint position{
 		.lat = config.approach.lat,
 		.lon = config.approach.lon,
 		.alt = _phase == Phase::Move ? config.transit_altitude :
 		math::min(config.approach.height_m, config.transit_altitude),
-		.yaw = config.yaw
+		.yaw = _entry == Entry::Direct ? config.yaw : NAN
 	};
 
 	switch (_phase) {

@@ -35,6 +35,7 @@
 
 #include "navigation.h"
 #include "safe_point_land.hpp"
+#include <uORB/topics/vehicle_status.h>
 
 class MissionBlock;
 
@@ -57,15 +58,19 @@ public:
 	};
 
 	Phase phase() const { return _phase; }
-	void start(Phase phase) { _phase = phase; }
+	void reset() { _phase = Phase::Land; }
+	void startDirectReturn();
+	void startRouteArrival(bool use_selected_approach);
 
 	/** Advance after the caller has accepted the current item. */
-	void advance(bool land_after_move);
+	void advance(const vehicle_status_s &vehicle, float land_delay);
 
 	/** Update arrival fields without clearing caller-owned fields; Land leaves the item unchanged. */
 	void buildMissionItem(const MissionBlock &builder, mission_item_s &item,
-			      const ItemConfig &config, bool fixed_wing) const;
+			      const ItemConfig &config, const vehicle_status_s &vehicle) const;
 
 private:
+	enum class Entry { Direct, Route };
+	Entry _entry{Entry::Direct};
 	Phase _phase{Phase::Land};
 };

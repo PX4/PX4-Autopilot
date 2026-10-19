@@ -50,6 +50,7 @@ protected:
 		config.transit_altitude = 590.f;
 		config.land_delay = 5.f;
 		config.yaw = 1.f;
+		vehicle.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 	}
 
 	Navigator navigator{};
@@ -57,12 +58,13 @@ protected:
 	RtlArrival arrival{};
 	RtlArrival::ItemConfig config{};
 	mission_item_s item{};
+	vehicle_status_s vehicle{};
 };
 
 TEST_F(RtlArrivalTest, MovePreservesTransitAltitudeAndUsesVehicleArrivalGeometry)
 {
-	arrival.start(RtlArrival::Phase::Move);
-	arrival.buildMissionItem(builder, item, config, false);
+	arrival.startDirectReturn();
+	arrival.buildMissionItem(builder, item, config, vehicle);
 	EXPECT_EQ(item.nav_cmd, NAV_CMD_WAYPOINT);
 	EXPECT_DOUBLE_EQ(item.lat, config.approach.lat);
 	EXPECT_DOUBLE_EQ(item.lon, config.approach.lon);
@@ -71,7 +73,8 @@ TEST_F(RtlArrivalTest, MovePreservesTransitAltitudeAndUsesVehicleArrivalGeometry
 	EXPECT_FLOAT_EQ(item.yaw, config.yaw);
 	EXPECT_FLOAT_EQ(item.acceptance_radius, navigator.get_acceptance_radius());
 
-	arrival.buildMissionItem(builder, item, config, true);
+	vehicle.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	arrival.buildMissionItem(builder, item, config, vehicle);
 	EXPECT_EQ(item.nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
 	EXPECT_FLOAT_EQ(item.altitude, config.transit_altitude);
 	EXPECT_FLOAT_EQ(item.loiter_radius, config.approach.loiter_radius_m);
@@ -82,36 +85,36 @@ TEST_F(RtlArrivalTest, MovePreservesTransitAltitudeAndUsesVehicleArrivalGeometry
 
 TEST_F(RtlArrivalTest, ArrivalDescendsThenHoldsBeforeHandingOverLanding)
 {
-	arrival.start(RtlArrival::Phase::Move);
-	arrival.advance(false);
-	arrival.buildMissionItem(builder, item, config, false);
+	arrival.startDirectReturn();
+	arrival.advance(vehicle, config.land_delay);
+	arrival.buildMissionItem(builder, item, config, vehicle);
 	EXPECT_EQ(item.nav_cmd, NAV_CMD_LOITER_TO_ALT);
 	EXPECT_FLOAT_EQ(item.altitude, config.approach.height_m);
 	EXPECT_FLOAT_EQ(item.yaw, config.yaw);
 
-	arrival.advance(false);
-	arrival.buildMissionItem(builder, item, config, false);
+	arrival.advance(vehicle, config.land_delay);
+	arrival.buildMissionItem(builder, item, config, vehicle);
 	EXPECT_EQ(item.nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
 	EXPECT_FLOAT_EQ(item.altitude, config.approach.height_m);
 	EXPECT_FLOAT_EQ(item.time_inside, config.land_delay);
 	EXPECT_TRUE(item.autocontinue);
 	EXPECT_FALSE(PX4_ISFINITE(item.yaw));
 
-	arrival.advance(false);
+	arrival.advance(vehicle, config.land_delay);
 	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Land);
 }
 
 TEST_F(RtlArrivalTest, ImmediateLandingSkipsDescentAndHold)
 {
-	arrival.start(RtlArrival::Phase::Move);
-	arrival.advance(true);
+	arrival.startDirectReturn();
+	arrival.advance(vehicle, 0.f);
 	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Land);
 
 	// Final landing belongs to the caller, including the uploaded command and its settings.
 	item.nav_cmd = NAV_CMD_VTOL_LAND;
 	item.altitude = 500.f;
 	item.land_precision = 2;
-	arrival.buildMissionItem(builder, item, config, false);
+	arrival.buildMissionItem(builder, item, config, vehicle);
 	EXPECT_EQ(item.nav_cmd, NAV_CMD_VTOL_LAND);
 	EXPECT_FLOAT_EQ(item.altitude, 500.f);
 	EXPECT_EQ(item.land_precision, 2);
@@ -120,13 +123,15 @@ TEST_F(RtlArrivalTest, ImmediateLandingSkipsDescentAndHold)
 TEST_F(RtlArrivalTest, DescentAndHoldNeverRaiseTheCapturedTransitAltitude)
 {
 	config.transit_altitude = config.approach.height_m - 10.f;
-	arrival.start(RtlArrival::Phase::Descend);
-	arrival.buildMissionItem(builder, item, config, true);
+	arrival.startRouteArrival(true);
+	vehicle.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	arrival.buildMissionItem(builder, item, config, vehicle);
 	EXPECT_FLOAT_EQ(item.altitude, config.transit_altitude);
 	EXPECT_FLOAT_EQ(item.loiter_radius, config.approach.loiter_radius_m);
 
-	arrival.advance(false);
-	arrival.buildMissionItem(builder, item, config, true);
+	arrival.advance(vehicle, config.land_delay);
+	vehicle.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	arrival.buildMissionItem(builder, item, config, vehicle);
 	EXPECT_FLOAT_EQ(item.altitude, config.transit_altitude);
 	EXPECT_FLOAT_EQ(item.loiter_radius, config.approach.loiter_radius_m);
 }
@@ -134,8 +139,10 @@ TEST_F(RtlArrivalTest, DescentAndHoldNeverRaiseTheCapturedTransitAltitude)
 TEST_F(RtlArrivalTest, NegativeDelayCreatesAnIndefiniteHold)
 {
 	config.land_delay = -1.f;
-	arrival.start(RtlArrival::Phase::Hold);
-	arrival.buildMissionItem(builder, item, config, true);
+	arrival.startRouteArrival(true);
+	arrival.advance(vehicle, config.land_delay);
+	vehicle.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	arrival.buildMissionItem(builder, item, config, vehicle);
 	EXPECT_EQ(item.nav_cmd, NAV_CMD_LOITER_UNLIMITED);
 	EXPECT_FALSE(item.autocontinue);
 	EXPECT_FLOAT_EQ(item.time_inside, 0.f);
@@ -145,8 +152,60 @@ TEST_F(RtlArrivalTest, BuildingArrivalItemsPreservesCallerOwnedFields)
 {
 	item.force_heading = true;
 	item.land_precision = 2;
-	arrival.start(RtlArrival::Phase::Descend);
-	arrival.buildMissionItem(builder, item, config, false);
+	arrival.startRouteArrival(true);
+	arrival.buildMissionItem(builder, item, config, vehicle);
 	EXPECT_TRUE(item.force_heading);
 	EXPECT_EQ(item.land_precision, 2);
+}
+
+TEST_F(RtlArrivalTest, RouteApproachStartsAtDescentAndLeavesYawUnspecified)
+{
+	arrival.startRouteArrival(true);
+	arrival.buildMissionItem(builder, item, config, vehicle);
+	EXPECT_EQ(item.nav_cmd, NAV_CMD_LOITER_TO_ALT);
+	EXPECT_FALSE(PX4_ISFINITE(item.yaw));
+
+	arrival.startDirectReturn();
+	arrival.buildMissionItem(builder, item, config, vehicle);
+	EXPECT_EQ(item.nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_FLOAT_EQ(item.yaw, config.yaw);
+}
+
+TEST_F(RtlArrivalTest, RouteArrivalKeepsTransitioningVehiclesOutOfImmediateLanding)
+{
+	vehicle.is_vtol = true;
+	vehicle.in_transition_mode = true;
+
+	for (bool front_transition : {false, true}) {
+		vehicle.in_transition_to_fw = front_transition;
+		arrival.startRouteArrival(false);
+		arrival.buildMissionItem(builder, item, config, vehicle);
+		EXPECT_EQ(item.nav_cmd, front_transition ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_WAYPOINT);
+		arrival.advance(vehicle, 0.f);
+		EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Descend);
+
+		// Direct RTL retains its existing vehicle-type-only shortcut.
+		arrival.startDirectReturn();
+		arrival.buildMissionItem(builder, item, config, vehicle);
+		EXPECT_EQ(item.nav_cmd, NAV_CMD_WAYPOINT);
+		arrival.advance(vehicle, 0.f);
+		EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Land);
+	}
+
+	vehicle.in_transition_mode = false;
+	vehicle.in_transition_to_fw = false;
+	arrival.startRouteArrival(false);
+	arrival.advance(vehicle, 0.f);
+	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Land);
+}
+
+TEST_F(RtlArrivalTest, NewEntryResetsPreviousArrivalProgress)
+{
+	arrival.startRouteArrival(true);
+	arrival.advance(vehicle, config.land_delay);
+	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Hold);
+	arrival.reset();
+	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Land);
+	arrival.startDirectReturn();
+	EXPECT_EQ(arrival.phase(), RtlArrival::Phase::Move);
 }
