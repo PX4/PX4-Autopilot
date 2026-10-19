@@ -230,6 +230,7 @@ void RTL::on_active()
 	    && !routePlanSourceStillValid()) {
 		stopAndDeleteRtlMissionType(routePlanMissionMatches(_mission_sub.get()));
 		setRtlTypeAndDestination();
+		applyReturnAltMin();
 		reportRouteFallback();
 	}
 
@@ -282,6 +283,7 @@ void RTL::on_active()
 		    && _route_safe_point.supportsVehicle(_vehicle_status_sub.get())
 		    && _route_safe_point.retryReady(_mission_sub.get())) {
 			setRtlTypeAndDestination();
+			applyReturnAltMin();
 		}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -325,6 +327,16 @@ bool RTL::routePlanSourceStillValid() const
 bool RTL::routePlanMissionMatches(const mission_s &mission) const
 {
 	return _route_safe_point.missionMatches(mission);
+}
+
+void RTL::applyReturnAltMin()
+{
+	// Executors selected mid-Return follow the same climb rule as at activation.
+	_rtl_direct.setReturnAltMin(_enforce_rtl_alt);
+
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
+	}
 }
 
 void RTL::reportRouteFallback() const
