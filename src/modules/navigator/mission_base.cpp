@@ -818,7 +818,14 @@ void MissionBase::startVtolTransition(const mission_item_s &command, const missi
 				      WorkItemType completion_work, bool hold_current_position)
 {
 	_vtol_transition.command = command;
-	_vtol_transition.target = alignment_target ? *alignment_target : mission_item_s{};
+
+	if (alignment_target) {
+		_vtol_transition.target = *alignment_target;
+
+	} else {
+		_vtol_transition.target = {};
+	}
+
 	_vtol_transition.completion_work = completion_work;
 	_vtol_transition.hold_current_position = hold_current_position;
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
@@ -981,8 +988,7 @@ bool MissionBase::cameraWasTriggeringAtPause()
 	return camera_was_triggering;
 }
 
-bool MissionBase::handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet,
-		const position_setpoint_s &current_setpoint_copy)
+bool MissionBase::handleJoinRouteWorkItems()
 {
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
 		resetJoinRouteState();
@@ -994,7 +1000,7 @@ bool MissionBase::handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_t
 	}
 
 	if (!(_waypoint_position_reached && _waypoint_yaw_reached)) {
-		return handleJoinRouteWaypoint(pos_sp_triplet, current_setpoint_copy);
+		return handleJoinRouteWaypoint();
 	}
 
 	if (!joinRouteTransitionStillRequired()) {
@@ -1020,8 +1026,7 @@ bool MissionBase::handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_t
 	return true;
 }
 
-bool MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_triplet,
-		const position_setpoint_s &current_setpoint_copy)
+bool MissionBase::handleJoinRouteWaypoint()
 {
 	if (!_route_join_context.valid()) {
 		PX4_ERR("Route join active without a valid context");
@@ -1030,6 +1035,8 @@ bool MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_tr
 		return false;
 	}
 
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 	mission_item_s join_item{};
 	join_item.nav_cmd = NAV_CMD_WAYPOINT;
 	join_item.lat = _route_join_context.projection.lat;

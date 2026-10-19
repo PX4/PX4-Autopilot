@@ -454,8 +454,7 @@ protected:
 	void resetJoinRouteState();
 
 	/** Publish or advance an active route-join work item. */
-	bool handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet,
-				      const position_setpoint_s &current_setpoint_copy);
+	bool handleJoinRouteWorkItems();
 
 	/** True if the camera was triggering where the mission was paused, so on_activation() retraces that leg. */
 	bool cameraWasTriggeringAtPause();
@@ -587,8 +586,7 @@ private:
 
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	bool handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_triplet,
-				     const position_setpoint_s &current_setpoint_copy);
+	bool handleJoinRouteWaypoint();
 
 	bool joinRouteTransitionStillRequired() const;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
