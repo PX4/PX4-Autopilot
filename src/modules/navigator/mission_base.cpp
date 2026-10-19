@@ -895,11 +895,9 @@ bool MissionBase::updateVtolTransition()
 				       : status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !status.in_transition_mode;
 
 	const bool command_issued = _work_item_type == _vtol_transition.completion_work;
-	// Takeoff preparation also decides whether its waypoint still needs to be flown.
-	const bool complete_without_command = in_commanded_mode
-					      && _vtol_transition.completion_work != WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 
-	if (complete_without_command || (front_transition && frontTransitionInhibited())) {
+	// Already in the commanded mode: no command. A VTOL takeoff keeps TRANSITION_AFTER_TAKEOFF and flies its waypoint.
+	if (in_commanded_mode || (front_transition && frontTransitionInhibited())) {
 		_mission_item = _vtol_transition.command;
 		_work_item_type = _vtol_transition.completion_work;
 		return true;
