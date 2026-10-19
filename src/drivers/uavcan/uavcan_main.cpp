@@ -644,6 +644,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_esc_controller.set_node_info_publisher(&_node_info_publisher);
+	_esc_controller.set_node_status_monitor(&_node_status_monitor);
 #endif
 
 	/* Set up shared service clients */
@@ -1152,7 +1153,7 @@ void UavcanNode::publish_node_statuses()
 				return;
 			}
 
-			// See if we have NodeID <--> uORB_index mapped
+			// See if we have NodeID <-> uORB_index mapped
 			int uorb_index = -1;
 
 			for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {

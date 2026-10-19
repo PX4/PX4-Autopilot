@@ -56,6 +56,9 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+#include <lib/open_drone_id/odid_bid_storage.hpp>
+#endif
 #include <lib/systemlib/mavlink_log.h>
 
 #include <lib/failure_injection/FailureInjection.hpp>
@@ -496,6 +499,9 @@ private:
 	hrt_abstime _heartbeat_component_uart_bridge{0};
 
 	DEFINE_PARAMETERS(
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+		(ParamInt<px4::params::ODID_BID_SRC>)      _param_odid_bid_src,
+#endif
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
@@ -503,6 +509,11 @@ private:
 		(ParamFloat<px4::params::BAT1_V_CHARGED>)   _param_bat_v_charged,
 		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty
 	);
+
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+	open_drone_id::BidLock _odid_bid_lock {};
+	bool _odid_bid_lock_warning_reported{false};
+#endif
 
 	// Disallow copy construction and move assignment.
 	MavlinkReceiver(const MavlinkReceiver &) = delete;

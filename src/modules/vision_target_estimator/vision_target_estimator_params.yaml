@@ -126,7 +126,8 @@ parameters:
       description:
         short: Initial target and drone relative position uncertainty
         long: |-
-          Initial relative-position variance per axis.
+          Minimum initial variance of the relative target position in x, y, and z direction.
+          The variance reported by the initializing observation is used if it is larger.
           Applied at initialization/reset and GNSS/vision bias activation.
       type: float
       default: 0.5
