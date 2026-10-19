@@ -213,6 +213,8 @@ This return type uses the uploaded mission as route geometry.
 It selects a branch-in point, follows the route in the selected direction, then branches off to a rally point.
 When no rally point is usable, the planner selects a mission takeoff or landing endpoint.
 It can also choose a direct-to-goal shortcut.
+The takeoff endpoint is the mission takeoff item position at Home altitude.
+For fixed-wing and VTOL missions this is the climb-out or transition point, not the launch position.
 
 Route following preserves `LOITER_TO_ALT` altitude changes while skipping waypoint and loiter hold times.
 Rally-point and takeoff-endpoint arrivals respect `RTL_DESCEND_ALT` and `RTL_LAND_DELAY`, including an indefinite hold when the delay is negative.
@@ -220,11 +222,14 @@ With zero delay, multicopters land after horizontal arrival; fixed-wing vehicles
 An uploaded mission landing retains its own landing settings.
 VTOL vehicles follow the flight mode required by each route leg, including reverse transitions, and use the existing VTOL landing sequence at the destination.
 
+Return moves the mission's current item along the route, so a later Mission resume continues from the last route target of the Return.
+The branch-off point and the destination arrival steps are not reported as reached mission items.
+
 A complete mission cache is required.
 If route planning is unavailable, Navigator falls back to the direct destination selection of `RTL_TYPE=3`.
 Firmware built without route planning shows a pre-arm warning when `RTL_TYPE=7` is set.
 This can leave the mission corridor and change the destination; see the [fallback conditions](../concept/mission_route_planning.md#route-following-fallback).
-After a fixed-wing system failure, VTOL vehicles keep the selected route in multicopter mode and skip front transitions while the failure is latched.
+After a fixed-wing system failure, VTOL vehicles keep the selected route in multicopter mode and skip front transitions while the failure remains active.
 The planner checks branch-in, branch-off and direct-to-goal segments against loaded fences; see [Geofence Checks](../concept/mission_route_planning.md#geofence-checks) for recovery behaviour and limitations.
 It does not find detours around fences.
 
@@ -257,16 +262,16 @@ It is therefore very important to consider this possibility and especially to re
 
 The following table shows which return types currently support geofence awareness:
 
-| Return Type (RTL_TYPE) | Geofence Awareness |
-| ---------------------- | ------------------ |
-| 0 (home/rally point)   | Yes                |
-| 1 (mission landing)    | Yes                |
-| 2 (mission path)       | No                 |
-| 3 (closest safe dest.) | Yes                |
-| 4 (mission path)       | No                 |
-| 5 (rally point only)   | Yes                |
-| 6 (battery-aware home) | Yes                |
-| 7 (mission route)      | No                 |
+| Return Type (RTL_TYPE) | Geofence Awareness                                   |
+| ---------------------- | ---------------------------------------------------- |
+| 0 (home/rally point)   | Yes                                                  |
+| 1 (mission landing)    | Yes                                                  |
+| 2 (mission path)       | No                                                   |
+| 3 (closest safe dest.) | Yes                                                  |
+| 4 (mission path)       | No                                                   |
+| 5 (rally point only)   | Yes                                                  |
+| 6 (battery-aware home) | Yes                                                  |
+| 7 (mission route)      | Partial: rejects legs that cross a fence, no detours |
 
 ### Shortest-Path Calculation
 
