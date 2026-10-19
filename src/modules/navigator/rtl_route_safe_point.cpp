@@ -232,14 +232,6 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 
 	_last_failure = mission_route::FailureReason::kNone;
 
-	// Only accept a plan whose cache inputs did not change while planning.
-	if (!cache.missionViewStillValid(mission_view)
-	    || !cache.safePointsReady()
-	    || cache.safePointsId() != safe_points_id
-	    || cache.safePointCount() != safe_point_count) {
-		return evaluation;
-	}
-
 	const bool safe_point_goal = plan.goal_type == mission_route::GoalType::kSafePoint;
 
 	if (safe_point_goal && (plan.safe_point_index < 0 || plan.safe_point_index >= UINT8_MAX)) {

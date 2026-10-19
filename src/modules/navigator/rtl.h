@@ -106,8 +106,7 @@ private:
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
-		DESTINATION_TYPE_SAFE_POINT,
-		DESTINATION_TYPE_MISSION_TAKEOFF
+		DESTINATION_TYPE_SAFE_POINT
 	};
 
 	/**
@@ -125,9 +124,6 @@ private:
 	bool reverseIsFurther() const;
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	bool routePlanMissionMatches(const mission_s &mission) const;
-	bool routePlanSourceStillValid() const;
-	static DestinationType routePlanDestinationType(mission_route::GoalType goal_type);
 	void applyRouteSafePointFallback(RtlType &new_rtl_type, DestinationType &destination_type,
 					 PositionYawSetpoint &destination, uint8_t &safe_point_index);
 	void applyReturnAltMin();
