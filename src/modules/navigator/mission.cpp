@@ -108,9 +108,8 @@ Mission::on_activation()
 
 	_system_disarmed_while_inactive = false;
 
-	// A restarted mission starts at its first item, a camera-trigger resume at its previous position.
-	const bool resume_mission_on_previous = (_inactivation_index > 0) && cameraWasTriggering();
-	trySetRouteJoinOnActivation(restarted || resume_mission_on_previous);
+	// A restarted mission starts at its first item.
+	trySetRouteJoinOnActivation(restarted);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	MissionBase::on_activation();
@@ -138,11 +137,12 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 
 	if (keep_mission_index
 	    || (_param_mis_route_join.get() == 0)
-	    || (_work_item_type != WorkItemType::WORK_ITEM_TYPE_DEFAULT)
+	    || !isMissionValid()
 	    || _land_detected_sub.get().landed
 	    || (_mission.count < 2)
 	    || (_mission.current_seq < 0)
-	    || (_mission.current_seq >= _mission.count)) {
+	    || (_mission.current_seq >= _mission.count)
+	    || cameraWasTriggeringAtPause()) {
 		return false;
 	}
 
@@ -205,6 +205,8 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 
 	_active_jump_anchor = join_plan.active_jump_anchor;
 	setMissionIndex(join_plan.first_mission_item_index);
+	// As for a user-selected index, MissionBase::on_activation() must not rewind to the paused leg.
+	_inactivation_index = -1;
 	_is_current_planned_mission_item_valid = isMissionValid();
 
 	// In nominal flight, this means the selected landing is already within acceptance radius.
