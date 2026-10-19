@@ -53,7 +53,10 @@ AutopilotTester::AutopilotTester() :
 
 AutopilotTester::~AutopilotTester()
 {
-	_events->unsubscribe_events(_events_handle);
+	if (_telemetry) {
+		_telemetry->unsubscribe_status_text(_status_text_handle);
+	}
+
 	_should_exit = true;
 	_real_time_report_thread.join();
 }
@@ -78,18 +81,13 @@ void AutopilotTester::connect(const std::string uri)
 	_offboard.reset(new Offboard(system));
 	_param.reset(new Param(system));
 	_telemetry.reset(new Telemetry(system));
-	_events.reset(new Events(system));
 	_mavlink_passthrough.reset(new MavlinkPassthrough(system));
 
-	_events_handle = _events->subscribe_events([](const Events::Event & event) {
-		std::cout << "[" << event.log_level << "] " << event.message << std::endl;
-
-		if (!event.description.empty()) {
-			std::cout << "    Description: " << event.description << std::endl;
-		}
-
-		std::cout << "    Event name: " << event.event_namespace << "/" << event.event_name
-			  << std::endl;
+	// Events in MAVSDK 3.17.2 can deadlock during teardown: destroying event handlers
+	// holds the Events mutex while waiting for a message callback that needs it.
+	// Status text provides flight diagnostics through the existing Telemetry plugin.
+	_status_text_handle = _telemetry->subscribe_status_text([](const Telemetry::StatusText & status) {
+		std::cout << "[" << status.type << "] " << status.text << std::endl;
 	});
 }
 
