@@ -213,9 +213,7 @@ public:
 			resetVtolTransition();
 		}
 
-		position_setpoint_triplet_s *triplet = _navigator->get_position_setpoint_triplet();
-		const position_setpoint_s current_setpoint_copy = triplet->current;
-		return handleJoinRouteWorkItems(triplet, current_setpoint_copy);
+		return handleJoinRouteWorkItems();
 	}
 
 	void setJoinWaypointReached(bool reached)
