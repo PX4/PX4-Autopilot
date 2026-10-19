@@ -79,23 +79,13 @@ bool RtlMissionSafePointFollow::loadMissionItemFromCache(int32_t index, mission_
 	// MissionBase reloads the current item between approach/landing helper stages;
 	// a replacement mission must not make those reloads abort the landing.
 	if (missionIndexInBounds(index) && index == _mission.current_seq) {
-		if (_state.stage == Stage::MoveToGoal) {
-			setGoalMoveMissionItem(mission_item);
-			return true;
-		}
-
-		if (_state.stage == Stage::ApproachAtGoal) {
-			setGoalApproachMissionItem(mission_item);
+		if (_state.stage == Stage::Arrival) {
+			setGoalArrivalMissionItem(mission_item, _arrival);
 			return true;
 		}
 
 		if (_state.stage == Stage::LandAtGoal) {
 			setLandMissionItem(mission_item);
-			return true;
-		}
-
-		if (_state.stage == Stage::HoldAtGoal) {
-			setGoalHoldMissionItem(mission_item);
 			return true;
 		}
 	}
@@ -140,6 +130,7 @@ void RtlMissionSafePointFollow::resetExecutorProgress()
 {
 	resetVtolTransition();
 	_state = {};
+	_arrival.reset();
 	_goal_arrival_alt = NAN;
 	resetJoinRouteState();
 }
@@ -156,7 +147,7 @@ RtlMissionSafePointFollow::Stage RtlMissionSafePointFollow::finalGoalStage() con
 		return Stage::LandAtGoal;
 	}
 
-	return useGoalLandApproach() ? Stage::ApproachAtGoal : Stage::MoveToGoal;
+	return Stage::Arrival;
 }
 
 void RtlMissionSafePointFollow::enterGoalStage()
@@ -167,13 +158,13 @@ void RtlMissionSafePointFollow::enterGoalStage()
 		_goal_land_approach = {};
 	}
 
+	_arrival.startRouteArrival(useGoalLandApproach());
 	_state.stage = finalGoalStage();
 }
 
 bool RtlMissionSafePointFollow::isExecutingGoalStage() const
 {
-	return _state.stage == Stage::MoveToGoal || _state.stage == Stage::ApproachAtGoal
-	       || _state.stage == Stage::HoldAtGoal || _state.stage == Stage::LandAtGoal;
+	return _state.stage == Stage::Arrival || _state.stage == Stage::LandAtGoal;
 }
 
 bool RtlMissionSafePointFollow::goalIsMissionLanding() const
@@ -376,20 +367,14 @@ bool RtlMissionSafePointFollow::setNextMissionItem()
 		PX4_INFO("RTL branch-off reached, straight to goal");
 		return true;
 
-	case Stage::MoveToGoal:
-		// Match direct RTL: MC can land immediately when no descent hold is requested.
-		_state.stage = _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-			       && !_vehicle_status_sub.get().in_transition_mode
-			       && fabsf(_param_rtl_land_delay.get()) <= FLT_EPSILON ? Stage::LandAtGoal : Stage::ApproachAtGoal;
-		return true;
+	case Stage::Arrival:
+		_arrival.advance(_vehicle_status_sub.get(), _param_rtl_land_delay.get());
 
-	case Stage::ApproachAtGoal:
-		_state.stage = Stage::HoldAtGoal;
-		return true;
+		if (_arrival.phase() == RtlArrival::Phase::Land) {
+			_state.stage = Stage::LandAtGoal;
+			PX4_INFO("RTL goal arrival complete, landing");
+		}
 
-	case Stage::HoldAtGoal:
-		_state.stage = Stage::LandAtGoal;
-		PX4_INFO("RTL goal approach reached, landing");
 		return true;
 
 	case Stage::LandAtGoal:
@@ -467,41 +452,38 @@ loiter_point_s RtlMissionSafePointFollow::goalLandApproach(float arrival_altitud
 	return approach;
 }
 
+void RtlMissionSafePointFollow::setGoalArrivalMissionItem(mission_item_s &mission_item,
+		const RtlArrival &arrival) const
+{
+	const RtlArrival::ItemConfig config{
+		.approach = goalLandApproach(goalArrivalAltitude(), useGoalLandApproach()),
+		.transit_altitude = goalArrivalAltitude(),
+		.land_delay = _param_rtl_land_delay.get()
+	};
+	mission_item = {};
+	arrival.buildMissionItem(*this, mission_item, config, _vehicle_status_sub.get());
+}
+
 void RtlMissionSafePointFollow::setGoalMoveMissionItem(mission_item_s &mission_item) const
 {
-	const loiter_point_s approach = goalLandApproach(goalArrivalAltitude(), useGoalLandApproach());
-	const PositionYawSetpoint position{
-		.lat = approach.lat,
-		.lon = approach.lon,
-		.alt = goalArrivalAltitude(),
-		.yaw = NAN
-	};
-
-	mission_item = {};
-
-	if (vehicleInFwLikeState(_vehicle_status_sub.get())) {
-		// Enter the orbit rather than requiring a fixed-wing vehicle to reach its centre.
-		setLoiterHoldMissionItem(mission_item, position, 0.f, approach.loiter_radius_m);
-
-	} else {
-		setMoveToPositionMissionItem(mission_item, position);
-	}
+	RtlArrival arrival;
+	arrival.startRouteArrival(false);
+	setGoalArrivalMissionItem(mission_item, arrival);
 }
 
 void RtlMissionSafePointFollow::setGoalApproachMissionItem(mission_item_s &mission_item) const
 {
-	const loiter_point_s approach = goalLandApproach(goalArrivalAltitude(), useGoalLandApproach());
-	const PositionYawSetpoint position{approach.lat, approach.lon, approach.height_m, NAN};
-	mission_item = {};
-	setLoiterToAltMissionItem(mission_item, position, approach.loiter_radius_m);
+	RtlArrival arrival;
+	arrival.startRouteArrival(true);
+	setGoalArrivalMissionItem(mission_item, arrival);
 }
 
 void RtlMissionSafePointFollow::setGoalHoldMissionItem(mission_item_s &mission_item) const
 {
-	const loiter_point_s approach = goalLandApproach(goalArrivalAltitude(), useGoalLandApproach());
-	const PositionYawSetpoint position{approach.lat, approach.lon, approach.height_m, NAN};
-	mission_item = {};
-	setLoiterHoldMissionItem(mission_item, position, _param_rtl_land_delay.get(), approach.loiter_radius_m);
+	RtlArrival arrival;
+	arrival.startRouteArrival(true);
+	arrival.advance(_vehicle_status_sub.get(), _param_rtl_land_delay.get());
+	setGoalArrivalMissionItem(mission_item, arrival);
 }
 
 void RtlMissionSafePointFollow::setGoalMissionItem(mission_item_s &mission_item) const
@@ -801,35 +783,26 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 		publishBranchOffItems(pos_sp_triplet, current_setpoint_copy);
 		break;
 
-	case Stage::MoveToGoal: {
-			mission_item_s move_item{};
-			setGoalMoveMissionItem(move_item);
-			publishRouteItems(pos_sp_triplet, current_setpoint_copy, move_item, nullptr);
-			break;
-		}
-
-	case Stage::ApproachAtGoal:
-	case Stage::HoldAtGoal: {
+	case Stage::Arrival: {
 			mission_item_s goal_item{};
-			mission_item_s landing_item{};
+			setGoalArrivalMissionItem(goal_item, _arrival);
 
-			if (_state.stage == Stage::ApproachAtGoal) {
-				setGoalApproachMissionItem(goal_item);
-
-			} else {
-				setGoalHoldMissionItem(goal_item);
+			if (_arrival.phase() == RtlArrival::Phase::Move) {
+				publishRouteItems(pos_sp_triplet, current_setpoint_copy, goal_item, nullptr);
+				break;
 			}
 
 			// An offset approach must exit towards the landing point, as in direct RTL.
 			goal_item.force_heading = goal_item.autocontinue
 						  && get_distance_to_next_waypoint(goal_item.lat, goal_item.lon,
 								  _plan.goal_position.lat, _plan.goal_position.lon) > _navigator->get_acceptance_radius();
+			mission_item_s landing_item{};
 			setLandMissionItem(landing_item);
 			publishRouteItems(pos_sp_triplet, current_setpoint_copy, goal_item,
 					  goal_item.autocontinue ? &landing_item : nullptr);
 			pos_sp_triplet->previous.valid = false;
 
-			if (_state.stage == Stage::HoldAtGoal && goal_item.autocontinue) {
+			if (_arrival.phase() == RtlArrival::Phase::Hold && goal_item.autocontinue) {
 				// The descent stage already enforced altitude before the landing delay began.
 				pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
 			}
@@ -973,9 +946,12 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 					    || estimated_vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					    || fabsf(_param_rtl_land_delay.get()) > FLT_EPSILON;
 
-		if (stage != Stage::HoldAtGoal) {
+		const bool holding = !inactive && stage == Stage::Arrival && _arrival.phase() == RtlArrival::Phase::Hold;
+
+		if (!holding) {
 			// Approach horizontally before descending, as the destination stages do.
-			const float approach_altitude = !inactive && stage == Stage::ApproachAtGoal && current_setpoint.valid
+			const float approach_altitude = !inactive && stage == Stage::Arrival && _arrival.phase() == RtlArrival::Phase::Descend
+							&& current_setpoint.valid
 							? current_setpoint.alt : arrival_altitude;
 			add_leg(approach.lat, approach.lon, approach_altitude);
 
@@ -987,7 +963,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 		if (hold_requested) {
 			float remaining_wait = _param_rtl_land_delay.get();
 
-			if (!inactive && stage == Stage::HoldAtGoal && remaining_wait > 0.f && _time_wp_reached != 0) {
+			if (holding && remaining_wait > 0.f && _time_wp_reached != 0) {
 				remaining_wait = math::max(0.f, remaining_wait - hrt_elapsed_time(&_time_wp_reached) * 1e-6f);
 			}
 
@@ -1077,9 +1053,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 		add_goal_legs();
 		break;
 
-	case Stage::MoveToGoal:
-	case Stage::ApproachAtGoal:
-	case Stage::HoldAtGoal:
+	case Stage::Arrival:
 		add_goal_legs();
 		break;
 
