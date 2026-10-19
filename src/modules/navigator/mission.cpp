@@ -185,7 +185,7 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	request.in_transition_to_fw = vehicle_status.in_transition_to_fw;
 	request.is_vtol = vehicle_status.is_vtol;
 
-	if (local_position != nullptr && local_position->v_xy_valid) {
+	if (local_position->v_xy_valid) {
 		request.velocity_north_m_s = local_position->vx;
 		request.velocity_east_m_s = local_position->vy;
 	}
@@ -311,12 +311,12 @@ bool Mission::setNextMissionItem()
 }
 
 bool
-Mission::do_need_move_to_takeoff()
+Mission::do_need_move_to_takeoff(const mission_item_s &takeoff_item)
 {
 	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-	    && _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+	    && takeoff_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
 
-		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+		float d_current = get_distance_to_next_waypoint(takeoff_item.lat, takeoff_item.lon,
 				  _global_pos_sub.get().lat, _global_pos_sub.get().lon);
 
 		return d_current > _navigator->get_acceptance_radius();
@@ -640,9 +640,7 @@ void Mission::prepareVtolTransitionItem(bool aligning)
 
 	} else {
 		if (takeoff) {
-			_mission_item = _vtol_transition.target;
-
-			if (!do_need_move_to_takeoff()) {
+			if (!do_need_move_to_takeoff(_vtol_transition.target)) {
 				_vtol_transition.completion_work = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 			}
 

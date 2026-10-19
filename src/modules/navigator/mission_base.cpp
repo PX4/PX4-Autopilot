@@ -1061,7 +1061,6 @@ bool MissionBase::handleJoinRouteWaypoint()
 	if (!_route_join_context.valid()) {
 		PX4_ERR("Route join active without a valid context");
 		resetJoinRouteState();
-		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 		return false;
 	}
 
@@ -1078,7 +1077,7 @@ bool MissionBase::handleJoinRouteWaypoint()
 	join_item.autocontinue = true;
 	join_item.origin = ORIGIN_ONBOARD;
 
-	if (_route_join_context.skip_altitude_requirement && _navigator->get_global_position() != nullptr) {
+	if (_route_join_context.skip_altitude_requirement) {
 		join_item.altitude = _navigator->get_global_position()->alt;
 	}
 
