@@ -34,9 +34,7 @@
 /**
  * @file test_RTL_mission_safe_point_follow.cpp
  *
- * Unit tests for the lightweight RtlMissionSafePointFollow stage machine.
- * Focuses on setNextMissionItem() stage transitions without constructing a
- * full Navigator stack.
+ * Tests for the route-following Return executor (RTL_TYPE 7).
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -66,12 +64,7 @@ using navigator_test::route_test_reference::kAlt;
 using navigator_test::route_test_reference::kBaseLat;
 using navigator_test::route_test_reference::kBaseLon;
 
-/**
- * Lightweight peer for the RTL stage machine.
- *
- * Overrides mission-item loading with vector-backed storage and exposes only
- * the minimal internal state needed to exercise setNextMissionItem().
- */
+/** Test peer with vector-backed mission items and access to the executor state. */
 class RtlMissionSafePointFollowTestPeer : public RtlMissionSafePointFollow
 {
 public:
@@ -693,6 +686,8 @@ TEST_F(RtlMissionSafePointFollowStageTest, RouteOnlyActivationDoesNotReplayMissi
 	executor_with_nav.on_activation();
 	ASSERT_EQ(executor_with_nav.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
 	ASSERT_EQ(executor_with_nav.currentSequenceForTest(), 3);
+	// Camera and gimbal replays run in on_active().
+	executor_with_nav.on_active();
 
 	while (vehicle_command_sub.update(&command)) {
 		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED);

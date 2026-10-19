@@ -142,6 +142,7 @@ class MissionRouteJoinTest : public NavigatorDatamanTestBase
 protected:
 	void SetUp() override
 	{
+		param_reset_all();
 		const hrt_abstime now = hrt_absolute_time();
 
 		mission_s mission{};
@@ -198,6 +199,8 @@ protected:
 
 		ASSERT_TRUE(fence.isReadyForPathChecks());
 	}
+
+	void TearDown() override { param_reset_all(); }
 
 	static constexpr float kBaseAlt = kAlt;
 
