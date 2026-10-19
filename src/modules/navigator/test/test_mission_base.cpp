@@ -51,29 +51,22 @@
 #include "support/navigator_dataman_test.h"
 #include "support/vector_mission_item_store.h"
 
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-#include <drivers/drv_hrt.h>
-#include <parameters/param.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-
 #include <initializer_list>
 #include <vector>
 
 #include <cstring>
+#include <drivers/drv_hrt.h>
+#include <parameters/param.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
 
 /* EVENT
  * @skip-file
