@@ -8,7 +8,6 @@ It provides:
 
 Enable smart rejoin with [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) (off by default).
 Select route-following Return with [RTL_TYPE=7](../flight_modes/return.md#rtl_type_7).
-`RTL_TYPE=6` provides a separate battery-aware home/rally return mode.
 
 ::: warning
 The planner requires a complete mission from the [mission route cache](../advanced/mission_route_cache.md).
@@ -30,7 +29,7 @@ These checks do not cover obstacles, the space needed to turn, or VTOL landing a
 ## How It Works
 
 Both features choose where to join the route using the vehicle's current position and mission progress.
-Mission rejoin continues the mission; route-following Return chooses a destination and may fly the route forwards or backwards to reach it.
+Smart rejoin continues the mission; route-following Return chooses a destination and may fly the route forwards or backwards to reach it.
 
 When the vehicle is already near the selected destination or branch-off leg, [route-skip shortcuts](#route-skip-shortcuts) can avoid an unnecessary trip back to the route.
 If route-following Return cannot use the route, [direct fallback](#route-following-fallback) may change the destination and fly outside the mission corridor.
@@ -40,24 +39,27 @@ If route-following Return cannot use the route, [direct fallback](#route-followi
 When Mission mode is activated in flight with smart rejoin enabled, the vehicle:
 
 1. Selects a branch-in point and altitude on the route using [Vehicle Projection](#vehicle-projection).
-2. Flies to that point.
+2. Flies straight to that point, changing altitude on the way.
+   Unlike a resume without smart rejoin, it does not first climb in place to the mission altitude.
 3. Continues towards the mission end in the mission direction, accounting for any active loop as described below.
 
 If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection), the loop's repeat count is preserved:
 
-- while repeats remain the resumed path continues to the jump target so the loop is still flown
-- once repeats are exhausted, the planner picks whichever loop exit gives the shorter **total** path on to the mission end: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the mission end lies near the loop start it may rewind most of the loop rather than finish it.
+- While repeats remain, the resumed path continues to the jump target, so the loop is still flown.
+- Once repeats are exhausted, the planner picks the loop exit with the shorter **total** path to the mission end: forward to the jump target, or back to the waypoint before the jump command.
+  Both paths include any fixed-wing U-turn penalty.
+  Because the whole path counts, the vehicle may rewind most of the loop when the mission end lies near the loop start.
 
 The projection search margin is set by [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) (multicopter) and [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST) (fixed-wing).
-If a join cannot be planned, Mission mode resumes without the smart join and reports a warning.
+If a rejoin cannot be planned, Mission mode resumes without smart rejoin and reports a warning.
 This can happen while the mission is still loading into the [route cache](../advanced/mission_route_cache.md).
 Camera-trigger survey resume takes precedence over smart rejoin.
 Mission returns to the previous survey waypoint without a branch-in.
-Selecting a mission item explicitly cancels a pending smart join.
+Selecting a mission item explicitly cancels a pending smart rejoin.
 
 When the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
 This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.
-After moving outside that radius, for example with GoTo, resuming Mission uses normal smart route rejoin, including reaching the route altitude before any required front transition.
+After moving outside that radius, for example with GoTo, resuming Mission uses normal smart rejoin, including reaching the route altitude before any required front transition.
 
 When a VTOL rejoin requires a front transition, the vehicle follows this sequence:
 
@@ -78,12 +80,16 @@ With `RTL_TYPE=7`, Return uses the mission route as a return corridor:
 2. Choose a safe point and branch-off point using [Safe-Point Scoring](#safe-point-scoring), or a mission takeoff/landing endpoint if no safe point is usable.
 3. Join and follow the route in the selected direction, then fly to the destination.
 
+The takeoff endpoint is the position of the mission `TAKEOFF` or `VTOL_TAKEOFF` item, at Home altitude.
+For fixed-wing and VTOL missions this item is the climb-out or transition point, not the launch position.
+
 [Route-skip shortcuts](#route-skip-shortcuts) may bypass the join and route when the vehicle is already near the destination or branch-off leg.
 
 Route-following Return does not yet support `MAV_CMD_DO_RETURN_PATH_START` to designate a return-path segment.
 The planner considers the mission route without restricting its join and return path to the segment between this marker and `MAV_CMD_DO_LAND_START`.
 
-Here an active [`DO_JUMP` loop segment](#vehicle-projection) is used as return geometry only: the vehicle does not repeat the loop (unlike [Smart Mission Rejoin](#smart-mission-rejoin)). The planner then picks whichever loop exit gives the shorter **total** return path to the goal: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the goal lies near the loop start the planner may rewind most of the loop instead of finishing it.
+An active [`DO_JUMP` loop segment](#vehicle-projection) is used as return geometry only: the vehicle does not repeat the loop.
+It leaves the loop through the exit with the shorter total path to the goal, using the same rule as [Smart Mission Rejoin](#smart-mission-rejoin).
 
 Route following skips waypoint hold times and timed or unlimited loiter holds, but preserves `LOITER_TO_ALT`.
 The vehicle approaches these loiters at its current altitude, then changes altitude in the loiter before continuing.
@@ -93,6 +99,7 @@ The vehicle approaches these loiters at its current altitude, then changes altit
 VTOL transition commands belong to the preceding position waypoint in the uploaded mission.
 For example, `A → front transition → B → back transition → C` is flown in reverse as `C → B` in multicopter mode, then a front transition at `B`, followed by `B → A` in fixed-wing mode.
 The vehicle flies each leg in the mode used in the forward mission, even when travelling in reverse.
+A transition between the last waypoint and the mission `LAND` item is flown at the landing point, not at that waypoint.
 Before a front transition, it waits for any back transition to finish, holds its position and aligns towards the next route target.
 It advances the route after the transition completes.
 An ongoing front transition may finish when route-following Return is activated; direct fallback cancels it.
@@ -102,7 +109,7 @@ When no preceding command defines the mode, PX4 looks ahead in the nominal missi
 A preceding command always takes priority, including when two front transitions or two back transitions follow one another.
 Lookahead passes `DO_JUMP` commands as if their repeats were exhausted, continuing to the next mission item without following the jump target or changing the repeat count.
 It stops at a landing, takeoff, or unreadable item; if no mode can be inferred, the vehicle keeps its current mode.
-This mode selection applies to smart mission rejoin and route-following Return, including its time estimate.
+This mode selection applies to smart rejoin and route-following Return, including its time estimate.
 Normal Mission execution continues to execute the uploaded transition commands.
 :::
 
@@ -115,7 +122,9 @@ It then follows the destination arrival policy configured by [RTL_DESCEND_ALT](.
 
 The descent altitude is relative to the destination and is capped at the arrival altitude, so arrival does not introduce another return-altitude climb.
 Landings at rally points and takeoff endpoints use [RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD) for precision landing.
-An uploaded mission landing command retains its own landing and precision-landing settings; the destination descent and delay described above do not override it.
+An uploaded mission landing command keeps its own landing and precision-landing settings.
+The destination descent and delay described above do not apply to it.
+As in Mission mode, a VTOL flying in fixed-wing mode back-transitions and lands vertically at a mission `LAND` item when [NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) is enabled (default).
 A VTOL arriving in fixed-wing mode can use the selected rally point's landing approach, then back-transitions and lands through the existing VTOL landing sequence.
 If arrival starts during a front transition, the vehicle still back-transitions before landing.
 An approach is retained even when Return starts in multicopter mode, but is only flown if the vehicle reaches the destination phase in fixed-wing mode.
@@ -130,33 +139,27 @@ It does not model transition duration or turning dynamics.
 
 Direct fallback reselects the destination using [RTL_TYPE=3](../flight_modes/return.md#rtl_type_3): home, an eligible rally point or a mission landing pattern.
 When route planning is available in the firmware, a critical message reports a direct fallback when Return starts or while it is active.
-The destination can differ from the SRP goal, and the vehicle can fly outside the mission corridor to reach it.
+The destination can differ from the route goal, and the vehicle can fly outside the mission corridor to reach it.
 The direct-RTL climb and landing approach still apply; selecting a mission landing pattern means flying directly to that pattern before following it.
 
 Fallback occurs when:
 
-- Route planning is compiled out (`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0`); a pre-arm warning reports this when `RTL_TYPE=7` is set.
-- The current mission has no valid feasibility result, including while validation is pending or the result belongs to a previous mission, home position or geofence.
-- The complete mission or rally-point cache is unavailable, still loading/reloading or does not match the current source. This includes missions exceeding the configured full-cache capacity.
+- The firmware is built without route planning (`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0`).
+  A pre-arm warning reports this when `RTL_TYPE=7` is set.
+- The mission has not passed feasibility validation with the current Home position and geofence, or validation is still pending.
+- The mission or rally points are not loaded in the [route cache](../advanced/mission_route_cache.md) yet, or the mission is larger than the cache.
 - The geofence is loading, unavailable, or cannot check a candidate path.
-- The planner cannot produce a valid join and return path: for example, required position/index/parameter inputs are invalid, required mission data cannot be read, or no usable rally point or mission endpoint can be reached through the route.
-- The result cannot be accepted because its source changed during planning, its plan is invalid, or the selected rally-point index exceeds the supported range.
-- There is insufficient memory to start route following.
-- Vehicle status reports a type other than multicopter or fixed-wing. VTOL hover, forward flight and transitions are supported.
+- No usable rally point or mission endpoint can be reached through the route.
+- The vehicle is neither a multicopter nor a fixed-wing.
+  VTOL vehicles are supported in hover, forward flight and transitions.
 
 During route following, changes to the mission, rally points or geofence trigger replanning.
 If that replan cannot be accepted, the same direct fallback applies.
 Once the destination arrival or landing sequence has begun, these changes do not replace it.
 
-Pending cache, geofence or mission-validation inputs are retried on the two-second check once they are ready and the mission is valid, provided the destination arrival or landing sequence has not started.
-Other planning or allocation failures do not automatically retry on that timer.
-
-If no rally point is usable, the planner first tries mission takeoff/landing endpoints.
-A fixed-wing system failure keeps a VTOL on the selected route in multicopter mode, skipping front transitions.
-An incomplete time estimate alone does not trigger fallback.
-
-Even with a valid plan, [route-skip shortcuts](#route-skip-shortcuts) can bypass the join and route when the vehicle is already near the selected goal or branch-off leg.
-Those shortcuts retain the planner's selected goal; they are separate from direct fallback.
+If the fallback was caused by a loading cache, geofence or mission validation, Return retries route planning once these inputs are ready.
+It checks every two seconds, until the destination arrival or landing sequence starts.
+Other planning failures are not retried.
 
 ## Point Projection
 
@@ -164,12 +167,14 @@ This is the shared projection step used by both the [Vehicle Projection](#vehicl
 The projected point is the vehicle in one case and a safe point (rally point) in the other.
 
 The planner draws a perpendicular projection from the point onto every route segment and keeps up to three candidates per point.
-A projection is a valid candidate only if its crosstrack distance is within a search margin of the closest candidate's crosstrack distance.
+A projection is a valid candidate only if its cross-track distance is within a search margin of the closest candidate's cross-track distance.
 Separate parameters control the search margins for the vehicle and rally points; see [Parameters and Build Configuration](#parameters-and-build-configuration).
-When more than three projections fall within the margin, only the three with the smallest crosstrack distance are kept and the rest are dropped.
+When more than three projections fall within the margin, only the three with the smallest cross-track distance are kept and the rest are dropped.
 
-The mission route planner supports [`DO_JUMP`](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP) mission loop commands. The active jump segment is the segment running from the waypoint before the jump command to the first position waypoint at the jump target.
-A point projects onto a loop segment using the same crosstrack and margin rule as any other segment. How that candidate is then used differs for the vehicle branch-in ([Vehicle Projection](#vehicle-projection)) and for safe-point branch-offs ([Safe-Point Scoring](#safe-point-scoring)).
+The mission route planner supports [`DO_JUMP`](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP) mission loop commands.
+The active jump segment is the segment running from the waypoint before the jump command to the first position waypoint at the jump target.
+A point projects onto a loop segment using the same cross-track and margin rule as any other segment.
+How that candidate is then used differs for the vehicle branch-in ([Vehicle Projection](#vehicle-projection)) and for safe-point branch-offs ([Safe-Point Scoring](#safe-point-scoring)).
 
 ::: details Click here for more detail on how projections land on segments and corners
 
@@ -200,7 +205,7 @@ Every rally point has three projections because the margin is large.
 ![Point projection with a large search margin](../../assets/mission_route_planner/mission_route_planner_large_search_margin.png)
 
 Here is the same route with a smaller margin.
-Some projections are dropped because their crosstrack distance is greater than the closest projection's crosstrack distance plus the margin.
+Some projections are dropped because their cross-track distance is greater than the closest projection's cross-track distance plus the margin.
 
 ![Point projection with a small search margin](../../assets/mission_route_planner/mission_route_planner_small_search_margin.png)
 
@@ -210,53 +215,24 @@ With a margin of zero, each rally point keeps only its single closest projection
 
 ::: details Click here to see how stacked waypoints (same latitude and longitude) are handled
 
-Two consecutive waypoints that share latitude and longitude form a vertical segment with zero horizontal length, for example a climb waypoint directly above `TAKEOFF` or a descent waypoint directly above `LAND`.
-Every point projects onto such a segment at its single horizontal location, so the segment always looks like a corner hit from both sides.
-Accepting that hit at the route ends would make the endpoint a candidate for every rally point, wherever the rally point is.
-With a wide enough search margin the candidate survives the cross-track window, and because the path cost adds along-route and off-route distance, a diagonal shortcut from the endpoint can score lower than following the route:
-
-```text
-Mission order: A, B, B', LAND (B, B' and LAND share latitude/longitude)
-
-Top view:
-A ----------- P ----------- B/B'/LAND    V
-              |
-              R
-
-Side view at the route end:
-                         B' o 75 m
-                          B o 50 m
-                       LAND o ground
-```
-
-`V` is the vehicle, just beyond the landing location.
-`R` is a rally point 50 m back along the route and 10 m to the side, and `P` is its perpendicular projection onto A-B.
-Following the route to `P` and turning toward `R` costs 50 + 10 = 60 m.
-Branching straight from the landing location to `R` costs about 51 m, so the diagonal would win even though all of it is flown off the route instead of only the final 10 m.
-A vertical waypoint would then change the horizontal return path.
-
-To prevent this, vertical segments are handled as follows:
+Two consecutive waypoints that share latitude and longitude form a vertical segment, for example a climb waypoint above `TAKEOFF` or a descent waypoint above `LAND`.
+Every point projects onto such a segment at the same spot.
+Without special handling, the route end would be a branch-off candidate for every rally point, and a diagonal path from it could beat following the route.
 
 - **Rally-point projections**: a vertical segment never creates its own endpoint candidate.
-  The adjacent horizontal leg decides: if `R` projects onto the interior of A-B, that interior projection is used; if `R` lies beyond `B`, the endpoint remains a candidate.
-  The same rule applies at takeoff, so vertical waypoints above `TAKEOFF` do not add a branch-off point for a rally point alongside the first horizontal leg.
+  The adjacent horizontal leg decides: a rally point beside that leg branches off from the leg, and only a rally point beyond the route end keeps the endpoint as a candidate.
   Interior stacks keep the normal corner rules, and an entirely vertical mission keeps its final location as a candidate.
 - **Vehicle projection**: the vertical segment is kept when it matches the current mission index and flight direction, at both `LAND` and `TAKEOFF`.
-  During a landing, a small drift toward `A` must not move the vehicle's projection from B'-LAND onto A-B.
-  Keeping B'-LAND lets `LAND` remain the first target, and inside its acceptance radius the join keeps the current altitude instead of climbing back to the approach altitude (see Phase 3 of [Vehicle Projection](#vehicle-projection)).
-  This exception is disabled during an active `DO_JUMP`: the jump target index does not mean the vehicle is flying the nominal vertical segment.
-  Rally-point projections carry no mission index, so they always use the stricter geometric rule.
+  A vehicle that drifts during a landing therefore keeps `LAND` as its first target.
+  This exception is disabled during an active `DO_JUMP`.
 
-For the example above the return path is therefore: follow the route back to `P`, then take the short hop to `R`.
-
-**Limitation**: if the vehicle was targeting `LAND` and then flew a distant GoTo, the mission index still points at `LAND`, so the vertical segment stays a candidate whenever it passes the cross-track margin filter.
-Mission continuity can then prefer the diagonal path over a closer horizontal leg.
-Only the horizontal path is affected: the current-altitude rule requires the vehicle to be inside the endpoint's acceptance radius, so a distant vehicle flies the diagonal at the approach altitude and never bypasses the altitude requirement.
-This is a rare corner case and is accepted.
+**Limitation**: after a distant GoTo while targeting `LAND`, the vertical segment at `LAND` can still be selected.
+The vehicle may then fly a diagonal path back to the route end instead of joining a closer leg.
+It flies that path at the approach altitude.
 
 :::
 
-### Geofence Checks {#geofence-checks}
+## Geofence Checks {#geofence-checks}
 
 Before selecting a branch-in or branch-off point, the planner checks the segment between that point and the vehicle or safe point.
 Both ends must be within the permitted area, altitude and distance-from-home limits.
@@ -268,8 +244,10 @@ If no branch-in candidate passes, smart rejoin or route-following Return uses it
 If no safe point has a usable branch-off, Return can still select a mission takeoff or landing endpoint.
 
 [Route-skip shortcuts](#route-skip-shortcuts) are checked separately because they fly directly to the destination instead of following the checked branch-in and branch-off segments.
-Uploaded mission segments are checked by mission feasibility validation.
+Uploaded mission segments are checked by mission feasibility validation, except `DO_JUMP` loop edges, which Mission, smart rejoin and route-following Return can fly.
 The planner does not find detours around fences or check landing-approach geometry.
+A VTOL arriving in fixed-wing mode flies from the branch-off point to the selected landing-approach loiter.
+That leg and the loiters are not checked.
 
 When the vehicle already breaches the loaded fence, the planner skips the checks of segments that start at the vehicle, to allow recovery along the route.
 Branch-off segments are still checked, so a breach cannot route the vehicle through a fence on the way to a safe point.
@@ -301,10 +279,10 @@ Candidates must pass the [Geofence Checks](#geofence-checks) before selection.
 
 The best candidate is chosen with a priority system:
 
-- Priority 1: a candidate is selected immediately if it lies on the segment the vehicle is currently expected to be flying (the last targeted waypoint index, or the last flown `DO_JUMP` segment if the caller supplied it).
+- Priority 1: a candidate is selected immediately if it lies on the segment the vehicle is currently expected to be flying (the last targeted waypoint index, or the last flown `DO_JUMP` segment when known).
   This includes the vertical segment being flown at takeoff or landing (see [Stacked Waypoints](#stacked-waypoints)).
 - Priority 2: if no candidate matches Priority 1, the planner scores each candidate by summing the following distances, and keeps the lowest:
-  - Crosstrack distance: from the vehicle to the projection on the route.
+  - Cross-track distance: from the vehicle to the projection on the route.
   - Distance along the route to the last-flown segment: from the projection, following the mission path to whichever end of the last-flown segment is closer.
     This selects the candidate that gets the vehicle back to where it was last flying if available, or the best match for a close in-sequence segment if it is not.
 
@@ -324,9 +302,9 @@ The vehicle rejoins the mission and continues toward B.
 **Example 2:**
 
 The vehicle is flying north and deviates to a GoTo location that has two valid branch-in candidates.
-Neither projection lies on the current segment, so each candidate is scored by summing its crosstrack distance and the distance along the route to the last-flown segment.
+Neither projection lies on the current segment, so each candidate is scored by summing its cross-track distance and the distance along the route to the last-flown segment.
 Take the candidate projected onto the east segment.
-Its score is the crosstrack distance (166.95 m) plus the distance along the route back to the last-flown segment (the red lines).
+Its score is the cross-track distance (166.95 m) plus the distance along the route back to the last-flown segment (the red lines).
 The closer end of the last-flown segment is used, and the along-route distance is the sum of the straight lines between waypoints.
 The other candidate, projected onto the south segment, wins because its total distance is smaller.
 
@@ -342,7 +320,8 @@ The other candidate, projected onto the south segment, wins because its total di
   Outside the acceptance radius the rules above apply as usual: a vehicle 30 m from a stacked takeoff with a 10 m acceptance radius rejoins at the stack's end altitude.
 
 **`DO_JUMP` loop segments:** the vehicle can also branch-in on a loop edge.
-A loop edge is projected and scored like any normal segment, vehicle projection does not skip it, so it competes as an ordinary candidate. This is required because the loop edge might be the only valid candidate (e.g. after a GoTo close to the loop edge).
+A loop edge is projected and scored like any other segment, so it competes as an ordinary candidate.
+This matters because the loop edge might be the only valid candidate, for example after a GoTo close to the loop edge.
 
 What happens after joining a loop depends on the selected flight mode (see [Smart Mission Rejoin](#smart-mission-rejoin) and [Route-Following Return](#route-following-return)).
 
@@ -361,15 +340,21 @@ The vehicle was already projected by the [Vehicle Projection](#vehicle-projectio
 
 **Phase 2: Selecting the best projection point:**
 
-Each candidate branch-off is scored by total path cost, and the lowest wins. The cost is built from:
+Each candidate branch-off is scored by total path cost, and the lowest wins.
+The cost is built from:
 
 - Along-route distance: along the route geometry from the vehicle projection to the safe-point projection (branch-off point), using straight lines between waypoints.
 - Branch-off leg: the straight-line distance from the safe-point projection to the safe point (the off-route leg flown after leaving the route).
-- U-turn penalty: for fixed-wing and VTOL-in-FW, an extra distance penalty is added when the path would require an immediate U-turn, so forward-flowing paths are preferred. The U-turn is detected by comparing the vehicle's current velocity with its desired course: toward the branch-in point when far from the route, or along the selected route direction when close to it. If the two are more than 90° apart, the penalty is applied. Set [RTL_FW_UTURN_PEN](../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN) to 0 to disable this penalty. Multirotors and hovering VTOL are exempt, because they can turn on the spot.
+- U-turn penalty: for fixed-wing vehicles and VTOL vehicles in fixed-wing mode, an extra distance penalty is added when the path would require an immediate U-turn, so forward-flowing paths are preferred.
+  The U-turn is detected by comparing the vehicle's current velocity with its desired course: toward the branch-in point when far from the route, or along the selected route direction when close to it.
+  If the two are more than 90° apart, the penalty is applied.
+  Set [RTL_FW_UTURN_PEN](../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN) to 0 to disable this penalty.
+  Multicopters and VTOL vehicles in hover are exempt, because they can turn on the spot.
 
 As the planner gathers the safe points to consider, it filters out the ones it cannot use:
 
-- Invalid coordinates, unsupported frames, or filtered safe points are skipped.
+- Rally points with invalid coordinates or unsupported frames are skipped.
+- A VTOL in fixed-wing mode also skips rally points without a landing approach when [RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE) is set.
 - Every remaining safe point gets up to three projections.
 - Branch-off segments must pass the [Geofence Checks](#geofence-checks) before scoring.
 
@@ -380,13 +365,14 @@ Safe-point branch-off candidates on loop segments are more restricted:
 - If the vehicle and selected safe point project onto the same active loop segment, the return path may follow that loop edge to the branch-off point.
 - If the selected safe point is outside the active loop, the planner first chooses how to leave the loop (shortest overall path), then follows the normal route toward the selected branch-off point or fallback endpoint.
 
-### Route-Skip Shortcuts
+## Route-Skip Shortcuts
 
 After a destination has been selected, the vehicle can skip joining and following the route in these cases:
 
 - **Direct-to-safe-point**: if the vehicle is already within the direct acceptance radius of the selected safe point, go straight to it.
 - **Close-to-branch-leg**: if the vehicle is already close to the selected branch-off leg (both horizontally and vertically), continue straight toward the goal.
-- **Endpoint goal**: for a mission `LAND` or `TAKEOFF` goal, the route-ends rule of [Vehicle Projection](#vehicle-projection) Phase 3 applies. When that endpoint is the first item to fly and the vehicle is inside its acceptance radius, the Return skips route following and flies directly to it.
+- **Endpoint goal**: for a mission `LAND` or `TAKEOFF` goal, the route-ends rule of [Vehicle Projection](#vehicle-projection) Phase 3 applies.
+  When that endpoint is the first item to fly and the vehicle is inside its acceptance radius, the Return skips route following and flies directly to it.
 
 These shortcuts are applied only after selection, so they never change which goal wins the cost comparison.
 The direct segment to the destination must also pass the [Geofence Checks](#geofence-checks).
@@ -401,17 +387,24 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 
 ## Parameters and Build Configuration
 
-| Setting            | Purpose                                                                           | Default |
-| ------------------ | --------------------------------------------------------------------------------- | ------- |
-| `MIS_ROUTE_JOIN`   | Enable route rejoin on airborne Mission activation.                               | `0`     |
-| `MIS_MC_SEG_DIST`  | Extra cross-track search margin for vehicle projections in multicopter mode.      | 30 m    |
-| `MIS_FW_SEG_DIST`  | Extra cross-track search margin for vehicle projections in fixed-wing mode.       | 150 m   |
-| `RTL_RP_SEG_DIST`  | Extra cross-track search margin for rally-point projections.                      | 30 m    |
-| `RTL_FW_UTURN_PEN` | Additional distance cost for a fixed-wing reversal during route-following Return. | 4000 m  |
+| Setting                                                                        | Purpose                                                                           | Default |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------- |
+| [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN)     | Enable smart rejoin on airborne Mission activation.                               | `0`     |
+| [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST)   | Extra cross-track search margin for vehicle projections in multicopter mode.      | 30 m    |
+| [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST)   | Extra cross-track search margin for vehicle projections in fixed-wing mode.       | 150 m   |
+| [RTL_RP_SEG_DIST](../advanced_config/parameter_reference.md#RTL_RP_SEG_DIST)   | Extra cross-track search margin for rally-point projections.                      | 30 m    |
+| [RTL_FW_UTURN_PEN](../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN) | Additional distance cost for a fixed-wing reversal during route-following Return. | 4000 m  |
 
 `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` must be greater than zero and large enough for the entire uploaded mission.
 The parameters above only exist in firmware built with a non-zero cache size.
 SITL defaults to 500 mission items.
+No standard flight-controller build enables the cache.
+To use it on hardware, set the cache size in the board configuration and check that the RAM fits (56 bytes per item):
+
+```ini
+CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=300
+```
+
 An oversized mission can still be flown in Mission mode, but smart rejoin and route-following Return cannot use it.
 See [Safe-Point Batching](#safe-point-batching) for the rally-point batch configuration and memory trade-off.
 
