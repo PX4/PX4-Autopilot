@@ -85,7 +85,7 @@ bool RtlMissionSafePointFollow::loadMissionItemFromCache(int32_t index, mission_
 		}
 
 		if (_state.stage == Stage::LandAtGoal) {
-			setLandMissionItem(mission_item);
+			setGoalLandMissionItem(mission_item);
 			return true;
 		}
 	}
@@ -110,7 +110,7 @@ void RtlMissionSafePointFollow::configureRoute(const mission_route::RtlRoutePlan
 	// and after the route source may be replaced during the committed landing stage.
 	_goal_mission_land_item_valid = goalIsMissionLanding()
 					&& loadMissionItemFromCache(_mission.land_index, _goal_mission_land_item)
-					&& isLandingCommand(_goal_mission_land_item);
+					&& mission_route::isLandingCmd(_goal_mission_land_item.nav_cmd);
 	_active_jump_anchor = _plan.active_jump_anchor;
 }
 
@@ -190,11 +190,11 @@ bool RtlMissionSafePointFollow::isBranchOffIndex(int32_t index) const
 bool RtlMissionSafePointFollow::missionItemMatchesSelectedEndpoint(const mission_item_s &mission_item) const
 {
 	if (goalIsMissionLanding()) {
-		return isLandingCommand(mission_item);
+		return mission_route::isLandingCmd(mission_item.nav_cmd);
 	}
 
 	if (goalIsMissionTakeoff()) {
-		return isTakeoffCommand(mission_item);
+		return mission_route::isTakeoffCmd(mission_item.nav_cmd);
 	}
 
 	return false;
@@ -253,12 +253,6 @@ void RtlMissionSafePointFollow::on_activation()
 		_state.stage = Stage::Idle;
 		_is_current_planned_mission_item_valid = false;
 	}
-
-	// Reset the triplet when retargeting the mission so the controller does not keep following a stale line.
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->previous.valid = false;
-	pos_sp_triplet->current.valid = false;
-	pos_sp_triplet->next.valid = false;
 
 	if (_is_current_planned_mission_item_valid && !_plan.fly_direct_to_goal) {
 		if (_plan.geofence_prevents_shortcut) {
@@ -326,7 +320,7 @@ void RtlMissionSafePointFollow::advanceRouteTarget()
 
 	enterGoalStage();
 	_state.advance_route_after_transition = false;
-	PX4_INFO("RTL %sroute complete, straight to goal", _plan.direction_reversed ? "reverse " : "");
+	PX4_DEBUG("RTL %sroute complete, straight to goal", _plan.direction_reversed ? "reverse " : "");
 }
 
 bool RtlMissionSafePointFollow::setNextMissionItem()
@@ -351,25 +345,25 @@ bool RtlMissionSafePointFollow::setNextMissionItem()
 
 	case Stage::TransitionDuringRoute: {
 			const bool advance_after_transition = _state.advance_route_after_transition;
-			const bool branch_off_after_transition = currentTargetIsBranchOff();
+			const bool branch_off_after_transition = isBranchOffIndex(_mission.current_seq);
 			_state.advance_route_after_transition = false;
 
 			if (advance_after_transition) {
 				_state.stage = Stage::FollowRoute;
-				PX4_INFO("RTL route transition complete, advancing reverse route");
+				PX4_DEBUG("RTL route transition complete, advancing reverse route");
 				advanceRouteTarget();
 				return true;
 			}
 
 			_state.stage = branch_off_after_transition ? Stage::BranchOff : Stage::FollowRoute;
-			PX4_INFO(branch_off_after_transition ? "RTL route transition complete, branching off"
-				 : "RTL route transition complete");
+			PX4_DEBUG(branch_off_after_transition ? "RTL route transition complete, branching off"
+				  : "RTL route transition complete");
 			return true;
 		}
 
 	case Stage::BranchOff:
 		enterGoalStage();
-		PX4_INFO("RTL branch-off reached, straight to goal");
+		PX4_DEBUG("RTL branch-off reached, straight to goal");
 		return true;
 
 	case Stage::Arrival:
@@ -379,7 +373,7 @@ bool RtlMissionSafePointFollow::setNextMissionItem()
 
 		if (_arrival.phase() == RtlArrival::Phase::Land) {
 			_state.stage = Stage::LandAtGoal;
-			PX4_INFO("RTL goal arrival complete, landing");
+			PX4_DEBUG("RTL goal arrival complete, landing");
 		}
 
 		return true;
@@ -413,7 +407,7 @@ void RtlMissionSafePointFollow::setWaypointMissionItem(mission_item_s &mission_i
 	mission_item.origin = ORIGIN_ONBOARD;
 }
 
-void RtlMissionSafePointFollow::setLandMissionItem(mission_item_s &mission_item) const
+void RtlMissionSafePointFollow::setGoalLandMissionItem(mission_item_s &mission_item) const
 {
 	if (goalIsMissionLanding() && _goal_mission_land_item_valid) {
 		mission_item = _goal_mission_land_item;
@@ -427,7 +421,7 @@ void RtlMissionSafePointFollow::setLandMissionItem(mission_item_s &mission_item)
 	}
 
 	mission_item = {};
-	mission_item.nav_cmd = (_vehicle_status_sub.get().is_vtol || _navigator->force_vtol()) ? NAV_CMD_VTOL_LAND : NAV_CMD_LAND;
+	mission_item.nav_cmd = _vehicle_status_sub.get().is_vtol ? NAV_CMD_VTOL_LAND : NAV_CMD_LAND;
 	mission_item.lat = _plan.goal_position.lat;
 	mission_item.lon = _plan.goal_position.lon;
 
@@ -480,7 +474,7 @@ void RtlMissionSafePointFollow::setGoalArrivalMissionItem(mission_item_s &missio
 void RtlMissionSafePointFollow::setGoalMissionItem(mission_item_s &mission_item) const
 {
 	if (goalIsMissionLanding()) {
-		setLandMissionItem(mission_item);
+		setGoalLandMissionItem(mission_item);
 
 	} else {
 		RtlArrival arrival;
@@ -491,39 +485,11 @@ void RtlMissionSafePointFollow::setGoalMissionItem(mission_item_s &mission_item)
 
 void RtlMissionSafePointFollow::normalizeRouteMissionItem(mission_item_s &mission_item) const
 {
-	if (!mission_item_contains_position(mission_item)) {
-		// Clamp non-position delay commands so the vehicle does not stall on the route.
-		if (mission_item.nav_cmd == NAV_CMD_DELAY) {
-			mission_item.autocontinue = true;
-			mission_item.time_inside = 0.f;
-		}
-
-		return;
-	}
-
-	switch (mission_item.nav_cmd) {
-	case NAV_CMD_TAKEOFF:
-	case NAV_CMD_VTOL_TAKEOFF:
-	case NAV_CMD_LAND:
-	case NAV_CMD_VTOL_LAND:
-		// Keep endpoint commands intact: takeoff and landing retain their dedicated execution semantics.
-		break;
-
-	case NAV_CMD_WAYPOINT:
-	case NAV_CMD_LOITER_UNLIMITED:
-	case NAV_CMD_LOITER_TIME_LIMIT:
-	case NAV_CMD_LOITER_TO_ALT:
+	// Takeoff and landing keep their own execution.
+	if (mission_item_contains_position(mission_item) && !mission_route::isTakeoffCmd(mission_item.nav_cmd)
+	    && !mission_route::isLandingCmd(mission_item.nav_cmd)) {
 		makeRtlPositionItem(mission_item);
-		break;
-
-	default:
-		break;
 	}
-}
-
-bool RtlMissionSafePointFollow::currentTargetIsBranchOff() const
-{
-	return isBranchOffIndex(_mission.current_seq);
 }
 
 bool RtlMissionSafePointFollow::findAdjacentRouteIndex(int32_t from_index, int32_t &adjacent_index)
@@ -573,7 +539,7 @@ void RtlMissionSafePointFollow::armRouteTransition(mission_route::VtolTransition
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
-	const bool branch_off_target_active = currentTargetIsBranchOff() && !_state.advance_route_after_transition;
+	const bool branch_off_target_active = isBranchOffIndex(_mission.current_seq) && !_state.advance_route_after_transition;
 	mission_item_s current_route_item{};
 	mission_item_s next_route_item{};
 	mission_item_s *next_route_item_ptr = nullptr;
@@ -711,7 +677,7 @@ void RtlMissionSafePointFollow::publishBranchOffItems(position_setpoint_triplet_
 void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
 		const position_setpoint_s &current_setpoint_copy)
 {
-	const bool branch_off_target_active = currentTargetIsBranchOff();
+	const bool branch_off_target_active = isBranchOffIndex(_mission.current_seq);
 	// The planner resolved the first segment from its actual jump source.
 	// Its join action is authoritative until that target is reached.
 	const bool segment_entry_transition_context = _mission.current_seq != _plan.first_mission_item_index
@@ -730,7 +696,7 @@ void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet
 
 	if (branch_off_target_active) {
 		_state.stage = Stage::BranchOff;
-		PX4_INFO("RTL leaving route at branch-off");
+		PX4_DEBUG("RTL leaving route at branch-off");
 		// Publish the branch-off now so the next reach check uses the projected point.
 		publishBranchOffItems(pos_sp_triplet, current_setpoint_copy);
 		return;
@@ -787,7 +753,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 						  && get_distance_to_next_waypoint(goal_item.lat, goal_item.lon,
 								  _plan.goal_position.lat, _plan.goal_position.lon) > _navigator->get_acceptance_radius();
 			mission_item_s landing_item{};
-			setLandMissionItem(landing_item);
+			setGoalLandMissionItem(landing_item);
 			publishRouteItems(pos_sp_triplet, current_setpoint_copy, goal_item,
 					  goal_item.autocontinue ? &landing_item : nullptr);
 			pos_sp_triplet->previous.valid = false;
@@ -802,7 +768,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 
 	case Stage::LandAtGoal: {
 			mission_item_s landing_item{};
-			setLandMissionItem(landing_item);
+			setGoalLandMissionItem(landing_item);
 			publishLandingItems(pos_sp_triplet, current_setpoint_copy, landing_item);
 			break;
 		}
@@ -899,7 +865,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 	const auto add_mission_item_legs = [&](const mission_item_s & item, bool current_target) {
 		const bool loiter_to_alt = item.nav_cmd == NAV_CMD_LOITER_TO_ALT;
 		const bool vtol_landing = item.nav_cmd == NAV_CMD_VTOL_LAND && _vehicle_status_sub.get().is_vtol;
-		const bool mc_landing = isLandingCommand(item)
+		const bool mc_landing = mission_route::isLandingCmd(item.nav_cmd)
 					&& estimated_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 		if (loiter_to_alt || mc_landing || vtol_landing) {
@@ -1048,7 +1014,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 
 	case Stage::LandAtGoal: {
 			mission_item_s landing_item{};
-			setLandMissionItem(landing_item);
+			setGoalLandMissionItem(landing_item);
 			add_mission_item_legs(landing_item, !inactive);
 			break;
 		}
