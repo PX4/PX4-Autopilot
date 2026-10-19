@@ -1360,8 +1360,8 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, FwFailureReleasesPendingTransition
 	// Failure may arrive while flying to the join, aligning, or waiting for FW.
 	for (WorkItem work : {
 		     WorkItem::WORK_ITEM_TYPE_JOIN_ROUTE,
-		     WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN,
-		     WorkItem::WORK_ITEM_TYPE_ALIGN_HEADING_AFTER_JOIN, WorkItem::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN
+		     WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION,
+		     WorkItem::WORK_ITEM_TYPE_ALIGN_HEADING, WorkItem::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN
 	     }) {
 		SCOPED_TRACE(static_cast<int>(work));
 		follower.loadTestMission(items);
@@ -1370,7 +1370,7 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, FwFailureReleasesPendingTransition
 		follower.setStageForTest(Stage::FollowRoute);
 		follower.setVtolFailureForTest(false);
 		follower.setVehicleStatusForTest(true, false, false,
-						 work == WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION_AFTER_JOIN);
+						 work == WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
 		follower.setGlobalPositionForTest(work == WorkItem::WORK_ITEM_TYPE_JOIN_ROUTE
 						  ? mission_route::Position{kBaseLat, kBaseLon, kAlt} : plan.join_position);
 		follower.setJoinTransitionForTest(WorkItem::WORK_ITEM_TYPE_JOIN_ROUTE);
