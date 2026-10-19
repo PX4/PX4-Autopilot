@@ -56,10 +56,10 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::system,
 					    events::ID("check_rtl_type_route_unsupported"),
-					    events::Log::Warning, "Route-following Return not supported by this firmware");
+					    events::Log::Warning, "RTL_TYPE 7 unavailable, using type 3");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_warning(reporter.mavlink_log_pub(), "Route-following Return not supported by this firmware\t");
+			mavlink_log_warning(reporter.mavlink_log_pub(), "RTL_TYPE 7 unavailable, using type 3\t");
 		}
 
 		return;
