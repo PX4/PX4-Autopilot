@@ -45058,6 +45058,35 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 </div>
 
+## Open Drone ID
+
+<div class="param-group" style="--param-count: 1">
+
+<div class="param">
+
+### ODID_BID_SRC (`INT32`) {#ODID_BID_SRC}
+
+Open Drone ID UAS ID source.
+
+Selects how the Open Drone ID UAS ID is sourced.
+
+In locked mode, the first received Basic ID UAS ID is expected to be stored persistently and reused on subsequent boots.
+
+
+**Values:**
+
+- `0`: PX4 board GUID legacy fallback
+- `1`: Lock first received Basic ID
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+</div>
+
 ## PWM Outputs
 
 <div class="param-group" style="--param-count: 2">
