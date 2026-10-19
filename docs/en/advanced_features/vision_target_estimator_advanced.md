@@ -461,6 +461,7 @@ The result therefore matches chronological fusion of the accepted observations a
 Prediction uses the stored piecewise-constant control inputs and current process-noise settings.
 
 Observations less than 20 ms from the current time take the direct-update path and are recorded at the effective fusion time (now).
+Within each cycle, observations are fused in effective timestamp order, preserving source priority for equal times.
 Observations outside the available history or the 500 ms maximum delay are rejected.
 Accepted observations older than the oldest retained posterior can be discarded because that posterior already contains their information.
 The buffer cannot overflow while each aid source contributes at most one observation per cycle.
