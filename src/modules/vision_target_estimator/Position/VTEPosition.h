@@ -84,8 +84,8 @@ public:
 	/** Validate generated state sizes and prepare per-axis history buffers. Call once at startup. */
 	bool init();
 
-	/** Drop the estimator state. Cached external inputs (local pos/vel, offsets) are preserved. */
-	void resetFilter();
+	/** Drop the estimator state. A nonzero sample boundary also invalidates cached NED inputs. */
+	void resetFilter(hrt_abstime min_sample_time = 0);
 
 	/** Cache the task-specific absolute reference used to build the mission GNSS observation. */
 	void setMissionPosition(double lat_deg, double lon_deg, float alt_m);
@@ -241,12 +241,12 @@ private:
 
 	inline bool isMeasRecent(hrt_abstime ts) const
 	{
-		return !hasTimedOut(ts, _meas_recent_timeout_us);
+		return ts >= _min_sample_time && !hasTimedOut(ts, _meas_recent_timeout_us);
 	}
 
 	inline bool isMeasUpdated(hrt_abstime ts) const
 	{
-		return !hasTimedOut(ts, _meas_updated_timeout_us);
+		return ts >= _min_sample_time && !hasTimedOut(ts, _meas_updated_timeout_us);
 	}
 
 	inline bool hasNewPositionSensorData(const ObsValidMaskU &fusion_mask) const
@@ -429,6 +429,7 @@ private:
 
 	KF_position _target_est_pos[vtest::Axis::size] {};
 
+	hrt_abstime _min_sample_time{0}; // Discard measurements from before an attitude reset.
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 	hrt_abstime _uav_gps_vel_warn_last{0};

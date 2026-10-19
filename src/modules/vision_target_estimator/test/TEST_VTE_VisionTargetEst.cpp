@@ -163,7 +163,9 @@ public:
 	using vte::VisionTargetEst::kMinAccDownsampleTimeoutUs;
 	using vte::VisionTargetEst::kPosUpdatePeriodUs;
 	using vte::VisionTargetEst::kYawUpdatePeriodUs;
+	using vte::VisionTargetEst::LocalPose;
 	using vte::VisionTargetEst::pollEstimatorInput;
+	using vte::VisionTargetEst::pollLocalPose;
 	using vte::VisionTargetEst::publishVteInput;
 	using vte::VisionTargetEst::startPosEst;
 	using vte::VisionTargetEst::startYawEst;
@@ -174,6 +176,10 @@ public:
 	using vte::VisionTargetEst::updateParams;
 	using vte::VisionTargetEst::updateTaskTopics;
 	using vte::VisionTargetEst::updateWhenIntervalElapsed;
+
+	bool positionInitialized() const { return _vte_position._estimator_initialized; }
+	void seedBias() { _vte_position._bias.set = true; }
+	bool biasSet() const { return _vte_position._bias.set; }
 
 	void clearCurrentTask() { _current_task_ptr = nullptr; }
 	void setCurrentTaskToPrecLand() { _current_task_ptr = &_prec_land_task; }
@@ -282,10 +288,11 @@ protected:
 		ASSERT_TRUE(_param_guard.setInt(name, value));
 	}
 
-	void publishAttitude(const matrix::Quaternionf &q, hrt_abstime timestamp)
+	void publishAttitude(const matrix::Quaternionf &q, hrt_abstime timestamp, uint8_t reset_counter = 0)
 	{
 		vehicle_attitude_s msg{};
-		msg.timestamp = timestamp;
+		msg.timestamp = msg.timestamp_sample = timestamp;
+		msg.quat_reset_counter = reset_counter;
 		q.copyTo(msg.q);
 		ASSERT_TRUE(_attitude_pub->publish(msg));
 	}
@@ -1350,4 +1357,137 @@ TEST_F(VisionTargetEstTest, UpdateEstimatorsDropsStaleAcceleration)
 	// THEN: Stale samples are not accumulated.
 	EXPECT_EQ(_vte->_acc_sample_count, 0u);
 	expectVectorNear(_vte->_vehicle_acc_ned_sum, matrix::Vector3f{});
+}
+
+// A heading reset changes the frame of vision/acceleration input, not the target's motion.
+TEST_F(VisionTargetEstTest, AttitudeResetReacquiresAndRejectsOldFrameSamples)
+{
+	vte::SensorFusionMaskU mask{};
+	mask.flags.use_vision_pos = 1;
+	_vte->_vte_position.setVteAidMask(mask.value);
+	_vte->_vte_orientation.setVteAidMask(mask.value);
+	ASSERT_TRUE(_vte->_vte_position.init());
+	ASSERT_TRUE(_vte->_vte_orientation.init());
+	_vte->_vte_orientation_enabled = true;
+	_vte->_orientation_estimator_running = true; // Position stays stopped: exercise yaw-only reset detection.
+
+	uORB::Publication<fiducial_marker_pos_report_s> position_pub{ORB_ID(fiducial_marker_pos_report)};
+	uORB::Publication<fiducial_marker_yaw_report_s> yaw_pub{ORB_ID(fiducial_marker_yaw_report)};
+	uORB::SubscriptionData<vte_orientation_s> orientation{ORB_ID(vte_orientation)};
+	const auto publish_target = [&](hrt_abstime timestamp) {
+		ASSERT_TRUE(vte_test::publishVisionPos(position_pub, matrix::Vector3f(1.f, 0.f, -1.f),
+						       vte_test::identityQuat(), matrix::Vector3f(0.01f, 0.01f, 0.01f), timestamp));
+		ASSERT_TRUE(vte_test::publishVisionYaw(yaw_pub, 0.2f, 0.01f, timestamp));
+	};
+
+	const hrt_abstime initial_time = vte_test::nowUs();
+	publishAttitude(vte_test::identityQuat(), initial_time, 7); // A nonzero first counter is not a reset.
+	_vte->_vte_position.setLocalVelocity(matrix::Vector3f{}, true, initial_time);
+	publish_target(initial_time);
+	_vte->_vte_position.update(matrix::Vector3f{});
+	_vte->updateEstimators();
+	ASSERT_TRUE(_vte->positionInitialized());
+	ASSERT_TRUE(orientation.update());
+	ASSERT_TRUE(orientation.get().orientation_valid);
+	_vte->seedBias();
+	_vte->_acc_sample_count = 3;
+	_vte->_vehicle_acc_ned_sum = matrix::Vector3f(1.f, 2.f, 3.f);
+
+	// Invalidate yaw immediately, before its next scheduled update.
+	vte_test::advanceMicroseconds(1_ms);
+	// A future attitude timestamp must still allow reacquisition from fresh samples below.
+	publishAttitude(vte_test::identityQuat(), vte_test::nowUs() + 1_s, 8);
+	_vte->updateEstimators();
+	EXPECT_FALSE(_vte->positionInitialized());
+	EXPECT_FALSE(_vte->biasSet());
+	EXPECT_EQ(_vte->_acc_sample_count, 0u);
+	expectVectorNear(_vte->_vehicle_acc_ned_sum, matrix::Vector3f{});
+	ASSERT_TRUE(orientation.update());
+	EXPECT_FALSE(orientation.get().orientation_valid);
+
+	// A normal reset must retain the boundary for old packets arriving on a later cycle.
+	_vte->_vte_position.resetFilter();
+	_vte->_vte_orientation.resetFilter();
+	vte_test::advanceMicroseconds(20_ms);
+	_vte->_vte_position.setLocalVelocity(matrix::Vector3f{}, true, vte_test::nowUs());
+	publish_target(initial_time);
+	_vte->_vte_position.update(matrix::Vector3f{});
+	_vte->updateEstimators();
+	EXPECT_FALSE(_vte->positionInitialized());
+	EXPECT_FALSE(orientation.update());
+
+	vte_test::advanceMicroseconds(20_ms);
+	const hrt_abstime fresh_time = vte_test::nowUs();
+	_vte->_vte_position.setLocalVelocity(matrix::Vector3f{}, true, fresh_time);
+	publish_target(fresh_time);
+	_vte->_vte_position.update(matrix::Vector3f{});
+	_vte->updateEstimators();
+	ASSERT_TRUE(_vte->positionInitialized());
+	ASSERT_TRUE(orientation.update());
+	EXPECT_TRUE(orientation.get().orientation_valid);
+
+	// Ordinary updates with an unchanged reset counter preserve the new estimate.
+	vte_test::advanceMicroseconds(20_ms);
+	publishAttitude(vte_test::identityQuat(), vte_test::nowUs(), 8);
+	_vte->updateEstimators();
+	EXPECT_TRUE(_vte->positionInitialized());
+}
+
+TEST_F(VisionTargetEstTest, PollEstimatorInputResetsCachedFrame)
+{
+	ASSERT_TRUE(_vte->_vte_position.init());
+	matrix::Vector3f acceleration{}, position_offset{}, velocity_offset{};
+	matrix::Quaternionf attitude{};
+	bool acceleration_valid = false;
+	const hrt_abstime initial_time = vte_test::nowUs();
+	publishAttitude(vte_test::identityQuat(), initial_time);
+	ASSERT_TRUE(_vte->pollEstimatorInput(acceleration, attitude, position_offset, velocity_offset, false,
+					     acceleration_valid));
+	_vte->seedBias();
+	_vte->_acc_sample_count = 3;
+	_vte->_vehicle_acc_ned_sum = matrix::Vector3f(1.f, 2.f, 3.f);
+
+	// A cached NED value can have a timestamp newer than the delayed attitude reset.
+	vte_test::advanceMicroseconds(2_ms);
+	_vte->_vte_position.setLocalVelocity(matrix::Vector3f{}, true, vte_test::nowUs());
+	publishAttitude(vte_test::identityQuat(), initial_time + 1_ms, 1);
+	ASSERT_TRUE(_vte->pollEstimatorInput(acceleration, attitude, position_offset, velocity_offset, false,
+					     acceleration_valid));
+	EXPECT_FALSE(_vte->biasSet());
+	EXPECT_EQ(_vte->_acc_sample_count, 0u);
+	expectVectorNear(_vte->_vehicle_acc_ned_sum, matrix::Vector3f{});
+
+	vte::SensorFusionMaskU mask{};
+	mask.flags.use_vision_pos = 1;
+	_vte->_vte_position.setVteAidMask(mask.value);
+	uORB::Publication<fiducial_marker_pos_report_s> vision{ORB_ID(fiducial_marker_pos_report)};
+
+	// Fresh vision must wait for fresh velocity instead of using the old frame's cache.
+	for (const bool fresh_velocity : {false, true}) {
+		const hrt_abstime timestamp = vte_test::advanceMicroseconds(1_ms);
+
+		if (fresh_velocity) {
+			_vte->_vte_position.setLocalVelocity(matrix::Vector3f{}, true, timestamp);
+		}
+
+		ASSERT_TRUE(vte_test::publishVisionPos(vision, matrix::Vector3f{}, vte_test::identityQuat(),
+						       matrix::Vector3f(0.01f, 0.01f, 0.01f), timestamp));
+		_vte->_vte_position.update(matrix::Vector3f{});
+		EXPECT_EQ(_vte->positionInitialized(), fresh_velocity);
+	}
+}
+
+TEST_F(VisionTargetEstTest, PollLocalPoseUsesSampleTime)
+{
+	uORB::Publication<vehicle_local_position_s> publication{ORB_ID(vehicle_local_position)};
+	vehicle_local_position_s message{};
+	message.timestamp = vte_test::nowUs();
+
+	for (const hrt_abstime sample_time : {message.timestamp - 1_ms, hrt_abstime{0}}) {
+		message.timestamp_sample = sample_time;
+		ASSERT_TRUE(publication.publish(message));
+		VisionTargetEstTestable::LocalPose pose{};
+		ASSERT_TRUE(_vte->pollLocalPose(pose));
+		EXPECT_EQ(pose.timestamp, sample_time ? sample_time : message.timestamp);
+	}
 }
