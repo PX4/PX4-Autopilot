@@ -35,17 +35,15 @@
 
 #include "navigation.h"
 #include "safe_point_land.hpp"
-#include <matrix/Vector2.hpp>
-#include <uORB/topics/vehicle_status.h>
 
 class MissionBlock;
-class RtlTimeEstimator;
 
 /** Destination arrival shared by RTL modes; the caller owns setpoints and final landing. */
 class RtlArrival
 {
 public:
-	enum class Phase {
+	// The order is part of the state numbers RtlDirect logs.
+	enum class Phase : uint8_t {
 		Move,
 		Descend,
 		Hold,
@@ -59,39 +57,17 @@ public:
 		float yaw{NAN};
 	};
 
-	struct EstimateState {
-		matrix::Vector2d position;
-		float altitude;
-	};
-
-	struct EstimateContext {
-		matrix::Vector2d direction_origin; // Flight direction origin; direct RTL may use the last avoidance waypoint.
-		float approach_altitude; // Route altitude for the horizontal leg before the separate descent.
-		float remaining_wait; // Full configured delay for direct RTL, elapsed time removed for route arrival.
-		uint8_t vehicle_type;
-		bool include_descent_and_hold;
-	};
-
 	Phase phase() const { return _phase; }
+	void start(Phase phase) { _phase = phase; }
 	void reset() { _phase = Phase::Land; }
-	void startDirectReturn();
-	void startRouteArrival(bool use_selected_approach);
 
 	/** Advance after the caller has accepted the current item. */
-	void advance(const vehicle_status_s &vehicle, float land_delay);
+	void advance(bool land_after_move);
 
 	/** Update arrival fields without clearing caller-owned fields; Land leaves the item unchanged. */
-	void buildMissionItem(const MissionBlock &builder, mission_item_s &item,
-			      const ItemConfig &config, const vehicle_status_s &vehicle) const;
-
-	/** Append unfinished arrival legs without changing execution; false means an indefinite hold prevents landing.
-	 * The caller sets the estimator's vehicle type and adds its route and final landing legs.
-	 */
-	bool addTimeEstimate(RtlTimeEstimator &estimator, const ItemConfig &config,
-			     const EstimateContext &context, EstimateState &state) const;
+	void buildMissionItem(const MissionBlock &builder, mission_item_s &item, const ItemConfig &config,
+			      bool fixed_wing) const;
 
 private:
-	enum class Entry { Direct, Route };
-	Entry _entry{Entry::Direct};
 	Phase _phase{Phase::Land};
 };

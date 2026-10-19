@@ -146,15 +146,7 @@ public:
 	void setArrivalPhaseForTest(RtlArrival::Phase phase)
 	{
 		_state.stage = Stage::Arrival;
-		_arrival.startRouteArrival(phase != RtlArrival::Phase::Move);
-
-		if (phase == RtlArrival::Phase::Hold || phase == RtlArrival::Phase::Land) {
-			_arrival.advance(_vehicle_status_sub.get(), _param_rtl_land_delay.get());
-		}
-
-		if (phase == RtlArrival::Phase::Land) {
-			_arrival.advance(_vehicle_status_sub.get(), _param_rtl_land_delay.get());
-		}
+		_arrival.start(phase);
 	}
 
 	void setCurrentSequenceForTest(int32_t index)
@@ -909,6 +901,35 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionStartsArrivalMo
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
 	EXPECT_EQ(executor.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+}
+
+// A front transition flies the fixed-wing arrival item, and no transition takes the zero-delay landing shortcut.
+TEST_F(RtlMissionSafePointFollowStageTest, TransitionArrivalUsesFixedWingMoveAndDescendsFirst)
+{
+	Navigator navigator{};
+	RtlMissionSafePointFollowTestPeer follower{&navigator};
+	follower.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
+	follower.setSafePointSelectionForTest(false, 0);
+	follower.setSafePointGeometryForTest({kBaseLat, kBaseLon, kAlt}, {kBaseLat + 0.001, kBaseLon, kAlt - 50.f});
+	follower.setArrivalParametersForTest(0.f, 30.f, 60.f);
+	follower.setLandedForTest(false);
+	follower.setGlobalPositionForTest({kBaseLat, kBaseLon, kAlt});
+
+	for (const bool front_transition : {true, false}) {
+		SCOPED_TRACE(front_transition);
+		follower.setVehicleStatusForTest(true, false, front_transition, !front_transition);
+		follower.setArrivalPhaseForTest(RtlArrival::Phase::Move);
+		follower.publishActiveMissionItemsForTest();
+		EXPECT_EQ(follower.currentMissionItemForTest().nav_cmd,
+			  front_transition ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_WAYPOINT);
+		ASSERT_TRUE(follower.advanceStageForTest());
+		EXPECT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Descend);
+	}
+
+	follower.setVehicleStatusForTest(true, false, false);
+	follower.setArrivalPhaseForTest(RtlArrival::Phase::Move);
+	ASSERT_TRUE(follower.advanceStageForTest());
+	EXPECT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Land);
 }
 
 // Resetting progress also clears the reverse-transition handoff.
