@@ -40688,13 +40688,21 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 |  |  | 1200 | B/s | &nbsp;
+&check; | 0 |  |  | 2000 | B/s | &nbsp;
 
 </div>
 
@@ -40926,7 +40934,15 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
@@ -41164,7 +41180,15 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
