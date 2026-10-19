@@ -83,10 +83,8 @@ private:
 	struct PlanState {
 		Stage stage{Stage::Idle};
 		bool advance_route_after_transition{false};
-
 	};
 
-	/** @brief Advance the RTL stage machine without replaying the full mission control flow. */
 	bool setNextMissionItem() override;
 	bool shouldReportMissionItemReached() const override;
 	/** @brief Publish the current join, follow, branch-off, or landing setpoints for the active RTL stage. */
@@ -95,7 +93,7 @@ private:
 	/** @brief Build the virtual branch-off waypoint. */
 	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
 	/** @brief Build the landing item: the mission LAND item for that goal, otherwise a synthetic landing at the goal. */
-	void setLandMissionItem(mission_item_s &mission_item) const;
+	void setGoalLandMissionItem(mission_item_s &mission_item) const;
 	/** @brief Build the arrival item for the phase of @p arrival. */
 	void setGoalArrivalMissionItem(mission_item_s &mission_item, const RtlArrival &arrival) const;
 	/** @brief Build the first destination item flown after the branch-off or a route shortcut. */
@@ -107,11 +105,7 @@ private:
 	void enterGoalStage();
 	bool isExecutingGoalStage() const;
 
-	/** @brief Clear route holds while preserving loiter-to-alt, takeoff and landing commands.
-	 *
-	 * Route waypoints and loiters use autocontinue with zero hold time. Non-position delays
-	 * are also cleared if encountered, although route traversal normally skips them.
-	 */
+	/** @brief Fly route waypoints and loiters through without holding; keep takeoff and landing items. */
 	void normalizeRouteMissionItem(mission_item_s &mission_item) const;
 	/** @brief Find the next route position index after @p from_index in the planned direction, skipping DO_JUMP. */
 	bool findAdjacentRouteIndex(int32_t from_index, int32_t &adjacent_index);
@@ -126,27 +120,15 @@ private:
 	/** @brief Publish the active route-following setpoints, endpoint handoff, and any pending transition. */
 	void handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
 				    const position_setpoint_s &current_setpoint_copy);
-	/** @brief Return whether the current route target coincides with the selected branch-off anchor. */
-	bool currentTargetIsBranchOff() const;
 	/** @brief Return true when the selected safe-point goal has a concrete VTOL landing approach to fly. */
 	bool useGoalLandApproach() const;
-	/** @brief Return the stage that should execute after leaving the route or skipping directly to goal. */
 	Stage finalGoalStage() const;
-	/** @brief Return whether endpoint fallback targets the mission landing item. */
 	bool goalIsMissionLanding() const;
-	/** @brief Return whether endpoint fallback targets the mission takeoff item. */
 	bool goalIsMissionTakeoff() const;
-	/** @brief Return whether the plan targets a safe point rather than a mission endpoint. */
 	bool goalIsSafePoint() const;
 	/** @brief Return whether a mission index is the route item replaced by the branch-off waypoint. */
 	bool isBranchOffIndex(int32_t index) const;
-	/** @brief Return whether a mission item matches the currently selected endpoint fallback. */
 	bool missionItemMatchesSelectedEndpoint(const mission_item_s &mission_item) const;
-	/** @brief Return whether a mission item is a landing command. */
-	static bool isLandingCommand(const mission_item_s &mission_item) { return mission_route::isLandingCmd(mission_item.nav_cmd); }
-	/** @brief Return whether a mission item is a takeoff command. */
-	static bool isTakeoffCommand(const mission_item_s &mission_item) { return mission_route::isTakeoffCmd(mission_item.nav_cmd); }
-	/** @brief Return whether a mission index lies within the active mission bounds. */
 	bool missionIndexInBounds(int32_t index) const;
 	/** @brief Reset transient executor progress so inactive-state queries do not observe stale stages. */
 	void resetExecutorProgress();
@@ -168,7 +150,7 @@ private:
 	/** @brief Estimate from the latest inactive plan or the active progress, without advancing execution. */
 	void addRemainingLegsToTimeEstimate(const vehicle_global_position_s &global_pos);
 
-	/** @brief Load a mission item through MissionRouteCache instead of MissionBase's local cache. */
+	/** @brief Read MissionRouteCache; in the goal stages the current index returns the synthetic goal item. */
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override;
 	bool isMissionValid() const override;
 	bool shouldAcceptMissionUpdates() override { return false; }
