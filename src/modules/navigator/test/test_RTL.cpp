@@ -392,6 +392,13 @@ using RtlMissionFastReverseTestPeer = RtlMissionTestPeer<RtlMissionFastReverse>;
 class RTLTest : public NavigatorDatamanTestBase
 {
 protected:
+	// Dataman never reuses client ids, so all tests in this binary share one client.
+	static DatamanClient &sharedDatamanClient()
+	{
+		static DatamanClient *client = new DatamanClient();
+		return *client;
+	}
+
 	Navigator _navigator{};
 	RTLTestPeer _rtl{&_navigator};
 
@@ -731,7 +738,7 @@ protected:
 	orb_advert_t _mission_pub{nullptr};
 	orb_advert_t _global_position_pub{nullptr};
 	orb_advert_t _land_detected_pub{nullptr};
-	DatamanClient _dataman_client{};
+	DatamanClient &_dataman_client{sharedDatamanClient()};
 	uint32_t _safe_points_id{0};
 	uint32_t _safe_points_opaque_id{0};
 	uint32_t _fence_id{0};
