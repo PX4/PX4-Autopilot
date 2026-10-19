@@ -31,11 +31,12 @@ parameters:
       reboot_required: true
     SIM_GZ_EN_BARO:
       description:
-        short: Enable barometer/air pressure sensor in Gazebo bridge
+        short: Enable barometer/air pressure sensor(s) in Gazebo bridge
       type: enum
       values:
         0: Disabled
-        1: Enabled
+        1: Simulate 1 barometer sensor
+        2: Simulate 2 barometer sensors
       default: 1
       reboot_required: true
     SIM_GZ_EN_ODOM:
