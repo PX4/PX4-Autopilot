@@ -357,6 +357,7 @@ protected:
 		executor.loadTestMission({});
 		executor.setVehicleStatusForTest(false, false, false);
 		executor.setLandedForTest(false);
+		executor.setVtolFailureForTest(false);
 	}
 };
 
@@ -1131,6 +1132,7 @@ protected:
 	{
 		follower.setVehicleStatusForTest(false, false, false);
 		follower.setLandedForTest(false);
+		follower.setVtolFailureForTest(false);
 	}
 
 	float flightTime(float horizontal_m, float descent_m, bool fixed_wing = false)
