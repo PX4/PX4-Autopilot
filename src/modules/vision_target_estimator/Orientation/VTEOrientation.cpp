@@ -69,10 +69,21 @@ bool VTEOrientation::init()
 	return true;
 }
 
-void VTEOrientation::resetFilter()
+void VTEOrientation::resetFilter(hrt_abstime min_sample_time)
 {
+	// Keep the frame boundary across subsequent timeout/task resets.
+	if (min_sample_time > _min_sample_time) {
+		_min_sample_time = min_sample_time;
+	}
+
 	_estimator_initialized = false;
 	_target_est_yaw.resetHistory();
+
+	if (min_sample_time != 0) {
+		_orientation_msg = {};
+		_orientation_msg.timestamp = nowUs();
+		_target_orientation_pub.publish(_orientation_msg);
+	}
 }
 
 void VTEOrientation::update()

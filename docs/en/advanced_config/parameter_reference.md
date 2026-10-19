@@ -26760,6 +26760,7 @@ Action the system takes when a GNSS failure is detected during flight.
 Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
 when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
 with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
+The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
 Any value above Warning also blocks arming.
 
 
@@ -26769,6 +26770,7 @@ Any value above Warning also blocks arming.
 - `1`: Return
 - `2`: Land
 - `3`: Terminate
+- `4`: Warning, block arming
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31488,10 +31490,12 @@ Landing flare altitude (relative to landing altitude).
 
 NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
 
+Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 |  | 0.5 | 0.5 | m | &nbsp;
+&nbsp; | -1.0 |  | 0.5 | 0.5 | m | &nbsp;
 
 </div>
 
@@ -31551,10 +31555,12 @@ to trigger the flare.
 
 NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
 
+Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 5.0 | 0.1 | 1.0 | s | &nbsp;
+&nbsp; | -1.0 | 5.0 | 0.1 | 1.0 | s | &nbsp;
 
 </div>
 
@@ -32101,6 +32107,9 @@ Adjusts the amount of weighting that the pitch control
 applies to speed vs height errors.
 0 -> control height only
 2 -> control speed only (gliders)
+Up to a weight of 1, pitch only trades height for speed up to trim airspeed;
+accelerating above trim is left to the throttle. Between 1 and 2, pitch
+increasingly tracks airspeed setpoints above trim as well.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -40679,13 +40688,21 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 |  |  | 1200 | B/s | &nbsp;
+&check; | 0 |  |  | 2000 | B/s | &nbsp;
 
 </div>
 
@@ -40917,7 +40934,15 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
@@ -41155,7 +41180,15 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
@@ -45020,6 +45053,35 @@ Configure / toggle support display options.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 4194303 |  | 16383 |  | &nbsp;
+
+</div>
+
+</div>
+
+## Open Drone ID
+
+<div class="param-group" style="--param-count: 1">
+
+<div class="param">
+
+### ODID_BID_SRC (`INT32`) {#ODID_BID_SRC}
+
+Open Drone ID UAS ID source.
+
+Selects how the Open Drone ID UAS ID is sourced.
+
+In locked mode, the first received Basic ID UAS ID is expected to be stored persistently and reused on subsequent boots.
+
+
+**Values:**
+
+- `0`: PX4 board GUID legacy fallback
+- `1`: Lock first received Basic ID
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
 
 </div>
 
@@ -67044,14 +67106,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 UAV acceleration white-noise power spectral density.
 
-White-noise PSD on the UAV acceleration input. The
-1-sigma vel_uav change allowed over a time t is sqrt(VTE_ACC_D_UNC * t).
-
-This is a variance rate, not a per-step variance; the value is independent
-of the filter update rate. Higher values let the filter follow new
-measurements more tightly and reject fewer outliers.
-
-Unit: m^2/s^3.
+UAV velocity variance growth rate from acceleration noise (m^2/s^3), independent of update rate.
+Higher values follow measurements faster and reject fewer outliers.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67066,16 +67122,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Target acceleration random-walk process noise.
 
-Process-noise spectral density of the target acceleration random walk
-(moving-target builds only). The 1-sigma target-acceleration change over a
-time t is sqrt(VTE_ACC_T_UNC * t) (e.g. for the 0.1 default, ~0.32 m/s^2
-after 1 s, ~1.0 m/s^2 after 10 s).
-
-This is a variance rate, not a linear rate of change; the value is
-independent of the filter update rate. Higher values let the filter follow
-target manoeuvres more aggressively and accept more outliers.
-
-Unit: ((m/s^2)^2)/s.
+Target acceleration variance growth rate (m^2/s^5), independent of update rate. Moving-target builds only.
+Higher values track manoeuvres faster and reject fewer outliers.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67090,13 +67138,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial target absolute acceleration uncertainty.
 
-Initial variance of the relative target acceleration in x, y, and z directions
-(moving-target builds only).
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
-Once the filter is running, the steady-state target-acceleration variance is
-governed by VTE_ACC_T_UNC and the measurement updates, so this parameter does
-not influence runtime behaviour.
+Initial absolute target-acceleration variance per axis (moving-target builds only).
+Changes apply at initialization/reset. Use VTE_ACC_T_UNC for ongoing manoeuvre tracking.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67111,9 +67154,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Integer bitmask controlling data fusion and aiding methods.
 
-Selects which measurements the vision target estimator fuses.
-Bits 0, 3 and 5 give an absolute pad position. It is converted to a relative observation with the vehicle GNSS position, and its offset to the vision-based pad position is estimated as the GNSS bias.
-Only one absolute pad position is fused at a time: bit 0 takes precedence over bits 3 and 5, which are also ignored in moving-target builds.
+Absolute target references (bits 0, 3, 5) require vehicle GNSS; their offset from vision is estimated as a bias.
+Bit 0 overrides bits 3 and 5, which are ignored in moving-target builds.
 
 
 **Bitmask:**
@@ -67138,18 +67180,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Bias random-walk process noise.
 
-Process-noise spectral density of the GPS/vision bias random walk. The
-1-sigma expected bias change over a time t is sqrt(VTE_BIAS_UNC * t) (e.g.
-for the 0.001 default, ~3 cm after 1 s, ~10 cm after 10 s, ~32 cm after
-100 s).
-
-This is a variance rate, not a linear drift rate; the value is independent
-of the filter update rate. Higher values let the bias follow new
-observations more aggressively; lower values keep it stiff. Tune to match
-the realistic physical drift of the absolute reference (typically a few
-centimetres over tens of seconds for consumer GNSS, less for RTK).
-
-Unit: m^2/s.
+GNSS/vision position-bias variance growth rate (m^2/s), independent of update rate.
+Higher values track reference drift faster; lower values keep the bias steadier.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67164,10 +67196,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial GNSS/vision bias averaging threshold.
 
-When the GNSS/vision bias first becomes observable while the estimator is still referenced to GNSS,
-VTE low-pass filters the first GNSS/vision bias samples before activating the bias estimate.
-The LPF exit requires consecutive raw bias samples to stay within this threshold and for the LPF
-to have run for at least 2 * tau, or until VTE_BIA_AVG_TOUT elapses.
+Maximum 3D difference between raw and filtered bias to finish averaging after GNSS-first startup.
+Lower values require steadier samples. Requires 5 consecutive matches and at least 0.6 s, or VTE_BIA_AVG_TOUT.
+Set to 0 to disable averaging.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67182,14 +67213,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial GNSS/vision bias averaging timeout.
 
-Maximum time spent averaging the initial GNSS bias before activating it once GNSS and vision
-are jointly observable while the estimator is still referenced to GNSS. During that phase, valid
-vision samples keep updating the LPF. While the current GNSS-relative measurement stays valid,
-it can be propagated with the UAV velocity estimate to match the vision timestamp. If that GNSS
-sample is no longer valid, averaging stops, the current vision position is used, and the current
-LPF bias is activated.
-
-Set to 0 to disable averaging and activate the bias immediately.
+Maximum time to average the GNSS/vision bias when starting from GNSS position. Vision fusion waits meanwhile.
+If GNSS expires, switch to vision with the filtered bias. Set to 0 to disable averaging.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67204,12 +67229,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial GPS bias uncertainty.
 
-Initial variance of the bias between the GPS on the target and the GPS on the drone.
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
-Once the filter is running, the steady-state bias variance is governed by VTE_BIAS_UNC
-and the measurement updates, so this parameter does not influence runtime behaviour.
-Keep it large so initialization can absorb initial misalignments.
+Initial GNSS/vision position-bias variance per axis. Higher values allow larger initial bias corrections.
+Applied at initialization/reset and bias activation. Use VTE_BIAS_UNC for ongoing drift.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67224,7 +67245,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Vision target timeout.
 
-Time after which the target is considered lost without any new fused measurements. When this timeout expires, the estimator is reset and can restart immediately once an enabled fusion source is available.
+Reset after this long without accepted position or yaw updates, tracked separately.
+Velocity updates do not prevent position resets.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67256,13 +67278,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum standard deviation for vision yaw observations.
 
-Lower bound on the standard deviation used when fusing the vision yaw
-observation. The estimator squares this value and clamps the per-sample
-observation variance to max(reported_variance, VTE_EVA_NOISE^2). The floor only
-takes effect when the sensor under-reports its own noise.
-The default of ~0.07 rad (4 deg) is a reasonable starting point for marker-based
-yaw detection. Lowering it makes the filter trust each yaw sample more, which
-can cause the controller to chase the resulting setpoint changes and oscillate.
+Minimum vision yaw noise; used only when reported noise is lower. Default: about 4 deg.
+Lower values increase trust in yaw measurements and can cause control oscillations.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67277,10 +67294,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum standard deviation for vision relative-position observations.
 
-Lower bound on the standard deviation used when fusing the vision relative
-position. The estimator squares this value and clamps the per-sample
-observation variance to max(reported_variance, VTE_EVP_NOISE^2). The floor only
-takes effect when the sensor under-reports its own noise.
+Minimum vision position noise; used only when reported noise is lower.
+Increase to reduce trust in position measurements.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67295,10 +67310,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum standard deviation for GPS position observations.
 
-Lower bound on the standard deviation used when fusing GPS position (target or
-mission landing waypoint). The estimator squares this value and clamps the
-per-sample observation variance to max(reported_variance, VTE_GPS_P_NOISE^2).
-The floor only takes effect when the sensor under-reports its own noise.
+Minimum GNSS position noise for target, mission or home aiding; used only when reported noise is lower.
+Increase to reduce trust in position measurements.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67313,11 +67326,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum standard deviation for GPS velocity observations.
 
-Lower bound on the standard deviation used when fusing GPS velocity. The
-estimator squares this value and clamps the per-sample observation variance
-to max(reported_variance, VTE_GPS_V_NOISE^2). The floor only takes effect when
-the sensor under-reports its own noise; if the reported variance is already
-above the floor, this parameter has no effect.
+Minimum GNSS velocity noise; used only when reported noise is lower.
+Increase to reduce trust in velocity measurements.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67332,7 +67342,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Measurement recent timeout.
 
-Time window for considering a raw measurement as recent and eligible for fusion.
+Maximum raw measurement age allowed for fusion.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67347,7 +67357,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Measurement updated timeout.
 
-Maximum allowed age of a retained measurement before it is discarded from the estimator's cache.
+Maximum age of local position, velocity and antenna-offset corrections; also limits velocity-to-measurement time mismatch.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67379,10 +67389,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Normalized innovation squared threshold for the position estimator.
 
-Lower values mean that more measurements will be rejected. Null hypothesis H0: the innovation is
-consistent with the innovation covariance matrix. Values of 0.46, 1.64, 2.71, 3.84, 6.63, and 10.83
-correspond to 50%, 20%, 10%, 5%, 1%, and 0.1% probability respectively that H0 is incorrectly rejected.
-The confidence interval is computed from the chi-squared distribution.
+Per-axis outlier gate for position and velocity measurements. Lower values reject more samples.
+For Gaussian innovations, 3.84 rejects about 5% of valid samples; 6.63 rejects 1%.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67397,9 +67405,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial target and drone relative position uncertainty.
 
-Initial variance of the relative target position in x, y, and z direction.
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
+Minimum initial variance of the relative target position in x, y, and z direction.
+The variance reported by the initializing observation is used if it is larger.
+Applied at initialization/reset and GNSS/vision bias activation.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67413,12 +67421,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 ### VTE_TASK_MASK (`INT32`) {#VTE_TASK_MASK}
 
 Integer bitmask controlling the tasks of the target estimator.
-
-Set bits in the following positions to enable:
-0 : Set to true to use the vision target estimator for precision landing. (+1)
-1 : DEBUG, always active. (+2)
-2 : Set to true to use the vision target estimator for precision takeoff. (+4)
-
 
 **Bitmask:**
 
@@ -67439,7 +67441,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Target validity timeout.
 
-Maximum time without any fused measurements before the published relative pose/yaw is flagged invalid.
+Maximum time without accepted position or yaw updates before that estimate becomes invalid.
+Keep below VTE_BTOUT.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67454,9 +67457,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial target and drone relative velocity uncertainty.
 
-Initial variance of the relative target velocity in x, y, and z directions.
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
+Initial velocity variance per axis, applied separately to the UAV and moving target.
+Changes apply at initialization/reset.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67471,16 +67473,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Yaw acceleration white-noise power spectral density.
 
-White-noise PSD on the yaw acceleration driving the
-yaw-rate state. The 1-sigma yaw-rate change allowed over a time t is
-sqrt(VTE_YAW_ACC_UNC * t) (e.g. for the 0.004 default, ~3.6 deg/s after 1 s,
-~11.5 deg/s after 10 s).
-
-This is a variance rate, not a per-step variance; the value is independent
-of the filter update rate. Higher values let the filter follow rapid
-heading changes; lower values smooth the yaw estimate aggressively.
-
-Unit: rad^2/s^3.
+Yaw-rate variance growth rate from acceleration noise (rad^2/s^3), independent of update rate.
+Higher values track heading changes faster; lower values smooth yaw more.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67512,10 +67506,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Normalized innovation squared threshold for the orientation estimator.
 
-Lower values mean that more measurements will be rejected. Null hypothesis H0: the innovation is
-consistent with the innovation covariance matrix. Values of 0.46, 1.64, 2.71, 3.84, 6.63, and 10.83
-correspond to 50%, 20%, 10%, 5%, 1%, and 0.1% probability respectively that H0 is incorrectly rejected.
-The confidence interval is computed from the chi-squared distribution.
+Yaw outlier gate. Lower values reject more samples.
+For Gaussian innovations, 3.84 rejects about 5% of valid samples; 6.63 rejects 1%.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67530,9 +67522,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial orientation uncertainty.
 
-Initial variance of the target orientation yaw in rad^2.
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
+Initial yaw variance (rad^2); also used for yaw-rate variance ((rad/s)^2).
+Changes apply at initialization/reset.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only

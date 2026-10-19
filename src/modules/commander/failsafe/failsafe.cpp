@@ -396,6 +396,7 @@ FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
 
 	switch (gps_redundancy_failsafe_mode(param_value)) {
 	case gps_redundancy_failsafe_mode::Warning:
+	case gps_redundancy_failsafe_mode::Block_arming:
 	default:
 		options.action = Action::Warn;
 		break;

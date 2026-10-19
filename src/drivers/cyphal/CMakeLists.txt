@@ -138,6 +138,7 @@ px4_add_module(
 		git_libcanard
 		git_public_regulated_data_types
 		git_legacy_data_types
+		mixer_module
 		version
 		${DPNDS}
 	)

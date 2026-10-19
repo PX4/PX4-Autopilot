@@ -143,6 +143,11 @@ protected:
 		_uav_gnss_pub = std::make_unique<uORB::Publication<vehicle_gnss_s>>(ORB_ID(vehicle_gnss));
 		_target_gps_pub = std::make_unique<uORB::Publication<target_gnss_s>>(ORB_ID(target_gnss));
 
+		// Discard input samples retained from the previous test.
+		_vision_pub->publish({});
+		_uav_gnss_pub->publish({});
+		_target_gps_pub->publish({});
+
 		_aid_fiducial_sub = std::make_unique<uORB::SubscriptionData<vte_aid_source3d_s>>(ORB_ID(vte_aid_fiducial_marker));
 		_aid_gps_mission_sub = std::make_unique<uORB::SubscriptionData<vte_aid_source3d_s>>(ORB_ID(vte_aid_gps_pos_mission));
 		_aid_gps_target_sub = std::make_unique<uORB::SubscriptionData<vte_aid_source3d_s>>(ORB_ID(vte_aid_gps_pos_target));
@@ -414,6 +419,51 @@ TEST_F(VTEPositionTest, InitWithVisionAndLocalVelocity)
 	EXPECT_NEAR(aid.observation_variance[0], kDefaultEvPosVar, kTolerance);
 	EXPECT_NEAR(aid.observation_variance[1], kDefaultEvPosVar, kTolerance);
 	EXPECT_NEAR(aid.observation_variance[2], kDefaultEvPosVar, kTolerance);
+
+	for (int axis = 0; axis < 3; ++axis) {
+		// The configured initial floor is retained; the seed must not be fused a second time.
+		EXPECT_NEAR(state.cov_rel_pos[axis], 1.f, kTolerance);
+		EXPECT_EQ(aid.fusion_status[axis], vte::FusionStatus::STATUS_INITIALIZED);
+		EXPECT_TRUE(std::isnan(aid.innovation[axis]));
+		EXPECT_TRUE(std::isnan(aid.innovation_variance[axis]));
+		EXPECT_TRUE(std::isnan(aid.test_ratio[axis]));
+	}
+}
+
+// The first sample is consumed once at capture time, then propagated to publication time.
+TEST_F(VTEPositionTest, DelayedInitializationUsesMeasurementVariance)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	const matrix::Vector3f velocity(2.f, -1.f, 0.5f);
+	const matrix::Vector3f sample_position(4.f, 2.f, 5.f);
+	const matrix::Vector3f sample_variance(4.f, 9.f, 16.f);
+	setLocalVelocity(velocity, now);
+	publishVisionPos(sample_position, vte_test::identityQuat(), sample_variance, now - 200_ms);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+	const auto &initial_aid = _aid_fiducial_sub->get();
+	EXPECT_EQ(initial_aid.timestamp_sample, now - 200_ms);
+	EXPECT_EQ(initial_aid.time_last_predict, now);
+	EXPECT_NEAR(initial_aid.time_since_meas_ms, 200.f, kTolerance);
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_NEAR(_vte_state_sub->get().rel_pos[axis], sample_position(axis) - velocity(axis) * 0.2f, kTolerance);
+		EXPECT_GT(_vte_state_sub->get().cov_rel_pos[axis], sample_variance(axis));
+		EXPECT_EQ(initial_aid.fusion_status[axis], vte::FusionStatus::STATUS_INITIALIZED);
+	}
+
+	// A follow-up sample between the seed and publication times can replay from the seed history.
+	vte_test::advanceMicroseconds(20_ms);
+	publishVisionPos(sample_position - velocity * 0.1f, vte_test::identityQuat(), sample_variance, now - 100_ms);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_EQ(_aid_fiducial_sub->get().fusion_status[axis], vte::FusionStatus::STATUS_FUSED_OOSM);
+		EXPECT_NEAR(_aid_fiducial_sub->get().innovation[axis], 0.f, kTolerance);
+	}
 }
 
 // WHY: Bias averaging can be disabled when the first relative source is already trusted.
@@ -447,8 +497,7 @@ TEST_F(VTEPositionTest, InitialPositionUsesVisionFirstWhenBiasAveragingDisabled)
 	// WHEN: both inputs are processed in the same update cycle.
 	_vte->update(matrix::Vector3f{});
 
-	// THEN: vision remains the initialization source. GNSS is fused before vision in source order,
-	// so the vision innovation reflects the preceding GNSS correction.
+	// THEN: the seed is consumed once; other sources are not fused in the initialization cycle.
 	ASSERT_TRUE(_vte_state_sub->update());
 	const auto state = _vte_state_sub->get();
 	ASSERT_TRUE(_aid_fiducial_sub->update());
@@ -456,9 +505,13 @@ TEST_F(VTEPositionTest, InitialPositionUsesVisionFirstWhenBiasAveragingDisabled)
 	EXPECT_NEAR(aid.observation[0], rel_pos(0), kTolerance);
 	EXPECT_NEAR(aid.observation[1], rel_pos(1), kTolerance);
 	EXPECT_NEAR(aid.observation[2], rel_pos(2), kTolerance);
-	EXPECT_GT(fabsf(aid.innovation[0]), 1.f);
-	EXPECT_GT(fabsf(aid.innovation[1]), 1.f);
-	EXPECT_GT(fabsf(aid.innovation[2]), 1.f);
+	EXPECT_FALSE(_aid_gps_target_sub->update());
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_EQ(aid.fusion_status[axis], vte::FusionStatus::STATUS_INITIALIZED);
+		EXPECT_NEAR(state.rel_pos[axis], rel_pos(axis) - vel_ned(axis) * 0.01f, kTolerance);
+	}
+
 	const matrix::Vector3f expected_bias(-rel_pos(0), -rel_pos(1), (kUavAltM - kTargetAltM) - rel_pos(2));
 	const matrix::Vector3f expected_gnss_rel(0.f, 0.f, kUavAltM - kTargetAltM);
 	expectBiasNear(state, expected_bias, 0.1f);
@@ -466,9 +519,21 @@ TEST_F(VTEPositionTest, InitialPositionUsesVisionFirstWhenBiasAveragingDisabled)
 	EXPECT_NEAR(state.rel_pos[1] + state.bias[1], expected_gnss_rel(1), 0.5f);
 	EXPECT_NEAR(state.rel_pos[2] + state.bias[2], expected_gnss_rel(2), 0.5f);
 
+	// Fresh samples on the next cycle use the established state and bias.
+	const hrt_abstime next = vte_test::advanceMicroseconds(kStepUs);
+	publishUavGnss(kUavLat, kUavLon, kUavAltM, 0.5f, 0.5f, vel_ned, 0.1f, true, next);
+	publishTargetGnss(kUavLat, kUavLon, kTargetAltM, 0.5f, 0.5f, next, true);
+	publishVisionPos(rel_pos, vte_test::identityQuat(), kSmallVisionCov, next);
+	_vte->update(kZeroVec);
 	ASSERT_TRUE(_aid_gps_target_sub->update());
 	const auto aid_gps = _aid_gps_target_sub->get();
-	EXPECT_EQ(aid_gps.fusion_status[0], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+	ASSERT_TRUE(_vte_state_sub->update());
+	expectBiasNear(_vte_state_sub->get(), expected_bias, 0.1f);
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_EQ(aid_gps.fusion_status[axis], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+		EXPECT_NEAR(aid_gps.innovation[axis], 0.f, 0.01f);
+	}
 }
 
 // WHY: NIS gating should reject large innovations.
@@ -622,13 +687,22 @@ INSTANTIATE_TEST_SUITE_P(
 		makeInvalidTargetVerticalAccuracyCase()),
 [](const ::testing::TestParamInfo<InvalidTargetGnssCase> &param_info) { return param_info.param.name; });
 
-// WHY: Position fusions follow source order; delayed samples still go through OOSM individually.
-// WHAT: Apply non-zero vision then GNSS updates and verify source ordering in the innovations.
-TEST_F(VTEPositionTest, FusesMeasurementsInSourceOrder)
-{
-	// GIVEN: mission and vision position aiding use matching process noise and no bias initialization delay.
-	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kMissionPos});
+struct SameCycleFusionOrderCase {
+	const char *name;
+	hrt_abstime vision_age;
+	hrt_abstime gnss_age;
+	bool vision_first;
+};
 
+class VTEPositionFusionOrderTest : public VTEPositionTest,
+	public ::testing::WithParamInterface<SameCycleFusionOrderCase> {};
+
+// The later update must see the earlier correction when both samples arrive together.
+// Near-current samples share the live fusion time, so ties retain source priority.
+TEST_P(VTEPositionFusionOrderTest, FusesByEffectiveTime)
+{
+	const auto &test_case = GetParam();
+	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kMissionPos});
 	static constexpr float kPosNoise = 1.f;
 	static constexpr float kPosVar = kPosNoise * kPosNoise;
 	setParamFloat("VTE_EVP_NOISE", kPosNoise);
@@ -638,62 +712,114 @@ TEST_F(VTEPositionTest, FusesMeasurementsInSourceOrder)
 	setParamFloat("VTE_POS_NIS_THRE", kPermissiveNisThreshold);
 	_vte->updateParamsPublic();
 
-	const matrix::Vector3f vel_ned(0.f, 0.f, 0.f);
-	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
-	setLocalVelocity(vel_ned, vel_time);
-
-	static constexpr double kTargetNorthMeters = 20.0;
-
 	const hrt_abstime init_time = vte_test::advanceMicroseconds(kStepUs);
+	setLocalVelocity(kZeroVec, init_time);
 	_vte->setMissionPosition(kUavLat, kUavLon, kUavAltM);
-	publishUavGnss(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, vel_ned, 0.1f, true, init_time);
-	publishVisionPos(matrix::Vector3f{}, vte_test::identityQuat(),
+	publishUavGnss(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, kZeroVec, 0.1f, true, init_time);
+	publishVisionPos(kZeroVec, vte_test::identityQuat(),
 			 matrix::Vector3f(kPosVar, kPosVar, kPosVar), init_time);
-
-	// WHEN: the filter is initialized with aligned mission and vision samples.
-	_vte->update(matrix::Vector3f{});
-
+	_vte->update(kZeroVec);
 	ASSERT_TRUE(_vte_state_sub->update());
 	vte_test::flushSubscription(_aid_fiducial_sub);
 	vte_test::flushSubscription(_aid_gps_mission_sub);
-	vte_test::flushSubscription(_vte_state_sub);
 
-	static constexpr hrt_abstime kBaseAgeUs = 10_ms;
-	static constexpr hrt_abstime kGpsLagUs = 5_ms;
-	const hrt_abstime base_time = vte_test::nowUs() - kBaseAgeUs;
-	const hrt_abstime vision_time = base_time;
-	const hrt_abstime gps_time = base_time + kGpsLagUs;
-
+	const hrt_abstime now = vte_test::advanceMicroseconds(60_ms);
+	static constexpr double kTargetNorthMeters = 4.0;
 	const double mission_lat = kUavLat + (kTargetNorthMeters / kMetersPerDegLat);
 	_vte->setMissionPosition(mission_lat, kUavLon, kUavAltM);
-
-	publishUavGnss(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, vel_ned, 0.1f, true, gps_time);
-
-	const matrix::Vector3f rel_pos(10.f, 0.f, 0.f);
-	publishVisionPos(rel_pos, vte_test::identityQuat(),
-			 matrix::Vector3f(kPosVar, kPosVar, kPosVar), vision_time);
-
-	// WHEN: an older vision sample and a newer GNSS sample arrive together.
-	_vte->update(matrix::Vector3f{});
-
-	// THEN: each delayed same-cycle measurement replays from the previous history snapshot.
-	// Without per-cycle serialization, the older vision OOSM does not use the newer
-	// GNSS correction as its replay floor until the post-cycle history sample is pushed.
+	publishUavGnss(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, kZeroVec, 0.1f, true,
+		       now - test_case.gnss_age);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, 0.f), vte_test::identityQuat(),
+			 matrix::Vector3f(kPosVar, kPosVar, kPosVar), now - test_case.vision_age);
+	_vte->update(kZeroVec);
 	ASSERT_TRUE(_aid_fiducial_sub->update());
 	ASSERT_TRUE(_aid_gps_mission_sub->update());
 
-	const auto aid_vision = _aid_fiducial_sub->get();
-	const auto aid_gps = _aid_gps_mission_sub->get();
+	const auto &vision = _aid_fiducial_sub->get();
+	const auto &gnss = _aid_gps_mission_sub->get();
+	EXPECT_EQ(vision.fusion_status[0], test_case.vision_age < vte::kOosmMinTimeUs
+		  ? vte::FusionStatus::STATUS_FUSED_CURRENT : vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(gnss.fusion_status[0], test_case.gnss_age < vte::kOosmMinTimeUs
+		  ? vte::FusionStatus::STATUS_FUSED_CURRENT : vte::FusionStatus::STATUS_FUSED_OOSM);
+	const auto &first = test_case.vision_first ? vision : gnss;
+	const auto &second = test_case.vision_first ? gnss : vision;
+	EXPECT_NEAR(first.observation[0] - first.innovation[0], 0.f, kTolerance);
+	EXPECT_GT(second.observation[0] - second.innovation[0], 0.5f);
+}
 
-	EXPECT_GT(fabsf(aid_vision.innovation[0]), 1.f);
-	EXPECT_NEAR(aid_vision.observation[0], rel_pos(0), 0.1f);
-	EXPECT_NEAR(aid_gps.observation[0], kTargetNorthMeters, 0.6f);
+INSTANTIATE_TEST_SUITE_P(
+	SameCycle,
+	VTEPositionFusionOrderTest,
+	::testing::Values(
+		SameCycleFusionOrderCase{"OlderVision", 40_ms, 30_ms, true},
+		SameCycleFusionOrderCase{"OlderGnss", 30_ms, 40_ms, false},
+		SameCycleFusionOrderCase{"EqualDelayedTimes", 40_ms, 40_ms, false},
+		SameCycleFusionOrderCase{"NearCurrentTie", 10_ms, 5_ms, false},
+		SameCycleFusionOrderCase{"ExactDelayBoundary", 20_ms, 19_ms, true}),
+[](const ::testing::TestParamInfo<SameCycleFusionOrderCase> &param_info) { return param_info.param.name; });
 
-	const float pred_state_gps = aid_gps.observation[0] - aid_gps.innovation[0];
-	const float pred_state_vision = aid_vision.observation[0] - aid_vision.innovation[0];
+TEST_F(VTEPositionTest, FusesOlderVelocityBeforeSameCycleVision)
+{
+	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kUavGpsVel});
+	const hrt_abstime init_time = vte_test::advanceMicroseconds(kStepUs);
+	setLocalVelocity(kZeroVec, init_time);
+	publishVisionPos(kZeroVec, vte_test::identityQuat(), kSmallVisionCov, init_time);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+	vte_test::flushSubscription(_aid_fiducial_sub);
 
-	EXPECT_NEAR(pred_state_gps, 0.f, 0.5f);
-	EXPECT_NEAR(pred_state_vision, 0.f, 0.5f);
+	const hrt_abstime now = vte_test::advanceMicroseconds(60_ms);
+	publishNominalUavGnss(matrix::Vector3f(1.f, 0.f, 0.f), now - 40_ms);
+	publishVisionPos(kZeroVec, vte_test::identityQuat(), kSmallVisionCov, now - 30_ms);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_aid_gps_vel_uav_sub->update());
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+	const auto &vision = _aid_fiducial_sub->get();
+	EXPECT_EQ(_aid_gps_vel_uav_sub->get().fusion_status[0], vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(vision.fusion_status[0], vte::FusionStatus::STATUS_FUSED_OOSM);
+	// UAV motion reduces relative north position before the vision update is calculated.
+	EXPECT_GT(vision.innovation[0], 0.01f);
+}
+
+// WHY: GNSS alone must constrain position without estimating the unobservable GNSS/vision bias.
+// WHAT: Change the mission position before vision arrives and verify GNSS corrects position
+// while leaving the bias and its covariance unchanged.
+TEST_F(VTEPositionTest, GnssOnlyFusionPreservesInactiveBias)
+{
+	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kMissionPos});
+	setParamFloat("VTE_POS_NIS_THRE", kPermissiveNisThreshold);
+	_vte->updateParamsPublic();
+	initializeFromMissionGnss(kZeroVec);
+	flushVisionAndMissionOutputs();
+
+	// Predict first so the covariance comparison isolates the subsequent GNSS update.
+	const hrt_abstime gps_time = vte_test::advanceMicroseconds(kStepUs);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+	const auto predicted_state = _vte_state_sub->get();
+
+	static constexpr float kPositionChangeM = 1.f;
+	double mission_lat = kUavLat;
+	double mission_lon = kUavLon;
+	add_vector_to_global_position(kUavLat, kUavLon, kPositionChangeM, kPositionChangeM,
+				      &mission_lat, &mission_lon);
+	_vte->setMissionPosition(mission_lat, mission_lon, kTargetAltM - kPositionChangeM);
+	publishNominalUavGnss(kZeroVec, gps_time);
+	_vte->update(kZeroVec);
+
+	ASSERT_TRUE(_aid_gps_mission_sub->update());
+	ASSERT_TRUE(_vte_state_sub->update());
+	const auto aid_gnss = _aid_gps_mission_sub->get();
+	const auto state = _vte_state_sub->get();
+	EXPECT_FALSE(_aid_fiducial_sub->update());
+	expectBiasNear(state, kZeroVec, kTolerance);
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_EQ(aid_gnss.fusion_status[axis], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+		EXPECT_NEAR(aid_gnss.innovation[axis], kPositionChangeM, kTolerance);
+		EXPECT_GT(state.rel_pos[axis], predicted_state.rel_pos[axis]);
+		EXPECT_NEAR(state.cov_bias[axis], predicted_state.cov_bias[axis], kTolerance);
+	}
 }
 
 // WHY: A zero averaging timeout should immediately activate the bias.
@@ -1249,6 +1375,14 @@ TEST_F(VTEPositionTest, BiasSetImmediatelyWhenGnssArrivesAfterVisionTrusted)
 	const float altitude_bias = (kUavAltM - kTargetAltM) - rel_pos(2);
 	const matrix::Vector3f expected_bias(-rel_pos(0), -rel_pos(1), altitude_bias);
 	expectBiasNear(state, expected_bias, 0.1f);
+
+	const auto aid_gnss = _aid_gps_mission_sub->get();
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_EQ(aid_gnss.fusion_status[axis], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+		EXPECT_NEAR(aid_gnss.innovation[axis], 0.f, 0.01f);
+		EXPECT_NEAR(state.rel_pos[axis], rel_pos(axis), 0.01f);
+	}
 }
 
 // WHY: Once the GNSS/vision bias has been set, temporary vision loss must not restart bias initialization.
@@ -1276,7 +1410,8 @@ TEST_F(VTEPositionTest, VisionReturnAfterTemporaryLossDoesNotReinitializeBias)
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_aid_fiducial_sub->update());
-	ASSERT_TRUE(_aid_gps_mission_sub->update());
+	EXPECT_EQ(_aid_fiducial_sub->get().fusion_status[0], vte::FusionStatus::STATUS_INITIALIZED);
+	EXPECT_FALSE(_aid_gps_mission_sub->update());
 	ASSERT_TRUE(_vte_state_sub->update());
 	EXPECT_FALSE(_bias_init_status_sub->update());
 	const auto initial_state = _vte_state_sub->get();
@@ -1432,7 +1567,7 @@ TEST_F(VTEPositionTest, MissionPositionCanBeCachedBeforeAidEnabled)
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_aid_gps_mission_sub->update());
-	EXPECT_EQ(_aid_gps_mission_sub->get().fusion_status[0], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+	EXPECT_EQ(_aid_gps_mission_sub->get().fusion_status[0], static_cast<uint8_t>(vte::FusionStatus::STATUS_INITIALIZED));
 
 	ASSERT_TRUE(_vte_state_sub->update());
 	const auto state = _vte_state_sub->get();
@@ -1510,7 +1645,7 @@ TEST_F(VTEPositionTest, MissionPositionSurvivesStaleGapReset)
 
 	// THEN: mission aiding is available again even though the mission position was not set a second time.
 	ASSERT_TRUE(_aid_gps_mission_sub->update());
-	EXPECT_EQ(_aid_gps_mission_sub->get().fusion_status[0], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+	EXPECT_EQ(_aid_gps_mission_sub->get().fusion_status[0], static_cast<uint8_t>(vte::FusionStatus::STATUS_INITIALIZED));
 	ASSERT_TRUE(_vte_state_sub->update());
 	EXPECT_TRUE(_vte_state_sub->get().rel_pos_valid);
 }
@@ -1538,6 +1673,45 @@ TEST_F(VTEPositionTest, MissionPositionRejectsInvalidGpsTimestamps)
 	EXPECT_TRUE(_vte_state_sub->get().rel_pos_valid);
 }
 
+// A selected receiver is published even when its checks fail. It must not aid VTE.
+TEST_F(VTEPositionTest, RejectsUnusableVehicleGnssAndRecovers)
+{
+	enableMask({FusionMaskOption::kMissionPos, FusionMaskOption::kUavGpsVel});
+	initializeFromMissionGnss(kZeroVec);
+	ASSERT_TRUE(_aid_gps_mission_sub->update());
+	EXPECT_FALSE(_aid_gps_vel_uav_sub->update());
+
+	for (const bool usable : {false, true}) {
+		const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+		ASSERT_TRUE(vte_test::publishUavGnss(*_uav_gnss_pub, kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f,
+						     kZeroVec, 0.1f, true, now, kZeroVec, usable));
+		_vte->update(kZeroVec);
+		EXPECT_EQ(_aid_gps_mission_sub->update(), usable);
+		EXPECT_EQ(_aid_gps_vel_uav_sub->update(), usable);
+	}
+}
+
+// Noise floors apply to known finite accuracies, not to corrupt/unknown receiver uncertainty.
+TEST_F(VTEPositionTest, RejectsInvalidVehicleGnssAccuracy)
+{
+	enableMask({FusionMaskOption::kMissionPos, FusionMaskOption::kUavGpsVel});
+	initializeFromMissionGnss(kZeroVec);
+	ASSERT_TRUE(_aid_gps_mission_sub->update());
+	EXPECT_FALSE(_aid_gps_vel_uav_sub->update());
+
+	for (const float invalid : {NAN, INFINITY, -1.f}) {
+		for (int field = 0; field < 3; ++field) {
+			matrix::Vector3f accuracy(0.2f, 0.2f, 0.1f); // eph, epv, speed accuracy
+			accuracy(field) = invalid;
+			const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+			publishUavGnss(kUavLat, kUavLon, kUavAltM, accuracy(0), accuracy(1), kZeroVec, accuracy(2), true, now);
+			_vte->update(kZeroVec);
+			EXPECT_EQ(_aid_gps_mission_sub->update(), field == 2);
+			EXPECT_EQ(_aid_gps_vel_uav_sub->update(), field != 2);
+		}
+	}
+}
+
 // WHY: GPS offset should expire if it becomes stale.
 // WHAT: Force an offset timeout and ensure the mission GPS measurement is
 // rejected.
@@ -1559,6 +1733,33 @@ TEST_F(VTEPositionTest, MissionGpsOffsetTimeoutRejectsMeasurement)
 	_vte->update(matrix::Vector3f{});
 
 	EXPECT_FALSE(_aid_gps_mission_sub->update());
+}
+
+// A recovered position correction must make cached vehicle GNSS usable for new target samples.
+TEST_F(VTEPositionTest, TargetGpsRecoversWithCachedVehicleGnssAfterCorrectionArrives)
+{
+	enableMask({FusionMaskOption::kTargetGpsPos});
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	setLocalVelocity(kZeroVec, now);
+	_vte->setGpsPosOffset(matrix::Vector3f(NAN, 0.f, 0.f), true);
+	publishNominalUavGnss(kZeroVec, now);
+	publishTargetGnss(kUavLat, kUavLon, kTargetAltM, 0.2f, 0.2f, now, true);
+	_vte->update(kZeroVec);
+	EXPECT_FALSE(_aid_gps_target_sub->update());
+	EXPECT_FALSE(_vte_state_sub->update());
+
+	const hrt_abstime recovered_time = vte_test::advanceMicroseconds(kStepUs);
+	const matrix::Vector3f gps_offset(0.5f, -0.2f, 0.1f);
+	_vte->setGpsPosOffset(gps_offset, true);
+	publishTargetGnss(kUavLat, kUavLon, kTargetAltM, 0.2f, 0.2f, recovered_time, true);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_aid_gps_target_sub->update());
+	ASSERT_TRUE(_vte_state_sub->update());
+	const matrix::Vector3f expected_position = matrix::Vector3f(0.f, 0.f, kUavAltM - kTargetAltM) + gps_offset;
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_NEAR(_aid_gps_target_sub->get().observation[axis], expected_position(axis), kTolerance);
+	}
 }
 
 // WHY: UAV GPS velocity compensation must not fuse if the antenna rotation
@@ -1593,6 +1794,71 @@ TEST_F(VTEPositionTest, UavGpsVelocityOffsetTimeoutRejectsMeasurement)
 	_vte->update(matrix::Vector3f{});
 
 	EXPECT_FALSE(_aid_gps_vel_uav_sub->update());
+}
+
+// Antenna motion from rotation is not vehicle translation, including at startup.
+TEST_F(VTEPositionTest, InitialVelocityUsesLeverArmCorrection)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	const matrix::Vector3f velocity_offset(0.4f, -0.2f, 0.1f);
+	_vte->setGpsPosOffset(matrix::Vector3f(0.5f, 0.f, 0.f), true);
+	_vte->setVelOffset(velocity_offset);
+	publishNominalUavGnss(velocity_offset, now);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, 1.f), vte_test::identityQuat(), kSmallVisionCov, now);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_NEAR(_vte_state_sub->get().vel_uav[axis], 0.f, kTolerance);
+	}
+}
+
+// A stale antenna correction must not prevent startup when local velocity is available.
+TEST_F(VTEPositionTest, InitialVelocityFallsBackToLocalWhenCorrectionStale)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	_vte->setMeasUpdatedTimeout(1_ms);
+	_vte->setGpsPosOffset(matrix::Vector3f(0.5f, 0.f, 0.f), true);
+	_vte->setVelOffset(matrix::Vector3f(0.4f, -0.2f, 0.1f));
+
+	const hrt_abstime now = vte_test::advanceMicroseconds(2_ms);
+	const matrix::Vector3f local_velocity(1.f, -2.f, 0.5f);
+	setLocalVelocity(local_velocity, now);
+	publishNominalUavGnss(matrix::Vector3f(0.8f, 0.4f, 0.2f), now);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, 1.f), vte_test::identityQuat(), kSmallVisionCov, now);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_NEAR(_vte_state_sub->get().vel_uav[axis], local_velocity(axis), kTolerance);
+	}
+}
+
+// Raw antenna velocity cannot initialize the filter when its correction and local velocity are unavailable.
+TEST_F(VTEPositionTest, InitRequiresVelocityCorrectionWithoutLocalFallback)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	const matrix::Vector3f velocity_offset(0.4f, -0.2f, 0.1f);
+	_vte->setGpsPosOffset(matrix::Vector3f(0.5f, 0.f, 0.f), true);
+	publishNominalUavGnss(velocity_offset, now);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, 1.f), vte_test::identityQuat(), kSmallVisionCov, now);
+	_vte->update(kZeroVec);
+
+	EXPECT_FALSE(_vte_state_sub->update());
+	EXPECT_FALSE(_aid_fiducial_sub->update());
+
+	// The correction alone restores the cached GNSS velocity; no new vehicle sample is needed.
+	const hrt_abstime recovered_time = vte_test::advanceMicroseconds(kStepUs);
+	_vte->setVelOffset(velocity_offset);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, 1.f), vte_test::identityQuat(), kSmallVisionCov, recovered_time);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_NEAR(_vte_state_sub->get().vel_uav[axis], 0.f, kTolerance);
+	}
 }
 
 // WHY: UAV GPS velocity fusion should update state and sign-converted outputs.
@@ -1799,7 +2065,7 @@ TEST_F(VTEPositionTest, ResetsFilterOnStalePredictionGap)
 
 	ASSERT_TRUE(_aid_fiducial_sub->update());
 	const auto aid = _aid_fiducial_sub->get();
-	EXPECT_EQ(aid.fusion_status[0], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+	EXPECT_EQ(aid.fusion_status[0], static_cast<uint8_t>(vte::FusionStatus::STATUS_INITIALIZED));
 
 	ASSERT_TRUE(_vte_state_sub->update());
 	const auto state = _vte_state_sub->get();

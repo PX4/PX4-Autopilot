@@ -202,6 +202,23 @@ These include (non exhaustively):
 - [EKF2_RNG_SFE](../advanced_config/parameter_reference.md#EKF2_RNG_SFE) - Range finder range dependent noise scaler.
 - [EKF2_RNG_NOISE](../advanced_config/parameter_reference.md#EKF2_RNG_NOISE) - Measurement noise for range finder fusion
 
+### Health Reporting
+
+PX4 reports the rangefinder status to ground stations in the [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) message, using the `MAV_SYS_STATUS_SENSOR_LASER_POSITION` bit (this bit is used for all distance sensor types, not just lasers):
+
+- `onboard_control_sensors_present`: set once any distance sensor has published data.
+- `onboard_control_sensors_health`: cleared if a required distance sensor is missing or stops providing valid data (no update for more than 1 second).
+
+The required distance sensors are the first [SYS_HAS_NUM_DIST](../advanced_config/parameter_reference.md#SYS_HAS_NUM_DIST) sensors.
+For example, with `SYS_HAS_NUM_DIST` set to 2 and three sensors connected, only the first two affect the health bit.
+A required sensor that fails also blocks arming.
+
+WARNING : `SYS_HAS_NUM_DIST` is `0` by default, which means no distance sensor is required.
+The health bit is then always reported as healthy, even if a rangefinder stops working.
+Set `SYS_HAS_NUM_DIST` if you want rangefinder failures to be reported.
+
+You can check these bits in the `SYS_STATUS` message using the [QGroundControl MAVLink Inspector](#qgroundcontrol-mavlink-inspector).
+
 ## Testing
 
 The easiest way to test the rangefinder is to vary the range and compare to the values detected by PX4.

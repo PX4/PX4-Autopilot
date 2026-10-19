@@ -304,15 +304,9 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
 
 	/*
-	 * We are cheating a bit here. First, with the current implementation, we can only
-	 * have multiple publishers for instance 0. In this case the caller will have
-	 * instance=nullptr and _published has no effect at all. Thus no unadvertise is
-	 * necessary.
-	 * In case of multiple instances, we have at most 1 publisher per instance and
-	 * we can signal an instance as 'free' by setting _published to false.
-	 * We never really free the DeviceNode, for this we would need reference counting
-	 * of subscribers and publishers. But we also do not have a leak since future
-	 * publishers reuse the same DeviceNode object.
+	 * Frees a multi-instance node for the next advertiser and hides it from all subscribers.
+	 * Publishers of a single-instance topic share this flag, so unadvertising hides all of them.
+	 * The DeviceNode is never freed; later publishers reuse it.
 	 */
 	devnode->_advertised.store(false);
 

@@ -49,6 +49,7 @@ Used in field(s): [fusion_status](#fld_fusion_status)
 | <a id="#STATUS_REJECT_TOO_NEW"></a> STATUS_REJECT_TOO_NEW | `uint8` | 6     | Rejected: timestamp in the future (beyond tolerance)                |
 | <a id="#STATUS_REJECT_STALE"></a> STATUS_REJECT_STALE     | `uint8` | 7     | Rejected: history was reset due to staleness/discontinuity          |
 | <a id="#STATUS_REJECT_EMPTY"></a> STATUS_REJECT_EMPTY     | `uint8` | 8     | Rejected: history buffer not yet populated                          |
+| <a id="#STATUS_INITIALIZED"></a> STATUS_INITIALIZED       | `uint8` | 9     | Accepted as initial state; no prior innovation or repeated fusion   |
 
 ## Source Message
 
@@ -85,6 +86,7 @@ uint8 STATUS_REJECT_TOO_OLD = 5 # Rejected: older than buffer limit (kOosmMaxTim
 uint8 STATUS_REJECT_TOO_NEW = 6 # Rejected: timestamp in the future (beyond tolerance)
 uint8 STATUS_REJECT_STALE = 7 # Rejected: history was reset due to staleness/discontinuity
 uint8 STATUS_REJECT_EMPTY = 8 # Rejected: history buffer not yet populated
+uint8 STATUS_INITIALIZED = 9 # Accepted as initial state; no prior innovation or repeated fusion
 
 # OOSM Diagnostics
 float32 time_since_meas_ms # [ms] (now - timestamp_sample)

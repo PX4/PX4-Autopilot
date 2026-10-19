@@ -158,6 +158,7 @@ private:
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE, health_component_t::absolute_pressure, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE, health_component_t::differential_pressure,
 					 msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_LASER_POSITION, health_component_t::distance_sensor, msg);
 
 			msg.load = cpuload.load * 1000.0f;
 
