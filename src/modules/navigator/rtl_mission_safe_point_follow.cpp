@@ -121,8 +121,8 @@ bool RtlMissionSafePointFollow::missionIndexInBounds(int32_t index) const
 
 bool RtlMissionSafePointFollow::shouldReportMissionItemReached() const
 {
-	// A transition changes flight mode, not the reached route waypoint.
-	return _state.stage != Stage::TransitionDuringRoute
+	// Only uploaded route targets and an uploaded landing are reached mission items.
+	return (_state.stage == Stage::FollowRoute || (_state.stage == Stage::LandAtGoal && goalIsMissionLanding()))
 	       && MissionBase::shouldReportMissionItemReached();
 }
 
