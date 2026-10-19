@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# @name SIH Standard VTOL with optical flow
+#
+# @type Simulation
+# @class VTOL
+#
+# @board px4_fmu-v2 exclude
+#
+
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=standard_vtol_flow}
+
+. ${R}etc/init.d-posix/airframes/10043_sihsim_standard_vtol
+
+param set-default SIH_OF_EN 1
+param set-default SIH_OF_H_MAX 30
+param set-default SIH_DISTSNSR_EN 1
+param set-default SIH_DISTSNSR_MAX 30
+
+param set-default EKF2_OF_CTRL 1
+param set-default EKF2_RNG_CTRL 1
+param bitclear EKF2_SENS_EN 3 # disable gps fusion
+param set-default EKF2_HGT_REF 0
