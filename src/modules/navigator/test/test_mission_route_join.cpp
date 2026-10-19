@@ -115,7 +115,7 @@ public:
 		_work_item_type = work;
 		_mission_type = MissionType::MISSION_TYPE_MISSION;
 		_is_current_planned_mission_item_valid = true;
-		_mission_checked = true;
+		_mission_check_state = MissionCheckState::Complete;
 		_mission_init_climb_altitude_amsl = NAN;
 		_navigator->reset_triplets();
 		set_mission_items();
@@ -230,6 +230,7 @@ protected:
 	void publishMission(const mission_s &mission)
 	{
 		_mission_pub.publish(mission);
+		_mission_state = mission;
 	}
 
 	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type, bool in_transition_to_fw = false,
@@ -307,6 +308,9 @@ protected:
 	{
 		*_navigator.get_mission_result() = mission_result_s{};
 		_navigator.get_mission_result()->valid = true;
+		_navigator.get_mission_result()->mission_id = _mission_state.mission_id;
+		_navigator.get_mission_result()->geofence_id = _mission_state.geofence_id;
+		_navigator.get_mission_result()->home_position_counter = _home_position.update_count;
 	}
 
 	void updateRouteCacheUntilReady(const mission_s &mission)
@@ -374,6 +378,7 @@ protected:
 		markMissionResultValid();
 	}
 
+	mission_s _mission_state{};
 	Navigator _navigator{};
 	DatamanClient _dataman_client{};
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)};

@@ -521,7 +521,7 @@ void
 MissionBase::advance_mission()
 {
 	/* do not advance mission item if we're processing sub mission work items */
-	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_DEFAULT || vtolTransitionActive()) {
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
 		return;
 	}
 
@@ -936,6 +936,8 @@ bool MissionBase::updateVtolTransition()
 
 void MissionBase::prepareVtolTransitionItem(bool aligning)
 {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// Mission prepares its own items; only route joins and the route follower use these.
 	auto &triplet = *_navigator->get_position_setpoint_triplet();
 
 	if (aligning) {
@@ -961,6 +963,9 @@ void MissionBase::prepareVtolTransitionItem(bool aligning)
 	}
 
 	triplet.previous.valid = false;
+#else
+	(void)aligning;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
