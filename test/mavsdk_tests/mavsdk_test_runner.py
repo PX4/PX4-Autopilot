@@ -162,9 +162,9 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
         import mavsdk  # type: ignore # noqa: F401
         import pytest  # noqa: F401
     except ImportError as e:
-        print("{}\n"
-              "run `pip install -r {}`".format(
-                  e, os.path.join(TEST_DIR, 'requirements.txt')))
+        requirements = os.path.normpath(os.path.join(
+            TEST_DIR, '..', '..', 'Tools', 'setup', 'test-requirements.txt'))
+        print("{}\nrun `pip install -r {}`".format(e, requirements))
         result = False
 
     return result

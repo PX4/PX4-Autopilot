@@ -29,7 +29,7 @@ jobs:
     - name: Install tools
       run: |
         pip install mypy types-requests types-PyYAML flake8 pyyaml
-        pip install -r test/mavsdk_tests/requirements.txt
+        pip install -r Tools/setup/test-requirements.txt
 
     - name: Check MAVSDK test scripts with mypy
       run: mypy --strict test/mavsdk_tests/*.py

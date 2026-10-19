@@ -67,7 +67,7 @@ jobs:
         env:
           # Needed where pip refuses to touch the system Python (PEP 668).
           PIP_BREAK_SYSTEM_PACKAGES: 1
-        run: pip3 install -r test/mavsdk_tests/requirements.txt
+        run: pip3 install -r Tools/setup/test-requirements.txt
 
       - name: Check PX4 Environment Variables
         env:
