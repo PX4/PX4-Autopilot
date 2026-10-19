@@ -361,14 +361,7 @@ void RTL::setRtlTypeAndDestination()
 	_home_has_land_approach = false;
 	_one_rally_point_has_land_approach = false;
 
-	bool evaluation_pending = mission_route_cache.safePointUpdatePending()
-				  || mission_route_cache.missionLandItemUpdatePending();
-
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	evaluation_pending |= _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT
-			      && _route_safe_point.supportsVehicle(_vehicle_status_sub.get())
-			      && _route_safe_point.evaluationPending(_mission_sub.get());
-
 	RtlRouteSafePoint::Evaluation route_evaluation {};
 
 	if (_param_rtl_type.get() != RTL_TYPE_ROUTE_SAFE_POINT) {
@@ -413,8 +406,11 @@ void RTL::setRtlTypeAndDestination()
 		perf_end(_route_evaluate_perf);
 
 		if (!route_evaluation.success && isActive() && _rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
-			// A failed retry keeps the fallback that is already flying. Only its pending flag can change.
-			_rtl_status.is_evaluation_pending = evaluation_pending;
+			// A failed retry keeps the fallback that is already flying, with the pending flag as below.
+			_rtl_status.is_evaluation_pending = mission_route_cache.safePointUpdatePending()
+							    || mission_route_cache.missionLandItemUpdatePending()
+							    || (_route_safe_point.supportsVehicle(_vehicle_status_sub.get())
+								&& _route_safe_point.evaluationPending(mission));
 			_rtl_status.timestamp = hrt_absolute_time();
 			_rtl_status_pub.publish(_rtl_status);
 			return;
@@ -620,7 +616,13 @@ void RTL::setRtlTypeAndDestination()
 	// Publish rtl status
 	rtl_status_s rtl_status{};
 	rtl_status.safe_points_id = mission_route_cache.safePointsId();
-	rtl_status.is_evaluation_pending = evaluation_pending;
+	rtl_status.is_evaluation_pending = mission_route_cache.safePointUpdatePending()
+					   || mission_route_cache.missionLandItemUpdatePending();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	rtl_status.is_evaluation_pending |= _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT
+					    && _route_safe_point.supportsVehicle(_vehicle_status_sub.get())
+					    && _route_safe_point.evaluationPending(_mission_sub.get());
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	rtl_status.has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
 	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);
 	rtl_status.safe_point_index = safe_point_index;
