@@ -76,7 +76,7 @@ private:
 		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
 		TransitionDuringRoute,   /**< Wait for shared transition execution before resuming the route. */
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
-		Arrival,                /**< Shared move, descent and hold sequence at the selected destination. */
+		Arrival,                 /**< Shared move, descent and hold sequence at the selected destination. */
 		LandAtGoal               /**< Execute the final landing at the safe point or fallback endpoint. */
 	};
 
@@ -96,9 +96,9 @@ private:
 	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
 	/** @brief Build the landing item: the mission LAND item for that goal, otherwise a synthetic landing at the goal. */
 	void setLandMissionItem(mission_item_s &mission_item) const;
-	/** @brief Build the shared arrival item without changing execution progress. */
+	/** @brief Build the arrival item for the phase of @p arrival. */
 	void setGoalArrivalMissionItem(mission_item_s &mission_item, const RtlArrival &arrival) const;
-	/** @brief Preview the first destination item without changing active arrival progress. */
+	/** @brief Build the first destination item flown after the branch-off or a route shortcut. */
 	void setGoalMissionItem(mission_item_s &mission_item) const;
 	/** @brief Resolve the destination loiter, capped at the arrival altitude. */
 	loiter_point_s goalLandApproach(float arrival_altitude, bool use_approach) const;
