@@ -49,6 +49,7 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "pxh.h"
 
@@ -300,7 +301,7 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 	close(remote_out_fd);
 }
 
-void Pxh::run_pxh()
+void Pxh::run_pxh(const px4::atomic_bool &exit_requested)
 {
 	// Only the local_terminal needed for static calls
 	_instance = this;
@@ -313,9 +314,42 @@ void Pxh::run_pxh()
 
 	_print_prompt();
 
-	while (!_should_exit) {
+	auto read_character = [&]() -> int {
+		while (!_should_exit && !exit_requested.load())
+		{
+			struct pollfd input_fd {STDIN_FILENO, POLLIN, 0};
+			constexpr int exit_check_interval_ms = 100;
+			int poll_result = poll(&input_fd, 1, exit_check_interval_ms);
 
-		int c = getchar();
+			if (poll_result < 0) {
+				if (errno == EINTR) {
+					continue;
+				}
+
+				perror("Local shell poll error");
+				return EOF;
+			}
+
+			if (poll_result > 0 && !exit_requested.load()) {
+				if (input_fd.revents & POLLNVAL) {
+					fprintf(stderr, "Local shell input descriptor is invalid\n");
+					return EOF;
+				}
+
+				return getchar();
+			}
+		}
+
+		return EOF;
+	};
+
+	while (!_should_exit && !exit_requested.load()) {
+		int c = read_character();
+
+		if (c == EOF) {
+			break;
+		}
+
 		std::string add_string; // string to add at current cursor position
 		bool update_prompt = true;
 
@@ -349,8 +383,8 @@ void Pxh::run_pxh()
 			break;
 
 		case '\033': {	// arrow keys
-				c = getchar();	// skip first one, does not have the info
-				c = getchar();
+				c = read_character();	// skip first one, does not have the info
+				c = read_character();
 
 				if (c == 'A') { // arrow up
 					_history.try_to_save_current_line(mystr);
@@ -375,14 +409,14 @@ void Pxh::run_pxh()
 					cursor_position = mystr.length();
 
 				} else if (c == '1') { // Home (go to the beginning of the command, Editing key)
-					(void)getchar(); // swallow '~'
+					(void)read_character(); // swallow '~'
 					cursor_position = mystr.length();
 
 				} else if (c == 'F') { // End (go to the end of the command)
 					cursor_position = 0;
 
 				} else if (c == '4') { // End (go to the end of the command, Editing key)
-					(void)getchar(); // swallow '~'
+					(void)read_character(); // swallow '~'
 					cursor_position = 0;
 				}
 
