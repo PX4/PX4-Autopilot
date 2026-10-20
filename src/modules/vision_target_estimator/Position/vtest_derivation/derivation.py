@@ -135,10 +135,6 @@ def predictState(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> VState:
     Phi, G = get_Phi_and_G(dt)
     return Phi * state + G * acc
 
-def getTransitionMatrix(dt: sf.Scalar) -> MState:
-    Phi, _ = get_Phi_and_G(dt)
-    return Phi
-
 def integrate_continuous_noise_gain(
     dt: sf.Scalar, tau: sf.Scalar, gain: sf.Matrix, spectral_density: sf.Scalar
 ) -> MState:
@@ -212,7 +208,6 @@ def applyCorrection(state: VState, cov: MState, K: VState, innov: sf.Scalar, S: 
 # Generate functions
 print(f"Derive VTEST equations for {'moving' if moving else 'static'} targets...")
 generate_px4_function(predictState, output_names=["predict_state"])
-generate_px4_function(getTransitionMatrix, output_names=["transition_matrix"])
 generate_px4_function(predictCov, output_names=["cov_updated"])
 generate_px4_function(computeInnovCov, output_names=["innov_cov_updated"])
 generate_px4_function(applyCorrection, output_names=["state_new", "cov_new"])

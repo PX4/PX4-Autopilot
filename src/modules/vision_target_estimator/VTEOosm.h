@@ -35,24 +35,22 @@
  * @file VTEOosm.h
  * @brief Generic Out-Of-Sequence Measurement (OOSM) manager for VTE filters.
  *
- * Implements the "projected correction" OOSM algorithm backed by a fixed-size
- * ring buffer of (time, state, covariance, input) snapshots. When a delayed
- * scalar measurement arrives:
- *   1. Locate the floor snapshot (newest snapshot with time <= meas.time_us).
- *   2. Predict the floor forward to meas.time_us to get (x_meas, P_meas).
- *   3. Compute the Kalman gain K at meas.time_us from (x_meas, P_meas).
- *   4. Gate with NIS; reject if the normalized innovation squared exceeds the threshold.
- *   5. Apply the correction locally to obtain the posterior at meas.time_us.
- *   6. Write the posterior back into the timeline (replace the floor if times match,
- *      otherwise insert a new snapshot). This lets a subsequent delayed measurement
- *      falling in the same interval replay from the corrected state instead of the
- *      stale pre-measurement floor.
- *   7. Propagate K forward with the transition matrix Phi and apply the projected
- *      correction K_i = Phi * K to every later history sample and to the live state.
+ * Keeps post-update snapshots and accepted scalar observations in fixed-size buffers.
+ * A delayed observation is fused at its capture time, then subsequent predictions and
+ * accepted observations are replayed in time order with recomputed Kalman gains.
+ * This preserves the information from newer observations when arrivals cross in time.
+ *
+ * For a delayed scalar observation:
+ *   1. Find the newest snapshot at or before its timestamp.
+ *   2. Predict to that time, replaying any accepted observations between the snapshot and it.
+ *   3. Compute the innovation and gain, and reject the new observation if it fails the NIS gate.
+ *   4. Apply the ordinary Kalman correction at the observation time.
+ *   5. Replay later predictions and accepted observations, recomputing gains without re-gating.
+ *   6. Commit the updated snapshots and live state only when replay succeeds. Retain the new
+ *      observation for future replay; no extra prediction snapshot is needed.
  *
  * See docs/en/advanced_features/vision_target_estimator_advanced.md
- * (section "OOSM Implementation") for the derivation and approximation
- * assumptions.
+ * (section "OOSM Implementation") for the replay policy and storage bounds.
  */
 
 #pragma once
@@ -81,15 +79,13 @@ struct EmptyInput {};
  * @tparam InputT       Control input stored per snapshot (e.g. acceleration for
  *                      the position filter, or EmptyInput for orientation).
  * @tparam HistorySize  Capacity of the ring buffer (max 255).
+ * @tparam MaxObsPerSnapshot  Most scalar observations fused between two snapshots, one per aid
+ *                      source and cycle (up to four for the position filter). Sizes the log.
  *
  * FilterT concept (the OOSM manager never touches the filter's internal state
  * directly, it drives it exclusively through this interface):
  *   - void predictState:
  *       Propagate (x, P) over dt using control input u.
- *
- *   - StateCov getTransitionMatrix:
- *       Phi used to project a correction forward (u cancels out in the
- *       correction, so only Phi is needed here).
  *
  *   - void computeInnovation:
  *       Compute innovation y = z - H x and variance S = H P H^T + R.
@@ -97,10 +93,9 @@ struct EmptyInput {};
  *   - void applyCorrection:
  *       Update (x, P) with an already-computed gain vector K.
  *
- * ScalarMeasT concept: must expose `uint64_t time_us` and a vector `H` of
- * size StateDim, plus whatever the filter's computeInnovation expects.
+ * ScalarMeasT concept: default-constructible with members time_us, val, unc and H.
  */
-template <typename FilterT, int StateDim, typename InputT, int HistorySize = 25>
+template <typename FilterT, int StateDim, typename InputT, int HistorySize = 25, int MaxObsPerSnapshot = 4>
 class OOSMManager
 {
 public:
@@ -116,24 +111,24 @@ public:
 
 	static_assert(HistorySize > 0, "HistorySize must be > 0");
 	static_assert(HistorySize <= 255, "HistorySize must fit in uint8_t");
+	static_assert(MaxObsPerSnapshot > 0, "MaxObsPerSnapshot must be > 0");
 	static constexpr uint8_t kHistorySize = static_cast<uint8_t>(HistorySize);
+
+	// Retained observations were fused within the last HistorySize cycles, so the log
+	// only fills if the filter fuses more than MaxObsPerSnapshot per cycle.
+	static constexpr size_t kMeasurementCapacity = static_cast<size_t>(MaxObsPerSnapshot) * HistorySize;
 	static constexpr uint64_t kOosmMinTimeUs = vision_target_estimator::kOosmMinTimeUs;
 	static constexpr uint64_t kOosmMaxTimeUs = vision_target_estimator::kOosmMaxTimeUs;
 
 	/**
-	 * @brief Flat oldest-to-newest view of the ring buffer with one extra slot.
-	 *
-	 * The OOSM path works on this layout rather than on the ring buffer directly so that
-	 * the corrected posterior at t_meas can be inserted between two snapshots without
-	 * mutating the ring mid-algorithm. The +1 slot guarantees room for that insertion
-	 * even when history is already full.
+	 * @brief Copy of the snapshots used to replay without changing history until fusion succeeds.
 	 *
 	 * Invariants:
-	 *   - count <= kCapacity (== HistorySize + 1)
+	 *   - count <= kCapacity (== HistorySize)
 	 *   - samples[0..count) are sorted by time_us (strictly increasing)
 	 */
 	struct LinearTimeline {
-		static constexpr size_t kCapacity = static_cast<size_t>(HistorySize) + 1u;
+		static constexpr size_t kCapacity = static_cast<size_t>(HistorySize);
 		Sample samples[kCapacity] {};
 		size_t count{0};
 	};
@@ -142,6 +137,8 @@ public:
 
 	void reset()
 	{
+		_measurement_count = 0;
+
 		if (_history.valid()) {
 			_history.reset();
 		}
@@ -164,20 +161,21 @@ public:
 		sample.input = input;
 
 		_history.push(sample);
+		pruneMeasurements();
 	}
 
 	/**
 	 * @brief Fuse a scalar measurement that may be delayed.
 	 *
 	 * Fresh measurements take the fast path and update the live state directly.
-	 * Delayed measurements are fused at their own timestamp and the correction
-	 * is projected forward through history and into the live state.
+	 * Delayed measurements are fused at their own timestamp, then subsequent accepted
+	 * observations are replayed through history and into the live state.
 	 *
 	 * @param filter        Filter providing prediction / correction primitives.
-	 * @param meas          The scalar measurement (must provide `time_us` and `H`).
+	 * @param meas          The scalar measurement (see the ScalarMeasT concept).
 	 * @param now_us        Current system time.
 	 * @param nis_threshold NIS (chi-square) threshold; <= 0 disables gating.
-	 * @param curr_state    [In/Out] Live filter state, updated with the projected correction.
+	 * @param curr_state    [In/Out] Live filter state, updated by chronological replay.
 	 * @param curr_cov      [In/Out] Live filter covariance.
 	 * @param curr_input    Control input currently active (used when the floor sample is the
 	 *                      newest in history, since no "next" snapshot exists to describe the
@@ -201,6 +199,8 @@ public:
 			if (processMeasurement(filter, curr_state, curr_cov, meas, nis_threshold, res, K)) {
 				filter.applyCorrection(curr_state, curr_cov, K, res.innov, res.innov_var);
 				res.status = FusionStatus::STATUS_FUSED_CURRENT;
+				// The fast path treats near-current samples as observations at now.
+				rememberMeasurement(meas, now_us, now_us, curr_state, curr_cov, curr_input);
 			}
 
 			return res;
@@ -223,7 +223,7 @@ public:
 		}
 
 		// Measurement time is in the future beyond the small tolerance used for the fast path.
-		if (meas.time_us > now_us + kOosmMinTimeUs) {
+		if (meas.time_us >= now_us + kOosmMinTimeUs) {
 			res.status = FusionStatus::STATUS_REJECT_TOO_NEW;
 			return res;
 		}
@@ -234,8 +234,7 @@ public:
 			return res;
 		}
 
-		// Unroll history into a flat oldest->newest view so we can insert the corrected posterior
-		// without mutating the ring buffer mid-algorithm.
+		// Replay into a copy so a rejected measurement leaves history unchanged.
 		LinearTimeline linear_timeline{};
 		copyHistoryToLinearTimeline(linear_timeline);
 
@@ -256,7 +255,7 @@ public:
 			return res;
 		}
 
-		const Sample &sample_floor = linear_timeline.samples[floor_pos];
+		Sample &sample_floor = linear_timeline.samples[floor_pos];
 		const uint64_t t_floor_us = sample_floor.time_us;
 
 		// Pick the control input that was active over [t_floor, t_meas]. Each snapshot stores the
@@ -269,15 +268,14 @@ public:
 			input_interval = linear_timeline.samples[floor_pos + 1].input;
 		}
 
-		const float dt_meas = (meas.time_us - t_floor_us) * kMicrosecondsToSeconds;
-
-		// Predict the floor forward to the exact measurement time. dt_meas == 0 means the floor
-		// snapshot is already at meas time, so the copy below is the correct state/cov at t_meas.
 		StateVec x_meas = sample_floor.state;
 		StateCov P_meas = sample_floor.cov;
+		uint64_t replay_time = t_floor_us;
+		size_t measurement_pos = 0;
 
-		if (dt_meas > 0.f) {
-			filter.predictState(dt_meas, input_interval, sample_floor.state, sample_floor.cov, x_meas, P_meas);
+		if (!replayUntil<ScalarMeasT>(filter, meas.time_us, input_interval, replay_time, measurement_pos, x_meas, P_meas)) {
+			res.status = FusionStatus::STATUS_REJECT_COV;
+			return res;
 		}
 
 		// Compute K at t_meas and gate on NIS / covariance validity.
@@ -287,62 +285,41 @@ public:
 			return res; // STATUS_REJECT_NIS or STATUS_REJECT_COV
 		}
 
-		// Apply the correction at t_meas locally. We will also write it back into the timeline so
-		// that any later delayed measurement falling in the same interval can use this corrected
-		// posterior as its floor (otherwise it would replay from the stale pre-measurement sample).
 		filter.applyCorrection(x_meas, P_meas, K_meas, res.innov, res.innov_var);
 
-		// Write the corrected posterior into the timeline. If meas lands exactly on the floor
-		// timestamp we overwrite it, otherwise we insert a new snapshot right after the floor.
-		const size_t corrected_pos =
-			insertCorrectedPosteriorInLinearTimeline(linear_timeline, floor_pos, meas.time_us,
-					x_meas, P_meas, input_interval);
+		// Update an existing snapshot at this time. Between snapshots, the observation log
+		// retains this correction for future replays without consuming a history slot.
+		if (meas.time_us == t_floor_us) {
+			sample_floor.state = x_meas;
+			sample_floor.cov = P_meas;
+		}
 
-		// Projected correction: walk forward from t_meas, accumulate Phi across each step, and apply
-		// K_i = Phi_cumulative * K_meas to every later snapshot. The control-input term cancels out
-		// in the error dynamics, so only Phi is needed here (see docs).
-		StateCov Phi_step;
-		StateCov Phi_cumulative;
-		Phi_cumulative.setIdentity();
-
-		uint64_t prev_time_us = meas.time_us;
+		// Recompute each later posterior instead of subtracting a historical covariance
+		// correction from a posterior already reduced by a newer measurement.
 		uint8_t steps = 0;
 
-		// Iterate from t_meas up to the newest stored sample.
-		for (size_t i = corrected_pos + 1; i < linear_timeline.count; ++i) {
+		for (size_t i = floor_pos + 1; i < linear_timeline.count; ++i) {
 			Sample &sample = linear_timeline.samples[i];
 
-			const float dt = (sample.time_us - prev_time_us) * kMicrosecondsToSeconds;
+			if (!replayUntil<ScalarMeasT>(filter, sample.time_us, sample.input, replay_time, measurement_pos, x_meas, P_meas)) {
+				res.status = FusionStatus::STATUS_REJECT_COV;
+				return res;
+			}
 
-			// Get transition matrix for the error state dynamics
-			Phi_step = filter.getTransitionMatrix(dt);
-			Phi_cumulative = Phi_step * Phi_cumulative;
-
-			// Project K: K_k = Phi * K_{k-1}
-			const StateVec K_proj = Phi_cumulative * K_meas;
-
-			// Apply correction to history
-			filter.applyCorrection(sample.state, sample.cov, K_proj, res.innov, res.innov_var);
-
-			prev_time_us = sample.time_us;
+			sample.state = x_meas;
+			sample.cov = P_meas;
 			steps++;
 		}
 
-		// Project the remaining interval [newest_history, now] and
-		// apply the final correction to the live state.
-		if (now_us > prev_time_us) {
-			const float dt_now = (now_us - prev_time_us) * kMicrosecondsToSeconds;
-			Phi_step = filter.getTransitionMatrix(dt_now);
-			Phi_cumulative = Phi_step * Phi_cumulative;
+		if (!replayUntil<ScalarMeasT>(filter, now_us, curr_input, replay_time, measurement_pos, x_meas, P_meas)) {
+			res.status = FusionStatus::STATUS_REJECT_COV;
+			return res;
 		}
 
-		const StateVec K_final = Phi_cumulative * K_meas;
-		filter.applyCorrection(curr_state, curr_cov, K_final, res.innov, res.innov_var);
-
-		// Commit the modified timeline back into the ring buffer so the next OOSM call sees the
-		// corrected history. If we inserted a sample and overflowed capacity, the oldest entry is
-		// dropped.
+		curr_state = x_meas;
+		curr_cov = P_meas;
 		rebuildHistoryFromLinearTimeline(linear_timeline);
+		rememberMeasurement(meas, meas.time_us, now_us, curr_state, curr_cov, curr_input);
 
 		res.status = FusionStatus::STATUS_FUSED_OOSM;
 		res.history_steps = steps;
@@ -354,6 +331,118 @@ private:
 	// Test-only access: the companion struct is defined in the unit test translation unit and reaches
 	// the private helpers without needing any #ifdef or production-side wrappers.
 	template <typename> friend struct OOSMManagerTestAccess;
+
+	struct StoredMeasurement {
+		uint64_t time_us;
+		float val;
+		float unc;
+		StateVec H;
+	};
+	StoredMeasurement _measurements[kMeasurementCapacity] {};
+	size_t _measurement_count{0};
+
+	void pruneMeasurements()
+	{
+		if (_history.entries() == 0) {
+			return;
+		}
+
+		size_t obsolete = 0;
+
+		while (obsolete < _measurement_count && _measurements[obsolete].time_us <= _history.get_oldest().time_us) {
+			++obsolete;
+		}
+
+		if (obsolete == 0) {
+			return;
+		}
+
+		for (size_t i = obsolete; i < _measurement_count; ++i) {
+			_measurements[i - obsolete] = _measurements[i];
+		}
+
+		_measurement_count -= obsolete;
+	}
+
+	template <typename ScalarMeasT>
+	void rememberMeasurement(const ScalarMeasT &meas, uint64_t effective_time, uint64_t now_us,
+				 const StateVec &state, const StateCov &cov, const InputT &input)
+	{
+		pruneMeasurements();
+
+		if (_measurement_count == kMeasurementCapacity) {
+			// Restart from the live posterior rather than drop an update a later replay needs.
+			reset();
+			push(now_us, state, cov, input);
+			return;
+		}
+
+		size_t pos = _measurement_count;
+
+		while (pos > 0 && _measurements[pos - 1].time_us > effective_time) {
+			_measurements[pos] = _measurements[pos - 1];
+			--pos;
+		}
+
+		_measurements[pos] = {effective_time, meas.val, meas.unc, meas.H};
+		++_measurement_count;
+	}
+
+	// The starting posterior already contains all measurements at or before time_us.
+	// Previously accepted observations stay accepted: recompute their gains, without
+	// retrospectively changing the gate decisions reported when they arrived.
+	template <typename ScalarMeasT>
+	bool replayUntil(FilterT &filter, uint64_t end_time, const InputT &input,
+			 uint64_t &time_us, size_t &measurement_pos, StateVec &state, StateCov &cov)
+	{
+		const uint64_t start_time = time_us;
+
+		while (measurement_pos < _measurement_count) {
+			const StoredMeasurement &stored = _measurements[measurement_pos];
+
+			if (stored.time_us <= start_time) {
+				++measurement_pos;
+				continue;
+			}
+
+			if (stored.time_us > end_time) {
+				break;
+			}
+
+			predictTo(filter, stored.time_us, input, time_us, state, cov);
+			ScalarMeasT meas{};
+			meas.time_us = stored.time_us;
+			meas.val = stored.val;
+			meas.unc = stored.unc;
+			meas.H = stored.H;
+			StateVec K;
+			FusionResult result{};
+
+			if (!processMeasurement(filter, state, cov, meas, 0.f, result, K)) {
+				return false;
+			}
+
+			filter.applyCorrection(state, cov, K, result.innov, result.innov_var);
+			++measurement_pos;
+		}
+
+		predictTo(filter, end_time, input, time_us, state, cov);
+		return true;
+	}
+
+	void predictTo(FilterT &filter, uint64_t end_time, const InputT &input,
+		       uint64_t &time_us, StateVec &state, StateCov &cov)
+	{
+		if (end_time > time_us) {
+			StateVec next_state;
+			StateCov next_cov;
+			filter.predictState((end_time - time_us) * kMicrosecondsToSeconds, input,
+					    state, cov, next_state, next_cov);
+			state = next_state;
+			cov = next_cov;
+			time_us = end_time;
+		}
+	}
 
 	// Run NIS / covariance gating and compute the Kalman gain K for the given (state, cov, meas).
 	// Returns true iff the measurement is accepted; out_res is populated with innov/innov_var/test_ratio.
@@ -403,7 +492,7 @@ private:
 	 * manual modular arithmetic on uint8_t indices (which can wrap before the bounds check
 	 * when HistorySize approaches 255).
 	 *
-	 * Post-condition: out.count == _history.entries(), with out.count <= kHistorySize < kCapacity,
+	 * Post-condition: out.count == _history.entries(), with out.count <= kCapacity,
 	 * so no out-of-bounds writes are possible by construction.
 	 */
 	void copyHistoryToLinearTimeline(LinearTimeline &out)
@@ -429,57 +518,12 @@ private:
 		}
 	}
 
-	/**
-	 * @brief Insert the corrected posterior at t_meas into the timeline.
-	 *
-	 * When meas time matches the floor exactly we overwrite the floor's state/cov in place,
-	 * otherwise we shift the tail right by one slot and insert a fresh snapshot after the floor.
-	 * The +1 capacity slot in LinearTimeline guarantees room for the insertion even when history
-	 * was already at capacity.
-	 *
-	 * @return Position of the corrected posterior in the timeline.
-	 */
-	size_t insertCorrectedPosteriorInLinearTimeline(LinearTimeline &tl, size_t floor_pos,
-			uint64_t meas_time_us,
-			const StateVec &x_posterior,
-			const StateCov &P_posterior,
-			const InputT &input_interval)
-	{
-		if (tl.samples[floor_pos].time_us == meas_time_us) {
-			tl.samples[floor_pos].state = x_posterior;
-			tl.samples[floor_pos].cov = P_posterior;
-			return floor_pos;
-		}
-
-		const size_t corrected_pos = floor_pos + 1;
-
-		// Shift [corrected_pos .. count) one slot to the right to make room.
-		// tl.count <= kHistorySize at entry (copy never exceeds it), so writing tl.samples[count]
-		// stays within the kCapacity = HistorySize + 1 slots.
-		for (size_t i = tl.count; i > corrected_pos; --i) {
-			tl.samples[i] = tl.samples[i - 1];
-		}
-
-		tl.samples[corrected_pos].time_us = meas_time_us;
-		tl.samples[corrected_pos].state = x_posterior;
-		tl.samples[corrected_pos].cov = P_posterior;
-		tl.samples[corrected_pos].input = input_interval;
-		tl.count++;
-		return corrected_pos;
-	}
-
-	/**
-	 * @brief Push the (possibly augmented) timeline back into the ring buffer.
-	 *
-	 * If an insertion pushed the timeline past ring-buffer capacity, the oldest sample is dropped.
-	 */
+	// Replace history only after the entire replay succeeds.
 	void rebuildHistoryFromLinearTimeline(const LinearTimeline &tl)
 	{
 		_history.reset();
 
-		const size_t start = (tl.count > kHistorySize) ? (tl.count - kHistorySize) : 0;
-
-		for (size_t i = start; i < tl.count; ++i) {
+		for (size_t i = 0; i < tl.count; ++i) {
 			_history.push(tl.samples[i]);
 		}
 	}
