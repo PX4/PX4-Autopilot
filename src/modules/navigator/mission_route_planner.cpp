@@ -576,12 +576,9 @@ bool closeToBranchOffSegment(const Position &position,
 		return false;
 	}
 
-	// Altitude check avoids flying diagonally toward the safe point when the vehicle is horizontally close to
-	// the branch-off leg but at the wrong altitude (e.g. already descending to land while a far-away safe point
-	// is projected onto the land point); in that case we first want to rejoin the branch-in vertically.
-	const float expected_alt = branch_off_projection.alt
-				   + t * (selection.goal_position.alt - branch_off_projection.alt);
-	const float alt_error = fabsf(position.alt - expected_alt);
+	// The branch-off leg is flown at the branch-off altitude. A vehicle at another altitude, e.g.
+	// descending onto a landing the safe point projects onto, rejoins the route first.
+	const float alt_error = fabsf(position.alt - branch_off_projection.alt);
 
 	return PX4_ISFINITE(alt_error) && alt_error < altitude_acceptance_radius_m;
 }

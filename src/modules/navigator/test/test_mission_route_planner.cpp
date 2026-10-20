@@ -734,6 +734,38 @@ TEST_F(MissionRoutePlannerTest, SelectedBranchLegShortcutRequiresCrosstrackAndAl
 	EXPECT_FALSE(high_plan.fly_direct_to_goal);
 }
 
+// The follower flies the branch-off leg level and descends at the rally point, so the shortcut
+// expects the branch-off altitude anywhere on the leg.
+TEST_F(MissionRoutePlannerTest, BranchLegShortcutUsesBranchOffAltitude)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt),
+	};
+
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt - 50.f),
+	};
+
+	TestPlanner planner(mission, safe_points);
+
+	// Halfway along the leg at the branch-off altitude.
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(
+				makePositionFromOffset(kBaseLat, kBaseLon, 300.f, 25.f, kAlt), 0);
+	request.direct_goal_acceptance_radius_m = 20.f;
+	request.acceptance_radius_m = 20.f;
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_TRUE(plan.fly_direct_to_goal);
+
+	// Halfway down a straight line to the rally point is not on the flown leg.
+	request.vehicle_position.alt = kAlt - 25.f;
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_FALSE(plan.fly_direct_to_goal);
+}
+
 // ---- VTOL approach requirements ----
 
 // An approach block belongs to the rally right before it in the file. Rally 0 is closer to the
