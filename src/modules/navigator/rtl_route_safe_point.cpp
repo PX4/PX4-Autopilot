@@ -259,7 +259,7 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	};
 
 	evaluation.success = true;
-	mission_route::copyPositionToYawSetpoint(plan.goal_position, evaluation.destination);
+	evaluation.destination = {plan.goal_position.lat, plan.goal_position.lon, plan.goal_position.alt, NAN};
 	evaluation.safe_point_index = safe_point_goal ? static_cast<uint8_t>(plan.safe_point_index) : UINT8_MAX;
 	evaluation.any_safe_point_has_land_approach = mission_route::anySafePointHasVtolLandApproach(provider, home_position.alt);
 	return evaluation;

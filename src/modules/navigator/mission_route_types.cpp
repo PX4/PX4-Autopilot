@@ -68,11 +68,6 @@ bool ActiveJumpAnchor::valid() const
 	return jump_item_index >= 0;
 }
 
-bool ActiveJumpAnchor::validForMission(int mission_count) const
-{
-	return empty() || (valid() && jump_item_index < mission_count);
-}
-
 bool MissionResumePlan::valid() const
 {
 	return join_position.valid() && first_mission_item_index >= 0
@@ -81,8 +76,8 @@ bool MissionResumePlan::valid() const
 
 bool RtlRoutePlan::valid() const
 {
-	if (!join_position.valid() || first_mission_item_index < 0 || goal_type == GoalType::kNone
-	    || !goal_position.valid() || (!active_jump_anchor.empty() && !active_jump_anchor.valid())) {
+	if (!join_position.valid() || first_mission_item_index < 0 || !goal_position.valid()
+	    || (!active_jump_anchor.empty() && !active_jump_anchor.valid())) {
 		return false;
 	}
 
@@ -193,19 +188,6 @@ bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_
 	position.lat = safe_point_item.lat;
 	position.lon = safe_point_item.lon;
 	return position.valid();
-}
-
-bool copyPositionToYawSetpoint(const Position &position, PositionYawSetpoint &setpoint)
-{
-	if (!position.valid()) {
-		return false;
-	}
-
-	setpoint.lat = position.lat;
-	setpoint.lon = position.lon;
-	setpoint.alt = position.alt;
-	setpoint.yaw = NAN;
-	return true;
 }
 
 loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl)

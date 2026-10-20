@@ -100,7 +100,7 @@ bool scanVtolLandApproachBlock(const Provider &provider, int safe_point_index, f
 }
 
 bool findAssociatedSafePointIndex(const Provider &provider, const PositionYawSetpoint &rtl_position,
-				  float home_altitude_amsl, int &safe_point_index, mission_item_s &safe_point_item)
+				  float home_altitude_amsl, int &safe_point_index, Position &safe_point_position)
 {
 	for (int current_seq = 0; current_seq < provider.safePointCount(); ++current_seq) {
 		mission_item_s mission_item{};
@@ -109,12 +109,7 @@ bool findAssociatedSafePointIndex(const Provider &provider, const PositionYawSet
 			break;
 		}
 
-		if (mission_item.nav_cmd != NAV_CMD_RALLY_POINT) {
-			continue;
-		}
-
-		Position safe_point_position{};
-
+		// Rejects anything but a rally point with a usable position.
 		if (!extractSafePointPosition(mission_item, home_altitude_amsl, safe_point_position)) {
 			continue;
 		}
@@ -124,7 +119,6 @@ bool findAssociatedSafePointIndex(const Provider &provider, const PositionYawSet
 
 		if (dist_to_safepoint < kLandApproachAssociationDistanceM) {
 			safe_point_index = current_seq;
-			safe_point_item = mission_item;
 			return true;
 		}
 	}
@@ -167,14 +161,14 @@ land_approaches_s getVtolLandApproachesNearLocation(const Provider &provider,
 		const PositionYawSetpoint &rtl_position, float home_altitude_amsl)
 {
 	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
+	Position safe_point_position{};
 
-	if (!findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_item)) {
+	if (!findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_position)) {
 		return {};
 	}
 
 	land_approaches_s vtol_land_approaches{};
-	vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(safe_point_item.lat, safe_point_item.lon);
+	vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(safe_point_position.lat, safe_point_position.lon);
 	scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, &vtol_land_approaches);
 	return vtol_land_approaches;
 }
@@ -198,9 +192,9 @@ bool hasVtolLandApproachesNearLocation(const Provider &provider, const PositionY
 				       float home_altitude_amsl)
 {
 	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
+	Position safe_point_position{};
 
-	return findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_item)
+	return findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_position)
 	       && scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, nullptr);
 }
 

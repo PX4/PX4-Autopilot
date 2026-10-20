@@ -58,10 +58,8 @@ static constexpr uint8_t kMaxSegmentCandidates{3};
 
 /** Safe points projected per route walk: larger batches trade fixed RAM for fewer walks. */
 static constexpr uint8_t kMaxSafePointBatch{CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE};
-static_assert(CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE >= 1 && CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE <= 255,
-	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must fit the uint8_t batch counters");
-static_assert(kMaxSafePointBatch <= DM_KEY_SAFE_POINTS_MAX,
-	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must not exceed DM_KEY_SAFE_POINTS_MAX");
+static_assert(kMaxSafePointBatch >= 1 && kMaxSafePointBatch <= DM_KEY_SAFE_POINTS_MAX,
+	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must be 1..DM_KEY_SAFE_POINTS_MAX");
 
 /** @brief Key distances for a point projected onto one segment. */
 struct ProjectionDistance {
@@ -171,8 +169,6 @@ struct RoutePath {
 struct BranchOff {
 	Segment segment{};
 	Position projection{};
-
-	bool valid() const;
 };
 
 /** @brief Internal winning goal and the scored path used to reach it. */
@@ -182,11 +178,8 @@ struct GoalSelection {
 	int32_t safe_point_index{-1};
 	RoutePath path{};
 	BranchOff branch_off{};
-	bool fly_direct_to_goal{false}; /**< Skip route following: the vehicle is already at the goal or on the branch-off leg. */
 
 	bool found() const { return goal_type != GoalType::kNone; }
-	bool valid() const;
-	int32_t branchOffIndex() const;
 };
 
 /** @brief Normalized parameters shared by projection and goal-selection helpers during one planning pass. */
@@ -197,7 +190,7 @@ struct PlannerParameters {
 	float straight_to_safe_point_rad_m{0.f}; /**< Fly straight to a safe point closer than this, skipping the route. */
 	float altitude_acceptance_radius_m{0.f};
 	float home_altitude_amsl{NAN};
-	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn (default estimated from turn time and route deviation)*/
+	float fw_u_turn_penalty_m{0.f};
 
 	bool validForVehicleProjection() const;
 	bool validForRtlRoute() const;

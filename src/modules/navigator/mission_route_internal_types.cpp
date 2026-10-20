@@ -95,43 +95,6 @@ bool RoutePath::valid() const
 	       && PX4_ISFINITE(total_cost_m) && total_cost_m >= 0.f;
 }
 
-bool BranchOff::valid() const
-{
-	return segment.valid() && projection.valid();
-}
-
-bool GoalSelection::valid() const
-{
-	if (!path.valid() || !goal_position.valid()) {
-		return false;
-	}
-
-	// No default case: -Wswitch flags this list when GoalType grows.
-	switch (goal_type) {
-	case GoalType::kNone:
-		return false;
-
-	case GoalType::kSafePoint:
-		return safe_point_index >= 0 && branch_off.valid();
-
-	case GoalType::kMissionLand:
-	case GoalType::kMissionTakeoff:
-		return true;
-	}
-
-	return false;
-}
-
-int32_t GoalSelection::branchOffIndex() const
-{
-	if (branch_off.segment.valid()) {
-		// The item the vehicle flies toward on the branch-off segment
-		return path.direction_reversed ? branch_off.segment.start.idx : branch_off.segment.end.idx;
-	}
-
-	return path.first_item.index;
-}
-
 bool PlannerParameters::validForVehicleProjection() const
 {
 	// home_altitude_amsl is intentionally not checked: NAN is valid for absolute-altitude missions.
