@@ -98,6 +98,7 @@ public:
 	bool isLanding();
 
 protected:
+	// Virtual only so tests can fail the executor allocation.
 	virtual bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
 
 private:
@@ -124,8 +125,8 @@ private:
 	bool reverseIsFurther() const;
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	void applyRouteSafePointFallback(RtlType &new_rtl_type, DestinationType &destination_type,
-					 PositionYawSetpoint &destination, uint8_t &safe_point_index);
+	/** Type 3 destination and executor type used when the route is unavailable. */
+	RtlType selectRouteFallback(PositionYawSetpoint &destination, uint8_t &safe_point_index);
 	void applyReturnAltMin();
 	/** Warn when RTL_TYPE 7 flies a direct fallback, which can leave the mission corridor. */
 	void reportRouteFallback() const;
