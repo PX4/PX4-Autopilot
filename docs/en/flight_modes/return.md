@@ -20,10 +20,10 @@ Each vehicle has a **default** return mode behavior which is described in the li
 - Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - RC switches can be used to change flight modes on any vehicle.
 - Stick movement in a multicopter (or VTOL in hover) will [by default](#MAN_OVERRIDE_SPD) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
-- With direct return, a VTOL returns as MC or FW based on its mode when Return was triggered.
+- A VTOL will return as MC or FW based on its mode at the point the return mode was triggered.
   In MC mode it will respect multicopter parameters, such as the landing "cone".
   In FW mode it will respect fixed-wing parameters (ignore the cone), but unless using a mission landing, will transition to MC mode and land at the destination after loitering at the descent altitude.
-  Route-following Return can change between MC and FW to match the selected mission legs.
+  Route-following Return instead changes between MC and FW to match the selected mission legs.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
 
@@ -210,30 +210,20 @@ The vehicle:
 ### Route-Following Return Type (RTL_TYPE=7) {#rtl_type_7}
 
 This return type uses the uploaded mission as route geometry.
-It selects a branch-in point, follows the route in the selected direction, then branches off to a rally point.
-When no rally point is usable, the planner selects a mission takeoff or landing endpoint.
-It can also choose a direct-to-goal shortcut.
-The takeoff endpoint is the mission takeoff item position at Home altitude.
-For fixed-wing and VTOL missions this is the climb-out or transition point, not the launch position.
-
-Route following preserves `LOITER_TO_ALT` altitude changes while skipping waypoint and loiter hold times.
-Rally-point and takeoff-endpoint arrivals respect `RTL_DESCEND_ALT` and `RTL_LAND_DELAY`, including an indefinite hold when the delay is negative.
-With zero delay, multicopters land after horizontal arrival; fixed-wing vehicles first descend in the destination loiter.
-An uploaded mission landing retains its own landing settings.
-VTOL vehicles follow the flight mode required by each route leg, including reverse transitions, and use the existing VTOL landing sequence at the destination.
+It selects a branch-in point, follows the route in the selected direction, then branches off to the rally point with the lowest route cost.
+When no rally point is usable, it follows the route to the mission landing or to the mission takeoff item at Home altitude, whichever has the lower route cost.
+For fixed-wing and VTOL missions the takeoff item is the climb-out or transition point, not the launch position.
+When the vehicle is already near the destination or the branch-off leg, it can fly there directly.
 
 Return moves the mission's current item along the route, so a later Mission resume continues from the last route target of the Return.
 The branch-off point and the destination arrival steps are not reported as reached mission items.
 
 A complete mission cache is required.
-If route planning is unavailable, Navigator falls back to the direct destination selection of `RTL_TYPE=3`.
+If route planning is unavailable, Return uses the destination selection of `RTL_TYPE=3` and can leave the mission corridor; see the [fallback conditions](../concept/mission_route_planning.md#route-following-fallback).
 Firmware built without route planning shows a pre-arm warning when `RTL_TYPE=7` is set.
-This can leave the mission corridor and change the destination; see the [fallback conditions](../concept/mission_route_planning.md#route-following-fallback).
-After a fixed-wing system failure, VTOL vehicles keep the selected route in multicopter mode and skip front transitions while the failure remains active.
-The planner checks branch-in, branch-off and direct-to-goal segments against loaded fences; see [Geofence Checks](../concept/mission_route_planning.md#geofence-checks) for recovery behaviour and limitations.
-It does not find detours around fences.
+The planner checks the branch-in, branch-off and direct-to-goal segments against loaded fences but does not find detours; see [Geofence Checks](../concept/mission_route_planning.md#geofence-checks).
 
-See [Mission Route Planning](../concept/mission_route_planning.md) for configuration, fallback behaviour, and limitations.
+See [Mission Route Planning](../concept/mission_route_planning.md) for arrival, VTOL and configuration details.
 
 ## Geofence Awareness {#geofence_awareness}
 
