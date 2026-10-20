@@ -1529,6 +1529,7 @@ UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::E
 	uint8_t node_id = result.getCallID().server_node_id.get();
 	uavcan::protocol::param::ExecuteOpcode::Response resp = result.getResponse();
 	success &= resp.ok;
+	_callback_success = success;
 	_cmd_in_progress = false;
 
 	if (!result.isSuccessful()) {
