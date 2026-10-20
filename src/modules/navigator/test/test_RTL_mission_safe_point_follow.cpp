@@ -322,6 +322,7 @@ public:
 	}
 
 	void setPrecisionLandingForTest(int32_t precision) { _param_rtl_pld_md.set(precision); }
+	void setForceVtolForTest(bool force) { _param_nav_force_vt.set(force); }
 
 	void ageWaypointReachedForTest(float elapsed_seconds)
 	{
@@ -1604,6 +1605,32 @@ TEST_F(RtlMissionSafePointFollowEstimateTest, UploadedMcLandingIncludesApproachA
 	const auto landing_estimate = follower.calc_rtl_time_estimate();
 	ASSERT_TRUE(landing_estimate.valid);
 	EXPECT_NEAR(landing_estimate.time_estimate, flightTime(0.f, 20.f), 0.02f);
+}
+
+TEST_F(RtlMissionSafePointFollowEstimateTest, ForcedVtolLandingAtPlainLandDescendsAsMc)
+{
+	// With NAV_FORCE_VT a fixed-wing VTOL flies to a plain LAND, back-transitions and descends as MC.
+	const mission_item_s landing = makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt);
+	follower.loadTestMission({makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 100.f), landing});
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kMissionLand;
+	plan.goal_position = {landing.lat, landing.lon, landing.altitude};
+	plan.join_position = {kBaseLat, kBaseLon, kAlt + 100.f};
+	plan.first_mission_item_index = 1;
+	follower.configurePlanForTest(plan, 1);
+	follower.setVehicleStatusForTest(true, true, false);
+	follower.setGlobalPositionForTest(plan.join_position);
+
+	follower.setForceVtolForTest(false);
+	const auto glide_estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(glide_estimate.valid);
+	// One leg descends while it cruises: the longer of the two counts.
+	EXPECT_NEAR(glide_estimate.time_estimate, math::max(flightTime(300.f, 0.f, true), flightTime(0.f, 100.f, true)), 0.03f);
+
+	follower.setForceVtolForTest(true);
+	const auto vertical_estimate = follower.calc_rtl_time_estimate();
+	ASSERT_TRUE(vertical_estimate.valid);
+	EXPECT_NEAR(vertical_estimate.time_estimate, flightTime(300.f, 0.f, true) + flightTime(0.f, 100.f), 0.03f);
 }
 
 TEST_P(RtlMissionSafePointFollowArrivalTest, SyntheticGoalHonorsArrivalDescentAndLandingDelay)
