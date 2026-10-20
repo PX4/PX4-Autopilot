@@ -228,7 +228,7 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
 	const SpecificEnergyRates pitch_specific_energy_rate{_calcPitchControlEnergyRates(setpoint, input, limit,
 			specific_energy_rate, param, flag, weight)};
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, pitch_specific_energy_rate)};
+	ControlValues seb_rate{_calcPitchControlSebRate(pitch_specific_energy_rate)};
 
 	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, pitch_specific_energy_rate, weight, param);
 
@@ -474,9 +474,9 @@ void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const In
 	const SpecificEnergyRates pitch_specific_energy_rates{_calcPitchControlEnergyRates(setpoint, input, limit,
 			specific_energy_rates, param, flag, weight)};
 
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, pitch_specific_energy_rates)};
+	ControlValues seb_rate{_calcPitchControlSebRate(pitch_specific_energy_rates)};
 
-	_calcPitchControlUpdate(dt, input, seb_rate, param);
+	_calcPitchControlUpdate(dt, input, _calcPitchControlError(seb_rate, pitch_specific_energy_rates, weight), param);
 	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, pitch_specific_energy_rates, weight, param)};
 
 	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
@@ -492,10 +492,20 @@ void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const In
 	_debug_output.pitch_integrator = _pitch_integ_state;
 }
 
-TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-		const SpecificEnergyRates &specific_energy_rates) const
+TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificEnergyRates &specific_energy_rates)
+const
 {
 	ControlValues seb_rate;
+	// Unweighted: potential minus kinetic energy rate, what a climb angle physically produces
+	seb_rate.setpoint = specific_energy_rates.spe_rate.setpoint - specific_energy_rates.ske_rate.setpoint;
+	seb_rate.estimate = specific_energy_rates.spe_rate.estimate - specific_energy_rates.ske_rate.estimate;
+
+	return seb_rate;
+}
+
+float TECSControl::_calcPitchControlError(const ControlValues &seb_rate,
+		const SpecificEnergyRates &specific_energy_rates, const SpecificEnergyWeighting &weight)
+{
 	/*
 	 * The SKE_weighting variable controls how speed and altitude control are prioritized by the pitch demand calculation.
 	 * A weighting of 1 gives equal speed and altitude priority
@@ -506,18 +516,13 @@ TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificE
 	 * rises above the demanded value, the pitch angle demand is increased by the TECS controller to prevent the vehicle overspeeding.
 	 * The weighting can be adjusted between 0 and 2 depending on speed and altitude accuracy requirements.
 	*/
-	seb_rate.setpoint = specific_energy_rates.spe_rate.setpoint * weight.spe_weighting -
-			    specific_energy_rates.ske_rate.setpoint *
-			    weight.ske_weighting;
+	const float ste_rate_error = _getControlError(specific_energy_rates.spe_rate)
+				     + _getControlError(specific_energy_rates.ske_rate);
 
-	seb_rate.estimate = (specific_energy_rates.spe_rate.estimate * weight.spe_weighting) -
-			    (specific_energy_rates.ske_rate.estimate * weight.ske_weighting);
-
-	return seb_rate;
+	return _getControlError(seb_rate) - (weight.ske_weighting - 1.f) * ste_rate_error;
 }
 
-void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate,
-		const Param &param)
+void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, float pitch_error, const Param &param)
 {
 
 	// In fast descend, the pitch integrator converges to the (substantially
@@ -534,7 +539,7 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 		const float climb_angle_to_SEB_rate = _climbAngleToSebRate(input, param);
 
 		// Calculate pitch integrator input term
-		float pitch_integ_input = _getControlError(seb_rate) * param.integrator_gain_pitch / climb_angle_to_SEB_rate;
+		float pitch_integ_input = pitch_error * param.integrator_gain_pitch / climb_angle_to_SEB_rate;
 
 		// Guard against NaN integrator input - discard bad input sample (e.g., exiting offboard velocity mode)
 		if (!PX4_ISFINITE(pitch_integ_input)) {
@@ -575,7 +580,7 @@ float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValu
 	// speed/height weighting prioritises errors and stays in the feedback. The kinetic energy part is the airspeed
 	// error through the airspeed loop gain: a proportional feedback term, labelled as such.
 	const float feedforward = specific_energy_rates.spe_rate.setpoint;
-	const float feedback = _getControlError(seb_rate) * param.pitch_damping_gain
+	const float feedback = _calcPitchControlError(seb_rate, specific_energy_rates, weight) * param.pitch_damping_gain
 			       - weight.ske_weighting * specific_energy_rates.ske_rate.setpoint;
 	float SEB_rate_correction = feedforward + feedback;
 

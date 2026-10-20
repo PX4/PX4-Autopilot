@@ -573,8 +573,15 @@ private:
 	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
 	 * @return specific energy balance rate values in [m²/s³].
 	 */
-	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-					       const SpecificEnergyRates &specific_energy_rate) const;
+	ControlValues _calcPitchControlSebRate(const SpecificEnergyRates &specific_energy_rate) const;
+
+	/**
+	 * @brief Energy rate error the pitch loop acts on: the unweighted balance error, plus the total energy rate
+	 * error cross-fed with the speed priority (speed weight - 1). Equals the weighted balance error
+	 * (2 - w) * e_spe - w * e_ske.
+	 */
+	static float _calcPitchControlError(const ControlValues &seb_rate, const SpecificEnergyRates &specific_energy_rates,
+					    const SpecificEnergyWeighting &weight);
 
 	/**
 	 * @brief Calculate the pitch control update function.
@@ -585,7 +592,7 @@ private:
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
 	 * @param param is the control parameters.
 	 */
-	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
+	void _calcPitchControlUpdate(float dt, const Input &input, float pitch_error, const Param &param);
 
 	/**
 	 * @brief Derivative of the specific energy balance rate with respect to the climb angle.
