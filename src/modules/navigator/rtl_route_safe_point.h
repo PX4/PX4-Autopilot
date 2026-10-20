@@ -69,17 +69,12 @@ public:
 		bool executor_source_changed{false};
 		bool home_has_land_approach{false};
 		bool any_safe_point_has_land_approach{false};
-		mission_route::RtlRoutePlan plan{};
-		loiter_point_s goal_land_approach{};
-		PositionYawSetpoint destination{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
-		uint8_t safe_point_index{UINT8_MAX};
 	};
 
 	RtlRouteSafePoint(ModuleParams *parent, Navigator *navigator);
 
 	void reset();
 	bool supportsVehicle(const vehicle_status_s &vehicle_status) const;
-	bool inputsReady(const mission_s &mission) const;
 	/** Match the uploaded mission independently of safe-point changes, preserving route progress through reloads. */
 	bool missionMatches(const mission_s &mission) const;
 	/** Check full source identity, cache and fence readiness, mission generation, and safe-point count. */
@@ -103,6 +98,10 @@ public:
 	uint32_t missionGeneration() const;
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const;
 
+	/** Read only after evaluate() returns success; a failed evaluation may invalidate the plan. */
+	const mission_route::RtlRoutePlan &plan() const { return _plan; }
+	const loiter_point_s &goalLandApproach() const { return _goal_land_approach; }
+
 private:
 	/** Identity of the mission, safe points, and fence used by the last successful plan. */
 	struct SourceSnapshot {
@@ -119,16 +118,17 @@ private:
 		bool valid{false};
 	};
 
-	/** Gather every planner input; only an active return contributes its flown direction and jump anchor. */
+	bool fenceReady() const;
+	bool inputsReady(const mission_s &mission) const;
+	/** Gather the planner inputs; evaluate() has already cleared the flown state of an inactive estimate. */
 	mission_route::RtlRouteRequest buildPlannerRequest(const mission_s &mission,
 			const vehicle_status_s &vehicle_status,
 			const vehicle_global_position_s &global_position,
 			const home_position_s &home_position,
-			bool rtl_active,
 			bool require_vtol_approach) const;
 	/** Retain the selected safe point's VTOL approach; the follower uses it if arriving in fixed-wing mode. */
 	static loiter_point_s selectGoalLandApproach(const mission_route::Provider &provider,
-			const mission_route::RtlRoutePlan &plan,
+			int safe_point_index,
 			const vehicle_status_s &vehicle_status,
 			const home_position_s &home_position,
 			const wind_s &wind);
@@ -141,6 +141,10 @@ private:
 	bool _direction_reversed{false};
 	bool _waiting_for_inputs{false};
 	mission_route::FailureReason _last_failure{mission_route::FailureReason::kNone};
+
+	// Kept off the stack: evaluate() runs on the deepest navigator call chain.
+	mission_route::RtlRoutePlan _plan{};
+	loiter_point_s _goal_land_approach{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist,

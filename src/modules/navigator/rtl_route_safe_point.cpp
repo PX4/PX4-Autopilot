@@ -47,40 +47,6 @@
 #include <cmath>
 #include <px4_platform_common/log.h>
 
-namespace
-{
-class MissionViewProvider final : public mission_route::Provider
-{
-public:
-	MissionViewProvider(const MissionRouteCache &cache, const MissionRouteCache::MissionView &view) :
-		_cache(cache), _view(view)
-	{}
-
-	int missionCount() const override { return _view.count; }
-
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override
-	{
-		if (index < 0 || index >= _view.count || _view.items == nullptr) {
-			return false;
-		}
-
-		mission_item = _view.items[index];
-		return true;
-	}
-
-	int safePointCount() const override { return _cache.safePointCount(); }
-
-	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
-	{
-		return _cache.loadSafePointItem(index, safe_point_item);
-	}
-
-private:
-	const MissionRouteCache &_cache;
-	MissionRouteCache::MissionView _view;
-};
-} // namespace
-
 RtlRouteSafePoint::RtlRouteSafePoint(ModuleParams *parent, Navigator *navigator) :
 	ModuleParams(parent),
 	_navigator(navigator)
@@ -102,13 +68,17 @@ bool RtlRouteSafePoint::supportsVehicle(const vehicle_status_s &vehicle_status) 
 	       || vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 }
 
+bool RtlRouteSafePoint::fenceReady() const
+{
+	const Geofence &geofence = _navigator->get_geofence();
+	return geofence.isReadyForPathChecks() && !geofence.isFenceUpdatePending();
+}
+
 bool RtlRouteSafePoint::inputsReady(const mission_s &mission) const
 {
 	const MissionRouteCache &cache = _navigator->get_mission_route_cache();
 	return cache.missionItemsReady(mission) && cache.safePointsReady()
-	       && cache.safePointsId() == mission.safe_points_id
-	       && _navigator->get_geofence().isReadyForPathChecks()
-	       && !_navigator->get_geofence().isFenceUpdatePending();
+	       && cache.safePointsId() == mission.safe_points_id && fenceReady();
 }
 
 bool RtlRouteSafePoint::missionMatches(const mission_s &mission) const
@@ -131,29 +101,18 @@ bool RtlRouteSafePoint::sourceMatches(const mission_s &mission) const
 
 bool RtlRouteSafePoint::sourceStillValid(const mission_s &mission) const
 {
-	if (!sourceMatches(mission) || !_navigator->get_geofence().isReadyForPathChecks()
-	    || _navigator->get_geofence().isFenceUpdatePending()) {
-		return false;
-	}
-
+	// The count and generation also catch in-place edits of the same sources.
 	const MissionRouteCache &cache = _navigator->get_mission_route_cache();
-
-	if (!cache.safePointsReady()
-	    || cache.safePointsId() != _source.safe_points_id
-	    || cache.safePointCount() != _source.safe_point_count) {
-		return false;
-	}
-
 	MissionRouteCache::MissionView view{};
-	return cache.getMissionView(mission, view) && view.generation == _source.mission_generation;
+	return sourceMatches(mission) && inputsReady(mission)
+	       && cache.safePointCount() == _source.safe_point_count
+	       && cache.getMissionView(mission, view) && view.generation == _source.mission_generation;
 }
 
 bool RtlRouteSafePoint::evaluationPending(const mission_s &mission) const
 {
 	return mission.count <= MissionRouteCache::kMaxFullMissionCacheSize
-	       && (!_navigator->get_mission_route_cache().missionItemsReady(mission)
-		   || !_navigator->get_geofence().isReadyForPathChecks()
-		   || _navigator->get_geofence().isFenceUpdatePending());
+	       && (!_navigator->get_mission_route_cache().missionItemsReady(mission) || !fenceReady());
 }
 
 bool RtlRouteSafePoint::retryReady(const mission_s &mission) const
@@ -175,9 +134,7 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	evaluation.executor_source_changed = !sourceMatches(mission);
 	_waiting_for_inputs = false;
 
-	// Inactive estimates are hypothetical: discard their direction and jump
-	// anchor before the next estimate or initial activation, even if inputs
-	// are pending. Preserve actual RTL progress through temporary fallback.
+	// Only an active Return keeps its flown direction and jump anchor, also through a fallback.
 	if (!missionMatches(mission) || !rtl_active) {
 		_direction_reversed = false;
 		_active_jump_anchor = {};
@@ -209,17 +166,13 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 		return evaluation;
 	}
 
-	const uint32_t safe_points_id = cache.safePointsId();
-	const int safe_point_count = cache.safePointCount();
-	const MissionViewProvider provider{cache, mission_view};
 	const mission_route::RtlRouteRequest request = buildPlannerRequest(mission, vehicle_status, global_position,
-			home_position, rtl_active, require_vtol_approach);
+			home_position, require_vtol_approach);
 	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence(), request.vehicle_position};
-	const MissionRoutePlanner planner{provider, &path_checker};
-	mission_route::RtlRoutePlan &plan = evaluation.plan;
-	const mission_route::FailureReason failure = planner.planRtlRoute(request, plan);
+	const MissionRoutePlanner planner{cache, &path_checker};
+	const mission_route::FailureReason failure = planner.planRtlRoute(request, _plan);
 
-	if (failure != mission_route::FailureReason::kNone || !plan.valid()) {
+	if (failure != mission_route::FailureReason::kNone) {
 		// Inputs were ready, so a fence check failure here repeats for this scene: do not retry.
 		// Inactive estimates replan every 2 s, so only log a new reason.
 		if (failure != _last_failure) {
@@ -232,26 +185,20 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 
 	_last_failure = mission_route::FailureReason::kNone;
 
-	const bool safe_point_goal = plan.goal_type == mission_route::GoalType::kSafePoint;
-
-	if (safe_point_goal && (plan.safe_point_index < 0 || plan.safe_point_index >= UINT8_MAX)) {
-		PX4_ERR("RTL type 7 safe-point index out of range");
-		return evaluation;
-	}
-
-	evaluation.goal_land_approach = safe_point_goal
-					? selectGoalLandApproach(provider, plan, vehicle_status, home_position, wind)
-					: loiter_point_s{};
-	_direction_reversed = plan.direction_reversed;
-	_active_jump_anchor = plan.active_jump_anchor;
+	const bool safe_point_goal = _plan.goal_type == mission_route::GoalType::kSafePoint;
+	_goal_land_approach = safe_point_goal
+			      ? selectGoalLandApproach(cache, _plan.safe_point_index, vehicle_status, home_position, wind)
+			      : loiter_point_s{};
+	_direction_reversed = _plan.direction_reversed;
+	_active_jump_anchor = _plan.active_jump_anchor;
 	_source = {
 		.mission_id = mission.mission_id,
 		.mission_generation = mission_view.generation,
-		.safe_points_id = safe_points_id,
+		.safe_points_id = cache.safePointsId(),
 		.geofence_id = mission.geofence_id,
 		.mission_land_index = mission.land_index,
 		.mission_count = mission.count,
-		.safe_point_count = static_cast<uint16_t>(safe_point_count),
+		.safe_point_count = static_cast<uint16_t>(cache.safePointCount()),
 		.mission_dataman_id = mission.mission_dataman_id,
 		.safe_points_dataman_id = mission.safepoint_dataman_id,
 		.fence_dataman_id = mission.fence_dataman_id,
@@ -259,9 +206,7 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	};
 
 	evaluation.success = true;
-	evaluation.destination = {plan.goal_position.lat, plan.goal_position.lon, plan.goal_position.alt, NAN};
-	evaluation.safe_point_index = safe_point_goal ? static_cast<uint8_t>(plan.safe_point_index) : UINT8_MAX;
-	evaluation.any_safe_point_has_land_approach = mission_route::anySafePointHasVtolLandApproach(provider, home_position.alt);
+	evaluation.any_safe_point_has_land_approach = mission_route::anySafePointHasVtolLandApproach(cache, home_position.alt);
 	return evaluation;
 }
 
@@ -284,16 +229,14 @@ mission_route::RtlRouteRequest RtlRouteSafePoint::buildPlannerRequest(const miss
 		const vehicle_status_s &vehicle_status,
 		const vehicle_global_position_s &global_position,
 		const home_position_s &home_position,
-		bool rtl_active,
 		bool require_vtol_approach) const
 {
 	mission_route::RtlRouteRequest request{};
 	request.vehicle_position = {global_position.lat, global_position.lon, global_position.alt};
 	request.mission_index = mission.current_seq >= 0 ? mission.current_seq : 0;
 	request.mission_land_index = mission.land_index;
-	// Only an active return carries flown state; inactive estimates start from the nominal mission.
-	request.current_route_direction_reversed = rtl_active && _direction_reversed;
-	request.active_jump_anchor = rtl_active ? _active_jump_anchor : mission_route::ActiveJumpAnchor{};
+	request.current_route_direction_reversed = _direction_reversed;
+	request.active_jump_anchor = _active_jump_anchor;
 	request.projection_search_distance_m =
 		vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		? _param_mis_mc_seg_dist.get() : _param_mis_fw_seg_dist.get();
@@ -319,7 +262,7 @@ mission_route::RtlRouteRequest RtlRouteSafePoint::buildPlannerRequest(const miss
 }
 
 loiter_point_s RtlRouteSafePoint::selectGoalLandApproach(const mission_route::Provider &provider,
-		const mission_route::RtlRoutePlan &plan,
+		int safe_point_index,
 		const vehicle_status_s &vehicle_status,
 		const home_position_s &home_position,
 		const wind_s &wind)
@@ -330,9 +273,6 @@ loiter_point_s RtlRouteSafePoint::selectGoalLandApproach(const mission_route::Pr
 	}
 
 	const land_approaches_s approaches = mission_route::getVtolLandApproachesAtSafePointIndex(provider,
-					     plan.safe_point_index, home_position.alt);
-
-	const float wind_direction = atan2f(wind.windspeed_east, wind.windspeed_north);
-	return approaches.isAnyApproachValid()
-	       ? mission_route::chooseBestLandingApproach(approaches, wind_direction) : loiter_point_s{};
+					     safe_point_index, home_position.alt);
+	return mission_route::chooseBestLandingApproach(approaches, atan2f(wind.windspeed_east, wind.windspeed_north));
 }
