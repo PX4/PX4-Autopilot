@@ -135,9 +135,11 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 {
 	resetJoinRouteState();
 
+	// A finished mission holds as without the join, so the planned item must still be valid.
 	if (keep_mission_index
 	    || (_param_mis_route_join.get() == 0)
 	    || !isMissionValid()
+	    || !_is_current_planned_mission_item_valid
 	    || _land_detected_sub.get().landed
 	    || (_mission.count < 2)
 	    || (_mission.current_seq < 0)
@@ -207,7 +209,6 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	setMissionIndex(join_plan.first_mission_item_index);
 	// As for a user-selected index, MissionBase::on_activation() must not rewind to the paused leg.
 	_inactivation_index = -1;
-	_is_current_planned_mission_item_valid = isMissionValid();
 
 	// In nominal flight, this means the selected landing is already within acceptance radius.
 	// As in route Return, execute the landing directly instead of restoring the approach's VTOL state.
