@@ -29,7 +29,9 @@ class TesterInterfaceMavsdk(test_runner.TesterInterface):
             stderr=subprocess.STDOUT,
             universal_newlines=True)
         if p.returncode == PYTEST_NO_TESTS_COLLECTED:
-            return []
+            # Most likely a typo, which would otherwise silently skip tests.
+            print("No tests match the filter '{}'".format(filter))
+            sys.exit(1)
         if p.returncode != 0:
             print(p.stdout)
             print("Collecting tests with filter '{}' failed".format(filter))
