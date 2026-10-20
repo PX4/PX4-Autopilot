@@ -63,7 +63,7 @@ public:
 	void on_active() override;
 
 	bool isLanding() override { return isExecutingGoalStage(); }
-	mission_route::ActiveJumpAnchor activeJumpAnchor() const override { return _active_jump_anchor; }
+	mission_route::ActiveJumpAnchor activeJumpAnchor() const { return _active_jump_anchor; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
 	void configureRoute(const mission_route::RtlRoutePlan &plan, const loiter_point_s &goal_land_approach);
 
@@ -162,7 +162,6 @@ private:
 	bool _goal_mission_land_item_valid{false};
 	PlanState _state{};
 	RtlArrival _arrival{};
-	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 	loiter_point_s _goal_land_approach{};
 	float _goal_arrival_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator; /**< Time estimator consistent with other RTL modes. */
