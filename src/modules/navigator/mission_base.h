@@ -51,7 +51,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/Publication.hpp>
@@ -143,12 +142,12 @@ protected:
 		bool hold_current_position{false};
 	} _vtol_transition{};
 
-	/** Start shared execution; the caller keeps ownership of its target and cursor. */
+	/** Start a VTOL transition, first aligning towards alignment_target if given (it is copied). */
 	void startVtolTransition(const mission_item_s &command, const mission_item_s *alignment_target,
 				 WorkItemType completion_work, bool hold_current_position);
 	/** Return true when ready for the normal on_active() completion path. */
 	bool updateVtolTransition();
-	/** Prepare alignment or command setpoints; callers retain their mission-item semantics. */
+	/** Set _mission_item and the triplet for the alignment step (aligning) or the transition command. */
 	virtual void prepareVtolTransitionItem(bool aligning);
 	bool vtolTransitionActive() const { return _vtol_transition.command.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION; }
 	void resetVtolTransition() { _vtol_transition = {}; }
@@ -346,13 +345,6 @@ protected:
 	 * @return true if the mission was reset
 	 */
 	bool checkMissionRestart();
-
-	/**
-	 * @brief Check if the camera was triggering
-	 *
-	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
-	 */
-	bool cameraWasTriggering();
 
 	/** Allow modes with external mission ownership to ignore subscription updates. */
 	MISSION_ROUTE_HOOK bool shouldAcceptMissionUpdates() { return true; }
@@ -572,8 +564,6 @@ protected:
 	void updateMavlinkMission();
 
 private:
-	void set_mission_item_reached();
-
 	/**
 	 * @brief Maximum number of jump mission items iterations
 	 *
@@ -590,6 +580,10 @@ private:
 	bool loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
 			       MissionTraversalType traversal_type, bool direction_backward);
 
+	/**
+	 * Set a mission item as reached
+	 */
+	void set_mission_item_reached();
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	bool handleJoinRouteWaypoint();
@@ -650,6 +644,13 @@ private:
 	 *
 	 */
 	void replayCachedSpeedChangeItems();
+
+	/**
+	 * @brief Check if the camera was triggering
+	 *
+	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
+	 */
+	bool cameraWasTriggering();
 
 	/**
 	 * @brief Parameters update
