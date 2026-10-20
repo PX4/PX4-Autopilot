@@ -113,7 +113,7 @@ struct Scenario {
 	std::vector<mission_fence_point_s> fence_points;
 	std::string action{"RTL"};
 	bool has_vehicle{false};
-	// Superset of MissionResumeRequest, so one SET table serves both entry points.
+	// An RtlRouteRequest is also a MissionResumeRequest, so one SET table serves both entry points.
 	RtlRouteRequest request{};
 };
 
@@ -430,8 +430,7 @@ void printPosition(const char *prefix, const Position &position)
 	printf("PLAN %s_alt %.3f\n", prefix, static_cast<double>(position.alt));
 }
 
-template<typename PlanT>
-void printJoin(const PlanT &plan)
+void printJoin(const MissionResumePlan &plan)
 {
 	printf("PLAN valid %d\n", static_cast<int>(plan.valid()));
 	printPosition("join", plan.join_position);
@@ -475,24 +474,8 @@ void runPlanner(const Scenario &scenario, const PathChecker *checker = nullptr)
 		return;
 	}
 
-	const RtlRouteRequest &source = scenario.request;
-	MissionResumeRequest request{};
-	request.vehicle_position = source.vehicle_position;
-	request.mission_index = source.mission_index;
-	request.current_route_direction_reversed = source.current_route_direction_reversed;
-	request.active_jump_anchor = source.active_jump_anchor;
-	request.home_altitude_amsl = source.home_altitude_amsl;
-	request.projection_search_distance_m = source.projection_search_distance_m;
-	request.acceptance_radius_m = source.acceptance_radius_m;
-	request.is_fixed_wing = source.is_fixed_wing;
-	request.in_transition_to_fw = source.in_transition_to_fw;
-	request.is_vtol = source.is_vtol;
-	request.velocity_north_m_s = source.velocity_north_m_s;
-	request.velocity_east_m_s = source.velocity_east_m_s;
-	request.fw_u_turn_penalty_m = source.fw_u_turn_penalty_m;
-
 	MissionResumePlan plan{};
-	const FailureReason status = planner.planMissionResumeJoin(request, plan);
+	const FailureReason status = planner.planMissionResumeJoin(scenario.request, plan);
 	printStatus(status);
 
 	if (status == FailureReason::kNone) {
