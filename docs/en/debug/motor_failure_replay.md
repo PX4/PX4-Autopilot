@@ -212,11 +212,11 @@ Read the two columns separately, because they set the two sweeps.
 The deepest `min` across all logs and motors is what the undercurrent band has to clear, and the highest `max` is what the overcurrent band has to clear.
 On this vehicle they are very different, about −2.2 A against +7.8 A, which is the whole reason for two bands.
 
-**2. Sweep each band against its hold time.**
+**2. Sweep each band against its trigger time.**
 
 `sweep_matrix.sh` sweeps one direction while parking the other at a value nothing reaches, and prints
-how many logs false-trip at each (hold time, band) pair.
-The first `0` in a row is the lowest band that hold time supports.
+how many logs false-trip at each (trigger time, band) pair.
+The first `0` in a row is the lowest band that trigger time supports.
 
 ```bash
 export C2T=6.91 IDLE=0.37   # the model you fitted
@@ -224,85 +224,85 @@ src/lib/motor_failure_detector/tools/sweep_matrix.sh ~/logs/healthy under
 src/lib/motor_failure_detector/tools/sweep_matrix.sh ~/logs/healthy over
 ```
 
-Set the grid from the `min`/`max` you just read, with `HOLDS` and `BANDS`:
+Set the grid from the `min`/`max` you just read, with `TRIGGER_TIMES` and `BANDS`:
 
 - **Bands** run from the healthy noise up to that side's extreme.
   Roughly twice the residual sigma makes a sensible bottom, since below that every log trips.
   On the undercurrent side the top is the expected current at hover: a band above it cannot be reached even by a rotor that has stopped completely.
-  The overcurrent side has no such ceiling, so start at its `max` and come down by spending hold time instead of amplitude.
-- **Hold times** come from the latency you can accept.
-  A latch takes about `0.1 s` of sampling plus `0.2 s` of filter plus the hold, so a fault that destabilises the vehicle wants well under a second, while a thermal fault can wait seconds.
+  The overcurrent side has no such ceiling, so start at its `max` and come down by spending trigger time instead of amplitude.
+- **Trigger times** come from the latency you can accept.
+  A latch takes about `0.1 s` of sampling plus `0.2 s` of filter plus the trigger time, so a fault that destabilises the vehicle wants well under a second, while a thermal fault can wait seconds.
 
 ```bash
-HOLDS="0.1 0.3 0.5 0.7 1.0" BANDS="1.0 1.25 1.5 1.75 2.0 2.5 3.0" \
+TRIGGER_TIMES="0.1 0.3 0.5 0.7 1.0" BANDS="1.0 1.25 1.5 1.75 2.0 2.5 3.0" \
   src/lib/motor_failure_detector/tools/sweep_matrix.sh ~/logs/healthy under
 ```
 
 ```text
-hold[s]      1.0   1.25    1.5   1.75    2.0    2.5    3.0   <- MOTFAIL_UNDER [A]  (logs tripped)
-0.1            3      2      2      2      2      1      0
-0.3            2      2      2      2      1      1      0
-0.5            2      2      1      1      1      0      0
-0.7            2      1      1      0      0      0      0
-1.0            1      1      1      0      0      0      0
+trigger[s]     1.0   1.25    1.5   1.75    2.0    2.5    3.0   <- MOTFAIL_UNDER [A]  (logs tripped)
+0.1              3      2      2      2      2      1      0
+0.3              2      2      2      2      1      1      0
+0.5              2      2      1      1      1      0      0
+0.7              2      1      1      0      0      0      0
+1.0              1      1      1      0      0      0      0
 ```
 
 Each row gives one answer.
 Walk it from left to right and stop at the first `0`:
 
-| hold  | lowest band with no trips |
-| ----- | ------------------------- |
-| 0.1 s | 3.0 A                     |
-| 0.3 s | 3.0 A                     |
-| 0.5 s | 2.5 A                     |
-| 0.7 s | 1.75 A                    |
-| 1.0 s | 1.75 A                    |
+| trigger time | lowest band with no trips |
+| ------------ | ------------------------- |
+| 0.1 s        | 3.0 A                     |
+| 0.3 s        | 3.0 A                     |
+| 0.5 s        | 2.5 A                     |
+| 0.7 s        | 1.75 A                    |
+| 1.0 s        | 1.75 A                    |
 
 Now compare each floor against this side's ceiling, the expected current at hover, which is about 3.0 A here.
 
 That makes the top two rows unusable rather than merely cautious: the smallest band that avoids false positives is already the band a total failure at hover cannot reach.
 The 0.5 s row sits just under the ceiling, which leaves almost nothing for a partial loss.
-By 0.7 s the floor has dropped to 1.75 A, which leaves real room below the ceiling, and holding longer gains nothing.
+By 0.7 s the floor has dropped to 1.75 A, which leaves real room below the ceiling, and a longer trigger time gains nothing.
 That is what picks 0.7 s here, rather than taste.
 
 **Sweep coarse, then refine.**
 The first grid only has to show which zone is interesting; a second, finer pass finds the edge.
 
 The overcurrent side is the example.
-Run on the default grid, `sweep_matrix.sh ~/logs/healthy over` puts every zero in the 2.5 s row, which says the floor is 0.5 A or lower and the hold that reaches it is 2.5 s or shorter, but not what either actually is.
-Re-running with finer holds and smaller bands:
+Run on the default grid, `sweep_matrix.sh ~/logs/healthy over` puts every zero in the 2.5 s row, which says the floor is 0.5 A or lower and the trigger time that reaches it is 2.5 s or shorter, but not what either actually is.
+Re-running with finer trigger times and smaller bands:
 
 ```bash
-HOLDS="1.5 1.75 2.0 2.25 2.5" BANDS="0.2 0.3 0.5 0.75 1.0 1.5 2.0 3.0" \
+TRIGGER_TIMES="1.5 1.75 2.0 2.25 2.5" BANDS="0.2 0.3 0.5 0.75 1.0 1.5 2.0 3.0" \
   src/lib/motor_failure_detector/tools/sweep_matrix.sh ~/logs/healthy over
 ```
 
 ```text
-hold[s]      0.2    0.3    0.5   0.75    1.0    1.5    2.0    3.0   <- MOTFAIL_OVER [A]  (logs tripped)
-1.5            3      3      2      1      1      1      1      1
-1.75           2      1      0      0      0      0      0      0
-2.0            2      1      0      0      0      0      0      0
-2.25           2      1      0      0      0      0      0      0
-2.5            2      1      0      0      0      0      0      0
+trigger[s]     0.2    0.3    0.5   0.75    1.0    1.5    2.0    3.0   <- MOTFAIL_OVER [A]  (logs tripped)
+1.5              3      3      2      1      1      1      1      1
+1.75             2      1      0      0      0      0      0      0
+2.0              2      1      0      0      0      0      0      0
+2.25             2      1      0      0      0      0      0      0
+2.5              2      1      0      0      0      0      0      0
 ```
 
 Two things are readable now.
 The floor is 0.5 A, since 0.3 A still trips a log.
-And it arrives abruptly between 1.5 s and 1.75 s: at 1.5 s even a 3.0 A band trips, at 1.75 s a 0.5 A band is clean, and every longer hold is identical.
+And it arrives abruptly between 1.5 s and 1.75 s: at 1.5 s even a 3.0 A band trips, at 1.75 s a 0.5 A band is clean, and every longer trigger time is identical.
 
 That second part is physics rather than a coincidence of the grid.
-The benign excursion that sets this side must last between 1.5 s and 1.75 s, so a hold past it rejects the excursion completely while a hold just short of it rejects nothing.
+The benign excursion that sets this side must last between 1.5 s and 1.75 s, so a trigger time past it rejects the excursion completely while a trigger time just short of it rejects nothing.
 
 Choosing from a pair of tables like these:
 
-- On the **fault side**, latency decides the hold, and the band takes some margin above the floor.
+- On the **fault side**, latency decides the trigger time, and the band takes some margin above the floor.
   How much is your call, and it depends on how much data the floor came from.
   A floor measured on three flights is a sample rather than the worst case, so something like 30% hedges against the next flight going deeper, turning a 1.75 A floor into 2.25 A.
   With hundreds of flights behind it, the measured floor is already close to the real one and you can sit nearer to it.
 - On the **nuisance side** there is no ceiling from physics, so the band is set by what you want to catch rather than by what a fault can reach.
-  Pick the smallest over-draw worth flagging, find the shortest hold whose floor is below it, then hold a little longer than that.
-  The floor drops at whatever hold outlasts the benign excursion, so the shortest hold that works is sitting on its edge.
-  The extra hold costs only latency, and these faults are thermal.
+  Pick the smallest over-draw worth flagging, find the shortest trigger time whose floor is below it, then go a little longer than that.
+  The floor drops at whatever trigger time outlasts the benign excursion, so the shortest trigger time that works is sitting on its edge.
+  The extra trigger time costs only latency, and these faults are thermal.
 
 ::: warning
 If you write your own sweep instead of using the script, write it in `bash` and pass the `--set` flags

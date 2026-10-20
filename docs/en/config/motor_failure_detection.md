@@ -53,7 +53,7 @@ For every armed motor, the check runs the following four steps at 10 Hz in [comm
 3. **Compute two trip bands.**
 
    The filtered residual fluctuates around zero even on a healthy motor, from noise and model error.
-   A trip happens when it leaves that band and stays out, with a separate width and hold time per direction:
+   A trip happens when it leaves that band and stays out, with a separate width and trigger time per direction:
 
    ```text
    undercurrent: LPF(I_measured - I_expected) < -MOTFAIL_UNDER   held for MOTFAIL_UND_TIME
@@ -107,8 +107,8 @@ Vehicles with more rotors than the minimum can keep flying with one removed.
 
 ## Choosing Parameter Values
 
-There are two things to calibrate, in this order: the current model ([MOTFAIL_C2T](#MOTFAIL_C2T) and [MOTFAIL_IDLE](#MOTFAIL_IDLE)), then the two bands and their hold times ([MOTFAIL_UNDER](#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) and [MOTFAIL_OVER](#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME)).
-The goal is the smallest bands and shortest hold times that still never trip across a set of healthy flights.
+There are two things to calibrate, in this order: the current model ([MOTFAIL_C2T](#MOTFAIL_C2T) and [MOTFAIL_IDLE](#MOTFAIL_IDLE)), then the two bands and their trigger times ([MOTFAIL_UNDER](#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) and [MOTFAIL_OVER](#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME)).
+The goal is the smallest bands and shortest trigger times that still never trip across a set of healthy flights.
 That is a tradeoff: a wider band held longer is more robust against false positives; a narrower band held for less time reacts sooner when a motor really does fail.
 
 Both stages are fitted from the vehicle's own logs, which have to come from _healthy_ flights covering the throttle range it really uses, including climbs and aggressive manoeuvres.
@@ -132,9 +132,9 @@ Those flights are what set the achievable thresholds.
 
    Around 30% above the lowest false-positive-free value is a reasonable starting point, so a set that first stays clean at 3.0 A might be configured at 4.0 A.
 
-3. **Check the hold time as well as the band.**
+3. **Check the trigger time as well as the band.**
 
-   A trip needs the residual to stay outside the band for the whole hold time, so a longer hold allows a lower band.
+   A trip needs the residual to stay outside the band for the whole trigger time, so a longer trigger time allows a lower band.
    How much it allows is very different in the two directions.
 
    The table below is from 6 healthy flights of one 6-rotor vehicle drawing about 8 A per motor in hover, and gives the lowest band that never trips on any motor of any of those flights:
@@ -161,8 +161,8 @@ Those flights are what set the achievable thresholds.
 
    The values are specific to that vehicle, but the pattern is general.
    The overcurrent band gains a lot from waiting longer, from 6.0 A at 0.4 s down to 1.0 A at 2.5 s, because the healthy current transients that set it are large but brief.
-   The undercurrent band gains much less, 3.5 A down to 2.5 A over ten times the hold, and most of what it gains is already there at 0.3 s, because what limits it is steady model error and waiting does not make that go away.
-   A long hold is affordable on the overcurrent side, where the faults are thermal and a few seconds cost nothing, and not on the undercurrent side, where a stopped rotor has to be caught in about a second.
+   The undercurrent band gains much less, 3.5 A down to 2.5 A over ten times the trigger time, and most of what it gains is already there at 0.3 s, because what limits it is steady model error and waiting does not make that go away.
+   A long trigger time is affordable on the overcurrent side, where the faults are thermal and a few seconds cost nothing, and not on the undercurrent side, where a stopped rotor has to be caught in about a second.
 
 4. **Work out what the configuration can detect.**
 
@@ -203,7 +203,7 @@ The vehicle still flies, so the command stays near hover and the residual stays 
   A motor that draws the expected current but produces no thrust, such as one with a slipping propeller adapter, is not detected.
 - **The flag is latched** until disarm, so a fault that recovers stays flagged for the rest of the flight.
 - **Detection is not instantaneous.**
-  The 10 Hz check rate, the 0.2 s filter and the hold time all add up.
+  The 10 Hz check rate, the 0.2 s filter and the trigger time all add up.
   Expect a few hundred milliseconds at best, and about a second in practice for a complete loss.
 
 ## Parameters

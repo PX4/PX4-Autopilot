@@ -81,7 +81,7 @@ MotorFailureDetector::Config makeConfig()
 	cfg.current_idle_a = 2.88f;
 	cfg.residual_lpf_tau_s = 0.2f;
 	cfg.overcurrent_threshold_a = 5.0f;
-	cfg.overcurrent_persistence_s = 0.4f;
+	cfg.overcurrent_trigger_time_s = 0.4f;
 	return cfg;
 }
 
@@ -95,9 +95,9 @@ constexpr std::array kParamBinds {
 	ParamBind{"MOTFAIL_C2T",  &MotorFailureDetector::Config::current_slope_a},
 	ParamBind{"MOTFAIL_IDLE", &MotorFailureDetector::Config::current_idle_a},
 	ParamBind{"MOTFAIL_OVER", &MotorFailureDetector::Config::overcurrent_threshold_a},
-	ParamBind{"MOTFAIL_OVR_TIME", &MotorFailureDetector::Config::overcurrent_persistence_s},
+	ParamBind{"MOTFAIL_OVR_TIME", &MotorFailureDetector::Config::overcurrent_trigger_time_s},
 	ParamBind{"MOTFAIL_UNDER", &MotorFailureDetector::Config::undercurrent_threshold_a},
-	ParamBind{"MOTFAIL_UND_TIME", &MotorFailureDetector::Config::undercurrent_persistence_s},
+	ParamBind{"MOTFAIL_UND_TIME", &MotorFailureDetector::Config::undercurrent_trigger_time_s},
 };
 constexpr int kNumParams = (int)kParamBinds.size();
 
@@ -501,12 +501,12 @@ int main(int argc, char **argv)
 
 	if (cfg.undercurrent_threshold_a > 0.f) {
 		std::snprintf(band_desc.data(), band_desc.size(), "< -%.2f for %.2f s or > %.2f for %.2f s",
-			      (double)cfg.undercurrent_threshold_a, (double)cfg.undercurrent_persistence_s,
-			      (double)cfg.overcurrent_threshold_a, (double)cfg.overcurrent_persistence_s);
+			      (double)cfg.undercurrent_threshold_a, (double)cfg.undercurrent_trigger_time_s,
+			      (double)cfg.overcurrent_threshold_a, (double)cfg.overcurrent_trigger_time_s);
 
 	} else {
 		std::snprintf(band_desc.data(), band_desc.size(), "exceeds +-%.2f for %.2f s",
-			      (double)cfg.overcurrent_threshold_a, (double)cfg.overcurrent_persistence_s);
+			      (double)cfg.overcurrent_threshold_a, (double)cfg.overcurrent_trigger_time_s);
 	}
 
 	std::printf("# %s  (%d phases, %ld %s)\n"

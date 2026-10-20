@@ -36,9 +36,9 @@
  *
  * Per-motor current-residual motor-failure detector: expected current from the
  * commanded signal (linear, I = slope*u + idle), fault latched when the low-passed
- * residual holds past a trip band for the persistence time.
+ * residual holds past a trip band for the trigger time.
  *
- * Band and persistence are per direction: benign transients are much larger on the
+ * Band and trigger time are per direction: benign transients are much larger on the
  * overcurrent side, so one shared band makes the undercurrent side -- where a stopped motor
  * or a lost prop shows up -- inherit a limit the fault itself never reaches.
  */
@@ -65,21 +65,21 @@ public:
 		float current_idle_a;              ///< expected current at zero command [A]
 		float residual_lpf_tau_s;          ///< residual LPF time constant [s]
 		float overcurrent_threshold_a;     ///< trip band above expected current [A]; <= 0 => check disabled
-		float overcurrent_persistence_s;   ///< time above the overcurrent band before latching [s]
+		float overcurrent_trigger_time_s;  ///< time above the overcurrent band before latching [s]
 		float undercurrent_threshold_a;    ///< same, below expected current; <= 0 => mirrors the overcurrent band
-		float undercurrent_persistence_s;  ///< same, below expected current
+		float undercurrent_trigger_time_s; ///< same, below expected current
 	};
 
 	struct MotorStatus {
-		float residual;        ///< signed residual I - I_expected [A], floored at -I_expected
-		float residual_lpf;    ///< low-pass filtered residual [A]
+		float residual;                     ///< signed residual I - I_expected [A], floored at -I_expected
+		float residual_lpf;                 ///< low-pass filtered residual [A]
 		bool  failed;          ///< latched failure decision
 		bool  excluded;        ///< not evaluated this step (reversible or NaN command)
 	};
 
 	MotorFailureDetector() { reset(); }
 
-	/** Set the model, bands and persistence times. Keeps filter, debounce and latch state. */
+	/** Set the model, bands and trigger times. Keeps filter, debounce and latch state. */
 	void configure(const Config &cfg);
 
 	/** Reset all per-motor state (filters, debounce, latch). */

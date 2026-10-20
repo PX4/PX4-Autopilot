@@ -51,7 +51,7 @@ MotorFailureDetector::Config makeConfig()
 	cfg.current_slope_a = 21.f;
 	cfg.residual_lpf_tau_s = 0.2f;
 	cfg.overcurrent_threshold_a = 5.f;
-	cfg.overcurrent_persistence_s = 0.5f;
+	cfg.overcurrent_trigger_time_s = 0.5f;
 	return cfg;
 }
 
@@ -70,13 +70,13 @@ void run(MotorFailureDetector &d, hrt_abstime &now, float seconds, float dt, flo
 	}
 }
 
-// Sustained open failure at fixed dt for >> persistence; did it latch? Isolates the kMaxGap boundary.
+// Sustained open failure at fixed dt for >> trigger time; did it latch? Isolates the kMaxGap boundary.
 bool latchesAtCadence(float dt)
 {
 	MotorFailureDetector d;
-	d.configure(makeConfig());                             // persistence 0.5 s
+	d.configure(makeConfig());                             // trigger time 0.5 s
 	hrt_abstime now = 0;
-	run(d, now, 3.f, dt, 0.3f, [](float) { return 0.f; }); // 3 s >> persistence
+	run(d, now, 3.f, dt, 0.3f, [](float) { return 0.f; }); // 3 s >> trigger time
 	return d.anyFailed();
 }
 } // namespace
@@ -92,7 +92,7 @@ TEST(MotorFailureDetectorTest, HealthyNeverTrips)
 	EXPECT_LT(std::fabs(d.status(0).residual_lpf), 0.1f);
 }
 
-// Commanded high but current collapses to ~0 -> trips after persistence.
+// Commanded high but current collapses to ~0 -> trips after the trigger time.
 TEST(MotorFailureDetectorTest, OpenFailureTrips)
 {
 	MotorFailureDetector d;
@@ -119,7 +119,7 @@ TEST(MotorFailureDetectorTest, UndercurrentBandCatchesWhatSymmetricMisses)
 	ASSERT_FALSE(symmetric.anyFailed());                     // one wide band cannot see it
 
 	cfg.undercurrent_threshold_a = 2.f;
-	cfg.undercurrent_persistence_s = 0.5f;
+	cfg.undercurrent_trigger_time_s = 0.5f;
 	MotorFailureDetector asymmetric;
 	asymmetric.configure(cfg);
 	now = 0;
@@ -135,7 +135,7 @@ TEST(MotorFailureDetectorTest, UndercurrentBandDoesNotArmTheOvercurrentSide)
 	MotorFailureDetector::Config cfg = makeConfig();
 	cfg.overcurrent_threshold_a = 8.f;
 	cfg.undercurrent_threshold_a = 2.f;
-	cfg.undercurrent_persistence_s = 0.5f;
+	cfg.undercurrent_trigger_time_s = 0.5f;
 
 	MotorFailureDetector d;
 	d.configure(cfg);
@@ -145,14 +145,14 @@ TEST(MotorFailureDetectorTest, UndercurrentBandDoesNotArmTheOvercurrentSide)
 	EXPECT_GT(d.status(0).residual_lpf, 2.f);
 }
 
-// Each side keeps its own persistence: a collapse latches on the undercurrent time, not the
+// Each side keeps its own trigger time: a collapse latches on the undercurrent time, not the
 // overcurrent one.
-TEST(MotorFailureDetectorTest, PerSidePersistence)
+TEST(MotorFailureDetectorTest, PerSideTriggerTime)
 {
 	MotorFailureDetector::Config cfg = makeConfig();
-	cfg.overcurrent_persistence_s = 5.f;                     // far longer than the run below
+	cfg.overcurrent_trigger_time_s = 5.f;                    // far longer than the run below
 	cfg.undercurrent_threshold_a = 2.f;
-	cfg.undercurrent_persistence_s = 0.2f;
+	cfg.undercurrent_trigger_time_s = 0.2f;
 
 	MotorFailureDetector d;
 	d.configure(cfg);
@@ -161,14 +161,14 @@ TEST(MotorFailureDetectorTest, PerSidePersistence)
 	EXPECT_TRUE(d.anyFailed());                              // latched on 0.2 s, not 5 s
 }
 
-// A fault that crosses the threshold but recovers before the persistence window must not latch
+// A fault that crosses the threshold but recovers before the trigger time must not latch
 // (exercises the debounce-reject path: the residual goes over-threshold, then clears).
 TEST(MotorFailureDetectorTest, ShortSpikeDoesNotLatch)
 {
 	MotorFailureDetector d;
 	d.configure(makeConfig());
 	hrt_abstime now = 0;
-	run(d, now, 0.4f, kDt, 0.3f, [](float) { return 0.f; });   // residual crosses threshold ~0.1 s < 0.5 s persistence
+	run(d, now, 0.4f, kDt, 0.3f, [](float) { return 0.f; });   // residual crosses threshold ~0.1 s < 0.5 s trigger time
 	ASSERT_GT(std::fabs(d.status(0).residual_lpf), makeConfig().overcurrent_threshold_a); // genuinely over-threshold...
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return kBase; });  // ...then recovers before latching
 	EXPECT_FALSE(d.anyFailed());
@@ -222,7 +222,7 @@ TEST(MotorFailureDetectorTest, RegenerationBoundedButStopStillTrips)
 {
 	MotorFailureDetector::Config cfg = makeConfig();
 	cfg.undercurrent_threshold_a = 4.f;                      // above I_exp at u = 0.15 (3.15 A)
-	cfg.undercurrent_persistence_s = 0.5f;
+	cfg.undercurrent_trigger_time_s = 0.5f;
 
 	MotorFailureDetector regen;
 	regen.configure(cfg);
@@ -240,11 +240,11 @@ TEST(MotorFailureDetectorTest, RegenerationBoundedButStopStillTrips)
 	EXPECT_EQ(stopped.firstFailed(), 0);
 }
 
-// A data gap mid-build must RESET the persistence debounce, not just avoid latching in one step.
-TEST(MotorFailureDetectorTest, GapResetsPersistenceTimer)
+// A data gap mid-build must RESET the trigger-time debounce, not just avoid latching in one step.
+TEST(MotorFailureDetectorTest, GapResetsTriggerTimer)
 {
 	MotorFailureDetector d;
-	d.configure(makeConfig());                                  // persistence 0.5 s
+	d.configure(makeConfig());                                  // trigger time 0.5 s
 	hrt_abstime now = 0;
 	run(d, now, 0.45f, kDt, 0.3f, [](float) { return 0.f; });   // fault building, < 0.5 s, not latched
 	ASSERT_FALSE(d.anyFailed());
@@ -305,7 +305,7 @@ TEST(MotorFailureDetectorTest, MonitorOnlyNeverLatches)
 TEST(MotorFailureDetectorTest, DropoutHoldsTimerAndStaysFinite)
 {
 	MotorFailureDetector d;
-	d.configure(makeConfig());                                // persistence 0.5 s
+	d.configure(makeConfig());                                // trigger time 0.5 s
 	hrt_abstime now = 0;
 	run(d, now, 0.45f, kDt, 0.3f, [](float) { return 0.f; });  // fault building, not yet latched
 	ASSERT_FALSE(d.anyFailed());
@@ -318,7 +318,7 @@ TEST(MotorFailureDetectorTest, DropoutHoldsTimerAndStaysFinite)
 TEST(MotorFailureDetectorTest, LargeDtGapNoLatch)
 {
 	MotorFailureDetector d;
-	d.configure(makeConfig());                            // persistence 0.5 s
+	d.configure(makeConfig());                            // trigger time 0.5 s
 	const float cmd[1] = {0.3f}, cur[1] = {0.f};
 	const bool rev[1] = {false};
 	hrt_abstime now = 0;
@@ -334,7 +334,7 @@ TEST(MotorFailureDetectorTest, ExclusionReentryNoStaleTrip)
 	MotorFailureDetector d;
 	d.configure(makeConfig());
 	hrt_abstime now = 0;
-	run(d, now, 0.3f, kDt, 0.3f, [](float) { return 0.f; });   // big residual (< persistence)
+	run(d, now, 0.3f, kDt, 0.3f, [](float) { return 0.f; });   // big residual (< trigger time)
 	run(d, now, 1.f, kDt, NAN, [](float) { return 0.f; });     // excluded (motor commanded off)
 	ASSERT_TRUE(d.status(0).excluded);
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return kBase; });  // healthy again
