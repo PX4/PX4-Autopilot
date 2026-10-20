@@ -360,6 +360,7 @@
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
     - [Analog Video Transmitters](vtx/index.md)
+    - [IP-Based Radios](ip_based_radios/index.md)
 
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)
