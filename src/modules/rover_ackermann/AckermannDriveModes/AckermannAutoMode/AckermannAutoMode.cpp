@@ -80,7 +80,6 @@ void AckermannAutoMode::autoControl()
 							_waypoint_transition_angle, _max_yaw_rate);
 		rover_position_setpoint.cruising_speed = _cruising_speed;
 		rover_position_setpoint.yaw = NAN;
-		rover_position_setpoint.course = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 	}
 

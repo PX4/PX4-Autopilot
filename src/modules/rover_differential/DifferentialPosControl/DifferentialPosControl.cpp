@@ -60,7 +60,7 @@ void DifferentialPosControl::updatePosControl()
 	const bool course_control = PX4_ISFINITE(_course) && _start_ned.isAllFinite();
 	Vector2f target_waypoint_ned = _target_waypoint_ned;
 
-	if (course_control) { // takes precedence over the target
+	if (course_control) {
 		const Vector2f course_direction(cosf(_course), sinf(_course));
 		const float distance_along_course = fabsf((_curr_pos_ned - _start_ned) * course_direction);
 		target_waypoint_ned = _start_ned + (distance_along_course + _param_pp_lookahd_max.get()) * course_direction;
@@ -175,7 +175,20 @@ void DifferentialPosControl::updateSubscriptions()
 		_cruising_speed = PX4_ISFINITE(rover_position_setpoint.cruising_speed) ? rover_position_setpoint.cruising_speed :
 				  _param_ro_speed_limit.get();
 		_target_waypoint_ned = Vector2f(rover_position_setpoint.target_ned[0], rover_position_setpoint.target_ned[1]);
-		_course = rover_position_setpoint.course;
+		_course = NAN;
+		_stopped = false;
+	}
+
+	if (_surface_vehicle_course_setpoint_sub.updated()) {
+		surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint;
+		_surface_vehicle_course_setpoint_sub.copy(&surface_vehicle_course_setpoint);
+		_start_ned = Vector2f(surface_vehicle_course_setpoint.start_ned[0], surface_vehicle_course_setpoint.start_ned[1]);
+		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
+		_arrival_speed = 0.f;
+		_cruising_speed = PX4_ISFINITE(surface_vehicle_course_setpoint.cruising_speed) ?
+				  surface_vehicle_course_setpoint.cruising_speed : _param_ro_speed_limit.get();
+		_target_waypoint_ned = Vector2f(NAN, NAN);
+		_course = surface_vehicle_course_setpoint.course;
 		_stopped = false;
 	}
 }

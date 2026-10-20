@@ -88,7 +88,6 @@ void DifferentialAutoMode::autoControl()
 							_param_ro_speed_limit.get(), _param_rd_trans_drv_trn.get(), _param_ro_speed_red.get(), curr_wp_type);
 		rover_position_setpoint.cruising_speed = cruising_speed;
 		rover_position_setpoint.yaw = NAN;
-		rover_position_setpoint.course = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 	}
 }

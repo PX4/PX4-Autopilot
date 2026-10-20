@@ -68,7 +68,6 @@ void AckermannOffboardMode::offboardControl()
 		rover_position_setpoint.cruising_speed = NAN;
 		rover_position_setpoint.arrival_speed = NAN;
 		rover_position_setpoint.yaw = NAN;
-		rover_position_setpoint.course = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
 	} else if (offboard_control_mode.velocity) {

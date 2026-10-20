@@ -89,7 +89,6 @@ void MecanumAutoMode::autoControl()
 		rover_position_setpoint.cruising_speed = cruising_speed;
 		rover_position_setpoint.yaw = PX4_ISFINITE(position_setpoint_triplet.current.yaw) ?
 					      position_setpoint_triplet.current.yaw : NAN;
-		rover_position_setpoint.course = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 	}
 }

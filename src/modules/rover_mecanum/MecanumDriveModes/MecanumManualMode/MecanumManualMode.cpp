@@ -44,6 +44,7 @@ MecanumManualMode::MecanumManualMode(ModuleParams *parent) : ModuleParams(parent
 	_rover_attitude_setpoint_pub.advertise();
 	_rover_speed_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
+	_surface_vehicle_course_setpoint_pub.advertise();
 }
 
 void MecanumManualMode::updateParams()
@@ -207,7 +208,6 @@ void MecanumManualMode::position()
 		rover_position_setpoint.arrival_speed = NAN;
 		rover_position_setpoint.cruising_speed = NAN;
 		rover_position_setpoint.yaw = NAN;
-		rover_position_setpoint.course = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
 	} else { // Course control
@@ -228,17 +228,14 @@ void MecanumManualMode::position()
 			_pos_ctl_course_direction = pos_ctl_course_direction_temp;
 		}
 
-		rover_position_setpoint_s rover_position_setpoint{};
-		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.target_ned[0] = NAN;
-		rover_position_setpoint.target_ned[1] = NAN;
-		rover_position_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
-		rover_position_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
-		rover_position_setpoint.arrival_speed = NAN;
-		rover_position_setpoint.cruising_speed = velocity_setpoint_ned.norm();
-		rover_position_setpoint.yaw = _pos_ctl_yaw_setpoint;
-		rover_position_setpoint.course = atan2f(_pos_ctl_course_direction(1), _pos_ctl_course_direction(0));
-		_rover_position_setpoint_pub.publish(rover_position_setpoint);
+		surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint{};
+		surface_vehicle_course_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_course_setpoint.course = atan2f(_pos_ctl_course_direction(1), _pos_ctl_course_direction(0));
+		surface_vehicle_course_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
+		surface_vehicle_course_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
+		surface_vehicle_course_setpoint.cruising_speed = velocity_setpoint_ned.norm();
+		surface_vehicle_course_setpoint.yaw = _pos_ctl_yaw_setpoint;
+		_surface_vehicle_course_setpoint_pub.publish(surface_vehicle_course_setpoint);
 	}
 }
 

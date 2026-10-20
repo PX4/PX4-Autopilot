@@ -44,6 +44,7 @@ AckermannManualMode::AckermannManualMode(ModuleParams *parent) : ModuleParams(pa
 	_rover_attitude_setpoint_pub.advertise();
 	_rover_speed_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
+	_surface_vehicle_course_setpoint_pub.advertise();
 }
 
 void AckermannManualMode::updateParams()
@@ -209,7 +210,6 @@ void AckermannManualMode::position()
 		rover_position_setpoint.arrival_speed = NAN;
 		rover_position_setpoint.cruising_speed = NAN;
 		rover_position_setpoint.yaw = NAN;
-		rover_position_setpoint.course = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
 	} else { // Course control
@@ -219,17 +219,14 @@ void AckermannManualMode::position()
 			_pos_ctl_start_position_ned = _curr_pos_ned;
 		}
 
-		rover_position_setpoint_s rover_position_setpoint{};
-		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.target_ned[0] = NAN;
-		rover_position_setpoint.target_ned[1] = NAN;
-		rover_position_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
-		rover_position_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
-		rover_position_setpoint.arrival_speed = NAN;
-		rover_position_setpoint.cruising_speed = speed_setpoint;
-		rover_position_setpoint.yaw = NAN;
-		rover_position_setpoint.course = _pos_ctl_course;
-		_rover_position_setpoint_pub.publish(rover_position_setpoint);
+		surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint{};
+		surface_vehicle_course_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_course_setpoint.course = _pos_ctl_course;
+		surface_vehicle_course_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
+		surface_vehicle_course_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
+		surface_vehicle_course_setpoint.cruising_speed = speed_setpoint;
+		surface_vehicle_course_setpoint.yaw = NAN;
+		_surface_vehicle_course_setpoint_pub.publish(surface_vehicle_course_setpoint);
 	}
 }
 
