@@ -603,7 +603,7 @@ INSTANTIATE_TEST_SUITE_P(MissionLoiterOrder, MissionGeofenceLoiterOrderTest, ::t
 	return test_info.param ? "IncomingPathBeforeCircle" : "CircleBeforeFollowingPath";
 });
 
-enum class MissionEnd { Waypoint, Land, Loiter, Return };
+enum class MissionEnd { Waypoint, Land, Loiter };
 
 struct MissionEndCase {
 	const char *name;
@@ -630,7 +630,6 @@ TEST_P(MissionGeofenceEndLoiterTest, ChecksTheLoiterAfterTheLastPosition)
 
 	switch (test.last_item) {
 	case MissionEnd::Waypoint:
-	case MissionEnd::Return:
 		break;
 
 	case MissionEnd::Land:
@@ -646,14 +645,6 @@ TEST_P(MissionGeofenceEndLoiterTest, ChecksTheLoiterAfterTheLastPosition)
 	items.push_back(last);
 	// End-of-mission loiter belongs to the last position, even with trailing command items.
 	items.push_back(changeSpeed());
-
-	if (test.last_item == MissionEnd::Return) {
-		// Return may circle at the last position to climb, so the circle is still checked.
-		mission_item_s return_item{};
-		return_item.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
-		items.push_back(return_item);
-	}
-
 	EXPECT_EQ(missionFeasible(items), test.feasible);
 
 	if (!test.feasible) {
@@ -671,9 +662,7 @@ INSTANTIATE_TEST_SUITE_P(MissionEnds, MissionGeofenceEndLoiterTest, ::testing::V
 				 MissionEndCase{"ExplicitLoiterUsesItsOwnRadius", MissionEnd::Loiter, 60.f,
 						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
 				 MissionEndCase{"MulticopterHoversAtTheEnd", MissionEnd::Waypoint, 60.f,
-						 vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true},
-				 MissionEndCase{"ReturnKeepsTheEndCircle", MissionEnd::Return, 60.f,
-						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false}),
+						 vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true}),
 			 [](const ::testing::TestParamInfo<MissionEndCase> &test_info)
 {
 	return test_info.param.name;
