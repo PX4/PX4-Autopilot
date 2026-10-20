@@ -335,6 +335,7 @@ private:
 
 	void cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
 	void cb_save_params(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
+	void cb_reset_node(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result);
 
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vcmd_sub{ORB_ID(vehicle_command)};

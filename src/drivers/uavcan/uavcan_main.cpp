@@ -217,7 +217,7 @@ UavcanNode::reset_node(int remote_node_id)
 	uavcan::protocol::RestartNode::Request restart_req;
 	restart_req.magic_number = restart_req.MAGIC_NUMBER;
 	uavcan::ServiceClient<uavcan::protocol::RestartNode, RestartNodeCallback> client(_node);
-	client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
+	client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_reset_node));
 	_callback_success = false;
 	int call_res = client.call(remote_node_id, restart_req);
 
@@ -227,8 +227,13 @@ UavcanNode::reset_node(int remote_node_id)
 		}
 	}
 
-	if (!call_res) {
+	if (call_res < 0) {
 		std::printf("Failed to reset node: %d\n", remote_node_id);
+		return -1;
+	}
+
+	if (!_callback_success) {
+		std::printf("No restart confirmation from node: %d (it may have rebooted without replying)\n", remote_node_id);
 		return -1;
 	}
 
@@ -268,6 +273,12 @@ UavcanNode::list_params(int remote_node_id)
 
 void
 UavcanNode::cb_save_params(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
+{
+	_callback_success = result.isSuccessful() && result.getResponse().ok;
+}
+
+void
+UavcanNode::cb_reset_node(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result)
 {
 	_callback_success = result.isSuccessful() && result.getResponse().ok;
 }
