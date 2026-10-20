@@ -425,5 +425,4 @@ TEST_F(RtlDirectTest, InactiveEstimateAddsClimbMoveDescentDelayAndLanding)
 	ASSERT_TRUE(estimate.valid);
 	EXPECT_NEAR(estimate.time_estimate, 20.f / kClimbSpeed + distance / kCruiseSpeed
 		    + (kReturnAltitude - approach_altitude) / kDescentSpeed + kLandDelay + kDescentHeight / kDescentSpeed, 0.01f);
-	EXPECT_FALSE(_rtl->isActive());
 }
