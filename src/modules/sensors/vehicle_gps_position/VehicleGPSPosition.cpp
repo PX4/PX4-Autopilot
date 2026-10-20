@@ -224,7 +224,10 @@ void VehicleGPSPosition::Run()
 
 		if (_sensor_gnss_sub[i].update(&gnss_data)) {
 			any_gnss_updated = true;
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 			_two_receiver_gnss_updated[i] = true;
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 			const GpsParamSlot *slot = findParamSlot(gnss_data.device_id, i);
 			const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
