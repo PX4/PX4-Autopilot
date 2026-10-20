@@ -168,7 +168,6 @@ private:
 	bool _heading_no_baseline_reported{false};
 	int _moving_base_slot{-1}; ///< SENS_GNSSn_* slot of the moving base of a moving base pair, or -1
 
-	sensor_gnss_s _gnss_data[GPS_MAX_RECEIVERS] {};
 	bool _two_receiver_gnss_updated[GPS_MAX_RECEIVERS] {};
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
