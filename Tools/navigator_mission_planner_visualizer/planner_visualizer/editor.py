@@ -84,10 +84,8 @@ class Editor:
     def add_fence_point(self, point: Tuple[float, float], inclusion: bool, radius_m: Optional[float]) -> bool:
         """Add a circle center or a draft polygon vertex. Drafts never enter the planning scene."""
         if radius_m is not None:
-            if self.draft_fence is not None or not math.isfinite(radius_m) or radius_m <= 0:
-                return False
             fence = Fence(inclusion, [point], radius_m)
-            if fence in self.fences:
+            if self.draft_fence is not None or fence.problem() or fence in self.fences:
                 return False
             self._checkpoint()
             self.fences.append(fence)

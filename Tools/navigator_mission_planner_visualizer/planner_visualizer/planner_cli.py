@@ -6,7 +6,6 @@ traces, one entry per line. See planner_cli/src for its source and the build com
 
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-import math
 import shlex
 import subprocess
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -171,19 +170,13 @@ def encode(scene: Scene, request: PlanRequest, vehicle: Optional[Position] = Non
 
 def _encode_fence(fence: Fence) -> str:
     """Encode geometry only; the PX4 loader validates and checks the actual fence."""
+    problem = fence.problem()
+    if problem:
+        raise ValueError(problem)
     kind = "INCLUSION" if fence.inclusion else "EXCLUSION"
-    if not fence.vertices or any(
-        not math.isfinite(lat) or not math.isfinite(lon) or abs(lat) > 90 or abs(lon) > 180
-        for lat, lon in fence.vertices
-    ):
-        raise ValueError("Geofence coordinates must be finite latitude/longitude values.")
     coordinates = " ".join(f"{lat:.9f} {lon:.9f}" for lat, lon in fence.vertices)
     if fence.radius_m is not None:
-        if len(fence.vertices) != 1 or not math.isfinite(fence.radius_m) or fence.radius_m <= 0:
-            raise ValueError("A geofence circle needs one center and a positive radius in meters.")
         return f"FENCE_CIRCLE {kind} {coordinates} {fence.radius_m:.3f}"
-    if len(fence.vertices) < 3:
-        raise ValueError("A geofence polygon needs at least three vertices.")
     return f"FENCE_POLYGON {kind} {len(fence.vertices)} {coordinates}"
 
 
