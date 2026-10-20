@@ -181,14 +181,16 @@ public:
 
 	mission_route::ActiveJumpAnchor jumpAnchorForNextNominalAdvance()
 	{
-		mission_route::ActiveJumpAnchor anchor{};
-		updateActiveJumpAnchorForNominalAdvance(anchor);
-		return anchor;
+		_active_jump_anchor = {};
+		updateActiveJumpAnchorForNominalAdvance();
+		return _active_jump_anchor;
 	}
 
 	void updateJumpAnchorForNextNominalAdvance(mission_route::ActiveJumpAnchor &anchor)
 	{
-		updateActiveJumpAnchorForNominalAdvance(anchor);
+		_active_jump_anchor = anchor;
+		updateActiveJumpAnchorForNominalAdvance();
+		anchor = _active_jump_anchor;
 	}
 
 	void setupJoinRouteForTest(const mission_route::MissionResumePlan &plan)
