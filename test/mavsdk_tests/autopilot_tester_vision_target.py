@@ -16,7 +16,7 @@ from typing import Any, Dict, Optional
 from mavsdk.plugins.telemetry import LandedState  # type: ignore
 
 from autopilot_tester import (
-    MAV_CMD_NAV_LAND, MAV_CMD_NAV_WAYPOINT, MAV_COMP_ID_AUTOPILOT1, MAV_FRAME_GLOBAL_RELATIVE_ALT,
+    MAV_CMD_NAV_LAND, MAV_CMD_NAV_WAYPOINT, MAV_FRAME_GLOBAL_RELATIVE_ALT,
     TEST_DIR, AutopilotTester, log, raw_mission_item)
 from geometry import CoordinateTransformation
 
@@ -115,16 +115,6 @@ class AutopilotTesterVisionTarget(AutopilotTester):
         self.upload_mission_raw([waypoint, land])
         self._mission_raw.start_mission()
 
-    def _send_command_long(self, command: int, param1: float = 0.0, param2: float = 0.0,
-                           param3: float = 0.0) -> None:
-        self.send_mavlink_message("COMMAND_LONG", {
-            "target_system": self._target_system_id(),
-            "target_component": MAV_COMP_ID_AUTOPILOT1,
-            "command": command, "confirmation": 0,
-            "param1": param1, "param2": param2, "param3": param3,
-            "param4": 0, "param5": 0, "param6": 0, "param7": 0,
-        })
-
     def _on_landing_target(self, message: Any, _user_data: Any) -> None:
         fields = json.loads(message.fields_json)
         with self._estimate_lock:
@@ -136,17 +126,17 @@ class AutopilotTesterVisionTarget(AutopilotTester):
 
         # PX4 streams the VTE output as LANDING_TARGET, with the relative position in x, y, z.
         self._mavlink_direct.subscribe_message("LANDING_TARGET", self._on_landing_target)
-        self._send_command_long(MAV_CMD_SET_MESSAGE_INTERVAL,
-                                param1=MAVLINK_MSG_ID_LANDING_TARGET,
-                                param2=50000)  # 20 Hz
+        self.send_command_long(MAV_CMD_SET_MESSAGE_INTERVAL,
+                               param1=MAVLINK_MSG_ID_LANDING_TARGET,
+                               param2=50000)  # 20 Hz
 
         if scenario == Scenario.MISSION:
             self._start_landing_mission()
         else:
-            self._send_command_long(MAV_CMD_DO_SET_MODE,
-                                    param1=MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
-                                    param2=PX4_CUSTOM_MAIN_MODE_AUTO,
-                                    param3=PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND)
+            self.send_command_long(MAV_CMD_DO_SET_MODE,
+                                   param1=MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+                                   param2=PX4_CUSTOM_MAIN_MODE_AUTO,
+                                   param3=PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND)
 
         # Use simulator time for flight deadlines so speedup does not change the scenario.
         start_us = int(self._telemetry.ground_truth().timestamp_us)

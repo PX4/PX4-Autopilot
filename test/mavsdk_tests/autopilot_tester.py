@@ -52,6 +52,12 @@ MAV_FRAME_MISSION = 2
 MAV_MISSION_TYPE_MISSION = 0
 MAV_COMP_ID_AUTOPILOT1 = 1
 MAVLINK_MSG_ID_HOME_POSITION = 242
+MAV_RESULT_ACCEPTED = 0
+MAV_RESULT_IN_PROGRESS = 5
+
+# Like MAVSDK's command sender, but in host time with a longer timeout for sanitizer builds.
+COMMAND_ACK_TIMEOUT_S = 1.0
+COMMAND_ATTEMPTS = 3
 
 # Frames in which x/y of a raw mission item are latitude/longitude.
 MAV_GLOBAL_FRAMES = (0, 3, 5, 6, 10, 11)
@@ -493,14 +499,7 @@ class AutopilotTester:
         handle = self._mavlink_direct.subscribe_message("HOME_POSITION", on_message)
         try:
             # Ask for it rather than relying on the periodic stream timing.
-            self.send_mavlink_message("COMMAND_LONG", {
-                "target_system": self._target_system_id(),
-                "target_component": MAV_COMP_ID_AUTOPILOT1,
-                "command": MAV_CMD_REQUEST_MESSAGE,
-                "confirmation": 0,
-                "param1": MAVLINK_MSG_ID_HOME_POSITION,
-                "param2": 0, "param3": 0, "param4": 0, "param5": 0, "param6": 0, "param7": 0,
-            })
+            self.send_command_long(MAV_CMD_REQUEST_MESSAGE, param1=MAVLINK_MSG_ID_HOME_POSITION)
             assert self.poll_condition_with_timeout(lambda: bool(received), timeout_s), \
                 "No HOME_POSITION received"
         finally:
@@ -807,17 +806,61 @@ class AutopilotTester:
             message_name=name, system_id=0, component_id=0, target_system_id=0,
             target_component_id=0, fields_json=fields_json))
 
+    def send_command_long(self, command: int, param1: float = 0.0, param2: float = 0.0,
+                          param3: float = 0.0, param4: float = 0.0, param5: float = 0.0,
+                          param6: float = 0.0, param7: float = 0.0,
+                          expected_result: int = MAV_RESULT_ACCEPTED) -> None:
+        """Send a COMMAND_LONG and check its COMMAND_ACK."""
+        self._send_command("COMMAND_LONG", {
+            "target_system": self._target_system_id(),
+            "target_component": MAV_COMP_ID_AUTOPILOT1,
+            "command": command, "confirmation": 0,
+            "param1": param1, "param2": param2, "param3": param3, "param4": param4,
+            "param5": param5, "param6": param6, "param7": param7,
+        }, expected_result)
+
     def send_command_int(self, command: int, param1: float = 0.0, param2: float = 0.0,
                          param3: float = 0.0, param4: float = 0.0, x: int = 0, y: int = 0,
-                         z: float = 0.0, frame: int = MAV_FRAME_GLOBAL_INT) -> None:
-        """Send a COMMAND_INT once, without waiting for the ack."""
-        self.send_mavlink_message("COMMAND_INT", {
+                         z: float = 0.0, frame: int = MAV_FRAME_GLOBAL_INT,
+                         expected_result: int = MAV_RESULT_ACCEPTED) -> None:
+        """Send a COMMAND_INT and check its COMMAND_ACK."""
+        self._send_command("COMMAND_INT", {
             "target_system": self._target_system_id(),
             "target_component": MAV_COMP_ID_AUTOPILOT1,
             "frame": frame, "command": command, "current": 0, "autocontinue": 0,
             "param1": param1, "param2": param2, "param3": param3, "param4": param4,
             "x": x, "y": y, "z": z,
-        })
+        }, expected_result)
+
+    def _send_command(self, message_name: str, fields: Dict[str, Any],
+                      expected_result: int) -> None:
+        """Send a command until it is acked, then check the result."""
+        command = fields["command"]
+        results: List[int] = []
+        acked = threading.Event()
+
+        def on_ack(message: Any, _user_data: Any) -> None:
+            ack = json.loads(message.fields_json)
+            if ack["command"] == command and ack["result"] != MAV_RESULT_IN_PROGRESS:
+                results.append(int(ack["result"]))
+                acked.set()
+
+        handle = self._mavlink_direct.subscribe_message("COMMAND_ACK", on_ack)
+        try:
+            for attempt in range(COMMAND_ATTEMPTS):
+                if message_name == "COMMAND_LONG":
+                    fields["confirmation"] = attempt
+                self.send_mavlink_message(message_name, fields)
+                if acked.wait(COMMAND_ACK_TIMEOUT_S):
+                    break
+        finally:
+            self.unsubscribe(self._mavlink_direct, self._mavlink_direct.unsubscribe_message,
+                             handle)
+
+        assert results, "No COMMAND_ACK for command {} after {} attempts".format(
+            command, COMMAND_ATTEMPTS)
+        assert results[0] == expected_result, \
+            "Command {} result {}, expected {}".format(command, results[0], expected_result)
 
     # ------------------------------------------------------------------
     # Position monitors
