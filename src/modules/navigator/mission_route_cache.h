@@ -53,8 +53,6 @@ class MissionRouteCache : public mission_route::Provider
 public:
 	// Planner/provider reads are cache-only and must not block on dataman.
 	static constexpr hrt_abstime kCacheOnlyLoadWait{0};
-	static constexpr hrt_abstime kCacheRetryBackoff{500000}; // 500 ms
-	static constexpr uint8_t kMaxRetryBackoffShift{3}; // Retry 3+: 500ms << 3 = 4000 ms.
 	static constexpr int32_t kMaxFullMissionCacheSize{FullMissionCache::kMaxMissionCacheSize};
 	static constexpr uint32_t kInitialSafePointCacheSize{0};
 	static constexpr uint32_t kInitialLandItemCacheSize{1};
@@ -165,29 +163,6 @@ private:
 		kError
 	};
 
-	// Shared retry/backoff bookkeeping for the land and safe-point caches.
-	struct RetryBackoff {
-		hrt_abstime retry_at{0};
-		uint8_t retry_count{0};
-
-		bool due(hrt_abstime now) const { return retry_at != 0 && now >= retry_at; }
-		void clear()
-		{
-			retry_at = 0;
-			retry_count = 0;
-		}
-
-		void scheduleRetry(hrt_abstime now)
-		{
-			const uint8_t backoff_shift = (retry_count < kMaxRetryBackoffShift) ? retry_count : kMaxRetryBackoffShift;
-			retry_at = now + (kCacheRetryBackoff << backoff_shift);
-
-			if (retry_count < UINT8_MAX) {
-				++retry_count;
-			}
-		}
-	};
-
 	struct MissionLandState {
 		uint32_t mission_id{0};
 		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
@@ -195,19 +170,18 @@ private:
 		int32_t count{0}; ///< Published mission.count the index was validated against.
 		bool ready{false};
 		bool validation_pending{false};
-		RetryBackoff retry{};
+		CacheRetryBackoff retry{};
 	};
 
 	struct SafePointState {
 		SafePointDatamanState dataman_state{SafePointDatamanState::kUpdateRequestWait};
 		mission_stats_entry_s read_stats{};   ///< Async DM_KEY_SAFE_POINTS_STATE read buffer.
-		mission_stats_entry_s cached_stats{}; ///< Identity of the safe-point set currently in the RAM cache.
+		mission_stats_entry_s cached_stats{}; ///< Stats of the safe-point set in the RAM cache, valid while ready.
 		uint32_t source_id{0};                ///< Active mission.safe_points_id being tracked.
 		uint8_t source_dataman_id{DM_KEY_SAFE_POINTS_0}; ///< Active mission.safepoint_dataman_id being tracked.
-		uint32_t cached_source_id{0};         ///< mission.safe_points_id the RAM cache was built for.
 		bool ready{false};
 		bool update_requested{true};
-		RetryBackoff retry{};
+		CacheRetryBackoff retry{};
 	};
 
 	void updateMissionLandItemCache(const mission_s &mission);
@@ -217,8 +191,6 @@ private:
 	void updateSafePointCache(const mission_s &mission);
 	bool missionLandItemCacheFullyLoaded() const;
 	bool safePointCacheFullyLoaded() const;
-	bool safePointCacheMatchesReadStats() const;
-	void publishSafePointCache();
 	void resetSafePointCacheState(bool clear_source_identity);
 
 	// Navigator accesses MissionRouteCache from one serialized task loop. The
