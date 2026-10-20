@@ -67,16 +67,7 @@ MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed
 	_mission.safe_points_id = 0;
 
 	_mission_pub.advertise();
-
 }
-
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-bool MissionBase::vehicleInFwLikeState(const vehicle_status_s &vehicle_status)
-{
-	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-	       || vehicle_status.in_transition_to_fw;
-}
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 void
 MissionBase::updateDatamanCache()
@@ -235,20 +226,19 @@ MissionBase::on_activation()
 
 	update_mission();
 
-	// Restore commands that remain active across normal Mission waypoints.
+	// reset the cache and fill it with the items up to the previous item. The cache contains
+	// commands that are valid for the whole mission, not just a single waypoint.
+	// The route follower never fills it, so it replays nothing.
 	if (shouldReplayMissionActionItems() && _mission.current_seq > 0) {
 		resetItemCache();
 		updateCachedItemsUpToIndex(_mission.current_seq - 1);
-
-	} else if (!shouldReplayMissionActionItems()) {
-		resetItemCache();
 	}
 
 	int32_t resume_index = _inactivation_index > 0 ? _inactivation_index : 0;
 
 	bool resume_mission_on_previous = false;
 
-	if (shouldReplayMissionActionItems() && _inactivation_index > 0 && cameraWasTriggering()) {
+	if (_inactivation_index > 0 && cameraWasTriggering()) {
 		size_t num_found_items{0U};
 		getPreviousPositionItems(_inactivation_index, &resume_index, num_found_items, 1U);
 
@@ -263,7 +253,7 @@ MissionBase::on_activation()
 		}
 	}
 
-	if (shouldReplayMissionActionItems() && !resume_mission_on_previous) {
+	if (!resume_mission_on_previous) {
 		// Only replay speed changes immediately if we are not resuming the mission at the previous position item.
 		// Otherwise it must be handled in the on_active() method once we reach the previous position item.
 		replayCachedSpeedChangeItems();
@@ -343,24 +333,22 @@ MissionBase::on_active()
 		_align_heading_necessary = false;
 	}
 
-	if (shouldReplayMissionActionItems()) {
-		// Replay camera mode commands immediately upon mission resume.
-		replayCachedCameraModeItems();
+	// Replay camera mode commands immediately upon mission resume
+	replayCachedCameraModeItems();
 
-		// Replay gimbal commands after the vehicle reaches the final target altitude.
-		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
-			replayCachedGimbalItems();
+	// Replay cached gimbal commands immediately upon mission resume, but only after the vehicle has reached the final target altitude
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+		replayCachedGimbalItems();
+	}
+
+	// Replay cached trigger and deferred speed commands after reaching the mission's resume waypoint.
+	if (_mission.current_seq > _mission_activation_index) {
+		if (cameraWasTriggering()) {
+			replayCachedTriggerItems();
 		}
 
-		// Replay cached trigger and deferred speed commands after reaching the mission's resume waypoint.
-		if (_mission.current_seq > _mission_activation_index) {
-			if (cameraWasTriggering()) {
-				replayCachedTriggerItems();
-			}
-
-			// Replaying clears the cached command, so subsequent cycles have nothing to repeat.
-			replayCachedSpeedChangeItems();
-		}
+		// Replaying clears the cached command, so subsequent cycles have nothing to repeat.
+		replayCachedSpeedChangeItems();
 	}
 
 	/* lets check if we reached the current mission item */
@@ -382,7 +370,6 @@ MissionBase::on_active()
 	if (!_param_mis_mnt_yaw_ctl.get()
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 	    && (_navigator->get_vroi().mode != vehicle_roi_s::ROI_NONE)
-	    && !vtolTransitionActive()
 	    && !(_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 		 || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
 		 || _mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
@@ -1013,7 +1000,7 @@ bool MissionBase::cameraWasTriggeringAtPause()
 	updateCachedItemsUpToIndex(_inactivation_index - 1);
 	const bool camera_was_triggering = cameraWasTriggering();
 
-	// on_activation() rebuilds the cache for the index it resumes at.
+	// Leave the action cache empty (resetItemCache() keeps the speed item); on_activation() refills it past item 0.
 	resetItemCache();
 	_last_speed_change_item = {};
 	return camera_was_triggering;
@@ -1595,6 +1582,12 @@ bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previo
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+bool MissionBase::vehicleInFwLikeState(const vehicle_status_s &vehicle_status)
+{
+	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	       || vehicle_status.in_transition_to_fw;
+}
+
 uint8_t MissionBase::getVtolStateAtMissionIndex(int32_t anchor_index)
 {
 	uint8_t vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
