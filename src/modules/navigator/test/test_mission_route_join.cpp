@@ -666,6 +666,29 @@ TEST_F(MissionRouteJoinTest, TransitionAlreadyInModeIsReportedAsCurrentItem)
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 1);
 }
 
+TEST_F(MissionRouteJoinTest, TransitionWaitingForBackTransitionIsReportedAsCurrentItem)
+{
+	// A front transition reached during a back transition becomes the current item while it waits.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, false, true);
+	publishGlobalPosition(position);
+	publishLocalPosition();
+	publishLandDetected(false);
+	publishHomePosition(position);
+	primeNavigatorState();
+	prepareExecution(mission, {makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+				   makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+				   makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt)
+				  }, 141);
+	ASSERT_EQ(mission.currentSequenceForTest(), 0);
+
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_current, 1);
+}
+
 // Rejoin picks the closest loop exit of a DO_JUMP mission, not the first iteration.
 TEST_F(MissionRouteJoinTest, MissionSmartRejoinUsesShortestLoopExit)
 {
