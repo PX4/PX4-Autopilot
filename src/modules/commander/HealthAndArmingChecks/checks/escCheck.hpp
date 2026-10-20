@@ -49,6 +49,7 @@ public:
 	~EscChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
+	void updateParams() override;
 
 	uint16_t getMotorFailureMask() const { return _motor_failure_mask; }
 	bool getEscArmStatus() const { return _esc_arm_hysteresis.get_state(); }
@@ -68,8 +69,7 @@ private:
 	void checkEscTemperature(Report &reporter, const esc_status_s &esc_status);
 
 	void configureMotorFailureDetector();
-
-	static constexpr float MOTOR_FAILURE_LPF_TAU_S = 0.2f; ///< residual low-pass time constant [s]
+	void resetMotorFailureDetector();
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
@@ -82,7 +82,6 @@ private:
 	bool _esc_over_temp_warned{false};
 	systemlib::Hysteresis _esc_arm_hysteresis;
 	MotorFailureDetector _motor_failure_detector;
-	bool _motor_failure_configured{false};   ///< guards a one-time lazy configure() on the first armed cycle
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,

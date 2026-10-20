@@ -79,7 +79,7 @@ public:
 
 	MotorFailureDetector() { reset(); }
 
-	/** Set the model, bands and persistence times, and reset all state. */
+	/** Set the model, bands and persistence times. Keeps filter, debounce and latch state. */
 	void configure(const Config &cfg);
 
 	/** Reset all per-motor state (filters, debounce, latch). */

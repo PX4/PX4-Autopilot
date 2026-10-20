@@ -89,6 +89,9 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		if (_param_fd_act_en.get() > 0) {
 			updateEscsStatus(context, reporter, esc_status, now);
 			mask |= checkMotorStatus(context, reporter, esc_status);
+
+		} else {
+			resetMotorFailureDetector();
 		}
 
 		if (_param_esc_temp_warn_th.get() >= FLT_EPSILON) {
@@ -277,10 +280,6 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 	uint16_t mask = 0;
 
 	if (context.status().arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-		// If no disarmed cycle configured us first (FD_ACT_EN toggled while armed, or ESCs that only
-		// report while spinning), configure once here -- else the detector stays disabled and never trips.
-		if (!_motor_failure_configured) { configureMotorFailureDetector(); }
-
 		actuator_motors_s actuator_motors{};
 		_actuator_motors_sub.copy(&actuator_motors);
 
@@ -371,15 +370,22 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 		}
 
 	} else {
-		// Disarmed: re-apply parameters (also resets detector state) for the next arm.
-		configureMotorFailureDetector();
+		resetMotorFailureDetector();
 	}
 
 	return mask;
 }
 
+void EscChecks::updateParams()
+{
+	HealthAndArmingCheckBase::updateParams();
+	configureMotorFailureDetector();
+}
+
 void EscChecks::configureMotorFailureDetector()
 {
+	static constexpr float MOTOR_FAILURE_LPF_TAU_S = 0.2f; ///< residual low-pass time constant [s]
+
 	MotorFailureDetector::Config cfg{};
 	cfg.current_slope_a = _param_motfail_c2t.get();
 	cfg.current_idle_a = _param_motfail_idle.get();
@@ -388,11 +394,14 @@ void EscChecks::configureMotorFailureDetector()
 	cfg.overcurrent_persistence_s = _param_motfail_ovr_time.get();
 	cfg.undercurrent_threshold_a = _param_motfail_under.get();
 	cfg.undercurrent_persistence_s = _param_motfail_und_time.get();
+	_motor_failure_detector.configure(cfg);
+}
+
+void EscChecks::resetMotorFailureDetector()
+{
+	_motor_failure_detector.reset();
 
 	for (int motor = 0; motor < MotorFailureDetector::kMaxMotors; ++motor) { _motor_failure_direction[motor] = 0; }
-
-	_motor_failure_detector.configure(cfg);
-	_motor_failure_configured = true;
 }
 
 void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)

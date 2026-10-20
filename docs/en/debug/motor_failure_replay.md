@@ -360,7 +360,7 @@ This gives the full per-motor table for every log instead of the one-line summar
 - **Real faults**, unless the log contains one.
   There is no fault injection: to study the true-positive side, replay a log from a flight where a motor really failed, or modify a log so that the current of one motor reflects the fault you want to study.
 - **Parameter changes during the log.**
-  On the vehicle the detector is reconfigured whenever it is disarmed; the replay configures it once and evaluates only the armed samples.
+  On the vehicle the detector is reset whenever it is disarmed and reconfigured on parameter change; the replay configures it once, resets it on disarm and evaluates only the armed samples.
 - **Anything outside the current check.**
   The ESC telemetry timeout, the arming checks and the failure response all live elsewhere in the firmware and are not part of this tool.
 

@@ -47,21 +47,22 @@ void MotorFailureDetector::configure(const Config &cfg)
 		_cfg.undercurrent_persistence_s = _cfg.overcurrent_persistence_s;
 	}
 
-	reset();
-}
-
-void MotorFailureDetector::reset()
-{
 	const hrt_abstime overcurrent_persistence_us = (hrt_abstime)(_cfg.overcurrent_persistence_s * 1_s);
 	const hrt_abstime undercurrent_persistence_us = (hrt_abstime)(fmaxf(_cfg.undercurrent_persistence_s, 0.f) * 1_s);
 
 	for (int i = 0; i < kMaxMotors; ++i) {
+		_hyst_over[i].set_hysteresis_time_from(false, overcurrent_persistence_us);  // false = rising-edge debounce time
+		_hyst_under[i].set_hysteresis_time_from(false, undercurrent_persistence_us);
+	}
+}
+
+void MotorFailureDetector::reset()
+{
+	for (int i = 0; i < kMaxMotors; ++i) {
 		_status[i] = MotorStatus{};
 		_residual_lpf[i].reset(0.f);
-		_hyst_over[i] = systemlib::Hysteresis();
-		_hyst_over[i].set_hysteresis_time_from(false, overcurrent_persistence_us);  // false = rising-edge debounce time
-		_hyst_under[i] = systemlib::Hysteresis();
-		_hyst_under[i].set_hysteresis_time_from(false, undercurrent_persistence_us);
+		_hyst_over[i].set_state_and_update(false, 0);  // no falling-edge delay: clears immediately, keeps the debounce times
+		_hyst_under[i].set_state_and_update(false, 0);
 	}
 
 	_last_us = 0;

@@ -374,6 +374,19 @@ TEST(MotorFailureDetectorTest, ResetClearsLatch)
 	EXPECT_EQ(d.firstFailed(), -1);
 }
 
+// configure() (parameter change, possibly in flight) keeps the latch; only reset() clears it.
+TEST(MotorFailureDetectorTest, ConfigureKeepsLatch)
+{
+	MotorFailureDetector d;
+	d.configure(makeConfig());
+	hrt_abstime now = 0;
+	run(d, now, 3.f, kDt, 0.3f, [](float) { return 0.f; });
+	ASSERT_TRUE(d.anyFailed());
+	d.configure(makeConfig());
+	EXPECT_TRUE(d.anyFailed());
+	EXPECT_EQ(d.firstFailed(), 0);
+}
+
 // firstFailed() returns the lowest index among multiple failed motors.
 TEST(MotorFailureDetectorTest, MultiMotorFirstFailed)
 {
