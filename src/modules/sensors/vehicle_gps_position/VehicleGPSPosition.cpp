@@ -234,10 +234,6 @@ void VehicleGPSPosition::Run()
 
 			gnss_data.timestamp_sample = resolveSampleTimestamp(gnss_data.timestamp_sample, gnss_data.timestamp, delay_us);
 
-#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
-			storeGnssData(i, gnss_data);
-#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
-
 			const bool checks_passed = _gnss_checks[i].run(toChecksSample(gnss_data), _armed, _in_air, _at_rest);
 
 			if (_first_publication[i] == 0) {
@@ -360,7 +356,7 @@ void VehicleGPSPosition::UpdateGnssHeading()
 void VehicleGPSPosition::UpdateTwoReceiverHeading()
 {
 	for (int to = 0; to < GPS_MAX_RECEIVERS; to++) {
-		const sensor_gnss_s &to_gnss_data = _gnss_data[to];
+		const sensor_gnss_s &to_gnss_data = _latest_sample[to];
 		const uint32_t to_device_id = to_gnss_data.device_id;
 
 		if (to_device_id == 0 || !_gnss_checks[to].passed() || !_two_receiver_gnss_updated[to]) {
@@ -374,7 +370,7 @@ void VehicleGPSPosition::UpdateTwoReceiverHeading()
 		}
 
 		for (int from = 0; from < GPS_MAX_RECEIVERS; from++) {
-			const sensor_gnss_s &from_gnss_data = _gnss_data[from];
+			const sensor_gnss_s &from_gnss_data = _latest_sample[from];
 			const uint32_t from_device_id = from_gnss_data.device_id;
 
 			if (to == from || from_device_id == 0 || !_gnss_checks[from].passed() || !_two_receiver_gnss_updated[from]) {
@@ -650,11 +646,6 @@ int VehicleGPSPosition::findGnssInstance(uint32_t device_id) const
 	}
 
 	return -1;
-}
-
-void VehicleGPSPosition::storeGnssData(int instance, const sensor_gnss_s &gnss_data)
-{
-	_gnss_data[instance] = gnss_data;
 }
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
