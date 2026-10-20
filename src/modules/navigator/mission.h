@@ -127,7 +127,8 @@ private:
 	 */
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 
-	DEFINE_PARAMETERS(
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		MissionBase,
 		(ParamInt<px4::params::MIS_ROUTE_JOIN>)    _param_mis_route_join,
 		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist,
 		(ParamFloat<px4::params::MIS_FW_SEG_DIST>) _param_mis_fw_seg_dist
