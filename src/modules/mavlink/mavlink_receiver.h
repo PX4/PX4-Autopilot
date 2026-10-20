@@ -62,6 +62,7 @@
 #include <lib/systemlib/mavlink_log.h>
 
 #include <lib/failure_injection/FailureInjection.hpp>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -337,7 +338,9 @@ private:
 		uint8_t last_sequence{0};
 	};
 	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
-	unsigned _component_states_count{0};
+	// Written only by the receive thread, after the slot is filled in. Other threads
+	// read it via component_was_seen(), so entries below it are safe to read.
+	px4::atomic<unsigned> _component_states_count{0};
 	bool _warned_component_states_full_once{false};
 
 	bool _message_statistics_enabled {false};
