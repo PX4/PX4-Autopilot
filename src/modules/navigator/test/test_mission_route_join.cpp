@@ -217,23 +217,38 @@ protected:
 		ASSERT_EQ(param_set(handle, &value), PX4_OK) << name;
 	}
 
-	void writeMissionItems(const std::vector<mission_item_s> &items, dm_item_t dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0)
+	void writeMissionItems(const std::vector<mission_item_s> &items)
 	{
 		for (size_t i = 0; i < items.size(); ++i) {
 			mission_item_s item = items[i];
-			ASSERT_TRUE(_dataman_client.writeSync(dataman_id, i,
+			ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, i,
 							      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
 		}
 	}
 
-	void writeSafePointState(uint16_t num_items, uint32_t opaque_id = 1, dm_item_t dataman_id = DM_KEY_SAFE_POINTS_0)
+	// Stores the items with an empty rally set and publishes their mission state.
+	mission_s publishMissionItems(const std::vector<mission_item_s> &items, uint32_t mission_id, int32_t current_seq,
+				      int32_t land_index = -1)
 	{
-		mission_stats_entry_s stats{};
-		stats.num_items = num_items;
-		stats.opaque_id = opaque_id;
-		stats.dataman_id = static_cast<uint8_t>(dataman_id);
-		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
-						      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+		writeMissionItems(items);
+		mission_stats_entry_s rally_stats{};
+		rally_stats.opaque_id = mission_id;
+		rally_stats.dataman_id = DM_KEY_SAFE_POINTS_0;
+		EXPECT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
+						      reinterpret_cast<uint8_t *>(&rally_stats), sizeof(rally_stats)));
+		mission_s state{};
+		state.timestamp = hrt_absolute_time();
+		state.current_seq = current_seq;
+		state.land_start_index = land_index;
+		state.land_index = land_index;
+		state.mission_id = mission_id;
+		state.safe_points_id = mission_id;
+		state.count = items.size();
+		state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+		state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+		publishMission(state);
+		return state;
 	}
 
 	void publishMission(const mission_s &mission)
@@ -350,21 +365,7 @@ protected:
 	void pauseMission(MissionTestPeer &mission, const std::vector<mission_item_s> &items, int32_t pause_index,
 			  const mission_route::Position &resume_position)
 	{
-		writeMissionItems(items);
-		writeSafePointState(0, 71);
-
-		mission_s mission_state{};
-		mission_state.timestamp = hrt_absolute_time();
-		mission_state.current_seq = 1;
-		mission_state.land_start_index = -1;
-		mission_state.land_index = -1;
-		mission_state.mission_id = 71;
-		mission_state.safe_points_id = 71;
-		mission_state.count = items.size();
-		mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-		mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-		mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-		publishMission(mission_state);
+		const mission_s mission_state = publishMissionItems(items, 71, 1);
 		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 		publishLandDetected(false);
 		publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kBaseAlt));
@@ -689,8 +690,9 @@ TEST_F(MissionRouteJoinTest, TransitionWaitingForBackTransitionIsReportedAsCurre
 	EXPECT_EQ(_navigator.get_mission_result()->seq_current, 1);
 }
 
-// Rejoin picks the closest loop exit of a DO_JUMP mission, not the first iteration.
-TEST_F(MissionRouteJoinTest, MissionSmartRejoinUsesShortestLoopExit)
+// A rejoin skipped while the cache loads is reported; once the cache is ready the vehicle joins the
+// leg it is next to.
+TEST_F(MissionRouteJoinTest, MissionSmartRejoinWaitsForCacheThenJoinsNearestLeg)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
@@ -704,21 +706,7 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinUsesShortestLoopExit)
 		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kBaseAlt - 10.f),
 	};
 
-	writeMissionItems(mission_items);
-	writeSafePointState(0, 11);
-
-	mission_s mission_state{};
-	mission_state.timestamp = hrt_absolute_time();
-	mission_state.current_seq = 0;
-	mission_state.land_start_index = 4;
-	mission_state.land_index = 4;
-	mission_state.mission_id = 21;
-	mission_state.safe_points_id = 11;
-	mission_state.count = static_cast<uint16_t>(mission_items.size());
-	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-	publishMission(mission_state);
+	const mission_s mission_state = publishMissionItems(mission_items, 21, 0, 4);
 
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	publishLandDetected(false);
@@ -766,7 +754,6 @@ TEST_F(MissionRouteJoinTest, NominalJumpAnchorMatchesStoredCounterAndRouteRejoin
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kBaseAlt),
 		makeLandItemFromOffset(kBaseLat, kBaseLon, 500.f, 200.f, kBaseAlt - 20.f),
 	};
-	writeSafePointState(0, 51);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
 	// Both the loop edge and the post-loop segment are nearby. Continuity must select
@@ -778,19 +765,7 @@ TEST_F(MissionRouteJoinTest, NominalJumpAnchorMatchesStoredCounterAndRouteRejoin
 
 	for (bool fail_write : {false, true}) {
 		SCOPED_TRACE(fail_write);
-		writeMissionItems(items);
-		mission_s state{};
-		state.timestamp = hrt_absolute_time();
-		state.current_seq = 2;
-		state.land_start_index = 5;
-		state.land_index = 5;
-		state.mission_id = fail_write ? 52 : 51;
-		state.safe_points_id = 51;
-		state.count = items.size();
-		state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-		state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-		state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-		publishMission(state);
+		const mission_s state = publishMissionItems(items, fail_write ? 52 : 51, 2, 5);
 		updateRouteCacheUntilReady(state);
 		mission.on_inactive();
 		markMissionResultValid();
@@ -849,20 +824,7 @@ TEST_F(MissionRouteJoinTest, ResumingBeforeFirstFrontTransitionRequestsBackTrans
 				: makePositionItemFromOffset(kBaseLat, kBaseLon, index * 100.f, 0.f, kBaseAlt));
 	}
 
-	writeMissionItems(items);
-	writeSafePointState(0, 53);
-	mission_s state{};
-	state.timestamp = hrt_absolute_time();
-	state.current_seq = 15;
-	state.land_start_index = -1;
-	state.land_index = -1;
-	state.mission_id = 53;
-	state.safe_points_id = 53;
-	state.count = items.size();
-	state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-	state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-	publishMission(state);
+	const mission_s state = publishMissionItems(items, 53, 15);
 	// After flying past the FT, the vehicle has returned near waypoint 2 while still in FW.
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	publishLandDetected(false);
@@ -894,21 +856,7 @@ TEST_F(MissionRouteJoinTest, DisarmBetweenActivationsKeepsJoinOnLastItem)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
 	};
-	writeMissionItems(items);
-	writeSafePointState(0, 51);
-
-	mission_s mission_state{};
-	mission_state.timestamp = hrt_absolute_time();
-	mission_state.current_seq = 1;
-	mission_state.land_start_index = -1;
-	mission_state.land_index = -1;
-	mission_state.mission_id = 51;
-	mission_state.safe_points_id = 51;
-	mission_state.count = items.size();
-	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-	publishMission(mission_state);
+	const mission_s mission_state = publishMissionItems(items, 51, 1);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
 	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 10.f, kBaseAlt));
@@ -938,21 +886,7 @@ TEST_F(MissionRouteJoinTest, FinishedMissionHoldsWithoutJoin)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
 	};
-	writeMissionItems(items);
-	writeSafePointState(0, 53);
-
-	mission_s mission_state{};
-	mission_state.timestamp = hrt_absolute_time();
-	mission_state.current_seq = 3;
-	mission_state.land_start_index = -1;
-	mission_state.land_index = -1;
-	mission_state.mission_id = 53;
-	mission_state.safe_points_id = 53;
-	mission_state.count = items.size();
-	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-	publishMission(mission_state);
+	const mission_s mission_state = publishMissionItems(items, 53, 3);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
 	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt));
@@ -993,21 +927,7 @@ TEST_F(MissionRouteJoinTest, JoinOnAscendingSegmentFollowsRouteWithoutVerticalCl
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt + 40.f),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kBaseAlt + 40.f),
 	};
-	writeMissionItems(items);
-	writeSafePointState(0, 61);
-
-	mission_s mission_state{};
-	mission_state.timestamp = hrt_absolute_time();
-	mission_state.current_seq = 2;
-	mission_state.land_start_index = -1;
-	mission_state.land_index = -1;
-	mission_state.mission_id = 61;
-	mission_state.safe_points_id = 61;
-	mission_state.count = items.size();
-	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-	publishMission(mission_state);
+	const mission_s mission_state = publishMissionItems(items, 61, 2);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
 	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kBaseAlt));
@@ -1036,6 +956,7 @@ TEST_F(MissionRouteJoinTest, JoinOnAscendingSegmentFollowsRouteWithoutVerticalCl
 
 	const auto &triplet = *_navigator.get_position_setpoint_triplet();
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
 	EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_WAYPOINT);
 	EXPECT_DOUBLE_EQ(triplet.current.lat, items[2].lat);
 	EXPECT_DOUBLE_EQ(triplet.current.lon, items[2].lon);
@@ -1054,21 +975,7 @@ TEST_F(MissionRouteJoinTest, RestartedMissionStartsAtFirstItemWithoutJoin)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
 	};
-	writeMissionItems(items);
-	writeSafePointState(0, 52);
-
-	mission_s mission_state{};
-	mission_state.timestamp = hrt_absolute_time();
-	mission_state.current_seq = 3;
-	mission_state.land_start_index = -1;
-	mission_state.land_index = -1;
-	mission_state.mission_id = 52;
-	mission_state.safe_points_id = 52;
-	mission_state.count = items.size();
-	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-	publishMission(mission_state);
+	const mission_s mission_state = publishMissionItems(items, 52, 3);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
 	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 10.f, kBaseAlt));
@@ -1169,21 +1076,7 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSelectsLandWithoutJoin
 		makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt - 10.f),
 	};
 
-	writeMissionItems(mission_items);
-	writeSafePointState(0, 13);
-
-	mission_s mission_state{};
-	mission_state.timestamp = hrt_absolute_time();
-	mission_state.current_seq = 1;
-	mission_state.land_start_index = 2;
-	mission_state.land_index = 2;
-	mission_state.mission_id = 23;
-	mission_state.safe_points_id = 13;
-	mission_state.count = static_cast<uint16_t>(mission_items.size());
-	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-	publishMission(mission_state);
+	mission_s mission_state = publishMissionItems(mission_items, 23, 1, 2);
 
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 298.f, 0.f, kBaseAlt - 6.f);
@@ -1214,9 +1107,7 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSelectsLandWithoutJoin
 	mission.on_inactivation();
 	mission_items[0].nav_cmd = NAV_CMD_VTOL_TAKEOFF;
 	mission_items[2].nav_cmd = NAV_CMD_VTOL_LAND;
-	writeMissionItems(mission_items);
-	++mission_state.mission_id;
-	publishMission(mission_state);
+	mission_state = publishMissionItems(mission_items, 24, 1, 2);
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	primeNavigatorState();
 	updateRouteCacheUntilReady(mission_state);
@@ -1276,20 +1167,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 			const std::vector<mission_item_s> items{
 				takeoff, makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, approach_altitude), land
 			};
-			writeMissionItems(items);
-			writeSafePointState(0, ++mission_id);
-			mission_s state{};
-			state.timestamp = hrt_absolute_time();
-			state.current_seq = 2;
-			state.land_start_index = -1;
-			state.land_index = 2;
-			state.mission_id = mission_id;
-			state.safe_points_id = mission_id;
-			state.count = items.size();
-			state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-			state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-			state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-			publishMission(state);
+			const mission_s state = publishMissionItems(items, ++mission_id, 2, 2);
 			publishVehicleStatus(is_vtol, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 			_vehicle_status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 			_vehicle_status_pub.publish(_vehicle_status);
@@ -1399,19 +1277,7 @@ TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFron
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt + 20.f),
 	};
 
-	writeMissionItems(mission_items);
-	writeSafePointState(0, 31);
-
-	mission_s mission_state{};
-	mission_state.timestamp = hrt_absolute_time();
-	mission_state.current_seq = 2;
-	mission_state.mission_id = 31;
-	mission_state.safe_points_id = 31;
-	mission_state.count = static_cast<uint16_t>(mission_items.size());
-	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-	publishMission(mission_state);
+	const mission_s mission_state = publishMissionItems(mission_items, 31, 2);
 
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, false, initially_back_transitioning);
 	publishLandDetected(false);
@@ -1542,21 +1408,7 @@ TEST_F(MissionRouteJoinTest, ExhaustedJumpRejoinResumesNominalExecutionWithoutAn
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kBaseAlt),
 		makeLandItemFromOffset(kBaseLat, kBaseLon, 500.f, 200.f, kBaseAlt - 20.f),
 	};
-	writeMissionItems(items);
-	writeSafePointState(0, 41);
-
-	mission_s mission_state{};
-	mission_state.timestamp = hrt_absolute_time();
-	mission_state.current_seq = 0;
-	mission_state.land_start_index = 5;
-	mission_state.land_index = 5;
-	mission_state.mission_id = 41;
-	mission_state.safe_points_id = 41;
-	mission_state.count = items.size();
-	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
-	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-	publishMission(mission_state);
+	const mission_s mission_state = publishMissionItems(items, 41, 0, 5);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
 	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kBaseAlt));
