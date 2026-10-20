@@ -213,11 +213,9 @@ struct ReadFailureCase {
 class RtlLifecycleTestExecutor : public RtlBase
 {
 public:
-	RtlLifecycleTestExecutor(Navigator *navigator, bool landing,
-				 mission_route::ActiveJumpAnchor loop_segment = {}) :
+	RtlLifecycleTestExecutor(Navigator *navigator, bool landing) :
 		RtlBase(navigator, 0),
-		_landing(landing),
-		_loop_segment(loop_segment)
+		_landing(landing)
 	{}
 
 	void on_activation() override {}
@@ -225,7 +223,6 @@ public:
 	void on_inactivation() override { _deactivated = true; }
 	bool isLanding() override { return _landing; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override { return {}; }
-	mission_route::ActiveJumpAnchor activeJumpAnchor() const override { return _loop_segment; }
 	bool deactivated() const { return _deactivated; }
 
 private:
@@ -233,7 +230,6 @@ private:
 	void setActiveMissionItems() override {}
 
 	bool _landing{false};
-	mission_route::ActiveJumpAnchor _loop_segment{};
 	bool _deactivated{false};
 };
 #endif
@@ -321,7 +317,7 @@ public:
 
 	void replaceMissionExecutorForTest(RtlBase *executor, RtlType rtl_type)
 	{
-		stopAndDeleteRtlMissionType(false);
+		stopAndDeleteRtlMissionType();
 		_rtl_type = rtl_type;
 		_rtl_mission_type_handle = executor;
 		_rtl_mission_type_handle->initialize();

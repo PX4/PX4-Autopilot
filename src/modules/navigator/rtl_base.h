@@ -40,9 +40,6 @@
 #pragma once
 
 #include "mission_base.h"
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-#include "mission_route_types.h"
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 #include <uORB/topics/rtl_time_estimate.h>
 #include <matrix/math.hpp>
 
@@ -61,11 +58,6 @@ public:
 
 	/** Refresh the cached mission before RTL selects the destination and activates this mode. */
 	void refreshMission() { updateMavlinkMission(); }
-
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** Most recent active DO_JUMP identity, or an empty anchor when none is active. */
-	virtual mission_route::ActiveJumpAnchor activeJumpAnchor() const { return {}; }
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
