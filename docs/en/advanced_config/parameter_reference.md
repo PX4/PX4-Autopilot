@@ -28609,7 +28609,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## EKF2
 
-<div class="param-group" style="--param-count: 155">
+<div class="param-group" style="--param-count: 154">
 
 <div class="param">
 
@@ -29757,6 +29757,21 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### EKF2_GPS_YAW_RST (`FLOAT`) {#EKF2_GPS_YAW_RST}
+
+GNSS heading reset wait.
+
+After GNSS heading fusion fails, or the heading receiver reports spoofing or jamming, EKF2 waits this long before resetting yaw to the GNSS heading.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 |  |  | 10.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### EKF2_GRAV_NOISE (`FLOAT`) {#EKF2_GRAV_NOISE}
 
 Accelerometer measurement noise for gravity based observations.
@@ -30490,36 +30505,6 @@ EKF prediction period in microseconds. This should ideally be an integer multipl
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 1000 | 20000 |  | 10000 | us | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_GPS_H (`FLOAT`) {#EKF2_REQ_GPS_H}
-
-GNSS fusion restart and heading reset wait.
-
-After EKF2 stops GNSS velocity and position fusion, it restarts it only after this time while disarmed on the ground, and after a tenth of it, at least 1 s, otherwise. After a GNSS heading failure, a yaw reset to the GNSS heading also waits this long. The GNSS checks use GNSS_REQ_TIME.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 |  |  | 10.0 | s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_SACC (`FLOAT`) {#EKF2_REQ_SACC}
-
-GNSS speed accuracy for vertical velocity and yaw estimator.
-
-Below this speed accuracy EKF2 trusts the GNSS vertical velocity while the accelerometer clips, and feeds the GNSS velocity to the EKF-GSF yaw estimator. The GNSS checks use GNSS_REQ_SACC.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
 
 </div>
 
@@ -52589,6 +52574,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Required speed accuracy to use GNSS.
 
+EKF2 also feeds GNSS velocity to the EKF-GSF yaw estimator, and trusts the GNSS vertical velocity while the accelerometer clips, only below this speed accuracy, in flight too. With the speed accuracy check disabled in GNSS_CHECK, it does both whatever the speed accuracy.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
@@ -56289,21 +56277,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Multi GPS primary instance.
 
-Preferred GPS receiver instance.
-The GPS selection logic waits until the primary receiver is available to
-send data to the EKF even if a secondary instance is already available.
-The secondary instance is then only used if the primary one times out.
-
-To select a DroneCAN GPS, set this to the node ID.
-
-GPS_RAW_INT reports the preferred receiver, or without one the first receiver
-to publish, and GPS2_RAW the other one. Neither follows the selection.
-
+The primary receiver is used while it passes the strict checks (GNSS_REQ_*), and while disarmed whenever it publishes. In flight, the other receiver is used when the primary fails its checks (GNSS_CHECK) or stops publishing for 2 s, and then for the rest of the flight unless it fails too. The other receiver is also used once it has been better through a hold: when the primary failed the strict checks while the other passed them, or when the primary was usable for a clearly smaller share of the last 10 s or so (availability lower by 0.2). The primary is used again once it has been better through the hold. The hold is 10 s and doubles with every such switch in a flight, so the first return takes 20 s. With Auto, the moving base of a moving base pair (SENS_GNSSn_HDG) is the primary. Without a primary, a receiver that passes the strict checks is preferred, and among those one with an RTK fixed solution. To make a DroneCAN receiver the primary, set its node ID (2 to 127). GPS_RAW_INT reports the primary receiver, or the first receiver to publish if there is no primary.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -1 | 127 |  | 0 |  | &nbsp;
+&nbsp; | -1 | 127 |  | -1 |  | &nbsp;
 
 </div>
 
@@ -58790,12 +58769,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_BARO (`INT32`) {#SIM_GZ_EN_BARO}
 
-Enable barometer/air pressure sensor in Gazebo bridge.
+Enable barometer/air pressure sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 barometer sensor
+- `2`: Simulate 2 barometer sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -58826,12 +58806,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_GPS (`INT32`) {#SIM_GZ_EN_GPS}
 
-Enable GPS/NavSat sensor in Gazebo bridge.
+Enable GPS/NavSat sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 GPS sensor
+- `2`: Simulate 2 GPS sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -58844,12 +58825,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_IMU (`INT32`) {#SIM_GZ_EN_IMU}
 
-Enable IMU sensor in Gazebo bridge.
+Enable IMU sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 IMU sensor
+- `2`: Simulate 2 IMU sensors
+- `3`: Simulate 3 IMU sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -58880,12 +58863,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_MAG (`INT32`) {#SIM_GZ_EN_MAG}
 
-Enable magnetometer sensor in Gazebo bridge.
+Enable magnetometer sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 magnometer sensor
+- `2`: Simulate 2 magnometer sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only

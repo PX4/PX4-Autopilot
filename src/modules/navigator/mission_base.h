@@ -248,11 +248,6 @@ protected:
 	 */
 	int initMission();
 	/**
-	 * @brief Reset Mission
-	 *
-	 */
-	void resetMission();
-	/**
 	 * @brief Reset Mission Jump Counter of Mission Jump Items
 	 *
 	 */
@@ -277,18 +272,19 @@ protected:
 	 */
 	bool isMissionValid() const;
 
-	/**
-	 * @brief Check whether a mission is ready to go
-	 * @param[in] forced flag if the check has to be run irregardles of any updates.
-	 */
-	void check_mission_valid(bool forced = false);
+	enum class MissionCheckState : uint8_t {
+		Unchecked, ///< Inspect the inputs; a matching cached verdict may be reused.
+		Deferred,  ///< Retry even if the inputs match the cached verdict.
+		Complete   ///< The request was handled; the verdict may be valid or invalid.
+	};
 
 	/**
-	 * On mission update
-	 * Change behaviour after external mission update.
-	 * @param[in] has_mission_items_changed flag if the mission items have been changed.
+	 * Update the verdict in mission_result.valid and advance _mission_check_state.
+	 * Unless forced, the checks wait for Home, position and the mission's fence.
+	 * A pending fence load defers the check (even if forced).
+	 * @param[in] forced Check now even with unchanged inputs or without Home or position.
 	 */
-	void onMissionUpdate(bool has_mission_items_changed);
+	void check_mission_valid(bool forced = false);
 
 	/**
 	 * Update mission topic
@@ -317,7 +313,7 @@ protected:
 	bool loadCurrentMissionItem();
 
 	/**
-	 * Set the mission result
+	 * Clear completion, update the current index, and mark the result for publication by Navigator.
 	 */
 	void set_mission_result();
 
@@ -441,14 +437,12 @@ protected:
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
-	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
-	bool _mission_check_pending{false}; /**< Retry a check deferred while the geofence was unavailable. */
+	MissionCheckState _mission_check_state{MissionCheckState::Unchecked};
 	bool _system_disarmed_while_inactive{false};		/**< Flag indicating if the system has been disarmed while mission is inactive*/
 	mission_s _mission;					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
 	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */
-	bool _speed_replayed_on_activation{false};			/**< Flag indicating if the speed change items have been replayed on activation */
 
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
@@ -551,20 +545,6 @@ private:
 	void replayCachedSpeedChangeItems();
 
 	/**
-	 * @brief Check if there are cached gimbal items to be replayed
-	 *
-	 * @return true if there are cached items
-	 */
-	bool haveCachedGimbalItems();
-
-	/**
-	 * @brief Check if there are cached camera mode items to be replayed
-	 *
-	 * @return true if there are cached items
-	 */
-	bool haveCachedCameraModeItems();
-
-	/**
 	 * @brief Check if the camera was triggering
 	 *
 	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
@@ -586,19 +566,10 @@ private:
 	void checkClimbRequired(int32_t mission_item_index);
 
 	/**
-	 * @brief check if relevant data in the new mission have changed.
-	 * @param[in] new_mission new mission received over uorb
-	 * @return true if the relevant mission data has changed, false otherwise
-	 */
-	bool checkMissionDataChanged(const mission_s &new_mission);
-
-	/**
 	 * @brief update current mission altitude after the home position has changed.
 	 */
 
 	void updateMissionAltAfterHomeChanged();
-
-	bool canRunMissionFeasibility();
 
 	uint32_t _home_update_counter = 0; /**< Variable to store the previous value for home change detection.*/
 
