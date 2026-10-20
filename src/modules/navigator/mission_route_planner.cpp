@@ -86,8 +86,7 @@ ProjectionReferenceBatch &plannerScratchBatch()
 	return *batch;
 }
 
-template<typename RequestT>
-PlannerConfig makeCommonPlannerConfig(const RequestT &request)
+PlannerConfig makeCommonPlannerConfig(const MissionResumeRequest &request)
 {
 	PlannerConfig config{};
 	config.parameters.vehicle_projection_search_dist_m = request.projection_search_distance_m;
@@ -642,8 +641,7 @@ VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state,
 	return VtolTransitionAction::kNone;
 }
 
-template<typename PlanT>
-void fillRouteJoinPlan(PlanT &plan, const ProjectionContext &projection_context, const RoutePath &path,
+void fillRouteJoinPlan(MissionResumePlan &plan, const ProjectionContext &projection_context, const RoutePath &path,
 		       const Position &vehicle_position, float acceptance_radius_m)
 {
 	plan.join_position = projection_context.route_projection.projection;

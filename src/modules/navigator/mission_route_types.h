@@ -102,45 +102,32 @@ struct ActiveJumpAnchor {
 	bool valid() const;
 };
 
-/** @brief Inputs for planning a join back into mission execution. */
+/** @brief Inputs for planning a join back into the mission route, shared with RTL route planning. */
 struct MissionResumeRequest {
 	Position vehicle_position{};
 	int32_t mission_index{-1};
 	bool current_route_direction_reversed{false}; /**< Route direction being flown before replanning. */
 	ActiveJumpAnchor active_jump_anchor{};
-	float home_altitude_amsl{NAN}; /**< May be NAN when every relevant mission item uses absolute altitude. */
-	float projection_search_distance_m{0.f};
-	float acceptance_radius_m{0.f};
-	bool is_fixed_wing{false};
-	bool in_transition_to_fw{false};
-	bool is_vtol{false};
-	float velocity_north_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
-	float velocity_east_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
-	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn (default estimated from turn time and route deviation)*/
-};
-
-/** @brief Inputs used only when planning the RTL route-following return. */
-struct RtlRouteRequest {
-	Position vehicle_position{};
-	int32_t mission_index{-1};
-	/** LAND/VTOL_LAND index in the same validated mission source; -1 if unavailable. */
-	int32_t mission_land_index{-1};
-	bool current_route_direction_reversed{false}; /**< Route direction being flown before replanning. */
-	ActiveJumpAnchor active_jump_anchor{};
-	/** May be NAN for absolute-altitude items; required for a mission-takeoff fallback goal. */
+	/** May be NAN for absolute-altitude items; required for a mission-takeoff RTL goal. */
 	float home_altitude_amsl{NAN};
 	float projection_search_distance_m{0.f};
-	float safe_point_projection_search_distance_m{0.f};
 	float acceptance_radius_m{0.f};
-	float direct_goal_acceptance_radius_m{0.f};
-	float altitude_acceptance_radius_m{0.f};
 	bool is_fixed_wing{false};
 	bool in_transition_to_fw{false};
 	bool is_vtol{false};
-	bool require_vtol_approach{false};
 	float velocity_north_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
 	float velocity_east_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
-	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn (default estimated from turn time and route deviation)*/
+	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn, default estimated from turn time and route deviation. */
+};
+
+/** @brief Inputs for the RTL route-following return: the join inputs plus goal selection. */
+struct RtlRouteRequest : MissionResumeRequest {
+	/** LAND/VTOL_LAND index in the same validated mission source; -1 if unavailable. */
+	int32_t mission_land_index{-1};
+	float safe_point_projection_search_distance_m{0.f};
+	float direct_goal_acceptance_radius_m{0.f};
+	float altitude_acceptance_radius_m{0.f};
+	bool require_vtol_approach{false};
 };
 
 /** @brief Mission join plan produced by the planner. */
@@ -155,13 +142,8 @@ struct MissionResumePlan {
 	bool valid() const;
 };
 
-/** @brief RTL route-following plan produced by the planner. */
-struct RtlRoutePlan {
-	Position join_position{};
-	int32_t first_mission_item_index{-1};
-	bool direction_reversed{false};
-	bool use_current_altitude{false}; /**< Keep current altitude at branch-in near a landing/takeoff endpoint. */
-	ActiveJumpAnchor active_jump_anchor{};
+/** @brief RTL route-following plan produced by the planner: the route join plus the selected goal. */
+struct RtlRoutePlan : MissionResumePlan {
 	GoalType goal_type{GoalType::kNone};
 	Position goal_position{};
 	int32_t safe_point_index{-1}; /**< Set only when goal_type is kSafePoint. */
@@ -170,7 +152,6 @@ struct RtlRoutePlan {
 	int32_t branch_off_mission_item_index{-1};
 	bool fly_direct_to_goal{false}; /**< Bypass route following for either a safe point or endpoint goal. */
 	bool geofence_prevents_shortcut{false}; /**< Report why RTL must follow the route when activating this plan. */
-	VtolTransitionAction vtol_transition_action{VtolTransitionAction::kNone}; /**< Transition to command when joining the route. */
 
 	bool valid() const;
 };

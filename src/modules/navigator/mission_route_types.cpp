@@ -76,8 +76,7 @@ bool MissionResumePlan::valid() const
 
 bool RtlRoutePlan::valid() const
 {
-	if (!join_position.valid() || first_mission_item_index < 0 || !goal_position.valid()
-	    || (!active_jump_anchor.empty() && !active_jump_anchor.valid())) {
+	if (!MissionResumePlan::valid() || !goal_position.valid()) {
 		return false;
 	}
 
