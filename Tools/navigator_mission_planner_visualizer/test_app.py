@@ -5,6 +5,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
+from planner_visualizer.geometry import offset_to_latlon
 from planner_visualizer.planner_cli import parse_output
 from test_planner_cli import CLI_OUTPUT, temporary_directory
 
@@ -321,6 +322,16 @@ class AppTest_(unittest.TestCase):
         self.assertNotIn("kAlt + 50.f", self.code())
         self.assertEqual(self.app.number_input(key="edit_alt").value, 500.0)
         self.assertEqual(self.app.session_state["selected"], ("Mission", 0))
+
+    def test_selecting_an_item_neither_moves_it_nor_blocks_undo(self):
+        self.app.number_input(key="grid").set_value(0.0).run()
+        lat, lon = offset_to_latlon(47.397742, 8.545594, 123.454, 67.894)
+        self.click(lat, lon)
+        point = self.app.session_state["editor"].get(("Mission", 0))
+        self.marker_click("New mission[0]NAV_CMD_WAYPOINTalt 500.0 m", lat, lon)
+        self.assertEqual(self.app.session_state["editor"].get(("Mission", 0)), point)
+        self.button("Undo").click().run()
+        self.assertEqual(self.app.session_state["editor"].count(), 0)
 
     def test_parsed_markers_and_plan_pins_select_nothing(self):
         self.click(47.3995, 8.5458)
