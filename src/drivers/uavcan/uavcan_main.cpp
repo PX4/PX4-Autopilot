@@ -318,8 +318,10 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 
 		if (resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
 			int64_t i = std::strtoull(value, NULL, 10);
-			int64_t min = resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>();
-			int64_t max = resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>();
+			const bool has_min = resp.min_value.is(uavcan::protocol::param::NumericValue::Tag::integer_value);
+			const bool has_max = resp.max_value.is(uavcan::protocol::param::NumericValue::Tag::integer_value);
+			int64_t min = has_min ? resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>() : INT64_MIN;
+			int64_t max = has_max ? resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>() : INT64_MAX;
 
 			if (i >= min &&  i <= max) {
 				req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = i;
@@ -331,8 +333,10 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 
 		} else if (resp.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
 			float f = static_cast<float>(std::atof(value));
-			float min = resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>();
-			float max = resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>();
+			const bool has_min = resp.min_value.is(uavcan::protocol::param::NumericValue::Tag::real_value);
+			const bool has_max = resp.max_value.is(uavcan::protocol::param::NumericValue::Tag::real_value);
+			float min = has_min ? resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>() : -FLT_MAX;
+			float max = has_max ? resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>() : FLT_MAX;
 
 			if (f >= min &&  f <= max) {
 				req.value.to<uavcan::protocol::param::Value::Tag::real_value>() = f;
