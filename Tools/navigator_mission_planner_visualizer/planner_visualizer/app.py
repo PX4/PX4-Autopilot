@@ -183,9 +183,11 @@ def render_add_panel(editor: Editor) -> Tuple[str, ClickSettings]:
     if item_type != GEOFENCES:
         alt = st.number_input("Altitude (m AMSL)", value=500.0, step=10.0, key="alt")
     if item_type == VEHICLE:
-        north = st.number_input("Velocity north (m/s)", value=0.0, step=1.0, key="vel_north")
-        east = st.number_input("Velocity east (m/s)", value=0.0, step=1.0, key="vel_east")
-        editor.velocity = (north, east)
+        # Streamlit resets widgets it did not draw, so the editor keeps the velocity and only edits change it.
+        st.number_input("Velocity north (m/s)", value=editor.velocity[0], step=1.0, key="vel_north",
+                        on_change=set_velocity, args=(editor,))
+        st.number_input("Velocity east (m/s)", value=editor.velocity[1], step=1.0, key="vel_east",
+                        on_change=set_velocity, args=(editor,))
     grid = st.number_input(
         "Snap clicks to a grid (m, 0 = off)", min_value=0.0, value=10.0, step=5.0, key="grid"
     )
@@ -198,6 +200,10 @@ def render_add_panel(editor: Editor) -> Tuple[str, ClickSettings]:
         alt=alt, cmd=cmd, grid_m=grid, fence_inclusion=fence_inclusion, fence_radius_m=fence_radius
     )
     return item_type, settings
+
+
+def set_velocity(editor: Editor) -> None:
+    editor.velocity = (st.session_state["vel_north"], st.session_state["vel_east"])
 
 
 def render_fence_panel(editor: Editor) -> Tuple[bool, Optional[float]]:

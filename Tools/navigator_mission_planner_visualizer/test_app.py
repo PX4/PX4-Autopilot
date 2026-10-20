@@ -127,6 +127,21 @@ class AppTest_(unittest.TestCase):
         self.assertTrue(self.button("Clear all new items").disabled)
         self.assertEqual(self.button("Clear all new items").help, "There are no new items.")
 
+    def test_velocity_survives_item_type_changes_and_loading(self):
+        self.app.selectbox(key="item_type").set_value("Vehicle position").run()
+        self.app.number_input(key="vel_north").set_value(5.0).run()
+        self.click(47.3986, 8.5457)
+        self.app.selectbox(key="item_type").set_value("Safe points").run()
+        self.app.selectbox(key="item_type").set_value("Vehicle position").run()
+        self.assertIn("request.velocity_north_m_s = 5.f;", self.code())
+        self.app.text_area(key="source").set_value(
+            SOURCE + "request.velocity_north_m_s = 15.f;\nrequest.velocity_east_m_s = 0.f;\n"
+        )
+        self.button("Parse").click().run()
+        self.button("Load parsed items into the editor").click().run()
+        self.assertIn("request.velocity_north_m_s = 15.f;", self.code())
+        self.assertEqual(self.app.number_input(key="vel_north").value, 15.0)
+
     def test_marker_clicks_and_control_changes_add_nothing(self):
         self.click(47.3995, 8.5458)
         self.map_component.return_value = {
