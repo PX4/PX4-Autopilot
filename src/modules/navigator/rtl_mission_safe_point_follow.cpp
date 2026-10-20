@@ -385,28 +385,6 @@ bool RtlMissionSafePointFollow::setNextMissionItem()
 	}
 }
 
-void RtlMissionSafePointFollow::setWaypointMissionItem(mission_item_s &mission_item,
-		const mission_route::Position &position) const
-{
-	mission_item = {};
-	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-	mission_item.lat = position.lat;
-	mission_item.lon = position.lon;
-	mission_item.altitude = position.alt;
-	mission_item.altitude_is_relative = false;
-	mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-
-	if (vehicleInFwLikeState(_vehicle_status_sub.get())) {
-		// Match the legacy join behavior: use a wider acceptance radius when the vehicle is already in FW-like flow.
-		mission_item.acceptance_radius = kJoinRouteFlyByAcceptanceRadiusScale * _navigator->get_acceptance_radius();
-	}
-
-	mission_item.yaw = NAN;
-	mission_item.time_inside = 0.f;
-	mission_item.autocontinue = true;
-	mission_item.origin = ORIGIN_ONBOARD;
-}
-
 void RtlMissionSafePointFollow::setGoalLandMissionItem(mission_item_s &mission_item) const
 {
 	if (goalIsMissionLanding() && _goal_mission_land_item_valid) {

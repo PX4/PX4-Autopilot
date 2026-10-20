@@ -481,8 +481,7 @@ void MissionBase::update_mission()
 		bool keep_work_item = vtolTransitionActive();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 		// The join is armed before activation reaches update_mission(); onMissionUpdate() clears it on a real change.
-		keep_work_item |= _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
-				  || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
+		keep_work_item |= _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 		if (!keep_work_item) {
@@ -1027,10 +1026,9 @@ bool MissionBase::handleJoinRouteWorkItems()
 	}
 
 	const bool front_transition = _route_join_context.transition_action == VtolTransitionAction::kFrontTransition;
-	mission_item_s target{};
 
-	if (front_transition
-	    && (!loadMissionItemFromCache(_mission.current_seq, target) || !mission_item_contains_position(target))) {
+	// set_mission_items() has just loaded the join target into _mission_item.
+	if (front_transition && !mission_item_contains_position(_mission_item)) {
 		PX4_ERR("Route join alignment target unavailable");
 		resetJoinRouteState();
 		setEndOfMissionItems();
@@ -1040,7 +1038,9 @@ bool MissionBase::handleJoinRouteWorkItems()
 	mission_item_s command{};
 	set_vtol_transition_item(&command, front_transition
 				 ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-	startVtolTransition(command, front_transition ? &target : nullptr, WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN, false);
+	// startVtolTransition() copies the target before it changes _mission_item.
+	startVtolTransition(command, front_transition ? &_mission_item : nullptr,
+			    WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN, false);
 	return true;
 }
 
@@ -1054,27 +1054,17 @@ bool MissionBase::handleJoinRouteWaypoint()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
-	mission_item_s join_item{};
-	join_item.nav_cmd = NAV_CMD_WAYPOINT;
-	join_item.lat = _route_join_context.projection.lat;
-	join_item.lon = _route_join_context.projection.lon;
-	join_item.altitude = _route_join_context.projection.alt;
-	join_item.altitude_is_relative = false;
-	join_item.acceptance_radius = _navigator->get_acceptance_radius();
-	join_item.yaw = NAN;
-	join_item.autocontinue = true;
-	join_item.origin = ORIGIN_ONBOARD;
+	mission_item_s join_item;
+	setWaypointMissionItem(join_item, _route_join_context.projection);
 
 	if (_route_join_context.skip_altitude_requirement) {
 		join_item.altitude = _navigator->get_global_position()->alt;
 	}
 
-	if (_route_join_context.transition_action == VtolTransitionAction::kBackTransition) {
-		join_item.vtol_back_transition = true;
-
-	} else if (_route_join_context.transition_action == VtolTransitionAction::kNone
-		   && vehicleInFwLikeState(_vehicle_status_sub.get())) {
-		join_item.acceptance_radius = kJoinRouteFlyByAcceptanceRadiusScale * _navigator->get_acceptance_radius();
+	if (_route_join_context.transition_action != VtolTransitionAction::kNone) {
+		// The fly-by radius is only for joins without a transition.
+		join_item.acceptance_radius = _navigator->get_acceptance_radius();
+		join_item.vtol_back_transition = _route_join_context.transition_action == VtolTransitionAction::kBackTransition;
 	}
 
 	mission_item_to_position_setpoint(join_item, &pos_sp_triplet->current);
@@ -1084,7 +1074,6 @@ bool MissionBase::handleJoinRouteWaypoint()
 		pos_sp_triplet->previous = current_setpoint_copy;
 	}
 
-	issue_command(join_item);
 	_mission_item = join_item;
 	reset_mission_item_reached();
 
@@ -1095,6 +1084,25 @@ bool MissionBase::handleJoinRouteWaypoint()
 	publish_navigator_mission_item();
 	_navigator->set_position_setpoint_triplet_updated();
 	return true;
+}
+
+void MissionBase::setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const
+{
+	mission_item = {};
+	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+	mission_item.lat = position.lat;
+	mission_item.lon = position.lon;
+	mission_item.altitude = position.alt;
+	mission_item.altitude_is_relative = false;
+	mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+
+	if (vehicleInFwLikeState(_vehicle_status_sub.get())) {
+		mission_item.acceptance_radius = kJoinRouteFlyByAcceptanceRadiusScale * _navigator->get_acceptance_radius();
+	}
+
+	mission_item.yaw = NAN;
+	mission_item.autocontinue = true;
+	mission_item.origin = ORIGIN_ONBOARD;
 }
 
 bool MissionBase::joinRouteTransitionStillRequired() const
@@ -1665,36 +1673,23 @@ MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionForTarget(int
 		return VtolTransitionAction::kNone;
 	}
 
-	const uint8_t target_segment_state = getVtolStateAtMissionIndex(segment_anchor_index);
-	const bool currently_fw = vehicleInFwLikeState(vehicle_status);
-
-	if (target_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && currently_fw) {
-		return VtolTransitionAction::kBackTransition;
-	}
-
-	if (target_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !currently_fw) {
-		return VtolTransitionAction::kFrontTransition;
-	}
-
-	return VtolTransitionAction::kNone;
+	return mission_route::vtolTransitionActionForState(getVtolStateAtMissionIndex(segment_anchor_index),
+			vehicleInFwLikeState(vehicle_status));
 }
 
 MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionAfterReachingReverseTarget(
 	int32_t reached_target_index)
 {
-	if (!_vehicle_status_sub.get().is_vtol || reached_target_index <= 0 || reached_target_index >= _mission.count) {
-		return VtolTransitionAction::kNone;
-	}
-
 	int32_t previous_position_index = -1;
 
-	// In reverse, restore the mode of the leg leaving the waypoint just reached.
-	// Resolving that leg also handles a join over a DO_JUMP with a different mode.
-	if (!findPreviousPositionIndex(reached_target_index, previous_position_index, MissionTraversalType::IgnoreDoJump)) {
+	// In reverse, the leg leaving the reached waypoint is the nominal segment ending at it.
+	// The first position item has no such leg.
+	if (!_vehicle_status_sub.get().is_vtol
+	    || !findPreviousPositionIndex(reached_target_index, previous_position_index, MissionTraversalType::IgnoreDoJump)) {
 		return VtolTransitionAction::kNone;
 	}
 
-	return vtolTransitionActionForTarget(previous_position_index, true);
+	return vtolTransitionActionForTarget(reached_target_index, false);
 }
 
 void MissionBase::updateActiveJumpAnchorForNominalAdvance()
