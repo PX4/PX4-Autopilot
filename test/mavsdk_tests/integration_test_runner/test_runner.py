@@ -86,7 +86,8 @@ class Tester:
 
     @staticmethod
     def wildcard_match(pattern: str, potential_match: str) -> bool:
-        return fnmatch.fnmatchcase(potential_match, pattern)
+        # Only '*' and '?' are wildcards: '[' is literal, as in the IDs of parametrized tests.
+        return fnmatch.fnmatchcase(potential_match, pattern.replace('[', '[[]'))
 
     @staticmethod
     def plural_s(n_items: int) -> str:
@@ -111,6 +112,9 @@ class Tester:
         return tests
 
     def run(self) -> bool:
+        if self.num_cases() == 0:
+            print(colorize("No test case selected", color.RED))
+            return False
         self.show_plans()
         self.prepare_for_results()
         self.run_tests()
