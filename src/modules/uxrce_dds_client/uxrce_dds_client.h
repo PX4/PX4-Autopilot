@@ -202,6 +202,7 @@ private:
 
 	bool _connected{false};
 	bool _session_created{false};
+	bool _previous_session_found{false}; ///< last setup found our session from before an FMU reboot on the agent
 	bool _timesync_converged{false};
 
 	Timesync _timesync{timesync_status_s::SOURCE_PROTOCOL_DDS};
