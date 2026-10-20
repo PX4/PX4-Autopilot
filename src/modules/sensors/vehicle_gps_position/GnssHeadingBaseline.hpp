@@ -119,28 +119,24 @@ inline bool baselineConsistent(float configured_length, float reported_length, f
  */
 inline bool measureBaseline(const sensor_gnss_s &from_gnss, const sensor_gnss_s &to_gnss, Baseline &baseline)
 {
-	// Check that fix is correct
 	if ((from_gnss.fix_type != sensor_gnss_s::FIX_TYPE_RTK_FIXED) || (to_gnss.fix_type != sensor_gnss_s::FIX_TYPE_RTK_FIXED)) {
 		return false;
 	}
 
-	// Check that time is filled by the GNSS
 	if ((from_gnss.time_utc_usec == 0) || (to_gnss.time_utc_usec == 0)) {
 		return false;
 	}
 
-	// Time difference between reported gnss times
 	const int64_t dt_us = static_cast<int64_t>(to_gnss.time_utc_usec) - static_cast<int64_t>(from_gnss.time_utc_usec);
 
-	// Check dt_us is not too large
 	if ((dt_us > static_cast<int64_t>(kMaxEpochMismatch)) || (-dt_us > static_cast<int64_t>(kMaxEpochMismatch))) {
 		return false;
 	}
 
-	const sensor_gnss_s &old_gnss = dt_us > 0 ? from_gnss : to_gnss;
-	const sensor_gnss_s &new_gnss = dt_us > 0 ? to_gnss : from_gnss;
+	const bool from_gnss_is_old = (dt_us > 0);
+	const sensor_gnss_s &old_gnss = from_gnss_is_old ? from_gnss : to_gnss;
+	const sensor_gnss_s &new_gnss = from_gnss_is_old ? to_gnss : from_gnss;
 
-	// Check velocity is valid when required
 	if ((dt_us != 0) && !new_gnss.vel_ned_valid) {
 		return false;
 	}
@@ -152,7 +148,7 @@ inline bool measureBaseline(const sensor_gnss_s &from_gnss, const sensor_gnss_s 
 	double compensated_lon = new_gnss.longitude;
 	double compensated_alt = new_gnss.altitude_ellipsoid;
 
-	const float dt = fabsf(static_cast<float>(dt_us) * 1e-6f); // absolute value of delta time
+	const float dt = fabsf(static_cast<float>(dt_us) * 1e-6f);
 
 	// Rewind newest gnss position by dt using velocity
 	add_vector_to_global_position(compensated_lat, compensated_lon, -vel_north * dt, -vel_east * dt,
@@ -160,7 +156,6 @@ inline bool measureBaseline(const sensor_gnss_s &from_gnss, const sensor_gnss_s 
 	compensated_alt += static_cast<double>(vel_down * dt);
 
 	// The baseline runs from from_gnss to to_gnss, whichever of them was rewound
-	const bool from_gnss_is_old = (dt_us > 0);
 	const double from_lat = from_gnss_is_old ? old_gnss.latitude : compensated_lat;
 	const double from_lon = from_gnss_is_old ? old_gnss.longitude : compensated_lon;
 	const double from_alt = from_gnss_is_old ? old_gnss.altitude_ellipsoid : compensated_alt;
