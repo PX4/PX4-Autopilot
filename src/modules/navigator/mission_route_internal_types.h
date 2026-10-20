@@ -145,6 +145,9 @@ struct ProjectionContext {
 	SegmentDistanceAlong loop_bounds{}; /**< Along-route distances of both exits when route_projection is on a loop. */
 	/** Required VTOL state on the vehicle's projected segment, resolved once per planning pass. */
 	uint8_t projected_segment_vtol_state{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
+	/** U-turn cost of following the route nominally or in reverse, resolved once per planning pass. */
+	float u_turn_cost_nominal_m{0.f};
+	float u_turn_cost_reverse_m{0.f};
 };
 
 /** @brief First route item to target when the vehicle starts following the path. */
@@ -152,13 +155,11 @@ struct FirstRouteItem {
 	int32_t index{-1};
 	uint16_t nav_cmd{NAV_CMD_INVALID};
 	Position position{};
-	bool in_acc_rad{false}; /**< Vehicle is already inside the item's acceptance radius. */
 };
 
 /** @brief One scored route path to a goal. */
 struct RoutePath {
 	bool direction_reversed{false}; /**< True when flying towards the mission start (takeoff) */
-	bool u_turn_required{false};
 	FirstRouteItem first_item{};
 	float total_cost_m{FLT_MAX};
 

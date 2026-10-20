@@ -221,8 +221,7 @@ FirstRouteItem firstRouteItem(const SegmentEndpoint &endpoint, const Position &p
 	return item;
 }
 
-RoutePath solveShortestRoutePath(float goal_dist_along_route_m,
-				 const ProjectionContext &projection_context, const PlannerConfig &config,
+RoutePath solveShortestRoutePath(float goal_dist_along_route_m, const ProjectionContext &projection_context,
 				 PathDirectionMode direction_mode)
 {
 	RoutePath path{};
@@ -234,8 +233,8 @@ RoutePath solveShortestRoutePath(float goal_dist_along_route_m,
 		fabsf(goal_dist_along_route_m - projection_context.route_projection.dist.along_route_m);
 
 	path.direction_reversed = will_fly_reverse;
-	path.u_turn_required = uTurnRequired(projection_context, config, will_fly_reverse);
-	path.total_cost_m = abs_distance_projection_to_goal + (path.u_turn_required ? config.parameters.fw_u_turn_penalty_m : 0.f);
+	path.total_cost_m = abs_distance_projection_to_goal
+			    + (will_fly_reverse ? projection_context.u_turn_cost_reverse_m : projection_context.u_turn_cost_nominal_m);
 
 	// Choose which segment endpoint becomes the first target for route following.
 	bool choose_segment_start = false;
@@ -273,17 +272,15 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_dist_along_route_m,
 	// Path A: complete the remaining loop distance, then continue to the goal.
 	const float dist_jump_remaining = fabsf(projection_context.route_projection.dist.segment_length_m
 						- projection_context.route_projection.dist.along_segment_m);
-	const bool path_a_u_turn = uTurnRequired(projection_context, config, /* will_fly_reverse */ false);
 	const float path_a_cost = dist_jump_remaining
 				  + fabsf(goal_dist_along_route_m - projection_context.loop_bounds.end_dist_along_route_m)
-				  + (path_a_u_turn ? config.parameters.fw_u_turn_penalty_m : 0.f);
+				  + projection_context.u_turn_cost_nominal_m;
 
 	// Path B: backtrack the already-travelled loop distance, then continue to the goal.
 	const float dist_jump_travelled = projection_context.route_projection.dist.along_segment_m;
-	const bool path_b_u_turn = uTurnRequired(projection_context, config, /* will_fly_reverse */ true);
 	const float path_b_cost = dist_jump_travelled
 				  + fabsf(goal_dist_along_route_m - projection_context.loop_bounds.start_dist_along_route_m)
-				  + (path_b_u_turn ? config.parameters.fw_u_turn_penalty_m : 0.f);
+				  + projection_context.u_turn_cost_reverse_m;
 
 	// Mission finishes the current repeat before leaving the loop.
 	const bool use_path_a = (config.respect_jump_repeats
@@ -297,14 +294,12 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_dist_along_route_m,
 		path.first_item = firstRouteItem(loop_edge.segment.end, loop_edge.segment_positions.end);
 		path.direction_reversed = mustFlyReverse(goal_dist_along_route_m,
 					  projection_context.loop_bounds.end_dist_along_route_m, direction_mode);
-		path.u_turn_required = path_a_u_turn;
 		path.total_cost_m = path_a_cost;
 
 	} else {
 		path.first_item = firstRouteItem(loop_edge.segment.start, loop_edge.segment_positions.start);
 		path.direction_reversed = mustFlyReverse(goal_dist_along_route_m,
 					  projection_context.loop_bounds.start_dist_along_route_m, direction_mode);
-		path.u_turn_required = path_b_u_turn;
 		path.total_cost_m = path_b_cost;
 	}
 
@@ -318,21 +313,9 @@ RoutePath findShortestPathAlongRoute(float goal_dist_along_route_m,
 	const bool on_jump_segment_and_goal_elsewhere = projection_context.route_projection.segment.isLoop()
 			&& goal_projection_location != GoalProjectionLocation::kOnActiveLoopJump;
 
-	RoutePath path = on_jump_segment_and_goal_elsewhere
-			 ? solveShortestRoutePathFromActiveLoop(goal_dist_along_route_m, projection_context, config,
-					 direction_mode)
-			 : solveShortestRoutePath(goal_dist_along_route_m, projection_context, config, direction_mode);
-
-	if (path.valid()) {
-		// The vehicle can skip the route join when it is already within the first item's acceptance radius.
-		const float dist_to_first_item = get_distance_to_next_waypoint(path.first_item.position.lat,
-						 path.first_item.position.lon, projection_context.vehicle_position.lat,
-						 projection_context.vehicle_position.lon);
-		path.first_item.in_acc_rad = PX4_ISFINITE(dist_to_first_item)
-					     && dist_to_first_item < config.parameters.nav_acceptance_radius_m;
-	}
-
-	return path;
+	return on_jump_segment_and_goal_elsewhere
+	       ? solveShortestRoutePathFromActiveLoop(goal_dist_along_route_m, projection_context, config, direction_mode)
+	       : solveShortestRoutePath(goal_dist_along_route_m, projection_context, direction_mode);
 }
 
 void loadSafePointBatch(const Provider &provider,
@@ -551,14 +534,19 @@ FailureReason selectBestGoal(const Provider &provider,
 	return selection.found() ? FailureReason::kNone : safe_point_status;
 }
 
-bool canUseCurrentAltitudeForJoinTarget(const RoutePath &path)
+// Landing items, and takeoff items flown in reverse, sit at ground level: keep the vehicle
+// altitude when it is already inside the item's acceptance radius.
+bool canUseCurrentAltitudeForJoinTarget(const RoutePath &path, const Position &vehicle_position,
+					float acceptance_radius_m)
 {
-	// The altitude of the land item is set at ground level.
-	// Keep vehicle altitude at a landing item, or a takeoff item in reverse.
-	return path.valid()
-	       && path.first_item.in_acc_rad
-	       && (isLandingCmd(path.first_item.nav_cmd)
-		   || (path.direction_reversed && isTakeoffCmd(path.first_item.nav_cmd)));
+	if (!isLandingCmd(path.first_item.nav_cmd)
+	    && !(path.direction_reversed && isTakeoffCmd(path.first_item.nav_cmd))) {
+		return false;
+	}
+
+	const float dist_to_first_item = get_distance_to_next_waypoint(path.first_item.position.lat,
+					 path.first_item.position.lon, vehicle_position.lat, vehicle_position.lon);
+	return PX4_ISFINITE(dist_to_first_item) && dist_to_first_item < acceptance_radius_m;
 }
 
 bool closeToBranchOffSegment(const Position &position,
@@ -603,7 +591,8 @@ bool canSkipRouteFollowToSelectedGoal(const Position &vehicle_position,
 				      const GoalSelection &selection, const PlannerConfig &config)
 {
 	if (selection.goal_type != GoalType::kSafePoint) {
-		return canUseCurrentAltitudeForJoinTarget(selection.path);
+		return canUseCurrentAltitudeForJoinTarget(selection.path, vehicle_position,
+				config.parameters.nav_acceptance_radius_m);
 	}
 
 	// Safe-point goals only skip when the selected destination or branch-off leg is already close.
@@ -655,12 +644,12 @@ VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state,
 
 template<typename PlanT>
 void fillRouteJoinPlan(PlanT &plan, const ProjectionContext &projection_context, const RoutePath &path,
-		       const Position &vehicle_position)
+		       const Position &vehicle_position, float acceptance_radius_m)
 {
 	plan.join_position = projection_context.route_projection.projection;
 	plan.first_mission_item_index = path.first_item.index;
 	plan.direction_reversed = path.direction_reversed;
-	plan.use_current_altitude = canUseCurrentAltitudeForJoinTarget(path);
+	plan.use_current_altitude = canUseCurrentAltitudeForJoinTarget(path, vehicle_position, acceptance_radius_m);
 	plan.active_jump_anchor = activeJumpAnchor(projection_context.route_projection.segment);
 	plan.vtol_transition_action = vtolTransitionActionForState(projection_context.projected_segment_vtol_state,
 				      projection_context.vehicle_state);
@@ -670,7 +659,7 @@ void fillRouteJoinPlan(PlanT &plan, const ProjectionContext &projection_context,
 	}
 }
 
-// First stage of both plans: project the vehicle, resolve the segment's VTOL state.
+// First stage of both plans: project the vehicle, resolve the segment's VTOL state and the u-turn costs.
 FailureReason buildProjectionContext(const Provider &provider, const PlannerConfig &config,
 				     const Position &vehicle_position, int32_t mission_index,
 				     ProjectionReferenceBatch &batch, ProjectionContext &projection_context,
@@ -689,6 +678,11 @@ FailureReason buildProjectionContext(const Provider &provider, const PlannerConf
 		projection_context.projected_segment_vtol_state = vtolStateForSegment(provider,
 				projection_context.route_projection.segment);
 	}
+
+	// The u-turn check only depends on the direction flown from the projection.
+	const float u_turn_penalty_m = config.parameters.fw_u_turn_penalty_m;
+	projection_context.u_turn_cost_nominal_m = uTurnRequired(projection_context, config, false) ? u_turn_penalty_m : 0.f;
+	projection_context.u_turn_cost_reverse_m = uTurnRequired(projection_context, config, true) ? u_turn_penalty_m : 0.f;
 
 	return FailureReason::kNone;
 }
@@ -721,7 +715,8 @@ FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequ
 	const RoutePath path = findShortestPathAlongRoute(projection_context.route_length, projection_context, config,
 			       PathDirectionMode::kForceNominal, GoalProjectionLocation::kOutsideActiveLoopJump);
 	MissionResumePlan candidate{};
-	fillRouteJoinPlan(candidate, projection_context, path, request.vehicle_position);
+	fillRouteJoinPlan(candidate, projection_context, path, request.vehicle_position,
+			  config.parameters.nav_acceptance_radius_m);
 
 	if (!candidate.valid()) {
 		return FailureReason::kNoValidPath;
@@ -801,7 +796,8 @@ FailureReason MissionRoutePlanner::planRtlRoute(const RtlRouteRequest &request,
 		fly_direct_to_goal = clear;
 	}
 
-	fillRouteJoinPlan(plan, projection_context, selection.path, request.vehicle_position);
+	fillRouteJoinPlan(plan, projection_context, selection.path, request.vehicle_position,
+			  config.parameters.nav_acceptance_radius_m);
 	plan.goal_type = selection.goal_type;
 	plan.goal_position = selection.goal_position;
 	plan.safe_point_index = selection.safe_point_index;
