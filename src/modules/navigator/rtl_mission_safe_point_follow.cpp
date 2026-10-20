@@ -846,7 +846,11 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 
 	const auto add_mission_item_legs = [&](const mission_item_s & item, bool current_target) {
 		const bool loiter_to_alt = item.nav_cmd == NAV_CMD_LOITER_TO_ALT;
-		const bool vtol_landing = item.nav_cmd == NAV_CMD_VTOL_LAND && _vehicle_status_sub.get().is_vtol;
+		// As in execution, NAV_FORCE_VT lands a fixed-wing VTOL vertically at a plain LAND.
+		const bool vtol_landing = _vehicle_status_sub.get().is_vtol
+					  && (item.nav_cmd == NAV_CMD_VTOL_LAND
+					      || (item.nav_cmd == NAV_CMD_LAND && _param_nav_force_vt.get()
+						  && estimated_vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING));
 		const bool mc_landing = mission_route::isLandingCmd(item.nav_cmd)
 					&& estimated_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
