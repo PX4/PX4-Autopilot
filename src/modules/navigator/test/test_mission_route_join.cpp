@@ -873,6 +873,39 @@ TEST_F(MissionRouteJoinTest, DisarmBetweenActivationsKeepsJoinOnLastItem)
 	EXPECT_EQ(mission.currentSequenceForTest(), 3);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 	EXPECT_TRUE(mission.joinContextForTest().valid());
+
+	// Selecting another item cancels the armed join.
+	ASSERT_TRUE(mission.set_current_mission_index(1));
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
+}
+
+// Smart rejoin is off by default: an airborne activation resumes at the current item.
+TEST_F(MissionRouteJoinTest, DisabledRouteJoinKeepsCurrentItem)
+{
+	MissionTestPeer mission(&_navigator);
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+	};
+	const mission_s mission_state = publishMissionItems(items, 63, 1);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	// Beside the leg to item 2, which an enabled join would target.
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kBaseAlt));
+	publishLocalPosition();
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	primeNavigatorState();
+	updateRouteCacheUntilReady(mission_state);
+	mission.on_inactive();
+	markMissionResultValid();
+
+	mission.on_activation();
+
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_NE(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
 }
 
 TEST_F(MissionRouteJoinTest, FinishedMissionHoldsWithoutJoin)
