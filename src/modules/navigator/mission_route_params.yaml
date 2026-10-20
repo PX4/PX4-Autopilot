@@ -6,11 +6,9 @@ parameters:
       description:
         short: Enable smart mission-route rejoin on Mission activation
         long: |-
-          If enabled and the vehicle is off the uploaded route when Mission mode is
-          activated, Navigator projects the vehicle back onto the planned mission
-          geometry and inserts a temporary branch-in waypoint before resuming the
-          mission. If disabled, Mission mode falls back to the legacy behavior and
-          flies directly to the current mission item.
+          If enabled, activating Mission mode in flight joins the uploaded route at a
+          projected branch-in point. If disabled, Mission flies directly to the
+          current mission item.
       type: boolean
       default: 0
     MIS_MC_SEG_DIST:

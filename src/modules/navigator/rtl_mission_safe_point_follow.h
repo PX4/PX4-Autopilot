@@ -90,8 +90,6 @@ private:
 	/** @brief Publish the current join, follow, branch-off, or landing setpoints for the active RTL stage. */
 	void setActiveMissionItems() override;
 
-	/** @brief Build the virtual branch-off waypoint. */
-	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
 	/** @brief Build the landing item: the mission LAND item for that goal, otherwise a synthetic landing at the goal. */
 	void setGoalLandMissionItem(mission_item_s &mission_item) const;
 	/** @brief Build the arrival item for the phase of @p arrival. */
