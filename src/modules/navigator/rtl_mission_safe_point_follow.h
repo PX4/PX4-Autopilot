@@ -110,14 +110,13 @@ private:
 	/** @brief Resolve a loaded item to its flown target; return true at the branch-off or selected endpoint. */
 	bool resolveRouteTarget(int32_t index, mission_item_s &mission_item) const;
 	/** @brief Load the next route item, substituting the branch-off or normalizing holds while preserving endpoints. */
-	bool loadNextRouteItem(mission_item_s &next_route_item, int32_t &next_index);
+	bool loadNextRouteItem(mission_item_s &next_route_item);
 	/** @brief Resolve the flown target and start shared transition execution. */
 	void armRouteTransition(mission_route::VtolTransitionAction action, bool advance_route_after_transition);
 	bool frontTransitionInhibited() const override;
 	mission_route::VtolTransitionAction allowedRouteTransition(mission_route::VtolTransitionAction action) const;
 	/** @brief Publish the active route-following setpoints, endpoint handoff, and any pending transition. */
-	void handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
-				    const position_setpoint_s &current_setpoint_copy);
+	void handleFollowRouteStage(const position_setpoint_s &current_setpoint_copy);
 	/** @brief Return true when the selected safe-point goal has a concrete VTOL landing approach to fly. */
 	bool useGoalLandApproach() const;
 	Stage finalGoalStage() const;
@@ -130,19 +129,12 @@ private:
 	bool missionIndexInBounds(int32_t index) const;
 	/** @brief Reset transient executor progress so inactive-state queries do not observe stale stages. */
 	void resetExecutorProgress();
-	/** @brief Publish a non-landing setpoint pair and clear any transient MissionBase work item. */
-	void publishRouteItems(position_setpoint_triplet_s *pos_sp_triplet,
-			       const position_setpoint_s &current_setpoint_copy,
-			       const mission_item_s &current_mission_item,
-			       const mission_item_s *next_mission_item,
-			       bool sync_active_mission_item = true);
 	/** @brief Publish landing setpoints through MissionBase::handleLanding() to preserve legacy landing semantics. */
 	void publishLandingItems(position_setpoint_triplet_s *pos_sp_triplet,
 				 const position_setpoint_s &current_setpoint_copy,
 				 const mission_item_s &landing_mission_item);
 	/** @brief Publish the virtual branch-off waypoint and the subsequent goal item. */
-	void publishBranchOffItems(position_setpoint_triplet_s *pos_sp_triplet,
-				   const position_setpoint_s &current_setpoint_copy);
+	void publishBranchOffItems(const position_setpoint_s &current_setpoint_copy);
 	/** @brief Advance to the next route target, or hand over to the goal stage when the route is exhausted. */
 	void advanceRouteTarget();
 	/** @brief Estimate from the latest inactive plan or the active progress, without advancing execution. */
