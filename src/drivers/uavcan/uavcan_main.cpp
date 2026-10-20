@@ -193,7 +193,7 @@ UavcanNode::save_params(int remote_node_id)
 	uavcan::protocol::param::ExecuteOpcode::Request opcode_req;
 	opcode_req.opcode = opcode_req.OPCODE_SAVE;
 	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> client(_node);
-	client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
+	client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_save_params));
 	_callback_success = false;
 	int call_res = client.call(remote_node_id, opcode_req);
 
@@ -264,6 +264,12 @@ UavcanNode::list_params(int remote_node_id)
 
 	free_setget_response();
 	return rv;
+}
+
+void
+UavcanNode::cb_save_params(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
+{
+	_callback_success = result.isSuccessful() && result.getResponse().ok;
 }
 
 void
@@ -1529,7 +1535,6 @@ UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::E
 	uint8_t node_id = result.getCallID().server_node_id.get();
 	uavcan::protocol::param::ExecuteOpcode::Response resp = result.getResponse();
 	success &= resp.ok;
-	_callback_success = success;
 	_cmd_in_progress = false;
 
 	if (!result.isSuccessful()) {
