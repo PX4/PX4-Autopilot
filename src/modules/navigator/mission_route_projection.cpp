@@ -596,7 +596,8 @@ static void pruneProjectionCandidates(ProjectionCandidateBuffer &candidate_buffe
 
 bool isIndexInProjectionSegment(const Segment &projection_segment, int32_t mission_index, bool is_flying_reverse)
 {
-	if (!projection_segment.valid()) {
+	// A jump edge spans no consecutive items, even when its target resolves past the DO_JUMP.
+	if (!projection_segment.valid() || projection_segment.isLoop()) {
 		return false;
 	}
 
@@ -701,6 +702,20 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment)
 	return state;
 }
 
+// A nominal segment and a jump edge can share endpoints but have different execution state.
+static bool hasSegmentTwin(const ProjectionCandidateBuffer &candidate_buffer, const Segment &segment)
+{
+	for (uint8_t i = 0; i < candidate_buffer.count; ++i) {
+		const Segment &other = candidate_buffer.candidates[i].segment;
+
+		if (other.isLoop() != segment.isLoop() && other.start.idx == segment.start.idx && other.end.idx == segment.end.idx) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void MissionRouteProjection::processCandidateForSegment(const Position &reference_position,
 		const RouteSegmentView &segment_view,
 		float xtrack_margin_m,
@@ -745,9 +760,11 @@ void MissionRouteProjection::processCandidateForSegment(const Position &referenc
 
 	stats.local_min_found++;
 
-	// Positive margins include the boundary; zero margin keeps only the first closest candidate.
+	// Positive margins include the boundary. Zero margin keeps only the first closest candidate and the
+	// nominal twin of a jump edge: without its anchor the jump edge is not flown, nor scored as a branch-off.
 	if (!projection.valid || projection.xtrack_m > state.xtrack_limit_m
-	    || (xtrack_margin_m <= 0.f && projection.xtrack_m >= state.min_xtrack_m)) {
+	    || (xtrack_margin_m <= 0.f && projection.xtrack_m >= state.min_xtrack_m
+		&& !hasSegmentTwin(candidate_buffer, segment_view.segment))) {
 		return;
 	}
 
@@ -886,6 +903,14 @@ static int selectBranchInCandidate(const ProjectionCandidateBuffer &candidate_bu
 
 	for (uint8_t i = 0; i < candidate_buffer.count; ++i) {
 		const RouteProjectionCandidate &candidate = candidate_buffer.candidates[i];
+
+		// Without its anchor, a jump edge loses to the nominal segment with the same endpoints, as when
+		// a DO_JUMP repeats commands after its source waypoint: scanned first, it would win the tie.
+		if (candidate.segment.isLoop() && candidate.segment.jump_item_index != active_jump_anchor.jump_item_index
+		    && hasSegmentTwin(candidate_buffer, candidate.segment)) {
+			continue;
+		}
+
 		const float dist_to_start_m = fabsf(candidate.dist.along_route_m - segment_bounds.start_dist_along_route_m);
 		const float dist_to_end_m = fabsf(candidate.dist.along_route_m - segment_bounds.end_dist_along_route_m);
 		const float projection_to_segment_dist_m = fminf(dist_to_start_m, dist_to_end_m);

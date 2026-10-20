@@ -337,6 +337,57 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, ReverseFlightPrefersReverseCurren
 	EXPECT_EQ(projection_context.route_projection.segment.end.idx, 2);
 }
 
+// A jump and a nominal segment can share endpoints when DO_JUMP repeats commands after its source
+// waypoint. Keep the flown jump only with its anchor, including when the search margin is zero.
+TEST_F(MissionRouteProjectionLocalSegmentTest, JumpEdgeWithNominalTwinRespectsAnchor)
+{
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	const std::vector<mission_item_s> mission = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt), // id 0
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt), // id 1: jump source
+		speed_change,                                                     // id 2: jump target
+		makeDoJump(2, 2, 2),                                              // id 3: exhausted, edge [1->4]
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt), // id 4
+	};
+	TestProjection projection(mission);
+	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt);
+
+	for (const float margin : {0.f, 60.f}) {
+		config.parameters.vehicle_projection_search_dist_m = margin;
+
+		for (const bool anchored : {false, true}) {
+			config.active_jump_anchor.jump_item_index = anchored ? 3 : -1;
+
+			// Index 4 lies in the nominal segment; index 1 only gives both candidates the same score.
+			for (const int32_t mission_index : {4, 1}) {
+				SCOPED_TRACE(::testing::Message() << "margin " << margin << " anchored " << anchored
+					     << " mission index " << mission_index);
+				auto batch = singleReferenceBatch({});
+				mission_route::ProjectionContext projection_context{};
+				const mission_route::FailureReason status =
+					projection.collectVehicleProjection(vehicle, mission_index, config, batch, projection_context);
+
+				ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+				EXPECT_EQ(projection_context.route_projection.segment.isLoop(), anchored);
+				EXPECT_EQ(projection_context.route_projection.segment.jump_item_index, anchored ? 3 : -1);
+				EXPECT_EQ(projection_context.route_projection.segment.start.idx, 1);
+				EXPECT_EQ(projection_context.route_projection.segment.end.idx, 4);
+				EXPECT_EQ(projection_context.loop_bounds.valid(), anchored);
+			}
+		}
+	}
+
+	// A safe point scan keeps the nominal twin too: off the vehicle's loop, a jump edge is no branch-off.
+	auto batch = singleReferenceBatch(vehicle);
+	batch.items[0].source_index = 0;
+	mission_route::RouteDistanceSummary distances{};
+	ASSERT_EQ(projection.findProjectionCandidates(scanRequest(0.f), batch, distances),
+		  mission_route::FailureReason::kNone);
+	ASSERT_EQ(batch.items[0].candidate_buffer.count, 2);
+	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[1].segment.jump_item_index, -1);
+}
+
 // The anchor records that the vehicle is currently executing the DO_JUMP at idx 3, i.e. flying
 // the [2->0] return leg toward target idx 0. Projection must stay on that leg (~46 m away) even
 // though nominal [0-1] is only 10 m away: switching legs would silently drop the pending repeats.

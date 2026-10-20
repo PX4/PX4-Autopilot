@@ -163,7 +163,7 @@ private:
 	FailureReason _failure_reason{FailureReason::kNone};
 };
 
-/** @brief True when the vehicle targeting mission_index is flying on the given segment. */
+/** @brief True when the vehicle targeting mission_index is flying on the given nominal segment. */
 bool isIndexInProjectionSegment(const Segment &segment, int32_t mission_index, bool is_flying_reverse);
 
 /**
