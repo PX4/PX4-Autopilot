@@ -187,14 +187,6 @@ private:
 	/* Synchronous response/request handler */
 	bool syncHandler(const dataman_request_s &request, dataman_response_s &response,
 			 const hrt_abstime &start_time, hrt_abstime timeout);
-
-	/**
-	 * Same, waiting for the answer on the given response subscription instead of the client's own
-	 */
-	bool syncHandler(const dataman_request_s &request, dataman_response_s &response,
-			 const hrt_abstime &start_time, hrt_abstime timeout, orb_sub_t response_sub);
-
-	void publishRequest(const dataman_request_s &request);
 	/* Drain any queued stale replies before a new request starts. */
 	void clearPendingResponse();
 
@@ -203,14 +195,13 @@ private:
 	uint8_t _response_status{};
 
 	orb_sub_t _dataman_response_sub{ORB_SUB_INVALID};
+	uORB::Publication<dataman_request_s> _dataman_request_pub{ORB_ID(dataman_request)};
 
-	/* Never unadvertised: a uORB node has one advertised flag, so unadvertising any client's handle would hide
-	 * every other client's requests from dataman until something advertises the topic again. */
-	orb_advert_t _dataman_request_advert{nullptr};
+	px4_pollfd_struct_t _fds;
 
-	static constexpr uint8_t CLIENT_ID_NOT_SET{0};
+	static constexpr uint16_t CLIENT_ID_NOT_SET{0};
 
-	uint8_t _client_id{CLIENT_ID_NOT_SET};
+	uint16_t _client_id{CLIENT_ID_NOT_SET};
 
 	perf_counter_t _sync_perf{nullptr};
 };
