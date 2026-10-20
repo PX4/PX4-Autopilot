@@ -38,7 +38,7 @@ if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE AND PX4_PLATFORM STREQUAL "posix" AN
 	set(NAVIGATOR_DIR ${PX4_SOURCE_DIR}/src/modules/navigator)
 
 	# The planner sources are compiled here, not linked, so DEBUG_BUILD turns on their
-	# PX4_DEBUG scoring traces for this binary only.
+	# PX4_DEBUG traces for this binary only.
 	add_executable(mission_route_planner_cli EXCLUDE_FROM_ALL
 		mission_route_planner_cli.cpp
 		${NAVIGATOR_DIR}/mission_route_internal_types.cpp
