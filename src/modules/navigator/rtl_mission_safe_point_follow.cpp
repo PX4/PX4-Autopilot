@@ -498,8 +498,10 @@ bool RtlMissionSafePointFollow::resolveRouteTarget(int32_t index, mission_item_s
 	return selected_endpoint;
 }
 
-bool RtlMissionSafePointFollow::loadNextRouteItem(mission_item_s &next_route_item, int32_t &next_index)
+bool RtlMissionSafePointFollow::loadNextRouteItem(mission_item_s &next_route_item)
 {
+	int32_t next_index = -1;
+
 	if (!findAdjacentRouteIndex(_mission.current_seq, next_index)
 	    || !loadMissionItemFromCache(next_index, next_route_item)) {
 		return false;
@@ -514,81 +516,32 @@ void RtlMissionSafePointFollow::armRouteTransition(mission_route::VtolTransition
 {
 	_state.stage = Stage::TransitionDuringRoute;
 	_state.advance_route_after_transition = advance_route_after_transition;
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
-
-	const bool branch_off_target_active = isBranchOffIndex(_mission.current_seq) && !_state.advance_route_after_transition;
-	mission_item_s current_route_item{};
+	const position_setpoint_s current_setpoint_copy = _navigator->get_position_setpoint_triplet()->current;
+	mission_item_s current_route_item = _mission_item;
 	mission_item_s next_route_item{};
-	mission_item_s *next_route_item_ptr = nullptr;
-	int32_t adjacent_index = -1;
+	bool has_next_route_item = true;
 
-	if (branch_off_target_active) {
+	if (!advance_route_after_transition && isBranchOffIndex(_mission.current_seq)) {
 		setWaypointMissionItem(current_route_item, _plan.branch_off_position);
 		setGoalMissionItem(next_route_item);
-		next_route_item_ptr = &next_route_item;
 
 	} else {
-		current_route_item = _mission_item;
 		normalizeRouteMissionItem(current_route_item);
+		has_next_route_item = loadNextRouteItem(next_route_item);
 
-		if (loadNextRouteItem(next_route_item, adjacent_index)) {
-			next_route_item_ptr = &next_route_item;
+		if (advance_route_after_transition && has_next_route_item) {
+			// A reverse transition starts at the reached waypoint, so track the next target already.
+			current_route_item = next_route_item;
+			has_next_route_item = false;
 		}
 	}
 
-	if (_state.advance_route_after_transition
-	    && _plan.direction_reversed
-	    && next_route_item_ptr != nullptr) {
-		// Reverse waypoint-attached semantics trigger the transition only after the current
-		// waypoint is reached. During that transition the vehicle must already track the next
-		// reverse target, not fly back toward the waypoint it just completed.
-		current_route_item = *next_route_item_ptr;
-		next_route_item_ptr = nullptr;
-	}
-
 	// Track the resolved outgoing leg while an existing back transition finishes.
-	publishRouteItems(pos_sp_triplet, current_setpoint_copy, current_route_item, next_route_item_ptr, false);
+	publishPositionItems(current_route_item, has_next_route_item ? &next_route_item : nullptr, current_setpoint_copy);
 	mission_item_s command{};
 	set_vtol_transition_item(&command, action == mission_route::VtolTransitionAction::kFrontTransition
 				 ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 	startVtolTransition(command, &current_route_item, WorkItemType::WORK_ITEM_TYPE_DEFAULT, true);
-}
-
-void RtlMissionSafePointFollow::publishRouteItems(position_setpoint_triplet_s *pos_sp_triplet,
-		const position_setpoint_s &current_setpoint_copy, const mission_item_s &current_mission_item,
-		const mission_item_s *next_mission_item, bool sync_active_mission_item)
-{
-	mission_item_to_position_setpoint(current_mission_item, &pos_sp_triplet->current);
-
-	if (next_mission_item != nullptr) {
-		mission_item_to_position_setpoint(*next_mission_item, &pos_sp_triplet->next);
-
-	} else {
-		_navigator->reset_position_setpoint(pos_sp_triplet->next);
-	}
-
-	if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
-		pos_sp_triplet->previous = current_setpoint_copy;
-	}
-
-	issue_command(current_mission_item);
-
-	if (sync_active_mission_item) {
-		// Reach checks must use the published target, which may be a virtual branch-off
-		// instead of the uploaded mission waypoint.
-		_mission_item = current_mission_item;
-	}
-
-	_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-	reset_mission_item_reached();
-
-	if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
-		set_mission_result();
-	}
-
-	publish_navigator_mission_item();
-	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void RtlMissionSafePointFollow::publishLandingItems(position_setpoint_triplet_s *pos_sp_triplet,
@@ -641,19 +594,17 @@ void RtlMissionSafePointFollow::publishLandingItems(position_setpoint_triplet_s 
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
-void RtlMissionSafePointFollow::publishBranchOffItems(position_setpoint_triplet_s *pos_sp_triplet,
-		const position_setpoint_s &current_setpoint_copy)
+void RtlMissionSafePointFollow::publishBranchOffItems(const position_setpoint_s &current_setpoint_copy)
 {
 	mission_item_s branch_off_item{};
 	mission_item_s next_goal_item{};
 	setWaypointMissionItem(branch_off_item, _plan.branch_off_position);
 	setGoalMissionItem(next_goal_item);
 
-	publishRouteItems(pos_sp_triplet, current_setpoint_copy, branch_off_item, &next_goal_item);
+	publishPositionItems(branch_off_item, &next_goal_item, current_setpoint_copy);
 }
 
-void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet_s *pos_sp_triplet,
-		const position_setpoint_s &current_setpoint_copy)
+void RtlMissionSafePointFollow::handleFollowRouteStage(const position_setpoint_s &current_setpoint_copy)
 {
 	const bool branch_off_target_active = isBranchOffIndex(_mission.current_seq);
 	// The planner resolved the first segment from its actual jump source.
@@ -676,7 +627,7 @@ void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet
 		_state.stage = Stage::BranchOff;
 		PX4_DEBUG("RTL leaving route at branch-off");
 		// Publish the branch-off now so the next reach check uses the projected point.
-		publishBranchOffItems(pos_sp_triplet, current_setpoint_copy);
+		publishBranchOffItems(current_setpoint_copy);
 		return;
 	}
 
@@ -684,11 +635,8 @@ void RtlMissionSafePointFollow::handleFollowRouteStage(position_setpoint_triplet
 	normalizeRouteMissionItem(current_route_item);
 
 	mission_item_s next_route_item{};
-	int32_t next_index = -1;
-	const bool has_next_route_item = loadNextRouteItem(next_route_item, next_index);
-
-	publishRouteItems(pos_sp_triplet, current_setpoint_copy, current_route_item,
-			  has_next_route_item ? &next_route_item : nullptr);
+	const bool has_next_route_item = loadNextRouteItem(next_route_item);
+	publishPositionItems(current_route_item, has_next_route_item ? &next_route_item : nullptr, current_setpoint_copy);
 }
 
 void RtlMissionSafePointFollow::setActiveMissionItems()
@@ -707,14 +655,14 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 
 	switch (_state.stage) {
 	case Stage::FollowRoute:
-		handleFollowRouteStage(pos_sp_triplet, current_setpoint_copy);
+		handleFollowRouteStage(current_setpoint_copy);
 		break;
 
 	case Stage::TransitionDuringRoute:
 		break;
 
 	case Stage::BranchOff:
-		publishBranchOffItems(pos_sp_triplet, current_setpoint_copy);
+		publishBranchOffItems(current_setpoint_copy);
 		break;
 
 	case Stage::Arrival: {
@@ -722,7 +670,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 			setGoalArrivalMissionItem(goal_item, _arrival);
 
 			if (_arrival.phase() == RtlArrival::Phase::Move) {
-				publishRouteItems(pos_sp_triplet, current_setpoint_copy, goal_item, nullptr);
+				publishPositionItems(goal_item, nullptr, current_setpoint_copy);
 				break;
 			}
 
@@ -732,8 +680,7 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 								  _plan.goal_position.lat, _plan.goal_position.lon) > _navigator->get_acceptance_radius();
 			mission_item_s landing_item{};
 			setGoalLandMissionItem(landing_item);
-			publishRouteItems(pos_sp_triplet, current_setpoint_copy, goal_item,
-					  goal_item.autocontinue ? &landing_item : nullptr);
+			publishPositionItems(goal_item, goal_item.autocontinue ? &landing_item : nullptr, current_setpoint_copy);
 			pos_sp_triplet->previous.valid = false;
 
 			if (_arrival.phase() == RtlArrival::Phase::Hold && goal_item.autocontinue) {
