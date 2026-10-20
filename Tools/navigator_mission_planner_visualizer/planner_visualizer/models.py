@@ -74,7 +74,7 @@ class Fence:
     def outline(self) -> List[Tuple[float, float]]:
         if self.radius_m is None:
             return list(self.vertices)
-        # A sampled outline is enough for fitting the map and the optional 3D view.
+        # A sampled outline is enough for fitting the map.
         return [
             offset_to_latlon(
                 *self.vertices[0], self.radius_m * math.cos(angle), self.radius_m * math.sin(angle)
