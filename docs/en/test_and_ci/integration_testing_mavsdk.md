@@ -156,6 +156,7 @@ The testers wrap MAVSDK with the building blocks the tests need, such as mission
 - `tester_rtl`: [autopilot_tester_rtl.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/autopilot_tester_rtl.py) adds rally points and geofences.
 - `tester_loiter`: [autopilot_tester_loiter.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/autopilot_tester_loiter.py) adds fixed-wing loiter, reposition and figure eight.
 - `tester_follow_me`: [autopilot_tester_follow_me.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/autopilot_tester_follow_me.py) adds follow-me.
+- `tester_vision_target`: [autopilot_tester_vision_target.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/autopilot_tester_vision_target.py) simulates landing target sensors for precision landing.
 
 Things to keep in mind:
 
