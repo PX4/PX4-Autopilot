@@ -6,4 +6,4 @@ repositories:
   px4-ros2-interface-lib:
     type: git
     url: https://github.com/Auterion/px4-ros2-interface-lib.git
-    version: 22943b5412235d2d36512d58b9073ae3de8fd1cd
+    version: bb49ef5f02273e3c121cabde8cea3e88cf0a5120
