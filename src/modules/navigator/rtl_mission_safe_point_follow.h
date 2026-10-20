@@ -54,7 +54,6 @@
 class RtlMissionSafePointFollow : public RtlBase
 {
 public:
-	/** @brief Execute the staged Route Safe Point Return plan built by RTL type 7. */
 	RtlMissionSafePointFollow(Navigator *navigator, mission_s mission);
 	~RtlMissionSafePointFollow() override;
 
@@ -115,7 +114,7 @@ private:
 	void armRouteTransition(mission_route::VtolTransitionAction action, bool advance_route_after_transition);
 	bool frontTransitionInhibited() const override;
 	mission_route::VtolTransitionAction allowedRouteTransition(mission_route::VtolTransitionAction action) const;
-	/** @brief Publish the active route-following setpoints, endpoint handoff, and any pending transition. */
+	/** @brief Publish the route target, or start its VTOL transition or the branch-off. */
 	void handleFollowRouteStage(const position_setpoint_s &current_setpoint_copy);
 	/** @brief Return true when the selected safe-point goal has a concrete VTOL landing approach to fly. */
 	bool useGoalLandApproach() const;
@@ -129,7 +128,7 @@ private:
 	bool missionIndexInBounds(int32_t index) const;
 	/** @brief Reset transient executor progress so inactive-state queries do not observe stale stages. */
 	void resetExecutorProgress();
-	/** @brief Publish landing setpoints through MissionBase::handleLanding() to preserve legacy landing semantics. */
+	/** @brief Publish landing setpoints through MissionBase::handleLanding(), as Mission does. */
 	void publishLandingItems(position_setpoint_triplet_s *pos_sp_triplet,
 				 const position_setpoint_s &current_setpoint_copy,
 				 const mission_item_s &landing_mission_item);
@@ -154,7 +153,7 @@ private:
 	RtlArrival _arrival{};
 	loiter_point_s _goal_land_approach{};
 	float _goal_arrival_alt{NAN};
-	RtlTimeEstimator _rtl_time_estimator; /**< Time estimator consistent with other RTL modes. */
+	RtlTimeEstimator _rtl_time_estimator;
 	perf_counter_t _calc_rtl_time_estimate_perf{perf_alloc(PC_ELAPSED, "navigator: rtl route time estimate")};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(

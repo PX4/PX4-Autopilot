@@ -621,6 +621,7 @@ static bool isVehicleSegment(const Segment &segment, float along_route_m, float 
 	return initial_takeoff_stack || isIndexInProjectionSegment(segment, mission_index, is_flying_reverse);
 }
 
+// MissionBase::getVtolStateAtMissionIndex() applies this rule to the legs after the join.
 uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment)
 {
 	const int mission_count = provider.missionCount();
