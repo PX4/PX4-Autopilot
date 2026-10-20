@@ -281,7 +281,9 @@ def _parse_missions(src: str, constants: Dict[str, float]) -> Dict[str, List[Way
         if item is not None:
             missions[max(owners)[1]].append(item)
 
-    missions = {name: items for name, items in missions.items() if items}
+    # Source order, so the first mission is the one declared first.
+    order = {name: index for _, name, index in declarations}
+    missions = {name: missions[name] for name in sorted(missions, key=order.__getitem__) if missions[name]}
     if missions:
         return missions
 

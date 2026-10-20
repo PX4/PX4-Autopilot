@@ -112,6 +112,14 @@ class ContainerTest(unittest.TestCase):
         self.assertEqual([wp.lat for wp in scene.missions["mission"]], [47.0, 47.1])
         self.assertEqual([wp.lat for wp in scene.missions["mission_2"]], [48.0, 48.1])
 
+    def test_first_mission_is_the_first_declared(self):
+        scene = parse_cpp(
+            "std::vector<mission_item_s> mission;\n"
+            "mission.push_back(makePositionItem(47.0, 8.0, 500.f));\n"
+            "std::vector<mission_item_s> other{makePositionItem(48.0, 9.0, 500.f)};\n"
+        )
+        self.assertEqual(list(scene.missions), ["mission", "other"])
+
     def test_items_outside_a_container_form_one_mission(self):
         scene = parse_cpp(
             """
