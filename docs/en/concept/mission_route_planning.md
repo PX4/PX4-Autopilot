@@ -370,7 +370,7 @@ Safe-point branch-off candidates on loop segments are more restricted:
 After a destination has been selected, the vehicle can skip joining and following the route in these cases:
 
 - **Direct-to-safe-point**: if the vehicle is already within the direct acceptance radius of the selected safe point, go straight to it.
-- **Close-to-branch-leg**: if the vehicle is already close to the selected branch-off leg (both horizontally and vertically), continue straight toward the goal.
+- **Close-to-branch-leg**: if the vehicle is already close to the selected branch-off leg and at the branch-off altitude, continue straight toward the goal.
 - **Endpoint goal**: for a mission `LAND` or `TAKEOFF` goal, the route-ends rule of [Vehicle Projection](#vehicle-projection) Phase 3 applies.
   When that endpoint is the first item to fly and the vehicle is inside its acceptance radius, the Return skips route following and flies directly to it.
 
