@@ -1610,6 +1610,7 @@ bool MissionBase::vehicleInFwLikeState(const vehicle_status_s &vehicle_status)
 	       || vehicle_status.in_transition_to_fw;
 }
 
+// Same rule as mission_route::vtolStateForSegment(), except for legs that end at a takeoff item.
 uint8_t MissionBase::getVtolStateAtMissionIndex(int32_t anchor_index)
 {
 	uint8_t vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
