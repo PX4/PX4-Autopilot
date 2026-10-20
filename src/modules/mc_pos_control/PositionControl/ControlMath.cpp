@@ -54,10 +54,11 @@ void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_
 {
 	// determine tilt
 	const float dot_product_unit = body_unit.dot(world_unit);
-	float angle = acosf(dot_product_unit);
+	Vector3f rejection = body_unit - (dot_product_unit * world_unit);
+	// atan2 instead of acos: acos turns rounding errors near +-1 into large angles
+	float angle = atan2f(rejection.norm(), dot_product_unit);
 	// limit tilt
 	angle = math::min(angle, max_angle);
-	Vector3f rejection = body_unit - (dot_product_unit * world_unit);
 
 	// corner case exactly parallel vectors
 	if (rejection.norm_squared() < FLT_EPSILON) {

@@ -1353,7 +1353,6 @@ TEST_F(RTLTest, DirectMissionLandUsesMissionPublishedBeforeActivation)
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
 	publishLandDetected(false);
-	_navigator.get_mission_result()->valid = true;
 
 	RtlDirectMissionLandTestPeer direct_mission_land{&_navigator, stale};
 	direct_mission_land.loadTestMission({land_start, approach, land});
@@ -1367,6 +1366,7 @@ TEST_F(RTLTest, DirectMissionLandUsesMissionPublishedBeforeActivation)
 	fresh.land_index = 2;
 	fresh.count = 3;
 	publishMission(fresh);
+	setMissionResultValid(fresh);
 
 	// WHEN: the mode is activated on the next cycle
 	direct_mission_land.activateForTest();
@@ -1414,7 +1414,6 @@ TEST_F(RTLTest, MissionFastUsesMissionPublishedBeforeActivation)
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
 	publishLandDetected(false);
-	_navigator.get_mission_result()->valid = true;
 
 	auto fliesThePublishedMission = [&](auto & mission_fast) {
 		// the copy the mode holds: two waypoints north of the vehicle
@@ -1423,7 +1422,9 @@ TEST_F(RTLTest, MissionFastUsesMissionPublishedBeforeActivation)
 		// GIVEN: a newer mission with different waypoints is published after the mode last ran inactive
 		const std::vector<mission_item_s> fresh_items = makeTwoWaypointMission(1000.f, 1200.f);
 		mission_fast.loadTestMission(fresh_items);
-		publishMission(makeMissionHeader(8, 0, 2));
+		const mission_s fresh = makeMissionHeader(8, 0, 2);
+		publishMission(fresh);
+		setMissionResultValid(fresh);
 
 		// WHEN: the mode is activated on the next cycle
 		mission_fast.activateForTest();
@@ -1448,7 +1449,7 @@ TEST_F(RTLTest, MissionFastUsesMissionPublishedBeforeActivation)
 TEST_F(RTLTest, MissionFastModesKeepThePriorIndexOnlyForTheSameMission)
 {
 	publishLandDetected(false);
-	_navigator.get_mission_result()->valid = true;
+	setMissionResultValid(makeMissionHeader(7, 1, 2));
 
 	{
 		SCOPED_TRACE("same mission");
@@ -1492,11 +1493,14 @@ TEST_F(RTLTest, MissionFastModesKeepThePriorIndexOnlyForTheSameMission)
 
 		const std::vector<mission_item_s> fresh_items = makeTwoWaypointMission(1000.f, 1200.f);
 		auto dropsThePriorIndex = [&](auto & mode, const mission_s & prior_mission) {
+			setMissionResultValid(prior_mission);
 			flyMissionThenTriggerReturn(mode, prior_mission);
 
 			// GIVEN: a two-item mission replaced the recorded mission before RTL activated
 			mode.loadTestMission(fresh_items);
-			publishMission(makeMissionHeader(8, 0, 2));
+			const mission_s fresh = makeMissionHeader(8, 0, 2);
+			publishMission(fresh);
+			setMissionResultValid(fresh);
 
 			mode.activateForTest();
 
