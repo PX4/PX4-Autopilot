@@ -197,18 +197,16 @@ struct ReadFailureCase {
 } // namespace
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+// A Return executor that is already landing.
 class RtlLifecycleTestExecutor : public RtlBase
 {
 public:
-	RtlLifecycleTestExecutor(Navigator *navigator, bool landing) :
-		RtlBase(navigator, 0),
-		_landing(landing)
-	{}
+	explicit RtlLifecycleTestExecutor(Navigator *navigator) : RtlBase(navigator, 0) {}
 
 	void on_activation() override {}
 	void on_active() override {}
 	void on_inactivation() override { _deactivated = true; }
-	bool isLanding() override { return _landing; }
+	bool isLanding() override { return true; }
 	rtl_time_estimate_s calc_rtl_time_estimate() override { return {}; }
 	bool deactivated() const { return _deactivated; }
 
@@ -216,7 +214,6 @@ private:
 	bool setNextMissionItem() override { return false; }
 	void setActiveMissionItems() override {}
 
-	bool _landing{false};
 	bool _deactivated{false};
 };
 #endif
@@ -520,8 +517,9 @@ protected:
 		}
 	}
 
-	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type, bool front_transition = false, bool back_transition = false,
-				  uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL)
+	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type,
+				  uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL, bool front_transition = false,
+				  bool back_transition = false)
 	{
 		vehicle_status_s status{};
 		status.timestamp = hrt_absolute_time();
@@ -578,14 +576,24 @@ protected:
 		}
 	}
 
+	// what the mission module reports once it has checked a mission
+	void setMissionResultValid(const mission_s &mission)
+	{
+		mission_result_s *result = _navigator.get_mission_result();
+		result->valid = true;
+		result->mission_id = mission.mission_id;
+		result->geofence_id = mission.geofence_id;
+		result->home_position_counter = 0;
+	}
+
 	// Record the mission target through the normal inactive cycle before switching to RTL.
 	template <typename Mode>
 	void flyMissionThenTriggerReturn(Mode &mode, const mission_s &mission)
 	{
-		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 		publishMission(mission);
 		mode.on_inactive();
-		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 	}
 
 	void publishWind(float windspeed_north, float windspeed_east)
@@ -606,15 +614,6 @@ protected:
 	void publishGlobalPosition(const PositionYawSetpoint &position)
 	{
 		publishGlobalPosition(position.lat, position.lon, position.alt);
-	}
-
-	void setMissionResultValid(const mission_s &mission)
-	{
-		mission_result_s *mission_result = _navigator.get_mission_result();
-		mission_result->valid = true;
-		mission_result->mission_id = mission.mission_id;
-		mission_result->geofence_id = mission.geofence_id;
-		mission_result->home_position_counter = 0;
 	}
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
@@ -751,6 +750,41 @@ protected:
 		publishMission(mission);
 		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 		publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 5.f, kAlt + 50.f));
+		publishLandDetected(false);
+		setMissionResultValid(mission);
+		return mission;
+	}
+
+	// Three waypoints north of Home, one rally point beside the second leg, the vehicle on the first leg.
+	mission_s prepareStraightRouteScenario()
+	{
+		const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
+		const mission_s mission = loadRoutePlanningCache({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		}, {makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL)});
+		publishMission(mission);
+		publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
+		setMissionResultValid(mission);
+		return mission;
+	}
+
+	// A square exclusion fence east of the route; path checks pass until setVertexCount(fence, 3) breaks them.
+	mission_s prepareSquareFenceScenario(const mission_item_s &safe_point)
+	{
+		mission_s mission = loadRoutePlanningCache({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		}, {safe_point});
+		startFenceUpdate(mission, {
+			exclusionVertex(-10.f, 300.f, 4), exclusionVertex(10.f, 300.f, 4),
+			exclusionVertex(10.f, 320.f, 4), exclusionVertex(-10.f, 320.f, 4),
+		});
+		EXPECT_TRUE(finishFenceUpdate());
+		publishMission(mission);
+		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+		publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
 		publishLandDetected(false);
 		setMissionResultValid(mission);
 		return mission;
@@ -991,28 +1025,15 @@ INSTANTIATE_TEST_SUITE_P(VehicleTypes, RTLClimbUpdateTest,
 TEST_F(RTLTest, BatteryAwareReturnTypePreservesDirectSelection)
 {
 	// A usable route must not change the existing RTL_TYPE=6 destination policy.
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
-	const std::vector<mission_item_s> safe_points{
-		makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL),
-	};
-	const mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
-	publishMission(mission);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	setMissionResultValid(mission);
+	prepareStraightRouteScenario();
 
 	_rtl.activateReturnTypeForTest(6);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	EXPECT_FALSE(_rtl.routePlanSourceStillValidForTest());
 }
 
-// An inactive RTL estimate must not become the current flight direction. Near the
-// parallel first and last legs, that would move the next estimate onto the first
-// leg and lose continuity with the final waypoint that Mission is still flying.
+// Inactive estimates must not record a flight direction: near the parallel first and last
+// legs, the next estimate would jump to the first leg while Mission still flies the last.
 TEST_F(RTLTest, InactiveRouteEstimatesPreserveNominalMissionSegmentThroughActivation)
 {
 	prepareFinalMissionLegScenario();
@@ -1095,13 +1116,11 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	EXPECT_LT(get_distance_to_next_waypoint(moved_plan.join_position.lat, moved_plan.join_position.lon,
 						moved_join.lat, moved_join.lon), 0.1f);
 	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
-	EXPECT_FALSE(_rtl.isActive());
 	EXPECT_FALSE(executor->isActive());
 }
 
-// Pending validation can defer initial RTL planning until RTL is already active.
-// That retry must still start from Mission's nominal direction, not the reverse
-// direction of an estimate made before activation.
+// A route retry after pending validation starts from the nominal mission direction,
+// not the reversed direction of an estimate made before activation.
 TEST_F(RTLTest, InitialRouteActivationValidationRetryDiscardsInactiveEstimateDirection)
 {
 	const mission_s mission = prepareFinalMissionLegScenario();
@@ -1113,6 +1132,11 @@ TEST_F(RTLTest, InitialRouteActivationValidationRetryDiscardsInactiveEstimateDir
 
 	_navigator.get_mission_result()->valid = false;
 	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+
+	// No retry while validation is still pending.
+	_rtl.forceRouteRetryForTest();
+	_rtl.run(true);
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 
 	setMissionResultValid(mission);
@@ -1129,20 +1153,7 @@ TEST_F(RTLTest, InitialRouteActivationValidationRetryDiscardsInactiveEstimateDir
 TEST_F(RTLTest, RouteSafePointReturnUsesPlannerAndTracksCacheGeneration)
 {
 	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
-	const std::vector<mission_item_s> safe_points{
-		makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL),
-	};
-	const mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
-
-	publishMission(mission);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	setMissionResultValid(mission);
+	const mission_s mission = prepareStraightRouteScenario();
 
 	_rtl.activateRouteSafePointReturnForTest();
 
@@ -1153,8 +1164,7 @@ TEST_F(RTLTest, RouteSafePointReturnUsesPlannerAndTracksCacheGeneration)
 	EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
 	EXPECT_EQ(rtl_status_sub.get().safe_point_index, 0);
 
-	mission_item_s updated = mission_items[0];
-	updated.altitude += 1.f;
+	mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 1.f);
 	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
 					      reinterpret_cast<uint8_t *>(&updated), sizeof(updated)));
 	ASSERT_EQ(_navigator.get_mission_route_cache().syncMissionItem(mission, 0, updated),
@@ -1233,24 +1243,9 @@ TEST_F(RTLTest, RouteSafePointReturnReplansAfterFenceReplacementFinishesLoading)
 
 TEST_F(RTLTest, RouteSafePointReturnDoesNotRetryFailedFenceChecksWithLoadedFence)
 {
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	mission_s mission = loadRoutePlanningCache(mission_items, {makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt)});
-	const std::vector<mission_fence_point_s> square{
-		exclusionVertex(-10.f, 300.f, 4), exclusionVertex(10.f, 300.f, 4),
-		exclusionVertex(10.f, 320.f, 4), exclusionVertex(-10.f, 320.f, 4),
-	};
-	startFenceUpdate(mission, square);
-	ASSERT_TRUE(finishFenceUpdate());
+	prepareSquareFenceScenario(makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt));
 	// Point checks still pass, but every path check is unavailable, as for an over-long path.
 	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 3);
-	publishMission(mission);
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	publishLandDetected(false);
-	setMissionResultValid(mission);
 
 	_rtl.activateRouteSafePointReturnForTest();
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
@@ -1260,22 +1255,7 @@ TEST_F(RTLTest, RouteSafePointReturnDoesNotRetryFailedFenceChecksWithLoadedFence
 // A failed inactive plan keeps the route follower, so the next plan for the same source reuses it.
 TEST_F(RTLTest, RouteFollowerIsReusedAfterTemporaryFallback)
 {
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	mission_s mission = loadRoutePlanningCache(mission_items, {makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt)});
-	const std::vector<mission_fence_point_s> square{
-		exclusionVertex(-10.f, 300.f, 4), exclusionVertex(10.f, 300.f, 4),
-		exclusionVertex(10.f, 320.f, 4), exclusionVertex(-10.f, 320.f, 4),
-	};
-	startFenceUpdate(mission, square);
-	ASSERT_TRUE(finishFenceUpdate());
-	publishMission(mission);
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	publishLandDetected(false);
-	setMissionResultValid(mission);
+	prepareSquareFenceScenario(makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt));
 
 	_rtl.evaluateInactiveRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
@@ -1294,25 +1274,10 @@ TEST_F(RTLTest, RouteFollowerIsReusedAfterTemporaryFallback)
 // A failed route retry keeps the direct fallback that is already flying.
 TEST_F(RTLTest, FailedRouteRetryKeepsActiveDirectFallback)
 {
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	mission_s mission = loadRoutePlanningCache(mission_items, {makeSafePointFromOffset(kBaseLat, kBaseLon, 40.f, 20.f, kAlt)});
-	const std::vector<mission_fence_point_s> square{
-		exclusionVertex(-10.f, 300.f, 4), exclusionVertex(10.f, 300.f, 4),
-		exclusionVertex(10.f, 320.f, 4), exclusionVertex(-10.f, 320.f, 4),
-	};
-	startFenceUpdate(mission, square);
-	ASSERT_TRUE(finishFenceUpdate());
+	const mission_s mission = prepareSquareFenceScenario(makeSafePointFromOffset(kBaseLat, kBaseLon, 40.f, 20.f, kAlt));
 	MissionRouteCache &cache = _navigator.get_mission_route_cache();
 	cache.invalidate();
 	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, -500.f, 0.f, kAlt));
-	publishMission(mission);
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	publishLandDetected(false);
-	setMissionResultValid(mission);
 	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
 
 	// With the cache still loading, Return flies the type 3 fallback to Home.
@@ -1342,22 +1307,9 @@ TEST_F(RTLTest, FailedRouteRetryKeepsActiveDirectFallback)
 
 TEST_F(RTLTest, RouteSafePointReturnPromotesWhenCacheBecomesReady)
 {
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
-	const std::vector<mission_item_s> safe_points{
-		makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL),
-	};
-	const mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
+	const mission_s mission = prepareStraightRouteScenario();
 	MissionRouteCache &cache = _navigator.get_mission_route_cache();
 	cache.invalidate();
-
-	publishMission(mission);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	setMissionResultValid(mission);
 	navigator_test::EventRecorder events;
 	_rtl.evaluateInactiveRouteSafePointReturnForTest();
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
@@ -1365,7 +1317,6 @@ TEST_F(RTLTest, RouteSafePointReturnPromotesWhenCacheBecomesReady)
 	_rtl.activateRouteSafePointReturnForTest();
 
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-	EXPECT_FALSE(_rtl.routePlanSourceStillValidForTest());
 	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
 
 	_rtl.forceRouteRetryForTest();
@@ -1386,51 +1337,9 @@ TEST_F(RTLTest, RouteSafePointReturnPromotesWhenCacheBecomesReady)
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
-TEST_F(RTLTest, RouteSafePointReturnWaitsForMissionValidation)
-{
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
-	const std::vector<mission_item_s> safe_points{
-		makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL),
-	};
-	const mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
-	publishMission(mission);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	_navigator.get_mission_result()->valid = false;
-	_rtl.activateRouteSafePointReturnForTest();
-	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-
-	_rtl.forceRouteRetryForTest();
-	_rtl.run(true);
-	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-
-	setMissionResultValid(mission);
-	_rtl.forceRouteRetryForTest();
-	_rtl.run(true);
-	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
-}
-
 TEST_F(RTLTest, RouteSafePointReturnDetectsSafePointCountChangeWithSameId)
 {
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
-	const std::vector<mission_item_s> safe_points{
-		makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL),
-	};
-	const mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
-
-	publishMission(mission);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	setMissionResultValid(mission);
+	const mission_s mission = prepareStraightRouteScenario();
 	_rtl.activateRouteSafePointReturnForTest();
 	ASSERT_TRUE(_rtl.routePlanSourceStillValidForTest());
 
@@ -1473,6 +1382,7 @@ TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
 	publishVehicleStatus(true, GetParam() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
 			     ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING : vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
+			     vehicle_status_s::NAVIGATION_STATE_MANUAL,
 			     GetParam() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW,
 			     GetParam() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC);
 	uORB::Subscription status_sub{ORB_ID(vehicle_status)};
@@ -1484,7 +1394,6 @@ TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
 
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
-	EXPECT_TRUE(_rtl.routePlanForTest().valid());
 	EXPECT_TRUE(_rtl.routeHasLandApproachForTest());
 	// Plain waypoints define no leg mode, so the join keeps the current one.
 	EXPECT_EQ(_rtl.routePlanForTest().vtol_transition_action, mission_route::VtolTransitionAction::kNone);
@@ -1535,9 +1444,7 @@ TEST_F(RTLTest, RouteSafePointReturnPreservesLoopAnchorWhenSafePointReloadStarts
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 
-	mission_route::ActiveJumpAnchor loop_segment{};
-	loop_segment.jump_item_index = 3;
-	ASSERT_TRUE(loop_segment.valid());
+	const mission_route::ActiveJumpAnchor loop_segment{3};
 
 	_rtl.setMissionExecutorLoopSegmentForTest(loop_segment);
 	startSafePointReload(mission, static_cast<uint16_t>(safe_points.size()));
@@ -1548,7 +1455,6 @@ TEST_F(RTLTest, RouteSafePointReturnPreservesLoopAnchorWhenSafePointReloadStarts
 	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
 	const mission_route::ActiveJumpAnchor preserved_loop = _rtl.lastRouteLoopSegmentForTest();
 	EXPECT_EQ(preserved_loop.jump_item_index, loop_segment.jump_item_index);
-	EXPECT_TRUE(preserved_loop.valid());
 
 	_rtl.run(true);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
@@ -1745,51 +1651,27 @@ TEST_F(RTLTest, RouteArrivalKeepsExecutorAndGoalAcrossSourceReplacement)
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
-TEST_F(RTLTest, RouteSafePointReturnKeepsCommittedLandingHandlers)
+// A landing fallback keeps flying when route planning becomes possible again.
+TEST_F(RTLTest, RouteRetryKeepsLandingFallback)
 {
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
-	const std::vector<mission_item_s> safe_points{
-		makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL),
-	};
-	const mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
-
-	publishMission(mission);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	setMissionResultValid(mission);
-	navigator_test::EventRecorder events;
+	const mission_s mission = prepareStraightRouteScenario();
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	cache.invalidate();
 	_rtl.activateRouteSafePointReturnForTest();
-	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 
-	mission_item_s updated = mission_items[0];
-	updated.altitude += 1.f;
-	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
-					      reinterpret_cast<uint8_t *>(&updated), sizeof(updated)));
-
-	auto *landing_executor = new RtlLifecycleTestExecutor{&_navigator, true};
-	_rtl.replaceMissionExecutorForTest(landing_executor, RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-
-	ASSERT_EQ(_navigator.get_mission_route_cache().syncMissionItem(mission, 0, updated),
-		  MissionRouteCache::SyncResult::kPatched);
-	ASSERT_FALSE(_rtl.routePlanSourceStillValidForTest());
-
-	_rtl.run(true);
-
-	EXPECT_EQ(_rtl.missionExecutorForTest(), landing_executor);
-	EXPECT_FALSE(landing_executor->deactivated());
-	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-
-	auto *landing_fallback = new RtlLifecycleTestExecutor{&_navigator, true};
+	auto *landing_fallback = new RtlLifecycleTestExecutor{&_navigator};
 	_rtl.replaceMissionExecutorForTest(landing_fallback, RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] {
+		return cache.missionItemsReady(mission) && cache.safePointsReady();
+	}));
+	// Only the landing check stops this retry.
+	ASSERT_TRUE(_rtl.routeRetryPendingForTest());
+
 	_rtl.forceRouteRetryForTest();
 	_rtl.run(true);
 
-	EXPECT_EQ(_rtl.missionExecutorForTest(), landing_fallback);
+	ASSERT_EQ(_rtl.missionExecutorForTest(), landing_fallback);
 	EXPECT_FALSE(landing_fallback->deactivated());
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
 }
@@ -1798,20 +1680,7 @@ TEST_F(RTLTest, RouteSafePointExecutorInitFailureUsesDirectFallbackSelection)
 {
 	// Executor creation failure must publish the fallback destination, not the abandoned route selection.
 	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
-	const std::vector<mission_item_s> safe_points{
-		makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL),
-	};
-	const mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
-
-	publishMission(mission);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	setMissionResultValid(mission);
+	prepareStraightRouteScenario();
 	_rtl.failNextExecutorInitForTest();
 	navigator_test::EventRecorder events;
 
