@@ -44,6 +44,8 @@
 
 #include "SubscriptionCallback.hpp"
 
+#include <containers/IntrusiveSortedList.hpp>
+
 #ifdef CONFIG_ORB_COMMUNICATOR
 #include "uORBCommunicator.hpp"
 #endif /* CONFIG_ORB_COMMUNICATOR */
@@ -139,6 +141,12 @@ static bool topic_matches_filter(const uORB::DeviceNode &node, char **topic_filt
 	return false;
 }
 
+bool uORB::DeviceNodeStatisticsData::operator<=(const DeviceNodeStatisticsData &rhs) const
+{
+	const int comparison = strcmp(node->get_name(), rhs.node->get_name());
+	return comparison < 0 || (comparison == 0 && node->get_instance() <= rhs.node->get_instance());
+}
+
 static int append_statistics_node(uORB::DeviceNodeStatisticsData **first_node,
 				  uORB::DeviceNodeStatisticsData *&last_node,
 				  uORB::DeviceNode &node,
@@ -213,7 +221,6 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 	}
 
 	MappingCache::unlock();
-	return PX4_OK;
 
 #else
 	DIR *shm_dir = opendir(CONFIG_FS_SHMFS_VFS_PATH);
@@ -291,8 +298,20 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 	}
 
 	closedir(shm_dir);
-	return PX4_OK;
 #endif
+
+	IntrusiveSortedList<DeviceNodeStatisticsData *> sorted_nodes;
+	cur_node = *first_node;
+
+	while (cur_node) {
+		DeviceNodeStatisticsData *next = cur_node->next;
+		cur_node->next = nullptr;
+		sorted_nodes.add(cur_node);
+		cur_node = next;
+	}
+
+	*first_node = *sorted_nodes.begin();
+	return PX4_OK;
 }
 
 void uORB::DeviceNode::cleanupStatisticsData(DeviceNodeStatisticsData *first_node)

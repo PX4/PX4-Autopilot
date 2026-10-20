@@ -86,6 +86,9 @@ struct DeviceNodeStatisticsData {
 	unsigned int last_pub_msg_count;
 	unsigned int pub_msg_delta;
 	DeviceNodeStatisticsData *next = nullptr;
+	void setSortedSibling(DeviceNodeStatisticsData *sibling) { next = sibling; }
+	DeviceNodeStatisticsData *getSortedSibling() const { return next; }
+	bool operator<=(const DeviceNodeStatisticsData &rhs) const;
 };
 
 class SubscriptionCallback;
