@@ -380,7 +380,8 @@ def fill_edit_widgets(point: Waypoint, base: Optional[Base], use_offsets: bool) 
     state = st.session_state
     if use_offsets:
         north, east = latlon_to_offset(base.lat, base.lon, point.lat, point.lon)
-        state["edit_north"], state["edit_east"] = round(north, 2), round(east, 2)
+        # 1 mm, as in the generated C++: 1 cm can exceed the editor's 5 mm noise threshold and move the item.
+        state["edit_north"], state["edit_east"] = round(north, 3), round(east, 3)
     else:
         state["edit_lat"], state["edit_lon"] = point.lat, point.lon
     state["edit_alt"] = point.alt
@@ -411,8 +412,8 @@ def render_edit_panel(editor: Editor, base: Optional[Base], item_type: str) -> N
     if st.session_state.pop("edit_sync", False) or st.session_state.get("edit_offsets") != use_offsets:
         fill_edit_widgets(point, base, use_offsets)
     if use_offsets:
-        north = st.number_input("North of base (m)", step=10.0, format="%.2f", key="edit_north")
-        east = st.number_input("East of base (m)", step=10.0, format="%.2f", key="edit_east")
+        north = st.number_input("North of base (m)", step=10.0, format="%.3f", key="edit_north")
+        east = st.number_input("East of base (m)", step=10.0, format="%.3f", key="edit_east")
         lat, lon = offset_to_latlon(base.lat, base.lon, north, east)
     else:
         lat = st.number_input("Latitude", step=1e-5, format="%.7f", key="edit_lat")
