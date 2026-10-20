@@ -321,16 +321,12 @@ void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, f
 			&& rtl_time_estimate.safe_time_estimate * hysteresis_factor >= worst_battery_time_s;
 
 
-	// Only report if bingo fuel is enabled, otherwise the condition has no effect
-	// COM_LOW_BAT_ACT 5: Critical RTL, Emergency land and 6: Warning, no bingo fuel disable it
-	const int32_t low_bat_act = _param_com_low_bat_act.get();
-	const bool bingo_fuel_enabled = (low_bat_act != 5) && (low_bat_act != 6);
-
-	if (reporter.failsafeFlags().battery_low_remaining_time && bingo_fuel_enabled) {
+	// Every COM_LOW_BAT_ACT option at least warns on low remaining flight time (Smart Return options return)
+	if (reporter.failsafeFlags().battery_low_remaining_time) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * This check can be configured via <param>COM_LOW_BAT_ACT</param> parameter.
+		 * The action (warning or Smart Return) can be configured via <param>COM_LOW_BAT_ACT</param> parameter.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::battery, events::ID("check_battery_rem_flight_time_low"),

@@ -50,6 +50,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - **The GNSS check parameters moved from EKF2 to the sensors module.**
   `EKF2_GPS_CHECK` is now [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK), `EKF2_REQ_EPH`, `EKF2_REQ_EPV`, `EKF2_REQ_NSATS`, `EKF2_REQ_PDOP`, `EKF2_REQ_HDRIFT`, `EKF2_REQ_VDRIFT`, `EKF2_REQ_FIX` and `EKF2_REQ_SACC` are now `GNSS_REQ_*`, and `EKF2_REQ_GPS_H` is now [GNSS_REQ_TIME](../advanced_config/parameter_reference.md#GNSS_REQ_TIME).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them. ([PX4-Autopilot#28520](https://github.com/PX4/PX4-Autopilot/pull/28520), [PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
+- **`COM_FLTT_LOW_ACT` has been removed: Smart Return is now set with [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT).**
+  A low remaining flight time is now always reported as a warning, and the new `COM_LOW_BAT_ACT` options `5` and `6` also engage Return mode ([Smart Return failsafe](../config/safety.md#smart-return-failsafe)).
+  The options `0` to `4` keep their behaviour.
+  `COM_FLTT_LOW_ACT` is not migrated: if you had set it to `3` (Return), set `COM_LOW_BAT_ACT` to `5` instead of `3`, or to `6` instead of `4`.
+  Smart Return is not available together with `COM_LOW_BAT_ACT` `0` (Warning) or `2` (Land), and the warning can no longer be disabled (`COM_FLTT_LOW_ACT=0`). ([PX4-Autopilot#26955](https://github.com/PX4/PX4-Autopilot/pull/26955))
 - **`DO_JUMP` can only loop back and its repeat count must fit.**
   A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0, and if its repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
@@ -90,6 +95,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   - Multiple sensor instances can be failed simultaneously via a bitmask, and failures can be triggered from an RC switch.
   - Changed default behaviour of injected WRONG failure for Batteries, to publish a wrong level, and not stop publishing
 - [Motor failure recovery](../config/motor_failure_recovery.md) for hexarotors: on a single motor failure the control allocator removes the failed motor and additionally stops ([CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1`) or reverses (`2`) the motor opposite it to recover the lost yaw authority. Mode `2` requires a reverse-capable ESC and models the reverse thrust of a forward propeller with the new [CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) (default `0.4`). Reversible motor outputs on DroneCAN are now sent as signed `RawCommand` values (negative is reverse). ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
+- [Smart Return failsafe](../config/safety.md#smart-return-failsafe) (also known as "bingo fuel"): Return mode when the remaining flight time is only just enough to return is now enabled with [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) `5` or `6`, instead of the separate `COM_FLTT_LOW_ACT`. See the [Upgrade Guide](#upgrade-guide). ([PX4-Autopilot#26955](https://github.com/PX4/PX4-Autopilot/pull/26955))
 - Added `RTL_TYPE=6` for battery-aware home priority return ([PX4-Autopilot#26968](https://github.com/PX4/PX4-Autopilot/pull/26968)).
   Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
