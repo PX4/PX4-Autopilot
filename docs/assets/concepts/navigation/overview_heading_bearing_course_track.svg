@@ -6,10 +6,14 @@
             <g transform="matrix(1.428054,-0.106352,-0.126901,1.03173,-80.304668,21.136269)">
                 <path d="M477.261,990.149L1539.873,695.888" style="fill:none;stroke:rgb(255,0,0);stroke-width:7.94px;"/>
             </g>
+            <path d="M1304.694,1332.331L1169.777,812.984" style="fill:none;stroke:rgb(179,0,255);stroke-width:8.97px;stroke-linejoin:miter;stroke-dasharray:8.968,17.936,8.968,0,0,0;"/>
+            <g transform="matrix(0.258819,0.965926,-0.965926,0.258819,1404.668826,-651.654919)">
+                <text x="1014.243px" y="623.472px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:50px;fill:rgb(179,0,255);stroke:rgb(179,0,255);stroke-width:1px;stroke-linecap:butt;stroke-miterlimit:2;">XTE (positive)</text>
+            </g>
             <g transform="matrix(1,-0,0,1,-470.127696,-111.459414)">
                 <text x="766.8px" y="767.712px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:50px;fill:rgb(255,0,0);stroke:rgb(255,0,0);stroke-width:1px;stroke-linecap:butt;stroke-miterlimit:2;">Course</text>
             </g>
-            <g transform="matrix(0.965926,-0.258819,0.258819,0.965926,-299.421702,195.891737)">
+            <g transform="matrix(0.965926,-0.258819,0.258819,0.965926,-89.546613,132.368726)">
                 <text x="1276.918px" y="948.912px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:50px;fill:rgb(255,0,0);stroke:rgb(255,0,0);stroke-width:1px;stroke-linecap:butt;stroke-miterlimit:2;">Desired <tspan x="1462.196px 1490.882px 1507.533px " y="948.912px 948.912px 948.912px ">Tra</tspan>ck</text>
             </g>
             <g transform="matrix(2.600372,0,0,3.209224,-524.568489,-1210.560484)">
@@ -84,8 +88,13 @@
                     <path d="M1330.834,1077.338L1006.031,1077.338L1006.031,752.535C1183.296,752.535 1327.395,894.539 1330.774,1070.997" style="fill:none;stroke:rgb(255,130,0);stroke-width:8.97px;"/>
                 </g>
             </g>
-            <g transform="matrix(1,0,0,1,-398.173904,-32.333268)">
-                <text x="1231.165px" y="1057.757px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:50px;fill:rgb(255,130,0);stroke:rgb(255,130,0);stroke-width:1px;stroke-linecap:butt;stroke-miterlimit:2;">Course over Ground</text>
+            <g transform="matrix(5.991988,0,0,0.414767,-6227.345725,560.832576)">
+                <g transform="matrix(0.16689,0,0,2.410992,972.827647,-1430.117817)">
+                    <rect x="1231.165" y="1012.493" width="453.003" height="55.859" style="fill:white;"/>
+                </g>
+                <g transform="matrix(0.16689,0,0,2.410992,972.827647,-1430.117817)">
+                    <text x="1231.165px" y="1057.757px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:50px;fill:rgb(255,130,0);stroke:rgb(255,130,0);stroke-width:1px;stroke-linecap:butt;stroke-miterlimit:2;">Course over Ground</text>
+                </g>
             </g>
         </g>
         <g>
@@ -102,8 +111,13 @@
                     <path d="M1170.666,907.94L1006.031,1077.338L1006.031,841.117C1065.398,841.117 1122.506,863.467 1166.06,903.582" style="fill:none;stroke:rgb(144,144,144);stroke-width:8.97px;"/>
                 </g>
             </g>
-            <g transform="matrix(1,0,0,1,-142.638776,56.249409)">
-                <text x="1256.294px" y="1057.757px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:50px;fill:rgb(144,144,144);stroke:rgb(144,144,144);stroke-width:1px;stroke-linecap:butt;stroke-miterlimit:2;">Bearing</text>
+            <g transform="matrix(3.027273,0,0,0.414767,-2509.896464,649.415253)">
+                <g transform="matrix(0.33033,0,0,2.410992,781.976948,-1430.117817)">
+                    <rect x="1256.294" y="1012.493" width="172.339" height="55.859" style="fill:white;"/>
+                </g>
+                <g transform="matrix(0.33033,0,0,2.410992,781.976948,-1430.117817)">
+                    <text x="1256.294px" y="1057.757px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:50px;fill:rgb(144,144,144);stroke:rgb(144,144,144);stroke-width:1px;stroke-linecap:butt;stroke-miterlimit:2;">Bearing</text>
+                </g>
             </g>
         </g>
         <g>
@@ -120,8 +134,13 @@
                     <path d="M1068.941,943.774L1006.031,1077.338L1006.031,929.7C1025.665,929.7 1045.081,933.616 1063.147,941.196" style="fill:none;stroke:rgb(9,67,167);stroke-width:8.97px;"/>
                 </g>
             </g>
-            <g transform="matrix(1,0,0,1,-89.172183,144.832086)">
-                <text x="1188.911px" y="1057.757px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:50px;fill:rgb(9,67,167);stroke:rgb(9,67,167);stroke-width:1px;stroke-linecap:butt;stroke-miterlimit:2;">Heading</text>
+            <g transform="matrix(2.406954,0,0,0.414767,-1732.080309,737.997931)">
+                <g transform="matrix(0.415463,0,0,2.410992,682.567244,-1430.117817)">
+                    <rect x="1188.911" y="1012.493" width="186.255" height="55.859" style="fill:white;"/>
+                </g>
+                <g transform="matrix(0.415463,0,0,2.410992,682.567244,-1430.117817)">
+                    <text x="1188.911px" y="1057.757px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:50px;fill:rgb(9,67,167);stroke:rgb(9,67,167);stroke-width:1px;stroke-linecap:butt;stroke-miterlimit:2;">Heading</text>
+                </g>
             </g>
         </g>
         <g transform="matrix(0.893419,0.449224,-0.449224,0.893419,1304.694013,1332.331015)">
