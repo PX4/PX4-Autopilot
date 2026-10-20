@@ -130,6 +130,9 @@ protected:
 
 	RouteJoinContext _route_join_context{};
 	static constexpr float kJoinRouteFlyByAcceptanceRadiusScale{2.f};
+
+	/** DO_JUMP edge being flown, so a rejoin or route replan stays on an active loop. */
+	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	struct VtolTransitionContext {
@@ -335,10 +338,7 @@ protected:
 	void check_mission_valid(bool forced = false);
 
 	/** Handle changes to mission contents or the externally selected sequence. */
-	MISSION_ROUTE_HOOK void onMissionUpdate(bool has_mission_items_changed);
-
-	/** Notify the mode when an active DO_JUMP is skipped because its counter could not be saved. */
-	MISSION_ROUTE_HOOK void onMissionJumpSkipped(int32_t jump_index) { (void)jump_index; }
+	void onMissionUpdate(bool has_mission_items_changed);
 
 	/**
 	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
@@ -533,8 +533,8 @@ protected:
 
 	VtolTransitionAction vtolTransitionActionAfterReachingReverseTarget(int32_t reached_target_index);
 
-	/** Save the active DO_JUMP edge traversed by the next nominal advance. */
-	void updateActiveJumpAnchorForNominalAdvance(mission_route::ActiveJumpAnchor &active_jump_anchor);
+	/** Set _active_jump_anchor to the DO_JUMP edge the next nominal advance follows. */
+	void updateActiveJumpAnchorForNominalAdvance();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/

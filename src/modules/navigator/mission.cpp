@@ -116,21 +116,6 @@ Mission::on_activation()
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-void Mission::onMissionUpdate(bool has_mission_items_changed)
-{
-	// A replacement mission or an external sequence change invalidates the flown jump edge.
-	_active_jump_anchor = {};
-	MissionBase::onMissionUpdate(has_mission_items_changed);
-}
-
-void Mission::onMissionJumpSkipped(int32_t jump_index)
-{
-	// Drop only the skipped edge: an earlier successful jump in a chain can still be active.
-	if (_active_jump_anchor.jump_item_index == jump_index) {
-		_active_jump_anchor = {};
-	}
-}
-
 bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 {
 	resetJoinRouteState();
@@ -305,7 +290,7 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 bool Mission::setNextMissionItem()
 {
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	updateActiveJumpAnchorForNominalAdvance(_active_jump_anchor);
+	updateActiveJumpAnchorForNominalAdvance();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	return (goToNextItem() == PX4_OK);

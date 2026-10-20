@@ -84,9 +84,6 @@ private:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	friend class MissionTestPeer;
 
-	void onMissionUpdate(bool has_mission_items_changed) override;
-	void onMissionJumpSkipped(int32_t jump_index) override;
-
 	/**
 	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
 	 *
@@ -121,12 +118,6 @@ private:
 	bool _need_mission_save{false};
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/**
-	 * The last DO_JUMP edge flown in normal mission execution. Nominal progress is already implied
-	 * by current_seq; only an active loop must survive the jump so rejoin replans stay anchored on it.
-	 */
-	mission_route::ActiveJumpAnchor _active_jump_anchor{};
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		MissionBase,
 		(ParamInt<px4::params::MIS_ROUTE_JOIN>)    _param_mis_route_join,

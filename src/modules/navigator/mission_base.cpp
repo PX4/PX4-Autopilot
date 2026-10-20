@@ -138,8 +138,9 @@ void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 {
 	resetVtolTransition();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	// Both a replacement mission and an external sequence change invalidate the virtual join.
+	// A replacement mission or an external sequence change invalidates the join and the flown jump edge.
 	resetJoinRouteState();
+	_active_jump_anchor = {};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	if (has_mission_items_changed) {
@@ -1433,7 +1434,14 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 					// The repetition cannot be counted, so following the jump would repeat it on
 					// every pass over this item. Continue with the item after the jump instead.
 					follow_jump = false;
-					onMissionJumpSkipped(new_mission_index);
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+					// Drop only the skipped edge: an earlier jump in a chain can still be active.
+					if (_active_jump_anchor.jump_item_index == new_mission_index) {
+						_active_jump_anchor = {};
+					}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 				}
 			}
 
@@ -1666,19 +1674,19 @@ MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionAfterReaching
 	return vtolTransitionActionForTarget(previous_position_index, true);
 }
 
-void MissionBase::updateActiveJumpAnchorForNominalAdvance(mission_route::ActiveJumpAnchor &active_jump_anchor)
+void MissionBase::updateActiveJumpAnchorForNominalAdvance()
 {
 	mission_item_s current_item{};
 
 	if (!loadMissionItemFromCache(_mission.current_seq, current_item)) {
-		active_jump_anchor = {};
+		_active_jump_anchor = {};
 		return;
 	}
 
 	// A jump may land on action commands preceding its position target. Keep its identity
 	// until that target is reached, including while those commands are executed.
 	if (mission_item_contains_position(current_item)) {
-		active_jump_anchor = {};
+		_active_jump_anchor = {};
 	}
 
 	// Only inspect commands consumed before the next position target. A later DO_JUMP
@@ -1692,13 +1700,13 @@ void MissionBase::updateActiveJumpAnchorForNominalAdvance(mission_route::ActiveJ
 
 		if (mission_item.nav_cmd == NAV_CMD_DO_JUMP
 		    && mission_item.do_jump_current_count < mission_item.do_jump_repeat_count) {
-			active_jump_anchor = {};
+			_active_jump_anchor = {};
 			int32_t target_index = -1;
 
 			if (mission_item.do_jump_mission_index < _mission.count
 			    && findNextPositionIndex(mission_item.do_jump_mission_index, target_index,
 						     MissionTraversalType::IgnoreDoJump)) {
-				active_jump_anchor.jump_item_index = index;
+				_active_jump_anchor.jump_item_index = index;
 			}
 
 			return;

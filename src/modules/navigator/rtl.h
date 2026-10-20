@@ -166,7 +166,7 @@ private:
 	 */
 	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
-	void stopAndDeleteRtlMissionType(bool preserve_route_loop_segment);
+	void stopAndDeleteRtlMissionType();
 
 	/**
 	 * @brief Update parameters

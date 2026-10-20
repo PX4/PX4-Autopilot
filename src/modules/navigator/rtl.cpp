@@ -81,7 +81,7 @@ RTL::RTL(Navigator *navigator) :
 
 RTL::~RTL()
 {
-	stopAndDeleteRtlMissionType(false);
+	stopAndDeleteRtlMissionType();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	perf_free(_route_evaluate_perf);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -228,7 +228,12 @@ void RTL::on_active()
 	if (_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
 	    && !route_landing_started
 	    && !_route_safe_point.sourceStillValid(_mission_sub.get())) {
-		stopAndDeleteRtlMissionType(_route_safe_point.missionMatches(_mission_sub.get()));
+		// The same mission keeps the flown jump edge for the replan.
+		if (_route_follower && _route_safe_point.missionMatches(_mission_sub.get())) {
+			_route_safe_point.recordExecutorProgress(_route_follower->activeJumpAnchor());
+		}
+
+		stopAndDeleteRtlMissionType();
 		setRtlTypeAndDestination();
 		applyReturnAltMin();
 		reportRouteFallback();
@@ -885,7 +890,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 
 bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 {
-	stopAndDeleteRtlMissionType(false);
+	stopAndDeleteRtlMissionType();
 
 	const mission_s new_mission = _mission_sub.get();
 
@@ -938,21 +943,11 @@ bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 	return _rtl_mission_type_handle != nullptr;
 }
 
-void RTL::stopAndDeleteRtlMissionType(bool preserve_route_loop_segment)
+void RTL::stopAndDeleteRtlMissionType()
 {
 	if (_rtl_mission_type_handle == nullptr) {
 		return;
 	}
-
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-	if (preserve_route_loop_segment && _rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
-		_route_safe_point.recordExecutorProgress(_rtl_mission_type_handle->activeJumpAnchor());
-	}
-
-#else
-	(void)preserve_route_loop_segment;
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	_rtl_mission_type_handle->run(false);
 	delete _rtl_mission_type_handle;
