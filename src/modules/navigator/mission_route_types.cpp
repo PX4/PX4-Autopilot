@@ -255,9 +255,6 @@ const char *failureReasonString(FailureReason failure_reason)
 	case FailureReason::kLoadFailed:
 		return "LoadFailed";
 
-	case FailureReason::kInvalidProjectionContext:
-		return "InvalidProjectionContext";
-
 	case FailureReason::kNoLocalMinFound:
 		return "NoLocalMinFound";
 
@@ -270,7 +267,6 @@ const char *failureReasonString(FailureReason failure_reason)
 	case FailureReason::kGeofenceUnavailable:
 		return "GeofenceUnavailable";
 
-	case FailureReason::kUnknown:
 	default:
 		return "Unknown";
 	}

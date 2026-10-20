@@ -75,7 +75,6 @@ struct RouteDistanceSummary {
 /** @brief Per-reference scan scratch maintained while walking the mission segments. */
 struct CandidateSearchState {
 	bool prev_projection_on_end{true};
-	bool projection_on_end_for_segment{false};
 	float min_xtrack_m{FLT_MAX};
 	float xtrack_limit_m{FLT_MAX};
 };
@@ -192,74 +191,17 @@ public:
 	/**
 	 * @brief Project the vehicle onto the mission route and choose the continuity-preserving branch-in candidate.
 	 *
-	 * projection_context is cleared on entry and populated only when kNone is returned.
+	 * projection_context is only valid when kNone is returned.
 	 */
 	FailureReason collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
 					       const PlannerConfig &config, ProjectionReferenceBatch &batch,
 					       ProjectionContext &projection_context) const;
 
 private:
-	struct BranchInSelection;
-
 	struct ProjectionScanStats {
 		uint32_t segments_processed{0};
 		uint32_t local_min_found{0};
-		uint32_t valid_candidate_found{0};
 	};
-
-	/**
-	 * @brief Return true when the segment projection is a local minimum.
-	 *
-	 * Three cases:
-	 *
-	 * 1. Interior projections (not on a corner) are always a local minimum.
-	 *
-	 * 2. Corner projection is a local minimum when both the previous and the current segment
-	 *    project onto the same shared corner. This happens when two consecutive segments form
-	 *    a V-shape and the reference point is closest to the apex:
-	 *
-	 *     prev seg  curr seg
-	 *       A \    / C        The reference point P projects onto corner B
-	 *          \  /           from both segments, so
-	 *         B \/            prev_proj_on_end && proj_on_start -> local minimum.
-	 *
-	 *            ^
-	 *            P
-	 *
-	 *    The terminal route endpoint (last segment, projection on end) is also accepted because
-	 *    there is no following segment to compare against.
-	 *    Stacked route end, e.g. A -> B -> B' -> LAND where B, B' and LAND share one location:
-	 *
-	 *      A ─────────●──────── B/B'/LAND        R2
-	 *                 ↑
-	 *                 R1
-	 *
-	 *    R1 lies off to the side of the leg A -> B. Its only candidate is on A -> B; the LAND
-	 *    location is not a candidate, exactly as for a route A -> LAND without the stack.
-	 *    R2 lies past the route end. Its projection on A -> B falls on B, so the LAND location
-	 *    is kept as the candidate. A route with no horizontal leg keeps its final point.
-	 *
-	 *    Vehicle exception: the vertical segment the vehicle is flying (B' -> LAND while landing,
-	 *    or the segment above TAKEOFF while TAKEOFF is current) is always a candidate, unless a
-	 *    jump is active. Otherwise a small drift toward A during the descent would put the vehicle
-	 *    on A -> B like R1, the first target would become B instead of LAND, and the plan would
-	 *    climb back to the leg altitude instead of continuing the landing. The cross-track window
-	 *    still applies. Safe point scans carry no mission index and get no exception.
-	 *
-	 * 3. DO_JUMP loop-edge corner projections are rejected because those corners already belong
-	 *    to their nominal route segments, so only interior projections on the loop jump segment
-	 *    are kept.
-	 */
-	bool localMinimumOnSegment(bool proj_on_start, bool proj_on_end,
-				   bool prev_proj_on_end, bool jumping,
-				   bool last_segment) const;
-
-	void insertCandidateSorted(ProjectionCandidateBuffer &candidate_buffer,
-				   const RouteProjectionCandidate &candidate) const;
-
-	/** @brief Trim the projection candidate buffer based on xtrack window. */
-	void pruneProjectionCandidates(ProjectionCandidateBuffer &candidate_buffer,
-				       float xtrack_limit_m) const;
 
 	/**
 	 * @brief Project one reference point onto one segment, apply local-minimum rules,
@@ -276,15 +218,8 @@ private:
 					ProjectionCandidateBuffer &candidate_buffer,
 					ProjectionScanStats &stats) const;
 
-	FailureReason selectBranchInCandidate(const ProjectionCandidateBuffer &candidate_buffer,
-					      const SegmentDistanceAlong &current_segment_bounds,
-					      int32_t mission_index,
-					      bool is_flying_reverse,
-					      const ActiveJumpAnchor &active_jump_anchor,
-					      BranchInSelection &selection) const;
-
-	FailureReason buildLoopContext(const RouteProjectionCandidate &vehicle_projection,
-				       float home_altitude_amsl, LoopContext &loop_context) const;
+	FailureReason findLoopBounds(const RouteProjectionCandidate &vehicle_projection, float home_altitude_amsl,
+				     SegmentDistanceAlong &loop_bounds) const;
 
 	const Provider &_provider;
 	const PathChecker *_path_checker;

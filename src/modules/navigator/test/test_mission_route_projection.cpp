@@ -365,9 +365,9 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 	EXPECT_TRUE(projection_context.route_projection.segment.has_remaining_repeats);
 	EXPECT_EQ(projection_context.route_projection.segment.start.idx, 2);
 	EXPECT_EQ(projection_context.route_projection.segment.end.idx, 0);
-	ASSERT_TRUE(projection_context.loop_context.valid());
-	EXPECT_NEAR(projection_context.loop_context.bounds.start_dist_along_route_m, 200.f, kDistanceTolerance);
-	EXPECT_NEAR(projection_context.loop_context.bounds.end_dist_along_route_m, 0.f, kDistanceTolerance);
+	ASSERT_TRUE(projection_context.loop_bounds.valid());
+	EXPECT_NEAR(projection_context.loop_bounds.start_dist_along_route_m, 200.f, kDistanceTolerance);
+	EXPECT_NEAR(projection_context.loop_bounds.end_dist_along_route_m, 0.f, kDistanceTolerance);
 }
 
 // A leading non-position item shifts the route start; pre-route mission indices still get start bounds.
@@ -1139,7 +1139,7 @@ INSTANTIATE_TEST_SUITE_P(
 class MissionRouteProjectionInvalidIndexTest : public MissionRouteProjectionTestBase,
 	public ::testing::WithParamInterface<int32_t> {};
 
-// Out-of-range mission indices are rejected and the stale context index is cleared.
+// Out-of-range mission indices are rejected.
 TEST_P(MissionRouteProjectionInvalidIndexTest, RejectsOutOfRangeMissionIndex)
 {
 	const std::vector<mission_item_s> mission = {
@@ -1152,12 +1152,8 @@ TEST_P(MissionRouteProjectionInvalidIndexTest, RejectsOutOfRangeMissionIndex)
 	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 60.f, kAlt);
 
 	mission_route::ProjectionContext projection_context{};
-	projection_context.mission_index = 42;
-	const mission_route::FailureReason status =
-		projection.collectVehicleProjection(vehicle, GetParam(), config, batch, projection_context);
-
-	EXPECT_EQ(status, mission_route::FailureReason::kInvalidRequest);
-	EXPECT_EQ(projection_context.mission_index, -1);
+	EXPECT_EQ(projection.collectVehicleProjection(vehicle, GetParam(), config, batch, projection_context),
+		  mission_route::FailureReason::kInvalidRequest);
 }
 
 INSTANTIATE_TEST_SUITE_P(

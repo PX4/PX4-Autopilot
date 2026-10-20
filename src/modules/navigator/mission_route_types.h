@@ -79,12 +79,10 @@ enum class FailureReason : uint8_t {
 	kNoSegmentsFound,
 	kInternalError,
 	kLoadFailed,
-	kInvalidProjectionContext,
 	kNoLocalMinFound,
 	kPositionItemInvalid,
 	kNoValidCandidateFound,
-	kGeofenceUnavailable,
-	kUnknown
+	kGeofenceUnavailable
 };
 
 /** @brief global position used by the route planner. */

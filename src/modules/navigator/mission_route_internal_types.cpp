@@ -89,16 +89,6 @@ bool RouteProjectionCandidate::valid() const
 	return segment.valid() && segment_positions.valid() && projection.valid() && dist.valid();
 }
 
-bool LoopContext::valid() const
-{
-	return segment.validLoop() && bounds.valid() && segment_positions.valid();
-}
-
-bool ProjectionContext::valid() const
-{
-	return vehicle_position.valid() && route_projection.valid();
-}
-
 bool RoutePath::valid() const
 {
 	return first_item.index >= 0 && first_item.nav_cmd != NAV_CMD_INVALID

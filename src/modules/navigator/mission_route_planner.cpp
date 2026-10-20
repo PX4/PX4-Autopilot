@@ -282,14 +282,14 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_dist_along_route_m,
 						- projection_context.route_projection.dist.along_segment_m);
 	const bool path_a_u_turn = uTurnRequired(projection_context, config, /* will_fly_reverse */ false);
 	const float path_a_cost = dist_jump_remaining
-				  + fabsf(goal_dist_along_route_m - projection_context.loop_context.bounds.end_dist_along_route_m)
+				  + fabsf(goal_dist_along_route_m - projection_context.loop_bounds.end_dist_along_route_m)
 				  + (path_a_u_turn ? config.parameters.fw_u_turn_penalty_m : 0.f);
 
 	// Path B: backtrack the already-travelled loop distance, then continue to the goal.
 	const float dist_jump_travelled = projection_context.route_projection.dist.along_segment_m;
 	const bool path_b_u_turn = uTurnRequired(projection_context, config, /* will_fly_reverse */ true);
 	const float path_b_cost = dist_jump_travelled
-				  + fabsf(goal_dist_along_route_m - projection_context.loop_context.bounds.start_dist_along_route_m)
+				  + fabsf(goal_dist_along_route_m - projection_context.loop_bounds.start_dist_along_route_m)
 				  + (path_b_u_turn ? config.parameters.fw_u_turn_penalty_m : 0.f);
 
 	// Mission finishes the current repeat before leaving the loop.
@@ -297,27 +297,27 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_dist_along_route_m,
 				 && projection_context.route_projection.segment.has_remaining_repeats)
 				|| path_a_cost < path_b_cost;
 
-	const LoopContext &loop_context = projection_context.loop_context;
+	const RouteProjectionCandidate &loop_edge = projection_context.route_projection;
 	RoutePath path{};
 
 	if (use_path_a) {
-		path.first_item = firstRouteItem(loop_context.segment.end, loop_context.segment_positions.end);
+		path.first_item = firstRouteItem(loop_edge.segment.end, loop_edge.segment_positions.end);
 		path.direction_reversed = mustFlyReverse(goal_dist_along_route_m,
-					  loop_context.bounds.end_dist_along_route_m, direction_mode);
+					  projection_context.loop_bounds.end_dist_along_route_m, direction_mode);
 		path.u_turn_required = path_a_u_turn;
 		path.total_cost_m = path_a_cost;
 
 	} else {
-		path.first_item = firstRouteItem(loop_context.segment.start, loop_context.segment_positions.start);
+		path.first_item = firstRouteItem(loop_edge.segment.start, loop_edge.segment_positions.start);
 		path.direction_reversed = mustFlyReverse(goal_dist_along_route_m,
-					  loop_context.bounds.start_dist_along_route_m, direction_mode);
+					  projection_context.loop_bounds.start_dist_along_route_m, direction_mode);
 		path.u_turn_required = path_b_u_turn;
 		path.total_cost_m = path_b_cost;
 	}
 
 	PX4_DEBUG("Route path on loop jump [A,B], loop bounds [%.1f, %.1f], force repeat: %u",
-		  static_cast<double>(projection_context.loop_context.bounds.start_dist_along_route_m),
-		  static_cast<double>(projection_context.loop_context.bounds.end_dist_along_route_m),
+		  static_cast<double>(projection_context.loop_bounds.start_dist_along_route_m),
+		  static_cast<double>(projection_context.loop_bounds.end_dist_along_route_m),
 		  static_cast<unsigned>(config.respect_jump_repeats
 					&& projection_context.route_projection.segment.has_remaining_repeats));
 
@@ -329,7 +329,7 @@ RoutePath findShortestPathAlongRoute(int mission_count,
 				     const ProjectionContext &projection_context, const PlannerConfig &config,
 				     PathDirectionMode direction_mode, GoalProjectionLocation goal_projection_location)
 {
-	const bool on_jump_segment_and_goal_elsewhere = projection_context.loop_context.valid()
+	const bool on_jump_segment_and_goal_elsewhere = projection_context.route_projection.segment.isLoop()
 			&& goal_projection_location != GoalProjectionLocation::kOnActiveLoopJump;
 
 	RoutePath path = on_jump_segment_and_goal_elsewhere
@@ -415,9 +415,8 @@ RoutePath scoreBranchOffCandidate(int mission_count,
 				  const PlannerConfig &config,
 				  const RouteProjectionCandidate &branch_off)
 {
-	const bool same_active_loop = projection_context.loop_context.valid()
-				      && branch_off.segment.isLoop()
-				      && branch_off.segment.jump_item_index == projection_context.loop_context.segment.jump_item_index;
+	const bool same_active_loop = branch_off.segment.isLoop()
+				      && branch_off.segment.jump_item_index == projection_context.route_projection.segment.jump_item_index;
 
 	// Simplifies the high level logic, no need to handle how to get onto the loop jump segment
 	if (branch_off.segment.isLoop() && !same_active_loop) {

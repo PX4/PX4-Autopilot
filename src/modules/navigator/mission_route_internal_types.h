@@ -56,12 +56,7 @@ static constexpr float kRoundingToleranceM{0.1f};
 static constexpr double kCornerLatLonTolDeg{1e-5};
 static constexpr uint8_t kMaxSegmentCandidates{3};
 
-/**
- * Number of safe points projected during one mission scan pass.
- *
- * Batching trades fixed RAM for fewer complete mission-route walks. This lets all references in a
- * batch share route loading and future expensive route checks instead of repeating that work for every safe point.
- */
+/** Safe points projected per route walk: larger batches trade fixed RAM for fewer walks. */
 static constexpr uint8_t kMaxSafePointBatch{CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE};
 static_assert(CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE >= 1 && CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE <= 255,
 	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must fit the uint8_t batch counters");
@@ -130,15 +125,6 @@ struct ProjectionCandidateBuffer {
 	uint8_t count{0};
 };
 
-/** @brief Active DO_JUMP geometry and along-route interval used while solving a path. */
-struct LoopContext {
-	Segment segment{};
-	SegmentPositions segment_positions{};
-	SegmentDistanceAlong bounds{};
-
-	bool valid() const;
-};
-
 /** @brief Live vehicle kinematics and mode flags copied into one planning pass. */
 struct VehicleStateContext {
 	bool is_flying_reverse{false}; /**< True when flying towards the mission start (takeoff) */
@@ -158,11 +144,9 @@ struct ProjectionContext {
 	VehicleStateContext vehicle_state{};
 	float route_length{0.f};
 	int32_t route_end_index{-1};
-	LoopContext loop_context{};
+	SegmentDistanceAlong loop_bounds{}; /**< Along-route distances of both exits when route_projection is on a loop. */
 	/** Required VTOL state on the vehicle's projected segment, resolved once per planning pass. */
 	uint8_t projected_segment_vtol_state{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
-
-	bool valid() const;
 };
 
 /** @brief First route item to target when the vehicle starts following the path. */
