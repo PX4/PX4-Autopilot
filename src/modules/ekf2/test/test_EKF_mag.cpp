@@ -40,6 +40,7 @@
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
 #include "test_helper/reset_logging_checker.h"
+#include <lib/world_magnetic_model/geo_mag_declination.h>
 
 class EkfMagTest : public ::testing::Test
 {
@@ -64,6 +65,32 @@ public:
 	}
 
 	const uint32_t _init_duration_s{6};
+
+	// Climb at 1 m/s until the in-flight alignment at 1.5 m, with an onboard source disturbing the
+	// field from 1 m (as when the actuators are enabled at launch)
+	void climbToInFlightAlignment(const Vector3f &onboard_disturbance)
+	{
+		_ekf->set_in_air_status(true);
+		_ekf->set_vehicle_at_rest(false);
+
+		float baro_height = _sensor_simulator._baro.getData();
+		bool disturbance_started = false;
+		int iterations = 0;
+
+		while (!_ekf->control_status_flags().mag_aligned_in_flight && (iterations++ < 1000)) {
+			baro_height += 0.01f;
+			_sensor_simulator._baro.setData(baro_height);
+			_sensor_simulator.runMicroseconds(10000);
+
+			if (!disturbance_started && (_ekf->getHagl() > 1.f)) {
+				_sensor_simulator._mag.setBias(onboard_disturbance);
+				disturbance_started = true;
+			}
+		}
+
+		ASSERT_TRUE(disturbance_started);
+		ASSERT_TRUE(_ekf->control_status_flags().mag_aligned_in_flight);
+	}
 };
 
 TEST_F(EkfMagTest, fusionStartWithReset)
@@ -540,39 +567,75 @@ TEST_F(EkfMagTest, inFlightResetUsesCurrentFieldAtLowMagRate)
 
 TEST_F(EkfMagTest, inFlightAlignmentKeepsHeading)
 {
-	// GIVEN: the heading was aligned on the ground with an undisturbed field
-	_sensor_simulator._mag.setData(Vector3f(0.2f, 0.f, 0.4f));
+	// GIVEN: the heading was aligned on the ground with an undisturbed field and no WMM
+	const Vector3f mag_earth_ground(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(mag_earth_ground);
 	_sensor_simulator.runSeconds(_init_duration_s);
 
 	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
-
-	_ekf->set_in_air_status(true);
-	_ekf->set_vehicle_at_rest(false);
 	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 
-	// WHEN: an onboard source disturbs the field during the climb (as when the actuators are
-	// enabled at launch), shifting the measured heading by 45 degrees just before the
-	// in-flight alignment at 1.5 m
-	float baro_height = _sensor_simulator._baro.getData();
-	bool disturbance_started = false;
-	int iterations = 0;
-
-	while (!_ekf->control_status_flags().mag_aligned_in_flight && (iterations++ < 1000)) {
-		baro_height += 0.01f;
-		_sensor_simulator._baro.setData(baro_height);
-		_sensor_simulator.runMicroseconds(10000);
-
-		if (!disturbance_started && (_ekf->getHagl() > 1.f)) {
-			_sensor_simulator._mag.setBias(Vector3f(0.f, -0.2f, 0.f));
-			disturbance_started = true;
-		}
-	}
-
-	ASSERT_TRUE(disturbance_started);
-	ASSERT_TRUE(_ekf->control_status_flags().mag_aligned_in_flight);
+	// WHEN: an onboard source shifts the measured heading by 45 degrees just before the alignment
+	const Vector3f onboard_disturbance(0.f, -0.2f, 0.f);
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(onboard_disturbance));
 
 	// THEN: the heading is not reset to the disturbed field
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
 	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f))
 			<< "Yaw after alignment: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+
+	// AND: without a WMM, the calibration is trusted and the disturbance is rotated into the earth field
+	const Vector3f mag_earth = _ekf->getMagEarthField();
+	const Vector3f mag_bias = _ekf->getMagBias();
+	EXPECT_TRUE(isEqual(mag_bias, Vector3f()))
+			<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
+	EXPECT_TRUE(isEqual(mag_earth, mag_earth_ground + onboard_disturbance, 0.01f))
+			<< "Earth field: " << mag_earth(0) << ", " << mag_earth(1) << ", " << mag_earth(2);
+}
+
+TEST_F(EkfMagTest, inFlightAlignmentWithWmmKeepsHeading)
+{
+	// GIVEN: the WMM was looked up from GNSS and the heading aligned with an undisturbed field on
+	// the ground, then GNSS was lost before takeoff
+	const gnssSample gnss = _sensor_simulator._gps.getDefaultGpsData();
+	const float declination = radians(get_mag_declination_degrees(gnss.lat, gnss.lon));
+	const float inclination = radians(get_mag_inclination_degrees(gnss.lat, gnss.lon));
+	const float strength = get_mag_strength_gauss(gnss.lat, gnss.lon);
+	const Vector3f mag_earth_wmm = Dcmf(Eulerf(0.f, -inclination, declination)) * Vector3f(strength, 0.f, 0.f);
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+
+	_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(_init_duration_s);
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(10); // GNSS fusion stops after the 7 s reset timeout
+
+	ASSERT_FALSE(_ekf->isNorthEastAidingActive());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: an onboard source shifts the measured heading by 45 degrees just before the alignment
+	const Vector3f onboard_disturbance = Dcmf(Eulerf(0.f, 0.f, radians(45.f))).transpose() * mag_earth_wmm - mag_earth_wmm;
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(onboard_disturbance));
+
+	// THEN: the heading is not reset to the disturbed field
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f))
+			<< "Yaw after alignment: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+
+	// AND: with a WMM, the heading is trusted and the disturbance is attributed to the body
+	Vector3f mag_bias = _ekf->getMagBias();
+	EXPECT_TRUE(isEqual(mag_bias, onboard_disturbance, 0.01f))
+			<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
+
+	// AND: the mag fusion keeps accepting the disturbed field, so no fusion-failing reset follows
+	_sensor_simulator.runSeconds(30);
+
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f))
+			<< "Yaw 30 s after alignment: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+	mag_bias = _ekf->getMagBias();
+	EXPECT_TRUE(isEqual(mag_bias, onboard_disturbance, 0.01f))
+			<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
 }
