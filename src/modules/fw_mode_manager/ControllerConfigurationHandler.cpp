@@ -63,8 +63,8 @@ void CombinedControllerConfigurationHandler::update(const hrt_abstime now)
 	_longitudinal_updated |= booleanValueChanged(_longitudinal_configuration_current_cycle.disable_underspeed_protection,
 				 _longitudinal_publisher.get().disable_underspeed_protection);
 
-	_lateral_updated |= floatValueChanged(_lateral_configuration_current_cycle.lateral_accel_max,
-					      _lateral_publisher.get().lateral_accel_max);
+	_lateral_updated |= floatValueChanged(_lateral_configuration_current_cycle.roll_max,
+					      _lateral_publisher.get().roll_max);
 	_lateral_updated |= floatValueChanged(_lateral_configuration_current_cycle.skid_ratio,
 					      _lateral_publisher.get().skid_ratio);
 
@@ -125,9 +125,9 @@ void CombinedControllerConfigurationHandler::setSinkRateTarget(const float sinkr
 	_longitudinal_configuration_current_cycle.sink_rate_target = sinkrate_target;
 }
 
-void CombinedControllerConfigurationHandler::setLateralAccelMax(float lateral_accel_max)
+void CombinedControllerConfigurationHandler::setRollMax(float roll_max)
 {
-	_lateral_configuration_current_cycle.lateral_accel_max = lateral_accel_max;
+	_lateral_configuration_current_cycle.roll_max = roll_max;
 }
 
 void CombinedControllerConfigurationHandler::setSkidRatio(float skid_ratio)

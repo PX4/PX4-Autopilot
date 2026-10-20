@@ -44,7 +44,7 @@
 #include <lib/mathlib/mathlib.h>
 
 static constexpr longitudinal_control_configuration_s empty_longitudinal_control_configuration = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .speed_weight = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
-static constexpr lateral_control_configuration_s empty_lateral_control_configuration = {.timestamp = 0, .lateral_accel_max = NAN, .skid_ratio = NAN};
+static constexpr lateral_control_configuration_s empty_lateral_control_configuration = {.timestamp = 0, .roll_max = NAN, .skid_ratio = NAN};
 
 
 class CombinedControllerConfigurationHandler
@@ -73,7 +73,7 @@ public:
 
 	void setSinkRateTarget(const float sinkrate_target);
 
-	void setLateralAccelMax(float lateral_accel_max);
+	void setRollMax(float roll_max);
 
 	void setSkidRatio(float skid_ratio);
 

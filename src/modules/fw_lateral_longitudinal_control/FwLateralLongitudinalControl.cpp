@@ -310,12 +310,19 @@ void FwLateralLongitudinalControl::Run()
 			}
 
 			lateral_accel_sp = getCorrectedLateralAccelSetpoint(lateral_accel_sp, now);
-			lateral_accel_sp = math::constrain(lateral_accel_sp, -_lateral_configuration.lateral_accel_max,
-							   _lateral_configuration.lateral_accel_max);
+
+			// limit to what bank and sideslip can generate together
+			const float skid_accel_max = updateSkidAccelerationMax(control_interval);
+			const float lateral_accel_max = tanf(_lateral_configuration.roll_max) * CONSTANTS_ONE_G + skid_accel_max;
+			lateral_accel_sp = math::constrain(lateral_accel_sp, -lateral_accel_max, lateral_accel_max);
 
 			const SkidToTurnAllocator::Output lateral_accel_split = _skid_to_turn_allocator.update(lateral_accel_sp,
-					_lateral_configuration.skid_ratio, updateSkidAccelerationMax(control_interval), control_interval);
-			roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_split.bank);
+					_lateral_configuration.skid_ratio, skid_accel_max, control_interval);
+
+			// the sideslip part is slew rate limited, so on reversals the bank part can exceed its share: apply the
+			// roll limit after the split
+			roll_sp = math::constrain(mapLateralAccelerationToRollAngle(lateral_accel_split.bank),
+						  -_lateral_configuration.roll_max, _lateral_configuration.roll_max);
 
 			fixed_wing_skid_setpoint_s fixed_wing_skid_setpoint{};
 			fixed_wing_skid_setpoint.timestamp = now;
@@ -387,7 +394,7 @@ void FwLateralLongitudinalControl::updateControllerConfiguration(hrt_abstime tim
 {
 	if (_lateral_configuration.timestamp == 0) {
 		_lateral_configuration.timestamp = timestamp;
-		_lateral_configuration.lateral_accel_max = tanf(radians(_param_fw_r_lim.get())) * CONSTANTS_ONE_G;
+		_lateral_configuration.roll_max = radians(_param_fw_r_lim.get());
 		_lateral_configuration.skid_ratio = 0.f;
 	}
 
@@ -407,12 +414,11 @@ void FwLateralLongitudinalControl::updateControllerConfiguration(hrt_abstime tim
 		_lateral_configuration.timestamp = configuration_in.timestamp;
 
 		// a negative limit would invert the constrain() bounds of the setpoint; treat it like an unset one
-		if (PX4_ISFINITE(configuration_in.lateral_accel_max) && (configuration_in.lateral_accel_max >= 0.f)) {
-			_lateral_configuration.lateral_accel_max = min(configuration_in.lateral_accel_max, tanf(radians(
-						_param_fw_r_lim.get())) * CONSTANTS_ONE_G);
+		if (PX4_ISFINITE(configuration_in.roll_max) && (configuration_in.roll_max >= 0.f)) {
+			_lateral_configuration.roll_max = min(configuration_in.roll_max, radians(_param_fw_r_lim.get()));
 
 		} else {
-			_lateral_configuration.lateral_accel_max = tanf(radians(_param_fw_r_lim.get())) * CONSTANTS_ONE_G;
+			_lateral_configuration.roll_max = radians(_param_fw_r_lim.get());
 		}
 
 		_lateral_configuration.skid_ratio = PX4_ISFINITE(configuration_in.skid_ratio)

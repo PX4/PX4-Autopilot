@@ -4,6 +4,8 @@
  ****************************************************************************/
 #pragma once
 
+#include <cmath>
+
 // Translate LateralControlConfiguration v0 <--> v1
 #include <px4_msgs_old/msg/lateral_control_configuration_v0.hpp>
 #include <px4_msgs/msg/lateral_control_configuration.hpp>
@@ -18,15 +20,18 @@ public:
 
 	static constexpr const char* kTopic = "fmu/in/lateral_control_configuration";
 
+	// v0 encoded the roll limit as lateral acceleration: lateral_accel_max = tan(roll_max) * GRAVITY
+	static constexpr float kGravity = 9.80665f; // [m/s^2]
+
 	static void fromOlder(const MessageOlder &msg_older, MessageNewer &msg_newer) {
 		msg_newer.timestamp = msg_older.timestamp;
-		msg_newer.lateral_accel_max = msg_older.lateral_accel_max;
+		msg_newer.roll_max = std::isfinite(msg_older.lateral_accel_max) ? std::atan(msg_older.lateral_accel_max / kGravity) : NAN;
 		msg_newer.skid_ratio = NAN; // bank-to-turn only
 	}
 
 	static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
 		msg_older.timestamp = msg_newer.timestamp;
-		msg_older.lateral_accel_max = msg_newer.lateral_accel_max;
+		msg_older.lateral_accel_max = std::isfinite(msg_newer.roll_max) ? std::tan(msg_newer.roll_max) * kGravity : NAN;
 	}
 };
 

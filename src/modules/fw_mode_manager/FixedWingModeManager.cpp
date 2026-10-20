@@ -960,7 +960,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 
 		} else {
 			// continue straight until vehicle has sufficient altitude
-			_ctrl_configuration_handler.setLateralAccelMax(0.0f);
+			_ctrl_configuration_handler.setRollMax(0.0f);
 
 			// keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
 			if (!_airspeed_valid || _airspeed_eas < _param_fw_airspd_min.get()) {
@@ -1168,7 +1168,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
 		const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
-		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
+		_ctrl_configuration_handler.setRollMax(roll_wingtip_strike);
 
 		const float pitch_max = _runway_takeoff.getMaxPitch(math::radians(_param_fw_p_lim_max.get()));
 		const float pitch_min = _runway_takeoff.getMinPitch(math::radians(_takeoff_pitch_min.get()),
@@ -1286,7 +1286,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 							    0.f, 1.f);
 			roll_limit = math::min(roll_limit, launch_climbout_ratio * math::radians(_param_fw_r_lim.get()));
 
-			_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_limit));
+			_ctrl_configuration_handler.setRollMax(roll_limit);
 
 			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
 							   _param_fw_thr_idle.get() : NAN;
@@ -1616,7 +1616,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
 		const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
-		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
+		_ctrl_configuration_handler.setRollMax(roll_wingtip_strike);
 
 		/* longitudinal guidance */
 
@@ -1683,8 +1683,8 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		fw_lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude,
-				terrain_alt)));
+		_ctrl_configuration_handler.setRollMax(getMaxRollAngleNearGround(_current_altitude,
+						       terrain_alt));
 
 		/* longitudinal guidance */
 
@@ -1898,8 +1898,8 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 	_fixed_wing_runway_control_pub.publish(fw_runway_control);
 
-	_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude,
-			terrain_alt)));
+	_ctrl_configuration_handler.setRollMax(getMaxRollAngleNearGround(_current_altitude,
+					       terrain_alt));
 
 	_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
 	_spoilers_setpoint = _param_fw_spoilers_lnd.get();
