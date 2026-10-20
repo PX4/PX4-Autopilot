@@ -149,8 +149,10 @@ class AutopilotTesterRtl(AutopilotTester):
             for center, radius_m in approaches:
                 distance_m = math.hypot(sample.position.north_m - center[0],
                                         sample.position.east_m - center[1])
-                # Ported as is from the C++ test. Both bounds being ">" means this only checks
-                # that the vehicle is outside the loiter radius plus the acceptance radius.
+                # Ported as is from the C++ test, and it can't fail: with both bounds ">", any
+                # sample is outside the loiter of at least one of the two approaches, which are
+                # far apart. So this only waits for the descent. TODO: check that the vehicle is
+                # on the loiter of the approach it took.
                 if distance_m > radius_m - acceptance_radius_m \
                         and distance_m > radius_m + acceptance_radius_m:
                     if altitude_m < descend_alt_m + 3.0:

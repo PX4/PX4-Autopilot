@@ -241,7 +241,8 @@ class AutopilotTester:
                 if elapsed_s > timeout_s:
                     log("Timeout, connected to vehicle but waiting for test for {:.1f} seconds"
                         .format(elapsed_s))
-                    return False
+                    # It might have become true while sleeping.
+                    return condition()
         else:
             start = time.monotonic()
             while not condition():
@@ -249,7 +250,7 @@ class AutopilotTester:
                 elapsed_s = time.monotonic() - start
                 if elapsed_s > timeout_s:
                     log("Timeout, waiting for the vehicle for {:.1f} seconds".format(elapsed_s))
-                    return False
+                    return condition()
         return True
 
     def sleep_for(self, duration_s: float) -> None:
