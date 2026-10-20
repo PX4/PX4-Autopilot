@@ -79,6 +79,10 @@ add_dependencies(px4_layer prebuild_targets)
 add_subdirectory(gpio)
 add_subdirectory(srgbled)
 
+if(CONFIG_BOARD_FLASH_STORAGE)
+	add_subdirectory(flash_storage)
+endif()
+
 # Build px4_random
 if (DEFINED PX4_CRYPTO)
 	add_library(px4_random nuttx_random.c)
