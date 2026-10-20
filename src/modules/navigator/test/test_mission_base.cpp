@@ -163,6 +163,12 @@ public:
 		}
 	}
 
+	bool vtolStatesForMission(std::vector<uint8_t> &states)
+	{
+		states.resize(_mission.count);
+		return getVtolStatesForMission(states.data(), static_cast<int32_t>(states.size()));
+	}
+
 	uint8_t vtolStateAt(int32_t anchor_index)
 	{
 		return getVtolStateAtMissionIndex(anchor_index);
@@ -1702,6 +1708,48 @@ TEST_F(MissionBaseTraversalTest, VtolLookaheadResolvesPrefixAndPreservesPrecedin
 		EXPECT_EQ(mission_base.transitionForTarget(0, true), action);
 		EXPECT_EQ(mission_base.transitionForTarget(3, false), MissionBaseTestPeer::VtolTransitionAction::kNone);
 	}
+}
+
+// The two-pass table used by the route time estimate gives the per-index scan result everywhere.
+TEST_F(MissionBaseTraversalTest, VtolStateTableMatchesPerIndexScan)
+{
+	const auto with_command = [](mission_item_s item, uint16_t nav_cmd) {
+		item.nav_cmd = nav_cmd;
+		return item;
+	};
+	const mission_item_s waypoint = makePositionItem(kBaseLat, kBaseLon, kAlt);
+	const mission_item_s land = with_command(waypoint, NAV_CMD_LAND);
+	const mission_item_s takeoff = with_command(waypoint, NAV_CMD_TAKEOFF);
+	const mission_item_s vtol_takeoff = with_command(waypoint, NAV_CMD_VTOL_TAKEOFF);
+	const mission_item_s front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	const mission_item_s back_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	mission_item_s invalid_transition = front_transition;
+	invalid_transition.params[0] = 7.f;
+
+	const std::vector<std::vector<mission_item_s>> missions{
+		{waypoint, waypoint, front_transition, waypoint},
+		{waypoint, land, front_transition, waypoint},
+		{waypoint, invalid_transition, waypoint, back_transition, waypoint},
+		{waypoint, takeoff, front_transition, waypoint},
+		{vtol_takeoff, waypoint, back_transition, waypoint, land},
+		{waypoint, waypoint, makeDoJump(0, 2), front_transition, waypoint},
+	};
+
+	for (size_t m = 0; m < missions.size(); ++m) {
+		mission_base.loadTestMission(missions[m]);
+		std::vector<uint8_t> states;
+		ASSERT_TRUE(mission_base.vtolStatesForMission(states)) << "mission " << m;
+
+		for (int32_t index = 0; index < static_cast<int32_t>(states.size()); ++index) {
+			EXPECT_EQ(states[index], mission_base.vtolStateAt(index)) << "mission " << m << " index " << index;
+		}
+	}
+
+	// A load failure leaves the per-target scan in charge.
+	mission_base.setLoadFailureIndices({1});
+	std::vector<uint8_t> states;
+	EXPECT_FALSE(mission_base.vtolStatesForMission(states));
+	mission_base.clearLoadFailures();
 }
 
 TEST_F(MissionBaseTraversalTest, VtolLookaheadIgnoresJumpRepeats)

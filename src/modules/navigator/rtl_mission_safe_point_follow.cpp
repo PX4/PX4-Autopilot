@@ -825,10 +825,14 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 
 	// Add a leg from the tracked position to a target, then track from the target.
 	const auto add_leg = [&](double target_lat, double target_lon, float target_alt) {
-		matrix::Vector2f direction{};
-		get_vector_to_next_waypoint(hor_pos(0), hor_pos(1), target_lat, target_lon, &direction(0), &direction(1));
-
 		const float hor_dist = get_distance_to_next_waypoint(hor_pos(0), hor_pos(1), target_lat, target_lon);
+		matrix::Vector2f direction{};
+
+		// Only the fixed-wing wind correction reads the direction of a nonzero leg.
+		if (estimated_vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && hor_dist > FLT_EPSILON) {
+			get_vector_to_next_waypoint(hor_pos(0), hor_pos(1), target_lat, target_lon, &direction(0), &direction(1));
+		}
+
 		_rtl_time_estimator.addDistance(hor_dist, direction, target_alt - altitude);
 
 		hor_pos(0) = target_lat;
@@ -939,6 +943,12 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 				findAdjacentRouteIndex(_mission.current_seq, walk_index);
 			}
 
+			// One pass over the mission instead of a lookback per VTOL route target.
+			static uint8_t vtol_states[MissionRouteCache::kMaxFullMissionCacheSize];
+			const bool vtol_states_valid = _vehicle_status_sub.get().is_vtol
+						       && getVtolStatesForMission(vtol_states, MissionRouteCache::kMaxFullMissionCacheSize);
+			const uint8_t *route_vtol_states = vtol_states_valid ? vtol_states : nullptr;
+
 			for (int steps = 0; steps < _mission.count && missionIndexInBounds(walk_index); ++steps) {
 				mission_item_s item{};
 
@@ -948,7 +958,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 
 				if (mission_item_contains_position(item)) {
 					if (walk_index != _plan.first_mission_item_index) {
-						set_route_mode(vtolTransitionActionForTarget(walk_index, _plan.direction_reversed));
+						set_route_mode(vtolTransitionActionForTarget(walk_index, _plan.direction_reversed, route_vtol_states));
 					}
 
 					const bool last_route_item = resolveRouteTarget(walk_index, item);

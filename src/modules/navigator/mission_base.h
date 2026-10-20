@@ -528,9 +528,14 @@ protected:
 	/** Resolve the VTOL state at a mission position anchor, using lookahead only without a preceding mode. */
 	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);
 
+	/** getVtolStateAtMissionIndex() for all _mission.count indices in two passes; false if they do not fit or an item cannot be read. */
+	bool getVtolStatesForMission(uint8_t vtol_states[], int32_t capacity);
+
 	static bool vehicleInFwLikeState(const vehicle_status_s &vehicle_status);
 
-	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed);
+	/** @param vtol_states optional getVtolStatesForMission() result, replaces the scan per target */
+	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed,
+			const uint8_t *vtol_states = nullptr);
 
 	VtolTransitionAction vtolTransitionActionAfterReachingReverseTarget(int32_t reached_target_index);
 
