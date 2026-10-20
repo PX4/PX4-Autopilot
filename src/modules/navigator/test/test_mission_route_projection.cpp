@@ -310,8 +310,8 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, ReverseFlightPrefersReverseCurren
 	EXPECT_EQ(projection_context.route_projection.segment.end.idx, 2);
 }
 
-// A jump and a nominal segment can share endpoints when DO_JUMP repeats commands after its source
-// waypoint. Keep the flown jump only with its anchor, including when the search margin is zero.
+// DO_JUMP targets an earlier command, but the next position is after the jump. Its edge shares the
+// nominal segment's endpoints. Keep it only with its active anchor, including at zero search margin.
 TEST_F(MissionRouteProjectionLocalSegmentTest, JumpEdgeWithNominalTwinRespectsAnchor)
 {
 	mission_item_s speed_change{};

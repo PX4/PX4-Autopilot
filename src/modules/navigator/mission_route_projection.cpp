@@ -596,7 +596,7 @@ static void pruneProjectionCandidates(ProjectionCandidateBuffer &candidate_buffe
 
 bool isIndexInProjectionSegment(const Segment &projection_segment, int32_t mission_index, bool is_flying_reverse)
 {
-	// A jump edge spans no consecutive items, even when its target resolves past the DO_JUMP.
+	// Mission-index ranges identify nominal segments. Jump edges are identified by their active anchor.
 	if (!projection_segment.valid() || projection_segment.isLoop()) {
 		return false;
 	}
