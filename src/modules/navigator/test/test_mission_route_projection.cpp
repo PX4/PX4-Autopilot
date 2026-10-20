@@ -1439,7 +1439,8 @@ TEST_F(MissionRouteProjectionTestBase, LookaheadStopsAtUnreadableItem)
 	// Non-mode commands are transparent when their contents are available.
 	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 
-	for (const int index : {1, 2}) {
+	// Index 0 sits before the segment end: an unreadable lookback also blocks lookahead.
+	for (const int index : {0, 1, 2}) {
 		SCOPED_TRACE(index);
 		provider.setMissionLoadFailures({index});
 		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
