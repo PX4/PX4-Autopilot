@@ -831,8 +831,8 @@ void MissionBase::startVtolTransition(const mission_item_s &command, const missi
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
 	reset_mission_item_reached();
 
-	if (updateVtolTransition()) {
-		// Already in the commanded mode: report the item until on_active() completes it.
+	// Report the item here when updateVtolTransition() did not: already in mode, or waiting for a back transition.
+	if (updateVtolTransition() || _work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION) {
 		if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
 			set_mission_result();
 		}
