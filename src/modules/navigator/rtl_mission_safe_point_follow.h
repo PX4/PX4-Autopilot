@@ -170,7 +170,8 @@ private:
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
 		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_rtl_land_delay,
 		(ParamFloat<px4::params::RTL_LOITER_RAD>) _param_rtl_loiter_rad,
-		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
+		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md,
+		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt
 	)
 };
 
