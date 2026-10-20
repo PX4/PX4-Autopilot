@@ -46,6 +46,7 @@
 #include <string>
 #include <termios.h>
 #include <pthread.h>
+#include <px4_platform_common/atomic.h>
 
 #include <platforms/posix/apps.h>
 #include "history.h"
@@ -68,9 +69,9 @@ public:
 	static int process_line(const std::string &line, bool silently_fail);
 
 	/**
-	 * Run the pxh shell. This will only return if stop() is called.
+	 * Run the pxh shell until stop() is called or an exit is requested.
 	 */
-	void run_pxh();
+	void run_pxh(const px4::atomic_bool &exit_requested);
 
 	/**
 	 * Run the remote mavlink pxh shell.
