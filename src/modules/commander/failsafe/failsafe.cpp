@@ -166,7 +166,7 @@ FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_valu
 	return options;
 }
 
-static constexpr uint8_t BATTERY_WARNING_BINGO_FUEL = UINT8_MAX; // "battery level" to handle bingo fuel
+static constexpr uint8_t BATTERY_WARNING_SMART_RETURN = UINT8_MAX; // "battery level" to handle the remaining flight time (Smart Return)
 
 FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value, uint8_t battery_warning)
 {
@@ -191,7 +191,8 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 		case LowBatteryAction::Return:
 		case LowBatteryAction::ReturnOrLand:
 		case LowBatteryAction::ReturnOrTerminate:
-		case LowBatteryAction::ReturnOrLandNoBingo:
+		case LowBatteryAction::ReturnOrLandWithSmartReturn:
+		case LowBatteryAction::ReturnOrTerminateWithSmartReturn:
 			options.action = Action::RTL;
 			break;
 
@@ -200,7 +201,6 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 			break;
 
 		case LowBatteryAction::Warning:
-		case LowBatteryAction::WarningNoBingo:
 			options.action = Action::Warn;
 			break;
 		}
@@ -218,42 +218,39 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 
 		case LowBatteryAction::Land:
 		case LowBatteryAction::ReturnOrLand:
-		case LowBatteryAction::ReturnOrLandNoBingo:
+		case LowBatteryAction::ReturnOrLandWithSmartReturn:
 			options.action = Action::Land;
 			break;
 
 		case LowBatteryAction::Warning:
-		case LowBatteryAction::WarningNoBingo:
 			options.action = Action::Warn;
 			break;
 
 		case LowBatteryAction::ReturnOrTerminate:
+		case LowBatteryAction::ReturnOrTerminateWithSmartReturn:
 			options.action = Action::Terminate;
 			break;
 		}
 
 		break;
 
-	case BATTERY_WARNING_BINGO_FUEL:
+	case BATTERY_WARNING_SMART_RETURN:
 		options.action = Action::Warn;
 		options.cause = Cause::RemainingFlightTimeLow;
 
 		switch ((LowBatteryAction)param_value) {
-		case LowBatteryAction::Return:
-		case LowBatteryAction::ReturnOrLand:
-		case LowBatteryAction::ReturnOrTerminate:
+		case LowBatteryAction::ReturnOrLandWithSmartReturn:
+		case LowBatteryAction::ReturnOrTerminateWithSmartReturn:
 			options.action = Action::RTL;
 			options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 			break;
 
 		case LowBatteryAction::Warning:
+		case LowBatteryAction::Return:
 		case LowBatteryAction::Land:
+		case LowBatteryAction::ReturnOrLand:
+		case LowBatteryAction::ReturnOrTerminate:
 			options.action = Action::Warn;
-			break;
-
-		case LowBatteryAction::ReturnOrLandNoBingo:
-		case LowBatteryAction::WarningNoBingo:
-			options.action = Action::None;
 			break;
 		}
 	}
@@ -684,7 +681,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	// Battery low failsafe
 	// If battery was low and arming was allowed through COM_ARM_BAT_MIN, don't failsafe immediately for the current low battery warning state
 	const bool warning_worse_than_at_arming = (status_flags.battery_warning > _battery_warning_at_arming);
-	const int32_t low_battery_action = warning_worse_than_at_arming ? _param_com_low_bat_act.get() : (int32_t)LowBatteryAction::Warning;
+	const int32_t low_battery_action = warning_worse_than_at_arming ?
+					   _param_com_low_bat_act.get() : (int32_t)LowBatteryAction::Warning;
 
 	switch (status_flags.battery_warning) {
 	case battery_status_s::WARNING_LOW:
@@ -708,9 +706,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		break;
 	}
 
-	// Battery flight time remaining failsafe
+	// Battery flight time remaining failsafe (Smart Return)
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
-		       ActionOptions(fromBatteryWarningActParam(_param_com_low_bat_act.get(), BATTERY_WARNING_BINGO_FUEL)));
+		       ActionOptions(fromBatteryWarningActParam(_param_com_low_bat_act.get(), BATTERY_WARNING_SMART_RETURN)));
 
 	// Handle fails during spoolup just after arming
 	if ((_armed_time != 0) && (time_us < _armed_time + spoolup)) {

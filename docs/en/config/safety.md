@@ -85,15 +85,12 @@ You can configure both the levels and the failsafe actions at each level in QGro
 You should set the failsafe levels with `Warn > Failsafe > Emergency` as shown above.
 Note that PX4 will warn if the battery drops to the "Warn level" for any of action settings.
 
-The failsafe action (`COM_LOW_BAT_ACT`) also allows you to enable the _Bingo fuel failsafe_"\_, which triggers [Return mode](../flight_modes/return.md) when the estimated remaining flight time drops below what is needed to return safely.
-Note that you must set the [`BATn_CAPACITY`](#BAT1_CAPACITY) parameters for your batteries for this failsafe to work properly.
-
 The failsafe actions can then be set to one of:
 
-- `0: Warning` — Warn only (also warns on bingo fuel).
-- `2: Land mode` — Land at the "Failsafe level" (warns on bingo fuel).
-- `3: Bingo fuel, Critical RTL, Emergency land`: (recommended) — Return mode on bingo fuel and at "Failsafe" level, Land at "Emergency level".
-- `4: Bingo fuel, Critical RTL, Emergency terminate`<Badge type="tip" text="main (PX4 v2.0)" /> — Return mode on bingo fuel and at "Failsafe" level, [Flight termination](#act_term) at "Emergency level".
+- `0: Warning` — Warn only.
+- `2: Land mode` — Land at the "Failsafe level".
+- `3: Return at critical level, land at emergency level`: (recommended) — Return mode at "Failsafe" level, Land at "Emergency level".
+- `4: Return at critical level, terminate at emergency level`<Badge type="tip" text="main (PX4 v2.0)" /> — Return mode at "Failsafe" level, [Flight termination](#act_term) at "Emergency level".
 
   ::: tip
   This option may be preferred for vehicles that have a [parachute](../peripherals/parachute.md), as it enables controlled landing when there is no power at all.
@@ -101,21 +98,52 @@ The failsafe actions can then be set to one of:
   If it is not available in the setup screen, [set the parameter](../advanced_config/parameters.md) directly to [COM_LOW_BAT_ACT = 4](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT).
   :::
 
-- `5: Critical RTL, Emergency land` — Same as `3` but without bingo fuel.
-- `6: Warning, no bingo fuel` — Same as `0` but without bingo fuel warning.
+- `5: Smart Return, return at critical level, land at emergency level`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `3`, plus the [Smart Return failsafe](#smart-return-failsafe).
+- `6: Smart Return, return at critical level, terminate at emergency level`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `4`, plus the [Smart Return failsafe](#smart-return-failsafe).
 
-| Setting                                                     | Parameter                                                                    | Description                                                                                                                   |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action                 | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Action when battery capacity drops below the trigger levels, and for bingo fuel (flight time drops below return flight time). |
-| <a id="BAT_LOW_THR"></a>Battery Warn Level                  | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)         | Percentage capacity for warnings (or other actions).                                                                          |
-| <a id="BAT_CRIT_THR"></a>Battery Failsafe Level             | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)       | Percentage capacity for Return action (or other actions if a single action selected).                                         |
-| <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level         | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR) | Percentage capacity for triggering Land (immediately) action.                                                                 |
-| <a id="COM_ARM_BAT_MIN"></a>Minimum armable state of charge | [COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN) | Prevents arming if the battery state of charge is below the specified value.                                                  |
-| <a id="BAT1_CAPACITY"></a>Battery capacity                  | [BATn_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY)     | Capacity for each battery (i.e. `BAT1_CAPACITY`, `BAT2_CAPACITY`).                                                            |
+The settings and underlying parameters are shown below.
+
+| Setting                                                     | Parameter                                                                    | Description                                                                                                                          |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action                 | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Land, or Return and then Land or Terminate when capacity drops below the trigger levels. Options `5` and `6` add Smart Return. |
+| <a id="BAT_LOW_THR"></a>Battery Warn Level                  | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)         | Percentage capacity for warnings (or other actions).                                                                                 |
+| <a id="BAT_CRIT_THR"></a>Battery Failsafe Level             | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)       | Percentage capacity for Return action (or other actions if a single action selected).                                                |
+| <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level         | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR) | Percentage capacity for triggering Land (immediately) action.                                                                        |
+| <a id="COM_ARM_BAT_MIN"></a>Minimum armable state of charge | [COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN) | Prevents arming if the battery state of charge is below the specified value.                                                         |
+| <a id="BAT1_CAPACITY"></a>Battery capacity                  | [BATn_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY)     | Capacity for each battery (i.e. `BAT1_CAPACITY`, `BAT2_CAPACITY`).                                                                   |
+
+### Smart Return Failsafe
+
+The _Smart Return_ failsafe engages [Return mode](../flight_modes/return.md) when the estimated remaining flight time drops to the time needed to return (in aviation this point is known as "bingo fuel").
+Unlike the [battery level failsafe](#battery-level-failsafe) it accounts for how far away the vehicle is: it returns earlier when the return destination is far away, and later when it is close.
+
+It is enabled by setting [COM_LOW_BAT_ACT](#COM_LOW_BAT_ACT) to `5` or `6`.
+With all other options PX4 only warns ("Low remaining flight time, return advised").
+
+PX4 compares:
+
+- The time needed to return, estimated along the current Return mode path (including climb, descent and landing), with the safety margin set by [RTL_TIME_FACTOR](../advanced_config/parameter_reference.md#RTL_TIME_FACTOR) and [RTL_TIME_MARGIN](../advanced_config/parameter_reference.md#RTL_TIME_MARGIN).
+- The remaining flight time of the battery with the least time left, if more than one is connected.
+
+Once Return mode has been triggered, it is not cancelled if the estimate improves again on the way back.
+
+The remaining flight time comes from the battery:
+
+- Batteries measured by PX4 (analog or digital power modules): computed from the state of charge, the [battery capacity](#BAT1_CAPACITY) (`BATn_CAPACITY`) and the average current.
+- [Smart batteries](../smart_batteries/index.md): the remaining time reported by the battery (SMBus), or computed from the capacity reported by the battery (DroneCAN).
+- MAVLink batteries ([BATTERY_STATUS](https://mavlink.io/en/messages/common.html#BATTERY_STATUS) sent by another component): the `time_remaining` field of the message.
+
+::: warning
+Without a remaining flight time estimate the Smart Return failsafe never triggers, and there is no warning either.
+This is the case if `BATn_CAPACITY` is not set (the default is `-1`), or if a MAVLink battery does not fill in `time_remaining`.
+The vehicle is then only protected by the [battery level failsafe](#battery-level-failsafe).
+:::
 
 ### Maximum Flight Time Failsafe
 
-The maximum flight time failsafe ([COM_FLT_TIME_MAX](#COM_FLT_TIME_MAX)) allows you to set a maximum flight time after takeoff, at which the vehicle will automatically enter return mode (it will also "warn" at 90% of this time). This is to comply with certain regulations where the mission has to be aborted if it takes longer than a certain amount of time. The feature is disabled by default.
+The maximum flight time failsafe ([COM_FLT_TIME_MAX](#COM_FLT_TIME_MAX)) allows you to set a maximum flight time after takeoff, at which the vehicle will automatically enter return mode (it will also "warn" at 90% of this time).
+This is to comply with certain regulations where the mission has to be aborted if it takes longer than a certain amount of time.
+The feature is disabled by default.
 
 | Setting                                                          | Parameter                                                                      | Description                                                                                           |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
