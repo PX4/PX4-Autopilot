@@ -140,6 +140,10 @@ TEST_CASE("Parameters download via MAVLink FTP", "[multicopter]")
 	AutopilotTesterParamFtp tester;
 	tester.connect(connection_url);
 
+	// The baro GNSS auto-calibration writes CAL_BAROx_OFF shortly after boot,
+	// which can land between the two downloads compared below.
+	tester.set_param_int("SENS_BAR_AUTOCAL", 0);
+
 	// the reference: the conventional PARAM_VALUE stream
 	const mavsdk::Param::AllParams all = tester.all_params();
 	REQUIRE(all.int_params.size() + all.float_params.size() > 100);
