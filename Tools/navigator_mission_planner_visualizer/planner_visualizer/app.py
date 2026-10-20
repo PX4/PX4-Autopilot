@@ -158,7 +158,7 @@ def counted(count: int, item_type: str) -> str:
     return f"{count} {singular if count == 1 else plural}"
 
 
-def render_sidebar(editor: Editor, base: Optional[Base]) -> Tuple[str, ClickSettings, bool, bool]:
+def render_sidebar(editor: Editor, base: Optional[Base]) -> Tuple[str, ClickSettings, bool]:
     """Four cards: what a click adds, all new items, the selected item, and the output."""
     with st.container(border=True):
         item_type, settings = render_add_panel(editor)
@@ -167,8 +167,8 @@ def render_sidebar(editor: Editor, base: Optional[Base]) -> Tuple[str, ClickSett
     with st.container(border=True):
         render_edit_panel(editor, base, item_type)
     with st.container(border=True):
-        use_offsets, show_3d = render_output_panel(editor, base)
-    return item_type, settings, use_offsets, show_3d
+        use_offsets = render_output_panel(editor, base)
+    return item_type, settings, use_offsets
 
 
 def render_add_panel(editor: Editor) -> Tuple[str, ClickSettings]:
@@ -319,8 +319,8 @@ def render_items_panel(editor: Editor, item_type: str) -> None:
         st.rerun()
 
 
-def render_output_panel(editor: Editor, base: Optional[Base]) -> Tuple[bool, bool]:
-    """Coordinates of the generated C++ and the map view. Returns (use offsets, show 3D)."""
+def render_output_panel(editor: Editor, base: Optional[Base]) -> bool:
+    """Coordinates of the generated C++ and the map view. Returns whether to use offsets."""
     st.subheader("Output and view", anchor=False)
     coordinates = st.radio("Coordinates", (OFFSETS, ABSOLUTE), key="coordinates")
     parsed = st.session_state["parsed"]
@@ -341,8 +341,7 @@ def render_output_panel(editor: Editor, base: Optional[Base]) -> Tuple[bool, boo
         else "kBaseLat/kBaseLon are unknown.",
     ):
         recenter_on_base(base)
-    show_3d = st.checkbox("Show 3D view", key="show_3d")
-    return coordinates == OFFSETS and base is not None, show_3d
+    return coordinates == OFFSETS and base is not None
 
 
 def render_fence_list(editor: Editor) -> None:
@@ -794,19 +793,6 @@ def render_outputs(editor: Editor, base: Optional[Base], use_offsets: bool) -> N
             st.code("\n".join(run.result.trace) or "No trace lines.", language="text")
 
 
-def render_3d(editor: Editor) -> None:
-    # Drawn under both columns, so it needs a heading to be found.
-    st.subheader("3D view", anchor=False)
-    try:
-        from .map3d import build_deck
-    except ModuleNotFoundError:
-        st.info("Install pydeck for the 3D view: pip install pydeck")
-        return
-    st.caption("Items at their altitude, in the 2D map's colours. Geofence outlines are at ground level.")
-    center, zoom = st.session_state["view"]
-    st.pydeck_chart(build_deck(st.session_state["parsed"], editor.scene(), center, zoom))
-
-
 def main() -> None:
     st.set_page_config(layout="wide", page_title="PX4 mission route test helper")
     init_state()
@@ -820,7 +806,7 @@ def main() -> None:
     base = current_base()
     scene, label = planning_scene(editor)
     with st.sidebar:
-        item_type, settings, use_offsets, show_3d = render_sidebar(editor, base)
+        item_type, settings, use_offsets = render_sidebar(editor, base)
     # The tabs share the map column, so they start right under the map whatever the panel height.
     map_column, planner_column = st.columns([2, 1], gap="medium")
     with map_column:
@@ -828,5 +814,3 @@ def main() -> None:
         render_outputs(editor, base, use_offsets)
     with planner_column:
         render_planner(scene, label)
-    if show_3d:
-        render_3d(editor)

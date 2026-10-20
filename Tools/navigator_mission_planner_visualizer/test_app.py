@@ -363,11 +363,6 @@ class AppTest_(unittest.TestCase):
             self.assertIn("makeRtlRouteRequest(vehicle_position_2, ", code)
             self.assertNotIn("Position vehicle_position =", code)
 
-    def test_3d_view_is_optional(self):
-        self.click(47.3995, 8.5458)
-        self.app.checkbox(key="show_3d").set_value(True).run()
-        self.assertFalse(self.app.exception)
-
 
 if __name__ == "__main__":
     unittest.main()

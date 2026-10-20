@@ -1,16 +1,14 @@
 """Map rendering checks without a Streamlit server."""
 
 import importlib.util
-import json
 import unittest
 
 from planner_visualizer.editor import Editor
 from planner_visualizer.planner_cli import parse_output
-from planner_visualizer.models import MISSION, SAFE_POINTS, VEHICLE, Fence, Position, Scene, Waypoint
+from planner_visualizer.models import MISSION, VEHICLE, Fence, Position, Scene, Waypoint
 
 # The map packages are optional; the core tests run without them.
 FOLIUM_AVAILABLE = importlib.util.find_spec("folium") is not None
-PYDECK_AVAILABLE = importlib.util.find_spec("pydeck") is not None
 
 if FOLIUM_AVAILABLE:
     import folium
@@ -18,9 +16,6 @@ if FOLIUM_AVAILABLE:
     from planner_visualizer.map2d import (
         NEW_COLORS, PLAN_COLORS, add_plan_layer, build_base_map, build_new_items_layer, legend_html,
     )
-
-if PYDECK_AVAILABLE:
-    from planner_visualizer.map3d import NEW_RGB, PARSED_RGB, build_deck
 
 
 def make_scene():
@@ -149,50 +144,6 @@ class Map2dTest(unittest.TestCase):
         self.assertIn("New vehicle_position", html)
         self.assertIn("velocity N/E 0.0/10.0 m/s", html)
         self.assertIn('"radius": 7', html)
-
-
-@unittest.skipUnless(PYDECK_AVAILABLE, "needs pydeck")
-class Map3dTest(unittest.TestCase):
-    def test_fences_use_ground_outlines_in_3d(self):
-        scene = Scene(fences=[Fence(True, [(47, 8), (47.01, 8), (47.01, 8.01)]),
-                              Fence(False, [(47, 8)], 50)])
-        deck = json.loads(build_deck(None, scene, (47, 8), 16).to_json())
-        layer = deck["layers"][0]
-        self.assertEqual(layer["id"], "geofences")
-        self.assertEqual(layer["data"][0]["polygon"], [[8, 47], [8, 47.01], [8.01, 47.01]])
-        self.assertEqual(len(layer["data"][1]["polygon"]), 64)
-
-    def test_deck_has_paths_points_and_velocity_at_altitude(self):
-        editor = Editor()
-        editor.add(MISSION, Waypoint(47.05, 8.05, 600.0))
-        deck = json.loads(build_deck(make_scene(), editor.scene(), (47.0, 8.0), 14).to_json())
-        layers = {layer["id"]: layer for layer in deck["layers"]}
-        self.assertEqual(set(layers), {"missions", "points", "velocity"})
-        self.assertEqual(layers["missions"]["data"][0]["path"], [[8.0, 47.0, 500.0], [8.0, 47.01, 520.0]])
-        labels = [point["label"] for point in layers["points"]["data"]]
-        self.assertIn("Parsed vehicle_position, 500.0 m", labels)
-        self.assertIn("New mission[0], 600.0 m", labels)
-        self.assertEqual(len(layers["velocity"]["data"]), 3)
-        self.assertEqual(layers["velocity"]["data"][0]["source"][2], 500.0)
-        self.assertEqual(deck["initialViewState"]["zoom"], 14)
-        self.assertEqual(deck["mapProvider"], "carto")
-
-    def test_new_items_use_the_2d_colours_and_parsed_ones_gray(self):
-        editor = Editor()
-        editor.add(MISSION, Waypoint(47.05, 8.05, 600.0))
-        editor.add(SAFE_POINTS, Waypoint(47.06, 8.05, 600.0, "NAV_CMD_RALLY_POINT"))
-        editor.add(VEHICLE, Waypoint(47.07, 8.05, 600.0, ""))
-        deck = json.loads(build_deck(make_scene(), editor.scene(), (47.0, 8.0), 14).to_json())
-        points = {point["label"]: point["color"] for layer in deck["layers"] if layer["id"] == "points"
-                  for point in layer["data"]}
-        self.assertEqual(points["New mission[0], 600.0 m"], NEW_RGB[MISSION])
-        self.assertEqual(points["New safe_points[0], 600.0 m"], NEW_RGB[SAFE_POINTS])
-        self.assertEqual(points["New vehicle_position, 600.0 m"], NEW_RGB[VEHICLE])
-        self.assertEqual(points["Parsed safe_points[0], 480.0 m"], PARSED_RGB)
-
-    def test_empty_scenes_give_an_empty_deck(self):
-        deck = json.loads(build_deck(None, Scene(), (47.0, 8.0), 16).to_json())
-        self.assertEqual(deck["layers"], [])
 
 
 if __name__ == "__main__":
