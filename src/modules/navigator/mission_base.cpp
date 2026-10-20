@@ -1650,8 +1650,65 @@ uint8_t MissionBase::getVtolStateAtMissionIndex(int32_t anchor_index)
 	return vtol_state;
 }
 
+bool MissionBase::getVtolStatesForMission(uint8_t vtol_states[], int32_t capacity)
+{
+	if (_mission.count > capacity) {
+		return false;
+	}
+
+	static constexpr uint8_t kNoPrecedingMode{UINT8_MAX};
+	uint8_t preceding_mode = kNoPrecedingMode;
+
+	// Lookback: the closest mode command at or before each index.
+	for (int32_t index = 0; index < _mission.count; ++index) {
+		mission_item_s mission_item;
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			return false;
+		}
+
+		uint8_t command_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+		if (mission_route::updateVtolStateFromMissionItem(mission_item, command_state)) {
+			preceding_mode = command_state;
+		}
+
+		// A landing anchor without a preceding mode does not look ahead.
+		vtol_states[index] = (preceding_mode == kNoPrecedingMode && mission_route::isLandingCmd(mission_item.nav_cmd))
+				     ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED : preceding_mode;
+	}
+
+	// Lookahead from the next index, filled in backwards.
+	uint8_t following_mode = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+	for (int32_t index = _mission.count - 1; index >= 0; --index) {
+		if (vtol_states[index] == kNoPrecedingMode) {
+			vtol_states[index] = following_mode;
+		}
+
+		mission_item_s mission_item;
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			return false;
+		}
+
+		if (mission_route::isTakeoffCmd(mission_item.nav_cmd) || mission_route::isLandingCmd(mission_item.nav_cmd)) {
+			following_mode = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+		} else {
+			uint8_t command_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+			if (mission_route::updateVtolStateFromMissionItem(mission_item, command_state, true)) {
+				following_mode = command_state;
+			}
+		}
+	}
+
+	return true;
+}
+
 MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionForTarget(int32_t target_index,
-		bool direction_reversed)
+		bool direction_reversed, const uint8_t *vtol_states)
 {
 	const auto &vehicle_status = _vehicle_status_sub.get();
 
@@ -1673,8 +1730,9 @@ MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionForTarget(int
 		return VtolTransitionAction::kNone;
 	}
 
-	return mission_route::vtolTransitionActionForState(getVtolStateAtMissionIndex(segment_anchor_index),
-			vehicleInFwLikeState(vehicle_status));
+	const uint8_t target_segment_state = vtol_states != nullptr ? vtol_states[segment_anchor_index]
+					     : getVtolStateAtMissionIndex(segment_anchor_index);
+	return mission_route::vtolTransitionActionForState(target_segment_state, vehicleInFwLikeState(vehicle_status));
 }
 
 MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionAfterReachingReverseTarget(
