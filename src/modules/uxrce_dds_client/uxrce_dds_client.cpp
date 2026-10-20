@@ -217,6 +217,7 @@ void UxrceddsClient::deinit()
 
 bool UxrceddsClient::setupSession(uxrSession *session)
 {
+	_previous_session_found = false;
 	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
 	_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
 
@@ -274,7 +275,7 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	if (_participant_config == ParticipantConfig::Custom) {
 		// Create participant by reference (XML not required)
 		participant_req = uxr_buffer_create_participant_ref(session, _reliable_out, _participant_id, domain_id,
-				  "px4_participant", UXR_REPLACE);
+				  "px4_participant", 0);
 
 	} else {
 		// Construct participant XML and create participant by XML
@@ -319,13 +320,21 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 		}
 
 		participant_req = uxr_buffer_create_participant_xml(session, _reliable_out, _participant_id, domain_id,
-				  participant_xml, UXR_REPLACE);
+				  participant_xml, 0);
 	}
 
 	uint8_t request_status;
 
 	if (!uxr_run_session_until_all_status(session, 1000, &participant_req, &request_status, 1)) {
-		PX4_ERR("create entities failed: participant: %i", request_status);
+		_previous_session_found = (request_status == UXR_STATUS_ERR_ALREADY_EXISTS);
+
+		if (_previous_session_found) {
+			PX4_INFO("previous session found on the agent, deleting it");
+
+		} else {
+			PX4_ERR("create entities failed: participant: %i", request_status);
+		}
+
 		return false;
 	}
 
@@ -655,7 +664,11 @@ void UxrceddsClient::run()
 			if (!setupSession(&session)) {
 				deleteSession(&session);
 				px4_usleep(1'000'000);
-				PX4_ERR("session setup failed, will retry now");
+
+				if (!_previous_session_found) {
+					PX4_ERR("session setup failed, will retry now");
+				}
+
 				continue;
 			}
 
