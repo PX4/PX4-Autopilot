@@ -125,6 +125,8 @@ parameters:
           without being detected as landed, a crash warning is raised (fd_crash). Both flags are latched until disarm.
           No automatic action is taken.
 
+          Multicopter only (also VTOL in multicopter mode).
+
           Setting this parameter to 0 disables the check.
       type: float
       default: 0.0

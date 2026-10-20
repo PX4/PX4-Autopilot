@@ -101,7 +101,7 @@ private:
 				  const vehicle_control_mode_s &vehicle_control_mode);
 	void updateExternalAtsStatus();
 	void updateImbalancedPropStatus();
-	void updateImpactStatus(bool armed);
+	void updateImpactStatus(const vehicle_status_s &vehicle_status);
 
 	// Copy the vehicle_imu_status of the selected accelerometer. Returns false if not available.
 	bool copySelectedImuStatus(vehicle_imu_status_s &imu_status);
@@ -112,7 +112,6 @@ private:
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _alt_loss_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
-	systemlib::Hysteresis _crash_no_movement_hysteresis{false};
 
 	float _alt_loss_ref_z{NAN}; // ratcheting NED-z reference for altitude loss detection
 	uint8_t _alt_loss_z_reset_counter{0}; // tracks EKF z resets to avoid false altitude loss triggers
@@ -123,6 +122,7 @@ private:
 	hrt_abstime _imu_status_timestamp_prev{0};
 
 	float _impact_metric_peak{0.f}; // peak of the impact metric since the last status publication
+	hrt_abstime _crash_no_movement_start{0}; // start of the time without movement after an impact
 
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};

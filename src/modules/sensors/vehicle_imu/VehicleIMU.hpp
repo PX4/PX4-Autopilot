@@ -165,6 +165,7 @@ private:
 	uint32_t _accel_impact_dt_sum{0};
 	uint8_t _accel_impact_samples{0};
 	uint8_t _accel_impact_index{0};
+	hrt_abstime _accel_impact_metric_reset_time{0};
 
 	vehicle_imu_status_s _status{};
 

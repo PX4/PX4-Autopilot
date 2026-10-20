@@ -176,7 +176,11 @@ TEST_F(FailureDetectorImpactTest, CrashWhenNotMovingAfterImpact)
 {
 	update(150.f);
 	EXPECT_TRUE(impact());
-	EXPECT_TRUE(crash()); // FD_IMPACT_T = 0: immediately
+	EXPECT_FALSE(crash()); // the land detector report was published before the impact
+
+	px4_usleep(1000);
+	update(10.f);
+	EXPECT_TRUE(crash()); // FD_IMPACT_T = 0: first report after the impact without movement
 
 	// crash stays latched even if movement is seen again
 	update(10.f, true, false, true);
