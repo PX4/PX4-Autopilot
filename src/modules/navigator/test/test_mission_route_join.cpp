@@ -94,6 +94,12 @@ public:
 	void setJumpAnchorForTest(mission_route::ActiveJumpAnchor anchor) { _active_jump_anchor = anchor; }
 	const mission_route::ActiveJumpAnchor &jumpAnchorForTest() const { return _active_jump_anchor; }
 	bool advanceMissionForTest() { return setNextMissionItem(); }
+	void completeItemForTest()
+	{
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		advance_mission();
+	}
+	bool plannedItemValidForTest() const { return _is_current_planned_mission_item_valid; }
 	void setWriteFailureIndexForTest(int32_t index) { _write_failure_index = index; }
 	bool writeMissionItemToCache(int32_t index, mission_item_s &item) override
 	{
@@ -896,6 +902,61 @@ TEST_F(MissionRouteJoinTest, DisarmBetweenActivationsKeepsJoinOnLastItem)
 	EXPECT_EQ(mission.currentSequenceForTest(), 3);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 	EXPECT_TRUE(mission.joinContextForTest().valid());
+}
+
+TEST_F(MissionRouteJoinTest, FinishedMissionHoldsWithoutJoin)
+{
+	// A mission finished in the air holds when Mission is selected again, as without the join.
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+	};
+	writeMissionItems(items);
+	writeSafePointState(0, 53);
+
+	mission_s mission_state{};
+	mission_state.timestamp = hrt_absolute_time();
+	mission_state.current_seq = 3;
+	mission_state.land_start_index = -1;
+	mission_state.land_index = -1;
+	mission_state.mission_id = 53;
+	mission_state.safe_points_id = 53;
+	mission_state.count = items.size();
+	mission_state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission_state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+	mission_state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+	publishMission(mission_state);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt));
+	publishLocalPosition();
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	primeNavigatorState();
+	updateRouteCacheUntilReady(mission_state);
+	mission.on_inactive();
+	markMissionResultValid();
+	mission.on_activation();
+
+	// The last item completes: the mission is finished.
+	mission.completeItemForTest();
+	ASSERT_FALSE(mission.plannedItemValidForTest());
+
+	// Mission is selected again from beside the first leg.
+	mission.on_inactivation();
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kBaseAlt));
+	primeNavigatorState();
+	mission.on_inactive();
+	markMissionResultValid();
+	mission.on_activation();
+
+	EXPECT_EQ(mission.currentSequenceForTest(), 3);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
+	EXPECT_FALSE(mission.plannedItemValidForTest());
 }
 
 TEST_F(MissionRouteJoinTest, JoinOnAscendingSegmentFollowsRouteWithoutVerticalClimb)
