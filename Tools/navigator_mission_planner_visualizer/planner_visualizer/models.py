@@ -82,6 +82,20 @@ class Fence:
             for angle in (2 * math.pi * index / 64 for index in range(64))
         ]
 
+    def problem(self) -> Optional[str]:
+        """Why PX4 cannot load this geometry, or None."""
+        if not self.vertices or any(
+            point is None or not all(math.isfinite(value) for value in point)
+            or abs(point[0]) > 90 or abs(point[1]) > 180
+            for point in self.vertices
+        ):
+            return "Geofence coordinates must be finite latitude/longitude values."
+        if self.radius_m is None:
+            return None if len(self.vertices) >= 3 else "A geofence polygon needs at least three vertices."
+        if len(self.vertices) != 1 or not math.isfinite(self.radius_m) or self.radius_m <= 0:
+            return "A geofence circle needs one center and a positive radius in meters."
+        return None
+
     def label(self) -> str:
         area = "Inclusion" if self.inclusion else "Exclusion"
         shape = "polygon" if self.radius_m is None else f"circle, radius {self.radius_m:g} m"

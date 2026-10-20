@@ -111,13 +111,12 @@ class GeneratorTest(unittest.TestCase):
             Fence(True, [(47.396, 8.544), (47.400, 8.544), (47.400, 8.550), (47.396, 8.550)]),
             Fence(False, [(47.398, 8.546)], 23.456),
         ]
-        for base in (BASE, None):
-            with self.subTest(base=base):
-                code = generate_cpp(scene, base)
-                parsed = parse_cpp(code)
-                self.assertEqual(parsed.fences, scene.fences)
-                self.assertEqual(len(parsed.positions), 1)
-                self.assertIn("std::vector<mission_fence_point_s> fence_points", code)
+        code = generate_cpp(scene, BASE)
+        self.assertEqual(code, generate_cpp(scene, None))  # a base is ignored once there are fences
+        parsed = parse_cpp(code)
+        self.assertEqual(parsed.fences, scene.fences)
+        self.assertEqual(len(parsed.positions), 1)
+        self.assertIn("std::vector<mission_fence_point_s> fence_points", code)
 
     def test_fence_unit_test_uses_real_checker_and_sets_request_defaults(self):
         scene = make_scene()
@@ -206,15 +205,14 @@ class GeneratorTest(unittest.TestCase):
             mission_route::Position makePositionAbsolute(double, double, float) { return {}; }
             mission_route::Position makePositionFromOffset(double, double, float, float, float) { return {}; }
         """
-        scene = make_scene()
-        scene.fences = [
+        fenced = make_scene()
+        fenced.fences = [
             Fence(True, [(47.396, 8.544), (47.400, 8.544), (47.400, 8.550)]),
             Fence(False, [(47.398, 8.546)], 20.0),
         ]
-        body = "\n".join(
-            f"void fixture_{index}() {{\n{generate_cpp(scene, base)}\n}}"
-            for index, base in enumerate((BASE, None))
-        )
+        # Fences force absolute coordinates, so the offset helpers need a scene without them.
+        outputs = (generate_cpp(make_scene(), BASE), generate_cpp(make_scene(), None), generate_cpp(fenced, BASE))
+        body = "\n".join(f"void fixture_{index}() {{\n{code}\n}}" for index, code in enumerate(outputs))
         result = subprocess.run(
             [compiler, "-std=c++14", "-Werror", "-fsyntax-only", "-x", "c++", "-"],
             input=stubs + body,
