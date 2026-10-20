@@ -453,6 +453,10 @@ protected:
 
 	/** Onboard waypoint at a route position, with the fly-by acceptance radius in fixed-wing flight. */
 	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
+
+	/** Publish an onboard position item, and an optional next item, as the active mission item. */
+	void publishPositionItems(const mission_item_s &current_item, const mission_item_s *next_item,
+				  const position_setpoint_s &current_setpoint_copy);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
