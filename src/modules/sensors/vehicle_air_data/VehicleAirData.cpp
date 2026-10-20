@@ -520,7 +520,7 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 	vehicle_gnss_s vehicle_gnss;
 
 	// no baro samples accumulated yet, leave the GNSS sample for the next run
-	if ((_data_sum_count[_selected_sensor_sub_index] == 0) || !_vehicle_gnss_sub.update(&vehicle_gnss)) {
+	if ((_data_sum_count[_selected_sensor_sub_index] == 0) || !_vehicle_gnss_sub.update(&vehicle_gnss) || vehicle_gnss.failed_strict_checks) {
 		return false;
 	}
 
