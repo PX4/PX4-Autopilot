@@ -32,7 +32,6 @@ Both features choose where to join the route using the vehicle's current positio
 Smart rejoin continues the mission; route-following Return chooses a destination and may fly the route forwards or backwards to reach it.
 
 When the vehicle is already near the selected destination or branch-off leg, [route-skip shortcuts](#route-skip-shortcuts) can avoid an unnecessary trip back to the route.
-If route-following Return cannot use the route, [direct fallback](#route-following-fallback) may change the destination and fly outside the mission corridor.
 
 ### Smart Mission Rejoin {#smart-mission-rejoin}
 
@@ -47,7 +46,7 @@ If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection
 
 - While repeats remain, the resumed path continues to the jump target, so the loop is still flown.
 - Once repeats are exhausted, the planner picks the loop exit with the shorter **total** path to the mission end: forward to the jump target, or back to the waypoint before the jump command.
-  Both paths include any fixed-wing U-turn penalty.
+  Both paths include any fixed-wing U-turn penalty, a fixed 4000 m here; `RTL_FW_UTURN_PEN` only applies to Return.
   Because the whole path counts, the vehicle may rewind most of the loop when the mission end lies near the loop start.
 
 The projection search margin is set by [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) (multicopter) and [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST) (fixed-wing).
@@ -200,7 +199,7 @@ This is why some projections in the images below land on a waypoint instead of p
 :::
 
 The example below uses a large margin.
-The mission route is drawn in white and the rally-point (`R`) projections in green.
+The mission route is drawn in white and the projections of the vehicle and the rally points (`R`) in green.
 Every rally point has three projections because the margin is large.
 
 ![Point projection with a large search margin](../../assets/mission_route_planner/mission_route_planner_large_search_margin.png)
@@ -252,15 +251,10 @@ That leg and the loiters are not checked.
 
 When the vehicle already breaches the loaded fence, the planner skips the checks of segments that start at the vehicle, to allow recovery along the route.
 Branch-off segments are still checked, so a breach cannot route the vehicle through a fence on the way to a safe point.
-If the fence is unavailable or still loading, the behaviour depends on the flight mode:
+If the fence is unavailable or still loading:
 
-- When Mission mode starts, smart rejoin is skipped with a warning and the mission resumes towards its current item.
-  Smart rejoin is not retried during that activation.
-- When Return starts or is still following the mission route, it uses [direct fallback](#route-following-fallback).
-  It retries route planning on the two-second check once the fence and other inputs are ready, provided the destination arrival or landing sequence has not started.
-  An arrival or landing sequence already in progress continues unchanged.
-- When Return is inactive, only background route planning waits for the fence.
-  It retries every two seconds without changing the current flight mode.
+- When Mission mode starts, smart rejoin is skipped with a warning and is not retried during that activation.
+- Return uses [direct fallback](#route-following-fallback) and retries route planning once the fence is ready, as described there.
 
 If a loaded fence cannot check a segment, for example a path too long to subdivide, planning fails like any other planning failure: an active Return uses direct fallback and does not retry.
 
@@ -289,14 +283,12 @@ The best candidate is chosen with a priority system:
 
 **Example 1:**
 
-The vehicle is flying a mission, where the outbound and inbound legs are close to one another at the start.
+The outbound and inbound legs of this mission run close to each other.
 While on the outbound leg, the vehicle deviates east to a GoTo location (e.g. due to incoming traffic).
-That GoTo location is closer to the inbound leg, but both legs are close enough that the projection step returns two valid candidates: one on the outbound leg and one on the inbound leg.
-The outbound segment is the one the vehicle is currently expected to fly, so it wins immediately on Priority 1.
-Even without that rule it would still win on Priority 2, which measures distance _along the route_ back to the last-flown segment.
-The vehicle was last flying on the outbound leg, so the outbound projection is only a short way along the route from it.
-Reaching that same segment from the inbound projection would mean flying almost the entire mission back, so the inbound candidate scores far higher and loses.
-The vehicle rejoins the mission and continues toward B.
+The GoTo location is closer to the inbound leg, but both legs are within the margin, so the projection step returns one candidate on each.
+The outbound leg is the segment the vehicle is expected to fly, so it wins on Priority 1.
+It would also win on Priority 2: from the inbound projection, the route back to the outbound leg covers almost the whole mission.
+The vehicle rejoins the outbound leg and continues the mission.
 
 ![Branch-in selection on a mission with outbound and inbound close segments](../../assets/mission_route_planner/mission_route_planner_segment_selection.png)
 
@@ -398,9 +390,8 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 
 `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` must be greater than zero and large enough for the entire uploaded mission.
 The parameters above only exist in firmware built with a non-zero cache size.
-SITL defaults to 500 mission items.
-No standard flight-controller build enables the cache.
-To use it on hardware, set the cache size in the board configuration and check that the RAM fits (56 bytes per item):
+POSIX builds (SITL and Linux boards) default to 500 mission items and other boards to 0; `px4_fmu-v6c_visionTargetEstStatic` sets 300.
+To use it on a NuttX board, set the cache size in the board configuration and check that the RAM fits (56 bytes per item):
 
 ```ini
 CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=300
@@ -416,7 +407,7 @@ See [Safe-Point Batching](#safe-point-batching) for the rally-point batch config
 `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` controls how many rally points are checked in each scan of the mission route.
 Its default is `1` (`32` on testing builds), with a supported range of `1` to `32`.
 More rally points than fit in one batch require additional scans, increasing planning time.
-Increasing the batch size reduces the number of scans but uses more RAM.
+Increasing the batch size reduces the number of scans but uses more static RAM: 400 to 500 bytes per rally point, 13.7 KB at 32.
 
 Geofence checks use the same candidates and do not scan the mission again.
 A shared static buffer holds up to `min(32, 3 * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE)` segments per check, avoiding heap allocation and large stack buffers.
