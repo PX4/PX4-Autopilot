@@ -81,18 +81,6 @@ private:
 
 	bool setNextMissionItem() override;
 
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	friend class MissionTestPeer;
-
-	/**
-	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
-	 *
-	 * @param keep_mission_index True when activation must not move the mission index, e.g. after a restart.
-	 * @return true if a join route was armed, false to fall back to the legacy direct-to-item behavior.
-	 */
-	bool trySetRouteJoinOnActivation(bool keep_mission_index);
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-
 	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff
 	 */
@@ -118,6 +106,16 @@ private:
 	bool _need_mission_save{false};
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	friend class MissionTestPeer;
+
+	/**
+	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
+	 *
+	 * @param keep_mission_index True when activation must not move the mission index, e.g. after a restart.
+	 * @return true if a join route was armed, false to fly directly to the current item.
+	 */
+	bool trySetRouteJoinOnActivation(bool keep_mission_index);
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		MissionBase,
 		(ParamInt<px4::params::MIS_ROUTE_JOIN>)    _param_mis_route_join,
