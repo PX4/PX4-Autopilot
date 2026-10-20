@@ -80,12 +80,11 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 	}
 
 	if (_param_fd_impact_thr.get() > FLT_EPSILON) {
-		updateImpactStatus(vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		updateImpactStatus(vehicle_status);
 
 	} else {
 		_failure_detector_status.flags.impact = false;
 		_failure_detector_status.flags.crash = false;
-		_crash_no_movement_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
 	return _failure_detector_status.value != status_prev.value;
@@ -267,7 +266,8 @@ void FailureDetector::updateImbalancedPropStatus()
 
 	vehicle_imu_status_s imu_status{};
 
-	if (updated && copySelectedImuStatus(imu_status)) {
+	// Always select the instance (even if not updated) to follow an IMU failover
+	if (copySelectedImuStatus(imu_status) && updated) {
 		const hrt_abstime dt_us = math::constrain(imu_status.timestamp - _imu_status_timestamp_prev, 10_ms, 1_s);
 		_imu_status_timestamp_prev = imu_status.timestamp;
 
@@ -286,15 +286,21 @@ void FailureDetector::updateImbalancedPropStatus()
 	}
 }
 
-void FailureDetector::updateImpactStatus(bool armed)
+void FailureDetector::updateImpactStatus(const vehicle_status_s &vehicle_status)
 {
 	const hrt_abstime now = hrt_absolute_time();
 
-	if (!armed) {
+	if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 		// Both flags are latched while armed and reset on disarm
 		_failure_detector_status.flags.impact = false;
 		_failure_detector_status.flags.crash = false;
-		_crash_no_movement_hysteresis.set_state_and_update(false, now);
+		return;
+	}
+
+	if (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		// Multicopter only: the movement flags are only provided by the multicopter land detector.
+		// Latched flags are kept (e.g. VTOL transition), the time without movement restarts.
+		_crash_no_movement_start = now;
 		return;
 	}
 
@@ -308,23 +314,29 @@ void FailureDetector::updateImpactStatus(bool armed)
 	if (copySelectedImuStatus(imu_status)) {
 		_impact_metric_peak = math::max(_impact_metric_peak, imu_status.accel_impact_metric);
 
-		if (!land_detected.landed && (imu_status.accel_impact_metric > _param_fd_impact_thr.get())) {
+		if (!_failure_detector_status.flags.impact && !land_detected.landed
+		    && (imu_status.accel_impact_metric > _param_fd_impact_thr.get())) {
 			_failure_detector_status.flags.impact = true;
+			_crash_no_movement_start = now;
 		}
 	}
 
 	// Crash: after an impact the vehicle does not move for FD_IMPACT_T seconds while not detected as landed.
 	// The movement flags are the land detector's own checks (LNDMC_Z_VEL_MAX, LNDMC_XY_VEL_MAX, LNDMC_ROT_MAX),
-	// each true if any movement was seen since the previous vehicle_land_detected publication.
-	const bool no_movement = !land_detected.vertical_movement
-				 && !land_detected.horizontal_movement
-				 && !land_detected.rotational_movement;
+	// each true if any movement was seen since the previous vehicle_land_detected publication (~1 Hz).
+	// The time without movement is therefore measured with the report timestamps: reports published before
+	// the impact are ignored and a report only confirms the time it covers.
+	if (_failure_detector_status.flags.impact) {
+		const bool movement = land_detected.vertical_movement
+				      || land_detected.horizontal_movement
+				      || land_detected.rotational_movement;
+		const hrt_abstime crash_trigger_time = (hrt_abstime)(1_s * _param_fd_impact_ttri.get());
 
-	_crash_no_movement_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_impact_ttri.get()));
-	_crash_no_movement_hysteresis.set_state_and_update(_failure_detector_status.flags.impact && !land_detected.landed
-			&& no_movement, now);
+		if (movement || land_detected.landed) {
+			_crash_no_movement_start = math::max(_crash_no_movement_start, land_detected.timestamp);
 
-	if (_crash_no_movement_hysteresis.get_state()) {
-		_failure_detector_status.flags.crash = true;
+		} else if (land_detected.timestamp > _crash_no_movement_start + crash_trigger_time) {
+			_failure_detector_status.flags.crash = true;
+		}
 	}
 }

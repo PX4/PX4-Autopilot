@@ -640,11 +640,17 @@ bool VehicleIMU::Publish()
 
 				_publish_status = false;
 
+				// Reset the impact metric peak at the status interval, also if forced publications (clipping, errors)
+				// keep the interval from being exceeded. Resetting only after a publication ensures no peak is lost.
+				if (hrt_elapsed_time(&_accel_impact_metric_reset_time) >= kIMUStatusPublishingInterval) {
+					_status.accel_impact_metric = 0.f;
+					_accel_impact_metric_reset_time = _status.timestamp;
+				}
+
 				if (status_publish_interval_exceeded) {
 					_raw_accel_mean.reset();
 					_accel_temperature_sum = NAN;
 					_accel_temperature_sum_count = 0;
-					_status.accel_impact_metric = 0.f;
 
 					_raw_gyro_mean.reset();
 					_gyro_temperature_sum = NAN;
