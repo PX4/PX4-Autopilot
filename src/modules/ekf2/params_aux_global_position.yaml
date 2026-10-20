@@ -12,6 +12,7 @@ parameters:
       default: 0
       min: 0
       max: 255
+      reboot_required: true
       num_instances: *max_num_agp_instances
       instance_start: 0
     EKF2_AGP${i}_CTRL:
