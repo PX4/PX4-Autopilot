@@ -28,7 +28,6 @@ PLAN join_alt 500.000
 PLAN first_mission_item_index 2
 PLAN direction_reversed 0
 PLAN use_current_altitude 0
-PLAN active_jump_anchor -1
 PLAN vtol_transition_action none
 PLAN goal_type safe_point
 PLAN goal_lat 47.407634538
@@ -473,7 +472,6 @@ class UnitTestGenerationTest(unittest.TestCase):
         self.assertIn("request.projection_search_distance_m = 150.f;", code)
         self.assertIn("request.is_fixed_wing = true;", code)
         self.assertIn("request.mission_land_index = 4;", code)
-        self.assertNotIn("active_jump_anchor", code)
 
     def test_resume_test_uses_the_resume_helper(self):
         request = make_request()

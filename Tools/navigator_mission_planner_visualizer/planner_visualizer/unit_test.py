@@ -1,5 +1,6 @@
 """Turn a scenario and the plan the CLI returned into a planner unit test."""
 
+from dataclasses import fields
 import re
 from typing import Optional
 
@@ -123,23 +124,23 @@ def _fixtures(scene: Scene, base: Optional[Base], vehicle: Optional[Position]) -
 
 
 def _request_overrides(request: PlanRequest, scene: Scene, rtl: bool, use_defaults: bool = True):
-    for name, value in request.settings().items():
-        if name in ("mission_index",) or (not rtl and name not in _RESUME_FIELDS):
+    for item in fields(request):
+        name, value = item.name, getattr(request, item.name)
+        if name in ("action", "mission_index") or (not rtl and name not in _RESUME_FIELDS):
             continue
-        default = _TEST_HELPER_DEFAULTS.get(name)
-        if use_defaults and default is not None and abs(float(value) - default) < 1e-6:
-            continue
-        if name == "mission_land_index" and int(value) < 0:
-            continue
-        if value in ("0", "1") and not name.endswith(("_m", "_amsl", "_index")):
-            if value == "1":
+        if item.type is bool:
+            if value:
                 yield f"request.{name} = true;"
-            continue
-        if name.endswith("_index"):
-            yield f"request.{name} = {value};"
-            continue
-        literal = cpp_float(float(value)) if use_defaults else f"{float(value):.3f}f"
-        yield f"request.{name} = {literal};"
+        elif item.type is int:
+            if value >= 0:  # mission_land_index, -1 when unset
+                yield f"request.{name} = {value};"
+        else:
+            # The CLI gets 1 mm precision, so defaults are compared at that precision.
+            default = _TEST_HELPER_DEFAULTS.get(name)
+            if use_defaults and default is not None and abs(round(value, 3) - default) < 1e-6:
+                continue
+            literal = cpp_float(value) if use_defaults else f"{value:.3f}f"
+            yield f"request.{name} = {literal};"
     if scene.velocity is not None:
         for axis, value in zip(("north", "east"), scene.velocity):
             literal = cpp_float(value) if use_defaults else f"{value:.3f}f"
