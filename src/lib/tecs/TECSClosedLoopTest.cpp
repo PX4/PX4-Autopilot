@@ -98,7 +98,6 @@ constexpr TECSControl::Param defaultParams()
 		.altitude_setpoint_gain_ff = paramDefault(px4::params::FW_T_HRATE_FF),
 		.airspeed_error_gain       = 1.f / paramDefault(px4::params::FW_T_TAS_TC),
 		.ste_rate_time_const       = paramDefault(px4::params::FW_T_STE_R_TC),
-		.seb_rate_ff               = paramDefault(px4::params::FW_T_SEB_R_FF),
 		.pitch_speed_weight        = paramDefault(px4::params::FW_T_SPDWEIGHT),
 		.integrator_gain_pitch     = paramDefault(px4::params::FW_T_I_GAIN_PIT),
 		.pitch_damping_gain        = paramDefault(px4::params::FW_T_PTCH_DAMP),
@@ -876,7 +875,6 @@ TEST_F(TECSClosedLoopTest, AirspeedStepDownDefaultTuning)
 // With the integrator, the throttle's share winds up instead and is unwound through the altitude loop (slow tail).
 TEST_F(TECSClosedLoopTest, AirspeedStepDownNoPitchInteg)
 {
-	ASSERT_FLOAT_EQ(_params.seb_rate_ff, 1.f);
 	_params.integrator_gain_pitch = 0.f;
 
 	for (const float w : {1.8f, 1.f, 0.2f}) {

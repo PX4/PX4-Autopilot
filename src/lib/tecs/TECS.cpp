@@ -574,9 +574,9 @@ float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValu
 	// only the potential energy part is a feedforward (the demanded climb angle), fed forward unweighted: the
 	// speed/height weighting prioritises errors and stays in the feedback. The kinetic energy part is the airspeed
 	// error through the airspeed loop gain: a proportional feedback term, labelled as such.
-	const float feedforward = param.seb_rate_ff * specific_energy_rates.spe_rate.setpoint;
+	const float feedforward = specific_energy_rates.spe_rate.setpoint;
 	const float feedback = _getControlError(seb_rate) * param.pitch_damping_gain
-			       - param.seb_rate_ff * weight.ske_weighting * specific_energy_rates.ske_rate.setpoint;
+			       - weight.ske_weighting * specific_energy_rates.ske_rate.setpoint;
 	float SEB_rate_correction = feedforward + feedback;
 
 	// Convert the specific energy balance rate correction to a climb angle and add the level-flight pitch, the angle
