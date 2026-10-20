@@ -270,6 +270,7 @@ Gazebo can simulate multple sensor instancs for GNSS, IMU, barometer and magneto
 To support additional sensors they must first be added in the model sdf file following the same convention as primary sensors, but with `_1`, `_2` added at the end of their name.
 
 Then use the appropriate parameter below to specify the number of sensors to enable:
+
 - [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS)
 - [SIM_GZ_EN_IMU](../advanced_config/parameter_reference.md#SIM_GZ_EN_IMU)
 - [SIM_GZ_EN_MAG](../advanced_config/parameter_reference.md#SIM_GZ_EN_MAG)
