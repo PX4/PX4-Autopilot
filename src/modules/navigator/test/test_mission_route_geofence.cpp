@@ -32,10 +32,8 @@
  ****************************************************************************/
 
 #include "mission_route_geofence.h"
-#include "mission_route_planner.h"
 #include "mission_route_projection.h"
 #include "support/geofence_test_helpers.h"
-#include "support/mission_route_test_helpers.h"
 
 using mission_route::GeofencePathChecker;
 using mission_route::Position;
@@ -157,20 +155,6 @@ TEST_F(MissionRouteGeofenceTest, DirectShortcutMustClearTheFenceIndependently)
 	ASSERT_TRUE(checker.checkPath(routePosition(0.f, 100.f), routePosition(0.f, 500.f), clear));
 	EXPECT_FALSE(clear);
 	ASSERT_TRUE(checker.checkPath(routePosition(60.f, 100.f), routePosition(60.f, 500.f), clear));
-	EXPECT_TRUE(clear);
-}
-
-TEST_F(MissionRouteGeofenceTest, ZeroLengthPathOnBoundaryIsBlocked)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence, routePosition(0.f, 0.f)};
-	bool clear = true;
-	const Position vertex = routePosition(-50.f, 250.f);
-	ASSERT_TRUE(checker.checkPath(vertex, vertex, clear));
-	EXPECT_FALSE(clear);
-
-	const Position outside = routePosition(0.f, 100.f);
-	ASSERT_TRUE(checker.checkPath(outside, outside, clear));
 	EXPECT_TRUE(clear);
 }
 

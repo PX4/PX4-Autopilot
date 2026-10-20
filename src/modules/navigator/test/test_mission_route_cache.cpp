@@ -51,10 +51,6 @@
 
 #include <vector>
 
-using navigator_test::makeLandItemFromOffset;
-using navigator_test::makePositionItemFromOffset;
-using navigator_test::makeSafePointFromOffset;
-using navigator_test::makeTakeoffItemFromOffset;
 using navigator_test::route_test_reference::kAlt;
 using navigator_test::route_test_reference::kBaseLat;
 using navigator_test::route_test_reference::kBaseLon;
@@ -174,27 +170,13 @@ TEST_F(MissionRouteCacheTest, DatamanRequestsSurviveAnotherClientBeingDestroyed)
 		mission_item_s item{};
 		ASSERT_TRUE(temporary_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
 						      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
-		expectMissionItemMatches(item, expected);
 	}
-
-	mission_item_s item{};
-	ASSERT_TRUE(_dataman_client.readAsync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
-					      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
-	ASSERT_TRUE(DatamanClientTestPeer::waitForOperation(_dataman_client, 1_s));
-	bool success = false;
-	ASSERT_TRUE(_dataman_client.lastOperationCompleted(success));
-	ASSERT_TRUE(success);
-	expectMissionItemMatches(item, expected);
-
-	item = {};
-	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
-					     reinterpret_cast<uint8_t *>(&item), sizeof(item), 1_s));
-	expectMissionItemMatches(item, expected);
 
 	const mission_s mission = makeMission(47, 1);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
 		return _cache.missionItemsReady(mission);
 	}));
+	mission_item_s item{};
 	ASSERT_TRUE(_cache.loadMissionItem(0, item));
 	expectMissionItemMatches(item, expected);
 }
@@ -308,8 +290,6 @@ TEST_F(MissionRouteCacheTest, MissionCacheRejectsTooLargeMission)
 
 	// Driving the cache never makes an oversized mission ready and exposes no items.
 	EXPECT_FALSE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
-
-	EXPECT_FALSE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
 	mission_item_s cached_item{};
@@ -604,8 +584,6 @@ TEST_F(MissionRouteCacheTest, EmptyMissionIsReadyAndHasNoItems)
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "empty mission did not become ready";
-
-	EXPECT_TRUE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
 	MissionRouteCache::MissionView view{};

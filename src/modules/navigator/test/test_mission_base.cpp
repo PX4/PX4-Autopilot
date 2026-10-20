@@ -64,13 +64,7 @@
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-
-/* EVENT
- * @skip-file
- */
 
 class MissionBaseTestPeer : public MissionBase
 {
@@ -185,23 +179,11 @@ public:
 		return vtolTransitionActionAfterReachingReverseTarget(target_index);
 	}
 
-	mission_route::ActiveJumpAnchor jumpAnchorForNextNominalAdvance()
-	{
-		_active_jump_anchor = {};
-		updateActiveJumpAnchorForNominalAdvance();
-		return _active_jump_anchor;
-	}
-
 	void updateJumpAnchorForNextNominalAdvance(mission_route::ActiveJumpAnchor &anchor)
 	{
 		_active_jump_anchor = anchor;
 		updateActiveJumpAnchorForNominalAdvance();
 		anchor = _active_jump_anchor;
-	}
-
-	void setupJoinRouteForTest(const mission_route::MissionResumePlan &plan)
-	{
-		setupJoinRoute(plan.join_position, plan.use_current_altitude, plan.vtol_transition_action);
 	}
 
 	bool runJoinWorkItem()
@@ -267,6 +249,7 @@ public:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	using MissionBase::VtolTransitionAction;
 	using MissionBase::RouteJoinContext;
+	using MissionBase::setupJoinRoute;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	using MissionBase::resetMissionJumpCounter;
 
@@ -1940,22 +1923,15 @@ TEST_F(MissionBaseTraversalTest, JoinRouteRunsWaypointTransitionAndResumeFlow)
 	global_position.alt = kAlt + 5.f;
 	*navigator.get_global_position() = global_position;
 
-	mission_route::MissionResumePlan join_plan{};
-	join_plan.join_position = {kBaseLat + 0.0005, kBaseLon, kAlt + 10.f};
-	join_plan.use_current_altitude = true;
-	join_plan.vtol_transition_action = MissionBaseTestPeer::VtolTransitionAction::kFrontTransition;
-	join_plan.first_mission_item_index = 2;
-	join_plan.direction_reversed = false;
-
-	mission_base_with_nav.setupJoinRouteForTest(join_plan);
+	const mission_route::Position join{kBaseLat + 0.0005, kBaseLon, kAlt + 10.f};
+	mission_base_with_nav.setupJoinRoute(join, true, MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
 	ASSERT_TRUE(mission_base_with_nav.joinWorkItemActive());
-	EXPECT_EQ(join_plan.vtol_transition_action, MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
 
 	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
 	const position_setpoint_s &join_setpoint = navigator.get_position_setpoint_triplet()->current;
 	ASSERT_TRUE(join_setpoint.valid);
-	EXPECT_DOUBLE_EQ(join_setpoint.lat, join_plan.join_position.lat);
-	EXPECT_DOUBLE_EQ(join_setpoint.lon, join_plan.join_position.lon);
+	EXPECT_DOUBLE_EQ(join_setpoint.lat, join.lat);
+	EXPECT_DOUBLE_EQ(join_setpoint.lon, join.lon);
 	EXPECT_FLOAT_EQ(join_setpoint.alt, global_position.alt);
 
 	mission_base_with_nav.setJoinWaypointReached(true);
@@ -1983,25 +1959,6 @@ TEST_F(MissionBaseTraversalTest, JoinRouteRunsWaypointTransitionAndResumeFlow)
 	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
 }
 
-TEST_F(MissionBaseTraversalTest, JoinRouteResumesDirectlyWhenNoTransitionIsRequired)
-{
-	Navigator navigator{};
-	MissionBaseTestPeer mission_base_with_nav{&navigator};
-	mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
-	mission_base_with_nav.setVehicleStatus(false, false);
-
-	mission_route::MissionResumePlan join_plan{};
-	join_plan.join_position = {kBaseLat, kBaseLon, kAlt};
-	join_plan.first_mission_item_index = 0;
-	mission_base_with_nav.setupJoinRouteForTest(join_plan);
-
-	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
-	mission_base_with_nav.setJoinWaypointReached(true);
-	EXPECT_FALSE(mission_base_with_nav.runJoinWorkItem());
-	EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
-	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
-}
-
 TEST_F(MissionBaseTraversalTest, JoinRouteBackTransitionDoesNotWaitForHeading)
 {
 	Navigator navigator{};
@@ -2009,10 +1966,8 @@ TEST_F(MissionBaseTraversalTest, JoinRouteBackTransitionDoesNotWaitForHeading)
 	mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
 	mission_base_with_nav.setVehicleStatus(true, true);
 
-	mission_route::MissionResumePlan join_plan{};
-	join_plan.join_position = {kBaseLat, kBaseLon, kAlt};
-	join_plan.vtol_transition_action = MissionBaseTestPeer::VtolTransitionAction::kBackTransition;
-	mission_base_with_nav.setupJoinRouteForTest(join_plan);
+	mission_base_with_nav.setupJoinRoute({kBaseLat, kBaseLon, kAlt}, false,
+					     MissionBaseTestPeer::VtolTransitionAction::kBackTransition);
 	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
 	EXPECT_TRUE(mission_base_with_nav.currentMissionItem().vtol_back_transition);
 
@@ -2035,10 +1990,8 @@ TEST_F(MissionBaseTraversalTest, MissionSourceChangeClearsJoinHeadingAlignment)
 	navigator.get_global_position()->lon = kBaseLon;
 	navigator.get_global_position()->alt = kAlt;
 
-	mission_route::MissionResumePlan join_plan{};
-	join_plan.join_position = {kBaseLat, kBaseLon, kAlt};
-	join_plan.vtol_transition_action = MissionBaseTestPeer::VtolTransitionAction::kFrontTransition;
-	mission_base_with_nav.setupJoinRouteForTest(join_plan);
+	mission_base_with_nav.setupJoinRoute({kBaseLat, kBaseLon, kAlt}, false,
+					     MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
 	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
 	mission_base_with_nav.setJoinWaypointReached(true);
 	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
@@ -2049,40 +2002,23 @@ TEST_F(MissionBaseTraversalTest, MissionSourceChangeClearsJoinHeadingAlignment)
 	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
 }
 
-TEST_F(MissionBaseTraversalTest, MissionSourceChangeClearsJoin)
+// A replacement mission and an external sequence change both drop the join.
+TEST_F(MissionBaseTraversalTest, MissionUpdateClearsJoin)
 {
-	Navigator navigator{};
-	MissionBaseTestPeer mission_base_with_nav{&navigator};
-	mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
-	mission_base_with_nav.setVehicleStatus(true, false);
+	for (const bool items_changed : {true, false}) {
+		SCOPED_TRACE(items_changed);
+		Navigator navigator{};
+		MissionBaseTestPeer mission_base_with_nav{&navigator};
+		mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
+		mission_base_with_nav.setupJoinRoute({kBaseLat, kBaseLon, kAlt}, false,
+						     MissionBaseTestPeer::VtolTransitionAction::kNone);
+		ASSERT_TRUE(mission_base_with_nav.joinWorkItemActive());
 
-	mission_route::MissionResumePlan join_plan{};
-	join_plan.join_position = {kBaseLat, kBaseLon, kAlt};
-	join_plan.first_mission_item_index = 0;
-	mission_base_with_nav.setupJoinRouteForTest(join_plan);
-	ASSERT_TRUE(mission_base_with_nav.joinWorkItemActive());
+		mission_base_with_nav.processMissionSourceChange(items_changed);
 
-	mission_base_with_nav.setVehicleStatus(true, true);
-	mission_base_with_nav.processMissionSourceChange();
-
-	EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
-	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
-}
-
-TEST_F(MissionBaseTraversalTest, ExternalSequenceChangeClearsSyntheticJoin)
-{
-	Navigator navigator{};
-	MissionBaseTestPeer mission_base_with_nav{&navigator};
-	mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
-	mission_route::MissionResumePlan join_plan{};
-	join_plan.join_position = {kBaseLat, kBaseLon, kAlt};
-	join_plan.first_mission_item_index = 0;
-	mission_base_with_nav.setupJoinRouteForTest(join_plan);
-
-	mission_base_with_nav.processMissionSourceChange(false);
-
-	EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
-	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
+		EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
+		EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
+	}
 }
 
 TEST_F(MissionBaseTraversalTest, NextNominalAdvanceCapturesActiveLoopEdge)
@@ -2095,7 +2031,8 @@ TEST_F(MissionBaseTraversalTest, NextNominalAdvanceCapturesActiveLoopEdge)
 	});
 	mission_base.setCurrentSequence(1);
 
-	const mission_route::ActiveJumpAnchor anchor = mission_base.jumpAnchorForNextNominalAdvance();
+	mission_route::ActiveJumpAnchor anchor{};
+	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
 	ASSERT_TRUE(anchor.valid());
 	EXPECT_EQ(anchor.jump_item_index, 2);
 }

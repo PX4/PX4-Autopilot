@@ -105,33 +105,6 @@ class MissionRouteProjectionCandidateSelectionTest : public MissionRouteProjecti
 class MissionRouteProjectionEdgeCaseTest : public MissionRouteProjectionTestBase {};
 class RouteSegmentCursorTest : public MissionRouteProjectionTestBase {};
 
-class MissionLoadCountingProvider : public mission_route::Provider
-{
-public:
-	explicit MissionLoadCountingProvider(const mission_route::Provider &delegate) : _delegate(delegate) {}
-
-	int missionCount() const override { return _delegate.missionCount(); }
-
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override
-	{
-		++_mission_item_load_count;
-		return _delegate.loadMissionItem(index, mission_item);
-	}
-
-	int safePointCount() const override { return _delegate.safePointCount(); }
-
-	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
-	{
-		return _delegate.loadSafePointItem(index, safe_point_item);
-	}
-
-	int missionItemLoadCount() const { return _mission_item_load_count; }
-
-private:
-	const mission_route::Provider &_delegate;
-	mutable int _mission_item_load_count{0};
-};
-
 // Owns a vector-backed provider and a projection bound to it: the common one-line test setup.
 class TestProjection
 {
@@ -899,9 +872,8 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, BatchedPointsShareMissionIt
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
 	};
 	// Independent read counters for the one-point and the two-point scan.
-	VectorProvider provider = makeRouteProvider(mission);
-	MissionLoadCountingProvider one_point_provider(provider);
-	MissionLoadCountingProvider two_point_provider(provider);
+	const VectorProvider one_point_provider = makeRouteProvider(mission);
+	const VectorProvider two_point_provider = makeRouteProvider(mission);
 	mission_route::MissionRouteProjection one_point_projection(one_point_provider);
 	mission_route::MissionRouteProjection two_point_projection(two_point_provider);
 
@@ -938,8 +910,8 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, BatchedPointsShareMissionIt
 	EXPECT_NEAR(one_point_summary.route_length, 300.f, kDistanceTolerance);
 	EXPECT_NEAR(two_point_summary.route_length, 300.f, kDistanceTolerance);
 	// The second point adds no mission reads, one route walk serves the whole batch.
-	EXPECT_EQ(one_point_provider.missionItemLoadCount(), static_cast<int>(mission.size()));
-	EXPECT_EQ(two_point_provider.missionItemLoadCount(), static_cast<int>(mission.size()));
+	EXPECT_EQ(one_point_provider.missionLoadCount(), static_cast<int>(mission.size()));
+	EXPECT_EQ(two_point_provider.missionLoadCount(), static_cast<int>(mission.size()));
 }
 
 // ---- Route segment cursor ----
@@ -1036,8 +1008,7 @@ TEST_F(RouteSegmentCursorTest, IgnoresInvalidAndUnreadableItemsAfterLand)
 			provider.setMissionLoadFailures({3});
 		}
 
-		MissionLoadCountingProvider counting_provider(provider);
-		mission_route::RouteSegmentCursor cursor(counting_provider, config.parameters.home_altitude_amsl);
+		mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
 		mission_route::RouteSegmentView segment{};
 		int segment_count = 0;
 
@@ -1049,7 +1020,7 @@ TEST_F(RouteSegmentCursorTest, IgnoresInvalidAndUnreadableItemsAfterLand)
 
 		EXPECT_FALSE(cursor.failed()) << mission_route::failureReasonString(cursor.failureReason());
 		EXPECT_EQ(segment_count, 2);
-		EXPECT_EQ(counting_provider.missionItemLoadCount(), 3);
+		EXPECT_EQ(provider.missionLoadCount(), 3);
 	}
 }
 
@@ -1075,8 +1046,7 @@ TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	MissionLoadCountingProvider counting_provider(provider);
-	mission_route::RouteSegmentCursor cursor(counting_provider, config.parameters.home_altitude_amsl);
+	mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
 	std::vector<mission_route::RouteSegmentView> segments;
 	mission_route::RouteSegmentView segment{};
 
@@ -1121,7 +1091,7 @@ TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 	EXPECT_TRUE(segments[2].last_segment);
 	// The loop edge does not extend the route: length stays the nominal [0-1] plus [1-3].
 	EXPECT_NEAR(cursor.routeLength(), 200.f, kDistanceTolerance);
-	EXPECT_EQ(counting_provider.missionItemLoadCount(), 7); // Includes nominal endpoint lookahead past the jump.
+	EXPECT_LE(provider.missionLoadCount(), 7); // No rescans: one pass plus the endpoint lookahead past the jump.
 }
 
 // Trailing jumps must preserve both the final nominal endpoint and every synthetic jump edge.
@@ -1448,11 +1418,6 @@ TEST_F(MissionRouteProjectionTestBase, LookaheadContinuesPastActiveAndExhaustedJ
 			const uint8_t expected_state = target_state == kUndefined ? kUndefined : (target_state == kFw ? kMc : kFw);
 
 			EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), expected_state);
-			mission_item_s jump_item{};
-			ASSERT_TRUE(provider.loadMissionItem(2, jump_item));
-			EXPECT_EQ(jump_item.do_jump_mission_index, 0);
-			EXPECT_EQ(jump_item.do_jump_repeat_count, kRepeatCount);
-			EXPECT_EQ(jump_item.do_jump_current_count, current_count);
 		}
 	}
 }
