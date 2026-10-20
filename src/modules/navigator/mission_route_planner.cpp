@@ -612,32 +612,6 @@ ActiveJumpAnchor activeJumpAnchor(const Segment &segment)
 	return {};
 }
 
-/**
- * The transition needed to bring the vehicle to target_vtol_state.
- * kNone when it already matches, the target is unknown, or the vehicle is not a VTOL.
- */
-VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state,
-		const VehicleStateContext &vehicle_state)
-{
-	if (!vehicle_state.is_vtol) {
-		return VtolTransitionAction::kNone;
-	}
-
-	const bool fw_or_transition_to_fw = vehicle_state.is_fixed_wing || vehicle_state.in_transition_to_fw;
-
-	// A back transition is missed when the segment needs MC but the vehicle flies FW (or heads there).
-	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && fw_or_transition_to_fw) {
-		return VtolTransitionAction::kBackTransition;
-	}
-
-	// A front transition is missed when the segment needs FW but the vehicle flies MC (or heads there).
-	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !fw_or_transition_to_fw) {
-		return VtolTransitionAction::kFrontTransition;
-	}
-
-	return VtolTransitionAction::kNone;
-}
-
 void fillRouteJoinPlan(MissionResumePlan &plan, const ProjectionContext &projection_context, const RoutePath &path,
 		       const Position &vehicle_position, float acceptance_radius_m)
 {
@@ -646,8 +620,11 @@ void fillRouteJoinPlan(MissionResumePlan &plan, const ProjectionContext &project
 	plan.direction_reversed = path.direction_reversed;
 	plan.use_current_altitude = canUseCurrentAltitudeForJoinTarget(path, vehicle_position, acceptance_radius_m);
 	plan.active_jump_anchor = activeJumpAnchor(projection_context.route_projection.segment);
-	plan.vtol_transition_action = vtolTransitionActionForState(projection_context.projected_segment_vtol_state,
-				      projection_context.vehicle_state);
+	const VehicleStateContext &vehicle_state = projection_context.vehicle_state;
+	plan.vtol_transition_action = vehicle_state.is_vtol
+				      ? vtolTransitionActionForState(projection_context.projected_segment_vtol_state,
+						      vehicle_state.is_fixed_wing || vehicle_state.in_transition_to_fw)
+				      : VtolTransitionAction::kNone;
 
 	if (plan.use_current_altitude) {
 		plan.join_position.alt = vehicle_position.alt;

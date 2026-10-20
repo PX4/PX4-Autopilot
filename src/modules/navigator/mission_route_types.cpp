@@ -105,6 +105,21 @@ bool isTakeoffCmd(uint16_t nav_cmd)
 	return nav_cmd == NAV_CMD_TAKEOFF || nav_cmd == NAV_CMD_VTOL_TAKEOFF;
 }
 
+VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state, bool fw_like)
+{
+	// A back transition is missed when the target needs MC but the vehicle flies FW (or heads there).
+	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && fw_like) {
+		return VtolTransitionAction::kBackTransition;
+	}
+
+	// A front transition is missed when the target needs FW but the vehicle flies MC (or heads there).
+	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !fw_like) {
+		return VtolTransitionAction::kFrontTransition;
+	}
+
+	return VtolTransitionAction::kNone;
+}
+
 bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t &state, bool before_transition)
 {
 	if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF && !before_transition) {

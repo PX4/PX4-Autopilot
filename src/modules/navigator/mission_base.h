@@ -450,6 +450,9 @@ protected:
 
 	/** True if the camera was triggering where the mission was paused, so on_activation() retraces that leg. */
 	bool cameraWasTriggeringAtPause();
+
+	/** Onboard waypoint at a route position, with the fly-by acceptance radius in fixed-wing flight. */
+	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**

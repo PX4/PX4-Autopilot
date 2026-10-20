@@ -128,7 +128,6 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	    || _land_detected_sub.get().landed
 	    || (_mission.count < 2)
 	    || (_mission.current_seq < 0)
-	    || (_mission.current_seq >= _mission.count)
 	    || cameraWasTriggeringAtPause()) {
 		return false;
 	}
@@ -149,12 +148,6 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	}
 
 	const vehicle_global_position_s &global_position = _global_pos_sub.get();
-
-	if (!PX4_ISFINITE(global_position.lat) || !PX4_ISFINITE(global_position.lon)
-	    || !PX4_ISFINITE(global_position.alt)) {
-		return fall_back(mission_route::failureReasonString(mission_route::FailureReason::kNoValidGlobalPos));
-	}
-
 	const vehicle_status_s &vehicle_status = _vehicle_status_sub.get();
 	const vehicle_local_position_s *local_position = _navigator->get_local_position();
 
@@ -186,10 +179,6 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 		return fall_back(mission_route::failureReasonString(failure_reason));
 	}
 
-	if (!join_plan.valid() || join_plan.first_mission_item_index >= _mission.count) {
-		return fall_back("invalid join plan");
-	}
-
 	_active_jump_anchor = join_plan.active_jump_anchor;
 	setMissionIndex(join_plan.first_mission_item_index);
 	// As for a user-selected index, MissionBase::on_activation() must not rewind to the paused leg.
@@ -203,11 +192,8 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 
 	setupJoinRoute(join_plan.join_position, join_plan.use_current_altitude, join_plan.vtol_transition_action);
 
-	PX4_INFO("Mission route join: target=%d rev=%u vtol=%u skip_alt=%u",
-		 static_cast<int>(join_plan.first_mission_item_index),
-		 static_cast<unsigned>(join_plan.direction_reversed),
-		 static_cast<unsigned>(join_plan.vtol_transition_action),
-		 static_cast<unsigned>(join_plan.use_current_altitude));
+	PX4_INFO("Mission route join: target=%d vtol=%u", static_cast<int>(join_plan.first_mission_item_index),
+		 static_cast<unsigned>(join_plan.vtol_transition_action));
 
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Rejoining mission route\t");
 	events::send(events::ID("mission_route_rejoin"), events::Log::Info, "Rejoining mission route");

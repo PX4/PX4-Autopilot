@@ -159,6 +159,9 @@ struct RtlRoutePlan : MissionResumePlan {
 bool isLandingCmd(uint16_t nav_cmd);
 bool isTakeoffCmd(uint16_t nav_cmd);
 
+/** @brief Transition a VTOL needs to reach target_vtol_state; kNone when it matches or is unknown. */
+VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state, bool fw_like);
+
 /**
  * Decode a VTOL mode command. With before_transition, infer the mode before an explicit transition.
  * Returns true for a recognised command, retaining state if its target is invalid.
