@@ -745,7 +745,9 @@ FwLateralLongitudinalControl::adapt_airspeed_setpoint(const float control_interv
 {
 	float system_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(_load_factor_from_bank_angle, _flaps_setpoint);
 
-	const float system_max_airspeed = _performance_model.getMaximumCalibratedAirspeed();
+	// If min exceeds max (high load factor), prioritise the min (stall margin). Should
+	// not happen on proper configuration, checked by PerformanceModel::runSanityChecks.
+	const float system_max_airspeed = math::max(_performance_model.getMaximumCalibratedAirspeed(), system_min_airspeed);
 
 	// airspeed setpoint adjustments
 	if (!PX4_ISFINITE(calibrated_airspeed_setpoint) || calibrated_airspeed_setpoint <= FLT_EPSILON) {
