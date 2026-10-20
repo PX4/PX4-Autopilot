@@ -437,7 +437,6 @@ void printJoin(const MissionResumePlan &plan)
 	printf("PLAN first_mission_item_index %d\n", static_cast<int>(plan.first_mission_item_index));
 	printf("PLAN direction_reversed %d\n", static_cast<int>(plan.direction_reversed));
 	printf("PLAN use_current_altitude %d\n", static_cast<int>(plan.use_current_altitude));
-	printf("PLAN active_jump_anchor %d\n", static_cast<int>(plan.active_jump_anchor.jump_item_index));
 	printf("PLAN vtol_transition_action %s\n", transitionName(plan.vtol_transition_action));
 }
 

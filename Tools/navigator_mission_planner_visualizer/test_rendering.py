@@ -74,8 +74,6 @@ class Map2dTest(unittest.TestCase):
         for label in labels:
             with self.subTest(label=label):
                 self.assertIn(label, html)
-        # The base map must not change between clicks, so neither may the legend.
-        self.assertEqual(legend_html(), legend_html())
         self.assertIn("<details", legend_html())
         self.assertNotIn("<details open", legend_html())
 

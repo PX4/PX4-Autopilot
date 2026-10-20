@@ -306,18 +306,8 @@ def _parse_safe_points(src: str, constants: Dict[str, float]) -> List[Waypoint]:
 
 def _fence(inclusion: bool, vertices, radius=None) -> Optional[Fence]:
     """Ignore incomplete or invalid geometry instead of drawing a different fence."""
-    if not vertices or any(
-        point is None or not all(math.isfinite(value) for value in point)
-        or not (-90 <= point[0] <= 90 and -180 <= point[1] <= 180)
-        for point in vertices
-    ):
-        return None
-    if radius is None:
-        if len(vertices) < 3:
-            return None
-    elif len(vertices) != 1 or not math.isfinite(radius) or radius <= 0:
-        return None
-    return Fence(inclusion, vertices, radius)
+    fence = Fence(inclusion, vertices, radius)
+    return None if fence.problem() else fence
 
 
 def _coordinate_literal(expr: str, constants: Dict[str, float]):
@@ -389,7 +379,7 @@ def _parse_fences(src: str, constants: Dict[str, float]) -> List[Fence]:
                 offsets, radius = [_coordinate_literal(args[1], constants)], resolve_number(args[2], constants)
                 if radius is None:
                     continue
-        if not offsets or any(point is None or not all(math.isfinite(value) for value in point) for point in offsets):
+        if not offsets or None in offsets:
             continue
         vertices = [offset_to_latlon(*reference, *point) for point in offsets]
         fence = _fence(inclusion, vertices, radius)
