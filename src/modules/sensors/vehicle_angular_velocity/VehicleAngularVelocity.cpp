@@ -906,6 +906,19 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 		}
 	}
 
+	// Apply dynamic notch filter from Rotor RPM
+	if (_dynamic_notch_filter_rotor_rpm) {
+		for (int sensor = 0; sensor < MAX_NUM_ROTOR_RPM_SENSORS; sensor++) {
+			if (_rotor_rpm_available[sensor]) {
+				for (int harmonic = 0; harmonic < _rotor_rpm_harmonics; harmonic++) {
+					if (_dynamic_notch_filter_rotor_rpm[harmonic][axis][sensor].getNotchFreq() > 0.f) {
+						_dynamic_notch_filter_rotor_rpm[harmonic][axis][sensor].applyArray(data, N);
+					}
+				}
+			}
+		}
+	}
+
 	// Apply dynamic notch filter from FFT
 	if (_dynamic_notch_fft_available) {
 		for (int peak = MAX_NUM_FFT_PEAKS - 1; peak >= 0; peak--) {
