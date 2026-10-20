@@ -9,7 +9,7 @@ The generated code uses the helpers of `src/modules/navigator/test/support/missi
 From the repository root:
 
 ```bash
-pip install streamlit folium streamlit-folium pydeck
+pip install streamlit folium streamlit-folium
 make px4_sitl_test EXTERNAL_MODULES_LOCATION=$PWD/Tools/navigator_mission_planner_visualizer/planner_cli mission_route_planner_cli
 cd Tools/navigator_mission_planner_visualizer
 streamlit run mission_planner_tools.py
@@ -17,7 +17,7 @@ streamlit run mission_planner_tools.py
 
 The `make` line builds the optional planner CLI, see [Running the planner](#running-the-planner).
 
-Checked with Python 3.8, Streamlit 1.40, folium 0.18, streamlit-folium 0.22 and pydeck 0.9.
+Checked with Python 3.8, Streamlit 1.40, folium 0.18 and streamlit-folium 0.22.
 
 ## Workflow
 
@@ -41,7 +41,7 @@ To add fences to a pasted test, first select **Load parsed items into the editor
    - **Circle**: set **Radius (m)** and click the center.
 4. Select **Plan Return** or **Plan Mission rejoin** to check the edited scene. Rerun after each change.
 
-The grid setting also applies to fence vertices and circle centers. **Undo** restores previous edits, including polygon drafts. To remove a fence, choose it under **Existing geofence** and select **Delete geofence**. **Clear geofences** removes all editor fences. **Show 3D view** displays their outlines at ground level; fences have no editable altitude bounds.
+The grid setting also applies to fence vertices and circle centers. **Undo** restores previous edits, including polygon drafts. To remove a fence, choose it under **Existing geofence** and select **Delete geofence**. **Clear geofences** removes all editor fences. Fences have no editable altitude bounds.
 
 The CLI loads these fences through PX4's `Geofence` and uses `GeofencePathChecker`, the same checks as Navigator. It checks the vehicle-to-branch-in segment, branch-off-to-safe-point segments and route-skip shortcuts. If the vehicle already breaches the fence, segments that start at the vehicle are not checked, to allow recovery; safe point segments still are. The trace reports this.
 
