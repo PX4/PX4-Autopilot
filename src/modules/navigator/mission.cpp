@@ -390,21 +390,26 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    !_land_detected_sub.get().landed) {
 
-		/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
-		_mission_item.yaw = get_bearing_to_next_waypoint(
+		// Constrain yaw before the MC-to-FW transition only if VT_FW_YAW_ALIGN is enabled
+		_mission_item.yaw = NAN;
+		_mission_item.force_heading = false;
+		if (_param_fw_yaw_align.get()) {
+			/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
+			_mission_item.yaw = get_bearing_to_next_waypoint(
 					    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
 					    _mission_item.lat, _mission_item.lon);
 
-		_mission_item.force_heading = true;
+			_mission_item.force_heading = true;
+		}
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
 
-		/* set position setpoint to current while aligning */
+		/* hold current position during optional yaw alignment */
 		_mission_item.lat = _global_pos_sub.get().lat;
 		_mission_item.lon = _global_pos_sub.get().lon;
 	}
 
-	/* heading is aligned now, prepare transition */
+	/* position reached and optional yaw alignment completed, prepare transition */
 	if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF &&
 	    _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING &&
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
@@ -438,7 +443,7 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	/* turn towards next waypoint before MC to FW transition */
+	/* prepare position hold and optional yaw alignment before MC to FW transition */
 	if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 	    && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
 	    && new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
@@ -449,12 +454,17 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
 
 		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
+		// When VT_FW_YAW_ALIGN is disabled, yaw is left unconstrained by Navigator
+		if (!_param_fw_yaw_align.get()) {
+			_mission_item.yaw = NAN;
+			_mission_item.force_heading = false;
+		}
 
-		/* hold position and align heading towards the next waypoint */
+		/* hold position with an optional yaw setpoint */
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	}
 
-	/* yaw is aligned now */
+	/* position reached and optional yaw alignment completed */
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING &&
 	    new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
 
