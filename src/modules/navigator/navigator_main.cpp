@@ -807,12 +807,15 @@ void Navigator::run()
 				// The yaw setpoint generation is handled by FlightTaskAuto.
 				rep->current.yaw = NAN;
 
-				// Fixed-wing: a finite yaw field is the course to continue on after the climbout instead of loitering.
-				// The climbout then stays straight, so the takeoff position is not used.
-				const bool hold_course = PX4_ISFINITE(cmd.param4);
+				const bool takeoff_position_valid = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
+								    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON);
 
-				if (!hold_course && PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
-				    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON)) {
+				// Fixed-wing: without a takeoff position, a finite yaw field is the course to continue on after the climbout.
+				// A takeoff position takes precedence, as many senders leave an unused yaw field at 0.
+				const bool hold_course = PX4_ISFINITE(cmd.param4) && !takeoff_position_valid
+							 && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+				if (takeoff_position_valid) {
 					rep->current.lat = cmd.param5;
 					rep->current.lon = cmd.param6;
 

@@ -1213,7 +1213,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
 			/* ok, home set, use it to take off */
 			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, getSourceFromCommand(cmd))) {
-				_takeoff_hold_course = PX4_ISFINITE(cmd.param4); // fixed-wing: course to continue on after the climbout
+				// fixed-wing: course to continue on after the climbout, unless a takeoff position is set (as in Navigator)
+				const bool takeoff_position_valid = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
+								    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON);
+				_takeoff_hold_course = PX4_ISFINITE(cmd.param4) && !takeoff_position_valid;
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
