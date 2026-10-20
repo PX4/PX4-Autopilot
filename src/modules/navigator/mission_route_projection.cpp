@@ -91,6 +91,30 @@ struct RawSegmentProjection {
 	matrix::Vector2f projection_vector{0.f, 0.f};
 };
 
+// Within the corner tolerance: the segment between the two points is vertical.
+bool sameLatLon(const Position &a, const Position &b)
+{
+	return fabs(a.lat - b.lat) <= kCornerLatLonTolDeg && fabs(a.lon - b.lon) <= kCornerLatLonTolDeg;
+}
+
+// Cross-track lower bound without projection trig: the distance to the segment start, at least the latitude
+// difference and the distance to the start's meridian plane, less the segment length.
+float crossTrackLowerBound(const Position &reference_position, float cos_lat, const RouteSegmentView &segment_view)
+{
+	// A zero-length segment measures the distance to its end.
+	const Position &start = segment_view.zero_length_xy ? segment_view.positions.end : segment_view.positions.start;
+	const double d_lat = fabs(math::radians(reference_position.lat - start.lat));
+	const double d_lon = fabs(math::radians(reference_position.lon - start.lon));
+	double angle = d_lat;
+
+	if (d_lon < 1.0) {
+		// sin x >= x - x^3 / 6
+		angle = fmax(angle, static_cast<double>(cos_lat) * d_lon * (1.0 - d_lon * d_lon / 6.0));
+	}
+
+	return static_cast<float>(angle * CONSTANTS_RADIUS_OF_EARTH) - segment_view.length_m;
+}
+
 RawSegmentProjection projectReferenceToSegment(const Position &reference_position,
 		const RouteSegmentView &segment_view)
 {
@@ -352,9 +376,7 @@ void RouteSegmentCursor::prepareSegmentView(SegmentBoundary boundary, RouteSegme
 	view.start_dist_along_route_m = _dist_along_route_m;
 	view.first_segment = (_segment.start.idx == _first_position_index);
 	view.last_segment = (boundary == SegmentBoundary::kFinal);
-	view.zero_length_xy =
-		fabs(_positions.start.lat - _positions.end.lat) <= kCornerLatLonTolDeg
-		&& fabs(_positions.start.lon - _positions.end.lon) <= kCornerLatLonTolDeg;
+	view.zero_length_xy = sameLatLon(_positions.start, _positions.end);
 
 	if (!view.zero_length_xy) {
 		view.map_projection.initReference(_positions.start.lat, _positions.start.lon);
@@ -463,6 +485,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 
 	// Look ahead so the route endpoint can be marked as a local minimum.
 	SegmentBoundary boundary{SegmentBoundary::kFinal};
+	bool next_zero_length_xy = false;
 	const FailureReason scan_failure = scanNextCursorItem(_provider, _home_altitude_amsl, _index, item);
 
 	if (scan_failure != FailureReason::kNone) {
@@ -478,6 +501,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 		_next_position = item.loaded_position.position;
 		_next_position_cached = true;
 		boundary = SegmentBoundary::kIntermediate;
+		next_zero_length_xy = sameLatLon(segment_end.position, _next_position);
 		break;
 
 	case CursorItemType::kJump: {
@@ -496,6 +520,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 
 			if (next_position.endpoint.idx >= 0) {
 				boundary = SegmentBoundary::kIntermediate;
+				next_zero_length_xy = sameLatLon(segment_end.position, next_position.position);
 			}
 
 			break;
@@ -503,6 +528,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 	}
 
 	prepareNominalSegment(segment_end.endpoint, segment_end.position, boundary, view);
+	view.next_zero_length_xy = next_zero_length_xy;
 	_done = item.type == CursorItemType::kEnd;
 	return true;
 }
@@ -683,13 +709,24 @@ void MissionRouteProjection::processCandidateForSegment(const Position &referenc
 		ProjectionCandidateBuffer &candidate_buffer,
 		ProjectionScanStats &stats) const
 {
-	const RawSegmentProjection projection = projectReferenceToSegment(reference_position, segment_view);
+	// Most references are far from most segments: skip their projection trig. A skipped segment's corner
+	// state only matters at its end, out of the window too, unless vertical segments carry it further.
+	static constexpr float kLowerBoundMarginM = 2.f; // rounding
+	const bool out_of_window = !segment_view.next_zero_length_xy
+				   && crossTrackLowerBound(reference_position, state.cos_lat, segment_view)
+				   > state.xtrack_limit_m + kLowerBoundMarginM;
+	const RawSegmentProjection projection = out_of_window ? RawSegmentProjection{}
+						: projectReferenceToSegment(reference_position, segment_view);
 
 	const bool prev_projection_on_end = state.prev_projection_on_end;
 
 	// Only horizontal nominal legs carry the corner state to the next segment.
 	if (!segment_view.segment.isLoop() && !segment_view.zero_length_xy) {
 		state.prev_projection_on_end = projection.projection_on_end;
+	}
+
+	if (out_of_window) {
+		return;
 	}
 
 	if (!force_candidate) {
@@ -743,6 +780,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 	for (uint8_t i = 0; i < batch.count; ++i) {
 		batch.items[i].candidate_buffer.count = 0;
 		batch.items[i].search_state = {};
+		batch.items[i].search_state.cos_lat = static_cast<float>(cos(math::radians(batch.items[i].position.lat)));
 	}
 
 	ActiveJumpContext active_jump{};

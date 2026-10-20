@@ -778,6 +778,33 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, DuplicateCornerWaypointsDoN
 	EXPECT_NEAR(candidate->dist.xtrack_m, 50.f, kDistanceTolerance);
 }
 
+// A far leg skipped by the cross-track bound still hands its corner state to the stacked waypoints
+// after it. Each stacked step is within the corner tolerance, but together they move 3 m closer.
+TEST_F(MissionRouteProjectionEdgeCaseTest, FarLegBeforeStackedWaypointsKeepsTheirEndCandidate)
+{
+	const std::vector<mission_item_s> mission = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   97.5f, -300.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   97.5f,  300.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, -100.f,    0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon,    0.f,    0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon,    1.05f,  0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon,    2.1f,   0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon,        3.15f,  0.f, kAlt),
+	};
+	TestProjection projection(mission);
+	auto batch = singleReferenceBatch(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt));
+
+	mission_route::RouteDistanceSummary distance_summary{};
+	const mission_route::FailureReason status =
+		projection.findProjectionCandidates(scanRequest(0.f), batch, distance_summary);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	const mission_route::ProjectionCandidateBuffer &candidates = batch.items[0].candidate_buffer;
+	ASSERT_EQ(candidates.count, 1U);
+	EXPECT_EQ(candidates.candidates[0].segment.start.idx, 5);
+	EXPECT_EQ(candidates.candidates[0].segment.end.idx, 6);
+}
+
 // Zigzag route to have several local minimums.
 TEST_F(MissionRouteProjectionEdgeCaseTest, ZigzagMissionStressesCandidateBuffer)
 {

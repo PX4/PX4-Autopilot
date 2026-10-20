@@ -77,6 +77,7 @@ struct CandidateSearchState {
 	bool prev_projection_on_end{true};
 	float min_xtrack_m{FLT_MAX};
 	float xtrack_limit_m{FLT_MAX};
+	float cos_lat{1.f}; /**< Cosine of the reference latitude, for the cross-track lower bound. */
 };
 
 struct ProjectionReference {
@@ -105,6 +106,7 @@ struct RouteSegmentView {
 	bool first_segment{false};
 	bool last_segment{false}; /**< Last nominal segment; trailing jump edges may still follow. */
 	bool zero_length_xy{false};
+	bool next_zero_length_xy{false}; /**< The next nominal segment is vertical. */
 };
 
 /**
