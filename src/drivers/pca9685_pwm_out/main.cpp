@@ -337,10 +337,12 @@ $ pca9685_pwm_out start -X -a 0x40 -b 1
 
 int PCA9685Wrapper::print_status() {
 	int ret =  ModuleBase::print_status();
-	PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, real frequency %.2f",
+	PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, real frequency %.2f, %s clock %.3f MHz",
 		pca9685->get_device_bus(),
 		pca9685->get_device_address(),
-		(double)(pca9685->getFreq()));
+		(double)(pca9685->getFreq()),
+		pca9685->hasExternalClock() ? "external" : "internal",
+		(double)pca9685->getClockFreq() / 1e6);
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_comms_errors);
