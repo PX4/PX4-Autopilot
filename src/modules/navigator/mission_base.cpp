@@ -706,7 +706,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 
 		} else if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
 			   !do_need_move_to_item() &&
-			   PX4_ISFINITE(_mission_item.yaw) &&
+			   PX4_ISFINITE(_mission_item.yaw) && (_mission_item.land_precision == 0) &&
 			   (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
