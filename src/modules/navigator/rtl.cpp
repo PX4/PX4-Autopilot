@@ -583,7 +583,6 @@ void RTL::setRtlTypeAndDestination()
 		} else {
 			PX4_ERR("RTL executor init failed, falling back to direct RTL");
 			new_rtl_type = RtlType::RTL_DIRECT;
-			_route_safe_point.reset();
 		}
 
 #else

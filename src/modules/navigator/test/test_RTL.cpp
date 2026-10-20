@@ -313,7 +313,11 @@ public:
 	bool directActiveForTest() { return _rtl_direct.isActive(); }
 
 	void forceRouteRetryForTest() { _destination_check_time = hrt_absolute_time() - 3'000'000; }
-	void failNextRouteExecutorInitForTest() { _fail_next_route_executor_init = true; }
+	void failNextExecutorInitForTest(RtlType rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)
+	{
+		_fail_next_executor_init = true;
+		_failing_executor_type = rtl_type;
+	}
 
 	void replaceMissionExecutorForTest(RtlBase *executor, RtlType rtl_type)
 	{
@@ -347,9 +351,8 @@ protected:
 			++_route_executor_inits;
 		}
 
-		if (_fail_next_route_executor_init
-		    && new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
-			_fail_next_route_executor_init = false;
+		if (_fail_next_executor_init && new_rtl_type == _failing_executor_type) {
+			_fail_next_executor_init = false;
 			return false;
 		}
 
@@ -357,7 +360,8 @@ protected:
 	}
 
 private:
-	bool _fail_next_route_executor_init{false};
+	bool _fail_next_executor_init{false};
+	RtlType _failing_executor_type{RtlType::RTL_MISSION_SAFE_POINT_FOLLOW};
 	unsigned _route_executor_inits{0};
 #endif
 };
@@ -730,6 +734,25 @@ protected:
 			return cache.missionItemsReady(mission) && cache.safePointsReady();
 		}));
 		return mission;
+	}
+
+	// A safe-point upload: the mission topic has the new id while the cache reloads the points.
+	mission_s startSafePointReload(const mission_s &mission, uint16_t num_safe_points)
+	{
+		mission_s reloading = mission;
+		reloading.timestamp = hrt_absolute_time();
+		++reloading.safe_points_id;
+		mission_stats_entry_s stats{};
+		stats.num_items = num_safe_points;
+		stats.opaque_id = reloading.safe_points_id;
+		stats.dataman_id = DM_KEY_SAFE_POINTS_0;
+		EXPECT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
+						      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+		publishMission(reloading);
+		MissionRouteCache &cache = _navigator.get_mission_route_cache();
+		cache.update(reloading);
+		EXPECT_FALSE(cache.safePointsReady());
+		return reloading;
 	}
 
 	mission_s prepareFinalMissionLegScenario()
@@ -1811,22 +1834,8 @@ TEST_F(RTLTest, RouteSafePointReturnPreservesLoopAnchorWhenSafePointReloadStarts
 	loop_segment.jump_item_index = 3;
 	ASSERT_TRUE(loop_segment.valid());
 
-	MissionRouteCache &cache = _navigator.get_mission_route_cache();
-	mission_s updated_mission = mission;
-	updated_mission.timestamp = hrt_absolute_time();
-	++updated_mission.safe_points_id;
-	mission_stats_entry_s updated_stats{};
-	updated_stats.num_items = static_cast<uint16_t>(safe_points.size());
-	updated_stats.opaque_id = updated_mission.safe_points_id;
-	updated_stats.dataman_id = DM_KEY_SAFE_POINTS_0;
-	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
-					      reinterpret_cast<uint8_t *>(&updated_stats), sizeof(updated_stats)));
-
 	_rtl.setMissionExecutorLoopSegmentForTest(loop_segment);
-
-	publishMission(updated_mission);
-	cache.update(updated_mission);
-	ASSERT_FALSE(cache.safePointsReady());
+	startSafePointReload(mission, static_cast<uint16_t>(safe_points.size()));
 
 	_rtl.run(true);
 
@@ -1838,6 +1847,40 @@ TEST_F(RTLTest, RouteSafePointReturnPreservesLoopAnchorWhenSafePointReloadStarts
 
 	_rtl.run(true);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
+}
+
+// A fallback whose landing executor cannot be allocated keeps the pending route retry and the flown loop.
+TEST_F(RTLTest, FailedLandingFallbackKeepsRouteRetry)
+{
+	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 205.f, 100.f, kAlt);
+	mission_s mission = loadRoutePlanningCache({
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 200.f, kAlt),
+		makeDoJump(0, 3),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 150.f, 120.f, kAlt),
+	}, {makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL)});
+	// The landing is closer than Home, so the direct fallback selects it.
+	mission.land_start_index = 5;
+	mission.land_index = 5;
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] { return cache.missionLandItemReady(); }));
+	publishMission(mission);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt));
+	setMissionResultValid(mission);
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	_rtl.setMissionExecutorLoopSegmentForTest(mission_route::ActiveJumpAnchor{3});
+
+	const mission_s reloading = startSafePointReload(mission, 1);
+	_rtl.failNextExecutorInitForTest(RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	_rtl.run(true);
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, reloading, [&] { return cache.safePointsReady(); }));
+	EXPECT_TRUE(_rtl.routeRetryPendingForTest());
+	EXPECT_EQ(_rtl.lastRouteLoopSegmentForTest().jump_item_index, 3);
 }
 
 // A direct fallback started mid-Return still applies an enforced return altitude.
@@ -2064,7 +2107,7 @@ TEST_F(RTLTest, RouteSafePointExecutorInitFailureUsesDirectFallbackSelection)
 	publishMission(mission);
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
 	setMissionResultValid(mission);
-	_rtl.failNextRouteExecutorInitForTest();
+	_rtl.failNextExecutorInitForTest();
 	navigator_test::EventRecorder events;
 
 	_rtl.activateRouteSafePointReturnForTest();
