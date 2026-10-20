@@ -1052,8 +1052,7 @@ bool MissionBase::handleJoinRouteWaypoint()
 		return false;
 	}
 
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
+	const position_setpoint_s current_setpoint_copy = _navigator->get_position_setpoint_triplet()->current;
 	mission_item_s join_item;
 	setWaypointMissionItem(join_item, _route_join_context.projection);
 
@@ -1067,14 +1066,30 @@ bool MissionBase::handleJoinRouteWaypoint()
 		join_item.vtol_back_transition = _route_join_context.transition_action == VtolTransitionAction::kBackTransition;
 	}
 
-	mission_item_to_position_setpoint(join_item, &pos_sp_triplet->current);
-	_navigator->reset_position_setpoint(pos_sp_triplet->next);
+	publishPositionItems(join_item, nullptr, current_setpoint_copy);
+	return true;
+}
+
+void MissionBase::publishPositionItems(const mission_item_s &current_item, const mission_item_s *next_item,
+				       const position_setpoint_s &current_setpoint_copy)
+{
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	mission_item_to_position_setpoint(current_item, &pos_sp_triplet->current);
+
+	if (next_item != nullptr) {
+		mission_item_to_position_setpoint(*next_item, &pos_sp_triplet->next);
+
+	} else {
+		_navigator->reset_position_setpoint(pos_sp_triplet->next);
+	}
 
 	if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 		pos_sp_triplet->previous = current_setpoint_copy;
 	}
 
-	_mission_item = join_item;
+	issue_command(current_item);
+	// Reach checks use the published target, which may be a virtual waypoint.
+	_mission_item = current_item;
 	reset_mission_item_reached();
 
 	if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
@@ -1083,7 +1098,6 @@ bool MissionBase::handleJoinRouteWaypoint()
 
 	publish_navigator_mission_item();
 	_navigator->set_position_setpoint_triplet_updated();
-	return true;
 }
 
 void MissionBase::setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const
