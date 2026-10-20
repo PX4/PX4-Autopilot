@@ -56,6 +56,7 @@ This can happen while the mission is still loading into the [route cache](../adv
 Camera-trigger survey resume takes precedence over smart rejoin.
 Mission returns to the previous survey waypoint without a branch-in.
 Selecting a mission item explicitly cancels a pending smart rejoin.
+A finished mission is not rejoined: Mission mode holds, as it does without smart rejoin.
 
 When the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
 This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.
