@@ -44,15 +44,15 @@ void MotorFailureDetector::configure(const Config &cfg)
 	// An unset undercurrent band mirrors the overcurrent one, so update() only ever runs two bands.
 	if (_cfg.undercurrent_threshold_a <= 0.f) {
 		_cfg.undercurrent_threshold_a = _cfg.overcurrent_threshold_a;
-		_cfg.undercurrent_persistence_s = _cfg.overcurrent_persistence_s;
+		_cfg.undercurrent_trigger_time_s = _cfg.overcurrent_trigger_time_s;
 	}
 
-	const hrt_abstime overcurrent_persistence_us = (hrt_abstime)(_cfg.overcurrent_persistence_s * 1_s);
-	const hrt_abstime undercurrent_persistence_us = (hrt_abstime)(fmaxf(_cfg.undercurrent_persistence_s, 0.f) * 1_s);
+	const hrt_abstime overcurrent_trigger_time_us = (hrt_abstime)(_cfg.overcurrent_trigger_time_s * 1_s);
+	const hrt_abstime undercurrent_trigger_time_us = (hrt_abstime)(fmaxf(_cfg.undercurrent_trigger_time_s, 0.f) * 1_s);
 
 	for (int i = 0; i < kMaxMotors; ++i) {
-		_hyst_over[i].set_hysteresis_time_from(false, overcurrent_persistence_us);  // false = rising-edge debounce time
-		_hyst_under[i].set_hysteresis_time_from(false, undercurrent_persistence_us);
+		_hyst_over[i].set_hysteresis_time_from(false, overcurrent_trigger_time_us);  // false = rising-edge debounce time
+		_hyst_under[i].set_hysteresis_time_from(false, undercurrent_trigger_time_us);
 	}
 }
 
@@ -120,7 +120,7 @@ void MotorFailureDetector::update(int num_motors, hrt_abstime now_us,
 
 		// else: dropout -- residual held; the debounce keeps running on it (fault + dropout still latches).
 
-		// Each band must hold for its persistence time (Hysteresis); the decision is then latched.
+		// Each band must hold for its trigger time (Hysteresis); the decision is then latched.
 		_hyst_over[i].set_state_and_update(s.residual_lpf >= _cfg.overcurrent_threshold_a, now_us);
 		_hyst_under[i].set_state_and_update(-s.residual_lpf >= _cfg.undercurrent_threshold_a, now_us);
 

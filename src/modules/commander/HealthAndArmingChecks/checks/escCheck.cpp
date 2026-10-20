@@ -391,9 +391,9 @@ void EscChecks::configureMotorFailureDetector()
 	cfg.current_idle_a = _param_motfail_idle.get();
 	cfg.residual_lpf_tau_s = MOTOR_FAILURE_LPF_TAU_S;
 	cfg.overcurrent_threshold_a = _param_motfail_over.get();
-	cfg.overcurrent_persistence_s = _param_motfail_ovr_time.get();
+	cfg.overcurrent_trigger_time_s = _param_motfail_ovr_time.get();
 	cfg.undercurrent_threshold_a = _param_motfail_under.get();
-	cfg.undercurrent_persistence_s = _param_motfail_und_time.get();
+	cfg.undercurrent_trigger_time_s = _param_motfail_und_time.get();
 	_motor_failure_detector.configure(cfg);
 }
 
