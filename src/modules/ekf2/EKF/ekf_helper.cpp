@@ -1027,9 +1027,31 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 }
 
-template<typename ComputePH>
-void Ekf::covarianceUpdate(const VectorState &K, const float R, bool constrain_variances, ComputePH compute_PH)
+void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+				     VectorState &state_correction, bool constrain_variances)
 {
+	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
+
+	// calculate kalman gain K = PHS, where S = 1/innovation variance
+	for (int row = 0; row < State::size; row++) {
+		K(row) = P(row, state_index) / innov_var;
+	}
+
+	clearInhibitedStateKalmanGains(K);
+
+#if false
+	// Matrix implementation of the Joseph stabilized covariance update
+	// This is extremely expensive to compute. Use for debugging purposes only.
+	auto A = matrix::eye<float, State::size>();
+	VectorState H;
+	H(state_index) = 1.f;
+	A -= K.multiplyByTranspose(H);
+	P = A * P;
+	P = P.multiplyByTranspose(A);
+
+	const VectorState KR = K * R;
+	P += KR.multiplyByTranspose(K);
+#else
 	// Efficient implementation of the Joseph stabilized covariance update
 	// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
 	// P = (I - K * H) * P * (I - K * H).T   + K * R * K.T
@@ -1038,7 +1060,8 @@ void Ekf::covarianceUpdate(const VectorState &K, const float R, bool constrain_v
 
 	// Step 1: conventional update
 	// Compute P_temp and store it in P to avoid allocating more memory
-	VectorState PH = compute_PH(true);
+	// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
+	VectorState PH = P.row(state_index);
 
 	for (unsigned i = 0; i < State::size; i++) {
 		for (unsigned j = 0; j < State::size; j++) {
@@ -1047,8 +1070,8 @@ void Ekf::covarianceUpdate(const VectorState &K, const float R, bool constrain_v
 	}
 
 	// Step 2: stabilized update
-	// P (or "P_temp") is not symmetric anymore, so P * H has to be recomputed
-	PH = compute_PH(false);
+	// P (or "P_temp") is not symmetric so we must take the column
+	PH = P.col(state_index);
 
 	for (unsigned i = 0; i < State::size; i++) {
 		for (unsigned j = 0; j <= i; j++) {
@@ -1057,27 +1080,11 @@ void Ekf::covarianceUpdate(const VectorState &K, const float R, bool constrain_v
 		}
 	}
 
+#endif
+
 	if (constrain_variances) {
 		constrainStateVariances();
 	}
-}
-
-void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
-				     VectorState &state_correction, bool constrain_variances)
-{
-	// H is a unit vector, so P * H is a column of P: K = P * H / innovation variance
-	VectorState K;
-
-	for (int row = 0; row < State::size; row++) {
-		K(row) = P(row, state_index) / innov_var;
-	}
-
-	clearInhibitedStateKalmanGains(K);
-
-	// P * H is a row of P while P is symmetric (faster, matrices are row-major) and a column afterwards
-	covarianceUpdate(K, R, constrain_variances, [&](bool p_symmetric) {
-		return p_symmetric ? VectorState(P.row(state_index)) : VectorState(P.col(state_index));
-	});
 
 	// correct the a priori innovation for the accumulated state correction, then accumulate the
 	// correction of this measurement instead of applying it
@@ -1098,7 +1105,47 @@ bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R,
 {
 	clearInhibitedStateKalmanGains(K);
 
-	covarianceUpdate(K, R, true, [&](bool) { return P * H; }); // H is stored as a column vector. H is in fact H.T
+#if false
+	// Matrix implementation of the Joseph stabilized covariance update
+	// This is extremely expensive to compute. Use for debugging purposes only.
+	auto A = matrix::eye<float, State::size>();
+	A -= K.multiplyByTranspose(H);
+	P = A * P;
+	P = P.multiplyByTranspose(A);
+
+	const VectorState KR = K * R;
+	P += KR.multiplyByTranspose(K);
+#else
+	// Efficient implementation of the Joseph stabilized covariance update
+	// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
+	// P = (I - K * H) * P * (I - K * H).T   + K * R * K.T
+	//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
+	//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
+
+	// Step 1: conventional update
+	// Compute P_temp and store it in P to avoid allocating more memory
+	// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
+	VectorState PH = P * H; // H is stored as a column vector. H is in fact H.T
+
+	for (unsigned i = 0; i < State::size; i++) {
+		for (unsigned j = 0; j < State::size; j++) {
+			P(i, j) -= K(i) * PH(j); // P is now not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
+		}
+	}
+
+	// Step 2: stabilized update
+	PH = P * H; // H is stored as a column vector. H is in fact H.T
+
+	for (unsigned i = 0; i < State::size; i++) {
+		for (unsigned j = 0; j <= i; j++) {
+			P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
+			P(j, i) = P(i, j);
+		}
+	}
+
+#endif
+
+	constrainStateVariances();
 
 	// correct the a priori innovation for the accumulated state correction, then accumulate the
 	// correction of this measurement instead of applying it

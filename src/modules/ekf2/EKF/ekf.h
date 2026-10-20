@@ -891,12 +891,6 @@ private:
 
 	void clearInhibitedStateKalmanGains(VectorState &K) const;
 
-	// Joseph stabilized covariance update. compute_PH(p_symmetric) returns P * H for the current P, which
-	// is symmetric before the first step and not after it; a direct state observation returns a row or a
-	// column of P instead of the product.
-	template<typename ComputePH>
-	void covarianceUpdate(const VectorState &K, const float R, bool constrain_variances, ComputePH compute_PH);
-
 	// limit the diagonal of the covariance matrix
 	void constrainStateVariances();
 

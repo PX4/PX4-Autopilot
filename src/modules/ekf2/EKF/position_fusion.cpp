@@ -59,12 +59,13 @@ bool Ekf::fuseHorizontalPositionCore(estimator_aid_source2d_s &aid_src)
 
 	// x & y
 	if (!aid_src.innovation_rejected) {
+		for (unsigned i = 0; i < 2; i++) {
+			aid_src.innovation[i] = (_gpos - measurement)(i);
+		}
+
 		VectorState state_correction;
 
 		for (unsigned i = 0; i < 2; i++) {
-			// recompute from the current state; another measurement fused earlier in this
-			// update can have moved the position through the state cross-covariances
-			aid_src.innovation[i] = (_gpos - measurement)(i);
 			aid_src.innovation_variance[i] = P(State::pos.idx + i, State::pos.idx + i) + aid_src.observation_variance[i];
 
 			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
