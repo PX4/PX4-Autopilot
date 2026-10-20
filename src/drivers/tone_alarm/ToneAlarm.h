@@ -72,6 +72,9 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
+	/** @see ModuleBase */
+	void request_stop() override;
+
 private:
 	static void InterruptStopNote(void *arg);
 

@@ -1,7 +1,6 @@
 # IMU/指南针工厂校准
 
-PX4 OEM制造商可以执行IMU和罗盘工厂校准，以便将加速度计、陀螺仪和磁力计校准的数值存储到持久存储器中（通常是EEPROM）。
-这将确保最终用户总是能够重置车辆配置并调整到安全状态以供飞行。
+PX4 OEM制造商可以执行IMU和罗盘工厂校准，以便将加速度计、陀螺仪和磁力计校准的数值存储到持久存储器中（通常是EEPROM）。这将确保最终用户总是能够重置车辆配置并调整到安全状态以供飞行。
 
 This procedure will write the following parameters to `/fs/mtd_caldata`: [CAL_ACC\*](../advanced_config/parameter_reference.md#CAL_ACC0_ID), [CAL_GYRO\*](../advanced_config/parameter_reference.md#CAL_GYRO0_ID), [CAL_MAG\*](../advanced_config/parameter_reference.md#CAL_MAG0_ID).
 当参数被设置（或重置）为其默认值时，此数据将被使用。

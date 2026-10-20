@@ -37,7 +37,7 @@
 
 #include <parameters/param.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 namespace failure_injection
 {
@@ -134,31 +134,31 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
 	return true;
 }
 
-bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sensor_gps,
-		  Stuck<sensor_gps_s> &stuck)
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &sensor_gnss,
+		  Stuck<sensor_gnss_s> &stuck)
 {
 	const Mode mode = config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, uorb_instance + 1);
 
 	// Off and Stuck are message-agnostic; run them first so the Stuck cache keeps the
 	// uncorrupted sample and a later Stuck replays a healthy fix.
-	if (!process(mode, sensor_gps, stuck)) {
+	if (!process(mode, sensor_gnss, stuck)) {
 		return false;
 	}
 
 	if (mode == Mode::Wrong) {
 		static const param_t fix_type_handle = param_find("SYS_FAIL_GPS_WRG");
 
-		int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+		int32_t fix_type = sensor_gnss_s::FIX_TYPE_2D;
 		param_get(fix_type_handle, &fix_type);
-		sensor_gps.fix_type = (uint8_t)fix_type;
+		sensor_gnss.fix_type = (uint8_t)fix_type;
 
 		static const param_t jamming_state_handle = param_find("SYS_FAIL_GPS_JAM");
 
-		int32_t jamming_state = sensor_gps_s::JAMMING_STATE_UNKNOWN;
+		int32_t jamming_state = sensor_gnss_s::JAMMING_STATE_UNKNOWN;
 		param_get(jamming_state_handle, &jamming_state);
 
-		if (jamming_state != sensor_gps_s::JAMMING_STATE_UNKNOWN) {
-			sensor_gps.jamming_state = (uint8_t)jamming_state;
+		if (jamming_state != sensor_gnss_s::JAMMING_STATE_UNKNOWN) {
+			sensor_gnss.jamming_state = (uint8_t)jamming_state;
 		}
 	}
 
@@ -198,6 +198,30 @@ esc_status_s process_esc(const Config &config, const esc_status_s &status)
 	}
 
 	return result;
+}
+
+MotorFailureMasks process_motor(const Config &config)
+{
+	MotorFailureMasks masks{};
+
+	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+		const uint16_t bit = 1u << i;
+
+		switch (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1)) {
+		case Mode::Off:
+			masks.failure_mask |= bit;
+			break;
+
+		case Mode::Wrong:
+			masks.stop_mask |= bit;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return masks;
 }
 
 } // namespace failure_injection

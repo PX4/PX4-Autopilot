@@ -1164,7 +1164,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				}
 
 			} else if (_state == MAVLINK_WPM_STATE_IDLE) {
-				if (_transfer_seq == wp.seq + 1) {
+				if (_transfer_seq == _transfer_count && _transfer_seq == wp.seq + 1) {
 					// Assume this is a duplicate, where we already successfully got all mission items,
 					// but the GCS did not receive the last ack and sent the same item again
 					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED, _transfer_current_crc32);
@@ -1197,9 +1197,20 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			if (ret != PX4_OK) {
 				PX4_DEBUG("WPM: MISSION_ITEM ERROR: seq %u invalid item", wp.seq);
 
-				_mavlink.send_statustext_critical("IGN MISSION_ITEM: Invalid item\t");
-				events::send(events::ID("mavlink_mission_mis_item_invalid"), events::Log::Error,
-					     "Ignoring mission item, invalid item");
+				// A DO_JUMP is refused for its target (INVALID_PARAM1) or its repeat count (INVALID_PARAM2);
+				// both are reported with the one message.
+				if (wp.command == MAV_CMD_DO_JUMP
+				    && (ret == MAV_MISSION_INVALID_PARAM1 || ret == MAV_MISSION_INVALID_PARAM2)) {
+					_mavlink.send_statustext_critical("Mission rejected: invalid DO_JUMP\t");
+					events::send<uint16_t>(events::ID("mavlink_mission_jump_invalid"), events::Log::Error,
+							       "Mission rejected: DO_JUMP {1} must target an earlier item and repeat at most 65535 times",
+							       wp.seq + 1);
+
+				} else {
+					_mavlink.send_statustext_critical("IGN MISSION_ITEM: Invalid item\t");
+					events::send(events::ID("mavlink_mission_mis_item_invalid"), events::Log::Error,
+						     "Ignoring mission item, invalid item");
+				}
 
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, ret);
 				switch_to_idle_state();
@@ -1335,10 +1346,13 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 					_land_start_marker = _transfer_land_start_marker;
 					_land_marker = _transfer_land_marker;
 
-					// Only need to update if the mission actually changed
-					if (_transfer_current_crc32 != _crc32[MAV_MISSION_TYPE_MISSION]) {
-						update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq, _transfer_current_crc32);
-					}
+					// A completed upload replaces the mission, so the current index
+					// has to be updated even when the uploaded mission happens to be
+					// identical to the stored one. Without this, re-uploading the same
+					// mission after a reboot resumes at the index the previous run
+					// ended on, and the mission reports itself finished immediately.
+					update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq,
+							      _transfer_current_crc32);
 
 					break;
 
@@ -1716,6 +1730,18 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		switch (mavlink_mission_item->command) {
 		case MAV_CMD_DO_JUMP:
+
+			// Only jumps to an earlier item are supported. Also rejects a NaN target.
+			if (!(mavlink_mission_item->param1 >= 0.f && mavlink_mission_item->param1 < mavlink_mission_item->seq)) {
+				return MAV_MISSION_INVALID_PARAM1;
+			}
+
+			// The repeat count is an integer carried in a float. One the uint16_t field cannot hold (negative,
+			// above 65535 or NaN) is rejected rather than narrowed to a different count.
+			if (!(mavlink_mission_item->param2 >= 0.f && mavlink_mission_item->param2 <= static_cast<float>(UINT16_MAX))) {
+				return MAV_MISSION_INVALID_PARAM2;
+			}
+
 			mission_item->nav_cmd = NAV_CMD_DO_JUMP;
 			mission_item->do_jump_mission_index = mavlink_mission_item->param1;
 			mission_item->do_jump_current_count = 0;

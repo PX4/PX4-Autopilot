@@ -57,8 +57,17 @@
 
 #if !defined(CONSTRAINED_MEMORY)
 # define MAVLINK_COMM_NUM_BUFFERS 6
-# define MAVLINK_COMM_4 static_cast<mavlink_channel_t>(4)
-# define MAVLINK_COMM_5 static_cast<mavlink_channel_t>(5)
+// The library's mavlink_channel_t only goes up to MAVLINK_COMM_3, so casting 4 or 5
+// to it would be an out-of-range enum value. Provide our own with all channels.
+# define HAVE_MAVLINK_CHANNEL_T
+typedef enum {
+	MAVLINK_COMM_0,
+	MAVLINK_COMM_1,
+	MAVLINK_COMM_2,
+	MAVLINK_COMM_3,
+	MAVLINK_COMM_4,
+	MAVLINK_COMM_5
+} mavlink_channel_t;
 #endif
 
 #include <mavlink_types.h>

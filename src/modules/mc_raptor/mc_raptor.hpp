@@ -135,9 +135,9 @@ private:
 	vehicle_status_s _vehicle_status{};
 	trajectory_setpoint_s _trajectory_setpoint{};
 	hrt_abstime timestamp_last_local_position, timestamp_last_angular_velocity, timestamp_last_attitude, timestamp_last_trajectory_setpoint,
-		    timestamp_last_manual_control_input, timestamp_last_vehicle_status;
+		    timestamp_last_vehicle_status;
 	bool timestamp_last_local_position_set = false, timestamp_last_angular_velocity_set = false, timestamp_last_attitude_set = false,
-	     timestamp_last_trajectory_setpoint_set = false, timestamp_last_manual_control_input_set = false, timestamp_last_vehicle_status_set = false;
+	     timestamp_last_trajectory_setpoint_set = false, timestamp_last_vehicle_status_set = false;
 	bool timeout_message_sent = false;
 	bool previous_trajectory_setpoint_stale = false;
 	bool previous_active = false;

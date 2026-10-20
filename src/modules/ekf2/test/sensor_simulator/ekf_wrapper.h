@@ -61,6 +61,7 @@ public:
 
 	void setRangeHeightRef();
 	void enableRangeHeightFusion();
+	void enableConditionalRangeHeightFusion();
 	void disableRangeHeightFusion();
 	bool isIntendingRangeHeightFusion() const;
 

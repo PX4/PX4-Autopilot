@@ -20,6 +20,7 @@ pageClass: is-wide-page
 | ------------------------------------------------- | ------- | ----- | ----------- |
 | <a id="#GF_STATUS_LOADING"></a> GF_STATUS_LOADING | `uint8` | 0     |
 | <a id="#GF_STATUS_READY"></a> GF_STATUS_READY     | `uint8` | 1     |
+| <a id="#GF_STATUS_FAILED"></a> GF_STATUS_FAILED   | `uint8` | 2     |
 
 ## Source Message
 
@@ -35,6 +36,7 @@ uint8 status 				# Current geofence status
 
 uint8 GF_STATUS_LOADING = 0
 uint8 GF_STATUS_READY = 1
+uint8 GF_STATUS_FAILED = 2
 ```
 
 :::

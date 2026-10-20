@@ -148,6 +148,8 @@ private:
 
 	void publish_control_allocator_status(int matrix_index);
 
+	void check_allocation_health(int matrix_index);
+
 	void publish_actuator_controls();
 
 	void handle_stopped_motors(const hrt_abstime now);
@@ -158,6 +160,8 @@ private:
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
 	int _num_control_allocation{0};
 	hrt_abstime _last_effectiveness_update{0};
+
+	uint8_t _dropped_axes_reported[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
 	enum class EffectivenessSource {
 		NONE = -1,

@@ -33,7 +33,7 @@
 /**
  * @file rtl.h
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -71,7 +71,7 @@ class RTL : public NavigatorMode, public ModuleParams
 public:
 	RTL(Navigator *navigator);
 
-	~RTL() = default;
+	~RTL() { delete _rtl_mission_type_handle; }
 
 	enum class RtlType {
 		NONE = rtl_status_s::RTL_STATUS_TYPE_NONE,
@@ -117,19 +117,19 @@ private:
 	void setRtlTypeAndDestination();
 
 	/**
-	 * @brief Publish the remaining time estimate to go to the RTL landing point.
+	 * @brief Publish the remaining time estimate to go to the Return landing point.
 	 *
 	 */
 	void publishRemainingTimeEstimate();
 
 	/**
-	 * @brief Find RTL destination.
+	 * @brief Find return destination.
 	 *
 	 */
 	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
 
 	/**
-	 * @brief Find RTL destination if only safe points are considered
+	 * @brief Find return destination if only safe points are considered
 	 *
 	 */
 	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
@@ -150,7 +150,7 @@ private:
 	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
 	/**
-	 * @brief initialize RTL mission type
+	 * @brief initialize Return mission type
 	 *
 	 */
 	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);

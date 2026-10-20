@@ -33,7 +33,7 @@
 /**
  * @file rtl.cpp
  *
- * Helper class to access RTL
+ * Helper class to access Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -44,6 +44,7 @@
 #include "navigator.h"
 #include "mission_block.h"
 #include "mission_route_cache.h"
+#include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
 
 #include <drivers/drv_hrt.h>
@@ -140,6 +141,13 @@ void RTL::on_activation()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
+
+	// Activation skips the mode's inactive update,
+	// refresh its mission before destination selection.
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->refreshMission();
+	}
+
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
@@ -383,7 +391,7 @@ void RTL::setRtlTypeAndDestination()
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	// Update destination of geofence avoidance planner. Depending on the
-	// RTL type it is the position of the loiter or mission landing.
+	// Return type it is the position of the loiter or mission landing.
 
 	GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
 	matrix::Vector2d planner_destination{(double)NAN, (double)NAN};
@@ -473,7 +481,8 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 			const bool current_safe_point_has_approaches {
-				mission_route_cache.hasVtolLandApproachesAtSafePointIndex(current_seq, _home_pos_sub.get().alt)
+				mission_route::hasVtolLandApproachesAtSafePointIndex(mission_route_cache, current_seq,
+						_home_pos_sub.get().alt)
 			};
 
 			_one_rally_point_has_land_approach |= current_safe_point_has_approaches;
@@ -506,7 +515,8 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 		const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 					     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-		_home_has_land_approach = mission_route_cache.hasVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
+		_home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(mission_route_cache, destination,
+					  _home_pos_sub.get().alt);
 #endif
 
 		const bool prioritize_safe_points_over_home = ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode);
@@ -660,7 +670,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 			_rtl_mission_type_handle->initialize();
 		}
 
-		// RTL type is either direct or mission land have to set it later.
+		// Return type is either direct or mission land have to set it later.
 		break;
 
 	case RtlType::RTL_MISSION_FAST:
@@ -733,7 +743,8 @@ loiter_point_s RTL::selectLandingApproach(const PositionYawSetpoint &destination
 	}
 
 	const land_approaches_s vtol_land_approaches =
-		_navigator->get_mission_route_cache().getVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
+		mission_route::getVtolLandApproachesNearLocation(_navigator->get_mission_route_cache(), destination,
+				_home_pos_sub.get().alt);
 
 	if (vtol_land_approaches.isAnyApproachValid()) {
 		landing_approach = chooseBestLandingApproach(vtol_land_approaches);

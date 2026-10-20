@@ -45,6 +45,10 @@ if(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 	add_subdirectory(vehicle_air_data)
 endif()
 
+if(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+	add_subdirectory(vehicle_airspeed)
+endif()
+
 if(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	add_subdirectory(vehicle_angular_velocity)
 endif()
@@ -61,6 +65,10 @@ if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 	add_subdirectory(vehicle_optical_flow)
 endif()
 
+if(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	set(GNSS_HEADING_PARAMS vehicle_gps_position/params_heading.yaml)
+endif()
+
 px4_add_module(
 	MODULE modules__sensors
 	MAIN sensors
@@ -74,6 +82,7 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 		vehicle_gps_position/module.yaml
+		${GNSS_HEADING_PARAMS}
 		sensor_params.yaml
 		sensor_params_flow.yaml
 		sensor_params_mag.yaml
@@ -94,7 +103,7 @@ if(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_AIRSPEED)
-	target_link_libraries(modules__sensors PRIVATE airspeed)
+	target_link_libraries(modules__sensors PRIVATE vehicle_airspeed)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
@@ -111,4 +120,8 @@ endif()
 
 if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 	target_link_libraries(modules__sensors PRIVATE vehicle_optical_flow)
+endif()
+
+if(BUILD_TESTING)
+	add_subdirectory(test)
 endif()

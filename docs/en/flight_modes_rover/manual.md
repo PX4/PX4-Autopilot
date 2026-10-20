@@ -14,21 +14,23 @@ The sticks provide the same "high level" control effects over direction and rate
 
 The manual modes provide progressively increasing levels of autopilot support for maintaining a course, speed, and rate of turn, compensating for external factors such as slopes or uneven terrain.
 
-| Mode                                    | Description                                                                                                                                                                      |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Manual](manual.md#manual-mode)         | No autopilot support. User is responsible for keeping the rover on the desired course and maintaining speed and rate of turn.                                                    |
-| [Acro](manual.md#acro-mode)             | + Maintains the yaw rate (feels more like driving a car than manual mode). <br>+ Allows maximum yaw rate to be limited (protects against roll over).                             |
-| [Stabilized](manual.md#stabilized-mode) | + Maintains the yaw (significantly better at holding a straight line).                                                                                                           |
-| [Position](manual.md#position-mode)     | + Maintains the course (best mode for driving a straight line).<br>+ Maintains speed against disturbances, e.g. when driving up a hill.<br>+ Allows maximum speed to be limited. |
+| Mode                                            | Description                                                                                                                                                                                                                                         |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Manual](manual.md#manual-mode)                 | No autopilot support. User is responsible for keeping the rover on the desired course and maintaining speed and rate of turn.                                                                                                                       |
+| [Acro](manual.md#acro-mode)                     | + Maintains the yaw rate (feels more like driving a car than manual mode). <br>+ Allows maximum yaw rate to be limited (protects against roll over).                                                                                                |
+| [Stabilized](manual.md#stabilized-mode)         | + Maintains the yaw (significantly better at holding a straight line).                                                                                                                                                                              |
+| [Position](manual.md#position-mode)             | + Maintains the course (best mode for driving a straight line).<br>+ Maintains speed against disturbances, e.g. when driving up a hill.<br>+ Allows maximum speed to be limited.                                                                    |
+| [Manual Parking](manual.md#manual-parking-mode) | Reduced throttle for precise maneuvering in tight spaces. Differential and mecanum rovers are driven tank-style, using one stick per side. Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle. |
 
 ::: details Overview mode mapping to control effect
 
-| Mode                           | Speed                                                                    | Turning                                                                                                                                                                                           | Required measurements                           |
-| ------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| [Manual](#manual-mode)         | Directly map stick input to motor command.                               | Directly map stick input to steering angle/speed difference.                                                                                                                                      | None.                                           |
-| [Acro](#acro-mode)             | Directly map stick input to motor command.                               | Stick input creates a yaw rate setpoint for the control system to regulate.                                                                                                                       | yaw rate.                                       |
-| [Stabilized](#stabilized-mode) | Directly map stick input to motor commands.                              | Stick input creates a yaw rate setpoint for the control system to regulate. If this setpoint is zero (stick is centered) the control system will maintain the current yaw (heading) of the rover. | Yaw rate and yaw.                               |
-| [Position](#position-mode)     | Stick input creates a speed setpoint for the control system to regulate. | Stick input creates a yaw rate setpoint for the control system to regulate. If this setpoint is zero (stick is centered) the control system will keep the rover driving in a straight line.       | yaw rate, yaw, speed and global position (GPS). |
+| Mode                                   | Speed                                                                    | Turning                                                                                                                                                                                           | Required measurements                           |
+| -------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| [Manual](#manual-mode)                 | Directly map stick input to motor command.                               | Directly map stick input to steering angle/speed difference.                                                                                                                                      | None.                                           |
+| [Acro](#acro-mode)                     | Directly map stick input to motor command.                               | Stick input creates a yaw rate setpoint for the control system to regulate.                                                                                                                       | yaw rate.                                       |
+| [Stabilized](#stabilized-mode)         | Directly map stick input to motor commands.                              | Stick input creates a yaw rate setpoint for the control system to regulate. If this setpoint is zero (stick is centered) the control system will maintain the current yaw (heading) of the rover. | Yaw rate and yaw.                               |
+| [Position](#position-mode)             | Stick input creates a speed setpoint for the control system to regulate. | Stick input creates a yaw rate setpoint for the control system to regulate. If this setpoint is zero (stick is centered) the control system will keep the rover driving in a straight line.       | yaw rate, yaw, speed and global position (GPS). |
+| [Manual Parking](#manual-parking-mode) | Directly map scaled down stick input to motor command.                   | Ackermann: Directly map stick input to steering angle. Differential/Mecanum: Each stick directly maps to the motor command of one side of the rover.                                              | None.                                           |
 
 :::
 
@@ -97,3 +99,23 @@ This offers the highest amount of disturbance rejection, which leads to the best
 | Mecanum      | Stick position sets a forward/back speed setpoint. The vehicle attempts to maintain this speed on slopes etc. | Create a yaw rate setpoint for the control system to regulate. If this input is zero the control system will maintain the course of the rover. | Stick position sets a left/right speed setpoint. The vehicle attempts to maintain this speed on slopes etc.                                    |
 
 For the configuration/tuning of this mode see [Velocity tuning](../config_rover/velocity_tuning.md).
+
+## Manual Parking Mode
+
+This mode is intended for precisely maneuvering the rover in tight spaces, e.g. when parking it.
+Like [Manual mode](#manual-mode) the stick inputs are directly mapped to motor commands without any autopilot support, but the throttle is scaled down to [RO_PARK_THR_MAX](../advanced_config/parameter_reference.md#RO_PARK_THR_MAX).
+
+Differential and mecanum rovers are driven tank-style in this mode: the left stick drives the motor(s) on the left side and the right stick drives the motor(s) on the right side of the rover.
+Pushing both sticks in the same direction drives straight, pushing them in opposite directions turns the rover on the spot, and holding one stick centered pivots the rover around that side.
+
+Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle.
+
+| Rover Type   | Left stick up/down                          | Right stick up/down                        | Right stick left/right                     |
+| ------------ | ------------------------------------------- | ------------------------------------------ | ------------------------------------------ |
+| Ackermann    | Drive the rover forwards/backwards (slowly) | -                                          | Move the steering angle to the left/right. |
+| Differential | Drive the left motor forwards/backwards.    | Drive the right motor forwards/backwards.  | -                                          |
+| Mecanum      | Drive the left motors forwards/backwards.   | Drive the right motors forwards/backwards. | Drive the rover left/right (slowly).       |
+
+::: info
+This mode has to be assigned to a flight mode switch (see [Flight Mode Configuration](../config/flight_mode.md)) or selected via the ground station.
+:::

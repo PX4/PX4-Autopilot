@@ -120,6 +120,74 @@ MavlinkFTP::_read_session(uint32_t offset, uint8_t *buf, uint16_t count)
 }
 
 unsigned
+MavlinkFTP::packet_overhead() const
+{
+	// PayloadHeader, the three target fields and the v2 framing, plus the
+	// signature block when signing is active - without accounting for that the
+	// packet silently grows past what the radio carries in one piece again.
+	unsigned overhead = sizeof(PayloadHeader) + 3 + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+	const mavlink_status_t *status = mavlink_get_channel_status(_mavlink.get_channel());
+
+	if ((status != nullptr) && (status->signing != nullptr)) {
+		overhead += MAVLINK_SIGNATURE_BLOCK_LEN;
+	}
+
+	return overhead;
+}
+
+unsigned
+MavlinkFTP::radio_clamped_length(unsigned requested) const
+{
+	// Only shrink behind a radio; a direct link has no such constraint.
+	if (!_mavlink.radio_status_available()) {
+		return requested;
+	}
+
+	// Only MAVLink 2 drops the trailing zeros of a payload, so on a MAVLink 1
+	// link a shorter reply still goes out as a full 251 byte payload. Shrinking
+	// it there would cost the client bytes without making the packet smaller.
+	if (_mavlink.getProtocolVersion() == 1) {
+		return requested;
+	}
+
+	const unsigned overhead = packet_overhead();
+
+	if (kRadioMaxPacketLength <= overhead) {
+		return requested;
+	}
+
+	return math::min(requested, kRadioMaxPacketLength - overhead);
+}
+
+unsigned
+MavlinkFTP::burst_data_length() const
+{
+	// What the client asked for. Zero means as much as fits, which is what
+	// ArduPilot does and what the spec describes.
+	const unsigned requested = (_session_info.stream_size == 0) ?
+				   (unsigned)kMaxDataLength :
+				   math::min((unsigned)_session_info.stream_size, (unsigned)kMaxDataLength);
+
+	// The clamp comes after the request, never instead of it: every ground
+	// station out there asks for a full payload, so honouring the request on
+	// its own would hand a radio packets it has to split.
+	return radio_clamped_length(requested);
+}
+
+unsigned
+MavlinkFTP::burst_wire_size() const
+{
+	// A MAVLink 1 packet carries the whole payload whatever we put in it, so
+	// that is what it costs the link, and pacing has to budget for it.
+	if (_mavlink.getProtocolVersion() == 1) {
+		return kMaxDataLength + packet_overhead();
+	}
+
+	return burst_data_length() + packet_overhead();
+}
+
+unsigned
 MavlinkFTP::get_size()
 {
 	if (_session_info.stream_download) {
@@ -346,6 +414,12 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 
 	// clear any not used payload data to correctly trim mavlink ftp message reply
+	if (payload->size > kMaxDataLength) {
+		// Should not happen: every producer bounds itself. Clamp rather than let the
+		// subtraction below wrap into a memset of the whole address space.
+		payload->size = kMaxDataLength;
+	}
+
 	memset(&payload->data[payload->size], 0, kMaxDataLength - payload->size);
 
 	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
@@ -397,6 +471,22 @@ void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
 	dst[dst_len - 1] = '\0';
 }
 
+/// @brief stat()s an entry of the directory in _work_buffer1, leaving size and mtime untouched on failure
+void
+MavlinkFTP::_statDirent(const char *name, uint32_t &size, uint32_t &mtime)
+{
+	int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1, name);
+
+	if ((ret > 0) && (ret < _work_buffer2_len)) {
+		struct stat st;
+
+		if (stat(_work_buffer2, &st) == 0) {
+			size = st.st_size;
+			mtime = st.st_mtime;
+		}
+	}
+}
+
 /// @brief Responds to a List command
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
@@ -441,9 +531,14 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 
 			if (_our_errno) {
 				PX4_WARN("readdir failed: %s", strerror(_our_errno));
-				payload->data[offset++] = kDirentSkip;
-				*((char *)&payload->data[offset]) = '\0';
-				offset++;
+
+				// Room for the identifier and the null terminator, as in the entry loop below
+				if ((offset + 2) <= kMaxDataLength) {
+					payload->data[offset++] = kDirentSkip;
+					*((char *)&payload->data[offset]) = '\0';
+					offset++;
+				}
+
 				errorCode = kErrFailErrno;
 
 			} else if (offset == 0) {
@@ -471,18 +566,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 #endif
 				// For files we get the file size as well
 				direntType = kDirentFile;
-				int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1, result->d_name);
-				bool buf_is_ok = ((ret > 0) && (ret < _work_buffer2_len));
-
-				if (buf_is_ok) {
-					struct stat st;
-
-					if (stat(_work_buffer2, &st) == 0) {
-						fileSize = st.st_size;
-						fileTime = st.st_mtime;
-					}
-				}
-
+				_statDirent(result->d_name, fileSize, fileTime);
 				break;
 			}
 
@@ -498,6 +582,12 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 
 			} else {
 				direntType = kDirentDir;
+
+				if (include_time) {
+					// Directories have no meaningful size, but do have a modification time
+					_statDirent(result->d_name, fileSize, fileTime);
+					fileSize = 0;
+				}
 			}
 
 			break;
@@ -511,25 +601,25 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 			// Skip send only dirent identifier
 			_work_buffer2[0] = '\0';
 
-		} else if (direntType == kDirentFile) {
-			// Files send filename and file length, optionally followed by the modification time
-			int ret;
+		} else if (include_time) {
+			// ListDirectoryWithTime: every entry is <name>\t<size>\t<mtime>, directories with size 0
+			int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32 "\t%" PRIu32, result->d_name, fileSize,
+					   fileTime);
 
-			if (include_time) {
-				ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32 "\t%" PRIu32, result->d_name, fileSize, fileTime);
-
-			} else {
-				ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32, result->d_name, fileSize);
+			if (!((ret > 0) && (ret < _work_buffer2_len))) {
+				_work_buffer2[_work_buffer2_len - 1] = '\0';
 			}
 
-			bool buf_is_ok = ((ret > 0) && (ret < _work_buffer2_len));
+		} else if (direntType == kDirentFile) {
+			// ListDirectory: files send <name>\t<size>
+			int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32, result->d_name, fileSize);
 
-			if (!buf_is_ok) {
+			if (!((ret > 0) && (ret < _work_buffer2_len))) {
 				_work_buffer2[_work_buffer2_len - 1] = '\0';
 			}
 
 		} else {
-			// Everything else just sends name
+			// ListDirectory: directories send only the name, existing clients take the whole string as the name
 			strncpy(_work_buffer2, result->d_name, _work_buffer2_len);
 			_work_buffer2[_work_buffer2_len - 1] = '\0';
 		}
@@ -591,9 +681,10 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 		}
 
 		// CreateFile and OpenFileWO create or truncate the file as part of the open, so the
-		// effect lands before any write arrives and has to be authorized here.
-		if ((oflag & (O_WRONLY | O_RDWR | O_CREAT | O_TRUNC)) != 0
-		    && !_validatePathIsWritable(_work_buffer1)) {
+		// effect lands before any write arrives and has to be authorized here. Test the
+		// access mode rather than the individual flags: on NuttX O_RDONLY is a bit and
+		// O_RDWR is O_RDONLY | O_WRONLY, so a read-only open would match O_RDWR.
+		if (for_write && !_validatePathIsWritable(_work_buffer1)) {
 			return kErrFailFileProtected;
 		}
 
@@ -640,7 +731,11 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 	PX4_DEBUG("FTP: read offset:%" PRIu32, payload->offset);
 
-	const int bytes_read = _read_session(payload->offset, payload->data, payload->size);
+	// Same clamp as a burst: a recovery read that fragments defeats the point
+	// of keeping the burst inside one radio packet. Only behind a radio, and
+	// the size field says what was actually read.
+	const int bytes_read = _read_session(payload->offset, payload->data,
+					     radio_clamped_length(payload->size));
 
 	if (bytes_read < 0) {
 		PX4_ERR("read fail: %s", strerror(_our_errno));
@@ -668,9 +763,11 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t
 
 	PX4_DEBUG("FTP: burst offset:%" PRIu32, payload->offset);
 	// Setup for streaming sends
+	_last_burst_send = 0;
 	_session_info.stream_download = true;
 	_session_info.stream_offset = payload->offset;
 	_session_info.stream_chunk_transmitted = 0;
+	_session_info.stream_size = payload->size;
 	_session_info.stream_seq_number = payload->seq_number + 1;
 	_session_info.stream_target_system_id = target_system_id;
 	_session_info.stream_target_component_id = target_component_id;
@@ -1118,6 +1215,42 @@ void MavlinkFTP::send()
 		return;
 	}
 
+	// Pace the burst against the link budget. Otherwise the only bound is the
+	// local UART buffer, which knows nothing about what the radio behind it can
+	// carry, and we hand it several times its capacity.
+	const int datarate = _mavlink.radio_status_available() ? _mavlink.get_data_rate() : 0;
+
+	if (datarate > 0) {
+		const hrt_abstime now = hrt_absolute_time();
+
+		// The first packet of a burst goes out immediately, after that wait
+		// until the link has earned one.
+		if (_last_burst_send != 0) {
+			// Scaled by the radio's own txbuf feedback, so the burst finds
+			// whatever the link can actually carry: that differs by more than
+			// two to one depending on whether the radio has error correction
+			// enabled, which we have no way of knowing here.
+			//
+			// Deliberately not get_rate_mult(), which also folds in the budget
+			// split this share has already been subtracted from - applying that
+			// would count the reduction twice and starve the burst into the
+			// client's inter-packet timeout.
+			const float rate = (float)datarate * _mavlink.bulk_bandwidth_share() * _mavlink.radio_status_mult();
+			const float credit = (float)(now - _last_burst_send) * rate / 1e6f;
+
+			if (credit < (float)burst_wire_size()) {
+				return;
+			}
+		}
+
+		// Exactly one packet per call, never a batch. Otherwise the loop below
+		// fills the whole UART buffer, a dozen packets back to back. A SiK
+		// radio only fits about three per transmit window and drops the rest.
+		// Credit is not banked either, so a pause cannot be spent at once.
+		_last_burst_send = now;
+		max_bytes_to_send = burst_wire_size();
+	}
+
 	// Send stream packets until buffer is full
 
 	bool more_data;
@@ -1140,7 +1273,7 @@ void MavlinkFTP::send()
 
 		PX4_DEBUG("stream send: offset %" PRIu32, _session_info.stream_offset);
 
-		const int bytes_read = _read_session(payload->offset, &payload->data[0], kMaxDataLength);
+		const int bytes_read = _read_session(payload->offset, &payload->data[0], burst_data_length());
 
 		if (bytes_read < 0) {
 			error_code = kErrFailErrno;
@@ -1158,6 +1291,10 @@ void MavlinkFTP::send()
 
 		if (error_code != kErrNone) {
 			payload->opcode = kRspNak;
+			// The burst ends here, whether the file did or something went wrong.
+			// ArduPilot marks this packet the same way, and a client that waits
+			// for the end of the burst would otherwise keep waiting.
+			payload->burst_complete = true;
 			payload->size = 1;
 			uint8_t *pData = &payload->data[0];
 			*pData = error_code; // Straight reference to data[0] is causing bogus gcc array subscript error
@@ -1190,6 +1327,11 @@ void MavlinkFTP::send()
 		ftp_msg.target_network = 0;
 		ftp_msg.target_component = _session_info.stream_target_component_id;
 		_reply(&ftp_msg);
+
+		// Streaming a burst is activity: without this the session is torn down
+		// from under a burst that runs longer than the inactivity timeout, which
+		// on a slow link a single chunk easily does.
+		_last_work_buffer_access = hrt_absolute_time();
 	} while (more_data);
 }
 

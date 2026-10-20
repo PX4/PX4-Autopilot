@@ -39,6 +39,7 @@
 #include <float.h>
 
 using namespace matrix;
+using namespace time_literals;
 
 bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
@@ -97,6 +98,10 @@ bool FlightTaskAuto::updateInitialize()
 
 	_sub_home_position.update();
 	_sub_vehicle_status.update();
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	// Read status first so setpoint_adjusted cannot be paired with an older triplet.
+	_prec_takeoff_status_sub.update();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_position_setpoint_triplet_sub.update();
 	_takeoff_status_sub.update();
 
@@ -147,28 +152,37 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint(2) = NAN;
 		break;
 
-	case WaypointType::takeoff:
-		_position_setpoint = _triplet_current;
-		_velocity_setpoint.setNaN();
+	case WaypointType::takeoff: {
+			_position_setpoint = _triplet_current;
+			_velocity_setpoint.setNaN();
 
-		if (_type_previous != WaypointType::takeoff) {
-			_takeoff_liftoff_position.setNaN();
+			if (_type_previous != WaypointType::takeoff) {
+				_takeoff_liftoff_position.setNaN();
+				_time_stamp_airborne = 0;
+			}
+
+			const bool airborne = _takeoff_status_sub.get().takeoff_state >= takeoff_status_s::TAKEOFF_STATE_FLIGHT;
+
+			if (!airborne) {
+				_takeoff_liftoff_position = _position;
+				_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+				_time_stamp_airborne = 0;
+
+			} else if (_time_stamp_airborne == 0) {
+				_time_stamp_airborne = _time_stamp_current;
+			}
+
+			// Hold the liftoff position until airborne for MIS_TKO_PREC_DLY and Navigator has moved the setpoint onto the target.
+			if (Vector2f(_takeoff_liftoff_position).isAllFinite() && !_followPrecisionTakeoffTarget()) {
+				_position_setpoint.xy() = _takeoff_liftoff_position.xy();
+			}
+
+			if (PX4_ISFINITE(_takeoff_liftoff_position(2)) && (_takeoff_liftoff_position(2) - _position(2)) < 1.f) {
+				_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
+			}
+
+			break;
 		}
-
-		if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
-			_takeoff_liftoff_position = _position;
-			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
-		}
-
-		if (Vector2f(_takeoff_liftoff_position).isAllFinite()) {
-			_position_setpoint.xy() = _takeoff_liftoff_position.xy();
-		}
-
-		if (PX4_ISFINITE(_takeoff_liftoff_position(2)) && (_takeoff_liftoff_position(2) - _position(2)) < 1.f) {
-			_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
-		}
-
-		break;
 
 	case WaypointType::loiter:
 	case WaypointType::position:
@@ -198,9 +212,8 @@ bool FlightTaskAuto::update()
 	_updateTrajConstraints();
 
 	if (_is_emergency_braking_active) {
-		// Re-seed the trajectory to the measured state every cycle so controller saturation doesn't
-		// cause a velocity error inversion during emergency braking.
-		_position_smoothing.forceSetVelocity(_velocity);
+		// Keep the trajectory position on the vehicle so the position error doesn't get corrected at
+		// the expense of the braking feedforward.
 		_position_smoothing.forceSetPosition(_position);
 	}
 
@@ -532,7 +545,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 			const float triplet_yaw = position_setpoint_triplet.current.yaw;
 
 			if (PX4_ISFINITE(triplet_yaw)) {
-				// End of RTL changes yaw once, precision land can change it all the time
+				// End of Return changes yaw once, precision land can change it all the time
 				const bool yaw_changed = !PX4_ISFINITE(_triplet_yaw)
 							 || fabsf(wrap_pi(triplet_yaw - _triplet_yaw)) > 1e-4f;
 
@@ -708,7 +721,7 @@ void FlightTaskAuto::_ekfResetHandlerVelocityZ(const float delta_vz)
 void FlightTaskAuto::_ekfResetHandlerHeading(const float delta_psi)
 {
 	_yaw_setpoint_previous = wrap_pi(_yaw_setpoint_previous + delta_psi);
-	_heading_smoothing.reset(wrap_pi(_heading_smoothing.getSmoothedHeading() + delta_psi));
+	_heading_smoothing.reset(_heading_smoothing.getSmoothedHeading() + delta_psi);
 
 	if (PX4_ISFINITE(_yaw_setpoint)) {
 		_yaw_setpoint = wrap_pi(_yaw_setpoint + delta_psi);
@@ -718,24 +731,54 @@ void FlightTaskAuto::_ekfResetHandlerHeading(const float delta_psi)
 void FlightTaskAuto::_checkEmergencyBraking()
 {
 	if (!_is_emergency_braking_active) {
-		// activate emergency braking if significantly outside of velocity bounds
+		// Activate emergency braking if either the vehicle or the trajectory is significantly outside of
+		// velocity bounds. activate() seeds the trajectory from the previous task's setpoint, which
+		// is not bounded by this task's limits.
 		const float factor = 1.3f;
-		const bool is_vertical_speed_exceeded = _position_smoothing.getCurrentVelocityZ() >
-							(factor * _param_mpc_z_vel_max_dn.get())
-							|| _position_smoothing.getCurrentVelocityZ() < -(factor * _param_mpc_z_vel_max_up.get());
-		const bool is_horizontal_speed_exceeded = _position_smoothing.getCurrentVelocityXY().longerThan(
-					factor * _param_mpc_xy_vel_max.get());
+		const float speed_down = math::max(_velocity(2), _position_smoothing.getCurrentVelocityZ());
+		const float speed_up = -math::min(_velocity(2), _position_smoothing.getCurrentVelocityZ());
+		const float speed_horizontal = math::max(Vector2f(_velocity).norm(),
+					       _position_smoothing.getCurrentVelocityXY().norm());
+		// _updateTrajConstraints() lets ordinary descents past MPC_Z_VEL_MAX_DN, so the margin has to be
+		// taken against what guidance can actually reach or a downdraft would trigger braking mid-mission.
+		const float max_speed_down = math::max(_param_mpc_z_vel_max_dn.get(), 1.2f * _param_mpc_z_v_auto_dn.get());
+		const bool is_vertical_speed_exceeded = (speed_down > factor * max_speed_down)
+							|| (speed_up > factor * _param_mpc_z_vel_max_up.get());
+		const bool is_horizontal_speed_exceeded = speed_horizontal > (factor * _param_mpc_xy_vel_max.get());
 
 		if (is_vertical_speed_exceeded || is_horizontal_speed_exceeded) {
 			_is_emergency_braking_active = true;
+			// Start the braking ramp from the vehicle not the reference.
+			_position_smoothing.forceSetVelocity(_velocity);
+
+			_emergency_braking_best_speed = math::max(fabsf(_velocity(2)), Vector2f(_velocity).norm());
+			_emergency_braking_progress_timestamp = _time_stamp_current;
 		}
 
 	} else {
 		// Deactivate emergency braking once slow enough for ordinary guidance to finish the stop.
-		// Must clear velocity estimate noise, otherwise braking latches and guidance never resumes.
-		if (math::isInRange(_position_smoothing.getCurrentVelocityZ(), -1.f, 1.f)
-		    && !_position_smoothing.getCurrentVelocityXY().longerThan(1.f)) {
+		// Check the measured velocity since the trajectory reaches zero well before the vehicle does.
+		const bool is_slow_enough = math::isInRange(_velocity(2), -1.f, 1.f)
+					    && !Vector2f(_velocity).longerThan(1.f);
+
+		// Track the lowest speed reached and deactivate emergency braking if it stops improving.
+		// Avoids getting stuck in emergency braking.
+		const float speed = math::max(fabsf(_velocity(2)), Vector2f(_velocity).norm());
+
+		if (speed < _emergency_braking_best_speed - 0.5f) {
+			_emergency_braking_best_speed = speed;
+			_emergency_braking_progress_timestamp = _time_stamp_current;
+		}
+
+		const bool is_not_slowing_down = _time_stamp_current > _emergency_braking_progress_timestamp + 3_s;
+
+		if (is_slow_enough || is_not_slowing_down) {
 			_is_emergency_braking_active = false;
+
+			// Hand back a trajectory that ordinary guidance can take over. Emergency braking runs the smoother at
+			// 1g right up to the release, so its acceleration state is still around 9.8 m/s^2 while its
+			// velocity state is near zero.
+			_position_smoothing.forceSetAcceleration({0.f, 0.f, 0.f});
 		}
 	}
 }
@@ -837,4 +880,15 @@ void FlightTaskAuto::updateParams()
 
 	// make sure that alt1 is above alt2
 	_param_mpc_land_alt1.set(math::max(_param_mpc_land_alt1.get(), _param_mpc_land_alt2.get()));
+}
+
+bool FlightTaskAuto::_followPrecisionTakeoffTarget() const
+{
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	const float airborne_time_s = (_time_stamp_current - _time_stamp_airborne) * 1e-6f;
+	const bool airborne_long_enough = (_time_stamp_airborne != 0) && (airborne_time_s >= _param_mis_tko_prec_dly.get());
+	return airborne_long_enough && _prec_takeoff_status_sub.get().setpoint_adjusted;
+#else
+	return false;
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }

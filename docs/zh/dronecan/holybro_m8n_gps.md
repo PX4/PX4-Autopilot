@@ -3,8 +3,7 @@
 Holybro DroneCAN GPS有一个UBLOX M8N 模块，BMM150指南针，三色LED指示器。
 
 The GPS module uses the [DroneCAN](index.md) protocol for communication.
-DroneCAN连接比串行连接更抗电磁干扰，从而更加可靠。
-此外，使用DroneCAN意味着GPS和指南针不占用任何飞控串口（不同/附加的CAN设备可以通过CAN分离板连接到同一CAN总线。
+DroneCAN连接比串行连接更抗电磁干扰，从而更加可靠。此外，使用DroneCAN意味着GPS和指南针不占用任何飞控串口（不同/附加的CAN设备可以通过CAN分离板连接到同一CAN总线。
 
 <img src="../../assets/hardware/gps/hb_dronecan_m8n/hb_dronecan_m8n_gps.jpg" width="400px" title="Hero diagram for the GPS module" />
 
@@ -94,4 +93,4 @@ If the sensor is not centred within the vehicle you will also need to define sen
 - Enable GPS yaw fusion by setting bit 3 of [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to true.
 - Enable [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS), [UAVCAN_SUB_MAG](../advanced_config/parameter_reference.md#UAVCAN_SUB_MAG), and [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO).
 - Set [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM) to `1` if this is that last node on the CAN bus.
-- The parameters [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY) and [SENS_GPS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GPS0_OFFZ) can be set to account for the offset of the ARK GPS from the vehicles centre of gravity.
+- The parameters [SENS_GNSS0_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS0_OFFY](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFY) and [SENS_GNSS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFZ) can be set to account for the offset of the ARK GPS from the vehicles centre of gravity.

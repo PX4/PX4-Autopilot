@@ -53,7 +53,7 @@
 #include <uORB/topics/failure_injection.h>
 
 struct battery_status_s;
-struct sensor_gps_s;
+struct sensor_gnss_s;
 
 namespace failure_injection
 {
@@ -67,6 +67,12 @@ enum class Mode : uint8_t {
 	Slow         = failure_injection_s::FAILURE_TYPE_SLOW,
 	Delayed      = failure_injection_s::FAILURE_TYPE_DELAYED,
 	Intermittent = failure_injection_s::FAILURE_TYPE_INTERMITTENT,
+};
+
+/** Masks of motors failed by injection, bit i = motor instance i+1. */
+struct MotorFailureMasks {
+	uint16_t stop_mask{0};    ///< motor wrong: outputs stopped without informing the allocator
+	uint16_t failure_mask{0}; ///< motor off: reported as failed motors, removed from the allocation
 };
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
@@ -207,10 +213,10 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
  * while leaving the position untouched.
  *
  * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
- * @return false if the sensor_gps publication must be suppressed (Off), true otherwise.
+ * @return false if the sensor_gnss publication must be suppressed (Off), true otherwise.
  */
-bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sensor_gps,
-		  Stuck<sensor_gps_s> &stuck);
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &sensor_gnss,
+		  Stuck<sensor_gnss_s> &stuck);
 
 /**
  * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to a copy of
@@ -221,6 +227,15 @@ bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sen
  * calls. Call after Config::update().
  */
 esc_status_s process_esc(const Config &config, const esc_status_s &status);
+
+/**
+ * Motor counterpart to process(): derive the masks of motors failed by
+ * FAILURE_UNIT_SYSTEM_MOTOR from the injected failure type. Off is the detected failure
+ * (failure_mask: reported as failed motors and removed from the allocation), Wrong the
+ * undetected one (stop_mask: outputs stopped without informing the allocator).
+ * Call after Config::update().
+ */
+MotorFailureMasks process_motor(const Config &config);
 
 #else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
@@ -249,9 +264,11 @@ inline bool process(const Config &, uint8_t, uint8_t) { return true; }
 
 inline bool process_battery(const Config &, uint8_t, battery_status_s &) { return true; }
 
-inline bool process_gnss(const Config &, uint8_t, sensor_gps_s &, Stuck<sensor_gps_s> &) { return true; }
+inline bool process_gnss(const Config &, uint8_t, sensor_gnss_s &, Stuck<sensor_gnss_s> &) { return true; }
 
 inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
+
+inline MotorFailureMasks process_motor(const Config &) { return {}; }
 
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 

@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-add_compile_options(${MAX_CUSTOM_OPT_LEVEL})
-
 if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")
 endif()
@@ -60,6 +58,11 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 	endforeach()
 
 	list(REMOVE_DUPLICATES module_config_files)
+endif()
+
+# Keep the opt-in identity parameter out of builds that scan all module YAMLs.
+if(NOT CONFIG_BOARD_HAS_RID_EEPROM)
+	list(REMOVE_ITEM module_config_files ${PX4_SOURCE_DIR}/src/lib/open_drone_id/odid_params.yaml)
 endif()
 
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
@@ -120,8 +123,10 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--board ${PX4_BOARD}
 		${READONLY_PARAMS_ARG}
 		#--verbose
+	# Metadata stays at version 1 so QGC will load parameters. Schema floors rose for optional fields.
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
-		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/parameter.schema.json
+		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_metadata/parameter.schema.json
+		--version-minimum 1
 		${parameters_json}
 		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
 		#--verbose
@@ -135,6 +140,7 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		px4params/xmlout.py
 		px4params/readonly_config.py
 		px_process_params.py
+		${PX4_SOURCE_DIR}/Tools/validate_json.py
 	COMMENT "Generating parameters.xml"
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})

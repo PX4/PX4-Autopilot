@@ -54,8 +54,6 @@
 #include <parameters/param.h>
 #include <version/version.h>
 
-#include <arch/chip/chip.h>
-
 #include <uORB/topics/esc_status.h>
 
 #include <drivers/drv_hrt.h>
@@ -78,9 +76,11 @@ UavcanNode *UavcanNode::_instance;
 
 static UavcanNode::CanInitHelper *can = nullptr;
 
-UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
+UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id, uint32_t bitrate) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
+	_node_id(node_id),
+	_bitrate(bitrate),
 	_node(can_driver, system_clock, _pool_allocator),
 #if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	_arming_status_controller(_node),
@@ -131,25 +131,6 @@ UavcanNode::~UavcanNode()
 	if (_servers != nullptr) {
 		delete _servers;
 		_servers = nullptr;
-	}
-
-	if (_instance) {
-
-		/* tell the task we want it to go away */
-		_task_should_exit.store(true);
-		ScheduleNow();
-
-		unsigned i = 10;
-
-		do {
-			/* wait 5ms - it should wake every 10ms or so worst-case */
-			usleep(5000);
-
-			if (--i == 0) {
-				break;
-			}
-
-		} while (_instance);
 	}
 
 	// Removing the sensor bridges
@@ -442,7 +423,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance());
+	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance(), node_id, bitrate);
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
@@ -456,6 +437,33 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	_instance->_mixing_interface_servo.ScheduleNow();
 #endif
 
+	return OK;
+}
+
+int
+UavcanNode::stop()
+{
+	UavcanNode *const inst = _instance;
+
+	if (inst == nullptr) {
+		return -1;
+	}
+
+	inst->_task_should_exit.store(true);
+	inst->ScheduleNow();
+
+	// Run() clears _instance once the node and its outputs are off the work queue
+	for (int i = 0; i < 500 && _instance != nullptr; i++) {
+		px4_usleep(10000);
+	}
+
+	if (_instance != nullptr) {
+		// Run() may still be using it, so freeing it is not safe
+		PX4_ERR("Node did not stop, not freeing it");
+		return -1;
+	}
+
+	delete inst;
 	return OK;
 }
 
@@ -636,6 +644,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_esc_controller.set_node_info_publisher(&_node_info_publisher);
+	_esc_controller.set_node_status_monitor(&_node_status_monitor);
 #endif
 
 	/* Set up shared service clients */
@@ -703,31 +712,33 @@ void
 UavcanNode::Run()
 {
 	if (!_node_init) {
-		// Node ID
-		int32_t node_id = 1;
-		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
-
-		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
-			PX4_ERR("Invalid Node ID %" PRId32, node_id);
-			::exit(1);
-		}
-
-		// CAN bitrate
-		int32_t bitrate = 1000000;
-		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
-
 		/*
 		* CAN driver init
 		 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
 		 * shipped with libuavcan does not support deinitialization.
 		 */
-		const int can_init_res = can->init(bitrate);
+		const int can_init_res = can->init(_bitrate);
 
 		if (can_init_res < 0) {
-			PX4_ERR("CAN driver init failed %i", can_init_res);
+			// retried every cycle, so report each error once
+			if (can_init_res != _can_init_error) {
+				PX4_ERR("CAN driver init failed %i at %" PRIu32 " bit/s", can_init_res, _bitrate);
+				_can_init_error = can_init_res;
+			}
 
 		} else {
-			_instance->init(node_id, can->driver.updateEvent());
+			const int node_init_res = _instance->init(_node_id, can->driver.updateEvent());
+
+			// Not retried: init() would create the sensor bridges and servers a second time
+			if (node_init_res < 0) {
+				PX4_ERR("Node init failed %i", node_init_res);
+
+#if defined(UAVCAN_SOCKETCAN_NUTTX)
+				// init() fails before or at _node.start(), and spinOnce() does not read the sockets of a
+				// node that never started, so they would fill the IOB pool
+				can->driver.closeIfaces();
+#endif
+			}
 
 			_node_init = true;
 		}
@@ -740,9 +751,8 @@ UavcanNode::Run()
 		const int slave_init_res = _time_sync_slave.start();
 
 		if (slave_init_res < 0) {
+			// not fatal: the slave only follows a higher-priority time master, the node keeps publishing its own time
 			PX4_ERR("Failed to start time_sync_slave");
-			ScheduleClear();
-			return;
 		}
 
 		/* When we have a system wide notion of time update (i.e the transition from the initial
@@ -1037,6 +1047,12 @@ UavcanNode::Run()
 
 	if (_task_should_exit.load()) {
 
+#if defined(UAVCAN_SOCKETCAN_NUTTX)
+		// Left bound, the sockets keep queueing received frames into the IOB pool the IP stack
+		// shares. They belong to the work queue's task group, so the shell cannot close them.
+		can->driver.closeIfaces();
+#endif
+
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 		_mixing_interface_esc.mixingOutput().unregister();
 		_mixing_interface_esc.ScheduleClear();
@@ -1044,8 +1060,10 @@ UavcanNode::Run()
 		_mixing_interface_servo.mixingOutput().unregister();
 		_mixing_interface_servo.ScheduleClear();
 #endif
-		ScheduleClear();
+		// Cleared first: a bus event interrupt between the two would queue one more Run() that
+		// stop() does not wait for
 		_instance = nullptr;
+		ScheduleClear();
 	}
 }
 
@@ -1135,7 +1153,7 @@ void UavcanNode::publish_node_statuses()
 				return;
 			}
 
-			// See if we have NodeID <--> uORB_index mapped
+			// See if we have NodeID <-> uORB_index mapped
 			int uorb_index = -1;
 
 			for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
@@ -1196,15 +1214,18 @@ bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsig
 			}
 		}
 
-		// Reversible motors: send reverse as a signed RawCommand (negative = reverse). Encoded in
-		// place so actuator_outputs reflects the actual wire value sent to the ESC. Done here rather
-		// than via minValue()/maxValue() (as DShot does for its 3D range) because those are uint16_t
-		// and can't hold the negative bound a signed RawCommand would need.
-		const uint32_t reversible = mixingOutput().reversibleOutputs();
+		// Reversible channels: send reverse as a signed RawCommand (negative = reverse). Sourced
+		// from the mixer's reversible mask (CA_R_REV motors) and UAVCAN_EC_SIGNED (non-motor
+		// channels). Encoded in place so actuator_outputs reflects the actual wire value sent to
+		// the ESC. Done here rather than via minValue()/maxValue() (as DShot does for its 3D
+		// range) because those are uint16_t and can't hold the negative bound a signed RawCommand
+		// would need.
+		uint32_t reversible = mixingOutput().reversibleOutputs();
+
+		reversible |= _signed_non_motor_mask;
 
 		for (unsigned i = 0; i < output_array_size; i++) {
-			// Encode armed outputs only; a stopped channel sits at the disarmed value and must
-			// not be inverted to full reverse (the disarmed < min invariant is not guaranteed).
+			// Encode reversible outputs above the disarmed value.
 			if ((reversible & (1u << i)) && outputs[i] > (float)mixingOutput().disarmedValue(i)) {
 				const float min_i = (float)mixingOutput().minValue(i);
 				const float max_i = (float)mixingOutput().maxValue(i);
@@ -1229,12 +1250,20 @@ void UavcanMixingInterfaceESC::Run()
 void UavcanMixingInterfaceESC::mixerChanged()
 {
 	int rotor_count = 0;
+	_signed_non_motor_mask = 0;
 
 	for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
 		rotor_count += _mixing_output.isFunctionSet(i);
 
 		if (i < esc_status_s::CONNECTED_ESC_MAX) {
 			_esc_controller.esc_status().esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
+		}
+
+		if ((_signed_mask & (1u << i)) && _mixing_output.isMotor(i)) {
+			PX4_WARN("UAVCAN_EC_SIGNED bit %u ignored: ESC %u is a motor, use CA_R_REV", i, i + 1);
+
+		} else if ((_signed_mask & (1u << i)) && _mixing_output.isFunctionSet(i)) {
+			_signed_non_motor_mask |= (1u << i);
 		}
 	}
 
@@ -1596,23 +1625,23 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		print_usage();
-		::exit(1);
+		return 1;
 	}
 
 	if (!std::strcmp(argv[1], "start")) {
 		if (UavcanNode::instance()) {
 			// Already running, no error
 			PX4_INFO("already started");
-			::exit(0);
+			return 0;
 		}
 
 		// Node ID
 		int32_t node_id = 1;
 		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
 
-		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
+		if (node_id < 0 || node_id > uavcan::NodeID::MaxRecommendedForRegularNodes || !uavcan::NodeID(node_id).isUnicast()) {
 			PX4_ERR("Invalid Node ID %" PRId32, node_id);
-			::exit(1);
+			return 1;
 		}
 
 		// CAN bitrate
@@ -1637,17 +1666,17 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 		}
 
 		UavcanNode::instance()->requestCheckAllNodesFirmwareAndUpdate();
-		::exit(0);
+		return 0;
 	}
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		inst->print_info();
-		::exit(0);
+		return 0;
 	}
 
 	if (!std::strcmp(argv[1], "shrink")) {
 		inst->shrink();
-		::exit(0);
+		return 0;
 	}
 
 	/*
@@ -1705,10 +1734,9 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 	}
 
 	if (!std::strcmp(argv[1], "stop")) {
-		delete inst;
-		::exit(0);
+		return UavcanNode::stop();
 	}
 
 	print_usage();
-	::exit(1);
+	return 1;
 }

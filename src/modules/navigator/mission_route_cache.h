@@ -112,8 +112,8 @@ public:
 	 * pending and for a ready empty mission. These reads carry no mission identity, use
 	 * getMissionView() for consistency across reads or update() cycles.
 	 */
-	int missionCount() const;
-	bool loadMissionItem(int index, mission_item_s &mission_item) const;
+	int missionCount() const override;
+	bool loadMissionItem(int index, mission_item_s &mission_item) const override;
 
 	/**
 	 * @brief Borrow the mission items without copying them.

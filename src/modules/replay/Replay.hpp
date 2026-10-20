@@ -147,8 +147,6 @@ protected:
 		// statistics
 		int approx_timestamp_counter = 0;
 		int publication_counter = 0;
-
-		bool published = false;
 	};
 
 	/**

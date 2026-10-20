@@ -2,10 +2,6 @@
 	path = src/modules/mavlink/mavlink
 	url = https://github.com/mavlink/mavlink.git
 	branch = master
-[submodule "Tools/simulation/jmavsim/jMAVSim"]
-	path = Tools/simulation/jmavsim/jMAVSim
-	url = https://github.com/PX4/jMAVSim.git
-	branch = main
 [submodule "Tools/simulation/gazebo-classic/sitl_gazebo-classic"]
 	path = Tools/simulation/gazebo-classic/sitl_gazebo-classic
 	url = https://github.com/PX4/PX4-SITL_gazebo-classic.git

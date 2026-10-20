@@ -266,7 +266,7 @@ Source: [examples/fake_magnetometer](https://github.com/PX4/PX4-Autopilot/tree/m
 ### 描述
 
 Publish the earth magnetic field as a fake magnetometer (sensor_mag).
-Requires vehicle_attitude and vehicle_gps_position.
+Requires vehicle_attitude and vehicle_gnss.
 
 ### Usage {#fake_magnetometer_usage}
 
@@ -763,6 +763,8 @@ mcp230xx <command> [arguments...]
      [-M <val>]  First minor number
                  default: 0
 
+   write         Set the output pins to the state given with -O
+
    stop
 
    status        print status info
@@ -1076,6 +1078,14 @@ Source: [drivers/px4io](https://github.com/PX4/PX4-Autopilot/tree/main/src/drive
 ### 描述
 
 Output driver communicating with the IO co-processor.
+
+On its RC input, the IO co-processor supports:
+
+- PPM (CPPM)
+- S.BUS and S.BUS2
+- Spektrum DSM / DSM2 / DSM-X (10-bit and 11-bit)
+- Yuneec ST24
+- Graupner SUMD
 
 ### Usage {#px4io_usage}
 

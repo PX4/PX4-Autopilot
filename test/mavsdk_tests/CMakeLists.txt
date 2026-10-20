@@ -20,6 +20,7 @@ if(MAVSDK_FOUND)
         autopilot_tester_rtl.cpp
         autopilot_tester_figure_eight.cpp
         autopilot_tester_loiter.cpp
+        autopilot_tester_vision_target.cpp
         # follow-me needs a MAVSDK update:
         # https://github.com/mavlink/MAVSDK/pull/1770
         # autopilot_tester_follow_me.cpp
@@ -42,6 +43,7 @@ if(MAVSDK_FOUND)
         test_vtol_loiter_airspeed_failure_blockage.cpp
         test_multicopter_home.cpp
         test_param_ftp.cpp
+        test_vision_target.cpp
         # test_multicopter_follow_me.cpp
     )
 
@@ -51,6 +53,9 @@ if(MAVSDK_FOUND)
     )
 
     target_include_directories(mavsdk_tests PUBLIC ${CMAKE_BINARY_DIR}/..)
+
+    set_source_files_properties(autopilot_tester_vision_target.cpp PROPERTIES COMPILE_DEFINITIONS
+        "PX4_MAVLINK_XML_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../../src/modules/mavlink/mavlink/message_definitions/v1.0\"")
 
     target_compile_options(mavsdk_tests
         PRIVATE
