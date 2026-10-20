@@ -174,3 +174,14 @@ px4_add_unit_gtest(SRC MavlinkFtpParamTest.cpp EXTRA_SRCS mavlink_ftp_param.cpp)
 if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask
 endif()
+
+px4_add_unit_gtest(SRC OpenDroneIdBridgeTest.cpp
+	INCLUDES
+		${MAVLINK_LIBRARY_DIR}
+		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}
+	COMPILE_FLAGS
+		-Wno-address-of-packed-member
+		-Wno-cast-align
+	LINKLIBS
+		modules__mavlink
+	)

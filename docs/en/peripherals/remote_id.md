@@ -216,11 +216,26 @@ A record copied from another board, an invalid serial number, or a damaged recor
 In locked mode, an invalid or missing identity does not fall back to the board GUID for DroneCAN Basic ID.
 UID matching and CRC detect mismatches and corruption; they do not authenticate the serial number or prevent deliberate rewriting, and signature verification is not implemented.
 
+MAVLink and DroneCAN outputs use the same validated stored identity in locked mode, including after reboot before a ground station sends another Basic ID.
+Neither output substitutes a board GUID when the locked record is missing or invalid.
+
 ::: warning
 Version 1 records do not contain a UID and are rejected without being overwritten or automatically bound to the current board.
 Upgrading a provisioned device therefore requires an explicit maintenance procedure to back up the old identity, restore the identity record area to its erased state, and provision a valid serial number again.
 Reboot after reprovisioning so all identity consumers reload the record.
 :::
+
+### Forwarding Ground Station Configuration
+
+PX4 accepts Basic ID, Operator ID, and System configuration from a source that has sent a GCS heartbeat on the input link.
+The target must be this vehicle or broadcast, the target component must be the autopilot or broadcast, and `id_or_mac` must be zero (configuration for this vehicle).
+The messages retain their classification and identifier bytes when forwarded to MAVLink or DroneCAN RID modules.
+MAVLink output streams do not echo configuration back onto its input channel.
+For forwarding-enabled links without the corresponding periodic stream, each accepted update triggers a one-shot output using the same validated data.
+
+System classification and area settings are retained, but operator coordinates, altitude, and protocol timestamp become unknown after five seconds without a new full System message.
+This prevents replaying obsolete dynamic information while preserving the configured classification.
+This bridge does not implement the separate `OPEN_DRONE_ID_SYSTEM_UPDATE` receive message.
 
 ## Compliance
 

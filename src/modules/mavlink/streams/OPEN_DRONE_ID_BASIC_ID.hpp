@@ -34,9 +34,13 @@
 #ifndef OPEN_DRONE_ID_BASIC_ID_HPP
 #define OPEN_DRONE_ID_BASIC_ID_HPP
 
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/open_drone_id_basic_id.h>
+#include <uORB/topics/vehicle_status.h>
+#include <modules/mavlink/open_drone_id_bridge.hpp>
 #include <modules/mavlink/open_drone_id_translations.hpp>
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+#include <lib/open_drone_id/odid_bid_storage.hpp>
+#endif
 
 class MavlinkStreamOpenDroneIdBasicId : public MavlinkStream
 {
@@ -51,59 +55,83 @@ public:
 
 	unsigned get_size() override
 	{
-		return (_open_drone_id_basic_id.advertised()
-			|| _vehicle_status_sub.advertised()) ? MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+
+		if (_odid_bid_src == open_drone_id::UAS_ID_MODE_LOCK_FIRST_BASIC_ID) {
+			return MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		}
+
+#endif
+		return (_configuration_sub.advertised() || _vehicle_status_sub.advertised())
+		       ? MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	explicit MavlinkStreamOpenDroneIdBasicId(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamOpenDroneIdBasicId(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+		// ODID_BID_SRC requires a reboot, as on the DroneCAN path.
+		param_get(param_handle(px4::params::ODID_BID_SRC), &_odid_bid_src);
+#endif
+	}
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _open_drone_id_basic_id{ORB_ID(open_drone_id_basic_id)};
-
+	uORB::Subscription _configuration_sub{ORB_ID(open_drone_id_basic_id)};
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+	int32_t _odid_bid_src {0};
+	open_drone_id::BidLockInfo _odid_bid_lock_info{};
+	bool _odid_bid_lock_loaded{false};
+#endif
 
 	bool send() override
 	{
-		vehicle_status_s vehicle_status;
-		mavlink_open_drone_id_basic_id_t msg{};
+		open_drone_id_basic_id_s configuration{};
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+		const bool identity_updated = _configuration_sub.updated();
+#endif
+		const bool have_configuration = _configuration_sub.copy(&configuration);
 
-		if (_open_drone_id_basic_id.advertised()) {
-			open_drone_id_basic_id_s basic_id {};
-
-			if (_open_drone_id_basic_id.copy(&basic_id)) {
-				msg.id_type = basic_id.id_type;
-				msg.ua_type = basic_id.ua_type;
-				// msg.id_or_mac // Only used for drone ID data received from other UAs.
-
-				static_assert(sizeof(msg.uas_id) == sizeof(basic_id.uas_id), "OpenDroneID Basic ID uas_id size mismatch");
-
-				memcpy(msg.uas_id, basic_id.uas_id, sizeof(msg.uas_id));
-
-				mavlink_msg_open_drone_id_basic_id_send_struct(_mavlink->get_channel(), &msg);
-
-				return true;
-
-			}
+		if (have_configuration
+		    && !open_drone_id_bridge::send_on_channel(configuration.mavlink_channel, _mavlink->get_channel())) {
+			return false;
 		}
 
-		if (_vehicle_status_sub.update(&vehicle_status)) {
+		mavlink_open_drone_id_basic_id_t msg{};
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
 
-			msg.target_system = 0; // 0 for broadcast
-			msg.target_component = 0; // 0 for broadcast
-			// msg.id_or_mac // Only used for drone ID data received from other UAs.
+		if (_odid_bid_src == open_drone_id::UAS_ID_MODE_LOCK_FIRST_BASIC_ID) {
+			if (!_odid_bid_lock_loaded || (identity_updated && !_odid_bid_lock_info.locked())) {
+				_odid_bid_lock_info = open_drone_id::BidStorage::get();
+				_odid_bid_lock_loaded = true;
+			}
 
-			// id_type: MAV_ODID_ID_TYPE
+			if (!_odid_bid_lock_info.locked()) {
+				return false;
+			}
+
 			msg.id_type = MAV_ODID_ID_TYPE_SERIAL_NUMBER;
-
-			// ua_type: MAV_ODID_UA_TYPE
-			msg.ua_type = open_drone_id_translations::odidTypeForMavType(vehicle_status.system_type);
-
-			// uas_id: UAS (Unmanned Aircraft System) ID following the format specified by id_type
-			// TODO: MAV_ODID_ID_TYPE_SERIAL_NUMBER needs to be ANSI/CTA-2063 format
-			board_get_px4_guid_formated((char *)(msg.uas_id), sizeof(msg.uas_id));
-
+			msg.ua_type = _odid_bid_lock_info.id.ua_type;
+			open_drone_id_bridge::copy_bytes(msg.uas_id, _odid_bid_lock_info.id.uas_id);
 			mavlink_msg_open_drone_id_basic_id_send_struct(_mavlink->get_channel(), &msg);
+			return true;
+		}
 
+#endif
+
+		if (have_configuration) {
+			open_drone_id_bridge::basic_id(msg, configuration);
+			mavlink_msg_open_drone_id_basic_id_send_struct(_mavlink->get_channel(), &msg);
+			return true;
+		}
+
+		vehicle_status_s vehicle_status{};
+
+		if (_vehicle_status_sub.update(&vehicle_status)) {
+			msg.id_type = MAV_ODID_ID_TYPE_SERIAL_NUMBER;
+			msg.ua_type = open_drone_id_translations::odidTypeForMavType(vehicle_status.system_type);
+			// Legacy fallback when persistent identity locking is disabled.
+			board_get_px4_guid_formated(reinterpret_cast<char *>(msg.uas_id), sizeof(msg.uas_id));
+			mavlink_msg_open_drone_id_basic_id_send_struct(_mavlink->get_channel(), &msg);
 			return true;
 		}
 

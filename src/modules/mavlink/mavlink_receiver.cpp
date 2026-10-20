@@ -40,6 +40,8 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
+#include "open_drone_id_bridge.hpp"
+
 #include <lib/airspeed/airspeed.h>
 #include <lib/conversion/rotation.h>
 #include <lib/systemlib/px4_macros.h>
@@ -3778,14 +3780,15 @@ void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *m
 	mavlink_open_drone_id_basic_id_t odid_module {};
 	mavlink_msg_open_drone_id_basic_id_decode(msg, &odid_module);
 
-	if (odid_module.target_system != mavlink_system.sysid ||
-	    (odid_module.target_component != mavlink_system.compid && odid_module.target_component != MAV_COMP_ID_ALL)) {
+	if (!remote_id_source_is_gcs(*msg)
+	    || !open_drone_id_bridge::is_local_configuration(odid_module, mavlink_system.sysid, mavlink_system.compid)) {
 		return;
 	}
 
 	open_drone_id_basic_id_s odid_basic_id {};
 
 	odid_basic_id.timestamp = hrt_absolute_time();
+	odid_basic_id.mavlink_channel = _mavlink.get_channel();
 	memcpy(odid_basic_id.id_or_mac, odid_module.id_or_mac, sizeof(odid_basic_id.id_or_mac));
 	odid_basic_id.id_type = odid_module.id_type;
 	odid_basic_id.ua_type = odid_module.ua_type;
@@ -3828,7 +3831,10 @@ void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *m
 	}
 
 #endif
-	_open_drone_id_basic_id_pub.publish(odid_basic_id);
+
+	if (_open_drone_id_basic_id_pub.publish(odid_basic_id)) {
+		_mavlink.forward_remote_id_configuration(MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID);
+	}
 }
 
 void MavlinkReceiver::handle_message_open_drone_id_operator_id(
@@ -3837,15 +3843,23 @@ void MavlinkReceiver::handle_message_open_drone_id_operator_id(
 	mavlink_open_drone_id_operator_id_t odid_module;
 	mavlink_msg_open_drone_id_operator_id_decode(msg, &odid_module);
 
+	if (!remote_id_source_is_gcs(*msg)
+	    || !open_drone_id_bridge::is_local_configuration(odid_module, mavlink_system.sysid, mavlink_system.compid)) {
+		return;
+	}
+
 	open_drone_id_operator_id_s odid_operator_id{};
 	memset(&odid_operator_id, 0, sizeof(odid_operator_id));
 
 	odid_operator_id.timestamp = hrt_absolute_time();
+	odid_operator_id.mavlink_channel = _mavlink.get_channel();
 	memcpy(odid_operator_id.id_or_mac, odid_module.id_or_mac, sizeof(odid_operator_id.id_or_mac));
 	odid_operator_id.operator_id_type = odid_module.operator_id_type;
 	memcpy(odid_operator_id.operator_id, odid_module.operator_id, sizeof(odid_operator_id.operator_id));
 
-	_open_drone_id_operator_id_pub.publish(odid_operator_id);
+	if (_open_drone_id_operator_id_pub.publish(odid_operator_id)) {
+		_mavlink.forward_remote_id_configuration(MAVLINK_MSG_ID_OPEN_DRONE_ID_OPERATOR_ID);
+	}
 }
 
 void MavlinkReceiver::handle_message_open_drone_id_self_id(mavlink_message_t *msg)
@@ -3870,10 +3884,17 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 	mavlink_open_drone_id_system_t odid_module;
 	mavlink_msg_open_drone_id_system_decode(msg, &odid_module);
 
+	if (!remote_id_source_is_gcs(*msg)
+	    || !open_drone_id_bridge::is_local_configuration(odid_module, mavlink_system.sysid, mavlink_system.compid)) {
+		return;
+	}
+
 	open_drone_id_system_s odid_system{};
 	memset(&odid_system, 0, sizeof(odid_system));
 
-	odid_system.timestamp = odid_module.timestamp;
+	odid_system.timestamp = hrt_absolute_time();
+	odid_system.mavlink_channel = _mavlink.get_channel();
+	odid_system.timestamp_system = odid_module.timestamp;
 	memcpy(odid_system.id_or_mac, odid_module.id_or_mac, sizeof(odid_system.id_or_mac));
 	odid_system.operator_location_type = odid_module.operator_location_type;
 	odid_system.classification_type = odid_module.classification_type;
@@ -3887,7 +3908,9 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 	odid_system.class_eu = odid_module.class_eu;
 	odid_system.operator_altitude_geo = odid_module.operator_altitude_geo;
 
-	_open_drone_id_system_pub.publish(odid_system);
+	if (_open_drone_id_system_pub.publish(odid_system)) {
+		_mavlink.forward_remote_id_configuration(MAVLINK_MSG_ID_OPEN_DRONE_ID_SYSTEM);
+	}
 }
 void
 MavlinkReceiver::run()
@@ -4222,6 +4245,18 @@ void MavlinkReceiver::reset_parser_after_rejected_frame(uint8_t c)
 	}
 }
 
+bool MavlinkReceiver::remote_id_source_is_gcs(const mavlink_message_t &message) const
+{
+	for (unsigned i = 0; i < _component_states_count; ++i) {
+		if (_component_states[i].system_id == message.sysid
+		    && _component_states[i].component_id == message.compid) {
+			return _component_states[i].is_gcs;
+		}
+	}
+
+	return false;
+}
+
 bool MavlinkReceiver::component_was_seen(int system_id, int component_id)
 {
 	// For system broadcast messages return true if at least one component was seen before
@@ -4284,6 +4319,18 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message, bool add
 
 		return false;
 	}();
+
+	if (message.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+		mavlink_heartbeat_t heartbeat{};
+		mavlink_msg_heartbeat_decode(&message, &heartbeat);
+
+		for (unsigned i = 0; i < _component_states_count; ++i) {
+			if (_component_states[i].system_id == message.sysid && _component_states[i].component_id == message.compid) {
+				_component_states[i].is_gcs = heartbeat.type == MAV_TYPE_GCS;
+				break;
+			}
+		}
+	}
 
 	if (add_component && !component_states_has_still_space && !_warned_component_states_full_once) {
 		PX4_WARN("Max remote components of %u used up", MAX_REMOTE_COMPONENTS);

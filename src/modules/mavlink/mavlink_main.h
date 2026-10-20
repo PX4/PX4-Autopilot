@@ -328,6 +328,9 @@ public:
 	 */
 	void			forward_if_enabled(const mavlink_message_t *msg);
 
+	/** Queue an accepted Remote ID configuration for outputs without a periodic stream. */
+	void			forward_remote_id_configuration(uint16_t message_id);
+
 	int			get_instance_id() const { return _instance_id; }
 
 	/**
@@ -650,6 +653,7 @@ private:
 	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 
 	List<MavlinkStream *>		_streams;
+	px4::atomic<uint8_t>		_pending_remote_id_configuration{0};
 
 	px4::atomic<MavlinkShell *>	_mavlink_shell{nullptr}; ///< written by the receiver thread under _mavlink_shell_mutex; atomic for the unlocked fast check in handleMavlinkShellOutput()
 	pthread_mutex_t		_mavlink_shell_mutex{};
@@ -806,6 +810,7 @@ private:
 	int configure_streams_to_default(const char *configure_single_stream = nullptr);
 
 	void pass_message(const mavlink_message_t *msg);
+	void send_pending_remote_id_configuration();
 
 	void publish_telemetry_status();
 

@@ -33,6 +33,7 @@
 
 #include "remoteid.hpp"
 #include <modules/mavlink/open_drone_id_translations.hpp>
+#include <modules/mavlink/open_drone_id_bridge.hpp>
 #include <drivers/drv_hrt.h>
 
 using namespace time_literals;
@@ -85,35 +86,19 @@ void UavcanRemoteIDController::periodic_update(const uavcan::TimerEvent &)
 
 void UavcanRemoteIDController::send_basic_id()
 {
-	dronecan::remoteid::BasicID msg {};
-
-	// msg.id_or_mac // supposedly only used for drone ID data from other UAs
-	if (_open_drone_id_basic_id.advertised()) {
-		open_drone_id_basic_id_s basic_id {};
-
-		if (_open_drone_id_basic_id.copy(&basic_id)) {
-			msg.id_type = basic_id.id_type;
-			msg.ua_type = basic_id.ua_type;
-
-			using UasIdField = decltype(msg.uas_id);
-			static_assert(sizeof(basic_id.uas_id) == UasIdField::MaxSize, "OpenDroneID Basic ID uas_id size mismatch");
-
-			// uas_id: UAS (Unmanned Aircraft System) ID following the format specified by id_type
-			for (unsigned i = 0; i < UasIdField::MaxSize; ++i) {
-				msg.uas_id.push_back(basic_id.uas_id[i]);
-			}
-
+	dronecan::remoteid::BasicID msg{};
+	open_drone_id_basic_id_s basic_id{};
 #if defined(CONFIG_BOARD_HAS_RID_EEPROM)
-
-		} else if (_odid_bid_src == open_drone_id::UAS_ID_MODE_LOCK_FIRST_BASIC_ID) {
-			return;
+	const bool identity_updated = _open_drone_id_basic_id.updated();
 #endif
-		}
+	const bool have_configuration = _open_drone_id_basic_id.copy(&basic_id);
 
 #if defined(CONFIG_BOARD_HAS_RID_EEPROM)
 
-	} else if (_odid_bid_src == open_drone_id::UAS_ID_MODE_LOCK_FIRST_BASIC_ID) {
-		if (!_odid_bid_lock_loaded) {
+	if (_odid_bid_src == open_drone_id::UAS_ID_MODE_LOCK_FIRST_BASIC_ID) {
+		// Read the same validated storage used by MAVLink. Reload after initial
+		// provisioning, but never substitute an unverified topic or board GUID.
+		if (!_odid_bid_lock_loaded || (identity_updated && !_odid_bid_lock_info.locked())) {
 			_odid_bid_lock_info = open_drone_id::BidStorage::get();
 			_odid_bid_lock_loaded = true;
 		}
@@ -124,26 +109,22 @@ void UavcanRemoteIDController::send_basic_id()
 
 		msg.id_type = _odid_bid_lock_info.id.id_type;
 		msg.ua_type = _odid_bid_lock_info.id.ua_type;
+		open_drone_id_bridge::copy_bytes(msg.uas_id, _odid_bid_lock_info.id.uas_id);
 
-		for (unsigned i = 0; i < open_drone_id::UAS_ID_SIZE; ++i) {
-			msg.uas_id.push_back(_odid_bid_lock_info.id.uas_id[i]);
-		}
-
+	} else
 #endif
+		if (have_configuration) {
+			open_drone_id_bridge::basic_id(msg, basic_id);
 
-	} else {
-		msg.id_type = dronecan::remoteid::BasicID::ODID_ID_TYPE_SERIAL_NUMBER;
-		msg.ua_type = static_cast<uint8_t>(open_drone_id_translations::odidTypeForMavType(_vehicle_status.get().system_type));
+		} else {
+			msg.id_type = dronecan::remoteid::BasicID::ODID_ID_TYPE_SERIAL_NUMBER;
+			msg.ua_type = static_cast<uint8_t>(open_drone_id_translations::odidTypeForMavType(_vehicle_status.get().system_type));
 
-		// uas_id: UAS (Unmanned Aircraft System) ID following the format specified by id_type
-		// TODO: MAV_ODID_ID_TYPE_SERIAL_NUMBER needs to be ANSI/CTA-2063 format
-		char uas_id[20] {};
-		board_get_px4_guid_formated(uas_id, sizeof(uas_id));
-
-		for (unsigned i = 0; i < sizeof(uas_id); ++i) {
-			msg.uas_id.push_back(uas_id[i]);
+			// Legacy fallback when persistent identity locking is disabled.
+			char uas_id[20] {};
+			board_get_px4_guid_formated(uas_id, sizeof(uas_id));
+			open_drone_id_bridge::copy_bytes(msg.uas_id, uas_id);
 		}
-	}
 
 	_uavcan_pub_remoteid_basicid.broadcast(msg);
 }
@@ -295,23 +276,7 @@ void UavcanRemoteIDController::send_system()
 		// Use what ground station sends us.
 
 		dronecan::remoteid::System msg {};
-		msg.timestamp = system.timestamp;
-
-		for (unsigned i = 0; i < sizeof(system.id_or_mac); ++i) {
-			msg.id_or_mac.push_back(system.id_or_mac[i]);
-		}
-
-		msg.operator_location_type = system.operator_location_type;
-		msg.classification_type = system.classification_type;
-		msg.operator_latitude = system.operator_latitude;
-		msg.operator_longitude = system.operator_longitude;
-		msg.area_count = system.area_count;
-		msg.area_radius = system.area_radius;
-		msg.area_ceiling = system.area_ceiling;
-		msg.area_floor = system.area_floor;
-		msg.category_eu = system.category_eu;
-		msg.class_eu = system.class_eu;
-		msg.operator_altitude_geo = system.operator_altitude_geo;
+		open_drone_id_bridge::system(msg, system, hrt_absolute_time());
 
 		_uavcan_pub_remoteid_system.broadcast(msg);
 
@@ -381,15 +346,7 @@ void UavcanRemoteIDController::send_operator_id()
 
 		dronecan::remoteid::OperatorID msg {};
 
-		for (unsigned i = 0; i < sizeof(operator_id.id_or_mac); ++i) {
-			msg.id_or_mac.push_back(operator_id.id_or_mac[i]);
-		}
-
-		msg.operator_id_type = operator_id.operator_id_type;
-
-		for (unsigned i = 0; i < sizeof(operator_id.operator_id); ++i) {
-			msg.operator_id.push_back(operator_id.operator_id[i]);
-		}
+		open_drone_id_bridge::operator_id(msg, operator_id);
 
 		_uavcan_pub_remoteid_operator_id.broadcast(msg);
 	}
@@ -402,7 +359,11 @@ UavcanRemoteIDController::arm_status_sub_cb(const uavcan::ReceivedDataStructure<
 
 	arm_status.timestamp = hrt_absolute_time();
 	arm_status.status = msg.status;
-	memcpy(arm_status.error, msg.error.c_str(), sizeof(arm_status.error));
+
+	// DSDL error is a variable-length byte array, not necessarily a C string.
+	for (unsigned i = 0; i < msg.error.size() && i < sizeof(arm_status.error); ++i) {
+		arm_status.error[i] = msg.error[i];
+	}
 
 	_open_drone_id_arm_status_pub.publish(arm_status);
 }
