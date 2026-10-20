@@ -208,6 +208,7 @@ public:
 			resetVtolTransition();
 		}
 
+		loadCurrentMissionItem();
 		return handleJoinRouteWorkItems();
 	}
 
