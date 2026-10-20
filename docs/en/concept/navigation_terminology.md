@@ -31,7 +31,7 @@ In short: **heading** is where the vehicle _points_, **course** is where it _sho
 | [Leeway](#leeway)                                                 | Leeward motion of a vessel due to the wind.                                              | Bowditch                                  | —                                                      |
 | [Set and drift](#set-and-drift)                                   | Direction (toward) and speed of a current.                                               | Bowditch                                  | —                                                      |
 
-![Overview of navigation terms, seen from above (placeholder)](../../assets/concepts/navigation/navigation_overview.svg)
+![Overview of navigation terms, seen from above (placeholder)](../../assets/concepts/navigation/overview_heading_bearing_course_track.svg)
 
 _Single overview figure: vehicle seen from above, north arrow, desired track between two waypoints, heading arrow along the body x-axis, ground velocity arrow (course over ground), drift angle between them, bearing to the next waypoint, cross-track error as the perpendicular to the desired track._
 
