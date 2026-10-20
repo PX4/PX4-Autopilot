@@ -104,4 +104,6 @@ private:
 				  size_t &num_found_items);
 
 	bool _need_mission_save{false};
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(MissionBase, (ParamBool<px4::params::VT_FW_YAW_ALIGN>) _param_fw_yaw_align)
 };
