@@ -81,6 +81,11 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	_vehicle_gnss_pub.advertise();
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	_vehicle_gnss_heading_pub.advertise();
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		_two_receiver_gnss_updated[i] = false;
+	}
+
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 }
 
@@ -184,6 +189,10 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 							(gnss_heading::BaselineType::Disabled));
 		_gnss_param_slots[1].heading_enabled = (_param_sens_gnss1_hdg.get() != static_cast<int32_t>
 							(gnss_heading::BaselineType::Disabled));
+		_gnss_param_slots[0].two_receivers = (_param_sens_gnss0_hdg.get() == static_cast<int32_t>
+						      (gnss_heading::BaselineType::TwoReceivers));
+		_gnss_param_slots[1].two_receivers = (_param_sens_gnss1_hdg.get() == static_cast<int32_t>
+						      (gnss_heading::BaselineType::TwoReceivers));
 
 		// The moving base is the receiver in the other slot of a moving base rover
 		const bool rover0 = (_param_sens_gnss0_hdg.get() == static_cast<int32_t>(gnss_heading::BaselineType::MovingBase));
@@ -215,11 +224,16 @@ void VehicleGPSPosition::Run()
 
 		if (_sensor_gnss_sub[i].update(&gnss_data)) {
 			any_gnss_updated = true;
+			_two_receiver_gnss_updated[i] = true;
 
 			const GpsParamSlot *slot = findParamSlot(gnss_data.device_id, i);
 			const hrt_abstime delay_us = slot ? slot->delay_us : kDefaultDelay;
 
 			gnss_data.timestamp_sample = resolveSampleTimestamp(gnss_data.timestamp_sample, gnss_data.timestamp, delay_us);
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+			storeGnssData(i, gnss_data);
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 			const bool checks_passed = _gnss_checks[i].run(toChecksSample(gnss_data), _armed, _in_air, _at_rest);
 
@@ -289,6 +303,11 @@ void VehicleGPSPosition::Run()
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	UpdateGnssHeading();
+
+	if (any_gnss_updated) {
+		UpdateTwoReceiverHeading();
+	}
+
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	ScheduleDelayed(300_ms); // backup schedule
@@ -332,6 +351,61 @@ void VehicleGPSPosition::UpdateGnssHeading()
 		}
 
 		handleHeadingSample(sample, slot);
+	}
+}
+
+void VehicleGPSPosition::UpdateTwoReceiverHeading()
+{
+	for (int to = 0; to < GPS_MAX_RECEIVERS; to++) {
+		const sensor_gnss_s &to_gnss_data = _gnss_data[to];
+		const uint32_t to_device_id = to_gnss_data.device_id;
+
+		if (to_device_id == 0 || !_gnss_checks[to].passed() || !_two_receiver_gnss_updated[to]) {
+			continue;
+		}
+
+		const GpsParamSlot *slot = findParamSlot(to_device_id, to);
+
+		if (!slot || !slot->two_receivers) {
+			continue;
+		}
+
+		for (int from = 0; from < GPS_MAX_RECEIVERS; from++) {
+			const sensor_gnss_s &from_gnss_data = _gnss_data[from];
+			const uint32_t from_device_id = from_gnss_data.device_id;
+
+			if (to == from || from_device_id == 0 || !_gnss_checks[from].passed() || !_two_receiver_gnss_updated[from]) {
+				continue;
+			}
+
+			gnss_heading::Baseline baseline{};
+
+			if (!gnss_heading::measureBaseline(from_gnss_data, to_gnss_data, baseline)) {
+				continue;
+			}
+
+			_two_receiver_gnss_updated[to] = false;
+			_two_receiver_gnss_updated[from] = false;
+
+			HeadingSample sample{};
+			const sensor_gnss_s &used_gnss = baseline.time_utc_usec == from_gnss_data.time_utc_usec ? from_gnss_data : to_gnss_data;
+			sample.timestamp_sample = used_gnss.timestamp_sample;
+			const uint64_t pps_timestamp = _pps_time_sync.correct_gnss_timestamp(used_gnss.timestamp, used_gnss.time_utc_usec);
+
+			if (pps_timestamp != used_gnss.timestamp) {
+				sample.timestamp_sample = pps_timestamp;
+			}
+
+			sample.device_id = to_gnss_data.device_id;
+			sample.heading = baseline.heading;
+			sample.heading_accuracy = baseline.heading_accuracy;
+			sample.baseline_length = baseline.length;
+			sample.baseline_down = baseline.down;
+			// the states are ordered by severity, and either receiver being affected affects the heading
+			sample.jamming_state = math::max(to_gnss_data.jamming_state, from_gnss_data.jamming_state);
+			sample.spoofing_state = math::max(to_gnss_data.spoofing_state, from_gnss_data.spoofing_state);
+			handleHeadingSample(sample, slot);
+		}
 	}
 }
 
@@ -573,6 +647,11 @@ int VehicleGPSPosition::findGnssInstance(uint32_t device_id) const
 	}
 
 	return -1;
+}
+
+void VehicleGPSPosition::storeGnssData(int instance, const sensor_gnss_s &gnss_data)
+{
+	_gnss_data[instance] = gnss_data;
 }
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
