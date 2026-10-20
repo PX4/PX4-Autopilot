@@ -425,9 +425,11 @@ void RTL::setRtlTypeAndDestination()
 		_one_rally_point_has_land_approach = route_evaluation.any_safe_point_has_land_approach;
 
 		if (route_evaluation.success) {
+			const mission_route::RtlRoutePlan &plan = _route_safe_point.plan();
 			new_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
-			destination = route_evaluation.destination;
-			safe_point_index = route_evaluation.safe_point_index;
+			destination = {plan.goal_position.lat, plan.goal_position.lon, plan.goal_position.alt, NAN};
+			safe_point_index = plan.goal_type == mission_route::GoalType::kSafePoint
+					   ? static_cast<uint8_t>(plan.safe_point_index) : RTL_STATUS_NO_SAFE_POINT;
 
 		} else {
 			applyRouteSafePointFallback(new_rtl_type, destination_type, destination, safe_point_index);
@@ -582,7 +584,7 @@ void RTL::setRtlTypeAndDestination()
 
 	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_follower) {
 		// A refreshed plan must also configure a reused executor before estimating or activating it.
-		_route_follower->configureRoute(route_evaluation.plan, route_evaluation.goal_land_approach);
+		_route_follower->configureRoute(_route_safe_point.plan(), _route_safe_point.goalLandApproach());
 	}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
