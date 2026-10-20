@@ -204,9 +204,9 @@ public:
 		if (id == _status_id) {
 			const bool now_armed = (ulog_cpp::TypedDataView(record, *_status_fmt)[_status_arming_f].as<int>() == kArmed);
 
-			if (_armed && !now_armed) {   // disarm resets the detector (mirrors configure-on-disarm)
+			if (_armed && !now_armed) {   // disarm resets the detector (mirrors the commander check)
 				for (int p = 0; p < kNumPhases; ++p) {
-					_det[p].configure(_cfg);
+					_det[p].reset();
 					_next_eval_us[p] = 0;
 				}
 			}
