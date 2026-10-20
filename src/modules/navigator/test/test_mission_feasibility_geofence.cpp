@@ -603,7 +603,7 @@ INSTANTIATE_TEST_SUITE_P(MissionLoiterOrder, MissionGeofenceLoiterOrderTest, ::t
 	return test_info.param ? "IncomingPathBeforeCircle" : "CircleBeforeFollowingPath";
 });
 
-enum class MissionEnd { Waypoint, Land, Loiter, Return, ReturnWithoutHome };
+enum class MissionEnd { Waypoint, Land, Loiter, Return };
 
 struct MissionEndCase {
 	const char *name;
@@ -631,7 +631,6 @@ TEST_P(MissionGeofenceEndLoiterTest, ChecksTheLoiterAfterTheLastPosition)
 	switch (test.last_item) {
 	case MissionEnd::Waypoint:
 	case MissionEnd::Return:
-	case MissionEnd::ReturnWithoutHome:
 		break;
 
 	case MissionEnd::Land:
@@ -648,16 +647,11 @@ TEST_P(MissionGeofenceEndLoiterTest, ChecksTheLoiterAfterTheLastPosition)
 	// End-of-mission loiter belongs to the last position, even with trailing command items.
 	items.push_back(changeSpeed());
 
-	if (test.last_item == MissionEnd::Return || test.last_item == MissionEnd::ReturnWithoutHome) {
+	if (test.last_item == MissionEnd::Return) {
+		// Return may circle at the last position to climb, so the circle is still checked.
 		mission_item_s return_item{};
 		return_item.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
 		items.push_back(return_item);
-	}
-
-	if (test.last_item == MissionEnd::ReturnWithoutHome) {
-		// Without Home, Return is refused and the mission ends in Hold at the last position.
-		_navigator.get_home_position()->valid_hpos = false;
-		_home_pub.publish(*_navigator.get_home_position());
 	}
 
 	EXPECT_EQ(missionFeasible(items), test.feasible);
@@ -678,9 +672,7 @@ INSTANTIATE_TEST_SUITE_P(MissionEnds, MissionGeofenceEndLoiterTest, ::testing::V
 						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
 				 MissionEndCase{"MulticopterHoversAtTheEnd", MissionEnd::Waypoint, 60.f,
 						 vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true},
-				 MissionEndCase{"ReturnSkipsTheMissionEndHold", MissionEnd::Return, 60.f,
-						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
-				 MissionEndCase{"ReturnWithoutHomeKeepsTheHold", MissionEnd::ReturnWithoutHome, 60.f,
+				 MissionEndCase{"ReturnKeepsTheEndCircle", MissionEnd::Return, 60.f,
 						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false}),
 			 [](const ::testing::TestParamInfo<MissionEndCase> &test_info)
 {

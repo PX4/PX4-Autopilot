@@ -158,14 +158,6 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		}
 
 		if (!mission_item_contains_position(missionitem)) {
-#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-
-			// With Home, Return replaces the mission-end Hold. Return may still loiter to climb.
-			if (missionitem.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH && home_valid) {
-				end_loiter_radius = 0.f;
-			}
-
-#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 			continue;
 		}
 
