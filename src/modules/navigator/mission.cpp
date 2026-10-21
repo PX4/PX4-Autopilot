@@ -216,11 +216,11 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 	if ((index == -1) || (index == _mission.current_seq)) {
 		// Keep the current mission item unchanged.
 		if (reset_jump_counters) {
-			resetVtolTransition();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 			resetJoinRouteState();
 			_active_jump_anchor = {};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+			resetVtolTransition();
 			resetMissionJumpCounter();
 
 			// A reset can bring a finished mission back to a resumable state (mirrors
@@ -245,12 +245,12 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 		resetMissionJumpCounter();
 	}
 
-	resetVtolTransition();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	// The user actively moved the mission index: any armed route join or loop anchor is stale.
 	resetJoinRouteState();
 	_active_jump_anchor = {};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	resetVtolTransition();
 
 	_is_current_planned_mission_item_valid = true;
 
