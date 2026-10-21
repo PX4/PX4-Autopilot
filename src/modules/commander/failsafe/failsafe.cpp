@@ -166,7 +166,8 @@ FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_valu
 	return options;
 }
 
-static constexpr uint8_t BATTERY_WARNING_SMART_RETURN = UINT8_MAX; // "battery level" to handle the remaining flight time (Smart Return)
+// "battery level" to handle the remaining flight time (Distance-aware return)
+static constexpr uint8_t BATTERY_WARNING_DISTANCE_AWARE_RETURN = UINT8_MAX;
 
 FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value, uint8_t battery_warning)
 {
@@ -191,8 +192,8 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 		case LowBatteryAction::Return:
 		case LowBatteryAction::ReturnOrLand:
 		case LowBatteryAction::ReturnOrTerminate:
-		case LowBatteryAction::ReturnOrLandWithSmartReturn:
-		case LowBatteryAction::ReturnOrTerminateWithSmartReturn:
+		case LowBatteryAction::ReturnOrLandWithDistanceAwareReturn:
+		case LowBatteryAction::ReturnOrTerminateWithDistanceAwareReturn:
 			options.action = Action::RTL;
 			break;
 
@@ -218,7 +219,7 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 
 		case LowBatteryAction::Land:
 		case LowBatteryAction::ReturnOrLand:
-		case LowBatteryAction::ReturnOrLandWithSmartReturn:
+		case LowBatteryAction::ReturnOrLandWithDistanceAwareReturn:
 			options.action = Action::Land;
 			break;
 
@@ -227,20 +228,20 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 			break;
 
 		case LowBatteryAction::ReturnOrTerminate:
-		case LowBatteryAction::ReturnOrTerminateWithSmartReturn:
+		case LowBatteryAction::ReturnOrTerminateWithDistanceAwareReturn:
 			options.action = Action::Terminate;
 			break;
 		}
 
 		break;
 
-	case BATTERY_WARNING_SMART_RETURN:
+	case BATTERY_WARNING_DISTANCE_AWARE_RETURN:
 		options.action = Action::Warn;
 		options.cause = Cause::RemainingFlightTimeLow;
 
 		switch ((LowBatteryAction)param_value) {
-		case LowBatteryAction::ReturnOrLandWithSmartReturn:
-		case LowBatteryAction::ReturnOrTerminateWithSmartReturn:
+		case LowBatteryAction::ReturnOrLandWithDistanceAwareReturn:
+		case LowBatteryAction::ReturnOrTerminateWithDistanceAwareReturn:
 			options.action = Action::RTL;
 			options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 			break;
@@ -706,9 +707,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		break;
 	}
 
-	// Battery flight time remaining failsafe (Smart Return)
+	// Battery flight time remaining failsafe (Distance-aware return)
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
-		       ActionOptions(fromBatteryWarningActParam(_param_com_low_bat_act.get(), BATTERY_WARNING_SMART_RETURN)));
+		       ActionOptions(fromBatteryWarningActParam(_param_com_low_bat_act.get(), BATTERY_WARNING_DISTANCE_AWARE_RETURN)));
 
 	// Handle fails during spoolup just after arming
 	if ((_armed_time != 0) && (time_us < _armed_time + spoolup)) {

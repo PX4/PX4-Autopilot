@@ -89,8 +89,8 @@ The failsafe actions can then be set to one of:
 
 - `0: Warning` — Warn only.
 - `2: Land mode` — Land at the "Failsafe level".
-- `3: Return at critical level, land at emergency level`: (recommended) — Return mode at "Failsafe" level, Land at "Emergency level".
-- `4: Return at critical level, terminate at emergency level`<Badge type="tip" text="main (PX4 v2.0)" /> — Return mode at "Failsafe" level, [Flight termination](#act_term) at "Emergency level".
+- `3: Critical level return, Emergency level land`: (recommended) — Return mode at "Failsafe" level, Land at "Emergency level".
+- `4: Critical level return, Emergency level terminate`<Badge type="tip" text="main (PX4 v2.0)" /> — Return mode at "Failsafe" level, [Flight termination](#act_term) at "Emergency level".
 
   ::: tip
   This option may be preferred for vehicles that have a [parachute](../peripherals/parachute.md), as it enables controlled landing when there is no power at all.
@@ -98,23 +98,23 @@ The failsafe actions can then be set to one of:
   If it is not available in the setup screen, [set the parameter](../advanced_config/parameters.md) directly to [COM_LOW_BAT_ACT = 4](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT).
   :::
 
-- `5: Smart Return, return at critical level, land at emergency level`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `3`, plus the [Smart Return failsafe](#smart-return-failsafe).
-- `6: Smart Return, return at critical level, terminate at emergency level`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `4`, plus the [Smart Return failsafe](#smart-return-failsafe).
+- `5: Distance-aware return, Critical level return, Emergency level land`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `3`, plus the [distance-aware return failsafe](#distance-aware-return-failsafe).
+- `6: Distance-aware return, Critical level return, Emergency level terminate`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `4`, plus the [distance-aware return failsafe](#distance-aware-return-failsafe).
 
 The settings and underlying parameters are shown below.
 
-| Setting                                                     | Parameter                                                                    | Description                                                                                                                          |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action                 | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Land, or Return and then Land or Terminate when capacity drops below the trigger levels. Options `5` and `6` add Smart Return. |
-| <a id="BAT_LOW_THR"></a>Battery Warn Level                  | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)         | Percentage capacity for warnings (or other actions).                                                                                 |
-| <a id="BAT_CRIT_THR"></a>Battery Failsafe Level             | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)       | Percentage capacity for Return action (or other actions if a single action selected).                                                |
-| <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level         | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR) | Percentage capacity for triggering Land (immediately) action.                                                                        |
-| <a id="COM_ARM_BAT_MIN"></a>Minimum armable state of charge | [COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN) | Prevents arming if the battery state of charge is below the specified value.                                                         |
-| <a id="BAT1_CAPACITY"></a>Battery capacity                  | [BATn_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY)     | Capacity for each battery (i.e. `BAT1_CAPACITY`, `BAT2_CAPACITY`).                                                                   |
+| Setting                                                     | Parameter                                                                    | Description                                                                                                                                   |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action                 | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Land, or Return and then Land or Terminate when capacity drops below the trigger levels. Options `5` and `6` add distance-aware return. |
+| <a id="BAT_LOW_THR"></a>Battery Warn Level                  | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)         | Percentage capacity for warnings (or other actions).                                                                                          |
+| <a id="BAT_CRIT_THR"></a>Battery Failsafe Level             | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)       | Percentage capacity for Return action (or other actions if a single action selected).                                                         |
+| <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level         | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR) | Percentage capacity for triggering Land (immediately) action.                                                                                 |
+| <a id="COM_ARM_BAT_MIN"></a>Minimum armable state of charge | [COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN) | Prevents arming if the battery state of charge is below the specified value.                                                                  |
+| <a id="BAT1_CAPACITY"></a>Battery capacity                  | [BATn_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY)     | Capacity for each battery (i.e. `BAT1_CAPACITY`, `BAT2_CAPACITY`).                                                                            |
 
-### Smart Return Failsafe
+### Distance-aware Return Failsafe
 
-The _Smart Return_ failsafe engages [Return mode](../flight_modes/return.md) when the estimated remaining flight time drops to the time needed to return (in aviation this point is known as "bingo fuel").
+The _distance-aware return_ failsafe engages [Return mode](../flight_modes/return.md) when the estimated remaining flight time drops to the time needed to return (in aviation this point is known as "bingo fuel").
 Unlike the [battery level failsafe](#battery-level-failsafe) it accounts for how far away the vehicle is: it returns earlier when the return destination is far away, and later when it is close.
 
 It is enabled by setting [COM_LOW_BAT_ACT](#COM_LOW_BAT_ACT) to `5` or `6`.
@@ -134,7 +134,7 @@ The remaining flight time comes from the battery:
 - MAVLink batteries ([BATTERY_STATUS](https://mavlink.io/en/messages/common.html#BATTERY_STATUS) sent by another component): the `time_remaining` field of the message.
 
 ::: warning
-Without a remaining flight time estimate the Smart Return failsafe never triggers, and there is no warning either.
+Without a remaining flight time estimate the distance-aware return failsafe never triggers, and there is no warning either.
 This is the case if `BATn_CAPACITY` is not set (the default is `-1`), or if a MAVLink battery does not fill in `time_remaining`.
 The vehicle is then only protected by the [battery level failsafe](#battery-level-failsafe).
 :::
