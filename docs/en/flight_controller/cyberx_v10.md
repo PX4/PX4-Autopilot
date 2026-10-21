@@ -125,9 +125,8 @@ The first 8 outputs (labelled `M1` to `M8`) are controlled by the dedicated STM3
 The remaining 8 outputs (labelled `M9` to `M16`) are the "auxiliary" outputs directly attached to the STM32H743 FMU.
 
 All 16 outputs support normal PWM.
-The FMU outputs `M9` to `M14` support [DShot](../peripherals/dshot.md).
-The IO outputs `M1` to `M8`, and the FMU outputs `M15` and `M16` (no DMA), PWM-only.
-Outputs `M9` to `M14` support [Bidirectional DShot](../peripherals/dshot.md).
+The FMU outputs `M9` to `M14` support [DShot](../peripherals/dshot.md), including [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+The IO outputs `M1` to `M8`, and the FMU outputs `M15` and `M16` (no DMA), do not support DShot.
 
 The 8 IO PWM outputs are in 3 groups:
 
