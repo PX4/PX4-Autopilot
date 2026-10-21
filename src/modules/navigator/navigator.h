@@ -467,6 +467,7 @@ private:
 	float _mission_throttle{NAN};
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
+	uint8_t _capturing_camera_component_id{0}; // camera that is capturing images
 
 	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
 	PositionYawSetpoint _last_pos_with_gcs_heartbeat{(double)NAN, (double)NAN, NAN, NAN};
