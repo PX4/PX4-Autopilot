@@ -219,15 +219,12 @@ void RTL::on_active()
 	_wind_sub.update();
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	const bool route_landing_started = _rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
-					   && _rtl_mission_type_handle
-					   && _rtl_mission_type_handle->isLanding();
 
-	if (_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
-	    && !route_landing_started
+	// Replan when the route source changes, unless the arrival or landing has started.
+	if (_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_follower && !_route_follower->isLanding()
 	    && !_route_safe_point.sourceStillValid(_mission_sub.get())) {
 		// The same mission keeps the flown jump edge for the replan.
-		if (_route_follower && _route_safe_point.missionMatches(_mission_sub.get())) {
+		if (_route_safe_point.missionMatches(_mission_sub.get())) {
 			_route_safe_point.recordExecutorProgress(_route_follower->activeJumpAnchor());
 		}
 
