@@ -103,6 +103,15 @@ void RtlMissionSafePointFollow::configureRoute(const mission_route::RtlRoutePlan
 	_goal_mission_land_item_valid = goalIsMissionLanding()
 					&& loadMissionItemFromCache(_mission.land_index, _goal_mission_land_item)
 					&& mission_route::isLandingCmd(_goal_mission_land_item.nav_cmd);
+
+	// The route does not fly the mission's back transition before a plain LAND, so land
+	// as VTOL_LAND, which back-transitions at the landing point.
+	if (_goal_mission_land_item_valid && _goal_mission_land_item.nav_cmd == NAV_CMD_LAND
+	    && _vehicle_status_sub.get().is_vtol
+	    && getVtolStateAtMissionIndex(_mission.land_index) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
+		_goal_mission_land_item.nav_cmd = NAV_CMD_VTOL_LAND;
+	}
+
 	_active_jump_anchor = _plan.active_jump_anchor;
 }
 
