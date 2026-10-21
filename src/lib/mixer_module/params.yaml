@@ -4,10 +4,11 @@ parameters:
   definitions:
     MC_AIRMODE_LIM:
       description:
-        short: Roll/pitch airmode authority limit
+        short: Airmode thrust increase limit
         long: |-
-          Maximum total-thrust increase the mixer may add to keep roll/pitch authority at
-          low and high throttle, as a fraction [0,1] of actuator range (0 = off, 1 = full).
+          Maximum total-thrust increase the mixer may add to keep roll/pitch authority
+          (and yaw authority with MC_AIRMODE_YAW) at low and high throttle, as a fraction
+          [0,1] of actuator range (0 = airmode disabled, 1 = full).
           Disable (0) while tuning: it lets an untuned, unstable loop diverge.
       type: float
       default: 0.0
@@ -16,16 +17,14 @@ parameters:
       decimal: 2
       increment: 0.05
 
-    MC_AIRMODE_YLIM:
+    MC_AIRMODE_YAW:
       description:
-        short: Yaw airmode authority limit
+        short: Include yaw in airmode
         long: |-
-          Same as MC_AIRMODE_LIM but for yaw. 0 (deferred yaw) is safe with the arm stick
-          gesture; greater than 0 enables yaw air-mode and requires an arming switch
+          Also spend the MC_AIRMODE_LIM thrust increase on yaw authority. Yaw stays the
+          least important axis: it is reduced before roll and pitch when the outputs
+          saturate. No effect while MC_AIRMODE_LIM is 0.
+          Enabling it with MC_AIRMODE_LIM greater than 0 requires an arming switch
           (incompatible with MAN_ARM_GESTURE).
-      type: float
-      default: 0.0
-      min: 0.0
-      max: 1.0
-      decimal: 2
-      increment: 0.05
+      type: boolean
+      default: 0

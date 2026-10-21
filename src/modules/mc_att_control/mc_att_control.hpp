@@ -149,7 +149,8 @@ private:
 	uint8_t _quat_reset_counter{0};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MC_AIRMODE_YLIM>)  _param_mc_airmode_ylim,
+		(ParamFloat<px4::params::MC_AIRMODE_LIM>)   _param_mc_airmode_lim,
+		(ParamBool<px4::params::MC_AIRMODE_YAW>)    _param_mc_airmode_yaw,
 		(ParamFloat<px4::params::MC_MAN_TILT_TAU>)  _param_mc_man_tilt_tau,
 
 		(ParamFloat<px4::params::MC_ROLL_P>)        _param_mc_roll_p,
