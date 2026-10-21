@@ -176,7 +176,7 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 		// Inputs were ready, so a fence check failure here repeats for this scene: do not retry.
 		// Inactive estimates replan every 2 s, so only log a new reason.
 		if (failure != _last_failure) {
-			PX4_ERR("RTL type 7 plan failed: %s", mission_route::failureReasonString(failure));
+			PX4_WARN("RTL type 7 plan failed: %s", mission_route::failureReasonString(failure));
 			_last_failure = failure;
 		}
 
