@@ -148,14 +148,14 @@ bool MissionRouteCache::missionViewStillValid(const MissionView &view) const
 
 int MissionRouteCache::safePointCount() const
 {
-	return safePointsReady() ? _safe_point.cached_stats.num_items : 0;
+	return safePointsReady() ? _safe_point.read_stats.num_items : 0;
 }
 
 bool MissionRouteCache::loadSafePointItem(int index, mission_item_s &safe_point_item) const
 {
 	return safePointsReady()
-	       && index >= 0 && index < _safe_point.cached_stats.num_items
-	       && _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_safe_point.cached_stats.dataman_id), index,
+	       && index >= 0 && index < _safe_point.read_stats.num_items
+	       && _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_safe_point.read_stats.dataman_id), index,
 			       reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item),
 			       kCacheOnlyLoadWait);
 }
@@ -404,7 +404,6 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 
 		} else {
 			// Zero safe points is still a valid ready state.
-			state.cached_stats = state.read_stats;
 			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
 			state.ready = true;
 			state.retry.clear();
@@ -420,7 +419,6 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 		}
 
 		if (safePointCacheFullyLoaded()) {
-			state.cached_stats = state.read_stats;
 			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
 			state.ready = true;
 			state.retry.clear();
