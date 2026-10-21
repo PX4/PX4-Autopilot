@@ -75,7 +75,7 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample, const imuSample &i
 	const Vector3f vel_body_3d = _R_to_earth.transpose() * _state.vel;
 	const Vector2f pred_vel(vel_body_3d(0), vel_body_3d(1));
 
-	const Vector2f innovation = meas_vel_body - pred_vel;
+	const Vector2f innovation = pred_vel - meas_vel_body;
 
 	// Scale observation noise based on yaw uncertainty to prevent "fighting" when heading drifts
 	const float yaw_var = getYawVar();
