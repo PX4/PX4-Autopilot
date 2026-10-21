@@ -40,7 +40,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **CAN buses:** 2 (`CAN1`, `CAN2`)
 - **Ethernet:** 100Mbps, with transformer
 - **USB:** Type-C
-- **RC input:** Dedicated RC input for Spektrum / DSM and SBUS
+- **RC input:** SBUS on `S.Bin`, SBUS or PPM on `RCin`, CRSF on `Uart8`
 - **RSSI input:** 1 analog/PWM
 - **Analog inputs:** 2 on the `ADC` port (3.3V and 6.6V)
 - **Power inputs:** 2 (`PWR1` ADC, `PWR2` I2C)
