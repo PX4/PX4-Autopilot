@@ -27,7 +27,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Sensors {#sensors}
 
-- **IMU:** ICM-20689 (SPI1), BMI088 (SPI3), ICM-42688-P (SPI4)(no heating)
+- **IMU:** ICM-20689 (SPI1), BMI088 (SPI3), ICM-42688-P (SPI4)
 - **Barometer:** BMP581 (SPI2), ICP-20100 (I2C4)
 - **Magnetometer:** IST8310 (I2C3)
 
