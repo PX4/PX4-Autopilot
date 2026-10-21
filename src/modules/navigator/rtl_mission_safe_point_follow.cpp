@@ -238,13 +238,13 @@ void RtlMissionSafePointFollow::on_activation()
 			_state.stage = Stage::Idle;
 		}
 
-		PX4_INFO("RTL to %s target=%d rev=%u skip_route=%u vtol=%u stage=%u",
-			 mission_route::goalTypeString(_plan.goal_type),
-			 static_cast<int>(_plan.first_mission_item_index),
-			 static_cast<unsigned>(_plan.direction_reversed),
-			 static_cast<unsigned>(_plan.fly_direct_to_goal),
-			 static_cast<unsigned>(_plan.vtol_transition_action),
-			 static_cast<unsigned>(_state.stage));
+		PX4_DEBUG("RTL to %s target=%d rev=%u skip_route=%u vtol=%u stage=%u",
+			  mission_route::goalTypeString(_plan.goal_type),
+			  static_cast<int>(_plan.first_mission_item_index),
+			  static_cast<unsigned>(_plan.direction_reversed),
+			  static_cast<unsigned>(_plan.fly_direct_to_goal),
+			  static_cast<unsigned>(_plan.vtol_transition_action),
+			  static_cast<unsigned>(_state.stage));
 
 	} else {
 		_is_current_planned_mission_item_valid = false;

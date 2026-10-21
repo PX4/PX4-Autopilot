@@ -192,8 +192,8 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 
 	setupJoinRoute(join_plan.join_position, join_plan.use_current_altitude, join_plan.vtol_transition_action);
 
-	PX4_INFO("Mission route join: target=%d vtol=%u", static_cast<int>(join_plan.first_mission_item_index),
-		 static_cast<unsigned>(join_plan.vtol_transition_action));
+	PX4_DEBUG("Mission route join: target=%d vtol=%u", static_cast<int>(join_plan.first_mission_item_index),
+		  static_cast<unsigned>(join_plan.vtol_transition_action));
 
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Rejoining mission route\t");
 	events::send(events::ID("mission_route_rejoin"), events::Log::Info, "Rejoining mission route");
