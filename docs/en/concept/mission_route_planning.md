@@ -1,5 +1,7 @@
 # Mission Route Planning
 
+<Badge type="tip" text="main (PX4 v2.0)" />
+
 Mission route planning helps the vehicle rejoin an uploaded mission or use that route to return to a landing destination.
 It provides:
 
