@@ -120,7 +120,7 @@ See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to c
 
 ## PWM Outputs {#pwm_outputs}
 
-The cyberx_v10 supports up to 16 PWM outputs.
+The CyberX-v10 supports up to 16 PWM outputs.
 The first 8 outputs (labelled `M1` to `M8`) are controlled by the dedicated STM32F103 IO controller.
 The remaining 8 outputs (labelled `M9` to `M16`) are the "auxiliary" outputs directly attached to the STM32H743 FMU.
 
