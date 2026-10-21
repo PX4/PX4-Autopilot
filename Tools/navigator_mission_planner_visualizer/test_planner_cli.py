@@ -12,7 +12,7 @@ from planner_visualizer import planner_cli
 from planner_visualizer.geometry import offset_to_latlon
 from planner_visualizer.models import Base, Fence, Position, Scene, Waypoint
 from planner_visualizer.planner_cli import PlanRequest
-from planner_visualizer.unit_test import generate_unit_test, test_name
+from planner_visualizer.unit_test import generate_unit_test, gtest_name
 
 BASE = (47.397742, 8.545594)
 
@@ -499,11 +499,11 @@ class UnitTestGenerationTest(unittest.TestCase):
         self.assertNotIn("Position vehicle_position =", code)
 
     def test_names_become_identifiers(self):
-        self.assertEqual(test_name("rally 2 wins over 1!"), "Rally2WinsOver1")
-        self.assertEqual(test_name("GeneratedScenario"), "GeneratedScenario")
-        self.assertEqual(test_name("keeps LAND as first target"), "KeepsLANDAsFirstTarget")
-        self.assertEqual(test_name("42"), "GeneratedScenario")
-        self.assertEqual(test_name(""), "GeneratedScenario")
+        self.assertEqual(gtest_name("rally 2 wins over 1!"), "Rally2WinsOver1")
+        self.assertEqual(gtest_name("GeneratedScenario"), "GeneratedScenario")
+        self.assertEqual(gtest_name("keeps LAND as first target"), "KeepsLANDAsFirstTarget")
+        self.assertEqual(gtest_name("42"), "GeneratedScenario")
+        self.assertEqual(gtest_name(""), "GeneratedScenario")
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ _RESUME_FIELDS = (
 _LAT_LON_TOLERANCE = "1e-6"
 
 
-def test_name(text: str) -> str:
+def gtest_name(text: str) -> str:
     """CamelCase identifier: capitalise each word, keep capitals already there, drop the rest."""
     name = re.sub(r"[^A-Za-z0-9]", "", "".join(word[:1].upper() + word[1:] for word in text.split()))
     return name if name and not name[0].isdigit() else "GeneratedScenario"
@@ -57,7 +57,7 @@ def generate_unit_test(
     fixture = "MissionRouteGeofenceTest" if scene.fences else "MissionRoutePlannerTest"
     lines = [
         "// Describe the intent of this scenario here, not the numbers.",
-        f"TEST_F({fixture}, {test_name(name)})",
+        f"TEST_F({fixture}, {gtest_name(name)})",
         "{",
     ]
     lines += ["\t" + line if line else "" for line in fixtures.splitlines()]
