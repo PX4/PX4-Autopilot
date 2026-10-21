@@ -10,3 +10,11 @@ menuconfig USER_COMMANDER
 	depends on BOARD_PROTECTED && MODULES_COMMANDER
 	---help---
 		Put commander in userspace memory
+
+config RID_UOM_TEST_MOCK
+	bool "Allow mock UOM status in a bench-test firmware"
+	default n
+	depends on MODULES_COMMANDER
+	---help---
+		TEST ONLY: permit a mock reporting service to satisfy the RID/UOM
+		preflight check. Production firmware must leave this disabled.

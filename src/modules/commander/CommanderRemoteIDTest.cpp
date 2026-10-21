@@ -50,6 +50,11 @@ public:
 		param_control_autosave(false);
 		ASSERT_EQ(param_get(param_find("COM_ARM_ODID"), &_saved_com_arm_odid), PX4_OK);
 		setArmingCheck(2);
+		ASSERT_EQ(param_get(param_find("COM_RID_UOM"), &_saved_com_rid_uom), PX4_OK);
+		const int32_t disabled = 0;
+		ASSERT_EQ(param_set(param_find("COM_RID_UOM"), &disabled), PX4_OK);
+		_identity_pub.publish(rid_identity_s{});
+		_uom_pub.publish(rid_uom_status_s{});
 
 		// uORB retains the last sample after unadvertising; clear it between tests.
 		ASSERT_TRUE(_can_pub.publish(open_drone_id_arm_status_s{}));
@@ -62,6 +67,7 @@ public:
 	{
 		_commander.reset();
 		EXPECT_EQ(param_set(param_find("COM_ARM_ODID"), &_saved_com_arm_odid), PX4_OK);
+		EXPECT_EQ(param_set(param_find("COM_RID_UOM"), &_saved_com_rid_uom), PX4_OK);
 	}
 
 	void setArmingCheck(int32_t value)
@@ -113,11 +119,58 @@ public:
 
 	void recentlyDisarmed() { _commander->_last_disarmed_timestamp = hrt_absolute_time(); }
 
+	void enableProduct()
+	{
+		const int32_t enabled = 1;
+		ASSERT_EQ(param_set(param_find("COM_RID_UOM"), &enabled), PX4_OK);
+		const uint64_t now = hrt_absolute_time();
+		_identity.timestamp = _uom.timestamp = now;
+		_identity.result = rid_identity_s::RESULT_OK;
+		_identity.activation_state = rid_identity_s::ACTIVATION_ACTIVE;
+		_identity.boot_id = _uom.boot_id = 123;
+		_identity.session_id = _uom.session_id = 456;
+		_identity.identity_revision = _uom.identity_revision = 7;
+		_identity.rid_boot_id = _uom.rid_boot_id = 100;
+		_identity.rid_node_id = 42;
+		_identity.target_system = _uom.source_system = 255;
+		_identity.target_component = _uom.source_component = 190;
+		_uom.environment = rid_uom_status_s::ENVIRONMENT_OFFICIAL;
+		_uom.state = rid_uom_status_s::STATE_READY;
+		_uom.flags = 15;
+		publishProduct();
+	}
+
+	void publishProduct(uint8_t node_id = 42, uint8_t arm_status = 0)
+	{
+		ASSERT_TRUE(_identity_pub.publish(_identity));
+		ASSERT_TRUE(_uom_pub.publish(_uom));
+		open_drone_id_arm_status_s arm{};
+		arm.timestamp = hrt_absolute_time(); arm.node_id = node_id; arm.status = arm_status;
+		ASSERT_TRUE(_can_pub.publish(arm));
+		updateDataLinks();
+	}
+
+	void checkProduct(bool can_arm, bool uom_unhealthy)
+	{
+		OpenDroneIDChecks check;
+		check.updateParams();
+		Report reporter{_failsafe_flags, 0};
+		Context context{status()};
+		check.checkAndReport(context, reporter);
+		EXPECT_EQ(reporter.armingCheckResults().can_arm == NavModes::All, can_arm);
+		EXPECT_EQ(_failsafe_flags.uom_unhealthy, uom_unhealthy);
+	}
+
+	rid_identity_s _identity{};
+	rid_uom_status_s _uom{};
 	failsafe_flags_s _failsafe_flags{};
 
 private:
 
 	int32_t _saved_com_arm_odid{};
+	int32_t _saved_com_rid_uom{};
+	uORB::Publication<rid_identity_s> _identity_pub{ORB_ID(rid_identity)};
+	uORB::Publication<rid_uom_status_s> _uom_pub{ORB_ID(rid_uom_status)};
 	uORB::Publication<open_drone_id_arm_status_s> _can_pub{ORB_ID(open_drone_id_arm_status)};
 	uORB::Publication<telemetry_status_s> _telemetry_pub{ORB_ID(telemetry_status)};
 	std::unique_ptr<Commander> _commander;
@@ -371,5 +424,60 @@ TEST_F(CommanderRemoteIDTest, ErrorOnlyPolicyDoesNotChangeFlightAction)
 	checkRID(false, true);
 	EXPECT_EQ(status().arming_state, vehicle_status_s::ARMING_STATE_ARMED);
 	EXPECT_EQ(failsafe.update(11_s, state, false, stick_override_request, _failsafe_flags), state.user_intended_mode);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+}
+
+TEST_F(CommanderRemoteIDTest, ProductRequiresActiveIdentityAndSameRIDHealth)
+{
+	enableProduct();
+	checkProduct(true, false);
+	publishProduct(43);
+	checkProduct(false, false);
+	_identity.activation_state = 0;
+	publishProduct();
+	checkProduct(false, true);
+	_identity.activation_state = rid_identity_s::ACTIVATION_ACTIVE;
+	publishProduct(42, 1);
+	checkProduct(false, false);
+	EXPECT_TRUE(_failsafe_flags.remote_id_unhealthy);
+}
+
+TEST_F(CommanderRemoteIDTest, ProductRejectsStaleWrongSessionAndMockReporting)
+{
+	enableProduct();
+	_uom.session_id++;
+	publishProduct();
+	checkProduct(false, true);
+	_uom.session_id--;
+	_uom.environment = rid_uom_status_s::ENVIRONMENT_MOCK;
+	publishProduct();
+#if defined(CONFIG_RID_UOM_TEST_MOCK)
+	checkProduct(true, false);
+#else
+	checkProduct(false, true);
+#endif
+	_uom.environment = rid_uom_status_s::ENVIRONMENT_OFFICIAL;
+	_uom.timestamp = hrt_absolute_time() - 4_s;
+	publishProduct();
+	checkProduct(false, true);
+}
+
+TEST_F(CommanderRemoteIDTest, ProductUomFailureInFlightDoesNotChangeAction)
+{
+	enableProduct();
+	checkProduct(true, false);
+	EXPECT_EQ(arm(arm_disarm_reason_t::command_internal, false), TRANSITION_CHANGED);
+	_uom.state = rid_uom_status_s::STATE_FAILED;
+	_uom.error_code = 5;
+	publishProduct();
+	checkProduct(true, true);
+	EXPECT_FALSE(_failsafe_flags.remote_id_unhealthy);
+	Failsafe failsafe{nullptr};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	bool override_request = false;
+	EXPECT_EQ(failsafe.update(hrt_absolute_time(), state, false, override_request, _failsafe_flags), state.user_intended_mode);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 }

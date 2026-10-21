@@ -466,6 +466,10 @@ private:
 	hrt_abstime _heartbeat_type_camera{0};
 	hrt_abstime _heartbeat_type_parachute{0};
 	hrt_abstime _heartbeat_type_open_drone_id{0};
+	uint32_t _odid_system_last_utc{0};
+	hrt_abstime _odid_system_last_changed{0};
+	uint8_t _odid_system_source_system{0};
+	uint8_t _odid_system_source_component{0};
 
 	hrt_abstime _heartbeat_component_telemetry_radio{0};
 	hrt_abstime _heartbeat_component_log{0};

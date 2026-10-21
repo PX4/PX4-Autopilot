@@ -1,0 +1,7 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-3-Clause
+# TEST FIRMWARE: mock UOM responses may satisfy the flight readiness check.
+echo "RID/UOM BENCH TEST FIRMWARE - MOCK PROVIDER ACCEPTED"
+param set-default UAVCAN_ENABLE 2
+param set-default COM_ARM_ODID 2
+param set-default COM_RID_UOM 1

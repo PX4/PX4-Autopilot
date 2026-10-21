@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<!-- Shared project extension. Keep byte-identical in PX4, QGC and ArduRemoteID. -->
+<mavlink>
+  <version>3</version>
+  <dialect>0</dialect>
+  <enums>
+    <enum name="AMOV_RID_IDENTITY_RESULT">
+      <description>Result of a RID identity query. OK does not imply activation or flight readiness.</description>
+      <entry value="0" name="AMOV_RID_IDENTITY_RESULT_OK"/>
+      <entry value="1" name="AMOV_RID_IDENTITY_RESULT_NOT_FOUND"/>
+      <entry value="2" name="AMOV_RID_IDENTITY_RESULT_READING"/>
+      <entry value="3" name="AMOV_RID_IDENTITY_RESULT_INVALID"/>
+      <entry value="4" name="AMOV_RID_IDENTITY_RESULT_UNSUPPORTED"/>
+      <entry value="5" name="AMOV_RID_IDENTITY_RESULT_TIMEOUT"/>
+      <entry value="6" name="AMOV_RID_IDENTITY_RESULT_CONFLICT"/>
+    </enum>
+    <enum name="AMOV_RID_ACTIVATION_STATE">
+      <description>Effective activation state. A pending package does not replace the running identity.</description>
+      <entry value="0" name="AMOV_RID_ACTIVATION_STATE_UNACTIVATED"/>
+      <entry value="1" name="AMOV_RID_ACTIVATION_STATE_ACTIVE"/>
+      <entry value="2" name="AMOV_RID_ACTIVATION_STATE_INVALID"/>
+    </enum>
+    <enum name="AMOV_UOM_ENVIRONMENT">
+      <entry value="0" name="AMOV_UOM_ENVIRONMENT_UNCONFIGURED"/>
+      <entry value="1" name="AMOV_UOM_ENVIRONMENT_MOCK"/>
+      <entry value="2" name="AMOV_UOM_ENVIRONMENT_OFFICIAL"/>
+    </enum>
+    <enum name="AMOV_UOM_STATE">
+      <entry value="0" name="AMOV_UOM_STATE_NOT_CONFIGURED"/>
+      <entry value="1" name="AMOV_UOM_STATE_WAIT_IDENTITY"/>
+      <entry value="2" name="AMOV_UOM_STATE_AUTHENTICATING"/>
+      <entry value="3" name="AMOV_UOM_STATE_READY"/>
+      <entry value="4" name="AMOV_UOM_STATE_REPORTING"/>
+      <entry value="5" name="AMOV_UOM_STATE_DEGRADED"/>
+      <entry value="6" name="AMOV_UOM_STATE_FAILED"/>
+    </enum>
+    <enum name="AMOV_UOM_FLAGS" bitmask="true">
+      <entry value="1" name="AMOV_UOM_FLAGS_IDENTITY_VALID"/>
+      <entry value="2" name="AMOV_UOM_FLAGS_ACTIVATION_VALID"/>
+      <entry value="4" name="AMOV_UOM_FLAGS_TELEMETRY_VALID"/>
+      <entry value="8" name="AMOV_UOM_FLAGS_AUTHENTICATED"/>
+    </enum>
+    <enum name="AMOV_UOM_ERROR">
+      <entry value="0" name="AMOV_UOM_ERROR_NONE"/>
+      <entry value="1" name="AMOV_UOM_ERROR_NOT_CONFIGURED"/>
+      <entry value="2" name="AMOV_UOM_ERROR_IDENTITY"/>
+      <entry value="3" name="AMOV_UOM_ERROR_ACTIVATION"/>
+      <entry value="4" name="AMOV_UOM_ERROR_AUTHENTICATION"/>
+      <entry value="5" name="AMOV_UOM_ERROR_NETWORK"/>
+      <entry value="6" name="AMOV_UOM_ERROR_TIMEOUT"/>
+      <entry value="7" name="AMOV_UOM_ERROR_REJECTED"/>
+      <entry value="8" name="AMOV_UOM_ERROR_INVALID_DATA"/>
+      <entry value="9" name="AMOV_UOM_ERROR_QUEUE_OVERFLOW"/>
+      <entry value="10" name="AMOV_UOM_ERROR_PROTOCOL"/>
+      <entry value="11" name="AMOV_UOM_ERROR_DISCONNECTED"/>
+    </enum>
+  </enums>
+  <messages>
+    <message id="61000" name="AMOV_RID_IDENTITY_REQUEST">
+      <description>Read the selected RID identity. Session is a nonzero random QGC connection identifier. Version 1 requires MAVLink 2.</description>
+      <field type="uint64_t" name="session_id">QGC connection session.</field>
+      <field type="uint32_t" name="request_id">Nonzero request correlation identifier.</field>
+      <field type="uint8_t" name="target_system">Target aircraft system.</field>
+      <field type="uint8_t" name="target_component">Target autopilot component.</field>
+      <field type="uint8_t" name="protocol_version">Project protocol version, currently 1.</field>
+      <field type="uint8_t" name="flags">Bit 0 forces refresh. All other bits reserved and zero.</field>
+    </message>
+    <message id="61001" name="AMOV_RID_IDENTITY">
+      <description>Consistent RID snapshot or explicit query failure. Fixed-width strings are not necessarily NUL terminated. Pending authorization is informational only.</description>
+      <field type="uint64_t" name="boot_id">Nonzero unpredictable PX4 boot identifier.</field>
+      <field type="uint64_t" name="session_id">Echo of the requesting QGC session.</field>
+      <field type="uint32_t" name="request_id">Request correlation identifier; zero for a session invalidation notification.</field>
+      <field type="uint32_t" name="identity_revision">Effective signed identity revision, zero if not activated.</field>
+      <field type="uint32_t" name="rid_boot_id">Nonzero RID boot identifier.</field>
+      <field type="uint32_t" name="pending_revision">Pending authorization revision, zero if none.</field>
+      <field type="uint8_t" name="target_system">Requesting ground station system.</field>
+      <field type="uint8_t" name="target_component">Requesting ground station component.</field>
+      <field type="uint8_t" name="protocol_version">Project protocol version, currently 1.</field>
+      <field type="uint8_t" name="result" enum="AMOV_RID_IDENTITY_RESULT">Query result.</field>
+      <field type="uint8_t" name="activation_state" enum="AMOV_RID_ACTIVATION_STATE">Effective activation state.</field>
+      <field type="uint8_t" name="rid_node_id">Selected DroneCAN node, 1 to 127.</field>
+      <field type="uint8_t" name="aircraft_class">Chinese RID aircraft class, 0 to 4.</field>
+      <field type="uint8_t" name="activation_error">RID activation transaction error code.</field>
+      <field type="char[12]" name="rid_uid">Stable RID UID as twelve uppercase hexadecimal characters.</field>
+      <field type="char[20]" name="uas_id">Effective aircraft product identifier, exactly 20 ASCII bytes when active.</field>
+      <field type="char[64]" name="registration_id">Optional complete registration identifier. Empty is unknown.</field>
+      <field type="char[8]" name="uin">Optional eight-character broadcast registration suffix, never a complete registration identifier.</field>
+      <field type="uint8_t[32]" name="identity_hash">BLAKE2b-256 digest defined in the project identity contract.</field>
+      <field type="char[48]" name="error">Diagnostic query failure text; no credentials or authorization payload.</field>
+    </message>
+    <message id="61002" name="AMOV_UOM_STATUS">
+      <description>Per-aircraft network reporting status. Transmit at 1 Hz and on changes. A fresh heartbeat alone cannot establish a fresh platform acknowledgement.</description>
+      <field type="uint64_t" name="boot_id">PX4 boot identifier from the identity response.</field>
+      <field type="uint64_t" name="session_id">QGC session from the identity request.</field>
+      <field type="uint32_t" name="sequence">Strictly advancing sequence within a session, with uint32 wrap-aware comparison.</field>
+      <field type="uint32_t" name="identity_revision">Identity used by the provider.</field>
+      <field type="uint32_t" name="rid_boot_id">RID boot identifier from the identity response.</field>
+      <field type="uint32_t" name="last_ack_age_ms" units="ms">Monotonic age of the latest accepted provider acknowledgement; UINT32_MAX if none.</field>
+      <field type="uint16_t" name="error_code" enum="AMOV_UOM_ERROR">Structured reporting error.</field>
+      <field type="uint8_t" name="target_system">Target aircraft system.</field>
+      <field type="uint8_t" name="target_component">Target autopilot component.</field>
+      <field type="uint8_t" name="protocol_version">Project protocol version, currently 1.</field>
+      <field type="uint8_t" name="environment" enum="AMOV_UOM_ENVIRONMENT">Provider environment. Production firmware rejects MOCK.</field>
+      <field type="uint8_t" name="state" enum="AMOV_UOM_STATE">Current reporting state.</field>
+      <field type="uint8_t" name="flags" enum="AMOV_UOM_FLAGS">Validated reporting prerequisites.</field>
+      <field type="uint8_t[32]" name="identity_hash">Identity digest from the validated RID snapshot.</field>
+    </message>
+  </messages>
+</mavlink>

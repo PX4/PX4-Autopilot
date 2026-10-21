@@ -35,6 +35,7 @@
 #define OPEN_DRONE_ID_LOCATION_HPP
 
 #include <uORB/topics/home_position.h>
+#include <lib/remote_id/RidState.hpp>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -81,7 +82,7 @@ private:
 		msg.speed_vertical = 6300; // If unknown: 6300 cm/s
 		msg.latitude = 0; // If unknown: 0
 		msg.longitude = 0; // If unknown: 0
-		msg.altitude_geodetic = -1000; // If unknown: -1000 m
+		msg.altitude_barometric = -1000; // If unknown: -1000 m
 		msg.altitude_geodetic = -1000; // If unknown: -1000 m
 		msg.height = -1000; // If unknown: -1000 m
 		msg.horizontal_accuracy = MAV_ODID_HOR_ACC_UNKNOWN;
@@ -98,7 +99,7 @@ private:
 			vehicle_land_detected_s vehicle_land_detected{};
 
 			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)
-			    && (hrt_elapsed_time(&vehicle_land_detected.timestamp) < 10_s)) {
+			    && (hrt_elapsed_time(&vehicle_land_detected.timestamp) < 1_s)) {
 				if (vehicle_land_detected.landed) {
 					msg.status = MAV_ODID_STATUS_GROUND;
 
@@ -114,7 +115,7 @@ private:
 		if (_vehicle_status_sub.advertised()) {
 			vehicle_status_s vehicle_status{};
 
-			if (_vehicle_status_sub.copy(&vehicle_status) && hrt_elapsed_time(&vehicle_status.timestamp) < 10_s) {
+			if (_vehicle_status_sub.copy(&vehicle_status) && hrt_elapsed_time(&vehicle_status.timestamp) < 1_s) {
 				if (vehicle_status.failsafe && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
 					msg.status = MAV_ODID_STATUS_EMERGENCY;
 					updated = true;
@@ -126,9 +127,10 @@ private:
 			sensor_gps_s vehicle_gps_position{};
 
 			if (_vehicle_gps_position_sub.copy(&vehicle_gps_position)
-			    && (hrt_elapsed_time(&vehicle_gps_position.timestamp) < 10_s)) {
+			    && (rid::recent(vehicle_gps_position.timestamp_sample, hrt_absolute_time(), 1_s))) {
 
-				if (vehicle_gps_position.vel_ned_valid) {
+				if (vehicle_gps_position.vel_ned_valid && PX4_ISFINITE(vehicle_gps_position.vel_n_m_s)
+				    && PX4_ISFINITE(vehicle_gps_position.vel_e_m_s) && PX4_ISFINITE(vehicle_gps_position.vel_d_m_s)) {
 					const matrix::Vector3f vel_ned{vehicle_gps_position.vel_n_m_s, vehicle_gps_position.vel_e_m_s, vehicle_gps_position.vel_d_m_s};
 
 					// direction: calculate GPS course over ground angle
@@ -149,13 +151,15 @@ private:
 					updated = true;
 				}
 
-				if (vehicle_gps_position.fix_type >= 2) {
+				if (vehicle_gps_position.fix_type >= 2 && PX4_ISFINITE(vehicle_gps_position.latitude_deg)
+				    && PX4_ISFINITE(vehicle_gps_position.longitude_deg)
+				    && fabs(vehicle_gps_position.latitude_deg) <= 90.0 && fabs(vehicle_gps_position.longitude_deg) <= 180.0) {
 					msg.latitude = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7));
 					msg.longitude = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7));
 
 					// altitude_geodetic
-					if (vehicle_gps_position.fix_type >= 3) {
-						msg.altitude_geodetic = static_cast<float>(round(vehicle_gps_position.altitude_msl_m)); // [m]
+					if (vehicle_gps_position.fix_type >= 3 && PX4_ISFINITE(vehicle_gps_position.altitude_ellipsoid_m)) {
+						msg.altitude_geodetic = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m); // [m]
 					}
 
 					msg.horizontal_accuracy = open_drone_id_translations::odidHorAccForEph(vehicle_gps_position.eph);
@@ -171,7 +175,7 @@ private:
 					msg.timestamp = ((float)(utc_time_msec % (60 * 60 * 1000))) / 1000;
 
 					msg.timestamp_accuracy = open_drone_id_translations::odidTimeForElapsed(hrt_elapsed_time(
-									 &vehicle_gps_position.timestamp));
+									 &vehicle_gps_position.timestamp_sample));
 
 					updated = true;
 				}
@@ -182,7 +186,8 @@ private:
 		if (_vehicle_air_data_sub.advertised()) {
 			vehicle_air_data_s vehicle_air_data{};
 
-			if (_vehicle_air_data_sub.copy(&vehicle_air_data) && (hrt_elapsed_time(&vehicle_air_data.timestamp) < 10_s)) {
+			if (_vehicle_air_data_sub.copy(&vehicle_air_data) && rid::recent(vehicle_air_data.timestamp_sample, hrt_absolute_time(), 1_s)
+			    && PX4_ISFINITE(vehicle_air_data.baro_alt_meter)) {
 				msg.altitude_barometric = vehicle_air_data.baro_alt_meter;
 				msg.barometer_accuracy = MAV_ODID_VER_ACC_UNKNOWN; // We just don't without calibration.
 				updated = true;
@@ -190,13 +195,13 @@ private:
 		}
 
 		// height: The current height of the unmanned aircraft above the take-off location or the ground as indicated by height_reference
-		if (_home_position_sub.advertised() && _vehicle_local_position_sub.updated()) {
+		if (_home_position_sub.advertised() && _vehicle_local_position_sub.advertised()) {
 			home_position_s home_position{};
 			vehicle_local_position_s vehicle_local_position{};
 
 			if (_home_position_sub.copy(&home_position)
 			    && _vehicle_local_position_sub.copy(&vehicle_local_position)
-			    && (hrt_elapsed_time(&vehicle_local_position.timestamp) < 1_s)
+			    && (rid::recent(vehicle_local_position.timestamp_sample, hrt_absolute_time(), 1_s))
 			   ) {
 
 				if (home_position.valid_alt && vehicle_local_position.z_valid && vehicle_local_position.z_global) {

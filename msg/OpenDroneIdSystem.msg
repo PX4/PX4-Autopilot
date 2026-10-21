@@ -1,4 +1,6 @@
-uint64 timestamp
+uint64 timestamp # Local receipt time, microseconds since boot
+uint64 timestamp_sample # Local receipt time of the last changed source UTC timestamp
+uint32 timestamp_utc # Open Drone ID seconds since 2019-01-01 UTC
 uint8[20] id_or_mac
 uint8 operator_location_type
 uint8 classification_type

@@ -63,3 +63,5 @@ bool parachute_unhealthy              # Parachute system missing or unhealthy
 bool traffic_avoidance_unhealthy      # Traffic avoidance (ADS-B/FLARM) system missing or unhealthy
 bool remote_id_unhealthy              # Remote ID (Open Drone ID) system missing or unhealthy
 bool gnss_lost                        # Active GNSS count dropped below SYS_HAS_NUM_GNSS, or two receivers report inconsistent positions
+
+bool uom_unhealthy # Product UOM reporting not ready; warning only in flight, no automatic flight action

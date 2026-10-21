@@ -35,6 +35,7 @@
 #define OPEN_DRONE_ID_SYSTEM_HPP
 
 #include <uORB/topics/home_position.h>
+#include <lib/remote_id/RidState.hpp>
 #include <uORB/topics/sensor_gps.h>
 
 class MavlinkStreamOpenDroneIdSystem : public MavlinkStream
@@ -70,6 +71,9 @@ private:
 
 		if (_vehicle_gps_position_sub.update(&vehicle_gps_position) && _home_position_sub.copy(&home_position)) {
 			if (vehicle_gps_position.fix_type >= 3
+			    && rid::recent(vehicle_gps_position.timestamp_sample, hrt_absolute_time(), 1_s)
+			    && PX4_ISFINITE(vehicle_gps_position.altitude_ellipsoid_m)
+			    && PX4_ISFINITE(vehicle_gps_position.altitude_msl_m)
 			    && home_position.valid_alt && home_position.valid_hpos) {
 
 				mavlink_open_drone_id_system_t msg{};

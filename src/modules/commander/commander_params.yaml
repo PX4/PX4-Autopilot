@@ -575,6 +575,14 @@ parameters:
           SD card. If so, and the parameter is enabled, arming is prevented.
       type: boolean
       default: 1
+    COM_RID_UOM:
+      description:
+        short: Require RID identity, activation and UOM readiness before arming
+        long: |-
+          UOM failures in flight only generate warnings. COM_ARM_ODID continues
+          to govern RID faults. Mock services require a dedicated test firmware.
+      type: boolean
+      default: 0
     COM_ARM_ODID:
       description:
         short: Open Drone ID system check and in-flight failsafe

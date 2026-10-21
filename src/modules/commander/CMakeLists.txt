@@ -95,3 +95,12 @@ if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 endif()
 px4_add_functional_gtest(SRC ModeManagementTest.cpp LINKLIBS modules__commander)
 px4_add_functional_gtest(SRC CommanderRemoteIDTest.cpp LINKLIBS modules__commander)
+
+px4_add_unit_gtest(SRC RidStateTest.cpp)
+
+# Compile the real checker with the bench flag in a separate executable. Production
+# CommanderRemoteIDTest links the normal checker with mock acceptance disabled.
+px4_add_functional_gtest(SRC RidBenchPolicyTest.cpp
+	EXTRA_SRCS HealthAndArmingChecks/checks/openDroneIDCheck.cpp
+	COMPILE_FLAGS -DCONFIG_RID_UOM_TEST_MOCK=1
+	LINKLIBS health_and_arming_checks mode_util)

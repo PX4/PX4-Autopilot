@@ -61,6 +61,7 @@
 #include "mavlink_command_params.hpp"
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
+#include "RidProtocol.hpp"
 
 #ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 #include <drivers/serialpassthrough/serialpassthrough.hpp>
@@ -279,6 +280,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_STATUSTEXT:
 		handle_message_statustext(msg);
+		break;
+
+	case MAVLINK_MSG_ID_AMOV_RID_IDENTITY_REQUEST:
+		handleRidIdentityRequest(_mavlink, *msg);
+		break;
+
+	case MAVLINK_MSG_ID_AMOV_UOM_STATUS:
+		handleRidUomStatus(*msg);
 		break;
 
 	case MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID:
@@ -3813,7 +3822,33 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 	open_drone_id_system_s odid_system{};
 	memset(&odid_system, 0, sizeof(odid_system));
 
-	odid_system.timestamp = odid_module.timestamp;
+	if (odid_module.operator_location_type > MAV_ODID_OPERATOR_LOCATION_TYPE_FIXED
+	    || odid_module.operator_latitude < -900000000 || odid_module.operator_latitude > 900000000
+	    || odid_module.operator_longitude < -1800000000 || odid_module.operator_longitude > 1800000000
+	    || !PX4_ISFINITE(odid_module.operator_altitude_geo)
+	    || !ridSystemSourceAllowed(msg->sysid, msg->compid)
+	    || (odid_module.target_system != 0 && odid_module.target_system != mavlink_system.sysid)
+	    || (odid_module.target_component != MAV_COMP_ID_ALL && odid_module.target_component != mavlink_system.compid
+		&& odid_module.target_component != MAV_COMP_ID_ODID_TXRX_1)) {
+		return;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+	const bool source_changed = _odid_system_source_system != msg->sysid
+				    || _odid_system_source_component != msg->compid;
+
+	if (!source_changed && odid_module.timestamp < _odid_system_last_utc) { return; }
+
+	if (source_changed || odid_module.timestamp > _odid_system_last_utc) {
+		_odid_system_last_changed = now;
+		_odid_system_last_utc = odid_module.timestamp;
+		_odid_system_source_system = msg->sysid;
+		_odid_system_source_component = msg->compid;
+	}
+
+	odid_system.timestamp = now;
+	odid_system.timestamp_sample = _odid_system_last_changed;
+	odid_system.timestamp_utc = odid_module.timestamp;
 	memcpy(odid_system.id_or_mac, odid_module.id_or_mac, sizeof(odid_system.id_or_mac));
 	odid_system.operator_location_type = odid_module.operator_location_type;
 	odid_system.classification_type = odid_module.classification_type;

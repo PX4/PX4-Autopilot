@@ -42,6 +42,7 @@ UavcanRemoteIDController::UavcanRemoteIDController(uavcan::INode &node) :
 	ModuleParams(nullptr),
 	_timer(node),
 	_node(node),
+	_identity_client(node),
 	_uavcan_pub_remoteid_basicid(node),
 	_uavcan_pub_remoteid_location(node),
 	_uavcan_pub_remoteid_self_id(node),
@@ -53,6 +54,10 @@ UavcanRemoteIDController::UavcanRemoteIDController(uavcan::INode &node) :
 
 int UavcanRemoteIDController::init()
 {
+	const int identity_res = _identity_client.init();
+
+	if (identity_res < 0) { return identity_res; }
+
 	// Setup timer and call back function for periodic updates
 	_timer.setCallback(TimerCbBinder(this, &UavcanRemoteIDController::periodic_update));
 	_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
@@ -70,12 +75,19 @@ int UavcanRemoteIDController::init()
 void UavcanRemoteIDController::periodic_update(const uavcan::TimerEvent &)
 {
 	_vehicle_status.update();
+	_identity_client.update();
 
-	send_basic_id();
 	send_location();
-	send_self_id();
 	send_system();
-	send_operator_id();
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (_last_static_update == 0 || now - _last_static_update >= 1_s) {
+		_last_static_update = now;
+		send_basic_id();
+		send_self_id();
+		send_operator_id();
+	}
 }
 
 void UavcanRemoteIDController::send_basic_id()
@@ -128,7 +140,7 @@ void UavcanRemoteIDController::send_location()
 	msg.speed_vertical = 6300; // If unknown: 6300 cm/s
 	msg.latitude = 0; // If unknown: 0
 	msg.longitude = 0; // If unknown: 0
-	msg.altitude_geodetic = -1000; // If unknown: -1000 m
+	msg.altitude_barometric = -1000; // If unknown: -1000 m
 	msg.altitude_geodetic = -1000; // If unknown: -1000 m
 	msg.height = -1000; // If unknown: -1000 m
 	msg.horizontal_accuracy = MAV_ODID_HOR_ACC_UNKNOWN;
@@ -144,7 +156,7 @@ void UavcanRemoteIDController::send_location()
 		vehicle_land_detected_s vehicle_land_detected{};
 
 		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)
-		    && (hrt_elapsed_time(&vehicle_land_detected.timestamp) < 10_s)) {
+		    && (hrt_elapsed_time(&vehicle_land_detected.timestamp) < 1_s)) {
 			if (vehicle_land_detected.landed) {
 				msg.status = MAV_ODID_STATUS_GROUND;
 
@@ -156,7 +168,7 @@ void UavcanRemoteIDController::send_location()
 		}
 	}
 
-	if (hrt_elapsed_time(&_vehicle_status.get().timestamp) < 10_s) {
+	if (hrt_elapsed_time(&_vehicle_status.get().timestamp) < 1_s) {
 		if (_vehicle_status.get().failsafe && (_vehicle_status.get().arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
 			msg.status = MAV_ODID_STATUS_EMERGENCY;
 			updated = true;
@@ -167,9 +179,10 @@ void UavcanRemoteIDController::send_location()
 		sensor_gps_s vehicle_gps_position{};
 
 		if (_vehicle_gps_position_sub.copy(&vehicle_gps_position)
-		    && (hrt_elapsed_time(&vehicle_gps_position.timestamp) < 10_s)) {
+		    && (rid::recent(vehicle_gps_position.timestamp_sample, hrt_absolute_time(), 1_s))) {
 
-			if (vehicle_gps_position.vel_ned_valid) {
+			if (vehicle_gps_position.vel_ned_valid && PX4_ISFINITE(vehicle_gps_position.vel_n_m_s)
+			    && PX4_ISFINITE(vehicle_gps_position.vel_e_m_s) && PX4_ISFINITE(vehicle_gps_position.vel_d_m_s)) {
 				const matrix::Vector3f vel_ned{vehicle_gps_position.vel_n_m_s, vehicle_gps_position.vel_e_m_s, vehicle_gps_position.vel_d_m_s};
 
 				// direction: calculate GPS course over ground angle
@@ -190,13 +203,15 @@ void UavcanRemoteIDController::send_location()
 				updated = true;
 			}
 
-			if (vehicle_gps_position.fix_type >= 2) {
+			if (vehicle_gps_position.fix_type >= 2 && PX4_ISFINITE(vehicle_gps_position.latitude_deg)
+			    && PX4_ISFINITE(vehicle_gps_position.longitude_deg)
+			    && fabs(vehicle_gps_position.latitude_deg) <= 90.0 && fabs(vehicle_gps_position.longitude_deg) <= 180.0) {
 				msg.latitude = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7));
 				msg.longitude = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7));
 
 				// altitude_geodetic
-				if (vehicle_gps_position.fix_type >= 3) {
-					msg.altitude_geodetic = static_cast<float>(round(vehicle_gps_position.altitude_msl_m)); // [m]
+				if (vehicle_gps_position.fix_type >= 3 && PX4_ISFINITE(vehicle_gps_position.altitude_ellipsoid_m)) {
+					msg.altitude_geodetic = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m); // [m]
 				}
 
 				msg.horizontal_accuracy = open_drone_id_translations::odidHorAccForEph(vehicle_gps_position.eph);
@@ -212,7 +227,7 @@ void UavcanRemoteIDController::send_location()
 				msg.timestamp = ((float)(utc_time_msec % (60 * 60 * 1000))) / 1000;
 
 				msg.timestamp_accuracy = open_drone_id_translations::odidTimeForElapsed(hrt_elapsed_time(
-								 &vehicle_gps_position.timestamp));
+								 &vehicle_gps_position.timestamp_sample));
 
 				updated = true;
 			}
@@ -223,7 +238,8 @@ void UavcanRemoteIDController::send_location()
 	if (_vehicle_air_data_sub.advertised()) {
 		vehicle_air_data_s vehicle_air_data{};
 
-		if (_vehicle_air_data_sub.copy(&vehicle_air_data) && (hrt_elapsed_time(&vehicle_air_data.timestamp) < 10_s)) {
+		if (_vehicle_air_data_sub.copy(&vehicle_air_data) && rid::recent(vehicle_air_data.timestamp_sample, hrt_absolute_time(), 1_s)
+		    && PX4_ISFINITE(vehicle_air_data.baro_alt_meter)) {
 			msg.altitude_barometric = vehicle_air_data.baro_alt_meter;
 			msg.barometer_accuracy = MAV_ODID_VER_ACC_UNKNOWN; // We just don't without calibration.
 			updated = true;
@@ -231,13 +247,13 @@ void UavcanRemoteIDController::send_location()
 	}
 
 	// height: The current height of the unmanned aircraft above the take-off location or the ground as indicated by height_reference
-	if (_home_position_sub.advertised() && _vehicle_local_position_sub.updated()) {
+	if (_home_position_sub.advertised() && _vehicle_local_position_sub.advertised()) {
 		home_position_s home_position{};
 		vehicle_local_position_s vehicle_local_position{};
 
 		if (_home_position_sub.copy(&home_position)
 		    && _vehicle_local_position_sub.copy(&vehicle_local_position)
-		    && (hrt_elapsed_time(&vehicle_local_position.timestamp) < 1_s)
+		    && (rid::recent(vehicle_local_position.timestamp_sample, hrt_absolute_time(), 1_s))
 		   ) {
 
 			if (home_position.valid_alt && vehicle_local_position.z_valid && vehicle_local_position.z_global) {
@@ -260,11 +276,15 @@ void UavcanRemoteIDController::send_system()
 	open_drone_id_system_s system;
 
 	if (_open_drone_id_system.advertised() && _open_drone_id_system.copy(&system)) {
+		// Packet freshness and whole-second UTC progress use independent windows.
+		if (!rid::systemFresh(system, hrt_absolute_time())) {
+			return;
+		}
 
 		// Use what ground station sends us.
 
 		dronecan::remoteid::System msg {};
-		msg.timestamp = system.timestamp;
+		msg.timestamp = system.timestamp_utc;
 
 		for (unsigned i = 0; i < sizeof(system.id_or_mac); ++i) {
 			msg.id_or_mac.push_back(system.id_or_mac[i]);
@@ -291,7 +311,7 @@ void UavcanRemoteIDController::send_system()
 		home_position_s home_position;
 
 		if (_vehicle_gps_position_sub.copy(&vehicle_gps_position) && _home_position_sub.copy(&home_position)) {
-			if (vehicle_gps_position.fix_type >= 3
+			if (vehicle_gps_position.fix_type >= 3 && rid::recent(vehicle_gps_position.timestamp_sample, hrt_absolute_time(), 1_s)
 			    && home_position.valid_alt && home_position.valid_hpos) {
 
 				dronecan::remoteid::System msg {};
@@ -311,8 +331,11 @@ void UavcanRemoteIDController::send_system()
 				msg.operator_altitude_geo = home_position.alt + wgs84_amsl_offset;
 
 				// timestamp: 32 bit Unix Timestamp in seconds since 00:00:00 01/01/2019.
-				static uint64_t utc_offset_s = 1'546'300'800; // UTC seconds since 00:00:00 01/01/2019
-				msg.timestamp = vehicle_gps_position.time_utc_usec / 1e6 - utc_offset_s;
+				static constexpr uint64_t utc_offset_us = 1'546'300'800ULL * 1'000'000ULL;
+
+				if (vehicle_gps_position.time_utc_usec >= utc_offset_us) {
+					msg.timestamp = (vehicle_gps_position.time_utc_usec - utc_offset_us) / 1'000'000ULL;
+				}
 
 				_uavcan_pub_remoteid_system.broadcast(msg);
 			}
@@ -370,6 +393,12 @@ UavcanRemoteIDController::arm_status_sub_cb(const uavcan::ReceivedDataStructure<
 	open_drone_id_arm_status_s arm_status{};
 
 	arm_status.timestamp = hrt_absolute_time();
+	arm_status.node_id = msg.getSrcNodeID().get();
+
+	if (!_identity_client.acceptArmStatus(arm_status.node_id, arm_status.timestamp)) {
+		return;
+	}
+
 	arm_status.status = msg.status;
 	memcpy(arm_status.error, msg.error.c_str(), sizeof(arm_status.error));
 

@@ -1,0 +1,2 @@
+CONFIG_BOARD_ADDITIONAL_INIT="rc.rid_defaults"
+# CONFIG_RID_UOM_TEST_MOCK is not set

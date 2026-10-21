@@ -1,0 +1,6 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-3-Clause
+# Product profile: preserve existing user-selected RID flight action.
+param set-default UAVCAN_ENABLE 2
+param set-default COM_ARM_ODID 2
+param set-default COM_RID_UOM 1

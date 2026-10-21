@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "openDroneIDCheck.hpp"
+#include <lib/remote_id/RidState.hpp>
 
 
 void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
@@ -39,6 +40,8 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 	reporter.failsafeFlags().remote_id_unhealthy =
 		!context.status().open_drone_id_system_present ||
 		!context.status().open_drone_id_system_healthy;
+
+	checkProduct(context, reporter);
 
 	if (!_param_com_arm_odid.get()) {
 		return;
@@ -83,4 +86,69 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 
 	}
+}
+
+void OpenDroneIDChecks::checkProduct(const Context &context, Report &reporter)
+{
+	reporter.failsafeFlags().uom_unhealthy = false;
+
+	if (!_param_com_rid_uom.get()) { return; }
+
+	rid_identity_s identity{};
+	rid_uom_status_s uom{};
+	open_drone_id_arm_status_s arm{};
+	_identity_sub.copy(&identity);
+	_uom_sub.copy(&uom);
+	_arm_sub.copy(&arm);
+	const uint64_t now = hrt_absolute_time();
+	const bool identity_ready = rid::identityReady(identity, now);
+	const bool rid_ready = identity_ready && arm.node_id == identity.rid_node_id && arm.status == 0
+			       && rid::recent(arm.timestamp, now, rid::HEARTBEAT_TIMEOUT_US);
+#if defined(CONFIG_RID_UOM_TEST_MOCK)
+	static constexpr bool allow_mock = true;
+#else
+	static constexpr bool allow_mock = false;
+#endif
+	const bool uom_ready = rid::uomReady(identity, uom, now, allow_mock);
+	reporter.failsafeFlags().uom_unhealthy = !uom_ready;
+	const NavModes modes = context.isArmed() ? NavModes::None : NavModes::All;
+	const events::Log severity = context.isArmed() ? events::Log::Warning : events::Log::Error;
+
+	if (!identity_ready) {
+		/* EVENT
+		 * @description
+		 * Product RID/UOM readiness is required before arming. UOM faults in flight only warn.
+		 */
+		reporter.armingCheckFailure(modes, health_component_t::open_drone_id,
+					    events::ID("check_rid_identity_activation"), severity, "RID identity or activation not ready");
+
+	} else if (!rid_ready) {
+		/* EVENT
+		 * @description
+		 * Product RID/UOM readiness is required before arming. UOM faults in flight only warn.
+		 */
+		reporter.armingCheckFailure(modes, health_component_t::open_drone_id,
+					    events::ID("check_rid_bound_health"), severity, "Bound RID health is missing or stale");
+	}
+
+	if (!uom_ready) {
+		/* EVENT
+		 * @description
+		 * Product RID/UOM readiness is required before arming. UOM faults in flight only warn.
+		 */
+		reporter.armingCheckFailure(modes, health_component_t::system,
+					    events::ID("check_uom_not_ready"), severity, "UOM reporting service not ready");
+	}
+
+	// UOM is deliberately not part of remote_id_unhealthy or any mode-changing failsafe.
+	if (context.isArmed() && uom_ready != _last_uom_ready) {
+		if (uom_ready) {
+			events::send(events::ID("uom_reporting_restored"), events::Log::Info, "UOM reporting restored");
+
+		} else {
+			events::send(events::ID("uom_reporting_lost"), events::Log::Warning, "UOM reporting unavailable; flight mode unchanged");
+		}
+	}
+
+	_last_uom_ready = uom_ready;
 }

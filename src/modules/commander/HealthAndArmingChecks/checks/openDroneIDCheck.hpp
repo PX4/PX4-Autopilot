@@ -34,6 +34,10 @@
 #pragma once
 
 #include "../Common.hpp"
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/rid_identity.h>
+#include <uORB/topics/rid_uom_status.h>
+#include <uORB/topics/open_drone_id_arm_status.h>
 
 class OpenDroneIDChecks : public HealthAndArmingCheckBase
 {
@@ -44,7 +48,13 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
+	void checkProduct(const Context &context, Report &reporter);
+	uORB::Subscription _identity_sub{ORB_ID(rid_identity)};
+	uORB::Subscription _uom_sub{ORB_ID(rid_uom_status)};
+	uORB::Subscription _arm_sub{ORB_ID(open_drone_id_arm_status)};
+	bool _last_uom_ready{false};
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid
+					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid,
+					(ParamInt<px4::params::COM_RID_UOM>) _param_com_rid_uom
 				       )
 };

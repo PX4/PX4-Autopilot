@@ -33,6 +33,7 @@
 
 set(MAVLINK_GIT_DIR "${CMAKE_CURRENT_LIST_DIR}/mavlink")
 set(MAVLINK_LIBRARY_DIR "${CMAKE_BINARY_DIR}/mavlink")
+set(AMOV_RID_PROTOCOL_DIR "${CMAKE_SOURCE_DIR}/protocol/amov_rid_uom")
 file(RELATIVE_PATH MAVLINK_GIT_DIR_RELATIVE ${CMAKE_SOURCE_DIR} ${MAVLINK_GIT_DIR})
 
 px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${MAVLINK_GIT_DIR}")
@@ -56,18 +57,24 @@ add_custom_command(
 add_custom_target(mavlink_c_generate_uavionix DEPENDS ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h)
 set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h PROPERTIES GENERATED true)
 
-# generate the primary dialect
+# Extend a build-local copy of the pinned dialect; never edit the submodule.
 add_custom_command(
 	OUTPUT ${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h
 	COMMAND
-		${PYTHON_EXECUTABLE} ${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
-			--lang C --wire-protocol 2.0
+		${CMAKE_COMMAND} -E env PYTHONHASHSEED=0
+		${PYTHON_EXECUTABLE} ${AMOV_RID_PROTOCOL_DIR}/generate.py
+			--definitions ${MAVLINK_GIT_DIR}/message_definitions/v1.0
+			--dialect ${CONFIG_MAVLINK_DIALECT}
 			--output ${MAVLINK_LIBRARY_DIR}
-			${MAVLINK_GIT_DIR}/message_definitions/v1.0/${CONFIG_MAVLINK_DIALECT}.xml > ${CMAKE_CURRENT_BINARY_DIR}/mavgen_${CONFIG_MAVLINK_DIALECT}.log
+			--work-dir ${CMAKE_CURRENT_BINARY_DIR}/amov_xml
+			--pymavlink-root ${MAVLINK_GIT_DIR}
+			> ${CMAKE_CURRENT_BINARY_DIR}/mavgen_${CONFIG_MAVLINK_DIALECT}.log
 	DEPENDS
 		git_mavlink_v2
 		${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
 		${MAVLINK_GIT_DIR}/message_definitions/v1.0/${CONFIG_MAVLINK_DIALECT}.xml
+		${AMOV_RID_PROTOCOL_DIR}/generate.py
+		${AMOV_RID_PROTOCOL_DIR}/amov.xml
 		${BOARD_DEFCONFIG}
 
 		# generate after uAvionix
@@ -115,6 +122,7 @@ px4_add_module(
 		mavlink_mission.cpp
 		mavlink_parameters.cpp
 		mavlink_rate_limiter.cpp
+		RidProtocol.cpp
 		mavlink_receiver.cpp
 		mavlink_shell.cpp
 		mavlink_simple_analyzer.cpp

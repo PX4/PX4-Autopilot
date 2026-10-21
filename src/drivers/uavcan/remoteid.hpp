@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/sensor_gps.h>
@@ -48,6 +49,7 @@
 #include <uORB/topics/open_drone_id_system.h>
 
 #include <uavcan/uavcan.hpp>
+#include "RidIdentityClient.hpp"
 #include <dronecan/remoteid/BasicID.hpp>
 #include <dronecan/remoteid/Location.hpp>
 #include <dronecan/remoteid/SelfID.hpp>
@@ -69,7 +71,8 @@ private:
 	typedef uavcan::MethodBinder<UavcanRemoteIDController *, void (UavcanRemoteIDController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
-	static constexpr unsigned MAX_RATE_HZ = 1;
+	static constexpr unsigned MAX_RATE_HZ = 5;
+	hrt_abstime _last_static_update{0};
 	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
 
 	void periodic_update(const uavcan::TimerEvent &);
@@ -83,6 +86,7 @@ private:
 	void arm_status_sub_cb(const uavcan::ReceivedDataStructure<dronecan::remoteid::ArmStatus> &msg);
 
 	uavcan::INode &_node;
+	RidIdentityClient _identity_client;
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status{ORB_ID(vehicle_status)};

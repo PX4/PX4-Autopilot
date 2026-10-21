@@ -103,6 +103,7 @@
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
 #include "streams/OPEN_DRONE_ID_BASIC_ID.hpp"
+#include "streams/AMOV_RID_IDENTITY.hpp"
 #include "streams/OPEN_DRONE_ID_LOCATION.hpp"
 #include "streams/OPEN_DRONE_ID_SYSTEM.hpp"
 #include "streams/OPEN_DRONE_ID_ARM_STATUS.hpp"
@@ -468,6 +469,9 @@ static constexpr StreamListItem streams_list[] = {
 #if defined(OBSTACLE_DISTANCE_HPP)
 	create_stream_list_item<MavlinkStreamObstacleDistance>(),
 #endif // OBSTACLE_DISTANCE_HPP
+#if defined(AMOV_RID_IDENTITY_HPP)
+	create_stream_list_item<MavlinkStreamAmovRidIdentity>(),
+#endif
 #if defined(OPEN_DRONE_ID_BASIC_ID_HPP)
 	create_stream_list_item<MavlinkStreamOpenDroneIdBasicId>(),
 #endif // OPEN_DRONE_ID_BASIC_ID_HPP

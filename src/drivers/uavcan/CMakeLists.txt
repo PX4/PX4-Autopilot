@@ -143,6 +143,8 @@ px4_add_module(
 		arming_status.hpp
 		beep.cpp
 		beep.hpp
+		RidIdentityClient.cpp
+		RidIdentityClient.hpp
 		remoteid.cpp
 		remoteid.hpp
 		rgbled.cpp

@@ -120,6 +120,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("rover_speed_status", 100);
 	add_optional_topic("rover_steering_setpoint", 100);
 	add_optional_topic("rover_throttle_setpoint", 100);
+	add_optional_topic("rid_identity", 1000);
+	add_optional_topic("rid_uom_status", 1000);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);
 	add_optional_topic("sensor_airflow", 100);
