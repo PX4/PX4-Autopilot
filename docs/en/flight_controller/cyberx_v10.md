@@ -219,8 +219,8 @@ The board has two CAN ports, `CAN1` and `CAN2`, which can be used for [DroneCAN]
 
 ::: tip
 Most users will not need to build this firmware from PX4 v2.0.
-The board is shipped with the bootloader pre-installed, so users do not need to flash the bootloader themselves.
 It will be pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+Boards are shipped with the bootloader pre-installed, so you do not need to build or flash it yourself.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
