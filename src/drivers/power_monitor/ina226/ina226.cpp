@@ -42,25 +42,20 @@ INA226::INA226(const I2CSPIDriverConfig &config, int battery_index)
 	: I2C(config),
 	  ModuleParams(nullptr),
 	  I2CSPIDriver(config),
-	  _battery(battery_index, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE),
-	  _sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
-	  _comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
-	  _collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
-	  _bad_register_perf(perf_alloc(PC_COUNT, "ina226_bad_register")),
-	  _reinit_perf(perf_alloc(PC_COUNT, "ina226_reinit"))
+	  _battery(battery_index, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE)
 {
 	const float max_current = _param_ina226_current.get();
 	const float shunt_resistance = _param_ina226_shunt.get();
 
 	_current_lsb = max_current / 32768.f; // From datasheet: current_lsb = max_current / 2^15
 
-	// CAL is a 16-bit register. Legal INA226_CURRENT × INA226_SHUNT combos can
-	// overflow it; converting that float to uint16_t is undefined.
+	// CAL is a 15-bit field (D15 is reserved). Legal INA226_CURRENT × INA226_SHUNT combos can
+	// overflow it, and a value that doesn't fit would never read back as written.
 	const float denom = _current_lsb * shunt_resistance;
 	const float cal = (denom > 0.f) ? (CAL_K / denom) : 0.f;
 
-	if ((cal < 1.f) || (cal > 65535.f)) {
-		PX4_ERR("INA226 calibration %.1f out of uint16 range (INA226_CURRENT=%.4f INA226_SHUNT=%.9f)",
+	if ((cal < 1.f) || (cal > CALIBRATION_MAX)) {
+		PX4_ERR("INA226 calibration %.1f out of range (INA226_CURRENT=%.4f INA226_SHUNT=%.9f)",
 			(double)cal, (double)max_current, (double)shunt_resistance);
 		_current_lsb = 0.f;
 		_calibration = 0;
@@ -69,7 +64,9 @@ INA226::INA226(const I2CSPIDriverConfig &config, int battery_index)
 		_calibration = static_cast<uint16_t>(cal);
 	}
 
-	_config_value = MODE_SHUNT_BUS_CONT | VSHCT_588US | VBUSCT_588US | AVERAGES_64;
+	// Triggered: writing this value starts one conversion. The bus voltage LSB (1.25 mV) is coarse,
+	// so the shunt gets the longer conversion time.
+	_config_value = MODE_SHUNT_BUS_TRIG | VSHCT_1100US | VBUSCT_588US | AVERAGES_4;
 
 	if (_calibration != 0) {
 		// Publish an initial disconnected status so the first instance grabs uORB instance 0 immediately.
@@ -84,8 +81,6 @@ INA226::~INA226()
 {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_collection_errors);
-	perf_free(_bad_register_perf);
 	perf_free(_reinit_perf);
 }
 
@@ -132,52 +127,98 @@ void INA226::RunImpl()
 			}
 
 			_state = State::CONFIGURE;
+			_failing_since = 0;
 			ScheduleDelayed(RESET_DELAY_US);
 			return;
 		}
 
 	case State::CONFIGURE: {
+			// The CONFIGURATION write also triggers the first conversion.
 			const bool ok = (probe() == PX4_OK) &&
 					(registerWrite(Register::CALIBRATION, _calibration) == PX4_OK) &&
 					(registerWrite(Register::CONFIGURATION, _config_value) == PX4_OK);
 
 			if (!ok) {
-				_state = State::RESET;
-				ScheduleDelayed(INIT_RETRY_INTERVAL_US);
+				// Keep retrying every tick and only report the battery as disconnected (RESET)
+				// after DISCONNECT_DEBOUNCE_US without a published sample.
+				if (_failing_since == 0) {
+					_failing_since = start_time;
+				}
+
+				if (start_time - _failing_since >= DISCONNECT_DEBOUNCE_US) {
+					perf_count(_reinit_perf);
+					PX4_WARN("consecutive failures, resetting");
+					_state = State::RESET;
+					ScheduleNow();
+
+				} else {
+					ScheduleDelayed(SAMPLE_INTERVAL_US);
+				}
+
 				return;
 			}
 
-			// Communication success
-			_consecutive_failures = 0;
-			_next_reg_to_check = 0;
+			_trigger_time = hrt_absolute_time();
+			_last_config_check = start_time;
 			_state = State::MEASURE;
 
-			// Wait one full sample period + some margin
-			ScheduleDelayed(SAMPLE_INTERVAL_US + 5_ms);
+			// The first tick comes one interval later, when the first conversion is complete.
+			ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
 			return;
 		}
 
 	case State::MEASURE: {
-			if (collect() == PX4_OK) {
-				_consecutive_failures = 0;
+			const int ret = collect();
 
-			} else {
-				perf_count(_collection_errors);
+			if (ret == -EAGAIN) {
+				// The previous conversion can't be done yet (this tick came early): read it next tick.
+				return;
+			}
 
-				if (++_consecutive_failures >= MAX_CONSECUTIVE_FAILURES) {
+			if (ret != PX4_OK) {
+				// The device may have lost power and come back with its reset configuration, and
+				// its result registers read zero until the first conversion after that. Write the
+				// configuration again before the next read instead of publishing such a sample.
+				if (_failing_since == 0) {
+					_failing_since = start_time;
+				}
+
+				ScheduleClear();
+
+				if (start_time - _failing_since >= DISCONNECT_DEBOUNCE_US) {
 					perf_count(_reinit_perf);
-					_state = State::RESET;
-					_consecutive_failures = 0;
 					PX4_WARN("consecutive failures, resetting");
+					_state = State::RESET;
 					ScheduleNow();
-					return;
+
+				} else {
+					_state = State::CONFIGURE;
+					ScheduleDelayed(SAMPLE_INTERVAL_US);
+				}
+
+				return;
+			}
+
+			_failing_since = 0;
+
+			// Checked after publishing so it doesn't add to the sample latency. A failed
+			// read here is only counted as a comms error; the sample reads above decide
+			// whether the device is gone.
+			if (start_time - _last_config_check >= CONFIG_CHECK_INTERVAL_US) {
+				_last_config_check = start_time;
+
+				if (checkCalibration() == -EBADMSG) {
+					// The device lost its configuration (e.g. brown-out while plugging the battery)
+					// but is still responding: write it again without reporting the battery as
+					// disconnected, which the commander would treat as a battery failure in flight.
+					perf_count(_reinit_perf);
+					PX4_WARN("configuration lost, reconfiguring");
+					ScheduleClear();
+					_state = State::CONFIGURE;
+					ScheduleNow();
 				}
 			}
 
-			const hrt_abstime elapsed = hrt_elapsed_time(&start_time);
-			const hrt_abstime scheduled_time = elapsed < SAMPLE_INTERVAL_US ? SAMPLE_INTERVAL_US - elapsed : 0;
-
-			ScheduleDelayed(scheduled_time);
 			return;
 		}
 	}
@@ -185,16 +226,25 @@ void INA226::RunImpl()
 
 int INA226::collect()
 {
+	// Ticks are on a fixed hrt grid, so a tick after a late one comes early. Triggering
+	// before the previous conversion is done would restart it and we would read (and
+	// publish) the one before it again.
+	if (hrt_elapsed_time(&_trigger_time) < CONVERSION_TIME_MAX_US) {
+		return -EAGAIN;
+	}
+
 	perf_begin(_sample_perf);
 
-	// Verify one config register per cycle
-	const bool config_ok = checkConfigurationRotating();
-
-	if (!config_ok) {
-		perf_count(_bad_register_perf);
+	// Start the next conversion first. The result registers keep the previous, completed
+	// conversion until the new one finishes, so reading them right after the trigger returns
+	// the sample triggered one tick ago. This gives a fixed sample latency and the full tick
+	// for the conversion.
+	if (registerWrite(Register::CONFIGURATION, _config_value) != PX4_OK) {
 		perf_end(_sample_perf);
 		return PX4_ERROR;
 	}
+
+	_trigger_time = hrt_absolute_time();
 
 	int16_t bus_voltage = 0;
 	int16_t current = 0;
@@ -230,31 +280,27 @@ int INA226::probe()
 	return PX4_OK;
 }
 
-bool INA226::checkConfigurationRotating()
+int INA226::checkCalibration()
 {
-	const struct {
-		Register reg;
-		uint16_t expected;
-		uint16_t mask;
-	} checks[] = {
-		// CONFIGURATION D15 (RST) self-clears; D14:D12 are reserved and D14 reads back as 1.
-		{ Register::CONFIGURATION, _config_value, 0x0FFF },
-		{ Register::CALIBRATION,   _calibration,  0xFFFF },
-	};
-
-	const auto &check = checks[_next_reg_to_check];
+	// CONFIGURATION is not checked: it is rewritten every tick to trigger the next conversion.
 	uint16_t actual = 0;
 
-	if (registerRead(check.reg, actual) != PX4_OK) {
-		return false;
+	if (registerRead(Register::CALIBRATION, actual) != PX4_OK) {
+		return -EIO;
 	}
 
-	if ((actual & check.mask) != (check.expected & check.mask)) {
-		return false;
+	if (actual != _calibration) {
+		// I2C has no CRC: confirm the mismatch with a second read before acting on it.
+		if (registerRead(Register::CALIBRATION, actual) != PX4_OK) {
+			return -EIO;
+		}
+
+		if (actual != _calibration) {
+			return -EBADMSG;
+		}
 	}
 
-	_next_reg_to_check = (_next_reg_to_check + 1) % (sizeof(checks) / sizeof(checks[0]));
-	return true;
+	return PX4_OK;
 }
 
 int INA226::registerRead(Register reg, uint16_t &value)
@@ -319,8 +365,6 @@ void INA226::print_status()
 	PX4_INFO("sample interval: %llu us", SAMPLE_INTERVAL_US);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_collection_errors);
-	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_reinit_perf);
 }
 
@@ -365,6 +409,9 @@ Multiple instances can run simultaneously on separate buses or different I2C add
 
 If the device is not powered at startup, pass `-k` (keep_running) and the driver
 will retry initialization every 500 ms so the battery can be plugged in later.
+
+The device is sampled at 100 Hz. Every sample is triggered by the driver, so the latency
+from the measurement to the publication is the same for every sample.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("ina226", "driver");
