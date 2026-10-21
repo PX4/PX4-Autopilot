@@ -874,6 +874,9 @@ lsm6dsv <command> [arguments...]
      [-q]        quiet startup (no message if no device found)
      [-R <val>]  Rotation
                  default: 0
+     [-T <val>]  High-g variant for WHO_AM_I 0x73 (80 = LSM6DSV80X, 320 =
+                 LSM6DSV320X)
+                 default: 0
 
    stop
 
