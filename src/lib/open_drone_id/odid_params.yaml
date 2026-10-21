@@ -8,11 +8,15 @@ parameters:
         long: |-
           Selects how the Open Drone ID UAS ID is sourced.
 
-          In locked mode, the first valid serial-number Basic ID is stored persistently
-          and bound to the board UID. Later boots reuse it only when the record and UID
-          are valid. Records from the older format without a UID require explicit
+          In locked mode, the first supported Basic ID is stored persistently with its
+          ID type and bound to the board UID. Type 1 uses ANSI/CTA-2063 serial syntax.
+          The experimental CN product ID type 5 uses the fixed 20-character GB/T 41300
+          structure and requires matching endpoints implementing mavlink/mavlink#2500.
+          This type assignment is a proposal, not yet a stable protocol definition.
+          Later boots select validation from the stored type, without a SYSTEM message.
+          Records from the older format without a UID require explicit
           reprovisioning. UID binding detects copied records but does not authenticate
-          the serial number.
+          the identity or establish regulatory compliance.
       type: enum
       values:
         0: PX4 board GUID legacy fallback

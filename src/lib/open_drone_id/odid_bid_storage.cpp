@@ -67,12 +67,12 @@ class BidStorageBackend
 {
 public:
 	BidLockInfo get();
-	BidStoreResult checkOrStore(uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE]);
+	BidStoreResult checkOrStore(uint8_t id_type, uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE]);
 
 private:
-	static bool recordMatches(const UasIdRecord &record, const uint8_t uas_id[UAS_ID_SIZE])
+	static bool recordMatches(const UasIdRecord &record, uint8_t id_type, const uint8_t uas_id[UAS_ID_SIZE])
 	{
-		return memcmp(record.uas_id, uas_id, UAS_ID_SIZE) == 0;
+		return record.id_type == id_type && memcmp(record.uas_id, uas_id, UAS_ID_SIZE) == 0;
 	}
 
 	// Write the entire buffer to the file descriptor, handling short writes.
@@ -132,6 +132,7 @@ BidLockInfo BidStorageBackend::get()
 
 	if (recordValid(record, uid, sizeof(uid))) {
 		BidLockInfo info{BidLockState::Locked, {}};
+		info.id.id_type = record.id_type;
 		info.id.ua_type = record.ua_type;
 		memcpy(info.id.uas_id, record.uas_id, UAS_ID_SIZE);
 		return info;
@@ -150,9 +151,9 @@ BidLockInfo BidStorageBackend::get()
 // Check if the given UAS ID matches the stored one, or store it if the storage is empty.
 // Only erased storage can be provisioned. UID binding detects copied records;
 // neither the UID nor the CRC authenticates the identity against deliberate edits.
-BidStoreResult BidStorageBackend::checkOrStore(uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE])
+BidStoreResult BidStorageBackend::checkOrStore(uint8_t id_type, uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE])
 {
-	if (!serialNumberValid(uas_id, UAS_ID_SIZE)) {
+	if (!uasIdValid(id_type, uas_id, UAS_ID_SIZE)) {
 		return BidStoreResult::InvalidBasicId;
 	}
 
@@ -183,7 +184,7 @@ BidStoreResult BidStorageBackend::checkOrStore(uint8_t ua_type, const uint8_t ua
 	}
 
 	if (recordValid(existing, uid, sizeof(uid))) {
-		const BidStoreResult result = recordMatches(existing, uas_id)
+		const BidStoreResult result = recordMatches(existing, id_type, uas_id)
 					      ? BidStoreResult::AlreadyLocked
 					      : BidStoreResult::AlreadyLockedDifferent;
 		close(fd);
@@ -197,7 +198,7 @@ BidStoreResult BidStorageBackend::checkOrStore(uint8_t ua_type, const uint8_t ua
 
 	UasIdRecord record{};
 
-	if (!recordCreate(record, ua_type, uas_id, UAS_ID_SIZE, uid, sizeof(uid))) {
+	if (!recordCreate(record, id_type, ua_type, uas_id, UAS_ID_SIZE, uid, sizeof(uid))) {
 		close(fd);
 		return BidStoreResult::InvalidBasicId;
 	}
@@ -236,7 +237,7 @@ BidLockInfo BidStorage::get()
 	return info;
 }
 
-BidStoreResult BidStorage::checkOrStore(uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE])
+BidStoreResult BidStorage::checkOrStore(uint8_t id_type, uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE])
 {
 	// Serialize the entire read/check/write transaction across MAVLink instances.
 	if (pthread_mutex_lock(&storage_mutex) != 0) {
@@ -244,7 +245,7 @@ BidStoreResult BidStorage::checkOrStore(uint8_t ua_type, const uint8_t uas_id[UA
 	}
 
 	BidStorageBackend storage;
-	const BidStoreResult result = storage.checkOrStore(ua_type, uas_id);
+	const BidStoreResult result = storage.checkOrStore(id_type, ua_type, uas_id);
 	pthread_mutex_unlock(&storage_mutex);
 	return result;
 }
@@ -252,7 +253,7 @@ BidStoreResult BidStorage::checkOrStore(uint8_t ua_type, const uint8_t uas_id[UA
 BidStoreResult BidLock::resolve(uint8_t id_type, uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE],
 				UasId &locked_id)
 {
-	if (id_type != UAS_ID_TYPE_SERIAL_NUMBER || !serialNumberValid(uas_id, UAS_ID_SIZE)) {
+	if (!uasIdValid(id_type, uas_id, UAS_ID_SIZE)) {
 		return BidStoreResult::InvalidBasicId;
 	}
 
@@ -286,11 +287,12 @@ BidStoreResult BidLock::resolve(uint8_t id_type, uint8_t ua_type, const uint8_t 
 		}
 	}
 
-	const BidStoreResult result = BidStorage::checkOrStore(ua_type, uas_id);
+	const BidStoreResult result = BidStorage::checkOrStore(id_type, ua_type, uas_id);
 
 	switch (result) {
 	case BidStoreResult::Stored:
 		_info.state = BidLockState::Locked;
+		_info.id.id_type = id_type;
 		_info.id.ua_type = ua_type;
 		memcpy(_info.id.uas_id, uas_id, UAS_ID_SIZE);
 		locked_id = _info.id;

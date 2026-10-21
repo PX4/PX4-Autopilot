@@ -187,14 +187,31 @@ The following Open Drone ID MAVLink messages are not supported in PX4 v1.14 (to 
 
 ## Locked Basic ID Storage
 
-On builds with `CONFIG_BOARD_HAS_RID_EEPROM` enabled and an MTD identity partition, `ODID_BID_SRC=1` stores the first valid serial-number Basic ID received over MAVLink and reuses it for DroneCAN Remote ID after reboot.
+On builds with `CONFIG_BOARD_HAS_RID_EEPROM` enabled and an MTD identity partition, `ODID_BID_SRC=1` stores the first supported Basic ID received over MAVLink, including its ID type, and reuses it for DroneCAN Remote ID after reboot.
 The `tustin_mach_rid` build enables the identity EEPROM and selects this mode by default; saved parameter values take precedence.
 
-In locked mode, serial numbers must contain 6–20 characters: a four-character manufacturer code, a hexadecimal suffix length (`1`–`F`), and a suffix of that length.
-Only digits and uppercase letters other than `I` and `O` are accepted, and unused bytes in the 20-byte MAVLink field must be zero.
-These checks follow the serial-number structure described in [RFC 9374, section 4.2](https://www.rfc-editor.org/rfc/rfc9374.html#section-4.2); they do not verify manufacturer registration.
+In locked mode, the Basic ID `id_type` selects the validation rules:
+
+- Type `1` (`MAV_ODID_ID_TYPE_SERIAL_NUMBER`): ANSI/CTA-2063 syntax, with 6–20 characters consisting of a four-character manufacturer code, a hexadecimal suffix length (`1`–`F`), and a suffix of that length.
+  Unused bytes in the 20-byte MAVLink field must be zero.
+  This follows the serial-number structure described in [RFC 9374, section 4.2](https://www.rfc-editor.org/rfc/rfc9374.html#section-4.2).
+- Experimental type `5` (`MAV_ODID_ID_TYPE_CN_PRODUCT_ID`): exactly 20 ASCII characters following the [GB/T 41300-2022](https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=F0352B4E119D73AC2DA380878B7A2714) structure of four manufacturer characters, four product-model characters, and twelve serial characters.
+  The fifth character belongs to the model code; it is not a CTA length code, and no null padding is permitted.
+
+Both formats allow digits and uppercase letters other than `I` and `O`.
+These are syntax checks, not verification of manufacturer registration, allocated model codes, real-name registration, or authenticity.
+Unsupported ID types are rejected for provisioning; later messages cannot replace an already stored identity or its type.
+The persisted `id_type` controls validation after reboot, independently of System message arrival or classification.
+
+::: warning
+CN product ID type `5` is a WIP proposal in [mavlink/mavlink#2500](https://github.com/mavlink/mavlink/pull/2500), pending maintainer approval and allocation.
+Use it only with GCS and RID endpoints implementing the same proposal; do not relabel a CN product code as CTA type `1`.
+The CN product code is separate from the real-name registration mark transported in `OPEN_DRONE_ID_OPERATOR_ID`.
+This MAVLink type is not an ASTM on-air type allocation: a CN RID transmitter needs its own GB 46750 encoding path.
+:::
 
 The version 2 record in `/fs/mtd_id` includes the board UID and a CRC.
+Its existing ID-type field is covered by the CRC, so type support does not change the record layout and existing valid version 2 CTA records remain readable.
 A record copied from another board, an invalid serial number, or a damaged record is rejected.
 In locked mode, an invalid or missing identity does not fall back to the board GUID for DroneCAN Basic ID.
 UID matching and CRC detect mismatches and corruption; they do not authenticate the serial number or prevent deliberate rewriting, and signature verification is not implemented.

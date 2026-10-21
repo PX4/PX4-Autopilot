@@ -98,6 +98,35 @@ bool serialNumberValid(const uint8_t *serial, size_t size)
 	return suffix_length == length - SERIAL_PREFIX_SIZE;
 }
 
+bool cnProductIdValid(const uint8_t *product_id, size_t size)
+{
+	if (product_id == nullptr || size != UAS_ID_SIZE) {
+		return false;
+	}
+
+	for (size_t i = 0; i < size; ++i) {
+		if (!serialCharacterValid(product_id[i])) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool uasIdValid(uint8_t id_type, const uint8_t *uas_id, size_t size)
+{
+	switch (id_type) {
+	case UAS_ID_TYPE_SERIAL_NUMBER:
+		return serialNumberValid(uas_id, size);
+
+	case UAS_ID_TYPE_CN_PRODUCT_ID:
+		return cnProductIdValid(uas_id, size);
+
+	default:
+		return false;
+	}
+}
+
 bool uidValid(const uint8_t *uid, size_t size)
 {
 	if (uid == nullptr || size == 0 || size > UID_MAX_SIZE) {
@@ -115,17 +144,17 @@ bool uidValid(const uint8_t *uid, size_t size)
 	return !all_zero && !all_erased;
 }
 
-bool recordCreate(UasIdRecord &record, uint8_t ua_type, const uint8_t *serial, size_t serial_size,
+bool recordCreate(UasIdRecord &record, uint8_t id_type, uint8_t ua_type, const uint8_t *serial, size_t serial_size,
 		  const uint8_t *uid, size_t uid_size)
 {
-	if (!serialNumberValid(serial, serial_size) || !uidValid(uid, uid_size)) {
+	if (!uasIdValid(id_type, serial, serial_size) || !uidValid(uid, uid_size)) {
 		return false;
 	}
 
 	record = {};
 	record.magic = UAS_ID_RECORD_MAGIC;
 	record.version = UAS_ID_RECORD_VERSION;
-	record.id_type = UAS_ID_TYPE_SERIAL_NUMBER;
+	record.id_type = id_type;
 	record.ua_type = ua_type;
 	record.uid_size = static_cast<uint8_t>(uid_size);
 	memcpy(record.uas_id, serial, serial_size);
@@ -139,8 +168,7 @@ bool recordValid(const UasIdRecord &record, const uint8_t *uid, size_t uid_size)
 	if (!uidValid(uid, uid_size)
 	    || record.magic != UAS_ID_RECORD_MAGIC
 	    || record.version != UAS_ID_RECORD_VERSION
-	    || record.id_type != UAS_ID_TYPE_SERIAL_NUMBER
-	    || !serialNumberValid(record.uas_id, sizeof(record.uas_id))
+	    || !uasIdValid(record.id_type, record.uas_id, sizeof(record.uas_id))
 	    || record.uid_size != uid_size
 	    || memcmp(record.uid, uid, uid_size) != 0
 	    || record.crc != recordCrc(record)) {

@@ -3822,7 +3822,7 @@ void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *m
 			return;
 		}
 
-		odid_basic_id.id_type = MAV_ODID_ID_TYPE_SERIAL_NUMBER;
+		odid_basic_id.id_type = locked_id.id_type;
 		odid_basic_id.ua_type = locked_id.ua_type;
 		memcpy(odid_basic_id.uas_id, locked_id.uas_id, sizeof(odid_basic_id.uas_id));
 	}

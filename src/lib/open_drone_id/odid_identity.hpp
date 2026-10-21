@@ -61,8 +61,12 @@ struct __attribute__((packed)) UasIdRecord {
 // length (1-F), then 1-15 serial characters. Unused MAVLink bytes must be zero.
 // This checks syntax, not manufacturer registration or authenticity.
 bool serialNumberValid(const uint8_t *serial, size_t size);
+// GB/T 41300-2022: exactly 4 manufacturer + 4 model + 12 serial characters.
+// The fifth character is part of the model code, never a CTA length code.
+bool cnProductIdValid(const uint8_t *product_id, size_t size);
+bool uasIdValid(uint8_t id_type, const uint8_t *uas_id, size_t size);
 bool uidValid(const uint8_t *uid, size_t size);
-bool recordCreate(UasIdRecord &record, uint8_t ua_type, const uint8_t *serial, size_t serial_size,
+bool recordCreate(UasIdRecord &record, uint8_t id_type, uint8_t ua_type, const uint8_t *serial, size_t serial_size,
 		  const uint8_t *uid, size_t uid_size);
 bool recordValid(const UasIdRecord &record, const uint8_t *uid, size_t uid_size);
 bool recordBlank(const UasIdRecord &record);

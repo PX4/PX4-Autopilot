@@ -44,6 +44,7 @@ namespace
 {
 
 constexpr uint8_t SERIAL[] = "ABCD512345";
+constexpr uint8_t CN_PRODUCT[] = "ABCD0001000000000001";
 constexpr uint8_t UID[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x10, 0x32, 0x54, 0x76};
 constexpr uint8_t UA_TYPE = 2;
 
@@ -58,7 +59,7 @@ class OdidIdentityTest : public ::testing::Test
 protected:
 	void SetUp() override
 	{
-		ASSERT_TRUE(recordCreate(_record, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, UID, sizeof(UID)));
+		ASSERT_TRUE(recordCreate(_record, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, UID, sizeof(UID)));
 	}
 
 	UasIdRecord _record{};
@@ -178,6 +179,113 @@ TEST(OdidSerialNumberTest, RejectsEmbeddedNullAndNonzeroAfterPadding)
 	EXPECT_FALSE(serialNumberValid(serial, sizeof(serial)));
 }
 
+TEST(OdidCnProductIdTest, AcceptsFixedManufacturerModelAndSerialFormat)
+{
+	// Four manufacturer, four model, twelve serial characters; no CTA length byte.
+	EXPECT_EQ(UAS_ID_TYPE_CN_PRODUCT_ID, 5);
+	ASSERT_EQ(sizeof(CN_PRODUCT) - 1, UAS_ID_SIZE);
+	EXPECT_TRUE(cnProductIdValid(CN_PRODUCT, sizeof(CN_PRODUCT) - 1));
+	EXPECT_TRUE(uasIdValid(UAS_ID_TYPE_CN_PRODUCT_ID, CN_PRODUCT, sizeof(CN_PRODUCT) - 1));
+	EXPECT_FALSE(serialNumberValid(CN_PRODUCT, sizeof(CN_PRODUCT) - 1));
+	EXPECT_FALSE(uasIdValid(UAS_ID_TYPE_SERIAL_NUMBER, CN_PRODUCT, sizeof(CN_PRODUCT) - 1));
+}
+
+TEST(OdidCnProductIdTest, AcceptsEveryAllowedCharacterAtEveryPosition)
+{
+	const char allowed[] = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+	uint8_t product[UAS_ID_SIZE];
+	memcpy(product, CN_PRODUCT, sizeof(product));
+
+	for (size_t position = 0; position < sizeof(product); ++position) {
+		const uint8_t original = product[position];
+
+		for (size_t character = 0; character < sizeof(allowed) - 1; ++character) {
+			product[position] = allowed[character];
+			EXPECT_TRUE(cnProductIdValid(product, sizeof(product))) << position << ": " << allowed[character];
+		}
+
+		product[position] = original;
+	}
+}
+
+TEST(OdidCnProductIdTest, RejectsNullEmptyShortAndOversizedInput)
+{
+	const uint8_t empty[UAS_ID_SIZE] {};
+	const uint8_t oversized[] = "ABCD0001000000000001Z";
+	EXPECT_FALSE(cnProductIdValid(nullptr, UAS_ID_SIZE));
+	EXPECT_FALSE(cnProductIdValid(CN_PRODUCT, 0));
+	EXPECT_FALSE(cnProductIdValid(empty, sizeof(empty)));
+	EXPECT_FALSE(cnProductIdValid(CN_PRODUCT, 1));
+	EXPECT_FALSE(cnProductIdValid(CN_PRODUCT, UAS_ID_SIZE - 1));
+	EXPECT_FALSE(cnProductIdValid(oversized, sizeof(oversized) - 1));
+	// A C string terminator is not part of the fixed 20-byte wire field.
+	EXPECT_FALSE(cnProductIdValid(CN_PRODUCT, sizeof(CN_PRODUCT)));
+}
+
+TEST(OdidCnProductIdTest, RejectsInvalidCharactersAndNullPaddingAtEveryPosition)
+{
+	const uint8_t invalid[] = {'I', 'O', 'a', 'z', ' ', '-', '_', '.', '\n', 0, 0x7f, 0x80, 0xff};
+	uint8_t product[UAS_ID_SIZE];
+	memcpy(product, CN_PRODUCT, sizeof(product));
+
+	for (size_t position = 0; position < sizeof(product); ++position) {
+		const uint8_t original = product[position];
+
+		for (uint8_t character : invalid) {
+			product[position] = character;
+			EXPECT_FALSE(cnProductIdValid(product, sizeof(product))) << position << ": " << +character;
+		}
+
+		product[position] = original;
+	}
+}
+
+TEST(OdidCnProductIdTest, ShortCtaSerialCannotBeInferredAsCnProduct)
+{
+	uint8_t padded[UAS_ID_SIZE] {};
+	memcpy(padded, SERIAL, sizeof(SERIAL) - 1);
+	EXPECT_TRUE(uasIdValid(UAS_ID_TYPE_SERIAL_NUMBER, padded, sizeof(padded)));
+	EXPECT_FALSE(uasIdValid(UAS_ID_TYPE_CN_PRODUCT_ID, padded, sizeof(padded)));
+
+	UasIdRecord record{};
+	EXPECT_FALSE(recordCreate(record, UAS_ID_TYPE_CN_PRODUCT_ID, UA_TYPE, padded, sizeof(padded), UID, sizeof(UID)));
+	EXPECT_FALSE(recordCreate(record, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, CN_PRODUCT, sizeof(CN_PRODUCT) - 1, UID,
+				  sizeof(UID)));
+}
+
+TEST(OdidCnProductIdTest, OverlappingSyntaxPreservesExplicitWireType)
+{
+	const uint8_t overlapping[] = "ABCDF123456789ABCDEF";
+	EXPECT_TRUE(uasIdValid(UAS_ID_TYPE_SERIAL_NUMBER, overlapping, sizeof(overlapping) - 1));
+	EXPECT_TRUE(uasIdValid(UAS_ID_TYPE_CN_PRODUCT_ID, overlapping, sizeof(overlapping) - 1));
+	UasIdRecord cta{};
+	UasIdRecord cn{};
+	ASSERT_TRUE(recordCreate(cta, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, overlapping, sizeof(overlapping) - 1, UID, sizeof(UID)));
+	ASSERT_TRUE(recordCreate(cn, UAS_ID_TYPE_CN_PRODUCT_ID, UA_TYPE, overlapping, sizeof(overlapping) - 1, UID, sizeof(UID)));
+	EXPECT_EQ(cta.id_type, UAS_ID_TYPE_SERIAL_NUMBER);
+	EXPECT_EQ(cn.id_type, UAS_ID_TYPE_CN_PRODUCT_ID);
+	EXPECT_TRUE(recordValid(cta, UID, sizeof(UID)));
+	EXPECT_TRUE(recordValid(cn, UID, sizeof(UID)));
+	EXPECT_EQ(memcmp(cta.uas_id, cn.uas_id, UAS_ID_SIZE), 0);
+	EXPECT_NE(cta.crc, cn.crc);
+
+	// Changing only the type must fail CRC even when both syntaxes match.
+	cn.id_type = UAS_ID_TYPE_SERIAL_NUMBER;
+	EXPECT_FALSE(recordValid(cn, UID, sizeof(UID)));
+}
+
+TEST(OdidCnProductIdTest, UnsupportedWireTypesCannotProvisionIdentity)
+{
+	const uint8_t unsupported[] = {0, 2, 3, 4, 255};
+	const uint8_t overlapping[] = "ABCDF123456789ABCDEF";
+
+	for (uint8_t type : unsupported) {
+		UasIdRecord record{};
+		EXPECT_FALSE(uasIdValid(type, overlapping, sizeof(overlapping) - 1)) << +type;
+		EXPECT_FALSE(recordCreate(record, type, UA_TYPE, overlapping, sizeof(overlapping) - 1, UID, sizeof(UID))) << +type;
+	}
+}
+
 TEST(OdidUidTest, AcceptsEverySupportedUidLength)
 {
 	uint8_t uid[UID_MAX_SIZE];
@@ -207,7 +315,7 @@ TEST(OdidUidTest, RejectsMissingOversizedAndSentinelUids)
 TEST_F(OdidIdentityTest, RecordRoundTripPreservesIdentityAndClearsPadding)
 {
 	memset(&_record, 0xff, sizeof(_record));
-	ASSERT_TRUE(recordCreate(_record, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, UID, sizeof(UID)));
+	ASSERT_TRUE(recordCreate(_record, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, UID, sizeof(UID)));
 	EXPECT_TRUE(recordValid(_record, UID, sizeof(UID)));
 	EXPECT_EQ(_record.magic, UAS_ID_RECORD_MAGIC);
 	EXPECT_EQ(_record.version, UAS_ID_RECORD_VERSION);
@@ -231,7 +339,7 @@ TEST_F(OdidIdentityTest, RecordRoundTripSupportsMaximumSerialAndUid)
 	const uint8_t serial[] = "ABCDF123456789ABCDEF";
 	uint8_t uid[UID_MAX_SIZE];
 	memset(uid, 0x12, sizeof(uid));
-	ASSERT_TRUE(recordCreate(_record, UA_TYPE, serial, sizeof(serial) - 1, uid, sizeof(uid)));
+	ASSERT_TRUE(recordCreate(_record, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, serial, sizeof(serial) - 1, uid, sizeof(uid)));
 	EXPECT_TRUE(recordValid(_record, uid, sizeof(uid)));
 	EXPECT_EQ(memcmp(_record.uas_id, serial, UAS_ID_SIZE), 0);
 	EXPECT_EQ(memcmp(_record.uid, uid, sizeof(uid)), 0);
@@ -243,7 +351,7 @@ TEST_F(OdidIdentityTest, RecordRoundTripSupportsEveryUidLength)
 	memset(uid, 0x12, sizeof(uid));
 
 	for (size_t length = 1; length <= sizeof(uid); ++length) {
-		ASSERT_TRUE(recordCreate(_record, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, uid, length));
+		ASSERT_TRUE(recordCreate(_record, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, uid, length));
 		EXPECT_TRUE(recordValid(_record, uid, length)) << length;
 	}
 }
@@ -252,10 +360,12 @@ TEST_F(OdidIdentityTest, RecordCreationRejectsInvalidIdentity)
 {
 	const uint8_t invalid_serial[] = "ABCD1I";
 	const uint8_t empty_uid[sizeof(UID)] {};
-	EXPECT_FALSE(recordCreate(_record, UA_TYPE, invalid_serial, sizeof(invalid_serial) - 1, UID, sizeof(UID)));
-	EXPECT_FALSE(recordCreate(_record, UA_TYPE, nullptr, UAS_ID_SIZE, UID, sizeof(UID)));
-	EXPECT_FALSE(recordCreate(_record, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, empty_uid, sizeof(empty_uid)));
-	EXPECT_FALSE(recordCreate(_record, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, nullptr, sizeof(UID)));
+	EXPECT_FALSE(recordCreate(_record, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, invalid_serial, sizeof(invalid_serial) - 1, UID,
+				  sizeof(UID)));
+	EXPECT_FALSE(recordCreate(_record, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, nullptr, UAS_ID_SIZE, UID, sizeof(UID)));
+	EXPECT_FALSE(recordCreate(_record, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, empty_uid,
+				  sizeof(empty_uid)));
+	EXPECT_FALSE(recordCreate(_record, UAS_ID_TYPE_SERIAL_NUMBER, UA_TYPE, SERIAL, sizeof(SERIAL) - 1, nullptr, sizeof(UID)));
 }
 
 TEST_F(OdidIdentityTest, RejectsRecordFromAnotherBoard)
@@ -363,4 +473,88 @@ TEST_F(OdidIdentityTest, OnlyCompletelyErasedRecordIsBlank)
 		reinterpret_cast<uint8_t *>(&partial)[index] = 0;
 		EXPECT_FALSE(recordBlank(partial)) << index;
 	}
+}
+
+TEST_F(OdidIdentityTest, CnProductRecordRoundTripPreservesWireTypeAndUid)
+{
+	ASSERT_TRUE(recordCreate(_record, UAS_ID_TYPE_CN_PRODUCT_ID, UA_TYPE, CN_PRODUCT, sizeof(CN_PRODUCT) - 1, UID,
+				 sizeof(UID)));
+	EXPECT_TRUE(recordValid(_record, UID, sizeof(UID)));
+	EXPECT_EQ(_record.version, 2);
+	EXPECT_EQ(_record.id_type, UAS_ID_TYPE_CN_PRODUCT_ID);
+	EXPECT_EQ(_record.ua_type, UA_TYPE);
+	EXPECT_EQ(_record.uid_size, sizeof(UID));
+	EXPECT_EQ(memcmp(_record.uas_id, CN_PRODUCT, UAS_ID_SIZE), 0);
+	EXPECT_EQ(memcmp(_record.uid, UID, sizeof(UID)), 0);
+
+	for (size_t index = sizeof(UID); index < sizeof(_record.uid); ++index) {
+		EXPECT_EQ(_record.uid[index], 0);
+	}
+}
+
+TEST_F(OdidIdentityTest, CnProductRecordRejectsForeignUidAndCorruption)
+{
+	ASSERT_TRUE(recordCreate(_record, UAS_ID_TYPE_CN_PRODUCT_ID, UA_TYPE, CN_PRODUCT, sizeof(CN_PRODUCT) - 1, UID,
+				 sizeof(UID)));
+	uint8_t foreign_uid[sizeof(UID)];
+	memcpy(foreign_uid, UID, sizeof(UID));
+	foreign_uid[sizeof(foreign_uid) - 1] ^= 1;
+	EXPECT_FALSE(recordValid(_record, foreign_uid, sizeof(foreign_uid)));
+	EXPECT_FALSE(recordValid(_record, UID, sizeof(UID) - 1));
+
+	for (size_t index = 0; index < sizeof(_record); ++index) {
+		UasIdRecord corrupted = _record;
+		reinterpret_cast<uint8_t *>(&corrupted)[index] ^= 1;
+		EXPECT_FALSE(recordValid(corrupted, UID, sizeof(UID))) << index;
+	}
+}
+
+TEST_F(OdidIdentityTest, CnProductRecordRejectsWrongTypeAndInvalidTextWithCorrectCrc)
+{
+	ASSERT_TRUE(recordCreate(_record, UAS_ID_TYPE_CN_PRODUCT_ID, UA_TYPE, CN_PRODUCT, sizeof(CN_PRODUCT) - 1, UID,
+				 sizeof(UID)));
+	UasIdRecord invalid = _record;
+	invalid.id_type = UAS_ID_TYPE_SERIAL_NUMBER;
+	updateCrc(invalid);
+	EXPECT_FALSE(recordValid(invalid, UID, sizeof(UID)));
+
+	const uint8_t invalid_characters[] = {'I', 'O', 'a', 0};
+
+	for (uint8_t character : invalid_characters) {
+		invalid = _record;
+		invalid.uas_id[UAS_ID_SIZE - 1] = character;
+		updateCrc(invalid);
+		EXPECT_FALSE(recordValid(invalid, UID, sizeof(UID))) << +character;
+	}
+}
+
+TEST_F(OdidIdentityTest, RecordRejectsUnsupportedWireTypesWithCorrectCrc)
+{
+	const uint8_t unsupported[] = {0, 2, 3, 4, 255};
+
+	for (uint8_t type : unsupported) {
+		_record.id_type = type;
+		updateCrc(_record);
+		EXPECT_FALSE(recordValid(_record, UID, sizeof(UID))) << +type;
+	}
+}
+
+TEST(OdidRecordCompatibilityTest, ReadsExistingVersionTwoCtaRecord)
+{
+	// Existing little-endian v2 record for SERIAL/UID, before CN product support.
+	// Keep these bytes fixed so recordCreate cannot silently migrate the fixture.
+	const uint8_t stored[] = {
+		0x4f, 0x44, 0x49, 0x44, 0x02, 0x01, 0x02, 0x0c, 0x41, 0x42,
+		0x43, 0x44, 0x35, 0x31, 0x32, 0x33, 0x34, 0x35, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x23,
+		0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x10, 0x32, 0x54, 0x76,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb8, 0xc7, 0xda, 0xf3,
+	};
+	UasIdRecord record{};
+	ASSERT_EQ(sizeof(record), sizeof(stored));
+	memcpy(&record, stored, sizeof(record));
+	EXPECT_TRUE(recordValid(record, UID, sizeof(UID)));
+	EXPECT_EQ(record.id_type, UAS_ID_TYPE_SERIAL_NUMBER);
+	EXPECT_EQ(record.ua_type, UA_TYPE);
+	EXPECT_EQ(memcmp(record.uas_id, SERIAL, sizeof(SERIAL) - 1), 0);
 }
