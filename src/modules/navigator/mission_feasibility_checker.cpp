@@ -77,13 +77,9 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 	bool failed = false;
 
 	for (size_t i = 0; i < mission.count; i++) {
-		struct mission_item_s missionitem = {};
+		mission_item_s missionitem; // fully written by a successful read
 
-		bool success = _dataman_client.readSync((dm_item_t)mission.mission_dataman_id, i,
-							reinterpret_cast<uint8_t *>(&missionitem),
-							sizeof(mission_item_s));
-
-		if (!success) {
+		if (!readSyncMissionItem(mission, i, missionitem)) {
 			_navigator->get_mission_result()->warning = true;
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			logDatamanReadFailure(i, mission.mission_dataman_id);
@@ -145,13 +141,9 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	for (size_t i = 0; i < mission.count; i++) {
-		struct mission_item_s missionitem = {};
+		mission_item_s missionitem; // fully written by a successful read
 
-		bool success = _dataman_client.readSync((dm_item_t)mission.mission_dataman_id, i,
-							reinterpret_cast<uint8_t *>(&missionitem),
-							sizeof(mission_item_s));
-
-		if (!success) {
+		if (!readSyncMissionItem(mission, i, missionitem)) {
 			failure = Failure::DatamanRead;
 			failed_item = i;
 			break;
@@ -304,8 +296,8 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 		return rejectGeofenceJump(batch, jump_index);
 	}
 
-	// do_jump_current_count is execution state that activation and index changes reset, so every
-	// jump that can ever be taken is checked as if it will be.
+	// Ignore do_jump_current_count: activation and index changes reset it.
+	// Check every jump with a nonzero configured repeat count, even if currently spent.
 	if (jump_item.do_jump_repeat_count == 0) {
 		return true;
 	}
@@ -313,19 +305,19 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 	// Bound memory and reads so branching jump chains or loops cannot stall validation.
 	static constexpr size_t kMaxJumpBranches = 16;
 	struct Branch {
-		int32_t index;
-		uint16_t jumps_in_a_row;
+		uint16_t index; // validated target or fallthrough, at most mission.count
+		uint16_t consecutive_jumps;
 	};
 	Branch pending[kMaxJumpBranches]; // every slot is written before it is read
 	size_t pending_count = 1;
-	pending[0] = {jump_item.do_jump_mission_index, 1};
+	pending[0] = {static_cast<uint16_t>(jump_item.do_jump_mission_index), 1};
 	size_t items_read = 0;
 	const size_t read_limit = static_cast<size_t>(mission.count) * kMaxJumpBranches;
 
 	while (pending_count > 0) {
 		const Branch branch = pending[--pending_count];
 		int32_t index = branch.index;
-		uint16_t jumps_in_a_row = branch.jumps_in_a_row;
+		uint16_t consecutive_jumps = branch.consecutive_jumps;
 
 		while (in_range(index)) {
 			if (items_read++ >= read_limit) {
@@ -334,8 +326,7 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 
 			mission_item_s candidate; // fully written by a successful read
 
-			if (!_dataman_client.readSync(static_cast<dm_item_t>(mission.mission_dataman_id), index,
-						      reinterpret_cast<uint8_t *>(&candidate), sizeof(candidate))) {
+			if (!readSyncMissionItem(mission, index, candidate)) {
 				if (checkGeofencePathBatch(batch)) {
 					logDatamanReadFailure(index, mission.mission_dataman_id);
 				}
@@ -345,7 +336,7 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 
 			if (candidate.nav_cmd == NAV_CMD_DO_JUMP) {
 				// getNonJumpItem() gives up after this many jump reads without a non-jump item.
-				if (++jumps_in_a_row >= NAV_MAX_JUMP_ITERATION) {
+				if (++consecutive_jumps >= NAV_MAX_JUMP_ITERATION) {
 					return rejectGeofenceJump(batch, jump_index);
 				}
 
@@ -353,27 +344,24 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 					return rejectGeofenceJump(batch, index);
 				}
 
-				if (candidate.do_jump_repeat_count > 0) {
-					// Once its repeats are spent this jump falls through. Check that leg from the same source too.
-					if (candidate.do_jump_mission_index != index + 1) {
-						if (pending_count >= kMaxJumpBranches) {
-							return rejectGeofenceJump(batch, jump_index);
-						}
-
-						pending[pending_count++] = {index + 1, jumps_in_a_row};
-					}
-
-					index = candidate.do_jump_mission_index;
-
-				} else {
+				// Zero configured repeats always fall through; a target at the next item follows the same path.
+				if (candidate.do_jump_repeat_count == 0 || candidate.do_jump_mission_index == index + 1) {
 					++index;
+					continue;
 				}
 
+				if (pending_count >= kMaxJumpBranches) {
+					return rejectGeofenceJump(batch, jump_index);
+				}
+
+				// Check the active target first, then its exhausted fallthrough from the same source.
+				pending[pending_count++] = {static_cast<uint16_t>(index + 1), consecutive_jumps};
+				index = candidate.do_jump_mission_index;
 				continue;
 			}
 
 			// A non-jump item completes one resolution; the next one starts a new count.
-			jumps_in_a_row = 0;
+			consecutive_jumps = 0;
 
 			if (mission_item_contains_position(candidate)) {
 				if (previous_position && !addGeofencePath(batch, {*previous_position, {candidate.lat, candidate.lon}}, jump_index, true)) {
@@ -458,6 +446,12 @@ bool MissionFeasibilityChecker::checkGeofencePathBatch(GeofencePathBatch &batch)
 	return true;
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
+bool MissionFeasibilityChecker::readSyncMissionItem(const mission_s &mission, size_t index, mission_item_s &item)
+{
+	return _dataman_client.readSync(static_cast<dm_item_t>(mission.mission_dataman_id), index,
+					reinterpret_cast<uint8_t *>(&item), sizeof(item));
+}
 
 void MissionFeasibilityChecker::logGeofenceUnavailable()
 {
