@@ -1337,6 +1337,29 @@ TEST_F(RTLTest, RouteSafePointReturnPromotesWhenCacheBecomesReady)
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
+// A direct fallback on the ground is idle, not landing, and must not switch to the route.
+TEST_F(RTLTest, RouteRetryStopsOnceLanded)
+{
+	const mission_s mission = prepareStraightRouteScenario();
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	cache.invalidate();
+	publishLandDetected(true);
+	_navigator.get_land_detected()->landed = true;
+
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	ASSERT_FALSE(_rtl.isLanding());
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] {
+		return cache.missionItemsReady(mission) && cache.safePointsReady();
+	}));
+	ASSERT_TRUE(_rtl.routeRetryPendingForTest());
+
+	_rtl.forceRouteRetryForTest();
+	_rtl.run(true);
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+}
+
 TEST_F(RTLTest, RouteSafePointReturnDetectsSafePointCountChangeWithSameId)
 {
 	const mission_s mission = prepareStraightRouteScenario();
