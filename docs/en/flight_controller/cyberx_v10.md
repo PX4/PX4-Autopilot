@@ -113,8 +113,8 @@ The board is configured by default for an analog power monitor on `PWR1`.
 An INA228 I2C power monitor (address 0x40) on `PWR2` is also started by default.
 Other I2C power monitors, such as the INA226 or INA238, must be started manually.
 
-The default PDB included with the cyberx_v10 includes both an analog interface and a digital I2C interface.
-The analog interface is connected to `PWR1`, while the digital I2C interface is connected to `PWR2`.
+The power module supplied with the CyberX-v10 has both an analog interface and a digital I2C interface.
+Connect the analog interface to `PWR1` and the I2C interface to `PWR2`.
 
 See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to configure the battery and power monitor.
 
