@@ -385,7 +385,7 @@ jump_to_app()
 
 	if (vec_base == 0) {
 		/* No separate vectors block, vectors come along with the app */
-		vec_base = app_base;
+		vec_base = (const uint32_t *)((uintptr_t)app_base + APP_VECTOR_OFFSET);
 	}
 
 #else
