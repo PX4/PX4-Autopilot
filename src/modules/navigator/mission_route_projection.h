@@ -63,7 +63,7 @@ struct ProjectionScanRequest {
 	bool compute_current_segment_bounds{false};
 	int32_t mission_index{-1};
 	bool is_flying_reverse{false};
-	ActiveJumpAnchor active_jump_anchor{};
+	ActiveJumpAnchor active_jump_anchor{}; /**< DO_JUMP whose edge the vehicle flies, empty for none. */
 };
 
 struct RouteDistanceSummary {
@@ -211,11 +211,13 @@ private:
 	 *
 	 * @param force_candidate Skip the local-minimum rules; set for the vertical segment the
 	 * vehicle is currently flying.
+	 * @param flown_jump_item_index DO_JUMP whose edge the vehicle flies, -1 for none.
 	 */
 	void processCandidateForSegment(const Position &reference_position,
 					const RouteSegmentView &segment_view,
 					float xtrack_margin_m,
 					bool force_candidate,
+					int32_t flown_jump_item_index,
 					CandidateSearchState &state,
 					ProjectionCandidateBuffer &candidate_buffer,
 					ProjectionScanStats &stats) const;

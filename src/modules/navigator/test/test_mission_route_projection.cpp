@@ -351,14 +351,58 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, JumpEdgeWithNominalTwinRespectsAn
 		}
 	}
 
-	// A safe point scan keeps the nominal twin too: off the vehicle's loop, a jump edge is no branch-off.
+	// Off the vehicle's loop a jump edge is no branch-off: a safe point scan keeps only its nominal twin.
 	auto batch = singleReferenceBatch(vehicle);
 	batch.items[0].source_index = 0;
 	mission_route::RouteDistanceSummary distances{};
 	ASSERT_EQ(projection.findProjectionCandidates(scanRequest(0.f), batch, distances),
 		  mission_route::FailureReason::kNone);
+	ASSERT_EQ(batch.items[0].candidate_buffer.count, 1);
+	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.jump_item_index, -1);
+
+	// On the vehicle's loop the jump edge stays a branch-off.
+	mission_route::ProjectionScanRequest on_loop_request = scanRequest(0.f);
+	on_loop_request.active_jump_anchor = {3};
+	ASSERT_EQ(projection.findProjectionCandidates(on_loop_request, batch, distances),
+		  mission_route::FailureReason::kNone);
 	ASSERT_EQ(batch.items[0].candidate_buffer.count, 2);
+	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.jump_item_index, 3);
 	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[1].segment.jump_item_index, -1);
+}
+
+// Closer legs fill the candidate buffer. The nominal twin must keep its place there: dropping it
+// would let the unanchored jump edge win the branch-in.
+TEST_F(MissionRouteProjectionLocalSegmentTest, JumpEdgeTwinSurvivesFullCandidateBuffer)
+{
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	const std::vector<mission_item_s> mission = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f,  0.f, kAlt), // id 0
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,  0.f, kAlt), // id 1: jump source
+		speed_change,                                                      // id 2: jump target
+		makeDoJump(2, 2, 2),                                               // id 3: exhausted, edge [1->4]
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f,  0.f, kAlt), // id 4: [1->4] 10 m away
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 18.f, kAlt), // id 5
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 18.f, kAlt), // id 6: [5->6] 8 m away
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 14.f, kAlt), // id 7
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 14.f, kAlt), // id 8: [7->8] 4 m away
+	};
+	TestProjection projection(mission);
+	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt);
+
+	for (const bool anchored : {false, true}) {
+		SCOPED_TRACE(::testing::Message() << "anchored " << anchored);
+		config.active_jump_anchor.jump_item_index = anchored ? 3 : -1;
+		auto batch = singleReferenceBatch({});
+		mission_route::ProjectionContext projection_context{};
+		const mission_route::FailureReason status =
+			projection.collectVehicleProjection(vehicle, 4, config, batch, projection_context);
+
+		ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+		EXPECT_EQ(projection_context.route_projection.segment.jump_item_index, anchored ? 3 : -1);
+		EXPECT_EQ(projection_context.route_projection.segment.start.idx, 1);
+		EXPECT_EQ(projection_context.route_projection.segment.end.idx, 4);
+	}
 }
 
 // The anchor records that the vehicle is currently executing the DO_JUMP at idx 3, i.e. flying

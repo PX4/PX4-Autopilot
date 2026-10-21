@@ -717,10 +717,33 @@ static bool hasSegmentTwin(const ProjectionCandidateBuffer &candidate_buffer, co
 	return false;
 }
 
+// The nominal twin replaces a jump edge the vehicle does not fly, which would otherwise win their tie.
+// Taking the edge's slot keeps the twin even when closer candidates fill the buffer.
+static bool replaceUnflownJumpTwin(ProjectionCandidateBuffer &candidate_buffer,
+				   const RouteProjectionCandidate &candidate, int32_t flown_jump_item_index)
+{
+	if (candidate.segment.isLoop()) {
+		return false;
+	}
+
+	for (uint8_t i = 0; i < candidate_buffer.count; ++i) {
+		RouteProjectionCandidate &other = candidate_buffer.candidates[i];
+
+		if (other.segment.isLoop() && other.segment.jump_item_index != flown_jump_item_index
+		    && other.segment.start.idx == candidate.segment.start.idx && other.segment.end.idx == candidate.segment.end.idx) {
+			other = candidate;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void MissionRouteProjection::processCandidateForSegment(const Position &reference_position,
 		const RouteSegmentView &segment_view,
 		float xtrack_margin_m,
 		bool force_candidate,
+		int32_t flown_jump_item_index,
 		CandidateSearchState &state,
 		ProjectionCandidateBuffer &candidate_buffer,
 		ProjectionScanStats &stats) const
@@ -772,6 +795,10 @@ void MissionRouteProjection::processCandidateForSegment(const Position &referenc
 	RouteProjectionCandidate candidate{};
 
 	if (!buildProjectionCandidate(segment_view, projection, candidate)) {
+		return;
+	}
+
+	if (replaceUnflownJumpTwin(candidate_buffer, candidate, flown_jump_item_index)) {
 		return;
 	}
 
@@ -842,7 +869,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 
 		for (uint8_t i = 0; i < batch.count; ++i) {
 			processCandidateForSegment(batch.items[i].position, segment_view, request.xtrack_margin_m,
-						   flying_vertical_segment, batch.items[i].search_state,
+						   flying_vertical_segment, active_jump.jump_item_index, batch.items[i].search_state,
 						   batch.items[i].candidate_buffer, stats);
 		}
 	}
@@ -904,14 +931,6 @@ static int selectBranchInCandidate(const ProjectionCandidateBuffer &candidate_bu
 
 	for (uint8_t i = 0; i < candidate_buffer.count; ++i) {
 		const RouteProjectionCandidate &candidate = candidate_buffer.candidates[i];
-
-		// Without its anchor, a jump edge loses to the nominal segment with the same endpoints, as when
-		// a DO_JUMP repeats commands after its source waypoint: scanned first, it would win the tie.
-		if (candidate.segment.isLoop() && candidate.segment.jump_item_index != active_jump_anchor.jump_item_index
-		    && hasSegmentTwin(candidate_buffer, candidate.segment)) {
-			continue;
-		}
-
 		const float dist_to_start_m = fabsf(candidate.dist.along_route_m - segment_bounds.start_dist_along_route_m);
 		const float dist_to_end_m = fabsf(candidate.dist.along_route_m - segment_bounds.end_dist_along_route_m);
 		const float projection_to_segment_dist_m = fminf(dist_to_start_m, dist_to_end_m);
