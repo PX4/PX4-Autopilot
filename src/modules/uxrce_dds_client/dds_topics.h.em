@@ -92,7 +92,9 @@ struct SendTopicsSubs {
 @[    end for]@
 	};
 
-	px4_pollfd_struct_t fds[@(len(publications))] {};
+	// One entry per publication, plus a trailing slot the client uses for the
+	// transport fd, so it can wait on uORB updates and incoming agent data together.
+	px4_pollfd_struct_t fds[@(len(publications)) + 1] {};
 
 	uint32_t num_payload_sent{};
 

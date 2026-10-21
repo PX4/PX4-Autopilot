@@ -270,6 +270,35 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-10-20: the single heater's SENS_* parameters became those of heater instance 1
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_IMU_TEMP", "HEATER1_TEMP"},
+			{"SENS_IMU_TEMP_FF", "HEATER1_TEMP_FF"},
+			{"SENS_IMU_TEMP_I", "HEATER1_TEMP_I"},
+			{"SENS_IMU_TEMP_P", "HEATER1_TEMP_P"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+
+		// SENS_TEMP_ID 0 kept the heater from starting, while HEATER1_SENS_ID 0 selects a sensor and -1 disables it
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("SENS_TEMP_ID", node->name) == 0)) {
+			if (node->i32 == 0) {
+				node->i32 = -1;
+			}
+
+			strcpy(node->name, "HEATER1_SENS_ID");
+			PX4_INFO("migrating %s -> %s", "SENS_TEMP_ID", "HEATER1_SENS_ID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2026-06-29: MPC_LAND_RC_HELP replaced by the MPC_AUTO_NUDGING bitmask (landing nudging = bit 1).
 	// The old in-Hold yaw nudge is not migrated; it now lives in bit 0 (yaw nudging in all auto modes).
 	{
