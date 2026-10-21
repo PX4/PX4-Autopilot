@@ -1058,7 +1058,6 @@ void MissionBase::publishPositionItems(const mission_item_s &current_item, const
 		pos_sp_triplet->previous = current_setpoint_copy;
 	}
 
-	issue_command(current_item);
 	// Reach checks use the published target, which may be a virtual waypoint.
 	_mission_item = current_item;
 	reset_mission_item_reached();
