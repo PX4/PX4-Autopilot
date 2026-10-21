@@ -208,8 +208,6 @@ protected:
 
 	void TearDown() override { param_reset_all(); }
 
-	static constexpr float kBaseAlt = kAlt;
-
 	void setIntParam(const char *name, int32_t value)
 	{
 		const param_t handle = param_find(name);
@@ -368,9 +366,9 @@ protected:
 		const mission_s mission_state = publishMissionItems(items, 71, 1);
 		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 		publishLandDetected(false);
-		publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kBaseAlt));
+		publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt));
 		publishLocalPosition();
-		publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+		publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt));
 		primeNavigatorState();
 		updateRouteCacheUntilReady(mission_state);
 		mission.on_inactive();
@@ -738,20 +736,20 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinWaitsForCacheThenJoinsNearestLeg)
 
 	// A 3-waypoint DO_JUMP loop plus a landing item, vehicle near WP2.
 	std::vector<mission_item_s> mission_items = {
-		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f,   0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f,   0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 		makeDoJump(0, 2, 2),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kBaseAlt - 10.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kAlt - 10.f),
 	};
 
 	const mission_s mission_state = publishMissionItems(mission_items, 21, 0, 4);
 
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	publishLandDetected(false);
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 95.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 95.f, kAlt));
 	publishLocalPosition(0.f, 12.f, 0.f);
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -200.f, 0.f, kBaseAlt));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -200.f, 0.f, kAlt));
 	primeNavigatorState();
 
 	mission.on_inactive();
@@ -786,20 +784,20 @@ TEST_F(MissionRouteJoinTest, NominalJumpAnchorMatchesStoredCounterAndRouteRejoin
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 200.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 200.f, kAlt),
 		makeDoJump(0, 2, 0),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kBaseAlt),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 500.f, 200.f, kBaseAlt - 20.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 500.f, 200.f, kAlt - 20.f),
 	};
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
 	// Both the loop edge and the post-loop segment are nearby. Continuity must select
 	// the segment actually being flown, rather than the jump predicted before its write.
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 205.f, 190.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 205.f, 190.f, kAlt));
 	publishLocalPosition();
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt - 20.f));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt - 20.f));
 	primeNavigatorState();
 
 	for (bool fail_write : {false, true}) {
@@ -830,12 +828,12 @@ TEST_F(MissionRouteJoinTest, NominalJumpAnchorMatchesStoredCounterAndRouteRejoin
 	// A successful jump can land on another jump whose write fails. Keep the anchor
 	// of the first jump: skipping the second still reaches the first jump's position target.
 	prepareExecution(mission, {
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		makeDoJump(0, 2, 0),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 		makeDoJump(1, 2, 0),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 100.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 100.f, kAlt),
 	}, 53);
 	ASSERT_TRUE(mission.set_current_mission_index(3));
 	mission.setWriteFailureIndexForTest(1);
@@ -860,16 +858,16 @@ TEST_F(MissionRouteJoinTest, ResumingBeforeFirstFrontTransitionRequestsBackTrans
 
 	for (int index = 0; index <= 15; ++index) {
 		items.push_back(index == 10 ? makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW)
-				: makePositionItemFromOffset(kBaseLat, kBaseLon, index * 100.f, 0.f, kBaseAlt));
+				: makePositionItemFromOffset(kBaseLat, kBaseLon, index * 100.f, 0.f, kAlt));
 	}
 
 	const mission_s state = publishMissionItems(items, 53, 15);
 	// After flying past the FT, the vehicle has returned near waypoint 2 while still in FW.
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	publishLandDetected(false);
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt));
 	publishLocalPosition(0.f, 15.f, 0.f);
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt));
 	primeNavigatorState();
 	updateRouteCacheUntilReady(state);
 	mission.on_inactive();
@@ -890,17 +888,17 @@ TEST_F(MissionRouteJoinTest, DisarmBetweenActivationsKeepsJoinOnLastItem)
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
 	};
 	const mission_s mission_state = publishMissionItems(items, 51, 1);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 10.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 10.f, kAlt));
 	publishLocalPosition();
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt));
 	primeNavigatorState();
 	updateRouteCacheUntilReady(mission_state);
 	mission.on_inactive();
@@ -924,17 +922,17 @@ TEST_F(MissionRouteJoinTest, DisabledRouteJoinKeepsCurrentItem)
 {
 	MissionTestPeer mission(&_navigator);
 	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
 	};
 	const mission_s mission_state = publishMissionItems(items, 63, 1);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
 	// Beside the leg to item 2, which an enabled join would target.
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt));
 	publishLocalPosition();
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt));
 	primeNavigatorState();
 	updateRouteCacheUntilReady(mission_state);
 	mission.on_inactive();
@@ -953,17 +951,17 @@ TEST_F(MissionRouteJoinTest, FinishedMissionHoldsWithoutJoin)
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
 	};
 	const mission_s mission_state = publishMissionItems(items, 53, 3);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt));
 	publishLocalPosition();
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt));
 	primeNavigatorState();
 	updateRouteCacheUntilReady(mission_state);
 	mission.on_inactive();
@@ -976,7 +974,7 @@ TEST_F(MissionRouteJoinTest, FinishedMissionHoldsWithoutJoin)
 
 	// Mission is selected again from beside the first leg.
 	mission.on_inactivation();
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kAlt));
 	primeNavigatorState();
 	mission.on_inactive();
 	markMissionResultValid();
@@ -994,17 +992,17 @@ TEST_F(MissionRouteJoinTest, JoinOnAscendingSegmentFollowsRouteWithoutVerticalCl
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt + 40.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kBaseAlt + 40.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 40.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt + 40.f),
 	};
 	const mission_s mission_state = publishMissionItems(items, 61, 2);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt));
 	publishLocalPosition();
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt));
 	primeNavigatorState();
 	updateRouteCacheUntilReady(mission_state);
 	mission.on_inactive();
@@ -1014,8 +1012,8 @@ TEST_F(MissionRouteJoinTest, JoinOnAscendingSegmentFollowsRouteWithoutVerticalCl
 	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 	ASSERT_EQ(mission.currentSequenceForTest(), 2);
 	const mission_route::Position join = mission.joinContextForTest().projection;
-	EXPECT_GT(join.alt, kBaseAlt + 1.f);
-	EXPECT_LT(join.alt, kBaseAlt + 39.f);
+	EXPECT_GT(join.alt, kAlt + 1.f);
+	EXPECT_LT(join.alt, kAlt + 39.f);
 	const auto &join_setpoint = _navigator.get_position_setpoint_triplet()->current;
 	ASSERT_TRUE(join_setpoint.valid);
 	EXPECT_DOUBLE_EQ(join_setpoint.lat, join.lat);
@@ -1042,17 +1040,17 @@ TEST_F(MissionRouteJoinTest, RestartedMissionStartsAtFirstItemWithoutJoin)
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
 	};
 	const mission_s mission_state = publishMissionItems(items, 52, 3);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 10.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 10.f, kAlt));
 	publishLocalPosition();
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt));
 	primeNavigatorState();
 	updateRouteCacheUntilReady(mission_state);
 	mission.on_inactive();
@@ -1072,16 +1070,16 @@ TEST_F(MissionRouteJoinTest, CameraTriggerResumeTakesPrecedenceOverJoin)
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
 		makeCameraTriggerItem(10.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
 	};
 
 	// Pause on leg 3-4, resume beside leg 0-1.
-	pauseMission(mission, items, 4, makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 40.f, kBaseAlt));
+	pauseMission(mission, items, 4, makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 40.f, kAlt));
 	navigator_test::EventRecorder events;
 
 	mission.on_activation();
@@ -1102,19 +1100,19 @@ TEST_F(MissionRouteJoinTest, JoinIntoFinishedCameraSurveyKeepsTarget)
 	speed.params[1] = 8.f;
 	speed.autocontinue = true;
 	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
 		makeCameraTriggerItem(10.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
 		makeCameraTriggerItem(0.f),
 		speed,
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kBaseAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt),
 	};
 
 	// Pause on leg 7-8 after the survey and a speed change, resume beside survey leg 3-4.
-	pauseMission(mission, items, 8, makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 40.f, kBaseAlt));
+	pauseMission(mission, items, 8, makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 40.f, kAlt));
 	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
 	vehicle_command_s command{};
 
@@ -1143,21 +1141,21 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSelectsLandWithoutJoin
 
 	// Takeoff, waypoint, land; vehicle close to the land item but 6 m below mission altitude.
 	std::vector<mission_item_s> mission_items = {
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kBaseAlt),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt - 10.f),
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt - 10.f),
 	};
 
 	mission_s mission_state = publishMissionItems(mission_items, 23, 1, 2);
 
 	const mission_route::Position vehicle_position =
-		makePositionFromOffset(kBaseLat, kBaseLon, 298.f, 0.f, kBaseAlt - 6.f);
+		makePositionFromOffset(kBaseLat, kBaseLon, 298.f, 0.f, kAlt - 6.f);
 
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	publishLandDetected(false);
 	publishGlobalPosition(vehicle_position);
 	publishLocalPosition(0.f, 8.f, 0.f);
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -100.f, 0.f, kBaseAlt - 10.f));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -100.f, 0.f, kAlt - 10.f));
 	primeNavigatorState();
 
 	updateRouteCacheUntilReady(mission_state);
@@ -1238,8 +1236,8 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 	MissionTestPeer mission(&_navigator);
 	uORB::Subscription commands{ORB_ID(vehicle_command)};
 	vehicle_command_s command{};
-	const float descent_altitude = kBaseAlt + 2.f;
-	const float approach_altitude = kBaseAlt + 50.f;
+	const float descent_altitude = kAlt + 2.f;
+	const float approach_altitude = kAlt + 50.f;
 	uint32_t mission_id = 431;
 
 	for (bool is_vtol : {false, true}) {
@@ -1247,7 +1245,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 		for (int resume_location = 0; resume_location < 4; ++resume_location) {
 			SCOPED_TRACE(::testing::Message() << "VTOL=" << is_vtol << ", resume_location=" << resume_location);
 			auto takeoff = makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, approach_altitude);
-			auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt);
+			auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
 
 			if (is_vtol) {
 				takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
@@ -1264,7 +1262,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 			_vehicle_status_pub.publish(_vehicle_status);
 			publishLandDetected(false);
 			publishGlobalPosition({land.lat, land.lon, descent_altitude});
-			publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt));
+			publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
 			publishLocalPosition();
 			primeNavigatorState();
 			updateRouteCacheUntilReady(state);
@@ -1362,19 +1360,19 @@ TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFron
 	MissionTestPeer mission(&_navigator);
 
 	std::vector<mission_item_s> mission_items = {
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kBaseAlt),
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
 		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kBaseAlt + 20.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kBaseAlt + 20.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kAlt + 20.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 20.f),
 	};
 
 	const mission_s mission_state = publishMissionItems(mission_items, 31, 2);
 
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, false, initially_back_transitioning);
 	publishLandDetected(false);
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 60.f, 15.f, kBaseAlt + 5.f));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 60.f, 15.f, kAlt + 5.f));
 	publishLocalPosition(0.f, 5.f, 0.f);
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt - 20.f));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt - 20.f));
 	primeNavigatorState();
 
 	updateRouteCacheUntilReady(mission_state);
@@ -1492,19 +1490,19 @@ TEST_F(MissionRouteJoinTest, ExhaustedJumpRejoinResumesNominalExecutionWithoutAn
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 	const std::vector<mission_item_s> items{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kBaseAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 200.f, kBaseAlt),
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 200.f, kAlt),
 		makeDoJump(0, 3, 3),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kBaseAlt),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 500.f, 200.f, kBaseAlt - 20.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 500.f, 200.f, kAlt - 20.f),
 	};
 	const mission_s mission_state = publishMissionItems(items, 41, 0, 5);
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kBaseAlt));
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt));
 	publishLocalPosition();
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kBaseAlt - 20.f));
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt - 20.f));
 	primeNavigatorState();
 	updateRouteCacheUntilReady(mission_state);
 	mission.on_inactive();
