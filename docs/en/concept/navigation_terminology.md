@@ -39,13 +39,15 @@ PX4 describes positions and orientations in two main frames:
 - **FRD (front, right, down):** The body frame, fixed to the vehicle.
   The [heading](#heading) is the direction of the body front axis.
 
-![Geodetic, local NED and FRD body frames (placeholder)](../../assets/concepts/navigation/navigation_frames.svg)
+<!--
+<img src="../../assets/concepts/navigation/overview_wgs84_and_local_NED.svg" alt="Geodetic, local NED and FRD body frames (placeholder)" style="max-width: 60%" />
 
 _The frames together: WGS 84 ellipsoid with latitude/longitude, a local NED tangent plane at the origin, and a vehicle with its FRD body axes._
 
 ![FRD body axes x, y and z with roll, pitch and yaw rotations for a plane, a helicopter and a multicopter](../../assets/concepts/frame_heading.png)
 
 _Existing graphic. FRD body axes (x forward, y right, z down) and the roll, pitch and yaw rotations about them, for a plane, a helicopter and a multicopter._
+-->
 
 A compass measures magnetic north, which differs from true north by the _magnetic declination_.
 The estimator corrects for this automatically, using the World Magnetic Model or [EKF2_MAG_DECL](../advanced_config/parameter_reference.md#EKF2_MAG_DECL) depending on [EKF2_DECL_TYPE](../advanced_config/parameter_reference.md#EKF2_DECL_TYPE).
@@ -58,11 +60,6 @@ The heading is where the nose (or bow, or front) of the vehicle points.
 It says nothing about the direction in which the vehicle moves: a multicopter can fly sideways, a plane crabs in a crosswind, and a boat is pushed off by wind and current.
 
 In PX4: `vehicle_local_position.heading` (estimate), `trajectory_setpoint.yaw` and `rover_attitude_setpoint.yaw_setpoint` (setpoints), MAVLink `GLOBAL_POSITION_INT.hdg` and `VFR_HUD.heading`.
-
-::: warning
-A single-antenna GNSS receiver measures [course over ground](#course-over-ground), not heading.
-Only a dual-antenna or moving-baseline setup measures heading (`vehicle_gnss_heading`).
-:::
 
 ### Course
 
@@ -91,9 +88,6 @@ In marine navigation, bare "track" means the _intended_ path.
 To avoid confusion, PX4 always writes _desired track_ for the intended path.
 :::
 
-![Desired track compared with the actual track and the course over ground (placeholder)](../../assets/concepts/navigation/navigation_track_vs_desired_track.svg)
-
-_Desired track (dashed line between two waypoints) versus track (the actual wavy path), with the course over ground tangent to the track._
 
 ### Bearing
 
@@ -105,25 +99,18 @@ In PX4: `pure_pursuit_status.bearing_to_waypoint`.
 ### Cross-Track Error
 
 The cross-track error (XTE) is how far the vehicle is off the [desired track](#track-and-desired-track), measured perpendicular to it, and on which side.
-It is a standard output of aviation and marine navigation receivers (Bowditch, NMEA 0183).
 
 In PX4, the cross-track error is **positive when the vehicle is to the right of the desired track**, and negative when it is to the left, looking in the direction of travel.
 
 In PX4: `pure_pursuit_status.crosstrack_error` (rovers), `fixed_wing_lateral_guidance_status.signed_track_error` (fixed-wing).
 
-![Cross-track error sign in PX4 compared with the NMEA direction to steer (placeholder)](../../assets/concepts/navigation/navigation_cross_track_error.svg)
-
-_Desired track from waypoint A to B, a vehicle right of the track (positive PX4 XTE, NMEA "steer L") and a vehicle left of the track (negative PX4 XTE, NMEA "steer R")._
+The [overview figure](#summary) shows a positive cross-track error: the vehicle is to the right of the desired track.
 
 ### Drift Angle
 
 The drift angle is the difference between where the vehicle points ([heading](#heading)) and where it moves ([course over ground](#course-over-ground)).
 Wind causes it for aircraft, wind and current for boats, and wheel slip for rovers.
 Multicopters and mecanum rovers can also move sideways on purpose.
-
-::: warning
-Do not write bare "drift": in marine navigation, _drift_ is the speed of a current.
-:::
 
 ### Airspeed and Ground Speed
 
@@ -149,10 +136,6 @@ $$
 - The direction of $\mathbf{v}_{ground}$ is the **course over ground**, and its magnitude is the **ground speed**.
 - For a fixed-wing aircraft, $\mathbf{v}_{air}$ points along the **heading**, and its magnitude is the **airspeed**.
 - The angle between the heading and $\mathbf{v}_{ground}$ is the **drift angle**.
-
-![Wind triangle and current triangle (placeholder)](../../assets/concepts/navigation/navigation_wind_triangle.svg)
-
-_Wind triangle: air velocity along the heading, wind vector added head-to-tail, resulting ground velocity along the course over ground, drift angle marked._
 
 ## Further Information
 

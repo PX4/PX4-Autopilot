@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="246" viewBox="0 0 800 246" role="img" aria-label="Placeholder: Along-track and cross-track frame">
-  <rect x="2" y="2" width="796" height="242" rx="8" fill="#f4f4f5" stroke="#71717a" stroke-width="3" stroke-dasharray="12 8"/>
-  <text x="400" y="60" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold" fill="#b45309" letter-spacing="2">PLACEHOLDER</text>
-  <text x="400" y="95" text-anchor="middle" font-family="sans-serif" font-size="24" font-weight="bold" fill="#27272a">Along-track and cross-track frame</text>
-  <text x="400" y="135" text-anchor="middle" font-family="sans-serif" font-size="15" fill="#3f3f46"><tspan x="400" dy="0">Desired track from waypoint A to waypoint B, with the along-track axis</tspan><tspan x="400" dy="22">along the line, the cross-track axis to the right, and the vehicle</tspan><tspan x="400" dy="22">position decomposed into both.</tspan></text>
-</svg>
