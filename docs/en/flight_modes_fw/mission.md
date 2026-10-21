@@ -91,6 +91,8 @@ For more information about mission planning, see:
 
 ## Smart Mission Rejoin
 
+<Badge type="tip" text="main (PX4 v2.0)" />
+
 Enable [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) to rejoin the uploaded route when activating Mission mode while airborne.
 The parameter only exists in firmware built with the mission route cache.
 See [Mission Route Planning](../concept/mission_route_planning.md) for behaviour and requirements.

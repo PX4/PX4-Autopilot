@@ -209,6 +209,8 @@ The vehicle:
 
 ### Route-Following Return Type (RTL_TYPE=7) {#rtl_type_7}
 
+<Badge type="tip" text="main (PX4 v2.0)" />
+
 This return type uses the uploaded mission as route geometry.
 It selects a branch-in point, follows the route in the selected direction, then branches off to the rally point with the lowest route cost.
 When no rally point is usable, it follows the route to the mission landing or to the mission takeoff item at Home altitude, whichever has the lower route cost.
@@ -218,7 +220,8 @@ When the vehicle is already near the destination or the branch-off leg, it can f
 Return moves the mission's current item along the route, so a later Mission resume continues from the last route target of the Return.
 The branch-off point and the destination arrival steps are not reported as reached mission items.
 
-A complete mission cache is required.
+It needs firmware built with the [mission route cache](../advanced/mission_route_cache.md), and the whole mission must fit in the cache.
+SITL builds include the cache by default, but most flight controller builds do not.
 If route planning is unavailable, Return uses the destination selection of `RTL_TYPE=3` and can leave the mission corridor; see the [fallback conditions](../concept/mission_route_planning.md#route-following-fallback).
 Firmware built without route planning shows a pre-arm warning when `RTL_TYPE=7` is set.
 The planner checks the branch-in, branch-off and direct-to-goal segments against loaded fences but does not find detours; see [Geofence Checks](../concept/mission_route_planning.md#geofence-checks).
