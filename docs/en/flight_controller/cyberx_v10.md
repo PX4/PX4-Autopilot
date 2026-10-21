@@ -97,8 +97,10 @@ Under these conditions the system will not draw any power (will not be operation
 2. **USB input** (operational range 4.7V to 5.7V, 0V to 6V undamaged)
 3. **Servo input:** `MOTOR` pin of **FMU PWM OUT** and **I/O PWM OUT** (0V to 42V undamaged)
 
-warning: The PWM output ports are not powered by the POWER port.
-The output rail must be separately powered if it needs to power servos or other hardware.
+::: warning
+The PWM outputs (`M1` to `M16`) are not powered by the `PWR1` or `PWR2` ports.
+The servo rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
+:::
 
 **Voltage monitoring**
 
