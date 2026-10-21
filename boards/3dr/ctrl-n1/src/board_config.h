@@ -44,7 +44,7 @@
 #include <stdint.h>
 #include <stm32_gpio.h>
 
-/* LEDs are driven with push pull, active high */
+/* LEDs */
 #define GPIO_nLED_BL /* PD10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN10)
 #define BOARD_LED              0
 
