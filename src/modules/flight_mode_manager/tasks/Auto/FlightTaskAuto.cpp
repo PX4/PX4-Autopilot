@@ -193,21 +193,18 @@ bool FlightTaskAuto::update()
 		break;
 	}
 
-	// Terrain-relative altitude tracking: inject a Z velocity feedforward so the
-	// climb/descend response isn't dominated by the path's XY-direction unit
-	// vector. PositionSmoothing allocates Z velocity proportional to the
-	// (pos -> target) unit vector which leaves Z severely under-actuated when
-	// the XY distance is much larger than the Z change as terrain varies.
-	// Gain MPC_Z_P matches the position controller's altitude P gain, so users
-	// tune one knob for both manual (FlightTaskManualAltitude relies entirely
-	// on MPC_Z_P in mc_pos_control) and auto terrain following. Caps mirror
-	// the smoother's MPC_Z_V_AUTO limits so we don't command faster than the
-	// trajectory generator would actually allow.
-	if (_position_setpoint_triplet_sub.get().current.alt_is_terrain_relative
-	    && PX4_ISFINITE(_position_setpoint(2))
-	    && PX4_ISFINITE(_position(2))) {
-		const float z_error = _position_setpoint(2) - _position(2);
-		_velocity_setpoint(2) = math::constrain(z_error * _param_mpc_z_p.get(),
+	// A terrain-relative target moves up and down with the terrain under the vehicle.
+	// Feed that rate forward so the smoother moves its trajectory along with the target
+	// instead of only chasing it, which it does slowly on long horizontal legs where the
+	// straight-line path gives Z only a small share of the speed. This is the target's
+	// own motion, not a correction of the altitude error, so it adds no extra feedback loop.
+	const position_setpoint_s &current_setpoint = _position_setpoint_triplet_sub.get().current;
+
+	if (current_setpoint.alt_is_terrain_relative
+	    && PX4_ISFINITE(current_setpoint.alt_rate)
+	    && PX4_ISFINITE(_position_setpoint(2))) {
+		// alt_rate is positive up, NED z is positive down
+		_velocity_setpoint(2) = math::constrain(-current_setpoint.alt_rate,
 							-_param_mpc_z_v_auto_up.get(),
 							_param_mpc_z_v_auto_dn.get());
 	}
