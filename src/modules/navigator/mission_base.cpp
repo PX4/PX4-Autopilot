@@ -127,12 +127,13 @@ void MissionBase::updateMavlinkMission()
 
 void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 {
-	resetVtolTransition();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	// A replacement mission or an external sequence change invalidates the join and the flown jump edge.
+	// Runs before resetVtolTransition(), which would hide a join transition.
 	resetJoinRouteState();
 	_active_jump_anchor = {};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	resetVtolTransition();
 
 	if (has_mission_items_changed) {
 		_dataman_cache.invalidate();
