@@ -183,11 +183,10 @@ A Radio Control (RC) system is required if you want to manually control your veh
 
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-SBUS receivers connect to the `S.Bin` port,and the port routed to the PX4IO.
-PPM receivers connect to the `RCin` pin on the servo rail,and the pin routed to the PX4IO.
-Spektrum/DSM and CRSF receivers connect to the `Uart8` port,and the port routed to the FMU.
+SBUS receivers connect to the `S.Bin` port or the `RCin` pin on the servo rail (both routed to the PX4IO).
+PPM receivers connect to the `RCin` pin.
+CRSF receivers connect to the `Uart8` port (routed to the FMU).
 If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#connecting-receivers).
-CRSF receivers must be wired to a spare UART port on the flight controller.
 You can then bind the transmitter and receiver together.
 
 ### GPS & Compass {#gps_compass}
