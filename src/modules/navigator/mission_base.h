@@ -154,6 +154,8 @@ protected:
 	MISSION_ROUTE_HOOK bool frontTransitionInhibited() const { return false; }
 	/** Synthetic helper work items must not report an uploaded item reached. */
 	MISSION_ROUTE_HOOK bool shouldReportMissionItemReached() const;
+	/** A VTOL in front transition lands as fixed-wing; only route Return opts in. */
+	MISSION_ROUTE_HOOK bool shouldLandFrontTransitionAsFixedWing() const { return false; }
 
 	/**
 	 * @brief Get the previous mission position items using this mode's traversal policy.

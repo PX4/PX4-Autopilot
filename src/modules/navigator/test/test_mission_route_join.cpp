@@ -1213,6 +1213,25 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSelectsLandWithoutJoin
 	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 }
 
+TEST_F(MissionRouteJoinTest, VtolLandDuringFrontTransitionKeepsMulticopterLanding)
+{
+	// Only route Return lands a VTOL in front transition as fixed-wing.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	land.nav_cmd = NAV_CMD_VTOL_LAND;
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	publishGlobalPosition(position);
+	publishLocalPosition();
+	publishLandDetected(false);
+	publishHomePosition(position);
+	primeNavigatorState();
+	prepareExecution(mission, {land}, 143);
+
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+}
+
 TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
