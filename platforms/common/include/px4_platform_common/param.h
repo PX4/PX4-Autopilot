@@ -118,8 +118,7 @@ public:
 
 	Param()
 	{
-		param_set_used(handle());
-		update();
+		param_get_mark_used(handle(), &_val);
 	}
 
 	float get() const { return _val; }
@@ -170,8 +169,7 @@ public:
 	Param(float &external_val)
 		: _val(external_val)
 	{
-		param_set_used(handle());
-		update();
+		param_get_mark_used(handle(), &_val);
 	}
 
 	float get() const { return _val; }
@@ -220,8 +218,7 @@ public:
 
 	Param()
 	{
-		param_set_used(handle());
-		update();
+		param_get_mark_used(handle(), &_val);
 	}
 
 	int32_t get() const { return _val; }
@@ -272,8 +269,7 @@ public:
 	Param(int32_t &external_val)
 		: _val(external_val)
 	{
-		param_set_used(handle());
-		update();
+		param_get_mark_used(handle(), &_val);
 	}
 
 	int32_t get() const { return _val; }
@@ -322,8 +318,11 @@ public:
 
 	Param()
 	{
-		param_set_used(handle());
-		update();
+		int32_t value_int;
+
+		if (param_get_mark_used(handle(), &value_int) == 0) {
+			_val = value_int != 0;
+		}
 	}
 
 	bool get() const { return _val; }

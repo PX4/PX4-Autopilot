@@ -39,6 +39,9 @@
 #include <gz/sim/Model.hh>
 #include <gz/sim/Util.hh>
 
+#include <algorithm>
+#include <cctype>
+
 using namespace gz;
 using namespace sim;
 using namespace systems;
@@ -93,9 +96,9 @@ void MotorFailureSystem::FindMotorJoints(EntityComponentManager &_ecm)
 	// Get all joints in the model
 	auto joints = this->_model.Joints(_ecm);
 
-	// Regular expression to match rotor joints (e.g., "rotor_0_joint", "rotor_1_joint")
-	std::regex motorPattern("rotor_(\\d+)_joint");
-	std::smatch match;
+	// Match rotor joints (e.g., "rotor_0_joint", "rotor_1_joint")
+	const std::string prefix = "rotor_";
+	const std::string suffix = "_joint";
 
 	// Find rotor joints and sort by motor number
 	std::map<int, Entity> motorMap;
@@ -104,21 +107,30 @@ void MotorFailureSystem::FindMotorJoints(EntityComponentManager &_ecm)
 		auto nameComp = _ecm.Component<components::Name>(joint);
 
 		if (nameComp) {
-			std::string jointName = nameComp->Data();
+			const std::string &jointName = nameComp->Data();
 
-			// Try to match the joint name against the pattern
-			if (std::regex_match(jointName, match, motorPattern)) {
-				// Extract motor number from the first capture group
-				try {
-					int motorNumber = std::stoi(match[1].str());
-					motorMap[motorNumber] = joint;
-					gzdbg << "[MotorFailureSystem] Found motor " << motorNumber
-					      << ": " << jointName << std::endl;
+			if (jointName.size() <= prefix.size() + suffix.size()
+			    || jointName.compare(0, prefix.size(), prefix) != 0
+			    || jointName.compare(jointName.size() - suffix.size(), suffix.size(), suffix) != 0) {
+				continue;
+			}
 
-				} catch (const std::exception &e) {
-					gzwarn << "[MotorFailureSystem] Failed to parse motor number from: "
-					       << jointName << std::endl;
-				}
+			const std::string digits = jointName.substr(prefix.size(),
+						   jointName.size() - prefix.size() - suffix.size());
+
+			if (!std::all_of(digits.begin(), digits.end(), [](unsigned char c) { return std::isdigit(c); })) {
+				continue;
+			}
+
+			try {
+				int motorNumber = std::stoi(digits);
+				motorMap[motorNumber] = joint;
+				gzdbg << "[MotorFailureSystem] Found motor " << motorNumber
+				      << ": " << jointName << std::endl;
+
+			} catch (const std::exception &e) {
+				gzwarn << "[MotorFailureSystem] Failed to parse motor number from: "
+				       << jointName << std::endl;
 			}
 		}
 	}

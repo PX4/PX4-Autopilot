@@ -402,107 +402,117 @@ void Heater::Run()
 		}
 	}
 
+	// End of the on-time: off for the rest of the period. At 100 % duty the next controller
+	// cycle follows directly and the element stays on.
+	if (_heater_on && (_controller_time_on_usec < CONTROLLER_PERIOD_DEFAULT)) {
+		_heater_on = false;
+		heater_off();
+		ScheduleDelayed(CONTROLLER_PERIOD_DEFAULT - _controller_time_on_usec);
+		return;
+	}
+
 	float temperature_delta {0.f};
 	bool temperature_updated = false;
-	uint32_t schedule_delay = CONTROLLER_PERIOD_DEFAULT;
+	bool drive_heater = false;
 
-	// Update input voltage/current monitoring
+	// Supply voltage for the (V_nom/V)^2 duty compensation
 	battery_status_s battery_status;
 
 	if (_battery_status_sub.update(&battery_status)) {
 		_supply_voltage = battery_status.voltage_v;
-		_heater_current = battery_status.current_a;
 		_battery_status_last_update_time = hrt_absolute_time();
 	}
 
-	if (_heater_on) {
-		// Turn the heater off.
-		_heater_on = false;
-		heater_off();
-		schedule_delay = CONTROLLER_PERIOD_DEFAULT - _controller_time_on_usec;
+	float current_temp = NAN;
+	const bool use_hygro = (_params.temp_src == heater_status_s::TEMPERATURE_SOURCE_HYGRO);
+
+	if (use_hygro) {
+		sensor_hygrometer_s sensor_hygrometer;
+
+		if (_sensor_hygrometer_sub.update(&sensor_hygrometer)) {
+			current_temp = sensor_hygrometer.temperature;
+		}
 
 	} else {
-		float current_temp = NAN;
-		const bool use_hygro = (_params.temp_src == heater_status_s::TEMPERATURE_SOURCE_HYGRO);
+		sensor_accel_s sensor_accel;
 
-		if (use_hygro) {
-			sensor_hygrometer_s sensor_hygrometer;
-
-			if (_sensor_hygrometer_sub.update(&sensor_hygrometer)) {
-				current_temp = sensor_hygrometer.temperature;
-			}
-
-		} else {
-			sensor_accel_s sensor_accel;
-
-			if (_sensor_accel_sub.update(&sensor_accel)) {
-				current_temp = sensor_accel.temperature;
-			}
+		if (_sensor_accel_sub.update(&sensor_accel)) {
+			current_temp = sensor_accel.temperature;
 		}
+	}
 
-		if (PX4_ISFINITE(current_temp)) {
-			temperature_delta = _params.temp - current_temp;
-			_temperature_last = current_temp;
+	if (PX4_ISFINITE(current_temp)) {
+		temperature_delta = _params.temp - current_temp;
+		_temperature_last = current_temp;
+		temperature_updated = true;
+#ifdef CONFIG_HEATER_FAST_UPDATE_MODE
+		_temperature_last_update_time = hrt_absolute_time();
+#endif
+	}
+
+	// Latch heating on once the temperature threshold is crossed; stays on until reset.
+	if (_temperature_activation_threshold_met
+	    || (PX4_ISFINITE(current_temp) && current_temp < _params.temp_activation_threshold)) {
+
+		_temperature_activation_threshold_met = true;
+
+#ifdef CONFIG_HEATER_FAST_UPDATE_MODE
+
+		// No fresh sensor update: use cached temperature if still within a certain window.
+		if (!temperature_updated
+		    && _temperature_last_update_time != 0
+		    && hrt_elapsed_time(&_temperature_last_update_time) < 500_ms) {
+			temperature_delta = _params.temp - _temperature_last;
 			temperature_updated = true;
-#ifdef CONFIG_HEATER_FAST_UPDATE_MODE
-			_temperature_last_update_time = hrt_absolute_time();
-#endif
 		}
-
-		// Latch heating on once the temperature threshold is crossed; stays on until reset.
-		if (_temperature_activation_threshold_met
-		    || (PX4_ISFINITE(current_temp) && current_temp < _params.temp_activation_threshold)) {
-
-			_temperature_activation_threshold_met = true;
-
-#ifdef CONFIG_HEATER_FAST_UPDATE_MODE
-
-			// No fresh sensor update: use cached temperature if still within a certain window.
-			if (!temperature_updated
-			    && _temperature_last_update_time != 0
-			    && hrt_elapsed_time(&_temperature_last_update_time) < 500_ms) {
-				temperature_delta = _params.temp - _temperature_last;
-				temperature_updated = true;
-			}
 
 #endif
 
-			if (temperature_updated) {
-				_proportional_value = temperature_delta * _params.temp_p;
+		if (temperature_updated) {
+			_proportional_value = temperature_delta * _params.temp_p;
 
-				_integrator_value += temperature_delta * _params.temp_i;
+			_integrator_value += temperature_delta * _params.temp_i;
 
-				_integrator_value = math::constrain(_integrator_value, -_params.temp_imax, _params.temp_imax);
+			_integrator_value = math::constrain(_integrator_value, -_params.temp_imax, _params.temp_imax);
 
-				_controller_time_on_usec = static_cast<int>((_params.temp_ff + _proportional_value +
-							   _integrator_value) * static_cast<float>(CONTROLLER_PERIOD_DEFAULT));
+			_controller_time_on_usec = static_cast<int>((_params.temp_ff + _proportional_value +
+						   _integrator_value) * static_cast<float>(CONTROLLER_PERIOD_DEFAULT));
 
-				_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, CONTROLLER_PERIOD_DEFAULT);
+			_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, CONTROLLER_PERIOD_DEFAULT);
 
-				const float nom_v = _params.nom_v;
+			const float nom_v = _params.nom_v;
+			_nominal_multiplier = 1.f;
 
-				if (nom_v > 0.f) {
-					if (_battery_status_last_update_time == 0 || hrt_elapsed_time(&_battery_status_last_update_time) > 500_ms) {
-						_controller_time_on_usec = 0;
+			if (nom_v > 0.f) {
+				if (_battery_status_last_update_time == 0 || hrt_elapsed_time(&_battery_status_last_update_time) > 500_ms) {
+					_controller_time_on_usec = 0;
+					_nominal_multiplier = 0.f;
 
-					} else if (PX4_ISFINITE(_supply_voltage) && _supply_voltage > nom_v) {
-						// Scale duty cycle by (V_nom/V)^2 so delivered power is the same regardless of supply voltage.
-						const float ratio = nom_v / _supply_voltage;
-						_nominal_multiplier = ratio * ratio;
-						_controller_time_on_usec = static_cast<int>(_controller_time_on_usec * _nominal_multiplier);
-					}
-				}
-
-				_temperature_target_met = fabsf(temperature_delta) < TEMPERATURE_TARGET_THRESHOLD;
-
-				if (_controller_time_on_usec > 0) {
-					_heater_on = true;
-					heater_on();
-					schedule_delay = _controller_time_on_usec;
+				} else if (PX4_ISFINITE(_supply_voltage) && _supply_voltage > nom_v) {
+					// Scale duty cycle by (V_nom/V)^2 so delivered power is the same regardless of supply voltage.
+					const float ratio = nom_v / _supply_voltage;
+					_nominal_multiplier = ratio * ratio;
+					_controller_time_on_usec = static_cast<int>(_controller_time_on_usec * _nominal_multiplier);
 				}
 			}
 
+			_temperature_target_met = fabsf(temperature_delta) < TEMPERATURE_TARGET_THRESHOLD;
+
+			drive_heater = (_controller_time_on_usec > 0);
 		}
+	}
+
+	uint32_t schedule_delay = CONTROLLER_PERIOD_DEFAULT;
+
+	if (drive_heater) {
+		_heater_on = true;
+		heater_on();
+		schedule_delay = _controller_time_on_usec;
+
+	} else if (_heater_on) {
+		// no fresh temperature or zero duty after a 100 % period
+		_heater_on = false;
+		heater_off();
 	}
 
 	ScheduleDelayed(schedule_delay);
@@ -522,8 +532,6 @@ void Heater::publish_status()
 	status.proportional_value        	    = _proportional_value;
 	status.integrator_value          	    = _integrator_value;
 	status.feed_forward_value        	    = _params.temp_ff;
-	status.supply_voltage            	    = _supply_voltage;
-	status.heater_current            	    = _heater_current;
 	status.nominal_multiplier        	    = _nominal_multiplier;
 	status.temperature_activation_threshold_met = _temperature_activation_threshold_met;
 	status.temperature_source                   = _params.temp_src;

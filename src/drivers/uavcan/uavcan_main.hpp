@@ -86,6 +86,7 @@
 #include "uavcan_servers.hpp"
 
 #include <lib/drivers/device/Device.hpp>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
 
@@ -129,7 +130,12 @@ public:
 	UavcanMixingInterfaceESC(pthread_mutex_t &node_mutex, UavcanEscController &esc_controller)
 		: OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::uavcan),
 		  _node_mutex(node_mutex),
-		  _esc_controller(esc_controller) {}
+		  _esc_controller(esc_controller)
+	{
+		int32_t signed_mask = 0;
+		param_get(param_find("UAVCAN_EC_SIGNED"), &signed_mask);
+		_signed_mask = static_cast<uint32_t>(signed_mask);
+	}
 
 	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
@@ -146,6 +152,8 @@ private:
 	pthread_mutex_t &_node_mutex;
 	UavcanEscController &_esc_controller;
 	MixingOutput _mixing_output{"UAVCAN_EC", UavcanEscController::MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	uint32_t _signed_mask{0};
+	uint32_t _signed_non_motor_mask{0};
 };
 
 /**
@@ -208,11 +216,12 @@ public:
 	typedef UAVCAN_DRIVER::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 	enum eServerAction : int {None, Start, Stop, CheckFW, Busy};
 
-	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
+	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id, uint32_t bitrate);
 
 	virtual		~UavcanNode();
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
+	static int	stop();
 
 	uavcan::Node<>	&get_node() { return _node; }
 
@@ -242,6 +251,8 @@ private:
 	void publish_can_interface_statuses();
 	void publish_node_statuses();
 
+	void apply_can_failure_injection();
+
 	int		print_params(uavcan::protocol::param::GetSet::Response &resp);
 	int		get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
 	void 		update_params();
@@ -258,6 +269,9 @@ private:
 	uavcan_node::Allocator	 _pool_allocator;
 
 	bool                    _node_init{false};
+	int                     _can_init_error{0};		///< last CAN driver init error reported
+	const uavcan::NodeID	_node_id;			///< node ID, validated by uavcan_main()
+	const uint32_t		_bitrate;			///< CAN bit rate in bit/s
 	uavcan::Node<>			_node;				///< library instance
 	pthread_mutex_t			_node_mutex;
 
@@ -300,6 +314,8 @@ private:
 
 	perf_counter_t			_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t			_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
+
+	failure_injection::Config	_failure_config;			///< active failure-injection config
 
 	void handle_time_sync(const uavcan::TimerEvent &);
 

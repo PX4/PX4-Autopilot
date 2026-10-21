@@ -6,6 +6,19 @@
     [
         {
             "model": "quadx",
+            "test_filter": "[vision_target]",
+            "timeout_min": 3,
+            "env": {
+                "PX4_PARAM_VTE_EN": 1,
+                "PX4_PARAM_VTE_POS_EN": 1,
+                "PX4_PARAM_VTE_YAW_EN": 1,
+                "PX4_PARAM_VTE_TASK_MASK": 1,
+                "PX4_PARAM_PLD_YAW_EN": 1,
+                "PX4_PARAM_PLD_SRCH_ALT": 10
+            }
+        },
+        {
+            "model": "quadx",
             "test_filter": "[multicopter],[offboard],[offboard_attitude]",
             "timeout_min": 10
         },
@@ -26,6 +39,11 @@
                 "PX4_HOME_YAW": "2.3562",
                 "PX4_SIM_GPS_USED": "0"
             }
+        },
+        {
+            "model": "hex",
+            "test_filter": "[motor_failure_injection]",
+            "timeout_min": 15
         },
         {
             "model": "standard_vtol",

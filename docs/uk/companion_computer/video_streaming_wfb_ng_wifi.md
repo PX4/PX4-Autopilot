@@ -147,7 +147,7 @@ For simple cases you can use omnidirectional antennas with linear (that bundled 
 
 :::warning
 Не використовуйте діапазон, на якому працює RC TX!
-Або налаштуйте RTL належним чином, щоб уникнути втрати моделі.
+Or set up Return mode properly to avoid model loss.
 :::
 
 **Q:** _Чи підтримується лише Raspberry PI?_

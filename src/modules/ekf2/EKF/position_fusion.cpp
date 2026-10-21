@@ -53,15 +53,16 @@ void Ekf::updateVerticalPositionAidStatus(estimator_aid_source1d_s &aid_src, con
 	}
 }
 
-bool Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
+bool Ekf::fuseHorizontalPositionCore(estimator_aid_source2d_s &aid_src)
 {
+	const LatLonAlt measurement(aid_src.observation[0], aid_src.observation[1], _gpos.altitude());
+
 	// x & y
 	if (!aid_src.innovation_rejected) {
-		const LatLonAlt gpos_prev = _gpos;
-
 		for (unsigned i = 0; i < 2; i++) {
-			// recalculate using the updated state and variance
-			aid_src.innovation[i] += (_gpos - gpos_prev)(i);
+			// recompute from the current state; another measurement fused earlier in this
+			// update can have moved the position through the state cross-covariances
+			aid_src.innovation[i] = (_gpos - measurement)(i);
 			aid_src.innovation_variance[i] = P(State::pos.idx + i, State::pos.idx + i) + aid_src.observation_variance[i];
 
 			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
@@ -71,13 +72,27 @@ bool Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
 
-		_time_last_hor_pos_fuse = _time_delayed_us;
-
 	} else {
 		aid_src.fused = false;
 	}
 
 	return aid_src.fused;
+}
+
+bool Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
+{
+	if (fuseHorizontalPositionCore(aid_src)) {
+		_time_last_hor_pos_fuse = _time_delayed_us;
+		return true;
+	}
+
+	return false;
+}
+
+bool Ekf::fuseFakeHorizontalPosition(estimator_aid_source2d_s &aid_src)
+{
+	// _time_last_hor_pos_fuse is only set by real measurements
+	return fuseHorizontalPositionCore(aid_src);
 }
 
 bool Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
@@ -160,6 +175,23 @@ Vector2f Ekf::getLocalHorizontalPosition() const
 	}
 }
 
+LatLonAlt Ekf::localToGlobalPosition(const Vector2f &pos_ne) const
+{
+	double latitude;
+	double longitude;
+
+	if (_local_origin_lat_lon.isInitialized()) {
+		_local_origin_lat_lon.reproject(pos_ne(0), pos_ne(1), latitude, longitude);
+
+	} else {
+		MapProjection zero_ref;
+		zero_ref.initReference(0.0, 0.0);
+		zero_ref.reproject(pos_ne(0), pos_ne(1), latitude, longitude);
+	}
+
+	return LatLonAlt(latitude, longitude, _gpos.altitude());
+}
+
 void Ekf::updateHorizontalPositionResetStatus(const Vector2f &delta)
 {
 	if (_state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE) {
@@ -176,19 +208,9 @@ void Ekf::updateHorizontalPositionResetStatus(const Vector2f &delta)
 void Ekf::resetHorizontalPositionTo(const Vector2f &new_pos,
 				    const Vector2f &new_horz_pos_var)
 {
-	double new_latitude;
-	double new_longitude;
+	const LatLonAlt new_gpos = localToGlobalPosition(new_pos);
 
-	if (_local_origin_lat_lon.isInitialized()) {
-		_local_origin_lat_lon.reproject(new_pos(0), new_pos(1), new_latitude, new_longitude);
-
-	} else {
-		MapProjection zero_ref;
-		zero_ref.initReference(0.0, 0.0);
-		zero_ref.reproject(new_pos(0), new_pos(1), new_latitude, new_longitude);
-	}
-
-	resetHorizontalPositionTo(new_latitude, new_longitude, new_horz_pos_var);
+	resetHorizontalPositionTo(new_gpos.latitude_deg(), new_gpos.longitude_deg(), new_horz_pos_var);
 }
 
 void Ekf::resetAltitudeTo(const float new_altitude, float new_vert_pos_var)

@@ -145,6 +145,8 @@ static ssize_t imxrt_flexspi_fram_bwrite(struct mtd_dev_s *dev,
 static int imxrt_flexspi_fram_ioctl(struct mtd_dev_s *dev,
 				    int cmd,
 				    unsigned long arg);
+static int imxrt_flexspi_fram_wait_bus_busy(
+	const struct imxrt_flexspi_fram_dev_s *dev);
 
 /****************************************************************************
  * Private Data
@@ -304,10 +306,12 @@ static int imxrt_flexspi_fram_erase_sector(
 {
 	int stat;
 	size_t remaining = FRAM_SECTOR_SIZE;
-	uint8_t buffer[FRAM_SECTOR_SIZE] = {0xff};
+	uint8_t buffer[FRAM_SECTOR_SIZE];
+
+	memset(buffer, 0xff, sizeof(buffer));
 
 	struct flexspi_transfer_s transfer = {
-		.data = (void *) &buffer,
+		.data = (void *)buffer,
 		.port = dev->port,
 		.cmd_type = FLEXSPI_WRITE,
 		.seq_number = 1,
@@ -315,8 +319,15 @@ static int imxrt_flexspi_fram_erase_sector(
 	};
 
 	while (remaining > 0) {
+		/* WEL clears after each program; WREN per page. */
+		stat = imxrt_flexspi_fram_write_enable(dev);
+
+		if (stat != 0) {
+			return stat;
+		}
+
 		transfer.device_address = offset;
-		transfer.data_size = MIN(128, remaining);
+		transfer.data_size = MIN(FRAM_PAGE_SIZE, remaining);
 
 		stat = FLEXSPI_TRANSFER(dev->flexspi, &transfer);
 
@@ -334,31 +345,22 @@ static int imxrt_flexspi_fram_erase_sector(
 static int imxrt_flexspi_fram_erase_chip(
 	const struct imxrt_flexspi_fram_dev_s *dev)
 {
-	int stat;
-	size_t remaining = FRAM_SIZE;
-	size_t offset = 0;
-	uint8_t buffer[FRAM_SECTOR_SIZE] = {0xff};
+	size_t offset;
 
-	struct flexspi_transfer_s transfer = {
-		.data = (void *) &buffer,
-		.port = dev->port,
-		.cmd_type = FLEXSPI_WRITE,
-		.seq_number = 1,
-		.seq_index = PAGE_PROGRAM,
-	};
-
-	while (remaining > 0) {
-		transfer.device_address = offset;
-		transfer.data_size = MIN(128, remaining);
-
-		stat = FLEXSPI_TRANSFER(dev->flexspi, &transfer);
+	for (offset = 0; offset < FRAM_SIZE; offset += FRAM_SECTOR_SIZE) {
+		int stat = imxrt_flexspi_fram_erase_sector(dev, offset);
 
 		if (stat != 0) {
-			return -EIO;
+			return stat;
 		}
 
-		remaining -= transfer.data_size;
-		offset += transfer.data_size;
+		stat = imxrt_flexspi_fram_wait_bus_busy(dev);
+
+		if (stat != 0) {
+			return stat;
+		}
+
+		FLEXSPI_SOFTWARE_RESET(dev->flexspi);
 	}
 
 	return 0;
@@ -566,7 +568,6 @@ static int imxrt_flexspi_fram_erase(struct mtd_dev_s *dev,
 	while (blocksleft-- > 0) {
 		/* Erase each sector */
 
-		imxrt_flexspi_fram_write_enable(priv);
 		imxrt_flexspi_fram_erase_sector(priv, startblock * FRAM_SECTOR_SIZE);
 		imxrt_flexspi_fram_wait_bus_busy(priv);
 		FLEXSPI_SOFTWARE_RESET(priv->flexspi);
@@ -636,11 +637,7 @@ static int imxrt_flexspi_fram_ioctl(struct mtd_dev_s *dev,
 	case MTDIOC_BULKERASE: {
 			/* Erase the entire device */
 
-			imxrt_flexspi_fram_write_enable(priv);
-			imxrt_flexspi_fram_erase_chip(priv);
-			imxrt_flexspi_fram_wait_bus_busy(priv);
-			FLEXSPI_SOFTWARE_RESET(priv->flexspi);
-			ret               = OK;
+			ret = imxrt_flexspi_fram_erase_chip(priv);
 		}
 		break;
 

@@ -53,7 +53,7 @@ public:
 	void set_param_com_act_fail_act(int value);
 
 	void enable_actuator_output_status();
-	void ensure_motor_stopped(unsigned index, unsigned num_motors);
+	void ensure_motors_stopped(uint32_t stopped_mask, unsigned num_motors);
 
 	void inject_failure(mavsdk::Failure::FailureUnit failure_unit, mavsdk::Failure::FailureType failure_type, int instance,
 			    mavsdk::Failure::Result expected_result);

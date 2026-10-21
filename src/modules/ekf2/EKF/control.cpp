@@ -54,6 +54,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 		if (_system_flag_buffer->pop_first_older_than(imu_delayed.time_us, &system_flags_delayed)) {
 
+			set_armed_status(system_flags_delayed.armed);
 			set_vehicle_at_rest(system_flags_delayed.at_rest);
 			set_in_air_status(system_flags_delayed.in_air);
 
@@ -174,4 +175,31 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	const bool yaw_aiding = _control_status.flags.mag_hdg || _control_status.flags.mag_3D
 				|| _control_status.flags.ev_yaw || _control_status.flags.gnss_yaw;
 	_control_status.flags.heading_observable = isNorthEastAidingActive() || yaw_aiding;
+
+	updateYawManualValidity();
+}
+
+void Ekf::updateYawManualValidity()
+{
+	const bool heading_observation_fusing = !isTimedOut(_time_last_heading_fuse, _params.no_aid_timeout_max);
+
+	if (!_control_status.flags.yaw_manual || !heading_observation_fusing) {
+		_time_heading_fusion_start = 0;
+		return;
+	}
+
+	if (_time_heading_fusion_start == 0) {
+		_time_heading_fusion_start = _time_delayed_us;
+		return;
+	}
+
+	// A manually set heading is protected from automatic heading resets, but only until the
+	// heading aiding sources have had the opportunity to drive the heading themselves. After
+	// that the estimate is aiding derived and the manual value is stale, so keeping the
+	// protection would only block recovery resets.
+	static constexpr uint64_t kHeadingFusionTimeToClearYawManual = 30'000'000;
+
+	if ((_time_delayed_us - _time_heading_fusion_start) > kHeadingFusionTimeToClearYawManual) {
+		_control_status.flags.yaw_manual = false;
+	}
 }

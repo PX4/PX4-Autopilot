@@ -40,6 +40,7 @@
 #include <drivers/drv_sensor.h>
 #include <lib/parameters/param.h>
 #include <lib/mathlib/mathlib.h>
+#include <uORB/topics/vtx.h>
 
 param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 {
@@ -178,34 +179,34 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2026-03-11: translate EKF2_GPS_POS_X/Y/Z -> SENS_GPS0_OFFX/OFFY/OFFZ
+	// 2026-03-11: translate EKF2_GPS_POS_X/Y/Z -> SENS_GNSS0_OFFX/OFFY/OFFZ
 	{
 		if (strcmp("EKF2_GPS_POS_X", node->name) == 0) {
-			strcpy(node->name, "SENS_GPS0_OFFX");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GPS0_OFFX");
+			strcpy(node->name, "SENS_GNSS0_OFFX");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GNSS0_OFFX");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Y", node->name) == 0) {
-			strcpy(node->name, "SENS_GPS0_OFFY");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GPS0_OFFY");
+			strcpy(node->name, "SENS_GNSS0_OFFY");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GNSS0_OFFY");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Z", node->name) == 0) {
-			strcpy(node->name, "SENS_GPS0_OFFZ");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GPS0_OFFZ");
+			strcpy(node->name, "SENS_GNSS0_OFFZ");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GNSS0_OFFZ");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
-	// 2026-03-11: translate EKF2_GPS_DELAY to SENS_GPS0_DELAY and SENS_GPS1_DELAY
+	// 2026-03-11: translate EKF2_GPS_DELAY to SENS_GNSS0_DELAY and SENS_GNSS1_DELAY
 	{
 		if (strcmp("EKF2_GPS_DELAY", node->name) == 0) {
 			int32_t delay_ms = static_cast<int32_t>(node->d);
-			param_set(param_find("SENS_GPS0_DELAY"), &delay_ms);
-			param_set(param_find("SENS_GPS1_DELAY"), &delay_ms);
-			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GPS0_DELAY", "SENS_GPS1_DELAY");
+			param_set(param_find("SENS_GNSS0_DELAY"), &delay_ms);
+			param_set(param_find("SENS_GNSS1_DELAY"), &delay_ms);
+			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GNSS0_DELAY", "SENS_GNSS1_DELAY");
 		}
 	}
 
@@ -226,10 +227,9 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	// 2026-03-19: translate EKF2_ENGINE_WRM to EKF2_POS_LOCK
 	{
 		if (strcmp("EKF2_ENGINE_WRM", node->name) == 0) {
-			int32_t delay_ms = static_cast<int32_t>(node->d);
-			param_set(param_find("EKF2_POS_LOCK"), &delay_ms);
+			strcpy(node->name, "EKF2_POS_LOCK");
 			PX4_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
@@ -270,6 +270,35 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-10-20: the single heater's SENS_* parameters became those of heater instance 1
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_IMU_TEMP", "HEATER1_TEMP"},
+			{"SENS_IMU_TEMP_FF", "HEATER1_TEMP_FF"},
+			{"SENS_IMU_TEMP_I", "HEATER1_TEMP_I"},
+			{"SENS_IMU_TEMP_P", "HEATER1_TEMP_P"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+
+		// SENS_TEMP_ID 0 kept the heater from starting, while HEATER1_SENS_ID 0 selects a sensor and -1 disables it
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("SENS_TEMP_ID", node->name) == 0)) {
+			if (node->i32 == 0) {
+				node->i32 = -1;
+			}
+
+			strcpy(node->name, "HEATER1_SENS_ID");
+			PX4_INFO("migrating %s -> %s", "SENS_TEMP_ID", "HEATER1_SENS_ID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2026-06-29: MPC_LAND_RC_HELP replaced by the MPC_AUTO_NUDGING bitmask (landing nudging = bit 1).
 	// The old in-Hold yaw nudge is not migrated; it now lives in bit 0 (yaw nudging in all auto modes).
 	{
@@ -304,6 +333,115 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 			strcpy(node->name, "COM_TRAFF_AVOID");
 			PX4_INFO("migrating %s -> %s", "COM_ARM_TRAFF", "COM_TRAFF_AVOID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-08-05: the protocol selection moved out of VTX_DEVICE into VTX_PROTOCOL. VTX_DEVICE keeps
+	// the old layout that holds the device in its high byte, so only the protocol has to be derived:
+	// the Peak THOR speaks SmartAudio. The Rush MAX SOLO entry was removed and falls back to a generic
+	// device on Tramp, the only protocol it speaks. A value that is not listed stays untouched and acts
+	// as a generic device on SmartAudio, which is what both parameters default to, so the old value 0
+	// needs nothing.
+	{
+		static constexpr int32_t PROTOCOL_SMART_AUDIO = 0; // VTX_PROTOCOL value, not in msg/Vtx.msg
+
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("VTX_DEVICE", node->name) == 0)) {
+			int32_t device = -1;
+			int32_t protocol = PROTOCOL_SMART_AUDIO;
+
+			switch (node->i32) {
+			case 100: // generic device, Tramp
+				device = vtx_s::DEVICE_UNKNOWN << 8;
+				protocol = vtx_s::PROTOCOL_TRAMP;
+				break;
+
+			case 5120: // Peak THOR (T35, T67, T78, T89), SmartAudio only
+				device = vtx_s::DEVICE_PEAK_THOR << 8;
+				protocol = PROTOCOL_SMART_AUDIO;
+				break;
+
+			case 10240: // Rush MAX SOLO -> generic device, Tramp
+				device = vtx_s::DEVICE_UNKNOWN << 8;
+				protocol = vtx_s::PROTOCOL_TRAMP;
+				break;
+			}
+
+			if (device >= 0) {
+				node->i32 = device;
+				param_set(param_find("VTX_PROTOCOL"), &protocol);
+				PX4_INFO("migrating VTX_DEVICE -> VTX_DEVICE %" PRId32 " + VTX_PROTOCOL %" PRId32,
+					 device, protocol);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-08-18: UAVCAN_ECU_MAXF replaced by per-tank (idx 1 based)
+	{
+		if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp("UAVCAN_ECU_MAXF", node->name) == 0)) {
+			strcpy(node->name, "UAVCAN_ECU_MAXF1");
+			PX4_INFO("copying %s -> %s", "UAVCAN_ECU_MAXF", "UAVCAN_ECU_MAXF1");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-09-28: translate SENS_GPS* to SENS_GNSS*
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_GPS_PRIME", "SENS_GNSS_PRIME"},
+			{"SENS_GPS0_ID", "SENS_GNSS0_ID"},
+			{"SENS_GPS0_OFFX", "SENS_GNSS0_OFFX"},
+			{"SENS_GPS0_OFFY", "SENS_GNSS0_OFFY"},
+			{"SENS_GPS0_OFFZ", "SENS_GNSS0_OFFZ"},
+			{"SENS_GPS0_DELAY", "SENS_GNSS0_DELAY"},
+			{"SENS_GPS1_ID", "SENS_GNSS1_ID"},
+			{"SENS_GPS1_OFFX", "SENS_GNSS1_OFFX"},
+			{"SENS_GPS1_OFFY", "SENS_GNSS1_OFFY"},
+			{"SENS_GPS1_OFFZ", "SENS_GNSS1_OFFZ"},
+			{"SENS_GPS1_DELAY", "SENS_GNSS1_DELAY"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-09-29: the GNSS checks move from EKF2 to the sensors module
+	{
+		static constexpr const char *kRenames[][2] {
+			{"EKF2_GPS_CHECK", "GNSS_CHECK"},
+			{"EKF2_REQ_EPH", "GNSS_REQ_EPH"},
+			{"EKF2_REQ_EPV", "GNSS_REQ_EPV"},
+			{"EKF2_REQ_NSATS", "GNSS_REQ_NSATS"},
+			{"EKF2_REQ_PDOP", "GNSS_REQ_PDOP"},
+			{"EKF2_REQ_HDRIFT", "GNSS_REQ_HDRIFT"},
+			{"EKF2_REQ_VDRIFT", "GNSS_REQ_VDRIFT"},
+			{"EKF2_REQ_FIX", "GNSS_REQ_FIX"},
+			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
+			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-10-06: translate CBRK_IO_SAFETY -> COM_SAFETY_MODE. Any value but the breaker key had safety enabled, with
+	// both the switch and the MAVLink command able to turn it off.
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("CBRK_IO_SAFETY", node->name) == 0)) {
+			node->i32 = (node->i32 == 22027) ? 0 : 1;
+			strcpy(node->name, "COM_SAFETY_MODE");
+			PX4_INFO("migrating %s -> %s", "CBRK_IO_SAFETY", "COM_SAFETY_MODE");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}

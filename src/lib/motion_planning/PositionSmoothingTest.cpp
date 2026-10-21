@@ -193,3 +193,125 @@ TEST_F(PositionSmoothingTest, reachesTargetInitialVelocity)
 	EXPECT_LT(fabsf(position(2) - TARGET(2)), Z_ACC_RAD);
 	EXPECT_LT(iteration, N_ITER) << "Took too long to converge\n";
 }
+
+
+// Fly through a waypoint whose triplet never advances (e.g. an overshoot the navigator
+// can't accept). The look-ahead point must not keep marching down the extended leg: the
+// vehicle has to brake and come back to the target instead of drifting away forever.
+TEST_F(PositionSmoothingTest, doesNotDriftPastUnreachedWaypoint)
+{
+	const int N_ITER = 3000; // 60 s at 50 Hz
+	const float DELTA_T = 0.02f;
+
+	const Vector3f PREV{0.f, 0.f, 0.f};
+	const Vector3f TARGET{20.f, 0.f, 0.f};
+	const Vector3f NEXT{40.f, 2.f, 0.f}; // near-collinear next leg -> high corner speed -> clear fly-through
+
+	// Triplet stays fixed for the whole run: the navigator never advances past TARGET.
+	Vector3f waypoints[3] = {PREV, TARGET, NEXT};
+
+	const Vector3f u_leg = (TARGET - PREV).unit_or_zero();
+	const float leg_length = (TARGET - PREV).length();
+
+	Vector3f position{0.f, 0.f, 0.f};
+	PositionSmoothing::PositionSmoothingSetpoints out;
+
+	bool reached_target = false;
+	bool came_back = false;
+	float max_distance_past_target = 0.f;
+
+	for (int i = 0; i < N_ITER; i++) {
+		_position_smoothing.generateSetpoints(position, waypoints, Vector3f{}, DELTA_T, false, out);
+		position = out.position;
+		expectDynamicsLimitsRespected(out);
+
+		const float along_track = Vector3f(position - PREV) * u_leg;
+
+		if (Vector3f(position - TARGET).length() < 1.f) {
+			reached_target = true;
+		}
+
+		if (reached_target) {
+			max_distance_past_target = fmaxf(max_distance_past_target, along_track - leg_length);
+
+			// Once the vehicle has gone past the target, the fix must turn it around.
+			if (along_track > leg_length + 1.f && out.velocity * u_leg < -0.1f) {
+				came_back = true;
+			}
+		}
+	}
+
+	EXPECT_TRUE(reached_target) << "Vehicle never reached the target waypoint\n";
+	EXPECT_TRUE(came_back) << "Vehicle never turned back toward the unreached waypoint (it drifted away)\n";
+	// Without the fix the look-ahead marches down the extended leg and this grows unbounded.
+	EXPECT_LT(max_distance_past_target, 10.f) << "Vehicle drifted too far past the unreached waypoint\n";
+}
+
+class PositionSmoothingStraightLegTest : public ::testing::Test
+{
+public:
+	// A descending leg: 100 m horizontal, 50 m down (NED), 6 m/s XY, 1.5 m/s Z
+	static constexpr float XY_SPEED = 6.f;
+	static constexpr float Z_SPEED = 1.5f;
+	const Vector3f START{0.f, 0.f, 0.f};
+	const Vector3f TARGET{100.f, 0.f, 50.f};
+
+	PositionSmoothing _position_smoothing;
+
+	PositionSmoothingStraightLegTest()
+	{
+		_position_smoothing.setMaxJerk(MAX_JERK);
+		_position_smoothing.setMaxAcceleration({MAX_ACCELERATION, MAX_ACCELERATION, MAX_ACCELERATION});
+		_position_smoothing.setMaxVelocity({XY_SPEED, XY_SPEED, Z_SPEED});
+		_position_smoothing.setMaxAllowedHorizontalError(MAX_ALLOWED_HOR_ERR);
+		_position_smoothing.setVerticalAcceptanceRadius(VERTICAL_ACCEPTANCE_RADIUS);
+		_position_smoothing.setCruiseSpeed(XY_SPEED);
+		_position_smoothing.setHorizontalTrajectoryGain(HORIZONTAL_TRAJECTORY_GAIN);
+		_position_smoothing.setTargetAcceptanceRadius(TARGET_ACCEPTANCE_RADIUS);
+
+		_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	}
+
+	PositionSmoothing::PositionSmoothingSetpoints firstSetpoint()
+	{
+		Vector3f waypoints[3] = {START, TARGET, TARGET};
+		PositionSmoothing::PositionSmoothingSetpoints out;
+		_position_smoothing.generateSetpoints(START, waypoints, Vector3f{0.f, 0.f, 0.f}, 0.02f, false, out);
+		return out;
+	}
+
+	// Fly the leg and return the largest vertical distance from the straight line
+	float flyLegMaxAltitudeError()
+	{
+		Vector3f waypoints[3] = {START, TARGET, TARGET};
+		Vector3f position = START;
+		PositionSmoothing::PositionSmoothingSetpoints out;
+		const float slope = (TARGET(2) - START(2)) / (TARGET - START).xy().norm();
+		float max_error = 0.f;
+
+		for (int i = 0; i < 5000 && (TARGET - position).norm() > 0.1f; i++) {
+			_position_smoothing.generateSetpoints(position, waypoints, Vector3f{0.f, 0.f, 0.f}, 0.02f, false, out);
+			position = out.position;
+			const float z_on_line = START(2) + slope * (position - START).xy().norm();
+			max_error = fmaxf(max_error, fabsf(position(2) - z_on_line));
+		}
+
+		EXPECT_LT((TARGET - position).norm(), 0.1f) << "Did not reach the target\n";
+		return max_error;
+	}
+};
+
+TEST_F(PositionSmoothingStraightLegTest, velocityPointsAlongTheLeg)
+{
+	const Vector3f vel = firstSetpoint().unsmoothed_velocity;
+
+	// Parallel to the leg: vz / |vxy| equals the leg slope, the slower Z axis limits XY
+	EXPECT_NEAR(vel(2) / vel.xy().norm(), 0.5f, 1e-3f);
+	EXPECT_NEAR(vel(2), Z_SPEED, 1e-3f);
+	EXPECT_NEAR(vel.xy().norm(), 2.f * Z_SPEED, 1e-3f);
+}
+
+TEST_F(PositionSmoothingStraightLegTest, fliesAStraightLeg)
+{
+	EXPECT_LT(flyLegMaxAltitudeError(), 1.f);
+}

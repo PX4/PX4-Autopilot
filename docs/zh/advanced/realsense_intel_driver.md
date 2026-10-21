@@ -5,19 +5,18 @@ RealSense R200 相机头如下图所示:
 
 ![Intel Realsense Camera front view](../../assets/hardware/sensors/realsense/intel_realsense.png)
 
-驱动程序包的安装是在 Virtual Box 中作为虚拟机运行的 Ubuntu 操作系统 (OS) 上执行的。
-运行 Virtual Box 的宿主机、虚拟机的规格如下:
+驱动程序包的安装是在 Virtual Box 中作为虚拟机运行的 Ubuntu 操作系统 (OS) 上执行的。运行 Virtual Box 的宿主机、虚拟机的规格如下:
 
 - 主机操作系统：Windows 8
 - 处理器：Intel(R) Core(TM) i7-4702MQ CPU @ 2.20GHz
-- Virtual Box：Oracle VM。 版本 5.0.14 r105127
+- Virtual Box：Oracle VM。版本 5.0.14 r105127
 - 扩展：安装了 Virtual Box 的扩展包（用于 USB3.0 支持）
 - 客户机操作系统：Linux - Ubuntu 14.04.3 LTS
 
-本教程按以下方式排序: 在第一部分中, 演示如何在 Virtual Box 中安装 Ubuntu 14.04 作为客户机系统。 第二部分会演示如何安装 ROS Indigo 和相机驱动程序。 常用短语解释如下：
+本教程按以下方式排序: 在第一部分中, 演示如何在 Virtual Box 中安装 Ubuntu 14.04 作为客户机系统。第二部分会演示如何安装 ROS Indigo 和相机驱动程序。常用短语解释如下：
 
-- Virtual Box（VB）：运行不同虚拟机的程序。 此处使用 Oracle 虚拟机。
-- Virtual Machine（VM）：作为访客系统在虚拟框中运行的操作系统。 此处使用 Ubuntu。
+- Virtual Box（VB）：运行不同虚拟机的程序。此处使用 Oracle 虚拟机。
+- Virtual Machine（VM）：作为访客系统在虚拟框中运行的操作系统。此处使用 Ubuntu。
 
 ## 在 Virtual Box 中安装 Ubuntu 14.04.3 LTS
 
@@ -30,13 +29,11 @@ RealSense R200 相机头如下图所示:
 - 安装完成后，您可能需要启用 Virtual Box 在整个桌面上显示 Ubuntu：
   - Start VM Ubuntu and login, Click on **Devices->Insert Guest Additions CD image** in the menu bar of the Virtual Box.
   - Click on **Run** and enter password on the windows that pop up in Ubuntu.
-  - 等待安装完成，然后重新启动。
-    现在，应该可以在整个桌面上显示 VM。
+  - 等待安装完成，然后重新启动。现在，应该可以在整个桌面上显示 VM。
   - 如果 ubuntu 中弹出一个窗口, 询问是否更新, 请在此时拒绝更新。
 - 在 Virtual Box 中启用 USB 3 控制器:
   - 关闭虚拟机。
-  - 转到 "虚拟机" 的设置到菜单选择 USB，然后选择: "USB 3.0(xHCI)"。
-    只有在安装了虚拟框的扩展包时, 才有可能执行此操作。
+  - 转到 "虚拟机" 的设置到菜单选择 USB，然后选择: "USB 3.0(xHCI)"。只有在安装了虚拟框的扩展包时, 才有可能执行此操作。
   - 再次启动虚拟机。
 
 ## 安装 ROS Indigo

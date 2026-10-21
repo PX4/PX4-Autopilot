@@ -68,15 +68,27 @@ bool FixedwingLandDetector::_get_landed_state()
 		fixed_wing_runway_control_s fixed_wing_runway_control{};
 		_fixed_wing_runway_control_sub.copy(&fixed_wing_runway_control);
 
+		const bool launch_status_fresh = hrt_elapsed_time(&launch_detection_status.timestamp) < 500_ms;
+		const bool runway_status_fresh = hrt_elapsed_time(&fixed_wing_runway_control.timestamp) < 500_ms;
+
 		// Check if we're in catapult/hand-launch waiting state
-		const bool waiting_for_catapult_launch = hrt_elapsed_time(&launch_detection_status.timestamp) < 500_ms
+		const bool waiting_for_catapult_launch = launch_status_fresh
 				&& launch_detection_status.launch_detection_state == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
 
 		// Check if we're in runway takeoff early phase (throttle ramp or clamped to runway)
-		const bool waiting_for_auto_runway_climbout = hrt_elapsed_time(&fixed_wing_runway_control.timestamp) < 500_ms
+		const bool waiting_for_auto_runway_climbout = runway_status_fresh
 				&& fixed_wing_runway_control.runway_takeoff_state < fixed_wing_runway_control_s::STATE_CLIMBOUT;
 
-		if (waiting_for_catapult_launch || waiting_for_auto_runway_climbout) {
+		const bool in_auto_takeoff_mode = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
+						  || (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF);
+
+		// Bridge the gap between arming and the takeoff status being published.
+		const bool waiting_for_takeoff_status = in_auto_takeoff_mode
+							&& !launch_status_fresh && !runway_status_fresh
+							&& (_vehicle_status.takeoff_time == 0)
+							&& (hrt_elapsed_time(&_vehicle_status.armed_time) < 1_s);
+
+		if (waiting_for_catapult_launch || waiting_for_auto_runway_climbout || waiting_for_takeoff_status) {
 			return true;
 		}
 	}

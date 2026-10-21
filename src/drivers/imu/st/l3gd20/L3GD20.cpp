@@ -38,7 +38,7 @@ constexpr uint8_t L3GD20::_checked_registers[];
 L3GD20::L3GD20(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_gyro(get_device_id(), config.rotation),
+	_px4_gyro(get_device_id(), config.rotation, config.external),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),

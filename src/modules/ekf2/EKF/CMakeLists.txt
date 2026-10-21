@@ -85,7 +85,6 @@ endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
-		aid_sources/gnss/gnss_checks.cpp
 		aid_sources/gnss/gnss_height_control.cpp
 		aid_sources/gnss/gps_control.cpp
 	)
@@ -143,22 +142,25 @@ if(CONFIG_EKF2_WIND)
 	list(APPEND EKF_SRCS wind.cpp)
 endif ()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_library(ecl_EKF
-	${EKF_SRCS}
-)
+# Only the unit tests link ecl_EKF; the ekf2 module compiles these sources itself
+if(BUILD_TESTING)
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+	add_library(ecl_EKF
+		${EKF_SRCS}
+	)
 
-add_dependencies(ecl_EKF prebuild_targets)
-target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PATH})
+	add_dependencies(ecl_EKF prebuild_targets)
+	target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PATH})
 
-target_link_libraries(ecl_EKF
-	PRIVATE
-		bias_estimator
-		geo
-		lat_lon_alt
-		output_predictor
-		world_magnetic_model
-		${EKF_LIBS}
-)
+	target_link_libraries(ecl_EKF
+		PRIVATE
+			bias_estimator
+			geo
+			lat_lon_alt
+			output_predictor
+			world_magnetic_model
+			${EKF_LIBS}
+	)
 
-target_compile_options(ecl_EKF PRIVATE -fno-associative-math)
+	target_compile_options(ecl_EKF PRIVATE -fno-associative-math)
+endif()

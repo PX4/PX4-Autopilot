@@ -85,7 +85,7 @@ static inline constexpr px4_spi_bus_t initSPIBus(SPI::Bus bus, const px4_spi_bus
 	}
 
 	ret.bus = (int)bus;
-	ret.is_external = false;
+	ret.topology = BusTopology::Internal;
 
 	ret.power_enable_gpio = getGPIOPin(power_enable.pin) | GPIO_OUT;
 
@@ -103,10 +103,11 @@ static inline constexpr px4_spi_bus_t initSPIBusExternal(SPI::Bus bus, const bus
 
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		ret.devices[i] = initSPIDevice(i, devices.devices[i].cs_gpio, devices.devices[i].drdy_gpio);
+		ret.devices[i].external = true;
 	}
 
 	ret.bus = (int)bus;
-	ret.is_external = true;
+	ret.topology = BusTopology::External;
 	ret.requires_locking = false; // external buses are never accessed by NuttX drivers
 	return ret;
 }

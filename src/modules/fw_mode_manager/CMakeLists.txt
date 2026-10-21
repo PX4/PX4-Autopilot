@@ -65,6 +65,8 @@ px4_add_module(
 		FirstOrderHoldAltitude.hpp
 		ControllerConfigurationHandler.cpp
 		ControllerConfigurationHandler.hpp
+		ParachuteRelease.cpp
+		ParachuteRelease.hpp
 	MODULE_CONFIG
 		fw_mode_manager_params.yaml
 	DEPENDS
@@ -72,3 +74,4 @@ px4_add_module(
 	)
 
 px4_add_unit_gtest(SRC FirstOrderHoldAltitudeTest.cpp EXTRA_SRCS FirstOrderHoldAltitude.cpp LINKLIBS geo mathlib)
+px4_add_unit_gtest(SRC ParachuteReleaseTest.cpp EXTRA_SRCS ParachuteRelease.cpp LINKLIBS mathlib)

@@ -60,6 +60,7 @@
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
+#include <sys/stat.h>
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
@@ -146,7 +147,7 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void board_on_reset(int status)
 {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
+		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
 	}
 
 	/*
@@ -277,9 +278,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// Ensure Power is off for > 10 mS
 	usleep(15 * 1000);
 	VDD_3V3_SD_CARD_EN(true);
-	usleep(500 * 1000);
+	// Increased delay for SD card power-on and initialization (NuttX 12)
+	usleep(1000 * 1000);
 
 #ifdef CONFIG_MMCSD
+	/* Create mount point for SD card */
+	mkdir("/fs", 0777);
+	mkdir("/fs/microsd", 0777);
+
 	int ret = stm32_sdio_initialize();
 
 	if (ret != OK) {

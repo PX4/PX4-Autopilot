@@ -108,6 +108,7 @@ px4_add_module(
 		mavlink_command_sender.cpp
 		mavlink_events.cpp
 		mavlink_ftp.cpp
+		mavlink_ftp_param.cpp
 		mavlink_log_handler.cpp
 		mavlink_main.cpp
 		mavlink_messages.cpp
@@ -146,9 +147,15 @@ px4_add_module(
 	UNITY_BUILD
 	)
 
+if(CONFIG_BOARD_HAS_RID_EEPROM)
+	target_link_libraries(modules__mavlink PRIVATE open_drone_id)
+endif()
+
 if(CONFIG_DRIVERS_SERIALPASSTHROUGH)
 	target_link_libraries(modules__mavlink PRIVATE drivers__serialpassthrough)
 endif()
+
+target_link_libraries(modules__mavlink PRIVATE failure_injection)
 
 px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	INCLUDES
@@ -161,6 +168,8 @@ px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	LINKLIBS
 		modules__mavlink
 	)
+
+px4_add_unit_gtest(SRC MavlinkFtpParamTest.cpp EXTRA_SRCS mavlink_ftp_param.cpp)
 
 if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask

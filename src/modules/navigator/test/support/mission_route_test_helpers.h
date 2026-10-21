@@ -49,6 +49,7 @@
 
 #include <lib/geo/geo.h>
 
+#include <initializer_list>
 #include <vector>
 
 namespace navigator_test
@@ -57,11 +58,26 @@ namespace navigator_test
 class VectorMissionRouteProvider : public mission_route::Provider
 {
 public:
+	VectorMissionRouteProvider() = default;
+
+	// Safe-point-only provider, used by the RTL land-approach tests.
 	VectorMissionRouteProvider(const std::vector<mission_item_s> &safe_point_items,
 				   const std::vector<int32_t> &faulty_safe_point_indices = {})
 	{
 		_safe_point_items.setItems(safe_point_items);
 		_safe_point_items.setLoadFailureIndices(faulty_safe_point_indices);
+	}
+
+	void setMissionItems(const std::vector<mission_item_s> &items) { _mission_items.setItems(items); }
+	void setSafePointItems(const std::vector<mission_item_s> &items) { _safe_point_items.setItems(items); }
+	void setMissionLoadFailures(const std::vector<int32_t> &indices) { _mission_items.setLoadFailureIndices(indices); }
+	void setSafePointLoadFailures(const std::vector<int32_t> &indices) { _safe_point_items.setLoadFailureIndices(indices); }
+
+	int missionCount() const override { return static_cast<int>(_mission_items.itemCount()); }
+
+	bool loadMissionItem(int index, mission_item_s &mission_item) const override
+	{
+		return _mission_items.loadItem(index, mission_item);
 	}
 
 	int safePointCount() const override { return static_cast<int>(_safe_point_items.itemCount()); }
@@ -71,15 +87,20 @@ public:
 		return _safe_point_items.loadItem(index, safe_point_item);
 	}
 
-	bool scanVtolLandApproachBlockForTest(int safe_point_index, float home_altitude_amsl,
-					      land_approaches_s *result) const
-	{
-		return scanVtolLandApproachBlock(safe_point_index, home_altitude_amsl, result);
-	}
-
 private:
+	VectorMissionItemStore _mission_items{};
 	VectorMissionItemStore _safe_point_items{};
 };
+
+// Provider over a mission route with optional safe points, the common planner-test setup.
+static inline VectorMissionRouteProvider makeRouteProvider(const std::vector<mission_item_s> &mission_items,
+		const std::vector<mission_item_s> &safe_point_items = {})
+{
+	VectorMissionRouteProvider provider;
+	provider.setMissionItems(mission_items);
+	provider.setSafePointItems(safe_point_items);
+	return provider;
+}
 
 static inline mission_item_s makePositionItem(double lat, double lon, float alt,
 		uint16_t nav_cmd = NAV_CMD_WAYPOINT)
@@ -117,6 +138,20 @@ static inline mission_item_s makeLandItemFromOffset(double base_lat, double base
 		float north_m, float east_m, float alt)
 {
 	return makePositionItemFromOffset(base_lat, base_lon, north_m, east_m, alt, NAV_CMD_LAND, false);
+}
+
+static inline mission_item_s makeTakeoffItem(double lat, double lon, float alt)
+{
+	mission_item_s item = makePositionItem(lat, lon, alt, NAV_CMD_TAKEOFF);
+	item.autocontinue = false;
+	return item;
+}
+
+static inline mission_item_s makeLandItem(double lat, double lon, float alt)
+{
+	mission_item_s item = makePositionItem(lat, lon, alt, NAV_CMD_LAND);
+	item.autocontinue = false;
+	return item;
 }
 
 static inline mission_item_s makeDoJump(int16_t jump_target_index, uint16_t repeat_count,
@@ -186,6 +221,8 @@ using navigator_test::kAltitudeTolerance;
 using navigator_test::kDistanceTolerance;
 using navigator_test::kLatLonToleranceDeg;
 using navigator_test::makeDoJump;
+using navigator_test::makeRouteProvider;
+using navigator_test::makeLandItem;
 using navigator_test::makeLandItemFromOffset;
 using navigator_test::makePositionAbsolute;
 using navigator_test::makePositionFromOffset;
@@ -193,5 +230,6 @@ using navigator_test::makePositionItem;
 using navigator_test::makePositionItemFromOffset;
 using navigator_test::makeSafePointAbsolute;
 using navigator_test::makeSafePointFromOffset;
+using navigator_test::makeTakeoffItem;
 using navigator_test::makeTakeoffItemFromOffset;
 using navigator_test::makeVtolTransitionItem;

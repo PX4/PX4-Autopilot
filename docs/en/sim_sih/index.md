@@ -33,7 +33,7 @@ The following vehicle types are supported:
 | Vehicle                                                         | Make Target                                | Status       |
 | --------------------------------------------------------------- | ------------------------------------------ | ------------ |
 | Quadrotor X <Badge type="tip" text="PX4 v1.9" />                | `make px4_sitl_sih sihsim_quadx`           | Stable       |
-| Hexarotor X <Badge type="tip" text="PX4 v1.16" />               | `make px4_sitl_sih sihsim_hexa`            | Experimental |
+| Hexarotor X <Badge type="tip" text="PX4 v1.16" />               | `make px4_sitl_sih sihsim_hex`             | Experimental |
 | Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />     | `make px4_sitl_sih sihsim_airplane`        | Experimental |
 | Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />           | `make px4_sitl_sih sihsim_xvert`           | Experimental |
 | Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" /> | `make px4_sitl_sih sihsim_standard_vtol`   | Experimental |
@@ -243,7 +243,7 @@ The specific differences for SIH simulation airframes are listed in the sections
   For SIH on SITL you will need to explicitly enable these sensors as shown below.
   :::
 
-- `param set-default SENS_GPS0_DELAY 0` to improve state estimator performance (the assumption of instant GPS measurements would normally be unrealistic, but is accurate for SIH).
+- `param set-default SENS_GNSS0_DELAY 0` to improve state estimator performance (the assumption of instant GPS measurements would normally be unrealistic, but is accurate for SIH).
 
 ### SIH on Flight Controller
 

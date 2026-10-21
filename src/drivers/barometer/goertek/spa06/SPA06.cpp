@@ -35,7 +35,7 @@
 
 SPA06::SPA06(const I2CSPIDriverConfig &config, spa06::ISPA06 *interface) :
 	I2CSPIDriver(config),
-	_px4_baro{interface->get_device_id()},
+	_px4_baro{interface->get_device_id(), config.external},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),

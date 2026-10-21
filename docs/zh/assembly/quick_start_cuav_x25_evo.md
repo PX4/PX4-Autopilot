@@ -15,8 +15,7 @@ The following flight controller models are applicable to this quick start guide.
 
 ## 接线图概述
 
-下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。
-我们将在下面各节中介绍它们的细节。
+下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。我们将在下面各节中介绍它们的细节。
 
 ![wiring](../../assets/flight_controller/cuav_x25-evo/x25_evo_quickstart_01.jpg)
 

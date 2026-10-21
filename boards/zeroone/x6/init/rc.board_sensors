@@ -99,18 +99,15 @@ then
 	fi
 fi
 
-# Possible internal Baro
-if param compare SENS_INT_BARO_EN 1
+# Internal baro
+if ! icp201xx -I -a 0x64 start
 then
-	if ! icp201xx -I -a 0x64 start
-	then
-		bmp581 -I -a 0X47 start
-	fi
+	bmp581 -I -a 0X47 start
 fi
-#external baro
-if ! icp201xx -X start
+# Onboard baro on I2C2 (shared with the PM2 connector)
+if ! icp201xx -I -b 2 start
 then
-	spa06 -X -a 0x77 start
+	spa06 -I -b 2 -a 0x77 start
 fi
 
 unset INA_CONFIGURED

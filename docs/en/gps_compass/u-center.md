@@ -12,6 +12,10 @@ Heading and static-base-on-UART2 setups cannot use this feature.
 For more information see [Constraints](#constraints) below.
 :::
 
+::: warning
+u-blox firmware cannot be updated over UART2. On ARK DroneCAN GPS modules, use the debug passthrough in [ARK RTK GPS](../dronecan/ark_rtk_gps.md#updating-ublox-f9p-module).
+:::
+
 ## Wiring
 
 Connect the adapter's RX to the receiver's `UART2` TX, its TX to `UART2` RX, and share ground.

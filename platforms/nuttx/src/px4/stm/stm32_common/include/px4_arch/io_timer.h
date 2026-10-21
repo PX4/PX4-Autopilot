@@ -163,6 +163,7 @@ __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
 __EXPORT extern void io_timer_trigger(unsigned channels_mask);
 
 __EXPORT void io_timer_update_dma_req(uint8_t timer, bool enable);
+__EXPORT const dshot_timing_t *io_timer_get_dshot_timing(uint8_t timer, unsigned dshot_pwm_freq);
 __EXPORT int io_timer_set_dshot_burst_mode(uint8_t timer, unsigned dshot_pwm_rate, uint8_t dma_burst_length);
 
 __EXPORT void io_timer_capture_dma_req(uint8_t timer, uint8_t timer_channel_index, bool enable);

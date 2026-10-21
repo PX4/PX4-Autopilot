@@ -8,7 +8,7 @@
 
 - [Sign up](https://github.com/signup) for github if you haven't already
 
-- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo))
+- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo))
 
 - Клонуйте ваш форкнутий репозиторій на локальний комп'ютер
 
@@ -280,7 +280,13 @@ git checkout <branch name>
 
 ### Force push to forked repository
 
-Після завершення першого PR, люди зі спільноти PX4 переглянуть ваші зміни. У більшості випадків це означає, що ви повинні виправити свою місцеву гілку відповідно до розгляду. Після локальної зміни файлів гілку функцій потрібно знову базувати з останньою версією upstream/main. Однак після перебазування більше неможливо надіслати гілку функцій у ваш розгалужений репозиторій напряму, замість цього вам потрібно використати force push:
+After you open a PR, people from the PX4 community will review your changes.
+У більшості випадків це означає, що ви повинні виправити свою місцеву гілку відповідно до розгляду.
+Add the fixes as new commits and push them normally.
+Do not amend or squash commits that are already pushed: a force push erases the history a reviewer has read, and they can no longer see what changed since their last review.
+
+A force push is only needed after the feature branch has been rebased on the most recent upstream/main, for example to resolve merge conflicts.
+Keep the existing commits when rebasing, where possible:
 
 ```sh
 git push --force-with-lease origin <your feature branch name>
@@ -292,7 +298,7 @@ If a conflict occurs during a `git rebase`, please refer to [this guide](https:/
 
 ### Pull merge conflicts
 
-If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
+If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
 
 ### Помилка збірки через застарілі git теги
 

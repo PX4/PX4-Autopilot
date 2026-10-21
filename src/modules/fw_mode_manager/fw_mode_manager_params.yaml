@@ -18,14 +18,59 @@ parameters:
     FW_LND_FLALT:
       description:
         short: Landing flare altitude (relative to landing altitude)
-        long: 'NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as
-          the flare altitude'
+        long: |-
+          NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
+
+          Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
       type: float
       default: 0.5
       unit: m
-      min: 0.0
+      min: -1.0
       decimal: 1
       increment: 0.5
+    FW_LND_PARA_EN:
+      description:
+        short: Enable parachute landing on mission landing approach
+        long: |-
+          If enabled, the vehicle follows the mission landing approach down to the release
+          altitude (FW_LND_PARA_ALT) and releases the parachute by triggering flight
+          termination, such that the predicted touchdown point under canopy lies on the
+          landing point, accounting for ground speed, estimated wind drift during the descent
+          (FW_LND_PARA_SINK) and the forward carry while the parachute deploys.
+
+          The parachute is released through the flight termination failsafe outputs, or an
+          external parachute system (COM_PARACHUTE). Not supported on VTOL.
+      type: boolean
+      default: 0
+    FW_LND_PARA_ALT:
+      description:
+        short: Parachute landing release altitude above ground
+        long: |-
+          Altitude the vehicle descends to and holds for the release. The release happens
+          higher if the predicted touchdown point reaches the landing point while still on
+          the approach slope, or lower for a vehicle that cannot hold the altitude, but
+          never below 3 seconds of descent at FW_LND_PARA_SINK, so that the canopy has
+          room to open.
+
+          Lower values reduce the wind drift of the touchdown point.
+      type: float
+      default: 20.0
+      unit: m
+      min: 1.0
+      decimal: 1
+      increment: 0.5
+    FW_LND_PARA_SINK:
+      description:
+        short: Sink rate under the deployed parachute
+        long: |-
+          Expected steady-state sink rate under canopy. Used to predict the descent duration and
+          therewith the wind drift of the touchdown point.
+      type: float
+      default: 5.0
+      unit: m/s
+      min: 0.1
+      decimal: 1
+      increment: 0.1
     FW_LND_USETER:
       description:
         short: Use terrain estimation during landing
@@ -55,7 +100,7 @@ parameters:
       default: 0
     FW_LND_FL_PMIN:
       description:
-        short: Flare, minimum pitch
+        short: Flare, minimum absolute pitch
         long: Minimum pitch during landing flare.
       type: float
       default: 2.5
@@ -66,7 +111,7 @@ parameters:
       increment: 0.5
     FW_LND_FL_PMAX:
       description:
-        short: Flare, maximum pitch
+        short: Flare, maximum absolute pitch
         long: Maximum pitch during landing flare.
       type: float
       default: 15.0
@@ -107,10 +152,12 @@ parameters:
           to trigger the flare.
 
           NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
+
+          Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
       type: float
       default: 1.0
       unit: s
-      min: 0.1
+      min: -1.0
       max: 5.0
       decimal: 1
       increment: 0.1
@@ -219,7 +266,7 @@ parameters:
   definitions:
     FW_TKO_PITCH_MIN:
       description:
-        short: Minimum pitch during takeoff
+        short: Minimum absolute pitch during takeoff
       type: float
       default: 10.0
       unit: deg
@@ -240,6 +287,20 @@ parameters:
       min: -1.0
       decimal: 1
       increment: 0.1
+    FW_TKO_CLMB_T:
+      description:
+        short: Takeoff climbout duration
+        long: |-
+          Ends the takeoff climbout this many seconds after the vehicle started climbing, instead of
+          when the takeoff altitude is reached.
+
+          If set to 0, the climbout ends at the takeoff altitude.
+      type: float
+      default: 0.0
+      unit: s
+      min: 0.0
+      decimal: 1
+      increment: 1.0
     FW_LAUN_DETCN_ON:
       description:
         short: Fixed-wing launch detection
@@ -261,6 +322,21 @@ parameters:
       min: 0.0
       decimal: 1
       increment: 0.1
+    FW_LAUN_CLR_ALT:
+      description:
+        short: Launch climbout clearance altitude
+        long: |-
+          Height above the launch point below which the vehicle holds the wind-compensated launch bearing
+          instead of the normal line-following guidance, and the roll limit is ramped linearly from 0 at
+          the launch point up to FW_R_LIM at this altitude, so that a poor heading estimate or a bad launch
+          cannot induce a large bank close to the ground. Only relevant for hand- or catapult-launched
+          vehicles (FW_LAUN_DETCN_ON).
+      type: float
+      default: 5.0
+      unit: m
+      min: 0.0
+      decimal: 1
+      increment: 1.0
     FW_FLAPS_TO_SCL:
       description:
         short: Flaps setting during take-off
@@ -278,7 +354,7 @@ parameters:
   definitions:
     FW_P_LIM_MIN:
       description:
-        short: Minimum pitch angle setpoint
+        short: Minimum absolute pitch angle setpoint
         long: Applies in any altitude controlled flight mode.
       type: float
       default: -30.0
@@ -289,7 +365,7 @@ parameters:
       increment: 0.5
     FW_P_LIM_MAX:
       description:
-        short: Maximum pitch angle setpoint
+        short: Maximum absolute pitch angle setpoint
         long: Applies in any altitude controlled flight mode.
       type: float
       default: 30.0
@@ -356,6 +432,9 @@ parameters:
           applies to speed vs height errors.
           0 -> control height only
           2 -> control speed only (gliders)
+          Up to a weight of 1, pitch only trades height for speed up to trim airspeed;
+          accelerating above trim is left to the throttle. Between 1 and 2, pitch
+          increasingly tracks airspeed setpoints above trim as well.
       type: float
       default: 1.0
       min: 0.0

@@ -41,7 +41,7 @@ LatLonAlt LatLonAlt::fromEcef(const Vector3d &p_ecef)
 {
 	// Convert position using Borkowski closed-form exact solution
 	// P. D. Groves, "Principles of GNSS, inertial, and multisensor integrated navigation systems, 2nd edition (appendix C)
-	const double k1 = sqrt(1 - Wgs84::eccentricity2) * std::abs(p_ecef(2));
+	const double k1 = sqrt(1 - Wgs84::eccentricity2) * fabs(p_ecef(2));
 	const double k2 = Wgs84::eccentricity2 * Wgs84::equatorial_radius;
 	const double beta = sqrt(p_ecef(0) * p_ecef(0) + p_ecef(1) * p_ecef(1));
 	const double E = (k1 - k2) / beta;
@@ -107,7 +107,7 @@ void LatLonAlt::computeRadiiOfCurvature(const double latitude, double &meridian_
 {
 	const double tmp = 1.0 - pow(Wgs84::eccentricity * sin(latitude), 2);
 	const double sqrt_tmp = std::sqrt(tmp);
-	meridian_radius_of_curvature = Wgs84::meridian_radius_of_curvature_numerator / (tmp * tmp * sqrt_tmp);
+	meridian_radius_of_curvature = Wgs84::meridian_radius_of_curvature_numerator / (tmp * sqrt_tmp);
 	transverse_radius_of_curvature = Wgs84::equatorial_radius / sqrt_tmp;
 }
 

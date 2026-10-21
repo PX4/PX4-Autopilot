@@ -172,6 +172,22 @@ void AutopilotTesterRtl::check_rally_point_within(float acceptance_radius_m)
 	CHECK(within_rally_point);
 }
 
+void AutopilotTesterRtl::wait_until_disarmed_while_in_multicopter_mode(std::chrono::seconds timeout)
+{
+	const uint64_t start_time_us = getTelemetry()->attitude_quaternion().timestamp_us;
+	const uint64_t timeout_us = std::chrono::duration_cast<std::chrono::microseconds>(timeout).count();
+	bool remained_in_multicopter_mode = true;
+
+	while (getTelemetry()->armed() && remained_in_multicopter_mode
+	       && getTelemetry()->attitude_quaternion().timestamp_us - start_time_us < timeout_us) {
+		remained_in_multicopter_mode &= getTelemetry()->vtol_state() == Telemetry::VtolState::Mc;
+		sleep_for(std::chrono::milliseconds(100));
+	}
+
+	REQUIRE(remained_in_multicopter_mode);
+	REQUIRE_FALSE(getTelemetry()->armed());
+}
+
 void AutopilotTesterRtl::load_qgc_mission_and_geofence_here(const std::string &plan_file)
 {
 	auto import_result = getMissionRaw()->import_qgroundcontrol_mission(plan_file);
@@ -190,7 +206,7 @@ void AutopilotTesterRtl::load_qgc_mission_and_geofence_here(const std::string &p
 	const int32_t offset_y = data.mission_items[0].y - static_cast<int32_t>(1e7 * pos.longitude_deg);
 
 	// Only items in a global position frame carry lat/lon in x/y. For MAV_FRAME_MISSION
-	// items (e.g. RTL, DO_* commands) x/y are generic params p5/p6, so offsetting them
+	// items (e.g. Return, DO_* commands) x/y are generic params p5/p6, so offsetting them
 	// corrupts the params and the item is rejected by the mission-param validation.
 	auto is_global_position_frame = [](uint32_t frame) {
 		switch (frame) {

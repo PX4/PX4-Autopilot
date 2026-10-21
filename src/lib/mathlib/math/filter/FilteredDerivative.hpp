@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,15 +57,23 @@ public:
 	/**
 	 * Set filter parameters for time abstraction
 	 *
-	 * Both parameters have to be provided in the same units.
-	 *
-	 * @param sample_interval interval between two samples
-	 * @param time_constant filter time constant determining convergence
+	 * @param sample_interval_s interval between two samples in seconds
+	 * @param time_constant_s filter time constant determining convergence in seconds
 	 */
-	void setParameters(float sample_interval, float time_constant)
+	void setParameters(float sample_interval_s, float time_constant_s)
 	{
-		_alpha_filter.setParameters(sample_interval, time_constant);
-		_sample_interval = sample_interval;
+		_alpha_filter.setParameters(sample_interval_s, time_constant_s);
+		_sample_interval = sample_interval_s;
+	}
+
+	/**
+	 * @param sample_interval_us interval between two samples in microseconds
+	 * @param time_constant_us filter time constant determining convergence in microseconds
+	 */
+	void setParameters(uint64_t sample_interval_us, uint64_t time_constant_us)
+	{
+		_alpha_filter.setParameters(sample_interval_us, time_constant_us);
+		_sample_interval = static_cast<float>(sample_interval_us) * 1e-6f;
 	}
 
 	/**
@@ -105,6 +113,9 @@ public:
 
 	const T &getState() const { return _alpha_filter.getState(); }
 
+	// delete mixing seconds with microseconds explicitly -> better compiler error
+	void setParameters(uint64_t sample_interval_us, float time_constant_s) = delete;
+	void setParameters(float sample_interval_s, uint64_t time_constant_us) = delete;
 
 private:
 	AlphaFilter<T> _alpha_filter;

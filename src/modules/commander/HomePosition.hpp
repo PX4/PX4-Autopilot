@@ -36,7 +36,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -56,9 +56,9 @@ static constexpr int32_t kGpsCtrlHorizontalAndAltitude = (1 << 0) | (1 << 1);
 static constexpr int32_t kHeightReferenceGnss = 1;
 static constexpr float kMinHomePositionChangeEPH = 1.f;
 static constexpr float kMinHomePositionChangeEPV = 1.5f;
-static constexpr float kLpfBaroTimeConst = 5.f;
+static constexpr hrt_abstime kLpfBaroTimeConst = 5_s;
 static constexpr float kAltitudeDifferenceThreshold = 1.f; // altitude difference after which home position gets updated
-static constexpr uint64_t kHomePositionCorrectionTimeWindow = 120_s;
+static constexpr hrt_abstime kHomePositionCorrectionTimeWindow = 120_s;
 
 class HomePosition: public ModuleParams
 {
@@ -87,7 +87,7 @@ private:
 	static void fillGlobalHomePos(home_position_s &home, double lat, double lon, double alt);
 	static void fillAttitude(home_position_s &home, const vehicle_attitude_s &attitude);
 
-	uORB::Subscription					_vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription					_vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};

@@ -49,12 +49,10 @@
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
 #include <uavcan/equipment/esc/StatusExtended.hpp>
+#include <uavcan/protocol/node_status_monitor.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
-#include <uORB/topics/dronecan_node_status.h>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include "../node_info.hpp"
 
@@ -62,7 +60,6 @@ class UavcanEscController
 {
 public:
 	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
-	static constexpr unsigned MAX_RATE_HZ = 400;
 
 	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
 
@@ -82,8 +79,11 @@ public:
 	void set_rotor_count(uint8_t count);
 
 	void set_node_info_publisher(NodeInfoPublisher *publisher) { _node_info_publisher = publisher; }
+	void set_node_status_monitor(const uavcan::NodeStatusMonitor *monitor) { _node_status_monitor = monitor; }
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
+
+	unsigned max_rate_hz() const { return _max_rate_hz; }
 
 	esc_status_s &esc_status() { return _esc_status; }
 
@@ -105,7 +105,7 @@ private:
 	/**
 	 * Gets failure flags for a specific ESC
 	 */
-	uint32_t get_failures(uint8_t esc_index, uint8_t node_id);
+	uint32_t get_failures(const uint8_t node_id);
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
@@ -113,16 +113,13 @@ private:
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended>&)> StatusExtendedCbBinder;
 
-	typedef uavcan::MethodBinder<UavcanEscController *,
-		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
-
 	bool _initialized = false;
+
+	unsigned _max_rate_hz{400};
 
 	esc_status_s	_esc_status{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
-	uORB::SubscriptionMultiArray<dronecan_node_status_s, ORB_MULTI_MAX_INSTANCES> _dronecan_node_status_subs{ORB_ID::dronecan_node_status};
-	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
 
@@ -132,6 +129,11 @@ private:
 		      "_seen_status_mask cannot hold CONNECTED_ESC_MAX bits");
 
 	failure_injection::Config _failure_config;
+
+	int32_t _param_uavcan_quirks{0};
+	enum class Quirk : int32_t {
+		HobbywingEscIdx1 = (1 << 0), ///< ESCs reporting a 1-based esc_index instead of 0-based
+	};
 
 	/*
 	 * libuavcan related things
@@ -143,4 +145,5 @@ private:
 	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder> _uavcan_sub_status_extended;
 
 	NodeInfoPublisher *_node_info_publisher{nullptr};
+	const uavcan::NodeStatusMonitor *_node_status_monitor{nullptr};
 };

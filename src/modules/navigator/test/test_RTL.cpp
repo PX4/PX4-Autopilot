@@ -42,6 +42,7 @@
 
 #include <cmath>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <drivers/drv_hrt.h>
@@ -51,14 +52,20 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/wind.h>
 
 #include "navigator.h"
 #include "rtl.h"
 #include "rtl_direct_mission_land.h"
+#include "rtl_mission_fast.h"
+#include "rtl_mission_fast_reverse.h"
+#include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
+#include "support/vector_mission_item_store.h"
 
 namespace
 {
@@ -66,6 +73,7 @@ namespace
 constexpr double kBaseLat = 47.397742;
 constexpr double kBaseLon = 8.545594;
 constexpr float kAlt = 500.f;
+constexpr double kNanDouble = static_cast<double>(NAN);
 constexpr float kApproachRadius = 50.f;
 
 mission_item_s makeSafePointItem(double lat, double lon, float altitude, NAV_FRAME frame,
@@ -202,16 +210,57 @@ public:
 		_home_pos_sub.update();
 		return hasValidMission();
 	}
+
+	// parameters are read on a parameter update notification, which the tests do not publish
+	void updateParamsForTest() { updateParams(); }
+
+	// the return type is re-decided every few seconds of inactive time, which a test does not have
+	void decideRtlTypeForTest() { setRtlTypeAndDestination(); }
+
+	RtlType rtlTypeForTest() const { return _rtl_type; }
 };
 
-class RtlDirectMissionLandTestPeer : public RtlDirectMissionLand
+template <typename RtlMissionType>
+class RtlMissionTestPeer : public RtlMissionType
 {
 public:
-	RtlDirectMissionLandTestPeer(Navigator *navigator, const mission_s &mission) :
-		RtlDirectMissionLand(navigator, mission) {}
+	RtlMissionTestPeer(Navigator *navigator, const mission_s &mission) :
+		RtlMissionType(navigator, mission) {}
 
-	const mission_s &mission() const { return _mission; }
+	const mission_s &mission() const { return this->_mission; }
+
+	void loadTestMission(const std::vector<mission_item_s> &items)
+	{
+		_mission_store.setItems(items);
+		this->_mission.count = static_cast<int32_t>(_mission_store.itemCount());
+	}
+
+	// RTL::on_activation() refreshes the mode's mission copy right before it activates the mode
+	void activateForTest()
+	{
+		this->_vehicle_status_sub.update();
+		this->refreshMission();
+		this->on_activation();
+	}
+
+	uint16_t activeNavCommand() const { return this->_mission_item.nav_cmd; }
+	bool isClimbing() const { return this->_work_item_type == RtlMissionType::WorkItemType::WORK_ITEM_TYPE_CLIMB; }
+	const mission_item_s &activeItem() const { return this->_mission_item; }
+	bool activeItemValid() const { return this->_is_current_planned_mission_item_valid; }
+
+protected:
+	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
+	{
+		return _mission_store.loadItem(index, mission_item);
+	}
+
+private:
+	navigator_test::VectorMissionItemStore _mission_store{};
 };
+
+using RtlDirectMissionLandTestPeer = RtlMissionTestPeer<RtlDirectMissionLand>;
+using RtlMissionFastTestPeer = RtlMissionTestPeer<RtlMissionFast>;
+using RtlMissionFastReverseTestPeer = RtlMissionTestPeer<RtlMissionFastReverse>;
 
 class RTLTest : public NavigatorDatamanTestBase
 {
@@ -259,6 +308,16 @@ protected:
 		if (_mission_pub != nullptr) {
 			orb_unadvertise(_mission_pub);
 			_mission_pub = nullptr;
+		}
+
+		if (_global_position_pub != nullptr) {
+			orb_unadvertise(_global_position_pub);
+			_global_position_pub = nullptr;
+		}
+
+		if (_land_detected_pub != nullptr) {
+			orb_unadvertise(_land_detected_pub);
+			_land_detected_pub = nullptr;
 		}
 
 		param_control_autosave(true);
@@ -320,12 +379,14 @@ protected:
 		}
 	}
 
-	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type)
+	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type,
+				  uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL)
 	{
 		vehicle_status_s status{};
 		status.timestamp = hrt_absolute_time();
 		status.is_vtol = is_vtol;
 		status.vehicle_type = vehicle_type;
+		status.nav_state = nav_state;
 
 		if (_vehicle_status_pub == nullptr) {
 			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -333,6 +394,65 @@ protected:
 		} else {
 			orb_publish(ORB_ID(vehicle_status), _vehicle_status_pub, &status);
 		}
+	}
+
+	void publishGlobalPosition(double lat, double lon, float altitude)
+	{
+		vehicle_global_position_s global_position{};
+		global_position.timestamp = hrt_absolute_time();
+		global_position.lat = lat;
+		global_position.lon = lon;
+		global_position.alt = altitude;
+
+		if (_global_position_pub == nullptr) {
+			_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_position);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_global_position), _global_position_pub, &global_position);
+		}
+	}
+
+	void publishLandDetected(bool landed)
+	{
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		land_detected.landed = landed;
+
+		if (_land_detected_pub == nullptr) {
+			_land_detected_pub = orb_advertise(ORB_ID(vehicle_land_detected), &land_detected);
+
+		} else {
+			orb_publish(ORB_ID(vehicle_land_detected), _land_detected_pub, &land_detected);
+		}
+	}
+
+	// the items of one mission, in the dataman slot the mission header names
+	void writeMissionToDataman(dm_item_t slot, const std::vector<mission_item_s> &items)
+	{
+		for (size_t index = 0; index < items.size(); index++) {
+			mission_item_s item = items[index];
+			ASSERT_TRUE(_dataman_client.writeSync(slot, index, reinterpret_cast<uint8_t *>(&item), sizeof(item)));
+		}
+	}
+
+	// what the mission module reports once it has checked a mission
+	void setMissionResultValid(const mission_s &mission)
+	{
+		mission_result_s *result = _navigator.get_mission_result();
+		result->valid = true;
+		result->mission_id = mission.mission_id;
+		result->geofence_id = mission.geofence_id;
+		result->home_position_counter = 0;
+	}
+
+	// Record the mission target through the normal inactive cycle before switching to RTL.
+	template <typename Mode>
+	void flyMissionThenTriggerReturn(Mode &mode, const mission_s &mission)
+	{
+		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		publishMission(mission);
+		mode.on_inactive();
+		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 	}
 
 	void publishWind(float windspeed_north, float windspeed_east)
@@ -363,6 +483,8 @@ protected:
 	orb_advert_t _vehicle_status_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
 	orb_advert_t _mission_pub{nullptr};
+	orb_advert_t _global_position_pub{nullptr};
+	orb_advert_t _land_detected_pub{nullptr};
 	DatamanClient _dataman_client{};
 	uint32_t _safe_points_id{0};
 	uint32_t _safe_points_opaque_id{0};
@@ -412,8 +534,218 @@ TEST_F(RTLTest, DirectMissionLandStartsWithCurrentMission)
 	EXPECT_EQ(direct_mission_land.mission().mission_dataman_id, mission.mission_dataman_id);
 }
 
+TEST_F(RTLTest, DirectMissionLandKeepsVtolInMulticopterMode)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 0;
+	mission.land_start_index = 0;
+	mission.land_index = 2;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+
+	mission_item_s approach = makeLandApproachItem(kBaseLat, kBaseLon, kAlt, kApproachRadius);
+	approach.autocontinue = true;
+
+	mission_item_s land = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_VTOL_LAND);
+	land.autocontinue = true;
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlDirectMissionLandTestPeer direct_mission_land{&_navigator, mission};
+	direct_mission_land.loadTestMission({land_start, approach, land});
+	direct_mission_land.setRtlAlt(kAlt);
+
+	// the mode refreshes the mission from the topic at activation, so publish the injected one
+	mission.count = 3;
+	publishMission(mission);
+
+	direct_mission_land.activateForTest();
+
+	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
+}
+
+class RTLClimbUpdateTest : public RTLTest, public ::testing::WithParamInterface<std::tuple<bool, uint8_t>> {};
+
+TEST_P(RTLClimbUpdateTest, KeepsPendingClimbAcrossCursorUpdates)
+{
+	const bool is_vtol = std::get<0>(GetParam());
+	const uint8_t vehicle_type = std::get<1>(GetParam());
+	const float return_alt = kAlt + 60.f;
+	publishVehicleStatus(is_vtol, vehicle_type);
+	publishLandDetected(false);
+	_navigator.get_vstatus()->is_vtol = is_vtol;
+	_navigator.get_vstatus()->vehicle_type = vehicle_type;
+	_navigator.get_land_detected()->landed = false;
+	_navigator.get_mission_result()->valid = true;
+
+	auto setAltitude = [&](float alt) {
+		publishGlobalPosition(kBaseLat, kBaseLon, alt);
+		_navigator.get_global_position()->lat = kBaseLat;
+		_navigator.get_global_position()->lon = kBaseLon;
+		_navigator.get_global_position()->alt = alt;
+	};
+	setAltitude(kAlt);
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+	const auto first_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 30.f);
+	mission_item_s first = makeSafePointItem(first_position.lat, first_position.lon, first_position.alt,
+			       NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = first;
+	second.lat += 0.001;
+	mission_item_s land = second;
+	land.nav_cmd = NAV_CMD_LAND;
+	std::vector<mission_item_s> items{land_start, first, second, land};
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.count = items.size();
+	mission.land_start_index = 0;
+	mission.land_index = 3;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	for (size_t i = 0; i < items.size(); ++i) {
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_1, i,
+						      reinterpret_cast<uint8_t *>(&items[i]), sizeof(items[i])));
+	}
+
+	publishMission(mission);
+	RtlDirectMissionLandTestPeer rtl{&_navigator, mission};
+	rtl.loadTestMission(items);
+	rtl.setRtlAlt(return_alt);
+	rtl.run(false);
+	rtl.run(true);
+	ASSERT_TRUE(rtl.isClimbing());
+
+	// Real mission-topic updates must preserve the climb and accept the new cursor.
+	for (int32_t index : {1, 2, 1}) {
+		mission.current_seq = index;
+		mission.timestamp = hrt_absolute_time();
+		publishMission(mission);
+		rtl.run(true);
+		EXPECT_EQ(rtl.mission().current_seq, index);
+		EXPECT_TRUE(rtl.isClimbing());
+		const auto &setpoint = _navigator.get_position_setpoint_triplet()->current;
+		EXPECT_TRUE(setpoint.valid);
+		EXPECT_NEAR(setpoint.lat, kBaseLat, 1e-9);
+		EXPECT_NEAR(setpoint.lon, kBaseLon, 1e-9);
+		EXPECT_FLOAT_EQ(setpoint.alt, return_alt);
+	}
+
+	// Reaching the climb altitude resumes the selected item without skipping it.
+	setAltitude(return_alt);
+	rtl.run(true);
+	EXPECT_FALSE(rtl.isClimbing());
+	EXPECT_EQ(rtl.mission().current_seq, 1);
+	EXPECT_NEAR(_navigator.get_position_setpoint_triplet()->current.lat, first.lat, 1e-9);
+	rtl.run(true);
+	EXPECT_EQ(rtl.mission().current_seq, 1);
+
+	// A later cursor update below the return altitude must not restart the initial climb.
+	setAltitude(kAlt);
+	mission.current_seq = 2;
+	mission.timestamp = hrt_absolute_time();
+	publishMission(mission);
+	rtl.run(true);
+	EXPECT_FALSE(rtl.isClimbing());
+	EXPECT_NEAR(_navigator.get_position_setpoint_triplet()->current.lat, second.lat, 1e-9);
+
+	// Re-entering RTL recomputes the requirement from the current altitude.
+	rtl.run(false);
+	rtl.run(true);
+	EXPECT_TRUE(rtl.isClimbing());
+	rtl.run(false);
+	setAltitude(return_alt + 10.f);
+	rtl.run(true);
+	EXPECT_FALSE(rtl.isClimbing());
+}
+
+INSTANTIATE_TEST_SUITE_P(VehicleTypes, RTLClimbUpdateTest,
+			 ::testing::Combine(::testing::Bool(),
+					 ::testing::Values(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
+							 vehicle_status_s::VEHICLE_TYPE_FIXED_WING)));
+
 // WHY: No land point means no usable approach bearing.
 // WHAT: The chooser should return an invalid loiter.
+TEST_F(RTLTest, MissionFastKeepsVtolInMulticopterMode)
+{
+	// A VTOL flying in multicopter mode continues the mission as a multicopter.
+	// The attitude controller refuses a transition to fixed wing during RTL, so
+	// asking for one here left the vehicle waiting on it forever.
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 0;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	mission_item_s first = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
+				NAV_CMD_WAYPOINT);
+	second.autocontinue = true;
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlMissionFastTestPeer mission_fast{&_navigator, mission};
+	mission_fast.loadTestMission({first, second});
+
+	// the mode refreshes the mission from the topic at activation, so publish the injected one
+	mission.count = 2;
+	publishMission(mission);
+
+	mission_fast.activateForTest();
+
+	EXPECT_EQ(mission_fast.activeNavCommand(), NAV_CMD_WAYPOINT);
+}
+
+TEST_F(RTLTest, MissionFastReverseKeepsVtolInMulticopterMode)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 0;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	mission_item_s first = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
+				NAV_CMD_WAYPOINT);
+	second.autocontinue = true;
+
+	// At the second waypoint, so the reverse mission has a previous item to fly to
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(second_position.lat, second_position.lon, kAlt);
+	publishLandDetected(false);
+	_navigator.get_mission_result()->valid = true;
+
+	RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, mission};
+	mission_fast_reverse.loadTestMission({first, second});
+
+	// the mode refreshes the mission from the topic at activation, so publish the injected one
+	mission.count = 2;
+	publishMission(mission);
+
+	mission_fast_reverse.activateForTest();
+
+	EXPECT_EQ(mission_fast_reverse.activeNavCommand(), NAV_CMD_WAYPOINT);
+}
+
 TEST_F(RTLTest, ChooseBestLandingApproachRequiresLandLocation)
 {
 	// GIVEN: A valid loiter and no land point.
@@ -499,7 +831,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 // WHY: Each rally point owns the loiters that follow it.
 // WHAT: Scanning should stop at the next rally point.
-TEST_F(RTLTest, ScanVtolLandApproachBlockStopsAtNextRallyPoint)
+TEST_F(RTLTest, GetVtolLandApproachesAtSafePointStopsAtNextRallyPoint)
 {
 	// GIVEN: One block with two loiters, then a new rally point.
 	const PositionYawSetpoint land_1 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -516,12 +848,12 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockStopsAtNextRallyPoint)
 		makeLandApproachItem(loiter_3.lat, loiter_3.lon, loiter_3.alt, kApproachRadius),
 	});
 
-	// WHEN: The first block is scanned.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: The first block is requested.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: Only the first two loiters are returned.
-	ASSERT_TRUE(found_approach);
+	ASSERT_TRUE(scanned_block.isAnyApproachValid());
 	EXPECT_EQ(countValidApproaches(scanned_block), 2);
 	expectLoiterPointNear(scanned_block.approaches[0], loiter_1);
 	expectLoiterPointNear(scanned_block.approaches[1], loiter_2);
@@ -530,7 +862,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockStopsAtNextRallyPoint)
 
 // WHY: The result array has a fixed size.
 // WHAT: Extra loiters should be ignored once it is full.
-TEST_F(RTLTest, ScanVtolLandApproachBlockCapsApproachCount)
+TEST_F(RTLTest, GetVtolLandApproachesAtSafePointCapsApproachCount)
 {
 	// GIVEN: More valid loiters than the block can hold.
 	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -553,12 +885,12 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockCapsApproachCount)
 
 	VectorProvider provider(mission_items);
 
-	// WHEN: The block is scanned.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: The block is requested.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: The result stops at the hard limit.
-	ASSERT_TRUE(found_approach);
+	ASSERT_TRUE(scanned_block.isAnyApproachValid());
 	EXPECT_EQ(countValidApproaches(scanned_block), land_approaches_s::num_approaches_max);
 	expectLoiterPointNear(scanned_block.approaches[0], makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 25.f, 0.f, kAlt + 10.f));
 	expectLoiterPointNear(scanned_block.approaches[land_approaches_s::num_approaches_max - 1], last_included);
@@ -566,7 +898,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockCapsApproachCount)
 
 // WHY: A rally point can own an empty block.
 // WHAT: Another rally point right after it should keep the block empty.
-TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockBeforeNextRallyPoint)
+TEST_F(RTLTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockBeforeNextRallyPoint)
 {
 	// GIVEN: A rally point followed immediately by another rally point.
 	const PositionYawSetpoint land_1 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -579,18 +911,18 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockBeforeNextRallyPoint)
 		makeLandApproachItem(loiter.lat, loiter.lon, loiter.alt, kApproachRadius),
 	});
 
-	// WHEN: The first block is scanned.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: The first block is requested.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: It stays empty.
-	EXPECT_FALSE(found_approach);
+	EXPECT_FALSE(scanned_block.isAnyApproachValid());
 	EXPECT_EQ(countValidApproaches(scanned_block), 0);
 }
 
 // WHY: End-of-mission is the other empty-block case.
 // WHAT: A final rally point should also return zero approaches.
-TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockAtMissionEnd)
+TEST_F(RTLTest, GetVtolLandApproachesAtSafePointHandlesEmptyBlockAtMissionEnd)
 {
 	// GIVEN: A mission that ends with a rally point.
 	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -599,27 +931,69 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockAtMissionEnd)
 		makeSafePointItem(land.lat, land.lon, land.alt, NAV_FRAME_GLOBAL),
 	});
 
-	// WHEN: Its block is scanned.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: Its block is requested.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: It is empty.
-	EXPECT_FALSE(found_approach);
+	EXPECT_FALSE(scanned_block.isAnyApproachValid());
 	EXPECT_EQ(countValidApproaches(scanned_block), 0);
+}
+
+TEST_F(RTLTest, IndexedLandApproachQueriesRequireValidRallyAnchor)
+{
+	const mission_item_s approach = makeLandApproachItem(kBaseLat, kBaseLon, kAlt + 30.f, kApproachRadius);
+	VectorProvider provider({
+		approach,                                                       // 0: loiter with no rally before it
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),  // 1: valid rally
+		approach,                                                       // 2: loiter in rally 1's block
+		approach,                                                       // 3: loiter in rally 1's block
+		makeSafePointItem(91.0, kBaseLon, kAlt, NAV_FRAME_GLOBAL),      // 4: rally with an invalid latitude
+		approach,                                                       // 5
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_MISSION), // 6: rally with an unsupported frame
+		approach,                                                       // 7
+	});
+
+	// No block for anything that is not a valid rally point, even when a loiter follows it:
+	// -1 and safePointCount() are out of range, 0 and 2 are loiter items, 4 and 6 are unusable rally points.
+	for (const int index : {-1, 0, 2, 4, 6, provider.safePointCount()}) {
+		SCOPED_TRACE(index);
+		EXPECT_FALSE(mission_route::hasVtolLandApproachesAtSafePointIndex(provider, index, kAlt));
+		const land_approaches_s block = mission_route::getVtolLandApproachesAtSafePointIndex(provider, index, kAlt);
+		EXPECT_FALSE(block.isAnyApproachValid());
+		EXPECT_FALSE(block.land_location_lat_lon.isAllFinite());
+	}
+
+	EXPECT_TRUE(mission_route::hasVtolLandApproachesAtSafePointIndex(provider, 1, kAlt));
+	EXPECT_TRUE(mission_route::getVtolLandApproachesAtSafePointIndex(provider, 1, kAlt).isAnyApproachValid());
+}
+
+TEST_F(RTLTest, IndexedLandApproachQueriesRequireReadableRallyAnchor)
+{
+	VectorProvider provider({
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(kBaseLat, kBaseLon, kAlt + 30.f, kApproachRadius),
+	}, {0});
+
+	// A readable approach cannot be used when the rally point before it failed to load.
+	EXPECT_FALSE(mission_route::hasVtolLandApproachesAtSafePointIndex(provider, 0, kAlt));
+	const land_approaches_s block = mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
+	EXPECT_FALSE(block.isAnyApproachValid());
+	EXPECT_FALSE(block.land_location_lat_lon.isAllFinite());
 }
 
 /**
  * @brief Read-failure cases while scanning a safe-point approach block.
  */
-class ScanVtolLandApproachBlockReadFailureTest :
+class GetVtolLandApproachesAtSafePointReadFailureTest :
 	public RTLTest,
 	public ::testing::WithParamInterface<ReadFailureCase>
 {
 };
 
-// WHY: Read failures should not leave partial results behind.
+// WHY: A read failure ends the current approach block; entries loaded before it remain available.
 // WHAT: Scanning should stop cleanly on a broken item.
-TEST_P(ScanVtolLandApproachBlockReadFailureTest, ScanVtolLandApproachBlockHandlesReadFailures)
+TEST_P(GetVtolLandApproachesAtSafePointReadFailureTest, HandlesReadFailures)
 {
 	const ReadFailureCase &test_case = GetParam();
 
@@ -635,12 +1009,12 @@ TEST_P(ScanVtolLandApproachBlockReadFailureTest, ScanVtolLandApproachBlockHandle
 
 	VectorProvider provider(mission_items, {test_case.failure_index});
 
-	// WHEN: The block scan hits a read failure.
-	land_approaches_s scanned_block{};
-	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	// WHEN: Reading the block hits a load failure.
+	const land_approaches_s scanned_block =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 
 	// THEN: The scan stops without inventing extra approaches.
-	EXPECT_EQ(found_approach, test_case.expected_found);
+	EXPECT_EQ(scanned_block.isAnyApproachValid(), test_case.expected_found);
 	EXPECT_EQ(countValidApproaches(scanned_block), test_case.expected_count);
 
 	if (test_case.expected_count > 0) {
@@ -652,11 +1026,11 @@ TEST_P(ScanVtolLandApproachBlockReadFailureTest, ScanVtolLandApproachBlockHandle
 
 INSTANTIATE_TEST_SUITE_P(
 	RTL,
-	ScanVtolLandApproachBlockReadFailureTest,
+	GetVtolLandApproachesAtSafePointReadFailureTest,
 	::testing::Values(
 		ReadFailureCase{"FirstLoiter", 1, false, 0},
 		ReadFailureCase{"SecondLoiter", 2, true, 1}),
-	[](const ::testing::TestParamInfo<ScanVtolLandApproachBlockReadFailureTest::ParamType> &param_info)
+	[](const ::testing::TestParamInfo<GetVtolLandApproachesAtSafePointReadFailureTest::ParamType> &param_info)
 {
 	return std::string(param_info.param.test_name);
 });
@@ -678,7 +1052,8 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexRejectsFarSafePo
 	});
 
 	// WHEN: The association lookup runs.
-	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesNearLocation(provider, rtl_destination, kAlt);
 
 	// THEN: The nearby rally point is selected.
 	ASSERT_TRUE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
@@ -701,7 +1076,8 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexReturnsFirstMatc
 	});
 
 	// WHEN: The association lookup runs.
-	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesNearLocation(provider, rtl_destination, kAlt);
 
 	// THEN: The first match is returned.
 	ASSERT_TRUE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
@@ -725,7 +1101,8 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexHandlesReadFailu
 	VectorProvider provider(safe_points, {0});
 
 	// WHEN: The association lookup hits the failed read.
-	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesNearLocation(provider, rtl_destination, kAlt);
 
 	// THEN: The search stops and reports no match.
 	EXPECT_FALSE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
@@ -745,7 +1122,8 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexSkipsInvalidRall
 	});
 
 	// WHEN: The association lookup runs.
-	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesNearLocation(provider, rtl_destination, kAlt);
 
 	// THEN: The valid rally point is returned.
 	ASSERT_TRUE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
@@ -826,8 +1204,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(kBaseLat, kBaseLon, 25.f, NAV_FRAME_GLOBAL_RELATIVE_ALT),
 	NAN,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -835,8 +1213,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(kBaseLat, kBaseLon, 510.f, NAV_FRAME_MISSION),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -844,17 +1222,17 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(kBaseLat, kBaseLon, 510.f, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
 	"NanLatitude",
-	makeSafePointItem(NAN, kBaseLon, 510.f, NAV_FRAME_GLOBAL),
+	makeSafePointItem(kNanDouble, kBaseLon, 510.f, NAV_FRAME_GLOBAL),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -862,8 +1240,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(0.0, 0.0, 510.f, NAV_FRAME_GLOBAL),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -871,8 +1249,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(91.0, kBaseLon, 510.f, NAV_FRAME_GLOBAL),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -880,8 +1258,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(kBaseLat, 181.0, 510.f, NAV_FRAME_GLOBAL),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 }),
 [](const ::testing::TestParamInfo<ExtractValidSafePointPositionTest::ParamType> &param_info)
@@ -915,8 +1293,8 @@ TEST_F(RTLTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
 	});
 
 	// WHEN: The mission items are converted while reading the approach block.
-	land_approaches_s vtol_land_approaches{};
-	provider.scanVtolLandApproachBlockForTest(0, kAlt, &vtol_land_approaches);
+	const land_approaches_s vtol_land_approaches =
+		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 	const loiter_point_s absolute_point = vtol_land_approaches.approaches[0];
 	const loiter_point_s absolute_int_point = vtol_land_approaches.approaches[1];
 	const loiter_point_s relative_point = vtol_land_approaches.approaches[2];
@@ -948,4 +1326,261 @@ TEST_F(RTLTest, MakeVtolLandApproachPointRejectsInvalidInput)
 	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_longitude, kAlt).isValid());
 	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_altitude, kAlt).isValid());
 	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_radius, kAlt).isValid());
+}
+
+// WHY: activation skips the inactive update, so a cached mission can miss a newly published land start.
+// WHAT: direct mission landing uses the land start published since its last inactive cycle.
+TEST_F(RTLTest, DirectMissionLandUsesMissionPublishedBeforeActivation)
+{
+	mission_s stale{};
+	stale.timestamp = hrt_absolute_time();
+	stale.mission_id = 7;
+	stale.current_seq = 0;
+	stale.land_start_index = -1;
+	stale.land_index = -1;
+	stale.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+
+	mission_item_s approach = makeLandApproachItem(kBaseLat, kBaseLon, kAlt, kApproachRadius);
+	approach.autocontinue = true;
+
+	mission_item_s land = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_VTOL_LAND);
+	land.autocontinue = true;
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+
+	RtlDirectMissionLandTestPeer direct_mission_land{&_navigator, stale};
+	direct_mission_land.loadTestMission({land_start, approach, land});
+	direct_mission_land.setRtlAlt(kAlt);
+
+	// GIVEN: a newer mission with a land start is published after the mode last ran inactive
+	mission_s fresh = stale;
+	fresh.timestamp = hrt_absolute_time();
+	fresh.mission_id = 8;
+	fresh.land_start_index = 0;
+	fresh.land_index = 2;
+	fresh.count = 3;
+	publishMission(fresh);
+	setMissionResultValid(fresh);
+
+	// WHEN: the mode is activated on the next cycle
+	direct_mission_land.activateForTest();
+
+	// THEN: it flies the published mission from its land start, not the stale copy
+	EXPECT_EQ(direct_mission_land.mission().mission_id, fresh.mission_id);
+	EXPECT_EQ(direct_mission_land.mission().land_start_index, 0);
+	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
+}
+
+// Two waypoints at the given offsets north of the base position
+static std::vector<mission_item_s> makeTwoWaypointMission(float first_north_m, float second_north_m)
+{
+	const PositionYawSetpoint first_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, first_north_m, 0.f,
+			kAlt);
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, second_north_m, 0.f,
+			kAlt);
+	mission_item_s first = makeSafePointItem(first_position.lat, first_position.lon, kAlt, NAV_FRAME_GLOBAL,
+			       NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
+				NAV_CMD_WAYPOINT);
+	second.autocontinue = true;
+	return {first, second};
+}
+
+static mission_s makeMissionHeader(uint32_t mission_id, int32_t current_seq, uint16_t count)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = mission_id;
+	mission.current_seq = current_seq;
+	mission.count = count;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+	return mission;
+}
+
+// WHY: both fast RTL modes can hold a stale mission when activation begins.
+// WHAT: both fly the mission published since the last inactive cycle. They share a fixture because
+// dataman client IDs are not reused and this binary is close to the limit.
+TEST_F(RTLTest, MissionFastUsesMissionPublishedBeforeActivation)
+{
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+
+	auto fliesThePublishedMission = [&](auto & mission_fast) {
+		// the copy the mode holds: two waypoints north of the vehicle
+		mission_fast.loadTestMission(makeTwoWaypointMission(200.f, 400.f));
+
+		// GIVEN: a newer mission with different waypoints is published after the mode last ran inactive
+		const std::vector<mission_item_s> fresh_items = makeTwoWaypointMission(1000.f, 1200.f);
+		mission_fast.loadTestMission(fresh_items);
+		const mission_s fresh = makeMissionHeader(8, 0, 2);
+		publishMission(fresh);
+		setMissionResultValid(fresh);
+
+		// WHEN: the mode is activated on the next cycle
+		mission_fast.activateForTest();
+
+		// THEN: it flies the closest item of the published mission
+		EXPECT_EQ(mission_fast.mission().mission_id, 8u);
+		EXPECT_EQ(mission_fast.activeNavCommand(), NAV_CMD_WAYPOINT);
+		EXPECT_DOUBLE_EQ(mission_fast.activeItem().lat, fresh_items[0].lat);
+		EXPECT_DOUBLE_EQ(mission_fast.activeItem().lon, fresh_items[0].lon);
+	};
+
+	RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 0, 2)};
+	fliesThePublishedMission(mission_fast);
+
+	RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, makeMissionHeader(7, 0, 2)};
+	fliesThePublishedMission(mission_fast_reverse);
+}
+
+// WHY: the recorded target is valid only for its original mission, even if that mission's cursor changes.
+// WHAT: both RTL directions keep it for the same mission and select the closest waypoint after replacement.
+// The cases share a fixture because dataman client IDs are not reused.
+TEST_F(RTLTest, MissionFastModesKeepThePriorIndexOnlyForTheSameMission)
+{
+	publishLandDetected(false);
+	setMissionResultValid(makeMissionHeader(7, 1, 2));
+
+	{
+		SCOPED_TRACE("same mission");
+		publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+
+		RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 1, 2)};
+		const std::vector<mission_item_s> items = makeTwoWaypointMission(200.f, 400.f);
+		mission_fast.loadTestMission(items);
+
+		// GIVEN: the vehicle was flying towards item 1 when RTL was triggered, then the cursor moved
+		flyMissionThenTriggerReturn(mission_fast, makeMissionHeader(7, 1, 2));
+		publishMission(makeMissionHeader(7, 0, 2));
+
+		mission_fast.activateForTest();
+
+		// THEN: forward RTL keeps target 1, not the closest item 0
+		EXPECT_TRUE(mission_fast.activeItemValid());
+		EXPECT_DOUBLE_EQ(mission_fast.activeItem().lat, items[1].lat);
+		EXPECT_DOUBLE_EQ(mission_fast.activeItem().lon, items[1].lon);
+
+		// GIVEN: reverse RTL starts between the waypoints, closer to item 1
+		const PositionYawSetpoint vehicle = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
+		publishGlobalPosition(vehicle.lat, vehicle.lon, kAlt);
+		RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, makeMissionHeader(7, 1, 2)};
+		mission_fast_reverse.loadTestMission(items);
+		flyMissionThenTriggerReturn(mission_fast_reverse, makeMissionHeader(7, 1, 2));
+		publishMission(makeMissionHeader(7, 0, 2));
+
+		mission_fast_reverse.activateForTest();
+
+		// THEN: reverse RTL goes back to item 0, before the recorded target 1
+		EXPECT_TRUE(mission_fast_reverse.activeItemValid());
+		EXPECT_EQ(mission_fast_reverse.mission().current_seq, 0);
+		EXPECT_DOUBLE_EQ(mission_fast_reverse.activeItem().lat, items[0].lat);
+		EXPECT_DOUBLE_EQ(mission_fast_reverse.activeItem().lon, items[0].lon);
+	}
+
+	{
+		SCOPED_TRACE("replacement mission");
+		publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+
+		const std::vector<mission_item_s> fresh_items = makeTwoWaypointMission(1000.f, 1200.f);
+		auto dropsThePriorIndex = [&](auto & mode, const mission_s & prior_mission) {
+			setMissionResultValid(prior_mission);
+			flyMissionThenTriggerReturn(mode, prior_mission);
+
+			// GIVEN: a two-item mission replaced the recorded mission before RTL activated
+			mode.loadTestMission(fresh_items);
+			const mission_s fresh = makeMissionHeader(8, 0, 2);
+			publishMission(fresh);
+			setMissionResultValid(fresh);
+
+			mode.activateForTest();
+
+			// THEN: choose the closest item 0; reusing the saved index would select item 1
+			EXPECT_TRUE(mode.activeItemValid());
+			EXPECT_EQ(mode.mission().current_seq, 0);
+			EXPECT_DOUBLE_EQ(mode.activeItem().lat, fresh_items[0].lat);
+			EXPECT_DOUBLE_EQ(mode.activeItem().lon, fresh_items[0].lon);
+		};
+
+		RtlMissionFastTestPeer mission_fast{&_navigator, makeMissionHeader(7, 1, 3)};
+		dropsThePriorIndex(mission_fast, makeMissionHeader(7, 1, 3));
+
+		RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, makeMissionHeader(7, 2, 3)};
+		dropsThePriorIndex(mission_fast_reverse, makeMissionHeader(7, 2, 3));
+	}
+}
+
+// WHY: the controller must refresh an existing mode's mission before destination selection and activation.
+// WHAT: a mission replaced after the last inactive cycle supplies the waypoint flown on RTL activation.
+TEST_F(RTLTest, ReturnActivationFliesTheMissionPublishedSinceTheLastInactiveCycle)
+{
+	int32_t rtl_type = 2; // RTL_TYPE_MISSION_FAST, follows the mission to its landing, so it needs a land start
+	param_set(param_find("RTL_TYPE"), &rtl_type);
+	RTLTestPeer &rtl = _rtl;
+	rtl.updateParamsForTest();
+
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+
+	auto make_mission = [&](uint32_t mission_id, dm_item_t slot, float waypoint_north_m, float land_north_m) {
+		const PositionYawSetpoint waypoint_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon,
+				waypoint_north_m, 0.f, kAlt);
+		const PositionYawSetpoint land_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, land_north_m, 0.f,
+				kAlt);
+		mission_item_s waypoint = makeSafePointItem(waypoint_position.lat, waypoint_position.lon, kAlt, NAV_FRAME_GLOBAL,
+					  NAV_CMD_WAYPOINT);
+		waypoint.autocontinue = true;
+		mission_item_s land = makeSafePointItem(land_position.lat, land_position.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND);
+		land.autocontinue = true;
+		writeMissionToDataman(slot, {waypoint, land_start, land});
+
+		mission_s mission = makeMissionHeader(mission_id, 0, 3);
+		mission.mission_dataman_id = slot;
+		mission.land_start_index = 1;
+		mission.land_index = 2;
+		return mission;
+	};
+
+	// the controller ran inactive with mission 7, a waypoint 4 km north of the vehicle, and prepared
+	// the mission fast mode from it
+	const mission_s stale = make_mission(7, DM_KEY_WAYPOINTS_OFFBOARD_1, 4000.f, 5000.f);
+	publishMission(stale);
+	setMissionResultValid(stale);
+	rtl.on_inactive();
+	rtl.decideRtlTypeForTest();
+	ASSERT_EQ(rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_FAST);
+
+	// GIVEN: mission 8 replaced it before the return activated, with a waypoint 1 km north
+	const mission_s fresh = make_mission(8, DM_KEY_WAYPOINTS_OFFBOARD_0, 1000.f, 6000.f);
+	publishMission(fresh);
+	setMissionResultValid(fresh);
+
+	// WHEN: the return activates
+	rtl.on_activation();
+
+	// THEN: it flies to mission 8's waypoint, neither mission 7's nor a loiter where it is
+	const PositionYawSetpoint fresh_waypoint = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt);
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	EXPECT_TRUE(current.valid);
+	EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	EXPECT_NEAR(current.lat, fresh_waypoint.lat, 1e-7);
+	EXPECT_NEAR(current.lon, fresh_waypoint.lon, 1e-7);
+
+	// the dataman is shared by every case in this binary, so leave the mission slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
 }

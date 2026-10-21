@@ -51,6 +51,7 @@
 #include <lib/adsb/AdsbConflict.h>
 #include <lib/adsb/ConflictTracker.h>
 #include <lib/adsb/DaaEncodedId.h>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
@@ -201,6 +202,8 @@ private:
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 	uORB::Subscription _traffic_sub {ORB_ID(transponder_report)};
 	AdsbConflict _adsb_conflict_detector;
+
+	failure_injection::Config _failure_config;
 
 	daa_ownship_ids_s _ownship_ids{};
 

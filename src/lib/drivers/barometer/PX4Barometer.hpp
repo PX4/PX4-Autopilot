@@ -45,8 +45,10 @@ class PX4Barometer
 {
 public:
 	PX4Barometer(uint32_t device_id);
+	PX4Barometer(uint32_t device_id, bool external);
 
-	void set_device_id(uint32_t device_id) { _report.device_id = device_id; }
+	void set_device_id(uint32_t device_id);
+	void set_external(bool external);
 	void set_error_count(uint32_t error_count) { _report.error_count = error_count; }
 	void set_temperature(float temperature) { _report.temperature = temperature; }
 
@@ -59,6 +61,8 @@ private:
 	uORB::PublicationMulti<sensor_baro_s> _sensor_pub{ORB_ID(sensor_baro)};
 
 	sensor_baro_s	_report{};
+
+	bool		_external_forced{false}; // classification set by the driver, do not re-derive from the device id
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_baro_s> _stuck;

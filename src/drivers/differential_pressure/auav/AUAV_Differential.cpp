@@ -36,7 +36,7 @@
 #include <cctype>
 
 AUAV_Differential::AUAV_Differential(const I2CSPIDriverConfig &config) :
-	AUAV(config)
+	AUAV(config, STATUS_BYTE_EXPECTED_DIFF)
 {
 	/* Initialize cal_range from parameter as fallback value */
 	int32_t hw_model = 0;
@@ -117,7 +117,7 @@ AUAV::calib_eeprom_addr_t AUAV_Differential::get_calib_eeprom_addr() const
 float AUAV_Differential::process_pressure_dig(const float pressure_dig) const
 {
 	const float pressure_in_h = 1.25f * ((pressure_dig - (1 << 23)) / (1 << 24)) * static_cast<float>(_cal_range);
-	return pressure_in_h * INH_TO_PA;
+	return pressure_in_h * M_INH_TO_PA;
 }
 
 int AUAV_Differential::read_factory_data()

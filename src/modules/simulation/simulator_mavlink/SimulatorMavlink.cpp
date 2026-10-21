@@ -391,72 +391,70 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 	mavlink_hil_gps_t hil_gps;
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	sensor_gps_s gps{};
+	sensor_gnss_s gnss{};
 
-	gps.latitude_deg = hil_gps.lat / 1e7;
-	gps.longitude_deg = hil_gps.lon / 1e7;
-	gps.altitude_msl_m = hil_gps.alt / 1e3;
-	gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = hil_gps.id;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	gnss.device_id = device_id.devid;
 
-	gps.s_variance_m_s = 0.25f;
-	gps.c_variance_rad = 0.5f;
-	gps.fix_type = hil_gps.fix_type;
+	gnss.latitude = hil_gps.lat / 1e7;
+	gnss.longitude = hil_gps.lon / 1e7;
+	gnss.altitude_msl = hil_gps.alt / 1e3;
+	gnss.altitude_ellipsoid = hil_gps.alt / 1e3;
 
-	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
-	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
+	gnss.speed_accuracy = 0.25f;
+	gnss.course_accuracy = 0.5f;
+	gnss.fix_type = hil_gps.fix_type;
 
-	gps.hdop = 0; // TODO
-	gps.vdop = 0; // TODO
+	gnss.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+	gnss.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 
-	gps.noise_per_ms = 0;
-	gps.automatic_gain_control = 0;
-	gps.jamming_indicator = 0;
-	gps.jamming_state = 0;
-	gps.spoofing_state = 0;
+	gnss.hdop = 0; // TODO
+	gnss.vdop = 0; // TODO
 
-	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
-	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
-	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
-	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gnss.noise = 0;
+	gnss.automatic_gain_control = 0;
+	gnss.jamming_indicator = 0;
+	gnss.jamming_state = 0;
+	gnss.spoofing_state = 0;
 
-	gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
-	gps.vel_ned_valid = true;
+	gnss.vel_north = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+	gnss.vel_east = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+	gnss.vel_down = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gnss.ground_speed = (hil_gps.vel == UINT16_MAX) ? matrix::Vector2f(gnss.vel_north, gnss.vel_east).norm() :
+			    (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
 
-	gps.timestamp_time_relative = 0;
-	gps.time_utc_usec = hil_gps.time_usec;
+	gnss.course = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
+	gnss.vel_ned_valid = true;
 
-	gps.satellites_used = hil_gps.satellites_visible;
+	gnss.timestamp_time_relative = 0;
+	gnss.time_utc_usec = hil_gps.time_usec;
 
-	gps.heading = NAN;
-	gps.heading_offset = NAN;
+	gnss.satellites_used = hil_gps.satellites_visible;
 
-	gps.timestamp = hrt_absolute_time();
+	gnss.timestamp = hrt_absolute_time();
 
 	// Resolve the uORB instance for this HIL_GPS id first, so the failure injection state can be
 	// kept per instance. New publishers are created based on the HIL_GPS ID's being different or not.
 	int instance = -1;
 
 	for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
-		if (_sensor_gps_pubs[i] && _gps_ids[i] == hil_gps.id) {
+		if (_sensor_gnss_pubs[i] && _gps_ids[i] == hil_gps.id) {
 			instance = i;
 			break;
 		}
 
-		if (_sensor_gps_pubs[i] == nullptr) {
-			_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
+		if (_sensor_gnss_pubs[i] == nullptr) {
+			_sensor_gnss_pubs[i] = new uORB::PublicationMulti<sensor_gnss_s> {ORB_ID(sensor_gnss)};
 
-			if (_sensor_gps_pubs[i] == nullptr) {
+			if (_sensor_gnss_pubs[i] == nullptr) {
 				return;
 			}
 
 			_gps_ids[i] = hil_gps.id;
-
-			device::Device::DeviceId device_id;
-			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-			device_id.devid_s.bus = 0;
-			device_id.devid_s.address = i;
-			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
-			gps.device_id = device_id.devid;
 
 			instance = i;
 			break;
@@ -467,11 +465,11 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 		return;
 	}
 
-	if (!failure_injection::process_gnss(_failure_config, (uint8_t)instance, gps, _gps_stuck[instance])) {
+	if (!failure_injection::process_gnss(_failure_config, (uint8_t)instance, gnss, _gnss_stuck[instance])) {
 		return;
 	}
 
-	_sensor_gps_pubs[instance]->publish(gps);
+	_sensor_gnss_pubs[instance]->publish(gnss);
 }
 
 void SimulatorMavlink::handle_message_hil_sensor(const mavlink_message_t *msg)
@@ -1467,84 +1465,73 @@ void SimulatorMavlink::updateFailureConfig()
 	_vio_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, 1) == failure_injection::Mode::Off);
 }
 
+static uint8_t distance_sensor_orientation(uint8_t mavlink_orientation)
+{
+	switch (mavlink_orientation) {
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_270:
+		return distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_90:
+		return distance_sensor_s::ROTATION_UPWARD_FACING;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_180:
+		return distance_sensor_s::ROTATION_BACKWARD_FACING;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_NONE:
+		return distance_sensor_s::ROTATION_FORWARD_FACING;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_270:
+		return distance_sensor_s::ROTATION_LEFT_FACING;
+
+	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_90:
+		return distance_sensor_s::ROTATION_RIGHT_FACING;
+
+	default:
+		return distance_sensor_s::ROTATION_CUSTOM;
+	}
+}
+
 int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavlink)
 {
-	distance_sensor_s dist{};
-	dist.timestamp = hrt_absolute_time();
-	dist.min_distance = dist_mavlink->min_distance / 100.0f;
-	dist.max_distance = dist_mavlink->max_distance / 100.0f;
-	dist.current_distance = dist_mavlink->current_distance / 100.0f;
-	dist.type = dist_mavlink->type;
-	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
-
 	device::Device::DeviceId device_id {};
 	device_id.devid_s.bus_type = device::Device::DeviceBusType_SIMULATION;
 	device_id.devid_s.address = dist_mavlink->id;
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
 
-	dist.device_id = device_id.devid;
+	// Reuse the slot already claimed by this device id, otherwise claim and configure a free one.
+	PX4Rangefinder *rangefinder = nullptr;
 
-	// MAVLink DISTANCE_SENSOR signal_quality value of 0 means unset/unknown
-	// quality value. Also it comes normalised between 1 and 100 while the uORB
-	// signal quality is normalised between 0 and 100.
-	dist.signal_quality = dist_mavlink->signal_quality == 0 ? -1 : 100 * (dist_mavlink->signal_quality - 1) / 99;
-
-	switch (dist_mavlink->orientation) {
-	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_270:
-		dist.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-		break;
-
-	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_90:
-		dist.orientation = distance_sensor_s::ROTATION_UPWARD_FACING;
-		break;
-
-	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_PITCH_180:
-		dist.orientation = distance_sensor_s::ROTATION_BACKWARD_FACING;
-		break;
-
-	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_NONE:
-		dist.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
-		break;
-
-	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_270:
-		dist.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
-		break;
-
-	case MAV_SENSOR_ORIENTATION::MAV_SENSOR_ROTATION_YAW_90:
-		dist.orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
-		break;
-
-	default:
-		dist.orientation = distance_sensor_s::ROTATION_CUSTOM;
-	}
-
-	dist.h_fov = dist_mavlink->horizontal_fov;
-	dist.v_fov = dist_mavlink->vertical_fov;
-	dist.q[0] = dist_mavlink->quaternion[0];
-	dist.q[1] = dist_mavlink->quaternion[1];
-	dist.q[2] = dist_mavlink->quaternion[2];
-	dist.q[3] = dist_mavlink->quaternion[3];
-
-	// New publishers will be created based on the sensor ID's being different or not
-	for (size_t i = 0; i < sizeof(_dist_sensor_ids) / sizeof(_dist_sensor_ids[0]); i++) {
-		if (_dist_pubs[i] && _dist_sensor_ids[i] == dist.device_id) {
-			_dist_pubs[i]->publish(dist);
+	for (size_t i = 0; i < DIST_SENSOR_COUNT_MAX; i++) {
+		if (_dist_sensor_ids[i] == device_id.devid) {
+			rangefinder = &_px4_rangefinder[i];
 			break;
-
 		}
 
-		if (_dist_pubs[i] == nullptr) {
-			_dist_pubs[i] = new uORB::PublicationMulti<distance_sensor_s> {ORB_ID(distance_sensor)};
-
-			if (_dist_pubs[i] == nullptr) {
-				break;
-			}
-
-			_dist_sensor_ids[i] = dist.device_id;
-			_dist_pubs[i]->publish(dist);
+		if (_dist_sensor_ids[i] == 0) {
+			rangefinder = &_px4_rangefinder[i];
+			rangefinder->set_device_id(device_id.devid);
+			rangefinder->set_orientation(distance_sensor_orientation(dist_mavlink->orientation));
+			rangefinder->set_min_distance(dist_mavlink->min_distance / 100.0f);
+			rangefinder->set_max_distance(dist_mavlink->max_distance / 100.0f);
+			rangefinder->set_rangefinder_type(dist_mavlink->type);
+			rangefinder->set_hfov(dist_mavlink->horizontal_fov);
+			rangefinder->set_vfov(dist_mavlink->vertical_fov);
+			_dist_sensor_ids[i] = device_id.devid;
 			break;
 		}
 	}
+
+	if (rangefinder == nullptr) {
+		PX4_ERR("No free simulated distance sensor slot. Max: %d", DIST_SENSOR_COUNT_MAX);
+		return PX4_ERROR;
+	}
+
+	// MAVLink signal_quality: 0 means unknown (-1 in uORB) and 1..100 remaps to 0..100.
+	const int8_t signal_quality = dist_mavlink->signal_quality == 0 ? -1 : 100 * (dist_mavlink->signal_quality - 1) / 99;
+	rangefinder->set_variance(dist_mavlink->covariance * 1e-4f); // cm^2 to m^2
+	// update() applies distance-sensor failure injection internally before publishing.
+	rangefinder->update(hrt_absolute_time(), dist_mavlink->current_distance * 0.01f, signal_quality,
+			    dist_mavlink->quaternion);
 
 	return PX4_OK;
 }

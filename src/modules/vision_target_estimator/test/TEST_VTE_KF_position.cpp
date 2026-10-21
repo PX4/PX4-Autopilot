@@ -481,6 +481,63 @@ TEST(KFPositionTest, FusesOosmMeasurementWithHistory)
 	EXPECT_GT(fabsf(state_after(vtest::State::pos_rel) - state_before(vtest::State::pos_rel)), 1e-4f);
 }
 
+// Newer vision often arrives before older GNSS. Replay must retain both updates,
+// including a current update that has not yet been pushed into snapshot history.
+TEST(KFPositionTest, CrossedVisionAndGnssArrivalsMatchChronologicalFusion)
+{
+	for (bool newer_is_current : {false, true}) {
+		SCOPED_TRACE(newer_is_current);
+		vte::KF_position delayed;
+		vte::KF_position chronological;
+
+		for (auto *filter : {&delayed, &chronological}) {
+			setFilterState(*filter, makeState(0.f, 0.f, 0.7f), makeDiag(1.f, 1.f, 1.f));
+			filter->setInputVar(0.1f);
+			filter->setBiasVar(0.001f);
+		}
+
+		const StateVec vision_h = makeH(vtest::State::pos_rel);
+		StateVec gnss_h = vision_h;
+		gnss_h(vtest::State::bias) = 1.f;
+		const ScalarMeas gnss = makeMeas(1020_ms, 0.7f, 0.25f, gnss_h);
+		const ScalarMeas vision = makeMeas(1080_ms, 0.05f, 0.0025f, vision_h);
+		const uint64_t now = newer_is_current ? 1080_ms : 1130_ms;
+
+		delayed.pushHistory(1_s);
+		delayed.predict(0.04f, 0.f);
+		delayed.pushHistory(1040_ms);
+		delayed.predict(0.04f, 0.f);
+
+		if (!newer_is_current) {
+			delayed.pushHistory(1080_ms);
+			delayed.predict(0.05f, 0.f);
+		}
+
+		ASSERT_EQ(delayed.fuseScalarAtTime(vision, now, 0.f).status,
+			  newer_is_current ? vte::FusionStatus::STATUS_FUSED_CURRENT : vte::FusionStatus::STATUS_FUSED_OOSM);
+		ASSERT_EQ(delayed.fuseScalarAtTime(gnss, now, 0.f).status, vte::FusionStatus::STATUS_FUSED_OOSM);
+
+		chronological.predict(0.02f, 0.f);
+		chronological.fuseScalarAtTime(gnss, gnss.time_us, 0.f);
+		chronological.predict(0.06f, 0.f);
+		chronological.fuseScalarAtTime(vision, vision.time_us, 0.f);
+		chronological.predict((now - vision.time_us) * 1e-6f, 0.f);
+
+		expectStateAndCovUnchanged(delayed, chronological.getState(), chronological.getStateCovariance());
+		const StateCov cholesky = matrix::cholesky(delayed.getStateCovariance());
+
+		for (size_t i = 0; i < vte::KF_position::kStateSize; ++i) {
+			EXPECT_GT(cholesky(i, i), 0.f);
+		}
+
+		// A small subsequent vision innovation must not throw the bias.
+		const ScalarMeas next_vision = makeMeas(now, 0.1f, 0.0025f, vision_h);
+		delayed.fuseScalarAtTime(next_vision, now, 0.f);
+		chronological.fuseScalarAtTime(next_vision, now, 0.f);
+		expectStateAndCovUnchanged(delayed, chronological.getState(), chronological.getStateCovariance());
+	}
+}
+
 // WHY: Very small covariances can destabilize future updates.
 // WHAT: Verify covariance diagonals are clamped to a minimum after correction.
 TEST(KFPositionTest, ClampCovarianceToMin)

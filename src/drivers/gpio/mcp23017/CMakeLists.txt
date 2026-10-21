@@ -34,6 +34,7 @@
 px4_add_module(
 	MODULE drivers__gpio__mcp23017
 	MAIN mcp23017
+	STACK_MAIN 2560
 	SRCS
 		MCP23017_main.cpp
 		MCP23017.cpp

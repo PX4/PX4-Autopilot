@@ -22,8 +22,7 @@ PX4 为以下机体提供 X-Plane SITL 机架配置：
 | Alia-250       | VTOL quadplane  | `make px4_sitl_default xplane_alia250`     |
 | QuadTailsitter | VTOL tailsitter | `make px4_sitl_default xplane_qtailsitter` |
 
-匹配的 X-Plane 飞机文件和桥接配置由 px4xplane 项目分发。
-如果 PX4 具备支持 SITL 的相应控制路径，并且 px4xplane 能够将所需的执行器输出映射到可写的 X-Plane dataref，也可以集成其他 X-Plane 飞机或机体模型。
+匹配的 X-Plane 飞机文件和桥接配置由 px4xplane 项目分发。如果 PX4 具备支持 SITL 的相应控制路径，并且 px4xplane 能够将所需的执行器输出映射到可写的 X-Plane dataref，也可以集成其他 X-Plane 飞机或机体模型。
 
 ## 安装
 
@@ -33,34 +32,27 @@ PX4 为以下机体提供 X-Plane SITL 机架配置：
 
 3. 从 [px4xplane 发布页面](https://github.com/alireza787b/px4xplane/releases)下载适用于当前操作系统的最新 px4xplane 发布包。
 
-4. 该发布包是压缩归档文件，而不是安装程序。
-   解压发布包，并将完整的 px4xplane 插件文件夹复制到：
+4. 该发布包是压缩归档文件，而不是安装程序。解压发布包，并将完整的 px4xplane 插件文件夹复制到：
 
    ```sh
    X-Plane/Resources/plugins/px4xplane
    ```
 
-5. 将同一解压包中匹配的 X-Plane 飞机文件夹复制到 X-Plane 的飞机目录中。
-   除非发布说明另有要求，否则应将发布包中的 64/config.ini 与 px4xplane 插件放在一起。
+5. 将同一解压包中匹配的 X-Plane 飞机文件夹复制到 X-Plane 的飞机目录中。除非发布说明另有要求，否则应将发布包中的 64/config.ini 与 px4xplane 插件放在一起。
 
 [px4xplane 构建和安装指南](https://github.com/alireza787b/px4xplane/blob/master/docs/BUILD.md#installation)提供了有关插件文件夹结构的更多详细信息。
 
 ## 网络设置
 
-PX4 通过 TCP 端口 4560 连接到 X-Plane 桥接器。
-默认主机为 localhost，适用于 PX4 和 X-Plane 在同一台 Linux 或 macOS 计算机上运行的情况。
+PX4 通过 TCP 端口 4560 连接到 X-Plane 桥接器。默认主机为 localhost，适用于 PX4 和 X-Plane 在同一台 Linux 或 macOS 计算机上运行的情况。
 
-在 Windows 上，通常是在 Windows 中原生运行 X-Plane，并在 WSL2 中运行 PX4。
-在这种情况下，启动 PX4 前，应在 WSL2 shell 中将 PX4_SIM_HOSTNAME 设置为 Windows 主机的 IP 地址。
-该变量在 PX4/SITL 端设置，并指向运行 X-Plane 和 px4xplane 插件的主机：
+在 Windows 上，通常是在 Windows 中原生运行 X-Plane，并在 WSL2 中运行 PX4。在这种情况下，启动 PX4 前，应在 WSL2 shell 中将 PX4_SIM_HOSTNAME 设置为 Windows 主机的 IP 地址。该变量在 PX4/SITL 端设置，并指向运行 X-Plane 和 px4xplane 插件的主机：
 
 ```sh
 export PX4_SIM_HOSTNAME=$(ip route | awk '/default/ {print $3; exit}')
 ```
 
-然后从同一 shell 启动所需的 PX4 构建目标。
-如果 PX4 在 Docker 或另一台计算机上运行，则应将 PX4_SIM_HOSTNAME 设置为 X-Plane 计算机可访问的 IP 地址或主机名。
-确保 X-Plane 主机的防火墙允许 TCP 端口 4560 的入站连接。
+然后从同一 shell 启动所需的 PX4 构建目标。如果 PX4 在 Docker 或另一台计算机上运行，则应将 PX4_SIM_HOSTNAME 设置为 X-Plane 计算机可访问的 IP 地址或主机名。确保 X-Plane 主机的防火墙允许 TCP 端口 4560 的入站连接。
 
 ## Running SITL
 
@@ -68,7 +60,7 @@ export PX4_SIM_HOSTNAME=$(ip route | awk '/default/ {print $3; exit}')
 
 2. 确认 X-Plane 插件菜单中已加载 px4xplane 插件。
 
-3. 启动 PX4 SITL。 例如：
+3. 启动 PX4 SITL。例如：
 
    ```sh
    cd PX4-Autopilot
@@ -88,8 +80,7 @@ export PX4_SIM_HOSTNAME=$(ip route | awk '/default/ {print $3; exit}')
 3. 配置 px4xplane 桥接器，将 PX4 执行器输出映射到该飞机的 dataref。
 4. 根据 ULog 数据和 X-Plane 真值日志调优 PX4 参数。
 
-有关桥接器配置的详细信息，请参阅 px4xplane 自定义机架指南(https://github.com/alireza787b/px4xplane/blob/master/docs/custom-airframe-config.md)。
-有关 X-Plane 端的飞机设计和 dataref 映射，请参阅官方 Plane Maker 手册(https://developer.x-plane.com/manuals/planemaker/)和 X-Plane dataref 参考文档(https://developer.x-plane.com/datarefs/)。
+有关桥接器配置的详细信息，请参阅 px4xplane 自定义机架指南(https://github.com/alireza787b/px4xplane/blob/master/docs/custom-airframe-config.md)。有关 X-Plane 端的飞机设计和 dataref 映射，请参阅官方 Plane Maker 手册(https://developer.x-plane.com/manuals/planemaker/)和 X-Plane dataref 参考文档(https://developer.x-plane.com/datarefs/)。
 
 ## 故障处理
 

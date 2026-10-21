@@ -421,7 +421,7 @@ void VehicleOpticalFlow::UpdateSensorGyro()
 				if (sensor_gyro_sub.get().device_id == sensor_selection.gyro_device_id) {
 					if (_sensor_gyro_sub.ChangeInstance(i) && _sensor_gyro_sub.registerCallback()) {
 
-						_gyro_calibration.set_device_id(sensor_gyro_sub.get().device_id);
+						_gyro_calibration.set_device_id(sensor_gyro_sub.get().device_id, sensor_gyro_sub.get().is_external);
 						PX4_DEBUG("selecting sensor_gyro:%" PRIu8 " %" PRIu32, i, sensor_gyro_sub.get().device_id);
 						break;
 
@@ -451,7 +451,7 @@ void VehicleOpticalFlow::UpdateSensorGyro()
 				}
 			}
 
-			_gyro_calibration.set_device_id(sensor_gyro.device_id);
+			_gyro_calibration.set_device_id(sensor_gyro.device_id, sensor_gyro.is_external);
 			_gyro_calibration.SensorCorrectionsUpdate();
 
 			const float dt_s = (sensor_gyro.timestamp_sample - _gyro_timestamp_sample_last) * 1e-6f;

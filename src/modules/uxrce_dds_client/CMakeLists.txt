@@ -66,6 +66,17 @@ else()
 		set(lib_dir "lib")
 	endif()
 
+	if(PX4_PLATFORM STREQUAL "nuttx")
+		set(c_flags_with_includes "${c_flags_with_includes} -Wno-cast-align -D__PX4_NUTTX")
+	endif()
+
+	# Match UXRCE_DDS_CLIENT_UDP in uxrce_dds_client.h: NuttX targets without networking have no UDP transport
+	if(PX4_PLATFORM STREQUAL "nuttx" AND NOT CONFIG_NET)
+		set(uclient_profile_udp OFF)
+	else()
+		set(uclient_profile_udp ON)
+	endif()
+
 	include(ExternalProject)
 	ExternalProject_Add(
 		libmicroxrceddsclient_project
@@ -81,7 +92,7 @@ else()
 			-DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
 			-DUCLIENT_PIC:BOOL=OFF
 			-DUCLIENT_PROFILE_TCP:BOOL=OFF
-			-DUCLIENT_PROFILE_UDP:BOOL=ON
+			-DUCLIENT_PROFILE_UDP:BOOL=${uclient_profile_udp}
 			-DUCLIENT_PROFILE_SERIAL:BOOL=ON
 			-DUCLIENT_PROFILE_DISCOVERY:BOOL=OFF
 			-DUCLIENT_PROFILE_CUSTOM_TRANSPORT:BOOL=OFF
@@ -137,10 +148,6 @@ else()
 		STACK_MAIN 9000
 		INCLUDES
 			${CMAKE_CURRENT_SOURCE_DIR}
-		COMPILE_FLAGS
-			#-O0
-			# -DDEBUG_BUILD
-			${MAX_CUSTOM_OPT_LEVEL}
 		SRCS
 			uxrce_dds_client.cpp
 			uxrce_dds_client.h

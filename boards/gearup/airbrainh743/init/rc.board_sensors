@@ -12,7 +12,7 @@ icm42688p -R 2 -b 1 -s start
 # also broken out. Start them explicitly by bus + address.
 
 # Onboard I2C1 barometer - DPS310 @ 0x76 (118 decimal)
-dps310 -X -b 1 -a 118 start
+dps310 -I -b 1 -a 118 start
 
 # Onboard I2C1 magnetometer - IIS2MDC @ 0x1E (30 decimal)
-iis2mdc -X -b 1 -R 2 -a 30 start
+iis2mdc -I -b 1 -R 2 -a 30 start

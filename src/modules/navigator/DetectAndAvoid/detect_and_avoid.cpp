@@ -268,10 +268,18 @@ bool DetectAndAvoid::process_transponder_queue(daa_input_s &daa_input)
 
 	const hrt_abstime traffic_timeout_us = static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s;
 
+	_failure_config.update();
+	const bool traffic_blocked = !failure_injection::process(_failure_config,
+				     failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0);
+
 	for (uint8_t processed_reports = 0; processed_reports < transponder_report_s::ORB_QUEUE_LENGTH; ++processed_reports) {
 
 		if (!_traffic_sub.update(&transponder_report)) {
 			break;
+		}
+
+		if (traffic_blocked) {
+			continue;
 		}
 
 #if defined(DEBUG_BUILD)
@@ -561,8 +569,7 @@ void DetectAndAvoid::debug_print_buffer_status()
 	char encoded_id_str[kUtmGuidMsgLength];
 	most_urgent_conflict.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
 
-	const int time_since_last_comm = static_cast<int>((hrt_absolute_time() -
-					 most_urgent_conflict.latest_update_timestamp) / 1_s);
+	const int time_since_last_comm = static_cast<int>((hrt_absolute_time() - most_urgent_conflict.latest_update_timestamp) / 1_s);
 	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(most_urgent_conflict.aircraft_dist));
 
 	const int buff_size = static_cast<int>(_conflict_tracker.size());
@@ -585,8 +592,8 @@ void DetectAndAvoid::debug_print_conflict_info(const conflict_info_s &conflict)
 	char encoded_id_str[kUtmGuidMsgLength];
 	conflict.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
 
-	const int time_since_last_comm = static_cast<int>((hrt_absolute_time() - conflict.latest_update_timestamp) / 1_s);
-	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(conflict.aircraft_dist));
+	const int time_since_last_comm = (hrt_absolute_time() - conflict.latest_update_timestamp) / 1_s;
+	const uint16_t aircraft_dist = fabsf(conflict.aircraft_dist);
 
 	PX4_DEBUG("ID: uint %" PRIu64 ", ID str %s, lvl %d, distance %d, last comm %d sec \n",
 		  conflict.encoded_id.id,
@@ -609,7 +616,7 @@ void DetectAndAvoid::debug_print_transponder_report(const transponder_report_s &
 	char callsign[kCallsignLength];
 	DaaEncodedId::convert_uint64_callsign_to_str(callsign_int, callsign);
 
-	uint64_t icao_address = static_cast<uint64_t>(transponder_report.icao_address);
+	uint64_t icao_address = transponder_report.icao_address;
 	char icao_str[kIcaoLength];
 	DaaEncodedId::convert_icao_uint32_to_hex_str(icao_address, icao_str, sizeof(icao_str));
 

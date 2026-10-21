@@ -63,19 +63,11 @@
 #endif
 
 #if !defined(CONFIG_BUILD_FLAT)
-typedef CODE void (*initializer_t)(void);
-extern initializer_t _sinit;
-extern initializer_t _einit;
-extern uint32_t _stext;
-extern uint32_t _etext;
-
 static void cxx_initialize(void)
 {
-	initializer_t *initp;
-
 	/* Visit each entry in the initialization table */
 
-	for (initp = &_sinit; initp != &_einit; initp++) {
+	for (initializer_t *initp = _sinit; initp != _einit; initp++) {
 		initializer_t initializer = *initp;
 
 		/* Make sure that the address is non-NULL and lies in the text

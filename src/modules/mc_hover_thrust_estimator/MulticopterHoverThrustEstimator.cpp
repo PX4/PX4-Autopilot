@@ -39,8 +39,6 @@
 
 #include "MulticopterHoverThrustEstimator.hpp"
 
-#include <mathlib/mathlib.h>
-
 using namespace time_literals;
 
 ModuleBase::Descriptor MulticopterHoverThrustEstimator::desc{task_spawn, custom_command, print_usage};
@@ -89,10 +87,8 @@ void MulticopterHoverThrustEstimator::updateParams()
 
 	_hover_thrust_ekf.setAccelInnovGate(_param_hte_acc_gate.get());
 
-	_hover_thrust_ekf.setMinHoverThrust(math::constrain(_param_mpc_thr_hover.get() - _param_hte_thr_range.get(), 0.f,
-					    0.8f));
-	_hover_thrust_ekf.setMaxHoverThrust(math::constrain(_param_mpc_thr_hover.get() + _param_hte_thr_range.get(), 0.2f,
-					    0.9f));
+	_hover_thrust_ekf.setMinHoverThrust(_param_mpc_thr_hover.get() - _param_hte_thr_range.get());
+	_hover_thrust_ekf.setMaxHoverThrust(_param_mpc_thr_hover.get() + _param_hte_thr_range.get());
 }
 
 void MulticopterHoverThrustEstimator::Run()

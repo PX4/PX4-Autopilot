@@ -99,7 +99,7 @@ A subset of the most important checks are listed below:
 - Any mission item conflicts with a plan or safety geofence
 - More than one land start mission item defined ([MAV_CMD_DO_LAND_START](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_LAND_START))
 - A fixed-wing landing has an infeasible slope angle ([FW_LND_ANG](#FW_LND_ANG))
-- Land start item (`MAV_CMD_DO_LAND_START`) appears in mission before an RTL item ([MAV_CMD_NAV_RETURN_TO_LAUNCH](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RETURN_TO_LAUNCH))
+- Land start item (`MAV_CMD_DO_LAND_START`) appears in mission before an RTL ("Return") item ([MAV_CMD_NAV_RETURN_TO_LAUNCH](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RETURN_TO_LAUNCH))
 - Missing takeoff and/or land item when these are configured as a requirement ([MIS_TKO_LAND_REQ](#MIS_TKO_LAND_REQ))
 
 Additionally there is a check if the first waypoint is too far from the Home position ([MIS_DIST_1WP](#MIS_DIST_1WP)).
@@ -149,6 +149,10 @@ Mission Items:
 - [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF)
 - [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT)
 - [MAV_CMD_DO_JUMP](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP)
+  - _Param1_ (sequence number) must refer to an earlier mission item.
+    A mission is rejected if a jump targets itself or a later item, even if its repeat count is 0.
+  - _Param2_ (repeat count) must be from 0 to 65535.
+    A mission with a negative or larger repeat count is rejected.
 - [MAV_CMD_NAV_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_ROI)
 - [MAV_CMD_DO_SET_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI)
 - [MAV_CMD_DO_SET_ROI_LOCATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_LOCATION)
@@ -321,6 +325,10 @@ Flaring consists of a switch from altitude tracking to a shallow sink rate setpo
 The flaring altitude is calculated during the final approach via "time-to-impact" ([FW_LND_FL_TIME](#FW_LND_FL_TIME)) and the approach descent rate.
 An additional safety parameter [FW_LND_FLALT](#FW_LND_FLALT) sets the minimum altitude at which the vehicle will flare (if the time based altitude is too low to allow a safe flare maneuver).
 
+The flare can be disabled by setting either [FW_LND_FL_TIME](#FW_LND_FL_TIME) or [FW_LND_FLALT](#FW_LND_FLALT) to -1.
+The vehicle then keeps tracking the landing slope at the landing airspeed ([FW_LND_AIRSPD](../advanced_config/parameter_reference.md#FW_LND_AIRSPD), or [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) if not set) until touchdown.
+In this case also set [FW_LND_USETER](#FW_LND_USETER) to `0`, otherwise the landing may abort just before touchdown when the distance sensor stops giving valid readings close to the ground.
+
 If belly landing, the vehicle will continue in the flaring state until touchdown, land detection, and subsequent disarm. For runway landings, [FW_LND_TD_TIME](#FW_LND_TD_TIME) enables setting the time post flare start to pitch down the nose (e.g. consider tricycle gear) onto the runway ([RWTO_PSP](#RWTO_PSP)) and avoid bouncing. This time roughly corresponds to the touchdown post flare, and should be tuned for a given airframe during test flights only after the flare has been tuned.
 
 The parameters that affect flaring are listed below.
@@ -335,6 +343,44 @@ The parameters that affect flaring are listed below.
 | <a id="FW_LND_TD_TIME"></a>[FW_LND_TD_TIME](../advanced_config/parameter_reference.md#FW_LND_TD_TIME) | The time after flare start when the vehicle should pitch the nose down.                                                                                             |
 | <a id="RWTO_PSP"></a>[RWTO_PSP](../advanced_config/parameter_reference.md#RWTO_PSP)                   | Pitch setpoint while on the runway. For tricycle gear, typically near zero. For tail draggers, positive.                                                            |
 | <a id="FW_THR_IDLE"></a>[FW_THR_IDLE](../advanced_config/parameter_reference.md#FW_THR_IDLE)          | Idle throttle setting. The vehicle will retain this setting throughout the flare and roll out.                                                                      |
+
+### Parachute Landing
+
+A mission landing can end in a parachute descent, releasing the parachute such that the vehicle touches down on the land waypoint ([MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND)).
+This allows recovery in areas where a rollout or belly landing is not possible.
+
+The feature is enabled with [FW_LND_PARA_EN](#FW_LND_PARA_EN) and requires a [parachute](../peripherals/parachute.md), either on a flight controller output (_Parachute_ output function) or as an external MAVLink parachute system ([COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE)).
+
+The vehicle follows the normal landing approach down to the release altitude ([FW_LND_PARA_ALT](#FW_LND_PARA_ALT)), then continues level towards the land waypoint.
+The parachute is released by triggering [flight termination](../advanced_config/flight_termination.md) once the predicted touchdown point under canopy lies on the land waypoint.
+The prediction accounts for the forward carry while the parachute deploys, and the drift with the estimated wind while the vehicle sinks at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK).
+Crosswind is compensated by aiming upwind of the land waypoint.
+
+:::warning
+The release triggers flight termination: the landing cannot be aborted after the release, and the vehicle must be rebooted before the next flight.
+[Operator abort](#operator-abort) works normally at any time before the release.
+:::
+
+Notes:
+
+- The touchdown point drifts with the wind, and the horizontal touchdown speed matches the wind speed.
+  Accuracy and touchdown quality degrade as the wind approaches the landing airspeed ([COM_WIND_MAX](../advanced_config/parameter_reference.md#COM_WIND_MAX) can enforce a wind limit).
+- Lowering the release altitude reduces the wind drift.
+  For safety reasons, the release altitude is clamped to a minimum of 3 seconds of descent at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK), so that the canopy has room to open before touchdown.
+- [FW_LND_PARA_ALT](#FW_LND_PARA_ALT) is the altitude the vehicle holds while waiting for the release point.
+  The release prediction always uses the actual altitude:
+  - A vehicle that holds the altitude releases at the configured altitude, or above it if the release point is reached while still on the approach slope.
+  - A vehicle that cannot hold the altitude (for example a motor-less glider) keeps sinking while the prediction adapts, and still releases such that it touches down on the land waypoint.
+    Only if it sinks to the minimum release altitude before reaching the release point does it release there, and touch down short of the waypoint.
+- Not supported on VTOL.
+
+#### Parachute Landing Parameters
+
+| Parameter                                                                                                   | Description                                                                             |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| <a id="FW_LND_PARA_EN"></a>[FW_LND_PARA_EN](../advanced_config/parameter_reference.md#FW_LND_PARA_EN)       | Enable parachute landing on the mission landing approach.                               |
+| <a id="FW_LND_PARA_ALT"></a>[FW_LND_PARA_ALT](../advanced_config/parameter_reference.md#FW_LND_PARA_ALT)    | Release altitude above the land waypoint.                                               |
+| <a id="FW_LND_PARA_SINK"></a>[FW_LND_PARA_SINK](../advanced_config/parameter_reference.md#FW_LND_PARA_SINK) | Expected sink rate under canopy, used to predict the wind drift of the touchdown point. |
 
 ### Abort
 

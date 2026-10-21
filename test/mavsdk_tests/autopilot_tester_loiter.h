@@ -112,6 +112,9 @@ public:
 	// NAV_LOITER_RAD default loiter radius in meters.
 	float default_loiter_radius();
 
+	// NAV_FW_ALT_RAD fixed-wing altitude acceptance radius in meters.
+	float fw_altitude_acceptance_radius();
+
 private:
 	// Horizontal distance in meters between a NED sample and a local coordinate.
 	static double horizontal_distance(const mavsdk::Telemetry::PositionVelocityNed &sample, const LocalCoordinate &c);

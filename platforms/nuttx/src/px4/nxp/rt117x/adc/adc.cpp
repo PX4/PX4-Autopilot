@@ -114,64 +114,80 @@ typedef uint32_t 	adc_chan_t;
 
 int px4_arch_adc_init(uint32_t base_address)
 {
-	static bool once = false;
+	/* Perform ADC init once per ADC */
 
-	if (!once) {
+	static uint32_t once[SYSTEM_ADC_COUNT] {};
 
-		once = true;
+	uint32_t *free = nullptr;
 
-		/* Input is ADCx_CLK_ROOT_SYS_PLL2_CLK with devide by 6.
-		 *  528 Mhz / 6 = 88 Mhz.
+	for (uint32_t i = 0; i < SYSTEM_ADC_COUNT; i++) {
+		if (once[i] == base_address) {
+			return OK;
+		}
+
+		if (free == nullptr && once[i] == 0) {
+			free = &once[i];
+		}
+	}
+
+	if (free == nullptr) {
+		/* ADC misconfigured SYSTEM_ADC_COUNT too small */;
+		PANIC();
+	}
+
+	*free = base_address;
+
+	/* Input is ADCx_CLK_ROOT_SYS_PLL2_CLK with devide by 6.
+	 *  528 Mhz / 6 = 88 Mhz.
+	 */
+
+
+	if (base_address == IMXRT_LPADC1_BASE) {
+		imxrt_clockall_adc1();
+
+	} else if (base_address == IMXRT_LPADC2_BASE) {
+		imxrt_clockall_adc2();
+	}
+
+
+	irqstate_t flags = px4_enter_critical_section();
+	rCTRL(base_address) |= IMXRT_LPADC_CTRL_RST;
+	rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_RST;
+	rCTRL(base_address) |= IMXRT_LPADC_CTRL_RSTFIFO;
+	rCFG(base_address) =  IMXRT_LPADC_CFG_REFSEL_REFSEL_0 | IMXRT_LPADC_CFG_PWREN | IMXRT_LPADC_CFG_PWRSEL_PWRSEL_3 |
+			      IMXRT_LPADC_CFG_PUDLY(128);
+	rCTRL(base_address) = IMXRT_LPADC_CTRL_ADCEN;
+
+	px4_leave_critical_section(flags);
+
+	/* Read ADC1 vtemp_sensor_plus */
+
+	rCMDL1(base_address) = IMXRT_LPADC_CMDL1_ADCH_ADCH_7;
+
+	rCMDH1(base_address) = IMXRT_LPADC_CMDH1_STS_STS_7 | IMXRT_LPADC_CMDH1_AVGS_AVGS_0;
+	rTCTRL0(base_address) = IMXRT_LPADC_TCTRL0_TCMD_TCMD_1;
+	rSTAT(base_address) = IMXRT_LPADC_STAT_FOF;
+
+	/* kick off a sample and wait for it to complete */
+	hrt_abstime now = hrt_absolute_time();
+
+	rSWTRIG(base_address) = IMXRT_LPADC_SWTRIG_SWT0;
+
+	while (!(rSTAT(base_address) & IMXRT_LPADC_STAT_RDY)) {
+
+		/* don't wait for more than 100us, since that means something broke -
+		 * should reset here if we see this
 		 */
 
-
-		if (base_address == IMXRT_LPADC1_BASE) {
-			imxrt_clockall_adc1();
-
-		} else if (base_address == IMXRT_LPADC2_BASE) {
-			imxrt_clockall_adc2();
+		if ((hrt_absolute_time() - now) > 100) {
+			rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_ADCEN;
+			return -4;
 		}
+	}
 
-
-		irqstate_t flags = px4_enter_critical_section();
-		rCTRL(base_address) |= IMXRT_LPADC_CTRL_RST;
-		rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_RST;
-		rCTRL(base_address) |= IMXRT_LPADC_CTRL_RSTFIFO;
-		rCFG(base_address) =  IMXRT_LPADC_CFG_REFSEL_REFSEL_0 | IMXRT_LPADC_CFG_PWREN | IMXRT_LPADC_CFG_PWRSEL_PWRSEL_3 |
-				      IMXRT_LPADC_CFG_PUDLY(128);
-		rCTRL(base_address) = IMXRT_LPADC_CTRL_ADCEN;
-
-		px4_leave_critical_section(flags);
-
-		/* Read ADC1 vtemp_sensor_plus */
-
-		rCMDL1(base_address) = IMXRT_LPADC_CMDL1_ADCH_ADCH_7;
-
-		rCMDH1(base_address) = IMXRT_LPADC_CMDH1_STS_STS_7 | IMXRT_LPADC_CMDH1_AVGS_AVGS_0;
-		rTCTRL0(base_address) = IMXRT_LPADC_TCTRL0_TCMD_TCMD_1;
-		rSTAT(base_address) = IMXRT_LPADC_STAT_FOF;
-
-		/* kick off a sample and wait for it to complete */
-		hrt_abstime now = hrt_absolute_time();
-
-		rSWTRIG(base_address) = IMXRT_LPADC_SWTRIG_SWT0;
-
-		while (!(rSTAT(base_address) & IMXRT_LPADC_STAT_RDY)) {
-
-			/* don't wait for more than 100us, since that means something broke -
-			 * should reset here if we see this
-			 */
-
-			if ((hrt_absolute_time() - now) > 100) {
-				rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_ADCEN;
-				return -4;
-			}
-		}
-
-		int32_t r = (rRESFIFO(base_address) & IMXRT_LPADC_RESFIFO_D_MASK) >> 3;
-		UNUSED(r);
-		rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_ADCEN;
-	} // once
+	int32_t r = (rRESFIFO(base_address) & IMXRT_LPADC_RESFIFO_D_MASK) >> 3;
+	UNUSED(r);
+	rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_ADCEN;
 
 	return 0;
 }

@@ -143,6 +143,10 @@ void VtolType::update_fw_state()
 
 		} else {
 			blendThrottleAfterFrontTransition(progress);
+
+			if (_v_control_mode->flag_control_altitude_enabled) {
+				blendPitchAfterFrontTransition(progress);
+			}
 		}
 	}
 

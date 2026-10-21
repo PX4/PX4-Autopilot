@@ -59,8 +59,9 @@ public:
 	 * @param replaces_nav_state replaced mode, -1 if none
 	 * @return registration id, or -1
 	 */
-	int addRegistration(int8_t nav_mode_id, int8_t replaces_nav_state);
+	int addRegistration(int8_t nav_mode_id, int8_t replaces_nav_state, uint64_t request_id = 0);
 	bool removeRegistration(int registration_id, int8_t nav_mode_id);
+	int findByRequestId(uint64_t request_id, int8_t &out_nav_mode_id) const;
 	void update();
 
 	bool isUnresponsive(int registration_id);
@@ -83,6 +84,7 @@ private:
 
 		int8_t nav_mode_id{-1}; ///< associated mode, -1 if none
 		int8_t replaces_nav_state{-1};
+		uint64_t request_id{0};
 
 		bool waiting_for_first_response{true};
 		uint8_t num_no_response{0};

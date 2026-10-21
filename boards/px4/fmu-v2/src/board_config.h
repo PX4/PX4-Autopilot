@@ -93,7 +93,7 @@
 #define BOARD_SPI_BUS_MAX_BUS_ITEMS 3
 
 /* I2C busses */
-#define BOARD_OVERRIDE_I2C_BUS_EXTERNAL
+#define BOARD_OVERRIDE_I2C_BUS_TOPOLOGY
 
 /*
  * ADC channels

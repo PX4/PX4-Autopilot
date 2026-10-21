@@ -102,6 +102,11 @@ public:
 protected:
 
 	/**
+	 * Run at most once per interval instead of on every local position update.
+	 */
+	void _set_update_interval(uint32_t interval_us) { _vehicle_local_position_sub.set_interval_us(interval_us); }
+
+	/**
 	 * Updates parameters.
 	 */
 	virtual void _update_params() {};
@@ -136,13 +141,6 @@ protected:
 	 */
 	virtual bool _get_ground_effect_state() { return false; }
 
-	virtual bool _get_in_descend() { return false; }
-	virtual bool _get_has_low_throttle() { return false; }
-	virtual bool _get_horizontal_movement() { return false; }
-	virtual bool _get_vertical_movement() { return false; }
-	virtual bool _get_rotational_movement() { return false; }
-	virtual bool _get_close_to_ground_or_skipped_check() {  return false; }
-
 	systemlib::Hysteresis _freefall_hysteresis{false};
 	systemlib::Hysteresis _landed_hysteresis{true};
 	systemlib::Hysteresis _maybe_landed_hysteresis{true};
@@ -158,12 +156,13 @@ protected:
 	bool _armed{false};
 	bool _previous_armed_state{false};	///< stores the previous actuator_armed.armed state
 
+	vehicle_land_detected_s _land_detected{};
+
 private:
 	void Run() override;
 
 	void UpdateVehicleAtRest();
 
-	vehicle_land_detected_s _land_detected{};
 	hrt_abstime _takeoff_time{0};
 	hrt_abstime _total_flight_time{0};	///< total vehicle flight time in microseconds
 

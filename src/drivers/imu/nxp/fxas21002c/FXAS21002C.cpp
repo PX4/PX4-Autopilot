@@ -68,7 +68,7 @@ using namespace time_literals;
 FXAS21002C::FXAS21002C(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_interface(interface),
-	_px4_gyro(_interface->get_device_id(), config.rotation),
+	_px4_gyro(_interface->get_device_id(), config.rotation, config.external),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),

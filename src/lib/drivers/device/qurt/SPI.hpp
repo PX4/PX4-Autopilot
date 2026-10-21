@@ -190,9 +190,6 @@ protected:
 	 */
 	uint8_t		_retries{0};
 
-	// bool	external() { return px4_spi_bus_external(get_device_bus()); }
-	// bool	external() { return false; }
-
 };
 
 } // namespace device
