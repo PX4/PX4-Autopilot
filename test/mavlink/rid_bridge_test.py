@@ -8,10 +8,13 @@ Enable normal/onboard streams and forwarding on MAVLink ports beforehand.
 Do not run concurrently with QGC. No arming or parameter commands are sent.
 
 --identity-mode must match ODID_BID_SRC (legacy=0, locked=1); this script does
-not change the parameter. Locked mode without --expect-identity assumes blank
-identity storage and provisions PRODUCT below. It never erases identity storage.
-After manually rebooting, rerun with --identity-mode locked --expect-identity
-ABCDF123456789ABCDEF to verify the stored identity before sending any Basic ID.
+not change the parameter. --identity-format selects cta (default, wire type 1)
+or the proposed CN product format (wire type 5, requires matching endpoints).
+Locked mode without --expect-identity assumes blank identity storage and
+provisions the selected format's fixture. It never erases identity storage.
+After manually rebooting, rerun with the same --identity-format and
+--identity-mode locked --expect-identity SERIAL to verify the stored identity
+before sending any Basic ID.
 Use --expect-ua-type if that identity was provisioned with a UA type other than 2.
 """
 import argparse
@@ -26,6 +29,18 @@ ZERO_ID = bytes(20)
 PRODUCT = b'ABCDF123456789ABCDEF'
 ALTERNATE_PRODUCT = b'WXYZF123456789ABCDEF'
 INVALID_PRODUCT = b'ABCD1I' + bytes(14)
+CN_PRODUCT = b'ABCD0001000000000001'
+CN_ALTERNATE_PRODUCT = b'WXYZ0002000000000002'
+IDENTITY_FORMATS = {
+    'cta': dict(id_type=1, product=PRODUCT, alternate=ALTERNATE_PRODUCT,
+                invalid=((ZERO_ID, 'empty'), (INVALID_PRODUCT, 'invalid character'))),
+    'cn': dict(id_type=5, product=CN_PRODUCT, alternate=CN_ALTERNATE_PRODUCT,
+               invalid=((ZERO_ID, 'empty'),
+                        (CN_PRODUCT[:7] + b'I' + CN_PRODUCT[8:], 'invalid I'),
+                        (CN_PRODUCT[:7] + b'O' + CN_PRODUCT[8:], 'invalid O'),
+                        (CN_PRODUCT[:9] + b'\0' + CN_PRODUCT[10:], 'embedded NUL'),
+                        (CN_PRODUCT[:-1] + b'\0', 'short with NUL padding'))),
+}
 OPERATOR = b'00001234' + bytes(12)
 UNIX_2019 = 1546300800
 SYSTEM_FRESHNESS_SECONDS = 5
@@ -36,9 +51,13 @@ def system_time():
     return int(time.time()) - UNIX_2019
 
 
-def serial_number(text):
-    """Parse a CTA-2063 serial supplied for a previously provisioned board."""
+def serial_number(text, identity_format='cta'):
+    """Parse a stored identity according to its explicit wire format."""
     allowed = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'
+    if identity_format == 'cn':
+        if len(text) != 20 or any(char not in allowed for char in text):
+            raise argparse.ArgumentTypeError('expected exactly 20 CN product characters: digits or A-Z excluding I/O')
+        return text.encode('ascii')
     if (not 6 <= len(text) <= 20 or any(char not in allowed for char in text)
             or text[4] not in '123456789ABCDEF'
             or int(text[4], 16) != len(text) - 5):
@@ -46,8 +65,8 @@ def serial_number(text):
     return text.encode('ascii').ljust(20, b'\0')
 
 
-def basic_identity(product, ua_type=2):
-    return dict(id_or_mac=ZERO_ID, id_type=1, ua_type=ua_type, uas_id=product)
+def basic_identity(product, ua_type=2, id_type=1):
+    return dict(id_or_mac=ZERO_ID, id_type=id_type, ua_type=ua_type, uas_id=product)
 
 
 def octets(value):
@@ -167,14 +186,18 @@ class Bench:
         return dict({key: value for key, value in fields.items() if not key.startswith('target_')},
                     timestamp=None)
 
-    def basic_id(self, product, ua_type=2, accepted=True):
+    def basic_id(self, product, ua_type=2, accepted=True, id_type=None):
+        if id_type is None:
+            id_type = IDENTITY_FORMATS[self.args.identity_format]['id_type']
         self.gcs.mav.open_drone_id_basic_id_send(
-            self.args.target_system, self.args.target_component, ZERO_ID, 1, ua_type, product)
+            self.args.target_system, self.args.target_component, ZERO_ID, id_type, ua_type, product)
         if accepted:
             self.accepted_inputs.add('BasicID')
-        return basic_identity(product, ua_type)
+        return basic_identity(product, ua_type, id_type)
 
-    def identities(self, product=PRODUCT):
+    def identities(self, product=None):
+        if product is None:
+            product = IDENTITY_FORMATS[self.args.identity_format]['product']
         self.gcs.mav.open_drone_id_operator_id_send(
             self.args.target_system, self.args.target_component, ZERO_ID, 1, OPERATOR)
         self.accepted_inputs.add('OperatorID')
@@ -245,7 +268,9 @@ def main():
     parser.add_argument('--can-bitrate', type=int, default=1000000)
     parser.add_argument('--identity-mode', choices=('legacy', 'locked'), default='legacy',
                         help='Must match ODID_BID_SRC: legacy=0 (default), locked=1; parameter is not changed')
-    parser.add_argument('--expect-identity', type=serial_number,
+    parser.add_argument('--identity-format', choices=('cta', 'cn'), default='cta',
+                        help='Identity format: cta/type 1 (default), or proposed cn/type 5 with matching endpoints')
+    parser.add_argument('--expect-identity',
                         help='Locked mode: verify this stored serial before any Basic ID write, e.g. after a manual reboot')
     parser.add_argument('--expect-ua-type', type=int, default=2,
                         help='UA type of --expect-identity (default: 2)')
@@ -260,6 +285,15 @@ def main():
         parser.error('--expect-ua-type must be in 0..15')
     if args.expect_identity is None and args.expect_ua_type != 2:
         parser.error('--expect-ua-type requires --expect-identity')
+    if args.expect_identity is not None:
+        try:
+            args.expect_identity = serial_number(args.expect_identity, args.identity_format)
+        except argparse.ArgumentTypeError as error:
+            parser.error(str(error))
+    profile = IDENTITY_FORMATS[args.identity_format]
+    if args.identity_format == 'cn':
+        print('WIP: CN product ID uses proposed wire type 5. The GCS, PX4 and RID module '
+              'must all use this same mapping; this bench does not negotiate endpoint support.')
 
     bench = Bench(args)
     bench.spin(2)
@@ -267,12 +301,12 @@ def main():
 
     if args.identity_mode == 'locked':
         if args.expect_identity is not None:
-            expected['BasicID'] = basic_identity(args.expect_identity, args.expect_ua_type)
+            expected['BasicID'] = basic_identity(args.expect_identity, args.expect_ua_type, profile['id_type'])
             bench.check(expected, 'stored identity after boot, before Basic ID input')
         else:
             print('Locked provisioning assumes blank identity storage; no erase is performed.')
             bench.check(expected, 'unprovisioned locked mode has no GUID fallback', forbidden=('BasicID',))
-            for invalid, label in ((ZERO_ID, 'empty'), (INVALID_PRODUCT, 'invalid character')):
+            for invalid, label in profile['invalid']:
                 bench.basic_id(invalid, accepted=False)
                 bench.check(expected, f'{label} cannot provision locked identity', forbidden=('BasicID',))
     else:
@@ -280,12 +314,12 @@ def main():
 
     identities = bench.identities()  # SYSTEM -> OPERATOR_ID -> BASIC_ID
     if args.expect_identity is not None:
-        identities['BasicID'] = basic_identity(args.expect_identity, args.expect_ua_type)
+        identities['BasicID'] = basic_identity(args.expect_identity, args.expect_ua_type, profile['id_type'])
     expected.update(identities)
     bench.check(expected, 'out-of-order identity and persistent output')
 
     if args.identity_mode == 'locked':
-        bench.basic_id(INVALID_PRODUCT, accepted=False)
+        bench.basic_id(profile['invalid'][1][0], accepted=False)
         bench.check(expected, 'invalid input cannot change locked identity')
 
     expected['System'] = bench.system(ua_class=0)
@@ -293,12 +327,19 @@ def main():
     expected['System'] = bench.system(classification=1, ua_class=1)
     bench.check(expected, 'EU regression')
     locked_identity = expected['BasicID']
-    expected.update(bench.identities(ALTERNATE_PRODUCT))
+    expected.update(bench.identities(profile['alternate']))
     if args.identity_mode == 'locked':
         expected['BasicID'] = locked_identity
     expected['System'] = bench.system(ua_class=1)
     bench.check(expected, 'alternate valid identity cannot replace locked identity'
                 if args.identity_mode == 'locked' else 'updated configuration persists')
+    if args.identity_mode == 'locked':
+        other = IDENTITY_FORMATS['cn' if args.identity_format == 'cta' else 'cta']
+        if args.identity_format == 'cta':
+            print('WIP: the cross-format lock probe sends proposed CN wire type 5; '
+                  'PX4 and RID endpoints must use the same proposed mapping.')
+        bench.basic_id(other['product'], id_type=other['id_type'])
+        bench.check(expected, 'different identity format cannot replace locked type or bytes')
     expected['System'] = bench.system(target_component=0)
     bench.check(expected, 'component broadcast uses stream only')
     # Pause valid refresh while probing rejection so a later valid packet cannot
@@ -340,7 +381,8 @@ def main():
         assert bench.locations > 0, 'LOCATION missing'
     if args.identity_mode == 'locked' and args.expect_identity is None:
         print('To verify persistence, reboot manually and rerun with --identity-mode locked '
-              '--expect-identity ABCDF123456789ABCDEF using the same connection options.')
+              f"--identity-format {args.identity_format} --expect-identity {profile['product'].decode('ascii')} "
+              'using the same connection options.')
     print('Bench checks complete; real module behavior and RF remain unverified.')
 
 

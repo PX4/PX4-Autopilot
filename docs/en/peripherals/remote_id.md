@@ -217,6 +217,7 @@ In locked mode, an invalid or missing identity does not fall back to the board G
 UID matching and CRC detect mismatches and corruption; they do not authenticate the serial number or prevent deliberate rewriting, and signature verification is not implemented.
 
 MAVLink and DroneCAN outputs use the same validated stored identity in locked mode, including after reboot before a ground station sends another Basic ID.
+They preserve its ID type as well as its bytes; a CN product identifier is never relabelled as a CTA serial number.
 Neither output substitutes a board GUID when the locked record is missing or invalid.
 
 ::: warning
@@ -236,6 +237,10 @@ For forwarding-enabled links without the corresponding periodic stream, each acc
 System classification and area settings are retained, but operator coordinates, altitude, and protocol timestamp become unknown after five seconds without a new full System message.
 This prevents replaying obsolete dynamic information while preserving the configured classification.
 This bridge does not implement the separate `OPEN_DRONE_ID_SYSTEM_UPDATE` receive message.
+
+The bench script `test/mavlink/rid_bridge_test.py` separates `--identity-mode legacy|locked` from `--identity-format cta|cn`.
+The CN format uses the experimental type 5 proposal and requires matching endpoints.
+For a manual reboot check, pass `--expect-identity` with the previously provisioned identity and the same format; the script neither erases storage nor changes the identity-mode parameter.
 
 ## Compliance
 

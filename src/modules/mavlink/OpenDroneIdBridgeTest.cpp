@@ -111,6 +111,35 @@ TEST(OpenDroneIdBridge, FullBasicIdAndDynamicArray)
 	EXPECT_EQ(can.uas_id.data[19], 'Z');
 }
 
+TEST(OpenDroneIdBridge, CnProductIdPreservesProposedWireTypeAndAllBytes)
+{
+	open_drone_id_basic_id_s input{};
+	memcpy(input.uas_id, "ABCD0001000000000001", sizeof(input.uas_id));
+	input.id_type = 5; // Proposed CN product ID wire value; do not reinterpret as CTA type 1.
+	input.ua_type = 2;
+	mavlink_open_drone_id_basic_id_t output{};
+	basic_id(output, input);
+	mavlink_message_t wire{};
+	mavlink_msg_open_drone_id_basic_id_encode(1, 1, &wire, &output);
+	mavlink_open_drone_id_basic_id_t decoded{};
+	mavlink_msg_open_drone_id_basic_id_decode(&wire, &decoded);
+	EXPECT_EQ(decoded.id_type, 5);
+	EXPECT_EQ(decoded.ua_type, input.ua_type);
+	EXPECT_EQ(memcmp(decoded.uas_id, input.uas_id, sizeof(input.uas_id)), 0);
+	EXPECT_EQ(memcmp(decoded.id_or_mac, input.id_or_mac, sizeof(input.id_or_mac)), 0);
+	EXPECT_EQ(decoded.target_system, 0);
+	EXPECT_EQ(decoded.target_component, 0);
+
+	CanBasicId can{};
+	basic_id(can, input);
+	EXPECT_EQ(can.id_type, 5);
+	EXPECT_EQ(can.ua_type, input.ua_type);
+	EXPECT_EQ(can.uas_id.size, sizeof(input.uas_id));
+	EXPECT_EQ(can.id_or_mac.size, sizeof(input.id_or_mac));
+	EXPECT_EQ(memcmp(can.uas_id.data, input.uas_id, sizeof(input.uas_id)), 0);
+	EXPECT_EQ(memcmp(can.id_or_mac.data, input.id_or_mac, sizeof(input.id_or_mac)), 0);
+}
+
 TEST(OpenDroneIdBridge, OperatorLeadingAndTrailingZeros)
 {
 	open_drone_id_operator_id_s input{};

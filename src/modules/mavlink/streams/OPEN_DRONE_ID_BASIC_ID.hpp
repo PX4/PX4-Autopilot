@@ -109,7 +109,7 @@ private:
 				return false;
 			}
 
-			msg.id_type = MAV_ODID_ID_TYPE_SERIAL_NUMBER;
+			msg.id_type = _odid_bid_lock_info.id.id_type;
 			msg.ua_type = _odid_bid_lock_info.id.ua_type;
 			open_drone_id_bridge::copy_bytes(msg.uas_id, _odid_bid_lock_info.id.uas_id);
 			mavlink_msg_open_drone_id_basic_id_send_struct(_mavlink->get_channel(), &msg);
