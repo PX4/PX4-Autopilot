@@ -56,14 +56,15 @@
 #include <uORB/Publication.hpp>
 
 #include "mission_block.h"
+#include "navigation.h"
+
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 #include "mission_route_types.h"
-// Only route planning modes override these hooks, so they stay plain functions without it.
+// Only the route planning modes override these hooks, so without the mission cache they are plain functions.
 #define MISSION_ROUTE_HOOK virtual
 #else
 #define MISSION_ROUTE_HOOK
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-#include "navigation.h"
 
 using namespace time_literals;
 
