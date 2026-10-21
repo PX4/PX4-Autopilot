@@ -11,16 +11,16 @@ In short: **heading** is where the vehicle _points_, **course** is where it _sho
 
 ## Summary
 
-| Term                                      | Official meaning                                                | Example in PX4                            |
-| ----------------------------------------- | --------------------------------------------------------------- | ----------------------------------------- |
-| [Heading](#heading)                       | Direction in which the longitudinal axis of the vehicle points. | `vehicle_local_position.heading`          |
-| [Course](#course)                         | Intended direction of motion over the ground.                   | `fixed_wing_lateral_setpoint.course`      |
-| [Course over ground](#course-over-ground) | Actual direction of the path over the ground.                   | `sensor_gnss.course`                      |
-| [Track](#track-and-desired-track)         | Actual path of the vehicle over the ground.                     | Path plotted from a log                   |
-| [Desired track](#track-and-desired-track) | Planned or intended track between two waypoints.                | Line from previous to current waypoint    |
-| [Bearing](#bearing)                       | Direction from one point to another.                            | `pure_pursuit_status.bearing_to_waypoint` |
-| [Cross-track error](#cross-track-error)   | Perpendicular distance from the desired track, and side.        | `pure_pursuit_status.crosstrack_error`    |
-| [Drift angle](#drift-angle)               | Angle between heading and track.                                | —                                         |
+| Term                                      | Official meaning                                              | Example in PX4                            |
+| ----------------------------------------- | ------------------------------------------------------------- | ----------------------------------------- |
+| [Heading](#heading)                       | Direction in which the body x-axis of the vehicle points.     | `vehicle_local_position.heading`          |
+| [Course](#course)                         | Intended direction of motion over the ground.                 | `fixed_wing_lateral_setpoint.course`      |
+| [Course over ground](#course-over-ground) | Actual direction of the path over the ground.                 | `sensor_gnss.course`                      |
+| [Track](#track-and-desired-track)         | Actual path of the vehicle over the ground.                   | Path plotted from a log                   |
+| [Desired track](#track-and-desired-track) | Intended path over the ground, such as between two waypoints. | Line from previous to current waypoint    |
+| [Bearing](#bearing)                       | Direction from one point to another.                          | `pure_pursuit_status.bearing_to_waypoint` |
+| [Cross-track error](#cross-track-error)   | Perpendicular distance from the desired track, and side.      | `pure_pursuit_status.crosstrack_error`    |
+| [Drift angle](#drift-angle)               | Angle between heading and track.                              | —                                         |
 
 ![Overview of navigation terms, seen from above (placeholder)](../../assets/concepts/navigation/overview_heading_bearing_course_track.svg)
 
@@ -83,7 +83,8 @@ In PX4: `sensor_gnss.course` ("Course over ground, not heading"), MAVLink `GPS_R
 
 - **Track:** The actual path the vehicle traced over the ground, such as the path plotted from a log.
   Its direction at any point is the [course over ground](#course-over-ground).
-- **Desired track:** The intended path between two waypoints, which the vehicle tries to follow.
+- **Desired track:** The intended path over the ground, which the vehicle tries to follow.
+  This is usually the line between two waypoints, but it can also be a line along a course the vehicle holds.
 
 ::: info
 In marine navigation, bare "track" means the _intended_ path.

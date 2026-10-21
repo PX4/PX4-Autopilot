@@ -67,7 +67,7 @@ See [Local Frame Is a Map Projection](#local-frame-is-a-map-projection) for how 
 
 ISO 1151 (aircraft) and SNAME (ships and submarines) define the body-fixed axes the same way:
 
-- x points forward along the longitudinal axis (nose or bow).
+- x points forward (nose, bow or front).
 - y points to the right (starboard).
 - z points down, completing a right-handed frame.
 
@@ -207,7 +207,8 @@ Following the [precedence rule](#sources-and-precedence), PX4 uses the aviation 
 
 - **Track:** The actual path over the ground.
   Its direction at any point is the [course over ground](#course-over-ground).
-- **Desired track:** The intended path between two waypoints, from which the [cross-track error](#cross-track-error) is measured.
+- **Desired track:** The intended path over the ground, from which the [cross-track error](#cross-track-error) is measured.
+  This is usually the line between two waypoints, but it can also be a line along a course the vehicle holds, which the FAA definition does not cover.
 
 Marine readers understand bare "track" as the intended path, so always write _desired track_ for the intended path.
 
