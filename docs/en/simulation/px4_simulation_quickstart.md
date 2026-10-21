@@ -3,19 +3,26 @@
 First install [Docker](https://docs.docker.com/get-started/get-docker/) (a free tool that runs containers).
 
 The following command will then run a PX4 quadrotor simulation that you can connect to [QGroundControl](https://qgroundcontrol.com), [MAVSDK](https://mavsdk.mavlink.io/) or [ROS 2](../ros2/user_guide.md).
-On Docker Desktop (macOS and Windows), PX4 sends MAVLink to the host without publishing UDP port 14550.
-On Linux, add `--network host` to the command so PX4 can reach applications running on the host.
+On _Docker Desktop_ (macOS and Windows), PX4 sends MAVLink to the host automatically.
+Don't publish UDP port 14550 with `-p`: Docker then holds that port on the host, and QGroundControl can't use it.
+On Linux, or in WSL2 without _Docker Desktop_, PX4 needs `--network host` to reach applications running on the host.
+With WSL2, to connect a QGroundControl running on Windows, you may also need to enable WSL [mirrored mode networking](https://learn.microsoft.com/en-us/windows/wsl/networking#mirrored-mode-networking).
 
 ```sh
 docker run --rm -it px4io/px4-sitl:latest
+```
+
+On Linux (or WSL2 without _Docker Desktop_):
+
+```sh
+docker run --rm -it --network host px4io/px4-sitl:latest
 ```
 
 That's it — open [QGroundControl](https://qgroundcontrol.com) and fly!
 
 ::: tip
 
-To try [other vehicle types](../sim_sih/#supported-vehicle-types), use the `-e` flag to pass the `PX4_SIM_MODEL` environment variable to the `docker run` command:
-On Linux, add `--network host` to each command.
+To try [other vehicle types](../sim_sih/#supported-vehicle-types), use the `-e` flag to pass the `PX4_SIM_MODEL` environment variable to the `docker run` command (on Linux, or WSL2 without _Docker Desktop_, also add `--network host`):
 
 Plane
 
