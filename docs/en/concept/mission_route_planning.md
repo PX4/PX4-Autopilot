@@ -387,13 +387,19 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 
 ## Parameters and Build Configuration
 
-| Setting                                                                        | Purpose                                                                           | Default |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------- |
-| [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN)     | Enable smart rejoin on airborne Mission activation.                               | `0`     |
-| [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST)   | Extra cross-track search margin for vehicle projections in multicopter mode.      | 30 m    |
-| [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST)   | Extra cross-track search margin for vehicle projections in fixed-wing mode.       | 150 m   |
-| [RTL_RP_SEG_DIST](../advanced_config/parameter_reference.md#RTL_RP_SEG_DIST)   | Extra cross-track search margin for rally-point projections.                      | 30 m    |
-| [RTL_FW_UTURN_PEN](../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN) | Additional distance cost for a fixed-wing reversal during route-following Return. | 4000 m  |
+| Setting            | Purpose                                                                           | Default |
+| ------------------ | --------------------------------------------------------------------------------- | ------- |
+| [MIS_ROUTE_JOIN]   | Enable smart rejoin on airborne Mission activation.                               | `0`     |
+| [MIS_MC_SEG_DIST]  | Extra cross-track search margin for vehicle projections in multicopter mode.      | 30 m    |
+| [MIS_FW_SEG_DIST]  | Extra cross-track search margin for vehicle projections in fixed-wing mode.       | 150 m   |
+| [RTL_RP_SEG_DIST]  | Extra cross-track search margin for rally-point projections.                      | 30 m    |
+| [RTL_FW_UTURN_PEN] | Additional distance cost for a fixed-wing reversal during route-following Return. | 4000 m  |
+
+[MIS_ROUTE_JOIN]: ../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN
+[MIS_MC_SEG_DIST]: ../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST
+[MIS_FW_SEG_DIST]: ../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST
+[RTL_RP_SEG_DIST]: ../advanced_config/parameter_reference.md#RTL_RP_SEG_DIST
+[RTL_FW_UTURN_PEN]: ../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN
 
 `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` must be greater than zero and large enough for the entire uploaded mission.
 The parameters above only exist in firmware built with a non-zero cache size.
