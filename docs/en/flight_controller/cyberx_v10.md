@@ -201,7 +201,7 @@ The GPS ports are:
 The GPS ports do not include safety switch, LED or buzzer pins.
 These are on the separate `SW+BUZ` port.
 
-The board has an on-board IST8310 magnetometer,but the external compass is recommended as primary.
+The board has an on-board IST8310 magnetometer, but an external compass is recommended as the primary compass, with the IST8310 as a backup.
 
 ### Telemetry Radios (Optional) {#telemetry}
 
