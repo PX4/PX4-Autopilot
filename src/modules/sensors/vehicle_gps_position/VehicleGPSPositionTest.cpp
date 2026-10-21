@@ -51,16 +51,18 @@ class VehicleGPSPositionTestPeer
 public:
 	static constexpr uint32_t kDeviceIds[VehicleGPSPosition::GPS_MAX_RECEIVERS] {0x3e4f01, 0x3e4f02};
 
-	// both slots configured as SENS_GNSSn_HDG Two receivers, 1 m apart, with receivers whose checks pass and whose
-	// latest fixes are both new
+	// slot 0 configured as SENS_GNSS0_HDG Two receivers 1 m from slot 1, which is disabled, with receivers whose
+	// checks pass and whose latest fixes are both new
 	static void setupTwoReceivers(VehicleGPSPosition &module)
 	{
+		module._two_receivers_slot = 0;
+
 		for (int i = 0; i < VehicleGPSPosition::GPS_MAX_RECEIVERS; i++) {
 			VehicleGPSPosition::GpsParamSlot &slot = module._gnss_param_slots[i];
 			slot.device_id = kDeviceIds[i];
-			slot.baseline_length = 1.f;
-			slot.heading_enabled = true;
-			slot.two_receivers = true;
+			slot.baseline_length = (i == 0) ? 1.f : 0.f;
+			slot.heading_enabled = (i == 0);
+			slot.two_receivers = (i == 0);
 
 			// with every check disabled and no health time, the second run passes
 			GnssChecks::Params params{};
