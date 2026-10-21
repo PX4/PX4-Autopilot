@@ -380,6 +380,10 @@ void VehicleGPSPosition::UpdateTwoReceiverHeading()
 			gnss_heading::Baseline baseline{};
 
 			if (!gnss_heading::measureBaseline(from_gnss_data, to_gnss_data, baseline)) {
+				HeadingSample sample{};
+				sample.heading = NAN;
+				sample.device_id = to_gnss_data.device_id;
+				handleHeadingSample(sample, slot);
 				continue;
 			}
 
