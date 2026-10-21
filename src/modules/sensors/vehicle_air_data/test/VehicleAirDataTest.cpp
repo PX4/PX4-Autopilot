@@ -45,8 +45,10 @@
 #include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/uORBManager.hpp>
 
 class VehicleAirDataTest : public ::testing::Test
@@ -88,11 +90,12 @@ public:
 		}
 	}
 
-	// every test starts with all devices disabled and enables the ones it uses
+	// every test starts with all devices disabled and uncalibrated, and enables the ones it uses
 	void SetUp() override
 	{
 		for (int i = 0; i < kSensorCount; i++) {
 			setPriority(i, 0);
+			setParamFloat(kOffsetParams[i], 0.f);
 		}
 	}
 
@@ -101,6 +104,20 @@ public:
 		const param_t handle = param_find(name);
 		ASSERT_NE(handle, PARAM_INVALID) << name;
 		ASSERT_EQ(param_set_no_notification(handle, &value), 0) << name;
+	}
+
+	static void setParamFloat(const char *name, float value)
+	{
+		const param_t handle = param_find(name);
+		ASSERT_NE(handle, PARAM_INVALID) << name;
+		ASSERT_EQ(param_set_no_notification(handle, &value), 0) << name;
+	}
+
+	static float getParamFloat(const char *name)
+	{
+		float value = NAN;
+		param_get(param_find(name), &value);
+		return value;
 	}
 
 	static void setPriority(int device, int32_t priority)
@@ -122,6 +139,78 @@ public:
 		sample.pressure = pressure_pa;
 		sample.temperature = 20.f;
 		_sensor_baro_pubs[device].publish(sample);
+	}
+
+	// landed, with EKF2 fusing GNSS height: the state the GNSS baro calibration runs in
+	static void publishEstimatorStatusFlags()
+	{
+		estimator_status_flags_s flags{};
+		flags.timestamp = hrt_absolute_time();
+		flags.cs_gps_hgt = true;
+		flags.cs_in_air = false;
+		_estimator_status_flags_pub.publish(flags);
+	}
+
+	static void publishGnss(hrt_abstime timestamp, double altitude_msl, float epv, uint16_t failed_strict_checks)
+	{
+		vehicle_gnss_s gnss{};
+		gnss.timestamp = timestamp;
+		gnss.timestamp_sample = timestamp;
+		gnss.receiver.timestamp = timestamp;
+		gnss.receiver.timestamp_sample = timestamp;
+		gnss.receiver.altitude_msl = altitude_msl;
+		gnss.receiver.epv = epv;
+		gnss.usable = true;
+		gnss.strict = false;
+		gnss.failed_strict_checks = failed_strict_checks;
+		_vehicle_gnss_pub.publish(gnss);
+	}
+
+	// a run of GNSS samples 100 ms apart, all with the same solution
+	struct GnssSegment {
+		int samples;
+		double altitude_msl;
+		float epv;
+		uint16_t failed_strict_checks;
+	};
+
+	// brings the module up on the given altitude, then feeds it the given GNSS segments in order, and returns
+	// the baro offset it ends up with
+	template<size_t N>
+	static float runGnssCalibration(const GnssSegment(&segments)[N])
+	{
+		setPriority(0, 75);
+		setParam("SENS_BAR_AUTOCAL", 1);
+
+		VehicleAirDataTestable module;
+
+		// a little noise, as the voter flags a long run of identical samples as stale
+		int sample_count = 0;
+		auto noisy_pressure = [&]() { return kPressurePa + ((sample_count++ % 2) ? 0.5f : -0.5f); };
+
+		// selection, then the relative calibration that has to complete first
+		runFor(module, 1500_ms, [&]() {
+			publishSample(0, noisy_pressure());
+			publishEstimatorStatusFlags();
+		});
+
+		EXPECT_EQ(module.selectedIndex(), 0);
+
+		// the calibration times its windows on the GNSS timestamps, so the samples can come faster than real time
+		hrt_abstime gnss_timestamp = hrt_absolute_time();
+
+		for (const GnssSegment &segment : segments) {
+			for (int i = 0; i < segment.samples; i++) {
+				gnss_timestamp += 100_ms;
+				publishSample(0, noisy_pressure());
+				publishEstimatorStatusFlags();
+				publishGnss(gnss_timestamp, segment.altitude_msl, segment.epv, segment.failed_strict_checks);
+				module.RunPublic();
+				px4_usleep(5_ms);
+			}
+		}
+
+		return getParamFloat(kOffsetParams[0]);
 	}
 
 	static void publishParameterUpdate()
@@ -146,13 +235,21 @@ public:
 
 	static uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pubs[kSensorCount];
 	static uORB::Publication<parameter_update_s> _parameter_update_pub;
+	static uORB::Publication<estimator_status_flags_s> _estimator_status_flags_pub;
+	static uORB::Publication<vehicle_gnss_s> _vehicle_gnss_pub;
 
+	static constexpr const char *kOffsetParams[kSensorCount] {"CAL_BARO0_OFF"};
+
+	// standard sea level pressure at the default SENS_BARO_QNH, so the uncalibrated baro reads 0 m
 	static constexpr float kPressurePa = 101325.f;
 };
 
 constexpr uint32_t VehicleAirDataTest::kDeviceIds[];
 uORB::PublicationMulti<sensor_baro_s> VehicleAirDataTest::_sensor_baro_pubs[kSensorCount] {{ORB_ID(sensor_baro)}};
 uORB::Publication<parameter_update_s> VehicleAirDataTest::_parameter_update_pub{ORB_ID(parameter_update)};
+uORB::Publication<estimator_status_flags_s> VehicleAirDataTest::_estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
+uORB::Publication<vehicle_gnss_s> VehicleAirDataTest::_vehicle_gnss_pub{ORB_ID(vehicle_gnss)};
+constexpr const char *VehicleAirDataTest::kOffsetParams[];
 
 TEST_F(VehicleAirDataTest, BarometerDisabledFromBootDoesNotDriveRun)
 {
@@ -176,4 +273,41 @@ TEST_F(VehicleAirDataTest, BarometerDisabledFromBootDoesNotDriveRun)
 	EXPECT_EQ(module.selectedIndex(), 0);
 	EXPECT_EQ(module.priority(0), 75);
 	EXPECT_TRUE(module.callbackRegistered(0));
+}
+
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationUsesGnssPassingStrictChecks)
+{
+	// a receiver passing the strict checks on a steady altitude 15 m above the baro's calibrates the baro onto it
+	const float offset = runGnssCalibration({{60, 15., 2.f, 0}});
+
+	// roughly 12 Pa per metre at sea level, subtracted from the measured pressure so the baro reads higher
+	EXPECT_GT(offset, 150.f);
+	EXPECT_LT(offset, 210.f);
+}
+
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationIgnoresGnssFailingStrictChecks)
+{
+	// once the strict checks have passed on the ground, the relaxed ones decide usable, so EKF2 keeps fusing
+	// GNSS height through a degraded patch, here a 15 m altitude error with a 6.5 m EPV: above GNSS_REQ_EPV,
+	// but below the 8 m the calibration requires on its own, so only the strict checks reject the sample
+	const float offset = runGnssCalibration({{60, 15., 6.5f, vehicle_gnss_s::CHECK_EPV}});
+
+	EXPECT_FLOAT_EQ(offset, 0.f);
+}
+
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationRestartsAfterGnssFailingStrictChecks)
+{
+	// the receiver reads 8 m long enough for the first half of the stability window, fails the strict checks,
+	// and comes back reading 15 m. The window restarts from scratch on the 15 m solution, which is steady for
+	// longer than the whole window, so the baro is calibrated onto it. A reference left over from before the
+	// failure would differ by more than the 4 m tolerance, reject the window, and leave the baro uncalibrated
+	const float offset = runGnssCalibration({
+		{25, 8., 2.f, 0},
+		{5, 8., 6.5f, vehicle_gnss_s::CHECK_EPV},
+		{45, 15., 2.f, 0},
+	});
+
+	// calibrated onto 15 m, not 8 m, at roughly 12 Pa per metre
+	EXPECT_GT(offset, 150.f);
+	EXPECT_LT(offset, 210.f);
 }
