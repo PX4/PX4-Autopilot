@@ -92,7 +92,7 @@ public:
 			    bool rtl_active,
 			    bool require_vtol_approach);
 
-	/** Retain the flown jump anchor through a temporary fallback. */
+	/** Keep the follower's flown jump anchor for the replan, also through a direct fallback. */
 	void recordExecutorProgress(const mission_route::ActiveJumpAnchor &active_jump_anchor);
 
 	uint32_t missionGeneration() const;
