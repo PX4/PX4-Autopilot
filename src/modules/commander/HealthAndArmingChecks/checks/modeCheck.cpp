@@ -159,9 +159,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (reporter.failsafeFlags().manual_control_signal_lost && reporter.failsafeFlags().mode_req_manual_control != 0) {
-		const bool rc_disabled = (_param_com_rc_in_mode.get() == 4);
-		NavModes nav_modes = rc_disabled ? (NavModes)reporter.failsafeFlags().mode_req_manual_control : NavModes::None;
-		events::LogLevel log_level = rc_disabled ? events::Log::Error : events::Log::Warning;
+		const NavModes manual_control_modes = (NavModes)reporter.failsafeFlags().mode_req_manual_control;
 
 		/* EVENT
 		 * @description
@@ -170,12 +168,31 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		 * Sticks can be enabled via <param>COM_RC_IN_MODE</param> parameter.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(nav_modes,
+		reporter.armingCheckFailure(manual_control_modes,
 					    health_component_t::remote_control,
 					    events::ID("check_modes_manual_control"),
-					    log_level, "No manual control input");
-		reporter.clearArmingBits((NavModes)reporter.failsafeFlags().mode_req_manual_control);
-		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_manual_control);
+					    events::Log::Error, "No manual control input");
+		reporter.clearCanRunBits(manual_control_modes);
+
+		if (_param_com_rc_in_mode.get() != 4) {
+			// Sticks are expected, so warn in the other modes too. That takes a second event: a ground station
+			// reads an event's modes as the modes it blocks, and these block nothing.
+			NavModesMessageFail other_modes{};
+			other_modes.message_modes = ~manual_control_modes;
+			other_modes.fail_modes = NavModes::None;
+
+			/* EVENT
+			 * @description
+			 * Modes that need stick input cannot be used until it is connected.
+			 * <profile name="dev">
+			 * Disable stick input via <param>COM_RC_IN_MODE</param> parameter if it is not used.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure(other_modes,
+						    health_component_t::remote_control,
+						    events::ID("check_modes_manual_control_warning"),
+						    events::Log::Warning, "No manual control input");
+		}
 	}
 
 	if (reporter.failsafeFlags().mode_not_supported != 0) {
