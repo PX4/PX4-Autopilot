@@ -97,7 +97,8 @@ Under these conditions the system will not draw any power (will not be operation
 2. **USB input** (operational range 4.7V to 5.7V, 0V to 6V undamaged)
 3. **Servo input:** `MOTOR` pin of **FMU PWM OUT** and **I/O PWM OUT** (0V to 42V undamaged)
 
-warning: The PWM output ports are not powered by the POWER port. The output rail must be separately powered if it needs to power servos or other hardware.
+warning: The PWM output ports are not powered by the POWER port.
+The output rail must be separately powered if it needs to power servos or other hardware.
 
 **Voltage monitoring**
 
@@ -110,7 +111,8 @@ The board is configured by default for an analog power monitor on `PWR1`.
 An INA228 I2C power monitor (address 0x40) on `PWR2` is also started by default.
 Other I2C power monitors, such as the INA226 or INA238, must be started manually.
 
-The default PDB included with the cyberx_v10 includes both an analog interface and a digital I2C interface. The analog interface is connected to `PWR1`, while the digital I2C interface is connected to `PWR2`.
+The default PDB included with the cyberx_v10 includes both an analog interface and a digital I2C interface.
+The analog interface is connected to `PWR1`, while the digital I2C interface is connected to `PWR2`.
 
 See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to configure the battery and power monitor.
 
