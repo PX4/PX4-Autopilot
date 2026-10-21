@@ -160,7 +160,7 @@ struct FrontTransitionCase {
 class VtolRtlFrontTransitionTest : public VtolRtlTransitionTest,
 	public ::testing::WithParamInterface<FrontTransitionCase> {};
 
-TEST_P(VtolRtlFrontTransitionTest, OnlyHealthyInternalSrpCommandsCanFrontTransitionInRtl)
+TEST_P(VtolRtlFrontTransitionTest, OnlyHealthyInternalRouteRtlCommandsCanFrontTransitionInRtl)
 {
 	const auto &test_case = GetParam();
 	VtolAttitudeControlTestPeer controller;
@@ -178,9 +178,9 @@ TEST_P(VtolRtlFrontTransitionTest, OnlyHealthyInternalSrpCommandsCanFrontTransit
 }
 
 INSTANTIATE_TEST_SUITE_P(CommandPolicy, VtolRtlFrontTransitionTest, ::testing::Values(
-				 FrontTransitionCase{"HealthySrp", kRouteRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, kRouteRtlSupported},
-				 FrontTransitionCase{"ExternalSrp", kRouteRtl, true, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
-				 FrontTransitionCase{"FailedSrp", kRouteRtl, false, true, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
+				 FrontTransitionCase{"HealthyRouteRtl", kRouteRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, kRouteRtlSupported},
+				 FrontTransitionCase{"ExternalRouteRtl", kRouteRtl, true, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
+				 FrontTransitionCase{"FailedRouteRtl", kRouteRtl, false, true, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
 				 FrontTransitionCase{"DirectRtl", kDirectRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
 				 FrontTransitionCase{"MissionRtl", kMissionRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, false},
 				 FrontTransitionCase{"Takeoff", kRouteRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, false},
@@ -189,9 +189,9 @@ INSTANTIATE_TEST_SUITE_P(CommandPolicy, VtolRtlFrontTransitionTest, ::testing::V
 				 FrontTransitionCase{"Mission", kDirectRtl, false, false, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, true}),
 [](const ::testing::TestParamInfo<FrontTransitionCase> &test_info) { return test_info.param.name; });
 
-TEST_F(VtolRtlTransitionTest, RtlEntryPreservesFrontTransitionOnlyForHealthySrp)
+TEST_F(VtolRtlTransitionTest, RtlEntryPreservesFrontTransitionOnlyForHealthyRouteRtl)
 {
-	// The command can arrive before the controller observes AUTO_RTL.
+	// The front transition starts before the controller observes AUTO_RTL.
 	for (uint8_t rtl_type : {kDirectRtl, kRouteRtl}) {
 		for (bool failed : {false, true}) {
 			VtolAttitudeControlTestPeer controller;
@@ -205,7 +205,7 @@ TEST_F(VtolRtlTransitionTest, RtlEntryPreservesFrontTransitionOnlyForHealthySrp)
 
 TEST_F(VtolRtlTransitionTest, RouteRtlFallbackAbortsFrontTransition)
 {
-	// A route-following Return that falls back to direct Return no longer keeps the front transition.
+	// A route-following Return that falls back to direct Return aborts the front transition.
 	VtolAttitudeControlTestPeer controller;
 	controller.configure(kRouteRtl, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false);
 	controller.startFrontTransition();
@@ -247,7 +247,7 @@ TEST_F(VtolRtlTransitionTest, RouteFallbackOutsideReturnKeepsFrontTransition)
 
 TEST_F(VtolRtlTransitionTest, ManualFrontTransitionInDirectReturnSurvivesStatusUpdates)
 {
-	// As on main, a transition requested by the pilot during direct Return is not aborted later.
+	// A transition the pilot requests during direct Return is not aborted by later status updates.
 	VtolAttitudeControlTestPeer controller;
 	controller.configure(kDirectRtl, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false);
 	controller.enterRtl(false);
