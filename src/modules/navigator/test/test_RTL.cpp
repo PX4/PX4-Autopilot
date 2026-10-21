@@ -428,6 +428,8 @@ protected:
 	{
 		param_control_autosave(false);
 		param_reset_all();
+		// _rtl read its parameters on construction, before this reset.
+		_rtl.updateParamsForTest();
 
 		ASSERT_TRUE(_dataman_client.clearSync(DM_KEY_SAFE_POINTS_0));
 		ASSERT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
