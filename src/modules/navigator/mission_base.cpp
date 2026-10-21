@@ -634,7 +634,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			/* use current mission item as next position item */
 			num_found_items = 1u;
 			next_mission_items[0u] = _mission_item;
-			next_mission_items[0u].yaw = NAN;
 
 			float altitude = _global_pos_sub.get().alt;
 
