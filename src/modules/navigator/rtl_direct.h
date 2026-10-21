@@ -128,7 +128,7 @@ private:
 		CLIMBING,
 		AVOID_GEOFENCE,
 		ARRIVAL = 2,
-		MOVE_TO_LAND = 5, // Preserve the state numbers published in navigator_mission_item.
+		MOVE_TO_LAND = 5, // ARRIVAL logs its phases as 2 to 4 in navigator_mission_item.
 		TRANSITION_TO_MC,
 		MOVE_TO_LAND_HOVER,
 		LAND,
