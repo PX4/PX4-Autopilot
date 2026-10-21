@@ -36,7 +36,8 @@
  *
  * RTL executor that follows the uploaded mission route toward a safe-point
  * branch-off, then leaves the route to land at the chosen safe point.
- * Falls back to the closest mission endpoint when no safe point is available.
+ * Without a usable safe point it returns to the mission landing or takeoff,
+ * whichever is cheaper along the route.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -71,12 +72,12 @@ private:
 	friend class RTLTestPeer;
 
 	enum class Stage {
-		Idle = 0,                /**< No active plan. */
+		Idle = 0,                /**< Not executing a plan. */
 		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
-		TransitionDuringRoute,   /**< Wait for shared transition execution before resuming the route. */
+		TransitionDuringRoute,   /**< Wait for the VTOL transition before resuming the route. */
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
-		Arrival,                 /**< Shared move, descent and hold sequence at the selected destination. */
-		LandAtGoal               /**< Execute the final landing at the safe point or fallback endpoint. */
+		Arrival,                 /**< Move, descend and hold at the destination (RtlArrival). */
+		LandAtGoal               /**< Land at the safe point or mission endpoint. */
 	};
 
 	struct PlanState {
@@ -111,7 +112,7 @@ private:
 	bool resolveRouteTarget(int32_t index, mission_item_s &mission_item) const;
 	/** @brief Load the next route item, substituting the branch-off or normalizing holds while preserving endpoints. */
 	bool loadNextRouteItem(mission_item_s &next_route_item);
-	/** @brief Resolve the flown target and start shared transition execution. */
+	/** @brief Publish the resolved route target and start its VTOL transition. */
 	void armRouteTransition(mission_route::VtolTransitionAction action, bool advance_route_after_transition);
 	bool frontTransitionInhibited() const override;
 	mission_route::VtolTransitionAction allowedRouteTransition(mission_route::VtolTransitionAction action) const;
