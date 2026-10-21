@@ -1371,7 +1371,6 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	ASSERT_TRUE(estimate_sub.update());
 	ASSERT_TRUE(estimate_sub.get().valid);
 	const float last_leg_time = estimate_sub.get().time_estimate;
-	RtlBase *executor = _rtl.missionExecutorForTest();
 	const uint32_t generation = _rtl.routePlanMissionGenerationForTest();
 	const auto last_leg_join = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 20.f, kAlt + 50.f);
 	const auto last_leg_plan = _rtl.routePlanForTest();
@@ -1389,7 +1388,7 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	ASSERT_TRUE(estimate_sub.get().valid);
 	const float first_leg_time = estimate_sub.get().time_estimate;
 	EXPECT_LT(first_leg_time, last_leg_time);
-	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
+	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), generation);
 	const auto first_leg_join = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 50.f);
 	const auto first_leg_plan = _rtl.routePlanForTest();
@@ -1410,8 +1409,8 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	ASSERT_TRUE(moved_plan.valid());
 	EXPECT_LT(get_distance_to_next_waypoint(moved_plan.join_position.lat, moved_plan.join_position.lon,
 						moved_join.lat, moved_join.lon), 0.1f);
-	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
-	EXPECT_FALSE(executor->isActive());
+	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
+	EXPECT_FALSE(_rtl.missionExecutorForTest()->isActive());
 }
 
 // A route retry after pending validation starts from the nominal mission direction,
@@ -1717,7 +1716,6 @@ TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
 	EXPECT_EQ(_rtl.routePlanForTest().vtol_transition_action, mission_route::VtolTransitionAction::kNone);
 
 	// Quadchute changes the flight mode, not the selected return route.
-	RtlBase *const follower = _rtl.missionExecutorForTest();
 	uORB::Publication<vtol_vehicle_status_s> vtol_pub{ORB_ID(vtol_vehicle_status)};
 	vtol_vehicle_status_s vtol_status{};
 	vtol_status.timestamp = hrt_absolute_time();
@@ -1727,7 +1725,7 @@ TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
 	ASSERT_TRUE(status_sub.copy(_navigator.get_vstatus()));
 	_rtl.on_active();
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_EQ(_rtl.missionExecutorForTest(), follower);
+	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 	vtol_status.fixed_wing_system_failure = false;
 	vtol_pub.publish(vtol_status);
@@ -1962,6 +1960,7 @@ TEST_F(RTLTest, RouteArrivalKeepsExecutorAndGoalAcrossSourceReplacement)
 	EXPECT_DOUBLE_EQ(triplet.current.lon, goal.lon);
 	EXPECT_FLOAT_EQ(triplet.current.alt, goal.alt);
 	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
+	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	EXPECT_FALSE(_rtl.directActiveForTest());
 	status_sub.update();
 	EXPECT_EQ(status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
