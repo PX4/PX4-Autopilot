@@ -99,7 +99,7 @@ The vehicle approaches these loiters at its current altitude, then changes altit
 VTOL transition commands belong to the preceding position waypoint in the uploaded mission.
 For example, `A → front transition → B → back transition → C` is flown in reverse as `C → B` in multicopter mode, then a front transition at `B`, followed by `B → A` in fixed-wing mode.
 The vehicle flies each leg in the mode used in the forward mission, even when travelling in reverse.
-A transition between the last waypoint and the mission `LAND` item is flown at the landing point, not at that waypoint.
+A back transition between the last waypoint and the mission `LAND` item is flown at the landing point, not at that waypoint.
 Before a front transition, it waits for any back transition to finish, holds its position and aligns towards the next route target.
 It advances the route after the transition completes.
 An ongoing front transition may finish when route-following Return is activated; direct fallback cancels it.
@@ -125,6 +125,7 @@ Landings at rally points and takeoff endpoints use [RTL_PLD_MD](../advanced_conf
 An uploaded mission landing command keeps its own landing and precision-landing settings.
 The destination descent and delay described above do not apply to it.
 As in Mission mode, a VTOL flying in fixed-wing mode back-transitions and lands vertically at a mission `LAND` item when [NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) is enabled (default).
+It does the same when the mission back-transitions before that `LAND` item.
 A VTOL arriving in fixed-wing mode can use the selected rally point's landing approach, then back-transitions and lands through the existing VTOL landing sequence.
 If arrival starts during a front transition, the vehicle still back-transitions before landing.
 An approach is retained even when Return starts in multicopter mode, but is only flown if the vehicle reaches the destination phase in fixed-wing mode.

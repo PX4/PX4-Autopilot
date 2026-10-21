@@ -1734,6 +1734,64 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, ForcedVtolLandingAtMissionLandGoa
 	EXPECT_NE(navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 }
 
+/** Executor with a Navigator built with NAV_FORCE_VT disabled. */
+class RtlMissionSafePointFollowNoForcedVtolTest : public NavigatorDatamanTestBase
+{
+protected:
+	// Set before the Navigator reads it, restored after the Navigator is destroyed.
+	struct ForcedVtolDisabled {
+		ForcedVtolDisabled()
+		{
+			const int32_t disabled = 0;
+			param_set_no_notification(param_find("NAV_FORCE_VT"), &disabled);
+		}
+
+		~ForcedVtolDisabled() { param_reset_no_notification(param_find("NAV_FORCE_VT")); }
+	} forced_vtol_disabled{};
+
+	Navigator navigator{};
+	RtlMissionSafePointFollowTestPeer follower{&navigator};
+
+	void SetUp() override
+	{
+		follower.setVehicleStatusForTest(true, true, false);
+		follower.setLandedForTest(false);
+		follower.setVtolFailureForTest(false);
+	}
+};
+
+// Without NAV_FORCE_VT a fixed-wing VTOL lands a plain LAND goal as fixed-wing, unless
+// the mission back-transitions before it: the route skips that transition.
+TEST_F(RtlMissionSafePointFollowNoForcedVtolTest, PlainLandGoalAfterMissionBackTransitionLandsVertically)
+{
+	for (const bool back_transition : {false, true}) {
+		SCOPED_TRACE(back_transition);
+		const std::vector<mission_item_s> items{
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			back_transition ? makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC)
+			: makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt - 50.f),
+		};
+		mission_route::RtlRoutePlan plan{};
+		plan.goal_type = mission_route::GoalType::kMissionLand;
+		plan.first_mission_item_index = 2;
+		plan.fly_direct_to_goal = true;
+		plan.join_position = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+		plan.goal_position = makePositionFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt - 50.f);
+		ASSERT_TRUE(plan.valid());
+
+		follower.loadTestMission(items);
+		follower.prepareActiveMissionForTest(44, 2);
+		follower.configurePlanForTest(plan, 2);
+		follower.setGlobalPositionForTest(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt));
+		follower.on_activation();
+
+		ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
+		EXPECT_EQ(follower.currentMissionItemForTest().nav_cmd, back_transition ? NAV_CMD_WAYPOINT : NAV_CMD_LAND);
+		EXPECT_EQ(static_cast<bool>(follower.currentMissionItemForTest().vtol_back_transition), back_transition);
+	}
+}
+
 // The first target can be reached over a jump edge whose VTOL state differs
 // from the ordinary segment entering the same target index.
 TEST_F(RtlMissionSafePointFollowNavigatorTest, FirstRouteTargetPreservesPlannerJumpTransitionDecision)
