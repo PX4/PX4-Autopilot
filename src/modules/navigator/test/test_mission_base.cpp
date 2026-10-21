@@ -140,14 +140,12 @@ public:
 	bool missionChecked() const { return _mission_check_state == MissionCheckState::Complete; }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	void setVehicleStatus(bool is_vtol, bool fixed_wing, bool in_transition_to_fw = false)
+	void setVehicleStatus(bool is_vtol, bool fixed_wing)
 	{
 		vehicle_status_s status{};
 		status.is_vtol = is_vtol;
 		status.vehicle_type = fixed_wing ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING
 				      : vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-		status.in_transition_mode = in_transition_to_fw;
-		status.in_transition_to_fw = in_transition_to_fw;
 		status.timestamp = hrt_absolute_time();
 		_vehicle_status_pub.publish(status);
 		_vehicle_status_sub.update();
@@ -167,7 +165,6 @@ public:
 	{
 		return getVtolStateAtMissionIndex(anchor_index);
 	}
-
 
 	VtolTransitionAction transitionForTarget(int32_t target_index, bool direction_reversed)
 	{
