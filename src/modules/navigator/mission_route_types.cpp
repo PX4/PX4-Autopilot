@@ -107,12 +107,12 @@ bool isTakeoffCmd(uint16_t nav_cmd)
 
 VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state, bool fw_like)
 {
-	// A back transition is missed when the target needs MC but the vehicle flies FW (or heads there).
+	// The target needs MC while the vehicle flies FW or transitions to it.
 	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && fw_like) {
 		return VtolTransitionAction::kBackTransition;
 	}
 
-	// A front transition is missed when the target needs FW but the vehicle flies MC (or heads there).
+	// The target needs FW while the vehicle flies MC or transitions back to it.
 	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !fw_like) {
 		return VtolTransitionAction::kFrontTransition;
 	}

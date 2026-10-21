@@ -49,7 +49,6 @@
 
 #include <px4_platform_common/defines.h>
 
-
 namespace mission_route
 {
 
@@ -164,7 +163,7 @@ VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state, boo
 
 /**
  * Decode a VTOL mode command. With before_transition, infer the mode before an explicit transition.
- * Returns true for a recognised command, retaining state if its target is invalid.
+ * Returns true for DO_VTOL_TRANSITION, and for VTOL_TAKEOFF without before_transition. An invalid target keeps state.
  */
 bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t &state, bool before_transition = false);
 
