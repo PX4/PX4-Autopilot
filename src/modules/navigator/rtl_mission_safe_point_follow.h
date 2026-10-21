@@ -86,6 +86,7 @@ private:
 
 	bool setNextMissionItem() override;
 	bool shouldReportMissionItemReached() const override;
+	bool shouldLandFrontTransitionAsFixedWing() const override { return true; }
 	/** @brief Publish the current join, follow, branch-off, or landing setpoints for the active RTL stage. */
 	void setActiveMissionItems() override;
 
