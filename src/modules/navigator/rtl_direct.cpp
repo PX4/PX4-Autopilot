@@ -192,7 +192,6 @@ void RtlDirect::_updateRtlState()
 	case RTLState::CLIMBING:
 	case RTLState::AVOID_GEOFENCE:
 		new_state = geofenceAvoidanceActive() ? RTLState::AVOID_GEOFENCE : RTLState::ARRIVAL;
-		_arrival.start(RtlArrival::Phase::Move);
 		break;
 
 	case RTLState::ARRIVAL: {
@@ -688,7 +687,7 @@ void RtlDirect::publish_rtl_direct_navigator_mission_item()
 	navigator_mission_item.sequence_current = static_cast<uint16_t>(_rtl_state);
 
 	if (_rtl_state == RTLState::ARRIVAL) {
-		// Retain the former move, descend and hold state numbers in logs.
+		// The move, descend and hold phases log as states 2, 3 and 4.
 		navigator_mission_item.sequence_current += static_cast<uint16_t>(_arrival.phase());
 	}
 

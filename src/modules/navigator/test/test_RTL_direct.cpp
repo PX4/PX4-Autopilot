@@ -87,7 +87,7 @@ protected:
 	static constexpr float kLoiterRadius = 60.f;
 	static constexpr float kDestinationYaw = 0.4f;
 
-	// navigator_mission_item.sequence_current is part of existing direct RTL logging.
+	// Direct RTL states as logged in navigator_mission_item.sequence_current.
 	static constexpr uint16_t kLogClimb = 0;
 	static constexpr uint16_t kLogMoveToApproach = 2;
 	static constexpr uint16_t kLogDescend = 3;
