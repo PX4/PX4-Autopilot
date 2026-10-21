@@ -400,9 +400,6 @@ bool ZEROONE_SCH16T::read_data()
 void ZEROONE_SCH16T::reset_chip()
 {
 	register_write(CTRL_RESET, SPI_SOFT_RESET);
-#if defined(SPI6_RESET)
-	SPI6_RESET(reset);
-#endif
 }
 
 bool ZEROONE_SCH16T::read_product_id()
