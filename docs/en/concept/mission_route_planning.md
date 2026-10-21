@@ -10,7 +10,8 @@ Enable smart rejoin with [MIS_ROUTE_JOIN](../advanced_config/parameter_reference
 Select route-following Return with [RTL_TYPE=7](../flight_modes/return.md#rtl_type_7).
 
 ::: warning
-The planner requires a complete mission from the [mission route cache](../advanced/mission_route_cache.md).
+Both features need firmware built with the [mission route cache](../advanced/mission_route_cache.md), and the whole mission must fit in it.
+SITL builds include it by default, but most flight controller builds do not; see [Parameters and Build Configuration](#parameters-and-build-configuration).
 [Direct fallback](#route-following-fallback) can leave the mission corridor and select a different destination using `RTL_TYPE=3` rules.
 Review the fallback conditions below before relying on the mission route as a return corridor.
 :::
@@ -41,6 +42,9 @@ When Mission mode is activated in flight with smart rejoin enabled, the vehicle:
 2. Flies straight to that point, changing altitude on the way.
    Unlike a resume without smart rejoin, it does not first climb in place to the mission altitude.
 3. Continues towards the mission end in the mission direction, accounting for any active loop as described below.
+
+Mission then continues from the first mission item after the branch-in point.
+As when you select a mission item, skipped items are not executed, but the speed, camera and gimbal settings up to that item are restored.
 
 If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection), the loop's repeat count is preserved:
 
@@ -81,6 +85,7 @@ With `RTL_TYPE=7`, Return uses the mission route as a return corridor:
 3. Join and follow the route in the selected direction, then fly to the destination.
 
 The takeoff endpoint is the position of the mission `TAKEOFF` or `VTOL_TAKEOFF` item, at Home altitude.
+It is only used when that item is the first position item of the mission and the Home altitude is valid.
 For fixed-wing and VTOL missions this item is the climb-out or transition point, not the launch position.
 
 [Route-skip shortcuts](#route-skip-shortcuts) may bypass the join and route when the vehicle is already near the destination or branch-off leg.
@@ -159,7 +164,7 @@ If that replan cannot be accepted, the same direct fallback applies.
 Once the destination arrival or landing sequence has begun, these changes do not replace it.
 
 If the fallback was caused by a loading cache, geofence or mission validation, Return retries route planning once these inputs are ready.
-It checks every two seconds, until the destination arrival or landing sequence starts.
+It checks every two seconds, until the fallback starts its descent or landing.
 Other planning failures are not retried.
 
 ## Point Projection
@@ -183,7 +188,7 @@ A projection is normally perpendicular to the point on a segment, but it is only
 This rule decides what happens at a waypoint, where two segments meet:
 
 - An interior projection, one that lands part-way along a segment, is always kept.
-- A projection that lands exactly on a waypoint (a corner) is kept only when the previous segment and the current segment both project onto that same shared corner.
+- A projection that lands exactly on a waypoint (a corner) is kept only at the end of the route, or when the previous segment and the current segment both project onto that same shared corner.
   This happens when two consecutive segments form a V-shape and the point is closest to the apex:
 
 ```text
@@ -299,6 +304,7 @@ The vehicle is flying north and deviates to a GoTo location that has two valid b
 Neither projection lies on the current segment, so each candidate is scored by summing its cross-track distance and the distance along the route to the last-flown segment.
 Take the candidate projected onto the east segment.
 Its score is the cross-track distance (166.95 m) plus the distance along the route back to the last-flown segment (the red lines).
+The distance labels in the image add up along this path, so the last label (541.02 m) is the score.
 The closer end of the last-flown segment is used, and the along-route distance is the sum of the straight lines between waypoints.
 The other candidate, projected onto the south segment, wins because its total distance is smaller.
 
@@ -308,7 +314,7 @@ The other candidate, projected onto the south segment, wins because its total di
 
 - Linear interpolation: by default the altitude is interpolated between the start and end waypoint altitudes of the segment (for example, rejoining on segment 2-3 interpolates between waypoint 2 and waypoint 3).
 - Special case (land): if the branch-in point falls on a land segment, the previous waypoint altitude is used.
-- Special case (short segments): if the segment is too short to interpolate reliably (such as [stacked waypoints](#stacked-waypoints)), the segment end waypoint altitude is used.
+- Special case (vertical segments): if both waypoints of the segment share the same latitude and longitude ([stacked waypoints](#stacked-waypoints)), the segment end waypoint altitude is used.
 - Special case (route ends): when the first item to fly is `LAND`, or `TAKEOFF` while flying the route in reverse, and the vehicle is already inside that item's horizontal acceptance radius, the join keeps the vehicle's current altitude.
   Both items sit at ground level, and without this rule a vehicle already descending onto them would first be sent back up to the approach altitude.
   Outside the acceptance radius the rules above apply as usual: a vehicle 30 m from a stacked takeoff with a 10 m acceptance radius rejoins at the stack's end altitude.
@@ -339,11 +345,11 @@ The cost is built from:
 
 - Along-route distance: along the route geometry from the vehicle projection to the safe-point projection (branch-off point), using straight lines between waypoints.
 - Branch-off leg: the straight-line distance from the safe-point projection to the safe point (the off-route leg flown after leaving the route).
-- U-turn penalty: for fixed-wing vehicles and VTOL vehicles in fixed-wing mode, an extra distance penalty is added when the path would require an immediate U-turn, so forward-flowing paths are preferred.
-  The U-turn is detected by comparing the vehicle's current velocity with its desired course: toward the branch-in point when far from the route, or along the selected route direction when close to it.
+- U-turn penalty: for fixed-wing vehicles and VTOL vehicles in fixed-wing mode or front transition, an extra distance penalty is added when the path would require an immediate U-turn, so forward-flowing paths are preferred.
+  The U-turn is detected by comparing the vehicle's current velocity with its desired course: towards the branch-in point when far from the route, or along the selected route direction when close to it.
   If the two are more than 90° apart, the penalty is applied.
   Set [RTL_FW_UTURN_PEN](../advanced_config/parameter_reference.md#RTL_FW_UTURN_PEN) to 0 to disable this penalty.
-  Multicopters and VTOL vehicles in hover are exempt, because they can turn on the spot.
+  Multicopters, VTOL vehicles in hover, and VTOL vehicles that join a route leg flown in multicopter mode are exempt, because they can turn on the spot.
 
 As the planner gathers the safe points to consider, it filters out the ones it cannot use:
 
@@ -357,14 +363,14 @@ Safe-point branch-off candidates on loop segments are more restricted:
 - If the vehicle is not itself flying a loop, safe-point projections on loop segments are skipped.
   This prevents a return from entering a mission loop just to reach a branch-off point.
 - If the vehicle and selected safe point project onto the same active loop segment, the return path may follow that loop edge to the branch-off point.
-- If the selected safe point is outside the active loop, the planner first chooses how to leave the loop (shortest overall path), then follows the normal route toward the selected branch-off point or fallback endpoint.
+- If the selected safe point is outside the active loop, the planner first chooses how to leave the loop (shortest overall path), then follows the normal route towards the selected branch-off point or fallback endpoint.
 
 ## Route-Skip Shortcuts
 
 After a destination has been selected, the vehicle can skip joining and following the route in these cases:
 
-- **Direct-to-safe-point**: if the vehicle is already within the direct acceptance radius of the selected safe point, go straight to it.
-- **Close-to-branch-leg**: if the vehicle is already close to the selected branch-off leg and at the branch-off altitude, continue straight toward the goal.
+- **Direct-to-safe-point**: if the vehicle is already horizontally within [NAV_ACC_RAD](../advanced_config/parameter_reference.md#NAV_ACC_RAD) of the selected safe point, go straight to it.
+- **Close-to-branch-leg**: if the vehicle is already close to the selected branch-off leg and at the branch-off altitude, continue straight towards the goal.
 - **Endpoint goal**: for a mission `LAND` or `TAKEOFF` goal, the route-ends rule of [Vehicle Projection](#vehicle-projection) Phase 3 applies.
   When that endpoint is the first item to fly and the vehicle is inside its acceptance radius, the Return skips route following and flies directly to it.
 
@@ -392,7 +398,8 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` must be greater than zero and large enough for the entire uploaded mission.
 The parameters above only exist in firmware built with a non-zero cache size.
 POSIX builds (SITL and Linux boards) default to 500 mission items and other boards to 0; `px4_fmu-v6c_visionTargetEstStatic` sets 300.
-To use it on a NuttX board, set the cache size in the board configuration and check that the RAM fits (56 bytes per item):
+To use it on a NuttX board, set the cache size in the board configuration and check that the RAM fits.
+The cache uses 56 bytes per item, and the Navigator task stack grows by about 3.8 KB in builds with the cache:
 
 ```ini
 CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=300
@@ -411,8 +418,7 @@ More rally points than fit in one batch require additional scans, increasing pla
 Increasing the batch size reduces the number of scans but uses more static RAM: 400 to 500 bytes per rally point, 13.7 KB at 32.
 
 Geofence checks use the same candidates and do not scan the mission again.
-A shared static buffer holds up to `min(32, 3 * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE)` segments per check, avoiding heap allocation and large stack buffers.
-Checking segments together lets them reuse the loaded fence geometry.
+They check up to `min(32, 3 * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE)` segments at a time, from one static buffer.
 
 For firmware builds with enough memory, all supported rally points can be checked in one scan:
 
