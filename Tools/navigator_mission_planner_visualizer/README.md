@@ -108,7 +108,7 @@ Under the map, **Planner trace** shows the planner's own debug output, which the
 **Unit test** turns the scenario and returned plan into a `TEST_F`:
 
 - Without fences, paste it into `src/modules/navigator/test/test_mission_route_planner.cpp`.
-- With fences, paste it into `src/modules/navigator/test/test_mission_route_geofence.cpp`. It loads the drawn fences and uses the real `GeofencePathChecker`. Like the CLI, it leaves Home latitude/longitude unset so the loader does not discard fences based on an invented Home position.
+- With fences, paste it into `src/modules/navigator/test/test_mission_route_geofence.cpp` and add `#include "mission_route_planner.h"` and `#include "support/mission_route_test_helpers.h"` to that file if they are missing. It loads the drawn fences and uses the real `GeofencePathChecker`. Like the CLI, it leaves Home latitude/longitude unset so the loader does not discard fences based on an invented Home position.
 
 The test asserts what the planner returned. Review the plan on the map first and describe the intent in the comment at the top; a test that merely records the current output is worth little.
 
