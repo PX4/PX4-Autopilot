@@ -66,9 +66,9 @@ A remote control (RC) radio system is required if you want to _manually_ control
 
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-- Spektrum/DSM receivers connect to the **Uart8** input port.
-- PPM receivers connect to the **RCin** input pin.
-- SBUS receivers connect to the **S.Bin** input port.
+- SBUS receivers connect to the **S.Bin** port or the **RCin** pin.
+- PPM receivers connect to the **RCin** pin.
+- CRSF receivers connect to the **Uart8** port.
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
 
