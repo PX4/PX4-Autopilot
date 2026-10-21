@@ -293,7 +293,6 @@ mission_route::VtolTransitionAction RtlMissionSafePointFollow::allowedRouteTrans
 
 void RtlMissionSafePointFollow::on_active()
 {
-	_vehicle_status_sub.update();
 	_vtol_status_sub.update();
 
 	MissionBase::on_active();
@@ -318,7 +317,6 @@ void RtlMissionSafePointFollow::advanceRouteTarget()
 	}
 
 	enterGoalStage();
-	_state.advance_route_after_transition = false;
 	PX4_DEBUG("RTL %sroute complete, straight to goal", _plan.direction_reversed ? "reverse " : "");
 }
 
@@ -401,9 +399,7 @@ void RtlMissionSafePointFollow::setGoalLandMissionItem(mission_item_s &mission_i
 	mission_item.nav_cmd = _vehicle_status_sub.get().is_vtol ? NAV_CMD_VTOL_LAND : NAV_CMD_LAND;
 	mission_item.lat = _plan.goal_position.lat;
 	mission_item.lon = _plan.goal_position.lon;
-
 	mission_item.altitude = _plan.goal_position.alt;
-
 	mission_item.altitude_is_relative = false;
 	mission_item.yaw = NAN;
 	mission_item.time_inside = 0.f;
@@ -861,7 +857,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 			// Walk the route from the current target to the branch-off or endpoint.
 			int32_t walk_index = inactive ? _plan.first_mission_item_index : _mission.current_seq;
 
-			if (!inactive && stage != Stage::FollowRoute && _state.advance_route_after_transition) {
+			if (_state.advance_route_after_transition) {
 				// The reverse waypoint was reached before this transition was armed.
 				findAdjacentRouteIndex(_mission.current_seq, walk_index);
 			}
