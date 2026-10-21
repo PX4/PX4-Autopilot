@@ -683,7 +683,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 
 	bool needs_vtol_landing = _vehicle_status_sub.get().is_vtol &&
 				  (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-				   || _vehicle_status_sub.get().in_transition_to_fw) &&
+				   || (_vehicle_status_sub.get().in_transition_to_fw && shouldLandFrontTransitionAsFixedWing())) &&
 				  (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) &&
 				  !_land_detected_sub.get().landed;
 
