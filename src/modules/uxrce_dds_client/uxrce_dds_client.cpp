@@ -670,17 +670,40 @@ void UxrceddsClient::run()
 
 		hrt_abstime last_sync_session = 0;
 		int poll_error_counter = 0;
+#if defined(__PX4_NUTTX)
+		bool transport_poll_error = false;
+#endif
 		resetConnectivityCounters();
 
 		while (!should_exit() && _connected) {
 			perf_begin(_loop_perf);
 			perf_count(_loop_interval_perf);
 
-			// Keep loop latency low without busy-looping:
-			// - Use a short uORB poll timeout (instead of 10ms)
-			// - If transport has pending data, don't block in uORB poll at all.
-			int orb_poll_timeout_ms = 1;
+			// The last fds slot is reserved for the transport fd (see SendTopicsSubs)
+			const unsigned num_orb_fds = (sizeof(_subs->fds) / sizeof(_subs->fds[0])) - 1;
+			unsigned num_poll_fds = num_orb_fds;
+			int poll_timeout_ms = 1;
 
+#if defined(__PX4_NUTTX)
+
+			// On NuttX the transport fd is a regular file descriptor: poll it together with the
+			// uORB subscriptions so the loop only wakes up on topic updates or incoming agent data,
+			// instead of spinning on a 1ms timeout. The timeout is only a fallback for housekeeping.
+			// If the transport fd reported an error on the previous iteration (e.g. POLLHUP on a
+			// disconnected USB link), skip it once and wait on uORB with the short timeout instead,
+			// so a persistent error can't make poll() return immediately and spin the loop.
+			if (_fd >= 0 && !transport_poll_error) {
+				_subs->fds[num_orb_fds].fd = _fd;
+				_subs->fds[num_orb_fds].events = POLLIN;
+				_subs->fds[num_orb_fds].revents = 0;
+				num_poll_fds = num_orb_fds + 1;
+				poll_timeout_ms = 10;
+			}
+
+#else
+
+			// px4_poll() on POSIX only handles uORB fds: keep a short timeout and
+			// don't block in uORB poll at all if the transport has pending data.
 			if (_fd >= 0) {
 				struct pollfd transport_pollfd {};
 				transport_pollfd.fd = _fd;
@@ -688,12 +711,19 @@ void UxrceddsClient::run()
 				const int transport_poll = poll(&transport_pollfd, 1, 0);
 
 				if (transport_poll > 0) {
-					orb_poll_timeout_ms = 0;
+					poll_timeout_ms = 0;
 				}
 			}
 
-			/* Wait for topic updates */
-			int poll = px4_poll(_subs->fds, (sizeof(_subs->fds) / sizeof(_subs->fds[0])), orb_poll_timeout_ms);
+#endif
+
+			/* Wait for topic updates (and incoming agent data on NuttX) */
+			int poll = px4_poll(_subs->fds, num_poll_fds, poll_timeout_ms);
+
+#if defined(__PX4_NUTTX)
+			transport_poll_error = (num_poll_fds > num_orb_fds)
+					       && (_subs->fds[num_orb_fds].revents & (POLLERR | POLLHUP | POLLNVAL));
+#endif
 
 			/* Handle the poll results */
 			if (poll > 0) {
