@@ -690,6 +690,45 @@ TEST_F(MissionRouteJoinTest, TransitionWaitingForBackTransitionIsReportedAsCurre
 	EXPECT_EQ(_navigator.get_mission_result()->seq_current, 1);
 }
 
+TEST_F(MissionRouteJoinTest, FrontTransitionAfterBackTransitionAlignsWhereTheVehicleIs)
+{
+	// The back transition ends past the waypoint reached during it; alignment must not wait for a return to it.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, false, true);
+	publishGlobalPosition(position);
+	publishLocalPosition();
+	publishLandDetected(false);
+	publishHomePosition(position);
+	primeNavigatorState();
+	prepareExecution(mission, {makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+				   makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW), target
+				  }, 142);
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
+
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
+	const auto stop = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 60.f, kAlt);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(stop);
+	publishLocalPosition(get_bearing_to_next_waypoint(stop.lat, stop.lon, target.lat, target.lon));
+	primeNavigatorState();
+	mission.on_active();
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+	EXPECT_FALSE(command_sub.updated());
+
+	mission.on_active();
+	ASSERT_TRUE(command_sub.update(&command));
+	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+}
+
 // A rejoin skipped while the cache loads is reported; once the cache is ready the vehicle joins the
 // leg it is next to.
 TEST_F(MissionRouteJoinTest, MissionSmartRejoinWaitsForCacheThenJoinsNearestLeg)
