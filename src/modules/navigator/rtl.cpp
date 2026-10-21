@@ -279,9 +279,11 @@ void RTL::on_active()
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
 		// Retry route planning once the inputs that forced the fallback are ready.
+		// RtlDirect::isLanding() is false again after touchdown, so also stop once landed.
 		if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT
 		    && _rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
 		    && !isLanding()
+		    && !_navigator->get_land_detected()->landed
 		    && hasValidMission()
 		    && _route_safe_point.supportsVehicle(_vehicle_status_sub.get())
 		    && _route_safe_point.retryReady(_mission_sub.get())) {
