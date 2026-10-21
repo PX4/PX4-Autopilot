@@ -198,7 +198,7 @@ MavlinkFTP::get_size()
 	}
 }
 
-uint8_t
+uint32_t
 MavlinkFTP::_getServerSystemId()
 {
 	return _mavlink.get_system_id();
@@ -225,10 +225,12 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 		mavlink_file_transfer_protocol_t ftp_request;
 		mavlink_msg_file_transfer_protocol_decode(msg, &ftp_request);
 
-		PX4_DEBUG("FTP: received ftp protocol message target_system: %d target_component: %d, seq: %d",
-			  ftp_request.target_system, ftp_request.target_component, msg->seq);
+		const uint32_t target_system = mavlink_target_system(msg, ftp_request.target_system);
 
-		if ((ftp_request.target_system == _getServerSystemId() || ftp_request.target_system == 0) &&
+		PX4_DEBUG("FTP: received ftp protocol message target_system: %" PRIu32 " target_component: %d, seq: %d",
+			  target_system, ftp_request.target_component, msg->seq);
+
+		if ((target_system == _getServerSystemId() || target_system == 0) &&
 		    (ftp_request.target_component == _getServerComponentId() || ftp_request.target_component == 0)) {
 			_process_request(&ftp_request, msg->sysid, msg->compid);
 		}
@@ -239,7 +241,7 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 void
 MavlinkFTP::_process_request(
 	mavlink_file_transfer_protocol_t *ftp_req,
-	uint8_t target_system_id,
+	uint32_t target_system_id,
 	uint8_t target_comp_id)
 {
 	bool stream_send = false;
@@ -263,7 +265,7 @@ MavlinkFTP::_process_request(
 		const PayloadHeader *last_payload = reinterpret_cast<const PayloadHeader *>(&last_reply->payload[0]);
 
 		if (payload->seq_number + 1 == last_payload->seq_number
-		    && last_reply->target_system == target_system_id
+		    && _last_reply_target_system == target_system_id
 		    && last_reply->target_component == target_comp_id) {
 			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
 			// resent the request. The request buffer is no longer needed, so expand the compact cache into it;
@@ -271,7 +273,7 @@ MavlinkFTP::_process_request(
 			memset(ftp_req, 0, sizeof(*ftp_req));
 			memcpy(ftp_req, _last_reply, sizeof(_last_reply));
 			_mavlink.lock_send();
-			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), ftp_req);
+			mavlink_msg_send_struct_target(_mavlink.get_channel(), FILE_TRANSFER_PROTOCOL, ftp_req, target_system_id);
 			_mavlink.unlock_send();
 			return;
 		}
@@ -395,10 +397,9 @@ out:
 	// Stream download replies are sent through mavlink stream mechanism. Unless we need to Nack.
 	if (!stream_send || errorCode != kErrNone) {
 		// respond to the request
-		ftp_req->target_system = target_system_id;
 		ftp_req->target_network = 0;
 		ftp_req->target_component = target_comp_id;
-		_reply(ftp_req);
+		_reply(ftp_req, target_system_id);
 	}
 }
 
@@ -409,7 +410,7 @@ void MavlinkFTP::_ensure_buffers_exist()
 
 /// @brief Sends the specified FTP response message out through mavlink
 void
-MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
+MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_system_id)
 {
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 
@@ -431,6 +432,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	    && !(payload->opcode == kRspNak && payload->data[0] == kErrNoSessionsAvailable)) {
 		_last_reply_valid = true;
 		memcpy(_last_reply, ftp_req, sizeof(_last_reply));
+		_last_reply_target_system = target_system_id;
 	}
 
 	PX4_DEBUG("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
@@ -438,7 +440,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	// Called from the receiver thread; the per-channel mavlink_status global is
 	// also written by the sending task_main thread, so serialize via lock_send().
 	_mavlink.lock_send();
-	mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), ftp_req);
+	mavlink_msg_send_struct_target(_mavlink.get_channel(), FILE_TRANSFER_PROTOCOL, ftp_req, target_system_id);
 	_mavlink.unlock_send();
 }
 void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
@@ -754,7 +756,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 /// @brief Responds to a Stream command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id)
+MavlinkFTP::_workBurst(PayloadHeader *payload, uint32_t target_system_id, uint8_t target_component_id)
 {
 	if ((payload->session != 0) || !_session_open()) {
 		PX4_DEBUG("_workBurst: no session or no fd");
@@ -1323,10 +1325,9 @@ void MavlinkFTP::send()
 			}
 		}
 
-		ftp_msg.target_system = _session_info.stream_target_system_id;
 		ftp_msg.target_network = 0;
 		ftp_msg.target_component = _session_info.stream_target_component_id;
-		_reply(&ftp_msg);
+		_reply(&ftp_msg, _session_info.stream_target_system_id);
 
 		// Streaming a burst is activity: without this the session is torn down
 		// from under a burst that runs longer than the inactivity timeout, which

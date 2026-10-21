@@ -145,7 +145,7 @@ public:
 	static bool serial_instance_exists(const char *device_name, Mavlink *self);
 
 	static void forward_message(const mavlink_message_t *msg, Mavlink *self);
-	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
+	static bool component_was_seen(uint32_t system_id, int component_id, Mavlink &self);
 
 	bool check_events() const { return _should_check_events.load(); }
 	void check_events_enable() { _should_check_events.store(true); }
@@ -159,7 +159,7 @@ public:
 
 	int get_uart_fd() const { return _uart_fd; }
 
-	int get_system_id() const { return mavlink_system.sysid; }
+	uint32_t get_system_id() const { return mavlink_system.sysid; }
 	int get_component_id() const { return mavlink_system.compid; }
 
 	const char *_device_name{DEFAULT_DEVICE_NAME};
@@ -496,7 +496,7 @@ public:
 
 	/** get ulog streaming if active, nullptr otherwise */
 	MavlinkULog		*get_ulog_streaming() { return _mavlink_ulog; }
-	void			try_start_ulog_streaming(uint8_t target_system, uint8_t target_component)
+	void			try_start_ulog_streaming(uint32_t target_system, uint8_t target_component)
 	{
 		if (_mavlink_ulog) { return; }
 
