@@ -36,7 +36,8 @@
  *
  * RTL executor that follows the uploaded mission route toward a safe-point
  * branch-off, then leaves the route to land at the chosen safe point.
- * Falls back to the closest mission endpoint when no safe point is available.
+ * Without a usable safe point it returns to the mission landing or takeoff,
+ * whichever is cheaper along the route.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -98,8 +99,8 @@ void RtlMissionSafePointFollow::configureRoute(const mission_route::RtlRoutePlan
 {
 	_plan = plan;
 	_goal_land_approach = goal_land_approach;
-	// Keep the endpoint command while landing helpers temporarily replace _mission_item,
-	// and after the route source may be replaced during the committed landing stage.
+	// Copy the uploaded landing: handleLanding() rewrites _mission_item, and the mission
+	// may be replaced once the landing is committed.
 	_goal_mission_land_item_valid = goalIsMissionLanding()
 					&& loadMissionItemFromCache(_mission.land_index, _goal_mission_land_item)
 					&& mission_route::isLandingCmd(_goal_mission_land_item.nav_cmd);
@@ -862,7 +863,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 				findAdjacentRouteIndex(_mission.current_seq, walk_index);
 			}
 
-			// One pass over the mission instead of a lookback per VTOL route target.
+			// Resolve the VTOL state of every mission index in one pass.
 			static uint8_t vtol_states[MissionRouteCache::kMaxFullMissionCacheSize];
 			const bool vtol_states_valid = _vehicle_status_sub.get().is_vtol
 						       && getVtolStatesForMission(vtol_states, MissionRouteCache::kMaxFullMissionCacheSize);
