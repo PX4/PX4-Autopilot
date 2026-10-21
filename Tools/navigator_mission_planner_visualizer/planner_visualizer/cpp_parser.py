@@ -311,13 +311,12 @@ def _fence(inclusion: bool, vertices, radius=None) -> Optional[Fence]:
 
 
 def _coordinate_literal(expr: str, constants: Dict[str, float]):
-    """Two or three numeric components in braces; altitude is unused by fences."""
-    match = re.fullmatch(r"(?:Mission::LatLonAlt\s*)?\{([^{}]*)\}", expr.strip())
+    """A {north, east} offset, as passed to the geofence fixture helpers."""
+    match = re.fullmatch(r"\{([^{}]*)\}", expr.strip())
     if match is None:
         return None
-    args = _split_args(match.group(1))
-    values = [resolve_number(arg, constants) for arg in args[:2]]
-    return tuple(values) if len(args) in (2, 3) and None not in values else None
+    values = [resolve_number(arg, constants) for arg in _split_args(match.group(1))]
+    return tuple(values) if len(values) == 2 and None not in values else None
 
 
 def _parse_fences(src: str, constants: Dict[str, float]) -> List[Fence]:
