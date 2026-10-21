@@ -184,8 +184,8 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	// As for a user-selected index, MissionBase::on_activation() must not rewind to the paused leg.
 	_inactivation_index = -1;
 
-	// In nominal flight, this means the selected landing is already within acceptance radius.
-	// As in route Return, execute the landing directly instead of restoring the approach's VTOL state.
+	// The selected landing is within the acceptance radius: land directly, as route Return does,
+	// instead of restoring the approach's VTOL state.
 	if (join_plan.use_current_altitude) {
 		return false;
 	}
@@ -521,7 +521,7 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		_mission_item.yaw = NAN;
 	}
 
-	/* Keep the takeoff item for alignment and the later decision to fly its waypoint. */
+	/* VTOL takeoff climb done: align towards the takeoff waypoint, then transition to fixed-wing */
 	if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
 	    && _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB
 	    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
