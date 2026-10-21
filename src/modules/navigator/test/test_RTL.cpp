@@ -1725,8 +1725,6 @@ TEST_F(RTLTest, RouteSafePointExecutorInitFailureUsesDirectFallbackSelection)
 }
 #endif
 
-// WHY: No land point means no usable approach bearing.
-// WHAT: The chooser should return an invalid loiter.
 TEST_F(RTLTest, MissionFastKeepsVtolInMulticopterMode)
 {
 	// A VTOL flying in multicopter mode continues the mission as a multicopter.
@@ -1797,9 +1795,11 @@ TEST_F(RTLTest, MissionFastReverseKeepsVtolInMulticopterMode)
 	EXPECT_EQ(mission_fast_reverse.activeNavCommand(), NAV_CMD_WAYPOINT);
 }
 
+// WHY: No land point means no usable approach bearing.
+// WHAT: The chooser should return an invalid loiter.
 TEST(RtlLandingApproachTest, RequiresLandLocation)
 {
-	// A valid loiter needs its associated land point.
+	// GIVEN: A valid loiter and no land point.
 	const PositionYawSetpoint north_approach = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 20.f);
 	land_approaches_s vtol_land_approaches{};
 	vtol_land_approaches.approaches[0] = makeLoiterPoint(north_approach);
