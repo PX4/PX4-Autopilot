@@ -471,6 +471,37 @@ TEST(TECSControlTest, UpdateUsesDirectHeightRateSetpoint)
 	EXPECT_FLOAT_EQ(control.getDebugOutput().altitude_rate_control, 2.f);
 }
 
+// A pure setpoint step that the plant tracks exactly must not produce a feedback action: the throttle moves by
+// the feedforward amount only and the integrator stays at zero. Filtering the energy rate estimate instead of
+// the error would show the step as a lagged phantom error for a few FW_T_STE_R_TC.
+TEST(TECSControlTest, ThrottleFeedforwardOnlyOnTrackedSetpointStep)
+{
+	const TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+
+	TECSControl control;
+	control.initialize(makeSetpoint(), makeInput(), param, flag);
+	EXPECT_FLOAT_EQ(control.getThrottleSetpoint(), param.throttle_trim);
+
+	// Climb rate step, flown instantly by the plant: the energy rate error is zero at every step
+	constexpr float climb_rate = 2.f;
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_rate_setpoint_direct = climb_rate;
+	TECSControl::Input input = makeInput();
+	input.altitude_rate = climb_rate;
+
+	const float throttle_feedforward = param.throttle_trim + climb_rate / param.max_climb_rate *
+					   (param.throttle_max - param.throttle_trim);
+
+	for (int i = 0; i < 100; i++) {
+		input.altitude += climb_rate * kDt;
+		control.update(kDt, setpoint, input, param, flag);
+
+		EXPECT_NEAR(control.getThrottleSetpoint(), throttle_feedforward, 1e-5f) << "update " << i;
+		EXPECT_FLOAT_EQ(control.getDebugOutput().throttle_integrator, 0.f) << "update " << i;
+	}
+}
+
 // Once the pitch command saturates, the pitch integrator must not wind up further.
 TEST(TECSControlTest, PitchIntegratorDoesNotWindUpAtPitchLimit)
 {
