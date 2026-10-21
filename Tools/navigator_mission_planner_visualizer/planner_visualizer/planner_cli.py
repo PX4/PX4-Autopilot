@@ -278,9 +278,12 @@ def stale_sources(root: Path, binary: Path) -> List[str]:
 
 
 def run(binary: Path, scenario: str, timeout_s: float = 20.0) -> PlanResult:
-    completed = subprocess.run(
-        [str(binary)], input=scenario, capture_output=True, text=True, timeout=timeout_s, check=False
-    )
+    try:
+        completed = subprocess.run(
+            [str(binary)], input=scenario, capture_output=True, text=True, timeout=timeout_s, check=False
+        )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(f"{binary.name} did not finish within {timeout_s:g} s") from error
     if completed.returncode != 0:
         raise RuntimeError(
             f"{binary.name} exited with {completed.returncode}: {completed.stderr.strip() or completed.stdout.strip()}"

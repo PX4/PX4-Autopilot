@@ -322,6 +322,12 @@ class BinaryTest(unittest.TestCase):
             planner_cli.run(self.binary, "ACTION RTL\n")
         self.assertIn("no VEHICLE line", str(raised.exception))
 
+    def test_run_reports_a_hanging_binary(self):
+        self.binary.write_text("#!/bin/sh\nexec sleep 10\n")
+        self.binary.chmod(self.binary.stat().st_mode | stat.S_IXUSR)
+        with self.assertRaisesRegex(RuntimeError, "did not finish within 0.2 s"):
+            planner_cli.run(self.binary, "ACTION RTL\n", timeout_s=0.2)
+
 
 class RealGeofenceIntegrationTest(unittest.TestCase):
     """Exercise the production fence loader and checker when the CLI has been built."""
