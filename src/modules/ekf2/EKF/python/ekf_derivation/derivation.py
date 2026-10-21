@@ -409,7 +409,7 @@ def predict_wheel_vel(
 def compute_wheel_vel_innov_var_and_h(
         state: VState,
         P: MTangent,
-        R: sf.V3,
+        R: sf.V2,
 ) -> (sf.V2, VTangent, VTangent):
     state_sym = vstate_to_state(state)
     # Use the exact same logic as compute_body_vel_innov_var_h

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <matrix/Core>
+#include <matrix/math.hpp>
 
 namespace sym {
 
@@ -32,21 +32,79 @@ void ComputeWheelVelInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
                                  matrix::Matrix<Scalar, 2, 1>* const innov_var = nullptr,
                                  matrix::Matrix<Scalar, 24, 1>* const Hx = nullptr,
                                  matrix::Matrix<Scalar, 24, 1>* const Hy = nullptr) {
-  // Total ops: 2
-
-  // Unused inputs
-  (void)state;
+  // Total ops: 255
 
   // Input arrays
 
-  // Intermediate terms (0)
+  // Intermediate terms (37)
+  const Scalar _tmp0 = 2 * state(1, 0);
+  const Scalar _tmp1 = 2 * state(0, 0);
+  const Scalar _tmp2 = _tmp0 * state(3, 0) - _tmp1 * state(2, 0);
+  const Scalar _tmp3 = 4 * state(4, 0);
+  const Scalar _tmp4 = _tmp0 * state(6, 0);
+  const Scalar _tmp5 = _tmp1 * state(5, 0) - _tmp3 * state(3, 0) + _tmp4;
+  const Scalar _tmp6 = (Scalar(1) / Scalar(2)) * state(0, 0);
+  const Scalar _tmp7 = _tmp1 * state(6, 0);
+  const Scalar _tmp8 = _tmp0 * state(5, 0) - _tmp3 * state(2, 0) - _tmp7;
+  const Scalar _tmp9 = (Scalar(1) / Scalar(2)) * state(1, 0);
+  const Scalar _tmp10 = 2 * state(2, 0);
+  const Scalar _tmp11 = 2 * state(3, 0);
+  const Scalar _tmp12 = _tmp11 * state(6, 0);
+  const Scalar _tmp13 = _tmp10 * state(5, 0) + _tmp12;
+  const Scalar _tmp14 = (Scalar(1) / Scalar(2)) * state(2, 0);
+  const Scalar _tmp15 = _tmp10 * state(6, 0);
+  const Scalar _tmp16 = _tmp11 * state(5, 0) - _tmp15;
+  const Scalar _tmp17 = (Scalar(1) / Scalar(2)) * state(3, 0);
+  const Scalar _tmp18 = -_tmp13 * _tmp14 - _tmp16 * _tmp17 + _tmp5 * _tmp6 + _tmp8 * _tmp9;
+  const Scalar _tmp19 = _tmp13 * _tmp6 + _tmp14 * _tmp5 - _tmp16 * _tmp9 - _tmp17 * _tmp8;
+  const Scalar _tmp20 = _tmp13 * _tmp17 - _tmp14 * _tmp16 - _tmp5 * _tmp9 + _tmp6 * _tmp8;
+  const Scalar _tmp21 = _tmp0 * state(2, 0);
+  const Scalar _tmp22 = _tmp1 * state(3, 0);
+  const Scalar _tmp23 = _tmp21 + _tmp22;
+  const Scalar _tmp24 = 1 - 2 * std::pow(state(3, 0), Scalar(2));
+  const Scalar _tmp25 = _tmp24 - 2 * std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp26 = _tmp1 * state(1, 0) + _tmp11 * state(2, 0);
+  const Scalar _tmp27 = 4 * state(5, 0);
+  const Scalar _tmp28 = -_tmp1 * state(4, 0) + _tmp15 - _tmp27 * state(3, 0);
+  const Scalar _tmp29 = _tmp10 * state(4, 0) - _tmp27 * state(1, 0) + _tmp7;
+  const Scalar _tmp30 = -_tmp11 * state(4, 0) + _tmp4;
+  const Scalar _tmp31 = _tmp0 * state(4, 0) + _tmp12;
+  const Scalar _tmp32 = _tmp14 * _tmp28 - _tmp17 * _tmp31 + _tmp29 * _tmp6 - _tmp30 * _tmp9;
+  const Scalar _tmp33 = -_tmp14 * _tmp30 + _tmp17 * _tmp29 - _tmp28 * _tmp9 + _tmp31 * _tmp6;
+  const Scalar _tmp34 = -_tmp14 * _tmp29 - _tmp17 * _tmp30 + _tmp28 * _tmp6 + _tmp31 * _tmp9;
+  const Scalar _tmp35 = _tmp21 - _tmp22;
+  const Scalar _tmp36 = _tmp24 - 2 * std::pow(state(1, 0), Scalar(2));
 
   // Output terms (3)
   if (innov_var != nullptr) {
     matrix::Matrix<Scalar, 2, 1>& _innov_var = (*innov_var);
 
-    _innov_var(0, 0) = P(3, 3) + R(0, 0);
-    _innov_var(1, 0) = P(4, 4) + R(1, 0);
+    _innov_var(0, 0) = R(0, 0) +
+                       _tmp18 * (P(0, 2) * _tmp19 + P(1, 2) * _tmp20 + P(2, 2) * _tmp18 +
+                                 P(3, 2) * _tmp25 + P(4, 2) * _tmp23 + P(5, 2) * _tmp2) +
+                       _tmp19 * (P(0, 0) * _tmp19 + P(1, 0) * _tmp20 + P(2, 0) * _tmp18 +
+                                 P(3, 0) * _tmp25 + P(4, 0) * _tmp23 + P(5, 0) * _tmp2) +
+                       _tmp2 * (P(0, 5) * _tmp19 + P(1, 5) * _tmp20 + P(2, 5) * _tmp18 +
+                                P(3, 5) * _tmp25 + P(4, 5) * _tmp23 + P(5, 5) * _tmp2) +
+                       _tmp20 * (P(0, 1) * _tmp19 + P(1, 1) * _tmp20 + P(2, 1) * _tmp18 +
+                                 P(3, 1) * _tmp25 + P(4, 1) * _tmp23 + P(5, 1) * _tmp2) +
+                       _tmp23 * (P(0, 4) * _tmp19 + P(1, 4) * _tmp20 + P(2, 4) * _tmp18 +
+                                 P(3, 4) * _tmp25 + P(4, 4) * _tmp23 + P(5, 4) * _tmp2) +
+                       _tmp25 * (P(0, 3) * _tmp19 + P(1, 3) * _tmp20 + P(2, 3) * _tmp18 +
+                                 P(3, 3) * _tmp25 + P(4, 3) * _tmp23 + P(5, 3) * _tmp2);
+    _innov_var(1, 0) = R(1, 0) +
+                       _tmp26 * (P(0, 5) * _tmp32 + P(1, 5) * _tmp33 + P(2, 5) * _tmp34 +
+                                 P(3, 5) * _tmp35 + P(4, 5) * _tmp36 + P(5, 5) * _tmp26) +
+                       _tmp32 * (P(0, 0) * _tmp32 + P(1, 0) * _tmp33 + P(2, 0) * _tmp34 +
+                                 P(3, 0) * _tmp35 + P(4, 0) * _tmp36 + P(5, 0) * _tmp26) +
+                       _tmp33 * (P(0, 1) * _tmp32 + P(1, 1) * _tmp33 + P(2, 1) * _tmp34 +
+                                 P(3, 1) * _tmp35 + P(4, 1) * _tmp36 + P(5, 1) * _tmp26) +
+                       _tmp34 * (P(0, 2) * _tmp32 + P(1, 2) * _tmp33 + P(2, 2) * _tmp34 +
+                                 P(3, 2) * _tmp35 + P(4, 2) * _tmp36 + P(5, 2) * _tmp26) +
+                       _tmp35 * (P(0, 3) * _tmp32 + P(1, 3) * _tmp33 + P(2, 3) * _tmp34 +
+                                 P(3, 3) * _tmp35 + P(4, 3) * _tmp36 + P(5, 3) * _tmp26) +
+                       _tmp36 * (P(0, 4) * _tmp32 + P(1, 4) * _tmp33 + P(2, 4) * _tmp34 +
+                                 P(3, 4) * _tmp35 + P(4, 4) * _tmp36 + P(5, 4) * _tmp26);
   }
 
   if (Hx != nullptr) {
@@ -54,7 +112,12 @@ void ComputeWheelVelInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
 
     _hx.setZero();
 
-    _hx(3, 0) = 1;
+    _hx(0, 0) = _tmp19;
+    _hx(1, 0) = _tmp20;
+    _hx(2, 0) = _tmp18;
+    _hx(3, 0) = _tmp25;
+    _hx(4, 0) = _tmp23;
+    _hx(5, 0) = _tmp2;
   }
 
   if (Hy != nullptr) {
@@ -62,7 +125,12 @@ void ComputeWheelVelInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
 
     _hy.setZero();
 
-    _hy(4, 0) = 1;
+    _hy(0, 0) = _tmp32;
+    _hy(1, 0) = _tmp33;
+    _hy(2, 0) = _tmp34;
+    _hy(3, 0) = _tmp35;
+    _hy(4, 0) = _tmp36;
+    _hy(5, 0) = _tmp26;
   }
 }  // NOLINT(readability/fn_size)
 
