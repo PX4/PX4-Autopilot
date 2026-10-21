@@ -1128,15 +1128,17 @@ TEST_F(FailsafeTest, BatteryFailsafeUsesLowBatActParam)
 	static constexpr uint8_t kCritical = battery_status_s::WARNING_CRITICAL;
 	static constexpr uint8_t kEmergency = battery_status_s::WARNING_EMERGENCY;
 
-	// Remaining flight time low: only the Smart Return options return, all others warn
+	// Remaining flight time low: only the distance-aware return options return, all others warn
 	EXPECT_EQ(selectedActionFor(0, kNone, true), FailsafeBase::Action::Warn); // Warning
 	EXPECT_EQ(selectedActionFor(2, kNone, true), FailsafeBase::Action::Warn); // Land mode
-	EXPECT_EQ(selectedActionFor(3, kNone, true), FailsafeBase::Action::Warn); // Return at critical, land at emergency
-	EXPECT_EQ(selectedActionFor(4, kNone, true), FailsafeBase::Action::Warn); // Return at critical, terminate at emergency
-	EXPECT_EQ(selectedActionFor(5, kNone, true), FailsafeBase::Action::RTL); // Smart Return, return at critical, land at emergency
-	EXPECT_EQ(selectedActionFor(6, kNone, true), FailsafeBase::Action::RTL); // Smart Return, return at critical, terminate at emergency
+	EXPECT_EQ(selectedActionFor(3, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level land
+	EXPECT_EQ(selectedActionFor(4, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level terminate
+	// Distance-aware return, Critical level return, Emergency level land
+	EXPECT_EQ(selectedActionFor(5, kNone, true), FailsafeBase::Action::RTL);
+	// Distance-aware return, Critical level return, Emergency level terminate
+	EXPECT_EQ(selectedActionFor(6, kNone, true), FailsafeBase::Action::RTL);
 
-	// Battery levels: the Smart Return options act like the ones without it
+	// Battery levels: the distance-aware return options act like the ones without it
 	EXPECT_EQ(selectedActionFor(3, kCritical, false), FailsafeBase::Action::RTL);
 	EXPECT_EQ(selectedActionFor(5, kCritical, false), FailsafeBase::Action::RTL);
 	EXPECT_EQ(selectedActionFor(4, kCritical, false), FailsafeBase::Action::RTL);

@@ -145,21 +145,27 @@ parameters:
       default: 0
     COM_LOW_BAT_ACT:
       description:
-        short: Battery and Smart Return failsafe mode
+        short: Battery failsafe mode
         long: |-
-          Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR
-          for definition of battery states.
-          Smart Return: Return mode when the estimated remaining flight time is only just enough to return.
+          Action the system takes when a battery level is reached.
+
+          Critical level: the battery state of charge drops below BAT_CRIT_THR.
+
+          Emergency level: the battery state of charge drops below BAT_EMERGEN_THR.
+
+          Distance-aware return: the battery has only just enough flight time left to return.
+          PX4 estimates the time needed to fly the Return path from the current position plus a safety margin (time x RTL_TIME_FACTOR + RTL_TIME_MARGIN).
+          Return mode is engaged once this time reaches the remaining flight time of the battery.
           It needs a remaining flight time estimate, e.g. from BATn_CAPACITY or a smart battery.
-          All other options warn when the remaining flight time is low.
+          All other options only warn when the remaining flight time is low.
       type: enum
       values:
         0: Warning
         2: Land mode
-        3: Return at critical level, land at emergency level
-        4: Return at critical level, terminate at emergency level
-        5: Smart Return, return at critical level, land at emergency level
-        6: Smart Return, return at critical level, terminate at emergency level
+        3: Critical level return, Emergency level land
+        4: Critical level return, Emergency level terminate
+        5: Distance-aware return, Critical level return, Emergency level land
+        6: Distance-aware return, Critical level return, Emergency level terminate
       default: 0
     COM_FAIL_ACT_T:
       description:
