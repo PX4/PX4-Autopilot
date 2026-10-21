@@ -50,7 +50,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Max input voltage:** 5.7V
+- **Max input voltage:** 5.5V
 - **USB power input:** 4.75 ~ 5.25V
 - **Output current limits:** `TEL1` and `TEL2` combined 1.5A; all other ports combined 1.5A
 
@@ -93,9 +93,9 @@ Under these conditions all power sources will be used in this order to power the
 
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
-1. **PWR1** and **PWR2** inputs (operational range 4.7V to 5.7V, 0V to 10V undamaged)
+1. **PWR1** and **PWR2** inputs (operational range 4.7V to 5.7V, 0V to 6V undamaged)
 2. **USB input** (operational range 4.7V to 5.7V, 0V to 6V undamaged)
-3. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0V to 42V undamaged)
+3. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0V to 6V undamaged)
 
 ::: warning
 The PWM outputs (`M1` to `M16`) are not powered by the `PWR1` or `PWR2` ports.
