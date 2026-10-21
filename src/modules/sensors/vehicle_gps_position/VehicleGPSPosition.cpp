@@ -379,27 +379,19 @@ void VehicleGPSPosition::UpdateTwoReceiverHeading()
 		return;
 	}
 
-	const sensor_gnss_s &to_gnss_data = _latest_sample[_two_receivers_slot];
-	const uint32_t to_device_id = to_gnss_data.device_id;
+	const GpsParamSlot &to_slot = _gnss_param_slots[_two_receivers_slot];
+	const GpsParamSlot &from_slot = _gnss_param_slots[(_two_receivers_slot + 1) % GPS_MAX_RECEIVERS];
 
-	if (to_device_id == 0 || !_gnss_checks[_two_receivers_slot].passed() || !_two_receiver_gnss_updated[_two_receivers_slot]) {
+	const int to_index = to_slot.device_id != 0 ? findGnssInstance(to_slot.device_id) : -1;
+	const int from_index = from_slot.device_id != 0 ? findGnssInstance(from_slot.device_id) : -1;
+
+	if (to_index < 0 || from_index < 0 || !_two_receiver_gnss_updated[to_index] || !_two_receiver_gnss_updated[from_index]
+	    || !_gnss_checks[to_index].passed() || !_gnss_checks[from_index].passed()) {
 		return;
 	}
 
-	const GpsParamSlot *slot = findParamSlot(to_device_id, _two_receivers_slot);
-
-	if (!slot || !slot->two_receivers) {
-		return;
-	}
-
-	const int from_index = (_two_receivers_slot + 1) % GPS_MAX_RECEIVERS;
+	const sensor_gnss_s &to_gnss_data = _latest_sample[to_index];
 	const sensor_gnss_s &from_gnss_data = _latest_sample[from_index];
-	const uint32_t from_device_id = from_gnss_data.device_id;
-
-	if (_two_receivers_slot == from_index || from_device_id == 0 || !_gnss_checks[from_index].passed()
-	    || !_two_receiver_gnss_updated[from_index]) {
-		return;
-	}
 
 	gnss_heading::Baseline baseline{};
 
@@ -407,11 +399,11 @@ void VehicleGPSPosition::UpdateTwoReceiverHeading()
 		HeadingSample sample{};
 		sample.heading = NAN;
 		sample.device_id = to_gnss_data.device_id;
-		handleHeadingSample(sample, slot);
+		handleHeadingSample(sample, &to_slot);
 		return;
 	}
 
-	_two_receiver_gnss_updated[_two_receivers_slot] = false;
+	_two_receiver_gnss_updated[to_index] = false;
 	_two_receiver_gnss_updated[from_index] = false;
 
 	HeadingSample sample{};
@@ -431,7 +423,7 @@ void VehicleGPSPosition::UpdateTwoReceiverHeading()
 	// the states are ordered by severity, and either receiver being affected affects the heading
 	sample.jamming_state = math::max(to_gnss_data.jamming_state, from_gnss_data.jamming_state);
 	sample.spoofing_state = math::max(to_gnss_data.spoofing_state, from_gnss_data.spoofing_state);
-	handleHeadingSample(sample, slot);
+	handleHeadingSample(sample, &to_slot);
 }
 
 void VehicleGPSPosition::handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot)
