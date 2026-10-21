@@ -79,7 +79,7 @@ Navigate to MISSION.
 | Param | 单位 (Units) | Range/Enum | 描述                                                                                                                                                                                                                                                                        |
 | ----- | ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | s                             |            | (decimal) Hold time. (ignored by fixed wing, time to stay at MISSION for rotary wing)                                                                                                                               |
-| 2     | 米                             |            | Acceptance radius (if the sphere with this radius is hit, the MISSION counts as reached)                                                                                                                                                               |
+| 2     | m                             |            | Acceptance radius (if the sphere with this radius is hit, the MISSION counts as reached)                                                                                                                                                               |
 | 3     |                               |            | 0 to pass through the WP, if > 0 radius [m] to pass by WP. Positive value for clockwise orbit, negative value for counter-clockwise orbit. Allows trajectory control. |
 | 4     |                               |            | Desired yaw angle at MISSION (rotary wing)                                                                                                                                                                                                             |
 | 5     |                               |            | Latitude                                                                                                                                                                                                                                                                  |
@@ -94,7 +94,7 @@ Loiter around this MISSION an unlimited amount of time.
 | ----- | ----------------------------- | ---------- | ------------------------------------------------------------------------------------------- |
 | 1     |                               |            | Unused                                                                                      |
 | 2     |                               |            | Unused                                                                                      |
-| 3     | 米                             |            | Radius around MISSION. If positive loiter clockwise, else counter-clockwise |
+| 3     | m                             |            | Radius around MISSION. If positive loiter clockwise, else counter-clockwise |
 | 4     |                               |            | Desired yaw angle.                                                          |
 | 5     |                               |            | Latitude                                                                                    |
 | 6     |                               |            | Longitude                                                                                   |
@@ -168,7 +168,7 @@ Takeoff from ground / hand.
 | 4     | deg                           | [0 : 360] | Yaw angle in NED if yaw source available, ignored otherwise                                                               |
 | 5     |                               |                                                                               | Latitude (WGS-84)                                                                                      |
 | 6     |                               |                                                                               | Longitude (WGS-84)                                                                                     |
-| 7     | 米                             |                                                                               | Altitude AMSL                                                                                                             |
+| 7     | m                             |                                                                               | Altitude AMSL                                                                                                             |
 
 ### VEHICLE_CMD_NAV_PRECLAND (23)
 
@@ -190,7 +190,7 @@ Start orbiting on the circumference of a circle defined by the parameters.
 
 | Param | 单位 (Units) | Range/Enum                                                                            | 描述            |
 | ----- | ----------------------------- | ------------------------------------------------------------------------------------- | ------------- |
-| 1     | 米                             |                                                                                       | Radius        |
+| 1     | m                             |                                                                                       | Radius        |
 | 2     | 米/秒                           |                                                                                       | Velocity      |
 | 3     |                               | [ORBIT_YAW_BEHAVIOUR](#ORBIT_YAW_BEHAVIOUR) | Yaw behaviour |
 | 4     |                               |                                                                                       | Unused        |
@@ -204,8 +204,8 @@ Start flying on the outline of a figure eight defined by the parameters.
 
 | Param | 单位 (Units) | Range/Enum | 描述           |
 | ----- | ----------------------------- | ---------- | ------------ |
-| 1     | 米                             |            | Major radius |
-| 2     | 米                             |            | Minor radius |
+| 1     | m                             |            | Major radius |
+| 2     | m                             |            | Minor radius |
 | 3     | 米/秒                           |            | Velocity     |
 | 4     |                               |            | 安装方向         |
 | 5     |                               |            | Latitude/X   |
@@ -275,9 +275,9 @@ Set limits for external control.
 | Param | 单位 (Units) | Range/Enum | 描述                                                                                                                                                                                                                                                                    |
 | ----- | ----------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | s                             |            | Timeout - maximum time that external controller will be allowed to control vehicle. 0 means no timeout                                                                                                                                                |
-| 2     | 米                             |            | Absolute altitude min AMSL - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit                                                                                              |
-| 3     | 米                             |            | Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit                                                                                                   |
-| 4     | 米                             |            | Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit |
+| 2     | m                             |            | Absolute altitude min AMSL - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit                                                                                              |
+| 3     | m                             |            | Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit                                                                                                   |
+| 4     | m                             |            | Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit |
 | 5     |                               |            | Unused                                                                                                                                                                                                                                                                |
 | 6     |                               |            | Unused                                                                                                                                                                                                                                                                |
 | 7     |                               |            | Unused                                                                                                                                                                                                                                                                |
@@ -582,7 +582,7 @@ Mission command to safely abort an autonomous landing.
 
 | Param | 单位 (Units) | Range/Enum | 描述       |
 | ----- | ----------------------------- | ---------- | -------- |
-| 1     | 米                             |            | Altitude |
+| 1     | m                             |            | Altitude |
 | 2     |                               |            | Unused   |
 | 3     |                               |            | Unused   |
 | 4     |                               |            | Unused   |
@@ -598,7 +598,7 @@ Reposition to specific WGS84 GPS position.
 | ----- | ----------------------------- | ---------- | ------------------------ |
 | 1     | 米/秒                           |            | Ground speed             |
 | 2     |                               |            | Bitmask                  |
-| 3     | 米                             |            | Loiter radius for planes |
+| 3     | m                             |            | Loiter radius for planes |
 | 4     | deg                           |            | Yaw                      |
 | 5     |                               |            | Latitude                 |
 | 6     |                               |            | Longitude                |
@@ -736,7 +736,7 @@ Mission command to set TRIG_DIST for this flight.
 
 | Param | 单位 (Units) | Range/Enum | 描述                       |
 | ----- | ----------------------------- | ---------- | ------------------------ |
-| 1     | 米                             |            | Camera trigger distance  |
+| 1     | m                             |            | Camera trigger distance  |
 | 2     | ms                            |            | Shutter integration time |
 | 3     |                               |            | Unused                   |
 | 4     |                               |            | Unused                   |
@@ -834,7 +834,7 @@ Mission command to set TRIG_INTERVAL for this flight.
 
 | Param | 单位 (Units) | Range/Enum | 描述                                               |
 | ----- | ----------------------------- | ---------- | ------------------------------------------------ |
-| 1     | 米                             |            | Camera trigger distance                          |
+| 1     | m                             |            | Camera trigger distance                          |
 | 2     |                               |            | Shutter integration time (ms) |
 | 3     |                               |            | Unused                                           |
 | 4     |                               |            | Unused                                           |
@@ -877,9 +877,9 @@ Set limits for external control.
 | Param | 单位 (Units) | Range/Enum | 描述                                                                                                                                                                                                                                                                    |
 | ----- | ----------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | s                             |            | Timeout - maximum time that external controller will be allowed to control vehicle. 0 means no timeout                                                                                                                                                |
-| 2     | 米                             |            | Absolute altitude min(AMSL) - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit                                                                          |
-| 3     | 米                             |            | Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit                                                                                                   |
-| 4     | 米                             |            | Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit |
+| 2     | m                             |            | Absolute altitude min(AMSL) - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit                                                                          |
+| 3     | m                             |            | Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit                                                                                                   |
+| 4     | m                             |            | Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit |
 | 5     |                               |            | Unused                                                                                                                                                                                                                                                                |
 | 6     |                               |            | Unused                                                                                                                                                                                                                                                                |
 | 7     |                               |            | Unused                                                                                                                                                                                                                                                                |
@@ -988,7 +988,7 @@ Mission command to set a Camera Auto Mount Pivoting Oblique Survey for this flig
 
 | Param | 单位 (Units) | Range/Enum | 描述                              |
 | ----- | ----------------------------- | ---------- | ------------------------------- |
-| 1     | 米                             |            | Camera trigger distance         |
+| 1     | m                             |            | Camera trigger distance         |
 | 2     | ms                            |            | Shutter integration time        |
 | 3     |                               |            | Camera minimum trigger interval |
 | 4     |                               |            | Number of positions             |
@@ -1526,7 +1526,7 @@ Sets the GPS coordinates of the vehicle local origin (0,0,0) position.
 | 4     |                               |            | Unused                                                              |
 | 5     |                               |            | Latitude (WGS-84)                                |
 | 6     |                               |            | Longitude (WGS-84)                               |
-| 7     | 米                             |            | Altitude (AMSL from GNSS, positive above ground) |
+| 7     | m                             |            | Altitude (AMSL from GNSS, positive above ground) |
 
 ### VEHICLE_CMD_SET_NAV_STATE (100001)
 
@@ -1554,7 +1554,7 @@ Sets GNSS coordinates of the vehicle local origin (0,0,0) position. Send as COMM
 | 4     |                               |            | Unused                                |
 | 5     |                               |            | Latitude (WGS-84)  |
 | 6     |                               |            | Longitude (WGS-84) |
-| 7     | 米                             |            | Altitude (AMSL)    |
+| 7     | m                             |            | Altitude (AMSL)    |
 
 ### VEHICLE_CMD_GUIDED_CHANGE_HEADING (43002)
 
