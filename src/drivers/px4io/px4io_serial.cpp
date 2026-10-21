@@ -168,6 +168,9 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 
 	for (unsigned retries = 0; retries < 3; retries++) {
 
+		/* Clear the entire packet to ensure no stale data */
+		memset(_io_buffer_ptr, 0, sizeof(IOPacket));
+
 		_io_buffer_ptr->count_code = count | PKT_CODE_READ;
 		_io_buffer_ptr->page = page;
 		_io_buffer_ptr->offset = offset;

@@ -1,0 +1,71 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file px4io_driver.h
+ *
+ * Interface for PX4IO
+ */
+
+#pragma once
+
+#include <board_config.h>
+
+#include <drivers/device/device.h>
+
+device::Device	*cubered_bridge_primary_interface();
+
+/**
+ * Close the serial fd. Must be called once after the bridge's instance->init()
+ * completes (and before Run() starts) so the work queue can re-open the fd in
+ * its own task context — NuttX file descriptors aren't shared across tasks.
+ */
+void cubered_bridge_primary_release(device::Device *interface);
+
+/**
+ * Tell the secondary's bootloader to boot straight into its application.
+ *
+ * The secondary bootloader always holds a host-flash window (it has no USB to
+ * signal "host present"), so without this it would wait out its full timeout on
+ * every boot before starting the app. Sending the bootloader's GET_SYNC + BOOT
+ * over the UART7 link kicks it into the app immediately. Safe no-op if the
+ * secondary is already running its app — the two short commands just fail the
+ * bridge CRC and are discarded.
+ */
+void cubered_bridge_primary_boot_secondary(device::Device *interface);
+
+/**
+ * Print the transport-layer perf counters (txns / retries / timeouts / crc /
+ * proto errors). Safe to call from any task — it only reads counter RAM.
+ */
+void cubered_bridge_primary_print_perf(device::Device *interface);
