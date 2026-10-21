@@ -248,7 +248,7 @@ bool PayloadDeliverer::send_gripper_vehicle_command(const int32_t gripper_action
 }
 
 bool PayloadDeliverer::send_gripper_vehicle_command_ack(const hrt_abstime now, const uint8_t command_result,
-		const uint8_t target_system, const uint8_t target_component)
+		const uint32_t target_system, const uint8_t target_component)
 {
 	vehicle_command_ack_s vcmd_ack{};
 	vcmd_ack.timestamp = now;

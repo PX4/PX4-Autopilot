@@ -1807,7 +1807,7 @@ void Commander::handleCommandsFromModeExecutors()
 			} else {
 				cmd.source_system = _vehicle_status.system_id;
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
-				PX4_WARN("Got cmd from executor %i not in charge (in charge: %i)", cmd.source_system, mode_executor_in_charge);
+				PX4_WARN("Got cmd from executor %" PRIu32 " not in charge (in charge: %i)", cmd.source_system, mode_executor_in_charge);
 			}
 		}
 	}
