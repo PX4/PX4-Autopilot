@@ -16,8 +16,8 @@ parameters:
         short: Extra cross-track search distance for multicopter route projections
         long: |-
           When projecting the vehicle onto the uploaded mission route for Mission resume
-          (MIS_ROUTE_JOIN) or RTL_TYPE = 7, accept candidates within this distance of the
-          closest route segment.
+          (MIS_ROUTE_JOIN) or RTL_TYPE = 7, keep candidates whose cross-track distance is
+          at most this much larger than the closest one.
       type: float
       default: 30.0
       unit: m
@@ -29,8 +29,8 @@ parameters:
         short: Extra cross-track search distance for fixed-wing route projections
         long: |-
           When projecting the vehicle onto the uploaded mission route for Mission resume
-          (MIS_ROUTE_JOIN) or RTL_TYPE = 7, accept candidates within this distance of the
-          closest route segment.
+          (MIS_ROUTE_JOIN) or RTL_TYPE = 7, keep candidates whose cross-track distance is
+          at most this much larger than the closest one.
       type: float
       default: 150.0
       unit: m
@@ -41,10 +41,11 @@ parameters:
   definitions:
     RTL_RP_SEG_DIST:
       description:
-        short: Extra cross-track search distance for safe-point route projections
+        short: Extra cross-track search distance for rally point route projections
         long: |-
-          When projecting a safe point onto the uploaded mission route for RTL_TYPE = 7,
-          accept candidates within this distance of the closest route segment.
+          When projecting a rally point onto the uploaded mission route for RTL_TYPE = 7,
+          keep candidates whose cross-track distance is at most this much larger than the
+          closest one.
       type: float
       default: 30.0
       unit: m
