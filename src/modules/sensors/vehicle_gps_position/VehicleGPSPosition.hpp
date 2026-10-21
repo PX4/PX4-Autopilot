@@ -75,6 +75,8 @@ public:
 	void PrintStatus();
 
 private:
+	friend class VehicleGPSPositionTestPeer;
+
 	void Run() override;
 
 	void ParametersUpdate(bool force = false);
