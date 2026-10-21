@@ -221,6 +221,8 @@ public:
 		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
 	}
 
+	bool alignmentActive() const { return _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING; }
+
 	bool alignmentAfterJoinActive() const
 	{
 		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING
@@ -2302,6 +2304,7 @@ TEST_F(MissionBaseTraversalTest, MissionSourceChangeClearsJoinHeadingAlignment)
 
 	mission_base_with_nav.processMissionSourceChange();
 	EXPECT_FALSE(mission_base_with_nav.alignmentAfterJoinActive());
+	EXPECT_FALSE(mission_base_with_nav.alignmentActive());
 	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
 }
 
