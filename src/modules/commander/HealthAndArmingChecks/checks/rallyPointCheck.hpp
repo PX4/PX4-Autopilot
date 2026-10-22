@@ -48,7 +48,7 @@ public:
 
 private:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** RTL_TYPE 7 never flies a straight line, so Return is unavailable while Navigator has no route. */
+	/** RTL_TYPE 7 requires a recent usable route before entering Return. */
 	void checkRouteReturn(const Context &context, Report &reporter);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	uORB::Subscription _rtl_status_sub {ORB_ID(rtl_status)};

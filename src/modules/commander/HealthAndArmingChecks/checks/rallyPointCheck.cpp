@@ -102,13 +102,19 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 void RallyPointChecks::checkRouteReturn(const Context &context, Report &reporter)
 {
-	rtl_status_s rtl_status;
-
 	// Navigator plans the route every 2 s, also while its inputs load after an upload.
 	// An active Return handles the loss of its route itself.
-	if (!_rtl_status_sub.copy(&rtl_status)
-	    || rtl_status.rtl_type == rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT
-	    || context.status().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+	if (context.status().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+		return;
+	}
+
+	rtl_status_s rtl_status{};
+	// Allow two planning intervals plus scheduling margin; absence is not evidence of a usable route.
+	static constexpr hrt_abstime ROUTE_STATUS_TIMEOUT = 5_s;
+
+	if (_rtl_status_sub.copy(&rtl_status) && rtl_status.timestamp != 0
+	    && hrt_elapsed_time(&rtl_status.timestamp) < ROUTE_STATUS_TIMEOUT
+	    && rtl_status.rtl_type == rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT) {
 		return;
 	}
 
@@ -118,6 +124,7 @@ void RallyPointChecks::checkRouteReturn(const Context &context, Report &reporter
 	 * Return cannot follow the mission route from the current position, so Return mode is unavailable:
 	 * a mode switch is denied and a failsafe that would return lands instead.
 	 * This also applies for a few seconds after an upload, while the mission, rally points and fence load.
+	 * A missing or stale route-status report also keeps Return unavailable.
 	 * Upload a mission the vehicle can join and a rally point or landing it can reach through it,
 	 * or change <param>RTL_TYPE</param>.
 	 */

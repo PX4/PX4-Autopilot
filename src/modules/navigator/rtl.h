@@ -126,6 +126,9 @@ private:
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	void applyReturnAltMin();
+	RtlRouteSafePoint::Evaluation evaluateRouteSafePoint();
+	/** Retry without changing the current hold unless the route executor is ready. */
+	void retryRouteSafePoint();
 	/** Warn when RTL_TYPE 7 has no route and stops at the current position. */
 	void reportNoRoute() const;
 	/** True while Mission has not validated the uploaded mission, fence and Home yet. */
@@ -133,6 +136,7 @@ private:
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	void setRtlTypeAndDestination();
+	void publishRtlStatus(uint8_t safe_point_index);
 
 	/**
 	 * @brief Publish the remaining time estimate to go to the Return landing point.
