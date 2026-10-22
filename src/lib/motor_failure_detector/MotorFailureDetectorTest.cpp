@@ -39,6 +39,8 @@
 
 namespace
 {
+using Failure = MotorFailureDetector::Failure;
+
 constexpr float kDt = 1.f / 184.f;          // esc_status rate in the logs
 constexpr float kBase = 21.f * 0.3f;         // healthy current at u=0.3: current_slope_a*u
 
@@ -77,7 +79,7 @@ bool latchesAtCadence(float dt)
 	d.configure(makeConfig());                             // trigger time 0.5 s
 	hrt_abstime now = 0;
 	run(d, now, 3.f, dt, 0.3f, [](float) { return 0.f; }); // 3 s >> trigger time
-	return d.anyFailed();
+	return d.status(0).failure != Failure::None;
 }
 } // namespace
 
@@ -88,7 +90,7 @@ TEST(MotorFailureDetectorTest, HealthyNeverTrips)
 	d.configure(makeConfig());
 	hrt_abstime now = 0;
 	run(d, now, 5.f, kDt, 0.3f, [](float) { return kBase; });
-	EXPECT_FALSE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::None);
 	EXPECT_LT(std::fabs(d.status(0).residual_lpf), 0.1f);
 }
 
@@ -99,8 +101,7 @@ TEST(MotorFailureDetectorTest, OpenFailureTrips)
 	d.configure(makeConfig());
 	hrt_abstime now = 0;
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return 0.f; });
-	EXPECT_TRUE(d.anyFailed());
-	EXPECT_EQ(d.firstFailed(), 0);
+	EXPECT_EQ(d.status(0).failure, Failure::Undercurrent);
 	EXPECT_LT(d.status(0).residual_lpf, -5.f);
 }
 
@@ -116,7 +117,7 @@ TEST(MotorFailureDetectorTest, UndercurrentBandCatchesWhatSymmetricMisses)
 	symmetric.configure(cfg);
 	hrt_abstime now = 0;
 	run(symmetric, now, 3.f, kDt, 0.3f, half_current);
-	ASSERT_FALSE(symmetric.anyFailed());                     // one wide band cannot see it
+	ASSERT_EQ(symmetric.status(0).failure, Failure::None);                     // one wide band cannot see it
 
 	cfg.undercurrent_threshold_a = 2.f;
 	cfg.undercurrent_trigger_time_s = 0.5f;
@@ -124,8 +125,7 @@ TEST(MotorFailureDetectorTest, UndercurrentBandCatchesWhatSymmetricMisses)
 	asymmetric.configure(cfg);
 	now = 0;
 	run(asymmetric, now, 3.f, kDt, 0.3f, half_current);
-	EXPECT_TRUE(asymmetric.anyFailed());
-	EXPECT_EQ(asymmetric.firstFailed(), 0);
+	EXPECT_EQ(asymmetric.status(0).failure, Failure::Undercurrent);
 }
 
 // The bands are independent: an overcurrent excursion below the (wide) overcurrent band must not
@@ -141,7 +141,7 @@ TEST(MotorFailureDetectorTest, UndercurrentBandDoesNotArmTheOvercurrentSide)
 	d.configure(cfg);
 	hrt_abstime now = 0;
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return kBase + 4.f; });   // +4 A: over the under band, under the over band
-	EXPECT_FALSE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::None);
 	EXPECT_GT(d.status(0).residual_lpf, 2.f);
 }
 
@@ -158,7 +158,7 @@ TEST(MotorFailureDetectorTest, PerSideTriggerTime)
 	d.configure(cfg);
 	hrt_abstime now = 0;
 	run(d, now, 1.f, kDt, 0.3f, [](float) { return 0.f; });
-	EXPECT_TRUE(d.anyFailed());                              // latched on 0.2 s, not 5 s
+	EXPECT_EQ(d.status(0).failure, Failure::Undercurrent);   // latched on 0.2 s, not 5 s
 }
 
 // A fault that crosses the threshold but recovers before the trigger time must not latch
@@ -171,7 +171,7 @@ TEST(MotorFailureDetectorTest, ShortSpikeDoesNotLatch)
 	run(d, now, 0.4f, kDt, 0.3f, [](float) { return 0.f; });   // residual crosses threshold ~0.1 s < 0.5 s trigger time
 	ASSERT_GT(std::fabs(d.status(0).residual_lpf), makeConfig().overcurrent_threshold_a); // genuinely over-threshold...
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return kBase; });  // ...then recovers before latching
-	EXPECT_FALSE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::None);
 }
 
 // A winding short / mechanical jam draws far MORE current than commanded -> large
@@ -182,8 +182,7 @@ TEST(MotorFailureDetectorTest, OvercurrentTrips)
 	d.configure(makeConfig());
 	hrt_abstime now = 0;
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return 2.5f * kBase; }); // ~2.5x expected
-	EXPECT_TRUE(d.anyFailed());
-	EXPECT_EQ(d.firstFailed(), 0);
+	EXPECT_EQ(d.status(0).failure, Failure::Overcurrent);
 	EXPECT_GT(d.status(0).residual_lpf, 5.f);                   // positive residual trips
 }
 
@@ -196,7 +195,7 @@ TEST(MotorFailureDetectorTest, PropLossSevereTrips)
 	d.configure(makeConfig());
 	hrt_abstime now = 0;
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return 0.15f * kBase; });
-	EXPECT_TRUE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::Undercurrent);
 	EXPECT_LT(d.status(0).residual_lpf, -5.f);
 }
 
@@ -209,7 +208,7 @@ TEST(MotorFailureDetectorTest, PartialLossNearFloorMissed)
 	d.configure(makeConfig());
 	hrt_abstime now = 0;
 	run(d, now, 5.f, kDt, 0.3f, [](float) { return 0.5f * kBase; }); // 50% loss
-	EXPECT_FALSE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::None);
 	EXPECT_GT(std::fabs(d.status(0).residual_lpf), 0.f);                       // residual present...
 	EXPECT_LT(std::fabs(d.status(0).residual_lpf), makeConfig().overcurrent_threshold_a);  // ...but below trip
 }
@@ -228,7 +227,7 @@ TEST(MotorFailureDetectorTest, RegenerationBoundedButStopStillTrips)
 	regen.configure(cfg);
 	hrt_abstime now = 0;
 	run(regen, now, 3.f, kDt, 0.15f, [](float) { return -5.f; });   // current flowing back into the pack
-	EXPECT_FALSE(regen.anyFailed());
+	EXPECT_EQ(regen.status(0).failure, Failure::None);
 	// Floored at -I_exp (-3.15 A), not at the raw -8.15 A that would have crossed the band.
 	EXPECT_GE(regen.status(0).residual_lpf, -cfg.current_slope_a * 0.15f - 0.01f);
 
@@ -236,8 +235,7 @@ TEST(MotorFailureDetectorTest, RegenerationBoundedButStopStillTrips)
 	stopped.configure(cfg);
 	now = 0;
 	run(stopped, now, 3.f, kDt, 0.3f, [](float) { return 0.f; });   // I_exp 6.3 A, band reachable
-	EXPECT_TRUE(stopped.anyFailed());
-	EXPECT_EQ(stopped.firstFailed(), 0);
+	EXPECT_EQ(stopped.status(0).failure, Failure::Undercurrent);
 }
 
 // A data gap mid-build must RESET the trigger-time debounce, not just avoid latching in one step.
@@ -247,7 +245,7 @@ TEST(MotorFailureDetectorTest, GapResetsTriggerTimer)
 	d.configure(makeConfig());                                  // trigger time 0.5 s
 	hrt_abstime now = 0;
 	run(d, now, 0.45f, kDt, 0.3f, [](float) { return 0.f; });   // fault building, < 0.5 s, not latched
-	ASSERT_FALSE(d.anyFailed());
+	ASSERT_EQ(d.status(0).failure, Failure::None);
 
 	const float cmd[1] = {0.3f}, cur[1] = {0.f};
 	const bool rev[1] = {false};
@@ -255,7 +253,7 @@ TEST(MotorFailureDetectorTest, GapResetsTriggerTimer)
 	d.update(1, now, cmd, cur, rev);
 
 	run(d, now, 0.45f, kDt, 0.3f, [](float) { return 0.f; });   // rebuild from zero, < 0.5 s -> must NOT latch
-	EXPECT_FALSE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::None);
 }
 
 // kMaxGap must clear the ~10 Hz feed interval: at kMaxGap=0.1 the feed (dt~=0.1 s) hit the gap-reset
@@ -278,7 +276,7 @@ TEST(MotorFailureDetectorTest, ExcludedGates)
 		hrt_abstime now = 0;
 		const float u = (kind == 1) ? NAN : 0.3f;
 		run(d, now, 5.f, kDt, u, [](float) { return 150.f; }, /*reversible=*/kind == 0);
-		EXPECT_FALSE(d.anyFailed());
+		EXPECT_EQ(d.status(0).failure, Failure::None);
 		EXPECT_TRUE(d.status(0).excluded);
 	}
 }
@@ -289,7 +287,7 @@ TEST(MotorFailureDetectorTest, MonitorOnlyNeverLatches)
 	MotorFailureDetector unconfigured;                    // zero Config
 	hrt_abstime now0 = 0;
 	run(unconfigured, now0, 5.f, kDt, 0.5f, [](float) { return 123.f; });
-	EXPECT_FALSE(unconfigured.anyFailed());
+	EXPECT_EQ(unconfigured.status(0).failure, Failure::None);
 
 	MotorFailureDetector::Config cfg = makeConfig();
 	cfg.overcurrent_threshold_a = 0.f;
@@ -297,7 +295,7 @@ TEST(MotorFailureDetectorTest, MonitorOnlyNeverLatches)
 	d.configure(cfg);
 	hrt_abstime now = 0;
 	run(d, now, 5.f, kDt, 0.3f, [](float) { return 0.f; });
-	EXPECT_FALSE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::None);
 }
 
 // Telemetry dropout (NaN current) holds the residual: the debounce keeps running on the
@@ -308,9 +306,9 @@ TEST(MotorFailureDetectorTest, DropoutHoldsTimerAndStaysFinite)
 	d.configure(makeConfig());                                // trigger time 0.5 s
 	hrt_abstime now = 0;
 	run(d, now, 0.45f, kDt, 0.3f, [](float) { return 0.f; });  // fault building, not yet latched
-	ASSERT_FALSE(d.anyFailed());
+	ASSERT_EQ(d.status(0).failure, Failure::None);
 	run(d, now, 1.0f, kDt, 0.3f, [](float) { return NAN; });   // dropout: held residual keeps the debounce running
-	EXPECT_TRUE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::Undercurrent);
 	EXPECT_TRUE(std::isfinite(d.status(0).residual_lpf));
 }
 
@@ -325,7 +323,7 @@ TEST(MotorFailureDetectorTest, LargeDtGapNoLatch)
 	d.update(1, now, cmd, cur, rev);                  // seed the clock
 	now += us(10.f);                                      // 10 s >> kMaxGap, single step -> gap, no latch
 	d.update(1, now, cmd, cur, rev);
-	EXPECT_FALSE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::None);
 }
 
 // A residual built up before exclusion must not survive it and trip on re-entry.
@@ -338,7 +336,7 @@ TEST(MotorFailureDetectorTest, ExclusionReentryNoStaleTrip)
 	run(d, now, 1.f, kDt, NAN, [](float) { return 0.f; });     // excluded (motor commanded off)
 	ASSERT_TRUE(d.status(0).excluded);
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return kBase; });  // healthy again
-	EXPECT_FALSE(d.anyFailed());
+	EXPECT_EQ(d.status(0).failure, Failure::None);
 	EXPECT_LT(std::fabs(d.status(0).residual_lpf), 0.5f); // reseeded, not stale
 }
 
@@ -352,26 +350,24 @@ TEST(MotorFailureDetectorTest, LatchSurvivesExclusion)
 		d.configure(makeConfig());
 		hrt_abstime now = 0;
 		run(d, now, 3.f, kDt, 0.3f, [](float) { return 0.f; });    // latch
-		ASSERT_TRUE(d.anyFailed());
+		ASSERT_EQ(d.status(0).failure, Failure::Undercurrent);
 		const float u = (kind == 1) ? NAN : 0.3f;
 		run(d, now, 1.f, kDt, u, [](float) { return kBase; }, /*reversible=*/kind == 0);
 		EXPECT_TRUE(d.status(0).excluded);
-		EXPECT_TRUE(d.anyFailed());
-		EXPECT_EQ(d.firstFailed(), 0);
+		EXPECT_EQ(d.status(0).failure, Failure::Undercurrent);
 	}
 }
 
-// reset() clears the sticky failure latch and the firstFailed() index (re-arm).
+// reset() clears the sticky failure latch (re-arm).
 TEST(MotorFailureDetectorTest, ResetClearsLatch)
 {
 	MotorFailureDetector d;
 	d.configure(makeConfig());
 	hrt_abstime now = 0;
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return 0.f; });
-	ASSERT_TRUE(d.anyFailed());
+	ASSERT_EQ(d.status(0).failure, Failure::Undercurrent);
 	d.reset();
-	EXPECT_FALSE(d.anyFailed());
-	EXPECT_EQ(d.firstFailed(), -1);
+	EXPECT_EQ(d.status(0).failure, Failure::None);
 }
 
 // configure() (parameter change, possibly in flight) keeps the latch; only reset() clears it.
@@ -381,14 +377,13 @@ TEST(MotorFailureDetectorTest, ConfigureKeepsLatch)
 	d.configure(makeConfig());
 	hrt_abstime now = 0;
 	run(d, now, 3.f, kDt, 0.3f, [](float) { return 0.f; });
-	ASSERT_TRUE(d.anyFailed());
+	ASSERT_EQ(d.status(0).failure, Failure::Undercurrent);
 	d.configure(makeConfig());
-	EXPECT_TRUE(d.anyFailed());
-	EXPECT_EQ(d.firstFailed(), 0);
+	EXPECT_EQ(d.status(0).failure, Failure::Undercurrent);
 }
 
-// firstFailed() returns the lowest index among multiple failed motors.
-TEST(MotorFailureDetectorTest, MultiMotorFirstFailed)
+// Motors latch independently.
+TEST(MotorFailureDetectorTest, MultiMotorIndependent)
 {
 	MotorFailureDetector d;
 	d.configure(makeConfig());
@@ -403,8 +398,21 @@ TEST(MotorFailureDetectorTest, MultiMotorFirstFailed)
 		d.update(N, now, cmd, cur, rev);
 	}
 
-	EXPECT_FALSE(d.status(0).failed);
-	EXPECT_TRUE(d.status(1).failed);
-	EXPECT_TRUE(d.status(2).failed);
-	EXPECT_EQ(d.firstFailed(), 1);
+	EXPECT_EQ(d.status(0).failure, Failure::None);
+	EXPECT_EQ(d.status(1).failure, Failure::Undercurrent);
+	EXPECT_EQ(d.status(2).failure, Failure::Undercurrent);
+}
+
+// The failure kind is the first band that tripped: a later excursion to the other side does not
+// overwrite it, so the report stays consistent for the rest of the flight.
+TEST(MotorFailureDetectorTest, FailureKindKeepsFirstTrip)
+{
+	MotorFailureDetector d;
+	d.configure(makeConfig());
+	hrt_abstime now = 0;
+	run(d, now, 3.f, kDt, 0.3f, [](float) { return 0.f; });           // undercurrent latches
+	ASSERT_EQ(d.status(0).failure, Failure::Undercurrent);
+	run(d, now, 3.f, kDt, 0.3f, [](float) { return 2.5f * kBase; });  // then sustained overcurrent
+	ASSERT_GT(d.status(0).residual_lpf, 5.f);
+	EXPECT_EQ(d.status(0).failure, Failure::Undercurrent);
 }

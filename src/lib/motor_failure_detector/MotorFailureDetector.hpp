@@ -70,10 +70,12 @@ public:
 		float undercurrent_trigger_time_s; ///< same, below expected current
 	};
 
+	enum class Failure : uint8_t { None, Undercurrent, Overcurrent };
+
 	struct MotorStatus {
 		float residual;                     ///< signed residual I - I_expected [A], floored at -I_expected
 		float residual_lpf;                 ///< low-pass filtered residual [A]
-		bool  failed;          ///< latched failure decision
+		Failure failure; ///< latched at the first trip, kept until reset()
 		bool  excluded;        ///< not evaluated this step (reversible or NaN command)
 	};
 
@@ -96,8 +98,6 @@ public:
 		    const bool reversible[]);
 
 	const MotorStatus &status(int i) const { return _status[i]; }
-	bool anyFailed() const;
-	int  firstFailed() const; ///< index of first latched-failed motor, or -1
 
 private:
 	Config                _cfg{};

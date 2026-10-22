@@ -294,7 +294,7 @@ public:
 					_rmax[p][m] = std::max(_rmax[p][m], residual_lpf);
 				}
 
-				if (_det[p].status(m).failed && _trip_time[p][m] < 0) { _trip_time[p][m] = elapsed_s; }
+				if (_det[p].status(m).failure != MotorFailureDetector::Failure::None && _trip_time[p][m] < 0) { _trip_time[p][m] = elapsed_s; }
 			}
 
 			if (p == 0) { ++_evaluated; }

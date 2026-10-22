@@ -124,30 +124,13 @@ void MotorFailureDetector::update(int num_motors, hrt_abstime now_us,
 		_hyst_over[i].set_state_and_update(s.residual_lpf >= _cfg.overcurrent_threshold_a, now_us);
 		_hyst_under[i].set_state_and_update(-s.residual_lpf >= _cfg.undercurrent_threshold_a, now_us);
 
-		if (_hyst_over[i].get_state() || _hyst_under[i].get_state()) {
-			s.failed = true;
+		if (s.failure == Failure::None) {
+			if (_hyst_under[i].get_state()) {
+				s.failure = Failure::Undercurrent;
+
+			} else if (_hyst_over[i].get_state()) {
+				s.failure = Failure::Overcurrent;
+			}
 		}
 	}
-}
-
-bool MotorFailureDetector::anyFailed() const
-{
-	for (int i = 0; i < kMaxMotors; ++i) {
-		if (_status[i].failed) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-int MotorFailureDetector::firstFailed() const
-{
-	for (int i = 0; i < kMaxMotors; ++i) {
-		if (_status[i].failed) {
-			return i;
-		}
-	}
-
-	return -1;
 }
