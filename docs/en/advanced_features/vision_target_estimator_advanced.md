@@ -316,8 +316,8 @@ See [Outlier Detection](#outlier-detection).
 ### Outlier Detection
 
 The chi-squared gate rejects measurements that disagree strongly with the filter prediction.
-It uses `test_ratio = innov² / S` with $S = H P H^T + R$, where $R$ is the observation variance.
-A sample is rejected when `test_ratio` exceeds [VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) (or [VTE_YAW_NIS_THRE](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) for yaw), and the rejection appears as `STATUS_REJECT_NIS` on the corresponding `vte_aid_*` topic.
+It compares the normalized innovation squared $NIS = y^2 / S$, with $S = H P H^T + R$ where $R$ is the observation variance, against [VTE_POS_NIS_THRE](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) (or [VTE_YAW_NIS_THRE](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) for yaw).
+The logged `test_ratio` is $NIS$ divided by that threshold, so a sample is rejected when `test_ratio` exceeds 1, and the rejection appears as `STATUS_REJECT_NIS` on the corresponding `vte_aid_*` topic.
 
 How the gate reacts depends on $R$:
 
@@ -456,6 +456,7 @@ $$
 Replaying subsequent updates preserves their information, including their effect on position/bias cross-covariance.
 
 Previously accepted observations remain accepted during replay: their innovation and gain are recalculated, but their original gate decisions and published diagnostic messages are not revised.
+Their recalculated test ratios are logged on the delayed observation that triggered the replay (`replay_test_ratio_max`), so logs show when a late observation contradicts one that was already fused.
 Rejected observations are not retained or reconsidered.
 The result therefore matches chronological fusion of the accepted observations at their effective fusion times; it does not promise arrival-order-independent outlier decisions.
 Prediction uses the stored piecewise-constant control inputs and current process-noise settings.
@@ -589,7 +590,7 @@ For example plots of what a healthy and a degraded filter look like, see [Expect
 - `vte_input`: downsampled acceleration in NED and the quaternion fed to each prediction step.
   Can be used to correlate estimator behaviour with vehicle attitude changes.
 - `vte_aid_*`: one topic per fused source (`vte_aid_gps_pos_target`, `vte_aid_gps_pos_mission`, `vte_aid_gps_vel_uav`, `vte_aid_gps_vel_target`, `vte_aid_fiducial_marker`, `vte_aid_ev_yaw`).
-  Each publishes the observation, observation variance, innovation, innovation variance, chi-squared `test_ratio`, the `fusion_status` outcome code (per-axis on the 3D variant), and OOSM diagnostics (`time_since_meas_ms`, `history_steps`, `time_last_predict`).
+  Each publishes the observation, observation variance, innovation, innovation variance, chi-squared `test_ratio`, the `fusion_status` outcome code (per-axis on the 3D variant), and OOSM diagnostics (`time_since_meas_ms`, `history_steps`, `replayed_count`, `replay_test_ratio_max`, `time_last_predict`).
   See [Aid-source diagnostics](#aid-source-diagnostics) for the meaning of each `fusion_status` value.
 
 ### Aid-Source Diagnostics
@@ -614,11 +615,13 @@ The `fusion_status` field records which fusion branch the filter.
 
 :::
 
-Two additional fields make latency tractable without manual timestamp arithmetic:
+Additional fields make latency and replay tractable without manual timestamp arithmetic:
 
 - `time_since_meas_ms = (time_last_predict - timestamp_sample) * 1e-3`.
   Negative values mean the measurement is timestamped after the latest prediction (i.e. the filter has not caught up yet).
 - `history_steps` is non-zero only for `STATUS_FUSED_OOSM` and tells you how many retained snapshots were recomputed during replay.
+- `replayed_count` counts the stored observations re-applied after a delayed one, and `replay_test_ratio_max` is the highest `test_ratio` among them (-1 if none).
+  A value above 1 means the delayed observation contradicts an observation that was already fused; replay keeps that observation fused (see [OOSM Implementation](#oosm-implementation)).
 
 ### Main Input Feeds
 
