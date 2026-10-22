@@ -94,9 +94,9 @@ void KF_position::pushHistory(const uint64_t time_us)
 	_oosm.push(time_us, _state, _state_covariance, _last_acc);
 }
 
-void KF_position::resetHistory()
+void KF_position::resetHistory(FusionTimes times)
 {
-	_oosm.reset();
+	_oosm.reset(times);
 }
 
 FusionResult KF_position::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold)

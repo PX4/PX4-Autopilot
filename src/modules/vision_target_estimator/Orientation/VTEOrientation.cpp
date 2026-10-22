@@ -138,7 +138,7 @@ void VTEOrientation::initEstimator(const VisionObs &vision_obs)
 
 	_target_est_yaw.setState(state_init);
 	_target_est_yaw.setStateCovarianceDiag(state_var_init);
-	_target_est_yaw.resetHistory();
+	_target_est_yaw.resetHistory({vision_obs.timestamp, 0});
 
 	PX4_DEBUG("VTE Orientation initialized with yaw: %.2f [rad]", (double)vision_obs.yaw);
 
@@ -259,14 +259,13 @@ void VTEOrientation::fuseMeas(const VisionObs &vision_obs)
 	target_innov.fusion_status       = static_cast<uint8_t>(result.status);
 	target_innov.history_steps       = result.history_steps;
 	target_innov.replayed_count      = result.replayed_count;
+	target_innov.replay_revised_count = result.replay_revised_count;
 	target_innov.replay_test_ratio_max = result.replay_test_ratio_max;
 
 	_vte_aid_ev_yaw_pub.publish(target_innov);
 
-	// Freshness follows the capture time, so a late sample does not extend validity.
-	if (result.status == FusionStatus::STATUS_FUSED_CURRENT || result.status == FusionStatus::STATUS_FUSED_OOSM) {
-		_last_update = math::max(_last_update, vision_obs.timestamp);
-	}
+	// Replay can revise a stored sample even when the newly arrived sample is rejected.
+	_last_update = _target_est_yaw.getFusionTimes().last_fused;
 }
 
 void VTEOrientation::publishTarget()
