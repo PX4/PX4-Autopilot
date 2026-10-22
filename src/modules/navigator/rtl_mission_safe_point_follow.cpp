@@ -855,10 +855,9 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 			}
 
 			// Resolve the VTOL state of every mission index in one pass.
-			static uint8_t vtol_states[MissionRouteCache::kMaxFullMissionCacheSize];
 			const bool vtol_states_valid = _vehicle_status_sub.get().is_vtol
-						       && getVtolStatesForMission(vtol_states, MissionRouteCache::kMaxFullMissionCacheSize);
-			const uint8_t *route_vtol_states = vtol_states_valid ? vtol_states : nullptr;
+						       && getVtolStatesForMission(_vtol_states, MissionRouteCache::kMaxFullMissionCacheSize);
+			const uint8_t *route_vtol_states = vtol_states_valid ? _vtol_states : nullptr;
 
 			for (int steps = 0; steps < _mission.count && missionIndexInBounds(walk_index); ++steps) {
 				mission_item_s item{};
