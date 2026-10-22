@@ -47,7 +47,7 @@
  *   4. Apply the ordinary Kalman correction at the observation time.
  *   5. Replay later predictions and accepted observations, recomputing gains without re-gating.
  *      Their test ratios are only reported, as diagnostics of the new observation.
- *   6. Commit the updated snapshots and live state only when replay succeeds. Retain the new
+ *   6. Rewrite the later snapshots in place and replace the live state. Retain the new
  *      observation for future replay; no extra prediction snapshot is needed. If a stored
  *      observation fails during replay, clear the history so it cannot block later replays.
  *
@@ -123,19 +123,6 @@ public:
 	static constexpr size_t kMeasurementCapacity = static_cast<size_t>(MaxObsPerSnapshot) * HistorySize;
 	static constexpr uint64_t kOosmMinTimeUs = vision_target_estimator::kOosmMinTimeUs;
 	static constexpr uint64_t kOosmMaxTimeUs = vision_target_estimator::kOosmMaxTimeUs;
-
-	/**
-	 * @brief Copy of the snapshots used to replay without changing history until fusion succeeds.
-	 *
-	 * Invariants:
-	 *   - count <= kCapacity (== HistorySize)
-	 *   - samples[0..count) are sorted by time_us (strictly increasing)
-	 */
-	struct LinearTimeline {
-		static constexpr size_t kCapacity = static_cast<size_t>(HistorySize);
-		Sample samples[kCapacity] {};
-		size_t count{0};
-	};
 
 	OOSMManager() = default;
 
@@ -238,28 +225,16 @@ public:
 			return res;
 		}
 
-		// Replay into a copy so a rejected measurement leaves history unchanged.
-		LinearTimeline linear_timeline{};
-		copyHistoryToLinearTimeline(linear_timeline);
+		// Floor: newest snapshot with time <= meas.time_us. The oldest one qualifies (checked above).
+		const uint8_t oldest_idx = _history.get_oldest_index();
+		const uint8_t newest_idx = _history.get_newest_index();
+		uint8_t floor_idx = newest_idx;
 
-		// Floor: newest snapshot with time <= meas.time_us. Scan from newest backwards so we stop early.
-		bool floor_found = false;
-		size_t floor_pos = 0;
-
-		for (size_t i = linear_timeline.count; i-- > 0;) {
-			if (linear_timeline.samples[i].time_us <= meas.time_us) {
-				floor_pos = i;
-				floor_found = true;
-				break;
-			}
+		while ((floor_idx != oldest_idx) && (_history[floor_idx].time_us > meas.time_us)) {
+			floor_idx = _history.prev(floor_idx);
 		}
 
-		if (!floor_found) {
-			res.status = FusionStatus::STATUS_REJECT_TOO_OLD;
-			return res;
-		}
-
-		Sample &sample_floor = linear_timeline.samples[floor_pos];
+		Sample &sample_floor = _history[floor_idx];
 		const uint64_t t_floor_us = sample_floor.time_us;
 
 		// Pick the control input that was active over [t_floor, t_meas]. Each snapshot stores the
@@ -268,8 +243,8 @@ public:
 		// newest sample, no "next" snapshot exists and we fall back to the live input.
 		InputT input_interval = curr_input;
 
-		if (floor_pos + 1 < linear_timeline.count) {
-			input_interval = linear_timeline.samples[floor_pos + 1].input;
+		if (floor_idx != newest_idx) {
+			input_interval = _history[_history.next(floor_idx)].input;
 		}
 
 		StateVec x_meas = sample_floor.state;
@@ -293,6 +268,7 @@ public:
 
 		filter.applyCorrection(x_meas, P_meas, K_meas, res.innov, res.innov_var);
 
+		// From here on, history is rewritten in place; a replay failure clears it below.
 		// Update an existing snapshot at this time. Between snapshots, the observation log
 		// retains this correction for future replays without consuming a history slot.
 		if (meas.time_us == t_floor_us) {
@@ -305,8 +281,9 @@ public:
 		uint8_t steps = 0;
 		ReplayStats replay_stats{};
 
-		for (size_t i = floor_pos + 1; i < linear_timeline.count; ++i) {
-			Sample &sample = linear_timeline.samples[i];
+		for (uint8_t idx = floor_idx; idx != newest_idx;) {
+			idx = _history.next(idx);
+			Sample &sample = _history[idx];
 
 			if (!replayUntil<ScalarMeasT>(filter, sample.time_us, sample.input, nis_threshold, replay_time, measurement_pos,
 						      x_meas, P_meas, &replay_stats)) {
@@ -329,7 +306,6 @@ public:
 
 		curr_state = x_meas;
 		curr_cov = P_meas;
-		rebuildHistoryFromLinearTimeline(linear_timeline);
 		rememberMeasurement(meas, meas.time_us, now_us, curr_state, curr_cov, curr_input);
 
 		res.status = FusionStatus::STATUS_FUSED_OOSM;
@@ -513,49 +489,6 @@ private:
 
 		out_K = (cov * meas.H) / innov_var;
 		return true;
-	}
-
-	/**
-	 * @brief Copy the ring buffer into a flat oldest-to-newest array.
-	 *
-	 * Walking the ring via _history.next() keeps the traversal canonical and avoids any
-	 * manual modular arithmetic on uint8_t indices (which can wrap before the bounds check
-	 * when HistorySize approaches 255).
-	 *
-	 * Post-condition: out.count == _history.entries(), with out.count <= kCapacity,
-	 * so no out-of-bounds writes are possible by construction.
-	 */
-	void copyHistoryToLinearTimeline(LinearTimeline &out)
-	{
-		out.count = 0;
-
-		if (!_history.valid()) {
-			return;
-		}
-
-		const int history_count = _history.entries();
-
-		if (history_count == 0) {
-			return;
-		}
-
-		uint8_t idx = _history.get_oldest_index();
-
-		for (int i = 0; i < history_count; ++i) {
-			out.samples[out.count] = _history[idx];
-			out.count++;
-			idx = _history.next(idx);
-		}
-	}
-
-	// Replace history only after the entire replay succeeds.
-	void rebuildHistoryFromLinearTimeline(const LinearTimeline &tl)
-	{
-		_history.reset();
-
-		for (size_t i = 0; i < tl.count; ++i) {
-			_history.push(tl.samples[i]);
-		}
 	}
 
 	TimestampedRingBuffer<Sample, kHistorySize> _history;
