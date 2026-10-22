@@ -367,8 +367,8 @@ TEST_F(VTEOosmTest, FusesCurrentMeasurement)
 	EXPECT_EQ(filter.applied_k.size(), 1u);
 }
 
-// Exhausting bounded replay storage must retain the live posterior and discard
-// the unusable old timeline, rather than replaying with a missing observation.
+// A full log whose oldest observation no snapshot contains yet cannot drop it: history restarts
+// from the live posterior instead, rather than replaying with a missing observation.
 TEST_F(VTEOosmTest, MeasurementCapacityRestartsHistoryFromLivePosterior)
 {
 	using Access = vte::OOSMManagerTestAccess<Manager>;
@@ -432,11 +432,11 @@ TEST_F(VTEOosmTest, RetainsFreshnessAfterObservationIsPruned)
 	EXPECT_EQ(oosm.getFusionTimes().last_relative_fused, 0u);
 }
 
-// A log sized for one observation per snapshot must hold one fused observation per cycle
-// indefinitely, so the orientation filter never restarts its history in steady state.
+// A log with one slot per snapshot must hold one fused observation per cycle indefinitely,
+// so the orientation filter never drops one in steady state.
 TEST_F(VTEOosmTest, OneObservationPerCycleFitsMeasurementCapacity)
 {
-	using OneObsManager = vte::OOSMManager<TestFilter, kStateDim, float, 8, 1>;
+	using OneObsManager = vte::OOSMManager<TestFilter, kStateDim, float, 8, 8>;
 	using Access = vte::OOSMManagerTestAccess<OneObsManager>;
 	OneObsManager one_obs{};
 	auto x = makeVec(0.f);
@@ -452,13 +452,98 @@ TEST_F(VTEOosmTest, OneObservationPerCycleFitsMeasurementCapacity)
 			  vte::FusionStatus::STATUS_FUSED_CURRENT);
 		one_obs.push(now, x, P, curr_input);
 
-		// A restart would move the oldest snapshot to the current cycle.
+		// A restart would move the oldest snapshot to the current cycle; a drop would reject the oldest below.
 		const int retained = std::min(cycle + 1, static_cast<int>(OneObsManager::kHistorySize));
 		ASSERT_EQ(Access::historyOldestTime(one_obs), now - (retained - 1) * step);
 	}
 
 	EXPECT_EQ(one_obs.fuse(filter, makeMeas(Access::historyOldestTime(one_obs), 0.f, 1.f), now + step, 0.f,
 			       x, P, curr_input).status, vte::FusionStatus::STATUS_FUSED_OOSM);
+}
+
+// A full log drops its oldest observation instead of restarting history: replays then start from
+// snapshots that contain it, so only delayed samples older than those are rejected.
+TEST_F(VTEOosmTest, DropsOldestObservationWhenLogIsFull)
+{
+	constexpr int kObservationCapacity = 4;
+	constexpr int kCycles = 10;
+	constexpr int kFloorCycle = kCycles - kObservationCapacity;
+	using SmallLogManager = vte::OOSMManager<TestFilter, kStateDim, float, 8, kObservationCapacity>;
+	using Access = vte::OOSMManagerTestAccess<SmallLogManager>;
+	SmallLogManager small_log{};
+	constexpr uint64_t t0 = 1_s;
+	constexpr uint64_t step = 20_ms;
+	constexpr uint64_t now = t0 + (kCycles + 1) * step;
+	constexpr uint64_t floor_time = t0 + kFloorCycle * step;
+	auto x = makeVec(0.f);
+	auto P = makeCov(1.f);
+	small_log.push(t0, x, P, 0.f);
+
+	// Fill the log, advance its floor, and wrap the snapshot ring.
+	for (int cycle = 1; cycle <= kCycles; ++cycle) {
+		const uint64_t t = t0 + cycle * step;
+		filter.predictState(step * 1e-6f, 0.f, x, P, x, P);
+		ScalarMeas meas = makeMeas(t - 5_ms, 0.1f * cycle, 0.5f);
+		meas.source = vte::FusionSource::Untracked;
+
+		if (cycle == kFloorCycle) {
+			// This relative observation leaves the log because of capacity, before its snapshot expires.
+			meas.source = vte::FusionSource::Relative;
+		}
+
+		ASSERT_EQ(small_log.fuse(filter, meas, t, 0.f, x, P, 0.f).status,
+			  vte::FusionStatus::STATUS_FUSED_CURRENT);
+		small_log.push(t, x, P, 0.f);
+	}
+
+	EXPECT_EQ(Access::historyEntries(small_log), SmallLogManager::kHistorySize);
+	EXPECT_LT(Access::historyOldestTime(small_log), floor_time);
+	EXPECT_EQ(small_log.getFusionTimes().last_relative_fused, floor_time - 5_ms);
+	filter.predictState(step * 1e-6f, 0.f, x, P, x, P);
+
+	// Only snapshots that contain all dropped observations remain valid replay floors.
+	const ScalarMeas too_old = makeMeas(floor_time - 1_us, 0.f, 0.5f);
+	ScalarMeas delayed = makeMeas(floor_time, 0.f, 0.5f);
+	delayed.source = vte::FusionSource::Untracked;
+	EXPECT_EQ(small_log.fuse(filter, too_old, now, 0.f, x, P, 0.f).status, vte::FusionStatus::STATUS_REJECT_TOO_OLD);
+	ASSERT_EQ(small_log.fuse(filter, delayed, now, 0.f, x, P, 0.f).status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(small_log.getFusionTimes().last_fused, floor_time - 5_ms);
+	EXPECT_EQ(small_log.getFusionTimes().last_relative_fused, floor_time - 5_ms);
+
+	TestFilter truth_filter;
+	auto x_truth = makeVec(0.f);
+	auto P_truth = makeCov(1.f);
+	uint64_t truth_time = t0;
+	const auto fuse_truth = [&](const ScalarMeas & m, uint64_t t) {
+		truth_filter.predictState((t - truth_time) * 1e-6f, 0.f, x_truth, P_truth, x_truth, P_truth);
+		truth_time = t;
+		float innov = 0.f;
+		float innov_var = 0.f;
+		truth_filter.computeInnovation(x_truth, P_truth, m, innov, innov_var);
+		truth_filter.applyCorrection(x_truth, P_truth, (P_truth * m.H) / innov_var, innov, innov_var);
+	};
+
+	for (int cycle = 1; cycle <= kCycles; ++cycle) {
+		if (cycle == kFloorCycle + 1) {
+			fuse_truth(delayed, delayed.time_us);
+		}
+
+		const uint64_t t = t0 + cycle * step;
+		fuse_truth(makeMeas(t - 5_ms, 0.1f * cycle, 0.5f), t);
+	}
+
+	truth_filter.predictState((now - truth_time) * 1e-6f, 0.f, x_truth, P_truth, x_truth, P_truth);
+	EXPECT_NEAR(x(0), x_truth(0), kTolerance);
+	EXPECT_NEAR(P(0, 0), P_truth(0, 0), kTolerance);
+
+	// A reset also clears the capacity floor, even when starting a new timeline at an earlier time.
+	small_log.reset();
+	small_log.push(t0, x, P, 0.f);
+	filter.predictState(step * 1e-6f, 0.f, x, P, x, P);
+	small_log.push(t0 + step, x, P, 0.f);
+	filter.predictState(step * 1e-6f, 0.f, x, P, x, P);
+	EXPECT_EQ(small_log.fuse(filter, makeMeas(t0, 0.f, 0.5f), t0 + 2 * step, 0.f, x, P, 0.f).status,
+		  vte::FusionStatus::STATUS_FUSED_OOSM);
 }
 
 // WHY: Near-zero innovation variance should never result in a correction.

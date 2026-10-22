@@ -422,13 +422,15 @@ Finally, it predicts to 220 ms and replaces the previous estimate with this rebu
 Vision and target GNSS samples stamped less than 20 ms in the future, usually from clock-sync jitter, are moved to the current time and fused as current.
 Samples further in the future are dropped with a "timestamp in the future" warning.
 Validity and reset timeouts count from the capture time of the newest fused position or yaw sample, so a delayed sample does not extend them.
+These timestamps follow the current replay decisions: rejecting or accepting a stored sample can move freshness backwards or forwards.
+The separate freshness check for EKF2 auxiliary velocity aiding likewise follows the newest accepted vision observation.
 
 ### OOSM Implementation
 
 Each filter retains up to 25 post-update snapshots of the time, state, covariance and prediction input.
 At 50 Hz, 25 snapshots span 480 ms from oldest to newest.
 A separate fixed-size buffer stores the gated scalar observations, accepted or rejected, with their measurement matrix, variance and latest gate decision.
-It is sized for one observation per aid source and cycle: 100 per position axis (up to four sources in moving-target mode) and 25 for yaw.
+It keeps up to 48 observations per position axis, sized for 50 Hz vision and three 10 Hz GNSS streams over the whole window with some margin, and 25 for yaw (one per cycle).
 
 For a delayed observation:
 
@@ -476,9 +478,12 @@ On successful replay within the observation-log capacity, the final state and co
 Replay diagnostics use this shared trajectory, so an older observation's `replay_test_ratio_max` can include the influence of later observations accepted in the same batch.
 Other new batch observations are not included in `replayed_count`; it counts only previously stored observations.
 Observations outside the available history or the 500 ms maximum delay are rejected.
-Stored observations older than the oldest retained posterior are discarded: that posterior already contains the accepted ones, and their decisions can no longer change.
-The buffer cannot overflow while each aid source contributes at most one observation per cycle.
-If adding an observation would exceed its capacity, history restarts from the live posterior: the state is preserved, but older delayed observations are rejected until history accumulates again.
+Stored observations at or before the oldest usable posterior are discarded: that posterior already contains the accepted ones, and their decisions can no longer change.
+When the buffer is full, the oldest usable snapshot advances to the first snapshot at or after the oldest observation, and observations through that snapshot are discarded.
+This shrinks the replay window: delayed observations captured before that snapshot are rejected as `STATUS_REJECT_TOO_OLD`.
+If no snapshot contains the oldest observation yet, history restarts from the live posterior instead.
+Observations are dropped after a cycle's replay, so this only limits later cycles.
+The cap limits each replay to at most 48 distinct stored observations per position axis; rejected candidates can cause repeated gate evaluations, as described below.
 
 When all `B` delayed observations in a cycle are accepted, each axis requires at most `N_snapshots + N_observations + B + 1` predictions and `N_observations + B` measurement updates.
 Here, `N_snapshots` counts snapshots after the floor of the oldest one (at most 24), and `N_observations` counts stored observations replayed from that floor to now.
@@ -620,7 +625,7 @@ The `fusion_status` field records which fusion branch the filter.
 | 2     | `STATUS_FUSED_OOSM`     | Measurement was delayed and fused via the OOSM history buffer; check `history_steps`, and `time_since_meas_ms`. | Healthy. `history_steps` is at most 24; values close to it mean a delay near the 500 ms limit.                    |
 | 3     | `STATUS_REJECT_NIS`     | Innovation failed the chi-squared gate.                                                                         | Check sensor variance, frame rotations, time skew. Compare with `test_ratio` and the matching `vte_input` sample. |
 | 4     | `STATUS_REJECT_COV`     | Innovation covariance was non-finite or non-positive. A stored observation failing on replay clears history.    | Numerical issue: check process-noise parameters and that the state has not diverged.                              |
-| 5     | `STATUS_REJECT_TOO_OLD` | Sample older than the OOSM buffer (`kOosmMaxTimeUs = 500 ms`) or older than the oldest stored snapshot.         | Reduce sensor latency, raise the publication rate, or check transport timestamps.                                 |
+| 5     | `STATUS_REJECT_TOO_OLD` | Sample older than the OOSM buffer (`kOosmMaxTimeUs = 500 ms`) or than the oldest snapshot a replay can use.     | Reduce sensor latency, raise the publication rate, or check transport timestamps.                                 |
 | 6     | `STATUS_REJECT_TOO_NEW` | Sample timestamped 20 ms or more after the latest filter prediction.                                            | Time-sync problem: verify `mavlink_timesync` or the sensor clock. Built-in sources drop these with a warning.     |
 | 7     | `STATUS_REJECT_STALE`   | Filter history was reset because no prediction had run for longer than the buffer span.                         | Expected after long pauses; otherwise investigate scheduler stalls.                                               |
 | 8     | `STATUS_REJECT_EMPTY`   | History buffer not yet populated when the measurement arrived.                                                  | Expected after a history reset; position initialisation itself reports `STATUS_INITIALIZED`.                      |
@@ -638,6 +643,8 @@ Additional fields make latency and replay tractable without manual timestamp ari
   `replay_test_ratio_max` is the highest `test_ratio` among those accepted before the replay (-1 if none).
   A value above 1 means the replay rejected an observation accepted before (see [OOSM Implementation](#oosm-implementation)).
   The delayed observations of one cycle share a replay, so their values can also reflect each other.
+  These counters are reported only for accepted delayed observations and exclude stored observations before their capture time.
+  A revised decision encountered while rebuilding a rejected observation's prior can therefore change the estimate without appearing in these counters.
 
 ### Main Input Feeds
 
