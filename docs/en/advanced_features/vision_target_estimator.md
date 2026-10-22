@@ -199,7 +199,10 @@ This applies to multicopters and to VTOLs in hover.
 The setpoint only moves onto the target once the takeoff ramp is complete and [MIS_TKO_PREC_DLY](../advanced_config/parameter_reference.md#MIS_TKO_PREC_DLY) has elapsed, so the vehicle is clear of the pad before it corrects sideways. Large airframes may need a longer delay.
 Bit 5 of [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) fuses home as the pad's absolute position during precision takeoff.
 PX4 normally records home from the vehicle's position at arming or takeoff; a manually assigned home is also accepted.
-Home is used only while landed, with recent 3D GNSS data placing the vehicle within 5 m of it, and when target GNSS position (bit 0) is disabled.
+While the precision-takeoff task is enabled, VTE caches home while landed, with recent 3D GNSS data placing the vehicle within 5 m of it.
+This also runs while the task is idle, so a validated pad reference remains available if activation arrives after liftoff.
+Airborne home changes do not replace the cached pad; it is revalidated on the ground and cleared if land-status data expires or the task is disabled.
+Home aiding requires target GNSS position (bit 0) to be disabled.
 Home aiding is disabled in moving-target builds because a fixed home position cannot describe a moving pad.
 If no valid target estimate is available the vehicle climbs straight up as usual.
 

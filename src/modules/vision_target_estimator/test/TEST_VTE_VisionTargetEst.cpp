@@ -1078,8 +1078,8 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffReplacesInactiveHomeAidReference)
 	EXPECT_TRUE(_vte->missionPositionMatches(home_lat, home_lon, home_alt));
 }
 
-// WHY: Estimator restarts in flight must reuse the pad reference cached on the ground.
-// WHAT: Activate on the ground, go airborne, verify the cached reference survives.
+// WHY: Task activation can arrive after liftoff, when home no longer identifies the pad safely.
+// WHAT: Cache home while idle and landed, then activate airborne with a changed home.
 TEST_F(VisionTargetEstTest, PrecisionTakeoffActivationCachesHomeReference)
 {
 	const double lat = 47.0;
@@ -1089,19 +1089,85 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffActivationCachesHomeReference)
 	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
 	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
 
-	// GIVEN: The task is activated on the ground.
 	_vte->_vte_task_mask = vte::task_bits::kPrecTakeoff;
 	_vte->clearCurrentTask();
-	_vte->setPrecTakeoffActive(true);
-	EXPECT_TRUE(_vte->setNewTaskIfAvailable());
-	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
+	_vte->updateTaskTopics();
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
 
-	// WHEN: The vehicle is airborne and the reference is queried again.
+	// A new home near the airborne vehicle must not replace the cached pad.
+	vte_test::advanceMicroseconds(500_ms);
+	const double airborne_lat = lat + 0.00001;
+	publishHomePosition(airborne_lat, lon, alt + 1.f, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(airborne_lat, lon, alt + 1.f, vte_test::advanceMicroseconds(kStepUs));
 	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+	_vte->setPrecTakeoffActive(true);
+	ASSERT_TRUE(_vte->setNewTaskIfAvailable());
 	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
+	EXPECT_DOUBLE_EQ(_vte->precTakeoffHomeReferenceLat(), lat);
 
-	// THEN: The cached reference is kept.
+	// Estimator starts and restarts use the original pad.
+	_vte->seedPrecTakeoffPositionReference();
+	EXPECT_TRUE(_vte->missionPositionMatches(lat, lon, alt));
+}
+
+// WHY: A subsequent flight or a disabled task must not resurrect a previous pad reference.
+// WHAT: Invalidate stale ground data, capture the next pad, then disable and re-enable airborne.
+TEST_F(VisionTargetEstTest, PrecisionTakeoffCacheIsRevalidatedForEachFlight)
+{
+	const double lat = 47.0;
+	const double lon = 8.0;
+	const float alt = 500.f;
+	_vte->_vte_task_mask = vte::task_bits::kPrecTakeoff;
+	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
+
+	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
 	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
+
+	// A landing with stale GNSS invalidates the old pad instead of retaining it.
+	vte_test::advanceMicroseconds(2_s);
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	const double next_lat = lat + 0.001;
+	publishHomePosition(next_lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(next_lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
+	EXPECT_DOUBLE_EQ(_vte->precTakeoffHomeReferenceLat(), next_lat);
+
+	// Losing land-detection continuity also ends the cached flight, even if its last state was airborne.
+	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
+	vte_test::advanceMicroseconds(2_s);
+	_vte->updateTaskTopics();
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	// Recapture on the ground before exercising task disable/re-enable.
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(next_lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
+
+	setParamInt("VTE_TASK_MASK", 0);
+	_vte->updateParams();
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+	setParamInt("VTE_TASK_MASK", vte::task_bits::kPrecTakeoff);
+	_vte->updateParams();
+	_vte->updateTaskTopics();
+	_vte->_prec_takeoff_task.onActivate();
+	_vte->seedPrecTakeoffPositionReference();
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+	EXPECT_FALSE(_vte->missionPositionValid());
 }
 
 // WHY: The acceleration downsample must reset after timeout to avoid stale averages.
