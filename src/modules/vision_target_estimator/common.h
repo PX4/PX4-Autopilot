@@ -70,9 +70,6 @@ constexpr int kOosmHistorySize = static_cast<int>(kOosmMaxTimeUs / kEstimatorUpd
 // Observations kept per position axis for replays: 50 Hz vision and three 10 Hz GNSS streams need 40
 // over the window, plus margin. Beyond that the oldest are dropped and the replay window shrinks.
 constexpr int kOosmMaxStoredObs = 48;
-constexpr int kExpectedAxisCount = 3;
-constexpr int kExpectedStaticPositionStateCount = 3;
-constexpr int kExpectedMovingPositionStateCount = 5;
 
 // Fusion status values are defined as message constants in VteAidSource1d.msg / VteAidSource3d.msg
 // (both messages declare the same STATUS_* values). Using vte_aid_source1d_s here keeps a single
@@ -182,6 +179,19 @@ static inline bool alignFutureSampleTime(hrt_abstime &ts, const hrt_abstime now)
 	}
 
 	return true;
+}
+
+// Rate limit a warning to one per kWarnThrottleIntervalUs.
+static inline bool shouldEmitWarning(hrt_abstime &last_warn)
+{
+	const hrt_abstime now = nowUs();
+
+	if ((last_warn == 0) || (now < last_warn) || ((now - last_warn) > kWarnThrottleIntervalUs)) {
+		last_warn = now;
+		return true;
+	}
+
+	return false;
 }
 
 constexpr inline int64_t signedTimeDiffUs(const hrt_abstime newer, const hrt_abstime older)

@@ -243,13 +243,14 @@ TEST(KFPositionTest, BatchMatchesSequentialFusionWithChangingInputs)
 		{1030_ms, 1.3f, 0.2f, velocity_h},
 		{1065_ms, 1000.f, 0.2f, position_h}, // Rejected between accepted updates.
 		{1030_ms, 2.25f, 0.2f, position_h}, // Same timestamp, different measurement row.
+		{1075_ms, 1.2f, 0.2f, velocity_h}, // Accepted after a rejection within the same prediction interval.
 	};
 	constexpr size_t kCount = sizeof(measurements) / sizeof(measurements[0]);
 	vte::FusionResult batch_results[kCount] {};
 	vte::FusionResult sequential_results[kCount] {};
 	batch.fuseScalarsAtTime(measurements, kCount, kNow, kNisThreshold, batch_results);
 
-	for (size_t i : {1u, 3u, 2u, 0u}) {
+	for (size_t i : {1u, 3u, 2u, 4u, 0u}) {
 		sequential_results[i] = sequential.fuseScalarAtTime(measurements[i], kNow, kNisThreshold);
 	}
 
@@ -257,6 +258,7 @@ TEST(KFPositionTest, BatchMatchesSequentialFusionWithChangingInputs)
 	ASSERT_EQ(batch_results[1].status, vte::FusionStatus::STATUS_FUSED_OOSM);
 	ASSERT_EQ(batch_results[2].status, vte::FusionStatus::STATUS_REJECT_NIS);
 	ASSERT_EQ(batch_results[3].status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	ASSERT_EQ(batch_results[4].status, vte::FusionStatus::STATUS_FUSED_OOSM);
 
 	for (size_t i = 0; i < kCount; ++i) {
 		SCOPED_TRACE(i);

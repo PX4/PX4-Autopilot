@@ -139,10 +139,7 @@ public:
 		_min_floor_time_us = 0;
 		_baseline_times = times;
 		_fusion_times = times;
-
-		if (_history.valid()) {
-			_history.reset();
-		}
+		_history.reset();
 	}
 
 	/**
@@ -151,10 +148,6 @@ public:
 	 */
 	void push(uint64_t time_us, const StateVec &state, const StateCov &cov, const InputT &input)
 	{
-		if (!_history.valid()) {
-			return;
-		}
-
 		Sample sample{};
 		sample.time_us = time_us;
 		sample.state = state;
@@ -384,7 +377,7 @@ private:
 	template <typename ScalarMeasT>
 	bool checkDelayed(const ScalarMeasT &meas, uint64_t now_us, FusionResult &res)
 	{
-		if (!_history.valid() || (_history.entries() == 0)) {
+		if (_history.entries() == 0) {
 			res.status = FusionStatus::STATUS_REJECT_EMPTY;
 			return false;
 		}
@@ -549,8 +542,8 @@ private:
 		}
 	}
 
-	// Fuse order[k] at its time, after snapshot idx. A rejected measurement leaves the cursor as if it
-	// had not arrived. Returns false if a stored observation fails on the way.
+	// Fuse order[k] at its time, after snapshot idx. A rejected measurement adds nothing: the cursor only
+	// moves to its time. Returns false if a stored observation fails on the way.
 	template <typename ScalarMeasT>
 	bool fuseDelayed(FilterT &filter, const ScalarMeasT *meas, const uint8_t *order, size_t k, const InputT &input,
 			 float nis_threshold, uint8_t idx, ReplayCursor &cursor, FusionResult *results)
@@ -562,14 +555,12 @@ private:
 			return false;
 		}
 
-		ReplayCursor at_meas = cursor;
-		predictTo(filter, delayed.time_us, input, at_meas);
+		predictTo(filter, delayed.time_us, input, cursor);
 		StateVec K;
 
-		if (processMeasurement(filter, at_meas.state, at_meas.cov, delayed, nis_threshold, res, K)) {
-			filter.applyCorrection(at_meas.state, at_meas.cov, K, res.innov, res.innov_var);
+		if (processMeasurement(filter, cursor.state, cursor.cov, delayed, nis_threshold, res, K)) {
+			filter.applyCorrection(cursor.state, cursor.cov, K, res.innov, res.innov_var);
 			res.status = FusionStatus::STATUS_FUSED_OOSM;
-			cursor = at_meas;
 			cursor.changed = true;
 
 			// Update an existing snapshot at this time. Between snapshots, the observation log
