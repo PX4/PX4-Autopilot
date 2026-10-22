@@ -361,7 +361,7 @@ private:
 #endif // CONFIG_VTEST_MOVING
 
 	/** Publish the per-axis fusion results of one observation. Returns true if any axis fused. */
-	bool publishAidSource(const TargetObs &target_obs, const FusionResult(&results)[vtest::Axis::size]);
+	void publishAidSource(const TargetObs &target_obs, const FusionResult(&results)[vtest::Axis::size]);
 	void publishTarget();
 	void publishInnov(const vte_aid_source3d_s &target_innov, const ObsType type);
 	void resetObservations();

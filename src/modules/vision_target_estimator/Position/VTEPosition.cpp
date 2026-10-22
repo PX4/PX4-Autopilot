@@ -587,7 +587,7 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 	aid.time_since_meas_ms = (_last_predict - initial_obs.timestamp) * kMicrosecondsToMilliseconds;
 
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
-		_target_est_pos[axis].resetHistory();
+		_target_est_pos[axis].resetHistory({_last_update, _last_relative_meas_fused_time});
 		_target_est_pos[axis].pushHistory(initial_obs.timestamp);
 		aid.observation[axis] = initial_obs.meas_xyz(axis);
 		aid.observation_variance[axis] = initial_obs.meas_unc_xyz(axis);
@@ -843,7 +843,7 @@ void VTEPosition::activateBiasEstimate(const Vector3f &initial_position, const V
 		filter.setStateCovarianceDiag(state_var);
 
 		// Bias initialization is a state reset: restart OOSM history to avoid mixing pre/post-reset states.
-		filter.resetHistory();
+		filter.resetHistory(filter.getFusionTimes());
 	}
 
 	PX4_DEBUG("Rel pos init %.2f %.2f %.2f", (double)initial_position(vtest::Axis::x),
@@ -946,6 +946,13 @@ void VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 			KF_position::ScalarMeas &meas_input = meas[axis_count];
 			meas_input = {obs.timestamp, obs.meas_xyz(axis), obs.meas_unc_xyz(axis), obs.meas_h_xyz.row(axis)};
 
+			if (obs.type == ObsType::kFiducialMarker) {
+				meas_input.source = FusionSource::Relative;
+
+			} else if ((obs.type == ObsType::kUavGpsVel) || (obs.type == ObsType::kTargetGpsVel)) {
+				meas_input.source = FusionSource::Untracked;
+			}
+
 			// Bias can become observable after observations were collected in this update.
 			// Build the GNSS model from the state being fused, including on that first cycle.
 			if (_bias.set && (obs.type == ObsType::kTargetGpsPos || obs.type == ObsType::kMissionGpsPos)) {
@@ -973,18 +980,19 @@ void VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 	for (unsigned i = 0; i < count; ++i) {
 		const TargetObs &obs = *order[i];
 
-		if (obs.timestamp == 0 || !publishAidSource(obs, results[i])) {
-			continue;
+		if (obs.timestamp != 0) {
+			publishAidSource(obs, results[i]);
 		}
+	}
 
-		// Freshness follows the capture time, so a late sample does not extend validity.
-		if (obs.type == ObsType::kFiducialMarker) {
-			_last_relative_meas_fused_time = math::max(_last_relative_meas_fused_time, obs.timestamp);
-		}
+	// Replay can accept or reject older observations, so freshness can move in either direction.
+	_last_update = 0;
+	_last_relative_meas_fused_time = 0;
 
-		if ((obs.type != ObsType::kUavGpsVel) && (obs.type != ObsType::kTargetGpsVel)) {
-			_last_update = math::max(_last_update, obs.timestamp);
-		}
+	for (const KF_position &filter : _target_est_pos) {
+		const FusionTimes times = filter.getFusionTimes();
+		_last_update = math::max(_last_update, times.last_fused);
+		_last_relative_meas_fused_time = math::max(_last_relative_meas_fused_time, times.last_relative_fused);
 	}
 }
 
@@ -1294,7 +1302,7 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	return true;
 }
 
-bool VTEPosition::publishAidSource(const TargetObs &target_obs, const FusionResult(&results)[vtest::Axis::size])
+void VTEPosition::publishAidSource(const TargetObs &target_obs, const FusionResult(&results)[vtest::Axis::size])
 {
 	vte_aid_source3d_s target_innov = {};
 	target_innov.timestamp_sample = target_obs.timestamp;
@@ -1303,9 +1311,9 @@ bool VTEPosition::publishAidSource(const TargetObs &target_obs, const FusionResu
 	target_innov.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, target_obs.timestamp))
 					  * kMicrosecondsToMilliseconds;
 
-	bool any_axis_fused = false;
 	uint8_t history_steps = 0;
 	uint8_t replayed_count = 0;
+	uint8_t replay_revised_count = 0;
 
 	for (int j = 0; j < vtest::Axis::size; j++) {
 		target_innov.replay_test_ratio_max[j] = -1.f;
@@ -1323,21 +1331,19 @@ bool VTEPosition::publishAidSource(const TargetObs &target_obs, const FusionResu
 		target_innov.test_ratio[j]          = result.test_ratio;
 		target_innov.fusion_status[j]       = static_cast<uint8_t>(result.status);
 		target_innov.replay_test_ratio_max[j] = result.replay_test_ratio_max;
-		any_axis_fused |= (result.status == FusionStatus::STATUS_FUSED_CURRENT ||
-				   result.status == FusionStatus::STATUS_FUSED_OOSM);
 
 		if (result.status == FusionStatus::STATUS_FUSED_OOSM) {
 			history_steps = math::max(result.history_steps, history_steps);
 			replayed_count = math::max(result.replayed_count, replayed_count);
+			replay_revised_count = math::max(result.replay_revised_count, replay_revised_count);
 		}
 	}
 
 	target_innov.history_steps = history_steps;
 	target_innov.replayed_count = replayed_count;
+	target_innov.replay_revised_count = replay_revised_count;
 
 	publishInnov(target_innov, target_obs.type);
-
-	return any_axis_fused;
 }
 
 void VTEPosition::publishInnov(const vte_aid_source3d_s &target_innov, const ObsType type)

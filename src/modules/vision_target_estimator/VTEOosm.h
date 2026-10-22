@@ -35,21 +35,22 @@
  * @file VTEOosm.h
  * @brief Generic Out-Of-Sequence Measurement (OOSM) manager for VTE filters.
  *
- * Keeps post-update snapshots and accepted scalar observations in fixed-size buffers.
+ * Keeps post-update snapshots and gated scalar observations in fixed-size buffers.
  * A delayed observation is fused at its capture time, then subsequent predictions and
- * accepted observations are replayed in time order with recomputed Kalman gains.
+ * stored observations are replayed in time order with recomputed Kalman gains.
  * This preserves the information from newer observations when arrivals cross in time.
  *
  * For a delayed scalar observation:
  *   1. Find the newest snapshot at or before its timestamp.
- *   2. Predict to that time, replaying any accepted observations between the snapshot and it.
+ *   2. Predict to that time, replaying the stored observations between the snapshot and it.
  *   3. Compute the innovation and gain, and reject the new observation if it fails the NIS gate.
  *   4. Apply the ordinary Kalman correction at the observation time.
- *   5. Replay later predictions and accepted observations, recomputing gains without re-gating.
- *      Their test ratios are only reported, as diagnostics of the new observation.
+ *   5. Replay later predictions and stored observations, recomputing gains and gating each one
+ *      again, so a stored observation can change from accepted to rejected or back.
  *   6. Rewrite the later snapshots in place and replace the live state. Retain the new
- *      observation for future replay; no extra prediction snapshot is needed. If a stored
- *      observation fails during replay, clear the history so it cannot block later replays.
+ *      observation, accepted or rejected, for future replays; no extra prediction snapshot is
+ *      needed. If a stored observation fails during replay, clear the history so it cannot
+ *      block later replays.
  *
  * Delayed observations from the same cycle share one replay: it stops at each of them in turn,
  * oldest first, so the window is replayed once per cycle rather than once per observation.
@@ -100,7 +101,7 @@ struct EmptyInput {};
  *   - void applyCorrection:
  *       Update (x, P) with an already-computed gain vector K.
  *
- * ScalarMeasT concept: default-constructible with members time_us, val, unc and H.
+ * ScalarMeasT concept: default-constructible with members time_us, val, unc, H and source.
  */
 template <typename FilterT, int StateDim, typename InputT, int HistorySize = 25, int MaxObsPerSnapshot = 4>
 class OOSMManager
@@ -121,19 +122,25 @@ public:
 	static_assert(MaxObsPerSnapshot > 0, "MaxObsPerSnapshot must be > 0");
 	static constexpr uint8_t kHistorySize = static_cast<uint8_t>(HistorySize);
 
-	// Retained observations were fused within the last HistorySize cycles, so the log
-	// only fills if the filter fuses more than MaxObsPerSnapshot per cycle.
+	// Retained observations were gated within the last HistorySize cycles, so the log
+	// only fills if the filter gates more than MaxObsPerSnapshot per cycle.
 	static constexpr size_t kMeasurementCapacity = static_cast<size_t>(MaxObsPerSnapshot) * HistorySize;
 	static constexpr uint64_t kOosmMinTimeUs = vision_target_estimator::kOosmMinTimeUs;
 	static constexpr uint64_t kOosmMaxTimeUs = vision_target_estimator::kOosmMaxTimeUs;
+	static_assert(kOosmMinTimeUs <= INT16_MAX, "Fast-path capture-time offset must fit in int16_t");
 	// Most measurements fused in one pass; a larger batch is fused in chunks of this size.
 	static constexpr size_t kMaxBatchSize = 8;
 
 	OOSMManager() = default;
 
-	void reset()
+	FusionTimes getFusionTimes() const { return _fusion_times; }
+
+	// A state reset clears freshness by default. History-only recovery passes the committed times.
+	void reset(FusionTimes times = {})
 	{
 		_measurement_count = 0;
+		_baseline_times = times;
+		_fusion_times = times;
 
 		if (_history.valid()) {
 			_history.reset();
@@ -264,9 +271,21 @@ private:
 		float val;
 		float unc;
 		StateVec H;
+		FusionSource source;
+		bool accepted; // Latest gate decision
+		// Only the fast path retimes observations: the offset is strictly less than 20 ms.
+		int16_t capture_offset_us;
+
+		uint64_t captureTime() const
+		{
+			return (capture_offset_us >= 0) ? time_us + static_cast<uint64_t>(capture_offset_us)
+			       : time_us - static_cast<uint64_t>(-capture_offset_us);
+		}
 	};
 	StoredMeasurement _measurements[kMeasurementCapacity] {};
 	size_t _measurement_count{0};
+	FusionTimes _baseline_times{}; // Accepted observations already incorporated in the oldest snapshot.
+	FusionTimes _fusion_times{}; // Committed live posterior, unchanged while replay is speculative.
 
 	void pruneMeasurements()
 	{
@@ -277,6 +296,12 @@ private:
 		size_t obsolete = 0;
 
 		while (obsolete < _measurement_count && _measurements[obsolete].time_us <= _history.get_oldest().time_us) {
+			const StoredMeasurement &stored = _measurements[obsolete];
+
+			if (stored.accepted) {
+				_baseline_times.record(stored.source, stored.captureTime());
+			}
+
 			++obsolete;
 		}
 
@@ -293,13 +318,13 @@ private:
 
 	template <typename ScalarMeasT>
 	void rememberMeasurement(const ScalarMeasT &meas, uint64_t effective_time, uint64_t now_us,
-				 const StateVec &state, const StateCov &cov, const InputT &input)
+				 const StateVec &state, const StateCov &cov, const InputT &input, bool accepted)
 	{
 		pruneMeasurements();
 
 		if (_measurement_count == kMeasurementCapacity) {
 			// Restart from the live posterior rather than drop an update a later replay needs.
-			reset();
+			reset(_fusion_times);
 			push(now_us, state, cov, input);
 			return;
 		}
@@ -311,17 +336,20 @@ private:
 			--pos;
 		}
 
-		_measurements[pos] = {effective_time, meas.val, meas.unc, meas.H};
+		_measurements[pos] = {effective_time, meas.val, meas.unc, meas.H, meas.source, accepted,
+				      static_cast<int16_t>(signedTimeDiffUs(meas.time_us, effective_time))
+				     };
 		++_measurement_count;
 	}
 
-	// Replay position: the posterior at time_us, with the stored observations before
-	// measurement_pos either applied or already contained in the starting snapshot.
+	// Replay position: posterior at time_us, with stored observations before measurement_pos replayed
+	// or in the starting snapshot. changed marks a replay that differs from history and must be committed.
 	struct ReplayCursor {
 		StateVec state;
 		StateCov cov;
 		uint64_t time_us;
 		size_t measurement_pos;
+		bool changed;
 	};
 
 	// Fast path: the measurement is effectively current.
@@ -344,7 +372,7 @@ private:
 
 		// Live time moved backwards or jumped too far forward relative to history: wipe and recover.
 		if (now_us < newest_time_us || (now_us - newest_time_us) > kOosmMaxTimeUs) {
-			reset();
+			reset(_fusion_times);
 			res.status = FusionStatus::STATUS_REJECT_STALE;
 			return false;
 		}
@@ -370,11 +398,16 @@ private:
 	{
 		StateVec K;
 
+		// The fast path treats near-current samples as observations at now. Rejected ones are kept
+		// too, so a later replay can gate them again.
 		if (processMeasurement(filter, curr_state, curr_cov, meas, nis_threshold, res, K)) {
 			filter.applyCorrection(curr_state, curr_cov, K, res.innov, res.innov_var);
 			res.status = FusionStatus::STATUS_FUSED_CURRENT;
-			// The fast path treats near-current samples as observations at now.
-			rememberMeasurement(meas, now_us, now_us, curr_state, curr_cov, curr_input);
+			_fusion_times.record(meas.source, meas.time_us);
+			rememberMeasurement(meas, now_us, now_us, curr_state, curr_cov, curr_input, true);
+
+		} else if (res.status == FusionStatus::STATUS_REJECT_NIS) {
+			rememberMeasurement(meas, now_us, now_us, curr_state, curr_cov, curr_input, false);
 		}
 	}
 
@@ -398,8 +431,8 @@ private:
 		return (idx != _history.get_newest_index()) ? _history[_history.next(idx)].input : curr_input;
 	}
 
-	// Fuse the sorted delayed measurements in one replay. Until one is accepted, each starts from its
-	// own floor and history stays untouched; after that, history is rewritten in place.
+	// Fuse the sorted delayed measurements in one replay. Until something changes (an accepted measurement
+	// or a revised decision), each starts from its own floor; after that, history is rewritten in place.
 	template <typename ScalarMeasT>
 	void replayBatch(FilterT &filter, const ScalarMeasT *meas, const uint8_t *order, size_t count, uint64_t now_us,
 			 float nis_threshold, StateVec &curr_state, StateCov &curr_cov, const InputT &curr_input,
@@ -409,13 +442,12 @@ private:
 		ReplayCursor cursor{};
 		uint8_t idx = 0;
 		size_t k = 0;
-		bool accepted = false;
 		bool ok = true;
 
-		while (ok && ((k < count) || (accepted && (idx != newest_idx)))) {
+		while (ok && ((k < count) || (cursor.changed && (idx != newest_idx)))) {
 			// Recompute later posteriors rather than subtract an old correction from a newer one.
 			// A snapshot at a measurement's time is rewritten after that measurement.
-			if (accepted && (idx != newest_idx)
+			if (cursor.changed && (idx != newest_idx)
 			    && ((k == count) || (_history[_history.next(idx)].time_us < meas[order[k]].time_us))) {
 				idx = _history.next(idx);
 				Sample &sample = _history[idx];
@@ -440,20 +472,19 @@ private:
 				continue;
 			}
 
-			if (!accepted) {
+			if (!cursor.changed) {
 				idx = floorIndex(meas[order[k]].time_us);
-				cursor = {_history[idx].state, _history[idx].cov, _history[idx].time_us, 0};
+				cursor = {_history[idx].state, _history[idx].cov, _history[idx].time_us, 0, false};
 			}
 
 			ok = fuseDelayed(filter, meas, order, k, inputAfter(idx, curr_input), nis_threshold, idx, cursor, results);
 
 			if (ok) {
-				accepted = accepted || (results[order[k]].status == FusionStatus::STATUS_FUSED_OOSM);
 				++k;
 			}
 		}
 
-		if (ok && accepted) {
+		if (ok && cursor.changed) {
 			ok = replayStored<ScalarMeasT>(filter, now_us, curr_input, nis_threshold, cursor, order, count, results);
 		}
 
@@ -462,17 +493,37 @@ private:
 			return;
 		}
 
-		if (!accepted) {
-			return;
+		if (cursor.changed) {
+			predictTo(filter, now_us, curr_input, cursor);
+			curr_state = cursor.state;
+			curr_cov = cursor.cov;
 		}
 
-		predictTo(filter, now_us, curr_input, cursor);
-		curr_state = cursor.state;
-		curr_cov = cursor.cov;
+		// Rebuild freshness from the decisions that survived replay, including rejected-to-accepted
+		// transitions. Capture times are distinct from the fast path's effective fusion time.
+		_fusion_times = _baseline_times;
 
+		for (size_t j = 0; j < _measurement_count; ++j) {
+			const StoredMeasurement &stored = _measurements[j];
+
+			if (stored.accepted) {
+				_fusion_times.record(stored.source, stored.captureTime());
+			}
+		}
+
+		// Commit all new timestamps before insertion can restart a full observation log.
 		for (size_t j = 0; j < count; ++j) {
 			if (results[order[j]].status == FusionStatus::STATUS_FUSED_OOSM) {
-				rememberMeasurement(meas[order[j]], meas[order[j]].time_us, now_us, curr_state, curr_cov, curr_input);
+				_fusion_times.record(meas[order[j]].source, meas[order[j]].time_us);
+			}
+		}
+
+		for (size_t j = 0; j < count; ++j) {
+			const uint8_t status = results[order[j]].status;
+
+			if ((status == FusionStatus::STATUS_FUSED_OOSM) || (status == FusionStatus::STATUS_REJECT_NIS)) {
+				rememberMeasurement(meas[order[j]], meas[order[j]].time_us, now_us, curr_state, curr_cov, curr_input,
+						    status == FusionStatus::STATUS_FUSED_OOSM);
 			}
 		}
 	}
@@ -498,6 +549,7 @@ private:
 			filter.applyCorrection(at_meas.state, at_meas.cov, K, res.innov, res.innov_var);
 			res.status = FusionStatus::STATUS_FUSED_OOSM;
 			cursor = at_meas;
+			cursor.changed = true;
 
 			// Update an existing snapshot at this time. Between snapshots, the observation log
 			// retains this correction for future replays without consuming a history slot.
@@ -514,7 +566,7 @@ private:
 	// Delayed measurements not already rejected on their own report the failure.
 	void failBatch(const uint8_t *order, size_t count, size_t processed, FusionResult *results)
 	{
-		reset();
+		reset(_fusion_times);
 
 		for (size_t j = 0; j < count; ++j) {
 			FusionResult &res = results[order[j]];
@@ -523,13 +575,14 @@ private:
 				res.status = FusionStatus::STATUS_REJECT_COV;
 				res.history_steps = 0;
 				res.replayed_count = 0;
+				res.replay_revised_count = 0;
 				res.replay_test_ratio_max = -1.f;
 			}
 		}
 	}
 
-	// Apply the stored observations up to end_time with their original decisions and fresh gains, without
-	// the final prediction. Each counts for the diagnostics of the fused delayed order[0..fused_count).
+	// Gate and apply the stored observations up to end_time, without the final prediction. A revised
+	// decision marks the replay as changed; each counts for the fused delayed order[0..fused_count).
 	template <typename ScalarMeasT>
 	bool replayStored(FilterT &filter, uint64_t end_time, const InputT &input, float nis_threshold,
 			  ReplayCursor &cursor, const uint8_t *order, size_t fused_count, FusionResult *results)
@@ -537,7 +590,7 @@ private:
 		const uint64_t start_time = cursor.time_us;
 
 		while (cursor.measurement_pos < _measurement_count) {
-			const StoredMeasurement &stored = _measurements[cursor.measurement_pos];
+			StoredMeasurement &stored = _measurements[cursor.measurement_pos];
 
 			if (stored.time_us <= start_time) {
 				++cursor.measurement_pos;
@@ -556,13 +609,13 @@ private:
 			meas.H = stored.H;
 			StateVec K;
 			FusionResult result{};
+			const bool accepted = processMeasurement(filter, cursor.state, cursor.cov, meas, nis_threshold, result, K);
 
-			if (!processMeasurement(filter, cursor.state, cursor.cov, meas, 0.f, result, K)) {
+			if (!accepted && (result.status != FusionStatus::STATUS_REJECT_NIS)) {
 				return false;
 			}
 
-			const float test_ratio = (nis_threshold > 0.f)
-						 ? (result.innov * result.innov) / (result.innov_var * nis_threshold) : -1.f;
+			const bool revised = (accepted != stored.accepted);
 
 			for (size_t j = 0; j < fused_count; ++j) {
 				FusionResult &res = results[order[j]];
@@ -572,11 +625,26 @@ private:
 						++res.replayed_count;
 					}
 
-					res.replay_test_ratio_max = fmaxf(res.replay_test_ratio_max, test_ratio);
+					if (revised && (res.replay_revised_count < UINT8_MAX)) {
+						++res.replay_revised_count;
+					}
+
+					// Only previously accepted observations: above 1 means one was rejected now.
+					if (stored.accepted) {
+						res.replay_test_ratio_max = fmaxf(res.replay_test_ratio_max, result.test_ratio);
+					}
 				}
 			}
 
-			filter.applyCorrection(cursor.state, cursor.cov, K, result.innov, result.innov_var);
+			if (revised) {
+				stored.accepted = accepted;
+				cursor.changed = true;
+			}
+
+			if (accepted) {
+				filter.applyCorrection(cursor.state, cursor.cov, K, result.innov, result.innov_var);
+			}
+
 			++cursor.measurement_pos;
 		}
 
