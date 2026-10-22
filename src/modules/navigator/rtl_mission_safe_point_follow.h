@@ -47,7 +47,6 @@
 #include "mission_route_types.h"
 #include "rtl_base.h"
 #include "rtl_arrival.h"
-#include <lib/perf/perf_counter.h>
 #include <lib/rtl/rtl_time_estimator.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
@@ -56,7 +55,6 @@ class RtlMissionSafePointFollow : public RtlBase
 {
 public:
 	RtlMissionSafePointFollow(Navigator *navigator, mission_s mission);
-	~RtlMissionSafePointFollow() override;
 
 	void on_inactivation() override;
 	void on_activation() override;
@@ -156,7 +154,6 @@ private:
 	loiter_point_s _goal_land_approach{};
 	float _goal_arrival_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator;
-	perf_counter_t _calc_rtl_time_estimate_perf{perf_alloc(PC_ELAPSED, "navigator: rtl route time estimate")};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		RtlBase,

@@ -58,11 +58,6 @@ RtlMissionSafePointFollow::RtlMissionSafePointFollow(Navigator *navigator, missi
 	_mission = mission;
 }
 
-RtlMissionSafePointFollow::~RtlMissionSafePointFollow()
-{
-	perf_free(_calc_rtl_time_estimate_perf);
-}
-
 bool RtlMissionSafePointFollow::isMissionValid() const
 {
 	if (isExecutingGoalStage()) {
@@ -698,8 +693,6 @@ void RtlMissionSafePointFollow::setActiveMissionItems()
 
 rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 {
-	perf_begin(_calc_rtl_time_estimate_perf);
-
 	// A newly configured executor may be queried before its first inactive cycle.
 	_vehicle_status_sub.update();
 	_vtol_status_sub.update();
@@ -712,9 +705,7 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 		addRemainingLegsToTimeEstimate(global_pos);
 	}
 
-	const rtl_time_estimate_s estimate = _rtl_time_estimator.getEstimate();
-	perf_end(_calc_rtl_time_estimate_perf);
-	return estimate;
+	return _rtl_time_estimator.getEstimate();
 }
 
 void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_global_position_s &global_pos)
