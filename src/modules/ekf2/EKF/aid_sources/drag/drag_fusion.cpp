@@ -161,9 +161,9 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 		// the innovation variance follows the covariance the earlier axis has updated
 		const VectorState PH = P * H;
-		innovation_variance(axis_index) = PH.dot(H) + R_ACC;
+		const float innov_var = PH.dot(H) + R_ACC;
 
-		if (innovation_variance(axis_index) < R_ACC) {
+		if (innov_var < R_ACC) {
 			// calculation is badly conditioned
 			// keep the covariance and state consistent by applying the correction accumulated so far
 			applyStateCorrection(state_correction);
@@ -171,11 +171,11 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		}
 
 		if (_control_status.flags.in_air && _control_status.flags.wind && !_control_status.flags.fake_pos
-		    && PX4_ISFINITE(innovation_variance(axis_index)) && PX4_ISFINITE(innovation(axis_index))
+		    && PX4_ISFINITE(innov_var) && PX4_ISFINITE(innovation(axis_index))
 		    && (test_ratio < 1.f)
 		   ) {
 
-			VectorState K = PH / innovation_variance(axis_index);
+			VectorState K = PH / innov_var;
 
 			accumulateMeasurementUpdate(K, H, R_ACC, innovation(axis_index), state_correction);
 			fused = true;
