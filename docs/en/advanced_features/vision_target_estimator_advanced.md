@@ -460,22 +460,30 @@ $$
 Replaying subsequent updates preserves their information, including their effect on position/bias cross-covariance.
 
 Previously accepted observations remain accepted during replay: their innovation and gain are recalculated, but their original gate decisions and published diagnostic messages are not revised.
-Their recalculated test ratios are logged on the delayed observation that triggered the replay (`replay_test_ratio_max`), so logs show when a late observation contradicts one that was already fused.
+Their recalculated test ratios are logged on the delayed observations that triggered the replay (`replay_test_ratio_max`), so logs show when the revised trajectory contradicts an observation that was already fused.
 Rejected observations are not retained or reconsidered.
-If a stored observation fails during replay (non-finite or non-positive innovation variance), the delayed observation is reported as `STATUS_REJECT_COV` and history is cleared, so the failing observation cannot block later replays.
+If a stored observation fails during replay (invalid innovation variance), the delayed batch is discarded and history is cleared, so the failing observation cannot block later replays.
+The live state is unchanged; pending and provisionally accepted delayed observations report `STATUS_REJECT_COV`, while earlier rejections keep their original status.
+Fresh observations can still fuse afterwards.
 The result therefore matches chronological fusion of the accepted observations at their effective fusion times; it does not promise arrival-order-independent outlier decisions.
 Prediction uses the stored piecewise-constant control inputs and current process-noise settings.
 
 Observations less than 20 ms from the current time take the direct-update path and are recorded at the effective fusion time (now).
 Within each cycle, observations are fused in effective timestamp order, preserving source priority for equal times.
+Once a delayed observation is accepted, the remaining delayed observations of that cycle share its replay per axis: it stops at each of them to gate and apply it, and rewrites the later snapshots once.
+For example, target GNSS position and velocity share a capture time, so they cost one replay instead of two.
+On successful replay within the observation-log capacity, the final state and covariance match fusing them one at a time, oldest first, up to float rounding.
+Replay diagnostics use this shared trajectory, so an older observation's `replay_test_ratio_max` can include the influence of later observations accepted in the same batch.
+Other new batch observations are not included in `replayed_count`; it counts only previously stored observations.
 Observations outside the available history or the 500 ms maximum delay are rejected.
 Accepted observations older than the oldest retained posterior can be discarded because that posterior already contains their information.
 The buffer cannot overflow while each aid source contributes at most one observation per cycle.
 If adding an observation would exceed its capacity, history restarts from the live posterior: the state is preserved, but older delayed observations are rejected until history accumulates again.
 
-Per axis, fusing an accepted delayed observation requires at most `N_snapshots + N_observations + 2` predictions and `N_observations + 1` measurement updates.
-Here, `N_snapshots` counts snapshots after the floor (at most 24), and `N_observations` counts stored observations replayed from the floor to now.
-The two extra predictions advance to the new observation and then to now; predictions with no elapsed time are skipped.
+When all `B` delayed observations in a cycle are accepted, each axis requires at most `N_snapshots + N_observations + B + 1` predictions and `N_observations + B` measurement updates.
+Here, `N_snapshots` counts snapshots after the floor of the oldest one (at most 24), and `N_observations` counts stored observations replayed from that floor to now.
+The extra predictions advance to each delayed observation and then to now; predictions with no elapsed time are skipped.
+Candidates rejected before the first acceptance are checked independently from their own floor snapshots and may replay stored observations more than once.
 
 ## Moving-target Mode (experimental)
 
@@ -627,7 +635,8 @@ Additional fields make latency and replay tractable without manual timestamp ari
 - `history_steps` counts the retained snapshots after the capture time that were recomputed during replay (at most 24).
   It is 0 for every other status, and also for `STATUS_FUSED_OOSM` when no snapshot is newer than the sample.
 - `replayed_count` counts the stored observations re-applied after a delayed one, and `replay_test_ratio_max` is the highest `test_ratio` among them (-1 if none).
-  A value above 1 means the delayed observation contradicts an observation that was already fused; replay keeps that observation fused (see [OOSM Implementation](#oosm-implementation)).
+  A value above 1 means the revised trajectory contradicts an observation that was already fused; replay keeps that observation fused.
+  With batching, later accepted observations in the same cycle can also influence this ratio (see [OOSM Implementation](#oosm-implementation)).
 
 ### Main Input Feeds
 
@@ -1161,8 +1170,8 @@ perf | grep "VTE"
 | `VTE cycle pos`  | One position update, including input preparation and `vte_input` publication.     |
 | `VTE cycle yaw`  | One orientation update.                                                           |
 | `VTE prediction` | One prediction across all three position axes.                                    |
-| `VTE update`     | Fusion of one position observation across its enabled axes.                       |
-| `VTE fusion`     | One scalar position-axis fusion attempt, including gating and any history replay. |
+| `VTE update`     | Fusion of all position observations of one cycle, across the three axes.          |
+| `VTE fusion`     | Fusing one cycle's observations on one position axis: at most one history replay. |
 
 These counters overlap; do not add their elapsed times to estimate CPU usage.
 Reset them with `perf reset` after warmup, and use `top` to measure the `wq:vte` CPU share.
@@ -1189,6 +1198,7 @@ Delayed inputs had 460 ms added to their capture age; native UAV GNSS had no add
 
 Each row summarises three 30-second trials; CPU includes position and yaw work, sampled in three approximately 1.2-second `top` windows per trial.
 Fresh inputs have no added delay, but transport and scheduling can still move them across the 20 ms OOSM threshold.
+These numbers predate the shared replay: rows with two delayed observations per cycle (delayed vision and target GNSS, or moving-mode target GNSS position and velocity) replayed the window twice per axis.
 These are reference measurements, not worst-case timing limits; measure your own board with its expected source rates and delays.
 
 :::

@@ -925,10 +925,55 @@ void VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 		order[j] = obs;
 	}
 
+	// One batch per axis, so the delayed observations of this cycle share a single replay.
+	const float nis_threshold = fmaxf(_param_vte_pos_nis_thre.get(), kMinNisThreshold);
+	FusionResult results[kObsTypeCount][vtest::Axis::size] {};
+	perf_begin(_vte_update_perf);
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		KF_position::ScalarMeas meas[kObsTypeCount];
+		FusionResult axis_results[kObsTypeCount];
+		unsigned obs_pos[kObsTypeCount];
+		size_t axis_count = 0;
+
+		for (unsigned i = 0; i < count; ++i) {
+			const TargetObs &obs = *order[i];
+
+			if (obs.timestamp == 0 || !obs.updated(axis)) {
+				continue;
+			}
+
+			KF_position::ScalarMeas &meas_input = meas[axis_count];
+			meas_input = {obs.timestamp, obs.meas_xyz(axis), obs.meas_unc_xyz(axis), obs.meas_h_xyz.row(axis)};
+
+			// Bias can become observable after observations were collected in this update.
+			// Build the GNSS model from the state being fused, including on that first cycle.
+			if (_bias.set && (obs.type == ObsType::kTargetGpsPos || obs.type == ObsType::kMissionGpsPos)) {
+				meas_input.H(vtest::State::bias) = 1.f;
+			}
+
+			obs_pos[axis_count++] = i;
+		}
+
+		if (axis_count == 0) {
+			continue;
+		}
+
+		perf_begin(_vte_fusion_perf);
+		_target_est_pos[axis].fuseScalarsAtTime(meas, axis_count, _last_predict, nis_threshold, axis_results);
+		perf_end(_vte_fusion_perf);
+
+		for (size_t k = 0; k < axis_count; ++k) {
+			results[obs_pos[k]][axis] = axis_results[k];
+		}
+	}
+
+	perf_end(_vte_update_perf);
+
 	for (unsigned i = 0; i < count; ++i) {
 		const TargetObs &obs = *order[i];
 
-		if (obs.timestamp == 0 || !fuseMeas(vehicle_acc_ned, obs)) {
+		if (obs.timestamp == 0 || !publishAidSource(obs, results[i])) {
 			continue;
 		}
 
@@ -1111,7 +1156,7 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 
 	// GPS already in NED, no rotation required.
 	// Obs: [pos_rel + bias]. Bias may be initialized later in this update,
-	// so fuseMeas() adds its coefficient to meas_h_xyz when the bias is active.
+	// so fuseActiveMeasurements() adds its coefficient to the measurement model when the bias is active.
 	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
@@ -1222,7 +1267,7 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 
 	// GPS already in NED, no rotation required.
 	// Obs: [pos_rel + bias]. Bias may be initialized later in this update,
-	// so fuseMeas() adds its coefficient to meas_h_xyz when the bias is active.
+	// so fuseActiveMeasurements() adds its coefficient to the measurement model when the bias is active.
 	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
@@ -1249,11 +1294,8 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	return true;
 }
 
-bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &target_obs)
+bool VTEPosition::publishAidSource(const TargetObs &target_obs, const FusionResult(&results)[vtest::Axis::size])
 {
-	perf_begin(_vte_update_perf);
-	const float nis_threshold = fmaxf(_param_vte_pos_nis_thre.get(), kMinNisThreshold);
-
 	vte_aid_source3d_s target_innov = {};
 	target_innov.timestamp_sample = target_obs.timestamp;
 	target_innov.timestamp = nowUs();
@@ -1273,22 +1315,9 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 			continue; // nothing to do for this axis
 		}
 
-		KF_position::ScalarMeas meas_input{target_obs.timestamp, target_obs.meas_xyz(j),
-						   target_obs.meas_unc_xyz(j), target_obs.meas_h_xyz.row(j)};
-
-		// Bias can become observable after observations were collected in this update.
-		// Build the GNSS model from the state being fused, including on that first cycle.
-		if (_bias.set && (target_obs.type == ObsType::kTargetGpsPos || target_obs.type == ObsType::kMissionGpsPos)) {
-			meas_input.H(vtest::State::bias) = 1.f;
-		}
-
-		target_innov.observation[j] = meas_input.val;
-		target_innov.observation_variance[j] = meas_input.unc;
-
-		perf_begin(_vte_fusion_perf);
-		const FusionResult result = _target_est_pos[j].fuseScalarAtTime(meas_input, _last_predict, nis_threshold);
-		perf_end(_vte_fusion_perf);
-
+		const FusionResult &result = results[j];
+		target_innov.observation[j] = target_obs.meas_xyz(j);
+		target_innov.observation_variance[j] = target_obs.meas_unc_xyz(j);
 		target_innov.innovation[j]          = result.innov;
 		target_innov.innovation_variance[j] = result.innov_var;
 		target_innov.test_ratio[j]          = result.test_ratio;
@@ -1306,7 +1335,6 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 	target_innov.history_steps = history_steps;
 	target_innov.replayed_count = replayed_count;
 
-	perf_end(_vte_update_perf);
 	publishInnov(target_innov, target_obs.type);
 
 	return any_axis_fused;
