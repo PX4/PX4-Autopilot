@@ -67,6 +67,9 @@ constexpr hrt_abstime kEstimatorUpdatePeriodUs = 20_ms;
 constexpr hrt_abstime kOosmMinTimeUs = kEstimatorUpdatePeriodUs;
 constexpr hrt_abstime kOosmMaxTimeUs = 500_ms;
 constexpr int kOosmHistorySize = static_cast<int>(kOosmMaxTimeUs / kEstimatorUpdatePeriodUs);
+// Observations kept per position axis for replays: 50 Hz vision and three 10 Hz GNSS streams need 40
+// over the window, plus margin. Beyond that the oldest are dropped and the replay window shrinks.
+constexpr int kOosmMaxStoredObs = 48;
 constexpr int kExpectedAxisCount = 3;
 constexpr int kExpectedStaticPositionStateCount = 3;
 constexpr int kExpectedMovingPositionStateCount = 5;
