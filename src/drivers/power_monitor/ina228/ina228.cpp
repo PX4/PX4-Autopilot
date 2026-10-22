@@ -41,10 +41,10 @@ using namespace ina228;
 static constexpr uint32_t BUS_CLOCK_HZ = 100'000;
 
 // Each tick triggers one conversion of bus voltage, shunt voltage and temperature:
-// (1052 + 1052 + 50) us x 4 averages = 8.616 ms, read on the next tick. The rest of the tick
-// is margin for scheduling latency (see collect()).
-static constexpr uint16_t ADC_CONFIG = MODE_TEMP_SHUNT_BUS_TRIG | VBUSCT_1052US | VSHCT_1052US | VTCT_50US | AVERAGES_4;
-static constexpr uint32_t CONVERSION_TIME_US = (1052 + 1052 + 50) * 4;
+// (540 + 1052 + 50) us x 4 averages = 6.568 ms, read on the next tick. The shunt gets the longer
+// conversion time; the rest of the tick is margin for scheduling latency (see collect()).
+static constexpr uint16_t ADC_CONFIG = MODE_TEMP_SHUNT_BUS_TRIG | VBUSCT_540US | VSHCT_1052US | VTCT_50US | AVERAGES_4;
+static constexpr uint32_t CONVERSION_TIME_US = (540 + 1052 + 50) * 4;
 static constexpr hrt_abstime SAMPLE_INTERVAL_US = 10_ms;
 
 // Worst case from the trigger to a completed conversion: the internal oscillator running

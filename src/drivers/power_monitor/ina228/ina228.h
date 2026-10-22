@@ -84,7 +84,7 @@ enum ADCCONFIG_BIT : uint16_t {
 
 	VTCT_50US = (0u << 3),
 	VSHCT_1052US = (5u << 6),
-	VBUSCT_1052US = (5u << 9),
+	VBUSCT_540US = (4u << 9),
 
 	MODE_TEMP_SHUNT_BUS_TRIG = (7u << 12), // triggered (single-shot) temperature, shunt and bus voltage
 };

@@ -62,9 +62,9 @@ INA238::INA238(const I2CSPIDriverConfig &config, int battery_index)
 		_shunt_calibration *= 4;
 	}
 
-	// Triggered: writing this value starts one conversion. Temperature uses the shortest conversion
-	// time: it only adds to the sample time.
-	_adc_config_value = MODE_TEMP_SHUNT_BUS_TRIG | VBUSCT_1052US | VSHCT_1052US | VTCT_50US | AVERAGES_4;
+	// Triggered: writing this value starts one conversion. The shunt gets the longer conversion time,
+	// and temperature the shortest: it only adds to the sample time.
+	_adc_config_value = MODE_TEMP_SHUNT_BUS_TRIG | VBUSCT_540US | VSHCT_1052US | VTCT_50US | AVERAGES_4;
 
 	// Publish an initial disconnected status so the first instance grabs uORB instance 0 immediately.
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());

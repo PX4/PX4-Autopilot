@@ -58,9 +58,9 @@ static constexpr float SHUNT_CAL_K = 819.2e6f; // shunt-cal scaling constant
 static constexpr float ADCRANGE_LOW_V_SENSE = 0.04096f; // ±40.96 mV
 
 // Sample timing
-// Each tick triggers one conversion, (1052us bus + 1052us shunt + 50us temperature) x 4 averages
-// = 8.616 ms, read on the next tick. The rest of the tick is margin for scheduling latency.
-static constexpr uint32_t CONVERSION_TIME_US = (1052 + 1052 + 50) * 4;
+// Each tick triggers one conversion, (540us bus + 1052us shunt + 50us temperature) x 4 averages
+// = 6.568 ms, read on the next tick. The rest of the tick is margin for scheduling latency.
+static constexpr uint32_t CONVERSION_TIME_US = (540 + 1052 + 50) * 4;
 static constexpr hrt_abstime SAMPLE_INTERVAL_US = 10_ms;
 static constexpr hrt_abstime WAKEUP_TIME_US = 60; // from shutdown, the state between triggered conversions
 // Worst case from the trigger to a completed conversion: the internal oscillator running 1 % slow,
@@ -112,7 +112,7 @@ enum ADCCONFIG_BIT : uint16_t {
 
 	VTCT_50US = (0u << 3),
 	VSHCT_1052US = (5u << 6),
-	VBUSCT_1052US = (5u << 9),
+	VBUSCT_540US = (4u << 9),
 
 	MODE_TEMP_SHUNT_BUS_TRIG = (7u << 12), // triggered (single-shot) temperature, shunt and bus voltage
 };
