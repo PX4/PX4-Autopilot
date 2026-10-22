@@ -46,8 +46,8 @@ bool Ekf::fuseHorizontalVelocity(estimator_aid_source2d_s &aid_src)
 		for (unsigned i = 0; i < 2; i++) {
 			aid_src.innovation_variance[i] = P(State::vel.idx + i, State::vel.idx + i) + aid_src.observation_variance[i];
 
-			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
-						   aid_src.observation_variance[i], State::vel.idx + i, state_correction);
+			accumulateDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
+							 aid_src.observation_variance[i], State::vel.idx + i, state_correction);
 		}
 
 		applyStateCorrection(state_correction);
@@ -79,8 +79,8 @@ bool Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 		for (unsigned i = 0; i < 3; i++) {
 			aid_src.innovation_variance[i] = P(State::vel.idx + i, State::vel.idx + i) + aid_src.observation_variance[i];
 
-			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
-						   aid_src.observation_variance[i], State::vel.idx + i, state_correction);
+			accumulateDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
+							 aid_src.observation_variance[i], State::vel.idx + i, state_correction);
 		}
 
 		applyStateCorrection(state_correction);

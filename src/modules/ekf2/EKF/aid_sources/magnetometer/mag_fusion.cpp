@@ -141,7 +141,7 @@ bool Ekf::fuseMag(const float R_MAG, VectorState &H, estimator_aid_source3d_s &a
 			delta_heading_max -= delta_heading_abs;
 		}
 
-		measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index], state_correction);
+		accumulateMeasurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index], state_correction);
 	}
 
 	applyStateCorrection(state_correction);
