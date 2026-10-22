@@ -120,6 +120,14 @@ public:
 		       _rtl_state != RTLState::IDLE && _rtl_state >= RTLState::MOVE_TO_LAND;
 	}
 
+	/** A no-route hold may resume a route until the landing sequence starts. */
+	bool canResumeRoute()
+	{
+		return isActive() && _destination_is_current_position
+		       && (_rtl_state == RTLState::CLIMBING
+			   || (_rtl_state == RTLState::ARRIVAL && _arrival.phase() != RtlArrival::Phase::Land));
+	}
+
 private:
 	/**
 	 * @brief Return state machine.
@@ -173,9 +181,12 @@ private:
 	 * Always false for build without geofence avoidance (CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE).
 	 */
 	bool geofenceAvoidanceActive() const;
+	/** A pure fixed-wing aircraft must not land against an unknown ground altitude when stopping here. */
+	float landDelay() const;
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
+	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
 	RtlArrival _arrival;
 	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;

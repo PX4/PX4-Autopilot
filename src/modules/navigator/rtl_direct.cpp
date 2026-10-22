@@ -185,7 +185,7 @@ bool RtlDirect::geofenceAvoidanceActive() const
 void RtlDirect::_updateRtlState()
 {
 	// RTL_LAND_DELAY > 0 -> wait seconds, < 0 wait indefinitely
-	const bool wait_at_rtl_descend_alt = fabsf(_param_rtl_land_delay.get()) > FLT_EPSILON;
+	const bool wait_at_rtl_descend_alt = fabsf(landDelay()) > FLT_EPSILON;
 	const bool is_multicopter = (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
 	RTLState new_state{RTLState::IDLE};
@@ -348,7 +348,7 @@ void RtlDirect::set_rtl_item()
 			const RtlArrival::ItemConfig config{
 				.approach = _land_approach,
 				.transit_altitude = _rtl_alt,
-				.land_delay = _param_rtl_land_delay.get(),
+				.land_delay = landDelay(),
 				.yaw = !_param_wv_en.get() && (phase != RtlArrival::Phase::Move || is_close_to_destination)
 				? _destination.yaw : NAN,
 			};
@@ -376,7 +376,7 @@ void RtlDirect::set_rtl_item()
 				break;
 
 			case RtlArrival::Phase::Hold:
-				if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
+				if (landDelay() < -FLT_EPSILON) {
 					mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: completed, loitering\t");
 					events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "Return: completed, loitering");
 
@@ -583,9 +583,9 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 				}
 
 				// Add land delay (the short pause for deploying landing gear)
-				_rtl_time_estimator.addWait(_param_rtl_land_delay.get());
+				_rtl_time_estimator.addWait(landDelay());
 
-				if (_param_rtl_land_delay.get() < -FLT_EPSILON) { // Set to loiter infinitely and not land. Stop calculation here
+				if (landDelay() < -FLT_EPSILON) { // Set to loiter infinitely and not land. Stop calculation here
 					break;
 				}
 			}

@@ -171,10 +171,10 @@ protected:
 		ASSERT_TRUE(_position_pub.publish(position));
 	}
 
-	void activate(const loiter_point_s &approach = {})
+	void activate(const loiter_point_s &approach = {}, bool destination_is_current_position = false)
 	{
 		_rtl->setRtlAlt(kReturnAltitude);
-		_rtl->setRtlPosition(_destination, approach);
+		_rtl->setRtlPosition(_destination, approach, destination_is_current_position);
 		_rtl->run(true);
 	}
 
@@ -335,6 +335,88 @@ TEST_F(RtlDirectTest, FixedWingArrivalAcceptsTheOrbitWithoutReachingItsCentre)
 	EXPECT_FLOAT_EQ(_rtl->missionItem().altitude, approach.height_m);
 	EXPECT_TRUE(_rtl->isLanding());
 	expectLoggedItem(kLogDescend);
+}
+
+TEST_F(RtlDirectTest, FixedWingStopAtCurrentPositionLoitersDespiteFiniteLandingDelay)
+{
+	setVehicle(true, false);
+	_destination = {kLatitude, kLongitude, kReturnAltitude, NAN};
+
+	for (const float land_delay : {0.f, 5.f}) {
+		SCOPED_TRACE(land_delay);
+		setParameter("RTL_LAND_DELAY", land_delay);
+		activate({}, true);
+		completePositionItem();
+		completePositionItem();
+		ASSERT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
+		EXPECT_FALSE(_rtl->missionItem().autocontinue);
+		EXPECT_FLOAT_EQ(_rtl->missionItem().altitude, kReturnAltitude);
+
+		completePositionItem();
+		_rtl->ageWaypointReached(land_delay + 1.f);
+		_rtl->run(true);
+		EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
+		_rtl->run(false);
+	}
+}
+
+TEST_F(RtlDirectTest, FixedWingStopEstimateEndsAtTheHold)
+{
+	setVehicle(true, false);
+	setParameter("RTL_LAND_DELAY", 5.f);
+	_destination = {kLatitude, kLongitude, kReturnAltitude, NAN};
+	_rtl->setRtlAlt(kReturnAltitude);
+	_rtl->setRtlPosition(_destination, {}, true);
+	_rtl->run(false);
+	const rtl_time_estimate_s estimate = _rtl->calc_rtl_time_estimate();
+	ASSERT_TRUE(estimate.valid);
+	EXPECT_FLOAT_EQ(estimate.time_estimate, 0.f);
+}
+
+TEST_F(RtlDirectTest, KnownDestinationRestoresFixedWingLandingDelay)
+{
+	setVehicle(true, false);
+	_rtl->setRtlPosition({kLatitude, kLongitude, kReturnAltitude, NAN}, {}, true);
+	activate(); // A subsequent configured landing destination clears the stop-here restriction.
+	completePositionItem();
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
+	EXPECT_TRUE(_rtl->missionItem().autocontinue);
+	completePositionItem();
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LAND);
+	EXPECT_FLOAT_EQ(_rtl->missionItem().altitude, kDestinationAltitude);
+}
+
+TEST_F(RtlDirectTest, CurrentPositionStopKeepsMulticopterLanding)
+{
+	for (const bool vtol : {false, true}) {
+		SCOPED_TRACE(vtol);
+		setVehicle(false, vtol);
+		_destination = {kLatitude, kLongitude, kReturnAltitude, NAN};
+		activate({}, true);
+		completePositionItem();
+		EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LAND);
+		_rtl->run(false);
+	}
+}
+
+TEST_F(RtlDirectTest, CurrentPositionStopKeepsVtolTransitionAndLanding)
+{
+	setVehicle(true, true);
+	_destination = {kLatitude, kLongitude, kReturnAltitude, NAN};
+	activate({}, true);
+	completePositionItem();
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
+	completePositionItem();
+	EXPECT_TRUE(_rtl->missionItem().vtol_back_transition);
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_DO_VTOL_TRANSITION);
+	setVehicle(false, true);
+	_rtl->run(true);
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LAND);
 }
 
 TEST_F(RtlDirectTest, VtolKeepsLandingAndTransitionSequenceNumbers)
