@@ -137,9 +137,9 @@ private:
 		float yaw_var{0.f};
 	};
 
-	/** Seed state and covariance from the first valid yaw sample. */
+	/** Seed state and covariance from the first valid yaw sample, which is not fused. */
 	void initEstimator(const VisionObs &vision_obs);
-	/** Pull in new observations, initialise on first valid sample, and run fusion. */
+	/** Pull in the new observation; initialise on the first valid sample, fuse the later ones. */
 	void performUpdateStep();
 	/** Advance the yaw state forward by @p dt using the constant yaw-rate model. */
 	void predictionStep(float dt);

@@ -76,6 +76,10 @@ public:
 
 	void predict(float dt, float acc_uav);
 
+	// Seed position/bias at a delayed capture time while retaining the current motion estimate.
+	// Call predict(latency, 0) afterwards to bridge back to now with constant UAV velocity.
+	void resetPositionAndBias(float position, float position_var, float bias, float bias_var, float latency);
+
 	// Primary Fusion Interface (history-consistent OOSM)
 	// Delayed observations are fused at their timestamp and subsequent stored observations
 	// are replayed in timestamp order, gated again and with recomputed Kalman gains.
