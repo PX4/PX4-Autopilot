@@ -49,12 +49,20 @@ BatterySimulator::BatterySimulator() :
 
 		char param_name[17]; // 16 chars for parameter name + null terminator
 
-		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_DRAIN", i + 1);
-		_drain_handles[i] = param_find(param_name);
+		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_FW", i + 1);
+		_i_fw_handles[i] = param_find(param_name);
 
-		if (_drain_handles[i] == PARAM_INVALID) {
+		if (_i_fw_handles[i] == PARAM_INVALID) {
 			PX4_ERR("Could not find parameter with name %s", param_name);
 		}
+
+		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_MC", i + 1);
+		_i_mc_handles[i] = param_find(param_name);
+
+		if (_i_mc_handles[i] == PARAM_INVALID) {
+			PX4_ERR("Could not find parameter with name %s", param_name);
+		}
+
 
 		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_MIN_PCT", i + 1);
 		_min_pct_handles[i] = param_find(param_name);
@@ -114,27 +122,41 @@ void BatterySimulator::Run()
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_is_mc = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		}
 	}
 
 	const hrt_abstime now_us = hrt_absolute_time();
 
-	const float ibatt = -1.0f; // no current sensor in simulation
+	float ibatt = -1.0f; // no current sensor in simulation
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
-		// Limit to +1.0 s to guard against division by 0
-		const float discharge_interval_us = math::max(fullDischargeTime(i), 1.0f) * 1000 * 1000;
-
 		if (_armed) {
-			if (_last_integration_us != 0) {
-				_battery_percentage[i] -= (now_us - _last_integration_us) / discharge_interval_us;
+
+			// Guard against division by 0
+			ibatt = avgCurrent(i, _is_fw, _is_mc);
+
+			if (_last_integration_us != 0 && ibatt > 0.0f) {
+				_consumed_mah[i] += (now_us - _last_integration_us) / 3.6e6f * ibatt; //1 uAs = 3.6e-6 mAh
+				_battery_percentage[i] = 1.0f - _consumed_mah[i] / _batteries[i]->getCapacity();
+
+			} else if (_last_integration_us != 0) {
+				PX4_ERR("Battery average current (SIM_BAT_I_FW/SIM_BAT_I_MC) is <= 0.0, cannot simulate battery drain");
 			}
 
 		} else {
+			_consumed_mah[i] = 0.0;
 			_battery_percentage[i] = 1.f;
 		}
 
-		_battery_percentage[i] = math::max(_battery_percentage[i], minimumPercentage(i) / 100.f);
+		const float min_percentage = minimumPercentage(i) / 100.f;
+
+		if (min_percentage > 0.99f) {
+			_consumed_mah[i] = 0.0;
+		}
+
+		_battery_percentage[i] = math::max(_battery_percentage[i], min_percentage);
 
 		Battery &battery = *_batteries[i];
 
@@ -160,8 +182,12 @@ void BatterySimulator::updateParams()
 	ModuleParams::updateParams();
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
-		if (_drain_handles[i] != PARAM_INVALID) {
-			param_get(_drain_handles[i], &_drain_override_s[i]);
+		if (_i_fw_handles[i] != PARAM_INVALID) {
+			param_get(_i_fw_handles[i], &_i_fw_override_s[i]);
+		}
+
+		if (_i_mc_handles[i] != PARAM_INVALID) {
+			param_get(_i_mc_handles[i], &_i_mc_override_s[i]);
 		}
 
 		if (_min_pct_handles[i] != PARAM_INVALID) {
@@ -170,10 +196,18 @@ void BatterySimulator::updateParams()
 	}
 }
 
-float BatterySimulator::fullDischargeTime(int battery_index) const
+float BatterySimulator::avgCurrent(int battery_index, bool is_fw, bool is_mc) const
 {
-	// A non-positive override means: use the drain time shared by all batteries
-	return (_drain_override_s[battery_index] > 0.f) ? _drain_override_s[battery_index] : _param_sim_bat_drain.get();
+	// A non-positive override means: use the average current time shared by all batteries
+	if (is_mc) {
+		return (_i_mc_override_s[battery_index] > 0.f) ? _i_mc_override_s[battery_index] : _param_sim_bat_i_mc.get();
+
+	} else if (is_fw) {
+		return (_i_fw_override_s[battery_index] > 0.f) ? _i_fw_override_s[battery_index] : _param_sim_bat_i_fw.get();
+
+	} else {
+		return -1.0;
+	}
 }
 
 float BatterySimulator::minimumPercentage(int battery_index) const
