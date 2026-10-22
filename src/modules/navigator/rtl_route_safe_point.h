@@ -80,8 +80,8 @@ public:
 	/** Check full source identity, cache and fence readiness, mission generation, and safe-point count. */
 	bool sourceStillValid(const mission_s &mission) const;
 	bool evaluationPending(const mission_s &mission) const;
-	/** Retry a deferred evaluation once cache and fence inputs are ready; the caller still checks mission validity. */
-	bool retryReady(const mission_s &mission) const;
+	/** Whether the cached mission and rally points and the fence describe @p mission. */
+	bool inputsReady(const mission_s &mission) const;
 
 	Evaluation evaluate(const mission_s &mission,
 			    const vehicle_status_s &vehicle_status,
@@ -92,7 +92,7 @@ public:
 			    bool rtl_active,
 			    bool require_vtol_approach);
 
-	/** Keep the follower's flown jump anchor for the replan, also through a direct fallback. */
+	/** Keep the follower's flown jump anchor for the replan. */
 	void recordExecutorProgress(const mission_route::ActiveJumpAnchor &active_jump_anchor);
 
 	uint32_t missionGeneration() const;
@@ -119,7 +119,6 @@ private:
 	};
 
 	bool fenceReady() const;
-	bool inputsReady(const mission_s &mission) const;
 	/** Gather the planner inputs; evaluate() has already cleared the flown state of an inactive estimate. */
 	mission_route::RtlRouteRequest buildPlannerRequest(const mission_s &mission,
 			const vehicle_status_s &vehicle_status,
@@ -139,7 +138,6 @@ private:
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 	SourceSnapshot _source{};
 	bool _direction_reversed{false};
-	bool _waiting_for_inputs{false};
 	mission_route::FailureReason _last_failure{mission_route::FailureReason::kNone};
 
 	// Kept off the stack: evaluate() runs on the deepest navigator call chain.

@@ -14,8 +14,7 @@ Select route-following Return with [RTL_TYPE=7](../flight_modes/return.md#rtl_ty
 ::: warning
 Both features need firmware built with the [mission route cache](../advanced/mission_route_cache.md), and the whole mission must fit in it.
 SITL builds include it by default, but most flight controller builds do not; see [Parameters and Build Configuration](#parameters-and-build-configuration).
-[Direct fallback](#route-following-fallback) can leave the mission corridor and select a different destination using `RTL_TYPE=3` rules.
-Review the fallback conditions below before relying on the mission route as a return corridor.
+Route-following Return never flies a straight line to a destination: without a route it stops at the current position, see [No Route Available](#route-following-no-route).
 :::
 
 ::: info
@@ -109,7 +108,7 @@ The vehicle flies each leg in the mode used in the forward mission, even when tr
 A back transition between the last waypoint and the mission `LAND` item is flown at the landing point, not at that waypoint.
 Before a front transition, it waits for any back transition to finish, holds its position and aligns towards the next route target.
 It advances the route after the transition completes.
-An ongoing front transition may finish when route-following Return is activated; direct fallback cancels it.
+An ongoing front transition may finish when route-following Return is activated; stopping without a route cancels it.
 
 PX4 determines each leg's mode from the closest preceding `MAV_CMD_NAV_VTOL_TAKEOFF` (fixed-wing) or `MAV_CMD_DO_VTOL_TRANSITION` command.
 When no preceding command defines the mode, PX4 looks ahead in the nominal mission order: a front transition implies multicopter mode before it, and a back transition implies fixed-wing mode before it.
@@ -143,17 +142,15 @@ With a negative landing delay, it estimates time to the indefinite hold.
 For VTOL, the estimate uses the flight mode of each route leg and multicopter mode for the final vertical descent.
 It does not model transition duration or turning dynamics.
 
-#### Direct Fallback and Route Deviations {#route-following-fallback}
+#### No Route Available {#route-following-no-route}
 
-Direct fallback reselects the destination using [RTL_TYPE=3](../flight_modes/return.md#rtl_type_3): home, an eligible rally point or a mission landing pattern.
-When route planning is available in the firmware, a critical message reports a direct fallback when Return starts or while it is active.
-The destination can differ from the route goal, and the vehicle can fly outside the mission corridor to reach it.
-The direct-RTL climb and landing approach still apply; selecting a mission landing pattern means flying directly to that pattern before following it.
+Route-following Return never flies a straight line to a destination.
+When it runs without a route, the vehicle stops at its current position, as `RTL_TYPE=5` does without rally points: it holds and lands after [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY), or holds indefinitely when that delay is negative.
+A critical message reports this when Return starts or while it is active.
+A stopped Return does not plan again; select another mode to continue.
 
-Fallback occurs when:
+No route is available when:
 
-- The firmware is built without route planning (`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0`).
-  A pre-arm warning reports this when `RTL_TYPE=7` is set.
 - The mission has not passed feasibility validation with the current Home position and geofence, or validation is still pending.
 - The mission or rally points are not loaded in the [route cache](../advanced/mission_route_cache.md) yet, or the mission is larger than the cache.
 - The geofence is loading, unavailable, or cannot check a candidate path.
@@ -161,13 +158,13 @@ Fallback occurs when:
 - The vehicle is neither a multicopter nor a fixed-wing.
   VTOL vehicles are supported in hover, forward flight and transitions.
 
-During route following, changes to the mission, rally points or geofence trigger replanning.
-If that replan cannot be accepted, the same direct fallback applies.
-Once the destination arrival or landing sequence has begun, these changes do not replace it.
+Firmware built without route planning (`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0`) uses the destination selection of [RTL_TYPE=3](../flight_modes/return.md#rtl_type_3) instead.
+A pre-arm warning reports this when `RTL_TYPE=7` is set.
 
-If the fallback was caused by a loading cache, geofence or mission validation, Return retries route planning once these inputs are ready.
-It checks every two seconds, until the fallback starts its descent or landing.
-Other planning failures are not retried.
+During route following, a replaced mission triggers replanning at once.
+Replaced rally points or a replaced geofence keep the current route until they are loaded, then trigger replanning.
+If the replan finds no route, the vehicle stops as described above.
+Once the destination arrival or landing sequence has begun, these changes do not replace it.
 
 ## Point Projection
 
@@ -248,7 +245,7 @@ A segment that touches or crosses an inclusion or exclusion fence boundary is re
 
 The planner checks the candidates retained by [Point Projection](#point-projection), up to three per vehicle or safe point.
 It does not search for replacements.
-If no branch-in candidate passes, smart rejoin or route-following Return uses its existing fallback.
+If no branch-in candidate passes, smart rejoin is skipped and route-following Return has no route.
 If no safe point has a usable branch-off, Return can still select a mission takeoff or landing endpoint.
 
 [Route-skip shortcuts](#route-skip-shortcuts) are checked separately because they fly directly to the destination instead of following the checked branch-in and branch-off segments.
@@ -262,9 +259,9 @@ Branch-off segments are still checked, so a breach cannot route the vehicle thro
 If the fence is unavailable or still loading:
 
 - When Mission mode starts, smart rejoin is skipped with a warning and is not retried during that activation.
-- Return uses [direct fallback](#route-following-fallback) and retries route planning once the fence is ready, as described there.
+- Return has no route until the fence is ready; see [No Route Available](#route-following-no-route).
 
-If a loaded fence cannot check a segment, for example a path too long to subdivide, planning fails like any other planning failure: an active Return uses direct fallback and does not retry.
+If a loaded fence cannot check a segment, for example a path too long to subdivide, planning fails like any other planning failure, and Return has no route.
 
 ## Vehicle Projection
 

@@ -58,7 +58,6 @@ void RtlRouteSafePoint::reset()
 	_active_jump_anchor = {};
 	_source = {};
 	_direction_reversed = false;
-	_waiting_for_inputs = false;
 	_last_failure = mission_route::FailureReason::kNone;
 }
 
@@ -115,11 +114,6 @@ bool RtlRouteSafePoint::evaluationPending(const mission_s &mission) const
 	       && (!_navigator->get_mission_route_cache().missionItemsReady(mission) || !fenceReady());
 }
 
-bool RtlRouteSafePoint::retryReady(const mission_s &mission) const
-{
-	return _waiting_for_inputs && inputsReady(mission);
-}
-
 RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &mission,
 		const vehicle_status_s &vehicle_status,
 		const vehicle_global_position_s &global_position,
@@ -132,9 +126,8 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	Evaluation evaluation{};
 	const MissionRouteCache &cache = _navigator->get_mission_route_cache();
 	evaluation.executor_source_changed = !sourceMatches(mission);
-	_waiting_for_inputs = false;
 
-	// Only an active Return keeps its flown direction and jump anchor, also through a fallback.
+	// Only an active Return keeps its flown direction and jump anchor, also while it has no route.
 	if (!missionMatches(mission) || !rtl_active) {
 		_direction_reversed = false;
 		_active_jump_anchor = {};
@@ -148,15 +141,8 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 		return evaluation;
 	}
 
-	if (!mission_valid) {
-		// A replacement mission can reach the cache before feasibility validation
-		// completes. RTL retries once both validation and the cache are ready.
-		_waiting_for_inputs = mission.count > 0 && mission.count <= MissionRouteCache::kMaxFullMissionCacheSize;
-		return evaluation;
-	}
-
-	if (!inputsReady(mission)) {
-		_waiting_for_inputs = true;
+	// A replacement mission can reach the cache before its validation completes; RTL plans again later.
+	if (!mission_valid || !inputsReady(mission)) {
 		return evaluation;
 	}
 
@@ -173,8 +159,7 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	const mission_route::FailureReason failure = planner.planRtlRoute(request, _plan);
 
 	if (failure != mission_route::FailureReason::kNone) {
-		// Inputs were ready, so a fence check failure here repeats for this scene: do not retry.
-		// Inactive estimates replan every 2 s, so only log a new reason.
+		// Plans repeat every 2 s, so only log a new reason.
 		if (failure != _last_failure) {
 			PX4_WARN("RTL type 7 plan failed: %s", mission_route::failureReasonString(failure));
 			_last_failure = failure;

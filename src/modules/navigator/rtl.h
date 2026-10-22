@@ -125,11 +125,11 @@ private:
 	bool reverseIsFurther() const;
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** Type 3 destination and executor type used when the route is unavailable. */
-	RtlType selectRouteFallback(PositionYawSetpoint &destination, uint8_t &safe_point_index);
 	void applyReturnAltMin();
-	/** Warn when RTL_TYPE 7 flies a direct fallback, which can leave the mission corridor. */
-	void reportRouteFallback() const;
+	/** Warn when RTL_TYPE 7 has no route and stops at the current position. */
+	void reportNoRoute() const;
+	/** True while Mission has not validated the uploaded mission, fence and Home yet. */
+	bool missionValidationPending() const;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	void setRtlTypeAndDestination();
@@ -157,6 +157,8 @@ private:
 	 *
 	 */
 	void setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const;
+
+	void setCurrentPositionAsDestination(PositionYawSetpoint &destination) const;
 
 	/**
 	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
@@ -187,7 +189,6 @@ private:
 	RtlMissionSafePointFollow *_route_follower {nullptr}; ///< Same executor; lifetime owned through _rtl_mission_type_handle.
 	RtlRouteSafePoint _route_safe_point{this, _navigator};
 	perf_counter_t _route_evaluate_perf{perf_alloc(PC_ELAPSED, "navigator: rtl route evaluate")};
-	rtl_status_s _rtl_status{}; ///< Last published status, republished while a failed retry keeps the fallback
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	RtlType _rtl_type {RtlType::RTL_DIRECT};
 	uint32_t _mission_land_failure_mission_id{0};
