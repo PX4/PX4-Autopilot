@@ -2266,6 +2266,27 @@ TEST_F(VTEPositionTest, BiasSeedPropagatesGnssOverLongVisionLatency)
 	expectBiasNear(_vte_state_sub->get(), kZeroVec, 0.05f);
 }
 
+// WHY: The reported attitude may not be a unit quaternion, and the covariance rotation assumes one.
+// WHAT: A 90 degree yaw quaternion scaled by two rotates the position but must not scale the variances.
+TEST_F(VTEPositionTest, VisionQuaternionIsNormalized)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	setLocalVelocity(kZeroVec, vte_test::advanceMicroseconds(kStepUs));
+	const matrix::Vector3f rel_pos(1.f, 2.f, 3.f);
+	const matrix::Vector3f cov(0.09f, 0.09f, 0.09f);
+	const float half = std::sqrt(2.f); // 2 * cos(45 deg) and 2 * sin(45 deg)
+	publishVisionPos(rel_pos, matrix::Quaternionf(half, 0.f, 0.f, half), cov, vte_test::advanceMicroseconds(kStepUs));
+	_vte->update(kZeroVec);
+
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+	const matrix::Vector3f expected(-rel_pos(1), rel_pos(0), rel_pos(2));
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_NEAR(_aid_fiducial_sub->get().observation[axis], expected(axis), kTolerance);
+		EXPECT_NEAR(_aid_fiducial_sub->get().observation_variance[axis], cov(axis), kTolerance);
+	}
+}
+
 #if defined(CONFIG_VTEST_MOVING)
 // Equal UAV and target speeds leave their relative GNSS position unchanged across vision latency.
 TEST_F(VTEPositionTest, MovingTargetBiasAlignmentRequiresRelativeVelocity)
@@ -2313,7 +2334,9 @@ TEST_F(VTEPositionTest, ResetsFilterOnStalePredictionGap)
 
 	enableMask({FusionMaskOption::kVisionPos});
 	_vte->setMeasUpdatedTimeout(500_ms);
+	const matrix::Vector3f local_pos(10.f, 20.f, -5.f);
 	setLocalVelocity(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
+	setLocalPosition(local_pos, vte_test::nowUs());
 
 	publishVisionPos(initial_rel_pos, vte_test::identityQuat(), kSmallVisionCov,
 			 vte_test::advanceMicroseconds(kStepUs));
@@ -2324,6 +2347,8 @@ TEST_F(VTEPositionTest, ResetsFilterOnStalePredictionGap)
 	EXPECT_NEAR(initial_state.rel_pos[0], initial_rel_pos(0), kTolerance);
 	EXPECT_NEAR(initial_state.rel_pos[1], initial_rel_pos(1), kTolerance);
 	EXPECT_NEAR(initial_state.rel_pos[2], initial_rel_pos(2), kTolerance);
+	ASSERT_TRUE(_target_pose_sub->update());
+	EXPECT_TRUE(_target_pose_sub->get().abs_pos_valid);
 
 	vte_test::flushSubscription(_aid_fiducial_sub);
 	vte_test::flushSubscription(_vte_state_sub);
@@ -2332,7 +2357,11 @@ TEST_F(VTEPositionTest, ResetsFilterOnStalePredictionGap)
 	_vte->update(matrix::Vector3f{});
 
 	EXPECT_FALSE(_aid_fiducial_sub->update());
-	EXPECT_FALSE(_vte_state_sub->update());
+	// The logged state is marked invalid. The pose is not republished: precision landing keeps
+	// the last one it received as the last known target location.
+	ASSERT_TRUE(_vte_state_sub->update());
+	EXPECT_FALSE(_vte_state_sub->get().rel_pos_valid);
+	EXPECT_FALSE(_target_pose_sub->update());
 
 	publishVisionPos(fresh_rel_pos, vte_test::identityQuat(), kSmallVisionCov,
 			 vte_test::advanceMicroseconds(kStepUs));

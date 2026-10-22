@@ -81,7 +81,7 @@ public:
 	 */
 	void update(const matrix::Vector3f &acc_ned);
 
-	/** Drop the estimator state. A nonzero sample boundary also invalidates cached NED inputs. */
+	/** Drop the estimator state and publish it as invalid. A nonzero sample boundary also invalidates cached NED inputs. */
 	void resetFilter(hrt_abstime min_sample_time = 0);
 
 	/** Cache the task-specific absolute reference used to build the mission GNSS observation. */
@@ -185,6 +185,11 @@ private:
 	};
 
 	static constexpr size_t kObsTypeCount = static_cast<size_t>(ObsType::kTypeCount);
+#if defined(CONFIG_VTEST_MOVING)
+	static constexpr bool kTargetIsStatic = false;
+#else
+	static constexpr bool kTargetIsStatic = true;
+#endif // CONFIG_VTEST_MOVING
 	static constexpr size_t obsIndex(ObsType type)
 	{
 		return static_cast<size_t>(type);
@@ -354,6 +359,7 @@ private:
 	void publishTarget();
 	/** Report an observation that seeded the state instead of being fused. */
 	void publishInitializedAid(const TargetObs &obs);
+	void publishInvalidState();
 	void resetObservations();
 
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
