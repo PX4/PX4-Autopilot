@@ -91,6 +91,85 @@ public:
 		ASSERT_TRUE(disturbance_started);
 		ASSERT_TRUE(_ekf->control_status_flags().mag_aligned_in_flight);
 	}
+
+	Vector3f getWmmEarthField()
+	{
+		const gnssSample gnss = _sensor_simulator._gps.getDefaultGpsData();
+		const float declination = radians(get_mag_declination_degrees(gnss.lat, gnss.lon));
+		const float inclination = radians(get_mag_inclination_degrees(gnss.lat, gnss.lon));
+		const float strength = get_mag_strength_gauss(gnss.lat, gnss.lon);
+		return Dcmf(Eulerf(0.f, -inclination, declination)) * Vector3f(strength, 0.f, 0.f);
+	}
+
+	// Look up the WMM from GNSS while aligning on the ground, then lose GNSS before takeoff
+	void alignOnGroundWithWmmThenLoseGnss()
+	{
+		_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
+		_ekf_wrapper.enableGpsFusion();
+		_sensor_simulator.startGps();
+		_sensor_simulator.runSeconds(_init_duration_s);
+		_sensor_simulator.stopGps();
+		_sensor_simulator.runSeconds(10); // GNSS fusion stops after the 7 s reset timeout
+	}
+
+	// Yaw at a constant rate while level, updating the true heading
+	void yawAtConstantRate(float yaw_rate, float duration_s, const Vector3f &mag_earth, float &heading)
+	{
+		static constexpr uint32_t dt_us = 10000;
+		const Vector3f specific_force(0.f, 0.f, -CONSTANTS_ONE_G);
+		_sensor_simulator._imu.setData(specific_force, Vector3f(0.f, 0.f, yaw_rate));
+
+		for (int i = 0; i < static_cast<int>(duration_s * 1e6f / dt_us); i++) {
+			heading = wrap_pi(heading + yaw_rate * dt_us * 1e-6f);
+			_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, heading)).transpose() * mag_earth);
+			_sensor_simulator.runMicroseconds(dt_us);
+		}
+
+		_sensor_simulator._imu.setData(specific_force, Vector3f());
+	}
+
+	// The heading is aligned on the ground with a field shifted by 30 degrees, with the WMM known
+	// but GNSS lost before takeoff. The ground disturbance is either onboard and stays in flight,
+	// or comes from the ground and disappears during the climb.
+	void checkInFlightRecoveryFromGroundHeadingError(bool is_disturbance_onboard)
+	{
+		const Vector3f mag_earth_wmm = getWmmEarthField();
+		_sensor_simulator._mag.setData(mag_earth_wmm);
+
+		// on the ground the vehicle does not rotate, so a ground anomaly is simulated in the body frame
+		const float heading_error = radians(30.f);
+		const Vector3f ground_disturbance = Dcmf(Eulerf(0.f, 0.f, heading_error)).transpose() * mag_earth_wmm - mag_earth_wmm;
+		const Vector3f flight_disturbance = is_disturbance_onboard ? ground_disturbance : Vector3f();
+		_sensor_simulator._mag.setBias(ground_disturbance);
+		alignOnGroundWithWmmThenLoseGnss();
+
+		ASSERT_FALSE(_ekf->isNorthEastAidingActive());
+		ASSERT_NEAR(_ekf_wrapper.getYawAngle(), heading_error, radians(1.f));
+		const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+		ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(flight_disturbance));
+
+		// the wrong heading is kept, as nothing in the field shows it is wrong yet
+		EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+		EXPECT_NEAR(_ekf_wrapper.getYawAngle(), heading_error, radians(1.f));
+
+		// yawing makes the bias observable
+		float heading = 0.f;
+		yawAtConstantRate(radians(10.f), 120.f, mag_earth_wmm, heading);
+
+		// the bias is learned and declination fusion keeps the earth field, so the heading
+		// converges to the true one without being reset
+		EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+		EXPECT_NEAR(wrap_pi(_ekf_wrapper.getYawAngle() - heading), 0.f, radians(2.f))
+				<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg, true: " << degrees(heading) << " deg";
+
+		const Vector3f mag_bias = _ekf->getMagBias();
+		EXPECT_TRUE(isEqual(mag_bias, flight_disturbance, 0.02f))
+				<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
+
+		const Vector3f mag_earth = _ekf->getMagEarthField();
+		EXPECT_NEAR(atan2f(mag_earth(1), mag_earth(0)), atan2f(mag_earth_wmm(1), mag_earth_wmm(0)), radians(1.f));
+	}
 };
 
 TEST_F(EkfMagTest, fusionStartWithReset)
@@ -597,19 +676,9 @@ TEST_F(EkfMagTest, inFlightAlignmentWithWmmKeepsHeading)
 {
 	// GIVEN: the WMM was looked up from GNSS and the heading aligned with an undisturbed field on
 	// the ground, then GNSS was lost before takeoff
-	const gnssSample gnss = _sensor_simulator._gps.getDefaultGpsData();
-	const float declination = radians(get_mag_declination_degrees(gnss.lat, gnss.lon));
-	const float inclination = radians(get_mag_inclination_degrees(gnss.lat, gnss.lon));
-	const float strength = get_mag_strength_gauss(gnss.lat, gnss.lon);
-	const Vector3f mag_earth_wmm = Dcmf(Eulerf(0.f, -inclination, declination)) * Vector3f(strength, 0.f, 0.f);
+	const Vector3f mag_earth_wmm = getWmmEarthField();
 	_sensor_simulator._mag.setData(mag_earth_wmm);
-
-	_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
-	_sensor_simulator.runSeconds(_init_duration_s);
-	_sensor_simulator.stopGps();
-	_sensor_simulator.runSeconds(10); // GNSS fusion stops after the 7 s reset timeout
+	alignOnGroundWithWmmThenLoseGnss();
 
 	ASSERT_FALSE(_ekf->isNorthEastAidingActive());
 	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
@@ -638,4 +707,20 @@ TEST_F(EkfMagTest, inFlightAlignmentWithWmmKeepsHeading)
 	mag_bias = _ekf->getMagBias();
 	EXPECT_TRUE(isEqual(mag_bias, onboard_disturbance, 0.01f))
 			<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
+}
+
+TEST_F(EkfMagTest, inFlightRecoveryFromHardIronHeadingError)
+{
+	// GIVEN: an uncalibrated hard iron offset made the heading aligned on the ground wrong
+	// WHEN: the vehicle takes off with the offset still present and yaws
+	// THEN: the heading converges to the true one as the offset is learned
+	checkInFlightRecoveryFromGroundHeadingError(true);
+}
+
+TEST_F(EkfMagTest, inFlightRecoveryFromGroundAnomalyHeadingError)
+{
+	// GIVEN: a ground magnetic anomaly made the heading aligned on the ground wrong
+	// WHEN: the vehicle climbs away from the anomaly and yaws
+	// THEN: the heading converges to the true one as the bias learned at the alignment decays
+	checkInFlightRecoveryFromGroundHeadingError(false);
 }
