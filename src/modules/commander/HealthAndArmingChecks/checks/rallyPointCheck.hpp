@@ -47,7 +47,11 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	uORB::Subscription _rtl_status_sub{ORB_ID(rtl_status)};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** RTL_TYPE 7 never flies a straight line, so Return is unavailable while Navigator has no route. */
+	void checkRouteReturn(const Context &context, Report &reporter);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	uORB::Subscription _rtl_status_sub {ORB_ID(rtl_status)};
 
 	const param_t _param_rtl_type_handle;
 };

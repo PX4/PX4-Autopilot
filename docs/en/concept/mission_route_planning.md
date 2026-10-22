@@ -145,7 +145,11 @@ It does not model transition duration or turning dynamics.
 #### No Route Available {#route-following-no-route}
 
 Route-following Return never flies a straight line to a destination.
-When it runs without a route, the vehicle stops at its current position, as `RTL_TYPE=5` does without rally points: it holds and lands after [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY), or holds indefinitely when that delay is negative.
+The route is planned every two seconds from the current position, also before takeoff.
+While no route is planned, also for a few seconds after an upload while the mission, rally points and fence load, Return is unavailable: a switch to Return is denied with `Return unavailable: no mission route`, a failsafe that would return lands instead, and the pre-flight checks show the same message.
+A Return that is already active is never interrupted by this check.
+
+When Return runs without a route, the vehicle stops at its current position, as `RTL_TYPE=5` does without rally points: it holds and lands after [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY), or holds indefinitely when that delay is negative.
 A critical message reports this when Return starts or while it is active.
 A stopped Return does not plan again; select another mode to continue.
 
