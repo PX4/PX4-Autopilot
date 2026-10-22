@@ -69,7 +69,6 @@ private:
 	void checkEscTemperature(Report &reporter, const esc_status_s &esc_status);
 
 	void configureMotorFailureDetector();
-	void resetMotorFailureDetector();
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
@@ -78,7 +77,6 @@ private:
 
 	uint16_t _motor_failure_mask = 0;
 	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
-	int8_t _motor_failure_direction[MotorFailureDetector::kMaxMotors] {}; ///< under/over latched at first trip: 0=none, <0=under, >0=over
 	bool _esc_over_temp_warned{false};
 	systemlib::Hysteresis _esc_arm_hysteresis;
 	MotorFailureDetector _motor_failure_detector;

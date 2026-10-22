@@ -91,7 +91,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 			mask |= checkMotorStatus(context, reporter, esc_status);
 
 		} else {
-			resetMotorFailureDetector();
+			_motor_failure_detector.reset();
 		}
 
 		if (_param_esc_temp_warn_th.get() >= FLT_EPSILON) {
@@ -325,19 +325,13 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 		for (uint8_t motor = 0; motor < MotorFailureDetector::kMaxMotors; ++motor) {
 			// Report the latch alone: handling a failure excludes its own motor (NAN command), so gating
 			// the report on `excluded` would retract the failure and restore the motor every tick.
-			if (!_motor_failure_detector.status(motor).failed) {
-				continue;
+			const MotorFailureDetector::Failure failure = _motor_failure_detector.status(motor).failure;
+
+			if (failure != MotorFailureDetector::Failure::None) {
+				mask |= (1u << motor);
 			}
 
-			mask |= (1u << motor);
-
-			// Latch under/over direction at first trip so the message stays consistent even if
-			// the (sticky) residual later drifts across zero.
-			if (_motor_failure_direction[motor] == 0) {
-				_motor_failure_direction[motor] = (_motor_failure_detector.status(motor).residual_lpf < 0.f) ? -1 : 1;
-			}
-
-			if (_motor_failure_direction[motor] < 0) {
+			if (failure == MotorFailureDetector::Failure::Undercurrent) {
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
@@ -352,7 +346,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d undercurrent detected", motor + 1);
 				}
 
-			} else {
+			} else if (failure == MotorFailureDetector::Failure::Overcurrent) {
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
@@ -370,7 +364,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 		}
 
 	} else {
-		resetMotorFailureDetector();
+		_motor_failure_detector.reset();
 	}
 
 	return mask;
@@ -395,13 +389,6 @@ void EscChecks::configureMotorFailureDetector()
 	cfg.undercurrent_threshold_a = _param_motfail_under.get();
 	cfg.undercurrent_trigger_time_s = _param_motfail_und_time.get();
 	_motor_failure_detector.configure(cfg);
-}
-
-void EscChecks::resetMotorFailureDetector()
-{
-	_motor_failure_detector.reset();
-
-	for (int motor = 0; motor < MotorFailureDetector::kMaxMotors; ++motor) { _motor_failure_direction[motor] = 0; }
 }
 
 void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
