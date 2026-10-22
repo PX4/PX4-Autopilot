@@ -134,24 +134,20 @@ void VisionTargetEst::Run()
 			ScheduleClear();
 
 		} else {
-			const uint32_t estimator_update_period_us = static_cast<uint32_t>(math::min(kPosUpdatePeriodUs,
-					kYawUpdatePeriodUs));
-			ScheduleOnInterval(estimator_update_period_us);
+			// Poll at the estimator rate. Without the delay the timer would fire again at once.
+			ScheduleOnInterval(static_cast<uint32_t>(kEstimatorUpdatePeriodUs), static_cast<uint32_t>(kEstimatorUpdatePeriodUs));
 		}
 	}
 
-	// Task is running, check if an estimator must be started or re-started
-	startEstIfNeeded();
-
-	const bool task_completed = isCurrentTaskComplete();
-
-	if (task_completed) {
+	if (isCurrentTaskComplete()) {
 		stopAllEstimators();
 		_current_task_ptr = nullptr;
 		updateAidMask();
 		return;
 	}
 
+	// Task is running, check if an estimator must be started or re-started
+	startEstIfNeeded();
 	restartTimedOutEstimators();
 
 	if (noEstRunning()) {
@@ -223,19 +219,24 @@ void VisionTargetEst::updateParams()
 
 	updateAidMask();
 
-	const hrt_abstime vte_timeout_us = static_cast<hrt_abstime>(_param_vte_btout.get() * 1_s);
+	// Parameter metadata does not constrain values loaded from older saved configurations.
+	const auto timeout_us = [](float seconds, float minimum, float maximum) {
+		return static_cast<hrt_abstime>(fminf(fmaxf(seconds, minimum), maximum) * 1_s);
+	};
+
+	const hrt_abstime vte_timeout_us = timeout_us(_param_vte_btout.get(), 0.1f, 50.f);
 	_vte_position.setVteTimeout(vte_timeout_us);
 	_vte_orientation.setVteTimeout(vte_timeout_us);
 
-	const hrt_abstime target_valid_timeout_us = static_cast<hrt_abstime>(_param_vte_tgt_tout.get() * 1_s);
+	const hrt_abstime target_valid_timeout_us = timeout_us(_param_vte_tgt_tout.get(), 0.1f, 50.f);
 	_vte_position.setTargetValidTimeout(target_valid_timeout_us);
 	_vte_orientation.setTargetValidTimeout(target_valid_timeout_us);
 
-	const hrt_abstime meas_recent_timeout_us = static_cast<hrt_abstime>(_param_vte_mrec_tout.get() * 1_s);
+	const hrt_abstime meas_recent_timeout_us = timeout_us(_param_vte_mrec_tout.get(), 0.1f, 10.f);
 	_vte_position.setMeasRecentTimeout(meas_recent_timeout_us);
 	_vte_orientation.setMeasRecentTimeout(meas_recent_timeout_us);
 
-	const hrt_abstime meas_updated_timeout_us = static_cast<hrt_abstime>(_param_vte_mupd_tout.get() * 1_s);
+	const hrt_abstime meas_updated_timeout_us = timeout_us(_param_vte_mupd_tout.get(), 0.01f, 5.f);
 	_vte_position.setMeasUpdatedTimeout(meas_updated_timeout_us);
 
 	if (_vte_position_enabled && _position_estimator_running
@@ -670,23 +671,23 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned, matr
 	vehicle_attitude_s vehicle_attitude{};
 	vehicle_acceleration_s vehicle_acceleration{};
 
-	const bool vehicle_attitude_updated = _vehicle_attitude_sub.update(&vehicle_attitude);
-	const bool vehicle_acceleration_updated = _vehicle_acceleration_sub.update(&vehicle_acceleration);
+	// Keep the acceleration sample even when the attitude has not updated yet.
+	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
+		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);
+		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp_sample != 0
+					      ? vehicle_acceleration.timestamp_sample : vehicle_acceleration.timestamp;
+	}
 
-	if (!vehicle_attitude_updated) {
+	if (!_vehicle_attitude_sub.update(&vehicle_attitude)) {
 		return false;
 	}
 
 	// Check the same attitude sample that will rotate this cycle's inputs.
 	handleAttitudeReset(vehicle_attitude);
 
-	if (vehicle_acceleration_updated) {
-		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);
-		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp;
-	}
-
 	_vehicle_acc_body.valid = (_vehicle_acc_body.timestamp != 0)
-				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs);
+				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs)
+				  && _vehicle_acc_body.xyz.isAllFinite();
 	acc_valid = _vehicle_acc_body.valid;
 
 	/* Transform FRD body acc to NED */
