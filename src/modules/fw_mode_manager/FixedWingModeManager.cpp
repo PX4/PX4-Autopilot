@@ -1574,9 +1574,11 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
 	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
 
+	// flare disabled if flare altitude or time is negative: land on the glide slope
+	const bool flare_enabled = _param_fw_lnd_flalt.get() >= 0.f && _param_fw_lnd_fl_time.get() >= 0.f;
 
 	// the terrain estimate (if enabled) is always used to determine the flaring altitude
-	if ((_current_altitude < terrain_alt + flare_rel_alt) || _flare_states.flaring) {
+	if ((flare_enabled && _current_altitude < terrain_alt + flare_rel_alt) || _flare_states.flaring) {
 		// flare and land with minimal speed
 
 		// flaring is a "point of no return"
@@ -1756,6 +1758,9 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
 	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
 
+	// flare disabled if flare altitude or time is negative: land on the descent orbit
+	const bool flare_enabled = _param_fw_lnd_flalt.get() >= 0.f && _param_fw_lnd_fl_time.get() >= 0.f;
+
 	float loiter_radius = fabsf(pos_sp_curr.loiter_radius);
 	bool loiter_direction_ccw = pos_sp_curr.loiter_direction_counter_clockwise;
 
@@ -1764,7 +1769,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 		loiter_direction_ccw = _param_nav_loiter_rad.get() < -FLT_EPSILON;
 	}
 
-	if ((_current_altitude < terrain_alt + flare_rel_alt) || _flare_states.flaring) {
+	if ((flare_enabled && _current_altitude < terrain_alt + flare_rel_alt) || _flare_states.flaring) {
 		// flare and land with minimal speed
 
 		// flaring is a "point of no return"
@@ -2202,6 +2207,7 @@ FixedWingModeManager::Run()
 				_pos_sp_triplet.current.lat = static_cast<double>(NAN);
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
+				_pos_sp_triplet.current.course = NAN;
 				_pos_sp_triplet.current.gliding_enabled = false;
 
 				if (PX4_ISFINITE(trajectory_setpoint.position[0]) && PX4_ISFINITE(trajectory_setpoint.position[1])) {

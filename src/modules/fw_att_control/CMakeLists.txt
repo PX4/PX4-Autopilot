@@ -42,6 +42,7 @@ px4_add_module(
 	MODULE_CONFIG
 		fw_att_control_params.yaml
 	DEPENDS
+		airspeed
 		px4_work_queue
 	)
 

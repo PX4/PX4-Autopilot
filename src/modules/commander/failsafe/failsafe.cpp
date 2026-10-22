@@ -396,6 +396,7 @@ FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
 
 	switch (gps_redundancy_failsafe_mode(param_value)) {
 	case gps_redundancy_failsafe_mode::Warning:
+	case gps_redundancy_failsafe_mode::Block_arming:
 	default:
 		options.action = Action::Warn;
 		break;
@@ -629,7 +630,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, mission_failure, Action::RTL);
 
 		// If manual control loss and GCS connection loss are disabled and we lose both command links and the mission finished,
-		// trigger RTL to avoid losing the vehicle
+		// trigger Return to avoid losing the vehicle
 		if ((_param_com_rc_in_mode.get() == int32_t(RcInMode::DisableManualControl)
 		     || isFailsafeIgnored(state.user_intended_mode, _param_com_rcl_except.get()))
 		    && _param_nav_dll_act.get() == int32_t(gcs_connection_loss_failsafe_mode::Disabled)

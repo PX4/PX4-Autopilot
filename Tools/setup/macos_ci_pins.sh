@@ -16,12 +16,6 @@ if ! command -v brew >/dev/null 2>&1; then
 	exit 1
 fi
 
-first_field() {
-	local file="$1"
-	local n="$2"
-	grep -v -e '^#' -e '^[[:space:]]*$' "$file" | head -n 1 | awk -v n="$n" '{print $n}'
-}
-
 pin_sha() {
 	local name="$1"
 	grep -E "^${name}[[:space:]]+" "${DIR}/homebrew-pins.txt" | awk '{print $2}'
@@ -69,11 +63,8 @@ clone_at() {
 
 BREW_REPO=$(brew --repo)
 TAPS="${BREW_REPO}/Library/Taps"
-CORE_SHA=$(first_field "${DIR}/protobuf-pin.txt" 1)
-GZ_SHA=$(first_field "${DIR}/gz-tap-pin.txt" 1)
 
 checkout_brew "$(pin_sha brew)"
-clone_at "${TAPS}/homebrew/homebrew-core" "https://github.com/Homebrew/homebrew-core" "$CORE_SHA"
-clone_at "${TAPS}/osrf/homebrew-simulation" "https://github.com/osrf/homebrew-simulation" "$GZ_SHA"
+clone_at "${TAPS}/homebrew/homebrew-core" "https://github.com/Homebrew/homebrew-core" "$(pin_sha homebrew/core)"
 clone_at "${TAPS}/osx-cross/homebrew-arm" "https://github.com/osx-cross/homebrew-arm" "$(pin_sha osx-cross/arm)"
 clone_at "${TAPS}/px4/homebrew-px4" "https://github.com/PX4/homebrew-px4" "$(pin_sha px4/px4)"

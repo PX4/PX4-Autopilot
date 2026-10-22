@@ -68,6 +68,26 @@ void DifferentialManualMode::manual()
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 }
 
+void DifferentialManualMode::manualParking()
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+
+	const float max_throttle = _param_ro_park_thr_max.get();
+	const float throttle_left = max_throttle * manual_control_setpoint.throttle;
+	const float throttle_right = max_throttle * manual_control_setpoint.pitch;
+
+	rover_throttle_setpoint_s rover_throttle_setpoint{};
+	rover_throttle_setpoint.timestamp = hrt_absolute_time();
+	rover_throttle_setpoint.throttle_body_x = (throttle_left + throttle_right) / 2.f;
+	rover_throttle_setpoint.throttle_body_y = 0.f;
+	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	rover_steering_setpoint_s rover_steering_setpoint{};
+	rover_steering_setpoint.timestamp = hrt_absolute_time();
+	rover_steering_setpoint.normalized_steering_setpoint = (throttle_left - throttle_right) / 2.f;
+	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+}
+
 void DifferentialManualMode::acro()
 {
 	manual_control_setpoint_s manual_control_setpoint{};

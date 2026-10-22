@@ -5,7 +5,6 @@ PX4는 다음 시뮬레이터를 사용하여 다중 차량 시뮬레이션을 �
 - [Multi-Vehicle Sim with Gazebo](../sim_gazebo_gz/multi_vehicle_simulation.md) (both with and without ROS)
 - [Multi-Vehicle Sim with Gazebo Classic](../sim_gazebo_classic/multi_vehicle_simulation.md) (both with and without ROS)
 - [Multi-Vehicle Sim with FlightGear](../sim_flightgear/multi_vehicle.md)
-- [Multi-Vehicle Sim with JMAVSim](../sim_jmavsim/multi_vehicle.md)
 - [Multi-Vehicle Sim with SIH](../sim_sih/index.md#multi-vehicle-simulation)
 
 시뮬레이터의 선택은 시뮬레이션할 차량, 시뮬레이션 퀄러티, 시뮬레이션 기능, 시뮬레이션 차량 대수에 따라 달라집니다.
@@ -19,8 +18,6 @@ PX4는 다음 시뮬레이터를 사용하여 다중 차량 시뮬레이션을 �
   Note, this is the successor of [Gazebo Classic](../sim_gazebo_classic/index.md) (below).
 - [Gazebo Classic](../sim_gazebo_classic/index.md) is less accurate and less heavy-weight and supports many features and vehicles that aren't available for FlightGear.
   It can simulate many more vehicles at a time than FlightGear and it allows for different types of vehicles to be simulated at the same time.
-- [JMAVSim](../sim_jmavsim/index.md) is a very light-weight simulator that supports only quadcopters.
-  많은 쿼드콥터의 근사치를 시뮬레이션하는 경우에 권장됩니다.
 - [SIH](../sim_sih/index.md) is the lightest-weight option with zero external dependencies.
   Since SIH is headless and runs physics internally, it can launch many instances with minimal resource usage.
   It supports all 6 vehicle types (quad, hex, plane, tailsitter, standard VTOL, rover).

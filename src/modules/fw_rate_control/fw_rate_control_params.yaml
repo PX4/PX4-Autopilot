@@ -339,6 +339,7 @@ parameters:
         4: Aux3
         5: Aux4
         6: Aux5
+        7: Aux6
       default: 0
     FW_FLAPS_MAN:
       description:
@@ -353,6 +354,7 @@ parameters:
         4: Aux4
         5: Aux5
         6: Flaps channel
+        7: Aux6
       default: 0
     FW_ACRO_YAW_EN:
       description:

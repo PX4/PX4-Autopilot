@@ -17,6 +17,7 @@ Testing/
 Packages/*
 build/*
 build_*/
+/.build_slots/
 /docker-context/
 cscope.out
 cscope.in.out
@@ -116,6 +117,9 @@ _emscripten_sdk/
 
 # virtual Python environment
 .venv
+
+# macOS Gazebo environment (Tools/setup/macos/pixi.toml)
+.pixi
 
 # Claude Code local settings and worktrees
 .claude/settings.local.json

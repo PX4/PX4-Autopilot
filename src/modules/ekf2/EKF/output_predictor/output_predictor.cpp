@@ -93,6 +93,9 @@ void OutputPredictor::alignOutputFilter(const Quatf &quat_state, const Vector3f 
 		_output_buffer[i].pos += pos_delta;
 	}
 
+	// the attitude correction is held in earth frame, which has just been rotated
+	_delta_angle_corr_earth = q_delta.rotateVector(_delta_angle_corr_earth);
+
 	_output_new = _output_buffer.get_newest();
 }
 
@@ -116,7 +119,7 @@ void OutputPredictor::reset()
 	_delta_angle_sum.setIdentity();
 	_delta_angle_sum_dt = 0.f;
 
-	_delta_angle_corr.setZero();
+	_delta_angle_corr_earth.setZero();
 
 	_vel_err_integ.setZero();
 	_pos_err_integ.setZero();
@@ -142,6 +145,9 @@ void OutputPredictor::resetQuaternion(const Quatf &quat_change)
 	// apply the change in attitude quaternion to our newest quaternion estimate
 	// which was already taken out from the output buffer
 	_output_new.quat_nominal = quat_change * _output_new.quat_nominal;
+
+	// the attitude correction is held in earth frame, which has just been rotated
+	_delta_angle_corr_earth = quat_change.rotateVector(_delta_angle_corr_earth);
 }
 
 void OutputPredictor::resetHorizontalVelocityTo(const Vector2f &delta_horz_vel)
@@ -189,7 +195,8 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 	// correct delta angle and delta velocity for bias offsets
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	const Vector3f delta_angle_bias_scaled = _gyro_bias * delta_angle_dt;
-	const Vector3f delta_angle_corrected(delta_angle - delta_angle_bias_scaled + _delta_angle_corr);
+	const Vector3f delta_angle_corr = _output_new.quat_nominal.rotateVectorInverse(_delta_angle_corr_earth);
+	const Vector3f delta_angle_corrected(delta_angle - delta_angle_bias_scaled + delta_angle_corr);
 
 	const Vector3f delta_vel_bias_scaled = _accel_bias * delta_velocity_dt;
 	const Vector3f delta_velocity_corrected(delta_velocity - delta_vel_bias_scaled);
@@ -291,49 +298,11 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 	const outputSample &output_delayed = _output_buffer.get_oldest();
 	const outputVert &output_vert_delayed = _output_vert_buffer.get_oldest();
 
-	// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
-	const Quatf q_error((quat_state.inversed() * output_delayed.quat_nominal).normalized());
-
-	// q and -q describe the same attitude; take the branch with theta in [0, pi] so the
-	// correction is the short way round. AxisAngle() below does not do this itself.
-	Quatf q_err_shortest(q_error);
-
-	if (q_err_shortest(0) < 0.f) {
-		q_err_shortest = -q_err_shortest;
-	}
-
-	/*
-	 * Extract the delta angle exactly, as theta * axis, rather than with the small-angle
-	 * 2 * vec = 2 * sin(theta / 2) * axis. Both are monotonic over theta in [0, pi], so
-	 * this is not a correctness fix - it is a deliberate gain change at large errors.
-	 * d/dtheta of 2 * sin(theta / 2) is cos(theta / 2), which falls to 0.71 at theta = 90
-	 * deg and 0.26 at 150 deg, so the approximation loses restoring authority precisely
-	 * where the error is largest: it under-corrects by 10% at 90 deg and 26% at 150 deg,
-	 * stretching recovery from a large attitude error over more iterations. The exact
-	 * angle holds unit gain across the whole range. Below 10 deg the two agree to within
-	 * 0.15%, so normal operation is unaffected.
-	 */
-	Vector3f delta_ang_error = -Vector3f(AxisAnglef(q_err_shortest));
-
-	/*
-	 * That error is expressed in the body frame AT THE DELAYED FUSION HORIZON, but
-	 * _delta_angle_corr is added to delta angles sampled at the CURRENT time. Under spin
-	 * the body frame rotates between the two instants - 2.07 rad at 20 rad/s over the
-	 * default 100 ms horizon - so the correction is applied about an axis that has since
-	 * turned away from the one the error was measured on. Restricted to the roll/pitch
-	 * plane the correction's projection onto the true error goes as cos(r * tau), so the
-	 * loop's feedback turns from negative to positive past r * tau = pi / 2, i.e. above
-	 * r = 15.7 rad/s at the default delay, and the output attitude diverges while the
-	 * EKF's own solution stays correct.
-	 *
-	 * Rotate the error into the current body frame before applying it. Both quaternions
-	 * are INS attitudes, so their relative rotation is the vehicle's own turn across the
-	 * horizon - no constant-rate assumption. Identity when the vehicle is not rotating,
-	 * which is why this never showed on conventional flight profiles.
-	 */
-	const Quatf q_delayed_to_now((_output_new.quat_nominal.inversed() *
-				      output_delayed.quat_nominal).normalized());
-	delta_ang_error = Dcmf(q_delayed_to_now) * delta_ang_error;
+	// Earth frame rotation from the INS to the EKF quaternion at the EKF fusion time horizon. Two attitudes
+	// integrated from the same gyro keep a constant error in earth frame, so the correction stays valid at the
+	// current time horizon however far the vehicle has turned since.
+	const Quatf q_error((quat_state * output_delayed.quat_nominal.inversed()).canonical().normalized());
+	const Vector3f delta_ang_error = 2.f * q_error.imag();
 
 	// calculate a gain that provides tight tracking of the estimator attitude states and
 	// adjust for changes in time delay to maintain consistent damping ratio of ~0.7
@@ -343,7 +312,7 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 
 	// calculate a corrrection to the delta angle
 	// that will cause the INS to track the EKF quaternions
-	_delta_angle_corr = delta_ang_error * att_gain;
+	_delta_angle_corr_earth = delta_ang_error * att_gain;
 	_output_tracking_error(0) = delta_ang_error.norm();
 
 	/*
@@ -439,6 +408,14 @@ void OutputPredictor::applyCorrectionToOutputBuffer(const Vector3f &vel_correcti
 
 	// update output state to corrected values
 	_output_new = _output_buffer.get_newest();
+}
+
+LatLonAlt OutputPredictor::getLatLonAlt() const
+{
+	// rotate the position of the IMU relative to the boy origin into earth frame
+	const Vector3f pos_offset_earth{_R_to_earth_now * _imu_pos_body};
+	// subtract from the EKF position (which is at the IMU) to get position at the body origin
+	return _global_ref + (_output_new.pos - pos_offset_earth);
 }
 
 matrix::Vector3f OutputPredictor::getVelocityDerivative() const

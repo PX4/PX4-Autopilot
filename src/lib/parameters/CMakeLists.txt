@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-add_compile_options(${MAX_CUSTOM_OPT_LEVEL})
-
 if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")
 endif()
@@ -60,6 +58,11 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 	endforeach()
 
 	list(REMOVE_DUPLICATES module_config_files)
+endif()
+
+# Keep the opt-in identity parameter out of builds that scan all module YAMLs.
+if(NOT CONFIG_BOARD_HAS_RID_EEPROM)
+	list(REMOVE_ITEM module_config_files ${PX4_SOURCE_DIR}/src/lib/open_drone_id/odid_params.yaml)
 endif()
 
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)

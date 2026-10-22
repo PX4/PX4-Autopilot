@@ -48,7 +48,7 @@ Reasons for this are given below.
   So, for replaying `ekf2`, the rules file should look like this:
 
   ```sh
-  restrict_topics: sensor_combined, vehicle_gps_position, vehicle_land_detected
+  restrict_topics: sensor_combined, vehicle_gnss, vehicle_land_detected
   module: replay
   ignore_others: true
   ```
@@ -61,7 +61,7 @@ Reasons for this are given below.
 - Start the replay:
 
   ```sh
-  make px4_sitl_default jmavsim
+  make px4_sitl_default none_iris
   ```
 
   This will automatically open the log file, apply the parameters and start the replay.

@@ -49,15 +49,10 @@
 # error "BOARD_IMAGE_TOC_OFFSET must be defined when BOOTLOADER_USE_TOC is enabled"
 #endif
 
-/* Helper macros to define flash start and end addresses, based on info from
- * hw_config.h
- */
-#define FLASH_START_ADDRESS (APP_LOAD_ADDRESS & (~(BOARD_FLASH_SIZE - 1)))
-#define FLASH_END_ADDRESS (FLASH_START_ADDRESS + BOARD_FLASH_SIZE)
-
-bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
+bool find_toc(const uint8_t *buf, size_t buf_len,
+	      const image_toc_entry_t **toc_entries, uint8_t *len)
 {
-	const uintptr_t toc_start_u32 = APP_LOAD_ADDRESS + BOARD_IMAGE_TOC_OFFSET;
+	const uintptr_t toc_start_u32 = (uintptr_t)buf + BOARD_IMAGE_TOC_OFFSET;
 	const image_toc_start_t *toc_start = (const image_toc_start_t *)toc_start_u32;
 	const image_toc_entry_t *entry = (const image_toc_entry_t *)(toc_start_u32 + sizeof(image_toc_start_t));
 
@@ -66,17 +61,31 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 	const uint32_t toc_end_magic = TOC_END_MAGIC;
 	uintptr_t toc_end_u32;
 
+	if (buf == NULL || toc_entries == NULL || len == NULL ||
+	    buf_len <= BOARD_IMAGE_TOC_OFFSET + sizeof(image_toc_start_t) + sizeof(toc_end_magic)) {
+		return false;
+	}
+
 	if (toc_start->magic == TOC_START_MAGIC &&
 	    toc_start->version <= TOC_VERSION) {
 
+		/* entry.start/.end are either absolute addresses in the XIP flash
+		 * window, or offsets relative to `buf`.
+		 */
+		const bool relative = (entry[0].flags2 & TOC_FLAG2_RELATIVE_ADDRESSES) != 0;
+		const uintptr_t flash_start = relative ? 0 : APP_LOAD_ADDRESS;
+		const uintptr_t flash_end   = relative ? buf_len :
+					      (APP_LOAD_ADDRESS + BOARD_FLASH_SIZE);
+		const uintptr_t toc_pos     = flash_start + BOARD_IMAGE_TOC_OFFSET;
+
 		/* Count the entries in TOC */
 		while (i < MAX_TOC_ENTRIES &&
-		       (uintptr_t)&entry[i] <= FLASH_END_ADDRESS - sizeof(uintptr_t) &&
+		       (uintptr_t)&entry[i] <= (uintptr_t)buf + buf_len - sizeof(toc_end_magic) &&
 		       memcmp(&entry[i], &toc_end_magic, sizeof(toc_end_magic))) {
 			i++;
 		}
 
-		toc_end_u32 = (uintptr_t)&entry[i] + sizeof(toc_end_magic);
+		toc_end_u32 = toc_pos + ((uintptr_t)&entry[i] - toc_start_u32) + sizeof(toc_end_magic);
 
 		/* The number of ToC entries found must be within bounds, and the
 		 * ToC has to lie within the flashable area. Also ensure that
@@ -84,10 +93,10 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 		 */
 
 		if (i <= MAX_TOC_ENTRIES && i > 0 &&
-		    toc_start_u32 >= (uintptr_t)entry[0].start &&
+		    toc_pos >= (uintptr_t)entry[0].start &&
 		    toc_end_u32 < (uintptr_t)entry[0].end &&
-		    (uintptr_t)entry[0].start == APP_LOAD_ADDRESS &&
-		    (uintptr_t)entry[0].end <= (FLASH_END_ADDRESS - sizeof(uintptr_t)) &&
+		    (uintptr_t)entry[0].start == flash_start &&
+		    (uintptr_t)entry[0].end <= (flash_end - sizeof(uintptr_t)) &&
 		    (uintptr_t)entry[0].end > (uintptr_t)entry[0].start) {
 			sig_idx = entry[0].signature_idx;
 
@@ -99,7 +108,7 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 			if (sig_idx > 0 &&
 			    sig_idx < MAX_TOC_ENTRIES &&
 			    (uintptr_t)entry[sig_idx].start >= (uintptr_t)entry[0].end &&
-			    (uintptr_t)entry[sig_idx].end <= FLASH_END_ADDRESS &&
+			    (uintptr_t)entry[sig_idx].end <= flash_end &&
 			    (uintptr_t)entry[sig_idx].end > (uintptr_t)entry[sig_idx].start) {
 				*toc_entries = entry;
 				*len = i;
@@ -115,8 +124,11 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 
 #else // BOOTLOADER_USE_TOC
 
-bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
+bool find_toc(const uint8_t *buf, size_t buf_len,
+	      const image_toc_entry_t **toc_entries, uint8_t *len)
 {
+	(void)buf;
+	(void)buf_len;
 	(void)toc_entries;
 	(void)len;
 	return false;

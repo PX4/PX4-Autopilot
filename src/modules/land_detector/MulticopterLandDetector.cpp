@@ -82,6 +82,9 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.crawlSpeed = param_find("MPC_LAND_CRWL");
 	_minimum_thrust_8s_hysteresis.set_hysteresis_time_from(false, 8_s);
 	_freefall_hysteresis.set_hysteresis_time_from(false, 300_ms);
+
+	// all detection states are time-based hysteresis of 300 ms or longer, so 50 Hz is plenty
+	_set_update_interval(20_ms);
 }
 
 void MulticopterLandDetector::_update_topics()

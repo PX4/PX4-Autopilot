@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 890 758" width="890" height="758" role="img" aria-labelledby="title desc">
+  <title id="title">Internal combustion engine control architecture</title>
+  <desc id="desc">The internal_combustion_engine_control module takes the throttle demand from ActuatorMotors control[0] published by the control allocator, plus Rpm, VehicleStatus and ManualControlSetpoint. It publishes InternalCombustionEngineControl, which the output driver maps onto the four output functions IC Engine Ignition, IC Engine Throttle, IC Engine Choke and IC Engine Starter, which drive the engine hardware. It also publishes InternalCombustionEngineStatus, which feeds MAVLink EFI_STATUS, the flight log and the DroneCAN ICE bridge.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#4b5563"/>
+    </marker>
+  </defs>
+
+  <style>
+    .bg   { fill:#ffffff; stroke:#e3e6ec; }
+    .mod  { fill:#fdf0e2; stroke:#c2701c; stroke-width:1.5; }
+    .subj { fill:#fbe6cd; stroke:#a95a0d; stroke-width:2.5; }
+    .msg  { fill:#f1f3f7; stroke:#9aa4b5; stroke-width:1.5; }
+    .ext  { fill:#ffffff; stroke:#6b7280; stroke-width:1.5; stroke-dasharray:6 4; }
+    text  { font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; fill:#12161f; }
+    .t    { font-size:12.5px; text-anchor:middle; }
+    .m    { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; text-anchor:middle; }
+    .hd   { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; text-anchor:middle; font-weight:600; }
+    .sub  { font-size:10.5px; fill:#5b6472; text-anchor:middle; }
+    .li   { font-size:11.5px; }
+    .fn   { fill:#ffffff; stroke:#c2701c; stroke-width:1; }
+    .fnt  { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10px; text-anchor:middle; }
+    .edge { stroke:#4b5563; stroke-width:1.6; fill:none; marker-end:url(#arrow); }
+    .elab { font-size:10.5px; fill:#5b6472; }
+    .lgd  { font-size:10.5px; fill:#5b6472; }
+  </style>
+
+  <rect class="bg" x="0.5" y="0.5" width="889" height="757" rx="10"/>
+
+  <!-- Row 1: control allocation produces the throttle demand -->
+  <rect class="mod" x="40"  y="40" width="140" height="46" rx="6"/>
+  <text class="t" x="110" y="67">rate controller</text>
+
+  <rect class="msg" x="215" y="40" width="200" height="46" rx="6"/>
+  <text class="m" x="315" y="59">VehicleThrustSetpoint</text>
+  <text class="m" x="315" y="75">VehicleTorqueSetpoint</text>
+
+  <rect class="mod" x="450" y="40" width="150" height="46" rx="6"/>
+  <text class="m" x="525" y="67">control_allocator</text>
+
+  <rect class="msg" x="635" y="40" width="145" height="46" rx="6"/>
+  <text class="m"   x="707.5" y="59">ActuatorMotors</text>
+  <text class="sub" x="707.5" y="75">control[0]</text>
+
+  <line class="edge" x1="180" y1="63" x2="215" y2="63"/>
+  <line class="edge" x1="415" y1="63" x2="450" y2="63"/>
+  <line class="edge" x1="600" y1="63" x2="635" y2="63"/>
+  <line class="edge" x1="707.5" y1="86" x2="707.5" y2="190"/>
+  <text class="elab" x="716" y="142">throttle demand</text>
+
+  <!-- Row 2: the module and its remaining inputs -->
+  <rect class="msg" x="40" y="190" width="250" height="42" rx="6"/>
+  <text class="m"   x="165" y="207">Rpm</text>
+  <text class="sub" x="165" y="223">measured engine speed</text>
+
+  <rect class="msg" x="40" y="242" width="250" height="42" rx="6"/>
+  <text class="m"   x="165" y="259">VehicleStatus</text>
+  <text class="sub" x="165" y="275">arming state · VTOL transition</text>
+
+  <rect class="msg" x="40" y="294" width="250" height="42" rx="6"/>
+  <text class="m"   x="165" y="311">ManualControlSetpoint</text>
+  <text class="sub" x="165" y="327">aux1 / aux2 switch</text>
+
+  <line class="edge" x1="290" y1="211" x2="330" y2="211"/>
+  <line class="edge" x1="290" y1="263" x2="330" y2="263"/>
+  <line class="edge" x1="290" y1="315" x2="330" y2="315"/>
+
+  <rect class="subj" x="330" y="190" width="440" height="150" rx="8"/>
+  <text class="hd"  x="550" y="216">internal_combustion_engine_control</text>
+  <text class="sub" x="550" y="233">runs at 50 Hz</text>
+  <line x1="350" y1="245" x2="750" y2="245" stroke="#d9a877" stroke-width="1"/>
+  <text class="li" x="366" y="270">• start / stop state machine</text>
+  <text class="li" x="366" y="294">• idle RPM governor — feed-forward + PI on measured RPM</text>
+  <text class="li" x="366" y="318">• throttle slew-rate limit (ICE_THR_SLEW)</text>
+
+  <line class="edge" x1="390" y1="340" x2="390" y2="400"/>
+  <line class="edge" x1="710" y1="340" x2="710" y2="400"/>
+
+  <!-- Row 3: published topics -->
+  <rect class="msg" x="250" y="400" width="280" height="52" rx="6"/>
+  <text class="m"   x="390" y="421">InternalCombustionEngineControl</text>
+  <text class="sub" x="390" y="437">ignition · throttle · choke · starter</text>
+
+  <rect class="msg" x="570" y="400" width="280" height="52" rx="6"/>
+  <text class="m"   x="710" y="421">InternalCombustionEngineStatus</text>
+  <text class="sub" x="710" y="437">state · sub-state · idle PID integral</text>
+
+  <line class="edge" x1="390" y1="452" x2="390" y2="510"/>
+  <line class="edge" x1="710" y1="452" x2="710" y2="510"/>
+
+  <!-- Row 4: consumers -->
+  <rect class="mod" x="250" y="510" width="280" height="116" rx="6"/>
+  <text class="t"   x="390" y="531">Output driver (MixingOutput)</text>
+  <text class="sub" x="390" y="547">maps each field onto an output function</text>
+
+  <rect class="fn" x="262" y="556" width="122" height="26" rx="4"/>
+  <text class="fnt" x="323" y="573">IC Engine Ignition</text>
+  <rect class="fn" x="396" y="556" width="122" height="26" rx="4"/>
+  <text class="fnt" x="457" y="573">IC Engine Throttle</text>
+  <rect class="fn" x="262" y="588" width="122" height="26" rx="4"/>
+  <text class="fnt" x="323" y="605">IC Engine Choke</text>
+  <rect class="fn" x="396" y="588" width="122" height="26" rx="4"/>
+  <text class="fnt" x="457" y="605">IC Engine Starter</text>
+
+  <rect class="ext" x="570" y="510" width="280" height="52" rx="6"/>
+  <text class="t"   x="710" y="531" style="font-size:11.5px">MAVLink EFI_STATUS · flight log</text>
+  <text class="sub" x="710" y="548">DroneCAN ICE bridge (UAVCAN_SUB_ICE)</text>
+
+  <line class="edge" x1="390" y1="626" x2="390" y2="666"/>
+
+  <!-- Row 5: hardware -->
+  <rect class="ext" x="250" y="666" width="280" height="52" rx="6"/>
+  <text class="t"   x="390" y="688">Engine hardware</text>
+  <text class="sub" x="390" y="704">relays / servos on the assigned outputs</text>
+
+  <!-- Legend -->
+  <text class="lgd" x="40" y="404" style="font-weight:600; letter-spacing:0.06em">LEGEND</text>
+  <rect class="mod" x="40" y="416" width="24" height="15" rx="3"/>
+  <text class="lgd" x="74" y="427">Module</text>
+  <rect class="msg" x="40" y="440" width="24" height="15" rx="3"/>
+  <text class="lgd" x="74" y="451">uORB topic</text>
+  <rect class="ext" x="40" y="464" width="24" height="15" rx="3"/>
+  <text class="lgd" x="74" y="475">External / hardware</text>
+</svg>

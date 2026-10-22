@@ -121,8 +121,10 @@ float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 	const bool target_next_different = fabsf(target(2) - next_target(2)) > 0.001f;
 
 	if (target_next_different) {
-		const float alpha = acosf(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
-						  Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()));
+		// rounding can push the dot product of two unit vectors past 1, which acosf turns into NaN
+		const float cos_alpha = math::constrain(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
+				Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()), -1.f, 1.f);
+		const float alpha = acosf(cos_alpha);
 
 		const float safe_alpha = math::constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
 		float accel_tmp = _trajectory[2].getMaxAccel();
@@ -218,17 +220,11 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 			_max_speed_previous = xy_speed;
 		}
 
-		// Compute XY and Z velocity components independently to avoid
-		// Z clamping from reducing XY speed (and vice versa)
-		const Vector3f pos_to_dest = crossing_point - pos_traj;
-		const Vector2f u_pos_to_dest_xy = Vector2f(pos_to_dest).unit_or_zero();
-		const float z_sign = matrix::sign(pos_to_dest(2));
-
-		Vector3f vel_sp_constrained{
-			u_pos_to_dest_xy(0) *xy_speed,
-			u_pos_to_dest_xy(1) *xy_speed,
-			z_sign *z_speed
-		};
+		// Scale one 3D direction to fit both limits, so the slower axis limits the other
+		// one and a leg that changes altitude is flown as a straight line
+		Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
+		math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
+		math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
 
 		for (int i = 0; i < 3; i++) {
 			// If available, use the existing velocity as a feedforward, otherwise replace it

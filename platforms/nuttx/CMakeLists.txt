@@ -473,6 +473,25 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 		set(_mkfw_image ${_signed_bin})
 		set(_mkfw_signed_flag --image_signed)
 		set(_mkfw_extra_depends ${_signed_bin})
+
+		# Optional per-board signed TOC block prepended to the signed
+		# app payload. platforms/nuttx/toc/CMakeLists.txt sets
+		# PX4_SIGNED_TOC_BIN when the board ships toc.ld + toc.c.
+		add_subdirectory(toc)
+
+		if(PX4_SIGNED_TOC_BIN)
+			set(_combined_bin ${PX4_BINARY_DIR}/${PX4_CONFIG}_toc_signed.bin)
+			add_custom_command(
+				OUTPUT ${_combined_bin}
+				COMMAND ${CMAKE_COMMAND} -E cat
+					${PX4_SIGNED_TOC_BIN} ${_signed_bin} > ${_combined_bin}
+				DEPENDS ${PX4_SIGNED_TOC_BIN} ${_signed_bin}
+				COMMENT "Prepending signed TOC to ${PX4_CONFIG}_signed.bin"
+				WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			)
+			set(_mkfw_image ${_combined_bin})
+			set(_mkfw_extra_depends ${_combined_bin})
+		endif()
 	endif()
 
 	add_custom_command(
@@ -519,8 +538,12 @@ if(${CONFIG_NSH_LIBRARY} MATCHES "y")
 	endif()
 endif()
 
-if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
+# The consumers of a CAN bootloader in extras (bl_update, the combined image
+# below) assume the STM32 flash base, so other chips do not emit one.
+if(("${PX4_BOARD_LABEL}" STREQUAL "bootloader") OR
+   (("${PX4_BOARD_LABEL}" STREQUAL "canbootloader") AND ("${PX4_CHIP_MANUFACTURER}" STREQUAL "stm")))
 	add_custom_command(OUTPUT ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BOARD_DIR}/extras
 		COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
 		DEPENDS px4
 	)
@@ -547,6 +570,30 @@ if(NOT ("${PX4_BOARD_LABEL}" STREQUAL "bootloader") AND (EXISTS "${PX4_BOARD_DIR
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)
 	add_custom_target(bootloader_elf DEPENDS ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf)
+
+	# CAN node application builds: bootloader + application in one image,
+	# flashed at the start of flash. The application part is the .uavcan.bin
+	# because the CAN bootloader only boots an image with its descriptor CRCs
+	# filled in. STM32 only: prepend_bootloader.py defaults to its flash base.
+	if((TARGET build_uavcan_bl) AND ("${PX4_CHIP_MANUFACTURER}" STREQUAL "stm"))
+		add_custom_command(
+			OUTPUT ${PX4_BINARY_DIR}/${PX4_CONFIG}_with_bootloader.bin
+			COMMAND
+				${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/prepend_bootloader.py
+					--bootloader ${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+					--app ${PX4_BINARY_DIR}/${uavcan_bl_image_name}
+					--elf $<TARGET_FILE:px4>
+					--output ${PX4_BINARY_DIR}/${PX4_CONFIG}_with_bootloader.bin
+			DEPENDS
+				${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+				${PX4_SOURCE_DIR}/Tools/prepend_bootloader.py
+				${PX4_BINARY_DIR}/${uavcan_bl_image_name}
+				build_uavcan_bl
+				px4
+			COMMENT "Creating ${PX4_CONFIG}_with_bootloader.bin"
+		)
+		add_custom_target(px4_with_bootloader ALL DEPENDS ${PX4_BINARY_DIR}/${PX4_CONFIG}_with_bootloader.bin)
+	endif()
 endif()
 
 

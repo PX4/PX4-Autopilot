@@ -20,8 +20,7 @@ The box also includes a pinout guide and power module instructions, and Base boa
 
 ## 接线图概述
 
-下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。
-我们将在下面各节中介绍它们的细节。
+下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。我们将在下面各节中介绍它们的细节。
 
 ![Pix32 v5 Wiring Overview](../../assets/flight_controller/holybro_pix32_v5/pix32_v5_wiring_overview.jpg)
 

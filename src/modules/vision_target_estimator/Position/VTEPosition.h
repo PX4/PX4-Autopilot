@@ -56,8 +56,8 @@
 #include <uORB/topics/fiducial_marker_pos_report.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/target_gnss.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vte_bias_init_status.h>
 #include <uORB/topics/vte_position.h>
 #include <uORB/topics/vte_aid_source3d.h>
@@ -76,7 +76,7 @@ public:
 
 	/**
 	 * Run the predict/update cycle once. Pulls in all new sensor samples, initializes the
-	 * filter on the first viable set, fuses them in source-priority order, and publishes the state.
+	 * filter on the first viable set, fuses them in order of effective fusion time, and publishes the state.
 	 * @param acc_ned  Latest UAV acceleration in NED, used as prediction input.
 	 */
 	void update(const matrix::Vector3f &acc_ned);
@@ -84,8 +84,8 @@ public:
 	/** Validate generated state sizes and prepare per-axis history buffers. Call once at startup. */
 	bool init();
 
-	/** Drop the estimator state. Cached external inputs (local pos/vel, offsets) are preserved. */
-	void resetFilter();
+	/** Drop the estimator state. A nonzero sample boundary also invalidates cached NED inputs. */
+	void resetFilter(hrt_abstime min_sample_time = 0);
 
 	/** Cache the task-specific absolute reference used to build the mission GNSS observation. */
 	void setMissionPosition(double lat_deg, double lon_deg, float alt_m);
@@ -231,7 +231,7 @@ private:
 	using EstimatorStateCovariance = KF_position::SquareMatrixState;
 	using AxisEstimatorStates = EstimatorState[vtest::Axis::size];
 
-	bool initEstimator(const AxisEstimatorStates &state_init);
+	bool initEstimator(const AxisEstimatorStates &state_init, const matrix::Vector3f &position_variance);
 	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc, float dt);
 	float getMinGpsVelVar() const;
@@ -241,12 +241,12 @@ private:
 
 	inline bool isMeasRecent(hrt_abstime ts) const
 	{
-		return !hasTimedOut(ts, _meas_recent_timeout_us);
+		return ts >= _min_sample_time && !hasTimedOut(ts, _meas_recent_timeout_us);
 	}
 
 	inline bool isMeasUpdated(hrt_abstime ts) const
 	{
-		return !hasTimedOut(ts, _meas_updated_timeout_us);
+		return ts >= _min_sample_time && !hasTimedOut(ts, _meas_updated_timeout_us);
 	}
 
 	inline bool hasNewPositionSensorData(const ObsValidMaskU &fusion_mask) const
@@ -310,10 +310,6 @@ private:
 	/** Build the first filter state once a valid mix of observations is available. */
 	bool initializeEstimator(const ObsValidMaskU &fusion_mask,
 				 const TargetObs observations[kObsTypeCount]);
-	/** Check whether we have a fresh UAV velocity source that can seed the state. */
-	bool hasInitialVelocityEstimate() const;
-	/** Prefer GNSS UAV velocity, otherwise fall back to the local EKF velocity. */
-	matrix::Vector3f selectInitialUavVelocity() const;
 	/** Seed the initial GNSS bias directly from the freshest GNSS-relative sample. */
 	void selectInitialBiasFromGnss(const TargetObs observations[kObsTypeCount],
 				       const matrix::Vector3f &initial_position, matrix::Vector3f &initial_bias);
@@ -326,11 +322,7 @@ private:
 				    const TargetObs observations[kObsTypeCount]);
 	/** Pick the GNSS-relative sample that best matches the requested timestamp. */
 	bool selectBiasGnssSample(hrt_abstime sample_time, matrix::Vector3f &gnss_sample);
-	/** Decide which position source defines the pre-bias state reference. */
-	PreBiasReference selectInitialPosition(const ObsValidMaskU &fusion_mask,
-					       const TargetObs observations[kObsTypeCount], matrix::Vector3f &initial_position,
-					       bool prefer_vision = true);
-	/** Fuse every ready observation in source-priority order. */
+	/** Fuse every ready observation in order of effective fusion time. */
 	bool fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
 				    const TargetObs observations[kObsTypeCount]);
 	/** Refresh subscriptions and populate the per-cycle observation buffer. */
@@ -354,9 +346,7 @@ private:
 	bool processObsVision(TargetObs &obs);
 
 	/* UAV GPS data */
-	bool updateUavGpsData();
-	bool isUavGpsPositionValid();
-	bool isUavGpsVelocityValid();
+	bool updateUavGnssData();
 	bool processObsGNSSPosMission(TargetObs &obs);
 	bool processObsGNSSVelUav(TargetObs &obs) const;
 
@@ -375,7 +365,7 @@ private:
 	void resetObservations();
 	bool shouldEmitWarning(hrt_abstime &last_warn);
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _fiducial_marker_pos_report_sub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Subscription _target_gnss_sub{ORB_ID(target_gnss)};
 
@@ -439,6 +429,7 @@ private:
 
 	KF_position _target_est_pos[vtest::Axis::size] {};
 
+	hrt_abstime _min_sample_time{0}; // Discard measurements from before an attitude reset.
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 	hrt_abstime _uav_gps_vel_warn_last{0};

@@ -21,10 +21,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                | Type    | Value | Description                                                                    |
-| --------------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------ |
-| <a id="#RC_PARAM_MAP_NCHAN"></a> RC_PARAM_MAP_NCHAN | `uint8` | 3     | This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h |
-| <a id="#PARAM_ID_LEN"></a> PARAM_ID_LEN             | `uint8` | 16    | corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN                      |
+| Name                                                | Type    | Value | Description                                                                |
+| --------------------------------------------------- | ------- | ----- | -------------------------------------------------------------------------- |
+| <a id="#RC_PARAM_MAP_NCHAN"></a> RC_PARAM_MAP_NCHAN | `uint8` | 3     | This limit is also hardcoded in the enum RCUpdate::Function in rc_update.h |
+| <a id="#PARAM_ID_LEN"></a> PARAM_ID_LEN             | `uint8` | 16    | corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN                  |
 
 ## Source Message
 
@@ -34,7 +34,7 @@ pageClass: is-wide-page
 
 ```c
 uint64 timestamp		# time since system start (microseconds)
-uint8 RC_PARAM_MAP_NCHAN = 3 # This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h
+uint8 RC_PARAM_MAP_NCHAN = 3 # This limit is also hardcoded in the enum RCUpdate::Function in rc_update.h
 uint8 PARAM_ID_LEN = 16 # corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN
 
 bool[3] valid		#true for RC-Param channels which are mapped to a param

@@ -32,267 +32,155 @@
  ****************************************************************************/
 
 /**
- * Output predictor attitude tracking tests.
+ * @file test_EKF_output_predictor.cpp
  *
- * The predictor measures its attitude error against the EKF at the delayed fusion
- * horizon and applies the correction to delta angles sampled at the current time. The
- * body frame turns by r * tau between those two instants, so the correction has to be
- * rotated into the current frame before it is applied. Without that rotation the
- * tracking loop's feedback changes sign once r * tau exceeds pi / 2 - about 15.7 rad/s
- * at the default 100 ms horizon - and the published attitude diverges while the EKF's
- * own solution stays correct.
+ * @brief Unit tests for the output predictor attitude tracking
  *
- * These tests drive the predictor directly with a synthetic spin and a transverse
- * attitude step, and assert that the loop converges.
+ * The output predictor integrates the gyro at the current time horizon and is pulled towards the EKF
+ * attitude, which is known at the delayed fusion time horizon. These tests drive it directly with a
+ * known rotation and a perfect (but delayed) EKF attitude.
  */
 
 #include <gtest/gtest.h>
 
+#include <cmath>
+#include <tuple>
+
 #include "EKF/output_predictor/output_predictor.h"
 
-using matrix::AxisAnglef;
-using matrix::Dcmf;
-using matrix::Quatf;
-using matrix::Vector3f;
+using namespace matrix;
 
-class OutputPredictorTest : public ::testing::Test
+namespace
+{
+constexpr uint64_t kImuDtUs = 4000;   // 250 Hz IMU
+constexpr float kImuDt = kImuDtUs * 1e-6f;
+constexpr int kImuPerUpdate = 2;      // EKF update every 8 ms
+constexpr uint8_t kBufferLength = 20; // delay = (length - 1) * 8 ms = 152 ms
+constexpr float kGravity = 9.80665f;
+
+float angleBetween(const Quatf &a, const Quatf &b)
+{
+	const Quatf q_err = (a.inversed() * b).normalized();
+	return 2.f * asinf(math::min(Vector3f(q_err(1), q_err(2), q_err(3)).norm(), 1.f));
+}
+
+// Vehicle spinning at a constant body rate, an output predictor and a perfect EKF that lags by the buffer delay
+class OutputPredictorSim
 {
 public:
-	static constexpr float kDt = 0.004f;		///< 250 Hz
-
-	/*
-	 * The ring buffer hands back the entry written kSize - 1 pushes ago, so a 26-deep
-	 * buffer driven at 250 Hz puts the fusion horizon exactly 100 ms back, matching the
-	 * stock EKF2_DELAY_MAX.
-	 */
-	static constexpr uint8_t kBufferLength = 26;
-	static constexpr int kLagSamples = kBufferLength - 1;
-	static constexpr uint64_t kDelayUs = static_cast<uint64_t>(kLagSamples *kDt * 1e6f);
-
-	// hold still until the buffer is full, then spin, then let the loop settle before
-	// stepping the EKF sideways - so every phase starts from a converged state
-	static constexpr int kSpinStartStep = 50;
-	static constexpr int kDisturbanceStep = 150;
-
-	struct Result {
-		float tracking_error_final{0.f};	///< angle between EKF and INS at the horizon (rad)
-		float tracking_error_peak{0.f};		///< worst value after the step was applied
-		float attitude_error_final{0.f};	///< angle between the published attitude and reference (rad)
-	};
-
-	void SetUp() override
+	OutputPredictorSim()
 	{
-		ASSERT_TRUE(_predictor.allocate(kBufferLength));
+		_op.allocate(kBufferLength);
+		_op.set_gravity(kGravity);
 	}
 
-	/**
-	 * Spin about body z at a constant rate, then step the EKF attitude sideways by
-	 * `disturbance` about body x and let the tracking loop chase it.
-	 *
-	 * @param negate_ekf_quat publish -q instead of q for the EKF attitude. The two
-	 *                        describe the same rotation, so the result must not change.
-	 */
-	Result run(float yaw_rate, float disturbance, float duration, bool negate_ekf_quat = false)
+	void setBodyRate(const Vector3f &body_rate)
 	{
-		_predictor.reset();
-		// gravity plays no part in the attitude tracking loop
-		_predictor.set_gravity(0.f);
+		_body_rate = body_rate;
+		_tick_spin_start = _tick;
+	}
 
-		// about earth x, i.e. transverse to the spin axis
-		const Quatf q_step(AxisAnglef(Vector3f(disturbance, 0.f, 0.f)));
-		const int steps = static_cast<int>(duration / kDt);
+	// attitude of the vehicle at IMU tick n, spinning at a constant body rate since setBodyRate()
+	Quatf truth(int tick) const
+	{
+		const float spin_time = static_cast<float>(math::max(tick - _tick_spin_start, 0)) * kImuDt;
+		return Quatf(AxisAnglef(_body_rate * spin_time));
+	}
 
-		Result result{};
-		Quatf quat_ekf_last;
+	Quatf truthNow() const { return truth(_tick); }
+
+	void run(float duration, const Quatf &ekf_frame = Quatf())
+	{
+		const int steps = static_cast<int>(lroundf(duration / kImuDt));
+		const int delay_ticks = (kBufferLength - 1) * kImuPerUpdate;
 
 		for (int i = 0; i < steps; i++) {
-			// start clear of zero: a zero timestamp means "not yet initialised"
-			const uint64_t time_us = 10000000 + static_cast<uint64_t>(i) * 4000;
-			const float rate = (i >= kSpinStartStep) ? yaw_rate : 0.f;
+			_tick++;
+			const uint64_t time_us = static_cast<uint64_t>(_tick) * kImuDtUs;
 
-			_predictor.calculateOutputStates(time_us, Vector3f(0.f, 0.f, rate * kDt), kDt, Vector3f(), kDt);
+			const Vector3f delta_angle = _body_rate * kImuDt;
+			const Vector3f delta_velocity = truth(_tick).rotateVectorInverse(Vector3f(0.f, 0.f, -kGravity)) * kImuDt;
+			_op.calculateOutputStates(time_us, delta_angle, kImuDt, delta_velocity, kImuDt);
 
-			// the EKF solution at the fusion horizon. Integrating body-z increments is a
-			// pure right-multiplication, so the attitude after n spinning steps is just
-			// R_z(yaw_rate * n * dt).
-			const int spin_steps_delayed = math::max((i + 1 - kLagSamples) - kSpinStartStep, 0);
-			Quatf quat_ekf(AxisAnglef(Vector3f(0.f, 0.f, yaw_rate * spin_steps_delayed * kDt)));
-
-			if (i >= kDisturbanceStep) {
-				// an attitude offset is a rotation of the earth frame, applied on the left -
-				// the same convention resetQuaternion() uses. A body-frame offset would not
-				// be reachable by integrating body-z rates, so the loop would be chasing a
-				// target moving at a different angular velocity.
-				quat_ekf = q_step * quat_ekf;
-			}
-
-			quat_ekf_last = quat_ekf;
-
-			_predictor.correctOutputStates(time_us - kDelayUs, negate_ekf_quat ? -quat_ekf : quat_ekf,
-						       Vector3f(), LatLonAlt(0.0, 0.0, 0.f), Vector3f(), Vector3f());
-
-			if (i >= kDisturbanceStep) {
-				result.tracking_error_peak = math::max(result.tracking_error_peak,
-								       _predictor.getOutputTrackingError()(0));
+			if (_tick % kImuPerUpdate == 0) {
+				const uint64_t time_delayed_us = time_us - static_cast<uint64_t>(delay_ticks) * kImuDtUs;
+				_op.correctOutputStates(time_delayed_us, ekf_frame * truth(_tick - delay_ticks), Vector3f(), _gpos,
+							Vector3f(), Vector3f());
 			}
 		}
-
-		result.tracking_error_final = _predictor.getOutputTrackingError()(0);
-
-		// a converged INS sits exactly one horizon ahead of the EKF attitude it is
-		// tracking, and that propagation is the same right-multiplication
-		const Quatf quat_expected = quat_ekf_last * Quatf(AxisAnglef(Vector3f(0.f, 0.f,
-					    yaw_rate * kLagSamples * kDt)));
-		result.attitude_error_final = angleBetween(_predictor.getQuaternion(), quat_expected);
-
-		return result;
 	}
 
-	static float angleBetween(const Quatf &a, const Quatf &b)
-	{
-		Quatf delta((a.inversed() * b).normalized());
+	OutputPredictor _op;
 
-		if (delta(0) < 0.f) {
-			delta = -delta;
-		}
-
-		return AxisAnglef(delta).norm();
-	}
-
-	OutputPredictor _predictor;
+private:
+	Vector3f _body_rate{};
+	int _tick{0};
+	int _tick_spin_start{0};
+	LatLonAlt _gpos{47.3977, 8.5456, 400.f};
 };
-
-// the harness itself: with no disturbance the INS reproduces the EKF exactly, so any
-// residual here would be a modelling error rather than a filter one
-TEST_F(OutputPredictorTest, harnessIsExactWithoutDisturbance)
-{
-	const Result result = run(20.f, 0.f, 4.f);
-
-	EXPECT_LT(result.tracking_error_final, 1e-5f);
-	EXPECT_LT(result.attitude_error_final, 1e-4f);
 }
 
-// 20 rad/s is past the r * tau = pi / 2 threshold where the uncorrected loop's feedback
-// changes sign. Without the frame rotation the error grows to the better part of a
-// radian and stays there; with it the step is nulled.
-TEST_F(OutputPredictorTest, convergesUnderRapidYaw)
-{
-	const float disturbance = math::radians(1.f);
-	const Result result = run(20.f, disturbance, 4.f);
+class OutputPredictorSpin : public ::testing::TestWithParam<std::tuple<int, float>> {};
 
-	EXPECT_LT(result.tracking_error_final, 0.1f * disturbance);
-	EXPECT_LT(result.tracking_error_peak, 2.f * disturbance);
-	EXPECT_LT(result.attitude_error_final, math::radians(0.5f));
+// An attitude error must be removed whatever the rotation rate, about roll, pitch or yaw. Before the correction
+// was held in earth frame, it was applied about axes that had turned by rate x delay, and the error grew above
+// about 7 rad/s.
+TEST_P(OutputPredictorSpin, attitudeErrorConvergesWhileSpinning)
+{
+	const int axis = std::get<0>(GetParam());
+	const float rate = std::get<1>(GetParam());
+
+	Vector3f body_rate{};
+	body_rate(axis) = rate;
+
+	// an error about an axis perpendicular to the spin; an error along it is not affected
+	Vector3f error_axis{};
+	error_axis(axis == 0 ? 1 : 0) = 1.f;
+
+	OutputPredictorSim sim;
+	sim.run(1.f); // settle at rest
+
+	sim.setBodyRate(body_rate);
+	sim.run(0.5f);
+
+	// rotate the output 2 degrees away from the EKF (and from the truth)
+	sim._op.resetQuaternion(Quatf(AxisAnglef(error_axis * math::radians(2.f))));
+	EXPECT_NEAR(math::degrees(angleBetween(sim._op.getQuaternion(), sim.truthNow())), 2.f, 0.01f);
+
+	sim.run(4.f);
+	EXPECT_LT(math::degrees(angleBetween(sim._op.getQuaternion(), sim.truthNow())), 0.05f)
+			<< "axis " << axis << ", rate " << rate << " rad/s";
 }
 
-// the sign of the rotation must not matter: the correction is rotated by the vehicle's
-// own attitude history, not by an assumed direction
-TEST_F(OutputPredictorTest, convergesUnderRapidYawReversed)
+INSTANTIATE_TEST_SUITE_P(RollPitchYaw, OutputPredictorSpin,
+			 ::testing::Combine(::testing::Values(0, 1, 2), ::testing::Values(0.f, 3.f, 7.f, 15.f, 25.f)));
+
+// Rotating the earth frame (e.g. a yaw reset) must commute with the output predictor:
+// resetting and then running must give the same result as running and then resetting.
+TEST(OutputPredictor, yawResetCommutesWithAttitudeCorrection)
 {
-	const float disturbance = math::radians(1.f);
-	const Result result = run(-20.f, disturbance, 4.f);
+	OutputPredictorSim a;
+	OutputPredictorSim b;
 
-	EXPECT_LT(result.tracking_error_final, 0.1f * disturbance);
-	EXPECT_LT(result.tracking_error_peak, 2.f * disturbance);
-	EXPECT_LT(result.attitude_error_final, math::radians(0.5f));
-}
-
-// both spin directions have to behave identically for a symmetric disturbance
-TEST_F(OutputPredictorTest, spinDirectionSymmetry)
-{
-	const float disturbance = math::radians(1.f);
-
-	const Result forward = run(20.f, disturbance, 4.f);
-
-	const Result reverse = run(-20.f, disturbance, 4.f);
-
-	EXPECT_NEAR(forward.tracking_error_final, reverse.tracking_error_final, 1e-6f);
-	EXPECT_NEAR(forward.tracking_error_peak, reverse.tracking_error_peak, 1e-6f);
-}
-
-// q and -q are the same attitude; the shortest-branch selection must make the loop blind
-// to which one the EKF happens to publish
-TEST_F(OutputPredictorTest, quaternionSignEquivalence)
-{
-	const float disturbance = math::radians(1.f);
-
-	const Result positive = run(20.f, disturbance, 4.f);
-
-	const Result negated = run(20.f, disturbance, 4.f, true);
-
-	EXPECT_NEAR(positive.tracking_error_final, negated.tracking_error_final, 1e-6f);
-	EXPECT_NEAR(positive.tracking_error_peak, negated.tracking_error_peak, 1e-6f);
-	EXPECT_NEAR(positive.attitude_error_final, negated.attitude_error_final, 1e-6f);
-}
-
-// a conventional flight profile is well below the threshold and was never affected; the
-// frame rotation must not disturb it
-TEST_F(OutputPredictorTest, convergesAtConventionalRate)
-{
-	const float disturbance = math::radians(1.f);
-	const Result result = run(1.f, disturbance, 4.f);
-
-	EXPECT_LT(result.tracking_error_final, 0.1f * disturbance);
-	EXPECT_LT(result.attitude_error_final, math::radians(0.5f));
-}
-
-// with no rotation at all the correction needs no reframing, so the loop has to behave
-// exactly as it always did
-TEST_F(OutputPredictorTest, convergesWithoutRotation)
-{
-	const float disturbance = math::radians(1.f);
-	const Result result = run(0.f, disturbance, 4.f);
-
-	EXPECT_LT(result.tracking_error_final, 0.1f * disturbance);
-	EXPECT_LT(result.attitude_error_final, math::radians(0.5f));
-}
-
-// a large attitude error still has to be recoverable while spinning. This is the regime
-// where the exact delta angle differs from the small-angle form.
-TEST_F(OutputPredictorTest, recoversFromLargeErrorUnderRapidYaw)
-{
-	const float disturbance = math::radians(170.f);
-	const Result result = run(20.f, disturbance, 12.f);
-
-	EXPECT_LT(result.tracking_error_final, math::radians(1.f));
-	EXPECT_LT(result.attitude_error_final, math::radians(2.f));
-}
-
-/*
- * The delta angle is extracted exactly, as theta * axis, rather than with the
- * small-angle 2 * sin(theta / 2) * axis. Both are monotonic over the theta in [0, pi]
- * that the shortest-branch selection guarantees, so this is a gain change and not a
- * correctness fix. Pin the numbers quoted in correctOutputStates(): the two agree to
- * well inside a tenth of a percent below 10 deg, and the approximation loses a
- * quarter of the correction by 150 deg.
- */
-TEST_F(OutputPredictorTest, exactDeltaAngleGain)
-{
-	struct {
-		float angle_deg;
-		float min_ratio;	///< small-angle magnitude as a fraction of the exact angle
-		float max_ratio;
-	} const cases[] = {
-		{  1.f, 0.9999f, 1.0000f},
-		{ 10.f, 0.9985f, 1.0000f},
-		{ 90.f, 0.8990f, 0.9010f},
-		{150.f, 0.7370f, 0.7390f},
-		{170.f, 0.6700f, 0.6730f},
-	};
-
-	for (const auto &c : cases) {
-		const float angle = math::radians(c.angle_deg);
-		const Quatf q(AxisAnglef(Vector3f(0.f, 0.f, angle)));
-
-		// what the code now does
-		const float exact = AxisAnglef(q).norm();
-		EXPECT_NEAR(exact, angle, 1e-5f) << "at " << c.angle_deg << " deg";
-
-		// what it did before: 2 * vec, i.e. 2 * sin(theta / 2)
-		const float small_angle = 2.f * Vector3f(q(1), q(2), q(3)).norm();
-
-		const float ratio = small_angle / exact;
-		EXPECT_GE(ratio, c.min_ratio) << "at " << c.angle_deg << " deg";
-		EXPECT_LE(ratio, c.max_ratio) << "at " << c.angle_deg << " deg";
+	for (OutputPredictorSim *sim : {&a, &b}) {
+		sim->run(1.f);
+		sim->setBodyRate(Vector3f(0.f, 0.f, 10.f));
+		sim->run(0.5f);
+		// a large pending attitude correction
+		sim->_op.resetQuaternion(Quatf(AxisAnglef(Vector3f(math::radians(5.f), 0.f, 0.f))));
+		sim->run(0.02f);
 	}
+
+	const Quatf yaw_reset(AxisAnglef(Vector3f(0.f, 0.f, math::radians(30.f))));
+	a._op.resetQuaternion(yaw_reset);
+
+	float max_diff = 0.f;
+
+	for (int i = 0; i < 50; i++) {
+		a.run(kImuDt, yaw_reset);
+		b.run(kImuDt);
+		max_diff = math::max(max_diff, angleBetween(a._op.getQuaternion(), yaw_reset * b._op.getQuaternion()));
+	}
+
+	EXPECT_LT(max_diff, 5e-5f);
 }
