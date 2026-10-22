@@ -74,7 +74,7 @@ public:
 	RtlRouteSafePoint(ModuleParams *parent, Navigator *navigator);
 
 	void reset();
-	bool supportsVehicle(const vehicle_status_s &vehicle_status) const;
+	static bool supportsVehicle(const vehicle_status_s &vehicle_status);
 	/** Match the uploaded mission independently of safe-point changes, preserving route progress through reloads. */
 	bool missionMatches(const mission_s &mission) const;
 	/** Check full source identity, cache and fence readiness, mission generation, and safe-point count. */
@@ -93,7 +93,7 @@ public:
 			    bool require_vtol_approach);
 
 	/** Keep the follower's flown jump anchor for the replan. */
-	void recordExecutorProgress(const mission_route::ActiveJumpAnchor &active_jump_anchor);
+	void setActiveJumpAnchor(const mission_route::ActiveJumpAnchor &active_jump_anchor);
 
 	uint32_t missionGeneration() const;
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const;

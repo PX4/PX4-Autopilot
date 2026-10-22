@@ -61,7 +61,7 @@ void RtlRouteSafePoint::reset()
 	_last_failure = mission_route::FailureReason::kNone;
 }
 
-bool RtlRouteSafePoint::supportsVehicle(const vehicle_status_s &vehicle_status) const
+bool RtlRouteSafePoint::supportsVehicle(const vehicle_status_s &vehicle_status)
 {
 	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 	       || vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
@@ -195,7 +195,7 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	return evaluation;
 }
 
-void RtlRouteSafePoint::recordExecutorProgress(const mission_route::ActiveJumpAnchor &active_jump_anchor)
+void RtlRouteSafePoint::setActiveJumpAnchor(const mission_route::ActiveJumpAnchor &active_jump_anchor)
 {
 	_active_jump_anchor = active_jump_anchor;
 }
