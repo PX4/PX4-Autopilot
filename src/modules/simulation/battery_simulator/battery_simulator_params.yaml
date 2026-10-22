@@ -2,28 +2,44 @@ module_name: battery_simulator
 parameters:
 - group: SITL
   definitions:
-    SIM_BAT_DRAIN:
+    SIM_BAT_I_FW:
       description:
-        short: Simulated battery full-discharge time
+        short: Simulated battery average current draw in fixed wing
         long: |-
-          Time in seconds for the simulated battery to drain from 100% to 0% while armed. Set to 0 to disable the battery simulator entirely (useful when battery state is provided externally, e.g. via MAVLink).
+          Average current drawn from simulated battery by the drone in fixed wing mode while armed. Set to 0 to disable the battery simulator entirely (useful when battery state is provided externally, e.g. via MAVLink).
       type: float
-      default: 60
-      min: 0
-      increment: 1
-      unit: s
-    SIM_BAT${i}_DRAIN:
+      default: 2.0
+      min: 0.0
+      unit: A
+    SIM_BAT_I_MC:
       description:
-        short: Simulated battery ${i} full-discharge time
+        short: Simulated battery average current draw in rotor wing
         long: |-
-          Time in seconds for simulated battery ${i} to drain from 100% to 0% while armed,
-          overriding SIM_BAT_DRAIN for this battery only. A non-positive value uses SIM_BAT_DRAIN.
-          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE.
+          Average current drawn from simulated battery by the drone in rotor wing mode while armed. Set to 0 to disable the battery simulator entirely (useful when battery state is provided externally, e.g. via MAVLink).
+      type: float
+      default: 8.0
+      min: 0.0
+      unit: A
+    SIM_BAT${i}_I_FW:
+      description:
+        short: Simulated battery {i} average current draw in fixed wing
+        long: |-
+          Average current drawn from simulated battery {i} by the drone in fixed wing mode while armed. Set to -1 to use SIM_BAT_I_FW
+      type: float
+      default: [-1.0, -1.0, -1.0]
+      increment: 1
+      unit: A
+      num_instances: 3
+      instance_start: 1
+    SIM_BAT${i}_I_MC:
+      description:
+        short: Simulated battery {i} average current draw in rotor wing
+        long: |-
+          Average current drawn from simulated battery {i} by the drone in rotor wing mode while armed. Set to -1 to use SIM_BAT_I_MC
       type: float
       default: [-1.0, -1.0, -1.0]
       min: -1
-      increment: 1
-      unit: s
+      unit: A
       num_instances: 3
       instance_start: 1
     SIM_BAT_MIN_PCT:
