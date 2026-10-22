@@ -45,10 +45,13 @@ for trigger_time in "${TRIGGER_TIMES[@]}"; do
 		out=$("$BATCH" "$DIR" --set MOTFAIL_C2T="$C2T" --set MOTFAIL_IDLE="$IDLE" \
 			"${PARK[@]}" --set "$BAND_P=$band" --set "$TRIGGER_TIME_P=$trigger_time")
 
-		# A missing summary means nothing ran; without this a broken invocation reads as "no trips".
-		grep -q "^total=" <<<"$out" || { echo " (no verdict summary -- nothing ran)"; exit 9; }
+		# Without a single evaluated log (no summary, empty directory, or every log skipped) the
+		# cell would read as "no trips".
+		ok=$(sed -n 's/.* OK=\([0-9]*\).*/\1/p' <<<"$out")
+		fail=$(sed -n 's/.* FAIL=\([0-9]*\).*/\1/p' <<<"$out")
+		(( ${ok:-0} + ${fail:-0} > 0 )) || { echo " (no log evaluated -- check the log directory)"; exit 9; }
 
-		printf "%7s" "$(sed -n 's/.*FAIL=\([0-9]*\).*/\1/p' <<<"$out")"
+		printf "%7s" "$fail"
 	done
 
 	echo
