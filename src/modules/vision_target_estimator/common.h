@@ -146,6 +146,21 @@ static inline bool hasTimedOut(const hrt_abstime ts, const hrt_abstime timeout_u
 	return hasTimedOutAt(nowUs(), ts, timeout_us);
 }
 
+// Clock-sync jitter can stamp an external sample slightly after now: treat it as current, like the
+// OOSM fast path. Returns false for samples too far in the future to trust.
+static inline bool alignFutureSampleTime(hrt_abstime &ts, const hrt_abstime now)
+{
+	if (ts > now) {
+		if ((ts - now) >= kOosmMinTimeUs) {
+			return false;
+		}
+
+		ts = now;
+	}
+
+	return true;
+}
+
 constexpr inline int64_t signedTimeDiffUs(const hrt_abstime newer, const hrt_abstime older)
 {
 	return static_cast<int64_t>(newer) - static_cast<int64_t>(older);

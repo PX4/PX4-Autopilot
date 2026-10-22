@@ -48,7 +48,8 @@
  *   5. Replay later predictions and accepted observations, recomputing gains without re-gating.
  *      Their test ratios are only reported, as diagnostics of the new observation.
  *   6. Commit the updated snapshots and live state only when replay succeeds. Retain the new
- *      observation for future replay; no extra prediction snapshot is needed.
+ *      observation for future replay; no extra prediction snapshot is needed. If a stored
+ *      observation fails during replay, clear the history so it cannot block later replays.
  *
  * See docs/en/advanced_features/vision_target_estimator_advanced.md
  * (section "OOSM Implementation") for the replay policy and storage bounds.
@@ -278,6 +279,7 @@ public:
 
 		if (!replayUntil<ScalarMeasT>(filter, meas.time_us, input_interval, nis_threshold, replay_time, measurement_pos,
 					      x_meas, P_meas, nullptr)) {
+			reset();
 			res.status = FusionStatus::STATUS_REJECT_COV;
 			return res;
 		}
@@ -308,6 +310,7 @@ public:
 
 			if (!replayUntil<ScalarMeasT>(filter, sample.time_us, sample.input, nis_threshold, replay_time, measurement_pos,
 						      x_meas, P_meas, &replay_stats)) {
+				reset();
 				res.status = FusionStatus::STATUS_REJECT_COV;
 				return res;
 			}
@@ -319,6 +322,7 @@ public:
 
 		if (!replayUntil<ScalarMeasT>(filter, now_us, curr_input, nis_threshold, replay_time, measurement_pos,
 					      x_meas, P_meas, &replay_stats)) {
+			reset();
 			res.status = FusionStatus::STATUS_REJECT_COV;
 			return res;
 		}

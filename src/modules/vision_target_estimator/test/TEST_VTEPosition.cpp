@@ -2078,6 +2078,61 @@ TEST_F(VTEPositionTest, RejectsStaleMeasurement)
 	EXPECT_FALSE(_vte_state_sub->update());
 }
 
+// Clock-sync jitter can stamp vision slightly in the future: such samples are fused as current,
+// while samples further ahead are dropped.
+TEST_F(VTEPositionTest, AlignsVisionStampedSlightlyInTheFuture)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	setLocalVelocity(kZeroVec, now);
+	const matrix::Vector3f rel_pos(1.f, 2.f, 3.f);
+
+	publishVisionPos(rel_pos, vte_test::identityQuat(), kSmallVisionCov, now + vte::kOosmMinTimeUs);
+	_vte->update(kZeroVec);
+	EXPECT_FALSE(_vte_state_sub->update());
+	EXPECT_FALSE(_aid_fiducial_sub->update());
+
+	publishVisionPos(rel_pos, vte_test::identityQuat(), kSmallVisionCov, now + 5_ms);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+	EXPECT_EQ(_aid_fiducial_sub->get().timestamp_sample, now);
+	EXPECT_EQ(_aid_fiducial_sub->get().fusion_status[0], vte::FusionStatus::STATUS_INITIALIZED);
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_NEAR(_vte_state_sub->get().rel_pos[axis], rel_pos(axis), kTolerance);
+	}
+}
+
+// Validity follows the capture time of the newest fused sample, so a late sample does not extend it.
+TEST_F(VTEPositionTest, LateSampleDoesNotExtendValidity)
+{
+	enableMask({FusionMaskOption::kVisionPos});
+	_vte->setTargetValidTimeout(500_ms);
+	const hrt_abstime t0 = vte_test::advanceMicroseconds(kStepUs);
+	setLocalVelocity(kZeroVec, t0);
+	publishVisionPos(matrix::Vector3f(1.f, 1.f, 1.f), vte_test::identityQuat(), kSmallVisionCov, t0);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+
+	// Keep predicting every 50 ms. A sample captured at t0 + 100 ms arrives 300 ms late.
+	for (hrt_abstime t = 50_ms; t <= 650_ms; t += 50_ms) {
+		vte_test::advanceMicroseconds(50_ms);
+
+		if (t == 400_ms) {
+			publishVisionPos(matrix::Vector3f(1.f, 1.f, 1.f), vte_test::identityQuat(), kSmallVisionCov, t0 + 100_ms);
+		}
+
+		_vte->update(kZeroVec);
+		ASSERT_TRUE(_vte_state_sub->update());
+		EXPECT_EQ(_vte_state_sub->get().rel_pos_valid, t < 600_ms) << "t = " << t;
+	}
+
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+	EXPECT_EQ(_aid_fiducial_sub->get().timestamp_sample, t0 + 100_ms);
+	EXPECT_EQ(_aid_fiducial_sub->get().fusion_status[0], vte::FusionStatus::STATUS_FUSED_OOSM);
+}
+
 // WHY: A long scheduling gap should reset the filter instead of predicting across stale time.
 // WHAT: Initialize once, wait past the allowed prediction gap, then verify a fresh measurement re-initializes cleanly.
 TEST_F(VTEPositionTest, ResetsFilterOnStalePredictionGap)

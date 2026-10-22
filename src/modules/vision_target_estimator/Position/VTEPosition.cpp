@@ -190,9 +190,7 @@ void VTEPosition::update(const Vector3f &acc_ned)
 
 	// Update with the newest observations, fuse if the filter is initialised,
 	// and publish any resulting innovations.
-	if (performUpdateStep(acc_ned)) {
-		_last_update = _last_predict;
-	}
+	performUpdateStep(acc_ned);
 
 	if (_estimator_initialized) {
 		// Store the post-fusion posterior snapshot at the current timestamp for OOSM fusion.
@@ -275,7 +273,7 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned, const float dt
 	}
 }
 
-bool VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned)
+void VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned)
 {
 	// Gather observations and tag the fusion mask bits for each new valid source.
 	resetObservations();
@@ -283,23 +281,23 @@ bool VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned)
 	processObservations(fusion_mask, _obs_buffer);
 
 	if (fusion_mask.value == 0) {
-		return false;
+		return;
 	}
 
 	if (!_estimator_initialized) {
-		if (!hasNewPositionSensorData(fusion_mask)) {
-			return false;
+		if (hasNewPositionSensorData(fusion_mask)) {
+			// Initialize only this cycle to avoid using the same measurements twice.
+			initializeEstimator(fusion_mask, _obs_buffer);
 		}
 
-		// Initialize only this cycle to avoid using the same measurements twice.
-		return initializeEstimator(fusion_mask, _obs_buffer);
+		return;
 	}
 
 	if (!_bias.set) {
 		updateBiasIfObservable(fusion_mask, _obs_buffer);
 	}
 
-	return fuseActiveMeasurements(vehicle_acc_ned, fusion_mask, _obs_buffer);
+	fuseActiveMeasurements(vehicle_acc_ned, fusion_mask, _obs_buffer);
 }
 
 void VTEPosition::resetObservations()
@@ -328,7 +326,7 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 
 	target_gnss_s target_gnss{};
 
-	if (_target_gnss_sub.update(&target_gnss)) {
+	if (pollTargetGnss(target_gnss)) {
 		const bool target_gps_position_valid = isTargetGpsPositionValid(target_gnss);
 
 		if (_vte_aid_mask.flags.use_target_gps_pos && _uav_gps_position.valid
@@ -463,6 +461,23 @@ void VTEPosition::updateTargetGpsVelocity(const target_gnss_s &target_gnss)
 }
 #endif // CONFIG_VTEST_MOVING
 
+bool VTEPosition::pollTargetGnss(target_gnss_s &target_gnss)
+{
+	if (!_target_gnss_sub.update(&target_gnss)) {
+		return false;
+	}
+
+	if (!alignFutureSampleTime(target_gnss.timestamp_sample, nowUs())) {
+		if (shouldEmitWarning(_target_gps_pos_warn_last)) {
+			PX4_WARN("VTE: Target GNSS timestamp in the future!");
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
 bool VTEPosition::isTargetGpsPositionValid(const target_gnss_s &target_gnss)
 {
 	if (!isMeasRecent(target_gnss.timestamp_sample)) {
@@ -558,18 +573,18 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 	PX4_DEBUG("VTE Position Estimator properly initialized.");
 	_estimator_initialized = true;
 	_pre_bias_reference = _bias.set ? PreBiasReference::kUnknown : initial_reference;
-	_last_update = nowUs();
-	_last_predict = _last_update;
+	_last_predict = nowUs();
+	_last_update = initial_obs.timestamp;
 
 	if (initial_type == ObsType::kFiducialMarker) {
-		_last_relative_meas_fused_time = _last_update;
+		_last_relative_meas_fused_time = initial_obs.timestamp;
 	}
 
 	vte_aid_source3d_s aid{};
-	aid.timestamp = _last_update;
+	aid.timestamp = _last_predict;
 	aid.timestamp_sample = initial_obs.timestamp;
 	aid.time_last_predict = _last_predict;
-	aid.time_since_meas_ms = (_last_update - initial_obs.timestamp) * kMicrosecondsToMilliseconds;
+	aid.time_since_meas_ms = (_last_predict - initial_obs.timestamp) * kMicrosecondsToMilliseconds;
 
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
 		_target_est_pos[axis].resetHistory();
@@ -586,7 +601,7 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 
 	// No acceleration history exists yet. Propagate with constant velocity and grow the
 	// covariance with the normal process noise instead of labelling the raw sample as current.
-	predictionStep(Vector3f{}, (_last_update - initial_obs.timestamp) * kMicrosecondsToSeconds);
+	predictionStep(Vector3f{}, (_last_predict - initial_obs.timestamp) * kMicrosecondsToSeconds);
 	publishInnov(aid, initial_type);
 
 	return true;
@@ -857,7 +872,7 @@ void VTEPosition::publishBiasInitStatus(const Vector3f &raw_bias, const Vector3f
 	_vte_bias_init_status_pub.publish(status);
 }
 
-bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
+void VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
 		const TargetObs observations[kObsTypeCount])
 {
 	const bool gnss_ready = !shouldBlockGnssFusionUntilBiasReady();
@@ -910,8 +925,6 @@ bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 		order[j] = obs;
 	}
 
-	bool position_fused = false;
-
 	for (unsigned i = 0; i < count; ++i) {
 		const TargetObs &obs = *order[i];
 
@@ -919,14 +932,15 @@ bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 			continue;
 		}
 
+		// Freshness follows the capture time, so a late sample does not extend validity.
 		if (obs.type == ObsType::kFiducialMarker) {
-			_last_relative_meas_fused_time = nowUs();
+			_last_relative_meas_fused_time = math::max(_last_relative_meas_fused_time, obs.timestamp);
 		}
 
-		position_fused |= (obs.type != ObsType::kUavGpsVel) && (obs.type != ObsType::kTargetGpsVel);
+		if ((obs.type != ObsType::kUavGpsVel) && (obs.type != ObsType::kTargetGpsVel)) {
+			_last_update = math::max(_last_update, obs.timestamp);
+		}
 	}
-
-	return position_fused;
 }
 
 /*Vision observation: [rx, ry, rz]*/
@@ -934,7 +948,19 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 {
 	fiducial_marker_pos_report_s report;
 
-	if (!_fiducial_marker_pos_report_sub.update(&report) || !isVisionDataValid(report)) {
+	if (!_fiducial_marker_pos_report_sub.update(&report)) {
+		return false;
+	}
+
+	if (!alignFutureSampleTime(report.timestamp_sample, nowUs())) {
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision timestamp in the future!");
+		}
+
+		return false;
+	}
+
+	if (!isVisionDataValid(report)) {
 		return false;
 	}
 

@@ -419,6 +419,10 @@ The filter restores the state and covariance from history at or before 100 ms.
 It predicts to 100 ms and fuses GNSS, then predicts to 160 ms and recalculates the vision update.
 Finally, it predicts to 220 ms and replaces the previous estimate with this rebuilt result, so vision is counted only once.
 
+Vision and target GNSS samples stamped less than 20 ms in the future, usually from clock-sync jitter, are moved to the current time and fused as current.
+Samples further in the future are dropped with a "timestamp in the future" warning.
+Validity and reset timeouts count from the capture time of the newest fused position or yaw sample, so a delayed sample does not extend them.
+
 ### OOSM Implementation
 
 Each filter retains up to 25 post-update snapshots of the time, state, covariance and prediction input.
@@ -458,6 +462,7 @@ Replaying subsequent updates preserves their information, including their effect
 Previously accepted observations remain accepted during replay: their innovation and gain are recalculated, but their original gate decisions and published diagnostic messages are not revised.
 Their recalculated test ratios are logged on the delayed observation that triggered the replay (`replay_test_ratio_max`), so logs show when a late observation contradicts one that was already fused.
 Rejected observations are not retained or reconsidered.
+If a stored observation fails during replay (non-finite or non-positive innovation variance), the delayed observation is reported as `STATUS_REJECT_COV` and history is cleared, so the failing observation cannot block later replays.
 The result therefore matches chronological fusion of the accepted observations at their effective fusion times; it does not promise arrival-order-independent outlier decisions.
 Prediction uses the stored piecewise-constant control inputs and current process-noise settings.
 
@@ -604,11 +609,11 @@ The `fusion_status` field records which fusion branch the filter.
 | ----- | ----------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | 0     | `STATUS_IDLE`           | No fusion attempted on this axis (e.g. measurement not provided for that axis).                                 | None.                                                                                                             |
 | 1     | `STATUS_FUSED_CURRENT`  | Measurement fused immediately against the live state.                                                           | Healthy.                                                                                                          |
-| 2     | `STATUS_FUSED_OOSM`     | Measurement was delayed and fused via the OOSM history buffer; check `history_steps`, and `time_since_meas_ms`. | Healthy as long as `history_steps` stays below the buffer depth `kOosmHistorySize = 25`.                          |
+| 2     | `STATUS_FUSED_OOSM`     | Measurement was delayed and fused via the OOSM history buffer; check `history_steps`, and `time_since_meas_ms`. | Healthy. `history_steps` is at most 24; values close to it mean a delay near the 500 ms limit.                    |
 | 3     | `STATUS_REJECT_NIS`     | Innovation failed the chi-squared gate.                                                                         | Check sensor variance, frame rotations, time skew. Compare with `test_ratio` and the matching `vte_input` sample. |
-| 4     | `STATUS_REJECT_COV`     | Innovation covariance was non-finite or non-positive.                                                           | Numerical issue: check process-noise parameters and that the state has not diverged.                              |
+| 4     | `STATUS_REJECT_COV`     | Innovation covariance was non-finite or non-positive. A stored observation failing on replay clears history.    | Numerical issue: check process-noise parameters and that the state has not diverged.                              |
 | 5     | `STATUS_REJECT_TOO_OLD` | Sample older than the OOSM buffer (`kOosmMaxTimeUs = 500 ms`) or older than the oldest stored snapshot.         | Reduce sensor latency, raise the publication rate, or check transport timestamps.                                 |
-| 6     | `STATUS_REJECT_TOO_NEW` | Sample timestamped in the future relative to the latest filter prediction.                                      | Time-sync problem: verify `mavlink_timesync` or the sensor clock.                                                 |
+| 6     | `STATUS_REJECT_TOO_NEW` | Sample timestamped 20 ms or more after the latest filter prediction.                                            | Time-sync problem: verify `mavlink_timesync` or the sensor clock. Built-in sources drop these with a warning.     |
 | 7     | `STATUS_REJECT_STALE`   | Filter history was reset because no prediction had run for longer than the buffer span.                         | Expected after long pauses; otherwise investigate scheduler stalls.                                               |
 | 8     | `STATUS_REJECT_EMPTY`   | History buffer not yet populated when the measurement arrived.                                                  | Expected after a history reset; position initialisation itself reports `STATUS_INITIALIZED`.                      |
 | 9     | `STATUS_INITIALIZED`    | Position observation used once to seed the state and its covariance, then propagated to the current time.       | Healthy at position startup or restart. Innovation fields are NaN because no prior prediction exists.             |
@@ -619,7 +624,8 @@ Additional fields make latency and replay tractable without manual timestamp ari
 
 - `time_since_meas_ms = (time_last_predict - timestamp_sample) * 1e-3`.
   Negative values mean the measurement is timestamped after the latest prediction (i.e. the filter has not caught up yet).
-- `history_steps` is non-zero only for `STATUS_FUSED_OOSM` and tells you how many retained snapshots were recomputed during replay.
+- `history_steps` counts the retained snapshots after the capture time that were recomputed during replay (at most 24).
+  It is 0 for every other status, and also for `STATUS_FUSED_OOSM` when no snapshot is newer than the sample.
 - `replayed_count` counts the stored observations re-applied after a delayed one, and `replay_test_ratio_max` is the highest `test_ratio` among them (-1 if none).
   A value above 1 means the delayed observation contradicts an observation that was already fused; replay keeps that observation fused (see [OOSM Implementation](#oosm-implementation)).
 
@@ -823,7 +829,7 @@ Trusting the process model more (smaller `VTE_YAW_ACC_UNC`) and the observations
 The plot was generated by delaying each simulated measurement by a uniform random value in [0, 500] ms before reaching the autopilot.
 
 - **Top two rows (measurement latency)**: `vte_aid_fiducial_marker.time_since_meas_ms` and `vte_position.history_steps`.
-  With a 0-500 ms delay we observe `time_since_meas_ms` ranging up to ~450 ms and `history_steps` proportional to it (`history_steps ≈ time_since_meas_ms / 20`, capped at the 25-sample buffer).
+  With a 0-500 ms delay we observe `time_since_meas_ms` ranging up to ~450 ms and `history_steps` proportional to it (`history_steps ≈ time_since_meas_ms / 20`, at most 24 with the 25-snapshot buffer).
 - **Third row (raw vs processed observation)**: `vte_position.rel_pos` overlaid with `vte_aid_fiducial_marker.observation`.
   The processed observation lags the live state by roughly the measurement delay.
   The OOSM allows fusing old data without forcing the live state to wait for it.
@@ -1057,7 +1063,7 @@ To integrate a new sensor:
 1. **Define a uORB message** that carries the measurement in either the vehicle body frame or NED, complete with variance estimates and timestamps.
 2. **Extend the fusion mask**: add a bit to `SensorFusionMaskU` (`src/modules/vision_target_estimator/common.h`) and update the parameter definition for [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) (see also [sensor fusion selection](../advanced_features/vision_target_estimator.md#sensor-fusion-selection)) in `vision_target_estimator_params.yaml`.
 3. **Augment observation enums**: append the new entry to the relevant `ObsType` enum (`VTEPosition.h` or `VTEOrientation.h`), update `ObsValidMaskU`, and update helper functions such as `hasNewNonGpsPositionSensorData()` and `selectInitialPosition()` if the measurement can provide a relative position.
-4. **Subscribe and validate**: add a `uORB::Subscription` to the filter, check for finite values, and reject samples that are too old `isMeasUpdated` or timestamped in the future before marking the observation valid.
+4. **Subscribe and validate**: add a `uORB::Subscription` to the filter, check for finite values, move small future offsets to the current time with `alignFutureSampleTime()`, and reject samples that are too old `isMeasUpdated` or further in the future before marking the observation valid.
 5. **Implement the handler** in `processObservations()`.
    Convert the measurement into NED coordinates, populate `TargetObs::meas_xyz`, `meas_unc_xyz`, and the observation Jacobian (`meas_h_xyz` or `meas_h_theta`), and set the fusion-mask flag only after the data passes validation.
 6. **Provide tunable noise**: declare a parameter (e.g. `VTE_<SENSOR>_NOISE`) and clamp it with `kMinObservationNoise` so the estimator never believes a measurement is perfect.
