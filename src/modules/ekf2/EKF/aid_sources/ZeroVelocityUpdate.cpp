@@ -68,7 +68,7 @@ bool ZeroVelocityUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delaye
 			for (unsigned i = 0; i < 3; i++) {
 				const float innovation = ekf.state().vel(i) - vel_obs(i);
 				const float innov_var = ekf.getVelocityVariance()(i) + obs_var;
-				ekf.fuseDirectStateMeasurement(innovation, innov_var, obs_var, State::vel.idx + i, state_correction);
+				ekf.accumulateDirectStateMeasurement(innovation, innov_var, obs_var, State::vel.idx + i, state_correction);
 			}
 
 			ekf.applyStateCorrection(state_correction);

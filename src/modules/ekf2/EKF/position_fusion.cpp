@@ -68,8 +68,8 @@ bool Ekf::fuseHorizontalPositionCore(estimator_aid_source2d_s &aid_src)
 		for (unsigned i = 0; i < 2; i++) {
 			aid_src.innovation_variance[i] = P(State::pos.idx + i, State::pos.idx + i) + aid_src.observation_variance[i];
 
-			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
-						   aid_src.observation_variance[i], State::pos.idx + i, state_correction);
+			accumulateDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
+							 aid_src.observation_variance[i], State::pos.idx + i, state_correction);
 		}
 
 		applyStateCorrection(state_correction);

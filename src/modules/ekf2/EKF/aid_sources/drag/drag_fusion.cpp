@@ -177,7 +177,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 			VectorState K = PH / innovation_variance(axis_index);
 
-			measurementUpdate(K, H, R_ACC, innovation(axis_index), state_correction);
+			accumulateMeasurementUpdate(K, H, R_ACC, innovation(axis_index), state_correction);
 			fused = true;
 		}
 	}
