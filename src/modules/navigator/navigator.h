@@ -496,6 +496,14 @@ private:
 
 	bool geofence_allows_position(const vehicle_global_position_s &pos);
 
+	/**
+	 * @brief Check if a takeoff command is rejected by the commander for exceeding the takeoff altitude limit
+	 *
+	 * @param cmd VEHICLE_CMD_NAV_TAKEOFF or VEHICLE_CMD_NAV_VTOL_TAKEOFF command
+	 * @return true if the commanded altitude exceeds the limit
+	 */
+	bool takeoff_altitude_above_limit(const vehicle_command_s &cmd);
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,		/**< acceptance for takeoff */

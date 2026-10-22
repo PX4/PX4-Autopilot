@@ -53,6 +53,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/takeoff/takeoff_altitude_limit.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/events.h>
@@ -779,6 +780,12 @@ void Navigator::run()
 				}
 
 #endif // CONFIG_FIGURE_OF_EIGHT
+
+			} else if ((cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF
+				    || cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_VTOL_TAKEOFF)
+				   && takeoff_altitude_above_limit(cmd)) {
+				// Denied and acknowledged by commander. Keep the targets of the previous takeoff command, a takeoff
+				// mode that is already selected or active would otherwise fly to the rejected altitude.
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
 				position_setpoint_triplet_s *rep = get_takeoff_triplet();
@@ -1838,6 +1845,17 @@ Navigator::stop_capturing_images()
 
 		// _is_capturing_images is reset inside publish_vehicle_command.
 	}
+}
+
+bool Navigator::takeoff_altitude_above_limit(const vehicle_command_s &cmd)
+{
+	// Same check as commander, which rejects the command, see Commander::handle_command(). Only a takeoff command
+	// falls back to MIS_TAKEOFF_ALT without an altitude, the transition altitude of a VTOL takeoff has no default.
+	const float takeoff_altitude_amsl = (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) ?
+					    takeoff::resolveAltitudeAmsl(cmd.param7, _global_pos, get_param_mis_takeoff_alt()) : cmd.param7;
+
+	return takeoff::isAboveLimit(takeoff_altitude_amsl, takeoff::maxAltitudeAmsl(_land_detected.landed, _global_pos,
+				     _local_pos));
 }
 
 bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
