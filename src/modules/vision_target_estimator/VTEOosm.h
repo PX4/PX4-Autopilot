@@ -46,6 +46,7 @@
  *   3. Compute the innovation and gain, and reject the new observation if it fails the NIS gate.
  *   4. Apply the ordinary Kalman correction at the observation time.
  *   5. Replay later predictions and accepted observations, recomputing gains without re-gating.
+ *      Their test ratios are only reported, as diagnostics of the new observation.
  *   6. Commit the updated snapshots and live state only when replay succeeds. Retain the new
  *      observation for future replay; no extra prediction snapshot is needed.
  *
@@ -54,6 +55,8 @@
  */
 
 #pragma once
+
+#include <cmath>
 
 #include <px4_platform_common/defines.h>
 
@@ -273,7 +276,8 @@ public:
 		uint64_t replay_time = t_floor_us;
 		size_t measurement_pos = 0;
 
-		if (!replayUntil<ScalarMeasT>(filter, meas.time_us, input_interval, replay_time, measurement_pos, x_meas, P_meas)) {
+		if (!replayUntil<ScalarMeasT>(filter, meas.time_us, input_interval, nis_threshold, replay_time, measurement_pos,
+					      x_meas, P_meas, nullptr)) {
 			res.status = FusionStatus::STATUS_REJECT_COV;
 			return res;
 		}
@@ -297,11 +301,13 @@ public:
 		// Recompute each later posterior instead of subtracting a historical covariance
 		// correction from a posterior already reduced by a newer measurement.
 		uint8_t steps = 0;
+		ReplayStats replay_stats{};
 
 		for (size_t i = floor_pos + 1; i < linear_timeline.count; ++i) {
 			Sample &sample = linear_timeline.samples[i];
 
-			if (!replayUntil<ScalarMeasT>(filter, sample.time_us, sample.input, replay_time, measurement_pos, x_meas, P_meas)) {
+			if (!replayUntil<ScalarMeasT>(filter, sample.time_us, sample.input, nis_threshold, replay_time, measurement_pos,
+						      x_meas, P_meas, &replay_stats)) {
 				res.status = FusionStatus::STATUS_REJECT_COV;
 				return res;
 			}
@@ -311,7 +317,8 @@ public:
 			steps++;
 		}
 
-		if (!replayUntil<ScalarMeasT>(filter, now_us, curr_input, replay_time, measurement_pos, x_meas, P_meas)) {
+		if (!replayUntil<ScalarMeasT>(filter, now_us, curr_input, nis_threshold, replay_time, measurement_pos,
+					      x_meas, P_meas, &replay_stats)) {
 			res.status = FusionStatus::STATUS_REJECT_COV;
 			return res;
 		}
@@ -323,6 +330,8 @@ public:
 
 		res.status = FusionStatus::STATUS_FUSED_OOSM;
 		res.history_steps = steps;
+		res.replayed_count = replay_stats.count;
+		res.replay_test_ratio_max = replay_stats.test_ratio_max;
 
 		return res;
 	}
@@ -388,12 +397,18 @@ private:
 		++_measurement_count;
 	}
 
+	struct ReplayStats {
+		uint8_t count{0};
+		float test_ratio_max{-1.f};
+	};
+
 	// The starting posterior already contains all measurements at or before time_us.
 	// Previously accepted observations stay accepted: recompute their gains, without
 	// retrospectively changing the gate decisions reported when they arrived.
+	// When stats is set, it counts the replayed observations and keeps their highest test ratio.
 	template <typename ScalarMeasT>
-	bool replayUntil(FilterT &filter, uint64_t end_time, const InputT &input,
-			 uint64_t &time_us, size_t &measurement_pos, StateVec &state, StateCov &cov)
+	bool replayUntil(FilterT &filter, uint64_t end_time, const InputT &input, float nis_threshold,
+			 uint64_t &time_us, size_t &measurement_pos, StateVec &state, StateCov &cov, ReplayStats *stats)
 	{
 		const uint64_t start_time = time_us;
 
@@ -420,6 +435,17 @@ private:
 
 			if (!processMeasurement(filter, state, cov, meas, 0.f, result, K)) {
 				return false;
+			}
+
+			if (stats != nullptr) {
+				if (stats->count < UINT8_MAX) {
+					++stats->count;
+				}
+
+				if (nis_threshold > 0.f) {
+					const float test_ratio = (result.innov * result.innov) / (result.innov_var * nis_threshold);
+					stats->test_ratio_max = fmaxf(stats->test_ratio_max, test_ratio);
+				}
 			}
 
 			filter.applyCorrection(state, cov, K, result.innov, result.innov_var);
