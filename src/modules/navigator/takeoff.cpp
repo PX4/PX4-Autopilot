@@ -62,6 +62,16 @@ Takeoff::on_activation()
 }
 
 void
+Takeoff::on_inactivation()
+{
+	// the loiter target is only reset when a fixed-wing takeoff completes. Also reset it when the mode
+	// is left before that (e.g. the pilot switches out during the climbout), so that the next takeoff
+	// does not reuse a stale altitude or position.
+	_loiter_altitude_msl = NAN;
+	_loiter_position_lat_lon = matrix::Vector2d(static_cast<double>(NAN), static_cast<double>(NAN));
+}
+
+void
 Takeoff::on_active()
 {
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
@@ -218,9 +228,11 @@ Takeoff::set_takeoff_position()
 	if (!PX4_ISFINITE(_loiter_altitude_msl)) {
 		_loiter_altitude_msl = takeoff_altitude_amsl;
 
-		if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
-			_loiter_altitude_msl = math::max(_loiter_altitude_msl, takeoff_altitude_amsl + _navigator->get_loiter_min_alt());
-
+		// NAV_MIN_LTR_ALT is relative to home (as in MissionBlock::setLoiterItemFromCurrentPosition()),
+		// not an addition on top of the takeoff altitude
+		if (_navigator->get_loiter_min_alt() > FLT_EPSILON && _navigator->get_home_position()->valid_alt) {
+			_loiter_altitude_msl = math::max(_loiter_altitude_msl,
+							 _navigator->get_home_position()->alt + _navigator->get_loiter_min_alt());
 		}
 	}
 
