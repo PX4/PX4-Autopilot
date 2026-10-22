@@ -53,9 +53,9 @@ void Ekf::controlWheelEncoderFusion(const imuSample &imu_delayed)
 
 	} else {
 		// Debug: why is data not ready?
-		// PX4_INFO("Wheel enc: no data ready. IMU: %llu, Newest: %llu",
-		// 	(unsigned long long)imu_delayed.time_us,
-		// 	(unsigned long long)_wheel_encoder_buffer->get_newest().time_us);
+		ECL_INFO("Wheel enc: no data ready. IMU: %llu, Newest: %llu",
+			 (unsigned long long)imu_delayed.time_us,
+			 (unsigned long long)_wheel_encoder_buffer->get_newest().time_us);
 	}
 
 	if (_control_status.flags.fuse_wheel

@@ -525,6 +525,16 @@ float Ekf::getHorizontalVelocityInnovationTestRatio() const
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+
+	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.fuse_wheel)) {
+		for (auto &test_ratio_filtered : _aid_src_wheel_encoders.test_ratio_filtered) {
+			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
+		}
+	}
+
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 	if (PX4_ISFINITE(test_ratio) && (test_ratio >= 0.f)) {
 		return sqrtf(test_ratio);
 	}
