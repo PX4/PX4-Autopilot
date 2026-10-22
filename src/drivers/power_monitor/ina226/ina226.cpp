@@ -42,7 +42,9 @@ INA226::INA226(const I2CSPIDriverConfig &config, int battery_index)
 	: I2C(config),
 	  ModuleParams(nullptr),
 	  I2CSPIDriver(config),
-	  _battery(battery_index, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE)
+	  _battery(battery_index, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE),
+	  // On NuttX, I2C::init() rejects a bus running faster than the frequency the driver was started with
+	  _trigger_write_min_us(config.bus_frequency > 0 ? TRIGGER_WRITE_BITS * 1'000'000 / config.bus_frequency : 0)
 {
 	const float max_current = _param_ina226_current.get();
 	const float shunt_resistance = _param_ina226_shunt.get();
@@ -228,8 +230,10 @@ int INA226::collect()
 {
 	// Ticks are on a fixed hrt grid, so a tick after a late one comes early. Triggering
 	// before the previous conversion is done would restart it and we would read (and
-	// publish) the one before it again.
-	if (hrt_elapsed_time(&_trigger_time) < CONVERSION_TIME_MAX_US) {
+	// publish) the one before it again. _trigger_time is taken after the previous trigger
+	// write, so that conversion started before it, and the next one starts when the write
+	// below ends, at least _trigger_write_min_us from now.
+	if (hrt_elapsed_time(&_trigger_time) + _trigger_write_min_us < CONVERSION_TIME_MAX_US) {
 		return -EAGAIN;
 	}
 

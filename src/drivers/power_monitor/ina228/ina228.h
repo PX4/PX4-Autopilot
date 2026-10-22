@@ -145,6 +145,7 @@ private:
 	hrt_abstime _last_config_check{0};
 	uint16_t _last_readback[2] {}; // CONFIG, SHUNT_CAL
 	hrt_abstime _trigger_time{0}; // when the last conversion was triggered
+	const hrt_abstime _trigger_write_min_us; // shortest time the trigger write takes on the bus
 
 	// Configuration computed from params
 	float _current_lsb{0.f};

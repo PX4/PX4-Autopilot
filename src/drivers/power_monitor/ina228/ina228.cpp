@@ -51,6 +51,10 @@ static constexpr hrt_abstime SAMPLE_INTERVAL_US = 10_ms;
 // 1 % slow, plus the wake-up from shutdown.
 static constexpr hrt_abstime CONVERSION_TIME_MAX_US = (CONVERSION_TIME_US * 100 + 98) / 99 + WAKEUP_TIME_US;
 
+// The conversion starts when the trigger write ends, at least this many bit times after the write
+// starts: address, register pointer and two data bytes, not counting the ACKs.
+static constexpr uint32_t TRIGGER_WRITE_BITS = 32;
+
 // Recovery / robustness timing
 static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
 static constexpr hrt_abstime RESET_DELAY_US = 1_ms; // datasheet specifies 300us. Give some margin
@@ -61,7 +65,9 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index)
 	: I2C(config),
 	  ModuleParams(nullptr),
 	  I2CSPIDriver(config),
-	  _battery(battery_index, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE)
+	  _battery(battery_index, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE),
+	  // On NuttX, I2C::init() rejects a bus running faster than the frequency the driver was started with
+	  _trigger_write_min_us(config.bus_frequency > 0 ? TRIGGER_WRITE_BITS * 1'000'000 / config.bus_frequency : 0)
 {
 	const float max_current = _param_ina228_current.get();
 	const float shunt_resistance = _param_ina228_shunt.get();
@@ -252,8 +258,10 @@ int INA228::collect()
 {
 	// Ticks are on a fixed hrt grid, so a tick after a late one comes early. Triggering
 	// before the previous conversion is done would restart it and we would read (and
-	// publish) the one before it again.
-	if (hrt_elapsed_time(&_trigger_time) < CONVERSION_TIME_MAX_US) {
+	// publish) the one before it again. _trigger_time is taken after the previous trigger
+	// write, so that conversion started before it, and the next one starts when the write
+	// below ends, at least _trigger_write_min_us from now.
+	if (hrt_elapsed_time(&_trigger_time) + _trigger_write_min_us < CONVERSION_TIME_MAX_US) {
 		return -EAGAIN;
 	}
 

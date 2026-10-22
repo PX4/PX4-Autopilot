@@ -62,6 +62,9 @@ static constexpr hrt_abstime SAMPLE_INTERVAL_US = 10_ms;
 // Worst case from the trigger to a completed conversion: maximum conversion times from the datasheet,
 // (1210us + 646us) * 4, plus the 40us recovery from power-down.
 static constexpr hrt_abstime CONVERSION_TIME_MAX_US = (1210 + 646) * 4 + 40;
+// The conversion starts when the trigger write ends, at least this many bit times after the write
+// starts: address, register pointer and two data bytes, not counting the ACKs.
+static constexpr uint32_t TRIGGER_WRITE_BITS = 32;
 
 // Recovery / robustness timing
 static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
@@ -173,6 +176,7 @@ private:
 
 	hrt_abstime _last_config_check{0};
 	hrt_abstime _trigger_time{0}; // when the last conversion was triggered
+	const hrt_abstime _trigger_write_min_us; // shortest time the trigger write takes on the bus
 
 	// Configuration computed from params
 	float _current_lsb{0.f};
