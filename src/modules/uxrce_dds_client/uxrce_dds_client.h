@@ -55,7 +55,63 @@
 
 #define MAX_NUM_REPLIERS 5
 #define STREAM_HISTORY  4
-#define BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY) // MTU==512 by default
+#define INPUT_STREAM_HISTORY  2
+
+#if defined(UXRCE_DDS_CLIENT_UDP)
+static constexpr uxrIpProtocol IP_PROTOCOL = UXR_IPv4;
+
+#if defined(__PX4_NUTTX) && defined(CONFIG_NET_ETHERNET)
+#include <nuttx/net/ip.h>
+#include <nuttx/net/netconfig.h>
+
+// max UDP payload that fits into one Ethernet frame
+static constexpr size_t eth_udp_mss(uxrIpProtocol ip_protocol)
+{
+	switch (ip_protocol) {
+#if defined(CONFIG_NET_IPv4)
+
+	case UXR_IPv4:
+		return ETH_UDP_MSS(IPv4_HDRLEN);
+#endif
+#if defined(CONFIG_NET_IPv6)
+
+	case UXR_IPv6:
+		return ETH_UDP_MSS(IPv6_HDRLEN);
+#endif
+
+	default:
+		return UINT16_MAX;
+	}
+}
+
+// keep each datagram within one Ethernet frame
+static constexpr size_t UDP_TRANSPORT_MTU = (eth_udp_mss(IP_PROTOCOL) < UXR_CONFIG_UDP_TRANSPORT_MTU) ?
+		eth_udp_mss(IP_PROTOCOL) : UXR_CONFIG_UDP_TRANSPORT_MTU;
+#else
+static constexpr size_t UDP_TRANSPORT_MTU = UXR_CONFIG_UDP_TRANSPORT_MTU;
+#endif
+#endif // UXRCE_DDS_CLIENT_UDP
+
+static constexpr size_t max_transport_mtu()
+{
+	size_t mtu = 0;
+#if defined(UCLIENT_PROFILE_SERIAL)
+	mtu = (UXR_CONFIG_SERIAL_TRANSPORT_MTU > mtu) ? UXR_CONFIG_SERIAL_TRANSPORT_MTU : mtu;
+#endif
+#if defined(UXRCE_DDS_CLIENT_UDP)
+	mtu = (UDP_TRANSPORT_MTU > mtu) ? UDP_TRANSPORT_MTU : mtu;
+#endif
+#if defined(UCLIENT_PROFILE_TCP)
+	mtu = (UXR_CONFIG_TCP_TRANSPORT_MTU > mtu) ? UXR_CONFIG_TCP_TRANSPORT_MTU : mtu;
+#endif
+	return mtu;
+}
+#define MAX_TRANSPORT_MTU max_transport_mtu()
+// separate in/out to reduce unnecessary memory usage
+#define OUTPUT_RELIABLE_BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY)
+#define INPUT_RELIABLE_BUFFER_SIZE (MAX_TRANSPORT_MTU * INPUT_STREAM_HISTORY)
+// keep old behavior, limit to MTU only where it must fit into one frame
+#define BEST_EFFORT_BUFFER_SIZE 2048
 
 class UxrceddsClient : public ModuleBase, public ModuleParams
 {
@@ -176,12 +232,13 @@ private:
 
 	uxrObjectId _participant_id;
 
-	uint8_t _output_reliable_stream_buffer[BUFFER_SIZE] {};
-	uint8_t _output_data_stream_buffer[2048] {};
-	uint8_t _input_reliable_stream_buffer[BUFFER_SIZE] {};
+	uint8_t _output_reliable_stream_buffer[OUTPUT_RELIABLE_BUFFER_SIZE] {};
+	uint8_t _output_data_stream_buffer[BEST_EFFORT_BUFFER_SIZE] {};
+	uint8_t _input_reliable_stream_buffer[INPUT_RELIABLE_BUFFER_SIZE] {};
 
 	uxrStreamId _reliable_out;
 	uxrStreamId _best_effort_out;
+	bool _best_effort_limit_to_mtu{false};
 
 	SrvBase *_repliers[MAX_NUM_REPLIERS];
 	uint8_t _num_of_repliers{0};
