@@ -203,9 +203,9 @@ TEST_F(VtolRtlTransitionTest, RtlEntryPreservesFrontTransitionOnlyForHealthyRout
 	}
 }
 
-TEST_F(VtolRtlTransitionTest, RouteRtlFallbackAbortsFrontTransition)
+TEST_F(VtolRtlTransitionTest, RouteRtlLosingItsRouteAbortsFrontTransition)
 {
-	// A route-following Return that falls back to direct Return aborts the front transition.
+	// A route-following Return that loses its route stops with direct Return, which aborts the front transition.
 	VtolAttitudeControlTestPeer controller;
 	controller.configure(kRouteRtl, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false);
 	controller.startFrontTransition();
@@ -233,9 +233,9 @@ TEST_F(VtolRtlTransitionTest, CommandsNeedTheTypeOfTheCurrentReturn)
 	EXPECT_EQ(controller.is_fixed_wing_requested(), kRouteRtlSupported);
 }
 
-TEST_F(VtolRtlTransitionTest, RouteFallbackOutsideReturnKeepsFrontTransition)
+TEST_F(VtolRtlTransitionTest, RouteLossOutsideReturnKeepsFrontTransition)
 {
-	// Only a Return that falls back aborts the transition, not the same status change during Mission.
+	// Only a Return that loses its route aborts the transition, not the same status change during Mission.
 	VtolAttitudeControlTestPeer controller;
 	controller.configure(kRouteRtl, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false);
 	controller.publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
