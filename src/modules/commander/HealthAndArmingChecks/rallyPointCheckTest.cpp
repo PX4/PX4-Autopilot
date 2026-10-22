@@ -77,10 +77,11 @@ public:
 		};
 	}
 
-	void publishRtlStatus(uint8_t rtl_type, bool pending, uint8_t safe_point_index = UINT8_MAX)
+	void publishRtlStatus(uint8_t rtl_type, bool pending, uint8_t safe_point_index = UINT8_MAX,
+			      hrt_abstime timestamp = hrt_absolute_time())
 	{
 		rtl_status_s rtl_status{};
-		rtl_status.timestamp = hrt_absolute_time();
+		rtl_status.timestamp = timestamp;
 		rtl_status.rtl_type = rtl_type;
 		rtl_status.is_evaluation_pending = pending;
 		rtl_status.safe_point_index = safe_point_index;
@@ -110,6 +111,25 @@ TEST_F(RallyPointChecksTest, RouteReturnWithRouteIsAvailable)
 	EXPECT_FALSE(result.return_required);
 }
 
+TEST_F(RallyPointChecksTest, RouteReturnWithoutTimestampIsUnavailable)
+{
+	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0, 0);
+	const Result result = check(7);
+	EXPECT_TRUE(result.warned);
+	EXPECT_FALSE(result.return_can_run);
+	EXPECT_TRUE(result.return_required);
+}
+
+TEST_F(RallyPointChecksTest, RouteReturnWithStaleRouteIsUnavailable)
+{
+	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0,
+			 hrt_absolute_time() - 6_s);
+	const Result result = check(7);
+	EXPECT_TRUE(result.warned);
+	EXPECT_FALSE(result.return_can_run);
+	EXPECT_TRUE(result.return_required);
+}
+
 TEST_F(RallyPointChecksTest, RouteReturnIsUnavailableWhileTheRouteInputsLoad)
 {
 	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, true);
@@ -122,6 +142,17 @@ TEST_F(RallyPointChecksTest, RouteReturnIsUnavailableWhileTheRouteInputsLoad)
 TEST_F(RallyPointChecksTest, ActiveRouteReturnIsNotInterrupted)
 {
 	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, false);
+	const Result result = check(7, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+	EXPECT_FALSE(result.warned);
+	EXPECT_TRUE(result.return_can_run);
+	EXPECT_FALSE(result.return_required);
+}
+
+TEST_F(RallyPointChecksTest, ActiveRouteReturnDoesNotRequireFreshStatus)
+{
+	// Active Return publishes status on selection, not on every execution cycle.
+	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0,
+			 hrt_absolute_time() - 6_s);
 	const Result result = check(7, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 	EXPECT_FALSE(result.warned);
 	EXPECT_TRUE(result.return_can_run);

@@ -14,7 +14,8 @@ Select route-following Return with [RTL_TYPE=7](../flight_modes/return.md#rtl_ty
 ::: warning
 Both features need firmware built with the [mission route cache](../advanced/mission_route_cache.md), and the whole mission must fit in it.
 SITL builds include it by default, but most flight controller builds do not; see [Parameters and Build Configuration](#parameters-and-build-configuration).
-Route-following Return never flies a straight line to a destination: without a route it stops at the current position, see [No Route Available](#route-following-no-route).
+With route planning enabled, a planning failure does not select a direct return to another destination.
+Return is unavailable until a route can be planned; an active Return that loses its route holds or lands at the current location, see [No Route Available](#route-following-no-route).
 :::
 
 ::: info
@@ -144,14 +145,27 @@ It does not model transition duration or turning dynamics.
 
 #### No Route Available {#route-following-no-route}
 
-Route-following Return never flies a straight line to a destination.
-The route is planned every two seconds from the current position, also before takeoff.
-While no route is planned, also for a few seconds after an upload while the mission, rally points and fence load, Return is unavailable: a switch to Return is denied with `Return unavailable: no mission route`, a failsafe that would return lands instead, and the pre-flight checks show the same message.
-A Return that is already active is never interrupted by this check.
+On firmware with route planning enabled, a failed plan does not cause a direct return to Home, a rally point or a mission endpoint.
+A valid plan can still use the [route-skip shortcuts](#route-skip-shortcuts).
 
-When Return runs without a route, the vehicle stops at its current position, as `RTL_TYPE=5` does without rally points: it holds and lands after [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY), or holds indefinitely when that delay is negative.
-A critical message reports this when Return starts or while it is active.
-A stopped Return does not plan again; select another mode to continue.
+While Return is inactive, the route is planned every two seconds from the current position, also before takeoff.
+Until a route is planned, including while uploaded mission, rally points and fence data are loading, a switch to Return is denied with `Return unavailable: no mission route`; the pre-flight checks show the same message.
+A missing route-status report or one older than five seconds also keeps Return unavailable.
+A failsafe configured to Return selects Land instead, without applying [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY).
+If Land is also unavailable, the normal [failsafe escalation](../config/safety.md#position-loss-failsafe-action) to Descend or Terminate applies.
+While that failsafe remains active, a later successful route evaluation can change the selected action from Land back to Return.
+This availability check does not interrupt a Return that is already active.
+
+If Return starts or continues without a route, it uses the current location for its hold and landing sequence.
+There is no return-altitude climb.
+Multicopters and VTOLs hold at the current altitude and start landing after `RTL_LAND_DELAY`, or hold indefinitely when that delay is negative.
+A pure fixed-wing vehicle circles until a route becomes available or another mode is selected, regardless of `RTL_LAND_DELAY`, because the current airborne altitude does not provide a safe landing altitude.
+A VTOL already in fixed-wing mode also circles during the configured hold and back-transitions before landing; an active front transition is cancelled.
+A critical message reports the loss of the route.
+While still airborne and holding, Return retries route planning from the current position every two seconds, including during an indefinite hold and after failures unrelated to loading.
+A successful retry resumes route following automatically.
+A failed retry keeps the original hold position, altitude and landing timer, so it does not postpone a scheduled landing.
+Retries stop once the landing sequence starts or the vehicle touches down.
 
 No route is available when:
 
@@ -165,9 +179,10 @@ No route is available when:
 Firmware built without route planning (`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0`) uses the destination selection of [RTL_TYPE=3](../flight_modes/return.md#rtl_type_3) instead.
 A pre-arm warning reports this when `RTL_TYPE=7` is set.
 
-During route following, a replaced mission triggers replanning at once.
-Replaced rally points or a replaced geofence keep the current route until they are loaded, then trigger replanning.
-If the replan finds no route, the vehicle stops as described above.
+While following a valid route, Return replans when its source data change, rather than every two seconds.
+A replaced mission triggers replanning at once.
+Replaced rally points or a replaced geofence keep the current route while loading is in progress, then trigger replanning when ready.
+If geofence loading fails permanently or the replan finds no route, the vehicle uses the hold or landing sequence described above.
 Once the destination arrival or landing sequence has begun, these changes do not replace it.
 
 ## Point Projection
@@ -381,7 +396,7 @@ These shortcuts are applied only after selection, so they never change which goa
 The direct segment to the destination must also pass the [Geofence Checks](#geofence-checks).
 If flying straight to the safe point would cross a fence or breach a limit, the vehicle follows the selected route instead.
 For a nearby mission landing or takeoff endpoint, the branch-in point may already count as reached, so following the route could immediately lead to the same rejected segment.
-In that case, the planner rejects the plan and uses the existing fallback.
+In that case, the planner rejects the plan and Return has [no route available](#route-following-no-route).
 
 **Example:** In the image below the vehicle is already on the branch-off leg, after a GoTo or a cancelled Return.
 If a new Return is requested, the vehicle flies straight to the rally point (`R`) instead of flying back to the branch-in point only to branch off again.
