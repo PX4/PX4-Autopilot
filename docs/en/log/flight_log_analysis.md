@@ -37,7 +37,8 @@ You can use the online version of the tool for small log files (< 32Mb), or run 
 ### DroneBundle Flight Log Viewer
 
 [DroneBundle Flight Log Viewer](https://dronebundle.com/tools/flight-log-viewer/px4) is a free web tool for reviewing a flight and sharing it, rather than for tuning.
-It opens ULog files (`.ulg`) and MAVLink telemetry logs (`.tlog`) in the browser, with no account or install.
+It opens ULog files (`.ulg`) and MAVLink telemetry logs (`.tlog`) in the browser, with no account or installation required.
+Logs are processed locally, except that a file the viewer can't open is sent to DroneBundle for analysis and deleted after one day.
 
 Key features:
 
