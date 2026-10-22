@@ -58,15 +58,20 @@ static constexpr float SHUNT_CAL_K = 819.2e6f; // shunt-cal scaling constant
 static constexpr float ADCRANGE_LOW_V_SENSE = 0.04096f; // ±40.96 mV
 
 // Sample timing
-// ADC produces one averaged sample every 540us x 3 channels x 64 avg = 103.68 ms.
-// Poll a hair slower than that so we always read a fresh sample rather than aliasing.
-static constexpr hrt_abstime SAMPLE_INTERVAL_US = 105_ms;
+// Each tick triggers one conversion, (1052us bus + 1052us shunt + 50us temperature) x 4 averages
+// = 8.616 ms, read on the next tick. The rest of the tick is margin for scheduling latency.
+static constexpr uint32_t CONVERSION_TIME_US = (1052 + 1052 + 50) * 4;
+static constexpr hrt_abstime SAMPLE_INTERVAL_US = 10_ms;
+static constexpr hrt_abstime WAKEUP_TIME_US = 60; // from shutdown, the state between triggered conversions
+// Worst case from the trigger to a completed conversion: the internal oscillator running 1 % slow,
+// plus the wake-up from shutdown.
+static constexpr hrt_abstime CONVERSION_TIME_MAX_US = (CONVERSION_TIME_US * 100 + 98) / 99 + WAKEUP_TIME_US;
 
 // Recovery / robustness timing
 static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
 static constexpr hrt_abstime RESET_DELAY_US = 1_ms; // datasheet specifies 300us. Give some margin
 static constexpr hrt_abstime DISCONNECT_DEBOUNCE_US = 2_s;
-static constexpr uint8_t MAX_CONSECUTIVE_FAILURES = DISCONNECT_DEBOUNCE_US / SAMPLE_INTERVAL_US;
+static constexpr hrt_abstime CONFIG_CHECK_INTERVAL_US = 100_ms;
 
 // Register map (subset used by this driver)
 enum class Register : uint8_t {
@@ -102,11 +107,11 @@ enum ADCCONFIG_BIT : uint16_t {
 	AVERAGES_512 = (6u << 0),
 	AVERAGES_1024 = (7u << 0),
 
-	VTCT_540US = (4u << 3),
-	VSHCT_540US = (4u << 6),
-	VBUSCT_540US = (4u << 9),
+	VTCT_50US = (0u << 3),
+	VSHCT_1052US = (5u << 6),
+	VBUSCT_1052US = (5u << 9),
 
-	MODE_TEMP_SHUNT_BUS_CONT = (15u << 12),
+	MODE_TEMP_SHUNT_BUS_TRIG = (7u << 12), // triggered (single-shot) temperature, shunt and bus voltage
 };
 
 } // namespace ina238
@@ -134,14 +139,15 @@ private:
 		UNINITIALIZED, // I2C::init() not yet called successfully — retry until it does
 		RESET, // soft-reset the device, then transition to CONFIGURE
 		CONFIGURE, // write SHUNT_CAL / CONFIG / ADCCONFIG, then transition to MEASURE
-		MEASURE, // steady-state: read VS_BUS / CURRENT / DIETEMP, publish, repeat
+		MEASURE, // steady-state: trigger, read VS_BUS / CURRENT / DIETEMP, publish, repeat
 	};
 
 	int collect();
 
-	// Rotates through the configuration registers one per call. Returns false
-	// if a read fails or the value doesn't match what we wrote.
-	bool checkConfigurationRotating();
+	// Rotates through the configuration registers, one per call. Returns PX4_OK,
+	// -EIO if the read fails, or -EBADMSG if the value doesn't match what we wrote
+	// (the device has been reset behind our back).
+	int checkConfigurationRotating();
 
 	int registerRead(ina238::Register reg, uint16_t &value);
 	int registerWrite(ina238::Register reg, uint16_t value);
@@ -150,9 +156,11 @@ private:
 	Battery _battery;
 
 	State _state{State::UNINITIALIZED};
-	uint8_t _consecutive_failures{0};
+	hrt_abstime _failing_since{0}; // first failure of the current run of failures, 0 if none
 
 	uint8_t _next_reg_to_check{0};
+	hrt_abstime _last_config_check{0};
+	hrt_abstime _trigger_time{0}; // when the last conversion was triggered
 
 	// Configuration computed from params
 	float _current_lsb{0.f};
@@ -161,11 +169,9 @@ private:
 	uint16_t _adc_config_value{0}; // ADCCONFIG register value we wrote
 
 	// Perf counters
-	perf_counter_t _sample_perf;
-	perf_counter_t _comms_errors;
-	perf_counter_t _collection_errors;
-	perf_counter_t _bad_register_perf;
-	perf_counter_t _reinit_perf;
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ina238_read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "ina238_com_err")};
+	perf_counter_t _reinit_perf{perf_alloc(PC_COUNT, "ina238_reinit")};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::INA238_CURRENT>) _param_ina238_current,
