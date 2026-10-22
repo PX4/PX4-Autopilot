@@ -104,8 +104,8 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 
 		if (_control_status.flags.gravity_vector && !_aid_src_gravity.innovation_rejected && !accel_clipping) {
 
-			fused[index] = measurementUpdate(K, H, _aid_src_gravity.observation_variance[index],
-							 _aid_src_gravity.innovation[index], state_correction);
+			fused[index] = accumulateMeasurementUpdate(K, H, _aid_src_gravity.observation_variance[index],
+					_aid_src_gravity.innovation[index], state_correction);
 		}
 	}
 

@@ -81,8 +81,8 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 			Kfusion(State::terrain.idx) = 0.f;
 		}
 
-		measurementUpdate(Kfusion, H, _aid_src_optical_flow.observation_variance[index],
-				  _aid_src_optical_flow.innovation[index], state_correction);
+		accumulateMeasurementUpdate(Kfusion, H, _aid_src_optical_flow.observation_variance[index],
+					    _aid_src_optical_flow.innovation[index], state_correction);
 	}
 
 	applyStateCorrection(state_correction);

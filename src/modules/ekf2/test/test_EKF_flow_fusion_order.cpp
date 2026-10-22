@@ -35,7 +35,7 @@
  * Sequential fusion of a vector observation must equal the vector (batch) Kalman update at the
  * linearisation point. The batch update has no processing order, so this is the order invariance of
  * NASA/TP-2018-219822 Algorithm 4.1 stated as an equality, checked on the optical flow fusion (two
- * coupled scalar observations) and on the generic measurementUpdate() helper.
+ * coupled scalar observations) and on the generic accumulateMeasurementUpdate() helper.
  */
 
 #include <cfloat>
@@ -196,7 +196,7 @@ public:
 			const VectorState PH = _ekf->P * h[j];
 			const float innov_var = PH.dot(h[j]) + R[j];
 			VectorState K = PH / innov_var;
-			_ekf->measurementUpdate(K, h[j], R[j], innov[j], state_correction);
+			_ekf->accumulateMeasurementUpdate(K, h[j], R[j], innov[j], state_correction);
 		}
 
 		_ekf->applyStateCorrection(state_correction);

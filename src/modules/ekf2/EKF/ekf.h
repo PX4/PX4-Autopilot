@@ -284,22 +284,19 @@ public:
 	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
 					bool constrain_variances = true);
 
-	// Sequential fusion of one scalar of a vector observation: innov is the innovation at the a priori
-	// state and is corrected here for the state correction accumulated so far; the correction of this
-	// scalar is accumulated into state_correction instead of being applied, so that the result does not
-	// depend on the order the scalars are fused in. Apply the accumulated correction once with
-	// applyStateCorrection() after the last scalar.
-	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
-					VectorState &state_correction, bool constrain_variances = true);
+	// Sequential update of one scalar of a vector observation: P is updated now, the state correction is
+	// added to state_correction. innov is the a priori innovation, corrected here for state_correction.
+	// Call applyStateCorrection() once after the last scalar.
+	void accumulateDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+					      VectorState &state_correction, bool constrain_variances = true);
 
 	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation);
 
-	// sequential fusion of one scalar of a vector observation, see fuseDirectStateMeasurement
-	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation,
-			       VectorState &state_correction);
+	// see accumulateDirectStateMeasurement()
+	bool accumulateMeasurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation,
+					 VectorState &state_correction);
 
-	// apply the state correction accumulated over the scalars of a vector observation
-	void applyStateCorrection(const VectorState &state_correction);
+	void applyStateCorrection(const VectorState &correction);
 
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s

@@ -194,8 +194,8 @@ void Ekf::fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_
 			}
 
 			VectorState Kfusion = P * H[index] / aid_src.innovation_variance[index];
-			measurementUpdate(Kfusion, H[index], aid_src.observation_variance[index], aid_src.innovation[index],
-					  state_correction);
+			accumulateMeasurementUpdate(Kfusion, H[index], aid_src.observation_variance[index], aid_src.innovation[index],
+						    state_correction);
 		}
 
 		applyStateCorrection(state_correction);
