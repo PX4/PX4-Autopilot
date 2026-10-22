@@ -38,18 +38,30 @@
 
 using namespace ina228;
 
+static constexpr uint32_t BUS_CLOCK_HZ = 100'000;
+
+// Each tick triggers one conversion of bus voltage, shunt voltage and temperature:
+// (1052 + 1052 + 50) us x 4 averages = 8.616 ms, read on the next tick. The rest of the tick
+// is margin for scheduling latency (see collect()).
+static constexpr uint16_t ADC_CONFIG = MODE_TEMP_SHUNT_BUS_TRIG | VBUSCT_1052US | VSHCT_1052US | VTCT_50US | AVERAGES_4;
+static constexpr uint32_t CONVERSION_TIME_US = (1052 + 1052 + 50) * 4;
+static constexpr hrt_abstime SAMPLE_INTERVAL_US = 10_ms;
+
+// Worst case from the trigger to a completed conversion: the internal oscillator running
+// 1 % slow, plus the wake-up from shutdown.
+static constexpr hrt_abstime CONVERSION_TIME_MAX_US = (CONVERSION_TIME_US * 100 + 98) / 99 + WAKEUP_TIME_US;
+
+// Recovery / robustness timing
+static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
+static constexpr hrt_abstime RESET_DELAY_US = 1_ms; // datasheet specifies 300us. Give some margin
+static constexpr hrt_abstime DISCONNECT_DEBOUNCE_US = 2_s;
+static constexpr hrt_abstime CONFIG_CHECK_INTERVAL_US = 100_ms;
+
 INA228::INA228(const I2CSPIDriverConfig &config, int battery_index)
 	: I2C(config),
 	  ModuleParams(nullptr),
 	  I2CSPIDriver(config),
-	  _timing(computeTiming()),
-	  _battery(battery_index, this, _timing.interval_us, battery_status_s::SOURCE_POWER_MODULE),
-	  _sample_perf(perf_alloc(PC_ELAPSED, "ina228_read")),
-	  _comms_errors(perf_alloc(PC_COUNT, "ina228_com_err")),
-	  _collection_errors(perf_alloc(PC_COUNT, "ina228_collection_err")),
-	  _bad_register_perf(perf_alloc(PC_COUNT, "ina228_bad_register")),
-	  _reinit_perf(perf_alloc(PC_COUNT, "ina228_reinit")),
-	  _not_ready_perf(perf_alloc(PC_COUNT, "ina228_not_ready"))
+	  _battery(battery_index, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE)
 {
 	const float max_current = _param_ina228_current.get();
 	const float shunt_resistance = _param_ina228_shunt.get();
@@ -76,11 +88,7 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index)
 
 	_shunt_calibration = static_cast<uint16_t>(shunt_calibration);
 
-	// Tolerate ~DISCONNECT_DEBOUNCE_US of consecutive failures before a full reinit.
-	_max_consecutive_failures = math::max<uint32_t>(DISCONNECT_DEBOUNCE_US / _timing.interval_us, 1);
-
 	// Publish an initial disconnected status so the first instance grabs uORB instance 0 immediately.
-	_battery.setConnected(false);
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 	// Let the lower I2C layer absorb transient bus errors before we see them.
@@ -91,41 +99,7 @@ INA228::~INA228()
 {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-	perf_free(_collection_errors);
-	perf_free(_bad_register_perf);
 	perf_free(_reinit_perf);
-	perf_free(_not_ready_perf);
-}
-
-INA228::Timing INA228::computeTiming()
-{
-	int32_t rate_hz = DEFAULT_RATE_HZ;
-	param_get(param_find("INA228_RATE"), &rate_hz);
-
-	const RatePreset *preset = nullptr;
-	const RatePreset *default_preset = &RATE_PRESETS[0];
-
-	for (const RatePreset &p : RATE_PRESETS) {
-		if (p.rate_hz == rate_hz) {
-			preset = &p;
-		}
-
-		if (p.rate_hz == DEFAULT_RATE_HZ) {
-			default_preset = &p;
-		}
-	}
-
-	if (preset == nullptr) {
-		PX4_ERR("INA228_RATE %" PRId32 " not supported, using %u Hz", rate_hz, DEFAULT_RATE_HZ);
-		preset = default_preset;
-	}
-
-	Timing t{};
-	t.adc_config = preset->adc_config;
-	t.conversion_us = conversionTimeUs(t.adc_config);
-	t.conversion_max_us = conversionTimeMaxUs(t.adc_config);
-	t.interval_us = 1'000'000 / preset->rate_hz;
-	return t;
 }
 
 int INA228::init()
@@ -136,22 +110,6 @@ int INA228::init()
 
 	_state = State::RESET;
 	return PX4_OK;
-}
-
-void INA228::enterReset()
-{
-	ScheduleClear();
-	_state = State::RESET;
-	_consecutive_failures = 0;
-	ScheduleNow();
-}
-
-void INA228::enterConfigure()
-{
-	ScheduleClear();
-	_state = State::CONFIGURE;
-	_consecutive_failures = 0;
-	ScheduleNow();
 }
 
 void INA228::RunImpl()
@@ -191,6 +149,7 @@ void INA228::RunImpl()
 			}
 
 			_state = State::CONFIGURE;
+			_failing_since = 0;
 			ScheduleDelayed(RESET_DELAY_US);
 			return;
 		}
@@ -200,23 +159,35 @@ void INA228::RunImpl()
 			const bool ok = (probe() == PX4_OK) &&
 					(registerWrite(Register::SHUNT_CAL, _shunt_calibration) == PX4_OK) &&
 					(registerWrite(Register::CONFIG, _config_value) == PX4_OK) &&
-					(registerWrite(Register::ADCCONFIG, _timing.adc_config) == PX4_OK);
+					(registerWrite(Register::ADCCONFIG, ADC_CONFIG) == PX4_OK);
 
 			if (!ok) {
-				_state = State::RESET;
-				ScheduleDelayed(INIT_RETRY_INTERVAL_US);
+				// Keep retrying every tick and only report the battery as disconnected (RESET)
+				// after DISCONNECT_DEBOUNCE_US without a published sample.
+				if (_failing_since == 0) {
+					_failing_since = now;
+				}
+
+				if (now - _failing_since >= DISCONNECT_DEBOUNCE_US) {
+					perf_count(_reinit_perf);
+					PX4_WARN("consecutive failures, resetting");
+					_state = State::RESET;
+					ScheduleNow();
+
+				} else {
+					ScheduleDelayed(SAMPLE_INTERVAL_US);
+				}
+
 				return;
 			}
 
 			_trigger_time = hrt_absolute_time();
-			_consecutive_failures = 0;
 			_next_reg_to_check = 0;
 			_last_config_check = now;
 			_state = State::MEASURE;
 
-			// The first tick comes one interval later, when the first conversion is complete
-			// (interval >= worst-case conversion time, checked at compile time).
-			ScheduleOnInterval(_timing.interval_us, _timing.interval_us);
+			// The first tick comes one interval later, when the first conversion is complete.
+			ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
 			return;
 		}
 
@@ -229,18 +200,30 @@ void INA228::RunImpl()
 			}
 
 			if (ret != PX4_OK) {
-				perf_count(_collection_errors);
+				// The device may have lost power and come back with its reset configuration, and
+				// its result registers read zero until the first conversion after that. Write the
+				// configuration again before the next read instead of publishing such a sample.
+				if (_failing_since == 0) {
+					_failing_since = now;
+				}
 
-				if (++_consecutive_failures >= _max_consecutive_failures) {
+				ScheduleClear();
+
+				if (now - _failing_since >= DISCONNECT_DEBOUNCE_US) {
 					perf_count(_reinit_perf);
 					PX4_WARN("consecutive failures, resetting");
-					enterReset();
+					_state = State::RESET;
+					ScheduleNow();
+
+				} else {
+					_state = State::CONFIGURE;
+					ScheduleDelayed(SAMPLE_INTERVAL_US);
 				}
 
 				return;
 			}
 
-			_consecutive_failures = 0;
+			_failing_since = 0;
 
 			// Checked after publishing so it doesn't add to the sample latency. A failed
 			// read here is only counted as a comms error; the sample reads above decide
@@ -252,10 +235,11 @@ void INA228::RunImpl()
 					// The device lost its configuration (e.g. brown-out while plugging the battery)
 					// but is still responding: write it again without reporting the battery as
 					// disconnected, which the commander would treat as a battery failure in flight.
-					perf_count(_bad_register_perf);
 					perf_count(_reinit_perf);
 					PX4_WARN("configuration lost, reconfiguring");
-					enterConfigure();
+					ScheduleClear();
+					_state = State::CONFIGURE;
+					ScheduleNow();
 				}
 			}
 
@@ -269,8 +253,7 @@ int INA228::collect()
 	// Ticks are on a fixed hrt grid, so a tick after a late one comes early. Triggering
 	// before the previous conversion is done would restart it and we would read (and
 	// publish) the one before it again.
-	if (hrt_elapsed_time(&_trigger_time) < _timing.conversion_max_us + WAKEUP_TIME_US) {
-		perf_count(_not_ready_perf);
+	if (hrt_elapsed_time(&_trigger_time) < CONVERSION_TIME_MAX_US) {
 		return -EAGAIN;
 	}
 
@@ -280,7 +263,7 @@ int INA228::collect()
 	// conversion until the new one finishes (datasheet §7.3.4), so reading them right after
 	// the trigger returns the sample triggered one tick ago. This gives a fixed sample latency
 	// and the full tick for the conversion.
-	if (registerWrite(Register::ADCCONFIG, _timing.adc_config) != PX4_OK) {
+	if (registerWrite(Register::ADCCONFIG, ADC_CONFIG) != PX4_OK) {
 		perf_end(_sample_perf);
 		return PX4_ERROR;
 	}
@@ -316,7 +299,7 @@ int INA228::probe()
 		return PX4_ERROR;
 	}
 
-	if (registerRead(Register::DEVICE_ID, value) != PX4_OK || deviceId(value) != DIEID) {
+	if (registerRead(Register::DEVICE_ID, value) != PX4_OK || ((value & DEVICE_ID_MASK) >> DEVICE_ID_SHIFT) != DIEID) {
 		PX4_DEBUG("probe die id %d", value);
 		return PX4_ERROR;
 	}
@@ -440,16 +423,12 @@ void INA228::print_status()
 	}
 
 	PX4_INFO("state: %s", state_str);
-	PX4_INFO("sample interval: %" PRIu32 " us, ADC_CONFIG: 0x%04X (triggered, %" PRIu32 " us per sample)",
-		 _timing.interval_us, _timing.adc_config, _timing.conversion_us);
+	PX4_INFO("sample interval: %" PRIu64 " us, ADC_CONFIG: 0x%04X", SAMPLE_INTERVAL_US, ADC_CONFIG);
 	PX4_INFO("readback CONFIG: 0x%04X, SHUNT_CAL: 0x%04X", _last_readback[0], _last_readback[1]);
 
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	perf_print_counter(_collection_errors);
-	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_reinit_perf);
-	perf_print_counter(_not_ready_perf);
 }
 
 I2CSPIDriverBase *INA228::instantiate(const I2CSPIDriverConfig &config, int /*runtime_instance*/)
@@ -490,11 +469,10 @@ Multiple instances can run simultaneously on separate buses or different I2C add
 If the device is not powered at startup, pass `-k` (keep_running) and the driver
 will retry initialization every 500 ms so the battery can be plugged in later.
 
-The sample rate is set by `INA228_RATE` (10, 20, 50 or 100 Hz); each rate uses a fixed ADC
-setup with the longest integration time that fits. Every sample is triggered by the driver, so the
-latency from the measurement to the publication is the same for every sample. The
-configuration registers are read back periodically and rewritten if the device was reset
-(e.g. by a brown-out while plugging the battery).
+The device is sampled at 100 Hz. Every sample is triggered by the driver, so the latency
+from the measurement to the publication is the same for every sample. The configuration
+registers are read back periodically and rewritten if the device was reset (e.g. by a
+brown-out while plugging the battery).
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("ina228", "driver");

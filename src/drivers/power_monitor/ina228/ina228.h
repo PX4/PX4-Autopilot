@@ -36,7 +36,6 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <lib/battery/battery.h>
-#include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module_params.h>
@@ -49,8 +48,6 @@ using namespace time_literals;
 namespace ina228
 {
 
-static constexpr uint32_t BUS_CLOCK_HZ = 100'000;
-
 static constexpr uint16_t MANFID = 0x5449;
 static constexpr uint16_t DIEID = 0x228;
 
@@ -61,21 +58,6 @@ static constexpr float CURRENT_LSB_DIV = 524288.f; // current_lsb = max_current 
 static constexpr float SHUNT_CAL_K = 13107.2e6f; // shunt-cal scaling constant
 static constexpr float ADCRANGE_LOW_V_SENSE = 0.04096f; // ±40.96 mV
 static constexpr uint16_t SHUNT_CAL_MAX = 0x7fff; // SHUNT_CAL is a 15 bit field
-
-// ADC timing (datasheet §7.3.4, §6.5)
-static constexpr uint16_t CONVERSION_TIME_US[8] = {50, 84, 150, 280, 540, 1052, 2074, 4120};
-static constexpr uint16_t AVERAGES[8] = {1, 4, 16, 64, 128, 256, 512, 1024};
-static constexpr hrt_abstime WAKEUP_TIME_US = 60; // from shutdown, triggered mode only
-// The next trigger (the start of the next tick) must not land before the previous conversion
-// is done, or it restarts that conversion and the output freezes. Covers tick-to-tick
-// scheduling jitter and the duration of the trigger write itself.
-static constexpr hrt_abstime TRIGGER_MARGIN_US = 500;
-
-// Recovery / robustness timing
-static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
-static constexpr hrt_abstime RESET_DELAY_US = 1_ms; // datasheet specifies 300us. Give some margin
-static constexpr hrt_abstime DISCONNECT_DEBOUNCE_US = 2_s;
-static constexpr hrt_abstime CONFIG_CHECK_INTERVAL_US = 100_ms;
 
 // Register map (subset used by this driver)
 enum class Register : uint8_t {
@@ -96,79 +78,23 @@ enum CONFIG_BIT : uint16_t {
 	RANGE_LOW = (1u << 4), // ±40.96 mV
 };
 
-// ADC_CONFIG register fields
-static constexpr uint16_t MODE_SHIFT = 12;
-static constexpr uint16_t MODE_TRIGGERED_ALL = 0x7; // triggered bus voltage, shunt voltage and temperature
-static constexpr uint16_t VBUSCT_SHIFT = 9;
-static constexpr uint16_t VSHCT_SHIFT = 6;
-static constexpr uint16_t VTCT_SHIFT = 3;
-static constexpr uint16_t AVG_SHIFT = 0;
+// ADCCONFIG register bits (subset used by this driver)
+enum ADCCONFIG_BIT : uint16_t {
+	AVERAGES_4 = (1u << 0),
 
-// Index into CONVERSION_TIME_US / AVERAGES
-enum ConversionTime : uint16_t { CT_50US, CT_84US, CT_150US, CT_280US, CT_540US, CT_1052US, CT_2074US, CT_4120US };
-enum Averages : uint16_t { AVG_1, AVG_4, AVG_16, AVG_64, AVG_128, AVG_256, AVG_512, AVG_1024 };
+	VTCT_50US = (0u << 3),
+	VSHCT_1052US = (5u << 6),
+	VBUSCT_1052US = (5u << 9),
 
-static constexpr uint16_t adcConfig(ConversionTime bus_and_shunt_ct, Averages avg)
-{
-	// Temperature uses the shortest conversion time: it only adds to the sample time.
-	return static_cast<uint16_t>((MODE_TRIGGERED_ALL << MODE_SHIFT) | (bus_and_shunt_ct << VBUSCT_SHIFT)
-				     | (bus_and_shunt_ct << VSHCT_SHIFT) | (CT_50US << VTCT_SHIFT) | (avg << AVG_SHIFT));
-}
-
-// Nominal time for one averaged sample: the enabled channels are converted in sequence and
-// the sequence is repeated AVG times (datasheet §7.3.4).
-static constexpr uint32_t conversionTimeUs(uint16_t adc_config)
-{
-	return AVERAGES[(adc_config >> AVG_SHIFT) & 0x7] * (CONVERSION_TIME_US[(adc_config >> VBUSCT_SHIFT) & 0x7]
-			+ CONVERSION_TIME_US[(adc_config >> VSHCT_SHIFT) & 0x7]
-			+ CONVERSION_TIME_US[(adc_config >> VTCT_SHIFT) & 0x7]);
-}
-
-// Worst case with the internal oscillator running 1 % slow.
-static constexpr uint32_t conversionTimeMaxUs(uint16_t adc_config)
-{
-	return (conversionTimeUs(adc_config) * 101 + 99) / 100;
-}
-
-// INA228_RATE options. Bus voltage and current always get the same conversion time (at least
-// 540 us), and each rate uses the longest integration time (conversion time x averaging) whose
-// conversion still fits in one sample interval.
-struct RatePreset {
-	uint8_t rate_hz;
-	uint16_t adc_config;
+	MODE_TEMP_SHUNT_BUS_TRIG = (7u << 12), // triggered (single-shot) temperature, shunt and bus voltage
 };
 
-static constexpr RatePreset RATE_PRESETS[] = {
-	{10, adcConfig(CT_540US, AVG_64)}, // 72.32 ms per sample, same bus/shunt integration time as the old default
-	{20, adcConfig(CT_1052US, AVG_16)}, // 34.46 ms
-	{50, adcConfig(CT_540US, AVG_16)}, // 18.08 ms
-	{100, adcConfig(CT_1052US, AVG_4)}, // 8.62 ms
-};
+// Wake-up time from shutdown, the state the device is in between triggered conversions
+static constexpr uint32_t WAKEUP_TIME_US = 60;
 
-static constexpr uint8_t DEFAULT_RATE_HZ = 10;
-
-static constexpr bool presetFits(const RatePreset &p)
-{
-	return conversionTimeMaxUs(p.adc_config) + WAKEUP_TIME_US + TRIGGER_MARGIN_US <= 1'000'000u / p.rate_hz;
-}
-
-static constexpr bool allPresetsFit()
-{
-	// NOLINTNEXTLINE(readability-use-anyofallof) std::all_of is not constexpr before C++20
-	for (const RatePreset &p : RATE_PRESETS) {
-		if (!presetFits(p)) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-static_assert(allPresetsFit(), "INA228 conversion does not fit in the sample interval");
-
-// DEVICE_ID register field accessor
+// DEVICE_ID register: die ID in bits 15..4
 static constexpr uint16_t DEVICE_ID_MASK = 0xfff0u;
-static inline constexpr uint16_t deviceId(uint16_t v) { return (v & DEVICE_ID_MASK) >> 4; }
+static constexpr uint16_t DEVICE_ID_SHIFT = 4;
 
 } // namespace ina228
 
@@ -195,23 +121,10 @@ private:
 		UNINITIALIZED, // I2C::init() not yet called successfully — retry until it does
 		RESET, // soft-reset the device, then transition to CONFIGURE
 		CONFIGURE, // write SHUNT_CAL / CONFIG / ADCCONFIG, then transition to MEASURE
-		MEASURE, // steady-state: (trigger,) read VS_BUS / CURRENT / DIETEMP, publish, repeat
+		MEASURE, // steady-state: trigger, read VS_BUS / CURRENT / DIETEMP, publish, repeat
 	};
-
-	// Sampling setup derived from INA228_RATE. Computed before the Battery member is
-	// constructed, because Battery needs the sample interval.
-	struct Timing {
-		uint16_t adc_config;
-		uint32_t conversion_us; // nominal time for one averaged output sample
-		uint32_t conversion_max_us; // conversion_us with the oscillator running slow
-		uint32_t interval_us; // sample interval
-	};
-
-	static Timing computeTiming();
 
 	int collect();
-	void enterReset();
-	void enterConfigure();
 
 	// Rotates through the configuration registers, one per call. Returns PX4_OK,
 	// -EIO if the read fails, or -EBADMSG if the value doesn't match what we wrote
@@ -223,17 +136,15 @@ private:
 	int registerWrite(ina228::Register reg, uint16_t value);
 
 	// --- State -------------------------------------------------------------
-	const Timing _timing;
 	Battery _battery;
 
 	State _state{State::UNINITIALIZED};
-	uint16_t _consecutive_failures{0};
-	uint16_t _max_consecutive_failures{1};
+	hrt_abstime _failing_since{0}; // first failure of the current run of failures, 0 if none
 
 	uint8_t _next_reg_to_check{0};
 	hrt_abstime _last_config_check{0};
 	uint16_t _last_readback[2] {}; // CONFIG, SHUNT_CAL
-	hrt_abstime _trigger_time{0}; // when the last triggered conversion was started
+	hrt_abstime _trigger_time{0}; // when the last conversion was triggered
 
 	// Configuration computed from params
 	float _current_lsb{0.f};
@@ -241,12 +152,9 @@ private:
 	uint16_t _config_value{0}; // CONFIG register value we wrote
 
 	// Perf counters
-	perf_counter_t _sample_perf;
-	perf_counter_t _comms_errors;
-	perf_counter_t _collection_errors;
-	perf_counter_t _bad_register_perf;
-	perf_counter_t _reinit_perf;
-	perf_counter_t _not_ready_perf;
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ina228_read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "ina228_com_err")};
+	perf_counter_t _reinit_perf{perf_alloc(PC_COUNT, "ina228_reinit")};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
