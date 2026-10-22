@@ -225,6 +225,8 @@ SITL builds include the cache by default, but most flight controller builds do n
 Firmware built without route planning shows a pre-arm warning when `RTL_TYPE=7` is set and uses the destination selection of `RTL_TYPE=3` instead.
 
 This return type never flies a straight line to a destination.
+The route is planned every two seconds from the current position, also before takeoff.
+While no route is planned, also for a few seconds after an upload while the mission, rally points and fence load, Return is unavailable: a switch to Return is denied with `Return unavailable: no mission route`, and a failsafe that would return lands instead.
 If Return runs without a route, for example because the mission was replaced during the return, the vehicle stops at its current position, as `RTL_TYPE=5` does without rally points: it holds, then lands after [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY), or holds indefinitely when that delay is negative.
 A stopped Return does not plan again; see [No Route Available](../concept/mission_route_planning.md#route-following-no-route) for the conditions.
 The planner checks the branch-in, branch-off and direct-to-goal segments against loaded fences but does not find detours; see [Geofence Checks](../concept/mission_route_planning.md#geofence-checks).

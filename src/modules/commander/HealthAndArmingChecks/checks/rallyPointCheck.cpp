@@ -45,10 +45,12 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
-#if !(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0)
 	static constexpr int32_t RTL_TYPE_ROUTE_SAFE_POINT = 7; // RTL_TYPE value, see navigator rtl_params.yaml
 
 	if (rtl_type == RTL_TYPE_ROUTE_SAFE_POINT) {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		checkRouteReturn(context, reporter);
+#else
 		/* EVENT
 		 * @description
 		 * This firmware is built without mission route planning, so Return uses the destination selection of
@@ -62,10 +64,9 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 			mavlink_log_warning(reporter.mavlink_log_pub(), "RTL_TYPE 7 unavailable, using type 3\t");
 		}
 
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		return;
 	}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	if (rtl_type != 5) {
 		// Only enforce rally point requirement when RTL_TYPE == 5 (safe points only)
@@ -97,3 +98,34 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+void RallyPointChecks::checkRouteReturn(const Context &context, Report &reporter)
+{
+	rtl_status_s rtl_status;
+
+	// Navigator plans the route every 2 s, also while its inputs load after an upload.
+	// An active Return handles the loss of its route itself.
+	if (!_rtl_status_sub.copy(&rtl_status)
+	    || rtl_status.rtl_type == rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT
+	    || context.status().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+		return;
+	}
+
+	const NavModes return_mode = static_cast<NavModes>(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+	/* EVENT
+	 * @description
+	 * Return cannot follow the mission route from the current position, so Return mode is unavailable:
+	 * a mode switch is denied and a failsafe that would return lands instead.
+	 * This also applies for a few seconds after an upload, while the mission, rally points and fence load.
+	 * Upload a mission the vehicle can join and a rally point or landing it can reach through it,
+	 * or change <param>RTL_TYPE</param>.
+	 */
+	reporter.armingCheckFailure(return_mode, health_component_t::system,
+				    events::ID("check_rtl_route_unavailable"),
+				    events::Log::Warning, "Return unavailable: no mission route");
+	// Deny mode switches and let failsafes fall back, as for an unmet external mode requirement.
+	reporter.clearCanRunBits(return_mode);
+	reporter.failsafeFlags().mode_req_other |= static_cast<uint32_t>(return_mode);
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
