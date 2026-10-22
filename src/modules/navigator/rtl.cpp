@@ -229,7 +229,7 @@ void RTL::on_active()
 	    && (!mission_matches || _route_safe_point.inputsReady(_mission_sub.get()))) {
 		// The same mission keeps the flown jump edge for the replan.
 		if (mission_matches) {
-			_route_safe_point.recordExecutorProgress(_route_follower->activeJumpAnchor());
+			_route_safe_point.setActiveJumpAnchor(_route_follower->activeJumpAnchor());
 		}
 
 		stopAndDeleteRtlMissionType();

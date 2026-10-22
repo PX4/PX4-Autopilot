@@ -138,7 +138,7 @@ bool RtlMissionSafePointFollow::useGoalLandApproach() const
 	       && (vehicleInFwLikeState(_vehicle_status_sub.get()) || isExecutingGoalStage());
 }
 
-RtlMissionSafePointFollow::Stage RtlMissionSafePointFollow::finalGoalStage() const
+RtlMissionSafePointFollow::Stage RtlMissionSafePointFollow::goalEntryStage() const
 {
 	if (goalIsMissionLanding()) {
 		return Stage::LandAtGoal;
@@ -156,7 +156,7 @@ void RtlMissionSafePointFollow::enterGoalStage()
 	}
 
 	_arrival.start(useGoalLandApproach() ? RtlArrival::Phase::Descend : RtlArrival::Phase::Move);
-	_state.stage = finalGoalStage();
+	_state.stage = goalEntryStage();
 }
 
 bool RtlMissionSafePointFollow::isExecutingGoalStage() const
@@ -713,7 +713,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 	// RTL refreshes the plan from the current Mission index and vehicle position before
 	// an inactive estimate. Forecast from that plan without changing execution progress.
 	const bool inactive = _state.stage == Stage::Idle;
-	const Stage stage = inactive ? (_plan.fly_direct_to_goal ? finalGoalStage() : Stage::FollowRoute) : _state.stage;
+	const Stage stage = inactive ? (_plan.fly_direct_to_goal ? goalEntryStage() : Stage::FollowRoute) : _state.stage;
 	const bool join_remaining = inactive ? !_plan.fly_direct_to_goal
 				    : (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
 				       || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN
