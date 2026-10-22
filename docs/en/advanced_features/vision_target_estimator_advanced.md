@@ -110,6 +110,9 @@ Open the box below if you are debugging a bias that fails to converge, jumps une
   If neither condition fires, the LPF is also accepted when [VTE_BIA_AVG_TOUT](../advanced_config/parameter_reference.md#VTE_BIA_AVG_TOUT) expires.
 - **Activation after averaging.** Once the LPF is accepted, the state resets via `activateBiasEstimate()`.
   This sets `r = pos_rel_gnss(t_vision) - b_filtered` and `b = b_filtered`.
+  Every bias activation resets the position and bias at `t_vision`, keeps a snapshot there so samples still in flight can be replayed, and propagates to now.
+  This initialisation bridge assumes constant UAV velocity and retains the current target motion estimate; it adds process noise rather than reusing an overconfident capture-time covariance.
+  A vision sample used to seed the position is reported as `STATUS_INITIALIZED` and is not fused again.
 
 #### Fallbacks and Recovery
 
@@ -629,7 +632,7 @@ The `fusion_status` field records which fusion branch the filter.
 | 6     | `STATUS_REJECT_TOO_NEW` | Sample timestamped 20 ms or more after the latest filter prediction.                                            | Time-sync problem: verify `mavlink_timesync` or the sensor clock. Built-in sources drop these with a warning.     |
 | 7     | `STATUS_REJECT_STALE`   | Filter history was reset because no prediction had run for longer than the buffer span.                         | Expected after long pauses; otherwise investigate scheduler stalls.                                               |
 | 8     | `STATUS_REJECT_EMPTY`   | History buffer not yet populated when the measurement arrived.                                                  | Expected after a history reset; position initialisation itself reports `STATUS_INITIALIZED`.                      |
-| 9     | `STATUS_INITIALIZED`    | Position observation used once to seed the state and its covariance, then propagated to the current time.       | Healthy at position startup or restart. Innovation fields are NaN because no prior prediction exists.             |
+| 9     | `STATUS_INITIALIZED`    | Observation used once to seed the state and its covariance, then propagated to the current time (position and yaw). | Healthy at startup or restart. Innovation fields are NaN because no prior prediction exists.             |
 
 :::
 

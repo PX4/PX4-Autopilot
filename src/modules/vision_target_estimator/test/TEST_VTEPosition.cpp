@@ -1296,9 +1296,9 @@ TEST_F(VTEPositionTest, BiasAveragingUsesTimeoutWhenSamplesDoNotStabilize)
 	EXPECT_NEAR(state.rel_pos[2], rel_pos_first(2), 0.3f);
 }
 
-// WHY: If the GNSS-relative sample expires during bias averaging, vision fusion should resume immediately.
+// WHY: If the GNSS-relative sample expires during bias averaging, vision must take over immediately.
 // WHAT: Start averaging from GNSS, let the GNSS-relative sample go stale without refreshing it,
-// then verify the estimator switches to the current vision position and fuses that sample.
+// then verify the estimator switches to the current vision position.
 TEST_F(VTEPositionTest, BiasAveragingFallsBackToVisionWhenGnssBecomesStale)
 {
 	// GIVEN: mission GNSS initializes first and bias averaging is in progress.
@@ -1311,6 +1311,7 @@ TEST_F(VTEPositionTest, BiasAveragingFallsBackToVisionWhenGnssBecomesStale)
 	// Shorten the recent-measurement timeout so the 150 ms gap below unambiguously
 	// invalidates _pos_rel_gnss
 	_vte->setMeasRecentTimeout(100_ms);
+	_vte->setTargetValidTimeout(100_ms);
 
 	const matrix::Vector3f vel_ned(0.4f, -0.3f, 0.1f);
 	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
@@ -1342,12 +1343,13 @@ TEST_F(VTEPositionTest, BiasAveragingFallsBackToVisionWhenGnssBecomesStale)
 
 	const hrt_abstime stale_vision_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, stale_vision_time);
+	setLocalPosition(kZeroVec, stale_vision_time);
 	publishVisionPos(rel_pos, vte_test::identityQuat(), kSmallVisionCov, stale_vision_time);
 
 	// WHEN: vision returns after the GNSS-relative sample has gone stale.
 	_vte->update(matrix::Vector3f{});
 
-	// THEN: the estimator falls back to fusing the current vision measurement immediately.
+	// THEN: the estimator falls back to the current vision sample as its position immediately.
 	ASSERT_TRUE(_aid_fiducial_sub->update());
 	const auto aid = _aid_fiducial_sub->get();
 	ASSERT_TRUE(_vte_state_sub->update());
@@ -1355,9 +1357,15 @@ TEST_F(VTEPositionTest, BiasAveragingFallsBackToVisionWhenGnssBecomesStale)
 	const float altitude_bias = (kUavAltM - kTargetAltM) - rel_pos(2);
 	const matrix::Vector3f expected_bias(-rel_pos(0), -rel_pos(1), altitude_bias);
 
-	EXPECT_EQ(aid.fusion_status[0], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
-	EXPECT_EQ(aid.fusion_status[1], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
-	EXPECT_EQ(aid.fusion_status[2], static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+	EXPECT_EQ(aid.fusion_status[0], static_cast<uint8_t>(vte::FusionStatus::STATUS_INITIALIZED));
+	EXPECT_EQ(aid.fusion_status[1], static_cast<uint8_t>(vte::FusionStatus::STATUS_INITIALIZED));
+	EXPECT_EQ(aid.fusion_status[2], static_cast<uint8_t>(vte::FusionStatus::STATUS_INITIALIZED));
+	// No other aid is fused this cycle: initialization alone must refresh validity.
+	EXPECT_TRUE(state.rel_pos_valid);
+	ASSERT_TRUE(_target_pose_sub->update());
+#if !defined(CONFIG_VTEST_MOVING)
+	EXPECT_TRUE(_target_pose_sub->get().rel_vel_ekf2_valid);
+#endif
 	EXPECT_NEAR(state.rel_pos[0], rel_pos(0), 0.1f);
 	EXPECT_NEAR(state.rel_pos[1], rel_pos(1), 0.1f);
 	EXPECT_NEAR(state.rel_pos[2], rel_pos(2), 0.1f);
@@ -2287,3 +2295,65 @@ TEST_F(VTEPositionTest, TargetVelocityFusionMoving)
 	EXPECT_NEAR(aid.observation_variance[2], kDefaultGpsVelVar, kTolerance);
 }
 #endif
+
+// WHY: The bias is activated from a delayed vision sample, so the position must be moved to now.
+// WHAT: Initialize from vision while moving, then let GNSS arrive with an 80 ms old vision sample.
+TEST_F(VTEPositionTest, BiasActivationPropagatesDelayedVisionToNow)
+{
+	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kMissionPos});
+	static constexpr float kSpeed = 2.f;
+	static constexpr hrt_abstime kLatencyUs = 80_ms;
+	const matrix::Vector3f vel(kSpeed, 0.f, 0.f);
+	const matrix::Vector3f rel_pos_t0(0.f, 0.f, kUavAltM - kTargetAltM);
+	const hrt_abstime t0 = vte_test::advanceMicroseconds(kStepUs);
+	const auto north = [t0](hrt_abstime t) { return kSpeed * static_cast<float>(t - t0) * 1e-6f; };
+
+	setLocalVelocity(vel, t0);
+	_vte->setMissionPosition(kUavLat, kUavLon, kTargetAltM);
+	publishVisionPos(rel_pos_t0, vte_test::identityQuat(), kSmallVisionCov, t0);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+	flushVisionAndMissionOutputs();
+
+	// Vision only, flying north at 2 m/s.
+	hrt_abstime now = t0;
+
+	for (int i = 0; i < 10; ++i) {
+		now = vte_test::advanceMicroseconds(20_ms);
+		setLocalVelocity(vel, now);
+		_vte->update(kZeroVec);
+		ASSERT_TRUE(_vte_state_sub->update());
+	}
+
+	// GNSS becomes available together with a vision sample captured 80 ms ago.
+	const hrt_abstime capture = now - kLatencyUs;
+	publishUavGnss(kUavLat + static_cast<double>(north(now)) / kMetersPerDegLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel,
+		       0.1f, true, now);
+	publishVisionPos(rel_pos_t0 - matrix::Vector3f(north(capture), 0.f, 0.f), vte_test::identityQuat(),
+			 kSmallVisionCov, capture);
+	_vte->update(kZeroVec);
+
+	// THEN: the bias is zero and the position is the sample moved to now, not the sample itself.
+	ASSERT_TRUE(_vte_state_sub->update());
+	const auto state = _vte_state_sub->get();
+	expectBiasNear(state, kZeroVec, 0.05f);
+	EXPECT_NEAR(state.rel_pos[0], -north(now), 0.05f);
+	// The sample became the state and is reported as such instead of being fused on top of itself.
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+	EXPECT_EQ(_aid_fiducial_sub->get().fusion_status[0], vte::FusionStatus::STATUS_INITIALIZED);
+	EXPECT_GT(state.cov_rel_pos[0], 0.1f); // reset to VTE_POS_UNC_IN, not shrunk to the sample variance
+
+	// The samples still in flight replay from the activation snapshot instead of being dropped as too old.
+	for (int i = 0; i < 3; ++i) {
+		now = vte_test::advanceMicroseconds(20_ms);
+		const hrt_abstime late = now - kLatencyUs;
+		setLocalVelocity(vel, now);
+		publishUavGnss(kUavLat + static_cast<double>(north(now)) / kMetersPerDegLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel,
+			       0.1f, true, now);
+		publishVisionPos(rel_pos_t0 - matrix::Vector3f(north(late), 0.f, 0.f), vte_test::identityQuat(), kSmallVisionCov,
+				 late);
+		_vte->update(kZeroVec);
+		ASSERT_TRUE(_aid_fiducial_sub->update());
+		EXPECT_EQ(_aid_fiducial_sub->get().fusion_status[0], vte::FusionStatus::STATUS_FUSED_OOSM) << "cycle " << i;
+	}
+}

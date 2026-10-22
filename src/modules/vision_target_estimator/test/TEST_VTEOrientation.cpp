@@ -178,20 +178,62 @@ TEST_F(VTEOrientationTest, InitFromVisionYawPublishesOrientation)
 	const float yaw_meas = 0.5f;
 	pushValidYawSample(yaw_meas);
 
-	// THEN: the state initializes from that sample and publishes a fused innovation report.
+	// THEN: the state is the sample, no better known than the sample itself, and the report says so.
 	ASSERT_TRUE(_state_sub->update());
 	const auto state = _state_sub->get();
 	EXPECT_NEAR(state.yaw, yaw_meas, kTolerance);
 	EXPECT_NEAR(state.yaw_rate, 0.f, kTolerance);
-	// Reported variance is clamped to the configured floor (EVA_NOISE^2) before fusion.
-	const float meas_var = fmaxf(kMeasVar, kDefaultEvYawVar);
-	const float expected_cov = (kInitialYawUnc * meas_var) / (kInitialYawUnc + meas_var);
-	EXPECT_NEAR(state.cov_yaw, expected_cov, kTolerance);
+	EXPECT_NEAR(state.cov_yaw, fmaxf(kInitialYawUnc, kDefaultEvYawVar), kTolerance);
+	EXPECT_NEAR(state.cov_yaw_rate, kInitialYawUnc, kTolerance);
 
 	ASSERT_TRUE(_aid_sub->update());
 	const auto aid = _aid_sub->get();
+	// Reported variance is clamped to the configured floor (EVA_NOISE^2).
 	EXPECT_NEAR(aid.observation_variance, kDefaultEvYawVar, kTolerance);
-	EXPECT_EQ(aid.fusion_status, static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+	EXPECT_EQ(aid.fusion_status, static_cast<uint8_t>(vte::FusionStatus::STATUS_INITIALIZED));
+	EXPECT_TRUE(std::isnan(aid.innovation));
+}
+
+// WHY: The init sample is the state, so fusing it again would shrink the covariance without new information.
+// WHAT: Initialize, then fuse a second sample and check the covariance of a single update.
+TEST_F(VTEOrientationTest, FirstSampleIsNotFusedTwice)
+{
+	enableVisionFusion();
+	pushValidYawSample(0.5f);
+	ASSERT_TRUE(_state_sub->update());
+	ASSERT_TRUE(_aid_sub->update());
+
+	pushValidYawSample(0.5f);
+
+	ASSERT_TRUE(_aid_sub->update());
+	EXPECT_EQ(_aid_sub->get().fusion_status, static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+	ASSERT_TRUE(_state_sub->update());
+	const float meas_var = fmaxf(kMeasVar, kDefaultEvYawVar);
+	const float init_var = fmaxf(kInitialYawUnc, meas_var);
+	const float expected_cov = (init_var * meas_var) / (init_var + meas_var);
+	EXPECT_NEAR(_state_sub->get().cov_yaw, expected_cov, kTolerance);
+}
+
+// WHY: A delayed init sample must leave a snapshot at its capture time, so later samples from
+// between the capture and now can be replayed instead of being dropped as too old.
+TEST_F(VTEOrientationTest, DelayedInitSampleSeedsHistoryAtCaptureTime)
+{
+	enableVisionFusion();
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	publishVisionYaw(0.5f, kMeasVar, now - 100_ms);
+	_vte->update();
+	ASSERT_TRUE(_aid_sub->update());
+	EXPECT_EQ(_aid_sub->get().fusion_status, static_cast<uint8_t>(vte::FusionStatus::STATUS_INITIALIZED));
+	EXPECT_EQ(_aid_sub->get().timestamp_sample, now - 100_ms);
+
+	vte_test::advanceMicroseconds(20_ms);
+	publishVisionYaw(0.52f, kMeasVar, now - 50_ms);
+	_vte->update();
+
+	ASSERT_TRUE(_aid_sub->update());
+	EXPECT_EQ(_aid_sub->get().fusion_status, static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_OOSM));
+	ASSERT_TRUE(_state_sub->update());
+	EXPECT_LT(_state_sub->get().cov_yaw, fmaxf(kInitialYawUnc, kDefaultEvYawVar));
 }
 
 // WHY: Fusion should be disabled when the aid mask is empty.
@@ -473,10 +515,10 @@ TEST_F(VTEOrientationTest, ResetsFilterOnStalePredictionGap)
 
 	pushValidYawSample(-0.25f);
 
-	// THEN: the stale state is dropped and the fresh sample initializes a new current fusion.
+	// THEN: the stale state is dropped and the fresh sample initializes the filter again.
 	ASSERT_TRUE(_aid_sub->update());
 	EXPECT_EQ(_aid_sub->get().fusion_status,
-		  static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+		  static_cast<uint8_t>(vte::FusionStatus::STATUS_INITIALIZED));
 
 	ASSERT_TRUE(_state_sub->update());
 	const auto state = _state_sub->get();
