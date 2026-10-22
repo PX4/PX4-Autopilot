@@ -399,6 +399,7 @@ private:
 	Vector3fStamped _local_position{};
 	Vector3fStamped _local_velocity{};
 	Vector3fStamped _pos_rel_gnss{};
+	bool _pos_rel_gnss_is_target{false};
 	Vector3fStamped _velocity_offset_ned{};
 	Vector3fStamped _gps_pos_offset_ned{};
 

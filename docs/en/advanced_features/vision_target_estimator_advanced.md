@@ -428,6 +428,15 @@ Validity and reset timeouts count from the capture time of the newest fused posi
 These timestamps follow the current replay decisions: rejecting or accepting a stored sample can move freshness backwards or forwards.
 The separate freshness check for EKF2 auxiliary velocity aiding likewise follows the newest accepted vision observation.
 
+Before forming a target-GNSS relative position, the UAV fix is propagated to the target fix time for every nonzero time offset.
+The propagation uses the lever-arm-corrected GNSS velocity, with the latest valid local velocity as fallback; mismatched fixes are rejected when neither velocity is available.
+The observation variance includes velocity uncertainty and UAV acceleration process noise over the offset.
+Because this interface does not carry local-velocity covariance, the local fallback assumes the larger of `VTE_VEL_UNC_IN` and the squared `VTE_GPS_V_NOISE` floor.
+
+GNSS/vision bias initialisation separately aligns that relative position to the vision capture time using the latest valid velocity.
+Mission references use `-v_uav`; target GNSS in a moving-target build uses `v_target - v_uav` and requires a valid target velocity whenever the timestamps differ.
+This constant-velocity approximation is limited by `VTE_M_REC_TOUT`; it does not reconstruct acceleration during the alignment interval.
+
 ### OOSM Implementation
 
 Each filter retains up to 25 post-update snapshots of the time, state, covariance and prediction input.
