@@ -81,6 +81,10 @@ public:
 	// Returns FusionResult describing the result for logging.
 	FusionResult fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold);
 
+	// Fuse one cycle's observations in a single replay, oldest first. One result per observation.
+	void fuseScalarsAtTime(const ScalarMeas *meas, size_t count, uint64_t now_us, float nis_threshold,
+			       FusionResult *results);
+
 	// History Management
 	void pushHistory(const uint64_t time_us);
 	void resetHistory();

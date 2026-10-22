@@ -360,7 +360,8 @@ private:
 	void updateTargetGpsVelocity(const target_gnss_s &target_gnss);
 #endif // CONFIG_VTEST_MOVING
 
-	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const TargetObs &target_pos_obs);
+	/** Publish the per-axis fusion results of one observation. Returns true if any axis fused. */
+	bool publishAidSource(const TargetObs &target_obs, const FusionResult(&results)[vtest::Axis::size]);
 	void publishTarget();
 	void publishInnov(const vte_aid_source3d_s &target_innov, const ObsType type);
 	void resetObservations();
