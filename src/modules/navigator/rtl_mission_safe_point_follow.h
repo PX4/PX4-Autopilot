@@ -79,7 +79,7 @@ private:
 		LandAtGoal               /**< Land at the safe point or mission endpoint. */
 	};
 
-	struct PlanState {
+	struct Progress {
 		Stage stage{Stage::Idle};
 		bool advance_route_after_transition{false};
 	};
@@ -119,7 +119,8 @@ private:
 	void handleFollowRouteStage(const position_setpoint_s &current_setpoint_copy);
 	/** @brief Return true when the selected safe-point goal has a concrete VTOL landing approach to fly. */
 	bool useGoalLandApproach() const;
-	Stage finalGoalStage() const;
+	/** @brief First stage of the destination sequence: arrival, or the landing for a mission LAND goal. */
+	Stage goalEntryStage() const;
 	bool goalIsMissionLanding() const;
 	bool goalIsMissionTakeoff() const;
 	bool goalIsSafePoint() const;
@@ -150,7 +151,7 @@ private:
 	uORB::SubscriptionData<vtol_vehicle_status_s> _vtol_status_sub{ORB_ID(vtol_vehicle_status)};
 	mission_item_s _goal_mission_land_item{};
 	bool _goal_mission_land_item_valid{false};
-	PlanState _state{};
+	Progress _state{};
 	RtlArrival _arrival{};
 	loiter_point_s _goal_land_approach{};
 	float _goal_arrival_alt{NAN};
