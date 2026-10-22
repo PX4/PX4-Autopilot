@@ -130,7 +130,8 @@ bool Ekf::fuseMag(const float R_MAG, VectorState &H, estimator_aid_source3d_s &a
 		}
 
 		// limit total heading change rate to prevent rapid wrong convergence when heading variance is high
-		const float delta_heading = Kfusion(State::quat_nominal.idx + 2) * aid_src.innovation[index];
+		const float innov_corrected = aid_src.innovation[index] + H.dot(state_correction);
+		const float delta_heading = Kfusion(State::quat_nominal.idx + 2) * innov_corrected;
 		const float delta_heading_abs = fabsf(delta_heading);
 
 		if (delta_heading_abs > delta_heading_max) {
