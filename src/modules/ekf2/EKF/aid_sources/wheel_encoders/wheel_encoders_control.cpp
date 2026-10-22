@@ -81,7 +81,7 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample, const imuSample &i
 	// const float yaw_var = getYawVar();
 	// const float noise_scale = 1.0f + yaw_var * 100.0f; // Increase noise as yaw uncertainty grows
 
-	const float R_val = fmaxf(_params.ekf2_wheel_noise, 1e-3f) * noise_scale;
+	const float R_val = fmaxf(_params.ekf2_wheel_noise, 1e-3f);// * noise_scale);
 	const Vector2f R(R_val, R_val);
 
 	matrix::Vector2f innov_var;
