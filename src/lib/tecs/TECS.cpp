@@ -382,7 +382,14 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 		pitch_speed_weight = 0.0f;
 	}
 
-	weight.spe_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 2.f);
+	// Constrain the SPE weight to a max of 1. For low weight < 1 we only
+	// fade out the airspeed demand, but do not increase altitude demand.
+	// For high weight > 1, the altitude demand on pitch is still faded out
+	// and is too low compared to throttle, leading to airspeed errors.
+	weight.spe_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 1.f);
+
+	// The SKE weight is still allowed to go up to 2, as now fast descend
+	// and underspeed rely on the increased airspeed gain through pitch.
 	weight.ske_weighting = constrain(pitch_speed_weight, 0.f, 2.f);
 
 	return weight;
