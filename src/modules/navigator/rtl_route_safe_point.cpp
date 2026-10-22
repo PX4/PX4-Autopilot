@@ -111,7 +111,8 @@ bool RtlRouteSafePoint::sourceStillValid(const mission_s &mission) const
 bool RtlRouteSafePoint::evaluationPending(const mission_s &mission) const
 {
 	return mission.count <= MissionRouteCache::kMaxFullMissionCacheSize
-	       && (!_navigator->get_mission_route_cache().missionItemsReady(mission) || !fenceReady());
+	       && (!_navigator->get_mission_route_cache().missionItemsReady(mission)
+		   || _navigator->get_geofence().isFenceUpdatePending());
 }
 
 RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &mission,

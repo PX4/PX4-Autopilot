@@ -161,6 +161,31 @@ TEST_F(FailsafeTest, General)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 }
 
+TEST_F(FailsafeTest, UnavailableReturnFallsBackToLand)
+{
+	FailsafeTester failsafe(nullptr);
+	failsafe_flags_s flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, flags);
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	failsafe.update(5_s, state, false, false, flags);
+
+	// RallyPointChecks sets this requirement when type 7 has no usable route status.
+	flags.mode_req_other |= 1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+	flags.manual_control_signal_lost = true;
+	failsafe.update(6_s, state, false, false, flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	failsafe.update(12_s, state, false, false, flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Land);
+
+	// A later route evaluation makes Return available again.
+	flags.mode_req_other = 0;
+	failsafe.update(13_s, state, false, false, flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
 TEST_F(FailsafeTest, Takeover)
 {
 	FailsafeTester failsafe(nullptr);
