@@ -96,6 +96,19 @@ TEST_F(BatteryTest, UnknownCellCountWithCapacityStaysUnknown)
 	EXPECT_EQ(status.warning, battery_status_s::WARNING_EMERGENCY);
 }
 
+// a NaN voltage with a configured capacity must not hide the emergency
+TEST_F(BatteryTest, NanVoltageWithCapacityIsAnEmergency)
+{
+	int32_t n_cells = 3;
+	param_set(param_find("BAT1_N_CELLS"), &n_cells);
+	float capacity = 5000.f;
+	param_set(param_find("BAT1_CAPACITY"), &capacity);
+
+	Battery battery(1, nullptr, 20_ms, battery_status_s::SOURCE_ESCS);
+	const battery_status_s status = run(battery, NAN, 1.f);
+	EXPECT_EQ(status.warning, battery_status_s::WARNING_EMERGENCY);
+}
+
 TEST_F(BatteryTest, KnownCellCountEstimatesCharge)
 {
 	int32_t n_cells = 3;
