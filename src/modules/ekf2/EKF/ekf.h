@@ -995,7 +995,7 @@ private:
 	// control fusion of magnetometer observations
 	void controlMagFusion(const imuSample &imu_sample);
 
-	bool checkHaglYawResetReq() const;
+	bool isMagInFlightAlignmentRequired() const;
 	bool isHeadingResetToMagAllowed() const;
 
 	void resetMagHeading(const Vector3f &mag);
