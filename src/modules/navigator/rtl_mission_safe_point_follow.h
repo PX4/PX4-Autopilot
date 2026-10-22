@@ -44,6 +44,7 @@
 
 #pragma once
 
+#include "mission_route_cache.h"
 #include "mission_route_types.h"
 #include "rtl_base.h"
 #include "rtl_arrival.h"
@@ -154,6 +155,7 @@ private:
 	loiter_point_s _goal_land_approach{};
 	float _goal_arrival_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator;
+	uint8_t _vtol_states[MissionRouteCache::kMaxFullMissionCacheSize] {}; ///< Scratch table of the time estimate.
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		RtlBase,
