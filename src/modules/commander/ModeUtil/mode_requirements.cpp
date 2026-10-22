@@ -210,6 +210,11 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET, flags.mode_req_prevent_arming);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET, flags.mode_req_wind_and_flight_time_compliance);
 
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		// Follow Target is only implemented as a multicopter flight task
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET, flags.mode_not_supported);
+	}
+
 	// NAVIGATION_STATE_AUTO_PRECLAND
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND, flags.mode_req_attitude);
@@ -224,6 +229,12 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ORBIT, flags.mode_req_local_alt);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ORBIT, flags.mode_req_prevent_arming);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ORBIT, flags.mode_req_wind_and_flight_time_compliance);
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		// Orbit is only implemented as a multicopter flight task. Commander maps DO_ORBIT to Loiter for
+		// fixed-wing, but a VTOL can still transition to fixed-wing while Orbit is active.
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_ORBIT, flags.mode_not_supported);
+	}
 
 	// NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_angular_velocity);
