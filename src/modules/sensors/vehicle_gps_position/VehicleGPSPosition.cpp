@@ -400,7 +400,7 @@ void VehicleGPSPosition::UpdateTwoReceiverHeading()
 		sample.heading = NAN;
 		sample.device_id = to_gnss_data.device_id;
 		handleHeadingSample(sample, &to_slot);
-		_two_receiver_gnss_updated[to_gnss_data.time_utc_used < from_gnss_data.time_utc_used ? to_index : from_index] = false;
+		_two_receiver_gnss_updated[to_gnss_data.time_utc_usec < from_gnss_data.time_utc_usec ? to_index : from_index] = false;
 		return;
 	}
 
