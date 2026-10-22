@@ -1639,7 +1639,10 @@ static void print_usage()
 {
 	PX4_INFO("usage: \n"
 		 "\tuavcan {start|status|stop|shrink|update}\n"
-		 "\t        param [set|get|list|save] <node-id> <name> <value>|reset <node-id>");
+		 "\tuavcan param list|save <node-id>\n"
+		 "\tuavcan param get <node-id> <name>\n"
+		 "\tuavcan param set <node-id> <name> <value>\n"
+		 "\tuavcan reset <node-id>");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
@@ -1707,6 +1710,7 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 	 *  uavcan param save <node>
 	 *  uavcan param get <node> <name>
 	 *  uavcan param set <node> <name> <value>
+	 *  uavcan reset <node>
 	 *
 	 */
 	int node_arg = !std::strcmp(argv[1], "reset") ? 2 : 3;
