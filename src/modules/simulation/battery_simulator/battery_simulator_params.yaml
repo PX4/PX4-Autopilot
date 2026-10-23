@@ -22,20 +22,20 @@ parameters:
       unit: A
     SIM_BAT${i}_I_FW:
       description:
-        short: Simulated battery {i} average current draw in fixed wing
+        short: Simulated battery ${i} average current draw in fixed wing
         long: |-
-          Average current drawn from simulated battery {i} by the drone in fixed wing mode while armed. Set to -1 to use SIM_BAT_I_FW
+          Average current drawn from simulated battery ${i} by the drone in fixed wing mode while armed. Set to -1 to use SIM_BAT_I_FW
       type: float
       default: [-1.0, -1.0, -1.0]
-      increment: 1
+      min: -1
       unit: A
       num_instances: 3
       instance_start: 1
     SIM_BAT${i}_I_MC:
       description:
-        short: Simulated battery {i} average current draw in rotor wing
+        short: Simulated battery ${i} average current draw in rotor wing
         long: |-
-          Average current drawn from simulated battery {i} by the drone in rotor wing mode while armed. Set to -1 to use SIM_BAT_I_MC
+          Average current drawn from simulated battery ${i} by the drone in rotor wing mode while armed. Set to -1 to use SIM_BAT_I_MC
       type: float
       default: [-1.0, -1.0, -1.0]
       min: -1
