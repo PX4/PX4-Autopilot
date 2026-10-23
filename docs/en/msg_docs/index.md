@@ -286,6 +286,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [UavcanFirmwareUpdate](UavcanFirmwareUpdate.md)
 - [UavcanParameterRequest](UavcanParameterRequest.md) — UAVCAN-MAVLink parameter bridge request type.
 - [UavcanParameterValue](UavcanParameterValue.md) — UAVCAN-MAVLink parameter bridge response type.
+- [UgvUsvCourseSetpoint](UgvUsvCourseSetpoint.md) — UGV/USV Course Setpoint.
+- [UgvUsvCourseSetpoint](UgvUsvCourseSetpoint.md) — UGV/USV Course Setpoint.
 - [UlogStream](UlogStream.md) — Message to stream ULog data from the logger. Corresponds to the LOGGING_DATA. mavlink message.
 - [UlogStreamAck](UlogStreamAck.md) — Ack a previously sent ulog_stream message that had. the NEED_ACK flag set.
 - [VehicleAcceleration](VehicleAcceleration.md)
