@@ -89,8 +89,8 @@ The failsafe actions can then be set to one of:
 
 - `0: Warning` — Warn only.
 - `2: Land mode` — Land at the "Failsafe level".
-- `3: Critical level return, Emergency level land` (recommended) — Return mode at the "Failsafe" (critical) level, Land at the "Emergency" level.
-- `4: Critical level return, Emergency level terminate`<Badge type="tip" text="main (PX4 v2.0)" /> — Return mode at the "Failsafe" (critical) level, [Flight termination](#act_term) at the "Emergency" level.
+- `3: Distance-aware return, Critical level return, Emergency level land` (recommended) — Return mode at the "Failsafe" (critical) level, Land at the "Emergency" level, plus the [distance-aware return failsafe](#distance-aware-return-failsafe).
+- `4: Distance-aware return, Critical level return, Emergency level terminate`<Badge type="tip" text="main (PX4 v2.0)" /> — Return mode at the "Failsafe" (critical) level, [Flight termination](#act_term) at the "Emergency" level, plus the [distance-aware return failsafe](#distance-aware-return-failsafe).
 
   ::: tip
   This option may be preferred for vehicles that have a [parachute](../peripherals/parachute.md), as it enables controlled landing when there is no power at all.
@@ -98,14 +98,14 @@ The failsafe actions can then be set to one of:
   If it is not available in the setup screen, [set the parameter](../advanced_config/parameters.md) directly to [COM_LOW_BAT_ACT = 4](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT).
   :::
 
-- `5: Distance-aware return, Critical level return, Emergency level land`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `3`, plus the [distance-aware return failsafe](#distance-aware-return-failsafe).
-- `6: Distance-aware return, Critical level return, Emergency level terminate`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `4`, plus the [distance-aware return failsafe](#distance-aware-return-failsafe).
+- `5: Critical level return, Emergency level land`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `3`, but without the [distance-aware return failsafe](#distance-aware-return-failsafe) (only warns).
+- `6: Critical level return, Emergency level terminate`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `4`, but without the [distance-aware return failsafe](#distance-aware-return-failsafe) (only warns).
 
 The settings and underlying parameters are shown below.
 
 | Setting                                             | Parameter                                                                    | Description                                                                                                                                                                                                        |
 | --------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action         | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Land, or Return and then Land or Terminate when capacity drops below the trigger levels. Options `5` and `6` add distance-aware return.                                                                      |
+| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action         | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Land, or Return and then Land or Terminate when capacity drops below the trigger levels. Options `3` and `4` add distance-aware return.                                                                      |
 | <a id="BAT_LOW_THR"></a>Battery Warn Level          | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)         | Percentage capacity for warnings (or other actions).                                                                                                                                                               |
 | <a id="BAT_CRIT_THR"></a>Battery Failsafe Level     | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)       | Percentage capacity for Return action (or other actions if a single action selected).                                                                                                                              |
 | <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR) | Percentage capacity for triggering Land (immediately) action.                                                                                                                                                      |
@@ -117,7 +117,7 @@ The settings and underlying parameters are shown below.
 The _distance-aware return_ failsafe engages [Return mode](../flight_modes/return.md) when the estimated remaining flight time drops to the time needed to return (in aviation this point is known as "bingo fuel").
 Unlike the [battery level failsafe](#battery-level-failsafe), it accounts for how far away the vehicle is: it triggers earlier when the return destination is far away, and later when it is close.
 
-It is enabled by setting [COM_LOW_BAT_ACT](#COM_LOW_BAT_ACT) to `5` or `6`.
+It is enabled by setting [COM_LOW_BAT_ACT](#COM_LOW_BAT_ACT) to `3` or `4`.
 With all other options PX4 only warns ("Low remaining flight time, return advised").
 
 PX4 compares:

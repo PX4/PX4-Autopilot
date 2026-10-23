@@ -66,10 +66,10 @@ private:
 		Warning = 0, // Warning
 		Return = 1, // Return mode (deprecated)
 		Land = 2, // Land mode
-		ReturnOrLand = 3, // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
-		ReturnOrTerminate = 4, // Return mode at critically low level, Terminate if reaching dangerously low levels
-		ReturnOrLandWithDistanceAwareReturn = 5, // ReturnOrLand, plus Return mode when the remaining flight time is only just enough to return
-		ReturnOrTerminateWithDistanceAwareReturn = 6 // ReturnOrTerminate, plus Return mode when the remaining flight time is only just enough to return
+		ReturnOrLand = 3, // Return mode at critically low level, Land mode at current position if reaching dangerously low levels, plus distance-aware return
+		ReturnOrTerminate = 4, // Return mode at critically low level, Terminate if reaching dangerously low levels, plus distance-aware return
+		ReturnOrLandWithoutDistanceAwareReturn = 5, // ReturnOrLand, but only warn when the remaining flight time is only just enough to return
+		ReturnOrTerminateWithoutDistanceAwareReturn = 6 // ReturnOrTerminate, but only warn when the remaining flight time is only just enough to return
 	};
 
 	enum class offboard_loss_failsafe_mode : int32_t {

@@ -149,17 +149,17 @@ parameters:
         long: |-
           Action when the battery drops below the critical (BAT_CRIT_THR) or emergency (BAT_EMERGEN_THR) level.
 
-          Options 5 and 6 also engage Return mode when the remaining flight time is only just enough to return (distance-aware return, with the margin set by RTL_TIME_FACTOR and RTL_TIME_MARGIN).
+          Options 3 and 4 also engage Return mode when the remaining flight time is only just enough to return (distance-aware return, with the margin set by RTL_TIME_FACTOR and RTL_TIME_MARGIN).
           This needs a remaining flight time estimate, such as from BATn_CAPACITY or a smart battery.
           The other options only warn.
       type: enum
       values:
         0: Warning
         2: Land mode
-        3: Critical level return, Emergency level land
-        4: Critical level return, Emergency level terminate
-        5: Distance-aware return, Critical level return, Emergency level land
-        6: Distance-aware return, Critical level return, Emergency level terminate
+        3: Distance-aware return, Critical level return, Emergency level land
+        4: Distance-aware return, Critical level return, Emergency level terminate
+        5: Critical level return, Emergency level land
+        6: Critical level return, Emergency level terminate
       default: 0
     COM_FAIL_ACT_T:
       description:
