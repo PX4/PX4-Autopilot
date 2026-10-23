@@ -22,11 +22,11 @@ class UAVCAN_EXPORT LinkedListNode : Noncopyable
     T* next_;
 
 protected:
-    LinkedListNode()
+    UAVCAN_CONSTEXPR LinkedListNode()
         : next_(UAVCAN_NULLPTR)
     { }
 
-    ~LinkedListNode() { }
+    ~LinkedListNode() UAVCAN_DEFAULT_DTOR;
 
 public:
     T* getNextListNode() const { return next_; }

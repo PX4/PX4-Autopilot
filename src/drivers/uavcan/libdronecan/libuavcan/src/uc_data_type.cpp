@@ -106,7 +106,8 @@ bool DataTypeDescriptor::isValid() const
 
 bool DataTypeDescriptor::match(DataTypeKind kind, const char* name) const
 {
-    return (kind_ == kind) && !std::strncmp(full_name_, name, MaxFullNameLen);
+    return (kind_ == kind) && (full_name_ != UAVCAN_NULLPTR) && (name != UAVCAN_NULLPTR) &&
+           !std::strncmp(full_name_, name, MaxFullNameLen);
 }
 
 bool DataTypeDescriptor::match(DataTypeKind kind, DataTypeID id) const
@@ -151,7 +152,9 @@ bool DataTypeDescriptor::operator==(const DataTypeDescriptor& rhs) const
         (kind_ == rhs.kind_) &&
         (id_ == rhs.id_) &&
         (signature_ == rhs.signature_) &&
-        !std::strncmp(full_name_, rhs.full_name_, MaxFullNameLen);
+        ((full_name_ == rhs.full_name_) ||
+         ((full_name_ != UAVCAN_NULLPTR) && (rhs.full_name_ != UAVCAN_NULLPTR) &&
+          !std::strncmp(full_name_, rhs.full_name_, MaxFullNameLen)));
 }
 
 }

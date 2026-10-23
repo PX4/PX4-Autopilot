@@ -86,6 +86,20 @@
  * This specification is used by some error reporting functions like in the Logger class.
  * The default can be overriden by defining the macro UAVCAN_NOEXCEPT explicitly, e.g. via compiler options.
  */
+/**
+ * Constexpr constructors and defaulted (trivial) destructors let static objects be
+ * constant-initialised, which saves the run-time guard, the constructor call and the atexit
+ * registration per instance. They follow the compiler's standard rather than UAVCAN_CPP_VERSION,
+ * so that a build configured for C++03 on a newer compiler still benefits.
+ */
+#if __cplusplus >= 201103L
+# define UAVCAN_CONSTEXPR constexpr
+# define UAVCAN_DEFAULT_DTOR = default
+#else
+# define UAVCAN_CONSTEXPR
+# define UAVCAN_DEFAULT_DTOR { }
+#endif
+
 #ifndef UAVCAN_NOEXCEPT
 # if UAVCAN_EXCEPTIONS
 #  if UAVCAN_CPP_VERSION >= UAVCAN_CPP11
