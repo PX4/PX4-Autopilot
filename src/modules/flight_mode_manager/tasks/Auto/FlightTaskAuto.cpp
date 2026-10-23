@@ -193,6 +193,22 @@ bool FlightTaskAuto::update()
 		break;
 	}
 
+	// A terrain-relative target moves up and down with the terrain under the vehicle.
+	// Feed that rate forward so the smoother moves its trajectory along with the target
+	// instead of only chasing it, which it does slowly on long horizontal legs where the
+	// straight-line path gives Z only a small share of the speed. This is the target's
+	// own motion, not a correction of the altitude error, so it adds no extra feedback loop.
+	const position_setpoint_s &current_setpoint = _position_setpoint_triplet_sub.get().current;
+
+	if (current_setpoint.alt_is_terrain_relative
+	    && PX4_ISFINITE(current_setpoint.alt_rate)
+	    && PX4_ISFINITE(_position_setpoint(2))) {
+		// alt_rate is positive up, NED z is positive down
+		_velocity_setpoint(2) = math::constrain(-current_setpoint.alt_rate,
+							-_param_mpc_z_v_auto_up.get(),
+							_param_mpc_z_v_auto_dn.get());
+	}
+
 	_checkEmergencyBraking();
 	Vector3f waypoints[] = {_triplet_previous, _position_setpoint, _triplet_next};
 

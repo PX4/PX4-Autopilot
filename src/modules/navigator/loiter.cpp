@@ -209,6 +209,10 @@ Loiter::reposition()
 		pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
+		pos_sp_triplet->previous.valid = true;
+		pos_sp_triplet->previous.alt_is_terrain_relative = false;
+		pos_sp_triplet->previous.alt_above_terrain = NAN;
+		pos_sp_triplet->previous.alt_rate = NAN;
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
 		pos_sp_triplet->next.valid = false;
 

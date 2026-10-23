@@ -21,7 +21,10 @@ float32 vz			# local velocity setpoint in m/s in NED
 
 float64 lat			# latitude, in deg
 float64 lon			# longitude, in deg
-float32 alt			# altitude AMSL, in m
+float32 alt			# altitude AMSL, in m. Authoritative field consumed by the position controller. When alt_is_terrain_relative is true, the navigator re-resolves this each loop as alt_above_terrain + terrain_alt
+bool alt_is_terrain_relative	# true if the setpoint is meant to track terrain. The navigator keeps `alt` in sync with `alt_above_terrain + vehicle_global_position.terrain_alt`
+float32 alt_above_terrain	# [m] desired AGL when alt_is_terrain_relative is true; ignored otherwise. NaN means undefined
+float32 alt_rate		# [m/s] rate at which `alt` moves (positive up) when alt_is_terrain_relative is true, i.e. the low-pass filtered rate of change of the terrain altitude; ignored otherwise. NaN means unknown
 float32 yaw			# yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task
 
 float32 loiter_radius		# [m] [@range 0, INF] loiter major axis radius

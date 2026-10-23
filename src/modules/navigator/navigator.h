@@ -70,6 +70,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/telemetry_status.h>
 
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
@@ -431,6 +432,17 @@ private:
 	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
 
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
+
+	// Terrain altitude rate for terrain-relative setpoints. The terrain altitude is smoothed
+	// before and after differentiating because the derivative amplifies range finder noise.
+	static constexpr float kTerrainAltRateTimeConstant{0.3f};	/**< [s] of each of the two filter stages */
+	static constexpr float kTerrainAltRateMaxSampleInterval{0.5f};	/**< [s] longer gaps restart the rate estimate */
+	AlphaFilter<float> _terrain_alt_filter{kTerrainAltRateTimeConstant};
+	AlphaFilter<float> _terrain_alt_rate_filter{kTerrainAltRateTimeConstant};
+	bool _terrain_alt_rate_valid{false};
+	hrt_abstime _terrain_alt_timestamp_sample_prev{0};
+	uint8_t _terrain_reset_counter_prev{0};
+	uint8_t _terrain_alt_reset_counter_prev{0};
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
@@ -477,6 +489,24 @@ private:
 
 	// update subscriptions
 	void params_update();
+
+	/**
+	 * Re-resolve `alt` of every triplet entry whose `alt_is_terrain_relative`
+	 * flag is set, using the latest EKF terrain estimate. Called every loop
+	 * before the triplet is published so terrain-relative setpoints track
+	 * the surface continuously as the vehicle moves over varying terrain.
+	 *
+	 * This is a no-op until something (DO_REPOSITION with frame
+	 * MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) actually sets the flag.
+	 */
+	void refresh_terrain_relative_setpoints();
+
+	/**
+	 * Track how fast the EKF terrain altitude changes as the vehicle moves.
+	 * The result is handed to the flight task as `alt_rate` so it can follow
+	 * a terrain-relative setpoint without lagging behind it.
+	 */
+	void update_terrain_alt_rate();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers
