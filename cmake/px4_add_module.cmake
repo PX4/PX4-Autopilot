@@ -91,7 +91,7 @@ function(px4_add_module)
 		REQUIRED MODULE MAIN
 		ARGN ${ARGN})
 
-	if(UNITY_BUILD AND (${PX4_PLATFORM} STREQUAL "nuttx"))
+	if(UNITY_BUILD AND (${PX4_PLATFORM} MATCHES "^(nuttx|zephyr)$"))
 		# build standalone test library to catch compilation errors and provide sane output
 		add_library(${MODULE}_original STATIC EXCLUDE_FROM_ALL ${SRCS})
 		if(DEPENDS)
@@ -133,6 +133,9 @@ function(px4_add_module)
 				endif()
 			endforeach()
 		endif()
+
+	elseif(DYNAMIC AND (${PX4_PLATFORM} STREQUAL "zephyr"))
+		message(FATAL_ERROR "${MODULE}: dynamic modules are not supported on Zephyr yet")
 
 	elseif(DYNAMIC AND MAIN AND (${PX4_PLATFORM} STREQUAL "posix"))
 		add_library(${MODULE} SHARED ${SRCS})

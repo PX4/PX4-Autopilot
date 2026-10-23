@@ -1,0 +1,15 @@
+manifest:
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: 6f240640cd6a5917ffa5be8eac24bcb71a7b210e
+      import:
+        name-allowlist:
+          - cmsis
+          - cmsis_6
+          - hal_nxp
+          - picolibc

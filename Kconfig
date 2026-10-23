@@ -19,6 +19,8 @@ menu "Toolchain"
             bool "qurt"
         config PLATFORM_ROS2
             bool "ros2"
+        config PLATFORM_ZEPHYR
+            bool "zephyr"
     endchoice
 
     config BOARD_PLATFORM
@@ -27,6 +29,7 @@ menu "Toolchain"
         default "posix" if PLATFORM_POSIX
         default "qurt" if PLATFORM_QURT
         default "ros2" if PLATFORM_ROS2
+        default "zephyr" if PLATFORM_ZEPHYR
 
     config BOARD_LOCKSTEP
         bool "Force enable lockstep"
@@ -274,7 +277,7 @@ source "src/templates/Kconfig"
 endmenu
 
 menu "platforms"
-depends on PLATFORM_QURT || PLATFORM_POSIX || PLATFORM_NUTTX
+depends on PLATFORM_QURT || PLATFORM_POSIX || PLATFORM_NUTTX || PLATFORM_ZEPHYR
 source "platforms/Kconfig"
 endmenu
 

@@ -49,6 +49,13 @@
 #include <limits.h>
 #include <string.h>
 
+#if defined(__PX4_ZEPHYR)
+// SCHED_FIFO threads are cooperative on Zephyr
+#define PX4_WQ_SCHED_POLICY SCHED_RR
+#else
+#define PX4_WQ_SCHED_POLICY SCHED_FIFO
+#endif
+
 using namespace time_literals;
 
 namespace px4
@@ -257,7 +264,7 @@ WorkQueueRunner(void *context)
 	return nullptr;
 }
 
-#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+#if (defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)) || defined(__PX4_ZEPHYR)
 // Wrapper for px4_task_spawn_cmd interface
 inline static int
 WorkQueueRunner(int argc, char *argv[])
@@ -283,8 +290,8 @@ WorkQueueManagerRun(int, char **)
 			// create new work queue
 
 			// stack size
-#if defined(__PX4_NUTTX) || defined(__PX4_QURT)
-			const size_t stacksize = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
+#if defined(__PX4_NUTTX) || defined(__PX4_QURT) || defined(__PX4_ZEPHYR)
+			const size_t stacksize = math::max((int)PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
 #elif defined(__PX4_POSIX)
 			// On posix system , the desired stacksize round to the nearest multiplier of the system pagesize
 			// It is a requirement of the  pthread_attr_setstacksize* function
@@ -294,10 +301,15 @@ WorkQueueManagerRun(int, char **)
 #endif
 
 			// priority
-			int sched_priority = sched_get_priority_max(SCHED_FIFO) + wq->relative_priority;
+#if defined(__PX4_ZEPHYR)
+			// a PX4 priority, which the platform maps to Zephyr's
+			int sched_priority = SCHED_PRIORITY_MAX + wq->relative_priority;
+#else
+			int sched_priority = sched_get_priority_max(PX4_WQ_SCHED_POLICY) + wq->relative_priority;
+#endif
 
-			// use pthreads for NuttX flat and posix builds. For NuttX protected build, use tasks or kernel threads
-#if !defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT)
+			// use pthreads for NuttX flat and posix builds. For NuttX protected build and Zephyr, use tasks or kernel threads
+#if (!defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT)) && !defined(__PX4_ZEPHYR)
 			pthread_attr_t attr;
 			int ret_attr_init = pthread_attr_init(&attr);
 
@@ -368,7 +380,7 @@ WorkQueueManagerRun(int, char **)
 			const char *arg[2] = {arg1, nullptr};
 
 			int pid = px4_task_spawn_cmd(wq->name,
-						     SCHED_FIFO,
+						     PX4_WQ_SCHED_POLICY,
 						     sched_priority,
 						     stacksize,
 						     WorkQueueRunner,
