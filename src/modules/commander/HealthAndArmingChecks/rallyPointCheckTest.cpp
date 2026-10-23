@@ -38,6 +38,8 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/param.h>
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/event.h>
 
 // to run: make tests TESTFILTER=rallyPointCheck
 
@@ -196,6 +198,58 @@ TEST_F(RallyPointChecksTest, FailsafeHoldDuringOtherModeKeepsReturnUnavailable)
 	EXPECT_TRUE(result.warned);
 	EXPECT_FALSE(result.return_can_run);
 	EXPECT_TRUE(result.return_required);
+}
+
+TEST_F(RallyPointChecksTest, RouteReturnWarningIsReportedInEveryMode)
+{
+	// Ground stations list a check only in the modes it is reported for, the event's first argument.
+	int32_t rtl_type = 7;
+	param_set_no_notification(param_find("RTL_TYPE"), &rtl_type);
+	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, false);
+	// the event topic has to exist before the first send, or the queued events are lost
+	orb_advertise(ORB_ID(event), nullptr);
+	uORB::Subscription event_sub{ORB_ID(event)};
+	event_s event{};
+
+	const struct {
+		const char *name;
+		uint8_t nav_state;
+		uint8_t user_intention;
+	} cases[] {
+		{"Position", vehicle_status_s::NAVIGATION_STATE_POSCTL, vehicle_status_s::NAVIGATION_STATE_POSCTL},
+		{"Hold in Return", vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL},
+	};
+
+	for (const auto &c : cases) {
+		SCOPED_TRACE(c.name);
+		vehicle_status_s status{};
+		status.nav_state = c.nav_state;
+		status.nav_state_user_intention = c.user_intention;
+		Context context{status};
+		failsafe_flags_s failsafe_flags{};
+		Report reporter{failsafe_flags, 0};
+		RallyPointChecks check;
+
+		while (event_sub.update(&event)) {}
+
+		reporter.reset();
+		check.checkAndReport(context, reporter);
+		reporter.finalize();
+		reporter.report(false);
+
+		uint32_t reported_modes = 0;
+
+		while (event_sub.update(&event)) {
+			if (event.id == events::ID("check_rtl_route_unavailable")) {
+				memcpy(&reported_modes, event.arguments, sizeof(reported_modes));
+			}
+		}
+
+		EXPECT_EQ(reported_modes, static_cast<uint32_t>(NavModes::All));
+		// Arming stays possible in the other modes, and the check still fails for Return.
+		EXPECT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_POSCTL));
+		EXPECT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL));
+	}
 }
 
 TEST_F(RallyPointChecksTest, OtherReturnTypesIgnoreTheRoute)

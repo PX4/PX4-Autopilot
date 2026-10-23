@@ -10,12 +10,14 @@ From the repository root:
 
 ```bash
 pip install streamlit folium streamlit-folium
-make px4_sitl_test EXTERNAL_MODULES_LOCATION=$PWD/Tools/navigator_mission_planner_visualizer/planner_cli mission_route_planner_cli
+cmake -S . -B build/px4_sitl_test_planner_cli -G Ninja -DCONFIG=px4_sitl_test \
+  -DEXTERNAL_MODULES_LOCATION=$PWD/Tools/navigator_mission_planner_visualizer/planner_cli
+cmake --build build/px4_sitl_test_planner_cli --target mission_route_planner_cli
 cd Tools/navigator_mission_planner_visualizer
 streamlit run mission_planner_tools.py
 ```
 
-The `make` line builds the optional planner CLI, see [Running the planner](#running-the-planner).
+The `cmake` lines build the optional planner CLI, see [Running the planner](#running-the-planner).
 
 Checked with Python 3.8, Streamlit 1.40, folium 0.18 and streamlit-folium 0.22.
 
@@ -54,7 +56,7 @@ This tool does not run mission-upload feasibility validation. Drawing a fence ac
 - Safe points: `makeSafePointAbsolute`, `makeSafePointFromOffset`.
 - Positions: `makePositionAbsolute`, `makePositionFromOffset`, `routePosition`, `mission_route::Position p{...}` and `x = mission_route::Position{...}`. The variable name is kept, and names containing "vehicle" get the velocity arrow.
 - Velocity: `request.velocity_north_m_s = ...;` and `velocity_east_m_s`.
-- Geofences: the exported `makeFencePoint(...)` records, plus `polygon(...)`, `circle(...)` and `exclusionSquare()` from the current geofence tests, and `exclusionCircle(...)` from the Return tests. The geofence fixture helpers, including `routePosition`, use offsets from (47, 8); `exclusionCircle` uses `kBaseLat`/`kBaseLon`. Paste the relevant fixture calls along with the mission and vehicle.
+- Geofences: the exported `makeFencePoint(...)` records, plus `polygon(...)`, `circle(...)` and `exclusionSquare()` from the current geofence tests, and `exclusionCircle(...)` from the Return tests. The geofence fixture helpers, including `routePosition`, use offsets from the default `GeofenceTestBase` reference; `exclusionCircle` uses `kBaseLat`/`kBaseLon`. The parser reads that default reference and `exclusionSquare()` from `geofence_test_helpers.h`, and the default altitude argument of `routePosition` from `test_mission_route_geofence.cpp`. Fixtures that pass a reference of their own, such as the antimeridian tests, are not supported: their helper geometry is placed around the default reference. Paste the relevant fixture calls along with the mission and vehicle.
 - Constants: numeric `const`/`constexpr` definitions and `+ - * /` between them. `kBaseLat`, `kBaseLon` and `kAlt` default to the values of the helper header; a definition in the pasted source overrides them.
 
 Frame arguments are ignored and every altitude is read as AMSL, so a `NAV_FRAME_GLOBAL_RELATIVE_ALT` safe point is planned at the wrong altitude. The parser does not execute code, follow includes or unroll loops. Paste one scenario at a time.
@@ -88,9 +90,11 @@ Scenes with fences always export absolute latitude/longitude for every item, at 
 
 ## Running the planner
 
-The tool runs the real `MissionRoutePlanner` through a command-line binary, `mission_route_planner_cli`, built with the PX4 toolchain. Its source is in `planner_cli/` and enters the build through PX4's `EXTERNAL_MODULES_LOCATION` hook. The executable is `build/px4_sitl_test/mission_route_planner_cli`. It links Navigator and Dataman to load geofences into RAM for each run. Without fences, it runs the planner without geofence checks. It is built by the `make` line under [Running](#running).
+The tool runs the real `MissionRoutePlanner` through a command-line binary, `mission_route_planner_cli`, built with the PX4 toolchain. Its source is in `planner_cli/` and enters the build through PX4's `EXTERNAL_MODULES_LOCATION` hook. That hook is a single CMake cache variable, shared with any other external modules, and a build directory keeps it once set. The CLI therefore has a build directory of its own, so `build/px4_sitl_test` (`make tests`) and your other builds keep the slot free for your own modules. The executable is `build/px4_sitl_test_planner_cli/mission_route_planner_cli`. It links Navigator and Dataman to load geofences into RAM for each run. Without fences, it runs the planner without geofence checks. It is built by the `cmake` lines under [Running](#running).
 
-Rebuild the same way after changing the planner sources. Each run starts the binary afresh, so a rebuilt binary is picked up on the next click without restarting the tool. The **Planner** panel next to the map compares the binary's timestamp with the planner sources and shows this command when the binary is stale, or when it has not been built yet.
+`build/px4_sitl_test_planner_cli` is a second full `px4_sitl_test` configuration: its first build fetches the test dependencies and compiles uORB, Navigator and Dataman, a few hundred MB in all. If you built the CLI with the earlier `make px4_sitl_test EXTERNAL_MODULES_LOCATION=...` command, remove the setting it left in `build/px4_sitl_test` with `cmake -U EXTERNAL_MODULES_LOCATION -S . -B build/px4_sitl_test`.
+
+Rebuild the same way after changing the planner sources. Each run starts the binary afresh, so a rebuilt binary is picked up on the next click without restarting the tool. The **Planner** panel next to the map compares the binary's timestamp with the planner sources and shows these commands when the binary is stale, or when it has not been built yet.
 
 The panel works on the new items when there are any, otherwise on the parsed test, and needs mission items and a vehicle position. Only position items reach the planner: `DO_JUMP` and VTOL transition items are not part of a parsed scene.
 

@@ -113,8 +113,19 @@ private:
 	bool loadNextRouteItem(mission_item_s &next_route_item);
 	/** @brief Publish the resolved route target and start its VTOL transition. */
 	void armRouteTransition(mission_route::VtolTransitionAction action, bool advance_route_after_transition);
+	/** @brief Prepare join and route transition items; a route transition aligns where the vehicle is. */
+	void prepareVtolTransitionItem(bool aligning) override;
+	bool routeReturnTransitionActive() const override;
 	bool frontTransitionInhibited() const override;
 	mission_route::VtolTransitionAction allowedRouteTransition(mission_route::VtolTransitionAction action) const;
+	/** Resolve the VTOL state at a mission position anchor, using lookahead only without a preceding mode. */
+	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);
+	/** getVtolStateAtMissionIndex() for all _mission.count indices in two passes; false if they do not fit or an item cannot be read. */
+	bool getVtolStatesForMission(uint8_t vtol_states[], int32_t capacity);
+	/** @param vtol_states optional getVtolStatesForMission() result, replaces the scan per target */
+	mission_route::VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed,
+			const uint8_t *vtol_states = nullptr);
+	mission_route::VtolTransitionAction vtolTransitionActionAfterReachingReverseTarget(int32_t reached_target_index);
 	/** @brief Publish the route target, or start its VTOL transition or the branch-off. */
 	void handleFollowRouteStage(const position_setpoint_s &current_setpoint_copy);
 	/** @brief Return true when the selected safe-point goal has a concrete VTOL landing approach to fly. */

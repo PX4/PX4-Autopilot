@@ -14,7 +14,8 @@ from .geometry import distance_m
 from .models import Fence, Position, Scene, Waypoint
 
 BINARY_NAME = "mission_route_planner_cli"
-BUILD_DIR = Path("build/px4_sitl_test")
+# A build directory of its own: EXTERNAL_MODULES_LOCATION stays in a build's cache once set.
+BUILD_DIR = Path("build/px4_sitl_test_planner_cli")
 CLI_LOCATION = Path("Tools/navigator_mission_planner_visualizer/planner_cli")
 # Any of these newer than the binary means the binary no longer runs the current code.
 SOURCE_GLOBS = (
@@ -260,8 +261,12 @@ def binary_path(root: Path) -> Path:
 
 
 def build_command(root: Path) -> str:
-    location = shlex.quote(str(root / CLI_LOCATION))
-    return f"make px4_sitl_test EXTERNAL_MODULES_LOCATION={location} {BINARY_NAME}"
+    """Configure the CLI's own px4_sitl_test build, then build only the CLI."""
+    source, build, location = (shlex.quote(str(path)) for path in (root, root / BUILD_DIR, root / CLI_LOCATION))
+    return (
+        f"cmake -S {source} -B {build} -G Ninja -DCONFIG=px4_sitl_test -DEXTERNAL_MODULES_LOCATION={location}\n"
+        f"cmake --build {build} --target {BINARY_NAME}"
+    )
 
 
 def stale_sources(root: Path, binary: Path) -> List[str]:

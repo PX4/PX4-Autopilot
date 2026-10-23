@@ -5,6 +5,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
+from planner_visualizer import planner_cli
 from planner_visualizer.geometry import offset_to_latlon
 from planner_visualizer.planner_cli import parse_output
 from test_planner_cli import CLI_OUTPUT, temporary_directory
@@ -214,8 +215,8 @@ class AppTest_(unittest.TestCase):
         root = temporary_directory(self)
         (root / "Makefile").write_text("")
         (root / "src/modules/navigator").mkdir(parents=True)
-        (root / "build/px4_sitl_test").mkdir(parents=True)
-        (root / "build/px4_sitl_test/mission_route_planner_cli").write_text("")
+        (root / planner_cli.BUILD_DIR).mkdir(parents=True)
+        planner_cli.binary_path(root).write_text("")
         return root
 
     def test_without_the_binary_the_plan_buttons_say_why_they_are_disabled(self):
