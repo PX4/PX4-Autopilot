@@ -155,6 +155,7 @@ A failsafe configured to Return selects Land instead, without applying [RTL_LAND
 If Land is also unavailable, the normal [failsafe escalation](../config/safety.md#position-loss-failsafe-action) to Descend or Terminate applies.
 While that failsafe remains active, a later successful route evaluation can change the selected action from Land back to Return.
 This availability check does not interrupt a Return that is already active.
+While Return is the selected mode, a failsafe that interrupts it keeps its own action, such as Hold, and a failsafe configured to Return resumes Return, which holds or lands where it is without a route.
 
 If Return starts or continues without a route, it uses the current location for its hold and landing sequence.
 There is no return-altitude climb.

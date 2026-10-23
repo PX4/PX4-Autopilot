@@ -281,10 +281,17 @@ void RTL::on_active()
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
-		// Check after the executor advances: a completed hold must enter landing before a retry can take over.
-		if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && _rtl_type == RtlType::RTL_DIRECT
-		    && _rtl_direct.canResumeRoute() && !_navigator->get_land_detected()->landed) {
-			retryRouteSafePoint();
+		if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT) {
+			// Check after the executor advances: a completed hold must enter landing before a retry can take over.
+			if (_rtl_type == RtlType::RTL_DIRECT && _rtl_direct.canResumeRoute()
+			    && !_navigator->get_land_detected()->landed) {
+				retryRouteSafePoint();
+
+			} else {
+				// Keep the status recent: commander checks the route again as soon as Return is left.
+				publishRtlStatus(_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
+						 ? routeSafePointIndex() : RTL_STATUS_NO_SAFE_POINT);
+			}
 		}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -353,9 +360,15 @@ void RTL::retryRouteSafePoint()
 	_rtl_direct.run(false);
 	_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
 	// Publish the executor type before its first VTOL transition command.
-	publishRtlStatus(plan.goal_type == mission_route::GoalType::kSafePoint
-			 ? static_cast<uint8_t>(plan.safe_point_index) : RTL_STATUS_NO_SAFE_POINT);
+	publishRtlStatus(routeSafePointIndex());
 	_route_follower->run(true);
+}
+
+uint8_t RTL::routeSafePointIndex() const
+{
+	const mission_route::RtlRoutePlan &plan = _route_safe_point.plan();
+	return plan.goal_type == mission_route::GoalType::kSafePoint
+	       ? static_cast<uint8_t>(plan.safe_point_index) : RTL_STATUS_NO_SAFE_POINT;
 }
 
 void RTL::applyReturnAltMin()
@@ -451,8 +464,7 @@ void RTL::setRtlTypeAndDestination()
 			const mission_route::RtlRoutePlan &plan = _route_safe_point.plan();
 			new_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
 			destination = {plan.goal_position.lat, plan.goal_position.lon, plan.goal_position.alt, NAN};
-			safe_point_index = plan.goal_type == mission_route::GoalType::kSafePoint
-					   ? static_cast<uint8_t>(plan.safe_point_index) : RTL_STATUS_NO_SAFE_POINT;
+			safe_point_index = routeSafePointIndex();
 
 		} else {
 			// Without a route, hold at the current location instead of returning directly to a destination.

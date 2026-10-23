@@ -1509,6 +1509,33 @@ TEST_F(RTLTest, RouteSafePointReturnUsesPlannerAndTracksCacheGeneration)
 	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), updated_view.generation);
 }
 
+// Keep the status recent: commander checks the route again as soon as Return is left.
+TEST_F(RTLTest, ActiveRouteReturnRepublishesItsStatus)
+{
+	prepareStraightRouteScenario();
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	primeNavigatorState();
+	uORB::SubscriptionData<rtl_status_s> status_sub{ORB_ID(rtl_status)};
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	ASSERT_TRUE(status_sub.update());
+
+	// Once per replan interval, not on every cycle.
+	_rtl.postponeDestinationCheckForTest();
+	runReturnCycles(3);
+	EXPECT_FALSE(status_sub.update());
+
+	const hrt_abstime interval_end = hrt_absolute_time();
+	_rtl.expireDestinationCheckForTest();
+	_rtl.run(true);
+	ASSERT_TRUE(status_sub.update());
+	EXPECT_GE(status_sub.get().timestamp, interval_end);
+	EXPECT_EQ(status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
+	EXPECT_EQ(status_sub.get().safe_point_index, 0);
+	EXPECT_FALSE(status_sub.get().is_evaluation_pending);
+}
+
 TEST_F(RTLTest, RouteSafePointReturnReplansAfterFenceReplacementFinishesLoading)
 {
 	const std::vector<mission_item_s> mission_items{
@@ -1803,12 +1830,18 @@ TEST_F(RTLTest, RouteRetryStopsOnceLandingStarts)
 	_rtl.run(true);
 	ASSERT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 	setMissionResultValid(mission);
+	uORB::SubscriptionData<rtl_status_s> status_sub{ORB_ID(rtl_status)};
 	_rtl.expireDestinationCheckForTest();
 	_rtl.run(true);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	EXPECT_TRUE(_rtl.directActiveForTest());
 	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 0u);
 	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+
+	// Without a retry, the status still reports the missing route.
+	ASSERT_TRUE(status_sub.update());
+	EXPECT_EQ(status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
+	EXPECT_EQ(status_sub.get().safe_point_index, UINT8_MAX);
 }
 
 TEST_F(RTLTest, RouteRetryStopsOnceLanded)
