@@ -103,6 +103,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
 	add_topic("parameter_update");
+	add_optional_topic("planar_course_setpoint", 100);
 	add_topic("position_controller_status", 500);
 	add_topic("position_controller_landing_status", 100);
 	add_optional_topic("pure_pursuit_status", 100);
@@ -129,7 +130,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensors_status_gnss", 200);
 	add_topic("sensors_status_imu", 200);
 	add_optional_topic("spoilers_setpoint", 1000);
-	add_optional_topic("surface_vehicle_course_setpoint", 100);
 	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
 	add_optional_topic("tecs_status", 200);

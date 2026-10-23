@@ -173,16 +173,16 @@ void AckermannPosControl::updateSubscriptions()
 		_stopped = false;
 	}
 
-	if (_surface_vehicle_course_setpoint_sub.updated()) {
-		surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint;
-		_surface_vehicle_course_setpoint_sub.copy(&surface_vehicle_course_setpoint);
-		_start_ned = Vector2f(surface_vehicle_course_setpoint.start_ned[0], surface_vehicle_course_setpoint.start_ned[1]);
+	if (_planar_course_setpoint_sub.updated()) {
+		planar_course_setpoint_s planar_course_setpoint;
+		_planar_course_setpoint_sub.copy(&planar_course_setpoint);
+		_start_ned = Vector2f(planar_course_setpoint.start_ned[0], planar_course_setpoint.start_ned[1]);
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
 		_arrival_speed = 0.f;
-		_cruising_speed = PX4_ISFINITE(surface_vehicle_course_setpoint.cruising_speed) ?
-				  surface_vehicle_course_setpoint.cruising_speed : _param_ro_speed_limit.get();
+		_cruising_speed = PX4_ISFINITE(planar_course_setpoint.cruising_speed) ?
+				  planar_course_setpoint.cruising_speed : _param_ro_speed_limit.get();
 		_target_waypoint_ned = Vector2f(NAN, NAN);
-		_course = surface_vehicle_course_setpoint.course;
+		_course = planar_course_setpoint.course;
 		_stopped = false;
 	}
 

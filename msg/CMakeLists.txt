@@ -168,6 +168,7 @@ set(msg_files
 	ParameterSetValueRequest.msg
 	ParameterSetValueResponse.msg
 	ParameterUpdate.msg
+	PlanarCourseSetpoint.msg
 	Ping.msg
 	PositionControllerLandingStatus.msg
 	PositionControllerStatus.msg
@@ -223,7 +224,6 @@ set(msg_files
 	SensorTemp.msg
 	SensorUwb.msg
 	SensorAirflow.msg
-	SurfaceVehicleCourseSetpoint.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg

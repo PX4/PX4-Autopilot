@@ -52,7 +52,7 @@
 #include <uORB/topics/rover_attitude_setpoint.h>
 #include <uORB/topics/rover_speed_setpoint.h>
 #include <uORB/topics/rover_position_setpoint.h>
-#include <uORB/topics/surface_vehicle_course_setpoint.h>
+#include <uORB/topics/planar_course_setpoint.h>
 
 using namespace matrix;
 
@@ -120,7 +120,7 @@ private:
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
 	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
-	uORB::Publication<surface_vehicle_course_setpoint_s> _surface_vehicle_course_setpoint_pub{ORB_ID(surface_vehicle_course_setpoint)};
+	uORB::Publication<planar_course_setpoint_s> _planar_course_setpoint_pub{ORB_ID(planar_course_setpoint)};
 
 	// Variables
 	Vector2f _pos_ctl_course_direction{NAN, NAN};
