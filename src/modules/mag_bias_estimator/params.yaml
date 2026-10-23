@@ -7,7 +7,9 @@ parameters:
         short: Enable online mag bias calibration
         long: |-
           This enables continuous calibration of the magnetometers
-          before takeoff using gyro data.
+          before takeoff using gyro data. Rotate the vehicle by hand while
+          disarmed, away from metal objects, vehicles and electronics that
+          disturb the magnetic field.
       type: boolean
       default: 1
       reboot_required: true
