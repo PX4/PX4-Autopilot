@@ -488,6 +488,28 @@ void VisionTargetEst::restartTimedOutEstimators()
 	}
 }
 
+void VisionTargetEst::handleAttitudeReset(const vehicle_attitude_s &attitude)
+{
+	if (attitude.timestamp == 0) {
+		return;
+	}
+
+	if (_attitude_reset_counter_valid && attitude.quat_reset_counter != _attitude_reset_counter) {
+		// A frame jump is not target motion. Reacquire rather than keeping a state/bias
+		// whose observations were rotated using the previous attitude solution.
+		const hrt_abstime sample_time = attitude.timestamp_sample != 0 ? attitude.timestamp_sample : attitude.timestamp;
+		// A future timestamp must not prevent reacquisition until the clock catches up.
+		const hrt_abstime reset_time = math::min(sample_time, nowUs());
+		_vte_position.resetFilter(reset_time);
+		_vte_orientation.resetFilter(reset_time);
+		resetAccDownsample();
+		PX4_WARN("VTE attitude reset, reacquiring target");
+	}
+
+	_attitude_reset_counter = attitude.quat_reset_counter;
+	_attitude_reset_counter_valid = true;
+}
+
 void VisionTargetEst::updateEstimators()
 {
 	perf_begin(_cycle_perf);
@@ -525,6 +547,14 @@ void VisionTargetEst::updateEstimators()
 				updatePosEst(gps_pos_offset_ned, vel_offset_ned, vel_offset_updated, acc_sample_count);
 				resetAccDownsample();
 			}
+		}
+
+	} else {
+		// Reset detection also runs when position input processing is stopped.
+		vehicle_attitude_s attitude{};
+
+		if (_vehicle_attitude_sub.update(&attitude)) {
+			handleAttitudeReset(attitude);
 		}
 	}
 
@@ -649,7 +679,9 @@ bool VisionTargetEst::pollLocalPose(LocalPose &local_pose)
 	local_pose.vel_xyz(2) = vehicle_local_position.vz;
 	local_pose.vel_valid = vehicle_local_position.v_xy_valid && vehicle_local_position.v_z_valid;
 
-	local_pose.timestamp = vehicle_local_position.timestamp;
+	// Use sample time so a queued pre-reset pose cannot pass the frame boundary check.
+	local_pose.timestamp = vehicle_local_position.timestamp_sample != 0
+			       ? vehicle_local_position.timestamp_sample : vehicle_local_position.timestamp;
 
 	return true;
 }
@@ -667,6 +699,9 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned, matr
 	if (!vehicle_attitude_updated) {
 		return false;
 	}
+
+	// Check the same attitude sample that will rotate this cycle's inputs.
+	handleAttitudeReset(vehicle_attitude);
 
 	if (vehicle_acceleration_updated) {
 		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);

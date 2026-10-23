@@ -124,8 +124,22 @@ bool VTEPosition::init()
 	return true;
 }
 
-void VTEPosition::resetFilter()
+void VTEPosition::resetFilter(hrt_abstime min_sample_time)
 {
+	// Keep the frame boundary across subsequent timeout/task resets.
+	if (min_sample_time > _min_sample_time) {
+		_min_sample_time = min_sample_time;
+	}
+
+	if (min_sample_time != 0) {
+		// These cached values use the old frame, even if published after the reset's sample time.
+		_local_position.valid = false;
+		_local_velocity.valid = false;
+		_pos_rel_gnss.valid = false;
+		_gps_pos_offset_ned.valid = false;
+		_velocity_offset_ned.valid = false;
+	}
+
 	_estimator_initialized = false;
 	_last_relative_meas_fused_time = 0;
 	_bias.set = false;
@@ -847,65 +861,69 @@ bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 {
 	const bool gnss_ready = !shouldBlockGnssFusionUntilBiasReady();
 	const bool vision_ready = !shouldBlockVisionFusionUntilBiasReady();
-	bool position_fused = false;
+	const TargetObs *order[kObsTypeCount];
+	unsigned count = 0;
 
+	// Preserve source priority when effective fusion times match.
 	if (fusion_mask.flags.fuse_target_gps_pos && gnss_ready) {
-		const TargetObs &obs = observations[obsIndex(ObsType::kTargetGpsPos)];
-
-		if ((obs.timestamp != 0) && fuseMeas(vehicle_acc_ned, obs)) {
-			position_fused = true;
-
-			if (!_bias.set) {
-				_pre_bias_reference = PreBiasReference::kGnss;
-			}
-		}
+		order[count++] = &observations[obsIndex(ObsType::kTargetGpsPos)];
 	}
 
 	if (fusion_mask.flags.fuse_mission_pos && gnss_ready) {
-		const TargetObs &obs = observations[obsIndex(ObsType::kMissionGpsPos)];
-
-		if ((obs.timestamp != 0) && fuseMeas(vehicle_acc_ned, obs)) {
-			position_fused = true;
-
-			if (!_bias.set) {
-				_pre_bias_reference = PreBiasReference::kGnss;
-			}
-		}
+		order[count++] = &observations[obsIndex(ObsType::kMissionGpsPos)];
 	}
 
 	if (fusion_mask.flags.fuse_vision && vision_ready) {
-		const TargetObs &obs = observations[obsIndex(ObsType::kFiducialMarker)];
-
-		if ((obs.timestamp != 0) && fuseMeas(vehicle_acc_ned, obs)) {
-			position_fused = true;
-
-			if (!_bias.set) {
-				_pre_bias_reference = PreBiasReference::kVision;
-			}
-
-			_last_relative_meas_fused_time = nowUs();
-		}
+		order[count++] = &observations[obsIndex(ObsType::kFiducialMarker)];
 	}
 
 	if (fusion_mask.flags.fuse_uav_gps_vel) {
-		const TargetObs &obs = observations[obsIndex(ObsType::kUavGpsVel)];
-
-		if (obs.timestamp != 0) {
-			fuseMeas(vehicle_acc_ned, obs);
-		}
+		order[count++] = &observations[obsIndex(ObsType::kUavGpsVel)];
 	}
 
 #if defined(CONFIG_VTEST_MOVING)
 
 	if (fusion_mask.flags.fuse_target_gps_vel) {
-		const TargetObs &obs = observations[obsIndex(ObsType::kTargetGpsVel)];
-
-		if (obs.timestamp != 0) {
-			fuseMeas(vehicle_acc_ned, obs);
-		}
+		order[count++] = &observations[obsIndex(ObsType::kTargetGpsVel)];
 	}
 
 #endif // CONFIG_VTEST_MOVING
+
+	const hrt_abstime last_delayed_time = (_last_predict >= kOosmMinTimeUs) ? _last_predict - kOosmMinTimeUs : 0;
+
+	for (unsigned i = 1; i < count; ++i) {
+		const TargetObs *obs = order[i];
+
+		// Near-current samples all fuse at now, so keep their source order.
+		if (obs->timestamp > last_delayed_time) {
+			continue;
+		}
+
+		unsigned j = i;
+
+		while (j > 0 && order[j - 1]->timestamp > obs->timestamp) {
+			order[j] = order[j - 1];
+			--j;
+		}
+
+		order[j] = obs;
+	}
+
+	bool position_fused = false;
+
+	for (unsigned i = 0; i < count; ++i) {
+		const TargetObs &obs = *order[i];
+
+		if (obs.timestamp == 0 || !fuseMeas(vehicle_acc_ned, obs)) {
+			continue;
+		}
+
+		if (obs.type == ObsType::kFiducialMarker) {
+			_last_relative_meas_fused_time = nowUs();
+		}
+
+		position_fused |= (obs.type != ObsType::kUavGpsVel) && (obs.type != ObsType::kTargetGpsVel);
+	}
 
 	return position_fused;
 }

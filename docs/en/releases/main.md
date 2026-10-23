@@ -43,17 +43,26 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   ROS 2 applications must subscribe to `/fmu/out/vehicle_gnss` (`px4_msgs/msg/VehicleGnss`) instead of `/fmu/out/vehicle_gps_position` (`px4_msgs/msg/SensorGps`).
   Read the timestamps from the top level of `VehicleGnss`: only `timestamp` and `timestamp_sample` are converted to ROS time, while `receiver.timestamp` and `receiver.timestamp_sample` stay on the PX4 boot clock.
   `timestamp` is now when the sensors module published the sample; use `timestamp_sample` for the measurement time.
-  `SENS_GPS_MASK`, `SENS_GPS_TAU`, `SENS_GPS_PRIME` and `SENS_GPSn_ID/OFFX/OFFY/OFFZ/DELAY` are now `SENS_GNSS_*` and `SENS_GNSSn_*` (the driver `GPS_*` and `EKF2_*` parameters are unchanged).
+  `SENS_GPS_MASK`, `SENS_GPS_TAU`, `SENS_GPS_PRIME` and `SENS_GPSn_ID/OFFX/OFFY/OFFZ/DELAY` are now `SENS_GNSS_*` and `SENS_GNSSn_*` (the driver `GPS_*` parameters are unchanged).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them.
   The log analysis scripts in the tree read both the old and the new names.
   The uORB-over-Cyphal registers are renamed from `uorb.sensor_gps` to `uorb.sensor_gnss` (`uavcan.sub.uorb.sensor_gnss.0.id`, `uavcan.pub.uorb.sensor_gnss.0.id`); `UCAN1_UORB_GPS` and `UCAN1_UORB_GPS_P` are unchanged. ([PX4-Autopilot#24399](https://github.com/PX4/PX4-Autopilot/pull/24399))
+- **The GNSS check parameters moved from EKF2 to the sensors module.**
+  `EKF2_GPS_CHECK` is now [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK), `EKF2_REQ_EPH`, `EKF2_REQ_EPV`, `EKF2_REQ_NSATS`, `EKF2_REQ_PDOP`, `EKF2_REQ_HDRIFT`, `EKF2_REQ_VDRIFT`, `EKF2_REQ_FIX` and `EKF2_REQ_SACC` are now `GNSS_REQ_*`, and `EKF2_REQ_GPS_H` is now [GNSS_REQ_TIME](../advanced_config/parameter_reference.md#GNSS_REQ_TIME).
+  Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them. ([PX4-Autopilot#28520](https://github.com/PX4/PX4-Autopilot/pull/28520), [PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
 - **`DO_JUMP` can only loop back and its repeat count must fit.**
   A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0, and if its repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
+- **The primary GNSS receiver defaults to Auto.**
+  [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) now defaults to `-1` (Auto) instead of `0`, and saved values are not changed: with Auto the moving base of a moving base pair is the primary receiver, and without one, a receiver that passes the strict checks ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH) and the other `GNSS_REQ_*` parameters) is used, then one with an RTK fixed solution.
+  To keep preferring the receiver on the main serial port, set `SENS_GNSS_PRIME` to `0`.
+  In flight the primary receiver is now also left when it has failed the strict checks for 10 s while the other receiver passed them. ([PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
 
 ## Other changes
 
 - Fast mission Return modes ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 and 4) now skip `DO_JUMP` commands (loops) while following the mission path. ([PX4-Autopilot#26993: fix(navigator): goToNextPositionItem skip loops when required](https://github.com/PX4/PX4-Autopilot/pull/26993))
+- A mission Return mode ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1, 2, 3 or 4) now reads the current mission on the cycle that activates it, so a mission uploaded or changed right as Return starts is used for the return type, the geofence avoidance destination and the starting item. The fast variants also discard the item index they recorded from an earlier mission when a different one is current. ([PX4-Autopilot#28748](https://github.com/PX4/PX4-Autopilot/pull/28748))
+- A `DO_JUMP` whose counter cannot be written to storage, for example on a failing SD card, is now skipped with a message to the operator. Previously the jump was taken again on every pass, repeating the same mission segment until a failsafe stopped the mission. ([PX4-Autopilot#28752](https://github.com/PX4/PX4-Autopilot/pull/28752))
 
 ### Hardware Support
 
@@ -86,6 +95,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - Added `RTL_TYPE=6` for battery-aware home priority return ([PX4-Autopilot#26968](https://github.com/PX4/PX4-Autopilot/pull/26968)).
   Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
+- [Secure boot](../advanced_config/bootloader_secure_boot.md#multi-part-signed-images) now supports applications that can boot securely from SD card or eMMC. ([PX4-Autopilot#28228](https://github.com/PX4/PX4-Autopilot/pull/28228))
 
 ### Estimation
 
@@ -117,7 +127,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### MAVLink
 
-- TBD
+- ESC/motor health is now reported in [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) using the [MAV_SYS_STATUS_SENSOR_PROPULSION](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_SENSOR_PROPULSION) bit instead of [MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS).
+  ([PX4-Autopilot#29192](https://github.com/PX4/PX4-Autopilot/pull/29192)).
 
 ### RC
 
@@ -125,7 +136,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Multi-Rotor
 
-- TBD
+- The neural network controller (`mc_nn_control`) now maps its actions to motor commands over the real motor range, so action -1 idles a motor instead of stopping it and the top of the range no longer runs past full scale. The two RPM limits and the thrust coefficient (`MC_NN_MIN_RPM`, `MC_NN_MAX_RPM`, `MC_NN_THRST_COEF`) are now checked against each other, and the module has its first unit tests. ([PX4-Autopilot#28433](https://github.com/PX4/PX4-Autopilot/pull/28433))
+- The neural network controller (`mc_nn_control`) now rejects at load a model whose input or output shape does not match what the controller expects, checks the position, attitude and angular velocity observations each cycle for validity, age and finiteness, and reports a fault on a bad observation or a non-finite output instead of stopping one motor. ([PX4-Autopilot#28504](https://github.com/PX4/PX4-Autopilot/pull/28504))
+- The multicopter position controller now moves its stored fallback setpoint along with the current setpoint when the estimator resets its position, velocity or heading, so when the setpoint is unusable at the moment of a reset the controller no longer flies a fallback setpoint that is offset by the amount of the reset. ([PX4-Autopilot#28810](https://github.com/PX4/PX4-Autopilot/pull/28810))
 
 ### VTOL
 

@@ -95,62 +95,67 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 			*instance = group_tries;
 		}
 
-		/* construct the new node, passing the ownership of path to it */
-		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, nodepath);
+		uORB::DeviceNode *existing_node = nullptr;
 
-		/* if we didn't get a device, that's bad */
-		if (node == nullptr) {
-			return -ENOMEM;
-		}
-
-		/* initialise the node - this may fail if e.g. a node with this name already exists */
-		ret = node->init();
-
-		/* if init failed, discard the node and its name */
-		if (ret != PX4_OK) {
-			delete node;
-
-			if (ret == -EEXIST) {
-				/* if the node exists already, get the existing one and check if it's advertised. */
-				uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
-
-				/*
-				 * We can claim an existing node in these cases:
-				 * - The node is not advertised (yet). It means there is already one or more subscribers or it was
-				 *   unadvertised.
-				 * - We are a single-instance advertiser requesting the first instance.
-				 *   (Usually we don't end up here, but we might in case of a race condition between 2
-				 *   advertisers).
-				 * - We are a subscriber requesting a certain instance.
-				 *   (Also we usually don't end up in that case, but we might in case of a race condtion
-				 *   between an advertiser and subscriber).
-				 */
-				bool is_single_instance_advertiser = is_advertiser && !instance;
-
-				if (existing_node != nullptr &&
-				    (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser)) {
-					if (is_advertiser) {
-						/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
-						 * could get the same instance).
-						 */
-						existing_node->mark_as_advertised();
-					}
-
-					ret = PX4_OK;
-
-				} else {
-					/* otherwise: already advertised, keep looking */
-				}
-			}
+		if (deviceNodeExists(static_cast<ORB_ID>(meta->o_id), group_tries)) {
+			// Known instance: skip allocating a node that init() would only reject with -EEXIST.
+			existing_node = getDeviceNodeLocked(meta, group_tries);
+			ret = -EEXIST;
 
 		} else {
-			if (is_advertiser) {
-				node->mark_as_advertised();
+			uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, nodepath);
+
+			if (node == nullptr) {
+				return -ENOMEM;
 			}
 
-			// add to the node map.
-			_node_list.add(node);
-			_node_exists[node->get_instance()].set((orb_id_size_t)node->id(), true);
+			/* initialise the node - this may fail if e.g. a node with this name already exists */
+			ret = node->init();
+
+			if (ret == PX4_OK) {
+				if (is_advertiser) {
+					node->mark_as_advertised();
+				}
+
+				// add to the node map.
+				_node_list.add(node);
+				_node_exists[node->get_instance()].set((orb_id_size_t)node->id(), true);
+
+			} else {
+				delete node;
+
+				if (ret == -EEXIST) {
+					existing_node = getDeviceNodeLocked(meta, group_tries);
+				}
+			}
+		}
+
+		if (existing_node != nullptr) {
+			/*
+			 * We can claim an existing node in these cases:
+			 * - The node is not advertised (yet). It means there is already one or more subscribers or it was
+			 *   unadvertised.
+			 * - We are a single-instance advertiser requesting the first instance.
+			 *   (Usually we don't end up here, but we might in case of a race condition between 2
+			 *   advertisers).
+			 * - We are a subscriber requesting a certain instance.
+			 *   (Also we usually don't end up in that case, but we might in case of a race condtion
+			 *   between an advertiser and subscriber).
+			 */
+			const bool is_single_instance_advertiser = is_advertiser && !instance;
+
+			if (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser) {
+				if (is_advertiser) {
+					/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
+					 * could get the same instance).
+					 */
+					existing_node->mark_as_advertised();
+				}
+
+				ret = PX4_OK;
+			}
+
+			/* otherwise: already advertised, keep looking */
 		}
 
 		group_tries++;
@@ -449,8 +454,10 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance)
 {
+	const ORB_ID id = static_cast<ORB_ID>(meta->o_id);
+
 	for (uORB::DeviceNode *node : _node_list) {
-		if ((strcmp(node->get_name(), meta->o_name) == 0) && (node->get_instance() == instance)) {
+		if ((node->id() == id) && (node->get_instance() == instance)) {
 			return node;
 		}
 	}

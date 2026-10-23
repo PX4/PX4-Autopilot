@@ -67,10 +67,7 @@ public:
 	void call(unsigned generation) override
 	{
 		// signal immediately if no interval, otherwise only if interval has elapsed
-		hrt_abstime last_update = _last_update.load();
-		const uint32_t interval_us = _interval_us.load();
-
-		if ((interval_us == 0) || (hrt_elapsed_time(&last_update) >= interval_us)) {
+		if (interval_elapsed()) {
 			pthread_cond_signal(&_cv);
 		}
 	}
