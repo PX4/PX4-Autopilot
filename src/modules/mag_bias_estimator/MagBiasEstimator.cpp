@@ -274,4 +274,4 @@ extern "C" __EXPORT int mag_bias_estimator_main(int argc, char *argv[])
 	return ModuleBase::main(MagBiasEstimator::desc, argc, argv);
 }
 
-} // namespace load_mon
+} // namespace mag_bias_estimator
