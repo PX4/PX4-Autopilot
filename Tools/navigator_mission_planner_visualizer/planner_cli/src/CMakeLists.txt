@@ -31,8 +31,11 @@
 #
 ############################################################################
 
-# Out-of-tree planner CLI for Tools/navigator_mission_planner_visualizer. Build it with:
-#   make px4_sitl_test EXTERNAL_MODULES_LOCATION=$PWD/Tools/navigator_mission_planner_visualizer/planner_cli mission_route_planner_cli
+# Out-of-tree planner CLI for Tools/navigator_mission_planner_visualizer. Build it in its own build
+# directory, since a build keeps EXTERNAL_MODULES_LOCATION in its cache:
+#   cmake -S . -B build/px4_sitl_test_planner_cli -G Ninja -DCONFIG=px4_sitl_test \
+#     -DEXTERNAL_MODULES_LOCATION=$PWD/Tools/navigator_mission_planner_visualizer/planner_cli
+#   cmake --build build/px4_sitl_test_planner_cli --target mission_route_planner_cli
 
 if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE AND PX4_PLATFORM STREQUAL "posix" AND BUILD_TESTING)
 	set(NAVIGATOR_DIR ${PX4_SOURCE_DIR}/src/modules/navigator)

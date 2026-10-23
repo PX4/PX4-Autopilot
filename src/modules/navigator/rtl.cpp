@@ -174,6 +174,7 @@ void RTL::on_activation()
 		_rtl_mission_type_handle->refreshMission();
 	}
 
+	_init_failure_reported = RtlType::NONE;
 	setRtlTypeAndDestination();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	reportNoRoute();
@@ -650,7 +651,13 @@ void RTL::setRtlTypeAndDestination()
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	if (should_init_mission_type && !initRtlMissionType(new_rtl_type, rtl_alt)) {
-		PX4_ERR("RTL executor init failed");
+		// Retried at every evaluation, every 2 s while inactive:
+		// log a failing type once until an init succeeds or Return activates.
+		if (_init_failure_reported != new_rtl_type) {
+			PX4_ERR("RTL executor init failed");
+			_init_failure_reported = new_rtl_type;
+		}
+
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
 		if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
@@ -664,6 +671,10 @@ void RTL::setRtlTypeAndDestination()
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		new_rtl_type = RtlType::RTL_DIRECT;
+
+	} else if (should_init_mission_type) {
+		// A later failure of the same type is logged again.
+		_init_failure_reported = RtlType::NONE;
 	}
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0

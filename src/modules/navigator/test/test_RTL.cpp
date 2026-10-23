@@ -41,6 +41,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstring>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -48,9 +49,11 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <parameters/param.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/uORB.h>
+#include <uORB/topics/log_message.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/vehicle_status.h>
@@ -245,6 +248,7 @@ public:
 	}
 
 	RtlType rtlTypeForTest() const { return _rtl_type; }
+	bool directActiveForTest() { return _rtl_direct.isActive(); }
 
 	void evaluateReturnTypeForTest(int32_t rtl_type)
 	{
@@ -257,13 +261,21 @@ public:
 		setRtlTypeAndDestination();
 	}
 
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	void activateReturnTypeForTest(int32_t rtl_type)
 	{
 		_param_rtl_type.set(rtl_type);
 		run(true);
 	}
 
+	void failNextExecutorInitForTest(RtlType rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)
+	{
+		_fail_next_executor_init = true;
+		_failing_executor_type = rtl_type;
+	}
+
+	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	void activateRouteSafePointReturnForTest() { activateReturnTypeForTest(7); }
 
 	void evaluateInactiveRouteSafePointReturnForTest()
@@ -294,17 +306,10 @@ public:
 		return _route_follower != nullptr && _route_follower->_state.stage == RtlMissionSafePointFollow::Stage::BranchOff;
 	}
 
-	bool directActiveForTest() { return _rtl_direct.isActive(); }
-
 	void expireDestinationCheckForTest() { _destination_check_time = hrt_absolute_time() - 3'000'000; }
 	static constexpr hrt_abstime routeInputWaitForTest() { return ROUTE_INPUT_WAIT; }
 	void setRouteUploadAgeForTest(hrt_abstime age) { _route_upload_time = hrt_absolute_time() - age; }
 	void postponeDestinationCheckForTest() { _destination_check_time = hrt_absolute_time(); }
-	void failNextExecutorInitForTest(RtlType rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)
-	{
-		_fail_next_executor_init = true;
-		_failing_executor_type = rtl_type;
-	}
 
 	void replaceMissionExecutorForTest(RtlBase *executor, RtlType rtl_type)
 	{
@@ -322,13 +327,13 @@ public:
 		_route_follower->_active_jump_anchor = loop_segment;
 	}
 
-	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
 	unsigned routeExecutorInitsForTest() const { return _route_executor_inits; }
 	int32_t missionSequenceForTest() const { return _mission_sub.get().current_seq; }
 	bool routePlanSourceStillValidForTest() const { return _route_safe_point.sourceStillValid(_mission_sub.get()); }
 	bool routePlanMatchesSourceForTest(const mission_s &mission) const { return _route_safe_point.sourceStillValid(mission); }
 	uint32_t routePlanMissionGenerationForTest() const { return _route_safe_point.missionGeneration(); }
 	mission_route::ActiveJumpAnchor lastRouteLoopSegmentForTest() const { return _route_safe_point.activeJumpAnchor(); }
+#endif
 
 protected:
 	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt) override
@@ -338,7 +343,9 @@ protected:
 		}
 
 		if (_fail_next_executor_init && new_rtl_type == _failing_executor_type) {
+			// As a failed allocation: the previous executor is deleted first.
 			_fail_next_executor_init = false;
+			stopAndDeleteRtlMissionType();
 			return false;
 		}
 
@@ -349,7 +356,6 @@ private:
 	bool _fail_next_executor_init{false};
 	RtlType _failing_executor_type{RtlType::RTL_MISSION_SAFE_POINT_FOLLOW};
 	unsigned _route_executor_inits{0};
-#endif
 };
 
 template <typename RtlMissionType>
@@ -4064,4 +4070,244 @@ TEST_F(RTLTest, ReturnFollowsTheCheckedMissionAfterHomeUpdates)
 	// the dataman is shared by every case in this binary, so leave the slots as they were found
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_FENCE_POINTS_STATE));
+}
+
+// WHY: Navigator activates the next mode, e.g. a precision landing, in the cycle that leaves Return.
+// WHAT: Return stops its executors in that cycle, so none stops the new mode a cycle later.
+TEST_F(RTLTest, ReturnExitStopsItsExecutorsBeforeTheNextMode)
+{
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	_rtl.run(true);
+	ASSERT_TRUE(_rtl.directActiveForTest());
+
+	// GIVEN: Return is left for precision landing, and Navigator runs Return's exit cycle first
+	PrecLand &precland = *_navigator.get_precland();
+	_rtl.run(false);
+	EXPECT_FALSE(_rtl.directActiveForTest());
+	precland.run(true);
+	ASSERT_TRUE(precland.is_activated());
+
+	// WHEN: Return runs its next inactive cycle
+	_rtl.run(false);
+
+	// THEN: the precision landing keeps running
+	EXPECT_TRUE(precland.is_activated());
+}
+
+// WHY: leaving Return and selecting it again in the next cycle skips Return's inactive cycle in between.
+// WHAT: the new activation flies to its own destination, not to the one of the previous activation.
+TEST_F(RTLTest, QuickReturnReentryFliesToTheNewDestination)
+{
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	_rtl.run(true);
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	ASSERT_TRUE(current.valid);
+	ASSERT_NEAR(current.lat, kBaseLat, 1e-7);
+	ASSERT_NEAR(current.lon, kBaseLon, 1e-7);
+
+	// GIVEN: Return is left for one cycle, in which Home moves
+	_rtl.run(false);
+	const PositionYawSetpoint new_home = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 300.f, kAlt);
+	publishHomePosition(new_home);
+	primeNavigatorState();
+
+	// WHEN: Return is selected again
+	_rtl.run(true);
+
+	// THEN: it returns to the new Home
+	EXPECT_TRUE(current.valid);
+	EXPECT_NEAR(current.lat, new_home.lat, 1e-7);
+	EXPECT_NEAR(current.lon, new_home.lon, 1e-7);
+}
+
+// WHY: a mission-fast Return continues from the item Mission was flying to, which its executor records while inactive.
+// WHAT: Return selected again right after it was left starts at the item closest to the vehicle, not from that record.
+TEST_F(RTLTest, QuickReturnReentryFollowsTheMissionFromTheClosestItem)
+{
+	// five waypoints 100 m apart to the north, then the mission landing
+	std::vector<mission_item_s> items;
+
+	for (int i = 0; i < 5; ++i) {
+		const PositionYawSetpoint waypoint = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f * (i + 1), 0.f, kAlt);
+		items.push_back(makeSafePointItem(waypoint.lat, waypoint.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT));
+		items.back().autocontinue = true;
+	}
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+	items.push_back(land_start);
+	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt);
+	items.push_back(makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND));
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, items);
+
+	const struct {
+		int32_t rtl_type;
+		RTL::RtlType executor;
+		int32_t mission_seq; // the item Mission flies to when Return starts
+		float mission_north;
+		int32_t return_seq; // the item Return flies to when it is left
+		float return_north;
+		size_t closest_item;
+	} cases[] {
+		{2, RTL::RtlType::RTL_MISSION_FAST, 1, 150.f, 3, 330.f, 2},
+		{4, RTL::RtlType::RTL_MISSION_FAST_REVERSE, 2, 250.f, 0, 120.f, 0},
+	};
+
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	for (const auto &c : cases) {
+		SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << c.rtl_type);
+		int32_t rtl_type = c.rtl_type;
+		ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
+		_rtl.updateParamsForTest();
+
+		mission_s mission = makeMissionHeader(21, c.mission_seq, static_cast<uint16_t>(items.size()));
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission.land_start_index = 5;
+		mission.land_index = 6;
+		publishMission(mission);
+		setMissionResultValid(mission);
+
+		// GIVEN: Return started from Mission, and its executor went on to a later item
+		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, c.mission_north, 0.f, kAlt));
+		publishLandDetected(false);
+		primeNavigatorState();
+		_rtl.evaluateReturnTypeForTest(c.rtl_type);
+		ASSERT_EQ(_rtl.rtlTypeForTest(), c.executor);
+		_rtl.run(false);
+
+		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+		primeNavigatorState();
+		_rtl.run(true);
+		mission.current_seq = c.return_seq;
+		mission.timestamp = hrt_absolute_time();
+		publishMission(mission);
+		publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, c.return_north, 0.f, kAlt));
+		primeNavigatorState();
+		_rtl.run(true);
+		ASSERT_NEAR(current.lat, items[c.return_seq].lat, 1e-7);
+
+		// WHEN: Return is left for one cycle and selected again
+		_rtl.run(false);
+		_rtl.run(true);
+
+		// THEN: it flies to the item closest to the vehicle
+		EXPECT_EQ(_rtl.rtlTypeForTest(), c.executor);
+		EXPECT_NEAR(current.lat, items[c.closest_item].lat, 1e-7);
+		_rtl.run(false);
+	}
+
+	// the dataman is shared by every case in this binary, so leave the mission slot as it was found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+}
+
+// WHY: a mission executor allocation can fail, and it is retried at every evaluation, every 2 s while inactive.
+// WHAT: types 1 to 4 then return directly to their destination, and a failure is logged once until an init succeeds.
+TEST_F(RTLTest, MissionExecutorInitFailureReturnsDirectly)
+{
+	// PX4_ERR reaches log_message once uORB logging is initialized
+	px4_log_initialize();
+	uORB::Subscription log_sub{ORB_ID(log_message)};
+	const auto initFailureLogs = [&]() {
+		unsigned count = 0;
+		log_message_s log{};
+
+		while (log_sub.update(&log)) {
+			count += strstr(reinterpret_cast<const char *>(log.text), "RTL executor init failed") != nullptr;
+		}
+
+		return count;
+	};
+
+	// the vehicle 500 m north of Home, and a mission landing 100 m further north
+	const PositionYawSetpoint home = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt);
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
+		land_start,
+		makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND)
+	});
+	mission_s mission = makeMissionHeader(10, 0, 3);
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.land_start_index = 1;
+	mission.land_index = 2;
+	publishMission(mission);
+	setMissionResultValid(mission);
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] { return cache.missionLandItemReady(); }));
+
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	const struct {
+		int32_t rtl_type;
+		RTL::RtlType executor;
+		PositionYawSetpoint destination;
+	} cases[] {
+		{1, RTL::RtlType::RTL_DIRECT_MISSION_LAND, land},
+		{2, RTL::RtlType::RTL_MISSION_FAST, home},
+		{3, RTL::RtlType::RTL_DIRECT_MISSION_LAND, land},
+		{4, RTL::RtlType::RTL_MISSION_FAST_REVERSE, home},
+	};
+
+	for (const auto &c : cases) {
+		SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << c.rtl_type);
+
+		// GIVEN: the allocation fails at every inactive evaluation
+		unsigned failure_logs = 0;
+
+		for (int evaluation = 0; evaluation < 3; ++evaluation) {
+			_rtl.failNextExecutorInitForTest(c.executor);
+			_rtl.evaluateReturnTypeForTest(c.rtl_type);
+			failure_logs += initFailureLogs();
+			EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+			EXPECT_EQ(_rtl.missionExecutorForTest(), nullptr);
+		}
+
+		EXPECT_EQ(failure_logs, 1u);
+
+		// WHEN: Return activates and the allocation fails again
+		_rtl.failNextExecutorInitForTest(c.executor);
+		_rtl.activateReturnTypeForTest(c.rtl_type);
+
+		// THEN: it flies directly to the destination of its type, and the activation logs the failure again
+		EXPECT_EQ(initFailureLogs(), 1u);
+		EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+		EXPECT_EQ(_rtl.missionExecutorForTest(), nullptr);
+		EXPECT_TRUE(_rtl.directActiveForTest());
+		ASSERT_TRUE(rtl_status_sub.update());
+		EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
+		EXPECT_NEAR(current.lat, c.destination.lat, 1e-7);
+		EXPECT_NEAR(current.lon, c.destination.lon, 1e-7);
+
+		// the next evaluation with a successful allocation selects the mission executor again
+		_rtl.run(false);
+		_rtl.evaluateReturnTypeForTest(c.rtl_type);
+		EXPECT_EQ(_rtl.rtlTypeForTest(), c.executor);
+		EXPECT_NE(_rtl.missionExecutorForTest(), nullptr);
+
+		// after that success, a new failure of the same type is logged again
+		_rtl.evaluateReturnTypeForTest(0);
+		_rtl.failNextExecutorInitForTest(c.executor);
+		_rtl.evaluateReturnTypeForTest(c.rtl_type);
+		EXPECT_EQ(initFailureLogs(), 1u);
+		EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	}
+
+	// the dataman is shared by every case in this binary, so leave the mission slot as it was found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 }

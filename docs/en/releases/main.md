@@ -115,6 +115,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Both need firmware built with the mission route cache.
   SITL builds include it; on most flight controller builds `RTL_TYPE=7` behaves like `RTL_TYPE=3`.
   See [Mission Route Planning](../concept/mission_route_planning.md). ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
+- If a mission-based Return (`RTL_TYPE` 1 to 4, or 0 when it uses the mission landing) cannot allocate its executor, it now flies a direct Return instead of running without an executor. ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
 - [Secure boot](../advanced_config/bootloader_secure_boot.md#multi-part-signed-images) now supports applications that can boot securely from SD card or eMMC. ([PX4-Autopilot#28228](https://github.com/PX4/PX4-Autopilot/pull/28228))
 - [Motor failure detection](../config/motor_failure_detection.md) now compares a low-pass filtered current residual against a separate trip band and trigger time for the undercurrent and overcurrent directions, instead of one symmetric band on the instantaneous current, and the current model gains an offset term. See [Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27711](https://github.com/PX4/PX4-Autopilot/pull/27711), [PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
@@ -163,7 +164,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### VTOL
 
-- Mission mode waits for an active back transition to finish before aligning for a front transition. ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
+- A front transition item in Mission mode now waits for an active back transition to end, so it no longer starts a front transition in the middle of a back transition. This also applies when the item becomes current during the back transition (Mission mode started, a mission uploaded or the item set as current): then no target is published until the back transition ends, so the vehicle slows down straight ahead and turns towards the next waypoint once it hovers. ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
+- The heading alignment before a VTOL transition item is checked where the vehicle is, also when the item restarts, for example after a geofence upload. Previously a restarted item first flew to the next waypoint, and the alignment could stall when the previous waypoint was reached away from its centre or the item requested an immediate transition. ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
+- A front transition item is sent at once, without aligning the heading first, when it becomes current during a front transition or when a front transition is commanded from the ground station or RC during its alignment. ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
+- A back transition item is sent at once and ends the front transition when it becomes current during a front transition or when a front transition is commanded from the ground station or RC during its alignment. Previously the front transition usually completed first. ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
+- A front transition commanded from the ground station or RC while a VTOL takeoff turns towards its waypoint no longer makes Mission mode skip the takeoff waypoint: it flies there in fixed-wing mode. ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
 
 ### Fixed-wing
 

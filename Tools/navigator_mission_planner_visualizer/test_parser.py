@@ -1,10 +1,20 @@
 """Parser checks against the syntax the mission route tests actually use."""
 
+from dataclasses import fields
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
-from planner_visualizer.cpp_parser import header_constants, parse_cpp, resolve_number
+from planner_visualizer.cpp_parser import (
+    geofence_reference,
+    header_constants,
+    parse_cpp,
+    request_defaults,
+    resolve_number,
+    route_position_altitude,
+)
 from planner_visualizer.geometry import latlon_to_offset
+from planner_visualizer.planner_cli import PlanRequest
 
 REPO = Path(__file__).resolve().parents[2]
 NAVIGATOR_TESTS = REPO / "src/modules/navigator/test"
@@ -53,6 +63,19 @@ class RepoSourcesTest(unittest.TestCase):
         self.assertTrue(scene.safe_points)
         self.assertTrue(any(position.is_vehicle for position in scene.positions))
         self.assertIsNotNone(scene.velocity)
+
+    def test_geofence_fixture_values_are_read_from_the_cpp(self):
+        self.assertIsNotNone(geofence_reference())
+        self.assertIsNotNone(route_position_altitude())
+        square = parse_cpp("loadFence(exclusionSquare());").fences
+        self.assertEqual([len(fence.vertices) for fence in square], [4])
+
+    def test_request_defaults_cover_every_float_field_of_the_request(self):
+        # Otherwise the generated tests would repeat values the helpers already set.
+        float_fields = {item.name for item in fields(PlanRequest) if item.type is float}
+        for helper in ("makeRtlRouteRequest", "makeMissionResumeRequest"):
+            with self.subTest(helper=helper):
+                self.assertLessEqual(float_fields, set(request_defaults(helper)))
 
     def test_shared_data_header_functions(self):
         scene = parse_cpp(repo_source(NAVIGATOR_TESTS / "test_mission_route_data.h"))
@@ -264,6 +287,7 @@ class FenceTest(unittest.TestCase):
                           f"std::vector<mission_fence_point_s> b{{{point}}};")
         self.assertEqual(scene.fences, [])
 
+    @needs_repo_sources
     def test_geofence_fixture_helpers_use_their_own_reference(self):
         scene = parse_cpp(
             """
@@ -275,13 +299,14 @@ class FenceTest(unittest.TestCase):
         )
         self.assertEqual(len(scene.fences), 4)
         self.assertTrue(scene.fences[0].inclusion)
-        self.assertEqual(scene.fences[0].vertices[0], (47.0, 8.0))
-        north, east = latlon_to_offset(47.0, 8.0, *scene.fences[1].vertices[0])
+        self.assertEqual(scene.fences[0].vertices[0], geofence_reference())
+        north, east = latlon_to_offset(*geofence_reference(), *scene.fences[1].vertices[0])
         self.assertAlmostEqual(north, 50.0, places=3)
         self.assertAlmostEqual(east, 20.0, places=3)
         self.assertEqual(scene.fences[1].radius_m, 15.0)
         self.assertEqual(len(scene.fences[2].vertices), 4)
-        north, east = latlon_to_offset(47.397742, 8.545594, *scene.fences[3].vertices[0])
+        base = scene.base()
+        north, east = latlon_to_offset(base.lat, base.lon, *scene.fences[3].vertices[0])
         self.assertAlmostEqual(north, 100.0, places=3)
         self.assertAlmostEqual(east, 50.0, places=3)
         self.assertEqual(scene.fences[3].radius_m, 20.0)
@@ -299,16 +324,37 @@ class FenceTest(unittest.TestCase):
         )
         self.assertEqual(scene.fences, [])
 
+    @needs_repo_sources
     def test_route_positions_use_the_geofence_reference(self):
         scene = parse_cpp(
             "const Position vehicle = routePosition(0.f, 100.f);\n"
             "const Position high = routePosition(10.f, 0.f, 520.f);"
         )
-        north, east = latlon_to_offset(47.0, 8.0, scene.positions[0].lat, scene.positions[0].lon)
+        north, east = latlon_to_offset(*geofence_reference(), scene.positions[0].lat, scene.positions[0].lon)
         self.assertAlmostEqual(north, 0.0, places=3)
         self.assertAlmostEqual(east, 100.0, places=3)
-        self.assertEqual([position.alt for position in scene.positions], [500.0, 520.0])
+        self.assertEqual([position.alt for position in scene.positions], [route_position_altitude(), 520.0])
         self.assertTrue(scene.positions[0].is_vehicle)
+
+    def test_route_position_altitude_is_its_default_argument(self):
+        source = (
+            "static constexpr float kAltitude = 500.f;\n"
+            "Position routePosition(float north, float east, float altitude = kAltitude + 10.f) const\n"
+        )
+        with patch("planner_visualizer.cpp_parser.repo_file", return_value=source):
+            # The undecorated function, so the cache keeps the value of the real source.
+            self.assertEqual(route_position_altitude.__wrapped__(), 510.0)
+
+    def test_fixture_helpers_are_skipped_without_their_cpp_sources(self):
+        with patch("planner_visualizer.cpp_parser.geofence_reference", return_value=None), patch(
+            "planner_visualizer.cpp_parser.fence_shapes", return_value={}
+        ):
+            scene = parse_cpp(
+                "loadFence(polygon(true, {{0.f, 0.f}, {100.f, 0.f}, {0.f, 100.f}}));\n"
+                "loadFence(exclusionSquare());\n"
+                "const Position vehicle = routePosition(0.f, 100.f);"
+            )
+        self.assertEqual((scene.fences, scene.positions), ([], []))
 
     @needs_repo_sources
     def test_repository_geofence_case_includes_vehicle_and_candidate_positions(self):

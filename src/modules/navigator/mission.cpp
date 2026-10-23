@@ -466,7 +466,7 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		_navigator->set_position_setpoint_triplet_updated();
 
 		// startVtolTransition() copies the takeoff item before changing _mission_item.
-		startVtolTransition(command, &_mission_item, WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF, false);
+		startVtolTransition(command, &_mission_item, WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF);
 		return;
 	}
 
@@ -496,7 +496,7 @@ bool Mission::handleVtolTransition(const mission_item_s next_mission_items[], si
 	}
 
 	startVtolTransition(_mission_item, num_found_items > 0 ? &next_mission_items[0] : nullptr,
-			    WorkItemType::WORK_ITEM_TYPE_DEFAULT, false);
+			    WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 	return true;
 }
 
@@ -505,7 +505,7 @@ void Mission::prepareVtolTransitionItem(bool aligning)
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
 	if (_vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
-		MissionBase::prepareVtolTransitionItem(aligning);
+		prepareRouteTransitionItem(aligning);
 		return;
 	}
 
@@ -514,6 +514,7 @@ void Mission::prepareVtolTransitionItem(bool aligning)
 	auto &triplet = *_navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = triplet.current;
 	const bool takeoff = _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
+	const bool front_transition = int(_vtol_transition.command.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 
 	if (aligning) {
 		if (takeoff) {
@@ -538,6 +539,10 @@ void Mission::prepareVtolTransitionItem(bool aligning)
 		}
 
 	} else {
+		// Without an alignment during a front transition, publish the target as the alignment would.
+		const bool publish_target = front_transition && _vehicle_status_sub.get().in_transition_to_fw
+					    && mission_item_contains_position(_vtol_transition.target);
+
 		if (takeoff) {
 			if (!do_need_move_to_takeoff(_vtol_transition.target)) {
 				_vtol_transition.completion_work = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
@@ -545,11 +550,14 @@ void Mission::prepareVtolTransitionItem(bool aligning)
 
 		} else if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
 			triplet.previous = triplet.current;
+
+		} else if (publish_target) {
+			mission_item_to_position_setpoint(_vtol_transition.target, &triplet.current);
 		}
 
 		_mission_item = _vtol_transition.command;
 
-		if (takeoff || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
+		if (takeoff || publish_target || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
 			triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		}
 	}

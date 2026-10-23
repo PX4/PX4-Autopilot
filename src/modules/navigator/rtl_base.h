@@ -64,6 +64,9 @@ public:
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 protected:
+	// Of the Return modes only the route follower calls startVtolTransition(); it overrides this.
+	void prepareVtolTransitionItem(bool aligning) override { (void)aligning; }
+
 	/** Return never takes off, so it does not start its items while landed, also when they reload. */
 	bool canStartMission() const override { return !_land_detected_sub.get().landed; }
 

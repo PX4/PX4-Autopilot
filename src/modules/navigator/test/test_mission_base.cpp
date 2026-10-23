@@ -75,6 +75,16 @@ public:
 	bool setNextMissionItem() override { return false; }
 	unsigned mission_items_set_count{0};
 
+	// Join transitions, prepared as in Mission.
+	void prepareVtolTransitionItem(bool aligning) override
+	{
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		prepareRouteTransitionItem(aligning);
+#else
+		(void)aligning;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	}
+
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
 	{
 		return _mission_store.loadItem(index, mission_item);
@@ -153,27 +163,6 @@ public:
 		if (_navigator) {
 			*_navigator->get_vstatus() = status;
 		}
-	}
-
-	bool vtolStatesForMission(std::vector<uint8_t> &states)
-	{
-		states.resize(_mission.count);
-		return getVtolStatesForMission(states.data(), static_cast<int32_t>(states.size()));
-	}
-
-	uint8_t vtolStateAt(int32_t anchor_index)
-	{
-		return getVtolStateAtMissionIndex(anchor_index);
-	}
-
-	VtolTransitionAction transitionForTarget(int32_t target_index, bool direction_reversed)
-	{
-		return vtolTransitionActionForTarget(target_index, direction_reversed);
-	}
-
-	VtolTransitionAction transitionAfterReverseTarget(int32_t target_index)
-	{
-		return vtolTransitionActionAfterReachingReverseTarget(target_index);
 	}
 
 	void updateJumpAnchorForNextNominalAdvance(mission_route::ActiveJumpAnchor &anchor)
@@ -1647,266 +1636,18 @@ TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGo
 class MissionBaseRouteTest : public NavigatorDatamanTestBase
 {
 protected:
-	// Reset the vehicle_status left by a previous test.
+	// Reset the vehicle_status and landed state left by a previous test.
 	void SetUp() override
 	{
 		mission_base.setVehicleStatus(false, false);
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		_land_detected_pub.publish(land_detected);
 	}
 
 	MissionBaseTestPeer mission_base{};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
 };
-
-TEST_F(MissionBaseRouteTest, PlainWaypointMissionDoesNotInventATransition)
-{
-	mission_base.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-	});
-	EXPECT_EQ(mission_base.vtolStateAt(0), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
-
-	for (const bool fixed_wing : {false, true}) {
-		mission_base.setVehicleStatus(true, fixed_wing);
-		EXPECT_EQ(mission_base.transitionForTarget(1, false), MissionBaseTestPeer::VtolTransitionAction::kNone);
-		EXPECT_EQ(mission_base.transitionForTarget(0, true), MissionBaseTestPeer::VtolTransitionAction::kNone);
-	}
-}
-
-TEST_F(MissionBaseRouteTest, VtolLookaheadResolvesPrefixAndPreservesPrecedingMode)
-{
-	for (const uint8_t target : {vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC}) {
-		const bool next_is_front_transition = target == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-		const uint8_t prefix_mode = next_is_front_transition ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
-					    : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-		mission_base.loadTestMission({
-			makePositionItem(kBaseLat, kBaseLon, kAlt),
-			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-			makeVtolTransitionItem(target),
-			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-			makeVtolTransitionItem(target),
-			makePositionItem(kBaseLat + 0.003, kBaseLon, kAlt),
-		});
-		EXPECT_EQ(mission_base.vtolStateAt(1), prefix_mode);
-		// Between repeated transitions, the previous command wins over lookahead.
-		EXPECT_EQ(mission_base.vtolStateAt(3), target);
-		mission_base.setVehicleStatus(true, next_is_front_transition);
-		const auto action = next_is_front_transition ? MissionBaseTestPeer::VtolTransitionAction::kBackTransition
-				    : MissionBaseTestPeer::VtolTransitionAction::kFrontTransition;
-		EXPECT_EQ(mission_base.transitionForTarget(1, false), action);
-		EXPECT_EQ(mission_base.transitionForTarget(0, true), action);
-		EXPECT_EQ(mission_base.transitionForTarget(3, false), MissionBaseTestPeer::VtolTransitionAction::kNone);
-	}
-}
-
-// The two-pass table used by the route time estimate gives the per-index scan result everywhere.
-TEST_F(MissionBaseRouteTest, VtolStateTableMatchesPerIndexScan)
-{
-	const auto with_command = [](mission_item_s item, uint16_t nav_cmd) {
-		item.nav_cmd = nav_cmd;
-		return item;
-	};
-	const mission_item_s waypoint = makePositionItem(kBaseLat, kBaseLon, kAlt);
-	const mission_item_s land = with_command(waypoint, NAV_CMD_LAND);
-	const mission_item_s takeoff = with_command(waypoint, NAV_CMD_TAKEOFF);
-	const mission_item_s vtol_takeoff = with_command(waypoint, NAV_CMD_VTOL_TAKEOFF);
-	const mission_item_s front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	const mission_item_s back_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-	mission_item_s invalid_transition = front_transition;
-	invalid_transition.params[0] = 7.f;
-
-	const std::vector<std::vector<mission_item_s>> missions{
-		{waypoint, waypoint, front_transition, waypoint},
-		{waypoint, land, front_transition, waypoint},
-		{waypoint, invalid_transition, waypoint, back_transition, waypoint},
-		{waypoint, takeoff, front_transition, waypoint},
-		{vtol_takeoff, waypoint, back_transition, waypoint, land},
-		{waypoint, waypoint, makeDoJump(0, 2), front_transition, waypoint},
-	};
-
-	for (size_t m = 0; m < missions.size(); ++m) {
-		mission_base.loadTestMission(missions[m]);
-		std::vector<uint8_t> states;
-		ASSERT_TRUE(mission_base.vtolStatesForMission(states)) << "mission " << m;
-
-		for (int32_t index = 0; index < static_cast<int32_t>(states.size()); ++index) {
-			EXPECT_EQ(states[index], mission_base.vtolStateAt(index)) << "mission " << m << " index " << index;
-		}
-	}
-
-	// A load failure leaves the per-target scan in charge.
-	mission_base.setLoadFailureIndices({1});
-	std::vector<uint8_t> states;
-	EXPECT_FALSE(mission_base.vtolStatesForMission(states));
-	mission_base.clearLoadFailures();
-}
-
-TEST_F(MissionBaseRouteTest, VtolLookaheadIgnoresJumpRepeats)
-{
-	for (const uint8_t target : {vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC}) {
-		for (const uint16_t repeats_used : {0, 2}) {
-			const auto jump = makeDoJump(0, 2, repeats_used);
-			mission_base.loadTestMission({
-				makePositionItem(kBaseLat, kBaseLon, kAlt),
-				makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-				jump,
-				makeVtolTransitionItem(target),
-				makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-			});
-			const bool next_is_front_transition = target == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-			mission_base.setVehicleStatus(true, next_is_front_transition);
-			const auto action = next_is_front_transition ? MissionBaseTestPeer::VtolTransitionAction::kBackTransition
-					    : MissionBaseTestPeer::VtolTransitionAction::kFrontTransition;
-			EXPECT_EQ(mission_base.transitionForTarget(1, false), action);
-			EXPECT_EQ(mission_base.transitionForTarget(0, true), action);
-			mission_item_s after{};
-			ASSERT_TRUE(mission_base.loadMissionItemFromCache(2, after));
-			EXPECT_EQ(after.do_jump_current_count, repeats_used);
-			EXPECT_EQ(after.do_jump_repeat_count, jump.do_jump_repeat_count);
-			EXPECT_EQ(after.do_jump_mission_index, jump.do_jump_mission_index);
-		}
-	}
-}
-
-TEST_F(MissionBaseRouteTest, VtolLookaheadRequiresReadableMissionSection)
-{
-	mission_base.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-	});
-	mission_base.setLoadFailureIndices({2});
-	EXPECT_EQ(mission_base.vtolStateAt(1), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
-	mission_base.setLoadFailureIndices({0});
-	EXPECT_EQ(mission_base.vtolStateAt(1), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
-	mission_base.clearLoadFailures();
-	EXPECT_EQ(mission_base.vtolStateAt(1), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-}
-
-TEST_F(MissionBaseRouteTest, VtolLookaheadDoesNotCrossLandingAtTarget)
-{
-	for (const uint16_t command : {NAV_CMD_LAND, NAV_CMD_VTOL_LAND}) {
-		auto landing = makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt);
-		landing.nav_cmd = command;
-		mission_base.loadTestMission({
-			makePositionItem(kBaseLat, kBaseLon, kAlt),
-			landing,
-			makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-		});
-		EXPECT_EQ(mission_base.vtolStateAt(1), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
-		mission_base.setVehicleStatus(true, true);
-		EXPECT_EQ(mission_base.transitionForTarget(1, false), MissionBaseTestPeer::VtolTransitionAction::kNone);
-	}
-}
-
-TEST_F(MissionBaseRouteTest, VtolTakeoffDefinesFollowingSegmentsAsFixedWing)
-{
-	mission_item_s vtol_takeoff = makePositionItem(kBaseLat, kBaseLon, kAlt);
-	vtol_takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
-	mission_base.loadTestMission({
-		vtol_takeoff,
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt + 20.f),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-
-	EXPECT_EQ(mission_base.vtolStateAt(0), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	EXPECT_EQ(mission_base.vtolStateAt(1), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	EXPECT_EQ(mission_base.vtolStateAt(3), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-
-	mission_base.setVehicleStatus(true, false);
-	EXPECT_EQ(mission_base.transitionForTarget(1, false),
-		  MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
-	EXPECT_EQ(mission_base.transitionForTarget(0, true),
-		  MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
-}
-
-TEST_F(MissionBaseRouteTest, VtolStateAndActionsFollowMissionSegments)
-{
-	// Reverse travel uses the mode of the segment being entered.
-	mission_base.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-
-	// Before the first front transition, lookahead infers MC.
-	EXPECT_EQ(mission_base.vtolStateAt(0), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-	EXPECT_EQ(mission_base.vtolStateAt(2), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	EXPECT_EQ(mission_base.vtolStateAt(4), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-
-	mission_base.setVehicleStatus(true, false);
-	EXPECT_EQ(mission_base.transitionForTarget(2, false),
-		  MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
-
-	EXPECT_EQ(mission_base.transitionForTarget(0, true),
-		  MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
-
-	mission_base.setVehicleStatus(true, true);
-	EXPECT_EQ(mission_base.transitionForTarget(4, false),
-		  MissionBaseTestPeer::VtolTransitionAction::kBackTransition);
-	EXPECT_EQ(mission_base.transitionForTarget(2, true),
-		  MissionBaseTestPeer::VtolTransitionAction::kBackTransition);
-
-	mission_base.setVehicleStatus(true, false);
-	EXPECT_EQ(mission_base.transitionAfterReverseTarget(2),
-		  MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
-
-	mission_base.setVehicleStatus(false, false);
-	EXPECT_EQ(mission_base.transitionForTarget(2, false),
-		  MissionBaseTestPeer::VtolTransitionAction::kNone);
-}
-
-TEST_F(MissionBaseRouteTest, ReverseTransitionRestoresNextLegWithoutAnAttachedCommand)
-{
-	// A jump can arrive in a different mode even when this waypoint has no transition attached.
-	for (bool fixed_wing_leg : {false, true}) {
-		mission_base.loadTestMission({
-			makePositionItem(kBaseLat, kBaseLon, kAlt),
-			makeVtolTransitionItem(fixed_wing_leg ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
-					       : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
-			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-		});
-		mission_base.setVehicleStatus(true, !fixed_wing_leg);
-		EXPECT_EQ(mission_base.transitionAfterReverseTarget(2), fixed_wing_leg
-			  ? MissionBaseTestPeer::VtolTransitionAction::kFrontTransition
-			  : MissionBaseTestPeer::VtolTransitionAction::kBackTransition);
-		EXPECT_EQ(mission_base.transitionAfterReverseTarget(0), MissionBaseTestPeer::VtolTransitionAction::kNone);
-		EXPECT_EQ(mission_base.transitionAfterReverseTarget(4), MissionBaseTestPeer::VtolTransitionAction::kNone);
-	}
-}
-
-TEST_F(MissionBaseRouteTest, ReverseTransitionUsesLastModeBeforeReachedWaypoint)
-{
-	mission_base.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-	mission_base.setVehicleStatus(true, false);
-	EXPECT_EQ(mission_base.transitionAfterReverseTarget(4), MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
-	mission_base.setVehicleStatus(true, true);
-	EXPECT_EQ(mission_base.transitionAfterReverseTarget(4), MissionBaseTestPeer::VtolTransitionAction::kNone);
-}
-
-TEST_F(MissionBaseRouteTest, ReverseFirstPositionHasNoFurtherLegAfterLeadingActions)
-{
-	mission_base.loadTestMission({
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-	});
-	mission_base.setVehicleStatus(true, false);
-	// Index 1 is the first position: arrival owns the next flight-mode decision.
-	EXPECT_EQ(mission_base.transitionAfterReverseTarget(1), MissionBaseTestPeer::VtolTransitionAction::kNone);
-}
 
 TEST_F(MissionBaseRouteTest, JoinRouteRunsWaypointTransitionAndResumeFlow)
 {

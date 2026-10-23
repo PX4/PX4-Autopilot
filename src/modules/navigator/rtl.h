@@ -98,8 +98,12 @@ public:
 	bool isLanding();
 
 protected:
-	// Virtual only so tests can fail the executor allocation.
+#if defined(__PX4_POSIX)
+	// Virtual only so tests can fail the executor allocation; NuttX boards keep a direct call.
 	virtual bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+#else
+	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+#endif // __PX4_POSIX
 
 private:
 	friend class RTLTestPeer;
@@ -207,6 +211,7 @@ private:
 	hrt_abstime _route_upload_time{0}; ///< When that upload was first seen.
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	RtlType _rtl_type {RtlType::RTL_DIRECT};
+	RtlType _init_failure_reported{RtlType::NONE}; ///< Logged failing executor type, reset by a successful init or activation.
 	uint32_t _mission_land_failure_mission_id{0};
 	uint16_t _mission_land_failure_count{0};
 	int32_t _mission_land_failure_index{-1};
