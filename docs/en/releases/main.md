@@ -129,6 +129,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - ESC/motor health is now reported in [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) using the [MAV_SYS_STATUS_SENSOR_PROPULSION](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_SENSOR_PROPULSION) bit instead of [MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS).
   ([PX4-Autopilot#29192](https://github.com/PX4/PX4-Autopilot/pull/29192)).
+- [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) now sets the [MAV_SYS_STATUS_EXTENSION_USED](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_EXTENSION_USED) flag in `onboard_control_sensors_present` when extended sensor fields are used.
 
 ### RC
 
