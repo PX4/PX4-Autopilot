@@ -764,7 +764,8 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
 
-	memcpy(node_data(handle) + o_size * (generation % o_queue), buffer, o_size);
+	const size_t offset = (o_queue > 1) ? o_size * (generation % o_queue) : 0;
+	memcpy(node_data(handle) + offset, buffer, o_size);
 
 	/* Mark at least one data has been published */
 	_data_valid.store(true);

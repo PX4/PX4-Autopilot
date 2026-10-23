@@ -59,11 +59,15 @@ SubscriptionIntervalBase<ATOMIC>::SubscriptionIntervalBase() : _subscription{nul
 template <bool ATOMIC>
 bool SubscriptionIntervalBase<ATOMIC>::updated()
 {
-	hrt_abstime last_update = _last_update.load();
-	const uint32_t interval_us = _interval_us.load();
+	if (advertised() && _subscription.updated()) {
+		const uint32_t interval_us = _interval_us.load();
 
-	if (advertised() && (interval_us == 0 || static_cast<int64_t>(hrt_absolute_time() - last_update) >= interval_us)) {
-		return _subscription.updated();
+		if (interval_us == 0) {
+			return true;
+		}
+
+		const hrt_abstime last_update = _last_update.load();
+		return static_cast<int64_t>(hrt_absolute_time() - last_update) >= interval_us;
 	}
 
 	return false;
@@ -83,16 +87,19 @@ template <bool ATOMIC>
 bool SubscriptionIntervalBase<ATOMIC>::copy(void *dst)
 {
 	if (_subscription.copy(dst)) {
-		const hrt_abstime now = hrt_absolute_time();
 		const uint32_t interval_us = _interval_us.load();
 
-		// make sure we don't set a timestamp before the timer started counting (now - interval_us would wrap because it's unsigned)
-		if (now > interval_us) {
-			// shift last update time forward, but don't let it get further behind than the interval
-			_last_update.store(math::constrain(_last_update.load() + interval_us, now - interval_us, now));
+		if (interval_us != 0) {
+			const hrt_abstime now = hrt_absolute_time();
 
-		} else {
-			_last_update.store(now);
+			// make sure we don't set a timestamp before the timer started counting (now - interval_us would wrap because it's unsigned)
+			if (now > interval_us) {
+				// shift last update time forward, but don't let it get further behind than the interval
+				_last_update.store(math::constrain(_last_update.load() + interval_us, now - interval_us, now));
+
+			} else {
+				_last_update.store(now);
+			}
 		}
 
 		return true;

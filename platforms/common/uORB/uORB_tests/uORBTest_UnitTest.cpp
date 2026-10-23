@@ -42,6 +42,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 
 uORBTest::UnitTest &uORBTest::UnitTest::instance()
@@ -396,6 +397,37 @@ int uORBTest::UnitTest::test_single()
 
 	if (orb_advert_valid(uORB::DeviceNode::nodeOpen(ORB_ID::orb_test, 0, false))) {
 		return test_fail("node retained without publishers or subscribers");
+	}
+
+	{
+		static constexpr uint32_t interval_us = 20000;
+		uORB::SubscriptionInterval interval_sub{ORB_ID::orb_test, interval_us};
+		uORB::Publication<orb_test_s> interval_pub{ORB_ID::orb_test};
+		orb_test_s interval_data{};
+
+		interval_data.val = 1;
+
+		if (!interval_pub.publish(interval_data) || !interval_sub.update(&u) || u.val != interval_data.val) {
+			return test_fail("interval subscription initial update failed");
+		}
+
+		interval_data.val = 2;
+
+		if (!interval_pub.publish(interval_data) || !interval_sub.update(&u) || u.val != interval_data.val) {
+			return test_fail("interval subscription second update failed");
+		}
+
+		interval_data.val = 3;
+
+		if (!interval_pub.publish(interval_data) || interval_sub.updated()) {
+			return test_fail("interval subscription did not gate an early update");
+		}
+
+		px4_usleep(interval_us + interval_us / 2);
+
+		if (!interval_sub.update(&u) || u.val != interval_data.val) {
+			return test_fail("interval subscription did not release a pending update");
+		}
 	}
 
 	return test_note("PASS single-topic test");
