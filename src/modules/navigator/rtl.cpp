@@ -410,9 +410,7 @@ void RTL::applyReturnAltMin()
 void RTL::reportNoRoute() const
 {
 	if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && _rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: no mission route, holding here\t");
-		events::send(events::ID("rtl_route_unavailable"), {events::Log::Critical, events::LogInternal::Warning},
-			     "Return: no mission route, holding here");
+		_route_safe_point.reportRouteUnavailable();
 	}
 }
 
