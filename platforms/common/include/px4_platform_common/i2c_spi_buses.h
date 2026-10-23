@@ -294,6 +294,12 @@ protected:
 	 */
 	virtual void exit_and_cleanup() { ScheduleClear(); _task_exited.store(true); }
 
+	/**
+	 * Call exit_and_cleanup() if a stop was requested. Shared by every I2CSPIDriver<T>::Run(),
+	 * so that each instantiation stays a plain call to RunImpl().
+	 */
+	void exit_if_requested();
+
 	bool should_exit() const { return _task_should_exit.load(); }
 
 	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator, void(*print_usage)(),
@@ -333,10 +339,7 @@ protected:
 	void Run() final
 	{
 		static_cast<T *>(this)->RunImpl();
-
-		if (should_exit()) {
-			exit_and_cleanup();
-		}
+		exit_if_requested();
 	}
 	// *INDENT-ON*
 private:
