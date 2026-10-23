@@ -46,6 +46,14 @@ namespace mission_route
 {
 
 /**
+ * @brief Choose the most wind-aligned approach, measured from the block's land location.
+ *
+ * @param wind_direction Direction the wind blows toward [rad], atan2(east, north).
+ * @return The chosen approach, or an invalid loiter if none qualifies (including for a NaN wind).
+ */
+loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, float wind_direction);
+
+/**
  * @brief Read the landing-approach block associated with the first valid rally point near rtl_position.
  *
  * A block starts at the associated rally point and contains the consecutive NAV_CMD_LOITER_TO_ALT
