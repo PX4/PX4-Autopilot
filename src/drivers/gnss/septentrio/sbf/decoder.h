@@ -233,6 +233,17 @@ public:
 	bool can_parse() const;
 private:
 	/**
+	 * @brief Copy the start of the current message's payload into a block structure.
+	 *
+	 * @param block_id The block ID the current message must have.
+	 * @param message The block data structure to parse into.
+	 * @param size The number of payload bytes to copy.
+	 *
+	 * @return `PX4_OK` if success, or `PX4_ERROR` when an error occurs.
+	 */
+	int parse_block(BlockID block_id, void *message, size_t size) const;
+
+	/**
 	 * @brief Check whether a full message has been received.
 	 *
 	 * Does not guarantee validity of the message, only that a complete message should be available.

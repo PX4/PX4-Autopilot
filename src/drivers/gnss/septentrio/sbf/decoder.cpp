@@ -115,150 +115,116 @@ int Decoder::parse(Header *header) const
 	return PX4_ERROR;
 }
 
-int Decoder::parse(DOP *message) const
+int Decoder::parse_block(BlockID block_id, void *message, size_t size) const
 {
-	if (can_parse() && id() == BlockID::DOP) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(DOP));
+	if (can_parse() && id() == block_id) {
+		memcpy(message, _message.payload, size);
 		return PX4_OK;
 	}
 
 	return PX4_ERROR;
+}
+
+int Decoder::parse(DOP *message) const
+{
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+	return parse_block(BlockID::DOP, message, sizeof(*message));
 }
 
 int Decoder::parse(PVTGeodetic *message) const
 {
-	if (can_parse() && id() == BlockID::PVTGeodetic) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(PVTGeodetic));
-		return PX4_OK;
-	}
-
-	return PX4_ERROR;
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+	return parse_block(BlockID::PVTGeodetic, message, sizeof(*message));
 }
 
 int Decoder::parse(ReceiverStatus *message) const
 {
-	if (can_parse() && id() == BlockID::ReceiverStatus) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(ReceiverStatus));
-		return PX4_OK;
-	}
-
-	return PX4_ERROR;
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+	return parse_block(BlockID::ReceiverStatus, message, sizeof(*message));
 }
 
 int Decoder::parse(QualityInd *message) const
 {
-	if (can_parse() && id() == BlockID::QualityInd) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		// Safe to copy entire size of the message as it is smaller than the maximum expected SBF message size.
-		// It's up to the user of the parsed message to ignore the invalid fields.
-		memcpy(message, _message.payload, sizeof(QualityInd));
-		return PX4_OK;
-	}
-
-	return PX4_ERROR;
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+	// Safe to copy entire size of the message as it is smaller than the maximum expected SBF message size.
+	// It's up to the user of the parsed message to ignore the invalid fields.
+	return parse_block(BlockID::QualityInd, message, sizeof(*message));
 }
 
 int Decoder::parse(RFStatus *message) const
 {
-	if (can_parse() && id() == BlockID::RFStatus) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(RFStatus) - sizeof(RFStatus::rf_band));
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
 
-		for (uint8_t i = 0; i < math::min(message->n, k_max_rfband_blocks); i++) {
-			const unsigned offset = sizeof(RFStatus) - sizeof(RFStatus::rf_band) + i *
-						message->sb_length;
-
-			if (offset + sizeof(RFBand) <= sizeof(_message.payload)) {
-				memcpy(&message->rf_band[i], &_message.payload[offset], sizeof(RFBand));
-			}
-		}
-
-		return PX4_OK;
+	if (parse_block(BlockID::RFStatus, message, sizeof(RFStatus) - sizeof(RFStatus::rf_band)) != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	return PX4_ERROR;
+	for (uint8_t i = 0; i < math::min(message->n, k_max_rfband_blocks); i++) {
+		const unsigned offset = sizeof(RFStatus) - sizeof(RFStatus::rf_band) + i *
+					message->sb_length;
+
+		if (offset + sizeof(RFBand) <= sizeof(_message.payload)) {
+			memcpy(&message->rf_band[i], &_message.payload[offset], sizeof(RFBand));
+		}
+	}
+
+	return PX4_OK;
 }
 
 int Decoder::parse(GALAuthStatus *message) const
 {
-	if (can_parse() && id() == BlockID::GALAuthStatus) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(GALAuthStatus));
-		return PX4_OK;
-	}
-
-	return PX4_ERROR;
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+	return parse_block(BlockID::GALAuthStatus, message, sizeof(*message));
 }
 
 int Decoder::parse(VelCovGeodetic *message) const
 {
-	if (can_parse() && id() == BlockID::VelCovGeodetic) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(VelCovGeodetic));
-		return PX4_OK;
-	}
-
-	return PX4_ERROR;
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+	return parse_block(BlockID::VelCovGeodetic, message, sizeof(*message));
 }
 
 int Decoder::parse(GEOIonoDelay *message) const
 {
-	if (can_parse() && id() == BlockID::GEOIonoDelay) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(GEOIonoDelay) - sizeof(GEOIonoDelay::idc));
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
 
-		for (size_t i = 0; i < math::min(message->n, (uint8_t)(sizeof(GEOIonoDelay::idc) / sizeof(GEOIonoDelay::idc[0])));
-		     i++) {
-			const unsigned offset = sizeof(GEOIonoDelay) - sizeof(GEOIonoDelay::idc) + i *
-						message->sb_length;
-
-			if (offset + sizeof(IDC) <= sizeof(_message.payload)) {
-				memcpy(&message->idc[i], &_message.payload[offset], sizeof(IDC));
-			}
-		}
-
-		return PX4_OK;
+	if (parse_block(BlockID::GEOIonoDelay, message, sizeof(GEOIonoDelay) - sizeof(GEOIonoDelay::idc)) != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	return PX4_ERROR;
+	for (size_t i = 0; i < math::min(message->n, (uint8_t)(sizeof(GEOIonoDelay::idc) / sizeof(GEOIonoDelay::idc[0])));
+	     i++) {
+		const unsigned offset = sizeof(GEOIonoDelay) - sizeof(GEOIonoDelay::idc) + i *
+					message->sb_length;
+
+		if (offset + sizeof(IDC) <= sizeof(_message.payload)) {
+			memcpy(&message->idc[i], &_message.payload[offset], sizeof(IDC));
+		}
+	}
+
+	return PX4_OK;
 }
 
 int Decoder::parse(AttEuler *message) const
 {
-	if (can_parse() && id() == BlockID::AttEuler) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(AttEuler));
-		return PX4_OK;
-	}
-
-	return PX4_ERROR;
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+	return parse_block(BlockID::AttEuler, message, sizeof(*message));
 }
 
 int Decoder::parse(AttCovEuler *message) const
 {
-	if (can_parse() && id() == BlockID::AttCovEuler) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(AttCovEuler));
-		return PX4_OK;
-	}
-
-	return PX4_ERROR;
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+	return parse_block(BlockID::AttCovEuler, message, sizeof(*message));
 }
 
 int Decoder::parse(BaseVectorGeod *message) const
 {
-	if (can_parse() && id() == BlockID::BaseVectorGeod) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(BaseVectorGeod));
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
 
-		// Sub-blocks can grow in later block revisions; the fields read here are at their start
-		if (message->n > 0 && message->sb_length >= sizeof(VectorInfoGeod)
-		    && sizeof(Header) + sizeof(BaseVectorGeod) <= _message.header.length) {
-			return PX4_OK;
-		}
+	// Sub-blocks can grow in later block revisions; the fields read here are at their start
+	if (parse_block(BlockID::BaseVectorGeod, message, sizeof(*message)) == PX4_OK
+	    && message->n > 0 && message->sb_length >= sizeof(VectorInfoGeod)
+	    && sizeof(Header) + sizeof(BaseVectorGeod) <= _message.header.length) {
+		return PX4_OK;
 	}
 
 	return PX4_ERROR;
@@ -266,14 +232,12 @@ int Decoder::parse(BaseVectorGeod *message) const
 
 int Decoder::parse(AuxAntPositions *message) const
 {
-	if (can_parse() && id() == BlockID::AuxAntPositions) {
-		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
-		memcpy(message, _message.payload, sizeof(AuxAntPositions));
+	static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
 
-		if (message->n > 0 && message->sb_length >= sizeof(AuxAntPosSub)
-		    && sizeof(Header) + sizeof(AuxAntPositions) <= _message.header.length) {
-			return PX4_OK;
-		}
+	if (parse_block(BlockID::AuxAntPositions, message, sizeof(*message)) == PX4_OK
+	    && message->n > 0 && message->sb_length >= sizeof(AuxAntPosSub)
+	    && sizeof(Header) + sizeof(AuxAntPositions) <= _message.header.length) {
+		return PX4_OK;
 	}
 
 	return PX4_ERROR;
