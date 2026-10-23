@@ -41351,9 +41351,19 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MAVLink system ID.
 
+IDs above 255 use the 32-bit system ID extension of MAVLink 2,
+which forces MAV_PROTO_VER to 2. Every system on the network needs
+to support the extension to talk to such a system.
+
+Only use IDs above 255 for vehicles, and keep ground stations and
+other controlling systems at 255 or below. The gimbal protocol and
+other messages that carry a system ID inside the payload, such as
+the ID of the system in control, still only support IDs up to 255.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1 | 250 |  | 1 |  | &nbsp;
+&check; | 1 | 2147483647 |  | 1 |  | &nbsp;
 
 </div>
 
