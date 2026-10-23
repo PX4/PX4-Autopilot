@@ -18,6 +18,11 @@ actuator_output:
           index_offset: -1
           show_as: bitset
           advanced: true
+        - name: 'GPIO_EN'
+          label: "GPIO\n Mode"
+          index_offset: -1
+          show_as: bitset
+          advanced: true
       num_channels: 16
 
 parameters:
@@ -87,4 +92,28 @@ parameters:
           13: Put CH14 to Duty-Cycle mode
           14: Put CH15 to Duty-Cycle mode
           15: Put CH16 to Duty-Cycle mode
+        default: 0
+      PCA9685_GPIO_EN:
+        description:
+          short: Enable GPIO output mode per channel
+          long: |
+              Selecting which channels are driven as plain digital (on/off) outputs.
+        type: bitmask
+        bit:
+          0: Put CH1 into GPIO mode
+          1: Put CH2 into GPIO mode
+          2: Put CH3 into GPIO mode
+          3: Put CH4 into GPIO mode
+          4: Put CH5 into GPIO mode
+          5: Put CH6 into GPIO mode
+          6: Put CH7 into GPIO mode
+          7: Put CH8 into GPIO mode
+          8: Put CH9 into GPIO mode
+          9: Put CH10 into GPIO mode
+          10: Put CH11 into GPIO mode
+          11: Put CH12 into GPIO mode
+          12: Put CH13 into GPIO mode
+          13: Put CH14 into GPIO mode
+          14: Put CH15 into GPIO mode
+          15: Put CH16 into GPIO mode
         default: 0
