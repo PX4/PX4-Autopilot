@@ -15,7 +15,7 @@ parameters:
       description:
         short: Simulated battery average current draw in rotor wing
         long: |-
-          Average current drawn from simulated battery by the drone in rotor wing mode while armed. Set to 0 to disable the battery simulator entirely (useful when battery state is provided externally, e.g. via MAVLink).
+          Average current drawn from simulated battery by the drone in rotor wing mode, or any vehicle type other than fixed wing, while armed. Set to 0 to disable the battery simulator entirely (useful when battery state is provided externally, e.g. via MAVLink).
       type: float
       default: 8.0
       min: 0.0
@@ -35,7 +35,7 @@ parameters:
       description:
         short: Simulated battery ${i} average current draw in rotor wing
         long: |-
-          Average current drawn from simulated battery ${i} by the drone in rotor wing mode while armed. Set to -1 to use SIM_BAT_I_MC
+          Average current drawn from simulated battery ${i} by the drone in rotor wing mode, or any vehicle type other than fixed wing, while armed. Set to -1 to use SIM_BAT_I_MC
       type: float
       default: [-1.0, -1.0, -1.0]
       min: -1
