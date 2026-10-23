@@ -4,11 +4,13 @@ parameters:
   definitions:
     MIS_ROUTE_JOIN:
       description:
-        short: Enable smart mission-route rejoin on Mission activation
+        short: Enable smart mission-route rejoin when resuming Mission
         long: |-
-          If enabled, activating Mission mode in flight joins the uploaded route at a
-          projected branch-in point. If disabled, Mission flies directly to the
-          current mission item.
+          If enabled, resuming a mission in flight joins the uploaded route at a
+          projected branch-in point. After the first start of a mission, a landing
+          or a mission item selection, Mission flies directly to the current mission
+          item until a mission waypoint is reached. If disabled, Mission always flies
+          directly to the current mission item.
       type: boolean
       default: 0
     MIS_MC_SEG_DIST:
