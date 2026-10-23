@@ -128,6 +128,20 @@ public:
 			   || (_rtl_state == RTLState::ARRIVAL && _arrival.phase() != RtlArrival::Phase::Land));
 	}
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Hold a no-route stop without landing while route inputs load; ending the wait starts the landing delay. */
+	void setWaitForRoute(bool wait);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	bool waitingForRoute() const
+	{
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		return _wait_for_route;
+#else
+		return false;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	}
+
 private:
 	/**
 	 * @brief Return state machine.
@@ -181,12 +195,25 @@ private:
 	 * Always false for build without geofence avoidance (CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE).
 	 */
 	bool geofenceAvoidanceActive() const;
-	/** A pure fixed-wing aircraft must not land against an unknown ground altitude when stopping here. */
+	/** Indefinite while the stop waits for the route, or where a pure fixed-wing cannot land. */
 	float landDelay() const;
+
+	/** The stop of route-following Return without a route, which only exists with the mission route cache. */
+	bool isRouteStop() const
+	{
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		return _destination_is_current_position;
+#else
+		return false;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	}
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
 	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	bool _wait_for_route {false}; ///< The stop holds without landing until RTL ends the wait.
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	RtlArrival _arrival;
 	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;

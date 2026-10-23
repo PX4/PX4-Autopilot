@@ -133,8 +133,14 @@ private:
 	uint8_t routeSafePointIndex() const;
 	/** Warn when RTL_TYPE 7 has no route and stops at the current position. */
 	void reportNoRoute() const;
-	/** True while Mission has not validated the uploaded mission, fence and Home yet. */
+	/** True while Mission has not validated the uploaded mission and fence yet. */
 	bool missionValidationPending() const;
+	/** True while the route inputs load or await validation, so a failed plan is not final yet. */
+	bool routeInputsPending() const;
+	/** Whether the no-route stop waits for route inputs: while they load, at most ROUTE_INPUT_WAIT after an upload. */
+	bool waitForRouteInputs() const;
+	/** Record the time of a new mission, rally point or fence upload; true if there was one. */
+	bool trackRouteUpload();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	void setRtlTypeAndDestination();
@@ -195,6 +201,10 @@ private:
 	RtlMissionSafePointFollow *_route_follower {nullptr}; ///< Same executor; lifetime owned through _rtl_mission_type_handle.
 	RtlRouteSafePoint _route_safe_point{this, _navigator};
 	perf_counter_t _route_evaluate_perf{perf_alloc(PC_ELAPSED, "navigator: rtl route evaluate")};
+	/// Loading takes up to about 20 s (fence retries, mission check, cache); stuck inputs must not hold forever.
+	static constexpr hrt_abstime ROUTE_INPUT_WAIT{30_s};
+	mission_s _route_upload{}; ///< Mission, rally point and fence identity of the last upload seen.
+	hrt_abstime _route_upload_time{0}; ///< When that upload was first seen.
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	RtlType _rtl_type {RtlType::RTL_DIRECT};
 	uint32_t _mission_land_failure_mission_id{0};
