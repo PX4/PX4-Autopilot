@@ -143,19 +143,20 @@ protected:
 		mission_item_s command{}; // Retain uploaded parameters while alignment uses _mission_item.
 		mission_item_s target{};
 		WorkItemType completion_work{WorkItemType::WORK_ITEM_TYPE_DEFAULT};
-		bool hold_current_position{false};
 	} _vtol_transition{};
 
 	/** Start a VTOL transition, first aligning towards alignment_target if given (it is copied). */
 	void startVtolTransition(const mission_item_s &command, const mission_item_s *alignment_target,
-				 WorkItemType completion_work, bool hold_current_position);
+				 WorkItemType completion_work);
 	/** Return true when ready for the normal on_active() completion path. */
 	bool updateVtolTransition();
 	/** Set _mission_item and the triplet for the alignment step (aligning) or the transition command. */
-	virtual void prepareVtolTransitionItem(bool aligning);
+	virtual void prepareVtolTransitionItem(bool aligning) = 0;
 	bool vtolTransitionActive() const { return _vtol_transition.command.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION; }
 	void resetVtolTransition() { _vtol_transition = {}; }
 	MISSION_ROUTE_HOOK bool frontTransitionInhibited() const { return false; }
+	/** A route Return transition completes in its mode without a command and is kept through a feasibility refresh. */
+	MISSION_ROUTE_HOOK bool routeReturnTransitionActive() const { return false; }
 	/** Synthetic helper work items must not report an uploaded item reached. */
 	MISSION_ROUTE_HOOK bool shouldReportMissionItemReached() const;
 	/** A VTOL in front transition lands as fixed-wing; only route Return opts in. */
@@ -472,6 +473,9 @@ protected:
 	/** Publish an onboard position item, and an optional next item, as the active mission item. */
 	void publishPositionItems(const mission_item_s &current_item, const mission_item_s *next_item,
 				  const position_setpoint_s &current_setpoint_copy);
+
+	/** prepareVtolTransitionItem() of a join or route Return transition: align at the published waypoint. */
+	void prepareRouteTransitionItem(bool aligning);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
@@ -538,19 +542,7 @@ protected:
 				       MissionTraversalType traversal_type);
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** Resolve the VTOL state at a mission position anchor, using lookahead only without a preceding mode. */
-	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);
-
-	/** getVtolStateAtMissionIndex() for all _mission.count indices in two passes; false if they do not fit or an item cannot be read. */
-	bool getVtolStatesForMission(uint8_t vtol_states[], int32_t capacity);
-
 	static bool vehicleInFwLikeState(const vehicle_status_s &vehicle_status);
-
-	/** @param vtol_states optional getVtolStatesForMission() result, replaces the scan per target */
-	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed,
-			const uint8_t *vtol_states = nullptr);
-
-	VtolTransitionAction vtolTransitionActionAfterReachingReverseTarget(int32_t reached_target_index);
 
 	/** Set _active_jump_anchor to the DO_JUMP edge the next nominal advance follows. */
 	void updateActiveJumpAnchorForNominalAdvance();

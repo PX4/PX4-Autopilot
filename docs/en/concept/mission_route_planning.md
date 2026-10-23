@@ -73,6 +73,7 @@ Mission mode instead flies directly to the current mission item, as it does with
 
 It keeps doing so across further pauses until the vehicle reaches a mission waypoint.
 A Return that follows the mission and changes its current item is not a selection: Mission rejoins the route afterwards, unless it was still flying directly to an item when the Return started.
+An item selected during a route-following Return is replaced by the Return's next route item, and Mission then flies directly to that item.
 
 When the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
 This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.

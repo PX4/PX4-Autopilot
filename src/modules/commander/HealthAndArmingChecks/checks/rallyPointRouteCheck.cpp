@@ -54,6 +54,7 @@ void RallyPointChecks::checkRouteReturn(const Context &context, Report &reporter
 	}
 
 	const NavModes return_mode = static_cast<NavModes>(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+	// Report in every mode, as ground stations list only the checks of the selected mode. Only Return fails.
 	/* EVENT
 	 * @description
 	 * Return cannot follow the mission route from the current position, or the uploaded mission, rally points
@@ -63,7 +64,7 @@ void RallyPointChecks::checkRouteReturn(const Context &context, Report &reporter
 	 * Upload a mission the vehicle can join and a rally point or landing it can reach through it,
 	 * or change <param>RTL_TYPE</param>.
 	 */
-	reporter.armingCheckFailure(return_mode, health_component_t::system,
+	reporter.armingCheckFailure(NavModesMessageFail{NavModes::All, return_mode}, health_component_t::system,
 				    events::ID("check_rtl_route_unavailable"),
 				    events::Log::Warning, "Return unavailable: no mission route");
 

@@ -7,6 +7,7 @@ import stat
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from planner_visualizer import planner_cli
 from planner_visualizer.geometry import offset_to_latlon
@@ -39,6 +40,7 @@ PLAN branch_off_lon 8.545594000
 PLAN branch_off_alt 500.000
 PLAN branch_off_mission_item_index 3
 PLAN fly_direct_to_goal 0
+PLAN geofence_prevents_shortcut 0
 END
 """
 
@@ -273,11 +275,17 @@ class BinaryTest(unittest.TestCase):
         self.assertEqual(planner_cli.repo_root(self.root / "src/modules/navigator/x.cpp"), self.root)
         self.assertIsNone(planner_cli.repo_root(temporary_directory(self) / "x"))
 
-    def test_build_command_points_at_the_cli_directory(self):
-        command = planner_cli.build_command(self.root)
-        self.assertTrue(command.startswith("make px4_sitl_test EXTERNAL_MODULES_LOCATION="))
-        self.assertIn(str(self.root / planner_cli.CLI_LOCATION), command)
-        self.assertTrue(command.endswith(planner_cli.BINARY_NAME))
+    def test_build_command_uses_a_build_directory_of_its_own(self):
+        # make tests builds in build/px4_sitl_test, whose cache would keep the external module.
+        build = self.root / planner_cli.BUILD_DIR
+        self.assertNotEqual(build, self.root / "build/px4_sitl_test")
+        self.assertEqual(self.binary.parent, build)
+        configure, build_cli = planner_cli.build_command(self.root).splitlines()
+        self.assertTrue(configure.startswith(f"cmake -S {self.root} -B {build} "))
+        self.assertIn(
+            f" -DCONFIG=px4_sitl_test -DEXTERNAL_MODULES_LOCATION={self.root / planner_cli.CLI_LOCATION}", configure
+        )
+        self.assertEqual(build_cli, f"cmake --build {build} --target {planner_cli.BINARY_NAME}")
 
     def test_sources_newer_than_the_binary_are_stale(self):
         self.write_binary("END\n")
@@ -455,13 +463,24 @@ class UnitTestGenerationTest(unittest.TestCase):
         self.assertIn("planner.planRtlRoute(request, plan);", code)
         self.assertIn("EXPECT_EQ(plan.first_mission_item_index, 2);", code)
         self.assertIn("EXPECT_FALSE(plan.direction_reversed);", code)
+        self.assertIn("EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kNone);", code)
         self.assertIn("EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);", code)
         self.assertIn("EXPECT_EQ(plan.safe_point_index, 1);", code)
         self.assertIn("EXPECT_EQ(plan.branch_off_mission_item_index, 3);", code)
         self.assertIn("EXPECT_NEAR(plan.join_position.lat, 47.4040373, 1e-6);", code)
         self.assertIn("EXPECT_NEAR(plan.join_position.alt, 500.000f, 0.01f);", code)
         self.assertIn("EXPECT_FALSE(plan.fly_direct_to_goal);", code)
+        self.assertIn("EXPECT_FALSE(plan.geofence_prevents_shortcut);", code)
         self.assertTrue(code.rstrip().endswith("}"))
+
+    def test_vtol_transition_and_geofence_shortcut_are_asserted(self):
+        output = CLI_OUTPUT.replace("vtol_transition_action none", "vtol_transition_action back_transition")
+        output = output.replace("geofence_prevents_shortcut 0", "geofence_prevents_shortcut 1")
+        code = generate_unit_test(self.scene, self.base, make_request(), planner_cli.parse_output(output), "x")
+        self.assertIn(
+            "EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kBackTransition);", code
+        )
+        self.assertIn("EXPECT_TRUE(plan.geofence_prevents_shortcut);", code)
 
     def test_interpolated_altitude_keeps_the_cli_precision(self):
         # Rounded to 501.8 m, this altitude would miss the 0.01 m tolerance.
@@ -479,6 +498,15 @@ class UnitTestGenerationTest(unittest.TestCase):
         self.assertIn("request.is_fixed_wing = true;", code)
         self.assertIn("request.mission_land_index = 4;", code)
 
+    def test_request_values_are_written_when_the_helper_defaults_are_unknown(self):
+        # Outside the repo nothing is known about makeRtlRouteRequest(), so nothing may be left out.
+        with patch("planner_visualizer.unit_test.request_defaults", return_value={}) as defaults:
+            code = generate_unit_test(self.scene, self.base, make_request(), self.result, "x")
+        defaults.assert_called_once_with("makeRtlRouteRequest")
+        self.assertIn("request.projection_search_distance_m = 60.f;", code)
+        self.assertIn("request.altitude_acceptance_radius_m = 10.f;", code)
+        self.assertIn("request.fw_u_turn_penalty_m = 4000.f;", code)
+
     def test_resume_test_uses_the_resume_helper(self):
         request = make_request()
         request.action = "RESUME"
@@ -487,6 +515,8 @@ class UnitTestGenerationTest(unittest.TestCase):
         self.assertIn("makeMissionResumeRequest(vehicle_position, 2)", code)
         self.assertIn("planner.planMissionResumeJoin(request, plan);", code)
         self.assertNotIn("goal_type", code)
+        self.assertNotIn("geofence_prevents_shortcut", code)
+        self.assertIn("EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kNone);", code)
         self.assertNotIn("safe_point_projection_search_distance_m", code)
 
     def test_failed_plan_asserts_the_failure(self):

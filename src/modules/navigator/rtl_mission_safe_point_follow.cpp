@@ -287,6 +287,161 @@ mission_route::VtolTransitionAction RtlMissionSafePointFollow::allowedRouteTrans
 	       ? mission_route::VtolTransitionAction::kNone : action;
 }
 
+// Same rule as mission_route::vtolStateForSegment(), except for legs that end at a takeoff item.
+uint8_t RtlMissionSafePointFollow::getVtolStateAtMissionIndex(int32_t anchor_index)
+{
+	uint8_t vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+	if (anchor_index < 0 || anchor_index >= _mission.count) {
+		return vtol_state;
+	}
+
+	bool lookback_complete = true;
+	bool anchor_is_landing = false;
+
+	for (int32_t index = anchor_index; index >= 0; --index) {
+		mission_item_s mission_item{};
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			PX4_ERR("Failed to read mission item %d for VTOL state", static_cast<int>(index));
+			lookback_complete = false;
+			continue;
+		}
+
+		if (index == anchor_index) {
+			anchor_is_landing = mission_route::isLandingCmd(mission_item.nav_cmd);
+		}
+
+		if (mission_route::updateVtolStateFromMissionItem(mission_item, vtol_state)) {
+			return vtol_state;
+		}
+	}
+
+	if (!lookback_complete || anchor_is_landing) {
+		return vtol_state;
+	}
+
+	// Match route planning: a future FT implies MC before it, a future BT implies FW.
+	// Ignore DO_JUMP repeats and targets, scanning as if all repeats were consumed.
+	for (int32_t index = anchor_index + 1; index < _mission.count; ++index) {
+		mission_item_s mission_item{};
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			break;
+		}
+
+		if (mission_route::isTakeoffCmd(mission_item.nav_cmd) || mission_route::isLandingCmd(mission_item.nav_cmd)) {
+			break;
+		}
+
+		if (mission_route::updateVtolStateFromMissionItem(mission_item, vtol_state, true)) {
+			break;
+		}
+	}
+
+	return vtol_state;
+}
+
+bool RtlMissionSafePointFollow::getVtolStatesForMission(uint8_t vtol_states[], int32_t capacity)
+{
+	if (_mission.count > capacity) {
+		return false;
+	}
+
+	static constexpr uint8_t kNoPrecedingMode{UINT8_MAX};
+	uint8_t preceding_mode = kNoPrecedingMode;
+
+	// Lookback: the closest mode command at or before each index.
+	for (int32_t index = 0; index < _mission.count; ++index) {
+		mission_item_s mission_item;
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			return false;
+		}
+
+		uint8_t command_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+		if (mission_route::updateVtolStateFromMissionItem(mission_item, command_state)) {
+			preceding_mode = command_state;
+		}
+
+		// A landing anchor without a preceding mode does not look ahead.
+		vtol_states[index] = (preceding_mode == kNoPrecedingMode && mission_route::isLandingCmd(mission_item.nav_cmd))
+				     ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED : preceding_mode;
+	}
+
+	// Lookahead from the next index, filled in backwards.
+	uint8_t following_mode = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+	for (int32_t index = _mission.count - 1; index >= 0; --index) {
+		if (vtol_states[index] == kNoPrecedingMode) {
+			vtol_states[index] = following_mode;
+		}
+
+		mission_item_s mission_item;
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			return false;
+		}
+
+		if (mission_route::isTakeoffCmd(mission_item.nav_cmd) || mission_route::isLandingCmd(mission_item.nav_cmd)) {
+			following_mode = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+		} else {
+			uint8_t command_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+
+			if (mission_route::updateVtolStateFromMissionItem(mission_item, command_state, true)) {
+				following_mode = command_state;
+			}
+		}
+	}
+
+	return true;
+}
+
+mission_route::VtolTransitionAction RtlMissionSafePointFollow::vtolTransitionActionForTarget(int32_t target_index,
+		bool direction_reversed, const uint8_t *vtol_states)
+{
+	const auto &vehicle_status = _vehicle_status_sub.get();
+
+	if (!vehicle_status.is_vtol || target_index < 0 || target_index >= _mission.count) {
+		return mission_route::VtolTransitionAction::kNone;
+	}
+
+	// In reverse, the target is the start of the segment. Find the following position
+	// anchor so transitions attached between the two endpoints remain part of that segment.
+	const int32_t anchor_search_start = direction_reversed ? target_index + 1 : target_index;
+
+	if (anchor_search_start >= _mission.count) {
+		return mission_route::VtolTransitionAction::kNone;
+	}
+
+	int32_t segment_anchor_index = -1;
+
+	if (!findNextPositionIndex(anchor_search_start, segment_anchor_index, MissionTraversalType::IgnoreDoJump)) {
+		return mission_route::VtolTransitionAction::kNone;
+	}
+
+	const uint8_t target_segment_state = vtol_states != nullptr ? vtol_states[segment_anchor_index]
+					     : getVtolStateAtMissionIndex(segment_anchor_index);
+	return mission_route::vtolTransitionActionForState(target_segment_state, vehicleInFwLikeState(vehicle_status));
+}
+
+mission_route::VtolTransitionAction RtlMissionSafePointFollow::vtolTransitionActionAfterReachingReverseTarget(
+	int32_t reached_target_index)
+{
+	int32_t previous_position_index = -1;
+
+	// In reverse, the leg leaving the reached waypoint is the nominal segment ending at it.
+	// The first position item has no such leg.
+	if (!_vehicle_status_sub.get().is_vtol
+	    || !findPreviousPositionIndex(reached_target_index, previous_position_index, MissionTraversalType::IgnoreDoJump)) {
+		return mission_route::VtolTransitionAction::kNone;
+	}
+
+	return vtolTransitionActionForTarget(reached_target_index, false);
+}
+
 void RtlMissionSafePointFollow::on_active()
 {
 	_vtol_status_sub.update();
@@ -532,7 +687,27 @@ void RtlMissionSafePointFollow::armRouteTransition(mission_route::VtolTransition
 	mission_item_s command{};
 	set_vtol_transition_item(&command, action == mission_route::VtolTransitionAction::kFrontTransition
 				 ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-	startVtolTransition(command, &current_route_item, WorkItemType::WORK_ITEM_TYPE_DEFAULT, true);
+	startVtolTransition(command, &current_route_item, WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+}
+
+bool RtlMissionSafePointFollow::routeReturnTransitionActive() const
+{
+	// Join transitions complete with TRANSITION_AFTER_JOIN; armRouteTransition() starts all others.
+	return vtolTransitionActive() && _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+}
+
+void RtlMissionSafePointFollow::prepareVtolTransitionItem(bool aligning)
+{
+	prepareRouteTransitionItem(aligning);
+
+	// The triplet already holds the route target, so a route transition aligns where the vehicle is.
+	if (aligning && routeReturnTransitionActive()) {
+		const auto *position = _navigator->get_global_position();
+		_mission_item.lat = position->lat;
+		_mission_item.lon = position->lon;
+		_mission_item.altitude = position->alt;
+		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+	}
 }
 
 void RtlMissionSafePointFollow::publishLandingItems(position_setpoint_triplet_s *pos_sp_triplet,
@@ -867,7 +1042,12 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 				}
 
 				if (mission_item_contains_position(item)) {
-					if (walk_index != _plan.first_mission_item_index) {
+					// The landing starts once the selected LAND is the target: its leg keeps
+					// the arriving mode, and it lands with the item from configureRoute().
+					const bool goal_landing = goalIsMissionLanding()
+								  && missionItemMatchesSelectedEndpoint(item);
+
+					if (walk_index != _plan.first_mission_item_index && !goal_landing) {
 						set_route_mode(vtolTransitionActionForTarget(walk_index, _plan.direction_reversed, route_vtol_states));
 					}
 
@@ -876,6 +1056,10 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 					if (last_route_item && goalIsMissionTakeoff()) {
 						// The takeoff altitude is replaced by the synthetic destination approach.
 						break;
+					}
+
+					if (goal_landing && _goal_mission_land_item_valid) {
+						item = _goal_mission_land_item;
 					}
 
 					add_mission_item_legs(item, !inactive && !join_remaining && walk_index == _mission.current_seq);

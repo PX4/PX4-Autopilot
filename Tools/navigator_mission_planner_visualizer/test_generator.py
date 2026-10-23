@@ -1,13 +1,21 @@
 """Generated C++ must look like the tests and parse back to the same fixtures."""
 
+import re
 import shutil
 import subprocess
 import unittest
 
-from planner_visualizer.cpp_parser import header_constants, parse_cpp
+from planner_visualizer.cpp_parser import (
+    ITEM_HELPERS,
+    POSITION_HELPERS,
+    SAFE_POINT_HELPERS,
+    header_constants,
+    parse_cpp,
+    repo_file,
+)
 from planner_visualizer.generator import cpp_float, generate_cpp
 from planner_visualizer.geometry import offset_to_latlon
-from planner_visualizer.models import Base, Fence, Position, Scene, Waypoint, base_from
+from planner_visualizer.models import Base, Fence, HELPER_HEADER, Position, Scene, Waypoint, base_from
 from planner_visualizer import planner_cli
 from planner_visualizer.planner_cli import PlanRequest, parse_output
 from planner_visualizer.unit_test import generate_unit_test
@@ -175,8 +183,19 @@ class GeneratorTest(unittest.TestCase):
         compiler = shutil.which("c++")
         if compiler is None:
             self.skipTest("no C++ compiler available")
-        # Stand-ins with the helper signatures, so only the generated syntax is checked.
+        header = repo_file(HELPER_HEADER)
+        if not header:
+            self.skipTest("needs the route test helper header")
+        # The helpers as the header declares them, with empty bodies, so only the generated syntax is checked.
+        helpers = set(ITEM_HELPERS) | set(SAFE_POINT_HELPERS) | set(POSITION_HELPERS)
+        declarations = {
+            match.group(2): match.group(1)
+            for match in re.finditer(r"\bstatic\s+inline\s+([\w:]+\s+(\w+)\s*\([^)]*\))", header)
+            if match.group(2) in helpers
+        }
+        self.assertEqual(set(declarations), helpers)
         stubs = """
+            #include <stdint.h>
             #include <vector>
             struct mission_item_s {};
             struct mission_fence_point_s {
@@ -185,7 +204,6 @@ class GeneratorTest(unittest.TestCase):
                 unsigned short nav_cmd;
                 unsigned char frame;
             };
-            using uint16_t = unsigned short;
             enum { NAV_FRAME_GLOBAL, NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION,
                    NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION, NAV_CMD_FENCE_CIRCLE_INCLUSION,
                    NAV_CMD_FENCE_CIRCLE_EXCLUSION };
@@ -194,17 +212,8 @@ class GeneratorTest(unittest.TestCase):
             enum { NAV_CMD_WAYPOINT, NAV_CMD_LOITER_TO_ALT };
             constexpr double kBaseLat = 47.397742, kBaseLon = 8.545594;
             constexpr float kAlt = 500.f;
-            mission_item_s makePositionItem(double, double, float, int = 0) { return {}; }
-            mission_item_s makePositionItemFromOffset(double, double, float, float, float, int = 0) { return {}; }
-            mission_item_s makeTakeoffItem(double, double, float) { return {}; }
-            mission_item_s makeTakeoffItemFromOffset(double, double, float, float, float) { return {}; }
-            mission_item_s makeLandItem(double, double, float) { return {}; }
-            mission_item_s makeLandItemFromOffset(double, double, float, float, float) { return {}; }
-            mission_item_s makeSafePointAbsolute(double, double, float) { return {}; }
-            mission_item_s makeSafePointFromOffset(double, double, float, float, float) { return {}; }
-            mission_route::Position makePositionAbsolute(double, double, float) { return {}; }
-            mission_route::Position makePositionFromOffset(double, double, float, float, float) { return {}; }
         """
+        stubs += "".join(f"{declaration} {{ return {{}}; }}\n" for declaration in declarations.values())
         fenced = make_scene()
         fenced.fences = [
             Fence(True, [(47.396, 8.544), (47.400, 8.544), (47.400, 8.550)]),

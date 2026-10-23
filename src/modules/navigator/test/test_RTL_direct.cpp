@@ -86,6 +86,8 @@ protected:
 	static constexpr float kDescentHeight = 30.f;
 	static constexpr float kLoiterRadius = 60.f;
 	static constexpr float kDestinationYaw = 0.4f;
+	static constexpr float kApproachOffset = 300.f;
+	static constexpr float kFixedWingSpeed = 15.f;
 
 	// Direct RTL states as logged in navigator_mission_item.sequence_current.
 	static constexpr uint16_t kLogClimb = 0;
@@ -186,6 +188,21 @@ protected:
 		_rtl->run(true);
 	}
 
+	// A VTOL landing approach east of the destination, farther than the acceptance radius.
+	loiter_point_s offsetApproach() const
+	{
+		loiter_point_s approach{};
+		waypoint_from_heading_and_distance(_destination.lat, _destination.lon, M_PI_2_F, kApproachOffset,
+						   &approach.lat, &approach.lon);
+		approach.height_m = kDestinationAltitude + kDescentHeight;
+		approach.loiter_radius_m = kLoiterRadius;
+		return approach;
+	}
+
+	// Seen from the offset approach, the destination lies due west.
+	void flyTowardsDestination() { _navigator->get_local_position()->vy = -kFixedWingSpeed; }
+	void flyAwayFromDestination() { _navigator->get_local_position()->vy = kFixedWingSpeed; }
+
 	void expectLoggedItem(uint16_t sequence)
 	{
 		navigator_mission_item_s logged_item{};
@@ -193,6 +210,7 @@ protected:
 		EXPECT_EQ(logged_item.sequence_current, sequence);
 		EXPECT_EQ(logged_item.nav_cmd, _rtl->missionItem().nav_cmd);
 		EXPECT_FLOAT_EQ(logged_item.altitude, _rtl->missionItem().altitude);
+		EXPECT_EQ(logged_item.force_heading, static_cast<bool>(_rtl->missionItem().force_heading));
 	}
 
 	const position_setpoint_triplet_s &triplet() const { return *_navigator->get_position_setpoint_triplet(); }
@@ -220,6 +238,10 @@ TEST_F(RtlDirectTest, ClimbsBeforeMovingToTheDestination)
 	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_WAYPOINT);
 	EXPECT_DOUBLE_EQ(triplet().current.lat, _destination.lat);
 	EXPECT_FLOAT_EQ(triplet().current.alt, kReturnAltitude);
+	// The move follows the line from the climb position.
+	EXPECT_TRUE(triplet().previous.valid);
+	EXPECT_DOUBLE_EQ(triplet().previous.lat, kLatitude);
+	EXPECT_DOUBLE_EQ(triplet().previous.lon, kLongitude);
 	EXPECT_FALSE(_rtl->isLanding());
 	expectLoggedItem(kLogMoveToApproach);
 }
@@ -253,6 +275,15 @@ TEST_F(RtlDirectTest, MulticopterZeroDelayStartsLandingAtArrival)
 	expectLoggedItem(kLogLand);
 }
 
+TEST_F(RtlDirectTest, MulticopterMoveBeyondMinimumDistanceLeavesYawUnspecified)
+{
+	setParameter("RTL_MIN_DIST", 100.f);
+	activate();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_FALSE(PX4_ISFINITE(_rtl->missionItem().yaw));
+	expectLoggedItem(kLogMoveToApproach);
+}
+
 TEST_F(RtlDirectTest, PositiveDelayDescendsBeforeStartingATimedHold)
 {
 	static constexpr float kLandDelay = 5.f;
@@ -262,6 +293,7 @@ TEST_F(RtlDirectTest, PositiveDelayDescendsBeforeStartingATimedHold)
 	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TO_ALT);
 	EXPECT_FLOAT_EQ(_rtl->missionItem().altitude, kDestinationAltitude + kDescentHeight);
 	EXPECT_FLOAT_EQ(_rtl->missionItem().yaw, kDestinationYaw);
+	EXPECT_FALSE(_rtl->missionItem().force_heading); // the approach is centred on the destination
 	EXPECT_FALSE(triplet().previous.valid);
 	EXPECT_TRUE(_rtl->isLanding());
 	expectLoggedItem(kLogDescend);
@@ -270,6 +302,7 @@ TEST_F(RtlDirectTest, PositiveDelayDescendsBeforeStartingATimedHold)
 	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
 	EXPECT_FLOAT_EQ(_rtl->missionItem().time_inside, kLandDelay);
 	EXPECT_TRUE(_rtl->missionItem().autocontinue);
+	EXPECT_FALSE(_rtl->missionItem().force_heading);
 	EXPECT_FLOAT_EQ(triplet().current.alt_acceptance_radius, FLT_MAX);
 	expectLoggedItem(kLogHold);
 
@@ -432,10 +465,12 @@ TEST_F(RtlDirectTest, VtolKeepsLandingAndTransitionSequenceNumbers)
 	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_WAYPOINT);
 	EXPECT_TRUE(_rtl->missionItem().vtol_back_transition);
 	EXPECT_TRUE(triplet().previous.valid);
+	EXPECT_TRUE(_rtl->isLanding());
 	expectLoggedItem(kLogMoveToLand);
 
 	completePositionItem();
 	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_DO_VTOL_TRANSITION);
+	EXPECT_TRUE(_rtl->isLanding());
 	expectLoggedItem(kLogTransition);
 	setVehicle(false, true);
 	_rtl->run(true);
@@ -446,6 +481,52 @@ TEST_F(RtlDirectTest, VtolKeepsLandingAndTransitionSequenceNumbers)
 	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LAND);
 	EXPECT_TRUE(_rtl->isLanding());
 	expectLoggedItem(kLogLand);
+}
+
+TEST_F(RtlDirectTest, OffsetApproachLeavesItsLoitersOnlyTowardsTheLandingPoint)
+{
+	setVehicle(true, true);
+	const loiter_point_s approach = offsetApproach();
+	activate(approach);
+	EXPECT_FALSE(_rtl->missionItem().force_heading);
+	expectLoggedItem(kLogMoveToApproach);
+
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TO_ALT);
+	EXPECT_TRUE(_rtl->missionItem().force_heading);
+	EXPECT_EQ(triplet().next.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_DOUBLE_EQ(triplet().next.lat, _destination.lat);
+	EXPECT_DOUBLE_EQ(triplet().next.lon, _destination.lon);
+	expectLoggedItem(kLogDescend);
+
+	// The descent ends only on the course to the landing point.
+	flyAwayFromDestination();
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TO_ALT);
+	EXPECT_FALSE(_mission_item_sub.updated());
+
+	flyTowardsDestination();
+	_rtl->run(true);
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
+	EXPECT_TRUE(_rtl->missionItem().force_heading);
+	expectLoggedItem(kLogHold);
+
+	// So does the hold.
+	flyAwayFromDestination();
+	completePositionItem();
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
+	EXPECT_FALSE(_mission_item_sub.updated());
+
+	flyTowardsDestination();
+	_rtl->run(true);
+	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_TRUE(_rtl->missionItem().vtol_back_transition);
+	EXPECT_FALSE(_rtl->missionItem().force_heading);
+	EXPECT_TRUE(triplet().previous.valid);
+	EXPECT_DOUBLE_EQ(triplet().previous.lat, approach.lat);
+	EXPECT_DOUBLE_EQ(triplet().previous.lon, approach.lon);
+	EXPECT_DOUBLE_EQ(triplet().current.lat, _destination.lat);
+	expectLoggedItem(kLogMoveToLand);
 }
 
 TEST_F(RtlDirectTest, WeatherVaneLeavesArrivalAndLandingYawUnspecified)
@@ -507,4 +588,91 @@ TEST_F(RtlDirectTest, InactiveEstimateAddsClimbMoveDescentDelayAndLanding)
 	ASSERT_TRUE(estimate.valid);
 	EXPECT_NEAR(estimate.time_estimate, 20.f / kClimbSpeed + distance / kCruiseSpeed
 		    + (kReturnAltitude - approach_altitude) / kDescentSpeed + kLandDelay + kDescentHeight / kDescentSpeed, 0.01f);
+}
+
+TEST_F(RtlDirectTest, DescentEstimateStartsAtTheCurrentAltitude)
+{
+	static constexpr float kCruiseSpeed = 10.f;
+	static constexpr float kDescentSpeed = 2.f;
+	static constexpr float kLandDelay = 4.f;
+	setParameter("MPC_XY_CRUISE", kCruiseSpeed);
+	setParameter("MPC_Z_V_AUTO_DN", kDescentSpeed);
+	setParameter("RTL_LAND_DELAY", kLandDelay);
+	activate();
+	completePositionItem();
+	expectLoggedItem(kLogDescend);
+
+	// Partway down, a few metres off the centre: no horizontal leg, only the remaining descent.
+	double latitude;
+	double longitude;
+	waypoint_from_heading_and_distance(_destination.lat, _destination.lon, 0.f, 5.f, &latitude, &longitude);
+	setPosition(latitude, longitude, kDestinationAltitude + kDescentHeight + 40.f);
+	const rtl_time_estimate_s estimate = _rtl->calc_rtl_time_estimate();
+	ASSERT_TRUE(estimate.valid);
+	EXPECT_NEAR(estimate.time_estimate, 40.f / kDescentSpeed + kLandDelay + kDescentHeight / kDescentSpeed, 0.01f);
+}
+
+TEST_F(RtlDirectTest, HoldEstimateAddsTheDelayAndTheLandingOnly)
+{
+	static constexpr float kDescentSpeed = 1.5f; // differs from the fixed-wing sink rate
+	setParameter("FW_AIRSPD_TRIM", kFixedWingSpeed);
+	setParameter("MPC_Z_V_AUTO_DN", kDescentSpeed);
+	setVehicle(true, true);
+	const loiter_point_s approach = offsetApproach();
+	const float approach_distance = get_distance_to_next_waypoint(approach.lat, approach.lon,
+					_destination.lat, _destination.lon);
+	flyTowardsDestination();
+
+	for (const float land_delay : {5.f, -1.f}) {
+		SCOPED_TRACE(land_delay);
+		setParameter("RTL_LAND_DELAY", land_delay);
+		setPosition(kLatitude, kLongitude, kReturnAltitude);
+		activate(approach);
+		completePositionItem();
+		completePositionItem();
+		expectLoggedItem(kLogHold);
+
+		// Outside the orbit and above the hold altitude: neither adds time.
+		double latitude;
+		double longitude;
+		waypoint_from_heading_and_distance(approach.lat, approach.lon, 0.f, 2.f * kLoiterRadius,
+						   &latitude, &longitude);
+		setPosition(latitude, longitude, approach.height_m + 3.f);
+		const rtl_time_estimate_s estimate = _rtl->calc_rtl_time_estimate();
+		ASSERT_TRUE(estimate.valid);
+
+		if (land_delay > 0.f) {
+			// The delay, the leg to the landing point and the hover descent.
+			EXPECT_NEAR(estimate.time_estimate, land_delay + approach_distance / kFixedWingSpeed
+				    + kDescentHeight / kDescentSpeed, 0.01f);
+
+		} else {
+			// An indefinite hold ends the estimate.
+			EXPECT_FLOAT_EQ(estimate.time_estimate, 0.f);
+		}
+
+		_rtl->run(false);
+	}
+}
+
+TEST_F(RtlDirectTest, FixedWingMoveEstimateEndsTheLegAtTheOrbit)
+{
+	static constexpr float kSinkRate = 3.f;
+	setParameter("FW_AIRSPD_TRIM", kFixedWingSpeed);
+	setParameter("FW_T_SINK_R_SP", kSinkRate);
+	setVehicle(true, false);
+	activate();
+	expectLoggedItem(kLogMoveToApproach);
+
+	// Partway to the destination: the leg ends at the orbit, then both descents use the sink rate.
+	// The descent is costed from the return altitude, so the 20 m above it are ignored.
+	double latitude;
+	double longitude;
+	waypoint_from_heading_and_distance(_destination.lat, _destination.lon, M_PI_F, 150.f, &latitude, &longitude);
+	setPosition(latitude, longitude, kReturnAltitude + 20.f);
+	const float distance = get_distance_to_next_waypoint(latitude, longitude, _destination.lat, _destination.lon);
+	const rtl_time_estimate_s estimate = _rtl->calc_rtl_time_estimate();
+	ASSERT_TRUE(estimate.valid);
+	EXPECT_NEAR(estimate.time_estimate, (distance - kLoiterRadius) / kFixedWingSpeed
+		    + (kReturnAltitude - kDestinationAltitude) / kSinkRate, 0.01f);
 }

@@ -13,7 +13,13 @@ import re
 from typing import Dict, Iterator, List, Optional, Tuple
 
 from .geometry import offset_to_latlon
-from .models import Fence, HELPER_HEADER, Position, Scene, Waypoint
+from .models import Fence, HELPER_HEADER, Position, Scene, Waypoint, base_from
+
+# C++ sources the fixture geometry and the request defaults are read from, so they are not copied here.
+GEOFENCE_HELPER_HEADER = "src/modules/navigator/test/support/geofence_test_helpers.h"
+ROUTE_GEOFENCE_TESTS = "src/modules/navigator/test/test_mission_route_geofence.cpp"
+PLANNER_TESTS = "src/modules/navigator/test/test_mission_route_planner.cpp"
+ROUTE_TYPES = "src/modules/navigator/mission_route_types.h"
 
 # Item helpers of mission_route_test_helpers.h and the nav command each one produces.
 ITEM_HELPERS = {
@@ -47,6 +53,13 @@ _POSITION_VAR_RE = re.compile(
 )
 _POSITION_LITERAL_RE = re.compile(r"mission_route::Position\s*\{([^{}]*)\}")
 _VELOCITY_RE = re.compile(r"\bvelocity_(north|east)_m_s\s*=\s*([^;]+);")
+_GEOFENCE_REFERENCE_RE = re.compile(
+    r"\bGeofenceTestBase\s*\(\s*double\s+\w+\s*=\s*([^,()]+),\s*double\s+\w+\s*=\s*([^,()]+)\)"
+)
+_FENCE_SHAPE_RE = re.compile(r"\bFencePoints\s+(\w+)\s*\(\s*\)\s*const\s*\{")
+_ROUTE_POSITION_DEFAULT_RE = re.compile(r"\broutePosition\s*\([^)]*=\s*([^,)]+)\)")
+_MEMBER_DEFAULT_RE = re.compile(r"\b(\w+)\s*\{([^{}]*)\}\s*;")
+_REQUEST_ASSIGNMENT_RE = re.compile(r"\brequest\.(\w+)\s*=\s*([^;]+);")
 _FLOAT_SUFFIX_RE = re.compile(r"((?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)[fF]\b")
 _OPERATORS = {
     ast.Add: operator.add,
@@ -70,14 +83,74 @@ def parse_cpp(text: str) -> Scene:
     )
 
 
+@lru_cache(maxsize=None)
+def repo_file(path: str) -> str:
+    """A source file of the repository this tool sits in, comments blanked. Empty outside the repo."""
+    for ancestor in Path(__file__).resolve().parents:
+        source = ancestor / path
+        if source.is_file():
+            return strip_comments(source.read_text(encoding="utf-8"))
+    return ""
+
+
 @lru_cache(maxsize=1)
 def header_constants() -> Dict[str, float]:
     """Constants of the shared test helper header, when this tool runs inside the repo."""
-    for ancestor in Path(__file__).resolve().parents:
-        header = ancestor / HELPER_HEADER
-        if header.is_file():
-            return resolve_constants(strip_comments(header.read_text(encoding="utf-8")), {})
-    return {}
+    return resolve_constants(repo_file(HELPER_HEADER), {})
+
+
+@lru_cache(maxsize=1)
+def geofence_reference() -> Optional[Tuple[float, float]]:
+    """GeofenceTestBase's default reference, the origin of its north/east fixture offsets.
+
+    Fixtures that pass a reference of their own are not detected.
+    """
+    match = _GEOFENCE_REFERENCE_RE.search(repo_file(GEOFENCE_HELPER_HEADER))
+    if match is None:
+        return None
+    lat, lon = (resolve_number(value, {}) for value in match.groups())
+    return None if lat is None or lon is None else (lat, lon)
+
+
+@lru_cache(maxsize=1)
+def fence_shapes() -> Dict[str, Tuple[str, List[str]]]:
+    """GeofenceTestBase shapes without arguments, such as exclusionSquare(), as the call they return."""
+    src = repo_file(GEOFENCE_HELPER_HEADER)
+    shapes: Dict[str, Tuple[str, List[str]]] = {}
+    for match in _FENCE_SHAPE_RE.finditer(src):
+        call = next(_calls(_block_at(src, match.end() - 1), ("polygon", "circle")), None)
+        if call is not None:
+            shapes[match.group(1)] = (call[0], call[1])
+    return shapes
+
+
+@lru_cache(maxsize=1)
+def route_position_altitude() -> Optional[float]:
+    """The default altitude argument of routePosition() in the route geofence tests."""
+    src = repo_file(ROUTE_GEOFENCE_TESTS)
+    match = _ROUTE_POSITION_DEFAULT_RE.search(src)
+    return resolve_number(match.group(1), resolve_constants(src, {})) if match else None
+
+
+@lru_cache(maxsize=None)
+def request_defaults(helper: str) -> Dict[str, float]:
+    """Numeric request fields as a planner test helper such as makeRtlRouteRequest() returns them.
+
+    The request struct defaults, then the helper's assignments. A field whose value cannot be
+    read is missing, and so is every field outside the repo.
+    """
+    tests = repo_file(PLANNER_TESTS)
+    definition = re.search(rf"\b{helper}\s*\([^{{;]*\{{", tests)
+    if definition is None:
+        return {}
+    types = repo_file(ROUTE_TYPES)
+    values: Dict[str, Optional[float]] = {}
+    for struct in re.finditer(r"\bstruct\s+(?:MissionResumeRequest|RtlRouteRequest)\b[^{;]*\{", types):
+        for name, expr in _MEMBER_DEFAULT_RE.findall(_block_at(types, struct.end() - 1)):
+            values[name] = resolve_number(expr, {})
+    for name, expr in _REQUEST_ASSIGNMENT_RE.findall(_block_at(tests, definition.end() - 1)):
+        values[name] = resolve_number(expr, header_constants())
+    return {name: value for name, value in values.items() if value is not None}
 
 
 # ---- Tokens and expressions ----
@@ -113,6 +186,12 @@ def _closing_bracket(src: str, open_idx: int) -> int:
             if depth == 0:
                 return idx
     return -1
+
+
+def _block_at(src: str, open_idx: int) -> str:
+    """Text between the bracket at open_idx and the one closing it, or "" when unbalanced."""
+    close = _closing_bracket(src, open_idx)
+    return src[open_idx + 1 : close] if close != -1 else ""
 
 
 def _split_args(text: str) -> List[str]:
@@ -355,21 +434,23 @@ def _parse_fences(src: str, constants: Dict[str, float]) -> List[Fence]:
                 fences.append((pending_start, fence))
             pending = []
 
-    # GeofenceTestBase helpers use offsets from (47, 8), independently of the
-    # route test helper's kBaseLat/kBaseLon reference.
-    for helper, args, index in _calls(src, ("polygon", "circle", "exclusionSquare", "exclusionCircle")):
-        reference = (47.0, 8.0)
+    # GeofenceTestBase helpers use offsets from its default reference, not kBaseLat/kBaseLon.
+    # The reference and argument-free shapes such as exclusionSquare() are read from its header.
+    shapes = fence_shapes()
+    base = base_from(constants)
+    for helper, args, index in _calls(src, ("polygon", "circle", "exclusionCircle", *shapes)):
+        reference = geofence_reference()
         radius = None
         offsets = []
         inclusion = False
-        if helper == "exclusionSquare" and not args:
-            offsets = [(-50.0, 250.0), (50.0, 250.0), (50.0, 350.0), (-50.0, 350.0)]
-        elif helper == "exclusionCircle" and len(args) == 3:
+        if helper in shapes and not args:
+            helper, args = shapes[helper]
+        if helper == "exclusionCircle" and len(args) == 3:
             values = [resolve_number(arg, constants) for arg in args]
             if None in values:
                 continue
             offsets, radius = [tuple(values[:2])], values[2]
-            reference = (constants.get("kBaseLat", 47.397742), constants.get("kBaseLon", 8.545594))
+            reference = (base.lat, base.lon) if base else None
         elif len(args) in (2, 3) and args[0] in ("true", "false"):
             inclusion = args[0] == "true"
             if helper == "polygon" and len(args) == 2 and args[1].startswith("{") and args[1].endswith("}"):
@@ -378,7 +459,7 @@ def _parse_fences(src: str, constants: Dict[str, float]) -> List[Fence]:
                 offsets, radius = [_coordinate_literal(args[1], constants)], resolve_number(args[2], constants)
                 if radius is None:
                     continue
-        if not offsets or None in offsets:
+        if reference is None or not offsets or None in offsets:
             continue
         vertices = [offset_to_latlon(*reference, *point) for point in offsets]
         fence = _fence(inclusion, vertices, radius)
@@ -404,11 +485,14 @@ def _parse_positions(src: str, constants: Dict[str, float]) -> List[Position]:
         if point is not None:
             add(_assigned_name(src, index), point.lat, point.lon, point.alt)
 
+    reference = geofence_reference()
     for _, args, index in _calls(src, ("routePosition",)):
         values = [resolve_number(arg, constants) for arg in args]
-        if len(values) in (2, 3) and None not in values and all(math.isfinite(value) for value in values):
-            lat, lon = offset_to_latlon(47.0, 8.0, *values[:2])
-            add(_assigned_name(src, index), lat, lon, values[2] if len(values) == 3 else constants.get("kAltitude", 500.0))
+        if len(values) == 2:
+            values.append(route_position_altitude())
+        if reference and len(values) == 3 and None not in values and all(math.isfinite(value) for value in values):
+            lat, lon = offset_to_latlon(*reference, *values[:2])
+            add(_assigned_name(src, index), lat, lon, values[2])
 
     for match in _POSITION_VAR_RE.finditer(src):
         values = [resolve_number(arg, constants) for arg in _split_args(match.group(2))]

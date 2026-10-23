@@ -4,20 +4,11 @@ from dataclasses import fields
 import re
 from typing import Optional
 
+from .cpp_parser import request_defaults
 from .generator import cpp_float, generate_cpp
 from .models import Base, Position, Scene
 from .planner_cli import PlanRequest, PlanResult, first_mission, vehicle_position
 
-# Values makeRtlRouteRequest() / makeMissionResumeRequest() already set in test_mission_route_planner.cpp.
-_TEST_HELPER_DEFAULTS = {
-    "home_altitude_amsl": 500.0,
-    "projection_search_distance_m": 60.0,
-    "safe_point_projection_search_distance_m": 60.0,
-    "acceptance_radius_m": 10.0,
-    "direct_goal_acceptance_radius_m": 10.0,
-    "altitude_acceptance_radius_m": 10.0,
-    "fw_u_turn_penalty_m": 4000.0,  # the request struct default
-}
 _RESUME_FIELDS = (
     "current_route_direction_reversed",
     "home_altitude_amsl",
@@ -84,7 +75,7 @@ def generate_unit_test(
             "\tMissionRoutePlanner planner{provider};",
             f"\tmission_route::{request_type} request = {helper}({vehicle_name}, {request.mission_index});",
         ]
-    lines += [f"\t{line}" for line in _request_overrides(request, scene, rtl, use_defaults=not scene.fences)]
+    lines += [f"\t{line}" for line in _request_overrides(request, scene, rtl, None if scene.fences else helper)]
     plan_type = "RtlRoutePlan" if rtl else "MissionResumePlan"
     method = "planRtlRoute" if rtl else "planMissionResumeJoin"
     lines += [
@@ -123,7 +114,9 @@ def _fixtures(scene: Scene, base: Optional[Base], vehicle: Optional[Position]) -
     return generate_cpp(named, base)
 
 
-def _request_overrides(request: PlanRequest, scene: Scene, rtl: bool, use_defaults: bool = True):
+def _request_overrides(request: PlanRequest, scene: Scene, rtl: bool, helper: Optional[str]):
+    """Request fields the helper does not already set to the same value, or all of them without a helper."""
+    defaults = request_defaults(helper) if helper else {}
     for item in fields(request):
         name, value = item.name, getattr(request, item.name)
         if name in ("action", "mission_index") or (not rtl and name not in _RESUME_FIELDS):
@@ -136,14 +129,14 @@ def _request_overrides(request: PlanRequest, scene: Scene, rtl: bool, use_defaul
                 yield f"request.{name} = {value};"
         else:
             # The CLI gets 1 mm precision, so defaults are compared at that precision.
-            default = _TEST_HELPER_DEFAULTS.get(name)
-            if use_defaults and default is not None and abs(round(value, 3) - default) < 1e-6:
+            default = defaults.get(name)
+            if default is not None and abs(round(value, 3) - default) < 1e-6:
                 continue
-            literal = cpp_float(value) if use_defaults else f"{value:.3f}f"
+            literal = cpp_float(value) if helper else f"{value:.3f}f"
             yield f"request.{name} = {literal};"
     if scene.velocity is not None:
         for axis, value in zip(("north", "east"), scene.velocity):
-            literal = cpp_float(value) if use_defaults else f"{value:.3f}f"
+            literal = cpp_float(value) if helper else f"{value:.3f}f"
             yield f"request.velocity_{axis}_m_s = {literal};"
 
 
@@ -151,6 +144,8 @@ def _expectations(result: PlanResult, rtl: bool):
     yield f"EXPECT_EQ(plan.first_mission_item_index, {result.int_field('first_mission_item_index')});"
     yield _expect_bool("plan.direction_reversed", result.bool_field("direction_reversed"))
     yield _expect_bool("plan.use_current_altitude", result.bool_field("use_current_altitude"))
+    transition = _transition_enum(result.plan.get("vtol_transition_action", ""))
+    yield f"EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::k{transition});"
     yield from _expect_position("join_position", result.position("join"))
     if not rtl:
         return
@@ -161,6 +156,7 @@ def _expectations(result: PlanResult, rtl: bool):
         yield f"EXPECT_EQ(plan.branch_off_mission_item_index, {result.int_field('branch_off_mission_item_index')});"
         yield from _expect_position("branch_off_position", result.position("branch_off"))
     yield _expect_bool("plan.fly_direct_to_goal", result.bool_field("fly_direct_to_goal"))
+    yield _expect_bool("plan.geofence_prevents_shortcut", result.bool_field("geofence_prevents_shortcut"))
 
 
 def _goal_enum(goal_type: str) -> str:
@@ -169,6 +165,10 @@ def _goal_enum(goal_type: str) -> str:
         "mission_land": "MissionLand",
         "mission_takeoff": "MissionTakeoff",
     }.get(goal_type, "None")
+
+
+def _transition_enum(action: str) -> str:
+    return {"front_transition": "FrontTransition", "back_transition": "BackTransition"}.get(action, "None")
 
 
 def _expect_bool(expression: str, value: bool) -> str:
