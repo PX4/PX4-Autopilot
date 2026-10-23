@@ -48,6 +48,8 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <parameters/param.h>
+#include <px4_platform_common/posix.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_status.h>
@@ -56,6 +58,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/wind.h>
 
+#include "mission.h"
 #include "navigator.h"
 #include "rtl.h"
 #include "rtl_direct_mission_land.h"
@@ -230,7 +233,12 @@ public:
 	void updateParamsForTest() { updateParams(); }
 
 	// the return type is re-decided every few seconds of inactive time, which a test does not have
-	void decideRtlTypeForTest() { setRtlTypeAndDestination(); }
+	void decideRtlTypeForTest()
+	{
+		_mission_sub.update();
+		_home_pos_sub.update();
+		setRtlTypeAndDestination();
+	}
 
 	RtlType rtlTypeForTest() const { return _rtl_type; }
 };
@@ -502,7 +510,7 @@ protected:
 	uint32_t _safe_points_opaque_id{0};
 };
 
-TEST_F(RTLTest, MissionValidityMatchesMissionAndFeasibilityInputs)
+TEST_F(RTLTest, MissionValidityMatchesMissionAndFence)
 {
 	mission_s mission{};
 	mission.timestamp = hrt_absolute_time();
@@ -521,11 +529,9 @@ TEST_F(RTLTest, MissionValidityMatchesMissionAndFeasibilityInputs)
 	mission_result->geofence_id = mission.geofence_id - 1;
 	EXPECT_FALSE(_rtl.hasValidMissionForTest());
 
+	// Home updates do not re-run the check, so a verdict from an older Home still holds
 	mission_result->geofence_id = mission.geofence_id;
 	mission_result->home_position_counter = home_update_count - 1;
-	EXPECT_FALSE(_rtl.hasValidMissionForTest());
-
-	mission_result->home_position_counter = home_update_count;
 	EXPECT_TRUE(_rtl.hasValidMissionForTest());
 }
 
@@ -1949,4 +1955,95 @@ TEST_F(RTLTest, ReturnActivationFliesTheMissionPublishedSinceTheLastInactiveCycl
 	// the dataman is shared by every case in this binary, so leave the mission slots as they were found
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
+}
+
+// WHY: Commander sets Home again at arming, at takeoff and after a GNSS altitude correction, and none of these
+// re-runs the mission check.
+// WHAT: the return keeps following the checked mission after each of these Home updates.
+TEST_F(RTLTest, ReturnFollowsTheCheckedMissionAfterHomeUpdates)
+{
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	_navigator.get_global_position()->timestamp = hrt_absolute_time(); // the mission check waits for a position
+
+	// Navigator copies Home before it runs the modes
+	uORB::Subscription home_sub{ORB_ID(home_position)};
+	auto setHome = [&](uint32_t update_count, float alt) {
+		publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, alt), update_count);
+		home_sub.copy(_navigator.get_home_position());
+	};
+
+	auto returnType = [&](int32_t rtl_type) {
+		param_set(param_find("RTL_TYPE"), &rtl_type);
+		_rtl.updateParamsForTest();
+		_rtl.decideRtlTypeForTest();
+		return _rtl.rtlTypeForTest();
+	};
+
+	// the mission check waits for the fence, here an empty one
+	mission_stats_entry_s no_fence{};
+	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&no_fence),
+					      sizeof(no_fence)));
+	Geofence &fence = _navigator.get_geofence();
+	const hrt_abstime start = hrt_absolute_time();
+
+	while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start) < 1_s) {
+		fence.run();
+		px4_usleep(1000);
+	}
+
+	ASSERT_TRUE(fence.isReadyForPathChecks());
+
+	// a waypoint 500 m north, then a mission landing at Home
+	const PositionYawSetpoint waypoint = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt);
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {
+		makeSafePointItem(waypoint.lat, waypoint.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
+		land_start,
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND)
+	});
+	mission_s mission = makeMissionHeader(9, 0, 3);
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.land_start_index = 1;
+	mission.land_index = 2;
+	publishMission(mission);
+
+	// RTL_TYPE 1 takes the mission landing from the route cache
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] { return cache.missionLandItemReady(); }));
+
+	Mission mission_mode{&_navigator};
+
+	// GIVEN: the mission was checked on the ground with the first Home
+	setHome(1, kAlt);
+	mission_mode.run(false);
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_EQ(returnType(1), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
+
+	// WHEN: Home is set again at arming and at takeoff, outside Mission
+	// THEN: the return still uses the mission
+	setHome(2, kAlt);
+	mission_mode.run(false);
+	EXPECT_EQ(returnType(1), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
+
+	setHome(3, kAlt);
+	mission_mode.run(false);
+	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
+	EXPECT_EQ(returnType(4), RTL::RtlType::RTL_MISSION_FAST_REVERSE);
+
+	// WHEN: Mission flies and a GNSS altitude correction moves Home
+	mission_mode.run(true);
+	setHome(4, kAlt - 1.5f);
+	mission_mode.run(true);
+	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
+
+	// WHEN: the return is triggered from Mission, whose inactivation runs first in that cycle
+	mission_mode.run(false);
+	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
+
+	// the dataman is shared by every case in this binary, so leave the slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_FENCE_POINTS_STATE));
 }
