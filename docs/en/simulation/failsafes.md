@@ -41,13 +41,13 @@ This enables testing of battery indication in GCS UIs without triggering low bat
 
 To change this minimal battery percentage value use the parameter [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT).
 
-To control how fast the battery depletes to the minimal value use the parameter [SIM_BAT_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT_DRAIN).
+To control how much current is drawn from the battery use the parameters[SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW) and [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC).
 
 :::tip
 By changing [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) in flight, you can also test regaining capacity to simulate inaccurate battery state estimation or in-air charging technology.
 :::
 
-The simulated battery can be completely disabled by setting [SIM_BAT_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT_DRAIN) to 0. This is useful, for example, if you provide an external battery simulation via MAVLink.
+The simulated battery can be completely disabled by setting [SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW) and [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC) to 0. This is useful, for example, if you provide an external battery simulation via MAVLink.
 
 ### Multiple Batteries
 
@@ -55,8 +55,8 @@ By default only one battery is simulated.
 Additional batteries are simulated by enabling them like on a real vehicle: set the source of the battery to `Power Module` and configure it, e.g. [BAT2_SOURCE](../advanced_config/parameter_reference.md#BAT2_SOURCE) and [BAT2_N_CELLS](../advanced_config/parameter_reference.md#BAT2_N_CELLS) for a second battery.
 Each simulated battery is published as its own `battery_status` instance.
 
-All batteries deplete according to [SIM_BAT_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT_DRAIN) and [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) unless overridden for an individual battery with [SIM_BATx_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT1_DRAIN) and [SIM_BATx_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT1_MIN_PCT).
-Setting `SIM_BATx_DRAIN` to a non-positive value uses the shared drain time. Setting `SIM_BATx_MIN_PCT` to a negative value
+All batteries deplete according to [SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW), [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC), and [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) unless overridden for an individual battery with [SIM_BATx_I_FW](../advanced_config/parameter_reference.md#SIM_BAT1_I_FW), [SIM_BATx_I_MC](../advanced_config/parameter_reference.md#SIM_BAT1_I_MC), and [SIM_BATx_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT1_MIN_PCT).
+Setting `SIM_BATx_I_FW` to a non-positive value uses the shared average current drawn for fixed wing mode. Setting `SIM_BATx_I_MC` to a non-positive value uses the shared average current drawn for multicopter mode. Setting `SIM_BATx_MIN_PCT` to a negative value
 uses the shared minimum charge.
 This can be used to test multi-battery behaviour, for example one battery depleting faster than the others.
 
