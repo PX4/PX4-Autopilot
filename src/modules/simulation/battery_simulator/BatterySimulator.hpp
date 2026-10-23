@@ -72,7 +72,7 @@ private:
 	void Run() override;
 	void updateParams() override;
 
-	// Time in seconds for the given battery to drain from 100% to 0% while armed
+	// Average current in A drawn from the given battery in the current flight mode, negative if not simulated
 	float avgCurrent(int battery_index, bool is_fw, bool is_mc) const;
 
 	// Lowest state of charge in percent the given battery drains down to
@@ -97,11 +97,10 @@ private:
 	float _i_mc_override_s[battery_status_s::MAX_INSTANCES] {};
 	float _min_pct_override[battery_status_s::MAX_INSTANCES] {};
 
-	uint64_t _last_integration_us{0};
-	float _battery_percentage[battery_status_s::MAX_INSTANCES] {};
-	float _consumed_mah[battery_status_s::MAX_INSTANCES] {};
+	float _last_min_percentage[battery_status_s::MAX_INSTANCES] {};
 	bool _capacity_warned[battery_status_s::MAX_INSTANCES] {};
 	bool _armed{false};
+	bool _was_armed{false};
 	bool _is_mc{false};
 	bool _is_fw{false};
 
