@@ -192,8 +192,8 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 		case LowBatteryAction::Return:
 		case LowBatteryAction::ReturnOrLand:
 		case LowBatteryAction::ReturnOrTerminate:
-		case LowBatteryAction::ReturnOrLandWithDistanceAwareReturn:
-		case LowBatteryAction::ReturnOrTerminateWithDistanceAwareReturn:
+		case LowBatteryAction::ReturnOrLandWithoutDistanceAwareReturn:
+		case LowBatteryAction::ReturnOrTerminateWithoutDistanceAwareReturn:
 			options.action = Action::RTL;
 			break;
 
@@ -219,7 +219,7 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 
 		case LowBatteryAction::Land:
 		case LowBatteryAction::ReturnOrLand:
-		case LowBatteryAction::ReturnOrLandWithDistanceAwareReturn:
+		case LowBatteryAction::ReturnOrLandWithoutDistanceAwareReturn:
 			options.action = Action::Land;
 			break;
 
@@ -228,7 +228,7 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 			break;
 
 		case LowBatteryAction::ReturnOrTerminate:
-		case LowBatteryAction::ReturnOrTerminateWithDistanceAwareReturn:
+		case LowBatteryAction::ReturnOrTerminateWithoutDistanceAwareReturn:
 			options.action = Action::Terminate;
 			break;
 		}
@@ -240,17 +240,17 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 		options.cause = Cause::RemainingFlightTimeLow;
 
 		switch ((LowBatteryAction)param_value) {
-		case LowBatteryAction::ReturnOrLandWithDistanceAwareReturn:
-		case LowBatteryAction::ReturnOrTerminateWithDistanceAwareReturn:
+		case LowBatteryAction::Return:
+		case LowBatteryAction::ReturnOrLand:
+		case LowBatteryAction::ReturnOrTerminate:
 			options.action = Action::RTL;
 			options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 			break;
 
 		case LowBatteryAction::Warning:
-		case LowBatteryAction::Return:
 		case LowBatteryAction::Land:
-		case LowBatteryAction::ReturnOrLand:
-		case LowBatteryAction::ReturnOrTerminate:
+		case LowBatteryAction::ReturnOrLandWithoutDistanceAwareReturn:
+		case LowBatteryAction::ReturnOrTerminateWithoutDistanceAwareReturn:
 			options.action = Action::Warn;
 			break;
 		}

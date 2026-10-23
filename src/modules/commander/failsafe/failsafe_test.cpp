@@ -1131,14 +1131,14 @@ TEST_F(FailsafeTest, BatteryFailsafeUsesLowBatActParam)
 	// Remaining flight time low: only the distance-aware return options return, all others warn
 	EXPECT_EQ(selectedActionFor(0, kNone, true), FailsafeBase::Action::Warn); // Warning
 	EXPECT_EQ(selectedActionFor(2, kNone, true), FailsafeBase::Action::Warn); // Land mode
-	EXPECT_EQ(selectedActionFor(3, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level land
-	EXPECT_EQ(selectedActionFor(4, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level terminate
 	// Distance-aware return, Critical level return, Emergency level land
-	EXPECT_EQ(selectedActionFor(5, kNone, true), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(3, kNone, true), FailsafeBase::Action::RTL);
 	// Distance-aware return, Critical level return, Emergency level terminate
-	EXPECT_EQ(selectedActionFor(6, kNone, true), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(4, kNone, true), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(5, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level land
+	EXPECT_EQ(selectedActionFor(6, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level terminate
 
-	// Battery levels: the distance-aware return options act like the ones without it
+	// Battery levels: the options without distance-aware return act like the ones with it
 	EXPECT_EQ(selectedActionFor(3, kCritical, false), FailsafeBase::Action::RTL);
 	EXPECT_EQ(selectedActionFor(5, kCritical, false), FailsafeBase::Action::RTL);
 	EXPECT_EQ(selectedActionFor(4, kCritical, false), FailsafeBase::Action::RTL);
