@@ -29,6 +29,11 @@ def find_matching_brackets(brackets, s, verbose):
     raise Exception('Failed to find opening/closing brackets in {:}'.format(s))
 
 def extract_timer(line):
+    # Try format: initIOTimer(Timer::TPM3, 1000000UL),
+    search = re.search('Timer::(TPM[0-9]+)[,)]', line, re.IGNORECASE)
+    if search:
+        return search.group(1), 'imx9'
+
     # Try format: initIOTimer(Timer::Timer5, DMA{DMA::Index1, DMA::Stream0, DMA::Channel6}),
     search = re.search('Timer::([0-9a-zA-Z_]+)[,)]', line, re.IGNORECASE)
     if search:
@@ -54,6 +59,15 @@ def extract_timer_from_channel(line, timer_names):
 
     return None
 
+def imx9_is_dshot(line):
+
+    # NXP imx9 format format: initIOTimerDshot(Timer::TPM3),
+    search = re.search('(initIOTimerDshot)', line, re.IGNORECASE)
+    if search:
+        return True
+
+    return False
+
 def imxrt_is_dshot(line):
 
     # NXP FlexPWM format format: initIOPWM(PWM::FlexPWM2),
@@ -63,7 +77,51 @@ def imxrt_is_dshot(line):
 
     return False
 
-def get_timer_groups(timer_config_file, verbose=False):
+def load_board_config(board_config):
+    """ return the set of symbols assigned in a Kconfig .config style file
+    (e.g. the boardconfig the build generates); None gives an empty set """
+    if board_config is None:
+        return set()
+    with open(board_config, 'r') as f:
+        return {m.group(1) for m in (re.match(r'(\w+)=', l) for l in f) if m}
+
+def preprocess(text, defined):
+    """ return the lines of text the C preprocessor keeps, given the set of defined symbols.
+    Supports #ifdef, #ifndef, #else, #endif and #if with defined()/!defined() terms joined by
+    && and ||. Any other directive or expression raises. """
+    stack = []
+    lines = []
+    for line in text.splitlines():
+        directive = re.match(r'\s*#\s*(\w+)\s*(.*?)\s*$', line)
+        if not directive:
+            if all(stack): lines.append(line)
+            continue
+        name, expr = directive.groups()
+        expr = re.sub(r'\s*(//.*|/\*.*?\*/)', '', expr)
+        if name in ('ifdef', 'ifndef') and re.fullmatch(r'\w+', expr):
+            stack.append((expr in defined) == (name == 'ifdef'))
+        elif name == 'if':
+            cond = re.sub(r'defined\s*\(\s*(\w+)\s*\)', lambda m: ' ' + str(m.group(1) in defined) + ' ', expr)
+            cond = cond.replace('&&', ' and ').replace('||', ' or ').replace('!', ' not ')
+            if not re.fullmatch(r'(\s|\(|\)|True|False|and|or|not)+', cond):
+                raise Exception('Unsupported preprocessor expression in line: {:}'.format(line))
+            stack.append(eval(cond, {'__builtins__': {}}))
+        elif name == 'else' and stack and not expr:
+            stack[-1] = not stack[-1]
+        elif name == 'endif' and stack and not expr:
+            stack.pop()
+        else:
+            raise Exception('Unsupported preprocessor directive in line: {:}'.format(line))
+    if stack:
+        raise Exception('Unterminated #if block')
+    return lines
+
+def get_timer_groups(timer_config_file, verbose=False, board_config=None):
+    """ parse the io_timers and timer_io_channels tables of timer_config_file.
+    Preprocessor conditionals in the tables are evaluated against the symbols set in
+    board_config (Kconfig boardconfig file); with board_config None every symbol is
+    undefined, so guarded entries are excluded. """
+    defined = load_board_config(board_config)
     with open(timer_config_file, 'r') as f:
         timer_config = f.read()
 
@@ -78,7 +136,7 @@ def get_timer_groups(timer_config_file, verbose=False):
     timers_str = timer_config[open_idx:close_idx]
     timers = []
     timer_names = []
-    for line in timers_str.splitlines():
+    for line in preprocess(timers_str, defined):
         line = line.strip()
         if len(line) == 0 or line.startswith('//'):
             continue
@@ -90,6 +148,10 @@ def get_timer_groups(timer_config_file, verbose=False):
             if imxrt_is_dshot(line):
                 dshot_support[str(len(timers))] = True
             timers.append(str(len(timers)))
+        elif timer_type == 'imx9':
+            if verbose: print('imx9 timer found')
+            dshot_support[timer] = imx9_is_dshot(line)
+            timers.append(timer)
         elif timer:
             if verbose: print('found timer def: {:}'.format(timer))
             dshot_support[timer] = 'DMA' in line
@@ -111,7 +173,7 @@ def get_timer_groups(timer_config_file, verbose=False):
     channel_timers = []
     channel_types = []
 
-    for line in channels.splitlines():
+    for line in preprocess(channels, defined):
         line = line.strip()
         if len(line) == 0 or line.startswith('//'):
             continue
@@ -232,12 +294,14 @@ if __name__ == '__main__':
 
     parser.add_argument('--timer-config', type=str, action='store',
                         help='timer_config.cpp file', required=True)
+    parser.add_argument('--board-config', type=str, action='store',
+                        help='Kconfig boardconfig file the preprocessor conditionals are evaluated against')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                         help='Verbose Output')
 
     args = parser.parse_args()
     verbose = args.verbose
-    timer_groups = get_timer_groups(args.timer_config, verbose)
+    timer_groups = get_timer_groups(args.timer_config, verbose, args.board_config)
     print('timer groups: {:}'.format(timer_groups))
     output_groups, timer_params = get_output_groups(timer_groups, verbose=verbose)
     print('output groups: {:}'.format(output_groups))
