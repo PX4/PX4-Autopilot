@@ -63,9 +63,8 @@ static constexpr uint32_t get_message_version() {
 	return MessageVersionHelper<T>::m;
 }
 
-struct SendSubscription {
+struct SendTopicDescriptor {
 	const struct orb_metadata *orb_meta;
-	uxrObjectId data_writer;
 	const char* dds_type_name;
 	const char* topic;
 	uint32_t message_version;
@@ -73,29 +72,36 @@ struct SendSubscription {
 	UcdrSerializeMethod ucdr_serialize_method;
 	uint64_t publish_interval_ms;
 	uint8_t orb_instance;
-	bool too_large_reported{false};
+};
+
+// Constant description of the messages to send; the per-session state is in SendTopicsSubs
+static constexpr SendTopicDescriptor send_topics[@(len(publications))] = {
+@[    for pub in publications]@
+		{ ORB_ID(@(pub['topic_simple'])),
+		  "@(pub['dds_type'])",
+		  "@(pub['topic'])",
+		  get_message_version<@(pub['simple_base_type'])_s>(),
+		  ucdr_topic_size_@(pub['simple_base_type'])(),
+		  &ucdr_serialize_@(pub['simple_base_type']),
+		  @(pub['publish_interval_ms'] if pub['publish_interval_ms'] is not None else 'UXRCE_DEFAULT_POLL_INTERVAL_MS'), // ms; 0 = unlimited (rate limit disabled, queue drained)
+		  @(pub['instance'])
+		},
+@[    end for]@
 };
 
 // Subscribers for messages to send
 struct SendTopicsSubs {
-	SendSubscription send_subscriptions[@(len(publications))] = {
-@[    for pub in publications]@
-			{ ORB_ID(@(pub['topic_simple'])),
-			  uxr_object_id(0, UXR_INVALID_ID),
-			  "@(pub['dds_type'])",
-			  "@(pub['topic'])",
-			  get_message_version<@(pub['simple_base_type'])_s>(),
-			  ucdr_topic_size_@(pub['simple_base_type'])(),
-			  &ucdr_serialize_@(pub['simple_base_type']),
-			  @(pub['publish_interval_ms'] if pub['publish_interval_ms'] is not None else 'UXRCE_DEFAULT_POLL_INTERVAL_MS'), // ms; 0 = unlimited (rate limit disabled, queue drained)
-			  @(pub['instance'])
-			},
-@[    end for]@
-	};
+	static constexpr unsigned num_topics = sizeof(send_topics) / sizeof(send_topics[0]);
+
+	// Zero-initialized, which equals uxr_object_id(0, UXR_INVALID_ID)
+	uxrObjectId data_writers[num_topics] {};
 
 	// One entry per publication, plus a trailing slot the client uses for the
 	// transport fd, so it can wait on uORB updates and incoming agent data together.
-	px4_pollfd_struct_t fds[@(len(publications)) + 1] {};
+	px4_pollfd_struct_t fds[num_topics + 1] {};
+
+	// set once a sample did not fit into the best-effort stream, so it is reported only once
+	bool too_large_reported[num_topics] {};
 
 	uint32_t num_payload_sent{};
 
@@ -105,16 +111,16 @@ struct SendTopicsSubs {
 };
 
 bool SendTopicsSubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrObjectId participant_id, const char *client_namespace) {
-	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
+	for (unsigned idx = 0; idx < num_topics; ++idx) {
 		if (fds[idx].events == 0) {
-			fds[idx].fd = orb_subscribe_multi(send_subscriptions[idx].orb_meta, send_subscriptions[idx].orb_instance);
+			fds[idx].fd = orb_subscribe_multi(send_topics[idx].orb_meta, send_topics[idx].orb_instance);
 			fds[idx].events = POLLIN;
-			orb_set_interval(fds[idx].fd, send_subscriptions[idx].publish_interval_ms);
+			orb_set_interval(fds[idx].fd, send_topics[idx].publish_interval_ms);
 		}
 
-		if (!create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].topic,
-								   send_subscriptions[idx].message_version, send_subscriptions[idx].orb_instance,
-								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer)) {
+		if (!create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_topics[idx].orb_meta->o_id), client_namespace, send_topics[idx].topic,
+								   send_topics[idx].message_version, send_topics[idx].orb_instance,
+								   send_topics[idx].dds_type_name, data_writers[idx])) {
 			return false;
 		}
 	}
@@ -123,8 +129,8 @@ bool SendTopicsSubs::init(uxrSession *session, uxrStreamId reliable_out_stream_i
 
 void SendTopicsSubs::reset() {
 	num_payload_sent = 0;
-	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
-		send_subscriptions[idx].data_writer = uxr_object_id(0, UXR_INVALID_ID);
+	for (unsigned idx = 0; idx < num_topics; ++idx) {
+		data_writers[idx] = uxr_object_id(0, UXR_INVALID_ID);
 		orb_unsubscribe(fds[idx].fd);
 		fds[idx].fd = ORB_SUB_INVALID;
 		fds[idx].events = 0;  // force re-subscribe on reconnect (init() skips when events != 0)
@@ -138,7 +144,7 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 	alignas(sizeof(uint64_t)) char topic_data[max_topic_size];
 	bool needs_flush = false;
 
-	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
+	for (unsigned idx = 0; idx < num_topics; ++idx) {
 		if (fds[idx].revents & POLLIN) {
 			// Topics with an unlimited rate (publish_interval_ms == 0) drain the whole
 			// uORB queue in one pass: the interval is already 0, so orb_check gates only
@@ -147,19 +153,19 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 			// depth so a publisher producing faster than we drain cannot spin this loop.
 			// Rate-limited topics forward only the latest sample per poll wakeup,
 			// respecting the configured interval.
-			const bool drain_queue = (send_subscriptions[idx].publish_interval_ms == 0);
-			unsigned remaining = drain_queue ? send_subscriptions[idx].orb_meta->o_queue : 1;
+			const bool drain_queue = (send_topics[idx].publish_interval_ms == 0);
+			unsigned remaining = drain_queue ? send_topics[idx].orb_meta->o_queue : 1;
 			bool updated = true;
 
 			while (updated) {
 				// Topic updated, copy data and send
-				orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
+				orb_copy(send_topics[idx].orb_meta, fds[idx].fd, &topic_data);
 
-				if (send_subscriptions[idx].data_writer.id != UXR_INVALID_ID) {
+				if (data_writers[idx].id != UXR_INVALID_ID) {
 
 					ucdrBuffer ub;
-					uint32_t topic_size = send_subscriptions[idx].topic_size;
-					uint16_t req_id = uxr_prepare_output_stream(session, best_effort_stream_id, send_subscriptions[idx].data_writer, &ub,
+					uint32_t topic_size = send_topics[idx].topic_size;
+					uint16_t req_id = uxr_prepare_output_stream(session, best_effort_stream_id, data_writers[idx], &ub,
 								   topic_size);
 
 					if (req_id == UXR_INVALID_REQUEST_ID) {
@@ -167,24 +173,24 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 						// Flush once to free space and retry.
 						uxr_flash_output_streams(session);
 						needs_flush = false;
-						req_id = uxr_prepare_output_stream(session, best_effort_stream_id, send_subscriptions[idx].data_writer, &ub,
+						req_id = uxr_prepare_output_stream(session, best_effort_stream_id, data_writers[idx], &ub,
 										   topic_size);
 					}
 
 					if (req_id != UXR_INVALID_REQUEST_ID) {
-						send_subscriptions[idx].ucdr_serialize_method(&topic_data, ub, time_offset_us);
+						send_topics[idx].ucdr_serialize_method(&topic_data, ub, time_offset_us);
 						needs_flush = true;
 						num_payload_sent += topic_size;
 
-					} else if (!send_subscriptions[idx].too_large_reported) {
+					} else if (!too_large_reported[idx]) {
 						// sample is larger than the stream (report only once)
 						PX4_ERR("%s (%" PRIu32 " B) does not fit into the best-effort stream",
-							send_subscriptions[idx].orb_meta->o_name, topic_size);
-						send_subscriptions[idx].too_large_reported = true;
+							send_topics[idx].orb_meta->o_name, topic_size);
+						too_large_reported[idx] = true;
 					}
 
 				} else {
-					//PX4_ERR("Error UXR_INVALID_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
+					//PX4_ERR("Error UXR_INVALID_ID %s", send_topics[idx].orb_meta->o_name);
 				}
 
 				if (--remaining == 0) {
@@ -292,30 +298,38 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 }
 @[end if]@
 
+@[if subscriptions or subscriptions_multi]@
+struct RcvTopicDescriptor {
+	const struct orb_metadata *orb_meta;
+	const char* topic;
+	const char* dds_type_name;
+	uint32_t message_version;
+	uint8_t queue_depth_factor;
+};
+
+// Constant description of the received messages, indexed by data reader id
+static constexpr RcvTopicDescriptor rcv_topics[@(len(subscriptions) + len(subscriptions_multi))] = {
+@[    for sub in subscriptions]@
+	{ ORB_ID(@(sub['simple_base_type'])), "@(sub['topic'])", "@(sub['dds_type'])", get_message_version<@(sub['simple_base_type'])_s>(), 2 }, // use a bit larger queue size than internal
+@[    end for]@
+@[    for sub in subscriptions_multi]@
+	{ ORB_ID(@(sub['topic_simple'])), "@(sub['topic'])", "@(sub['dds_type'])", get_message_version<@(sub['simple_base_type'])_s>(), @(sub.get('max_instances', 2)) }, // scale queue for multiple sources
+@[    end for]@
+};
+@[end if]@
+
 bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrObjectId participant_id, const char *client_namespace)
 {
-@[    for idx, sub in enumerate(subscriptions)]@
-	{
-			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['simple_base_type']))) * 2; // use a bit larger queue size than internal
-			uint32_t message_version = get_message_version<@(sub['simple_base_type'])_s>();
-
-			if (!create_data_reader(session, reliable_out_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth)) {
-				return false;
-			}
-	}
-@[    end for]@
-@[    for idx, sub in enumerate(subscriptions_multi)]@
-	{
-			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['topic_simple']))) * @(sub.get('max_instances', 2)); // scale queue for multiple sources
-			uint32_t message_version = get_message_version<@(sub['simple_base_type'])_s>();
-
-			if (!create_data_reader(session, reliable_out_stream_id, participant_id, @(idx + len(subscriptions)), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth)) {
-				return false;
-			}
-	}
-@[    end for]@
-
 @[    if subscriptions or subscriptions_multi]@
+	for (uint16_t idx = 0; idx < sizeof(rcv_topics) / sizeof(rcv_topics[0]); ++idx) {
+		const uint16_t queue_depth = orb_get_queue_size(rcv_topics[idx].orb_meta) * rcv_topics[idx].queue_depth_factor;
+
+		if (!create_data_reader(session, reliable_out_stream_id, participant_id, idx, client_namespace, rcv_topics[idx].topic,
+					rcv_topics[idx].message_version, rcv_topics[idx].dds_type_name, queue_depth)) {
+			return false;
+		}
+	}
+
 	uxr_set_topic_callback(session, on_topic_update, this);
 @[    end if]@
 
