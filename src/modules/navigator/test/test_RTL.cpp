@@ -763,15 +763,17 @@ protected:
 	}
 
 	// A safe-point upload: the mission topic has the new id while the cache reloads the points.
-	mission_s startSafePointReload(const mission_s &mission, uint16_t num_safe_points)
+	mission_s startSafePointReload(const mission_s &mission, uint16_t num_safe_points,
+				       dm_item_t slot = DM_KEY_SAFE_POINTS_0)
 	{
 		mission_s reloading = mission;
 		reloading.timestamp = hrt_absolute_time();
 		++reloading.safe_points_id;
+		reloading.safepoint_dataman_id = slot;
 		mission_stats_entry_s stats{};
 		stats.num_items = num_safe_points;
 		stats.opaque_id = reloading.safe_points_id;
-		stats.dataman_id = DM_KEY_SAFE_POINTS_0;
+		stats.dataman_id = slot;
 		EXPECT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
 						      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
 		publishMission(reloading);
@@ -2056,6 +2058,70 @@ TEST_F(RTLTest, SafePointReloadKeepsTheRouteUntilLoaded)
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 	EXPECT_EQ(_rtl.lastRouteLoopSegmentForTest().jump_item_index, loop_segment.jump_item_index);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
+}
+
+// Route advances while new rally points and a new fence load must not republish the identities the follower started with.
+TEST_F(RTLTest, RouteAdvanceDuringReloadKeepsTheUploadedIdentities)
+{
+	const std::vector<mission_item_s> mission_items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 200.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kAlt),
+	};
+	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 405.f, 250.f, kAlt);
+	const std::vector<mission_item_s> safe_points{
+		makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL),
+	};
+	const mission_s mission = loadRoutePlanningCache(mission_items, safe_points);
+	publishMission(mission);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 10.f, kAlt));
+	primeNavigatorState();
+	setMissionResultValid(mission);
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+
+	// New rally points and a new fence, both uploaded to the other slot and still loading.
+	mission_item_s new_safe_point = safe_points[0];
+	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_1, 0, reinterpret_cast<uint8_t *>(&new_safe_point),
+					      sizeof(new_safe_point)));
+	mission_s reloading = startSafePointReload(mission, static_cast<uint16_t>(safe_points.size()), DM_KEY_SAFE_POINTS_1);
+	startFenceUpdate(reloading, {}, DM_KEY_FENCE_POINTS_1);
+	publishMission(reloading);
+	uORB::SubscriptionData<mission_s> mission_topic{ORB_ID(mission)};
+	int32_t last_seq = mission_topic.get().current_seq;
+	int advances = 0;
+
+	for (int cycle = 0; cycle < 400 && advances < 2; ++cycle) {
+		const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+		if (current.valid) {
+			publishGlobalPosition(current.lat, current.lon, current.alt);
+			primeNavigatorState();
+		}
+
+		_rtl.run(true);
+
+		if (mission_topic.update() && mission_topic.get().current_seq != last_seq) {
+			last_seq = mission_topic.get().current_seq;
+			++advances;
+			EXPECT_EQ(mission_topic.get().mission_id, mission.mission_id);
+			EXPECT_EQ(mission_topic.get().safe_points_id, reloading.safe_points_id);
+			EXPECT_EQ(mission_topic.get().safepoint_dataman_id, DM_KEY_SAFE_POINTS_1);
+			EXPECT_EQ(mission_topic.get().geofence_id, reloading.geofence_id);
+			EXPECT_EQ(mission_topic.get().fence_dataman_id, reloading.fence_dataman_id);
+		}
+	}
+
+	ASSERT_EQ(advances, 2);
+	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
+
+	// Navigator feeds the cache from the topic, which still names the new rally points.
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	EXPECT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission_topic.get(), [&] { return cache.safePointsReady(); },
+			3_s));
 }
 
 TEST_F(RTLTest, RouteRetryPreservesFlownJumpAnchorForTheSameMission)

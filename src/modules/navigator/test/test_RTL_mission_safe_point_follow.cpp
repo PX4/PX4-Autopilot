@@ -52,6 +52,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mode_completed.h>
+#include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -124,6 +125,7 @@ public:
 	}
 
 	void setCurrentSequenceForTest(int32_t index) { _mission.current_seq = index; }
+	void setLandStartForTest(int32_t index) { _mission.land_start_index = index; }
 	int32_t currentSequenceForTest() const { return _mission.current_seq; }
 	uint32_t missionIdForTest() const { return _mission.mission_id; }
 
@@ -687,6 +689,81 @@ TEST_P(RtlMissionSafePointFollowGoalUpdateTest, IgnoresReplacementMission)
 INSTANTIATE_TEST_SUITE_P(ArrivalAndLand, RtlMissionSafePointFollowGoalUpdateTest,
 			 ::testing::Values(RtlMissionSafePointFollowTestPeer::Stage::Arrival,
 					 RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal));
+
+// A landing abort moves the follower's index back, but must not republish the replaced mission.
+TEST_F(RtlMissionSafePointFollowNavigatorTest, LandingAbortAfterMissionReplacementKeepsTheReplacement)
+{
+	follower.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+	});
+	follower.prepareActiveMissionForTest(20, 1);
+	follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
+	follower.setLandedForTest(false);
+	const mission_route::Position goal{kBaseLat + 0.002, kBaseLon + 0.001, kAlt - 10.f};
+	follower.setSafePointSelectionForTest(false, 1);
+	follower.setSafePointGeometryForTest({kBaseLat + 0.001, kBaseLon, kAlt}, goal);
+	follower.setGlobalPositionForTest(goal);
+	follower.publishActiveMissionItemsForTest();
+	ASSERT_EQ(navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+
+	follower.publishMissionUpdateForTest(21, 0);
+	uORB::SubscriptionData<mission_s> mission_topic{ORB_ID(mission)};
+	position_controller_landing_status_s landing_status{};
+	landing_status.timestamp = hrt_absolute_time();
+	landing_status.abort_status = 1;
+	uORB::Publication<position_controller_landing_status_s> landing_status_pub{ORB_ID(position_controller_landing_status)};
+	landing_status_pub.publish(landing_status);
+	follower.on_active();
+	// Later Navigators would read the abort too.
+	landing_status.abort_status = 0;
+	landing_status_pub.publish(landing_status);
+
+	EXPECT_EQ(follower.currentSequenceForTest(), 0);
+	EXPECT_FALSE(mission_topic.update());
+	EXPECT_EQ(mission_topic.get().mission_id, 21u);
+}
+
+// A fixed-wing abort at a mission landing returns to the landing start, also without republishing the replaced mission.
+TEST_F(RtlMissionSafePointFollowNavigatorTest, MissionLandingAbortAfterReplacementKeepsTheReplacement)
+{
+	const mission_item_s landing = makeLandItem(kBaseLat + 0.002, kBaseLon, kAlt - 30.f);
+	follower.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		landing,
+	});
+	follower.setLandStartForTest(0);
+	follower.prepareActiveMissionForTest(30, 2);
+	mission_route::RtlRoutePlan plan{};
+	plan.join_position = {kBaseLat, kBaseLon, kAlt};
+	plan.first_mission_item_index = 0;
+	plan.goal_type = mission_route::GoalType::kMissionLand;
+	plan.goal_position = {landing.lat, landing.lon, landing.altitude};
+	follower.configurePlanForTest(plan, 2);
+	follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
+	follower.setVehicleStatusForTest(false, true, false);
+	follower.setLandedForTest(false);
+	follower.setGlobalPositionForTest(plan.goal_position);
+	follower.publishActiveMissionItemsForTest();
+	ASSERT_EQ(navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+
+	follower.publishMissionUpdateForTest(31, 0);
+	uORB::SubscriptionData<mission_s> mission_topic{ORB_ID(mission)};
+	position_controller_landing_status_s landing_status{};
+	landing_status.timestamp = hrt_absolute_time();
+	landing_status.abort_status = 1;
+	uORB::Publication<position_controller_landing_status_s> landing_status_pub{ORB_ID(position_controller_landing_status)};
+	landing_status_pub.publish(landing_status);
+	follower.on_active();
+	landing_status.abort_status = 0;
+	landing_status_pub.publish(landing_status);
+
+	// The landing start, not the previous item.
+	EXPECT_EQ(follower.currentSequenceForTest(), 0);
+	EXPECT_FALSE(mission_topic.update());
+	EXPECT_EQ(mission_topic.get().mission_id, 31u);
+}
 
 // Advancing onto the branch-off index stays in FollowRoute so a pending transition can still run.
 TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteAdvanceKeepsFollowRouteUntilBranchOffPublication)
