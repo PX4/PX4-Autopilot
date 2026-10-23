@@ -57,11 +57,13 @@ public:
 		bool return_required;
 	};
 
-	Result check(int32_t rtl_type, uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL)
+	Result check(int32_t rtl_type, uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL,
+		     uint8_t user_intention = vehicle_status_s::NAVIGATION_STATE_MANUAL)
 	{
 		param_set_no_notification(param_find("RTL_TYPE"), &rtl_type);
 		vehicle_status_s status{};
 		status.nav_state = nav_state;
+		status.nav_state_user_intention = user_intention;
 		Context context{status};
 		failsafe_flags_s failsafe_flags{};
 		Report reporter{failsafe_flags, 0};
@@ -150,13 +152,50 @@ TEST_F(RallyPointChecksTest, ActiveRouteReturnIsNotInterrupted)
 
 TEST_F(RallyPointChecksTest, ActiveRouteReturnDoesNotRequireFreshStatus)
 {
-	// Active Return publishes status on selection, not on every execution cycle.
+	// A running Return, here a failsafe one, does not depend on the status age.
 	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0,
 			 hrt_absolute_time() - 6_s);
 	const Result result = check(7, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 	EXPECT_FALSE(result.warned);
 	EXPECT_TRUE(result.return_can_run);
 	EXPECT_FALSE(result.return_required);
+}
+
+TEST_F(RallyPointChecksTest, FailsafeHoldDuringSelectedRouteReturnKeepsReturnAvailable)
+{
+	// A failsafe Hold replaces the selected Return: without a route it warns, but Return must not fall back to Land.
+	const hrt_abstime now = hrt_absolute_time();
+	const struct {
+		const char *name;
+		uint8_t rtl_type;
+		bool pending;
+		uint8_t safe_point_index;
+		hrt_abstime timestamp;
+	} statuses[] {
+		{"old route", rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0, now - 6_s},
+		{"loading", rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, true, UINT8_MAX, now},
+		{"no route", rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, false, UINT8_MAX, now},
+	};
+
+	for (const auto &status : statuses) {
+		SCOPED_TRACE(status.name);
+		publishRtlStatus(status.rtl_type, status.pending, status.safe_point_index, status.timestamp);
+		const Result result = check(7, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER,
+					    vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+		EXPECT_TRUE(result.warned);
+		EXPECT_TRUE(result.return_can_run);
+		EXPECT_FALSE(result.return_required);
+	}
+}
+
+TEST_F(RallyPointChecksTest, FailsafeHoldDuringOtherModeKeepsReturnUnavailable)
+{
+	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, false);
+	const Result result = check(7, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER,
+				    vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+	EXPECT_TRUE(result.warned);
+	EXPECT_FALSE(result.return_can_run);
+	EXPECT_TRUE(result.return_required);
 }
 
 TEST_F(RallyPointChecksTest, OtherReturnTypesIgnoreTheRoute)
