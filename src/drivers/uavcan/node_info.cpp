@@ -143,14 +143,11 @@ void NodeInfoPublisher::registerCapability(uint8_t node_id, uint32_t device_id, 
 			continue;
 		}
 
-		// No device_type yet but has node info — fill it in and publish
-		if (_device_informations[i].device_type == DEVICE_TYPE_NONE &&
-		    _device_informations[i].has_node_info) {
-			_device_informations[i].device_id = device_id;
-			_device_informations[i].device_type = device_type;
-			publishSingleDeviceInformation(_device_informations[i]);
-			return;
-		}
+		// Untyped entries come only from registerNodeInfo(), so this one already has node info
+		_device_informations[i].device_id = device_id;
+		_device_informations[i].device_type = device_type;
+		publishSingleDeviceInformation(_device_informations[i]);
+		return;
 	}
 
 	// No existing entry to update — create a new one
