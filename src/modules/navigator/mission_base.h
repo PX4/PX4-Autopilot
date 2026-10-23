@@ -355,6 +355,9 @@ protected:
 	/** Allow normal Mission modes to restore persistent action commands on activation. */
 	MISSION_ROUTE_HOOK bool shouldReplayMissionActionItems() const { return true; }
 
+	/** Whether a landing abort moves the mission index back to the landing start or approach. */
+	MISSION_ROUTE_HOOK bool landingAbortMovesMissionIndex() const { return true; }
+
 	/**
 	 * Update mission topic
 	 */

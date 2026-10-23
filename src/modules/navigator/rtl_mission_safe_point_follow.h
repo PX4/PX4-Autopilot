@@ -146,6 +146,8 @@ private:
 	bool isMissionValid() const override;
 	bool shouldAcceptMissionUpdates() override { return false; }
 	bool shouldReplayMissionActionItems() const override { return false; }
+	/** Only an aborted mission landing returns to its landing start; a rally point or takeoff goal is not a mission item. */
+	bool landingAbortMovesMissionIndex() const override { return goalIsMissionLanding(); }
 
 	mission_route::RtlRoutePlan _plan{};
 	uORB::SubscriptionData<vtol_vehicle_status_s> _vtol_status_sub{ORB_ID(vtol_vehicle_status)};
