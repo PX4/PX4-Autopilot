@@ -105,6 +105,7 @@ private:
 	float param_pwm_freq{50.f}, previous_pwm_freq{0.f};
 	bool param_update_failed = false;
 	uint32_t param_duty_mode;
+	uint32_t param_gpio_mode{0};
 
 	static constexpr uint8_t _transfer_fails_threshold = 10;
 	uint8_t _register_transfer_fails = 0;
@@ -163,7 +164,12 @@ bool PCA9685Wrapper::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_ou
 	for (uint8_t i = 0; i < num_outputs; ++i) {
 		uint16_t output = static_cast<uint16_t>(lroundf(outputs[i]));
 
-		if (param_duty_mode & (1 << i)) {
+		if (param_gpio_mode & (1 << i)) {
+			// the pca does support fully on/off mode, which is set by the driver:
+			// 0 as fully off; 4096 as fully on
+			low_level_outputs[i] = _mixing_output.isAboveMidpoint(i, outputs[i]) ? PCA9685_PWM_RES : 0;
+
+		} else if (param_duty_mode & (1 << i)) {
 			low_level_outputs[i] = output;
 
 		} else {
@@ -410,6 +416,13 @@ void PCA9685Wrapper::updateParams() {
         param_get(param, (int32_t*)&param_duty_mode);
     } else {
         PX4_ERR("param PCA9685_DUTY_EN not found");
+    }
+
+    param = param_find("PCA9685_GPIO_EN");
+    if (param != PARAM_INVALID) {
+        param_get(param, (int32_t*)&param_gpio_mode);
+    } else {
+        PX4_ERR("param PCA9685_GPIO_EN not found");
     }
 }
 
