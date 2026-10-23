@@ -230,10 +230,12 @@ Until a route is planned, including while uploaded data are loading, a switch to
 A failsafe configured to Return selects Land instead, without applying [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY); if Land is unavailable, normal failsafe escalation applies.
 While Return is the selected mode, a failsafe that interrupts it keeps its own action, such as Hold, and a failsafe configured to Return resumes Return, which holds or lands where it is without a route.
 If Return runs without a route, for example because the mission was replaced during the return, it holds at the current location and altitude.
-Multicopters and VTOLs start landing after `RTL_LAND_DELAY`, or hold indefinitely when that delay is negative.
+It holds without landing while uploaded mission, rally point or fence data are loading or awaiting validation, for up to about 30 seconds after the latest upload.
+Once they are ready and planning still fails, multicopters and VTOLs start landing after `RTL_LAND_DELAY`, or hold indefinitely when that delay is negative.
 A pure fixed-wing vehicle circles until a route becomes available or another mode is selected, regardless of the delay; VTOLs in fixed-wing mode circle during the hold and back-transition before landing.
 While airborne and holding, Return retries planning every two seconds and resumes route following if a plan succeeds.
-Failed retries preserve the hold position and landing timer, and retries stop once landing starts or the vehicle touches down.
+Failed retries preserve the hold position and landing timer, except that an upload during the hold makes Return wait for its data again and then restart the full delay.
+Retries stop once landing starts or the vehicle touches down.
 See [No Route Available](../concept/mission_route_planning.md#route-following-no-route) for the conditions and VTOL behaviour.
 The planner checks the branch-in, branch-off and direct-to-goal segments against loaded fences but does not find detours; see [Geofence Checks](../concept/mission_route_planning.md#geofence-checks).
 

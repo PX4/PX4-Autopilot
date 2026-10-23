@@ -92,6 +92,9 @@ void RTL::on_inactive()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	trackRouteUpload();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	parameters_update();
 
@@ -161,6 +164,9 @@ void RTL::on_activation()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	trackRouteUpload();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	// Activation skips the mode's inactive update,
 	// refresh its mission before destination selection.
@@ -219,6 +225,12 @@ void RTL::on_active()
 	_wind_sub.update();
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// Retry an upload during a stop at once, so a timed hold waits for the new data instead of landing.
+	if (trackRouteUpload() && _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && _rtl_type == RtlType::RTL_DIRECT
+	    && _rtl_direct.canResumeRoute() && !_navigator->get_land_detected()->landed) {
+		retryRouteSafePoint();
+	}
 
 	// Replan when the route source changes, unless the arrival or landing has started.
 	// While rally points or the fence reload, the same mission keeps its route until they are ready.
@@ -292,6 +304,10 @@ void RTL::on_active()
 				publishRtlStatus(_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
 						 ? routeSafePointIndex() : RTL_STATUS_NO_SAFE_POINT);
 			}
+
+		} else {
+			// Without RTL_TYPE 7 nothing retries, so a stop must not keep waiting for the route.
+			_rtl_direct.setWaitForRoute(false);
 		}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -343,13 +359,22 @@ void RTL::retryRouteSafePoint()
 	const auto evaluation = evaluateRouteSafePoint();
 
 	if (!evaluation.success) {
+		// Keep waiting while inputs load; the first failure with ready inputs starts the landing delay.
+		const bool wait = waitForRouteInputs();
+
+		if (!wait && _rtl_direct.waitingForRoute() && routeInputsPending()) {
+			_route_safe_point.reportRouteWaitEnded();
+		}
+
+		_rtl_direct.setWaitForRoute(wait);
 		publishRtlStatus(RTL_STATUS_NO_SAFE_POINT);
 		return;
 	}
 
 	if ((_route_follower == nullptr || evaluation.executor_source_changed)
 	    && !initRtlMissionType(RtlType::RTL_MISSION_SAFE_POINT_FOLLOW, _global_pos_sub.get().alt)) {
-		// Allocation failure must not restart the hold, shift its destination or change its altitude.
+		// Allocation failure must not shift the hold or change its altitude. The inputs are ready: stop waiting.
+		_rtl_direct.setWaitForRoute(false);
 		publishRtlStatus(RTL_STATUS_NO_SAFE_POINT);
 		return;
 	}
@@ -361,6 +386,7 @@ void RTL::retryRouteSafePoint()
 	_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
 	// Publish the executor type before its first VTOL transition command.
 	publishRtlStatus(routeSafePointIndex());
+	_route_safe_point.reportRouteResumed();
 	_route_follower->run(true);
 }
 
@@ -392,11 +418,41 @@ void RTL::reportNoRoute() const
 
 bool RTL::missionValidationPending() const
 {
-	// Mission has not reported on the uploaded mission, fence and Home yet.
+	// A Home change is no upload: nothing checks the mission again for it, so it is not waited for.
 	const mission_result_s &mission_result = *_navigator->get_mission_result();
 	return mission_result.mission_id != _mission_sub.get().mission_id
-	       || mission_result.geofence_id != _mission_sub.get().geofence_id
-	       || mission_result.home_position_counter != _home_pos_sub.get().update_count;
+	       || mission_result.geofence_id != _mission_sub.get().geofence_id;
+}
+
+bool RTL::routeInputsPending() const
+{
+	// MAVLink can publish during a navigator cycle, so RTL may see new rally points before the cache does.
+	const MissionRouteCache &cache = _navigator->get_mission_route_cache();
+	return _route_safe_point.supportsVehicle(_vehicle_status_sub.get())
+	       && (_route_safe_point.evaluationPending(_mission_sub.get()) || missionValidationPending()
+		   || cache.safePointUpdatePending() || cache.safePointsId() != _mission_sub.get().safe_points_id);
+}
+
+bool RTL::waitForRouteInputs() const
+{
+	return routeInputsPending() && hrt_elapsed_time(&_route_upload_time) < ROUTE_INPUT_WAIT;
+}
+
+bool RTL::trackRouteUpload()
+{
+	// An upload changes an identity or the dataman slot. Tracked every cycle, as an upload may load between plans.
+	const mission_s &mission = _mission_sub.get();
+
+	if (mission.mission_id == _route_upload.mission_id && mission.mission_dataman_id == _route_upload.mission_dataman_id
+	    && mission.safe_points_id == _route_upload.safe_points_id
+	    && mission.safepoint_dataman_id == _route_upload.safepoint_dataman_id
+	    && mission.geofence_id == _route_upload.geofence_id && mission.fence_dataman_id == _route_upload.fence_dataman_id) {
+		return false;
+	}
+
+	_route_upload = mission;
+	_route_upload_time = hrt_absolute_time();
+	return true;
 }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
@@ -574,6 +630,8 @@ void RTL::setRtlTypeAndDestination()
 
 	if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && !route_evaluation.success) {
 		keep_altitude();
+		// Loading inputs are no reason to land: hold until a plan with ready inputs fails.
+		_rtl_direct.setWaitForRoute(waitForRouteInputs());
 	}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -664,9 +722,7 @@ void RTL::publishRtlStatus(uint8_t safe_point_index)
 	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);
 	rtl_status.safe_point_index = safe_point_index;
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	rtl_status.is_evaluation_pending |= _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT
-					    && _route_safe_point.supportsVehicle(_vehicle_status_sub.get())
-					    && (_route_safe_point.evaluationPending(_mission_sub.get()) || missionValidationPending());
+	rtl_status.is_evaluation_pending |= _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && routeInputsPending();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	rtl_status.timestamp = hrt_absolute_time();
 	_rtl_status_pub.publish(rtl_status);

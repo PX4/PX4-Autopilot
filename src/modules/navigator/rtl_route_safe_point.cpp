@@ -45,6 +45,7 @@
 #include "navigator.h"
 
 #include <cmath>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
 
 RtlRouteSafePoint::RtlRouteSafePoint(ModuleParams *parent, Navigator *navigator) :
@@ -199,6 +200,18 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 void RtlRouteSafePoint::setActiveJumpAnchor(const mission_route::ActiveJumpAnchor &active_jump_anchor)
 {
 	_active_jump_anchor = active_jump_anchor;
+}
+
+void RtlRouteSafePoint::reportRouteResumed() const
+{
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: mission route found, resuming\t");
+	events::send(events::ID("rtl_route_resumed"), events::Log::Info, "Return: mission route found, resuming");
+}
+
+void RtlRouteSafePoint::reportRouteWaitEnded() const
+{
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: stopped waiting for uploaded data\t");
+	events::send(events::ID("rtl_route_wait_ended"), events::Log::Info, "Return: stopped waiting for uploaded data");
 }
 
 uint32_t RtlRouteSafePoint::missionGeneration() const

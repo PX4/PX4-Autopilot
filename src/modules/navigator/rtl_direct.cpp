@@ -161,6 +161,9 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 	if (!isActive()) {
 		_destination = rtl_position;
 		_destination_is_current_position = destination_is_current_position;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		_wait_for_route = false;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		_force_heading = false;
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
@@ -377,8 +380,11 @@ void RtlDirect::set_rtl_item()
 
 			case RtlArrival::Phase::Hold:
 				if (landDelay() < -FLT_EPSILON) {
-					mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: completed, loitering\t");
-					events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "Return: completed, loitering");
+					// RTL already reported the hold of a stop without a route.
+					if (!isRouteStop()) {
+						mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: completed, loitering\t");
+						events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "Return: completed, loitering");
+					}
 
 				} else {
 					// Set altitude tracking to best effort without strictly enforcing it.
@@ -664,6 +670,10 @@ void RtlDirect::parameters_update()
 
 float RtlDirect::landDelay() const
 {
+	if (waitingForRoute()) {
+		return -1.f;
+	}
+
 	// The current airborne altitude is not a landing altitude. MC and VTOL can descend until touchdown,
 	// but a fixed-wing landing would use this altitude to trigger the flare and idle the throttle in flight.
 	if (_destination_is_current_position && !_vehicle_status_sub.get().is_vtol
@@ -673,6 +683,20 @@ float RtlDirect::landDelay() const
 
 	return _param_rtl_land_delay.get();
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+void RtlDirect::setWaitForRoute(bool wait)
+{
+	const float land_delay = landDelay();
+	_wait_for_route = wait && _destination_is_current_position;
+
+	// The hold item carries the delay, so a started hold is rebuilt when the delay changes.
+	if (isActive() && _rtl_state == RTLState::ARRIVAL && _arrival.phase() == RtlArrival::Phase::Hold
+	    && fabsf(landDelay() - land_delay) > FLT_EPSILON) {
+		set_rtl_item();
+	}
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 loiter_point_s RtlDirect::sanitizeLandApproach(const loiter_point_s &land_approach) const
 {
