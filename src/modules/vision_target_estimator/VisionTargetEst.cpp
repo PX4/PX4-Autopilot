@@ -219,24 +219,19 @@ void VisionTargetEst::updateParams()
 
 	updateAidMask();
 
-	// Parameter metadata does not constrain values loaded from older saved configurations.
-	const auto timeout_us = [](float seconds, float minimum, float maximum) {
-		return static_cast<hrt_abstime>(fminf(fmaxf(seconds, minimum), maximum) * 1_s);
-	};
-
-	const hrt_abstime vte_timeout_us = timeout_us(_param_vte_btout.get(), 0.1f, 50.f);
+	const hrt_abstime vte_timeout_us = static_cast<hrt_abstime>(_param_vte_btout.get() * 1_s);
 	_vte_position.setVteTimeout(vte_timeout_us);
 	_vte_orientation.setVteTimeout(vte_timeout_us);
 
-	const hrt_abstime target_valid_timeout_us = timeout_us(_param_vte_tgt_tout.get(), 0.1f, 50.f);
+	const hrt_abstime target_valid_timeout_us = static_cast<hrt_abstime>(_param_vte_tgt_tout.get() * 1_s);
 	_vte_position.setTargetValidTimeout(target_valid_timeout_us);
 	_vte_orientation.setTargetValidTimeout(target_valid_timeout_us);
 
-	const hrt_abstime meas_recent_timeout_us = timeout_us(_param_vte_mrec_tout.get(), 0.1f, 10.f);
+	const hrt_abstime meas_recent_timeout_us = static_cast<hrt_abstime>(_param_vte_mrec_tout.get() * 1_s);
 	_vte_position.setMeasRecentTimeout(meas_recent_timeout_us);
 	_vte_orientation.setMeasRecentTimeout(meas_recent_timeout_us);
 
-	const hrt_abstime meas_updated_timeout_us = timeout_us(_param_vte_mupd_tout.get(), 0.01f, 5.f);
+	const hrt_abstime meas_updated_timeout_us = static_cast<hrt_abstime>(_param_vte_mupd_tout.get() * 1_s);
 	_vte_position.setMeasUpdatedTimeout(meas_updated_timeout_us);
 
 	if (_vte_position_enabled && _position_estimator_running
