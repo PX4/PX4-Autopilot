@@ -142,6 +142,15 @@ public:
 	float getCalibratedStallAirspeed(float load_factor, float flaps_setpoint) const;
 
 	/**
+	 * Get the critical airspeed compensated for weight, load factor due to bank angle and flaps.
+	 * Overrides the start of the underspeed detection ramp, negative to disable.
+	 * @param load_factor load factor due to banking
+	 * @param flaps_setpoint Flaps setpoint, normalized in range [0,1]
+	 * @return calibrated critical airspeed in m/s, or negative if disabled
+	 */
+	float getCriticalCalibratedAirspeed(float load_factor, float flaps_setpoint) const;
+
+	/**
 	 * Run some checks on parameters and detect unfeasible combinations.
 	 * @return true if all checks pass
 	 */
@@ -153,6 +162,7 @@ private:
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
+		(ParamFloat<px4::params::FW_AIRSPD_CRIT>) _param_fw_airspd_crit,
 		(ParamFloat<px4::params::FW_T_CLMB_MAX>) _param_fw_t_clmb_max,
 		(ParamFloat<px4::params::FW_T_SINK_MIN>) _param_fw_t_sink_min,
 		(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,

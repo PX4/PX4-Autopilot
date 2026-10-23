@@ -357,13 +357,15 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 		return;
 	}
 
-	// Ramp underspeed ratio from 0 at tas_min to 1 at 90% of tas_min, or halfway to tas_stall if that is higher
-	const float tas_fully_undersped = math::min(param.tas_min,
-					  math::max(0.9f * param.tas_min, 0.5f * (param.tas_min + param.tas_stall)));
-	const float underspeed_ramp_width = param.tas_min - tas_fully_undersped;
+	// Underspeed starts at 1/3 stall + 2/3 min, or at FW_AIRSPD_CRIT if between stall and min
+	const float tas_underspeed_starting = param.tas_critical >= param.tas_stall && param.tas_critical <= param.tas_min
+					      ? param.tas_critical
+					      : (param.tas_stall + 2.f * param.tas_min) / 3.f;
 
-	_ratio_undersped = math::constrain((param.tas_min - input.tas) / math::max(underspeed_ramp_width, FLT_EPSILON),
-					   0.0f, 1.0f);
+	// Underspeed complete at 1/2 stall + 1/2 start of underspeed (default: 2/3 stall + 1/3 min)
+	const float tas_underspeed_complete = 0.5f * (param.tas_stall + tas_underspeed_starting);
+
+	_ratio_undersped = math::interpolate(input.tas, tas_underspeed_complete, tas_underspeed_starting, 1.0f, 0.0f);
 }
 
 TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(const Param &param, const Flag &flag)
@@ -704,6 +706,7 @@ void TECS::initControlParams(const Input &input)
 	// Control
 	_control_param.tas_min = input.eas_to_tas * _equivalent_airspeed_min;
 	_control_param.tas_stall = input.eas_to_tas * _equivalent_airspeed_stall;
+	_control_param.tas_critical = input.eas_to_tas * _equivalent_airspeed_critical;
 	_control_param.tas_max = input.eas_to_tas * _equivalent_airspeed_max;
 	_control_param.tas_trim = input.eas_to_tas * _control_param.equivalent_airspeed_trim;
 	_control_param.pitch_max = input.pitch_max;

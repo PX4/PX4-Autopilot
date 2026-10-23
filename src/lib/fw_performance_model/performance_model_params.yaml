@@ -142,6 +142,19 @@ parameters:
       min: 0.5
       decimal: 1
       increment: 0.5
+    FW_AIRSPD_CRIT:
+      description:
+        short: Critical Airspeed (CAS)
+        long: |-
+          Overrides the airspeed (calibrated airspeed) at which the TECS controller's
+          underspeed protection starts to ramp in, instead of deriving it from
+          FW_AIRSPD_STALL and FW_AIRSPD_MIN. Set to -1 to disable and use the derived value.
+      type: float
+      default: -1.0
+      unit: m/s
+      min: -1.0
+      decimal: 1
+      increment: 0.5
     FW_AIRSPD_MIN:
       description:
         short: Minimum Airspeed (CAS)
