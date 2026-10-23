@@ -237,11 +237,13 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 							    mag_bias_est.bias_y[mag_index],
 							    mag_bias_est.bias_z[mag_index]};
 
-					if (!bias.isAllFinite() || bias.longerThan(1.f)) {
+					if (!bias.isAllFinite() || bias.longerThan(1.f)
+					    || !(bias - _calibration_estimator_bias[mag_index]).longerThan(0.01f)) {
 						continue;
 					}
 
 					_calibration_estimator_bias[mag_index] = bias;
+					_bias_change_count[mag_index]++;
 
 					// set initial mag calibration if disarmed, mag uncalibrated, and valid estimated bias available
 					if (_param_sens_mag_autocal.get() && !_armed && mag_bias_est.stable[mag_index]
@@ -597,7 +599,7 @@ void VehicleMagnetometer::Run()
 						out.timestamp_sample = timestamp_sample;
 						out.device_id = _calibration[instance].device_id();
 						magnetometer_data.copyTo(out.magnetometer_ga);
-						out.calibration_count = _calibration[instance].calibration_count();
+						out.calibration_count = _calibration[instance].calibration_count() + _bias_change_count[instance];
 						out.timestamp = hrt_absolute_time();
 
 						if (multi_mode) {
