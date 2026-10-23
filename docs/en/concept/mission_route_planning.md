@@ -38,7 +38,7 @@ When the vehicle is already near the selected destination or branch-off leg, [ro
 
 ### Smart Mission Rejoin {#smart-mission-rejoin}
 
-When Mission mode is activated in flight with smart rejoin enabled, the vehicle:
+When Mission mode resumes a mission in flight with smart rejoin enabled, the vehicle:
 
 1. Selects a branch-in point and altitude on the route using [Vehicle Projection](#vehicle-projection).
 2. Flies straight to that point, changing altitude on the way.
@@ -60,8 +60,19 @@ If a rejoin cannot be planned, Mission mode resumes without smart rejoin and rep
 This can happen while the mission is still loading into the [route cache](../advanced/mission_route_cache.md).
 Camera-trigger survey resume takes precedence over smart rejoin.
 Mission returns to the previous survey waypoint without a branch-in.
-Selecting a mission item explicitly cancels a pending smart rejoin.
+Selecting a different mission item while Mission mode is active cancels a pending smart rejoin.
 A finished mission is not rejoined: Mission mode holds, as it does without smart rejoin.
+
+Smart rejoin only runs when Mission mode resumes a mission that the vehicle was flying along its route, for example after Hold, a GoTo or manual flight.
+Mission mode instead flies directly to the current mission item, as it does without smart rejoin, after:
+
+- The first start of a mission, after an upload or a reboot, even if the vehicle is already flying.
+- A landing: a new flight after the vehicle was disarmed starts at the current mission item, or at the first item if its current item was the last item.
+- Selecting a mission item, for example with `MISSION_SET_CURRENT`, `MAV_CMD_DO_SET_MISSION_CURRENT`, `MAV_CMD_MISSION_START` with a first item, or `MAV_CMD_DO_LAND_START`.
+- A landing abort on the mission landing, in Mission or Return, so that its approach is flown again.
+
+It keeps doing so across further pauses until the vehicle reaches a mission waypoint.
+A Return that follows the mission and changes its current item is not a selection: Mission rejoins the route afterwards, unless it was still flying directly to an item when the Return started.
 
 When the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
 This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.
@@ -281,7 +292,7 @@ When the vehicle already breaches the loaded fence, the planner skips the checks
 Branch-off segments are still checked, so a breach cannot route the vehicle through a fence on the way to a safe point.
 If the fence is unavailable or still loading:
 
-- When Mission mode starts, smart rejoin is skipped with a warning and is not retried during that activation.
+- When Mission mode resumes a mission, smart rejoin is skipped with a warning and is not retried during that activation.
 - Return has no route until the fence is ready; see [No Route Available](#route-following-no-route).
 
 If a loaded fence cannot check a segment, for example a path too long to subdivide, planning fails like any other planning failure, and Return has no route.
@@ -411,7 +422,7 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 
 | Setting            | Purpose                                                                           | Default |
 | ------------------ | --------------------------------------------------------------------------------- | ------- |
-| [MIS_ROUTE_JOIN]   | Enable smart rejoin on airborne Mission activation.                               | `0`     |
+| [MIS_ROUTE_JOIN]   | Enable smart rejoin when Mission resumes a mission in flight.                     | `0`     |
 | [MIS_MC_SEG_DIST]  | Extra cross-track search margin for vehicle projections in multicopter mode.      | 30 m    |
 | [MIS_FW_SEG_DIST]  | Extra cross-track search margin for vehicle projections in fixed-wing mode.       | 150 m   |
 | [RTL_RP_SEG_DIST]  | Extra cross-track search margin for rally-point projections.                      | 30 m    |

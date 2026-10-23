@@ -134,6 +134,9 @@ protected:
 
 	/** DO_JUMP edge being flown, so a rejoin or route replan stays on an active loop. */
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
+
+	/** Activation keeps the current item until a position item is reached: first start, landing, selection or abort. */
+	bool _keep_index_until_reached{false};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	struct VtolTransitionContext {
