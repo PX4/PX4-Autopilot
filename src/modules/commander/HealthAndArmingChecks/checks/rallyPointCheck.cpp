@@ -131,6 +131,12 @@ void RallyPointChecks::checkRouteReturn(const Context &context, Report &reporter
 	reporter.armingCheckFailure(return_mode, health_component_t::system,
 				    events::ID("check_rtl_route_unavailable"),
 				    events::Log::Warning, "Return unavailable: no mission route");
+
+	// A selected Return that a failsafe interrupts also handles a missing route itself: only warn.
+	if (context.status().nav_state_user_intention == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+		return;
+	}
+
 	// Deny mode switches and let failsafes fall back, as for an unmet external mode requirement.
 	reporter.clearCanRunBits(return_mode);
 	reporter.failsafeFlags().mode_req_other |= static_cast<uint32_t>(return_mode);

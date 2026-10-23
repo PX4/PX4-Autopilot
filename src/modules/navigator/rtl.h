@@ -129,6 +129,8 @@ private:
 	RtlRouteSafePoint::Evaluation evaluateRouteSafePoint();
 	/** Retry without changing the current hold unless the route executor is ready. */
 	void retryRouteSafePoint();
+	/** rtl_status safe point index of the planned route. */
+	uint8_t routeSafePointIndex() const;
 	/** Warn when RTL_TYPE 7 has no route and stops at the current position. */
 	void reportNoRoute() const;
 	/** True while Mission has not validated the uploaded mission, fence and Home yet. */
