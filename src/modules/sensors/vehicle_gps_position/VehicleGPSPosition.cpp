@@ -199,7 +199,7 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		const bool rover1 = (_param_sens_gnss1_hdg.get() == static_cast<int32_t>(gnss_heading::BaselineType::MovingBase));
 		_moving_base_slot = (rover0 != rover1) ? (rover0 ? 1 : 0) : -1;
 
-		// The two_receiver is the receiver in the slot of a two receivers setup
+		// The two_receiver is the receiver in the slot of a two independent receivers setup
 		const bool two_receivers0 = (_param_sens_gnss0_hdg.get() == static_cast<int32_t>(gnss_heading::BaselineType::TwoReceivers));
 		const bool two_receivers1 = (_param_sens_gnss1_hdg.get() == static_cast<int32_t>(gnss_heading::BaselineType::TwoReceivers));
 		const bool none_disabled = _param_sens_gnss0_hdg.get() && _param_sens_gnss1_hdg.get();
