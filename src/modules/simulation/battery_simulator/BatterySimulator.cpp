@@ -138,6 +138,11 @@ void BatterySimulator::Run()
 			ibatt = avgCurrent(i, _is_fw, _is_mc);
 			float capacity = _batteries[i]->getCapacity();
 
+			if (ibatt > 0.0f && capacity <= 0.0f && _batteries[i]->isSourceSelected() && !_capacity_warned[i]) {
+				PX4_WARN("BAT%d_CAPACITY not set, simulated battery %d will not drain", i + 1, i + 1);
+				_capacity_warned[i] = true;
+			}
+
 			if (_last_integration_us != 0 && ibatt > 0.0f && capacity > 0.0f) {
 				_consumed_mah[i] += (now_us - _last_integration_us) / 3.6e6f * ibatt; //1 uAs = 3.6e-6 mAh
 				_battery_percentage[i] = 1.0f - _consumed_mah[i] / _batteries[i]->getCapacity();

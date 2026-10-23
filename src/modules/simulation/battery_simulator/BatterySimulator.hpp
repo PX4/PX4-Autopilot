@@ -100,6 +100,7 @@ private:
 	uint64_t _last_integration_us{0};
 	float _battery_percentage[battery_status_s::MAX_INSTANCES] {};
 	float _consumed_mah[battery_status_s::MAX_INSTANCES] {};
+	bool _capacity_warned[battery_status_s::MAX_INSTANCES] {};
 	bool _armed{false};
 	bool _is_mc{false};
 	bool _is_fw{false};

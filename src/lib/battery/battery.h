@@ -106,6 +106,7 @@ public:
 	battery_status_s getBatteryStatus();
 	float getCurrentAverage() const { return PX4_ISFINITE(_current_average_filter_a.getState()) ? _current_average_filter_a.getState() : -1.f; }
 	float getCapacity() const {return _capacity_mah;}
+	bool isSourceSelected() const { return _source == _params.source; }
 	void publishBatteryStatus(const battery_status_s &battery_status);
 
 	/**
