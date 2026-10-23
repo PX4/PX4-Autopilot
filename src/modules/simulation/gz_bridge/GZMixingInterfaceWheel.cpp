@@ -134,7 +134,7 @@ void GZMixingInterfaceWheel::wheelSpeedCallback(const gz::msgs::Actuators &actua
 		float wheel_position = (curr_wheel_speed_m + _prev_wheel_speed[i]) * 0.5f * dt;
 		_wheel_pos_m[i] += wheel_position;
 		int64_t encoder_ticks = _wheel_pos_m[i] / (2.f * static_cast<float>(M_PI) * _wheel_radius);
-		wheel_encoders.encoder_position[i] = encoder_ticks;
+		wheel_encoders.encoder_counts[i] = encoder_ticks;
 		_prev_wheel_speed[i] = curr_wheel_speed_m;
 	}
 
