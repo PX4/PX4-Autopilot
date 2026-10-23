@@ -95,6 +95,10 @@ public:
 	/** Keep the follower's flown jump anchor for the replan. */
 	void setActiveJumpAnchor(const mission_route::ActiveJumpAnchor &active_jump_anchor);
 
+	/** Messages of the stop without a route; their events only ship on boards built with the mission cache. */
+	void reportRouteResumed() const;
+	void reportRouteWaitEnded() const;
+
 	uint32_t missionGeneration() const;
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const;
 
