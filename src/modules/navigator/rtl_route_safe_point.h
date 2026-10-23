@@ -96,6 +96,7 @@ public:
 	void setActiveJumpAnchor(const mission_route::ActiveJumpAnchor &active_jump_anchor);
 
 	/** Messages of the stop without a route; their events only ship on boards built with the mission cache. */
+	void reportRouteUnavailable() const;
 	void reportRouteResumed() const;
 	void reportRouteWaitEnded() const;
 
