@@ -230,11 +230,16 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 			}
 
 			for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-				if (mag_bias_est.valid[mag_index] && (mag_bias_est.timestamp > _last_calibration_update)) {
+				if (mag_bias_est.valid[mag_index] && mag_bias_est.stable[mag_index] && !_armed
+				    && (mag_bias_est.timestamp > _last_calibration_update)) {
 
 					const Vector3f bias{mag_bias_est.bias_x[mag_index],
 							    mag_bias_est.bias_y[mag_index],
 							    mag_bias_est.bias_z[mag_index]};
+
+					if (!bias.isAllFinite() || bias.longerThan(1.f)) {
+						continue;
+					}
 
 					_calibration_estimator_bias[mag_index] = bias;
 
