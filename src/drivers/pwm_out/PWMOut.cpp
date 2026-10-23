@@ -74,6 +74,13 @@ bool PWMOut::update_pwm_out_state(bool on)
 
 			int32_t tim_config = 0;
 			param_t handle = param_find(param_name);
+
+			if (handle == PARAM_INVALID) {
+				PX4_WARN("param name '%s' not found", param_name);
+				_pwm_mask &= ~channels;
+				continue;
+			}
+
 			param_get(handle, &tim_config);
 
 			if (tim_config > 0) {

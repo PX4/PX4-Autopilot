@@ -1,0 +1,5 @@
+menuconfig DRIVERS_GPIO_OUT
+	bool "gpio_out"
+	default n
+	---help---
+		Enable support for gpio_out

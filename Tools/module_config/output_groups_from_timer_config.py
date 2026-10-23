@@ -142,6 +142,7 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
         channel_labels=["PWM Main", "PWM Capture"],
         standard_params=[],
         extra_function_groups=[], pwm_timer_param=None,
+        custom_params=None,
         verbose=False):
     """ convert the timer groups into an output_groups section of module.yaml
     and extra timer params
@@ -181,6 +182,9 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
             'group_label': group_label,
             'channel_label_module_name_prefix': False,
         }
+
+        if custom_params is not None:
+            group['custom_params'] = deepcopy(custom_params)
 
         if pwm_timer_param is not None:
             pwm_timer_param_cp = deepcopy(pwm_timer_param)
