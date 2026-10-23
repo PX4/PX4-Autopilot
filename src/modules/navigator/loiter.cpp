@@ -57,6 +57,7 @@ Loiter::on_activation()
 	// an already-established loiter (used by set_loiter_position()).
 	const position_setpoint_s previous_setpoint = _navigator->get_position_setpoint_triplet()->current;
 	_navigator->reset_triplets();
+	_reposition_yaw_timestamp = 0;
 
 	if (_navigator->get_reposition_triplet()->current.valid
 	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
@@ -89,12 +90,50 @@ Loiter::on_active()
 	} else {
 		_loiter_at_last_link_position_executed = false;
 	}
+
+	updateHeadingToRoi();
 }
 
 void
 Loiter::on_inactive()
 {
 	_loiter_at_last_link_position_executed = false;
+}
+
+void
+Loiter::updateHeadingToRoi()
+{
+	// With mount yaw control enabled the gimbal yaws towards the ROI instead of the vehicle
+	if (_param_mis_mnt_yaw_ctl.get()
+	    || _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    || _navigator->get_land_detected()->landed
+	    || _navigator->get_vroi().mode != vehicle_roi_s::ROI_LOCATION) {
+		return;
+	}
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	if (!pos_sp_triplet->current.valid || pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+		return;
+	}
+
+	// A reposition with an explicit yaw sent after the ROI takes precedence
+	if (_reposition_yaw_timestamp > _navigator->get_vroi().timestamp) {
+		return;
+	}
+
+	const double lat = _navigator->get_global_position()->lat;
+	const double lon = _navigator->get_global_position()->lon;
+	const double roi_lat = _navigator->get_vroi().lat;
+	const double roi_lon = _navigator->get_vroi().lon;
+
+	// Keep the last heading when close to the ROI to prevent excessive yawing
+	if (get_distance_to_next_waypoint(lat, lon, roi_lat, roi_lon) <= _navigator->get_acceptance_radius()) {
+		return;
+	}
+
+	pos_sp_triplet->current.yaw = get_bearing_to_next_waypoint(lat, lon, roi_lat, roi_lon);
+	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
@@ -162,6 +201,7 @@ Loiter::reposition()
 
 	if (rep->current.valid) {
 		// set loiter position based on reposition command
+		_reposition_yaw_timestamp = PX4_ISFINITE(rep->current.yaw) ? rep->current.timestamp : 0;
 
 		// convert mission item to current setpoint
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

@@ -214,7 +214,7 @@ Mavlink::Mavlink() :
 	static px4::atomic_bool s_sysid_written{false};
 	static px4::atomic_bool s_compid_written{false};
 
-	if (sys_id > 0 && sys_id < 255) {
+	if (sys_id > 0) {
 		bool expected = false;
 
 		if (s_sysid_written.compare_exchange(&expected, true)) {
@@ -394,6 +394,11 @@ Mavlink::set_instance_id()
 
 void Mavlink::setProtocolVersion(uint8_t version)
 {
+	// MAVLink 1 can't carry a system ID above 255, the library would drop every message.
+	if (mavlink_system.sysid > UINT8_MAX) {
+		version = 2;
+	}
+
 	_protocol_version.store((version == 1) ? 1 : 2);
 
 	// The version flag lives in the per-channel status, which only exists once we
@@ -577,7 +582,7 @@ Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 }
 
 bool
-Mavlink::component_was_seen(int system_id, int component_id, Mavlink &self)
+Mavlink::component_was_seen(uint32_t system_id, int component_id, Mavlink &self)
 {
 	LockGuard lg{mavlink_module_mutex};
 
@@ -590,7 +595,7 @@ Mavlink::component_was_seen(int system_id, int component_id, Mavlink &self)
 	return false;
 }
 
-static bool target_is_us_or_broadcast(int target_system_id, int target_component_id)
+static bool target_is_us_or_broadcast(uint32_t target_system_id, int target_component_id)
 {
 	return (target_system_id == 0 || target_system_id == mavlink_system.sysid)
 	       && (target_component_id == 0 || target_component_id == mavlink_system.compid);
@@ -601,25 +606,14 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
 	const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
-	int target_system_id = 0;
-	int target_component_id = 0;
-
-	// might be nullptr if message is unknown
-	if (meta) {
-		// Extract target system and target component if set
-		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
-			target_system_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_system_ofs]);
-		}
-
-		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
-			target_component_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_component_ofs]);
-		}
-	}
+	// Takes the TARGET32 header extension into account, meta might be nullptr if message is unknown
+	const uint32_t target_system_id = mavlink_msg_get_target_sysid(msg, meta);
+	const int target_component_id = mavlink_msg_get_target_compid(msg, meta);
 
 	// SETUP_SIGNING must never be forwarded (MAVLink spec requirement).
 	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
 		if (!target_is_us_or_broadcast(target_system_id, target_component_id)) {
-			mavlink_log_warning(&self->_mavlink_log_pub, "MAVLink signing: SETUP_SIGNING for %d/%d not forwarded",
+			mavlink_log_warning(&self->_mavlink_log_pub, "MAVLink signing: SETUP_SIGNING for %" PRIu32 "/%d not forwarded",
 					    target_system_id, target_component_id);
 		}
 
@@ -990,7 +984,8 @@ void Mavlink::send_finish()
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
 	if (!_tx_buffer_low) {
-		// _buf holds exactly one maximum-length frame (280 bytes for a signed frame with a 255-byte payload)
+		// _buf holds exactly one maximum-length frame (287 bytes for a signed frame with a 255-byte payload
+		// and both header extensions)
 		if (_buf_fill + packet_len <= sizeof(_buf)) {
 			memcpy(&_buf[_buf_fill], buf, packet_len);
 			_buf_fill += packet_len;
@@ -1217,7 +1212,7 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	mavlink_setup_signing_t setup_signing;
 	mavlink_msg_setup_signing_decode(msg, &setup_signing);
 
-	if (target_is_us_or_broadcast(setup_signing.target_system, setup_signing.target_component)) {
+	if (target_is_us_or_broadcast(mavlink_target_system(msg, setup_signing.target_system), setup_signing.target_component)) {
 		// Reject signing changes while armed. This runs on the receiver
 		// thread, so use a local subscription instead of _vehicle_status_sub.
 		uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -1506,26 +1501,14 @@ Mavlink::pass_message(const mavlink_message_t *msg)
 	// mavlink_msg_to_send_buffer() can't be used because it trims the payload
 	// again, which would break the checksum of an untrimmed frame.
 	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-	size_t size = 0;
 
-	buf[size++] = msg->magic;
-	buf[size++] = msg->len;
+	// Includes the SYSID32 and TARGET32 header extensions.
+	size_t size = mavlink_header_to_send_buffer(buf, msg);
 
-	if (msg->magic == MAVLINK_STX_MAVLINK1) {
-		buf[size++] = msg->seq;
-		buf[size++] = msg->sysid;
-		buf[size++] = msg->compid;
-		buf[size++] = msg->msgid & 0xFF;
-
-	} else {
-		buf[size++] = msg->incompat_flags;
-		buf[size++] = msg->compat_flags;
-		buf[size++] = msg->seq;
-		buf[size++] = msg->sysid;
-		buf[size++] = msg->compid;
-		buf[size++] = msg->msgid & 0xFF;
-		buf[size++] = (msg->msgid >> 8) & 0xFF;
-		buf[size++] = (msg->msgid >> 16) & 0xFF;
+	if (size == 0) {
+		// Can't happen for a received frame, the parser only accepts representable headers.
+		perf_count(_forwarding_error_perf);
+		return;
 	}
 
 	memcpy(&buf[size], _MAV_PAYLOAD(msg), msg->len);
@@ -3068,7 +3051,8 @@ void Mavlink::handleSerialPassthroughOutput()
 	msg.timeout  = 0;
 	msg.flags    = SERIAL_CONTROL_FLAG_REPLY;
 
-	uint8_t sysid, compid, device;
+	uint32_t sysid;
+	uint8_t compid, device;
 
 	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
 		SerialPassthrough *sp = SerialPassthrough::get_instance_by_index(i);
@@ -3096,6 +3080,7 @@ void Mavlink::handleMavlinkShellOutput()
 	if (_mavlink_shell.load()) { // First do a fast check before taking the lock
 		mavlink_serial_control_t msg;
 		msg.count = 0;
+		uint32_t target_system = 0;
 		{
 			const LockGuard lg{_mavlink_shell_mutex};
 
@@ -3108,7 +3093,7 @@ void Mavlink::handleMavlinkShellOutput()
 					msg.timeout = 0;
 					msg.device = SERIAL_CONTROL_DEV_SHELL;
 					msg.count = shell->read(msg.data, sizeof(msg.data));
-					msg.target_system = shell->targetSysid();
+					target_system = shell->targetSysid();
 					msg.target_component = shell->targetCompid();
 				}
 			}
@@ -3117,7 +3102,7 @@ void Mavlink::handleMavlinkShellOutput()
 		// Send message without the shell lock (but under the channel send lock).
 		if (msg.count > 0) {
 			lock_send();
-			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+			mavlink_msg_send_struct_target(get_channel(), SERIAL_CONTROL, &msg, target_system);
 			unlock_send();
 		}
 	}
@@ -3195,12 +3180,11 @@ void Mavlink::handleCommands()
 		msg.param6 = cmd.param6;
 		msg.param7 = cmd.param7;
 		msg.command = cmd.command;
-		msg.target_system = cmd.target_system;
 		msg.target_component = cmd.target_component;
 		msg.confirmation = 0;
 
 		lock_send();
-		mavlink_msg_command_long_send_struct(get_channel(), &msg);
+		mavlink_msg_send_struct_target(get_channel(), COMMAND_LONG, &msg, cmd.target_system);
 		unlock_send();
 	}
 }
@@ -3232,7 +3216,6 @@ void Mavlink::handleAndGetCurrentCommandAck()
 					msg.command = command_ack.command;
 					msg.progress = command_ack.result_param1;
 					msg.result_param2 = command_ack.result_param2;
-					msg.target_system = command_ack.target_system;
 					msg.target_component = command_ack.target_component;
 
 					// Handle logging acks before sending out the mavlink message to prevent a race condition
@@ -3253,13 +3236,13 @@ void Mavlink::handleAndGetCurrentCommandAck()
 						if (command_ack.from_external) {
 							// for MAVLINK_MODE_IRIDIUM send only if external
 							lock_send();
-							mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+							mavlink_msg_send_struct_target(get_channel(), COMMAND_ACK, &msg, command_ack.target_system);
 							unlock_send();
 						}
 
 					} else {
 						lock_send();
-						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+						mavlink_msg_send_struct_target(get_channel(), COMMAND_ACK, &msg, command_ack.target_system);
 						unlock_send();
 					}
 

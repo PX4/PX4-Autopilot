@@ -211,6 +211,7 @@
       - [ZenFC H743](flight_controller/zenfc_h743.md)
       - [SIYI-UniFC-6-PICO](flight_controller/siyi-unifc-6-pico.md)
     - [Experimental Autopilots](flight_controller/autopilot_experimental.md)
+      - [AIFoundry Erbium](flight_controller/aifoundry_erbium.md)
       - [BeagleBone Blue](flight_controller/beaglebone_blue.md)
       - [Raspberry Pi 2/3 Navio2](flight_controller/raspberry_pi_navio2.md)
       - [Raspberry Pi 2/3/4 PilotPi](flight_controller/raspberry_pi_pilotpi.md)

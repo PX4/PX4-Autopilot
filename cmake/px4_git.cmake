@@ -40,7 +40,7 @@ set(px4_git_included true)
 # Check all submodules once per configure, whether the build started from
 # make, an IDE or CMake directly.
 execute_process(
-	COMMAND Tools/check_submodules.sh
+	COMMAND Tools/check_submodules.sh ${PX4_GIT_SUBMODULES}
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	RESULT_VARIABLE check_submodules_result
 	)
@@ -73,6 +73,16 @@ function(px4_add_git_submodule)
 		ONE_VALUE TARGET PATH
 		REQUIRED TARGET PATH
 		ARGN ${ARGN})
+
+	# With PX4_GIT_SUBMODULES set, a submodule the build uses but that is not
+	# listed is not fetched: stop here rather than on a missing header later.
+	if(PX4_GIT_SUBMODULES)
+		get_filename_component(abs_path ${PATH} ABSOLUTE BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+		if(NOT EXISTS ${abs_path}/.git)
+			file(RELATIVE_PATH rel_path ${PX4_SOURCE_DIR} ${abs_path})
+			message(FATAL_ERROR "Submodule ${rel_path} is used by this build but not checked out, add it to PX4_GIT_SUBMODULES")
+		endif()
+	endif()
 
 	add_custom_target(${TARGET})
 endfunction()

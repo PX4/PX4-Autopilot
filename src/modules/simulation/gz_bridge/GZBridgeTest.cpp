@@ -45,7 +45,7 @@ class GZBridgeTestPeer
 public:
 	static void navSatCallback(GZBridge &bridge, const gz::msgs::NavSat &message)
 	{
-		bridge.navSatCallback(message);
+		bridge.navSatCallback(message, 0);
 	}
 };
 

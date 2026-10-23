@@ -46,12 +46,12 @@ parameters:
       increment: 100
     MIS_MNT_YAW_CTL:
       description:
-        short: Enable gimbal yaw control in missions
+        short: Enable gimbal yaw control in missions and Hold
         long: |-
-          Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
+          Enable yaw control of the mount. (Only affects multicopters with an active ROI)
 
           If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
-          If disabled, the vehicle will yaw towards the ROI.
+          If disabled, the vehicle will yaw towards the ROI in Mission and Hold mode.
       type: enum
       values:
         0: Disable

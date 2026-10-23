@@ -40,10 +40,11 @@ An overview of the Crazyflie 2.1 can be [found here](https://www.bitcraze.io/pro
 
 Корисне периферійне обладнання включає в себе:
 
-- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): Wireless communication between _QGroundControl_ and Crazyflie 2.0
+- [Crazyradio 2.0](https://www.bitcraze.io/products/crazyradio-2-0/) 2.4 GHz USB dongle: Wireless communication between _QGroundControl_ and Crazyflie 2.0.
+  This behaves like the [old hardware](https://www.bitcraze.io/products/old-products/crazyradio-pa/) (anecdotally) when running its default "Crazyradio PA emulation" firmware.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): плата розширення для підключення нових периферійних пристроїв.
 - [Flow deck v2](https://store.bitcraze.io/products/flow-deck-v2): Optical flow sensor and a distance sensor for altitude and position control.
-- [Z-ranger deck v2](https://store.bitcraze.io/collections/decks/products/z-ranger-deck-v2): Датчик відстані для керування висотою (той самий датчик, що й Flow deck).
+- [Z-ranger deck v2](https://www.bitcraze.io/products/old-products/z-ranger-deck-v2/) (Discontinued): Distance sensor for altitude control (same sensor as the Flow deck).
 - [Мульти-датчикова плата](https://store.bitcraze.io/collections/decks/products/multi-ranger-deck) Виявлення об'єктів у багатьох напрямках
 - [Бортовий динамік](https://store.bitcraze.io/collections/decks/products/buzzer-deck) Аудіоповідомлення про події в системі, такі як низький рівень заряду або завершення зарядки.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): плата розширення, яка дозволяє вам легко тестувати нове апаратне забезпечення без паяння.

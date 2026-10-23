@@ -41724,12 +41724,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### MIS_MNT_YAW_CTL (`INT32`) {#MIS_MNT_YAW_CTL}
 
-Enable gimbal yaw control in missions.
+Enable gimbal yaw control in missions and Hold.
 
-Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
+Enable yaw control of the mount. (Only affects multicopters with an active ROI)
 
 If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
-If disabled, the vehicle will yaw towards the ROI.
+If disabled, the vehicle will yaw towards the ROI in Mission and Hold mode.
 
 
 **Values:**
@@ -58769,12 +58769,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_BARO (`INT32`) {#SIM_GZ_EN_BARO}
 
-Enable barometer/air pressure sensor in Gazebo bridge.
+Enable barometer/air pressure sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 barometer sensor
+- `2`: Simulate 2 barometer sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -58805,12 +58806,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_GPS (`INT32`) {#SIM_GZ_EN_GPS}
 
-Enable GPS/NavSat sensor in Gazebo bridge.
+Enable GPS/NavSat sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 GPS sensor
+- `2`: Simulate 2 GPS sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -58823,12 +58825,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_IMU (`INT32`) {#SIM_GZ_EN_IMU}
 
-Enable IMU sensor in Gazebo bridge.
+Enable IMU sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 IMU sensor
+- `2`: Simulate 2 IMU sensors
+- `3`: Simulate 3 IMU sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -58859,12 +58863,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_MAG (`INT32`) {#SIM_GZ_EN_MAG}
 
-Enable magnetometer sensor in Gazebo bridge.
+Enable magnetometer sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 magnometer sensor
+- `2`: Simulate 2 magnometer sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only

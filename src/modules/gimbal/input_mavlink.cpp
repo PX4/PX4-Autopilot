@@ -249,7 +249,7 @@ InputMavlinkCmdMount::UpdateResult
 InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_command_s &vehicle_command)
 {
 	// Process only if the command is for us or for anyone (component id 0).
-	const bool sysid_correct = (vehicle_command.target_system == _parameters.mav_sysid);
+	const bool sysid_correct = (vehicle_command.target_system == static_cast<uint32_t>(_parameters.mav_sysid));
 	const bool compid_correct = ((vehicle_command.target_component == _parameters.mav_compid) ||
 				     (vehicle_command.target_component == 0));
 
@@ -722,7 +722,7 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 {
 	// Process only if the command is for us or for anyone (component id 0).
 	const bool sysid_correct =
-		(vehicle_command.target_system == _parameters.mav_sysid) || (vehicle_command.target_system == 0);
+		(vehicle_command.target_system == static_cast<uint32_t>(_parameters.mav_sysid)) || (vehicle_command.target_system == 0);
 	const bool compid_correct = ((vehicle_command.target_component == _parameters.mav_compid) ||
 				     (vehicle_command.target_component == 0));
 
@@ -940,7 +940,7 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 			return UpdateResult::UpdatedActiveOnce;
 
 		} else {
-			PX4_INFO("GIMBAL_MANAGER_PITCHYAW from %d/%d denied, in control: %d/%d",
+			PX4_INFO("GIMBAL_MANAGER_PITCHYAW from %" PRIu32 "/%d denied, in control: %d/%d",
 				 vehicle_command.source_system,
 				 vehicle_command.source_component,
 				 control_data.sysid_primary_control, control_data.compid_primary_control);
