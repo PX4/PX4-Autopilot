@@ -33,6 +33,11 @@
 
 #include <px4_platform_common/module_params.h>
 
+ModuleParams::ModuleParams(ModuleParams *parent)
+{
+	setParent(parent);
+}
+
 void ModuleParams::setParent(ModuleParams *parent)
 {
 	if (parent) {
