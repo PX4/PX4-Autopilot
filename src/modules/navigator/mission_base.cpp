@@ -502,14 +502,18 @@ void MissionBase::update_mission()
 			checkClimbRequired(_mission.current_seq);
 		}
 
-		/* Keep a running transition through a feasibility refresh. */
-		bool keep_work_item = vtolTransitionActive();
+		/* reset work item if new mission has been accepted, restarting the item and its VTOL transition */
+		bool keep_work_item = false;
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 		// The join is armed before activation reaches update_mission(); onMissionUpdate() clears it on a real change.
-		keep_work_item |= _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+		// Join and route Return transitions cannot be restarted, so they keep running through a feasibility refresh.
+		keep_work_item = _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+				 || _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN
+				 || _vtol_transition.hold_current_position;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 		if (!keep_work_item) {
+			resetVtolTransition();
 			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 		}
 
@@ -902,9 +906,12 @@ bool MissionBase::updateVtolTransition()
 				       : status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !status.in_transition_mode;
 
 	const bool command_issued = _work_item_type == _vtol_transition.completion_work;
+	// Uploaded transition items are aligned and commanded even when already in their mode.
+	const bool uploaded_item = _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_DEFAULT
+				   && !_vtol_transition.hold_current_position;
 
 	// Already in the commanded mode: no command. A VTOL takeoff keeps TRANSITION_AFTER_TAKEOFF and flies its waypoint.
-	if (in_commanded_mode || (front_transition && frontTransitionInhibited())) {
+	if ((in_commanded_mode && !uploaded_item) || (front_transition && frontTransitionInhibited())) {
 		_mission_item = _vtol_transition.command;
 		_work_item_type = _vtol_transition.completion_work;
 		return true;
@@ -949,6 +956,11 @@ bool MissionBase::updateVtolTransition()
 		prepareVtolTransitionItem(false);
 		issue_command(_mission_item);
 		_work_item_type = _vtol_transition.completion_work;
+
+		// An aligned item is reported reached when its command is sent, and again in the new mode.
+		if (aligning && shouldReportMissionItemReached()) {
+			set_mission_item_reached();
+		}
 	}
 
 	reset_mission_item_reached();

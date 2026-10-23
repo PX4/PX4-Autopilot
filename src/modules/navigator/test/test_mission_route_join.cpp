@@ -126,6 +126,8 @@ public:
 	}
 
 	void publishItemsForTest() { set_mission_items(); }
+	// A pending check, as after a geofence upload; on_active() completes it with the current verdict.
+	void requestFeasibilityCheckForTest() { _mission_check_state = MissionCheckState::Unchecked; }
 	bool transitionActiveForTest() const { return vtolTransitionActive(); }
 	const mission_item_s &currentMissionItemForTest() const { return _mission_item; }
 
@@ -596,7 +598,7 @@ TEST_F(MissionRouteJoinTest, NominalTransitionsShareAlignmentAndPreserveCommandP
 		EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 		EXPECT_DOUBLE_EQ(triplet.current.lat, target.lat);
 		EXPECT_FLOAT_EQ(triplet.current.yaw, target.yaw);
-		EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
+		EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 
 		// Republish during FT without repeating the command or advancing the uploaded item.
 		publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
@@ -611,15 +613,15 @@ TEST_F(MissionRouteJoinTest, NominalTransitionsShareAlignmentAndPreserveCommandP
 		mission.publishItemsForTest();
 		EXPECT_TRUE(mission.transitionActiveForTest());
 		EXPECT_EQ(mission.currentSequenceForTest(), 0);
-		EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
 		mission.on_active();
 		EXPECT_EQ(mission.currentSequenceForTest(), 1);
 		EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 	}
 
-	// A nominal transition already in the requested mode completes without a redundant command.
+	// A nominal transition already in the requested mode is still commanded, as before the sequencer.
 	prepareExecution(mission, {front_transition, target}, ++mission_id);
-	EXPECT_FALSE(command_sub.updated());
+	ASSERT_TRUE(command_sub.update(&command));
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	mission.on_active();
 	EXPECT_EQ(mission.currentSequenceForTest(), 1);
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
@@ -711,6 +713,8 @@ TEST_F(MissionRouteJoinTest, VtolTakeoffKeepsItsWaypointOnlyWhenMovementRemains)
 			EXPECT_EQ(mission.workItemTypeForTest(), movement_remains
 				  ? MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF
 				  : MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+			// The aligned takeoff is reported reached with its command, as before the sequencer.
+			EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 			publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
 			primeNavigatorState();
 			mission.on_active();
@@ -727,8 +731,9 @@ TEST_F(MissionRouteJoinTest, VtolTakeoffKeepsItsWaypointOnlyWhenMovementRemains)
 	}
 }
 
-TEST_F(MissionRouteJoinTest, ManualFrontTransitionDuringAlignmentCompletesWithoutCommand)
+TEST_F(MissionRouteJoinTest, ManualFrontTransitionDuringAlignmentStillSendsCommand)
 {
+	// As before the sequencer, the item is reported reached and commanded, then completes in fixed-wing.
 	MissionTestPeer mission(&_navigator);
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	const auto target = makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
@@ -751,7 +756,13 @@ TEST_F(MissionRouteJoinTest, ManualFrontTransitionDuringAlignmentCompletesWithou
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	primeNavigatorState();
 	mission.on_active();
+	ASSERT_TRUE(command_sub.update(&command));
+	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	EXPECT_EQ(mission.currentSequenceForTest(), 0);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 
+	mission.on_active();
 	EXPECT_FALSE(command_sub.updated());
 	EXPECT_FALSE(mission.transitionActiveForTest());
 	EXPECT_EQ(mission.currentSequenceForTest(), 1);
@@ -761,7 +772,7 @@ TEST_F(MissionRouteJoinTest, ManualFrontTransitionDuringAlignmentCompletesWithou
 
 TEST_F(MissionRouteJoinTest, TransitionAlreadyInModeIsReportedAsCurrentItem)
 {
-	// A transition that needs no command still becomes the current item, and holds there without autocontinue.
+	// A transition already in its mode is commanded and becomes the current item; it holds without autocontinue.
 	MissionTestPeer mission(&_navigator);
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
@@ -777,14 +788,114 @@ TEST_F(MissionRouteJoinTest, TransitionAlreadyInModeIsReportedAsCurrentItem)
 				  }, 140);
 	ASSERT_EQ(mission.currentSequenceForTest(), 0);
 
-	mission.on_active();
-	EXPECT_EQ(mission.currentSequenceForTest(), 1);
-	EXPECT_EQ(_navigator.get_mission_result()->seq_current, 1);
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
 
 	mission.on_active();
 	EXPECT_EQ(mission.currentSequenceForTest(), 1);
 	EXPECT_EQ(_navigator.get_mission_result()->seq_current, 1);
+	ASSERT_TRUE(command_sub.update(&command));
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+
+	mission.on_active();
+	EXPECT_FALSE(command_sub.updated());
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_current, 1);
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 1);
+}
+
+TEST_F(MissionRouteJoinTest, AlignedTransitionIsReportedReachedWithItsCommand)
+{
+	// As before the sequencer, the reached item changes when the alignment ends and the command is sent.
+	// The report in fixed-wing repeats it, so MAVLink sends MISSION_ITEM_REACHED once.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 200.f, kAlt);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(position);
+	publishLocalPosition();
+	publishLandDetected(false);
+	publishHomePosition(position);
+	primeNavigatorState();
+	prepareExecution(mission, {makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), front_transition, target},
+			 143);
+
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
+
+	publishLocalPosition(get_bearing_to_next_waypoint(position.lat, position.lon, target.lat, target.lon));
+	primeNavigatorState();
+	mission.on_active();
+	ASSERT_TRUE(command_sub.update(&command));
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 1);
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	primeNavigatorState();
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 1);
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	primeNavigatorState();
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 1);
+}
+
+TEST_F(MissionRouteJoinTest, BackTransitionInHoverAlignsBeforeItsCommand)
+{
+	// As before the sequencer, a back transition reached in hover turns towards the next waypoint, then is commanded.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 200.f, kAlt);
+	const float yaw = get_bearing_to_next_waypoint(position.lat, position.lon, target.lat, target.lon);
+	auto back_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	back_transition.autocontinue = true;
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(position);
+	publishLocalPosition();
+	publishLandDetected(false);
+	publishHomePosition(position);
+	primeNavigatorState();
+	prepareExecution(mission, {makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), back_transition, target},
+			 144);
+
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+	EXPECT_NEAR(mission.currentMissionItemForTest().yaw, yaw, 1e-4f);
+	mission.on_active();
+	EXPECT_FALSE(command_sub.updated());
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+
+	publishLocalPosition(yaw);
+	primeNavigatorState();
+	mission.on_active();
+	ASSERT_TRUE(command_sub.update(&command));
+	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 1);
+
+	mission.on_active();
+	EXPECT_FALSE(command_sub.updated());
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
 }
 
 TEST_F(MissionRouteJoinTest, TransitionWaitingForBackTransitionIsReportedAsCurrentItem)
@@ -847,6 +958,73 @@ TEST_F(MissionRouteJoinTest, FrontTransitionAfterBackTransitionAlignsWhereTheVeh
 	ASSERT_TRUE(command_sub.update(&command));
 	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+}
+
+TEST_F(MissionRouteJoinTest, FeasibilityRefreshRestartsAligningFrontTransition)
+{
+	// A feasibility refresh restarts the item: the alignment starts again where the vehicle is, and the front
+	// transition is still commanded. During the transition the restart sends the command once more.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 100.f, kAlt);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(position);
+	publishLocalPosition();
+	publishLandDetected(false);
+	publishHomePosition(position);
+	primeNavigatorState();
+	prepareExecution(mission, {makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), front_transition, target},
+			 145);
+
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+
+	// The vehicle drifts while aligning, then a pending feasibility check completes.
+	const auto drifted = makePositionFromOffset(kBaseLat, kBaseLon, 40.f, 0.f, kAlt);
+	const float yaw = get_bearing_to_next_waypoint(drifted.lat, drifted.lon, target.lat, target.lon);
+	publishGlobalPosition(drifted);
+	primeNavigatorState();
+	mission.requestFeasibilityCheckForTest();
+	mission.on_active();
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+	EXPECT_DOUBLE_EQ(mission.currentMissionItemForTest().lat, drifted.lat);
+	EXPECT_NEAR(mission.currentMissionItemForTest().yaw, yaw, 1e-4f);
+	EXPECT_FALSE(command_sub.updated());
+
+	publishLocalPosition(yaw);
+	primeNavigatorState();
+	mission.on_active();
+	ASSERT_TRUE(command_sub.update(&command));
+	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	primeNavigatorState();
+	mission.on_active();
+	EXPECT_FALSE(command_sub.updated());
+	mission.requestFeasibilityCheckForTest();
+	mission.on_active();
+	ASSERT_TRUE(command_sub.update(&command));
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	EXPECT_FALSE(command_sub.updated());
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
+	mission.on_active();
+	EXPECT_FALSE(command_sub.updated());
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	primeNavigatorState();
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
 }
 
 // A rejoin skipped while the cache loads is reported; once the cache is ready the vehicle joins the
@@ -1996,6 +2174,17 @@ TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFron
 		}
 	}
 
+	// A feasibility refresh cannot restart the join, so its alignment keeps running.
+	mission.requestFeasibilityCheckForTest();
+	mission.on_active();
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+	EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+	EXPECT_NEAR(triplet.current.yaw, expected_yaw, 1e-4f);
+
+	while (vehicle_command_sub.update(&command)) {
+		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+	}
+
 	publishLocalPosition(expected_yaw);
 	primeNavigatorState();
 	mission.on_active();
@@ -2014,6 +2203,18 @@ TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFron
 	}
 
 	EXPECT_TRUE(front_transition_sent);
+
+	// The same during the join's front transition: no second command.
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	primeNavigatorState();
+	mission.requestFeasibilityCheckForTest();
+	mission.on_active();
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
+	EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+
+	while (vehicle_command_sub.update(&command)) {
+		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+	}
 
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	primeNavigatorState();

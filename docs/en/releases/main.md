@@ -163,7 +163,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### VTOL
 
-- Mission mode waits for an active back transition to finish before aligning for a front transition, and a transition to the mode the vehicle is already in completes without sending a command. ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
+- Mission mode waits for an active back transition to finish before aligning for a front transition. ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))
 
 ### Fixed-wing
 
