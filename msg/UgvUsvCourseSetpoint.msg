@@ -1,12 +1,12 @@
-# Planar Course Setpoint
+# UGV/USV Course Setpoint
 #
-# Course setpoint for vehicles that move on a surface, on land or on water (rovers, boats).
+# Course setpoint for unmanned ground and surface vehicles (UGVs such as rovers, USVs such as boats).
 # Consumed by the position controllers of these vehicles (currently AckermannPosControl,
 # DifferentialPosControl and MecanumPosControl), which turn it into speed and attitude
 # setpoints.
 # Published by the manual (position) drive modes of rover_ackermann, rover_differential
 # and rover_mecanum, and can be sent from ROS 2 over uXRCE-DDS
-# (/fmu/in/planar_course_setpoint).
+# (/fmu/in/ugv_usv_course_setpoint).
 # Holds a course over ground along the line through start_ned, correcting cross-track
 # error back onto that line. Alternative to rover_position_setpoint: the controller
 # follows whichever of the two was published most recently.

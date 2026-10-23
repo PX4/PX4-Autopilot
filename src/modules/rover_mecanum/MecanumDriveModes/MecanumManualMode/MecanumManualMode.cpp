@@ -44,7 +44,7 @@ MecanumManualMode::MecanumManualMode(ModuleParams *parent) : ModuleParams(parent
 	_rover_attitude_setpoint_pub.advertise();
 	_rover_speed_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
-	_planar_course_setpoint_pub.advertise();
+	_ugv_usv_course_setpoint_pub.advertise();
 }
 
 void MecanumManualMode::updateParams()
@@ -228,14 +228,14 @@ void MecanumManualMode::position()
 			_pos_ctl_course_direction = pos_ctl_course_direction_temp;
 		}
 
-		planar_course_setpoint_s planar_course_setpoint{};
-		planar_course_setpoint.timestamp = hrt_absolute_time();
-		planar_course_setpoint.course = atan2f(_pos_ctl_course_direction(1), _pos_ctl_course_direction(0));
-		planar_course_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
-		planar_course_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
-		planar_course_setpoint.cruising_speed = velocity_setpoint_ned.norm();
-		planar_course_setpoint.yaw = _pos_ctl_yaw_setpoint;
-		_planar_course_setpoint_pub.publish(planar_course_setpoint);
+		ugv_usv_course_setpoint_s ugv_usv_course_setpoint{};
+		ugv_usv_course_setpoint.timestamp = hrt_absolute_time();
+		ugv_usv_course_setpoint.course = atan2f(_pos_ctl_course_direction(1), _pos_ctl_course_direction(0));
+		ugv_usv_course_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
+		ugv_usv_course_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
+		ugv_usv_course_setpoint.cruising_speed = velocity_setpoint_ned.norm();
+		ugv_usv_course_setpoint.yaw = _pos_ctl_yaw_setpoint;
+		_ugv_usv_course_setpoint_pub.publish(ugv_usv_course_setpoint);
 	}
 }
 

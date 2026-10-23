@@ -168,7 +168,6 @@ set(msg_files
 	ParameterSetValueRequest.msg
 	ParameterSetValueResponse.msg
 	ParameterUpdate.msg
-	PlanarCourseSetpoint.msg
 	Ping.msg
 	PositionControllerLandingStatus.msg
 	PositionControllerStatus.msg
@@ -237,6 +236,7 @@ set(msg_files
 	UavcanFirmwareUpdate.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
+	UgvUsvCourseSetpoint.msg
 	UlogStream.msg
 	UlogStreamAck.msg
 	VehicleAcceleration.msg

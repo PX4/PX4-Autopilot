@@ -7,7 +7,7 @@
 # rover_differential and rover_mecanum, and can be sent from ROS 2 over uXRCE-DDS
 # (/fmu/in/rover_position_setpoint).
 # Tracks a line from start_ned to target_ned. To hold a course instead, publish
-# planar_course_setpoint; the controller follows whichever of the two was
+# ugv_usv_course_setpoint; the controller follows whichever of the two was
 # published most recently.
 
 uint64 timestamp # [us] Time since system start
