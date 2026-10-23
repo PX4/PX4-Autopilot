@@ -212,8 +212,9 @@ When more than three projections fall within the margin, only the three with the
 
 The mission route planner supports [`DO_JUMP`](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP) mission loop commands.
 The active jump segment is the segment running from the waypoint before the jump command to the first position waypoint at the jump target.
-A point projects onto a loop segment using the same cross-track and margin rule as any other segment.
-How that candidate is then used differs for the vehicle branch-in ([Vehicle Projection](#vehicle-projection)) and for safe-point branch-offs ([Safe-Point Scoring](#safe-point-scoring)).
+The vehicle projects onto loop segments using the same cross-track and margin rule as any other segment.
+A safe point projects onto a loop segment only if the vehicle branch-in is on that segment, which is normally the loop the vehicle is flying.
+How a loop candidate is then used differs for the vehicle branch-in ([Vehicle Projection](#vehicle-projection)) and for safe-point branch-offs ([Safe-Point Scoring](#safe-point-scoring)).
 
 ::: details Click here for more detail on how projections land on segments and corners
 
@@ -393,7 +394,7 @@ As the planner gathers the safe points to consider, it filters out the ones it c
 
 Safe-point branch-off candidates on loop segments are more restricted:
 
-- If the vehicle is not itself flying a loop, safe-point projections on loop segments are skipped.
+- Safe-point projections on loop segments other than the vehicle branch-in's segment are skipped, so they do not narrow the search margin either.
   This prevents a return from entering a mission loop just to reach a branch-off point.
 - If the vehicle and selected safe point project onto the same active loop segment, the return path may follow that loop edge to the branch-off point.
 - If the selected safe point is outside the active loop, the planner first chooses how to leave the loop (shortest overall path), then follows the normal route towards the selected branch-off point or fallback endpoint.
