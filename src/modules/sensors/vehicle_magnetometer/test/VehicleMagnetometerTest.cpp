@@ -330,3 +330,30 @@ TEST_F(VehicleMagnetometerTest, MagnetometerDisabledFromBootDoesNotDriveRun)
 	EXPECT_EQ(module.selectedIndex(), 0);
 	EXPECT_TRUE(module.callbackRegistered(0));
 }
+
+TEST_F(VehicleMagnetometerTest, RotationChangeIsCalibrationChange)
+{
+	setPriority(0, 75);
+	setParam("CAL_MAG0_ROT", 0);
+
+	VehicleMagnetometerTestable module;
+
+	runFor(module, 500_ms, [&]() { publishSample(0, _field); });
+
+	vehicle_magnetometer_s mag{};
+	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
+	const uint8_t calibration_count = mag.calibration_count;
+	EXPECT_NEAR(mag.magnetometer_ga[0], _field(0), 1e-3f);
+
+	// ROTATION_YAW_180 changed at runtime
+	setParam("CAL_MAG0_ROT", 4);
+	publishParameterUpdate();
+
+	runFor(module, 1200_ms, [&]() { publishSample(0, _field); });
+
+	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
+	EXPECT_NE(mag.calibration_count, calibration_count);
+	EXPECT_NEAR(mag.magnetometer_ga[0], -_field(0), 1e-3f);
+
+	setParam("CAL_MAG0_ROT", 0);
+}
