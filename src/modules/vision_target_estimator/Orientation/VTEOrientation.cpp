@@ -309,20 +309,8 @@ void VTEOrientation::print_status() const
 
 	const bool orientation_valid = _estimator_initialized && !hasTimedOut(_last_update, _target_valid_timeout_us);
 
-	PX4_INFO("  orientation state: initialized: %s, valid: %s, last predict/update age: %.3f / %.3f s",
+	PX4_INFO("  initialized: %s, valid: %s, predict/update age: %.3f / %.3f s",
 		 yes_no(_estimator_initialized), yes_no(orientation_valid), age_s(_last_predict), age_s(_last_update));
-
-	if (!_estimator_initialized) {
-		return;
-	}
-
-	const OrientationStateVec &state = _target_est_yaw.getState();
-
-	PX4_INFO("    yaw: %.3f rad (%.1f deg)",
-		 (double)state(KF_orientation::kYaw),
-		 (double)math::degrees(state(KF_orientation::kYaw)));
-	PX4_INFO("    yaw rate: %.3f rad/s",
-		 (double)state(KF_orientation::kYawRate));
 }
 
 void VTEOrientation::updateParams()

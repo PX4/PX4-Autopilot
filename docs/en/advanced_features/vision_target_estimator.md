@@ -455,8 +455,20 @@ On the autopilot shell, the first command to run is
 vision_target_estimator status
 ```
 
-which reports whether the module is alive, which task is currently active, which filters are running, and which aid sources are enabled.
-It is the quickest way to confirm a configuration is taking effect before opening a log.
+The command provides a compact health summary:
+
+- Target model, active task and hexadecimal task mask.
+- Configured and effective hexadecimal aid masks.
+  Decode the masks using [VTE_TASK_MASK](../advanced_config/parameter_reference.md#VTE_TASK_MASK) and [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK).
+- Position and yaw filter enablement, availability, running state, fusion enablement and timeout state.
+  `enabled` reflects the current parameter value; `available` reflects enablement latched when the module started.
+  Changes to [VTE_POS_EN](../advanced_config/parameter_reference.md#VTE_POS_EN) and [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) require a reboot.
+- For running filters: initialisation, validity and prediction/update ages in seconds (`-1` when no timestamp is available).
+  The position filter also reports output validity, bias readiness, bias averaging and the pre-bias reference.
+
+`fusing: yes` means fusion is enabled; check `vte_aid_*` for individual measurement acceptance or rejection.
+State values and individual input ages are not included in this summary.
+Use `listener vte_position` for position, velocity and bias, `listener vte_orientation` for yaw and yaw rate, and the input topics' timestamps to investigate input freshness.
 
 For deeper inspection, the following uORB topics are the most useful entry points into a log:
 
