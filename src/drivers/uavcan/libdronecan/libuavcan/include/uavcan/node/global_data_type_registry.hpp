@@ -38,7 +38,7 @@ class UAVCAN_EXPORT GlobalDataTypeRegistry : Noncopyable
     {
         DataTypeDescriptor descriptor;
 
-        Entry() { }
+        UAVCAN_CONSTEXPR Entry() { }
 
         Entry(DataTypeKind kind, DataTypeID id, const DataTypeSignature& signature, const char* name)
             : descriptor(kind, id, signature, name)
