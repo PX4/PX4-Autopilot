@@ -104,7 +104,8 @@ union px4_custom_mode {
 #ifdef DEFINE_GET_PX4_CUSTOM_MODE
 #include <uORB/topics/vehicle_status.h>
 
-static inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
+// Non-static inline: every translation unit that defines DEFINE_GET_PX4_CUSTOM_MODE shares one copy.
+inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 {
 	union px4_custom_mode custom_mode;
 	custom_mode.data = 0;
