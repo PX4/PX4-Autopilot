@@ -68,7 +68,7 @@ parameters:
 
           - 6 (Home if battery allows, else rally point): Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
 
-          - 7 (Mission route to rally point, landing or takeoff): Rejoin and follow the uploaded mission route, then branch off to the rally point with the lowest route cost. If no rally point is usable, follow the route to the mission landing, or to the position of the mission takeoff item at Home altitude, whichever has the lower route cost. Without a usable route, entry to Return is denied and a Return failsafe falls back to Land without using RTL_LAND_DELAY. If an active Return loses its route, hold at the current location without a return climb, and without landing for up to 30 s after an upload while its data load. Then MC/VTOL land after RTL_LAND_DELAY (hold indefinitely if negative), while non-VTOL fixed-wing aircraft loiter without automatic landing. While airborne and holding, retry route planning every two seconds and resume the route on success. Failed retries keep the hold position. Stop retrying once landing starts or the vehicle touches down. On boards built without route planning, behave like type 3.
+          - 7 (Mission route to rally point, landing or takeoff): Follow the mission route to the rally point with the lowest route cost, else to the mission landing or takeoff. Boards built without route planning use type 3.
       type: enum
       values:
         0: Direct to home or rally point

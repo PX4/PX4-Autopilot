@@ -202,6 +202,13 @@ void RtlRouteSafePoint::setActiveJumpAnchor(const mission_route::ActiveJumpAncho
 	_active_jump_anchor = active_jump_anchor;
 }
 
+void RtlRouteSafePoint::reportRouteUnavailable() const
+{
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: no mission route, holding here\t");
+	events::send(events::ID("rtl_route_unavailable"), {events::Log::Critical, events::LogInternal::Warning},
+		     "Return: no mission route, holding here");
+}
+
 void RtlRouteSafePoint::reportRouteResumed() const
 {
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: mission route found, resuming\t");
