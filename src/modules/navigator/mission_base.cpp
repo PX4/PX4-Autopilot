@@ -1351,14 +1351,16 @@ MissionBase::do_abort_landing()
 	events::send<float>(events::ID("mission_holding_above_landing"), events::Log::Info,
 			    "Holding at {1:.0m_v} above landing waypoint", alt_sp - alt_landing);
 
-	// reset mission index to start of landing
-	if (hasMissionLandStart()) {
-		_is_current_planned_mission_item_valid = true;
-		setMissionIndex(_mission.land_start_index);
+	// reset mission index to start of landing, unless the landing is not a mission item
+	if (landingAbortMovesMissionIndex()) {
+		if (hasMissionLandStart()) {
+			_is_current_planned_mission_item_valid = true;
+			setMissionIndex(_mission.land_start_index);
 
-	} else {
-		// move mission index back (landing approach point)
-		_is_current_planned_mission_item_valid = (goToPreviousItem(MissionTraversalType::IgnoreDoJump) == PX4_OK);
+		} else {
+			// move mission index back (landing approach point)
+			_is_current_planned_mission_item_valid = (goToPreviousItem(MissionTraversalType::IgnoreDoJump) == PX4_OK);
+		}
 	}
 
 	// send reposition cmd to get out of mission

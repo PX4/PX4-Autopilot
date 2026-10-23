@@ -690,25 +690,60 @@ INSTANTIATE_TEST_SUITE_P(ArrivalAndLand, RtlMissionSafePointFollowGoalUpdateTest
 			 ::testing::Values(RtlMissionSafePointFollowTestPeer::Stage::Arrival,
 					 RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal));
 
-// A landing abort moves the follower's index back, but must not republish the replaced mission.
-TEST_F(RtlMissionSafePointFollowNavigatorTest, LandingAbortAfterMissionReplacementKeepsTheReplacement)
+class RtlMissionSafePointFollowLandingAbortTest : public RtlMissionSafePointFollowNavigatorTest,
+	public ::testing::WithParamInterface<mission_route::GoalType> {};
+
+// A fixed-wing abort at a rally point or the takeoff position keeps the mission index: neither landing is a mission
+// item, and a later Mission resume must not skip to the mission landing.
+TEST_P(RtlMissionSafePointFollowLandingAbortTest, GoalLandingAbortKeepsTheMissionIndex)
 {
+	const bool safe_point_goal = GetParam() == mission_route::GoalType::kSafePoint;
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
 	follower.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makeTakeoffItem(kBaseLat, kBaseLon, kAlt),
 		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+		land_start,
+		makePositionItem(kBaseLat + 0.003, kBaseLon, kAlt),
+		makeLandItem(kBaseLat + 0.004, kBaseLon, kAlt - 50.f),
 	});
-	follower.prepareActiveMissionForTest(20, 1);
+	// The rally point route branches off at item 1; the takeoff route flies back to item 0.
+	const int32_t cursor = safe_point_goal ? 1 : 0;
+	follower.prepareActiveMissionForTest(44, cursor);
+	mission_route::RtlRoutePlan plan{};
+	plan.join_position = {kBaseLat + 0.001, kBaseLon, kAlt};
+	plan.first_mission_item_index = cursor;
+	plan.goal_type = GetParam();
+	plan.direction_reversed = !safe_point_goal;
+
+	if (safe_point_goal) {
+		plan.safe_point_index = 0;
+		plan.branch_off_mission_item_index = 1;
+		plan.branch_off_position = {kBaseLat + 0.001, kBaseLon, kAlt};
+		plan.goal_position = {kBaseLat - 0.002, kBaseLon, kAlt - 50.f};
+
+	} else {
+		plan.goal_position = {kBaseLat, kBaseLon, kAlt - 50.f};
+	}
+
+	follower.configurePlanForTest(plan, 5);
+	follower.setLandStartForTest(3);
 	follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
+	follower.setVehicleStatusForTest(false, true, false);
 	follower.setLandedForTest(false);
-	const mission_route::Position goal{kBaseLat + 0.002, kBaseLon + 0.001, kAlt - 10.f};
-	follower.setSafePointSelectionForTest(false, 1);
-	follower.setSafePointGeometryForTest({kBaseLat + 0.001, kBaseLon, kAlt}, goal);
-	follower.setGlobalPositionForTest(goal);
+	follower.setGlobalPositionForTest({plan.goal_position.lat + 0.0005, plan.goal_position.lon, kAlt - 30.f});
 	follower.publishActiveMissionItemsForTest();
 	ASSERT_EQ(navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 
-	follower.publishMissionUpdateForTest(21, 0);
+	follower.publishMissionUpdateForTest(44, cursor);
 	uORB::SubscriptionData<mission_s> mission_topic{ORB_ID(mission)};
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
 	position_controller_landing_status_s landing_status{};
 	landing_status.timestamp = hrt_absolute_time();
 	landing_status.abort_status = 1;
@@ -719,10 +754,21 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, LandingAbortAfterMissionReplaceme
 	landing_status.abort_status = 0;
 	landing_status_pub.publish(landing_status);
 
-	EXPECT_EQ(follower.currentSequenceForTest(), 0);
+	// The abort still loiters and repositions, but neither the index nor the mission topic moves to the landing start.
+	EXPECT_EQ(follower.currentMissionItemForTest().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
+	EXPECT_EQ(follower.currentSequenceForTest(), cursor);
 	EXPECT_FALSE(mission_topic.update());
-	EXPECT_EQ(mission_topic.get().mission_id, 21u);
+	bool repositioned = false;
+
+	while (command_sub.update(&command)) {
+		repositioned |= command.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+	}
+
+	EXPECT_TRUE(repositioned);
 }
+
+INSTANTIATE_TEST_SUITE_P(RallyPointAndTakeoff, RtlMissionSafePointFollowLandingAbortTest,
+			 ::testing::Values(mission_route::GoalType::kSafePoint, mission_route::GoalType::kMissionTakeoff));
 
 // A fixed-wing abort at a mission landing returns to the landing start, also without republishing the replaced mission.
 TEST_F(RtlMissionSafePointFollowNavigatorTest, MissionLandingAbortAfterReplacementKeepsTheReplacement)
