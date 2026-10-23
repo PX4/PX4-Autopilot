@@ -40,6 +40,8 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /*****************************************************************************
  * Generic bootloader functions.
@@ -66,6 +68,20 @@ extern struct boardinfo board_info;
 extern void jump_to_app(void);
 extern void bootloader(unsigned timeout);
 extern void delay(unsigned msec);
+
+#ifdef BOOTLOADER_USE_TOC
+/*
+ * Override the buffer that jump_to_app() feeds to find_toc(). By default
+ * the TOC is expected to sit at APP_LOAD_ADDRESS in a memory-mapped XIP
+ * flash window (buffer = APP_LOAD_ADDRESS, length = BOARD_FLASH_SIZE).
+ *
+ * Boards that stage the TOC into a RAM scratch buffer (e.g. because the
+ * PX4 image is loaded from mass storage) should call this once, before
+ * jump_to_app() or the bootloader() protocol loop, to point find_toc()
+ * at the staged copy. The pointer must remain valid until the jump.
+ */
+extern void bl_set_toc_buffer(const void *buf, size_t len);
+#endif
 
 #define BL_WAIT_MAGIC 0x19710317    /* magic number in PWR regs to wait in bootloader */
 

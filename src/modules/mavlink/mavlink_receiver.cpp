@@ -46,6 +46,7 @@
 
 #include <math.h>
 #include <poll.h>
+#include <string.h>
 
 #ifdef CONFIG_NET
 #include <net/if.h>
@@ -2138,10 +2139,17 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		return;
 	}
 
-	const LockGuard lg{_mavlink.get_shell_mutex()};
-	MavlinkShell *shell = _mavlink.get_shell();
+	MavlinkShell *shell;
+
+	{
+		const LockGuard lg{_mavlink.get_shell_mutex()};
+		shell = _mavlink.get_shell();
+	}
 
 	if (shell) {
+		// Only this thread creates and deletes the shell, so it can be used without the lock.
+		// Do not hold the lock while writing: the write blocks while a shell pipe is full, and
+		// the output pipe is drained by Mavlink::handleMavlinkShellOutput(), which needs the lock.
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
 		if (serial_control_mavlink.count > 0 && serial_control_mavlink.count <= sizeof(serial_control_mavlink.data)) {
 			shell->setTargetID(msg->sysid, msg->compid);
@@ -2150,6 +2158,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 
 		// if no response requested, assume the shell is no longer used
 		if ((serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_RESPOND) == 0) {
+			const LockGuard lg{_mavlink.get_shell_mutex()};
 			_mavlink.close_shell();
 		}
 	}
@@ -3782,6 +3791,43 @@ void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *m
 	odid_basic_id.ua_type = odid_module.ua_type;
 	memcpy(odid_basic_id.uas_id, odid_module.uas_id, sizeof(odid_basic_id.uas_id));
 
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+
+	if (_param_odid_bid_src.get() == open_drone_id::UAS_ID_MODE_LOCK_FIRST_BASIC_ID) {
+		open_drone_id::UasId locked_id{};
+		const open_drone_id::BidStoreResult result = _odid_bid_lock.resolve(odid_module.id_type, odid_module.ua_type,
+				odid_module.uas_id, locked_id);
+
+		switch (result) {
+		case open_drone_id::BidStoreResult::Stored:
+			mavlink_log_info(&_mavlink_log_pub, "OpenDroneID BID locked");
+			break;
+
+		case open_drone_id::BidStoreResult::AlreadyLocked:
+		case open_drone_id::BidStoreResult::AlreadyLockedDifferent:
+			break;
+
+		case open_drone_id::BidStoreResult::InvalidBasicId:
+			return;
+
+		case open_drone_id::BidStoreResult::StorageUnavailable:
+		case open_drone_id::BidStoreResult::InvalidRecord:
+		case open_drone_id::BidStoreResult::WriteError:
+		case open_drone_id::BidStoreResult::Unsupported:
+			if (!_odid_bid_lock_warning_reported) {
+				mavlink_log_warning(&_mavlink_log_pub, "OpenDroneID BID lock unavailable");
+				_odid_bid_lock_warning_reported = true;
+			}
+
+			return;
+		}
+
+		odid_basic_id.id_type = MAV_ODID_ID_TYPE_SERIAL_NUMBER;
+		odid_basic_id.ua_type = locked_id.ua_type;
+		memcpy(odid_basic_id.uas_id, locked_id.uas_id, sizeof(odid_basic_id.uas_id));
+	}
+
+#endif
 	_open_drone_id_basic_id_pub.publish(odid_basic_id);
 }
 
@@ -4101,13 +4147,16 @@ MavlinkReceiver::run()
 			if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM) {
 				_parameters_manager.send();
 				_mavlink.set_sending_parameters(_parameters_manager.send_active());
+				_mavlink.set_sending_all_parameters(_parameters_manager.sending_all());
 			}
 
 			if (_mavlink.ftp_enabled()) {
 				_mavlink_ftp.send();
+				_mavlink.set_ftp_burst_active(_mavlink_ftp.burst_active());
 			}
 
 			_mavlink_log_handler.send();
+			_mavlink.set_log_download_active(_mavlink_log_handler.sending_data());
 			_mavlink.unlock_send();
 			last_send_update = t;
 		}
@@ -4175,12 +4224,15 @@ void MavlinkReceiver::reset_parser_after_rejected_frame(uint8_t c)
 
 bool MavlinkReceiver::component_was_seen(int system_id, int component_id)
 {
+	// Called from other threads, read the count once
+	const unsigned component_states_count = _component_states_count.load();
+
 	// For system broadcast messages return true if at least one component was seen before
 	if (system_id == 0) {
-		return _component_states_count > 0;
+		return component_states_count > 0;
 	}
 
-	for (unsigned i = 0; i < _component_states_count; ++i) {
+	for (unsigned i = 0; i < component_states_count; ++i) {
 		if (_component_states[i].system_id == system_id
 		    && (component_id == 0 || _component_states[i].component_id == component_id)) {
 			return true;
@@ -4224,7 +4276,7 @@ void MavlinkReceiver::update_rx_stats(const mavlink_message_t &message, bool add
 				++_component_states[i].received_messages;
 				_component_states[i].last_sequence = message.seq;
 
-				_component_states_count = i + 1;
+				_component_states_count.store(i + 1);
 
 				// Also update overall stats
 				++_total_received_counter;
@@ -4316,7 +4368,7 @@ void MavlinkReceiver::update_message_statistics(const mavlink_message_t &message
 void MavlinkReceiver::print_detailed_rx_stats() const
 {
 	// TODO: add mutex around shared data.
-	if (_component_states_count > 0) {
+	if (_component_states_count.load() > 0) {
 		printf("\tReceived Messages:\n");
 
 		for (const auto &comp_stat : _component_states) {

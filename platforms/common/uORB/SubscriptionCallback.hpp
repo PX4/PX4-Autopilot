@@ -149,14 +149,9 @@ public:
 		// (count gate), respecting the optional interval (interval gate).
 		const uint8_t req = _required_updates.load();
 
-		if ((generation - _last_scheduled_generation) >= req) {
-			const hrt_abstime last_update = _last_update.load();
-			const uint32_t interval_us = _interval_us.load();
-
-			if ((interval_us == 0) || (hrt_elapsed_time(&last_update) >= interval_us)) {
-				_last_scheduled_generation = generation;
-				_work_item->ScheduleNow();
-			}
+		if (((generation - _last_scheduled_generation) >= req) && interval_elapsed()) {
+			_last_scheduled_generation = generation;
+			_work_item->ScheduleNow();
 		}
 	}
 

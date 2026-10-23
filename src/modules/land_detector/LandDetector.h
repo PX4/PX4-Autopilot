@@ -102,6 +102,11 @@ public:
 protected:
 
 	/**
+	 * Run at most once per interval instead of on every local position update.
+	 */
+	void _set_update_interval(uint32_t interval_us) { _vehicle_local_position_sub.set_interval_us(interval_us); }
+
+	/**
 	 * Updates parameters.
 	 */
 	virtual void _update_params() {};

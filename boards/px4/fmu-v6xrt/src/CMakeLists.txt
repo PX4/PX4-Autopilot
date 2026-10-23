@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+if("${PX4_BOARD_LABEL}" MATCHES "^bootloader")
 	add_compile_definitions(BOOTLOADER)
 	add_library(drivers_board
 		bootloader_main.c
@@ -79,9 +79,9 @@ else()
 		${SRCS}
 	)
 
-	# Force compiler not to use builtin functions (like memcpy)
+	# Force compiler not to use builtin functions (like memcpy) or the FPU, not enabled yet,
 	# to optimize for loops in init.c (imxrt_ocram_initialize)
-	set_source_files_properties(imxrt_ocram_initialize.c PROPERTIES COMPILE_FLAGS -fno-builtin)
+	set_source_files_properties(imxrt_ocram_initialize.c PROPERTIES COMPILE_FLAGS "-fno-builtin -mgeneral-regs-only")
 
 	target_link_libraries(drivers_board
 		PRIVATE

@@ -60,6 +60,8 @@
 #include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
+#include "mavlink_parameters.h"
+#include "mavlink_ftp.h"
 
 #ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 #include <drivers/serialpassthrough/serialpassthrough.hpp>
@@ -988,7 +990,8 @@ void Mavlink::send_finish()
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
 	if (!_tx_buffer_low) {
-		if (_buf_fill + packet_len < sizeof(_buf)) {
+		// _buf holds exactly one maximum-length frame (280 bytes for a signed frame with a 255-byte payload)
+		if (_buf_fill + packet_len <= sizeof(_buf)) {
 			memcpy(&_buf[_buf_fill], buf, packet_len);
 			_buf_fill += packet_len;
 
@@ -1546,7 +1549,7 @@ Mavlink::pass_message(const mavlink_message_t *msg)
 MavlinkShell *
 Mavlink::get_shell()
 {
-	if (!_mavlink_shell) {
+	if (!_mavlink_shell.load()) {
 		MavlinkShell *shell = new MavlinkShell();
 
 		if (!shell) {
@@ -1556,7 +1559,7 @@ Mavlink::get_shell()
 			int ret = shell->start();
 
 			if (ret == 0) {
-				_mavlink_shell = shell;
+				_mavlink_shell.store(shell);
 
 			} else {
 				PX4_ERR("Failed to start shell (%i)", ret);
@@ -1565,15 +1568,17 @@ Mavlink::get_shell()
 		}
 	}
 
-	return _mavlink_shell;
+	return _mavlink_shell.load();
 }
 
 void
 Mavlink::close_shell()
 {
-	if (_mavlink_shell) {
-		delete _mavlink_shell;
-		_mavlink_shell = nullptr;
+	MavlinkShell *shell = _mavlink_shell.load();
+
+	if (shell) {
+		_mavlink_shell.store(nullptr);
+		delete shell;
 	}
 }
 
@@ -1599,11 +1604,23 @@ Mavlink::update_rate_mult()
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
 	}
 
+	/* Reserve the bulk share whenever a paced bulk transfer is running, so
+	 * that the streams yield instead of all of them together over-subscribing
+	 * the link. The transfers pace themselves against bulk_bandwidth_share(),
+	 * which splits this between them, so reserving it once is what they will
+	 * actually use together. Where there is spare bandwidth this changes
+	 * nothing: bandwidth_mult is capped at 1.0 further down either way. */
+	float bulk_rate = 0.0f;
+
+	if (active_bulk_transfers() > 0) {
+		bulk_rate = (float)_datarate * kBulkBandwidthShare;
+	}
+
 	/* scale up and down as the link permits, nothing to scale without variable rate streams */
 	float bandwidth_mult = 1.0f;
 
 	if (rate > 0.0f) {
-		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate - bulk_rate) / rate;
 	}
 
 	/* Reduce rate while sending parameters in low bandwidth mode */
@@ -1659,6 +1676,20 @@ Mavlink::radio_status_critical() const
 {
 	LockGuard lg{_radio_status_mutex};
 	return _radio_status_critical;
+}
+
+bool
+Mavlink::radio_status_available() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_available;
+}
+
+float
+Mavlink::radio_status_mult() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_available ? _radio_status_mult : 1.0f;
 }
 
 void
@@ -2637,6 +2668,17 @@ Mavlink::task_main(int argc, char *argv[])
 		set_telemetry_status_type(telemetry_status_s::LINK_TYPE_USB);
 	}
 
+#if defined(MAVLINK_UDP)
+
+	/* UDP has no baudrate either. Without this, 0 falls back to the serial
+	 * default below and throttles an ethernet link, including the parameter
+	 * dump, like a 57600 radio. */
+	if ((get_protocol() == Protocol::UDP) && (_datarate == 0)) {
+		_datarate = 100000;
+	}
+
+#endif // MAVLINK_UDP
+
 	if (_mode == MAVLINK_MODE_COUNT) {
 		_mode = MAVLINK_MODE_NORMAL;
 	}
@@ -3060,21 +3102,23 @@ void Mavlink::handleSerialPassthroughOutput()
 
 void Mavlink::handleMavlinkShellOutput()
 {
-	if (_mavlink_shell) { // First do a fast check before taking the lock
+	if (_mavlink_shell.load()) { // First do a fast check before taking the lock
 		mavlink_serial_control_t msg;
 		msg.count = 0;
 		{
 			const LockGuard lg{_mavlink_shell_mutex};
 
-			if (_mavlink_shell && _mavlink_shell->available() > 0) {
+			MavlinkShell *shell = _mavlink_shell.load();
+
+			if (shell && shell->available() > 0) {
 				if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
 					msg.baudrate = 0;
 					msg.flags = SERIAL_CONTROL_FLAG_REPLY;
 					msg.timeout = 0;
 					msg.device = SERIAL_CONTROL_DEV_SHELL;
-					msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
-					msg.target_system = _mavlink_shell->targetSysid();
-					msg.target_component = _mavlink_shell->targetCompid();
+					msg.count = shell->read(msg.data, sizeof(msg.data));
+					msg.target_system = shell->targetSysid();
+					msg.target_component = shell->targetCompid();
 				}
 			}
 		}

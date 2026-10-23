@@ -722,8 +722,11 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		if (!_health_and_arming_checks.canArm(_vehicle_status.nav_state)) {
 			tune_negative(true);
 			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Resolve system health failures first\t");
-			events::send(events::ID("commander_arm_denied_resolve_failures"), {events::Log::Critical, events::LogInternal::Info},
-				     "Arming denied: Resolve system health failures first");
+			/* EVENT
+			 * @type append_health_and_arming_messages
+			 */
+			events::send<uint32_t>(events::ID("commander_arm_denied_resolve_failures"), {events::Log::Critical, events::LogInternal::Info},
+					       "Arming denied: Resolve system health failures first", get_px4_custom_mode(_vehicle_status.nav_state).data);
 			return TRANSITION_DENIED;
 		}
 	}
@@ -2164,7 +2167,7 @@ void Commander::run()
 			updateControlMode();
 
 			// vehicle_status publish (after prearm/preflight updates above)
-			_mode_management.getModeStatus(_vehicle_status.valid_nav_states_mask, _vehicle_status.can_set_nav_states_mask);
+			_mode_management.getModeStatus(_vehicle_status.valid_nav_states_mask, _vehicle_status.can_set_nav_states_mask, _failsafe_flags);
 			_vehicle_status.accepts_offboard_setpoints = _mode_management.currentModeAcceptsOffboardSetpoints(_vehicle_status.nav_state);
 			_vehicle_status.timestamp = hrt_absolute_time();
 			_vehicle_status_pub.publish(_vehicle_status);

@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   build:
-    name: Testing PX4 ${{ matrix.config.model }}
+    name: Testing PX4 ${{ matrix.config.model }} (${{ matrix.config.build_type }})
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
       image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
@@ -32,11 +32,11 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {model: "quadx",         latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
-          - {model: "hex",           latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "RelWithDebInfo" } # Zurich
+          - {model: "quadx",         latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "AddressSanitizer" } # Alaska
+          - {model: "hex",           latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "ThreadSanitizer" } # Zurich
           # Coverage on main only; PRs reuse main's numbers through Codecov carryforward (codecov.yml)
           - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "${{ github.event_name == 'push' && 'Coverage' || 'RelWithDebInfo' }}" } # Zurich
-          - {model: "xvert",         latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "RelWithDebInfo" } # Zurich
+          - {model: "xvert",         latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "UndefinedBehaviorSanitizer" } # Zurich
     env:
       PX4_CMAKE_BUILD_TYPE: ${{ matrix.config.build_type }}
       PX4_SBOM_DISABLE: 1

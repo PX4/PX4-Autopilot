@@ -51,6 +51,8 @@ ToneAlarm::ToneAlarm() :
 
 ToneAlarm::~ToneAlarm()
 {
+	// the end of the note would otherwise be called on the deleted driver
+	hrt_cancel(&_hrt_call);
 	ToneAlarmInterface::stop_note();
 }
 
@@ -69,6 +71,14 @@ bool ToneAlarm::Init()
 	ScheduleNow();
 
 	return true;
+}
+
+void ToneAlarm::request_stop()
+{
+	ModuleBase::request_stop();
+
+	// Run() is not scheduled while no tune is played
+	ScheduleNow();
 }
 
 void ToneAlarm::InterruptStopNote(void *arg)

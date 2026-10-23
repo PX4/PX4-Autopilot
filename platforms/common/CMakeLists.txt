@@ -52,6 +52,7 @@ add_library(px4_platform STATIC
 	px4_getopt.c
 	px4_cli.cpp
 	shutdown.cpp
+	sleep.cpp
 	spi.cpp
 	pab_manifest.c
 	Serial.cpp

@@ -35,7 +35,7 @@
 
 #include <stdint.h>
 #include <drivers/drv_hrt.h>
-#include <nuttx/irq.h>
+#include "critical_section.hpp"
 
 namespace uavcan_hrt_clock
 {
@@ -70,21 +70,27 @@ public:
 
 	uint64_t utcUsec() const
 	{
-		irqstate_t flags = enter_critical_section();
-		const uint64_t utc = utcUsecFromInterrupt();
-		leave_critical_section(flags);
-		return utc;
+		const UavcanCriticalSection lock;
+		return utcUsecFromInterrupt();
+	}
+
+	/**
+	 * UTC at an earlier HRT time, for example when a frame was received.
+	 */
+	uint64_t utcUsecAt(uint64_t hrt) const
+	{
+		const UavcanCriticalSection lock;
+		return _set ? utcAt(hrt) : 0;
 	}
 
 	void setUtc(uint64_t utc_usec)
 	{
-		irqstate_t flags = enter_critical_section();
+		const UavcanCriticalSection lock;
 		const uint64_t now = hrt_absolute_time();
 		_offset_usec = int64_t(utc_usec) - int64_t(now);
 		_anchor = now;
 		_last_adjustment_at = now;
 		_set = true;
-		leave_critical_section(flags);
 	}
 
 	/**
@@ -93,7 +99,7 @@ public:
 	 */
 	void adjustUtc(int64_t adjustment_usec)
 	{
-		irqstate_t flags = enter_critical_section();
+		const UavcanCriticalSection lock;
 		const uint64_t now = hrt_absolute_time();
 
 		if (!_set) {
@@ -125,16 +131,12 @@ public:
 			_adjustments++;
 			_last_adjustment_usec = int32_t(adjustment_usec);
 		}
-
-		leave_critical_section(flags);
 	}
 
 	SyncStatus status() const
 	{
-		irqstate_t flags = enter_critical_section();
-		const SyncStatus s{_adjustments, _last_adjustment_usec, int32_t((_rate_q32 * 1000000000LL) >> 32)};
-		leave_critical_section(flags);
-		return s;
+		const UavcanCriticalSection lock;
+		return SyncStatus{_adjustments, _last_adjustment_usec, int32_t((_rate_q32 * 1000000000LL) >> 32)};
 	}
 
 private:

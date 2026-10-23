@@ -56,6 +56,7 @@ void Gps::send(const uint64_t time)
 
 	const auto &control_status = _ekf->control_status_flags();
 	_gps_data.usable = _checks.run(sample, control_status.armed, control_status.in_air, control_status.vehicle_at_rest);
+	_gps_data.sacc_passes_strict = !(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_SACC);
 
 	_ekf->setGpsData(_gps_data);
 }
@@ -64,7 +65,7 @@ void Gps::setMinRequiredGnssHealthTime(uint64_t time_us)
 {
 	_check_params.min_health_time_us = time_us;
 	_checks.setParams(_check_params);
-	_ekf->set_min_required_gps_health_time(time_us);
+	_ekf->set_gnss_yaw_reset_wait(time_us);
 }
 
 void Gps::setCheckMask(int32_t check_mask)
