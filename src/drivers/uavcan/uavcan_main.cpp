@@ -208,7 +208,8 @@ UavcanNode::save_params(int remote_node_id)
 		return -1;
 	}
 
-	return 0;
+	// Like the MAVLink save, restart the node so parameters that only apply at boot take effect
+	return reset_node(remote_node_id);
 }
 
 int
@@ -375,16 +376,13 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 		if (rv == 0) {
 			rv = get_set_param(remote_node_id, name, req);
 
-			if (rv == 0) {
-				// commit parameter change
-				save_params(remote_node_id);
-
-			} else if (rv < 0 || resp.name.empty()) {
+			if (rv < 0 || resp.name.empty()) {
 				std::printf("Failed to set param: %s\n", name);
-				return -1;
-			}
+				rv = -1;
 
-			return 0;
+			} else {
+				rv = 0;
+			}
 		}
 	}
 
