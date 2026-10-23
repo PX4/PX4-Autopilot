@@ -2,6 +2,33 @@ module_name: ekf2
 parameters:
 - group: EKF2
   definitions:
+    EKF2_AXLE_POS_X:
+      description:
+        short: X position of driven axle midpoint
+        long: Forward position of the midpoint between the driven wheel centres,
+          relative to vehicle centre of gravity. Uses the same origin as EKF2_IMU_POS_X.
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_AXLE_POS_Y:
+      description:
+        short: Y position of driven axle midpoint
+        long: Right position of the midpoint between the driven wheel centres,
+          relative to vehicle centre of gravity. Uses the same origin as EKF2_IMU_POS_Y.
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_AXLE_POS_Z:
+      description:
+        short: Z position of driven axle midpoint
+        long: Down position of the midpoint between the driven wheel centres,
+          relative to vehicle centre of gravity. Uses the same origin as EKF2_IMU_POS_Z.
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
     EKF2_WHEEL_CTRL:
       description:
         short: Enable wheel encoder control

@@ -397,25 +397,29 @@ def compute_body_vel_innov_var_h(
     return (innov_var, Hx.T, Hy.T, Hz.T)
 
 def predict_wheel_vel(
-        state: State
+        state: State,
+        angular_rate: sf.V3,
+        axle_to_imu: sf.V3,
 ) -> (sf.V3):
-    # Wheel encoders on a differential drive measure longitudinal velocity.
-    # Predict the velocity in the body frame.
-    # Use laPlace to ensure symbols are fully expanded
+    # Predict body-frame velocity at the axle midpoint from IMU velocity.
     R_to_body = state["quat_nominal"].inverse()
     vel_body = R_to_body * state["vel"]
+
+    omega = angular_rate - state["gyro_bias"]
+    vel_body -= omega.cross(axle_to_imu)
+
     return vel_body
-#TODO:
+
+
 def compute_wheel_vel_innov_var_and_h(
         state: VState,
         P: MTangent,
         R: sf.V2,
+        angular_rate: sf.V3,
+        axle_to_imu: sf.V3,
 ) -> (sf.V2, VTangent, VTangent):
     state_sym = vstate_to_state(state)
-    # Use the exact same logic as compute_body_vel_innov_var_h
-    # to guarantee symbolic tracking of rotation.
-    R_to_body = state_sym["quat_nominal"].inverse()
-    vel_body_pred = R_to_body * state_sym["vel"]
+    vel_body_pred = predict_wheel_vel(state_sym, angular_rate, axle_to_imu)
     # Use indices 0 and 1 for the 2D fusion (Vx, Vy)
     vx_pred = vel_body_pred[0]
     vy_pred = vel_body_pred[1]

@@ -563,6 +563,7 @@ struct parameters {
 	float ekf2_wheel_gate{5.f};            ///< wheel encoder fusion innovation consistency gate size (STD)
 	float ekf2_wheel_rad{0.1f};            ///< wheel radius (m)
 	float ekf2_wheel_track{0.6f};          ///< wheel track width (m)
+	Vector3f axle_pos_body{};             ///< driven axle midpoint relative to CG in body FRD (m)
 #endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 };
