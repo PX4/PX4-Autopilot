@@ -44,6 +44,11 @@ To change this minimal battery percentage value use the parameter [SIM_BAT_MIN_P
 To control how much current is drawn from the battery use the parameters [SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW) and [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC) (`SIM_BAT_I_MC` also applies to all other non fixed-wing vehicle types, such as rovers and boats).
 The battery drains according to this current and its capacity [BAT1_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY) (5000 mAh by default in SITL), and is recharged when the vehicle disarms.
 
+:::note
+No current is drawn while disarmed, unless [BAT1_I_OVERWRITE](../advanced_config/parameter_reference.md#BAT1_I_OVERWRITE) (or `BATx_I_OVERWRITE` for other batteries) is greater than 0.
+In that case the battery drains at this idle current while the vehicle is disarmed, as a real vehicle would, so the next flight may start below full charge.
+:::
+
 :::tip
 By changing [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) in flight, you can also test regaining capacity to simulate inaccurate battery state estimation or in-air charging technology.
 :::
