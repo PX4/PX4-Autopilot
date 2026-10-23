@@ -68,6 +68,7 @@
 #endif
 
 #include <px4_platform_common/time.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform_common/getopt.h>
@@ -80,6 +81,8 @@
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
 
+#include <uORB/uORBManager.hpp>
+
 #define MODULE_NAME "px4"
 
 static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
@@ -89,7 +92,7 @@ static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
 #endif
 
 
-static volatile bool _exit_requested = false;
+static px4::atomic_bool _exit_requested{false};
 
 
 namespace px4
@@ -259,6 +262,11 @@ int main(int argc, char **argv)
 			PX4_INFO("instance: %i", instance);
 		}
 
+		if (instance_provided) {
+			const std::string instance_namespace = std::to_string(instance);
+			uorb_set_namespace(instance_namespace.c_str());
+		}
+
 #if defined(PX4_INSTALL_PREFIX)
 
 		// When installed as a .deb package, default to the baked-in install prefix.
@@ -401,9 +409,14 @@ int main(int argc, char **argv)
 
 			} else {
 				px4_daemon::Pxh pxh;
-				pxh.run_pxh();
+				pxh.run_pxh(_exit_requested);
 			}
 		}
+
+		printf("\nPX4 Exiting...\n");
+		fflush(stdout);
+		px4_daemon::Pxh::stop();
+		uorb_shutdown();
 
 		// delete lock
 		const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
@@ -536,12 +549,7 @@ void register_sig_handler()
 
 void sig_int_handler(int sig_num)
 {
-	fflush(stdout);
-	printf("\nPX4 Exiting...\n");
-	fflush(stdout);
-	uorb_shutdown();
-	px4_daemon::Pxh::stop();
-	_exit_requested = true;
+	_exit_requested.store(true);
 }
 
 void set_cpu_scaling()
@@ -644,7 +652,7 @@ int run_startup_script(const std::string &commands_file, const std::string &abso
 
 void wait_to_exit()
 {
-	while (!_exit_requested) {
+	while (!_exit_requested.load()) {
 		// needs to be a regular sleep not dependent on lockstep (not px4_usleep)
 		usleep(100000);
 	}

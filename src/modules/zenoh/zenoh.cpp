@@ -557,10 +557,10 @@ void ZENOH::run()
 	_sub_count =  _config.getSubCount();
 	px4_pollfd_struct_t pfds[_pub_count];
 
-	// Publishers that fail to set up never get a poll fd assigned, a negative fd makes poll skip them
+	// Publishers that fail to set up keep an invalid subscription handle so poll skips them.
 	for (i = 0; i < _pub_count; i++) {
 		pfds[i] = {};
-		pfds[i].fd = -1;
+		pfds[i].fd = ORB_SUB_INVALID;
 	}
 
 	const int setup_ret = setupSession();

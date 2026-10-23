@@ -63,8 +63,6 @@ protected:
 		PublicationBase(id)
 	{}
 
-	~PublicationMultiBase();
-
 	// type-independent publish; data points to a message of the topic's type
 	bool publish(const void *data);
 };
