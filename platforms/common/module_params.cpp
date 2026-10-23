@@ -42,6 +42,15 @@ void ModuleParams::setParent(ModuleParams *parent)
 	_parent = parent;
 }
 
+void ModuleParams::updateParams()
+{
+	for (const auto &child : _children) {
+		child->updateParams();
+	}
+
+	updateParamsImpl();
+}
+
 ModuleParams::~ModuleParams()
 {
 	if (_parent) { _parent->_children.remove(this); }
