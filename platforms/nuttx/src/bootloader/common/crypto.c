@@ -64,27 +64,26 @@ size_t px4_get_secure_random(uint8_t *out, size_t outlen)
 	return 0;
 }
 
-bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries)
+bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr)
 {
-	volatile uint8_t *app_signature_ptr = NULL;
-	volatile size_t len = 0;
-	bool ret;
+	const uint8_t sig_idx = toc_entries[idx].signature_idx;
+	const uint8_t sig_key = toc_entries[idx].signature_key;
 
-	uint8_t sig_idx = toc_entries[idx].signature_idx;
-	uint8_t sig_key = toc_entries[idx].signature_key;
+	const uint8_t *msg = toc_entry_image_addr(&toc_entries[idx], base_addr);
+	const uint8_t *sig = toc_entry_image_addr(&toc_entries[sig_idx], base_addr);
+	const size_t msg_len = (uintptr_t)toc_entries[idx].end - (uintptr_t)toc_entries[idx].start;
+
 	crypto_session_handle_t handle = crypto_open(BOOTLOADER_SIGNING_ALGORITHM);
-	app_signature_ptr = (volatile uint8_t *)toc_entries[sig_idx].start;
-	len = (size_t)toc_entries[idx].end - (size_t)toc_entries[idx].start;
-
-	ret =  crypto_signature_check(handle, sig_key, (const uint8_t *)app_signature_ptr,
-				      (const uint8_t *)toc_entries[idx].start, len);
-
+	bool ret = crypto_signature_check(handle, sig_key, sig, msg, msg_len);
 	crypto_close(&handle);
 	return ret;
 }
 
-bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries)
+bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr)
 {
+	(void)idx;
+	(void)toc_entries;
+	(void)base_addr;
 	/*
 	 * Not implemented yet.
 	 */

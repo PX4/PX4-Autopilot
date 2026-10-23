@@ -473,6 +473,25 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 		set(_mkfw_image ${_signed_bin})
 		set(_mkfw_signed_flag --image_signed)
 		set(_mkfw_extra_depends ${_signed_bin})
+
+		# Optional per-board signed TOC block prepended to the signed
+		# app payload. platforms/nuttx/toc/CMakeLists.txt sets
+		# PX4_SIGNED_TOC_BIN when the board ships toc.ld + toc.c.
+		add_subdirectory(toc)
+
+		if(PX4_SIGNED_TOC_BIN)
+			set(_combined_bin ${PX4_BINARY_DIR}/${PX4_CONFIG}_toc_signed.bin)
+			add_custom_command(
+				OUTPUT ${_combined_bin}
+				COMMAND ${CMAKE_COMMAND} -E cat
+					${PX4_SIGNED_TOC_BIN} ${_signed_bin} > ${_combined_bin}
+				DEPENDS ${PX4_SIGNED_TOC_BIN} ${_signed_bin}
+				COMMENT "Prepending signed TOC to ${PX4_CONFIG}_signed.bin"
+				WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			)
+			set(_mkfw_image ${_combined_bin})
+			set(_mkfw_extra_depends ${_combined_bin})
+		endif()
 	endif()
 
 	add_custom_command(

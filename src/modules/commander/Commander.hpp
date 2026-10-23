@@ -290,6 +290,7 @@ private:
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
 	bool _mission_in_progress{false};
+	bool _takeoff_hold_course{false}; ///< the takeoff command carried a course, continue in Guided Course
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 

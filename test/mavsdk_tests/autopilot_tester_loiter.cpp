@@ -37,6 +37,7 @@
 #include <cmath>
 #include <cstdint>
 #include <future>
+#include <memory>
 
 #include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
 
@@ -182,16 +183,17 @@ void AutopilotTesterLoiter::wait_until_on_loiter(LocalCoordinate center, float r
 	// stabilize before the caller asserts on it.
 	getTelemetry()->set_rate_position_velocity_ned(POSITION_RATE_HZ);
 
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-	std::atomic<bool> reported{false};
+	// Shared with the callback: with MAVSDK 3.x, a queued callback can still run after unsubscribe.
+	auto prom = std::make_shared<std::promise<void>>();
+	auto fut = prom->get_future();
+	auto reported = std::make_shared<std::atomic<bool>>(false);
 
 	Telemetry::PositionVelocityNedHandle handle = getTelemetry()->subscribe_position_velocity_ned(
-	[&](Sample sample) {
+	[prom, reported, center, radius_m, radius_tol_m](Sample sample) {
 		const double d = horizontal_distance(sample, center);
 
-		if (d >= (radius_m - radius_tol_m) && d <= (radius_m + radius_tol_m) && !reported.exchange(true)) {
-			prom.set_value();
+		if (d >= (radius_m - radius_tol_m) && d <= (radius_m + radius_tol_m) && !reported->exchange(true)) {
+			prom->set_value();
 		}
 	});
 
@@ -208,16 +210,17 @@ void AutopilotTesterLoiter::wait_until_relative_altitude_above(float threshold_m
 {
 	getTelemetry()->set_rate_position_velocity_ned(POSITION_RATE_HZ);
 
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-	std::atomic<bool> reported{false};
+	// Shared with the callback: with MAVSDK 3.x, a queued callback can still run after unsubscribe.
+	auto prom = std::make_shared<std::promise<void>>();
+	auto fut = prom->get_future();
+	auto reported = std::make_shared<std::atomic<bool>>(false);
 
 	Telemetry::PositionVelocityNedHandle handle = getTelemetry()->subscribe_position_velocity_ned(
-	[&](Sample sample) {
+	[prom, reported, threshold_m](Sample sample) {
 		const float rel_alt = -sample.position.down_m; // home-relative, up-positive
 
-		if (rel_alt >= threshold_m && !reported.exchange(true)) {
-			prom.set_value();
+		if (rel_alt >= threshold_m && !reported->exchange(true)) {
+			prom->set_value();
 		}
 	});
 
@@ -231,7 +234,7 @@ void AutopilotTesterLoiter::check_stays_on_loiter(LocalCoordinate center, float 
 	getTelemetry()->set_rate_position_velocity_ned(POSITION_RATE_HZ);
 
 	Telemetry::PositionVelocityNedHandle handle = getTelemetry()->subscribe_position_velocity_ned(
-	[&](Sample sample) {
+	[center, radius_m, radius_tol_m](Sample sample) {
 		const double d = horizontal_distance(sample, center);
 		CHECK(d >= (radius_m - radius_tol_m));
 		CHECK(d <= (radius_m + radius_tol_m));
@@ -247,7 +250,7 @@ void AutopilotTesterLoiter::check_stays_within(LocalCoordinate center, float max
 	getTelemetry()->set_rate_position_velocity_ned(POSITION_RATE_HZ);
 
 	Telemetry::PositionVelocityNedHandle handle = getTelemetry()->subscribe_position_velocity_ned(
-	[&](Sample sample) {
+	[center, max_radius_m](Sample sample) {
 		CHECK(horizontal_distance(sample, center) <= max_radius_m);
 	});
 
@@ -261,7 +264,7 @@ void AutopilotTesterLoiter::check_never_reaches(LocalCoordinate point, float min
 	getTelemetry()->set_rate_position_velocity_ned(POSITION_RATE_HZ);
 
 	Telemetry::PositionVelocityNedHandle handle = getTelemetry()->subscribe_position_velocity_ned(
-	[&](Sample sample) {
+	[point, min_dist_m](Sample sample) {
 		CHECK(horizontal_distance(sample, point) >= min_dist_m);
 	});
 
@@ -274,7 +277,7 @@ void AutopilotTesterLoiter::check_holds_altitude(float rel_alt_m, float tol_m, s
 	getTelemetry()->set_rate_position_velocity_ned(POSITION_RATE_HZ);
 
 	Telemetry::PositionVelocityNedHandle handle = getTelemetry()->subscribe_position_velocity_ned(
-	[&](Sample sample) {
+	[rel_alt_m, tol_m](Sample sample) {
 		const float rel_alt = -sample.position.down_m; // home-relative, up-positive
 		CHECK(std::abs(rel_alt - rel_alt_m) <= tol_m);
 	});
@@ -288,12 +291,13 @@ void AutopilotTesterLoiter::check_climbs_on_loiter(LocalCoordinate center, float
 {
 	getTelemetry()->set_rate_position_velocity_ned(POSITION_RATE_HZ);
 
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-	std::atomic<bool> reported{false};
+	// Shared with the callback: with MAVSDK 3.x, a queued callback can still run after unsubscribe.
+	auto prom = std::make_shared<std::promise<void>>();
+	auto fut = prom->get_future();
+	auto reported = std::make_shared<std::atomic<bool>>(false);
 
 	Telemetry::PositionVelocityNedHandle handle = getTelemetry()->subscribe_position_velocity_ned(
-	[&](Sample sample) {
+	[prom, reported, center, radius_m, radius_tol_m, target_rel_alt_m, alt_tol_m](Sample sample) {
 		// Invariant: never leave the radial band around the loiter center while climbing.
 		const double d = horizontal_distance(sample, center);
 		CHECK(d >= (radius_m - radius_tol_m));
@@ -301,8 +305,8 @@ void AutopilotTesterLoiter::check_climbs_on_loiter(LocalCoordinate center, float
 
 		const float rel_alt = -sample.position.down_m;
 
-		if (std::abs(rel_alt - target_rel_alt_m) <= alt_tol_m && !reported.exchange(true)) {
-			prom.set_value();
+		if (std::abs(rel_alt - target_rel_alt_m) <= alt_tol_m && !reported->exchange(true)) {
+			prom->set_value();
 		}
 	});
 

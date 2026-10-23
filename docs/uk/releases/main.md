@@ -47,8 +47,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them.
   The log analysis scripts in the tree read both the old and the new names.
   The uORB-over-Cyphal registers are renamed from `uorb.sensor_gps` to `uorb.sensor_gnss` (`uavcan.sub.uorb.sensor_gnss.0.id`, `uavcan.pub.uorb.sensor_gnss.0.id`); `UCAN1_UORB_GPS` and `UCAN1_UORB_GPS_P` are unchanged. ([PX4-Autopilot#24399](https://github.com/PX4/PX4-Autopilot/pull/24399))
-- **`DO_JUMP` can only loop back.**
-  A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0.
+- **`DO_JUMP` can only loop back and its repeat count must fit.**
+  A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0, and if its repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
 
 ## Інші зміни
@@ -133,7 +133,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Fixed-wing
 
-- Уточнюється
+- TECS underspeed protection now starts at the minimum airspeed ([FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN)) and is fully active at 90% of it, or halfway to [FW_AIRSPD_STALL](../advanced_config/parameter_reference.md#FW_AIRSPD_STALL) if that is higher. Previously it only started 15% of trim airspeed below the minimum airspeed. The roll angle is limited towards 20° (or [FW_R_LIM](../advanced_config/parameter_reference.md#FW_R_LIM) if lower) while undersped, and the altitude reference is reset to avoid a pitch-up on recovery. ([PX4-Autopilot#26859](https://github.com/PX4/PX4-Autopilot/pull/26859))
 
 ### Rover
 

@@ -153,6 +153,7 @@ This is intended for operations where a switch to Hold on manual control loss is
 
 If Hold cannot be entered (for example without a valid position estimate), the normal failsafe takes over and escalates from there (Return, Land, Descend, or Terminate as applicable).
 Manual control loss in any non-manual (auto/offboard) mode is ignored with this setting.
+If another failsafe would fall back to a manual mode while manual control is lost, for example an Offboard loss with [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) set to Position mode, the vehicle switches to Hold instead.
 
 ## Data Link Loss Failsafe
 
@@ -277,14 +278,19 @@ Triggers on either of:
 
 - **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
 - **Position divergence**: two receivers disagree beyond their expected separation (configured via [SENS_GNSS0_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS1_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX)) plus reported accuracy. Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
+  Receivers might report an optimistic accuracy, so the reported accuracy of each receiver is floored with [EKF2_GPS_P_NOISE](../advanced_config/parameter_reference.md#EKF2_GPS_P_NOISE).
 
 At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
 Loss of a single GPS when none are required is handled by other GPS health checks.
 
-| Parameter                                                                                                   | Description                                                                                                    |
-| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required for arming. If two are required then they also need to be consistent. |
-| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected in flight.                                                     |
+When `COM_GNSSLOSS_ACT` is set to `Warning`, both triggers produce a warning only and never block arming.
+When set to `Warning, block arming`, both triggers block arming and only produce a warning in flight.
+When set to `Return`, `Land`, or `Terminate`, both triggers block arming and fire the configured in-flight failsafe action (subject to the `SYS_HAS_NUM_GNSS` condition above).
+
+| Parameter                                                                                                   | Description                                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required. If two are required then they also need to be consistent.                                                                                       |
+| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected. `0`: Warning only (default), `1`: Return, `2`: Land, `3`: Terminate, `4`: Warning, block arming. Values above Warning also block arming. |
 
 ## Offboard Loss Failsafe
 

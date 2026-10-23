@@ -72,6 +72,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/rover_speed_setpoint`               | [px4_msgs::msg::RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md)                             |
 | `/fmu/in/rover_steering_setpoint`            | [px4_msgs::msg::RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md)                       |
 | `/fmu/in/rover_throttle_setpoint`            | [px4_msgs::msg::RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md)                       |
+| `/fmu/in/sensor_gnss`                        | [px4_msgs::msg::SensorGnss](../msg_docs/SensorGnss.md)                                             |
 | `/fmu/in/sensor_optical_flow`                | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md)                               |
 | `/fmu/in/setpoint_config`                    | [px4_msgs::msg::SetpointConfig](../msg_docs/SetpointConfig.md)                                     |
 | `/fmu/in/telemetry_status`                   | [px4_msgs::msg::TelemetryStatus](../msg_docs/TelemetryStatus.md)                                   |
@@ -269,7 +270,6 @@ They are not build into the module, and hence are neither published or subscribe
 - [SensorAirflow](../msg_docs/SensorAirflow.md)
 - [SensorBaro](../msg_docs/SensorBaro.md)
 - [SensorCorrection](../msg_docs/SensorCorrection.md)
-- [SensorGnss](../msg_docs/SensorGnss.md)
 - [SensorGnssRelative](../msg_docs/SensorGnssRelative.md)
 - [SensorGnssRf](../msg_docs/SensorGnssRf.md)
 - [SensorGnssSpectrum](../msg_docs/SensorGnssSpectrum.md)

@@ -162,6 +162,43 @@ protected:
 	MissionRouteCache _cache{};
 };
 
+TEST_F(MissionRouteCacheTest, DatamanRequestsSurviveAnotherClientBeingDestroyed)
+{
+	const mission_item_s expected = makePositionItemFromOffset(kBaseLat, kBaseLon, 10.f, 20.f, kAlt);
+	writeMissionItem(expected, 0);
+
+	{
+		// A client destroyed at runtime, e.g. with a stopped MAVLink instance,
+		// must not cut off the clients that remain on the shared request topic.
+		DatamanClient temporary_client;
+		mission_item_s item{};
+		ASSERT_TRUE(temporary_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
+						      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
+		expectMissionItemMatches(item, expected);
+	}
+
+	mission_item_s item{};
+	ASSERT_TRUE(_dataman_client.readAsync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
+					      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
+	ASSERT_TRUE(DatamanClientTestPeer::waitForOperation(_dataman_client, 1_s));
+	bool success = false;
+	ASSERT_TRUE(_dataman_client.lastOperationCompleted(success));
+	ASSERT_TRUE(success);
+	expectMissionItemMatches(item, expected);
+
+	item = {};
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
+					     reinterpret_cast<uint8_t *>(&item), sizeof(item), 1_s));
+	expectMissionItemMatches(item, expected);
+
+	const mission_s mission = makeMission(47, 1);
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
+		return _cache.missionItemsReady(mission);
+	}));
+	ASSERT_TRUE(_cache.loadMissionItem(0, item));
+	expectMissionItemMatches(item, expected);
+}
+
 // Fully loaded mission cache with readable items.
 TEST_F(MissionRouteCacheTest, MissionCacheLoadsAllMissionItems)
 {

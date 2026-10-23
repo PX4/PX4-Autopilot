@@ -5,7 +5,7 @@ Distance sensors provide distance measurement that can be used for [terrain foll
 This section lists the distance sensors supported by PX4 (linked to more detailed documentation), and provides information about the [generic configuration](#configuration) required for all rangefinders, [testing](#testing), and simulation with [Gazebo](#gazebo-simulation) or [Gazebo-Classic](#gazebo-classic-simulation).
 More detailed setup and configuration information is provided in the topics linked below (and sidebar).
 
-<img src="../../assets/hardware/sensors/lidar_lite/lidar_lite_v3.jpg" alt="Lidar Lite V3" width="200px" /><img src="../../assets/hardware/sensors/lidar_lightware/sf11c_120_m.jpg" alt="LightWare SF11/C Lidar" width="200px" /><img src="../../assets/hardware/sensors/optical_flow/ark_flow_distance_sensor.jpg" alt="ARK Flow" width="200px">
+<img src="../../assets/hardware/sensors/lidar_lite/lidar_lite_v3.jpg" alt="LIDAR-Lite v3" width="200px" /><img src="../../assets/hardware/sensors/lidar_lightware/sf11c_120_m.jpg" alt="LightWare SF11/C Lidar" width="200px" /><img src="../../assets/hardware/sensors/optical_flow/ark_flow_distance_sensor.jpg" alt="ARK Flow" width="200px">
 
 ## Supported Rangefinders
 
@@ -15,39 +15,40 @@ This is a subset of the rangefinders that can be used with PX4.
 There may also be other DroneCAN rangefinders than those listed here.
 :::
 
-| Rangefinder                                 | Technology      | Range (min – max)        | Connections            | NDAA | Notes                               |
-| ------------------------------------------- | --------------- | ------------------------ | ---------------------- | ---- | ----------------------------------- |
-| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar | ~50 m                    | UART                   | ✔️   |                                     |
-| [ARK DIST SR]                               | ToF (850 nm IR) | 8 cm to ~30 m            | DroneCAN, UART         | ✔️   |                                     |
-| [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m            | DroneCAN, UART         | ✔️   |                                     |
-| [Benewake TFmini]                           | ToF (IR laser)  | ~12 m                    | UART                   | ~    |                                     |
-| [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m               | I2C                    | ~    |                                     |
-| [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m              | UART                   | ~    |                                     |
-| [Lidar-Lite]                                | ToF (IR laser)  | 5 cm – 40 m              | I2C, PWM               | ~    |                                     |
-| [LightWare SF11/C]                          | ToF (IR laser)  | up to ~120 m             | UART, I2C              | ~    |                                     |
-| [LightWare LW20/C]                          | ToF (IR laser)  | up to ~100 m             | I2C                    | ~    | Waterproof (IP67) + servo           |
-| [LightWare SF45/B]                          | ToF (IR laser)  | ~50 m                    | UART                   | ~    | Rotary lidar (collision prevention) |
-| [MaxBotix I2CXL-MaxSonar-EZ]                | Ultrasonic      |                          | I2C                    | ~    |                                     |
-| [RaccoonLab Cyphal & DroneCAN µRANGEFINDER] | ToF (IR)        | ~0.1 m – ~8 m            | DroneCAN, Cyphal       | ~    |                                     |
-| [Sony AS-DT1]                               | ToF             | up to 40 m               | UART                   | ~    | Multipoint distance sensor          |
-| [TeraRanger Evo 60 m]                       | ToF (IR)        | 0.5 m – 60 m             | I2C                    | ~    |                                     |
-| [TeraRanger Evo 600Hz]                      | ToF (IR)        | 0.75 m – 8 m             | I2C                    | ~    | High update rate (600 Hz)           |
-| [LightWare SF02] _(disc.)_                  | ToF (IR laser)  | ~50 m                    | UART                   | ~    | Discontinued                        |
-| [LightWare SF10/A] _(disc.)_                | ToF (IR laser)  | ~25 m                    | UART, I2C              | ~    | Discontinued                        |
-| [LightWare SF10/B] _(disc.)_                | ToF (IR laser)  | ~50 m                    | UART, I2C              | ~    | Discontinued                        |
-| [LightWare SF10/C] _(disc.)_                | ToF (IR laser)  | ~100 m                   | UART, I2C              | ~    | Discontinued                        |
-| [Lanbao PSK-CM8JL65-CC5] _(disc.)_          | ToF (IR)        | 0.17 m – 8 m             | UART                   | ✖️   | Discontinued                        |
-| [Smartmicro Drone Altimeter]                | Microwave radar | 1 m to 175 m             | DroneCAN               | ~    |                                     |
-| [TeraRanger One] _(disc.)_                  | ToF (IR)        | ~0.2 m – ~14 m (typical) | I2C (adapter required) | ~    | Discontinued                        |
+| Rangefinder                                 | Technology      | Range (min – max) | Connections      | NDAA | Notes                               |
+| ------------------------------------------- | --------------- | ----------------- | ---------------- | ---- | ----------------------------------- |
+| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar | ~50 m             | UART             | ✔️   |                                     |
+| [ARK DIST SR]                               | ToF (850 nm IR) | 8 cm to ~30 m     | DroneCAN, UART   | ✔️   |                                     |
+| [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m     | DroneCAN, UART   | ✔️   |                                     |
+| [Benewake TFmini]                           | ToF (IR laser)  | ~12 m             | UART             | ~    |                                     |
+| [Garmin LIDAR-Lite v3]                      | ToF (IR laser)  | up to 40 m        | I2C, PWM         | ~    | PX4 caps range to 35 m or less      |
+| [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m        | I2C              | ~    |                                     |
+| [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m       | UART             | ~    |                                     |
+| [LightWare SF11/C]                          | ToF (IR laser)  | up to ~120 m      | UART, I2C        | ~    |                                     |
+| [LightWare LW20/C]                          | ToF (IR laser)  | up to ~100 m      | I2C              | ~    | Waterproof (IP67) + servo           |
+| [LightWare SF45/B]                          | ToF (IR laser)  | ~50 m             | UART             | ~    | Rotary lidar (collision prevention) |
+| [MaxBotix I2CXL-MaxSonar-EZ]                | Ultrasonic      |                   | I2C              | ~    |                                     |
+| [RaccoonLab Cyphal & DroneCAN µRANGEFINDER] | ToF (IR)        | ~0.1 m – ~8 m     | DroneCAN, Cyphal | ~    |                                     |
+| [Sony AS-DT1]                               | ToF             | up to 40 m        | UART             | ~    | Multipoint distance sensor          |
+| [LightWare SF02] _(disc.)_                  | ToF (IR laser)  | ~50 m             | UART             | ~    | Discontinued                        |
+| [LightWare SF10/A] _(disc.)_                | ToF (IR laser)  | ~25 m             | UART, I2C        | ~    | Discontinued                        |
+| [LightWare SF10/B] _(disc.)_                | ToF (IR laser)  | ~50 m             | UART, I2C        | ~    | Discontinued                        |
+| [LightWare SF10/C] _(disc.)_                | ToF (IR laser)  | ~100 m            | UART, I2C        | ~    | Discontinued                        |
+| [Lanbao PSK-CM8JL65-CC5] _(disc.)_          | ToF (IR)        | 0.17 m – 8 m      | UART             | ✖️   | Discontinued                        |
+| [Smartmicro Drone Altimeter]                | Microwave radar | 1 m to 175 m      | DroneCAN         | ~    |                                     |
+| [TeraRanger Evo 60m] _(disc.)_              | ToF (IR)        | 0.5 m – 60 m      | I2C              | ~    | Discontinued                        |
+| [TeraRanger Evo 600Hz] _(disc.)_            | ToF (IR)        | 0.75 m – 8 m      | I2C              | ~    | Discontinued                        |
+| [TeraRanger Evo 3m] _(disc.)_               | ToF (IR)        | 0.1 m – 3 m       | I2C              | ~    | Discontinued                        |
+| [TeraRanger One] _(disc.)_                  | ToF (IR)        | 0.2 m – 14 m      | I2C              | ~    | Discontinued                        |
 
 [Ainstein US-D1 Standard Radar Altimeter]: ../sensor/ulanding_radar.md
 [ARK DIST SR]: ../dronecan/ark_dist.md
 [ARK DIST MR]: ../dronecan/ark_dist_mr.md
 [Benewake TFmini]: ../sensor/tfmini.md
+[Garmin LIDAR-Lite v3]: ../sensor/lidar_lite.md
 [Holybro ST VL53L1X Lidar]: #holybro-st-vl53l1x-lidar
 [Lanbao PSK-CM8JL65-CC5]: ../sensor/cm8jl65_ir_distance_sensor.md
 [LeddarOne]: ../sensor/leddar_one.md
-[Lidar-Lite]: ../sensor/lidar_lite.md
 [LightWare Lidar]: ../sensor/sfxx_lidar.md
 [LightWare SF11/C]: ../sensor/sfxx_lidar.md
 [LightWare LW20/C]: ../sensor/sfxx_lidar.md
@@ -59,8 +60,9 @@ There may also be other DroneCAN rangefinders than those listed here.
 [MaxBotix I2CXL-MaxSonar-EZ]: #maxbotix-i2cxl-maxsonar-ez
 [Smartmicro Drone Altimeter]: ../dronecan/smartmicro_t132.md
 [Sony AS-DT1]: ../sensor/sony_asdt1.md
-[TeraRanger Evo 60 m]: ../sensor/teraranger.md
+[TeraRanger Evo 60m]: ../sensor/teraranger.md
 [TeraRanger Evo 600Hz]: ../sensor/teraranger.md
+[TeraRanger Evo 3m]: ../sensor/teraranger.md
 [TeraRanger One]: ../sensor/teraranger.md
 
 These adaptors allows you to connect a non-CAN rangefinder via the CAN interface.
@@ -90,10 +92,10 @@ It is the fastest miniature ToF sensor on the market with accurate ranging up to
 
 It comes with a JST GHR 4 pin connector that is compatible with the I2C port on [Pixhawk 4](../flight_controller/pixhawk4.md), [Pixhawk 5X](../flight_controller/pixhawk5x.md), and other flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 
-### Lidar-Lite
+### Garmin LIDAR-Lite
 
-[Lidar-Lite](../sensor/lidar_lite.md) is a compact, high-performance optical distant measurement rangefinder.
-It has a sensor range from (5cm - 40m) and can be connected to either PWM or I2C ports.
+The [Garmin LIDAR-Lite v3](../sensor/lidar_lite.md) is a compact laser time-of-flight rangefinder with a range of up to 40 m (PX4 caps this to 35 m or less).
+It can be connected to either I2C or PWM ports.
 
 ### MaxBotix I2CXL-MaxSonar-EZ
 
@@ -120,10 +122,11 @@ PX4 configures the sensor baud rate and measurement output from the driver.
 
 ### TeraRanger Rangefinders
 
-[TeraRanger](../sensor/teraranger.md) provide a number of lightweight distance measurement sensors based on infrared Time-of-Flight (ToF) technology.
-They are typically faster and have greater range than sonar, and smaller and lighter than laser-based systems.
+<Badge type="info" text="Discontinued" />
 
-PX4 supports the following models connected via the I2C bus: TeraRanger One, TeraRanger Evo 60m and TeraRanger Evo 600Hz.
+[Terabee TeraRanger](../sensor/teraranger.md) sensors are small, lightweight rangefinders based on infrared Time-of-Flight (ToF) technology, with maximum ranges from 3 m to 60 m (depending on the model).
+
+PX4 supports the following models connected via the I2C bus: TeraRanger Evo 60m, TeraRanger Evo 600Hz, TeraRanger Evo 3m and TeraRanger One.
 
 ### Ainstein US-D1 Standard Radar Altimeter
 
@@ -198,6 +201,23 @@ These include (non exhaustively):
 - [EKF2_RNG_DELAY](../advanced_config/parameter_reference.md#EKF2_RNG_DELAY) - approximate delay of data reaching the estimator from the sensor.
 - [EKF2_RNG_SFE](../advanced_config/parameter_reference.md#EKF2_RNG_SFE) - Range finder range dependent noise scaler.
 - [EKF2_RNG_NOISE](../advanced_config/parameter_reference.md#EKF2_RNG_NOISE) - Measurement noise for range finder fusion
+
+### Health Reporting
+
+PX4 reports the rangefinder status to ground stations in the [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) message, using the `MAV_SYS_STATUS_SENSOR_LASER_POSITION` bit (this bit is used for all distance sensor types, not just lasers):
+
+- `onboard_control_sensors_present`: set once any distance sensor has published data.
+- `onboard_control_sensors_health`: cleared if a required distance sensor is missing or stops providing valid data (no update for more than 1 second).
+
+The required distance sensors are the first [SYS_HAS_NUM_DIST](../advanced_config/parameter_reference.md#SYS_HAS_NUM_DIST) sensors.
+For example, with `SYS_HAS_NUM_DIST` set to 2 and three sensors connected, only the first two affect the health bit.
+A required sensor that fails also blocks arming.
+
+WARNING : `SYS_HAS_NUM_DIST` is `0` by default, which means no distance sensor is required.
+The health bit is then always reported as healthy, even if a rangefinder stops working.
+Set `SYS_HAS_NUM_DIST` if you want rangefinder failures to be reported.
+
+You can check these bits in the `SYS_STATUS` message using the [QGroundControl MAVLink Inspector](#qgroundcontrol-mavlink-inspector).
 
 ## Testing
 

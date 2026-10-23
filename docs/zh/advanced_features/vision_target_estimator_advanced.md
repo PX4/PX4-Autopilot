@@ -171,9 +171,9 @@ $$
 
 | Parameter                                                                                                                                   | 单位 (Units) | 默认值                  | Applies to                                            |
 | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | -------------------- | ----------------------------------------------------- |
-| [VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE)                          | 米                             | 0.10 | Vision relative position                              |
+| [VTE_EVP_NOISE](../advanced_config/parameter_reference.md#VTE_EVP_NOISE)                          | m                             | 0.10 | Vision relative position                              |
 | [VTE_EVA_NOISE](../advanced_config/parameter_reference.md#VTE_EVA_NOISE)                          | rad                           | 0.07 | Vision yaw                                            |
-| [VTE_GPS_P_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) | 米                             | 0.50 | GNSS position (target and mission) |
+| [VTE_GPS_P_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) | m                             | 0.50 | GNSS position (target and mission) |
 | [VTE_GPS_V_NOISE](../advanced_config/parameter_reference.md#VTE_GPS_V_NOISE) | 米/秒                           | 0.30 | UAV and target GNSS velocity                          |
 
 These are **standard deviations**, not variances.

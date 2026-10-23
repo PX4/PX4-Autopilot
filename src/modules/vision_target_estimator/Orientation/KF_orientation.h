@@ -62,7 +62,7 @@ public:
 	using VectorState = matrix::Vector<float, kSize>;
 	using SquareMatrixState = matrix::SquareMatrix<float, kSize>;
 
-	friend class OOSMManager<KF_orientation, kSize, EmptyInput>;
+	friend class OOSMManager<KF_orientation, kSize, EmptyInput, kOosmHistorySize, 1>;
 
 	KF_orientation() = default;
 	~KF_orientation() = default;
@@ -78,9 +78,8 @@ public:
 	void predict(float dt);
 
 	// Primary Fusion Interface (history-consistent OOSM)
-	// Projected correction OOSM approximation:
-	// - Most accurate with bounded delays and when fusions are processed in timestamp order (oldest -> newest).
-	// - Does not replay intermediate measurement updates (unlike EKF2's delayed fusion horizon).
+	// Delayed observations are fused at their timestamp and subsequent accepted observations
+	// are replayed in timestamp order, recomputing their Kalman gains.
 	// Returns FusionResult describing the result for logging.
 	FusionResult fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold);
 
@@ -103,8 +102,6 @@ public:
 	void setYawAccVar(float var) { _yaw_acc_var = var; }
 
 private:
-	SquareMatrixState getTransitionMatrix(float dt) const;
-
 	void predictState(float dt, const EmptyInput &input,
 			  const VectorState &x_in,
 			  const SquareMatrixState &P_in,
@@ -128,6 +125,7 @@ private:
 	// OOSM history buffer:
 	// 0.5 s window @ 50 Hz predict rate = 25 samples.
 	// Note that the 0.5 s window is enforced with kOosmMaxTimeUs = 500_ms.
-	OOSMManager<KF_orientation, kSize, EmptyInput, kOosmHistorySize> _oosm;
+	// VTEOrientation fuses at most one vision yaw sample per cycle.
+	OOSMManager<KF_orientation, kSize, EmptyInput, kOosmHistorySize, 1> _oosm;
 };
 } // namespace vision_target_estimator

@@ -173,6 +173,8 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem(&_vehicle_imu_sub)[MAX_SENSOR_COUNT];
 	uORB::SubscriptionMultiArray<vehicle_imu_status_s, MAX_SENSOR_COUNT> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
+	uint32_t _accel_error_count[MAX_SENSOR_COUNT] {};	/**< latest vehicle_imu_status error counts */
+	uint32_t _gyro_error_count[MAX_SENSOR_COUNT] {};
 
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 

@@ -258,6 +258,7 @@ public:
 
 	/**
 	 * Unadvertise a topic.
+	 * This hides the topic instance from all subscribers, including data from other publishers of a single-instance topic.
 	 *
 	 * @param handle  handle returned by orb_advertise or orb_advertise_multi.
 	 * @return 0 on success
@@ -460,6 +461,27 @@ public:
 	static unsigned updates_available(const void *node_handle, unsigned last_generation);
 
 	static bool is_advertised(const void *node_handle);
+#endif
+
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	/* Publish through a node handle whose data is known to match its topic (the typed wrappers). */
+	static int orb_publish_node(orb_advert_t handle, const void *data)
+	{
+#ifdef ORB_USE_PUBLISHER_RULES
+
+		if (handle == _Instance) {
+			return PX4_OK; //pretend success
+		}
+
+#endif /* ORB_USE_PUBLISHER_RULES */
+
+		if ((handle == nullptr) || (data == nullptr)) {
+			errno = EFAULT;
+			return PX4_ERROR;
+		}
+
+		return static_cast<DeviceNode *>(handle)->publish_data(data);
+	}
 #endif
 
 #ifdef CONFIG_ORB_COMMUNICATOR
