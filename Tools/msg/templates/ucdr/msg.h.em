@@ -90,11 +90,34 @@ def add_fields(msg_fields, name_prefix='', offset=0):
 				# note: the maximum alignment for XCDR is 8 and for XCDR2 it is 4
 				padding = (field_size - (offset % field_size)) & (field_size - 1)
 
-				fields.append((type_name, name_prefix+field.name, field_size * array_size, padding))
+				fields.append((type_name, name_prefix+field.name, field_size * array_size, padding, field_size, name_prefix))
 				offset += array_size * field_size + padding
 	return fields, offset
 
 fields, struct_size = add_fields(spec.parsed_fields())
+
+# The timestamps are adjusted while copying, so they are handled on their own
+def is_adjusted_timestamp(field_type, field_name):
+	return field_type == 'uint64' and field_name in ('timestamp', 'timestamp_sample')
+
+# Group consecutive fields that are contiguous in both the CDR stream and the uORB struct, so
+# that each group is copied with one memcpy. uORB sorts the fields of a struct by element size
+# with a stable sort, so consecutive fields of the same element size and nesting level stay
+# adjacent; the CDR stream has no padding between them for the same reason. The generated
+# static_assert checks the struct side.
+def group_fields(fields):
+	groups = []
+	for field in fields:
+		field_type, field_name, field_size, padding, element_size, prefix = field
+		if (groups and padding == 0 and not is_adjusted_timestamp(field_type, field_name)
+			and not is_adjusted_timestamp(groups[-1][-1][0], groups[-1][-1][1])
+			and groups[-1][-1][4] == element_size and groups[-1][-1][5] == prefix):
+			groups[-1].append(field)
+		else:
+			groups.append([field])
+	return groups
+
+groups = group_fields(fields)
 
 }@
 
@@ -103,6 +126,7 @@ fields, struct_size = add_fields(spec.parsed_fields())
 #pragma once
 
 #include <ucdr/microcdr.h>
+#include <stddef.h>
 #include <string.h>
 #include <uORB/topics/@(topic).h>
 
@@ -133,10 +157,14 @@ static inline bool ucdr_serialize_@(topic)(const void* data, ucdrBuffer& buf, in
 	uint8_t* const out = buf.iterator;
 @{
 offset = 0
-for field_type, field_name, field_size, padding in fields:
-	offset += padding # padding bytes are skipped, not written
+for group in groups:
+	offset += group[0][3] # padding bytes are skipped, not written
+	group_size = sum(field[2] for field in group)
 
-	print('\tstatic_assert(sizeof(topic.{0}) == {1}, "size mismatch");'.format(field_name, field_size))
+	for field_type, field_name, field_size, padding, element_size, prefix in group:
+		print('\tstatic_assert(sizeof(topic.{0}) == {1}, "size mismatch");'.format(field_name, field_size))
+
+	field_type, field_name = group[0][0], group[0][1]
 
 	if field_type == 'uint64' and field_name == 'timestamp':
 		print('\tconst uint64_t timestamp_adjusted = topic.timestamp + time_offset;')
@@ -146,10 +174,15 @@ for field_type, field_name, field_size, padding in fields:
 		print('\tconst uint64_t timestamp_sample_adjusted = topic.timestamp_sample + time_offset;')
 		print('\tmemcpy(out + {1}, &timestamp_sample_adjusted, sizeof(topic.{0}));'.format(field_name, offset))
 
-	else:
+	elif len(group) == 1:
 		print('\tmemcpy(out + {1}, &topic.{0}, sizeof(topic.{0}));'.format(field_name, offset))
 
-	offset += field_size
+	else:
+		last_name = group[-1][1]
+		print('\tstatic_assert(offsetof({0}, {2}) + sizeof(topic.{2}) == offsetof({0}, {1}) + {3}, "fields not contiguous");'.format(uorb_struct, field_name, last_name, group_size))
+		print('\tmemcpy(out + {1}, &topic.{0}, {2}); // {0} .. {3}'.format(field_name, offset, group_size, last_name))
+
+	offset += group_size
 
 assert offset == struct_size
 }@
@@ -163,17 +196,28 @@ static inline bool ucdr_deserialize_@(topic)(ucdrBuffer& buf, @(uorb_struct)& to
 	const uint8_t* const in = buf.iterator;
 @{
 offset = 0
-for field_type, field_name, field_size, padding in fields:
-	offset += padding # padding bytes are skipped, not read
+for group in groups:
+	offset += group[0][3] # padding bytes are skipped, not read
+	group_size = sum(field[2] for field in group)
 
-	print('\tstatic_assert(sizeof(topic.{0}) == {1}, "size mismatch");'.format(field_name, field_size))
-	print('\tmemcpy(&topic.{0}, in + {1}, sizeof(topic.{0}));'.format(field_name, offset))
+	for field_type, field_name, field_size, padding, element_size, prefix in group:
+		print('\tstatic_assert(sizeof(topic.{0}) == {1}, "size mismatch");'.format(field_name, field_size))
 
-	if field_type == 'uint64' and (field_name == 'timestamp' or field_name == 'timestamp_sample'):
+	field_type, field_name = group[0][0], group[0][1]
+
+	if len(group) == 1:
+		print('\tmemcpy(&topic.{0}, in + {1}, sizeof(topic.{0}));'.format(field_name, offset))
+
+	else:
+		last_name = group[-1][1]
+		print('\tstatic_assert(offsetof({0}, {2}) + sizeof(topic.{2}) == offsetof({0}, {1}) + {3}, "fields not contiguous");'.format(uorb_struct, field_name, last_name, group_size))
+		print('\tmemcpy(&topic.{0}, in + {1}, {2}); // {0} .. {3}'.format(field_name, offset, group_size, last_name))
+
+	if is_adjusted_timestamp(field_type, field_name):
 		print('\tif (topic.{0} == 0) topic.{0} = hrt_absolute_time();'.format(field_name, field_name))
 		print('\telse topic.{0} = math::min(topic.{0} - time_offset, hrt_absolute_time());'.format(field_name, field_name))
 
-	offset += field_size
+	offset += group_size
 
 assert offset == struct_size
 }@
