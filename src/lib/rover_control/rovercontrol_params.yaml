@@ -278,4 +278,4 @@ parameters:
       min: 0
       max: 10
       increment: 0.001
-      decimal: 2
+      decimal: 3
