@@ -41,7 +41,8 @@ This enables testing of battery indication in GCS UIs without triggering low bat
 
 To change this minimal battery percentage value use the parameter [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT).
 
-To control how much current is drawn from the battery use the parameters[SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW) and [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC).
+To control how much current is drawn from the battery use the parameters [SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW) and [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC).
+The battery drains according to this current and its capacity [BAT1_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY) (5000 mAh by default in SITL), and is recharged when the vehicle disarms.
 
 :::tip
 By changing [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) in flight, you can also test regaining capacity to simulate inaccurate battery state estimation or in-air charging technology.
