@@ -164,6 +164,7 @@ public:
 	void stop();
 
 	bool component_was_seen(int system_id, int component_id);
+	bool remote_id_source_is_gcs(const mavlink_message_t &message) const;
 	void enable_message_statistics() { _message_statistics_enabled = true; }
 	void print_detailed_rx_stats() const;
 
@@ -336,6 +337,7 @@ private:
 		uint8_t system_id{0};
 		uint8_t component_id{0};
 		uint8_t last_sequence{0};
+		bool is_gcs{false};
 	};
 	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
 	// Written only by the receive thread, after the slot is filled in. Other threads

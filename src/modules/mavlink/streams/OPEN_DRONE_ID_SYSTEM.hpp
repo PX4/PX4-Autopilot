@@ -34,6 +34,8 @@
 #ifndef OPEN_DRONE_ID_SYSTEM_HPP
 #define OPEN_DRONE_ID_SYSTEM_HPP
 
+#include <uORB/topics/open_drone_id_system.h>
+#include <modules/mavlink/open_drone_id_bridge.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_gnss.h>
 
@@ -50,6 +52,10 @@ public:
 
 	unsigned get_size() override
 	{
+		if (_configuration_sub.advertised()) {
+			return MAVLINK_MSG_ID_OPEN_DRONE_ID_SYSTEM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		}
+
 		if (_vehicle_gnss_sub.advertised() && _home_position_sub.advertised()) {
 			return MAVLINK_MSG_ID_OPEN_DRONE_ID_SYSTEM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		}
@@ -63,8 +69,25 @@ private:
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
+	uORB::Subscription _configuration_sub{ORB_ID(open_drone_id_system)};
+
 	bool send() override
 	{
+		open_drone_id_system_s configuration{};
+
+		if (_configuration_sub.copy(&configuration)) {
+			if (!open_drone_id_bridge::send_on_channel(configuration.mavlink_channel, _mavlink->get_channel())) {
+				return false;
+			}
+
+			// Preserve configuration while marking expired operator position and time unknown.
+			mavlink_open_drone_id_system_t msg{};
+			// Broadcast to the RID module on this output link, using PX4's source identity.
+			open_drone_id_bridge::system(msg, configuration, hrt_absolute_time());
+			mavlink_msg_open_drone_id_system_send_struct(_mavlink->get_channel(), &msg);
+			return true;
+		}
+
 		vehicle_gnss_s vehicle_gnss;
 		home_position_s home_position;
 

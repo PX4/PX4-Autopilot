@@ -40,6 +40,8 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#include "open_drone_id_bridge.hpp"
+
 #include <termios.h>
 
 #ifdef CONFIG_NET
@@ -94,6 +96,12 @@
 static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mavlink_event_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<int> mavlink_instance_count {0};
+
+static constexpr uint16_t remote_id_configuration_ids[] {
+	MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID,
+	MAVLINK_MSG_ID_OPEN_DRONE_ID_OPERATOR_ID,
+	MAVLINK_MSG_ID_OPEN_DRONE_ID_SYSTEM,
+};
 
 events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
@@ -599,6 +607,47 @@ static bool target_is_us_or_broadcast(int target_system_id, int target_component
 void
 Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
+	// Local RID configuration is emitted from accepted uORB data. Outputs without
+	// periodic streams get a one-shot send after the receiver accepts the update.
+	// Never forward the raw frame: it may have failed source or locked-ID checks.
+	switch (msg->msgid) {
+	case MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID: {
+			mavlink_open_drone_id_basic_id_t configuration{};
+			mavlink_msg_open_drone_id_basic_id_decode(msg, &configuration);
+
+			if (open_drone_id_bridge::is_local_configuration(configuration, self->get_system_id(), self->get_component_id())) {
+				return;
+			}
+
+			break;
+		}
+
+	case MAVLINK_MSG_ID_OPEN_DRONE_ID_OPERATOR_ID: {
+			mavlink_open_drone_id_operator_id_t configuration{};
+			mavlink_msg_open_drone_id_operator_id_decode(msg, &configuration);
+
+			if (open_drone_id_bridge::is_local_configuration(configuration, self->get_system_id(), self->get_component_id())) {
+				return;
+			}
+
+			break;
+		}
+
+	case MAVLINK_MSG_ID_OPEN_DRONE_ID_SYSTEM: {
+			mavlink_open_drone_id_system_t configuration{};
+			mavlink_msg_open_drone_id_system_decode(msg, &configuration);
+
+			if (open_drone_id_bridge::is_local_configuration(configuration, self->get_system_id(), self->get_component_id())) {
+				return;
+			}
+
+			break;
+		}
+
+	default:
+		break;
+	}
+
 	const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
 	int target_system_id = 0;
@@ -1284,6 +1333,76 @@ Mavlink::forward_if_enabled(const mavlink_message_t *msg)
 	}
 }
 
+void Mavlink::forward_remote_id_configuration(uint16_t message_id)
+{
+	if (!get_forwarding_on()) {
+		return;
+	}
+
+	uint8_t pending = 0;
+
+	for (unsigned i = 0; i < sizeof(remote_id_configuration_ids) / sizeof(remote_id_configuration_ids[0]); ++i) {
+		if (remote_id_configuration_ids[i] == message_id) {
+			pending = 1u << i;
+			break;
+		}
+	}
+
+	if (pending == 0) {
+		return;
+	}
+
+	LockGuard lg{mavlink_module_mutex};
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst && inst != this && inst->get_forwarding_on() && !inst->should_exit()) {
+			inst->_pending_remote_id_configuration.fetch_or(pending);
+		}
+	}
+}
+
+void Mavlink::send_pending_remote_id_configuration()
+{
+	// Called only by the sender thread with lock_send() held. Only that thread
+	// owns the stream list; receiver threads publish pending bits, not stream pointers.
+	const uint8_t pending = _pending_remote_id_configuration.fetch_and(0);
+
+	if (!get_forwarding_on()) {
+		return;
+	}
+
+	for (unsigned i = 0; i < sizeof(remote_id_configuration_ids) / sizeof(remote_id_configuration_ids[0]); ++i) {
+		if ((pending & (1u << i)) == 0) {
+			continue;
+		}
+
+		MavlinkStream *configured_stream = nullptr;
+
+		for (MavlinkStream *stream : _streams) {
+			if (stream->get_id() == remote_id_configuration_ids[i]) {
+				configured_stream = stream;
+				break;
+			}
+		}
+
+		if (configured_stream) {
+			if (configured_stream->get_interval() == 0) {
+				configured_stream->request_message();
+			}
+
+		} else {
+			// Reuse the same validated data, input-channel suppression and output
+			// signing as the periodic stream, including locked Basic ID handling.
+			MavlinkStream *stream = create_mavlink_stream(remote_id_configuration_ids[i], this);
+
+			if (stream) {
+				stream->request_message();
+				delete stream;
+			}
+		}
+	}
+}
+
 void
 Mavlink::send_statustext_info(const char *string)
 {
@@ -1779,6 +1898,8 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"OBSTACLE_DISTANCE", 1.0f},
 	{"OPEN_DRONE_ID_LOCATION", 1.f},
 	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_BASIC_ID", 1.f},
+	{"OPEN_DRONE_ID_OPERATOR_ID", 1.f},
 	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
 	{"ORBIT_EXECUTION_STATUS", 2.0f},
 	{"PING", 0.1f},
@@ -1860,6 +1981,8 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"NAV_CONTROLLER_OUTPUT", 10.0f},
 	{"OPEN_DRONE_ID_LOCATION", 1.f},
 	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_BASIC_ID", 1.f},
+	{"OPEN_DRONE_ID_OPERATOR_ID", 1.f},
 	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
 	{"OPTICAL_FLOW_RAD", 10.0f},
 	{"ORBIT_EXECUTION_STATUS", 5.0f},
@@ -2031,6 +2154,8 @@ constexpr StreamRateDefault streams_mode_config[] = {
 	{"NAV_CONTROLLER_OUTPUT", 10.0f},
 	{"OPEN_DRONE_ID_LOCATION", 1.f},
 	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_BASIC_ID", 1.f},
+	{"OPEN_DRONE_ID_OPERATOR_ID", 1.f},
 	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
 	{"OPTICAL_FLOW_RAD", 10.0f},
 	{"ORBIT_EXECUTION_STATUS", 5.0f},
@@ -2134,6 +2259,8 @@ constexpr StreamRateDefault streams_mode_onboard_low_bandwidth[] = {
 	{"NAV_CONTROLLER_OUTPUT", 1.5f},
 	{"OPEN_DRONE_ID_LOCATION", 1.f},
 	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_BASIC_ID", 1.f},
+	{"OPEN_DRONE_ID_OPERATOR_ID", 1.f},
 	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
 	{"OPTICAL_FLOW_RAD", 1.0f},
 	{"ORBIT_EXECUTION_STATUS", 5.0f},
@@ -2902,6 +3029,8 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 			}
 		}
+
+		send_pending_remote_id_configuration();
 
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {
