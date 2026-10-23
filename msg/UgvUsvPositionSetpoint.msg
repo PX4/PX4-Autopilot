@@ -1,11 +1,11 @@
-# Rover Position Setpoint
+# UGV/USV Position Setpoint
 #
 # Position setpoint consumed by the rover position controllers (AckermannPosControl,
-# DifferentialPosControl, MecanumPosControl), which turn it into rover_speed_setpoint
-# and rover_attitude_setpoint.
+# DifferentialPosControl, MecanumPosControl), which turn it into ugv_usv_speed_setpoint
+# and ugv_usv_attitude_setpoint.
 # Published by the manual (position), auto and offboard drive modes of rover_ackermann,
 # rover_differential and rover_mecanum, and can be sent from ROS 2 over uXRCE-DDS
-# (/fmu/in/rover_position_setpoint).
+# (/fmu/in/ugv_usv_position_setpoint).
 # Tracks a line from start_ned to target_ned. To hold a course instead, publish
 # ugv_usv_course_setpoint; the controller follows whichever of the two was
 # published most recently.

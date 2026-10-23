@@ -14,7 +14,7 @@ Published by the manual (position) drive modes of rover_ackermann, rover_differe
 and rover_mecanum, and can be sent from ROS 2 over uXRCE-DDS
 (/fmu/in/ugv_usv_course_setpoint).
 Holds a course over ground along the line through start_ned, correcting cross-track
-error back onto that line. Alternative to rover_position_setpoint: the controller
+error back onto that line. Alternative to ugv_usv_position_setpoint: the controller
 follows whichever of the two was published most recently.
 
 **TOPICS:** ugv_usv_course_setpoint
@@ -46,7 +46,7 @@ follows whichever of the two was published most recently.
 # and rover_mecanum, and can be sent from ROS 2 over uXRCE-DDS
 # (/fmu/in/ugv_usv_course_setpoint).
 # Holds a course over ground along the line through start_ned, correcting cross-track
-# error back onto that line. Alternative to rover_position_setpoint: the controller
+# error back onto that line. Alternative to ugv_usv_position_setpoint: the controller
 # follows whichever of the two was published most recently.
 
 uint64 timestamp # [us] Time since system start

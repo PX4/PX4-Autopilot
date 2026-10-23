@@ -234,14 +234,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RateCtrlStatus](RateCtrlStatus.md)
 - [RcChannels](RcChannels.md)
 - [RcParameterMap](RcParameterMap.md)
-- [RoverAttitudeSetpoint](RoverAttitudeSetpoint.md) — Rover Attitude Setpoint.
-- [RoverAttitudeStatus](RoverAttitudeStatus.md) — Rover Attitude Status.
-- [RoverPositionSetpoint](RoverPositionSetpoint.md) — Rover Position Setpoint.
-- [RoverRateSetpoint](RoverRateSetpoint.md) — Rover Rate setpoint.
-- [RoverRateStatus](RoverRateStatus.md) — Rover Rate Status.
-- [RoverSpeedSetpoint](RoverSpeedSetpoint.md) — Rover Speed Setpoint.
-- [RoverSpeedStatus](RoverSpeedStatus.md) — Rover Velocity Status.
-- [RoverSteeringSetpoint](RoverSteeringSetpoint.md) — Rover Steering setpoint.
 - [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint.
 - [Rpm](Rpm.md)
 - [RtcmData](RtcmData.md) — RTCM3 data exchanged with GNSS receivers.
@@ -286,8 +278,15 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [UavcanFirmwareUpdate](UavcanFirmwareUpdate.md)
 - [UavcanParameterRequest](UavcanParameterRequest.md) — UAVCAN-MAVLink parameter bridge request type.
 - [UavcanParameterValue](UavcanParameterValue.md) — UAVCAN-MAVLink parameter bridge response type.
+- [UgvUsvAttitudeSetpoint](UgvUsvAttitudeSetpoint.md) — UGV/USV Attitude Setpoint.
+- [UgvUsvAttitudeStatus](UgvUsvAttitudeStatus.md) — UGV/USV Attitude Status.
 - [UgvUsvCourseSetpoint](UgvUsvCourseSetpoint.md) — UGV/USV Course Setpoint.
-- [UgvUsvCourseSetpoint](UgvUsvCourseSetpoint.md) — UGV/USV Course Setpoint.
+- [UgvUsvPositionSetpoint](UgvUsvPositionSetpoint.md) — UGV/USV Position Setpoint.
+- [UgvUsvRateSetpoint](UgvUsvRateSetpoint.md) — UGV/USV Rate setpoint.
+- [UgvUsvRateStatus](UgvUsvRateStatus.md) — UGV/USV Rate Status.
+- [UgvUsvSpeedSetpoint](UgvUsvSpeedSetpoint.md) — UGV/USV Speed Setpoint.
+- [UgvUsvSpeedStatus](UgvUsvSpeedStatus.md) — UGV/USV Velocity Status.
+- [UgvUsvSteeringSetpoint](UgvUsvSteeringSetpoint.md) — UGV/USV Steering setpoint.
 - [UlogStream](UlogStream.md) — Message to stream ULog data from the logger. Corresponds to the LOGGING_DATA. mavlink message.
 - [UlogStreamAck](UlogStreamAck.md) — Ack a previously sent ulog_stream message that had. the NEED_ACK flag set.
 - [VehicleAcceleration](VehicleAcceleration.md)

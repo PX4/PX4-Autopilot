@@ -37,8 +37,8 @@ using namespace time_literals;
 
 MecanumAttControl::MecanumAttControl(ModuleParams *parent) : ModuleParams(parent)
 {
-	_rover_rate_setpoint_pub.advertise();
-	_rover_attitude_status_pub.advertise();
+	_ugv_usv_rate_setpoint_pub.advertise();
+	_ugv_usv_attitude_status_pub.advertise();
 	updateParams();
 }
 
@@ -72,10 +72,10 @@ void MecanumAttControl::updateAttControl()
 		_vehicle_yaw = matrix::Eulerf(vehicle_attitude_quaternion).psi();
 	}
 
-	if (_rover_attitude_setpoint_sub.updated()) {
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		_rover_attitude_setpoint_sub.copy(&rover_attitude_setpoint);
-		_yaw_setpoint = rover_attitude_setpoint.yaw_setpoint;
+	if (_ugv_usv_attitude_setpoint_sub.updated()) {
+		ugv_usv_attitude_setpoint_s ugv_usv_attitude_setpoint{};
+		_ugv_usv_attitude_setpoint_sub.copy(&ugv_usv_attitude_setpoint);
+		_yaw_setpoint = ugv_usv_attitude_setpoint.yaw_setpoint;
 		_last_yaw_setpoint_timestamp = hrt_absolute_time();
 	}
 
@@ -86,19 +86,19 @@ void MecanumAttControl::updateAttControl()
 	if (PX4_ISFINITE(_yaw_setpoint)) {
 		const float yaw_rate_setpoint = RoverControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, _max_yaw_rate,
 						_vehicle_yaw, _yaw_setpoint, dt);
-		rover_rate_setpoint_s rover_rate_setpoint{};
-		rover_rate_setpoint.timestamp = _timestamp;
-		rover_rate_setpoint.yaw_rate_setpoint = math::constrain(yaw_rate_setpoint, -_max_yaw_rate, _max_yaw_rate);
-		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+		ugv_usv_rate_setpoint_s ugv_usv_rate_setpoint{};
+		ugv_usv_rate_setpoint.timestamp = _timestamp;
+		ugv_usv_rate_setpoint.yaw_rate_setpoint = math::constrain(yaw_rate_setpoint, -_max_yaw_rate, _max_yaw_rate);
+		_ugv_usv_rate_setpoint_pub.publish(ugv_usv_rate_setpoint);
 
 	}
 
 	// Publish attitude controller status (logging only)
-	rover_attitude_status_s rover_attitude_status;
-	rover_attitude_status.timestamp = _timestamp;
-	rover_attitude_status.measured_yaw = _vehicle_yaw;
-	rover_attitude_status.adjusted_yaw_setpoint = matrix::wrap_pi(_adjusted_yaw_setpoint.getState());
-	_rover_attitude_status_pub.publish(rover_attitude_status);
+	ugv_usv_attitude_status_s ugv_usv_attitude_status;
+	ugv_usv_attitude_status.timestamp = _timestamp;
+	ugv_usv_attitude_status.measured_yaw = _vehicle_yaw;
+	ugv_usv_attitude_status.adjusted_yaw_setpoint = matrix::wrap_pi(_adjusted_yaw_setpoint.getState());
+	_ugv_usv_attitude_status_pub.publish(ugv_usv_attitude_status);
 
 }
 

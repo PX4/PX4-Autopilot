@@ -1,4 +1,4 @@
-# Rover Rate Status
+# UGV/USV Rate Status
 
 uint64 timestamp                    # [us] Time since system start
 float32 measured_yaw_rate           # [rad/s] [@range -inf, inf] [@frame NED] Measured yaw rate

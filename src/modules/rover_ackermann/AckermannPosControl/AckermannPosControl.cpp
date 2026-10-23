@@ -38,8 +38,8 @@ using namespace time_literals;
 AckermannPosControl::AckermannPosControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_pure_pursuit_status_pub.advertise();
-	_rover_speed_setpoint_pub.advertise();
-	_rover_attitude_setpoint_pub.advertise();
+	_ugv_usv_speed_setpoint_pub.advertise();
+	_ugv_usv_attitude_setpoint_pub.advertise();
 
 	updateParams();
 }
@@ -101,25 +101,25 @@ void AckermannPosControl::updatePosControl()
 			}
 
 			_pure_pursuit_status_pub.publish(pure_pursuit_status);
-			rover_speed_setpoint_s rover_speed_setpoint{};
-			rover_speed_setpoint.timestamp = timestamp;
-			rover_speed_setpoint.speed_body_x = speed_setpoint;
-			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
-			rover_attitude_setpoint_s rover_attitude_setpoint{};
-			rover_attitude_setpoint.timestamp = timestamp;
-			rover_attitude_setpoint.yaw_setpoint = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
-					bearing_setpoint + M_PI_F);
-			_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+			ugv_usv_speed_setpoint_s ugv_usv_speed_setpoint{};
+			ugv_usv_speed_setpoint.timestamp = timestamp;
+			ugv_usv_speed_setpoint.speed_body_x = speed_setpoint;
+			_ugv_usv_speed_setpoint_pub.publish(ugv_usv_speed_setpoint);
+			ugv_usv_attitude_setpoint_s ugv_usv_attitude_setpoint{};
+			ugv_usv_attitude_setpoint.timestamp = timestamp;
+			ugv_usv_attitude_setpoint.yaw_setpoint = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
+						bearing_setpoint + M_PI_F);
+			_ugv_usv_attitude_setpoint_pub.publish(ugv_usv_attitude_setpoint);
 
 		} else {
-			rover_speed_setpoint_s rover_speed_setpoint{};
-			rover_speed_setpoint.timestamp = timestamp;
-			rover_speed_setpoint.speed_body_x = 0.f;
-			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
-			rover_attitude_setpoint_s rover_attitude_setpoint{};
-			rover_attitude_setpoint.timestamp = timestamp;
-			rover_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
-			_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+			ugv_usv_speed_setpoint_s ugv_usv_speed_setpoint{};
+			ugv_usv_speed_setpoint.timestamp = timestamp;
+			ugv_usv_speed_setpoint.speed_body_x = 0.f;
+			_ugv_usv_speed_setpoint_pub.publish(ugv_usv_speed_setpoint);
+			ugv_usv_attitude_setpoint_s ugv_usv_attitude_setpoint{};
+			ugv_usv_attitude_setpoint.timestamp = timestamp;
+			ugv_usv_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
+			_ugv_usv_attitude_setpoint_pub.publish(ugv_usv_attitude_setpoint);
 
 			if (!_stopped && fabsf(_vehicle_speed) < FLT_EPSILON) {
 				_stopped = true;
@@ -160,15 +160,15 @@ void AckermannPosControl::updateSubscriptions()
 		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-	if (_rover_position_setpoint_sub.updated()) {
-		rover_position_setpoint_s rover_position_setpoint;
-		_rover_position_setpoint_sub.copy(&rover_position_setpoint);
-		_start_ned = Vector2f(rover_position_setpoint.start_ned[0], rover_position_setpoint.start_ned[1]);
+	if (_ugv_usv_position_setpoint_sub.updated()) {
+		ugv_usv_position_setpoint_s ugv_usv_position_setpoint;
+		_ugv_usv_position_setpoint_sub.copy(&ugv_usv_position_setpoint);
+		_start_ned = Vector2f(ugv_usv_position_setpoint.start_ned[0], ugv_usv_position_setpoint.start_ned[1]);
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
-		_arrival_speed = PX4_ISFINITE(rover_position_setpoint.arrival_speed) ? rover_position_setpoint.arrival_speed : 0.f;
-		_cruising_speed = PX4_ISFINITE(rover_position_setpoint.cruising_speed) ? rover_position_setpoint.cruising_speed :
+		_arrival_speed = PX4_ISFINITE(ugv_usv_position_setpoint.arrival_speed) ? ugv_usv_position_setpoint.arrival_speed : 0.f;
+		_cruising_speed = PX4_ISFINITE(ugv_usv_position_setpoint.cruising_speed) ? ugv_usv_position_setpoint.cruising_speed :
 				  _param_ro_speed_limit.get();
-		_target_waypoint_ned = Vector2f(rover_position_setpoint.target_ned[0], rover_position_setpoint.target_ned[1]);
+		_target_waypoint_ned = Vector2f(ugv_usv_position_setpoint.target_ned[0], ugv_usv_position_setpoint.target_ned[1]);
 		_course = NAN;
 		_stopped = false;
 	}

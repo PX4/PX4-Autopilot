@@ -38,7 +38,7 @@ using namespace time_literals;
 MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_speed_status_pub.advertise();
+	_ugv_usv_speed_status_pub.advertise();
 	updateParams();
 }
 
@@ -86,15 +86,15 @@ void MecanumSpeedControl::updateSpeedControl()
 	}
 
 	// Publish position controller status (logging only)
-	rover_speed_status_s rover_speed_status;
-	rover_speed_status.timestamp = _timestamp;
-	rover_speed_status.measured_speed_body_x = _vehicle_speed_body_x;
-	rover_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_x_setpoint.getState();
-	rover_speed_status.measured_speed_body_y = _vehicle_speed_body_y;
-	rover_speed_status.adjusted_speed_body_y_setpoint = _adjusted_speed_y_setpoint.getState();
-	rover_speed_status.pid_throttle_body_x_integral = _pid_speed_x.getIntegral();
-	rover_speed_status.pid_throttle_body_y_integral = _pid_speed_y.getIntegral();
-	_rover_speed_status_pub.publish(rover_speed_status);
+	ugv_usv_speed_status_s ugv_usv_speed_status;
+	ugv_usv_speed_status.timestamp = _timestamp;
+	ugv_usv_speed_status.measured_speed_body_x = _vehicle_speed_body_x;
+	ugv_usv_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_x_setpoint.getState();
+	ugv_usv_speed_status.measured_speed_body_y = _vehicle_speed_body_y;
+	ugv_usv_speed_status.adjusted_speed_body_y_setpoint = _adjusted_speed_y_setpoint.getState();
+	ugv_usv_speed_status.pid_throttle_body_x_integral = _pid_speed_x.getIntegral();
+	ugv_usv_speed_status.pid_throttle_body_y_integral = _pid_speed_y.getIntegral();
+	_ugv_usv_speed_status_pub.publish(ugv_usv_speed_status);
 }
 
 void MecanumSpeedControl::updateSubscriptions()
@@ -115,20 +115,20 @@ void MecanumSpeedControl::updateSubscriptions()
 		_vehicle_speed_body_y = fabsf(velocity_in_body_frame(1)) > _param_ro_speed_th.get() ? velocity_in_body_frame(1) : 0.f;
 	}
 
-	if (_rover_speed_setpoint_sub.updated()) {
-		rover_speed_setpoint_s rover_speed_setpoint;
-		_rover_speed_setpoint_sub.copy(&rover_speed_setpoint);
-		_speed_x_setpoint = rover_speed_setpoint.speed_body_x;
-		_speed_y_setpoint = rover_speed_setpoint.speed_body_y;
+	if (_ugv_usv_speed_setpoint_sub.updated()) {
+		ugv_usv_speed_setpoint_s ugv_usv_speed_setpoint;
+		_ugv_usv_speed_setpoint_sub.copy(&ugv_usv_speed_setpoint);
+		_speed_x_setpoint = ugv_usv_speed_setpoint.speed_body_x;
+		_speed_y_setpoint = ugv_usv_speed_setpoint.speed_body_y;
 	}
 }
 
 Vector2f MecanumSpeedControl::calcSpeedSetpoint()
 {
-	if (_rover_steering_setpoint_sub.updated()) {
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-		_normalized_speed_diff = rover_steering_setpoint.normalized_steering_setpoint;
+	if (_ugv_usv_steering_setpoint_sub.updated()) {
+		ugv_usv_steering_setpoint_s ugv_usv_steering_setpoint{};
+		_ugv_usv_steering_setpoint_sub.copy(&ugv_usv_steering_setpoint);
+		_normalized_speed_diff = ugv_usv_steering_setpoint.normalized_steering_setpoint;
 	}
 
 	Vector2f speed_setpoint = Vector2f(_speed_x_setpoint, _speed_y_setpoint);

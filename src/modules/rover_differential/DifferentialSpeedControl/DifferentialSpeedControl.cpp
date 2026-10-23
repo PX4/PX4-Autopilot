@@ -38,7 +38,7 @@ using namespace time_literals;
 DifferentialSpeedControl::DifferentialSpeedControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_speed_status_pub.advertise();
+	_ugv_usv_speed_status_pub.advertise();
 	updateParams();
 }
 
@@ -78,15 +78,15 @@ void DifferentialSpeedControl::updateSpeedControl()
 	}
 
 	// Publish speed controller status (logging only)
-	rover_speed_status_s rover_speed_status;
-	rover_speed_status.timestamp = _timestamp;
-	rover_speed_status.measured_speed_body_x = _vehicle_speed;
-	rover_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
-	rover_speed_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
-	rover_speed_status.measured_speed_body_y = NAN;
-	rover_speed_status.adjusted_speed_body_y_setpoint = NAN;
-	rover_speed_status.pid_throttle_body_y_integral = NAN;
-	_rover_speed_status_pub.publish(rover_speed_status);
+	ugv_usv_speed_status_s ugv_usv_speed_status;
+	ugv_usv_speed_status.timestamp = _timestamp;
+	ugv_usv_speed_status.measured_speed_body_x = _vehicle_speed;
+	ugv_usv_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
+	ugv_usv_speed_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
+	ugv_usv_speed_status.measured_speed_body_y = NAN;
+	ugv_usv_speed_status.adjusted_speed_body_y_setpoint = NAN;
+	ugv_usv_speed_status.pid_throttle_body_y_integral = NAN;
+	_ugv_usv_speed_status_pub.publish(ugv_usv_speed_status);
 }
 
 void DifferentialSpeedControl::updateSubscriptions()
@@ -106,10 +106,10 @@ void DifferentialSpeedControl::updateSubscriptions()
 		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-	if (_rover_speed_setpoint_sub.updated()) {
-		rover_speed_setpoint_s rover_speed_setpoint;
-		_rover_speed_setpoint_sub.copy(&rover_speed_setpoint);
-		_speed_setpoint = rover_speed_setpoint.speed_body_x;
+	if (_ugv_usv_speed_setpoint_sub.updated()) {
+		ugv_usv_speed_setpoint_s ugv_usv_speed_setpoint;
+		_ugv_usv_speed_setpoint_sub.copy(&ugv_usv_speed_setpoint);
+		_speed_setpoint = ugv_usv_speed_setpoint.speed_body_x;
 	}
 
 }
@@ -121,10 +121,10 @@ float DifferentialSpeedControl::calcSpeedSetpoint()
 	const float speed_setpoint_normalized = math::interpolate<float>(speed_setpoint,
 						-_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);
 
-	if (_rover_steering_setpoint_sub.updated()) {
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-		_normalized_speed_diff = rover_steering_setpoint.normalized_steering_setpoint;
+	if (_ugv_usv_steering_setpoint_sub.updated()) {
+		ugv_usv_steering_setpoint_s ugv_usv_steering_setpoint{};
+		_ugv_usv_steering_setpoint_sub.copy(&ugv_usv_steering_setpoint);
+		_normalized_speed_diff = ugv_usv_steering_setpoint.normalized_steering_setpoint;
 	}
 
 	if (fabsf(speed_setpoint_normalized) > 1.f - fabsf(

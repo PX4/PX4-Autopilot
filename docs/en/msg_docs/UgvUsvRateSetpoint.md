@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# RoverRateSetpoint (UORB message)
+# UgvUsvRateSetpoint (UORB message)
 
-Rover Rate setpoint.
+UGV/USV Rate setpoint.
 
-**TOPICS:** rover_rate_setpoint
+**TOPICS:** ugv_usv_rate_setpoint
 
 ## Fields
 
@@ -17,12 +17,12 @@ Rover Rate setpoint.
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverRateSetpoint.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/UgvUsvRateSetpoint.msg)
 
 ::: details Click here to see original file
 
 ```c
-# Rover Rate setpoint
+# UGV/USV Rate setpoint
 
 uint64 timestamp           # [us] Time since system start
 float32 yaw_rate_setpoint  # [rad/s] [@range -inf, inf] [@frame NED] Yaw rate setpoint

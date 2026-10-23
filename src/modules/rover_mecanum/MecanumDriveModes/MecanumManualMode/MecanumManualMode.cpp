@@ -39,11 +39,11 @@ MecanumManualMode::MecanumManualMode(ModuleParams *parent) : ModuleParams(parent
 {
 	updateParams();
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_steering_setpoint_pub.advertise();
-	_rover_rate_setpoint_pub.advertise();
-	_rover_attitude_setpoint_pub.advertise();
-	_rover_speed_setpoint_pub.advertise();
-	_rover_position_setpoint_pub.advertise();
+	_ugv_usv_steering_setpoint_pub.advertise();
+	_ugv_usv_rate_setpoint_pub.advertise();
+	_ugv_usv_attitude_setpoint_pub.advertise();
+	_ugv_usv_speed_setpoint_pub.advertise();
+	_ugv_usv_position_setpoint_pub.advertise();
 	_ugv_usv_course_setpoint_pub.advertise();
 }
 
@@ -57,11 +57,11 @@ void MecanumManualMode::manual()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
-	rover_steering_setpoint_s rover_steering_setpoint{};
-	rover_steering_setpoint.timestamp = hrt_absolute_time();
-	rover_steering_setpoint.normalized_steering_setpoint = _param_rm_yaw_stk_gain.get() * math::superexpo<float>
+	ugv_usv_steering_setpoint_s ugv_usv_steering_setpoint{};
+	ugv_usv_steering_setpoint.timestamp = hrt_absolute_time();
+	ugv_usv_steering_setpoint.normalized_steering_setpoint = _param_rm_yaw_stk_gain.get() * math::superexpo<float>
 			(manual_control_setpoint.yaw, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
-	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+	_ugv_usv_steering_setpoint_pub.publish(ugv_usv_steering_setpoint);
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
 	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
@@ -84,10 +84,10 @@ void MecanumManualMode::manualParking()
 	rover_throttle_setpoint.throttle_body_x = (throttle_left + throttle_right) / 2.f;
 	rover_throttle_setpoint.throttle_body_y = throttle_lateral;
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-	rover_steering_setpoint_s rover_steering_setpoint{};
-	rover_steering_setpoint.timestamp = hrt_absolute_time();
-	rover_steering_setpoint.normalized_steering_setpoint = (throttle_left - throttle_right) / 2.f;
-	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+	ugv_usv_steering_setpoint_s ugv_usv_steering_setpoint{};
+	ugv_usv_steering_setpoint.timestamp = hrt_absolute_time();
+	ugv_usv_steering_setpoint.normalized_steering_setpoint = (throttle_left - throttle_right) / 2.f;
+	_ugv_usv_steering_setpoint_pub.publish(ugv_usv_steering_setpoint);
 }
 
 void MecanumManualMode::acro()
@@ -99,11 +99,11 @@ void MecanumManualMode::acro()
 	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
 	rover_throttle_setpoint.throttle_body_y = manual_control_setpoint.roll;
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-	rover_rate_setpoint_s rover_rate_setpoint{};
-	rover_rate_setpoint.timestamp = hrt_absolute_time();
-	rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(manual_control_setpoint.yaw,
-						_param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
-	_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+	ugv_usv_rate_setpoint_s ugv_usv_rate_setpoint{};
+	ugv_usv_rate_setpoint.timestamp = hrt_absolute_time();
+	ugv_usv_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(manual_control_setpoint.yaw,
+			_param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+	_ugv_usv_rate_setpoint_pub.publish(ugv_usv_rate_setpoint);
 }
 
 void MecanumManualMode::stab()
@@ -127,27 +127,27 @@ void MecanumManualMode::stab()
 		_stab_yaw_setpoint = NAN;
 
 		// Rate control
-		rover_rate_setpoint_s rover_rate_setpoint{};
-		rover_rate_setpoint.timestamp = hrt_absolute_time();
-		rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
-				manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
-		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+		ugv_usv_rate_setpoint_s ugv_usv_rate_setpoint{};
+		ugv_usv_rate_setpoint.timestamp = hrt_absolute_time();
+		ugv_usv_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
+					manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+		_ugv_usv_rate_setpoint_pub.publish(ugv_usv_rate_setpoint);
 
 		// Set uncontrolled setpoint invalid
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = hrt_absolute_time();
-		rover_attitude_setpoint.yaw_setpoint = NAN;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+		ugv_usv_attitude_setpoint_s ugv_usv_attitude_setpoint{};
+		ugv_usv_attitude_setpoint.timestamp = hrt_absolute_time();
+		ugv_usv_attitude_setpoint.yaw_setpoint = NAN;
+		_ugv_usv_attitude_setpoint_pub.publish(ugv_usv_attitude_setpoint);
 
 	} else { // Heading control
 		if (!PX4_ISFINITE(_stab_yaw_setpoint)) {
 			_stab_yaw_setpoint = _vehicle_yaw;
 		}
 
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = hrt_absolute_time();
-		rover_attitude_setpoint.yaw_setpoint = _stab_yaw_setpoint;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+		ugv_usv_attitude_setpoint_s ugv_usv_attitude_setpoint{};
+		ugv_usv_attitude_setpoint.timestamp = hrt_absolute_time();
+		ugv_usv_attitude_setpoint.yaw_setpoint = _stab_yaw_setpoint;
+		_ugv_usv_attitude_setpoint_pub.publish(ugv_usv_attitude_setpoint);
 	}
 }
 
@@ -180,35 +180,35 @@ void MecanumManualMode::position()
 		_pos_ctl_yaw_setpoint = NAN;
 
 		// Speed control
-		rover_speed_setpoint_s rover_speed_setpoint{};
-		rover_speed_setpoint.timestamp = hrt_absolute_time();
-		rover_speed_setpoint.speed_body_x = velocity_setpoint_body(0);
-		rover_speed_setpoint.speed_body_y = velocity_setpoint_body(1);
-		_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
+		ugv_usv_speed_setpoint_s ugv_usv_speed_setpoint{};
+		ugv_usv_speed_setpoint.timestamp = hrt_absolute_time();
+		ugv_usv_speed_setpoint.speed_body_x = velocity_setpoint_body(0);
+		ugv_usv_speed_setpoint.speed_body_y = velocity_setpoint_body(1);
+		_ugv_usv_speed_setpoint_pub.publish(ugv_usv_speed_setpoint);
 
 		// Rate control
-		rover_rate_setpoint_s rover_rate_setpoint{};
-		rover_rate_setpoint.timestamp = hrt_absolute_time();
-		rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
-				manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
-		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+		ugv_usv_rate_setpoint_s ugv_usv_rate_setpoint{};
+		ugv_usv_rate_setpoint.timestamp = hrt_absolute_time();
+		ugv_usv_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
+					manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+		_ugv_usv_rate_setpoint_pub.publish(ugv_usv_rate_setpoint);
 
 		// Set uncontrolled setpoints invalid
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = hrt_absolute_time();
-		rover_attitude_setpoint.yaw_setpoint = NAN;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+		ugv_usv_attitude_setpoint_s ugv_usv_attitude_setpoint{};
+		ugv_usv_attitude_setpoint.timestamp = hrt_absolute_time();
+		ugv_usv_attitude_setpoint.yaw_setpoint = NAN;
+		_ugv_usv_attitude_setpoint_pub.publish(ugv_usv_attitude_setpoint);
 
-		rover_position_setpoint_s rover_position_setpoint{};
-		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.target_ned[0] = NAN;
-		rover_position_setpoint.target_ned[1] = NAN;
-		rover_position_setpoint.start_ned[0] = NAN;
-		rover_position_setpoint.start_ned[1] = NAN;
-		rover_position_setpoint.arrival_speed = NAN;
-		rover_position_setpoint.cruising_speed = NAN;
-		rover_position_setpoint.yaw = NAN;
-		_rover_position_setpoint_pub.publish(rover_position_setpoint);
+		ugv_usv_position_setpoint_s ugv_usv_position_setpoint{};
+		ugv_usv_position_setpoint.timestamp = hrt_absolute_time();
+		ugv_usv_position_setpoint.target_ned[0] = NAN;
+		ugv_usv_position_setpoint.target_ned[1] = NAN;
+		ugv_usv_position_setpoint.start_ned[0] = NAN;
+		ugv_usv_position_setpoint.start_ned[1] = NAN;
+		ugv_usv_position_setpoint.arrival_speed = NAN;
+		ugv_usv_position_setpoint.cruising_speed = NAN;
+		ugv_usv_position_setpoint.yaw = NAN;
+		_ugv_usv_position_setpoint_pub.publish(ugv_usv_position_setpoint);
 
 	} else { // Course control
 		const Vector3f velocity_setpoint_ned = _vehicle_attitude_quaternion.rotateVector(velocity_setpoint_body);

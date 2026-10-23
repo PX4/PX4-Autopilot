@@ -46,9 +46,9 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/rover_steering_setpoint.h>
-#include <uORB/topics/rover_rate_status.h>
+#include <uORB/topics/ugv_usv_rate_setpoint.h>
+#include <uORB/topics/ugv_usv_steering_setpoint.h>
+#include <uORB/topics/ugv_usv_rate_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 
 /**
@@ -65,7 +65,7 @@ public:
 	~DifferentialRateControl() = default;
 
 	/**
-	 * @brief Generate and publish roverSteeringSetpoint from roverRateSetpoint.
+	 * @brief Generate and publish ugvUsvSteeringSetpoint from ugvUsvRateSetpoint.
 	 */
 	void updateRateControl();
 
@@ -89,12 +89,12 @@ protected:
 private:
 
 	// uORB subscriptions
-	uORB::Subscription _rover_rate_setpoint_sub{ORB_ID(rover_rate_setpoint)};
+	uORB::Subscription _ugv_usv_rate_setpoint_sub{ORB_ID(ugv_usv_rate_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	// uORB publications
-	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
-	uORB::Publication<rover_rate_status_s> _rover_rate_status_pub{ORB_ID(rover_rate_status)};
+	uORB::Publication<ugv_usv_steering_setpoint_s> _ugv_usv_steering_setpoint_pub{ORB_ID(ugv_usv_steering_setpoint)};
+	uORB::Publication<ugv_usv_rate_status_s> _ugv_usv_rate_status_pub{ORB_ID(ugv_usv_rate_status)};
 
 	// Variables
 	float _vehicle_yaw_rate{0.f};

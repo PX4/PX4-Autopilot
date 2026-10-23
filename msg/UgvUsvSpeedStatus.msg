@@ -1,4 +1,4 @@
-# Rover Velocity Status
+# UGV/USV Velocity Status
 
 uint64 timestamp                        # [us] Time since system start
 float32 measured_speed_body_x           # [m/s] [@range -inf (Backwards), inf (Forwards)] [@frame Body] Measured speed in body x direction

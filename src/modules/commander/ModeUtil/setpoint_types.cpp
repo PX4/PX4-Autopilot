@@ -93,7 +93,7 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_attitude_enabled = true;
 		break;
 
-	case SetpointType::RoverPosition:
+	case SetpointType::UgvUsvPosition:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
@@ -101,20 +101,20 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_position_enabled = true;
 		break;
 
-	case SetpointType::RoverSpeedAttitude:
+	case SetpointType::UgvUsvSpeedAttitude:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverSpeedRate:
+	case SetpointType::UgvUsvSpeedRate:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverSpeedSteering:
+	case SetpointType::UgvUsvSpeedSteering:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
@@ -192,10 +192,10 @@ SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehic
 	case SetpointType::Attitude:
 		return SetpointTypeResult::Success;
 
-	case SetpointType::RoverPosition:
-	case SetpointType::RoverSpeedAttitude:
-	case SetpointType::RoverSpeedRate:
-	case SetpointType::RoverSpeedSteering:
+	case SetpointType::UgvUsvPosition:
+	case SetpointType::UgvUsvSpeedAttitude:
+	case SetpointType::UgvUsvSpeedRate:
+	case SetpointType::UgvUsvSpeedSteering:
 	case SetpointType::RoverThrottleAttitude:
 	case SetpointType::RoverThrottleRate:
 	case SetpointType::RoverThrottleSteering:

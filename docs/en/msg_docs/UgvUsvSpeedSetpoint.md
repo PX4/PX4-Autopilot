@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# RoverSpeedSetpoint (UORB message)
+# UgvUsvSpeedSetpoint (UORB message)
 
-Rover Speed Setpoint.
+UGV/USV Speed Setpoint.
 
-**TOPICS:** rover_speed_setpoint
+**TOPICS:** ugv_usv_speed_setpoint
 
 ## Fields
 
@@ -18,12 +18,12 @@ Rover Speed Setpoint.
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverSpeedSetpoint.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/UgvUsvSpeedSetpoint.msg)
 
 ::: details Click here to see original file
 
 ```c
-# Rover Speed Setpoint
+# UGV/USV Speed Setpoint
 
 uint64 timestamp      # [us] Time since system start
 float32 speed_body_x  # [m/s] [@range -inf (Backwards), inf (Forwards)] [@frame Body] Speed setpoint in body x direction

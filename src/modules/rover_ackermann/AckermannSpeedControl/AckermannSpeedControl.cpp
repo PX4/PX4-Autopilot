@@ -38,7 +38,7 @@ using namespace time_literals;
 AckermannSpeedControl::AckermannSpeedControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_speed_status_pub.advertise();
+	_ugv_usv_speed_status_pub.advertise();
 	updateParams();
 }
 
@@ -79,15 +79,15 @@ void AckermannSpeedControl::updateSpeedControl()
 	}
 
 	// Publish speed controller status (logging only)
-	rover_speed_status_s rover_speed_status;
-	rover_speed_status.timestamp = _timestamp;
-	rover_speed_status.measured_speed_body_x = _vehicle_speed;
-	rover_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
-	rover_speed_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
-	rover_speed_status.measured_speed_body_y = NAN;
-	rover_speed_status.adjusted_speed_body_y_setpoint = NAN;
-	rover_speed_status.pid_throttle_body_y_integral = NAN;
-	_rover_speed_status_pub.publish(rover_speed_status);
+	ugv_usv_speed_status_s ugv_usv_speed_status;
+	ugv_usv_speed_status.timestamp = _timestamp;
+	ugv_usv_speed_status.measured_speed_body_x = _vehicle_speed;
+	ugv_usv_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
+	ugv_usv_speed_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
+	ugv_usv_speed_status.measured_speed_body_y = NAN;
+	ugv_usv_speed_status.adjusted_speed_body_y_setpoint = NAN;
+	ugv_usv_speed_status.pid_throttle_body_y_integral = NAN;
+	_ugv_usv_speed_status_pub.publish(ugv_usv_speed_status);
 }
 
 void AckermannSpeedControl::updateSubscriptions()
@@ -107,10 +107,10 @@ void AckermannSpeedControl::updateSubscriptions()
 		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-	if (_rover_speed_setpoint_sub.updated()) {
-		rover_speed_setpoint_s rover_speed_setpoint;
-		_rover_speed_setpoint_sub.copy(&rover_speed_setpoint);
-		_speed_setpoint = rover_speed_setpoint.speed_body_x;
+	if (_ugv_usv_speed_setpoint_sub.updated()) {
+		ugv_usv_speed_setpoint_s ugv_usv_speed_setpoint;
+		_ugv_usv_speed_setpoint_sub.copy(&ugv_usv_speed_setpoint);
+		_speed_setpoint = ugv_usv_speed_setpoint.speed_body_x;
 	}
 }
 

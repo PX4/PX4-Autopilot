@@ -48,10 +48,10 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_rate_setpoint.h>
+#include <uORB/topics/ugv_usv_rate_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/rover_attitude_status.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
+#include <uORB/topics/ugv_usv_attitude_status.h>
+#include <uORB/topics/ugv_usv_attitude_setpoint.h>
 
 using namespace time_literals;
 
@@ -69,7 +69,7 @@ public:
 	~MecanumAttControl() = default;
 
 	/**
-	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
+	 * @brief Generate and publish ugvUsvRateSetpoint from ugvUsvAttitudeSetpoint.
 	 */
 	void updateAttControl();
 
@@ -94,11 +94,11 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _rover_attitude_setpoint_sub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Subscription _ugv_usv_attitude_setpoint_sub{ORB_ID(ugv_usv_attitude_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s>   _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_status_s> _rover_attitude_status_pub{ORB_ID(rover_attitude_status)};
+	uORB::Publication<ugv_usv_rate_setpoint_s>   _ugv_usv_rate_setpoint_pub{ORB_ID(ugv_usv_rate_setpoint)};
+	uORB::Publication<ugv_usv_attitude_status_s> _ugv_usv_attitude_status_pub{ORB_ID(ugv_usv_attitude_status)};
 
 	// Variables
 	float _vehicle_yaw{0.f};

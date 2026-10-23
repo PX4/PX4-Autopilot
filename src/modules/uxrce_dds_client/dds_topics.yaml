@@ -218,26 +218,26 @@ subscriptions:
   - topic: /fmu/in/lateral_control_configuration
     type: px4_msgs::msg::LateralControlConfiguration
 
-  - topic: /fmu/in/rover_position_setpoint
-    type: px4_msgs::msg::RoverPositionSetpoint
+  - topic: /fmu/in/ugv_usv_position_setpoint
+    type: px4_msgs::msg::UgvUsvPositionSetpoint
 
   - topic: /fmu/in/ugv_usv_course_setpoint
     type: px4_msgs::msg::UgvUsvCourseSetpoint
 
-  - topic: /fmu/in/rover_speed_setpoint
-    type: px4_msgs::msg::RoverSpeedSetpoint
+  - topic: /fmu/in/ugv_usv_speed_setpoint
+    type: px4_msgs::msg::UgvUsvSpeedSetpoint
 
-  - topic: /fmu/in/rover_attitude_setpoint
-    type: px4_msgs::msg::RoverAttitudeSetpoint
+  - topic: /fmu/in/ugv_usv_attitude_setpoint
+    type: px4_msgs::msg::UgvUsvAttitudeSetpoint
 
-  - topic: /fmu/in/rover_rate_setpoint
-    type: px4_msgs::msg::RoverRateSetpoint
+  - topic: /fmu/in/ugv_usv_rate_setpoint
+    type: px4_msgs::msg::UgvUsvRateSetpoint
 
   - topic: /fmu/in/rover_throttle_setpoint
     type: px4_msgs::msg::RoverThrottleSetpoint
 
-  - topic: /fmu/in/rover_steering_setpoint
-    type: px4_msgs::msg::RoverSteeringSetpoint
+  - topic: /fmu/in/ugv_usv_steering_setpoint
+    type: px4_msgs::msg::UgvUsvSteeringSetpoint
 
   - topic: /fmu/in/landing_gear
     type: px4_msgs::msg::LandingGear

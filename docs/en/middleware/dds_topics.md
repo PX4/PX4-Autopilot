@@ -66,18 +66,18 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/offboard_control_mode`              | [px4_msgs::msg::OffboardControlMode](../msg_docs/OffboardControlMode.md)                           |
 | `/fmu/in/onboard_computer_status`            | [px4_msgs::msg::OnboardComputerStatus](../msg_docs/OnboardComputerStatus.md)                       |
 | `/fmu/in/register_ext_component_request`     | [px4_msgs::msg::RegisterExtComponentRequest](../msg_docs/RegisterExtComponentRequest.md)           |
-| `/fmu/in/rover_attitude_setpoint`            | [px4_msgs::msg::RoverAttitudeSetpoint](../msg_docs/RoverAttitudeSetpoint.md)                       |
-| `/fmu/in/rover_position_setpoint`            | [px4_msgs::msg::RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md)                       |
-| `/fmu/in/rover_rate_setpoint`                | [px4_msgs::msg::RoverRateSetpoint](../msg_docs/RoverRateSetpoint.md)                               |
-| `/fmu/in/rover_speed_setpoint`               | [px4_msgs::msg::RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md)                             |
-| `/fmu/in/rover_steering_setpoint`            | [px4_msgs::msg::RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md)                       |
 | `/fmu/in/rover_throttle_setpoint`            | [px4_msgs::msg::RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md)                       |
 | `/fmu/in/sensor_gnss`                        | [px4_msgs::msg::SensorGnss](../msg_docs/SensorGnss.md)                                             |
 | `/fmu/in/sensor_optical_flow`                | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md)                               |
 | `/fmu/in/setpoint_config`                    | [px4_msgs::msg::SetpointConfig](../msg_docs/SetpointConfig.md)                                     |
 | `/fmu/in/telemetry_status`                   | [px4_msgs::msg::TelemetryStatus](../msg_docs/TelemetryStatus.md)                                   |
 | `/fmu/in/trajectory_setpoint`                | [px4_msgs::msg::TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                             |
+| `/fmu/in/ugv_usv_attitude_setpoint`          | [px4_msgs::msg::UgvUsvAttitudeSetpoint](../msg_docs/UgvUsvAttitudeSetpoint.md)                     |
 | `/fmu/in/ugv_usv_course_setpoint`            | [px4_msgs::msg::UgvUsvCourseSetpoint](../msg_docs/UgvUsvCourseSetpoint.md)                         |
+| `/fmu/in/ugv_usv_position_setpoint`          | [px4_msgs::msg::UgvUsvPositionSetpoint](../msg_docs/UgvUsvPositionSetpoint.md)                     |
+| `/fmu/in/ugv_usv_rate_setpoint`              | [px4_msgs::msg::UgvUsvRateSetpoint](../msg_docs/UgvUsvRateSetpoint.md)                             |
+| `/fmu/in/ugv_usv_speed_setpoint`             | [px4_msgs::msg::UgvUsvSpeedSetpoint](../msg_docs/UgvUsvSpeedSetpoint.md)                           |
+| `/fmu/in/ugv_usv_steering_setpoint`          | [px4_msgs::msg::UgvUsvSteeringSetpoint](../msg_docs/UgvUsvSteeringSetpoint.md)                     |
 | `/fmu/in/unregister_ext_component`           | [px4_msgs::msg::UnregisterExtComponent](../msg_docs/UnregisterExtComponent.md)                     |
 | `/fmu/in/vehicle_attitude_setpoint`          | [px4_msgs::msg::VehicleAttitudeSetpoint](../msg_docs/VehicleAttitudeSetpoint.md)                   |
 | `/fmu/in/vehicle_command`                    | [px4_msgs::msg::VehicleCommand](../msg_docs/VehicleCommand.md)                                     |
@@ -258,9 +258,6 @@ They are not build into the module, and hence are neither published or subscribe
 - [RegisterExtComponentReplyV0](../msg_docs/RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](../msg_docs/RegisterExtComponentRequestV0.md)
 - [RegisterExtComponentRequestV1](../msg_docs/RegisterExtComponentRequestV1.md)
-- [RoverAttitudeStatus](../msg_docs/RoverAttitudeStatus.md)
-- [RoverRateStatus](../msg_docs/RoverRateStatus.md)
-- [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md)
 - [Rpm](../msg_docs/Rpm.md)
 - [RtcmData](../msg_docs/RtcmData.md)
 - [RtlStatus](../msg_docs/RtlStatus.md)
@@ -298,6 +295,9 @@ They are not build into the module, and hence are neither published or subscribe
 - [UavcanFirmwareUpdate](../msg_docs/UavcanFirmwareUpdate.md)
 - [UavcanParameterRequest](../msg_docs/UavcanParameterRequest.md)
 - [UavcanParameterValue](../msg_docs/UavcanParameterValue.md)
+- [UgvUsvAttitudeStatus](../msg_docs/UgvUsvAttitudeStatus.md)
+- [UgvUsvRateStatus](../msg_docs/UgvUsvRateStatus.md)
+- [UgvUsvSpeedStatus](../msg_docs/UgvUsvSpeedStatus.md)
 - [UlogStream](../msg_docs/UlogStream.md)
 - [UlogStreamAck](../msg_docs/UlogStreamAck.md)
 - [VehicleAcceleration](../msg_docs/VehicleAcceleration.md)

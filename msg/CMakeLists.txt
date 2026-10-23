@@ -186,14 +186,6 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
-	RoverAttitudeSetpoint.msg
-	RoverAttitudeStatus.msg
-	RoverPositionSetpoint.msg
-	RoverRateSetpoint.msg
-	RoverRateStatus.msg
-	RoverSpeedSetpoint.msg
-	RoverSpeedStatus.msg
-	RoverSteeringSetpoint.msg
 	RoverThrottleSetpoint.msg
 	Rpm.msg
 	RtcmData.msg
@@ -236,7 +228,15 @@ set(msg_files
 	UavcanFirmwareUpdate.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
+	UgvUsvAttitudeSetpoint.msg
+	UgvUsvAttitudeStatus.msg
 	UgvUsvCourseSetpoint.msg
+	UgvUsvPositionSetpoint.msg
+	UgvUsvRateSetpoint.msg
+	UgvUsvRateStatus.msg
+	UgvUsvSpeedSetpoint.msg
+	UgvUsvSpeedStatus.msg
+	UgvUsvSteeringSetpoint.msg
 	UlogStream.msg
 	UlogStreamAck.msg
 	VehicleAcceleration.msg
