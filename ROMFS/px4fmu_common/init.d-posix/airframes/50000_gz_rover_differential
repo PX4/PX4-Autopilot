@@ -11,9 +11,7 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=rover_differential}
 
 param set-default SIM_GZ_EN 1 # Gazebo bridge
 
-# Nominal complete-model CG in base_link FLU: (-0.15625, 0, -0.00625).
-# IMU and GNSS are at base_link; the driven axle midpoint is (-0.2, 0, 0).
-# Parameter positions below are relative to that CG, in body FRD metres.
+# Sensor Offset Parameters
 param set-default EKF2_IMU_POS_X 0.15625
 param set-default EKF2_IMU_POS_Y 0
 param set-default EKF2_IMU_POS_Z -0.00625

@@ -98,9 +98,6 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample, const imuSample &i
 
 	sym::ComputeWheelVelInnovVarAndH(_state.vector(), P, R, angular_rate, axle_to_imu, &innov_var, &Hx, &Hy);
 
-	// As with the other IMU-based lever arm corrections, angular-rate sample
-	// noise and its correlation with propagation are not modelled separately.
-
 	updateAidSourceStatus(_aid_src_wheel_encoders,
 			      sample.time_us,
 			      meas_vel_body,
@@ -114,38 +111,13 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample, const imuSample &i
 	// 	return;
 	// }
 
-	// Wheel fusion may correct velocity only. Retain the complete measurement
-	// Jacobian for uncertainty, but inhibit all other state corrections. The
-	// Joseph covariance update supports this non-optimal, restricted gain.
-	const auto fuse_velocity = [this](const VectorState &H, const float variance, const float residual,
-					 const float observation_variance) {
-		VectorState K{};
-		const VectorState PH = P * H;
+	// Fuse Vx
+	VectorState Kx = (P * Hx) * (1.0f / fmaxf(_aid_src_wheel_encoders.innovation_variance[0], 1e-6f));
+	measurementUpdate(Kx, Hx, R(0), innovation(0));
 
-		for (unsigned i = State::vel.idx; i < State::vel.idx + State::vel.dof; i++) {
-			K(i) = PH(i) / variance;
-		}
-
-		return measurementUpdate(K, H, observation_variance, residual);
-	};
-
-	if (!PX4_ISFINITE(innov_var(0)) || innov_var(0) < R(0)
-	    || !PX4_ISFINITE(innov_var(1)) || innov_var(1) < R(1)) {
-		return;
-	}
-
-	if (!fuse_velocity(Hx, innov_var(0), innovation(0), R(0))) {
-		return;
-	}
-
-	// Keep the initial Jacobian linearization for both axes, but use the updated
-	// covariance and predicted velocity for Y after the X measurement update.
-	const float y_innov_var = Hy.dot(P * Hy) + R(1);
-	const Vector3f updated_vel_body = _R_to_earth.transpose() * _state.vel - rotational_velocity;
-
-	if (PX4_ISFINITE(y_innov_var) && y_innov_var >= R(1)) {
-		fuse_velocity(Hy, y_innov_var, updated_vel_body(1) - meas_vel_body(1), R(1));
-	}
+	// Fuse Vy
+	VectorState Ky = (P * Hy) * (1.0f / fmaxf(_aid_src_wheel_encoders.innovation_variance[1], 1e-6f));
+	measurementUpdate(Ky, Hy, R(1), innovation(1));
 
 	_aid_src_wheel_encoders.fused = true;
 	_aid_src_wheel_encoders.time_last_fuse = _time_delayed_us;
