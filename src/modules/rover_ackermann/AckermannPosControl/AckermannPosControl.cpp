@@ -176,8 +176,18 @@ void AckermannPosControl::updateSubscriptions()
 	if (_planar_course_setpoint_sub.updated()) {
 		planar_course_setpoint_s planar_course_setpoint;
 		_planar_course_setpoint_sub.copy(&planar_course_setpoint);
-		_start_ned = Vector2f(planar_course_setpoint.start_ned[0], planar_course_setpoint.start_ned[1]);
-		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
+		const Vector2f start_ned(planar_course_setpoint.start_ned[0], planar_course_setpoint.start_ned[1]);
+		// Without a start position keep the line of an ongoing hold of the same course, so a streamed setpoint still corrects cross-track error
+		const bool same_course = PX4_ISFINITE(_course) && _start_ned.isAllFinite()
+					 && fabsf(matrix::wrap_pi(planar_course_setpoint.course - _course)) < FLT_EPSILON;
+
+		if (start_ned.isAllFinite()) {
+			_start_ned = start_ned;
+
+		} else if (!same_course) {
+			_start_ned = _curr_pos_ned;
+		}
+
 		_arrival_speed = 0.f;
 		_cruising_speed = PX4_ISFINITE(planar_course_setpoint.cruising_speed) ?
 				  planar_course_setpoint.cruising_speed : _param_ro_speed_limit.get();
