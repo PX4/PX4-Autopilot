@@ -71,6 +71,20 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 Additional information can be found in the [Pix32 V5 Technical Data Sheet](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Holybro_PIX32-V5_technical_data_sheet_v1.1.pdf).
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+[DShot](../peripherals/dshot.md) is not supported.
+
+The 8 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-6 in group2 (Timer4)
+- Outputs 7-8 in group3 (Timer12)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to Buy {#store}
 
 Order from [Holybro website](https://holybro.com/products/pix32-v5).

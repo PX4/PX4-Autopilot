@@ -72,6 +72,20 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 36x36mm with 30.5\*30.5 mouting pattern, M4 holes.
   - Soft-mount M4 to M3 grommets supplied.
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 8 FMU PWM outputs (MAIN).
+
+All outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 8 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer5)
+- Outputs 5-6 in group2 (Timer4)
+- Outputs 7-8 in group3 (Timer8)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to Buy {#store}
 
 The SPRacingH7EXTREME is available from the [Seriously Pro shop](https://shop.seriouslypro.com/sp-racing-h7-extreme).
