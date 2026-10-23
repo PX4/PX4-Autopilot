@@ -349,7 +349,7 @@ protected:
 	 */
 	bool checkMissionRestart();
 
-	/** Allow modes with external mission ownership to ignore subscription updates. */
+	/** Allow modes with external mission ownership to ignore subscription updates; they publish only their index. */
 	MISSION_ROUTE_HOOK bool shouldAcceptMissionUpdates() { return true; }
 
 	/** Allow normal Mission modes to restore persistent action commands on activation. */
@@ -604,6 +604,9 @@ private:
 	bool handleJoinRouteWaypoint();
 
 	bool joinRouteTransitionStillRequired() const;
+
+	/** Publish a new index for a mode that ignores mission updates, without its outdated mission copy. */
+	void publishMissionIndex();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**

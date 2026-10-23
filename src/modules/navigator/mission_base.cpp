@@ -1531,9 +1531,34 @@ void MissionBase::setMissionIndex(int32_t index)
 	if (index != _mission.current_seq) {
 		_mission.current_seq = index;
 		_mission.timestamp = hrt_absolute_time();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		if (!shouldAcceptMissionUpdates()) {
+			publishMissionIndex();
+			return;
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		_mission_pub.publish(_mission);
 	}
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+void MissionBase::publishMissionIndex()
+{
+	// _mission ignores topic updates, so only the index is ours: publish it on the latest topic,
+	// and not at all when that topic shows another mission.
+	uORB::Subscription mission_sub{ORB_ID(mission)};
+	mission_s mission{};
+
+	if (mission_sub.copy(&mission) && mission.mission_id == _mission.mission_id
+	    && mission.mission_dataman_id == _mission.mission_dataman_id && mission.count == _mission.count) {
+		mission.current_seq = _mission.current_seq;
+		mission.timestamp = _mission.timestamp;
+		_mission_pub.publish(mission);
+	}
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 bool MissionBase::loadMissionItemFromCache(int32_t index, mission_item_s &mission_item)
 {
