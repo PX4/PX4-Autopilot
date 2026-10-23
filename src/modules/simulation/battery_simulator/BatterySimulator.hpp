@@ -73,7 +73,7 @@ private:
 	void updateParams() override;
 
 	// Average current in A drawn from the given battery in the current flight mode, negative if not simulated
-	float avgCurrent(int battery_index, bool is_fw, bool is_mc) const;
+	float avgCurrent(int battery_index, bool is_fw) const;
 
 	// Lowest state of charge in percent the given battery drains down to
 	float minimumPercentage(int battery_index) const;
@@ -101,7 +101,6 @@ private:
 	bool _capacity_warned[battery_status_s::MAX_INSTANCES] {};
 	bool _armed{false};
 	bool _was_armed{false};
-	bool _is_mc{false};
 	bool _is_fw{false};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
