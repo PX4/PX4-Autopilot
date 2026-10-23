@@ -111,7 +111,8 @@ private:
 	/**
 	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
 	 *
-	 * @param keep_mission_index True when activation must not move the mission index, e.g. after a restart.
+	 * @param keep_mission_index True when activation must not move the mission index: after the first start of a
+	 *        mission, a landing, a selection or a landing abort, until a position item is reached.
 	 * @return true if a join route was armed, false to fly directly to the current item.
 	 */
 	bool trySetRouteJoinOnActivation(bool keep_mission_index);

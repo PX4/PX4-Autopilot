@@ -189,6 +189,10 @@ public:
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
 	void set_rtl_return_alt_min(bool enable) { _rtl.set_return_alt_min(enable); }
 	MissionRouteCache           &get_mission_route_cache() { return _mission_route_cache; }
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Last mission topic publication by a navigator mode, to tell it from an index change by another module. */
+	mission_s                   &get_last_mission_publication() { return _last_mission_publication; }
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
@@ -435,6 +439,9 @@ private:
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
 	MissionRouteCache _mission_route_cache{&_mavlink_log_pub};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	mission_s _last_mission_publication {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */

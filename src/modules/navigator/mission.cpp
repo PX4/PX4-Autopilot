@@ -106,10 +106,13 @@ Mission::on_activation()
 		_active_jump_anchor = {};
 	}
 
+	// Only a mission flown along its route joins. After the first start, a landing (disarm, also before a restart)
+	// or a selection, fly to the current item, also across later pauses, until a position item is reached.
+	const bool keep_mission_index = !_mission_has_been_activated || _system_disarmed_while_inactive
+					|| _keep_index_until_reached;
 	_system_disarmed_while_inactive = false;
-
-	// A restarted mission starts at its first item.
-	trySetRouteJoinOnActivation(restarted);
+	trySetRouteJoinOnActivation(keep_mission_index);
+	_keep_index_until_reached = keep_mission_index;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	MissionBase::on_activation();
@@ -233,6 +236,15 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 			}
 		}
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		// Selecting the current item keeps it until it is reached, as any selection (-1 selects no item).
+		if (index != -1) {
+			_keep_index_until_reached = true;
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 		return true;
 	}
 
@@ -249,6 +261,8 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 	// The user actively moved the mission index: any armed route join or loop anchor is stale.
 	resetJoinRouteState();
 	_active_jump_anchor = {};
+	// Fly to the selected item, also across pauses, until a position item is reached.
+	_keep_index_until_reached = true;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	resetVtolTransition();
 
