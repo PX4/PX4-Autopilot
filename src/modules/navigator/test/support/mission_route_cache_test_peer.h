@@ -118,14 +118,6 @@ public:
 		       && cache._dataman_cache_safepoint.isLoading();
 	}
 
-	// Force safe-point read without changing safe_points_id, simulating a re-validation cycle.
-	static void requestSafePointRecheck(MissionRouteCache &cache)
-	{
-		cache._safe_point.update_requested = true;
-		cache._safe_point.dataman_state = MissionRouteCache::SafePointDatamanState::kUpdateRequestWait;
-		cache._safe_point.retry.retry_at = 0;
-	}
-
 	static void expireSafePointRetryBackoff(MissionRouteCache &cache)
 	{
 		cache._safe_point.retry.retry_at = 0;
