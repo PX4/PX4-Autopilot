@@ -74,6 +74,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - Return mode now stops in the cycle it is left, not one cycle later. Before, a precision landing selected right after Return was partly reset, and Return selected again after one cycle of Hold hovered in place instead of returning. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
 - If a mission-based Return cannot allocate its executor, it now flies directly to its destination, the mission landing point or Home, and tells the pilot "Return: cannot follow the mission; flying directly". Before, Return did nothing. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
 - Return no longer reports a stale VTOL landing approach in `rtl_status`, for example one found before an [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) change. With [MIS_TKO_LAND_REQ](../advanced_config/parameter_reference.md#MIS_TKO_LAND_REQ) = 5, a mission without a landing, uploaded or started in the air, can therefore now be rejected where it passed before. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
+- With [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 5 and no rally point, a fixed-wing vehicle now circles where Return started, whatever [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY) is.
+  It used to land there when `RTL_LAND_DELAY` was not -1, with the altitude it was flying at as the ground altitude.
+  VTOLs and multicopters still follow `RTL_LAND_DELAY`.
 
 ### Hardware Support
 
