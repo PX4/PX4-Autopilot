@@ -188,6 +188,17 @@ float PerformanceModel::getCalibratedStallAirspeed(float load_factor, float flap
 	return (_param_fw_airspd_stall.get() * airspeed_flap_factor) * sqrtf(getWeightRatio() * load_factor);
 }
 
+float PerformanceModel::getCriticalCalibratedAirspeed(float load_factor, float flaps_setpoint) const
+{
+	if (_param_fw_airspd_crit.get() < 0.f) {
+		return _param_fw_airspd_crit.get();
+	}
+
+	load_factor = math::max(load_factor, FLT_EPSILON);
+	const float airspeed_flap_factor = math::lerp(1.f, _param_fw_airspd_flp_sc.get(), flaps_setpoint);
+	return (_param_fw_airspd_crit.get() * airspeed_flap_factor) * sqrtf(getWeightRatio() * load_factor);
+}
+
 float PerformanceModel::getMaximumCalibratedAirspeed() const
 {
 	return _param_fw_airspd_max.get();
