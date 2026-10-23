@@ -279,7 +279,8 @@ Both ends must be within the permitted area, altitude and distance-from-home lim
 A segment that touches or crosses an inclusion or exclusion fence boundary is rejected.
 
 The planner checks the candidates retained by [Point Projection](#point-projection), up to three per vehicle or safe point.
-It does not search for replacements.
+If the closest candidate fails, or a candidate fails while all three places were taken, a failing projection may have hidden others that pass.
+The planner then projects that vehicle or safe point again and checks each projection before keeping it, so it keeps the closest projections that pass.
 If no branch-in candidate passes, smart rejoin is skipped and route-following Return has no route.
 If no safe point has a usable branch-off, Return can still select a mission takeoff or landing endpoint.
 
@@ -457,8 +458,9 @@ Its default is `1` (`32` on testing builds), with a supported range of `1` to `3
 More rally points than fit in one batch require additional scans, increasing planning time.
 Increasing the batch size reduces the number of scans but uses more static RAM: 400 to 500 bytes per rally point, 13.7 KB at 32.
 
-Geofence checks use the same candidates and do not scan the mission again.
-They check up to `min(32, 3 * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE)` segments at a time, from one static buffer.
+Geofence checks use the same candidates and check up to `min(32, 3 * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE)` segments at a time, from one static buffer.
+The mission is scanned again only for the vehicle or rally points that lose candidates this way (see [Geofence Checks](#geofence-checks)), and that scan checks their projections one at a time.
+The worst case is a rally point that a fence separates from every leg, as the scan then checks one path per leg: 32 such rally points with a 300-item mission and a 60-vertex fence took about 10 ms per evaluation on a desktop PC, an estimated 0.1 to 0.3 s on a Pixhawk 6C.
 
 For firmware builds with enough memory, all supported rally points can be checked in one scan:
 
