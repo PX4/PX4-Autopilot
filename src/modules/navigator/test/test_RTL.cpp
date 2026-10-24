@@ -535,7 +535,8 @@ protected:
 
 	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type,
 				  uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL, bool front_transition = false,
-				  bool back_transition = false)
+				  bool back_transition = false, uint8_t arming_state = vehicle_status_s::ARMING_STATE_DISARMED,
+				  hrt_abstime takeoff_time = 0)
 	{
 		vehicle_status_s status{};
 		status.timestamp = hrt_absolute_time();
@@ -544,6 +545,8 @@ protected:
 		status.nav_state = nav_state;
 		status.in_transition_to_fw = front_transition;
 		status.in_transition_mode = front_transition || back_transition;
+		status.arming_state = arming_state;
+		status.takeoff_time = takeoff_time;
 
 		if (_vehicle_status_pub == nullptr) {
 			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -600,6 +603,74 @@ protected:
 		result->mission_id = mission.mission_id;
 		result->geofence_id = mission.geofence_id;
 		result->home_position_counter = 0;
+	}
+
+	// Navigator copies Home before it runs the modes
+	void setHome(uint32_t update_count, float alt)
+	{
+		publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, alt), update_count);
+		uORB::Subscription home_sub{ORB_ID(home_position)};
+		home_sub.copy(_navigator.get_home_position());
+	}
+
+	// the mission check waits for the fence, here an empty one
+	bool loadEmptyFence()
+	{
+		mission_stats_entry_s no_fence{};
+
+		if (!_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&no_fence),
+					       sizeof(no_fence))) {
+			return false;
+		}
+
+		Geofence &fence = _navigator.get_geofence();
+		const hrt_abstime start = hrt_absolute_time();
+
+		while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start) < 1_s) {
+			fence.run();
+			px4_usleep(1000);
+		}
+
+		return fence.isReadyForPathChecks();
+	}
+
+	RTL::RtlType decideReturnType(int32_t rtl_type)
+	{
+		param_set(param_find("RTL_TYPE"), &rtl_type);
+		_rtl.updateParamsForTest();
+		_rtl.decideRtlTypeForTest();
+		return _rtl.rtlTypeForTest();
+	}
+
+	// Three waypoints, then a fixed-wing landing relative to Home after an absolute approach 20 m above kAlt:
+	// the landing check passes only while Home is below the approach.
+	mission_s writeFixedWingLandingMission()
+	{
+		const PositionYawSetpoint north = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 2000.f, 0.f, kAlt);
+		const PositionYawSetpoint north_east = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 2000.f, 2000.f, kAlt);
+		const PositionYawSetpoint east = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 2000.f, kAlt);
+		const PositionYawSetpoint approach = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt);
+		mission_item_s land_start{};
+		land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+		mission_item_s land = makeSafePointItem(kBaseLat, kBaseLon, 0.f, NAV_FRAME_GLOBAL_RELATIVE_ALT, NAV_CMD_LAND);
+		land.altitude_is_relative = true;
+		writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {
+			makeSafePointItem(north.lat, north.lon, kAlt + 100.f, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
+			makeSafePointItem(north_east.lat, north_east.lon, kAlt + 100.f, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
+			makeSafePointItem(east.lat, east.lon, kAlt + 100.f, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
+			land_start,
+			makeSafePointItem(approach.lat, approach.lon, kAlt + 20.f, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
+			land
+		});
+
+		mission_s mission{};
+		mission.timestamp = hrt_absolute_time();
+		mission.mission_id = 9;
+		mission.count = 6;
+		mission.land_start_index = 3;
+		mission.land_index = 5;
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		return mission;
 	}
 
 	// Without a route, Return stops at the vehicle position: direct RTL to it, at its altitude.
@@ -2500,7 +2571,7 @@ TEST_F(RTLTest, HomeUpdateDoesNotKeepTheStopWaiting)
 	primeNavigatorState();
 	_rtl.activateRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	// The follower has run its own first mission check.
+	// The follower uses Mission's verdict and does not check the mission itself.
 	runReturnCycles(2);
 
 	// Commander updates Home in flight; nothing checks the mission again for it.
@@ -2517,6 +2588,152 @@ TEST_F(RTLTest, HomeUpdateDoesNotKeepTheStopWaiting)
 	const bool following = _rtl.rtlTypeForTest() == RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
 	const bool landing = _navigator.get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND;
 	EXPECT_TRUE(landing || (following && _rtl.routePlanSourceStillValidForTest()));
+}
+
+// WHY: RTL creates the route follower only for a mission that Mission has checked, but the follower used to recheck
+// it in its first cycle, also after a Home update in flight, where the recheck can reject the mission.
+// WHAT: a route follower created after a Home update keeps Mission's verdict.
+TEST_F(RTLTest, RouteFollowerKeepsTheMissionVerdictAfterAHomeUpdate)
+{
+	prepareStraightRouteScenario();
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+
+	// GIVEN: Commander updated Home in flight after Mission checked the mission
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), 1);
+	primeNavigatorState();
+
+	// WHEN: the route Return starts and its follower runs
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	runReturnCycles(2);
+
+	// THEN: the verdict is still the one Mission computed
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, 0u);
+}
+
+// WHY: RTL keeps the route follower between plans, and Return activation refreshed its mission. A kept follower then
+// took a new upload and checked it with the current Home, in flight too, where that check can reject the mission.
+// WHAT: Return activation leaves the kept follower alone; the upload gets a new follower and keeps Mission's verdict.
+TEST_F(RTLTest, ReturnActivationDoesNotRecheckAnUploadInTheKeptRouteFollower)
+{
+	const mission_route::Position safe_position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt);
+	const mission_s mission = loadRoutePlanningCache({
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 10.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 10.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 10.f),
+	}, {makeSafePointItem(safe_position.lat, safe_position.lon, safe_position.alt, NAV_FRAME_GLOBAL)});
+	publishMission(mission);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 10.f));
+	setMissionResultValid(mission);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	primeNavigatorState();
+
+	// GIVEN: an inactive plan created the route follower
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	_rtl.run(false);
+
+	// GIVEN: a replacement mission was uploaded, loaded and checked by Mission
+	mission_s replacement = mission;
+	replacement.mission_id = mission.mission_id + 1;
+	replacement.timestamp = hrt_absolute_time();
+	publishMission(replacement);
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, replacement, [&] {
+		return cache.missionItemsReady(replacement) && cache.safePointsReady();
+	}));
+	setMissionResultValid(replacement);
+
+	// WHEN: Home moves 20 m up in flight, above the absolute takeoff altitude, and Return is triggered
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 20.f), 1);
+	primeNavigatorState();
+	_rtl.activateRouteSafePointReturnForTest();
+
+	// THEN: Return follows the route of the replacement, whose verdict is kept
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+}
+
+// WHY: Return activation refreshed the mission of the kept route follower. After an upload that was not loaded yet,
+// the follower held that mission while its route still belonged to the earlier one, so a retry that planned the
+// earlier mission again reused a follower whose mission did not match, and the Return ended at once.
+// WHAT: a follower reused for its route's mission flies the route.
+TEST_F(RTLTest, RouteFollowerReusedAfterAnotherUploadFliesItsRoute)
+{
+	const mission_s mission = prepareStraightRouteScenario();
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	primeNavigatorState();
+
+	// GIVEN: an inactive plan created the route follower
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	_rtl.run(false);
+
+	// GIVEN: another mission is uploaded to the other slot and checked, but not loaded: Return starts without a route
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_1, {
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	});
+	mission_s other = mission;
+	++other.mission_id;
+	other.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+	other.timestamp = hrt_absolute_time();
+	publishMission(other);
+	setMissionResultValid(other);
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+
+	// WHEN: the first mission is uploaded again to its slot, still loaded, and checked, so a retry plans it
+	mission_s again = mission;
+	again.timestamp = hrt_absolute_time();
+	publishMission(again);
+	setMissionResultValid(again);
+	runReturnCycles(3);
+
+	// THEN: the reused follower flies the route instead of ending the Return
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	EXPECT_FALSE(_navigator.get_mission_result()->finished);
+	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+
+	// the dataman is shared by every case in this binary, so leave the slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
+}
+
+// WHY: a reused route follower ignores the mission topic, so its index copy can still be the one it published in an
+// earlier Return. When the new plan started at that index, nothing was published and the topic kept Mission's index,
+// from which Mission could later resume instead of restarting.
+// WHAT: a Return with a reused follower publishes the follower's first index.
+TEST_F(RTLTest, ReusedRouteFollowerPublishesItsFirstIndex)
+{
+	mission_s mission = prepareFinalMissionLegScenario();
+	primeNavigatorState();
+	uORB::SubscriptionData<mission_s> mission_sub{ORB_ID(mission)};
+
+	// GIVEN: a first Return published its first index, then Mission flew on towards its own
+	_rtl.evaluateInactiveRouteSafePointReturnForTest();
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	const int32_t first_index = _rtl.routePlanForTest().first_mission_item_index;
+	ASSERT_NE(first_index, mission.current_seq);
+	mission_sub.update();
+	ASSERT_EQ(mission_sub.get().current_seq, first_index);
+	_rtl.run(false);
+	mission.timestamp = hrt_absolute_time();
+	publishMission(mission);
+
+	// WHEN: the next Return reuses the follower, whose plan starts at the same index
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
+	ASSERT_EQ(_rtl.routePlanForTest().first_mission_item_index, first_index);
+
+	// THEN: the mission topic reports the index the Return flies to
+	mission_sub.update();
+	EXPECT_EQ(mission_sub.get().current_seq, first_index);
 }
 
 // RTL may see a rally point upload before the cache does, when MAVLink publishes during a navigator cycle.
@@ -3988,34 +4205,7 @@ TEST_F(RTLTest, ReturnFollowsTheCheckedMissionAfterHomeUpdates)
 {
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	_navigator.get_global_position()->timestamp = hrt_absolute_time(); // the mission check waits for a position
-
-	// Navigator copies Home before it runs the modes
-	uORB::Subscription home_sub{ORB_ID(home_position)};
-	auto setHome = [&](uint32_t update_count, float alt) {
-		publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, alt), update_count);
-		home_sub.copy(_navigator.get_home_position());
-	};
-
-	auto returnType = [&](int32_t rtl_type) {
-		param_set(param_find("RTL_TYPE"), &rtl_type);
-		_rtl.updateParamsForTest();
-		_rtl.decideRtlTypeForTest();
-		return _rtl.rtlTypeForTest();
-	};
-
-	// the mission check waits for the fence, here an empty one
-	mission_stats_entry_s no_fence{};
-	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&no_fence),
-					      sizeof(no_fence)));
-	Geofence &fence = _navigator.get_geofence();
-	const hrt_abstime start = hrt_absolute_time();
-
-	while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start) < 1_s) {
-		fence.run();
-		px4_usleep(1000);
-	}
-
-	ASSERT_TRUE(fence.isReadyForPathChecks());
+	ASSERT_TRUE(loadEmptyFence());
 
 	// a waypoint 500 m north, then a mission landing at Home
 	const PositionYawSetpoint waypoint = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt);
@@ -4042,30 +4232,117 @@ TEST_F(RTLTest, ReturnFollowsTheCheckedMissionAfterHomeUpdates)
 	setHome(1, kAlt);
 	mission_mode.run(false);
 	ASSERT_TRUE(_navigator.get_mission_result()->valid);
-	EXPECT_EQ(returnType(1), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
-	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
+	EXPECT_EQ(decideReturnType(1), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	EXPECT_EQ(decideReturnType(2), RTL::RtlType::RTL_MISSION_FAST);
 
 	// WHEN: Home is set again at arming and at takeoff, outside Mission
 	// THEN: the return still uses the mission
 	setHome(2, kAlt);
 	mission_mode.run(false);
-	EXPECT_EQ(returnType(1), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
-	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
+	EXPECT_EQ(decideReturnType(1), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	EXPECT_EQ(decideReturnType(2), RTL::RtlType::RTL_MISSION_FAST);
 
 	setHome(3, kAlt);
 	mission_mode.run(false);
-	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
-	EXPECT_EQ(returnType(4), RTL::RtlType::RTL_MISSION_FAST_REVERSE);
+	EXPECT_EQ(decideReturnType(2), RTL::RtlType::RTL_MISSION_FAST);
+	EXPECT_EQ(decideReturnType(4), RTL::RtlType::RTL_MISSION_FAST_REVERSE);
 
 	// WHEN: Mission flies and a GNSS altitude correction moves Home
 	mission_mode.run(true);
 	setHome(4, kAlt - 1.5f);
 	mission_mode.run(true);
-	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
+	EXPECT_EQ(decideReturnType(2), RTL::RtlType::RTL_MISSION_FAST);
 
 	// WHEN: the return is triggered from Mission, whose inactivation runs first in that cycle
 	mission_mode.run(false);
-	EXPECT_EQ(returnType(2), RTL::RtlType::RTL_MISSION_FAST);
+	EXPECT_EQ(decideReturnType(2), RTL::RtlType::RTL_MISSION_FAST);
+
+	// the dataman is shared by every case in this binary, so leave the slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_FENCE_POINTS_STATE));
+}
+
+// WHY: a mode created at Return activation reloaded its items in its first active cycle. On the ground that started
+// the mission landing that its activation had just declined because the vehicle is landed.
+// WHAT: a Return triggered while armed on the ground does not start the mission landing.
+TEST_F(RTLTest, ReturnOnTheGroundDoesNotStartTheMissionLanding)
+{
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishLandDetected(true);
+	_navigator.get_global_position()->timestamp = hrt_absolute_time(); // the mission check waits for a position
+	ASSERT_TRUE(loadEmptyFence());
+	const mission_s mission = writeFixedWingLandingMission();
+	publishMission(mission);
+
+	// RTL_TYPE 1 takes the mission landing from the route cache
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] { return cache.missionLandItemReady(); }));
+
+	// GIVEN: a checked mission with a landing, and RTL_TYPE 1
+	Mission mission_mode{&_navigator};
+	setHome(1, kAlt);
+	mission_mode.run(false);
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	int32_t rtl_type = 1;
+	param_set(param_find("RTL_TYPE"), &rtl_type);
+	_rtl.updateParamsForTest();
+
+	// WHEN: Return is triggered while armed on the ground, and runs a few cycles
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL,
+			     false, false, vehicle_status_s::ARMING_STATE_ARMED);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+
+	for (int cycle = 0; cycle < 3; ++cycle) {
+		_rtl.run(true);
+	}
+
+	// THEN: it selected the mission landing but does not fly it from the ground
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	EXPECT_TRUE(!current.valid || current.type == position_setpoint_s::SETPOINT_TYPE_IDLE);
+
+	// the dataman is shared by every case in this binary, so leave the slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_FENCE_POINTS_STATE));
+}
+
+// WHY: RTL creates a new mission mode whenever the return type changes, for example when RTL_TYPE 4 switches
+// to the forward mission once the mission passes its middle. That mode used to recheck the mission in its first
+// cycle, also in flight, where a Home update can make the recheck fail.
+// WHAT: a mode created in flight after a Home update keeps Mission's verdict.
+TEST_F(RTLTest, NewReturnModeKeepsTheMissionVerdictInFlight)
+{
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	_navigator.get_global_position()->timestamp = hrt_absolute_time(); // the mission check waits for a position
+	ASSERT_TRUE(loadEmptyFence());
+	mission_s mission = writeFixedWingLandingMission();
+	publishMission(mission);
+	Mission mission_mode{&_navigator};
+
+	// GIVEN: the mission was checked on the ground with Home at kAlt
+	setHome(1, kAlt);
+	mission_mode.run(false);
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+
+	// GIVEN: in flight, the return follows the reverse mission
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION,
+			     false, false, vehicle_status_s::ARMING_STATE_ARMED, hrt_absolute_time());
+	publishLandDetected(false);
+	EXPECT_EQ(decideReturnType(4), RTL::RtlType::RTL_MISSION_FAST_REVERSE);
+
+	// WHEN: Home moves 25 m up, which puts the landing above its approach
+	setHome(2, kAlt + 25.f);
+
+	// WHEN: the mission passes its middle, so the return switches to a new forward mission mode
+	mission.current_seq = 2;
+	publishMission(mission);
+	EXPECT_EQ(decideReturnType(4), RTL::RtlType::RTL_MISSION_FAST);
+	_rtl.run(false);
+
+	// THEN: the new mode keeps Mission's verdict, and the return still follows the mission
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, 1u);
+	EXPECT_EQ(decideReturnType(4), RTL::RtlType::RTL_MISSION_FAST);
 
 	// the dataman is shared by every case in this binary, so leave the slots as they were found
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
