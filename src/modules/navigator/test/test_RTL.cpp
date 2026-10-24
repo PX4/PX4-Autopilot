@@ -2028,12 +2028,13 @@ TEST_F(RTLTest, ReturnActivationFliesTheMissionPublishedSinceTheLastInactiveCycl
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
 }
 
-// WHY: Commander sets Home again at arming, at takeoff and after a GNSS altitude correction, and none of these
-// re-runs the mission check.
-// WHAT: the return keeps following the checked mission after each of these Home updates.
+// WHY: Commander sets Home again at arming, at takeoff and after a GNSS altitude correction.
+// WHAT: Mission rechecks the mission once armed on the ground, where it stays valid, and the return keeps following
+// the checked mission after each of these Home updates.
 TEST_F(RTLTest, ReturnFollowsTheCheckedMissionAfterHomeUpdates)
 {
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(true);
 	_navigator.get_global_position()->timestamp = hrt_absolute_time(); // the mission check waits for a position
 	ASSERT_TRUE(loadEmptyFence());
 
@@ -2065,22 +2066,34 @@ TEST_F(RTLTest, ReturnFollowsTheCheckedMissionAfterHomeUpdates)
 	EXPECT_EQ(decideReturnType(1), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
 	EXPECT_EQ(decideReturnType(2), RTL::RtlType::RTL_MISSION_FAST);
 
-	// WHEN: Home is set again at arming and at takeoff, outside Mission
-	// THEN: the return still uses the mission
+	// WHEN: Home is set again at arming, outside Mission
+	// THEN: Mission rechecks the mission with it, and the return still uses the mission
 	setHome(2, kAlt);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_MANUAL,
+			     vehicle_status_s::ARMING_STATE_ARMED);
 	mission_mode.run(false);
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, 2u);
 	EXPECT_EQ(decideReturnType(1), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
 	EXPECT_EQ(decideReturnType(2), RTL::RtlType::RTL_MISSION_FAST);
 
+	// WHEN: Home is set again at takeoff, outside Mission
+	// THEN: the verdict is kept, and the return still uses the mission
 	setHome(3, kAlt);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_MANUAL,
+			     vehicle_status_s::ARMING_STATE_ARMED, hrt_absolute_time());
+	publishLandDetected(false);
 	mission_mode.run(false);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, 2u);
 	EXPECT_EQ(decideReturnType(2), RTL::RtlType::RTL_MISSION_FAST);
 	EXPECT_EQ(decideReturnType(4), RTL::RtlType::RTL_MISSION_FAST_REVERSE);
 
 	// WHEN: Mission flies and a GNSS altitude correction moves Home
+	// THEN: the verdict from Mission's start, with the takeoff Home, is kept
 	mission_mode.run(true);
 	setHome(4, kAlt - 1.5f);
 	mission_mode.run(true);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, 3u);
 	EXPECT_EQ(decideReturnType(2), RTL::RtlType::RTL_MISSION_FAST);
 
 	// WHEN: the return is triggered from Mission, whose inactivation runs first in that cycle
@@ -2173,6 +2186,65 @@ TEST_F(RTLTest, NewReturnModeKeepsTheMissionVerdictInFlight)
 	EXPECT_TRUE(_navigator.get_mission_result()->valid);
 	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, 1u);
 	EXPECT_EQ(decideReturnType(4), RTL::RtlType::RTL_MISSION_FAST);
+
+	// the dataman is shared by every case in this binary, so leave the slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_FENCE_POINTS_STATE));
+}
+
+// WHY: Home follows the disarmed vehicle and is set again at arming, and a landing relative to Home moves with it,
+// so a mission checked earlier can fail the check with the Home the vehicle takes off from.
+// WHAT: once armed on the ground, Mission rechecks with the latest Home, and Return drops the rejected landing.
+TEST_F(RTLTest, ArmingRechecksTheMissionWithTheLatestHome)
+{
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishLandDetected(true);
+	_navigator.get_global_position()->timestamp = hrt_absolute_time(); // the mission check waits for a position
+	ASSERT_TRUE(loadEmptyFence());
+	const mission_s mission = writeFixedWingLandingMission();
+	publishMission(mission);
+
+	// RTL_TYPE 1 takes the mission landing from the route cache
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] { return cache.missionLandItemReady(); }));
+
+	Mission mission_mode{&_navigator};
+
+	// GIVEN: the mission was checked on the ground with Home at kAlt
+	setHome(1, kAlt);
+	mission_mode.run(false);
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_EQ(decideReturnType(1), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+
+	// WHEN: the disarmed vehicle is carried 25 m up, which puts the landing above its approach
+	// THEN: the verdict is kept while disarmed
+	setHome(2, kAlt + 25.f);
+	mission_mode.run(false);
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+
+	// WHEN: Commander sets Home at arming, then publishes the armed state
+	setHome(3, kAlt + 25.f);
+	mission_mode.run(false);
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, vehicle_status_s::NAVIGATION_STATE_MANUAL,
+			     vehicle_status_s::ARMING_STATE_ARMED);
+	mission_mode.run(false);
+
+	// THEN: Mission rechecks with the arming Home and rejects the landing
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, 3u);
+
+	// WHEN: Return is triggered after takeoff
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL,
+			     vehicle_status_s::ARMING_STATE_ARMED, hrt_absolute_time());
+	publishLandDetected(false);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt + 125.f);
+	mission_mode.run(false);
+	_rtl.run(false);
+	_rtl.run(true);
+
+	// THEN: it returns directly instead of flying the rejected mission landing
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 
 	// the dataman is shared by every case in this binary, so leave the slots as they were found
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
