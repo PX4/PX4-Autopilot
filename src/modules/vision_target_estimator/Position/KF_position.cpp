@@ -104,6 +104,12 @@ FusionResult KF_position::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_
 	return _oosm.fuse(*this, meas, now_us, nis_threshold, _state, _state_covariance, _last_acc);
 }
 
+void KF_position::fuseScalarsAtTime(const ScalarMeas *meas, size_t count, uint64_t now_us, float nis_threshold,
+				    FusionResult *results)
+{
+	_oosm.fuseBatch(*this, meas, count, now_us, nis_threshold, _state, _state_covariance, _last_acc, results);
+}
+
 void KF_position::applyCorrection(VectorState &state, SquareMatrixState &cov, const VectorState &K, float innov, float S)
 {
 	VectorState state_new;
