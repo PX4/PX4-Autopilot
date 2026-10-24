@@ -133,11 +133,22 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		}
 	}
 
-	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
-	P = sym::PredictCovariance(_state.vector(), P,
-				   imu_delayed.delta_vel / imu_delayed.delta_vel_dt, accel_var,
-				   imu_delayed.delta_ang / imu_delayed.delta_ang_dt, gyro_var,
-				   dt);
+	// calculate variances and upper diagonal covariances for the quaternion, velocity and position states.
+	// The other states have an identity process model: their rows of the upper triangle are unchanged.
+	const auto P_pred = sym::PredictCovariance(_state.vector(), P,
+			    imu_delayed.delta_vel / imu_delayed.delta_vel_dt, accel_var,
+			    imu_delayed.delta_ang / imu_delayed.delta_ang_dt, gyro_var,
+			    dt);
+
+	static constexpr unsigned predicted_rows = sizeof(P_pred) / (sizeof(float) * State::size);
+
+	// covariance matrix is symmetrical, so copy upper half to lower half
+	for (unsigned row = 0; row < predicted_rows; row++) {
+		for (unsigned column = row; column < State::size; column++) {
+			P(row, column) = P_pred(row, column);
+			P(column, row) = P_pred(row, column);
+		}
+	}
 
 	if (!_control_status.flags.heading_observable) {
 		// Zero heading correlations to prevent unintended heading corrections when heading is not observable
@@ -235,13 +246,6 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	}
 
 #endif // CONFIG_EKF2_TERRAIN
-
-	// covariance matrix is symmetrical, so copy upper half to lower half
-	for (unsigned row = 0; row < State::size; row++) {
-		for (unsigned column = 0; column < row; column++) {
-			P(row, column) = P(column, row);
-		}
-	}
 
 	constrainStateVariances();
 }

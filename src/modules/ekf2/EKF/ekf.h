@@ -284,6 +284,9 @@ public:
 	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
 					bool constrain_variances = true);
 
+	// Kalman gain P * H / innov_var for a scalar observation with Jacobian H
+	VectorState computeKalmanGain(const VectorState &H, const float innov_var) const;
+
 	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation);
 
 	// gyro bias
@@ -926,7 +929,7 @@ private:
 	bool fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSample &ev_sample);
 	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
 	{
-		VectorState Kfusion = P * H / innov_var;
+		VectorState Kfusion = computeKalmanGain(H, innov_var);
 		measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
 		aid_src.fused = true;
 	}
