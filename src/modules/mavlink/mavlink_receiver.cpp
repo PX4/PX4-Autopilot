@@ -1389,8 +1389,8 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 				_home_position_sub.copy(&home_position);
 
 				if (home_position.valid_alt) {
-					const float alt = home_position.alt - target_global_int.alt;
-					setpoint.position[2] = alt - local_pos.ref_alt;
+					const float alt = home_position.alt + target_global_int.alt;
+					setpoint.position[2] = local_pos.ref_alt - alt;
 
 				} else {
 					// home altitude required
