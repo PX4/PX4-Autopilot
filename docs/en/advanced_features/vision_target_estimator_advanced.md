@@ -1057,7 +1057,8 @@ A few tips to make iteration on real hardware and SITL easier.
   On hardware builds, compile with the debug configuration or enable the console log level before running tests so the additional diagnostics appear on the shell.
 - Keep the estimator alive on the bench by setting [VTE_TASK_MASK](../advanced_config/parameter_reference.md#VTE_TASK_MASK)=3.
   The debug bit enables the continuous update of the position and orientation estimators (if enabled via [VTE_YAW_EN](../advanced_config/parameter_reference.md#VTE_YAW_EN) and [VTE_POS_EN](../advanced_config/parameter_reference.md#VTE_POS_EN)).
-- Use shell helpers while iterating: `listener landing_target_pose`, `listener vte_bias_init_status`, `listener vte_aid_fiducial_marker` (or the relevant `vte_aid_*`) to inspect bias averaging and innovations, `listener vte_input 5` for prediction inputs, and `vision_target_estimator status` to ensure both filters are running.
+- Use `vision_target_estimator status` for the compact [health summary](../advanced_features/vision_target_estimator.md#monitoring).
+  Inspect state values with `listener vte_position` and `listener vte_orientation`, published output with `listener landing_target_pose`, bias averaging with `listener vte_bias_init_status`, innovations with `listener vte_aid_fiducial_marker` (or the relevant `vte_aid_*`), and prediction inputs with `listener vte_input 5`.
 
 <a id="sitl-simulation-pipeline"></a>
 

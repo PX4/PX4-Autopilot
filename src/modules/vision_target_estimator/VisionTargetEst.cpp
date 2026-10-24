@@ -732,35 +732,18 @@ bool VisionTargetEst::updateWhenIntervalElapsed(hrt_abstime &last_time, const hr
 int VisionTargetEst::print_status()
 {
 	const auto yes_no = [](const bool value) { return value ? "yes" : "no"; };
-	SensorFusionMaskU configured_aid_mask{};
-	configured_aid_mask.value = static_cast<uint16_t>(_param_vte_aid_mask.get());
 
-	PX4_INFO("VTE running");
 #if defined(CONFIG_VTEST_MOVING)
-	PX4_INFO("target model: moving");
-	PX4_WARN("Caution: VTE for moving targets is a beta feature");
+	PX4_INFO("target model: moving (beta)");
 #else
 	PX4_INFO("target model: static");
 #endif // CONFIG_VTEST_MOVING
-	PX4_INFO("work queue: %s", px4::wq_configurations::vte.name);
-	PX4_INFO("current task: %s", _current_task_ptr ? _current_task_ptr->name() : "none");
-	PX4_INFO("task mask: 0x%02x (prec_land: %s, prec_takeoff: %s, debug: %s)",
-		 static_cast<unsigned>(_vte_task_mask),
-		 yes_no(isTaskMaskBitEnabled(task_bits::kPrecLand)),
-		 yes_no(isTaskMaskBitEnabled(task_bits::kPrecTakeoff)),
-		 yes_no(isTaskMaskBitEnabled(task_bits::kDebug)));
+	PX4_INFO("task: %s, mask: 0x%02x", _current_task_ptr ? _current_task_ptr->name() : "none",
+		 static_cast<unsigned>(_vte_task_mask));
 	PX4_INFO("aid mask: configured 0x%04x, effective 0x%04x",
 		 static_cast<unsigned>(_param_vte_aid_mask.get()), static_cast<unsigned>(_vte_aid_mask.value));
-	PX4_INFO("  vision pos: %s, target gps pos: %s, mission land pos: %s, home pos: %s",
-		 yes_no(configured_aid_mask.flags.use_vision_pos),
-		 yes_no(configured_aid_mask.flags.use_target_gps_pos),
-		 yes_no(configured_aid_mask.flags.use_mission_pos),
-		 yes_no(configured_aid_mask.flags.use_home_pos));
-	PX4_INFO("  uav gps vel: %s, target gps vel: %s",
-		 yes_no(configured_aid_mask.flags.use_uav_gps_vel),
-		 yes_no(configured_aid_mask.flags.use_target_gps_vel));
 
-	PX4_INFO("position vte: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s",
+	PX4_INFO("%s: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s", "position",
 		 yes_no(_param_vte_pos_en.get()),
 		 yes_no(_vte_position_enabled),
 		 yes_no(_position_estimator_running),
@@ -771,7 +754,7 @@ int VisionTargetEst::print_status()
 		_vte_position.print_status();
 	}
 
-	PX4_INFO("orientation vte: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s",
+	PX4_INFO("%s: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s", "yaw",
 		 yes_no(_param_vte_yaw_en.get()),
 		 yes_no(_vte_orientation_enabled),
 		 yes_no(_orientation_estimator_running),

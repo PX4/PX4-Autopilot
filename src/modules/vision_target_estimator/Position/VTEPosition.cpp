@@ -1339,59 +1339,17 @@ void VTEPosition::print_status() const
 
 	const bool relative_position_valid = _estimator_initialized && !hasTimedOut(_last_update, _target_valid_timeout_us);
 
-	PX4_INFO("  position state: initialized: %s, valid: %s, last predict/update age: %.3f / %.3f s",
+	PX4_INFO("  initialized: %s, valid: %s, predict/update age: %.3f / %.3f s",
 		 yes_no(_estimator_initialized), yes_no(relative_position_valid), age_s(_last_predict), age_s(_last_update));
-	PX4_INFO("    rel pos/vel/ekf2 vel valid: %s / %s / %s",
+	PX4_INFO("  output valid: position: %s, velocity: %s, EKF2 velocity: %s",
 		 yes_no(_target_pose.rel_pos_valid),
 		 yes_no(_target_pose.rel_vel_valid),
 		 yes_no(_target_pose.rel_vel_ekf2_valid));
 
-	if (_estimator_initialized) {
-		const EstimatorState &state_x = _target_est_pos[vtest::Axis::x].getState();
-		const EstimatorState &state_y = _target_est_pos[vtest::Axis::y].getState();
-		const EstimatorState &state_z = _target_est_pos[vtest::Axis::z].getState();
-
-		PX4_INFO("    rel pos: [%.3f, %.3f, %.3f]",
-			 (double)state_x(vtest::State::pos_rel),
-			 (double)state_y(vtest::State::pos_rel),
-			 (double)state_z(vtest::State::pos_rel));
-		PX4_INFO("    gnss bias: [%.3f, %.3f, %.3f]",
-			 (double)state_x(vtest::State::bias),
-			 (double)state_y(vtest::State::bias),
-			 (double)state_z(vtest::State::bias));
-
-#if defined(CONFIG_VTEST_MOVING)
-		PX4_INFO("    target vel: [%.3f, %.3f, %.3f]",
-			 (double)state_x(vtest::State::vel_target),
-			 (double)state_y(vtest::State::vel_target),
-			 (double)state_z(vtest::State::vel_target));
-		PX4_INFO("    target acc: [%.3f, %.3f, %.3f]",
-			 (double)state_x(vtest::State::acc_target),
-			 (double)state_y(vtest::State::acc_target),
-			 (double)state_z(vtest::State::acc_target));
-#endif // CONFIG_VTEST_MOVING
-	}
-
-	PX4_INFO("    bias set: %s, averaging: %s, pre-bias reference: %s",
+	PX4_INFO("  bias set: %s, averaging: %s, pre-bias reference: %s",
 		 yes_no(_bias.set),
 		 yes_no(_bias.averaging_active),
 		 pre_bias_reference_name());
-	PX4_INFO("  position inputs: local pos: %s age %.3f s, local vel: %s age %.3f s",
-		 yes_no(_local_position.valid), age_s(_local_position.timestamp),
-		 yes_no(_local_velocity.valid), age_s(_local_velocity.timestamp));
-	PX4_INFO("    uav gps pos: %s age %.3f s, uav gps vel: %s age %.3f s, pad reference pos: %s",
-		 yes_no(_uav_gps_position.valid), age_s(_uav_gps_position.timestamp),
-		 yes_no(_uav_gps_vel.valid), age_s(_uav_gps_vel.timestamp),
-		 yes_no(_mission_land_position.valid));
-	PX4_INFO("    gnss rel pos: %s age %.3f s, gps pos offset: %s age %.3f s, vel offset: %s age %.3f s",
-		 yes_no(_pos_rel_gnss.valid), age_s(_pos_rel_gnss.timestamp),
-		 yes_no(_gps_pos_is_offset && _gps_pos_offset_ned.valid), age_s(_gps_pos_offset_ned.timestamp),
-		 yes_no(_velocity_offset_ned.valid), age_s(_velocity_offset_ned.timestamp));
-
-#if defined(CONFIG_VTEST_MOVING)
-	PX4_INFO("    target gps vel: %s age %.3f s",
-		 yes_no(_target_gps_vel.valid), age_s(_target_gps_vel.timestamp));
-#endif // CONFIG_VTEST_MOVING
 }
 
 void VTEPosition::checkMeasurementInputs()
