@@ -42,6 +42,8 @@
 
 #include <px4_platform_common/defines.h>
 
+#include <cmath>
+
 #include <mathlib/mathlib.h>
 
 #include "VTEOrientation.h"
@@ -133,18 +135,40 @@ void VTEOrientation::initEstimator(const VisionObs &vision_obs)
 	OrientationStateVec state_init{};
 	state_init(KF_orientation::kYaw) = vision_obs.yaw;
 
+	// The yaw is no better known than the sample that seeds it.
 	OrientationStateVec state_var_init;
 	state_var_init.setAll(fmaxf(_param_vte_yaw_unc_in.get(), kMinVariance));
+	state_var_init(KF_orientation::kYaw) = fmaxf(state_var_init(KF_orientation::kYaw), vision_obs.yaw_var);
 
 	_target_est_yaw.setState(state_init);
 	_target_est_yaw.setStateCovarianceDiag(state_var_init);
-	_target_est_yaw.resetHistory({vision_obs.timestamp, 0});
 
 	PX4_DEBUG("VTE Orientation initialized with yaw: %.2f [rad]", (double)vision_obs.yaw);
 
 	_estimator_initialized = true;
 	_last_predict = nowUs();
 	_last_update = vision_obs.timestamp;
+
+	// The sample is the state, so it is not fused. Snapshot it at its capture time for later replays.
+	_target_est_yaw.resetHistory({vision_obs.timestamp, 0});
+	_target_est_yaw.pushHistory(vision_obs.timestamp);
+
+	vte_aid_source1d_s aid{};
+	aid.timestamp = _last_predict;
+	aid.timestamp_sample = vision_obs.timestamp;
+	aid.time_last_predict = _last_predict;
+	aid.time_since_meas_ms = (_last_predict - vision_obs.timestamp) * kMicrosecondsToMilliseconds;
+	aid.observation = vision_obs.yaw;
+	aid.observation_variance = vision_obs.yaw_var;
+	aid.innovation = NAN;
+	aid.innovation_variance = NAN;
+	aid.test_ratio = NAN;
+	aid.replay_test_ratio_max = -1.f;
+	aid.fusion_status = FusionStatus::STATUS_INITIALIZED;
+	_vte_aid_ev_yaw_pub.publish(aid);
+
+	// Propagate the sample to now with the process noise.
+	predictionStep((_last_predict - vision_obs.timestamp) * kMicrosecondsToSeconds);
 }
 
 void VTEOrientation::predictionStep(float dt)
@@ -163,6 +187,7 @@ void VTEOrientation::performUpdateStep()
 
 	if (!_estimator_initialized) {
 		initEstimator(vision_obs);
+		return;
 	}
 
 	fuseMeas(vision_obs);

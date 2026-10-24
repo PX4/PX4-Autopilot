@@ -773,3 +773,47 @@ TEST(KFPositionTest, PredictMovingTargetAddsUavInputNoise)
 	expectSymmetric(cov);
 }
 #endif // defined(CONFIG_VTEST_MOVING)
+
+// WHY: A delayed position/bias reset must not advance the retained motion estimate twice.
+// WHAT: Reset at capture time and bridge back to now, including target acceleration in the moving model.
+TEST(KFPositionTest, DelayedPositionBiasResetPreservesCurrentMotion)
+{
+	vte::KF_position filter;
+	StateVec initial{};
+	initial(vtest::State::vel_uav) = 2.f;
+#if defined(CONFIG_VTEST_MOVING)
+	initial(vtest::State::vel_target) = 3.f;
+	initial(vtest::State::acc_target) = 2.f;
+#endif
+	StateVec variance;
+	variance.setAll(0.5f);
+	setFilterState(filter, initial, variance);
+	filter.setInputVar(0.2f);
+	filter.setTargetAccVar(0.2f);
+	filter.predict(0.2f, 0.f); // Establish the usual motion-state correlations.
+	const StateVec before = filter.getState();
+	const StateCov covariance_before = filter.getStateCovariance();
+	constexpr float latency = 0.1f;
+	constexpr float position = 10.f;
+	float expected_position = position - before(vtest::State::vel_uav) * latency;
+#if defined(CONFIG_VTEST_MOVING)
+	expected_position += before(vtest::State::vel_target) * latency
+			     - 0.5f * before(vtest::State::acc_target) * latency * latency;
+#endif
+
+	filter.resetPositionAndBias(position, 1.f, 0.3f, 0.5f, latency);
+	filter.predict(latency, 0.f);
+
+	EXPECT_NEAR(filter.getState()(vtest::State::pos_rel), expected_position, kTolerance);
+	EXPECT_NEAR(filter.getState()(vtest::State::bias), 0.3f, kTolerance);
+
+	for (size_t i = 0; i < vte::KF_position::kStateSize; ++i) {
+		if ((i != vtest::State::pos_rel) && (i != vtest::State::bias)) {
+			EXPECT_NEAR(filter.getState()(i), before(i), kTolerance);
+			EXPECT_GE(filter.getStateCovariance()(i, i), covariance_before(i, i) - kTightTolerance);
+		}
+	}
+
+	expectSymmetric(filter.getStateCovariance());
+	EXPECT_GE(filter.getStateCovariance()(vtest::State::pos_rel, vtest::State::pos_rel), 1.f);
+}
