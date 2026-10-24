@@ -41,6 +41,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstring>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -48,8 +49,10 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <parameters/param.h>
+#include <px4_platform_common/log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/uORB.h>
+#include <uORB/topics/log_message.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
@@ -238,6 +241,31 @@ public:
 		_param_rtl_type.set(rtl_type);
 		run(true);
 	}
+
+	void failNextExecutorInitForTest(RtlType rtl_type)
+	{
+		_fail_next_executor_init = true;
+		_failing_executor_type = rtl_type;
+	}
+
+	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
+
+private:
+	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt) override
+	{
+		if (_fail_next_executor_init && new_rtl_type == _failing_executor_type) {
+			// As a failed allocation: the previous executor is deleted first.
+			_fail_next_executor_init = false;
+			delete _rtl_mission_type_handle;
+			_rtl_mission_type_handle = nullptr;
+			return false;
+		}
+
+		return RTL::initRtlMissionType(new_rtl_type, rtl_alt);
+	}
+
+	bool _fail_next_executor_init{false};
+	RtlType _failing_executor_type{RtlType::NONE};
 };
 
 template <typename RtlMissionType>
@@ -2036,6 +2064,110 @@ TEST_F(RTLTest, QuickReturnReentryFollowsTheMissionFromTheClosestItem)
 		EXPECT_EQ(_rtl.rtlTypeForTest(), c.executor);
 		EXPECT_NEAR(current.lat, items[c.closest_item].lat, 1e-7);
 		_rtl.run(false);
+	}
+
+	// the dataman is shared by every case in this binary, so leave the mission slot as it was found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+}
+
+// WHY: a mission executor allocation can fail, and it is retried at every evaluation, every 2 s while inactive.
+// WHAT: types 1 to 4 then return directly to their destination, and a failure is logged once until an init succeeds.
+TEST_F(RTLTest, MissionExecutorInitFailureReturnsDirectly)
+{
+	// PX4_ERR reaches log_message once uORB logging is initialized
+	px4_log_initialize();
+	uORB::Subscription log_sub{ORB_ID(log_message)};
+	const auto initFailureLogs = [&]() {
+		unsigned count = 0;
+		log_message_s log{};
+
+		while (log_sub.update(&log)) {
+			count += strstr(reinterpret_cast<const char *>(log.text), "RTL executor init failed") != nullptr;
+		}
+
+		return count;
+	};
+
+	// the vehicle 500 m north of Home, and a mission landing 100 m further north
+	const PositionYawSetpoint home = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt);
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
+		land_start,
+		makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND)
+	});
+	mission_s mission = makeMissionHeader(10, 0, 3);
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.land_start_index = 1;
+	mission.land_index = 2;
+	publishMission(mission);
+	setMissionResultValid(mission);
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] { return cache.missionLandItemReady(); }));
+
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	const struct {
+		int32_t rtl_type;
+		RTL::RtlType executor;
+		PositionYawSetpoint destination;
+	} cases[] {
+		{1, RTL::RtlType::RTL_DIRECT_MISSION_LAND, land},
+		{2, RTL::RtlType::RTL_MISSION_FAST, home},
+		{3, RTL::RtlType::RTL_DIRECT_MISSION_LAND, land},
+		{4, RTL::RtlType::RTL_MISSION_FAST_REVERSE, home},
+	};
+
+	for (const auto &c : cases) {
+		SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << c.rtl_type);
+
+		// GIVEN: the allocation fails at every inactive evaluation
+		unsigned failure_logs = 0;
+
+		for (int evaluation = 0; evaluation < 3; ++evaluation) {
+			_rtl.failNextExecutorInitForTest(c.executor);
+			_rtl.evaluateReturnTypeForTest(c.rtl_type);
+			failure_logs += initFailureLogs();
+			EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+			EXPECT_EQ(_rtl.missionExecutorForTest(), nullptr);
+		}
+
+		EXPECT_EQ(failure_logs, 1u);
+
+		// WHEN: Return activates and the allocation fails again
+		_rtl.failNextExecutorInitForTest(c.executor);
+		_rtl.activateReturnTypeForTest(c.rtl_type);
+
+		// THEN: it flies directly to the destination of its type, and the activation logs the failure again
+		EXPECT_EQ(initFailureLogs(), 1u);
+		EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+		EXPECT_EQ(_rtl.missionExecutorForTest(), nullptr);
+		EXPECT_TRUE(_rtl.directActiveForTest());
+		ASSERT_TRUE(rtl_status_sub.update());
+		EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
+		EXPECT_NEAR(current.lat, c.destination.lat, 1e-7);
+		EXPECT_NEAR(current.lon, c.destination.lon, 1e-7);
+
+		// the next evaluation with a successful allocation selects the mission executor again
+		_rtl.run(false);
+		_rtl.evaluateReturnTypeForTest(c.rtl_type);
+		EXPECT_EQ(_rtl.rtlTypeForTest(), c.executor);
+		EXPECT_NE(_rtl.missionExecutorForTest(), nullptr);
+
+		// after that success, a later failure of the same type is logged again
+		_rtl.evaluateReturnTypeForTest(0);
+		ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+		_rtl.failNextExecutorInitForTest(c.executor);
+		_rtl.evaluateReturnTypeForTest(c.rtl_type);
+		EXPECT_EQ(initFailureLogs(), 1u);
+		EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	}
 
 	// the dataman is shared by every case in this binary, so leave the mission slot as it was found

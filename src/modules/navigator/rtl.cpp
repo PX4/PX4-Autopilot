@@ -159,6 +159,7 @@ void RTL::on_activation()
 		_rtl_mission_type_handle->refreshMission();
 	}
 
+	_init_failure_reported = RtlType::NONE;
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
@@ -373,6 +374,29 @@ void RTL::setRtlTypeAndDestination()
 		}
 	}
 
+	const float rtl_alt = computeReturnAltitude(destination);
+
+	const bool new_type_is_mission_based = (new_rtl_type == RtlType::RTL_MISSION_FAST)
+					       || (new_rtl_type == RtlType::RTL_MISSION_FAST_REVERSE)
+					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND);
+
+	const bool should_init_mission_type = new_type_is_mission_based && (_rtl_type != new_rtl_type);
+
+	if (should_init_mission_type && !initRtlMissionType(new_rtl_type, rtl_alt)) {
+		// Retried at every evaluation, every 2 s while inactive:
+		// log a failing type once until an init succeeds or Return activates.
+		if (_init_failure_reported != new_rtl_type) {
+			PX4_ERR("RTL executor init failed");
+			_init_failure_reported = new_rtl_type;
+		}
+
+		// Without an executor, return directly to the destination of the selected type.
+		new_rtl_type = RtlType::RTL_DIRECT;
+
+	} else if (should_init_mission_type) {
+		_init_failure_reported = RtlType::NONE;
+	}
+
 	if (new_rtl_type == RtlType::RTL_DIRECT) {
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 		landing_loiter = selectLandingApproach(destination);
@@ -385,17 +409,8 @@ void RTL::setRtlTypeAndDestination()
 		}
 	}
 
-	const float rtl_alt = computeReturnAltitude(destination);
 	_rtl_direct.setRtlAlt(rtl_alt);
 	_rtl_direct.setRtlPosition(destination, landing_loiter);
-
-	const bool new_type_is_mission_based = (new_rtl_type == RtlType::RTL_MISSION_FAST)
-					       || (new_rtl_type == RtlType::RTL_MISSION_FAST_REVERSE)
-					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND);
-
-	if (new_type_is_mission_based && (_rtl_type != new_rtl_type)) {
-		initRtlMissionType(new_rtl_type, rtl_alt);
-	}
 
 	_rtl_type = new_rtl_type;
 
@@ -663,7 +678,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 	}
 }
 
-void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
+bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 {
 	if (_rtl_mission_type_handle) {
 		delete _rtl_mission_type_handle;
@@ -705,6 +720,8 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 	default:
 		break;
 	}
+
+	return _rtl_mission_type_handle != nullptr;
 }
 
 void RTL::parameters_update()
