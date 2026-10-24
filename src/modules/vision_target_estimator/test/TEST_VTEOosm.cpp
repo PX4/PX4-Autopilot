@@ -56,16 +56,16 @@ namespace vision_target_estimator
 // Access into OOSMManager's private helpers for unit tests.
 template <typename Manager>
 struct OOSMManagerTestAccess {
-	using LinearTimeline = typename Manager::LinearTimeline;
-
-	static void copyHistoryToLinearTimeline(Manager &m, LinearTimeline &out)
+	// The i-th snapshot, counting from the oldest.
+	static const typename Manager::Sample &historySample(Manager &m, int i)
 	{
-		m.copyHistoryToLinearTimeline(out);
-	}
+		uint8_t idx = m._history.get_oldest_index();
 
-	static void rebuildHistoryFromLinearTimeline(Manager &m, const LinearTimeline &tl)
-	{
-		m.rebuildHistoryFromLinearTimeline(tl);
+		for (int k = 0; k < i; ++k) {
+			idx = m._history.next(idx);
+		}
+
+		return m._history[idx];
 	}
 
 	static int historyEntries(const Manager &m) { return m._history.entries(); }
@@ -821,12 +821,10 @@ TEST_F(VTEOosmTest, ReplaysBetweenSnapshotsWithoutShorteningHistory)
 	EXPECT_NEAR(state, x_truth(0), kTolerance);
 	EXPECT_NEAR(cov, P_truth(0, 0), kTolerance);
 
-	Manager::LinearTimeline timeline{};
-	Access::copyHistoryToLinearTimeline(oosm, timeline);
-	ASSERT_EQ(timeline.count, Manager::kHistorySize);
+	ASSERT_EQ(Access::historyEntries(oosm), Manager::kHistorySize);
 
-	for (size_t i = 0; i < timeline.count; ++i) {
-		EXPECT_EQ(timeline.samples[i].time_us, start + i * step);
+	for (int i = 0; i < Manager::kHistorySize; ++i) {
+		EXPECT_EQ(Access::historySample(oosm, i).time_us, start + i * step);
 	}
 }
 
@@ -1090,12 +1088,11 @@ TEST_F(VTEOosmTest, FusesOosmExactTimeMatch)
 	EXPECT_NEAR(state, 8.f / 9.f, kTolerance);
 	EXPECT_NEAR(cov, 4.f / 9.f + 0.015f, kTolerance);
 
-	Manager::LinearTimeline timeline{};
-	Access::copyHistoryToLinearTimeline(oosm, timeline);
-	ASSERT_EQ(timeline.count, 2u);
-	EXPECT_EQ(timeline.samples[0].time_us, 100_ms);
-	EXPECT_NEAR(timeline.samples[0].state(0), 8.f / 9.f, kTolerance);
-	EXPECT_NEAR(timeline.samples[0].cov(0, 0), 4.f / 9.f, kTolerance);
+	ASSERT_EQ(Access::historyEntries(oosm), 2);
+	const Manager::Sample &oldest = Access::historySample(oosm, 0);
+	EXPECT_EQ(oldest.time_us, 100_ms);
+	EXPECT_NEAR(oldest.state(0), 8.f / 9.f, kTolerance);
+	EXPECT_NEAR(oldest.cov(0, 0), 4.f / 9.f, kTolerance);
 }
 
 // WHY: A delayed measurement might look valid now, but was an outlier at the time it occurred.
@@ -1190,24 +1187,43 @@ TEST_F(VTEOosmTest, ClearsHistoryWhenReplayFails)
 	using Access = vte::OOSMManagerTestAccess<Manager>;
 	constexpr uint64_t t0 = 1_s;
 	constexpr uint64_t t1 = t0 + 20_ms;
-	pushSample(t0, 0.f, 4.f, 0.f);
 
-	// A noiseless observation is accepted against the wide live prior and stored at t1.
-	cov = 4.002f;
-	ASSERT_EQ(fuseMeas(makeMeas(t1, 0.f, 0.f), t1, 0.f).status, vte::FusionStatus::STATUS_FUSED_CURRENT);
-	pushSample(t1, state, cov, 0.f);
+	// Exercise failure in the snapshot loop and in the final replay to now.
+	for (bool snapshot_at_t1 : {true, false}) {
+		SCOPED_TRACE(snapshot_at_t1);
+		oosm.reset();
+		state = 0.f;
+		pushSample(t0, state, 4.f, 0.f);
+		pushSample(t1 - 1_us, state, 4.002f, 0.f);
 
-	// A noiseless late observation 1 us earlier leaves almost no variance to replay the stored one against.
-	const uint64_t now = t1 + 30_ms;
-	cov += 0.003f;
-	const float state_before = state;
-	const float cov_before = cov;
+		// A noiseless observation is accepted against the wide live prior and stored at t1.
+		cov = 4.002f;
+		ASSERT_EQ(fuseMeas(makeMeas(t1, 0.f, 0.f), t1, 0.f).status, vte::FusionStatus::STATUS_FUSED_CURRENT);
 
-	EXPECT_EQ(fuseMeas(makeMeas(t1 - 1_us, 0.f, 0.f), now, 0.f).status, vte::FusionStatus::STATUS_REJECT_COV);
-	EXPECT_FLOAT_EQ(state, state_before);
-	EXPECT_FLOAT_EQ(cov, cov_before);
-	EXPECT_EQ(Access::historyEntries(oosm), 0);
-	EXPECT_EQ(fuseMeas(makeMeas(t1 + 5_ms, 0.f, 1.f), now, 0.f).status, vte::FusionStatus::STATUS_REJECT_EMPTY);
+		if (snapshot_at_t1) {
+			pushSample(t1, state, cov, 0.f);
+		}
+
+		// The late sample rewrites the t1 - 1 us snapshot before the stored observation fails.
+		const uint64_t now = t1 + 30_ms;
+		cov += 0.003f;
+		const float state_before = state;
+		const float cov_before = cov;
+
+		EXPECT_EQ(fuseMeas(makeMeas(t1 - 2_us, 1.f, 0.f), now, 0.f).status, vte::FusionStatus::STATUS_REJECT_COV);
+		EXPECT_FLOAT_EQ(state, state_before);
+		EXPECT_FLOAT_EQ(cov, cov_before);
+		EXPECT_EQ(Access::historyEntries(oosm), 0);
+		EXPECT_EQ(fuseMeas(makeMeas(t1 + 5_ms, 0.f, 1.f), now, 0.f).status, vte::FusionStatus::STATUS_REJECT_EMPTY);
+
+		// Fresh history allows delayed fusion to recover.
+		pushSample(now, state, cov, 0.f);
+		cov += 0.003f;
+		EXPECT_EQ(fuseMeas(makeMeas(now + 5_ms, 0.2f, 1.f), now + 30_ms, 0.f).status,
+			  vte::FusionStatus::STATUS_FUSED_OOSM);
+		EXPECT_TRUE(std::isfinite(state));
+		EXPECT_TRUE(std::isfinite(cov));
+	}
 }
 
 // Observations between the restored snapshot and the late one only rebuild its prior, so they are not reported.
@@ -1224,154 +1240,84 @@ TEST_F(VTEOosmTest, DoesNotReportReplaysBeforeDelayedSample)
 	EXPECT_FLOAT_EQ(res.replay_test_ratio_max, -1.f);
 }
 
-// WHY: The flat timeline view is the foundation the OOSM path builds on; verify it against an empty buffer.
-// WHAT: copyHistoryToLinearTimeline must return count==0 when no samples have been pushed.
-TEST_F(VTEOosmTest, LinearTimelineCopyFromEmptyHistory)
+// Replay rewrites the snapshots after a late sample in place, also across the ring-buffer wrap,
+// while a rejected late sample leaves every snapshot untouched.
+TEST_F(VTEOosmTest, RewritesWrappedHistoryInPlace)
 {
 	using Access = vte::OOSMManagerTestAccess<Manager>;
+	constexpr uint64_t start = 1_s;
+	constexpr uint64_t step = 20_ms;
+	constexpr int pushed = Manager::kHistorySize + 3;
+	auto x = makeVec(0.f);
+	auto P = makeCov(4.f);
+	oosm.push(start, x, P, 0.f);
 
-	// GIVEN: a fresh manager with no pushed samples.
-	Manager::LinearTimeline tl{};
-
-	// WHEN: we snapshot the history into a linear timeline.
-	Access::copyHistoryToLinearTimeline(oosm, tl);
-
-	// THEN: the linear timeline is empty.
-	EXPECT_EQ(tl.count, 0u);
-}
-
-// WHY: Basic sanity that samples come out oldest->newest with all fields preserved.
-// WHAT: Push three samples and inspect time/state/input ordering in the linear timeline.
-TEST_F(VTEOosmTest, LinearTimelineCopyPartialHistoryPreservesOrderAndFields)
-{
-	using Access = vte::OOSMManagerTestAccess<Manager>;
-
-	// GIVEN: three chronologically pushed samples with distinct state and input values.
-	pushSample(100_ms, 1.f, 2.f, 0.5f);
-	pushSample(200_ms, 2.f, 3.f, 1.0f);
-	pushSample(300_ms, 3.f, 4.f, 1.5f);
-
-	// WHEN: we snapshot the history into a linear timeline.
-	Manager::LinearTimeline tl{};
-	Access::copyHistoryToLinearTimeline(oosm, tl);
-
-	// THEN: the timeline is oldest->newest and every field matches what was pushed.
-	ASSERT_EQ(tl.count, 3u);
-	EXPECT_EQ(tl.samples[0].time_us, 100_ms);
-	EXPECT_EQ(tl.samples[1].time_us, 200_ms);
-	EXPECT_EQ(tl.samples[2].time_us, 300_ms);
-	EXPECT_FLOAT_EQ(tl.samples[0].state(0), 1.f);
-	EXPECT_FLOAT_EQ(tl.samples[1].state(0), 2.f);
-	EXPECT_FLOAT_EQ(tl.samples[2].state(0), 3.f);
-	EXPECT_FLOAT_EQ(tl.samples[0].cov(0, 0), 2.f);
-	EXPECT_FLOAT_EQ(tl.samples[2].cov(0, 0), 4.f);
-	EXPECT_FLOAT_EQ(tl.samples[0].input, 0.5f);
-	EXPECT_FLOAT_EQ(tl.samples[1].input, 1.0f);
-	EXPECT_FLOAT_EQ(tl.samples[2].input, 1.5f);
-}
-
-// WHY: After wrap-around, the ring-buffer layout no longer matches chronological order;
-// the linear timeline must still return samples oldest->newest.
-// WHAT: Push more samples than buffer capacity (8) and verify the oldest ones were dropped
-// while the remaining ones come out in chronological order.
-TEST_F(VTEOosmTest, LinearTimelineCopyAfterRingBufferWrap)
-{
-	using Access = vte::OOSMManagerTestAccess<Manager>;
-
-	// GIVEN: 10 pushed samples in a buffer of capacity 8 (the two oldest are overwritten).
-	for (int i = 0; i < 10; ++i) {
-		pushSample(100_ms * (i + 1), static_cast<float>(i), 1.f, static_cast<float>(i));
+	for (int i = 1; i < pushed; ++i) {
+		const float input = static_cast<float>(i);
+		filter.predictState(step * 1e-6f, input, x, P, x, P);
+		oosm.push(start + i * step, x, P, input);
 	}
 
-	// WHEN: we snapshot the wrapped history into a linear timeline.
-	Manager::LinearTimeline tl{};
-	Access::copyHistoryToLinearTimeline(oosm, tl);
+	const uint64_t now = start + pushed * step;
+	curr_input = -2.f;
+	filter.predictState(step * 1e-6f, curr_input, x, P, x, P);
+	state = x(0);
+	cov = P(0, 0);
 
-	// THEN: only the 8 most recent samples remain, in chronological order.
-	ASSERT_EQ(tl.count, 8u);
+	ASSERT_EQ(Access::historyEntries(oosm), Manager::kHistorySize);
+	std::vector<Manager::Sample> before;
 
-	for (size_t i = 0; i < tl.count; ++i) {
-		const uint64_t expected_time = 100_ms * (i + 3); // first two (i=0,1) got overwritten
-		EXPECT_EQ(tl.samples[i].time_us, expected_time);
-		EXPECT_FLOAT_EQ(tl.samples[i].state(0), static_cast<float>(i + 2));
-		EXPECT_FLOAT_EQ(tl.samples[i].input, static_cast<float>(i + 2));
-	}
-}
-
-// WHY: rebuildHistoryFromLinearTimeline is the commit step for OOSM; it must produce a history
-// that round-trips back to the same timeline.
-// WHAT: Rebuild from a 3-sample timeline and verify entry count, bounds, and round-trip equality.
-TEST_F(VTEOosmTest, LinearTimelineRebuildWithinCapacityRoundTrips)
-{
-	using Access = vte::OOSMManagerTestAccess<Manager>;
-
-	// GIVEN: a three-entry linear timeline built by hand.
-	Manager::LinearTimeline tl{};
-	tl.samples[0].time_us = 100_ms;
-	tl.samples[0].state(0) = 1.f;
-	tl.samples[0].cov(0, 0) = 2.f;
-	tl.samples[0].input = 0.5f;
-	tl.samples[1].time_us = 200_ms;
-	tl.samples[1].state(0) = 2.f;
-	tl.samples[1].cov(0, 0) = 3.f;
-	tl.samples[1].input = 1.0f;
-	tl.samples[2].time_us = 300_ms;
-	tl.samples[2].state(0) = 3.f;
-	tl.samples[2].cov(0, 0) = 4.f;
-	tl.samples[2].input = 1.5f;
-	tl.count = 3;
-
-	// WHEN: we commit the timeline into the ring buffer.
-	Access::rebuildHistoryFromLinearTimeline(oosm, tl);
-
-	// THEN: the ring buffer exposes the same number of entries with matching bounds.
-	EXPECT_EQ(Access::historyEntries(oosm), 3);
-	EXPECT_EQ(Access::historyOldestTime(oosm), 100_ms);
-	EXPECT_EQ(Access::historyNewestTime(oosm), 300_ms);
-
-	// AND: copying it back yields the original timeline.
-	Manager::LinearTimeline tl_round_trip{};
-	Access::copyHistoryToLinearTimeline(oosm, tl_round_trip);
-	ASSERT_EQ(tl_round_trip.count, tl.count);
-
-	for (size_t i = 0; i < tl.count; ++i) {
-		EXPECT_EQ(tl_round_trip.samples[i].time_us, tl.samples[i].time_us);
-		EXPECT_FLOAT_EQ(tl_round_trip.samples[i].state(0), tl.samples[i].state(0));
-		EXPECT_FLOAT_EQ(tl_round_trip.samples[i].cov(0, 0), tl.samples[i].cov(0, 0));
-		EXPECT_FLOAT_EQ(tl_round_trip.samples[i].input, tl.samples[i].input);
-	}
-}
-
-// WHY: A no-op round trip (copy -> rebuild -> copy) must preserve all samples exactly,
-// ensuring the helpers do not introduce ordering or content drift.
-// WHAT: Push samples through the ring (including wrap), round-trip them, and verify equality.
-TEST_F(VTEOosmTest, LinearTimelineRoundTripIsIdentity)
-{
-	using Access = vte::OOSMManagerTestAccess<Manager>;
-
-	// GIVEN: a wrapped ring buffer populated via push().
-	for (int i = 0; i < 10; ++i) {
-		pushSample(100_ms * (i + 1), static_cast<float>(i), 1.f + i * 0.1f, static_cast<float>(i));
+	for (int i = 0; i < Manager::kHistorySize; ++i) {
+		before.push_back(Access::historySample(oosm, i));
 	}
 
-	Manager::LinearTimeline tl_before{};
-	Access::copyHistoryToLinearTimeline(oosm, tl_before);
+	// Between the third and fourth retained snapshots.
+	const uint64_t t_meas = before[2].time_us + 5_ms;
+	ASSERT_EQ(fuseMeas(makeMeas(t_meas, 100.f, 0.01f), now, 1.f).status, vte::FusionStatus::STATUS_REJECT_NIS);
 
-	// WHEN: we rebuild from the snapshot and re-read it.
-	Access::rebuildHistoryFromLinearTimeline(oosm, tl_before);
-
-	Manager::LinearTimeline tl_after{};
-	Access::copyHistoryToLinearTimeline(oosm, tl_after);
-
-	// THEN: both linear timelines are element-wise identical.
-	ASSERT_EQ(tl_before.count, tl_after.count);
-
-	for (size_t i = 0; i < tl_before.count; ++i) {
-		EXPECT_EQ(tl_before.samples[i].time_us, tl_after.samples[i].time_us);
-		EXPECT_FLOAT_EQ(tl_before.samples[i].state(0), tl_after.samples[i].state(0));
-		EXPECT_FLOAT_EQ(tl_before.samples[i].cov(0, 0), tl_after.samples[i].cov(0, 0));
-		EXPECT_FLOAT_EQ(tl_before.samples[i].input, tl_after.samples[i].input);
+	for (int i = 0; i < Manager::kHistorySize; ++i) {
+		const Manager::Sample &sample = Access::historySample(oosm, i);
+		EXPECT_EQ(sample.time_us, before[i].time_us);
+		EXPECT_FLOAT_EQ(sample.state(0), before[i].state(0));
+		EXPECT_FLOAT_EQ(sample.cov(0, 0), before[i].cov(0, 0));
+		EXPECT_FLOAT_EQ(sample.input, before[i].input);
 	}
+
+	const ScalarMeas meas = makeMeas(t_meas, 0.5f, 0.1f);
+	const vte::FusionResult res = fuseMeas(meas, now, 0.f);
+	ASSERT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(res.history_steps, Manager::kHistorySize - 3);
+
+	TestFilter truth_filter;
+	auto x_truth = makeVec(before[2].state(0));
+	auto P_truth = makeCov(before[2].cov(0, 0));
+	truth_filter.predictState((t_meas - before[2].time_us) * 1e-6f, before[3].input, x_truth, P_truth, x_truth, P_truth);
+	float innov = 0.f;
+	float innov_var = 0.f;
+	truth_filter.computeInnovation(x_truth, P_truth, meas, innov, innov_var);
+	truth_filter.applyCorrection(x_truth, P_truth, (P_truth * meas.H) / innov_var, innov, innov_var);
+	uint64_t truth_time = t_meas;
+
+	for (int i = 0; i < Manager::kHistorySize; ++i) {
+		const Manager::Sample &sample = Access::historySample(oosm, i);
+		EXPECT_EQ(sample.time_us, before[i].time_us);
+		EXPECT_FLOAT_EQ(sample.input, before[i].input);
+
+		if (sample.time_us < t_meas) {
+			EXPECT_FLOAT_EQ(sample.state(0), before[i].state(0));
+			EXPECT_FLOAT_EQ(sample.cov(0, 0), before[i].cov(0, 0));
+			continue;
+		}
+
+		truth_filter.predictState((sample.time_us - truth_time) * 1e-6f, before[i].input, x_truth, P_truth, x_truth, P_truth);
+		truth_time = sample.time_us;
+		EXPECT_NEAR(sample.state(0), x_truth(0), kTolerance) << "snapshot " << i;
+		EXPECT_NEAR(sample.cov(0, 0), P_truth(0, 0), kTolerance) << "snapshot " << i;
+	}
+
+	truth_filter.predictState((now - truth_time) * 1e-6f, curr_input, x_truth, P_truth, x_truth, P_truth);
+	EXPECT_NEAR(state, x_truth(0), kTolerance);
+	EXPECT_NEAR(cov, P_truth(0, 0), kTolerance);
 }
 
 } // namespace
