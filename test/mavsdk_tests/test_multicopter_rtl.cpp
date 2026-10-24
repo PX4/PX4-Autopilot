@@ -47,6 +47,8 @@ TEST_CASE("RTL_TYPE=6 time_remaining_s NaN with no rally points", "[multicopter]
 	tester.wait_until_ready();
 	tester.store_home();
 	tester.set_rtl_type(6);
+	// SITL sets a default BAT1_CAPACITY, unset it so time_remaining_s is NaN
+	tester.set_param_float("BAT1_CAPACITY", -1.f);
 	tester.arm();
 	tester.takeoff();
 	tester.wait_until_hovering();
@@ -62,6 +64,8 @@ TEST_CASE("RTL_TYPE=6 time_remaining_s NaN with rally points and home is closest
 	tester.wait_until_ready();
 	tester.store_home();
 	tester.set_rtl_type(6);
+	// SITL sets a default BAT1_CAPACITY, unset it so time_remaining_s is NaN
+	tester.set_param_float("BAT1_CAPACITY", -1.f);
 	// Rally is farther than home; vehicle is above home after takeoff so home wins on distance
 	tester.add_local_rally_point({100., -100.});
 	tester.upload_rally_points();
@@ -80,6 +84,8 @@ TEST_CASE("RTL_TYPE=6 time_remaining_s NaN with rally points and home is not clo
 	tester.wait_until_ready();
 	tester.store_home();
 	tester.set_rtl_type(6);
+	// SITL sets a default BAT1_CAPACITY, unset it so time_remaining_s is NaN
+	tester.set_param_float("BAT1_CAPACITY", -1.f);
 	// Rally point is between the vehicle and home, so rally point wins on distance
 	tester.add_local_rally_point({300., 0.});
 	tester.upload_rally_points();

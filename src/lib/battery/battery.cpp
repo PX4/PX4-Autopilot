@@ -250,6 +250,15 @@ float Battery::sumDischarged(float current_a)
 	return _discharged_mah;
 }
 
+void Battery::resetDischargedMah(const float discharged_mah)
+{
+	_discharged_mah = math::max(discharged_mah, 0.f);
+	_discharged_mah_loop = 0.f;
+
+	// Treat as reconnected: the state of charge restarts from the voltage after the initialization delay
+	_last_unconnected_timestamp = 0;
+}
+
 float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a)
 {
 	if (_params.n_cells == 0) {

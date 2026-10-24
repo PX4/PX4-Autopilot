@@ -158,6 +158,9 @@ param set-default SENS_BOARD_X_OFF 0.000001
 param set-default SENS_DPRES_OFF 0.001
 
 param set-default BAT1_N_CELLS 4
+param set-default BAT1_CAPACITY 5000
+param set-default BAT2_CAPACITY 5000
+param set-default BAT3_CAPACITY 5000
 
 # disable check, no CPU load reported on posix yet
 param set-default COM_CPU_MAX -1
@@ -269,7 +272,7 @@ then
 	failure_injection_manager start
 fi
 
-if param greater SIM_BAT_DRAIN 0
+if param greater SIM_BAT_I_FW 0 || param greater SIM_BAT_I_MC 0
 then
 	battery_simulator start
 fi
