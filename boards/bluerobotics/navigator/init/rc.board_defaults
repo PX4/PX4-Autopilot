@@ -15,3 +15,4 @@ param set SYS_AUTOCONFIG 0
 # PCA9685 PWM Out defaults
 param set-default PCA9685_EN_BUS 4
 param set-default PCA9685_I2C_ADDR 64
+param set-default PCA9685_EXT_CLK 1
