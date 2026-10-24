@@ -73,6 +73,8 @@ void
 Mission::on_inactive()
 {
 	_vehicle_status_sub.update();
+	_land_detected_sub.update();
+	recheckAfterHomeUpdateOnGround();
 
 	if (_need_mission_save && _vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 		save_mission_state();
@@ -89,6 +91,30 @@ Mission::on_activation()
 	check_mission_valid(true);
 
 	MissionBase::on_activation();
+}
+
+void
+Mission::on_active()
+{
+	_vehicle_status_sub.update();
+	_land_detected_sub.update();
+	recheckAfterHomeUpdateOnGround();
+
+	MissionBase::on_active();
+}
+
+void
+Mission::recheckAfterHomeUpdateOnGround()
+{
+	// takeoff_time is cleared only at disarm, and the land detector reports the takeoff before Commander
+	// sets Home for it, so Home updates in flight keep the verdict.
+	const vehicle_status_s &status = _vehicle_status_sub.get();
+
+	if ((status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && (status.takeoff_time == 0)
+	    && _land_detected_sub.get().landed && (_mission_check_state == MissionCheckState::Complete)
+	    && (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count)) {
+		_mission_check_state = MissionCheckState::Unchecked;
+	}
 }
 
 
