@@ -1418,6 +1418,8 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 
 	for (const auto &stream : _streams) {
 		if (strcmp(stream_name, stream->get_name()) == 0) {
+			_streams_changed = true;
+
 			if (interval != 0) {
 				/* set new interval */
 				stream->set_interval(interval);
@@ -1439,6 +1441,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	if (stream != nullptr) {
 		stream->set_interval(interval);
 		_streams.add(stream);
+		_streams_changed = true;
 
 		return OK;
 	}
@@ -1568,18 +1571,30 @@ Mavlink::close_shell()
 void
 Mavlink::update_rate_mult()
 {
-	float const_rate = 0.0f;
-	float rate = 0.0f;
+	/* The theoretical bandwidth of the streams changes with the stream set and intervals, and,
+	 * through get_size(), when their topics get advertised. Recompute it right away for the
+	 * former and at 10 Hz for the latter instead of polling every stream on every loop. */
+	const hrt_abstime now = hrt_absolute_time();
 
-	/* scale down rates if their theoretical bandwidth is exceeding the link bandwidth */
-	for (const auto &stream : _streams) {
-		if (stream->const_rate()) {
-			const_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+	if (_streams_changed || (now - _streams_rate_update >= 100_ms)) {
+		_streams_const_rate = 0.f;
+		_streams_rate = 0.f;
 
-		} else {
-			rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+		for (const auto &stream : _streams) {
+			if (stream->const_rate()) {
+				_streams_const_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+
+			} else {
+				_streams_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+			}
 		}
+
+		_streams_rate_update = now;
+		_streams_changed = false;
 	}
+
+	const float const_rate = _streams_const_rate;
+	const float rate = _streams_rate;
 
 	float mavlink_ulog_streaming_rate_inv = 1.0f;
 
