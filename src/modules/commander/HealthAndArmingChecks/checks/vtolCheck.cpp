@@ -37,6 +37,28 @@ using namespace time_literals;
 
 void VtolChecks::checkAndReport(const Context &context, Report &reporter)
 {
+#if !defined(CONFIG_MODULES_FW_MODE_MANAGER) || !defined(CONFIG_MODULES_FW_LATERAL_LONGITUDINAL_CONTROL)
+
+	if (context.status().is_vtol_tailsitter) {
+		/* EVENT
+		 * @description
+		 * The firmware does not include the fixed-wing position control modules required by tailsitter airframes.
+		 * Enable CONFIG_MODULES_FW_MODE_MANAGER and CONFIG_MODULES_FW_LATERAL_LONGITUDINAL_CONTROL
+		 * in the board configuration, then reinstall the firmware.
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+					    events::ID("check_vtol_tailsitter_fw_pos_control_missing"),
+					    events::Log::Error,
+					    "Tailsitter requires fixed-wing position control");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(),
+					     "Preflight Fail: Tailsitter requires fixed-wing position control");
+		}
+	}
+
+#endif
+
 	vtol_vehicle_status_s vtol_vehicle_status;
 
 	if (_vtol_vehicle_status_sub.copy(&vtol_vehicle_status)) {
