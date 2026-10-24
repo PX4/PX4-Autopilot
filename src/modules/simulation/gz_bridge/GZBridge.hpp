@@ -205,6 +205,7 @@ private:
 
 	const std::string _world_name;
 	const std::string _model_name;
+	gz::math::Quaterniond _lidar_link_q{gz::math::Quaterniond::Identity};
 
 	float _temperature{15.0f}; // default temperature in Celsius
 
