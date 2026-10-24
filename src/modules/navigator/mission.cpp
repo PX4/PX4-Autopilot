@@ -530,6 +530,8 @@ void Mission::prepareVtolTransitionItem(bool aligning)
 		} else {
 			_mission_item = _vtol_transition.command;
 			set_align_mission_item(&_mission_item, &_vtol_transition.target);
+			// The command's param 2 (immediate transition) shares its slot with the acceptance radius.
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			// Check alignment where the vehicle is: a back transition can end past the reached waypoint.
 			_mission_item.lat = _global_pos_sub.get().lat;
 			_mission_item.lon = _global_pos_sub.get().lon;
