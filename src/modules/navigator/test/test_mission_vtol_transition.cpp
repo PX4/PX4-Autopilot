@@ -803,6 +803,40 @@ TEST_F(MissionVtolTransitionTest, FrontTransitionAfterBackTransitionAlignsWhereT
 	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 }
 
+TEST_F(MissionVtolTransitionTest, ImmediateFrontTransitionAlignsWithinTheNavigationAcceptanceRadius)
+{
+	// Param 2 (immediate transition) shares its slot with the acceptance radius. The vehicle already moves towards
+	// the next waypoint, so a 1 m radius around the alignment start is missed once the vehicle has moved past it.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	front_transition.params[1] = 1.f;
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(position);
+	publishLocalPosition(0.f);
+	publishLandDetected(false);
+	publishHomePosition(position);
+	primeNavigatorState();
+	prepareExecution(mission, {front_transition, target}, 150);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+
+	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (command_sub.update(&command)) {}
+
+	// Aligned, 2 m along the track at the first check.
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 2.f, 0.f, kAlt));
+	primeNavigatorState();
+	mission.on_active();
+	ASSERT_TRUE(command_sub.update(&command));
+	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	EXPECT_FLOAT_EQ(command.param2, 1.f);
+}
+
 TEST_F(MissionVtolTransitionTest, FeasibilityRefreshRestartsAligningFrontTransition)
 {
 	// A feasibility refresh restarts the item: the alignment starts again where the vehicle is, and the front
