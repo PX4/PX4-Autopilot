@@ -60,7 +60,9 @@ void AutopilotTesterFailure::set_param_fd_act_en(bool value)
 
 void AutopilotTesterFailure::set_param_mc_airmode(int value)
 {
-	CHECK(getParams()->set_param_int("MC_AIRMODE", value) == Param::Result::Success);
+	// Legacy MC_AIRMODE values: 0 disabled, 1 roll/pitch, 2 roll/pitch/yaw
+	CHECK(getParams()->set_param_float("MC_AIRMODE_LIM", (value >= 1) ? 1.f : 0.f) == Param::Result::Success);
+	CHECK(getParams()->set_param_int("MC_AIRMODE_YAW", (value == 2) ? 1 : 0) == Param::Result::Success);
 }
 
 void AutopilotTesterFailure::set_param_ca_failure_mode(int value)

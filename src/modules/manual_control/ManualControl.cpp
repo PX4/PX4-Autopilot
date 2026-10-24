@@ -385,22 +385,27 @@ void ManualControl::updateParams()
 			}
 		}
 
-		// MC_AIRMODE & MAN_ARM_GESTURE: check for unsafe Airmode settings: yaw airmode requires disabling the stick arm gesture
+		// Check for unsafe Airmode settings: yaw airmode requires disabling the stick arm gesture.
+		// Yaw airmode only acts with a nonzero MC_AIRMODE_LIM budget; this re-runs on every
+		// parameter update, so raising MC_AIRMODE_LIM later is caught too.
 		if ((_param_man_arm_gesture.get() == 1) && (_rotary_wing || _vtol)) {
-			param_t param_mc_airmode = param_find("MC_AIRMODE");
+			param_t param_mc_airmode_lim = param_find("MC_AIRMODE_LIM");
+			param_t param_mc_airmode_yaw = param_find("MC_AIRMODE_YAW");
 
-			if (param_mc_airmode != PARAM_INVALID) {
-				int32_t airmode = 0;
-				param_get(param_mc_airmode, &airmode);
+			if ((param_mc_airmode_lim != PARAM_INVALID) && (param_mc_airmode_yaw != PARAM_INVALID)) {
+				float lim = 0.f;
+				int32_t yaw = 0;
+				param_get(param_mc_airmode_lim, &lim);
+				param_get(param_mc_airmode_yaw, &yaw);
 
-				if (airmode == 2) {
-					airmode = 1; // change to roll/pitch airmode
-					param_set(param_mc_airmode, &airmode);
+				if ((yaw != 0) && (lim > 0.f)) {
+					yaw = 0;
+					param_set(param_mc_airmode_yaw, &yaw);
 
 					orb_advert_t mavlink_log_pub = nullptr;
 					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires disabling the stick arm gesture\t")
 					/* EVENT
-					* @description <param>MC_AIRMODE</param> is now set to roll/pitch airmode.
+					* @description <param>MC_AIRMODE_YAW</param> is now disabled.
 					*/
 					events::send(events::ID("commander_airmode_requires_no_arm_gesture"), {events::Log::Error, events::LogInternal::Disabled},
 						     "Yaw Airmode requires disabling the stick arm gesture");
