@@ -446,5 +446,25 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-10-20: the auxiliary global position parameters became per-source EKF2_AGP<n>_* parameters, so the single
+	// source configured before goes to the first slot. That slot is only used once EKF2_AGP0_ID is set to the source's id.
+	{
+		static constexpr const char *kRenames[][2] {
+			{"EKF2_AGP_CTRL", "EKF2_AGP0_CTRL"},
+			{"EKF2_AGP_MODE", "EKF2_AGP0_MODE"},
+			{"EKF2_AGP_DELAY", "EKF2_AGP0_DELAY"},
+			{"EKF2_AGP_NOISE", "EKF2_AGP0_NOISE"},
+			{"EKF2_AGP_GATE", "EKF2_AGP0_GATE"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }
