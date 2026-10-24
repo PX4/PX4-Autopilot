@@ -226,7 +226,7 @@ Firmware built without route planning shows a pre-arm warning when `RTL_TYPE=7` 
 
 With route planning enabled, a planning failure does not select a direct return to another destination; valid plans can still use the shortcuts described above.
 While Return is inactive, the route is planned every two seconds from the current position, also before takeoff.
-Until a route is planned, including while uploaded data are loading, a switch to Return is denied with `Return unavailable: no mission route`.
+Until a route is planned, including while uploaded data are loading, a switch to Return is denied with `No mission route for Return`.
 A failsafe configured to Return selects Land instead, without applying [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY); if Land is unavailable, normal failsafe escalation applies.
 While Return is the selected mode, a failsafe that interrupts it keeps its own action, such as Hold, and a failsafe configured to Return resumes Return, which holds or lands where it is without a route.
 If Return runs without a route, for example because the mission was replaced during the return, it holds at the current location and altitude.

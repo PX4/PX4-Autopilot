@@ -161,7 +161,7 @@ On firmware with route planning enabled, a failed plan does not cause a direct r
 A valid plan can still use the [route-skip shortcuts](#route-skip-shortcuts).
 
 While Return is inactive, the route is planned every two seconds from the current position, also before takeoff.
-Until a route is planned, including while uploaded mission, rally points and fence data are loading, a switch to Return is denied with `Return unavailable: no mission route`; the pre-flight checks show the same message.
+Until a route is planned, including while uploaded mission, rally points and fence data are loading, a switch to Return is denied with `No mission route for Return`; the pre-flight checks show the same message.
 A missing route-status report or one older than five seconds also keeps Return unavailable.
 A failsafe configured to Return selects Land instead, without applying [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY).
 If Land is also unavailable, the normal [failsafe escalation](../config/safety.md#position-loss-failsafe-action) to Descend or Terminate applies.
