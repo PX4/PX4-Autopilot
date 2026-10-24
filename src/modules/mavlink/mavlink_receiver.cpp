@@ -1381,10 +1381,12 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			const double lon = target_global_int.lon_int / 1e7;
 			global_local_proj_ref.project(lat, lon, setpoint.position[0], setpoint.position[1]);
 
-			if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_INT) {
+			if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL
+			    || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_INT) {
 				setpoint.position[2] = local_pos.ref_alt - target_global_int.alt;
 
-			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT
+				   || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 				home_position_s home_position{};
 				_home_position_sub.copy(&home_position);
 
@@ -1397,7 +1399,8 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 					return;
 				}
 
-			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) {
+			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT
+				   || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) {
 				vehicle_global_position_s vehicle_global_position{};
 				_vehicle_global_position_sub.copy(&vehicle_global_position);
 
