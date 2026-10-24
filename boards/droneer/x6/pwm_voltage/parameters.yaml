@@ -1,0 +1,13 @@
+module_name: pwm_voltage
+parameters:
+- group: PWM Outputs
+  definitions:
+    PWM_VOLT_SEL:
+      description:
+        short: Control PWM output voltage
+      type: enum
+      values:
+        0: 3.3V
+        1: 5.0V
+      default: 0
+      reboot_required: true
