@@ -51,6 +51,113 @@
 
 using namespace time_literals;
 
+namespace
+{
+bool normalize_path(const char *path, char *normalized, size_t normalized_len)
+{
+	if (path == nullptr || normalized == nullptr || normalized_len < 2) {
+		return false;
+	}
+
+	size_t out = 0;
+	const bool absolute = (path[0] == '/');
+
+	if (absolute) {
+		normalized[out++] = '/';
+	}
+
+	const char *p = path;
+
+	while (*p != '\0') {
+		while (*p == '/') {
+			++p;
+		}
+
+		if (*p == '\0') {
+			break;
+		}
+
+		const char *component = p;
+
+		while (*p != '\0' && *p != '/') {
+			++p;
+		}
+
+		const size_t len = p - component;
+
+		if (len == 1 && component[0] == '.') {
+			continue;
+		}
+
+		if (out > (absolute ? 1u : 0u)) {
+			if (out + 1 >= normalized_len) {
+				return false;
+			}
+
+			normalized[out++] = '/';
+		}
+
+		if (out + len >= normalized_len) {
+			return false;
+		}
+
+		memcpy(normalized + out, component, len);
+		out += len;
+	}
+
+	if (out == 0) {
+		normalized[out++] = '.';
+	}
+
+	normalized[out] = '\0';
+	return true;
+}
+
+bool equals_ignore_case(const char *a, const char *b)
+{
+	while (*a != '\0' && *b != '\0') {
+		const char ca = (*a >= 'A' && *a <= 'Z') ? static_cast<char>(*a - 'A' + 'a') : *a;
+		const char cb = (*b >= 'A' && *b <= 'Z') ? static_cast<char>(*b - 'A' + 'a') : *b;
+
+		if (ca != cb) {
+			return false;
+		}
+
+		++a;
+		++b;
+	}
+
+	return *a == *b;
+}
+
+bool is_boot_script_path(const char *path)
+{
+	static constexpr const char *kBootScripts[] = {
+		PX4_STORAGEDIR "/etc/config.txt",
+		PX4_STORAGEDIR "/etc/extras.txt",
+		PX4_STORAGEDIR "/etc/rc.txt",
+		PX4_STORAGEDIR "/ext_autostart/rc.autostart",
+	};
+
+	char normalized[MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN];
+
+	if (!normalize_path(path, normalized, sizeof(normalized))) {
+		return false;
+	}
+
+	for (const char *boot_script : kBootScripts) {
+		char normalized_boot_script[sizeof(normalized)];
+
+		if (normalize_path(boot_script, normalized_boot_script, sizeof(normalized_boot_script))
+		    && equals_ignore_case(normalized, normalized_boot_script)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+} // namespace
+
 constexpr const char MavlinkFTP::_root_dir[];
 constexpr const char MavlinkFTP::_mav_log_prefix[];
 constexpr const char MavlinkFTP::_mav_log_dir[];
@@ -1368,6 +1475,11 @@ bool MavlinkFTP::_validatePath(const char *path)
 
 bool MavlinkFTP::_validatePathIsWritable(const char *path)
 {
+	if (is_boot_script_path(path)) {
+		PX4_ERR("Disallowing write to boot script %s", path);
+		return false;
+	}
+
 	// The root can expose read-only data next to the storage directory, so confine writes
 	// to storage. On NuttX that keeps them off the in-RAM system paths; on POSIX it keeps
 	// them out of the ROMFS.
