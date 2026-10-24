@@ -268,6 +268,10 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 
 			} else {
 				_mission_item.nav_cmd = NAV_CMD_LAND;
+				// A fixed-wing landing takes this altitude as the ground; a multicopter ignores it.
+				_mission_item.altitude = _home_pos_sub.get().alt;
+				// 0 aborts to MIS_LND_ABRT_ALT. The field also holds the hold time of the reloaded mission item.
+				_mission_item.land_abort_min_alt = 0.0f;
 
 				if (_param_rtl_land_delay.get() < -FLT_EPSILON) { // parameter negative -> loiter indefinitely instead of landing
 					_mission_item.altitude = _home_pos_sub.get().alt + _param_rtl_descend_alt.get();

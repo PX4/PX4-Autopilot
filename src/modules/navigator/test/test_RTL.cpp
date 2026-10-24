@@ -54,6 +54,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/wind.h>
 
 #include "navigator.h"
@@ -1883,6 +1884,64 @@ TEST_F(RTLTest, MissionFastModesKeepThePriorIndexOnlyForTheSameMission)
 		RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, makeMissionHeader(7, 2, 3)};
 		dropsThePriorIndex(mission_fast_reverse, makeMissionHeader(7, 2, 3));
 	}
+}
+
+// WHY: A fixed-wing landing takes the land setpoint altitude as the ground, and the reverse Return builds its land
+// point from the first mission item, whose hold time shares its storage with the landing abort altitude.
+// WHAT: A fixed-wing lands against the home altitude, and an aborted landing holds MIS_LND_ABRT_ALT above home.
+TEST_F(RTLTest, MissionFastReverseLandsFixedWingAtTheHomeAltitude)
+{
+	auto setPosition = [&](double lat, double lon, float alt) {
+		publishGlobalPosition(lat, lon, alt);
+		_navigator.get_global_position()->lat = lat;
+		_navigator.get_global_position()->lon = lon;
+		_navigator.get_global_position()->alt = alt;
+	};
+
+	// GIVEN: a pure fixed-wing at the end of a mission flown 100 m above home, with a hold time at the first waypoint
+	std::vector<mission_item_s> items = makeTwoWaypointMission(500.f, 1000.f);
+	items[0].altitude = kAlt + 100.f;
+	items[0].time_inside = 5.f;
+	items[1].altitude = kAlt + 100.f;
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+	_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	publishLandDetected(false);
+	setPosition(items[1].lat, items[1].lon, items[1].altitude);
+	const mission_s mission = makeMissionHeader(9, 1, 2);
+	setMissionResultValid(mission);
+	publishMission(mission);
+	RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, mission};
+	mission_fast_reverse.loadTestMission(items);
+
+	// WHEN: it flies the mission back, reaching each setpoint
+	mission_fast_reverse.activateForTest();
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	for (int cycle = 0; (cycle < 20) && (current.type != position_setpoint_s::SETPOINT_TYPE_LAND); ++cycle) {
+		setPosition(current.lat, current.lon, current.alt);
+		mission_fast_reverse.on_active();
+	}
+
+	// THEN: it lands against the home altitude
+	ASSERT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_FLOAT_EQ(current.alt, kAlt);
+
+	// WHEN: the fixed-wing position controller aborts the landing 3 m above home
+	setPosition(kBaseLat, kBaseLon, kAlt + 3.f);
+	position_controller_landing_status_s landing_status{};
+	landing_status.timestamp = hrt_absolute_time();
+	landing_status.abort_status = position_controller_landing_status_s::ABORTED_BY_OPERATOR;
+	orb_advert_t landing_status_pub = orb_advertise(ORB_ID(position_controller_landing_status), &landing_status);
+	mission_fast_reverse.on_active();
+
+	// the cases that run later in this binary must not see the abort
+	landing_status.abort_status = position_controller_landing_status_s::NOT_ABORTED;
+	orb_publish(ORB_ID(position_controller_landing_status), landing_status_pub, &landing_status);
+	orb_unadvertise(landing_status_pub);
+
+	// THEN: it holds MIS_LND_ABRT_ALT above home
+	EXPECT_EQ(mission_fast_reverse.activeNavCommand(), NAV_CMD_LOITER_UNLIMITED);
+	EXPECT_FLOAT_EQ(current.alt, kAlt + _navigator.get_landing_abort_min_alt());
 }
 
 // WHY: the controller must refresh an existing mode's mission before destination selection and activation.
