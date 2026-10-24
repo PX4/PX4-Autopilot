@@ -297,10 +297,11 @@ protected:
 		ASSERT_TRUE(_attitude_pub->publish(msg));
 	}
 
-	void publishAcceleration(const matrix::Vector3f &accel, hrt_abstime timestamp)
+	void publishAcceleration(const matrix::Vector3f &accel, hrt_abstime timestamp, hrt_abstime sample_time = 0)
 	{
 		vehicle_acceleration_s msg{};
 		msg.timestamp = timestamp;
+		msg.timestamp_sample = sample_time;
 		msg.xyz[0] = accel(0);
 		msg.xyz[1] = accel(1);
 		msg.xyz[2] = accel(2);
@@ -571,21 +572,22 @@ TEST_F(VisionTargetEstTest, ComputeGpsVelocityOffsetRequiresOffsetAndData)
 	expectVectorNear(vel_offset, expected_offset);
 }
 
-// WHY: Attitude is required to transform body-frame data into NED.
-// WHAT: Call pollEstimatorInput without attitude and expect it to fail.
-TEST_F(VisionTargetEstTest, PollEstimatorInputRequiresAttitude)
+// Acceleration arriving before attitude must remain available for the next poll.
+TEST_F(VisionTargetEstTest, PollEstimatorInputKeepsAccelerationUntilAttitudeArrives)
 {
-	// GIVEN: No vehicle attitude sample has been published.
-	matrix::Vector3f acc_ned{};
+	const hrt_abstime sample_time = vte_test::nowUs();
+	const hrt_abstime now = vte_test::advanceMicroseconds(1_ms);
+	publishAcceleration(matrix::Vector3f(1.f, 2.f, -kGravity), now, sample_time);
+	matrix::Vector3f acc_ned{}, gps_offset{}, vel_offset{};
 	matrix::Quaternionf q_att{};
-	matrix::Vector3f gps_offset{};
-	matrix::Vector3f vel_offset{};
-	const bool vel_offset_updated = true;
-	bool acc_valid = true;
+	bool acc_valid = false;
+	EXPECT_FALSE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset, false, acc_valid));
 
-	// WHEN: The estimator input is polled.
-	EXPECT_FALSE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset,
-					      vel_offset_updated, acc_valid));
+	publishAttitude(vte_test::identityQuat(), now);
+	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset, false, acc_valid));
+	EXPECT_TRUE(acc_valid);
+	EXPECT_EQ(_vte->_vehicle_acc_body.timestamp, sample_time);
+	expectVectorNear(acc_ned, matrix::Vector3f(1.f, 2.f, 0.f));
 }
 
 // WHY: Valid inputs should be rotated into NED and include gravity compensation.
@@ -1346,7 +1348,7 @@ TEST_F(VisionTargetEstTest, UpdateEstimatorsDropsStaleAcceleration)
 
 	const hrt_abstime stale_timestamp =
 		timestamp - (VisionTargetEstTestable::kAccUpdatedTimeoutUs + 1_ms);
-	publishAcceleration(matrix::Vector3f(0.1f, -0.2f, 9.5f), stale_timestamp);
+	publishAcceleration(matrix::Vector3f(0.1f, -0.2f, 9.5f), timestamp, stale_timestamp);
 
 	// WHEN: Estimator updates run with stale acceleration input.
 	_vte->updateEstimators();
@@ -1469,6 +1471,22 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputResetsCachedFrame)
 		_vte->_vte_position.update(matrix::Vector3f{});
 		EXPECT_EQ(_vte->positionInitialized(), fresh_velocity);
 	}
+}
+
+// WHY: A non-finite acceleration sample must not reach the prediction, which would otherwise skip a step.
+TEST_F(VisionTargetEstTest, PollEstimatorInputRejectsNonFiniteAcceleration)
+{
+	matrix::Vector3f acceleration{}, position_offset{}, velocity_offset{};
+	matrix::Quaternionf attitude{};
+	bool acceleration_valid = true;
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	publishAcceleration(matrix::Vector3f(NAN, 0.f, 0.f), now);
+	publishAttitude(vte_test::identityQuat(), now);
+
+	ASSERT_TRUE(_vte->pollEstimatorInput(acceleration, attitude, position_offset, velocity_offset, false,
+					     acceleration_valid));
+	EXPECT_FALSE(acceleration_valid);
+	EXPECT_TRUE(acceleration.isAllFinite());
 }
 
 TEST_F(VisionTargetEstTest, PollLocalPoseUsesSampleTime)

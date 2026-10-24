@@ -510,7 +510,9 @@ TEST_F(VTEOrientationTest, ResetsFilterOnStalePredictionGap)
 	// WHEN: the estimator updates after the stale gap and then sees a fresh measurement.
 	_vte->update();
 	EXPECT_FALSE(_aid_sub->update());
-	EXPECT_FALSE(_state_sub->update());
+	// THEN: consumers are told the last yaw no longer holds.
+	ASSERT_TRUE(_state_sub->update());
+	EXPECT_FALSE(_state_sub->get().orientation_valid);
 
 	pushValidYawSample(-0.25f);
 
