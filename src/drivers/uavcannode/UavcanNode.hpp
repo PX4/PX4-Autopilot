@@ -154,6 +154,7 @@ private:
 
 	void fill_node_info();
 	int init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
+	void checkForNewPublisherInstances();
 
 #if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
 	void update_bootloader();
