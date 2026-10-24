@@ -384,6 +384,29 @@ TEST_F(VTEOrientationTest, FusesOosmYawMeasurement)
 	EXPECT_GT(aid.history_steps, 0u);
 }
 
+// Clock-sync jitter can stamp yaw slightly in the future: such samples are fused as current,
+// while samples further ahead are dropped.
+TEST_F(VTEOrientationTest, AlignsYawStampedSlightlyInTheFuture)
+{
+	enableVisionFusion();
+	publishVisionYaw(0.3f, kMeasVar, vte_test::advanceMicroseconds(kStepUs));
+	_vte->update();
+	ASSERT_TRUE(_state_sub->update());
+	vte_test::flushSubscription(_aid_sub);
+	const hrt_abstime now = vte_test::advanceMicroseconds(20_ms);
+
+	publishVisionYaw(0.4f, kMeasVar, now + vte::kOosmMinTimeUs);
+	_vte->update();
+	EXPECT_FALSE(_aid_sub->update());
+
+	publishVisionYaw(0.4f, kMeasVar, now + 5_ms);
+	_vte->update();
+	ASSERT_TRUE(_aid_sub->update());
+	EXPECT_EQ(_aid_sub->get().timestamp_sample, now);
+	EXPECT_EQ(_aid_sub->get().fusion_status, static_cast<uint8_t>(vte::FusionStatus::STATUS_FUSED_CURRENT));
+	EXPECT_NEAR(_aid_sub->get().innovation, 0.1f, kTolerance);
+}
+
 // WHY: A long scheduling gap should reset the filter instead of predicting across stale time.
 // WHAT: Initialize once, wait past the allowed prediction gap, then verify a fresh measurement re-initializes cleanly.
 TEST_F(VTEOrientationTest, ResetsFilterOnStalePredictionGap)

@@ -1184,6 +1184,32 @@ TEST_F(VTEOosmTest, ReportsReplayedObservationsAfterDelayedSample)
 	EXPECT_NEAR(cov, P_truth(0, 0), kTolerance);
 }
 
+// A stored observation that fails during replay must not stay in the log and block every later replay.
+TEST_F(VTEOosmTest, ClearsHistoryWhenReplayFails)
+{
+	using Access = vte::OOSMManagerTestAccess<Manager>;
+	constexpr uint64_t t0 = 1_s;
+	constexpr uint64_t t1 = t0 + 20_ms;
+	pushSample(t0, 0.f, 4.f, 0.f);
+
+	// A noiseless observation is accepted against the wide live prior and stored at t1.
+	cov = 4.002f;
+	ASSERT_EQ(fuseMeas(makeMeas(t1, 0.f, 0.f), t1, 0.f).status, vte::FusionStatus::STATUS_FUSED_CURRENT);
+	pushSample(t1, state, cov, 0.f);
+
+	// A noiseless late observation 1 us earlier leaves almost no variance to replay the stored one against.
+	const uint64_t now = t1 + 30_ms;
+	cov += 0.003f;
+	const float state_before = state;
+	const float cov_before = cov;
+
+	EXPECT_EQ(fuseMeas(makeMeas(t1 - 1_us, 0.f, 0.f), now, 0.f).status, vte::FusionStatus::STATUS_REJECT_COV);
+	EXPECT_FLOAT_EQ(state, state_before);
+	EXPECT_FLOAT_EQ(cov, cov_before);
+	EXPECT_EQ(Access::historyEntries(oosm), 0);
+	EXPECT_EQ(fuseMeas(makeMeas(t1 + 5_ms, 0.f, 1.f), now, 0.f).status, vte::FusionStatus::STATUS_REJECT_EMPTY);
+}
+
 // Observations between the restored snapshot and the late one only rebuild its prior, so they are not reported.
 TEST_F(VTEOosmTest, DoesNotReportReplaysBeforeDelayedSample)
 {
