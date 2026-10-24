@@ -84,7 +84,7 @@ parameters:
     VTE_M_UPD_TOUT:
       description:
         short: Measurement updated timeout
-        long: Maximum age of local position, velocity and antenna-offset corrections; also limits velocity-to-measurement time mismatch.
+        long: Maximum age of local position, velocity and antenna-offset corrections. GNSS-to-vision alignment may span the measurement recent timeout.
       type: float
       default: 0.1
       unit: s
