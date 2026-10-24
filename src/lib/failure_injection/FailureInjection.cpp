@@ -203,6 +203,7 @@ esc_status_s process_esc(const Config &config, const esc_status_s &status)
 MotorFailureMasks process_motor(const Config &config)
 {
 	MotorFailureMasks masks{};
+	static_assert(esc_status_s::CONNECTED_ESC_MAX <= 16, "CONNECTED_ESC_MAX must be 16 or less");
 
 	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
 		const uint16_t bit = 1u << i;
