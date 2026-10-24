@@ -172,12 +172,19 @@ bool UxrceddsClient::init()
 	if (_transport == Transport::Udp) {
 		_transport_udp = new uxrUDPTransport();
 
-		if (_transport_udp && uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
+		if (_transport_udp && uxr_init_udp_transport(_transport_udp, IP_PROTOCOL, _agent_ip, _port)) {
 
 			PX4_INFO("init UDP agent IP:%s, port:%s", _agent_ip, _port);
 
 			_comm = &_transport_udp->comm;
 			_fd = _transport_udp->platform.poll_fd.fd;
+
+			_comm->mtu = UDP_TRANSPORT_MTU;
+
+#if defined(__PX4_NUTTX)
+			// NuttX does not fragment IP
+			_best_effort_limit_to_mtu = true;
+#endif
 
 			configure_udp_socket_nonblocking(_fd);
 
@@ -256,12 +263,24 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	_reliable_out = uxr_create_output_reliable_stream(session, _output_reliable_stream_buffer,
 			sizeof(_output_reliable_stream_buffer), STREAM_HISTORY);
 
+	// an input slot must hold a message of the announced MTU
+	const size_t reliable_in_size = (size_t)_comm->mtu * INPUT_STREAM_HISTORY;
+
+	if (reliable_in_size > sizeof(_input_reliable_stream_buffer)) {
+		PX4_ERR("input reliable buffer too small for MTU %" PRIu16, _comm->mtu);
+		return false;
+	}
+
+	// a flush is sent as one transport message
+	const size_t best_effort_size = (_best_effort_limit_to_mtu && (size_t)_comm->mtu < sizeof(_output_data_stream_buffer)) ?
+					(size_t)_comm->mtu : sizeof(_output_data_stream_buffer);
+
 	_best_effort_out = uxr_create_output_best_effort_stream(session, _output_data_stream_buffer,
-			   sizeof(_output_data_stream_buffer));
+			   best_effort_size);
 
 	uxrStreamId reliable_in = uxr_create_input_reliable_stream(session, _input_reliable_stream_buffer,
-				  sizeof(_input_reliable_stream_buffer),
-				  STREAM_HISTORY);
+				  reliable_in_size,
+				  INPUT_STREAM_HISTORY);
 
 	uxrStreamId best_effort_in = uxr_create_input_best_effort_stream(session);
 

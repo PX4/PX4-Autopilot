@@ -43,6 +43,12 @@ else()
 	endif()
 	set(microxrceddsclient_build_dir ${CMAKE_CURRENT_BINARY_DIR})
 
+	if(CONFIG_NET_ETH_PKTSIZE)
+		set(microxrceddsclient_udp_mtu ${CONFIG_NET_ETH_PKTSIZE})
+	else()
+		set(microxrceddsclient_udp_mtu 512) # library default
+	endif()
+
 	px4_add_git_submodule(TARGET git_micro_xrce_dds_client PATH "${microxrceddsclient_src_dir}")
 
 	# If a toolchain file is given, explicitly define its path when building the Micro-XRCE-DDS-CLient
@@ -93,6 +99,7 @@ else()
 			-DUCLIENT_PIC:BOOL=OFF
 			-DUCLIENT_PROFILE_TCP:BOOL=OFF
 			-DUCLIENT_PROFILE_UDP:BOOL=${uclient_profile_udp}
+			-DUCLIENT_UDP_TRANSPORT_MTU:STRING=${microxrceddsclient_udp_mtu}
 			-DUCLIENT_PROFILE_SERIAL:BOOL=ON
 			-DUCLIENT_PROFILE_DISCOVERY:BOOL=OFF
 			-DUCLIENT_PROFILE_CUSTOM_TRANSPORT:BOOL=OFF
