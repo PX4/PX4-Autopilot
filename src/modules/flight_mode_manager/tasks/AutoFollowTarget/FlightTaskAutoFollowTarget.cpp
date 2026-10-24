@@ -90,6 +90,10 @@ bool FlightTaskAutoFollowTarget::activate(const trajectory_setpoint_s &last_setp
 	if (_sub_home_position.get().valid_alt) {
 		_home_position_z = _sub_home_position.get().z;
 
+		// the first update takes the reference the saved value belongs to
+		_ref_alt = NAN;
+		_ref_timestamp = 0;
+
 	} else {
 		ret = false; // Don't activate Follow Target task if home position is not valid
 	}
@@ -131,8 +135,15 @@ void FlightTaskAutoFollowTarget::updateTargetPositionVelocityFilter(const follow
 						TARGET_ESTIMATOR_TIMEOUT_US);
 	_last_valid_target_estimator_timestamp = follow_target_estimator.timestamp;
 
+	// the estimate restarted, in a new local frame or after it was lost, so the filter restarts on it instead
+	// of sliding over from where it was
+	const bool target_estimator_restarted = follow_target_estimator.last_filter_reset_timestamp !=
+						_last_target_estimator_reset_timestamp;
+	_last_target_estimator_reset_timestamp = follow_target_estimator.last_filter_reset_timestamp;
+
 	if (!_target_position_velocity_filter.getState().isAllFinite()
-	    || !_target_position_velocity_filter.getRate().isAllFinite() || target_estimator_timed_out) {
+	    || !_target_position_velocity_filter.getRate().isAllFinite() || target_estimator_timed_out
+	    || target_estimator_restarted) {
 		_target_position_velocity_filter.reset(pos_ned_est, vel_ned_est);
 
 	} else {
@@ -305,10 +316,35 @@ bool FlightTaskAutoFollowTarget::update()
 	float gimbal_pitch{NAN};
 	float raw_orbit_angle_setpoint{NAN};
 
+	if (!PX4_ISFINITE(_dist_to_bottom) && _sub_home_position.get().valid_alt) {
+		// without a distance sensor the base class measures the distance to ground from home's published local z,
+		// which commander doesn't move when the frame changes, so take it from the tracked home z instead
+		_dist_to_ground = _home_position_z - _position(2);
+	}
+
 	// Get the latest target estimator message for target position and velocity
 	_follow_target_estimator_sub.update(&_follow_target_estimator);
 
-	if (_follow_target_estimator.timestamp > 0 && _follow_target_estimator.valid) {
+	// A reference change, on an estimator switch or a new origin, moves the local frame under the vehicle. Home
+	// keeps its altitude over the ground, and the vehicle holds its place for this cycle, since the estimate it
+	// has is still in the old frame. The estimator restarts in the new frame and the filtered target with it.
+	const vehicle_local_position_s &local_position = _sub_vehicle_local_position.get();
+	bool frame_moved = false;
+
+	if (local_position.xy_global && (local_position.ref_timestamp != _ref_timestamp)) {
+		frame_moved = (_ref_timestamp != 0);
+		_ref_timestamp = local_position.ref_timestamp;
+	}
+
+	if (local_position.z_global && PX4_ISFINITE(local_position.ref_alt)) {
+		if (PX4_ISFINITE(_ref_alt)) {
+			_home_position_z += local_position.ref_alt - _ref_alt;
+		}
+
+		_ref_alt = local_position.ref_alt;
+	}
+
+	if (_follow_target_estimator.timestamp > 0 && _follow_target_estimator.valid && !frame_moved) {
 		updateTargetPositionVelocityFilter(_follow_target_estimator);
 		const Vector3f target_position_filtered = _target_position_velocity_filter.getState();
 		const Vector3f target_velocity_filtered = _target_position_velocity_filter.getRate();
