@@ -61,7 +61,13 @@ public:
 	virtual void setRtlAlt(float alt) { (void)alt;};
 
 	/** Refresh the cached mission before RTL selects the destination and activates this mode. */
-	void refreshMission() { updateMavlinkMission(); }
+	void refreshMission()
+	{
+		// The route follower keeps the mission of its route: RTL plans a new follower for an upload.
+		if (shouldAcceptMissionUpdates()) {
+			updateMavlinkMission();
+		}
+	}
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }

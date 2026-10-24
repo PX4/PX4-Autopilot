@@ -185,7 +185,7 @@ Retries stop once the landing sequence starts or the vehicle touches down.
 
 No route is available when:
 
-- The mission has not passed feasibility validation with the current Home position and geofence, or validation is still pending.
+- The mission has not passed Mission's feasibility check for the current mission and geofence, or the check is still pending.
 - The mission or rally points are not loaded in the [route cache](../advanced/mission_route_cache.md) yet, or the mission is larger than the cache.
 - The geofence is loading, unavailable, or cannot check a candidate path.
 - No usable rally point or mission endpoint can be reached through the route.

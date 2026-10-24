@@ -217,6 +217,8 @@ void RtlMissionSafePointFollow::on_activation()
 		const int32_t first_item_index = _plan.first_mission_item_index;
 
 		if (missionIndexInBounds(first_item_index)) {
+			// A reused follower's index can be old, as it ignores the mission topic: always publish the first one.
+			_mission.current_seq = -1;
 			setMissionIndex(first_item_index);
 			_is_current_planned_mission_item_valid = isMissionValid();
 
