@@ -556,6 +556,15 @@ else
 			# reset so the next boot starts the outputs normally
 			param set PASSTHRU_EN 0
 		else
+			# gpio_out has to claim its channels before dshot/pwm_out start
+			if param greater -s PWM_MAIN_GPIO_EN 0
+			then
+				gpio_out start
+			fi
+			if param greater -s PWM_AUX_GPIO_EN 0
+			then
+				gpio_out start
+			fi
 			dshot start
 			pwm_out start
 		fi

@@ -36,6 +36,7 @@
 #include "gpio.h"
 
 #include <cstring>
+#include <drivers/drv_io_timer_gpio.h>
 #include <px4_arch/io_timer.h>
 
 CameraInterfaceGPIO::CameraInterfaceGPIO()
@@ -72,13 +73,12 @@ void CameraInterfaceGPIO::setup()
 	for (unsigned i = 0, t = 0; i < arraySize(_pins); i++) {
 		// Pin range is from 0 to num_gpios - 1
 		if (_pins[i] >= 0 && t < (int)arraySize(_triggers)) {
-			uint32_t gpio = io_timer_channel_get_gpio_output(_pins[i]);
+			uint32_t gpio = io_timer_channel_claim_as_gpio_output(_pins[i], IOTimerChanMode_Trigger,
+					false ^ _trigger_invert);
 
-			if (io_timer_allocate_channel(_pins[i], IOTimerChanMode_Trigger) == 0) {
+			if (gpio != 0) {
 				_allocated_channels |= 1 << _pins[i];
 				_triggers[t++] = gpio;
-				px4_arch_configgpio(gpio);
-				px4_arch_gpiowrite(gpio, false ^ _trigger_invert);
 			}
 		}
 	}
