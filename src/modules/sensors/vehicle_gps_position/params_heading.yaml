@@ -17,11 +17,15 @@ parameters:
                     receiver's antenna (SENS_GNSSn_OFFX/Y/Z of both slots).
                     Dual antenna: this receiver has two antennas. The baseline runs from its main antenna
                     (SENS_GNSS${i}_OFFX/Y/Z) to its auxiliary antenna (SENS_GNSS${i}_AUXX/Y/Z).
+                    Two receivers: this receiver and the receiver in the other slot are independent RTK
+                    receivers.  The baseline runs from the moving base's antenna to this
+                    receiver's antenna (SENS_GNSSn_OFFX/Y/Z of both slots).
             type: enum
             values:
                 0: Disabled
                 1: Moving base rover
                 2: Dual antenna
+                3: Two receivers
             default: 0
             num_instances: *max_num_gps_instances
             instance_start: 0

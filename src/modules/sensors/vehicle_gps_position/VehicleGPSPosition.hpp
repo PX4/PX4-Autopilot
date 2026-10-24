@@ -75,6 +75,8 @@ public:
 	void PrintStatus();
 
 private:
+	friend class VehicleGPSPositionTestPeer;
+
 	void Run() override;
 
 	void ParametersUpdate(bool force = false);
@@ -97,6 +99,7 @@ private:
 		float baseline_length{0.f};  // of the antenna baseline the heading is measured along (m)
 		float heading_offset{0.f};   // yaw of the baseline in the body frame (rad)
 		bool heading_enabled{false}; // SENS_GNSSn_HDG isn't Disabled
+		bool two_receivers{false};   // SENS_GNSSn_HDG is Two receivers
 	};
 
 	// SENS_GNSSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gnss instance
@@ -121,6 +124,10 @@ private:
 	};
 
 	void UpdateGnssHeading();
+
+	// heading from the positions of two receivers (SENS_GNSSn_HDG Two receivers)
+	void storeGnssData(int instance, const sensor_gnss_s &gnss_data);
+	void UpdateTwoReceiverHeading();
 	void handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
 
 	// sensor_gnss instance publishing this device_id, or -1
@@ -161,8 +168,10 @@ private:
 
 	bool _heading_unconfigured_reported{false};
 	bool _heading_no_baseline_reported{false};
-
 	int _moving_base_slot{-1}; ///< SENS_GNSSn_* slot of the moving base of a moving base pair, or -1
+	int _two_receivers_slot{-1};///< SENS_GNSSn_* slot of the two_receiver of a two receivers pair, or -1
+
+	bool _two_receiver_gnss_updated[GPS_MAX_RECEIVERS] {};
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
