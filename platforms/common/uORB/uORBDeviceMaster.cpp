@@ -120,6 +120,7 @@ int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_adver
 				// add to the node map.
 				_node_list.add(node);
 				_node_exists[node->get_instance()].set((orb_id_size_t)node->id(), true);
+				_node_generation.fetch_add(1); // only once the node can be found
 
 			} else {
 				delete node;
