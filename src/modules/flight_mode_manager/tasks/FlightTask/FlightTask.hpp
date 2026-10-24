@@ -68,6 +68,32 @@ public:
 	virtual ~FlightTask() = default;
 
 	/**
+	 * Inputs a task can depend on. A task declares the set it needs in kRequiredInputs; the manager only
+	 * constructs it once they are all available and updateInitialize() fails as soon as one is lost.
+	 */
+	enum Input : uint8_t {
+		LocalPosition = 1 << 0, ///< vehicle_local_position is fresh, implied by the other local position inputs
+		PositionXY = 1 << 1,
+		VelocityXY = 1 << 2,
+		PositionZ = 1 << 3,
+		VelocityZ = 1 << 4,
+		Heading = 1 << 5,
+		ManualControl = 1 << 6, ///< valid stick input
+		HomeAltitude = 1 << 7,
+	};
+
+	static constexpr uint8_t kRequiredInputs = 0;
+
+	/**
+	 * Inputs currently available, as a bitmask of Input. The manager and the tasks evaluate the same data
+	 * through this function so that a task is constructed exactly when its own check would pass.
+	 */
+	static uint8_t availableInputs(const vehicle_local_position_s &local_position, bool home_altitude_valid,
+				       bool manual_control_available, hrt_abstime now);
+
+	virtual uint8_t requiredInputs() const { return kRequiredInputs; }
+
+	/**
 	 * Call once on the event where you switch to the task
 	 * @param last_setpoint last output of the previous task
 	 * @return true on success, false on error
@@ -92,7 +118,7 @@ public:
 	/**
 	 * Call before activate() or update()
 	 * to initialize time and input data
-	 * @return true on success, false on error
+	 * @return true if all inputs in requiredInputs() are available, false otherwise
 	 */
 	virtual bool updateInitialize();
 
@@ -162,6 +188,9 @@ protected:
 	/** Reset all setpoints to NAN */
 	void _resetSetpoints();
 
+	/** Stick input availability, provided by tasks that own a Sticks instance */
+	virtual bool _manualControlAvailable() { return false; }
+
 	/** Check and update local position */
 	void _evaluateVehicleLocalPosition();
 	void _evaluateVehicleLocalPositionSetpoint();
@@ -193,6 +222,8 @@ protected:
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
 
 	float _deltatime{}; /**< passed time in seconds since the task was last updated */
+
+	uint8_t _available_inputs{0}; /**< bitmask of Input, evaluated in updateInitialize() */
 
 	hrt_abstime _time_stamp_activate{}; /**< time stamp when task was activated */
 	hrt_abstime _time_stamp_current{}; /**< time stamp at the beginning of the current task update */
