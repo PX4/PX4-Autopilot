@@ -173,3 +173,65 @@ TEST(MatrixPseudoInverseTest, PseudoInverse)
 	Matrix<float, 6, 5> real_pinv_expected(real_pinv_expected_alloc);
 	EXPECT_EQ(real_pinv, real_pinv_expected);
 }
+
+// Near-singular input (cond ~900): geninv inverts A*A', which squares that, so single precision
+// alone returns sign flips and entries orders of magnitude off. With the kernel in double the
+// float result still satisfies A * pinv(A) * A == A.
+TEST(MatrixPseudoInverseTest, MixedPrecisionNearSingularInput)
+{
+	const float near_singular[6][6] = {
+		{0.f, 0.f,  2.964000f, -2.853500f, -2.990000f,  2.840500f},
+		{0.f, 0.f,  5.063500f, -4.972500f,  5.063500f, -4.972500f},
+		{0.f, 0.f, -0.325000f,  0.325000f,  0.325000f, -0.325000f},
+		{0.f, 0.f,  0.f,        0.f,        0.f,        0.f},
+		{0.f, 0.f,  0.f,        0.f,        0.f,        0.f},
+		{0.f, 0.f, -6.500000f, -6.500000f, -6.500000f, -6.500000f}
+	};
+
+	Matrix<float, 6, 16> A;
+	A.setZero();
+
+	for (size_t row = 0; row < 6; row++) {
+		for (size_t col = 0; col < 6; col++) {
+			A(row, col) = near_singular[row][col];
+		}
+	}
+
+	Matrix<float, 16, 6> A_pinv;
+	ASSERT_TRUE(geninvMixedPrecision(A, A_pinv));
+
+	// residual in double: the float geninv of this input is off by orders of magnitude
+	const Matrix<double, 6, 16> A_d(A);
+	const Matrix<double, 16, 6> A_pinv_d(A_pinv);
+	EXPECT_LT((A_d * A_pinv_d * A_d - A_d).abs().max(), 1e-3);
+
+	// last column bounded, physical sign
+	for (size_t i = 2; i < 6; i++) {
+		EXPECT_LT(A_pinv(i, 5), 0.f);
+		EXPECT_LT(fabsf(A_pinv(i, 5)), 1.f);
+	}
+}
+
+// An independent but tiny row passes the Cholesky rank tolerance yet fails the inversion pivot
+// threshold: the function reports failure and leaves the caller's previous result untouched.
+TEST(MatrixPseudoInverseTest, MixedPrecisionFailureLeavesResultUntouched)
+{
+	Matrix<float, 6, 16> A;
+	A.setZero();
+
+	for (size_t col = 0; col < 4; col++) {
+		A(0, col) = 1.f;
+	}
+
+	A(1, 4) = 1e-5f;
+
+	Matrix<float, 16, 6> A_pinv;
+	A_pinv.setAll(42.f);
+	EXPECT_FALSE(geninvMixedPrecision(A, A_pinv));
+
+	for (size_t row = 0; row < 16; row++) {
+		for (size_t col = 0; col < 6; col++) {
+			EXPECT_FLOAT_EQ(A_pinv(row, col), 42.f);
+		}
+	}
+}
