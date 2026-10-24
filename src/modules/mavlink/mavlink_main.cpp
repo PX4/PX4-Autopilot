@@ -2869,8 +2869,13 @@ Mavlink::task_main(int argc, char *argv[])
 		// other lock_send() callers inside the send path is safe.
 		lock_send();
 
+		const int64_t stream_margin = (get_main_loop_delay() / 10) * 3;
+
 		for (const auto &stream : _streams) {
-			stream->update(t);
+			// skip the call when it would do nothing (most streams are not due on a given loop)
+			if (!stream->default_update_data() || !stream->not_due(t, stream_margin)) {
+				stream->update(t);
+			}
 
 			if (!_first_heartbeat_sent) {
 				if (_mode == MAVLINK_MODE_IRIDIUM) {
