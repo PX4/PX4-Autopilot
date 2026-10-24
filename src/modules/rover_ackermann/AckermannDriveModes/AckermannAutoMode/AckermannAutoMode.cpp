@@ -72,8 +72,8 @@ void AckermannAutoMode::autoControl()
 
 		rover_position_setpoint_s rover_position_setpoint{};
 		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = _curr_wp_ned(0);
-		rover_position_setpoint.position_ned[1] = _curr_wp_ned(1);
+		rover_position_setpoint.target_ned[0] = _curr_wp_ned(0);
+		rover_position_setpoint.target_ned[1] = _curr_wp_ned(1);
 		rover_position_setpoint.start_ned[0] = _prev_wp_ned(0);
 		rover_position_setpoint.start_ned[1] = _prev_wp_ned(1);
 		rover_position_setpoint.arrival_speed = arrivalSpeed(_cruising_speed, _min_speed, _acceptance_radius, _curr_wp_type,

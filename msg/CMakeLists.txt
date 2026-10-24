@@ -236,6 +236,7 @@ set(msg_files
 	UavcanFirmwareUpdate.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
+	UgvUsvCourseSetpoint.msg
 	UlogStream.msg
 	UlogStreamAck.msg
 	VehicleAcceleration.msg

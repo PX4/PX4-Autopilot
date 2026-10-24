@@ -52,6 +52,7 @@
 #include <uORB/topics/rover_attitude_setpoint.h>
 #include <uORB/topics/rover_speed_setpoint.h>
 #include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/ugv_usv_course_setpoint.h>
 
 using namespace matrix;
 
@@ -119,6 +120,7 @@ private:
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
 	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+	uORB::Publication<ugv_usv_course_setpoint_s> _ugv_usv_course_setpoint_pub{ORB_ID(ugv_usv_course_setpoint)};
 
 	// Variables
 	Vector2f _pos_ctl_course_direction{NAN, NAN};
@@ -137,7 +139,6 @@ private:
 		(ParamFloat<px4::params::RO_YAW_SUPEXPO>)   _param_ro_yaw_supexpo,
 		(ParamFloat<px4::params::RM_YAW_STK_GAIN>)  _param_rm_yaw_stk_gain,
 		(ParamFloat<px4::params::RO_PARK_THR_MAX>)  _param_ro_park_thr_max,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
 		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th
 	)

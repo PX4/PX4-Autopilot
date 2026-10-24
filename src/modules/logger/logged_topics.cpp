@@ -135,6 +135,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("tiltrotor_extra_controls", 100);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("transponder_report");
+	add_optional_topic("ugv_usv_course_setpoint", 100);
 	add_topic("vehicle_acceleration", 50);
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_angular_velocity", 20);

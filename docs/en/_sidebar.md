@@ -791,6 +791,7 @@
         - [UavcanFirmwareUpdate](/msg_docs/UavcanFirmwareUpdate.md)
         - [UavcanParameterRequest](/msg_docs/UavcanParameterRequest.md)
         - [UavcanParameterValue](/msg_docs/UavcanParameterValue.md)
+        - [UgvUsvCourseSetpoint](/msg_docs/UgvUsvCourseSetpoint.md)
         - [UlogStream](/msg_docs/UlogStream.md)
         - [UlogStreamAck](/msg_docs/UlogStreamAck.md)
         - [VehicleAcceleration](/msg_docs/VehicleAcceleration.md)
