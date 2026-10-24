@@ -13,19 +13,21 @@ Subscribed by: logger only. Inspect observation, innovation, test_ratio, and per
 
 ## Fields
 
-| Name                                                      | Type         | Unit [Frame] | Range/Enum                              | Description                                               |
-| --------------------------------------------------------- | ------------ | ------------ | --------------------------------------- | --------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp                       | `uint64`     | us           |                                         | Time since system start                                   |
-| <a id="fld_timestamp_sample"></a>timestamp_sample         | `uint64`     | us           |                                         | Timestamp of the raw observation                          |
-| <a id="fld_time_last_predict"></a>time_last_predict       | `uint64`     | us           |                                         | Timestamp of last filter prediction                       |
-| <a id="fld_observation"></a>observation                   | `float32[3]` | [NED]        |                                         | Sensor observation attempted to be fused                  |
-| <a id="fld_observation_variance"></a>observation_variance | `float32[3]` | [NED]        |                                         | Variance of the observation attempted to be fused         |
-| <a id="fld_innovation"></a>innovation                     | `float32[3]` | [NED]        |                                         | Kalman Filter innovation (y = z - Hx)                     |
-| <a id="fld_innovation_variance"></a>innovation_variance   | `float32[3]` | [NED]        |                                         | Kalman Filter variance of the innovation                  |
-| <a id="fld_test_ratio"></a>test_ratio                     | `float32[3]` |              |                                         | Normalized innovation squared (NIS)                       |
-| <a id="fld_fusion_status"></a>fusion_status               | `uint8[3]`   |              | [VTE_FUSION_STATUS](#VTE_FUSION_STATUS) | Fusion status code per axis                               |
-| <a id="fld_time_since_meas_ms"></a>time_since_meas_ms     | `float32`    | ms           |                                         | (now - timestamp_sample)                                  |
-| <a id="fld_history_steps"></a>history_steps               | `uint8`      |              |                                         | Number of steps replayed in OOSM (0 if current or failed) |
+| Name                                                        | Type         | Unit [Frame] | Range/Enum                              | Description                                                               |
+| ----------------------------------------------------------- | ------------ | ------------ | --------------------------------------- | ------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                         | `uint64`     | us           |                                         | Time since system start                                                   |
+| <a id="fld_timestamp_sample"></a>timestamp_sample           | `uint64`     | us           |                                         | Timestamp of the raw observation                                          |
+| <a id="fld_time_last_predict"></a>time_last_predict         | `uint64`     | us           |                                         | Timestamp of last filter prediction                                       |
+| <a id="fld_observation"></a>observation                     | `float32[3]` | [NED]        |                                         | Sensor observation attempted to be fused                                  |
+| <a id="fld_observation_variance"></a>observation_variance   | `float32[3]` | [NED]        |                                         | Variance of the observation attempted to be fused                         |
+| <a id="fld_innovation"></a>innovation                       | `float32[3]` | [NED]        |                                         | Kalman Filter innovation (y = z - Hx)                                     |
+| <a id="fld_innovation_variance"></a>innovation_variance     | `float32[3]` | [NED]        |                                         | Kalman Filter variance of the innovation                                  |
+| <a id="fld_test_ratio"></a>test_ratio                       | `float32[3]` |              |                                         | NIS divided by the gate threshold, so above 1 means rejected              |
+| <a id="fld_fusion_status"></a>fusion_status                 | `uint8[3]`   |              | [VTE_FUSION_STATUS](#VTE_FUSION_STATUS) | Fusion status code per axis                                               |
+| <a id="fld_time_since_meas_ms"></a>time_since_meas_ms       | `float32`    | ms           |                                         | (now - timestamp_sample)                                                  |
+| <a id="fld_history_steps"></a>history_steps                 | `uint8`      |              |                                         | Number of steps replayed in OOSM (0 if current or failed)                 |
+| <a id="fld_replayed_count"></a>replayed_count               | `uint8`      |              |                                         | Stored observations replayed after this one, most on any axis (0 if none) |
+| <a id="fld_replay_test_ratio_max"></a>replay_test_ratio_max | `float32[3]` |              |                                         | Highest test_ratio among those replayed observations (-1 if none)         |
 
 ## Enums
 
@@ -74,7 +76,7 @@ float32[3] observation_variance # [-] [@frame NED] Variance of the observation a
 float32[3] innovation # [-] [@frame NED] Kalman Filter innovation (y = z - Hx)
 float32[3] innovation_variance # [-] [@frame NED] Kalman Filter variance of the innovation
 
-float32[3] test_ratio # [-] Normalized innovation squared (NIS)
+float32[3] test_ratio # [-] NIS divided by the gate threshold, so above 1 means rejected
 
 uint8[3] fusion_status # [@enum VTE_FUSION_STATUS] Fusion status code per axis
 uint8 STATUS_IDLE = 0 # No fusion attempted yet
@@ -88,9 +90,11 @@ uint8 STATUS_REJECT_STALE = 7 # Rejected: history was reset due to staleness/dis
 uint8 STATUS_REJECT_EMPTY = 8 # Rejected: history buffer not yet populated
 uint8 STATUS_INITIALIZED = 9 # Accepted as initial state; no prior innovation or repeated fusion
 
-# OOSM Diagnostics (Shared across axes)
+# OOSM Diagnostics (scalars are shared across axes)
 float32 time_since_meas_ms # [ms] (now - timestamp_sample)
 uint8 history_steps # [-] Number of steps replayed in OOSM (0 if current or failed)
+uint8 replayed_count # [-] Stored observations replayed after this one, most on any axis (0 if none)
+float32[3] replay_test_ratio_max # [-] Highest test_ratio among those replayed observations (-1 if none)
 
 # TOPICS vte_aid_gps_pos_target vte_aid_gps_pos_mission vte_aid_gps_vel_target vte_aid_gps_vel_uav
 # TOPICS vte_aid_fiducial_marker
