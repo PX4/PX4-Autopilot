@@ -41,7 +41,7 @@ private:
 
 				for (int j = 0; j < 2; j++) {
 					if (wheel_encoders.counts_per_rev[j] > 0) {
-						msg.distance[j] = (double)2.0 * (double)M_PI_F * (double)wheel_radius * wheel_encoders.encoder_position[j] /
+						msg.distance[j] = (double)2.0 * (double)M_PI_F * (double)wheel_radius * wheel_encoders.encoder_counts[j] /
 								  (double)wheel_encoders.counts_per_rev[j];
 						count = j + 1;
 					}
