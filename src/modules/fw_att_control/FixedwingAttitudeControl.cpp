@@ -44,6 +44,15 @@ using math::radians;
 
 ModuleBase::Descriptor FixedwingAttitudeControl::desc{task_spawn, custom_command, print_usage};
 
+// [us] skid-to-turn setpoints older than this are ignored
+static constexpr hrt_abstime SKID_SETPOINT_TIMEOUT = 200_ms;
+
+// [s] time constant of the lateral accelerometer filter for the side force control
+static constexpr float LATERAL_SPECIFIC_FORCE_FILTER_TIME_CONST = 0.1f;
+
+// [rad/s] maximum yaw rate correction of the side force control
+static constexpr float SIDE_FORCE_YAW_RATE_CORRECTION_MAX = 0.2f;
+
 FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -85,6 +94,44 @@ FixedwingAttitudeControl::parameters_update()
 	_wheel_ctrl.set_integrator_max(_param_fw_wr_imax.get());
 	_wheel_ctrl.set_max_rate(radians(_param_fw_w_rmax.get()));
 	_wheel_ctrl.set_time_constant(0.1f);
+
+	_side_force_control.setGains(_param_fw_skid_p.get(), _param_fw_skid_i.get(), 0.f);
+	_side_force_control.setOutputLimit(SIDE_FORCE_YAW_RATE_CORRECTION_MAX);
+	_side_force_control.setIntegralLimit(SIDE_FORCE_YAW_RATE_CORRECTION_MAX);
+	_lateral_specific_force_filter.setParameters(0.f, LATERAL_SPECIFIC_FORCE_FILTER_TIME_CONST);
+}
+
+matrix::Vector2f FixedwingAttitudeControl::skidToTurnRates(const float airspeed, const float roll_to_vertical_projection,
+		const float cos_tilt, const float dt)
+{
+	_fixed_wing_skid_setpoint_sub.update(&_skid_setpoint);
+
+	vehicle_acceleration_s vehicle_acceleration;
+
+	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
+		// specific force is the non-gravitational force over mass, so the lateral accelerometer reads the side force
+		_lateral_specific_force_filter.update(vehicle_acceleration.xyz[1], dt);
+	}
+
+	const bool skid_active = (hrt_elapsed_time(&_skid_setpoint.timestamp) < SKID_SETPOINT_TIMEOUT)
+				 && PX4_ISFINITE(_skid_setpoint.lateral_acceleration)
+				 && (fabsf(_skid_setpoint.lateral_acceleration) > FLT_EPSILON)
+				 && !_vehicle_status.is_vtol_tailsitter;
+
+	if (!skid_active) {
+		_side_force_control.resetIntegral();
+		return matrix::Vector2f{};
+	}
+
+	// turn rate the sideslip part of the lateral acceleration needs, projected on the body axes like the bank part
+	const float turn_rate_skid = _skid_setpoint.lateral_acceleration / airspeed;
+
+	_side_force_control.setSetpoint(_skid_setpoint.lateral_acceleration);
+	const float yaw_rate_correction = _side_force_control.update(_lateral_specific_force_filter.getState(), dt, !_landed);
+
+	const float pitch_rate = turn_rate_skid * roll_to_vertical_projection;
+	const float yaw_rate = turn_rate_skid * cos_tilt + yaw_rate_correction;
+	return matrix::Vector2f{pitch_rate, yaw_rate};
 }
 
 void
@@ -294,6 +341,10 @@ void FixedwingAttitudeControl::Run()
 
 					body_rates_setpoint(1) += ff_scale * pitchrate_ff;
 					body_rates_setpoint(2) += ff_scale * yawrate_ff;
+
+					const matrix::Vector2f skid_rates = skidToTurnRates(V, q1, cos_tilt, dt);
+					body_rates_setpoint(1) += ff_scale * skid_rates(0);
+					body_rates_setpoint(2) += ff_scale * skid_rates(1);
 
 					body_rates_setpoint(0) = math::constrain(body_rates_setpoint(0), -radians(_param_fw_r_rmax.get()), radians(_param_fw_r_rmax.get()));
 					body_rates_setpoint(1) = math::constrain(body_rates_setpoint(1), -radians(_param_fw_p_rmax_neg.get()), radians(_param_fw_p_rmax_pos.get()));

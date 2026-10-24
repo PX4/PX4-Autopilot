@@ -352,6 +352,22 @@ parameters:
       increment: 0.01
 - group: FW General
   definitions:
+    FW_SKID_RATIO:
+      description:
+        short: Skid-to-turn ratio in loiters
+        long: |-
+          Fraction of the lateral acceleration to generate by sideslip instead of bank
+          while circling a loiter or orbit, or flying a figure-eight. Reduces the bank angle,
+          for example to keep the wing out of the view of a camera below the fuselage.
+          The sideslip part is limited by FW_SKID_AY_MAX, bank generates the remainder.
+          Not applied while approaching the loiter, before a landing, or in manual modes.
+          Set to 0 to turn by bank only.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
     FW_P_LIM_MIN:
       description:
         short: Minimum absolute pitch angle setpoint

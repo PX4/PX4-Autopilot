@@ -117,6 +117,11 @@ PX4_SIM_SPEED_FACTOR=10 make px4_sitl_sih sihsim_quadx
 
 SIH supports setting a wind velocity with the PX4 parameters [`SIH_WIND_N`](../advanced_config/parameter_reference.md#SIH_WIND_E) and [`SIH_WIND_E`](../advanced_config/parameter_reference.md#SIH_WIND_E) [m/s]. The parameters can also be changed during flight to simulate changing wind.
 
+#### Fixed-wing Side Force
+
+[`SIH_FW_SIDE_A`](../advanced_config/parameter_reference.md#SIH_FW_SIDE_A) [m²] adds a vertical panel at the centre of mass of the fixed-wing model.
+It increases the side force with sideslip without changing the yaw stability, for example to test [skid-to-turn](../flight_modes_fw/hold.md#skid-to-turn).
+
 #### Set Custom Takeoff Location
 
 The default takeoff location can be set using environment variables:

@@ -280,6 +280,8 @@ private:
 	AeroSeg _tailplane = AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f, RP);
 	AeroSeg _fin = AeroSeg(0.25, 0.18, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.12f, RP);
 	AeroSeg _fuselage = AeroSeg(0.2, 0.8, 0.0f, matrix::Vector3f(0.0f, 0.0f, 0.0f), -90.0f);
+	// square vertical panel of 1 m^2 at the center of mass, scaled to SIH_FW_SIDE_A
+	AeroSeg _side_panel = AeroSeg(1.0f, 1.0f, 0.0f, matrix::Vector3f(0.0f, 0.0f, 0.0f), -90.0f);
 
 	// aerodynamic segments for the tailsitter
 	static constexpr const int NB_TS_SEG = 11;
@@ -351,6 +353,7 @@ private:
 		(ParamFloat<px4::params::SIH_F_CP2>) _sih_f_cp2,
 		(ParamFloat<px4::params::SIH_F_DIA_INCH>) _sih_forward_diameter_inch,
 		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _sih_forward_rpm_max,
+		(ParamFloat<px4::params::SIH_FW_SIDE_A>) _sih_fw_side_area,
 		(ParamInt<px4::params::BAT1_SOURCE>) _bat1_source,
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
 		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,

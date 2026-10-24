@@ -68,6 +68,31 @@ parameters:
       max: 180
       decimal: 1
       increment: 0.5
+    FW_SKID_P:
+      description:
+        short: Skid-to-turn side force proportional gain
+        long: |-
+          Yaw rate correction per lateral acceleration error while turning by sideslip
+          (see FW_SKID_AY_MAX). The lateral acceleration is measured by the accelerometer.
+      type: float
+      default: 0.02
+      unit: rad s/m
+      min: 0.0
+      max: 0.5
+      decimal: 3
+      increment: 0.005
+    FW_SKID_I:
+      description:
+        short: Skid-to-turn side force integrator gain
+        long: |-
+          Integrator gain of the yaw rate correction while turning by sideslip
+          (see FW_SKID_AY_MAX). It removes the steady state lateral acceleration error.
+      type: float
+      default: 0.05
+      min: 0.0
+      max: 1.0
+      decimal: 3
+      increment: 0.005
     FW_W_EN:
       description:
         short: Enable wheel steering controller

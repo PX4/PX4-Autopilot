@@ -534,12 +534,22 @@ void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, 
 	_fuselage.update_aero(_v_B, _w_B, alt);
 
 	// sum of aerodynamic forces
-	const Vector3f Fa_B = _wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa() -
-			      _KDV * _v_B;
-	_Fa_E = _q_E.rotateVector(Fa_B);
+	Vector3f Fa_B = _wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa() -
+			_KDV * _v_B;
 
 	// aerodynamic moments
 	_Ma_B = _wing_l.get_Ma() + _wing_r.get_Ma() + _tailplane.get_Ma() + _fin.get_Ma() + _fuselage.get_Ma() - _KDW * _w_B;
+
+	const float side_panel_area = _sih_fw_side_area.get();
+
+	if (side_panel_area > FLT_EPSILON) {
+		// forces of a flat plate with constant aspect ratio scale with its area, its own moments with area times chord
+		_side_panel.update_aero(_v_B, _w_B, alt);
+		Fa_B += side_panel_area * _side_panel.get_Fa();
+		_Ma_B += side_panel_area * sqrtf(side_panel_area) * _side_panel.get_Ma();
+	}
+
+	_Fa_E = _q_E.rotateVector(Fa_B);
 }
 
 void Sih::generate_ts_aerodynamics()
