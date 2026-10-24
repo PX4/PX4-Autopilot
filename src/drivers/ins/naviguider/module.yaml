@@ -1,0 +1,117 @@
+module_name: naviguider
+
+parameters:
+  - group: Sensors
+    definitions:
+      SENS_NG_BUS:
+        description:
+          short: NaviGuider I2C bus
+          long: I2C bus number used by the NaviGuider driver.
+        type: int32
+        default: 2
+        min: 0
+        max: 5
+
+      SENS_NG_ADDR:
+        description:
+          short: NaviGuider I2C address
+          long: 7-bit I2C address of the NaviGuider sensor (decimal).
+        type: int32
+        default: 40   # 0x28 = 40
+        min: 1
+        max: 127
+
+      SENS_NG_MODE:
+        description:
+          short: NaviGuider output mode
+          long: Select what the driver publishes.
+        type: enum
+        values:
+          0: Sensors only (accel/gyro/mag/baro)
+          1: INS (also publish attitude/quaternion)
+        default: 0
+
+      SENS_EN_NG:
+        description:
+          short: Enable NaviGuider driver
+        type: boolean
+        default: true
+
+      NG_ROT:
+        description:
+          short: NaviGuider rotation enum
+          long: The rotation enum value of the NaviGuider vs the autopilot frame.
+        type: int32
+        default: 0
+        min: 0
+        max: 100
+
+      NG_RATE_ACC:
+        description:
+          short: NaviGuider accel sample rate
+        type: int32
+        default: 200
+        min: 0
+        max: 400
+
+      NG_RATE_GYRO:
+        description:
+          short: NaviGuider gyro sample rate
+        type: int32
+        default: 200
+        min: 0
+        max: 400
+
+      NG_RATE_MAG:
+        description:
+          short: NaviGuider mag sample rate
+        type: int32
+        default: 35
+        min: 0
+        max: 125
+
+      NG_RATE_BARO:
+        description:
+          short: NaviGuider baro sample rate
+        type: int32
+        default: 5
+        min: 0
+        max: 50
+
+      NG_RATE_ROTVEC:
+        description:
+          short: NaviGuider rotation vector sample rate
+        type: int32
+        default: 100
+        min: 0
+        max: 400
+
+      NG_SYN_MAG_MODE:
+        description:
+          short: How to get the local magnetic field to use in the synthetic magnetometer.
+          long: Whether to use the Naviguider's magnetometer and attitude reading or the user provided NED local magnetic field as the NED components of the local magnetic field for the synthetic magnetometer.
+        type: int32 
+        values:
+          0: Naviguider gets the NED local mag field based off of its magnetometer and attitude.
+          1: NaviGuider gets the NED local mag field from provided parameters (NG_SYN_MAG_x).
+        default: 0
+        min: 0
+        max: 1
+
+      NG_SYN_MAG_N:
+        description:
+            short: Synthetic mag field North value
+        type: float
+        default: 0.0
+
+      NG_SYN_MAG_E:
+        description:
+            short: Synthetic mag field East value
+        type: float
+        default: 0.0
+
+      NG_SYN_MAG_D:
+        description:
+            short: Synthetic mag field Down value
+        type: float
+        default: 0.0
