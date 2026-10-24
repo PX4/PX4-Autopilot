@@ -327,7 +327,8 @@ void Battery::resetInternalResistanceEstimation(const float voltage_v, const flo
 void Battery::estimateStateOfCharge()
 {
 	// choose which quantity we're using for final reporting
-	if ((_capacity_mah > 0.f) && _battery_initialized) {
+	// without a cell count the starting charge is unknown, so coulomb counting can't help
+	if ((_capacity_mah > 0.f) && _battery_initialized && (_params.n_cells > 0)) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		// The lower the voltage the more adjust the estimate with it to avoid deep discharge
 		const float weight_v = 3e-2f * (1 - _state_of_charge_volt_based);
