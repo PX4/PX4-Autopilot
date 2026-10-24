@@ -1118,6 +1118,86 @@ TEST_F(VTEOosmTest, RejectsNisDuringOosmPrediction)
 	EXPECT_EQ(filter.applied_k.size(), 0u);
 }
 
+// Replay keeps earlier decisions, but the late observation reports how strongly the stored ones now disagree.
+TEST_F(VTEOosmTest, ReportsReplayedObservationsAfterDelayedSample)
+{
+	constexpr uint64_t start = 1_s;
+	constexpr uint64_t step = 20_ms;
+	constexpr float kThreshold = 10.f;
+	auto x = makeVec(0.f);
+	auto P = makeCov(4.f);
+	oosm.push(start, x, P, curr_input);
+
+	// Two fast-path observations agree with the prior and are stored at their cycle times.
+	for (uint64_t cycle = 1; cycle <= 2; ++cycle) {
+		const uint64_t now = start + cycle * step;
+		filter.predictState(step * 1e-6f, curr_input, x, P, x, P);
+		state = x(0);
+		cov = P(0, 0);
+		ASSERT_EQ(fuseMeas(makeMeas(now - 5_ms, 0.f, 0.01f), now, kThreshold).status,
+			  vte::FusionStatus::STATUS_FUSED_CURRENT);
+		x = makeVec(state);
+		P = makeCov(cov);
+		oosm.push(now, x, P, curr_input);
+	}
+
+	// A late observation passes its own gate but contradicts both stored ones.
+	const uint64_t now = start + 3 * step;
+	filter.predictState(step * 1e-6f, curr_input, x, P, x, P);
+	state = x(0);
+	cov = P(0, 0);
+	const size_t corrections_before = filter.applied_k.size();
+	const ScalarMeas late = makeMeas(start + 10_ms, 5.f, 0.01f);
+	const vte::FusionResult res = fuseMeas(late, now, kThreshold);
+
+	ASSERT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(res.replayed_count, 2);
+	EXPECT_EQ(filter.applied_k.size() - corrections_before, 3u);
+
+	TestFilter truth_filter;
+	auto x_truth = makeVec(0.f);
+	auto P_truth = makeCov(4.f);
+	float max_ratio = -1.f;
+	const auto fuse_truth = [&](const ScalarMeas & m, bool replayed) {
+		float innov = 0.f;
+		float innov_var = 0.f;
+		truth_filter.computeInnovation(x_truth, P_truth, m, innov, innov_var);
+
+		if (replayed) {
+			max_ratio = fmaxf(max_ratio, innov * innov / (innov_var * kThreshold));
+		}
+
+		const auto K = (P_truth * m.H) / innov_var;
+		truth_filter.applyCorrection(x_truth, P_truth, K, innov, innov_var);
+	};
+	truth_filter.predictState(0.01f, curr_input, x_truth, P_truth, x_truth, P_truth);
+	fuse_truth(late, false);
+	truth_filter.predictState(0.01f, curr_input, x_truth, P_truth, x_truth, P_truth);
+	fuse_truth(makeMeas(start + step, 0.f, 0.01f), true);
+	truth_filter.predictState(0.02f, curr_input, x_truth, P_truth, x_truth, P_truth);
+	fuse_truth(makeMeas(start + 2 * step, 0.f, 0.01f), true);
+	truth_filter.predictState(0.02f, curr_input, x_truth, P_truth, x_truth, P_truth);
+
+	EXPECT_GT(max_ratio, 1.f);
+	EXPECT_NEAR(res.replay_test_ratio_max, max_ratio, 1e-3f * max_ratio);
+	EXPECT_NEAR(state, x_truth(0), kTolerance);
+	EXPECT_NEAR(cov, P_truth(0, 0), kTolerance);
+}
+
+// Observations between the restored snapshot and the late one only rebuild its prior, so they are not reported.
+TEST_F(VTEOosmTest, DoesNotReportReplaysBeforeDelayedSample)
+{
+	pushSample(100_ms, 0.f, 4.f, 0.f);
+	pushSample(200_ms, 0.f, 4.f, 0.f);
+
+	ASSERT_EQ(fuseMeas(makeMeas(130_ms, 0.f, 1.f), 250_ms, 10.f).status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	const vte::FusionResult res = fuseMeas(makeMeas(160_ms, 0.f, 1.f), 250_ms, 10.f);
+
+	ASSERT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(res.replayed_count, 0);
+	EXPECT_FLOAT_EQ(res.replay_test_ratio_max, -1.f);
+}
+
 // WHY: The flat timeline view is the foundation the OOSM path builds on; verify it against an empty buffer.
 // WHAT: copyHistoryToLinearTimeline must return count==0 when no samples have been pushed.
 TEST_F(VTEOosmTest, LinearTimelineCopyFromEmptyHistory)

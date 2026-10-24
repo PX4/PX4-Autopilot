@@ -580,6 +580,7 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 		aid.innovation[axis] = NAN;
 		aid.innovation_variance[axis] = NAN;
 		aid.test_ratio[axis] = NAN;
+		aid.replay_test_ratio_max[axis] = -1.f;
 		aid.fusion_status[axis] = FusionStatus::STATUS_INITIALIZED;
 	}
 
@@ -1236,8 +1237,10 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 
 	bool any_axis_fused = false;
 	uint8_t history_steps = 0;
+	uint8_t replayed_count = 0;
 
 	for (int j = 0; j < vtest::Axis::size; j++) {
+		target_innov.replay_test_ratio_max[j] = -1.f;
 
 		if (!target_obs.updated(j)) {
 			target_innov.fusion_status[j] = static_cast<uint8_t>(FusionStatus::STATUS_IDLE);
@@ -1264,15 +1267,18 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 		target_innov.innovation_variance[j] = result.innov_var;
 		target_innov.test_ratio[j]          = result.test_ratio;
 		target_innov.fusion_status[j]       = static_cast<uint8_t>(result.status);
+		target_innov.replay_test_ratio_max[j] = result.replay_test_ratio_max;
 		any_axis_fused |= (result.status == FusionStatus::STATUS_FUSED_CURRENT ||
 				   result.status == FusionStatus::STATUS_FUSED_OOSM);
 
 		if (result.status == FusionStatus::STATUS_FUSED_OOSM) {
 			history_steps = math::max(result.history_steps, history_steps);
+			replayed_count = math::max(result.replayed_count, replayed_count);
 		}
 	}
 
 	target_innov.history_steps = history_steps;
+	target_innov.replayed_count = replayed_count;
 
 	perf_end(_vte_update_perf);
 	publishInnov(target_innov, target_obs.type);

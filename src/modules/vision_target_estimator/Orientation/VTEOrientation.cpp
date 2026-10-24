@@ -249,6 +249,8 @@ bool VTEOrientation::fuseMeas(const VisionObs &vision_obs)
 	target_innov.test_ratio          = result.test_ratio;
 	target_innov.fusion_status       = static_cast<uint8_t>(result.status);
 	target_innov.history_steps       = result.history_steps;
+	target_innov.replayed_count      = result.replayed_count;
+	target_innov.replay_test_ratio_max = result.replay_test_ratio_max;
 
 	_vte_aid_ev_yaw_pub.publish(target_innov);
 

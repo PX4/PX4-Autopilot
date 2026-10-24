@@ -781,6 +781,55 @@ TEST_F(VTEPositionTest, FusesOlderVelocityBeforeSameCycleVision)
 	EXPECT_GT(vision.innovation[0], 0.01f);
 }
 
+// A delayed sample reports the stored observations its replay re-applied; fresh samples report none.
+TEST_F(VTEPositionTest, ReportsReplayDiagnosticsOnDelayedSample)
+{
+	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kMissionPos});
+	setParamFloat("VTE_BIA_AVG_TOUT", 0.f);
+	setParamFloat("VTE_POS_NIS_THRE", kPermissiveNisThreshold);
+	_vte->updateParamsPublic();
+
+	const hrt_abstime init_time = vte_test::advanceMicroseconds(kStepUs);
+	setLocalVelocity(kZeroVec, init_time);
+	_vte->setMissionPosition(kUavLat, kUavLon, kTargetAltM);
+	publishNominalUavGnss(kZeroVec, init_time);
+	publishVisionPos(matrix::Vector3f(0.f, 0.f, kUavAltM - kTargetAltM), vte_test::identityQuat(), kSmallVisionCov,
+			 init_time);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_vte_state_sub->update());
+	vte_test::flushSubscription(_aid_fiducial_sub);
+	vte_test::flushSubscription(_aid_gps_mission_sub);
+
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(20_ms);
+	publishVisionPos(matrix::Vector3f(0.f, 0.f, kUavAltM - kTargetAltM), vte_test::identityQuat(), kSmallVisionCov,
+			 vision_time);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+	const auto &vision = _aid_fiducial_sub->get();
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_EQ(vision.fusion_status[axis], vte::FusionStatus::STATUS_FUSED_CURRENT);
+		EXPECT_FLOAT_EQ(vision.replay_test_ratio_max[axis], -1.f);
+	}
+
+	EXPECT_EQ(vision.replayed_count, 0);
+
+	// The GNSS sample predates the stored vision sample, so its replay re-applies it once per axis.
+	vte_test::advanceMicroseconds(40_ms);
+	publishNominalUavGnss(kZeroVec, vision_time - 10_ms);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_aid_gps_mission_sub->update());
+	const auto &gnss = _aid_gps_mission_sub->get();
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_EQ(gnss.fusion_status[axis], vte::FusionStatus::STATUS_FUSED_OOSM);
+		EXPECT_GE(gnss.replay_test_ratio_max[axis], 0.f);
+		EXPECT_LT(gnss.replay_test_ratio_max[axis], 1.f);
+	}
+
+	EXPECT_EQ(gnss.replayed_count, 1);
+}
+
 // WHY: GNSS alone must constrain position without estimating the unobservable GNSS/vision bias.
 // WHAT: Change the mission position before vision arrives and verify GNSS corrects position
 // while leaving the bias and its covariance unchanged.

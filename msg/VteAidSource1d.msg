@@ -14,7 +14,7 @@ float32 observation_variance # [-] Variance of observation attempted to be fused
 float32 innovation # [-] Kalman Filter innovation (y = z - Hx)
 float32 innovation_variance # [-] Kalman Filter variance of the innovation
 
-float32 test_ratio # [-] Normalized innovation squared (NIS)
+float32 test_ratio # [-] NIS divided by the gate threshold, so above 1 means rejected
 
 uint8 fusion_status # [@enum VTE_FUSION_STATUS] Fusion status code
 uint8 STATUS_IDLE = 0 # No fusion attempted yet
@@ -31,5 +31,7 @@ uint8 STATUS_INITIALIZED = 9 # Accepted as initial state; no prior innovation or
 # OOSM Diagnostics
 float32 time_since_meas_ms # [ms] (now - timestamp_sample)
 uint8 history_steps # [-] Number of steps replayed in OOSM (0 if current or failed)
+uint8 replayed_count # [-] Stored observations replayed after this one (0 if none)
+float32 replay_test_ratio_max # [-] Highest test_ratio among those replayed observations (-1 if none)
 
 # TOPICS vte_aid_ev_yaw
