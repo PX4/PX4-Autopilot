@@ -117,6 +117,30 @@ Mission::on_activation()
 	MissionBase::on_activation();
 }
 
+void
+Mission::on_active()
+{
+	_vehicle_status_sub.update();
+	_land_detected_sub.update();
+	recheckAfterHomeUpdateOnGround();
+
+	MissionBase::on_active();
+}
+
+void
+Mission::recheckAfterHomeUpdateOnGround()
+{
+	// takeoff_time is cleared only at disarm, and the land detector reports the takeoff before Commander
+	// sets Home for it, so Home updates in flight keep the verdict.
+	const vehicle_status_s &status = _vehicle_status_sub.get();
+
+	if ((status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && (status.takeoff_time == 0)
+	    && _land_detected_sub.get().landed && (_mission_check_state == MissionCheckState::Complete)
+	    && (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count)) {
+		_mission_check_state = MissionCheckState::Unchecked;
+	}
+}
+
 
 bool
 Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
