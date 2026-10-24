@@ -74,8 +74,17 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_alt_loss_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
+	// Note: keep the imbalanced propeller check before the impact check, it relies on vehicle_imu_status.updated()
 	if (_param_fd_imb_prop_thr.get() > 0) {
 		updateImbalancedPropStatus();
+	}
+
+	if (_param_fd_impact_thr.get() > FLT_EPSILON) {
+		updateImpactStatus(vehicle_status);
+
+	} else {
+		_failure_detector_status.flags.impact = false;
+		_failure_detector_status.flags.crash = false;
 	}
 
 	return _failure_detector_status.value != status_prev.value;
@@ -94,7 +103,11 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	failure_detector_status.fd_battery = _failure_detector_status.flags.battery;
 	failure_detector_status.fd_imbalanced_prop = _failure_detector_status.flags.imbalanced_prop;
 	failure_detector_status.fd_motor = (motor_failure_mask != 0) || (injected_motor_failure_mask != 0);
+	failure_detector_status.fd_impact = _failure_detector_status.flags.impact;
+	failure_detector_status.fd_crash = _failure_detector_status.flags.crash;
 	failure_detector_status.imbalanced_prop_metric = _imbalanced_prop_lpf.getState();
+	failure_detector_status.impact_metric = _impact_metric_peak;
+	_impact_metric_peak = 0.f;
 	failure_detector_status.motor_failure_mask = motor_failure_mask | injected_motor_failure_mask;
 	failure_detector_status.motor_stop_mask = _injected_motor_masks.stop_mask;
 	failure_detector_status.timestamp = hrt_absolute_time();
@@ -216,9 +229,8 @@ void FailureDetector::updateExternalAtsStatus()
 }
 
 
-void FailureDetector::updateImbalancedPropStatus()
+bool FailureDetector::copySelectedImuStatus(vehicle_imu_status_s &imu_status)
 {
-
 	if (_sensor_selection_sub.updated()) {
 		sensor_selection_s selection;
 
@@ -227,10 +239,7 @@ void FailureDetector::updateImbalancedPropStatus()
 		}
 	}
 
-	const bool updated = _vehicle_imu_status_sub.updated(); // save before doing a copy
-
 	// Find the imu_status instance corresponding to the selected accelerometer
-	vehicle_imu_status_s imu_status{};
 	_vehicle_imu_status_sub.copy(&imu_status);
 
 	if (imu_status.accel_device_id != _selected_accel_device_id) {
@@ -248,28 +257,86 @@ void FailureDetector::updateImbalancedPropStatus()
 		}
 	}
 
-	if (updated) {
+	return (imu_status.accel_device_id != 0) && (imu_status.accel_device_id == _selected_accel_device_id);
+}
 
-		if (_vehicle_imu_status_sub.copy(&imu_status)) {
+void FailureDetector::updateImbalancedPropStatus()
+{
+	const bool updated = _vehicle_imu_status_sub.updated(); // save before doing a copy
 
-			if ((imu_status.accel_device_id != 0)
-			    && (imu_status.accel_device_id == _selected_accel_device_id)) {
-				const hrt_abstime dt_us = math::constrain(imu_status.timestamp - _imu_status_timestamp_prev, 10_ms, 1_s);
-				_imu_status_timestamp_prev = imu_status.timestamp;
+	vehicle_imu_status_s imu_status{};
 
-				_imbalanced_prop_lpf.setParameters(dt_us, _imbalanced_prop_lpf_time_constant);
+	// Always select the instance (even if not updated) to follow an IMU failover
+	if (copySelectedImuStatus(imu_status) && updated) {
+		const hrt_abstime dt_us = math::constrain(imu_status.timestamp - _imu_status_timestamp_prev, 10_ms, 1_s);
+		_imu_status_timestamp_prev = imu_status.timestamp;
 
-				const float std_x = sqrtf(math::max(imu_status.var_accel[0], 0.f));
-				const float std_y = sqrtf(math::max(imu_status.var_accel[1], 0.f));
-				const float std_z = sqrtf(math::max(imu_status.var_accel[2], 0.f));
+		_imbalanced_prop_lpf.setParameters(dt_us, _imbalanced_prop_lpf_time_constant);
 
-				// Note: the metric is done using standard deviations instead of variances to be linear
-				const float metric = (std_x + std_y) / 2.f - std_z;
-				const float metric_lpf = _imbalanced_prop_lpf.update(metric);
+		const float std_x = sqrtf(math::max(imu_status.var_accel[0], 0.f));
+		const float std_y = sqrtf(math::max(imu_status.var_accel[1], 0.f));
+		const float std_z = sqrtf(math::max(imu_status.var_accel[2], 0.f));
 
-				const bool is_imbalanced = metric_lpf > _param_fd_imb_prop_thr.get();
-				_failure_detector_status.flags.imbalanced_prop = is_imbalanced;
-			}
+		// Note: the metric is done using standard deviations instead of variances to be linear
+		const float metric = (std_x + std_y) / 2.f - std_z;
+		const float metric_lpf = _imbalanced_prop_lpf.update(metric);
+
+		const bool is_imbalanced = metric_lpf > _param_fd_imb_prop_thr.get();
+		_failure_detector_status.flags.imbalanced_prop = is_imbalanced;
+	}
+}
+
+void FailureDetector::updateImpactStatus(const vehicle_status_s &vehicle_status)
+{
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+		// Both flags are latched while armed and reset on disarm
+		_failure_detector_status.flags.impact = false;
+		_failure_detector_status.flags.crash = false;
+		return;
+	}
+
+	if (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		// Multicopter only: the movement flags are only provided by the multicopter land detector.
+		// Latched flags are kept (e.g. VTOL transition), the time without movement restarts.
+		_crash_no_movement_start = now;
+		return;
+	}
+
+	vehicle_land_detected_s land_detected{};
+	_vehicle_land_detected_sub.copy(&land_detected);
+
+	// Impact: the short-window averaged specific force (computed in vehicle_imu for the selected accel) exceeds
+	// what the rotors can produce, i.e. a large external force such as hitting the ground or an obstacle.
+	vehicle_imu_status_s imu_status{};
+
+	if (copySelectedImuStatus(imu_status)) {
+		_impact_metric_peak = math::max(_impact_metric_peak, imu_status.accel_impact_metric);
+
+		if (!_failure_detector_status.flags.impact && !land_detected.landed
+		    && (imu_status.accel_impact_metric > _param_fd_impact_thr.get())) {
+			_failure_detector_status.flags.impact = true;
+			_crash_no_movement_start = now;
+		}
+	}
+
+	// Crash: after an impact the vehicle does not move for FD_IMPACT_T seconds while not detected as landed.
+	// The movement flags are the land detector's own checks (LNDMC_Z_VEL_MAX, LNDMC_XY_VEL_MAX, LNDMC_ROT_MAX),
+	// each true if any movement was seen since the previous vehicle_land_detected publication (~1 Hz).
+	// The time without movement is therefore measured with the report timestamps: reports published before
+	// the impact are ignored and a report only confirms the time it covers.
+	if (_failure_detector_status.flags.impact) {
+		const bool movement = land_detected.vertical_movement
+				      || land_detected.horizontal_movement
+				      || land_detected.rotational_movement;
+		const hrt_abstime crash_trigger_time = (hrt_abstime)(1_s * _param_fd_impact_ttri.get());
+
+		if (movement || land_detected.landed) {
+			_crash_no_movement_start = math::max(_crash_no_movement_start, land_detected.timestamp);
+
+		} else if (land_detected.timestamp > _crash_no_movement_start + crash_trigger_time) {
+			_failure_detector_status.flags.crash = true;
 		}
 	}
 }
