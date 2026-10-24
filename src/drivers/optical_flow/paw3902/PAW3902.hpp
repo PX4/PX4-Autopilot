@@ -117,8 +117,6 @@ private:
 	hrt_abstime _last_motion{0};
 	hrt_abstime _timestamp_sample_last{0};
 
-	int16_t _delta_x_raw_prev{0};
-	int16_t _delta_y_raw_prev{0};
 	uint16_t _shutter_prev{0};
 	uint8_t _quality_prev{0};
 	uint8_t _raw_data_sum_prev{0};
@@ -130,7 +128,8 @@ private:
 	bool _motion_interrupt_enabled{false};
 
 	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_0 / 2};
-	static constexpr uint32_t kBackupScheduleIntervalUs{SAMPLE_INTERVAL_MODE_2}; // longest expected interval
+	// longer than the longest frame period, so a backup read never lands just ahead of the MOTION edge
+	static constexpr uint32_t kBackupScheduleIntervalUs{SAMPLE_INTERVAL_MODE_2 + SAMPLE_INTERVAL_MODE_2 / 4};
 
 	Mode _mode{Mode::LowLight};
 
