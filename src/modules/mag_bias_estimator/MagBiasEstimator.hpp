@@ -34,6 +34,7 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
+#include <lib/field_sensor_bias_estimator/FieldSensorBiasConvergence.hpp>
 #include <lib/field_sensor_bias_estimator/FieldSensorBiasEstimator.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -86,6 +87,7 @@ private:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	FieldSensorBiasEstimator _bias_estimator[MAX_SENSOR_COUNT];
+	FieldSensorBiasConvergence _convergence[MAX_SENSOR_COUNT];
 	hrt_abstime _timestamp_last_update[MAX_SENSOR_COUNT] {};
 
 	uORB::SubscriptionMultiArray<sensor_mag_s, MAX_SENSOR_COUNT> _sensor_mag_subs{ORB_ID::sensor_mag};
@@ -97,10 +99,7 @@ private:
 
 	calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
 
-	hrt_abstime _time_valid[MAX_SENSOR_COUNT] {};
-
 	bool _reset_field_estimator[MAX_SENSOR_COUNT] {};
-	bool _valid[MAX_SENSOR_COUNT] {};
 
 	uint8_t _arming_state{0};
 	bool _system_calibrating{false};

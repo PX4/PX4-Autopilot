@@ -46,10 +46,12 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/magnetometer_bias_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_preflight_mag.h>
 #include <uORB/topics/sensors_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/uORBManager.hpp>
 
@@ -139,6 +141,33 @@ public:
 		_parameter_update_pub.publish(update);
 	}
 
+	static void publishBiasEstimate(int device, const Vector3f &bias, bool valid, bool stable)
+	{
+		magnetometer_bias_estimate_s estimate{};
+		estimate.timestamp = hrt_absolute_time();
+		estimate.bias_x[device] = bias(0);
+		estimate.bias_y[device] = bias(1);
+		estimate.bias_z[device] = bias(2);
+		estimate.valid[device] = valid;
+		estimate.stable[device] = stable;
+		_magnetometer_bias_estimate_pub.publish(estimate);
+	}
+
+	static void publishArmed(bool armed)
+	{
+		vehicle_control_mode_s control_mode{};
+		control_mode.timestamp = hrt_absolute_time();
+		control_mode.flag_armed = armed;
+		_vehicle_control_mode_pub.publish(control_mode);
+	}
+
+	Vector3f latestMagnetometer()
+	{
+		vehicle_magnetometer_s mag{};
+		_vehicle_magnetometer_sub.copy(&mag);
+		return Vector3f{mag.magnetometer_ga};
+	}
+
 	// run the module at its own 50 ms cadence for the given time, feeding it the given samples
 	template<typename Feed>
 	static void runFor(VehicleMagnetometerTestable &module, hrt_abstime duration, Feed feed)
@@ -171,6 +200,8 @@ public:
 
 	static uORB::PublicationMulti<sensor_mag_s> _sensor_mag_pubs[kSensorCount];
 	static uORB::Publication<parameter_update_s> _parameter_update_pub;
+	static uORB::Publication<magnetometer_bias_estimate_s> _magnetometer_bias_estimate_pub;
+	static uORB::Publication<vehicle_control_mode_s> _vehicle_control_mode_pub;
 
 	uORB::Subscription _sensors_status_mag_sub{ORB_ID(sensors_status_mag)};
 	uORB::Subscription _sensor_preflight_mag_sub{ORB_ID(sensor_preflight_mag)};
@@ -184,6 +215,8 @@ uORB::PublicationMulti<sensor_mag_s> VehicleMagnetometerTest::_sensor_mag_pubs[k
 	{ORB_ID(sensor_mag)}, {ORB_ID(sensor_mag)}, {ORB_ID(sensor_mag)}
 };
 uORB::Publication<parameter_update_s> VehicleMagnetometerTest::_parameter_update_pub{ORB_ID(parameter_update)};
+uORB::Publication<magnetometer_bias_estimate_s> VehicleMagnetometerTest::_magnetometer_bias_estimate_pub{ORB_ID(magnetometer_bias_estimate)};
+uORB::Publication<vehicle_control_mode_s> VehicleMagnetometerTest::_vehicle_control_mode_pub{ORB_ID(vehicle_control_mode)};
 
 TEST_F(VehicleMagnetometerTest, DisabledAtRuntimeHandsOverWithoutFailover)
 {
@@ -329,4 +362,98 @@ TEST_F(VehicleMagnetometerTest, MagnetometerDisabledFromBootDoesNotDriveRun)
 
 	EXPECT_EQ(module.selectedIndex(), 0);
 	EXPECT_TRUE(module.callbackRegistered(0));
+}
+
+TEST_F(VehicleMagnetometerTest, RotationChangeIsCalibrationChange)
+{
+	setPriority(0, 75);
+	setParam("CAL_MAG0_ROT", 0);
+
+	VehicleMagnetometerTestable module;
+
+	runFor(module, 500_ms, [&]() { publishSample(0, _field); });
+
+	vehicle_magnetometer_s mag{};
+	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
+	const uint8_t calibration_count = mag.calibration_count;
+	EXPECT_NEAR(mag.magnetometer_ga[0], _field(0), 1e-3f);
+
+	// ROTATION_YAW_180 changed at runtime
+	setParam("CAL_MAG0_ROT", 4);
+	publishParameterUpdate();
+
+	runFor(module, 1200_ms, [&]() { publishSample(0, _field); });
+
+	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
+	EXPECT_NE(mag.calibration_count, calibration_count);
+	EXPECT_NEAR(mag.magnetometer_ga[0], -_field(0), 1e-3f);
+
+	setParam("CAL_MAG0_ROT", 0);
+}
+
+TEST_F(VehicleMagnetometerTest, BiasEstimateAppliedOnlyWhenStableAndDisarmed)
+{
+	setPriority(0, 75);
+
+	VehicleMagnetometerTestable module;
+
+	runFor(module, 500_ms, [&]() { publishSample(0, _field); });
+
+	const Vector3f bias{0.05f, -0.05f, 0.f};
+
+	publishBiasEstimate(0, bias, true, false);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
+	EXPECT_LT((latestMagnetometer() - _field).norm(), 1e-3f) << "not stable yet";
+
+	publishArmed(true);
+	publishBiasEstimate(0, bias, true, true);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
+	EXPECT_LT((latestMagnetometer() - _field).norm(), 1e-3f) << "armed";
+
+	publishArmed(false);
+	publishBiasEstimate(0, Vector3f{3.f, 0.f, 0.f}, true, true);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
+	EXPECT_LT((latestMagnetometer() - _field).norm(), 1e-3f) << "implausible";
+
+	publishBiasEstimate(0, bias, true, true);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
+	EXPECT_LT((latestMagnetometer() - (_field - bias)).norm(), 1e-3f);
+
+	publishBiasEstimate(0, Vector3f{}, false, false);
+}
+
+TEST_F(VehicleMagnetometerTest, BiasEstimateChangeIsCalibrationChange)
+{
+	setPriority(0, 75);
+
+	VehicleMagnetometerTestable module;
+
+	runFor(module, 500_ms, [&]() { publishSample(0, _field); });
+
+	vehicle_magnetometer_s mag{};
+	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
+	const uint8_t calibration_count = mag.calibration_count;
+
+	const Vector3f bias{0.05f, -0.05f, 0.f};
+	publishBiasEstimate(0, bias, true, true);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
+
+	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
+	EXPECT_NE(mag.calibration_count, calibration_count);
+	const uint8_t calibration_count_applied = mag.calibration_count;
+
+	publishBiasEstimate(0, bias + Vector3f{0.005f, 0.f, 0.f}, true, true);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
+
+	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
+	EXPECT_EQ(mag.calibration_count, calibration_count_applied) << "change below the hysteresis";
+	EXPECT_LT((Vector3f{mag.magnetometer_ga} - (_field - bias)).norm(), 1e-3f);
+
+	publishBiasEstimate(0, bias + Vector3f{0.02f, 0.f, 0.f}, true, true);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
+
+	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
+	EXPECT_NE(mag.calibration_count, calibration_count_applied);
+
+	publishBiasEstimate(0, Vector3f{}, false, false);
 }
