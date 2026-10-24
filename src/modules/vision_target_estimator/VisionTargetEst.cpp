@@ -200,6 +200,9 @@ void VisionTargetEst::updateParams()
 	const uint8_t new_vte_task_mask = static_cast<uint8_t>(_param_vte_task_mask.get());
 
 	if (new_vte_task_mask != _vte_task_mask) {
+		if ((_vte_task_mask & task_bits::kPrecTakeoff) && !(new_vte_task_mask & task_bits::kPrecTakeoff)) {
+			_prec_takeoff_task.clearHomeReference();
+		}
 
 		_vte_task_mask = new_vte_task_mask;
 
