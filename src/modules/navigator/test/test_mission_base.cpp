@@ -796,6 +796,159 @@ INSTANTIATE_TEST_SUITE_P(ChangedInputs, MissionBaseChangedInputTest, ::testing::
 	return test_info.param.name;
 });
 
+// A mission checked on the ground while disarmed, and the Home updates Commander makes around takeoff
+class MissionHomeUpdateTest : public MissionBaseFeasibilityTest
+{
+protected:
+	void SetUp() override
+	{
+		MissionBaseFeasibilityTest::SetUp();
+		_global_position_pub.publish(*_navigator.get_global_position());
+		setLanded(true);
+		_mission.run(false);
+		ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	}
+
+	void TearDown() override
+	{
+		// later cases read these topics too
+		publishStatus(vehicle_status_s::ARMING_STATE_DISARMED, 0);
+		setLanded(true);
+		MissionBaseFeasibilityTest::TearDown();
+	}
+
+	void publishStatus(uint8_t arming_state, hrt_abstime takeoff_time)
+	{
+		vehicle_status_s *status = _navigator.get_vstatus();
+		status->timestamp = hrt_absolute_time();
+		status->arming_state = arming_state;
+		status->takeoff_time = takeoff_time;
+		_status_pub.publish(*status);
+	}
+
+	void setLanded(bool landed)
+	{
+		vehicle_land_detected_s *land_detected = _navigator.get_land_detected();
+		land_detected->timestamp = hrt_absolute_time();
+		land_detected->landed = landed;
+		_land_detected_pub.publish(*land_detected);
+	}
+
+	// Navigator copies Home before it runs the modes
+	void moveHome(float alt_change)
+	{
+		home_position_s *home = _navigator.get_home_position();
+		home->timestamp = hrt_absolute_time();
+		home->alt += alt_change;
+		++home->update_count;
+		_home_pub.publish(*home);
+	}
+
+	bool checkedWithCurrentHome()
+	{
+		return _navigator.get_mission_result()->home_position_counter == _navigator.get_home_position()->update_count;
+	}
+
+	Mission _mission{&_navigator};
+	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+};
+
+// WHY: Navigator copies Home at the start of its cycle and Mission reads vehicle_status later, so Mission can see
+// the armed state one cycle before the arming Home.
+// WHAT: the recheck runs once that Home arrives, not only when the armed state changes.
+TEST_F(MissionHomeUpdateTest, MissionIsCheckedOnceTheArmingHomeArrives)
+{
+	// GIVEN: armed on the ground, one cycle before the arming Home
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(false);
+
+	// WHEN: the arming Home arrives
+	moveHome(0.f);
+	_mission.run(false);
+
+	// THEN: Mission rechecks with it
+	EXPECT_TRUE(checkedWithCurrentHome());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
+// WHY: DO_SET_HOME can move Home while the vehicle is armed in Mission on the ground, before it takes off.
+// WHAT: the active Mission rechecks with the new Home and ends a mission it now rejects.
+TEST_F(MissionHomeUpdateTest, SetHomeBeforeTakeoffRechecksTheActiveMission)
+{
+	// the waypoint is 100 m above Home, below a 120 m limit
+	const float maximum_altitude = 120.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum_altitude), PX4_OK);
+	_navigator.updateParams();
+
+	// GIVEN: armed in Mission on the ground
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(true);
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	ASSERT_FALSE(_navigator.get_mission_result()->finished);
+
+	// WHEN: DO_SET_HOME moves Home 30 m down
+	moveHome(-30.f);
+	_mission.run(true);
+
+	// THEN: Mission rechecks, rejects the mission and ends it
+	EXPECT_TRUE(checkedWithCurrentHome());
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_navigator.get_mission_result()->finished);
+}
+
+// WHY: a recheck of the active Mission reloads its items, so it must run once per Home update, not every cycle.
+// WHAT: after the recheck, further cycles on the ground keep the current item.
+TEST_F(MissionHomeUpdateTest, MissionIsRecheckedOncePerHomeUpdate)
+{
+	// GIVEN: armed in Mission on the ground, rechecked after a Home update
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(true);
+	moveHome(1.f);
+	_mission.run(true);
+	ASSERT_TRUE(checkedWithCurrentHome());
+	const hrt_abstime setpoint_timestamp = _navigator.get_position_setpoint_triplet()->current.timestamp;
+
+	// WHEN: Mission keeps running without another Home update
+	px4_usleep(2000);
+	_mission.run(true);
+	_mission.run(true);
+
+	// THEN: it does not reload and restart the current item
+	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.timestamp, setpoint_timestamp);
+}
+
+// WHY: in flight a recheck with the new Home can reject the mission being flown, and Commander would then fail
+// over out of Mission.
+// WHAT: Home updates after takeoff keep the verdict, also before vehicle_status carries the takeoff time and after
+// a landing.
+TEST_F(MissionHomeUpdateTest, HomeUpdatesAfterTakeoffKeepTheVerdict)
+{
+	// GIVEN: armed on the ground
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(false);
+
+	// WHEN: the takeoff Home arrives before vehicle_status carries the takeoff time
+	setLanded(false);
+	moveHome(0.f);
+	_mission.run(false);
+	EXPECT_FALSE(checkedWithCurrentHome());
+
+	// WHEN: Mission flies and a GNSS altitude correction moves Home
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, hrt_absolute_time());
+	_mission.run(true);
+	moveHome(1.5f);
+	_mission.run(true);
+	EXPECT_FALSE(checkedWithCurrentHome());
+
+	// WHEN: Home moves after a landing, before disarming
+	setLanded(true);
+	moveHome(0.f);
+	_mission.run(true);
+	EXPECT_FALSE(checkedWithCurrentHome());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 class MissionBaseRouteCacheSyncTest : public NavigatorDatamanTestBase
 {

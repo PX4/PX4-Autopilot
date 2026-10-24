@@ -417,7 +417,7 @@ void RTL::reportNoRoute() const
 
 bool RTL::missionValidationPending() const
 {
-	// A Home change is no upload: nothing checks the mission again for it, so it is not waited for.
+	// A Home change is no upload: in flight nothing checks the mission again for it, so it is not waited for.
 	const mission_result_s &mission_result = *_navigator->get_mission_result();
 	return mission_result.mission_id != _mission_sub.get().mission_id
 	       || mission_result.geofence_id != _mission_sub.get().geofence_id;
