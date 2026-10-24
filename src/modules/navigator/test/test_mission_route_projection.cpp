@@ -105,33 +105,6 @@ class MissionRouteProjectionCandidateSelectionTest : public MissionRouteProjecti
 class MissionRouteProjectionEdgeCaseTest : public MissionRouteProjectionTestBase {};
 class RouteSegmentCursorTest : public MissionRouteProjectionTestBase {};
 
-class MissionLoadCountingProvider : public mission_route::Provider
-{
-public:
-	explicit MissionLoadCountingProvider(const mission_route::Provider &delegate) : _delegate(delegate) {}
-
-	int missionCount() const override { return _delegate.missionCount(); }
-
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override
-	{
-		++_mission_item_load_count;
-		return _delegate.loadMissionItem(index, mission_item);
-	}
-
-	int safePointCount() const override { return _delegate.safePointCount(); }
-
-	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
-	{
-		return _delegate.loadSafePointItem(index, safe_point_item);
-	}
-
-	int missionItemLoadCount() const { return _mission_item_load_count; }
-
-private:
-	const mission_route::Provider &_delegate;
-	mutable int _mission_item_load_count{0};
-};
-
 // Owns a vector-backed provider and a projection bound to it: the common one-line test setup.
 class TestProjection
 {
@@ -337,6 +310,101 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, ReverseFlightPrefersReverseCurren
 	EXPECT_EQ(projection_context.route_projection.segment.end.idx, 2);
 }
 
+// DO_JUMP targets an earlier command, but the next position is after the jump. Its edge shares the
+// nominal segment's endpoints. Keep it only with its active anchor, including at zero search margin.
+TEST_F(MissionRouteProjectionLocalSegmentTest, JumpEdgeWithNominalTwinRespectsAnchor)
+{
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	const std::vector<mission_item_s> mission = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt), // id 0
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt), // id 1: jump source
+		speed_change,                                                     // id 2: jump target
+		makeDoJump(2, 2, 2),                                              // id 3: exhausted, edge [1->4]
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt), // id 4
+	};
+	TestProjection projection(mission);
+	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt);
+
+	for (const float margin : {0.f, 60.f}) {
+		config.parameters.vehicle_projection_search_dist_m = margin;
+
+		for (const bool anchored : {false, true}) {
+			config.active_jump_anchor.jump_item_index = anchored ? 3 : -1;
+
+			// Index 4 lies in the nominal segment; index 1 only gives both candidates the same score.
+			for (const int32_t mission_index : {4, 1}) {
+				SCOPED_TRACE(::testing::Message() << "margin " << margin << " anchored " << anchored
+					     << " mission index " << mission_index);
+				auto batch = singleReferenceBatch({});
+				mission_route::ProjectionContext projection_context{};
+				const mission_route::FailureReason status =
+					projection.collectVehicleProjection(vehicle, mission_index, config, batch, projection_context);
+
+				ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+				EXPECT_EQ(projection_context.route_projection.segment.isLoop(), anchored);
+				EXPECT_EQ(projection_context.route_projection.segment.jump_item_index, anchored ? 3 : -1);
+				EXPECT_EQ(projection_context.route_projection.segment.start.idx, 1);
+				EXPECT_EQ(projection_context.route_projection.segment.end.idx, 4);
+				EXPECT_EQ(projection_context.loop_bounds.valid(), anchored);
+			}
+		}
+	}
+
+	// Off the vehicle's loop a jump edge is no branch-off: a safe point scan keeps only its nominal twin.
+	auto batch = singleReferenceBatch(vehicle);
+	batch.items[0].source_index = 0;
+	mission_route::RouteDistanceSummary distances{};
+	ASSERT_EQ(projection.findProjectionCandidates(scanRequest(0.f), batch, distances),
+		  mission_route::FailureReason::kNone);
+	ASSERT_EQ(batch.items[0].candidate_buffer.count, 1);
+	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.jump_item_index, -1);
+
+	// On the vehicle's loop the jump edge stays a branch-off.
+	mission_route::ProjectionScanRequest on_loop_request = scanRequest(0.f);
+	on_loop_request.active_jump_anchor = {3};
+	ASSERT_EQ(projection.findProjectionCandidates(on_loop_request, batch, distances),
+		  mission_route::FailureReason::kNone);
+	ASSERT_EQ(batch.items[0].candidate_buffer.count, 2);
+	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.jump_item_index, 3);
+	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[1].segment.jump_item_index, -1);
+}
+
+// Closer legs fill the candidate buffer. The nominal twin must keep its place there: dropping it
+// would let the unanchored jump edge win the branch-in.
+TEST_F(MissionRouteProjectionLocalSegmentTest, JumpEdgeTwinSurvivesFullCandidateBuffer)
+{
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	const std::vector<mission_item_s> mission = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f,  0.f, kAlt), // id 0
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,  0.f, kAlt), // id 1: jump source
+		speed_change,                                                      // id 2: jump target
+		makeDoJump(2, 2, 2),                                               // id 3: exhausted, edge [1->4]
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f,  0.f, kAlt), // id 4: [1->4] 10 m away
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 18.f, kAlt), // id 5
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 18.f, kAlt), // id 6: [5->6] 8 m away
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 14.f, kAlt), // id 7
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 14.f, kAlt), // id 8: [7->8] 4 m away
+	};
+	TestProjection projection(mission);
+	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt);
+
+	for (const bool anchored : {false, true}) {
+		SCOPED_TRACE(::testing::Message() << "anchored " << anchored);
+		config.active_jump_anchor.jump_item_index = anchored ? 3 : -1;
+		auto batch = singleReferenceBatch({});
+		mission_route::ProjectionContext projection_context{};
+		const mission_route::FailureReason status =
+			projection.collectVehicleProjection(vehicle, 4, config, batch, projection_context);
+
+		ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+		EXPECT_EQ(projection_context.route_projection.segment.jump_item_index, anchored ? 3 : -1);
+		EXPECT_EQ(projection_context.route_projection.segment.start.idx, 1);
+		EXPECT_EQ(projection_context.route_projection.segment.end.idx, 4);
+	}
+}
+
 // The anchor records that the vehicle is currently executing the DO_JUMP at idx 3, i.e. flying
 // the [2->0] return leg toward target idx 0. Projection must stay on that leg (~46 m away) even
 // though nominal [0-1] is only 10 m away: switching legs would silently drop the pending repeats.
@@ -365,9 +433,9 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 	EXPECT_TRUE(projection_context.route_projection.segment.has_remaining_repeats);
 	EXPECT_EQ(projection_context.route_projection.segment.start.idx, 2);
 	EXPECT_EQ(projection_context.route_projection.segment.end.idx, 0);
-	ASSERT_TRUE(projection_context.loop_context.valid());
-	EXPECT_NEAR(projection_context.loop_context.bounds.start_dist_along_route_m, 200.f, kDistanceTolerance);
-	EXPECT_NEAR(projection_context.loop_context.bounds.end_dist_along_route_m, 0.f, kDistanceTolerance);
+	ASSERT_TRUE(projection_context.loop_bounds.valid());
+	EXPECT_NEAR(projection_context.loop_bounds.start_dist_along_route_m, 200.f, kDistanceTolerance);
+	EXPECT_NEAR(projection_context.loop_bounds.end_dist_along_route_m, 0.f, kDistanceTolerance);
 }
 
 // A leading non-position item shifts the route start; pre-route mission indices still get start bounds.
@@ -778,6 +846,33 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, DuplicateCornerWaypointsDoN
 	EXPECT_NEAR(candidate->dist.xtrack_m, 50.f, kDistanceTolerance);
 }
 
+// A far leg skipped by the cross-track bound still hands its corner state to the stacked waypoints
+// after it. Each stacked step is within the corner tolerance, but together they move 3 m closer.
+TEST_F(MissionRouteProjectionEdgeCaseTest, FarLegBeforeStackedWaypointsKeepsTheirEndCandidate)
+{
+	const std::vector<mission_item_s> mission = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   97.5f, -300.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   97.5f,  300.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, -100.f,    0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon,    0.f,    0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon,    1.05f,  0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon,    2.1f,   0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon,        3.15f,  0.f, kAlt),
+	};
+	TestProjection projection(mission);
+	auto batch = singleReferenceBatch(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt));
+
+	mission_route::RouteDistanceSummary distance_summary{};
+	const mission_route::FailureReason status =
+		projection.findProjectionCandidates(scanRequest(0.f), batch, distance_summary);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	const mission_route::ProjectionCandidateBuffer &candidates = batch.items[0].candidate_buffer;
+	ASSERT_EQ(candidates.count, 1U);
+	EXPECT_EQ(candidates.candidates[0].segment.start.idx, 5);
+	EXPECT_EQ(candidates.candidates[0].segment.end.idx, 6);
+}
+
 // Zigzag route to have several local minimums.
 TEST_F(MissionRouteProjectionEdgeCaseTest, ZigzagMissionStressesCandidateBuffer)
 {
@@ -821,9 +916,8 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, BatchedPointsShareMissionIt
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
 	};
 	// Independent read counters for the one-point and the two-point scan.
-	VectorProvider provider = makeRouteProvider(mission);
-	MissionLoadCountingProvider one_point_provider(provider);
-	MissionLoadCountingProvider two_point_provider(provider);
+	const VectorProvider one_point_provider = makeRouteProvider(mission);
+	const VectorProvider two_point_provider = makeRouteProvider(mission);
 	mission_route::MissionRouteProjection one_point_projection(one_point_provider);
 	mission_route::MissionRouteProjection two_point_projection(two_point_provider);
 
@@ -860,8 +954,8 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, BatchedPointsShareMissionIt
 	EXPECT_NEAR(one_point_summary.route_length, 300.f, kDistanceTolerance);
 	EXPECT_NEAR(two_point_summary.route_length, 300.f, kDistanceTolerance);
 	// The second point adds no mission reads, one route walk serves the whole batch.
-	EXPECT_EQ(one_point_provider.missionItemLoadCount(), static_cast<int>(mission.size()));
-	EXPECT_EQ(two_point_provider.missionItemLoadCount(), static_cast<int>(mission.size()));
+	EXPECT_EQ(one_point_provider.missionLoadCount(), static_cast<int>(mission.size()));
+	EXPECT_EQ(two_point_provider.missionLoadCount(), static_cast<int>(mission.size()));
 }
 
 // ---- Route segment cursor ----
@@ -958,8 +1052,7 @@ TEST_F(RouteSegmentCursorTest, IgnoresInvalidAndUnreadableItemsAfterLand)
 			provider.setMissionLoadFailures({3});
 		}
 
-		MissionLoadCountingProvider counting_provider(provider);
-		mission_route::RouteSegmentCursor cursor(counting_provider, config.parameters.home_altitude_amsl);
+		mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
 		mission_route::RouteSegmentView segment{};
 		int segment_count = 0;
 
@@ -971,7 +1064,7 @@ TEST_F(RouteSegmentCursorTest, IgnoresInvalidAndUnreadableItemsAfterLand)
 
 		EXPECT_FALSE(cursor.failed()) << mission_route::failureReasonString(cursor.failureReason());
 		EXPECT_EQ(segment_count, 2);
-		EXPECT_EQ(counting_provider.missionItemLoadCount(), 3);
+		EXPECT_EQ(provider.missionLoadCount(), 3);
 	}
 }
 
@@ -997,8 +1090,7 @@ TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	MissionLoadCountingProvider counting_provider(provider);
-	mission_route::RouteSegmentCursor cursor(counting_provider, config.parameters.home_altitude_amsl);
+	mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
 	std::vector<mission_route::RouteSegmentView> segments;
 	mission_route::RouteSegmentView segment{};
 
@@ -1043,7 +1135,7 @@ TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 	EXPECT_TRUE(segments[2].last_segment);
 	// The loop edge does not extend the route: length stays the nominal [0-1] plus [1-3].
 	EXPECT_NEAR(cursor.routeLength(), 200.f, kDistanceTolerance);
-	EXPECT_EQ(counting_provider.missionItemLoadCount(), 7); // Includes nominal endpoint lookahead past the jump.
+	EXPECT_LE(provider.missionLoadCount(), 7); // No rescans: one pass plus the endpoint lookahead past the jump.
 }
 
 // Trailing jumps must preserve both the final nominal endpoint and every synthetic jump edge.
@@ -1139,7 +1231,7 @@ INSTANTIATE_TEST_SUITE_P(
 class MissionRouteProjectionInvalidIndexTest : public MissionRouteProjectionTestBase,
 	public ::testing::WithParamInterface<int32_t> {};
 
-// Out-of-range mission indices are rejected and the stale context index is cleared.
+// Out-of-range mission indices are rejected.
 TEST_P(MissionRouteProjectionInvalidIndexTest, RejectsOutOfRangeMissionIndex)
 {
 	const std::vector<mission_item_s> mission = {
@@ -1152,12 +1244,8 @@ TEST_P(MissionRouteProjectionInvalidIndexTest, RejectsOutOfRangeMissionIndex)
 	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 60.f, kAlt);
 
 	mission_route::ProjectionContext projection_context{};
-	projection_context.mission_index = 42;
-	const mission_route::FailureReason status =
-		projection.collectVehicleProjection(vehicle, GetParam(), config, batch, projection_context);
-
-	EXPECT_EQ(status, mission_route::FailureReason::kInvalidRequest);
-	EXPECT_EQ(projection_context.mission_index, -1);
+	EXPECT_EQ(projection.collectVehicleProjection(vehicle, GetParam(), config, batch, projection_context),
+		  mission_route::FailureReason::kInvalidRequest);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1252,6 +1340,157 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, MissionLoadFailureIsFatal)
 
 // ---- VTOL segment state ----
 
+TEST_F(MissionRouteProjectionTestBase, InvalidTransitionTargetLeavesModeUndefined)
+{
+	constexpr uint8_t kUndefined = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+	constexpr uint8_t kMc = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	constexpr uint8_t kFw = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+	for (const float target : {NAN, INFINITY, -INFINITY, -1.f, 0.f, 1.f, 2.f, 5.f, 255.f, 256.f, 1e30f}) {
+		SCOPED_TRACE(target);
+		mission_item_s invalid_transition = makeVtolTransitionItem(kMc);
+		invalid_transition.params[0] = target;
+		const VectorProvider provider = makeRouteProvider({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makeVtolTransitionItem(kFw),
+			invalid_transition,
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			makeVtolTransitionItem(kFw),
+		});
+		mission_route::Segment segment{};
+		segment.start = {0, NAV_CMD_WAYPOINT};
+		segment.end = {3, NAV_CMD_WAYPOINT};
+
+		// A malformed last transition blocks both an older mode and inference from a later transition.
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kUndefined);
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, InvalidNextTransitionLeavesPrefixUndefined)
+{
+	constexpr uint8_t kUndefined = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+	constexpr uint8_t kFw = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+	for (const float target : {NAN, INFINITY, -INFINITY, -1.f, 0.f, 1.f, 2.f, 5.f, 255.f, 256.f, 1e30f}) {
+		SCOPED_TRACE(target);
+		mission_item_s invalid_transition = makeVtolTransitionItem(kFw);
+		invalid_transition.params[0] = target;
+		const VectorProvider provider = makeRouteProvider({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			invalid_transition,
+			makeVtolTransitionItem(kFw),
+		});
+		mission_route::Segment segment{};
+		segment.start = {0, NAV_CMD_WAYPOINT};
+		segment.end = {1, NAV_CMD_WAYPOINT};
+
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kUndefined);
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, RepeatedTransitionsPreserveEstablishedMode)
+{
+	constexpr uint8_t kMc = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	constexpr uint8_t kFw = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+	for (const uint8_t target_state : {kMc, kFw}) {
+		SCOPED_TRACE(static_cast<int>(target_state));
+		const VectorProvider provider = makeRouteProvider({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makeVtolTransitionItem(target_state),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			makeVtolTransitionItem(target_state),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		});
+		mission_route::Segment segment{};
+		segment.start = {0, NAV_CMD_WAYPOINT};
+		segment.end = {2, NAV_CMD_WAYPOINT};
+
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), target_state);
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, LookaheadStopsAtExecutionBoundary)
+{
+	for (const uint16_t command : {NAV_CMD_TAKEOFF, NAV_CMD_VTOL_TAKEOFF, NAV_CMD_LAND, NAV_CMD_VTOL_LAND}) {
+		SCOPED_TRACE(command);
+		const mission_item_s boundary = makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt, command);
+
+		const VectorProvider provider = makeRouteProvider({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			boundary,
+			makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
+		});
+		mission_route::Segment segment{};
+		segment.start = {0, NAV_CMD_WAYPOINT};
+		segment.end = {1, NAV_CMD_WAYPOINT};
+
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, LookaheadContinuesPastActiveAndExhaustedJumps)
+{
+	constexpr uint8_t kUndefined = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
+	constexpr uint8_t kMc = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	constexpr uint8_t kFw = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+	constexpr uint16_t kRepeatCount = 3;
+
+	for (const uint16_t current_count : {uint16_t{0}, kRepeatCount}) {
+		SCOPED_TRACE(current_count);
+
+		for (const uint8_t target_state : {kUndefined, kMc, kFw}) {
+			SCOPED_TRACE(static_cast<int>(target_state));
+			std::vector<mission_item_s> mission{
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+				makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+				makeDoJump(0, kRepeatCount, current_count),
+			};
+
+			if (target_state != kUndefined) {
+				mission.push_back(makeVtolTransitionItem(target_state));
+			}
+
+			mission.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt));
+			const VectorProvider provider = makeRouteProvider(mission);
+			mission_route::Segment segment{};
+			segment.start = {0, NAV_CMD_WAYPOINT};
+			segment.end = {1, NAV_CMD_WAYPOINT};
+			const uint8_t expected_state = target_state == kUndefined ? kUndefined : (target_state == kFw ? kMc : kFw);
+
+			EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), expected_state);
+		}
+	}
+}
+
+TEST_F(MissionRouteProjectionTestBase, LookaheadStopsAtUnreadableItem)
+{
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	VectorProvider provider = makeRouteProvider({
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		speed_change,
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+	});
+	mission_route::Segment segment{};
+	segment.start = {0, NAV_CMD_WAYPOINT};
+	segment.end = {1, NAV_CMD_WAYPOINT};
+
+	// Non-mode commands are transparent when their contents are available.
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+
+	// Index 0 sits before the segment end: an unreadable lookback also blocks lookahead.
+	for (const int index : {0, 1, 2}) {
+		SCOPED_TRACE(index);
+		provider.setMissionLoadFailures({index});
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
+	}
+}
+
 // VTOL_TAKEOFF implicitly enters FW; a later explicit transition still takes precedence.
 TEST_F(MissionRouteProjectionTestBase, VtolTakeoffSetsFwUntilNextExplicitTransition)
 {
@@ -1268,11 +1507,11 @@ TEST_F(MissionRouteProjectionTestBase, VtolTakeoffSetsFwUntilNextExplicitTransit
 	segment.start = {1, NAV_CMD_VTOL_TAKEOFF};
 	segment.end = {2, NAV_CMD_WAYPOINT};
 
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, kMc), kFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kFw);
 
 	segment.start = segment.end;
 	segment.end = {4, NAV_CMD_WAYPOINT};
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, kMc), kMc);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kMc);
 }
 
 // Include transitions after the jump source, but exclude commands that follow DO_JUMP itself.
@@ -1299,7 +1538,7 @@ TEST_F(MissionRouteProjectionTestBase, JumpStateIncludesTransitionsAfterSourceWa
 		segment.end = {1, NAV_CMD_WAYPOINT};
 		segment.jump_item_index = 5;
 
-		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, previous_state), target_state);
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), target_state);
 	}
 }
 
@@ -1324,7 +1563,7 @@ TEST_F(MissionRouteProjectionTestBase, JumpTargetTransitionOverridesSourceState)
 		segment.end = {1, NAV_CMD_WAYPOINT};
 		segment.jump_item_index = 4;
 
-		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, source_state), target_state);
+		EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), target_state);
 	}
 }
 
@@ -1348,7 +1587,7 @@ TEST_F(MissionRouteProjectionTestBase, JumpTargetWithoutTransitionKeepsSourceSta
 	segment.end = {2, NAV_CMD_WAYPOINT};
 	segment.jump_item_index = 5;
 
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment, kMc), kFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, segment), kFw);
 }
 
 // Takeoff and items 1/2 share latitude/longitude. Item 2 starts the first horizontal leg,

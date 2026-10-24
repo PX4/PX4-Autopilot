@@ -58,6 +58,14 @@
 #include "mission_block.h"
 #include "navigation.h"
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "mission_route_types.h"
+// Only the route planning modes override these hooks, so without the mission cache they are plain functions.
+#define MISSION_ROUTE_HOOK virtual
+#else
+#define MISSION_ROUTE_HOOK
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 using namespace time_literals;
 
 class Navigator;
@@ -87,7 +95,12 @@ protected:
 	enum class WorkItemType {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
 		WORK_ITEM_TYPE_CLIMB,		/**< takeoff before moving to waypoint */
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		WORK_ITEM_TYPE_JOIN_ROUTE,	/**< fly a virtual branch-in waypoint before resuming the route */
+		WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN,	/**< perform the VTOL transition required after joining */
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
+		WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION, /**< wait before front-transition alignment */
 		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align for next waypoint */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
@@ -103,6 +116,46 @@ protected:
 		FollowMissionControlFlow = 0,
 		IgnoreDoJump,
 	};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	using VtolTransitionAction = mission_route::VtolTransitionAction;
+
+	struct RouteJoinContext {
+		mission_route::Position projection{};
+		bool skip_altitude_requirement{false};
+		VtolTransitionAction transition_action{VtolTransitionAction::kNone};
+
+		bool valid() const { return projection.valid(); }
+	};
+
+	RouteJoinContext _route_join_context{};
+	static constexpr float kJoinRouteFlyByAcceptanceRadiusScale{2.f};
+
+	/** DO_JUMP edge being flown, so a rejoin or route replan stays on an active loop. */
+	mission_route::ActiveJumpAnchor _active_jump_anchor{};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	struct VtolTransitionContext {
+		mission_item_s command{}; // Retain uploaded parameters while alignment uses _mission_item.
+		mission_item_s target{};
+		WorkItemType completion_work{WorkItemType::WORK_ITEM_TYPE_DEFAULT};
+		bool hold_current_position{false};
+	} _vtol_transition{};
+
+	/** Start a VTOL transition, first aligning towards alignment_target if given (it is copied). */
+	void startVtolTransition(const mission_item_s &command, const mission_item_s *alignment_target,
+				 WorkItemType completion_work, bool hold_current_position);
+	/** Return true when ready for the normal on_active() completion path. */
+	bool updateVtolTransition();
+	/** Set _mission_item and the triplet for the alignment step (aligning) or the transition command. */
+	virtual void prepareVtolTransitionItem(bool aligning);
+	bool vtolTransitionActive() const { return _vtol_transition.command.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION; }
+	void resetVtolTransition() { _vtol_transition = {}; }
+	MISSION_ROUTE_HOOK bool frontTransitionInhibited() const { return false; }
+	/** Synthetic helper work items must not report an uploaded item reached. */
+	MISSION_ROUTE_HOOK bool shouldReportMissionItemReached() const;
+	/** A VTOL in front transition lands as fixed-wing; only route Return opts in. */
+	MISSION_ROUTE_HOOK bool shouldLandFrontTransitionAsFixedWing() const { return false; }
 
 	/**
 	 * @brief Get the previous mission position items using this mode's traversal policy.
@@ -270,7 +323,7 @@ protected:
 	 * @return true is mission is valid
 	 * @return false otherwise
 	 */
-	bool isMissionValid() const;
+	MISSION_ROUTE_HOOK bool isMissionValid() const;
 
 	enum class MissionCheckState : uint8_t {
 		Unchecked, ///< Inspect the inputs; a matching cached verdict may be reused.
@@ -285,6 +338,21 @@ protected:
 	 * @param[in] forced Check now even with unchanged inputs or without Home or position.
 	 */
 	void check_mission_valid(bool forced = false);
+
+	/** Handle changes to mission contents or the externally selected sequence. */
+	void onMissionUpdate(bool has_mission_items_changed);
+
+	/**
+	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
+	 * @return true if the mission was reset
+	 */
+	bool checkMissionRestart();
+
+	/** Allow modes with external mission ownership to ignore subscription updates. */
+	MISSION_ROUTE_HOOK bool shouldAcceptMissionUpdates() { return true; }
+
+	/** Allow normal Mission modes to restore persistent action commands on activation. */
+	MISSION_ROUTE_HOOK bool shouldReplayMissionActionItems() const { return true; }
 
 	/**
 	 * Update mission topic
@@ -372,6 +440,28 @@ protected:
 	 */
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Arm the virtual route-join waypoint and its optional VTOL transition. */
+	void setupJoinRoute(const mission_route::Position &join_position, bool use_current_altitude,
+			    VtolTransitionAction transition_action);
+
+	/** Clear a pending route-join work item. */
+	void resetJoinRouteState();
+
+	/** Publish or advance an active route-join work item. */
+	bool handleJoinRouteWorkItems();
+
+	/** True if the camera was triggering where the mission was paused, so on_activation() retraces that leg. */
+	bool cameraWasTriggeringAtPause();
+
+	/** Onboard waypoint at a route position, with the fly-by acceptance radius in fixed-wing flight. */
+	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
+
+	/** Publish an onboard position item, and an optional next item, as the active mission item. */
+	void publishPositionItems(const mission_item_s &current_item, const mission_item_s *next_item,
+				  const position_setpoint_s &current_setpoint_copy);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	/**
 	 * @brief Traversal mode used by this navigation mode when walking position items.
 	 *
@@ -435,6 +525,25 @@ protected:
 	bool findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
 				       MissionTraversalType traversal_type);
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Resolve the VTOL state at a mission position anchor, using lookahead only without a preceding mode. */
+	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);
+
+	/** getVtolStateAtMissionIndex() for all _mission.count indices in two passes; false if they do not fit or an item cannot be read. */
+	bool getVtolStatesForMission(uint8_t vtol_states[], int32_t capacity);
+
+	static bool vehicleInFwLikeState(const vehicle_status_s &vehicle_status);
+
+	/** @param vtol_states optional getVtolStatesForMission() result, replaces the scan per target */
+	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed,
+			const uint8_t *vtol_states = nullptr);
+
+	VtolTransitionAction vtolTransitionActionAfterReachingReverseTarget(int32_t reached_target_index);
+
+	/** Set _active_jump_anchor to the DO_JUMP edge the next nominal advance follows. */
+	void updateActiveJumpAnchorForNominalAdvance();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
 	MissionCheckState _mission_check_state{MissionCheckState::Unchecked};
@@ -481,14 +590,15 @@ private:
 			       MissionTraversalType traversal_type, bool direction_backward);
 
 	/**
-	 * Reset mission
-	 */
-	void checkMissionRestart();
-
-	/**
 	 * Set a mission item as reached
 	 */
 	void set_mission_item_reached();
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	bool handleJoinRouteWaypoint();
+
+	bool joinRouteTransitionStillRequired() const;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
 	 * Updates the heading of the vehicle. Rotary wings only.
@@ -589,3 +699,5 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionData<geofence_status_s> _geofence_status_sub{ORB_ID(geofence_status)};
 };
+
+#undef MISSION_ROUTE_HOOK

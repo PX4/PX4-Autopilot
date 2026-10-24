@@ -291,8 +291,6 @@ void Navigator::run()
 			continue;
 		}
 
-		perf_begin(_loop_perf);
-
 		const bool navigator_input_updated = (fds[0].revents & POLLIN)
 						     || (fds[1].revents & POLLIN)
 						     || (fds[2].revents & POLLIN);
@@ -300,6 +298,7 @@ void Navigator::run()
 		const bool run_navigator_update = navigator_input_updated || minimum_update_due;
 
 		if (run_navigator_update) {
+			perf_begin(_loop_perf);
 			last_navigator_update = hrt_absolute_time();
 			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
@@ -323,7 +322,6 @@ void Navigator::run()
 
 		// Cache-only wakeups advance the load without running Navigator at Dataman rate.
 		if (!run_navigator_update) {
-			perf_end(_loop_perf);
 			continue;
 		}
 
@@ -1330,10 +1328,17 @@ int Navigator::run_trampoline(int argc, char *argv[])
 
 int Navigator::task_spawn(int argc, char *argv[])
 {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// Mission route planning runs on this task; its worst static call chain is about 5.5 KB.
+	static constexpr int kStackSize = 6000;
+#else
+	static constexpr int kStackSize = 2230;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	desc.task_id = px4_task_spawn_cmd("navigator",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_NAVIGATION,
-					  PX4_STACK_ADJUSTED(2230),
+					  PX4_STACK_ADJUSTED(kStackSize),
 					  (px4_main_t)&run_trampoline,
 					  (char *const *)argv);
 

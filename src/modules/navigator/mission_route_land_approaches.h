@@ -45,6 +45,9 @@
 namespace mission_route
 {
 
+/** Choose the most wind-aligned approach, measured from the block's land location. */
+loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, float wind_direction);
+
 /**
  * @brief Read the landing-approach block associated with the first valid rally point near rtl_position.
  *

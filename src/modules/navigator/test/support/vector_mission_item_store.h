@@ -68,12 +68,6 @@ public:
 	}
 
 	/** Configure indices whose loadItem() calls should fail. */
-	void setLoadFailureIndices(std::initializer_list<int32_t> indices)
-	{
-		_load_failure_indices.assign(indices.begin(), indices.end());
-	}
-
-	/** Configure indices whose loadItem() calls should fail. */
 	void setLoadFailureIndices(const std::vector<int32_t> &indices)
 	{
 		_load_failure_indices = indices;

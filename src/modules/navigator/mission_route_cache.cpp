@@ -48,12 +48,6 @@
 
 #include <px4_platform_common/log.h>
 
-// The mission and land caches only accept these dataman storages as their source.
-static bool isMissionDatamanIdValid(uint8_t dataman_id)
-{
-	return dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1;
-}
-
 MissionRouteCache::MissionRouteCache(orb_advert_t *mavlink_log_pub)
 	: _full_mission_cache(mavlink_log_pub)
 {
@@ -99,11 +93,6 @@ bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
 
 bool MissionRouteCache::safePointCacheFullyLoaded() const
 {
-	// Validate against the set currently being loaded.
-	if (_safe_point.read_stats.num_items == 0) {
-		return true;
-	}
-
 	mission_item_s safe_point_item;
 
 	// A miss means async preloading did not finish cleanly.
@@ -116,26 +105,6 @@ bool MissionRouteCache::safePointCacheFullyLoaded() const
 	}
 
 	return true;
-}
-
-bool MissionRouteCache::safePointCacheMatchesReadStats() const
-{
-	const SafePointState &state = _safe_point;
-
-	// Comparing the opaque id alone is not enough
-	// because it can be reused across different safe-point sets
-	return state.ready
-	       && state.cached_source_id == state.source_id
-	       && state.cached_stats.opaque_id == state.read_stats.opaque_id
-	       && state.cached_stats.num_items == state.read_stats.num_items
-	       && state.cached_stats.dataman_id == state.read_stats.dataman_id;
-}
-
-void MissionRouteCache::publishSafePointCache()
-{
-	// Only call after a successful (re)build.
-	_safe_point.cached_stats = _safe_point.read_stats;
-	_safe_point.cached_source_id = _safe_point.source_id;
 }
 
 void MissionRouteCache::resetSafePointCacheState(bool clear_source_identity)
@@ -179,14 +148,14 @@ bool MissionRouteCache::missionViewStillValid(const MissionView &view) const
 
 int MissionRouteCache::safePointCount() const
 {
-	return safePointsReady() ? _safe_point.cached_stats.num_items : 0;
+	return safePointsReady() ? _safe_point.read_stats.num_items : 0;
 }
 
 bool MissionRouteCache::loadSafePointItem(int index, mission_item_s &safe_point_item) const
 {
 	return safePointsReady()
-	       && index >= 0 && index < _safe_point.cached_stats.num_items
-	       && _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_safe_point.cached_stats.dataman_id), index,
+	       && index >= 0 && index < _safe_point.read_stats.num_items
+	       && _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_safe_point.read_stats.dataman_id), index,
 			       reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item),
 			       kCacheOnlyLoadWait);
 }
@@ -405,15 +374,7 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 			break;
 		}
 
-		// The RAM cache already holds this exact set, skip the rebuild.
-		if (safePointCacheMatchesReadStats()) {
-			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
-			state.ready = true;
-			state.retry.clear();
-			break;
-		}
-
-		// Cache miss, rebuild the cache from the new read state.
+		// Rebuild the RAM cache from the new read state.
 		state.ready = false;
 
 		_dataman_cache_safepoint.invalidate();
@@ -443,7 +404,6 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 
 		} else {
 			// Zero safe points is still a valid ready state.
-			publishSafePointCache();
 			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
 			state.ready = true;
 			state.retry.clear();
@@ -459,7 +419,6 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 		}
 
 		if (safePointCacheFullyLoaded()) {
-			publishSafePointCache();
 			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
 			state.ready = true;
 			state.retry.clear();
@@ -470,18 +429,10 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 
 		break;
 
-	case SafePointDatamanState::kError:
-	default: {
+	case SafePointDatamanState::kError: {
 			// resetSafePointCacheState() clears the backoff, so save it first.
-			const RetryBackoff retry = state.retry;
-
-			if (state.dataman_state == SafePointDatamanState::kError) {
-				PX4_WARN("Safe point cache retry");
-
-			} else {
-				PX4_ERR("Safe point cache state invalid");
-			}
-
+			const CacheRetryBackoff retry = state.retry;
+			PX4_WARN("Safe point cache retry");
 			resetSafePointCacheState(false);
 			state.retry = retry;
 			state.retry.scheduleRetry(hrt_absolute_time());

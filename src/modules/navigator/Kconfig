@@ -70,12 +70,11 @@ config NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	range 0 NUM_MISSION_ITEMS_SUPPORTED
 	depends on MODULES_NAVIGATOR
 	---help---
-		Maximum number of mission items reserved in RAM for full-route planning helpers:
-		56 bytes per item, allocated once at Navigator start. Set to 0 to disable the
-		cache on boards without the extra RAM. Longer missions are not cached at all.
-		After upload or reboot the cache refills asynchronously. Navigator polls the
-		Dataman response subscription while each read is pending, then immediately
-		queues the next item without blocking its main loop.
+		Maximum number of mission items kept in RAM for route planning (RTL_TYPE 7
+		and the Mission route join): 56 bytes per item, allocated at Navigator start.
+		A non-zero size also raises the Navigator stack from 2230 to 6000 bytes.
+		0 disables route planning. Longer missions are not cached. The cache refills
+		in the background after an upload or reboot.
 
 config NAVIGATOR_SAFE_POINT_BATCH_SIZE
 	int "Maximum rally points scored per mission-route planning batch"
@@ -84,21 +83,6 @@ config NAVIGATOR_SAFE_POINT_BATCH_SIZE
 	range 1 32
 	depends on MODULES_NAVIGATOR
 	---help---
-		Number of rally (safe) points held in the fixed-size projection batch buffer that the
-		route planner scores in a single scan of the mission route.
-
-		When more eligible rally points are configured than fit in one batch, the planner
-		evaluates them in successive batches, re-scanning the full mission route once per batch,
-		and keeps the lowest-cost valid safe point found. Unreadable or invalid rally points and
-		failed batch scans are skipped so a result from another batch remains usable.
-		A larger value trades RAM for fewer mission passes when many rally points are configured;
-		boards with spare RAM can raise it so all rally points fit in a single pass.
-
-		The projection batch is allocated in static RAM: it reserves roughly
-		sizeof(ProjectionReference) * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE bytes
-		(about 380 bytes per slot, i.e. ~12 KB at the maximum batch size of 32).
-
-		The default of 1 keeps RAM use low on boards that enable route planning.
-
-		The upper bound of 32 comes from DM_KEY_SAFE_POINTS_MAX, the maximum number of storable
-		safe points: batch slots beyond that count can never be filled.
+		Rally points projected per scan of the mission route. With more rally
+		points, the route is scanned once per batch. Each slot reserves 400 to
+		500 bytes of static RAM (13.7 KB at 32).

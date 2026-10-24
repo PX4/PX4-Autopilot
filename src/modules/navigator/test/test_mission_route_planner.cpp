@@ -38,9 +38,12 @@
  */
 
 #include "mission_route_planner.h"
+#include "mission_route_geofence.h"
 #include "mission_route_projection.h"
 #include "support/mission_route_test_helpers.h"
 #include "test_mission_route_data.h"
+
+#include <functional>
 
 using navigator_test::route_test_reference::kAlt;
 using navigator_test::route_test_reference::kBaseLat;
@@ -50,26 +53,53 @@ static constexpr uint16_t kSafePointBatchSize{CONFIG_NAVIGATOR_SAFE_POINT_BATCH_
 
 class MissionRoutePlannerTest : public ::testing::Test {};
 
-class MissionLoadCountingProvider : public VectorProvider
+class RecordingPathChecker : public mission_route::PathChecker
 {
 public:
-	MissionLoadCountingProvider(const std::vector<mission_item_s> &mission_items,
-				    const std::vector<mission_item_s> &safe_point_items)
+	std::function<bool(const mission_route::ProjectionReference &, const mission_route::RouteProjectionCandidate &)>
+	candidate_clear = [](const auto &, const auto &) { return true; };
+	std::function<bool(const mission_route::ProjectionReferenceBatch &)>
+	batch_available = [](const auto &) { return true; };
+	bool path_available{true};
+	bool path_clear{true};
+	mutable std::vector<unsigned> batch_sizes;
+	mutable unsigned path_checks{0};
+	mutable mission_route::Position checked_start{};
+	mutable mission_route::Position checked_end{};
+
+	bool pruneCandidates(mission_route::ProjectionReferenceBatch &batch) const override
 	{
-		setMissionItems(mission_items);
-		setSafePointItems(safe_point_items);
+		batch_sizes.push_back(batch.count);
+
+		if (!batch_available(batch)) {
+			return false;
+		}
+
+		for (uint8_t i = 0; i < batch.count; ++i) {
+			auto &reference = batch.items[i];
+			auto &buffer = reference.candidate_buffer;
+			uint8_t retained = 0;
+
+			for (uint8_t j = 0; j < buffer.count; ++j) {
+				if (candidate_clear(reference, buffer.candidates[j])) {
+					buffer.candidates[retained++] = buffer.candidates[j];
+				}
+			}
+
+			buffer.count = retained;
+		}
+
+		return true;
 	}
 
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override
+	bool checkPath(const mission_route::Position &start, const mission_route::Position &end, bool &clear) const override
 	{
-		_mission_load_count++;
-		return VectorProvider::loadMissionItem(index, mission_item);
+		++path_checks;
+		checked_start = start;
+		checked_end = end;
+		clear = path_available && path_clear;
+		return path_available;
 	}
-
-	int missionLoadCount() const { return _mission_load_count; }
-
-private:
-	mutable int _mission_load_count{0};
 };
 
 static mission_route::MissionResumeRequest makeMissionResumeRequest(const mission_route::Position &vehicle_position,
@@ -192,6 +222,278 @@ private:
 	MissionRoutePlanner _planner;
 };
 
+TEST_F(MissionRoutePlannerTest, GeofencePrunesVehicleCandidatesBeforeContinuitySelection)
+{
+	// Two nearby parallel legs: each remains usable when the preferred leg is blocked.
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 1000.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 1000.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission, {});
+	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 500.f, kAlt);
+
+	for (int32_t blocked_end : {1, 3}) {
+		SCOPED_TRACE(blocked_end);
+		auto request = makeMissionResumeRequest(vehicle, blocked_end);
+		request.projection_search_distance_m = 150.f;
+		mission_route::MissionResumePlan baseline{};
+		ASSERT_EQ(MissionRoutePlanner{provider}.planMissionResumeJoin(request, baseline), mission_route::FailureReason::kNone);
+		ASSERT_EQ(baseline.first_mission_item_index, blocked_end);
+
+		RecordingPathChecker checker;
+		checker.candidate_clear = [blocked_end](const auto &, const auto & candidate) {
+			return candidate.segment.end.idx != blocked_end;
+		};
+		MissionRoutePlanner planner{provider, &checker};
+		mission_route::MissionResumePlan plan{};
+		ASSERT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNone);
+		ASSERT_TRUE(plan.valid());
+		EXPECT_EQ(plan.first_mission_item_index, blocked_end == 1 ? 3 : 1);
+		EXPECT_EQ(checker.batch_sizes, std::vector<unsigned>({1}));
+	}
+}
+
+TEST_F(MissionRoutePlannerTest, GeofenceRejectsAllVehicleCandidatesWithoutRescanning)
+{
+	const std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+	};
+	VectorProvider baseline_provider = makeRouteProvider(mission);
+	const auto request = makeMissionResumeRequest(vehicleOnFirstSegment(), 1);
+	mission_route::MissionResumePlan plan{};
+	ASSERT_EQ(MissionRoutePlanner{baseline_provider}.planMissionResumeJoin(request, plan),
+		  mission_route::FailureReason::kNone);
+
+	RecordingPathChecker checker;
+	checker.candidate_clear = [](const auto &, const auto &) { return false; };
+	VectorProvider provider = makeRouteProvider(mission);
+	MissionRoutePlanner planner{provider, &checker};
+	EXPECT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNoValidCandidateFound);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_LE(provider.missionLoadCount(), baseline_provider.missionLoadCount());
+
+	auto rtl_request = makeRtlRouteRequest(request.vehicle_position, 1);
+	rtl_request.mission_land_index = 2;
+	mission_route::RtlRoutePlan rtl_plan{};
+	EXPECT_EQ(planner.planRtlRoute(rtl_request, rtl_plan), mission_route::FailureReason::kNoValidCandidateFound);
+	EXPECT_FALSE(rtl_plan.valid());
+}
+
+TEST_F(MissionRoutePlannerTest, UnavailableGeofenceRejectsVehicleJoinForMissionAndRtl)
+{
+	const std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission, {});
+	RecordingPathChecker checker;
+	checker.batch_available = [](const auto &) { return false; };
+	MissionRoutePlanner planner{provider, &checker};
+	mission_route::MissionResumePlan mission_plan{};
+	EXPECT_EQ(planner.planMissionResumeJoin(makeMissionResumeRequest(vehicleOnFirstSegment(), 1), mission_plan),
+		  mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(mission_plan.valid());
+
+	auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	request.mission_land_index = 1;
+	mission_route::RtlRoutePlan rtl_plan{};
+	EXPECT_EQ(planner.planRtlRoute(request, rtl_plan), mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(rtl_plan.valid());
+}
+
+TEST_F(MissionRoutePlannerTest, GeofencePrunesCheaperSafePointsAcrossBatchesWithoutExtraMissionReads)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points;
+
+	for (uint16_t i = 0; i < kSafePointBatchSize; ++i) {
+		safe_points.push_back(makeSafePointFromOffset(kBaseLat, kBaseLon, 110.f, 5.f, kAlt));
+	}
+
+	safe_points.push_back(makeSafePointFromOffset(kBaseLat, kBaseLon, 200.f, 20.f, kAlt));
+	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+	const auto request = makeRtlRouteRequest(vehicle, 1);
+	VectorProvider baseline_provider = makeRouteProvider(mission, safe_points);
+	mission_route::RtlRoutePlan baseline{};
+	ASSERT_EQ(MissionRoutePlanner{baseline_provider}.planRtlRoute(request, baseline), mission_route::FailureReason::kNone);
+	ASSERT_LT(baseline.safe_point_index, kSafePointBatchSize);
+
+	RecordingPathChecker checker;
+	checker.candidate_clear = [](const auto & reference, const auto &) {
+		return reference.source_index < 0 || reference.source_index >= kSafePointBatchSize;
+	};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
+	MissionRoutePlanner planner{provider, &checker};
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, kSafePointBatchSize);
+	EXPECT_EQ(checker.batch_sizes, std::vector<unsigned>({1, kSafePointBatchSize, 1}));
+	EXPECT_LE(provider.missionLoadCount(), baseline_provider.missionLoadCount());
+}
+
+TEST_F(MissionRoutePlannerTest, GeofenceBlockedSafePointsFallBackToMissionLand)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission,
+	{makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 20.f, kAlt)});
+	RecordingPathChecker checker;
+	checker.candidate_clear = [](const auto & reference, const auto &) { return reference.source_index < 0; };
+	MissionRoutePlanner planner{provider, &checker};
+	auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	request.mission_land_index = 2;
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionLand);
+	EXPECT_EQ(plan.safe_point_index, -1);
+}
+
+TEST_F(MissionRoutePlannerTest, UnavailableLaterGeofenceBatchDiscardsEarlierWinnerAndEndpointFallback)
+{
+	const std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+	};
+	const std::vector<mission_item_s> safe_points(static_cast<size_t>(kSafePointBatchSize) + 1,
+			makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 20.f, kAlt));
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
+	RecordingPathChecker checker;
+	checker.batch_available = [](const auto & batch) {
+		return batch.items[0].source_index < kSafePointBatchSize;
+	};
+	MissionRoutePlanner planner{provider, &checker};
+	auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	request.mission_land_index = 2;
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(MissionRoutePlanner{provider}.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kNone);
+	EXPECT_EQ(checker.batch_sizes, std::vector<unsigned>({1, kSafePointBatchSize, 1}));
+}
+
+TEST_F(MissionRoutePlannerTest, GeofenceChecksDirectShortcutFromVehicleToSelectedGoal)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission,
+	{makeSafePointFromOffset(kBaseLat, kBaseLon, 12.f, 1.f, kAlt)});
+	RecordingPathChecker checker;
+	MissionRoutePlanner planner{provider, &checker};
+	const auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.fly_direct_to_goal);
+	EXPECT_FALSE(plan.geofence_prevents_shortcut);
+	ASSERT_EQ(checker.path_checks, 1u);
+	EXPECT_DOUBLE_EQ(checker.checked_start.lat, request.vehicle_position.lat);
+	EXPECT_DOUBLE_EQ(checker.checked_start.lon, request.vehicle_position.lon);
+	EXPECT_FLOAT_EQ(checker.checked_start.alt, request.vehicle_position.alt);
+	EXPECT_DOUBLE_EQ(checker.checked_end.lat, plan.goal_position.lat);
+	EXPECT_DOUBLE_EQ(checker.checked_end.lon, plan.goal_position.lon);
+	EXPECT_FLOAT_EQ(checker.checked_end.alt, plan.goal_position.alt);
+
+	checker.path_clear = false;
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	EXPECT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_FALSE(plan.fly_direct_to_goal);
+	EXPECT_TRUE(plan.geofence_prevents_shortcut);
+
+	checker.path_available = false;
+	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_FALSE(plan.geofence_prevents_shortcut);
+}
+
+// Near LAND the join keeps the live altitude; that direct segment gets its own fence check.
+TEST_F(MissionRoutePlannerTest, GeofenceChecksMissionLandingShortcutAtCurrentAltitude)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt - 50.f),
+	};
+	VectorProvider provider = makeRouteProvider(mission, {});
+	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 95.f, 0.f, kAlt + 75.f);
+	const auto request = makeMissionResumeRequest(vehicle, 1);
+	mission_route::MissionResumePlan plan{};
+
+	// Without a fence checker the join is the same, with nothing to check.
+	ASSERT_EQ(MissionRoutePlanner{provider}.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNone);
+	EXPECT_TRUE(plan.use_current_altitude);
+
+	RecordingPathChecker checker;
+	MissionRoutePlanner planner{provider, &checker};
+	ASSERT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.use_current_altitude);
+	EXPECT_EQ(plan.first_mission_item_index, 1);
+	EXPECT_FLOAT_EQ(plan.join_position.alt, vehicle.alt);
+	ASSERT_EQ(checker.path_checks, 1u);
+	EXPECT_FLOAT_EQ(checker.checked_start.alt, vehicle.alt);
+	EXPECT_FLOAT_EQ(checker.checked_end.alt, vehicle.alt);
+	EXPECT_DOUBLE_EQ(checker.checked_end.lat, mission[1].lat);
+	EXPECT_DOUBLE_EQ(checker.checked_end.lon, mission[1].lon);
+
+	checker.path_clear = false;
+	EXPECT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNoValidPath);
+	EXPECT_FALSE(plan.valid());
+
+	checker.path_available = false;
+	EXPECT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kGeofenceUnavailable);
+	EXPECT_FALSE(plan.valid());
+}
+
+TEST_F(MissionRoutePlannerTest, BlockedDirectLandingCannotFallBackToAnAlreadyReachedRouteJoin)
+{
+	const std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt - 50.f),
+	};
+	VectorProvider provider = makeRouteProvider(mission, {});
+	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 95.f, 0.f, kAlt + 75.f);
+	auto request = makeRtlRouteRequest(vehicle, 1);
+	request.mission_land_index = 1;
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(MissionRoutePlanner{provider}.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.fly_direct_to_goal);
+	ASSERT_TRUE(plan.use_current_altitude);
+	ASSERT_EQ(plan.goal_type, mission_route::GoalType::kMissionLand);
+
+	// Model an altitude restriction: joining horizontally at current altitude is clear,
+	// but descending to the selected endpoint is blocked. The nearby join cannot detour it.
+	class NoDescentPathChecker : public RecordingPathChecker
+	{
+	public:
+		bool checkPath(const mission_route::Position &start, const mission_route::Position &end, bool &clear) const override
+		{
+			const bool available = RecordingPathChecker::checkPath(start, end, clear);
+			clear = clear && end.alt >= start.alt;
+			return available;
+		}
+	} checker;
+	MissionRoutePlanner planner{provider, &checker};
+	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNoValidPath);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kNone);
+}
+
 // ---- Mission resume join ----
 
 // Mission resume follows the route in nominal direction toward the mission endpoint.
@@ -216,28 +518,6 @@ TEST_F(MissionRoutePlannerTest, PlansNominalMissionResumeJoinToNextItem)
 	EXPECT_FALSE(plan.direction_reversed);
 	EXPECT_EQ(plan.first_mission_item_index, 1);
 	EXPECT_FALSE(plan.use_current_altitude);
-}
-
-// When the projected join directly targets LAND, execution keeps the vehicle's live altitude.
-TEST_F(MissionRoutePlannerTest, MissionResumeNearLandUsesCurrentAltitudeForJoin)
-{
-	std::vector<mission_item_s> mission{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt - 50.f),
-	};
-	TestPlanner planner(mission);
-	const mission_route::Position vehicle_position =
-		makePositionFromOffset(kBaseLat, kBaseLon, 95.f, 0.f, kAlt + 75.f);
-	const mission_route::MissionResumeRequest request = makeMissionResumeRequest(vehicle_position, 1);
-	mission_route::MissionResumePlan plan{};
-
-	const mission_route::FailureReason status = planner.planMissionResumeJoin(request, plan);
-
-	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
-	ASSERT_TRUE(plan.valid());
-	EXPECT_EQ(plan.first_mission_item_index, 1);
-	EXPECT_TRUE(plan.use_current_altitude);
-	EXPECT_FLOAT_EQ(plan.join_position.alt, vehicle_position.alt);
 }
 
 // An exhausted selected jump keeps its identity without forcing another repeat.
@@ -418,6 +698,38 @@ TEST_F(MissionRoutePlannerTest, SelectedBranchLegShortcutRequiresCrosstrackAndAl
 	EXPECT_FALSE(high_plan.fly_direct_to_goal);
 }
 
+// The follower flies the branch-off leg level and descends at the rally point, so the shortcut
+// expects the branch-off altitude anywhere on the leg.
+TEST_F(MissionRoutePlannerTest, BranchLegShortcutUsesBranchOffAltitude)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt),
+	};
+
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt - 50.f),
+	};
+
+	TestPlanner planner(mission, safe_points);
+
+	// Halfway along the leg at the branch-off altitude.
+	mission_route::RtlRouteRequest request = makeRtlRouteRequest(
+				makePositionFromOffset(kBaseLat, kBaseLon, 300.f, 25.f, kAlt), 0);
+	request.direct_goal_acceptance_radius_m = 20.f;
+	request.acceptance_radius_m = 20.f;
+	mission_route::RtlRoutePlan plan{};
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_TRUE(plan.fly_direct_to_goal);
+
+	// Halfway down a straight line to the rally point is not on the flown leg.
+	request.vehicle_position.alt = kAlt - 25.f;
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_FALSE(plan.fly_direct_to_goal);
+}
+
 // ---- VTOL approach requirements ----
 
 // An approach block belongs to the rally right before it in the file. Rally 0 is closer to the
@@ -527,7 +839,7 @@ TEST_F(MissionRoutePlannerTest, ApproachRecordsDoNotConsumeSafePointBatchCapacit
 		safe_points.push_back(makeVtolApproachFromOffset(20.f + i, 30.f, kAlt + 20.f));
 	}
 
-	MissionLoadCountingProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position = vehicleOnFirstSegment();
 	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 1);
@@ -652,7 +964,8 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 	};
 	const int32_t land_index = 3;
 
-	MissionLoadCountingProvider provider{mission, {}};
+	VectorProvider provider = makeRouteProvider(mission);
+	provider.setMissionLoadFailures({4}); // reading the waypoint after LAND would fail the plan
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
@@ -667,7 +980,7 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 	EXPECT_FALSE(plan.direction_reversed);
 	EXPECT_NEAR(plan.goal_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.goal_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
-	EXPECT_EQ(provider.missionLoadCount(), 6); // the waypoint after LAND is never loaded
+	EXPECT_LE(provider.missionLoadCount(), 6); // one route scan plus the two endpoint lookups
 }
 
 // LAND as the first position leaves no route segment to plan.
@@ -1483,42 +1796,24 @@ static std::vector<mission_item_s> missionWithTransitions()
 	};
 }
 
-// The segment state comes from the last DO_VTOL_TRANSITION before it, else the upload state.
+// A preceding transition defines the mode; an undefined prefix uses the next transition.
 TEST_F(MissionRoutePlannerTest, VtolStateForSegmentUsesLastTransitionBeforeSegment)
 {
 	VectorProvider provider = makeRouteProvider(missionWithTransitions(), {});
 
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(0, 1), kVtolMc), kVtolMc);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(0, 1), kVtolUndefined), kVtolUndefined);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(1, 3), kVtolMc), kVtolFw);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 5), kVtolFw), kVtolMc);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(0, 1)), kVtolMc);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(1, 3)), kVtolFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 5)), kVtolMc);
 }
 
-// Loop jump segments use the state reached before DO_JUMP, including the route to its source.
-TEST_F(MissionRoutePlannerTest, VtolStateForSegmentLoopUsesStateBeforeJump)
-{
-	const std::vector<mission_item_s> mission{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-		makeVtolTransitionItem(kVtolFw),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
-		makeDoJump(1, 2),
-	};
-	VectorProvider provider = makeRouteProvider(mission, {});
-
-	// Anchoring on the loop end (item 1) would miss the transition at 3 and return the MC upload state.
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(4, 1, 5), kVtolMc), kVtolFw);
-}
-
-// Invalid or out-of-range segments fall back to the upload state.
-TEST_F(MissionRoutePlannerTest, VtolStateForSegmentFallsBackForInvalidSegments)
+// Invalid or out-of-range segments have no defined mode.
+TEST_F(MissionRoutePlannerTest, VtolStateForSegmentIsUndefinedForInvalidSegments)
 {
 	VectorProvider provider = makeRouteProvider(missionWithTransitions(), {});
 
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, mission_route::Segment{}, kVtolMc), kVtolMc);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 99), kVtolFw), kVtolFw);
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 1, 99), kVtolFw), kVtolFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, mission_route::Segment{}), kVtolUndefined);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 99)), kVtolUndefined);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 1, 99)), kVtolUndefined);
 }
 
 // An unreadable item is skipped and the scan continues toward the route start.
@@ -1528,7 +1823,7 @@ TEST_F(MissionRoutePlannerTest, VtolStateForSegmentSkipsUnreadableItems)
 	provider.setMissionLoadFailures({4});
 
 	// The back transition at 4 is unreadable, so the front transition at 2 wins.
-	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 5), kVtolMc), kVtolFw);
+	EXPECT_EQ(mission_route::vtolStateForSegment(provider, makeRouteSegment(3, 5)), kVtolFw);
 }
 
 // U-turn penalty mission (straight north, rallies behind and ahead), with an optional
@@ -1556,7 +1851,6 @@ TEST_F(MissionRoutePlannerTest, VtolUturnPenaltyAcrossTransitionStates)
 		bool is_fixed_wing;
 		bool in_transition_to_fw;
 		uint8_t transition_target; // kVtolUndefined = no transition item in the mission
-		uint8_t upload_state;
 		int expected_safe_point_index;
 		bool expected_reversed;
 		mission_route::VtolTransitionAction expected_action;
@@ -1566,21 +1860,21 @@ TEST_F(MissionRoutePlannerTest, VtolUturnPenaltyAcrossTransitionStates)
 
 	const VtolUturnCase cases[] = {
 		// FW on an MC segment: no penalty (a u-turn would BT + FT, then re-BT at the segment).
-		{"FwOnMcSegmentSkipsPenalty", true, true, false, kVtolMc, kVtolUndefined, 0, true, Action::kBackTransition},
+		{"FwOnMcSegmentSkipsPenalty", true, true, false, kVtolMc, 0, true, Action::kBackTransition},
 		// Transitioning to FW toward an MC segment: same skip as FW.
-		{"TransitionToFwOnMcSegmentSkipsPenalty", true, false, true, kVtolMc, kVtolUndefined, 0, true, Action::kBackTransition},
+		{"TransitionToFwOnMcSegmentSkipsPenalty", true, false, true, kVtolMc, 0, true, Action::kBackTransition},
 		// MC never u-turns and needs no transition for an MC segment.
-		{"McOnMcSegmentNoPenaltyNoAction", true, false, false, kVtolMc, kVtolUndefined, 0, true, Action::kNone},
+		{"McOnMcSegmentNoPenaltyNoAction", true, false, false, kVtolMc, 0, true, Action::kNone},
 		// MC toward a FW segment: still no penalty, the front transition comes at branch-in.
-		{"McOnFwSegmentRequestsFrontTransition", true, false, false, kVtolFw, kVtolUndefined, 0, true, Action::kFrontTransition},
-		// No transition items: the MC upload state drives the same result.
-		{"McWithMcUploadStateNoAction", true, false, false, kVtolUndefined, kVtolMc, 0, true, Action::kNone},
+		{"McOnFwSegmentRequestsFrontTransition", true, false, false, kVtolFw, 0, true, Action::kFrontTransition},
+		// Without transition items, the vehicle stays in MC and keeps the closest route.
+		{"McWithUndefinedSegmentStateNoAction", true, false, false, kVtolUndefined, 0, true, Action::kNone},
 		// FW on a FW segment: penalty applies, nothing to transition.
-		{"FwOnFwSegmentKeepsPenalty", true, true, false, kVtolFw, kVtolUndefined, 1, false, Action::kNone},
+		{"FwOnFwSegmentKeepsPenalty", true, true, false, kVtolFw, 1, false, Action::kNone},
 		// Unknown segment state never suppresses the penalty or requests a transition.
-		{"FwWithUnknownSegmentStateKeepsPenalty", true, true, false, kVtolUndefined, kVtolUndefined, 1, false, Action::kNone},
+		{"FwWithUnknownSegmentStateKeepsPenalty", true, true, false, kVtolUndefined, 1, false, Action::kNone},
 		// Non-VTOL: the segment state stays unresolved, so transition items change nothing.
-		{"NonVtolKeepsPenaltyOnMcSegment", false, true, false, kVtolMc, kVtolUndefined, 1, false, Action::kNone},
+		{"NonVtolKeepsPenaltyOnMcSegment", false, true, false, kVtolMc, 1, false, Action::kNone},
 	};
 
 	for (const VtolUturnCase &test_case : cases) {
@@ -1595,7 +1889,6 @@ TEST_F(MissionRoutePlannerTest, VtolUturnPenaltyAcrossTransitionStates)
 		request.is_vtol = test_case.is_vtol;
 		request.is_fixed_wing = test_case.is_fixed_wing;
 		request.in_transition_to_fw = test_case.in_transition_to_fw;
-		request.vtol_state_on_mission_upload = test_case.upload_state;
 		request.velocity_north_m_s = 15.f;
 		request.velocity_east_m_s = 0.f;
 		mission_route::RtlRoutePlan plan{};
@@ -1630,7 +1923,48 @@ TEST_F(MissionRoutePlannerTest, MissionResumePlanRequestsFrontTransitionOnFwSegm
 	EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kNone);
 }
 
-// VTOL takeoff already performs the front transition even when the mission was uploaded in MC.
+// Returning to the initial route prefix restores the mode before its first transition.
+TEST_F(MissionRoutePlannerTest, MissionAndRtlJoinInferModeBeforeFirstTransition)
+{
+	for (const uint8_t transition_target : {kVtolFw, kVtolMc}) {
+		SCOPED_TRACE(static_cast<int>(transition_target));
+		TestPlanner planner({
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+			makeVtolTransitionItem(transition_target),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
+		}, {
+			makeSafePointFromOffset(kBaseLat, kBaseLon, 150.f, 20.f, kAlt),
+		});
+		const mission_route::Position vehicle_position =
+			makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 20.f, kAlt);
+		const bool is_fixed_wing = transition_target == kVtolFw;
+		const auto expected_action = is_fixed_wing ? mission_route::VtolTransitionAction::kBackTransition :
+					     mission_route::VtolTransitionAction::kFrontTransition;
+		mission_route::MissionResumeRequest resume_request = makeMissionResumeRequest(vehicle_position, 1);
+		resume_request.is_vtol = true;
+		resume_request.is_fixed_wing = is_fixed_wing;
+		mission_route::MissionResumePlan resume_plan{};
+
+		ASSERT_EQ(planner.planMissionResumeJoin(resume_request, resume_plan), mission_route::FailureReason::kNone);
+		ASSERT_TRUE(resume_plan.valid());
+		EXPECT_EQ(resume_plan.first_mission_item_index, 1);
+		EXPECT_EQ(resume_plan.vtol_transition_action, expected_action);
+
+		mission_route::RtlRouteRequest rtl_request = makeRtlRouteRequest(vehicle_position, 1);
+		rtl_request.is_vtol = true;
+		rtl_request.is_fixed_wing = is_fixed_wing;
+		mission_route::RtlRoutePlan rtl_plan{};
+
+		ASSERT_EQ(planner.planRtlRoute(rtl_request, rtl_plan), mission_route::FailureReason::kNone);
+		ASSERT_TRUE(rtl_plan.valid());
+		EXPECT_FALSE(rtl_plan.fly_direct_to_goal);
+		EXPECT_EQ(rtl_plan.first_mission_item_index, 1);
+		EXPECT_EQ(rtl_plan.vtol_transition_action, expected_action);
+	}
+}
+
+// VTOL takeoff defines the following segments as FW.
 TEST_F(MissionRoutePlannerTest, MissionResumeAfterVtolTakeoffKeepsFw)
 {
 	std::vector<mission_item_s> mission = uturn_penalty_dataset::mission();
@@ -1640,32 +1974,11 @@ TEST_F(MissionRoutePlannerTest, MissionResumeAfterVtolTakeoffKeepsFw)
 		makeMissionResumeRequest(uturn_penalty_dataset::vehiclePosition(), 1);
 	request.is_vtol = true;
 	request.is_fixed_wing = true;
-	request.vtol_state_on_mission_upload = kVtolMc;
 	mission_route::MissionResumePlan plan{};
 
 	ASSERT_EQ(planner.planMissionResumeJoin(request, plan), mission_route::FailureReason::kNone);
 	ASSERT_TRUE(plan.valid());
 	EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kNone);
-}
-
-// Transition states are not settled configurations: the consumer must resolve them to MC or FW.
-TEST_F(MissionRoutePlannerTest, RejectsMidTransitionVtolUploadState)
-{
-	TestPlanner planner(uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints());
-
-	mission_route::RtlRouteRequest rtl_request =
-		makeRtlRouteRequest(uturn_penalty_dataset::vehiclePosition(), 1);
-	rtl_request.vtol_state_on_mission_upload = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW;
-	mission_route::RtlRoutePlan rtl_plan{};
-
-	EXPECT_EQ(planner.planRtlRoute(rtl_request, rtl_plan), mission_route::FailureReason::kInvalidRequest);
-
-	mission_route::MissionResumeRequest resume_request =
-		makeMissionResumeRequest(uturn_penalty_dataset::vehiclePosition(), 1);
-	resume_request.vtol_state_on_mission_upload = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC;
-	mission_route::MissionResumePlan resume_plan{};
-
-	EXPECT_EQ(planner.planMissionResumeJoin(resume_request, resume_plan), mission_route::FailureReason::kInvalidRequest);
 }
 
 // On the corner mission, MC picks the closest rally in reverse (rally 1).

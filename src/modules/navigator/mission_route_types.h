@@ -49,8 +49,6 @@
 
 #include <px4_platform_common/defines.h>
 
-#include <uORB/topics/vtol_vehicle_status.h>
-
 namespace mission_route
 {
 
@@ -80,11 +78,10 @@ enum class FailureReason : uint8_t {
 	kNoSegmentsFound,
 	kInternalError,
 	kLoadFailed,
-	kInvalidProjectionContext,
 	kNoLocalMinFound,
 	kPositionItemInvalid,
 	kNoValidCandidateFound,
-	kUnknown
+	kGeofenceUnavailable
 };
 
 /** @brief global position used by the route planner. */
@@ -102,53 +99,34 @@ struct ActiveJumpAnchor {
 
 	bool empty() const;
 	bool valid() const;
-	/** @brief Empty, or a valid index within a mission of mission_count items. */
-	bool validForMission(int mission_count) const;
 };
 
-/** @brief Inputs for planning a join back into mission execution. */
+/** @brief Inputs for planning a join back into the mission route, shared with RTL route planning. */
 struct MissionResumeRequest {
 	Position vehicle_position{};
 	int32_t mission_index{-1};
 	bool current_route_direction_reversed{false}; /**< Route direction being flown before replanning. */
 	ActiveJumpAnchor active_jump_anchor{};
-	float home_altitude_amsl{NAN}; /**< May be NAN when every relevant mission item uses absolute altitude. */
-	float projection_search_distance_m{0.f};
-	float acceptance_radius_m{0.f};
-	bool is_fixed_wing{false};
-	bool in_transition_to_fw{false};
-	bool is_vtol{false};
-	/** VTOL state at mission upload (MC or FW; uploading mid-transition counts as MC). UNDEFINED when unknown. */
-	uint8_t vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
-	float velocity_north_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
-	float velocity_east_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
-	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn (default estimated from turn time and route deviation)*/
-};
-
-/** @brief Inputs used only when planning the RTL route-following return. */
-struct RtlRouteRequest {
-	Position vehicle_position{};
-	int32_t mission_index{-1};
-	/** LAND/VTOL_LAND index in the same validated mission source; -1 if unavailable. */
-	int32_t mission_land_index{-1};
-	bool current_route_direction_reversed{false}; /**< Route direction being flown before replanning. */
-	ActiveJumpAnchor active_jump_anchor{};
-	/** May be NAN for absolute-altitude items; required for a mission-takeoff fallback goal. */
+	/** May be NAN for absolute-altitude items; required for a mission-takeoff RTL goal. */
 	float home_altitude_amsl{NAN};
 	float projection_search_distance_m{0.f};
-	float safe_point_projection_search_distance_m{0.f};
 	float acceptance_radius_m{0.f};
-	float direct_goal_acceptance_radius_m{0.f};
-	float altitude_acceptance_radius_m{0.f};
 	bool is_fixed_wing{false};
 	bool in_transition_to_fw{false};
 	bool is_vtol{false};
-	/** VTOL state at mission upload (MC or FW; uploading mid-transition counts as MC). UNDEFINED when unknown. */
-	uint8_t vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
-	bool require_vtol_approach{false};
 	float velocity_north_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
 	float velocity_east_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
-	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn (default estimated from turn time and route deviation)*/
+	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn, default estimated from turn time and route deviation. */
+};
+
+/** @brief Inputs for the RTL route-following return: the join inputs plus goal selection. */
+struct RtlRouteRequest : MissionResumeRequest {
+	/** LAND/VTOL_LAND index in the same validated mission source; -1 if unavailable. */
+	int32_t mission_land_index{-1};
+	float safe_point_projection_search_distance_m{0.f};
+	float direct_goal_acceptance_radius_m{0.f};
+	float altitude_acceptance_radius_m{0.f};
+	bool require_vtol_approach{false};
 };
 
 /** @brief Mission join plan produced by the planner. */
@@ -156,20 +134,15 @@ struct MissionResumePlan {
 	Position join_position{};
 	int32_t first_mission_item_index{-1};
 	bool direction_reversed{false};
-	bool use_current_altitude{false}; /**< Use live altitude when publishing the virtual join item. */
+	bool use_current_altitude{false}; /**< Keep current altitude at branch-in near a landing/takeoff endpoint. */
 	ActiveJumpAnchor active_jump_anchor{};
 	VtolTransitionAction vtol_transition_action{VtolTransitionAction::kNone}; /**< Transition to command when joining the route. */
 
 	bool valid() const;
 };
 
-/** @brief RTL route-following plan produced by the planner. */
-struct RtlRoutePlan {
-	Position join_position{};
-	int32_t first_mission_item_index{-1};
-	bool direction_reversed{false};
-	bool use_current_altitude{false}; /**< Use live altitude when publishing the virtual join item. */
-	ActiveJumpAnchor active_jump_anchor{};
+/** @brief RTL route-following plan produced by the planner: the route join plus the selected goal. */
+struct RtlRoutePlan : MissionResumePlan {
 	GoalType goal_type{GoalType::kNone};
 	Position goal_position{};
 	int32_t safe_point_index{-1}; /**< Set only when goal_type is kSafePoint. */
@@ -177,13 +150,22 @@ struct RtlRoutePlan {
 	/** Mission item replaced by branch_off_position: segment end nominally, segment start in reverse. */
 	int32_t branch_off_mission_item_index{-1};
 	bool fly_direct_to_goal{false}; /**< Bypass route following for either a safe point or endpoint goal. */
-	VtolTransitionAction vtol_transition_action{VtolTransitionAction::kNone}; /**< Transition to command when joining the route. */
+	bool geofence_prevents_shortcut{false}; /**< Report why RTL must follow the route when activating this plan. */
 
 	bool valid() const;
 };
 
 bool isLandingCmd(uint16_t nav_cmd);
 bool isTakeoffCmd(uint16_t nav_cmd);
+
+/** @brief Transition a VTOL needs to reach target_vtol_state; kNone when it matches or is unknown. */
+VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state, bool fw_like);
+
+/**
+ * Decode a VTOL mode command. With before_transition, infer the mode before an explicit transition.
+ * Returns true for DO_VTOL_TRANSITION, and for VTOL_TAKEOFF without before_transition. An invalid target keeps state.
+ */
+bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t &state, bool before_transition = false);
 
 float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl);
 
@@ -192,9 +174,6 @@ bool extractMissionPosition(const mission_item_s &mission_item, float home_altit
 
 /** @brief Extract the valid position from a rally-point safe-point item. */
 bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl, Position &position);
-
-/** @brief Copy a valid Position into a PositionYawSetpoint (yaw left unset). Returns false for an invalid position. */
-bool copyPositionToYawSetpoint(const Position &position, PositionYawSetpoint &setpoint);
 
 /** @brief Convert one LOITER_TO_ALT safe-point item into a concrete landing-approach point. */
 loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl);

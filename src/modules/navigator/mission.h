@@ -84,7 +84,7 @@ private:
 	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff
 	 */
-	bool do_need_move_to_takeoff();
+	bool do_need_move_to_takeoff(const mission_item_s &takeoff_item);
 
 	/**
 	 * Calculate takeoff height for mission item considering ground clearance
@@ -100,8 +100,27 @@ private:
 
 	void handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
 
-	void handleVtolTransition(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
-				  size_t &num_found_items);
+	bool handleVtolTransition(const mission_item_s next_mission_items[], size_t num_found_items);
+	void prepareVtolTransitionItem(bool aligning) override;
 
 	bool _need_mission_save{false};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	friend class MissionTestPeer;
+
+	/**
+	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
+	 *
+	 * @param keep_mission_index True when activation must not move the mission index, e.g. after a restart.
+	 * @return true if a join route was armed, false to fly directly to the current item.
+	 */
+	bool trySetRouteJoinOnActivation(bool keep_mission_index);
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		MissionBase,
+		(ParamInt<px4::params::MIS_ROUTE_JOIN>)    _param_mis_route_join,
+		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist,
+		(ParamFloat<px4::params::MIS_FW_SEG_DIST>) _param_mis_fw_seg_dist
+	)
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 };

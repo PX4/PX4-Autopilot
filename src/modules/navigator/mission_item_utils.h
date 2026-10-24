@@ -51,3 +51,14 @@ inline bool mission_item_contains_position(const mission_item_s &item)
 	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
 	       item.nav_cmd == NAV_CMD_VTOL_LAND;
 }
+
+/** Convert a caller-selected RTL position item into a waypoint, retaining loiter-to-altitude. */
+inline void makeRtlPositionItem(mission_item_s &item)
+{
+	if (item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
+		item.nav_cmd = NAV_CMD_WAYPOINT;
+	}
+
+	item.autocontinue = true;
+	item.time_inside = 0.f;
+}

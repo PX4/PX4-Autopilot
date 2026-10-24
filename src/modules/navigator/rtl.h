@@ -50,6 +50,10 @@
 #include "rtl_direct_mission_land.h"
 #include "rtl_mission_fast.h"
 #include "rtl_mission_fast_reverse.h"
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "rtl_route_safe_point.h"
+#include <lib/perf/perf_counter.h>
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -63,7 +67,7 @@
 #include <uORB/topics/rtl_time_estimate.h>
 
 class Navigator;
-class MissionRouteCache;
+class RtlMissionSafePointFollow;
 class RTLTestPeer;
 
 class RTL : public NavigatorMode, public ModuleParams
@@ -71,7 +75,7 @@ class RTL : public NavigatorMode, public ModuleParams
 public:
 	RTL(Navigator *navigator);
 
-	~RTL() { delete _rtl_mission_type_handle; }
+	~RTL() override;
 
 	enum class RtlType {
 		NONE = rtl_status_s::RTL_STATUS_TYPE_NONE,
@@ -79,9 +83,11 @@ public:
 		RTL_DIRECT_MISSION_LAND = rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND,
 		RTL_MISSION_FAST = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION,
 		RTL_MISSION_FAST_REVERSE = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE,
+		RTL_MISSION_SAFE_POINT_FOLLOW = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT,
 	};
 
 	void on_inactive() override;
+	void on_inactivation() override;
 	void on_activation() override;
 	void on_active() override;
 
@@ -90,6 +96,10 @@ public:
 	void set_return_alt_min(bool min) { _enforce_rtl_alt = min; }
 
 	bool isLanding();
+
+protected:
+	// Virtual only so tests can fail the executor allocation.
+	virtual bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
 
 private:
 	friend class RTLTestPeer;
@@ -114,7 +124,19 @@ private:
 	 */
 	bool reverseIsFurther() const;
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	void applyReturnAltMin();
+	RtlRouteSafePoint::Evaluation evaluateRouteSafePoint();
+	/** Retry without changing the current hold unless the route executor is ready. */
+	void retryRouteSafePoint();
+	/** Warn when RTL_TYPE 7 has no route and stops at the current position. */
+	void reportNoRoute() const;
+	/** True while Mission has not validated the uploaded mission, fence and Home yet. */
+	bool missionValidationPending() const;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	void setRtlTypeAndDestination();
+	void publishRtlStatus(uint8_t safe_point_index);
 
 	/**
 	 * @brief Publish the remaining time estimate to go to the Return landing point.
@@ -140,6 +162,8 @@ private:
 	 */
 	void setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const;
 
+	void setCurrentPositionAsDestination(PositionYawSetpoint &destination) const;
+
 	/**
 	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
 	 *
@@ -149,24 +173,13 @@ private:
 	 */
 	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
-	/**
-	 * @brief initialize Return mission type
-	 *
-	 */
-	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+	void stopAndDeleteRtlMissionType();
 
 	/**
 	 * @brief Update parameters
 	 *
 	 */
 	void parameters_update();
-
-	/**
-	 * @brief Choose the most wind-aligned approach in a landing-approach block.
-	 *
-	 * Bearings are evaluated from the block's land location.
-	 */
-	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const;
 
 	/**
 	 * @brief Return the wind-selected VTOL approach for destination, or an invalid loiter if none exists.
@@ -176,7 +189,12 @@ private:
 	hrt_abstime _destination_check_time{0};
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
-	RtlType _rtl_type{RtlType::RTL_DIRECT};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	RtlMissionSafePointFollow *_route_follower {nullptr}; ///< Same executor; lifetime owned through _rtl_mission_type_handle.
+	RtlRouteSafePoint _route_safe_point{this, _navigator};
+	perf_counter_t _route_evaluate_perf{perf_alloc(PC_ELAPSED, "navigator: rtl route evaluate")};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	RtlType _rtl_type {RtlType::RTL_DIRECT};
 	uint32_t _mission_land_failure_mission_id{0};
 	uint16_t _mission_land_failure_count{0};
 	int32_t _mission_land_failure_index{-1};
