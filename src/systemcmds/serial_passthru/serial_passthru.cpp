@@ -281,7 +281,7 @@ SERIALPASSTHRU::run()
 			/* open the serial port */
 			_fd_int = ::open(_int_path, O_RDWR | O_NOCTTY);
 
-			if (_fd_ext < 0) {
+			if (_fd_int < 0) {
 				PX4_ERR("failed to open %s err: %d", _int_path, errno);
 
 			} else {
