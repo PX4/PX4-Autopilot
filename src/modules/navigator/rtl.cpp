@@ -103,6 +103,17 @@ void RTL::on_inactive()
 
 }
 
+void RTL::on_inactivation()
+{
+	// Stop the executors in the exit cycle, not in the next on_inactive().
+	// Modes after RTL in Navigator's mode array, such as precision landing, start after this.
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->run(false);
+	}
+
+	_rtl_direct.run(false);
+}
+
 void RTL::publishRemainingTimeEstimate()
 {
 	const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
