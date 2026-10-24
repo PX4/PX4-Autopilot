@@ -78,7 +78,7 @@ void Ekf::controlFakePosFusion()
 
 		const bool enable_valid_fake_pos = _control_status.flags.constant_pos || _control_status.flags.vehicle_at_rest;
 		const bool enable_fake_pos = !enable_valid_fake_pos
-					     && (getTiltVariance() > sq(math::radians(3.f)))
+					     && (getTiltVariance() > sq(kFakePosTiltStdThreshold))
 					     && !_control_status.flags.gravity_vector
 					     && _horizontal_deadreckon_time_exceeded;
 
