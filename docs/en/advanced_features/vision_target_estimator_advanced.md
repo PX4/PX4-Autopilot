@@ -412,7 +412,7 @@ If the yaw state ends up oscillating, the [Orientation Filter case study](#orien
 ## Time Alignment
 
 Vision and GNSS observations can arrive delayed due to transport and processing latency.
-The position and orientation filters handle out-of-sequence measurements (OOSM) by replaying subsequent accepted observations in timestamp order.
+The position and orientation filters handle out-of-sequence measurements (OOSM) by replaying subsequent observations in timestamp order.
 For example, at 200 ms the filter fuses vision captured at 160 ms.
 In the next cycle, at 220 ms, GNSS captured at 100 ms arrives.
 The filter restores the state and covariance from history at or before 100 ms.
@@ -427,16 +427,16 @@ Validity and reset timeouts count from the capture time of the newest fused posi
 
 Each filter retains up to 25 post-update snapshots of the time, state, covariance and prediction input.
 At 50 Hz, 25 snapshots span 480 ms from oldest to newest.
-A separate fixed-size buffer stores the accepted scalar observations, including their measurement matrix and variance.
+A separate fixed-size buffer stores the gated scalar observations, accepted or rejected, with their measurement matrix, variance and latest gate decision.
 It is sized for one observation per aid source and cycle: 100 per position axis (up to four sources in moving-target mode) and 25 for yaw.
 
 For a delayed observation:
 
 1. Find the newest snapshot at or before its capture time.
-2. Predict to the capture time using the recorded control input, replaying any accepted observations along the way.
+2. Predict to the capture time using the recorded control input, replaying the stored observations along the way.
 3. Compute the innovation, innovation variance and NIS gate at that time.
 4. If accepted, apply the ordinary scalar Kalman update.
-5. Replay later predictions and accepted observations in time order, recalculating every gain from the updated covariance.
+5. Replay later predictions and stored observations in time order, gating each one again and recalculating every gain from the updated covariance.
 6. Replace the snapshots at or after the capture time and the live state with the replayed posteriors.
 
 Each prediction advances the state and covariance using the transition matrix $\Phi$, control input $u$, input matrix $G$, and process noise $Q$:
@@ -459,31 +459,31 @@ $$
 
 Replaying subsequent updates preserves their information, including their effect on position/bias cross-covariance.
 
-Previously accepted observations remain accepted during replay: their innovation and gain are recalculated, but their original gate decisions and published diagnostic messages are not revised.
-Their recalculated test ratios are logged on the delayed observations that triggered the replay (`replay_test_ratio_max`), so logs show when the revised trajectory contradicts an observation that was already fused.
-Rejected observations are not retained or reconsidered.
+Stored observations are gated again during replay against the replayed prior, so a decision can change in either direction.
+Their published diagnostic messages are not revised.
+Instead, the delayed observations that triggered the replay log how many stored observations were gated again (`replayed_count`), how many changed decision (`replay_revised_count`), and the highest test ratio among those accepted before the replay (`replay_test_ratio_max`).
 If a stored observation fails during replay (invalid innovation variance), the delayed batch is discarded and history is cleared, so the failing observation cannot block later replays.
 The live state is unchanged; pending and provisionally accepted delayed observations report `STATUS_REJECT_COV`, while earlier rejections keep their original status.
 Fresh observations can still fuse afterwards.
-The result therefore matches chronological fusion of the accepted observations at their effective fusion times; it does not promise arrival-order-independent outlier decisions.
+On successful replay within the observation-log capacity, the result matches chronological fusion with the same gate, effective fusion times and equal-time order, up to float rounding, provided the required history is retained.
 Prediction uses the stored piecewise-constant control inputs and current process-noise settings.
 
 Observations less than 20 ms from the current time take the direct-update path and are recorded at the effective fusion time (now).
 Within each cycle, observations are fused in effective timestamp order, preserving source priority for equal times.
-Once a delayed observation is accepted, the remaining delayed observations of that cycle share its replay per axis: it stops at each of them to gate and apply it, and rewrites the later snapshots once.
+Once a delayed observation is accepted or a stored gate decision changes, the remaining delayed observations of that cycle share its replay per axis: it stops at each of them to gate and apply it, and rewrites the later snapshots once.
 For example, target GNSS position and velocity share a capture time, so they cost one replay instead of two.
 On successful replay within the observation-log capacity, the final state and covariance match fusing them one at a time, oldest first, up to float rounding.
 Replay diagnostics use this shared trajectory, so an older observation's `replay_test_ratio_max` can include the influence of later observations accepted in the same batch.
 Other new batch observations are not included in `replayed_count`; it counts only previously stored observations.
 Observations outside the available history or the 500 ms maximum delay are rejected.
-Accepted observations older than the oldest retained posterior can be discarded because that posterior already contains their information.
+Stored observations older than the oldest retained posterior are discarded: that posterior already contains the accepted ones, and their decisions can no longer change.
 The buffer cannot overflow while each aid source contributes at most one observation per cycle.
 If adding an observation would exceed its capacity, history restarts from the live posterior: the state is preserved, but older delayed observations are rejected until history accumulates again.
 
 When all `B` delayed observations in a cycle are accepted, each axis requires at most `N_snapshots + N_observations + B + 1` predictions and `N_observations + B` measurement updates.
 Here, `N_snapshots` counts snapshots after the floor of the oldest one (at most 24), and `N_observations` counts stored observations replayed from that floor to now.
 The extra predictions advance to each delayed observation and then to now; predictions with no elapsed time are skipped.
-Candidates rejected before the first acceptance are checked independently from their own floor snapshots and may replay stored observations more than once.
+Until a delayed observation is accepted or a stored gate decision changes, rejected candidates are checked independently from their own floor snapshots and may replay stored observations more than once.
 
 ## Moving-target Mode (experimental)
 
@@ -603,7 +603,7 @@ For example plots of what a healthy and a degraded filter look like, see [Expect
 - `vte_input`: downsampled acceleration in NED and the quaternion fed to each prediction step.
   Can be used to correlate estimator behaviour with vehicle attitude changes.
 - `vte_aid_*`: one topic per fused source (`vte_aid_gps_pos_target`, `vte_aid_gps_pos_mission`, `vte_aid_gps_vel_uav`, `vte_aid_gps_vel_target`, `vte_aid_fiducial_marker`, `vte_aid_ev_yaw`).
-  Each publishes the observation, observation variance, innovation, innovation variance, chi-squared `test_ratio`, the `fusion_status` outcome code (per-axis on the 3D variant), and OOSM diagnostics (`time_since_meas_ms`, `history_steps`, `replayed_count`, `replay_test_ratio_max`, `time_last_predict`).
+  Each publishes the observation, observation variance, innovation, innovation variance, chi-squared `test_ratio`, the `fusion_status` outcome code (per-axis on the 3D variant), and OOSM diagnostics (`time_since_meas_ms`, `history_steps`, `replayed_count`, `replay_revised_count`, `replay_test_ratio_max`, `time_last_predict`).
   See [Aid-source diagnostics](#aid-source-diagnostics) for the meaning of each `fusion_status` value.
 
 ### Aid-Source Diagnostics
@@ -634,9 +634,10 @@ Additional fields make latency and replay tractable without manual timestamp ari
   Negative values mean the measurement is timestamped after the latest prediction (i.e. the filter has not caught up yet).
 - `history_steps` counts the retained snapshots after the capture time that were recomputed during replay (at most 24).
   It is 0 for every other status, and also for `STATUS_FUSED_OOSM` when no snapshot is newer than the sample.
-- `replayed_count` counts the stored observations re-applied after a delayed one, and `replay_test_ratio_max` is the highest `test_ratio` among them (-1 if none).
-  A value above 1 means the revised trajectory contradicts an observation that was already fused; replay keeps that observation fused.
-  With batching, later accepted observations in the same cycle can also influence this ratio (see [OOSM Implementation](#oosm-implementation)).
+- `replayed_count` counts the stored observations gated again after a delayed one, and `replay_revised_count` how many of them changed decision.
+  `replay_test_ratio_max` is the highest `test_ratio` among those accepted before the replay (-1 if none).
+  A value above 1 means the replay rejected an observation accepted before (see [OOSM Implementation](#oosm-implementation)).
+  The delayed observations of one cycle share a replay, so their values can also reflect each other.
 
 ### Main Input Feeds
 
@@ -1175,7 +1176,7 @@ perf | grep "VTE"
 
 These counters overlap; do not add their elapsed times to estimate CPU usage.
 Reset them with `perf reset` after warmup, and use `top` to measure the `wq:vte` CPU share.
-Replay cost increases with measurement delay and the number of later accepted observations (see [OOSM Implementation](#oosm-implementation)).
+Replay cost increases with measurement delay and the number of later stored observations (see [OOSM Implementation](#oosm-implementation)).
 Check the aid-source `fusion_status` fields alongside timing to confirm that observations are being fused.
 
 <a id="pixhawk-6c-reference-measurements"></a>

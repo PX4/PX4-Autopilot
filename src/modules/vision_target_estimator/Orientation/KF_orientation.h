@@ -73,19 +73,21 @@ public:
 		float val;
 		float unc;
 		VectorState H;
+		FusionSource source{FusionSource::Primary};
 	};
 
 	void predict(float dt);
 
 	// Primary Fusion Interface (history-consistent OOSM)
-	// Delayed observations are fused at their timestamp and subsequent accepted observations
-	// are replayed in timestamp order, recomputing their Kalman gains.
+	// Delayed observations are fused at their timestamp and subsequent stored observations
+	// are replayed in timestamp order, gated again and with recomputed Kalman gains.
 	// Returns FusionResult describing the result for logging.
 	FusionResult fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold);
 
 	// History Management
 	void pushHistory(const uint64_t time_us);
-	void resetHistory();
+	void resetHistory(FusionTimes times = {});
+	FusionTimes getFusionTimes() const { return _oosm.getFusionTimes(); }
 
 	// State
 	void setState(const VectorState &state) { _state = state; }
