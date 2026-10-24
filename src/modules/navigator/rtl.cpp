@@ -285,6 +285,10 @@ void RTL::setRtlTypeAndDestination()
 	landing_loiter.lon = destination.lon;
 	landing_loiter.height_m = NAN;
 
+	// Not every type looks for approaches: report only those this evaluation finds.
+	_home_has_land_approach = false;
+	_one_rally_point_has_land_approach = false;
+
 	if (_param_rtl_type.get() == RTL_TYPE_MISSION_FAST) {
 		if (hasMissionLandStart()) {
 			new_rtl_type = RtlType::RTL_MISSION_FAST;

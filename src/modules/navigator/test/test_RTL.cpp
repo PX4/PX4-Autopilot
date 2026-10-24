@@ -60,6 +60,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/wind.h>
 
+#include "MissionFeasibility/FeasibilityChecker.hpp"
 #include "navigator.h"
 #include "rtl.h"
 #include "rtl_direct_mission_land.h"
@@ -2173,3 +2174,73 @@ TEST_F(RTLTest, MissionExecutorInitFailureReturnsDirectly)
 	// the dataman is shared by every case in this binary, so leave the mission slot as it was found
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 }
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+// WHY: rtl_status.has_vtol_approach tells the mission check whether Return can land a VTOL on an approach.
+// WHAT: a Return type that does not look for approaches reports none, whatever an earlier type found.
+TEST_F(RTLTest, ReturnTypeChangesDiscardPreviousApproachStatus)
+{
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+	const ApproachGeometry geometry = makeApproachGeometry();
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+
+	for (const bool approach_at_home : {true, false}) {
+		publishHomePosition(approach_at_home ? geometry.land :
+				    makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
+
+		// Mission-fast types do not inspect approaches; rally-only Return does not inspect home.
+		for (const int32_t rtl_type : {2, 4, 5}) {
+			SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << rtl_type << ", approach at home=" << approach_at_home);
+			loadSafePointsIntoRouteCache({
+				makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+				makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+			});
+
+			_rtl.evaluateReturnTypeForTest(3);
+			ASSERT_TRUE(rtl_status_sub.update());
+			ASSERT_TRUE(rtl_status_sub.get().has_vtol_approach);
+
+			loadSafePointsIntoRouteCache({});
+			_rtl.evaluateReturnTypeForTest(rtl_type);
+			ASSERT_TRUE(rtl_status_sub.update());
+			EXPECT_FALSE(rtl_status_sub.get().has_vtol_approach);
+		}
+	}
+}
+
+// WHY: with MIS_TKO_LAND_REQ=5, an in-air VTOL mission needs a landing unless Return has a VTOL approach.
+// WHAT: an approach found for an earlier RTL_TYPE no longer lets a mission without a landing pass.
+TEST_F(RTLTest, MissionWithoutLandingNeedsAnApproachOfTheCurrentReturnType)
+{
+	int32_t takeoff_land_req = 5;
+	ASSERT_EQ(param_set(param_find("MIS_TKO_LAND_REQ"), &takeoff_land_req), PX4_OK);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+
+	// a rally point with a landing approach, away from Home
+	const ApproachGeometry geometry = makeApproachGeometry();
+	loadSafePointsIntoRouteCache({
+		makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+	});
+
+	FeasibilityChecker checker;
+	const auto acceptsMissionWithoutLanding = [&]() {
+		mission_item_s waypoint = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+		checker.processNextItem(waypoint, 0, 1);
+		return !checker.someCheckFailed();
+	};
+
+	// GIVEN: Return type 3 can land at the rally point with its approach
+	_rtl.evaluateReturnTypeForTest(3);
+	ASSERT_TRUE(acceptsMissionWithoutLanding());
+
+	// WHEN: RTL_TYPE changes to 2, which follows the mission and uses no approach
+	_rtl.evaluateReturnTypeForTest(2);
+
+	// THEN: the mission needs its own landing again
+	EXPECT_FALSE(acceptsMissionWithoutLanding());
+}
+#endif
