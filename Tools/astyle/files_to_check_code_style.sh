@@ -39,6 +39,7 @@ exec find boards msg src platforms test \
     -path src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3 -prune -o \
     -path src/lib/cdrstream/cyclonedds -prune -o \
     -path src/lib/cdrstream/rosidl -prune -o \
+    -path src/lib/ulog_cpp -prune -o \
     -path src/modules/zenoh/zenoh-pico -prune -o \
     -path boards/modalai/voxl2/libfc-sensor-api -prune -o \
     -path boards/modalai/voxl2/src/lib/mpa/libmodal-json -prune -o \
