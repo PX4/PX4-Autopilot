@@ -60,7 +60,7 @@ public:
 	using VectorState = matrix::Vector<float, kStateSize>;
 	using SquareMatrixState = matrix::SquareMatrix<float, kStateSize>;
 
-	friend class OOSMManager<KF_position, kStateSize, float>;
+	friend class OOSMManager<KF_position, kStateSize, float, kOosmHistorySize, kOosmMaxStoredObs>;
 
 	KF_position() = default;
 	~KF_position() = default;
@@ -135,6 +135,7 @@ private:
 	// OOSM history buffer:
 	// 0.5 s window @ 50 Hz predict rate = 25 samples.
 	// Note that the 0.5 s window is enforced with kOosmMaxTimeUs = 500_ms.
-	OOSMManager<KF_position, kStateSize, float, kOosmHistorySize> _oosm;
+	// The observation log keeps the kOosmMaxStoredObs most recent observations.
+	OOSMManager<KF_position, kStateSize, float, kOosmHistorySize, kOosmMaxStoredObs> _oosm;
 };
 } // namespace vision_target_estimator

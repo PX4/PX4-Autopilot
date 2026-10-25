@@ -87,8 +87,8 @@ struct EmptyInput {};
  * @tparam InputT       Control input stored per snapshot (e.g. acceleration for
  *                      the position filter, or EmptyInput for orientation).
  * @tparam HistorySize  Capacity of the ring buffer (max 255).
- * @tparam MaxObsPerSnapshot  Most scalar observations fused between two snapshots, one per aid
- *                      source and cycle (up to four for the position filter). Sizes the log.
+ * @tparam MaxStoredObs Capacity of the observation log, which also bounds the stored observations
+ *                      one replay gates again. When full, the oldest observation is dropped.
  *
  * FilterT concept (the OOSM manager never touches the filter's internal state
  * directly, it drives it exclusively through this interface):
@@ -103,7 +103,7 @@ struct EmptyInput {};
  *
  * ScalarMeasT concept: default-constructible with members time_us, val, unc, H and source.
  */
-template <typename FilterT, int StateDim, typename InputT, int HistorySize = 25, int MaxObsPerSnapshot = 4>
+template <typename FilterT, int StateDim, typename InputT, int HistorySize = 25, int MaxStoredObs = 4 * HistorySize>
 class OOSMManager
 {
 public:
@@ -119,12 +119,9 @@ public:
 
 	static_assert(HistorySize > 0, "HistorySize must be > 0");
 	static_assert(HistorySize <= 255, "HistorySize must fit in uint8_t");
-	static_assert(MaxObsPerSnapshot > 0, "MaxObsPerSnapshot must be > 0");
+	static_assert(MaxStoredObs > 0, "MaxStoredObs must be > 0");
 	static constexpr uint8_t kHistorySize = static_cast<uint8_t>(HistorySize);
-
-	// Retained observations were gated within the last HistorySize cycles, so the log
-	// only fills if the filter gates more than MaxObsPerSnapshot per cycle.
-	static constexpr size_t kMeasurementCapacity = static_cast<size_t>(MaxObsPerSnapshot) * HistorySize;
+	static constexpr size_t kMeasurementCapacity = static_cast<size_t>(MaxStoredObs);
 	static constexpr uint64_t kOosmMinTimeUs = vision_target_estimator::kOosmMinTimeUs;
 	static constexpr uint64_t kOosmMaxTimeUs = vision_target_estimator::kOosmMaxTimeUs;
 	static_assert(kOosmMinTimeUs <= INT16_MAX, "Fast-path capture-time offset must fit in int16_t");
@@ -139,6 +136,7 @@ public:
 	void reset(FusionTimes times = {})
 	{
 		_measurement_count = 0;
+		_min_floor_time_us = 0;
 		_baseline_times = times;
 		_fusion_times = times;
 
@@ -284,8 +282,22 @@ private:
 	};
 	StoredMeasurement _measurements[kMeasurementCapacity] {};
 	size_t _measurement_count{0};
-	FusionTimes _baseline_times{}; // Accepted observations already incorporated in the oldest snapshot.
+	uint64_t _min_floor_time_us{0}; // Replays start at or after it: older snapshots lack a dropped observation
+	FusionTimes _baseline_times{}; // Accepted observations already incorporated in the oldest usable snapshot.
 	FusionTimes _fusion_times{}; // Committed live posterior, unchanged while replay is speculative.
+
+	// Oldest snapshot a replay can start from.
+	uint64_t oldestFloorTime()
+	{
+		const uint8_t newest_idx = _history.get_newest_index();
+		uint8_t idx = _history.get_oldest_index();
+
+		while ((idx != newest_idx) && (_history[idx].time_us < _min_floor_time_us)) {
+			idx = _history.next(idx);
+		}
+
+		return _history[idx].time_us;
+	}
 
 	void pruneMeasurements()
 	{
@@ -293,9 +305,11 @@ private:
 			return;
 		}
 
+		// Observations at or before the oldest usable snapshot are contained in it.
+		const uint64_t floor_time = oldestFloorTime();
 		size_t obsolete = 0;
 
-		while (obsolete < _measurement_count && _measurements[obsolete].time_us <= _history.get_oldest().time_us) {
+		while (obsolete < _measurement_count && _measurements[obsolete].time_us <= floor_time) {
 			const StoredMeasurement &stored = _measurements[obsolete];
 
 			if (stored.accepted) {
@@ -323,10 +337,17 @@ private:
 		pruneMeasurements();
 
 		if (_measurement_count == kMeasurementCapacity) {
-			// Restart from the live posterior rather than drop an update a later replay needs.
-			reset(_fusion_times);
-			push(now_us, state, cov, input);
-			return;
+			if ((_history.entries() > 0) && (_measurements[0].time_us <= _history.get_newest().time_us)) {
+				// Drop the oldest observation. Replays then start from snapshots that contain it.
+				_min_floor_time_us = _measurements[0].time_us;
+				pruneMeasurements();
+
+			} else {
+				// No snapshot contains it yet: restart from the live posterior instead.
+				reset(_fusion_times);
+				push(now_us, state, cov, input);
+				return;
+			}
 		}
 
 		size_t pos = _measurement_count;
@@ -383,8 +404,8 @@ private:
 			return false;
 		}
 
-		// Measurement predates the buffer window: we cannot reconstruct a floor for it.
-		if ((now_us - meas.time_us) > kOosmMaxTimeUs || meas.time_us < _history.get_oldest().time_us) {
+		// Measurement predates the replay window: we cannot reconstruct a floor for it.
+		if ((now_us - meas.time_us) > kOosmMaxTimeUs || meas.time_us < oldestFloorTime()) {
 			res.status = FusionStatus::STATUS_REJECT_TOO_OLD;
 			return false;
 		}
@@ -411,7 +432,7 @@ private:
 		}
 	}
 
-	// Newest snapshot at or before time_us. checkDelayed() ensures the oldest one qualifies.
+	// Newest snapshot at or before time_us. checkDelayed() ensures the oldest usable one qualifies.
 	uint8_t floorIndex(uint64_t time_us)
 	{
 		const uint8_t oldest_idx = _history.get_oldest_index();
