@@ -15,7 +15,7 @@ set -e
 if [ -n "$DOCKER_HOST_IP" ]; then
     # Runtime-only images expect the DDS Agent on the host.
     sed -i -E "s/(uxrce_dds_client start -t udp)( -h [^ ]+)?/\1 -h $DOCKER_HOST_IP/g" \
-        "$PX4_PREFIX/etc/init.d-posix/rcS"
+        "$PX4_PREFIX/etc/init.d-posix/px4-rc.uxrce_dds"
 fi
 
 exec "$PX4_PREFIX/bin/px4" "$@"
