@@ -182,7 +182,7 @@ static inline bool alignFutureSampleTime(hrt_abstime &ts, const hrt_abstime now)
 }
 
 // Rate limit a warning to one per kWarnThrottleIntervalUs.
-static inline bool shouldEmitWarning(hrt_abstime &last_warn)
+inline bool shouldEmitWarning(hrt_abstime &last_warn)
 {
 	const hrt_abstime now = nowUs();
 
