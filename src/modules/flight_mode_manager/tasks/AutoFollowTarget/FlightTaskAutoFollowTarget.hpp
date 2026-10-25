@@ -275,9 +275,11 @@ protected:
 	// Last estimator restart seen, the filtered target position restarts on the new estimate with it
 	uint64_t _last_target_estimator_reset_timestamp{0};
 
-	// The local position reference home's altitude is held against
+	// The local position reference seen last, and the vehicle's z of the last cycle, so a reference change can
+	// move home's altitude by the jump z makes with it
 	float _ref_alt{NAN};
 	uint64_t _ref_timestamp{0};
+	float _vehicle_z_last{NAN};
 
 	// Second Order Filter to calculate kinematically feasible target position
 	SecondOrderReferenceModel<matrix::Vector3f> _target_position_velocity_filter;

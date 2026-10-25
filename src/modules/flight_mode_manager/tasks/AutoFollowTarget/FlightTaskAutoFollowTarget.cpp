@@ -90,9 +90,10 @@ bool FlightTaskAutoFollowTarget::activate(const trajectory_setpoint_s &last_setp
 	if (_sub_home_position.get().valid_alt) {
 		_home_position_z = _sub_home_position.get().z;
 
-		// the first update takes the reference the saved value belongs to
+		// home z is taken to be in the current frame, the first update records which one that is
 		_ref_alt = NAN;
 		_ref_timestamp = 0;
+		_vehicle_z_last = NAN;
 
 	} else {
 		ret = false; // Don't activate Follow Target task if home position is not valid
@@ -316,18 +317,14 @@ bool FlightTaskAutoFollowTarget::update()
 	float gimbal_pitch{NAN};
 	float raw_orbit_angle_setpoint{NAN};
 
-	if (!PX4_ISFINITE(_dist_to_bottom) && _sub_home_position.get().valid_alt) {
-		// without a distance sensor the base class measures the distance to ground from home's published local z,
-		// which commander doesn't move when the frame changes, so take it from the tracked home z instead
-		_dist_to_ground = _home_position_z - _position(2);
-	}
-
 	// Get the latest target estimator message for target position and velocity
 	_follow_target_estimator_sub.update(&_follow_target_estimator);
 
-	// A reference change, on an estimator switch or a new origin, moves the local frame under the vehicle. Home
-	// keeps its altitude over the ground, and the vehicle holds its place for this cycle, since the estimate it
-	// has is still in the old frame. The estimator restarts in the new frame and the filtered target with it.
+	// A reference change, on an estimator switch or a new origin, moves the local frame under the vehicle, and
+	// home moves with it by the jump the vehicle's own z makes. Neither ref_alt nor delta_z measure that jump,
+	// EKF2 reports ref_alt 0 and a delta_z of minus the origin altitude until it has an altitude origin, while z
+	// does not move. The task holds until the estimate has restarted in the new frame, and the filtered target
+	// restarts with it.
 	const vehicle_local_position_s &local_position = _sub_vehicle_local_position.get();
 	bool frame_moved = false;
 
@@ -336,12 +333,27 @@ bool FlightTaskAutoFollowTarget::update()
 		_ref_timestamp = local_position.ref_timestamp;
 	}
 
-	if (local_position.z_global && PX4_ISFINITE(local_position.ref_alt)) {
+	if (local_position.z_global && PX4_ISFINITE(local_position.ref_alt)
+	    && (!PX4_ISFINITE(_ref_alt) || (fabsf(local_position.ref_alt - _ref_alt) > 1e-3f))) {
 		if (PX4_ISFINITE(_ref_alt)) {
-			_home_position_z += local_position.ref_alt - _ref_alt;
+			frame_moved = true;
 		}
 
 		_ref_alt = local_position.ref_alt;
+	}
+
+	if (frame_moved && PX4_ISFINITE(_vehicle_z_last) && PX4_ISFINITE(_position(2))) {
+		// the vehicle's z jump, less what it flew in this cycle
+		const float flown = PX4_ISFINITE(_velocity(2)) ? _velocity(2) * _deltatime : 0.f;
+		_home_position_z += _position(2) - _vehicle_z_last - flown;
+	}
+
+	_vehicle_z_last = _position(2);
+
+	if (!PX4_ISFINITE(_dist_to_bottom) && _sub_home_position.get().valid_alt) {
+		// without a distance sensor the base class measures the distance to ground from home's published local z,
+		// which commander doesn't move when the frame changes, so take it from the tracked home z instead
+		_dist_to_ground = _home_position_z - _position(2);
 	}
 
 	if (_follow_target_estimator.timestamp > 0 && _follow_target_estimator.valid && !frame_moved) {
@@ -437,6 +449,7 @@ bool FlightTaskAutoFollowTarget::update()
 		// Target estimate is invalid : Stay in current position
 		_position_setpoint.setAll(NAN);
 		_velocity_setpoint.setAll(0.0f);
+		_acceleration_setpoint.setAll(NAN);
 	}
 
 	// Follow Target Status message for debugging
