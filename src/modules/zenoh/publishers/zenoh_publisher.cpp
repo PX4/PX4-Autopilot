@@ -112,7 +112,7 @@ void Zenoh_Publisher::print()
 {
 	const z_loaned_keyexpr_t *ke = z_publisher_keyexpr(z_loan(_pub));
 
-	if (ke == NULL) {
+	if (ke == nullptr) {
 		printf("Topic: (unavailable)\n");
 		return;
 	}
