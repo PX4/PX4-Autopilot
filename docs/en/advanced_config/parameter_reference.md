@@ -67245,7 +67245,7 @@ Velocity updates do not prevent position resets.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 50 | 0.5 | 3.0 | s | &nbsp;
+&nbsp; | 0.1 | 50 | 0.5 | 3.0 | s | &nbsp;
 
 </div>
 
@@ -67341,7 +67341,7 @@ Maximum raw measurement age allowed for fusion.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 10 | 0.05 | 1.0 | s | &nbsp;
+&nbsp; | 0.1 | 10 | 0.05 | 1.0 | s | &nbsp;
 
 </div>
 
@@ -67351,12 +67351,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Measurement updated timeout.
 
-Maximum age of local position, velocity and antenna-offset corrections; also limits velocity-to-measurement time mismatch.
+Maximum age of local position, velocity and antenna-offset corrections. GNSS-to-vision alignment may span the measurement recent timeout.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 5 | 0.01 | 0.1 | s | &nbsp;
+&nbsp; | 0.01 | 5 | 0.01 | 0.1 | s | &nbsp;
 
 </div>
 
@@ -67441,7 +67441,7 @@ Keep below VTE_BTOUT.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 50 | 0.25 | 2.0 | s | &nbsp;
+&nbsp; | 0.1 | 50 | 0.25 | 2.0 | s | &nbsp;
 
 </div>
 
