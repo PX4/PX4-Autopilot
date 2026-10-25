@@ -31,7 +31,8 @@ uint8 STATUS_INITIALIZED = 9 # Accepted as initial state; no prior innovation or
 # OOSM Diagnostics
 float32 time_since_meas_ms # [ms] (now - timestamp_sample)
 uint8 history_steps # [-] Number of steps replayed in OOSM (0 if current or failed)
-uint8 replayed_count # [-] Stored observations replayed after this one (0 if none)
-float32 replay_test_ratio_max # [-] Highest test_ratio among those replayed observations (-1 if none)
+uint8 replayed_count # [-] Stored observations gated again after this one (0 if none)
+uint8 replay_revised_count # [-] Those whose gate decision changed (0 if none)
+float32 replay_test_ratio_max # [-] Highest test_ratio among those accepted before the replay (-1 if none)
 
 # TOPICS vte_aid_ev_yaw

@@ -384,6 +384,49 @@ TEST_F(VTEOrientationTest, FusesOosmYawMeasurement)
 	EXPECT_GT(aid.history_steps, 0u);
 }
 
+// Validity follows the newest observation still accepted after replay, in either direction.
+TEST_F(VTEOrientationTest, RevisedYawDecisionsUpdateFreshness)
+{
+	enableVisionFusion();
+	setParamFloat("VTE_YAW_NIS_THRE", kPermissiveNis);
+	_vte->updateParamsPublic();
+	const hrt_abstime t0 = pushValidYawSample(0.f);
+
+	const hrt_abstime recent_time = vte_test::advanceMicroseconds(20_ms);
+	publishVisionYaw(0.6f, kMeasVar, recent_time);
+	_vte->update();
+	ASSERT_TRUE(_aid_sub->update());
+	ASSERT_EQ(_aid_sub->get().fusion_status, vte::FusionStatus::STATUS_FUSED_CURRENT);
+
+	// Replaying from an older sample with a narrower gate removes the recent yaw update.
+	setParamFloat("VTE_YAW_NIS_THRE", kRestrictiveNis);
+	_vte->updateParamsPublic();
+	_vte->setTargetValidTimeout(30_ms);
+	vte_test::advanceMicroseconds(20_ms);
+	publishVisionYaw(0.f, kMeasVar, t0 + 5_ms);
+	_vte->update();
+	ASSERT_TRUE(_aid_sub->update());
+	ASSERT_EQ(_aid_sub->get().fusion_status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(_aid_sub->get().replay_revised_count, 1);
+	ASSERT_TRUE(_state_sub->update());
+	EXPECT_FALSE(_state_sub->get().orientation_valid);
+
+	// A subsequent replay accepts that same stored observation, restoring its capture-time credit.
+	setParamFloat("VTE_YAW_NIS_THRE", kPermissiveNis);
+	_vte->updateParamsPublic();
+	_vte->setTargetValidTimeout(45_ms);
+	_vte->setVteTimeout(45_ms);
+	vte_test::advanceMicroseconds(20_ms);
+	publishVisionYaw(0.f, kMeasVar, t0 + 10_ms);
+	_vte->update();
+	ASSERT_TRUE(_aid_sub->update());
+	ASSERT_EQ(_aid_sub->get().fusion_status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(_aid_sub->get().replay_revised_count, 1);
+	ASSERT_TRUE(_state_sub->update());
+	EXPECT_TRUE(_state_sub->get().orientation_valid);
+	EXPECT_FALSE(_vte->timedOut());
+}
+
 // Clock-sync jitter can stamp yaw slightly in the future: such samples are fused as current,
 // while samples further ahead are dropped.
 TEST_F(VTEOrientationTest, AlignsYawStampedSlightlyInTheFuture)

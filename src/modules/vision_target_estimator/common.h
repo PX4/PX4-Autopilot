@@ -116,14 +116,34 @@ inline hrt_abstime nowUs()
 	return TimeSourceProvider::nowUs();
 }
 
+// Velocity aiding must not refresh position validity; relative position also backs EKF2 aiding.
+enum class FusionSource : uint8_t { Primary, Relative, Untracked };
+
+struct FusionTimes {
+	uint64_t last_fused{0};
+	uint64_t last_relative_fused{0};
+
+	void record(FusionSource source, uint64_t capture_time)
+	{
+		if (source != FusionSource::Untracked && capture_time > last_fused) {
+			last_fused = capture_time;
+		}
+
+		if (source == FusionSource::Relative && capture_time > last_relative_fused) {
+			last_relative_fused = capture_time;
+		}
+	}
+};
+
 struct FusionResult {
 	uint8_t status{FusionStatus::STATUS_IDLE};
 	float innov{0.f};
 	float innov_var{0.f};
 	float test_ratio{-1.f}; // Normalized NIS (beta / threshold)
 	uint8_t history_steps{0};
-	uint8_t replayed_count{0}; // Stored observations replayed after this one
-	float replay_test_ratio_max{-1.f}; // Highest test ratio among them, -1 if none
+	uint8_t replayed_count{0}; // Stored observations gated again after this one
+	uint8_t replay_revised_count{0}; // Those whose gate decision changed
+	float replay_test_ratio_max{-1.f}; // Highest test ratio among those accepted before, -1 if none
 };
 
 static inline bool hasTimedOutAt(const hrt_abstime now, const hrt_abstime ts, const hrt_abstime timeout_us)

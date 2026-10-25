@@ -1991,6 +1991,62 @@ TEST_F(VTEPositionTest, GpsOnlyRelativeVelocityDoesNotEnableEkf2Aiding)
 	EXPECT_FALSE(pose.rel_vel_ekf2_valid);
 }
 
+// Removing the latest vision correction during GNSS replay must also remove its freshness credit.
+TEST_F(VTEPositionTest, RevisedVisionDecisionUpdatesFreshness)
+{
+	enableMask({FusionMaskOption::kVisionPos, FusionMaskOption::kMissionPos});
+	setParamFloat("VTE_BIA_AVG_TOUT", 0.f);
+	setParamFloat("VTE_POS_NIS_THRE", kPermissiveNisThreshold);
+	_vte->updateParamsPublic();
+	_vte->setMeasRecentTimeout(35_ms);
+	_vte->setVteTimeout(25_ms);
+
+	const hrt_abstime t0 = vte_test::advanceMicroseconds(kStepUs);
+	const matrix::Vector3f initial_pos(0.f, 0.f, kUavAltM - kTargetAltM);
+	setLocalVelocity(kZeroVec, t0);
+	setLocalPosition(kZeroVec, t0);
+	_vte->setMissionPosition(kUavLat, kUavLon, kTargetAltM);
+	publishNominalUavGnss(kZeroVec, t0);
+	publishVisionPos(initial_pos, vte_test::identityQuat(), kSmallVisionCov, t0);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_target_pose_sub->update());
+
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(20_ms);
+	publishVisionPos(initial_pos + matrix::Vector3f(0.6f, 0.6f, 0.6f), vte_test::identityQuat(), kSmallVisionCov,
+			 vision_time);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_aid_fiducial_sub->update());
+	ASSERT_TRUE(_target_pose_sub->update());
+
+	for (int axis = 0; axis < 3; ++axis) {
+		ASSERT_EQ(_aid_fiducial_sub->get().fusion_status[axis], vte::FusionStatus::STATUS_FUSED_CURRENT);
+	}
+
+#if !defined(CONFIG_VTEST_MOVING)
+	EXPECT_TRUE(_target_pose_sub->get().rel_vel_ekf2_valid);
+#endif
+
+	// The older GNSS sample is accepted, but the narrower gate removes the stored vision update.
+	setParamFloat("VTE_POS_NIS_THRE", kRestrictiveNisThreshold);
+	_vte->updateParamsPublic();
+	vte_test::advanceMicroseconds(20_ms);
+	publishNominalUavGnss(kZeroVec, t0 + 10_ms);
+	_vte->update(kZeroVec);
+	ASSERT_TRUE(_aid_gps_mission_sub->update());
+	ASSERT_TRUE(_target_pose_sub->update());
+
+	for (int axis = 0; axis < 3; ++axis) {
+		EXPECT_EQ(_aid_gps_mission_sub->get().fusion_status[axis], vte::FusionStatus::STATUS_FUSED_OOSM);
+		EXPECT_GT(_aid_gps_mission_sub->get().replay_test_ratio_max[axis], 1.f);
+	}
+
+	EXPECT_EQ(_aid_gps_mission_sub->get().replay_revised_count, 1);
+	EXPECT_TRUE(_target_pose_sub->get().rel_pos_valid);
+	EXPECT_FALSE(_target_pose_sub->get().rel_vel_ekf2_valid);
+	// The newest accepted position sample is now GNSS at t0 + 10 ms, not vision at t0 + 20 ms.
+	EXPECT_TRUE(_vte->timedOut());
+}
+
 // WHY: GNSS time misalignment should increase measurement variance.
 // WHAT: Publish delayed UAV GPS and verify propagation uncertainty is included.
 TEST_F(VTEPositionTest, TargetGpsInterpolationVariance)

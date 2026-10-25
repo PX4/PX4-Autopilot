@@ -43,6 +43,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <random>
 #include <vector>
 
 #include "VTEOosm.h"
@@ -90,6 +91,7 @@ struct ScalarMeas {
 	float val{0.f};
 	float unc{0.f};
 	matrix::Vector<float, kStateDim> H{};
+	vte::FusionSource source{vte::FusionSource::Primary};
 };
 
 struct ScalarMeas2 {
@@ -97,6 +99,7 @@ struct ScalarMeas2 {
 	float val{0.f};
 	float unc{0.f};
 	StateVec2 H{};
+	vte::FusionSource source{vte::FusionSource::Primary};
 };
 
 class TestFilter
@@ -381,15 +384,52 @@ TEST_F(VTEOosmTest, MeasurementCapacityRestartsHistoryFromLivePosterior)
 	EXPECT_NEAR(cov, 4.f / (1.f + 4.f * measurement_count), kTolerance);
 	EXPECT_EQ(Access::historyEntries(oosm), 1);
 	EXPECT_EQ(Access::historyOldestTime(oosm), now);
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, now);
 	EXPECT_EQ(fuseMeas(makeMeas(1020_ms, 0.f, 1.f), now, 0.f).status,
 		  vte::FusionStatus::STATUS_REJECT_TOO_OLD);
 
 	oosm.reset();
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, 0u);
 	pushSample(now, state, cov, curr_input);
 	const float variance_before = cov;
 	ASSERT_EQ(fuseMeas(makeMeas(now, 0.f, 1.f), now + 30_ms, 0.f).status,
 		  vte::FusionStatus::STATUS_FUSED_OOSM);
 	EXPECT_NEAR(cov, variance_before / (variance_before + 1.f) + 0.003f, kTolerance);
+}
+
+// Once an accepted observation leaves the replay window, its capture time remains the
+// freshness baseline; an unrelated velocity update must not replace it.
+TEST_F(VTEOosmTest, RetainsFreshnessAfterObservationIsPruned)
+{
+	using Access = vte::OOSMManagerTestAccess<Manager>;
+	constexpr uint64_t start = 1_s;
+	constexpr uint64_t step = 20_ms;
+	pushSample(start, state, cov, curr_input);
+
+	for (int cycle = 1; cycle <= Manager::kHistorySize; ++cycle) {
+		const uint64_t now = start + cycle * step;
+		cov += 0.002f;
+
+		if (cycle == 1) {
+			ScalarMeas relative = makeMeas(now - 5_ms, 0.f, 0.1f);
+			relative.source = vte::FusionSource::Relative;
+			ASSERT_EQ(fuseMeas(relative, now, 10.f).status, vte::FusionStatus::STATUS_FUSED_CURRENT);
+		}
+
+		pushSample(now, state, cov, curr_input);
+	}
+
+	ASSERT_EQ(Access::historyOldestTime(oosm), start + step);
+	ScalarMeas velocity = makeMeas(start + step + 10_ms, 0.f, 0.1f);
+	velocity.source = vte::FusionSource::Untracked;
+	ASSERT_EQ(fuseMeas(velocity, start + Manager::kHistorySize * step, 10.f).status,
+		  vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, start + step - 5_ms);
+	EXPECT_EQ(oosm.getFusionTimes().last_relative_fused, start + step - 5_ms);
+
+	oosm.reset();
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, 0u);
+	EXPECT_EQ(oosm.getFusionTimes().last_relative_fused, 0u);
 }
 
 // A log sized for one observation per snapshot must hold one fused observation per cycle
@@ -1120,8 +1160,9 @@ TEST_F(VTEOosmTest, RejectsNisDuringOosmPrediction)
 	EXPECT_EQ(filter.applied_k.size(), 0u);
 }
 
-// Replay keeps earlier decisions, but the late observation reports how strongly the stored ones now disagree.
-TEST_F(VTEOosmTest, ReportsReplayedObservationsAfterDelayedSample)
+// A late observation that contradicts stored ones gets them rejected on replay, as if all had arrived
+// in time order, and reports how many decisions changed and how strongly the stored ones now disagree.
+TEST_F(VTEOosmTest, RegatesStoredObservationsAfterDelayedSample)
 {
 	constexpr uint64_t start = 1_s;
 	constexpr uint64_t step = 20_ms;
@@ -1136,12 +1177,17 @@ TEST_F(VTEOosmTest, ReportsReplayedObservationsAfterDelayedSample)
 		filter.predictState(step * 1e-6f, curr_input, x, P, x, P);
 		state = x(0);
 		cov = P(0, 0);
-		ASSERT_EQ(fuseMeas(makeMeas(now - 5_ms, 0.f, 0.01f), now, kThreshold).status,
+		ScalarMeas relative = makeMeas(now - 5_ms, 0.f, 0.01f);
+		relative.source = vte::FusionSource::Relative;
+		ASSERT_EQ(fuseMeas(relative, now, kThreshold).status,
 			  vte::FusionStatus::STATUS_FUSED_CURRENT);
 		x = makeVec(state);
 		P = makeCov(cov);
 		oosm.push(now, x, P, curr_input);
 	}
+
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, start + 2 * step - 5_ms);
+	EXPECT_EQ(oosm.getFusionTimes().last_relative_fused, start + 2 * step - 5_ms);
 
 	// A late observation passes its own gate but contradicts both stored ones.
 	const uint64_t now = start + 3 * step;
@@ -1154,36 +1200,182 @@ TEST_F(VTEOosmTest, ReportsReplayedObservationsAfterDelayedSample)
 
 	ASSERT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_OOSM);
 	EXPECT_EQ(res.replayed_count, 2);
-	EXPECT_EQ(filter.applied_k.size() - corrections_before, 3u);
+	EXPECT_EQ(res.replay_revised_count, 2);
+	EXPECT_EQ(filter.applied_k.size() - corrections_before, 1u);
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, late.time_us);
+	EXPECT_EQ(oosm.getFusionTimes().last_relative_fused, 0u);
 
+	// Chronological fusion with the same gate.
 	TestFilter truth_filter;
 	auto x_truth = makeVec(0.f);
 	auto P_truth = makeCov(4.f);
-	float max_ratio = -1.f;
-	const auto fuse_truth = [&](const ScalarMeas & m, bool replayed) {
+	const auto gate_truth = [&](const ScalarMeas & m) {
 		float innov = 0.f;
 		float innov_var = 0.f;
 		truth_filter.computeInnovation(x_truth, P_truth, m, innov, innov_var);
+		const float ratio = innov * innov / (innov_var * kThreshold);
 
-		if (replayed) {
-			max_ratio = fmaxf(max_ratio, innov * innov / (innov_var * kThreshold));
+		if (ratio <= 1.f) {
+			truth_filter.applyCorrection(x_truth, P_truth, (P_truth * m.H) / innov_var, innov, innov_var);
 		}
 
-		const auto K = (P_truth * m.H) / innov_var;
-		truth_filter.applyCorrection(x_truth, P_truth, K, innov, innov_var);
+		return ratio;
 	};
 	truth_filter.predictState(0.01f, curr_input, x_truth, P_truth, x_truth, P_truth);
-	fuse_truth(late, false);
+	gate_truth(late);
 	truth_filter.predictState(0.01f, curr_input, x_truth, P_truth, x_truth, P_truth);
-	fuse_truth(makeMeas(start + step, 0.f, 0.01f), true);
+	const float ratio_1 = gate_truth(makeMeas(start + step, 0.f, 0.01f));
 	truth_filter.predictState(0.02f, curr_input, x_truth, P_truth, x_truth, P_truth);
-	fuse_truth(makeMeas(start + 2 * step, 0.f, 0.01f), true);
+	const float ratio_2 = gate_truth(makeMeas(start + 2 * step, 0.f, 0.01f));
 	truth_filter.predictState(0.02f, curr_input, x_truth, P_truth, x_truth, P_truth);
 
-	EXPECT_GT(max_ratio, 1.f);
+	EXPECT_GT(ratio_1, 1.f);
+	EXPECT_GT(ratio_2, 1.f);
+	const float max_ratio = fmaxf(ratio_1, ratio_2);
 	EXPECT_NEAR(res.replay_test_ratio_max, max_ratio, 1e-3f * max_ratio);
 	EXPECT_NEAR(state, x_truth(0), kTolerance);
 	EXPECT_NEAR(cov, P_truth(0, 0), kTolerance);
+}
+
+// With the gate repeated on replay, the arrival order does not matter: delayed observations,
+// outliers included, give the same state as fusing them in time order with the same gate.
+TEST_F(VTEOosmTest, ResultDoesNotDependOnArrivalOrder)
+{
+	using LongManager = vte::OOSMManager<TestFilter, kStateDim, float, 25>;
+	constexpr uint64_t t0 = 1_s;
+	constexpr uint64_t step = 20_ms;
+	constexpr float input = 0.5f;
+	constexpr float kThreshold = 10.f;
+	constexpr int kObsCount = 10;
+	constexpr int kCycles = 22;
+	std::mt19937 rng(1234);
+	const auto uniform = [&rng](float lo, float hi) { return lo + (hi - lo) * static_cast<float>(rng() / 4294967296.0); };
+	int revised_total = 0;
+
+	struct Arrival {
+		ScalarMeas meas;
+		uint64_t time_us;
+	};
+
+	for (int trial = 0; trial < 200; ++trial) {
+		Arrival arrivals[kObsCount];
+
+		// Capture within 20-200 ms after t0, arrival 20-200 ms later; every fifth one is an outlier.
+		for (int i = 0; i < kObsCount; ++i) {
+			const uint64_t capture = t0 + 20_ms + static_cast<uint64_t>(uniform(0.f, 180000.f));
+			const float value = (i % 5 == 0) ? ((uniform(0.f, 1.f) < 0.5f) ? 3.f : -3.f) : uniform(-0.15f, 0.15f);
+			arrivals[i] = {makeMeas(capture, value, 0.05f), capture + 20_ms + static_cast<uint64_t>(uniform(0.f, 180000.f))};
+		}
+
+		LongManager run{};
+		TestFilter run_filter{};
+		auto x = makeVec(0.f);
+		auto P = makeCov(1.f);
+		run.push(t0, x, P, input);
+		uint64_t now = t0;
+
+		for (int cycle = 1; cycle <= kCycles; ++cycle) {
+			now = t0 + cycle * step;
+			run_filter.predictState(step * 1e-6f, input, x, P, x, P);
+			ScalarMeas batch[kObsCount];
+			vte::FusionResult res[kObsCount];
+			size_t count = 0;
+
+			for (const Arrival &arrival : arrivals) {
+				if ((arrival.time_us > now - step) && (arrival.time_us <= now)) {
+					batch[count++] = arrival.meas;
+				}
+			}
+
+			run.fuseBatch(run_filter, batch, count, now, kThreshold, x, P, input, res);
+
+			for (size_t i = 0; i < count; ++i) {
+				ASSERT_TRUE((res[i].status == vte::FusionStatus::STATUS_FUSED_OOSM)
+					    || (res[i].status == vte::FusionStatus::STATUS_REJECT_NIS)) << "trial " << trial;
+				revised_total += res[i].replay_revised_count;
+			}
+
+			run.push(now, x, P, input);
+		}
+
+		std::sort(arrivals, arrivals + kObsCount, [](const Arrival & a, const Arrival & b) { return a.meas.time_us < b.meas.time_us; });
+		TestFilter truth_filter;
+		auto x_truth = makeVec(0.f);
+		auto P_truth = makeCov(1.f);
+		uint64_t truth_time = t0;
+
+		for (const Arrival &arrival : arrivals) {
+			truth_filter.predictState((arrival.meas.time_us - truth_time) * 1e-6f, input, x_truth, P_truth, x_truth, P_truth);
+			truth_time = arrival.meas.time_us;
+			float innov = 0.f;
+			float innov_var = 0.f;
+			truth_filter.computeInnovation(x_truth, P_truth, arrival.meas, innov, innov_var);
+
+			if (innov * innov <= kThreshold * innov_var) {
+				truth_filter.applyCorrection(x_truth, P_truth, (P_truth * arrival.meas.H) / innov_var, innov, innov_var);
+			}
+		}
+
+		truth_filter.predictState((now - truth_time) * 1e-6f, input, x_truth, P_truth, x_truth, P_truth);
+		EXPECT_NEAR(x(0), x_truth(0), kTolerance) << "trial " << trial;
+		EXPECT_NEAR(P(0, 0), P_truth(0, 0), kTolerance) << "trial " << trial;
+	}
+
+	// Some arrival orders changed decisions that a gate frozen at arrival would have kept.
+	EXPECT_GT(revised_total, 0);
+}
+
+// A decision revised on the way to a rejected late sample still reaches the live state.
+TEST_F(VTEOosmTest, CommitsRevisedDecisionBeforeRejectedSample)
+{
+	constexpr uint64_t t0 = 1_s;
+	constexpr uint64_t now = t0 + 40_ms;
+	pushSample(t0, 0.f, 1.f, 0.f);
+	pushSample(t0 + 20_ms, 0.f, 1.002f, 0.f);
+	cov = 1.004f;
+
+	// Accepted with a wide gate (test ratio about 0.03).
+	ASSERT_EQ(fuseMeas(makeMeas(t0 + 5_ms, 0.6f, 0.05f), now, 10.f).status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	ASSERT_GT(state, 0.5f);
+
+	// With a narrower gate, the stored observation is rejected on the way to the late outlier.
+	const vte::FusionResult res = fuseMeas(makeMeas(t0 + 10_ms, 50.f, 0.05f), now, 0.1f);
+	EXPECT_EQ(res.status, vte::FusionStatus::STATUS_REJECT_NIS);
+	EXPECT_NEAR(state, 0.f, kTolerance);
+	EXPECT_NEAR(cov, 1.004f, kTolerance);
+}
+
+// A fast-path observation rejected on arrival is kept, so a later replay can accept it.
+TEST_F(VTEOosmTest, RegatesRejectedFastPathObservation)
+{
+	constexpr uint64_t t0 = 1_s;
+	constexpr uint64_t t1 = t0 + 20_ms;
+	constexpr uint64_t now = t1 + 20_ms;
+	pushSample(t0, 0.f, 0.01f, 0.f);
+	cov = 0.012f;
+	ScalarMeas relative = makeMeas(t1 - 5_ms, 1.f, 0.01f);
+	relative.source = vte::FusionSource::Relative;
+	ASSERT_EQ(fuseMeas(relative, t1, 10.f).status, vte::FusionStatus::STATUS_REJECT_NIS);
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, 0u);
+	EXPECT_EQ(oosm.getFusionTimes().last_relative_fused, 0u);
+	pushSample(t1, state, cov, 0.f);
+	cov += 0.002f;
+
+	// A wider gate on the next replay accepts it.
+	const vte::FusionResult res = fuseMeas(makeMeas(t0 + 5_ms, 0.f, 0.01f), now, 100.f);
+	ASSERT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	EXPECT_EQ(res.replayed_count, 1);
+	EXPECT_EQ(res.replay_revised_count, 1);
+	EXPECT_FLOAT_EQ(res.replay_test_ratio_max, -1.f);
+	EXPECT_GT(state, 0.3f);
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, relative.time_us);
+	EXPECT_EQ(oosm.getFusionTimes().last_relative_fused, relative.time_us);
+
+	ScalarMeas velocity = makeMeas(now, state, 0.1f);
+	velocity.source = vte::FusionSource::Untracked;
+	ASSERT_EQ(fuseMeas(velocity, now, 100.f).status, vte::FusionStatus::STATUS_FUSED_CURRENT);
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, relative.time_us);
+	EXPECT_EQ(oosm.getFusionTimes().last_relative_fused, relative.time_us);
 }
 
 // A stored observation that fails during replay must not stay in the log and block every later replay.
@@ -1288,10 +1480,12 @@ TEST_F(VTEOosmTest, RewritesWrappedHistoryInPlace)
 		EXPECT_FLOAT_EQ(sample.input, before[i].input);
 	}
 
+	// Same gate as the outlier, which is stored and stays rejected on replay.
 	const ScalarMeas meas = makeMeas(t_meas, 0.5f, 0.1f);
-	const vte::FusionResult res = fuseMeas(meas, now, 0.f);
+	const vte::FusionResult res = fuseMeas(meas, now, 1.f);
 	ASSERT_EQ(res.status, vte::FusionStatus::STATUS_FUSED_OOSM);
 	EXPECT_EQ(res.history_steps, Manager::kHistorySize - 3);
+	EXPECT_EQ(res.replay_revised_count, 0);
 
 	TestFilter truth_filter;
 	auto x_truth = makeVec(before[2].state(0));
@@ -1426,6 +1620,64 @@ TEST_F(VTEOosmTest, BatchMatchesSequentialFusion)
 	EXPECT_FLOAT_EQ(batch.P(0, 0), seq.P(0, 0));
 }
 
+// Sequential fusion stores the rejected outlier, so the later sample's replay splits its prediction
+// there while the batch does not: the two then match up to float rounding.
+TEST_F(VTEOosmTest, BatchMatchesSequentialFusionAcrossRejectedSample)
+{
+	using Access = vte::OOSMManagerTestAccess<Manager>;
+	constexpr uint64_t t0 = 1_s;
+	constexpr uint64_t step = 20_ms;
+	constexpr uint64_t now = t0 + 4 * step;
+	constexpr float input = 0.5f;
+	constexpr float kThreshold = 10.f;
+	Manager seq{};
+	auto x = makeVec(0.f);
+	auto P = makeCov(1.f);
+	oosm.push(t0, x, P, input);
+	seq.push(t0, x, P, input);
+
+	for (int i = 1; i < 4; ++i) {
+		filter.predictState(step * 1e-6f, input, x, P, x, P);
+		oosm.push(t0 + i * step, x, P, input);
+		seq.push(t0 + i * step, x, P, input);
+	}
+
+	filter.predictState(step * 1e-6f, input, x, P, x, P);
+	auto x_seq = x;
+	auto P_seq = P;
+
+	// The outlier lies between the second sample and its floor at t0 + step.
+	const ScalarMeas batch_meas[] {makeMeas(t0 + step + 11_ms, 0.03f, 0.05f), makeMeas(t0 + step + 3_ms, 50.f, 0.05f),
+				       makeMeas(t0 + 7_ms, 0.01f, 0.05f)
+				      };
+	vte::FusionResult batch_res[3];
+	oosm.fuseBatch(filter, batch_meas, 3, now, kThreshold, x, P, input, batch_res);
+
+	vte::FusionResult seq_res[3];
+
+	for (int i : {2, 1, 0}) {
+		seq_res[i] = seq.fuse(filter, batch_meas[i], now, kThreshold, x_seq, P_seq, input);
+	}
+
+	const uint8_t expected_status[] {vte::FusionStatus::STATUS_FUSED_OOSM, vte::FusionStatus::STATUS_REJECT_NIS,
+					 vte::FusionStatus::STATUS_FUSED_OOSM
+					};
+
+	for (int i = 0; i < 3; ++i) {
+		EXPECT_EQ(batch_res[i].status, expected_status[i]) << "measurement " << i;
+		EXPECT_EQ(seq_res[i].status, expected_status[i]) << "measurement " << i;
+		EXPECT_NEAR(batch_res[i].innov, seq_res[i].innov, 1e-5f) << "measurement " << i;
+	}
+
+	EXPECT_NEAR(x(0), x_seq(0), 1e-5f);
+	EXPECT_NEAR(P(0, 0), P_seq(0, 0), 1e-5f);
+
+	for (int i = 0; i < 4; ++i) {
+		EXPECT_NEAR(Access::historySample(oosm, i).state(0), Access::historySample(seq, i).state(0), 1e-5f);
+		EXPECT_NEAR(Access::historySample(oosm, i).cov(0, 0), Access::historySample(seq, i).cov(0, 0), 1e-5f);
+	}
+}
+
 // A stored observation that fails during a batch replay rejects the delayed samples and clears
 // history, while fresh samples of the same cycle still fuse.
 TEST_F(VTEOosmTest, BatchReplayFailureKeepsFreshSamples)
@@ -1462,9 +1714,14 @@ TEST_F(VTEOosmTest, BatchReplayFailureBeforeGate)
 	cov = 1.004f;
 	const uint64_t now = 1040_ms;
 	ASSERT_EQ(fuseMeas(makeMeas(1005_ms, 0.f, 0.1f), now, 0.f).status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	ScalarMeas relative = makeMeas(1003_ms, 0.5f, 0.1f);
+	relative.source = vte::FusionSource::Relative;
+	ASSERT_EQ(fuseMeas(relative, now, 0.01f).status, vte::FusionStatus::STATUS_REJECT_NIS);
+	ASSERT_EQ(oosm.getFusionTimes().last_relative_fused, 0u);
 
-	// Replaying the stored observation now fails.
+	// Replay provisionally accepts the relative observation, then fails on the next one.
 	filter.fail_time = 1005_ms;
+	const size_t corrections_before = filter.applied_k.size();
 	auto x = makeVec(state);
 	auto P = makeCov(cov);
 	const ScalarMeas meas[] {makeMeas(1002_ms, 50.f, 0.01f), makeMeas(1010_ms, 0.f, 0.1f)};
@@ -1474,8 +1731,11 @@ TEST_F(VTEOosmTest, BatchReplayFailureBeforeGate)
 	EXPECT_EQ(res[0].status, vte::FusionStatus::STATUS_REJECT_NIS);
 	EXPECT_EQ(res[1].status, vte::FusionStatus::STATUS_REJECT_COV);
 	EXPECT_EQ(Access::historyEntries(oosm), 0);
+	EXPECT_EQ(filter.applied_k.size() - corrections_before, 1u);
 	EXPECT_FLOAT_EQ(x(0), state);
 	EXPECT_FLOAT_EQ(P(0, 0), cov);
+	EXPECT_EQ(oosm.getFusionTimes().last_fused, 1005_ms);
+	EXPECT_EQ(oosm.getFusionTimes().last_relative_fused, 0u);
 }
 
 // More measurements than one pass handles are fused in chunks, and delayed ones still land at their
