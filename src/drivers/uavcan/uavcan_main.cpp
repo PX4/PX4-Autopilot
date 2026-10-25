@@ -1635,12 +1635,12 @@ UavcanNode::get_next_dirty_node_id(uint8_t base)
  */
 static void print_usage()
 {
-	PX4_INFO("usage: \n"
-		 "\tuavcan {start|status|stop|shrink|update}\n"
-		 "\tuavcan param list|save <node-id>\n"
-		 "\tuavcan param get <node-id> <name>\n"
-		 "\tuavcan param set <node-id> <name> <value>\n"
-		 "\tuavcan reset <node-id>");
+	PX4_INFO("usage:");
+	PX4_INFO_RAW("\tuavcan {start|status|stop|shrink|update}\n");
+	PX4_INFO_RAW("\tuavcan param list|save <node-id>\n");
+	PX4_INFO_RAW("\tuavcan param get <node-id> <name>\n");
+	PX4_INFO_RAW("\tuavcan param set <node-id> <name> <value>\n");
+	PX4_INFO_RAW("\tuavcan reset <node-id>\n");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
