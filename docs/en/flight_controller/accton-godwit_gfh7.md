@@ -103,8 +103,13 @@ Under these conditions all power sources will be used in this order to power the
 
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
-1. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
-2. **Battery** input (operational range 13V to 50.4V. The maximum voltage the VBAT input can withstand without damage is 65V.)
+1. **Battery** input (maximum 50.4V for operation. The maximum voltage the VBAT input can withstand without damage is 65V.)
+
+::: info
+The flight controller keeps working below 13V on the battery input.
+The 12V output for the camera and VTX is generated from the battery input, and needs at least about 13V to stay at 12V.
+Below that, the camera and VTX lose power.
+:::
 
 ## Interface Summary {#interface_summary}
 
