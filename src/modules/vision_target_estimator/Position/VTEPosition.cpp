@@ -293,8 +293,11 @@ void VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned)
 		return;
 	}
 
-	if (!_bias.set) {
-		updateBiasIfObservable(fusion_mask, _obs_buffer);
+	if (!_bias.set && updateBiasIfObservable(fusion_mask, _obs_buffer)) {
+		// The vision sample is the state now and is not fused again, as at init.
+		const TargetObs &vision_obs = _obs_buffer[obsIndex(ObsType::kFiducialMarker)];
+		fusion_mask.flags.fuse_vision = false;
+		publishInitializedAid(vision_obs);
 	}
 
 	fuseActiveMeasurements(vehicle_acc_ned, fusion_mask, _obs_buffer);
@@ -580,18 +583,31 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 		_last_relative_meas_fused_time = initial_obs.timestamp;
 	}
 
-	vte_aid_source3d_s aid{};
-	aid.timestamp = _last_predict;
-	aid.timestamp_sample = initial_obs.timestamp;
-	aid.time_last_predict = _last_predict;
-	aid.time_since_meas_ms = (_last_predict - initial_obs.timestamp) * kMicrosecondsToMilliseconds;
-
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
 		_target_est_pos[axis].resetHistory({_last_update, _last_relative_meas_fused_time});
 		_target_est_pos[axis].pushHistory(initial_obs.timestamp);
-		aid.observation[axis] = initial_obs.meas_xyz(axis);
-		aid.observation_variance[axis] = initial_obs.meas_unc_xyz(axis);
-		// There is no prior prediction against which to compute an innovation at startup.
+	}
+
+	// No acceleration history exists yet. Propagate with constant velocity and grow the
+	// covariance with the normal process noise instead of labelling the raw sample as current.
+	predictionStep(Vector3f{}, (_last_predict - initial_obs.timestamp) * kMicrosecondsToSeconds);
+	publishInitializedAid(initial_obs);
+
+	return true;
+}
+
+void VTEPosition::publishInitializedAid(const TargetObs &obs)
+{
+	// The sample became the state, so there is no innovation.
+	vte_aid_source3d_s aid{};
+	aid.timestamp = _last_predict;
+	aid.timestamp_sample = obs.timestamp;
+	aid.time_last_predict = _last_predict;
+	aid.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, obs.timestamp)) * kMicrosecondsToMilliseconds;
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		aid.observation[axis] = obs.meas_xyz(axis);
+		aid.observation_variance[axis] = obs.meas_unc_xyz(axis);
 		aid.innovation[axis] = NAN;
 		aid.innovation_variance[axis] = NAN;
 		aid.test_ratio[axis] = NAN;
@@ -599,12 +615,7 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 		aid.fusion_status[axis] = FusionStatus::STATUS_INITIALIZED;
 	}
 
-	// No acceleration history exists yet. Propagate with constant velocity and grow the
-	// covariance with the normal process noise instead of labelling the raw sample as current.
-	predictionStep(Vector3f{}, (_last_predict - initial_obs.timestamp) * kMicrosecondsToSeconds);
-	publishInnov(aid, initial_type);
-
-	return true;
+	publishInnov(aid, obs.type);
 }
 
 void VTEPosition::selectInitialBiasFromGnss(const TargetObs observations[kObsTypeCount],
@@ -703,20 +714,15 @@ bool VTEPosition::selectBiasGnssSample(const hrt_abstime sample_time, Vector3f &
 	return true;
 }
 
-void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
+bool VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 		const TargetObs observations[kObsTypeCount])
 {
 	if (!fusion_mask.flags.fuse_vision) {
-		return;
+		return false;
 	}
 
 	const TargetObs &vision_obs = observations[obsIndex(ObsType::kFiducialMarker)];
 	const hrt_abstime sample_time = vision_obs.timestamp;
-
-	if (sample_time == 0) {
-		return;
-	}
-
 	const Vector3f &initial_position = vision_obs.meas_xyz;
 
 	Vector3f gnss_sample{};
@@ -724,18 +730,21 @@ void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 	if (!selectBiasGnssSample(sample_time, gnss_sample)) {
 		if (_bias.averaging_active) {
 			PX4_WARN("GNSS unavailable, ending bias averaging and switching to vision.");
-			activateBiasEstimate(initial_position, _bias.initial_lpf.getState());
+			activateBiasEstimate(initial_position, _bias.initial_lpf.getState(), vision_obs, true);
+			return true;
+		}
 
-		} else if (_pre_bias_reference == PreBiasReference::kGnss) {
+		if (_pre_bias_reference == PreBiasReference::kGnss) {
 			// The state was initialized GNSS-referenced, so vision fusion is currently
 			// gated on the GNSS bias being observable. Without an aligned GNSS sample
 			// we would never make progress and vision would be blocked indefinitely.
 			// Activate the bias with a zero offset so the filter unblocks.
 			PX4_WARN("GNSS bias not observable, setting bias to zero.");
-			activateBiasEstimate(initial_position, Vector3f{});
+			activateBiasEstimate(initial_position, Vector3f{}, vision_obs, true);
+			return true;
 		}
 
-		return;
+		return false;
 	}
 
 	const Vector3f initial_bias = gnss_sample - initial_position;
@@ -743,22 +752,24 @@ void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 	if (!_bias.averaging_active && shouldAverageInitialBias(fusion_mask.flags.fuse_vision)) {
 		PX4_INFO("GNSS/vision bias observable, averaging initial GNSS bias.");
 		startBiasAveraging(initial_bias, sample_time);
-		return;
+		return false;
 	}
 
 	if (_bias.averaging_active) {
 		if (!updateBiasAveraging(initial_bias, sample_time)) {
-			return;
+			return false;
 		}
 
+		// The averaged bias anchors the position to GNSS, so the vision sample is new information.
 		PX4_INFO("GNSS bias averaging complete, setting position and bias.");
 		const Vector3f filtered_bias = _bias.initial_lpf.getState();
-		activateBiasEstimate(gnss_sample - filtered_bias, filtered_bias);
-		return;
+		activateBiasEstimate(gnss_sample - filtered_bias, filtered_bias, vision_obs, false);
+		return false;
 	}
 
 	PX4_INFO("GNSS/vision bias observable, setting position and bias.");
-	activateBiasEstimate(initial_position, initial_bias);
+	activateBiasEstimate(initial_position, initial_bias, vision_obs, true);
+	return true;
 }
 
 void VTEPosition::startBiasAveraging(const Vector3f &bias_sample, const hrt_abstime sample_time)
@@ -825,32 +836,36 @@ void VTEPosition::resetBiasAveraging()
 	_bias.initial_lpf.reset(Vector3f{});
 }
 
-void VTEPosition::activateBiasEstimate(const Vector3f &initial_position, const Vector3f &initial_bias)
+void VTEPosition::activateBiasEstimate(const Vector3f &position, const Vector3f &bias,
+				       const TargetObs &vision_obs, bool position_from_vision)
 {
 	const float pos_var = fmaxf(_param_vte_pos_unc_in.get(), kMinVariance);
 	const float bias_var = fmaxf(_param_vte_bias_unc_in.get(), kMinVariance);
+	const hrt_abstime reset_time = math::min(vision_obs.timestamp, _last_predict);
+	const float latency = (_last_predict - reset_time) * kMicrosecondsToSeconds;
 
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
 		KF_position &filter = _target_est_pos[axis];
-		EstimatorState state = filter.getState();
-		state(vtest::State::bias) = initial_bias(axis);
-		state(vtest::State::pos_rel) = initial_position(axis);
-		filter.setState(state);
+		FusionTimes times = filter.getFusionTimes();
 
-		EstimatorState state_var = filter.getStateCovarianceDiag();
-		state_var(vtest::State::bias) = bias_var;
-		state_var(vtest::State::pos_rel) = pos_var;
-		filter.setStateCovarianceDiag(state_var);
+		if (position_from_vision) {
+			times.record(FusionSource::Relative, vision_obs.timestamp);
+		}
 
-		// Bias initialization is a state reset: restart OOSM history to avoid mixing pre/post-reset states.
-		filter.resetHistory(filter.getFusionTimes());
+		filter.resetPositionAndBias(position(axis), fmaxf(pos_var, vision_obs.meas_unc_xyz(axis)),
+					    bias(axis), fmaxf(bias_var, vision_obs.meas_unc_xyz(axis)), latency);
+		filter.resetHistory(times);
+		filter.pushHistory(reset_time);
 	}
 
-	PX4_DEBUG("Rel pos init %.2f %.2f %.2f", (double)initial_position(vtest::Axis::x),
-		  (double)initial_position(vtest::Axis::y), (double)initial_position(vtest::Axis::z));
+	// Reconstruct this one-time initialization bridge with constant UAV velocity and
+	// the retained target acceleration. Grow covariance with the normal process noise.
+	predictionStep(Vector3f{}, latency);
 
-	PX4_DEBUG("GNSS bias init %.2f %.2f %.2f", (double)initial_bias(vtest::Axis::x),
-		  (double)initial_bias(vtest::Axis::y), (double)initial_bias(vtest::Axis::z));
+	PX4_DEBUG("Rel pos init %.2f %.2f %.2f", (double)position(vtest::Axis::x),
+		  (double)position(vtest::Axis::y), (double)position(vtest::Axis::z));
+	PX4_DEBUG("GNSS bias init %.2f %.2f %.2f", (double)bias(vtest::Axis::x),
+		  (double)bias(vtest::Axis::y), (double)bias(vtest::Axis::z));
 
 	_bias.set = true;
 	_pre_bias_reference = PreBiasReference::kUnknown;

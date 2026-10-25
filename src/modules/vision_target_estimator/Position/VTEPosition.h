@@ -317,8 +317,9 @@ private:
 	void buildInitialStateArray(const matrix::Vector3f &initial_position,
 				    const matrix::Vector3f &initial_uav_velocity, const matrix::Vector3f &initial_bias,
 				    AxisEstimatorStates &state_init) const;
-	/** Track the GNSS/vision bias until it is ready to be activated in the state. */
-	void updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
+	/** Track the GNSS/vision bias until it is ready to be activated in the state.
+	 *  Returns true when this cycle's vision sample became the position. */
+	bool updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 				    const TargetObs observations[kObsTypeCount]);
 	/** Pick the GNSS-relative sample that best matches the requested timestamp. */
 	bool selectBiasGnssSample(hrt_abstime sample_time, matrix::Vector3f &gnss_sample);
@@ -332,8 +333,9 @@ private:
 	void startBiasAveraging(const matrix::Vector3f &bias_sample, hrt_abstime sample_time);
 	bool updateBiasAveraging(const matrix::Vector3f &bias_sample, hrt_abstime sample_time);
 	void resetBiasAveraging();
-	/** Commit the final pre-bias position/bias pair and restart OOSM history. */
-	void activateBiasEstimate(const matrix::Vector3f &initial_position, const matrix::Vector3f &initial_bias);
+	/** Reset the position and bias from a sample: restart the OOSM history at its time and propagate to now. */
+	void activateBiasEstimate(const matrix::Vector3f &position, const matrix::Vector3f &bias,
+				  const TargetObs &vision_obs, bool position_from_vision);
 	void publishBiasInitStatus(const matrix::Vector3f &raw_bias, const matrix::Vector3f &filtered_bias,
 				   float raw_bias_delta_norm, hrt_abstime sample_time);
 
@@ -360,9 +362,11 @@ private:
 	void updateTargetGpsVelocity(const target_gnss_s &target_gnss);
 #endif // CONFIG_VTEST_MOVING
 
-	/** Publish the per-axis fusion results of one observation. Returns true if any axis fused. */
+	/** Publish the per-axis fusion results of one observation. */
 	void publishAidSource(const TargetObs &target_obs, const FusionResult(&results)[vtest::Axis::size]);
 	void publishTarget();
+	/** Report an observation that seeded the state instead of being fused. */
+	void publishInitializedAid(const TargetObs &obs);
 	void publishInnov(const vte_aid_source3d_s &target_innov, const ObsType type);
 	void resetObservations();
 	bool shouldEmitWarning(hrt_abstime &last_warn);
