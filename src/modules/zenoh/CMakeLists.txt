@@ -77,7 +77,8 @@ target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-conversion
 			-Wno-float-equal)
 
-target_compile_options(zenohpico_static PRIVATE -Wno-missing-prototypes)
+target_compile_options(zenohpico_static PRIVATE -Wno-missing-prototypes
+			-Wno-return-type) # false positive at -O0 (sanitizer builds)
 if(CONFIG_PLATFORM_NUTTX)
     target_compile_options(zenohpico_static PRIVATE -DUNIX_NO_MULTICAST_IF)
 endif()
