@@ -40,18 +40,18 @@ Used in field(s): [fusion_status](#fld_fusion_status)
 
 ## Constants
 
-| Name                                                      | Type    | Value | Description                                                         |
-| --------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------------- |
-| <a id="#STATUS_IDLE"></a> STATUS_IDLE                     | `uint8` | 0     | No fusion attempted yet                                             |
-| <a id="#STATUS_FUSED_CURRENT"></a> STATUS_FUSED_CURRENT   | `uint8` | 1     | Fused immediately (low latency)                                     |
-| <a id="#STATUS_FUSED_OOSM"></a> STATUS_FUSED_OOSM         | `uint8` | 2     | Fused via history buffer                                            |
-| <a id="#STATUS_REJECT_NIS"></a> STATUS_REJECT_NIS         | `uint8` | 3     | Rejected by Normalized Innovation Squared check                     |
-| <a id="#STATUS_REJECT_COV"></a> STATUS_REJECT_COV         | `uint8` | 4     | Rejected due to invalid/infinite covariance or numerical error      |
-| <a id="#STATUS_REJECT_TOO_OLD"></a> STATUS_REJECT_TOO_OLD | `uint8` | 5     | Rejected: older than buffer limit (kOosmMaxTimeUs) or oldest sample |
-| <a id="#STATUS_REJECT_TOO_NEW"></a> STATUS_REJECT_TOO_NEW | `uint8` | 6     | Rejected: timestamp in the future (beyond tolerance)                |
-| <a id="#STATUS_REJECT_STALE"></a> STATUS_REJECT_STALE     | `uint8` | 7     | Rejected: history was reset due to staleness/discontinuity          |
-| <a id="#STATUS_REJECT_EMPTY"></a> STATUS_REJECT_EMPTY     | `uint8` | 8     | Rejected: history buffer not yet populated                          |
-| <a id="#STATUS_INITIALIZED"></a> STATUS_INITIALIZED       | `uint8` | 9     | Accepted as initial state; no prior innovation or repeated fusion   |
+| Name                                                      | Type    | Value | Description                                                                                                     |
+| --------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------------------------------------------------- |
+| <a id="#STATUS_IDLE"></a> STATUS_IDLE                     | `uint8` | 0     | No fusion attempted yet                                                                                         |
+| <a id="#STATUS_FUSED_CURRENT"></a> STATUS_FUSED_CURRENT   | `uint8` | 1     | Fused immediately (low latency)                                                                                 |
+| <a id="#STATUS_FUSED_OOSM"></a> STATUS_FUSED_OOSM         | `uint8` | 2     | Fused via history buffer                                                                                        |
+| <a id="#STATUS_REJECT_NIS"></a> STATUS_REJECT_NIS         | `uint8` | 3     | Rejected by Normalized Innovation Squared check                                                                 |
+| <a id="#STATUS_REJECT_COV"></a> STATUS_REJECT_COV         | `uint8` | 4     | Rejected due to invalid/infinite covariance or numerical error; clears history if a replayed observation failed |
+| <a id="#STATUS_REJECT_TOO_OLD"></a> STATUS_REJECT_TOO_OLD | `uint8` | 5     | Rejected: older than buffer limit (kOosmMaxTimeUs) or oldest sample                                             |
+| <a id="#STATUS_REJECT_TOO_NEW"></a> STATUS_REJECT_TOO_NEW | `uint8` | 6     | Rejected: timestamp in the future (beyond tolerance)                                                            |
+| <a id="#STATUS_REJECT_STALE"></a> STATUS_REJECT_STALE     | `uint8` | 7     | Rejected: history was reset due to staleness/discontinuity                                                      |
+| <a id="#STATUS_REJECT_EMPTY"></a> STATUS_REJECT_EMPTY     | `uint8` | 8     | Rejected: history buffer not yet populated                                                                      |
+| <a id="#STATUS_INITIALIZED"></a> STATUS_INITIALIZED       | `uint8` | 9     | Accepted as initial state; no prior innovation or repeated fusion                                               |
 
 ## Source Message
 
@@ -83,7 +83,7 @@ uint8 STATUS_IDLE = 0 # No fusion attempted yet
 uint8 STATUS_FUSED_CURRENT = 1 # Fused immediately (low latency)
 uint8 STATUS_FUSED_OOSM = 2 # Fused via history buffer
 uint8 STATUS_REJECT_NIS = 3 # Rejected by Normalized Innovation Squared check
-uint8 STATUS_REJECT_COV = 4 # Rejected due to invalid/infinite covariance or numerical error
+uint8 STATUS_REJECT_COV = 4 # Rejected due to invalid/infinite covariance or numerical error; clears history if a replayed observation failed
 uint8 STATUS_REJECT_TOO_OLD = 5 # Rejected: older than buffer limit (kOosmMaxTimeUs) or oldest sample
 uint8 STATUS_REJECT_TOO_NEW = 6 # Rejected: timestamp in the future (beyond tolerance)
 uint8 STATUS_REJECT_STALE = 7 # Rejected: history was reset due to staleness/discontinuity
