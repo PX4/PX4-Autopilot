@@ -144,6 +144,7 @@ The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
   [CRSF telemetry](../telemetry/crsf_telemetry.md) to the transmitter is also enabled by default ([RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN)).
 - `SBUS` (UART5, the PX4 `RC` port): for S.BUS receivers.
   To use it, set [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller` and `RC_CRSF_PRT_CFG` to `Disabled`.
+  The `SBUS` pin on the `D-VTX` connector is wired to the same UART input, for digital video systems that output S.BUS.
 
 Other protocols are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to.
 Only one protocol can be active on a port.
@@ -165,10 +166,11 @@ An external compass (usually built into the GPS module) is recommended over the 
 
 ### Telemetry Radios (Optional) {#telemetry}
 
-Connect the radio to the TELEM connector (PX4 port TELEM1).
+Connect the radio to the `TELEM` connector (PX4 port `TELEM 1`).
 
-Telemetry radios are used to provide a wireless data link between the vehicle and a ground control station (GCS) like QGroundControl. This allows you to monitor flight data, change missions in real-time, and receive inflying status updates.
-See [Telemetry Radios](../telemetry/index.md)
+Telemetry radios are used to provide a wireless data link between the vehicle and a ground control station (GCS) like QGroundControl.
+This allows you to monitor flight data, change missions in real-time, and receive in-flight status updates.
+See [Telemetry Radios](../telemetry/index.md).
 
 ### CAN {#can}
 
@@ -216,15 +218,15 @@ If you enable the heater, run the [accelerometer calibration](../config/accelero
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device     | Port | Connector                      |
-| ------ | ---------- | ---- | ------------------------------ |
-| USART1 | /dev/ttyS0 | EXT2 | `ESC` (ESC telemetry, RX only) |
-| USART2 | /dev/ttyS1 | TEL2 | `T2`/`R2` solder pads          |
-| USART3 | /dev/ttyS2 | GPS1 | `GPS`                          |
-| UART4  | /dev/ttyS3 | TEL4 | `ELRS` (CRSF by default)       |
-| UART5  | /dev/ttyS4 | RC   | `SBUS` (RX), `A-VTX` (TX)      |
-| UART7  | /dev/ttyS5 | TEL1 | `TELEM`                        |
-| UART8  | /dev/ttyS6 | TEL3 | `D-VTX`                        |
+| UART   | Device     | Port | Connector                                                |
+| ------ | ---------- | ---- | -------------------------------------------------------- |
+| USART1 | /dev/ttyS0 | EXT2 | `ESC` (ESC telemetry, RX only)                           |
+| USART2 | /dev/ttyS1 | TEL2 | `T2`/`R2` solder pads                                    |
+| USART3 | /dev/ttyS2 | GPS1 | `GPS`                                                    |
+| UART4  | /dev/ttyS3 | TEL4 | `ELRS` (CRSF by default)                                 |
+| UART5  | /dev/ttyS4 | RC   | `SBUS`, `D-VTX` (`SBUS` pin, RX only), `A-VTX` (TX only) |
+| UART7  | /dev/ttyS5 | TEL1 | `TELEM`                                                  |
+| UART8  | /dev/ttyS6 | TEL3 | `D-VTX`                                                  |
 
 `EXT2` is receive-only, so it can't be used for MAVLink or other two-way protocols.
 It reads [ESC telemetry](../peripherals/dshot.md#esc-telemetry) from the `ESC` connector ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) is set to `EXT2` by default).
@@ -233,9 +235,11 @@ No ports have flow control.
 
 ## Building Firmware {#building_firmware}
 
+<!-- QGroundControl board recognition for the GFH7: https://github.com/mavlink/qgroundcontrol/pull/15315 -->
+
 ::: tip
-Most users will not need to build this firmware once QGroundControl board recognition lands ([qgroundcontrol#15212](https://github.com/mavlink/qgroundcontrol/pull/15212)).
-It will then be pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+From PX4 v2.0, most users will not need to build this firmware!
+It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 The board ships with the PX4 bootloader.
@@ -250,25 +254,25 @@ make accton-godwit_gfh7_default
 
 The top face has two unpopulated five-pad test/debug groups for manufacturing, debugging, or hardware verification:
 
-R V G C D: STM32H753 (H7) test/debug pad group is the FMU SWD interface.
+The `R V G C D` pad group is the [SWD interface](../debug/swd_debug.md) of the STM32H753 FMU:
 
-| Pad |  Signal    | Voltage |
+| Pad | Signal    | Voltage |
+| --- | --------- | ------- |
+| `R` | ST_RST_L  | 3.3V    |
+| `V` | VDD3V3    | 3.3V    |
+| `G` | GND       | GND     |
+| `C` | FMU_SWCLK | 3.3V    |
+| `D` | FMU_SWDIO | 3.3V    |
+
+The `R C D G V` pad group is the SWD interface of the OSD co-processor (STM32G431), which is not used by PX4:
+
+| Pad | Signal     | Voltage |
 | --- | ---------- | ------- |
-|  R  | ST_RST_L   | 3.3V    |
-|  V  | VDD3V3     | 3.3V    |
-|  G  | GND        | GND     |
-|  C  | FMU_SWCLK  | 3.3V    |
-|  D  | FMU_SWDIO  | 3.3V    |
-
-R C D G V: OSD co-processor test/debug pad group is the OSD SWD interface.
-
-| Pad |  Signal    | Voltage |
-| --- | ---------- | ------- |
-|  R  | OSD_NRST   | 3.3V    |
-|  C  | G431_SWCLK | 3.3V    |
-|  D  | G431_SWDIO | 3.3V    |
-|  G  | GND        | GND     |
-|  V  | VDD3V3     | 3.3V    |
+| `R` | OSD_NRST   | 3.3V    |
+| `C` | G431_SWCLK | 3.3V    |
+| `D` | G431_SWDIO | 3.3V    |
+| `G` | GND        | GND     |
+| `V` | VDD3V3     | 3.3V    |
 
 They are not general user interfaces: only connect an SWD debug probe to them, and do not apply power to them or use them as GPIO, UART, or I2C interfaces.
 
