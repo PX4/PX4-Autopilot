@@ -76,7 +76,7 @@ public:
 	 */
 	void update();
 
-	/** Drop the estimator state. A nonzero sample boundary also publishes invalid yaw. */
+	/** Drop the estimator state and publish an invalid yaw. A nonzero sample boundary drops older samples. */
 	void resetFilter(hrt_abstime min_sample_time = 0);
 
 	/** Timeout after which the whole filter is declared stale (see @c timedOut). */

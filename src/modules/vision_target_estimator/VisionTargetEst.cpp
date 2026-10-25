@@ -134,24 +134,20 @@ void VisionTargetEst::Run()
 			ScheduleClear();
 
 		} else {
-			const uint32_t estimator_update_period_us = static_cast<uint32_t>(math::min(kPosUpdatePeriodUs,
-					kYawUpdatePeriodUs));
-			ScheduleOnInterval(estimator_update_period_us);
+			// Poll at the estimator rate. Without the delay the timer would fire again at once.
+			ScheduleOnInterval(static_cast<uint32_t>(kEstimatorUpdatePeriodUs), static_cast<uint32_t>(kEstimatorUpdatePeriodUs));
 		}
 	}
 
-	// Task is running, check if an estimator must be started or re-started
-	startEstIfNeeded();
-
-	const bool task_completed = isCurrentTaskComplete();
-
-	if (task_completed) {
+	if (isCurrentTaskComplete()) {
 		stopAllEstimators();
 		_current_task_ptr = nullptr;
 		updateAidMask();
 		return;
 	}
 
+	// Task is running, check if an estimator must be started or re-started
+	startEstIfNeeded();
 	restartTimedOutEstimators();
 
 	if (noEstRunning()) {
@@ -670,23 +666,23 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned, matr
 	vehicle_attitude_s vehicle_attitude{};
 	vehicle_acceleration_s vehicle_acceleration{};
 
-	const bool vehicle_attitude_updated = _vehicle_attitude_sub.update(&vehicle_attitude);
-	const bool vehicle_acceleration_updated = _vehicle_acceleration_sub.update(&vehicle_acceleration);
+	// Keep the acceleration sample even when the attitude has not updated yet.
+	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
+		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);
+		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp_sample != 0
+					      ? vehicle_acceleration.timestamp_sample : vehicle_acceleration.timestamp;
+	}
 
-	if (!vehicle_attitude_updated) {
+	if (!_vehicle_attitude_sub.update(&vehicle_attitude)) {
 		return false;
 	}
 
 	// Check the same attitude sample that will rotate this cycle's inputs.
 	handleAttitudeReset(vehicle_attitude);
 
-	if (vehicle_acceleration_updated) {
-		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);
-		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp;
-	}
-
 	_vehicle_acc_body.valid = (_vehicle_acc_body.timestamp != 0)
-				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs);
+				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs)
+				  && _vehicle_acc_body.xyz.isAllFinite();
 	acc_valid = _vehicle_acc_body.valid;
 
 	/* Transform FRD body acc to NED */

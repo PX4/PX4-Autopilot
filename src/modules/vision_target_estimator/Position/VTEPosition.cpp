@@ -97,6 +97,10 @@ void VTEPosition::resetFilter(hrt_abstime min_sample_time)
 		_velocity_offset_ned.valid = false;
 	}
 
+	if (_estimator_initialized) {
+		publishInvalidState();
+	}
+
 	_estimator_initialized = false;
 	_last_relative_meas_fused_time = 0;
 	_bias.set = false;
@@ -962,7 +966,9 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 		return false;
 	}
 
-	const matrix::Quaternionf quat_att(report.q);
+	// The covariance rotation below assumes a unit quaternion.
+	matrix::Quaternionf quat_att(report.q);
+	quat_att.normalize();
 	const Vector3f vision_rel(report.rel_pos);
 	const Vector3f vision_ned = quat_att.rotateVector(vision_rel);
 	const float min_ev_pos_var = sq(fmaxf(_param_vte_ev_pos_noise.get(), kMinObservationNoise));
@@ -1213,6 +1219,16 @@ void VTEPosition::publishAidSource(const TargetObs &target_obs, const AxisResult
 	_vte_aid_pubs[obsIndex(target_obs.type)].publish(target_innov);
 }
 
+void VTEPosition::publishInvalidState()
+{
+	// Mark the logged state invalid. landing_target_pose is not published: precision landing keeps
+	// approaching the last pose it received and judges its age with its own timeout.
+	_vte_state.timestamp = nowUs();
+	_vte_state.rel_pos_valid = false;
+	_vte_state.rel_vel_valid = false;
+	_target_estimator_state_pub.publish(_vte_state);
+}
+
 void VTEPosition::publishTarget()
 {
 	_vte_state = {};
@@ -1220,12 +1236,7 @@ void VTEPosition::publishTarget()
 
 	_target_pose.timestamp = _last_predict;
 	_vte_state.timestamp = _last_predict;
-
-#if defined(CONFIG_VTEST_MOVING)
-	_target_pose.is_static = false;
-#else
-	_target_pose.is_static = true;
-#endif // CONFIG_VTEST_MOVING
+	_target_pose.is_static = kTargetIsStatic;
 
 	Vector3f rel_pos;
 	Vector3f rel_pos_var;
