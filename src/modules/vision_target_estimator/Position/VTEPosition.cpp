@@ -581,12 +581,11 @@ void VTEPosition::selectInitialBiasFromGnss(const TargetObs observations[kObsTyp
 	PX4_DEBUG("VTE Position setting GNSS bias.");
 	const hrt_abstime sample_time = observations[obsIndex(ObsType::kFiducialMarker)].timestamp;
 	Vector3f gnss_sample{};
+	_bias.set = selectBiasGnssSample(sample_time, gnss_sample);
 
-	if (selectBiasGnssSample(sample_time, gnss_sample)) {
+	if (_bias.set) {
 		initial_bias = gnss_sample - initial_position;
 	}
-
-	_bias.set = true;
 }
 
 void VTEPosition::buildInitialStateArray(const Vector3f &initial_position,
@@ -650,22 +649,32 @@ bool VTEPosition::selectBiasGnssSample(const hrt_abstime sample_time, Vector3f &
 	const int64_t dt_us = signedTimeDiffUs(sample_time, _pos_rel_gnss.timestamp);
 
 	if (dt_us != 0) {
-		const float dt = static_cast<float>(dt_us) * kMicrosecondsToSeconds;
+		// Use the latest valid velocity for this constant-velocity alignment, even when vision
+		// is older than the fast-input timeout.
 		Vector3f uav_velocity_ned{};
-		bool has_velocity_for_propagation = false;
 
-		if (_local_velocity.valid
-		    && isTimeDifferenceWithin(_local_velocity.timestamp, sample_time, _meas_updated_timeout_us)) {
+		if (_local_velocity.valid) {
 			uav_velocity_ned = _local_velocity.xyz;
-			has_velocity_for_propagation = true;
 
-		} else if (getOffsetUavVel(sample_time, uav_velocity_ned)) {
-			has_velocity_for_propagation = true;
+		} else if (!getOffsetUavVel(_uav_gps_vel.timestamp, uav_velocity_ned)) {
+			return false;
 		}
 
-		if (has_velocity_for_propagation) {
-			gnss_sample -= uav_velocity_ned * dt;
+		Vector3f relative_velocity_ned = -uav_velocity_ned;
+
+#if defined(CONFIG_VTEST_MOVING)
+
+		if (_pos_rel_gnss_is_target) {
+			if (!_target_gps_vel.valid || !isMeasRecent(_target_gps_vel.timestamp)) {
+				return false;
+			}
+
+			relative_velocity_ned += _target_gps_vel.xyz;
 		}
+
+#endif // CONFIG_VTEST_MOVING
+
+		gnss_sample += relative_velocity_ned * (static_cast<float>(dt_us) * kMicrosecondsToSeconds);
 	}
 
 	return true;
@@ -1055,6 +1064,7 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 	_pos_rel_gnss.timestamp = obs.timestamp;
 	_pos_rel_gnss.valid = true;
 	_pos_rel_gnss.xyz = gps_relative_pos;
+	_pos_rel_gnss_is_target = false;
 
 	return true;
 }
@@ -1077,16 +1087,28 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	float uav_alt_m = _uav_gps_position.alt_m;
 
 	const float dt_sync_s = static_cast<float>(time_diff_us) * kMicrosecondsToSeconds;
-	const float dt_sync_s_abs = fabsf(dt_sync_s);
 	bool uav_position_interpolated = false;
 
-	// Compensate UAV motion during the latency interval
-	static constexpr float kGnssSyncInterpolationMinTimeS = 0.1f;
-
+	// Move the UAV fix to the target fix time. The receivers are not synchronized, so the fixes rarely
+	// line up; the local velocity stands in when the GNSS velocity is unavailable.
 	Vector3f uav_vel_ned{};
+	float uav_vel_var = getMinGpsVelVar();
+	bool has_uav_velocity = getOffsetUavVel(_uav_gps_position.timestamp, uav_vel_ned);
 
-	if ((dt_sync_s_abs > kGnssSyncInterpolationMinTimeS)
-	    && getOffsetUavVel(_uav_gps_position.timestamp, uav_vel_ned)) {
+	if (has_uav_velocity) {
+		uav_vel_var = fmaxf(sq(_uav_gps_vel.uncertainty), uav_vel_var);
+
+	} else if (_local_velocity.valid) {
+		uav_vel_ned = _local_velocity.xyz;
+		// Local velocity has no supplied covariance here; use the configured initial variance.
+		uav_vel_var = fmaxf(_param_vte_vel_unc_in.get(), uav_vel_var);
+		has_uav_velocity = true;
+	}
+
+	if (time_diff_us != 0) {
+		if (!has_uav_velocity) {
+			return false;
+		}
 
 		const float delta_n = uav_vel_ned(vtest::Axis::x) * dt_sync_s;
 		const float delta_e = uav_vel_ned(vtest::Axis::y) * dt_sync_s;
@@ -1120,9 +1142,10 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 		gps_relative_pos += _gps_pos_offset_ned.xyz;
 	}
 
-	// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
+	// Grow uncertainty with both velocity error and the normal UAV acceleration process noise.
+	const float uav_acc_var = fmaxf(_param_vte_acc_d_unc.get(), kMinVariance);
 	const float propagation_unc = uav_position_interpolated
-				      ? sq(_uav_gps_vel.uncertainty * dt_sync_s_abs) : 0.f;
+				      ? sq(dt_sync_s) * (uav_vel_var + uav_acc_var * fabsf(dt_sync_s) / 3.f) : 0.f;
 	const float min_gps_pos_var = getMinGpsPosVar();
 	const float gps_unc_horizontal = fmaxf(sq(_uav_gps_position.eph), min_gps_pos_var)
 					 + fmaxf(sq(target_gnss.eph), min_gps_pos_var)
@@ -1148,6 +1171,7 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	_pos_rel_gnss.timestamp = obs.timestamp;
 	_pos_rel_gnss.valid = true;
 	_pos_rel_gnss.xyz = gps_relative_pos;
+	_pos_rel_gnss_is_target = true;
 
 	return true;
 }
