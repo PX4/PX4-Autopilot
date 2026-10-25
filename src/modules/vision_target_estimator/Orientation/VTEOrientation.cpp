@@ -65,12 +65,6 @@ VTEOrientation::VTEOrientation() : ModuleParams(nullptr)
 
 VTEOrientation::~VTEOrientation() = default;
 
-bool VTEOrientation::init()
-{
-	_target_est_yaw.resetHistory();
-	return true;
-}
-
 void VTEOrientation::resetFilter(hrt_abstime min_sample_time)
 {
 	// Keep the frame boundary across subsequent timeout/task resets.
@@ -191,18 +185,6 @@ void VTEOrientation::performUpdateStep()
 	}
 
 	fuseMeas(vision_obs);
-}
-
-bool VTEOrientation::shouldEmitWarning(hrt_abstime &last_warn)
-{
-	const hrt_abstime now = nowUs();
-
-	if ((last_warn == 0) || (now < last_warn) || ((now - last_warn) > kWarnThrottleIntervalUs)) {
-		last_warn = now;
-		return true;
-	}
-
-	return false;
 }
 
 bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw)

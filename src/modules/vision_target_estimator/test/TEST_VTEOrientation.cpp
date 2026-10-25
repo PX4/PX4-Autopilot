@@ -106,7 +106,6 @@ protected:
 		setParamFloat("VTE_YAW_NIS_THRE", vte::kDefaultNisThreshold);
 
 		_vte = std::make_unique<VTEOrientationTestable>();
-		ASSERT_TRUE(_vte->init());
 		_vte->updateParamsPublic();
 
 		_vision_pub = std::make_unique<uORB::Publication<fiducial_marker_yaw_report_s>>(ORB_ID(fiducial_marker_yaw_report));

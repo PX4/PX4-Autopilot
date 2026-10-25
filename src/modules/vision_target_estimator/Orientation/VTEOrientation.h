@@ -76,9 +76,6 @@ public:
 	 */
 	void update();
 
-	/** Prepare per-axis history buffers. Call once at startup. */
-	bool init();
-
 	/** Drop the estimator state. A nonzero sample boundary also publishes invalid yaw. */
 	void resetFilter(hrt_abstime min_sample_time = 0);
 
@@ -153,7 +150,6 @@ private:
 	bool processObsVision(VisionObs &vision_obs);
 	void fuseMeas(const VisionObs &vision_obs);
 	void publishTarget();
-	bool shouldEmitWarning(hrt_abstime &last_warn);
 
 	uORB::Subscription _fiducial_marker_yaw_report_sub{ORB_ID(fiducial_marker_yaw_report)};
 

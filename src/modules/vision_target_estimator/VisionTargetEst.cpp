@@ -180,36 +180,18 @@ bool VisionTargetEst::init()
 		return false;
 	}
 
-	_vte_position_enabled = false;
-	_vte_orientation_enabled = false;
-
 	// Params with reboot required
-	if (_param_vte_pos_en.get()) {
-		PX4_DEBUG("VTE position estimator enabled.");
+	_vte_position_enabled = _param_vte_pos_en.get() != 0;
+	_vte_orientation_enabled = _param_vte_yaw_en.get() != 0;
 
-		if (_vte_position.init()) {
-			_vte_position_enabled = true;
-
-		} else {
-			PX4_ERR("VTE position estimator initialisation failed");
-		}
-	}
-
-	if (_param_vte_yaw_en.get()) {
-		PX4_DEBUG("VTE yaw estimator enabled.");
-
-		if (_vte_orientation.init()) {
-			_vte_orientation_enabled = true;
-
-		} else {
-			PX4_ERR("VTE yaw estimator initialisation failed");
-		}
-	}
+#if defined(CONFIG_VTEST_MOVING)
+	PX4_WARN("VTE for moving targets has not been thoroughly tested");
+#endif // CONFIG_VTEST_MOVING
 
 	// Params that impact the estimators
 	updateParams();
 
-	return _vte_position_enabled || _vte_orientation_enabled;
+	return true;
 }
 
 void VisionTargetEst::updateParams()
@@ -572,11 +554,6 @@ void VisionTargetEst::updatePosEst(const matrix::Vector3f &gps_pos_offset_ned,
 				   const uint32_t acc_sample_count)
 {
 	perf_begin(_cycle_perf_pos);
-
-	if (acc_sample_count == 0) {
-		perf_end(_cycle_perf_pos);
-		return;
-	}
 
 	LocalPose local_pose{};
 	const bool local_pose_updated = pollLocalPose(local_pose);

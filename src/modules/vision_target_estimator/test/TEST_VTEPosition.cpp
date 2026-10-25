@@ -136,7 +136,6 @@ protected:
 		setParamFloat("VTE_BIA_AVG_TOUT", 1.0f);
 
 		_vte = std::make_unique<VTEPositionTestable>();
-		ASSERT_TRUE(_vte->init());
 		_vte->updateParamsPublic();
 
 		_vision_pub = std::make_unique<uORB::Publication<fiducial_marker_pos_report_s>>(ORB_ID(fiducial_marker_pos_report));

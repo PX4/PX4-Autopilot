@@ -950,7 +950,6 @@ TEST_F(VisionTargetEstTest, PrecisionLandTaskHasPriorityOverPrecisionTakeoff)
 // WHAT: Switch to takeoff without usable home and verify the previous landing point cannot seed GNSS bias.
 TEST_F(VisionTargetEstTest, NewTaskClearsPreviousGnssBiasReference)
 {
-	ASSERT_TRUE(_vte->_vte_position.init());
 	_vte->_vte_position_enabled = true;
 	vte::SensorFusionMaskU aid_mask{};
 	aid_mask.flags.use_mission_pos = 1;
@@ -1254,7 +1253,6 @@ TEST_F(VisionTargetEstTest, RestartTimedOutEstimatorsRearmsPositionEstimatorImme
 	_vte->_position_estimator_running = true;
 	_vte->_orientation_estimator_running = false;
 
-	ASSERT_TRUE(_vte->_vte_position.init());
 	vte::SensorFusionMaskU aid_mask{};
 	aid_mask.flags.use_vision_pos = 1;
 	_vte->_vte_position.setVteAidMask(aid_mask.value);
@@ -1289,7 +1287,6 @@ TEST_F(VisionTargetEstTest, RestartTimedOutEstimatorsRearmsOrientationEstimatorI
 	_vte->_orientation_estimator_running = true;
 	_vte->_position_estimator_running = false;
 
-	ASSERT_TRUE(_vte->_vte_orientation.init());
 	vte::SensorFusionMaskU aid_mask{};
 	aid_mask.flags.use_vision_pos = 1;
 	_vte->_vte_orientation.setVteAidMask(aid_mask.value);
@@ -1366,8 +1363,6 @@ TEST_F(VisionTargetEstTest, AttitudeResetReacquiresAndRejectsOldFrameSamples)
 	mask.flags.use_vision_pos = 1;
 	_vte->_vte_position.setVteAidMask(mask.value);
 	_vte->_vte_orientation.setVteAidMask(mask.value);
-	ASSERT_TRUE(_vte->_vte_position.init());
-	ASSERT_TRUE(_vte->_vte_orientation.init());
 	_vte->_vte_orientation_enabled = true;
 	_vte->_orientation_estimator_running = true; // Position stays stopped: exercise yaw-only reset detection.
 
@@ -1435,7 +1430,6 @@ TEST_F(VisionTargetEstTest, AttitudeResetReacquiresAndRejectsOldFrameSamples)
 
 TEST_F(VisionTargetEstTest, PollEstimatorInputResetsCachedFrame)
 {
-	ASSERT_TRUE(_vte->_vte_position.init());
 	matrix::Vector3f acceleration{}, position_offset{}, velocity_offset{};
 	matrix::Quaternionf attitude{};
 	bool acceleration_valid = false;
