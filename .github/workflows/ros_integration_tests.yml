@@ -23,6 +23,16 @@ permissions:
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - middleware: uxrce_dds
+            config: test/ros_tests/config-sih.json
+          # TODO: run the position interface suites once zenoh synchronizes
+          # timestamps with ROS; EKF2 rejects their timestamp_sample until then.
+          - middleware: zenoh
+            config: test/ros_tests/config-sih-zenoh.json
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
       image: ghcr.io/px4/px4-dev-ros2:main-jazzy@sha256:975ade27fd951721bc1ca96519b004998358fa289d27b8c967548b8ab83d8689
@@ -46,6 +56,13 @@ jobs:
         with:
           cache-key-prefix: ccache-ros-integration-jazzy-${{ runner.arch }}
           max-size: 1G
+
+      # TODO: drop once the pinned px4-dev-ros2 image ships rmw_zenoh_cpp
+      - name: Install rmw_zenoh
+        if: matrix.middleware == 'zenoh'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ros-jazzy-rmw-zenoh-cpp
 
       - name: Test ROS runner arguments
         run: python3 -m unittest discover -s test -p 'test_ros_test_runner.py'
@@ -75,14 +92,15 @@ jobs:
           colcon test --packages-select px4_ros2_cpp --ctest-args -R unit_tests
           colcon test-result --verbose
 
-      - name: Run SIH integration tests
+      - name: Run SIH integration tests (${{ matrix.middleware }})
         run: |
           source /opt/px4_ros2_ci/install/setup.bash
           test/ros_test_runner.py --verbose --model quadx --force-color \
-            --config-file test/ros_tests/config-sih.json \
+            --config-file ${{ matrix.config }} \
             --build-dir build/px4_sitl_sih \
             --px4-ros2-interface-lib-build-dir /opt/px4_ros2_ci/build/px4_ros2_cpp \
-            --log-dir logs/ros-sih
+            --middleware ${{ matrix.middleware }} \
+            --log-dir logs/ros-sih-${{ matrix.middleware }}
         timeout-minutes: 45
 
       - uses: ./.github/actions/save-ccache
@@ -94,7 +112,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: ros-integration-failed-logs
+          name: ros-integration-failed-logs-${{ matrix.middleware }}
           path: |
             logs/**/**/**/*.log
             logs/**/**/**/*.ulg
