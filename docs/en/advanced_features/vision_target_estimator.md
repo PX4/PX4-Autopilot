@@ -151,7 +151,10 @@ When that applies:
 - Raise [VTE_BTOUT](../advanced_config/parameter_reference.md#VTE_BTOUT) past the expected gap if you want the filter to coast on its last estimate.
   Otherwise the filter is reset and will restart as soon as enabled fusion sources reappear.
 
-Measurements timestamped in the future relative to the latest filter prediction are always rejected.
+Both timeouts count from the capture time of the newest fused position or yaw sample, so a delayed sample does not extend them.
+
+Vision and target GNSS samples stamped less than 20 ms in the future (for example from clock-sync jitter) are fused as current measurements.
+All other samples timestamped in the future are rejected.
 
 ### Measurement Freshness
 

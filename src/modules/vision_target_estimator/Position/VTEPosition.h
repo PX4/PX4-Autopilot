@@ -232,7 +232,7 @@ private:
 	using AxisEstimatorStates = EstimatorState[vtest::Axis::size];
 
 	bool initEstimator(const AxisEstimatorStates &state_init, const matrix::Vector3f &position_variance);
-	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned);
+	void performUpdateStep(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc, float dt);
 	float getMinGpsVelVar() const;
 	float getMinGpsPosVar() const;
@@ -323,7 +323,7 @@ private:
 	/** Pick the GNSS-relative sample that best matches the requested timestamp. */
 	bool selectBiasGnssSample(hrt_abstime sample_time, matrix::Vector3f &gnss_sample);
 	/** Fuse every ready observation in order of effective fusion time. */
-	bool fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
+	void fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
 				    const TargetObs observations[kObsTypeCount]);
 	/** Refresh subscriptions and populate the per-cycle observation buffer. */
 	void processObservations(ObsValidMaskU &fusion_mask,
@@ -351,6 +351,7 @@ private:
 	bool processObsGNSSVelUav(TargetObs &obs) const;
 
 	/* Target GPS data */
+	bool pollTargetGnss(target_gnss_s &target_gnss);
 	bool isTargetGpsPositionValid(const target_gnss_s &target_gnss);
 	bool isTargetGpsVelocityValid(const target_gnss_s &target_gnss);
 	bool processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs);
@@ -431,7 +432,7 @@ private:
 
 	hrt_abstime _min_sample_time{0}; // Discard measurements from before an attitude reset.
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
-	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
+	hrt_abstime _last_update{0}; // capture time of the newest fused position sample (used to check timeout)
 	hrt_abstime _uav_gps_vel_warn_last{0};
 	hrt_abstime _target_gps_vel_warn_last{0};
 	hrt_abstime _vision_pos_warn_last{0};

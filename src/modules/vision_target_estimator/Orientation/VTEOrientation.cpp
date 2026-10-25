@@ -118,9 +118,7 @@ void VTEOrientation::update()
 	}
 
 	// Fuse the latest observation and publish innovations.
-	if (performUpdateStep()) {
-		_last_update = _last_predict;
-	}
+	performUpdateStep();
 
 	if (_estimator_initialized) {
 		// Store the post-fusion posterior snapshot at the current timestamp for OOSM fusion.
@@ -145,8 +143,8 @@ void VTEOrientation::initEstimator(const VisionObs &vision_obs)
 	PX4_DEBUG("VTE Orientation initialized with yaw: %.2f [rad]", (double)vision_obs.yaw);
 
 	_estimator_initialized = true;
-	_last_update = nowUs();
-	_last_predict = _last_update;
+	_last_predict = nowUs();
+	_last_update = vision_obs.timestamp;
 }
 
 void VTEOrientation::predictionStep(float dt)
@@ -155,19 +153,19 @@ void VTEOrientation::predictionStep(float dt)
 	_target_est_yaw.predict(dt);
 }
 
-bool VTEOrientation::performUpdateStep()
+void VTEOrientation::performUpdateStep()
 {
 	VisionObs vision_obs{};
 
 	if (!_vte_aid_mask.flags.use_vision_pos || !processObsVision(vision_obs)) {
-		return false;
+		return;
 	}
 
 	if (!_estimator_initialized) {
 		initEstimator(vision_obs);
 	}
 
-	return fuseMeas(vision_obs);
+	fuseMeas(vision_obs);
 }
 
 bool VTEOrientation::shouldEmitWarning(hrt_abstime &last_warn)
@@ -207,8 +205,19 @@ bool VTEOrientation::processObsVision(VisionObs &vision_obs)
 {
 	fiducial_marker_yaw_report_s fiducial_marker_yaw;
 
-	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw) ||
-	    !isVisionDataValid(fiducial_marker_yaw)) {
+	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw)) {
+		return false;
+	}
+
+	if (!alignFutureSampleTime(fiducial_marker_yaw.timestamp_sample, nowUs())) {
+		if (shouldEmitWarning(_vision_warn_last)) {
+			PX4_WARN("VTE: Vision yaw timestamp in the future!");
+		}
+
+		return false;
+	}
+
+	if (!isVisionDataValid(fiducial_marker_yaw)) {
 		return false;
 	}
 
@@ -222,7 +231,7 @@ bool VTEOrientation::processObsVision(VisionObs &vision_obs)
 	return true;
 }
 
-bool VTEOrientation::fuseMeas(const VisionObs &vision_obs)
+void VTEOrientation::fuseMeas(const VisionObs &vision_obs)
 {
 	vte_aid_source1d_s target_innov = {};
 	const float nis_threshold = fmaxf(_param_vte_yaw_nis_thre.get(), kMinNisThreshold);
@@ -254,7 +263,10 @@ bool VTEOrientation::fuseMeas(const VisionObs &vision_obs)
 
 	_vte_aid_ev_yaw_pub.publish(target_innov);
 
-	return (result.status == FusionStatus::STATUS_FUSED_CURRENT || result.status == FusionStatus::STATUS_FUSED_OOSM);
+	// Freshness follows the capture time, so a late sample does not extend validity.
+	if (result.status == FusionStatus::STATUS_FUSED_CURRENT || result.status == FusionStatus::STATUS_FUSED_OOSM) {
+		_last_update = math::max(_last_update, vision_obs.timestamp);
+	}
 }
 
 void VTEOrientation::publishTarget()
