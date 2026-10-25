@@ -1047,7 +1047,7 @@ void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s &p
 	figure_eight_status.major_radius = pos_sp.loiter_radius * (pos_sp.loiter_direction_counter_clockwise ? -1.f : 1.f);
 	figure_eight_status.minor_radius = pos_sp.loiter_minor_radius;
 	figure_eight_status.orientation = pos_sp.loiter_orientation;
-	figure_eight_status.frame = 5; //MAV_FRAME_GLOBAL_INT
+	figure_eight_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
 	figure_eight_status.x = static_cast<int32_t>(pos_sp.lat * 1e7);
 	figure_eight_status.y = static_cast<int32_t>(pos_sp.lon * 1e7);
 	figure_eight_status.z = pos_sp.alt;
