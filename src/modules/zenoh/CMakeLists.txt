@@ -75,7 +75,8 @@ target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-unused-variable
 			-Wno-maybe-uninitialized
 			-Wno-conversion
-			-Wno-float-equal)
+			-Wno-float-equal
+			-Wno-missing-braces)
 
 target_compile_options(zenohpico_static PRIVATE -Wno-missing-prototypes
 			-Wno-return-type) # false positive at -O0 (sanitizer builds)
