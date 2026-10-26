@@ -21,12 +21,12 @@ The position controller follows whichever of the two was published most recently
 
 ## Fields
 
-| Name                                          | Type      | Unit [Frame] | Range/Enum   | Description                                                                                                                                                   |
-| --------------------------------------------- | --------- | ------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp           | `uint64`  | us           |              | Time since system start                                                                                                                                       |
-| <a id="fld_course"></a>course                 | `float32` | rad [NED]    | [-pi : pi]   | Course over ground to hold (Invalid: NaN No course; the position controller stays idle)                                                                       |
-| <a id="fld_cruising_speed"></a>cruising_speed | `float32` | m/s          | [-inf : inf] | Cruising speed; a negative value drives the vehicle in reverse (rear first) along the course (Invalid: NaN Defaults to maximum speed)                         |
-| <a id="fld_yaw"></a>yaw                       | `float32` | rad [NED]    | [-pi : pi]   | Currently unused. Only for vehicles that can move sideways (e.g. mecanum rovers): vehicle yaw while holding the course (Invalid: NaN Defaults to vehicle yaw) |
+| Name                                | Type      | Unit [Frame] | Range/Enum   | Description                                                                                                                                                   |
+| ----------------------------------- | --------- | ------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`  | us           |              | Time since system start                                                                                                                                       |
+| <a id="fld_course"></a>course       | `float32` | rad [NED]    | [-pi : pi]   | Course over ground to hold (Invalid: NaN No course; the position controller stays idle)                                                                       |
+| <a id="fld_speed"></a>speed         | `float32` | m/s          | [-inf : inf] | Cruising speed; a negative value drives the vehicle in reverse (rear first) along the course (Invalid: NaN Defaults to maximum speed)                         |
+| <a id="fld_yaw"></a>yaw             | `float32` | rad [NED]    | [-pi : pi]   | Currently unused. Only for vehicles that can move sideways (e.g. mecanum rovers): vehicle yaw while holding the course (Invalid: NaN Defaults to vehicle yaw) |
 
 ## Source Message
 
@@ -50,7 +50,7 @@ The position controller follows whichever of the two was published most recently
 
 uint64 timestamp # [us] Time since system start
 float32 course # [rad] [@range -pi, pi] [@frame NED] [@invalid NaN No course; the position controller stays idle] Course over ground to hold
-float32 cruising_speed # [m/s] [@range -inf, inf] [@invalid NaN Defaults to maximum speed] Cruising speed; a negative value drives the vehicle in reverse (rear first) along the course
+float32 speed # [m/s] [@range -inf, inf] [@invalid NaN Defaults to maximum speed] Cruising speed; a negative value drives the vehicle in reverse (rear first) along the course
 float32 yaw # [rad] [@range -pi, pi] [@frame NED] [@invalid NaN Defaults to vehicle yaw] Currently unused. Only for vehicles that can move sideways (e.g. mecanum rovers): vehicle yaw while holding the course
 ```
 

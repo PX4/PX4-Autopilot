@@ -170,8 +170,8 @@ void AckermannAutoMode::guidedCourse()
 	ugv_usv_course_setpoint.timestamp = hrt_absolute_time();
 	// The navigator publishes the course in [0, 2pi)
 	ugv_usv_course_setpoint.course = matrix::wrap_pi(current.course);
-	ugv_usv_course_setpoint.cruising_speed = current.cruising_speed > 0.f ? math::constrain(current.cruising_speed, 0.f,
-			_param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
+	ugv_usv_course_setpoint.speed = current.cruising_speed > 0.f ? math::constrain(current.cruising_speed, 0.f,
+					_param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
 	ugv_usv_course_setpoint.yaw = NAN;
 	_ugv_usv_course_setpoint_pub.publish(ugv_usv_course_setpoint);
 }
