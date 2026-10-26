@@ -151,7 +151,7 @@ public:
 		_estimator_status_flags_pub.publish(flags);
 	}
 
-	static void publishGnss(hrt_abstime timestamp, double altitude_msl, float epv, uint16_t failed_strict_checks)
+	static void publishGnss(hrt_abstime timestamp, double altitude_msl, uint16_t failed_strict_checks)
 	{
 		vehicle_gnss_s gnss{};
 		gnss.timestamp = timestamp;
@@ -159,7 +159,6 @@ public:
 		gnss.receiver.timestamp = timestamp;
 		gnss.receiver.timestamp_sample = timestamp;
 		gnss.receiver.altitude_msl = altitude_msl;
-		gnss.receiver.epv = epv;
 		gnss.usable = true;
 		gnss.strict = false;
 		gnss.failed_strict_checks = failed_strict_checks;
@@ -170,7 +169,6 @@ public:
 	struct GnssSegment {
 		int samples;
 		double altitude_msl;
-		float epv;
 		uint16_t failed_strict_checks;
 	};
 
@@ -204,7 +202,7 @@ public:
 				gnss_timestamp += 100_ms;
 				publishSample(0, noisy_pressure());
 				publishEstimatorStatusFlags();
-				publishGnss(gnss_timestamp, segment.altitude_msl, segment.epv, segment.failed_strict_checks);
+				publishGnss(gnss_timestamp, segment.altitude_msl, segment.failed_strict_checks);
 				module.RunPublic();
 				px4_usleep(5_ms);
 			}
@@ -278,7 +276,7 @@ TEST_F(VehicleAirDataTest, BarometerDisabledFromBootDoesNotDriveRun)
 TEST_F(VehicleAirDataTest, GnssBaroCalibrationUsesGnssPassingStrictChecks)
 {
 	// a receiver passing the strict checks on a steady altitude 15 m above the baro's calibrates the baro onto it
-	const float offset = runGnssCalibration({{60, 15., 2.f, 0}});
+	const float offset = runGnssCalibration({{60, 15., 0}});
 
 	// roughly 12 Pa per metre at sea level, subtracted from the measured pressure so the baro reads higher
 	EXPECT_GT(offset, 150.f);
@@ -288,9 +286,9 @@ TEST_F(VehicleAirDataTest, GnssBaroCalibrationUsesGnssPassingStrictChecks)
 TEST_F(VehicleAirDataTest, GnssBaroCalibrationIgnoresGnssFailingStrictChecks)
 {
 	// once the strict checks have passed on the ground, the relaxed ones decide usable, so EKF2 keeps fusing
-	// GNSS height through a degraded patch, here a 15 m altitude error with a 6.5 m EPV: above GNSS_REQ_EPV,
-	// but below the 8 m the calibration requires on its own, so only the strict checks reject the sample
-	const float offset = runGnssCalibration({{60, 15., 6.5f, vehicle_gnss_s::CHECK_EPV}});
+	// GNSS height through a degraded patch, here a 15 m altitude error with an EPV above GNSS_REQ_EPV, so
+	// the strict checks reject the sample
+	const float offset = runGnssCalibration({{60, 15., vehicle_gnss_s::CHECK_EPV}});
 
 	EXPECT_FLOAT_EQ(offset, 0.f);
 }
@@ -302,9 +300,9 @@ TEST_F(VehicleAirDataTest, GnssBaroCalibrationRestartsAfterGnssFailingStrictChec
 	// longer than the whole window, so the baro is calibrated onto it. A reference left over from before the
 	// failure would differ by more than the 4 m tolerance, reject the window, and leave the baro uncalibrated
 	const float offset = runGnssCalibration({
-		{25, 8., 2.f, 0},
-		{5, 8., 6.5f, vehicle_gnss_s::CHECK_EPV},
-		{45, 15., 2.f, 0},
+		{25, 8., 0},
+		{5, 8., vehicle_gnss_s::CHECK_EPV},
+		{45, 15., 0},
 	});
 
 	// calibrated onto 15 m, not 8 m, at roughly 12 Pa per metre
