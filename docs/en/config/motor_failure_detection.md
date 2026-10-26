@@ -208,17 +208,17 @@ The vehicle still flies, so the command stays near hover and the residual stays 
 
 ## Parameters
 
-| Parameter                                                                                                   | Description                                                                                                                                            |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                      | Enable motor failure detection. Disabled by default.                                                                                                   |
-| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)                | Current model slope: expected current per unit of motor command (A).                                                                                   |
-| <a id="MOTFAIL_IDLE"></a>[MOTFAIL_IDLE](../advanced_config/parameter_reference.md#MOTFAIL_IDLE)             | Current model offset: expected current at zero command (A).                                                                                            |
-| <a id="MOTFAIL_UNDER"></a>[MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER)          | Undercurrent trip band (A): how far below the expected current a motor may run.<br>Set to `0` to disable undercurrent detection.                       |
-| <a id="MOTFAIL_UND_TIME"></a>[MOTFAIL_UND_TIME](../advanced_config/parameter_reference.md#MOTFAIL_UND_TIME) | Time (s) the undercurrent band must be exceeded before the motor is flagged.                                                                           |
-| <a id="MOTFAIL_OVER"></a>[MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER)             | Overcurrent trip band (A): how far above the expected current a motor may run.<br>Set to `0` to disable overcurrent detection.                         |
-| <a id="MOTFAIL_OVR_TIME"></a>[MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME) | Time (s) the overcurrent band must be exceeded before the motor is flagged.                                                                            |
-| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)    | What the control allocator does on a failure, such as removing the failed motor from the allocation.                                                   |
-| <a id="COM_ACT_FAIL_ACT"></a>[COM_ACT_FAIL_ACT](../advanced_config/parameter_reference.md#COM_ACT_FAIL_ACT) | Failsafe action on a detected motor failure, such as warning, hold, return, land, or terminate.                                                        |
+| Parameter                                                                                                   | Description                                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                      | Enable motor failure detection. Disabled by default.                                                                             |
+| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)                | Current model slope: expected current per unit of motor command (A).                                                             |
+| <a id="MOTFAIL_IDLE"></a>[MOTFAIL_IDLE](../advanced_config/parameter_reference.md#MOTFAIL_IDLE)             | Current model offset: expected current at zero command (A).                                                                      |
+| <a id="MOTFAIL_UNDER"></a>[MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER)          | Undercurrent trip band (A): how far below the expected current a motor may run.<br>Set to `0` to disable undercurrent detection. |
+| <a id="MOTFAIL_UND_TIME"></a>[MOTFAIL_UND_TIME](../advanced_config/parameter_reference.md#MOTFAIL_UND_TIME) | Time (s) the undercurrent band must be exceeded before the motor is flagged.                                                     |
+| <a id="MOTFAIL_OVER"></a>[MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER)             | Overcurrent trip band (A): how far above the expected current a motor may run.<br>Set to `0` to disable overcurrent detection.   |
+| <a id="MOTFAIL_OVR_TIME"></a>[MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME) | Time (s) the overcurrent band must be exceeded before the motor is flagged.                                                      |
+| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)    | What the control allocator does on a failure, such as removing the failed motor from the allocation.                             |
+| <a id="COM_ACT_FAIL_ACT"></a>[COM_ACT_FAIL_ACT](../advanced_config/parameter_reference.md#COM_ACT_FAIL_ACT) | Failsafe action on a detected motor failure, such as warning, hold, return, land, or terminate.                                  |
 
 ## Upgrading From PX4 v1.18
 
