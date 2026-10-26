@@ -60,6 +60,7 @@
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 #include "mission_route_types.h"
+#include <uORB/topics/mission_item_selection.h>
 // Only the route planning modes override these hooks, so without the mission cache they are plain functions.
 #define MISSION_ROUTE_HOOK virtual
 #else
@@ -135,8 +136,9 @@ protected:
 	/** DO_JUMP edge being flown, so a rejoin or route replan stays on an active loop. */
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 
-	/** Activation keeps the current item until a position item is reached: first start, landing, selection or abort. */
-	bool _keep_index_until_reached{false};
+	/** A selection or landing abort blocks smart join until a mission position item is reached. */
+	bool _mission_item_selection_pending{false};
+	virtual void updateMissionItemSelection() {}
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	struct VtolTransitionContext {
@@ -552,7 +554,7 @@ protected:
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
 	MissionCheckState _mission_check_state{MissionCheckState::Unchecked};
 	bool _system_disarmed_while_inactive{false};		/**< Flag indicating if the system has been disarmed while mission is inactive*/
-	mission_s _mission;					/**< Currently active mission*/
+	mission_s _mission{};					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
 	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */

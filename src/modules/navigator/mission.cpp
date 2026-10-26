@@ -81,6 +81,19 @@ Mission::on_inactive()
 	}
 
 	MissionBase::on_inactive();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	updateMissionItemSelection();
+#endif
+}
+
+void
+Mission::on_inactivation()
+{
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	_vehicle_status_sub.update();
+	updateMissionItemSelection();
+#endif
+	MissionBase::on_inactivation();
 }
 
 void
@@ -88,28 +101,28 @@ Mission::on_activation()
 {
 	_need_mission_save = true;
 
-	check_mission_valid(true);
-
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	_global_pos_sub.update();
 	_vehicle_status_sub.update();
 	_land_detected_sub.update();
+	updateMavlinkMission();
+	updateMissionItemSelection();
+#endif
 
-	// Restart before planning the join. MissionBase::on_activation() must not restart again once the
-	// join has selected its target, which can be the last item.
+	check_mission_valid(true);
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// Restart before choosing where to join. MissionBase must not restart again after we pick a target.
 	const bool restarted = checkMissionRestart();
 
 	if (restarted) {
 		_active_jump_anchor = {};
 	}
 
-	// Only a mission flown along its route joins. After the first start, a landing (disarm, also before a restart)
-	// or a selection, fly to the current item, also across later pauses, until a position item is reached.
-	const bool keep_mission_index = !_mission_has_been_activated || _system_disarmed_while_inactive
-					|| _keep_index_until_reached;
+	// An explicit selection or landing abort takes priority over smart join.
 	_system_disarmed_while_inactive = false;
-	trySetRouteJoinOnActivation(keep_mission_index);
-	_keep_index_until_reached = keep_mission_index;
+	trySetRouteJoinOnActivation(_mission_item_selection_pending);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	MissionBase::on_activation();
@@ -122,8 +135,83 @@ Mission::on_active()
 	_land_detected_sub.update();
 	recheckAfterHomeUpdateOnGround();
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	updateMavlinkMission();
+	updateMissionItemSelection();
+#endif
 	MissionBase::on_active();
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+void Mission::keepCurrentMissionItem(hrt_abstime selection_timestamp)
+{
+	if (selection_timestamp == 0) {
+		selection_timestamp = hrt_absolute_time();
+	}
+
+	// An old command must not restore a selection cancelled by Return or overwrite a newer selection.
+	if (selection_timestamp >= _last_mission_item_selection && selection_timestamp >= _last_return_started) {
+		_mission_item_selection_pending = true;
+	}
+
+	_last_mission_item_selection = math::max(_last_mission_item_selection, selection_timestamp);
+	_inactivation_index = -1;
+
+	// Selecting the join target means fly directly to it, so cancel the join.
+	if (_route_join_context.valid()) {
+		resetJoinRouteState();
+
+		if (isActive()) {
+			_navigator->reset_triplets();
+			update_mission();
+			set_mission_items();
+		}
+	}
+}
+
+void Mission::updateMissionItemSelection()
+{
+	const vehicle_status_s &status = _vehicle_status_sub.get();
+
+	if (status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+	    && _last_selection_nav_state != status.nav_state) {
+		// Starting Return cancels earlier selections, even if Mission keeps flying the landing.
+		// A command sent after Return starts can select an item again.
+		_last_return_started = status.nav_state_timestamp != 0 ? status.nav_state_timestamp : status.timestamp;
+
+		if (_last_mission_item_selection <= _last_return_started) {
+			_mission_item_selection_pending = false;
+		}
+	}
+
+	_last_selection_nav_state = status.nav_state;
+	_mission_item_selection_sub.update();
+	const mission_item_selection_s &selection = _mission_item_selection_sub.get();
+
+	// Ignore selections already handled, made before Return, or for another mission.
+	// A new selection can have the same timestamp as the start of Return.
+	if (selection.timestamp <= _last_mission_item_selection || selection.timestamp < _last_return_started
+	    || selection.mission_id != _mission.mission_id
+	    || selection.mission_dataman_id != _mission.mission_dataman_id) {
+		return;
+	}
+
+	// Wait if the matching mission update has not arrived yet.
+	// A newer update can replace the selected item, for example while following the route in Return.
+	if (selection.selected_seq >= 0 && selection.selected_seq != _mission.current_seq
+	    && _mission.timestamp < selection.timestamp) {
+		return;
+	}
+
+	_mission_item_selection_pending = selection.selected_seq >= 0 && selection.selected_seq == _mission.current_seq;
+
+	if (_mission_item_selection_pending) {
+		keepCurrentMissionItem(selection.timestamp);
+	}
+
+	_last_mission_item_selection = selection.timestamp;
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 void
 Mission::recheckAfterHomeUpdateOnGround()
@@ -141,8 +229,17 @@ Mission::recheckAfterHomeUpdateOnGround()
 
 
 bool
-Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
+Mission::set_current_mission_index(int32_t index, bool reset_jump_counters, hrt_abstime selection_timestamp)
 {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// Load any new mission before applying the selection command.
+	_vehicle_status_sub.update();
+	updateMavlinkMission();
+	updateMissionItemSelection();
+#else
+	(void)selection_timestamp;
+#endif
+
 	if (!_navigator->get_mission_result()->valid || (_mission.count == 0)) {
 		return false;
 	}
@@ -173,9 +270,9 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
-		// Selecting the current item keeps it until it is reached, as any selection (-1 selects no item).
+		// Selecting the current item also overrides smart join; -1 does not select an item.
 		if (index != -1) {
-			_keep_index_until_reached = true;
+			keepCurrentMissionItem(selection_timestamp);
 		}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -193,11 +290,12 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 	}
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	// The user actively moved the mission index: any armed route join or loop anchor is stale.
+	// A new selection cancels the pending join and the current DO_JUMP leg.
 	resetJoinRouteState();
 	_active_jump_anchor = {};
 	// Fly to the selected item, also across pauses, until a position item is reached.
-	_keep_index_until_reached = true;
+	_mission_item_selection_pending = false;
+	keepCurrentMissionItem(selection_timestamp);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	resetVtolTransition();
 

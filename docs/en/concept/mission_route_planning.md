@@ -60,24 +60,33 @@ If a rejoin cannot be planned, Mission mode resumes without smart rejoin and rep
 This can happen while the mission is still loading into the [route cache](../advanced/mission_route_cache.md).
 Camera-trigger survey resume takes precedence over smart rejoin.
 Mission returns to the previous survey waypoint without a branch-in.
-Selecting a different mission item while Mission mode is active cancels a pending smart rejoin.
+Explicitly selecting a mission item while Mission mode is active cancels a pending smart rejoin, including when selecting its current target.
 A finished mission is not rejoined: Mission mode holds, as it does without smart rejoin.
 
-Smart rejoin only runs when Mission mode resumes a mission that the vehicle was flying along its route, for example after Hold, a GoTo or manual flight.
-Mission mode instead flies directly to the current mission item, as it does without smart rejoin, after:
+With smart rejoin enabled, starting or continuing Mission while airborne attempts to join the route, including the first start after an upload or reboot and a new flight after disarming.
+The join may skip earlier mission items, even on the first start.
+Starting Mission on the ground follows the mission normally; a later airborne resume can use smart rejoin.
 
-- The first start of a mission, after an upload or a reboot, even if the vehicle is already flying.
-- A landing: a new flight after the vehicle was disarmed starts at the current mission item, or at the first item if its current item was the last item.
-- Selecting a mission item, for example with `MISSION_SET_CURRENT`, `MAV_CMD_DO_SET_MISSION_CURRENT`, `MAV_CMD_MISSION_START` with a first item, or `MAV_CMD_DO_LAND_START`.
-- A landing abort on the mission landing, in Mission or Return, so that its approach is flown again.
+Explicitly selecting a mission item overrides smart rejoin: Mission flies to that item using normal mission handling.
+This includes `MISSION_SET_CURRENT`, `MAV_CMD_DO_SET_MISSION_CURRENT`, `MAV_CMD_MISSION_START` with a first item, and `MAV_CMD_DO_LAND_START`.
+The selection persists through Hold, GoTo and further resumes until Mission reaches a mission position item.
 
-It keeps doing so across further pauses until the vehicle reaches a mission waypoint.
-A Return that follows the mission and changes its current item is not a selection: Mission rejoins the route afterwards, unless it was still flying directly to an item when the Return started.
-An item selected during a route-following Return is replaced by the Return's next route item, and Mission then flies directly to that item.
+Entering Return cancels an earlier selection, so continuing Mission afterwards can use smart rejoin, including after an intervening Hold.
+A new explicit selection made after Return starts can override smart rejoin again.
+If Return subsequently replaces that selected item with its next route item, the override is cancelled rather than transferred to the new item.
+Return's automatic mission-index changes do not themselves count as selections.
 
-When the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
+Uploading a mission cancels an earlier selection, including when uploading the same mission again.
+An upload while Mission is active replaces the mission using normal mission handling; it does not immediately plan a join.
+Smart rejoin is attempted on the next airborne Mission activation, subject to route-cache availability.
+
+A landing abort on the mission landing, in Mission or Return, selects the landing approach again so that it is flown again on Continue.
+This is the fixed-wing go-around mechanism, not an ordinary switch to Hold during landing.
+Like an explicit selection, it overrides smart rejoin across Hold and GoTo until Mission reaches a mission position item; entering Return or uploading a mission cancels it.
+
+When smart rejoin is eligible, the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
 This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.
-After moving outside that radius, for example with GoTo, resuming Mission uses normal smart rejoin, including reaching the route altitude before any required front transition.
+After moving outside that radius, for example with GoTo during an ordinary paused descent, resuming Mission uses normal smart rejoin, including reaching the route altitude before any required front transition.
 
 When a VTOL rejoin requires a front transition, the vehicle follows this sequence:
 

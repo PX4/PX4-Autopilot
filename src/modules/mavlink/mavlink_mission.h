@@ -51,6 +51,10 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/vehicle_status.h>
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include <uORB/topics/mission_item_selection.h>
+#endif
+
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
 
@@ -162,6 +166,10 @@ private:
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	uORB::Publication<mission_item_selection_s> _mission_item_selection_pub {ORB_ID(mission_item_selection)};
+#endif
+
 	int32_t 		_land_start_marker{-1}; 	///< index of loaded land start mission item (if unavailable, index of land mission item, -1 otherwise)
 	int32_t 		_land_marker{-1}; 		///< index of loaded land mission item (-1 if unavailable)
 
@@ -194,7 +202,7 @@ private:
 	void init_offboard_mission(const mission_s &mission_state);
 
 	void update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
-				   bool write_to_dataman = true);
+				   bool write_to_dataman = true, bool item_selected = false);
 
 	// Updates the shared active-mission statics and returns the mission_s to publish.
 	// The caller must hold _shared_state_mutex; does not lock, write to dataman, or publish.
