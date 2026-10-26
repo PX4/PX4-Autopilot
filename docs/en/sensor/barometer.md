@@ -55,7 +55,7 @@ This calibration:
 ### GNSS-Baro Calibration
 
 ::: info
-GNSS-baro calibration requires an operational GNSS receiver with vertical accuracy (EPV) ≤ 8 meters.
+GNSS-baro calibration requires an operational GNSS receiver passing user defined strict checks.
 Relative calibration must already have completed.
 :::
 
