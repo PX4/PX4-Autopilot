@@ -121,7 +121,7 @@ PX4 supports these commands for changing modes on some vehicle types:
 - [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_ORBIT) — MC Orbit mode
 - [MAV_CMD_NAV_VTOL_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_TAKEOFF) — VTOL specific takeoff mode
 - [MAV_CMD_DO_REPOSITION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)
-- [MAV_CMD_MISSION_START](https://mavlink.io/en/messages/common.html#MAV_CMD_MISSION_START) — Starts a mission.
+- [MAV_CMD_MISSION_START](https://mavlink.io/en/messages/common.html#MAV_CMD_MISSION_START) — Starts a mission (does not arm the vehicle).
 
 Note that these commands predate "standard modes" and are mapped to vehicle-specific custom modes.
 What that means is that even though the standard mode may be applicable to multiple vehicle types, the mode may only work for particular vehicles.
