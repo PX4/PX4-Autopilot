@@ -202,5 +202,5 @@ private:
 	perf_counter_t _sensor_resets{perf_alloc(PC_COUNT, "ll40ls: resets")};
 	perf_counter_t _sensor_zero_resets{perf_alloc(PC_COUNT, "ll40ls: zero resets")};
 
-	int _ll40ls_signal_strength_min_v3hp = 35; 	/* Min signal strength for V3HP. Modified by param: LL40LS_MIN_STRG */
+	int _ll40ls_signal_strength_min_v3hp = 70; 	/* Min signal strength for V3HP. Modified by param: SENS_LL40LS_SMIN */
 };

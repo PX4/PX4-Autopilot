@@ -69,7 +69,7 @@ LidarLiteI2C::init()
 		return PX4_ERROR;
 	}
 
-	param_t handle = param_find("LL40LS_MIN_STRG");
+	param_t handle = param_find("SENS_LL40LS_SMIN");
 
 	if (handle != PARAM_INVALID) {
 		int32_t ll40ls_signal_strength_min_v3hp;
