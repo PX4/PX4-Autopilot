@@ -1525,9 +1525,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
 					// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
 					/* airspeed calibration */
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AirspeedCalibration);
+#else
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+#endif
 
 				} else if ((int)(cmd.param7) == 1) {
 					/* do esc calibration */
