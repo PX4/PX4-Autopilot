@@ -72,13 +72,6 @@ public:
 
 	enum class Failure : uint8_t { None, Undercurrent, Overcurrent };
 
-	struct MotorStatus {
-		float residual;                     ///< signed residual I - I_expected [A], floored at -I_expected
-		float residual_lpf;                 ///< low-pass filtered residual [A]
-		Failure failure; ///< latched at the first trip, kept until reset()
-		bool  excluded;        ///< not evaluated this step (reversible or NaN command)
-	};
-
 	MotorFailureDetector() { reset(); }
 
 	/** Set the model, bands and trigger times. Keeps filter, debounce and latch state. */
@@ -97,11 +90,17 @@ public:
 	 */
 	void update(int i, hrt_abstime now_us, float command, float current, bool reversible);
 
-	const MotorStatus &status(int i) const { return _status[i]; }
+	/** Failure of motor i, latched at the first trip and kept until reset(). */
+	Failure failure(int i) const { return validIndex(i) ? _failure[i] : Failure::None; }
+
+	/** Low-pass filtered residual I - I_expected of motor i [A]. */
+	float residualFiltered(int i) const { return validIndex(i) ? _residual_lpf[i].getState() : 0.f; }
 
 private:
+	static bool validIndex(int i) { return 0 <= i && i < kMaxMotors; }
+
 	Config                _cfg{};
-	MotorStatus           _status[kMaxMotors] {};
+	Failure               _failure[kMaxMotors] {};
 	AlphaFilter<float>    _residual_lpf[kMaxMotors];
 	systemlib::Hysteresis _hyst_over[kMaxMotors];
 	systemlib::Hysteresis _hyst_under[kMaxMotors];

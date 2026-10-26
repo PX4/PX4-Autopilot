@@ -293,14 +293,14 @@ public:
 
 				_det[p].update(i, (hrt_abstime)slot_us[i], command[i], current[i], reversible[i]);
 
-				const float residual_lpf = _det[p].status(i).residual_lpf;
+				const float residual_lpf = _det[p].residualFiltered(i);
 
 				if (!std::isnan(residual_lpf)) {
 					_rmin[p][i] = std::min(_rmin[p][i], residual_lpf);
 					_rmax[p][i] = std::max(_rmax[p][i], residual_lpf);
 				}
 
-				if (_det[p].status(i).failure != MotorFailureDetector::Failure::None && _trip_time[p][i] < 0) { _trip_time[p][i] = elapsed_s; }
+				if (_det[p].failure(i) != MotorFailureDetector::Failure::None && _trip_time[p][i] < 0) { _trip_time[p][i] = elapsed_s; }
 			}
 
 			if (p == 0) { ++_evaluated; }

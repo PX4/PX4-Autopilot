@@ -59,7 +59,7 @@ void MotorFailureDetector::configure(const Config &cfg)
 void MotorFailureDetector::reset()
 {
 	for (int i = 0; i < kMaxMotors; ++i) {
-		_status[i] = MotorStatus{};
+		_failure[i] = Failure::None;
 		_residual_lpf[i].reset(0.f);
 		_hyst_over[i].set_state_and_update(false, 0);  // no falling-edge delay: clears immediately, keeps the debounce times
 		_hyst_under[i].set_state_and_update(false, 0);
@@ -70,7 +70,7 @@ void MotorFailureDetector::reset()
 void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, float current, bool reversible)
 {
 	// disable the current-residual check, or out of range
-	if (_cfg.overcurrent_threshold_a <= 0.f || i < 0 || i >= kMaxMotors) {
+	if (_cfg.overcurrent_threshold_a <= 0.f || !validIndex(i)) {
 		return;
 	}
 
@@ -82,12 +82,9 @@ void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, floa
 	const float dt = static_cast<float>(now_us - _last_us[i]) * 1e-6f;
 	_last_us[i] = now_us;
 
-	_status[i].excluded = std::isnan(command) || reversible;
-
-	// Cannot evaluate (excluded, or dt > kMaxGap incl. the first call) -> reset filter + debounce so
-	// re-entry starts clean; the latch is kept.
-	if (_status[i].excluded || dt > kMaxGap) {
-		_status[i].residual_lpf = 0.f;
+	// Cannot evaluate (NaN or reversible command, or dt > kMaxGap incl. the first call) -> reset
+	// filter + debounce so re-entry starts clean; the latch is kept.
+	if (std::isnan(command) || reversible || dt > kMaxGap) {
 		_residual_lpf[i].reset(0.f);
 		_hyst_over[i].set_state_and_update(false, now_us); // cancel any pending trip
 		_hyst_under[i].set_state_and_update(false, now_us);
@@ -99,24 +96,23 @@ void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, floa
 
 	if (std::isfinite(current)) {
 		// A motor cannot draw less than 0 A, so a residual below -I_exp is regeneration, not a fault.
-		_status[i].residual = fmaxf(current - i_expected, -i_expected);
 		_residual_lpf[i].setParameters(dt, _cfg.residual_lpf_tau_s);
-		_residual_lpf[i].update(_status[i].residual);
-		_status[i].residual_lpf = _residual_lpf[i].getState();
+		_residual_lpf[i].update(fmaxf(current - i_expected, -i_expected));
 	}
 
-	// else: dropout -- residual held; the debounce keeps running on it (fault + dropout still latches).
+	// else: dropout -- filtered residual held; the debounce keeps running on it (fault + dropout still latches).
 
 	// Each band must hold for its trigger time (Hysteresis); the decision is then latched.
-	_hyst_over[i].set_state_and_update(_status[i].residual_lpf >= _cfg.overcurrent_threshold_a, now_us);
-	_hyst_under[i].set_state_and_update(-_status[i].residual_lpf >= _cfg.undercurrent_threshold_a, now_us);
+	const float residual_lpf = _residual_lpf[i].getState();
+	_hyst_over[i].set_state_and_update(residual_lpf >= _cfg.overcurrent_threshold_a, now_us);
+	_hyst_under[i].set_state_and_update(-residual_lpf >= _cfg.undercurrent_threshold_a, now_us);
 
-	if (_status[i].failure == Failure::None) {
+	if (_failure[i] == Failure::None) {
 		if (_hyst_under[i].get_state()) {
-			_status[i].failure = Failure::Undercurrent;
+			_failure[i] = Failure::Undercurrent;
 
 		} else if (_hyst_over[i].get_state()) {
-			_status[i].failure = Failure::Overcurrent;
+			_failure[i] = Failure::Overcurrent;
 		}
 	}
 }

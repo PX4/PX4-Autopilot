@@ -312,9 +312,8 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 			_motor_failure_detector.update(i, esc_status.esc[i].timestamp, actuator_motors.control[motor], measured_current,
 						       (actuator_motors.reversible_flags >> motor) & 1);
 
-			// Report the latch alone: handling a failure excludes its own motor (NAN command), so gating
-			// the report on `excluded` would retract the failure and restore the motor every tick.
-			const MotorFailureDetector::Failure failure = _motor_failure_detector.status(i).failure;
+			// The latch outlives handling the failure, which stops evaluating its own motor (NAN command).
+			const MotorFailureDetector::Failure failure = _motor_failure_detector.failure(i);
 
 			if (failure != MotorFailureDetector::Failure::None) {
 				mask |= (1u << motor);
