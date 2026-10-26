@@ -871,8 +871,8 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 
 	if (function >= (int)OutputFunction::Motor1 && function < ((int)OutputFunction::Motor1 + DSHOT_MAXIMUM_CHANNELS)) {
 		for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; ++i) {
-			if ((int)_mixing_output.outputFunction(i) == function && _mixing_output.isMotor(i)) {
-				motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+			if ((int)_mixing_output.outputFunction(i) == function && motor_index_from_output(i) >= 0) {
+				motor_index = motor_index_from_output(i);
 			}
 		}
 	}
@@ -1071,6 +1071,13 @@ void DShot::mixerChanged()
 bool DShot::initialize_dshot()
 {
 	uint32_t dshot_timer_channels = 0;  // Channels on DShot-enabled timers
+
+	char gpio_param_name[17] = {};
+	snprintf(gpio_param_name, sizeof(gpio_param_name), "%s_GPIO_EN", _mixing_output.paramPrefix());
+
+	int32_t gpio_en = 0;
+	param_get(param_find(gpio_param_name), &gpio_en);
+	_gpio_mask = (uint32_t)gpio_en;
 
 	// Iterate through timers to determine DShot frequency and BDShot channels
 	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {

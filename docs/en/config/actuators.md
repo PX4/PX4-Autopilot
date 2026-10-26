@@ -409,21 +409,28 @@ The output is assigned a [function](#output-functions) as usual, but instead of 
 
 To configure an output as GPIO:
 
-1. Enable **Advanced**
-2. Check the channel in the **GPIO Output** column of the PWM tab.
+1. Enable **Advanced**.
+2. Make sure the timer group of the channel is set to a PWM rate or OneShot.
+   The **GPIO Output** column is hidden for timer groups set to DShot.
+3. Check the channel in the **GPIO Output** column of the PWM tab.
    This sets the bitmask parameter `PWM_MAIN_GPIO_EN` or `PWM_AUX_GPIO_EN`, depending on which tab shows the FMU outputs on your flight controller (`PWM_AUX` on boards with an I/O board).
 
    ![Actuator Outputs - PWM MAIN tab with GPIO Output column](../../assets/config/actuators/qgc_actuators_pwm_gpio_output.png)
 
-3. Assign a function, minimum, maximum and disarmed value as for any other output.
-4. Reboot the vehicle.
+4. Assign a function, minimum, maximum and disarmed value as for any other output.
+5. Reboot the vehicle.
 
-The selected channels are claimed by the `gpio_out` driver before `pwm_out` and `dshot` start, and are skipped by those drivers.
-The remaining outputs of the same timer group can still be used for other usecases.
+The selected channels are skipped by `pwm_out` and `dshot`, and driven by the `gpio_out` driver instead.
+The remaining outputs of the same timer group can still be used as PWM or OneShot outputs.
+
+The output keeps its reset level until `gpio_out` starts, which happens after the other output drivers during boot.
+It is then set to the level of its disarmed value.
 
 ::: info
 GPIO outputs are only available on FMU outputs, and only on boards where the `gpio_out` driver is enabled in the board configuration (`CONFIG_DRIVERS_GPIO_OUT`).
 Outputs on an I/O board (`PWM_MAIN` on boards with an I/O board) are not supported.
+Outputs on a timer group set to DShot are not supported either.
+If such a channel is selected in `PWM_MAIN_GPIO_EN` or `PWM_AUX_GPIO_EN` (for example through the parameter list), `gpio_out` ignores it and prints a warning.
 :::
 
 ::: tip

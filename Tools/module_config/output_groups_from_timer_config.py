@@ -203,6 +203,9 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
                 for standard_param in group['standard_params']:
                     group['standard_params'][standard_param]['show_if'] = timer_param_name + '>=-1'
 
+                for custom_param in group.get('custom_params', []):
+                    custom_param['show_if'] = timer_param_name + '>=-1'
+
                 # indicate support for changing motor spin direction
                 group['supported_actions'] = {
                         'set_spin_direction1': {
