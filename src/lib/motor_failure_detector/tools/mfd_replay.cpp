@@ -199,7 +199,7 @@ protected:
 
 			for (int k = 0; k < count; ++k) {
 				const EscSample &s = samples[k];
-				_det[p].update(s.slot, s.timestamp_us, s.command, s.current, s.reversible);
+				_det[p].update(s.slot, s.timestamp_us, s.command, s.current);
 
 				const float residual_lpf = _det[p].residualFiltered(s.slot);
 

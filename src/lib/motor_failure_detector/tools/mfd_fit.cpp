@@ -117,10 +117,9 @@ protected:
 		for (int k = 0; k < count; ++k) {
 			const EscSample &s = samples[k];
 
-			// Count each ESC sample once. A motor the allocation switched off (NAN), one in reversible
-			// mode, or an ESC reporting no current describes nothing about the healthy forward model.
-			if (!s.fresh || !std::isfinite(s.current) || s.current <= FLT_EPSILON
-			    || !std::isfinite(s.command) || s.reversible) {
+			// Count each ESC sample once. A motor the allocation switched off or in reversible mode (NAN),
+			// or an ESC reporting no current describes nothing about the healthy forward model.
+			if (!s.fresh || !std::isfinite(s.current) || s.current <= FLT_EPSILON || !std::isfinite(s.command)) {
 				continue;
 			}
 

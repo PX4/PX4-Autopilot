@@ -84,11 +84,12 @@ public:
 
 	/**
 	 * Advance motor i to its sample timestamp now_us [us] (dt derived per motor; a repeated
-	 * timestamp is the same sample again and is ignored). A non-finite command or current, or a
-	 * reversible motor, is not evaluated; neither is a step > kMaxGap, e.g. after the motor was not
-	 * updated for a while. Both reset filter and debounce, the latch is kept. configure() first.
+	 * timestamp is the same sample again and is ignored). A non-finite command or current is not
+	 * evaluated (the model only describes forward thrust, so pass NAN for a reversible motor);
+	 * neither is a step > kMaxGap, e.g. after the motor was not updated for a while. Both reset
+	 * filter and debounce, the latch is kept. configure() first.
 	 */
-	void update(int i, hrt_abstime now_us, float command, float current, bool reversible);
+	void update(int i, hrt_abstime now_us, float command, float current);
 
 	/** Failure of motor i, latched at the first trip and kept until reset(). */
 	Failure failure(int i) const { return validIndex(i) ? _failure[i] : Failure::None; }

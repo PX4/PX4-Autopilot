@@ -49,6 +49,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cfloat>
 #include <cstdint>
 #include <cstdio>
@@ -61,9 +62,8 @@ struct EscSample {
 	int motor;              ///< 0-based motor index (actuator_function - MOTOR1), selects the command
 	uint64_t timestamp_us;  ///< the ESC's own sample time
 	bool fresh;             ///< first record carrying this sample (esc_status repeats ESCs that did not report)
-	float command;          ///< latest actuator_motors control of that motor
+	float command; ///< latest actuator_motors control of that motor, NAN if it is reversible (like escCheck)
 	float current;          ///< [A]
-	bool reversible;        ///< motor configured reversible in actuator_motors
 };
 
 class EscLogReader : public ulog_cpp::DataContainer
@@ -162,8 +162,8 @@ public:
 
 			const int motor = function - kMotor1;
 			const uint64_t timestamp_us = esc[_esc_slot_timestamp_f].as<uint64_t>();
-			samples[count++] = {slot, motor, timestamp_us, timestamp_us != _last_sample_us[slot], _command_latest[motor],
-					    current, _reversible_latest[motor]};
+			const float command = _reversible_latest[motor] ? NAN : _command_latest[motor];
+			samples[count++] = {slot, motor, timestamp_us, timestamp_us != _last_sample_us[slot], command, current};
 			_last_sample_us[slot] = timestamp_us;
 		}
 

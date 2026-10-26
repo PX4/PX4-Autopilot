@@ -58,7 +58,7 @@ void MotorFailureDetector::reset()
 	}
 }
 
-void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, float current, bool reversible)
+void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, float current)
 {
 	if (!validIndex(i)) {
 		return;
@@ -72,9 +72,9 @@ void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, floa
 	const float dt = static_cast<float>(now_us - _last_us[i]) * 1e-6f;
 	_last_us[i] = now_us;
 
-	// Cannot evaluate (non-finite command or current, reversible, or dt > kMaxGap incl. the first call)
+	// Cannot evaluate (non-finite command or current, or dt > kMaxGap incl. the first call)
 	// -> reset filter + debounce so re-entry starts clean; the latch is kept.
-	if (!std::isfinite(command) || !std::isfinite(current) || reversible || dt > kMaxGap) {
+	if (!std::isfinite(command) || !std::isfinite(current) || dt > kMaxGap) {
 		_residual_lpf[i].reset(0.f);
 		_hyst_over[i].set_state_and_update(false, now_us); // cancel any pending trip
 		_hyst_under[i].set_state_and_update(false, now_us);

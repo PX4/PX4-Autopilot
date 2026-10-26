@@ -309,10 +309,13 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				continue;
 			}
 
+			// The current model only describes forward thrust: a reversible motor is not evaluated.
+			const bool reversible = (actuator_motors.reversible_flags >> motor) & 1;
+			const float command = reversible ? NAN : actuator_motors.control[motor];
+
 			// Drive the detector off this ESC's own sample time: esc_status is published whenever any ESC
 			// reports, so the other slots may still hold an older sample, which must not count again.
-			_motor_failure_detector.update(i, esc_status.esc[i].timestamp, actuator_motors.control[motor], measured_current,
-						       (actuator_motors.reversible_flags >> motor) & 1);
+			_motor_failure_detector.update(i, esc_status.esc[i].timestamp, command, measured_current);
 
 			// The latch outlives handling the failure, which stops evaluating its own motor (NAN command).
 			const MotorFailureDetector::Failure failure = _motor_failure_detector.failure(i);

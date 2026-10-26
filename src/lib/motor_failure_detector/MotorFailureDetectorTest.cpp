@@ -61,11 +61,11 @@ MotorFailureDetector::Config makeConfig()
 // Drive motor 0 for `seconds` at fixed dt, advancing the timestamp `now`, with command u
 // and current current_fn(t). The first update() of a fresh detector just seeds the clock.
 void run(MotorFailureDetector &d, hrt_abstime &now, float seconds, float dt, float u,
-	 const std::function<float(float)> &current_fn, bool reversible = false)
+	 const std::function<float(float)> &current_fn)
 {
 	for (float t = 0.f; t < seconds; t += dt) {
 		now += us(dt);
-		d.update(0, now, u, current_fn(t), reversible);
+		d.update(0, now, u, current_fn(t));
 	}
 }
 
@@ -246,7 +246,7 @@ TEST(MotorFailureDetectorTest, GapResetsTriggerTimer)
 	ASSERT_EQ(d.failure(0), Failure::None);
 
 	now += us(0.5f);                                            // > kMaxGap -> gap resets filters + debounce
-	d.update(0, now, 0.3f, 0.f, false);
+	d.update(0, now, 0.3f, 0.f);
 
 	run(d, now, 0.45f, kDt, 0.3f, [](float) { return 0.f; });   // rebuild from zero, < 0.5 s -> must NOT latch
 	EXPECT_EQ(d.failure(0), Failure::None);
@@ -264,18 +264,15 @@ TEST(MotorFailureDetectorTest, TenHzFeedLatchesButRealGapStillResets)
 	EXPECT_FALSE(latchesAtCadence(0.5f)); // outage
 }
 
-// Exclusion gates: a reversible or NaN (motor-off) command is never evaluated.
-TEST(MotorFailureDetectorTest, ExcludedGates)
+// Exclusion gate: a NaN command (motor off, or reversible) is never evaluated.
+TEST(MotorFailureDetectorTest, ExcludedGate)
 {
-	for (auto kind : {0, 1}) {
-		MotorFailureDetector d;
-		d.configure(makeConfig());
-		hrt_abstime now = 0;
-		const float u = (kind == 1) ? NAN : 0.3f;
-		run(d, now, 5.f, kDt, u, [](float) { return 150.f; }, /*reversible=*/kind == 0);
-		EXPECT_EQ(d.failure(0), Failure::None);
-		EXPECT_EQ(d.residualFiltered(0), 0.f); // excluded: reset every step
-	}
+	MotorFailureDetector d;
+	d.configure(makeConfig());
+	hrt_abstime now = 0;
+	run(d, now, 5.f, kDt, NAN, [](float) { return 150.f; });
+	EXPECT_EQ(d.failure(0), Failure::None);
+	EXPECT_EQ(d.residualFiltered(0), 0.f); // excluded: reset every step
 }
 
 // A threshold <= 0 disables that band (a default-constructed Config disables both): never latches.
@@ -322,9 +319,9 @@ TEST(MotorFailureDetectorTest, LargeDtGapNoLatch)
 	MotorFailureDetector d;
 	d.configure(makeConfig());                            // trigger time 0.5 s
 	hrt_abstime now = 0;
-	d.update(0, now, 0.3f, 0.f, false); // seed the clock
+	d.update(0, now, 0.3f, 0.f); // seed the clock
 	now += us(10.f);                                      // 10 s >> kMaxGap, single step -> gap, no latch
-	d.update(0, now, 0.3f, 0.f, false);
+	d.update(0, now, 0.3f, 0.f);
 	EXPECT_EQ(d.failure(0), Failure::None);
 }
 
@@ -343,20 +340,17 @@ TEST(MotorFailureDetectorTest, ExclusionReentryNoStaleTrip)
 }
 
 // The latch outlives exclusion. Handling a failure makes that motor unevaluable -- dropped from
-// allocation (NAN command) or driven reversible -- and that must not retract its own trigger.
+// allocation or driven reversible, both a NAN command -- and that must not retract its own trigger.
 TEST(MotorFailureDetectorTest, LatchSurvivesExclusion)
 {
-	for (auto kind : {0, 1}) {
-		MotorFailureDetector d;
-		d.configure(makeConfig());
-		hrt_abstime now = 0;
-		run(d, now, 3.f, kDt, 0.3f, [](float) { return 0.f; });    // latch
-		ASSERT_EQ(d.failure(0), Failure::Undercurrent);
-		const float u = (kind == 1) ? NAN : 0.3f;
-		run(d, now, 1.f, kDt, u, [](float) { return kBase; }, /*reversible=*/kind == 0);
-		EXPECT_EQ(d.residualFiltered(0), 0.f); // excluded: reset every step
-		EXPECT_EQ(d.failure(0), Failure::Undercurrent);
-	}
+	MotorFailureDetector d;
+	d.configure(makeConfig());
+	hrt_abstime now = 0;
+	run(d, now, 3.f, kDt, 0.3f, [](float) { return 0.f; }); // latch
+	ASSERT_EQ(d.failure(0), Failure::Undercurrent);
+	run(d, now, 1.f, kDt, NAN, [](float) { return kBase; });
+	EXPECT_EQ(d.residualFiltered(0), 0.f); // excluded: reset every step
+	EXPECT_EQ(d.failure(0), Failure::Undercurrent);
 }
 
 // reset() clears the sticky failure latch (re-arm).
@@ -393,18 +387,18 @@ TEST(MotorFailureDetectorTest, SkippedMotorRestartsClean)
 
 	for (float t = 0.f; t < 0.45f; t += kDt) { // fault building on motor 0, not latched
 		now += us(kDt);
-		d.update(0, now, 0.3f, 0.f, false);
-		d.update(1, now, 0.3f, kBase, false);
+		d.update(0, now, 0.3f, 0.f);
+		d.update(1, now, 0.3f, kBase);
 	}
 
 	for (float t = 0.f; t < 0.5f; t += kDt) { // motor 0 skipped > kMaxGap, motor 1 continues
 		now += us(kDt);
-		d.update(1, now, 0.3f, kBase, false);
+		d.update(1, now, 0.3f, kBase);
 	}
 
 	for (float t = 0.f; t < 0.45f; t += kDt) { // motor 0 resumes: rebuild from zero, < 0.5 s
 		now += us(kDt);
-		d.update(0, now, 0.3f, 0.f, false);
+		d.update(0, now, 0.3f, 0.f);
 	}
 
 	EXPECT_EQ(d.failure(0), Failure::None);
@@ -421,7 +415,7 @@ TEST(MotorFailureDetectorTest, RepeatedSampleIgnored)
 	const float residual_before = d.residualFiltered(0);
 	ASSERT_LT(residual_before, -1.f);
 
-	for (int k = 0; k < 1000; ++k) { d.update(0, now, NAN, 0.f, false); } // same timestamp, would otherwise reset
+	for (int k = 0; k < 1000; ++k) { d.update(0, now, NAN, 0.f); } // same timestamp, would otherwise reset
 
 	EXPECT_EQ(d.failure(0), Failure::None);
 	EXPECT_EQ(d.residualFiltered(0), residual_before);
@@ -438,7 +432,7 @@ TEST(MotorFailureDetectorTest, MultiMotorIndependent)
 	for (float t = 0.f; t < 3.f; t += kDt) {
 		now += us(kDt);
 
-		for (int i = 0; i < 3; ++i) { d.update(i, now, 0.3f, current[i], false); }
+		for (int i = 0; i < 3; ++i) { d.update(i, now, 0.3f, current[i]); }
 	}
 
 	EXPECT_EQ(d.failure(0), Failure::None);
