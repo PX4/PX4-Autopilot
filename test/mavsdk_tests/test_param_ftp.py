@@ -4,7 +4,7 @@ from typing import Dict, List, NamedTuple, Tuple
 
 import pytest
 
-from autopilot_tester import AutopilotTester, log
+from autopilot_tester import AutopilotTester
 
 # ArduPilot packed parameter format, as served by PX4 at @PARAM/param.pck.
 PCK_MAGIC = (0x671B, 0x671C)
@@ -97,17 +97,11 @@ def compare_downloads(tester: AutopilotTester, local_dir: Path) -> List[str]:
 
 @pytest.mark.multicopter
 def test_parameters_download_via_ftp(tester: AutopilotTester, tmp_path: Path) -> None:
-    tester.wait_until_ready()
+    # The baro GNSS auto-calibration writes CAL_BAROx_OFF shortly after boot, which can land
+    # between the two downloads compared below.
+    tester.set_param_int("SENS_BAR_AUTOCAL", 0)
 
-    # Parameters can still change during startup, e.g. CAL_BAROx_OFF from the baro calibration
-    # against GNSS, so the two downloads can see different values. Retry until they agree.
-    for attempt in range(3):
-        differences = compare_downloads(tester, tmp_path / "attempt{}".format(attempt))
-        if not differences:
-            break
-        log("{} parameters differ, retrying: {}".format(len(differences), differences[:5]))
-        tester.sleep_for(5)
-
+    differences = compare_downloads(tester, tmp_path / "param_ftp")
     assert not differences, "{} parameters differ: {}".format(len(differences), differences)
 
 
