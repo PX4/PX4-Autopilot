@@ -275,10 +275,10 @@ protected:
 	// Last estimator restart seen, the filtered target position restarts on the new estimate with it
 	uint64_t _last_target_estimator_reset_timestamp{0};
 
-	// The local position reference seen last, and the vehicle's z of the last cycle, so a reference change can
-	// move home's altitude by the jump z makes with it
+	// The local position reference seen last, home's altitude moves with its ref_alt
 	float _ref_alt{NAN};
 	uint64_t _ref_timestamp{0};
+	// The vehicle's z of the last cycle, for the move from or to EKF2's placeholder ref_alt
 	float _vehicle_z_last{NAN};
 
 	// Second Order Filter to calculate kinematically feasible target position

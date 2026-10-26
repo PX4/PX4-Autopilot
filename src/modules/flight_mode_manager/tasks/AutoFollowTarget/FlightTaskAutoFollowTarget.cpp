@@ -321,10 +321,12 @@ bool FlightTaskAutoFollowTarget::update()
 	_follow_target_estimator_sub.update(&_follow_target_estimator);
 
 	// A reference change, on an estimator switch or a new origin, moves the local frame under the vehicle, and
-	// home moves with it by the jump the vehicle's own z makes. Neither ref_alt nor delta_z measure that jump,
-	// EKF2 reports ref_alt 0 and a delta_z of minus the origin altitude until it has an altitude origin, while z
-	// does not move. The task holds until the estimate has restarted in the new frame, and the filtered target
-	// restarts with it.
+	// home moves with it by the change of the reference altitude. EKF2 publishes ref_alt 0 with z_global set
+	// while it has no altitude origin and keeps z where it is when the first origin arrives, so from or to that
+	// placeholder home moves by the jump the vehicle's own z makes instead. That and the delta_z of minus the
+	// origin altitude EKF2 reports at that moment are EKF2 bugs with their own fix to come, after which this
+	// fallback can go. The task holds until the estimate has restarted in the new frame, and the filtered
+	// target restarts with it.
 	const vehicle_local_position_s &local_position = _sub_vehicle_local_position.get();
 	bool frame_moved = false;
 
@@ -337,15 +339,18 @@ bool FlightTaskAutoFollowTarget::update()
 	    && (!PX4_ISFINITE(_ref_alt) || (fabsf(local_position.ref_alt - _ref_alt) > 1e-3f))) {
 		if (PX4_ISFINITE(_ref_alt)) {
 			frame_moved = true;
+
+			if (!matrix::isEqualF(_ref_alt, 0.f) && !matrix::isEqualF(local_position.ref_alt, 0.f)) {
+				_home_position_z += local_position.ref_alt - _ref_alt;
+
+			} else if (PX4_ISFINITE(_vehicle_z_last) && PX4_ISFINITE(_position(2))) {
+				// the vehicle's z jump, less what it flew in this cycle
+				const float flown = PX4_ISFINITE(_velocity(2)) ? _velocity(2) * _deltatime : 0.f;
+				_home_position_z += _position(2) - _vehicle_z_last - flown;
+			}
 		}
 
 		_ref_alt = local_position.ref_alt;
-	}
-
-	if (frame_moved && PX4_ISFINITE(_vehicle_z_last) && PX4_ISFINITE(_position(2))) {
-		// the vehicle's z jump, less what it flew in this cycle
-		const float flown = PX4_ISFINITE(_velocity(2)) ? _velocity(2) * _deltatime : 0.f;
-		_home_position_z += _position(2) - _vehicle_z_last - flown;
 	}
 
 	_vehicle_z_last = _position(2);

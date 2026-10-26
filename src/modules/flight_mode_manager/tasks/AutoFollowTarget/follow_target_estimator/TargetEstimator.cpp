@@ -376,7 +376,7 @@ bool TargetEstimator::is_stale(const float timeout_duration_ms) const
 
 void TargetEstimator::reset()
 {
-	_last_filter_reset_timestamp = hrt_absolute_time();  // debug only
+	_last_filter_reset_timestamp = hrt_absolute_time();  // the task restarts its target filter on this
 	_last_position_fusion_timestamp = _last_velocity_fusion_timestamp = 0;
 	_last_follow_target_timestamp = 0;
 	_filter_states.pos_ned_est.setAll(NAN);
