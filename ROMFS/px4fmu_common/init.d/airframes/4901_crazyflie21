@@ -33,7 +33,7 @@ param set-default COM_RC_IN_MODE 1
 param set-default IMU_GYRO_CUTOFF 100
 param set-default IMU_ACCEL_CUTOFF 30
 
-param set-default MC_AIRMODE 1
+param set-default MC_AIRMODE_LIM 1.0
 param set-default IMU_DGYRO_CUTOFF 70
 param set-default MC_PITCHRATE_D 0.002
 param set-default MC_PITCHRATE_P 0.07

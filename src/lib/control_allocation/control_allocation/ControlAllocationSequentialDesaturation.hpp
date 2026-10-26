@@ -76,10 +76,24 @@ private:
 	 *
 	 * @param actuator_sp Actuator setpoint, vector that is modified
 	 * @param desaturation_vector vector that is added to the outputs, e.g. thrust_scale
-	 * @param increase_only if true, only allow to increase (add) a fraction of desaturation_vector
+	 * @param increase_limit fraction in [0,1] of the upward (thrust-raising) desaturation gain
+	 *                       allowed: 0 = no airmode, 1 = full airmode. Only meaningful for the
+	 *                       collective-thrust vector, whose entries all share one sign; on a torque
+	 *                       axis a negative gain is not an increase and the limit would depend on
+	 *                       the sign of the command.
 	 */
 	void desaturateActuators(ActuatorVector &actuator_sp, const ActuatorVector &desaturation_vector,
-				 bool increase_only = false);
+				 float increase_limit = 1.f);
+
+	/**
+	 * Desaturate along the yaw axis like desaturateActuators(), but only by shrinking the commanded
+	 * yaw toward zero: never past zero (yaw reversal) and never away from the command (yaw nobody
+	 * asked for, spent to relieve a roll/pitch saturation).
+	 *
+	 * @param actuator_sp Actuator setpoint, vector that is modified
+	 * @param yaw yaw column of the mixing matrix
+	 */
+	void desaturateYaw(ActuatorVector &actuator_sp, const ActuatorVector &yaw);
 
 	/**
 	 * Computes the gain k by which desaturation_vector has to be multiplied
@@ -90,43 +104,37 @@ private:
 	float computeDesaturationGain(const ActuatorVector &desaturation_vector, const ActuatorVector &actuator_sp);
 
 	/**
-	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
-	 *
-	 * Desaturation behavior: airmode for roll/pitch:
-	 * thrust is increased/decreased as much as required to meet the demanded roll/pitch.
-	 * Yaw is not allowed to increase the thrust, @see mix_yaw() for the exact behavior.
+	 * @return the largest shift along desaturation_vector that any single saturated output needs to
+	 *         reach its bound (0 if nothing saturates). Unlike computeDesaturationGain(), saturation
+	 *         on opposite bounds adds up instead of cancelling out.
 	 */
-	void mixAirmodeRP();
+	float computeWorstSaturation(const ActuatorVector &desaturation_vector, const ActuatorVector &actuator_sp);
+
+	/**
+	 * @return true if folding yaw into the pre-thrust mix reduces the worst saturation along the
+	 *         thrust axis by more than YAW_FOLD_MIN_IMPROVEMENT, i.e. yaw relieves the saturating
+	 *         actuator.
+	 */
+	bool yawReducesAirmodeThrust();
 
 	/**
 	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
 	 *
-	 * Desaturation behavior: full airmode for roll/pitch/yaw:
-	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw,
-	 * while giving priority to roll and pitch over yaw.
-	 */
-	void mixAirmodeRPY();
-
-	/**
-	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
+	 * @param roll_pitch_limit airmode limit in [0,1]: the collective-thrust increase allowed to keep
+	 *                         roll/pitch authority, and yaw authority too with yaw_airmode.
+	 * @param yaw_airmode      also spend the roll_pitch_limit budget on yaw. No effect at
+	 *                         roll_pitch_limit == 0, which is always airmode disabled.
 	 *
-	 * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
-	 * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
-	 * Thrust can be reduced to unsaturate the upper side.
-	 * @see mixYaw() for the exact yaw behavior.
+	 * Endpoints: (0,false) disabled, (1,false) roll/pitch, (1,true) roll/pitch/yaw.
 	 */
-	void mixAirmodeDisabled();
+	void mix(float roll_pitch_limit, bool yaw_airmode);
 
-	/**
-	 * Mix yaw by updating the actuator setpoint (that already contains roll/pitch/thrust).
-	 *
-	 * Desaturation behavior: thrust is allowed to be decreased up to 15% in order to allow
-	 * some yaw control on the upper end. On the lower end thrust will never be increased,
-	 * but yaw is decreased as much as required.
-	 */
-	void mixYaw();
+	// Minimum reduction of the worst thrust-axis saturation for yawReducesAirmodeThrust() to fold yaw
+	// in. Keeps exact ties, whose outcome would otherwise be decided by float rounding, deferred.
+	static constexpr float YAW_FOLD_MIN_IMPROVEMENT{1e-3f};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
+		(ParamFloat<px4::params::MC_AIRMODE_LIM>) _param_mc_airmode_lim,  ///< airmode thrust increase limit
+		(ParamBool<px4::params::MC_AIRMODE_YAW>) _param_mc_airmode_yaw    ///< include yaw in airmode
 	);
 };
