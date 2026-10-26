@@ -128,12 +128,14 @@ bool findAssociatedSafePointIndex(const Provider &provider, const PositionYawSet
 
 } // namespace
 
-loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, float wind_direction)
+loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, const wind_s &wind)
 {
 	if (!approaches.land_location_lat_lon.isAllFinite()) {
 		return {};
 	}
 
+	// The wind velocity points where the wind blows toward.
+	const float downwind_bearing = atan2f(wind.windspeed_east, wind.windspeed_north);
 	int8_t best_index{-1};
 	float best_angle{INFINITY};
 
@@ -146,7 +148,7 @@ loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, fl
 
 		const float bearing = get_bearing_to_next_waypoint(approaches.land_location_lat_lon(0),
 				      approaches.land_location_lat_lon(1), approach.lat, approach.lon);
-		const float angle = fabsf(matrix::wrap_pi(bearing - wind_direction));
+		const float angle = fabsf(matrix::wrap_pi(bearing - downwind_bearing));
 
 		if (angle < best_angle) {
 			best_index = i;

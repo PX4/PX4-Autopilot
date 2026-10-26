@@ -742,6 +742,5 @@ loiter_point_s RTL::selectLandingApproach(const PositionYawSetpoint &destination
 	const land_approaches_s vtol_land_approaches =
 		mission_route::getVtolLandApproachesNearLocation(_navigator->get_mission_route_cache(), destination,
 				_home_pos_sub.get().alt);
-	const float wind_direction = atan2f(_wind_sub.get().windspeed_east, _wind_sub.get().windspeed_north);
-	return mission_route::chooseBestLandingApproach(vtol_land_approaches, wind_direction);
+	return mission_route::chooseBestLandingApproach(vtol_land_approaches, _wind_sub.get());
 }

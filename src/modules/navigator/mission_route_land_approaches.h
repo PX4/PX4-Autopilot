@@ -42,16 +42,18 @@
 #include "mission_route_provider.h"
 #include "safe_point_land.hpp"
 
+#include <uORB/topics/wind.h>
+
 namespace mission_route
 {
 
 /**
- * @brief Choose the most wind-aligned approach, measured from the block's land location.
+ * @brief Choose the approach whose bearing from the block's land location is closest to downwind.
  *
- * @param wind_direction Direction the wind blows toward [rad], atan2(east, north).
+ * Flying from that approach to the land location heads into the wind.
  * @return The chosen approach, or an invalid loiter if none qualifies (including for a NaN wind).
  */
-loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, float wind_direction);
+loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, const wind_s &wind);
 
 /**
  * @brief Read the landing-approach block associated with the first valid rally point near rtl_position.
