@@ -43,6 +43,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
@@ -68,41 +69,71 @@ public:
 
 	bool init();
 
-private:
-	void Run() override;
+protected:
 	void updateParams() override;
 
-	// Time in seconds for the given battery to drain from 100% to 0% while armed
-	float fullDischargeTime(int battery_index) const;
+	// Read the latest motor commands into the motor load
+	void updateMotorLoad();
+
+	// Current in A drawn from the given battery, according to SIM_BAT_MODEL
+	float current(int battery_index, hrt_abstime now_us) const;
+
+private:
+	void Run() override;
+
+	// Current in A drawn from the given battery, computed from the motor commands
+	float throttleCurrent(int battery_index) const;
+
+	// Average current in A drawn from the given battery in the current flight mode, negative if not simulated
+	float avgCurrent(int battery_index, bool is_fw) const;
 
 	// Lowest state of charge in percent the given battery drains down to
 	float minimumPercentage(int battery_index) const;
+
+	static constexpr int32_t MODEL_THROTTLE = 1; // SIM_BAT_MODEL value of the throttle based model
 
 	static constexpr uint32_t BATTERY_SIMLATOR_SAMPLE_FREQUENCY_HZ = 100; // Hz
 	static constexpr uint32_t BATTERY_SIMLATOR_SAMPLE_INTERVAL_US = 1_s / BATTERY_SIMLATOR_SAMPLE_FREQUENCY_HZ;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 
 	// A battery only publishes if its BAT<N>_SOURCE is set to "Power Module / Analog".
 	// Allocated once in the constructor: Battery is not copyable and older compilers (GCC < 9) do not elide the copy
 	// when constructing an array of them in place.
 	Battery *_batteries[battery_status_s::MAX_INSTANCES] {};
 
-	// Per-battery overrides of SIM_BAT_DRAIN and SIM_BAT_MIN_PCT, negative when unset
-	param_t _drain_handles[battery_status_s::MAX_INSTANCES] {};
+	// Per-battery overrides of SIM_BAT_I_FW, SIM_BAT_I_MC, SIM_BAT_I_IDLE, SIM_BAT_I_MOT, and SIM_BAT_MIN_PCT,
+	// negative when unset
+	param_t _i_fw_handles[battery_status_s::MAX_INSTANCES] {};
+	param_t _i_mc_handles[battery_status_s::MAX_INSTANCES] {};
+	param_t _i_idle_handles[battery_status_s::MAX_INSTANCES] {};
+	param_t _i_mot_handles[battery_status_s::MAX_INSTANCES] {};
 	param_t _min_pct_handles[battery_status_s::MAX_INSTANCES] {};
-	float _drain_override_s[battery_status_s::MAX_INSTANCES] {};
+	float _i_fw_override[battery_status_s::MAX_INSTANCES] {};
+	float _i_mc_override[battery_status_s::MAX_INSTANCES] {};
+	float _i_idle_override[battery_status_s::MAX_INSTANCES] {};
+	float _i_mot_override[battery_status_s::MAX_INSTANCES] {};
 	float _min_pct_override[battery_status_s::MAX_INSTANCES] {};
 
-	uint64_t _last_integration_us{0};
-	float _battery_percentage[battery_status_s::MAX_INSTANCES] {};
+	float _motor_load{0.f}; // Sum over all motors of |command|^1.5, i.e. the number of motors at full throttle equivalent
+	hrt_abstime _actuator_motors_timestamp{0};
+
+	float _last_min_percentage[battery_status_s::MAX_INSTANCES] {};
+	bool _capacity_warned[battery_status_s::MAX_INSTANCES] {};
 	bool _armed{false};
+	bool _was_armed{false};
+	bool _is_fw{false};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
+		(ParamFloat<px4::params::SIM_BAT_I_FW>) _param_sim_bat_i_fw, ///< battery avg current in fixed wings
+		(ParamFloat<px4::params::SIM_BAT_I_MC>) _param_sim_bat_i_mc, ///< battery avg current in multicopter
+		(ParamInt<px4::params::SIM_BAT_MODEL>) _param_sim_bat_model, ///< current model
+		(ParamFloat<px4::params::SIM_BAT_I_IDLE>) _param_sim_bat_i_idle, ///< battery current with motors stopped
+		(ParamFloat<px4::params::SIM_BAT_I_MOT>) _param_sim_bat_i_mot, ///< battery current per motor at full throttle
 		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_bat_min_pct //< minimum battery percentage
 	)
 };

@@ -88,6 +88,11 @@ public:
 	 */
 	float full_cell_voltage() { return _params.v_charged; }
 
+	/**
+	 * Get the internal resistance per cell: BAT${i}_R_INTERNAL if set, otherwise the default initial estimate
+	 */
+	float internal_resistance() const { return _params.r_internal >= 0.f ? _params.r_internal : R_DEFAULT; }
+
 	void setPriority(const uint8_t priority) { _priority = priority; }
 	void setConnected(const bool connected) { _connected = connected; }
 	void setStateOfCharge(const float soc) { _state_of_charge = math::constrain(soc, 0.f, 1.f); _external_state_of_charge = true; }
@@ -105,6 +110,15 @@ public:
 
 	battery_status_s getBatteryStatus();
 	float getCurrentAverage() const { return PX4_ISFINITE(_current_average_filter_a.getState()) ? _current_average_filter_a.getState() : -1.f; }
+	float getCapacity() const {return _capacity_mah;}
+	bool isSourceSelected() const { return _source == _params.source; }
+	float getDischargedMah() const { return _discharged_mah; }
+
+	/**
+	 * Restart coulomb counting from a given discharged capacity, e.g. after a battery swap.
+	 * The state of charge estimation reinitializes as on reconnection.
+	 */
+	void resetDischargedMah(const float discharged_mah = 0.f);
 	void publishBatteryStatus(const battery_status_s &battery_status);
 
 	/**
