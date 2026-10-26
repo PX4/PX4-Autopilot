@@ -79,13 +79,12 @@ MotorFailureDetector::Config makeConfig()
 	MotorFailureDetector::Config cfg{};
 	cfg.current_slope_a = 34.8f;
 	cfg.current_idle_a = 2.88f;
-	cfg.residual_lpf_tau_s = 0.2f;
 	cfg.overcurrent_threshold_a = 5.0f;
 	cfg.overcurrent_trigger_time_s = 0.4f;
 	return cfg;
 }
 
-// MOTFAIL_* params -> Config fields, mirroring escCheck.cpp. tau is the compile-time constant there too.
+// MOTFAIL_* params -> Config fields, mirroring escCheck.cpp.
 struct ParamBind {
 	const char *name;
 	float MotorFailureDetector::Config::*field;

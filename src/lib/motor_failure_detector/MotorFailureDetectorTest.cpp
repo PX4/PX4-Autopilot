@@ -51,7 +51,6 @@ MotorFailureDetector::Config makeConfig()
 {
 	MotorFailureDetector::Config cfg{};
 	cfg.current_slope_a = 21.f;
-	cfg.residual_lpf_tau_s = 0.2f;
 	cfg.overcurrent_threshold_a = 5.f;
 	cfg.overcurrent_trigger_time_s = 0.5f;
 	return cfg;

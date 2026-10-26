@@ -96,7 +96,7 @@ void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, floa
 
 	if (std::isfinite(current)) {
 		// A motor cannot draw less than 0 A, so a residual below -I_exp is regeneration, not a fault.
-		_residual_lpf[i].setParameters(dt, _cfg.residual_lpf_tau_s);
+		_residual_lpf[i].setParameters(dt, kResidualLpfTau);
 		_residual_lpf[i].update(fmaxf(current - i_expected, -i_expected));
 	}
 

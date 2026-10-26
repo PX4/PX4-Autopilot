@@ -59,11 +59,13 @@ public:
 	// Between the ~10 Hz stream and the 400 ms ESC-offline timeout.
 	static constexpr float kMaxGap = 0.3f;
 
+	// Time constant of the residual low-pass filter [s]
+	static constexpr float kResidualLpfTau = 0.2f;
+
 	// One model for all motors
 	struct Config {
 		float current_slope_a;             ///< expected current per unit thrust command [A]
 		float current_idle_a;              ///< expected current at zero command [A]
-		float residual_lpf_tau_s;          ///< residual LPF time constant [s]
 		float overcurrent_threshold_a;     ///< trip band above expected current [A]; <= 0 => check disabled
 		float overcurrent_trigger_time_s;  ///< time above the overcurrent band before latching [s]
 		float undercurrent_threshold_a;    ///< same, below expected current; <= 0 => mirrors the overcurrent band

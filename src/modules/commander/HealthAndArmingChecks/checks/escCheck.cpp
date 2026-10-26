@@ -361,17 +361,10 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 void EscChecks::updateParams()
 {
 	HealthAndArmingCheckBase::updateParams();
-	configureMotorFailureDetector();
-}
-
-void EscChecks::configureMotorFailureDetector()
-{
-	static constexpr float MOTOR_FAILURE_LPF_TAU_S = 0.2f; ///< residual low-pass time constant [s]
 
 	MotorFailureDetector::Config cfg{};
 	cfg.current_slope_a = _param_motfail_c2t.get();
 	cfg.current_idle_a = _param_motfail_idle.get();
-	cfg.residual_lpf_tau_s = MOTOR_FAILURE_LPF_TAU_S;
 	cfg.overcurrent_threshold_a = _param_motfail_over.get();
 	cfg.overcurrent_trigger_time_s = _param_motfail_ovr_time.get();
 	cfg.undercurrent_threshold_a = _param_motfail_under.get();
