@@ -24,7 +24,7 @@ In short: **heading** is where the vehicle _points_, **course** is where it _sho
 
 ![Overview of navigation terms, seen from above (placeholder)](../../assets/concepts/navigation/overview_heading_bearing_course_track.svg)
 
-_Single overview figure: vehicle seen from above, north arrow, desired track between two waypoints, heading arrow along the body x-axis, ground velocity arrow (course over ground), drift angle between them, bearing to the next waypoint, cross-track error as the perpendicular to the desired track._
+_Overview figure: vehicle seen from above, north arrow, desired track between two waypoints, heading arrow along the body x-axis, ground velocity arrow (course over ground), bearing to the next waypoint, cross-track error as the perpendicular to the desired track._
 
 ## Directions and Frames
 
@@ -39,16 +39,6 @@ PX4 describes positions and orientations in two main frames:
 - **FRD (front, right, down):** The body frame, fixed to the vehicle.
   The [heading](#heading) is the direction of the body front axis.
 
-<!--
-<img src="../../assets/concepts/navigation/overview_wgs84_and_local_NED.svg" alt="Geodetic, local NED and FRD body frames (placeholder)" style="max-width: 60%" />
-
-_The frames together: WGS 84 ellipsoid with latitude/longitude, a local NED tangent plane at the origin, and a vehicle with its FRD body axes._
-
-![FRD body axes x, y and z with roll, pitch and yaw rotations for a plane, a helicopter and a multicopter](../../assets/concepts/frame_heading.png)
-
-_Existing graphic. FRD body axes (x forward, y right, z down) and the roll, pitch and yaw rotations about them, for a plane, a helicopter and a multicopter._
--->
-
 A compass measures magnetic north, which differs from true north by the _magnetic declination_.
 The estimator corrects for this automatically, using the World Magnetic Model or [EKF2_MAG_DECL](../advanced_config/parameter_reference.md#EKF2_MAG_DECL) depending on [EKF2_DECL_TYPE](../advanced_config/parameter_reference.md#EKF2_DECL_TYPE).
 
@@ -56,7 +46,7 @@ The estimator corrects for this automatically, using the World Magnetic Model or
 
 ### Heading
 
-The heading is where the nose (or bow, or front) of the vehicle points.
+The heading is where the x-axis (nose, or bow, or front) of the vehicle points.
 It says nothing about the direction in which the vehicle moves: a multicopter can fly sideways, a plane crabs in a crosswind, and a boat is pushed off by wind and current.
 
 In PX4: `vehicle_local_position.heading` (estimate), `trajectory_setpoint.yaw` and `rover_attitude_setpoint.yaw_setpoint` (setpoints), MAVLink `GLOBAL_POSITION_INT.hdg` and `VFR_HUD.heading`.
@@ -120,7 +110,7 @@ The two differ by the wind.
 
 ### Wind Direction
 
-Wind is reported by the direction it blows **from**: a wind "from 360°" blows from the north toward the south.
+Wind is reported by the direction it blows **from**: a wind "from 90°" blows from the east towards the west.
 
 PX4 wind estimates (`wind`) are velocity vectors instead, which point where the air moves **to**.
 A wind from the north therefore has a negative `windspeed_north` in PX4.
