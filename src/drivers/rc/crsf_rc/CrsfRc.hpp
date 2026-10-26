@@ -104,6 +104,8 @@ private:
 	char _device[20] {}; ///< device / serial port path
 	bool _is_singlewire{false};
 	bool _armed{false};
+	// own subscription: sharing _vehicle_status_sub would consume the updates the flight mode telemetry waits for
+	uORB::Subscription _vehicle_status_armed_sub{ORB_ID(vehicle_status)};
 
 	static constexpr size_t RC_MAX_BUFFER_SIZE{64};
 	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
