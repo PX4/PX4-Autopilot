@@ -71,7 +71,30 @@ void GpioOut::claim_gpio_channels()
 		return;
 	}
 
-	_gpio_mask = (uint32_t)gpio_en;
+	_gpio_mask = (uint32_t)gpio_en & ((1u << DIRECT_PWM_OUTPUT_CHANNELS) - 1);
+
+	if (_gpio_mask != (uint32_t)gpio_en) {
+		PX4_WARN("%s_GPIO_EN: only CH1-%d available", _mixing_output.paramPrefix(), DIRECT_PWM_OUTPUT_CHANNELS);
+	}
+
+	// GPIO mode is not supported on DShot timers
+	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+		const uint32_t channels = _gpio_mask & io_timer_get_group(timer);
+
+		if (channels == 0) {
+			continue;
+		}
+
+		snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
+
+		int32_t tim_config = 0;
+		param_get(param_find(param_name), &tim_config);
+
+		if (tim_config < -1) {
+			PX4_WARN("%s: timer %d is configured for DShot, GPIO mode not supported", _mixing_output.paramPrefix(), timer);
+			_gpio_mask &= ~channels;
+		}
+	}
 
 	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; i++) {
 		if (!(_gpio_mask & (1 << i))) {
@@ -115,6 +138,10 @@ bool GpioOut::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, 
 	for (size_t i = 0; i < num_outputs; i++) {
 		if (_gpio_pin[i]) {
 			px4_arch_gpiowrite(_gpio_pin[i], _mixing_output.isAboveMidpoint(i, outputs[i]));
+
+		} else {
+			// do not report a value on channels not driven by this module
+			outputs[i] = 0.f;
 		}
 	}
 

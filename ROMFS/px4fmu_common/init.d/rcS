@@ -25,6 +25,7 @@ set R /
 . ${R}etc/init.d/rc.filepaths
 set FCONFIG ${BOARD_ROOT_PATH}/etc/config.txt
 set FEXTRAS ${BOARD_ROOT_PATH}/etc/extras.txt
+set FMU_OUTPUTS_STARTED no
 set FRC ${BOARD_ROOT_PATH}/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set LOGGER_ARGS ""
@@ -556,17 +557,9 @@ else
 			# reset so the next boot starts the outputs normally
 			param set PASSTHRU_EN 0
 		else
-			# gpio_out has to claim its channels before dshot/pwm_out start
-			if param greater -s PWM_MAIN_GPIO_EN 0
-			then
-				gpio_out start
-			fi
-			if param greater -s PWM_AUX_GPIO_EN 0
-			then
-				gpio_out start
-			fi
 			dshot start
 			pwm_out start
+			set FMU_OUTPUTS_STARTED yes
 		fi
 	fi
 
@@ -580,6 +573,19 @@ else
 		if param greater -s CYPHAL_ENABLE 0
 		then
 			cyphal start
+		fi
+	fi
+
+	# start gpio_out after all other output drivers to keep their actuator_outputs instances
+	if [ $FMU_OUTPUTS_STARTED = yes ]
+	then
+		if param greater -s PWM_MAIN_GPIO_EN 0
+		then
+			gpio_out start
+		fi
+		if param greater -s PWM_AUX_GPIO_EN 0
+		then
+			gpio_out start
 		fi
 	fi
 
@@ -778,6 +784,7 @@ fi
 unset R
 unset FCONFIG
 unset FEXTRAS
+unset FMU_OUTPUTS_STARTED
 unset FRC
 unset IOFW
 unset LOGGER_ARGS
