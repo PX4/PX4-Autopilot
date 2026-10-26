@@ -69,12 +69,17 @@ public:
 
 	bool init();
 
-private:
-	void Run() override;
+protected:
 	void updateParams() override;
+
+	// Read the latest motor commands into the motor load
+	void updateMotorLoad();
 
 	// Current in A drawn from the given battery, according to SIM_BAT_MODEL
 	float current(int battery_index, hrt_abstime now_us) const;
+
+private:
+	void Run() override;
 
 	// Current in A drawn from the given battery, computed from the motor commands
 	float throttleCurrent(int battery_index) const;
