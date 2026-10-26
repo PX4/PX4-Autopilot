@@ -541,6 +541,9 @@ static constexpr StreamListItem streams_list[] = {
 #if defined(GLOBAL_POSITION_SENSOR_HPP)
 	create_stream_list_item<MavlinkStreamGlobalPositionSensor>(),
 #endif // GLOBAL_POSITION_SENSOR_HPP
+#if defined(WHEEL_ENCODER_HPP)
+	create_stream_list_item<MavlinkStreamWheelEncoder>(),
+#endif // WHEEL_ENCODER_HPP
 
 };
 

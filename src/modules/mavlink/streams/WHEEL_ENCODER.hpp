@@ -37,7 +37,19 @@ private:
 			wheel_encoders_s wheel_encoders;
 
 			if (_wheel_encoders_subs[i].update(&wheel_encoders)) {
+
 				msg.time_usec = wheel_encoders.timestamp;
+#if defined(CONFIG_MODULES_ROVER_MECANUM)
+
+				for (int j = 0; j < 4; j++) {
+					if (wheel_encoders.counts_per_rev[j] > 0) {
+						msg.distance[j] = (double)2.0 * (double)M_PI_F * (double)wheel_radius * wheel_encoders.encoder_counts[j] /
+								  (double)wheel_encoders.counts_per_rev[j];
+						count = j + 1;
+					}
+				}
+
+#else
 
 				for (int j = 0; j < 2; j++) {
 					if (wheel_encoders.counts_per_rev[j] > 0) {
@@ -46,6 +58,8 @@ private:
 						count = j + 1;
 					}
 				}
+
+#endif
 			}
 		}
 

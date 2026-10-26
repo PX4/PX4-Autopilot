@@ -82,9 +82,17 @@ private:
 
 	gz::transport::Node::Publisher _actuators_pub;
 	hrt_abstime _prev_t{0};
+#if defined(CONFIG_MODULE_ROVER_DIFFERENTIAL) || defined (CONFIG_MODULE_ROVER_ACKERMANN)
 	float  _prev_wheel_speed[2] {-1.f, -1.f};
 	float  _curr_wheel_speed[2] {-1.f, -1.f};
 	float  _wheel_pos_m[2];
+#else
+	float  _prev_wheel_speed[4] {-1.f, -1.f, -1.f, -1.f};
+	float  _curr_wheel_speed[4] {-1.f, -1.f, -1.f, -1.f};
+	float  _wheel_pos_m[4];
+#endif
+
+
 	float  _wheel_radius{0.1};
 	uORB::Publication<wheel_encoders_s> _wheel_encoders_pub{ORB_ID(wheel_encoders)};
 };
