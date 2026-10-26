@@ -171,7 +171,8 @@ parameters:
                     If ethernet enabled and selected as configuration for MAVLink instance ${i},
                     selected partner ip will be set and used in MAVLink instance ${i}.
                     A value of 0 leaves the partner address unconfigured, so it is
-                    auto-discovered from the first received packet instead.
+                    auto-discovered from the first received packet instead. IP address must be provided
+                    in int32 format, encoded big-endian (first octet in the most significant byte)
 
             type: int32
             reboot_required: true
