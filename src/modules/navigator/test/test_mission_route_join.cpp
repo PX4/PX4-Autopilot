@@ -1635,6 +1635,7 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSelectsLandWithoutJoin
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, -300.f, kAlt),
 		makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f,    0.f, kAlt - 10.f),
 	};
+	mission_items[3].yaw = NAN;
 
 	mission_s mission_state = publishMissionItems(mission_items, 23, 1, 3);
 
@@ -1720,6 +1721,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 			SCOPED_TRACE(::testing::Message() << "VTOL=" << is_vtol << ", resume_location=" << resume_location);
 			auto takeoff = makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, approach_altitude);
 			auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+			land.yaw = NAN;
 
 			if (is_vtol) {
 				takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
