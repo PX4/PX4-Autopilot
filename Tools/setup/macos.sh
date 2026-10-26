@@ -140,6 +140,7 @@ fi
 # We need to have future to install pymavlink later.
 "$VENV_DIR/bin/pip" install future
 "$VENV_DIR/bin/pip" install -r "${DIR}/requirements.txt"
+"$VENV_DIR/bin/pip" install -r "${DIR}/test-requirements.txt"
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then

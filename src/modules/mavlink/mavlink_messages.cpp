@@ -94,7 +94,10 @@
 #include "streams/HYGROMETER_SENSOR.hpp"
 #include "streams/LANDING_TARGET.hpp"
 #include "streams/LOCAL_POSITION_NED.hpp"
+// constrained builds without mag processing have no mag calibration to report
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER) || !defined(CONSTRAINED_FLASH)
 #include "streams/MAG_CAL_REPORT.hpp"
+#endif
 #include "streams/MANUAL_CONTROL.hpp"
 #if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
 #include "streams/MANUAL_INPUT_STATUS.hpp"
