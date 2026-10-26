@@ -228,6 +228,14 @@ void Sih::updateFailureConfig()
 			  == failure_injection::Mode::Off);
 	_gyro_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, 1)
 			 == failure_injection::Mode::Off);
+
+	_stuck_motor_mask = 0;
+
+	for (int i = 0; i < NUM_ACTUATORS_MAX; i++) {
+		if (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1) == failure_injection::Mode::Stuck) {
+			_stuck_motor_mask |= 1u << i;
+		}
+	}
 }
 
 void Sih::sensor_step()
@@ -379,8 +387,15 @@ void Sih::read_motors(const float dt)
 				_u[i] = actuators_out.output[i];
 
 			} else {
-				float u_sp = actuators_out.output[i];
-				_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				const int motor_index = motor_index_from_actuator(i);
+
+				if (motor_index >= 0 && (_stuck_motor_mask & (1u << motor_index))) {
+					_u[i] = 0.f; // rotor stuck: no thrust and no RPM, the ESC keeps reporting
+
+				} else {
+					float u_sp = actuators_out.output[i];
+					_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				}
 			}
 		}
 
@@ -407,6 +422,19 @@ uint8_t Sih::num_motors() const
 	}
 }
 
+int Sih::motor_index_from_actuator(int actuator_index) const
+{
+	switch (_vehicle) {
+	case VehicleType::FixedWing:      return actuator_index < 3 ? -1 : actuator_index - 3; // surfaces at 0..2
+
+	case VehicleType::TailsitterVTOL: return actuator_index > 3 ? -1 : actuator_index;     // surfaces after the motors
+
+	case VehicleType::RoverAckermann: return actuator_index == 0 ? -1 : actuator_index - 1; // steering at 0
+
+	default:                          return actuator_index;
+	}
+}
+
 void Sih::publish_esc_status()
 {
 	_esc_status.timestamp = hrt_absolute_time();
@@ -421,9 +449,7 @@ void Sih::publish_esc_status()
 	}
 
 	for (int i = 0; i < NUM_ACTUATORS_MAX && motor_idx < num_motors(); i++) {
-		if ((_vehicle == VehicleType::FixedWing && i < 3)
-		    || (_vehicle == VehicleType::TailsitterVTOL && i > 3)
-		    || (_vehicle == VehicleType::RoverAckermann && i == 0)) {
+		if (motor_index_from_actuator(i) < 0) {
 			continue; // control surface / steering channel, not a motor
 		}
 

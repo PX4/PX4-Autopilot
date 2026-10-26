@@ -26,7 +26,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 | `vio`             | —                       | —                       | `off`                                | —                       |
 | `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
 | `traffic`         | `off`                   | `off`                   | `off`                                | `off`                   |
-| `motor`           | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
+| `motor`           | `off`, `wrong`          | `off`, `wrong`, `stuck` | `off`, `wrong`                       | `off`, `wrong`          |
 | `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
 | `can`             | —                       | —                       | —                                    | `off`                   |
 
@@ -40,6 +40,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
 - `motor off` and `motor wrong` are the two motor failures, and both require [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE). `motor off` is the _detected_ failure: the motor is reported as failed, so the control allocator removes it from the allocation and handles the opposite motor per `CA_FAILURE_MODE`. Only a single failed motor can be recovered from, so an instance mask naming several motors has no effect. `motor wrong` is the _undetected_ failure: the output is stopped without informing the allocator, which models a failure with no feedback path (such as PWM ESCs), and any number of motors can be addressed.
+- `motor stuck` (SIH only) models a stuck rotor with a healthy ESC: the motor is still commanded, but produces no thrust and the ESC stays online reporting zero RPM. Unlike `motor off` and `motor wrong`, neither the failure detector nor the control allocator is informed. Motors are addressed by motor instance, so `-i 1` targets motor 1.
 - `esc off` reports the addressed ESC as offline and blanks its telemetry; `esc wrong` keeps it online but reports implausible telemetry (voltage and current at 10% of the real value, RPM 10x). ESCs are addressed by motor instance (the ESC's actuator function), so `-i 1` targets the ESC driving motor 1.
 - On hardware, ESC injection is applied only by the UAVCAN (DroneCAN) ESC driver; the other ESC drivers (DShot, Cyphal, VOXL, TAP ESC) publish their telemetry unmodified.
 - `can off` takes the addressed CAN bus offline entirely, so every node on it stops responding; the instance selects the bus. Only applied on fmu-v6x-class hardware.
