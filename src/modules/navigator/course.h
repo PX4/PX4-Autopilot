@@ -63,14 +63,9 @@ public:
 	 */
 	bool set_course(float course_rad);
 
-	void set_altitude(float alt_amsl) { _altitude = alt_amsl; update_setpoint_triplet(); }
+	void set_altitude(float alt_amsl) { _altitude = alt_amsl; publishCourseHoldSetpoint(_course, _altitude); }
 
 private:
-	/**
-	 * Update the position setpoint triplet to fly the current course.
-	 */
-	void update_setpoint_triplet();
-
 	static constexpr float ROVER_COURSE_MIN_SPEED{.5f}; ///< [m/s] Forward speed below which the velocity direction is noise
 	static constexpr float ROVER_COURSE_EVH_FACTOR{3.f}; ///< Factor of the velocity standard deviation the forward speed has to exceed
 

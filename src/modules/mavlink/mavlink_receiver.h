@@ -163,7 +163,7 @@ public:
 	void start();
 	void stop();
 
-	bool component_was_seen(int system_id, int component_id);
+	bool component_was_seen(uint32_t system_id, int component_id);
 	void enable_message_statistics() { _message_statistics_enabled = true; }
 	void print_detailed_rx_stats() const;
 
@@ -173,7 +173,7 @@ private:
 	static void *start_trampoline(void *context);
 	void run();
 
-	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
+	void acknowledge(uint32_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
 
 	/**
 	 * Common method to handle both mavlink command types, operating on the
@@ -277,7 +277,7 @@ private:
 	int set_message_interval(int msgId, float interval, float param3, float param4, float param7);
 	void get_message_interval(int msgId);
 
-	bool evaluate_target_ok(int command, int target_system, int target_component);
+	bool evaluate_target_ok(int command, uint32_t target_system, int target_component);
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
 
@@ -333,7 +333,7 @@ private:
 	struct ComponentState {
 		uint32_t received_messages{0};
 		uint32_t missed_messages{0};
-		uint8_t system_id{0};
+		uint32_t system_id{0};
 		uint8_t component_id{0};
 		uint8_t last_sequence{0};
 	};
@@ -350,7 +350,7 @@ private:
 		float avg_rate_hz{0.f}; // average rate
 		uint32_t last_time_received_ms{0};
 		uint16_t msg_id{0};
-		uint8_t system_id{0};
+		uint32_t system_id{0};
 		uint8_t component_id{0};
 	};
 	ReceivedMessageStats *_received_msg_stats{nullptr};

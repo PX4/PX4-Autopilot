@@ -41351,9 +41351,19 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MAVLink system ID.
 
+IDs above 255 use the 32-bit system ID extension of MAVLink 2,
+which forces MAV_PROTO_VER to 2. Every system on the network needs
+to support the extension to talk to such a system.
+
+Only use IDs above 255 for vehicles, and keep ground stations and
+other controlling systems at 255 or below. The gimbal protocol and
+other messages that carry a system ID inside the payload, such as
+the ID of the system in control, still only support IDs up to 255.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1 | 250 |  | 1 |  | &nbsp;
+&check; | 1 | 2147483647 |  | 1 |  | &nbsp;
 
 </div>
 
@@ -67235,7 +67245,7 @@ Velocity updates do not prevent position resets.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 50 | 0.5 | 3.0 | s | &nbsp;
+&nbsp; | 0.1 | 50 | 0.5 | 3.0 | s | &nbsp;
 
 </div>
 
@@ -67331,7 +67341,7 @@ Maximum raw measurement age allowed for fusion.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 10 | 0.05 | 1.0 | s | &nbsp;
+&nbsp; | 0.1 | 10 | 0.05 | 1.0 | s | &nbsp;
 
 </div>
 
@@ -67341,12 +67351,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Measurement updated timeout.
 
-Maximum age of local position, velocity and antenna-offset corrections; also limits velocity-to-measurement time mismatch.
+Maximum age of local position, velocity and antenna-offset corrections. GNSS-to-vision alignment may span the measurement recent timeout.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 5 | 0.01 | 0.1 | s | &nbsp;
+&nbsp; | 0.01 | 5 | 0.01 | 0.1 | s | &nbsp;
 
 </div>
 
@@ -67431,7 +67441,7 @@ Keep below VTE_BTOUT.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 50 | 0.25 | 2.0 | s | &nbsp;
+&nbsp; | 0.1 | 50 | 0.25 | 2.0 | s | &nbsp;
 
 </div>
 

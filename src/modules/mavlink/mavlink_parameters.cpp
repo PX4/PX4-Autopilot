@@ -196,7 +196,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_request_list_t req_list;
 			mavlink_msg_param_request_list_decode(msg, &req_list);
 
-			if (req_list.target_system == mavlink_system.sysid &&
+			if (mavlink_target_system(msg, req_list.target_system) == mavlink_system.sysid &&
 			    (req_list.target_component == mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				if (_send_all_index < 0) {
 					_send_all_index = PARAM_HASH;
@@ -209,7 +209,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
-			if (req_list.target_system == mavlink_system.sysid && req_list.target_component < 127 &&
+			if (mavlink_target_system(msg, req_list.target_system) == mavlink_system.sysid && req_list.target_component < 127 &&
 			    !is_observed_mavlink_camera(req_list.target_component) &&
 			    (req_list.target_component != mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				// publish list request to UAVCAN driver via uORB.
@@ -230,7 +230,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_set_t set;
 			mavlink_msg_param_set_decode(msg, &set);
 
-			if (set.target_system == mavlink_system.sysid &&
+			if (mavlink_target_system(msg, set.target_system) == mavlink_system.sysid &&
 			    (set.target_component == mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
 
 				/* local name buffer to enforce null-terminated string */
@@ -282,7 +282,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
-			if (set.target_system == mavlink_system.sysid && set.target_component < 127 &&
+			if (mavlink_target_system(msg, set.target_system) == mavlink_system.sysid && set.target_component < 127 &&
 			    !is_observed_mavlink_camera(set.target_component) &&
 			    (set.target_component != mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
@@ -317,7 +317,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_request_read_t req_read;
 			mavlink_msg_param_request_read_decode(msg, &req_read);
 
-			if (req_read.target_system == mavlink_system.sysid &&
+			if (mavlink_target_system(msg, req_read.target_system) == mavlink_system.sysid &&
 			    (req_read.target_component == mavlink_system.compid || req_read.target_component == MAV_COMP_ID_ALL)) {
 
 				/* when no index is given, loop through string ids and compare them */
@@ -391,7 +391,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
-			if (req_read.target_system == mavlink_system.sysid && req_read.target_component < 127 &&
+			if (mavlink_target_system(msg, req_read.target_system) == mavlink_system.sysid && req_read.target_component < 127 &&
 			    !is_observed_mavlink_camera(req_read.target_component) &&
 			    (req_read.target_component != mavlink_system.compid || req_read.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
@@ -417,7 +417,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_map_rc_t map_rc;
 			mavlink_msg_param_map_rc_decode(msg, &map_rc);
 
-			if (map_rc.target_system == mavlink_system.sysid &&
+			if (mavlink_target_system(msg, map_rc.target_system) == mavlink_system.sysid &&
 			    (map_rc.target_component == mavlink_system.compid ||
 			     map_rc.target_component == MAV_COMP_ID_ALL)) {
 
@@ -754,7 +754,7 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 
 
 int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *param_id, const int param_index,
-		const int target_sysid, const int target_compid,
+		const uint32_t target_sysid, const int target_compid,
 		int component_id)
 {
 	/* no free TX buf to send this param error message */
@@ -763,7 +763,6 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 	}
 
 	mavlink_param_error_t msg;
-	msg.target_system = target_sysid;
 	msg.target_component = target_compid;
 	msg.error = error;
 
@@ -793,12 +792,14 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 
 	/* default component ID */
 	if (component_id < 0) {
-		mavlink_msg_param_error_send_struct(_mavlink.get_channel(), &msg);
+		mavlink_msg_send_struct_target(_mavlink.get_channel(), PARAM_ERROR, &msg, target_sysid);
 
 	} else {
 		// Re-pack the message with a different component ID
 		mavlink_message_t mavlink_packet;
-		mavlink_msg_param_error_encode_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet, &msg);
+		// pack_chan() rather than encode_chan(), only it keeps a target system above 255
+		mavlink_msg_param_error_pack_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet,
+						  target_sysid, msg.target_component, msg.param_id, msg.param_index, msg.error);
 		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
 	}
 

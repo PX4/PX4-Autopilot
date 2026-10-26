@@ -101,6 +101,11 @@ private:
 		    || (msg.onboard_control_sensors_health_extended & mav_sensor) == 0) {
 			msg.onboard_control_sensors_enabled_extended |= mav_sensor;
 		}
+
+		if ((msg.onboard_control_sensors_present_extended & mav_sensor)
+		    || (msg.onboard_control_sensors_enabled_extended & mav_sensor)) {
+			msg.onboard_control_sensors_present |= MAV_SYS_STATUS_EXTENSION_USED;
+		}
 	}
 
 	bool send() override

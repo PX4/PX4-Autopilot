@@ -53,17 +53,23 @@ namespace vision_target_estimator
 
 using namespace matrix;
 
+static_assert(vtest::Axis::size == 3, "one position filter per NED axis");
+#if defined(CONFIG_VTEST_MOVING)
+static_assert(vtest::State::size == 5, "moving target state: pos_rel, vel_uav, bias, acc_target, vel_target");
+#else
+static_assert(vtest::State::size == 3, "static target state: pos_rel, vel_uav, bias");
+#endif // CONFIG_VTEST_MOVING
+
 VTEPosition::VTEPosition() :
 	ModuleParams(nullptr)
 {
 	_target_pose_pub.advertise();
 	_target_estimator_state_pub.advertise();
-	_vte_aid_gps_pos_target_pub.advertise();
-	_vte_aid_gps_pos_mission_pub.advertise();
-	_vte_aid_gps_vel_uav_pub.advertise();
-	_vte_aid_gps_vel_target_pub.advertise();
-	_vte_aid_fiducial_marker_pub.advertise();
 	_vte_bias_init_status_pub.advertise();
+
+	for (auto &pub : _vte_aid_pubs) {
+		pub.advertise();
+	}
 
 	updateParams();
 }
@@ -73,55 +79,6 @@ VTEPosition::~VTEPosition()
 	perf_free(_vte_predict_perf);
 	perf_free(_vte_update_perf);
 	perf_free(_vte_fusion_perf);
-}
-
-bool VTEPosition::shouldEmitWarning(hrt_abstime &last_warn)
-{
-	const hrt_abstime now = nowUs();
-
-	if ((last_warn == 0) || (now < last_warn) || ((now - last_warn) > kWarnThrottleIntervalUs)) {
-		last_warn = now;
-		return true;
-	}
-
-	return false;
-}
-
-bool VTEPosition::init()
-{
-	// Check valid vtest_derivation/generated/state.h
-	if (vtest::Axis::size != kExpectedAxisCount) {
-		PX4_ERR("VTE: Invalid axis size: %d, expected %d. Generate vtest_derivation/derivation.py",
-			static_cast<int>(vtest::Axis::size), kExpectedAxisCount);
-		return false;
-	}
-
-#if defined(CONFIG_VTEST_MOVING)
-	PX4_INFO("VTE for moving target init");
-	PX4_WARN("VTE for moving targets has not been thoroughly tested");
-
-	if (vtest::State::size != kExpectedMovingPositionStateCount) {
-		PX4_ERR("VTE: Invalid state size: %d, expected %d. Generate vtest_derivation/derivation.py",
-			static_cast<int>(vtest::State::size), kExpectedMovingPositionStateCount);
-		return false;
-	}
-
-#else
-	PX4_INFO("VTE for static target init");
-
-	if (vtest::State::size != kExpectedStaticPositionStateCount) {
-		PX4_ERR("VTE: Invalid state size: %d, expected %d. Generate vtest_derivation/derivation.py",
-			static_cast<int>(vtest::State::size), kExpectedStaticPositionStateCount);
-		return false;
-	}
-
-#endif // CONFIG_VTEST_MOVING
-
-	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
-		_target_est_pos[axis].resetHistory();
-	}
-
-	return true;
 }
 
 void VTEPosition::resetFilter(hrt_abstime min_sample_time)
@@ -138,6 +95,10 @@ void VTEPosition::resetFilter(hrt_abstime min_sample_time)
 		_pos_rel_gnss.valid = false;
 		_gps_pos_offset_ned.valid = false;
 		_velocity_offset_ned.valid = false;
+	}
+
+	if (_estimator_initialized) {
+		publishInvalidState();
 	}
 
 	_estimator_initialized = false;
@@ -190,9 +151,7 @@ void VTEPosition::update(const Vector3f &acc_ned)
 
 	// Update with the newest observations, fuse if the filter is initialised,
 	// and publish any resulting innovations.
-	if (performUpdateStep(acc_ned)) {
-		_last_update = _last_predict;
-	}
+	performUpdateStep();
 
 	if (_estimator_initialized) {
 		// Store the post-fusion posterior snapshot at the current timestamp for OOSM fusion.
@@ -275,7 +234,7 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned, const float dt
 	}
 }
 
-bool VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned)
+void VTEPosition::performUpdateStep()
 {
 	// Gather observations and tag the fusion mask bits for each new valid source.
 	resetObservations();
@@ -283,23 +242,26 @@ bool VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned)
 	processObservations(fusion_mask, _obs_buffer);
 
 	if (fusion_mask.value == 0) {
-		return false;
+		return;
 	}
 
 	if (!_estimator_initialized) {
-		if (!hasNewPositionSensorData(fusion_mask)) {
-			return false;
+		if (hasNewPositionSensorData(fusion_mask)) {
+			// Initialize only this cycle to avoid using the same measurements twice.
+			initializeEstimator(fusion_mask, _obs_buffer);
 		}
 
-		// Initialize only this cycle to avoid using the same measurements twice.
-		return initializeEstimator(fusion_mask, _obs_buffer);
+		return;
 	}
 
-	if (!_bias.set) {
-		updateBiasIfObservable(fusion_mask, _obs_buffer);
+	if (!_bias.set && updateBiasIfObservable(fusion_mask, _obs_buffer)) {
+		// The vision sample is the state now and is not fused again, as at init.
+		const TargetObs &vision_obs = _obs_buffer[obsIndex(ObsType::kFiducialMarker)];
+		fusion_mask.flags.fuse_vision = false;
+		publishInitializedAid(vision_obs);
 	}
 
-	return fuseActiveMeasurements(vehicle_acc_ned, fusion_mask, _obs_buffer);
+	fuseActiveMeasurements(fusion_mask, _obs_buffer);
 }
 
 void VTEPosition::resetObservations()
@@ -328,7 +290,7 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 
 	target_gnss_s target_gnss{};
 
-	if (_target_gnss_sub.update(&target_gnss)) {
+	if (pollTargetGnss(target_gnss)) {
 		const bool target_gps_position_valid = isTargetGpsPositionValid(target_gnss);
 
 		if (_vte_aid_mask.flags.use_target_gps_pos && _uav_gps_position.valid
@@ -463,6 +425,23 @@ void VTEPosition::updateTargetGpsVelocity(const target_gnss_s &target_gnss)
 }
 #endif // CONFIG_VTEST_MOVING
 
+bool VTEPosition::pollTargetGnss(target_gnss_s &target_gnss)
+{
+	if (!_target_gnss_sub.update(&target_gnss)) {
+		return false;
+	}
+
+	if (!alignFutureSampleTime(target_gnss.timestamp_sample, nowUs())) {
+		if (shouldEmitWarning(_target_gps_pos_warn_last)) {
+			PX4_WARN("VTE: Target GNSS timestamp in the future!");
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
 bool VTEPosition::isTargetGpsPositionValid(const target_gnss_s &target_gnss)
 {
 	if (!isMeasRecent(target_gnss.timestamp_sample)) {
@@ -558,37 +537,46 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 	PX4_DEBUG("VTE Position Estimator properly initialized.");
 	_estimator_initialized = true;
 	_pre_bias_reference = _bias.set ? PreBiasReference::kUnknown : initial_reference;
-	_last_update = nowUs();
-	_last_predict = _last_update;
+	_last_predict = nowUs();
+	_last_update = initial_obs.timestamp;
 
 	if (initial_type == ObsType::kFiducialMarker) {
-		_last_relative_meas_fused_time = _last_update;
+		_last_relative_meas_fused_time = initial_obs.timestamp;
 	}
 
-	vte_aid_source3d_s aid{};
-	aid.timestamp = _last_update;
-	aid.timestamp_sample = initial_obs.timestamp;
-	aid.time_last_predict = _last_predict;
-	aid.time_since_meas_ms = (_last_update - initial_obs.timestamp) * kMicrosecondsToMilliseconds;
-
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
-		_target_est_pos[axis].resetHistory();
+		_target_est_pos[axis].resetHistory({_last_update, _last_relative_meas_fused_time});
 		_target_est_pos[axis].pushHistory(initial_obs.timestamp);
-		aid.observation[axis] = initial_obs.meas_xyz(axis);
-		aid.observation_variance[axis] = initial_obs.meas_unc_xyz(axis);
-		// There is no prior prediction against which to compute an innovation at startup.
-		aid.innovation[axis] = NAN;
-		aid.innovation_variance[axis] = NAN;
-		aid.test_ratio[axis] = NAN;
-		aid.fusion_status[axis] = FusionStatus::STATUS_INITIALIZED;
 	}
 
 	// No acceleration history exists yet. Propagate with constant velocity and grow the
 	// covariance with the normal process noise instead of labelling the raw sample as current.
-	predictionStep(Vector3f{}, (_last_update - initial_obs.timestamp) * kMicrosecondsToSeconds);
-	publishInnov(aid, initial_type);
+	predictionStep(Vector3f{}, (_last_predict - initial_obs.timestamp) * kMicrosecondsToSeconds);
+	publishInitializedAid(initial_obs);
 
 	return true;
+}
+
+void VTEPosition::publishInitializedAid(const TargetObs &obs)
+{
+	// The sample became the state, so there is no innovation.
+	vte_aid_source3d_s aid{};
+	aid.timestamp = _last_predict;
+	aid.timestamp_sample = obs.timestamp;
+	aid.time_last_predict = _last_predict;
+	aid.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, obs.timestamp)) * kMicrosecondsToMilliseconds;
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		aid.observation[axis] = obs.meas_xyz(axis);
+		aid.observation_variance[axis] = obs.meas_unc_xyz(axis);
+		aid.innovation[axis] = NAN;
+		aid.innovation_variance[axis] = NAN;
+		aid.test_ratio[axis] = NAN;
+		aid.replay_test_ratio_max[axis] = -1.f;
+		aid.fusion_status[axis] = FusionStatus::STATUS_INITIALIZED;
+	}
+
+	_vte_aid_pubs[obsIndex(obs.type)].publish(aid);
 }
 
 void VTEPosition::selectInitialBiasFromGnss(const TargetObs observations[kObsTypeCount],
@@ -597,12 +585,11 @@ void VTEPosition::selectInitialBiasFromGnss(const TargetObs observations[kObsTyp
 	PX4_DEBUG("VTE Position setting GNSS bias.");
 	const hrt_abstime sample_time = observations[obsIndex(ObsType::kFiducialMarker)].timestamp;
 	Vector3f gnss_sample{};
+	_bias.set = selectBiasGnssSample(sample_time, gnss_sample);
 
-	if (selectBiasGnssSample(sample_time, gnss_sample)) {
+	if (_bias.set) {
 		initial_bias = gnss_sample - initial_position;
 	}
-
-	_bias.set = true;
 }
 
 void VTEPosition::buildInitialStateArray(const Vector3f &initial_position,
@@ -666,41 +653,46 @@ bool VTEPosition::selectBiasGnssSample(const hrt_abstime sample_time, Vector3f &
 	const int64_t dt_us = signedTimeDiffUs(sample_time, _pos_rel_gnss.timestamp);
 
 	if (dt_us != 0) {
-		const float dt = static_cast<float>(dt_us) * kMicrosecondsToSeconds;
+		// Use the latest valid velocity for this constant-velocity alignment, even when vision
+		// is older than the fast-input timeout.
 		Vector3f uav_velocity_ned{};
-		bool has_velocity_for_propagation = false;
 
-		if (_local_velocity.valid
-		    && isTimeDifferenceWithin(_local_velocity.timestamp, sample_time, _meas_updated_timeout_us)) {
+		if (_local_velocity.valid) {
 			uav_velocity_ned = _local_velocity.xyz;
-			has_velocity_for_propagation = true;
 
-		} else if (getOffsetUavVel(sample_time, uav_velocity_ned)) {
-			has_velocity_for_propagation = true;
+		} else if (!getOffsetUavVel(_uav_gps_vel.timestamp, uav_velocity_ned)) {
+			return false;
 		}
 
-		if (has_velocity_for_propagation) {
-			gnss_sample -= uav_velocity_ned * dt;
+		Vector3f relative_velocity_ned = -uav_velocity_ned;
+
+#if defined(CONFIG_VTEST_MOVING)
+
+		if (_pos_rel_gnss_is_target) {
+			if (!_target_gps_vel.valid || !isMeasRecent(_target_gps_vel.timestamp)) {
+				return false;
+			}
+
+			relative_velocity_ned += _target_gps_vel.xyz;
 		}
+
+#endif // CONFIG_VTEST_MOVING
+
+		gnss_sample += relative_velocity_ned * (static_cast<float>(dt_us) * kMicrosecondsToSeconds);
 	}
 
 	return true;
 }
 
-void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
+bool VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 		const TargetObs observations[kObsTypeCount])
 {
 	if (!fusion_mask.flags.fuse_vision) {
-		return;
+		return false;
 	}
 
 	const TargetObs &vision_obs = observations[obsIndex(ObsType::kFiducialMarker)];
 	const hrt_abstime sample_time = vision_obs.timestamp;
-
-	if (sample_time == 0) {
-		return;
-	}
-
 	const Vector3f &initial_position = vision_obs.meas_xyz;
 
 	Vector3f gnss_sample{};
@@ -708,18 +700,21 @@ void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 	if (!selectBiasGnssSample(sample_time, gnss_sample)) {
 		if (_bias.averaging_active) {
 			PX4_WARN("GNSS unavailable, ending bias averaging and switching to vision.");
-			activateBiasEstimate(initial_position, _bias.initial_lpf.getState());
+			activateBiasEstimate(initial_position, _bias.initial_lpf.getState(), vision_obs, true);
+			return true;
+		}
 
-		} else if (_pre_bias_reference == PreBiasReference::kGnss) {
+		if (_pre_bias_reference == PreBiasReference::kGnss) {
 			// The state was initialized GNSS-referenced, so vision fusion is currently
 			// gated on the GNSS bias being observable. Without an aligned GNSS sample
 			// we would never make progress and vision would be blocked indefinitely.
 			// Activate the bias with a zero offset so the filter unblocks.
 			PX4_WARN("GNSS bias not observable, setting bias to zero.");
-			activateBiasEstimate(initial_position, Vector3f{});
+			activateBiasEstimate(initial_position, Vector3f{}, vision_obs, true);
+			return true;
 		}
 
-		return;
+		return false;
 	}
 
 	const Vector3f initial_bias = gnss_sample - initial_position;
@@ -727,22 +722,24 @@ void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 	if (!_bias.averaging_active && shouldAverageInitialBias(fusion_mask.flags.fuse_vision)) {
 		PX4_INFO("GNSS/vision bias observable, averaging initial GNSS bias.");
 		startBiasAveraging(initial_bias, sample_time);
-		return;
+		return false;
 	}
 
 	if (_bias.averaging_active) {
 		if (!updateBiasAveraging(initial_bias, sample_time)) {
-			return;
+			return false;
 		}
 
+		// The averaged bias anchors the position to GNSS, so the vision sample is new information.
 		PX4_INFO("GNSS bias averaging complete, setting position and bias.");
 		const Vector3f filtered_bias = _bias.initial_lpf.getState();
-		activateBiasEstimate(gnss_sample - filtered_bias, filtered_bias);
-		return;
+		activateBiasEstimate(gnss_sample - filtered_bias, filtered_bias, vision_obs, false);
+		return false;
 	}
 
 	PX4_INFO("GNSS/vision bias observable, setting position and bias.");
-	activateBiasEstimate(initial_position, initial_bias);
+	activateBiasEstimate(initial_position, initial_bias, vision_obs, true);
+	return true;
 }
 
 void VTEPosition::startBiasAveraging(const Vector3f &bias_sample, const hrt_abstime sample_time)
@@ -809,32 +806,36 @@ void VTEPosition::resetBiasAveraging()
 	_bias.initial_lpf.reset(Vector3f{});
 }
 
-void VTEPosition::activateBiasEstimate(const Vector3f &initial_position, const Vector3f &initial_bias)
+void VTEPosition::activateBiasEstimate(const Vector3f &position, const Vector3f &bias,
+				       const TargetObs &vision_obs, bool position_from_vision)
 {
 	const float pos_var = fmaxf(_param_vte_pos_unc_in.get(), kMinVariance);
 	const float bias_var = fmaxf(_param_vte_bias_unc_in.get(), kMinVariance);
+	const hrt_abstime reset_time = math::min(vision_obs.timestamp, _last_predict);
+	const float latency = (_last_predict - reset_time) * kMicrosecondsToSeconds;
 
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
 		KF_position &filter = _target_est_pos[axis];
-		EstimatorState state = filter.getState();
-		state(vtest::State::bias) = initial_bias(axis);
-		state(vtest::State::pos_rel) = initial_position(axis);
-		filter.setState(state);
+		FusionTimes times = filter.getFusionTimes();
 
-		EstimatorState state_var = filter.getStateCovarianceDiag();
-		state_var(vtest::State::bias) = bias_var;
-		state_var(vtest::State::pos_rel) = pos_var;
-		filter.setStateCovarianceDiag(state_var);
+		if (position_from_vision) {
+			times.record(FusionSource::Relative, vision_obs.timestamp);
+		}
 
-		// Bias initialization is a state reset: restart OOSM history to avoid mixing pre/post-reset states.
-		filter.resetHistory();
+		filter.resetPositionAndBias(position(axis), fmaxf(pos_var, vision_obs.meas_unc_xyz(axis)),
+					    bias(axis), fmaxf(bias_var, vision_obs.meas_unc_xyz(axis)), latency);
+		filter.resetHistory(times);
+		filter.pushHistory(reset_time);
 	}
 
-	PX4_DEBUG("Rel pos init %.2f %.2f %.2f", (double)initial_position(vtest::Axis::x),
-		  (double)initial_position(vtest::Axis::y), (double)initial_position(vtest::Axis::z));
+	// Reconstruct this one-time initialization bridge with constant UAV velocity and
+	// the retained target acceleration. Grow covariance with the normal process noise.
+	predictionStep(Vector3f{}, latency);
 
-	PX4_DEBUG("GNSS bias init %.2f %.2f %.2f", (double)initial_bias(vtest::Axis::x),
-		  (double)initial_bias(vtest::Axis::y), (double)initial_bias(vtest::Axis::z));
+	PX4_DEBUG("Rel pos init %.2f %.2f %.2f", (double)position(vtest::Axis::x),
+		  (double)position(vtest::Axis::y), (double)position(vtest::Axis::z));
+	PX4_DEBUG("GNSS bias init %.2f %.2f %.2f", (double)bias(vtest::Axis::x),
+		  (double)bias(vtest::Axis::y), (double)bias(vtest::Axis::z));
 
 	_bias.set = true;
 	_pre_bias_reference = PreBiasReference::kUnknown;
@@ -856,15 +857,14 @@ void VTEPosition::publishBiasInitStatus(const Vector3f &raw_bias, const Vector3f
 	_vte_bias_init_status_pub.publish(status);
 }
 
-bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
-		const TargetObs observations[kObsTypeCount])
+void VTEPosition::fuseActiveMeasurements(const ObsValidMaskU &fusion_mask, const TargetObs observations[kObsTypeCount])
 {
 	const bool gnss_ready = !shouldBlockGnssFusionUntilBiasReady();
 	const bool vision_ready = !shouldBlockVisionFusionUntilBiasReady();
 	const TargetObs *order[kObsTypeCount];
 	unsigned count = 0;
 
-	// Preserve source priority when effective fusion times match.
+	// Source priority for samples fused at now. The batch fusion orders delayed ones by capture time.
 	if (fusion_mask.flags.fuse_target_gps_pos && gnss_ready) {
 		order[count++] = &observations[obsIndex(ObsType::kTargetGpsPos)];
 	}
@@ -889,43 +889,60 @@ bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 
 #endif // CONFIG_VTEST_MOVING
 
-	const hrt_abstime last_delayed_time = (_last_predict >= kOosmMinTimeUs) ? _last_predict - kOosmMinTimeUs : 0;
-
-	for (unsigned i = 1; i < count; ++i) {
-		const TargetObs *obs = order[i];
-
-		// Near-current samples all fuse at now, so keep their source order.
-		if (obs->timestamp > last_delayed_time) {
-			continue;
-		}
-
-		unsigned j = i;
-
-		while (j > 0 && order[j - 1]->timestamp > obs->timestamp) {
-			order[j] = order[j - 1];
-			--j;
-		}
-
-		order[j] = obs;
-	}
-
-	bool position_fused = false;
+	// The observation model is the same on every axis, only the value and variance differ.
+	KF_position::ScalarMeas meas[kObsTypeCount];
 
 	for (unsigned i = 0; i < count; ++i) {
 		const TargetObs &obs = *order[i];
-
-		if (obs.timestamp == 0 || !fuseMeas(vehicle_acc_ned, obs)) {
-			continue;
-		}
+		meas[i] = {obs.timestamp, 0.f, 0.f, {}};
+		meas[i].H(obs.state_index) = 1.f;
 
 		if (obs.type == ObsType::kFiducialMarker) {
-			_last_relative_meas_fused_time = nowUs();
+			meas[i].source = FusionSource::Relative;
+
+		} else if ((obs.type == ObsType::kUavGpsVel) || (obs.type == ObsType::kTargetGpsVel)) {
+			meas[i].source = FusionSource::Untracked;
 		}
 
-		position_fused |= (obs.type != ObsType::kUavGpsVel) && (obs.type != ObsType::kTargetGpsVel);
+		// Bias can become observable after observations were collected in this update.
+		// Build the GNSS model from the state being fused, including on that first cycle.
+		if (_bias.set && (obs.type == ObsType::kTargetGpsPos || obs.type == ObsType::kMissionGpsPos)) {
+			meas[i].H(vtest::State::bias) = 1.f;
+		}
 	}
 
-	return position_fused;
+	// One batch per axis, so the delayed observations of this cycle share a single replay.
+	const float nis_threshold = fmaxf(_param_vte_pos_nis_thre.get(), kMinNisThreshold);
+	AxisResults results{};
+	perf_begin(_vte_update_perf);
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		for (unsigned i = 0; i < count; ++i) {
+			meas[i].val = order[i]->meas_xyz(axis);
+			meas[i].unc = order[i]->meas_unc_xyz(axis);
+		}
+
+		perf_begin(_vte_fusion_perf);
+		_target_est_pos[axis].fuseScalarsAtTime(meas, count, _last_predict, nis_threshold, results[axis]);
+		perf_end(_vte_fusion_perf);
+	}
+
+	perf_end(_vte_update_perf);
+
+	for (unsigned i = 0; i < count; ++i) {
+		const TargetObs &obs = *order[i];
+		publishAidSource(obs, results, i);
+	}
+
+	// Replay can accept or reject older observations, so freshness can move in either direction.
+	_last_update = 0;
+	_last_relative_meas_fused_time = 0;
+
+	for (const KF_position &filter : _target_est_pos) {
+		const FusionTimes times = filter.getFusionTimes();
+		_last_update = math::max(_last_update, times.last_fused);
+		_last_relative_meas_fused_time = math::max(_last_relative_meas_fused_time, times.last_relative_fused);
+	}
 }
 
 /*Vision observation: [rx, ry, rz]*/
@@ -933,11 +950,25 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 {
 	fiducial_marker_pos_report_s report;
 
-	if (!_fiducial_marker_pos_report_sub.update(&report) || !isVisionDataValid(report)) {
+	if (!_fiducial_marker_pos_report_sub.update(&report)) {
 		return false;
 	}
 
-	const matrix::Quaternionf quat_att(report.q);
+	if (!alignFutureSampleTime(report.timestamp_sample, nowUs())) {
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision timestamp in the future!");
+		}
+
+		return false;
+	}
+
+	if (!isVisionDataValid(report)) {
+		return false;
+	}
+
+	// The covariance rotation below assumes a unit quaternion.
+	matrix::Quaternionf quat_att(report.q);
+	quat_att.normalize();
 	const Vector3f vision_rel(report.rel_pos);
 	const Vector3f vision_ned = quat_att.rotateVector(vision_rel);
 	const float min_ev_pos_var = sq(fmaxf(_param_vte_ev_pos_noise.get(), kMinObservationNoise));
@@ -959,24 +990,9 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 		return false;
 	}
 
-	obs.timestamp = report.timestamp_sample;
-
-	obs.type = ObsType::kFiducialMarker;
-	obs.updated(vtest::Axis::x) = true;
-	obs.updated(vtest::Axis::y) = true;
-	obs.updated(vtest::Axis::z) = true;
-
-	// Assume noise correlation negligible:
-	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
-	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
-	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
-
-	obs.meas_xyz = vision_ned;
-
-	// Assume off diag elements ~ 0
-	obs.meas_unc_xyz(vtest::Axis::x) = cov_rotated(vtest::Axis::x, vtest::Axis::x);
-	obs.meas_unc_xyz(vtest::Axis::y) = cov_rotated(vtest::Axis::y, vtest::Axis::y);
-	obs.meas_unc_xyz(vtest::Axis::z) = cov_rotated(vtest::Axis::z, vtest::Axis::z);
+	obs = {ObsType::kFiducialMarker, report.timestamp_sample, vtest::State::pos_rel, vision_ned,
+	       Vector3f(cov_rotated(0, 0), cov_rotated(1, 1), cov_rotated(2, 2))
+	      };
 
 	return true;
 }
@@ -990,26 +1006,8 @@ bool VTEPosition::processObsGNSSVelUav(TargetObs &obs) const
 		return false;
 	}
 
-	const float min_gps_vel_var = getMinGpsVelVar();
-
-	obs.meas_xyz = vel_uav_ned;
-
-	obs.meas_h_xyz(vtest::Axis::x, vtest::State::vel_uav) = 1;
-	obs.meas_h_xyz(vtest::Axis::y, vtest::State::vel_uav) = 1;
-	obs.meas_h_xyz(vtest::Axis::z, vtest::State::vel_uav) = 1;
-
-	const float unc = fmaxf(sq(_uav_gps_vel.uncertainty), min_gps_vel_var);
-	obs.meas_unc_xyz(vtest::Axis::x) = unc;
-	obs.meas_unc_xyz(vtest::Axis::y) = unc;
-	obs.meas_unc_xyz(vtest::Axis::z) = unc;
-
-	obs.timestamp = _uav_gps_vel.timestamp;
-
-	obs.type = ObsType::kUavGpsVel;
-
-	obs.updated(vtest::Axis::x) = true;
-	obs.updated(vtest::Axis::y) = true;
-	obs.updated(vtest::Axis::z) = true;
+	const float unc = fmaxf(sq(_uav_gps_vel.uncertainty), getMinGpsVelVar());
+	obs = {ObsType::kUavGpsVel, _uav_gps_vel.timestamp, vtest::State::vel_uav, vel_uav_ned, Vector3f(unc, unc, unc)};
 
 	return true;
 }
@@ -1019,28 +1017,9 @@ bool VTEPosition::processObsGNSSVelUav(TargetObs &obs) const
 /*Target GNSS velocity observation: [r_dotx, r_doty, r_dotz]*/
 bool VTEPosition::processObsGNSSVelTarget(const target_gnss_s &target_gnss, TargetObs &obs) const
 {
-	// If the target is moving, the relative velocity is expressed as the drone velocity minus the target velocity.
-	obs.meas_xyz(vtest::Axis::x) = target_gnss.vel_n_m_s;
-	obs.meas_xyz(vtest::Axis::y) = target_gnss.vel_e_m_s;
-	obs.meas_xyz(vtest::Axis::z) = target_gnss.vel_d_m_s;
-
+	const Vector3f vel_ned{target_gnss.vel_n_m_s, target_gnss.vel_e_m_s, target_gnss.vel_d_m_s};
 	const float unc = fmaxf(sq(target_gnss.s_acc_m_s), getMinGpsVelVar());
-
-	obs.meas_unc_xyz(vtest::Axis::x) = unc;
-	obs.meas_unc_xyz(vtest::Axis::y) = unc;
-	obs.meas_unc_xyz(vtest::Axis::z) = unc;
-
-	obs.meas_h_xyz(vtest::Axis::x, vtest::State::vel_target) = 1;
-	obs.meas_h_xyz(vtest::Axis::y, vtest::State::vel_target) = 1;
-	obs.meas_h_xyz(vtest::Axis::z, vtest::State::vel_target) = 1;
-
-	obs.timestamp = target_gnss.timestamp_sample;
-
-	obs.type = ObsType::kTargetGpsVel;
-
-	obs.updated(vtest::Axis::x) = true;
-	obs.updated(vtest::Axis::y) = true;
-	obs.updated(vtest::Axis::z) = true;
+	obs = {ObsType::kTargetGpsVel, target_gnss.timestamp_sample, vtest::State::vel_target, vel_ned, Vector3f(unc, unc, unc)};
 
 	return true;
 }
@@ -1082,33 +1061,16 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 		return false;
 	}
 
-	// GPS already in NED, no rotation required.
-	// Obs: [pos_rel + bias]. Bias may be initialized later in this update,
-	// so fuseMeas() adds its coefficient to meas_h_xyz when the bias is active.
-	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
-	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
-	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
+	// GNSS observes pos_rel + bias; fuseActiveMeasurements() adds the bias coefficient once it is active.
+	obs = {ObsType::kMissionGpsPos, _uav_gps_position.timestamp, vtest::State::pos_rel, gps_relative_pos,
+	       Vector3f(gps_unc_horizontal, gps_unc_horizontal, gps_unc_vertical)
+	      };
 
-	obs.timestamp = _uav_gps_position.timestamp;
-
-	obs.meas_xyz = gps_relative_pos;
-
-	obs.meas_unc_xyz(vtest::Axis::x) = gps_unc_horizontal;
-	obs.meas_unc_xyz(vtest::Axis::y) = gps_unc_horizontal;
-	obs.meas_unc_xyz(vtest::Axis::z) = gps_unc_vertical;
-
-	obs.type = ObsType::kMissionGpsPos;
-
-	obs.updated(vtest::Axis::x) = true;
-	obs.updated(vtest::Axis::y) = true;
-	obs.updated(vtest::Axis::z) = true;
-
-	// Keep track of the latest GNSS-relative position used for bias initialization.
-	// Mission and target GPS position fusion are mutually exclusive, so the mission
-	// path can refresh this cache unconditionally.
+	// Latest GNSS-relative position, used for bias initialization. Mission and target GNSS are exclusive.
 	_pos_rel_gnss.timestamp = obs.timestamp;
-	_pos_rel_gnss.valid = gps_relative_pos.isAllFinite();
+	_pos_rel_gnss.valid = true;
 	_pos_rel_gnss.xyz = gps_relative_pos;
+	_pos_rel_gnss_is_target = false;
 
 	return true;
 }
@@ -1131,16 +1093,28 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	float uav_alt_m = _uav_gps_position.alt_m;
 
 	const float dt_sync_s = static_cast<float>(time_diff_us) * kMicrosecondsToSeconds;
-	const float dt_sync_s_abs = fabsf(dt_sync_s);
 	bool uav_position_interpolated = false;
 
-	// Compensate UAV motion during the latency interval
-	static constexpr float kGnssSyncInterpolationMinTimeS = 0.1f;
-
+	// Move the UAV fix to the target fix time. The receivers are not synchronized, so the fixes rarely
+	// line up; the local velocity stands in when the GNSS velocity is unavailable.
 	Vector3f uav_vel_ned{};
+	float uav_vel_var = getMinGpsVelVar();
+	bool has_uav_velocity = getOffsetUavVel(_uav_gps_position.timestamp, uav_vel_ned);
 
-	if ((dt_sync_s_abs > kGnssSyncInterpolationMinTimeS)
-	    && getOffsetUavVel(_uav_gps_position.timestamp, uav_vel_ned)) {
+	if (has_uav_velocity) {
+		uav_vel_var = fmaxf(sq(_uav_gps_vel.uncertainty), uav_vel_var);
+
+	} else if (_local_velocity.valid) {
+		uav_vel_ned = _local_velocity.xyz;
+		// Local velocity has no supplied covariance here; use the configured initial variance.
+		uav_vel_var = fmaxf(_param_vte_vel_unc_in.get(), uav_vel_var);
+		has_uav_velocity = true;
+	}
+
+	if (time_diff_us != 0) {
+		if (!has_uav_velocity) {
+			return false;
+		}
 
 		const float delta_n = uav_vel_ned(vtest::Axis::x) * dt_sync_s;
 		const float delta_e = uav_vel_ned(vtest::Axis::y) * dt_sync_s;
@@ -1174,9 +1148,10 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 		gps_relative_pos += _gps_pos_offset_ned.xyz;
 	}
 
-	// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
+	// Grow uncertainty with both velocity error and the normal UAV acceleration process noise.
+	const float uav_acc_var = fmaxf(_param_vte_acc_d_unc.get(), kMinVariance);
 	const float propagation_unc = uav_position_interpolated
-				      ? sq(_uav_gps_vel.uncertainty * dt_sync_s_abs) : 0.f;
+				      ? sq(dt_sync_s) * (uav_vel_var + uav_acc_var * fabsf(dt_sync_s) / 3.f) : 0.f;
 	const float min_gps_pos_var = getMinGpsPosVar();
 	const float gps_unc_horizontal = fmaxf(sq(_uav_gps_position.eph), min_gps_pos_var)
 					 + fmaxf(sq(target_gnss.eph), min_gps_pos_var)
@@ -1193,40 +1168,22 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 		return false;
 	}
 
-	// GPS already in NED, no rotation required.
-	// Obs: [pos_rel + bias]. Bias may be initialized later in this update,
-	// so fuseMeas() adds its coefficient to meas_h_xyz when the bias is active.
-	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
-	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
-	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
+	// GNSS observes pos_rel + bias; fuseActiveMeasurements() adds the bias coefficient once it is active.
+	obs = {ObsType::kTargetGpsPos, target_gnss.timestamp_sample, vtest::State::pos_rel, gps_relative_pos,
+	       Vector3f(gps_unc_horizontal, gps_unc_horizontal, gps_unc_vertical)
+	      };
 
-	obs.timestamp = target_gnss.timestamp_sample;
-
-	obs.meas_xyz = gps_relative_pos;
-
-	obs.meas_unc_xyz(vtest::Axis::x) = gps_unc_horizontal;
-	obs.meas_unc_xyz(vtest::Axis::y) = gps_unc_horizontal;
-	obs.meas_unc_xyz(vtest::Axis::z) = gps_unc_vertical;
-
-	obs.type = ObsType::kTargetGpsPos;
-
-	obs.updated(vtest::Axis::x) = true;
-	obs.updated(vtest::Axis::y) = true;
-	obs.updated(vtest::Axis::z) = true;
-
-	// Keep track of the latest GNSS relative position used for bias initialization.
+	// Latest GNSS-relative position, used for bias initialization.
 	_pos_rel_gnss.timestamp = obs.timestamp;
-	_pos_rel_gnss.valid = gps_relative_pos.isAllFinite();
+	_pos_rel_gnss.valid = true;
 	_pos_rel_gnss.xyz = gps_relative_pos;
+	_pos_rel_gnss_is_target = true;
 
 	return true;
 }
 
-bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &target_obs)
+void VTEPosition::publishAidSource(const TargetObs &target_obs, const AxisResults &results, const unsigned obs_pos)
 {
-	perf_begin(_vte_update_perf);
-	const float nis_threshold = fmaxf(_param_vte_pos_nis_thre.get(), kMinNisThreshold);
-
 	vte_aid_source3d_s target_innov = {};
 	target_innov.timestamp_sample = target_obs.timestamp;
 	target_innov.timestamp = nowUs();
@@ -1234,79 +1191,42 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 	target_innov.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, target_obs.timestamp))
 					  * kMicrosecondsToMilliseconds;
 
-	bool any_axis_fused = false;
 	uint8_t history_steps = 0;
+	uint8_t replayed_count = 0;
+	uint8_t replay_revised_count = 0;
 
 	for (int j = 0; j < vtest::Axis::size; j++) {
-
-		if (!target_obs.updated(j)) {
-			target_innov.fusion_status[j] = static_cast<uint8_t>(FusionStatus::STATUS_IDLE);
-			continue; // nothing to do for this axis
-		}
-
-		KF_position::ScalarMeas meas_input{target_obs.timestamp, target_obs.meas_xyz(j),
-						   target_obs.meas_unc_xyz(j), target_obs.meas_h_xyz.row(j)};
-
-		// Bias can become observable after observations were collected in this update.
-		// Build the GNSS model from the state being fused, including on that first cycle.
-		if (_bias.set && (target_obs.type == ObsType::kTargetGpsPos || target_obs.type == ObsType::kMissionGpsPos)) {
-			meas_input.H(vtest::State::bias) = 1.f;
-		}
-
-		target_innov.observation[j] = meas_input.val;
-		target_innov.observation_variance[j] = meas_input.unc;
-
-		perf_begin(_vte_fusion_perf);
-		const FusionResult result = _target_est_pos[j].fuseScalarAtTime(meas_input, _last_predict, nis_threshold);
-		perf_end(_vte_fusion_perf);
-
+		const FusionResult &result = results[j][obs_pos];
+		target_innov.observation[j] = target_obs.meas_xyz(j);
+		target_innov.observation_variance[j] = target_obs.meas_unc_xyz(j);
 		target_innov.innovation[j]          = result.innov;
 		target_innov.innovation_variance[j] = result.innov_var;
 		target_innov.test_ratio[j]          = result.test_ratio;
 		target_innov.fusion_status[j]       = static_cast<uint8_t>(result.status);
-		any_axis_fused |= (result.status == FusionStatus::STATUS_FUSED_CURRENT ||
-				   result.status == FusionStatus::STATUS_FUSED_OOSM);
+		target_innov.replay_test_ratio_max[j] = result.replay_test_ratio_max;
 
 		if (result.status == FusionStatus::STATUS_FUSED_OOSM) {
 			history_steps = math::max(result.history_steps, history_steps);
+			replayed_count = math::max(result.replayed_count, replayed_count);
+			replay_revised_count = math::max(result.replay_revised_count, replay_revised_count);
 		}
 	}
 
 	target_innov.history_steps = history_steps;
+	target_innov.replayed_count = replayed_count;
+	target_innov.replay_revised_count = replay_revised_count;
 
-	perf_end(_vte_update_perf);
-	publishInnov(target_innov, target_obs.type);
-
-	return any_axis_fused;
+	_vte_aid_pubs[obsIndex(target_obs.type)].publish(target_innov);
 }
 
-void VTEPosition::publishInnov(const vte_aid_source3d_s &target_innov, const ObsType type)
+void VTEPosition::publishInvalidState()
 {
-	// Publish innovations
-	switch (type) {
-	case ObsType::kTargetGpsPos:
-		_vte_aid_gps_pos_target_pub.publish(target_innov);
-		break;
-
-	case ObsType::kMissionGpsPos:
-		_vte_aid_gps_pos_mission_pub.publish(target_innov);
-		break;
-
-	case ObsType::kUavGpsVel:
-		_vte_aid_gps_vel_uav_pub.publish(target_innov);
-		break;
-
-	case ObsType::kTargetGpsVel:
-		_vte_aid_gps_vel_target_pub.publish(target_innov);
-		break;
-
-	case ObsType::kFiducialMarker:
-		_vte_aid_fiducial_marker_pub.publish(target_innov);
-		break;
-
-	case ObsType::kTypeCount:
-		break;
-	}
+	// Mark the logged state invalid. landing_target_pose is not published: precision landing keeps
+	// approaching the last pose it received and judges its age with its own timeout.
+	_vte_state.timestamp = nowUs();
+	_vte_state.rel_pos_valid = false;
+	_vte_state.rel_vel_valid = false;
+	_target_estimator_state_pub.publish(_vte_state);
 }
 
 void VTEPosition::publishTarget()
@@ -1316,108 +1236,56 @@ void VTEPosition::publishTarget()
 
 	_target_pose.timestamp = _last_predict;
 	_vte_state.timestamp = _last_predict;
+	_target_pose.is_static = kTargetIsStatic;
+
+	Vector3f rel_pos;
+	Vector3f rel_pos_var;
+	Vector3f rel_vel;
+	Vector3f rel_vel_var;
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		const KF_position &filter = _target_est_pos[axis];
+		const EstimatorState &state = filter.getState();
+		const EstimatorState state_var = filter.getStateCovarianceDiag();
+
+		_vte_state.rel_pos[axis] = state(vtest::State::pos_rel);
+		_vte_state.cov_rel_pos[axis] = state_var(vtest::State::pos_rel);
+		_vte_state.vel_uav[axis] = state(vtest::State::vel_uav);
+		_vte_state.cov_vel_uav[axis] = state_var(vtest::State::vel_uav);
+		_vte_state.bias[axis] = state(vtest::State::bias);
+		_vte_state.cov_bias[axis] = state_var(vtest::State::bias);
+
+		rel_pos(axis) = state(vtest::State::pos_rel);
+		rel_pos_var(axis) = state_var(vtest::State::pos_rel);
+		rel_vel(axis) = -state(vtest::State::vel_uav);
+		rel_vel_var(axis) = state_var(vtest::State::vel_uav);
 
 #if defined(CONFIG_VTEST_MOVING)
-	_target_pose.is_static = false;
-#else
-	_target_pose.is_static = true;
+		_vte_state.vel_target[axis] = state(vtest::State::vel_target);
+		_vte_state.cov_vel_target[axis] = state_var(vtest::State::vel_target);
+		_vte_state.acc_target[axis] = state(vtest::State::acc_target);
+		_vte_state.cov_acc_target[axis] = state_var(vtest::State::acc_target);
+
+		// Relative velocity is vel_target - vel_uav: Var = Var(vel_target) + Var(vel_uav) - 2 Cov(vel_uav, vel_target)
+		rel_vel(axis) += state(vtest::State::vel_target);
+		rel_vel_var(axis) += state_var(vtest::State::vel_target)
+				     - 2.f * filter.getStateCovariance()(vtest::State::vel_uav, vtest::State::vel_target);
 #endif // CONFIG_VTEST_MOVING
+	}
 
-	// Get state
-	const EstimatorState &state_x = _target_est_pos[vtest::Axis::x].getState();
-	const EstimatorState &state_y = _target_est_pos[vtest::Axis::y].getState();
-	const EstimatorState &state_z = _target_est_pos[vtest::Axis::z].getState();
+	_target_pose.x_rel = rel_pos(0);
+	_target_pose.y_rel = rel_pos(1);
+	_target_pose.z_rel = rel_pos(2);
+	_target_pose.cov_x_rel = rel_pos_var(0);
+	_target_pose.cov_y_rel = rel_pos_var(1);
+	_target_pose.cov_z_rel = rel_pos_var(2);
+	_target_pose.vx_rel = rel_vel(0);
+	_target_pose.vy_rel = rel_vel(1);
+	_target_pose.vz_rel = rel_vel(2);
+	_target_pose.cov_vx_rel = rel_vel_var(0);
+	_target_pose.cov_vy_rel = rel_vel_var(1);
+	_target_pose.cov_vz_rel = rel_vel_var(2);
 
-	const EstimatorState state_var_x = _target_est_pos[vtest::Axis::x].getStateCovarianceDiag();
-	const EstimatorState state_var_y = _target_est_pos[vtest::Axis::y].getStateCovarianceDiag();
-	const EstimatorState state_var_z = _target_est_pos[vtest::Axis::z].getStateCovarianceDiag();
-
-	// Fill target relative pose
-	_target_pose.x_rel = state_x(vtest::State::pos_rel);
-	_target_pose.y_rel = state_y(vtest::State::pos_rel);
-	_target_pose.z_rel = state_z(vtest::State::pos_rel);
-
-	_target_pose.cov_x_rel = state_var_x(vtest::State::pos_rel);
-	_target_pose.cov_y_rel = state_var_y(vtest::State::pos_rel);
-	_target_pose.cov_z_rel = state_var_z(vtest::State::pos_rel);
-
-	// Fill target relative velocity
-	_target_pose.vx_rel = -state_x(vtest::State::vel_uav);
-	_target_pose.vy_rel = -state_y(vtest::State::vel_uav);
-	_target_pose.vz_rel = -state_z(vtest::State::vel_uav);
-
-	_target_pose.cov_vx_rel = state_var_x(vtest::State::vel_uav);
-	_target_pose.cov_vy_rel = state_var_y(vtest::State::vel_uav);
-	_target_pose.cov_vz_rel = state_var_z(vtest::State::vel_uav);
-
-#if defined(CONFIG_VTEST_MOVING)
-	const EstimatorStateCovariance &state_cov_x = _target_est_pos[vtest::Axis::x].getStateCovariance();
-	const EstimatorStateCovariance &state_cov_y = _target_est_pos[vtest::Axis::y].getStateCovariance();
-	const EstimatorStateCovariance &state_cov_z = _target_est_pos[vtest::Axis::z].getStateCovariance();
-
-	// If target is moving, relative velocity = vel_target - vel_uav
-	_target_pose.vx_rel += state_x(vtest::State::vel_target);
-	_target_pose.vy_rel += state_y(vtest::State::vel_target);
-	_target_pose.vz_rel += state_z(vtest::State::vel_target);
-
-	// Var(vel_target - vel_uav) = Var(vel_target) + Var(vel_uav) - 2 Cov(vel_uav, vel_target)
-	_target_pose.cov_vx_rel += state_var_x(vtest::State::vel_target)
-				   - 2.f * state_cov_x(vtest::State::vel_uav, vtest::State::vel_target);
-	_target_pose.cov_vy_rel += state_var_y(vtest::State::vel_target)
-				   - 2.f * state_cov_y(vtest::State::vel_uav, vtest::State::vel_target);
-	_target_pose.cov_vz_rel += state_var_z(vtest::State::vel_target)
-				   - 2.f * state_cov_z(vtest::State::vel_uav, vtest::State::vel_target);
-
-#endif // CONFIG_VTEST_MOVING
-
-	// Fill vision target estimator state
-	_vte_state.rel_pos[0] = _target_pose.x_rel;
-	_vte_state.rel_pos[1] = _target_pose.y_rel;
-	_vte_state.rel_pos[2] = _target_pose.z_rel;
-
-	_vte_state.cov_rel_pos[0] = _target_pose.cov_x_rel;
-	_vte_state.cov_rel_pos[1] = _target_pose.cov_y_rel;
-	_vte_state.cov_rel_pos[2] = _target_pose.cov_z_rel;
-
-	// Fill uav velocity
-	_vte_state.vel_uav[0] = state_x(vtest::State::vel_uav);
-	_vte_state.vel_uav[1] = state_y(vtest::State::vel_uav);
-	_vte_state.vel_uav[2] = state_z(vtest::State::vel_uav);
-
-	_vte_state.cov_vel_uav[0] = state_var_x(vtest::State::vel_uav);
-	_vte_state.cov_vel_uav[1] = state_var_y(vtest::State::vel_uav);
-	_vte_state.cov_vel_uav[2] = state_var_z(vtest::State::vel_uav);
-
-	_vte_state.bias[0] = state_x(vtest::State::bias);
-	_vte_state.bias[1] = state_y(vtest::State::bias);
-	_vte_state.bias[2] = state_z(vtest::State::bias);
-
-	_vte_state.cov_bias[0] = state_var_x(vtest::State::bias);
-	_vte_state.cov_bias[1] = state_var_y(vtest::State::bias);
-	_vte_state.cov_bias[2] = state_var_z(vtest::State::bias);
-
-#if defined(CONFIG_VTEST_MOVING)
-
-	_vte_state.vel_target[0] = state_x(vtest::State::vel_target);
-	_vte_state.vel_target[1] = state_y(vtest::State::vel_target);
-	_vte_state.vel_target[2] = state_z(vtest::State::vel_target);
-
-	_vte_state.cov_vel_target[0] = state_var_x(vtest::State::vel_target);
-	_vte_state.cov_vel_target[1] = state_var_y(vtest::State::vel_target);
-	_vte_state.cov_vel_target[2] = state_var_z(vtest::State::vel_target);
-
-	_vte_state.acc_target[0] = state_x(vtest::State::acc_target);
-	_vte_state.acc_target[1] = state_y(vtest::State::acc_target);
-	_vte_state.acc_target[2] = state_z(vtest::State::acc_target);
-
-	_vte_state.cov_acc_target[0] = state_var_x(vtest::State::acc_target);
-	_vte_state.cov_acc_target[1] = state_var_y(vtest::State::acc_target);
-	_vte_state.cov_acc_target[2] = state_var_z(vtest::State::acc_target);
-
-#endif // CONFIG_VTEST_MOVING
-
-	const Vector3f rel_pos{_target_pose.x_rel, _target_pose.y_rel, _target_pose.z_rel};
-	const Vector3f rel_vel{_target_pose.vx_rel, _target_pose.vy_rel, _target_pose.vz_rel};
 	const bool relative_position_recent = !hasTimedOut(_last_update, _target_valid_timeout_us);
 	_target_pose.rel_pos_valid = relative_position_recent && rel_pos.isAllFinite();
 	_target_pose.rel_vel_valid = _target_pose.rel_pos_valid && rel_vel.isAllFinite(); // Velocity cannot be valid if position invalid
@@ -1471,59 +1339,17 @@ void VTEPosition::print_status() const
 
 	const bool relative_position_valid = _estimator_initialized && !hasTimedOut(_last_update, _target_valid_timeout_us);
 
-	PX4_INFO("  position state: initialized: %s, valid: %s, last predict/update age: %.3f / %.3f s",
+	PX4_INFO("  initialized: %s, valid: %s, predict/update age: %.3f / %.3f s",
 		 yes_no(_estimator_initialized), yes_no(relative_position_valid), age_s(_last_predict), age_s(_last_update));
-	PX4_INFO("    rel pos/vel/ekf2 vel valid: %s / %s / %s",
+	PX4_INFO("  output valid: position: %s, velocity: %s, EKF2 velocity: %s",
 		 yes_no(_target_pose.rel_pos_valid),
 		 yes_no(_target_pose.rel_vel_valid),
 		 yes_no(_target_pose.rel_vel_ekf2_valid));
 
-	if (_estimator_initialized) {
-		const EstimatorState &state_x = _target_est_pos[vtest::Axis::x].getState();
-		const EstimatorState &state_y = _target_est_pos[vtest::Axis::y].getState();
-		const EstimatorState &state_z = _target_est_pos[vtest::Axis::z].getState();
-
-		PX4_INFO("    rel pos: [%.3f, %.3f, %.3f]",
-			 (double)state_x(vtest::State::pos_rel),
-			 (double)state_y(vtest::State::pos_rel),
-			 (double)state_z(vtest::State::pos_rel));
-		PX4_INFO("    gnss bias: [%.3f, %.3f, %.3f]",
-			 (double)state_x(vtest::State::bias),
-			 (double)state_y(vtest::State::bias),
-			 (double)state_z(vtest::State::bias));
-
-#if defined(CONFIG_VTEST_MOVING)
-		PX4_INFO("    target vel: [%.3f, %.3f, %.3f]",
-			 (double)state_x(vtest::State::vel_target),
-			 (double)state_y(vtest::State::vel_target),
-			 (double)state_z(vtest::State::vel_target));
-		PX4_INFO("    target acc: [%.3f, %.3f, %.3f]",
-			 (double)state_x(vtest::State::acc_target),
-			 (double)state_y(vtest::State::acc_target),
-			 (double)state_z(vtest::State::acc_target));
-#endif // CONFIG_VTEST_MOVING
-	}
-
-	PX4_INFO("    bias set: %s, averaging: %s, pre-bias reference: %s",
+	PX4_INFO("  bias set: %s, averaging: %s, pre-bias reference: %s",
 		 yes_no(_bias.set),
 		 yes_no(_bias.averaging_active),
 		 pre_bias_reference_name());
-	PX4_INFO("  position inputs: local pos: %s age %.3f s, local vel: %s age %.3f s",
-		 yes_no(_local_position.valid), age_s(_local_position.timestamp),
-		 yes_no(_local_velocity.valid), age_s(_local_velocity.timestamp));
-	PX4_INFO("    uav gps pos: %s age %.3f s, uav gps vel: %s age %.3f s, pad reference pos: %s",
-		 yes_no(_uav_gps_position.valid), age_s(_uav_gps_position.timestamp),
-		 yes_no(_uav_gps_vel.valid), age_s(_uav_gps_vel.timestamp),
-		 yes_no(_mission_land_position.valid));
-	PX4_INFO("    gnss rel pos: %s age %.3f s, gps pos offset: %s age %.3f s, vel offset: %s age %.3f s",
-		 yes_no(_pos_rel_gnss.valid), age_s(_pos_rel_gnss.timestamp),
-		 yes_no(_gps_pos_is_offset && _gps_pos_offset_ned.valid), age_s(_gps_pos_offset_ned.timestamp),
-		 yes_no(_velocity_offset_ned.valid), age_s(_velocity_offset_ned.timestamp));
-
-#if defined(CONFIG_VTEST_MOVING)
-	PX4_INFO("    target gps vel: %s age %.3f s",
-		 yes_no(_target_gps_vel.valid), age_s(_target_gps_vel.timestamp));
-#endif // CONFIG_VTEST_MOVING
 }
 
 void VTEPosition::checkMeasurementInputs()

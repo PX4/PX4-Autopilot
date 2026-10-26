@@ -65,11 +65,13 @@ void PrecTakeoffTask::pollStatus()
 	if (_prec_takeoff_status_sub.update(&status)) {
 		_is_taking_off = status.state == prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING;
 	}
+
+	// Capture the pad while idle and landed: activation may arrive after liftoff.
+	updateHomeReference(false);
 }
 
 void PrecTakeoffTask::onActivate()
 {
-	_home_ref = {};
 	_home_dist_warned = false;
 	updateHomeReference(false);
 }
@@ -93,20 +95,29 @@ void PrecTakeoffTask::onPosEstStart(VTEPosition &pos)
 
 bool PrecTakeoffTask::updateHomeReference(const bool report_distance_warning)
 {
-	home_position_s home;
-
-	if (!_home_position_sub.copy(&home) || !home.valid_hpos || !home.valid_alt
-	    || !PX4_ISFINITE(home.lat) || !PX4_ISFINITE(home.lon) || !PX4_ISFINITE(home.alt)) {
-		return false;
-	}
-
 	// Only trust home while on the ground, where the vehicle sits on the pad.
 	vehicle_land_detected_s land_detected;
 	const hrt_abstime now = TimeSourceProvider::nowUs();
 
-	if (!_vehicle_land_detected_sub.copy(&land_detected) || !land_detected.landed
+	if (!_vehicle_land_detected_sub.copy(&land_detected)
 	    || land_detected.timestamp == 0 || land_detected.timestamp > now
 	    || now - land_detected.timestamp >= kLandDetectedTimeoutUs) {
+		// Without continuous land detection, a later activation might belong to another flight.
+		clearHomeReference();
+		return false;
+	}
+
+	if (!land_detected.landed) {
+		return false;
+	}
+
+	// Revalidate on the ground so a later flight cannot reuse an old pad after
+	// home or GNSS becomes invalid. Once airborne, the validated reference is frozen.
+	clearHomeReference();
+	home_position_s home;
+
+	if (!_home_position_sub.copy(&home) || !home.valid_hpos || !home.valid_alt
+	    || !PX4_ISFINITE(home.lat) || !PX4_ISFINITE(home.lon) || !PX4_ISFINITE(home.alt)) {
 		return false;
 	}
 
