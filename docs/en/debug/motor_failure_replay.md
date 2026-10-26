@@ -8,9 +8,9 @@ Two command line tools calibrate the [motor failure detector](../config/motor_fa
 They exist because the [threshold parameters](../config/motor_failure_detection.md#choosing-parameter-values) (`MOTFAIL_*`) are specific to an airframe, so the only place to get them is that airframe's own flights.
 `mfd_replay` links the detector library itself, so a replay runs the same code that runs in flight.
 
-One flight is rarely enough to characterise a vehicle, so most of the work below runs over a directory of them.
+One flight is rarely enough to characterise a vehicle, so usually we run the tools over a directory of logs.
 
-Typical uses:
+The tools are used to:
 
 - Confirm a candidate configuration never trips on a set of healthy flights.
 - Find the tightest thresholds a vehicle's data supports, by sweeping values and re-running.
@@ -18,7 +18,7 @@ Typical uses:
 
 ## Building
 
-To build the tool:
+To build the tools:
 
 1. Build PX4 SITL (to populate the build directory)
 
@@ -38,12 +38,21 @@ This produces `build/px4_sitl_default/mfd_replay` and `build/px4_sitl_default/mf
 
 ## Fitting the Current Model
 
-`mfd_fit` reads ESC current and motor command from as many logs as you pass it, and fits the line the detector uses.
-It counts only armed samples where the ESC reported a current, and skips motors that were switched off or running in reverse.
+The first step is to fit the current model: find the straight line that best predicts each motor's current from its command, since the detector flags a motor whose current strays too far from it.
+To do this, run `mfd_fit` once over every healthy log you have for the airframe.
+It fits the expected current `I_expected = MOTFAIL_C2T*u + MOTFAIL_IDLE` to all of them together, where `u` is the motor command, and prints the two parameter values plus the residual sigma you need later to [choose the bands](#choosing-the-bands).
+The more of the vehicle's flying the logs cover, the better the fit, and there is no limit on how many you pass: a hundred logs take under a second.
+
+::: warning
+Fit on healthy flights only.
+The fit cannot tell a faulty motor from a healthy one, so a single failure-test log pulls the model toward that fault and shifts the residual of every healthy motor with it.
+:::
 
 ```bash
 ./build/px4_sitl_default/mfd_fit ~/logs/healthy/*.ulg
 ```
+
+Typical output, for three healthy flights:
 
 ```text
 # 3 logs, 80697 armed samples
@@ -60,35 +69,31 @@ MOTFAIL_IDLE 0.37
 # worst per-motor bias 0.12 A -- the trip bands have to clear this before any fault.
 ```
 
-Set what the tool prints.
-On some vehicles the fit puts the offset below zero, and [MOTFAIL_IDLE](../config/motor_failure_detection.md#MOTFAIL_IDLE) cannot be set below 0: use 0 in that case.
-Nothing is lost by it, because the bands are then chosen against the residual that results, so they absorb the difference.
+It contains:
 
-Two numbers matter beyond the parameters themselves:
+- The fitted model, `I_expected = 6.91*u + 0.37 A`.
+  `6.91` is the slope (expected current per unit of command, in A) and `0.37` is the offset (expected current at zero command, in A).
+- The same slope and offset as the two parameters to set, [MOTFAIL_C2T](../config/motor_failure_detection.md#MOTFAIL_C2T) `6.91` and [MOTFAIL_IDLE](../config/motor_failure_detection.md#MOTFAIL_IDLE) `0.37`.
+- The residual sigma, `0.50 A`: how far the samples scatter around the model.
+  This is the healthy noise the trip bands have to clear, so it caps how tight they can be.
+- For each motor, its mean residual against the model (`-0.12 A` for motor 1), with that motor's own sigma and sample count `n`.
+- The worst per-motor bias, `0.12 A`: the largest of the per-motor mean residuals, ignoring sign.
+  The detector uses one model for all motors, so this is error the bands absorb before any fault does.
 
-- **residual sigma**: the spread the trip bands have to clear, which caps how tight they can be.
-- **worst per-motor bias**: what the shared model costs the worst motor. The detector has one model for all motors, so this is error the bands absorb before any fault does.
+To use it:
 
-Pass the whole set in one command: the fit is pooled over every log, and a hundred logs takes under a second.
+1. Set `MOTFAIL_C2T` and `MOTFAIL_IDLE` to the printed values.
 
-::: details Running it over a large set of logs
-`mfd_fit` takes the logs themselves rather than a directory, so use a glob, and a recursive one (`**/*.ulg`) if they are nested.
+   On some vehicles the fitted offset comes out below zero.
+   `MOTFAIL_IDLE` cannot be set below 0, so the tool adds a `NOTE` saying so: use 0 in that case.
+   Nothing is lost by it, because the bands are then chosen against the residual that results, so they absorb the difference.
 
-Memory does not grow with the size of a log or with how many you pass (91 logs and 1.5 GB fit in 0.8 s and 5 MB), so there is never a reason to split the work up.
-In particular, do not pipe the list through `xargs`: it starts a new process once the list gets long, which would give you several partial fits instead of one.
+2. Keep the residual sigma for [Choosing the Bands](#choosing-the-bands).
 
-Check the `# N logs` line against the number of files you passed.
-A log without ESC current contributes nothing and is named on stderr, which is easy to miss on a large set, so redirect it with `2> skipped.txt` if you want to know which ones dropped out.
-:::
-
-::: warning
-Fit on healthy flights only.
-The fit cannot tell a faulty motor from a healthy one, so a single failure-test log pulls the model toward that fault and shifts the residual of every healthy motor with it.
-:::
-
-Fit the offset, do not assume one.
-A borrowed offset biases every healthy motor's residual by that amount, which the undercurrent band then has to absorb.
-Taking another airframe's 2.88 A instead of the fitted 0.37 A turns all six healthy motors into failures, at bands that were clean:
+Use the fitted offset, not one copied from another airframe.
+An offset that is too high by some amount lowers every healthy motor's residual by that same amount, which the undercurrent band then has to absorb.
+For example, replaying the healthy flight shown in [Running the Detector on One Log](#running-the-detector-on-one-log) with another airframe's offset of 2.88 A, instead of the fitted 0.37 A, raises the expected current by 2.51 A.
+Every residual drops by the same 2.51 A (motor 1's lowest goes from -1.79 A to -4.30 A), past the 2.25 A undercurrent band, so all six healthy motors are reported as failed:
 
 ```text
 # config (...):  I_exp = 6.91*u + 2.88 A,  trip if LPF(I-I_exp) < -2.25 for 0.70 s or > 1.00 for 2.50 s
@@ -130,7 +135,7 @@ Output for a healthy flight with a calibrated configuration:
 
 | Column    | Meaning                                                                                                                                              |
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `motor`   | Motor index, counting from 0, as mapped from each ESC's actuator function.                                                                           |
+| `motor`   | Motor index, counting from 1, as mapped from each ESC's actuator function.                                                                           |
 | `min[A]`  | Deepest the filtered residual went below the model, over the whole flight and every sampling phase. This is what the undercurrent band has to clear. |
 | `max[A]`  | Highest it went above the model, likewise. This is what the overcurrent band has to clear.                                                           |
 | `trips`   | How many of the sampling phases flagged this motor.                                                                                                  |
@@ -142,10 +147,12 @@ Exit codes make the tool usable as a check in a script: `0` if every motor staye
 
 ### The Sampling Phase Sweep
 
+Every replay runs five detectors side by side over the same log (the `5 phases` in the header and the `/5` in `trips`), because a single one can miss a trip that would happen on the vehicle.
+
 On the vehicle the check runs at 10 Hz, so it sees only a subset of the ESC samples, and _which_ subset depends on the alignment between the check and the telemetry stream.
 That alignment cannot be reconstructed from a log.
 
-The tool therefore runs several detectors over the same log, each starting its 10 Hz grid at a different offset, and reports the spread.
+Each detector therefore starts its 10 Hz grid at a different offset, and the tool reports the spread.
 A single-phase answer would be a lower bound on the trip risk, not a verdict.
 
 Read the result as follows:
@@ -157,6 +164,7 @@ Read the result as follows:
 
 ### Where the Configuration Comes From
 
+The configuration in the `# config` header line is the set of `MOTFAIL_*` values the replay ran the detector with.
 For each parameter, in order of precedence:
 
 1. `--set NAME=value` on the command line.
@@ -180,6 +188,8 @@ Overriding one knob at a time is how the band sweeps below are done:
 The accepted names are [MOTFAIL_C2T](../config/motor_failure_detection.md#MOTFAIL_C2T), [MOTFAIL_IDLE](../config/motor_failure_detection.md#MOTFAIL_IDLE), [MOTFAIL_UNDER](../config/motor_failure_detection.md#MOTFAIL_UNDER), [MOTFAIL_UND_TIME](../config/motor_failure_detection.md#MOTFAIL_UND_TIME), [MOTFAIL_OVER](../config/motor_failure_detection.md#MOTFAIL_OVER) and [MOTFAIL_OVR_TIME](../config/motor_failure_detection.md#MOTFAIL_OVR_TIME).
 
 ## Choosing the Bands
+
+After [fitting the current model](#fitting-the-current-model) you have `MOTFAIL_C2T`, `MOTFAIL_IDLE` and the residual sigma, which you use with `mfd_replay` to choose the remaining four parameters: the undercurrent and overcurrent bands and their trigger times.
 
 The goal is the tightest bands that never trip on healthy flight, so the logs have to cover the throttle range the vehicle really flies, including climbs and aggressive manoeuvres: the largest deviation across them is what sets the achievable threshold.
 As with the fit, every log has to come from a flight where all motors were healthy.

@@ -420,7 +420,8 @@ The relevant parameters are shown below:
 
 ### Motor Failure Trigger
 
-The failure detector can be configured to detect a motor that has stopped producing the thrust it was commanded, by comparing the current each ESC reports against the current expected for that motor's command.
+The failure detector can be configured to detect a failed motor (or a lost or broken propeller, a seized bearing, a rubbing blade, and so on).
+More specifically, it detects a motor that has stopped producing the thrust it was commanded, by comparing the current each ESC reports against the current expected for that motor's command.
 A motor whose current stays too far below or above that expectation for long enough is flagged as failed, and stays flagged until the vehicle disarms, because the reaction to a failure may stop the motor and thereby make it look healthy again.
 
 The trigger needs ESC that report per-motor current, and thresholds calibrated for the specific airframe.

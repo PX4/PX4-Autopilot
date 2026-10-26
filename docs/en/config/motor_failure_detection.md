@@ -124,7 +124,7 @@ Those flights are what set the achievable thresholds.
    The [`mfd_fit` tool](../debug/motor_failure_replay.md#fitting-the-current-model) does this directly from the logs and prints the two values to set.
 
    One model is shared by all motors.
-   The spread between them is small compared with the trip bands, so nothing is lost by it.
+   Differences in current draw between motors are small compared with the width of the trip bands, so there is no practical benefit in having separate models.
 
 2. **Set the bands from the healthy residual.**
 
