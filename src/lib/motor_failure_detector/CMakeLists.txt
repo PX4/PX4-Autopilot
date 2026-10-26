@@ -36,8 +36,9 @@ px4_add_library(MotorFailureDetector
 	MotorFailureDetector.hpp
 )
 target_include_directories(MotorFailureDetector PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(MotorFailureDetector PUBLIC hysteresis mathlib)
 
-px4_add_unit_gtest(SRC MotorFailureDetectorTest.cpp LINKLIBS MotorFailureDetector mathlib hysteresis)
+px4_add_unit_gtest(SRC MotorFailureDetectorTest.cpp LINKLIBS MotorFailureDetector)
 
 # Offline log tools: mfd_replay drives the real detector over a recorded ulog, mfd_fit derives the
 # current model from one (host only). Opt-in (off by default) via -DMFD_REPLAY_TOOL=ON so a normal
@@ -55,8 +56,8 @@ if(${PX4_PLATFORM} MATCHES "posix" AND MFD_REPLAY_TOOL)
 	set_target_properties(ulog_cpp PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_ulogcpp_inc}")
 
 	add_executable(mfd_replay EXCLUDE_FROM_ALL tools/mfd_replay.cpp)
-	target_link_libraries(mfd_replay PRIVATE MotorFailureDetector mathlib hysteresis ulog_cpp::ulog_cpp)
+	target_link_libraries(mfd_replay PRIVATE MotorFailureDetector ulog_cpp::ulog_cpp)
 
 	add_executable(mfd_fit EXCLUDE_FROM_ALL tools/mfd_fit.cpp)
-	target_link_libraries(mfd_fit PRIVATE MotorFailureDetector mathlib hysteresis ulog_cpp::ulog_cpp)
+	target_link_libraries(mfd_fit PRIVATE MotorFailureDetector ulog_cpp::ulog_cpp)
 endif()
