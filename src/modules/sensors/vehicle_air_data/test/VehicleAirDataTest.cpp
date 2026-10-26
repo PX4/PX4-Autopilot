@@ -141,13 +141,13 @@ public:
 		_sensor_baro_pubs[device].publish(sample);
 	}
 
-	// landed, with EKF2 fusing GNSS height: the state the GNSS baro calibration runs in
-	static void publishEstimatorStatusFlags()
+	// landed, with EKF2 fusing GNSS height, by default: the state the GNSS baro calibration runs in
+	static void publishEstimatorStatusFlags(bool in_air = false, bool gnss_height_fused = true)
 	{
 		estimator_status_flags_s flags{};
 		flags.timestamp = hrt_absolute_time();
-		flags.cs_gps_hgt = true;
-		flags.cs_in_air = false;
+		flags.cs_gps_hgt = gnss_height_fused;
+		flags.cs_in_air = in_air;
 		_estimator_status_flags_pub.publish(flags);
 	}
 
@@ -165,11 +165,13 @@ public:
 		_vehicle_gnss_pub.publish(gnss);
 	}
 
-	// a run of GNSS samples 100 ms apart, all with the same solution
+	// a run of GNSS samples 100 ms apart, all with the same solution and estimator state
 	struct GnssSegment {
 		int samples;
 		double altitude_msl;
 		uint16_t failed_strict_checks;
+		bool in_air = false;
+		bool gnss_height_fused = true;
 	};
 
 	// brings the module up on the given altitude, then feeds it the given GNSS segments in order, and returns
@@ -201,7 +203,7 @@ public:
 			for (int i = 0; i < segment.samples; i++) {
 				gnss_timestamp += 100_ms;
 				publishSample(0, noisy_pressure());
-				publishEstimatorStatusFlags();
+				publishEstimatorStatusFlags(segment.in_air, segment.gnss_height_fused);
 				publishGnss(gnss_timestamp, segment.altitude_msl, segment.failed_strict_checks);
 				module.RunPublic();
 				px4_usleep(5_ms);
@@ -306,6 +308,47 @@ TEST_F(VehicleAirDataTest, GnssBaroCalibrationRestartsAfterGnssFailingStrictChec
 	});
 
 	// calibrated onto 15 m, not 8 m, at roughly 12 Pa per metre
+	EXPECT_GT(offset, 150.f);
+	EXPECT_LT(offset, 210.f);
+}
+
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationRestartsAfterFlight)
+{
+	// the vehicle takes off past the first half of the stability window and lands after longer than the whole
+	// window. Back on the ground, the window restarts from scratch and a few samples are not enough to calibrate.
+	// A window resumed from before the takeoff would already have run its course, and the first sample after
+	// landing would complete it, possibly with the props still spinning
+	const float offset = runGnssCalibration({
+		{30, 15., 0},
+		{50, 115., 0, true},
+		{5, 15., 0},
+	});
+
+	EXPECT_FLOAT_EQ(offset, 0.f);
+}
+
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationRestartsAfterGnssHeightFusionStops)
+{
+	// as above, with EKF2 dropping GNSS height on the ground instead of the vehicle taking off
+	const float offset = runGnssCalibration({
+		{30, 15., 0},
+		{50, 15., 0, false, false},
+		{5, 15., 0},
+	});
+
+	EXPECT_FLOAT_EQ(offset, 0.f);
+}
+
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationCompletesAfterFlight)
+{
+	// interrupted by a flight, the calibration still completes once the solution is steady on the ground for the
+	// whole window
+	const float offset = runGnssCalibration({
+		{30, 15., 0},
+		{50, 115., 0, true},
+		{45, 15., 0},
+	});
+
 	EXPECT_GT(offset, 150.f);
 	EXPECT_LT(offset, 210.f);
 }

@@ -263,6 +263,7 @@ void VehicleAirData::Run()
 	}
 
 	estimator_status_flags_s latest_estimator_status_flags;
+	bool baro_gnss_calibration_running = false;
 
 	if (_selected_sensor_sub_index >= 0
 	    && _estimator_status_flags_sub.copy(&latest_estimator_status_flags) && !latest_estimator_status_flags.cs_in_air) {
@@ -270,8 +271,14 @@ void VehicleAirData::Run()
 			_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
 
 		} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get() && latest_estimator_status_flags.cs_gps_hgt) {
+			baro_gnss_calibration_running = true;
 			_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
 		}
+	}
+
+	if (!baro_gnss_calibration_running) {
+		// the stability window restarts from scratch once the calibration resumes
+		_t_first_gnss_sample = 0;
 	}
 
 	// Publish
