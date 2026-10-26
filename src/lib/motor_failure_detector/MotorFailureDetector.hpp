@@ -56,8 +56,8 @@ public:
 	static constexpr int kMaxMotors = 12;
 
 	// Step longer than this [s] => data gap (resets filters + debounce).
-	// Between the ~10 Hz stream and the 400 ms ESC-offline timeout.
-	static constexpr float kMaxGap = 0.3f;
+	// Equal to the ESC-offline timeout: every ESC that is still online gets evaluated.
+	static constexpr float kMaxGap = 0.4f;
 
 	// Time constant of the residual low-pass filter [s]
 	static constexpr float kResidualLpfTau = 0.2f;

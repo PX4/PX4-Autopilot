@@ -288,6 +288,8 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 		static_assert(esc_status_s::CONNECTED_ESC_MAX <= MotorFailureDetector::kMaxMotors, "ESC slots exceed kMaxMotors");
 		static_assert(esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX - esc_report_s::ACTUATOR_FUNCTION_MOTOR1
 			      < actuator_motors_s::NUM_CONTROLS, "ESC motor-function range exceeds actuator_motors controls");
+		static_assert((hrt_abstime)(MotorFailureDetector::kMaxGap * 1e6f) == ESC_OFFLINE_TIMEOUT_US,
+			      "an ESC that is online but too slow for the detector would silently not be checked");
 
 		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
 			if (!math::isInRange(esc_status.esc[i].actuator_function,

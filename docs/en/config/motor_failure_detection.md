@@ -74,7 +74,7 @@ Special cases:
 - A motor is not judged until its ESC has reported a non-zero current at least once, so ESC that only report while spinning do not trip the check on the ground.
 - A motor is skipped while its command is `NaN` (the allocation has switched it off), and while it is in reversible mode.
 - The filter runs on the ESC sample timestamp, so an interruption in ESC telemetry freezes it instead of integrating stale current.
-  A gap longer than 0.3 s resets the filter and cancels a pending trip.
+  A gap longer than 0.4 s, the time after which an ESC counts as offline, resets the filter and cancels a pending trip.
   Complete loss of ESC telemetry is a separate check, enabled with [COM_ARM_CHK_ESCS](../advanced_config/parameter_reference.md#COM_ARM_CHK_ESCS).
 
 ::: details Why the Bands Are Not Symmetric
