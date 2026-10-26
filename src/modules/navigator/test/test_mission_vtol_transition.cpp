@@ -1031,6 +1031,7 @@ TEST_F(MissionVtolTransitionTest, VtolLandDuringFrontTransitionKeepsMulticopterL
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	land.nav_cmd = NAV_CMD_VTOL_LAND;
+	land.yaw = NAN;
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
 	publishGlobalPosition(position);
 	publishLocalPosition();

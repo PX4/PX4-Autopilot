@@ -1627,7 +1627,8 @@ INSTANTIATE_TEST_SUITE_P(McAndFw, RtlMissionSafePointFollowLoiterEstimateTest, :
 
 TEST_F(RtlMissionSafePointFollowNavigatorTest, UploadedMcLandingIncludesApproachAndRemainingFinalDescent)
 {
-	const mission_item_s landing = makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt);
+	mission_item_s landing = makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt);
+	landing.yaw = NAN;
 	follower.loadTestMission({landing});
 	mission_route::RtlRoutePlan plan{};
 	plan.goal_type = mission_route::GoalType::kMissionLand;
@@ -1659,6 +1660,59 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, UploadedMcLandingIncludesApproach
 	const auto landing_estimate = follower.calc_rtl_time_estimate();
 	ASSERT_TRUE(landing_estimate.valid);
 	EXPECT_NEAR(landing_estimate.time_estimate, flightTime(0.f, 20.f), 0.02f);
+}
+
+TEST_F(RtlMissionSafePointFollowNavigatorTest, UploadedVtolLandingAlignsBeforeDescending)
+{
+	using WorkItemType = RtlMissionSafePointFollowTestPeer::WorkItemType;
+	constexpr float landing_yaw = 1.2f;
+	mission_item_s landing = makeLandItem(kBaseLat, kBaseLon, kAlt - 50.f);
+	landing.nav_cmd = NAV_CMD_VTOL_LAND;
+	landing.yaw = landing_yaw;
+	follower.loadTestMission({landing});
+	follower.prepareActiveMissionForTest(64, 0);
+	mission_route::RtlRoutePlan plan{};
+	plan.goal_type = mission_route::GoalType::kMissionLand;
+	plan.goal_position = {landing.lat, landing.lon, landing.altitude};
+	plan.join_position = {kBaseLat, kBaseLon, kAlt};
+	plan.first_mission_item_index = 0;
+	plan.fly_direct_to_goal = true;
+	follower.configurePlanForTest(plan, 0);
+	follower.setVehicleStatusForTest(true, true, false);
+	follower.setGlobalPositionForTest(plan.join_position);
+	follower.on_activation();
+
+	const auto &triplet = *navigator.get_position_setpoint_triplet();
+	ASSERT_EQ(follower.workItemForTest(), WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
+	EXPECT_FALSE(PX4_ISFINITE(triplet.current.yaw));
+	ASSERT_TRUE(follower.missionItemReachedForTest());
+	follower.completeWorkItemForTest();
+	ASSERT_EQ(follower.workItemForTest(), WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION);
+	ASSERT_EQ(follower.currentMissionItemForTest().nav_cmd, NAV_CMD_DO_VTOL_TRANSITION);
+
+	follower.setVehicleStatusForTest(true, false, false);
+	ASSERT_TRUE(follower.missionItemReachedForTest());
+	follower.completeWorkItemForTest();
+	ASSERT_EQ(follower.workItemForTest(), WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND);
+	EXPECT_FLOAT_EQ(triplet.current.yaw, landing_yaw);
+	EXPECT_FLOAT_EQ(triplet.current.alt, kAlt);
+	EXPECT_FLOAT_EQ(triplet.current.alt_acceptance_radius, FLT_MAX);
+	EXPECT_FALSE(PX4_ISFINITE(triplet.previous.yaw));
+
+	// Altitude drift does not prevent alignment from finishing once the heading is reached.
+	follower.setGlobalPositionForTest({landing.lat, landing.lon, kAlt - 20.f});
+	navigator.get_local_position()->heading_good_for_control = true;
+	navigator.get_local_position()->heading = landing_yaw + M_PI_2_F;
+	EXPECT_FALSE(follower.missionItemReachedForTest());
+	navigator.get_local_position()->heading = landing_yaw;
+	ASSERT_TRUE(follower.missionItemReachedForTest());
+	follower.completeWorkItemForTest();
+
+	EXPECT_EQ(follower.workItemForTest(), WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_FLOAT_EQ(triplet.current.yaw, landing_yaw);
+	EXPECT_FLOAT_EQ(triplet.current.alt, landing.altitude);
+	EXPECT_FALSE(PX4_ISFINITE(triplet.previous.yaw));
 }
 
 TEST_F(RtlMissionSafePointFollowNavigatorTest, ForcedVtolLandingAtPlainLandDescendsAsMc)
