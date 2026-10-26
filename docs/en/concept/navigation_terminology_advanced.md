@@ -83,7 +83,6 @@ Some ground vehicle and robotics conventions use z-up frames instead:
 - ROS uses ENU for the local frame and FLU for the body frame.
   See [ROS 2 & PX4 Frame Conventions](../ros2/user_guide.md#ros-2-px4-frame-conventions).
 
-To convert from FLU to FRD, negate y and z, and negate all angles and rates about z.
 :::
 
 ### Track Frame (Along-Track and Cross-Track)
@@ -95,7 +94,7 @@ To describe how well a vehicle follows a path, area navigation (RNAV, ICAO Doc 9
 
 PX4 path-following controllers (NPFG, pure pursuit) work in this frame.
 
-_Desired track from waypoint A to waypoint B, with the along-track axis along the line, the cross-track axis to the right, and the vehicle position decomposed into both._
+<!-- TODO figure: desired track A→B, along-track axis along the line, cross-track axis to the right, vehicle position decomposed into both -->
 
 ### North References
 
@@ -246,7 +245,7 @@ In flight dynamics (ISO 1151), sideslip is measured against the airflow, so a pl
 Ground vehicle dynamics uses the same name for a ground-referenced angle: see [Ground Vehicles](#ground-vehicles-yaw-course-and-sideslip-angle).
 :::
 
-In PX4, the aerodynamic sideslip appears for example in `estimator_innovations.beta` (EKF2 synthetic sideslip fusion).
+In PX4, the aerodynamic sideslip is used by the EKF2 synthetic sideslip fusion (`estimator_aid_src_sideslip`, `estimator_innovations.beta`).
 
 ### Ground Vehicles: Yaw, Course and Sideslip Angle
 
@@ -311,8 +310,9 @@ The sections below describe where PX4 represents, computes or names a quantity d
 ### Angles in Radians
 
 The norms express directions in degrees from 000° to 360°.
-In uORB, PX4 expresses them in **radians, wrapped to $[-\pi, \pi]$**, with the same zero (true north) and the same sense (clockwise).
+In uORB, PX4 expresses them in **radians**, usually wrapped to $[-\pi, \pi]$, with the same zero (true north) and the same sense (clockwise).
 East is $+\pi/2$ and west is $-\pi/2$.
+Some fields use another range, for example `transponder_report.heading` ($[0, 2\pi]$) and unwrapped yaw setpoints, so check the field's `[@range]`.
 
 Convert with `matrix::wrap_2pi()` and `math::degrees()` when you output to MAVLink or to users, as the MAVLink streams do.
 
@@ -365,15 +365,15 @@ A wind reported as "from 360°" has `windspeed_north < 0` in PX4.
 Some existing names predate these pages or come from external protocols, and do not match the official terms.
 Read them with the meaning given here, and use the official term in new code:
 
-| Field                                                                                                                                                                                                | Actual meaning                                                                                                                        | Official term              |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| `position_setpoint.course` (comment: "desired course (bearing)")                                                                                                                                     | Intended direction of motion over the ground.                                                                                         | Course                     |
-| `position_controller_status.nav_bearing` (MAVLink `NAV_CONTROLLER_OUTPUT.nav_bearing`)                                                                                                               | Direction commanded by the guidance law.                                                                                              | Course or heading setpoint |
-| `position_controller_status.xtrack_error`                                                                                                                                                            | Signed cross-track error.                                                                                                             | Cross-track error          |
-| `fixed_wing_lateral_guidance_status.bearing_feas`                                                                                                                                                    | Feasibility of the course commanded by NPFG (NPFG calls it "bearing").                                                                | Course                     |
-| `transponder_report.heading` (MAVLink `ADSB_VEHICLE.heading`)                                                                                                                                        | Course over ground of the other aircraft, as reported by ADS-B.                                                                       | Course over ground         |
-| `bearing_setpoint` in the rover position controllers (for example `AckermannPosControl`)                                                                                                             | Course setpoint, taken from the bearing to the pure pursuit lookahead point (`PurePursuit::calcTargetBearing()`, which is a bearing). | Course setpoint            |
-| "Direction (bearing)" of the velocity setpoint in [Rover Velocity Tuning](../config_rover/velocity_tuning.md) and "bearing setpoints" in [Rover Position Tuning](../config_rover/position_tuning.md) | Intended direction of motion over the ground.                                                                                         | Course                     |
+| Field                                                                                                                                                                                                | Actual meaning                                                                                                                                                                                                                       | Official term                                                         |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `position_setpoint.course` (comment: "desired course (bearing)")                                                                                                                                     | Intended direction of motion over the ground.                                                                                                                                                                                        | Course                                                                |
+| `position_controller_status.nav_bearing` (MAVLink `NAV_CONTROLLER_OUTPUT.nav_bearing`)                                                                                                               | Intended for the direction commanded by the guidance law. Not populated by current controllers (always 0).                                                                                                                           | Course or heading setpoint                                            |
+| `position_controller_status.xtrack_error` (MAVLink `NAV_CONTROLLER_OUTPUT.xtrack_error`)                                                                                                             | Intended for the signed cross-track error. Not populated by current controllers (always 0).                                                                                                                                          | Cross-track error                                                     |
+| `fixed_wing_lateral_guidance_status.bearing_feas`                                                                                                                                                    | Feasibility of the course commanded by NPFG (NPFG calls it "bearing").                                                                                                                                                               | Course                                                                |
+| `transponder_report.heading` (MAVLink `ADSB_VEHICLE.heading`)                                                                                                                                        | Course over ground of the other aircraft, as reported by ADS-B.                                                                                                                                                                      | Course over ground                                                    |
+| `bearing_setpoint` in the rover position controllers (for example `AckermannPosControl`)                                                                                                             | Course setpoint, taken from the bearing to the pure pursuit lookahead point (`PurePursuit::calcTargetBearing()`, which is a bearing). Ackermann and differential rovers use it directly as heading (yaw) setpoint, assuming no slip. | Course setpoint (mecanum), heading setpoint (Ackermann, differential) |
+| "Direction (bearing)" of the velocity setpoint in [Rover Velocity Tuning](../config_rover/velocity_tuning.md) and "bearing setpoints" in [Rover Position Tuning](../config_rover/position_tuning.md) | Intended direction of motion over the ground.                                                                                                                                                                                        | Course                                                                |
 
 ## Guidelines for Contributors
 

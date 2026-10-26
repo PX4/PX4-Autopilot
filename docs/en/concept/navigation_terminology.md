@@ -29,8 +29,8 @@ _Overview figure: vehicle seen from above, north arrow, desired track between tw
 ## Directions and Frames
 
 All directions on this page are measured **clockwise from true north**: north is 0°, east is 90°, south is 180° and west is 270°.
-_QGroundControl_ and MAVLink show them in degrees from 0° to 360°.
-Internally, PX4 uses radians from $-\pi$ to $\pi$ (west is $-\pi/2$), which matters when you read logs.
+_QGroundControl_ and MAVLink navigation fields (for example `GLOBAL_POSITION_INT.hdg`) show them in degrees from 0° to 360°.
+Internally, PX4 uses radians, usually from $-\pi$ to $\pi$ (west is $-\pi/2$), which matters when you read logs.
 
 PX4 describes positions and orientations in two main frames:
 
@@ -77,7 +77,6 @@ In PX4: `sensor_gnss.course` ("Course over ground, not heading"), MAVLink `GPS_R
 In marine navigation, bare "track" means the _intended_ path.
 To avoid confusion, PX4 always writes _desired track_ for the intended path.
 :::
-
 
 ### Bearing
 
