@@ -55,6 +55,7 @@ enum NAV_CMD {
 	NAV_CMD_RETURN_TO_LAUNCH = 20,
 	NAV_CMD_LAND = 21,
 	NAV_CMD_TAKEOFF = 22,
+	NAV_CMD_TAKEOFF_LOCAL = 24,
 	NAV_CMD_LOITER_TO_ALT = 31,
 	NAV_CMD_VTOL_TAKEOFF = 84,
 	NAV_CMD_VTOL_LAND = 85,
@@ -136,8 +137,14 @@ enum NAV_FRAME {
  * possibility of unaligned memory accesses.
  */
 struct mission_item_s {
-	double lat;					/**< latitude in degrees				*/
-	double lon;					/**< longitude in degrees				*/
+	union{
+		double lat;					/**< latitude in degrees				*/
+		double x;
+	};
+	union{
+		double lon;					/**< longitude in degrees				*/
+		double y;
+	};
 
 	// Union to support both Mission Item categories in MAVLink such as:
 	// 1. With Global coordinate (param5 ~ 7 corresponds to lat, lon and altitude)
