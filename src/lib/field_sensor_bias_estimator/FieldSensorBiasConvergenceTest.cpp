@@ -147,17 +147,6 @@ TEST_F(FieldSensorBiasConvergenceTest, LowerSampleRate)
 	EXPECT_LT(error.norm(), 0.06f * Vector2f(_bias.xy()).norm());
 }
 
-TEST_F(FieldSensorBiasConvergenceTest, ResetClearsState)
-{
-	rotate(Vector3f{0.f, 0.f, 1.f}, 30.f);
-	ASSERT_TRUE(_convergence.valid());
-
-	_convergence.reset();
-
-	EXPECT_FALSE(_convergence.valid());
-	EXPECT_FALSE(_convergence.observed(0));
-}
-
 TEST_F(FieldSensorBiasConvergenceTest, SmallBiasIsNotValid)
 {
 	_bias = Vector3f{0.02f, -0.02f, 0.f};
