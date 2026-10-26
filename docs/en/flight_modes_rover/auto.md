@@ -29,6 +29,27 @@ The following commands can be used in missions at time of writing (PX4 v1.16):
 [MAV_CMD_DO_SET_HOME]: https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_HOME
 [MAV_CMD_DO_JUMP]: https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP
 
+## Guided Course Mode
+
+_Guided Course mode_ holds a constant course over ground and speed without any manual stick input, like the [fixed-wing Guided Course mode](../flight_modes_fw/guided_course.md).
+The operator guides the rover from a GCS by sending a new course or speed.
+
+On activation the rover takes its current course over ground if it drives forwards fast enough for the velocity direction to be meaningful (at least 0.5 m/s), and the direction it points in otherwise.
+It then drives at the cruising speed until the operator issues a new command.
+
+The course itself is controlled: the heading setpoint is the course corrected by the estimated drift angle between heading and course over ground (from sideslip), the way a fixed-wing vehicle corrects its heading for the wind.
+A sideways offset is not corrected: after one, the rover continues on a parallel track.
+To follow a line instead, use [Mission mode](#mission-mode) or send a [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md).
+
+| Command                         | Effect                                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [MAV_CMD_GUIDED_CHANGE_HEADING] | Set a new course over ground (degrees, 0 = north) with `HEADING_TYPE = 0`. Other heading types are rejected. |
+| [MAV_CMD_DO_CHANGE_SPEED]       | Set a new ground speed via param2 (m/s), applied immediately. If param2 ≤ 0, the default speed is restored.  |
+
+[MAV_CMD_GUIDED_CHANGE_HEADING]: https://mavlink.io/en/messages/common.html#MAV_CMD_GUIDED_CHANGE_HEADING
+
+Internally the mode publishes a [UgvUsvCourseSetpoint](../msg_docs/UgvUsvCourseSetpoint.md), which [external modes](../ros2/px4_ros2_control_interface.md) can also send directly.
+
 ## Return Mode
 
 The vehicle will return to the launch position.

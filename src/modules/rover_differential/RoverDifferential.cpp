@@ -128,6 +128,10 @@ void RoverDifferential::generateSetpoints()
 		_auto_mode.autoControl();
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
+		_auto_mode.guidedCourse();
+		break;
+
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		_offboard_mode.offboardControl();
 		break;

@@ -33,10 +33,13 @@
 /**
  * @file course.h
  *
- * Course mode: maintain constant course, altitude, and airspeed.
+ * Course mode: maintain constant course, altitude, and airspeed (fixed wing) or ground speed (rover).
  *
  * Accepts MAV_CMD_DO_CHANGE_ALTITUDE, MAV_CMD_GUIDED_CHANGE_HEADING and MAV_CMD_DO_CHANGE_SPEED commands.
  * - MAV_CMD_GUIDED_CHANGE_HEADING (param1=HEADING_TYPE_COURSE_OVER_GROUND): sets course (ground track direction, requires valid position).
+ *
+ * The mode is entered with the course over ground. A rover only takes it while driving forwards faster than the larger
+ * of ROVER_COURSE_MIN_SPEED and ROVER_COURSE_EVH_FACTOR times the velocity uncertainty, and the course it points in otherwise.
  */
 
 #pragma once
@@ -67,6 +70,9 @@ private:
 	 * Update the position setpoint triplet to fly the current course.
 	 */
 	void update_setpoint_triplet();
+
+	static constexpr float ROVER_COURSE_MIN_SPEED{.5f}; ///< [m/s] Forward speed below which the velocity direction is noise
+	static constexpr float ROVER_COURSE_EVH_FACTOR{3.f}; ///< Factor of the velocity standard deviation the forward speed has to exceed
 
 	float _course{0.f};		///< [rad] current course bearing (ground track)
 	float _altitude{0.f};		///< [m] AMSL altitude setpoint

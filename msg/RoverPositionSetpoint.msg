@@ -6,8 +6,8 @@
 # Published by the manual (position), auto and offboard drive modes of rover_ackermann,
 # rover_differential and rover_mecanum, and can be sent from ROS 2 over uXRCE-DDS
 # (/fmu/in/rover_position_setpoint).
-# Tracks a line from start_ned to target_ned. To hold a course instead, publish
-# ugv_usv_course_setpoint; the controller follows whichever of the two was
+# Tracks a line from start_ned to target_ned. To control the course over ground instead,
+# publish ugv_usv_course_setpoint; the controller follows whichever of the two was
 # published most recently.
 
 uint64 timestamp # [us] Time since system start

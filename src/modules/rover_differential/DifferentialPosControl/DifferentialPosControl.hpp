@@ -40,6 +40,7 @@
 // Libraries
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
+#include <lib/rover_control/RoverControl.hpp>
 #include <math.h>
 
 // uORB includes
@@ -77,7 +78,7 @@ public:
 	~DifferentialPosControl() = default;
 
 	/**
-	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint.
+	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint or ugvUsvCourseSetpoint.
 	 */
 	void updatePosControl();
 
@@ -90,7 +91,7 @@ public:
 	/**
 	 * @brief Reset position controller.
 	 */
-	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _course = NAN; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _course = NAN; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false; _drift_angle_estimator.reset();};
 
 protected:
 	/**
@@ -121,6 +122,7 @@ private:
 	Vector2f _start_ned{};
 	Vector2f _target_waypoint_ned{};
 	float _course{NAN};
+	RoverControl::DriftAngleEstimator _drift_angle_estimator{};
 	float _arrival_speed{0.f};
 	float _vehicle_yaw{0.f};
 	float _vehicle_speed{0.f};

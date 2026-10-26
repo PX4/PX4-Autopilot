@@ -44,7 +44,6 @@ MecanumManualMode::MecanumManualMode(ModuleParams *parent) : ModuleParams(parent
 	_rover_attitude_setpoint_pub.advertise();
 	_rover_speed_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
-	_ugv_usv_course_setpoint_pub.advertise();
 }
 
 void MecanumManualMode::updateParams()
@@ -228,14 +227,23 @@ void MecanumManualMode::position()
 			_pos_ctl_course_direction = pos_ctl_course_direction_temp;
 		}
 
-		ugv_usv_course_setpoint_s ugv_usv_course_setpoint{};
-		ugv_usv_course_setpoint.timestamp = hrt_absolute_time();
-		ugv_usv_course_setpoint.course = atan2f(_pos_ctl_course_direction(1), _pos_ctl_course_direction(0));
-		ugv_usv_course_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
-		ugv_usv_course_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
-		ugv_usv_course_setpoint.cruising_speed = velocity_setpoint_ned.norm();
-		ugv_usv_course_setpoint.yaw = _pos_ctl_yaw_setpoint;
-		_ugv_usv_course_setpoint_pub.publish(ugv_usv_course_setpoint);
+		// Hold the line through the start position: the target is kept beyond the maximum lookahead, so it is never reached
+		const float distance_along_course = fabsf((_curr_pos_ned - _pos_ctl_start_position_ned) * _pos_ctl_course_direction);
+		const Vector2f target_ned = _pos_ctl_start_position_ned + (distance_along_course + _param_pp_lookahd_max.get()) *
+					    _pos_ctl_course_direction;
+		const float speed_setpoint = velocity_setpoint_ned.norm();
+
+		rover_position_setpoint_s rover_position_setpoint{};
+		rover_position_setpoint.timestamp = hrt_absolute_time();
+		rover_position_setpoint.target_ned[0] = target_ned(0);
+		rover_position_setpoint.target_ned[1] = target_ned(1);
+		rover_position_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
+		rover_position_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
+		rover_position_setpoint.cruising_speed = speed_setpoint;
+		// Arriving at the target with the cruising speed keeps the rover from braking for it
+		rover_position_setpoint.arrival_speed = speed_setpoint;
+		rover_position_setpoint.yaw = _pos_ctl_yaw_setpoint;
+		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 	}
 }
 

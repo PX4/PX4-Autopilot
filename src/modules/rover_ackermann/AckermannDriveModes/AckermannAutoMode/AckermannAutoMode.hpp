@@ -47,6 +47,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/ugv_usv_course_setpoint.h>
 
 /**
  * @brief Class for ackermann auto mode.
@@ -65,6 +66,12 @@ public:
 	 * @brief Generate and publish roverPositionSetpoint from positionSetpointTriplet.
 	 */
 	void autoControl();
+
+	/**
+	 * @brief Generate and publish ugvUsvCourseSetpoint from the course of the positionSetpointTriplet (Guided Course mode).
+	 * Like the fixed wing course hold, the course over ground itself is controlled and a cross-track error is not corrected.
+	 */
+	void guidedCourse();
 
 protected:
 	/**
@@ -108,9 +115,11 @@ private:
 	// uORB subscriptions
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _course_position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)}; ///< Separate, so an update for autoControl() is not consumed
 
 	// uORB publications
 	uORB::Publication<rover_position_setpoint_s>    _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+	uORB::Publication<ugv_usv_course_setpoint_s>    _ugv_usv_course_setpoint_pub{ORB_ID(ugv_usv_course_setpoint)};
 	uORB::Publication<position_controller_status_s>	_position_controller_status_pub{ORB_ID(position_controller_status)};
 
 	// Variables

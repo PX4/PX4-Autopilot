@@ -39,6 +39,7 @@ MecanumAutoMode::MecanumAutoMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
 	_rover_position_setpoint_pub.advertise();
+	_ugv_usv_course_setpoint_pub.advertise();
 }
 
 void MecanumAutoMode::updateParams()
@@ -111,4 +112,25 @@ float MecanumAutoMode::arrivalSpeed(const float cruising_speed, const float wayp
 
 	return cruising_speed; // Fallthrough
 
+}
+
+void MecanumAutoMode::guidedCourse()
+{
+	position_setpoint_triplet_s position_setpoint_triplet{};
+	_course_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
+	const position_setpoint_s &current = position_setpoint_triplet.current;
+
+	if (!current.valid || !PX4_ISFINITE(current.course)) {
+		return;
+	}
+
+	// Streamed, so the course is held again after the position controller was reset on a control mode change
+	ugv_usv_course_setpoint_s ugv_usv_course_setpoint{};
+	ugv_usv_course_setpoint.timestamp = hrt_absolute_time();
+	// The navigator publishes the course in [0, 2pi)
+	ugv_usv_course_setpoint.course = matrix::wrap_pi(current.course);
+	ugv_usv_course_setpoint.cruising_speed = current.cruising_speed > 0.f ? math::constrain(current.cruising_speed, 0.f,
+			_param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
+	ugv_usv_course_setpoint.yaw = NAN;
+	_ugv_usv_course_setpoint_pub.publish(ugv_usv_course_setpoint);
 }

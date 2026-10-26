@@ -56,18 +56,11 @@ void DifferentialPosControl::updatePosControl()
 	hrt_abstime timestamp = hrt_absolute_time();
 
 
-	// Course control: track the line through the start position towards a target that is kept beyond the maximum lookahead
-	const bool course_control = PX4_ISFINITE(_course) && _start_ned.isAllFinite();
-	Vector2f target_waypoint_ned = _target_waypoint_ned;
+	// Course control: like the fixed wing course hold, the course over ground itself is controlled and a cross-track error is not corrected
+	const bool course_control = PX4_ISFINITE(_course);
 
-	if (course_control) {
-		const Vector2f course_direction(cosf(_course), sinf(_course));
-		const float distance_along_course = fabsf((_curr_pos_ned - _start_ned) * course_direction);
-		target_waypoint_ned = _start_ned + (distance_along_course + _param_pp_lookahd_max.get()) * course_direction;
-	}
-
-	if (target_waypoint_ned.isAllFinite()) {
-		float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
+	if (course_control || _target_waypoint_ned.isAllFinite()) {
+		float distance_to_target = course_control ? 0.f : (_target_waypoint_ned - _curr_pos_ned).norm();
 
 		if (_arrival_speed > FLT_EPSILON) {
 			distance_to_target -=
@@ -82,13 +75,22 @@ void DifferentialPosControl::updatePosControl()
 							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
 
-			pure_pursuit_status_s pure_pursuit_status{};
-			pure_pursuit_status.timestamp = timestamp;
+			float yaw_setpoint{NAN};
 
-			const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-						   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _start_ned,
-						   _curr_pos_ned, fabsf(speed_setpoint));
-			_pure_pursuit_status_pub.publish(pure_pursuit_status);
+			if (course_control) {
+				// Driving forwards the heading is turned against the drift, like the fixed wing heading against the wind
+				yaw_setpoint = speed_setpoint > -FLT_EPSILON ? matrix::wrap_pi(_course - _drift_angle_estimator.getDriftAngle()) :
+					       _course;
+
+			} else {
+				pure_pursuit_status_s pure_pursuit_status{};
+				pure_pursuit_status.timestamp = timestamp;
+
+				yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+						_param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _target_waypoint_ned, _start_ned,
+						_curr_pos_ned, fabsf(speed_setpoint));
+				_pure_pursuit_status_pub.publish(pure_pursuit_status);
+			}
 
 			const float heading_error = matrix::wrap_pi(yaw_setpoint - _vehicle_yaw);
 
@@ -157,6 +159,7 @@ void DifferentialPosControl::updateSubscriptions()
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 		_updated_reset_counter = vehicle_local_position.xy_reset_counter;
+		_drift_angle_estimator.update(vehicle_local_position);
 
 		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
 
@@ -182,18 +185,7 @@ void DifferentialPosControl::updateSubscriptions()
 	if (_ugv_usv_course_setpoint_sub.updated()) {
 		ugv_usv_course_setpoint_s ugv_usv_course_setpoint;
 		_ugv_usv_course_setpoint_sub.copy(&ugv_usv_course_setpoint);
-		const Vector2f start_ned(ugv_usv_course_setpoint.start_ned[0], ugv_usv_course_setpoint.start_ned[1]);
-		// Without a start position keep the line of an ongoing hold of the same course, so a streamed setpoint still corrects cross-track error
-		const bool same_course = PX4_ISFINITE(_course) && _start_ned.isAllFinite()
-					 && fabsf(matrix::wrap_pi(ugv_usv_course_setpoint.course - _course)) < FLT_EPSILON;
-
-		if (start_ned.isAllFinite()) {
-			_start_ned = start_ned;
-
-		} else if (!same_course) {
-			_start_ned = _curr_pos_ned;
-		}
-
+		_start_ned = Vector2f(NAN, NAN);
 		_arrival_speed = 0.f;
 		_cruising_speed = PX4_ISFINITE(ugv_usv_course_setpoint.cruising_speed) ?
 				  ugv_usv_course_setpoint.cruising_speed : _param_ro_speed_limit.get();
