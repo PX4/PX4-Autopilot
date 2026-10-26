@@ -62,6 +62,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) now defaults to `-1` (Auto) instead of `0`, and saved values are not changed: with Auto the moving base of a moving base pair is the primary receiver, and without one, a receiver that passes the strict checks ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH) and the other `GNSS_REQ_*` parameters) is used, then one with an RTK fixed solution.
   To keep preferring the receiver on the main serial port, set `SENS_GNSS_PRIME` to `0`.
   In flight the primary receiver is now also left when it has failed the strict checks for 10 s while the other receiver passed them. ([PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
+- **Re-check the motor failure trigger thresholds.**
+  `MOTFAIL_OFF` and `MOTFAIL_TIME` are replaced by a separate band and trigger time per direction ([MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME) and [MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](../advanced_config/parameter_reference.md#MOTFAIL_UND_TIME)), and are not migrated: the new parameters start at their defaults. The check now compares a low-pass filtered current residual instead of the instantaneous value, so the thresholds are worth re-deriving: see [Motor Failure Detection > Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
 ## Other changes
 
@@ -103,6 +105,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
 - [Secure boot](../advanced_config/bootloader_secure_boot.md#multi-part-signed-images) now supports applications that can boot securely from SD card or eMMC. ([PX4-Autopilot#28228](https://github.com/PX4/PX4-Autopilot/pull/28228))
+- [Motor failure detection](../config/motor_failure_detection.md) now compares a low-pass filtered current residual against a separate trip band and trigger time for the undercurrent and overcurrent directions, instead of one symmetric band on the instantaneous current, and the current model gains an offset term. See [Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27711](https://github.com/PX4/PX4-Autopilot/pull/27711), [PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
 ### Estimation
 
@@ -122,7 +125,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Debug & Logging
 
-- TBD
+- [Offline motor failure replay](../debug/motor_failure_replay.md): a host tool that runs the real motor failure detector over a recorded `.ulg`, for calibrating and verifying the [motor failure detection](../config/motor_failure_detection.md) thresholds against a vehicle's own flights. ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
 ### Ethernet
 
