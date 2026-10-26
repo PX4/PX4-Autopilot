@@ -6,7 +6,7 @@ It is aimed at contributors who add or change uORB fields, parameters, MAVLink h
 PX4 flies aircraft, drives rovers, and can drive boats, so its code and documentation use the vocabulary of aviation, marine navigation and ground vehicle dynamics.
 These traditions use the same words (_heading_, _course_, _track_, _bearing_, _drift_, _sideslip_), and they do not always mean the same thing.
 
-This page collects the official definitions from each tradition, the reference frames they are measured in, and the rule PX4 applies when they conflict.
+This page collects the official definitions, the reference frames they are measured in, and the rule PX4 applies when they conflict.
 PX4 uses these definitions as they are: it does not define its own navigation vocabulary.
 Where PX4 represents or computes something differently from the norms, this is described separately in [Where PX4 Differs](#where-px4-differs).
 
@@ -68,7 +68,7 @@ See [Local Frame Is a Map Projection](#local-frame-is-a-map-projection) for how 
 ISO 1151 (aircraft) and SNAME (ships and submarines) define the body-fixed axes the same way:
 
 - x points forward (nose, bow or front).
-- y points to the right (starboard).
+- y points to the right.
 - z points down, completing a right-handed frame.
 
 PX4 calls this frame **FRD** (front, right, down), which is the same frame as MAVLink `MAV_FRAME_BODY_FRD`.
@@ -86,14 +86,6 @@ Some ground vehicle and robotics conventions use z-up frames instead:
 To convert from FLU to FRD, negate y and z, and negate all angles and rates about z.
 :::
 
-![Left: PX4 local NED frame and FRD body frame of a multicopter. Right: the same vehicle in the ROS ENU and FLU frames](../../assets/lpe/ref_frames.png)
-
-_Existing graphic. Left: PX4 local earth-fixed NED frame (E) and FRD body frame (B). Right: ROS ENU local frame and FLU body frame, for comparison._
-
-![NED and ENU frames drawn against the north, east and up directions](../../assets/advanced/ENU-NED.png)
-
-_Existing graphic. NED and ENU local frames relative to north, east and up._
-
 ### Track Frame (Along-Track and Cross-Track)
 
 To describe how well a vehicle follows a path, area navigation (RNAV, ICAO Doc 9613) splits the horizontal position error into two components relative to the [desired track](#track):
@@ -102,8 +94,6 @@ To describe how well a vehicle follows a path, area navigation (RNAV, ICAO Doc 9
 - **Cross-track:** perpendicular to the desired track (see [Cross-Track Error](#cross-track-error)).
 
 PX4 path-following controllers (NPFG, pure pursuit) work in this frame.
-
-![Along-track and cross-track components relative to the desired track (placeholder)](../../assets/config/rover/pure_pursuit_algorithm.png)
 
 _Desired track from waypoint A to waypoint B, with the along-track axis along the line, the cross-track axis to the right, and the vehicle position decomposed into both._
 
@@ -134,7 +124,7 @@ PX4 uses the same zero and the same sense of rotation, but a different unit and 
 ## Definitions by Tradition
 
 The [Navigation Terminology](../concept/navigation_terminology.md) page gives one definition per term.
-This section lists the definitions from each tradition, where they differ, and the choice PX4 makes.
+This section lists the definitions, where they differ, and the choice PX4 makes.
 
 ### Heading
 
