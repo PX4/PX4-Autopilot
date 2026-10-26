@@ -162,6 +162,13 @@ void RTL::on_activation()
 	_init_failure_reported = RtlType::NONE;
 	setRtlTypeAndDestination();
 
+	if (_init_failure_reported != RtlType::NONE) {
+		// The executor allocation failed: tell the pilot this Return flies directly.
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: cannot follow the mission; flying directly\t");
+		events::send(events::ID("rtl_mission_executor_failed"), {events::Log::Critical, events::LogInternal::Error},
+			     "Return: cannot follow the mission; flying directly");
+	}
+
 	switch (_rtl_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
 		[[fallthrough]];

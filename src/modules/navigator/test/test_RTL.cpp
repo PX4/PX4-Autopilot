@@ -53,6 +53,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/log_message.h>
+#include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
@@ -2073,6 +2074,7 @@ TEST_F(RTLTest, QuickReturnReentryFollowsTheMissionFromTheClosestItem)
 
 // WHY: a mission executor allocation can fail, and it is retried at every evaluation, every 2 s while inactive.
 // WHAT: types 1 to 4 then return directly to their destination, and a failure is logged once until an init succeeds.
+// An activation that falls back tells the pilot.
 TEST_F(RTLTest, MissionExecutorInitFailureReturnsDirectly)
 {
 	// PX4_ERR reaches log_message once uORB logging is initialized
@@ -2084,6 +2086,19 @@ TEST_F(RTLTest, MissionExecutorInitFailureReturnsDirectly)
 
 		while (log_sub.update(&log)) {
 			count += strstr(reinterpret_cast<const char *>(log.text), "RTL executor init failed") != nullptr;
+		}
+
+		return count;
+	};
+
+	// mavlink_log is what reaches the GCS
+	uORB::Subscription mavlink_log_sub{ORB_ID(mavlink_log)};
+	const auto pilotReports = [&]() {
+		unsigned count = 0;
+		mavlink_log_s log{};
+
+		while (mavlink_log_sub.update(&log)) {
+			count += strstr(log.text, "Return: cannot follow the mission") != nullptr;
 		}
 
 		return count;
@@ -2141,13 +2156,15 @@ TEST_F(RTLTest, MissionExecutorInitFailureReturnsDirectly)
 		}
 
 		EXPECT_EQ(failure_logs, 1u);
+		EXPECT_EQ(pilotReports(), 0u);
 
 		// WHEN: Return activates and the allocation fails again
 		_rtl.failNextExecutorInitForTest(c.executor);
 		_rtl.activateReturnTypeForTest(c.rtl_type);
 
-		// THEN: it flies directly to the destination of its type, and the activation logs the failure again
+		// THEN: it flies directly to the destination of its type, logs the failure again and tells the pilot
 		EXPECT_EQ(initFailureLogs(), 1u);
+		EXPECT_EQ(pilotReports(), 1u);
 		EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 		EXPECT_EQ(_rtl.missionExecutorForTest(), nullptr);
 		EXPECT_TRUE(_rtl.directActiveForTest());
@@ -2168,6 +2185,7 @@ TEST_F(RTLTest, MissionExecutorInitFailureReturnsDirectly)
 		_rtl.failNextExecutorInitForTest(c.executor);
 		_rtl.evaluateReturnTypeForTest(c.rtl_type);
 		EXPECT_EQ(initFailureLogs(), 1u);
+		EXPECT_EQ(pilotReports(), 0u);
 		EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	}
 
