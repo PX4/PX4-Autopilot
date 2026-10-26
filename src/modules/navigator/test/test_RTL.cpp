@@ -600,7 +600,7 @@ TEST_F(RTLTest, MissionValidityMatchesMissionAndFence)
 	mission_result->geofence_id = mission.geofence_id - 1;
 	EXPECT_FALSE(_rtl.hasValidMissionForTest());
 
-	// Home updates do not re-run the check, so a verdict from an older Home still holds
+	// RTL does not compare Home, so a verdict from an older Home still holds
 	mission_result->geofence_id = mission.geofence_id;
 	mission_result->home_position_counter = home_update_count - 1;
 	EXPECT_TRUE(_rtl.hasValidMissionForTest());
