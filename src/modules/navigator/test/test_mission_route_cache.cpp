@@ -514,6 +514,27 @@ TEST_F(MissionRouteCacheTest, SafePointCacheRejectsMismatchedSourceId)
 	EXPECT_FALSE(_cache.safePointsReady());
 }
 
+// A ready set is not read again while its source stays the same.
+TEST_F(MissionRouteCacheTest, SafePointReadySetIsNotReloaded)
+{
+	const std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt),
+	};
+
+	const mission_s mission = makeMission(0, 0, 50);
+	writeSafePointItems(safe_points, static_cast<uint16_t>(safe_points.size()), 50);
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
+			<< "safe-point cache did not become ready";
+
+	// Further updates must not start a read that would clear the published count.
+	EXPECT_FALSE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointCount() != 1; }));
+	EXPECT_TRUE(_cache.safePointsReady());
+
+	mission_item_s safe_point{};
+	ASSERT_TRUE(_cache.loadSafePointItem(0, safe_point));
+	expectMissionItemMatches(safe_point, safe_points[0]);
+}
+
 // safe_points_id participates in cache identity.
 TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsReplacementSet)
 {

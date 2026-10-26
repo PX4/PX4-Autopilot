@@ -77,17 +77,8 @@ public:
 	}
 
 	bool missionItemsReady(const mission_s &mission) const;
-	bool safePointsReady() const
-	{
-		return _safe_point.ready
-		       && !_safe_point.update_requested
-		       && _safe_point.dataman_state == SafePointDatamanState::kUpdateRequestWait;
-	}
-	bool safePointUpdatePending() const
-	{
-		return _safe_point.update_requested
-		       || _safe_point.dataman_state != SafePointDatamanState::kUpdateRequestWait;
-	}
+	bool safePointsReady() const { return _safe_point.ready; }
+	bool safePointUpdatePending() const { return !_safe_point.ready; }
 	uint32_t safePointsId() const { return _safe_point.source_id; }
 	bool missionLandItemReady() const
 	{
@@ -179,7 +170,6 @@ private:
 		uint32_t source_id{0};                ///< Active mission.safe_points_id being tracked.
 		uint8_t source_dataman_id{DM_KEY_SAFE_POINTS_0}; ///< Active mission.safepoint_dataman_id being tracked.
 		bool ready{false};
-		bool update_requested{true};
 		mission_route::CacheRetryBackoff retry{};
 	};
 

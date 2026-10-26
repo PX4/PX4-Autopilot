@@ -181,7 +181,7 @@ private:
 		}
 
 		if (cache._safe_point.dataman_state == MissionRouteCache::SafePointDatamanState::kUpdateRequestWait
-		    && cache._safe_point.update_requested
+		    && !cache._safe_point.ready
 		    && cache._safe_point.retry.retry_at == 0) {
 			cache.update(mission);
 			return true;

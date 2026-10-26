@@ -332,8 +332,9 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 
 	switch (state.dataman_state) {
 	case SafePointDatamanState::kUpdateRequestWait:
-		if (state.update_requested && hrt_absolute_time() >= state.retry.retry_at) {
-			state.update_requested = false;
+
+		// Only a reset clears ready, so read_stats never changes while the cache is ready.
+		if (!state.ready && hrt_absolute_time() >= state.retry.retry_at) {
 			state.dataman_state = SafePointDatamanState::kRead;
 		}
 
@@ -375,8 +376,6 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 		}
 
 		// Rebuild the RAM cache from the new read state.
-		state.ready = false;
-
 		_dataman_cache_safepoint.invalidate();
 
 		if (_dataman_cache_safepoint.size() != state.read_stats.num_items) {
