@@ -238,8 +238,9 @@ public:
 
 		const uint64_t sample_us = view[_esc_timestamp_f].as<uint64_t>();
 
-		// Shape the per-motor inputs once -- they don't depend on the sampling phase, only on the
-		// record. Which phase grids consume this sample is decided in the phase loop below.
+		// Shape the per-ESC-slot inputs once -- they don't depend on the sampling phase, only on the
+		// record. Which phase grids consume this sample is decided in the phase loop below. Indexed by
+		// ESC slot like escCheck, so every ESC is checked even if several share a motor function.
 		std::array<float, kMM> command;
 		std::array<float, kMM> current {};
 		std::array<bool, kMM> reversible {};
@@ -247,7 +248,7 @@ public:
 
 		const auto esc_arr = view[_esc_array_f];
 
-		for (int i = 0; i < _esc_slots; ++i) {
+		for (int i = 0; i < _esc_slots && i < kMM; ++i) {
 			const auto esc_i = esc_arr[i];
 			const int function = esc_i[_esc_function_f].as<int>();
 
@@ -260,10 +261,11 @@ public:
 			if (!_esc_current_seen[i]) { continue; }                        // don't judge until the ESC reports current
 
 			const int m = function - kMotor1;
-			_seen[m] = true;
-			current[m] = slot_current;
-			command[m] = _command_latest[m];                                // 0 until an actuator arrives (runtime zero-init)
-			reversible[m] = _reversible_latest[m];
+			_seen[i] = true;
+			_motor[i] = m;
+			current[i] = slot_current;
+			command[i] = _command_latest[m];                                // 0 until an actuator arrives (runtime zero-init)
+			reversible[i] = _reversible_latest[m];
 		}
 
 		// One parse, kNumPhases detectors: feed each phase whose 10 Hz grid this sample crosses. Each
@@ -284,28 +286,29 @@ public:
 
 			_det[p].update(kMM, (hrt_abstime)sample_us, command.data(), current.data(), reversible.data());
 
-			for (int m = 0; m < kMM; ++m) {
-				if (!_seen[m]) { continue; }
+			for (int i = 0; i < kMM; ++i) {
+				if (!_seen[i]) { continue; }
 
-				const float residual_lpf = _det[p].status(m).residual_lpf;
+				const float residual_lpf = _det[p].status(i).residual_lpf;
 
 				if (!std::isnan(residual_lpf)) {
-					_rmin[p][m] = std::min(_rmin[p][m], residual_lpf);
-					_rmax[p][m] = std::max(_rmax[p][m], residual_lpf);
+					_rmin[p][i] = std::min(_rmin[p][i], residual_lpf);
+					_rmax[p][i] = std::max(_rmax[p][i], residual_lpf);
 				}
 
-				if (_det[p].status(m).failure != MotorFailureDetector::Failure::None && _trip_time[p][m] < 0) { _trip_time[p][m] = elapsed_s; }
+				if (_det[p].status(i).failure != MotorFailureDetector::Failure::None && _trip_time[p][i] < 0) { _trip_time[p][i] = elapsed_s; }
 			}
 
 			if (p == 0) { ++_evaluated; }
 		}
 	}
 
-	// Results, read after the whole log has been parsed.
-	bool seen(int m) const { return _seen[m]; }
-	float residualMin(int phase, int m) const { return _rmin[phase][m]; }
-	float residualMax(int phase, int m) const { return _rmax[phase][m]; }
-	double tripTime(int phase, int m) const { return _trip_time[phase][m]; }
+	// Results per ESC slot, read after the whole log has been parsed.
+	bool seen(int i) const { return _seen[i]; }
+	int motor(int i) const { return _motor[i]; }   ///< 0-based motor index the slot was last mapped to
+	float residualMin(int phase, int i) const { return _rmin[phase][i]; }
+	float residualMax(int phase, int i) const { return _rmax[phase][i]; }
+	double tripTime(int phase, int i) const { return _trip_time[phase][i]; }
 	bool haveStatus() const { return _have_status; }
 	int paramsFromLog() const { return _params_from_log; }
 	long evaluated() const { return _evaluated; }
@@ -329,7 +332,8 @@ private:
 	std::array<std::array<float, kMM>, kNumPhases> _rmin;
 	std::array<std::array<float, kMM>, kNumPhases> _rmax;
 	std::array<std::array<double, kMM>, kNumPhases> _trip_time;   // -1 until a trip (filled in the ctor)
-	std::array<bool, kMM> _seen {};
+	std::array<bool, kMM> _seen {};    // per ESC slot
+	std::array<int, kMM> _motor {};    // per ESC slot
 	double _start_us = -1.0;
 	long _evaluated = 0;   // phase-0 evaluation count (== per-phase sample count)
 
@@ -436,7 +440,7 @@ int main(int argc, char **argv)
 
 	if (!replay) { return 2; }
 
-	// Aggregate the per-phase results into each motor's residual extremes + trip fraction. The
+	// Aggregate the per-phase results into each ESC's residual extremes + trip fraction. The
 	// envelope (deepest and highest any phase saw) is reported; the per-phase spread of each extreme
 	// is what says whether the answer depends on sampling.
 	std::array<bool, kMM> seen_any{};
@@ -451,18 +455,18 @@ int main(int argc, char **argv)
 	res_min_shallowest.fill(-FLT_MAX);
 	res_max_lowest.fill(FLT_MAX);
 
-	for (int m = 0; m < kMM; ++m) {
-		if (!replay->seen(m)) { continue; }
+	for (int i = 0; i < kMM; ++i) {
+		if (!replay->seen(i)) { continue; }
 
-		seen_any[m] = true;
+		seen_any[i] = true;
 
 		for (int p = 0; p < kNumPhases; ++p) {
-			res_min[m] = std::min(res_min[m], replay->residualMin(p, m));
-			res_max[m] = std::max(res_max[m], replay->residualMax(p, m));
-			res_min_shallowest[m] = std::max(res_min_shallowest[m], replay->residualMin(p, m));
-			res_max_lowest[m] = std::min(res_max_lowest[m], replay->residualMax(p, m));
+			res_min[i] = std::min(res_min[i], replay->residualMin(p, i));
+			res_max[i] = std::max(res_max[i], replay->residualMax(p, i));
+			res_min_shallowest[i] = std::max(res_min_shallowest[i], replay->residualMin(p, i));
+			res_max_lowest[i] = std::min(res_max_lowest[i], replay->residualMax(p, i));
 
-			if (replay->tripTime(p, m) >= 0) { ++trip_count[m]; }
+			if (replay->tripTime(p, i) >= 0) { ++trip_count[i]; }
 		}
 	}
 
@@ -470,7 +474,7 @@ int main(int argc, char **argv)
 
 	bool any_motor = false;
 
-	for (int m = 0; m < kMM; ++m) { any_motor |= seen_any[m]; }
+	for (int i = 0; i < kMM; ++i) { any_motor |= seen_any[i]; }
 
 	if (!any_motor) {
 		std::fprintf(stderr, "no armed esc_status samples in %s\n", ulog_path);
@@ -518,16 +522,16 @@ int main(int argc, char **argv)
 	bool any_failed = false;
 	bool phase_dependent = false;
 
-	for (int m = 0; m < kMM; ++m) {
-		if (!seen_any[m]) { continue; }
+	for (int i = 0; i < kMM; ++i) {
+		if (!seen_any[i]) { continue; }
 
 		const char *verdict;
 
-		if (trip_count[m] == kNumPhases) {
+		if (trip_count[i] == kNumPhases) {
 			verdict = "FAILED (all phases)";
 			any_failed = true;
 
-		} else if (trip_count[m] > 0) {
+		} else if (trip_count[i] > 0) {
 			verdict = "FAILED (sampling-dependent!)";
 			any_failed = true;
 			phase_dependent = true;
@@ -537,16 +541,16 @@ int main(int argc, char **argv)
 		}
 
 		// One side moving by >30% between phases means the sampling grid, not the flight, picked the answer.
-		if (std::fabs(res_min[m]) > 1.3f * std::fabs(res_min_shallowest[m])
-		    || res_max[m] > 1.3f * res_max_lowest[m]) {
+		if (std::fabs(res_min[i]) > 1.3f * std::fabs(res_min_shallowest[i])
+		    || res_max[i] > 1.3f * res_max_lowest[i]) {
 			phase_dependent = true;
 		}
 
 		std::array<char, 16> trips_str {};
-		std::snprintf(trips_str.data(), trips_str.size(), "%d/%d", trip_count[m], kNumPhases);
+		std::snprintf(trips_str.data(), trips_str.size(), "%d/%d", trip_count[i], kNumPhases);
 		// 1-based, matching the "Motor N ..." the vehicle reports; the arrays stay 0-based.
 		std::printf("  %5d  %+8.2f  %+8.2f  %-5s  %s\n",
-			    m + 1, (double)res_min[m], (double)res_max[m], trips_str.data(), verdict);
+			    replay->motor(i) + 1, (double)res_min[i], (double)res_max[i], trips_str.data(), verdict);
 	}
 
 	if (phase_dependent) {

@@ -283,12 +283,13 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 		actuator_motors_s actuator_motors{};
 		_actuator_motors_sub.copy(&actuator_motors);
 
-		// The arrays below are indexed by (actuator_function - MOTOR1); keep that within bounds so a
-		// future change to the ESC function range can't silently overflow them in the arming path.
+		// The detector is indexed by ESC slot, so every ESC is checked even if several share a motor function.
+		// The motor index (actuator_function - MOTOR1) selects the command and is what gets reported.
+		static_assert(esc_status_s::CONNECTED_ESC_MAX <= MotorFailureDetector::kMaxMotors, "ESC slots exceed kMaxMotors");
 		static_assert(esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX - esc_report_s::ACTUATOR_FUNCTION_MOTOR1
-			      < MotorFailureDetector::kMaxMotors, "ESC motor-function range exceeds kMaxMotors");
+			      < actuator_motors_s::NUM_CONTROLS, "ESC motor-function range exceeds actuator_motors controls");
 
-		// command defaults to NAN (= no ESC data this tick -> excluded); current/reversible to 0/false.
+		// command defaults to NAN (= unmapped or no current reported yet -> excluded); current/reversible to 0/false.
 		float command[MotorFailureDetector::kMaxMotors];
 		float current[MotorFailureDetector::kMaxMotors] {};
 		bool reversible[MotorFailureDetector::kMaxMotors] {};
@@ -298,7 +299,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
 			if (!math::isInRange(esc_status.esc[i].actuator_function,
 					     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
-				continue;
+				continue; // Skip unmapped ESC status entries
 			}
 
 			const uint8_t motor = esc_status.esc[i].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
@@ -313,19 +314,26 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				continue;
 			}
 
-			current[motor] = measured_current;
-			command[motor] = actuator_motors.control[motor];
-			reversible[motor] = (actuator_motors.reversible_flags >> motor) & 1;
+			command[i] = actuator_motors.control[motor];
+			current[i] = measured_current;
+			reversible[i] = (actuator_motors.reversible_flags >> motor) & 1;
 		}
 
 		// Drive the detector off the ESC sample time so a telemetry stall freezes the filter.
 		_motor_failure_detector.update(MotorFailureDetector::kMaxMotors, esc_status.timestamp,
 					       command, current, reversible);
 
-		for (uint8_t motor = 0; motor < MotorFailureDetector::kMaxMotors; ++motor) {
+		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
+			if (!math::isInRange(esc_status.esc[i].actuator_function,
+					     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
+				continue; // Skip unmapped ESC status entries
+			}
+
+			const uint8_t motor = esc_status.esc[i].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
+
 			// Report the latch alone: handling a failure excludes its own motor (NAN command), so gating
 			// the report on `excluded` would retract the failure and restore the motor every tick.
-			const MotorFailureDetector::Failure failure = _motor_failure_detector.status(motor).failure;
+			const MotorFailureDetector::Failure failure = _motor_failure_detector.status(i).failure;
 
 			if (failure != MotorFailureDetector::Failure::None) {
 				mask |= (1u << motor);
