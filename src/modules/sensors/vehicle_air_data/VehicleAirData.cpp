@@ -513,7 +513,6 @@ void VehicleAirData::PrintStatus()
 
 bool VehicleAirData::BaroGNSSAltitudeOffset()
 {
-	static constexpr float kEpvReq = 8.f;
 	static constexpr float kDeltaOffsetTolerance = 4.f;
 	static constexpr uint64_t kLpfWindow = 2_s;
 
@@ -531,7 +530,7 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 	const float delta_alt =  getAltitudeFromPressure(baro_pressure, pressure_sealevel) - target_altitude;
 	bool gnss_baro_offset_stable = false;
 
-	if (vehicle_gnss.failed_strict_checks || vehicle_gnss.receiver.epv > kEpvReq || _t_first_gnss_sample == 0) {
+	if (vehicle_gnss.failed_strict_checks || _t_first_gnss_sample == 0) {
 		_baro_gnss_offset_t1 = NAN;
 		_calibration_t_first = 0;
 		_t_first_gnss_sample = vehicle_gnss.timestamp;
