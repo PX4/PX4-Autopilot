@@ -59,7 +59,21 @@ public:
 	// VertiQ ESCs over DroneCAN reliably report being armed after 800-890 ms
 	static constexpr hrt_abstime ESC_ARMING_TIMEOUT_US = 900_ms;
 
+	// Post-arm spin-up check, as fractions of COM_SPOOLUP_TIME after arming:
+	// motors get until GRACE to start spinning. A motor that was not seen healthy at any check between GRACE and
+	// DECISION fails at the first check from DECISION on, so the decision falls well inside the spool-up window
+	static constexpr float ESC_SPINUP_GRACE_FRACTION = 0.5f;
+	static constexpr float ESC_SPINUP_DECISION_FRACTION = 0.8f;
+
+	/**
+	 * Motors that are commanded to run but report no RPM or a stuck fault.
+	 * Motors with a non-finite command (stopped) are never included.
+	 * @return bitmask indexed by motor number (Motor1 = bit 0)
+	 */
+	static uint16_t motorsNotSpinningMask(const esc_status_s &esc_status, const actuator_motors_s &actuator_motors);
+
 private:
+	bool checkSpinupAfterArm(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	uint16_t checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	uint16_t checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
@@ -77,10 +91,12 @@ private:
 	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_arm_hysteresis;
+	uint16_t _esc_stuck_seen_ok_mask{0}; ///< motors seen spinning since the spin-up check window opened
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,
 					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
+					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
 					(ParamFloat<px4::params::MOTFAIL_TIME>) _param_motfail_time,
 					(ParamFloat<px4::params::MOTFAIL_OFF>) _param_motfail_off,

@@ -442,6 +442,26 @@ For more information see [Motor Failure Recovery](motor_failure_recovery.md).
 | <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)          | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                   |
 | <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Failure mode. See [Motor Failure Recovery](motor_failure_recovery.md).                                                          |
 
+#### Motor Not Spinning After Arming
+
+Multicopters also check that every motor that is commanded to run starts spinning after arming, before takeoff.
+The check needs per-motor RPM telemetry and is enabled by [COM_ARM_CHK_ESCS](../advanced_config/parameter_reference.md#COM_ARM_CHK_ESCS) (it does not depend on `FD_ACT_EN`).
+
+It only runs while the vehicle is still landed and within the spool-up time ([COM_SPOOLUP_TIME](../advanced_config/parameter_reference.md#COM_SPOOLUP_TIME)) after arming:
+
+- Up to 50% of the spool-up time the motors are given time to start, and nothing is evaluated.
+- From 50% to 80% of the spool-up time, a motor that never reports RPM above zero (or reports the `motor stuck` ESC fault) is considered stuck. The decision is made at 80% of the spool-up time.
+
+If a motor fails, the vehicle disarms.
+Motors that are not commanded to run (for example a stopped motor) are ignored, and the check stops once takeoff is detected.
+
+::: warning
+The check assumes that the minimum motor output spins the motors while armed.
+For DShot, set [DSHOT_MIN](../advanced_config/parameter_reference.md#DSHOT_MIN) high enough, and do not use DShot 3D mode.
+Otherwise healthy motors report zero RPM and the vehicle disarms.
+ESCs that report no RPM for a motor (for example, bidirectional DShot not enabled on that output) also cause a disarm.
+:::
+
 ### External Automatic Trigger System (ATS)
 
 The [failure detector](#failure-detector), if [enabled](#CBRK_FLIGHTTERM), can also be triggered by an external ATS system.
