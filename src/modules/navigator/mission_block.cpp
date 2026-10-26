@@ -620,53 +620,46 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		return false;
 	}
 
-	sp->lat = item.lat;
-	sp->lon = item.lon;
-	sp->alt = get_absolute_altitude_for_item(item);
-	sp->yaw = item.yaw;
-	sp->course = NAN; // mission items never command a course, only Course mode sets it
-	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
-			    _navigator->get_default_loiter_rad();
-	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
+	if(item.frame == NAV_FRAME::NAV_FRAME_GLOBAL){
 
-	if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
-		// if the mission item has a specified acceptance radius, overwrite the default one from parameters
-		sp->acceptance_radius = item.acceptance_radius;
+		sp->lat = item.lat;
+		sp->lon = item.lon;
+		sp->alt = get_absolute_altitude_for_item(item);
+		sp->yaw = item.yaw;
+		sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
+			    	_navigator->get_loiter_radius();
+		sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
-	} else {
-		sp->acceptance_radius = _navigator->get_default_acceptance_radius();
-	}
+		if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
+			// if the mission item has a specified acceptance radius, overwrite the default one from parameters
+			sp->acceptance_radius = item.acceptance_radius;
 
-	// by default, FW guidance logic will take alt acceptance from NAV_FW_ALT_RAD, in some special cases
-	// we override it after this
-	sp->alt_acceptance_radius = NAN;
+		} else {
+			sp->acceptance_radius = _navigator->get_default_acceptance_radius();
+		}
 
-	sp->cruising_speed = _navigator->get_cruising_speed();
-	sp->cruising_throttle = _navigator->get_cruising_throttle();
+		// by default, FW guidance logic will take alt acceptance from NAV_FW_ALT_RAD, in some special cases
+		// we override it after this
+		sp->alt_acceptance_radius = NAN;
 
-	// for fixed wing we don't use cruising_throttle directly anymore, instead we command airspeed setpoints via cruising_speed
-	// we still use cruising throttle here to determine if gliding is enabled
-	sp->gliding_enabled = (_navigator->get_cruising_throttle() < FLT_EPSILON);
+		sp->cruising_speed = _navigator->get_cruising_speed();
+		sp->cruising_throttle = _navigator->get_cruising_throttle();
 
-	switch (item.nav_cmd) {
-	case NAV_CMD_IDLE:
-		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
-		break;
+		// for fixed wing we don't use cruising_throttle directly anymore, instead we command airspeed setpoints via cruising_speed
+		// we still use cruising throttle here to determine if gliding is enabled
+		sp->gliding_enabled = (_navigator->get_cruising_throttle() < FLT_EPSILON);
 
-	case NAV_CMD_TAKEOFF:
-	case NAV_CMD_VTOL_TAKEOFF: {
+		switch (item.nav_cmd) {
+		case NAV_CMD_IDLE:
+			sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+			break;
+
+		case NAV_CMD_TAKEOFF:
+		case NAV_CMD_VTOL_TAKEOFF:
 
 			// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
-			bool already_flying = (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-					      && !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed;
-
-			// land_detected (above) is unreliable on a moving deck, so for multicopters additionally
-			// require the takeoff state machine to report FLIGHT (it only exists on multicopters).
-			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				already_flying &= (_navigator->get_takeoff_state() == takeoff_status_s::TAKEOFF_STATE_FLIGHT);
-			}
-
-			if (already_flying) {
+			if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+		    	&& !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed) {
 
 				sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
@@ -679,32 +672,67 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			}
 
 			break;
+
+		case NAV_CMD_LAND:
+		case NAV_CMD_VTOL_LAND:
+			sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
+			break;
+
+		case NAV_CMD_LOITER_TO_ALT:
+			sp->alt = _navigator->get_global_position()->alt;
+
+		// FALLTHROUGH
+		case NAV_CMD_LOITER_TIME_LIMIT:
+		case NAV_CMD_LOITER_UNLIMITED:
+
+			sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+			break;
+
+		default:
+			sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+			break;
 		}
 
-	case NAV_CMD_LAND:
-	case NAV_CMD_VTOL_LAND:
-		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
-		break;
+		sp->valid = true;
+		sp->timestamp = hrt_absolute_time();
 
-	case NAV_CMD_LOITER_TO_ALT:
-		sp->alt = _navigator->get_global_position()->alt;
-
-	// FALLTHROUGH
-	case NAV_CMD_LOITER_TIME_LIMIT:
-	case NAV_CMD_LOITER_UNLIMITED:
-
-		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-		break;
-
-	default:
-		sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-		break;
+		return sp->valid;
 	}
+	else if(item.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED){
+		sp->x = item.x;
+		sp->y = item.y;
+		sp->alt = item.altitude;
+		sp->yaw = item.yaw;
+		sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
+			    	_navigator->get_loiter_radius();
+		sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
-	sp->valid = true;
-	sp->timestamp = hrt_absolute_time();
+		if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
+			// if the mission item has a specified acceptance radius, overwrite the default one from parameters
+			sp->acceptance_radius = item.acceptance_radius;
 
-	return sp->valid;
+		} else {
+			sp->acceptance_radius = _navigator->get_default_acceptance_radius();
+		}
+
+		// by default, FW guidance logic will take alt acceptance from NAV_FW_ALT_RAD, in some special cases
+		// we override it after this
+		sp->alt_acceptance_radius = NAN;
+
+		sp->cruising_speed = _navigator->get_cruising_speed();
+		sp->cruising_throttle = _navigator->get_cruising_throttle();
+
+		// for fixed wing we don't use cruising_throttle directly anymore, instead we command airspeed setpoints via cruising_speed
+		// we still use cruising throttle here to determine if gliding is enabled
+		sp->gliding_enabled = (_navigator->get_cruising_throttle() < FLT_EPSILON);
+
+
+		sp->valid = true;
+		sp->timestamp = hrt_absolute_time();
+
+		return sp->valid;
+	}
+	return false;
 }
 
 void
@@ -793,6 +821,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	item->nav_cmd = NAV_CMD_TAKEOFF;
 
 	/* use current position */
+	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
 	item->yaw = NAN;
@@ -841,6 +870,25 @@ MissionBlock::publishCourseHoldSetpoint(const float course_rad, const float alti
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();
+}
+
+MissionBlock::set_local_takeoff_item(struct mission_item_s *item, float local_altitude)
+{
+	item->nav_cmd = NAV_CMD_TAKEOFF_LOCAL;
+
+	/* use current position */
+	item->frame = NAV_FRAME::NAV_FRAME_LOCAL_NED;
+	item->x = _navigator->get_local_position()->x;
+	item->y = _navigator->get_local_position()->y;
+	item->yaw = NAN;
+
+	item->altitude = local_altitude;
+	item->altitude_is_relative = false;
+
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
 }
 
 void

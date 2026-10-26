@@ -843,6 +843,56 @@ void Navigator::run()
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL) {
+
+				position_setpoint_triplet_s *rep = get_takeoff_triplet();
+
+				// store current position as previous position and goal as next
+				rep->previous.yaw = get_local_position()->heading;
+				rep->previous.x = get_local_position()->x;
+				rep->previous.y = get_local_position()->y;
+				rep->previous.alt = get_local_position()->z;
+
+				rep->current.loiter_radius = get_loiter_radius();
+				rep->current.loiter_direction_counter_clockwise = false;
+				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+				rep->current.cruising_speed = -1.f; // reset to default
+
+				if (local_position_valid()) {
+
+					rep->previous.valid = true;
+					rep->previous.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+					rep->previous.timestamp = hrt_absolute_time();
+
+				} else {
+					rep->previous.valid = false;
+				}
+
+				// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
+				// The yaw setpoint generation is handled by FlightTaskAuto.
+				rep->current.yaw = NAN;
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					rep->current.x = cmd.param5;
+					rep->current.y = cmd.param6;
+
+				} else {
+					// If one of them is non-finite set the current global position as target
+					rep->current.x = get_local_position()->x;
+					rep->current.y = get_local_position()->y;
+
+				}
+
+				rep->current.alt = cmd.param7;
+
+				rep->current.valid = true;
+				rep->current.timestamp = hrt_absolute_time();
+				rep->current.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+
+				rep->next.valid = false;
+
+				// CMD_NAV_TAKEOFF_LOCAL is acknowledged by commander
+
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_VTOL_TAKEOFF) {
