@@ -148,7 +148,7 @@ parameters:
         long: |-
           The airspeed (calibrated airspeed) at which the TECS controller's underspeed protection starts to take effect.
           Should be below FW_AIRSPD_MIN by at least the typical airspeed tracking error, and above FW_AIRSPD_STALL enough to avoid stalling.
-          If default (-1), the threshold 1/3 FW_AIRSPD_STALL + 2/3 FW_AIRSPD_MID is used.
+          If default (-1), the threshold 1/3 FW_AIRSPD_STALL + 2/3 FW_AIRSPD_MIN is used.
       type: float
       default: -1.0
       unit: m/s
