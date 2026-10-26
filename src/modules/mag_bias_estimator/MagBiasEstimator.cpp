@@ -217,11 +217,11 @@ void MagBiasEstimator::publishMagBiasEstimate()
 	magnetometer_bias_estimate_s mag_bias_est{};
 
 	for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-		const Vector3f &bias = _bias_estimator[mag_index].getBias();
 		const FieldSensorBiasConvergence &convergence = _convergence[mag_index];
-		mag_bias_est.bias_x[mag_index] = convergence.observed(0) ? bias(0) : 0.f;
-		mag_bias_est.bias_y[mag_index] = convergence.observed(1) ? bias(1) : 0.f;
-		mag_bias_est.bias_z[mag_index] = convergence.observed(2) ? bias(2) : 0.f;
+		const Vector3f &bias = convergence.bias();
+		mag_bias_est.bias_x[mag_index] = bias(0);
+		mag_bias_est.bias_y[mag_index] = bias(1);
+		mag_bias_est.bias_z[mag_index] = bias(2);
 
 		mag_bias_est.valid[mag_index] = convergence.valid();
 		mag_bias_est.stable[mag_index] = convergence.stable();

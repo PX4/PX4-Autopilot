@@ -90,6 +90,12 @@ public:
 				const bool consistent = field_norm_std < kMaxFieldNormStd;
 				_valid = bias.isAllFinite() && bias.longerThan(kMinBias) && !bias.longerThan(kMaxBias)
 					 && quiet && consistent && _observed[0] && _observed[1];
+
+				if (_valid) {
+					for (int axis = 0; axis < 3; axis++) {
+						_bias(axis) = _observed[axis] ? bias(axis) : 0.f;
+					}
+				}
 			}
 
 			_valid_time = (_valid && was_valid) ? fminf(_valid_time + _window_time, kStableTime) : 0.f;
@@ -106,6 +112,9 @@ public:
 	bool valid() const { return _valid; }
 	bool stable() const { return _valid && (_valid_time >= kStableTime); }
 	bool observed(int axis) const { return _observed[axis]; }
+
+	/** @return estimate at the end of the last window that passed all checks, unobserved axes are 0 */
+	const matrix::Vector3f &bias() const { return _bias; }
 
 private:
 	// an axis is observed once the remaining error along it is below exp(-kMinExcitation), ~5%
@@ -129,15 +138,16 @@ private:
 	static constexpr float kRegularization{1e-3f};
 	static constexpr float kWindowTime{2.f};		///< [s]
 	static constexpr float kMinWindowRotation{0.5f};	///< [rad]
-	static constexpr float kQuietAbs{0.01f};		///< [Gauss]
+	static constexpr float kQuietAbs{0.015f};		///< [Gauss]
 	static constexpr float kQuietRel{0.05f};
-	static constexpr float kMaxFieldNormStd{0.015f};	///< [Gauss]
+	static constexpr float kMaxFieldNormStd{0.025f};	///< [Gauss]
 	static constexpr float kMinBias{0.04f};			///< [Gauss] smaller estimates are within the estimator accuracy
 	static constexpr float kMaxBias{1.f};			///< [Gauss]
 	static constexpr float kStableTime{5.f};		///< [s]
 
 	matrix::SquareMatrix3f _excitation{};
 	matrix::Vector3f _window_start_bias{};
+	matrix::Vector3f _bias{};
 	float _window_rotation{0.f};
 	float _field_norm_sum{0.f};
 	float _field_norm_sum_sq{0.f};
