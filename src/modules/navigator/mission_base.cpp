@@ -110,20 +110,6 @@ void MissionBase::updateMavlinkMission()
 					  static_cast<int32_t>(new_mission.count) - 1);
 	}
 
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-	// Another module republished the current item unchanged, e.g. MISSION_SET_CURRENT of the current item.
-	// Fence and rally uploads change their id or storage slot, so they do not count.
-	if (!mission_data_changed && !geofence_changed
-	    && (new_mission.fence_dataman_id == _mission.fence_dataman_id)
-	    && (new_mission.safe_points_id == _mission.safe_points_id)
-	    && (new_mission.safepoint_dataman_id == _mission.safepoint_dataman_id)
-	    && (new_mission.timestamp != _navigator->get_last_mission_publication().timestamp)) {
-		_keep_index_until_reached = true;
-	}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-
 	_mission = new_mission;
 
 	if (geofence_changed && _mission_check_state == MissionCheckState::Complete) {
@@ -147,14 +133,10 @@ void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 	resetJoinRouteState();
 	_active_jump_anchor = {};
 
-	// An item set by another module (e.g. MISSION_SET_CURRENT or an upload) is kept like a selection.
-	// A navigator mode's own index is not, so Mission still joins after a Return along the mission.
-	const mission_s &navigator_publication = _navigator->get_last_mission_publication();
-
-	if ((_mission.timestamp != navigator_publication.timestamp)
-	    || (_mission.current_seq != navigator_publication.current_seq)) {
-		_keep_index_until_reached = true;
-	}
+	// A new mission or current item clears the previous selection.
+	// Check for a new selection before Mission follows DO_JUMP or skips action items.
+	_mission_item_selection_pending = false;
+	updateMissionItemSelection();
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	resetVtolTransition();
@@ -673,7 +655,7 @@ MissionBase::set_mission_item_reached()
 
 	// A reached position item puts the vehicle back on the route, so a later resume may join.
 	if (mission_item_contains_position(_mission_item)) {
-		_keep_index_until_reached = false;
+		_mission_item_selection_pending = false;
 	}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -1405,9 +1387,15 @@ MissionBase::do_abort_landing()
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 		// Resuming Mission flies the landing approach again instead of joining it.
-		_keep_index_until_reached = true;
-		// Mission takes the abort index as a selection also when a Return aborted the landing.
-		_navigator->get_last_mission_publication().timestamp = 0;
+		_mission_item_selection_pending = true;
+		// Tell Mission to fly the approach again if the abort happened during Return.
+		mission_item_selection_s selection{};
+		selection.timestamp = hrt_absolute_time();
+		selection.mission_id = _mission.mission_id;
+		selection.mission_dataman_id = _mission.mission_dataman_id;
+		selection.selected_seq = _mission.current_seq;
+		uORB::Publication<mission_item_selection_s> selection_pub{ORB_ID(mission_item_selection)};
+		selection_pub.publish(selection);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	}
 
@@ -1582,11 +1570,6 @@ void MissionBase::setMissionIndex(int32_t index)
 		_mission.current_seq = index;
 		_mission.timestamp = hrt_absolute_time();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-		// Every navigator mode publishes its index here, with this timestamp.
-		if (_navigator != nullptr) {
-			_navigator->get_last_mission_publication() = _mission;
-		}
 
 		if (!shouldAcceptMissionUpdates()) {
 			publishMissionIndex();

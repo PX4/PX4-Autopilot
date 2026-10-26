@@ -887,7 +887,7 @@ void Navigator::run()
 				if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && param2_valid) {
 					const bool reset_jump_counters = cmd.param2 > 0.5f;
 
-					if (_mission.set_current_mission_index(static_cast<int32_t>(cmd.param1), reset_jump_counters)) {
+					if (_mission.set_current_mission_index(static_cast<int32_t>(cmd.param1), reset_jump_counters, cmd.timestamp)) {
 						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 					} else {
@@ -900,7 +900,7 @@ void Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
-					if (!_mission.set_current_mission_index(cmd.param1)) {
+					if (!_mission.set_current_mission_index(cmd.param1, false, cmd.timestamp)) {
 						PX4_WARN("CMD_MISSION_START failed");
 					}
 				}
