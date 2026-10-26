@@ -74,13 +74,6 @@ bool PWMOut::update_pwm_out_state(bool on)
 
 			int32_t tim_config = 0;
 			param_t handle = param_find(param_name);
-
-			if (handle == PARAM_INVALID) {
-				PX4_WARN("param name '%s' not found", param_name);
-				_pwm_mask &= ~channels;
-				continue;
-			}
-
 			param_get(handle, &tim_config);
 
 			if (tim_config > 0) {
@@ -93,6 +86,14 @@ bool PWMOut::update_pwm_out_state(bool on)
 				_pwm_mask &= ~channels; // don't use for pwm
 			}
 		}
+
+		// channels selected as GPIO are driven by gpio_out
+		char param_name[17];
+		snprintf(param_name, sizeof(param_name), "%s_GPIO_EN", _mixing_output.paramPrefix());
+
+		int32_t gpio_en = 0;
+		param_get(param_find(param_name), &gpio_en);
+		_pwm_mask &= ~(uint32_t)gpio_en;
 
 		int ret = up_pwm_servo_init(_pwm_mask);
 
