@@ -200,3 +200,26 @@ TEST_F(FieldSensorBiasConvergenceTest, BiasOnlyFromPassedWindows)
 	EXPECT_TRUE(_convergence.stable());
 	EXPECT_LT((Vector2f(_convergence.bias().xy()) - Vector2f(_bias.xy())).norm(), 0.06f * Vector2f(_bias.xy()).norm());
 }
+
+TEST_F(FieldSensorBiasConvergenceTest, StillWindowsDoNotCountTowardStable)
+{
+	const float dt = 1.f / 64.f;
+	const Vector3f yaw{0.f, 0.f, 1.f};
+
+	for (int i = 0; i < 30 && !_convergence.valid(); i++) {
+		rotate(yaw, 2.f, dt);
+	}
+
+	ASSERT_TRUE(_convergence.valid());
+	ASSERT_FALSE(_convergence.stable());
+
+	// e.g. put down right after the first passed window
+	rotate(Vector3f{}, 20.f, dt);
+
+	EXPECT_TRUE(_convergence.valid());
+	EXPECT_FALSE(_convergence.stable());
+
+	rotate(yaw, 10.f, dt);
+
+	EXPECT_TRUE(_convergence.stable());
+}
