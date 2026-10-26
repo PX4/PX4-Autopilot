@@ -96,9 +96,9 @@ public:
 						_bias(axis) = _observed[axis] ? bias(axis) : 0.f;
 					}
 				}
-			}
 
-			_valid_time = (_valid && was_valid) ? fminf(_valid_time + _window_time, kStableTime) : 0.f;
+				_valid_time = (_valid && was_valid) ? fminf(_valid_time + _window_time, kStableTime) : 0.f;
+			}
 
 			_window_start_bias = bias;
 			_window_rotation = 0.f;
