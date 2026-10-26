@@ -9,11 +9,16 @@ uint8 SETPOINT_TYPE_TAKEOFF=3	# takeoff setpoint
 uint8 SETPOINT_TYPE_LAND=4	# land setpoint, altitude must be ignored, descend until landing
 uint8 SETPOINT_TYPE_IDLE=5	# do nothing, switch off motors or keep at idle speed (MC)
 
+uint8 FRAME_TYPE_GLOBAL=0	# land setpoint, altitude must be ignored, descend until landing
+uint8 FRAME_TYPE_LOCAL=1	# do nothing, switch off motors or keep at idle speed (MC)
+
 uint8 LOITER_TYPE_ORBIT=0 	# Circular pattern
 uint8 LOITER_TYPE_FIGUREEIGHT=1 # Pattern resembling an 8
 
 bool valid			# true if setpoint is valid
 uint8 type			# setpoint type to adjust behavior of position controller
+
+uint8 frame			# setpoint frame.
 
 float32 vx			# local velocity setpoint in m/s in NED
 float32 vy			# local velocity setpoint in m/s in NED
@@ -21,7 +26,11 @@ float32 vz			# local velocity setpoint in m/s in NED
 
 float64 lat			# latitude, in deg
 float64 lon			# longitude, in deg
-float32 alt			# altitude AMSL, in m
+float32 alt			# altitude, type defined by frame. AMSL when frame = 0, height below local origin when frame = 1
+
+float32 x			# north from local frame, in m
+float32 y			# east from local frame, in m
+
 float32 yaw			# yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task
 
 float32 loiter_radius		# [m] [@range 0, INF] loiter major axis radius

@@ -178,6 +178,11 @@ protected:
 	void set_takeoff_item(struct mission_item_s *item, float abs_altitude);
 
 	/**
+	 * Set a takeoff mission item in local frame
+	 */
+	void set_local_takeoff_item(struct mission_item_s *item, float local_altitude);
+
+	/**
 	 * Set a land mission item
 	 */
 	void set_land_item(struct mission_item_s *item);
