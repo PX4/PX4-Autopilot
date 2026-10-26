@@ -464,9 +464,14 @@ See [Safe-Point Batching](#safe-point-batching) for the rally-point batch config
 ### Safe-Point Batching {#safe-point-batching}
 
 `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` controls how many rally points are checked in each scan of the mission route.
-Its default is `1` (`32` on testing builds), with a supported range of `1` to `32`.
+Its default is `16` (`32` on testing builds), with a supported range of `16` to `32`.
 More rally points than fit in one batch require additional scans, increasing planning time.
+The minimum of `16` limits repeated route scans.
 Increasing the batch size reduces the number of scans but uses more static RAM: 400 to 500 bytes per rally point, 13.7 KB at 32.
+
+The upper limit comes from `DM_KEY_SAFE_POINTS_MAX`, the compile-time capacity of `32` rally-list items defined in `src/modules/dataman/dataman.h`.
+Optional approach or loiter items also use these slots.
+This storage limit also caps MAVLink rally-point uploads; changing the batch size does not change that capacity.
 
 Geofence checks use the same candidates and check up to `min(32, 3 * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE)` segments at a time, from one static buffer.
 The mission is scanned again only for the vehicle or rally points that lose candidates this way (see [Geofence Checks](#geofence-checks)), and that scan checks their projections one at a time.
