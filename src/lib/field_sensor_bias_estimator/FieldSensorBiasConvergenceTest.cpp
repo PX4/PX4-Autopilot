@@ -57,7 +57,7 @@ public:
 
 			if (_convergence.valid() && !_first_valid_seen) {
 				_first_valid_seen = true;
-				_first_valid_bias = _estimator.getBias();
+				_first_valid_bias = _convergence.bias();
 			}
 		}
 	}
@@ -167,4 +167,36 @@ TEST_F(FieldSensorBiasConvergenceTest, SmallBiasIsNotValid)
 
 	EXPECT_TRUE(_convergence.observed(0));
 	EXPECT_FALSE(_convergence.valid());
+}
+
+TEST_F(FieldSensorBiasConvergenceTest, BiasOnlyFromPassedWindows)
+{
+	// with 1/64 s steps a 2 s window is exactly 128 samples, 30 s are 15 windows
+	const float dt = 1.f / 64.f;
+	const Vector3f yaw{0.f, 0.f, 1.f};
+
+	rotate(yaw, 30.f, dt);
+	ASSERT_TRUE(_convergence.stable());
+
+	const Vector3f validated = _convergence.bias();
+	EXPECT_LT((Vector2f(validated.xy()) - Vector2f(_bias.xy())).norm(), 0.06f * Vector2f(_bias.xy()).norm());
+	EXPECT_FLOAT_EQ(validated(2), 0.f) << "z not observed";
+
+	// e.g. put down next to steel at the start of a window
+	_bias += Vector3f{0.1f, 0.f, 0.f};
+	rotate(yaw, 1.5f, dt);
+
+	EXPECT_TRUE(_convergence.stable()) << "window not ended yet";
+	EXPECT_TRUE((_estimator.getBias() - validated).longerThan(0.02f));
+	EXPECT_EQ(_convergence.bias(), validated);
+
+	rotate(yaw, 0.5f, dt);
+
+	EXPECT_FALSE(_convergence.valid()) << "window failed";
+	EXPECT_EQ(_convergence.bias(), validated);
+
+	rotate(yaw, 30.f, dt);
+
+	EXPECT_TRUE(_convergence.stable());
+	EXPECT_LT((Vector2f(_convergence.bias().xy()) - Vector2f(_bias.xy())).norm(), 0.06f * Vector2f(_bias.xy()).norm());
 }
