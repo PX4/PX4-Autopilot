@@ -222,7 +222,6 @@ public:
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
 		float tas_min;				///< True airspeed demand lower limit [m/s].
 		float tas_stall;			///< True stall airspeed [m/s].
-		float tas_critical;			///< True critical airspeed overriding the underspeed start threshold, only applied if within [tas_stall, tas_min] [m/s].
 		float tas_max;				///< True airspeed demand upper limit [m/s].
 		float tas_trim;				///< True airspeed trim [m/s].
 		float pitch_max;			///< Maximum absolute pitch angle setpoint [rad].
@@ -726,7 +725,6 @@ public:
 
 	void set_equivalent_airspeed_min(float airspeed) { _equivalent_airspeed_min = airspeed; }
 	void set_equivalent_airspeed_stall(float airspeed) { _equivalent_airspeed_stall = airspeed; }
-	void set_equivalent_airspeed_critical(float airspeed) { _equivalent_airspeed_critical = airspeed; }
 	void set_equivalent_airspeed_max(float airspeed) { _equivalent_airspeed_max = airspeed; }
 	void set_equivalent_airspeed_trim(float airspeed) { _control_param.equivalent_airspeed_trim = airspeed; _airspeed_filter_param.equivalent_airspeed_trim = airspeed; }
 
@@ -816,7 +814,6 @@ private:
 
 	float _equivalent_airspeed_min{10.0f};				///< equivalent airspeed demand lower limit (m/sec)
 	float _equivalent_airspeed_stall{7.0f};				///< equivalent stall airspeed (m/sec)
-	float _equivalent_airspeed_critical{-1.0f};			///< equivalent critical airspeed overriding the underspeed start threshold, only applied if within [tas_stall, tas_min] (m/sec)
 	float _equivalent_airspeed_max{20.0f};				///< equivalent airspeed demand upper limit (m/sec)
 	float _fast_descend_alt_err{-1.f};	 				///< Altitude difference between current altitude to altitude setpoint needed to descend with higher airspeed [m].
 	float _fast_descend{0.f};					///< Value for fast descend in [0,1]. continuous value used to flatten the high speed value out when close to target altitude.
@@ -851,7 +848,6 @@ private:
 		.equivalent_airspeed_trim = 15.0f,
 		.tas_min = 10.0f,
 		.tas_stall = 7.0f,
-		.tas_critical = -1.0f,
 		.tas_max = 20.0f,
 		.tas_trim = 15.0f,
 		.pitch_max = 0.5f,
