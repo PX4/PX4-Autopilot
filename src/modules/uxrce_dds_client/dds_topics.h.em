@@ -177,7 +177,7 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 						num_payload_sent += topic_size;
 
 					} else if (!send_subscriptions[idx].too_large_reported) {
-						// still no space in the just flushed stream: sample can never fit (report only once)
+						// sample is larger than the stream (report only once)
 						PX4_ERR("%s (%" PRIu32 " B) does not fit into the best-effort stream",
 							send_subscriptions[idx].orb_meta->o_name, topic_size);
 						send_subscriptions[idx].too_large_reported = true;

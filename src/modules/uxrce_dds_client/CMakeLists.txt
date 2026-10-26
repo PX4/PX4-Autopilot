@@ -43,10 +43,9 @@ else()
 	endif()
 	set(microxrceddsclient_build_dir ${CMAKE_CURRENT_BINARY_DIR})
 
+	# Upper bound for the UDP receive buffer
 	if(CONFIG_NET_ETH_PKTSIZE)
-		set(microxrceddsclient_udp_mtu ${CONFIG_NET_ETH_PKTSIZE})
-	else()
-		set(microxrceddsclient_udp_mtu 512) # library default
+		set(microxrceddsclient_udp_mtu_arg -DUCLIENT_UDP_TRANSPORT_MTU:STRING=${CONFIG_NET_ETH_PKTSIZE})
 	endif()
 
 	px4_add_git_submodule(TARGET git_micro_xrce_dds_client PATH "${microxrceddsclient_src_dir}")
@@ -99,7 +98,7 @@ else()
 			-DUCLIENT_PIC:BOOL=OFF
 			-DUCLIENT_PROFILE_TCP:BOOL=OFF
 			-DUCLIENT_PROFILE_UDP:BOOL=${uclient_profile_udp}
-			-DUCLIENT_UDP_TRANSPORT_MTU:STRING=${microxrceddsclient_udp_mtu}
+			${microxrceddsclient_udp_mtu_arg}
 			-DUCLIENT_PROFILE_SERIAL:BOOL=ON
 			-DUCLIENT_PROFILE_DISCOVERY:BOOL=OFF
 			-DUCLIENT_PROFILE_CUSTOM_TRANSPORT:BOOL=OFF
