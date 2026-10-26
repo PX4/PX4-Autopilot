@@ -45,11 +45,7 @@
  * residual extremes + trip fraction -- a single-phase verdict is only a lower bound.
  */
 
-#include "MotorFailureDetector.hpp"
-
-#include <ulog_cpp/data_container.hpp>
-#include <ulog_cpp/exception.hpp>
-#include <ulog_cpp/reader.hpp>
+#include "EscLogReader.hpp"
 
 #include <algorithm>
 #include <array>
@@ -66,13 +62,11 @@
 namespace
 {
 constexpr int kMM = MotorFailureDetector::kMaxMotors;
-constexpr int kMotor1 = 101;   // esc_report::ACTUATOR_FUNCTION_MOTOR1
-constexpr int kArmed = 2;      // vehicle_status::ARMING_STATE_ARMED
 constexpr uint64_t kRuntimeTickUs = 100000;   // runtime runs the check at 10 Hz (Commander.cpp) -- decimate to match
 constexpr int kNumPhases = 5;   // phase-sweep: run N detectors on staggered grid offsets to expose sampling-phase sensitivity
 
 // Default model fit; the FALLBACK used when the log carries no MOTFAIL_* params.
-// Threshold band calibrated at the runtime's 10 Hz cadence (kMaxGap = 0.3 s, phase-swept):
+// Threshold band calibrated at the runtime's 10 Hz cadence (phase-swept):
 // clean across the reference multirotor corpus. Illustrative for this airframe, not a shipped default.
 MotorFailureDetector::Config makeConfig()
 {
@@ -116,14 +110,13 @@ int setParam(MotorFailureDetector::Config &cfg, const char *name, int name_len, 
 }
 }
 
-class Replay : public ulog_cpp::DataContainer
+class Replay : public EscLogReader
 {
 public:
 	// CLI overrides (from --set) are captured here and applied on top of the log's params in
 	// headerComplete(), once the log's own MOTFAIL_* values are known.
 	Replay(const MotorFailureDetector::Config &cli_cfg, const std::array<bool, kNumParams> &cli_set)
-		: ulog_cpp::DataContainer(ulog_cpp::DataContainer::StorageConfig::Header),
-		  _cli_cfg(cli_cfg), _cli_set(cli_set)
+		: _cli_cfg(cli_cfg), _cli_set(cli_set)
 	{
 		for (auto &phase : _trip_time) { phase.fill(-1.0); }
 
@@ -132,42 +125,15 @@ public:
 		for (auto &phase : _rmax) { phase.fill(0.f); }
 	}
 
-	void addLoggedMessage(const ulog_cpp::AddLoggedMessage &msg) override
-	{
-		ulog_cpp::DataContainer::addLoggedMessage(msg);
-
-		if (msg.multiId() != 0) { return; }
-
-		auto it = messageFormats().find(msg.messageName());
-
-		if (it == messageFormats().end()) { return; }
-
-		if (msg.messageName() == "esc_status") {
-			_esc_id = msg.msgId();
-			_esc_fmt = it->second;
-			_esc_array_f = _esc_fmt->field("esc");
-			_esc_slots = _esc_array_f->arrayLength();
-			_esc_timestamp_f = _esc_fmt->field("timestamp");
-			_esc_count_f = _esc_fmt->field("esc_count");
-			_esc_function_f = _esc_array_f->nestedField("actuator_function");
-			_esc_current_f = _esc_array_f->nestedField("esc_current");
-			_esc_slot_timestamp_f = _esc_array_f->nestedField("timestamp");
-			_esc_current_seen.assign(_esc_slots, 0);
-
-		} else if (msg.messageName() == "actuator_motors") {
-			_actuator_id = msg.msgId();
-			_actuator_fmt = it->second;
-			_actuator_control_f = _actuator_fmt->field("control");
-			_control_channels = _actuator_control_f->arrayLength();
-			_actuator_reversible_f = _actuator_fmt->field("reversible_flags");
-
-		} else if (msg.messageName() == "vehicle_status") {
-			_status_id = msg.msgId();
-			_status_fmt = it->second;
-			_status_arming_f = _status_fmt->field("arming_state");
-			_have_status = true;
-		}
-	}
+	// Results per ESC slot, read after the whole log has been parsed.
+	bool seen(int i) const { return _seen[i]; }
+	int motor(int i) const { return _motor[i]; }   ///< 0-based motor index the slot was last mapped to
+	float residualMin(int phase, int i) const { return _rmin[phase][i]; }
+	float residualMax(int phase, int i) const { return _rmax[phase][i]; }
+	double tripTime(int phase, int i) const { return _trip_time[phase][i]; }
+	int paramsFromLog() const { return _params_from_log; }
+	long evaluated() const { return _evaluated; }
+	const MotorFailureDetector::Config &config() const { return _cfg; }
 
 	void parameter(const ulog_cpp::Parameter &p) override
 	{
@@ -199,125 +165,57 @@ public:
 		_configured = true;
 	}
 
-	void data(const ulog_cpp::Data &record) override
+protected:
+	void disarmed() override
 	{
-		const uint16_t id = record.msgId();
+		for (int p = 0; p < kNumPhases; ++p) {
+			_det[p].reset();
+			_next_eval_us[p] = 0;
+		}
+	}
 
-		if (id == _status_id) {
-			const bool now_armed = (ulog_cpp::TypedDataView(record, *_status_fmt)[_status_arming_f].as<int>() == kArmed);
-
-			if (_armed && !now_armed) {   // disarm resets the detector (mirrors the commander check)
-				for (int p = 0; p < kNumPhases; ++p) {
-					_det[p].reset();
-					_next_eval_us[p] = 0;
-				}
-			}
-
-			_armed = now_armed;
-			return;
+	void escRecord(uint64_t record_us, const EscSample *samples, int count) override
+	{
+		for (int k = 0; k < count; ++k) {
+			_seen[samples[k].slot] = true;
+			_motor[samples[k].slot] = samples[k].motor;
 		}
 
-		if (id == _actuator_id) {
-			ulog_cpp::TypedDataView view(record, *_actuator_fmt);
-			const uint32_t reversible_mask = view[_actuator_reversible_f].as<uint32_t>();
-			const auto control = view[_actuator_control_f];
-
-			for (int m = 0; m < kMM && m < _control_channels; ++m) {
-				_command_latest[m] = control[m].as<float>();
-				_reversible_latest[m] = (reversible_mask >> m) & 1;
-			}
-
-			return;
-		}
-
-		if (id != _esc_id) { return; }
-
-		ulog_cpp::TypedDataView view(record, *_esc_fmt);
-
-		if (view[_esc_count_f].as<int>() <= 0) { return; }       // runtime skips esc_status with esc_count <= 0
-
-		if (_have_status && !_armed) { return; }                 // armed gate, like escCheck.cpp
-
-		const uint64_t sample_us = view[_esc_timestamp_f].as<uint64_t>();
-
-		// Shape the per-ESC-slot inputs once -- they don't depend on the sampling phase, only on the
-		// record. Which phase grids consume this sample is decided in the phase loop below. Indexed by
-		// ESC slot like escCheck, so every ESC is checked even if several share a motor function.
-		std::array<bool, kMM> fed {}; // slots with data in this record; the others are not updated, like escCheck
-		std::array<uint64_t, kMM> slot_us {}; // each ESC's own sample time, like escCheck
-		std::array<float, kMM> command {};
-		std::array<float, kMM> current {};
-		std::array<bool, kMM> reversible {};
-
-		const auto esc_arr = view[_esc_array_f];
-
-		for (int i = 0; i < _esc_slots && i < kMM; ++i) {
-			const auto esc_i = esc_arr[i];
-			const int function = esc_i[_esc_function_f].as<int>();
-
-			if (function < kMotor1 || function - kMotor1 >= kMM) { continue; }
-
-			const float slot_current = esc_i[_esc_current_f].as<float>();
-
-			if (slot_current > FLT_EPSILON) { _esc_current_seen[i] = 1; }   // latch first current report (per ESC slot)
-
-			if (!_esc_current_seen[i]) { continue; }                        // don't judge until the ESC reports current
-
-			const int m = function - kMotor1;
-			_seen[i] = true;
-			fed[i] = true;
-			slot_us[i] = esc_i[_esc_slot_timestamp_f].as<uint64_t>();
-			_motor[i] = m;
-			current[i] = slot_current;
-			command[i] = _command_latest[m];                                // 0 until an actuator arrives (runtime zero-init)
-			reversible[i] = _reversible_latest[m];
-		}
-
-		// One parse, kNumPhases detectors: feed each phase whose 10 Hz grid this sample crosses. Each
+		// One parse, kNumPhases detectors: feed each phase whose 10 Hz grid this record crosses. Each
 		// phase's grid is offset by p/kNumPhases of a tick, so a single pass over the log covers the
 		// sampling-phase spread the runtime's unknown tick alignment could land on (no file re-read).
 		for (int p = 0; p < kNumPhases; ++p) {
 			if (_next_eval_us[p] == 0) {   // first tick: anchor this phase's grid at its offset
-				_next_eval_us[p] = sample_us + (uint64_t)p * kRuntimeTickUs / kNumPhases;
+				_next_eval_us[p] = record_us + (uint64_t)p * kRuntimeTickUs / kNumPhases;
 			}
 
-			if (sample_us < _next_eval_us[p]) { continue; }
+			if (record_us < _next_eval_us[p]) { continue; }
 
 			_next_eval_us[p] += kRuntimeTickUs;
 
-			if (_start_us < 0) { _start_us = (double)sample_us; }
+			if (_start_us < 0) { _start_us = (double)record_us; }
 
-			const double elapsed_s = ((double)sample_us - _start_us) / 1e6;
+			const double elapsed_s = ((double)record_us - _start_us) / 1e6;
 
-			for (int i = 0; i < kMM; ++i) {
-				if (!fed[i]) { continue; }
+			for (int k = 0; k < count; ++k) {
+				const EscSample &s = samples[k];
+				_det[p].update(s.slot, s.timestamp_us, s.command, s.current, s.reversible);
 
-				_det[p].update(i, (hrt_abstime)slot_us[i], command[i], current[i], reversible[i]);
-
-				const float residual_lpf = _det[p].residualFiltered(i);
+				const float residual_lpf = _det[p].residualFiltered(s.slot);
 
 				if (!std::isnan(residual_lpf)) {
-					_rmin[p][i] = std::min(_rmin[p][i], residual_lpf);
-					_rmax[p][i] = std::max(_rmax[p][i], residual_lpf);
+					_rmin[p][s.slot] = std::min(_rmin[p][s.slot], residual_lpf);
+					_rmax[p][s.slot] = std::max(_rmax[p][s.slot], residual_lpf);
 				}
 
-				if (_det[p].failure(i) != MotorFailureDetector::Failure::None && _trip_time[p][i] < 0) { _trip_time[p][i] = elapsed_s; }
+				if (_det[p].failure(s.slot) != MotorFailureDetector::Failure::None && _trip_time[p][s.slot] < 0) {
+					_trip_time[p][s.slot] = elapsed_s;
+				}
 			}
 
 			if (p == 0) { ++_evaluated; }
 		}
 	}
-
-	// Results per ESC slot, read after the whole log has been parsed.
-	bool seen(int i) const { return _seen[i]; }
-	int motor(int i) const { return _motor[i]; }   ///< 0-based motor index the slot was last mapped to
-	float residualMin(int phase, int i) const { return _rmin[phase][i]; }
-	float residualMax(int phase, int i) const { return _rmax[phase][i]; }
-	double tripTime(int phase, int i) const { return _trip_time[phase][i]; }
-	bool haveStatus() const { return _have_status; }
-	int paramsFromLog() const { return _params_from_log; }
-	long evaluated() const { return _evaluated; }
-	const MotorFailureDetector::Config &config() const { return _cfg; }
 
 private:
 	MotorFailureDetector::Config _cli_cfg {};
@@ -330,10 +228,6 @@ private:
 	int _params_from_log = 0;
 	bool _configured = false;
 
-	bool _armed = false;
-	bool _have_status = false;
-	std::array<float, kMM> _command_latest {};
-	std::array<bool, kMM> _reversible_latest {};
 	std::array<std::array<float, kMM>, kNumPhases> _rmin;
 	std::array<std::array<float, kMM>, kNumPhases> _rmax;
 	std::array<std::array<double, kMM>, kNumPhases> _trip_time;   // -1 until a trip (filled in the ctor)
@@ -341,70 +235,8 @@ private:
 	std::array<int, kMM> _motor {};    // per ESC slot
 	double _start_us = -1.0;
 	long _evaluated = 0;   // phase-0 evaluation count (== per-phase sample count)
-
-	// Cached ULog "legend" (filled in addLoggedMessage): each message's id + layout, and handles to the
-	// fields we read -- resolved once so the per-record loop reads by handle, not by name.
-	uint16_t _esc_id = 0xffff;        // 0xffff = message type not seen yet
-	uint16_t _actuator_id = 0xffff;
-	uint16_t _status_id = 0xffff;
-	std::shared_ptr<ulog_cpp::MessageFormat> _esc_fmt;
-	std::shared_ptr<ulog_cpp::MessageFormat> _actuator_fmt;
-	std::shared_ptr<ulog_cpp::MessageFormat> _status_fmt;
-	int _esc_slots = 0;         // esc[] slots from the layout
-	int _control_channels = 0;  // control[] channels from the layout
-
-	std::vector<char> _esc_current_seen;   // per-ESC-slot "has reported current" latch (mirrors escCheck), never reset
 	std::array<uint64_t, kNumPhases> _next_eval_us {};   // per-phase next 10 Hz evaluation time (runtime-cadence match)
-
-	// esc_status field handles (suffix _f)
-	std::shared_ptr<ulog_cpp::Field> _esc_timestamp_f;
-	std::shared_ptr<ulog_cpp::Field> _esc_array_f;
-	std::shared_ptr<ulog_cpp::Field> _esc_function_f;
-	std::shared_ptr<ulog_cpp::Field> _esc_current_f;
-	std::shared_ptr<ulog_cpp::Field> _esc_slot_timestamp_f;
-	std::shared_ptr<ulog_cpp::Field> _esc_count_f;
-	// actuator_motors field handles
-	std::shared_ptr<ulog_cpp::Field> _actuator_control_f;
-	std::shared_ptr<ulog_cpp::Field> _actuator_reversible_f;
-	// vehicle_status field handles
-	std::shared_ptr<ulog_cpp::Field> _status_arming_f;
 };
-
-// Parse the whole log once through a fresh Replay (which runs all kNumPhases detectors internally).
-// Returns the populated Replay, or nullptr on a fatal error (already reported to stderr).
-std::shared_ptr<Replay> parseLog(const char *ulog_path, const MotorFailureDetector::Config &cli_cfg,
-				 const std::array<bool, kNumParams> &cli_set)
-{
-	auto replay = std::make_shared<Replay>(cli_cfg, cli_set);
-
-	FILE *file = fopen(ulog_path, "rb");
-
-	if (!file) { std::fprintf(stderr, "cannot open %s\n", ulog_path); return nullptr; }
-
-	std::array<uint8_t, 4096> buf;
-	int bytes_read;
-	ulog_cpp::Reader reader{replay};
-
-	while ((bytes_read = fread(buf.data(), 1, buf.size(), file)) > 0) {
-		try {
-			reader.readChunk(buf.data(), bytes_read);
-
-		} catch (const ulog_cpp::ExceptionBase &e) {
-			std::fprintf(stderr, "%s: %s\n  (a needed field is missing -- the log's message layout differs from what this tool expects)\n",
-				     ulog_path, e.what());
-			fclose(file);
-			return nullptr;
-		}
-
-		if (replay->hadFatalError()) { break; }
-	}
-
-	fclose(file);
-
-	if (replay->hadFatalError()) { std::fprintf(stderr, "fatal parse error in %s\n", ulog_path); return nullptr; }
-
-	return replay;
-}
 
 int main(int argc, char **argv)
 {
@@ -442,9 +274,9 @@ int main(int argc, char **argv)
 
 	if (!ulog_path) { std::fprintf(stderr, usage, argv[0]); return 2; }
 
-	auto replay = parseLog(ulog_path, cli_cfg, cli_set);
+	auto replay = std::make_shared<Replay>(cli_cfg, cli_set);
 
-	if (!replay) { return 2; }
+	if (!readLog(ulog_path, replay)) { return 2; }
 
 	// Aggregate the per-phase results into each ESC's residual extremes + trip fraction. The
 	// envelope (deepest and highest any phase saw) is reported; the per-phase spread of each extreme

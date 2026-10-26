@@ -37,34 +37,23 @@
  * Fits the MotorFailureDetector current model, I_expected = MOTFAIL_C2T * u + MOTFAIL_IDLE, from
  * recorded .ulg files, and prints the parameter values to set.
  *
- * Built on ulog_cpp like mfd_replay, reading ESC current / motor command / arming state by field name
- * from each log's own format. Every log is a single streaming pass that only accumulates the six sums a
- * least-squares line needs, so memory is constant and unrelated to log size or corpus size: pass the
- * whole corpus at once and the fit is pooled over all of it, which is what the detector wants (one
- * model shared by every motor).
+ * Reads the logs through EscLogReader like mfd_replay. Every log is a single streaming pass that only
+ * accumulates the six sums a least-squares line needs, so memory is constant and unrelated to log size
+ * or corpus size: pass the whole corpus at once and the fit is pooled over all of it, which is what
+ * the detector wants (one model shared by every motor).
  */
 
-#include "MotorFailureDetector.hpp"
-
-#include <ulog_cpp/data_container.hpp>
-#include <ulog_cpp/exception.hpp>
-#include <ulog_cpp/reader.hpp>
+#include "EscLogReader.hpp"
 
 #include <array>
 #include <cfloat>
 #include <cmath>
-#include <cstdint>
 #include <cstdio>
-#include <cstring>
 #include <memory>
-#include <string>
-#include <vector>
 
 namespace
 {
 constexpr int kMM = MotorFailureDetector::kMaxMotors;
-constexpr int kMotor1 = 101;   // esc_report::ACTUATOR_FUNCTION_MOTOR1
-constexpr int kArmed = 2;      // vehicle_status::ARMING_STATE_ARMED
 
 /**
  * Sums for a least-squares fit of I = slope * u + idle.
@@ -116,172 +105,34 @@ struct Sums {
 	}
 };
 
-class Fit : public ulog_cpp::DataContainer
+class Fit : public EscLogReader
 {
 public:
-	Fit() : ulog_cpp::DataContainer(ulog_cpp::DataContainer::StorageConfig::Header) {}
+	bool seen(int m) const { return _seen[m]; }
+	const Sums &motor(int m) const { return _per_motor[m]; }
 
-	void addLoggedMessage(const ulog_cpp::AddLoggedMessage &msg) override
+protected:
+	void escRecord(uint64_t /*record_us*/, const EscSample *samples, int count) override
 	{
-		ulog_cpp::DataContainer::addLoggedMessage(msg);
+		for (int k = 0; k < count; ++k) {
+			const EscSample &s = samples[k];
 
-		if (msg.multiId() != 0) { return; }
-
-		auto it = messageFormats().find(msg.messageName());
-
-		if (it == messageFormats().end()) { return; }
-
-		if (msg.messageName() == "esc_status") {
-			_esc_id = msg.msgId();
-			_esc_fmt = it->second;
-			_esc_array_f = _esc_fmt->field("esc");
-			_esc_slots = _esc_array_f->arrayLength();
-			_esc_count_f = _esc_fmt->field("esc_count");
-			_esc_function_f = _esc_array_f->nestedField("actuator_function");
-			_esc_current_f = _esc_array_f->nestedField("esc_current");
-			_esc_slot_timestamp_f = _esc_array_f->nestedField("timestamp");
-			_slot_last_us.assign(_esc_slots, 0);
-
-		} else if (msg.messageName() == "actuator_motors") {
-			_actuator_id = msg.msgId();
-			_actuator_fmt = it->second;
-			_actuator_control_f = _actuator_fmt->field("control");
-			_control_channels = _actuator_control_f->arrayLength();
-			_actuator_reversible_f = _actuator_fmt->field("reversible_flags");
-
-		} else if (msg.messageName() == "vehicle_status") {
-			_status_id = msg.msgId();
-			_status_fmt = it->second;
-			_status_arming_f = _status_fmt->field("arming_state");
-			_have_status = true;
-		}
-	}
-
-	void data(const ulog_cpp::Data &record) override
-	{
-		const uint16_t id = record.msgId();
-
-		if (id == _status_id) {
-			_armed = ulog_cpp::TypedDataView(record, *_status_fmt)[_status_arming_f].as<int>() == kArmed;
-			return;
-		}
-
-		if (id == _actuator_id) {
-			ulog_cpp::TypedDataView view(record, *_actuator_fmt);
-			const uint32_t reversible_mask = view[_actuator_reversible_f].as<uint32_t>();
-			const auto control = view[_actuator_control_f];
-
-			for (int m = 0; m < kMM && m < _control_channels; ++m) {
-				_command_latest[m] = control[m].as<float>();
-				_reversible_latest[m] = (reversible_mask >> m) & 1;
-			}
-
-			return;
-		}
-
-		if (id != _esc_id) { return; }
-
-		ulog_cpp::TypedDataView view(record, *_esc_fmt);
-
-		if (view[_esc_count_f].as<int>() <= 0) { return; }
-
-		if (_have_status && !_armed) { return; }   // only armed flight describes the model
-
-		const auto esc_arr = view[_esc_array_f];
-
-		for (int slot = 0; slot < _esc_slots; ++slot) {
-			const auto esc_i = esc_arr[slot];
-			const int function = esc_i[_esc_function_f].as<int>();
-
-			if (function < kMotor1 || function - kMotor1 >= kMM) { continue; }
-
-			// esc_status is published whenever any ESC reports: count each ESC sample once, like the detector.
-			const uint64_t slot_us = esc_i[_esc_slot_timestamp_f].as<uint64_t>();
-
-			if (slot_us == _slot_last_us[slot]) { continue; }
-
-			_slot_last_us[slot] = slot_us;
-
-			const int m = function - kMotor1;
-			const float current = esc_i[_esc_current_f].as<float>();
-			const float command = _command_latest[m];
-
-			// A motor the allocation switched off (NAN), one running in reverse, or an ESC not yet
-			// reporting current describes nothing about the healthy forward model.
-			if (!std::isfinite(current) || current <= FLT_EPSILON
-			    || !std::isfinite(command) || _reversible_latest[m]) {
+			// Count each ESC sample once. A motor the allocation switched off (NAN), one in reversible
+			// mode, or an ESC reporting no current describes nothing about the healthy forward model.
+			if (!s.fresh || !std::isfinite(s.current) || s.current <= FLT_EPSILON
+			    || !std::isfinite(s.command) || s.reversible) {
 				continue;
 			}
 
-			_seen[m] = true;
-			_per_motor[m].add(command, current);
+			_seen[s.motor] = true;
+			_per_motor[s.motor].add(s.command, s.current);
 		}
 	}
-
-	bool seen(int m) const { return _seen[m]; }
-	const Sums &motor(int m) const { return _per_motor[m]; }
 
 private:
 	std::array<Sums, kMM> _per_motor {};
 	std::array<bool, kMM> _seen {};
-
-	bool _armed{false};
-	bool _have_status{false};
-	std::array<float, kMM> _command_latest {};
-	std::array<bool, kMM> _reversible_latest {};
-
-	uint16_t _esc_id = 0xffff;
-	uint16_t _actuator_id = 0xffff;
-	uint16_t _status_id = 0xffff;
-	std::shared_ptr<ulog_cpp::MessageFormat> _esc_fmt;
-	std::shared_ptr<ulog_cpp::MessageFormat> _actuator_fmt;
-	std::shared_ptr<ulog_cpp::MessageFormat> _status_fmt;
-	int _esc_slots = 0;
-	int _control_channels = 0;
-	std::vector<uint64_t> _slot_last_us;   // per ESC slot: timestamp of the last sample used
-
-	std::shared_ptr<ulog_cpp::Field> _esc_array_f;
-	std::shared_ptr<ulog_cpp::Field> _esc_count_f;
-	std::shared_ptr<ulog_cpp::Field> _esc_function_f;
-	std::shared_ptr<ulog_cpp::Field> _esc_current_f;
-	std::shared_ptr<ulog_cpp::Field> _esc_slot_timestamp_f;
-	std::shared_ptr<ulog_cpp::Field> _actuator_control_f;
-	std::shared_ptr<ulog_cpp::Field> _actuator_reversible_f;
-	std::shared_ptr<ulog_cpp::Field> _status_arming_f;
 };
-
-/** Stream one log through a fresh Fit. Returns nullptr on a fatal error (already reported). */
-std::shared_ptr<Fit> parseLog(const char *ulog_path)
-{
-	auto fit = std::make_shared<Fit>();
-	FILE *file = fopen(ulog_path, "rb");
-
-	if (!file) { std::fprintf(stderr, "cannot open %s\n", ulog_path); return nullptr; }
-
-	std::array<uint8_t, 4096> buf;
-	int bytes_read;
-	ulog_cpp::Reader reader{fit};
-
-	while ((bytes_read = fread(buf.data(), 1, buf.size(), file)) > 0) {
-		try {
-			reader.readChunk(buf.data(), bytes_read);
-
-		} catch (const ulog_cpp::ExceptionBase &e) {
-			std::fprintf(stderr, "%s: %s\n  (a needed field is missing -- the log's message layout differs from what this tool expects)\n",
-				     ulog_path, e.what());
-			fclose(file);
-			return nullptr;
-		}
-
-		if (fit->hadFatalError()) { break; }
-	}
-
-	fclose(file);
-
-	if (fit->hadFatalError()) { std::fprintf(stderr, "fatal parse error in %s\n", ulog_path); return nullptr; }
-
-	return fit;
-}
 }
 
 int main(int argc, char **argv)
@@ -298,9 +149,9 @@ int main(int argc, char **argv)
 	for (int arg = 1; arg < argc; ++arg) {
 		if (argv[arg][0] == '-') { std::fprintf(stderr, usage, argv[0]); return 2; }
 
-		auto fit = parseLog(argv[arg]);
+		auto fit = std::make_shared<Fit>();
 
-		if (!fit) { continue; }   // reported; keep going so one bad log does not lose the corpus
+		if (!readLog(argv[arg], fit)) { continue; } // reported; keep going so one bad log does not lose the corpus
 
 		bool any = false;
 
