@@ -101,7 +101,12 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 
 void Battery::updateVoltage(const float voltage_v)
 {
-	_voltage_v = voltage_v;
+	// Skip a non-finite sample and keep the last valid voltage
+	_voltage_valid = PX4_ISFINITE(voltage_v);
+
+	if (_voltage_valid) {
+		_voltage_v = voltage_v;
+	}
 }
 
 void Battery::updateCurrent(const float current_a)
@@ -111,7 +116,8 @@ void Battery::updateCurrent(const float current_a)
 		_current_a = _params.i_overwrite;
 
 	} else {
-		_current_a = current_a;
+		// -1 is the invalid value, a non-finite current would corrupt the discharge count and the filters
+		_current_a = PX4_ISFINITE(current_a) ? current_a : -1.f;
 	}
 }
 
@@ -207,6 +213,10 @@ void Battery::publishBatteryStatus(const battery_status_s &battery_status)
 
 void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
 {
+	if (!_voltage_valid) {
+		return;
+	}
+
 	updateBatteryStatus(timestamp);
 
 	battery_status_s battery_status = getBatteryStatus();
@@ -240,7 +250,7 @@ void Battery::updateDt(const hrt_abstime &timestamp)
 
 float Battery::sumDischarged(float current_a)
 {
-	if (_dt_discharge > FLT_EPSILON && fabsf(current_a + 1.f) > FLT_EPSILON) {
+	if (_dt_discharge > FLT_EPSILON && PX4_ISFINITE(current_a) && fabsf(current_a + 1.f) > FLT_EPSILON) {
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
 		// current = -1 means invalid current measurement
 		_discharged_mah_loop = (current_a * 1e3f) * (_dt_discharge / 3600.f);
@@ -405,7 +415,7 @@ float Battery::computeRemainingTime(float current_a)
 
 	_vehicle_status_was_fw = _vehicle_status_is_fw;
 
-	if (_armed && PX4_ISFINITE(current_a)) {
+	if (_armed && PX4_ISFINITE(current_a) && fabsf(current_a + 1.f) > FLT_EPSILON) {
 		// For FW only update when we are in level flight
 		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
 					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
