@@ -27,13 +27,15 @@ jobs:
         python-version: "3.10"
 
     - name: Install tools
-      run: pip install mypy types-requests types-PyYAML flake8 pyyaml
+      run: |
+        pip install mypy types-requests types-PyYAML flake8 pyyaml
+        pip install -r Tools/setup/test-requirements.txt
 
     - name: Check MAVSDK test scripts with mypy
       run: mypy --strict test/mavsdk_tests/*.py
 
     - name: Check MAVSDK test scripts with flake8
-      run: flake8 test/mavsdk_tests/*.py
+      run: flake8 --config test/mavsdk_tests/.flake8 test/mavsdk_tests/*.py
 
     - name: Check USB ID tooling with mypy and flake8
       working-directory: Tools/ci
