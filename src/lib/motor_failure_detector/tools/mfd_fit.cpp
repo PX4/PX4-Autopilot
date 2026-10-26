@@ -139,6 +139,8 @@ public:
 			_esc_count_f = _esc_fmt->field("esc_count");
 			_esc_function_f = _esc_array_f->nestedField("actuator_function");
 			_esc_current_f = _esc_array_f->nestedField("esc_current");
+			_esc_slot_timestamp_f = _esc_array_f->nestedField("timestamp");
+			_slot_last_us.assign(_esc_slots, 0);
 
 		} else if (msg.messageName() == "actuator_motors") {
 			_actuator_id = msg.msgId();
@@ -193,6 +195,13 @@ public:
 
 			if (function < kMotor1 || function - kMotor1 >= kMM) { continue; }
 
+			// esc_status is published whenever any ESC reports: count each ESC sample once, like the detector.
+			const uint64_t slot_us = esc_i[_esc_slot_timestamp_f].as<uint64_t>();
+
+			if (slot_us == _slot_last_us[slot]) { continue; }
+
+			_slot_last_us[slot] = slot_us;
+
 			const int m = function - kMotor1;
 			const float current = esc_i[_esc_current_f].as<float>();
 			const float command = _command_latest[m];
@@ -229,11 +238,13 @@ private:
 	std::shared_ptr<ulog_cpp::MessageFormat> _status_fmt;
 	int _esc_slots = 0;
 	int _control_channels = 0;
+	std::vector<uint64_t> _slot_last_us;   // per ESC slot: timestamp of the last sample used
 
 	std::shared_ptr<ulog_cpp::Field> _esc_array_f;
 	std::shared_ptr<ulog_cpp::Field> _esc_count_f;
 	std::shared_ptr<ulog_cpp::Field> _esc_function_f;
 	std::shared_ptr<ulog_cpp::Field> _esc_current_f;
+	std::shared_ptr<ulog_cpp::Field> _esc_slot_timestamp_f;
 	std::shared_ptr<ulog_cpp::Field> _actuator_control_f;
 	std::shared_ptr<ulog_cpp::Field> _actuator_reversible_f;
 	std::shared_ptr<ulog_cpp::Field> _status_arming_f;

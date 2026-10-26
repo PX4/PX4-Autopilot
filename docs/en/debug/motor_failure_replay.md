@@ -198,13 +198,13 @@ The steps below use [`batch_replay.sh`](#replaying-a-fleet-of-logs) to replay a 
 
 **1. Read the healthy residual.**
 
-Replay each log with the fitted model and the bands set out of the way, so nothing trips and the `min`/`max` columns report the full excursion.
+Replay each log with the fitted model and both bands disabled (`0`), so nothing trips and the `min`/`max` columns report the full excursion.
 Each log prints its own header and table; one of them:
 
 ```bash
 for log in ~/logs/healthy/*.ulg; do
   ./build/px4_sitl_default/mfd_replay "$log" \
-    --set MOTFAIL_C2T=6.91 --set MOTFAIL_IDLE=0.37 --set MOTFAIL_OVER=999 --set MOTFAIL_UNDER=999
+    --set MOTFAIL_C2T=6.91 --set MOTFAIL_IDLE=0.37 --set MOTFAIL_OVER=0 --set MOTFAIL_UNDER=0
 done
 ```
 
@@ -224,7 +224,7 @@ On this vehicle they are very different, about −2.2 A against +7.8 A, which is
 
 **2. Sweep each band against its trigger time.**
 
-`sweep_matrix.sh` sweeps one direction while parking the other at a value nothing reaches, and prints
+`sweep_matrix.sh` sweeps one direction while disabling the other, and prints
 how many logs false-trip at each (trigger time, band) pair.
 The first `0` in a row is the lowest band that trigger time supports.
 

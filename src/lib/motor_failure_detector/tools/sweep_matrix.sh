@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Sweep one trip band against its trigger time and print the result as a matrix: each cell is how
 # many logs false-trip at that (trigger time, band) pair, so the first 0 in a row is the lowest band
-# that trigger time supports. The other direction is parked at a value nothing reaches, so each side
-# is measured on its own.
+# that trigger time supports. The other direction is disabled, so each side is measured on its own.
 #
 # Usage:  C2T=<slope> IDLE=<offset> sweep_matrix.sh <log-dir> under|over
 #   env TRIGGER_TIMES="0.5 0.7 1.0"  trigger times, one per row
@@ -26,11 +25,11 @@ case "$SIDE" in
 under)
 	read -ra TRIGGER_TIMES <<<"${TRIGGER_TIMES:-0.1 0.3 0.5 0.7 1.0}"
 	read -ra BANDS <<<"${BANDS:-1.0 1.25 1.5 1.75 2.0 2.5 3.0}"
-	PARK=(--set MOTFAIL_OVER=999); BAND_P=MOTFAIL_UNDER; TRIGGER_TIME_P=MOTFAIL_UND_TIME ;;
+	OTHER_OFF=(--set MOTFAIL_OVER=0); BAND_P=MOTFAIL_UNDER; TRIGGER_TIME_P=MOTFAIL_UND_TIME ;;
 over)
 	read -ra TRIGGER_TIMES <<<"${TRIGGER_TIMES:-0.4 0.7 1.0 1.5 2.5}"
 	read -ra BANDS <<<"${BANDS:-0.5 1.0 2.0 4.0 6.0 8.0}"
-	PARK=(--set MOTFAIL_UNDER=999); BAND_P=MOTFAIL_OVER; TRIGGER_TIME_P=MOTFAIL_OVR_TIME ;;
+	OTHER_OFF=(--set MOTFAIL_UNDER=0); BAND_P=MOTFAIL_OVER; TRIGGER_TIME_P=MOTFAIL_OVR_TIME ;;
 *)
 	echo "error: side must be 'under' or 'over', got '$SIDE'" >&2; exit 2 ;;
 esac
@@ -43,7 +42,7 @@ for trigger_time in "${TRIGGER_TIMES[@]}"; do
 
 	for band in "${BANDS[@]}"; do
 		out=$("$BATCH" "$DIR" --set MOTFAIL_C2T="$C2T" --set MOTFAIL_IDLE="$IDLE" \
-			"${PARK[@]}" --set "$BAND_P=$band" --set "$TRIGGER_TIME_P=$trigger_time")
+			"${OTHER_OFF[@]}" --set "$BAND_P=$band" --set "$TRIGGER_TIME_P=$trigger_time")
 
 		# Without a single evaluated log (no summary, empty directory, or every log skipped) the
 		# cell would read as "no trips".

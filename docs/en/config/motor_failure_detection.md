@@ -213,9 +213,9 @@ The vehicle still flies, so the command stays near hover and the residual stays 
 | <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                      | Enable motor failure detection. Disabled by default.                                                                                                   |
 | <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)                | Current model slope: expected current per unit of motor command (A).                                                                                   |
 | <a id="MOTFAIL_IDLE"></a>[MOTFAIL_IDLE](../advanced_config/parameter_reference.md#MOTFAIL_IDLE)             | Current model offset: expected current at zero command (A).                                                                                            |
-| <a id="MOTFAIL_UNDER"></a>[MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER)          | Undercurrent trip band (A): how far below the expected current a motor may run.<br>Set to `0` to use [MOTFAIL_OVER](#MOTFAIL_OVER) in both directions. |
+| <a id="MOTFAIL_UNDER"></a>[MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER)          | Undercurrent trip band (A): how far below the expected current a motor may run.<br>Set to `0` to disable undercurrent detection.                       |
 | <a id="MOTFAIL_UND_TIME"></a>[MOTFAIL_UND_TIME](../advanced_config/parameter_reference.md#MOTFAIL_UND_TIME) | Time (s) the undercurrent band must be exceeded before the motor is flagged.                                                                           |
-| <a id="MOTFAIL_OVER"></a>[MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER)             | Overcurrent trip band (A): how far above the expected current a motor may run.<br>Set to `0` to disable the current check.                             |
+| <a id="MOTFAIL_OVER"></a>[MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER)             | Overcurrent trip band (A): how far above the expected current a motor may run.<br>Set to `0` to disable overcurrent detection.                         |
 | <a id="MOTFAIL_OVR_TIME"></a>[MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME) | Time (s) the overcurrent band must be exceeded before the motor is flagged.                                                                            |
 | <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)    | What the control allocator does on a failure, such as removing the failed motor from the allocation.                                                   |
 | <a id="COM_ACT_FAIL_ACT"></a>[COM_ACT_FAIL_ACT](../advanced_config/parameter_reference.md#COM_ACT_FAIL_ACT) | Failsafe action on a detected motor failure, such as warning, hold, return, land, or terminate.                                                        |
@@ -228,10 +228,10 @@ From PX4 main (v2.0), the residual is low-pass filtered before it is compared, s
 The single threshold is also replaced by two independent bands: [MOTFAIL_UNDER](#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) for undercurrent and [MOTFAIL_OVER](#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) for overcurrent.
 The current model also gains an offset term ([MOTFAIL_IDLE](#MOTFAIL_IDLE)), and the [offline replay tool](../debug/motor_failure_replay.md) is available to calibrate the new parameters from logs.
 
-None of that changes behaviour on an upgraded vehicle by default: `MOTFAIL_OFF` is renamed to [MOTFAIL_OVER](#MOTFAIL_OVER) and `MOTFAIL_TIME` to [MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) on import, and [MOTFAIL_UNDER](#MOTFAIL_UNDER) defaults to 0.
-That selects the single symmetric band, the v1.18 shape of the check, until it is reconfigured.
+`MOTFAIL_OFF` and `MOTFAIL_TIME` are not migrated: after the upgrade, all of the new parameters start at their defaults.
+To keep the v1.18 shape of the check, set [MOTFAIL_OVER](#MOTFAIL_OVER) and [MOTFAIL_UNDER](#MOTFAIL_UNDER) to the old `MOTFAIL_OFF`, and [MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) and [MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) to the old `MOTFAIL_TIME`.
 
-The thresholds are still worth re-deriving: see [Choosing Parameter Values](#choosing-parameter-values).
+The thresholds are worth re-deriving rather than copied: see [Choosing Parameter Values](#choosing-parameter-values).
 
 ## See Also
 

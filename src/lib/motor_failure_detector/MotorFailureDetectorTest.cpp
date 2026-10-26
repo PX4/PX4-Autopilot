@@ -53,6 +53,8 @@ MotorFailureDetector::Config makeConfig()
 	cfg.current_slope_a = 21.f;
 	cfg.overcurrent_threshold_a = 5.f;
 	cfg.overcurrent_trigger_time_s = 0.5f;
+	cfg.undercurrent_threshold_a = 5.f;
+	cfg.undercurrent_trigger_time_s = 0.5f;
 	return cfg;
 }
 
@@ -106,6 +108,7 @@ TEST(MotorFailureDetectorTest, UndercurrentBandCatchesWhatSymmetricMisses)
 {
 	MotorFailureDetector::Config cfg = makeConfig();
 	cfg.overcurrent_threshold_a = 8.f;                       // wider than the fault the motor can produce
+	cfg.undercurrent_threshold_a = 8.f;                      // symmetric: one band for both directions
 	const auto half_current = [](float) { return kBase * 0.5f; };   // residual ~ -3.15 A
 
 	MotorFailureDetector symmetric;
@@ -274,8 +277,8 @@ TEST(MotorFailureDetectorTest, ExcludedGates)
 	}
 }
 
-// overcurrent_threshold_a <= 0 (incl. a default-constructed Config) disables the check: never latches.
-TEST(MotorFailureDetectorTest, MonitorOnlyNeverLatches)
+// A threshold <= 0 disables that band (a default-constructed Config disables both): never latches.
+TEST(MotorFailureDetectorTest, DisabledBandNeverLatches)
 {
 	MotorFailureDetector unconfigured;                    // zero Config
 	hrt_abstime now0 = 0;
@@ -284,25 +287,32 @@ TEST(MotorFailureDetectorTest, MonitorOnlyNeverLatches)
 
 	MotorFailureDetector::Config cfg = makeConfig();
 	cfg.overcurrent_threshold_a = 0.f;
-	MotorFailureDetector d;
-	d.configure(cfg);
+	MotorFailureDetector over_off;
+	over_off.configure(cfg);
 	hrt_abstime now = 0;
-	run(d, now, 5.f, kDt, 0.3f, [](float) { return 0.f; });
-	EXPECT_EQ(d.failure(0), Failure::None);
+	run(over_off, now, 5.f, kDt, 0.3f, [](float) { return 2.5f * kBase; }); // overcurrent
+	EXPECT_EQ(over_off.failure(0), Failure::None);
+
+	cfg = makeConfig();
+	cfg.undercurrent_threshold_a = 0.f;
+	MotorFailureDetector under_off;
+	under_off.configure(cfg);
+	now = 0;
+	run(under_off, now, 5.f, kDt, 0.3f, [](float) { return 0.f; }); // undercurrent
+	EXPECT_EQ(under_off.failure(0), Failure::None);
 }
 
-// Telemetry dropout (NaN current) holds the residual: the debounce keeps running on the
-// held value (so a fault that also drops telemetry still latches) and state stays finite.
-TEST(MotorFailureDetectorTest, DropoutHoldsTimerAndStaysFinite)
+// A non-finite current cannot be evaluated: like a NaN command it resets filter + debounce.
+TEST(MotorFailureDetectorTest, NonFiniteCurrentNotEvaluated)
 {
 	MotorFailureDetector d;
 	d.configure(makeConfig());                                // trigger time 0.5 s
 	hrt_abstime now = 0;
 	run(d, now, 0.45f, kDt, 0.3f, [](float) { return 0.f; });  // fault building, not yet latched
 	ASSERT_EQ(d.failure(0), Failure::None);
-	run(d, now, 1.0f, kDt, 0.3f, [](float) { return NAN; });   // dropout: held residual keeps the debounce running
-	EXPECT_EQ(d.failure(0), Failure::Undercurrent);
-	EXPECT_TRUE(std::isfinite(d.residualFiltered(0)));
+	run(d, now, 1.0f, kDt, 0.3f, [](float) { return NAN; }); // like a NaN command: reset, no latch
+	EXPECT_EQ(d.failure(0), Failure::None);
+	EXPECT_EQ(d.residualFiltered(0), 0.f);
 }
 
 // A single step longer than kMaxGap is a data gap: it must reset, not latch in one jump.

@@ -66,10 +66,10 @@ public:
 	struct Config {
 		float current_slope_a;             ///< expected current per unit thrust command [A]
 		float current_idle_a;              ///< expected current at zero command [A]
-		float overcurrent_threshold_a;     ///< trip band above expected current [A]; <= 0 => check disabled
+		float overcurrent_threshold_a;     ///< trip band above expected current [A]; <= 0 disables this band
 		float overcurrent_trigger_time_s;  ///< time above the overcurrent band before latching [s]
-		float undercurrent_threshold_a;    ///< same, below expected current; <= 0 => mirrors the overcurrent band
-		float undercurrent_trigger_time_s; ///< same, below expected current
+		float undercurrent_threshold_a;    ///< trip band below expected current [A]; <= 0 disables this band
+		float undercurrent_trigger_time_s; ///< time below the undercurrent band before latching [s]
 	};
 
 	enum class Failure : uint8_t { None, Undercurrent, Overcurrent };
@@ -84,11 +84,9 @@ public:
 
 	/**
 	 * Advance motor i to its sample timestamp now_us [us] (dt derived per motor; a repeated
-	 * timestamp is the same sample again and is ignored). A NaN or reversible
-	 * command excludes the motor; a non-finite current is a held dropout (the debounce
-	 * keeps running, so a fault that also drops telemetry still latches); a step >
-	 * kMaxGap, e.g. after the motor was not updated for a while, resets.
-	 * configure() first; overcurrent_threshold_a <= 0 disables the check.
+	 * timestamp is the same sample again and is ignored). A non-finite command or current, or a
+	 * reversible motor, is not evaluated; neither is a step > kMaxGap, e.g. after the motor was not
+	 * updated for a while. Both reset filter and debounce, the latch is kept. configure() first.
 	 */
 	void update(int i, hrt_abstime now_us, float command, float current, bool reversible);
 

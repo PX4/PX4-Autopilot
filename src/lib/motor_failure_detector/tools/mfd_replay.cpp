@@ -81,6 +81,8 @@ MotorFailureDetector::Config makeConfig()
 	cfg.current_idle_a = 2.88f;
 	cfg.overcurrent_threshold_a = 5.0f;
 	cfg.overcurrent_trigger_time_s = 0.4f;
+	cfg.undercurrent_threshold_a = 5.0f;
+	cfg.undercurrent_trigger_time_s = 0.4f;
 	return cfg;
 }
 
@@ -505,22 +507,29 @@ int main(int argc, char **argv)
 
 	const MotorFailureDetector::Config &cfg = replay->config();
 	const char *count_label = replay->haveStatus() ? "armed samples each" : "samples each, arming gate OFF";
-	std::array<char, 96> band_desc {};
+	std::array<char, 48> under_desc {};
+	std::array<char, 48> over_desc {};
 
 	if (cfg.undercurrent_threshold_a > 0.f) {
-		std::snprintf(band_desc.data(), band_desc.size(), "< -%.2f for %.2f s or > %.2f for %.2f s",
-			      (double)cfg.undercurrent_threshold_a, (double)cfg.undercurrent_trigger_time_s,
+		std::snprintf(under_desc.data(), under_desc.size(), "< -%.2f for %.2f s",
+			      (double)cfg.undercurrent_threshold_a, (double)cfg.undercurrent_trigger_time_s);
+
+	} else {
+		std::snprintf(under_desc.data(), under_desc.size(), "undercurrent off");
+	}
+
+	if (cfg.overcurrent_threshold_a > 0.f) {
+		std::snprintf(over_desc.data(), over_desc.size(), "> %.2f for %.2f s",
 			      (double)cfg.overcurrent_threshold_a, (double)cfg.overcurrent_trigger_time_s);
 
 	} else {
-		std::snprintf(band_desc.data(), band_desc.size(), "exceeds +-%.2f for %.2f s",
-			      (double)cfg.overcurrent_threshold_a, (double)cfg.overcurrent_trigger_time_s);
+		std::snprintf(over_desc.data(), over_desc.size(), "overcurrent off");
 	}
 
 	std::printf("# %s  (%d phases, %ld %s)\n"
-		    "# config (%s):  I_exp = %.2f*u + %.2f A,  trip if LPF(I-I_exp) %s\n",
+		    "# config (%s):  I_exp = %.2f*u + %.2f A,  trip if LPF(I-I_exp) %s or %s\n",
 		    ulog_path, kNumPhases, replay->evaluated(), count_label, config_source.data(),
-		    (double)cfg.current_slope_a, (double)cfg.current_idle_a, band_desc.data());
+		    (double)cfg.current_slope_a, (double)cfg.current_idle_a, under_desc.data(), over_desc.data());
 	std::printf("# %-5s  %8s  %8s  %-5s  %s\n", "motor", "min[A]", "max[A]", "trips", "verdict");
 
 	bool any_failed = false;

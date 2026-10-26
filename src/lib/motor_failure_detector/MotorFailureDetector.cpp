@@ -41,18 +41,9 @@ void MotorFailureDetector::configure(const Config &cfg)
 {
 	_cfg = cfg;
 
-	// An unset undercurrent band mirrors the overcurrent one, so update() only ever runs two bands.
-	if (_cfg.undercurrent_threshold_a <= 0.f) {
-		_cfg.undercurrent_threshold_a = _cfg.overcurrent_threshold_a;
-		_cfg.undercurrent_trigger_time_s = _cfg.overcurrent_trigger_time_s;
-	}
-
-	const hrt_abstime overcurrent_trigger_time_us = (hrt_abstime)(_cfg.overcurrent_trigger_time_s * 1_s);
-	const hrt_abstime undercurrent_trigger_time_us = (hrt_abstime)(fmaxf(_cfg.undercurrent_trigger_time_s, 0.f) * 1_s);
-
 	for (int i = 0; i < kMaxMotors; ++i) {
-		_hyst_over[i].set_hysteresis_time_from(false, overcurrent_trigger_time_us);  // false = rising-edge debounce time
-		_hyst_under[i].set_hysteresis_time_from(false, undercurrent_trigger_time_us);
+		_hyst_over[i].set_hysteresis_time_from(false, _cfg.overcurrent_trigger_time_s * 1_s); // false = rising-edge debounce time
+		_hyst_under[i].set_hysteresis_time_from(false, _cfg.undercurrent_trigger_time_s * 1_s);
 	}
 }
 
@@ -69,8 +60,7 @@ void MotorFailureDetector::reset()
 
 void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, float current, bool reversible)
 {
-	// disable the current-residual check, or out of range
-	if (_cfg.overcurrent_threshold_a <= 0.f || !validIndex(i)) {
+	if (!validIndex(i)) {
 		return;
 	}
 
@@ -82,30 +72,27 @@ void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, floa
 	const float dt = static_cast<float>(now_us - _last_us[i]) * 1e-6f;
 	_last_us[i] = now_us;
 
-	// Cannot evaluate (NaN or reversible command, or dt > kMaxGap incl. the first call) -> reset
-	// filter + debounce so re-entry starts clean; the latch is kept.
-	if (std::isnan(command) || reversible || dt > kMaxGap) {
+	// Cannot evaluate (non-finite command or current, reversible, or dt > kMaxGap incl. the first call)
+	// -> reset filter + debounce so re-entry starts clean; the latch is kept.
+	if (!std::isfinite(command) || !std::isfinite(current) || reversible || dt > kMaxGap) {
 		_residual_lpf[i].reset(0.f);
 		_hyst_over[i].set_state_and_update(false, now_us); // cancel any pending trip
 		_hyst_under[i].set_state_and_update(false, now_us);
 		return;
 	}
 
-	// Command-only, so valid even on a dropout.
 	const float i_expected = _cfg.current_slope_a * command + _cfg.current_idle_a;
 
-	if (std::isfinite(current)) {
-		// A motor cannot draw less than 0 A, so a residual below -I_exp is regeneration, not a fault.
-		_residual_lpf[i].setParameters(dt, kResidualLpfTau);
-		_residual_lpf[i].update(fmaxf(current - i_expected, -i_expected));
-	}
+	// A motor cannot draw negative current: regeneration counts as 0 A, not as a fault.
+	_residual_lpf[i].setParameters(dt, kResidualLpfTau);
+	_residual_lpf[i].update(fmaxf(current, 0.f) - i_expected);
 
-	// else: dropout -- filtered residual held; the debounce keeps running on it (fault + dropout still latches).
-
-	// Each band must hold for its trigger time (Hysteresis); the decision is then latched.
+	// Each band (a threshold <= 0 disables it) must hold for its trigger time (Hysteresis); the decision is then latched.
 	const float residual_lpf = _residual_lpf[i].getState();
-	_hyst_over[i].set_state_and_update(residual_lpf >= _cfg.overcurrent_threshold_a, now_us);
-	_hyst_under[i].set_state_and_update(-residual_lpf >= _cfg.undercurrent_threshold_a, now_us);
+	const bool over = (_cfg.overcurrent_threshold_a > 0.f) && (residual_lpf >= _cfg.overcurrent_threshold_a);
+	const bool under = (_cfg.undercurrent_threshold_a > 0.f) && (-residual_lpf >= _cfg.undercurrent_threshold_a);
+	_hyst_over[i].set_state_and_update(over, now_us);
+	_hyst_under[i].set_state_and_update(under, now_us);
 
 	if (_failure[i] == Failure::None) {
 		if (_hyst_under[i].get_state()) {

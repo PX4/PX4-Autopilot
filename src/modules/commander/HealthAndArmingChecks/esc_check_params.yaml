@@ -35,6 +35,7 @@ parameters:
     MOTFAIL_OVER:
       description:
         short: Motor failure overcurrent trip band
+        long: Set 0 to disable overcurrent detection.
       type: float
       default: 10.0
       min: 0
@@ -56,9 +57,9 @@ parameters:
     MOTFAIL_UNDER:
       description:
         short: Motor failure undercurrent trip band
-        long: Set 0 to use MOTFAIL_OVER for both directions.
+        long: Set 0 to disable undercurrent detection.
       type: float
-      default: 0.0
+      default: 10.0
       min: 0
       max: 30
       unit: A
