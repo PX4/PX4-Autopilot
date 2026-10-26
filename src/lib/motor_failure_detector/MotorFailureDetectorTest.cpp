@@ -62,13 +62,9 @@ MotorFailureDetector::Config makeConfig()
 void run(MotorFailureDetector &d, hrt_abstime &now, float seconds, float dt, float u,
 	 const std::function<float(float)> &current_fn, bool reversible = false)
 {
-	const float cmd[1] = {u};
-	const bool rev[1] = {reversible};
-
 	for (float t = 0.f; t < seconds; t += dt) {
 		now += us(dt);
-		const float cur[1] = {current_fn(t)};
-		d.update(1, now, cmd, cur, rev);
+		d.update(0, now, u, current_fn(t), reversible);
 	}
 }
 
@@ -247,10 +243,8 @@ TEST(MotorFailureDetectorTest, GapResetsTriggerTimer)
 	run(d, now, 0.45f, kDt, 0.3f, [](float) { return 0.f; });   // fault building, < 0.5 s, not latched
 	ASSERT_EQ(d.status(0).failure, Failure::None);
 
-	const float cmd[1] = {0.3f}, cur[1] = {0.f};
-	const bool rev[1] = {false};
 	now += us(0.5f);                                            // > kMaxGap -> gap resets filters + debounce
-	d.update(1, now, cmd, cur, rev);
+	d.update(0, now, 0.3f, 0.f, false);
 
 	run(d, now, 0.45f, kDt, 0.3f, [](float) { return 0.f; });   // rebuild from zero, < 0.5 s -> must NOT latch
 	EXPECT_EQ(d.status(0).failure, Failure::None);
@@ -317,12 +311,10 @@ TEST(MotorFailureDetectorTest, LargeDtGapNoLatch)
 {
 	MotorFailureDetector d;
 	d.configure(makeConfig());                            // trigger time 0.5 s
-	const float cmd[1] = {0.3f}, cur[1] = {0.f};
-	const bool rev[1] = {false};
 	hrt_abstime now = 0;
-	d.update(1, now, cmd, cur, rev);                  // seed the clock
+	d.update(0, now, 0.3f, 0.f, false); // seed the clock
 	now += us(10.f);                                      // 10 s >> kMaxGap, single step -> gap, no latch
-	d.update(1, now, cmd, cur, rev);
+	d.update(0, now, 0.3f, 0.f, false);
 	EXPECT_EQ(d.status(0).failure, Failure::None);
 }
 
@@ -382,20 +374,62 @@ TEST(MotorFailureDetectorTest, ConfigureKeepsLatch)
 	EXPECT_EQ(d.status(0).failure, Failure::Undercurrent);
 }
 
+// Each motor keeps its own clock: one that is not updated for > kMaxGap restarts clean, even while
+// the others keep being updated (a caller skips motors it has no data for).
+TEST(MotorFailureDetectorTest, SkippedMotorRestartsClean)
+{
+	MotorFailureDetector d;
+	d.configure(makeConfig()); // trigger time 0.5 s
+	hrt_abstime now = 0;
+
+	for (float t = 0.f; t < 0.45f; t += kDt) { // fault building on motor 0, not latched
+		now += us(kDt);
+		d.update(0, now, 0.3f, 0.f, false);
+		d.update(1, now, 0.3f, kBase, false);
+	}
+
+	for (float t = 0.f; t < 0.5f; t += kDt) { // motor 0 skipped > kMaxGap, motor 1 continues
+		now += us(kDt);
+		d.update(1, now, 0.3f, kBase, false);
+	}
+
+	for (float t = 0.f; t < 0.45f; t += kDt) { // motor 0 resumes: rebuild from zero, < 0.5 s
+		now += us(kDt);
+		d.update(0, now, 0.3f, 0.f, false);
+	}
+
+	EXPECT_EQ(d.status(0).failure, Failure::None);
+}
+
+// A repeated sample timestamp is the same ESC sample again (esc_status republished for another ESC):
+// it is ignored, whatever command and current come with it.
+TEST(MotorFailureDetectorTest, RepeatedSampleIgnored)
+{
+	MotorFailureDetector d;
+	d.configure(makeConfig());
+	hrt_abstime now = 0;
+	run(d, now, 1.f, kDt, 0.3f, [](float) { return kBase; }); // healthy
+	const MotorFailureDetector::MotorStatus before = d.status(0);
+
+	for (int k = 0; k < 1000; ++k) { d.update(0, now, 0.6f, 0.f, false); } // same timestamp, fault values
+
+	EXPECT_EQ(d.status(0).failure, Failure::None);
+	EXPECT_EQ(d.status(0).residual, before.residual);
+	EXPECT_EQ(d.status(0).residual_lpf, before.residual_lpf);
+}
+
 // Motors latch independently.
 TEST(MotorFailureDetectorTest, MultiMotorIndependent)
 {
 	MotorFailureDetector d;
 	d.configure(makeConfig());
-	const int N = 3;
-	const float cmd[N] = {0.3f, 0.3f, 0.3f};
-	const bool rev[N] = {false, false, false};
+	const float current[3] = {kBase, 0.f, 0.f}; // 0 healthy, 1 & 2 open
 	hrt_abstime now = 0;
 
 	for (float t = 0.f; t < 3.f; t += kDt) {
 		now += us(kDt);
-		const float cur[N] = {kBase, 0.f, 0.f};       // 0 healthy, 1 & 2 open
-		d.update(N, now, cmd, cur, rev);
+
+		for (int i = 0; i < 3; ++i) { d.update(i, now, 0.3f, current[i], false); }
 	}
 
 	EXPECT_EQ(d.status(0).failure, Failure::None);

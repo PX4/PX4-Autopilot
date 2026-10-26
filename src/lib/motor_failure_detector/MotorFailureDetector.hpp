@@ -88,14 +88,14 @@ public:
 	void reset();
 
 	/**
-	 * Advance to timestamp now_us [us] (dt derived internally). NaN or reversible
-	 * commands exclude a motor; a non-finite current is a held dropout (the debounce
+	 * Advance motor i to its sample timestamp now_us [us] (dt derived per motor; a repeated
+	 * timestamp is the same sample again and is ignored). A NaN or reversible
+	 * command excludes the motor; a non-finite current is a held dropout (the debounce
 	 * keeps running, so a fault that also drops telemetry still latches); a step >
-	 * kMaxGap resets. configure() first; overcurrent_threshold_a <= 0 disables the check.
+	 * kMaxGap, e.g. after the motor was not updated for a while, resets.
+	 * configure() first; overcurrent_threshold_a <= 0 disables the check.
 	 */
-	void update(int num_motors, hrt_abstime now_us,
-		    const float command[], const float current[],
-		    const bool reversible[]);
+	void update(int i, hrt_abstime now_us, float command, float current, bool reversible);
 
 	const MotorStatus &status(int i) const { return _status[i]; }
 
@@ -105,5 +105,5 @@ private:
 	AlphaFilter<float>    _residual_lpf[kMaxMotors];
 	systemlib::Hysteresis _hyst_over[kMaxMotors];
 	systemlib::Hysteresis _hyst_under[kMaxMotors];
-	hrt_abstime           _last_us{0};
+	hrt_abstime           _last_us[kMaxMotors] {};
 };

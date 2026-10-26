@@ -150,6 +150,7 @@ public:
 			_esc_count_f = _esc_fmt->field("esc_count");
 			_esc_function_f = _esc_array_f->nestedField("actuator_function");
 			_esc_current_f = _esc_array_f->nestedField("esc_current");
+			_esc_slot_timestamp_f = _esc_array_f->nestedField("timestamp");
 			_esc_current_seen.assign(_esc_slots, 0);
 
 		} else if (msg.messageName() == "actuator_motors") {
@@ -241,10 +242,11 @@ public:
 		// Shape the per-ESC-slot inputs once -- they don't depend on the sampling phase, only on the
 		// record. Which phase grids consume this sample is decided in the phase loop below. Indexed by
 		// ESC slot like escCheck, so every ESC is checked even if several share a motor function.
-		std::array<float, kMM> command;
+		std::array<bool, kMM> fed {}; // slots with data in this record; the others are not updated, like escCheck
+		std::array<uint64_t, kMM> slot_us {}; // each ESC's own sample time, like escCheck
+		std::array<float, kMM> command {};
 		std::array<float, kMM> current {};
 		std::array<bool, kMM> reversible {};
-		command.fill(NAN);
 
 		const auto esc_arr = view[_esc_array_f];
 
@@ -262,6 +264,8 @@ public:
 
 			const int m = function - kMotor1;
 			_seen[i] = true;
+			fed[i] = true;
+			slot_us[i] = esc_i[_esc_slot_timestamp_f].as<uint64_t>();
 			_motor[i] = m;
 			current[i] = slot_current;
 			command[i] = _command_latest[m];                                // 0 until an actuator arrives (runtime zero-init)
@@ -284,10 +288,10 @@ public:
 
 			const double elapsed_s = ((double)sample_us - _start_us) / 1e6;
 
-			_det[p].update(kMM, (hrt_abstime)sample_us, command.data(), current.data(), reversible.data());
-
 			for (int i = 0; i < kMM; ++i) {
-				if (!_seen[i]) { continue; }
+				if (!fed[i]) { continue; }
+
+				_det[p].update(i, (hrt_abstime)slot_us[i], command[i], current[i], reversible[i]);
 
 				const float residual_lpf = _det[p].status(i).residual_lpf;
 
@@ -356,6 +360,7 @@ private:
 	std::shared_ptr<ulog_cpp::Field> _esc_array_f;
 	std::shared_ptr<ulog_cpp::Field> _esc_function_f;
 	std::shared_ptr<ulog_cpp::Field> _esc_current_f;
+	std::shared_ptr<ulog_cpp::Field> _esc_slot_timestamp_f;
 	std::shared_ptr<ulog_cpp::Field> _esc_count_f;
 	// actuator_motors field handles
 	std::shared_ptr<ulog_cpp::Field> _actuator_control_f;

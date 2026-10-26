@@ -289,13 +289,6 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 		static_assert(esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX - esc_report_s::ACTUATOR_FUNCTION_MOTOR1
 			      < actuator_motors_s::NUM_CONTROLS, "ESC motor-function range exceeds actuator_motors controls");
 
-		// command defaults to NAN (= unmapped or no current reported yet -> excluded); current/reversible to 0/false.
-		float command[MotorFailureDetector::kMaxMotors];
-		float current[MotorFailureDetector::kMaxMotors] {};
-		bool reversible[MotorFailureDetector::kMaxMotors] {};
-
-		for (float &u : command) { u = NAN; }
-
 		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
 			if (!math::isInRange(esc_status.esc[i].actuator_function,
 					     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
@@ -314,22 +307,10 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				continue;
 			}
 
-			command[i] = actuator_motors.control[motor];
-			current[i] = measured_current;
-			reversible[i] = (actuator_motors.reversible_flags >> motor) & 1;
-		}
-
-		// Drive the detector off the ESC sample time so a telemetry stall freezes the filter.
-		_motor_failure_detector.update(MotorFailureDetector::kMaxMotors, esc_status.timestamp,
-					       command, current, reversible);
-
-		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
-			if (!math::isInRange(esc_status.esc[i].actuator_function,
-					     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
-				continue; // Skip unmapped ESC status entries
-			}
-
-			const uint8_t motor = esc_status.esc[i].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
+			// Drive the detector off this ESC's own sample time: esc_status is published whenever any ESC
+			// reports, so the other slots may still hold an older sample, which must not count again.
+			_motor_failure_detector.update(i, esc_status.esc[i].timestamp, actuator_motors.control[motor], measured_current,
+						       (actuator_motors.reversible_flags >> motor) & 1);
 
 			// Report the latch alone: handling a failure excludes its own motor (NAN command), so gating
 			// the report on `excluded` would retract the failure and restore the motor every tick.

@@ -63,74 +63,60 @@ void MotorFailureDetector::reset()
 		_residual_lpf[i].reset(0.f);
 		_hyst_over[i].set_state_and_update(false, 0);  // no falling-edge delay: clears immediately, keeps the debounce times
 		_hyst_under[i].set_state_and_update(false, 0);
+		_last_us[i] = 0;
 	}
-
-	_last_us = 0;
 }
 
-void MotorFailureDetector::update(int num_motors, hrt_abstime now_us,
-				  const float command[], const float current[],
-				  const bool reversible[])
+void MotorFailureDetector::update(int i, hrt_abstime now_us, float command, float current, bool reversible)
 {
-	// disable the current-residual check
-	if (_cfg.overcurrent_threshold_a <= 0.f) {
+	// disable the current-residual check, or out of range
+	if (_cfg.overcurrent_threshold_a <= 0.f || i < 0 || i >= kMaxMotors) {
 		return;
 	}
 
-	const float dt = static_cast<float>(now_us - _last_us) * 1e-6f;
-	_last_us = now_us;
-
-	// dt > kMaxGap (also the first call) is a gap: reset filters + debounce, skip (latch kept).
-	if (dt > kMaxGap) {
-		for (int i = 0; i < num_motors; ++i) {
-			_status[i].residual_lpf = 0.f;
-			_residual_lpf[i].reset(0.f);
-			_hyst_over[i].set_state_and_update(false, now_us);  // cancel any pending trip across the gap
-			_hyst_under[i].set_state_and_update(false, now_us);
-		}
-
+	// Same sample as last time (the ESC has not reported since): nothing new to evaluate.
+	if (now_us == _last_us[i]) {
 		return;
 	}
 
-	for (int i = 0; i < num_motors; ++i) {
-		MotorStatus &s = _status[i];
-		const float u = command[i];
+	const float dt = static_cast<float>(now_us - _last_us[i]) * 1e-6f;
+	_last_us[i] = now_us;
 
-		// Cannot evaluate -> exclude and reset (re-entry starts clean; latch kept).
-		s.excluded = std::isnan(u) || reversible[i];
+	_status[i].excluded = std::isnan(command) || reversible;
 
-		if (s.excluded) {
-			s.residual_lpf = 0.f;
-			_residual_lpf[i].reset(0.f);
-			_hyst_over[i].set_state_and_update(false, now_us);  // cancel pending; keep any latch
-			_hyst_under[i].set_state_and_update(false, now_us);
-			continue;
-		}
+	// Cannot evaluate (excluded, or dt > kMaxGap incl. the first call) -> reset filter + debounce so
+	// re-entry starts clean; the latch is kept.
+	if (_status[i].excluded || dt > kMaxGap) {
+		_status[i].residual_lpf = 0.f;
+		_residual_lpf[i].reset(0.f);
+		_hyst_over[i].set_state_and_update(false, now_us); // cancel any pending trip
+		_hyst_under[i].set_state_and_update(false, now_us);
+		return;
+	}
 
-		// Command-only, so valid even on a dropout.
-		const float i_expected = _cfg.current_slope_a * u + _cfg.current_idle_a;
+	// Command-only, so valid even on a dropout.
+	const float i_expected = _cfg.current_slope_a * command + _cfg.current_idle_a;
 
-		if (std::isfinite(current[i])) {
-			// A motor cannot draw less than 0 A, so a residual below -I_exp is regeneration, not a fault.
-			s.residual = fmaxf(current[i] - i_expected, -i_expected);
-			_residual_lpf[i].setParameters(dt, _cfg.residual_lpf_tau_s);
-			_residual_lpf[i].update(s.residual);
-			s.residual_lpf = _residual_lpf[i].getState();
-		}
+	if (std::isfinite(current)) {
+		// A motor cannot draw less than 0 A, so a residual below -I_exp is regeneration, not a fault.
+		_status[i].residual = fmaxf(current - i_expected, -i_expected);
+		_residual_lpf[i].setParameters(dt, _cfg.residual_lpf_tau_s);
+		_residual_lpf[i].update(_status[i].residual);
+		_status[i].residual_lpf = _residual_lpf[i].getState();
+	}
 
-		// else: dropout -- residual held; the debounce keeps running on it (fault + dropout still latches).
+	// else: dropout -- residual held; the debounce keeps running on it (fault + dropout still latches).
 
-		// Each band must hold for its trigger time (Hysteresis); the decision is then latched.
-		_hyst_over[i].set_state_and_update(s.residual_lpf >= _cfg.overcurrent_threshold_a, now_us);
-		_hyst_under[i].set_state_and_update(-s.residual_lpf >= _cfg.undercurrent_threshold_a, now_us);
+	// Each band must hold for its trigger time (Hysteresis); the decision is then latched.
+	_hyst_over[i].set_state_and_update(_status[i].residual_lpf >= _cfg.overcurrent_threshold_a, now_us);
+	_hyst_under[i].set_state_and_update(-_status[i].residual_lpf >= _cfg.undercurrent_threshold_a, now_us);
 
-		if (s.failure == Failure::None) {
-			if (_hyst_under[i].get_state()) {
-				s.failure = Failure::Undercurrent;
+	if (_status[i].failure == Failure::None) {
+		if (_hyst_under[i].get_state()) {
+			_status[i].failure = Failure::Undercurrent;
 
-			} else if (_hyst_over[i].get_state()) {
-				s.failure = Failure::Overcurrent;
-			}
+		} else if (_hyst_over[i].get_state()) {
+			_status[i].failure = Failure::Overcurrent;
 		}
 	}
 }
