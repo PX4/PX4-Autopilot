@@ -139,8 +139,6 @@ class AutopilotTester:
         self._failures_lock = threading.Lock()
         self._callback_failures: List[str] = []
 
-        self._retired_subscriptions: List[Any] = []
-
         self._should_exit = threading.Event()
         self._speed_factor_thread = threading.Thread(target=self._report_speed_factor, daemon=True)
 
@@ -186,7 +184,6 @@ class AutopilotTester:
             # Also releases the plugins and their subscriptions.
             self._mavsdk.destroy()
             self._mavsdk = None
-        self._retired_subscriptions.clear()
 
         with self._failures_lock:
             failures = list(self._callback_failures)
@@ -198,16 +195,6 @@ class AutopilotTester:
     # ------------------------------------------------------------------
     # Checks and waiting
     # ------------------------------------------------------------------
-
-    def unsubscribe(self, plugin: Any, unsubscribe: Callable[[Any], None], handle: Any) -> None:
-        """Unsubscribe a MAVSDK subscription.
-
-        Workaround: up to MAVSDK-Python 4.0.6, unsubscribe_*() releases the callback trampoline
-        before the C unsubscribe returns, so a callback in flight can crash the process. Keep the
-        subscription entry until the tester is closed. Remove once the pin includes the fix.
-        """
-        self._retired_subscriptions.append(plugin._subscriptions.get(handle))
-        unsubscribe(handle)
 
     def check_in_callback(self, ok: bool, message: str) -> None:
         """Record a failed check from a MAVSDK callback thread."""
@@ -504,7 +491,7 @@ class AutopilotTester:
             assert self.poll_condition_with_timeout(lambda: bool(received), timeout_s), \
                 "No HOME_POSITION received"
         finally:
-            self.unsubscribe(self._mavlink_direct, self._mavlink_direct.unsubscribe_message, handle)
+            self._mavlink_direct.unsubscribe_message(handle)
         return received[0]
 
     def get_coordinate_transformation(self) -> CoordinateTransformation:
@@ -535,8 +522,7 @@ class AutopilotTester:
 
     def stop_checking_altitude(self) -> None:
         if self._check_altitude_handle is not None:
-            self.unsubscribe(self._telemetry, self._telemetry.unsubscribe_position_velocity_ned,
-                             self._check_altitude_handle)
+            self._telemetry.unsubscribe_position_velocity_ned(self._check_altitude_handle)
             self._check_altitude_handle = None
 
     # ------------------------------------------------------------------
@@ -855,8 +841,7 @@ class AutopilotTester:
                 if acked.wait(COMMAND_ACK_TIMEOUT_S):
                     break
         finally:
-            self.unsubscribe(self._mavlink_direct, self._mavlink_direct.unsubscribe_message,
-                             handle)
+            self._mavlink_direct.unsubscribe_message(handle)
 
         assert results, "No COMMAND_ACK for command {} after {} attempts".format(
             command, COMMAND_ATTEMPTS)
@@ -883,8 +868,7 @@ class AutopilotTester:
             assert self.poll_condition_with_timeout(reached.is_set, timeout_s), \
                 "Position condition not met within {} s".format(timeout_s)
         finally:
-            self.unsubscribe(self._telemetry, self._telemetry.unsubscribe_position_velocity_ned,
-                             handle)
+            self._telemetry.unsubscribe_position_velocity_ned(handle)
 
     def check_position_ned_for(self, check: Callable[[Any], Optional[str]], duration_s: float,
                                rate_hz: float = 10.0) -> None:
@@ -899,8 +883,7 @@ class AutopilotTester:
         try:
             self.sleep_for(duration_s)
         finally:
-            self.unsubscribe(self._telemetry, self._telemetry.unsubscribe_position_velocity_ned,
-                             handle)
+            self._telemetry.unsubscribe_position_velocity_ned(handle)
         self._assert_no_callback_failures()
 
     def _assert_no_callback_failures(self) -> None:
