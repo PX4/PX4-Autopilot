@@ -441,12 +441,7 @@ void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const In
 	_calcPitchControlUpdate(dt, input, seb_rate, param);
 	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, param)};
 
-	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
-	// NOTE: at zero airspeed, the pitch increment is unbounded
-	const float pitch_increment = dt * param.vert_accel_limit / math::max(input.tas, FLT_EPSILON);
-	_pitch_setpoint = constrain(pitch_setpoint, _pitch_setpoint - pitch_increment,
-				    _pitch_setpoint + pitch_increment);
-	_pitch_setpoint = constrain(_pitch_setpoint, param.pitch_min, param.pitch_max);
+	_pitch_setpoint = constrain(pitch_setpoint, param.pitch_min, param.pitch_max);
 
 	//Debug Output
 	_debug_output.energy_balance_rate_estimate = seb_rate.estimate;
