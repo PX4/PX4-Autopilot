@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# @name Gazebo x500 THROUGH
+#
+# @type Quadrotor
+#
+# x500 with a pitch gimbal camera for the THROUGH ring-diving flight mode.
+#
+
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=x500_through}
+
+# x500 base + MAVLink gimbal v2 settings (MNT_MODE_IN 4, MNT_MODE_OUT 2)
+. ${R}etc/init.d-posix/airframes/4019_gz_x500_gimbal
+
+# x500_through motors (motorConstant 1.007e-5) hover at ~0.60 with the quadratic thrust curve
+# linearized, so that normalized thrust is proportional to force (VERIFICATION.md D7)
+param set-default THR_MDL_FAC 0.72
+param set-default MPC_THR_HOVER 0.60
+
+# ROS 2 nodes use sim time, which equals the PX4 SITL clock: no DDS time offset (VERIFICATION.md D2)
+param set-default UXRCE_DDS_SYNCT 0
+
+param set-default THRU_EN 1
