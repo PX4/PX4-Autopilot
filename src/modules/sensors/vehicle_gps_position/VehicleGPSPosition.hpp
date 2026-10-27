@@ -126,7 +126,6 @@ private:
 	void UpdateGnssHeading();
 
 	// heading from the positions of two receivers (SENS_GNSSn_HDG Two receivers)
-	void storeGnssData(int instance, const sensor_gnss_s &gnss_data);
 	void UpdateTwoReceiverHeading();
 	void handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
 
