@@ -1095,14 +1095,16 @@ TEST(RtlLandingApproachTest, SelectsApproachDownwindOfLandPoint)
 	expectLoiterPointNear(mission_route::chooseBestLandingApproach(approaches, wind_toward_120_deg), geometry.east);
 }
 
-// WHY: Empty slots and equal bearings must not make the choice depend on anything but the slot order.
-// WHAT: The first of two equally aligned approaches should win; a block without a valid approach gives none.
+// WHY: An invalid slot must never win, and ties must not depend on anything but the slot order.
+// WHAT: The first of two equally aligned valid approaches should win; a NaN wind or a block without one gives none.
 TEST(RtlLandingApproachTest, KeepsFirstApproachOnEqualBearings)
 {
-	// GIVEN: An empty first slot, then two approaches on the same bearing, the second one 10 m higher.
+	// GIVEN: Three approaches on the same bearing: the first without a height, the third 10 m higher.
 	const ApproachGeometry geometry = makeApproachGeometry();
 	land_approaches_s approaches{};
 	approaches.land_location_lat_lon = matrix::Vector2d(geometry.land.lat, geometry.land.lon);
+	approaches.approaches[0] = makeLoiterPoint(geometry.north);
+	approaches.approaches[0].height_m = NAN;
 	approaches.approaches[1] = makeLoiterPoint(geometry.north);
 	approaches.approaches[2] = makeLoiterPoint(geometry.north);
 	approaches.approaches[2].height_m += 10.f;
@@ -1111,11 +1113,14 @@ TEST(RtlLandingApproachTest, KeepsFirstApproachOnEqualBearings)
 	const wind_s wind_toward_north = makeWind(1.f, 0.f);
 	const loiter_point_s selected_approach = mission_route::chooseBestLandingApproach(approaches, wind_toward_north);
 
-	// THEN: It skips the empty slot and keeps the first of the tied approaches.
+	// THEN: It skips the approach without a height and keeps the first of the two valid ones.
 	expectLoiterPointNear(selected_approach, geometry.north);
 
-	// Current behaviour, not a requirement: a NaN wind selects no approach, so RTL loiters over the land point.
-	EXPECT_FALSE(mission_route::chooseBestLandingApproach(approaches, makeWind(NAN, NAN)).isValid());
+	// WHEN: The wind estimate is NaN.
+	const loiter_point_s nan_wind_approach = mission_route::chooseBestLandingApproach(approaches, makeWind(NAN, NAN));
+
+	// THEN: The chooser returns no approach, so RTL loiters over the land point.
+	EXPECT_FALSE(nan_wind_approach.isValid());
 
 	// WHEN: No slot holds a valid approach.
 	approaches.resetAllApproaches();
