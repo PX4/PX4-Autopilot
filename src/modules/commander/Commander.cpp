@@ -444,6 +444,20 @@ int Commander::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[0], "takeoff_local")) {
+		// switch to takeoff mode and arm
+		uORB::SubscriptionData<vehicle_command_ack_s> vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL);
+
+		if (wait_for_vehicle_command_reply(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL, vehicle_command_ack_sub)) {
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+					     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
+					     0.f);
+		}
+
+		return 0;
+	}
+
 	if (!strcmp(argv[0], "land")) {
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_LAND);
 
@@ -1213,7 +1227,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
+	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF:
+	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL: {
 			/* ok, home set, use it to take off */
 			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, getSourceFromCommand(cmd))) {
 				// fixed-wing: course to continue on after the climbout, unless a takeoff position is set (as in Navigator)
