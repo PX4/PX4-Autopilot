@@ -100,7 +100,7 @@ bool scanVtolLandApproachBlock(const Provider &provider, int safe_point_index, f
 }
 
 bool findAssociatedSafePointIndex(const Provider &provider, const PositionYawSetpoint &rtl_position,
-				  float home_altitude_amsl, int &safe_point_index, mission_item_s &safe_point_item)
+				  float home_altitude_amsl, int &safe_point_index, Position &safe_point_position)
 {
 	for (int current_seq = 0; current_seq < provider.safePointCount(); ++current_seq) {
 		mission_item_s mission_item{};
@@ -109,12 +109,7 @@ bool findAssociatedSafePointIndex(const Provider &provider, const PositionYawSet
 			break;
 		}
 
-		if (mission_item.nav_cmd != NAV_CMD_RALLY_POINT) {
-			continue;
-		}
-
-		Position safe_point_position{};
-
+		// Rejects anything but a rally point with a usable position.
 		if (!extractSafePointPosition(mission_item, home_altitude_amsl, safe_point_position)) {
 			continue;
 		}
@@ -124,7 +119,6 @@ bool findAssociatedSafePointIndex(const Provider &provider, const PositionYawSet
 
 		if (dist_to_safepoint < kLandApproachAssociationDistanceM) {
 			safe_point_index = current_seq;
-			safe_point_item = mission_item;
 			return true;
 		}
 	}
@@ -134,18 +128,49 @@ bool findAssociatedSafePointIndex(const Provider &provider, const PositionYawSet
 
 } // namespace
 
+loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, const wind_s &wind)
+{
+	if (!approaches.land_location_lat_lon.isAllFinite()) {
+		return {};
+	}
+
+	// The wind velocity points where the wind blows toward.
+	const float downwind_bearing = atan2f(wind.windspeed_east, wind.windspeed_north);
+	int8_t best_index{-1};
+	float best_angle{INFINITY};
+
+	for (int i = 0; i < approaches.num_approaches_max; ++i) {
+		const loiter_point_s &approach = approaches.approaches[i];
+
+		if (!approach.isValid()) {
+			continue;
+		}
+
+		const float bearing = get_bearing_to_next_waypoint(approaches.land_location_lat_lon(0),
+				      approaches.land_location_lat_lon(1), approach.lat, approach.lon);
+		const float angle = fabsf(matrix::wrap_pi(bearing - downwind_bearing));
+
+		if (angle < best_angle) {
+			best_index = i;
+			best_angle = angle;
+		}
+	}
+
+	return best_index >= 0 ? approaches.approaches[best_index] : loiter_point_s{};
+}
+
 land_approaches_s getVtolLandApproachesNearLocation(const Provider &provider,
 		const PositionYawSetpoint &rtl_position, float home_altitude_amsl)
 {
 	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
+	Position safe_point_position{};
 
-	if (!findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_item)) {
+	if (!findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_position)) {
 		return {};
 	}
 
 	land_approaches_s vtol_land_approaches{};
-	vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(safe_point_item.lat, safe_point_item.lon);
+	vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(safe_point_position.lat, safe_point_position.lon);
 	scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, &vtol_land_approaches);
 	return vtol_land_approaches;
 }
@@ -169,9 +194,9 @@ bool hasVtolLandApproachesNearLocation(const Provider &provider, const PositionY
 				       float home_altitude_amsl)
 {
 	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
+	Position safe_point_position{};
 
-	return findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_item)
+	return findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_position)
 	       && scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, nullptr);
 }
 
