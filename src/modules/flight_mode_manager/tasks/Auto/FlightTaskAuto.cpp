@@ -462,13 +462,16 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 			_reference_position.project(_sub_triplet_setpoint.get().current.lat, _sub_triplet_setpoint.get().current.lon,
 					    	tmp_target(0), tmp_target(1));
 		}
+
+		tmp_target(2) = -(_sub_triplet_setpoint.get().current.alt - _reference_altitude);
+
 	} else if(_sub_triplet_setpoint.get().current.frame == position_setpoint_s::FRAME_TYPE_LOCAL){
 
 		tmp_target(0) = _sub_triplet_setpoint.get().current.x;
 		tmp_target(1) = _sub_triplet_setpoint.get().current.y;
+		tmp_target(2) = _sub_triplet_setpoint.get().current.alt;
 
 	}
-		tmp_target(2) = -(_sub_triplet_setpoint.get().current.alt - _reference_altitude);
 
 
 	// Check if anything has changed. We do that by comparing the temporary target
@@ -499,10 +502,8 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 			_triplet_current(2) = _position(2);
 		}
 
-		if (_isFinite(position_setpoint_triplet.previous) && position_setpoint_triplet.previous.valid) {
-			_reference_position.project(position_setpoint_triplet.previous.lat,
-						    position_setpoint_triplet.previous.lon, _triplet_previous(0), _triplet_previous(1));
-			_triplet_previous(2) = -(position_setpoint_triplet.previous.alt - _reference_altitude);
+		if (_isFinite(_sub_triplet_setpoint.get().previous) && _sub_triplet_setpoint.get().previous.valid) {
+			_setLocalPositionFromSetpoint(_sub_triplet_setpoint.get().previous, _triplet_prev_wp);
 
 		} else {
 			_triplet_previous = _triplet_current;
@@ -513,10 +514,8 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 		if (_type == WaypointType::loiter) {
 			_triplet_next = _triplet_current;
 
-		} else if (_isFinite(position_setpoint_triplet.next) && position_setpoint_triplet.next.valid) {
-			_reference_position.project(position_setpoint_triplet.next.lat,
-						    position_setpoint_triplet.next.lon, _triplet_next(0), _triplet_next(1));
-			_triplet_next(2) = -(position_setpoint_triplet.next.alt - _reference_altitude);
+		} else if (_isFinite(_sub_triplet_setpoint.get().next) && _sub_triplet_setpoint.get().next.valid) {
+			_setLocalPositionFromSetpoint(_sub_triplet_setpoint.get().next, _triplet_next_wp);
 
 		} else {
 			_triplet_next = _triplet_current;
@@ -641,7 +640,24 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 {
+	if (sp.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+		return (PX4_ISFINITE(sp.x) && PX4_ISFINITE(sp.y) && PX4_ISFINITE(sp.alt));
+	}
+
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
+}
+
+void FlightTaskAuto::_setLocalPositionFromSetpoint(const position_setpoint_s &sp, matrix::Vector3f &local_pos)
+{
+	if (sp.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+		local_pos(0) = sp.x;
+		local_pos(1) = sp.y;
+		local_pos(2) = sp.alt;
+
+	} else {
+		_reference_position.project(sp.lat, sp.lon, local_pos(0), local_pos(1));
+		local_pos(2) = -(sp.alt - _reference_altitude);
+	}
 }
 
 bool FlightTaskAuto::_evaluateGlobalReference()

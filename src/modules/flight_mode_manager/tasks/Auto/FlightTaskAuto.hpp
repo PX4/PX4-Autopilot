@@ -211,6 +211,8 @@ private:
 	void _smoothYaw(); /**< Smoothen the yaw setpoint. */
 	bool _evaluatePositionSetpointTriplet();
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
+	void _setLocalPositionFromSetpoint(const position_setpoint_s &sp,
+					    matrix::Vector3f &local_pos); /**< Converts a setpoint (global or local frame) into the local frame. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
 	bool _hasPassedCurrentWaypoint() const; /**< True if the vehicle is past the current waypoint */
 	void _set_heading_from_mode(); /**< @see  MPC_YAW_MODE */
