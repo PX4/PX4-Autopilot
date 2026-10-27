@@ -43,8 +43,9 @@
 
 #include "arm_internal.h"
 
-/* FlexIO DShot / bidirectional DShot driver; the chip-specific hooks follow */
+/* FlexIO DShot / bidirectional DShot driver shared by i.MX RT and i.MX9 */
 
+#if defined(CONFIG_ARCH_CHIP_IMXRT)
 #include <imxrt_flexio.h>
 #include <imxrt_periphclks.h>
 
@@ -59,6 +60,19 @@
 static inline void flexio_clock_enable(void) { imxrt_clockall_flexio1(); }
 static inline void dshot_pin_config(const dshot_conf_t *conf) { imxrt_config_gpio(conf->pinmux | IOMUX_PULL_UP); }
 static inline bool dshot_pin_unused(const dshot_conf_t *conf) { return conf->pinmux == 0; }
+#else /* i.MX9 */
+#include <imx9_flexio.h>
+#include <imx9_clockconfig.h>
+
+#define FLEXIO_BASE			IMX9_FLEXIO1_BASE
+#define FLEXIO_OFFSET(reg)		IMX9_FLEXIO_##reg##_OFFSET
+#define FLEXIO_IRQ			IMX9_IRQ_FLEXIO1
+
+static inline void flexio_clock_enable(void) { imx9_configure_clock(FLEXIO1_CLK_ROOT_SYS_PLL1_DFS1_DIV2_CLK | CLOCK_DIV(3), true); }
+static inline void dshot_pin_config(const dshot_conf_t *conf) { imx9_iomux_configure(conf->pinmux); }
+/* Pad control registers never sit at offset 0, so a zero padregoff marks an unset pinmux */
+static inline bool dshot_pin_unused(const dshot_conf_t *conf) { return conf->pinmux.padcfg.padregoff == 0; }
+#endif
 
 #define DSHOT_TIMERS			FLEXIO_SHIFTBUFNIS_COUNT
 #define DSHOT_THROTTLE_POSITION		5u
