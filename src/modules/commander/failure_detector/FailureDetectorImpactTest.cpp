@@ -87,7 +87,11 @@ public:
 	}
 
 	// Publish the IMU status and land detector state, then run the detector
-	void update(float impact_metric, bool armed = true, bool landed = false, bool moving = false)
+	// moving: all land detector movement checks report movement
+	// translating: only the velocity based checks (vertical, horizontal) report movement
+	// report_time_offset: added to the land detector report timestamp, emulates a report covering a later time
+	void update(float impact_metric, bool armed = true, bool landed = false, bool moving = false,
+		    bool translating = false, hrt_abstime report_time_offset = 0)
 	{
 		vehicle_imu_status_s imu_status{};
 		imu_status.timestamp = hrt_absolute_time();
@@ -96,10 +100,10 @@ public:
 		_imu_status_pub.publish(imu_status);
 
 		vehicle_land_detected_s land_detected{};
-		land_detected.timestamp = hrt_absolute_time();
+		land_detected.timestamp = hrt_absolute_time() + report_time_offset;
 		land_detected.landed = landed;
-		land_detected.vertical_movement = moving;
-		land_detected.horizontal_movement = moving;
+		land_detected.vertical_movement = moving || translating;
+		land_detected.horizontal_movement = moving || translating;
 		land_detected.rotational_movement = moving;
 		_land_detected_pub.publish(land_detected);
 
@@ -240,4 +244,47 @@ TEST_F(FailureDetectorImpactTest, MovementResetsCrashTimer)
 	px4_usleep(150000);
 	update(10.f);
 	EXPECT_TRUE(crash()); // 250ms without movement
+}
+
+TEST_F(FailureDetectorImpactTest, CrashIgnoresVelocityMovement)
+{
+	// after a hard impact the EKF velocity can stay wrong for a long time: only rotation counts as movement
+	update(150.f);
+	EXPECT_TRUE(impact());
+
+	px4_usleep(1000);
+	update(10.f, true, false, false, true); // vertical and horizontal movement reported, no rotation
+	EXPECT_TRUE(crash());
+}
+
+TEST_F(FailureDetectorImpactTest, NewImpactRestartsCrashTimer)
+{
+	setCrashTime(0.2f);
+
+	update(150.f); // first impact, e.g. hitting an obstacle
+	EXPECT_TRUE(impact());
+
+	px4_usleep(150000);
+	update(150.f); // second impact, e.g. hitting the ground: the time without rotation restarts
+	EXPECT_FALSE(crash());
+
+	px4_usleep(100000);
+	update(10.f);
+	EXPECT_FALSE(crash()); // only 100ms since the latest impact
+
+	px4_usleep(150000);
+	update(10.f);
+	EXPECT_TRUE(crash()); // 250ms since the latest impact
+}
+
+TEST_F(FailureDetectorImpactTest, NoCrashWhenStoppingLongAfterImpact)
+{
+	// impact while flying, the vehicle keeps flying afterwards
+	update(150.f, true, false, true);
+	EXPECT_TRUE(impact());
+
+	// it stops rotating long after the impact (e.g. hovers): report covering 30s after the impact, not a crash
+	update(10.f, true, false, false, false, 30_s);
+	EXPECT_TRUE(impact());
+	EXPECT_FALSE(crash());
 }

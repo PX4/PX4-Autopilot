@@ -43,6 +43,11 @@
 
 using namespace time_literals;
 
+// Time after the latest impact within which a crash can be reported (the time without rotation must end in it).
+// FD_IMPACT_T is limited to 5 s, which leaves at least 5 s for the vehicle to come to rest
+// (rotation stopped within 3 s after the impact in flight tests, plus the ~1 Hz land detector reports).
+static constexpr hrt_abstime kCrashCheckWindow{10_s};
+
 FailureDetector::FailureDetector(ModuleParams *parent) :
 	ModuleParams(parent)
 {
@@ -314,29 +319,33 @@ void FailureDetector::updateImpactStatus(const vehicle_status_s &vehicle_status)
 	if (copySelectedImuStatus(imu_status)) {
 		_impact_metric_peak = math::max(_impact_metric_peak, imu_status.accel_impact_metric);
 
-		if (!_failure_detector_status.flags.impact && !land_detected.landed
-		    && (imu_status.accel_impact_metric > _param_fd_impact_thr.get())) {
+		// Every impact restarts the crash check, e.g. hitting an obstacle and then the ground
+		if (!land_detected.landed && (imu_status.accel_impact_metric > _param_fd_impact_thr.get())) {
 			_failure_detector_status.flags.impact = true;
+			_impact_last_time = now;
 			_crash_no_movement_start = now;
 		}
 	}
 
-	// Crash: after an impact the vehicle does not move for FD_IMPACT_T seconds while not detected as landed.
-	// The movement flags are the land detector's own checks (LNDMC_Z_VEL_MAX, LNDMC_XY_VEL_MAX, LNDMC_ROT_MAX),
-	// each true if any movement was seen since the previous vehicle_land_detected publication (~1 Hz).
-	// The time without movement is therefore measured with the report timestamps: reports published before
+	// Crash: after an impact the vehicle stops rotating for FD_IMPACT_T seconds while not detected as landed.
+	// Only the land detector's rotation check (LNDMC_ROT_MAX, gyro based) is used: the vertical and horizontal
+	// checks rely on the EKF velocity, which can stay wrong for many seconds after a hard impact (accelerometer
+	// clipping), so a vehicle at rest would keep being reported as moving.
+	// The flag is true if any rotation was seen since the previous vehicle_land_detected publication (~1 Hz).
+	// The time without rotation is therefore measured with the report timestamps: reports published before
 	// the impact are ignored and a report only confirms the time it covers.
+	// Only reports up to kCrashCheckWindow after the latest impact are used: a vehicle still moving then has
+	// recovered and is not reported as crashed when it stops later, e.g. to hover.
 	if (_failure_detector_status.flags.impact) {
-		const bool movement = land_detected.vertical_movement
-				      || land_detected.horizontal_movement
-				      || land_detected.rotational_movement;
 		const hrt_abstime crash_trigger_time = (hrt_abstime)(1_s * _param_fd_impact_ttri.get());
 
-		if (movement || land_detected.landed) {
-			_crash_no_movement_start = math::max(_crash_no_movement_start, land_detected.timestamp);
+		if (land_detected.timestamp < _impact_last_time + kCrashCheckWindow) {
+			if (land_detected.rotational_movement || land_detected.landed) {
+				_crash_no_movement_start = math::max(_crash_no_movement_start, land_detected.timestamp);
 
-		} else if (land_detected.timestamp > _crash_no_movement_start + crash_trigger_time) {
-			_failure_detector_status.flags.crash = true;
+			} else if (land_detected.timestamp > _crash_no_movement_start + crash_trigger_time) {
+				_failure_detector_status.flags.crash = true;
+			}
 		}
 	}
 }

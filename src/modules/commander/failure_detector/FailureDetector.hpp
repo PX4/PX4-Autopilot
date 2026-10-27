@@ -122,7 +122,8 @@ private:
 	hrt_abstime _imu_status_timestamp_prev{0};
 
 	float _impact_metric_peak{0.f}; // peak of the impact metric since the last status publication
-	hrt_abstime _crash_no_movement_start{0}; // start of the time without movement after an impact
+	hrt_abstime _impact_last_time{0}; // time of the latest impact, restarts the crash check
+	hrt_abstime _crash_no_movement_start{0}; // start of the time without rotation after an impact
 
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};

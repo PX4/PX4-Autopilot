@@ -10,7 +10,7 @@ bool fd_battery
 bool fd_imbalanced_prop
 bool fd_motor
 bool fd_impact                      # Impact detected (acceleration spike), latched until disarm
-bool fd_crash                       # Crash detected (impact followed by no movement while not landed), latched until disarm
+bool fd_crash                       # Crash detected (impact followed by no rotation while not landed), latched until disarm
 
 float32 imbalanced_prop_metric      # Metric of the imbalanced propeller check (low-passed)
 float32 impact_metric               # Peak of the impact metric (short-window averaged specific force norm) since last publication (m/s^2)
