@@ -440,7 +440,7 @@ For more information see [Motor Failure Recovery](motor_failure_recovery.md).
 
 <Badge type="tip" text="main (PX4 v2.0)" />
 
-Rotary-wing vehicles (multicopters and VTOL in MC mode) also check that every commanded motor starts spinning after arming, before takeoff.
+Rotary-wing vehicles (multicopters and VTOL in MC mode) can also check that every commanded motor starts spinning after arming, before takeoff.
 The check needs per-motor RPM telemetry and is enabled by [COM_ARM_CHK_ESCS](#COM_ARM_CHK_ESCS) (it does not depend on [FD_ACT_EN](#FD_ACT_EN)).
 
 It only runs while the vehicle is still landed and within the spool-up time ([COM_SPOOLUP_TIME](#COM_SPOOLUP_TIME)) after arming:
