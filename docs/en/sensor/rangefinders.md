@@ -20,7 +20,8 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar | 0.5 m – 50 m      | UART             | ✔️   | All-weather, works over water       |
 | [ARK DIST SR]                               | ToF (850 nm IR) | 8 cm to ~30 m     | DroneCAN, UART   | ✔️   |                                     |
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m     | DroneCAN, UART   | ✔️   |                                     |
-| [Benewake TFmini]                           | ToF (IR laser)  | ~12 m             | UART             | ~    |                                     |
+| [Benewake TFmini Plus]                      | ToF (IR LED)    | 0.1 m – 12 m      | UART             | ~    | PX4 minimum 0.4 m                   |
+| [Benewake TFmini-S]                         | ToF (IR laser)  | 0.1 m – 12 m      | UART             | ~    | PX4 minimum 0.4 m                   |
 | [Garmin LIDAR-Lite v3]                      | ToF (IR laser)  | up to 40 m        | I2C, PWM         | ~    | PX4 caps range to 35 m or less      |
 | [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m        | I2C              | ~    |                                     |
 | [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m       | UART             | ~    |                                     |
@@ -44,7 +45,8 @@ There may also be other DroneCAN rangefinders than those listed here.
 [Ainstein US-D1 Standard Radar Altimeter]: ../sensor/ulanding_radar.md
 [ARK DIST SR]: ../dronecan/ark_dist.md
 [ARK DIST MR]: ../dronecan/ark_dist_mr.md
-[Benewake TFmini]: ../sensor/tfmini.md
+[Benewake TFmini Plus]: ../sensor/tfmini.md
+[Benewake TFmini-S]: ../sensor/tfmini.md
 [Garmin LIDAR-Lite v3]: ../sensor/lidar_lite.md
 [Holybro ST VL53L1X Lidar]: #holybro-st-vl53l1x-lidar
 [Lanbao PSK-CM8JL65-CC5]: ../sensor/cm8jl65_ir_distance_sensor.md
@@ -139,9 +141,9 @@ It must be connected to a UART/serial bus.
 [LeddarOne](../sensor/leddar_one.md) is small Lidar module with a narrow, yet diffuse beam that offers excellent overall detection range and performance, in a robust, reliable, cost-effective package.
 It has a sensing range from 1cm to 40m and needs to be connected to a UART/serial bus.
 
-### TFmini
+### Benewake TFmini LiDAR
 
-The [Benewake TFmini Lidar](../sensor/tfmini.md) is a tiny, low cost, and low power LIDAR with 12m range.
+The [Benewake TFmini](../sensor/tfmini.md) LiDAR rangefinders (TFmini-S and TFmini Plus) have a range of 0.1–12 m and connect to a serial port (UART).
 
 ### PSK-CM8JL65-CC5
 
