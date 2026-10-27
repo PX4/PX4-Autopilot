@@ -848,7 +848,6 @@ void Navigator::run()
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL) {
-
 				position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
 				// store current position as previous position and goal as next
@@ -882,8 +881,8 @@ void Navigator::run()
 
 				} else {
 					// If one of them is non-finite set the current global position as target
-					rep->current.x = get_local_position()->x;
-					rep->current.y = get_local_position()->y;
+					rep->current.x = static_cast<double>(get_local_position()->x);
+					rep->current.y = static_cast<double>(get_local_position()->y);
 
 				}
 
