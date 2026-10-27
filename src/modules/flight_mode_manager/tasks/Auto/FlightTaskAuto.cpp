@@ -440,26 +440,36 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
 
-	if (!PX4_ISFINITE(position_setpoint_triplet.current.lat) || !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
-		// No position provided in xy. Lock position
-		if (!_lock_position_xy.isAllFinite()) {
-			tmp_target(0) = _lock_position_xy(0) = _position(0);
-			tmp_target(1) = _lock_position_xy(1) = _position(1);
+	if(_sub_triplet_setpoint.get().current.frame == position_setpoint_s::FRAME_TYPE_GLOBAL){
+
+		if (!PX4_ISFINITE(_sub_triplet_setpoint.get().current.lat)
+	    	|| !PX4_ISFINITE(_sub_triplet_setpoint.get().current.lon)) {
+			// No position provided in xy. Lock position
+			if (!_lock_position_xy.isAllFinite()) {
+				tmp_target(0) = _lock_position_xy(0) = _position(0);
+				tmp_target(1) = _lock_position_xy(1) = _position(1);
+
+			} else {
+				tmp_target(0) = _lock_position_xy(0);
+				tmp_target(1) = _lock_position_xy(1);
+			}
 
 		} else {
-			tmp_target(0) = _lock_position_xy(0);
-			tmp_target(1) = _lock_position_xy(1);
+			// reset locked position if current lon and lat are valid
+			_lock_position_xy.setAll(NAN);
+
+			// Convert from global to local frame.
+			_reference_position.project(_sub_triplet_setpoint.get().current.lat, _sub_triplet_setpoint.get().current.lon,
+					    	tmp_target(0), tmp_target(1));
 		}
+	} else if(_sub_triplet_setpoint.get().current.frame == position_setpoint_s::FRAME_TYPE_LOCAL){
 
-	} else {
-		// reset locked position if current coordinates are valid
-		_lock_position_xy.setNaN();
+		tmp_target(0) = _sub_triplet_setpoint.get().current.x;
+		tmp_target(1) = _sub_triplet_setpoint.get().current.y;
 
-		// Convert from global to local frame.
-		_reference_position.project(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon, tmp_target(0), tmp_target(1));
 	}
+		tmp_target(2) = -(_sub_triplet_setpoint.get().current.alt - _reference_altitude);
 
-	tmp_target(2) = -(position_setpoint_triplet.current.alt - _reference_altitude);
 
 	// Check if anything has changed. We do that by comparing the temporary target
 	// to the internal _triplet_current.
