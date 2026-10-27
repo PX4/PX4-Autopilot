@@ -33,6 +33,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <vector>
 
 #include "checks/batteryCheck.hpp"
@@ -120,13 +121,9 @@ public:
 	// the battery number argument follows the modes (uint32) and the health component (uint8)
 	bool reported(uint32_t event_id, int battery = -1) const
 	{
-		for (const event_s &event : _events) {
-			if ((event.id == event_id) && ((battery < 0) || (event.arguments[5] == battery))) {
-				return true;
-			}
-		}
-
-		return false;
+		return std::any_of(_events.begin(), _events.end(), [&](const event_s & event) {
+			return (event.id == event_id) && ((battery < 0) || (event.arguments[5] == battery));
+		});
 	}
 
 	static uORB::PublicationMulti<battery_status_s> _battery_pubs[kBatteryCount];
@@ -243,6 +240,19 @@ TEST_F(BatteryChecksTest, UnknownChargeIsBelowArmThreshold)
 	publish(0, battery_status_s::WARNING_NONE, true, -1.f, 4, battery_status_s::SOURCE_EXTERNAL);
 	runCheck(false);
 	EXPECT_FALSE(_can_arm);
+	EXPECT_TRUE(reported(events::ID("check_battery_low")));
 
 	param_reset(param_find("COM_ARM_BAT_MIN"));
+}
+
+// the unknown charge failure only matters for arming, so it isn't reported in flight
+TEST_F(BatteryChecksTest, UnknownChargeIsNotReportedWhileArmed)
+{
+	runCheck(false);
+	runCheck(true);
+
+	publish(1, battery_status_s::WARNING_NONE, true, -1.f, 1, battery_status_s::SOURCE_EXTERNAL, 0);
+	runCheck(true);
+	EXPECT_FALSE(reported(events::ID("check_battery_charge_unknown")));
+	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
 }

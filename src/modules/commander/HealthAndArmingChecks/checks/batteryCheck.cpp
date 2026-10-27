@@ -153,7 +153,8 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 				worst_battery_remaining = battery.remaining;
 			}
 
-			if (battery.remaining < 0.f) {
+			// arming failures have no effect while armed, so don't repeat the status text in flight
+			if (!context.isArmed() && (battery.remaining < 0.f)) {
 				unknownChargeCheck(reporter, battery, index);
 			}
 
@@ -338,13 +339,18 @@ void BatteryChecks::unknownChargeCheck(Report &reporter, const battery_status_s 
 		/* EVENT
 		 * @description
 		 * The battery doesn't report its state of charge.
+		 *
+		 * <profile name="dev">
+		 * A DroneCAN battery with <param>UAVCAN_SUB_BAT</param> set to filter the data is estimated from its cell count:
+		 * configure it with <param>BAT1_N_CELLS</param> (or the respective battery's parameter).
+		 * </profile>
 		 */
 		reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::battery,
 						     events::ID("check_battery_charge_unknown"),
-						     events::Log::Error, "Battery {1} reports no charge", index + 1);
+						     events::Log::Error, "Battery {1}: charge unknown", index + 1);
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Battery %i reports no charge\t", index + 1);
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Battery %i charge unknown\t", index + 1);
 		}
 	}
 }

@@ -419,8 +419,8 @@ float Battery::computeRemainingTime(float current_a)
 		}
 	}
 
-	// Remaining time estimation only possible with capacity
-	if (_capacity_mah > 0.f) {
+	// Remaining time estimation only possible with capacity and a known state of charge
+	if ((_capacity_mah > 0.f) && (_state_of_charge >= 0.f)) {
 		const float remaining_capacity_mah = _state_of_charge * _capacity_mah;
 		const float current_ma = fmaxf(_current_average_filter_a.getState() * 1e3f, FLT_EPSILON);
 		time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;

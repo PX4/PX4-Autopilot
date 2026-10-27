@@ -94,6 +94,7 @@ TEST_F(BatteryTest, UnknownCellCountWithCapacityStaysUnknown)
 	const battery_status_s status = run(battery, 12.4f, 1.f);
 	EXPECT_FLOAT_EQ(status.remaining, -1.f);
 	EXPECT_EQ(status.warning, battery_status_s::WARNING_EMERGENCY);
+	EXPECT_FALSE(PX4_ISFINITE(status.time_remaining_s));
 }
 
 // a NaN voltage with a configured capacity must not hide the emergency
