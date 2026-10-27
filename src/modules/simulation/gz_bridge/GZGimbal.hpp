@@ -39,7 +39,8 @@ private:
 	gz::transport::Node &_node;
 	pthread_mutex_t _node_mutex;
 
-	uORB::Subscription _gimbal_device_set_attitude_sub{ORB_ID(gimbal_device_set_attitude)};
+	// run on every new setpoint, so commands do not wait for the 5 Hz schedule
+	uORB::SubscriptionCallbackWorkItem _gimbal_device_set_attitude_sub{this, ORB_ID(gimbal_device_set_attitude)};
 	uORB::Subscription _gimbal_controls_sub{ORB_ID(gimbal_controls)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
 
@@ -77,6 +78,11 @@ private:
 
 	matrix::Quatf _q_gimbal = matrix::Quatf(1.0f, 0.0f, 0.0f, 0.0f);
 	float _gimbal_rate[3] = {NAN};
+
+	// The attitude status is published from the camera IMU callback (250 Hz) with the IMU sample time,
+	// decimated to 125 Hz. Users like the THROUGH mode match it to camera frames by timestamp.
+	static constexpr unsigned ATTITUDE_STATUS_DECIMATION = 2;
+	unsigned _imu_count{0};
 
 	// Device information attributes
 	const char _vendor_name[32] = "PX4";
@@ -128,7 +134,7 @@ private:
 	/// @brief Respond to the gimbal manager when it requests GIMBAL_DEVICE_INFORMATION messages.
 	void publishDeviceInfo();
 	/// @brief Broadcast gimbal device attitude status message.
-	void publishDeviceAttitude();
+	void publishDeviceAttitude(hrt_abstime timestamp);
 	/// @brief Compute joint position setpoint taking into account both desired position and velocity. Then publish the command using the specified gazebo node.
 	/// @param publisher Gazebo node that will publish the setpoint
 	/// @param att_stp desired joint attitude [rad]

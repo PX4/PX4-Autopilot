@@ -60,6 +60,11 @@ bool GZGimbal::init(const std::string &world_name, const std::string &model_name
 		return false;
 	}
 
+	// Schedule on new gimbal setpoints
+	if (!_gimbal_device_set_attitude_sub.registerCallback()) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -82,9 +87,8 @@ void GZGimbal::Run()
 	}
 
 	if (_mnt_mode_out == 2) {
-		// We have a Mavlink gimbal capable of sending messages
+		// We have a Mavlink gimbal capable of sending messages. The attitude is published from gimbalIMUCallback().
 		publishDeviceInfo();
-		publishDeviceAttitude();
 	}
 
 	pthread_mutex_unlock(&_node_mutex);
@@ -117,6 +121,12 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 	_gimbal_rate[0] = rate(0);
 	_gimbal_rate[1] = rate(1);
 	_gimbal_rate[2] = rate(2);
+
+	if (_mnt_mode_out == 2 && (++_imu_count % ATTITUDE_STATUS_DECIMATION) == 0) {
+		// sim time of the IMU sample, which is the PX4 clock in SITL
+		const hrt_abstime timestamp = IMU_data.header().stamp().sec() * 1000000ULL + IMU_data.header().stamp().nsec() / 1000;
+		publishDeviceAttitude(timestamp > 0 ? timestamp : hrt_absolute_time());
+	}
 
 	pthread_mutex_unlock(&_node_mutex);
 }
@@ -208,7 +218,7 @@ void GZGimbal::publishDeviceInfo()
 	}
 }
 
-void GZGimbal::publishDeviceAttitude()
+void GZGimbal::publishDeviceAttitude(hrt_abstime timestamp)
 {
 	gimbal_device_attitude_status_s gimbal_att{};
 
@@ -220,7 +230,7 @@ void GZGimbal::publishDeviceAttitude()
 	gimbal_att.angular_velocity_y = _gimbal_rate[1];
 	gimbal_att.angular_velocity_z = _gimbal_rate[2];
 	gimbal_att.failure_flags = 0;
-	gimbal_att.timestamp = hrt_absolute_time();
+	gimbal_att.timestamp = timestamp;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_att);
 }
