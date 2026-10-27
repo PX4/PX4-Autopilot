@@ -88,7 +88,10 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 		if (_param_fd_act_en.get() > 0) {
 			updateEscsStatus(context, reporter, esc_status, now);
-			mask |= checkMotorStatus(context, reporter, esc_status, now);
+			mask |= checkMotorStatus(context, reporter, esc_status);
+
+		} else {
+			_motor_failure_detector.reset();
 		}
 
 		if (_param_esc_temp_warn_th.get() >= FLT_EPSILON) {
@@ -272,27 +275,33 @@ void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_st
 	}
 }
 
-uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
+uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
 {
 	uint16_t mask = 0;
 
-	// Only check while armed
 	if (context.status().arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		actuator_motors_s actuator_motors{};
 		_actuator_motors_sub.copy(&actuator_motors);
 
-		// Check individual ESC reports
-		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+		// The detector is indexed by ESC slot, so every ESC is checked even if several share a motor function.
+		// The motor index (actuator_function - MOTOR1) selects the command and is what gets reported.
+		static_assert(esc_status_s::CONNECTED_ESC_MAX <= MotorFailureDetector::kMaxMotors, "ESC slots exceed kMaxMotors");
+		static_assert(esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX - esc_report_s::ACTUATOR_FUNCTION_MOTOR1
+			      < actuator_motors_s::NUM_CONTROLS, "ESC motor-function range exceeds actuator_motors controls");
+		static_assert((hrt_abstime)(MotorFailureDetector::kMaxGap * 1e6f) == ESC_OFFLINE_TIMEOUT_US,
+			      "an ESC that is online but too slow for the detector would silently not be checked");
+
+		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
 			if (!math::isInRange(esc_status.esc[i].actuator_function,
 					     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
 				continue; // Skip unmapped ESC status entries
 			}
 
-			const uint8_t actuator_function_index = esc_status.esc[i].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
-			const float current = esc_status.esc[i].esc_current;
+			const uint8_t motor = esc_status.esc[i].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
+			const float measured_current = esc_status.esc[i].esc_current;
 
-			// First wait for ESC telemetry reporting non-zero current. Before that happens, don't check it.
-			if (current > FLT_EPSILON) {
+			// Wait for the ESC to start reporting current before judging it.
+			if (measured_current > FLT_EPSILON) {
 				_esc_has_reported_current[i] = true;
 			}
 
@@ -300,34 +309,22 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				continue;
 			}
 
-			// Current limits
-			float thrust = 0.f;
+			// The current model only describes forward thrust: a reversible motor is not evaluated.
+			const bool reversible = (actuator_motors.reversible_flags >> motor) & 1;
+			const float command = reversible ? NAN : actuator_motors.control[motor];
 
-			if (PX4_ISFINITE(actuator_motors.control[actuator_function_index])) {
-				// Normalized motor thrust commands before thrust model factor is applied, NAN means motor is turned off -> 0 thrust
-				thrust = fabsf(actuator_motors.control[actuator_function_index]);
+			// Drive the detector off this ESC's own sample time: esc_status is published whenever any ESC
+			// reports, so the other slots may still hold an older sample, which must not count again.
+			_motor_failure_detector.update(i, esc_status.esc[i].timestamp, command, measured_current);
+
+			// The latch outlives handling the failure, which stops evaluating its own motor (NAN command).
+			const MotorFailureDetector::Failure failure = _motor_failure_detector.failure(i);
+
+			if (failure != MotorFailureDetector::Failure::None) {
+				mask |= (1u << motor);
 			}
 
-			bool current_too_low = current < (thrust * _param_motfail_c2t.get()) - _param_motfail_off.get();
-			bool current_too_high = current > (thrust * _param_motfail_c2t.get()) + _param_motfail_off.get();
-
-			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_s);
-			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_s);
-
-			if (!_esc_undercurrent_hysteresis[i].get_state()) {
-				// Only set, never clear mid-air: stopping the motor in response could make it appear healthy again
-				_esc_undercurrent_hysteresis[i].set_state_and_update(current_too_low, now);
-			}
-
-			if (!_esc_overcurrent_hysteresis[i].get_state()) {
-				// Only set, never clear mid-air: stopping the motor in response could make it appear healthy again
-				_esc_overcurrent_hysteresis[i].set_state_and_update(current_too_high, now);
-			}
-
-			mask |= (static_cast<uint16_t>(_esc_undercurrent_hysteresis[i].get_state()) << actuator_function_index);
-			mask |= (static_cast<uint16_t>(_esc_overcurrent_hysteresis[i].get_state()) << actuator_function_index);
-
-			if (_esc_undercurrent_hysteresis[i].get_state()) {
+			if (failure == MotorFailureDetector::Failure::Undercurrent) {
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
@@ -336,15 +333,13 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
 								events::ID("check_motor_undercurrent"),
-								events::Log::Critical, "Motor {1} undercurrent detected", actuator_function_index + 1);
+								events::Log::Critical, "Motor {1} undercurrent detected", motor + 1);
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d undercurrent detected",
-							     actuator_function_index + 1);
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d undercurrent detected", motor + 1);
 				}
-			}
 
-			if (_esc_overcurrent_hysteresis[i].get_state()) {
+			} else if (failure == MotorFailureDetector::Failure::Overcurrent) {
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
@@ -353,23 +348,33 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
 								events::ID("check_motor_overcurrent"),
-								events::Log::Critical, "Motor {1} overcurrent detected", actuator_function_index + 1);
+								events::Log::Critical, "Motor {1} overcurrent detected", motor + 1);
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d overcurrent detected",
-							     actuator_function_index + 1);
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d overcurrent detected", motor + 1);
 				}
 			}
 		}
 
-	} else { // Disarmed
-		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
-			_esc_undercurrent_hysteresis[i].set_state_and_update(false, now);
-			_esc_overcurrent_hysteresis[i].set_state_and_update(false, now);
-		}
+	} else {
+		_motor_failure_detector.reset();
 	}
 
 	return mask;
+}
+
+void EscChecks::updateParams()
+{
+	HealthAndArmingCheckBase::updateParams();
+
+	MotorFailureDetector::Config cfg{};
+	cfg.current_slope_a = _param_motfail_c2t.get();
+	cfg.current_idle_a = _param_motfail_idle.get();
+	cfg.overcurrent_threshold_a = _param_motfail_over.get();
+	cfg.overcurrent_trigger_time_s = _param_motfail_ovr_time.get();
+	cfg.undercurrent_threshold_a = _param_motfail_under.get();
+	cfg.undercurrent_trigger_time_s = _param_motfail_und_time.get();
+	_motor_failure_detector.configure(cfg);
 }
 
 void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)

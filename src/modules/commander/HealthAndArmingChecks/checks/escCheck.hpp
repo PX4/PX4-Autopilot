@@ -36,6 +36,7 @@
 #include "../Common.hpp"
 
 #include <lib/hysteresis/hysteresis.h>
+#include <lib/motor_failure_detector/MotorFailureDetector.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/esc_status.h>
@@ -48,6 +49,7 @@ public:
 	~EscChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
+	void updateParams() override;
 
 	uint16_t getMotorFailureMask() const { return _motor_failure_mask; }
 	bool getEscArmStatus() const { return _esc_arm_hysteresis.get_state(); }
@@ -62,7 +64,7 @@ public:
 private:
 	uint16_t checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	uint16_t checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
-	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
+	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 	void updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	void checkEscTemperature(Report &reporter, const esc_status_s &esc_status);
 
@@ -72,17 +74,19 @@ private:
 	const hrt_abstime _start_time{hrt_absolute_time()};
 
 	uint16_t _motor_failure_mask = 0;
-	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {};
+	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
 	bool _esc_over_temp_warned{false};
-	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
-	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_arm_hysteresis;
+	MotorFailureDetector _motor_failure_detector;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,
 					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
 					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
-					(ParamFloat<px4::params::MOTFAIL_TIME>) _param_motfail_time,
-					(ParamFloat<px4::params::MOTFAIL_OFF>) _param_motfail_off,
+					(ParamFloat<px4::params::MOTFAIL_IDLE>) _param_motfail_idle,
+					(ParamFloat<px4::params::MOTFAIL_OVER>) _param_motfail_over,
+					(ParamFloat<px4::params::MOTFAIL_OVR_TIME>) _param_motfail_ovr_time,
+					(ParamFloat<px4::params::MOTFAIL_UNDER>) _param_motfail_under,
+					(ParamFloat<px4::params::MOTFAIL_UND_TIME>) _param_motfail_und_time,
 					(ParamFloat<px4::params::ESC_TEMP_WARN_TH>) _param_esc_temp_warn_th);
 };

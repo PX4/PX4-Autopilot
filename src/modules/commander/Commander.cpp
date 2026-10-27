@@ -1290,9 +1290,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				// requested first mission item valid
 				if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && (cmd.param1 < _mission_result_sub.get().seq_total)) {
 
-					// switch to AUTO_MISSION and ARM
-					if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, getSourceFromCommand(cmd))
-					    && (TRANSITION_DENIED != arm(arm_disarm_reason_t::mission_start))) {
+					// Switch to AUTO_MISSION but don't arm: arming is a separate command.
+					// If disarmed, the mission starts once the vehicle is armed.
+					if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, getSourceFromCommand(cmd))) {
 
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1525,9 +1525,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
 					// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
 					/* airspeed calibration */
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_vehicle_status.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AirspeedCalibration);
+#else
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+#endif
 
 				} else if ((int)(cmd.param7) == 1) {
 					/* do esc calibration */

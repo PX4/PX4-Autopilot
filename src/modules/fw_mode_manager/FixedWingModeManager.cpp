@@ -111,6 +111,7 @@ FixedWingModeManager::vehicle_control_mode_poll()
 {
 	if (_control_mode_sub.updated()) {
 		const bool was_armed = _control_mode.flag_armed;
+		const bool was_offboard = _control_mode.flag_control_offboard_enabled;
 
 		if (_control_mode_sub.copy(&_control_mode)) {
 
@@ -118,6 +119,11 @@ FixedWingModeManager::vehicle_control_mode_poll()
 			if (!was_armed && _control_mode.flag_armed) {
 				reset_takeoff_state();
 				reset_landing_state();
+			}
+
+			// only follow setpoints received in this Offboard session, not what an earlier mode left behind
+			if (!was_offboard && _control_mode.flag_control_offboard_enabled) {
+				_position_setpoint_current_valid = false;
 			}
 		}
 	}
@@ -2191,6 +2197,9 @@ FixedWingModeManager::Run()
 			_go_direct_to_destination = true;
 		}
 
+		// the control mode decides below where the setpoint is taken from, so it has to be current
+		vehicle_control_mode_poll();
+
 		if (_control_mode.flag_control_offboard_enabled) {
 			trajectory_setpoint_s trajectory_setpoint;
 
@@ -2289,7 +2298,6 @@ FixedWingModeManager::Run()
 		vehicle_attitude_poll();
 		vehicle_attitude_setpoint_poll();
 		vehicle_command_poll();
-		vehicle_control_mode_poll();
 		wind_poll(now);
 
 		if (_vehicle_land_detected_sub.updated()) {
