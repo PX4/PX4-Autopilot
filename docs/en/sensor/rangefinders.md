@@ -17,7 +17,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 
 | Rangefinder                                 | Technology      | Range (min – max) | Connections      | NDAA | Notes                               |
 | ------------------------------------------- | --------------- | ----------------- | ---------------- | ---- | ----------------------------------- |
-| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar | 0.5 m – 50 m      | UART             | ~    | All-weather, works over water       |
+| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar | 0.5 m – 50 m      | UART             | ✔️   | All-weather, works over water       |
 | [ARK DIST SR]                               | ToF (850 nm IR) | 8 cm to ~30 m     | DroneCAN, UART   | ✔️   |                                     |
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m     | DroneCAN, UART   | ✔️   |                                     |
 | [Benewake TFmini]                           | ToF (IR laser)  | ~12 m             | UART             | ~    |                                     |
