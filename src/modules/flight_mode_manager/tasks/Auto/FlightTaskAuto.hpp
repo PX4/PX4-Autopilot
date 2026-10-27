@@ -199,6 +199,7 @@ private:
 	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overridden using DO_CHANGE_SPEED
 
 	MapProjection _reference_position{}; /**< Class used to project lat/lon setpoint into local frame. */
+	bool _global_reference_init{false}; /*Indicate an global reference frame was initialised previously*/
 	float _reference_altitude{NAN}; /**< Altitude relative to ground. */
 	double _reference_lat{static_cast<double>(NAN)}; /**< latitude the projection reference was initialized with */
 	double _reference_lon{static_cast<double>(NAN)}; /**< longitude the projection reference was initialized with */
