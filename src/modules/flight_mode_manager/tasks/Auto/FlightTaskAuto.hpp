@@ -172,6 +172,7 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_ERR_MAX>) _param_mpc_z_err_max,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
 					(ParamFloat<px4::params::MPC_LAND_CRWL>) _param_mpc_land_crwl,
+					(ParamFloat<px4::params::MPC_LAND_APPR>) _param_mpc_land_appr,
 					(ParamInt<px4::params::MPC_AUTO_NUDGING>) _param_mpc_auto_nudging,
 					(ParamFloat<px4::params::MPC_LAND_RADIUS>) _param_mpc_land_radius,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
