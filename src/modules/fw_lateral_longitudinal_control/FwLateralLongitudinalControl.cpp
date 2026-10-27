@@ -85,7 +85,6 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	_tecs_status_pub.advertise();
 	_flight_phase_estimation_pub.advertise();
 	_fixed_wing_lateral_status_pub.advertise();
-	_spoilers_setpoint_pub.advertise();
 
 	_fuel_fraction_filter.setParameters(hrt_abstime{0}, FUEL_FRACTION_FILTER_TIME_CONST);
 
@@ -246,11 +245,6 @@ void FwLateralLongitudinalControl::Run()
 
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
-
-			normalized_unsigned_setpoint_s spoilers_sp{};
-			spoilers_sp.timestamp = now;
-			spoilers_sp.normalized_setpoint = _tecs.get_spoiler_setpoint();
-			_spoilers_setpoint_pub.publish(spoilers_sp);
 
 			// ----- Lateral ------
 			float roll_sp {NAN};
@@ -558,6 +552,7 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 
 	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
+	tecs_status.spoiler_sp = _tecs.get_spoiler_setpoint();
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;
 	tecs_status.weight_ratio = _performance_model.getWeightRatio();

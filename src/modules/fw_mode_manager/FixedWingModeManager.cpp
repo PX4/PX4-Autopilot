@@ -2447,8 +2447,18 @@ FixedWingModeManager::Run()
 			flaps_setpoint.timestamp = now;
 			_flaps_setpoint_pub.publish(flaps_setpoint);
 
+			// Deploy at least the spoilers TECS demands to dissipate excess energy that minimum throttle cannot.
+			// Only used while TECS is running, so a stale demand does not latch the spoilers.
+			float spoilers_tecs = 0.f;
+			tecs_status_s tecs_status;
+
+			if (_tecs_status_sub.copy(&tecs_status) && (now < tecs_status.timestamp + 1_s)
+			    && PX4_ISFINITE(tecs_status.spoiler_sp)) {
+				spoilers_tecs = tecs_status.spoiler_sp;
+			}
+
 			normalized_unsigned_setpoint_s spoilers_setpoint;
-			spoilers_setpoint.normalized_setpoint = _spoilers_setpoint;
+			spoilers_setpoint.normalized_setpoint = math::max(_spoilers_setpoint, spoilers_tecs);
 			spoilers_setpoint.timestamp = now;
 			_spoilers_setpoint_pub.publish(spoilers_setpoint);
 		}
