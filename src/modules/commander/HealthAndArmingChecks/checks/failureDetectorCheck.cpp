@@ -131,11 +131,10 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 	if (reporter.failsafeFlags().fd_crash) {
 		/* EVENT
 		 * @description
-		 * The vehicle did not move after an impact without being detected as landed.
-		 * Check the vehicle and disarm if it is on the ground.
+		 * Disarm if the vehicle is on the ground.
 		 *
 		 * <profile name="dev">
-		 * This check can be configured via <param>FD_IMPACT_THR</param> and <param>FD_IMPACT_T</param> parameters.
+		 * This check can be configured via <param>FD_IMPACT_T</param> parameter.
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_crash"),
@@ -148,8 +147,6 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 	} else if (reporter.failsafeFlags().fd_impact) {
 		/* EVENT
 		 * @description
-		 * A large acceleration was measured, most likely a collision with the ground or an obstacle.
-		 *
 		 * <profile name="dev">
 		 * This check can be configured via <param>FD_IMPACT_THR</param> parameter.
 		 * </profile>
