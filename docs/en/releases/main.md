@@ -81,7 +81,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [Serial Passthrough](../uart/serial_passthrough.md): new reference [bridge application](../uart/serial_passthrough.md#bridge-application), `Tools/mavlink_serial_bridge.py`, exposes a flight controller serial port or ESC signal pin as a virtual serial port on a Linux/macOS host, so ESC configuration and GPS tools can connect to it over MAVLink.
   ([PX4-Autopilot#28782: feat(tools): add mavlink_serial_bridge.py reference bridge application](https://github.com/PX4/PX4-Autopilot/pull/28782))
 - [Agam FloRange](../dronecan/agam_florange.md): new DroneCAN optical flow, distance sensor and IMU module (PAA3905, AFBR-S50LV85D, ICM-42688-P). ([PX4-Autopilot#28901](https://github.com/PX4/PX4-Autopilot/pull/28901))
-- New board: [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md), i.MX 95 with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
+
+#### New Flight Controllers
+
+- [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md): an i.MX 95 board with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores. ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
 
 ### Common
 
