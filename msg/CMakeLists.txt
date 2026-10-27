@@ -223,6 +223,7 @@ set(msg_files
 	SensorTemp.msg
 	SensorUwb.msg
 	SensorAirflow.msg
+	SurfaceVehicleCourseSetpoint.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
@@ -236,7 +237,6 @@ set(msg_files
 	UavcanFirmwareUpdate.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
-	UgvUsvCourseSetpoint.msg
 	UlogStream.msg
 	UlogStreamAck.msg
 	VehicleAcceleration.msg

@@ -276,6 +276,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SensorsStatusGnss](SensorsStatusGnss.md) — Per-receiver GNSS health and check diagnostics.
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
+- [SurfaceVehicleCourseSetpoint](SurfaceVehicleCourseSetpoint.md) — Surface Vehicle Course Setpoint.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
 - [TargetGnss](TargetGnss.md) — Landing target GNSS position in WGS84 coordinates, and optional NED velocity, from a target-mounted receiver.
@@ -290,8 +291,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [UavcanFirmwareUpdate](UavcanFirmwareUpdate.md)
 - [UavcanParameterRequest](UavcanParameterRequest.md) — UAVCAN-MAVLink parameter bridge request type.
 - [UavcanParameterValue](UavcanParameterValue.md) — UAVCAN-MAVLink parameter bridge response type.
-- [UgvUsvCourseSetpoint](UgvUsvCourseSetpoint.md) — UGV/USV Course Setpoint.
-- [UgvUsvCourseSetpoint](UgvUsvCourseSetpoint.md) — UGV/USV Course Setpoint.
 - [UlogStream](UlogStream.md) — Message to stream ULog data from the logger. Corresponds to the LOGGING_DATA. mavlink message.
 - [UlogStreamAck](UlogStreamAck.md) — Ack a previously sent ulog_stream message that had. the NEED_ACK flag set.
 - [VehicleAcceleration](VehicleAcceleration.md)

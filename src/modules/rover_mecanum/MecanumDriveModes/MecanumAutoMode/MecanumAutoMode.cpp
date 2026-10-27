@@ -39,7 +39,7 @@ MecanumAutoMode::MecanumAutoMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
 	_rover_position_setpoint_pub.advertise();
-	_ugv_usv_course_setpoint_pub.advertise();
+	_surface_vehicle_course_setpoint_pub.advertise();
 }
 
 void MecanumAutoMode::updateParams()
@@ -125,12 +125,12 @@ void MecanumAutoMode::guidedCourse()
 	}
 
 	// Streamed, so the course is held again after the position controller was reset on a control mode change
-	ugv_usv_course_setpoint_s ugv_usv_course_setpoint{};
-	ugv_usv_course_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint{};
+	surface_vehicle_course_setpoint.timestamp = hrt_absolute_time();
 	// The navigator publishes the course in [0, 2pi)
-	ugv_usv_course_setpoint.course = matrix::wrap_pi(current.course);
-	ugv_usv_course_setpoint.speed = current.cruising_speed > 0.f ? math::constrain(current.cruising_speed, 0.f,
-					_param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
-	ugv_usv_course_setpoint.yaw = NAN;
-	_ugv_usv_course_setpoint_pub.publish(ugv_usv_course_setpoint);
+	surface_vehicle_course_setpoint.course = matrix::wrap_pi(current.course);
+	surface_vehicle_course_setpoint.speed = current.cruising_speed > 0.f ? math::constrain(current.cruising_speed, 0.f,
+						_param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
+	surface_vehicle_course_setpoint.yaw = NAN;
+	_surface_vehicle_course_setpoint_pub.publish(surface_vehicle_course_setpoint);
 }

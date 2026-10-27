@@ -50,7 +50,7 @@
 #include <uORB/topics/rover_attitude_setpoint.h>
 #include <uORB/topics/pure_pursuit_status.h>
 #include <uORB/topics/rover_position_setpoint.h>
-#include <uORB/topics/ugv_usv_course_setpoint.h>
+#include <uORB/topics/surface_vehicle_course_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -78,7 +78,7 @@ public:
 	~DifferentialPosControl() = default;
 
 	/**
-	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint or ugvUsvCourseSetpoint.
+	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint or surfaceVehicleCourseSetpoint.
 	 */
 	void updatePosControl();
 
@@ -109,7 +109,7 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
-	uORB::Subscription _ugv_usv_course_setpoint_sub{ORB_ID(ugv_usv_course_setpoint)};
+	uORB::Subscription _surface_vehicle_course_setpoint_sub{ORB_ID(surface_vehicle_course_setpoint)};
 
 	// uORB publications
 	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};

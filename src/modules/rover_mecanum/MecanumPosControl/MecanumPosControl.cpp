@@ -150,15 +150,15 @@ void MecanumPosControl::updateSubscriptions()
 		_stopped = false;
 	}
 
-	if (_ugv_usv_course_setpoint_sub.updated()) {
-		ugv_usv_course_setpoint_s ugv_usv_course_setpoint;
-		_ugv_usv_course_setpoint_sub.copy(&ugv_usv_course_setpoint);
+	if (_surface_vehicle_course_setpoint_sub.updated()) {
+		surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint;
+		_surface_vehicle_course_setpoint_sub.copy(&surface_vehicle_course_setpoint);
 		_start_ned = Vector2f(NAN, NAN);
 		_arrival_speed = 0.f;
-		_cruising_speed = PX4_ISFINITE(ugv_usv_course_setpoint.speed) ?
-				  ugv_usv_course_setpoint.speed : _param_ro_speed_limit.get();
+		_cruising_speed = PX4_ISFINITE(surface_vehicle_course_setpoint.speed) ?
+				  surface_vehicle_course_setpoint.speed : _param_ro_speed_limit.get();
 		_target_waypoint_ned = Vector2f(NAN, NAN);
-		_course = ugv_usv_course_setpoint.course;
+		_course = surface_vehicle_course_setpoint.course;
 		_stopped = false;
 	}
 }

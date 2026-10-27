@@ -48,7 +48,7 @@ To follow a line instead, use [Mission mode](#mission-mode) or send a [RoverPosi
 
 [MAV_CMD_GUIDED_CHANGE_HEADING]: https://mavlink.io/en/messages/common.html#MAV_CMD_GUIDED_CHANGE_HEADING
 
-Internally the mode publishes a [UgvUsvCourseSetpoint](../msg_docs/UgvUsvCourseSetpoint.md), which [external modes](../ros2/px4_ros2_control_interface.md) can also send directly.
+Internally the mode publishes a [SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md), which [external modes](../ros2/px4_ros2_control_interface.md) can also send directly.
 
 ## Return Mode
 
