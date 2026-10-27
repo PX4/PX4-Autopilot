@@ -41,3 +41,11 @@ if param compare -s MC_NN_EN 1
 then
 	mc_nn_control start
 fi
+
+#
+# Start the THROUGH flight mode (external mode registered via uORB).
+#
+if param compare -s THRU_EN 1
+then
+	through_control start
+fi

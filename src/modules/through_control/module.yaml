@@ -1,0 +1,290 @@
+module_name: through_control
+
+parameters:
+    - group: THROUGH Mode
+      definitions:
+        THRU_EN:
+            description:
+                short: Enable the THROUGH flight mode module
+                long: |
+                    Starts through_control on boot (multicopter only). The module registers
+                    the external flight mode THROUGH with the commander.
+            type: boolean
+            default: 1
+            reboot_required: true
+
+        THRU_THR_BASE:
+            description:
+                short: Base collective thrust during guidance
+                long: |
+                    Fixed thrust reference used to solve the along-LOS acceleration.
+            type: float
+            default: 0.70
+            min: 0.1
+            max: 1.0
+            unit: norm
+            decimal: 2
+            increment: 0.01
+
+        THRU_THR_MIN:
+            description:
+                short: Minimum collective thrust
+            type: float
+            default: 0.30
+            min: 0.0
+            max: 1.0
+            unit: norm
+            decimal: 2
+            increment: 0.01
+
+        THRU_THR_MAX:
+            description:
+                short: Maximum collective thrust
+            type: float
+            default: 0.90
+            min: 0.0
+            max: 1.0
+            unit: norm
+            decimal: 2
+            increment: 0.01
+
+        THRU_PN_N:
+            description:
+                short: Proportional navigation constant
+            type: float
+            default: 3.5
+            min: 1.0
+            max: 8.0
+            decimal: 2
+            increment: 0.1
+
+        THRU_A_MAX:
+            description:
+                short: Maximum PN lateral acceleration command
+            type: float
+            default: 9.8
+            min: 0.0
+            max: 30.0
+            unit: m/s^2
+            decimal: 2
+            increment: 0.1
+
+        THRU_V_MAX:
+            description:
+                short: Maximum speed along the line of sight
+            type: float
+            default: 10.0
+            min: 0.0
+            max: 30.0
+            unit: m/s
+            decimal: 1
+            increment: 0.5
+
+        THRU_K_VLIM:
+            description:
+                short: Gain of the along-LOS speed limiter
+            type: float
+            default: 2.0
+            min: 0.0
+            max: 10.0
+            unit: 1/s
+            decimal: 2
+            increment: 0.1
+
+        THRU_VC_MIN:
+            description:
+                short: Minimum closing velocity used by PN
+            type: float
+            default: 1.0
+            min: 0.0
+            max: 10.0
+            unit: m/s
+            decimal: 2
+            increment: 0.1
+
+        THRU_TILT_MAX:
+            description:
+                short: Maximum tilt angle
+            type: float
+            default: 60.0
+            min: 5.0
+            max: 85.0
+            unit: deg
+            decimal: 1
+            increment: 1.0
+
+        THRU_LOS_LPF:
+            description:
+                short: Cutoff frequency of the LOS rate low-pass filter
+            type: float
+            default: 8.0
+            min: 0.1
+            max: 50.0
+            unit: Hz
+            decimal: 1
+            increment: 0.5
+
+        THRU_K_VDAMP:
+            description:
+                short: Velocity damping gain during ALIGN and RAMP
+            type: float
+            default: 1.5
+            min: 0.0
+            max: 10.0
+            unit: 1/s
+            decimal: 2
+            increment: 0.1
+
+        THRU_YAW_RMAX:
+            description:
+                short: Maximum yaw rate
+            type: float
+            default: 60.0
+            min: 1.0
+            max: 360.0
+            unit: deg/s
+            decimal: 1
+            increment: 5.0
+
+        THRU_ALN_ERR:
+            description:
+                short: Alignment error threshold (pan, tilt and yaw)
+            type: float
+            default: 3.0
+            min: 0.1
+            max: 30.0
+            unit: deg
+            decimal: 1
+            increment: 0.5
+
+        THRU_ALN_T_OK:
+            description:
+                short: Time the alignment must hold before RAMP
+            type: float
+            default: 0.5
+            min: 0.0
+            max: 10.0
+            unit: s
+            decimal: 2
+            increment: 0.1
+
+        THRU_ALN_T_MAX:
+            description:
+                short: ALIGN timeout
+            type: float
+            default: 8.0
+            min: 0.5
+            max: 120.0
+            unit: s
+            decimal: 1
+            increment: 0.5
+
+        THRU_RAMP_T:
+            description:
+                short: Duration of the thrust ramp
+            type: float
+            default: 1.0
+            min: 0.1
+            max: 10.0
+            unit: s
+            decimal: 2
+            increment: 0.1
+
+        THRU_TERM_SZ:
+            description:
+                short: Target size threshold to enter TERMINAL
+                long: |
+                    Ratio of the target enclosing-circle diameter to the image width.
+            type: float
+            default: 0.6
+            min: 0.05
+            max: 2.0
+            decimal: 2
+            increment: 0.05
+
+        THRU_TERM_NEAR:
+            description:
+                short: Near-target ratio for TERMINAL after target loss
+                long: |
+                    If the target is lost while its last valid size was larger than
+                    THRU_TERM_SZ * THRU_TERM_NEAR, the mode enters TERMINAL instead of aborting.
+            type: float
+            default: 0.6
+            min: 0.0
+            max: 1.0
+            decimal: 2
+            increment: 0.05
+
+        THRU_TERM_T:
+            description:
+                short: Duration of the TERMINAL coast phase
+            type: float
+            default: 0.5
+            min: 0.0
+            max: 5.0
+            unit: s
+            decimal: 2
+            increment: 0.1
+
+        THRU_LOST_TO:
+            description:
+                short: Vision target loss timeout
+            type: float
+            default: 0.2
+            min: 0.02
+            max: 5.0
+            unit: s
+            decimal: 2
+            increment: 0.05
+
+        THRU_MIN_ALT:
+            description:
+                short: Minimum altitude above the local origin
+            type: float
+            default: 2.0
+            min: 0.0
+            max: 100.0
+            unit: m
+            decimal: 1
+            increment: 0.5
+
+        THRU_SAT_T:
+            description:
+                short: Tilt or thrust saturation tolerance time
+            type: float
+            default: 1.0
+            min: 0.0
+            max: 10.0
+            unit: s
+            decimal: 2
+            increment: 0.1
+
+        THRU_T_MAX:
+            description:
+                short: Maximum time in the THROUGH mode
+            type: float
+            default: 30.0
+            min: 1.0
+            max: 300.0
+            unit: s
+            decimal: 1
+            increment: 1.0
+
+        THRU_GMB_K:
+            description:
+                short: Gimbal tracking gain
+            type: float
+            default: 0.8
+            min: 0.01
+            max: 1.0
+            decimal: 2
+            increment: 0.05
+
+        THRU_EXIT_MODE:
+            description:
+                short: Mode to switch to when THROUGH exits
+            type: enum
+            values:
+                0: Hold
+                1: Position
+            default: 0

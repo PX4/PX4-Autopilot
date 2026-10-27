@@ -1,0 +1,12 @@
+menuconfig MODULES_THROUGH_CONTROL
+	bool "through_control"
+	default n
+	---help---
+		Enable support for the THROUGH ring-diving external flight mode
+
+menuconfig USER_THROUGH_CONTROL
+	bool "through_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_THROUGH_CONTROL
+	---help---
+		Put through_control in userspace memory
