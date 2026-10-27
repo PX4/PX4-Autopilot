@@ -446,24 +446,24 @@ The check needs per-motor RPM telemetry and is enabled by [COM_ARM_CHK_ESCS](#CO
 It only runs while the vehicle is still landed and within the spool-up time ([COM_SPOOLUP_TIME](#COM_SPOOLUP_TIME)) after arming:
 
 - For the first 50% of the spool-up time, the motors are given time to start and nothing is evaluated.
-- From 50% to 80% of the spool-up time, a motor that is never seen spinning (nonzero RPM without a motor-stuck fault from its ESC) is considered stuck.
+- From 50% to 80% of the spool-up time, a motor that is never seen spinning (that is, never reports non-zero RPM without a motor-stuck fault from its ESC) is considered stuck.
   The decision is made at 80% of the spool-up time.
 
 If any motor is considered stuck, the vehicle disarms.
-Motors that are not commanded to run (for example, a stopped motor) are ignored, and the check stops once takeoff is detected.
+Motors that are not commanded to run (such as stopped motors) are ignored, and the check stops once takeoff is detected.
 
 ::: warning
 The check assumes that the minimum motor output spins the motors while armed.
 For DShot, set [DSHOT_MIN](#DSHOT_MIN) high enough, and do not use DShot 3D mode.
 Otherwise, healthy motors report zero RPM and the vehicle disarms.
-ESCs that report no RPM for a motor (for example, when bidirectional DShot is not enabled on that output) also cause a disarm.
+ESCs that report no RPM for a motor (for example, a DShot output with neither bidirectional DShot nor serial telemetry enabled) also cause a disarm.
 :::
 
-| Parameter                                                                                                   | Description                                                                                              |
-| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| <a id="COM_ARM_CHK_ESCS"></a>[COM_ARM_CHK_ESCS](../advanced_config/parameter_reference.md#COM_ARM_CHK_ESCS) | Enable the check (along with the other checks on ESCs that report telemetry).                            |
-| <a id="COM_SPOOLUP_TIME"></a>[COM_SPOOLUP_TIME](../advanced_config/parameter_reference.md#COM_SPOOLUP_TIME) | Spool-up time after arming. Motors are evaluated from 50% of this time, and the decision is made at 80%. |
-| <a id="DSHOT_MIN"></a>[DSHOT_MIN](../advanced_config/parameter_reference.md#DSHOT_MIN)                      | Minimum DShot motor output. Set it high enough that the motors spin while armed.                         |
+| Parameter                                                                                                   | Description                                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_ARM_CHK_ESCS"></a>[COM_ARM_CHK_ESCS](../advanced_config/parameter_reference.md#COM_ARM_CHK_ESCS) | Enable the check (along with the other checks on ESCs that report telemetry).                                                                |
+| <a id="COM_SPOOLUP_TIME"></a>[COM_SPOOLUP_TIME](../advanced_config/parameter_reference.md#COM_SPOOLUP_TIME) | Spool-up time after arming. Motors are evaluated from 50% of this time, and the decision is made at 80%. If set to 0, the check is disabled. |
+| <a id="DSHOT_MIN"></a>[DSHOT_MIN](../advanced_config/parameter_reference.md#DSHOT_MIN)                      | Minimum DShot motor output. Set it high enough that the motors spin while armed.                                                             |
 
 ### External Automatic Trigger System (ATS)
 
