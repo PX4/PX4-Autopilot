@@ -203,6 +203,7 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		const bool two_receivers0 = (_param_sens_gnss0_hdg.get() == static_cast<int32_t>(gnss_heading::BaselineType::TwoReceivers));
 		const bool two_receivers1 = (_param_sens_gnss1_hdg.get() == static_cast<int32_t>(gnss_heading::BaselineType::TwoReceivers));
 		const bool none_disabled = _param_sens_gnss0_hdg.get() && _param_sens_gnss1_hdg.get();
+		_two_receivers_slot = -1;
 
 		if (two_receivers0 || two_receivers1) {
 			if (two_receivers0 == two_receivers1) {
