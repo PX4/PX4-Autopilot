@@ -699,6 +699,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		return sp->valid;
 	}
 	else if(item.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED){
+
 		sp->x = item.x;
 		sp->y = item.y;
 		sp->alt = item.altitude;
@@ -726,6 +727,33 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		// we still use cruising throttle here to determine if gliding is enabled
 		sp->gliding_enabled = (_navigator->get_cruising_throttle() < FLT_EPSILON);
 
+		sp->frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+
+
+		switch (item.nav_cmd) {
+		case NAV_CMD_IDLE:
+			sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+			break;
+
+		case NAV_CMD_TAKEOFF_LOCAL:
+			// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
+			if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+		    	&& !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed) {
+
+				sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+			} else {
+				sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
+				// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
+				// The yaw setpoint generation is handled by FlightTaskAuto.
+				sp->yaw = NAN;
+			}
+
+			break;
+		default:
+			break;
+		}
 
 		sp->valid = true;
 		sp->timestamp = hrt_absolute_time();
@@ -878,8 +906,8 @@ MissionBlock::set_local_takeoff_item(struct mission_item_s *item, float local_al
 
 	/* use current position */
 	item->frame = NAV_FRAME::NAV_FRAME_LOCAL_NED;
-	item->x = _navigator->get_local_position()->x;
-	item->y = _navigator->get_local_position()->y;
+	item->x = static_cast<double>(_navigator->get_local_position()->x);
+	item->y = static_cast<double>(_navigator->get_local_position()->y);
 	item->yaw = NAN;
 
 	item->altitude = local_altitude;

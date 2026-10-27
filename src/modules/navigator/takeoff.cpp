@@ -270,7 +270,7 @@ Takeoff::set_takeoff_position()
 			// 	    	_navigator->get_param_mis_takeoff_alt());
 		}
 
-		if (takeoff_height < _navigator->get_local_position()->z) {
+		if (takeoff_height > _navigator->get_local_position()->z) {
 			// If the suggestion is lower than our current alt, let's not go down.
 			takeoff_height = _navigator->get_local_position()->z;
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
