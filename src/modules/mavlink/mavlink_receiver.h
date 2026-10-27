@@ -429,8 +429,22 @@ private:
 	hrt_abstime _vte_en_invalid_warn_last{0};
 # endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
+	// A distance_sensor instance for each rangefinder (system, component, sensor ID) on this link
+	struct MavlinkRangefinder {
+		uORB::PublicationMulti<distance_sensor_s> pub{ORB_ID(distance_sensor)};
+		uint8_t sysid{0};
+		uint8_t compid{0};
+		uint8_t sensor_id{0};
+		bool used{false};
+	};
+
+	// The device ID's 5-bit bus holds the MAVLink instance in its low 3 bits and the rangefinder index above them
+	static constexpr int RANGEFINDER_INDEX_SHIFT = 3;
+	static constexpr int MAX_RANGEFINDERS = 4;
+	MavlinkRangefinder _rangefinders[MAX_RANGEFINDERS];
+	bool _rangefinders_full_warned{false};
+
 	// ORB publications (multi)
-	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<aux_global_position_s>		_aux_global_position_pub{ORB_ID(aux_global_position)};
 	uORB::PublicationMulti<rtcm_data_s>		_rtcm_corrections_pub{ORB_ID(rtcm_corrections)};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc)};

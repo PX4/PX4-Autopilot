@@ -86,7 +86,10 @@ MavlinkReceiver::~MavlinkReceiver()
 	delete[] _received_msg_stats;
 #endif // !CONSTRAINED_FLASH
 
-	_distance_sensor_pub.unadvertise();
+	for (MavlinkRangefinder &rangefinder : _rangefinders) {
+		rangefinder.pub.unadvertise();
+	}
+
 	_rtcm_corrections_pub.unadvertise();
 	_rc_pub.unadvertise();
 	_manual_control_input_pub.unadvertise();
@@ -1146,11 +1149,45 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	mavlink_distance_sensor_t dist_sensor;
 	mavlink_msg_distance_sensor_decode(msg, &dist_sensor);
 
+	// Rangefinders are never released, so the used ones come first
+	int index = 0;
+
+	for (; index < MAX_RANGEFINDERS && _rangefinders[index].used; index++) {
+		const MavlinkRangefinder &rangefinder = _rangefinders[index];
+
+		if (rangefinder.sysid == msg->sysid && rangefinder.compid == msg->compid && rangefinder.sensor_id == dist_sensor.id) {
+			break;
+		}
+	}
+
+	if (index == MAX_RANGEFINDERS) {
+		if (!_rangefinders_full_warned) {
+			PX4_WARN("ignoring rangefinder %d of %d/%d, link has %d already", dist_sensor.id, msg->sysid, msg->compid,
+				 MAX_RANGEFINDERS);
+			_rangefinders_full_warned = true;
+		}
+
+		return;
+	}
+
+	MavlinkRangefinder &rangefinder = _rangefinders[index];
+
+	if (!rangefinder.used) {
+		rangefinder.sysid = msg->sysid;
+		rangefinder.compid = msg->compid;
+		rangefinder.sensor_id = dist_sensor.id;
+		rangefinder.used = true;
+	}
+
+	static constexpr int DEVICE_ID_BUS_BITS = 5;
+	static_assert(MAVLINK_COMM_NUM_BUFFERS <= (1 << RANGEFINDER_INDEX_SHIFT), "MAVLink instance overflows its bus bits");
+	static_assert(MAX_RANGEFINDERS <= (1 << (DEVICE_ID_BUS_BITS - RANGEFINDER_INDEX_SHIFT)), "rangefinder index overflows the bus");
+
 	distance_sensor_s ds{};
 
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
-	device_id.devid_s.bus = _mavlink.get_instance_id();
+	device_id.devid_s.bus = _mavlink.get_instance_id() | (index << RANGEFINDER_INDEX_SHIFT);
 	device_id.devid_s.address = msg->sysid;
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
 
@@ -1174,7 +1211,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	// signal quality is normalised between 0 and 100.
 	ds.signal_quality = dist_sensor.signal_quality == 0 ? -1 : 100 * (dist_sensor.signal_quality - 1) / 99;
 
-	_distance_sensor_pub.publish(ds);
+	rangefinder.pub.publish(ds);
 }
 
 void
