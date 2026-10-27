@@ -63,11 +63,11 @@ jobs:
         shell: bash
         run: ccache -s
 
-      - name: Download MAVSDK
-        run: wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu22.04_amd64.deb"
-
-      - name: Install MAVSDK
-        run: dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu22.04_amd64.deb"
+      - name: Install MAVSDK tests requirements
+        env:
+          # Needed where pip refuses to touch the system Python (PEP 668).
+          PIP_BREAK_SYSTEM_PACKAGES: 1
+        run: pip3 install -r Tools/setup/test-requirements.txt
 
       - name: Check PX4 Environment Variables
         env:
@@ -77,11 +77,6 @@ jobs:
         run: |
             export
             ulimit -a
-
-      - name: Build PX4 / MAVSDK tests
-        env:
-          DONT_RUN: 1
-        run: make px4_sitl_default mavsdk_tests
 
       - uses: ./.github/actions/save-ccache
         if: always()

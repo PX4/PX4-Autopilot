@@ -6,14 +6,14 @@
 
 // Translate VehicleCommandAck v0 <--> v1
 #include <px4_msgs_old/msg/vehicle_command_ack_v0.hpp>
-#include <px4_msgs/msg/vehicle_command_ack.hpp>
+#include <px4_msgs_old/msg/vehicle_command_ack_v1.hpp>
 
 class VehicleCommandAckV1Translation {
 public:
 	using MessageOlder = px4_msgs_old::msg::VehicleCommandAckV0;
 	static_assert(MessageOlder::MESSAGE_VERSION == 0);
 
-	using MessageNewer = px4_msgs::msg::VehicleCommandAck;
+	using MessageNewer = px4_msgs_old::msg::VehicleCommandAckV1;
 	static_assert(MessageNewer::MESSAGE_VERSION == 1);
 
 	static constexpr const char* kTopic = "fmu/out/vehicle_command_ack";

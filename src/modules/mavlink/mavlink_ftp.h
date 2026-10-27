@@ -138,15 +138,15 @@ public:
 private:
 	char		*_data_as_cstring(PayloadHeader *payload);
 
-	void		_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint8_t target_system_id, uint8_t target_comp_id);
-	void		_reply(mavlink_file_transfer_protocol_t *ftp_req);
+	void		_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_system_id, uint8_t target_comp_id);
+	void		_reply(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_system_id);
 	int		_copy_file(const char *src_path, const char *dst_path, size_t length);
 
 	ErrorCode	_workList(PayloadHeader *payload, bool include_time = false);
 	void		_statDirent(const char *name, uint32_t &size, uint32_t &mtime);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
-	ErrorCode	_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id);
+	ErrorCode	_workBurst(PayloadHeader *payload, uint32_t target_system_id, uint8_t target_component_id);
 	ErrorCode	_workWrite(PayloadHeader *payload);
 	ErrorCode	_workTerminate(PayloadHeader *payload);
 	ErrorCode	_workReset(PayloadHeader *payload);
@@ -157,7 +157,7 @@ private:
 	ErrorCode	_workRename(PayloadHeader *payload);
 	ErrorCode	_workCalcFileCRC32(PayloadHeader *payload);
 
-	uint8_t _getServerSystemId(void);
+	uint32_t _getServerSystemId(void);
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
@@ -204,7 +204,7 @@ private:
 		bool		stream_download;
 		uint32_t	stream_offset;
 		uint16_t	stream_seq_number;
-		uint8_t		stream_target_system_id;
+		uint32_t	stream_target_system_id;
 		uint8_t         stream_target_component_id;
 		unsigned	stream_chunk_transmitted;
 		uint8_t		stream_size;            ///< payload size the client asked for, 0 = as much as fits
@@ -240,6 +240,7 @@ private:
 	static constexpr const int _mav_log_dir_len = sizeof(_mav_log_dir) - 1;
 
 	bool _last_reply_valid = false;
+	uint32_t _last_reply_target_system{0}; ///< _last_reply only holds the 8-bit payload field
 	uint8_t _last_reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
 								      + sizeof(PayloadHeader) + sizeof(uint32_t)];
 

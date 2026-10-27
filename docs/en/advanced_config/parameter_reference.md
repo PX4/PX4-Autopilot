@@ -41351,9 +41351,19 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MAVLink system ID.
 
+IDs above 255 use the 32-bit system ID extension of MAVLink 2,
+which forces MAV_PROTO_VER to 2. Every system on the network needs
+to support the extension to talk to such a system.
+
+Only use IDs above 255 for vehicles, and keep ground stations and
+other controlling systems at 255 or below. The gimbal protocol and
+other messages that carry a system ID inside the payload, such as
+the ID of the system in control, still only support IDs up to 255.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1 | 250 |  | 1 |  | &nbsp;
+&check; | 1 | 2147483647 |  | 1 |  | &nbsp;
 
 </div>
 
@@ -41724,12 +41734,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### MIS_MNT_YAW_CTL (`INT32`) {#MIS_MNT_YAW_CTL}
 
-Enable gimbal yaw control in missions.
+Enable gimbal yaw control in missions and Hold.
 
-Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
+Enable yaw control of the mount. (Only affects multicopters with an active ROI)
 
 If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
-If disabled, the vehicle will yaw towards the ROI.
+If disabled, the vehicle will yaw towards the ROI in Mission and Hold mode.
 
 
 **Values:**
@@ -42143,7 +42153,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Motor Failure
 
-<div class="param-group" style="--param-count: 4">
+<div class="param-group" style="--param-count: 7">
 
 <div class="param">
 
@@ -42151,9 +42161,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Enable Actuator Failure check.
 
-If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amount of ESC current per throttle
-level is being consumed.
-Otherwise this indicates an motor failure.
+If enabled, the HealthAndArmingChecks compare each motor's ESC current against the expected
+current for the commanded throttle, and flag a motor whose current stays too far from that
+expectation (too low or too high) for a set time.
 This check only works for ESCs that report current consumption.
 
 
@@ -42172,12 +42182,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### MOTFAIL_C2T (`FLOAT`) {#MOTFAIL_C2T}
 
-Motor Failure Current/Throttle Scale.
-
-Determines the slope between expected steady state current and linearized, normalized thrust command.
-E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
-FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
-
+Motor failure model current-vs-command slope.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -42187,11 +42192,23 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### MOTFAIL_OFF (`FLOAT`) {#MOTFAIL_OFF}
+### MOTFAIL_IDLE (`FLOAT`) {#MOTFAIL_IDLE}
 
-Under/over-current motor failure limit offset.
+Motor failure model idle current.
 
-Check is triggered if `abs(FD_ACT_MOT_C2T * thrust - FD_ACT_OFF)` is above this value.
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 20.0 | 1 | 0.0 | A | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MOTFAIL_OVER (`FLOAT`) {#MOTFAIL_OVER}
+
+Motor failure overcurrent trip band.
+
+Set 0 to disable overcurrent detection.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42202,16 +42219,46 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### MOTFAIL_TIME (`FLOAT`) {#MOTFAIL_TIME}
+### MOTFAIL_OVR_TIME (`FLOAT`) {#MOTFAIL_OVR_TIME}
 
-Motor Failure Hysteresis Time.
+Motor failure overcurrent trigger time.
 
-Motor failure only triggers after current thresholds are exceeded for this time.
+Motor failure only triggers after MOTFAIL_OVER is exceeded for this time.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.01 | 10 | 1 | 1.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MOTFAIL_UNDER (`FLOAT`) {#MOTFAIL_UNDER}
+
+Motor failure undercurrent trip band.
+
+Set 0 to disable undercurrent detection.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 30 | 1 | 10.0 | A | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MOTFAIL_UND_TIME (`FLOAT`) {#MOTFAIL_UND_TIME}
+
+Motor failure undercurrent trigger time.
+
+Motor failure only triggers after MOTFAIL_UNDER is exceeded for this time.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 10 | 1 | 1.0 | s | &nbsp;
 
 </div>
 
@@ -52292,7 +52339,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 264">
+<div class="param-group" style="--param-count: 265">
 
 <div class="param">
 
@@ -56407,6 +56454,18 @@ Configure on which serial port to run LeddarOne Rangefinder.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_LL40LS_SMIN (`INT32`) {#SENS_LL40LS_SMIN}
+
+Min signal strength for V3HP.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 254 |  | 70 |  | &nbsp;
 
 </div>
 
@@ -67235,7 +67294,7 @@ Velocity updates do not prevent position resets.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 50 | 0.5 | 3.0 | s | &nbsp;
+&nbsp; | 0.1 | 50 | 0.5 | 3.0 | s | &nbsp;
 
 </div>
 
@@ -67331,7 +67390,7 @@ Maximum raw measurement age allowed for fusion.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 10 | 0.05 | 1.0 | s | &nbsp;
+&nbsp; | 0.1 | 10 | 0.05 | 1.0 | s | &nbsp;
 
 </div>
 
@@ -67341,12 +67400,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Measurement updated timeout.
 
-Maximum age of local position, velocity and antenna-offset corrections; also limits velocity-to-measurement time mismatch.
+Maximum age of local position, velocity and antenna-offset corrections. GNSS-to-vision alignment may span the measurement recent timeout.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 5 | 0.01 | 0.1 | s | &nbsp;
+&nbsp; | 0.01 | 5 | 0.01 | 0.1 | s | &nbsp;
 
 </div>
 
@@ -67431,7 +67490,7 @@ Keep below VTE_BTOUT.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 50 | 0.25 | 2.0 | s | &nbsp;
+&nbsp; | 0.1 | 50 | 0.25 | 2.0 | s | &nbsp;
 
 </div>
 
