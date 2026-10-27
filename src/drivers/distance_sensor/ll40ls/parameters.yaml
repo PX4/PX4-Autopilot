@@ -14,3 +14,11 @@ parameters:
       reboot_required: true
       min: 0
       max: 2
+    SENS_LL40LS_SMIN:
+      description:
+        short: Min signal strength for V3HP
+      type: int32
+      default: 70
+      reboot_required: true
+      min: 0
+      max: 254
