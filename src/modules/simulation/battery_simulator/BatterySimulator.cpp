@@ -49,21 +49,6 @@ BatterySimulator::BatterySimulator() :
 
 		char param_name[17]; // 16 chars for parameter name + null terminator
 
-		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_FW", i + 1);
-		_i_fw_handles[i] = param_find(param_name);
-
-		if (_i_fw_handles[i] == PARAM_INVALID) {
-			PX4_ERR("Could not find parameter with name %s", param_name);
-		}
-
-		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_MC", i + 1);
-		_i_mc_handles[i] = param_find(param_name);
-
-		if (_i_mc_handles[i] == PARAM_INVALID) {
-			PX4_ERR("Could not find parameter with name %s", param_name);
-		}
-
-
 		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_IDLE", i + 1);
 		_i_idle_handles[i] = param_find(param_name);
 
@@ -134,7 +119,6 @@ void BatterySimulator::Run()
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		}
 	}
 
@@ -200,14 +184,6 @@ void BatterySimulator::updateParams()
 	ModuleParams::updateParams();
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
-		if (_i_fw_handles[i] != PARAM_INVALID) {
-			param_get(_i_fw_handles[i], &_i_fw_override[i]);
-		}
-
-		if (_i_mc_handles[i] != PARAM_INVALID) {
-			param_get(_i_mc_handles[i], &_i_mc_override[i]);
-		}
-
 		if (_i_idle_handles[i] != PARAM_INVALID) {
 			param_get(_i_idle_handles[i], &_i_idle_override[i]);
 		}
@@ -243,36 +219,17 @@ void BatterySimulator::updateMotorLoad()
 
 float BatterySimulator::current(int battery_index, hrt_abstime now_us) const
 {
-	// Fall back to the average current until the motor commands are available, e.g. right after startup
+	// Without recent motor commands, e.g. right after startup, only the idle current is drawn
 	const bool motors_valid = (_actuator_motors_timestamp != 0) && (now_us < _actuator_motors_timestamp + 500_ms);
+	const float motor_load = motors_valid ? _motor_load : 0.f;
 
-	if (_param_sim_bat_model.get() == MODEL_THROTTLE && motors_valid) {
-		return throttleCurrent(battery_index);
-	}
-
-	return avgCurrent(battery_index, _is_fw);
-}
-
-float BatterySimulator::throttleCurrent(int battery_index) const
-{
 	// A negative override means: use the current shared by all batteries
 	const float i_idle = (_i_idle_override[battery_index] >= 0.f) ? _i_idle_override[battery_index] :
 			     _param_sim_bat_i_idle.get();
 	const float i_mot = (_i_mot_override[battery_index] >= 0.f) ? _i_mot_override[battery_index] :
 			    _param_sim_bat_i_mot.get();
 
-	return i_idle + i_mot * _motor_load;
-}
-
-float BatterySimulator::avgCurrent(int battery_index, bool is_fw) const
-{
-	// A non-positive override means: use the average current shared by all batteries
-	if (is_fw) {
-		return (_i_fw_override[battery_index] > 0.f) ? _i_fw_override[battery_index] : _param_sim_bat_i_fw.get();
-	}
-
-	// Rotary wing and every other vehicle type (rover, boat, airship, unspecified) use the MC current
-	return (_i_mc_override[battery_index] > 0.f) ? _i_mc_override[battery_index] : _param_sim_bat_i_mc.get();
+	return i_idle + i_mot * motor_load;
 }
 
 float BatterySimulator::minimumPercentage(int battery_index) const

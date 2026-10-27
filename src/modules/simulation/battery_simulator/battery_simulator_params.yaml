@@ -2,65 +2,12 @@ module_name: battery_simulator
 parameters:
 - group: SITL
   definitions:
-    SIM_BAT_I_FW:
-      description:
-        short: Simulated battery average current draw in fixed wing
-        long: |-
-          Average current drawn from each simulated battery by the drone in fixed wing mode while armed, if SIM_BAT_MODEL is set to Average. With several batteries enabled, each one is drained by this full current. The battery simulator only starts if SIM_BAT_I_FW or SIM_BAT_I_MC is greater than 0. Set both to 0 to disable it entirely (useful when battery state is provided externally, e.g. via MAVLink).
-      type: float
-      default: 2.0
-      min: 0.0
-      unit: A
-    SIM_BAT_I_MC:
-      description:
-        short: Simulated battery average current draw in rotor wing
-        long: |-
-          Average current drawn from each simulated battery by the drone in rotor wing mode, or any vehicle type other than fixed wing, while armed, if SIM_BAT_MODEL is set to Average. With several batteries enabled, each one is drained by this full current. The battery simulator only starts if SIM_BAT_I_FW or SIM_BAT_I_MC is greater than 0. Set both to 0 to disable it entirely (useful when battery state is provided externally, e.g. via MAVLink).
-      type: float
-      default: 8.0
-      min: 0.0
-      unit: A
-    SIM_BAT${i}_I_FW:
-      description:
-        short: Simulated battery ${i} average current draw in fixed wing
-        long: |-
-          Average current drawn from simulated battery ${i} by the drone in fixed wing mode while armed. Set to -1 to use SIM_BAT_I_FW.
-          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE.
-      type: float
-      default: [-1.0, -1.0, -1.0]
-      min: -1
-      unit: A
-      num_instances: 3
-      instance_start: 1
-    SIM_BAT${i}_I_MC:
-      description:
-        short: Simulated battery ${i} average current draw in rotor wing
-        long: |-
-          Average current drawn from simulated battery ${i} by the drone in rotor wing mode, or any vehicle type other than fixed wing, while armed. Set to -1 to use SIM_BAT_I_MC.
-          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE.
-      type: float
-      default: [-1.0, -1.0, -1.0]
-      min: -1
-      unit: A
-      num_instances: 3
-      instance_start: 1
-    SIM_BAT_MODEL:
-      description:
-        short: Simulated battery current model
-        long: |-
-          How the current drawn from the simulated batteries is computed while armed.
-          Average: constant current SIM_BAT_I_FW in fixed wing mode, SIM_BAT_I_MC otherwise.
-          Throttle: SIM_BAT_I_IDLE plus SIM_BAT_I_MOT for each motor, scaled by its normalized thrust command to the power of 1.5 (momentum theory). Falls back to the average model while no motor commands are available.
-      type: enum
-      values:
-        0: Average
-        1: Throttle
-      default: 0
     SIM_BAT_I_IDLE:
       description:
         short: Simulated battery current draw with motors stopped
         long: |-
-          Current drawn from each simulated battery while armed by everything other than the motors, e.g. avionics and payload. Only used if SIM_BAT_MODEL is set to Throttle.
+          Current drawn from each simulated battery while armed by everything other than the motors, e.g. avionics and payload. This is also the only current drawn while no motor commands are available. With several batteries enabled, each one is drained by this full current.
+          The battery simulator only starts if SIM_BAT_I_IDLE or SIM_BAT_I_MOT is greater than 0. Set both to 0 to disable it entirely (useful when battery state is provided externally, e.g. via MAVLink).
       type: float
       default: 0.5
       min: 0.0
@@ -69,8 +16,9 @@ parameters:
       description:
         short: Simulated battery current draw per motor at full throttle
         long: |-
-          Current drawn from each simulated battery by a single motor at full thrust. Only used if SIM_BAT_MODEL is set to Throttle.
-          The default matches SIM_BAT_I_MC for a quadcopter hovering at 60% thrust.
+          Current drawn from each simulated battery by a single motor at full thrust. Each motor draws this current scaled by its normalized thrust command to the power of 1.5 (momentum theory). With several batteries enabled, each one is drained by this full current.
+          With the default SIM_BAT_I_IDLE, the default draws about 8 A for a quadcopter hovering at 60% thrust.
+          The battery simulator only starts if SIM_BAT_I_IDLE or SIM_BAT_I_MOT is greater than 0. Set both to 0 to disable it entirely (useful when battery state is provided externally, e.g. via MAVLink).
       type: float
       default: 4.0
       min: 0.0
@@ -80,7 +28,7 @@ parameters:
         short: Simulated battery ${i} current draw with motors stopped
         long: |-
           Current drawn from simulated battery ${i} while armed by everything other than the motors. Set to -1 to use SIM_BAT_I_IDLE.
-          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE and SIM_BAT_MODEL is set to Throttle.
+          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE.
       type: float
       default: [-1.0, -1.0, -1.0]
       min: -1
@@ -92,7 +40,7 @@ parameters:
         short: Simulated battery ${i} current draw per motor at full throttle
         long: |-
           Current drawn from simulated battery ${i} by a single motor at full thrust. Set to -1 to use SIM_BAT_I_MOT.
-          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE and SIM_BAT_MODEL is set to Throttle.
+          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE.
       type: float
       default: [-1.0, -1.0, -1.0]
       min: -1

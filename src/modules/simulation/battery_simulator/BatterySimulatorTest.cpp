@@ -86,8 +86,7 @@ public:
 
 TEST_F(BatterySimulatorTest, ThrottleCurrentFollowsMotorCommands)
 {
-	// GIVEN: the throttle model with 1 A idle and 4 A per motor at full throttle
-	setParam("SIM_BAT_MODEL", (int32_t)1);
+	// GIVEN: 1 A idle and 4 A per motor at full throttle
 	setParam("SIM_BAT_I_IDLE", 1.f);
 	setParam("SIM_BAT_I_MOT", 4.f);
 	_simulator.updateParams();
@@ -112,65 +111,44 @@ TEST_F(BatterySimulatorTest, ThrottleCurrentFollowsMotorCommands)
 	EXPECT_NEAR(_simulator.current(0, now), 1.f, 1e-4f);
 }
 
-TEST_F(BatterySimulatorTest, DefaultsMatchAverageCurrentInHover)
+TEST_F(BatterySimulatorTest, DefaultsDrawRealisticHoverCurrent)
 {
-	// GIVEN: the throttle model with default currents
-	setParam("SIM_BAT_MODEL", (int32_t)1);
+	// GIVEN: the default currents
 	_simulator.updateParams();
 
 	// WHEN: a quadcopter hovers at 60% thrust
 	const hrt_abstime now = hrt_absolute_time();
 	publishMotors({0.6f, 0.6f, 0.6f, 0.6f}, now);
 
-	// THEN: the current is close to the default average multicopter current SIM_BAT_I_MC
-	float i_mc = 0.f;
-	param_get(param_find("SIM_BAT_I_MC"), &i_mc);
-	EXPECT_NEAR(_simulator.current(0, now), i_mc, 0.2f);
+	// THEN: the current is about 8 A, i.e. a 5000 mAh battery lasts close to 40 min
+	EXPECT_NEAR(_simulator.current(0, now), 8.f, 0.2f);
 }
 
-TEST_F(BatterySimulatorTest, ThrottleFallsBackToAverageWithoutMotorCommands)
+TEST_F(BatterySimulatorTest, IdleCurrentWithoutMotorCommands)
 {
-	// GIVEN: the throttle model and the average multicopter current
-	setParam("SIM_BAT_MODEL", (int32_t)1);
-	setParam("SIM_BAT_I_MC", 8.f);
+	// GIVEN: 1 A idle and 4 A per motor at full throttle
 	setParam("SIM_BAT_I_IDLE", 1.f);
 	setParam("SIM_BAT_I_MOT", 4.f);
 	_simulator.updateParams();
 
 	// WHEN: no motor commands were received yet
-	// THEN: the average current is used
-	EXPECT_FLOAT_EQ(_simulator.current(0, hrt_absolute_time()), 8.f);
+	// THEN: only the idle current is drawn
+	EXPECT_FLOAT_EQ(_simulator.current(0, hrt_absolute_time()), 1.f);
 
-	// WHEN: the motors stop at a given time
+	// WHEN: the motors run at full throttle at a given time
 	const hrt_abstime motors_time = hrt_absolute_time();
-	publishMotors({0.f, 0.f, 0.f, 0.f}, motors_time);
+	publishMotors({1.f, 1.f, 1.f, 1.f}, motors_time);
 
-	// THEN: the throttle model is used while the commands are recent
-	EXPECT_FLOAT_EQ(_simulator.current(0, motors_time + 100_ms), 1.f);
+	// THEN: the motor current is drawn while the commands are recent
+	EXPECT_FLOAT_EQ(_simulator.current(0, motors_time + 100_ms), 17.f);
 
-	// AND: the average current is used again once they are stale
-	EXPECT_FLOAT_EQ(_simulator.current(0, motors_time + 1_s), 8.f);
-}
-
-TEST_F(BatterySimulatorTest, AverageModelIgnoresMotorCommands)
-{
-	// GIVEN: the average model
-	setParam("SIM_BAT_MODEL", (int32_t)0);
-	setParam("SIM_BAT_I_MC", 8.f);
-	_simulator.updateParams();
-
-	// WHEN: the motors run at full throttle
-	const hrt_abstime now = hrt_absolute_time();
-	publishMotors({1.f, 1.f, 1.f, 1.f}, now);
-
-	// THEN: the average current is used
-	EXPECT_FLOAT_EQ(_simulator.current(0, now), 8.f);
+	// AND: only the idle current once they are stale
+	EXPECT_FLOAT_EQ(_simulator.current(0, motors_time + 1_s), 1.f);
 }
 
 TEST_F(BatterySimulatorTest, PerBatteryThrottleOverrides)
 {
-	// GIVEN: the throttle model with shared currents, overridden for battery 2 only
-	setParam("SIM_BAT_MODEL", (int32_t)1);
+	// GIVEN: shared currents, overridden for battery 2 only
 	setParam("SIM_BAT_I_IDLE", 1.f);
 	setParam("SIM_BAT_I_MOT", 4.f);
 	setParam("SIM_BAT2_I_IDLE", 0.f);
