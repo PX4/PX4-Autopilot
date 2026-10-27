@@ -40,6 +40,9 @@
 #include "VehicleGPSPosition.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>
+#include <parameters/param.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/uORBManager.hpp>
 
 namespace sensors
@@ -87,6 +90,19 @@ public:
 		}
 	}
 
+	// receiver displaced from the reference point by north/east (m)
+	static void placeReceiver(VehicleGPSPosition &module, int instance, float north, float east)
+	{
+		sensor_gnss_s &gnss = module._latest_sample[instance];
+		add_vector_to_global_position(47.397742, 8.545594, north, east, &gnss.latitude, &gnss.longitude);
+		gnss.altitude_ellipsoid = 488.0;
+	}
+
+	static void setHeadingOffset(VehicleGPSPosition &module, int slot, float offset) { module._gnss_param_slots[slot].heading_offset = offset; }
+	static bool gnssUpdated(const VehicleGPSPosition &module, int instance) { return module._two_receiver_gnss_updated[instance]; }
+	static void parametersUpdate(VehicleGPSPosition &module) { module.ParametersUpdate(true); }
+	static int twoReceiversSlot(const VehicleGPSPosition &module) { return module._two_receivers_slot; }
+
 	static sensor_gnss_s &latestSample(VehicleGPSPosition &module, int instance) { return module._latest_sample[instance]; }
 	static bool checksPassed(const VehicleGPSPosition &module, int instance) { return module._gnss_checks[instance].passed(); }
 
@@ -113,6 +129,23 @@ public:
 	static void SetUpTestSuite()
 	{
 		uORB::Manager::initialize();
+
+		// Disable autosaving parameters to avoid busy loop in param_set()
+		param_control_autosave(false);
+	}
+
+	static void setHeadingParams(int32_t hdg0, int32_t hdg1)
+	{
+		param_set(param_find("SENS_GNSS0_HDG"), &hdg0);
+		param_set(param_find("SENS_GNSS1_HDG"), &hdg1);
+	}
+
+	// the heading source held on receiver 0 and settled, so the next passing sample is published
+	static void settleOnReceiver0(VehicleGPSPosition &module)
+	{
+		const hrt_abstime now = hrt_absolute_time();
+		ASSERT_GT(now, 2_s);
+		Peer::setHeadingSource(module, Peer::kDeviceIds[0], now - 2_s);
 	}
 };
 
@@ -134,4 +167,90 @@ TEST_F(VehicleGPSPositionTest, FailedBaselineRestartsHeadingSettle)
 	// THEN: the source is kept, but has to settle again once the baseline is measured again
 	EXPECT_EQ(Peer::headingSourceDeviceId(module), Peer::kDeviceIds[0]);
 	EXPECT_EQ(Peer::settledSince(module), 0u);
+}
+
+TEST_F(VehicleGPSPositionTest, PublishesTheBaselineHeadingOncePerPairOfFixes)
+{
+	// GIVEN: slot 0's antenna configured 1 m right of slot 1's, and the vehicle facing north east
+	VehicleGPSPosition module;
+	Peer::setupTwoReceivers(module);
+	Peer::setHeadingOffset(module, 0, M_PI_F / 2.f);
+	const float yaw = M_PI_F / 4.f;
+	Peer::placeReceiver(module, 1, 0.f, 0.f);
+	Peer::placeReceiver(module, 0, cosf(yaw + M_PI_F / 2.f), sinf(yaw + M_PI_F / 2.f));
+	settleOnReceiver0(module);
+
+	uORB::Subscription heading_sub{ORB_ID(vehicle_gnss_heading)};
+	vehicle_gnss_heading_s heading{};
+
+	while (heading_sub.update(&heading)) {}
+
+	// WHEN: both receivers have a new fix
+	Peer::updateTwoReceiverHeading(module);
+
+	// THEN: the vehicle heading is published for this slot's receiver, and both fixes are consumed
+	ASSERT_TRUE(heading_sub.update(&heading));
+	EXPECT_EQ(heading.device_id, Peer::kDeviceIds[0]);
+	EXPECT_NEAR(heading.heading, yaw, 1e-3f);
+	EXPECT_NEAR(heading.baseline_length, 1.f, 1e-3f);
+	EXPECT_FALSE(Peer::gnssUpdated(module, 0));
+	EXPECT_FALSE(Peer::gnssUpdated(module, 1));
+
+	// WHEN: called again before either receiver publishes
+	Peer::updateTwoReceiverHeading(module);
+
+	// THEN: the same pair of fixes isn't measured twice
+	EXPECT_FALSE(heading_sub.updated());
+}
+
+TEST_F(VehicleGPSPositionTest, FailedBaselineKeepsTheNewerFix)
+{
+	// GIVEN: receiver 1's fix a 10 Hz period newer than receiver 0's, too far apart to be paired
+	VehicleGPSPosition module;
+	Peer::setupTwoReceivers(module);
+	Peer::placeReceiver(module, 1, 0.f, 0.f);
+	Peer::placeReceiver(module, 0, 0.f, 1.f);
+	Peer::latestSample(module, 1).time_utc_usec += 100000;
+
+	// WHEN: the baseline is measured
+	Peer::updateTwoReceiverHeading(module);
+
+	// THEN: only the older fix is dropped, so the newer one can pair with receiver 0's next fix
+	EXPECT_FALSE(Peer::gnssUpdated(module, 0));
+	EXPECT_TRUE(Peer::gnssUpdated(module, 1));
+}
+
+TEST_F(VehicleGPSPositionTest, TwoReceiversNeedsTheOtherSlotDisabled)
+{
+	using sensors::gnss_heading::BaselineType;
+	static constexpr int32_t kDisabled = static_cast<int32_t>(BaselineType::Disabled);
+	static constexpr int32_t kMovingBase = static_cast<int32_t>(BaselineType::MovingBase);
+	static constexpr int32_t kTwoReceivers = static_cast<int32_t>(BaselineType::TwoReceivers);
+
+	VehicleGPSPosition module;
+
+	setHeadingParams(kDisabled, kTwoReceivers);
+	Peer::parametersUpdate(module);
+	EXPECT_EQ(Peer::twoReceiversSlot(module), 1);
+
+	setHeadingParams(kTwoReceivers, kDisabled);
+	Peer::parametersUpdate(module);
+	EXPECT_EQ(Peer::twoReceiversSlot(module), 0);
+
+	// invalid setups, and the setup changed away from two receivers, measure no two receiver heading
+	setHeadingParams(kTwoReceivers, kTwoReceivers);
+	Peer::parametersUpdate(module);
+	EXPECT_EQ(Peer::twoReceiversSlot(module), -1);
+
+	setHeadingParams(kTwoReceivers, kMovingBase);
+	Peer::parametersUpdate(module);
+	EXPECT_EQ(Peer::twoReceiversSlot(module), -1);
+
+	setHeadingParams(kTwoReceivers, kDisabled);
+	Peer::parametersUpdate(module);
+	setHeadingParams(kDisabled, kDisabled);
+	Peer::parametersUpdate(module);
+	EXPECT_EQ(Peer::twoReceiversSlot(module), -1);
+
+	setHeadingParams(kDisabled, kDisabled);
 }
