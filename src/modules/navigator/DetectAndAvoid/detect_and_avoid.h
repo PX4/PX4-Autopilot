@@ -249,9 +249,9 @@ private:
 #else
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
-		(ParamInt<px4::params::ADSB_ICAO_ID>) _vehicle_adsb_icao,
-		(ParamInt<px4::params::ADSB_ICAO_ID_2>) _vehicle_adsb_icao_2,
-		(ParamInt<px4::params::ADSB_CALLSIGN_1>) _vehicle_adsb_callsign_1,
-		(ParamInt<px4::params::ADSB_CALLSIGN_2>) _vehicle_adsb_callsign_2
+		(ParamInt<px4::params::ADSB_ICAO_ID>) _param_adsb_icao_id,
+		(ParamInt<px4::params::ADSB_ICAO_ID_2>) _param_adsb_icao_id_2,
+		(ParamInt<px4::params::ADSB_CALLSIGN_1>) _param_adsb_callsign_1,
+		(ParamInt<px4::params::ADSB_CALLSIGN_2>) _param_adsb_callsign_2
 	)
 };

@@ -172,7 +172,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_YAW_UNC_IN>) _param_vte_yaw_unc_in,
 		(ParamFloat<px4::params::VTE_YAW_ACC_UNC>) _param_vte_yaw_acc_unc,
-		(ParamFloat<px4::params::VTE_EVA_NOISE>) _param_vte_ev_angle_noise,
+		(ParamFloat<px4::params::VTE_EVA_NOISE>) _param_vte_eva_noise,
 		(ParamFloat<px4::params::VTE_YAW_NIS_THRE>) _param_vte_yaw_nis_thre
 	)
 };

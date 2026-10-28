@@ -130,29 +130,29 @@ private:
 	hrt_abstime _last_run{0};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::UUV_ROLL_P>) _param_roll_p,
-		(ParamFloat<px4::params::UUV_ROLL_D>) _param_roll_d,
-		(ParamFloat<px4::params::UUV_PITCH_P>) _param_pitch_p,
-		(ParamFloat<px4::params::UUV_PITCH_D>) _param_pitch_d,
-		(ParamFloat<px4::params::UUV_YAW_P>) _param_yaw_p,
-		(ParamFloat<px4::params::UUV_YAW_D>) _param_yaw_d,
+		(ParamFloat<px4::params::UUV_ROLL_P>) _param_uuv_roll_p,
+		(ParamFloat<px4::params::UUV_ROLL_D>) _param_uuv_roll_d,
+		(ParamFloat<px4::params::UUV_PITCH_P>) _param_uuv_pitch_p,
+		(ParamFloat<px4::params::UUV_PITCH_D>) _param_uuv_pitch_d,
+		(ParamFloat<px4::params::UUV_YAW_P>) _param_uuv_yaw_p,
+		(ParamFloat<px4::params::UUV_YAW_D>) _param_uuv_yaw_d,
 		// gains for the different modes
-		(ParamFloat<px4::params::UUV_SGM_ROLL>) _param_sgm_roll,
-		(ParamFloat<px4::params::UUV_SGM_PITCH>) _param_sgm_pitch,
-		(ParamFloat<px4::params::UUV_SGM_YAW>) _param_sgm_yaw,
-		(ParamFloat<px4::params::UUV_SGM_THRTL>) _param_sgm_thrtl,
-		(ParamFloat<px4::params::UUV_RGM_ROLL>) _param_rgm_roll,
-		(ParamFloat<px4::params::UUV_RGM_PITCH>) _param_rgm_pitch,
-		(ParamFloat<px4::params::UUV_RGM_YAW>) _param_rgm_yaw,
-		(ParamFloat<px4::params::UUV_RGM_THRTL>) _param_rgm_thrtl,
-		(ParamFloat<px4::params::UUV_MGM_ROLL>) _param_mgm_roll,
-		(ParamFloat<px4::params::UUV_MGM_PITCH>) _param_mgm_pitch,
-		(ParamFloat<px4::params::UUV_MGM_YAW>) _param_mgm_yaw,
-		(ParamFloat<px4::params::UUV_MGM_THRTL>) _param_mgm_thrtl,
-		(ParamFloat<px4::params::UUV_TORQUE_SAT>) _param_torque_sat,
-		(ParamFloat<px4::params::UUV_THRUST_SAT>) _param_thrust_sat,
-		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_setpoint_max_age,
-		(ParamInt<px4::params::UUV_STICK_MODE>) _param_stick_mode
+		(ParamFloat<px4::params::UUV_SGM_ROLL>) _param_uuv_sgm_roll,
+		(ParamFloat<px4::params::UUV_SGM_PITCH>) _param_uuv_sgm_pitch,
+		(ParamFloat<px4::params::UUV_SGM_YAW>) _param_uuv_sgm_yaw,
+		(ParamFloat<px4::params::UUV_SGM_THRTL>) _param_uuv_sgm_thrtl,
+		(ParamFloat<px4::params::UUV_RGM_ROLL>) _param_uuv_rgm_roll,
+		(ParamFloat<px4::params::UUV_RGM_PITCH>) _param_uuv_rgm_pitch,
+		(ParamFloat<px4::params::UUV_RGM_YAW>) _param_uuv_rgm_yaw,
+		(ParamFloat<px4::params::UUV_RGM_THRTL>) _param_uuv_rgm_thrtl,
+		(ParamFloat<px4::params::UUV_MGM_ROLL>) _param_uuv_mgm_roll,
+		(ParamFloat<px4::params::UUV_MGM_PITCH>) _param_uuv_mgm_pitch,
+		(ParamFloat<px4::params::UUV_MGM_YAW>) _param_uuv_mgm_yaw,
+		(ParamFloat<px4::params::UUV_MGM_THRTL>) _param_uuv_mgm_thrtl,
+		(ParamFloat<px4::params::UUV_TORQUE_SAT>) _param_uuv_torque_sat,
+		(ParamFloat<px4::params::UUV_THRUST_SAT>) _param_uuv_thrust_sat,
+		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_uuv_sp_max_age,
+		(ParamInt<px4::params::UUV_STICK_MODE>) _param_uuv_stick_mode
 
 	)
 
@@ -175,5 +175,5 @@ private:
 	void reset_attitude_setpoint(vehicle_attitude_s &v_att);
 	void check_setpoint_validity(vehicle_attitude_s &v_att);
 
-	inline bool joystick_heave_sway_mode() const { return _param_stick_mode.get() == 0; }
+	inline bool joystick_heave_sway_mode() const { return _param_uuv_stick_mode.get() == 0; }
 };

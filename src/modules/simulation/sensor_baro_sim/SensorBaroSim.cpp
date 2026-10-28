@@ -157,10 +157,10 @@ void SensorBaroSim::Run()
 			const float absolute_pressure_noisy = absolute_pressure + abs_pressure_noise + _baro_drift_pa;
 
 			// Apply pressure offset
-			float pressure = absolute_pressure_noisy + _sim_baro_off_p.get();
+			float pressure = absolute_pressure_noisy + _param_sim_baro_off_p.get();
 
 			// calculate temperature in Celsius
-			float temperature = temperature_local - 273.0f + _sim_baro_off_t.get();
+			float temperature = temperature_local - 273.0f + _param_sim_baro_off_t.get();
 
 			// Store values for stuck mode
 			_last_pressure = pressure;

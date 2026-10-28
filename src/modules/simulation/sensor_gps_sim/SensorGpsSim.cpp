@@ -153,7 +153,7 @@ void SensorGpsSim::Run()
 
 		sensor_gnss_s sensor_gnss{};
 
-		if (_sim_gps_used.get() >= 4) {
+		if (_param_sim_gps_used.get() >= 4) {
 			// fix: RTK fixed while corrections are flowing, 3D otherwise
 			sensor_gnss.fix_type = rtk ? sensor_gnss_s::FIX_TYPE_RTK_FIXED : sensor_gnss_s::FIX_TYPE_3D;
 			sensor_gnss.speed_accuracy = 0.4f;
@@ -194,12 +194,12 @@ void SensorGpsSim::Run()
 		sensor_gnss.jamming_state = 0;
 		sensor_gnss.spoofing_state = 0;
 		sensor_gnss.vel_ned_valid = true;
-		sensor_gnss.satellites_used = _sim_gps_used.get();
+		sensor_gnss.satellites_used = _param_sim_gps_used.get();
 
 		publishWithFailures(0, sensor_gnss, _sensor_gnss_pub);
 
-		const float gnss1_offx = _param_gnss1_offx.get();
-		const float gnss1_offy = _param_gnss1_offy.get();
+		const float gnss1_offx = _param_sens_gnss1_offx.get();
+		const float gnss1_offy = _param_sens_gnss1_offy.get();
 
 		if (fabsf(gnss1_offx) > 0.f || fabsf(gnss1_offy) > 0.f) {
 			sensor_gnss_s gnss1 = sensor_gnss;

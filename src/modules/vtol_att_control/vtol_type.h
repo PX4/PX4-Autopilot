@@ -336,7 +336,7 @@ protected:
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
 					(ParamFloat<px4::params::VT_QC_T_ALT_LOSS>) _param_vt_qc_t_alt_loss,
-					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_quadchute_max_height,
+					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_vt_fw_qc_hmax,
 					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
 					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,
 

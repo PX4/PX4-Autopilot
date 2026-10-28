@@ -150,9 +150,9 @@ void SensorMagSim::Run()
 			Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
 
 			expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
-			expected_field += Vector3f(_sim_mag_offset_x.get(),
-						   _sim_mag_offset_y.get(),
-						   _sim_mag_offset_z.get());
+			expected_field += Vector3f(_param_sim_mag_offset_x.get(),
+						   _param_sim_mag_offset_y.get(),
+						   _param_sim_mag_offset_z.get());
 
 			if (_mag_stuck && _last_field_valid) {
 				// Replay the last field seen before the failure was injected

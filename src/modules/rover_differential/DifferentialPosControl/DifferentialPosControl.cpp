@@ -67,9 +67,9 @@ void DifferentialPosControl::updatePosControl()
 		if (distance_to_target > _param_nav_acc_rad.get() || _arrival_speed > FLT_EPSILON) {
 			float speed_setpoint{_cruising_speed};
 
-			if (_param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
-				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
+			if (_param_ro_decel_lim.get() > FLT_EPSILON && _param_ro_jerk_lim.get() > FLT_EPSILON) {
+				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_lim.get(),
+							   _param_ro_decel_lim.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
 
 			pure_pursuit_status_s pure_pursuit_status{};
@@ -163,7 +163,7 @@ void DifferentialPosControl::updateSubscriptions()
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
 		_arrival_speed = PX4_ISFINITE(rover_position_setpoint.arrival_speed) ? rover_position_setpoint.arrival_speed : 0.f;
 		_cruising_speed = PX4_ISFINITE(rover_position_setpoint.cruising_speed) ? rover_position_setpoint.cruising_speed :
-				  _param_ro_speed_limit.get();
+				  _param_ro_speed_lim.get();
 		_target_waypoint_ned = Vector2f(rover_position_setpoint.position_ned[0], rover_position_setpoint.position_ned[1]);
 		_stopped = false;
 	}
@@ -173,7 +173,7 @@ bool DifferentialPosControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_ro_speed_lim.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

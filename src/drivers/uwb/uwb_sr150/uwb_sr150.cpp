@@ -372,10 +372,10 @@ int UWB_SR150::collectData()
 		_sensor_uwb.aoa_dest_elevation_fom	= - double(_distance_result_msg.measurements.aoa_dest_elevation) / 128;
 
 		/* Sensor physical offset*/ //for now we propagate the physical configuration via Uorb
-		_sensor_uwb.orientation		= _sensor_rot.get();
-		_sensor_uwb.offset_x		= _offset_x.get();
-		_sensor_uwb.offset_y		= _offset_y.get();
-		_sensor_uwb.offset_z		= _offset_z.get();
+		_sensor_uwb.orientation		= _param_uwb_sens_rot.get();
+		_sensor_uwb.offset_x		= _param_uwb_init_off_x.get();
+		_sensor_uwb.offset_y		= _param_uwb_init_off_y.get();
+		_sensor_uwb.offset_z		= _param_uwb_init_off_z.get();
 
 		_sensor_uwb_pub.publish(_sensor_uwb);
 

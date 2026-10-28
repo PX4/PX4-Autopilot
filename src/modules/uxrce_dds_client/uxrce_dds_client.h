@@ -212,7 +212,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UXRCE_DDS_DOM_ID>) _param_uxrce_dds_dom_id,
-		(ParamInt<px4::params::UXRCE_DDS_KEY>) _param_uxrce_key,
+		(ParamInt<px4::params::UXRCE_DDS_KEY>) _param_uxrce_dds_key,
 		(ParamInt<px4::params::UXRCE_DDS_PTCFG>) _param_uxrce_dds_ptcfg,
 		(ParamInt<px4::params::UXRCE_DDS_SYNCC>) _param_uxrce_dds_syncc,
 		(ParamInt<px4::params::UXRCE_DDS_SYNCT>) _param_uxrce_dds_synct,

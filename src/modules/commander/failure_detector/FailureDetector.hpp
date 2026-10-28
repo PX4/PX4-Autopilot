@@ -136,6 +136,6 @@ private:
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
 		(ParamFloat<px4::params::FD_ALT_LOSS>) _param_fd_alt_loss,
-		(ParamFloat<px4::params::FD_ALT_LOSS_T>) _param_fd_alt_loss_ttri
+		(ParamFloat<px4::params::FD_ALT_LOSS_T>) _param_fd_alt_loss_t
 	)
 };

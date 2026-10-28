@@ -130,7 +130,7 @@ int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *ri
 				"%02x%02x%02x%02x%02x%02x%02x%02x"
 				"%02x%02x%02x%02x%02x%02x%02x%02x"
 				"%02x%02x%02x%02x%02x%02x%02x%02x",
-				_zenoh_domain_id.get(), topic, type,
+				_param_zenoh_domain_id.get(), topic, type,
 				rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
 				rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
 				rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
@@ -143,7 +143,7 @@ int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *ri
 #else
 		return snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "%s/"
 				KEYEXPR_MSG_NAME "%s_/TypeHashNotSupported",
-				_zenoh_domain_id.get(), topic, type);
+				_param_zenoh_domain_id.get(), topic, type);
 #endif
 	}
 
@@ -180,7 +180,7 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			"%02x%02x%02x%02x%02x%02x%02x%02x"
 			"%02x%02x%02x%02x%02x%02x%02x%02x"
 			"/::,7:,:,:,,",
-			_zenoh_domain_id.get(),
+			_param_zenoh_domain_id.get(),
 			id->id[0], id->id[1],  id->id[2], id->id[3], id->id[4], id->id[5], id->id[6],
 			id->id[7], id->id[8],  id->id[9], id->id[10], id->id[11], id->id[12], id->id[13],
 			id->id[14], id->id[15],
@@ -206,7 +206,7 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			"0/11/%s/%%/%%/px4_%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/%s/"
 			KEYEXPR_MSG_NAME "%s_/TypeHashNotSupported"
 			"/::,7:,:,:,,",
-			_zenoh_domain_id.get(),
+			_param_zenoh_domain_id.get(),
 			id->id[0], id->id[1],  id->id[2], id->id[3], id->id[4], id->id[5], id->id[6],
 			id->id[7], id->id[8],  id->id[9], id->id[10], id->id[11], id->id[12], id->id[13],
 			id->id[14], id->id[15],
@@ -439,11 +439,11 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 		int instance;
 		z_publisher_options_t global_opts;
 		z_publisher_options_default(&global_opts);
-		global_opts.congestion_control = (z_congestion_control_t)_zenoh_pub_cc.get();
-		global_opts.is_express = (bool)_zenoh_pub_expr.get();
-		global_opts.priority = (z_priority_t)_zenoh_pub_prio.get();
+		global_opts.congestion_control = (z_congestion_control_t)_param_zenoh_pub_cc.get();
+		global_opts.is_express = (bool)_param_zenoh_pub_expr.get();
+		global_opts.priority = (z_priority_t)_param_zenoh_pub_prio.get();
 #ifdef Z_FEATURE_UNSTABLE_API
-		global_opts.reliability = (z_reliability_t)_zenoh_pub_rel.get();
+		global_opts.reliability = (z_reliability_t)_param_zenoh_pub_rel.get();
 #endif
 
 		for (i = 0; i < _pub_count; i++) {

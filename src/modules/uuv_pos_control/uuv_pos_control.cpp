@@ -102,10 +102,10 @@ void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des, vehicle_attitu
 	Quatf q_att(vehicle_attitude.q);
 
 	// Assumes target 0 velocity
-	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
+	Vector3f p_control_output = Vector3f(_param_uuv_gain_x_p.get() * (pos_des(0) - vlocal_pos.x) - _param_uuv_gain_x_d.get()
 					     * vlocal_pos.vx,
-					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
-					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
+					     _param_uuv_gain_y_p.get() * (pos_des(1) - vlocal_pos.y) - _param_uuv_gain_y_d.get() * vlocal_pos.vy,
+					     _param_uuv_gain_z_p.get() * (pos_des(2) - vlocal_pos.z) - _param_uuv_gain_z_d.get() * vlocal_pos.vz);
 
 	if (altitude_mode) {
 		// In altitude mode, we only control the z-axis
@@ -129,7 +129,7 @@ void UUVPOSControl::check_setpoint_validity(vehicle_local_position_s &vlocal_pos
 {
 	const float _setpoint_age = (hrt_absolute_time() - _trajectory_setpoint.timestamp) * 1e-6f;
 
-	if (_setpoint_age < 0.0f || _setpoint_age > _param_setpoint_max_age.get()) {
+	if (_setpoint_age < 0.0f || _setpoint_age > _param_uuv_sp_max_age.get()) {
 		reset_trajectory_setpoint(vlocal_pos);
 	}
 
@@ -164,7 +164,7 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 	float roll_setpoint = roll;
 	float pitch_setpoint = pitch;
 
-	if (_param_stab_mode.get()) {
+	if (_param_uuv_stab_mode.get()) {
 		roll_setpoint = 0.0;
 		pitch_setpoint = 0.0;
 
@@ -172,19 +172,19 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 		// Update target roll and pitch setpoint with D-pad
 		switch (_manual_control_setpoint.buttons) {
 		case 2048:
-			pitch_setpoint -= dt * _param_sgm_pitch.get();
+			pitch_setpoint -= dt * _param_uuv_sgm_pitch.get();
 			break;
 
 		case 4096:
-			pitch_setpoint += dt * _param_sgm_pitch.get();
+			pitch_setpoint += dt * _param_uuv_sgm_pitch.get();
 			break;
 
 		case 8192:
-			roll_setpoint -= dt * _param_sgm_roll.get();
+			roll_setpoint -= dt * _param_uuv_sgm_roll.get();
 			break;
 
 		case 16384:
-			roll_setpoint += dt * _param_sgm_roll.get();
+			roll_setpoint += dt * _param_uuv_sgm_roll.get();
 			break;
 
 		default:
@@ -192,31 +192,31 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 		}
 	}
 
-	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_sgm_yaw.get();
+	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_uuv_sgm_yaw.get();
 
 	// Update position setpoints based on manual control inputs
 	float vx_sp = 0.0;
 
-	if (_manual_control_setpoint.pitch > _param_pos_stick_db.get()
-	    || _manual_control_setpoint.pitch < -_param_pos_stick_db.get()) {
+	if (_manual_control_setpoint.pitch > _param_uuv_pos_stick_db.get()
+	    || _manual_control_setpoint.pitch < -_param_uuv_pos_stick_db.get()) {
 		// If pitch is not zero, we use it to set the roll setpoint
-		vx_sp = _manual_control_setpoint.pitch * _param_pgm_vel.get();
+		vx_sp = _manual_control_setpoint.pitch * _param_uuv_pgm_vel.get();
 	}
 
 	float vy_sp = 0.0;
 
-	if (_manual_control_setpoint.roll > _param_pos_stick_db.get()
-	    || _manual_control_setpoint.roll < -_param_pos_stick_db.get()) {
+	if (_manual_control_setpoint.roll > _param_uuv_pos_stick_db.get()
+	    || _manual_control_setpoint.roll < -_param_uuv_pos_stick_db.get()) {
 		// If roll is not zero, we use it to set the pitch setpoint
-		vy_sp = _manual_control_setpoint.roll * _param_pgm_vel.get();
+		vy_sp = _manual_control_setpoint.roll * _param_uuv_pgm_vel.get();
 	}
 
 	float vz_sp = 0.0;
 
-	if (_manual_control_setpoint.throttle > _param_pos_stick_db.get()
-	    || _manual_control_setpoint.throttle < -_param_pos_stick_db.get()) {
+	if (_manual_control_setpoint.throttle > _param_uuv_pos_stick_db.get()
+	    || _manual_control_setpoint.throttle < -_param_uuv_pos_stick_db.get()) {
 		// If throttle is not zero, we use it to set the vertical velocity
-		vz_sp = -_manual_control_setpoint.throttle * _param_pgm_vel.get();
+		vz_sp = -_manual_control_setpoint.throttle * _param_uuv_pgm_vel.get();
 	}
 
 	// rotate velocity setpoint in body frame to global frame
@@ -235,7 +235,7 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 
 	_trajectory_setpoint.timestamp = hrt_absolute_time();
 
-	if (!_param_pos_mode.get()) {
+	if (!_param_uuv_pos_mode.get()) {
 		_trajectory_setpoint.position[0] = _trajectory_setpoint.position[0] + vx_sp * dt; // X in world frame
 		_trajectory_setpoint.position[1] = _trajectory_setpoint.position[1] + vy_sp * dt; // Y in world frame
 		_trajectory_setpoint.position[2] = _trajectory_setpoint.position[2] + vz_sp * dt; // Z in world frame
@@ -327,7 +327,7 @@ void UUVPOSControl::Run()
 
 				float roll_setpoint = 0.0f;
 				float pitch_setpoint = 0.0f;
-				float yaw_setpoint = yaw + _manual_control_setpoint.roll * dt * _param_sgm_yaw.get();
+				float yaw_setpoint = yaw + _manual_control_setpoint.roll * dt * _param_uuv_sgm_yaw.get();
 
 				// Generate target quaternion
 				Eulerf euler_sp(roll_setpoint, pitch_setpoint, yaw_setpoint);
@@ -339,18 +339,18 @@ void UUVPOSControl::Run()
 				q_sp.copyTo(_attitude_setpoint.q_d);
 
 
-				float maximumDistanceAllowed = _param_hgt_max_diff.get();
+				float maximumDistanceAllowed = _param_uuv_hgt_max_diff.get();
 
 				//change the desired hgt
-				if (_manual_control_setpoint.buttons & (1 << _param_hgt_b_up.get())) { //up
-					if (abs(hgtData[0] - 0.001f * _param_hgt_strength.get() - vlocal_pos.z) < maximumDistanceAllowed) {
-						hgtData[0] = hgtData[0] - 0.001f * _param_hgt_strength.get();
+				if (_manual_control_setpoint.buttons & (1 << _param_uuv_hgt_b_up.get())) { //up
+					if (abs(hgtData[0] - 0.001f * _param_uuv_hgt_str.get() - vlocal_pos.z) < maximumDistanceAllowed) {
+						hgtData[0] = hgtData[0] - 0.001f * _param_uuv_hgt_str.get();
 					}
 				}
 
-				if (_manual_control_setpoint.buttons & (1 << _param_hgt_b_down.get())) { //down
-					if (abs(hgtData[0] + 0.001f * _param_hgt_strength.get() - vlocal_pos.z) < maximumDistanceAllowed) {
-						hgtData[0] = hgtData[0] + 0.001f * _param_hgt_strength.get();
+				if (_manual_control_setpoint.buttons & (1 << _param_uuv_hgt_b_down.get())) { //down
+					if (abs(hgtData[0] + 0.001f * _param_uuv_hgt_str.get() - vlocal_pos.z) < maximumDistanceAllowed) {
+						hgtData[0] = hgtData[0] + 0.001f * _param_uuv_hgt_str.get();
 					}
 
 				}
@@ -358,15 +358,15 @@ void UUVPOSControl::Run()
 				float errorInZ = hgtData[0] - vlocal_pos.z;
 
 				//make sure the integrational part is not to high
-				if (std::abs(hgtData[1] + 0.005f * errorInZ * _param_hgt_i_speed.get()) < 1.0f) {
-					hgtData[1] = hgtData[1] + 0.005f * errorInZ * _param_hgt_i_speed.get();
+				if (std::abs(hgtData[1] + 0.005f * errorInZ * _param_uuv_hgt_i_spd.get()) < 1.0f) {
+					hgtData[1] = hgtData[1] + 0.005f * errorInZ * _param_uuv_hgt_i_spd.get();
 				}
 
 				matrix::Vector3f thrustxyz;
-				thrustxyz(2) = _param_hgt_p.get() * errorInZ - _param_hgt_d.get() * vlocal_pos.vz + _param_hgt_i.get() *
+				thrustxyz(2) = _param_uuv_hgt_p.get() * errorInZ - _param_uuv_hgt_d.get() * vlocal_pos.vz + _param_uuv_hgt_i.get() *
 					       hgtData[1];//PID values
 
-				const float throttle_manual_attitude_gain = _param_sgm_thrtl.get();
+				const float throttle_manual_attitude_gain = _param_uuv_sgm_thrtl.get();
 
 				thrustxyz(0) = _manual_control_setpoint.throttle * throttle_manual_attitude_gain; // surge +x
 				thrustxyz(1) = _manual_control_setpoint.yaw * throttle_manual_attitude_gain; // sway +y

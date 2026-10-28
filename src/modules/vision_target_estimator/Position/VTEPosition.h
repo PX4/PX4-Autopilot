@@ -458,15 +458,15 @@ private:
 		(ParamFloat<px4::params::VTE_ACC_D_UNC>) _param_vte_acc_d_unc,
 		(ParamFloat<px4::params::VTE_ACC_T_UNC>) _param_vte_acc_t_unc,
 		(ParamFloat<px4::params::VTE_BIAS_UNC>) _param_vte_bias_unc,
-		(ParamFloat<px4::params::VTE_BIA_AVG_THR>) _param_vte_bias_avg_thr,
-		(ParamFloat<px4::params::VTE_BIA_AVG_TOUT>) _param_vte_bias_avg_tout,
+		(ParamFloat<px4::params::VTE_BIA_AVG_THR>) _param_vte_bia_avg_thr,
+		(ParamFloat<px4::params::VTE_BIA_AVG_TOUT>) _param_vte_bia_avg_tout,
 		(ParamFloat<px4::params::VTE_POS_UNC_IN>) _param_vte_pos_unc_in,
 		(ParamFloat<px4::params::VTE_VEL_UNC_IN>) _param_vte_vel_unc_in,
-		(ParamFloat<px4::params::VTE_BIA_UNC_IN>) _param_vte_bias_unc_in,
+		(ParamFloat<px4::params::VTE_BIA_UNC_IN>) _param_vte_bia_unc_in,
 		(ParamFloat<px4::params::VTE_ACC_UNC_IN>) _param_vte_acc_unc_in,
-		(ParamFloat<px4::params::VTE_GPS_V_NOISE>) _param_vte_gps_vel_noise,
-		(ParamFloat<px4::params::VTE_GPS_P_NOISE>) _param_vte_gps_pos_noise,
-		(ParamFloat<px4::params::VTE_EVP_NOISE>) _param_vte_ev_pos_noise,
+		(ParamFloat<px4::params::VTE_GPS_V_NOISE>) _param_vte_gps_v_noise,
+		(ParamFloat<px4::params::VTE_GPS_P_NOISE>) _param_vte_gps_p_noise,
+		(ParamFloat<px4::params::VTE_EVP_NOISE>) _param_vte_evp_noise,
 		(ParamFloat<px4::params::VTE_POS_NIS_THRE>) _param_vte_pos_nis_thre
 	)
 };

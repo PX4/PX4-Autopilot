@@ -508,9 +508,9 @@ private:
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
-		(ParamInt<px4::params::BAT1_N_CELLS>)       _param_bat_cells_count,
-		(ParamFloat<px4::params::BAT1_V_CHARGED>)   _param_bat_v_charged,
-		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty
+		(ParamInt<px4::params::BAT1_N_CELLS>)       _param_bat1_n_cells,
+		(ParamFloat<px4::params::BAT1_V_CHARGED>)   _param_bat1_v_charged,
+		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat1_v_empty
 	);
 
 #if defined(CONFIG_BOARD_HAS_RID_EEPROM)

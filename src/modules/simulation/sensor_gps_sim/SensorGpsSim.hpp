@@ -124,8 +124,8 @@ private:
 	static constexpr float _vel_markov_time{0.54f};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SIM_GPS_USED>)      _sim_gps_used,
-		(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_gnss1_offx,
-		(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_gnss1_offy
+		(ParamInt<px4::params::SIM_GPS_USED>)      _param_sim_gps_used,
+		(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_sens_gnss1_offx,
+		(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_sens_gnss1_offy
 	)
 };

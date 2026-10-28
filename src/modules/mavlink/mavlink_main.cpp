@@ -1643,7 +1643,7 @@ Mavlink::update_rate_mult()
 	} else if (_radio_status_available) {
 
 		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() * 1_s)) {
+		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_tout.get() * 1_s)) {
 			_radio_status_available = false;
 			log_radio_timeout = true;
 
@@ -3380,7 +3380,7 @@ void Mavlink::publish_telemetry_status()
 void Mavlink::configure_sik_radio()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _param_sik_radio_id.get() != 0) {
+	if (_uart_fd >= 0 && _param_mav_sik_radio_id.get() != 0) {
 		/* request to configure radio and radio is present */
 		FILE *fs = fdopen(_uart_fd, "w");
 
@@ -3391,9 +3391,9 @@ void Mavlink::configure_sik_radio()
 			fflush(fs);
 			px4_usleep(1200000);
 
-			if (_param_sik_radio_id.get() > 0) {
+			if (_param_mav_sik_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_sik_radio_id.get());
+				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_mav_sik_radio_id.get());
 				px4_usleep(200000);
 
 			} else {
@@ -3424,8 +3424,8 @@ void Mavlink::configure_sik_radio()
 		}
 
 		/* reset param and save */
-		_param_sik_radio_id.set(0);
-		_param_sik_radio_id.commit_no_notification();
+		_param_mav_sik_radio_id.set(0);
+		_param_mav_sik_radio_id.commit_no_notification();
 	}
 }
 

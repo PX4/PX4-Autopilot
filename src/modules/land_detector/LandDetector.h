@@ -189,8 +189,8 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		ModuleParams,
-		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_total_flight_time_high,
-		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_total_flight_time_low
+		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_lnd_flight_t_hi,
+		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_lnd_flight_t_lo
 	);
 };
 

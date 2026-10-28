@@ -270,7 +270,7 @@ void VehicleAirData::Run()
 		if (!_relative_calibration_done) {
 			_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
 
-		} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get() && latest_estimator_status_flags.cs_gps_hgt) {
+		} else if (!_baro_gnss_calibration_done && _param_sens_bar_autocal.get() && latest_estimator_status_flags.cs_gps_hgt) {
 			baro_gnss_calibration_running = true;
 			_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
 		}

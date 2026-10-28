@@ -130,11 +130,11 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
-		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_offset_x,
-		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_offset_y,
-		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_offset_z,
-		(ParamInt<px4::params::UWB_SENS_ROT>) 			_sensor_rot
+		(ParamInt<px4::params::UWB_PORT_CFG>) 			_param_uwb_port_cfg,
+		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_param_uwb_init_off_x,
+		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_param_uwb_init_off_y,
+		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_param_uwb_init_off_z,
+		(ParamInt<px4::params::UWB_SENS_ROT>) 			_param_uwb_sens_rot
 	)
 	// Performance (perf) counters
 	perf_counter_t _read_count_perf;

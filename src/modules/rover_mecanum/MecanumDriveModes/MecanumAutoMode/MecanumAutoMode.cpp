@@ -76,7 +76,7 @@ void MecanumAutoMode::autoControl()
 
 		// Waypoint cruising speed
 		float cruising_speed = position_setpoint_triplet.current.cruising_speed > 0.f ? math::constrain(
-					       position_setpoint_triplet.current.cruising_speed, 0.f, _param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
+					       position_setpoint_triplet.current.cruising_speed, 0.f, _param_ro_speed_lim.get()) : _param_ro_speed_lim.get();
 
 		rover_position_setpoint_s rover_position_setpoint{};
 		rover_position_setpoint.timestamp = hrt_absolute_time();
@@ -85,7 +85,7 @@ void MecanumAutoMode::autoControl()
 		rover_position_setpoint.start_ned[0] = prev_wp_ned(0);
 		rover_position_setpoint.start_ned[1] = prev_wp_ned(1);
 		rover_position_setpoint.arrival_speed = arrivalSpeed(cruising_speed, waypoint_transition_angle,
-							_param_ro_speed_limit.get(), _param_ro_speed_red.get(), curr_wp_type);
+							_param_ro_speed_lim.get(), _param_ro_speed_red.get(), curr_wp_type);
 		rover_position_setpoint.cruising_speed = cruising_speed;
 		rover_position_setpoint.yaw = PX4_ISFINITE(position_setpoint_triplet.current.yaw) ?
 					      position_setpoint_triplet.current.yaw : NAN;

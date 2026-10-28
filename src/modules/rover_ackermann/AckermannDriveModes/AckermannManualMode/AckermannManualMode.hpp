@@ -129,13 +129,13 @@ private:
 	float _max_yaw_rate{NAN};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_lim,
 		(ParamFloat<px4::params::RO_YAW_P>)         _param_ro_yaw_p,
 		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz,
 		(ParamFloat<px4::params::RO_YAW_EXPO>)      _param_ro_yaw_expo,
 		(ParamFloat<px4::params::RO_YAW_SUPEXPO>)   _param_ro_yaw_supexpo,
 		(ParamFloat<px4::params::RO_PARK_THR_MAX>)  _param_ro_park_thr_max,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_lim
 	)
 };

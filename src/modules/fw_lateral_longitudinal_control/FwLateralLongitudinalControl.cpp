@@ -92,7 +92,7 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
 
 	_tecs_alt_time_const_slew_rate.setSlewRate(TECS_ALT_TIME_CONST_SLEW_RATE);
-	_tecs_alt_time_const_slew_rate.setForcedValue(_param_fw_t_h_error_tc.get() * _param_fw_thrtc_sc.get());
+	_tecs_alt_time_const_slew_rate.setForcedValue(_param_fw_t_alt_tc.get() * _param_fw_lnd_thrtc_sc.get());
 }
 
 FwLateralLongitudinalControl::~FwLateralLongitudinalControl()
@@ -113,17 +113,17 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_equivalent_airspeed_max(_performance_model.getMaximumCalibratedAirspeed());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damping.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_thr_integ.get());
-	_tecs.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
+	_tecs.set_integrator_gain_pitch(_param_fw_t_i_gain_pit.get());
 	_tecs.set_throttle_slewrate(_param_fw_thr_slew_max.get());
 	_tecs.set_vertical_accel_limit(_param_fw_t_vert_acc.get());
 	_tecs.set_roll_throttle_compensation(_param_fw_t_rll2thr.get());
 	_tecs.set_pitch_damping(_param_fw_t_ptch_damp.get());
-	_tecs.set_altitude_error_time_constant(_param_fw_t_h_error_tc.get());
-	_tecs.set_fast_descend_altitude_error(_param_fw_t_fast_alt_err.get());
+	_tecs.set_altitude_error_time_constant(_param_fw_t_alt_tc.get());
+	_tecs.set_fast_descend_altitude_error(_param_fw_t_f_alt_err.get());
 	_tecs.set_altitude_rate_ff(_param_fw_t_hrate_ff.get());
-	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
-	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
-	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
+	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_tc.get());
+	_tecs.set_ste_rate_time_const(_param_fw_t_ste_r_tc.get());
+	_tecs.set_seb_rate_ff_gain(_param_fw_t_seb_r_ff.get());
 	_tecs.set_level_flight_pitch(radians(_param_fw_psp_off.get()));
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
@@ -809,11 +809,11 @@ bool FwLateralLongitudinalControl::checkLowHeightConditions() const
 void FwLateralLongitudinalControl::updateTECSAltitudeTimeConstant(const bool is_low_height, const float dt)
 {
 	// Target time constant for the TECS altitude tracker
-	float alt_tracking_tc = _param_fw_t_h_error_tc.get();
+	float alt_tracking_tc = _param_fw_t_alt_tc.get();
 
 	if (is_low_height) {
 		// If low-height conditions satisfied, compute target time constant for altitude tracking
-		alt_tracking_tc *= _param_fw_thrtc_sc.get();
+		alt_tracking_tc *= _param_fw_lnd_thrtc_sc.get();
 	}
 
 	_tecs_alt_time_const_slew_rate.update(alt_tracking_tc, dt);
@@ -891,8 +891,8 @@ void FwLateralLongitudinalControl::setDefaultLongitudinalControlConfiguration(hr
 	_long_configuration.pitch_max = radians(_param_fw_p_lim_max.get());
 	_long_configuration.throttle_min = _param_fw_thr_min.get();
 	_long_configuration.throttle_max = _param_fw_thr_max.get();
-	_long_configuration.climb_rate_target = _param_climbrate_target.get();
-	_long_configuration.sink_rate_target = _param_sinkrate_target.get();
+	_long_configuration.climb_rate_target = _param_fw_t_clmb_r_sp.get();
+	_long_configuration.sink_rate_target = _param_fw_t_sink_r_sp.get();
 	_long_configuration.disable_underspeed_protection = false;
 	_long_configuration.enforce_low_height_condition = false;
 }
@@ -927,19 +927,19 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 	if (PX4_ISFINITE(configuration_in.climb_rate_target)) {
 		_long_configuration.climb_rate_target = math::max(0.0f, configuration_in.climb_rate_target);
 	} else {
-		_long_configuration.climb_rate_target = _param_climbrate_target.get();
+		_long_configuration.climb_rate_target = _param_fw_t_clmb_r_sp.get();
 	}
 
 	if (PX4_ISFINITE(configuration_in.sink_rate_target)) {
 		_long_configuration.sink_rate_target = math::max(0.0f, configuration_in.sink_rate_target);
 	} else {
-		_long_configuration.sink_rate_target = _param_sinkrate_target.get();
+		_long_configuration.sink_rate_target = _param_fw_t_sink_r_sp.get();
 	}
 
 	if (PX4_ISFINITE(configuration_in.speed_weight)) {
 		_long_configuration.speed_weight = math::constrain(configuration_in.speed_weight, 0.f, 2.f);
 	} else {
-		_long_configuration.speed_weight = _param_t_spdweight.get();
+		_long_configuration.speed_weight = _param_fw_t_spdweight.get();
 	}
 
 	// the landing sets this to scale the TECS altitude time constant by FW_LND_THRTC_SC
