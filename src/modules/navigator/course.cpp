@@ -96,12 +96,6 @@ Course::on_activation()
 void
 Course::on_active()
 {
-	// Apply a speed change (DO_CHANGE_SPEED) right away, a rover takes its speed from the triplet
-	const float cruising_speed = _navigator->get_cruising_speed();
-
-	if (fabsf(cruising_speed - _navigator->get_position_setpoint_triplet()->current.cruising_speed) > FLT_EPSILON) {
-		publishCourseHoldSetpoint(_course, _altitude);
-	}
 }
 
 bool

@@ -72,6 +72,17 @@ public:
 	 */
 	void guidedCourse();
 
+	/**
+	 * @brief Set the Guided Course speed (MAV_CMD_DO_CHANGE_SPEED), zero stops the rover.
+	 * @param speed Speed [m/s], negative values are treated as zero.
+	 */
+	void setCourseSpeed(const float speed) { _course_speed = math::max(speed, 0.f); }
+
+	/**
+	 * @brief Reset the Guided Course speed, so it is taken from the forward speed again on the next course setpoint.
+	 */
+	void reset() { _course_speed = NAN; }
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -101,6 +112,9 @@ private:
 	// uORB publications
 	uORB::Publication<rover_position_setpoint_s>    _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 	uORB::Publication<surface_vehicle_course_setpoint_s>    _surface_vehicle_course_setpoint_pub{ORB_ID(surface_vehicle_course_setpoint)};
+
+	// Variables
+	float _course_speed{NAN}; // Guided Course speed [m/s], NAN until latched from the forward speed on the first course setpoint
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,

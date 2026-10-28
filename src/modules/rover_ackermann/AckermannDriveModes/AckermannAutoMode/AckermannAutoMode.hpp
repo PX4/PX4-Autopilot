@@ -73,6 +73,17 @@ public:
 	 */
 	void guidedCourse();
 
+	/**
+	 * @brief Set the Guided Course speed (MAV_CMD_DO_CHANGE_SPEED), zero stops the rover.
+	 * @param speed Speed [m/s], negative values are treated as zero.
+	 */
+	void setCourseSpeed(const float speed) { _course_speed = math::max(speed, 0.f); }
+
+	/**
+	 * @brief Reset the Guided Course speed, so it is taken from the forward speed again on the next course setpoint.
+	 */
+	void reset() { _course_speed = NAN; }
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -134,6 +145,7 @@ private:
 	float _max_yaw_rate{NAN};
 	float _min_speed{NAN}; // Speed at which the maximum yaw rate limit is enforced given the maximum steer angle and wheel base.
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
+	float _course_speed{NAN}; // Guided Course speed [m/s], NAN until latched from the forward speed on the first course setpoint
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
