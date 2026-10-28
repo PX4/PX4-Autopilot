@@ -85,7 +85,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - The unit and functional test suite builds, links and runs on macOS (`make tests`), and `px4_poll()` timeouts on macOS wait for their full duration instead of returning at once. The blended GPS timestamp is accumulated in double and rounded once instead of truncating each weighted term. ([PX4-Autopilot#28516](https://github.com/PX4/PX4-Autopilot/pull/28516))
 - The AlphaFilter library takes its sample interval and time constant in microseconds, and the float seconds overloads are removed, so a value in the wrong unit no longer compiles. Out-of-tree code that constructs the filter with seconds needs updating. ([PX4-Autopilot#28421](https://github.com/PX4/PX4-Autopilot/pull/28421))
-- dataman now hands out 16 bit client IDs instead of 8 bit ones. Each switch between mission based return types and each MAVLink instance started in flight used up IDs, and after 254 every new client failed its requests with "Max Dataman clients reached". ([PX4-Autopilot#28944](https://github.com/PX4/PX4-Autopilot/pull/28944))
+- The dataman module now hands out 16-bit client IDs instead of 8-bit ones. Each switch between mission-based return types and each MAVLink instance started in flight used up IDs, and once 254 had been handed out, every new client failed its requests with "Max Dataman clients reached". ([PX4-Autopilot#28944](https://github.com/PX4/PX4-Autopilot/pull/28944))
 
 ### Control
 
@@ -107,7 +107,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
 - [Secure boot](../advanced_config/bootloader_secure_boot.md#multi-part-signed-images) now supports applications that can boot securely from SD card or eMMC. ([PX4-Autopilot#28228](https://github.com/PX4/PX4-Autopilot/pull/28228))
 - [Motor failure detection](../config/motor_failure_detection.md) now compares a low-pass filtered current residual against a separate trip band and trigger time for the undercurrent and overcurrent directions, instead of one symmetric band on the instantaneous current, and the current model gains an offset term. See [Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27711](https://github.com/PX4/PX4-Autopilot/pull/27711), [PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
-- [Precision Land](../advanced_features/precland.md) selected as a flight mode starts the landing at the current position again instead of flying to the setpoint the previous mode left behind, such as the active mission waypoint. Mission and Return precision landings keep their land point. ([PX4-Autopilot#29050](https://github.com/PX4/PX4-Autopilot/pull/29050))
 
 ### Estimation
 
@@ -118,7 +117,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
 - Disabling the selected IMU at runtime (setting its [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO) or [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO) to `0`) now hands over to the next IMU without a sensor failure report, including while the vehicle is armed. A re-enabled IMU reappears in `sensors_status_imu` and the IMU consistency check only once it publishes new data. ([PX4-Autopilot#28811](https://github.com/PX4/PX4-Autopilot/pull/28811))
-- [Thermal compensation](../advanced_config/sensor_thermal_calibration.md) for a magnetometer that reports no temperature now reads the barometer sample instead of the accelerometer sample, which overran a stack buffer once a second and published the accelerometer y axis as the magnetometer temperature. ([PX4-Autopilot#28997](https://github.com/PX4/PX4-Autopilot/pull/28997))
 
 ### Simulation
 
