@@ -395,13 +395,14 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		if (_need_move_to_takeoff || (num_found_items == 0u)) {
 			/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
 			_mission_item.yaw = get_bearing_to_next_waypoint(
-					    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					    _mission_item.lat, _mission_item.lon);
+						    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
+						    _mission_item.lat, _mission_item.lon);
+
 		} else {
 			/* set yaw setpoint to heading of next wp against current position */
 			_mission_item.yaw = get_bearing_to_next_waypoint(
-					    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					    next_mission_items[0u].lat, next_mission_items[0u].lon);
+						    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
+						    next_mission_items[0u].lat, next_mission_items[0u].lon);
 		}
 
 		_mission_item.force_heading = true;
