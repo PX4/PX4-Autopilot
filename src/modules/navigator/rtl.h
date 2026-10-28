@@ -155,12 +155,7 @@ private:
 	 *
 	 * @return false if the executor could not be allocated
 	 */
-#if defined(__PX4_POSIX)
-	// Virtual only so tests can fail the executor allocation; NuttX boards keep a direct call.
-	virtual bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
-#else
 	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
-#endif // __PX4_POSIX
 
 	/**
 	 * @brief Update parameters
