@@ -72,6 +72,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/rover_speed_setpoint`               | [px4_msgs::msg::RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md)                             |
 | `/fmu/in/rover_steering_setpoint`            | [px4_msgs::msg::RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md)                       |
 | `/fmu/in/rover_throttle_setpoint`            | [px4_msgs::msg::RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md)                       |
+| `/fmu/in/sensor_gnss`                        | [px4_msgs::msg::SensorGnss](../msg_docs/SensorGnss.md)                                             |
 | `/fmu/in/sensor_optical_flow`                | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md)                               |
 | `/fmu/in/setpoint_config`                    | [px4_msgs::msg::SetpointConfig](../msg_docs/SetpointConfig.md)                                     |
 | `/fmu/in/telemetry_status`                   | [px4_msgs::msg::TelemetryStatus](../msg_docs/TelemetryStatus.md)                                   |
@@ -208,6 +209,7 @@ See messages
 - [MagWorkerData](../msg_docs/MagWorkerData.md)
 - [MagnetometerBiasEstimate](../msg_docs/MagnetometerBiasEstimate.md)
 - [ManualControlSetpointV0](../msg_docs/ManualControlSetpointV0.md)
+- [ManualControlSetpointV1](../msg_docs/ManualControlSetpointV1.md)
 - [ManualControlSwitches](../msg_docs/ManualControlSwitches.md)
 - [MavlinkLog](../msg_docs/MavlinkLog.md)
 - [MavlinkTunnel](../msg_docs/MavlinkTunnel.md)
@@ -270,7 +272,6 @@ See messages
 - [SensorAirflow](../msg_docs/SensorAirflow.md)
 - [SensorBaro](../msg_docs/SensorBaro.md)
 - [SensorCorrection](../msg_docs/SensorCorrection.md)
-- [SensorGnss](../msg_docs/SensorGnss.md)
 - [SensorGnssRelative](../msg_docs/SensorGnssRelative.md)
 - [SensorGnssRf](../msg_docs/SensorGnssRf.md)
 - [SensorGnssSpectrum](../msg_docs/SensorGnssSpectrum.md)
@@ -305,6 +306,8 @@ See messages
 - [VehicleAngularVelocity](../msg_docs/VehicleAngularVelocity.md)
 - [VehicleAttitudeSetpointV0](../msg_docs/VehicleAttitudeSetpointV0.md)
 - [VehicleCommandAckV0](../msg_docs/VehicleCommandAckV0.md)
+- [VehicleCommandAckV1](../msg_docs/VehicleCommandAckV1.md)
+- [VehicleCommandV0](../msg_docs/VehicleCommandV0.md)
 - [VehicleConstraints](../msg_docs/VehicleConstraints.md)
 - [VehicleGlobalPositionV0](../msg_docs/VehicleGlobalPositionV0.md)
 - [VehicleGnssHeading](../msg_docs/VehicleGnssHeading.md)
@@ -320,6 +323,7 @@ See messages
 - [VehicleStatusV1](../msg_docs/VehicleStatusV1.md)
 - [VehicleStatusV2](../msg_docs/VehicleStatusV2.md)
 - [VehicleStatusV3](../msg_docs/VehicleStatusV3.md)
+- [VehicleStatusV4](../msg_docs/VehicleStatusV4.md)
 - [VelocityLimits](../msg_docs/VelocityLimits.md)
 - [VteAidSource1d](../msg_docs/VteAidSource1d.md)
 - [VteAidSource3d](../msg_docs/VteAidSource3d.md)
