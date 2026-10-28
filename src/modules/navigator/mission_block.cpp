@@ -217,6 +217,22 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_waypoint_position_reached = true;
 			}
 
+
+		} else if((_mission_item.nav_cmd == NAV_CMD_TAKEOFF_LOCAL)
+		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+
+			const float takeoff_height = _mission_item.altitude;
+			float altitude_acceptance_radius = _navigator->get_altitude_acceptance_radius();
+
+			/* It should be safe to just use half of the takoeff_alt as an acceptance radius. */
+			if (fabsf(takeoff_alt) < altitude_acceptance_radius) {
+				altitude_acceptance_radius = takeoff_alt / 2.0f;
+			}
+			if(fabsf(_navigator->get_local_position()->z - takeoff_height) < altitude_acceptance_radius){
+
+				_waypoint_position_reached = true;
+			}
+
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			/* fixed-wing takeoff is reached once the mode manager has finished the climbout */
@@ -646,7 +662,10 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		return false;
 	}
 
-	if(item.frame == NAV_FRAME::NAV_FRAME_GLOBAL){
+	if (item.frame == NAV_FRAME::NAV_FRAME_GLOBAL
+	    || item.frame == NAV_FRAME::NAV_FRAME_GLOBAL_RELATIVE_ALT
+	    || item.frame == NAV_FRAME::NAV_FRAME_GLOBAL_INT
+	    || item.frame == NAV_FRAME::NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 
 		sp->lat = item.lat;
 		sp->lon = item.lon;
@@ -721,6 +740,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 		sp->valid = true;
 		sp->timestamp = hrt_absolute_time();
+		sp->frame = position_setpoint_s::FRAME_TYPE_GLOBAL;
 
 		return sp->valid;
 	}
@@ -847,6 +867,7 @@ void
 MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
 {
 	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 
 	item->altitude_is_relative = false;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
@@ -960,6 +981,7 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 
 	/* set the land item */
 	item->nav_cmd = NAV_CMD_LAND;
+	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 
 	// set land item to current position
 	if (_navigator->get_local_position()->xy_global) {
@@ -986,6 +1008,7 @@ void
 MissionBlock::set_idle_item(struct mission_item_s *item)
 {
 	item->nav_cmd = NAV_CMD_IDLE;
+	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item->lat = _navigator->get_home_position()->lat;
 	item->lon = _navigator->get_home_position()->lon;
 	item->altitude_is_relative = false;
@@ -1002,6 +1025,7 @@ void
 MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode)
 {
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item->params[0] = (float) new_mode;
 	item->params[1] = 0.0f; // not immediate transition
 	item->autocontinue = true;
@@ -1047,6 +1071,7 @@ MissionBlock::set_align_mission_item(struct mission_item_s *const mission_item,
 				     const struct mission_item_s *const mission_item_next) const
 {
 	mission_item->nav_cmd = NAV_CMD_WAYPOINT;
+	mission_item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	copy_position_if_valid(mission_item, &(_navigator->get_position_setpoint_triplet()->current));
 	mission_item->altitude_is_relative = false;
 	mission_item->autocontinue = true;
@@ -1074,6 +1099,7 @@ void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const Positio
 		float loiter_radius) const
 {
 	item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
+	item.frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
@@ -1099,6 +1125,7 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Position
 		item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	}
 
+	item.frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
@@ -1116,6 +1143,7 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Position
 void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const
 {
 	item.nav_cmd = NAV_CMD_WAYPOINT;
+	item.frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
@@ -1132,6 +1160,7 @@ void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const Posi
 void MissionBlock::setLandMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const
 {
 	item.nav_cmd = NAV_CMD_LAND;
+	item.frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
