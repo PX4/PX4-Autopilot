@@ -38,10 +38,25 @@ using namespace matrix;
 using namespace time_literals;
 
 GnssRedundancyChecks::GnssRedundancyChecks()
-	: _param_ekf2_gps_p_noise_handle(param_find("EKF2_GPS_P_NOISE"))
 {
-	_divergence_hysteresis.set_hysteresis_time_from(false, 2_s);
-	_divergence_hysteresis.set_hysteresis_time_from(true, 2_s);
+}
+
+Vector3f GnssRedundancyChecks::antennaOffset(uint32_t device_id, int instance) const
+{
+	// Match by SENS_GNSSx_ID, or by sensor_gnss instance if no ID is configured (same as VehicleGPSPosition)
+	const int32_t id0 = _param_sens_gnss0_id.get();
+	const int32_t id1 = _param_sens_gnss1_id.get();
+	const bool match_by_id = (id0 != 0) || (id1 != 0);
+
+	if (match_by_id ? (static_cast<uint32_t>(id0) == device_id) : (instance == 0)) {
+		return Vector3f(_param_sens_gnss0_offx.get(), _param_sens_gnss0_offy.get(), _param_sens_gnss0_offz.get());
+	}
+
+	if (match_by_id ? (static_cast<uint32_t>(id1) == device_id) : (instance == 1)) {
+		return Vector3f(_param_sens_gnss1_offx.get(), _param_sens_gnss1_offy.get(), _param_sens_gnss1_offz.get());
+	}
+
+	return Vector3f{};
 }
 
 void GnssRedundancyChecks::checkAndReport(const Context &context, Report &reporter)
@@ -49,7 +64,14 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	bool gps_online[GPS_MAX_INSTANCES] {};
 	bool gnss_healthy[GPS_MAX_INSTANCES] {};
 	uint8_t healthy_count = 0;
-	sensor_gnss_s healthy_gnss[GPS_MAX_INSTANCES] {};
+
+	// Only the fields needed for the divergence check, to keep the full sensor_gnss_s copies off the stack
+	struct HealthyPosition {
+		double latitude;
+		double longitude;
+		double altitude_msl;
+		Vector3f antenna_offset;
+	} healthy_gnss[GPS_MAX_INSTANCES] {};
 
 	sensors_status_gnss_s status{};
 	const bool status_valid = _sensors_status_gnss_sub.copy(&status) && (hrt_elapsed_time(&status.timestamp) < 1_s);
@@ -65,7 +87,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 			// The sensors module indexes its status by the same sensor_gnss instance
 			if (status_valid && (status.device_ids[i] == gnss.device_id) && status.healthy[i]) {
 				gnss_healthy[i] = true;
-				healthy_gnss[healthy_count++] = gnss;
+				healthy_gnss[healthy_count++] = {gnss.latitude, gnss.longitude, gnss.altitude_msl, antennaOffset(gnss.device_id, i)};
 			}
 		}
 	}
@@ -75,34 +97,51 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		_peak_healthy_count = healthy_count;
 	}
 
-	// Position divergence check: flag if two healthy receivers disagree beyond their
-	// combined uncertainty. Gate = 3 * RSS(eph), centered on the expected lever-arm separation.
-	float divergence_m = 0.f;
+	// The expected antenna baseline depends on heading and tilt, so the receivers are only compared with a valid attitude
+	vehicle_attitude_s attitude{};
+	const bool attitude_valid = _vehicle_attitude_sub.copy(&attitude) && (hrt_elapsed_time(&attitude.timestamp) < 1_s);
+	const bool can_compare = (healthy_count >= 2) && attitude_valid;
 
-	if (healthy_count >= 2) {
+	// Before arming, a disagreement blocks immediately. In flight, it has to persist for 2s to not react to short glitches.
+	_divergence_hysteresis.set_hysteresis_time_from(false, context.isArmed() ? 2_s : 0_s);
+	// A disagreement only clears after 2s of continuous agreement, or immediately if the receivers cannot be compared
+	_divergence_hysteresis.set_hysteresis_time_from(true, can_compare ? 2_s : 0_s);
+
+	// Position divergence check: flag if two healthy receivers disagree by more than COM_GNSS_H_MAX horizontally
+	// or COM_GNSS_V_MAX vertically. The expected baseline between the antennas is rotated from body to NED with
+	// the current attitude, so heading and tilt are accounted for and the full error vector is checked.
+	// Until the heading is aligned, only the horizontal distances are compared, which does not depend on heading.
+	float divergence_h_m = 0.f;
+	float divergence_v_m = 0.f;
+
+	if (can_compare) {
+		// Measured baseline from receiver 0 to receiver 1 (NED)
 		float north, east;
 		get_vector_to_next_waypoint(healthy_gnss[0].latitude, healthy_gnss[0].longitude,
 					    healthy_gnss[1].latitude, healthy_gnss[1].longitude,
 					    &north, &east);
-		const float separation_m = Vector2f(north, east).length();
+		const float down = -static_cast<float>(healthy_gnss[1].altitude_msl - healthy_gnss[0].altitude_msl);
 
-		const Vector2f offset0(_param_sens_gnss0_offx.get(), _param_sens_gnss0_offy.get());
-		const Vector2f offset1(_param_sens_gnss1_offx.get(), _param_sens_gnss1_offy.get());
-		const float expected_d = (offset0 - offset1).length();
-		divergence_m = fabsf(separation_m - expected_d);
-		// Use quadrature sum for standard deviation of the difference taking the firmware dependent eph as standard deviation
-		// and a heuristic factor of 3 because then it's unlikely just noise.
-		// Receivers might report an optimistic eph, so floor it with the minimum GNSS position noise.
-		// EKF2 might not be part of the build, in that case fall back to the EKF2_GPS_P_NOISE default.
-		float eph_min = 0.5f;
+		// Expected baseline from the antenna offsets
+		const Vector3f expected = Quatf(attitude.q).rotateVector(healthy_gnss[1].antenna_offset - healthy_gnss[0].antenna_offset);
 
-		if (_param_ekf2_gps_p_noise_handle != PARAM_INVALID) {
-			param_get(_param_ekf2_gps_p_noise_handle, &eph_min);
+		vehicle_local_position_s local_position{};
+		const bool heading_valid = _vehicle_local_position_sub.copy(&local_position)
+					   && (hrt_elapsed_time(&local_position.timestamp) < 1_s)
+					   && local_position.heading_good_for_control;
+
+		if (heading_valid) {
+			divergence_h_m = Vector2f(north - expected(0), east - expected(1)).length();
+
+		} else {
+			divergence_h_m = fabsf(Vector2f(north, east).length() - Vector2f(expected(0), expected(1)).length());
 		}
 
-		const float divergence_gate_m = 3.f * Vector2f(math::max(healthy_gnss[0].eph, eph_min),
-						math::max(healthy_gnss[1].eph, eph_min)).length();
-		_divergence_hysteresis.set_state_and_update(divergence_m > divergence_gate_m, hrt_absolute_time());
+		// The vertical component does not depend on heading
+		divergence_v_m = fabsf(down - expected(2));
+
+		const bool diverging = (divergence_h_m > _param_com_gnss_h_max.get()) || (divergence_v_m > _param_com_gnss_v_max.get());
+		_divergence_hysteresis.set_state_and_update(diverging, hrt_absolute_time());
 
 	} else {
 		_divergence_hysteresis.set_state_and_update(false, hrt_absolute_time());
@@ -154,17 +193,18 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	if (_divergence_hysteresis.get_state()) {
 		/* EVENT
 		 * @description
-		 * Two GNSS receivers report positions that are inconsistent with their reported accuracy.
+		 * Two GNSS receivers report positions that disagree by more than the configured limits.
 		 *
 		 * <profile name="dev">
+		 * Configure the limits with <param>COM_GNSS_H_MAX</param> (horizontal) and <param>COM_GNSS_V_MAX</param> (vertical).
 		 * Configure the failsafe action with <param>COM_GNSSLOSS_ACT</param>.
 		 * The failsafe action is only triggered when <param>SYS_HAS_NUM_GNSS</param> is set to 2.
 		 * </profile>
 		 */
-		reporter.healthFailure<float>(nav_modes, health_component_t::gps,
-					      events::ID("check_gps_position_divergence"),
-					      log_level,
-					      "GPS receivers disagree by {1:.1}m",
-					      (double)divergence_m);
+		reporter.healthFailure<float, float>(nav_modes, health_component_t::gps,
+						     events::ID("check_gps_position_divergence"),
+						     log_level,
+						     "GPS receivers disagree by {1:.1}m horizontally, {2:.1}m vertically",
+						     divergence_h_m, divergence_v_m);
 	}
 }
