@@ -39,7 +39,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Hardware Support
 
-- [Accton Godwit GFH7](../flight_controller/accton-godwit_gfh7.md): compact STM32H753 flight controller with dual IMUs (ICM-42688-P, LSM6DSK320X), DPS368 barometer, IST8310 magnetometer, 8 bidirectional-DShot outputs, and an analog OSD. ([PX4-Autopilot#28817](https://github.com/PX4/PX4-Autopilot/pull/28817))
+- [Accton Godwit G-FH7](../flight_controller/accton-godwit_gfh7.md): compact STM32H753 flight controller with dual IMUs (ICM-42688-P, LSM6DSK320X), DPS368 barometer, IST8310 magnetometer, 8 bidirectional-DShot outputs, and an analog OSD. ([PX4-Autopilot#28817](https://github.com/PX4/PX4-Autopilot/pull/28817))
 - [DroneCAN ESCs](../dronecan/escs.md) no longer need to set `UAVCAN_PUB_ARM` as `ArmingStatus` is published automatically whenever `UAVCAN_ENABLE` is `3` (ESC output enabled). ([PX4-Autopilot#28364](https://github.com/PX4/PX4-Autopilot/pull/28364))
 
 ### Common
