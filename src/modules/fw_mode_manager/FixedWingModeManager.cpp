@@ -916,7 +916,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 
 	// Smoothly ramp the altitude setpoint from the current altitude such that the loiter altitude is reached
 	// by the time the vehicle arrives at the loiter circle.
-	const float acc_rad = math::max(_directional_guidance.switchDistance(500.0f), loiter_radius);
+	const float acc_rad = _directional_guidance.switchDistance(500.0f) + loiter_radius;
 	_foh_altitude_active = true;
 	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_curr.alt,
 				      _current_latitude, _current_longitude, _current_altitude, acc_rad, _foh_altitude_state);
@@ -925,7 +925,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
 	Vector2f vehicle_to_loiter_center{curr_wp_local - curr_pos_local};
 
-	const bool close_to_circle = vehicle_to_loiter_center.norm() < loiter_radius + _directional_guidance.switchDistance(500);
+	const bool close_to_circle = vehicle_to_loiter_center.norm() < acc_rad;
 
 	bool enforce_low_height{false};
 
