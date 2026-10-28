@@ -86,6 +86,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::COM_THROW_EN>) _param_com_throw_en,
-		(ParamFloat<px4::params::COM_THROW_SPEED>) _param_com_throw_min_speed
+		(ParamFloat<px4::params::COM_THROW_SPEED>) _param_com_throw_speed
 	);
 };

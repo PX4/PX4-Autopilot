@@ -202,19 +202,19 @@ private:
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "mappydot_sample_perf")};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_EN_MPDT>)    _p_sensor_enabled,
-		(ParamInt<px4::params::SENS_MPDT0_ROT>)  _p_sensor0_rot,
-		(ParamInt<px4::params::SENS_MPDT1_ROT>)  _p_sensor1_rot,
-		(ParamInt<px4::params::SENS_MPDT2_ROT>)  _p_sensor2_rot,
-		(ParamInt<px4::params::SENS_MPDT3_ROT>)  _p_sensor3_rot,
-		(ParamInt<px4::params::SENS_MPDT4_ROT>)  _p_sensor4_rot,
-		(ParamInt<px4::params::SENS_MPDT5_ROT>)  _p_sensor5_rot,
-		(ParamInt<px4::params::SENS_MPDT6_ROT>)  _p_sensor6_rot,
-		(ParamInt<px4::params::SENS_MPDT7_ROT>)  _p_sensor7_rot,
-		(ParamInt<px4::params::SENS_MPDT8_ROT>)  _p_sensor8_rot,
-		(ParamInt<px4::params::SENS_MPDT9_ROT>)  _p_sensor9_rot,
-		(ParamInt<px4::params::SENS_MPDT10_ROT>) _p_sensor10_rot,
-		(ParamInt<px4::params::SENS_MPDT11_ROT>) _p_sensor11_rot
+		(ParamInt<px4::params::SENS_EN_MPDT>)    _param_sens_en_mpdt,
+		(ParamInt<px4::params::SENS_MPDT0_ROT>)  _param_sens_mpdt0_rot,
+		(ParamInt<px4::params::SENS_MPDT1_ROT>)  _param_sens_mpdt1_rot,
+		(ParamInt<px4::params::SENS_MPDT2_ROT>)  _param_sens_mpdt2_rot,
+		(ParamInt<px4::params::SENS_MPDT3_ROT>)  _param_sens_mpdt3_rot,
+		(ParamInt<px4::params::SENS_MPDT4_ROT>)  _param_sens_mpdt4_rot,
+		(ParamInt<px4::params::SENS_MPDT5_ROT>)  _param_sens_mpdt5_rot,
+		(ParamInt<px4::params::SENS_MPDT6_ROT>)  _param_sens_mpdt6_rot,
+		(ParamInt<px4::params::SENS_MPDT7_ROT>)  _param_sens_mpdt7_rot,
+		(ParamInt<px4::params::SENS_MPDT8_ROT>)  _param_sens_mpdt8_rot,
+		(ParamInt<px4::params::SENS_MPDT9_ROT>)  _param_sens_mpdt9_rot,
+		(ParamInt<px4::params::SENS_MPDT10_ROT>) _param_sens_mpdt10_rot,
+		(ParamInt<px4::params::SENS_MPDT11_ROT>) _param_sens_mpdt11_rot
 	);
 };
 
@@ -287,29 +287,29 @@ int
 MappyDot::get_sensor_rotation(const size_t index)
 {
 	switch (index) {
-	case 0: return _p_sensor0_rot.get();
+	case 0: return _param_sens_mpdt0_rot.get();
 
-	case 1: return _p_sensor1_rot.get();
+	case 1: return _param_sens_mpdt1_rot.get();
 
-	case 2: return _p_sensor2_rot.get();
+	case 2: return _param_sens_mpdt2_rot.get();
 
-	case 3: return _p_sensor3_rot.get();
+	case 3: return _param_sens_mpdt3_rot.get();
 
-	case 4: return _p_sensor4_rot.get();
+	case 4: return _param_sens_mpdt4_rot.get();
 
-	case 5: return _p_sensor5_rot.get();
+	case 5: return _param_sens_mpdt5_rot.get();
 
-	case 6: return _p_sensor6_rot.get();
+	case 6: return _param_sens_mpdt6_rot.get();
 
-	case 7: return _p_sensor7_rot.get();
+	case 7: return _param_sens_mpdt7_rot.get();
 
-	case 8: return _p_sensor8_rot.get();
+	case 8: return _param_sens_mpdt8_rot.get();
 
-	case 9: return _p_sensor9_rot.get();
+	case 9: return _param_sens_mpdt9_rot.get();
 
-	case 10: return _p_sensor10_rot.get();
+	case 10: return _param_sens_mpdt10_rot.get();
 
-	case 11: return _p_sensor11_rot.get();
+	case 11: return _param_sens_mpdt11_rot.get();
 
 	default: return PX4_ERROR;
 	}
@@ -318,7 +318,7 @@ MappyDot::get_sensor_rotation(const size_t index)
 int
 MappyDot::init()
 {
-	if (_p_sensor_enabled.get() == 0) {
+	if (_param_sens_en_mpdt.get() == 0) {
 		PX4_WARN("disabled");
 		return PX4_ERROR;
 	}
