@@ -11,11 +11,11 @@ The [Godwit GFH7](https://www.accton-iot.com/godwit/g-fh7.html) is a compact fli
 It adopts an STM32H753 flight-management processor, dual IMUs, an integrated barometer and compass, and solder-free connectors for flexible system integration.
 The board supports PX4, ArduPilot, Betaflight, and iNAV flight-control software.
 
-![Accton Godwit GFH7](../../assets/flight_controller/accton-godwit/gfh7/outlook.png "Accton Godwit GFH7")
+![Accton Godwit GFH7](../../assets/flight_controller/accton-godwit_gfh7/outlook.png "Accton Godwit GFH7")
 
-![Accton Godwit GFH7 Front View](../../assets/flight_controller/accton-godwit/gfh7/orientation_front.png "Accton Godwit GFH7 Front View")
+![Accton Godwit GFH7 Front View](../../assets/flight_controller/accton-godwit_gfh7/orientation_front.png "Accton Godwit GFH7 Front View")
 
-![Accton Godwit GFH7 Back View](../../assets/flight_controller/accton-godwit/gfh7/orientation_back.png "Accton Godwit GFH7 Back View")
+![Accton Godwit GFH7 Back View](../../assets/flight_controller/accton-godwit_gfh7/orientation_back.png "Accton Godwit GFH7 Back View")
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -33,13 +33,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Barometer:** [Infineon DPS368](https://www.infineon.com/cms/en/product/sensor/pressure-sensors/pressure-sensors-for-iot/dps368/) (I2C1)
 - **Magnetometer:** iSentek IST8310 (I2C1)
 
-### Electrical Data
-
-- **Input voltage:** 4S to 12S LiPo
-- **Current draw:** 110 mA at 5 V (static)
-- **BEC output:** 5 V/3 A and 12 V/3 A (supports power-saving mode)
-- **Power monitoring:** one analog input (battery voltage and current)
-
 ### Interfaces
 
 - **PWM outputs:** 8 (plus `PWM9` for a NeoPixel LED strip)
@@ -55,6 +48,13 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **OSD:** analog (AT7456-compatible)
 - **Other:** 2 LED indicators, buzzer, [IMU heater](#imu_heater), video input, and video output
 
+### Electrical Data
+
+- **Input voltage:** 4S to 12S LiPo
+- **Current draw:** 110 mA at 5 V (static)
+- **BEC output:** 5 V/3 A and 12 V/3 A (supports power-saving mode)
+- **Power monitoring:** one analog input (battery voltage and current)
+
 ### Mechanical Data
 
 - **Dimensions:** 36 x 42 x 8.63 mm
@@ -69,13 +69,13 @@ Product information and availability are provided on the [Accton-IoT Godwit GFH7
 
 Refer to the [Godwit GFH7 product page](https://www.accton-iot.com/godwit/g-fh7.html) and the [Godwit GFH7 datasheet](https://www.accton-iot.com/godwit/assets/doc/DS-Godwit%20FPV%20G-FH7.pdf) for the latest board information and interface definition.
 
-![GFH7 Pin Definition](../../assets/flight_controller/accton-godwit/gfh7/pin_definition.png "Accton Godwit GFH7 Pin Definition")
+![GFH7 Pin Definition](../../assets/flight_controller/accton-godwit_gfh7/pin_definition.png "Accton Godwit GFH7 Pin Definition")
 
 ### Block Diagram {#block_diagram}
 
 The block diagram below shows the main components (sensors and power supply) and how they connect to the STM32H753 FMU.
 
-![Accton Godwit GFH7 block diagram: the STM32H753 FMU with its IMUs, barometer, magnetometer, OSD co-processor, power supply (battery input, 12 V and 5 V BECs, 3.3 V LDO), and connectors](../../assets/flight_controller/accton-godwit/gfh7/block_diagram.svg "Accton Godwit GFH7 Block Diagram")
+![Accton Godwit GFH7 block diagram: the STM32H753 FMU with its IMUs, barometer, magnetometer, OSD co-processor, power supply (battery input, 12 V and 5 V BECs, 3.3 V LDO), and connectors](../../assets/flight_controller/accton-godwit_gfh7/block_diagram.svg "Accton Godwit GFH7 Block Diagram")
 
 ## Power {#power}
 
@@ -111,85 +111,6 @@ The 12V output for the camera and VTX is generated from the battery input, and n
 Below that, the camera and VTX lose power.
 :::
 
-## Interface Summary {#interface_summary}
-
-| Interface         | Function                                           |
-| ----------------- | -------------------------------------------------- |
-| `ESC` / `Ext ESC` | Connect the ESC and motor system.                  |
-| `GPS`             | Connect a GPS module.                              |
-| `SBUS` / `ELRS`   | Connect an RC receiver.                            |
-| `TELEM`           | Connect a telemetry radio or MAVLink device.       |
-| `CAN`             | Connect CAN peripherals.                           |
-| `I2C`             | Connect external I2C sensors.                      |
-| `VIDEO-IN`        | Connect the analog video input.                    |
-| `A-VTX` / `D-VTX` | Connect the supported video transmitter interface. |
-
-## Assembly {#assembly}
-
-### Wiring Diagram {#wiring_diagram}
-
-Refer to the [Godwit GFH7 product page](https://www.accton-iot.com/godwit/g-fh7.html) and the [Godwit GFH7 datasheet](https://www.accton-iot.com/godwit/assets/doc/DS-Godwit%20FPV%20G-FH7.pdf) for the latest wiring and connector information.
-
-![Godwit GFH7 Wiring (1 of 2)](../../assets/flight_controller/accton-godwit/gfh7/wiring_1.png "Accton Godwit GFH7 Wiring (1 of 2)")
-
-![Godwit GFH7 Wiring (2 of 2)](../../assets/flight_controller/accton-godwit/gfh7/wiring_2.png "Accton Godwit GFH7 Wiring (2 of 2)")
-
-The diagram below shows how to connect the ESC and motors to the `ESC` and `Ext ESC` connectors.
-
-![Godwit GFH7 Motor/ESC Wiring](../../assets/flight_controller/accton-godwit/gfh7/motor_esc_wiring.png "Accton Godwit GFH7 Motor/ESC Wiring")
-
-### Radio Control {#radio_control}
-
-A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
-See [Radio Control Systems](../getting_started/rc_transmitter_receiver.md) for how to select a transmitter/receiver.
-
-The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
-
-- `ELRS` (UART4, PX4 port `TELEM/SERIAL 4`): CRSF/ExpressLRS is enabled on this port by default ([RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) is set to `TELEM/SERIAL 4`).
-  [CRSF telemetry](../telemetry/crsf_telemetry.md) to the transmitter is also enabled by default ([RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN)).
-- `SBUS` (UART5, the PX4 `RC` port): for S.BUS receivers.
-  To use it, set [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller` and `RC_CRSF_PRT_CFG` to `Disabled`.
-  The `SBUS` pin on the `D-VTX` connector is wired to the same UART input, for digital video systems that output S.BUS.
-
-Other protocols are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to.
-Only one protocol can be active on a port.
-PPM receivers are not supported.
-
-The vehicle boots in Stabilized mode ([multicopter](../flight_modes_mc/manual_stabilized.md), [fixed-wing](../flight_modes_fw/stabilized.md)) instead of the PX4 default of Hold mode ([COM_FLTMODE_BOOT](../advanced_config/parameter_reference.md#COM_FLTMODE_BOOT) is set to `Stabilized`).
-A flight mode switch, if you assign one with [RC_MAP_FLTMODE](../advanced_config/parameter_reference.md#RC_MAP_FLTMODE), overrides this.
-
-![GFH7 Radio](../../assets/flight_controller/accton-godwit/gfh7/radio.png "Accton Godwit GFH7 Radio")
-
-### GPS & Compass {#gps_compass}
-
-Connect a [GPS/compass module](../gps_compass/index.md) to the `GPS` connector (JST-SH 6P), which carries USART3 (PX4 port `GPS1`) and the external I2C bus (I2C4) for the compass.
-See [Mounting the GPS/Compass](../assembly/mount_gps_compass.md) for placement.
-
-An external compass (usually built into the GPS module) is recommended over the onboard IST8310, because it can be mounted away from motors and power wiring.
-
-![GFH7 GPS](../../assets/flight_controller/accton-godwit/gfh7/gps.png "Accton Godwit GFH7 GPS")
-
-### Telemetry Radios (Optional) {#telemetry}
-
-Connect the radio to the `TELEM` connector (PX4 port `TELEM 1`).
-
-Telemetry radios are used to provide a wireless data link between the vehicle and a ground control station (GCS) like QGroundControl.
-This allows you to monitor flight data, change missions in real-time, and receive in-flight status updates.
-See [Telemetry Radios](../telemetry/index.md).
-
-### CAN {#can}
-
-The `CAN` connector (JST-SH 4P) is used for [DroneCAN](../dronecan/index.md) peripherals such as GPS modules, ESCs and sensors.
-DroneCAN is disabled by default: enable it by setting [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE).
-
-### OSD {#osd}
-
-The board has an [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) chip (AT7456-compatible), which is enabled by default in NTSC mode.
-Connect the camera to `VIDEO-IN` and the analog video transmitter to `A-VTX`.
-Set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `2` for PAL, or `0` to disable it.
-
-For a digital video transmitter on the `D-VTX` connector, set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `TELEM 3` to enable [MSP OSD](../peripherals/osd.md#msp-osd).
-
 ## PWM Outputs {#pwm_outputs}
 
 The board has 8 PWM outputs, on the `MOTOR1`-`MOTOR8` pins of the `ESC` and `Ext ESC` connectors.
@@ -209,7 +130,7 @@ The `PWM9` pin on the `Ext ESC` connector drives a NeoPixel (WS2812-compatible) 
 The board has a microSD card slot, which PX4 uses for flight logs and other data.
 See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory) for more information.
 
-![Godwit GFH7 SD Card](../../assets/flight_controller/accton-godwit/gfh7/sdcard.png "Godwit GFH7 SD Card")
+![Godwit GFH7 SD Card](../../assets/flight_controller/accton-godwit_gfh7/sdcard.png "Godwit GFH7 SD Card")
 
 ## IMU Heater {#imu_heater}
 
@@ -238,9 +159,86 @@ It reads [ESC telemetry](../peripherals/dshot.md#esc-telemetry) from the `ESC` c
 
 No ports have flow control.
 
-## Building Firmware {#building_firmware}
+## Interface Summary {#interface_summary}
 
-<!-- QGroundControl board recognition for the GFH7: https://github.com/mavlink/qgroundcontrol/pull/15315 -->
+| Interface         | Function                                           |
+| ----------------- | -------------------------------------------------- |
+| `ESC` / `Ext ESC` | Connect the ESC and motor system.                  |
+| `GPS`             | Connect a GPS module.                              |
+| `SBUS` / `ELRS`   | Connect an RC receiver.                            |
+| `TELEM`           | Connect a telemetry radio or MAVLink device.       |
+| `CAN`             | Connect CAN peripherals.                           |
+| `I2C`             | Connect external I2C sensors.                      |
+| `VIDEO-IN`        | Connect the analog video input.                    |
+| `A-VTX` / `D-VTX` | Connect the supported video transmitter interface. |
+
+## Assembly {#assembly}
+
+### Wiring Diagram {#wiring_diagram}
+
+Refer to the [Godwit GFH7 product page](https://www.accton-iot.com/godwit/g-fh7.html) and the [Godwit GFH7 datasheet](https://www.accton-iot.com/godwit/assets/doc/DS-Godwit%20FPV%20G-FH7.pdf) for the latest wiring and connector information.
+
+![Godwit GFH7 Wiring (1 of 2)](../../assets/flight_controller/accton-godwit_gfh7/wiring_1.png "Accton Godwit GFH7 Wiring (1 of 2)")
+
+![Godwit GFH7 Wiring (2 of 2)](../../assets/flight_controller/accton-godwit_gfh7/wiring_2.png "Accton Godwit GFH7 Wiring (2 of 2)")
+
+The diagram below shows how to connect the ESC and motors to the `ESC` and `Ext ESC` connectors.
+
+![Godwit GFH7 Motor/ESC Wiring](../../assets/flight_controller/accton-godwit_gfh7/motor_esc_wiring.png "Accton Godwit GFH7 Motor/ESC Wiring")
+
+### Radio Control {#radio_control}
+
+A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+See [Radio Control Systems](../getting_started/rc_transmitter_receiver.md) for how to select a transmitter/receiver.
+
+The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
+
+- `ELRS` (UART4, PX4 port `TELEM/SERIAL 4`): CRSF/ExpressLRS is enabled on this port by default ([RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) is set to `TELEM/SERIAL 4`).
+  [CRSF telemetry](../telemetry/crsf_telemetry.md) to the transmitter is also enabled by default ([RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN)).
+- `SBUS` (UART5, the PX4 `RC` port): for S.BUS receivers.
+  To use it, set [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller` and `RC_CRSF_PRT_CFG` to `Disabled`.
+  The `SBUS` pin on the `D-VTX` connector is wired to the same UART input, for digital video systems that output S.BUS.
+
+Other protocols are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to.
+Only one protocol can be active on a port.
+PPM receivers are not supported.
+
+The vehicle boots in Stabilized mode ([multicopter](../flight_modes_mc/manual_stabilized.md), [fixed-wing](../flight_modes_fw/stabilized.md)) instead of the PX4 default of Hold mode ([COM_FLTMODE_BOOT](../advanced_config/parameter_reference.md#COM_FLTMODE_BOOT) is set to `Stabilized`).
+A flight mode switch, if you assign one with [RC_MAP_FLTMODE](../advanced_config/parameter_reference.md#RC_MAP_FLTMODE), overrides this.
+
+![GFH7 Radio](../../assets/flight_controller/accton-godwit_gfh7/radio.png "Accton Godwit GFH7 Radio")
+
+### GPS & Compass {#gps_compass}
+
+Connect a [GPS/compass module](../gps_compass/index.md) to the `GPS` connector (JST-SH 6P), which carries USART3 (PX4 port `GPS1`) and the external I2C bus (I2C4) for the compass.
+See [Mounting the GPS/Compass](../assembly/mount_gps_compass.md) for placement.
+
+An external compass (usually built into the GPS module) is recommended over the onboard IST8310, because it can be mounted away from motors and power wiring.
+
+![GFH7 GPS](../../assets/flight_controller/accton-godwit_gfh7/gps.png "Accton Godwit GFH7 GPS")
+
+### Telemetry Radios (Optional) {#telemetry}
+
+Connect the radio to the `TELEM` connector (PX4 port `TELEM 1`).
+
+Telemetry radios are used to provide a wireless data link between the vehicle and a ground control station (GCS) like QGroundControl.
+This allows you to monitor flight data, change missions in real-time, and receive in-flight status updates.
+See [Telemetry Radios](../telemetry/index.md).
+
+### CAN {#can}
+
+The `CAN` connector (JST-SH 4P) is used for [DroneCAN](../dronecan/index.md) peripherals such as GPS modules, ESCs and sensors.
+DroneCAN is disabled by default: enable it by setting [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE).
+
+### OSD {#osd}
+
+The board has an [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) chip (AT7456-compatible), which is enabled by default in NTSC mode.
+Connect the camera to `VIDEO-IN` and the analog video transmitter to `A-VTX`.
+Set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `2` for PAL, or `0` to disable it.
+
+For a digital video transmitter on the `D-VTX` connector, set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `TELEM 3` to enable [MSP OSD](../peripherals/osd.md#msp-osd).
+
+## Building Firmware {#building_firmware}
 
 ::: tip
 From PX4 v2.0, most users will not need to build this firmware!
