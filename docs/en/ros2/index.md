@@ -45,5 +45,5 @@ The main topics in this section are:
 
 ## Further Information
 
-- [XRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md): PX4 middleware leveranging micro XRCE-DDS for connecting to ROS 2.
+- [XRCE-DDS (PX4-ROS 2/DDS Bridge)](../middleware/uxrce_dds.md): PX4 middleware leveraging micro XRCE-DDS for connecting to ROS 2.
 - [Zenoh (PX4 ROS 2)](../middleware/zenoh.md): PX4 middleware leveraging Zenoh pico for connecting to ROS 2.
