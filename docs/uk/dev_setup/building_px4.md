@@ -208,6 +208,8 @@ To check out the commits PX4 records (for example after switching branches), run
 git submodule sync --recursive && git submodule update --init --recursive
 ```
 
+Set the CMake variable `PX4_GIT_SUBMODULES` to a list of submodule paths to check only those, for example when another project builds PX4 and uses only some of its libraries.
+The configure step then stops if the build uses a submodule that is not checked out.
 Set `GIT_SUBMODULES_ARE_EVIL=1` to skip the check entirely and manage submodules yourself.
 
 ## Компіляція в графічному IDE
