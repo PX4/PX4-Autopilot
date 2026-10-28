@@ -17,10 +17,11 @@ There may also be other DroneCAN rangefinders than those listed here.
 
 | Rangefinder                                 | Technology                         | Range (min – max)                          | З'єднання        | NDAA              | Примітки                                               |
 | ------------------------------------------- | ---------------------------------- | ------------------------------------------------------------- | ---------------- | ----------------- | ------------------------------------------------------ |
-| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar                    | ~50 m                                         | UART             | ✔️                |                                                        |
+| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar                    | 0.5 m – 50 m                                  | UART             | ✔️                | All-weather, works over water                          |
 | [ARK DIST SR]                               | ToF (850 nm IR) | 8 cm to ~30 m                                 | DroneCAN, UART   | ✔️                |                                                        |
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m                                 | DroneCAN, UART   | ✔️                |                                                        |
-| [Benewake TFmini]                           | ToF (IR laser)  | ~12 m                                         | UART             | ~ |                                                        |
+| [Benewake TFmini Plus]                      | ToF (IR LED)    | 0.1 m – 12 m                                  | UART             | ~ | PX4 minimum 0.4 m                      |
+| [Benewake TFmini-S]                         | ToF (IR laser)  | 0.1 m – 12 m                                  | UART             | ~ | PX4 minimum 0.4 m                      |
 | [Garmin LIDAR-Lite v3]                      | ToF (IR laser)  | up to 40 m                                                    | I2C, PWM         | ~ | PX4 caps range to 35 m or less                         |
 | [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m                                    | I2C              | ~ |                                                        |
 | [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m                                                   | UART             | ~ |                                                        |
@@ -44,7 +45,8 @@ There may also be other DroneCAN rangefinders than those listed here.
 [Ainstein US-D1 Standard Radar Altimeter]: ../sensor/ulanding_radar.md
 [ARK DIST SR]: ../dronecan/ark_dist.md
 [ARK DIST MR]: ../dronecan/ark_dist_mr.md
-[Benewake TFmini]: ../sensor/tfmini.md
+[Benewake TFmini Plus]: ../sensor/tfmini.md
+[Benewake TFmini-S]: ../sensor/tfmini.md
 [Garmin LIDAR-Lite v3]: ../sensor/lidar_lite.md
 [Holybro ST VL53L1X Lidar]: #holybro-st-vl53l1x-lidar
 [Lanbao PSK-CM8JL65-CC5]: ../sensor/cm8jl65_ir_distance_sensor.md
@@ -130,18 +132,18 @@ PX4 supports the following models connected via the I2C bus: TeraRanger Evo 60m,
 
 ### Стандартний радарний висотомір Ainstein US-D1
 
-The _Ainstein_ [US-D1 Standard Radar Altimeter](../sensor/ulanding_radar.md) is compact microwave rangefinder that has been optimised for use on UAVs.
-Він має діапазон виявлення близько 50м.
-Особливі переваги цього продукту полягають в тому, що він може ефективно працювати в усіх погодних умовах і на всіх типах місцевості (включаючи воду).
+The [Ainstein US-D1 Standard Radar Altimeter](../sensor/ulanding_radar.md) is a compact microwave radar rangefinder with a range of 0.5 m to 50 m and a 100 Hz update rate.
+It can operate effectively in all weather conditions and over all terrain types (including water).
+Це повинно бути підключено до шини UART/серійного порту.
 
 ### LeddarOne
 
 [LeddarOne](../sensor/leddar_one.md) is small Lidar module with a narrow, yet diffuse beam that offers excellent overall detection range and performance, in a robust, reliable, cost-effective package.
 Він має діапазон сенсора від (5см - 40м) і може бути підключений до портів PWM або I2C.
 
-### TFmini
+### Benewake TFmini Lidar
 
-The [Benewake TFmini Lidar](../sensor/tfmini.md) is a tiny, low cost, and low power LIDAR with 12m range.
+The [Benewake TFmini](../sensor/tfmini.md) LiDAR rangefinders (TFmini-S and TFmini Plus) have a range of 0.1–12 m and connect to a serial port (UART).
 
 ### PSK-CM8JL65-CC5
 

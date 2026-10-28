@@ -124,6 +124,14 @@ loiter_point_s makeLoiterPoint(const PositionYawSetpoint &position, float loiter
 	return loiter_point;
 }
 
+wind_s makeWind(float windspeed_north, float windspeed_east)
+{
+	wind_s wind{};
+	wind.windspeed_north = windspeed_north;
+	wind.windspeed_east = windspeed_east;
+	return wind;
+}
+
 uint8_t countValidApproaches(const land_approaches_s &vtol_land_approaches)
 {
 	uint8_t count = 0;
@@ -161,7 +169,20 @@ struct ApproachGeometry {
 	PositionYawSetpoint land;
 	PositionYawSetpoint north;
 	PositionYawSetpoint south;
+	PositionYawSetpoint east;
+	PositionYawSetpoint west;
 };
+
+ApproachGeometry makeApproachGeometry()
+{
+	return ApproachGeometry{
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 150.f, 100.f, kAlt + 20.f),
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 100.f, kAlt + 20.f),
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 150.f, kAlt + 20.f),
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 50.f, kAlt + 20.f),
+	};
+}
 
 struct VehicleStateCase {
 	const char *test_name;
@@ -188,12 +209,6 @@ public:
 			mission_route::Position &position) const
 	{
 		return mission_route::extractSafePointPosition(safe_point_item, home_altitude_amsl, position);
-	}
-
-	loiter_point_s chooseBestLandingApproachForTest(const land_approaches_s &vtol_land_approaches)
-	{
-		_wind_sub.update();
-		return chooseBestLandingApproach(vtol_land_approaches);
 	}
 
 	loiter_point_s selectLandingApproachForTest(const PositionYawSetpoint &destination)
@@ -474,15 +489,6 @@ protected:
 		} else {
 			orb_publish(ORB_ID(wind), _wind_pub, &wind);
 		}
-	}
-
-	ApproachGeometry makeApproachGeometry() const
-	{
-		return ApproachGeometry{
-			makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
-			makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 150.f, 100.f, kAlt + 20.f),
-			makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 100.f, kAlt + 20.f),
-		};
 	}
 
 	orb_advert_t _home_pub{nullptr};
@@ -956,8 +962,6 @@ TEST_F(RTLTest, DirectMissionLandMcOnlySkipsAlignWhenYawNotCommanded)
 	EXPECT_TRUE(std::isnan(direct_mission_land.activeYaw()));
 }
 
-// WHY: No land point means no usable approach bearing.
-// WHAT: The chooser should return an invalid loiter.
 TEST_F(RTLTest, MissionFastKeepsVtolInMulticopterMode)
 {
 	// A VTOL flying in multicopter mode continues the mission as a multicopter.
@@ -1028,29 +1032,29 @@ TEST_F(RTLTest, MissionFastReverseKeepsVtolInMulticopterMode)
 	EXPECT_EQ(mission_fast_reverse.activeNavCommand(), NAV_CMD_WAYPOINT);
 }
 
-TEST_F(RTLTest, ChooseBestLandingApproachRequiresLandLocation)
+// WHY: No land point means no usable approach bearing.
+// WHAT: The chooser should return an invalid loiter.
+TEST(RtlLandingApproachTest, RequiresLandLocation)
 {
 	// GIVEN: A valid loiter and no land point.
-	publishWind(1.f, 0.f);
-
 	const PositionYawSetpoint north_approach = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 20.f);
 	land_approaches_s vtol_land_approaches{};
 	vtol_land_approaches.approaches[0] = makeLoiterPoint(north_approach);
 
 	// WHEN: The chooser runs.
-	const loiter_point_s selected_approach = _rtl.chooseBestLandingApproachForTest(vtol_land_approaches);
+	const loiter_point_s selected_approach = mission_route::chooseBestLandingApproach(vtol_land_approaches,
+			makeWind(1.f, 0.f));
 
 	// THEN: It returns no approach.
 	EXPECT_FALSE(selected_approach.isValid());
 }
 
 // WHY: Approach bearing is measured from the land point.
-// WHAT: Home should not affect the choice.
-TEST_F(RTLTest, ChooseBestLandingApproachUsesLandLocationAsBearingOrigin)
+// WHAT: The approach downwind of the land point should be selected.
+TEST(RtlLandingApproachTest, UsesLandLocationAsBearingOrigin)
 {
 	// GIVEN: Two approaches on opposite sides of the land point and a 60 degree wind.
-	publishWind(1.f, std::sqrt(3.0f));
-
+	const wind_s wind = makeWind(1.f, std::sqrt(3.0f));
 	const ApproachGeometry geometry = makeApproachGeometry();
 	land_approaches_s vtol_land_approaches{};
 	vtol_land_approaches.land_location_lat_lon(0) = geometry.land.lat;
@@ -1059,10 +1063,70 @@ TEST_F(RTLTest, ChooseBestLandingApproachUsesLandLocationAsBearingOrigin)
 	vtol_land_approaches.approaches[1] = makeLoiterPoint(geometry.south);
 
 	// WHEN: The chooser evaluates the block.
-	const loiter_point_s selected_approach = _rtl.chooseBestLandingApproachForTest(vtol_land_approaches);
+	const loiter_point_s selected_approach = mission_route::chooseBestLandingApproach(vtol_land_approaches, wind);
 
 	// THEN: The north approach is selected.
 	expectLoiterPointNear(selected_approach, geometry.north);
+}
+
+// WHY: The wind velocity points where the wind blows toward, and the vehicle should land into the wind.
+// WHAT: The approach downwind of the land point should be selected; two winds rule out swapped or mirrored axes.
+TEST(RtlLandingApproachTest, SelectsApproachDownwindOfLandPoint)
+{
+	// GIVEN: Approaches north, east, south and west of the land point.
+	const ApproachGeometry geometry = makeApproachGeometry();
+	land_approaches_s approaches{};
+	approaches.land_location_lat_lon = matrix::Vector2d(geometry.land.lat, geometry.land.lon);
+	approaches.approaches[0] = makeLoiterPoint(geometry.north);
+	approaches.approaches[1] = makeLoiterPoint(geometry.east);
+	approaches.approaches[2] = makeLoiterPoint(geometry.south);
+	approaches.approaches[3] = makeLoiterPoint(geometry.west);
+
+	// WHEN: The wind blows toward 30 degrees.
+	const wind_s wind_toward_30_deg = makeWind(std::sqrt(3.0f), 1.f);
+
+	// THEN: The north approach is selected.
+	expectLoiterPointNear(mission_route::chooseBestLandingApproach(approaches, wind_toward_30_deg), geometry.north);
+
+	// WHEN: The wind blows toward 120 degrees.
+	const wind_s wind_toward_120_deg = makeWind(-1.f, std::sqrt(3.0f));
+
+	// THEN: The east approach is selected.
+	expectLoiterPointNear(mission_route::chooseBestLandingApproach(approaches, wind_toward_120_deg), geometry.east);
+}
+
+// WHY: An invalid slot must never win, and ties must not depend on anything but the slot order.
+// WHAT: The first of two equally aligned valid approaches should win; a NaN wind or a block without one gives none.
+TEST(RtlLandingApproachTest, KeepsFirstApproachOnEqualBearings)
+{
+	// GIVEN: Three approaches on the same bearing: the first without a height, the third 10 m higher.
+	const ApproachGeometry geometry = makeApproachGeometry();
+	land_approaches_s approaches{};
+	approaches.land_location_lat_lon = matrix::Vector2d(geometry.land.lat, geometry.land.lon);
+	approaches.approaches[0] = makeLoiterPoint(geometry.north);
+	approaches.approaches[0].height_m = NAN;
+	approaches.approaches[1] = makeLoiterPoint(geometry.north);
+	approaches.approaches[2] = makeLoiterPoint(geometry.north);
+	approaches.approaches[2].height_m += 10.f;
+
+	// WHEN: The chooser evaluates the block.
+	const wind_s wind_toward_north = makeWind(1.f, 0.f);
+	const loiter_point_s selected_approach = mission_route::chooseBestLandingApproach(approaches, wind_toward_north);
+
+	// THEN: It skips the approach without a height and keeps the first of the two valid ones.
+	expectLoiterPointNear(selected_approach, geometry.north);
+
+	// WHEN: The wind estimate is NaN.
+	const loiter_point_s nan_wind_approach = mission_route::chooseBestLandingApproach(approaches, makeWind(NAN, NAN));
+
+	// THEN: The chooser returns no approach, so RTL loiters over the land point.
+	EXPECT_FALSE(nan_wind_approach.isValid());
+
+	// WHEN: No slot holds a valid approach.
+	approaches.resetAllApproaches();
+
+	// THEN: The chooser returns no approach.
+	EXPECT_FALSE(mission_route::chooseBestLandingApproach(approaches, wind_toward_north).isValid());
 }
 
 class SelectLandingApproachVehicleStateTest :
@@ -1110,6 +1174,26 @@ INSTANTIATE_TEST_SUITE_P(
 {
 	return std::string(param_info.param.test_name);
 });
+
+// WHY: RTL must pass its wind estimate to the chooser.
+// WHAT: A wind that puts the south approach downwind should select it.
+TEST_F(RTLTest, SelectLandingApproachUsesWindEstimate)
+{
+	// GIVEN: Approaches north and south of the land point and a VTOL in fixed-wing mode.
+	const ApproachGeometry geometry = makeApproachGeometry();
+	loadSafePointsIntoRouteCache({
+		makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+		makeLandApproachItem(geometry.south.lat, geometry.south.lon, geometry.south.alt, kApproachRadius),
+	});
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+
+	// WHEN: The wind blows toward 120 degrees.
+	publishWind(-1.f, std::sqrt(3.0f));
+
+	// THEN: The south approach is selected, which a zero wind would not do.
+	expectLoiterPointNear(_rtl.selectLandingApproachForTest(geometry.land), geometry.south);
+}
 
 // WHY: Each rally point owns the loiters that follow it.
 // WHAT: Scanning should stop at the next rally point.

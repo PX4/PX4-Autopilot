@@ -29,7 +29,7 @@ The driver auto-detects the four channels but the motor type is selected in firm
 The shipped default is `JGB37-520-12V-110RPM`; change [`HiwonderEMM.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/drivers/hiwonder_emm/HiwonderEMM.cpp) (`set_motor_type`) if you use a different model.
 :::
 
-## Building the Firmware
+## 构建固件
 
 To use the EMM, the `hiwonder_emm` driver must be compiled into the firmware and started on boot.
 

@@ -85,6 +85,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - The unit and functional test suite builds, links and runs on macOS (`make tests`), and `px4_poll()` timeouts on macOS wait for their full duration instead of returning at once. The blended GPS timestamp is accumulated in double and rounded once instead of truncating each weighted term. ([PX4-Autopilot#28516](https://github.com/PX4/PX4-Autopilot/pull/28516))
 - The AlphaFilter library takes its sample interval and time constant in microseconds, and the float seconds overloads are removed, so a value in the wrong unit no longer compiles. Out-of-tree code that constructs the filter with seconds needs updating. ([PX4-Autopilot#28421](https://github.com/PX4/PX4-Autopilot/pull/28421))
+- The dataman module now hands out 16-bit client IDs instead of 8-bit ones. Each switch between mission-based return types and each MAVLink instance started in flight used up IDs, and once 254 had been handed out, every new client failed its requests with "Max Dataman clients reached". ([PX4-Autopilot#28944](https://github.com/PX4/PX4-Autopilot/pull/28944))
 
 ### Control
 
@@ -111,7 +112,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - EKF2 fuses dual-antenna GNSS heading from its own topic, `vehicle_gnss_heading`, at the heading's rate and measurement time instead of with each position sample. GNSS yaw fusion is gated on the heading itself (its baseline checks, and the spoofing and jamming state of the receiver providing it under [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK), which stop it like position fusion), not on the position checks, and it keeps running when position and velocity fusion stop. `GPS_RAW_INT` and `GPS2_RAW` report the body-frame heading of the receiver that provides it. ([PX4-Autopilot#27102](https://github.com/PX4/PX4-Autopilot/pull/27102))
 - When the local position estimate is lost in flight because of GNSS, commander now reports the reason as an event: either the receiver checks that failed, or that the receiver stopped sending data. The ground station and the log show the cause ahead of the "GNSS data fusion stopped" message. ([PX4-Autopilot#28873](https://github.com/PX4/PX4-Autopilot/pull/28873))
-- EKF2 now caps the GNSS height observation noise at [EKF2_NOAID_NOISE](../advanced_config/parameter_reference.md#EKF2_NOAID_NOISE) only when no other height source is fused. With a barometer or another height source, a GNSS height with a poor reported vertical accuracy is no longer fused as more accurate than the receiver reports. ([PX4-Autopilot#29058](https://github.com/PX4/PX4-Autopilot/pull/29058))
 
 ### Sensors
 

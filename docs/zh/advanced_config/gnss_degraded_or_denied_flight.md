@@ -75,4 +75,4 @@ To enable the mode:
 ## 另见
 
 - [GNSS Fault Detection](../advanced_config/tuning_the_ecl_ekf.md#gnss-fault-detection) in _Using PX4's Navigation Filter (EKF2)_
-- [Fuse, Reset, or Reject? EKF2中处理多种数据源](https://www.youtube.com/watch?v=CMGQJNPiTJg) - _PX4开发者峰会2025_，Marco Hauswirth，Auterion AG
+- [融合、重置还是拒绝？ EKF2中处理多种数据源](https://www.youtube.com/watch?v=CMGQJNPiTJg) - _PX4开发者峰会2025_，Marco Hauswirth，Auterion AG

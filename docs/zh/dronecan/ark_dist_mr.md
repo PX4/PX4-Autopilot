@@ -73,7 +73,7 @@ First set the parameters to [Enable DroneCAN](#enable-dronecan) (as shown above)
 Set the following parameters in _QGroundControl_:
 
 - Enable [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to 2 for dynamic node allocation.
-- Enable [UAVCAN_SUB_RNG](../advanced_config/parameter_reference.md#UAVCAN_SUB_RNG).
+- 启用 [UAVCAN_SUB_RNG](../advanced_config/parameter_reference.md#UAVCAN_SUB_RNG)。
 - Set [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) to `0.2`.
 - Set [UAVCAN_RNG_MIN](../advanced_config/parameter_reference.md#UAVCAN_RNG_MIN) to `0.08`.
 - Set [UAVCAN_RNG_MAX](../advanced_config/parameter_reference.md#UAVCAN_RNG_MAX) to `50`.

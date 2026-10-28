@@ -58,7 +58,8 @@ public:
 
 	bool moving()
 	{
-		return ((fabsf(_accel_data.norm() - CONSTANTS_ONE_G) > 0.01f) || (_gyro_data.norm() > 0.01f));
+		// normal gravity ranges from 9.780 m/s^2 at the equator to 9.832 m/s^2 at the poles
+		return ((fabsf(_accel_data.norm() - CONSTANTS_ONE_G) > 0.04f) || (_gyro_data.norm() > 0.01f));
 	}
 
 private:

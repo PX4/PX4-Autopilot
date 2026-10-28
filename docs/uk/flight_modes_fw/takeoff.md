@@ -2,7 +2,7 @@
 
 <img src="../../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" />
 
-The _Takeoff_ flight mode causes the vehicle to take off to a specified height and then enter [Hold mode](../flight_modes_fw/takeoff.md).
+The _Takeoff_ flight mode causes the vehicle to take off to a specified height and then enter [Hold mode](../flight_modes_fw/hold.md), or [Guided Course mode](../flight_modes_fw/guided_course.md) on a commanded course.
 
 Vehicles are [hand or catapult launched](#catapult-hand-launch) by default, but can also be [configured](#RWTO_TKOFF) to use a [runway takeoff](#runway-takeoff) when supported by the hardware.
 
@@ -34,18 +34,25 @@ To use _Takeoff mode_ you first switch to the mode, and then arm the vehicle (or
 
 - Точкою виходу є позиція транспортного засобу, коли спочатку ввімкнений режим зльоту.
 - The course is set to the vehicle heading on arming by default.
-  If a valid waypoint latitude/longitude is set the vehicle will instead track towards the waypoint.
+  If a valid waypoint latitude/longitude is set, the vehicle will instead track towards the waypoint during the climbout.
+- After the climbout the vehicle enters [Hold mode](../flight_modes_fw/hold.md).
+  If a course is set (`MAV_CMD_NAV_TAKEOFF` param4, or the same field of the [VehicleCommand](../msg_docs/VehicleCommand.md) uORB topic) it instead enters [Guided Course mode](../flight_modes_fw/guided_course.md) on that course.
 - The clearance altitude is set to [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT) by default.
   If a valid waypoint altitude is set is set the vehicle will instead use it as the clearance altitude.
 
 By default, on takeoff the aircraft will follow the line defined by the starting point and course, climbing at the maximum climb rate ([FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)) until reaching the clearance altitude.
-Reaching the clearance altitude causes the vehicle to enter [Hold mode](../flight_modes_fw/takeoff.md).
+Reaching the clearance altitude causes the vehicle to enter [Hold mode](../flight_modes_fw/hold.md).
 
 [FW_TKO_CLMB_T](#FW_TKO_CLMB_T) ends the climbout after a fixed time instead.
 The vehicle holds at whatever altitude it has reached by then, or climbs to the clearance altitude if it is still below it.
 Use it where altitude is a poor measure of when the climbout is done, such as a rocket-assisted launch.
 
-If a valid waypoint target is set, using `MAV_CMD_NAV_TAKEOFF` or the [VehicleCommand](../msg_docs/VehicleCommand.md) uORB topic, the vehicle will instead track towards the waypoint, and enter [Hold mode](../flight_modes_fw/takeoff.md) after reaching the waypoint altitude (within the acceptance radius).
+If a valid waypoint target is set, using `MAV_CMD_NAV_TAKEOFF` or the [VehicleCommand](../msg_docs/VehicleCommand.md) uORB topic, the vehicle will instead track towards the waypoint, and enter [Hold mode](../flight_modes_fw/hold.md) after reaching the waypoint altitude (within the acceptance radius).
+
+If a course is set in `MAV_CMD_NAV_TAKEOFF` param4 (labelled _Yaw_ in MAVLink), the vehicle enters [Guided Course mode](../flight_modes_fw/guided_course.md) after the climbout instead of Hold mode.
+It continues on that course over ground, at the same altitude Hold mode would use.
+The climbout stays straight, and the turn onto the course comes after it.
+A waypoint latitude/longitude takes precedence over the course.
 
 :::tip
 If the local position is invalid or becomes invalid while executing the takeoff, the controller is not able to track a course setpoint and will instead proceed climbing while keeping the wings level until the clearance altitude is reached.
