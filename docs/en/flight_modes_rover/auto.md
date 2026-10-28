@@ -31,7 +31,7 @@ The following commands can be used in missions at time of writing (PX4 v1.16):
 
 ## Guided Course Mode
 
-_Guided Course mode_ holds a constant course over ground and speed without any manual stick input, like the [fixed-wing Guided Course mode](../flight_modes_fw/guided_course.md).
+_Guided Course mode_ holds a constant course over ground and speed without any manual stick input, like the [Fixed-Wing Guided Course mode](../flight_modes_fw/guided_course.md).
 The operator guides the rover from a GCS by sending a new course or speed.
 
 On activation, the rover holds its current course over ground if it is driving forwards faster than 0.5 m/s (below that the velocity direction is not meaningful); otherwise it holds its current heading.
