@@ -38,19 +38,17 @@ PX4 元数据是在 PX4 源代码及其相关数据中定义的。这可以通�
 
 对于大多数飞控（因为大多数都有足够的可用 FLASH 存储空间），JSON文件经过 xz 压缩并存储在生成的二进制文件中。然后使用 MAVLink [Component Metadata Protocol](https://mavlink.io/en/services/component_information.html)共享该文件。使用组件元数据协议确保接收者总是能够为运行在载具的代码获取最新元数据。事件元数据也会被添加到日志文件中，允许日志分析工具 (如飞行回放) 使用正确的元数据来显示事件。
 
-内存受限的飞控二进制文件不会在二进制文件中存储参数元数据，而是引用存储在`px4-travis.s3.amazonaws.com`上的相同数据。例如，这适用于[Umnibus F4 SD](../flight_controller/omnibus_f4_sd.md)。
-The metadata is uploaded via the [build_all_targets](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/build_all_targets.yml) GitHub CI workflow for all build targets (and hence will only be available once parameters have been merged into main).
+内存受限的飞控二进制文件不会在二进制文件中存储参数元数据，而是引用存储在`px4-travis.s3.amazonaws.com`上的相同数据。例如，这适用于[Umnibus F4 SD](../flight_controller/omnibus_f4_sd.md)。元数据是通过 [build_all_targets](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/build_all_targets.yml) GitHub CI 工作流上传的，适用于所有构建目标（因此只有在参数合并到 main 分支后才会可用）。
 
 :::info
-你可以识别出内存受限的开发板，因为它们在[px4board定义文件](https://github.com/PX4/PX4-Autopilot/blob/main/boards/omnibus/f4sd/default.px4board) 中指定了`CONFIG_BOARD_CONSTRAINED_FLASH=y` 。
+你可以识别出内存受限的飞控板，因为它们在[px4board定义文件](https://github.com/PX4/PX4-Autopilot/blob/main/boards/omnibus/f4sd/default.px4board) 中指定了`CONFIG_BOARD_CONSTRAINED_FLASH=y`。
 
-如果在 FLASH 受限板上进行自定义开发，您可以调整此处的 URL 以指向另一台服务器[here](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/component_information/CMakeLists.txt#L41)。
+如果在 FLASH 受限的飞控板上进行自定义开发，您可以调整此处的 URL 以指向另一台服务器[here](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/component_information/CMakeLists.txt#L41)。
 :::
 
-如果载具上没有显示参数元数据，则使用 `px4-travis.s3.amazonaws.com` 上的元数据。它也可以用作后退，以避免对低速遥测链接进行非常缓慢的下载。
+如果载具上没有显示参数元数据，则使用 `px4-travis.s3.amazonaws.com` 上的元数据。它还可以作为备用方案，以避免通过低速数传链路进行下载时速度过慢的情况。
 
-用于 CI 构建  `main` 分支的元数据 JSON 文件也拷贝到了 github 仓库：[PX4/PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/)。这与Crowdin集成，用于获取翻译，这些翻译存储在 [translated](https://github.com/PX4/PX4-Metadata-Translations/tree/main/translated) 文件夹中，每种语言都有 xz 压缩的翻译文件。这些是由载具的组件元数据引用的，并在需要时下载。有关更多信息，请参阅 [PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/) 和 [Component Metadata Protocol > Translation](https://mavlink.io/en/services/component_information.html#translation)。
-This is orchestrated by the [docs-orchestrator](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/docs-orchestrator.yml) GitHub CI workflow, which also regenerates auto-generated documentation such as parameter reference, airframe reference, and uORB message docs.
+用于 CI 构建  `main` 分支的元数据 JSON 文件也拷贝到了 github 仓库：[PX4/PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/)。这与 Crowdin 集成，用于获取翻译，这些翻译存储在 [translated](https://github.com/PX4/PX4-Metadata-Translations/tree/main/translated) 文件夹中，每种语言都有 xz 压缩的翻译文件。这些是由载具的组件元数据引用的，并在需要时下载。有关更多信息，请参阅 [PX4-Metadata-Translations](https://github.com/PX4/PX4-Metadata-Translations/) 和 [Component Metadata Protocol > Translation](https://mavlink.io/en/services/component_information.html#translation)。这由 [docs-orchestrator](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/docs-orchestrator.yml) GitHub CI 工作流负责协调，该工作流还会重新生成自动生成的文档，例如参数参考、机体参考和 uORB 消息文档。
 
 :::info
 主分支的参数 XML 文件通过 CI 复制到 QGC 源代码树中，并在没有通过组件元数据协议获取到元数据的情况下用作后备方案 (该方法早于组件元数据协议)。

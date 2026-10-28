@@ -105,7 +105,7 @@ The Magnet LED, located to the right of the CAN LEDs, indicates the EPM state:
 | -------------- | -------------------------------------------------------------------- |
 | Detect/Unknown | Initial state after FluxGrip is powered on.          |
 | On             | The EPM is magnetized and holding the payload.       |
-| Off            | The EPM is demagnetized and the payload is released. |
+| 熄灭             | The EPM is demagnetized and the payload is released. |
 | Fade-in        | FluxGrip is switching to the magnetized state.       |
 | Fade-out       | FluxGrip is switching to the demagnetized state.     |
 
