@@ -390,7 +390,7 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    !_land_detected_sub.get().landed) {
 
-		// Constrain yaw before the MC-to-FW transition only if VT_FW_YAW_ALIGN is enabled
+		// Constrain yaw before the MC-to-FW transition only if MIS_FW_YAW_ALIGN is enabled
 		_mission_item.yaw = NAN;
 		_mission_item.force_heading = false;
 
@@ -456,7 +456,7 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 
 		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
 
-		// When VT_FW_YAW_ALIGN is disabled, yaw is left unconstrained by Navigator
+		// When MIS_FW_YAW_ALIGN is disabled, yaw is left unconstrained by Navigator
 		if (!_param_fw_yaw_align.get()) {
 			_mission_item.yaw = NAN;
 			_mission_item.force_heading = false;

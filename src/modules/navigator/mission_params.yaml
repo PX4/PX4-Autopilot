@@ -115,3 +115,15 @@ parameters:
       unit: s
       min: 0
       decimal: 1
+    MIS_FW_YAW_ALIGN:
+      description:
+        short: Align yaw before MC to FW transition
+        long: |-
+          If enabled, align yaw towards the target waypoint before the MC to FW transition.
+          If disabled, Navigator does not impose a yaw setpoint
+          during the alignment phase before the MC-to-FW transition.
+          Yaw is then controlled by the weathervane when active,
+          or according to MPC_YAW_MODE otherwise.
+          Applies to VTOL takeoff and in-flight mission transitions.
+      type: boolean
+      default: 1
