@@ -863,11 +863,11 @@ private:
 
 		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period,
 		(ParamFloat<px4::params::NPFG_DAMPING>) _param_npfg_damping,
-		(ParamBool<px4::params::NPFG_LB_PERIOD>) _param_npfg_en_period_lb,
-		(ParamBool<px4::params::NPFG_UB_PERIOD>) _param_npfg_en_period_ub,
-		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_time_const,
-		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_switch_distance_multiplier,
-		(ParamFloat<px4::params::NPFG_PERIOD_SF>) _param_npfg_period_safety_factor,
+		(ParamBool<px4::params::NPFG_LB_PERIOD>) _param_npfg_lb_period,
+		(ParamBool<px4::params::NPFG_UB_PERIOD>) _param_npfg_ub_period,
+		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_tc,
+		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_sw_dst_mlt,
+		(ParamFloat<px4::params::NPFG_PERIOD_SF>) _param_npfg_period_sf,
 
 		(ParamFloat<px4::params::FW_WP_RST_DIST>) _param_fw_wp_rst_dist,
 
@@ -884,8 +884,8 @@ private:
 
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
-		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
-		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
+		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_fw_t_clmb_r_sp,
+		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_fw_t_sink_r_sp,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
@@ -893,9 +893,9 @@ private:
 		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
 		(ParamFloat<px4::params::FW_SPOILERS_LND>) _param_fw_spoilers_lnd,
 		(ParamInt<px4::params::FW_POS_STK_CONF>) _param_fw_pos_stk_conf,
-		(ParamInt<px4::params::FW_GPSF_LT>) _param_nav_gpsf_lt,
-		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
-		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_t_spdweight,
+		(ParamInt<px4::params::FW_GPSF_LT>) _param_fw_gpsf_lt,
+		(ParamFloat<px4::params::FW_GPSF_R>) _param_fw_gpsf_r,
+		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
 
 		// Launch detection parameters
 		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
@@ -905,7 +905,7 @@ private:
 		// external parameters
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
-		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
+		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _param_fw_tko_pitch_min,
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad,
 		(ParamFloat<px4::params::FW_WING_SPAN>) _param_fw_wing_span,
 		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height,

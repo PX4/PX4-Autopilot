@@ -462,32 +462,32 @@ void ManualControl::evaluateModeSlot(uint8_t mode_slot)
 
 	case manual_control_switches_s::MODE_SLOT_1:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_1.get()));
+				  navStateFromParam(_param_com_fltmode1.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_2:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_2.get()));
+				  navStateFromParam(_param_com_fltmode2.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_3:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_3.get()));
+				  navStateFromParam(_param_com_fltmode3.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_4:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_4.get()));
+				  navStateFromParam(_param_com_fltmode4.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_5:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_5.get()));
+				  navStateFromParam(_param_com_fltmode5.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_6:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_6.get()));
+				  navStateFromParam(_param_com_fltmode6.get()));
 		break;
 
 	default:
