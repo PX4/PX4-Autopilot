@@ -162,6 +162,8 @@ First include the required needed headers in the class header for your module or
 
 Derive your class from `ModuleParams`, and use `DEFINE_PARAMETERS` to specify a list of parameters and their associated parameter attributes.
 The names of the parameters must be the same as their parameter metadata definitions.
+Name each parameter attribute `_param_` followed by the lower case parameter name (e.g. `_param_sys_autostart` for `SYS_AUTOSTART`), so that searching for a parameter name also finds the code that uses it.
+`make check_format` enforces this convention, and `make format` renames attributes that do not follow it.
 
 ```cpp
 class MyModule : ..., public ModuleParams
@@ -177,8 +179,8 @@ private:
 	void parameters_update();
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart,   /**< example parameter */
-		(ParamFloat<px4::params::ATT_BIAS_MAX>) _att_bias_max  /**< another parameter */
+		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
+		(ParamFloat<px4::params::ATT_BIAS_MAX>) _param_att_bias_max  /**< another parameter */
 	)
 
 	// Subscriptions
@@ -212,7 +214,7 @@ In the above method:
 - Then we call `ModuleParams::updateParams()`.
   This "under the hood" updates all parameter attributes listed in our `DEFINE_PARAMETERS` list.
 
-The parameter attributes (`_sys_autostart` and `_att_bias_max` in this case) can then be used to represent the parameters, and will be updated whenever the parameter value changes.
+The parameter attributes (`_param_sys_autostart` and `_param_att_bias_max` in this case) can then be used to represent the parameters, and will be updated whenever the parameter value changes.
 
 :::tip
 The [Application/Module Template](../modules/module_template.md) uses the new-style C++ API but does not include [parameter metadata](#parameter-metadata).
