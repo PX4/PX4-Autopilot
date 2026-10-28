@@ -390,10 +390,19 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    !_land_detected_sub.get().landed) {
 
-		/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
-		_mission_item.yaw = get_bearing_to_next_waypoint(
+		_need_move_to_takeoff = do_need_move_to_takeoff();
+
+		if (_need_move_to_takeoff || (num_found_items == 0u)) {
+			/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
+			_mission_item.yaw = get_bearing_to_next_waypoint(
 					    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
 					    _mission_item.lat, _mission_item.lon);
+		} else {
+			/* set yaw setpoint to heading of next wp against current position */
+			_mission_item.yaw = get_bearing_to_next_waypoint(
+					    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
+					    next_mission_items[0u].lat, next_mission_items[0u].lon);
+		}
 
 		_mission_item.force_heading = true;
 
@@ -410,8 +419,8 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    !_land_detected_sub.get().landed) {
 
-		/* check if the vtol_takeoff waypoint is on top of us */
-		if (do_need_move_to_takeoff()) {
+		/* ensure consistency between yaw alignment and target waypoint */
+		if (_need_move_to_takeoff) {
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 		}
 
