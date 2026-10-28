@@ -31,24 +31,32 @@ The following commands can be used in missions at time of writing (PX4 v1.16):
 
 ## Guided Course Mode
 
-_Guided Course mode_ holds a constant course over ground and speed without any manual stick input, like the [Fixed-Wing Guided Course mode](../flight_modes_fw/guided_course.md).
-The operator guides the rover from a GCS by sending a new course or speed.
+_Guided Course mode_ makes the rover drive in a fixed direction at a fixed speed without any manual stick input, like the [Fixed-Wing Guided Course mode](../flight_modes_fw/guided_course.md).
+The direction is a course over ground: the direction the rover moves over the ground, which can differ from its heading.
 
-On activation, the rover holds its current course over ground if it is driving forwards faster than 0.5 m/s (below that the velocity direction is not meaningful); otherwise it holds its current heading.
-It then drives at the cruising speed until the operator issues a new command.
+The mode is selected like any other mode, for example in the GCS.
+On entry, the rover maintains its current velocity vector:
+
+- **Course:** If the rover is driving forwards faster than 0.5 m/s it keeps its current course over ground.
+  When slower (or reversing) its direction of travel is not reliable, so it uses the direction it is pointing in instead.
+- **Speed:** The rover keeps its current forward speed.
+  If it is entered at rest or while reversing, the rover stops and waits for a speed command.
+
+While the mode is active, the course and speed can be changed with these MAVLink commands, sent from a GCS or companion computer:
+
+| Command                         | Effect                                                                                                                                                            |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [MAV_CMD_GUIDED_CHANGE_HEADING] | Set a new course over ground (degrees, 0 = north) with `HEADING_TYPE = 0` (Course over Ground). Other heading types are rejected.                                                      |
+| [MAV_CMD_DO_CHANGE_SPEED]       | Set a new ground speed via param2 (m/s), applied immediately and limited to [RO_SPEED_LIM]. `0` stops the rover, negative values keep the current speed setpoint. |
+
+[MAV_CMD_GUIDED_CHANGE_HEADING]: https://mavlink.io/en/messages/common.html#MAV_CMD_GUIDED_CHANGE_HEADING
+[RO_SPEED_LIM]: ../advanced_config/parameter_reference.md#RO_SPEED_LIM
 
 The rover tries to track the commanded course over ground.
 Ackermann and differential rovers turn into any sideslip so that their track over ground matches the course, the way a fixed-wing vehicle crabs into the wind.
 Mecanum rovers drive in the course direction directly without adjusting their heading.
 A sideways offset is not corrected: after an offset, the rover continues on a parallel track.
 To follow a line instead, use [Mission mode](#mission-mode) or send a [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md).
-
-| Command                         | Effect                                                                                                       |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| [MAV_CMD_GUIDED_CHANGE_HEADING] | Set a new course over ground (degrees, 0 = north) with `HEADING_TYPE = 0`. Other heading types are rejected. |
-| [MAV_CMD_DO_CHANGE_SPEED]       | Set a new ground speed via param2 (m/s), applied immediately. If param2 ≤ 0, the default speed is restored.  |
-
-[MAV_CMD_GUIDED_CHANGE_HEADING]: https://mavlink.io/en/messages/common.html#MAV_CMD_GUIDED_CHANGE_HEADING
 
 Internally the mode publishes a [SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md), which [external modes](../ros2/px4_ros2_control_interface.md) can also send directly.
 
