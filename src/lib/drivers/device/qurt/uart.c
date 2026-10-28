@@ -67,7 +67,7 @@ int qurt_uart_write(int fd, const char *buf, size_t len)
 	}
 
 	if (buf == NULL) {
-		PX4_ERR("NULL buffer pointer in %s", fd, __FUNCTION__);
+		PX4_ERR("NULL buffer pointer for fd %d in %s", fd, __FUNCTION__);
 		return -1;
 	}
 
@@ -94,7 +94,7 @@ int qurt_uart_read(int fd, char *buf, size_t len, uint32_t timeout_us)
 	}
 
 	if (buf == NULL) {
-		PX4_ERR("NULL buffer pointer in %s", fd, __FUNCTION__);
+		PX4_ERR("NULL buffer pointer for fd %d in %s", fd, __FUNCTION__);
 		return -1;
 	}
 
