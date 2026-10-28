@@ -79,8 +79,6 @@ public:
 
 	bool init();
 
-	void updateFailureConfig();
-
 private:
 	void Run() override;
 
@@ -99,10 +97,7 @@ private:
 
 	failure_injection::Config _failure_config;
 
-	bool _airspeed_disconnected{false};
-	bool _airspeed_stuck{false};
-	hrt_abstime _airspeed_blocked_timestamp{0};
-	float _last_differential_pressure_pa{0.f};
+	failure_injection::AirspeedState _airspeed_failure;
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 };
