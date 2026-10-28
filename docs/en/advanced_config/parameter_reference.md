@@ -394,7 +394,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Actuator Outputs
 
-<div class="param-group" style="--param-count: 700">
+<div class="param-group" style="--param-count: 770">
 
 <div class="param">
 
@@ -7761,11 +7761,291 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### RBCLW_DIS10 (`INT32`) {#RBCLW_DIS10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS11 (`INT32`) {#RBCLW_DIS11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS12 (`INT32`) {#RBCLW_DIS12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS13 (`INT32`) {#RBCLW_DIS13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS14 (`INT32`) {#RBCLW_DIS14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS15 (`INT32`) {#RBCLW_DIS15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS16 (`INT32`) {#RBCLW_DIS16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### RBCLW_DIS2 (`INT32`) {#RBCLW_DIS2}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 Roboclaw Driver Channel 2 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS3 (`INT32`) {#RBCLW_DIS3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS4 (`INT32`) {#RBCLW_DIS4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS5 (`INT32`) {#RBCLW_DIS5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS6 (`INT32`) {#RBCLW_DIS6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS7 (`INT32`) {#RBCLW_DIS7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS8 (`INT32`) {#RBCLW_DIS8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS9 (`INT32`) {#RBCLW_DIS9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Disarmed Value.
 
 This is the output value that is set when not armed.
 
@@ -7795,7 +8075,147 @@ When set to -1 (default), the value depends on the function (see RBCLW_FUNC1).
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -1 | 257 |  | -1 |  | &nbsp;
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL10 (`INT32`) {#RBCLW_FAIL10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC10).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL11 (`INT32`) {#RBCLW_FAIL11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC11).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL12 (`INT32`) {#RBCLW_FAIL12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC12).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL13 (`INT32`) {#RBCLW_FAIL13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC13).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL14 (`INT32`) {#RBCLW_FAIL14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC14).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL15 (`INT32`) {#RBCLW_FAIL15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC15).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL16 (`INT32`) {#RBCLW_FAIL16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC16).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
 
 </div>
 
@@ -7815,7 +8235,147 @@ When set to -1 (default), the value depends on the function (see RBCLW_FUNC2).
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -1 | 257 |  | -1 |  | &nbsp;
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL3 (`INT32`) {#RBCLW_FAIL3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC3).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL4 (`INT32`) {#RBCLW_FAIL4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC4).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL5 (`INT32`) {#RBCLW_FAIL5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC5).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL6 (`INT32`) {#RBCLW_FAIL6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC6).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL7 (`INT32`) {#RBCLW_FAIL7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC7).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL8 (`INT32`) {#RBCLW_FAIL8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC8).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL9 (`INT32`) {#RBCLW_FAIL9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC9).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
 
 </div>
 
@@ -7828,6 +8388,615 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Roboclaw Driver Channel 1 Output Function.
 
 Select what should be output on Roboclaw Driver Channel 1.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC10 (`INT32`) {#RBCLW_FUNC10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 10.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC11 (`INT32`) {#RBCLW_FUNC11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 11.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC12 (`INT32`) {#RBCLW_FUNC12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 12.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC13 (`INT32`) {#RBCLW_FUNC13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 13.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC14 (`INT32`) {#RBCLW_FUNC14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 14.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC15 (`INT32`) {#RBCLW_FUNC15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 15.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC16 (`INT32`) {#RBCLW_FUNC16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 16.
 
 The default failsafe value is set according to the selected function:
 - 'Min' for ConstantMin
@@ -7995,11 +9164,746 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### RBCLW_FUNC3 (`INT32`) {#RBCLW_FUNC3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 3.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC4 (`INT32`) {#RBCLW_FUNC4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 4.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC5 (`INT32`) {#RBCLW_FUNC5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 5.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC6 (`INT32`) {#RBCLW_FUNC6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 6.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC7 (`INT32`) {#RBCLW_FUNC7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 7.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC8 (`INT32`) {#RBCLW_FUNC8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 8.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC9 (`INT32`) {#RBCLW_FUNC9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 9.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### RBCLW_MAX1 (`INT32`) {#RBCLW_MAX1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 Roboclaw Driver Channel 1 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX10 (`INT32`) {#RBCLW_MAX10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX11 (`INT32`) {#RBCLW_MAX11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX12 (`INT32`) {#RBCLW_MAX12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX13 (`INT32`) {#RBCLW_MAX13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX14 (`INT32`) {#RBCLW_MAX14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX15 (`INT32`) {#RBCLW_MAX15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX16 (`INT32`) {#RBCLW_MAX16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Maximum Value.
 
 Maxmimum output value (when not disarmed).
 
@@ -8031,11 +9935,263 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### RBCLW_MAX3 (`INT32`) {#RBCLW_MAX3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX4 (`INT32`) {#RBCLW_MAX4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX5 (`INT32`) {#RBCLW_MAX5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX6 (`INT32`) {#RBCLW_MAX6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX7 (`INT32`) {#RBCLW_MAX7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX8 (`INT32`) {#RBCLW_MAX8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX9 (`INT32`) {#RBCLW_MAX9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### RBCLW_MIN1 (`INT32`) {#RBCLW_MIN1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 Roboclaw Driver Channel 1 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN10 (`INT32`) {#RBCLW_MIN10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN11 (`INT32`) {#RBCLW_MIN11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN12 (`INT32`) {#RBCLW_MIN12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN13 (`INT32`) {#RBCLW_MIN13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN14 (`INT32`) {#RBCLW_MIN14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN15 (`INT32`) {#RBCLW_MIN15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN16 (`INT32`) {#RBCLW_MIN16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Minimum Value.
 
 Minimum output value (when not disarmed).
 
@@ -8067,6 +10223,132 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### RBCLW_MIN3 (`INT32`) {#RBCLW_MIN3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN4 (`INT32`) {#RBCLW_MIN4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN5 (`INT32`) {#RBCLW_MIN5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN6 (`INT32`) {#RBCLW_MIN6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN7 (`INT32`) {#RBCLW_MIN7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN8 (`INT32`) {#RBCLW_MIN8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN9 (`INT32`) {#RBCLW_MIN9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### RBCLW_REV (`INT32`) {#RBCLW_REV}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -8082,11 +10364,25 @@ Note: this is only useful for servos.
 
 - `0`: Roboclaw Driver Channel 1
 - `1`: Roboclaw Driver Channel 2
+- `2`: Roboclaw Driver Channel 3
+- `3`: Roboclaw Driver Channel 4
+- `4`: Roboclaw Driver Channel 5
+- `5`: Roboclaw Driver Channel 6
+- `6`: Roboclaw Driver Channel 7
+- `7`: Roboclaw Driver Channel 8
+- `8`: Roboclaw Driver Channel 9
+- `9`: Roboclaw Driver Channel 10
+- `10`: Roboclaw Driver Channel 11
+- `11`: Roboclaw Driver Channel 12
+- `12`: Roboclaw Driver Channel 13
+- `13`: Roboclaw Driver Channel 14
+- `14`: Roboclaw Driver Channel 15
+- `15`: Roboclaw Driver Channel 16
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 3 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 65535 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -48252,13 +50548,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Roboclaw Driver
 
-<div class="param-group" style="--param-count: 2">
+<div class="param-group" style="--param-count: 4">
 
 <div class="param">
 
 ### RBCLW_ADDRESS (`INT32`) {#RBCLW_ADDRESS}
 
-Address of the ESC on the bus.
+First Roboclaw address on the bus.
 
 The ESC has to be configured to have an address from 0x80 to 0x87. This parameter needs to match the configured value.
 
@@ -48277,7 +50573,49 @@ The ESC has to be configured to have an address from 0x80 to 0x87. This paramete
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 128 | 135 |  | 128 |  | &nbsp;
+&check; | 128 | 135 |  | 128 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_BAUD (`INT32`) {#RBCLW_BAUD}
+
+Roboclaw packet serial baud rate.
+
+Must match the packet serial baud rate configured on every Roboclaw controller on this bus.
+
+
+**Values:**
+
+- `2400`: 2400
+- `9600`: 9600
+- `19200`: 19200
+- `38400`: 38400
+- `57600`: 57600
+- `115200`: 115200
+- `230400`: 230400
+- `460800`: 460800
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 38400 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_COUNT (`INT32`) {#RBCLW_COUNT}
+
+Number of Roboclaw controllers on the serial bus.
+
+Controllers must use consecutive unique addresses starting at RBCLW_ADDRESS. Each controller uses two output channels.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 1 | 8 |  | 1 |  | &nbsp;
 
 </div>
 

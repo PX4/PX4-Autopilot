@@ -1277,11 +1277,12 @@ It performs two tasks:
 - Read the wheel encoders and publish the raw data in the `wheel_encoders` uORB topic
 
 In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
-your flight controller's UART port should be connected to the Roboclaw as shown in the documentation.
-The driver needs to be enabled using the parameter `RBCLW_SER_CFG`, the baudrate needs to be set correctly and
-the address `RBCLW_ADDRESS` needs to match the ESC configuration.
+your flight controller's UART port should be connected to the Roboclaw as shown in the documentation. Enable the
+driver with `RBCLW_SER_CFG` and set `RBCLW_BAUD` to match the controllers. Set `RBCLW_COUNT` and configure consecutive
+unique addresses starting at `RBCLW_ADDRESS`. Each controller uses two output channels (M1, M2) and publishes a
+separate wheel_encoders instance. Bus parameters require a driver restart.
 
-The command to start this driver is: `$ roboclaw start <UART device> <baud rate>`
+The command to start this driver is: `$ roboclaw start <UART device>`
 
 ### Usage {#roboclaw_usage}
 

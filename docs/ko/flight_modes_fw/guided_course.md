@@ -22,6 +22,7 @@ This mode is suited to situations where an operator wants to guide a fixed-wing 
 ## 개요
 
 On activation, the vehicle captures its current velocity over ground vector as the initial course bearing and holds altitude and airspeed from the moment of activation.
+A fixed-wing [Takeoff](../flight_modes_fw/takeoff.md) with a commanded course enters this mode directly after the climbout and continues on that course instead.
 The vehicle then flies that course indefinitely until the operator issues a new command.
 
 There is no waypoint sequencing or autonomous path planning: the GCS guides the vehicle in real time by sending individual commands.

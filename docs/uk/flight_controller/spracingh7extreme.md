@@ -2,10 +2,10 @@
 
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.
-Contact the [manufacturer](https://shop.seriouslypro.com) for hardware support or compliance issues.
+Contact the [manufacturer](http://seriouslypro.com) for hardware support or compliance issues.
 :::
 
-The [SPRacingH7EXTREME](https://shop.seriouslypro.com/sp-racing-h7-extreme) is a feature packed FC/PDB with DUAL ICM20602 gyros, H7 400/480Mhz(+) CPU, high-precision BMP388 barometer, SD Card socket, current sensor, 8 easily accessible motor outputs, OSD, Microphone, Audio output, and more.
+The [SPRacingH7EXTREME](http://seriouslypro.com/products/spracingh7extreme) is a feature packed FC/PDB with DUAL ICM20602 gyros, H7 400/480Mhz(+) CPU, high-precision BMP388 barometer, SD Card socket, current sensor, 8 easily accessible motor outputs, OSD, Microphone, Audio output, and more.
 
 Це може бути легко використовувати для невеликих і великих квадрокоптерів, літаків, восьмикоптерів та більш розвинених конструкцій.
 Найкраще використовувати з окремими ESC, оскільки він має вбудовану плату розподілу живлення (PDB).
