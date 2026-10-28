@@ -393,11 +393,12 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		// Constrain yaw before the MC-to-FW transition only if VT_FW_YAW_ALIGN is enabled
 		_mission_item.yaw = NAN;
 		_mission_item.force_heading = false;
+
 		if (_param_fw_yaw_align.get()) {
 			/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
 			_mission_item.yaw = get_bearing_to_next_waypoint(
-					    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					    _mission_item.lat, _mission_item.lon);
+						    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
+						    _mission_item.lat, _mission_item.lon);
 
 			_mission_item.force_heading = true;
 		}
@@ -454,6 +455,7 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
 
 		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
+
 		// When VT_FW_YAW_ALIGN is disabled, yaw is left unconstrained by Navigator
 		if (!_param_fw_yaw_align.get()) {
 			_mission_item.yaw = NAN;
