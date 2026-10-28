@@ -121,7 +121,7 @@ private:
 	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Variables
-	Vector2f _pos_ctl_course_direction{NAN, NAN};
+	Vector2f _pos_ctl_bearing_direction{NAN, NAN}; // Unit vector of the bearing from the start position to the target, i.e. the direction of the desired track
 	Vector2f _pos_ctl_start_position_ned{NAN, NAN};
 	Vector2f _curr_pos_ned{NAN, NAN};
 	Quatf _vehicle_attitude_quaternion;

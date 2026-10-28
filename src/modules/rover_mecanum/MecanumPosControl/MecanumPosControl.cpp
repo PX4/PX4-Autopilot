@@ -55,7 +55,7 @@ void MecanumPosControl::updatePosControl()
 
 	hrt_abstime timestamp = hrt_absolute_time();
 
-	// Course control: like the fixed wing course hold, the course over ground itself is controlled and a cross-track error is not corrected
+	// Course control: like the fixed wing course hold, only the course over ground is controlled, there is no desired track to return to after a sideways offset
 	const bool course_control = PX4_ISFINITE(_course);
 
 	if (course_control || _target_waypoint_ned.isAllFinite()) {
@@ -75,7 +75,7 @@ void MecanumPosControl::updatePosControl()
 							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
 
-			// The speed controller tracks the ground velocity in body frame, so a velocity along the course needs no drift correction
+			// The speed controller tracks the ground velocity in body frame, so a velocity along the course setpoint needs no drift angle correction
 			float bearing_setpoint{_course};
 
 			if (!course_control) {

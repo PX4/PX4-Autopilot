@@ -173,7 +173,7 @@ void DifferentialManualMode::position()
 
 	if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
 	    || fabsf(speed_setpoint) < FLT_EPSILON) {
-		_pos_ctl_course = NAN;
+		_pos_ctl_bearing = NAN;
 
 		// Speed control
 		rover_speed_setpoint_s rover_speed_setpoint{};
@@ -205,18 +205,18 @@ void DifferentialManualMode::position()
 		rover_position_setpoint.yaw = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
-	} else { // Course control
-		if (!PX4_ISFINITE(_pos_ctl_course)) {
-			// Course over ground points backwards when driving in reverse
-			_pos_ctl_course = speed_setpoint > 0.f ? _vehicle_yaw : matrix::wrap_pi(_vehicle_yaw + M_PI_F);
+	} else { // Follow an endless linear desired track
+		if (!PX4_ISFINITE(_pos_ctl_bearing)) {
+			// The bearing points backwards when driving in reverse
+			_pos_ctl_bearing = speed_setpoint > 0.f ? _vehicle_yaw : matrix::wrap_pi(_vehicle_yaw + M_PI_F);
 			_pos_ctl_start_position_ned = _curr_pos_ned;
 		}
 
-		// Hold the line through the start position: the target is kept beyond the maximum lookahead, so it is never reached
-		const Vector2f course_direction(cosf(_pos_ctl_course), sinf(_pos_ctl_course));
-		const float distance_along_course = fabsf((_curr_pos_ned - _pos_ctl_start_position_ned) * course_direction);
-		const Vector2f target_ned = _pos_ctl_start_position_ned + (distance_along_course + _param_pp_lookahd_max.get()) *
-					    course_direction;
+		// Hold the linear desired track through the start position: the target is kept beyond the maximum lookahead, so it is never reached
+		const Vector2f bearing_direction(cosf(_pos_ctl_bearing), sinf(_pos_ctl_bearing));
+		const float distance_along_track = fabsf((_curr_pos_ned - _pos_ctl_start_position_ned) * bearing_direction);
+		const Vector2f target_ned = _pos_ctl_start_position_ned + (distance_along_track + _param_pp_lookahd_max.get()) *
+					    bearing_direction;
 
 		rover_position_setpoint_s rover_position_setpoint{};
 		rover_position_setpoint.timestamp = hrt_absolute_time();
@@ -235,7 +235,7 @@ void DifferentialManualMode::position()
 void DifferentialManualMode::reset()
 {
 	_stab_yaw_setpoint = NAN;
-	_pos_ctl_course = NAN;
+	_pos_ctl_bearing = NAN;
 	_pos_ctl_start_position_ned = Vector2f(NAN, NAN);
 	_curr_pos_ned = Vector2f(NAN, NAN);
 }

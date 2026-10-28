@@ -38,7 +38,7 @@ The mode is selected like any other mode, for example in the GCS.
 On entry, the rover maintains its current velocity vector:
 
 - **Course:** If the rover is driving forwards faster than 0.5 m/s it keeps its current course over ground.
-  When slower (or reversing) its direction of travel is not reliable, so it uses the direction it is pointing in instead.
+  When slower (or reversing) its direction of travel is not reliable, so it uses the current heading as a course setpoint instead.
 - **Speed:** The rover keeps its current forward speed.
   If it is entered at rest or while reversing, the rover stops and waits for a speed command.
 
@@ -46,17 +46,17 @@ While the mode is active, the course and speed can be changed with these MAVLink
 
 | Command                         | Effect                                                                                                                                                            |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [MAV_CMD_GUIDED_CHANGE_HEADING] | Set a new course over ground (degrees, 0 = north) with `HEADING_TYPE = 0` (Course over Ground). Other heading types are rejected.                                                      |
+| [MAV_CMD_GUIDED_CHANGE_HEADING] | Set a new course over ground (degrees, 0 = north) with `HEADING_TYPE = 0` (Course over Ground). Other heading types are rejected.                                 |
 | [MAV_CMD_DO_CHANGE_SPEED]       | Set a new ground speed via param2 (m/s), applied immediately and limited to [RO_SPEED_LIM]. `0` stops the rover, negative values keep the current speed setpoint. |
 
 [MAV_CMD_GUIDED_CHANGE_HEADING]: https://mavlink.io/en/messages/common.html#MAV_CMD_GUIDED_CHANGE_HEADING
 [RO_SPEED_LIM]: ../advanced_config/parameter_reference.md#RO_SPEED_LIM
 
 The rover tries to track the commanded course over ground.
-Ackermann and differential rovers turn into any sideslip so that their track over ground matches the course, the way a fixed-wing vehicle crabs into the wind.
-Mecanum rovers drive in the course direction directly without adjusting their heading.
-A sideways offset is not corrected: after an offset, the rover continues on a parallel track.
-To follow a line instead, use [Mission mode](#mission-mode) or send a [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md).
+Ackermann and differential rovers correct their heading by the estimated drift angle so that their course over ground matches the course setpoint, the way a fixed-wing vehicle crabs into the wind.
+Mecanum rovers drive along the course setpoint directly without adjusting their heading.
+There is no desired track: after a sideways offset, the rover continues on a parallel track.
+To follow a desired track instead, use [Mission mode](#mission-mode) or send a [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md).
 
 Internally the mode publishes a [SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md), which [external modes](../ros2/px4_ros2_control_interface.md) can also send directly.
 

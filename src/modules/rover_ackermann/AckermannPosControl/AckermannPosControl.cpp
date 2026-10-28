@@ -58,7 +58,7 @@ void AckermannPosControl::updatePosControl()
 
 	hrt_abstime timestamp = hrt_absolute_time();
 
-	// Course control: like the fixed wing course hold, the course over ground itself is controlled and a cross-track error is not corrected
+	// Course control: like the fixed wing course hold, only the course over ground is controlled, there is no desired track to return to after a sideways offset
 	const bool course_control = PX4_ISFINITE(_course);
 
 	if (course_control || _target_waypoint_ned.isAllFinite()) {
@@ -80,7 +80,7 @@ void AckermannPosControl::updatePosControl()
 			float bearing_setpoint{NAN};
 
 			if (course_control) {
-				// Driving forwards the heading is turned against the drift, like the fixed wing heading against the wind
+				// Driving forwards, the heading setpoint is the course setpoint corrected by the drift angle, like the fixed wing crabs into the wind
 				bearing_setpoint = speed_setpoint > -FLT_EPSILON ? matrix::wrap_pi(_course - _drift_angle_estimator.getDriftAngle()) :
 						   _course;
 

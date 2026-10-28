@@ -275,7 +275,7 @@ void DriftAngleEstimator::update(const vehicle_local_position_s &vehicle_local_p
 	const float forward_speed = vehicle_local_position.vx * cosf(heading) + vehicle_local_position.vy * sinf(heading);
 	const float lateral_speed = -vehicle_local_position.vx * sinf(heading) + vehicle_local_position.vy * cosf(heading);
 
-	// The direction of a slow or backwards velocity says nothing about the drift while driving along the course
+	// The direction of a slow or backwards velocity says nothing about the drift angle while driving along the course
 	if (forward_speed < math::max(MIN_SPEED, EVH_FACTOR * vehicle_local_position.evh)) {
 		return;
 	}

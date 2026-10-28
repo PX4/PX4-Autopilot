@@ -74,7 +74,7 @@ Course::on_activation()
 
 		if (is_rover && PX4_ISFINITE(lpos->heading)) {
 			// The velocity of a rover has no usable direction at rest, so it only takes the course over ground
-			// while driving forwards fast enough, and the course it points in otherwise
+			// while driving forwards fast enough, and its heading otherwise
 			const float forward_speed = lpos->vx * cosf(lpos->heading) + lpos->vy * sinf(lpos->heading);
 			course_from_velocity &= forward_speed > math::max(ROVER_COURSE_MIN_SPEED, ROVER_COURSE_EVH_FACTOR * lpos->evh);
 

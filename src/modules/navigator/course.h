@@ -39,7 +39,7 @@
  * - MAV_CMD_GUIDED_CHANGE_HEADING (param1=HEADING_TYPE_COURSE_OVER_GROUND): sets course (ground track direction, requires valid position).
  *
  * The mode is entered with the course over ground. A rover only takes it while driving forwards faster than the larger
- * of ROVER_COURSE_MIN_SPEED and ROVER_COURSE_EVH_FACTOR times the velocity uncertainty, and the course it points in otherwise.
+ * of ROVER_COURSE_MIN_SPEED and ROVER_COURSE_EVH_FACTOR times the velocity uncertainty, and its heading otherwise.
  */
 
 #pragma once

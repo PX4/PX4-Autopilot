@@ -69,7 +69,7 @@ public:
 
 	/**
 	 * @brief Generate and publish surfaceVehicleCourseSetpoint from the course of the positionSetpointTriplet (Guided Course mode).
-	 * Like the fixed wing course hold, the course over ground itself is controlled and a cross-track error is not corrected.
+	 * Like the fixed wing course hold, only the course over ground is controlled, there is no desired track to return to after a sideways offset.
 	 */
 	void guidedCourse();
 

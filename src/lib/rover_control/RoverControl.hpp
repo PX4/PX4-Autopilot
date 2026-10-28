@@ -141,7 +141,7 @@ float calcWaypointTransitionAngle(Vector2f &prev_wp_ned, Vector2f &curr_wp_ned, 
 /**
  * Estimates the drift angle, the angle from the heading to the course over ground, while driving forwards.
  * Course control subtracts it from the course to get the heading setpoint, like the fixed wing corrects its
- * course setpoint for the wind, so the vehicle moves over ground along the course despite sideslip or current.
+ * course setpoint for the wind, so the vehicle moves over ground along the course despite wheel slip.
  */
 class DriftAngleEstimator
 {

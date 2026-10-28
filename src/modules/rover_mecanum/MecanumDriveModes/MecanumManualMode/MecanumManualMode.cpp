@@ -209,28 +209,28 @@ void MecanumManualMode::position()
 		rover_position_setpoint.yaw = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
-	} else { // Course control
+	} else { // Follow an endless linear desired track
 		const Vector3f velocity_setpoint_ned = _vehicle_attitude_quaternion.rotateVector(velocity_setpoint_body);
-		const Vector3f pos_ctl_course_direction_local = velocity_setpoint_ned.normalized();
-		const Vector2f pos_ctl_course_direction_temp = Vector2f(pos_ctl_course_direction_local(0),
-				pos_ctl_course_direction_local(1));
+		const Vector3f pos_ctl_bearing_direction_local = velocity_setpoint_ned.normalized();
+		const Vector2f pos_ctl_bearing_direction_temp = Vector2f(pos_ctl_bearing_direction_local(0),
+				pos_ctl_bearing_direction_local(1));
 
-		// Reset course control if course direction change is above threshold
-		if (fabsf(acosf(pos_ctl_course_direction_temp(0) * _pos_ctl_course_direction(0) + pos_ctl_course_direction_temp(
-					1) * _pos_ctl_course_direction(1))) > _param_rm_course_ctl_th.get()) {
+		// Start a new desired track if the bearing changes by more than the threshold
+		if (fabsf(acosf(pos_ctl_bearing_direction_temp(0) * _pos_ctl_bearing_direction(0) + pos_ctl_bearing_direction_temp(
+					1) * _pos_ctl_bearing_direction(1))) > _param_rm_course_ctl_th.get()) {
 			_pos_ctl_yaw_setpoint = NAN;
 		}
 
 		if (!PX4_ISFINITE(_pos_ctl_yaw_setpoint)) {
 			_pos_ctl_start_position_ned = _curr_pos_ned;
 			_pos_ctl_yaw_setpoint = _vehicle_yaw;
-			_pos_ctl_course_direction = pos_ctl_course_direction_temp;
+			_pos_ctl_bearing_direction = pos_ctl_bearing_direction_temp;
 		}
 
-		// Hold the line through the start position: the target is kept beyond the maximum lookahead, so it is never reached
-		const float distance_along_course = fabsf((_curr_pos_ned - _pos_ctl_start_position_ned) * _pos_ctl_course_direction);
-		const Vector2f target_ned = _pos_ctl_start_position_ned + (distance_along_course + _param_pp_lookahd_max.get()) *
-					    _pos_ctl_course_direction;
+		// Hold the linear desired track through the start position: the target is kept beyond the maximum lookahead, so it is never reached
+		const float distance_along_track = fabsf((_curr_pos_ned - _pos_ctl_start_position_ned) * _pos_ctl_bearing_direction);
+		const Vector2f target_ned = _pos_ctl_start_position_ned + (distance_along_track + _param_pp_lookahd_max.get()) *
+					    _pos_ctl_bearing_direction;
 		const float speed_setpoint = velocity_setpoint_ned.norm();
 
 		rover_position_setpoint_s rover_position_setpoint{};
@@ -250,7 +250,7 @@ void MecanumManualMode::position()
 void MecanumManualMode::reset()
 {
 	_stab_yaw_setpoint = NAN;
-	_pos_ctl_course_direction = Vector2f(NAN, NAN);
+	_pos_ctl_bearing_direction = Vector2f(NAN, NAN);
 	_pos_ctl_start_position_ned = Vector2f(NAN, NAN);
 	_curr_pos_ned = Vector2f(NAN, NAN);
 }
