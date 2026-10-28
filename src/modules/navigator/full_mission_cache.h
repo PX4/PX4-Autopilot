@@ -49,6 +49,43 @@
 
 class MissionRouteCacheTestPeer;
 
+namespace mission_route
+{
+
+// Mission storages the route caches accept as their source.
+inline bool isMissionDatamanIdValid(uint8_t dataman_id)
+{
+	return dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1;
+}
+
+// Retry backoff shared by the route caches: 500 ms, doubling up to 4 s.
+struct CacheRetryBackoff {
+	static constexpr hrt_abstime kBackoff{500000};
+	static constexpr uint8_t kMaxBackoffShift{3};
+
+	hrt_abstime retry_at{0};
+	uint8_t retry_count{0};
+
+	bool due(hrt_abstime now) const { return retry_at != 0 && now >= retry_at; }
+	void clear()
+	{
+		retry_at = 0;
+		retry_count = 0;
+	}
+
+	void scheduleRetry(hrt_abstime now)
+	{
+		const uint8_t backoff_shift = (retry_count < kMaxBackoffShift) ? retry_count : kMaxBackoffShift;
+		retry_at = now + (kBackoff << backoff_shift);
+
+		if (retry_count < UINT8_MAX) {
+			++retry_count;
+		}
+	}
+};
+
+} // namespace mission_route
+
 class FullMissionCache
 {
 public:
@@ -95,31 +132,6 @@ private:
 	friend class MissionRouteCacheTestPeer;
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	static constexpr hrt_abstime kCacheRetryBackoff {500000}; // 500 ms
-	static constexpr uint8_t kMaxRetryBackoffShift{3}; // Retry 3+: 500ms << 3 = 4000 ms.
-
-	struct RetryBackoff {
-		hrt_abstime retry_at{0};
-		uint8_t retry_count{0};
-
-		bool due(hrt_abstime now) const { return retry_at != 0 && now >= retry_at; }
-		void clear()
-		{
-			retry_at = 0;
-			retry_count = 0;
-		}
-
-		void scheduleRetry(hrt_abstime now)
-		{
-			const uint8_t backoff_shift = (retry_count < kMaxRetryBackoffShift) ? retry_count : kMaxRetryBackoffShift;
-			retry_at = now + (kCacheRetryBackoff << backoff_shift);
-
-			if (retry_count < UINT8_MAX) {
-				++retry_count;
-			}
-		}
-	};
-
 	struct MissionCacheState {
 		uint32_t id{0};
 		int32_t count{0};
@@ -130,7 +142,7 @@ private:
 		bool ready{false};
 		bool too_large{false};
 		bool validation_pending{false};
-		RetryBackoff retry{};
+		mission_route::CacheRetryBackoff retry{};
 	};
 
 	struct MissionRequest {
@@ -140,7 +152,6 @@ private:
 	};
 
 	bool missionMatchesCache(const mission_s &mission) const;
-	bool missionCacheAvailable() const;
 	void startMissionLoad();
 	void resumeMissionLoad();
 	void advanceMissionGeneration();
