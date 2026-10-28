@@ -143,6 +143,7 @@ void RoverMecanum::generateSetpoints()
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 		_auto_mode.autoControl();
 		break;
 
