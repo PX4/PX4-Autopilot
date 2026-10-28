@@ -412,7 +412,7 @@ uint8_t Sih::num_motors() const
 
 	case VehicleType::TailsitterVTOL: return NUM_DYN_THRUSTER; // motors at index 0..1, surfaces at 4..5
 
-	case VehicleType::StandardVTOL:   return 4;                // hover motors at 0..3; pusher at 7 excluded for simplicity
+	case VehicleType::StandardVTOL:   return 5;                // hover motors at 0..3, pusher at 7 (Motor5)
 
 	case VehicleType::FixedWing:      return 1;                // motor at index 3, surfaces at 0..2 are skipped
 
@@ -428,6 +428,11 @@ int Sih::motor_index_from_actuator(int actuator_index) const
 	case VehicleType::FixedWing:      return actuator_index < 3 ? -1 : actuator_index - 3; // surfaces at 0..2
 
 	case VehicleType::TailsitterVTOL: return actuator_index > 3 ? -1 : actuator_index;     // surfaces after the motors
+
+	case VehicleType::StandardVTOL:
+		if (actuator_index < 4) { return actuator_index; } // hover motors
+
+		return actuator_index == 7 ? 4 : -1;              // pusher (Motor5) at 7, surfaces at 4..6
 
 	case VehicleType::RoverAckermann: return actuator_index == 0 ? -1 : actuator_index - 1; // steering at 0
 
