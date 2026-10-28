@@ -59,7 +59,7 @@ private:
 
 	uORB::Subscription _esc_eeprom_read_sub{ORB_ID(esc_eeprom_read)};
 
-	// The driver republishes every cached dump each second for the log. Forward each read once per link: a new
+	// The driver republishes every cached dump every 10 seconds for the log. Forward each read once per link: a new
 	// read (boot, reconnect, save, ESC_REQUEST_EEPROM) changes timestamp_sample, and a link that comes up later
 	// still gets every ESC from the next republish.
 	hrt_abstime _sent_timestamp_sample[esc_status_s::CONNECTED_ESC_MAX] {};

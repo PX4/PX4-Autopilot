@@ -148,7 +148,7 @@ Changes are written back to the ESC one byte at a time using the DShot programmi
 
 ### Logged Settings
 
-The last settings read from each ESC are logged once per second in the `esc_eeprom_read` topic.
+The last settings read from each ESC are logged in the `esc_eeprom_read` topic when they are read, and again every 10 seconds.
 Decode them with `Tools/esc_eeprom_decode.py` and the AM32 EEPROM layout schema, [`schema/eeprom.json`](https://github.com/ARK-Electronics/ARK32/blob/main/schema/eeprom.json) in the ARK32 firmware:
 
 ```sh

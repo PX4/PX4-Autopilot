@@ -142,7 +142,8 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint16_t output_mask
 
 void DShotTelemetry::publishSettings()
 {
-	if (hrt_elapsed_time(&_settings_last_publish) < 1_s) {
+	// Each read is published right away, this only repeats the cached dumps for logs started later and lost copies
+	if (hrt_elapsed_time(&_settings_last_publish) < 10_s) {
 		return;
 	}
 
