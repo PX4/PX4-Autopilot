@@ -736,7 +736,13 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 	report.velocity_variance[2] = msg.twist_with_covariance().covariance().data(14); // Z  row 2, col 2
 
 	// report.reset_counter = vpe.reset_counter;
-	_visual_odometry_pub.publish(report);
+
+	_failure_config.update();
+
+	if (failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_VIO, 0, report,
+				       _visual_odometry_stuck)) {
+		_visual_odometry_pub.publish(report);
+	}
 }
 
 float GZBridge::generate_wgn()
