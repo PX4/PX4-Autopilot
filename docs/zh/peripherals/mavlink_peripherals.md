@@ -86,7 +86,7 @@ On this hardware, there is a [default serial port mapping](../peripherals/serial
 
 For more information see: [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md)
 
-## Device Specific Setup
+## 设备专用设置
 
 Links to setup instructions for specific MAVLink components:
 
