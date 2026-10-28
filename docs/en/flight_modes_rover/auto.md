@@ -37,7 +37,9 @@ The operator guides the rover from a GCS by sending a new course or speed.
 On activation, the rover holds its current course over ground if it is driving forwards faster than 0.5 m/s (below that the velocity direction is not meaningful); otherwise it holds its current heading.
 It then drives at the cruising speed until the operator issues a new command.
 
-The heading setpoint is the course corrected by the estimated drift angle (sideslip) between heading and course over ground, the way a fixed-wing vehicle corrects its heading for wind.
+The rover tries to track the commanded course over ground.
+Ackermann and differential rovers turn into any sideslip so that their track over ground matches the course, the way a fixed-wing vehicle crabs into the wind.
+Mecanum rovers drive in the course direction directly without adjusting their heading.
 A sideways offset is not corrected: after an offset, the rover continues on a parallel track.
 To follow a line instead, use [Mission mode](#mission-mode) or send a [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md).
 
