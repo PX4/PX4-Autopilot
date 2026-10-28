@@ -440,10 +440,12 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation extract
 check_format:
 	$(call colorecho,'Checking formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh
+	@"$(SRC_DIR)"/Tools/astyle/check_param_names.py
 	@cd "$(SRC_DIR)" && git diff --check
 
 format:
 	$(call colorecho,'Formatting with astyle')
+	@"$(SRC_DIR)"/Tools/astyle/check_param_names.py --fix
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
 
 format_changed:
