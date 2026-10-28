@@ -215,7 +215,12 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
-		handle_message_distance_sensor(msg);
+
+		// The peer streams its ranges back on this link, ours among them, and the stream would send them out again
+		if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_DISTANCE_SENSOR) {
+			handle_message_distance_sensor(msg);
+		}
+
 		break;
 
 	case MAVLINK_MSG_ID_FOLLOW_TARGET:
