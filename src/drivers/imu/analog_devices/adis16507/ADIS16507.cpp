@@ -151,19 +151,19 @@ bool ADIS16507::Configure()
 		const uint16_t gyro_range = (rang_mdl & (Bit3 | Bit2)) >> 2;
 
 		if (gyro_range == 0b11) {
-			PX4_DEBUG("Gyro Range ±2000°/sec");
+			PX4_INFO("Gyro Range ±2000°/sec");
 			// 11 = ±2000°/sec (ADIS16507-3BMLZ)
 			_px4_gyro.set_range(math::radians(2000.f));
 			_px4_gyro.set_scale(math::radians(1.f / 10.f)); // scaling 10 LSB/°/sec -> rad/s per LSB
 
 		} else if (gyro_range == 0b01) {
-			PX4_DEBUG("Gyro Range ±500°/sec");
+			PX4_INFO("Gyro Range ±500°/sec");
 			// 01 = ±500°/sec (ADIS16507-2BMLZ)
 			_px4_gyro.set_range(math::radians(500.f));
 			_px4_gyro.set_scale(math::radians(1.f / 40.f)); // scaling 40 LSB/°/sec -> rad/s per LSB
 
 		} else if (gyro_range == 0b00) {
-			PX4_DEBUG("Gyro Range ±125°/sec");
+			PX4_INFO("Gyro Range ±125°/sec");
 			// 00 = ±125°/sec (ADIS16507-1BMLZ)
 			_px4_gyro.set_range(math::radians(125.f));
 			_px4_gyro.set_scale(math::radians(1.f / 160.f)); // scaling 160 LSB/°/sec -> rad/s per LSB
