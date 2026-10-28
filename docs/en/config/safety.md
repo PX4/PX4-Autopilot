@@ -549,4 +549,5 @@ In addition there are a number of parameters that configure system and sensor li
 
 ## Further Information
 
-- [QGroundControl User Guide > Safety Setup](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html)
+- [QGroundControl User Guide > Failsafes (PX4)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/failsafes.html)
+- [QGroundControl User Guide > Return & Land (PX4)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/return_land.html)
