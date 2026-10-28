@@ -103,12 +103,13 @@ int ADIS16507::probe()
 		return PX4_ERROR;
 	}
 
-	const uint16_t serial = RegisterRead(Register::SERIAL_NUM);
-	const uint16_t rev = RegisterRead(Register::FIRM_REV);
-	const uint16_t daymonth = RegisterRead(Register::FIRM_DM);
-	const uint16_t year = RegisterRead(Register::FIRM_Y);
+	_serial_number = RegisterRead(Register::SERIAL_NUM);
+	_firmware_revision = RegisterRead(Register::FIRM_REV);
+	_firmware_day_month = RegisterRead(Register::FIRM_DM);
+	_firmware_year = RegisterRead(Register::FIRM_Y);
 
-	PX4_INFO("Serial Number: 0x%X, Firmware revision: 0x%X Date: Y %X DM %X", serial, rev, year, daymonth);
+	PX4_INFO("Serial Number: 0x%X, Firmware revision: 0x%X Date: Y %X DM %X", _serial_number, _firmware_revision, _firmware_year,
+		 _firmware_day_month);
 
 	return PX4_OK;
 }
@@ -151,20 +152,17 @@ bool ADIS16507::Configure()
 		const uint16_t gyro_range = (rang_mdl & (Bit3 | Bit2)) >> 2;
 
 		if (gyro_range == 0b11) {
-			PX4_DEBUG("Gyro Range ±2000°/sec");
-			// 11 = ±2000°/sec (ADIS16507-3BMLZ)
+			_model = "ADIS16507-3BMLZ (gyro ±2000°/s)";
 			_px4_gyro.set_range(math::radians(2000.f));
 			_px4_gyro.set_scale(math::radians(1.f / 10.f)); // scaling 10 LSB/°/sec -> rad/s per LSB
 
 		} else if (gyro_range == 0b01) {
-			PX4_DEBUG("Gyro Range ±500°/sec");
-			// 01 = ±500°/sec (ADIS16507-2BMLZ)
+			_model = "ADIS16507-2BMLZ (gyro ±500°/s)";
 			_px4_gyro.set_range(math::radians(500.f));
 			_px4_gyro.set_scale(math::radians(1.f / 40.f)); // scaling 40 LSB/°/sec -> rad/s per LSB
 
 		} else if (gyro_range == 0b00) {
-			PX4_DEBUG("Gyro Range ±125°/sec");
-			// 00 = ±125°/sec (ADIS16507-1BMLZ)
+			_model = "ADIS16507-1BMLZ (gyro ±125°/s)";
 			_px4_gyro.set_range(math::radians(125.f));
 			_px4_gyro.set_scale(math::radians(1.f / 160.f)); // scaling 160 LSB/°/sec -> rad/s per LSB
 		}
@@ -504,6 +502,9 @@ bool ADIS16507::RegisterCheck(uint16_t reg, uint16_t val)
 void ADIS16507::print_status()
 {
 	I2CSPIDriverBase::print_status();
+	PX4_INFO("Model:    %s", _model);
+	PX4_INFO("Serial:   0x%X", _serial_number);
+	PX4_INFO("Firmware: revision 0x%X, date Y %X DM %X", _firmware_revision, _firmware_year, _firmware_day_month);
 
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_transfer_perf);
