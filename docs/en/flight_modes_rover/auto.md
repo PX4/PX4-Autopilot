@@ -34,11 +34,11 @@ The following commands can be used in missions at time of writing (PX4 v1.16):
 _Guided Course mode_ holds a constant course over ground and speed without any manual stick input, like the [fixed-wing Guided Course mode](../flight_modes_fw/guided_course.md).
 The operator guides the rover from a GCS by sending a new course or speed.
 
-On activation the rover takes its current course over ground if it drives forwards fast enough for the velocity direction to be meaningful (at least 0.5 m/s), and the direction it points in otherwise.
+On activation, the rover holds its current course over ground if it is driving forwards faster than 0.5 m/s (below that the velocity direction is not meaningful); otherwise it holds its current heading.
 It then drives at the cruising speed until the operator issues a new command.
 
-The course itself is controlled: the heading setpoint is the course corrected by the estimated drift angle between heading and course over ground (from sideslip), the way a fixed-wing vehicle corrects its heading for the wind.
-A sideways offset is not corrected: after one, the rover continues on a parallel track.
+The heading setpoint is the course corrected by the estimated drift angle (sideslip) between heading and course over ground, the way a fixed-wing vehicle corrects its heading for wind.
+A sideways offset is not corrected: after an offset, the rover continues on a parallel track.
 To follow a line instead, use [Mission mode](#mission-mode) or send a [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md).
 
 | Command                         | Effect                                                                                                       |
