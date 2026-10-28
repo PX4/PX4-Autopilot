@@ -6,6 +6,7 @@ SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
 	_baro(ekf),
 	_flow(ekf),
 	_gps(ekf),
+	_gnss_yaw(ekf),
 	_imu(ekf),
 	_mag(ekf),
 	_rng(ekf),
@@ -127,6 +128,7 @@ void SensorSimulator::setSensorRateToDefault()
 	_mag.setRateHz(80);
 	_baro.setRateHz(80);
 	_gps.setRateHz(5);
+	_gnss_yaw.setRateHz(5);
 	_flow.setRateHz(50);
 	_rng.setRateHz(30);
 	_vio.setRateHz(30);
@@ -183,6 +185,7 @@ void SensorSimulator::updateSensors()
 	_mag.update(_time);
 	_baro.update(_time);
 	_gps.update(_time);
+	_gnss_yaw.update(_time);
 	_flow.update(_time);
 	_rng.update(_time);
 	_vio.update(_time);

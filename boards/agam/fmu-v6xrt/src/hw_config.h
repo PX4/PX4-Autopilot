@@ -68,7 +68,7 @@
 //#define USE_VBUS_PULL_DOWN
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,1500000"
-#define BOARD_TYPE                     35
+#define BOARD_TYPE                     1949
 // The board has a 64 Mb part with 16384, 4K secors, but we artificialy limit it to 4 Mb
 // as 1024, 4K sectors
 #define BOARD_FLASH_SECTORS            1024 // Really (16384)

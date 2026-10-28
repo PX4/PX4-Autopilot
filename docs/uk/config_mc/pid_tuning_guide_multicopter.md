@@ -25,6 +25,7 @@ For safety reasons, the default gains are set to low values.
   Повільно збільшуйте газ і перевіряйте наявність коливань.
 - Tune the vehicle around the hovering thrust point, and use the [thrust curve parameter](#thrust-curve) to account for thrust non-linearities or high-thrust oscillations.
 - Optionally enable the high-rate logging profile with the [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) parameter so you can use the log to evaluate the rate and attitude tracking performance (the option can be disabled afterwards).
+- Disable automatic [gain compression](../features_mc/gain_compression.md) ([MC_GC_EN](../advanced_config/parameter_reference.md#MC_GC_EN)) if you enabled it, to avoid over-tuning (it is disabled by default).
 
 :::warning
 Always disable [MC_AIRMODE](../advanced_config/parameter_reference.md#MC_AIRMODE) when tuning a vehicle.

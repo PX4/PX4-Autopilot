@@ -93,6 +93,9 @@ MulticopterRateControl::parameters_updated()
 	_rate_control.setFeedForwardGain(
 		Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get()));
 
+	_gain_compression.setEnabled(_param_mc_gc_en.get());
+	_gain_compression.setCompressionGainMin(_param_mc_gc_gain_min.get());
+
 
 	// manual rate control acro mode rate limits
 	_acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()),
@@ -191,6 +194,12 @@ MulticopterRateControl::Run()
 			// reset integral if disarmed
 			if (!_vehicle_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 				_rate_control.resetIntegral();
+				_gain_compression.reset();
+			}
+
+			// reset gain compression on the ground to prevent ground contact from compressing the gains
+			if (_landed) {
+				_gain_compression.reset();
 			}
 
 			// update saturation status from control allocation feedback
@@ -219,8 +228,12 @@ MulticopterRateControl::Run()
 			Vector3f torque_setpoint =
 				_rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
 
+			// reduce the loop gain when an oscillation is detected on the controller output
+			torque_setpoint = _gain_compression.getGains().emult(torque_setpoint);
+			_gain_compression.update(torque_setpoint, dt);
+
 			// apply low-pass filtering on yaw axis to reduce high frequency torque caused by rotor acceleration
-			torque_setpoint(2) = _output_lpf_yaw.update(torque_setpoint(2), static_cast<uint64_t>(dt * 1e6f));
+			torque_setpoint(2) = _output_lpf_yaw.update(torque_setpoint(2), dt);
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};

@@ -60,6 +60,8 @@
 #include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
+#include "mavlink_parameters.h"
+#include "mavlink_ftp.h"
 
 #ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 #include <drivers/serialpassthrough/serialpassthrough.hpp>
@@ -212,7 +214,7 @@ Mavlink::Mavlink() :
 	static px4::atomic_bool s_sysid_written{false};
 	static px4::atomic_bool s_compid_written{false};
 
-	if (sys_id > 0 && sys_id < 255) {
+	if (sys_id > 0) {
 		bool expected = false;
 
 		if (s_sysid_written.compare_exchange(&expected, true)) {
@@ -326,13 +328,13 @@ bool Mavlink::set_channel()
 	case 3:
 		_channel = MAVLINK_COMM_3;
 		return true;
-#ifdef MAVLINK_COMM_4
+#if MAVLINK_COMM_NUM_BUFFERS > 4
 
 	case 4:
 		_channel = MAVLINK_COMM_4;
 		return true;
 #endif
-#ifdef MAVLINK_COMM_5
+#if MAVLINK_COMM_NUM_BUFFERS > 5
 
 	case 5:
 		_channel = MAVLINK_COMM_5;
@@ -392,6 +394,11 @@ Mavlink::set_instance_id()
 
 void Mavlink::setProtocolVersion(uint8_t version)
 {
+	// MAVLink 1 can't carry a system ID above 255, the library would drop every message.
+	if (mavlink_system.sysid > UINT8_MAX) {
+		version = 2;
+	}
+
 	_protocol_version.store((version == 1) ? 1 : 2);
 
 	// The version flag lives in the per-channel status, which only exists once we
@@ -575,7 +582,7 @@ Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 }
 
 bool
-Mavlink::component_was_seen(int system_id, int component_id, Mavlink &self)
+Mavlink::component_was_seen(uint32_t system_id, int component_id, Mavlink &self)
 {
 	LockGuard lg{mavlink_module_mutex};
 
@@ -588,24 +595,29 @@ Mavlink::component_was_seen(int system_id, int component_id, Mavlink &self)
 	return false;
 }
 
+static bool target_is_us_or_broadcast(uint32_t target_system_id, int target_component_id)
+{
+	return (target_system_id == 0 || target_system_id == mavlink_system.sysid)
+	       && (target_component_id == 0 || target_component_id == mavlink_system.compid);
+}
+
 void
 Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 {
 	const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
-	int target_system_id = 0;
-	int target_component_id = 0;
+	// Takes the TARGET32 header extension into account, meta might be nullptr if message is unknown
+	const uint32_t target_system_id = mavlink_msg_get_target_sysid(msg, meta);
+	const int target_component_id = mavlink_msg_get_target_compid(msg, meta);
 
-	// might be nullptr if message is unknown
-	if (meta) {
-		// Extract target system and target component if set
-		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
-			target_system_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_system_ofs]);
+	// SETUP_SIGNING must never be forwarded (MAVLink spec requirement).
+	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		if (!target_is_us_or_broadcast(target_system_id, target_component_id)) {
+			mavlink_log_warning(&self->_mavlink_log_pub, "MAVLink signing: SETUP_SIGNING for %" PRIu32 "/%d not forwarded",
+					    target_system_id, target_component_id);
 		}
 
-		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
-			target_component_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_component_ofs]);
-		}
+		return;
 	}
 
 	// Avoid locking/iteration when there is no instance to forward to.
@@ -972,7 +984,9 @@ void Mavlink::send_finish()
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
 	if (!_tx_buffer_low) {
-		if (_buf_fill + packet_len < sizeof(_buf)) {
+		// _buf holds exactly one maximum-length frame (287 bytes for a signed frame with a 255-byte payload
+		// and both header extensions)
+		if (_buf_fill + packet_len <= sizeof(_buf)) {
 			memcpy(&_buf[_buf_fill], buf, packet_len);
 			_buf_fill += packet_len;
 
@@ -1138,7 +1152,15 @@ void Mavlink::init_udp()
 	PX4_DEBUG("Setting up UDP with port %hu", _network_port);
 
 	_myaddr.sin_family = AF_INET;
-	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	// Honor the loopback-only intent of "-n lo" when binding the socket.
+	if (_interface_name && strcmp(_interface_name, "lo") == 0) {
+		_myaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+	} else {
+		_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	}
+
 	_myaddr.sin_port = htons(_network_port);
 
 	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -1181,12 +1203,22 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 *  NOTE: this is called from the receiver thread
 	 */
 
-	// SETUP_SIGNING must never be forwarded to other links (MAVLink spec requirement).
-	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
-		// Reject signing changes while armed
+	if (msg->msgid != MAVLINK_MSG_ID_SETUP_SIGNING) {
+		return;
+	}
+
+	// Only apply SETUP_SIGNING if it is meant for us. It is never forwarded,
+	// forward_message() drops it and warns if it was meant for someone else.
+	mavlink_setup_signing_t setup_signing;
+	mavlink_msg_setup_signing_decode(msg, &setup_signing);
+
+	if (target_is_us_or_broadcast(mavlink_target_system(msg, setup_signing.target_system), setup_signing.target_component)) {
+		// Reject signing changes while armed. This runs on the receiver
+		// thread, so use a local subscription instead of _vehicle_status_sub.
+		uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 		vehicle_status_s vehicle_status{};
 
-		if (_vehicle_status_sub.copy(&vehicle_status)
+		if (vehicle_status_sub.copy(&vehicle_status)
 		    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			send_statustext_critical("MAVLink signing: rejected while armed");
 			return;
@@ -1223,9 +1255,15 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 				}
 			}
 		}
-
-		return;
 	}
+}
+
+void
+Mavlink::forward_if_enabled(const mavlink_message_t *msg)
+{
+	/*
+	 *  NOTE: this is called from the receiver thread
+	 */
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
@@ -1262,9 +1300,12 @@ Mavlink::send_statustext_emergency(const char *string)
 bool
 Mavlink::send_autopilot_capabilities()
 {
+	// Called from both the main and the receiver thread (REQUEST_MESSAGE),
+	// so use a local subscription instead of _vehicle_status_sub.
+	uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 	vehicle_status_s status;
 
-	if (_vehicle_status_sub.copy(&status)) {
+	if (vehicle_status_sub.copy(&status)) {
 		mavlink_autopilot_version_t msg{};
 
 		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
@@ -1377,6 +1418,8 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 
 	for (const auto &stream : _streams) {
 		if (strcmp(stream_name, stream->get_name()) == 0) {
+			_streams_changed = true;
+
 			if (interval != 0) {
 				/* set new interval */
 				stream->set_interval(interval);
@@ -1398,6 +1441,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	if (stream != nullptr) {
 		stream->set_interval(interval);
 		_streams.add(stream);
+		_streams_changed = true;
 
 		return OK;
 	}
@@ -1456,11 +1500,34 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 void
 Mavlink::pass_message(const mavlink_message_t *msg)
 {
-	/* size is 12 bytes plus variable payload */
-	int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
+	// Queue the frame as it came in, so checksum and signature stay valid.
+	// mavlink_msg_to_send_buffer() can't be used because it trims the payload
+	// again, which would break the checksum of an untrimmed frame.
+	uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+	// Includes the SYSID32 and TARGET32 header extensions.
+	size_t size = mavlink_header_to_send_buffer(buf, msg);
+
+	if (size == 0) {
+		// Can't happen for a received frame, the parser only accepts representable headers.
+		perf_count(_forwarding_error_perf);
+		return;
+	}
+
+	memcpy(&buf[size], _MAV_PAYLOAD(msg), msg->len);
+	size += msg->len;
+
+	buf[size++] = msg->ck[0];
+	buf[size++] = msg->ck[1];
+
+	if (msg->magic != MAVLINK_STX_MAVLINK1 && (msg->incompat_flags & MAVLINK_IFLAG_SIGNED)) {
+		memcpy(&buf[size], msg->signature, MAVLINK_SIGNATURE_BLOCK_LEN);
+		size += MAVLINK_SIGNATURE_BLOCK_LEN;
+	}
+
 	LockGuard lg{_message_buffer_mutex};
 
-	if (!_message_buffer.push_back(reinterpret_cast<const uint8_t *>(msg), size)) {
+	if (!_message_buffer.push_back(buf, size)) {
 		perf_count(_forwarding_error_perf);
 	}
 }
@@ -1468,7 +1535,7 @@ Mavlink::pass_message(const mavlink_message_t *msg)
 MavlinkShell *
 Mavlink::get_shell()
 {
-	if (!_mavlink_shell) {
+	if (!_mavlink_shell.load()) {
 		MavlinkShell *shell = new MavlinkShell();
 
 		if (!shell) {
@@ -1478,7 +1545,7 @@ Mavlink::get_shell()
 			int ret = shell->start();
 
 			if (ret == 0) {
-				_mavlink_shell = shell;
+				_mavlink_shell.store(shell);
 
 			} else {
 				PX4_ERR("Failed to start shell (%i)", ret);
@@ -1487,33 +1554,47 @@ Mavlink::get_shell()
 		}
 	}
 
-	return _mavlink_shell;
+	return _mavlink_shell.load();
 }
 
 void
 Mavlink::close_shell()
 {
-	if (_mavlink_shell) {
-		delete _mavlink_shell;
-		_mavlink_shell = nullptr;
+	MavlinkShell *shell = _mavlink_shell.load();
+
+	if (shell) {
+		_mavlink_shell.store(nullptr);
+		delete shell;
 	}
 }
 
 void
 Mavlink::update_rate_mult()
 {
-	float const_rate = 0.0f;
-	float rate = 0.0f;
+	/* The theoretical bandwidth of the streams changes with the stream set and intervals, and,
+	 * through get_size(), when their topics get advertised. Recompute it right away for the
+	 * former and at 10 Hz for the latter instead of polling every stream on every loop. */
+	const hrt_abstime now = hrt_absolute_time();
 
-	/* scale down rates if their theoretical bandwidth is exceeding the link bandwidth */
-	for (const auto &stream : _streams) {
-		if (stream->const_rate()) {
-			const_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+	if (_streams_changed || (now - _streams_rate_update >= 100_ms)) {
+		_streams_const_rate = 0.f;
+		_streams_rate = 0.f;
 
-		} else {
-			rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+		for (const auto &stream : _streams) {
+			if (stream->const_rate()) {
+				_streams_const_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+
+			} else {
+				_streams_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+			}
 		}
+
+		_streams_rate_update = now;
+		_streams_changed = false;
 	}
+
+	const float const_rate = _streams_const_rate;
+	const float rate = _streams_rate;
 
 	float mavlink_ulog_streaming_rate_inv = 1.0f;
 
@@ -1521,8 +1602,24 @@ Mavlink::update_rate_mult()
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
 	}
 
-	/* scale up and down as the link permits */
-	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+	/* Reserve the bulk share whenever a paced bulk transfer is running, so
+	 * that the streams yield instead of all of them together over-subscribing
+	 * the link. The transfers pace themselves against bulk_bandwidth_share(),
+	 * which splits this between them, so reserving it once is what they will
+	 * actually use together. Where there is spare bandwidth this changes
+	 * nothing: bandwidth_mult is capped at 1.0 further down either way. */
+	float bulk_rate = 0.0f;
+
+	if (active_bulk_transfers() > 0) {
+		bulk_rate = (float)_datarate * kBulkBandwidthShare;
+	}
+
+	/* scale up and down as the link permits, nothing to scale without variable rate streams */
+	float bandwidth_mult = 1.0f;
+
+	if (rate > 0.0f) {
+		bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate - bulk_rate) / rate;
+	}
 
 	/* Reduce rate while sending parameters in low bandwidth mode */
 	if (sending_parameters() && _mode == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) {
@@ -1577,6 +1674,20 @@ Mavlink::radio_status_critical() const
 {
 	LockGuard lg{_radio_status_mutex};
 	return _radio_status_critical;
+}
+
+bool
+Mavlink::radio_status_available() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_available;
+}
+
+float
+Mavlink::radio_status_mult() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_available ? _radio_status_mult : 1.0f;
 }
 
 void
@@ -2546,6 +2657,17 @@ Mavlink::task_main(int argc, char *argv[])
 		set_telemetry_status_type(telemetry_status_s::LINK_TYPE_USB);
 	}
 
+#if defined(MAVLINK_UDP)
+
+	/* UDP has no baudrate either. Without this, 0 falls back to the serial
+	 * default below and throttles an ethernet link, including the parameter
+	 * dump, like a 57600 radio. */
+	if ((get_protocol() == Protocol::UDP) && (_datarate == 0)) {
+		_datarate = 100000;
+	}
+
+#endif // MAVLINK_UDP
+
 	if (_mode == MAVLINK_MODE_COUNT) {
 		_mode = MAVLINK_MODE_NORMAL;
 	}
@@ -2762,8 +2884,13 @@ Mavlink::task_main(int argc, char *argv[])
 		// other lock_send() callers inside the send path is safe.
 		lock_send();
 
+		const int64_t stream_margin = (get_main_loop_delay() / 10) * 3;
+
 		for (const auto &stream : _streams) {
-			stream->update(t);
+			// skip the call when it would do nothing (most streams are not due on a given loop)
+			if (!stream->default_update_data() || !stream->not_due(t, stream_margin)) {
+				stream->update(t);
+			}
 
 			if (!_first_heartbeat_sent) {
 				if (_mode == MAVLINK_MODE_IRIDIUM) {
@@ -2824,19 +2951,22 @@ Mavlink::task_main(int argc, char *argv[])
 		/* pass messages from other instances */
 		if (get_forwarding_on()) {
 
-			mavlink_message_t msg;
+			uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 			size_t available_bytes;
 			{
 				// We only send one message at a time, not to put too much strain on a
 				// link from forwarded messages.
 				LockGuard lg{_message_buffer_mutex};
-				available_bytes = _message_buffer.pop_front(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+				available_bytes = _message_buffer.pop_front(buf, sizeof(buf));
 				// We need to make sure to release the lock here before sending the
 				// bytes out via IP or UART which could potentially take longer.
 			}
 
 			if (available_bytes > 0) {
-				resend_message(&msg);
+				// Send the frame unchanged, sequence number, checksum and signature included.
+				send_start(available_bytes);
+				send_bytes(buf, available_bytes);
+				send_finish();
 			}
 		}
 
@@ -2941,7 +3071,8 @@ void Mavlink::handleSerialPassthroughOutput()
 	msg.timeout  = 0;
 	msg.flags    = SERIAL_CONTROL_FLAG_REPLY;
 
-	uint8_t sysid, compid, device;
+	uint32_t sysid;
+	uint8_t compid, device;
 
 	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
 		SerialPassthrough *sp = SerialPassthrough::get_instance_by_index(i);
@@ -2966,21 +3097,24 @@ void Mavlink::handleSerialPassthroughOutput()
 
 void Mavlink::handleMavlinkShellOutput()
 {
-	if (_mavlink_shell) { // First do a fast check before taking the lock
+	if (_mavlink_shell.load()) { // First do a fast check before taking the lock
 		mavlink_serial_control_t msg;
 		msg.count = 0;
+		uint32_t target_system = 0;
 		{
 			const LockGuard lg{_mavlink_shell_mutex};
 
-			if (_mavlink_shell && _mavlink_shell->available() > 0) {
+			MavlinkShell *shell = _mavlink_shell.load();
+
+			if (shell && shell->available() > 0) {
 				if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
 					msg.baudrate = 0;
 					msg.flags = SERIAL_CONTROL_FLAG_REPLY;
 					msg.timeout = 0;
 					msg.device = SERIAL_CONTROL_DEV_SHELL;
-					msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
-					msg.target_system = _mavlink_shell->targetSysid();
-					msg.target_component = _mavlink_shell->targetCompid();
+					msg.count = shell->read(msg.data, sizeof(msg.data));
+					target_system = shell->targetSysid();
+					msg.target_component = shell->targetCompid();
 				}
 			}
 		}
@@ -2988,7 +3122,7 @@ void Mavlink::handleMavlinkShellOutput()
 		// Send message without the shell lock (but under the channel send lock).
 		if (msg.count > 0) {
 			lock_send();
-			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+			mavlink_msg_send_struct_target(get_channel(), SERIAL_CONTROL, &msg, target_system);
 			unlock_send();
 		}
 	}
@@ -3066,12 +3200,11 @@ void Mavlink::handleCommands()
 		msg.param6 = cmd.param6;
 		msg.param7 = cmd.param7;
 		msg.command = cmd.command;
-		msg.target_system = cmd.target_system;
 		msg.target_component = cmd.target_component;
 		msg.confirmation = 0;
 
 		lock_send();
-		mavlink_msg_command_long_send_struct(get_channel(), &msg);
+		mavlink_msg_send_struct_target(get_channel(), COMMAND_LONG, &msg, cmd.target_system);
 		unlock_send();
 	}
 }
@@ -3103,7 +3236,6 @@ void Mavlink::handleAndGetCurrentCommandAck()
 					msg.command = command_ack.command;
 					msg.progress = command_ack.result_param1;
 					msg.result_param2 = command_ack.result_param2;
-					msg.target_system = command_ack.target_system;
 					msg.target_component = command_ack.target_component;
 
 					// Handle logging acks before sending out the mavlink message to prevent a race condition
@@ -3124,13 +3256,13 @@ void Mavlink::handleAndGetCurrentCommandAck()
 						if (command_ack.from_external) {
 							// for MAVLINK_MODE_IRIDIUM send only if external
 							lock_send();
-							mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+							mavlink_msg_send_struct_target(get_channel(), COMMAND_ACK, &msg, command_ack.target_system);
 							unlock_send();
 						}
 
 					} else {
 						lock_send();
-						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+						mavlink_msg_send_struct_target(get_channel(), COMMAND_ACK, &msg, command_ack.target_system);
 						unlock_send();
 					}
 
@@ -3456,7 +3588,9 @@ Mavlink::display_status()
 	printf("\t  tx rate mult: %.3f\n", (double)_rate_mult);
 	printf("\t  tx rate max: %i B/s\n", _datarate);
 	printf("\t  rx: %.1f B/s\n", (double)_tstatus.rx_rate_avg);
-	printf("\t  rx loss: %.1f%%\n", (double)_tstatus.rx_message_lost_rate);
+	printf("\t  rx loss: %.1f%%\n", (double)_tstatus.rx_message_lost_rate * 100.0);
+	printf("\t  rx unknown messages: %" PRIu32 "\n", _tstatus.rx_unknown_message_count);
+	printf("\t  rx bad signatures: %" PRIu32 "\n", _tstatus.rx_bad_signature_count);
 
 #if !defined(CONSTRAINED_FLASH)
 	_receiver.print_detailed_rx_stats();

@@ -11,9 +11,15 @@ actually analyze against the current compilation database:
     compiled. Feeding them to clang-tidy-diff produces spurious
     "header not found" errors (gtest/gtest.h in particular).
 
-  - Header files (.h, .hpp, .hxx) always pass through. clang-tidy
-    analyzes header changes via the TUs that include them; there is
-    no separate TU for a header to match against the database.
+  - C++ headers (.hpp, .hxx) pass through. clang-tidy-diff parses each
+    one on its own, with flags borrowed from a nearby source file.
+    Those under boards/ or platforms/nuttx/ are dropped: they are not
+    built for SITL, so the borrowed flags are not theirs.
+
+  - .h headers are dropped. Many are shared with C or are board/NuttX
+    configuration, and parsed alone as C++ they draw findings that do
+    not apply. The gating clang-tidy run's header filter only matches
+    .hpp, so it never lints them either.
 
   - All other files (CMakeLists.txt, .yml, .md, etc.) are dropped.
 
@@ -32,7 +38,8 @@ import sys
 
 
 SOURCE_EXTS = {'.c', '.cpp', '.cc', '.cxx', '.m', '.mm'}
-HEADER_EXTS = {'.h', '.hpp', '.hxx'}
+HEADER_EXTS = {'.hpp', '.hxx'}
+EXCLUDED_HEADER_DIRS = ('boards/', 'platforms/nuttx/')
 
 
 def load_db_files(build_dir):
@@ -65,7 +72,7 @@ def keep_file(path, db_files):
     """Decide whether to keep this path in the filtered diff."""
     ext = os.path.splitext(path)[1].lower()
     if ext in HEADER_EXTS:
-        return True
+        return not path.startswith(EXCLUDED_HEADER_DIRS)
     if ext in SOURCE_EXTS:
         return path in db_files
     return False

@@ -109,7 +109,6 @@ private:
 					/* send MAV_CMD_DO_DIGICAM_CONTROL*/
 					mavlink_command_long_t command_long_msg{};
 
-					command_long_msg.target_system = _camera_status.active_sys_id;
 					command_long_msg.target_component = i_camera + MAV_COMP_ID_CAMERA;
 					command_long_msg.command = MAV_CMD_DO_DIGICAM_CONTROL;
 					command_long_msg.confirmation = 0;
@@ -121,7 +120,8 @@ private:
 					command_long_msg.param6 = NAN;
 					command_long_msg.param7 = NAN;
 
-					mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &command_long_msg);
+					mavlink_msg_send_struct_target(_mavlink->get_channel(), COMMAND_LONG, &command_long_msg,
+								       _camera_status.active_sys_id);
 				}
 
 				return true;

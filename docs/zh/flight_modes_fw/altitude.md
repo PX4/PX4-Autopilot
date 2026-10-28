@@ -38,8 +38,7 @@ Airspeed is also stabilized if an airspeed sensor is present.
   - 俯仰摇杆控制高度。
   - 如果空速传感器已连接，油门杆控制飞机速度。 Without an airspeed sensor the vehicle will fly level at trim throttle ([FW_THR_TRIM](../advanced_config/parameter_reference.md#FW_THR_TRIM)), increasing or decreasing throttle as needed to climb or descend.
   - 横滚摇杆控制横滚角度。 Autopilot will maintain [coordinated flight](https://en.wikipedia.org/wiki/Coordinated_flight).
-  - 偏航摇杆操纵会驱动方向舵（指令将被加到自动驾驶仪计算的指令中以维持 <a href="https://en.wikipedia.org/wiki/Coordinated_flight">协调飞行</a>）。
-    这和<a href="../flight_modes/stabilized_fw.md">稳定模式</a>一样。
+  - 偏航摇杆操纵会驱动方向舵（指令将被加到自动驾驶仪计算的指令中以维持 <a href="https://en.wikipedia.org/wiki/Coordinated_flight">协调飞行</a>）。这和<a href="../flight_modes/stabilized_fw.md">稳定模式</a>一样。
 - Manual control input is required (such as RC control, joystick).
 - An altitude measurement source is required (usually barometer or GPS)
 
@@ -62,9 +61,9 @@ The following requirements must be met to arm in this mode, or to switch to this
 
 | Parameter                                                                                                                                                                                 | 描述                                                                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| <a id="FW_AIRSPD_MIN"></a>[FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN)                                              | 最小空速/油门。 默认：10 m/s。                                                                     |
-| <a id="FW_AIRSPD_MAX"></a>[FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)                                              | 最大空速/油门。 默认：20 m/s。                                                                     |
-| <a id="FW_AIRSPD_TRIM"></a>[FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)                                           | 巡航速度。 默认：15 m/s。                                                                        |
+| <a id="FW_AIRSPD_MIN"></a>[FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN)                                              | 最小空速/油门。默认：10 m/s。                                                                      |
+| <a id="FW_AIRSPD_MAX"></a>[FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)                                              | 最大空速/油门。默认：20 m/s。                                                                      |
+| <a id="FW_AIRSPD_TRIM"></a>[FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)                                           | 巡航速度。默认：15 m/s。                                                                         |
 | <a id="FW_MAN_P_MAX"></a>[FW_MAN_P_MAX](../advanced_config/parameter_reference.md#FW_MAN_P_MAX)                            | 在高度稳定模式下手动控制的最大俯仰角。 Default: 45 degrees.                |
 | <a id="FW_MAN_R_MAX"></a>[FW_MAN_R_MAX](../advanced_config/parameter_reference.md#FW_MAN_R_MAX)                            | 在高度稳定模式下手动控制的最大滚转角。 Default: 45 degrees.                |
 | <a id="FW_T_CLMB_R_SP"></a>[FW_T_CLMB_R_SP](../advanced_config/parameter_reference.md#FW_T_CLMB_R_SP) | Max climb rate setpoint. 默认：3m/s。                                       |

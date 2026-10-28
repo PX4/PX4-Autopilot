@@ -10,6 +10,7 @@ Test topics include:
 - [Unit Tests](../test_and_ci/unit_tests.md)
 - [Sanitizers](../test_and_ci/sanitizers.md) - Build SITL with ASan/TSan to catch memory errors and data races
 - [Continuous Integration (CI)](../test_and_ci/continous_integration.md)
+- [AI Pull Request Review](../test_and_ci/ai_review.md) - Ask an AI model to review a pull request (maintainers, trial)
 - [Integration Testing](../test_and_ci/integration_testing.md)
   - [MAVSDK Integration Testing](../test_and_ci/integration_testing_mavsdk.md)
   - [PX4 ROS 2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md)

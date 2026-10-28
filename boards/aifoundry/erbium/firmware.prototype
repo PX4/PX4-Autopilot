@@ -1,0 +1,13 @@
+{
+    "board_id": 160,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the AIFoundry Erbium Minion",
+    "image": "",
+    "build_time": 0,
+    "summary": "AIFoundry Erbium",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 16776704,
+    "git_identity": "",
+    "board_revision": 0
+}

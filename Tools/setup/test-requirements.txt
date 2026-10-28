@@ -1,0 +1,4 @@
+# Integration tests in test/mavsdk_tests. mavsdk is the native MAVSDK binding (v4+),
+# pinned to a patch range so test behaviour only changes with a deliberate bump.
+mavsdk~=4.1.0
+pytest>=8,<10

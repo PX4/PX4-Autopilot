@@ -50,8 +50,9 @@
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gnss.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
@@ -143,8 +144,11 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(ranging_beacon)) {
 		_ranging_beacon_msg_id = msg_id;
 
-	} else if (sub.orb_meta == ORB_ID(vehicle_gps_position)) {
-		_vehicle_gps_position_msg_id = msg_id;
+	} else if (sub.orb_meta == ORB_ID(vehicle_gnss)) {
+		_vehicle_gnss_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(vehicle_gnss_heading)) {
+		_vehicle_gnss_heading_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_land_detected)) {
 		_vehicle_land_detected_msg_id = msg_id;
@@ -188,7 +192,8 @@ ReplayEkf2::publishEkf2Topics(sensor_combined_s &sensor_combined, std::ifstream 
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_visual_odometry_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _aux_global_position_msg_ids, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _ranging_beacon_msg_id, replay_file);
-	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gps_position_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gnss_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gnss_heading_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_land_detected_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_status_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _sensor_selection_msg_id, replay_file);
@@ -244,7 +249,8 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	// everything published up to the current ekf2 update. Publishing them here rather than from the
 	// main loop keeps them inside the lockstep barrier, which is what makes the cycle they land in
 	// reproducible.
-	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_gps_position_msg_id, replay_file);
+	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_gnss_msg_id, replay_file);
+	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_gnss_heading_msg_id, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_land_detected_msg_id, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _vehicle_status_msg_id, replay_file);
 	findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_selection_msg_id, replay_file);

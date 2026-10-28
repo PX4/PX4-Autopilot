@@ -4,8 +4,7 @@
 
 包裹投递任务是航点任务的拓展，用户可以计划将包裹作为航点进行投递。
 
-本节解释了包裹投递功能的架构。
-它的目的是为从事扩展架构的开发者提供支持，例如支持新的有效载荷投递机制。
+本节解释了包裹投递功能的架构。它的目的是为从事扩展架构的开发者提供支持，例如支持新的有效载荷投递机制。
 
 :::info
 Currently only [Grippers](../peripherals/gripper.md) can be used for package delivery.
@@ -33,8 +32,7 @@ Likewise, since PX4 automatically translates the [`COMMAND_ACK`](https://mavlink
 
 ## 导航器
 
-导航器处理接收车辆命令 ACK (下文所述)。
-在收到成功部署确认消息后，它会设置任务块级别中的标志，以表示有效载荷部署已成功。
+导航器处理接收车辆命令 ACK (下文所述)。在收到成功部署确认消息后，它会设置任务块级别中的标志，以表示有效载荷部署已成功。
 
 这允许任务安全地继续到下一个项目(例如路径点)，因为我们确信部署已成功得到确认。
 
@@ -49,8 +47,7 @@ This is possible since all the Mission item has the `MAV_CMD` to execute (e.g. L
 
 In the Mission logic (green box above) if either Gripper/Winch mission item is reached, it implements brake_for_hold functionality (which sets the `valid` flag of the next mission item waypoint to `false`) for rotary wings (e.g. Multicopter) so that the vehicle would hold it's position while the deployment is getting executed.
 
-固定翼飞机和其他车辆不考虑特殊制动条件。
-所以如果你有一个固定翼的悬停任务，飞机在悬停的同时投递包裹，飞机不会停止 (因为这是不可能的)。
+固定翼飞机和其他车辆不考虑特殊制动条件。所以如果你有一个固定翼的悬停任务，飞机在悬停的同时投递包裹，飞机不会停止 (因为这是不可能的)。
 
 ## 任务块
 

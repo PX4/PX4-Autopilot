@@ -148,6 +148,13 @@ void Sih::lockstep_loop()
 			sleep_time = math::max(0, sim_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
 
 		} else {
+			// Holding a component of our own keeps the barrier closed until this step's data is out, so
+			// work queues going idle for unrelated reasons in between cannot release it.
+			if (_lockstep_component == -1) {
+				_lockstep_component = px4_lockstep_register_component();
+			}
+
+			px4_lockstep_progress(_lockstep_component);
 			px4_lockstep_wait_for_components();
 
 			// Wait for the control pipeline to produce new actuator outputs.
@@ -173,6 +180,8 @@ void Sih::lockstep_loop()
 					    current_wall_time_us - pre_compute_wall_time_us + sleep_time));
 		usleep(sleep_time);
 	}
+
+	px4_lockstep_unregister_component(_lockstep_component);
 }
 #endif
 
@@ -763,8 +772,13 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	}
 
 	// TODO: send differential pressure instead?
+	device::Device::DeviceId device_id{};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
+	airspeed.device_id = device_id.devid;
 
 	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);

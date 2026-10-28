@@ -1,6 +1,6 @@
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 4
+uint32 MESSAGE_VERSION = 5
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -34,11 +34,11 @@ uint8 NAVIGATION_STATE_ALTCTL = 1               # Altitude control mode
 uint8 NAVIGATION_STATE_POSCTL = 2               # Position control mode
 uint8 NAVIGATION_STATE_AUTO_MISSION = 3         # Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4          # Auto loiter mode
-uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
+uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Return mode
 uint8 NAVIGATION_STATE_POSITION_SLOW = 6
 uint8 NAVIGATION_STATE_GUIDED_COURSE = 7 		# Guided Course mode (FW: maintain course/alt/speed)
 uint8 NAVIGATION_STATE_ALTITUDE_CRUISE = 8      # Altitude with Cruise mode
-uint8 NAVIGATION_STATE_FREE3 = 9
+uint8 NAVIGATION_STATE_MANUAL_PARKING = 9       # Manual Parking mode
 uint8 NAVIGATION_STATE_ACRO = 10                # Acro mode
 uint8 NAVIGATION_STATE_FREE2 = 11
 uint8 NAVIGATION_STATE_DESCEND = 12             # Descend mode (no position control)
@@ -85,7 +85,7 @@ uint8 FAILSAFE_DEFER_STATE_DISABLED = 0
 uint8 FAILSAFE_DEFER_STATE_ENABLED = 1
 uint8 FAILSAFE_DEFER_STATE_WOULD_FAILSAFE = 2 # Failsafes deferred, but would trigger a failsafe
 
-bool failsafe # true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
+bool failsafe # true if system is in failsafe state (e.g. Return, Hover, Terminate, ...)
 bool failsafe_and_user_took_over # true if system is in failsafe state but the user took over control
 uint8 failsafe_defer_state # one of FAILSAFE_DEFER_STATE_*
 
@@ -102,7 +102,7 @@ bool in_transition_to_fw # True if VTOL is doing a transition from MC to FW
 
 # MAVLink identification
 uint8 system_type  # system type, contains mavlink MAV_TYPE
-uint8 system_id	   # system id, contains MAVLink's system ID field
+uint32 system_id	   # system id, contains MAVLink's system ID field
 uint8 component_id # subsystem / component id, contains MAVLink's component ID field
 
 bool safety_button_available # Set to true if a safety button is connected

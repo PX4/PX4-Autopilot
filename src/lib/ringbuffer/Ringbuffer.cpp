@@ -60,6 +60,8 @@ void Ringbuffer::deallocate()
 	delete[] _ringbuffer;
 	_ringbuffer = nullptr;
 	_size = 0;
+	_start = 0;
+	_end = 0;
 }
 
 size_t Ringbuffer::space_available() const

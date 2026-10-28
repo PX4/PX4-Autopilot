@@ -4,9 +4,9 @@
 ## Tested on Arch 2023-03-01
 ##
 ## Installs:
-## - Common dependencies and tools for nuttx, jMAVSim
+## - Common dependencies and tools for nuttx
 ## - NuttX toolchain (omit with arg: --no-nuttx)
-## - jMAVSim simulator (omit with arg: --no-sim-tools)
+## - Simulation dependencies (omit with arg: --no-sim-tools)
 ## - Gazebo simulator (not by default, use --gazebo)
 ##
 
@@ -68,6 +68,9 @@ sudo pacman -Sy --noconfirm --needed \
 # Python dependencies
 echo "Installing PX4 Python3 dependencies"
 pip install --break-system-packages -r ${DIR}/${REQUIREMENTS_FILE}
+if [[ -f "${DIR}/test-requirements.txt" ]]; then
+	pip install --break-system-packages -r ${DIR}/test-requirements.txt
+fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -92,11 +95,6 @@ fi
 if [[ $INSTALL_SIM == "true" ]]; then
 	echo
 	echo "Installing PX4 simulation dependencies"
-
-	# java (jmavsim)
-	sudo pacman -S --noconfirm --needed \
-		ant \
-		;
 
 	# Gazebo setup
 	if [[ $INSTALL_GAZEBO == "true" ]]; then

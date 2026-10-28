@@ -14,21 +14,21 @@ What differs is whether a _consumer_ applies the failure, and that depends on th
 The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
 A `—` means the module still accepts the command, but no consumer applies it in that environment.
 
-| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic/JMAVSim) | Hardware                |
-| ----------------- | ----------------------- | ----------------------- | -------------------------------------------- | ----------------------- |
-| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
-| `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                      | `off`, `stuck`, `wrong` |
-| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                               | —                       |
-| `vio`             | —                       | —                       | `off`                                        | —                       |
-| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
-| `traffic`         | `off`                   | `off`                   | `off`                                        | `off`                   |
-| `motor`           | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
-| `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
-| `can`             | —                       | —                       | —                                            | `off`                   |
+| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic) | Hardware                |
+| ----------------- | ----------------------- | ----------------------- | ------------------------------------ | ----------------------- |
+| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`              | `off`, `stuck`, `wrong` |
+| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                       | —                       |
+| `vio`             | —                       | —                       | `off`                                | —                       |
+| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
+| `traffic`         | `off`                   | `off`                   | `off`                                | `off`                   |
+| `motor`           | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
+| `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
+| `can`             | —                       | —                       | —                                    | `off`                   |
 
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md
@@ -126,7 +126,7 @@ While the selected aux switch is on the configured failure is injected; switchin
 ## MAVSDK Failure Plugin
 
 The [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html) can be used to programmatically inject failures.
-It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsdk.md) to simulate failure cases (for example, see [PX4-Autopilot/test/mavsdk_tests/autopilot_tester.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/autopilot_tester.cpp)).
+It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsdk.md) to simulate failure cases (for example, see [PX4-Autopilot/test/mavsdk_tests/test_multicopter_failsafe.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/test_multicopter_failsafe.py)).
 
 The plugin API is a direct mapping of the failure command shown above, with a few additional error signals related to the connection.
 

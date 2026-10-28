@@ -105,7 +105,7 @@ To enable multi-antenna attitude determination, follow the following procedure:
    For best accuracy, try to maximize the distance between the antennas, and avoid significant height difference between the antenna ARPs.
 2. In practice, the two antenna ARPs may not be exactly at the same height in the vehicle frame, or the main-aux1 baseline may not be exactly parallel or perpendicular to the longitudinal axis of the vehicle.
    This leads to offsets in the computed attitude angles.
-   These can be compensated for with the heading parameters provided by the Septentrio driver in PX4.
+   PX4 compensates for these from the antenna positions (see [GNSS-Based Heading](../gps_compass/septentrio.md#gnss-based-heading)).
 
 ::: info
 For optimal heading results, the two antennas should be separated by at least 30cm / 11.8 in (ideally 50cm / 19.7in or more).

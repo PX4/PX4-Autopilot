@@ -88,7 +88,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{   22, 0x78, 0x78 }, // NAV_TAKEOFF:                 p4:yaw; p5-7:lat/lon/alt (FW/VTOL also get p1 via override)
 	{   31, 0x7B, 0x7B }, // NAV_LOITER_TO_ALT:           p1:hdg,p2:radius,p4:xtrack; p5-7:lat/lon/alt
 	{   80, 0x77, 0x77 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
-	{   84, 0x78, 0x7C }, // NAV_VTOL_TAKEOFF:            mission:p4:yaw only (p3 unused by mission_block); cmd:p3:approach_hdg,p4:yaw; p5-7:lat/lon/alt
+	{   84, 0x78, 0x7B }, // NAV_VTOL_TAKEOFF:            mission:p4:yaw only (p3 unused by mission_block); cmd:p1:loiter_height,p2:transition_dir_flag,p4:yaw (p3 unused); p5-7:lat/lon/alt
 	{   85, 0x7C, 0x7F }, // NAV_VTOL_LAND:               mission:p3:approach_alt (QGC sets it; unused by mission_block),p4:yaw; cmd:p1:options,p2:approach_hdg,p3:loiter_r,p4:yaw; p5-7:lat/lon/alt
 	{   93, 0x0F, 0x0F }, // NAV_DELAY:                   p1:delay,p2:hour,p3:min,p4:sec
 	{  112, 0x01, 0x01 }, // CONDITION_DELAY:             p1:seconds

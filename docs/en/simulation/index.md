@@ -41,7 +41,7 @@ To run PX4 SITL without setting up a build environment, [pre-built packages and 
 | Feature                   | Gazebo                                    | SIH                                                                 |
 | ------------------------- | ----------------------------------------- | ------------------------------------------------------------------- |
 | **Default Mode**          | GUI with 3D rendering                     | Headless (fastest iteration)                                        |
-| **3D Visualization**      | Built-in (photorealistic)                 | Optional: QGC map or jMAVSim display-only                           |
+| **3D Visualization**      | Built-in (photorealistic)                 | Optional: QGC map or [Hawkeye](../sim_hawkeye/index.md)             |
 | **Physics Engine**        | External (gz-physics)                     | Internal (C++ module, uORB)                                         |
 | **External Dependencies** | Gazebo packages, rendering libs           | None                                                                |
 | **Vehicle Types**         | Quad, VTOL, Plane, Rovers                 | Quad, Hex, Plane, Tailsitter, Std VTOL, Rover                       |
@@ -67,7 +67,7 @@ For a detailed analysis of PX4 simulation user needs, priorities, and pain point
 - **Hardware integration testing without propellers:** Use [SIH on flight controller hardware](../sim_sih/index.md#sih-on-flight-controller-hardware) (`SYS_HITL=2`).
 
 :::info
-SIH is headless by default. For optional 3D visualization, you can use [jMAVSim in display-only mode](../sim_sih/index.md#visualization-optional) or monitor the vehicle in QGroundControl's map view.
+SIH is headless by default. For optional 3D visualization, you can use the [Hawkeye](../sim_hawkeye/index.md) visualizer or monitor the vehicle in QGroundControl's map view.
 :::
 
 ## Simulator MAVLink API
@@ -175,7 +175,7 @@ The syntax (simplified) looks like this:
 make px4_sitl simulator[_vehicle-model]
 ```
 
-where `simulator` is `gz` (for Gazebo), `gazebo-classic`, `jmavsim` or some other simulator, and vehicle-model is a particular vehicle type supported by that simulator ([Gazebo](../sim_gazebo_gz/index.md) and [jMAVSim](../sim_jmavsim/index.md) only support multicopters at time of writing, while [Gazebo Classic](../sim_gazebo_classic/index.md) supports many different types).
+where `simulator` is `gz` (for Gazebo), `gazebo-classic` or some other simulator, and vehicle-model is a particular vehicle type supported by that simulator ([Gazebo](../sim_gazebo_gz/index.md) only supports multicopters at time of writing, while [Gazebo Classic](../sim_gazebo_classic/index.md) supports many different types).
 
 A number of examples are shown below, and there are many more in the individual pages for each of the simulators:
 
@@ -188,9 +188,6 @@ make px4_sitl gazebo-classic_plane
 
 # Start Gazebo Classic with iris and optical flow
 make px4_sitl gazebo-classic_iris_opt_flow
-
-# Start JMavSim with iris (default vehicle model)
-make px4_sitl jmavsim
 
 # Start PX4 with no simulator (i.e. to use your own "custom" simulator)
 make px4_sitl none_iris
@@ -214,7 +211,7 @@ For more information see: [Building the Code > PX4 Make Build Targets](../dev_se
 
 ### Run Simulation Faster than Realtime {#simulation_speed}
 
-SITL can be run faster or slower than real-time when using Gazebo, Gazebo Classic, jMAVSim, or SIH.
+SITL can be run faster or slower than real-time when using Gazebo, Gazebo Classic, or SIH.
 
 The speed factor is set using the environment variable `PX4_SIM_SPEED_FACTOR`.
 
@@ -227,7 +224,6 @@ For more information see:
 
 - Gazebo: [Change Simulation Speed](../sim_gazebo_gz/index.md#change-simulation-speed)
 - Gazebo Classic: [Change Simulation Speed](../sim_gazebo_classic/index.md#change-simulation-speed) and [Lockstep](../sim_gazebo_classic/index.md#lockstep)
-- jMAVSim: [Change Simulation Speed](../sim_jmavsim/index.md#change-simulation-speed) and [Lockstep](../sim_jmavsim/index.md#lockstep)
 - SIH: Supports `PX4_SIM_SPEED_FACTOR` for faster-than-realtime simulation.
 
 ### Startup Scripts

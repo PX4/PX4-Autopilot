@@ -1,6 +1,6 @@
 # Автопілот Raspberry Pi 2/3/4 Navio2
 
-<LinkedBadge type="warning" text="Experimental" url="../flight_controller/autopilot_experimental.html"/>
+[<Badge type="warning" text="Experimental"/>](../flight_controller/autopilot_experimental.md)
 
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.

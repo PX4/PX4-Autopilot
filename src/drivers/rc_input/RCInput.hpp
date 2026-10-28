@@ -97,8 +97,8 @@ private:
 		RC_SCAN_PPM  = 1,
 		RC_SCAN_SBUS = 2,
 		RC_SCAN_DSM  = 3,
-		RC_SCAN_ST24 = 5,
 		RC_SCAN_SUMD = 4,
+		RC_SCAN_ST24 = 5,
 		RC_SCAN_CRSF = 6,
 		RC_SCAN_GHST = 7,
 	} _rc_scan_state{RC_SCAN_SBUS};
@@ -108,8 +108,8 @@ private:
 		"PPM",
 		"SBUS",
 		"DSM",
-		"ST24",
 		"SUMD",
+		"ST24",
 		"CRSF",
 		"GHST"
 	};

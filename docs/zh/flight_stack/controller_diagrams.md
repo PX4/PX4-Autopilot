@@ -16,8 +16,7 @@ The diagrams use the standard [PX4 notation](../contribute/notation.md) (and eac
 - 这是一个标准的级联控制架构。
 - 控制器采用P和PID控制的组合方式。
 - Estimates come from [EKF2](../advanced_config/tuning_the_ecl_ekf.md).
-- 在某些模式下，外环(位置回路) 可能会被绕过 (在图中表示为外环之后增加一个多路开关)。
-  只有在位置保持模式或某轴无速度请求时，位置回路才会发挥作用。
+- 在某些模式下，外环(位置回路) 可能会被绕过 (在图中表示为外环之后增加一个多路开关)。只有在位置保持模式或某轴无速度请求时，位置回路才会发挥作用。
 
 ### 多旋翼角速率控制器
 
@@ -64,7 +63,7 @@ Implementation details can be found in `PositionControl.cpp` and `ControlMath.cp
 
 ![MC Velocity Control Diagram](../../assets/diagrams/mc_velocity_diagram.png)
 
-- 采用PID控制器来稳定速度。 该控制器输出的命令是加速度。
+- 采用PID控制器来稳定速度。该控制器输出的命令是加速度。
 - 积分器包括了一个采用钳制方法的反复位饱和措施。
 - The commanded acceleration is NOT saturated - a saturation will be applied to the converted thrust setpoints in combination with the maximum tilt angle.
 - Horizontal gains set via parameter `MPC_XY_VEL_P_ACC`, `MPC_XY_VEL_I_ACC` and `MPC_XY_VEL_D_ACC`.
@@ -107,18 +106,10 @@ A poor tracking of airspeed and altitude is often caused by a poor tracking of t
 Make sure to tune the attitude controller before attempting to tune TECS.
 :::
 
-同时控制飞机的空速和高度不是一件简单的事。
-增加飞行器的俯仰角会导致高度上升，同时也会导致空速下降。
-推力（通过油门控制）增加整个飞机的总能量。
-因此，俯仰角和油门两个输入量都会对空速和高度产生影响，从而使控制问题变得难了。
+同时控制飞机的空速和高度不是一件简单的事。增加飞行器的俯仰角会导致高度上升，同时也会导致空速下降。推力（通过油门控制）增加整个飞机的总能量。因此，俯仰角和油门两个输入量都会对空速和高度产生影响，从而使控制问题变得难了。
 
 TECS offers a solution by representing the problem in terms of energies rather than the original setpoints.
-一架飞行器的总能量是飞行器动能和势能之和。 推力（通过油门控制）可以增加飞机的总能量。 一个给定的总能量状态可以通过势能和动能的任意组合来实现。
-换句话说，飞行器在高海拔以低空速飞行和在低海拔以高空速飞行时的总能量是等价的。 我们称这种情况叫做比能量平衡，它是根据当前高度和真实空速设定值计算的。
-可以通过控制俯仰角来控制飞行器的比能量平衡。
-俯仰角增加将动能转变为势能，俯仰角减少则情况相反。
-这样，通过将初始空速和海拔设定值转化为能量大小（空速和海拔存在耦合，而能量大小可以独立控制），就可以把控制问题解耦。
-我们利用油门调节飞行器的特定总能量，利用俯仰角来维持势能（高度）和动能（真空速）的特定平衡点。
+一架飞行器的总能量是飞行器动能和势能之和。推力（通过油门控制）可以增加飞机的总能量。一个给定的总能量状态可以通过势能和动能的任意组合来实现。换句话说，飞行器在高海拔以低空速飞行和在低海拔以高空速飞行时的总能量是等价的。我们称这种情况叫做比能量平衡，它是根据当前高度和真实空速设定值计算的。可以通过控制俯仰角来控制飞行器的比能量平衡。俯仰角增加将动能转变为势能，俯仰角减少则情况相反。这样，通过将初始空速和海拔设定值转化为能量大小（空速和海拔存在耦合，而能量大小可以独立控制），就可以把控制问题解耦。我们利用油门调节飞行器的特定总能量，利用俯仰角来维持势能（高度）和动能（真空速）的特定平衡点。
 
 #### 总能量控制回路
 
@@ -140,11 +131,15 @@ $$E_T = \frac{1}{2} m V_T^2 + m g h$$
 
 $$\dot{E_T} = m V_T \dot{V_T} + m g \dot{h}$$
 
-通过上式，我们可以定义能量变化率：
+Dividing by the mass gives the specific (per unit mass) total energy rate, in m²/s³:
 
-$$\dot{E} = \frac{\dot{E_T}}{mgV_T}  = \frac{\dot{V_T}}{g} + \frac{\dot{h}}{V_T} = \frac{\dot{V_T}}{g} + sin(\gamma)$$
+$$\dot{E_s} = \frac{\dot{E_T}}{m} = V_T \dot{V_T} + g \dot{h}$$
 
-其中$\gamma{}$是飞行器纵平面的速度角。
+Dividing it further by $g V_T{}$ gives the normalised energy rate, which is dimensionless:
+
+$$\dot{E} = \frac{\dot{E_s}}{g V_T} = \frac{\dot{V_T}}{g} + \frac{\dot{h}}{V_T} = \frac{\dot{V_T}}{g} + sin(\gamma)$$
+
+where $\gamma{}$ is the flight path angle.
 当$\gamma{}$很小时，我们可以近似认为sin（$\gamma{}$）=$\gamma{}$，所以可以得到下式：
 
 $$\dot{E} \approx  \frac{\dot{V_T}}{g} + \gamma$$
@@ -153,16 +148,47 @@ $$\dot{E} \approx  \frac{\dot{V_T}}{g} + \gamma$$
 
 $$T - D = mg(\frac{\dot{V_T}}{g} + sin(\gamma)) \approx mg(\frac{\dot{V_T}}{g} + \gamma)$$
 
-这里面的 T 和 D 分别是飞行器的推力和受到的阻力。
-在水平飞行中，推力和阻力应该相等，所以推力的变化会导致下面式子：
+这里面的 T 和 D 分别是飞行器的推力和受到的阻力。在水平飞行中，推力和阻力应该相等，所以推力的变化会导致下面式子：
 
 $$\Delta T = mg(\frac{\dot{V_T}}{g} + \gamma)$$
 
 正如可以看到的，$\Delta T{}$ 成正比 $\dot{E}{}$，因此推力设置值应该用于控制总能量。
 
-另一方面，对升降舵的控制是能量守恒的，因此用来交换动力能源，反之亦然。控制升降舵可以将势能转换为动能，反之亦然。 为此，特定的能量平衡变化率定义为：
+Elevator control on the other hand is energy conservative, and is thus used for exchanging potential energy for kinetic energy and vice versa.
+To this end, the specific energy balance rate is defined as:
 
-$$\dot{B} = \gamma - \frac{\dot{V_T}}{g}$$
+$$\dot{B_s} = g \dot{h} - V_T \dot{V_T}$$
+
+and its normalised form as:
+
+$$\dot{B} = \frac{\dot{B_s}}{g V_T} \approx \gamma - \frac{\dot{V_T}}{g}$$
+
+TECS computes the energy rates in their specific form (m²/s³).
+It only converts the energy balance rate to its normalised form, an equivalent flight path angle, when forming the pitch setpoint.
+
+#### Speed and Altitude Weighting
+
+[FW_T_SPDWEIGHT](../advanced_config/parameter_reference.md#FW_T_SPDWEIGHT) sets how the pitch loop weights speed errors against height errors in the energy balance.
+A value of 0 controls height only, which is also used when flying without an airspeed sensor.
+A value of 2 controls speed only, which is intended for gliders.
+The default of 1 weights both equally.
+
+Pitch only trades altitude for speed up to the trim airspeed ([FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)): accelerating beyond trim is the throttle's job.
+With an airspeed setpoint above trim, what the pitch loop does therefore depends on the measured airspeed:
+
+![Pitch and throttle roles along the measured airspeed: below trim, pitch trades height for speed aiming for trim; between trim and the airspeed setpoint, pitch holds height only and the throttle accelerates; above the setpoint, pitch trades speed for height and the throttle is reduced](../../assets/diagrams/tecs_speed_regions.svg)
+
+- Below trim, pitch trades height for speed, but only aims for trim airspeed.
+- Between trim and the setpoint, pitch ignores airspeed and holds height only.
+  It neither descends to gain speed nor pitches up to turn the throttle's acceleration into height.
+  If the throttle saturates at [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX), the vehicle holds its altitude and settles at a lower airspeed than commanded.
+- Above the setpoint, pitch trades speed for height to correct the overspeed.
+
+With an airspeed setpoint at or below trim there is no middle region, and pitch and throttle share speed control as weighted by `FW_T_SPDWEIGHT`.
+
+These regions apply up to a speed weight of 1 and are faded out as the speed weight goes from 1 to 2, so with a weight of 2 pitch alone tracks the full airspeed setpoint.
+Gliders, which have no throttle to accelerate with, should therefore use `FW_T_SPDWEIGHT` = 2.
+The speed weight is also raised towards 2 automatically during underspeed recovery and fast descend, which therefore still use pitch to reach their airspeed setpoint.
 
 ## 固定翼姿态控制器
 
@@ -207,9 +233,7 @@ $$
 <!-- The drawing is on draw.io: https://drive.google.com/file/d/1ibxekmtc6Ljq60DvNMplgnnU-JOvKYLQ/view?usp=sharing
 Request access from dev team. -->
 
-姿态控制器采用级联环路的方法工作。
-外环计算姿态设定值和估计值的误差，并将误差乘上一个增益（比例控制器），产生角速率设定值。
-内环计算角速率误差，并采用（比例+积分）控制器产生一个所需要的角加速度。
+姿态控制器采用级联环路的方法工作。外环计算姿态设定值和估计值的误差，并将误差乘上一个增益（比例控制器），产生角速率设定值。内环计算角速率误差，并采用（比例+积分）控制器产生一个所需要的角加速度。
 
 The angular position of the control effectors (ailerons, elevators, rudders, ...) is then computed using this desired angular acceleration and a priori knowledge of the system through control allocation (also known as mixing).
 此外，由于控制面在高速时更有效，而在低速时效率较低，因此根据巡航速度调整的控制器使用空速测量值进行缩放（如果使用这样的传感器）。
@@ -218,9 +242,7 @@ The angular position of the control effectors (ailerons, elevators, rudders, ...
 If no airspeed sensor is used then gain scheduling for the FW attitude controller is disabled (it's open loop); no correction is/can be made in TECS using airspeed feedback.
 :::
 
-前馈增益用于补偿空气动力阻尼。
-基本上，绕机体轴的两个主要力矩分量分别来自：控制翼面 (副翼，水平尾翼，垂直尾翼 - 驱动机体转动) 和 空气动力阻尼 (与机体角速率成正比 - 阻止机体转动) 。
-为了保持恒定的角速率, 可以在角速率回路中使用前馈来补偿这种气动阻尼。
+前馈增益用于补偿空气动力阻尼。基本上，绕机体轴的两个主要力矩分量分别来自：控制翼面 (副翼，水平尾翼，垂直尾翼 - 驱动机体转动) 和 空气动力阻尼 (与机体角速率成正比 - 阻止机体转动) 。为了保持恒定的角速率, 可以在角速率回路中使用前馈来补偿这种气动阻尼。
 
 ### Turn coordination
 

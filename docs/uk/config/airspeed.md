@@ -17,7 +17,10 @@ Before calibration they must be [enabled via the corresponding parameter](../adv
 
 ## Виконання калібрування
 
-Для калібрування датчика швидкості повітря:
+All connected airspeed sensors are calibrated in one run.
+The zero reading is taken from every sensor at the same time, but you are prompted to blow into each pitot in turn.
+
+To calibrate the airspeed sensor(s):
 
 1. Start _QGroundControl_ and connect the vehicle.
 
@@ -34,7 +37,7 @@ Before calibration they must be [enabled via the corresponding parameter](../adv
 
 6. Click **OK** to start the calibration.
 
-7. Після запиту, дмухніть у кінець труби пітота, щоб сигналізувати про завершення калібрування.
+7. Once asked for, blow into the tip of each pitot tube to signal the end of its calibration.
 
    :::tip
    Blowing into the tube is also a basic check that the dynamic and static ports are installed correctly.

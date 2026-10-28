@@ -41,6 +41,7 @@ set(SRCS
 	mag.cpp
 	baro.cpp
 	gps.cpp
+	gnss_yaw.cpp
 	flow.cpp
 	range_finder.cpp
 	vio.cpp
@@ -48,4 +49,4 @@ set(SRCS
    )
 
 add_library(ecl_sensor_sim ${SRCS})
-target_link_libraries(ecl_sensor_sim ecl_EKF motion_planning)
+target_link_libraries(ecl_sensor_sim ecl_EKF motion_planning gnss_checks)
