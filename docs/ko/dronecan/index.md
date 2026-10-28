@@ -71,8 +71,6 @@ Supported hardware includes (this is not an exhaustive list):
 - Distance sensors
   - [ARK Dist](ark_dist.md)
   - [Ark Dist MR](ark_dist_mr.md)
-  - [ARK Flow](ark_flow.md)
-  - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
   - [Smartmicro Drone Altimeter](smartmicro_t132.md)
@@ -81,6 +79,7 @@ Supported hardware includes (this is not an exhaustive list):
   - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 
 - 광류 센서
+  - [Agam FloRange](agam_florange.md)
   - [Ark Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
 
