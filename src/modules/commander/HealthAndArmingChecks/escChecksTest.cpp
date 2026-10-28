@@ -340,7 +340,7 @@ TEST_F(EscChecksTest, SpinupHealthyMotorsPass)
 {
 	publishSpinup(kSpinning, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 }
 
 // A motor with no RPM, or the stuck fault, fails at the decision time and not before
@@ -348,15 +348,15 @@ TEST_F(EscChecksTest, SpinupStuckMotorFailsAtDecisionTime)
 {
 	publishSpinup({2000, 0, 2000, 2000}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kBeforeDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_TRUE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
 	EXPECT_TRUE(_health_error_escs);
 
 	runSpinupCheck(hrt_absolute_time() - 100_ms); // outside the window, forgets which motors were seen spinning
 	publishSpinup(kSpinning, kIdle, 2); // stuck fault with RPM reported
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_TRUE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
 }
 
 // A motor seen spinning while the window was open is not failed, even if it reads zero at the decision
@@ -366,7 +366,7 @@ TEST_F(EscChecksTest, SpinupMotorSeenSpinningIsNotFailed)
 	runSpinupCheck(hrt_absolute_time() - 550_ms);
 	publishSpinup({2000, 0, 2000, 2000}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 }
 
 // Nothing is evaluated during the grace period or after the spool-up time
@@ -374,9 +374,9 @@ TEST_F(EscChecksTest, SpinupOnlyEvaluatedInsideSpoolupWindow)
 {
 	publishSpinup({0, 0, 0, 0}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - 100_ms);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 	runSpinupCheck(hrt_absolute_time() - 1100_ms);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 }
 
 // Each of these would fail at the decision time, if it were not for the condition under test
@@ -384,26 +384,26 @@ TEST_F(EscChecksTest, SpinupNotEvaluatedWhenGateNotMet)
 {
 	publishSpinup({0, 0, 0, 0}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, hrt_absolute_time()); // took off
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 
 	publishSpinup({0, 0, 0, 0}, {NAN, NAN, NAN, NAN}); // motors not supposed to spin
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 
 	publishSpinup({0, 0, 0, 0}, kIdle, -1, EscChecks::ESC_OFFLINE_TIMEOUT_US + 100_ms); // stale motor commands
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 
 	publishSpinup({0, 0, 0, 0}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	ASSERT_TRUE(_failsafe_flags.fd_esc_stuck_failure); // fails once none of the above applies
+	ASSERT_TRUE(_failsafe_flags.fd_motor_stuck_failure); // fails once none of the above applies
 
 	const int32_t zero = 0;
 	param_set_no_notification(param_find("COM_ARM_CHK_ESCS"), &zero);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 }
 
 // The check must not depend on FD_ACT_EN
@@ -413,7 +413,7 @@ TEST_F(EscChecksTest, SpinupIndependentOfActuatorFailureCheck)
 	param_set_no_notification(param_find("FD_ACT_EN"), &zero);
 	publishSpinup({0, 2000, 2000, 2000}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_TRUE(_failsafe_flags.fd_esc_stuck_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
 }
 
 // A motor whose current collapses while commanded is flagged once it stays under the band for the

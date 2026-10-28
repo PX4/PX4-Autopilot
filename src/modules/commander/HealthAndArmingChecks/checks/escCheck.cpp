@@ -73,7 +73,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 	const hrt_abstime now = hrt_absolute_time();
 	esc_status_s esc_status;
 
-	reporter.failsafeFlags().fd_esc_stuck_failure = false;
+	reporter.failsafeFlags().fd_motor_stuck_failure = false;
 
 	// Run motor status checks even when no new ESC data arrives (to detect timeouts)
 	if (_esc_status_sub.copy(&esc_status)) {
@@ -86,7 +86,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		if (_param_com_arm_chk_escs.get() > 0) {
 			mask |= checkEscOnline(context, reporter, esc_status, now);
 			mask |= checkEscStatus(context, reporter, esc_status);
-			reporter.failsafeFlags().fd_esc_stuck_failure = checkSpinupAfterArm(context, reporter, esc_status, now);
+			reporter.failsafeFlags().fd_motor_stuck_failure = checkSpinupAfterArm(context, reporter, esc_status, now);
 		}
 
 		if (_param_fd_act_en.get() > 0) {
@@ -273,7 +273,7 @@ bool EscChecks::checkSpinupAfterArm(const Context &context, Report &reporter, co
 			      && (now <= actuator_motors.timestamp + ESC_OFFLINE_TIMEOUT_US); // no decision on stale commands
 
 	if (!evaluate) {
-		_esc_stuck_seen_ok_mask = 0;
+		_motor_stuck_seen_ok_mask = 0;
 		return false;
 	}
 
@@ -281,13 +281,13 @@ bool EscChecks::checkSpinupAfterArm(const Context &context, Report &reporter, co
 
 	if (now < decision_time) {
 		// Any motor that spins at some point while the window is open is considered started
-		_esc_stuck_seen_ok_mask |= ~not_spinning_mask;
+		_motor_stuck_seen_ok_mask |= ~not_spinning_mask;
 		return false;
 	}
 
 	// Decide at the first check from the decision time on and keep the result for the rest of the window,
 	// so the failsafe, which only acts during spool-up, always has time to see it
-	const uint16_t failed_mask = not_spinning_mask & ~_esc_stuck_seen_ok_mask;
+	const uint16_t failed_mask = not_spinning_mask & ~_motor_stuck_seen_ok_mask;
 
 	for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
 		if (!(failed_mask & (1u << i))) {

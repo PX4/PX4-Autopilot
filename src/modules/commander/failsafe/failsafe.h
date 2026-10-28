@@ -216,8 +216,8 @@ private:
 	bool _last_state_battery_warning_emergency{false};
 	const int _caller_id_fd_esc_arming{genCallerId()};
 	bool _last_state_fd_esc_arming{false};
-	const int _caller_id_fd_esc_stuck{genCallerId()};
-	bool _last_state_fd_esc_stuck{false};
+	const int _caller_id_fd_motor_stuck{genCallerId()};
+	bool _last_state_fd_motor_stuck{false};
 	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
 	bool _last_state_battery_unhealthy_spoolup{false};
 

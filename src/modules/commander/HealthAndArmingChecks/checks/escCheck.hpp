@@ -91,7 +91,7 @@ private:
 	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
 	bool _esc_over_temp_warned{false};
 	systemlib::Hysteresis _esc_arm_hysteresis;
-	uint16_t _esc_stuck_seen_ok_mask{0}; ///< motors seen spinning since the spin-up check window opened
+	uint16_t _motor_stuck_seen_ok_mask{0}; ///< motors seen spinning since the spin-up check window opened
 	MotorFailureDetector _motor_failure_detector;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
