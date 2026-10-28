@@ -226,13 +226,8 @@ int Roboclaw::readEncoder(unsigned controller)
 		return ERROR;
 	}
 
-	int64_t speed_right = static_cast<uint32_t>(swapBytesInt32(buffer_speed_right));
-
-	if (buffer_speed_right[4]) { speed_right = -speed_right; }
-
-	int64_t speed_left = static_cast<uint32_t>(swapBytesInt32(buffer_speed_left));
-
-	if (buffer_speed_left[4]) { speed_left = -speed_left; }
+	int64_t speed_right = swapBytesInt32(buffer_speed_right);
+	int64_t speed_left = swapBytesInt32(buffer_speed_left);
 
 	int32_t position_right = swapBytesInt32(&buffer_position[0]);
 	int32_t position_left = swapBytesInt32(&buffer_position[4]);

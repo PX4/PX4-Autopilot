@@ -24,7 +24,7 @@ parameters:
           short: Roboclaw packet serial baud rate
           long: Must match the packet serial baud rate configured on every Roboclaw controller on this bus.
         type: enum
-        default: 57600
+        default: 38400
         reboot_required: true
         values:
           2400: '2400'
