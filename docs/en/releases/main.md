@@ -197,6 +197,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - After a [quad-chute](../config/safety.md#quad-chute-failsafe), Mission and VTOL Takeoff mode no longer command forward transitions and continue in multicopter mode. Before, a resumed mission commanded the next transition again, which also cleared the quad-chute, and with [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) set to Warning a quad-chute during a mission transition left the mission waiting at that item.
 - A [quad-chute](../config/safety.md#quad-chute-failsafe) commanded with `MAV_CMD_DO_VTOL_TRANSITION` (`param2` = 1) now only switches to multicopter mode, as it is not caused by a failure. It no longer executes [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) or requires a reboot before the next arming.
+- Mission mode: a VTOL front transition item now waits for a running back transition to end, then aligns where the vehicle hovers. During a front transition, including one commanded from the ground station or RC during the alignment, a transition item is sent at once without aligning: a front transition item targets the next waypoint, a back transition item ends the front transition. A front transition from the ground station or RC during the VTOL takeoff alignment no longer skips the takeoff waypoint.
+- Mission mode: the heading alignment before a VTOL transition item now holds where the vehicle is instead of at the last reached waypoint, and an immediate transition (param 2 = 1) no longer makes it hold within 1 m.
 
 ### Fixed-wing
 
