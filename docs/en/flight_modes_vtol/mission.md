@@ -36,6 +36,14 @@ Before a [MAV_CMD_DO_VTOL_TRANSITION](https://mavlink.io/en/messages/common.html
 The transition starts once the heading is within [MIS_YAW_ERR](../advanced_config/parameter_reference.md#MIS_YAW_ERR) of the direction to that waypoint.
 If the vehicle cannot reach that heading, it flies on to the waypoint in multicopter mode and keeps turning there: set [MIS_YAW_TMT](../advanced_config/parameter_reference.md#MIS_YAW_TMT) to fail the mission after a timeout instead (the vehicle then returns).
 
+If the next waypoint directly follows the transition item, the item completes once the front transition starts, and the vehicle follows the mission from where the transition started.
+It can turn during the transition at a waypoint it passes.
+During the transition, waypoints are reached as in fixed-wing flight, without their heading or hold time, and a VTOL landing starts its back transition.
+A waypoint passed below its fixed-wing altitude acceptance radius is not reached: the vehicle holds its heading until it is in fixed-wing mode, then returns to it.
+If the transition stops before fixed-wing mode, the mission continues in multicopter mode.
+If the mission is paused there and resumed in multicopter mode before it moved on, it starts at the transition item again.
+In other modes, and for tailsitters, which fly the transition attitude, the vehicle holds the transition heading until it is in fixed-wing mode.
+
 ## Mission Command Timeouts
 
 Some mission commands/items can take time to complete, such as a gripper opening and closing, a winch extending or retracting, or a gimbal moving to point at a region of interest.
@@ -51,7 +59,7 @@ This should be set to be a small amount greater than the time required for the l
 Plan a VTOL mission takeoff by adding a `VTOL Takeoff` mission item to the map.
 
 During mission execution the vehicle will ascend vertically to the minimum takeoff altitude defined in the [MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT) parameter, then transition to fixed-wing mode with the heading defined in the mission item.
-After transitioning the vehicle heads towards the 3D position defined in the mission item.
+The vehicle heads towards the 3D position defined in the mission item, already during the transition.
 
 A VTOL mission requires a `VTOL Takeoff` mission item (`MAV_CMD_NAV_VTOL_TAKEOFF`) to takeoff (or a `MAV_CMD_NAV_TAKEOFF` when the vehicle is in MC mode); if however the vehicle is already flying when the mission is started the takeoff item will be treated as a normal waypoint.
 
