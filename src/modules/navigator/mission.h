@@ -104,4 +104,5 @@ private:
 				  size_t &num_found_items);
 
 	bool _need_mission_save{false};
+	bool _need_move_to_takeoff{false};
 };
