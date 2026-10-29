@@ -89,6 +89,7 @@ protected:
 		WORK_ITEM_TYPE_CLIMB,		/**< takeoff before moving to waypoint */
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN_TO_LAND,
+		WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION, /**< VTOL transition not started yet, e.g. waiting for a back transition */
 		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align for next waypoint */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
@@ -319,6 +320,11 @@ protected:
 	void set_mission_result();
 
 	/**
+	 * Set a mission item as reached
+	 */
+	void set_mission_item_reached();
+
+	/**
 	 * @brief Reset the item cache
 	 */
 	void resetItemCache();
@@ -335,6 +341,12 @@ protected:
 	 * @return false otherwise
 	 */
 	virtual bool setNextMissionItem() = 0;
+	/**
+	 * @brief Check once per cycle if the current mission item is reached or completed
+	 *
+	 * Mission also runs its VTOL transition steps here.
+	 */
+	virtual bool isCurrentItemReached() { return is_mission_item_reached_or_completed(); }
 	/**
 	 * @brief Set action at the end of the mission
 	 *
@@ -485,11 +497,6 @@ private:
 	 * Reset mission
 	 */
 	void checkMissionRestart();
-
-	/**
-	 * Set a mission item as reached
-	 */
-	void set_mission_item_reached();
 
 	/**
 	 * Updates the heading of the vehicle. Rotary wings only.

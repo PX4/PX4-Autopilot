@@ -173,15 +173,6 @@ Mission::do_need_move_to_takeoff(const mission_item_s &takeoff_item)
 
 void Mission::setActiveMissionItems()
 {
-	// Reloaded at the end of its alignment: send the transition command, unless a takeoff no longer hovers.
-	if (vtolTransitionActive() && _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING
-	    && (_vtol_transition.completion_work != WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF
-		|| (!_land_detected_sub.get().landed
-		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))) {
-		setVtolTransitionStep(false);
-		return;
-	}
-
 	// A new or restarted item ends any running transition.
 	resetVtolTransition();
 
@@ -427,6 +418,9 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 			next.valid = false;
 		}
 
+		// Publish the changed next waypoint even when a back transition delays alignment.
+		_navigator->set_position_setpoint_triplet_updated();
+
 		// startVtolTransition() copies the takeoff item before changing _mission_item.
 		startVtolTransition(&_mission_item, WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF);
 		return;
@@ -447,12 +441,76 @@ void Mission::startVtolTransition(const mission_item_s *alignment_target, WorkIt
 {
 	_vtol_transition.target = alignment_target ? *alignment_target : mission_item_s{};
 	_vtol_transition.completion_work = completion_work;
+	_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
+	reset_mission_item_reached();
+	updateVtolTransition();
 
-	// In hover, turn towards the target before the command.
-	setVtolTransitionStep(alignment_target && !_land_detected_sub.get().landed
-			      && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	// A front transition waiting for a back transition is the current item, but publishes no new current setpoint.
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION) {
+		if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
+			set_mission_result();
+		}
+
+		publish_navigator_mission_item();
+	}
 }
 
+bool Mission::isCurrentItemReached()
+{
+	return vtolTransitionActive() ? updateVtolTransition() : is_mission_item_reached_or_completed();
+}
+
+bool Mission::updateVtolTransition()
+{
+	const vehicle_status_s &status = _vehicle_status_sub.get();
+	const bool takeoff = _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
+	const bool landed = _land_detected_sub.get().landed;
+
+	// A takeoff already in fixed-wing flies to its waypoint without a command, unless it holds without autocontinue.
+	if (takeoff && _vtol_transition.target.autocontinue
+	    && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		_work_item_type = _vtol_transition.completion_work;
+		return true;
+	}
+
+	if (_work_item_type == _vtol_transition.completion_work) {
+		// The command is sent, the item completes in the new mode.
+		return is_mission_item_reached_or_completed();
+	}
+
+	if (int(_vtol_transition.command.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+	    && status.in_transition_mode && !status.in_transition_to_fw) {
+		// Never reverse a back transition: wait without a new current setpoint, then align again once it ends.
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
+		_mission_item = _vtol_transition.command;
+		return false;
+	}
+
+	// Align in hover only: during a front transition the command is sent at once.
+	const bool can_align = !landed && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+			       && !status.in_transition_to_fw && mission_item_contains_position(_vtol_transition.target);
+
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
+		setVtolTransitionStep(can_align);
+		return false;
+	}
+
+	// Only fixed-wing flight or a front transition ends the alignment early, a landing does not.
+	if ((can_align || landed) && !is_mission_item_reached_or_completed()) {
+		return false;
+	}
+
+	// An aligned takeoff holds without autocontinue. Aligned on the ground, it goes on as a takeoff item, without
+	// a command.
+	if (takeoff && (!_mission_item.autocontinue || landed)) {
+		return true;
+	}
+
+	// The aligned item is reported reached when its command is sent, and again in the new mode.
+	set_mission_item_reached();
+	setVtolTransitionStep(false);
+	return false;
+}
 
 void Mission::setVtolTransitionStep(bool aligning)
 {
@@ -479,6 +537,11 @@ void Mission::setVtolTransitionStep(bool aligning)
 		mission_item_to_position_setpoint(_mission_item, &triplet.current);
 
 	} else {
+		// A front transition item started during a front transition is not aligned: target the next waypoint.
+		const bool publish_target = _vehicle_status_sub.get().in_transition_to_fw
+					    && int(_vtol_transition.command.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+					    && mission_item_contains_position(_vtol_transition.target);
+
 		if (takeoff) {
 			if (!do_need_move_to_takeoff(_vtol_transition.target)) {
 				_vtol_transition.completion_work = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
@@ -486,12 +549,15 @@ void Mission::setVtolTransitionStep(bool aligning)
 
 		} else if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
 			triplet.previous = triplet.current;
+
+		} else if (publish_target) {
+			mission_item_to_position_setpoint(_vtol_transition.target, &triplet.current);
 		}
 
 		_mission_item = _vtol_transition.command;
 
-		// Keep the current setpoint, the fixed-wing position controller tracks it during the transition.
-		if (takeoff || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
+		// The fixed-wing position controller tracks the current setpoint during the transition.
+		if (takeoff || publish_target || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
 			triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		}
 	}

@@ -318,7 +318,7 @@ MissionBase::on_active()
 	}
 
 	/* lets check if we reached the current mission item */
-	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
+	if (_mission_type != MissionType::MISSION_TYPE_NONE && isCurrentItemReached()) {
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
 		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
