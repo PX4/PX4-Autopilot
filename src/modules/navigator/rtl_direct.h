@@ -60,6 +60,7 @@
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "mission_block.h"
 #include "navigation.h"
+#include "rtl_arrival.h"
 #include "safe_point_land.hpp"
 
 using namespace time_literals;
@@ -113,7 +114,11 @@ public:
 	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos,
 			    bool destination_is_current_position = false);
 
-	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
+	bool isLanding()
+	{
+		return _rtl_state == RTLState::ARRIVAL ? _arrival.phase() != RtlArrival::Phase::Move :
+		       _rtl_state != RTLState::IDLE && _rtl_state >= RTLState::MOVE_TO_LAND;
+	}
 
 private:
 	/**
@@ -123,15 +128,16 @@ private:
 	enum class RTLState {
 		CLIMBING,
 		AVOID_GEOFENCE,
-		MOVE_TO_LOITER,
-		LOITER_DOWN,
-		LOITER_HOLD,
-		MOVE_TO_LAND,
+		ARRIVAL = 2,
+		MOVE_TO_LAND = 5, // ARRIVAL logs its phases as 2 to 4 in navigator_mission_item.
 		TRANSITION_TO_MC,
 		MOVE_TO_LAND_HOVER,
 		LAND,
 		IDLE
 	} _rtl_state{RTLState::IDLE}; /*< Current state in the state machine.*/
+
+	static_assert(int(RTLState::ARRIVAL) + int(RtlArrival::Phase::Land) == int(RTLState::MOVE_TO_LAND),
+		      "ARRIVAL must leave room for the arrival phases in the logged state numbers");
 
 private:
 	/**
@@ -174,11 +180,10 @@ private:
 	/** RTL_LAND_DELAY, or indefinite where a pure fixed-wing cannot land. */
 	float landDelay() const;
 
-	void setLoiterPosition();
-
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
 	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
+	RtlArrival _arrival;
 	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;
 
