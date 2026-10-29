@@ -400,6 +400,8 @@ void RouteSegmentCursor::prepareNominalSegment(const SegmentEndpoint &end, const
 	_positions.start = _positions.end;
 }
 
+// Returns false without failing for a jump with no position at or after its target, such as a
+// camera loop after the last waypoint: it adds no edge.
 bool RouteSegmentCursor::prepareJumpSegment(int32_t index, const mission_item_s &jump_item,
 		RouteSegmentView &view)
 {
@@ -410,10 +412,14 @@ bool RouteSegmentCursor::prepareJumpSegment(int32_t index, const mission_item_s 
 
 	LoadedPosition target{};
 	const FailureReason target_status = findNextMissionPosition(_provider, _home_altitude_amsl,
-					    jump_item.do_jump_mission_index, target, FailureReason::kInternalError);
+					    jump_item.do_jump_mission_index, target, FailureReason::kNone);
 
 	if (target_status != FailureReason::kNone) {
 		return fail(target_status);
+	}
+
+	if (target.endpoint.idx < 0) {
+		return false;
 	}
 
 	_segment.end = target.endpoint;
@@ -457,23 +463,31 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 		_next_position_cached = false;
 
 	} else {
-		const FailureReason scan_failure = scanNextCursorItem(_provider, _home_altitude_amsl, _index, item);
+		// Scan on past jumps that add no edge.
+		while (true) {
+			const FailureReason scan_failure = scanNextCursorItem(_provider, _home_altitude_amsl, _index, item);
 
-		if (scan_failure != FailureReason::kNone) {
-			return fail(scan_failure);
-		}
+			if (scan_failure != FailureReason::kNone) {
+				return fail(scan_failure);
+			}
 
-		switch (item.type) {
-		case CursorItemType::kEnd:
-			_done = true;
-			return false;
+			if (item.type == CursorItemType::kEnd) {
+				_done = true;
+				return false;
+			}
 
-		case CursorItemType::kPosition:
-			segment_end = item.loaded_position;
-			break;
+			if (item.type == CursorItemType::kPosition) {
+				segment_end = item.loaded_position;
+				break;
+			}
 
-		case CursorItemType::kJump:
-			return prepareJumpSegment(item.index, item.mission_item, view);
+			if (prepareJumpSegment(item.index, item.mission_item, view)) {
+				return true;
+			}
+
+			if (failed()) {
+				return false;
+			}
 		}
 	}
 

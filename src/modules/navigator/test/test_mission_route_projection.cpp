@@ -1068,6 +1068,54 @@ TEST_F(RouteSegmentCursorTest, IgnoresInvalidAndUnreadableItemsAfterLand)
 	}
 }
 
+// A jump with no position at or after its target, here back to a camera command after the last waypoint, adds no
+// edge, and the walk goes on to a later loop. Every walk used to fail with kInternalError. Upload accepts such a jump
+// without repeats.
+TEST_F(RouteSegmentCursorTest, SkipsJumpWithoutPositionAfterTarget)
+{
+	mission_item_s camera{};
+	camera.nav_cmd = NAV_CMD_DO_DIGICAM_CONTROL;
+
+	for (const bool loop_after : {false, true}) {
+		SCOPED_TRACE(::testing::Message() << "loop after " << loop_after);
+		std::vector<mission_item_s> mission{
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			camera,
+			makeDoJump(2, 0, 0),
+		};
+
+		if (loop_after) {
+			mission.push_back(makeDoJump(0, 2, 0));
+		}
+
+		VectorProvider provider = makeRouteProvider(mission);
+		mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
+		std::vector<mission_route::RouteSegmentView> segments;
+		mission_route::RouteSegmentView segment{};
+
+		ASSERT_TRUE(cursor.init()) << mission_route::failureReasonString(cursor.failureReason());
+
+		while (cursor.next(segment)) {
+			segments.push_back(segment);
+		}
+
+		ASSERT_FALSE(cursor.failed()) << mission_route::failureReasonString(cursor.failureReason());
+		ASSERT_EQ(segments.size(), loop_after ? 2U : 1U);
+		EXPECT_FALSE(segments[0].segment.isLoop());
+		EXPECT_EQ(segments[0].segment.end.idx, 1);
+		EXPECT_TRUE(segments[0].last_segment);
+		EXPECT_NEAR(cursor.routeLength(), 100.f, kDistanceTolerance);
+		EXPECT_EQ(cursor.nominalPositionIndex(), 1);
+
+		if (loop_after) {
+			EXPECT_TRUE(segments[1].segment.isLoop());
+			EXPECT_EQ(segments[1].segment.jump_item_index, 4);
+			EXPECT_EQ(segments[1].segment.end.idx, 0);
+		}
+	}
+}
+
 struct DoJumpEdgeCase {
 	const char *name;
 	uint16_t current_count;
