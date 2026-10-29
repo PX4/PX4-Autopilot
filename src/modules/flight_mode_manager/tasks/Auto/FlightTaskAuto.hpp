@@ -117,6 +117,7 @@ protected:
 	bool _followPrecisionTakeoffTarget() const;
 
 	void _prepareLandSetpoints();
+	void _evaluateDistanceToLandingWaypoint(); /**< Uses the landing waypoint altitude as ground reference if no distance sensor */
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 
 	void updateParams() override; /**< See ModuleParam class */

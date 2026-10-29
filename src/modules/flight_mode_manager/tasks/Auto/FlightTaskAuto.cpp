@@ -110,7 +110,25 @@ bool FlightTaskAuto::updateInitialize()
 	// require valid position
 	ret = ret && _position.isAllFinite() && _velocity.isAllFinite();
 
+	if (ret) {
+		_evaluateDistanceToLandingWaypoint();
+	}
+
 	return ret;
+}
+
+void FlightTaskAuto::_evaluateDistanceToLandingWaypoint()
+{
+	// Without distance sensor, prefer the landing waypoint altitude over home as ground reference.
+	// Only Mission and Return provide a landing altitude, Land mode sends a placeholder altitude.
+	const uint8_t nav_state = _sub_vehicle_status.get().nav_state;
+	const bool landing_altitude_valid = (_type == WaypointType::land)
+					    && ((nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
+						|| (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL));
+
+	if (!PX4_ISFINITE(_dist_to_bottom) && landing_altitude_valid && PX4_ISFINITE(_triplet_current(2))) {
+		_dist_to_ground = _triplet_current(2) - _position(2);
+	}
 }
 
 bool FlightTaskAuto::update()
