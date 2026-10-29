@@ -3636,16 +3636,14 @@ Mavlink::display_status()
 		printf("UDP (%hu, remote port: %hu)\n", _network_port, _remote_port);
 		printf("\tBroadcast enabled: %s\n",
 		       broadcast_enabled() ? "YES" : "NO");
-#if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
-		printf("\tMulticast enabled: %s\n",
-		       multicast_enabled() ? "YES" : "NO");
-#endif
-#ifdef __PX4_POSIX
 
 		if (get_client_source_initialized()) {
 			printf("\tpartner IP: %s\n", inet_ntoa(get_client_source_address().sin_addr));
 		}
 
+#if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
+		printf("\tMulticast enabled: %s\n",
+		       multicast_enabled() ? "YES" : "NO");
 #endif
 		break;
 #endif // MAVLINK_UDP
