@@ -44,16 +44,8 @@ using namespace matrix;
 
 bool FlightTaskManualAltitude::updateInitialize()
 {
-	bool ret = FlightTask::updateInitialize();
-
 	_sticks.checkAndUpdateStickInputs();
-
-	if (_sticks_data_required) {
-		ret = ret && _sticks.isAvailable();
-	}
-
-	// in addition to manual require valid position and velocity in D-direction and valid yaw
-	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2)) && PX4_ISFINITE(_yaw);
+	return FlightTask::updateInitialize();
 }
 
 bool FlightTaskManualAltitude::activate(const trajectory_setpoint_s &last_setpoint)

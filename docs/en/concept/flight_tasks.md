@@ -10,6 +10,10 @@ The `activate()` method is called when switching to the task and allows to initi
 
 `update()` is called on every loop iteration during the execution and contains the core behavior implementation producing setpoints.
 
+A task declares the inputs it depends on (local position, velocity, heading, stick input, home altitude) in `kRequiredInputs`, a bitmask of `FlightTask::Input`, and returns it from `requiredInputs()`.
+The flight mode manager only switches to a task once all of them are available, and `updateInitialize()` fails as soon as one is lost.
+A task that does not declare any inherits its base class's set.
+
 By convention tasks are contained in a subfolder of [PX4-Autopilot/src/modules/flight_mode_manager/tasks](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/flight_mode_manager/tasks) named after the task, and the source files are named with the prefix "FlightTask".
 
 ::: info
@@ -67,6 +71,9 @@ The instructions below might be used to create a task named _MyTask_:
    public:
      FlightTaskMyTask() = default;
      virtual ~FlightTaskMyTask() = default;
+
+     static constexpr uint8_t kRequiredInputs = PositionZ | VelocityZ;
+     uint8_t requiredInputs() const override { return kRequiredInputs; }
 
      bool update();
      bool activate(const trajectory_setpoint_s &last_setpoint) override;
