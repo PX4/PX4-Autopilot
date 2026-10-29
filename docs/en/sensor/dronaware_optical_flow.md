@@ -1,6 +1,6 @@
 # Dronaware Optical Flow (ESP32 Camera Boards)
 
-[Dronaware Optical Flow](https://dronaware.com/opticalflow/) is licensed firmware that can be flashed on an off-the-shelf ESP32 or ESP32-S3 camera board, turning it into a MAVLink [optical flow](../sensor/optical_flow.md) sensor.
+[Dronaware Optical Flow](https://dronaware.com/opticalflow/) is proprietary (closed-source) firmware that can be flashed on an off-the-shelf ESP32 or ESP32-S3 camera board, turning it into a MAVLink [optical flow](../sensor/optical_flow.md) sensor.
 The board computes optical flow from a downward facing camera and sends [OPTICAL_FLOW_RAD](https://mavlink.io/en/messages/common.html#OPTICAL_FLOW_RAD) messages to the flight controller over a UART, at up to 100 Hz (as measured on an AI-Thinker ESP32-CAM with an OV3660 camera).
 
 The firmware does not measure distance.
