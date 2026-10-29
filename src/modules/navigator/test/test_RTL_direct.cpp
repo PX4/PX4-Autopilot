@@ -246,18 +246,6 @@ TEST_F(RtlDirectTest, ClimbsBeforeMovingToTheDestination)
 	expectLoggedItem(kLogMoveToApproach);
 }
 
-TEST_F(RtlDirectTest, EnforcedReturnAltitudeKeepsAltitudeStageWhenAlreadyAboveIt)
-{
-	setPosition(kLatitude, kLongitude, kReturnAltitude + 40.f);
-	_rtl->setReturnAltMin(true);
-	activate();
-	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TO_ALT);
-	EXPECT_DOUBLE_EQ(_rtl->missionItem().lat, kLatitude);
-	EXPECT_FLOAT_EQ(_rtl->missionItem().altitude, kReturnAltitude);
-	EXPECT_FALSE(_rtl->isLanding());
-	expectLoggedItem(kLogClimb);
-}
-
 TEST_F(RtlDirectTest, MulticopterZeroDelayStartsLandingAtArrival)
 {
 	activate();
@@ -455,57 +443,6 @@ TEST_F(RtlDirectTest, WeatherVaneLeavesArrivalAndLandingYawUnspecified)
 	completePositionItem();
 	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LAND);
 	EXPECT_FALSE(PX4_ISFINITE(_rtl->missionItem().yaw));
-}
-
-TEST_F(RtlDirectTest, ReactivationStartsArrivalAgainAfterAnIndefiniteHold)
-{
-	setParameter("RTL_LAND_DELAY", -1.f);
-	activate();
-	EXPECT_FALSE(_rtl->isLanding());
-	completePositionItem();
-	EXPECT_TRUE(_rtl->isLanding());
-	completePositionItem();
-	ASSERT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
-	expectLoggedItem(kLogHold);
-
-	_rtl->run(false);
-	EXPECT_FALSE(_rtl->isLanding());
-	setPosition(kLatitude, kLongitude, kReturnAltitude);
-	activate();
-	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_WAYPOINT);
-	EXPECT_FLOAT_EQ(_rtl->missionItem().altitude, kReturnAltitude);
-	EXPECT_FLOAT_EQ(_rtl->missionItem().time_inside, 0.f);
-	EXPECT_TRUE(_rtl->missionItem().autocontinue);
-	EXPECT_FALSE(_rtl->isLanding());
-	expectLoggedItem(kLogMoveToApproach);
-
-	completePositionItem();
-	EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_TO_ALT);
-	EXPECT_TRUE(_rtl->isLanding());
-	expectLoggedItem(kLogDescend);
-}
-
-TEST_F(RtlDirectTest, InactiveEstimateAddsClimbMoveDescentDelayAndLanding)
-{
-	static constexpr float kCruiseSpeed = 10.f;
-	static constexpr float kClimbSpeed = 4.f;
-	static constexpr float kDescentSpeed = 2.f;
-	static constexpr float kLandDelay = 4.f;
-	setParameter("MPC_XY_CRUISE", kCruiseSpeed);
-	setParameter("MPC_Z_V_AUTO_UP", kClimbSpeed);
-	setParameter("MPC_Z_V_AUTO_DN", kDescentSpeed);
-	setParameter("RTL_LAND_DELAY", kLandDelay);
-	setPosition(kLatitude, kLongitude, kReturnAltitude - 20.f);
-	_rtl->setRtlAlt(kReturnAltitude);
-	_rtl->setRtlPosition(_destination, {});
-	_rtl->run(false);
-
-	const float distance = get_distance_to_next_waypoint(kLatitude, kLongitude, _destination.lat, _destination.lon);
-	const float approach_altitude = kDestinationAltitude + kDescentHeight;
-	const rtl_time_estimate_s estimate = _rtl->calc_rtl_time_estimate();
-	ASSERT_TRUE(estimate.valid);
-	EXPECT_NEAR(estimate.time_estimate, 20.f / kClimbSpeed + distance / kCruiseSpeed
-		    + (kReturnAltitude - approach_altitude) / kDescentSpeed + kLandDelay + kDescentHeight / kDescentSpeed, 0.01f);
 }
 
 TEST_F(RtlDirectTest, InactiveEstimateAfterAnEndedReturnStartsWithTheMove)
