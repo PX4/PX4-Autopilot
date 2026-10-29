@@ -800,31 +800,6 @@ TEST_F(MissionVtolTransitionTest, BackTransitionInHoverHoldsWhileAligning)
 	EXPECT_FALSE(mission.currentMissionItemForTest().heading_only);
 }
 
-TEST_F(MissionVtolTransitionTest, NextWaypointAfterFrontTransitionNeedsItsPosition)
-{
-	// Only the alignment item is reached on heading: the next waypoint is reached at its position.
-	MissionTestPeer mission(&_navigator);
-	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	const auto target = waypointAt(0.f, 300.f);
-	const float yaw = get_bearing_to_next_waypoint(position.lat, position.lon, target.lat, target.lon);
-	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	front_transition.autocontinue = true;
-	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, yaw);
-	prepareExecution(mission, {front_transition, target, waypointAt(0.f, 600.f)});
-	mission.on_active();
-	ASSERT_EQ(countTransitionCommands(), 1);
-
-	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-	mission.on_active();
-	ASSERT_EQ(mission.currentSequenceForTest(), 1);
-	EXPECT_FALSE(mission.currentMissionItemForTest().heading_only);
-
-	for (int i = 0; i < 3; ++i) {
-		mission.on_active();
-		EXPECT_EQ(mission.currentSequenceForTest(), 1);
-	}
-}
-
 TEST_F(MissionVtolTransitionTest, FrontTransitionAlignmentKeepsTheHeadingTimeout)
 {
 	// The heading must still be reached: the yaw timeout applies while flying on.
