@@ -110,6 +110,7 @@ private:
 	uint8_t _alt_loss_z_reset_counter{0}; // tracks EKF z resets to avoid false altitude loss triggers
 	hrt_abstime _alt_loss_timestamp_prev{0}; // used to integrate the commanded vertical velocity
 	static constexpr hrt_abstime _alt_loss_setpoint_timeout{500_ms}; // commanded descent is ignored when older
+	static constexpr float _alt_loss_descent_rate_margin{2.f}; // [m/s] tolerated descent faster than commanded
 
 	static constexpr hrt_abstime _imbalanced_prop_lpf_time_constant{5_s};
 	AlphaFilter<float> _imbalanced_prop_lpf{};

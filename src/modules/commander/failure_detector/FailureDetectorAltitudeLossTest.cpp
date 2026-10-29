@@ -221,10 +221,10 @@ TEST_F(FailureDetectorAltitudeLossTest, NoTriggerOnSlowerThanCommandedDescent)
 
 TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropFasterThanCommandedDescent)
 {
-	// Manual descent commanded at 1m/s, vehicle falls at 4m/s
+	// Manual descent commanded at 1m/s, vehicle falls at 6m/s, reference lowered at 1m/s + 2m/s margin
 	EXPECT_FALSE(updateVelocity(-100.f, 1.f)); // ref = -100
-	EXPECT_FALSE(updateVelocity(-96.f, 1.f));  // ref = -99, drop = 3m
-	EXPECT_TRUE(updateVelocity(-92.f, 1.f));   // ref = -98, drop = 6m, triggers
+	EXPECT_FALSE(updateVelocity(-94.f, 1.f));  // ref = -97, drop = 3m
+	EXPECT_TRUE(updateVelocity(-88.f, 1.f));   // ref = -94, drop = 6m, triggers
 }
 
 TEST_F(FailureDetectorAltitudeLossTest, NoTriggerWithoutSetpoints)

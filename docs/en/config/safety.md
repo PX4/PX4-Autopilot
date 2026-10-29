@@ -403,6 +403,7 @@ The reference altitude depends on what the vehicle is commanded to do:
 - With an altitude setpoint (for example when holding altitude or flying a mission), the reference is the highest altitude reached while below the setpoint.
 - Without an altitude setpoint but with a commanded vertical speed (for example while the pilot moves the throttle stick), the reference is the highest altitude reached.
   It is only lowered at the commanded descent rate, so altitude loss is detected while climbing, holding or descending manually, without triggering on a commanded descent.
+  A commanded climb never raises the reference above the altitude actually reached, so a vehicle that climbs slower than commanded (or cannot climb at all) does not trigger, as long as it does not lose altitude.
 
 | Parameter                                                                                          | Description                                                                                                                                     |
 | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
