@@ -9,6 +9,7 @@ A separate downward facing [distance sensor](../sensor/rangefinders.md) is requi
 ::: info
 Dronaware Optical Flow is sold as a per-device licence.
 The firmware is flashed and activated from a web browser at [dronaware.com/opticalflow](https://dronaware.com/opticalflow/).
+This page describes firmware version 1.0.16 or later; update older boards before following it.
 :::
 
 ## Supported Boards
