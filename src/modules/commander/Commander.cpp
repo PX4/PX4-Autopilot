@@ -42,6 +42,7 @@
 
 /* commander module headers */
 #include "Arming/ArmAuthorization/ArmAuthorization.h"
+#include "calibration_routines.h"
 #include "commander_helper.h"
 #include "esc_calibration.h"
 #define DEFINE_GET_PX4_CUSTOM_MODE
@@ -1444,7 +1445,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
 
-			if (isArmed() || _worker_thread.isBusy()) {
+			if (_worker_thread.isBusy()
+			    && (int)(cmd.param1) == 0 && (int)(cmd.param2) == 0 && (int)(cmd.param3) == 0
+			    && (int)(cmd.param4) == 0 && (int)(cmd.param5) == 0 && (int)(cmd.param6) == 0) {
+				// cancel: the running calibration acks it once it has stopped
+				calibrate_cancel_request(cmd);
+
+			} else if (isArmed() || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
