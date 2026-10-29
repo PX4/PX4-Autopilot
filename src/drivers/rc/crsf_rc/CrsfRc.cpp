@@ -187,12 +187,9 @@ void CrsfRc::Run()
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	perf_count_interval(_cycle_interval_perf, time_now_us);
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
-
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-		}
+	if (_vehicle_status_sub.update(&_vehicle_status)) {
+		_armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		_vehicle_status_updated = true;
 	}
 
 	vehicle_command_s vcmd{};
@@ -326,12 +323,11 @@ void CrsfRc::Run()
 				break;
 
 			case 3:
-				vehicle_status_s vehicle_status;
-
-				if (_vehicle_status_sub.update(&vehicle_status)) {
+				if (_vehicle_status_updated) {
+					_vehicle_status_updated = false;
 					const char *flight_mode = "(unknown)";
 
-					switch (vehicle_status.nav_state) {
+					switch (_vehicle_status.nav_state) {
 					case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 						flight_mode = "Manual";
 						break;
