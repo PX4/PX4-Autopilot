@@ -1,34 +1,34 @@
 # Joystick Setup
 
-A [computer joystick](https://en.wikipedia.org/wiki/Joystick) or [gamepad](https://en.wikipedia.org/wiki/Gamepad) connected to a device running _QGroundControl_ (QGC) can be used to manually control a vehicle using MAVLink messages over the telemetry link.
-This combines radio control and telemetry into a single stream, which simplifies the setup.
+A [computer joystick](https://en.wikipedia.org/wiki/Joystick) or [gamepad](https://en.wikipedia.org/wiki/Gamepad) connected to a device running _QGroundControl_ (QGC) can be used to manually control a vehicle (instead/as well as an [RC Transmitter](../config/radio.md))
 
-![Joystick with a Computer Setup Visual](../../assets/peripherals/joystick/joystick_computer_setup_visual.png)
+This approach sends Joystick movements and button presses encoded as MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages over the telemetry link, which provides a simpler and (usually) less expensive setup than using a separate [RC Transmitter](../config/radio.md).
 
-[Integrated Ground Control Stations (GCS)](../config/integrated_gcs.md) go a step further and join the computer and the Joystick/Gamepad into one device.
+Joysticks are often used in [Integrated Ground Control Stations](../config/integrated_gcs.md) and are recommended for flying the vehicle in simulation.
 
-![UXV Technologies SRoC 7 Windows Controller](../../assets/peripherals/joystick/uxv_sroc_7_windows_controller.png)
-
-
-## Joystick Control Use
-
-To set up Joystick with _QGC_ to control a vehicle running PX4, refer to the QGC docs for the most up-to-date guide: [QGroundControl > Joystick Setup](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/joystick.html).
+![Gamepad connected to a computer running QGroundControl, which communicates with a PX4 vehicle over a telemetry radio link](../../assets/peripherals/joystick/joystick_computer_setup_visual.png)
 
 ::: tip
-[Radio Setup](../config/radio.md) is not required when using only a joystick, because a joystick is not an RC controller.
-As a result, the __Radio__ tab stays unconfigured (red) in QGC, as seen in the picture below.
-You can safely ignore this.
-
-![Red Radio Tab in QGC v5.1.5](../../assets/peripherals/joystick/radio_tab_red.png)
+A joystick-based controller system requires a reliable, high-bandwidth telemetry link to ensure that the vehicle is responsive to joystick movements.
+[RC Transmitters](../config/radio.md) are preferred for vehicle bring-up and in other situations where very low latency is required.
 :::
 
-::: info
-QGC uses the cross-platform [SDL2](https://www.libsdl.org/index.php) library to convert joystick movements into _MAVLink_ [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages, which are then sent to PX4 over the telemetry channel.
-As a result, a joystick-based control system requires a reliable, high-bandwidth, low-latency telemetry channel so that the vehicle responds promptly to joystick movements.
-:::
+## Enabling PX4 Joystick Support
 
-Joysticks are also commonly used by developers to fly vehicles in simulation.
+Information about how to set up a joystick is covered in: [QGroundControl > Joystick Setup](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/joystick.html).
 
 ::: tip
-Not all PX4 frame types support negative thrust.
+[Radio Setup](../config/radio.md) is not required when using only a joystick.
 :::
+
+Note:
+
+- If you have multiple Joysticks and/or also have an RC Controller, set [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) as described in [Manual Control > PX4 Configuration](../config/manual_control.md#px4-configuration).
+- Manual control and telemetry share one link so you should set [Manual Control Loss](../config/safety.md#manual-control-loss-failsafe) and [Data Link Loss](../config/safety.md#data-link-loss-failsafe) failsafe actions consistently.
+
+## Developer Information
+
+QGC uses the cross-platform [SDL](https://www.libsdl.org/) library to convert joystick movements to MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages, which are then sent to PX4 over the telemetry link.
+PX4 also defines fixed meanings to some of the `MANUAL_CONTROL` button values, and these are mapped to user-selected functions by the ground station.
+
+Other ground stations and MAVLink APIs may use different methods to map joystick controls to `MANUAL_CONTROL` messages.
