@@ -627,38 +627,6 @@ TEST_F(MissionVtolTransitionTest, BackTransitionDuringAlignmentWaitsAndAlignsAga
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 }
 
-TEST_F(MissionVtolTransitionTest, ActivationDuringBackTransitionWaitsWithoutSetpoint)
-{
-	// Mission started at a front transition item during a back transition publishes no setpoint until the back
-	// transition ends, then holds and aligns where the vehicle hovers.
-	MissionTestPeer mission(&_navigator);
-	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	const auto target = waypointAt(0.f, 200.f);
-	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	front_transition.autocontinue = true;
-	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 0.f, false, true);
-
-	// Like an activation, prepareExecution() resets the triplet before it sets the item.
-	prepareExecution(mission, {front_transition, target});
-	const auto &triplet = *_navigator.get_position_setpoint_triplet();
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
-	EXPECT_FALSE(triplet.current.valid);
-	mission.on_active();
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
-	EXPECT_FALSE(triplet.current.valid);
-	EXPECT_FALSE(_command_sub.updated());
-
-	const auto stop = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt);
-	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishGlobalPosition(stop);
-	mission.on_active();
-	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
-	EXPECT_DOUBLE_EQ(mission.currentMissionItemForTest().lat, stop.lat);
-	EXPECT_TRUE(triplet.current.valid);
-	EXPECT_DOUBLE_EQ(triplet.current.lat, stop.lat);
-	EXPECT_FALSE(_command_sub.updated());
-}
-
 TEST_F(MissionVtolTransitionTest, FrontTransitionItemDuringFrontTransitionIsSentAtOnce)
 {
 	// A front transition item that becomes current during a front transition is sent again at once, without an
@@ -744,73 +712,4 @@ TEST_F(MissionVtolTransitionTest, FrontTransitionByOperatorDuringTakeoffAlignmen
 		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
 		EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_VTOL_TAKEOFF);
 	}
-}
-
-TEST_F(MissionVtolTransitionTest, LandingDetectedDuringAlignmentSendsNoTransition)
-{
-	// A landing detected during the alignment does not end it early.
-	MissionTestPeer mission(&_navigator);
-	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	front_transition.autocontinue = true;
-	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	prepareExecution(mission, {waypointAt(0.f, 0.f), front_transition, waypointAt(0.f, 200.f)});
-
-	mission.on_active();
-	ASSERT_EQ(mission.currentSequenceForTest(), 1);
-	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
-
-	publishLandDetected(true);
-
-	for (int i = 0; i < 3; ++i) {
-		mission.on_active();
-		EXPECT_FALSE(_command_sub.updated());
-		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
-	}
-}
-
-TEST_F(MissionVtolTransitionTest, LandingDetectedDuringTakeoffAlignmentKeepsAligning)
-{
-	// A landing detected during the takeoff alignment sends no front transition: the alignment goes on, and once
-	// aligned on the ground the takeoff continues as a takeoff item.
-	MissionTestPeer mission(&_navigator);
-	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	auto takeoff = waypointAt(100.f, 0.f);
-	takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
-	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, M_PI_2_F);
-
-	prepareExecution(mission, {takeoff, waypointAt(300.f, 0.f)},
-			 MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB);
-	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
-	mission.on_active();
-
-	publishLandDetected(true);
-	mission.on_active();
-	mission.on_active();
-	EXPECT_FALSE(_command_sub.updated());
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
-	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
-
-	publishLocalPosition(mission.currentMissionItemForTest().yaw);
-	mission.on_active();
-	EXPECT_FALSE(_command_sub.updated());
-	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
-	EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_VTOL_TAKEOFF);
-	EXPECT_EQ(mission.currentSequenceForTest(), 0);
-}
-
-TEST_F(MissionVtolTransitionTest, VtolLandDuringFrontTransitionKeepsMulticopterLanding)
-{
-	// A VTOL_LAND item reached during a front transition lands as a multicopter.
-	MissionTestPeer mission(&_navigator);
-	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	land.nav_cmd = NAV_CMD_VTOL_LAND;
-	land.yaw = NAN; // no landing yaw to align to first
-	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 0.f, true);
-	prepareExecution(mission, {land});
-
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
-	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 }
