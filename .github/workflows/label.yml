@@ -9,6 +9,9 @@ on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened, ready_for_review]
 
+permissions:
+  contents: read
+
 jobs:
   label:
 

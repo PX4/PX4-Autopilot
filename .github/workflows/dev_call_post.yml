@@ -17,6 +17,9 @@ on:
         type: string
         default: '7'
 
+permissions:
+  contents: read
+
 jobs:
   post-dev-call:
     runs-on: ubuntu-latest
