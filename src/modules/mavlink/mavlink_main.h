@@ -512,7 +512,7 @@ public:
 	bool failure_injection_enabled() const
 	{
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-		return _param_sys_failure_injection_enabled.get();
+		return _param_sys_failure_en.get();
 #else
 		return false;
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
@@ -764,16 +764,16 @@ private:
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamInt<px4::params::MAV_PROTO_VER>) _param_mav_proto_ver,
-		(ParamInt<px4::params::MAV_SIK_RADIO_ID>) _param_sik_radio_id,
+		(ParamInt<px4::params::MAV_SIK_RADIO_ID>) _param_mav_sik_radio_id,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
-		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
+		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_tout,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-		, (ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled
+		, (ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_en
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 	)
 

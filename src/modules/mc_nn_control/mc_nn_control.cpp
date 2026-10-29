@@ -96,9 +96,9 @@ bool MulticopterNeuralNetworkControl::init()
 
 void MulticopterNeuralNetworkControl::UpdateMotorLimits()
 {
-	const float thrust_coeff = _param_thrust_coeff.get();
-	const float min_rpm = _param_min_rpm.get();
-	const float max_rpm = _param_max_rpm.get();
+	const float thrust_coeff = _param_mc_nn_thrst_coef.get();
+	const float min_rpm = _param_mc_nn_min_rpm.get();
+	const float max_rpm = _param_mc_nn_max_rpm.get();
 
 	if (!nn_control::valid_motor_limits(thrust_coeff, min_rpm, max_rpm)) {
 		// The mapping keeps whatever was valid before, so a write while flying does
@@ -141,7 +141,7 @@ void MulticopterNeuralNetworkControl::ReportInvalidLimits()
 	 */
 	events::send<int32_t, int32_t, float>(events::ID("mc_nn_control_motor_limits_invalid"), events::Log::Error,
 					      "Neural control: invalid motor limits, MC_NN_MIN_RPM {2}, MC_NN_MAX_RPM {1}, MC_NN_THRST_COEF {3:.2}",
-					      (int32_t)_param_max_rpm.get(), (int32_t)_param_min_rpm.get(), _param_thrust_coeff.get());
+					      (int32_t)_param_mc_nn_max_rpm.get(), (int32_t)_param_mc_nn_min_rpm.get(), _param_mc_nn_thrst_coef.get());
 }
 
 void MulticopterNeuralNetworkControl::CheckObservations()
@@ -724,7 +724,7 @@ void MulticopterNeuralNetworkControl::Run()
 			reset_trajectory_setpoint(_position);
 		}
 
-		if (_param_manual_control.get()) {
+		if (_param_mc_nn_manl_ctrl.get()) {
 			// Run manual control mode
 			_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 

@@ -158,7 +158,7 @@ private:
 		(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
 		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
 		(ParamFloat<px4::params::WEIGHT_FUEL>) _param_weight_fuel,
-		(ParamFloat<px4::params::FW_SERVICE_CEIL>) _param_service_ceiling,
+		(ParamFloat<px4::params::FW_SERVICE_CEIL>) _param_fw_service_ceil,
 		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,

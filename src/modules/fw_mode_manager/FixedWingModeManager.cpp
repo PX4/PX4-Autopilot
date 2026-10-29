@@ -99,11 +99,11 @@ FixedWingModeManager::parameters_update()
 
 	_directional_guidance.setPeriod(_param_npfg_period.get());
 	_directional_guidance.setDamping(_param_npfg_damping.get());
-	_directional_guidance.enablePeriodLB(_param_npfg_en_period_lb.get());
-	_directional_guidance.enablePeriodUB(_param_npfg_en_period_ub.get());
-	_directional_guidance.setRollTimeConst(_param_npfg_roll_time_const.get());
-	_directional_guidance.setSwitchDistanceMultiplier(_param_npfg_switch_distance_multiplier.get());
-	_directional_guidance.setPeriodSafetyFactor(_param_npfg_period_safety_factor.get());
+	_directional_guidance.enablePeriodLB(_param_npfg_lb_period.get());
+	_directional_guidance.enablePeriodUB(_param_npfg_ub_period.get());
+	_directional_guidance.setRollTimeConst(_param_npfg_roll_tc.get());
+	_directional_guidance.setSwitchDistanceMultiplier(_param_npfg_sw_dst_mlt.get());
+	_directional_guidance.setPeriodSafetyFactor(_param_npfg_period_sf.get());
 }
 
 void
@@ -354,11 +354,11 @@ FixedWingModeManager::getManualHeightRateSetpoint()
 
 	if (_manual_control_setpoint_for_height_rate >= FLT_EPSILON) {
 		height_rate_setpoint = math::interpolate<float>(math::deadzone(_manual_control_setpoint_for_height_rate,
-				       kStickDeadBand), 0, 1.f, 0.f, -_param_sinkrate_target.get());
+				       kStickDeadBand), 0, 1.f, 0.f, -_param_fw_t_sink_r_sp.get());
 
 	} else {
 		height_rate_setpoint = math::interpolate<float>(math::deadzone(_manual_control_setpoint_for_height_rate,
-				       kStickDeadBand), -1., 0.f, _param_climbrate_target.get(), 0.f);
+				       kStickDeadBand), -1., 0.f, _param_fw_t_clmb_r_sp.get(), 0.f);
 	}
 
 	return height_rate_setpoint;
@@ -487,7 +487,7 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 			// we handle loss of position control during backtransition as a special case
 			_control_mode_current = FW_POSCTRL_MODE_TRANSITION_TO_HOVER_HEADING_HOLD;
 
-		} else if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
+		} else if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_fw_gpsf_lt.get() * 1_s)
 			   && !_vehicle_status.in_transition_mode) {
 			if (previous_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
 				// Need to init because last loop iteration was in a different mode
@@ -693,7 +693,7 @@ FixedWingModeManager::control_auto_fixed_bank_alt_hold()
 
 	fixed_wing_lateral_setpoint_s lateral_ctrl_sp = empty_lateral_control_setpoint;
 	lateral_ctrl_sp.timestamp = hrt_absolute_time();
-	const float roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
+	const float roll_body = math::radians(_param_fw_gpsf_r.get()); // open loop loiter bank angle
 	lateral_ctrl_sp.lateral_acceleration = rollAngleToLateralAccel(roll_body);
 	_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
 }
@@ -723,7 +723,7 @@ FixedWingModeManager::control_auto_descend()
 
 	fixed_wing_lateral_setpoint_s lateral_ctrl_sp = empty_lateral_control_setpoint;
 	lateral_ctrl_sp.timestamp = now;
-	const float roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
+	const float roll_body = math::radians(_param_fw_gpsf_r.get()); // open loop loiter bank angle
 	lateral_ctrl_sp.lateral_acceleration = rollAngleToLateralAccel(roll_body);
 	_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
 }
@@ -1171,7 +1171,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 		const float pitch_max = _runway_takeoff.getMaxPitch(math::radians(_param_fw_p_lim_max.get()));
-		const float pitch_min = _runway_takeoff.getMinPitch(math::radians(_takeoff_pitch_min.get()),
+		const float pitch_min = _runway_takeoff.getMinPitch(math::radians(_param_fw_tko_pitch_min.get()),
 					math::radians(_param_fw_p_lim_min.get()));
 
 		// a time based climbout has to keep climbing for the whole window, so command the climb rate
@@ -1301,7 +1301,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 			_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-			_ctrl_configuration_handler.setPitchMin(radians(_takeoff_pitch_min.get()));
+			_ctrl_configuration_handler.setPitchMin(radians(_param_fw_tko_pitch_min.get()));
 			_ctrl_configuration_handler.setThrottleMax(max_takeoff_throttle);
 			_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
 			_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
@@ -1317,7 +1317,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 			fixed_wing_longitudinal_setpoint_s long_control_sp{empty_longitudinal_control_setpoint};
 			long_control_sp.timestamp = now;
-			long_control_sp.pitch_direct = radians(_takeoff_pitch_min.get());
+			long_control_sp.pitch_direct = radians(_param_fw_tko_pitch_min.get());
 			long_control_sp.throttle_direct = _param_fw_thr_idle.get();
 			_longitudinal_ctrl_sp_pub.publish(long_control_sp);
 		}
@@ -1377,7 +1377,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
 		const float pitch_max = _runway_takeoff.getMaxPitch(math::radians(_param_fw_p_lim_max.get()));
-		const float pitch_min = _runway_takeoff.getMinPitch(math::radians(_takeoff_pitch_min.get()),
+		const float pitch_min = _runway_takeoff.getMinPitch(math::radians(_param_fw_tko_pitch_min.get()),
 					math::radians(_param_fw_p_lim_min.get()));
 
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
@@ -1454,7 +1454,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		_ctrl_configuration_handler.setPitchMin(radians(_takeoff_pitch_min.get()));
+		_ctrl_configuration_handler.setPitchMin(radians(_param_fw_tko_pitch_min.get()));
 		_ctrl_configuration_handler.setThrottleMax(max_takeoff_throttle);
 		_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
 		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
@@ -1691,7 +1691,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		// Open the desired max sink rate to encompass the glide slope.
 		// x/sqrt(x^2+1) = sin(arctan(x))
 		const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
-		const float desired_max_sinkrate = math::max(glide_slope_sink_rate, _param_sinkrate_target.get());
+		const float desired_max_sinkrate = math::max(glide_slope_sink_rate, _param_fw_t_sink_r_sp.get());
 
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
@@ -1869,7 +1869,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 		// x/sqrt(x^2+1) = sin(arctan(x))
 		const float glide_slope = math::radians(_param_fw_lnd_ang.get());
 		const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
-		const float desired_max_sinkrate = math::max(glide_slope_sink_rate, _param_sinkrate_target.get());
+		const float desired_max_sinkrate = math::max(glide_slope_sink_rate, _param_fw_t_sink_r_sp.get());
 
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = now,
@@ -2332,7 +2332,7 @@ FixedWingModeManager::Run()
 		_spoilers_setpoint = 0.f;
 
 		// by default set speed weight to the param value, can be overwritten inside the methods below
-		_ctrl_configuration_handler.setSpeedWeight(_param_t_spdweight.get());
+		_ctrl_configuration_handler.setSpeedWeight(_param_fw_t_spdweight.get());
 
 		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT
 		    && _control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR) {

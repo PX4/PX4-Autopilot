@@ -44,8 +44,8 @@ void DifferentialActControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
-		_adjusted_throttle_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
+	if (_param_ro_accel_lim.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
+		_adjusted_throttle_setpoint.setSlewRate(_param_ro_accel_lim.get() / _param_ro_max_thr_speed.get());
 	}
 }
 
@@ -73,10 +73,10 @@ void DifferentialActControl::updateActControl()
 		_actuator_motors_sub.copy(&actuator_motors_sub);
 		const float current_throttle = (actuator_motors_sub.control[0] + actuator_motors_sub.control[1]) / 2.f;
 		const float adjusted_throttle_setpoint = RoverControl::throttleControl(_adjusted_throttle_setpoint,
-				_throttle_setpoint, current_throttle, _param_ro_accel_limit.get(),
-				_param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), dt);
+				_throttle_setpoint, current_throttle, _param_ro_accel_lim.get(),
+				_param_ro_decel_lim.get(), _param_ro_max_thr_speed.get(), dt);
 		actuator_motors_s actuator_motors{};
-		actuator_motors.reversible_flags = _param_r_rev.get();
+		actuator_motors.reversible_flags = _param_ca_r_rev.get();
 		computeInverseKinematics(adjusted_throttle_setpoint, _speed_diff_setpoint).copyTo(actuator_motors.control);
 		actuator_motors.timestamp = _timestamp;
 		_actuator_motors_pub.publish(actuator_motors);
@@ -103,7 +103,7 @@ void DifferentialActControl::stopVehicle()
 {
 	_timestamp = hrt_absolute_time();
 	actuator_motors_s actuator_motors{};
-	actuator_motors.reversible_flags = _param_r_rev.get();
+	actuator_motors.reversible_flags = _param_ca_r_rev.get();
 	actuator_motors.control[0] = 0.f;
 	actuator_motors.control[1] = 0.f;
 	actuator_motors.timestamp = _timestamp;

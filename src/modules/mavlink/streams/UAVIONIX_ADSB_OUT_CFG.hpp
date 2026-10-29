@@ -67,8 +67,8 @@ private:
 			}
 		}
 
-		int32_t callsign_part1 = _adsb_callsign_part1.get();
-		int32_t callsign_part2 = _adsb_callsign_part2.get();
+		int32_t callsign_part1 = _param_adsb_callsign_1.get();
+		int32_t callsign_part2 = _param_adsb_callsign_2.get();
 
 		bool success = false;
 
@@ -90,13 +90,13 @@ private:
 	}
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::ADSB_ICAO_ID>)		_adsb_icao,
-		(ParamInt<px4::params::ADSB_LEN_WIDTH>)		_adsb_len_width,
-		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_adsb_emit_type,
-		(ParamInt<px4::params::ADSB_GPS_OFF_LAT>)	_adsb_gps_offset_lat,
-		(ParamInt<px4::params::ADSB_GPS_OFF_LON>)	_adsb_gps_offset_lon,
-		(ParamInt<px4::params::ADSB_CALLSIGN_1>)	_adsb_callsign_part1,
-		(ParamInt<px4::params::ADSB_CALLSIGN_2>)	_adsb_callsign_part2
+		(ParamInt<px4::params::ADSB_ICAO_ID>)		_param_adsb_icao_id,
+		(ParamInt<px4::params::ADSB_LEN_WIDTH>)		_param_adsb_len_width,
+		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_param_adsb_emit_type,
+		(ParamInt<px4::params::ADSB_GPS_OFF_LAT>)	_param_adsb_gps_off_lat,
+		(ParamInt<px4::params::ADSB_GPS_OFF_LON>)	_param_adsb_gps_off_lon,
+		(ParamInt<px4::params::ADSB_CALLSIGN_1>)	_param_adsb_callsign_1,
+		(ParamInt<px4::params::ADSB_CALLSIGN_2>)	_param_adsb_callsign_2
 	);
 
 	uint16_t _stall_speed{0}; // [cm/s]
@@ -124,7 +124,7 @@ private:
 	bool send() override
 	{
 		// Required update for static message is 0.1 [Hz]
-		const int32_t adsb_icao = _adsb_icao.get();
+		const int32_t adsb_icao = _param_adsb_icao_id.get();
 		const bool adsb_out_enabled = adsb_icao >= 0;
 		// ADSB_ICAO_ID controls transmission only. Keep the receiver enabled so
 		// uAvionix traffic reports remain available to ADS-B In and DAA.
@@ -138,10 +138,10 @@ private:
 			.ICAO = adsb_out_enabled ? static_cast<uint32_t>(adsb_icao) : 0,
 			.stallSpeed = _stall_speed,
 			.callsign = {'\0'},
-			.emitterType = static_cast<uint8_t>(_adsb_emit_type.get()),
-			.aircraftSize = static_cast<uint8_t>(_adsb_len_width.get()),
-			.gpsOffsetLat = static_cast<uint8_t>(_adsb_gps_offset_lat.get()),
-			.gpsOffsetLon = static_cast<uint8_t>(_adsb_gps_offset_lon.get()),
+			.emitterType = static_cast<uint8_t>(_param_adsb_emit_type.get()),
+			.aircraftSize = static_cast<uint8_t>(_param_adsb_len_width.get()),
+			.gpsOffsetLat = static_cast<uint8_t>(_param_adsb_gps_off_lat.get()),
+			.gpsOffsetLon = static_cast<uint8_t>(_param_adsb_gps_off_lon.get()),
 			.rfSelect = rf_select
 		};
 

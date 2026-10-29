@@ -157,11 +157,11 @@ private:
 		(ParamFloat<px4::params::MAN_KILL_GEST_T>) _param_man_kill_gest_t,
 		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,
 		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_pay_sw,
-		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
-		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
-		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,
-		(ParamInt<px4::params::COM_FLTMODE4>) _param_fltmode_4,
-		(ParamInt<px4::params::COM_FLTMODE5>) _param_fltmode_5,
-		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6
+		(ParamInt<px4::params::COM_FLTMODE1>) _param_com_fltmode1,
+		(ParamInt<px4::params::COM_FLTMODE2>) _param_com_fltmode2,
+		(ParamInt<px4::params::COM_FLTMODE3>) _param_com_fltmode3,
+		(ParamInt<px4::params::COM_FLTMODE4>) _param_com_fltmode4,
+		(ParamInt<px4::params::COM_FLTMODE5>) _param_com_fltmode5,
+		(ParamInt<px4::params::COM_FLTMODE6>) _param_com_fltmode6
 	)
 };

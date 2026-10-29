@@ -91,21 +91,21 @@ public:
 private:
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::ADSB_SQUAWK>)		_adsb_squawk,
-		(ParamInt<px4::params::ADSB_IDENT>)		_adsb_ident,
-		(ParamInt<px4::params::ADSB_LIST_MAX>)		_adsb_list_max,
-		(ParamInt<px4::params::ADSB_ICAO_ID>)		_adsb_icao,
-		(ParamInt<px4::params::ADSB_LEN_WIDTH>)		_adsb_len_width,
-		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_adsb_emit_type,
-		(ParamInt<px4::params::ADSB_MAX_SPEED>)		_adsb_max_speed,
-		(ParamInt<px4::params::ADSB_ICAO_SPECL>)	_adsb_icao_specl,
-		(ParamInt<px4::params::ADSB_EMERGC>)		_adsb_emergc,
-		(ParamInt<px4::params::MXS_OP_MODE>)		_mxs_op_mode,
-		(ParamInt<px4::params::MXS_TARG_PORT>)		_mxs_targ_port,
-		// (ParamInt<px4::params::MXS_COM0_BAUD>)		_mxs_com0_baud,
-		// (ParamInt<px4::params::MXS_COM1_BAUD>)		_mxs_com1_baud,
-		(ParamInt<px4::params::MXS_EXT_CFG>)		_mxs_ext_cfg,
-		(ParamInt<px4::params::SER_MXS_BAUD>)		_ser_mxs_baud
+		(ParamInt<px4::params::ADSB_SQUAWK>)		_param_adsb_squawk,
+		(ParamInt<px4::params::ADSB_IDENT>)		_param_adsb_ident,
+		(ParamInt<px4::params::ADSB_LIST_MAX>)		_param_adsb_list_max,
+		(ParamInt<px4::params::ADSB_ICAO_ID>)		_param_adsb_icao_id,
+		(ParamInt<px4::params::ADSB_LEN_WIDTH>)		_param_adsb_len_width,
+		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_param_adsb_emit_type,
+		(ParamInt<px4::params::ADSB_MAX_SPEED>)		_param_adsb_max_speed,
+		(ParamInt<px4::params::ADSB_ICAO_SPECL>)	_param_adsb_icao_specl,
+		(ParamInt<px4::params::ADSB_EMERGC>)		_param_adsb_emergc,
+		(ParamInt<px4::params::MXS_OP_MODE>)		_param_mxs_op_mode,
+		(ParamInt<px4::params::MXS_TARG_PORT>)		_param_mxs_targ_port,
+		// (ParamInt<px4::params::MXS_COM0_BAUD>)		_param_mxs_com0_baud,
+		// (ParamInt<px4::params::MXS_COM1_BAUD>)		_param_mxs_com1_baud,
+		(ParamInt<px4::params::MXS_EXT_CFG>)		_param_mxs_ext_cfg,
+		(ParamInt<px4::params::SER_MXS_BAUD>)		_param_ser_mxs_baud
 	);
 
 	// Serial Port Variables
@@ -256,7 +256,7 @@ private:
 	bool find_index(const transponder_report_s &vehicle, uint16_t *index) const;
 	void set_vehicle(const uint16_t index, const transponder_report_s &vehicle);
 	void delete_vehicle(const uint16_t index);
-	bool is_special_vehicle(uint32_t icao) const {return (_adsb_icao_specl.get() != 0) && (_adsb_icao_specl.get() == (int32_t) icao);}
+	bool is_special_vehicle(uint32_t icao) const {return (_param_adsb_icao_specl.get() != 0) && (_param_adsb_icao_specl.get() == (int32_t) icao);}
 	void handle_vehicle(const transponder_report_s &vehicle);
 	void determine_furthest_aircraft();
 	void send_data_req(const sg_datatype_t dataReqType);

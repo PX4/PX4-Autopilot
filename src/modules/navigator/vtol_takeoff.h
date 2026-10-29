@@ -77,7 +77,7 @@ private:
 	float _transition_direction_deg{NAN};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::VTO_LOITER_ALT>) _param_loiter_alt
+		(ParamFloat<px4::params::VTO_LOITER_ALT>) _param_vto_loiter_alt
 	)
 
 	void set_takeoff_position();

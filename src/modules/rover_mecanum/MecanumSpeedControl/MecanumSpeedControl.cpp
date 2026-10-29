@@ -55,9 +55,9 @@ void MecanumSpeedControl::updateParams()
 	_pid_speed_y.setOutputLimit(1.f);
 
 	// Set up slew rates
-	if (_param_ro_accel_limit.get() > FLT_EPSILON) {
-		_adjusted_speed_x_setpoint.setSlewRate(_param_ro_accel_limit.get());
-		_adjusted_speed_y_setpoint.setSlewRate(_param_ro_accel_limit.get());
+	if (_param_ro_accel_lim.get() > FLT_EPSILON) {
+		_adjusted_speed_x_setpoint.setSlewRate(_param_ro_accel_lim.get());
+		_adjusted_speed_y_setpoint.setSlewRate(_param_ro_accel_lim.get());
 	}
 }
 
@@ -76,10 +76,10 @@ void MecanumSpeedControl::updateSpeedControl()
 		rover_throttle_setpoint.timestamp = _timestamp;
 
 		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_x_setpoint, _pid_speed_x,
-				speed_setpoint(0), _vehicle_speed_body_x, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+				speed_setpoint(0), _vehicle_speed_body_x, _param_ro_accel_lim.get(), _param_ro_decel_lim.get(),
 				_param_ro_max_thr_speed.get(), dt);
 		rover_throttle_setpoint.throttle_body_y = RoverControl::speedControl(_adjusted_speed_y_setpoint, _pid_speed_y,
-				speed_setpoint(1), _vehicle_speed_body_y, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+				speed_setpoint(1), _vehicle_speed_body_y, _param_ro_accel_lim.get(), _param_ro_decel_lim.get(),
 				_param_ro_max_thr_speed.get(), dt);
 		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 
@@ -165,10 +165,10 @@ bool MecanumSpeedControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_ro_speed_lim.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float>(events::ID("mecanum_vel_control_conf_invalid_speed_lim"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
+				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_lim.get());
 
 	}
 

@@ -755,7 +755,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 	     && !reporter.failsafeFlags().global_position_invalid_relaxed) ||
 	    (reporter.failsafeFlags().mode_req_local_position && !reporter.failsafeFlags().local_position_invalid)) {
 
-		position_valid_but_low_accuracy = (_param_com_low_eph.get() > FLT_EPSILON && lpos.eph > _param_com_low_eph.get());
+		position_valid_but_low_accuracy = (_param_com_pos_low_eph.get() > FLT_EPSILON && lpos.eph > _param_com_pos_low_eph.get());
 	}
 
 	if (position_valid_but_low_accuracy && _param_com_pos_low_act.get()) {

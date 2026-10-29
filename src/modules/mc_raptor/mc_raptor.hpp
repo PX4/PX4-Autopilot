@@ -276,7 +276,7 @@ private:
 	LissajousParameters lissajous_params{}; // Set via 'mc_raptor intref lissajous ...' command
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
-		(ParamBool<px4::params::MC_RAPTOR_OFFB>) _param_mc_raptor_offboard,
+		(ParamBool<px4::params::MC_RAPTOR_OFFB>) _param_mc_raptor_offb,
 		(ParamInt<px4::params::MC_RAPTOR_INTREF>) _param_mc_raptor_intref
 	)
 

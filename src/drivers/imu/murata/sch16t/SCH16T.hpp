@@ -154,8 +154,8 @@ private:
 	perf_counter_t _perf_doing_initialization{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": re-initializing"))};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SCH16T_GYRO_FILT>) _sch16t_gyro_filt,
-		(ParamInt<px4::params::SCH16T_ACC_FILT>) _sch16t_acc_filt,
-		(ParamInt<px4::params::SCH16T_DECIM>) _sch16t_decim
+		(ParamInt<px4::params::SCH16T_GYRO_FILT>) _param_sch16t_gyro_filt,
+		(ParamInt<px4::params::SCH16T_ACC_FILT>) _param_sch16t_acc_filt,
+		(ParamInt<px4::params::SCH16T_DECIM>) _param_sch16t_decim
 	)
 };

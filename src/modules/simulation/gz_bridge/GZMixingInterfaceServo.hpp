@@ -90,21 +90,21 @@ private:
 	std::vector<double> _angular_range_rad;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_GZ_SV_MAXA1>) _servo_max_angle_1,
-		(ParamFloat<px4::params::SIM_GZ_SV_MINA1>) _servo_min_angle_1,
-		(ParamFloat<px4::params::SIM_GZ_SV_MAXA2>) _servo_max_angle_2,
-		(ParamFloat<px4::params::SIM_GZ_SV_MINA2>) _servo_min_angle_2,
-		(ParamFloat<px4::params::SIM_GZ_SV_MAXA3>) _servo_max_angle_3,
-		(ParamFloat<px4::params::SIM_GZ_SV_MINA3>) _servo_min_angle_3,
-		(ParamFloat<px4::params::SIM_GZ_SV_MAXA4>) _servo_max_angle_4,
-		(ParamFloat<px4::params::SIM_GZ_SV_MINA4>) _servo_min_angle_4,
-		(ParamFloat<px4::params::SIM_GZ_SV_MAXA5>) _servo_max_angle_5,
-		(ParamFloat<px4::params::SIM_GZ_SV_MINA5>) _servo_min_angle_5,
-		(ParamFloat<px4::params::SIM_GZ_SV_MAXA6>) _servo_max_angle_6,
-		(ParamFloat<px4::params::SIM_GZ_SV_MINA6>) _servo_min_angle_6,
-		(ParamFloat<px4::params::SIM_GZ_SV_MAXA7>) _servo_max_angle_7,
-		(ParamFloat<px4::params::SIM_GZ_SV_MINA7>) _servo_min_angle_7,
-		(ParamFloat<px4::params::SIM_GZ_SV_MAXA8>) _servo_max_angle_8,
-		(ParamFloat<px4::params::SIM_GZ_SV_MINA8>) _servo_min_angle_8
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA1>) _param_sim_gz_sv_maxa1,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA1>) _param_sim_gz_sv_mina1,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA2>) _param_sim_gz_sv_maxa2,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA2>) _param_sim_gz_sv_mina2,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA3>) _param_sim_gz_sv_maxa3,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA3>) _param_sim_gz_sv_mina3,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA4>) _param_sim_gz_sv_maxa4,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA4>) _param_sim_gz_sv_mina4,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA5>) _param_sim_gz_sv_maxa5,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA5>) _param_sim_gz_sv_mina5,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA6>) _param_sim_gz_sv_maxa6,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA6>) _param_sim_gz_sv_mina6,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA7>) _param_sim_gz_sv_maxa7,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA7>) _param_sim_gz_sv_mina7,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA8>) _param_sim_gz_sv_maxa8,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA8>) _param_sim_gz_sv_mina8
 	)
 };

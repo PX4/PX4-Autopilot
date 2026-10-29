@@ -59,14 +59,14 @@ void LaunchDetector::update(const float dt, const float accel_norm)
 		}
 
 		/* Detect an acceleration that is longer and stronger than the minimum given by the params */
-		if (accel_norm > param_fw_laun_ac_thld_.get()) {
+		if (accel_norm > _param_fw_laun_ac_thld.get()) {
 			acceleration_detected_counter_ += dt;
 
-			if (acceleration_detected_counter_ > param_fw_laun_ac_t_.get()) {
-				if (param_fw_laun_mot_del_.get() > 0.f) {
+			if (acceleration_detected_counter_ > _param_fw_laun_ac_t.get()) {
+				if (_param_fw_laun_mot_del.get() > 0.f) {
 					state_ = launch_detection_status_s::STATE_LAUNCH_DETECTED_DISABLED_MOTOR;
 					events::send<float>(events::ID("launch_detection_wait_for_throttle"), {events::Log::Info, events::LogInternal::Info},
-							    "Launch detected: enablecontrol, waiting {1:.1}s until full throttle", (double)param_fw_laun_mot_del_.get());
+							    "Launch detected: enablecontrol, waiting {1:.1}s until full throttle", (double)_param_fw_laun_mot_del.get());
 
 				} else {
 					/* No motor delay set: go directly to enablemotors state */
@@ -87,7 +87,7 @@ void LaunchDetector::update(const float dt, const float accel_norm)
 		 * over to allow full throttle */
 		motor_delay_counter_ += dt;
 
-		if (motor_delay_counter_ > param_fw_laun_mot_del_.get()) {
+		if (motor_delay_counter_ > _param_fw_laun_mot_del.get()) {
 			events::send(events::ID("launch_detection_enable_motors"), {events::Log::Info, events::LogInternal::Info},
 				     "Launch detected: enable motors");
 			state_ = launch_detection_status_s::STATE_FLYING;

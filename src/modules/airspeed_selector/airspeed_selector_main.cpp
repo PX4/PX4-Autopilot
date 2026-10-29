@@ -189,7 +189,7 @@ private:
 	 */
 	int primary_validator_index() const
 	{
-		const int configured = _param_airspeed_primary_index.get() - 1;
+		const int configured = _param_aspd_primary.get() - 1;
 
 		if ((configured < 0) || (configured >= MAX_NUM_AIRSPEED_SENSORS)) {
 			return -1;
@@ -225,22 +225,22 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ASPD_WIND_NSD>) _param_aspd_wind_nsd,
-		(ParamFloat<px4::params::ASPD_TAS_NOISE>) _param_west_tas_noise,
+		(ParamFloat<px4::params::ASPD_TAS_NOISE>) _param_aspd_tas_noise,
 		(ParamInt<px4::params::ASPD_SCALE_APPLY>) _param_aspd_scale_apply,
-		(ParamFloat<px4::params::ASPD_SCALE_1>) _param_airspeed_scale_1,
-		(ParamFloat<px4::params::ASPD_SCALE_2>) _param_airspeed_scale_2,
-		(ParamFloat<px4::params::ASPD_SCALE_3>) _param_airspeed_scale_3,
-		(ParamInt<px4::params::ASPD_PRIMARY>) _param_airspeed_primary_index,
-		(ParamInt<px4::params::ASPD_DO_CHECKS>) _param_airspeed_checks_on,
-		(ParamInt<px4::params::ASPD_FALLBACK>) _param_airspeed_fallback,
+		(ParamFloat<px4::params::ASPD_SCALE_1>) _param_aspd_scale_1,
+		(ParamFloat<px4::params::ASPD_SCALE_2>) _param_aspd_scale_2,
+		(ParamFloat<px4::params::ASPD_SCALE_3>) _param_aspd_scale_3,
+		(ParamInt<px4::params::ASPD_PRIMARY>) _param_aspd_primary,
+		(ParamInt<px4::params::ASPD_DO_CHECKS>) _param_aspd_do_checks,
+		(ParamInt<px4::params::ASPD_FALLBACK>) _param_aspd_fallback,
 
-		(ParamFloat<px4::params::ASPD_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
-		(ParamFloat<px4::params::ASPD_FS_INTEG>) _tas_innov_integ_threshold, /**< innovation check integrator threshold */
-		(ParamFloat<px4::params::ASPD_FS_T_STOP>) _checks_fail_delay, /**< delay to declare airspeed invalid */
-		(ParamFloat<px4::params::ASPD_FS_T_START>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
+		(ParamFloat<px4::params::ASPD_FS_INNOV>) _param_aspd_fs_innov, /**< innovation check threshold */
+		(ParamFloat<px4::params::ASPD_FS_INTEG>) _param_aspd_fs_integ, /**< innovation check integrator threshold */
+		(ParamFloat<px4::params::ASPD_FS_T_STOP>) _param_aspd_fs_t_stop, /**< delay to declare airspeed invalid */
+		(ParamFloat<px4::params::ASPD_FS_T_START>) _param_aspd_fs_t_start, /**<  delay to declare airspeed valid again */
 
-		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_wind_sigma_max_synth_tas,
-		(ParamFloat<px4::params::ASPD_FP_T_WINDOW>) _aspd_fp_t_window,
+		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_aspd_werr_thr,
+		(ParamFloat<px4::params::ASPD_FP_T_WINDOW>) _param_aspd_fp_t_window,
 
 		// external parameters
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
@@ -322,7 +322,7 @@ AirspeedModule::init()
 	resolve_sensor_indices();
 
 	// Set the default sensor
-	const int32_t primary_param = _param_airspeed_primary_index.get();
+	const int32_t primary_param = _param_aspd_primary.get();
 	const bool sensor_configured = (primary_param >= 1) && (primary_param <= MAX_NUM_AIRSPEED_SENSORS);
 	const int primary = primary_validator_index();
 
@@ -356,7 +356,7 @@ AirspeedModule::check_for_connected_airspeed_sensors()
 	// check for new connected airspeed sensor
 	int detected_airspeed_sensors = 0;
 
-	if (_param_airspeed_primary_index.get() > 0 && _param_airspeed_primary_index.get() <= MAX_NUM_AIRSPEED_SENSORS) {
+	if (_param_aspd_primary.get() > 0 && _param_aspd_primary.get() <= MAX_NUM_AIRSPEED_SENSORS) {
 
 		for (int i = 0; i < _airspeed_subs.size(); i++) {
 			if (!_airspeed_subs[i].advertised()) {
@@ -514,18 +514,18 @@ AirspeedModule::Run()
 
 					switch (scale_index) {
 					case 0:
-						_param_airspeed_scale_1.set(_airspeed_validator[i].get_CAS_scale_validated());
-						_param_airspeed_scale_1.commit_no_notification();
+						_param_aspd_scale_1.set(_airspeed_validator[i].get_CAS_scale_validated());
+						_param_aspd_scale_1.commit_no_notification();
 						break;
 
 					case 1:
-						_param_airspeed_scale_2.set(_airspeed_validator[i].get_CAS_scale_validated());
-						_param_airspeed_scale_2.commit_no_notification();
+						_param_aspd_scale_2.set(_airspeed_validator[i].get_CAS_scale_validated());
+						_param_aspd_scale_2.commit_no_notification();
 						break;
 
 					case 2:
-						_param_airspeed_scale_3.set(_airspeed_validator[i].get_CAS_scale_validated());
-						_param_airspeed_scale_3.commit_no_notification();
+						_param_aspd_scale_3.set(_airspeed_validator[i].get_CAS_scale_validated());
+						_param_aspd_scale_3.commit_no_notification();
 						break;
 					}
 
@@ -565,9 +565,9 @@ void AirspeedModule::update_params()
 		_param_airspeed_scale[2]
 	};
 
-	_param_airspeed_scale[0] = _param_airspeed_scale_1.get();
-	_param_airspeed_scale[1] = _param_airspeed_scale_2.get();
-	_param_airspeed_scale[2] = _param_airspeed_scale_3.get();
+	_param_airspeed_scale[0] = _param_aspd_scale_1.get();
+	_param_airspeed_scale[1] = _param_aspd_scale_2.get();
+	_param_airspeed_scale[2] = _param_aspd_scale_3.get();
 
 	resolve_sensor_indices();
 
@@ -585,28 +585,28 @@ void AirspeedModule::update_params()
 
 	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
 		_airspeed_validator[i].set_wind_estimator_wind_process_noise_spectral_density(_param_aspd_wind_nsd.get());
-		_airspeed_validator[i].set_wind_estimator_tas_noise(_param_west_tas_noise.get());
+		_airspeed_validator[i].set_wind_estimator_tas_noise(_param_aspd_tas_noise.get());
 
 		_airspeed_validator[i].set_tas_scale_apply(_param_aspd_scale_apply.get());
 		_airspeed_validator[i].set_wind_estimator_tas_scale_init(_param_airspeed_scale[_config_index[i]]);
 
-		_airspeed_validator[i].set_tas_innov_threshold(_tas_innov_threshold.get());
-		_airspeed_validator[i].set_tas_innov_integ_threshold(_tas_innov_integ_threshold.get());
-		_airspeed_validator[i].set_checks_fail_delay(_checks_fail_delay.get());
-		_airspeed_validator[i].set_checks_clear_delay(_checks_clear_delay.get());
+		_airspeed_validator[i].set_tas_innov_threshold(_param_aspd_fs_innov.get());
+		_airspeed_validator[i].set_tas_innov_integ_threshold(_param_aspd_fs_integ.get());
+		_airspeed_validator[i].set_checks_fail_delay(_param_aspd_fs_t_stop.get());
+		_airspeed_validator[i].set_checks_clear_delay(_param_aspd_fs_t_start.get());
 		_airspeed_validator[i].set_airspeed_stall(_param_fw_airspd_stall.get());
 
-		_airspeed_validator[i].set_enable_data_stuck_check(_param_airspeed_checks_on.get() &
+		_airspeed_validator[i].set_enable_data_stuck_check(_param_aspd_do_checks.get() &
 				CheckTypeBits::CHECK_TYPE_DATA_STUCK_BIT);
-		_airspeed_validator[i].set_enable_innovation_check(_param_airspeed_checks_on.get() &
+		_airspeed_validator[i].set_enable_innovation_check(_param_aspd_do_checks.get() &
 				CheckTypeBits::CHECK_TYPE_INNOVATION_BIT);
-		_airspeed_validator[i].set_enable_load_factor_check(_param_airspeed_checks_on.get() &
+		_airspeed_validator[i].set_enable_load_factor_check(_param_aspd_do_checks.get() &
 				CheckTypeBits::CHECK_TYPE_LOAD_FACTOR_BIT);
-		_airspeed_validator[i].set_enable_first_principle_check(_param_airspeed_checks_on.get() &
+		_airspeed_validator[i].set_enable_first_principle_check(_param_aspd_do_checks.get() &
 				CheckTypeBits::CHECK_TYPE_FIRST_PRINCIPLE_BIT);
 		_airspeed_validator[i].set_psp_off_param(math::radians(_param_pitch_sp_offset));
 		_airspeed_validator[i].set_throttle_max_param(_param_fw_thr_max);
-		_airspeed_validator[i].set_fp_t_window(_aspd_fp_t_window.get());
+		_airspeed_validator[i].set_fp_t_window(_param_aspd_fp_t_window.get());
 	}
 }
 
@@ -748,7 +748,7 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 {
 	const float wind_uncertainty = sqrtf(_wind_estimate_sideslip.variance_north + _wind_estimate_sideslip.variance_east);
 
-	if (_wind_estimator_sideslip.is_estimate_valid() && wind_uncertainty < _param_wind_sigma_max_synth_tas.get()) {
+	if (_wind_estimator_sideslip.is_estimate_valid() && wind_uncertainty < _param_aspd_werr_thr.get()) {
 		// calculate airspeed estimate based on groundspeed-windspeed
 		const float TAS_north = _vehicle_local_position.vx - _wind_estimate_sideslip.windspeed_north;
 		const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
@@ -776,8 +776,8 @@ void AirspeedModule::select_airspeed_and_publish()
 	}
 
 	const bool airspeed_sensor_switching_allowed = _number_of_airspeed_sensors > 0 &&
-			_param_airspeed_primary_index.get() > static_cast<int>(AirspeedSource::GROUND_MINUS_WIND)
-			&& _param_airspeed_checks_on.get();
+			_param_aspd_primary.get() > static_cast<int>(AirspeedSource::GROUND_MINUS_WIND)
+			&& _param_aspd_do_checks.get();
 
 	const bool airspeed_sensor_added = _prev_number_of_airspeed_sensors < _number_of_airspeed_sensors;
 
@@ -807,12 +807,12 @@ void AirspeedModule::select_airspeed_and_publish()
 
 		// _gnss_lpos_valid determines if ground-wind estimate is valid
 		if (_gnss_lpos_valid &&
-		    (_param_airspeed_fallback.get() == 1
-		     || _param_airspeed_primary_index.get() == static_cast<int>(AirspeedSource::GROUND_MINUS_WIND))) {
+		    (_param_aspd_fallback.get() == 1
+		     || _param_aspd_primary.get() == static_cast<int>(AirspeedSource::GROUND_MINUS_WIND))) {
 			_valid_airspeed_src = AirspeedSource::GROUND_MINUS_WIND;
 
-		} else if ((_param_airspeed_fallback.get() == 2
-			    || _param_airspeed_primary_index.get() == static_cast<int>(AirspeedSource::SYNTHETIC))
+		} else if ((_param_aspd_fallback.get() == 2
+			    || _param_aspd_primary.get() == static_cast<int>(AirspeedSource::SYNTHETIC))
 			   && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			_valid_airspeed_src = AirspeedSource::SYNTHETIC;
 

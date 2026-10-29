@@ -79,8 +79,8 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
-		(ParamFloat<px4::params::LNDFW_XYACC_MAX>)  _param_lndfw_xyaccel_max,
-		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd,
+		(ParamFloat<px4::params::LNDFW_XYACC_MAX>)  _param_lndfw_xyacc_max,
+		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd_max,
 		(ParamFloat<px4::params::LNDFW_VEL_XY_MAX>) _param_lndfw_vel_xy_max,
 		(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)  _param_lndfw_vel_z_max,
 		(ParamFloat<px4::params::LNDFW_ROT_MAX>)    _param_lndfw_rot_max,

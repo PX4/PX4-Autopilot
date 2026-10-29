@@ -46,8 +46,8 @@ void MecanumAttControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	if (_param_ro_yaw_rate_limit.get() > FLT_EPSILON) {
-		_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	if (_param_ro_yaw_rate_lim.get() > FLT_EPSILON) {
+		_max_yaw_rate = _param_ro_yaw_rate_lim.get() * M_DEG_TO_RAD_F;
 	}
 
 	// Set up PID controller
@@ -106,7 +106,7 @@ bool MecanumAttControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
+	if (_param_ro_yaw_rate_lim.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

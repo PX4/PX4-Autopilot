@@ -66,8 +66,8 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::ADSB_SQUAWK>)		_adsb_squawk,
-		(ParamInt<px4::params::ADSB_EMERGC>)		_adsb_emergc
+		(ParamInt<px4::params::ADSB_SQUAWK>)		_param_adsb_squawk,
+		(ParamInt<px4::params::ADSB_EMERGC>)		_param_adsb_emergc
 	);
 
 
@@ -106,10 +106,10 @@ private:
 			.velNS = static_cast<int16_t>(vehicle_gnss.receiver.vel_north * 100.0f), // convert [m/s] to [cm/s]
 			.VelEW = static_cast<int16_t>(vehicle_gnss.receiver.vel_east * 100.0f), // convert [m/s] to [cm/s]
 			.state = UAVIONIX_ADSB_OUT_DYNAMIC_STATE_ON_GROUND,
-			.squawk = static_cast<uint16_t>(_adsb_squawk.get()),
+			.squawk = static_cast<uint16_t>(_param_adsb_squawk.get()),
 			.gpsFix = vehicle_gnss.receiver.fix_type,
 			.numSats = vehicle_gnss.receiver.satellites_used,
-			.emergencyStatus = static_cast<uint8_t>(_adsb_emergc.get())
+			.emergencyStatus = static_cast<uint8_t>(_param_adsb_emergc.get())
 		};
 
 		if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {

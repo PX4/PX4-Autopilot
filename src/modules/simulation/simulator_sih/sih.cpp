@@ -79,7 +79,7 @@ void Sih::run()
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
 	_ranging_beacon_time = task_start;
-	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
+	_vehicle = static_cast<VehicleType>(constrain(_param_sih_vehicle_type.get(),
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
 
@@ -102,7 +102,7 @@ static uint64_t micros()
 
 void Sih::lockstep_loop()
 {
-	int rate = math::min(_imu_gyro_ratemax.get(), _imu_integration_rate.get());
+	int rate = math::min(_param_imu_gyro_ratemax.get(), _param_imu_integ_rate.get());
 
 	// default to 400Hz (2500 us interval)
 	if (rate <= 0) {
@@ -192,7 +192,7 @@ static void timer_callback(void *sem)
 
 void Sih::realtime_loop()
 {
-	int rate = _imu_gyro_ratemax.get();
+	int rate = _param_imu_gyro_ratemax.get();
 
 	// default to 250 Hz (4000 us interval)
 	if (rate <= 0) {
@@ -287,84 +287,84 @@ void Sih::sensor_step()
 
 void Sih::parameters_updated()
 {
-	_T_MAX = _sih_t_max.get();
-	_Q_MAX = _sih_q_max.get();
-	_L_ROLL = _sih_l_roll.get();
-	_L_PITCH = _sih_l_pitch.get();
-	_KDV = _sih_kdv.get();
-	_KDW = _sih_kdw.get();
-	_F_T_MAX = _sih_f_thrust_max.get();
-	_F_Q_MAX = _sih_f_torque_max.get();
+	_T_MAX = _param_sih_t_max.get();
+	_Q_MAX = _param_sih_q_max.get();
+	_L_ROLL = _param_sih_l_roll.get();
+	_L_PITCH = _param_sih_l_pitch.get();
+	_KDV = _param_sih_kdv.get();
+	_KDW = _param_sih_kdw.get();
+	_F_T_MAX = _param_sih_f_t_max.get();
+	_F_Q_MAX = _param_sih_f_q_max.get();
 
 	// update the thruster models
 	for (size_t i = 0; i < NUM_DYN_THRUSTER; i++) {
-		if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
-			_thruster[i] = Thruster(_sih_forward_diameter_inch.get(), _sih_forward_rpm_max.get(),
-						_sih_f_ct0.get(), _sih_f_ct1.get(), _sih_f_ct2.get(),
-						_sih_f_cp0.get(), _sih_f_cp1.get(), _sih_f_cp2.get());
+		if (_param_sih_f_ct0.get() > 0.0f && _param_sih_f_cp0.get() > 0.0f) {
+			_thruster[i] = Thruster(_param_sih_f_dia_inch.get(), _param_sih_f_rpm_max.get(),
+						_param_sih_f_ct0.get(), _param_sih_f_ct1.get(), _param_sih_f_ct2.get(),
+						_param_sih_f_cp0.get(), _param_sih_f_cp1.get(), _param_sih_f_cp2.get());
 
 		} else {
 			_thruster[i] = Thruster(_F_T_MAX, _F_Q_MAX);
 		}
 	}
 
-	if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
+	if (_param_sih_f_ct0.get() > 0.0f && _param_sih_f_cp0.get() > 0.0f) {
 		_F_T_MAX = _thruster[0].get_T_max();
 		_F_Q_MAX = _thruster[0].get_Q_max();
 
-		if (fabsf(_F_T_MAX - _sih_f_thrust_max.get()) > 1.0e-5f) {
-			_sih_f_thrust_max.set(_F_T_MAX);
-			_sih_f_thrust_max.commit();
+		if (fabsf(_F_T_MAX - _param_sih_f_t_max.get()) > 1.0e-5f) {
+			_param_sih_f_t_max.set(_F_T_MAX);
+			_param_sih_f_t_max.commit();
 			PX4_INFO("SIH_F_CT0 > 0, using propeller dynamic model, overriding SIH_F_T_MAX");
 		}
 
-		if (fabsf(_F_Q_MAX - _sih_f_torque_max.get()) > 1.0e-5f) {
-			_sih_f_torque_max.set(_F_Q_MAX);
-			_sih_f_torque_max.commit();
+		if (fabsf(_F_Q_MAX - _param_sih_f_q_max.get()) > 1.0e-5f) {
+			_param_sih_f_q_max.set(_F_Q_MAX);
+			_param_sih_f_q_max.commit();
 			PX4_INFO("SIH_F_CP0 > 0, using propeller dynamic model, overriding SIH_F_Q_MAX");
 		}
 	}
 
 	if (!_lpos_ref.isInitialized()
-	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
-	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_lpos_ref_alt - _sih_h0.get()) > FLT_EPSILON)) {
-		_lpos_ref.initReference(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()));
-		_lpos_ref_alt = _sih_h0.get();
+	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _param_sih_loc_lat0.get()) > FLT_EPSILON)
+	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _param_sih_loc_lon0.get()) > FLT_EPSILON)
+	    || (fabsf(_lpos_ref_alt - _param_sih_loc_h0.get()) > FLT_EPSILON)) {
+		_lpos_ref.initReference(static_cast<double>(_param_sih_loc_lat0.get()), static_cast<double>(_param_sih_loc_lon0.get()));
+		_lpos_ref_alt = _param_sih_loc_h0.get();
 
 		// Reset earth position, velocity and attitude
-		_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
-		_lla.setLongitudeDeg(static_cast<double>(_sih_lon0.get()));
+		_lla.setLatitudeDeg(static_cast<double>(_param_sih_loc_lat0.get()));
+		_lla.setLongitudeDeg(static_cast<double>(_param_sih_loc_lon0.get()));
 		_lla.setAltitude(_lpos_ref_alt);
 		_p_E = _lla.toEcef();
 
 		const Dcmf R_E2N = _lla.computeRotEcefToNed();
 		_R_N2E = R_E2N.transpose();
 		_v_E = _R_N2E * _v_N;
-		_q = Quatf(Eulerf(0.f, 0.f, _sih_yaw0.get()));
+		_q = Quatf(Eulerf(0.f, 0.f, _param_sih_loc_yaw0.get()));
 		_q_E = Quatf(_R_N2E) * _q;
 		_q_E.normalize();
 	}
 
-	_MASS = _sih_mass.get();
+	_MASS = _param_sih_mass.get();
 
-	_I = diag(Vector3f(_sih_ixx.get(), _sih_iyy.get(), _sih_izz.get()));
-	_I(0, 1) = _I(1, 0) = _sih_ixy.get();
-	_I(0, 2) = _I(2, 0) = _sih_ixz.get();
-	_I(1, 2) = _I(2, 1) = _sih_iyz.get();
+	_I = diag(Vector3f(_param_sih_ixx.get(), _param_sih_iyy.get(), _param_sih_izz.get()));
+	_I(0, 1) = _I(1, 0) = _param_sih_ixy.get();
+	_I(0, 2) = _I(2, 0) = _param_sih_ixz.get();
+	_I(1, 2) = _I(2, 1) = _param_sih_iyz.get();
 
 	// guards against too small determinants
 	_Im1 = 100.0f * inv(static_cast<typeof _I>(100.0f * _I));
 
-	_distance_snsr_min = _sih_distance_snsr_min.get();
-	_distance_snsr_max = _sih_distance_snsr_max.get();
-	_distance_snsr_override = _sih_distance_snsr_override.get();
+	_distance_snsr_min = _param_sih_distsnsr_min.get();
+	_distance_snsr_max = _param_sih_distsnsr_max.get();
+	_distance_snsr_override = _param_sih_distsnsr_ovr.get();
 	_px4_rangefinder.set_min_distance(_distance_snsr_min);
 	_px4_rangefinder.set_max_distance(_distance_snsr_max);
 
-	_T_TAU = _sih_thrust_tau.get();
+	_T_TAU = _param_sih_t_tau.get();
 
-	_v_wind_N = Vector3f(_sih_wind_n.get(), _sih_wind_e.get(), 0.f);
+	_v_wind_N = Vector3f(_param_sih_wind_n.get(), _param_sih_wind_e.get(), 0.f);
 }
 
 void Sih::read_motors(const float dt)
@@ -417,7 +417,7 @@ void Sih::publish_esc_status()
 	float max_rpm = 10000.f;
 
 	if (_vehicle == VehicleType::FixedWing || _vehicle == VehicleType::TailsitterVTOL || _vehicle == VehicleType::StandardVTOL) {
-		max_rpm = _sih_forward_rpm_max.get();
+		max_rpm = _param_sih_f_rpm_max.get();
 	}
 
 	for (int i = 0; i < NUM_ACTUATORS_MAX && motor_idx < num_motors(); i++) {
@@ -598,10 +598,10 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 		// Link: https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427
 		const float a_y = C * delta / _MASS - fabsf(v_B(0)) * _w_B(2)
 				  - 2 * C * v_B(1) / (_MASS * fabsf(v_B(0))); // [m/s^2] Lateral acceleration
-		const float psi_dot_dot = WHEEL_BASE * C * delta / _sih_izz.get()
-					  - C * WHEEL_BASE * WHEEL_BASE  * _w_B(2) / (_sih_izz.get() * fabsf(v_B(0))); // [rad/s^2] Yaw acceleration
+		const float psi_dot_dot = WHEEL_BASE * C * delta / _param_sih_izz.get()
+					  - C * WHEEL_BASE * WHEEL_BASE  * _w_B(2) / (_param_sih_izz.get() * fabsf(v_B(0))); // [rad/s^2] Yaw acceleration
 		F_y = _MASS * a_y; // Lateral force [N]
-		M_z = _sih_izz.get() * psi_dot_dot; // [Nm] Yaw moment
+		M_z = _param_sih_izz.get() * psi_dot_dot; // [Nm] Yaw moment
 	}
 
 	_T_B = Vector3f(F_x, F_y, 0.f);
@@ -822,7 +822,7 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 			for (uint8_t i = 0; i < NUM_RANGING_BEACONS; i++) {
 				_lpos_ref.reproject(RANGING_BEACON_OFFSETS[i].north_m, RANGING_BEACON_OFFSETS[i].east_m,
 						    _ranging_beacons[i].lat_deg, _ranging_beacons[i].lon_deg);
-				_ranging_beacons[i].alt_m = _sih_h0.get() + RANGING_BEACON_OFFSETS[i].alt_offset_m;
+				_ranging_beacons[i].alt_m = _param_sih_loc_h0.get() + RANGING_BEACON_OFFSETS[i].alt_offset_m;
 			}
 		}
 
@@ -834,7 +834,7 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 		const matrix::Vector3d delta_ecef = beacon_ecef - _p_E;
 		const double true_range_m = delta_ecef.norm();
 
-		const float noise_std = _sih_ranging_beacon_noise.get();
+		const float noise_std = _param_sih_rngbc_noise.get();
 		const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
 		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
 

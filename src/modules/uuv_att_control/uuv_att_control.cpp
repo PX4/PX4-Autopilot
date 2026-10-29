@@ -99,7 +99,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 		float thrust_x, float thrust_y, float thrust_z)
 {
 	if (PX4_ISFINITE(roll_u)) {
-		roll_u = math::constrain(roll_u, -_param_torque_sat.get(), _param_torque_sat.get());
+		roll_u = math::constrain(roll_u, -_param_uuv_torque_sat.get(), _param_uuv_torque_sat.get());
 		_vehicle_torque_setpoint.xyz[0] = roll_u;
 
 	} else {
@@ -107,7 +107,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(pitch_u)) {
-		pitch_u = math::constrain(pitch_u, -_param_torque_sat.get(), _param_torque_sat.get());
+		pitch_u = math::constrain(pitch_u, -_param_uuv_torque_sat.get(), _param_uuv_torque_sat.get());
 		_vehicle_torque_setpoint.xyz[1] = pitch_u;
 
 	} else {
@@ -115,7 +115,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(yaw_u)) {
-		yaw_u = math::constrain(yaw_u, -_param_torque_sat.get(), _param_torque_sat.get());
+		yaw_u = math::constrain(yaw_u, -_param_uuv_torque_sat.get(), _param_uuv_torque_sat.get());
 		_vehicle_torque_setpoint.xyz[2] = yaw_u;
 
 	} else {
@@ -123,7 +123,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(thrust_x)) {
-		thrust_x = math::constrain(thrust_x, -_param_thrust_sat.get(), _param_thrust_sat.get());
+		thrust_x = math::constrain(thrust_x, -_param_uuv_thrust_sat.get(), _param_uuv_thrust_sat.get());
 		_vehicle_thrust_setpoint.xyz[0] = thrust_x;
 
 	} else {
@@ -131,7 +131,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(thrust_y)) {
-		thrust_y = math::constrain(thrust_y, -_param_thrust_sat.get(), _param_thrust_sat.get());
+		thrust_y = math::constrain(thrust_y, -_param_uuv_thrust_sat.get(), _param_uuv_thrust_sat.get());
 		_vehicle_thrust_setpoint.xyz[1] = thrust_y;
 
 	} else {
@@ -139,7 +139,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(thrust_z)) {
-		thrust_z = math::constrain(thrust_z, -_param_thrust_sat.get(), _param_thrust_sat.get());
+		thrust_z = math::constrain(thrust_z, -_param_uuv_thrust_sat.get(), _param_uuv_thrust_sat.get());
 		_vehicle_thrust_setpoint.xyz[2] = thrust_z;
 
 	} else {
@@ -194,9 +194,9 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 	/**< P-Control */
 	if (attitude_control_enabled) {
-		torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
-		torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
-		torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
+		torques(0) = - e_R_vec(0) * _param_uuv_roll_p.get();	/**< Roll  */
+		torques(1) = - e_R_vec(1) * _param_uuv_pitch_p.get();	/**< Pitch */
+		torques(2) = - e_R_vec(2) * _param_uuv_yaw_p.get();		/**< Yaw   */
 
 		// take thrust from attitude message
 		float thrust_x = attitude_setpoint.thrust_body[0];
@@ -204,9 +204,9 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 		float thrust_z = attitude_setpoint.thrust_body[2];
 
 		/**< PD-Control */
-		torques(0) -= omega(0) * _param_roll_d.get();  /**< Roll  */
-		torques(1) -= omega(1) * _param_pitch_d.get(); /**< Pitch */
-		torques(2) -= omega(2) * _param_yaw_d.get();   /**< Yaw   */
+		torques(0) -= omega(0) * _param_uuv_roll_d.get();  /**< Roll  */
+		torques(1) -= omega(1) * _param_uuv_pitch_d.get(); /**< Pitch */
+		torques(2) -= omega(2) * _param_uuv_yaw_d.get();   /**< Yaw   */
 
 		float roll_u = torques(0);
 		float pitch_u = torques(1);
@@ -222,9 +222,9 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 		float thrust_z = _rates_setpoint.thrust_body[2];
 
 		/**< PD-Control */
-		torques(0) -= omega(0) * _param_roll_d.get();  /**< Roll  */
-		torques(1) -= omega(1) * _param_pitch_d.get(); /**< Pitch */
-		torques(2) -= omega(2) * _param_yaw_d.get();   /**< Yaw   */
+		torques(0) -= omega(0) * _param_uuv_roll_d.get();  /**< Roll  */
+		torques(1) -= omega(1) * _param_uuv_pitch_d.get(); /**< Pitch */
+		torques(2) -= omega(2) * _param_uuv_yaw_d.get();   /**< Yaw   */
 
 		float roll_u = torques(0);
 		float pitch_u = torques(1);
@@ -248,12 +248,12 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 
 	float roll_setpoint = 0.0f;
 	float pitch_setpoint = 0.0f;
-	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_sgm_yaw.get();
+	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_uuv_sgm_yaw.get();
 
 	if (!js_heave_sway_mode) {
 		// Integrate roll/pitch from sticks
-		roll_setpoint = roll + _manual_control_setpoint.roll * dt * _param_sgm_roll.get();
-		pitch_setpoint = pitch + -_manual_control_setpoint.pitch * dt * _param_sgm_pitch.get();
+		roll_setpoint = roll + _manual_control_setpoint.roll * dt * _param_uuv_sgm_roll.get();
+		pitch_setpoint = pitch + -_manual_control_setpoint.pitch * dt * _param_uuv_sgm_pitch.get();
 	}
 
 	// Generate target quaternion
@@ -266,7 +266,7 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 	q_sp.copyTo(_attitude_setpoint.q_d);
 
 	// Thrust mapping
-	const float throttle_manual_attitude_gain = _param_sgm_thrtl.get();
+	const float throttle_manual_attitude_gain = _param_uuv_sgm_thrtl.get();
 
 	if (js_heave_sway_mode) {
 		// XYZ thrust
@@ -287,13 +287,13 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 void UUVAttitudeControl::generate_rates_setpoint(float dt)
 {
 	const bool js_heave_sway_mode = joystick_heave_sway_mode();
-	const float throttle_manual_rate_gain = _param_rgm_thrtl.get();
+	const float throttle_manual_rate_gain = _param_uuv_rgm_thrtl.get();
 
 	if (js_heave_sway_mode) {
 		// Hold pitch/roll level. Only yaw is a rate command. XYZ thrust
 		_rates_setpoint.roll = 0.0f;
 		_rates_setpoint.pitch = 0.0f;
-		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
+		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_uuv_rgm_yaw.get();
 
 		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.pitch * throttle_manual_rate_gain; // heave +z down
 		_rates_setpoint.thrust_body[1] = _manual_control_setpoint.roll * throttle_manual_rate_gain; // sway +y
@@ -301,9 +301,9 @@ void UUVAttitudeControl::generate_rates_setpoint(float dt)
 
 	} else {
 		// Roll/pitch/yaw are rate commands; thrust only surge
-		_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_rgm_roll.get();
-		_rates_setpoint.pitch = -_manual_control_setpoint.pitch * dt * _param_rgm_pitch.get();
-		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
+		_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_uuv_rgm_roll.get();
+		_rates_setpoint.pitch = -_manual_control_setpoint.pitch * dt * _param_uuv_rgm_pitch.get();
+		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_uuv_rgm_yaw.get();
 
 		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_rate_gain;
 		_rates_setpoint.thrust_body[1] = 0.f;
@@ -317,7 +317,7 @@ void UUVAttitudeControl::check_setpoint_validity(vehicle_attitude_s &v_att)
 {
 	const float _setpoint_age = (hrt_absolute_time() - _attitude_setpoint.timestamp) * 1e-6f;
 
-	if (_setpoint_age < 0.0f || _setpoint_age > _param_setpoint_max_age.get()) {
+	if (_setpoint_age < 0.0f || _setpoint_age > _param_uuv_sp_max_age.get()) {
 		reset_attitude_setpoint(v_att);
 	}
 }
@@ -398,11 +398,11 @@ void UUVAttitudeControl::Run()
 
 				if (js_heave_sway_mode) {
 					// Keep roll/pitch level, yaw torque, full XYZ thrust
-					const float throttle_manual_gain = _param_mgm_thrtl.get();
+					const float throttle_manual_gain = _param_uuv_mgm_thrtl.get();
 
 					const float roll_u = 0.0f;
 					const float pitch_u = 0.0f;
-					const float yaw_u = _manual_control_setpoint.yaw * _param_mgm_yaw.get();
+					const float yaw_u = _manual_control_setpoint.yaw * _param_uuv_mgm_yaw.get();
 
 					const float thrust_x = _manual_control_setpoint.pitch * throttle_manual_gain; // heave
 					const float thrust_y = _manual_control_setpoint.roll * throttle_manual_gain; // sway
@@ -412,10 +412,10 @@ void UUVAttitudeControl::Run()
 
 				} else {
 					// Pitch/roll/yaw torques from sticks, thrust only surge
-					constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
-								    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
-								    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
-								    _manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
+					constrain_actuator_commands(_manual_control_setpoint.roll * _param_uuv_mgm_roll.get(),
+								    -_manual_control_setpoint.pitch * _param_uuv_mgm_pitch.get(),
+								    _manual_control_setpoint.yaw * _param_uuv_mgm_yaw.get(),
+								    _manual_control_setpoint.throttle * _param_uuv_mgm_thrtl.get(),
 								    0.f,
 								    0.f);
 				}

@@ -89,8 +89,8 @@ void LandDetector::Run()
 		updateParams();
 		_update_params();
 
-		_total_flight_time = static_cast<uint64_t>(_param_total_flight_time_high.get()) << 32;
-		_total_flight_time |= static_cast<uint32_t>(_param_total_flight_time_low.get());
+		_total_flight_time = static_cast<uint64_t>(_param_lnd_flight_t_hi.get()) << 32;
+		_total_flight_time |= static_cast<uint32_t>(_param_lnd_flight_t_lo.get());
 	}
 
 	actuator_armed_s actuator_armed;
@@ -180,13 +180,13 @@ void LandDetector::Run()
 
 		uint32_t flight_time = (_total_flight_time >> 32) & 0xffffffff;
 
-		_param_total_flight_time_high.set(flight_time);
-		_param_total_flight_time_high.commit_no_notification();
+		_param_lnd_flight_t_hi.set(flight_time);
+		_param_lnd_flight_t_hi.commit_no_notification();
 
 		flight_time = _total_flight_time & 0xffffffff;
 
-		_param_total_flight_time_low.set(flight_time);
-		_param_total_flight_time_low.commit_no_notification();
+		_param_lnd_flight_t_lo.set(flight_time);
+		_param_lnd_flight_t_lo.commit_no_notification();
 	}
 
 	_previous_armed_state = _armed;

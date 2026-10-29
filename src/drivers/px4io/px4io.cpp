@@ -336,7 +336,7 @@ private:
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
-		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_themal
+		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_thermal
 	)
 };
 
@@ -604,9 +604,9 @@ void PX4IO::Run()
 			/* Tell IO that it can terminate the flight if FMU is not responding or if a failure has been reported by the FailureDetector logic */
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION, !disable_flighttermination);
 
-			if (_param_sens_en_themal.get() != _thermal_control || _param_update_force) {
+			if (_param_sens_en_thermal.get() != _thermal_control || _param_update_force) {
 
-				_thermal_control = _param_sens_en_themal.get();
+				_thermal_control = _param_sens_en_thermal.get();
 				/* set power management state for thermal */
 				uint16_t tctrl;
 

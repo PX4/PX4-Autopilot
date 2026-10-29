@@ -174,8 +174,8 @@ void AFBRS50::runCalibration()
 	// params so the CONFIGURE state re-applies them on the next boot.
 	Argus_GetCalibrationGlobalRangeOffsets(_hnd, &_cal_offset_low, &_cal_offset_high);
 
-	_p_sens_afbr_ofs_lo.commit_no_notification((float)_cal_offset_low / 32768.f);
-	_p_sens_afbr_ofs_hi.commit_no_notification((float)_cal_offset_high / 32768.f);
+	_param_sens_afbr_ofs_lo.commit_no_notification((float)_cal_offset_low / 32768.f);
+	_param_sens_afbr_ofs_hi.commit_no_notification((float)_cal_offset_high / 32768.f);
 
 	_cal_state = CalState::DONE;
 	PX4_INFO("calibration done, offsets persisted: low=%.4f m high=%.4f m",
@@ -224,7 +224,7 @@ void AFBRS50::printCalInfo()
 	PX4_INFO_RAW("  offset_low:  %.4f m\n", (double)((float)_cal_offset_low / 32768.f));
 	PX4_INFO_RAW("  offset_high: %.4f m\n", (double)((float)_cal_offset_high / 32768.f));
 	PX4_INFO_RAW("  stored (params, applied at boot): low=%.4f m  high=%.4f m\n",
-		     (double)_p_sens_afbr_ofs_lo.get(), (double)_p_sens_afbr_ofs_hi.get());
+		     (double)_param_sens_afbr_ofs_lo.get(), (double)_param_sens_afbr_ofs_hi.get());
 }
 
 int AFBRS50::calibrationCommand(int argc, char *argv[])

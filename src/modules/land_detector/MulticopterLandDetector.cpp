@@ -212,8 +212,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	_land_detected.horizontal_movement |= _horizontal_movement;
 
-	if (lpos_available && _vehicle_local_position.dist_bottom_valid && _param_lndmc_alt_gnd_effect.get() > 0) {
-		_below_gnd_effect_hgt = _vehicle_local_position.dist_bottom < _param_lndmc_alt_gnd_effect.get();
+	if (lpos_available && _vehicle_local_position.dist_bottom_valid && _param_lndmc_alt_gnd.get() > 0) {
+		_below_gnd_effect_hgt = _vehicle_local_position.dist_bottom < _param_lndmc_alt_gnd.get();
 
 	} else {
 		_below_gnd_effect_hgt = false;

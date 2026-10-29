@@ -235,7 +235,7 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 
 	// Session
 	// The key identifier of the Client. All Clients connected to an Agent must have a different key.
-	const uint32_t key = (uint32_t)_param_uxrce_key.get();
+	const uint32_t key = (uint32_t)_param_uxrce_dds_key.get();
 
 	if (key == 0) {
 		PX4_ERR("session key must be different from zero");

@@ -44,7 +44,7 @@ AckermannAutoMode::AckermannAutoMode(ModuleParams *parent) : ModuleParams(parent
 void AckermannAutoMode::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_ro_yaw_rate_lim.get() * M_DEG_TO_RAD_F;
 
 	if (_param_ra_wheel_base.get() > FLT_EPSILON && _max_yaw_rate > FLT_EPSILON
 	    && _param_ra_max_str_ang.get() > FLT_EPSILON) {
@@ -107,7 +107,7 @@ void AckermannAutoMode::updateWaypointsAndAcceptanceRadius()
 
 	// Waypoint cruising speed
 	_cruising_speed = position_setpoint_triplet.current.cruising_speed > 0.f ? math::constrain(
-				  position_setpoint_triplet.current.cruising_speed, 0.f, _param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
+				  position_setpoint_triplet.current.cruising_speed, 0.f, _param_ro_speed_lim.get()) : _param_ro_speed_lim.get();
 }
 
 float AckermannAutoMode::updateAcceptanceRadius(const float waypoint_transition_angle,

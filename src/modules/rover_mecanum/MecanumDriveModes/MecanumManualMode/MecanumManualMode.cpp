@@ -49,7 +49,7 @@ MecanumManualMode::MecanumManualMode(ModuleParams *parent) : ModuleParams(parent
 void MecanumManualMode::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_ro_yaw_rate_lim.get() * M_DEG_TO_RAD_F;
 }
 
 void MecanumManualMode::manual()
@@ -170,9 +170,9 @@ void MecanumManualMode::position()
 
 	Vector3f velocity_setpoint_body{};
 	velocity_setpoint_body(0) = math::interpolate<float>(manual_control_setpoint.throttle,
-				    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
+				    -1.f, 1.f, -_param_ro_speed_lim.get(), _param_ro_speed_lim.get());
 	velocity_setpoint_body(1) = math::interpolate<float>(manual_control_setpoint.roll,
-				    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
+				    -1.f, 1.f, -_param_ro_speed_lim.get(), _param_ro_speed_lim.get());
 	velocity_setpoint_body(2) = 0.f;
 
 	if (fabsf(manual_control_setpoint.yaw) > FLT_EPSILON || velocity_setpoint_body.norm() < FLT_EPSILON) {

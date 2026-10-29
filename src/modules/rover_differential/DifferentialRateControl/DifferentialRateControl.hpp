@@ -110,8 +110,8 @@ private:
 		(ParamFloat<px4::params::RO_YAW_RATE_TH>)   _param_ro_yaw_rate_th,
 		(ParamFloat<px4::params::RO_YAW_RATE_P>)    _param_ro_yaw_rate_p,
 		(ParamFloat<px4::params::RO_YAW_RATE_I>)    _param_ro_yaw_rate_i,
-		(ParamFloat<px4::params::RO_YAW_ACCEL_LIM>) _param_ro_yaw_accel_limit,
-		(ParamFloat<px4::params::RO_YAW_DECEL_LIM>) _param_ro_yaw_decel_limit,
+		(ParamFloat<px4::params::RO_YAW_ACCEL_LIM>) _param_ro_yaw_accel_lim,
+		(ParamFloat<px4::params::RO_YAW_DECEL_LIM>) _param_ro_yaw_decel_lim,
 		(ParamFloat<px4::params::RO_YAW_RATE_CORR>) _param_ro_yaw_rate_corr,
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
 	)

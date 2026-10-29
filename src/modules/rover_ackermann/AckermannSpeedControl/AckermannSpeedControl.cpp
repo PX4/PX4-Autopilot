@@ -52,8 +52,8 @@ void AckermannSpeedControl::updateParams()
 	_pid_speed.setOutputLimit(1.f);
 
 	// Set up slew rate
-	if (_param_ro_accel_limit.get() > FLT_EPSILON) {
-		_adjusted_speed_setpoint.setSlewRate(_param_ro_accel_limit.get());
+	if (_param_ro_accel_lim.get() > FLT_EPSILON) {
+		_adjusted_speed_setpoint.setSlewRate(_param_ro_accel_lim.get());
 	}
 }
 
@@ -67,12 +67,12 @@ void AckermannSpeedControl::updateSpeedControl()
 
 	// Throttle Setpoint
 	if (PX4_ISFINITE(_speed_setpoint)) {
-		const float speed_setpoint = math::constrain(_speed_setpoint, -_param_ro_speed_limit.get(),
-					     _param_ro_speed_limit.get());
+		const float speed_setpoint = math::constrain(_speed_setpoint, -_param_ro_speed_lim.get(),
+					     _param_ro_speed_lim.get());
 		rover_throttle_setpoint_s rover_throttle_setpoint{};
 		rover_throttle_setpoint.timestamp = _timestamp;
 		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
-				speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+				speed_setpoint, _vehicle_speed, _param_ro_accel_lim.get(), _param_ro_decel_lim.get(),
 				_param_ro_max_thr_speed.get(), dt);
 		rover_throttle_setpoint.throttle_body_y = NAN;
 		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
@@ -122,10 +122,10 @@ bool AckermannSpeedControl::runSanityChecks()
 		ret = false;
 	}
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_ro_speed_lim.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float>(events::ID("ackermann_speed_control_conf_invalid_speed_lim"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
+				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_lim.get());
 
 	}
 

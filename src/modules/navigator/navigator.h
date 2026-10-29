@@ -329,7 +329,7 @@ public:
 	void geofence_breach_check();
 
 	// Param access
-	int get_loiter_min_alt() const { return _param_min_ltr_alt.get(); }
+	int get_loiter_min_alt() const { return _param_nav_min_ltr_alt.get(); }
 	int get_landing_abort_min_alt() const { return _param_mis_lnd_abrt_alt.get(); }
 	float get_param_mis_takeoff_alt() const { return _param_mis_takeoff_alt.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
@@ -504,7 +504,7 @@ private:
 		_param_nav_fw_altl_rad,	/**< acceptance rad for fixedwing alt before landing*/
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)   _param_nav_mc_alt_rad,	/**< acceptance rad for multicopter alt */
 		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
-		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
+		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_nav_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
 		(ParamFloat<px4::params::NAV_MIN_GND_DIST>)
 		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and Return)*/
 

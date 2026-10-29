@@ -112,7 +112,7 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 		}
 
 		// Mag compensation type
-		MagCompensationType mag_comp_typ = static_cast<MagCompensationType>(_param_mag_comp_typ.get());
+		MagCompensationType mag_comp_typ = static_cast<MagCompensationType>(_param_cal_mag_comp_typ.get());
 
 		if (mag_comp_typ != _mag_comp_type) {
 			// check mag power compensation type (change battery current subscription instance if necessary)

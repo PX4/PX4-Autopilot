@@ -47,7 +47,7 @@ AckermannPosControl::AckermannPosControl(ModuleParams *parent) : ModuleParams(pa
 void AckermannPosControl::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_ro_yaw_rate_lim.get() * M_DEG_TO_RAD_F;
 	_min_speed = _param_ra_wheel_base.get() * _max_yaw_rate / tanf(_param_ra_max_str_ang.get());
 
 }
@@ -69,9 +69,9 @@ void AckermannPosControl::updatePosControl()
 
 			float speed_setpoint{_cruising_speed};
 
-			if (_param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
-				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
+			if (_param_ro_decel_lim.get() > FLT_EPSILON && _param_ro_jerk_lim.get() > FLT_EPSILON) {
+				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_lim.get(),
+							   _param_ro_decel_lim.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
 
 			pure_pursuit_status_s pure_pursuit_status{};
@@ -157,7 +157,7 @@ void AckermannPosControl::updateSubscriptions()
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
 		_arrival_speed = PX4_ISFINITE(rover_position_setpoint.arrival_speed) ? rover_position_setpoint.arrival_speed : 0.f;
 		_cruising_speed = PX4_ISFINITE(rover_position_setpoint.cruising_speed) ? rover_position_setpoint.cruising_speed :
-				  _param_ro_speed_limit.get();
+				  _param_ro_speed_lim.get();
 		_target_waypoint_ned = Vector2f(rover_position_setpoint.position_ned[0], rover_position_setpoint.position_ned[1]);
 		_stopped = false;
 	}
@@ -168,7 +168,7 @@ bool AckermannPosControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_ro_speed_lim.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

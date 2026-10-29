@@ -187,7 +187,7 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 		_alt_loss_ref_z = math::constrain(_alt_loss_ref_z, lpos_sp.z, lpos.z);
 
 		const bool is_below_threshold = (lpos.z - _alt_loss_ref_z) > threshold;
-		_alt_loss_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_alt_loss_ttri.get()));
+		_alt_loss_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_alt_loss_t.get()));
 		_alt_loss_hysteresis.set_state_and_update(is_below_threshold, now);
 
 	} else {

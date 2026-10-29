@@ -108,7 +108,7 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_lim,
 		(ParamFloat<px4::params::RO_YAW_P>)         _param_ro_yaw_p,
 		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz
 	)
