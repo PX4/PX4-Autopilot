@@ -1,17 +1,14 @@
-# Configurable overrides by (external) modes or mode executors
+# Configuration overrides from external modes or mode executors
 #
-# All three topics this message backs are published and subscribed by the commander module (ModeManagement),
-# implementing a request/confirm protocol for external mode or mode-executor overrides.
-# An external mode or mode executor publishes config_overrides_request (identifying itself via source_type/source_id)
-# to ask for a change to its active overrides; commander applies the change and publishes config_overrides_confirm,
-# echoing the same request back to acknowledge it, and separately publishes config_overrides with the merged,
-# currently-active set of overrides across all active mode executors for other consumers to observe.
+# An external mode or mode executor requests overrides on config_overrides_request, identifying itself with source_type and source_id.
+# Commander stores them for that mode or executor and echoes the request on config_overrides_confirm as acknowledgement.
+# Commander publishes the overrides in effect on config_overrides: those of the current mode, with those of the executor in charge applied on top.
 
 uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # [us] Time since system start
 
-bool disable_auto_disarm # Prevent drone from auto-disarming after landing (if configured)
+bool disable_auto_disarm # Prevent the drone from automatically disarming after landing (if configured)
 
 bool defer_failsafes # Defer all deferrable failsafes (until the flag is cleared)
 int16 defer_failsafes_timeout_s # [s] [@invalid -1 No timeout] Maximum time a failsafe can be deferred. 0 = system default.
