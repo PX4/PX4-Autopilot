@@ -18,7 +18,7 @@ int8 source_type # [@enum SOURCE_TYPE] Origin of this override
 int8 SOURCE_TYPE_MODE = 0 # Override originates from a mode
 int8 SOURCE_TYPE_MODE_EXECUTOR = 1 # Override originates from a mode executor
 
-uint8 source_id # [-] ID depending on source_type
+uint8 source_id # [-] ID assigned at registration (RegisterExtComponentReply): mode_id for SOURCE_TYPE_MODE, mode_executor_id for SOURCE_TYPE_MODE_EXECUTOR
 
 uint8 ORB_QUEUE_LENGTH = 4
 
