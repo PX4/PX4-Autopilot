@@ -1944,6 +1944,99 @@ TEST_F(RTLTest, MissionFastReverseLandsFixedWingAtTheHomeAltitude)
 	EXPECT_FLOAT_EQ(current.alt, kAlt + _navigator.get_landing_abort_min_alt());
 }
 
+// WHY: Return's mission modes do not fly when they activate on the ground, but each later mission check reloads
+// their items: the first check of a mode created at activation, or one after a geofence upload.
+// WHAT: Return selected on the ground keeps the vehicle there through both reloads.
+TEST_F(RTLTest, ReturnOnTheGroundDoesNotTakeOff)
+{
+	int32_t rtl_type = 2; // RTL_TYPE_MISSION_FAST
+	param_set(param_find("RTL_TYPE"), &rtl_type);
+	_rtl.updateParamsForTest();
+
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(true);
+
+	// the mission check runs once Home, a position and the mission's geofence are there
+	home_position_s *home = _navigator.get_home_position();
+	home->lat = kBaseLat;
+	home->lon = kBaseLon;
+	home->alt = kAlt;
+	home->valid_hpos = true;
+	home->valid_alt = true;
+	_navigator.get_global_position()->timestamp = hrt_absolute_time();
+
+	auto loadEmptyFence = [&](uint32_t fence_id) {
+		mission_stats_entry_s stats{};
+		stats.opaque_id = fence_id;
+		stats.dataman_id = DM_KEY_FENCE_POINTS_0;
+
+		if (!_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(stats))) {
+			return false;
+		}
+
+		Geofence &fence = _navigator.get_geofence();
+		fence.updateFence();
+		const hrt_abstime start = hrt_absolute_time();
+
+		while (fence.isFenceUpdatePending() && (hrt_elapsed_time(&start) < 1_s)) {
+			fence.run();
+			px4_usleep(1000);
+		}
+
+		return fence.isReadyForPathChecks();
+	};
+
+	// a waypoint 30 m above the ground, then a landing
+	const PositionYawSetpoint waypoint_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
+	const PositionYawSetpoint land_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt);
+	mission_item_s waypoint = makeSafePointItem(waypoint_position.lat, waypoint_position.lon, kAlt + 30.f, NAV_FRAME_GLOBAL,
+				  NAV_CMD_WAYPOINT);
+	waypoint.autocontinue = true;
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+	mission_item_s land = makeSafePointItem(land_position.lat, land_position.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND);
+	land.autocontinue = true;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {waypoint, land_start, land});
+
+	mission_s mission = makeMissionHeader(9, 0, 3);
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.land_start_index = 1;
+	mission.land_index = 2;
+	ASSERT_TRUE(loadEmptyFence(mission.geofence_id));
+	publishMission(mission);
+	setMissionResultValid(mission);
+
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	// WHEN: Return is selected on the ground, so it creates its mission mode as it activates
+	for (int cycle = 0; cycle < 3; ++cycle) {
+		_rtl.run(true);
+	}
+
+	// THEN: the vehicle stays on the ground
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_FAST);
+	EXPECT_TRUE(!current.valid || (current.type == position_setpoint_s::SETPOINT_TYPE_IDLE));
+
+	// WHEN: a geofence is uploaded, and Mission checks the mission against it
+	mission.geofence_id = 1;
+	ASSERT_TRUE(loadEmptyFence(mission.geofence_id));
+	publishMission(mission);
+	setMissionResultValid(mission);
+
+	for (int cycle = 0; cycle < 3; ++cycle) {
+		_rtl.run(true);
+	}
+
+	// THEN: the vehicle still stays on the ground
+	EXPECT_TRUE(!current.valid || (current.type == position_setpoint_s::SETPOINT_TYPE_IDLE));
+
+	// the dataman is shared by every case in this binary, so leave the slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_FENCE_POINTS_STATE));
+}
+
 // WHY: the controller must refresh an existing mode's mission before destination selection and activation.
 // WHAT: a mission replaced after the last inactive cycle supplies the waypoint flown on RTL activation.
 TEST_F(RTLTest, ReturnActivationFliesTheMissionPublishedSinceTheLastInactiveCycle)

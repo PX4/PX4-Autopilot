@@ -64,6 +64,9 @@ public:
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 protected:
+	/** Return never takes off, so it does not start its items while landed, also when they reload. */
+	bool canStartMission() const override { return !_land_detected_sub.get().landed; }
+
 	/** Convert a caller-selected position item into a waypoint, retaining loiter-to-altitude. */
 	static void makeRtlPositionItem(mission_item_s &item)
 	{

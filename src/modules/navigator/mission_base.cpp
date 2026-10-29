@@ -408,7 +408,7 @@ MissionBase::isLanding()
 
 void MissionBase::update_mission()
 {
-	if (_mission.count == 0u || !_is_current_planned_mission_item_valid || !isMissionValid()) {
+	if (_mission.count == 0u || !_is_current_planned_mission_item_valid || !isMissionValid() || !canStartMission()) {
 		if (_land_detected_sub.get().landed) {
 			/* landed, refusing to take off without a mission */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, refusing takeoff\t");
