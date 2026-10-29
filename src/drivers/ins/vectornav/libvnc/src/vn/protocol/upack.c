@@ -3501,12 +3501,30 @@ void VnUartPacket_parseBinaryOutputRaw(
   }
 }
 
-void VnUartPacket_parseUserTag(VnUartPacket *packet, char *tag)
+/* Copy a parsed field into a caller buffer of the given length, truncating
+ * if needed. The field comes from the device, so its length is not trusted. */
+static void VnUartPacket_copyField(char *dst, size_t dstLength, const char *src)
 {
-	VnUartPacket_parseUserTagRaw((char*)packet->data, tag);
+	size_t n;
+
+	if (dstLength == 0)
+		return;
+
+	n = strlen(src);
+
+	if (n >= dstLength)
+		n = dstLength - 1;
+
+	memcpy(dst, src, n);
+	dst[n] = '\0';
 }
 
-void VnUartPacket_parseUserTagRaw(char *packet, char* tag)
+void VnUartPacket_parseUserTag(VnUartPacket *packet, char *tag, size_t tagLength)
+{
+	VnUartPacket_parseUserTagRaw((char*)packet->data, tag, tagLength);
+}
+
+void VnUartPacket_parseUserTagRaw(char *packet, char* tag, size_t tagLength)
 {
 	size_t packetIndex;
 	char* next;
@@ -3515,7 +3533,9 @@ void VnUartPacket_parseUserTagRaw(char *packet, char* tag)
 
 	if (*(next + strlen(next) + 1) == '*')
 	{
-		tag[0] = '\0';
+		if (tagLength > 0)
+			tag[0] = '\0';
+
 		return;
 	}
 
@@ -3528,19 +3548,19 @@ void VnUartPacket_parseUserTagRaw(char *packet, char* tag)
 		#pragma warning(push)
 		#pragma warning(disable:4996)
 	#endif
-	strcpy(tag, next);
+	VnUartPacket_copyField(tag, tagLength, next);
 
 	#if defined(_MSC_VER)
 		#pragma warning(pop)
 	#endif
 }
 
-void VnUartPacket_parseModelNumber(VnUartPacket *packet, char *productName)
+void VnUartPacket_parseModelNumber(VnUartPacket *packet, char *productName, size_t productNameLength)
 {
-	VnUartPacket_parseModelNumberRaw((char*)packet->data, productName);
+	VnUartPacket_parseModelNumberRaw((char*)packet->data, productName, productNameLength);
 }
 
-void VnUartPacket_parseModelNumberRaw(char *packet, char* productName)
+void VnUartPacket_parseModelNumberRaw(char *packet, char* productName, size_t productNameLength)
 {
 	size_t packetIndex;
 	char* next;
@@ -3549,7 +3569,9 @@ void VnUartPacket_parseModelNumberRaw(char *packet, char* productName)
 
 	if (*(next + strlen(next) + 1) == '*')
 	{
-		productName[0] = '\0';
+		if (productNameLength > 0)
+			productName[0] = '\0';
+
 		return;
 	}
 
@@ -3562,7 +3584,7 @@ void VnUartPacket_parseModelNumberRaw(char *packet, char* productName)
 		#pragma warning(push)
 		#pragma warning(disable:4996)
 	#endif
-	strcpy(productName, next);
+	VnUartPacket_copyField(productName, productNameLength, next);
 
 	#if defined(_MSC_VER)
 		#pragma warning(pop)
@@ -3595,12 +3617,12 @@ void VnUartPacket_parseSerialNumberRaw(char *packet, uint32_t* serialNum)
 	*serialNum = ATOU32;
 }
 
-void VnUartPacket_parseFirmwareVersion(VnUartPacket *packet, char *firmwareVersion)
+void VnUartPacket_parseFirmwareVersion(VnUartPacket *packet, char *firmwareVersion, size_t firmwareVersionLength)
 {
-	VnUartPacket_parseFirmwareVersionRaw((char*)packet->data, firmwareVersion);
+	VnUartPacket_parseFirmwareVersionRaw((char*)packet->data, firmwareVersion, firmwareVersionLength);
 }
 
-void VnUartPacket_parseFirmwareVersionRaw(char *packet, char* firmwareVersion)
+void VnUartPacket_parseFirmwareVersionRaw(char *packet, char* firmwareVersion, size_t firmwareVersionLength)
 {
 	size_t packetIndex;
 	char* next;
@@ -3609,7 +3631,9 @@ void VnUartPacket_parseFirmwareVersionRaw(char *packet, char* firmwareVersion)
 
 	if (*(next + strlen(next) + 1) == '*')
 	{
-		firmwareVersion[0] = '\0';
+		if (firmwareVersionLength > 0)
+			firmwareVersion[0] = '\0';
+
 		return;
 	}
 
@@ -3622,7 +3646,7 @@ void VnUartPacket_parseFirmwareVersionRaw(char *packet, char* firmwareVersion)
 		#pragma warning(push)
 		#pragma warning(disable:4996)
 	#endif
-	strcpy(firmwareVersion, next);
+	VnUartPacket_copyField(firmwareVersion, firmwareVersionLength, next);
 
 	#if defined(_MSC_VER)
 		#pragma warning(pop)
