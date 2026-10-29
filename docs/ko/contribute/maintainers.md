@@ -47,6 +47,7 @@ Once accepted every maintainers will go through the following process:
    1. Permission to merge the PR of any of PX4 workspace repositories after it's approved
    2. Permission to trigger GitHub actions when a new contributor opens a PR.
    3. Permission to edit Issue/PR contents.
+   4. Permission to request an [AI pull request review](../test_and_ci/ai_review.md) by commenting `!ai-review` on a PR.
 3. **Add your info to official PX4 channels**:
    1. Add your information to the internal Dronecode database of maintainers to keep you in sync.
    2. Community introduction to the new maintainer in the form of a forum post, which is promoted through ever growing official channels

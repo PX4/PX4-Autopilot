@@ -1,6 +1,6 @@
 # 라즈베리파이 PilotPi 실드
 
-<LinkedBadge type="warning" text="Experimental" url="../flight_controller/autopilot_experimental.html"/>
+[<Badge type="warning" text="Experimental"/>](../flight_controller/autopilot_experimental.md)
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.

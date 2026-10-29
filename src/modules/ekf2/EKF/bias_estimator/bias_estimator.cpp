@@ -39,6 +39,10 @@
 
 #include "bias_estimator.hpp"
 
+BiasEstimator::BiasEstimator() {}
+
+BiasEstimator::BiasEstimator(float state_init, float state_var_init): _state{state_init}, _state_var{state_var_init} {}
+
 void BiasEstimator::predict(const float dt)
 {
 	// State is constant
@@ -55,8 +59,7 @@ void BiasEstimator::predict(const float dt)
 	constrainStateVar();
 
 	if (dt > FLT_EPSILON && fabsf(_dt - dt) > 0.001f) {
-		_signed_innov_test_ratio_lpf.setParameters(static_cast<uint64_t>(dt * 1e6f),
-				static_cast<uint64_t>(_innov_sequence_monitnoring_time_constant * 1e6f));
+		_signed_innov_test_ratio_lpf.setParameters(dt, _innov_sequence_monitnoring_time_constant);
 		_dt = dt;
 	}
 

@@ -34,7 +34,7 @@
  * @file mission_block.h
  *
  * Base class for Mission class and special flight modes like
- * RTL, Land, Loiter, Takeoff, Geofence, etc.
+ * Return, Land, Loiter, Takeoff, Geofence, etc.
  *
  * @author Julian Oes <julian@oes.ch>
  */
@@ -166,6 +166,11 @@ protected:
 	void setLoiterFromLastLink(struct mission_item_s *item);
 
 	void setLoiterItemCommonFields(struct mission_item_s *item);
+
+	/**
+	 * Publish a setpoint that holds a course (ground track) at an altitude, without a position target
+	 */
+	void publishCourseHoldSetpoint(float course_rad, float altitude_amsl);
 
 	/**
 	 * Set a takeoff mission item

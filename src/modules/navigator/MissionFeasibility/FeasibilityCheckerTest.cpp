@@ -143,6 +143,70 @@ TEST_F(FeasibilityCheckerTest, mission_item_validity)
 	ASSERT_EQ(ret, false);
 }
 
+TEST_F(FeasibilityCheckerTest, do_jump_requires_earlier_target)
+{
+	struct JumpTargetCase {
+		int current_index;
+		int16_t target_index;
+		bool accepted;
+	};
+
+	static constexpr int mission_count = 4;
+	const JumpTargetCase cases[] = {
+		{0, 0, false}, // A first-item jump cannot point to an earlier item.
+		{0, 1, false},
+		{2, -1, false},
+		{2, 0, true}, // Both the first and immediately preceding item are valid targets.
+		{2, 1, true},
+		{2, 2, false}, // Self-jump.
+		{2, 3, false}, // Even the immediately following item is not a backward target.
+		{2, mission_count, false}, // Out-of-range target.
+	};
+
+	struct JumpRepeatCase {
+		uint16_t repeat_count;
+		uint16_t current_count;
+	};
+
+	const JumpRepeatCase repeat_cases[] = {
+		{3, 0}, // Active jump.
+		{0, 0}, // Disabled jump.
+		{3, 3}, // Exhausted jump: validity must not depend on execution history.
+	};
+
+	for (const auto &test_case : cases) {
+		SCOPED_TRACE(::testing::Message() << "index=" << test_case.current_index << " target=" << test_case.target_index);
+
+		for (const auto &repeat_case : repeat_cases) {
+			SCOPED_TRACE(::testing::Message() << "repeats=" << repeat_case.repeat_count << " count=" << repeat_case.current_count);
+			TestFeasibilityChecker checker;
+			checker.publishVehicleType(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			checker.publishHomePosition(0., 0., 0.f);
+
+			mission_item_s waypoint{};
+			waypoint.nav_cmd = NAV_CMD_WAYPOINT;
+
+			for (int index = 0; index < test_case.current_index; ++index) {
+				ASSERT_TRUE(checker.processNextItem(waypoint, index, mission_count));
+				ASSERT_FALSE(checker.someCheckFailed());
+			}
+
+			mission_item_s jump{};
+			jump.nav_cmd = NAV_CMD_DO_JUMP;
+			jump.do_jump_mission_index = test_case.target_index;
+			jump.do_jump_repeat_count = repeat_case.repeat_count;
+			jump.do_jump_current_count = repeat_case.current_count;
+
+			EXPECT_EQ(checker.processNextItem(jump, test_case.current_index, mission_count), test_case.accepted);
+			EXPECT_EQ(checker.someCheckFailed(), !test_case.accepted);
+
+			// A later valid item must not clear a rejected mission's failure.
+			EXPECT_EQ(checker.processNextItem(waypoint, test_case.current_index + 1, mission_count), test_case.accepted);
+			EXPECT_EQ(checker.someCheckFailed(), !test_case.accepted);
+		}
+	}
+}
+
 TEST_F(FeasibilityCheckerTest, check_dist_first_waypoint)
 {
 	// GIVEN: MIS_DIST_1WP set to 500m
@@ -387,7 +451,7 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_landing)
 	checker.processNextItem(mission_item, 0, 2);
 	ASSERT_EQ(checker.someCheckFailed(), true);
 
-	// cannot have land start before RTL
+	// cannot have land start before Return
 	checker.reset();
 	checker.publishVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	mission_item.nav_cmd = NAV_CMD_DO_LAND_START;

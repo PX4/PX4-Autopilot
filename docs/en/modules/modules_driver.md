@@ -266,7 +266,7 @@ Source: [examples/fake_magnetometer](https://github.com/PX4/PX4-Autopilot/tree/m
 ### Description
 
 Publish the earth magnetic field as a fake magnetometer (sensor_mag).
-Requires vehicle_attitude and vehicle_gps_position.
+Requires vehicle_attitude and vehicle_gnss.
 
 ### Usage {#fake_magnetometer_usage}
 
@@ -763,6 +763,8 @@ mcp230xx <command> [arguments...]
      [-M <val>]  First minor number
                  default: 0
 
+   write         Set the output pins to the state given with -O
+
    stop
 
    status        print status info
@@ -1121,7 +1123,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
 
 ### Usage {#rgbled_usage}
 
@@ -1138,9 +1140,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 
@@ -1277,11 +1277,12 @@ It performs two tasks:
 - Read the wheel encoders and publish the raw data in the `wheel_encoders` uORB topic
 
 In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
-your flight controller's UART port should be connected to the Roboclaw as shown in the documentation.
-The driver needs to be enabled using the parameter `RBCLW_SER_CFG`, the baudrate needs to be set correctly and
-the address `RBCLW_ADDRESS` needs to match the ESC configuration.
+your flight controller's UART port should be connected to the Roboclaw as shown in the documentation. Enable the
+driver with `RBCLW_SER_CFG` and set `RBCLW_BAUD` to match the controllers. Set `RBCLW_COUNT` and configure consecutive
+unique addresses starting at `RBCLW_ADDRESS`. Each controller uses two output channels (M1, M2) and publishes a
+separate wheel_encoders instance. Bus parameters require a driver restart.
 
-The command to start this driver is: `$ roboclaw start <UART device> <baud rate>`
+The command to start this driver is: `$ roboclaw start <UART device>`
 
 ### Usage {#roboclaw_usage}
 

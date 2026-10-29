@@ -120,7 +120,7 @@ The settings and underlying parameters are shown below.
 
 | Setting                                                              | Parameter                                                                      | Description                                                                                                                     |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_FLTT_LOW_ACT"></a> Low flight time for safe return action | [COM_FLTT_LOW_ACT](../advanced_config/parameter_reference.md#COM_FLTT_LOW_ACT) | Action when return mode can only just reach safety with remaining battery. `0`: None (default), `1`: Warning, `3`: Return mode. |
+| <a id="COM_FLTT_LOW_ACT"></a> Low flight time for safe return action | [COM_FLTT_LOW_ACT](../advanced_config/parameter_reference.md#COM_FLTT_LOW_ACT) | Action when return mode can only just reach safety with remaining battery. `0`: None, `1`: Warning (default), `3`: Return mode. |
 | <a id="COM_FLT_TIME_MAX"></a> Maximum flight time failsafe level     | [COM_FLT_TIME_MAX](../advanced_config/parameter_reference.md#COM_FLT_TIME_MAX) | Maximum allowed flight time before Return mode will be engaged, in seconds. `-1`: Disabled (default).                           |
 
 ## Manual Control Loss Failsafe
@@ -138,12 +138,12 @@ PX4 and the receiver may also need to be configured in order to _detect RC loss_
 
 Additional (and underlying) parameter settings are shown below.
 
-| Parameter                                                                                             | Setting                     | Description                                                                                                                                                                                                                                                                                                                                                                                              |
-| ----------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_RC_LOSS_T"></a>[COM_RC_LOSS_T](../advanced_config/parameter_reference.md#COM_RC_LOSS_T)    | Manual Control Loss Timeout | Time after last setpoint received from the selected manual control source after which manual control is considered lost. This must be kept short because the vehicle will continue to fly using the last known stick position until the timeout triggers.                                                                                                                                                |
-| <a id="COM_FAIL_ACT_T"></a>[COM_FAIL_ACT_T](../advanced_config/parameter_reference.md#COM_FAIL_ACT_T) | Failsafe Reaction Delay     | Delay in seconds between failsafe condition being triggered (`COM_RC_LOSS_T`) and failsafe action (RTL, Land, Hold). In this state the vehicle waits in hold mode for the manual control source to reconnect. This might be set longer for long-range flights so that intermittent connection loss doesn't immediately invoke the failsafe. It can be to zero so that the failsafe triggers immediately. |
-| <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)          | Failsafe Action             | Disabled, Loiter, Return, Land, Disarm, Terminate, Hold mode (no failsafe).                                                                                                                                                                                                                                                                                                                              |
-| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT) | RC Loss Exceptions          | Set modes in which manual control loss is ignored.                                                                                                                                                                                                                                                                                                                                                       |
+| Parameter                                                                                             | Setting                     | Description                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_RC_LOSS_T"></a>[COM_RC_LOSS_T](../advanced_config/parameter_reference.md#COM_RC_LOSS_T)    | Manual Control Loss Timeout | Time after last setpoint received from the selected manual control source after which manual control is considered lost. This must be kept short because the vehicle will continue to fly using the last known stick position until the timeout triggers.                                                                                                                                                   |
+| <a id="COM_FAIL_ACT_T"></a>[COM_FAIL_ACT_T](../advanced_config/parameter_reference.md#COM_FAIL_ACT_T) | Failsafe Reaction Delay     | Delay in seconds between failsafe condition being triggered (`COM_RC_LOSS_T`) and failsafe action (Return, Land, Hold). In this state the vehicle waits in hold mode for the manual control source to reconnect. This might be set longer for long-range flights so that intermittent connection loss doesn't immediately invoke the failsafe. It can be to zero so that the failsafe triggers immediately. |
+| <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)          | Failsafe Action             | Disabled, Loiter, Return, Land, Disarm, Terminate, Hold mode (no failsafe).                                                                                                                                                                                                                                                                                                                                 |
+| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT) | RC Loss Exceptions          | Set modes in which manual control loss is ignored.                                                                                                                                                                                                                                                                                                                                                          |
 
 ### Hold Mode (No Failsafe)
 
@@ -153,6 +153,7 @@ This is intended for operations where a switch to Hold on manual control loss is
 
 If Hold cannot be entered (for example without a valid position estimate), the normal failsafe takes over and escalates from there (Return, Land, Descend, or Terminate as applicable).
 Manual control loss in any non-manual (auto/offboard) mode is ignored with this setting.
+If another failsafe would fall back to a manual mode while manual control is lost, for example an Offboard loss with [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) set to Position mode, the vehicle switches to Hold instead.
 
 ## Data Link Loss Failsafe
 
@@ -276,15 +277,20 @@ Note that if there is no horizontal aiding source anymore, the position estimate
 Triggers on either of:
 
 - **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
-- **Position divergence**: two receivers disagree beyond their expected separation (configured via [SENS_GPS0_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS1_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX)) plus reported accuracy. Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
+- **Position divergence**: two receivers disagree beyond their expected separation (configured via [SENS_GNSS0_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS1_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX)) plus reported accuracy. Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
+  Receivers might report an optimistic accuracy, so the reported accuracy of each receiver is floored with [EKF2_GPS_P_NOISE](../advanced_config/parameter_reference.md#EKF2_GPS_P_NOISE).
 
 At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
 Loss of a single GPS when none are required is handled by other GPS health checks.
 
-| Parameter                                                                                                   | Description                                                                                                    |
-| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required for arming. If two are required then they also need to be consistent. |
-| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected in flight.                                                     |
+When `COM_GNSSLOSS_ACT` is set to `Warning`, both triggers produce a warning only and never block arming.
+When set to `Warning, block arming`, both triggers block arming and only produce a warning in flight.
+When set to `Return`, `Land`, or `Terminate`, both triggers block arming and fire the configured in-flight failsafe action (subject to the `SYS_HAS_NUM_GNSS` condition above).
+
+| Parameter                                                                                                   | Description                                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required. If two are required then they also need to be consistent.                                                                                       |
+| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected. `0`: Warning only (default), `1`: Return, `2`: Land, `3`: Terminate, `4`: Warning, block arming. Values above Warning also block arming. |
 
 ## Offboard Loss Failsafe
 
@@ -414,27 +420,21 @@ The relevant parameters are shown below:
 
 ### Motor Failure Trigger
 
-The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected threshold for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
-A motor flagged by this current check stays flagged until the vehicle disarms, because the reaction to a failure may stop the motor and thereby make it look healthy again.
+The failure detector can be configured to detect a failed motor (or a lost or broken propeller, a seized bearing, a rubbing blade, and so on).
+More specifically, it detects a motor that has stopped producing the thrust it was commanded, by comparing the current each ESC reports against the current expected for that motor's command.
+A motor whose current stays too far below or above that expectation for long enough is flagged as failed, and stays flagged until the vehicle disarms, because the reaction to a failure may stop the motor and thereby make it look healthy again.
 
-The undercurrent and overcurrent conditions are defined by:
+The trigger needs ESC that report per-motor current, and thresholds calibrated for the specific airframe.
+For how the check works, and how to set the `MOTFAIL_*` thresholds, see [Motor Failure Detection](../config/motor_failure_detection.md).
 
-```text
-undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_OFF}
-overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_OFF}
-```
-
-The action on motor failure is set with [CA_FAILURE_MODE](#CA_FAILURE_MODE).
-Actions depend on the vehicle type, and might include warning the user, removing failed motors from control allocation, disabling symmetrically opposite motors, and so on.
+The action on motor failure is set with [COM_ACT_FAIL_ACT](../advanced_config/parameter_reference.md#COM_ACT_FAIL_ACT) and [CA_FAILURE_MODE](#CA_FAILURE_MODE).
+Actions depend on the vehicle type, and might include warning the user, running a failsafe, removing failed motors from control allocation, disabling symmetrically opposite motors, and so on.
 For more information see [Motor Failure Recovery](motor_failure_recovery.md).
 
-| Parameter                                                                                                | Description                                                                                                                     |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                            |
-| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)             | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%).                  |
-| <a id="MOTFAIL_OFF"></a>[MOTFAIL_OFF](../advanced_config/parameter_reference.md#MOTFAIL_OFF)             | Under/over-current detection threshold offset (A). Added/subtracted to the expected current to form the upper and lower bounds. |
-| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)          | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                   |
-| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Failure mode. See [Motor Failure Recovery](motor_failure_recovery.md).                                                          |
+| Parameter                                                                                                | Description                                                            |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                   |
+| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Failure mode. See [Motor Failure Recovery](motor_failure_recovery.md). |
 
 ### External Automatic Trigger System (ATS)
 
@@ -549,4 +549,5 @@ In addition there are a number of parameters that configure system and sensor li
 
 ## Further Information
 
-- [QGroundControl User Guide > Safety Setup](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html)
+- [QGroundControl User Guide > Failsafes (PX4)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/failsafes.html)
+- [QGroundControl User Guide > Return & Land (PX4)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/return_land.html)

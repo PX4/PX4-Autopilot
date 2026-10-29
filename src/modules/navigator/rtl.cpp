@@ -33,7 +33,7 @@
 /**
  * @file rtl.cpp
  *
- * Helper class to access RTL
+ * Helper class to access Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -52,7 +52,6 @@
 
 using namespace time_literals;
 using namespace math;
-using matrix::wrap_pi;
 
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
 
@@ -141,6 +140,13 @@ void RTL::on_activation()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
+
+	// Activation skips the mode's inactive update,
+	// refresh its mission before destination selection.
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->refreshMission();
+	}
+
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
@@ -384,7 +390,7 @@ void RTL::setRtlTypeAndDestination()
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	// Update destination of geofence avoidance planner. Depending on the
-	// RTL type it is the position of the loiter or mission landing.
+	// Return type it is the position of the loiter or mission landing.
 
 	GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
 	matrix::Vector2d planner_destination{(double)NAN, (double)NAN};
@@ -663,7 +669,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 			_rtl_mission_type_handle->initialize();
 		}
 
-		// RTL type is either direct or mission land have to set it later.
+		// Return type is either direct or mission land have to set it later.
 		break;
 
 	case RtlType::RTL_MISSION_FAST:
@@ -727,56 +733,14 @@ bool RTL::reverseIsFurther() const
 
 loiter_point_s RTL::selectLandingApproach(const PositionYawSetpoint &destination) const
 {
-	loiter_point_s landing_approach{};
-
 	// Only a VTOL currently flying as fixed wing needs a wind-selected approach loiter.
 	if (!_vehicle_status_sub.get().is_vtol
 	    || (_vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
-		return landing_approach;
+		return {};
 	}
 
 	const land_approaches_s vtol_land_approaches =
 		mission_route::getVtolLandApproachesNearLocation(_navigator->get_mission_route_cache(), destination,
 				_home_pos_sub.get().alt);
-
-	if (vtol_land_approaches.isAnyApproachValid()) {
-		landing_approach = chooseBestLandingApproach(vtol_land_approaches);
-	}
-
-	return landing_approach;
-}
-
-loiter_point_s RTL::chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const
-{
-	if (!vtol_land_approaches.land_location_lat_lon.isAllFinite()) {
-		return loiter_point_s();
-	}
-
-	const float wind_direction = atan2f(_wind_sub.get().windspeed_east, _wind_sub.get().windspeed_north);
-	int8_t min_index = -1;
-	float wind_angle_prev = INFINITY;
-
-	for (int i = 0; i < vtol_land_approaches.num_approaches_max; i++) {
-
-		if (vtol_land_approaches.approaches[i].isValid()) {
-			// The approach circles are defined around the land location.
-			const float wind_angle = wrap_pi(get_bearing_to_next_waypoint(vtol_land_approaches.land_location_lat_lon(0),
-							 vtol_land_approaches.land_location_lat_lon(1), vtol_land_approaches.approaches[i].lat,
-							 vtol_land_approaches.approaches[i].lon) - wind_direction);
-
-			if (fabsf(wind_angle) < wind_angle_prev) {
-				min_index = i;
-				wind_angle_prev = fabsf(wind_angle);
-			}
-
-		}
-	}
-
-	if (min_index >= 0) {
-		return vtol_land_approaches.approaches[min_index];
-
-	} else {
-
-		return loiter_point_s();
-	}
+	return mission_route::chooseBestLandingApproach(vtol_land_approaches, _wind_sub.get());
 }

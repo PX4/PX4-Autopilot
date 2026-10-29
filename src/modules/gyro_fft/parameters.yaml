@@ -34,9 +34,7 @@ parameters:
         256: '256'
         512: '512'
         1024: '1024'
-        4096: '4096'
       default: 512
-      unit: Hz
       reboot_required: true
     IMU_GYRO_FFT_SNR:
       description:

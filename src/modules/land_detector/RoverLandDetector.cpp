@@ -63,7 +63,7 @@ bool RoverLandDetector::_get_landed_state()
 
 	}
 
-	// If we are in RTL and have reached the last valid waypoint then we are landed.
+	// If we are in Return and have reached the last valid waypoint then we are landed.
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 		vehicle_global_position_s vehicle_global_position{};
 		_vehicle_global_position_sub.copy(&vehicle_global_position);

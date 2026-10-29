@@ -33,7 +33,7 @@
 /**
  * @file rtl_mission_fast_reverse.cpp
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -59,6 +59,7 @@ void RtlMissionFastReverse::on_inactive()
 	_vehicle_status_sub.update();
 	_mission_index_prior_rtl = _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ?
 				   _mission.current_seq : INT32_C(-1);
+	_mission_id_prior_rtl = _mission.mission_id;
 }
 
 void RtlMissionFastReverse::on_inactivation()
@@ -70,6 +71,11 @@ void RtlMissionFastReverse::on_inactivation()
 void RtlMissionFastReverse::on_activation()
 {
 	_home_pos_sub.update();
+
+	// Discard the saved index if the mission was replaced.
+	if (_mission.mission_id != _mission_id_prior_rtl) {
+		_mission_index_prior_rtl = INT32_C(-1);
+	}
 
 	// set mission item to closest item if not already in mission. If we are in mission, set to the previous item.
 	if (_mission_index_prior_rtl < INT32_C(0)) {
@@ -129,13 +135,7 @@ void RtlMissionFastReverse::setActiveMissionItems()
 			_in_landing_phase = true;
 
 		} else {
-			// convert mission item to a simple waypoint, keep loiter to alt
-			if (_mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			}
-
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0.0f;
+			makeRtlPositionItem(_mission_item);
 
 			pos_sp_triplet->previous = pos_sp_triplet->current;
 

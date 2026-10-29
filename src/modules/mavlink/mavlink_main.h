@@ -145,7 +145,7 @@ public:
 	static bool serial_instance_exists(const char *device_name, Mavlink *self);
 
 	static void forward_message(const mavlink_message_t *msg, Mavlink *self);
-	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
+	static bool component_was_seen(uint32_t system_id, int component_id, Mavlink &self);
 
 	bool check_events() const { return _should_check_events.load(); }
 	void check_events_enable() { _should_check_events.store(true); }
@@ -154,9 +154,12 @@ public:
 	bool sending_parameters() const { return _sending_parameters.load(); }
 	void set_sending_parameters(bool sending) { _sending_parameters.store(sending); }
 
+	bool sending_all_parameters() const { return _sending_all_parameters.load(); }
+	void set_sending_all_parameters(bool sending) { _sending_all_parameters.store(sending); }
+
 	int get_uart_fd() const { return _uart_fd; }
 
-	int get_system_id() const { return mavlink_system.sysid; }
+	uint32_t get_system_id() const { return mavlink_system.sysid; }
 	int get_component_id() const { return mavlink_system.compid; }
 
 	const char *_device_name{DEFAULT_DEVICE_NAME};
@@ -318,12 +321,12 @@ public:
 	 */
 	void             	send_finish();
 
-	/**
-	 * Resend message as is, don't change sequence number and CRC.
-	 */
-	void			resend_message(mavlink_message_t *msg) { _mavlink_resend_uart(_channel, msg); }
-
 	void			handle_message(const mavlink_message_t *msg);
+
+	/**
+	 * Forward a received message to the other instances if forwarding is enabled.
+	 */
+	void			forward_if_enabled(const mavlink_message_t *msg);
 
 	int			get_instance_id() const { return _instance_id; }
 
@@ -493,7 +496,7 @@ public:
 
 	/** get ulog streaming if active, nullptr otherwise */
 	MavlinkULog		*get_ulog_streaming() { return _mavlink_ulog; }
-	void			try_start_ulog_streaming(uint8_t target_system, uint8_t target_component)
+	void			try_start_ulog_streaming(uint32_t target_system, uint8_t target_component)
 	{
 		if (_mavlink_ulog) { return; }
 
@@ -533,6 +536,67 @@ public:
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
 	bool radio_status_critical() const;
+
+	/// True while a radio is reporting RADIO_STATUS on this link.
+	bool radio_status_available() const;
+
+	/**
+	 * The multiplier derived purely from the radio's reported txbuf.
+	 *
+	 * Unlike get_rate_mult() this does not include the budget split between
+	 * streams, so it can be applied to a bulk transfer that has already been
+	 * given its own share without counting the reduction twice.
+	 */
+	float radio_status_mult() const;
+
+	bool ftp_burst_active() const { return _ftp_burst_active.load(); }
+	void set_ftp_burst_active(bool active) { _ftp_burst_active.store(active); }
+
+	bool log_download_active() const { return _log_download_active.load(); }
+	void set_log_download_active(bool active) { _log_download_active.store(active); }
+
+	/**
+	 * Share of the link budget that bulk transfers may use between them.
+	 * A parameter dump, an FTP burst and a log download each get a part of
+	 * this, never one each, or together they leave the streams nothing.
+	 */
+	static constexpr float kBulkBandwidthShare = 0.5f;
+
+	/**
+	 * Number of bulk transfers currently paced against the bulk share. An
+	 * FTP burst and a log download only count behind a radio, which is the
+	 * only case where they are paced at all.
+	 */
+	unsigned active_bulk_transfers() const
+	{
+		unsigned active = 0;
+
+		if (sending_all_parameters()) {
+			++active;
+		}
+
+		if (radio_status_available()) {
+			if (ftp_burst_active()) {
+				++active;
+			}
+
+			if (log_download_active()) {
+				++active;
+			}
+		}
+
+		return active;
+	}
+
+	/**
+	 * Share of the link budget for one bulk transfer, which is the whole
+	 * bulk share split between the transfers that are running.
+	 */
+	float bulk_bandwidth_share() const
+	{
+		const unsigned active = active_bulk_transfers();
+		return (active > 1) ? (kBulkBandwidthShare / (float)active) : kBulkBandwidthShare;
+	}
 
 	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
@@ -581,12 +645,13 @@ private:
 
 	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
 	px4::atomic_bool	_sending_parameters{false};     /**< True if parameters are currently sent out */
+	px4::atomic_bool	_sending_all_parameters{false}; /**< True while a full parameter dump is in progress */
 
 	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 
 	List<MavlinkStream *>		_streams;
 
-	MavlinkShell		*_mavlink_shell{nullptr};
+	px4::atomic<MavlinkShell *>	_mavlink_shell{nullptr}; ///< written by the receiver thread under _mavlink_shell_mutex; atomic for the unlocked fast check in handleMavlinkShellOutput()
 	pthread_mutex_t		_mavlink_shell_mutex{};
 	MavlinkULog		*_mavlink_ulog{nullptr};
 	static events::EventBuffer	*_event_buffer;
@@ -605,6 +670,13 @@ private:
 	int			_baudrate{57600};
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
+	px4::atomic_bool	_ftp_burst_active{false};       /**< True while an FTP burst is streaming */
+	px4::atomic_bool	_log_download_active{false};    /**< True while LOG_DATA is streaming */
+
+	float			_streams_const_rate{0.f};	///< theoretical bandwidth of the constant-rate streams, B/s
+	float			_streams_rate{0.f};		///< theoretical bandwidth of the other streams, B/s
+	hrt_abstime		_streams_rate_update{0};	///< when the stream bandwidths were last computed
+	bool			_streams_changed{true};		///< stream set or interval changed since then
 	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};

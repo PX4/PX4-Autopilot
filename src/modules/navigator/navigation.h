@@ -46,6 +46,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/** Consecutive DO_JUMP items the mission resolves before giving up on the chain. */
+static constexpr uint16_t NAV_MAX_JUMP_ITERATION{10u};
+
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
 	NAV_CMD_IDLE = 0,
@@ -223,7 +226,7 @@ struct mission_fence_point_s {
 
 /**
  * @brief Position and yaw setpoint struct.
- * Used in RTL state machine.
+ * Used in Return state machine.
  *
  */
 struct PositionYawSetpoint {

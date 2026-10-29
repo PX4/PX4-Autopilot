@@ -68,8 +68,7 @@ The following requirements must be met to arm in this mode, or to switch to this
 6. Місія скине тільки тоді, коли транспортний засіб буде роззброєний або коли буде завантажена нова місія.
 
    :::tip
-   Щоб автоматично роззброїти транспортний засіб після посадки, у _QGroundControl_ перейдіть до [Налаштування Транспортного Засобу > Безпека](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), перейдіть до _Налаштувань Режиму Посадки_ та позначте прапорець _Роззброювати після_.
-   Введіть час очікування після посадки перед відброюванням транспортного засобу.
+   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Return & Land](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/return_land.html#landing) and set the _Touchdown_ disarm delay (a value of 0 or less disables it).
 
 :::
 
@@ -104,7 +103,7 @@ If any of the checks fail, the user is notified and it is not possible to start 
 - Будь-який елемент місії конфліктує з планом або безпечним геозахистом
 - Визначено більше одного елемента місії початку посадки ([MAV_CMD_DO_LAND_START](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_LAND_START))
 - Посадка на фіксованих крилах має неможливий кут нахилу схилу ([FW_LND_ANG](#FW_LND_ANG))
-- Пункт початку посадки на землю (`MAV_CMD_DO_LAND_START`) з'являється в місії перед пунктом RTL ([MAV_CMD_NAV_RETURN_TO_LAUNCH](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RETURN_TO_LAUNCH))
+- Land start item (`MAV_CMD_DO_LAND_START`) appears in mission before an RTL ("Return") item ([MAV_CMD_NAV_RETURN_TO_LAUNCH](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RETURN_TO_LAUNCH))
 - Відсутній пункт зльоту та/або посадки, коли вони налаштовані як вимога ([MIS_TKO_LAND_REQ](#MIS_TKO_LAND_REQ))
 
 Additionally there is a check if the first waypoint is too far from the Home position ([MIS_DIST_1WP](#MIS_DIST_1WP)).
@@ -154,6 +153,10 @@ PX4 "приймає" наступні команди місії MAVLink у ре�
 - [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF)
 - [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT)
 - [MAV_CMD_DO_JUMP](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP)
+  - _Param1_ (sequence number) must refer to an earlier mission item.
+    A mission is rejected if a jump targets itself or a later item, even if its repeat count is 0.
+  - _Param2_ (repeat count) must be from 0 to 65535.
+    A mission with a negative or larger repeat count is rejected.
 - [MAV_CMD_NAV_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_ROI)
 - [MAV_CMD_DO_SET_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI)
 - [MAV_CMD_DO_SET_ROI_LOCATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_LOCATION)
@@ -325,6 +328,10 @@ A fixed-wing mission requires a `Takeoff` mission item to takeoff; if however th
 
 Висота спалаху обчислюється під час останнього підходу через "час до впливу" ([FW_LND_FL_TIME](#FW_LND_FL_TIME)) та швидкість спуску на посадку.
 Додатковий параметр безпеки [FW_LND_FLALT](#FW_LND_FLALT) встановлює мінімальну висоту, на якій транспортний засіб виконає флер (якщо висота на основі часу занадто низька для безпечного виконання флер-маневру).
+
+The flare can be disabled by setting either [FW_LND_FL_TIME](#FW_LND_FL_TIME) or [FW_LND_FLALT](#FW_LND_FLALT) to -1.
+The vehicle then keeps tracking the landing slope at the landing airspeed ([FW_LND_AIRSPD](../advanced_config/parameter_reference.md#FW_LND_AIRSPD), or [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) if not set) until touchdown.
+In this case also set [FW_LND_USETER](#FW_LND_USETER) to `0`, otherwise the landing may abort just before touchdown when the distance sensor stops giving valid readings close to the ground.
 
 Якщо посадка на живіт, транспортний засіб буде продовжувати перебувати в стані сповільнення до посадки, виявлення землі та подальше відключення. Для посадки на взлетно-посадочной полосе, [FW_LND_TD_TIME](#FW_LND_TD_TIME) дозволяє встановити час після початку спадання для опускання носа (наприклад, розглядайте шасі з триколісною підвіскою) на взлетно-посадочій смузі ([RWTO_PSP](#RWTO_PSP)) та уникнути стрибків. Цей час приблизно відповідає посадковому посту після спалаху, і його слід налаштувати для певної конструкції корпусу під час тільки після того, як спалах буде налаштований під час випробувань.
 

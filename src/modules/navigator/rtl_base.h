@@ -33,7 +33,7 @@
 /**
  * @file rtl_base.h
  *
- * Helper class for RTL modes using the mission
+ * Helper class for Return modes using the mission
  *
  */
 
@@ -56,7 +56,22 @@ public:
 
 	virtual void setRtlAlt(float alt) { (void)alt;};
 
+	/** Refresh the cached mission before RTL selects the destination and activates this mode. */
+	void refreshMission() { updateMavlinkMission(); }
+
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+protected:
+	/** Convert a caller-selected position item into a waypoint, retaining loiter-to-altitude. */
+	static void makeRtlPositionItem(mission_item_s &item)
+	{
+		if (item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
+			item.nav_cmd = NAV_CMD_WAYPOINT;
+		}
+
+		item.autocontinue = true;
+		item.time_inside = 0.f;
+	}
 };

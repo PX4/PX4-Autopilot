@@ -53,6 +53,11 @@ mavutil.add_message = _safe_add_message
 
 SERIAL_CONTROL_DEV_SHELL = 10  # SERIAL_CONTROL_DEV_SHELL (see Tools/mavlink_shell.py)
 DEFAULT_BAUD = 57600
+# Default budget for MavlinkShell.open(). Opening spawns the nsh task on the
+# firmware side and older releases (v1.17, #27840) failed a 5s single-write
+# open right after a previous session closed, so the budget is generous and
+# open() re-sends its wake write until the shell answers.
+SHELL_OPEN_TIMEOUT = 10.0
 USB_DEVICE_GLOB_DARWIN = '/dev/tty.usbmodem*'
 USB_DEVICE_GLOB_LINUX = '/dev/serial/by-id/*PX4*'
 
@@ -156,16 +161,49 @@ def connect(conn_str, baud=DEFAULT_BAUD, timeout: float = 20, source_system=254)
     assert isinstance(mav, mavutil.mavfile), 'unexpected connection type for {}'.format(conn_str)
     # announce ourselves so the autopilot streams to us
     send_heartbeat(mav)
-    hb = mav.wait_heartbeat(timeout=int(timeout))
+    hb = wait_heartbeat(mav, timeout=timeout)
     if hb is None:
         mav.close()
-        raise TimeoutError('no HEARTBEAT on {} within {}s'.format(conn_str, timeout))
+        raise TimeoutError('no autopilot HEARTBEAT on {} within {}s'.format(conn_str, timeout))
+    # Pin the target to the autopilot that sent this heartbeat. pymavlink
+    # (checked 2.4.42 through 2.4.49) only latches target_system once, from
+    # the first vehicle-looking heartbeat, and never sets target_component,
+    # which stays 0 (broadcast): param/mission requests then reach every
+    # component on the sysid and any of them may answer. Neither value is
+    # touched again by incoming traffic once set here.
+    mav.target_system = hb.get_srcSystem()
+    mav.target_component = hb.get_srcComponent()
     return mav
 
 
+def is_from_target(mav, msg):
+    """True if msg was sent by the pinned autopilot (system and component)."""
+    return (msg.get_srcSystem() == mav.target_system and
+            msg.get_srcComponent() == mav.target_component)
+
+
 def wait_heartbeat(mav, timeout: float = 10):
-    """Wait for the next autopilot heartbeat. Returns the message or None."""
-    return mav.wait_heartbeat(timeout=int(timeout))
+    """Wait for the next autopilot heartbeat. Returns the message or None.
+
+    A board can heartbeat from more than one component on the same sysid
+    (FMUv6X-RT on v1.17: compid 1 is PX4, compid 236 reports
+    MAV_AUTOPILOT_INVALID, #27852). Heartbeats with MAV_AUTOPILOT_INVALID
+    (GCS, companion, gimbal, other onboard components) are skipped, and once
+    connect() has pinned the target only that component's heartbeat counts.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        m = mav.recv_match(type='HEARTBEAT', blocking=True, timeout=remaining)
+        if m is None:
+            return None
+        if m.autopilot == mavutil.mavlink.MAV_AUTOPILOT_INVALID:
+            continue
+        if mav.target_component != 0 and not is_from_target(mav, m):
+            continue
+        return m
 
 
 def send_heartbeat(mav):
@@ -254,7 +292,7 @@ class MavlinkShell:
         if m is not None:
             self.buf += ''.join(chr(x) for x in m.data[:m.count])
 
-    def open(self, timeout: float = 5):
+    def open(self, timeout: float = SHELL_OPEN_TIMEOUT):
         """Wake the shell and confirm a live prompt. Returns True on success.
 
         The firmware spawns a fresh nsh task plus two pipes on the first
@@ -268,14 +306,22 @@ class MavlinkShell:
         seeing that sentinel echoed back proves nsh is up and processing our
         input. The sentinel round-trip also covers builds whose prompt token
         differs or is suppressed.
+
+        The wake write is re-sent every second until the deadline: the write
+        that spawns the shell task can be consumed before the nsh pipes are
+        reading (seen on v1.17 right after a prior session closed, #27840),
+        and a single write turns that dropped line into a bogus open failure.
         """
         self._seq += 1
         sentinel = 'BENCHOPEN{}'.format(self._seq)
         self.buf = ''
-        self._write('\n')
-        self._write('echo {}\n'.format(sentinel))
         deadline = time.monotonic() + timeout
+        next_wake = 0.0
         while time.monotonic() < deadline:
+            if time.monotonic() >= next_wake:
+                self._write('\n')
+                self._write('echo {}\n'.format(sentinel))
+                next_wake = time.monotonic() + 1.0
             self._pump()
             if 'nsh>' in self.buf or re.search(
                     r'^{}\s*$'.format(re.escape(sentinel)), self.buf, re.MULTILINE):
@@ -314,11 +360,16 @@ class MavlinkShell:
 
         Strips ANY BENCHDONE sentinel, not just the current one: the second
         safety echo of the previous command often arrives after run() already
-        returned and would otherwise leak into this command's output.
+        returned and would otherwise leak into this command's output. Same
+        for BENCHOPEN: open() re-sends its wake echo until the shell answers,
+        so queued wake lines can execute (echo command and its output) after
+        open() already returned.
         """
         lines = []
         for line in self.buf.splitlines():
             if sentinel in line or re.match(r'BENCHDONE\d+\s*$', line.strip()):
+                continue
+            if 'BENCHOPEN' in line:
                 continue
             if cmd in line and 'echo' in line:
                 continue
@@ -427,6 +478,13 @@ def list_usb_devices(pattern=None):
     return devs
 
 
+def device_family_glob(device):
+    """Glob of the nodes of the same family as a serial device
+    (/dev/cu.usbmodem01 -> /dev/cu.usbmodem*), or None."""
+    base = re.sub(r'\d+$', '', device)
+    return base + '*' if base != device else None
+
+
 def wait_device_gone(device, timeout=30):
     """Wait until the serial device node disappears. Returns elapsed or None."""
     start = time.monotonic()
@@ -437,22 +495,26 @@ def wait_device_gone(device, timeout=30):
     return None
 
 
-def wait_device_back(device, timeout=45, pattern=None):
+def wait_device_back(device, timeout=45, pattern=None, others=None):
     """Wait until the device node (or a matching one) reappears.
 
     USB enumeration can change the node name (usbmodem01 -> usbmodem101 on
     macOS), so if the exact node does not come back we fall back to a glob
-    for the same device family. Returns (device_path, elapsed) or (None, None).
+    for the same device family, ignoring the nodes that were already there
+    (a debug probe or another board, also a usbmodem node, stays while the
+    board reboots): `others`, or the ones there when called. Returns
+    (device_path, elapsed) or (None, None).
     """
     if pattern is None:
-        base = re.sub(r'\d+$', '', device)
-        pattern = base + '*' if base != device else None
+        pattern = device_family_glob(device)
+    if others is None:
+        others = set(glob.glob(pattern)) - {device} if pattern else set()
     start = time.monotonic()
     while time.monotonic() - start < timeout:
         if os.path.exists(device):
             return device, time.monotonic() - start
         if pattern:
-            found = sorted(glob.glob(pattern))
+            found = sorted(set(glob.glob(pattern)) - others)
             if found:
                 return found[0], time.monotonic() - start
         time.sleep(0.2)
@@ -472,9 +534,12 @@ def wait_reconnect(conn_str, baud=DEFAULT_BAUD, timeout=60, start=None):
         start = time.monotonic()
 
     if is_serial_device(conn_str):
+        # the other devices of the family, before the board comes back under another name
+        pattern = device_family_glob(conn_str)
+        others = set(glob.glob(pattern)) - {conn_str} if pattern else set()
         gone = wait_device_gone(conn_str, timeout=15)
         # Some boards re-enumerate too fast to observe the node vanish; that is fine.
-        newdev, _ = wait_device_back(conn_str, timeout=timeout)
+        newdev, _ = wait_device_back(conn_str, timeout=timeout, pattern=pattern, others=others)
         if newdev is None:
             raise TimeoutError('serial device {} did not come back within {}s '
                                '(gone after {})'.format(

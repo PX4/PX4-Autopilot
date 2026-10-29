@@ -85,7 +85,7 @@ private:
 	void update_data() override
 	{
 		for (int i = 0; i < _esc_status_subs.size(); i++) {
-			esc_status_s esc = {};
+			esc_status_s esc;
 
 			if (_esc_status_subs[i].update(&esc)) {
 				_instance_counter[i] = esc.counter;

@@ -76,6 +76,10 @@ public:
 	// Used by WorkItem::Deinit to avoid self-wait when called from inside Run().
 	pthread_t runner_tid() const { return _runner_tid; }
 
+	// True while the worker is inside item->Run(). Used by WorkItem::Deinit
+	// to wait out an in-flight Run() before the item's memory can be reused.
+	bool is_running(const WorkItem *item) const { return _running_item.load() == item; }
+
 	void request_stop();
 
 	void print_status(bool last = false);
@@ -108,6 +112,11 @@ private:
 	BlockingList<WorkItem *>	_work_items;
 	px4::atomic_bool		_should_exit{false};
 	pthread_t			_runner_tid{};
+
+	// Tracked here, not in the WorkItem: an item may delete itself inside
+	// Run() (ModuleBase::exit_and_cleanup), so the worker must not touch it
+	// once Run() returns.
+	px4::atomic<WorkItem *>		_running_item{nullptr};
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	int _lockstep_component {-1};

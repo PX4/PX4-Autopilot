@@ -4,12 +4,9 @@ parameters:
   definitions:
     NAV_LOITER_RAD:
       description:
-        short: Loiter radius (FW only)
-        long: |-
-          Default value of loiter radius in fixed-wing mode (e.g. for Loiter mode).
-
-          The direction of the loiter can be set via the sign: A positive value for
-          clockwise, negative for counter-clockwise.
+        short: FW Loiter radius
+        long: Default for fixed-wing loiters, e.g. in Hold mode. Positive values loiter
+          clockwise, negative values counter-clockwise.
       type: float
       default: 80.0
       unit: m
@@ -19,10 +16,9 @@ parameters:
       increment: 0.5
     NAV_ACC_RAD:
       description:
-        short: Acceptance Radius
-        long: |-
-          Default acceptance radius, overridden by acceptance radius of waypoint if set.
-          For fixed-wing and rovers, the high level controllers output their own acceptance radius. Those values are used instead only when above this parameter.
+        short: Acceptance radius
+        long: Overridden by a waypoint's own acceptance radius, if set. For fixed-wing and
+          rovers, the controller's acceptance radius is used instead when it is larger.
       type: float
       default: 10.0
       unit: m
@@ -32,8 +28,7 @@ parameters:
       increment: 0.5
     NAV_FW_ALT_RAD:
       description:
-        short: FW Altitude Acceptance Radius
-        long: Acceptance radius for fixedwing altitude.
+        short: FW Altitude acceptance radius
       type: float
       default: 10.0
       unit: m
@@ -43,10 +38,9 @@ parameters:
       increment: 0.5
     NAV_FW_ALTL_RAD:
       description:
-        short: FW Altitude Acceptance Radius before a landing
-        long: |-
-          Altitude acceptance used for the last waypoint before a fixed-wing landing. This is usually smaller
-          than the standard vertical acceptance because close to the ground higher accuracy is required.
+        short: FW Altitude acceptance radius before landing
+        long: FW acceptance alt for last waypoint before landing.
+          Usually smaller than NAV_FW_ALT_RAD; accuracy matters more near the ground.
       type: float
       default: 5.0
       unit: m
@@ -55,8 +49,7 @@ parameters:
       decimal: 1
     NAV_MC_ALT_RAD:
       description:
-        short: MC Altitude Acceptance Radius
-        long: Acceptance radius for multicopter altitude.
+        short: MC Altitude acceptance radius
       type: float
       default: 0.8
       unit: m
@@ -66,10 +59,8 @@ parameters:
       increment: 0.5
     NAV_TRAFF_AVOID:
       description:
-        short: Set traffic avoidance action
-        long: |-
-          Action requested for a crosstrack traffic conflict.
-          Runtime changes apply on later conflict level transitions.
+        short: Traffic avoidance action (Xtrack only)
+        long: Changes take effect at the next cross-track conflict level transition.
       type: enum
       values:
         0: Disabled
@@ -115,12 +106,10 @@ parameters:
       default: 1
     NAV_MIN_LTR_ALT:
       description:
-        short: Minimum Loiter altitude
-        long: |-
-          This is the minimum altitude above Home the system will always obey in Loiter (Hold) mode if switched into this
-          mode without specifying an altitude (e.g. through Loiter switch on RC).
-          Doesn't affect Loiters that are part of Missions or that are entered through a reposition setpoint ("Go to").
-          Set to a negative value to disable.
+        short: Minimum loiter altitude
+        long: Altitude above Home used when Hold mode is entered without an altitude,
+          e.g. from an RC switch. Doesn't apply to mission loiters or reposition ("Go to")
+          setpoints. Set to -1 to disable.
       type: float
       default: -1.0
       unit: m
@@ -129,14 +118,10 @@ parameters:
       increment: 0.5
     NAV_MIN_GND_DIST:
       description:
-        short: Minimum height above ground during Mission and RTL
-        long: |-
-          Minimum height above ground the vehicle is allowed to descend to during Mission and RTL,
-          excluding landing commands.
-          Requires a distance sensor to be set up.
-          Note: only prevents the vehicle from descending further, but does not force it to climb.
-
-          Set to a negative value to disable.
+        short: Minimum height above ground during Mission and Return
+        long: Minimum height AGL in Return and Mission (excluding landing commands).
+          Requires a distance sensor.
+          Stops further descent but doesn't force a climb. Set to -1 to disable.
       type: float
       default: -1.0
       unit: m
@@ -146,10 +131,7 @@ parameters:
     NAV_LTR_LAST_DL:
       description:
         short: Loiter at last GCS heartbeat position on data link loss
-        long: |-
-          When the data link is lost and this setting is enabled,
-          the vehicle will loiter at the position where the last GCS
-          heartbeat was received rather than at its current position.
-          Only applies to Hold mode during failsafe actions.
+        long: If disabled, the vehicle loiters at its current position. Only applies to
+          Hold mode during failsafe actions.
       type: boolean
       default: 0

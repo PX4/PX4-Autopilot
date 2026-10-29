@@ -47,7 +47,7 @@
 /* ---- Specializations of convert() to convert incompatbile data, instance no. timestamp ---- */
 
 template<>
-void uORB_over_UAVCAN_Subscriber<sensor_gps_s>::convert(sensor_gps_s *data)
+void uORB_over_UAVCAN_Subscriber<sensor_gnss_s>::convert(sensor_gnss_s *data)
 {
 	/* HOTFIX as long as we don't have UAVCAN timesyncronization we update the timestamp on arrival */
 	data->timestamp = hrt_absolute_time();

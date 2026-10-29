@@ -5,8 +5,7 @@
 _Altitude mode_ is a _relatively_ easy-to-fly RC mode in which roll and pitch sticks control vehicle movement in the left-right and forward-back directions (relative to the "front" of the vehicle), yaw stick controls rate of rotation over the horizontal plane, and throttle controls speed of ascent-descent.
 
 When the sticks are released/centered the vehicle will level and maintain the current _altitude_.
-如果在水平面上运动，飞机将继持续运动直到任何动量被风阻力消散。
-如果刮风，飞机会向风的方向漂移。
+如果在水平面上运动，飞机将继持续运动直到任何动量被风阻力消散。如果刮风，飞机会向风的方向漂移。
 
 :::tip
 _Altitude mode_ is the safest non-GPS manual mode for new fliers. It is just like [Stabilized](../flight_modes_mc/manual_stabilized.md) mode but additionally locks the vehicle altitude when the sticks are released.
@@ -58,6 +57,6 @@ The following requirements must be met to arm in this mode, or to switch to this
 
 | Parameter                                                                                                                                                                                       | 描述                                                                                                                                                                                                                                                          |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MPC_Z_VEL_MAX_UP"></a>[MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) | 最大垂直上升速度。 默认：3m/s。                                                                                                                                                                                                                                          |
-| <a id="MPC_Z_VEL_MAX_DN"></a>[MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) | 最大垂直下降速度。 默认：1m/s。                                                                                                                                                                                                                                          |
+| <a id="MPC_Z_VEL_MAX_UP"></a>[MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) | 最大垂直上升速度。默认：3m/s。                                                                                                                                                                                                                                           |
+| <a id="MPC_Z_VEL_MAX_DN"></a>[MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) | 最大垂直下降速度。默认：1m/s。                                                                                                                                                                                                                                           |
 | <a id="MPC_xxx"></a>`MPC_XXXX`                                                                                                                                                                  | 大多数 MPC_xxx参数会影响此模式下的飞行行为（至少在某种程度上）。 For example, [MPC_THR_HOVER](../advanced_config/parameter_reference.md#MPC_THR_HOVER) defines the thrust at which a vehicle will hover. |

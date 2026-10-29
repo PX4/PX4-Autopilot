@@ -130,15 +130,13 @@ API 之间的一个重要区别是，C++ 版本具有更有效的标准化机制
 Your code should _always_ use the current value from the parameter store.
 If getting the latest version is not possible, then a reboot will be required after the parameter is changed (set this requirement using the `@reboot_required` metadata).
 
-此外，C++ 版本有更好的类型安全和更小的 RAM 开销。
-缺点是参数名称必须在编译时知道，而 C 语言 API 可以将动态创建的名称作为字符串。
+此外，C++ 版本有更好的类型安全和更小的 RAM 开销。缺点是参数名称必须在编译时知道，而 C 语言 API 可以将动态创建的名称作为字符串。
 
 #### C++ API
 
 The C++ API provides macros to declare parameters as _class attributes_.
 You add some "boilerplate" code to regularly listen for changes in the [uORB Topic](../middleware/uorb.md) associated with _any_ parameter update.
-框架代码然后 (在不可见的情况下) 处理追踪影响 uORB 消息，并保持参数属性和 uORB 消息同步。
-在代码的其余部分中，您只能使用定义的参数属性，它们将始终是最新的！
+框架代码然后 (在不可见的情况下) 处理追踪影响 uORB 消息，并保持参数属性和 uORB 消息同步。在代码的其余部分中，您只能使用定义的参数属性，它们将始终是最新的！
 
 首先在您的模块或驱动程序的类头文件中包含所需的头文件:
 
