@@ -128,6 +128,20 @@ export PX4_HOME_ALT=28.5
 make px4_sitl_sih sihsim_quadx
 ```
 
+#### Sensor Calibration
+
+`simulator_sih orient` poses the vehicle on the ground the way accelerometer and magnetometer calibration ask for, so either calibration can be run from QGroundControl or a script.
+Run it from the PX4 shell, or the [MAVLink shell](../debug/mavlink_shell.md), after starting the calibration:
+
+| Command                              | Pose                                                                              |
+| ------------------------------------ | --------------------------------------------------------------------------------- |
+| `simulator_sih orient all`           | Each side in turn: 10 s still, then 10 s rotating. Completes either calibration.  |
+| `simulator_sih orient <side>`        | Still, with `<side>` facing down: `down`, `up`, `front`, `back`, `left`, `right`. |
+| `simulator_sih orient <side> rotate` | Rotating about the vertical with `<side>` down, with a tilt swing.                |
+| `simulator_sih orient off`           | Level, then back to the flight dynamics.                                          |
+
+Sensor calibration is rejected when SIH runs on flight controller hardware.
+
 ### ROS 2 Integration
 
 SIH works with ROS 2 via the [uXRCE-DDS](../middleware/uxrce_dds.md) client, which auto-starts in SITL mode.
