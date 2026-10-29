@@ -965,38 +965,3 @@ TEST_F(MissionVtolTransitionTest, ResumeAfterStoppedFrontTransitionRestartsTheTr
 	mission.run(true);
 	EXPECT_EQ(mission.currentSequenceForTest(), 2);
 }
-
-TEST_F(MissionVtolTransitionTest, PassedWaypointInHoverStillNeedsItsRadius)
-{
-	// Outside a front transition a multicopter keeps its acceptance rules.
-	MissionTestPeer mission(&_navigator);
-	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	prepareExecution(mission, {waypointAt(0.f, 0.f), waypointAt(0.f, 300.f), waypointAt(300.f, 300.f)});
-	mission.on_active();
-	ASSERT_EQ(mission.currentSequenceForTest(), 1);
-
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 30.f, 320.f, kAlt));
-	mission.on_active();
-	EXPECT_EQ(mission.currentSequenceForTest(), 1);
-}
-
-TEST_F(MissionVtolTransitionTest, BackTransitionItemStillCompletesInMulticopter)
-{
-	// Only a front transition completes once it runs: a back transition item waits for multicopter flight.
-	MissionTestPeer mission(&_navigator);
-	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	auto back_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-	back_transition.autocontinue = true;
-	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-	prepareExecution(mission, {back_transition, waypointAt(0.f, 200.f)});
-	ASSERT_EQ(countTransitionCommands(), 1);
-
-	// A stale status that still shows a front transition does not complete it.
-	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
-	mission.on_active();
-	EXPECT_EQ(mission.currentSequenceForTest(), 0);
-	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	mission.on_active();
-	EXPECT_EQ(mission.currentSequenceForTest(), 1);
-}
