@@ -44,13 +44,9 @@ On entry, the rover maintains its current velocity vector:
 
 While the mode is active, the course and speed can be changed with these MAVLink commands, sent from a GCS or companion computer:
 
-| Command                         | Effect                                                                                                                                                            |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [MAV_CMD_GUIDED_CHANGE_HEADING] | Set a new course over ground (degrees, 0 = north) with `HEADING_TYPE = 0` (Course over Ground). Other heading types are rejected.                                 |
-| [MAV_CMD_DO_CHANGE_SPEED]       | Set a new ground speed via param2 (m/s), applied immediately and limited to [RO_SPEED_LIM]. `0` stops the rover, negative values keep the current speed setpoint. |
-
-[MAV_CMD_GUIDED_CHANGE_HEADING]: https://mavlink.io/en/messages/common.html#MAV_CMD_GUIDED_CHANGE_HEADING
-[RO_SPEED_LIM]: ../advanced_config/parameter_reference.md#RO_SPEED_LIM
+- [MAV_CMD_GUIDED_CHANGE_HEADING](https://mavlink.io/en/messages/common.html#MAV_CMD_GUIDED_CHANGE_HEADING): Set a new course over ground (degrees, 0 = north) with `HEADING_TYPE = 0` (Course over Ground). Other heading types are rejected.
+- [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED): Set a new ground speed via param2 (m/s), applied immediately and limited to [RO_SPEED_LIM](../advanced_config/parameter_reference.md#RO_SPEED_LIM).
+  `0` stops the rover, negative values keep the current speed setpoint. |
 
 The rover tries to track the commanded course over ground.
 Ackermann and differential rovers correct their heading by the estimated drift angle so that their course over ground matches the course setpoint, the way a fixed-wing vehicle crabs into the wind.
