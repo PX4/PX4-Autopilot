@@ -537,6 +537,28 @@ TEST_F(MissionRouteGeofenceTest, AltitudeBreachKeepsPolygonChecks)
 	EXPECT_EQ(join.first_mission_item_index, 3);
 }
 
+// A safe point above GF_MAX_VER_DIST loses its candidates in the prune. The rescan checks candidates, not the
+// safe point itself, so it must skip that safe point: Return picks the farther one inside the limits.
+TEST_F(MissionRouteGeofenceTest, RescanSkipsSafePointOutsideLimits)
+{
+	const float maximum_vertical = 150.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum_vertical), PX4_OK);
+	_navigator.updateParams();
+	const Position vehicle = routePosition(100.f, 0.f);
+	const GeofencePathChecker checker{_fence, vehicle};
+	mission_item_s high_safe_point = safePointItem(300.f, 20.f);
+	high_safe_point.altitude = kAltitude + 60.f; // 160 m above Home
+	const auto provider = makeRouteProvider(rectangleMission(), {high_safe_point, safePointItem(500.f, 20.f)});
+	MissionRoutePlanner planner{provider, &checker};
+	mission_route::RtlRoutePlan plan{};
+
+	const mission_route::FailureReason status = planner.planRtlRoute(rtlRequest(vehicle, 1), plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 1);
+}
+
 // The closest leg is blocked, but a leg 30 m away passes inside the first window. The rescan must widen the window
 // to the leg the vehicle flies, 50 m away and cheaper; rescanning only empty buffers would miss it.
 TEST_F(MissionRouteGeofenceTest, BlockedClosestLegDoesNotHideCheaperLegBeyondSurvivor)
