@@ -71,7 +71,7 @@ It has a PixArt PAA3905 optical flow sensor, Broadcom AFBR-S50LX85D 50 meter dis
 ### Dronaware Optical Flow
 
 [Dronaware Optical Flow](../sensor/dronaware_optical_flow.md) is licensed firmware that can be flashed on off-the-shelf ESP32 and ESP32-S3 camera boards, such as the AI-Thinker ESP32-CAM and Waveshare ESP32-S3-CAM.
-It sends `OPTICAL_FLOW_RAD` over a MAVLink UART at up to 100 Hz (as measured on AI-Thinker ESP32-CAM with OV3660 camera), and must be paired with a separate [distance sensor](../sensor/rangefinders.md).
+It sends `OPTICAL_FLOW_RAD` over a MAVLink UART at up to 100 Hz (as measured on an AI-Thinker ESP32-CAM with an OV3660 camera), and must be paired with a separate [distance sensor](../sensor/rangefinders.md).
 
 ### Holybro H-Flow
 

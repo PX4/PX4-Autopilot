@@ -1,7 +1,7 @@
 # Dronaware Optical Flow (ESP32 Camera Boards)
 
 [Dronaware Optical Flow](https://dronaware.com/opticalflow/) is licensed firmware that can be flashed on an off-the-shelf ESP32 or ESP32-S3 camera board, turning it into a MAVLink [optical flow](../sensor/optical_flow.md) sensor.
-The board computes optical flow from a downward facing camera and sends [OPTICAL_FLOW_RAD](https://mavlink.io/en/messages/common.html#OPTICAL_FLOW_RAD) messages to the flight controller over a UART, at up to 100 Hz (as measured on AI-Thinker ESP32-CAM with OV3660 camera).
+The board computes optical flow from a downward facing camera and sends [OPTICAL_FLOW_RAD](https://mavlink.io/en/messages/common.html#OPTICAL_FLOW_RAD) messages to the flight controller over a UART, at up to 100 Hz (as measured on an AI-Thinker ESP32-CAM with an OV3660 camera).
 
 The firmware does not measure distance.
 A separate downward facing [distance sensor](../sensor/rangefinders.md) is required for optical flow navigation.
@@ -15,13 +15,13 @@ The firmware is flashed and activated from a web browser at [dronaware.com/optic
 
 The following boards are currently available for activation.
 The UART column lists the default ESP32 pins that carry MAVLink to the flight controller.
-They can be customized during the flash session, as far as the board's free pins allow.
+They can be customised during the flash session, as far as the board's free pins allow.
 
-| Board                  | SoC      | Camera         | Default UART TX / RX (GPIO) |
-| ---------------------- | -------- | -------------- | --------------------------- |
-| AI-Thinker ESP32-CAM   | ESP32    | OV2640, OV3660 | 1 / 3                       |
-| TTGO T-Journal         | ESP32    | OV2640         | 14 / 13                     |
-| Waveshare ESP32-S3-CAM | ESP32-S3 | GC0308, OV3660 | 43 / 44                     |
+| Board                                                                    | SoC      | Camera         | Default UART TX / RX (GPIO) |
+| ------------------------------------------------------------------------ | -------- | -------------- | --------------------------- |
+| [AI-Thinker ESP32-CAM](https://docs.ai-thinker.com/en/esp32-cam)         | ESP32    | OV2640, OV3660 | 1 / 3                       |
+| [LILYGO TTGO T-Journal](https://lilygo.cc/products/t-journal)            | ESP32    | OV2640         | 14 / 13                     |
+| [Waveshare ESP32-S3-CAM](https://docs.waveshare.com/ESP32-S3-CAM-OVxxxx) | ESP32-S3 | GC0308, OV3660 | 43 / 44                     |
 
 The complete list of boards, with their test status, is maintained in the _Device compatibility_ section of the [Dronaware documentation](https://dronaware.com/opticalflow/#documentation).
 
@@ -38,7 +38,7 @@ Connect the board to a spare flight controller UART (for example `TELEM2`):
 | GND         | GND               |
 | 5V          | 5V                |
 
-The firmware only transmits, so the flight controller TX to board RX connection is not used by the current firmware (see [MAVLink Messages](#mavlink-messages)).
+The firmware only transmits, so the flight controller TX to board RX line is unused (see [MAVLink Messages](#mavlink-messages)).
 Both sides use 3.3 V logic, so no level shifter is needed.
 
 ::: tip
@@ -47,7 +47,7 @@ A low-ESR electrolytic capacitor (for example 470 µF, 10 V or higher) across th
 :::
 
 ::: warning
-On the AI-Thinker ESP32-CAM the default MAVLink pins (1 / 3) are the same UART0 used by the USB-serial adapter.
+On the AI-Thinker ESP32-CAM, the default MAVLink pins (1 / 3) are on UART0, which is also used by the USB-serial adapter.
 When using the default pins, disconnect USB before connecting the board to the flight controller.
 Do not power the board from both USB and the flight controller at the same time.
 :::
@@ -58,6 +58,8 @@ Mount the board rigidly with the camera facing straight down and an unobstructed
 
 Before installing the board, confirm the direction of its flow axes with the _Dronaware Testbench_ (opened automatically at the end of activation).
 The Testbench reports which board edge must face the vehicle's front, and whether any flow axis is mirrored.
+If it reports a mirrored axis, or cannot determine the direction, do not fly the board: `SENS_FLOW_ROT` corrects only yaw rotation, not a mirrored axis.
+Contact Dronaware support instead.
 
 Mount the board with that edge facing forwards and set [SENS_FLOW_ROT](../advanced_config/parameter_reference.md#SENS_FLOW_ROT) to `0` (no rotation).
 If the board must be mounted in a different orientation, set `SENS_FLOW_ROT` to the matching yaw rotation.
@@ -83,7 +85,7 @@ Reboot after setting `MAV_1_CONFIG` so that the port's baud rate parameter appea
 
 ### Estimator
 
-Enable optical flow fusion in [EKF2](../sensor/optical_flow.md#ekf2):
+Set the following parameters to enable optical flow fusion in [EKF2](../sensor/optical_flow.md#ekf2):
 
 | Parameter                                                                                                                                                                                                                    | Value                                           |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
@@ -97,7 +99,7 @@ The firmware leaves the gyro fields of `OPTICAL_FLOW_RAD` unset (`NaN`), so PX4 
 With `EKF2_OF_GYR_SRC=1`, EKF2 uses its IMU at the time of each flow measurement.
 With the default (`0`, Auto), PX4 instead integrates its gyro separately for each message, and this under-reads the rotation because consecutive messages cover overlapping intervals (see [MAVLink Messages](#mavlink-messages)).
 `EKF2_OF_DELAY=20` is the delay the sensor was flight tested with.
-PX4's default (7 ms) matches DroneCAN flow nodes, so set it explicitly and reboot.
+PX4's default (7 ms) suits DroneCAN flow nodes, so set `EKF2_OF_DELAY` explicitly and reboot.
 
 `SENS_FLOW_MAXR=1.0` is the lowest value in the parameter's range.
 PX4 then limits horizontal speed to about half the height above ground per second (about 0.5 m/s at 1 m), which keeps the flow rate within what the camera can measure.
