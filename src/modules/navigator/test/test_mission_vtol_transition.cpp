@@ -77,6 +77,13 @@ static mission_item_s waypointAt(float north_m, float east_m)
 	return makePositionItemFromOffset(kBaseLat, kBaseLon, north_m, east_m, kAlt);
 }
 
+// Navigator with its parameter update exposed.
+class TestNavigator : public Navigator
+{
+public:
+	using Navigator::updateParams;
+};
+
 /**
  * @brief Mission peer that exposes the work item and the current mission item.
  */
@@ -303,8 +310,21 @@ protected:
 		mission.beginItemForTest(work);
 	}
 
+	// Drain the commands published so far and count the VTOL transition commands among them.
+	int countTransitionCommands()
+	{
+		vehicle_command_s command{};
+		int count = 0;
+
+		while (_command_sub.update(&command)) {
+			count += command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION ? 1 : 0;
+		}
+
+		return count;
+	}
+
 	mission_s _mission_state{};
-	Navigator _navigator{};
+	TestNavigator _navigator{};
 	DatamanClient _dataman_client{};
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)};
 	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
@@ -323,7 +343,7 @@ protected:
 
 TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 {
-	// The alignment holds position and turns towards the next waypoint; the command is sent once and the item
+	// The alignment flies towards the next waypoint while it turns towards it; the command is sent once and the item
 	// completes in fixed-wing.
 	MissionTestPeer mission(&_navigator);
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -339,9 +359,10 @@ TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 
 	const auto &triplet = *_navigator.get_position_setpoint_triplet();
 	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
-	// The published setpoint is the alignment item: hold here, heading towards the next waypoint.
-	EXPECT_DOUBLE_EQ(triplet.current.lat, position.lat);
-	EXPECT_DOUBLE_EQ(triplet.current.lon, position.lon);
+	// The published setpoint is the alignment item: the next waypoint, not lower than now, heading towards it.
+	EXPECT_DOUBLE_EQ(triplet.current.lat, target.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, target.lon);
+	EXPECT_FLOAT_EQ(triplet.current.alt, position.alt);
 	EXPECT_NEAR(triplet.current.yaw, yaw, 1e-4f);
 	EXPECT_NEAR(mission.currentMissionItemForTest().yaw, yaw, 1e-4f);
 	mission.on_active();
@@ -493,7 +514,7 @@ TEST_F(MissionVtolTransitionTest, FrontTransitionByOperatorDuringTakeoffAlignmen
 
 TEST_F(MissionVtolTransitionTest, FeasibilityRefreshRestartsAligningFrontTransition)
 {
-	// A feasibility refresh restarts the item: the alignment starts again where the vehicle is, and the front
+	// A feasibility refresh restarts the item: the alignment starts again from where the vehicle is, and the front
 	// transition is still commanded.
 	MissionTestPeer mission(&_navigator);
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -519,7 +540,7 @@ TEST_F(MissionVtolTransitionTest, FeasibilityRefreshRestartsAligningFrontTransit
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
 	EXPECT_NEAR(mission.currentMissionItemForTest().yaw, yaw, 1e-4f);
-	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, drifted.lat);
+	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, target.lon);
 	EXPECT_FALSE(_command_sub.updated());
 
 	publishLocalPosition(yaw);
@@ -535,9 +556,9 @@ TEST_F(MissionVtolTransitionTest, FeasibilityRefreshRestartsAligningFrontTransit
 	EXPECT_EQ(mission.currentSequenceForTest(), 2);
 }
 
-TEST_F(MissionVtolTransitionTest, FrontTransitionAfterBackTransitionAlignsWhereTheVehicleIs)
+TEST_F(MissionVtolTransitionTest, FrontTransitionAfterBackTransitionAlignsTowardsTheNextWaypoint)
 {
-	// The back transition ends past the waypoint reached during it; alignment must not wait for a return to it.
+	// The back transition ends past the waypoint reached during it; alignment must not return to it.
 	MissionTestPeer mission(&_navigator);
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	const auto target = waypointAt(200.f, 0.f);
@@ -556,7 +577,7 @@ TEST_F(MissionVtolTransitionTest, FrontTransitionAfterBackTransitionAlignsWhereT
 	publishLocalPosition(get_bearing_to_next_waypoint(stop.lat, stop.lon, target.lat, target.lon));
 	mission.on_active();
 	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
-	EXPECT_DOUBLE_EQ(mission.currentMissionItemForTest().lon, stop.lon);
+	EXPECT_DOUBLE_EQ(mission.currentMissionItemForTest().lat, target.lat);
 	EXPECT_FALSE(_command_sub.updated());
 
 	mission.on_active();
@@ -567,8 +588,8 @@ TEST_F(MissionVtolTransitionTest, FrontTransitionAfterBackTransitionAlignsWhereT
 
 TEST_F(MissionVtolTransitionTest, ImmediateFrontTransitionAlignsWithinTheNavigationAcceptanceRadius)
 {
-	// Param 2 (immediate transition) shares its slot with the acceptance radius: it must not make the alignment
-	// wait until the vehicle holds within 1 m of its hold point.
+	// Param 2 (immediate transition) shares its slot with the acceptance radius: it must not delay the alignment,
+	// and the command keeps it.
 	MissionTestPeer mission(&_navigator);
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	const auto target = waypointAt(100.f, 0.f);
@@ -580,7 +601,7 @@ TEST_F(MissionVtolTransitionTest, ImmediateFrontTransitionAlignsWithinTheNavigat
 	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
 
 	vehicle_command_s command{};
-	// Aligned, still 2 m from the hold point at the first check.
+	// Aligned, 2 m from where the alignment started.
 	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 2.f, 0.f, kAlt));
 	mission.on_active();
 	ASSERT_TRUE(_command_sub.update(&command));
@@ -712,4 +733,119 @@ TEST_F(MissionVtolTransitionTest, FrontTransitionByOperatorDuringTakeoffAlignmen
 		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
 		EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_VTOL_TAKEOFF);
 	}
+}
+
+TEST_F(MissionVtolTransitionTest, FrontTransitionAlignmentFliesOnAndStartsWhereTheVehicleIs)
+{
+	// The alignment flies towards the next waypoint, climbing to it but never descending, and is reached on heading
+	// alone, far from that waypoint. The transition then starts where the vehicle is, at the alignment heading.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto start = waypointAt(0.f, 0.f);
+	auto target = waypointAt(0.f, 300.f);
+	target.altitude_is_relative = true;
+	target.altitude = 50.f;
+	const float yaw = get_bearing_to_next_waypoint(position.lat, position.lon, target.lat, target.lon);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	prepareExecution(mission, {start, front_transition, target});
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+
+	const auto &triplet = *_navigator.get_position_setpoint_triplet();
+	EXPECT_DOUBLE_EQ(triplet.previous.lat, start.lat);
+	EXPECT_DOUBLE_EQ(triplet.previous.lon, start.lon);
+	EXPECT_DOUBLE_EQ(triplet.current.lat, target.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, target.lon);
+	EXPECT_FLOAT_EQ(triplet.current.alt, kAlt + 50.f);
+	EXPECT_NEAR(triplet.current.yaw, yaw, 1e-4f);
+	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+
+	// On the way, not aligned yet: no command.
+	const auto moved = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 120.f, kAlt + 10.f);
+	publishGlobalPosition(moved);
+	mission.on_active();
+	EXPECT_FALSE(_command_sub.updated());
+
+	vehicle_command_s command{};
+	publishLocalPosition(yaw);
+	mission.on_active();
+	ASSERT_TRUE(_command_sub.update(&command));
+	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 1);
+	EXPECT_DOUBLE_EQ(triplet.current.lat, moved.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, moved.lon);
+	EXPECT_FLOAT_EQ(triplet.current.alt, moved.alt);
+	EXPECT_NEAR(triplet.current.yaw, yaw, 1e-4f);
+	EXPECT_DOUBLE_EQ(triplet.previous.lon, moved.lon);
+	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	EXPECT_FALSE(mission.currentMissionItemForTest().heading_only);
+}
+
+TEST_F(MissionVtolTransitionTest, BackTransitionInHoverHoldsWhileAligning)
+{
+	// Only a front transition item flies on: a back transition item reached in hover turns where the vehicle is.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = waypointAt(0.f, 300.f);
+	auto back_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	back_transition.autocontinue = true;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	prepareExecution(mission, {back_transition, target});
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, position.lat);
+	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, position.lon);
+	EXPECT_FALSE(mission.currentMissionItemForTest().heading_only);
+}
+
+TEST_F(MissionVtolTransitionTest, NextWaypointAfterFrontTransitionNeedsItsPosition)
+{
+	// Only the alignment item is reached on heading: the next waypoint is reached at its position.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = waypointAt(0.f, 300.f);
+	const float yaw = get_bearing_to_next_waypoint(position.lat, position.lon, target.lat, target.lon);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, yaw);
+	prepareExecution(mission, {front_transition, target, waypointAt(0.f, 600.f)});
+	mission.on_active();
+	ASSERT_EQ(countTransitionCommands(), 1);
+
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_FALSE(mission.currentMissionItemForTest().heading_only);
+
+	for (int i = 0; i < 3; ++i) {
+		mission.on_active();
+		EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	}
+}
+
+TEST_F(MissionVtolTransitionTest, FrontTransitionAlignmentKeepsTheHeadingTimeout)
+{
+	// The heading must still be reached: the yaw timeout applies while flying on.
+	param_t param = param_find("MIS_YAW_TMT");
+	float timeout = 1.f;
+	ASSERT_EQ(param_set(param, &timeout), PX4_OK);
+	_navigator.updateParams();
+
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = waypointAt(0.f, 300.f);
+	const float yaw = get_bearing_to_next_waypoint(position.lat, position.lon, target.lat, target.lon);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, matrix::wrap_pi(yaw + M_PI_2_F));
+	prepareExecution(mission, {front_transition, target});
+	mission.on_active();
+	EXPECT_FALSE(_navigator.get_mission_result()->failure);
+
+	px4_usleep(1100_ms);
+	mission.on_active();
+	EXPECT_TRUE(_navigator.get_mission_result()->failure);
+	EXPECT_EQ(countTransitionCommands(), 0);
 }
