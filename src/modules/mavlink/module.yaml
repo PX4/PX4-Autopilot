@@ -58,6 +58,10 @@ parameters:
                     The MAVLink Mode defines the set of streamed messages (for example the
                     vehicle's attitude) and their sending rates.
 
+                    Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+                    device. With message signing active, unsigned ADSB_VEHICLE and
+                    COLLISION messages are only accepted on links in this mode.
+
             type: enum
             values:
                 0: Normal
@@ -72,7 +76,7 @@ parameters:
                 #9: External Vision Minimal # hidden
                 10: Gimbal
                 11: Onboard Low Bandwidth
-                12: uAvionix
+                12: ADS-B/Traffic (uAvionix)
                 13: Low Bandwidth
             reboot_required: true
             num_instances: *max_num_config_instances
@@ -231,7 +235,7 @@ parameters:
                 #9: External Vision Minimal
                 #10: Gimbal
                 11: Onboard Low Bandwidth
-                #12: uAvionix
+                #12: ADS-B/Traffic (uAvionix)
                 13: Low Bandwidth
                 # We shadow the modes that can block the FMU to SOM connection
             reboot_required: true
