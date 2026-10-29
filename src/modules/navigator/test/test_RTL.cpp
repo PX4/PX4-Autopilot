@@ -50,8 +50,10 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/wind.h>
 
 #include "navigator.h"
@@ -318,6 +320,7 @@ public:
 	}
 
 	uint16_t activeNavCommand() const { return this->_mission_item.nav_cmd; }
+	const mission_item_s &activeItem() const { return this->_mission_item; }
 
 protected:
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
@@ -387,6 +390,11 @@ protected:
 			_land_detected_pub = nullptr;
 		}
 
+		if (_mission_pub != nullptr) {
+			orb_unadvertise(_mission_pub);
+			_mission_pub = nullptr;
+		}
+
 		param_control_autosave(true);
 	}
 
@@ -408,12 +416,34 @@ protected:
 		}
 	}
 
-	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type)
+	void publishMission(const mission_s &mission)
+	{
+		if (_mission_pub == nullptr) {
+			_mission_pub = orb_advertise(ORB_ID(mission), &mission);
+
+		} else {
+			orb_publish(ORB_ID(mission), _mission_pub, &mission);
+		}
+	}
+
+	// what the mission module reports once it has checked a mission
+	void setMissionResultValid(const mission_s &mission)
+	{
+		mission_result_s *result = _navigator.get_mission_result();
+		result->valid = true;
+		result->mission_id = mission.mission_id;
+		result->geofence_id = mission.geofence_id;
+		result->home_position_counter = 0;
+	}
+
+	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type,
+				  uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL)
 	{
 		vehicle_status_s status{};
 		status.timestamp = hrt_absolute_time();
 		status.is_vtol = is_vtol;
 		status.vehicle_type = vehicle_type;
+		status.nav_state = nav_state;
 
 		if (_vehicle_status_pub == nullptr) {
 			_vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &status);
@@ -482,6 +512,7 @@ protected:
 	orb_advert_t _wind_pub{nullptr};
 	orb_advert_t _global_position_pub{nullptr};
 	orb_advert_t _land_detected_pub{nullptr};
+	orb_advert_t _mission_pub{nullptr};
 };
 
 TEST_F(RTLTest, DirectMissionLandKeepsVtolInMulticopterMode)
@@ -1125,4 +1156,91 @@ TEST_F(RTLTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
 	EXPECT_NEAR(absolute_int_point.loiter_radius_m, kApproachRadius, 0.01f);
 	EXPECT_NEAR(relative_point.loiter_radius_m, kApproachRadius, 0.01f);
 	EXPECT_NEAR(relative_int_point.loiter_radius_m, kApproachRadius, 0.01f);
+}
+
+// Two waypoints at the given offsets north of the base position
+static std::vector<mission_item_s> makeTwoWaypointMission(float first_north_m, float second_north_m)
+{
+	const PositionYawSetpoint first_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, first_north_m, 0.f,
+			kAlt);
+	const PositionYawSetpoint second_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, second_north_m, 0.f,
+			kAlt);
+	mission_item_s first = makeSafePointItem(first_position.lat, first_position.lon, kAlt, NAV_FRAME_GLOBAL,
+			       NAV_CMD_WAYPOINT);
+	first.autocontinue = true;
+	mission_item_s second = makeSafePointItem(second_position.lat, second_position.lon, kAlt, NAV_FRAME_GLOBAL,
+				NAV_CMD_WAYPOINT);
+	second.autocontinue = true;
+	return {first, second};
+}
+
+static mission_s makeMissionHeader(uint32_t mission_id, int32_t current_seq, uint16_t count)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = mission_id;
+	mission.current_seq = current_seq;
+	mission.count = count;
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+	return mission;
+}
+
+// WHY: A fixed-wing landing takes the land setpoint altitude as the ground, and the reverse Return builds its land
+// point from the first mission item, whose hold time shares its storage with the landing abort altitude.
+// WHAT: A fixed-wing lands against the home altitude, and an aborted landing holds MIS_LND_ABRT_ALT above home.
+TEST_F(RTLTest, MissionFastReverseLandsFixedWingAtTheHomeAltitude)
+{
+	auto setPosition = [&](double lat, double lon, float alt) {
+		publishGlobalPosition(lat, lon, alt);
+		_navigator.get_global_position()->lat = lat;
+		_navigator.get_global_position()->lon = lon;
+		_navigator.get_global_position()->alt = alt;
+	};
+
+	// GIVEN: a pure fixed-wing at the end of a mission flown 100 m above home, with a hold time at the first waypoint
+	std::vector<mission_item_s> items = makeTwoWaypointMission(500.f, 1000.f);
+	items[0].altitude = kAlt + 100.f;
+	items[0].time_inside = 5.f;
+	items[1].altitude = kAlt + 100.f;
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+	_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	publishLandDetected(false);
+	setPosition(items[1].lat, items[1].lon, items[1].altitude);
+	const mission_s mission = makeMissionHeader(9, 1, 2);
+	setMissionResultValid(mission);
+	publishMission(mission);
+	RtlMissionFastReverseTestPeer mission_fast_reverse{&_navigator, mission};
+	mission_fast_reverse.loadTestMission(items);
+
+	// WHEN: it flies the mission back, reaching each setpoint
+	mission_fast_reverse.activateForTest();
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	for (int cycle = 0; (cycle < 20) && (current.type != position_setpoint_s::SETPOINT_TYPE_LAND); ++cycle) {
+		setPosition(current.lat, current.lon, current.alt);
+		mission_fast_reverse.on_active();
+	}
+
+	// THEN: it lands against the home altitude
+	ASSERT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_FLOAT_EQ(current.alt, kAlt);
+
+	// WHEN: the fixed-wing position controller aborts the landing 3 m above home
+	setPosition(kBaseLat, kBaseLon, kAlt + 3.f);
+	position_controller_landing_status_s landing_status{};
+	landing_status.timestamp = hrt_absolute_time();
+	landing_status.abort_status = position_controller_landing_status_s::ABORTED_BY_OPERATOR;
+	orb_advert_t landing_status_pub = orb_advertise(ORB_ID(position_controller_landing_status), &landing_status);
+	mission_fast_reverse.on_active();
+
+	// the cases that run later in this binary must not see the abort
+	landing_status.abort_status = position_controller_landing_status_s::NOT_ABORTED;
+	orb_publish(ORB_ID(position_controller_landing_status), landing_status_pub, &landing_status);
+	orb_unadvertise(landing_status_pub);
+
+	// THEN: it holds MIS_LND_ABRT_ALT above home
+	EXPECT_EQ(mission_fast_reverse.activeNavCommand(), NAV_CMD_LOITER_UNLIMITED);
+	EXPECT_FLOAT_EQ(current.alt, kAlt + _navigator.get_landing_abort_min_alt());
 }
