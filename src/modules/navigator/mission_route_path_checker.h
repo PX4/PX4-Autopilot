@@ -68,7 +68,7 @@ public:
 	virtual bool checkCandidate(const ProjectionReference &reference, const RouteProjectionCandidate &candidate,
 				    bool &clear) const = 0;
 
-	/** Check one segment. Return false if unavailable; otherwise clear says whether it passes. */
+	/** Check one segment from the vehicle. Return false if unavailable; otherwise clear says whether it passes. */
 	virtual bool checkPath(const Position &start, const Position &end, bool &clear) const = 0;
 };
 

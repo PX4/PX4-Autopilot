@@ -238,6 +238,7 @@ TEST_F(MissionRouteGeofenceTest, ChecksLoadedAltitudeBandAtBothEnds)
 	ProjectionReferenceBatch batch{};
 	batch.count = 1;
 	batch.items[0].position = routePosition(0.f, 100.f);
+	batch.items[0].source_index = 0;
 	addCandidate(batch.items[0], routePosition(0.f, 200.f, 600.f));
 	ASSERT_TRUE(checker.pruneCandidates(batch));
 	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
@@ -246,6 +247,17 @@ TEST_F(MissionRouteGeofenceTest, ChecksLoadedAltitudeBandAtBothEnds)
 	addCandidate(batch.items[0], routePosition(0.f, 200.f));
 	ASSERT_TRUE(checker.pruneCandidates(batch));
 	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
+
+	// A vehicle below the band does not recover: its segments may start there, but must end inside the band.
+	const Position low_vehicle = routePosition(0.f, 100.f, 400.f);
+	const GeofencePathChecker vehicle_checker{_fence, low_vehicle};
+	batch.items[0] = {};
+	batch.items[0].position = low_vehicle;
+	addCandidate(batch.items[0], routePosition(0.f, 200.f), 1);
+	addCandidate(batch.items[0], routePosition(0.f, 200.f, 600.f), 2);
+	ASSERT_TRUE(vehicle_checker.pruneCandidates(batch));
+	ASSERT_EQ(batch.items[0].candidate_buffer.count, 1);
+	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.start.idx, 1);
 }
 
 TEST_F(MissionRouteGeofenceTest, LoadingFenceClearsCandidatesAndDoesNotEnableRecovery)
@@ -376,7 +388,8 @@ TEST_F(MissionRouteGeofenceTest, ReferenceAndCandidateChecksAgreeWithPrune)
 		{"inclusion circle", circle(true, {0.f, 150.f}, 300.f), 0.f},
 		{"maximum distance", {}, 400.f},
 	};
-	// Each fence case has spots outside the allowed area, where the vehicle is recovering.
+	// Each fence case has spots outside the allowed area. The vehicle recovers there, except beyond only the
+	// maximum distance, where its segments are still checked.
 	const Position spots[] {routePosition(0.f, 100.f), routePosition(100.f, 100.f), routePosition(0.f, 300.f),
 				routePosition(0.f, 500.f), routePosition(-300.f, 0.f)
 			       };
@@ -485,6 +498,43 @@ TEST_F(MissionRouteGeofenceTest, BlockedClosestLegDoesNotHideClearBranchIn)
 	EXPECT_TRUE(plan.direction_reversed);
 	EXPECT_EQ(plan.first_mission_item_index, 0);
 	EXPECT_EQ(plan.branch_off_mission_item_index, 0);
+}
+
+// An altitude breach alone does not exempt the vehicle's segments from the polygons: above GF_MAX_VER_DIST,
+// the join and Return used to cross the box to leg C-D. Next to a landing, the join still lands there.
+TEST_F(MissionRouteGeofenceTest, AltitudeBreachKeepsPolygonChecks)
+{
+	const float maximum_vertical = 150.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum_vertical), PX4_OK);
+	_navigator.updateParams();
+	ASSERT_TRUE(loadFence(boxBesideLegCD()));
+	const float breach_altitude = kAltitude + 60.f; // 160 m above Home
+	ASSERT_FALSE(_fence.isBelowMaxAltitude(breach_altitude));
+
+	const Position vehicle = routePosition(300.f, 150.f, breach_altitude);
+	const GeofencePathChecker checker{_fence, vehicle};
+	const auto provider = makeRouteProvider(rectangleMission(), {safePointItem(0.f, -50.f)});
+	MissionRoutePlanner planner{provider, &checker};
+	mission_route::MissionResumePlan join{};
+	mission_route::FailureReason status = planner.planMissionResumeJoin(rtlRequest(vehicle, 1), join);
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	EXPECT_EQ(join.first_mission_item_index, 1);
+
+	mission_route::RtlRoutePlan plan{};
+	status = planner.planRtlRoute(rtlRequest(vehicle, 1), plan);
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	EXPECT_TRUE(plan.direction_reversed);
+	EXPECT_EQ(plan.first_mission_item_index, 0);
+	EXPECT_EQ(plan.branch_off_mission_item_index, 0);
+
+	const Position above_land = routePosition(3.f, 198.f, breach_altitude);
+	const GeofencePathChecker land_checker{_fence, above_land};
+	const auto land_provider = makeRouteProvider(rectangleMission(NAV_CMD_LAND), {});
+	MissionRoutePlanner land_planner{land_provider, &land_checker};
+	status = land_planner.planMissionResumeJoin(rtlRequest(above_land, 3), join);
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	EXPECT_TRUE(join.use_current_altitude);
+	EXPECT_EQ(join.first_mission_item_index, 3);
 }
 
 // The closest leg is blocked, but a leg 30 m away passes inside the first window. The rescan must widen the window

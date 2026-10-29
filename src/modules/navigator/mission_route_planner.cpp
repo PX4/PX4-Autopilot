@@ -699,13 +699,11 @@ FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequ
 
 	if (_path_checker && candidate.use_current_altitude) {
 		// Candidate pruning already checked the segment to the projected branch-in point.
-		// With use_current_altitude, callers may skip that point and target the landing item
-		// at current altitude, so check this different segment too.
-		Position target = path.first_item.position;
-		target.alt = request.vehicle_position.alt;
+		// With use_current_altitude, callers may skip that point and fly level to the landing item,
+		// so check this different segment too. It ends above the item, at the landing leg's altitude.
 		bool clear = false;
 
-		if (!_path_checker->checkPath(request.vehicle_position, target, clear)) {
+		if (!_path_checker->checkPath(request.vehicle_position, path.first_item.position, clear)) {
 			return FailureReason::kGeofenceUnavailable;
 		}
 

@@ -45,9 +45,10 @@ namespace mission_route
  *
  * Create one checker per planning call. Calls must not overlap because they reuse
  * the same scratch buffer; Navigator calls it from a single task.
- * When the vehicle already breaches the loaded fence, segments from the vehicle,
- * including every checkPath() segment, are not checked so it can recover.
- * Safe point segments still are. Planning must still wait for the fence to finish loading.
+ * When the vehicle breaches a polygon or circle, segments from the vehicle, including every
+ * checkPath() segment, are not checked so it can recover. Safe point segments still are.
+ * Outside only the altitude or Home limits, the vehicle may start segments, which are checked.
+ * Planning must still wait for the fence to finish loading.
  */
 class GeofencePathChecker final : public PathChecker
 {
@@ -64,6 +65,7 @@ private:
 	bool checkEndAndPath(const Position &start, const Position &end, bool &clear) const;
 	bool exempt(const ProjectionReference &reference) const;
 	bool referenceAllowed(const ProjectionReference &reference) const;
+	bool vehicleAllowed(const Position &position) const;
 	bool withinScalarLimits(const Position &position) const;
 
 	Geofence &_geofence;

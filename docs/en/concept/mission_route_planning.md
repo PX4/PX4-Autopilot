@@ -77,8 +77,9 @@ If checking removes the closest candidate, or removes any candidate from a full 
 One additional route scan serves all affected reference points, checking each candidate before it can narrow the search window or occupy a buffer slot.
 A reference point outside the permitted area is excluded without a rescan.
 
-When the vehicle already breaches the loaded fence, connections starting at the vehicle are exempt to allow recovery towards the route.
+When the vehicle breaches a polygon or circle, connections starting at the vehicle are exempt to allow recovery towards the route.
 Branch-off connections remain checked.
+A vehicle outside only the altitude or distance-from-home limits may still start connections; their ends and paths are checked.
 An unavailable fence or an unavailable path check fails planning.
 
 The planner does not validate the uploaded route itself, find detours, check obstacles or account for turning space.

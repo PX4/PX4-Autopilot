@@ -449,7 +449,8 @@ TEST_F(MissionRoutePlannerTest, GeofenceChecksDirectShortcutFromVehicleToSelecte
 	EXPECT_FALSE(plan.geofence_prevents_shortcut);
 }
 
-// Near LAND the join keeps the live altitude; that direct segment gets its own fence check.
+// Near LAND the join keeps the live altitude and flies to the landing item. That segment gets its own fence check,
+// ending above the item at the landing leg's altitude.
 TEST_F(MissionRoutePlannerTest, GeofenceChecksMissionLandingShortcutAtCurrentAltitude)
 {
 	const std::vector<mission_item_s> mission{
@@ -473,7 +474,7 @@ TEST_F(MissionRoutePlannerTest, GeofenceChecksMissionLandingShortcutAtCurrentAlt
 	EXPECT_FLOAT_EQ(plan.join_position.alt, vehicle.alt);
 	ASSERT_EQ(checker.path_checks, 1u);
 	EXPECT_FLOAT_EQ(checker.checked_start.alt, vehicle.alt);
-	EXPECT_FLOAT_EQ(checker.checked_end.alt, vehicle.alt);
+	EXPECT_FLOAT_EQ(checker.checked_end.alt, kAlt); // the landing leg's altitude
 	EXPECT_DOUBLE_EQ(checker.checked_end.lat, mission[1].lat);
 	EXPECT_DOUBLE_EQ(checker.checked_end.lon, mission[1].lon);
 

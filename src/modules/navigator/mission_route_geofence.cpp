@@ -93,7 +93,7 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 GeofencePathChecker::GeofencePathChecker(Geofence &geofence, const Position &vehicle_position) :
 	_geofence(geofence),
 	_recovering(geofence.isReadyForPathChecks() && vehicle_position.valid()
-		    && !geofence.checkPointAgainstAllGeofences(vehicle_position.lat, vehicle_position.lon, vehicle_position.alt))
+		    && !geofence.isInsideHorizontalFences(vehicle_position.lat, vehicle_position.lon, vehicle_position.alt))
 {
 }
 
@@ -107,7 +107,18 @@ bool GeofencePathChecker::exempt(const ProjectionReference &reference) const
 bool GeofencePathChecker::referenceAllowed(const ProjectionReference &reference) const
 {
 	const Position &position = reference.position;
+
+	if (reference.source_index < 0) {
+		return vehicleAllowed(position);
+	}
+
 	return position.valid() && _geofence.checkPointAgainstAllGeofences(position.lat, position.lon, position.alt);
+}
+
+// The vehicle may start segments outside the altitude and Home limits; their ends are checked.
+bool GeofencePathChecker::vehicleAllowed(const Position &position) const
+{
+	return position.valid() && _geofence.isInsideHorizontalFences(position.lat, position.lon, position.alt);
 }
 
 bool GeofencePathChecker::withinScalarLimits(const Position &position) const
@@ -252,7 +263,7 @@ bool GeofencePathChecker::checkPath(const Position &start, const Position &end, 
 		return true;
 	}
 
-	if (!_geofence.checkPointAgainstAllGeofences(start.lat, start.lon, start.alt)) {
+	if (!vehicleAllowed(start)) {
 		return true;
 	}
 
