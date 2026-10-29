@@ -12,6 +12,9 @@ on:
     paths-ignore:
       - 'docs/**'
 
+permissions:
+  contents: read
+
 env:
   RUNS_IN_DOCKER: true
 
