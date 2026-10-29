@@ -155,6 +155,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Sensors
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
+- [JRT PTGL-100 Laser Rangefinder](../sensor/ptgl100.md): new `ptgl100` UART rangefinder driver (included in the [Amovlab Flycore](../flight_controller/amovlab_flycore.md) firmware). ([PX4-Autopilot#29088](https://github.com/PX4/PX4-Autopilot/pull/29088))
 
 ### Simulation
 
