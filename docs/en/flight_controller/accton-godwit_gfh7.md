@@ -146,15 +146,15 @@ If you enable the heater, run the [accelerometer calibration](../config/accelero
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device     | Port             | Connector                                                  |
-| ------ | ---------- | ---------------- | ---------------------------------------------------------- |
-| USART1 | /dev/ttyS0 | EXT2             | `ESC` (ESC telemetry, RX only)                             |
-| USART2 | /dev/ttyS1 | TELEM 2          | `T2`/`R2` solder pads                                      |
-| USART3 | /dev/ttyS2 | GPS 1            | `GPS`                                                      |
-| UART4  | /dev/ttyS3 | TELEM/SERIAL 4   | `ELRS` (CRSF by default)                                   |
-| UART5  | /dev/ttyS4 | Radio Controller | `SBUS` (RX and TX), `A-VTX` (TX), `D-VTX` (`SBUS` pin, RX) |
-| UART7  | /dev/ttyS5 | TELEM 1          | `TELEM`                                                    |
-| UART8  | /dev/ttyS6 | TELEM 3          | `D-VTX`                                                    |
+| UART   | Device     | Port             | Connector                                                               |
+| ------ | ---------- | ---------------- | ----------------------------------------------------------------------- |
+| USART1 | /dev/ttyS0 | EXT2             | `ESC` (ESC telemetry, RX only)                                          |
+| USART2 | /dev/ttyS1 | TELEM 2          | `T2`/`R2` solder pads                                                   |
+| USART3 | /dev/ttyS2 | GPS 1            | `GPS`                                                                   |
+| UART4  | /dev/ttyS3 | TELEM/SERIAL 4   | `ELRS` (CRSF by default)                                                |
+| UART5  | /dev/ttyS4 | Radio Controller | `SBUS` (RX and TX), `A-VTX` (TX, VTX control), `D-VTX` (`SBUS` pin, RX) |
+| UART7  | /dev/ttyS5 | TELEM 1          | `TELEM`                                                                 |
+| UART8  | /dev/ttyS6 | TELEM 3          | `D-VTX`                                                                 |
 
 `EXT2` is receive-only, so it can't be used for MAVLink or other two-way protocols.
 It reads [ESC telemetry](../peripherals/dshot.md#esc-telemetry) from the `ESC` connector ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) is set to `EXT2` by default).
@@ -203,6 +203,7 @@ The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
   The connector is wired to both `UART5_RX` and `UART5_TX`.
   The `SBUS` pin on the `D-VTX` connector shares the `UART5_RX` line, for digital video systems that output S.BUS.
   The TX pin on the `A-VTX` connector shares the `UART5_TX` line.
+  If VTX control is enabled on `Radio Controller`, the `SBUS` connector cannot be used as a receiver at the same time.
 
 Other protocols are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to.
 Only one protocol can be active on a port.
@@ -239,6 +240,9 @@ DroneCAN is disabled by default: enable it by setting [UAVCAN_ENABLE](../advance
 
 The board has an [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) chip (AT7456-compatible), which is enabled by default in NTSC mode.
 Connect the camera to `VIDEO-IN` and the analog video transmitter to `A-VTX`.
+The TX pin on the `A-VTX` connector carries the SmartAudio/Tramp control line, and the VTX driver is enabled in the default firmware.
+To use it, set [VTX_SER_CFG](../advanced_config/parameter_reference.md#VTX_SER_CFG) to `Radio Controller`, and set [VTX_PROTOCOL](../advanced_config/parameter_reference.md#VTX_PROTOCOL) and [VTX_DEVICE](../advanced_config/parameter_reference.md#VTX_DEVICE) per the [Analog Video Transmitters](../vtx/index.md) page.
+Because UART5 (the `Radio Controller` port) is also used by the `SBUS` connector, VTX control and an S.BUS receiver on the `SBUS` connector cannot be used at the same time.
 Set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `2` for PAL, or `0` to disable it, and reboot.
 
 For a digital video transmitter on the `D-VTX` connector, set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `TELEM 3` to enable [MSP OSD](../peripherals/osd.md#msp-osd).
