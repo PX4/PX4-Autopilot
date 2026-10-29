@@ -51,11 +51,51 @@
 # define UXRCE_DDS_CLIENT_UDP 1
 #endif
 
+#if defined(__PX4_NUTTX) && defined(UXRCE_DDS_CLIENT_UDP)
+# include <nuttx/net/ip.h>
+# include <nuttx/net/netconfig.h>
+#endif
+
 #include "srv_base.h"
 
 #define MAX_NUM_REPLIERS 5
 #define STREAM_HISTORY  4
-#define BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY) // MTU==512 by default
+#define INPUT_STREAM_HISTORY  2
+
+// MTU: announced to the agent
+// BEST_EFFORT: max size of one best-effort flush
+#define DEFAULT_BEST_EFFORT 2048
+#define SERIAL_MTU          UXR_CONFIG_SERIAL_TRANSPORT_MTU
+#define SERIAL_BEST_EFFORT  DEFAULT_BEST_EFFORT // a serial frame can have any length
+
+#if defined(UXRCE_DDS_CLIENT_UDP)
+# define IP_VERSION  UXR_IPv4
+
+# if defined(__PX4_NUTTX)
+// one Ethernet frame, PX4 NuttX configs don't fragment IP
+#  define UDP_MTU          ETH_UDP_MSS(IPv4_HDRLEN)
+#  define UDP_BEST_EFFORT  UDP_MTU
+# else
+// Linux fragments IP
+#  define UDP_MTU          UXR_CONFIG_UDP_TRANSPORT_MTU
+#  define UDP_BEST_EFFORT  DEFAULT_BEST_EFFORT
+# endif
+
+static_assert(UDP_MTU <= UXR_CONFIG_UDP_TRANSPORT_MTU, "library UDP receive buffer too small");
+
+// transport is selected at runtime: buffers must fit all
+# define MIN_TRANSPORT_MTU  math::min(SERIAL_MTU, UDP_MTU)
+# define MAX_TRANSPORT_MTU  math::max(SERIAL_MTU, UDP_MTU)
+# define MAX_BEST_EFFORT    math::max(SERIAL_BEST_EFFORT, UDP_BEST_EFFORT)
+#else
+# define MIN_TRANSPORT_MTU  SERIAL_MTU
+# define MAX_TRANSPORT_MTU  SERIAL_MTU
+# define MAX_BEST_EFFORT    SERIAL_BEST_EFFORT
+#endif // UXRCE_DDS_CLIENT_UDP
+
+#define OUTPUT_RELIABLE_BUFFER_SIZE (MIN_TRANSPORT_MTU * STREAM_HISTORY) // a slot is sent as one message
+#define INPUT_RELIABLE_BUFFER_SIZE (MAX_TRANSPORT_MTU * INPUT_STREAM_HISTORY) // a slot holds one agent message
+#define BEST_EFFORT_BUFFER_SIZE MAX_BEST_EFFORT
 
 class UxrceddsClient : public ModuleBase, public ModuleParams
 {
@@ -176,9 +216,9 @@ private:
 
 	uxrObjectId _participant_id;
 
-	uint8_t _output_reliable_stream_buffer[BUFFER_SIZE] {};
-	uint8_t _output_data_stream_buffer[2048] {};
-	uint8_t _input_reliable_stream_buffer[BUFFER_SIZE] {};
+	uint8_t _output_reliable_stream_buffer[OUTPUT_RELIABLE_BUFFER_SIZE] {};
+	uint8_t _output_data_stream_buffer[BEST_EFFORT_BUFFER_SIZE] {};
+	uint8_t _input_reliable_stream_buffer[INPUT_RELIABLE_BUFFER_SIZE] {};
 
 	uxrStreamId _reliable_out;
 	uxrStreamId _best_effort_out;

@@ -73,6 +73,7 @@ struct SendSubscription {
 	UcdrSerializeMethod ucdr_serialize_method;
 	uint64_t publish_interval_ms;
 	uint8_t orb_instance;
+	bool too_large_reported{false};
 };
 
 // Subscribers for messages to send
@@ -175,8 +176,11 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 						needs_flush = true;
 						num_payload_sent += topic_size;
 
-					} else {
-						//PX4_ERR("Error uxr_prepare_output_stream UXR_INVALID_REQUEST_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
+					} else if (!send_subscriptions[idx].too_large_reported) {
+						// sample is larger than the stream (report only once)
+						PX4_ERR("%s (%" PRIu32 " B) does not fit into the best-effort stream",
+							send_subscriptions[idx].orb_meta->o_name, topic_size);
+						send_subscriptions[idx].too_large_reported = true;
 					}
 
 				} else {

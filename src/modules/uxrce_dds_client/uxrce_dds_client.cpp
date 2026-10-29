@@ -172,12 +172,14 @@ bool UxrceddsClient::init()
 	if (_transport == Transport::Udp) {
 		_transport_udp = new uxrUDPTransport();
 
-		if (_transport_udp && uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
+		if (_transport_udp && uxr_init_udp_transport(_transport_udp, IP_VERSION, _agent_ip, _port)) {
 
 			PX4_INFO("init UDP agent IP:%s, port:%s", _agent_ip, _port);
 
 			_comm = &_transport_udp->comm;
 			_fd = _transport_udp->platform.poll_fd.fd;
+
+			_comm->mtu = UDP_MTU;
 
 			configure_udp_socket_nonblocking(_fd);
 
@@ -256,12 +258,21 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	_reliable_out = uxr_create_output_reliable_stream(session, _output_reliable_stream_buffer,
 			sizeof(_output_reliable_stream_buffer), STREAM_HISTORY);
 
+	// one MTU per input slot
+	const size_t reliable_in_size = (size_t)_comm->mtu * INPUT_STREAM_HISTORY;
+
+#if defined(UXRCE_DDS_CLIENT_UDP)
+	const size_t best_effort_size = (_transport == Transport::Udp) ? UDP_BEST_EFFORT : SERIAL_BEST_EFFORT;
+#else
+	const size_t best_effort_size = SERIAL_BEST_EFFORT;
+#endif
+
 	_best_effort_out = uxr_create_output_best_effort_stream(session, _output_data_stream_buffer,
-			   sizeof(_output_data_stream_buffer));
+			   best_effort_size);
 
 	uxrStreamId reliable_in = uxr_create_input_reliable_stream(session, _input_reliable_stream_buffer,
-				  sizeof(_input_reliable_stream_buffer),
-				  STREAM_HISTORY);
+				  reliable_in_size,
+				  INPUT_STREAM_HISTORY);
 
 	uxrStreamId best_effort_in = uxr_create_input_best_effort_stream(session);
 
