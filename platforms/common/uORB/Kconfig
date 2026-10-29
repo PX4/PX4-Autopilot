@@ -4,3 +4,25 @@ menuconfig ORB_COMMUNICATOR
 	depends on PLATFORM_QURT || PLATFORM_POSIX
 	---help---
 		Enable support for the uorb communicator for distributed platforms
+
+config UORB_POSIX_SHM
+	bool "Use POSIX shared memory for uORB"
+	default n if PLATFORM_QURT
+	default y if PLATFORM_POSIX
+	default y if BOARD_PROTECTED
+	default n
+	---help---
+		Back uORB topics with real POSIX shared memory (shm_open/mmap),
+		which exposes each topic as a file under /obj and lets the
+		filesystem track uORB nodes.
+
+		Real shared memory is required whenever publishers and
+		subscribers can live in separate address spaces: posix/SITL
+		builds, and NuttX protected/kernel builds. On NuttX FLAT
+		builds there is only one address space, so the shm/mmap
+		indirection is unnecessary overhead; disabling it there (the
+		default) saves flash. It is always disabled for qurt.
+
+		This can still be turned on for a FLAT build if the SHM
+		filesystem tracking (uORB topics visible under /obj) is
+		wanted for debugging.

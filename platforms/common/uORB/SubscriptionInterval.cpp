@@ -33,10 +33,24 @@
 
 #include "SubscriptionInterval.hpp"
 
-#include <drivers/drv_hrt.h>
-
 namespace uORB
 {
+
+template <bool ATOMIC>
+SubscriptionIntervalBase<ATOMIC>::SubscriptionIntervalBase(ORB_ID id, uint32_t interval_us, uint8_t instance) :
+	_subscription{id, instance},
+	_interval_us(interval_us)
+{}
+
+template <bool ATOMIC>
+SubscriptionIntervalBase<ATOMIC>::SubscriptionIntervalBase(const orb_metadata *meta, uint32_t interval_us,
+		uint8_t instance) :
+	_subscription{meta, instance},
+	_interval_us(interval_us)
+{}
+
+template <bool ATOMIC>
+SubscriptionIntervalBase<ATOMIC>::SubscriptionIntervalBase() : _subscription{nullptr} {}
 
 // The bodies are defined out-of-line and explicitly instantiated below (rather
 // than inline in the header) to keep them from being emitted at every call site
@@ -45,9 +59,18 @@ namespace uORB
 template <bool ATOMIC>
 bool SubscriptionIntervalBase<ATOMIC>::updated()
 {
-	// New data implies advertised(); checking it first keeps the clock read off
-	// the common no-update path.
-	return _subscription.updated() && interval_elapsed();
+	if (advertised() && _subscription.updated()) {
+		const uint32_t interval_us = _interval_us.load();
+
+		if (interval_us == 0) {
+			return true;
+		}
+
+		const hrt_abstime last_update = _last_update.load();
+		return static_cast<int64_t>(hrt_absolute_time() - last_update) >= interval_us;
+	}
+
+	return false;
 }
 
 template <bool ATOMIC>
@@ -64,16 +87,19 @@ template <bool ATOMIC>
 bool SubscriptionIntervalBase<ATOMIC>::copy(void *dst)
 {
 	if (_subscription.copy(dst)) {
-		const hrt_abstime now = hrt_absolute_time();
 		const uint32_t interval_us = _interval_us.load();
 
-		// make sure we don't set a timestamp before the timer started counting (now - interval_us would wrap because it's unsigned)
-		if (now > interval_us) {
-			// shift last update time forward, but don't let it get further behind than the interval
-			_last_update.store(math::constrain(_last_update.load() + interval_us, now - interval_us, now));
+		if (interval_us != 0) {
+			const hrt_abstime now = hrt_absolute_time();
 
-		} else {
-			_last_update.store(now);
+			// make sure we don't set a timestamp before the timer started counting (now - interval_us would wrap because it's unsigned)
+			if (now > interval_us) {
+				// shift last update time forward, but don't let it get further behind than the interval
+				_last_update.store(math::constrain(_last_update.load() + interval_us, now - interval_us, now));
+
+			} else {
+				_last_update.store(now);
+			}
 		}
 
 		return true;
@@ -83,12 +109,7 @@ bool SubscriptionIntervalBase<ATOMIC>::copy(void *dst)
 }
 
 // Only these two variants exist, so instantiate them here once each.
-template bool SubscriptionIntervalBase<false>::updated();
-template bool SubscriptionIntervalBase<false>::update(void *dst);
-template bool SubscriptionIntervalBase<false>::copy(void *dst);
-
-template bool SubscriptionIntervalBase<true>::updated();
-template bool SubscriptionIntervalBase<true>::update(void *dst);
-template bool SubscriptionIntervalBase<true>::copy(void *dst);
+template class SubscriptionIntervalBase<false>;
+template class SubscriptionIntervalBase<true>;
 
 } // namespace uORB
