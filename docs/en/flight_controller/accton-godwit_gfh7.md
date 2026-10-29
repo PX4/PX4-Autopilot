@@ -53,7 +53,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Electrical Data {#electrical_data}
 
 - **Input voltage:** Up to 12S LiPo
-- **Current draw:** 110 mA at 5 V (static), plus about 67 mA (0.33 W, calculated from the heater resistor value, not measured) with the IMU heater on
+- **Current draw:** 110 mA at 5 V (static), plus about 67 mA (0.33 W, calculated) with the IMU heater on
 - **BEC output:** 5 V/3 A and 12 V/3 A (supports power-saving mode)
 - **Power monitoring:** one analog input (battery voltage and current)
 
@@ -146,15 +146,15 @@ If you enable the heater, run the [accelerometer calibration](../config/accelero
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device     | Port             | Connector                                                                                                      |
-| ------ | ---------- | ---------------- | -------------------------------------------------------------------------------------------------------------- |
-| USART1 | /dev/ttyS0 | EXT2             | `ESC` (ESC telemetry, RX only)                                                                                 |
-| USART2 | /dev/ttyS1 | TELEM 2          | `T2`/`R2` solder pads                                                                                          |
-| USART3 | /dev/ttyS2 | GPS 1            | `GPS`                                                                                                          |
-| UART4  | /dev/ttyS3 | TELEM/SERIAL 4   | `ELRS` (CRSF by default)                                                                                       |
-| UART5  | /dev/ttyS4 | Radio Controller | `SBUS` (RX and TX), `A-VTX` (TX only, shared with the `SBUS` connector TX line), `D-VTX` (`SBUS` pin, RX only) |
-| UART7  | /dev/ttyS5 | TELEM 1          | `TELEM`                                                                                                        |
-| UART8  | /dev/ttyS6 | TELEM 3          | `D-VTX`                                                                                                        |
+| UART   | Device     | Port             | Connector                                                  |
+| ------ | ---------- | ---------------- | ---------------------------------------------------------- |
+| USART1 | /dev/ttyS0 | EXT2             | `ESC` (ESC telemetry, RX only)                             |
+| USART2 | /dev/ttyS1 | TELEM 2          | `T2`/`R2` solder pads                                      |
+| USART3 | /dev/ttyS2 | GPS 1            | `GPS`                                                      |
+| UART4  | /dev/ttyS3 | TELEM/SERIAL 4   | `ELRS` (CRSF by default)                                   |
+| UART5  | /dev/ttyS4 | Radio Controller | `SBUS` (RX and TX), `A-VTX` (TX), `D-VTX` (`SBUS` pin, RX) |
+| UART7  | /dev/ttyS5 | TELEM 1          | `TELEM`                                                    |
+| UART8  | /dev/ttyS6 | TELEM 3          | `D-VTX`                                                    |
 
 `EXT2` is receive-only, so it can't be used for MAVLink or other two-way protocols.
 It reads [ESC telemetry](../peripherals/dshot.md#esc-telemetry) from the `ESC` connector ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) is set to `EXT2` by default).
@@ -199,10 +199,10 @@ The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
 - `ELRS` (UART4, PX4 port `TELEM/SERIAL 4`): CRSF/ExpressLRS is enabled on this port by default ([RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) is set to `TELEM/SERIAL 4`).
   [CRSF telemetry](../telemetry/crsf_telemetry.md) to the transmitter is also enabled by default ([RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN)).
 - `SBUS` (UART5, PX4 port `Radio Controller`): for S.BUS receivers.
-  The `SBUS` connector is wired to both `UART5_RX` and `UART5_TX`.
-  The TX pin on the `A-VTX` connector is connected to the same `UART5_TX` line as the `SBUS` connector (TX only).
   To use it, set [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller` and `RC_CRSF_PRT_CFG` to `Disabled`.
-  The `SBUS` pin on the `D-VTX` connector is wired to the same UART input, for digital video systems that output S.BUS.
+  The connector is wired to both `UART5_RX` and `UART5_TX`.
+  The `SBUS` pin on the `D-VTX` connector shares the `UART5_RX` line, for digital video systems that output S.BUS.
+  The TX pin on the `A-VTX` connector shares the `UART5_TX` line.
 
 Other protocols are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to.
 Only one protocol can be active on a port.
