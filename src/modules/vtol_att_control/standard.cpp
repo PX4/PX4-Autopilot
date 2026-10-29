@@ -86,27 +86,28 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_mode == vtol_mode::FW_MODE) {
 			// Regular backtransition
+			_full_mc_control_in_back_transition = false;
 			resetTransitionStates();
 			_vtol_mode = vtol_mode::TRANSITION_TO_MC;
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
-			// failsafe back to mc mode
-			_vtol_mode = vtol_mode::MC_MODE;
+			// A stopped front transition with known forward speed above the backtransition exit speed decelerates as a
+			// backtransition, with full mc control at once. Otherwise, and if immediate, switch to mc mode.
+			if (!_attc->get_immediate_transition() && getForwardSpeed() >= _param_mpc_xy_cruise.get()) {
+				_full_mc_control_in_back_transition = true;
+				resetTransitionStates();
+				_vtol_mode = vtol_mode::TRANSITION_TO_MC;
+
+			} else {
+				_vtol_mode = vtol_mode::MC_MODE;
+			}
+
 			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
 			// speed exit condition: use ground if valid, otherwise airspeed
-			bool exit_backtransition_speed_condition = false;
-
-			if (_local_pos->v_xy_valid) {
-				const Dcmf R_to_body(Quatf(_v_att->q).inversed());
-				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
-				exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get();
-
-			} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
-				exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get();
-			}
+			const bool exit_backtransition_speed_condition = getForwardSpeed() < _param_mpc_xy_cruise.get();
 
 			const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get();
 
@@ -248,7 +249,7 @@ void Standard::update_transition_state()
 	} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
 
 		// continually increase mc attitude control as we transition back to mc mode
-		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON) {
+		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON && !_full_mc_control_in_back_transition) {
 			mc_weight = _time_since_trans_start / _param_vt_b_trans_ramp.get();
 		}
 
@@ -274,6 +275,18 @@ void Standard::update_transition_state()
 	_mc_pitch_weight = mc_weight;
 	_mc_yaw_weight = mc_weight;
 	_mc_throttle_weight = mc_weight;
+}
+
+float Standard::getForwardSpeed() const
+{
+	// Ground speed along the body x axis if valid, otherwise airspeed, otherwise NAN.
+	if (_local_pos->v_xy_valid) {
+		const Dcmf R_to_body(Quatf(_v_att->q).inversed());
+		const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
+		return vel(0);
+	}
+
+	return _attc->get_calibrated_airspeed();
 }
 
 void Standard::update_mc_state()
