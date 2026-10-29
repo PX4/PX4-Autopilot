@@ -38,10 +38,11 @@
 #include <lib/matrix/matrix/math.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_selector_status.h>
+#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensors_status_gnss.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_local_position.h>
 
 class GnssRedundancyChecks : public HealthAndArmingCheckBase
 {
@@ -58,7 +59,8 @@ private:
 	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_INSTANCES> _sensor_gnss_sub{ORB_ID::sensor_gnss};
 	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription _estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
 
 	// Antenna offset (body FRD) of a receiver, matched to its SENS_GNSSx slot like in VehicleGPSPosition
 	matrix::Vector3f antennaOffset(uint32_t device_id, int instance) const;

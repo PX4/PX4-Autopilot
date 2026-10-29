@@ -125,10 +125,18 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		// Expected baseline from the antenna offsets
 		const Vector3f expected = Quatf(attitude.q).rotateVector(healthy_gnss[1].antenna_offset - healthy_gnss[0].antenna_offset);
 
-		vehicle_local_position_s local_position{};
-		const bool heading_valid = _vehicle_local_position_sub.copy(&local_position)
-					   && (hrt_elapsed_time(&local_position.timestamp) < 1_s)
-					   && local_position.heading_good_for_control;
+		// Yaw alignment of the primary EKF (the attitude source)
+		estimator_selector_status_s estimator_selector_status;
+
+		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
+			_estimator_status_flags_sub.ChangeInstance(estimator_selector_status.primary_instance);
+		}
+
+		estimator_status_flags_s estimator_status_flags{};
+		// Published at ~1 Hz
+		const bool heading_valid = _estimator_status_flags_sub.copy(&estimator_status_flags)
+					   && (hrt_elapsed_time(&estimator_status_flags.timestamp) < 2_s)
+					   && estimator_status_flags.cs_yaw_align;
 
 		if (heading_valid) {
 			divergence_h_m = Vector2f(north - expected(0), east - expected(1)).length();
