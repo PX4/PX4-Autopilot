@@ -93,6 +93,10 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 
 		while (hrt_elapsed_time(&start) < calibration_duration) {
 
+			if (calibrate_cancel_check(mavlink_log_pub)) {
+				return 1;
+			}
+
 			vehicle_attitude_s att{};
 
 			if (!att_sub.updateBlocking(att, 100000)) {

@@ -38,6 +38,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/vehicle_command.h>
 
 // The order of these cannot change since the calibration calculations depend on them in this order
 enum detect_orientation_return {
@@ -79,8 +80,18 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,	///< 
 		void *worker_data,						///< Opaque data passed to worker routine
 		bool lenient_still_detection);					///< true: Use more lenient still position detection
 
+/// Lets a GCS cancel the calibration about to run on this thread. It must call calibrate_cancel_check() often.
+void calibrate_cancel_open();
+
+/// Ends cancelling when the calibration returns. A cancel it never acted on is rejected.
+void calibrate_cancel_close();
+
+/// Hands a GCS cancel to the running calibration, which acks it once it has stopped
+void calibrate_cancel_request(const vehicle_command_s &cmd);
+
 /// Used to periodically check for a cancel command
-bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &calibration_started);
+///	@return true once the calibration has been cancelled
+bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub);
 
 
 // TODO FIXME: below are workarounds for QGC. The issue is that sometimes

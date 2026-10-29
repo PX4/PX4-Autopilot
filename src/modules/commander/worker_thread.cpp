@@ -110,6 +110,21 @@ void WorkerThread::threadEntry()
 {
 	px4_prctl(PR_SET_NAME, "commander_low_prio", px4_getpid());
 
+	// the calibrations that check for a cancel
+	switch (_request) {
+	case Request::GyroCalibration:
+	case Request::MagCalibration:
+	case Request::AccelCalibration:
+	case Request::LevelCalibration:
+	case Request::AirspeedCalibration:
+	case Request::BaroCalibration:
+		calibrate_cancel_open();
+		break;
+
+	default:
+		break;
+	}
+
 	switch (_request) {
 	case Request::GyroCalibration:
 		_ret_value = do_gyro_calibration(&_mavlink_log_pub);
@@ -221,6 +236,8 @@ void WorkerThread::threadEntry()
 			break;
 		}
 	}
+
+	calibrate_cancel_close();
 
 	_state.store((int)State::Finished); // set this last to signal the main thread we're done
 }

@@ -59,8 +59,6 @@
 #include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/sensor_gyro.h>
 
-using namespace time_literals;
-
 static constexpr char sensor_name[] {"gyro"};
 static constexpr unsigned MAX_GYROS = 4;
 
@@ -79,7 +77,6 @@ struct gyro_worker_data_t {
 
 static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 {
-	const hrt_abstime calibration_started = hrt_absolute_time();
 	unsigned calibration_counter[MAX_GYROS] {};
 	static constexpr unsigned CALIBRATION_COUNT = 250;
 	unsigned poll_errcount = 0;
@@ -93,18 +90,10 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 
 	/* use slowest gyro to pace, but count correctly per-gyro for statistics */
 	unsigned slow_count = 0;
-	hrt_abstime last_cancel_check = hrt_absolute_time();
 
 	while (slow_count < CALIBRATION_COUNT) {
-		// Throttle cancel check — calibrate_cancel_check() creates a new
-		// uORB::Subscription each call, triggering an O(n) topic lookup.
-		// At high sensor rates this dominates CPU. Check at most every 200ms.
-		if (hrt_elapsed_time(&last_cancel_check) > 200_ms) {
-			last_cancel_check = hrt_absolute_time();
-
-			if (calibrate_cancel_check(worker_data.mavlink_log_pub, calibration_started)) {
-				return calibrate_return_cancelled;
-			}
+		if (calibrate_cancel_check(worker_data.mavlink_log_pub)) {
+			return calibrate_return_cancelled;
 		}
 
 		// Yield CPU — updatedBlocking() returns immediately when data is
