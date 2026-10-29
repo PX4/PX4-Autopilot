@@ -4058,17 +4058,25 @@ MavlinkReceiver::run()
 					// that actually send take lock_send() locally.
 					//
 					// With signing active, mavlink_frame_char() also checks signatures against the
-					// replay table shared by all instances, so take its lock inside the send lock.
+					// replay table shared by all instances. It only does so on the last byte of a
+					// signature, so take the table lock for that byte only, inside the send lock,
+					// which also protects the parser state read here.
 					const bool signing_active = _mavlink.is_signing_active();
 					_mavlink.lock_send();
 
-					if (signing_active) {
+					const mavlink_status_t *parser_status = mavlink_get_channel_status(_mavlink.get_channel());
+					const bool checks_signature = signing_active
+								      && (parser_status->parse_state == MAVLINK_PARSE_STATE_SIGNATURE_WAIT
+									  || parser_status->parse_state == MAVLINK_PARSE_STATE_SIGNATURE_WAIT_BAD_CRC)
+								      && parser_status->signature_wait == 1;
+
+					if (checks_signature) {
 						MavlinkSignControl::lock_streams();
 					}
 
 					const uint8_t framing = mavlink_frame_char(_mavlink.get_channel(), buf[i], &msg, &_status);
 
-					if (signing_active) {
+					if (checks_signature) {
 						MavlinkSignControl::unlock_streams();
 					}
 
