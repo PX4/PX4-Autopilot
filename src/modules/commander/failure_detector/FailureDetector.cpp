@@ -197,8 +197,9 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 
 	} else if (PX4_ISFINITE(lpos_sp.vz)) {
 		// No height target (e.g. pilot moving the throttle stick): the reference remembers the highest
-		// altitude reached and only moves down as fast as a descent is commanded, so a climb or hold
-		// command keeps it fixed and a commanded descent is compared against the expected one.
+		// altitude reached and only moves down during a commanded descent, so a climb or hold command
+		// keeps it fixed. A commanded descent lowers it with a margin on the descent rate, so a small
+		// velocity tracking error does not accumulate into a trigger over a long descent.
 		if (!PX4_ISFINITE(_alt_loss_ref_z)) {
 			_alt_loss_ref_z = lpos.z;
 		}
@@ -206,8 +207,8 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 		// A stale setpoint must not keep lowering the reference, as that could mask a real altitude loss.
 		const bool setpoint_fresh = lpos.timestamp < lpos_sp.timestamp + _alt_loss_setpoint_timeout;
 
-		if (setpoint_fresh) {
-			_alt_loss_ref_z += math::max(lpos_sp.vz, 0.f) * dt;
+		if (setpoint_fresh && lpos_sp.vz > 0.f) {
+			_alt_loss_ref_z += (lpos_sp.vz + _alt_loss_descent_rate_margin) * dt;
 		}
 
 		_alt_loss_ref_z = math::min(_alt_loss_ref_z, lpos.z);
