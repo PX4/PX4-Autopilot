@@ -104,6 +104,8 @@ PX4's default (7 ms) suits DroneCAN flow nodes, so set `EKF2_OF_DELAY` explicitl
 
 `SENS_FLOW_MAXR=1.0` is the lowest value in the parameter's range.
 PX4 then limits horizontal speed to about half the height above ground per second (about 0.5 m/s at 1 m), which keeps the flow rate within what the camera can measure.
+This limit applies only while optical flow is the only source of horizontal position.
+Flow samples with a rate above 1 rad/s are not fused, including rate caused by rotating the vehicle, so fast attitude changes briefly interrupt optical flow fusion.
 
 Configure the downward [distance sensor](../sensor/rangefinders.md) as described in its own documentation.
 
