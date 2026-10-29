@@ -187,7 +187,7 @@ The default Flycore PX4 port matches the hardware as shipped:
 - **Onboard GNSS:** UM982 connected to `GPS1`.
 - **External GPS:** `GPS2` is available for an external GPS receiver, but does not provide compass I2C lines.
 - **Default firmware:** `rc.board_sensors` starts only the onboard IMUs and barometer. It does not start magnetometers or other external sensors that are not fitted by default.
-  The firmware also includes the [JRT PTGL-100](../sensor/ptgl100.md) rangefinder driver, which is disabled until `SENS_PTGL100_CFG` is set.
+  The firmware also includes the [JRT PTGL-100](../sensor/ptgl100.md) rangefinder driver, which is disabled until [SENS_PTGL100_CFG](../advanced_config/parameter_reference.md#SENS_PTGL100_CFG) is set.
 
 Flycore has no onboard magnetometer and its GPS connectors do not include compass I2C.
 If a magnetometer is required, use a supported external magnetometer connected through `I2C1`, `I2C4`, or another compatible interface provided by the vehicle setup.

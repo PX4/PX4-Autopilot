@@ -167,6 +167,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
 - [Benewake TFmini Plus](../sensor/tfmini.md) rangefinder support: select it with [SENS_TFMINI_HW](../advanced_config/parameter_reference.md#SENS_TFMINI_HW) = `4` (0.1–12m, 3.6° field of view). For `TFMINI / TFMINI-S` (`1`) the driver now reports a 2° field of view (was 2.3°). ([PX4-Autopilot#29575](https://github.com/PX4/PX4-Autopilot/pull/29575))
+- [JRT PTGL-100 Laser Rangefinder](../sensor/ptgl100.md): new `ptgl100` UART rangefinder driver (included in the [Amovlab Flycore](../flight_controller/amovlab_flycore.md) firmware). ([PX4-Autopilot#29088](https://github.com/PX4/PX4-Autopilot/pull/29088))
 
 ### Simulation
 
