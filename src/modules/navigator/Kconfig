@@ -87,7 +87,8 @@ config NAVIGATOR_SAFE_POINT_BATCH_SIZE
 		Rally points projected per scan of the mission route. With more rally
 		points, the route is scanned once per batch, and once more for the rally
 		points whose candidates fail geofence checks. The minimum of 16 limits
-		repeated route scans. Each slot reserves 400 to 500 bytes of static RAM
-		when the planner is linked. Planning is synchronous; blocked candidates
-		can require one path check per route segment during the extra scan.
+		repeated route scans. Each slot reserves 392 bytes of static RAM when
+		the planner is linked (6.3 KB at 16), plus about 1.4 KB for path checks.
+		Planning is synchronous; blocked candidates can require one path check
+		per route segment during the extra scan.
 		See docs/en/concept/mission_route_planning.md for timing and memory limits.

@@ -34,7 +34,7 @@ Otherwise, the planner minimises the sum of cross-track distance and distance al
 The branch-in altitude is interpolated between segment endpoints.
 A landing segment uses the preceding waypoint's altitude; a vertical segment uses its end waypoint's altitude.
 When the first route item is a landing, or a takeoff approached in reverse, and the vehicle is within its horizontal acceptance radius, the plan can retain the current altitude.
-Callers may then proceed directly to that endpoint, so the planner also checks that direct path.
+Callers may then proceed directly to that endpoint: a mission-resume plan checks that direct path, and a return plan checks it when the endpoint is its destination.
 
 A mission-resume plan continues towards the mission end.
 When joining a jump edge with repeats remaining, it preserves the loop direction.
@@ -101,14 +101,14 @@ The planner scans the route once for the vehicle and once per safe-point batch, 
 The minimum of `16` limits repeated route scans; `32` permits all supported rally-list items to fit in one batch.
 Approach and loiter items also occupy rally-list storage, so changing the batch size does not change upload capacity.
 
-Each projection slot requires roughly 400 to 500 bytes of static RAM when the planner is linked.
-Geofence checks share a separate static buffer for up to `min(32, 3 * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE)` paths.
+Each projection slot takes 392 bytes of static RAM when the planner is linked: about 6.3 KB at `16` and 12.6 KB at `32`.
+Geofence checks share a separate static buffer of about 1.4 KB for up to 32 paths.
 The buffers are reused, so callers must serialise planning calls.
 The library is compiled only with a non-zero `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE`; unused planner and checker code is discarded by the linker.
 
 Planning is synchronous.
 Larger batches reduce route walks but do not bound the total time spent checking fences.
-In the worst case, a safe point separated from every segment by a fence requires one path check per segment in the rescan.
+In the worst case, a safe point separated from every segment by a fence requires one path check per segment in the rescan, each run on its own rather than in a batch.
 
 [Earlier measurements on a physical Pixhawk 6C running SIH][v6c-timings] compared batches of 1 and 32 in the route-following prototype:
 
@@ -117,7 +117,7 @@ In the worst case, a safe point separated from every segment by a fence requires
 |           300 |           32 |     152.00 / 152.41 ms |        57.43 / 57.89 ms |
 |          1000 |           32 |     500.54 / 501.41 ms |      186.05 / 186.41 ms |
 
-These measurements predate the blocked-candidate rescan and are not timing bounds for this library revision.
+These measurements predate the default batch of `16` and the blocked-candidate rescan, so they are not timing bounds for this library revision.
 Batch 1 is no longer supported.
 Consumers need to measure their mission and fence workloads on the target hardware and account for the time spent outside other Navigator duties.
 
