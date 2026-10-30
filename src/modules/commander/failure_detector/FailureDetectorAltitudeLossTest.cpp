@@ -62,7 +62,7 @@ public:
 
 	// Publish position and setpoint, then run the detector. Returns the alt flag state.
 	bool update(float lpos_z, float lpos_sp_z, float delta_z = 0.f, uint8_t z_reset_counter = 0, float lpos_sp_vz = 0.f,
-		    bool publish_setpoint = true)
+		    bool publish_setpoint = true, float lpos_vz = 0.f)
 	{
 		// Each update represents 1s of flight for integrating the commanded vertical velocity
 		_timestamp += 1_s;
@@ -71,6 +71,8 @@ public:
 		lpos.timestamp = _timestamp;
 		lpos.z = lpos_z;
 		lpos.z_valid = true;
+		lpos.vz = lpos_vz;
+		lpos.v_z_valid = true;
 		lpos.delta_z = delta_z;
 		lpos.z_reset_counter = z_reset_counter;
 		_lpos_pub.publish(lpos);
@@ -96,9 +98,9 @@ public:
 	}
 
 	// Update without altitude setpoint, only a commanded vertical velocity (NED, positive down)
-	bool updateVelocity(float lpos_z, float lpos_sp_vz)
+	bool updateVelocity(float lpos_z, float lpos_sp_vz, float lpos_vz = 0.f)
 	{
-		return update(lpos_z, NAN, 0.f, 0, lpos_sp_vz);
+		return update(lpos_z, NAN, 0.f, 0, lpos_sp_vz, true, lpos_vz);
 	}
 
 	// Update the position only, the last published setpoint becomes stale
@@ -216,7 +218,7 @@ TEST_F(FailureDetectorAltitudeLossTest, NoTriggerOnSlowerThanCommandedDescent)
 	EXPECT_FALSE(updateVelocity(-99.f, 3.f));
 	EXPECT_FALSE(updateVelocity(-98.f, 3.f));
 	EXPECT_FALSE(updateVelocity(-97.f, 0.f));
-	EXPECT_FALSE(updateVelocity(-93.f, 0.f)); // drop = 4m from -97
+	EXPECT_FALSE(updateVelocity(-93.f, 0.f)); // braking allowance lowers ref to -96, drop = 3m
 }
 
 TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropFasterThanCommandedDescent)
@@ -251,8 +253,8 @@ TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropAfterClimbHoldDescendClimb)
 	EXPECT_FALSE(updateVelocity(-100.f, 5.f));   // ref = -100
 	EXPECT_FALSE(updateVelocity(-102.f, -2.f));  // climb again, ref = -102
 	EXPECT_FALSE(updateVelocity(-104.f, -2.f));  // ref = -104, still below the highest point (-110)
-	EXPECT_FALSE(updateVelocity(-101.f, -2.f));  // fall, drop = 3m
-	EXPECT_TRUE(updateVelocity(-98.f, -2.f));    // drop = 6m, triggers
+	EXPECT_FALSE(updateVelocity(-101.f, -2.f));  // fall, braking allowance lowers ref to -103, drop = 2m
+	EXPECT_TRUE(updateVelocity(-97.f, -2.f));    // drop = 6m, triggers
 }
 
 TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropDuringVelocityHoldAfterDescent)
@@ -264,7 +266,7 @@ TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropDuringVelocityHoldAfterDesc
 	EXPECT_FALSE(updateVelocity(-100.f, 5.f));   // ref = -100
 	EXPECT_FALSE(updateVelocity(-104.f, -2.f));  // climb again, ref = -104
 	EXPECT_FALSE(updateVelocity(-104.f, 0.f));   // hold, ref = -104
-	EXPECT_TRUE(updateVelocity(-98.f, 0.f));     // fall, drop = 6m, triggers
+	EXPECT_TRUE(updateVelocity(-97.f, 0.f));     // fall, braking allowance lowers ref to -103, drop = 6m, triggers
 }
 
 TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropWithStaleDescentSetpoint)
@@ -272,7 +274,48 @@ TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropWithStaleDescentSetpoint)
 	// Position control stops publishing while a 3m/s descent is commanded: the stale
 	// descent must not keep lowering the reference and mask the altitude loss.
 	EXPECT_FALSE(updateVelocity(-100.f, 3.f));  // ref = -100
-	EXPECT_FALSE(updateVelocity(-97.f, 3.f));   // ref = -97
-	EXPECT_FALSE(updatePositionOnly(-94.f));    // setpoint stale, ref stays at -97, drop = 3m
-	EXPECT_TRUE(updatePositionOnly(-91.f));     // drop = 6m, triggers
+	EXPECT_FALSE(updateVelocity(-97.f, 3.f));   // ref = -97, allowed descent rate 5m/s
+	EXPECT_FALSE(updatePositionOnly(-94.f));    // setpoint stale, rate decays to 3m/s, ref = -94, drop = 0m
+	EXPECT_FALSE(updatePositionOnly(-91.f));    // rate 1m/s, ref = -93, drop = 2m
+	EXPECT_FALSE(updatePositionOnly(-88.f));    // rate 0m/s, ref stays at -93, drop = 5m
+	EXPECT_TRUE(updatePositionOnly(-85.f));     // drop = 8m, triggers
+}
+
+TEST_F(FailureDetectorAltitudeLossTest, NoTriggerOnBrakingAfterSwitchFromFastDescent)
+{
+	// Switch from Stabilized into a mode without height target while falling at 10m/s, hold commanded:
+	// a vehicle with little thrust margin brakes at 2.5m/s^2, the stopping distance must not trigger
+	EXPECT_FALSE(updateVelocity(-100.f, 0.f, 10.f));    // ref = -100, allowed descent rate 10m/s
+	EXPECT_FALSE(updateVelocity(-91.25f, 0.f, 7.5f));   // rate 8m/s, ref = -92, drop = 0.75m
+	EXPECT_FALSE(updateVelocity(-85.f, 0.f, 5.f));      // rate 6m/s, ref = -86, drop = 1m
+	EXPECT_FALSE(updateVelocity(-81.25f, 0.f, 2.5f));   // rate 4m/s, ref = -82, drop = 0.75m
+	EXPECT_FALSE(updateVelocity(-80.f, 0.f, 0.f));      // rate 2m/s, ref follows the vehicle
+}
+
+TEST_F(FailureDetectorAltitudeLossTest, TriggerOnFallAfterSwitchFromFastDescent)
+{
+	// Same switch, but the vehicle keeps falling at 10m/s
+	EXPECT_FALSE(updateVelocity(-100.f, 0.f, 10.f)); // ref = -100, allowed descent rate 10m/s
+	EXPECT_FALSE(updateVelocity(-90.f, 0.f, 10.f));  // rate 8m/s, ref = -92, drop = 2m
+	EXPECT_TRUE(updateVelocity(-80.f, 0.f, 10.f));   // rate 6m/s, ref = -86, drop = 6m, triggers
+}
+
+TEST_F(FailureDetectorAltitudeLossTest, NoTriggerOnBrakingAfterFastCommandedDescent)
+{
+	// Pilot commands 8m/s descent and releases the stick, the vehicle brakes at 4m/s^2
+	EXPECT_FALSE(updateVelocity(-100.f, 8.f));  // ref = -100
+	EXPECT_FALSE(updateVelocity(-92.f, 8.f));   // allowed descent rate 10m/s, ref = -92
+	EXPECT_FALSE(updateVelocity(-84.f, 8.f));   // ref = -84
+	EXPECT_FALSE(updateVelocity(-78.f, 0.f));   // stick released, rate 8m/s, ref = -78
+	EXPECT_FALSE(updateVelocity(-76.f, 0.f));   // rate 6m/s, ref = -76
+	EXPECT_FALSE(updateVelocity(-76.f, 0.f));
+}
+
+TEST_F(FailureDetectorAltitudeLossTest, NoTriggerOnBrakingBelowLockedSetpoint)
+{
+	// Altitude locked where the vehicle was while falling at 10m/s, it overshoots while braking at 5m/s^2
+	EXPECT_FALSE(update(-99.5f, -100.f, 0.f, 0, -2.f, true, 10.f)); // ref = -99.5, allowed descent rate 10m/s
+	EXPECT_FALSE(update(-92.f, -100.f, 0.f, 0, -2.f, true, 5.f));   // rate 8m/s, ref follows the vehicle
+	EXPECT_FALSE(update(-89.5f, -100.f, 0.f, 0, -2.f, true, 0.f));  // rate 6m/s, ref = -89.5
+	EXPECT_FALSE(update(-95.f, -100.f, 0.f, 0, -2.f, true, -2.f));  // climbing back, ref follows the vehicle
 }
