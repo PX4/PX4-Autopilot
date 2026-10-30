@@ -593,21 +593,6 @@ static void insertCandidateSorted(ProjectionCandidateBuffer &candidate_buffer,
 	candidate_buffer.count = min(static_cast<uint8_t>(buffer_size + 1), kMaxSegmentCandidates);
 }
 
-static void pruneProjectionCandidates(ProjectionCandidateBuffer &candidate_buffer, float xtrack_limit_m)
-{
-	const int buffer_size = min(candidate_buffer.count, kMaxSegmentCandidates);
-
-	// Drop trailing candidates outside the cross-track window.
-	for (int index = buffer_size - 1; index >= 0; --index) {
-		if (candidate_buffer.candidates[index].dist.xtrack_m <= xtrack_limit_m) {
-			candidate_buffer.count = index + 1;
-			return;
-		}
-	}
-
-	candidate_buffer.count = 0;
-}
-
 bool isIndexInProjectionSegment(const Segment &projection_segment, int32_t mission_index, bool is_flying_reverse)
 {
 	// Mission-index ranges identify nominal segments. Jump edges are identified by their active anchor.
@@ -735,7 +720,14 @@ static void keepWithinWindow(ProjectionCandidateBuffer &candidate_buffer, float 
 	const RouteProjectionCandidate &closest = candidate_buffer.candidates[0];
 
 	if (xtrack_margin_m > 0.f) {
-		pruneProjectionCandidates(candidate_buffer, closest.dist.xtrack_m + xtrack_margin_m);
+		// Sorted closest first: drop the trailing candidates outside the window.
+		const float xtrack_limit_m = closest.dist.xtrack_m + xtrack_margin_m;
+
+		while (candidate_buffer.count > 1
+		       && candidate_buffer.candidates[candidate_buffer.count - 1].dist.xtrack_m > xtrack_limit_m) {
+			--candidate_buffer.count;
+		}
+
 		return;
 	}
 
