@@ -108,7 +108,7 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 		const bool accel_clipping = imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2];
 
 		if (_control_status.flags.gravity_vector && !_aid_src_gravity.innovation_rejected && !accel_clipping) {
-			VectorState K = P * H / _aid_src_gravity.innovation_variance[index];
+			VectorState K = computeKalmanGain(H, _aid_src_gravity.innovation_variance[index]);
 
 			fused[index] = measurementUpdate(K, H,
 							 _aid_src_gravity.observation_variance[index], _aid_src_gravity.innovation[index]);
