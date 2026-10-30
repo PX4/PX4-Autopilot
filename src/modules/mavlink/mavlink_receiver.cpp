@@ -1667,14 +1667,32 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	// q: the quaternion of the ODOMETRY msg represents a rotation from body frame to a local frame
 	if (matrix::Quatf(odom_in.q).isAllFinite()) {
 
-		odom.q[0] = odom_in.q[0];
-		odom.q[1] = odom_in.q[1];
-		odom.q[2] = odom_in.q[2];
-		odom.q[3] = odom_in.q[3];
+		// The position above is converted to NED/FRD, so the attitude has to be too, otherwise the
+		// estimator fuses an ENU/FLU yaw as if it were NED. ENU and FLU frames follow ROS REP 103,
+		// where the body frame is FLU.
+		const matrix::Quatf q_ned_enu{0.f, M_SQRT1_2_F, M_SQRT1_2_F, 0.f};
+		const matrix::Quatf q_flu_frd{0.f, 1.f, 0.f, 0.f}; // also FRD from FLU
+		const matrix::Quatf q_in{odom_in.q};
+		matrix::Quatf q{q_in};
+
+		switch (odom_in.frame_id) {
+		case MAV_FRAME_LOCAL_ENU:
+			q = q_ned_enu * q_in * q_flu_frd;
+			break;
+
+		case MAV_FRAME_LOCAL_FLU:
+			q = q_flu_frd * q_in * q_flu_frd;
+			break;
+
+		default:
+			break;
+		}
+
+		q.copyTo(odom.q);
 
 		// pose_covariance (roll, pitch, yaw)
 		//  states: x, y, z, roll, pitch, yaw; first six entries are the first ROW, next five entries are the second ROW, etc.
-		//  TODO: fix pose_covariance for MAV_FRAME_LOCAL_ENU, MAV_FRAME_LOCAL_FLU
+		//  The ENU/FLU conversion only flips the sign of angle axes, so the variances are unchanged.
 		if (odom_in.estimator_type != MAV_ESTIMATOR_TYPE_NAIVE) {
 			odom.orientation_variance[0] = odom_in.pose_covariance[15]; // R  row 3, col 3
 			odom.orientation_variance[1] = odom_in.pose_covariance[18]; // P  row 4, col 4
