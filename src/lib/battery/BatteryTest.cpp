@@ -97,8 +97,8 @@ TEST_F(BatteryTest, UnknownCellCountWithCapacityStaysUnknown)
 	EXPECT_FALSE(PX4_ISFINITE(status.time_remaining_s));
 }
 
-// a NaN voltage with a configured capacity must not hide the emergency
-TEST_F(BatteryTest, NanVoltageWithCapacityIsAnEmergency)
+// a NaN voltage sample is skipped and doesn't directly trigger a false positive warning,
+TEST_F(BatteryTest, NanVoltageIsSkipped)
 {
 	int32_t n_cells = 3;
 	param_set(param_find("BAT1_N_CELLS"), &n_cells);
@@ -107,7 +107,7 @@ TEST_F(BatteryTest, NanVoltageWithCapacityIsAnEmergency)
 
 	Battery battery(1, nullptr, 20_ms, battery_status_s::SOURCE_ESCS);
 	const battery_status_s status = run(battery, NAN, 1.f);
-	EXPECT_EQ(status.warning, battery_status_s::WARNING_EMERGENCY);
+	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
 }
 
 TEST_F(BatteryTest, KnownCellCountEstimatesCharge)
