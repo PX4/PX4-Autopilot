@@ -2395,7 +2395,6 @@ Mavlink::task_main(int argc, char *argv[])
 	const char *myoptarg = nullptr;
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	int temp_int_arg;
-	char partner_ip[16] = {0};
 #endif
 
 	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:fswxzZp", &myoptind, &myoptarg)) != EOF) {
@@ -2468,30 +2467,24 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		case 't':
+			_src_addr.sin_family = AF_INET;
 
-			if (px4_get_parameter_value(myoptarg, temp_int_arg) != 0) {
-				PX4_ERR("invalid partner ip");
-				err_flag = true;
+			if (strncmp(myoptarg, "p:", 2) == 0) {
+				if (px4_get_parameter_value(myoptarg, temp_int_arg) != 0) {
+					PX4_ERR("invalid partner ip");
+					err_flag = true;
 
-			} else {
-
-				_src_addr.sin_family = AF_INET;
-
-				snprintf(partner_ip, 16, "%u.%u.%u.%u", static_cast<uint8_t>(((temp_int_arg) >> 24) & 0xff),
-					 static_cast<uint8_t>(((temp_int_arg) >> 16) & 0xff),
-					 static_cast<uint8_t>(((temp_int_arg) >> 8) & 0xff),
-					 static_cast<uint8_t>(temp_int_arg & 0xff));
-
-				if (inet_aton(partner_ip, &_src_addr.sin_addr)) {
-
+				} else {
+					_src_addr.sin_addr.s_addr = htonl(static_cast<uint32_t>(temp_int_arg));
 					_src_addr_initialized = true;
 				}
 
-				else {
+			} else if (inet_aton(myoptarg, &_src_addr.sin_addr)) {
+				_src_addr_initialized = true;
 
-					PX4_ERR("invalid partner ip");
-					err_flag = true;
-				}
+			} else {
+				PX4_ERR("invalid partner ip '%s'", myoptarg);
+				err_flag = true;
 			}
 
 			break;
