@@ -50,6 +50,8 @@ bool fd_esc_arming_failure            # ESC failed to arm
 bool fd_imbalanced_prop               # Imbalanced propeller detected
 bool fd_motor_failure                 # Motor failure
 bool fd_alt_loss                      # Uncommanded altitude loss (rotary-wing, altitude-controlled flight)
+bool fd_impact                        # Impact detected (acceleration spike)
+bool fd_crash                         # Crash detected (no movement after an impact)
 
 # Other
 bool geofence_breached        	      # Geofence breached (one or multiple)

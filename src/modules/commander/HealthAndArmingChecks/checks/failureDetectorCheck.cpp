@@ -124,4 +124,38 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Imbalanced propeller detected");
 		}
 	}
+
+	reporter.failsafeFlags().fd_impact = fd_status.fd_impact;
+	reporter.failsafeFlags().fd_crash = fd_status.fd_crash;
+
+	if (reporter.failsafeFlags().fd_crash) {
+		/* EVENT
+		 * @description
+		 * Disarm if the vehicle is on the ground.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>FD_IMPACT_T</param> parameter.
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_crash"),
+				       events::Log::Critical, "Crash detected: no movement after impact");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Crash detected: no movement after impact");
+		}
+
+	} else if (reporter.failsafeFlags().fd_impact) {
+		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * This check can be configured via <param>FD_IMPACT_THR</param> parameter.
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_impact"),
+				       events::Log::Warning, "Impact detected");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_warning(reporter.mavlink_log_pub(), "Impact detected");
+		}
+	}
 }
