@@ -206,9 +206,8 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		calibrate_return cal_return = gyro_calibration_worker(worker_data);
 
 		if (cal_return == calibrate_return_cancelled) {
-			// Cancel message already sent, we are done here
-			res = PX4_ERROR;
-			break;
+			// already reported
+			return PX4_ERROR;
 
 		} else if (cal_return == calibrate_return_error) {
 			res = PX4_ERROR;
