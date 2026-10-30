@@ -70,6 +70,22 @@ static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_r
 
 void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
+	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered
+	bool required_battery_missing = false;
+
+	for (auto &battery_sub : _battery_status_subs) {
+		battery_status_s battery;
+
+		if (battery_sub.copy(&battery) && battery.is_required && !battery.connected) {
+			required_battery_missing = true;
+		}
+	}
+
+	if (!context.isArmed() && required_battery_missing) {
+		_motor_failure_mask = 0;
+		return;
+	}
+
 	const hrt_abstime now = hrt_absolute_time();
 	esc_status_s esc_status;
 
