@@ -41,7 +41,6 @@ px4_add_functional_gtest(SRC test_geofence_paths.cpp LINKLIBS modules__navigator
 if(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 	px4_add_functional_gtest(SRC test_mission_feasibility_geofence.cpp LINKLIBS modules__navigator modules__dataman)
 endif()
-px4_add_functional_gtest(SRC test_mission_route_cache.cpp LINKLIBS modules__navigator navigator_mission_route modules__dataman)
 
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	px4_add_functional_gtest(SRC test_prec_takeoff.cpp LINKLIBS modules__navigator modules__dataman)
@@ -49,6 +48,7 @@ if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 endif()
 
 if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
+	px4_add_functional_gtest(SRC test_mission_route_cache.cpp LINKLIBS modules__navigator navigator_mission_route modules__dataman)
 	px4_add_functional_gtest(SRC test_mission_route_projection.cpp LINKLIBS modules__navigator navigator_mission_route_planner)
 	px4_add_functional_gtest(SRC test_mission_route_planner.cpp LINKLIBS modules__navigator navigator_mission_route_planner)
 endif()
