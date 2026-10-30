@@ -170,6 +170,8 @@ bool Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
 
 void Magnetometer::set_rotation(const Rotation rotation)
 {
+	const Rotation rotation_prev = _rotation_enum;
+
 	if (rotation < ROTATION_MAX) {
 		_rotation_enum = rotation;
 
@@ -183,10 +185,18 @@ void Magnetometer::set_rotation(const Rotation rotation)
 
 	// clear any custom rotation
 	_rotation_custom_euler.zero();
+
+	if (_rotation_enum != rotation_prev) {
+		_calibration_count++;
+	}
 }
 
 void Magnetometer::set_custom_rotation(const Eulerf &rotation)
 {
+	if ((_rotation_enum != ROTATION_CUSTOM) || Vector3f(_rotation_custom_euler - rotation).longerThan(0.f)) {
+		_calibration_count++;
+	}
+
 	_rotation_enum = ROTATION_CUSTOM;
 
 	// store custom rotation
