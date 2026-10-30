@@ -3990,7 +3990,8 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('p', "Enable Broadcast", true);
 	PRINT_MODULE_USAGE_PARAM_INT('u', 14556, 0, 65536, "Select UDP Network Port (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr,
+					 "Partner IP, can also be p:<param_name> (broadcasting can be enabled via -p flag)", true);
 #endif
 	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|onboard_low_bandwidth|uavionix|low_bandwidth|distance_sensor",
 					"Mode: sets default streams and rates", true);
