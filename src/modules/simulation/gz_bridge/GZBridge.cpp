@@ -308,11 +308,9 @@ bool GZBridge::subscribeDistanceSensor(bool required)
 				}
 			}
 
+			// models without a lidar have no lidar_sensor_link, nothing to report
 			if (lidar_found) {
 				_lidar_link_q = q_model_base.Inverse() * q_model_lidar;
-
-			} else {
-				PX4_WARN("lidar_sensor_link not found in %s, assuming identity", _model_name.c_str());
 			}
 		}
 
