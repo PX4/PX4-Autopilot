@@ -151,6 +151,7 @@ private:
 	bool _distance_sensor_blocked{false};
 	bool _accel_blocked{false};
 	bool _gyro_blocked{false};
+	uint16_t _stuck_motor_mask{0};
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
@@ -192,6 +193,8 @@ private:
 	void read_motors(const float dt);
 	void publish_esc_status();
 	uint8_t num_motors() const;
+	// motor number (Motor1 = 0) driven by an actuator channel, or -1 for control surfaces and steering channels
+	int motor_index_from_actuator(int actuator_index) const;
 
 	// generate the motors thrust and torque in the body frame
 	void generate_force_and_torques(const float dt);

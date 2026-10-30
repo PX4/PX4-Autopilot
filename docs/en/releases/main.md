@@ -108,6 +108,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
 - [Secure boot](../advanced_config/bootloader_secure_boot.md#multi-part-signed-images) now supports applications that can boot securely from SD card or eMMC. ([PX4-Autopilot#28228](https://github.com/PX4/PX4-Autopilot/pull/28228))
 - [Motor failure detection](../config/motor_failure_detection.md) now compares a low-pass filtered current residual against a separate trip band and trigger time for the undercurrent and overcurrent directions, instead of one symmetric band on the instantaneous current, and the current model gains an offset term. See [Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27711](https://github.com/PX4/PX4-Autopilot/pull/27711), [PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
+- For MC, arming check can detect [stuck motors](../config/safety.md#motor-not-spinning-after-arming) and disarm before takeoff. ([PX4-Autopilot#29436](https://github.com/PX4/PX4-Autopilot/pull/29436))
 
 ### Estimation
 
