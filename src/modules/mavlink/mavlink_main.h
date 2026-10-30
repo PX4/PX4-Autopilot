@@ -598,7 +598,7 @@ public:
 		return (active > 1) ? (kBulkBandwidthShare / (float)active) : kBulkBandwidthShare;
 	}
 
-	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
+	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id, _mode == MAVLINK_MODE_UAVIONIX); }
 	bool is_signing_active() const { return _sign_control.is_signing_active(); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
 	void check_signing_key_dirty();
