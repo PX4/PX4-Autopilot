@@ -213,7 +213,9 @@ private:
 
 	void ecefToNed();
 
-	// orient command: poses the vehicle on the ground for accel and mag calibration
+#if defined(__PX4_POSIX)
+	// orient command: poses the vehicle on the ground for accel and mag calibration.
+	// SITL only: Commander denies sensor calibration when SIH runs on flight controller hardware.
 	void orient_update(const hrt_abstime &now);
 	void orient_step(const hrt_abstime &now, const float dt);
 
@@ -230,6 +232,7 @@ private:
 	int _orient_side{0};
 	hrt_abstime _orient_start{0};
 	float _orient_yaw{0.f};	// heading kept while posing
+#endif // __PX4_POSIX
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();

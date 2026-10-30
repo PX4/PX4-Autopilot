@@ -140,7 +140,7 @@ Run it from the PX4 shell, or the [MAVLink shell](../debug/mavlink_shell.md), af
 | `simulator_sih orient <side> rotate` | Rotating about the vertical with `<side>` down, with a tilt swing.                |
 | `simulator_sih orient off`           | Level, then back to the flight dynamics.                                          |
 
-Sensor calibration is rejected when SIH runs on flight controller hardware.
+`orient` is only built for SITL: sensor calibration is rejected when SIH runs on flight controller hardware.
 
 ### ROS 2 Integration
 
