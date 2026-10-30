@@ -24,7 +24,28 @@ parameters:
     SENS_BAR_AUTOCAL:
       description:
         short: Barometer auto calibration
-        long: Automatically calibrate barometer based on the GNSS height
+        long: |-
+          Automatically calibrate barometer based on the GNSS height while on ground.
+          Runs independently of whether the estimator fuses GNSS height.
+          See SENS_BAR_AC_GATE for the plausibility check.
       category: System
       type: boolean
       default: 1
+    SENS_BAR_AC_GATE:
+      description:
+        short: Barometer auto calibration gate
+        long: |-
+          Maximum allowed difference between GNSS altitude and uncalibrated baro
+          altitude for the auto calibration to be applied. Otherwise the calibration
+          is skipped. This limits how far a wrong or spoofed GNSS altitude can shift
+          the baro. The uncalibrated baro error is mostly weather (about 8.5 m per hPa),
+          so on very high or low pressure days set SENS_BARO_QNH or increase this value.
+          The check is not applied if EKF2_HGT_REF is set to GPS.
+          Set to 0 to disable the check.
+      category: System
+      type: float
+      default: 50.0
+      min: 0
+      max: 1000
+      unit: m
+      decimal: 0
