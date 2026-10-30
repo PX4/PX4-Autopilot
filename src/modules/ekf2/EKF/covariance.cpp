@@ -47,6 +47,15 @@
 #include <math.h>
 #include <mathlib/mathlib.h>
 
+namespace
+{
+template<typename Type, size_t M, size_t N>
+constexpr size_t numRows(const matrix::Matrix<Type, M, N> &)
+{
+	return M;
+}
+} // namespace
+
 // Sets initial values for the covariance matrix
 // Do not call before quaternion states have been initialised
 void Ekf::initialiseCovariance()
@@ -140,7 +149,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 			    imu_delayed.delta_ang / imu_delayed.delta_ang_dt, gyro_var,
 			    dt);
 
-	static constexpr unsigned predicted_rows = sizeof(P_pred) / (sizeof(float) * State::size);
+	constexpr unsigned predicted_rows = numRows(P_pred);
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	for (unsigned row = 0; row < predicted_rows; row++) {

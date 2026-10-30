@@ -120,7 +120,7 @@ def predict_covariance(
     gyro: sf.V3,
     gyro_var: sf.Scalar,
     dt: sf.Scalar
-) -> MTangent:
+) -> sf.Matrix:
 
     state = vstate_to_state(state)
     g = sf.Symbol("g") # does not appear in the jacobians
