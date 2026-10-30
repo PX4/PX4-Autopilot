@@ -719,11 +719,11 @@ bool RTL::hasMissionLandStart() const
 
 bool RTL::hasValidMission() const
 {
+	// Home is not compared: Mission rechecks with the Home set at arming, and in flight a Home update keeps the verdict.
 	const mission_result_s &mission_result = *_navigator->get_mission_result();
 	return mission_result.valid
 	       && mission_result.mission_id == _mission_sub.get().mission_id
-	       && mission_result.geofence_id == _mission_sub.get().geofence_id
-	       && mission_result.home_position_counter == _home_pos_sub.get().update_count;
+	       && mission_result.geofence_id == _mission_sub.get().geofence_id;
 }
 
 bool RTL::reverseIsFurther() const
