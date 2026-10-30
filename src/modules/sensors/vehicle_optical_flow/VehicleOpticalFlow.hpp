@@ -115,6 +115,7 @@ private:
 	matrix::Vector2f _flow_integral{};
 	matrix::Vector3f _delta_angle{};
 	uint32_t _integration_timespan_us{};
+	uint32_t _rejected_timespan_us{};
 	float _distance_sum{NAN};
 	uint8_t _distance_sum_count{0};
 	uint16_t _quality_sum{0};
@@ -135,7 +136,9 @@ private:
 		float data{};
 	};
 
-	RingBuffer<gyroSample, 32> _gyro_buffer{};
+	// A polled zero-motion flow sample ends one frame period before the poll and spans up to the
+	// backup interval, so at 1 kHz the integration window can start ~47 ms before the sample arrives.
+	RingBuffer<gyroSample, 64> _gyro_buffer{};
 	RingBuffer<rangeSample, 5> _range_buffer{};
 
 	DEFINE_PARAMETERS(
