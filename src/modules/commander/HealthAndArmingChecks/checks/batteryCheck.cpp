@@ -153,6 +153,11 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 				worst_battery_remaining = battery.remaining;
 			}
 
+			// arming failures have no effect while armed, so don't repeat the status text in flight
+			if (!context.isArmed() && (battery.remaining < 0.f)) {
+				unknownChargeCheck(reporter, battery, index);
+			}
+
 			if (battery.timestamp < oldest_update) {
 				oldest_update = battery.timestamp;
 			}
@@ -303,6 +308,51 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	_last_armed = context.isArmed();
+}
+
+void BatteryChecks::unknownChargeCheck(Report &reporter, const battery_status_s &battery, int index)
+{
+	// an unknown state of charge must block arming, the warning it gets is up to the source
+	// the battery library estimates the charge from the cell count, and sets the id to the BATn index
+	const bool estimated = (battery.source == battery_status_s::SOURCE_POWER_MODULE)
+			       || (battery.source == battery_status_s::SOURCE_ESCS);
+
+	if (estimated) {
+		/* EVENT
+		 * @description
+		 * The state of charge can't be estimated without knowing the number of cells.
+		 *
+		 * <profile name="dev">
+		 * Configure the cell count with <param>BAT1_N_CELLS</param> (or the respective battery's parameter).
+		 * </profile>
+		 */
+		reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::battery,
+						     events::ID("check_battery_cell_count_unknown"),
+						     events::Log::Error, "Battery {1}: charge unknown, set BAT{1}_N_CELLS", battery.id);
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Battery %u charge unknown, set BAT%u_N_CELLS\t",
+					     battery.id, battery.id);
+		}
+
+	} else {
+		/* EVENT
+		 * @description
+		 * The battery doesn't report its state of charge.
+		 *
+		 * <profile name="dev">
+		 * A DroneCAN battery with <param>UAVCAN_SUB_BAT</param> set to filter the data is estimated from its cell count:
+		 * configure it with <param>BAT1_N_CELLS</param> (or the respective battery's parameter).
+		 * </profile>
+		 */
+		reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::battery,
+						     events::ID("check_battery_charge_unknown"),
+						     events::Log::Error, "Battery {1}: charge unknown", index + 1);
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Battery %i charge unknown\t", index + 1);
+		}
+	}
 }
 
 void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, float worst_battery_time_s)

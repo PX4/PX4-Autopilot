@@ -23,7 +23,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 | `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
 | `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`              | `off`, `stuck`, `wrong` |
 | `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                       | —                       |
-| `vio`             | —                       | —                       | `off`                                | —                       |
+| `vio`             | `off`, `stuck`          | —                       | `off`                                | —                       |
 | `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
 | `traffic`         | `off`                   | `off`                   | `off`                                | `off`                   |
 | `motor`           | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
@@ -37,6 +37,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 
 - `gps off | stuck | wrong` on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
 - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
+- `vio off | stuck` on Gazebo (Gz): applied to the external-vision odometry that the bridge publishes from the model's odometry topic (for example `x500_vision`); `stuck` keeps publishing the last good sample with fresh timestamps.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
 - `motor off` and `motor wrong` are the two motor failures, and both require [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE). `motor off` is the _detected_ failure: the motor is reported as failed, so the control allocator removes it from the allocation and handles the opposite motor per `CA_FAILURE_MODE`. Only a single failed motor can be recovered from, so an instance mask naming several motors has no effect. `motor wrong` is the _undetected_ failure: the output is stopped without informing the allocator, which models a failure with no feedback path (such as PWM ESCs), and any number of motors can be addressed.

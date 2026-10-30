@@ -69,7 +69,21 @@ Course::on_activation()
 
 		_altitude = _navigator->get_global_position()->alt;
 
-		if (lpos->v_xy_valid) {
+		const bool is_rover = _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER;
+		bool course_from_velocity = lpos->v_xy_valid;
+
+		if (is_rover && PX4_ISFINITE(lpos->heading)) {
+			// The velocity of a rover has no usable direction at rest, so it only takes the course over ground
+			// while driving forwards fast enough, and its heading otherwise
+			const float forward_speed = lpos->vx * cosf(lpos->heading) + lpos->vy * sinf(lpos->heading);
+			course_from_velocity &= forward_speed > math::max(ROVER_COURSE_MIN_SPEED, ROVER_COURSE_EVH_FACTOR * lpos->evh);
+
+			if (!course_from_velocity) {
+				_course = matrix::wrap_2pi(lpos->heading);
+			}
+		}
+
+		if (course_from_velocity) {
 			_course = matrix::wrap_2pi(atan2f(lpos->vy, lpos->vx));
 		}
 	}

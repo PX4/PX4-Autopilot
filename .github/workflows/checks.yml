@@ -80,6 +80,7 @@ jobs:
           make tests_daa_crosstrack
           make tests_vtest_moving
           make tests_neural
+          make tests_nocache
 
       - uses: ./.github/actions/save-ccache
         if: always()

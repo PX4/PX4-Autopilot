@@ -143,7 +143,7 @@ Sets the vehicle emergency state
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 6 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 6 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -209,7 +209,7 @@ Sets GPS lataral offset encoding
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 7 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 7 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -230,7 +230,7 @@ Sets GPS longitudinal offset encoding
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 1 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -275,7 +275,7 @@ This vehicle is always tracked. Use 0 to disable.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 16777215 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 16777215 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -295,7 +295,7 @@ Enable Identification of Position feature
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | Disabled (0) |  | &nbsp;
+&nbsp; |  |  |  | Disabled (0) |  | &nbsp;
 
 </div>
 
@@ -386,7 +386,7 @@ This parameter defines the squawk code. Value should be between 0000 and 7777.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 7777 |  | 1200 |  | &nbsp;
+&nbsp; | 0 | 7777 |  | 1200 |  | &nbsp;
 
 </div>
 
@@ -51398,7 +51398,7 @@ At log start, oldest log directories are deleted to stay within this count. Inde
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 1000 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -51443,7 +51443,7 @@ Maximum size of a single log file in mebibytes (1 MiB = 1024 * 1024 bytes). When
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 4095 |  | 1024 | MiB | &nbsp;
+&nbsp; | 0 | 4095 |  | 1024 | MiB | &nbsp;
 
 </div>
 
@@ -51535,7 +51535,7 @@ The limit includes the log being written. Oldest logs are deleted at log start (
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 |  | 90 |  | &nbsp;
+&nbsp; | 0 | 100 |  | 90 |  | &nbsp;
 
 </div>
 
@@ -54677,7 +54677,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 265">
+<div class="param-group" style="--param-count: 266">
 
 <div class="param">
 
@@ -55059,7 +55059,7 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
+&nbsp; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
 
 </div>
 
@@ -55076,7 +55076,7 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100.0 |  | 0.0 | V | &nbsp;
+&nbsp; | 0 | 100.0 |  | 0.0 | V | &nbsp;
 
 </div>
 
@@ -55136,7 +55136,7 @@ e.g. 5 to only start heating once the temperature drops below 5°C.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
+&nbsp; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
 
 </div>
 
@@ -55153,7 +55153,7 @@ helping to reduce adjustment time.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.05 | % | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.05 | % | &nbsp;
 
 </div>
 
@@ -55170,7 +55170,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
 
 </div>
 
@@ -55186,7 +55186,7 @@ The proportional gain determines how quickly the controller responds to temperat
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
+&nbsp; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
 
 </div>
 
@@ -55219,7 +55219,7 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
+&nbsp; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
 
 </div>
 
@@ -55236,7 +55236,7 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100.0 |  | 0.0 | V | &nbsp;
+&nbsp; | 0 | 100.0 |  | 0.0 | V | &nbsp;
 
 </div>
 
@@ -55296,7 +55296,7 @@ e.g. 5 to only start heating once the temperature drops below 5°C.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
+&nbsp; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
 
 </div>
 
@@ -55313,7 +55313,7 @@ helping to reduce adjustment time.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.05 | % | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.05 | % | &nbsp;
 
 </div>
 
@@ -55330,7 +55330,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
 
 </div>
 
@@ -55346,7 +55346,7 @@ The proportional gain determines how quickly the controller responds to temperat
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
+&nbsp; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
 
 </div>
 
@@ -55379,7 +55379,7 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
+&nbsp; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
 
 </div>
 
@@ -55396,7 +55396,7 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100.0 |  | 0.0 | V | &nbsp;
+&nbsp; | 0 | 100.0 |  | 0.0 | V | &nbsp;
 
 </div>
 
@@ -55456,7 +55456,7 @@ e.g. 5 to only start heating once the temperature drops below 5°C.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
+&nbsp; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
 
 </div>
 
@@ -55473,7 +55473,7 @@ helping to reduce adjustment time.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.05 | % | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.05 | % | &nbsp;
 
 </div>
 
@@ -55490,7 +55490,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
 
 </div>
 
@@ -55506,7 +55506,7 @@ The proportional gain determines how quickly the controller responds to temperat
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
+&nbsp; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
 
 </div>
 
@@ -55584,7 +55584,7 @@ A value of 0 disables the filter.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 | 0.1 | 20.0 | Hz | &nbsp;
+&nbsp; | 0 | 1000 | 0.1 | 20.0 | Hz | &nbsp;
 
 </div>
 
@@ -55620,7 +55620,7 @@ A value of 0 disables the filter.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 | 0.1 | 40.0 | Hz | &nbsp;
+&nbsp; | 0 | 1000 | 0.1 | 40.0 | Hz | &nbsp;
 
 </div>
 
@@ -55776,7 +55776,7 @@ Applies to both angular velocity and angular acceleration sent to the controller
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 | 0.1 | 20.0 | Hz | &nbsp;
+&nbsp; | 0 | 100 | 0.1 | 20.0 | Hz | &nbsp;
 
 </div>
 
@@ -55797,7 +55797,7 @@ A value of 0 disables the filter.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 | 0.1 | 0.0 | Hz | &nbsp;
+&nbsp; | 0 | 1000 | 0.1 | 0.0 | Hz | &nbsp;
 
 </div>
 
@@ -55814,7 +55814,7 @@ Applies to both angular velocity and angular acceleration sent to the controller
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 | 0.1 | 20.0 | Hz | &nbsp;
+&nbsp; | 0 | 100 | 0.1 | 20.0 | Hz | &nbsp;
 
 </div>
 
@@ -55835,7 +55835,7 @@ A value of 0 disables the filter.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 | 0.1 | 0.0 | Hz | &nbsp;
+&nbsp; | 0 | 1000 | 0.1 | 0.0 | Hz | &nbsp;
 
 </div>
 
@@ -58792,6 +58792,22 @@ Configure on which serial port to run LeddarOne Rangefinder.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_LL40LS_MAX (`FLOAT`) {#SENS_LL40LS_MAX}
+
+Lidar-Lite (LL40LS) maximum distance.
+
+Maximum distance the driver reports as valid. Set to 0 to use the driver's built-in
+limit for the detected hardware version.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 100 | 0.5 | 0 | m | &nbsp;
 
 </div>
 
@@ -65645,7 +65661,7 @@ This parameter defines the operating mode of the MXS
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 3 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 3 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -65700,7 +65716,7 @@ The MXS communication port to receive Target data from
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 2 |  | 1 |  | &nbsp;
+&nbsp; | 0 | 2 |  | 1 |  | &nbsp;
 
 </div>
 

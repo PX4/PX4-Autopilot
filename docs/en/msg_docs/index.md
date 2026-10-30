@@ -276,6 +276,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SensorsStatusGnss](SensorsStatusGnss.md) — Per-receiver GNSS health and check diagnostics.
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
+- [SurfaceVehicleCourseSetpoint](SurfaceVehicleCourseSetpoint.md) — Surface Vehicle Course Setpoint.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
 - [TargetGnss](TargetGnss.md) — Landing target GNSS position in WGS84 coordinates, and optional NED velocity, from a target-mounted receiver.

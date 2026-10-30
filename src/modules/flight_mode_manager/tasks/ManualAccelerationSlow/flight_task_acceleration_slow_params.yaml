@@ -70,7 +70,7 @@ parameters:
       unit: deg/s
       min: 1
       increment: 0.1
-      decimal: 0
+      decimal: 1
     MC_SLOW_DEF_HVEL:
       description:
         short: Default horizontal velocity limit
@@ -109,7 +109,7 @@ parameters:
       unit: deg/s
       min: 1
       increment: 0.1
-      decimal: 0
+      decimal: 1
     MC_SLOW_MAP_PTCH:
       description:
         short: Gimbal pitch rate control input in position slow mode

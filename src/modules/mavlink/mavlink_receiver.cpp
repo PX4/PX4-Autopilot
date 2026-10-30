@@ -1386,10 +1386,12 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			const double lon = target_global_int.lon_int / 1e7;
 			global_local_proj_ref.project(lat, lon, setpoint.position[0], setpoint.position[1]);
 
-			if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_INT) {
+			if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL
+			    || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_INT) {
 				setpoint.position[2] = local_pos.ref_alt - target_global_int.alt;
 
-			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT
+				   || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 				home_position_s home_position{};
 				_home_position_sub.copy(&home_position);
 
@@ -1402,7 +1404,8 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 					return;
 				}
 
-			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) {
+			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT
+				   || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) {
 				vehicle_global_position_s vehicle_global_position{};
 				_vehicle_global_position_sub.copy(&vehicle_global_position);
 
@@ -2084,6 +2087,7 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.temperature = (battery_mavlink.temperature == INT16_MAX) ?
 				     NAN : (float)battery_mavlink.temperature / 100.0f;
 	battery_status.connected = true;
+	battery_status.source = battery_status_s::SOURCE_EXTERNAL;
 	battery_status.time_remaining_s = (battery_mavlink.time_remaining > 0) ? static_cast<float>(battery_mavlink.time_remaining) : NAN;
 
 	// Set the battery warning based on remaining charge, if available.
@@ -2162,7 +2166,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 	}
 
 	if (shell) {
-		// Only this thread creates and deletes the shell, so it can be used without the lock.
+		// While this thread runs, only it creates and deletes the shell, so it can be used without the lock.
 		// Do not hold the lock while writing: the write blocks while a shell pipe is full, and
 		// the output pipe is drained by Mavlink::handleMavlinkShellOutput(), which needs the lock.
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
@@ -4061,8 +4065,30 @@ MavlinkReceiver::run()
 					// which busy-waits for the Mavlink main thread — and that thread may be
 					// waiting for lock_send(), producing a circular wait. Individual handlers
 					// that actually send take lock_send() locally.
+					//
+					// With signing active, mavlink_frame_char() also checks signatures against the
+					// replay table shared by all instances. It only does so on the last byte of a
+					// signature, so take the table lock for that byte only, inside the send lock,
+					// which also protects the parser state read here.
+					const bool signing_active = _mavlink.is_signing_active();
 					_mavlink.lock_send();
+
+					const mavlink_status_t *parser_status = mavlink_get_channel_status(_mavlink.get_channel());
+					const bool checks_signature = signing_active
+								      && (parser_status->parse_state == MAVLINK_PARSE_STATE_SIGNATURE_WAIT
+									  || parser_status->parse_state == MAVLINK_PARSE_STATE_SIGNATURE_WAIT_BAD_CRC)
+								      && parser_status->signature_wait == 1;
+
+					if (checks_signature) {
+						MavlinkSignControl::lock_streams();
+					}
+
 					const uint8_t framing = mavlink_frame_char(_mavlink.get_channel(), buf[i], &msg, &_status);
+
+					if (checks_signature) {
+						MavlinkSignControl::unlock_streams();
+					}
+
 					const FrameCheck frame_check = check_frame(framing, msg);
 
 					if (frame_check == FrameCheck::Invalid) {

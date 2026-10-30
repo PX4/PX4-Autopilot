@@ -52,11 +52,21 @@ jobs:
           cp srv/versioned/*.srv px4_msgs/srv/ || true
 
       - name: Commit and push changes
+        shell: bash
+        env:
+          # fail on a rejected token instead of prompting for a username
+          GIT_TERMINAL_PROMPT: 0
         run: |
+          set -euo pipefail
           cd px4_msgs
           git status
           git add .
-          git commit -a -m "Update to PX4 ${{ github.sha }}" || true
-          git push origin ${{ github.ref_name }} || true
+          if git diff --cached --quiet; then
+            echo "No message changes to commit"
+          else
+            git commit -m "Update to PX4 ${{ github.sha }}"
+          fi
+          # push even without a new commit, so a bad token or a new branch never goes unnoticed
+          git push origin ${{ github.ref_name }}
           cd ..
           rm -rf px4_msgs

@@ -322,7 +322,7 @@ parameters:
       default: 0.0165
       unit: Nm
       min: 0.0
-      decimal: 3
+      decimal: 4
     SIH_F_CT0:
       description:
         short: Forward thruster static thrust coefficient
