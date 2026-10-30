@@ -75,8 +75,7 @@ struct RouteDistanceSummary {
 /** @brief Per-reference scan scratch maintained while walking the mission segments. */
 struct CandidateSearchState {
 	bool prev_projection_on_end{true};
-	float min_xtrack_m{FLT_MAX};
-	float xtrack_limit_m{FLT_MAX};
+	float xtrack_limit_m{FLT_MAX}; /**< The farthest kept candidate once the buffer is full. */
 	float cos_lat{1.f}; /**< Cosine of the reference latitude, for the cross-track lower bound. */
 };
 
@@ -184,7 +183,8 @@ public:
 
 	/**
 	 * @brief Scan the mission and collect projection candidates for every reference point in the batch.
-	 * With a path checker, the candidates whose segment fails the geofence checks are then removed.
+	 * Each point keeps its kMaxSegmentCandidates closest projections. With a path checker, those whose segment
+	 * fails the geofence checks are removed. The search margin then applies from the closest one left.
 	 *
 	 * distance_summary is cleared on entry and populated only when kNone is returned.
 	 */
@@ -208,7 +208,7 @@ private:
 
 	/**
 	 * @brief Project one reference point onto one segment, apply local-minimum rules,
-	 * and maintain the shrinking cross-track candidate window.
+	 * and keep the closest projections.
 	 *
 	 * @param force_candidate Skip the local-minimum rules; set for the vertical segment the
 	 * vehicle is currently flying.
@@ -216,7 +216,6 @@ private:
 	 */
 	void processCandidateForSegment(ProjectionReference &reference,
 					const RouteSegmentView &segment_view,
-					float xtrack_margin_m,
 					bool force_candidate,
 					int32_t flown_jump_item_index,
 					ProjectionScanStats &stats) const;

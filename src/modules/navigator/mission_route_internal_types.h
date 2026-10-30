@@ -54,7 +54,8 @@ namespace mission_route
 
 static constexpr float kRoundingToleranceM{0.1f};
 static constexpr double kCornerLatLonTolDeg{1e-5};
-static constexpr uint8_t kMaxSegmentCandidates{3};
+/** Closest projections kept per point. The fence check runs before the search margin is applied. */
+static constexpr uint8_t kMaxSegmentCandidates{4};
 
 /** Safe points projected per route walk: larger batches trade fixed RAM for fewer walks. */
 static constexpr uint8_t kMaxSafePointBatch{CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE};

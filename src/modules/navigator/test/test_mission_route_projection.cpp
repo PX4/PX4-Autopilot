@@ -778,8 +778,8 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, ExhaustedJumpEdgeRemainsRou
 	EXPECT_NEAR(candidate->dist.xtrack_m, 0.f, kDistanceTolerance);
 }
 
-// The scanner retains the three route segments with the smallest cross-track distance.
-TEST_F(MissionRouteProjectionCandidateSelectionTest, KeepsThreeClosestRectangleSides)
+// With a wide margin the scanner keeps all four sides of the rectangle, closest first.
+TEST_F(MissionRouteProjectionCandidateSelectionTest, KeepsFourClosestRectangleSides)
 {
 	// 3 -------- 2
 	// |  P       |
@@ -803,8 +803,9 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, KeepsThreeClosestRectangleS
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
 	const mission_route::ProjectionCandidateBuffer &candidates = batch.items[0].candidate_buffer;
 	ASSERT_EQ(candidates.count, mission_route::kMaxSegmentCandidates);
+	EXPECT_EQ(candidates.candidates[0].segment.start.idx, 3);
 	EXPECT_NE(findCandidate(candidates, 0, 1), nullptr);
-	EXPECT_EQ(findCandidate(candidates, 1, 2), nullptr);
+	EXPECT_NE(findCandidate(candidates, 1, 2), nullptr);
 	EXPECT_NE(findCandidate(candidates, 2, 3), nullptr);
 	EXPECT_NE(findCandidate(candidates, 3, 4), nullptr);
 }
@@ -885,12 +886,13 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, ZigzagMissionStressesCandidateBuffer)
 		projection.findProjectionCandidates(scanRequest(500.f), batch, distance_summary);
 
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
-	ASSERT_EQ(batch.items[0].candidate_buffer.count, 3U);
+	ASSERT_EQ(batch.items[0].candidate_buffer.count, 4U);
 	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.start.idx, 5);
 	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.end.idx, 6);
 	EXPECT_EQ(findCandidate(batch.items[0].candidate_buffer, 4, 5), nullptr);
 	EXPECT_NE(findCandidate(batch.items[0].candidate_buffer, 3, 4), nullptr);
 	EXPECT_NE(findCandidate(batch.items[0].candidate_buffer, 6, 7), nullptr);
+	EXPECT_NE(findCandidate(batch.items[0].candidate_buffer, 1, 2), nullptr);
 }
 
 // All points in one batch share a single route walk instead of one mission pass per point.

@@ -718,17 +718,37 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment)
 }
 
 // A nominal segment and a jump edge can share endpoints but have different execution state.
-static bool hasSegmentTwin(const ProjectionCandidateBuffer &candidate_buffer, const Segment &segment)
+static bool isSegmentTwin(const Segment &a, const Segment &b)
 {
-	for (uint8_t i = 0; i < candidate_buffer.count; ++i) {
-		const Segment &other = candidate_buffer.candidates[i].segment;
+	return a.isLoop() != b.isLoop() && a.start.idx == b.start.idx && a.end.idx == b.end.idx;
+}
 
-		if (other.isLoop() != segment.isLoop() && other.start.idx == segment.start.idx && other.end.idx == segment.end.idx) {
-			return true;
+// After the geofence check, the closest candidate left sets the search window. Positive margins include the
+// boundary. Zero margin keeps only that candidate and the nominal twin of a jump edge: without its anchor the
+// jump edge is not flown, nor scored as a branch-off.
+static void keepWithinWindow(ProjectionCandidateBuffer &candidate_buffer, float xtrack_margin_m)
+{
+	if (candidate_buffer.count == 0) {
+		return;
+	}
+
+	const RouteProjectionCandidate &closest = candidate_buffer.candidates[0];
+
+	if (xtrack_margin_m > 0.f) {
+		pruneProjectionCandidates(candidate_buffer, closest.dist.xtrack_m + xtrack_margin_m);
+		return;
+	}
+
+	uint8_t kept = 1;
+
+	for (uint8_t i = 1; i < candidate_buffer.count; ++i) {
+		if (isSegmentTwin(closest.segment, candidate_buffer.candidates[i].segment)) {
+			candidate_buffer.candidates[kept++] = candidate_buffer.candidates[i];
+			break;
 		}
 	}
 
-	return false;
+	candidate_buffer.count = kept;
 }
 
 // The nominal twin replaces a jump edge the vehicle does not fly, which would otherwise win their tie.
@@ -763,7 +783,6 @@ static void resetCandidateSearch(ProjectionReference &reference)
 
 void MissionRouteProjection::processCandidateForSegment(ProjectionReference &reference,
 		const RouteSegmentView &segment_view,
-		float xtrack_margin_m,
 		bool force_candidate,
 		int32_t flown_jump_item_index,
 		ProjectionScanStats &stats) const
@@ -772,13 +791,14 @@ void MissionRouteProjection::processCandidateForSegment(ProjectionReference &ref
 	CandidateSearchState &state = reference.search_state;
 	ProjectionCandidateBuffer &candidate_buffer = reference.candidate_buffer;
 
-	// Most references are far from most segments: skip their projection trig. A skipped segment's corner
-	// state only matters at its end, out of the window too, unless vertical segments carry it further.
+	// Most references are far from most segments: skip the projection trig of a segment that cannot beat the
+	// farthest kept candidate. Its corner state only matters at its end, out of reach too, unless vertical
+	// segments carry it further.
 	static constexpr float kLowerBoundMarginM = 2.f; // rounding
-	const bool out_of_window = !segment_view.next_zero_length_xy
-				   && crossTrackLowerBound(reference_position, state.cos_lat, segment_view)
-				   > state.xtrack_limit_m + kLowerBoundMarginM;
-	const RawSegmentProjection projection = out_of_window ? RawSegmentProjection{}
+	const bool out_of_reach = !segment_view.next_zero_length_xy
+				  && crossTrackLowerBound(reference_position, state.cos_lat, segment_view)
+				  > state.xtrack_limit_m + kLowerBoundMarginM;
+	const RawSegmentProjection projection = out_of_reach ? RawSegmentProjection{}
 						: projectReferenceToSegment(reference_position, segment_view);
 
 	const bool prev_projection_on_end = state.prev_projection_on_end;
@@ -788,7 +808,7 @@ void MissionRouteProjection::processCandidateForSegment(ProjectionReference &ref
 		state.prev_projection_on_end = projection.projection_on_end;
 	}
 
-	if (out_of_window) {
+	if (out_of_reach) {
 		return;
 	}
 
@@ -808,11 +828,7 @@ void MissionRouteProjection::processCandidateForSegment(ProjectionReference &ref
 
 	stats.local_min_found++;
 
-	// Positive margins include the boundary. Zero margin keeps only the first closest candidate and the
-	// nominal twin of a jump edge: without its anchor the jump edge is not flown, nor scored as a branch-off.
-	if (!projection.valid || projection.xtrack_m > state.xtrack_limit_m
-	    || (xtrack_margin_m <= 0.f && projection.xtrack_m >= state.min_xtrack_m
-		&& !hasSegmentTwin(candidate_buffer, segment_view.segment))) {
+	if (!projection.valid || projection.xtrack_m > state.xtrack_limit_m) {
 		return;
 	}
 
@@ -826,14 +842,12 @@ void MissionRouteProjection::processCandidateForSegment(ProjectionReference &ref
 		return;
 	}
 
-	if (projection.xtrack_m < state.min_xtrack_m) {
-		// A new closest projection tightens the search window, so prune stale candidates first.
-		state.min_xtrack_m = projection.xtrack_m;
-		state.xtrack_limit_m = state.min_xtrack_m + xtrack_margin_m;
-		pruneProjectionCandidates(candidate_buffer, state.xtrack_limit_m);
-	}
-
+	// No search window yet: a candidate the geofence rejects must not hide a farther one.
 	insertCandidateSorted(candidate_buffer, candidate);
+
+	if (candidate_buffer.count == kMaxSegmentCandidates) {
+		state.xtrack_limit_m = candidate_buffer.candidates[kMaxSegmentCandidates - 1].dist.xtrack_m;
+	}
 }
 
 FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionScanRequest &request,
@@ -889,7 +903,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 		}
 
 		for (uint8_t i = 0; i < batch.count; ++i) {
-			processCandidateForSegment(batch.items[i], segment_view, request.xtrack_margin_m, flying_vertical_segment,
+			processCandidateForSegment(batch.items[i], segment_view, flying_vertical_segment,
 						   active_jump.jump_item_index, stats);
 		}
 	}
@@ -898,10 +912,14 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 		return cursor.failureReason();
 	}
 
-	// One geofence check of the kept candidates. A failing candidate is removed and not replaced, even when
-	// it kept a farther candidate that would pass out of the window or of the full buffer.
+	// One geofence check of the kept candidates, before the search window. A farther candidate is only lost
+	// when the kMaxSegmentCandidates closest of its point all fail.
 	if (_path_checker && !_path_checker->pruneCandidates(batch)) {
 		return FailureReason::kGeofenceUnavailable;
+	}
+
+	for (uint8_t i = 0; i < batch.count; ++i) {
+		keepWithinWindow(batch.items[i].candidate_buffer, request.xtrack_margin_m);
 	}
 
 	bool any_candidate_found = false;
