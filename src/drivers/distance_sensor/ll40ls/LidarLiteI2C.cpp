@@ -82,7 +82,7 @@ LidarLiteI2C::init()
 	// Override the version-specific default set during probe, if configured.
 	float max_distance = 0.f;
 
-	if (param_get(param_find("SENS_LL40LS_MAX"), &max_distance) == PX4_OK && max_distance > 0.f) {
+	if (param_get(param_find("SENS_LL40LS_MAX"), &max_distance) == PX4_OK && max_distance > LL40LS_MIN_DISTANCE) {
 		_px4_rangefinder.set_max_distance(max_distance);
 	}
 
