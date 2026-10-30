@@ -411,6 +411,10 @@ void RTL::setRtlTypeAndDestination()
 
 	} else if (should_init_mission_type) {
 		_init_failure_reported = RtlType::NONE;
+
+	} else if (new_type_is_mission_based && _rtl_mission_type_handle && !_rtl_mission_type_handle->isActive()) {
+		// The return altitude follows the vehicle, the landing and the parameters until Return starts.
+		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 	}
 
 	if (new_rtl_type == RtlType::RTL_DIRECT) {
