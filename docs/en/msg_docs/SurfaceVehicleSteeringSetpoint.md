@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# RoverSteeringSetpoint (UORB message)
+# SurfaceVehicleSteeringSetpoint (UORB message)
 
-Rover Steering setpoint.
+Surface Vehicle Steering Setpoint.
 
-**TOPICS:** rover_steering_setpoint
+**TOPICS:** surface_vehicle_steering_setpoint
 
 ## Fields
 
@@ -17,12 +17,12 @@ Rover Steering setpoint.
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverSteeringSetpoint.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SurfaceVehicleSteeringSetpoint.msg)
 
 ::: details Click here to see original file
 
 ```c
-# Rover Steering setpoint
+# Surface Vehicle Steering Setpoint
 
 uint64 timestamp                      # [us] Time since system start
 float32 normalized_steering_setpoint  # [-] [@range -1 (Left), 1 (Right)] [@frame Body] Ackermann: Normalized steering angle, Differential/Mecanum: Normalized speed difference between the left and right wheels

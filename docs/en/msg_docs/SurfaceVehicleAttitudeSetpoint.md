@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# RoverAttitudeSetpoint (UORB message)
+# SurfaceVehicleAttitudeSetpoint (UORB message)
 
-Rover Attitude Setpoint.
+Surface Vehicle Attitude Setpoint.
 
-**TOPICS:** rover_attitude_setpoint
+**TOPICS:** surface_vehicle_attitude_setpoint
 
 ## Fields
 
@@ -17,12 +17,12 @@ Rover Attitude Setpoint.
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverAttitudeSetpoint.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SurfaceVehicleAttitudeSetpoint.msg)
 
 ::: details Click here to see original file
 
 ```c
-# Rover Attitude Setpoint
+# Surface Vehicle Attitude Setpoint
 
 uint64 timestamp      # [us] Time since system start
 float32 yaw_setpoint  # [rad] [@range -inf, inf] [@frame NED] Yaw setpoint

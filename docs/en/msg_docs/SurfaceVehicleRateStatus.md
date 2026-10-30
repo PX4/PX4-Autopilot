@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# RoverRateStatus (UORB message)
+# SurfaceVehicleRateStatus (UORB message)
 
-Rover Rate Status.
+Surface Vehicle Rate Status.
 
-**TOPICS:** rover_rate_status
+**TOPICS:** surface_vehicle_rate_status
 
 ## Fields
 
@@ -19,12 +19,12 @@ Rover Rate Status.
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverRateStatus.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SurfaceVehicleRateStatus.msg)
 
 ::: details Click here to see original file
 
 ```c
-# Rover Rate Status
+# Surface Vehicle Rate Status
 
 uint64 timestamp                    # [us] Time since system start
 float32 measured_yaw_rate           # [rad/s] [@range -inf, inf] [@frame NED] Measured yaw rate

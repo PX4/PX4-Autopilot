@@ -21,7 +21,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
 
    If you see no need to limit the yaw rate, set this parameter to the maximum yaw rate the rover can achieve:
    1. In [Manual mode](../flight_modes_rover/manual.md#manual-mode) drive the rover at full throttle and with the maximum steering angle.
-   2. Plot the `measured_yaw_rate` from [RoverRateStatus](../msg_docs/RoverRateStatus.md) and enter the highest observed value for [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM).
+   2. Plot the `measured_yaw_rate` from [SurfaceVehicleRateStatus](../msg_docs/SurfaceVehicleRateStatus.md) and enter the highest observed value for [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM).
 
    :::
 
@@ -37,7 +37,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
    To tune this parameter, first make sure you set [RO_YAW_RATE_P](#RO_YAW_RATE_P) and [RO_YAW_RATE_I](#RO_YAW_RATE_I) to zero.
    This way the yaw rate is only controlled by the feed-forward term, which makes it easier to tune.
    Now put the rover in [Acro mode](../flight_modes_rover/manual.md#acro-mode) and then move the right-stick of your controller to the right and/or left and hold it at a few different levels for a couple of seconds each while driving with a constant throttle (for differential/mecanum rovers this can also be done while standing still).
-   Disarm the rover and from the flight log plot the `adjusted_yaw_rate_setpoint` from [RoverRateStatus](../msg_docs/RoverRateStatus.md) and the `measured_yaw_rate` from [RoverRateStatus](../msg_docs/RoverRateStatus.md) over each other.
+   Disarm the rover and from the flight log plot the `adjusted_yaw_rate_setpoint` from [SurfaceVehicleRateStatus](../msg_docs/SurfaceVehicleRateStatus.md) and the `measured_yaw_rate` from [SurfaceVehicleRateStatus](../msg_docs/SurfaceVehicleRateStatus.md) over each other.
    If the actual yaw rate of the rover is higher than the yaw rate setpoint, decrease [RO_YAW_RATE_CORR](#RO_YAW_RATE_CORR) (between [0, 1]).
    If it is the other way around increase the parameter [1, inf] and repeat until you are satisfied with the setpoint tracking.
    :::
@@ -50,7 +50,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
    :::tip
    To tune this parameter:
    1. Put the rover in [Acro mode](../flight_modes_rover/manual.md#acro-mode) and hold the throttle stick and the right stick at a few different levels for a couple of seconds each.
-   1. Disarm the rover and from the flight log plot the `adjusted_yaw_rate_setpoint` and the `measured_yaw_rate` from [RoverRateStatus](../msg_docs/RoverRateStatus.md) over each other.
+   1. Disarm the rover and from the flight log plot the `adjusted_yaw_rate_setpoint` and the `measured_yaw_rate` from [SurfaceVehicleRateStatus](../msg_docs/SurfaceVehicleRateStatus.md) over each other.
    1. Increase [RO_YAW_RATE_P](#RO_YAW_RATE_P) if the measured value does not track the setpoint fast enough or decrease it if the measurement overshoots the setpoint by too much.
    1. Repeat until you are satisfied with the behaviour.
       :::
