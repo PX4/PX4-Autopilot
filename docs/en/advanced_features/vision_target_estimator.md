@@ -22,8 +22,6 @@ The keys and values that need to be present are:
 
 - `CONFIG_MODULES_VISION_TARGET_ESTIMATOR=y`: _Enable_ VTE in firmware
 - `CONFIG_MODULES_LANDING_TARGET_ESTIMATOR=n`: _Disable_ the landing target estimator (both modules publish [`landing_target_pose`](../msg_docs/LandingTargetPose.md) and will conflict if enabled together).
-- `CONFIG_MAVLINK_DIALECT="development"`: Enable using the development dialect.
-  Note that this step will no longer be required once the MAVLink messages used by VTE have been validated.
 
 Two prebuilt targets are available:
 
@@ -351,19 +349,14 @@ This decision is gated by [EKF2_AVEL_EN](../advanced_config/parameter_reference.
 
 The estimator receives target information through two MAVLink messages emitted by an onboard companion (vision pipeline and/or external GNSS receiver):
 
-- [TARGET_RELATIVE](https://mavlink.io/en/messages/development.html#TARGET_RELATIVE) carries each vision-based observation of the target.
-- [TARGET_ABSOLUTE](https://mavlink.io/en/messages/development.html#TARGET_ABSOLUTE) carries absolute target state from a GNSS receiver mounted on the target.
-
-::: info
-These messages are currently in the MAVLink development dialect.
-To make them available in PX4 builds the `CONFIG_MAVLINK_DIALECT="development"` key must be set in the build configuration.
-:::
+- [TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE) carries each vision-based observation of the target.
+- [TARGET_ABSOLUTE](https://mavlink.io/en/messages/common.html#TARGET_ABSOLUTE) carries absolute target state from a GNSS receiver mounted on the target.
 
 ::: details Click to view MAVLink message integration (TARGET_RELATIVE, TARGET_ABSOLUTE)
 
 **TARGET_RELATIVE (ID 511)**
 
-[TARGET_RELATIVE](https://mavlink.io/en/messages/development.html#TARGET_RELATIVE) extends the [LANDING_TARGET](https://mavlink.io/en/messages/common.html#LANDING_TARGET) message with a full 3D report that includes orientation and measurement uncertainty:
+[TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE) extends the [LANDING_TARGET](https://mavlink.io/en/messages/common.html#LANDING_TARGET) message with a full 3D report that includes orientation and measurement uncertainty:
 
 - A coordinate frame selector (`TARGET_OBS_FRAME`) and a sensor quaternion (`q_sensor`) that, when provided, rotates the measurement into vehicle-carried NED.
 - Target pose (`x`, `y`, `z`, `q_target`) and variances (`pos_std`, `yaw_std`), collected from onboard vision pipelines.
@@ -376,7 +369,7 @@ To make them available in PX4 builds the `CONFIG_MAVLINK_DIALECT="development"` 
 
 **TARGET_ABSOLUTE (ID 510)**
 
-[TARGET_ABSOLUTE](https://mavlink.io/en/messages/development.html#TARGET_ABSOLUTE) reports the target's absolute state when it carries its own GNSS (and optionally IMU).
+[TARGET_ABSOLUTE](https://mavlink.io/en/messages/common.html#TARGET_ABSOLUTE) reports the target's absolute state when it carries its own GNSS (and optionally IMU).
 A capability bitmap advertises which fields are valid.
 PX4 maps the available content into the `target_gnss` uORB topic:
 
@@ -397,10 +390,10 @@ If the state visibly diverges between measurements and snaps back when a new sam
 
 - **Timestamp** each sample at capture in a clock that is synchronised with the autopilot (typically through `mavlink_timesync`).
   The Out-of-Sequence Measurements ([OOSM](../advanced_features/vision_target_estimator_advanced.md#oosm-implementation)) history replay tolerates transport latency, but only if timestamps are consistent.
-- **Report consistent variances** in `pos_std` and `yaw_std` (for [TARGET_RELATIVE](https://mavlink.io/en/messages/development.html#TARGET_RELATIVE)) and `position_std` / `vel_std` (for `TARGET_ABSOLUTE`).
+- **Report consistent variances** in `pos_std` and `yaw_std` (for [TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE)) and `position_std` / `vel_std` (for `TARGET_ABSOLUTE`).
   Under-reporting variance is the most common cause of overshoots.
   The [Sensor noise floors](#noise) only clamp the lower bound and cannot rescue an over-confident sensor.
-- **Set the coordinate frame** for [TARGET_RELATIVE](https://mavlink.io/en/messages/development.html#TARGET_RELATIVE) (`TARGET_OBS_FRAME`) and provide the `q_sensor` rotation when the camera frame differs from vehicle-carried NED.
+- **Set the coordinate frame** for [TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE) (`TARGET_OBS_FRAME`) and provide the `q_sensor` rotation when the camera frame differs from vehicle-carried NED.
 - **Match the target GNSS position to the active task.** Publish the takeoff pad while `prec_takeoff_status` is `ONGOING` and the landing pad while `prec_land_status` is active.
   The estimator fuses whatever it receives and cannot detect a mismatch.
 
@@ -414,7 +407,7 @@ The timing and variance guidance above still applies.
 Run the SITL world `gazebo-classic_iris_irlock` to simulate precision landing using the VTE fusing vision (ArUco-based) and target GNSS aiding.
 
 ::: tip
-The ArUco vision observation path implemented in `Tools/simulation/gazebo-classic/sitl_gazebo-classic/src/gazebo_aruco_plugin.cpp` provides a concrete example of how to obtain a vision-based observation of a target and how to publish the [TARGET_RELATIVE](https://mavlink.io/en/messages/development.html#TARGET_RELATIVE) message.
+The ArUco vision observation path implemented in `Tools/simulation/gazebo-classic/sitl_gazebo-classic/src/gazebo_aruco_plugin.cpp` provides a concrete example of how to obtain a vision-based observation of a target and how to publish the [TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE) message.
 :::
 
 1. Launch the simulator with:
