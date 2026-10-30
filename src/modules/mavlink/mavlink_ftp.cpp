@@ -48,6 +48,7 @@
 
 #include "mavlink_ftp.h"
 #include "mavlink_main.h"
+#include "mavlink_ftp_path.h"
 
 using namespace time_literals;
 
@@ -1368,6 +1369,15 @@ bool MavlinkFTP::_validatePath(const char *path)
 
 bool MavlinkFTP::_validatePathIsWritable(const char *path)
 {
+	// rcS sources some files from storage at boot, so writing them is writing a startup
+	// script. Equivalent spellings are compared, not rewritten, so the string checked here
+	// is the one the caller passes to open()/rename()/unlink(); a spelling that cannot be
+	// compared as text ("..", a FAT short-name alias) is refused.
+	if (mavlink_ftp_path_is_write_protected(path)) {
+		PX4_ERR("Disallowing write to protected path %s", path);
+		return false;
+	}
+
 	// The root can expose read-only data next to the storage directory, so confine writes
 	// to storage. On NuttX that keeps them off the in-RAM system paths; on POSIX it keeps
 	// them out of the ROMFS.
