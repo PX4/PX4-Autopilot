@@ -240,7 +240,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 						stopRngHgtFusion();
 						stopRngTerrFusion();
 
-					} else if (starting_conditions_passing) {
+					} else if (starting_conditions_passing && _control_status.flags.rng_kin_consistent) {
 						resetTerrainToRng(aid_src);
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}
