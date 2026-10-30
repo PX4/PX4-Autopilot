@@ -130,10 +130,15 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                 else:
                     raise Exception("unknown param type {:}".format(param['type']))
 
-                for tag in ['decimal', 'increment', 'category', 'volatile',
-                            'min', 'max', 'unit', 'reboot_required']:
+                for tag in ['decimal', 'increment', 'category',
+                            'min', 'max', 'unit']:
                     if tag in param:
                         tags += '\n * @{:} {:}'.format(tag, param[tag])
+
+                # The metadata parsers treat any flag tag as set, whatever its value
+                for tag in ['volatile', 'reboot_required']:
+                    if param.get(tag, False):
+                        tags += '\n * @{:} true'.format(tag)
 
                 for i in range(num_instances):
                     # default value
