@@ -1013,7 +1013,10 @@ void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 void Mavlink::find_broadcast_address()
 {
 	// the network interfaces cannot be listed through the socket API
-	PX4_WARN("no broadcast address");
+	if (!_broadcast_address_not_found_warned) {
+		PX4_WARN("no broadcast address");
+		_broadcast_address_not_found_warned = true;
+	}
 }
 #else
 void Mavlink::find_broadcast_address()
