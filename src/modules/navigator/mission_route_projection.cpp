@@ -908,12 +908,6 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 				current_segment_located = locateCurrentSegment(segment_view, request, active_jump, current_segment_bounds);
 			}
 
-			// An unflown jump edge is no branch-off: skip it before it narrows the window.
-			if (request.skip_unflown_jump_edges && segment_view.segment.isLoop()
-			    && segment_view.segment.jump_item_index != active_jump.jump_item_index) {
-				continue;
-			}
-
 			// Keep the vertical segment the vehicle flies (e.g. B' -> LAND while descending) despite a small
 			// drift toward the horizontal leg. During a jump the vehicle flies the jump edge instead.
 			const bool flying_vertical_segment = segment_view.zero_length_xy && !segment_view.segment.isLoop()

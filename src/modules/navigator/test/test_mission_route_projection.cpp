@@ -351,7 +351,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, JumpEdgeWithNominalTwinRespectsAn
 		}
 	}
 
-	// Off the vehicle's loop a jump edge is no branch-off: a safe point scan keeps only its nominal twin.
+	// A safe point scan has no anchor: at the same point it keeps only the nominal twin, whatever the vehicle flies.
 	auto batch = singleReferenceBatch(vehicle);
 	batch.items[0].source_index = 0;
 	mission_route::RouteDistanceSummary distances{};
@@ -359,15 +359,6 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, JumpEdgeWithNominalTwinRespectsAn
 		  mission_route::FailureReason::kNone);
 	ASSERT_EQ(batch.items[0].candidate_buffer.count, 1);
 	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.jump_item_index, -1);
-
-	// On the vehicle's loop the jump edge stays a branch-off.
-	mission_route::ProjectionScanRequest on_loop_request = scanRequest(0.f);
-	on_loop_request.active_jump_anchor = {3};
-	ASSERT_EQ(projection.findProjectionCandidates(on_loop_request, batch, distances),
-		  mission_route::FailureReason::kNone);
-	ASSERT_EQ(batch.items[0].candidate_buffer.count, 2);
-	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.jump_item_index, 3);
-	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[1].segment.jump_item_index, -1);
 }
 
 // Closer legs fill the candidate buffer. The nominal twin must keep its place there: dropping it

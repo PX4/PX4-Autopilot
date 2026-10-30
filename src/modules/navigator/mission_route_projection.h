@@ -64,7 +64,6 @@ struct ProjectionScanRequest {
 	int32_t mission_index{-1};
 	bool is_flying_reverse{false};
 	ActiveJumpAnchor active_jump_anchor{}; /**< DO_JUMP whose edge the vehicle flies, empty for none. */
-	bool skip_unflown_jump_edges{false}; /**< Branch-off scans: skip jump edges other than the anchored one. */
 };
 
 struct RouteDistanceSummary {

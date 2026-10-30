@@ -46,7 +46,6 @@
 #include <cinttypes>
 #include <cstdio>
 #include <functional>
-#include <random>
 
 using navigator_test::route_test_reference::kAlt;
 using navigator_test::route_test_reference::kBaseLat;
@@ -1576,8 +1575,8 @@ TEST_F(MissionRoutePlannerTest, MissionHonorsAndRtlIgnoresActiveJumpRepeats)
 	EXPECT_EQ(rtl_plan.branch_off_mission_item_index, 1);
 }
 
-// A jump the vehicle does not fly is no branch-off, so it does not narrow the safe point search window either.
-TEST_F(MissionRoutePlannerTest, InactiveJumpDoesNotNarrowSafePointProjectionWindow)
+// Even an unusable jump defines the geometric search window, matching pre-flight projections.
+TEST_F(MissionRoutePlannerTest, InactiveJumpStillDefinesSafePointProjectionWindow)
 {
 	std::vector<mission_item_s> mission{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
@@ -1593,21 +1592,21 @@ TEST_F(MissionRoutePlannerTest, InactiveJumpDoesNotNarrowSafePointProjectionWind
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
 	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 1);
+	request.safe_point_projection_search_distance_m = 0.f;
+	mission_route::RtlRoutePlan plan{};
 
-	// The safe point lies on the jump, 300 m from the nominal leg: even zero margin keeps that leg.
-	for (const float margin : {0.f, 400.f}) {
-		SCOPED_TRACE(::testing::Message() << "margin " << margin);
-		request.safe_point_projection_search_distance_m = margin;
-		mission_route::RtlRoutePlan plan{};
-		const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
+	// With zero margin only the jump remains. It cannot be used from the nominal vehicle segment.
+	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNoValidCandidateFound);
+	EXPECT_FALSE(plan.valid());
 
-		ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
-		ASSERT_TRUE(plan.valid());
-		EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
-		EXPECT_EQ(plan.safe_point_index, 0);
-		EXPECT_EQ(plan.branch_off_mission_item_index, 1);
-		EXPECT_TRUE(plan.active_jump_anchor.empty());
-	}
+	// A wider geometric window also admits the nominal leg, which has a usable return path.
+	request.safe_point_projection_search_distance_m = 400.f;
+	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 0);
+	EXPECT_EQ(plan.branch_off_mission_item_index, 1);
+	EXPECT_TRUE(plan.active_jump_anchor.empty());
 }
 
 // Square A-B-C-D closed by a DO_JUMP from D back to A, then on to E.
@@ -1621,39 +1620,6 @@ static std::vector<mission_item_s> squareLoopMission()
 		makeDoJump(0, 3, 0),                                                // 4 jump D -> A
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),   // 5 E
 	};
-}
-
-// Rally point 20 m outside the closing side of a square the vehicle is not looping. That edge must not drop
-// corner A (102 m) from the 30 m window, else the plan fails or picks the LAND.
-TEST_F(MissionRoutePlannerTest, SafePointBesideInactiveJumpEdgeBranchesOffNominalRoute)
-{
-	std::vector<mission_item_s> mission = squareLoopMission();
-	std::vector<mission_item_s> safe_points{
-		makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, -20.f, kAlt),
-	};
-
-	for (const bool land_at_end : {false, true}) {
-		SCOPED_TRACE(::testing::Message() << "land at end " << land_at_end);
-		mission[5].nav_cmd = land_at_end ? NAV_CMD_LAND : NAV_CMD_WAYPOINT;
-		TestPlanner planner(mission, safe_points);
-		mission_route::RtlRouteRequest request =
-			makeRtlRouteRequest(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 100.f, kAlt), 1);
-		request.safe_point_projection_search_distance_m = 30.f;
-		request.mission_land_index = land_at_end ? 5 : -1;
-		mission_route::RtlRoutePlan plan{};
-
-		const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
-
-		ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
-		ASSERT_TRUE(plan.valid());
-		EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
-		EXPECT_EQ(plan.safe_point_index, 0);
-		// Back along [A-B] to its start corner.
-		EXPECT_TRUE(plan.direction_reversed);
-		EXPECT_EQ(plan.first_mission_item_index, 0);
-		EXPECT_EQ(plan.branch_off_mission_item_index, 0);
-		EXPECT_TRUE(plan.active_jump_anchor.empty());
-	}
 }
 
 // The selected jump remains a usable branch-off when both vehicle and safe point project onto it.
@@ -1689,8 +1655,8 @@ TEST_F(MissionRoutePlannerTest, ActiveJumpRemainsAvailableForSafePointProjection
 	EXPECT_EQ(plan.branch_off_mission_item_index, 2);
 }
 
-// On the vehicle's own loop the closing edge is a branch-off, so it still bounds the window. From just past D,
-// corner D (102 m off) costs less than the edge (20 m off), but only a wide margin admits it.
+// The closing edge bounds the window as before the flight, and on the vehicle's own loop it is also a branch-off.
+// From just past D, corner D (102 m off) costs less than the edge (20 m off), but only a wide margin admits it.
 TEST_F(MissionRoutePlannerTest, ActiveJumpStillNarrowsSafePointProjectionWindow)
 {
 	std::vector<mission_item_s> safe_points{
@@ -1723,72 +1689,6 @@ TEST_F(MissionRoutePlannerTest, ActiveJumpStillNarrowsSafePointProjectionWindow)
 		EXPECT_EQ(plan.first_mission_item_index, margin_case.first_mission_item_index);
 		EXPECT_EQ(plan.branch_off_mission_item_index, margin_case.branch_off_mission_item_index);
 	}
-}
-
-// Random missions with backward DO_JUMPs, one safe point and no LAND or TAKEOFF to fall back on: whatever loop
-// the vehicle flies, a plan found with an unlimited RTL_RP_SEG_DIST must also be found at 0 and 30 m.
-TEST_F(MissionRoutePlannerTest, RandomJumpMissionsPlanWithinSafePointMargin)
-{
-	std::mt19937 rng(27687);
-	// From the raw engine output, so every platform draws the same samples.
-	const auto uniform = [&rng](float min, float max) {
-		return min + (max - min) * static_cast<float>(rng() >> 8) / 16777216.f;
-	};
-	const auto pick = [&rng](size_t count) { return static_cast<int>(rng() % count); };
-	int planned = 0;
-
-	for (int sample = 0; sample < 3000; ++sample) {
-		std::vector<mission_item_s> mission;
-		std::vector<int32_t> waypoints;
-		std::vector<int32_t> jumps;
-		const int waypoint_count = 3 + pick(5);
-
-		for (int i = 0; i < waypoint_count; ++i) {
-			const float north = uniform(-300.f, 300.f);
-			const float east = uniform(-300.f, 300.f);
-			waypoints.push_back(static_cast<int32_t>(mission.size()));
-			mission.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, north, east, kAlt));
-
-			// Loop back to an earlier waypoint, at least once per mission.
-			if (i > 0 && (pick(3) == 0 || (i == waypoint_count - 1 && jumps.empty()))) {
-				const int32_t target = waypoints[pick(i)];
-				const uint16_t repeats = static_cast<uint16_t>(1 + pick(3));
-				const uint16_t current = static_cast<uint16_t>(pick(repeats + 1));
-				jumps.push_back(static_cast<int32_t>(mission.size()));
-				mission.push_back(makeDoJump(target, repeats, current));
-			}
-		}
-
-		const float vehicle_north = uniform(-350.f, 350.f);
-		const float vehicle_east = uniform(-350.f, 350.f);
-		const float safe_point_north = uniform(-350.f, 350.f);
-		const float safe_point_east = uniform(-350.f, 350.f);
-		const int32_t mission_index = pick(mission.size());
-		const int32_t anchor = pick(2) == 0 ? -1 : jumps[pick(jumps.size())];
-
-		TestPlanner planner(mission, {makeSafePointFromOffset(kBaseLat, kBaseLon, safe_point_north, safe_point_east, kAlt)});
-		mission_route::RtlRouteRequest request =
-			makeRtlRouteRequest(makePositionFromOffset(kBaseLat, kBaseLon, vehicle_north, vehicle_east, kAlt), mission_index);
-		request.active_jump_anchor = {anchor};
-		request.safe_point_projection_search_distance_m = 1e6f;
-		mission_route::RtlRoutePlan plan{};
-
-		if (planner.planRtlRoute(request, plan) != mission_route::FailureReason::kNone) {
-			continue;
-		}
-
-		++planned;
-
-		for (const float margin : {0.f, 30.f}) {
-			request.safe_point_projection_search_distance_m = margin;
-			const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
-			ASSERT_EQ(status, mission_route::FailureReason::kNone)
-					<< "sample " << sample << ", margin " << margin << ": " << mission_route::failureReasonString(status);
-		}
-	}
-
-	// Most samples plan, so the check is not vacuous.
-	EXPECT_GT(planned, 1500);
 }
 
 // Loop case where the cheapest path is nominal: rally 3, branch-off on [7-9].

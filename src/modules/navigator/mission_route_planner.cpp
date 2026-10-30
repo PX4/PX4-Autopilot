@@ -424,9 +424,8 @@ FailureReason selectSafePoint(const Provider &provider,
 	ProjectionScanRequest scan_request{};
 	scan_request.home_altitude_amsl = config.parameters.home_altitude_amsl;
 	scan_request.xtrack_margin_m = config.parameters.safe_point_projection_search_dist_m;
-	// A jump edge is only a branch-off on the vehicle's own loop.
-	scan_request.active_jump_anchor.jump_item_index = projection_context.route_projection.segment.jump_item_index;
-	scan_request.skip_unflown_jump_edges = true;
+	// Every jump edge is projected, flown or not, so the candidates match the pre-flight projections.
+	// Scoring rejects a jump edge the vehicle is not on.
 
 	FailureReason scan_failure_reason = FailureReason::kNoValidCandidateFound;
 	int safe_point_cursor = 0;
