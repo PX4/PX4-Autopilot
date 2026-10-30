@@ -48,7 +48,7 @@
 #include <ActuatorEffectivenessTailsitterVTOL.hpp>
 #include <ActuatorEffectivenessFixedWing.hpp>
 #include <ActuatorEffectivenessMCTilt.hpp>
-#include <ActuatorEffectivenessCustom.hpp>
+#include <ActuatorEffectivenessCustomTiltrotor.hpp>
 #include <ActuatorEffectivenessUUV.hpp>
 #include <ActuatorEffectivenessHelicopter.hpp>
 #include <ActuatorEffectivenessHelicopterCoaxial.hpp>

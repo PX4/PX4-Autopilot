@@ -245,7 +245,7 @@ ControlAllocator::update_effectiveness_source()
 			break;
 
 		case EffectivenessSource::CUSTOM:
-			tmp = new ActuatorEffectivenessCustom(this);
+			tmp = new ActuatorEffectivenessCustomTiltrotor(this);
 			break;
 
 		case EffectivenessSource::HELICOPTER_TAIL_ESC:
@@ -263,6 +263,7 @@ ControlAllocator::update_effectiveness_source()
 		case EffectivenessSource::SPACECRAFT_2D:
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
+
 
 		case EffectivenessSource::ROVER_ACKERMANN: // Unreachable: Rover startup scripts don't load control_allocator. Controllers publish actuator_outputs directly.
 		case EffectivenessSource::ROVER_DIFFERENTIAL:
