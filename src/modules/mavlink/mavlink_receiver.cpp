@@ -2514,6 +2514,7 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			case MAV_TYPE_ADSB:
 				_heartbeat_type_adsb = now;
+				_adsb_component_id = msg->compid;
 				break;
 
 			case MAV_TYPE_FLARM:
@@ -3016,6 +3017,11 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 
 	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0)) {
 		return;
+	}
+
+	// Some receivers (e.g. pingRX Pro) starve their HEARTBEAT under heavy traffic, count reports from the identified ADS-B receiver as alive
+	if ((_heartbeat_type_adsb != 0) && (msg->sysid == mavlink_system.sysid) && (msg->compid == _adsb_component_id)) {
+		_heartbeat_type_adsb = t.timestamp;
 	}
 
 	_transponder_report_pub.publish(t);
