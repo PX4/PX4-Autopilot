@@ -83,6 +83,7 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_Other   = 10,
 	IOTimerChanMode_DshotInverted = 11,
 	IOTimerChanMode_CaptureDMA = 12,
+	IOTimerChanMode_GPIO    = 13,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
