@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# Analog battery voltage input: PC0 / ADC1 channel 10, 160k/10k divider.
+param set-default BAT1_SOURCE    0
+param set-default BAT1_V_CHANNEL 10
+param set-default BAT1_V_DIV    17.0
+
+# Enable the SPI1 MAX7456-compatible OSD in NTSC mode.
+param set-default OSD_ATXXXX_CFG 1
+
+# S.BUS receiver on the SBUS connector (UART5) disabled: ELRS is the RC input.
+param set-default RC_SBUS_PRT_CFG 0
+
+# ELRS (CRSF) receiver on the ELRS connector (UART4): 104 = TEL4 port.
+# The debug build has no TEL4 port (UART4 is the NuttX console), so CRSF does not start there.
+param set-default RC_CRSF_PRT_CFG 104
+# Send CRSF telemetry (battery, GPS, attitude, flight mode) back to the transmitter.
+param set-default RC_CRSF_TEL_EN 1
+
+# Boot into Stabilized mode instead of Hold: 15 = Stabilized.
+param set-default COM_FLTMODE_BOOT 15
+
+# ESC telemetry on the ESC connector (USART1, RX only): 401 = EXT2 port.
+param set-default DSHOT_TEL_CFG 401
+
+# Heater (PE3) is supported but off by default. Set SENS_EN_THERMAL to 1 to enable it.
+param set-default SENS_EN_THERMAL 0
+# Heater target temperature (degC).
+param set-default HEATER1_TEMP 45
+
+# Start all populated NeoPixels; PB10 is not exposed as a motor output.
+neopixel start
