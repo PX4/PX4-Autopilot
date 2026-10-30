@@ -832,6 +832,8 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 	_px4_rangefinder.set_max_distance(static_cast<float>(msg.range_max()));
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 
+	// despite its name, world_pose is the sensor pose relative to its parent link (lidar_sensor_link),
+	// which is why it is composed with _lidar_link_q below to get the orientation in the body frame
 	gz::msgs::Quaternion pose_orientation = msg.world_pose().orientation();
 	gz::math::Quaterniond q_sensor = gz::math::Quaterniond(
 			pose_orientation.w(),
