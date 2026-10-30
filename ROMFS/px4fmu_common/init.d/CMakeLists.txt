@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(airframes)
+add_subdirectory(cannode_airframes)
 
 px4_add_romfs_files(
 
