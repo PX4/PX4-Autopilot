@@ -38,11 +38,7 @@ parameters:
     MC_ACRO_EXPO:
       description:
         short: Acro mode roll, pitch expo factor
-        long: |-
-          Exponential factor for tuning the input curve shape.
-
-          0 Purely linear input curve
-          1 Purely cubic input curve
+        long: Shape of the stick input curve, from 0 (linear) to 1 (cubic).
       type: float
       default: 0.0
       min: 0
@@ -51,11 +47,7 @@ parameters:
     MC_ACRO_EXPO_Y:
       description:
         short: Acro mode yaw expo factor
-        long: |-
-          Exponential factor for tuning the input curve shape.
-
-          0 Purely linear input curve
-          1 Purely cubic input curve
+        long: Shape of the stick input curve, from 0 (linear) to 1 (cubic).
       type: float
       default: 0.0
       min: 0
@@ -64,12 +56,10 @@ parameters:
     MC_ACRO_SUPEXPO:
       description:
         short: Acro mode roll, pitch super expo factor
-        long: |-
-          "Superexponential" factor for refining the input curve shape tuned using MC_ACRO_EXPO.
-
-          0 Pure Expo function
-          0.7 reasonable shape enhancement for intuitive stick feel
-          0.95 very strong bent input curve only near maxima have effect
+        long: Refines the stick input curve shape set by MC_ACRO_EXPO.
+          0.7 gives an intuitive stick feel.
+          Set to 0 to disable.
+          At 0.95 only stick positions near the maxima have an effect.
       type: float
       default: 0.0
       min: 0
@@ -78,12 +68,8 @@ parameters:
     MC_ACRO_SUPEXPOY:
       description:
         short: Acro mode yaw super expo factor
-        long: |-
-          "Superexponential" factor for refining the input curve shape tuned using MC_ACRO_EXPO_Y.
-
-          0 Pure Expo function
-          0.7 reasonable shape enhancement for intuitive stick feel
-          0.95 very strong bent input curve only near maxima have effect
+        long: Refines the stick input curve shape set by MC_ACRO_EXPO_Y. Set to 0 to disable. 0.7 gives an intuitive stick feel, and
+          at 0.95 only stick positions near the maxima have an effect.
       type: float
       default: 0.0
       min: 0
