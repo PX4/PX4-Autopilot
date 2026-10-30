@@ -38,7 +38,7 @@
 #include <cmath>
 
 /**
- * Array index = ESTIMATOR_SENSOR_FUSION_SOURCE - 1:
+ * Array index = ESTIMATOR_SENSOR_FUSION_SOURCE:
  *   [0] GPS    [1] OF     [2] EV    [3] AGP
  *   [4] BARO   [5] RNG    [6] MAG   [7] ASPD  [8] RNGBCN
  *
@@ -62,7 +62,7 @@ public:
 	}
 
 private:
-	// Array indices matching ESTIMATOR_SENSOR_FUSION_SOURCE - 1
+	// Array indices matching ESTIMATOR_SENSOR_FUSION_SOURCE
 	static constexpr uint8_t IDX_GPS    = 0;
 	static constexpr uint8_t IDX_OF     = 1;
 	static constexpr uint8_t IDX_EV     = 2;
