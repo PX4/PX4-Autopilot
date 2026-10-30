@@ -215,10 +215,10 @@ Once the destination arrival or landing sequence has begun, these changes do not
 This is the shared projection step used by both the [Vehicle Projection](#vehicle-projection) and the [Safe-Point Scoring](#safe-point-scoring) below.
 The projected point is the vehicle in one case and a safe point (rally point) in the other.
 
-The planner draws a perpendicular projection from the point onto every route segment and keeps up to three candidates per point.
-A projection is a valid candidate only if its cross-track distance is within a search margin of the closest candidate's cross-track distance.
+The planner draws a perpendicular projection from the point onto every route segment and keeps the four closest as candidates.
+After the [Geofence Checks](#geofence-checks), a candidate is kept only if its cross-track distance is within a search margin of the closest candidate left.
 Separate parameters control the search margins for the vehicle and rally points; see [Parameters and Build Configuration](#parameters-and-build-configuration).
-When more than three projections fall within the margin, only the three with the smallest cross-track distance are kept and the rest are dropped.
+Projections beyond the four closest are dropped, even inside the margin.
 
 The mission route planner supports [`DO_JUMP`](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP) mission loop commands.
 The active jump segment is the segment running from the waypoint before the jump command to the first position waypoint at the jump target.
@@ -250,7 +250,7 @@ This is why some projections in the images below land on a waypoint instead of p
 
 The example below uses a large margin.
 The mission route is drawn in white and the projections of the vehicle and the rally points (`R`) in green.
-Every rally point has three projections because the margin is large.
+Every rally point has four projections because the margin is large.
 
 ![Point projection with a large search margin](../../assets/mission_route_planner/mission_route_planner_large_search_margin.png)
 
@@ -288,13 +288,12 @@ Before selecting a branch-in or branch-off point, the planner checks the segment
 Both ends must be within the permitted area, altitude and distance-from-home limits.
 A segment that touches or crosses an inclusion or exclusion fence boundary is rejected.
 
-The planner checks the candidates kept by [Point Projection](#point-projection), up to three per vehicle or safe point, once the route has been scanned.
-A candidate that fails is removed and not replaced, so planning scans the route only once.
+The planner checks the candidates kept by [Point Projection](#point-projection), up to four per vehicle or safe point, once the route has been scanned.
+A candidate that fails is removed before the search margin is applied, so it cannot hide a farther candidate among the four.
 
-This is a tradeoff: a failing candidate can hide farther ones that would pass.
-The closest projection sets the search margin even if its segment fails, so farther projections outside that margin are never kept, and failing projections can also take the three places.
-A vehicle or safe point can then be left without a candidate, or with a costlier one, although a farther leg has a clear path.
-A larger search margin keeps more projections, up to three, which makes this less likely.
+This has a limit: projections beyond the four closest are never checked.
+If the four closest projections of a vehicle or safe point all fail, nothing is found for that point, even when a farther leg has a clear path.
+If only some of them fail, the planner uses the ones left, even when a leg beyond the four would cost less.
 
 If no branch-in candidate passes, smart rejoin is skipped and route-following Return has no route.
 If no safe point has a usable branch-off, Return can still select a mission takeoff or landing endpoint.
@@ -405,7 +404,7 @@ As the planner gathers the safe points to consider, it filters out the ones it c
 
 - Rally points with invalid coordinates or unsupported frames are skipped.
 - A VTOL in fixed-wing mode also skips rally points without a landing approach when [RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE) is set.
-- Every remaining safe point gets up to three projections.
+- Every remaining safe point gets up to four projections.
 - Branch-off segments must pass the [Geofence Checks](#geofence-checks) before scoring.
 
 Safe-point branch-off candidates on loop segments are more restricted:
@@ -474,13 +473,13 @@ See [Safe-Point Batching](#safe-point-batching) for the rally-point batch config
 Its default is `16` (`32` on testing builds), with a supported range of `16` to `32`.
 More rally points than fit in one batch require additional scans, increasing planning time.
 The minimum of `16` limits repeated route scans.
-Increasing the batch size reduces the number of scans but uses more static RAM: 400 to 500 bytes per rally point, 13.7 KB at 32.
+Increasing the batch size reduces the number of scans but uses more static RAM: 504 bytes per rally point (16.1 KB at 32), plus 1.4 KB for the geofence checks.
 
 The upper limit comes from `DM_KEY_SAFE_POINTS_MAX`, the compile-time capacity of `32` rally-list items defined in `src/modules/dataman/dataman.h`.
 Optional approach or loiter items also use these slots.
 This storage limit also caps MAVLink rally-point uploads; changing the batch size does not change that capacity.
 
-Geofence checks use the same candidates and check up to `min(32, 3 * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE)` segments at a time, from one static buffer.
+Geofence checks use the same candidates and check up to 32 segments at a time, from one static buffer.
 Candidates that fail do not cause another scan of the mission (see [Geofence Checks](#geofence-checks)).
 
 For firmware builds with enough memory, all supported rally points can be checked in one scan:
