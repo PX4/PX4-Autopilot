@@ -83,10 +83,10 @@
 #define HRT_TIMER_FREQ   1000000
 
 /* lpit value has to be multiplied by 133 because bus_wakeup runs 133MHz
- * ponytail: assumes the LPIT runs from the 133.33 MHz bus_wakeup root; a different LPIT clock
+ * assumes the LPIT runs from the 133.33 MHz bus_wakeup root; a different LPIT clock
  * root silently skews deadlines. Upgrade path: read the root with imx9_get_rootclock at init.
  */
-#define LPIT_VALUE_FACTOR(a) ((a*400) / 3)  /* == a * 133.333333... */
+#define LPIT_VALUE_FACTOR(a) ((((a) * 400) + 2) / 3)  /* == ceil(a * 133.333333...) */
 
 /* HRT configuration */
 #define HRT_LPTMR_INSTANCE 2
