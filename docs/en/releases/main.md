@@ -118,6 +118,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
 - Disabling the selected IMU at runtime (setting its [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO) or [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO) to `0`) now hands over to the next IMU without a sensor failure report, including while the vehicle is armed. A re-enabled IMU reappears in `sensors_status_imu` and the IMU consistency check only once it publishes new data. ([PX4-Autopilot#28811](https://github.com/PX4/PX4-Autopilot/pull/28811))
+- [JRT PTGL-100 Laser Rangefinder](../sensor/ptgl100.md): new `ptgl100` UART rangefinder driver (included in the [Amovlab Flycore](../flight_controller/amovlab_flycore.md) firmware). ([PX4-Autopilot#29088](https://github.com/PX4/PX4-Autopilot/pull/29088))
 
 ### Simulation
 
