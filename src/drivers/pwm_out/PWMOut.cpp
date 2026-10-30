@@ -34,8 +34,19 @@
 #include "PWMOut.hpp"
 
 #include <px4_platform_common/sem.hpp>
+#include <px4_platform_common/shutdown.h>
 
 ModuleBase::Descriptor PWMOut::desc{task_spawn, custom_command, print_usage};
+
+bool PWMOut::request_stop_static()
+{
+	if (is_running(desc)) {
+		get_instance<PWMOut>(desc)->request_stop();
+		return false;
+	}
+
+	return true;
+}
 
 PWMOut::PWMOut() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -51,6 +62,10 @@ PWMOut::~PWMOut()
 {
 	/* make sure servos are off */
 	up_pwm_servo_deinit(_pwm_mask);
+
+	if (_shutdown_hook_registered) {
+		px4_unregister_shutdown_hook(&PWMOut::request_stop_static);
+	}
 
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
@@ -153,9 +168,43 @@ bool PWMOut::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, u
 	return true;
 }
 
+void PWMOut::set_max_timers_rate()
+{
+	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+		uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
+
+		if (channels == 0) {
+			continue;
+		}
+
+		int ret = up_pwm_servo_set_rate_group_update(timer, PWM_RATE_TIMER_MAX);
+
+		if (ret != 0) {
+			PX4_ERR("up_pwm_servo_set_rate_group_update failed for timer %i, rate %i (%i)", timer, _timer_rates[timer], ret);
+			_timer_rates[timer] = -1;
+			_pwm_mask &= ~channels;
+		}
+	}
+}
+
 void PWMOut::Run()
 {
 	if (should_exit()) {
+		hrt_abstime now = hrt_absolute_time();
+
+		if (shutdown_request_time == 0) {
+			shutdown_request_time = now;
+
+			if (pwm_shutdown_period) {
+				set_max_timers_rate();
+				PX4_INFO("Gracefully stopping PWM outputs");
+			}
+		}
+
+		if (now < shutdown_request_time + pwm_shutdown_period) {
+			return;
+		}
+
 		ScheduleClear();
 		_mixing_output.unregister();
 
@@ -205,6 +254,11 @@ int PWMOut::task_spawn(int argc, char *argv[])
 
 	desc.object.store(instance);
 	desc.task_id = task_id_is_work_queue;
+
+	if (px4_register_shutdown_hook(&PWMOut::request_stop_static) == 0) {
+		instance->_shutdown_hook_registered = true;
+	}
+
 	instance->ScheduleNow();
 	return 0;
 }
