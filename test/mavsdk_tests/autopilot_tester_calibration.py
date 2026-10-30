@@ -11,7 +11,7 @@ from typing import Any, List, Optional
 
 from mavsdk.plugins.shell import Device, Shell  # type: ignore
 
-from autopilot_tester import MAV_COMP_ID_AUTOPILOT1, AutopilotTester, log
+from autopilot_tester import MAV_COMP_ID_AUTOPILOT1, MAV_RESULT_ACCEPTED, AutopilotTester, log
 
 MAV_CMD_PREFLIGHT_CALIBRATION = 241
 MAV_TYPE_GCS = 6
@@ -20,6 +20,8 @@ MAV_AUTOPILOT_INVALID = 8
 # PX4 only sends STATUSTEXT while it hears a GCS. MAVSDK's 1 Hz heartbeat is in host time, which at
 # a high speed factor is longer than PX4's GCS timeout in simulation time.
 HEARTBEAT_INTERVAL_S = 0.05
+
+START_ACK_TIMEOUT_S = 5.0
 
 
 class AutopilotTesterCalibration(AutopilotTester):
@@ -79,11 +81,21 @@ class AutopilotTesterCalibration(AutopilotTester):
     def start_calibration(self, param1: float = 0.0, param2: float = 0.0, param3: float = 0.0,
                           param4: float = 0.0, param5: float = 0.0, param6: float = 0.0,
                           param7: float = 0.0) -> None:
-        self.send_command_long(MAV_CMD_PREFLIGHT_CALIBRATION, param1, param2, param3, param4,
-                               param5, param6, param7)
+        """Send one start, without retries: PX4 rejects a retry once the calibration runs, and
+        that late ack would be counted against the cancel."""
+        self._send_calibration_command(param1, param2, param3, param4, param5, param6, param7)
+        assert self.poll_condition_with_timeout(lambda: bool(self.calibration_acks()),
+                                                START_ACK_TIMEOUT_S), "No ack for the calibration start"
+        assert self.calibration_acks() == [MAV_RESULT_ACCEPTED]
 
     def cancel_calibration(self) -> None:
-        """Send one cancel, without retries, and forget earlier acks so its acks can be counted."""
+        """Send one cancel, without retries, so its acks can be counted."""
+        self._send_calibration_command()
+
+    def _send_calibration_command(self, param1: float = 0.0, param2: float = 0.0,
+                                  param3: float = 0.0, param4: float = 0.0, param5: float = 0.0,
+                                  param6: float = 0.0, param7: float = 0.0) -> None:
+        """Forget earlier acks and send the command once."""
         with self._lock:
             self._acks.clear()
 
@@ -91,8 +103,8 @@ class AutopilotTesterCalibration(AutopilotTester):
             "target_system": self._target_system_id(),
             "target_component": MAV_COMP_ID_AUTOPILOT1,
             "command": MAV_CMD_PREFLIGHT_CALIBRATION, "confirmation": 0,
-            "param1": 0.0, "param2": 0.0, "param3": 0.0, "param4": 0.0,
-            "param5": 0.0, "param6": 0.0, "param7": 0.0,
+            "param1": param1, "param2": param2, "param3": param3, "param4": param4,
+            "param5": param5, "param6": param6, "param7": param7,
         })
 
     def calibration_acks(self) -> List[int]:
