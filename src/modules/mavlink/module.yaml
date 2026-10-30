@@ -168,11 +168,9 @@ parameters:
             description:
                 short: MAVLink Partner IP for instance ${i}
                 long: |
-                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
-                    selected partner ip will be set and used in MAVLink instance ${i}.
-                    A value of 0 leaves the partner address unconfigured, so it is
-                    auto-discovered from the first received packet instead. IP address must be provided
-                    in int32 format, encoded big-endian (first octet in the most significant byte)
+                    Messages go to this address at port MAV_${i}_REMOTE_PRT. Encoded as int32
+                    with the first octet in the most significant byte, e.g. 192.168.1.2 is -1062731518.
+                    Set to 0 to discover the partner from received packets.
 
             type: int32
             reboot_required: true
