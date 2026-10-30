@@ -74,6 +74,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Hardware Support
 
+- [Accton Godwit G-FH7](../flight_controller/accton-godwit_gfh7.md): compact STM32H753 flight controller with dual IMUs (ICM-42688-P, LSM6DSK320X), DPS368 barometer, IST8310 magnetometer, 8 bidirectional-DShot outputs, and an analog OSD. ([PX4-Autopilot#28817](https://github.com/PX4/PX4-Autopilot/pull/28817))
 - [AIFoundry Erbium](../flight_controller/aifoundry_erbium.md): new experimental target for the AIFoundry Erbium RISC-V (ET-Minion) chip, which runs the SIH quadcopter on the `erbium_emu` emulator until silicon is available. ([PX4-Autopilot#29094](https://github.com/PX4/PX4-Autopilot/pull/29094))
 - [DroneCAN ESCs](../dronecan/escs.md) no longer need to set `UAVCAN_PUB_ARM` as `ArmingStatus` is published automatically whenever `UAVCAN_ENABLE` is `3` (ESC output enabled). ([PX4-Autopilot#28364](https://github.com/PX4/PX4-Autopilot/pull/28364))
 - [DroneCAN ESC](../dronecan/escs.md) channels assigned a non-motor function (e.g. _Peripheral via Actuator Set_) can be driven bidirectionally via `UAVCAN_EC_SIGNED` (signed RawCommand, 0 = neutral). Motors continue to use `CA_R_REV`. ([PX4-Autopilot#26903](https://github.com/PX4/PX4-Autopilot/pull/26903))
