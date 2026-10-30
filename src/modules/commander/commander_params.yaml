@@ -123,9 +123,9 @@ parameters:
         long: |-
           Action the system takes when a GNSS failure is detected during flight.
           Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
-          when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
-          with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
-          The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
+          when SYS_HAS_NUM_GNSS=0), or when two receivers disagree by more than
+          COM_GNSS_H_MAX horizontally or COM_GNSS_V_MAX vertically and SYS_HAS_NUM_GNSS=2
+          (otherwise warning only).
           Any value above Warning also blocks arming.
       type: enum
       values:
@@ -135,6 +135,39 @@ parameters:
         3: Terminate
         4: Warning, block arming
       default: 0
+    COM_GNSS_H_MAX:
+      description:
+        short: Maximum horizontal disagreement between GNSS receivers
+        long: |-
+          Two receivers are reported as diverging if their horizontal positions
+          disagree by more than this value, after removing the expected antenna
+          separation rotated with the vehicle attitude.
+          Until the heading is aligned, only their horizontal distance is compared.
+          Before arming a divergence is reported immediately and clears after 2s of
+          continuous agreement. In flight it has to persist for 2s to be reported.
+          See COM_GNSSLOSS_ACT for the resulting action.
+      type: float
+      default: 2.0
+      unit: m
+      min: 0.1
+      max: 20.0
+      decimal: 1
+      increment: 0.1
+    COM_GNSS_V_MAX:
+      description:
+        short: Maximum vertical disagreement between GNSS receivers
+        long: |-
+          Two receivers are reported as diverging if their altitudes disagree by
+          more than this value, after removing the expected antenna height
+          difference rotated with the vehicle attitude.
+          Same timing and action as COM_GNSS_H_MAX.
+      type: float
+      default: 2.0
+      unit: m
+      min: 0.5
+      max: 20.0
+      decimal: 1
+      increment: 0.1
     COM_ARM_SWISBTN:
       description:
         short: Arm switch is a momentary button
