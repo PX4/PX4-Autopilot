@@ -89,6 +89,22 @@ public:
 	/**
 	 * Before iterating using get_next(), reset to start.
 	 */
+	/**
+	 * Number of active items.
+	 */
+	int count() const
+	{
+		int n = 0;
+
+		for (int i = 0; i < NUM_ITEMS; ++i) {
+			if (_list[i].timestamp_us != 0) {
+				++n;
+			}
+		}
+
+		return n;
+	}
+
 	void reset_to_start()
 	{
 		_current_i = -1;
