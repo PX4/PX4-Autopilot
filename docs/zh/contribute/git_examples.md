@@ -280,7 +280,13 @@ git checkout <branch name>
 
 ### 强制推送到分叉存储库
 
-做完第一个 PR 后, 来自 PX4 社区的人将回顾你的更改。在大多数情况下, 这意味着您必须根据评审来修复本地分支。 After changing the files locally, the feature branch needs to be rebased again with the most recent upstream/main. 但是, 在重新建立基础后, 不再可能将特征分支直接推送到分叉存储库, 而是需要使用强制推送:
+After you open a PR, people from the PX4 community will review your changes.
+在大多数情况下, 这意味着您必须根据评审来修复本地分支。
+Add the fixes as new commits and push them normally.
+Do not amend or squash commits that are already pushed: a force push erases the history a reviewer has read, and they can no longer see what changed since their last review.
+
+A force push is only needed after the feature branch has been rebased on the most recent upstream/main, for example to resolve merge conflicts.
+Keep the existing commits when rebasing, where possible:
 
 ```sh
 git push --force-with-lease origin <your feature branch name>

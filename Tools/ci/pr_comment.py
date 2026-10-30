@@ -55,7 +55,7 @@ def find_comment(repo: str, pr: int, marker: str) -> str | None:
 def main() -> None:
     parser = argparse.ArgumentParser(description='Manage PR quality comments')
     parser.add_argument('--marker', required=True,
-                        help='Marker name (e.g. pr-title, commit-msgs, pr-body)')
+                        help='Marker name (e.g. pr-title, pr-body)')
     parser.add_argument('--pr', required=True, type=int,
                         help='Pull request number')
     parser.add_argument('--result', required=True, choices=['pass', 'fail', 'warn'],

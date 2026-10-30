@@ -109,8 +109,8 @@ int Zenoh_Config::AddPubSub(char *topic, char *datatype, int instance_no, const 
 
 		while (getPubSubMapping(f_topic, f_type, &f_new_instance, filename) > 0) {
 			if (strcmp(topic, f_topic) == 0
-			    || strcmp(datatype, f_type) == 0) {
-				printf("Already mapped to uORB %s -> %s\n", f_type, f_topic);
+			    || (strcmp(datatype, f_type) == 0 && instance_no == f_new_instance)) {
+				printf("Already mapped to uORB %s (instance %d) -> %s\n", f_type, f_new_instance, f_topic);
 				return 0;
 			}
 
@@ -174,8 +174,9 @@ int Zenoh_Config::DeletePubSub(char *topic, const char *filename)
 		return -1;
 	}
 
-	char line[TOPIC_INFO_SIZE];
-	char line_copy[TOPIC_INFO_SIZE];
+	// Same line size as the mapping parser, a shorter buffer splits long lines in two
+	char line[MAX_LINE_SIZE];
+	char line_copy[MAX_LINE_SIZE];
 	const char *fields[1];  // We only need the topic
 	int found = 0;
 
@@ -486,14 +487,21 @@ int Zenoh_Config::getLineCount(const char *filename)
 {
 	int lines = 0;
 	int ch;
+	bool line_start = true;
 
-	// Open file in write mode
 	FILE *fp = fopen(filename, "r");
 
+	if (!fp) {
+		return 0;
+	}
+
+	// Count the lines getPubSubMapping() parses: it skips empty lines and reads a last line without newline
 	while ((ch = fgetc(fp)) != EOF) {
-		if (ch == '\n') {
+		if (line_start && ch != '\n') {
 			lines++;
 		}
+
+		line_start = (ch == '\n');
 	}
 
 	//Close the file

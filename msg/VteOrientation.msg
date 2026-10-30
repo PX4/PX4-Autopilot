@@ -1,7 +1,7 @@
 # Vision Target Estimator orientation state, exposing the full yaw filter output with covariances for logging and tuning.
 #
 # Published by: vision_target_estimator (VTEOrientation).
-# Subscribed by: logger only. The orientation-related fields consumed elsewhere (precision landing) are exposed on landing_target_pose.
+# Subscribed by: precision landing (navigator) and the logger.
 
 uint64 timestamp # [us] Time since system start
 

@@ -40,7 +40,7 @@
  *
  */
 #ifndef MESSAGES_H_
-#define MESSAGES_H
+#define MESSAGES_H_
 
 #include <stdlib.h>
 #include <stdint.h>

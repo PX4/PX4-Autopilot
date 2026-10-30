@@ -77,8 +77,8 @@ publications:
     type: px4_msgs::msg::VehicleGlobalPosition
     rate_limit: 50.
 
-  - topic: /fmu/out/vehicle_gps_position
-    type: px4_msgs::msg::SensorGps
+  - topic: /fmu/out/vehicle_gnss
+    type: px4_msgs::msg::VehicleGnss
     rate_limit: 50.
 
   - topic: /fmu/out/vehicle_local_position
@@ -203,6 +203,9 @@ subscriptions:
   - topic: /fmu/in/actuator_servos
     type: px4_msgs::msg::ActuatorServos
 
+  - topic: /fmu/in/sensor_gnss
+    type: px4_msgs::msg::SensorGnss
+
   - topic: /fmu/in/fixed_wing_longitudinal_setpoint
     type: px4_msgs::msg::FixedWingLongitudinalSetpoint
 
@@ -217,6 +220,9 @@ subscriptions:
 
   - topic: /fmu/in/rover_position_setpoint
     type: px4_msgs::msg::RoverPositionSetpoint
+
+  - topic: /fmu/in/surface_vehicle_course_setpoint
+    type: px4_msgs::msg::SurfaceVehicleCourseSetpoint
 
   - topic: /fmu/in/rover_speed_setpoint
     type: px4_msgs::msg::RoverSpeedSetpoint

@@ -53,7 +53,7 @@ The Unicore module comes with two antennas, a primary (right connector) and a se
 You will need to set the following parameters:
 
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): Set bit 3 (8) to enable dual antenna heading into the yaw estimation.
-- [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG): `Dual antenna`, with [SENS_GPSn_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX) the position of the primary antenna and [SENS_GNSSn_AUXX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_AUXX) that of the secondary antenna.
+- [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG): `Dual antenna`, with [SENS_GNSSn_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX) the position of the primary antenna and [SENS_GNSSn_AUXX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_AUXX) that of the secondary antenna.
 
 ### RTK Corrections
 

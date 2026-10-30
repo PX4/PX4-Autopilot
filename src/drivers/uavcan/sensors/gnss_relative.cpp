@@ -64,7 +64,7 @@ void UavcanGnssRelativeBridge::rel_pos_heading_sub_cb(const
 	sensor_gnss_relative_s sensor_gnss_relative{};
 
 	// A node timestamp that can't be used falls back to the receive time, which carries none of the receiver latency:
-	// timestamp_sample is left at 0 so that SENS_GPSn_DELAY applies.
+	// timestamp_sample is left at 0 so that SENS_GNSSn_DELAY applies.
 	const hrt_abstime now = hrt_absolute_time();
 	const hrt_abstime timestamp_sample = uavcan_bridge::sample_timestamp(msg.timestamp.usec,
 					     _sub_rel_pos_heading.getNode().getUtcTime().toUSec(), now);
@@ -82,7 +82,7 @@ void UavcanGnssRelativeBridge::rel_pos_heading_sub_cb(const
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
 				sensor_gnss_relative.device_id,
-				NodeInfoPublisher::DeviceCapability::GPS);
+				device_information_s::DEVICE_TYPE_GPS);
 	}
 
 	sensor_gnss_relative.timestamp = hrt_absolute_time();

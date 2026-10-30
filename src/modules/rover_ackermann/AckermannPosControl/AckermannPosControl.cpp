@@ -58,28 +58,41 @@ void AckermannPosControl::updatePosControl()
 
 	hrt_abstime timestamp = hrt_absolute_time();
 
-	if (_target_waypoint_ned.isAllFinite()) {
-		float distance_to_target = (_target_waypoint_ned - _curr_pos_ned).norm();
+	// Course control: like the fixed wing course hold, only the course over ground is controlled, there is no desired track to return to after a sideways offset
+	const bool course_control = PX4_ISFINITE(_course);
+
+	if (course_control || _target_waypoint_ned.isAllFinite()) {
+		float distance_to_target = course_control ? 0.f : (_target_waypoint_ned - _curr_pos_ned).norm();
 
 		if (_arrival_speed > FLT_EPSILON) {
 			distance_to_target -= _acceptance_radius; // shift target to the edge of the acceptance radius if arrival speed not zero
 		}
 
-		if (distance_to_target > _acceptance_radius || _arrival_speed > FLT_EPSILON) {
+		if (course_control || distance_to_target > _acceptance_radius || _arrival_speed > FLT_EPSILON) {
 
 			float speed_setpoint{_cruising_speed};
 
-			if (_param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
+			if (!course_control && _param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
 				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
 							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
 
-			pure_pursuit_status_s pure_pursuit_status{};
-			pure_pursuit_status.timestamp = timestamp;
+			float bearing_setpoint{NAN};
 
-			const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-						       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _target_waypoint_ned, _start_ned,
-						       _curr_pos_ned, fabsf(speed_setpoint));
+			if (course_control) {
+				// Driving forwards, the heading setpoint is the course setpoint corrected by the drift angle, like the fixed wing crabs into the wind
+				bearing_setpoint = speed_setpoint > -FLT_EPSILON ? matrix::wrap_pi(_course - _drift_angle_estimator.getDriftAngle()) :
+						   _course;
+
+			} else {
+				pure_pursuit_status_s pure_pursuit_status{};
+				pure_pursuit_status.timestamp = timestamp;
+
+				bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+						   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _target_waypoint_ned, _start_ned,
+						   _curr_pos_ned, fabsf(speed_setpoint));
+				_pure_pursuit_status_pub.publish(pure_pursuit_status);
+			}
 
 			if (_param_ro_speed_red.get() > FLT_EPSILON) {
 				const float course_error = fabsf(matrix::wrap_pi(bearing_setpoint - _vehicle_yaw));
@@ -90,7 +103,6 @@ void AckermannPosControl::updatePosControl()
 				speed_setpoint = math::constrain(speed_setpoint, -max_speed, max_speed);
 			}
 
-			_pure_pursuit_status_pub.publish(pure_pursuit_status);
 			rover_speed_setpoint_s rover_speed_setpoint{};
 			rover_speed_setpoint.timestamp = timestamp;
 			rover_speed_setpoint.speed_body_x = speed_setpoint;
@@ -143,6 +155,7 @@ void AckermannPosControl::updateSubscriptions()
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 		_updated_reset_counter = vehicle_local_position.xy_reset_counter;
+		_drift_angle_estimator.update(vehicle_local_position);
 		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
 		Vector3f velocity_ned(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		Vector3f velocity_xyz = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
@@ -158,7 +171,20 @@ void AckermannPosControl::updateSubscriptions()
 		_arrival_speed = PX4_ISFINITE(rover_position_setpoint.arrival_speed) ? rover_position_setpoint.arrival_speed : 0.f;
 		_cruising_speed = PX4_ISFINITE(rover_position_setpoint.cruising_speed) ? rover_position_setpoint.cruising_speed :
 				  _param_ro_speed_limit.get();
-		_target_waypoint_ned = Vector2f(rover_position_setpoint.position_ned[0], rover_position_setpoint.position_ned[1]);
+		_target_waypoint_ned = Vector2f(rover_position_setpoint.target_ned[0], rover_position_setpoint.target_ned[1]);
+		_course = NAN;
+		_stopped = false;
+	}
+
+	if (_surface_vehicle_course_setpoint_sub.updated()) {
+		surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint;
+		_surface_vehicle_course_setpoint_sub.copy(&surface_vehicle_course_setpoint);
+		_start_ned = Vector2f(NAN, NAN);
+		_arrival_speed = 0.f;
+		_cruising_speed = PX4_ISFINITE(surface_vehicle_course_setpoint.speed) ?
+				  surface_vehicle_course_setpoint.speed : _param_ro_speed_limit.get();
+		_target_waypoint_ned = Vector2f(NAN, NAN);
+		_course = surface_vehicle_course_setpoint.course;
 		_stopped = false;
 	}
 

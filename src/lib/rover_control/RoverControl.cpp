@@ -265,4 +265,33 @@ float calcWaypointTransitionAngle(Vector2f &prev_wp_ned, Vector2f &curr_wp_ned, 
 	return acosf(cosin);
 }
 
+void DriftAngleEstimator::update(const vehicle_local_position_s &vehicle_local_position)
+{
+	if (!vehicle_local_position.v_xy_valid || !PX4_ISFINITE(vehicle_local_position.heading)) {
+		return;
+	}
+
+	const float heading = vehicle_local_position.heading;
+	const float forward_speed = vehicle_local_position.vx * cosf(heading) + vehicle_local_position.vy * sinf(heading);
+	const float lateral_speed = -vehicle_local_position.vx * sinf(heading) + vehicle_local_position.vy * cosf(heading);
+
+	// The direction of a slow or backwards velocity says nothing about the drift angle while driving along the course
+	if (forward_speed < math::max(MIN_SPEED, EVH_FACTOR * vehicle_local_position.evh)) {
+		return;
+	}
+
+	const float drift_angle = math::constrain(atan2f(lateral_speed, forward_speed), -MAX_DRIFT_ANGLE, MAX_DRIFT_ANGLE);
+
+	if (!_valid) {
+		_filter.reset(drift_angle);
+		_valid = true;
+
+	} else {
+		// After a pause in the estimation the stale estimate is filtered towards the new one rather than replaced
+		_filter.update(drift_angle, math::min(vehicle_local_position.timestamp - _timestamp, MAX_DT_US));
+	}
+
+	_timestamp = vehicle_local_position.timestamp;
+}
+
 } // RoverControl

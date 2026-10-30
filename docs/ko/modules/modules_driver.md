@@ -266,7 +266,7 @@ Source: [examples/fake_magnetometer](https://github.com/PX4/PX4-Autopilot/tree/m
 ### 설명
 
 Publish the earth magnetic field as a fake magnetometer (sensor_mag).
-Requires vehicle_attitude and vehicle_gps_position.
+Requires vehicle_attitude and vehicle_gnss.
 
 ### Usage {#fake_magnetometer_usage}
 
@@ -763,6 +763,8 @@ mcp230xx <command> [arguments...]
      [-M <val>]  First minor number
                  default: 0
 
+   write         Set the output pins to the state given with -O
+
    stop
 
    status        print status info
@@ -1121,7 +1123,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
 
 ### Usage {#rgbled_usage}
 
@@ -1138,9 +1140,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 

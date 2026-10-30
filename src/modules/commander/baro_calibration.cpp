@@ -56,7 +56,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -71,7 +71,7 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
 
 	// GPS (used for reference)
-	uORB::SubscriptionMultiArray<sensor_gps_s, 3> sensor_gps_subs{ORB_ID::sensor_gps};
+	uORB::SubscriptionMultiArray<sensor_gnss_s, 3> sensor_gnss_subs{ORB_ID::sensor_gnss};
 	float gps_altitude_sum = NAN;
 	int gps_altitude_sum_count = 0;
 
@@ -102,14 +102,14 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 			}
 		}
 
-		for (auto &gps_sub : sensor_gps_subs) {
-			sensor_gps_s sensor_gps;
+		for (auto &gnss_sub : sensor_gnss_subs) {
+			sensor_gnss_s sensor_gnss;
 
-			if (gps_sub.update(&sensor_gps)) {
-				if ((hrt_elapsed_time(&sensor_gps.timestamp) < 1_s)
-				    && (sensor_gps.fix_type >= 2) && (sensor_gps.epv < 100)) {
+			if (gnss_sub.update(&sensor_gnss)) {
+				if ((hrt_elapsed_time(&sensor_gnss.timestamp) < 1_s)
+				    && (sensor_gnss.fix_type >= 2) && (sensor_gnss.epv < 100)) {
 
-					float alt = (float)sensor_gps.altitude_msl_m;
+					float alt = (float)sensor_gnss.altitude_msl;
 
 					if (PX4_ISFINITE(gps_altitude_sum)) {
 						gps_altitude_sum += alt;

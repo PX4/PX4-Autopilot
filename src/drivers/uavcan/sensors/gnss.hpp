@@ -47,7 +47,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/rtcm_data.h>
 #include <uORB/topics/gps_dump.h>
 
@@ -151,7 +151,7 @@ private:
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
 	failure_injection::Config _failure_config;
-	failure_injection::Stuck<sensor_gps_s> _stuck[DEFAULT_MAX_CHANNELS];
+	failure_injection::Stuck<sensor_gnss_s> _stuck[DEFAULT_MAX_CHANNELS];
 
 	bool *_channel_using_fix2; ///< Flag for whether each channel is using Fix2 or Fix msg
 

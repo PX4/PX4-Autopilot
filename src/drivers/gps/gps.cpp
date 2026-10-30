@@ -63,7 +63,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/rtcm_data.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/sensor_gnss_rf.h>
 #if defined(CONFIG_GPS_UBX_SPAN)
@@ -241,10 +241,10 @@ private:
 
 	GPS_Sat_Info			*_sat_info{nullptr};				///< instance of GPS sat info data object
 
-	sensor_gps_s			_sensor_gps{};				///< uORB topic for gps position
+	sensor_gnss_s			_sensor_gnss{};				///< uORB topic for gps position
 	satellite_info_s		*_p_report_sat_info{nullptr};			///< pointer to uORB topic for satellite info
 
-	uORB::PublicationMulti<sensor_gps_s>	_sensor_gps_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
+	uORB::PublicationMulti<sensor_gnss_s>	_sensor_gnss_pub{ORB_ID(sensor_gnss)};	///< uORB pub for gps position
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
 	uORB::PublicationMulti<sensor_gnss_rf_s> _sensor_gnss_rf_block_pub[kMaxBlocks] {
 		{ORB_ID(sensor_gnss_rf_block0)},
@@ -261,7 +261,7 @@ private:
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub {ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
 	failure_injection::Config _failure_config;
-	failure_injection::Stuck<sensor_gps_s> _stuck;
+	failure_injection::Stuck<sensor_gnss_s> _stuck;
 
 	float				_rate{0.0f};					///< position update rate
 	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
@@ -1025,7 +1025,7 @@ GPS::run()
 					.mode = ubx_mode,
 				};
 
-				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_sensor_gps, _p_report_sat_info, settings);
+				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_sensor_gnss, _p_report_sat_info, settings);
 
 				set_device_type(DRV_GPS_DEVTYPE_UBX);
 				break;
@@ -1035,35 +1035,35 @@ GPS::run()
 #if defined(CONFIG_GPS_MTK)
 
 		case gps_driver_mode_t::MTK:
-			_helper = new GPSDriverMTK(&GPS::callback, this, &_sensor_gps);
+			_helper = new GPSDriverMTK(&GPS::callback, this, &_sensor_gnss);
 			set_device_type(DRV_GPS_DEVTYPE_MTK);
 			break;
 #endif // CONFIG_GPS_MTK
 #if defined(CONFIG_GPS_ASHTECH)
 
 		case gps_driver_mode_t::ASHTECH:
-			_helper = new GPSDriverAshtech(&GPS::callback, this, &_sensor_gps, _p_report_sat_info);
+			_helper = new GPSDriverAshtech(&GPS::callback, this, &_sensor_gnss, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_ASHTECH);
 			break;
 #endif // CONFIG_GPS_ASHTECH
 #if defined(CONFIG_GPS_EMLIDREACH)
 
 		case gps_driver_mode_t::EMLIDREACH:
-			_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_sensor_gps, _p_report_sat_info);
+			_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_sensor_gnss, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_EMLID_REACH);
 			break;
 #endif // CONFIG_GPS_EMLIDREACH
 #if defined(CONFIG_GPS_FEMTOMES)
 
 		case gps_driver_mode_t::FEMTOMES:
-			_helper = new GPSDriverFemto(&GPS::callback, this, &_sensor_gps, _p_report_sat_info);
+			_helper = new GPSDriverFemto(&GPS::callback, this, &_sensor_gnss, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
 			break;
 #endif // CONFIG_GPS_FEMTOMES
 #if defined(CONFIG_GPS_NMEA)
 
 		case gps_driver_mode_t::NMEA:
-			_helper = new GPSDriverNMEA(&GPS::callback, this, &_sensor_gps, _p_report_sat_info);
+			_helper = new GPSDriverNMEA(&GPS::callback, this, &_sensor_gnss, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_NMEA);
 			break;
 #endif // CONFIG_GPS_NMEA
@@ -1108,7 +1108,7 @@ GPS::run()
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
 			/* reset report */
-			memset(&_sensor_gps, 0, sizeof(_sensor_gps));
+			memset(&_sensor_gnss, 0, sizeof(_sensor_gnss));
 
 #if defined(CONFIG_GPS_UBX)
 
@@ -1383,7 +1383,7 @@ GPS::print_status()
 	// Fixed-width labels so values stay aligned
 	PX4_INFO("rate reading:        %6i B/s", _rate_reading);
 
-	if (_sensor_gps.timestamp != 0) {
+	if (_sensor_gnss.timestamp != 0) {
 		if (_helper) {
 			PX4_INFO("rate position:       %6.2f Hz", (double)_helper->getPositionUpdateRate());
 			PX4_INFO("rate velocity:       %6.2f Hz", (double)_helper->getVelocityUpdateRate());
@@ -1391,7 +1391,7 @@ GPS::print_status()
 
 		PX4_INFO("rate publication:    %6.2f Hz", (double)_rate);
 
-		print_message(ORB_ID(sensor_gps), _sensor_gps);
+		print_message(ORB_ID(sensor_gnss), _sensor_gnss);
 	}
 
 	if (_inject) {
@@ -1443,19 +1443,19 @@ void
 GPS::publish()
 {
 	if (_instance == Instance::Main || _is_gps_main_advertised.load()) {
-		_sensor_gps.device_id = get_device_id();
+		_sensor_gnss.device_id = get_device_id();
 
 		const int8_t rtcm_instance = _injector.selected_instance();
-		_sensor_gps.selected_rtcm_instance = rtcm_instance > 0 ? rtcm_instance : 0;
-		_sensor_gps.rtcm_injection_rate = _injector.injection_rate_hz();
+		_sensor_gnss.selected_rtcm_instance = rtcm_instance > 0 ? rtcm_instance : 0;
+		_sensor_gnss.rtcm_injection_rate = _injector.injection_rate_hz();
 
 		_failure_config.update();
 
-		if (!failure_injection::process_gnss(_failure_config, _sensor_gps_pub.get_instance(), _sensor_gps, _stuck)) {
+		if (!failure_injection::process_gnss(_failure_config, _sensor_gnss_pub.get_instance(), _sensor_gnss, _stuck)) {
 			return;
 		}
 
-		_sensor_gps_pub.publish(_sensor_gps);
+		_sensor_gnss_pub.publish(_sensor_gnss);
 		_is_gps_main_advertised.store(true);
 	}
 }

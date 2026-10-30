@@ -110,7 +110,7 @@ ILabs::ILabs(const char *serialDeviceName)
 	_local_position_pub.advertise();
 	_global_position_pub.advertise();
 	_sensor_baro_pub.advertise();
-	_sensor_gps_pub.advertise();
+	_sensor_gnss_pub.advertise();
 }
 
 ILabs::~ILabs()
@@ -503,42 +503,42 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 	// publish GPS data
 	if (isFilterOk && hasNewGpsData && isGnssValid) {
-		sensor_gps_s sensor_gps{};
-		sensor_gps.timestamp        = time_now_us;
-		sensor_gps.timestamp_sample = time_now_us;
+		sensor_gnss_s sensor_gnss{};
+		sensor_gnss.timestamp        = time_now_us;
+		sensor_gnss.timestamp_sample = time_now_us;
 
-		sensor_gps.device_id = _device_id.devid;
+		sensor_gnss.device_id = _device_id.devid;
 
-		sensor_gps.latitude_deg   = data->gps.latitude;
-		sensor_gps.longitude_deg  = data->gps.longitude;
-		sensor_gps.altitude_ellipsoid_m = static_cast<double>(data->gps.altitude);
-		sensor_gps.altitude_msl_m = static_cast<double>(data->gps.altitude);
+		sensor_gnss.latitude  = data->gps.latitude;
+		sensor_gnss.longitude = data->gps.longitude;
+		sensor_gnss.altitude_ellipsoid = static_cast<double>(data->gps.altitude);
+		sensor_gnss.altitude_msl = static_cast<double>(data->gps.altitude);
 
-		sensor_gps.fix_type = data->gps.fixType + 1;
+		sensor_gnss.fix_type = data->gps.fixType + 1;
 
-		sensor_gps.eph = eph;
-		sensor_gps.epv = epv;
+		sensor_gnss.eph = eph;
+		sensor_gnss.epv = epv;
 
-		sensor_gps.hdop = static_cast<float>(data->gps.dop.hdop) * 0.001f;
-		sensor_gps.vdop = static_cast<float>(data->gps.dop.vdop) * 0.001f;
+		sensor_gnss.hdop = static_cast<float>(data->gps.dop.hdop) * 0.001f;
+		sensor_gnss.vdop = static_cast<float>(data->gps.dop.vdop) * 0.001f;
 
-		sensor_gps.jamming_state = data->gps.jamStatus;
-		sensor_gps.jamming_indicator = isJammed ? 1 : 0;
-		sensor_gps.spoofing_state = data->gps.spoofingStatus;
+		sensor_gnss.jamming_state = data->gps.jamStatus;
+		sensor_gnss.jamming_indicator = isJammed ? 1 : 0;
+		sensor_gnss.spoofing_state = data->gps.spoofingStatus;
 
-		sensor_gps.vel_m_s =
+		sensor_gnss.ground_speed =
 			matrix::Vector3f(data->ins.velocity(0), data->ins.velocity(1), data->ins.velocity(2)).length();
-		sensor_gps.vel_n_m_s     = data->ins.velocity(0);
-		sensor_gps.vel_e_m_s     = data->ins.velocity(1);
-		sensor_gps.vel_d_m_s     = data->ins.velocity(2);
-		sensor_gps.vel_ned_valid = true;
+		sensor_gnss.vel_north     = data->ins.velocity(0);
+		sensor_gnss.vel_east      = data->ins.velocity(1);
+		sensor_gnss.vel_down      = data->ins.velocity(2);
+		sensor_gnss.vel_ned_valid = true;
 
-		sensor_gps.time_utc_usec = ToUtcMicroseconds(data->gps.gpsWeek, data->gps.msTow);
-		sensor_gps.timestamp_time_relative = 0;
+		sensor_gnss.time_utc_usec = ToUtcMicroseconds(data->gps.gpsWeek, data->gps.msTow);
+		sensor_gnss.timestamp_time_relative = 0;
 
-		sensor_gps.satellites_used = data->gps.usedSatCount;
+		sensor_gnss.satellites_used = data->gps.usedSatCount;
 
-		_sensor_gps_pub.publish(sensor_gps);
+		_sensor_gnss_pub.publish(sensor_gnss);
 		perf_count(_gnss_pub_interval_perf);
 	}
 

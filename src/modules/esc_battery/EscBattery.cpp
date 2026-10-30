@@ -91,6 +91,12 @@ EscBattery::Run()
 		}
 
 		const uint8_t online_esc_count = math::countSetBits(esc_status.esc_online_flags);
+
+		// without an online ESC there is no voltage to average
+		if (online_esc_count == 0) {
+			return;
+		}
+
 		float average_voltage_v = 0.0f;
 		float total_current_a = 0.0f;
 

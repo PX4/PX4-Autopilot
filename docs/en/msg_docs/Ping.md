@@ -15,7 +15,7 @@ pageClass: is-wide-page
 | <a id="fld_ping_sequence"></a>ping_sequence     | `uint32`  |              |            | Sequence number of the ping packet     |
 | <a id="fld_dropped_packets"></a>dropped_packets | `uint32`  |              |            | Number of dropped ping packets         |
 | <a id="fld_rtt_ms"></a>rtt_ms                   | `float32` |              |            | Round trip time (in ms)                |
-| <a id="fld_system_id"></a>system_id             | `uint8`   |              |            | System ID of the remote system         |
+| <a id="fld_system_id"></a>system_id             | `uint32`  |              |            | System ID of the remote system         |
 | <a id="fld_component_id"></a>component_id       | `uint8`   |              |            | Component ID of the remote system      |
 
 ## Source Message
@@ -30,7 +30,7 @@ uint64 ping_time			# Timestamp of the ping packet
 uint32 ping_sequence		# Sequence number of the ping packet
 uint32 dropped_packets		# Number of dropped ping packets
 float32 rtt_ms				# Round trip time (in ms)
-uint8 system_id				# System ID of the remote system
+uint32 system_id				# System ID of the remote system
 uint8 component_id			# Component ID of the remote system
 ```
 

@@ -58,6 +58,49 @@ MavlinkParametersManager::get_size()
 	return MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 }
 
+bool
+MavlinkParametersManager::take_send_budget()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float message_bytes = MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+	// Historic behaviour: low bandwidth mode caps the dump at 8 Hz, so keep
+	// that as a hard spacing on those links.
+	if ((_mavlink.get_mode() == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) &&
+	    (now < _last_param_sent_timestamp + 125_ms)) {
+		return false;
+	}
+
+	const int datarate = _mavlink.get_data_rate();
+
+	if (datarate <= 0) {
+		// Nothing to spread the dump over, so don't hold it back.
+		_last_param_sent_timestamp = now;
+		return true;
+	}
+
+	const float rate = (float)datarate * _mavlink.bulk_bandwidth_share();
+
+	if (_budget_timestamp != 0) {
+		_budget_bytes += rate * (float)(now - _budget_timestamp) / 1e6f;
+	}
+
+	_budget_timestamp = now;
+
+	// Let a batch build up, but no more: a link that has been idle must not be
+	// able to spend minutes of credit at once and swamp the radio, which is
+	// what the pacing is here to prevent in the first place.
+	_budget_bytes = math::min(_budget_bytes, message_bytes * kMaxBudgetMessages);
+
+	if (_budget_bytes < message_bytes) {
+		return false;
+	}
+
+	_budget_bytes -= message_bytes;
+	_last_param_sent_timestamp = now;
+	return true;
+}
+
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
 void
@@ -153,7 +196,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_request_list_t req_list;
 			mavlink_msg_param_request_list_decode(msg, &req_list);
 
-			if (req_list.target_system == mavlink_system.sysid &&
+			if (mavlink_target_system(msg, req_list.target_system) == mavlink_system.sysid &&
 			    (req_list.target_component == mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				if (_send_all_index < 0) {
 					_send_all_index = PARAM_HASH;
@@ -166,7 +209,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
-			if (req_list.target_system == mavlink_system.sysid && req_list.target_component < 127 &&
+			if (mavlink_target_system(msg, req_list.target_system) == mavlink_system.sysid && req_list.target_component < 127 &&
 			    !is_observed_mavlink_camera(req_list.target_component) &&
 			    (req_list.target_component != mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				// publish list request to UAVCAN driver via uORB.
@@ -187,7 +230,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_set_t set;
 			mavlink_msg_param_set_decode(msg, &set);
 
-			if (set.target_system == mavlink_system.sysid &&
+			if (mavlink_target_system(msg, set.target_system) == mavlink_system.sysid &&
 			    (set.target_component == mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
 
 				/* local name buffer to enforce null-terminated string */
@@ -239,7 +282,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
-			if (set.target_system == mavlink_system.sysid && set.target_component < 127 &&
+			if (mavlink_target_system(msg, set.target_system) == mavlink_system.sysid && set.target_component < 127 &&
 			    !is_observed_mavlink_camera(set.target_component) &&
 			    (set.target_component != mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
@@ -274,7 +317,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_request_read_t req_read;
 			mavlink_msg_param_request_read_decode(msg, &req_read);
 
-			if (req_read.target_system == mavlink_system.sysid &&
+			if (mavlink_target_system(msg, req_read.target_system) == mavlink_system.sysid &&
 			    (req_read.target_component == mavlink_system.compid || req_read.target_component == MAV_COMP_ID_ALL)) {
 
 				/* when no index is given, loop through string ids and compare them */
@@ -312,6 +355,13 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						} else if (result == 2) {
 							PX4_ERR("Failed loading param from storage: %s", name);
 							send_error(MAV_PARAM_ERROR_READ_FAIL, name, -1, msg->sysid, msg->compid);
+
+						} else if (result == 3) {
+							/* TX buffer full: param exists but could not be sent.
+							 * Skip silently and let the GCS retry on timeout
+							 * instead of reporting DOES_NOT_EXIST.
+							 */
+							PX4_WARN("param '%s' read skipped: TX buffer full", name);
 						}
 					}
 
@@ -328,13 +378,20 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						PX4_ERR("Failed loading param from storage index: %i", req_read.param_index);
 						send_error(MAV_PARAM_ERROR_READ_FAIL, nullptr, req_read.param_index, msg->sysid, msg->compid);
 
+					} else if (ret == 3) {
+						/* TX buffer full: param exists but could not be sent.
+						 * Skip silently and let the GCS retry on timeout
+						 * instead of reporting DOES_NOT_EXIST.
+						 */
+						PX4_WARN("param index %i read skipped: TX buffer full", req_read.param_index);
+
 					}
 				}
 			}
 
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
-			if (req_read.target_system == mavlink_system.sysid && req_read.target_component < 127 &&
+			if (mavlink_target_system(msg, req_read.target_system) == mavlink_system.sysid && req_read.target_component < 127 &&
 			    !is_observed_mavlink_camera(req_read.target_component) &&
 			    (req_read.target_component != mavlink_system.compid || req_read.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
@@ -360,7 +417,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_map_rc_t map_rc;
 			mavlink_msg_param_map_rc_decode(msg, &map_rc);
 
-			if (map_rc.target_system == mavlink_system.sysid &&
+			if (mavlink_target_system(msg, map_rc.target_system) == mavlink_system.sysid &&
 			    (map_rc.target_component == mavlink_system.compid ||
 			     map_rc.target_component == MAV_COMP_ID_ALL)) {
 
@@ -527,11 +584,11 @@ MavlinkParametersManager::send_untransmitted()
 bool
 MavlinkParametersManager::send_one()
 {
-	const hrt_abstime now = hrt_absolute_time();
-
-	// If in low-bandwidth mode, throttle parameter transmission to 8 Hz
-	if (_mavlink.get_mode() == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH
-	    && now < _last_param_sent_timestamp + 125_ms) {
+	// Throttle the parameter dump to its share of the configured link budget.
+	// Otherwise the only limit is the local UART buffer, which on a slow radio
+	// link means we hand the radio far more than it can carry over the air and
+	// it silently drops packets - including the telemetry sharing the link.
+	if (!take_send_budget()) {
 		return false;
 	}
 
@@ -571,8 +628,15 @@ MavlinkParametersManager::send_one()
 		} while (p != PARAM_INVALID && !param_used(p));
 
 		if (p != PARAM_INVALID) {
-			send_param(p);
-			_last_param_sent_timestamp = now;
+			// send_param() returns 1 when there is no room in the TX buffer
+			// (p is valid here). Retry this one next time rather than dropping
+			// it silently, the index was already advanced. Any other failure
+			// will not clear by retrying, so skip the parameter instead of
+			// stalling the dump on it.
+			if (send_param(p) == 1) {
+				_send_all_index--;
+				return false;
+			}
 		}
 
 		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {
@@ -597,7 +661,10 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 
 	/* no free TX buf to send this param */
 	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_VALUE_LEN) {
-		return 1;
+		/* distinct from 1 (PARAM_INVALID) so callers do not report
+		 * MAV_PARAM_ERROR_DOES_NOT_EXIST for an existing param
+		 */
+		return 3;
 	}
 
 	mavlink_param_value_t msg;
@@ -687,7 +754,7 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 
 
 int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *param_id, const int param_index,
-		const int target_sysid, const int target_compid,
+		const uint32_t target_sysid, const int target_compid,
 		int component_id)
 {
 	/* no free TX buf to send this param error message */
@@ -696,7 +763,6 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 	}
 
 	mavlink_param_error_t msg;
-	msg.target_system = target_sysid;
 	msg.target_component = target_compid;
 	msg.error = error;
 
@@ -726,12 +792,14 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 
 	/* default component ID */
 	if (component_id < 0) {
-		mavlink_msg_param_error_send_struct(_mavlink.get_channel(), &msg);
+		mavlink_msg_send_struct_target(_mavlink.get_channel(), PARAM_ERROR, &msg, target_sysid);
 
 	} else {
 		// Re-pack the message with a different component ID
 		mavlink_message_t mavlink_packet;
-		mavlink_msg_param_error_encode_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet, &msg);
+		// pack_chan() rather than encode_chan(), only it keeps a target system above 255
+		mavlink_msg_param_error_pack_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet,
+						  target_sysid, msg.target_component, msg.param_id, msg.param_index, msg.error);
 		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
 	}
 
@@ -744,6 +812,14 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 
 bool MavlinkParametersManager::send_uavcan()
 {
+	// a node that never answers must not hold the queue forever: drop its request and move on
+	if (_uavcan_waiting_for_request_response && (_uavcan_open_request_list != nullptr)
+	    && (hrt_elapsed_time(&_uavcan_request_time) > UAVCAN_REQUEST_TIMEOUT)) {
+		PX4_DEBUG("no reply from node %u for parameter request, dropping it", _uavcan_open_request_list->req.node_id);
+		dequeue_uavcan_request();
+		request_next_uavcan_parameter();
+	}
+
 	/* Send parameter values received from the UAVCAN topic */
 	uavcan_parameter_value_s value{};
 
@@ -807,6 +883,7 @@ void MavlinkParametersManager::request_next_uavcan_parameter()
 		_uavcan_parameter_request_pub.publish(req);
 
 		_uavcan_waiting_for_request_response = true;
+		_uavcan_request_time = hrt_absolute_time();
 	}
 }
 

@@ -53,10 +53,10 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_index(index < 1 || index > 9 ? 1 : index),
 	_source(source)
 {
-	const hrt_abstime expected_filter_dt_us = static_cast<hrt_abstime>(sample_interval_us);
-	_current_average_filter_a.setParameters(expected_filter_dt_us, 50_s);
-	_ocv_filter_v.setParameters(expected_filter_dt_us, 1_s);
-	_cell_voltage_filter_v.setParameters(expected_filter_dt_us, 1_s);
+	const float expected_filter_dt = static_cast<float>(sample_interval_us) * 1e-6f;
+	_current_average_filter_a.setParameters(expected_filter_dt, 50.f);
+	_ocv_filter_v.setParameters(expected_filter_dt, 1.f);
+	_cell_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
 
 	if (index > 9 || index < 1) {
 		PX4_ERR("Battery index must be between 1 and 9 (inclusive). Received %d. Defaulting to 1.", index);
@@ -327,7 +327,8 @@ void Battery::resetInternalResistanceEstimation(const float voltage_v, const flo
 void Battery::estimateStateOfCharge()
 {
 	// choose which quantity we're using for final reporting
-	if ((_capacity_mah > 0.f) && _battery_initialized) {
+	// without a cell count the starting charge is unknown, so coulomb counting can't help
+	if ((_capacity_mah > 0.f) && _battery_initialized && (_params.n_cells > 0)) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		// The lower the voltage the more adjust the estimate with it to avoid deep discharge
 		const float weight_v = 3e-2f * (1 - _state_of_charge_volt_based);
@@ -379,10 +380,10 @@ uint16_t Battery::determineFaults()
 
 void Battery::computeScale()
 {
-	_scale = _params.v_charged / _cell_voltage_filter_v.getState();
+	const float cell_voltage = _cell_voltage_filter_v.getState();
 
-	if (PX4_ISFINITE(_scale)) {
-		_scale = math::constrain(_scale, 1.f, 1.3f); // Allow at most 30% compensation
+	if (cell_voltage > FLT_EPSILON) {
+		_scale = math::constrain(_params.v_charged / cell_voltage, 1.f, 1.3f); // Allow at most 30% compensation
 
 	} else {
 		_scale = 1.f;
@@ -410,7 +411,7 @@ float Battery::computeRemainingTime(float current_a)
 		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
 					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
 			if (_dt > FLT_EPSILON) {
-				_current_average_filter_a.update(fmaxf(current_a, 0.f), static_cast<uint64_t>(_dt * 1e6f));
+				_current_average_filter_a.update(fmaxf(current_a, 0.f), _dt);
 
 			} else {
 				_current_average_filter_a.update(fmaxf(current_a, 0.f));
@@ -418,8 +419,8 @@ float Battery::computeRemainingTime(float current_a)
 		}
 	}
 
-	// Remaining time estimation only possible with capacity
-	if (_capacity_mah > 0.f) {
+	// Remaining time estimation only possible with capacity and a known state of charge
+	if ((_capacity_mah > 0.f) && (_state_of_charge >= 0.f)) {
 		const float remaining_capacity_mah = _state_of_charge * _capacity_mah;
 		const float current_ma = fmaxf(_current_average_filter_a.getState() * 1e3f, FLT_EPSILON);
 		time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;

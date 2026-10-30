@@ -155,6 +155,7 @@ bool HomePosition::setHomePosition(bool force)
 	}
 
 	if (updated) {
+		resetHomeAltitudeCorrection();
 		home.timestamp = hrt_absolute_time();
 		home.manual_home = false;
 		home.update_count = _home_position_pub.get().update_count + 1U;
@@ -224,8 +225,9 @@ void HomePosition::setInAirHomePosition()
 			double home_lon;
 			ref_pos.reproject(home.x - lpos.x, home.y - lpos.y, home_lat, home_lon);
 
-			const float home_alt = gpos.alt + home.z;
+			const float home_alt = gpos.alt + lpos.z - home.z;
 			fillGlobalHomePos(home, home_lat, home_lon, (double)home_alt);
+			resetHomeAltitudeCorrection();
 
 			setHomePosValid();
 			home.timestamp = hrt_absolute_time();
@@ -243,8 +245,9 @@ void HomePosition::setInAirHomePosition()
 			double home_lon;
 			ref_pos.reproject(home.x - lpos.x, home.y - lpos.y, home_lat, home_lon);
 
-			const double home_alt = _gps_alt + (double)home.z;
+			const double home_alt = _gps_alt + static_cast<double>(lpos.z - home.z);
 			fillGlobalHomePos(home, home_lat, home_lon, (double)home_alt);
+			resetHomeAltitudeCorrection();
 
 			setHomePosValid();
 			home.timestamp = hrt_absolute_time();
@@ -303,6 +306,7 @@ bool HomePosition::setManually(double lat, double lon, float alt, float roll, fl
 	ref_pos.project(lat, lon, home.x, home.y);
 	home.z = -(alt - vehicle_local_position.ref_alt);
 	home.valid_lpos = vehicle_local_position.xy_valid && vehicle_local_position.z_valid;
+	resetHomeAltitudeCorrection();
 
 	home.roll = roll;
 	home.pitch = pitch;
@@ -316,6 +320,14 @@ bool HomePosition::setManually(double lat, double lon, float alt, float roll, fl
 	return true;
 }
 
+
+void HomePosition::resetHomeAltitudeCorrection()
+{
+	// The applied offset is relative to the velocity integral reference: both are re-established
+	// together on the next valid GNSS sample, without undoing what is already stored in home
+	_gps_vel_integral = NAN;
+	_home_altitude_offset_applied = 0.f;
+}
 
 void HomePosition::setHomePosValid()
 {
@@ -373,22 +385,22 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 		_last_baro_timestamp = baro_data.timestamp;
 	}
 
-	if (_vehicle_gps_position_sub.updated()) {
-		sensor_gps_s vehicle_gps_position;
-		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
+	if (_vehicle_gnss_sub.updated()) {
+		vehicle_gnss_s vehicle_gnss;
+		_vehicle_gnss_sub.copy(&vehicle_gnss);
 
-		_gps_lat = vehicle_gps_position.latitude_deg;
-		_gps_lon = vehicle_gps_position.longitude_deg;
-		_gps_alt = vehicle_gps_position.altitude_msl_m;
-		_gps_eph = vehicle_gps_position.eph;
-		_gps_epv = vehicle_gps_position.epv;
+		_gps_lat = vehicle_gnss.receiver.latitude;
+		_gps_lon = vehicle_gnss.receiver.longitude;
+		_gps_alt = vehicle_gnss.receiver.altitude_msl;
+		_gps_eph = vehicle_gnss.receiver.eph;
+		_gps_epv = vehicle_gnss.receiver.epv;
 
 		const hrt_abstime now = hrt_absolute_time();
-		const bool time_valid = now < (vehicle_gps_position.timestamp + 1_s);
-		const bool fix_valid = vehicle_gps_position.fix_type >= kHomePositionGPSRequiredFixType;
-		const bool eph_valid = vehicle_gps_position.eph < kHomePositionGPSRequiredEPH;
-		const bool epv_valid = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
-		const bool evh_valid = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
+		const bool time_valid = now < (vehicle_gnss.timestamp + 1_s);
+		const bool fix_valid = vehicle_gnss.receiver.fix_type >= kHomePositionGPSRequiredFixType;
+		const bool eph_valid = vehicle_gnss.receiver.eph < kHomePositionGPSRequiredEPH;
+		const bool epv_valid = vehicle_gnss.receiver.epv < kHomePositionGPSRequiredEPV;
+		const bool evh_valid = vehicle_gnss.receiver.speed_accuracy < kHomePositionGPSRequiredEVH;
 
 		_gps_position_for_home_valid = time_valid && fix_valid && eph_valid && epv_valid && evh_valid
 					       && isGpsPositionFusionEnabled();
@@ -404,7 +416,7 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 				_baro_gps_static_offset = gps_alt - _lpf_baro.getState();
 			}
 
-			_gps_vel_integral += 1e-6f * (vehicle_gps_position.timestamp - _last_gps_timestamp) * (-vehicle_gps_position.vel_d_m_s);
+			_gps_vel_integral += 1e-6f * (vehicle_gnss.timestamp - _last_gps_timestamp) * (-vehicle_gnss.receiver.vel_down);
 
 			// correct baro_alt with offset from GPS alt from when the drift integral was initialized
 			const float baro_alt_corrected = _lpf_baro.getState() + _baro_gps_static_offset;
@@ -417,13 +429,13 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 				const float offset_new = baro_alt_corrected - gps_alt - _home_altitude_offset_applied;
 
-				if (fabsf(offset_new) > kAltitudeDifferenceThreshold) {
+				// A manually set home is not derived from the GNSS altitude and is left untouched
+				if (!_home_position_pub.get().manual_home && fabsf(offset_new) > kAltitudeDifferenceThreshold) {
 
 					home_position_s home = _home_position_pub.get();
 					home.alt -= offset_new;
 					home.z += offset_new;
 					home.timestamp = now;
-					home.manual_home = false;
 					home.update_count = _home_position_pub.get().update_count + 1U;
 
 					_home_position_pub.update(home);
@@ -432,10 +444,10 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 			}
 
 		} else {
-			_gps_vel_integral = NAN;
+			resetHomeAltitudeCorrection();
 		}
 
-		_last_gps_timestamp = vehicle_gps_position.timestamp;
+		_last_gps_timestamp = vehicle_gnss.timestamp;
 	}
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();

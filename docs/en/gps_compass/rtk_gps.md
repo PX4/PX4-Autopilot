@@ -172,21 +172,21 @@ The links in the table take you to the device-specific PX4 configuration.
 
 The heading is the bearing of the _baseline_, the vector from one antenna to the other.
 PX4 derives the baseline in the body frame (as shown [here][fc_orientation]) from the antenna positions, and uses a heading only when the length of the baseline the receiver reports is within 20% of it.
-Configure the slot of the receiver that reports the heading, matched by [SENS_GPSn_ID][SENS_GPSn_ID]:
+Configure the slot of the receiver that reports the heading, matched by [SENS_GNSSn_ID][SENS_GNSSn_ID]:
 
 | Parameter                              | Setting                                                                                                                                                                       |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [SENS_GNSSn_HDG][SENS_GNSSn_HDG]       | `Moving base rover` for the rover of two receivers (the baseline runs from the moving base's antenna to the rover's), `Dual antenna` for a single receiver with two antennas. |
-| [SENS_GPSn_OFFX/Y/Z][SENS_GPSn_OFFX]   | Antenna position of each receiver, the main antenna's for a receiver with two antennas. With `Moving base rover`, both receivers' slots must be set.                          |
+| [SENS_GNSSn_OFFX/Y/Z][SENS_GNSSn_OFFX] | Antenna position of each receiver, the main antenna's for a receiver with two antennas. With `Moving base rover`, both receivers' slots must be set.                          |
 | [SENS_GNSSn_AUXX/Y/Z][SENS_GNSSn_AUXX] | With `Dual antenna`: position of the auxiliary antenna (see the device page for which antenna is which).                                                                      |
 | [EKF2_GPS_CTRL][EKF2_GPS_CTRL]         | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).                                                                                         |
 
 <!-- links used in table above -->
 
 [SENS_GNSSn_HDG]: ../advanced_config/parameter_reference.md#SENS_GNSS0_HDG
-[SENS_GPSn_OFFX]: ../advanced_config/parameter_reference.md#SENS_GPS0_OFFX
+[SENS_GNSSn_OFFX]: ../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX
 [SENS_GNSSn_AUXX]: ../advanced_config/parameter_reference.md#SENS_GNSS0_AUXX
-[SENS_GPSn_ID]: ../advanced_config/parameter_reference.md#SENS_GPS0_ID
+[SENS_GNSSn_ID]: ../advanced_config/parameter_reference.md#SENS_GNSS0_ID
 [EKF2_GPS_CTRL]: ../advanced_config/parameter_reference.md#EKF2_GPS_CTRL
 [fc_orientation]: ../config/flight_controller_orientation.md#calculating-orientation
 

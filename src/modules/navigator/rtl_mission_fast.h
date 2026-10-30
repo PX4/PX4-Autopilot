@@ -65,7 +65,9 @@ private:
 	void setActiveMissionItems() override;
 	MissionTraversalType traversalType() const override { return MissionTraversalType::IgnoreDoJump; }
 
+	// Mission target recorded before RTL and the mission it belongs to.
 	int32_t _mission_index_prior_rtl{INT32_C(-1)};
+	uint32_t _mission_id_prior_rtl{0};
 
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 };

@@ -120,9 +120,9 @@ private:
 	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Variables
-	Vector2f _pos_ctl_course_direction{NAN, NAN};
 	Vector2f _pos_ctl_start_position_ned{NAN, NAN};
 	Vector2f _curr_pos_ned{NAN, NAN};
+	float _pos_ctl_bearing{NAN}; // Bearing from the start position to the target, i.e. the direction of the desired track [rad]
 	float _stab_yaw_setpoint{NAN};
 	float _vehicle_yaw{NAN};
 	float _max_yaw_rate{NAN};
@@ -134,7 +134,7 @@ private:
 		(ParamFloat<px4::params::RO_YAW_SUPEXPO>)   _param_ro_yaw_supexpo,
 		(ParamFloat<px4::params::RD_YAW_STK_GAIN>)  _param_rd_yaw_stk_gain,
 		(ParamFloat<px4::params::RO_PARK_THR_MAX>)  _param_ro_park_thr_max,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
 	)
 };

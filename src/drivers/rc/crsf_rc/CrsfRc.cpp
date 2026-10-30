@@ -212,12 +212,9 @@ void CrsfRc::Run()
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	perf_count_interval(_cycle_interval_perf, time_now_us);
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
-
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-		}
+	if (_vehicle_status_sub.update(&_vehicle_status)) {
+		_armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		_vehicle_status_updated = true;
 	}
 
 	vehicle_command_s vcmd{};
@@ -253,58 +250,66 @@ void CrsfRc::Run()
 	int new_bytes = _uart->readAtLeast(&_rcs_buf[0], RC_MAX_BUFFER_SIZE, 1, 100);
 
 	if (new_bytes > 0) {
-		_bytes_rx += new_bytes;
+		// A full buffer means more data may be waiting: at 1000 Hz ELRS packet rates
+		// more than a buffer arrives per cycle. Read and parse a buffer at a time,
+		// which the parser queue can take, until the UART is drained.
+		do {
+			_bytes_rx += new_bytes;
 
-		// Load new bytes into the CRSF parser buffer
-		CrsfParser_LoadBuffer(_rcs_buf, new_bytes);
+			// Load new bytes into the CRSF parser buffer
+			CrsfParser_LoadBuffer(_rcs_buf, new_bytes);
 
-		// Scan the parse buffer for messages, one at a time
-		CrsfPacket_t new_crsf_packet;
+			// Scan the parse buffer for messages, one at a time
+			CrsfPacket_t new_crsf_packet;
 
-		while (CrsfParser_TryParseCrsfPacket(&new_crsf_packet, &_packet_parser_statistics)) {
-			switch (new_crsf_packet.message_type) {
-			case CRSF_MESSAGE_TYPE_RC_CHANNELS:
-				_input_rc.timestamp_last_signal = time_now_us;
-				_last_packet_seen = time_now_us;
+			while (CrsfParser_TryParseCrsfPacket(&new_crsf_packet, &_packet_parser_statistics)) {
+				switch (new_crsf_packet.message_type) {
+				case CRSF_MESSAGE_TYPE_RC_CHANNELS:
+					_input_rc.timestamp_last_signal = time_now_us;
+					_last_packet_seen = time_now_us;
 
-				for (int i = 0; i < CRSF_CHANNEL_COUNT; i++) {
-					_input_rc.values[i] = new_crsf_packet.channel_data.channels[i];
+					for (int i = 0; i < CRSF_CHANNEL_COUNT; i++) {
+						_input_rc.values[i] = new_crsf_packet.channel_data.channels[i];
+					}
+
+					break;
+
+				case CRSF_MESSAGE_TYPE_LINK_STATISTICS:
+					_last_packet_seen = time_now_us;
+					_input_rc.rssi_dbm = -(float)(new_crsf_packet.link_statistics.active_antenna ?
+								      new_crsf_packet.link_statistics.uplink_rssi_2 :
+								      new_crsf_packet.link_statistics.uplink_rssi_1);
+
+					if (time_now_us - _last_stats_tx_seen > 500_ms) {
+						// We haven't received link statistics tx in a while, use an approximation
+						_input_rc.rssi = (1.f - _input_rc.rssi_dbm / -130.f) * _input_rc.RSSI_MAX;
+					}
+
+					_input_rc.link_quality = new_crsf_packet.link_statistics.uplink_link_quality;
+					_input_rc.rc_frame_rate = new_crsf_packet.link_statistics.rf_mode;
+					_input_rc.link_snr = new_crsf_packet.link_statistics.uplink_snr;
+					break;
+
+				case CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX:
+					_last_packet_seen = time_now_us;
+					_last_stats_tx_seen = time_now_us;
+					_input_rc.rssi = new_crsf_packet.link_statistics_tx.uplink_rssi_pct;
+					break;
+
+				case CRSF_MESSAGE_TYPE_ELRS_STATUS:
+					_last_packet_seen = time_now_us;
+					_input_rc.rc_lost_frame_count = new_crsf_packet.elrs_status.packets_bad;
+					_input_rc.rc_total_frame_count = new_crsf_packet.elrs_status.packets_good;
+					break;
+
+				default:
+					break;
 				}
-
-				break;
-
-			case CRSF_MESSAGE_TYPE_LINK_STATISTICS:
-				_last_packet_seen = time_now_us;
-				_input_rc.rssi_dbm = -(float)(new_crsf_packet.link_statistics.active_antenna ?
-							      new_crsf_packet.link_statistics.uplink_rssi_2 :
-							      new_crsf_packet.link_statistics.uplink_rssi_1);
-
-				if (time_now_us - _last_stats_tx_seen > 500_ms) {
-					// We haven't received link statistics tx in a while, use an approximation
-					_input_rc.rssi = (1.f - _input_rc.rssi_dbm / -130.f) * _input_rc.RSSI_MAX;
-				}
-
-				_input_rc.link_quality = new_crsf_packet.link_statistics.uplink_link_quality;
-				_input_rc.rc_frame_rate = new_crsf_packet.link_statistics.rf_mode;
-				_input_rc.link_snr = new_crsf_packet.link_statistics.uplink_snr;
-				break;
-
-			case CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX:
-				_last_packet_seen = time_now_us;
-				_last_stats_tx_seen = time_now_us;
-				_input_rc.rssi = new_crsf_packet.link_statistics_tx.uplink_rssi_pct;
-				break;
-
-			case CRSF_MESSAGE_TYPE_ELRS_STATUS:
-				_last_packet_seen = time_now_us;
-				_input_rc.rc_lost_frame_count = new_crsf_packet.elrs_status.packets_bad;
-				_input_rc.rc_total_frame_count = new_crsf_packet.elrs_status.packets_good;
-				break;
-
-			default:
-				break;
 			}
-		}
+
+			new_bytes = (new_bytes == (int)RC_MAX_BUFFER_SIZE) ? _uart->read(&_rcs_buf[0], RC_MAX_BUFFER_SIZE) : 0;
+
+		} while (new_bytes > 0);
 
 		if (_param_rc_crsf_tel_en.get() && !_is_singlewire
 		    && (_input_rc.timestamp > _telemetry_update_last + 100_ms)) {
@@ -323,15 +328,15 @@ void CrsfRc::Run()
 				break;
 
 			case 1:
-				sensor_gps_s sensor_gps;
+				vehicle_gnss_s vehicle_gnss;
 
-				if (_vehicle_gps_position_sub.update(&sensor_gps)) {
-					int32_t latitude = static_cast<int32_t>(round(sensor_gps.latitude_deg * 1e7));
-					int32_t longitude = static_cast<int32_t>(round(sensor_gps.longitude_deg * 1e7));
-					uint16_t groundspeed = sensor_gps.vel_m_s * 3.6f * 10.f;   // 0.1 km/h
-					uint16_t gps_heading = math::degrees(matrix::wrap_2pi(sensor_gps.cog_rad)) * 100.f;
-					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m) + 1000;   // meters + 1000 offset
-					uint8_t num_satellites = sensor_gps.satellites_used;
+				if (_vehicle_gnss_sub.update(&vehicle_gnss)) {
+					int32_t latitude = static_cast<int32_t>(round(vehicle_gnss.receiver.latitude * 1e7));
+					int32_t longitude = static_cast<int32_t>(round(vehicle_gnss.receiver.longitude * 1e7));
+					uint16_t groundspeed = vehicle_gnss.receiver.ground_speed * 3.6f * 10.f;   // 0.1 km/h
+					uint16_t gps_heading = math::degrees(matrix::wrap_2pi(vehicle_gnss.receiver.course)) * 100.f;
+					uint16_t altitude = static_cast<int16_t>(vehicle_gnss.receiver.altitude_msl) + 1000;   // meters + 1000 offset
+					uint8_t num_satellites = vehicle_gnss.receiver.satellites_used;
 					this->SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
 				}
 
@@ -351,12 +356,11 @@ void CrsfRc::Run()
 				break;
 
 			case 3:
-				vehicle_status_s vehicle_status;
-
-				if (_vehicle_status_sub.update(&vehicle_status)) {
+				if (_vehicle_status_updated) {
+					_vehicle_status_updated = false;
 					const char *flight_mode = "(unknown)";
 
-					switch (vehicle_status.nav_state) {
+					switch (_vehicle_status.nav_state) {
 					case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 						flight_mode = "Manual";
 						break;
@@ -374,7 +378,7 @@ void CrsfRc::Run()
 						break;
 
 					case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-						flight_mode = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) ? "Cruise" : "Position";
+						flight_mode = (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) ? "Cruise" : "Position";
 						break;
 
 					case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:

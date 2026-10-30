@@ -69,6 +69,14 @@ LidarLiteI2C::init()
 		return PX4_ERROR;
 	}
 
+	param_t handle = param_find("SENS_LL40LS_SMIN");
+
+	if (handle != PARAM_INVALID) {
+		int32_t ll40ls_signal_strength_min_v3hp;
+		param_get(handle, &ll40ls_signal_strength_min_v3hp);
+		_ll40ls_signal_strength_min_v3hp = (int)ll40ls_signal_strength_min_v3hp;
+	}
+
 	start();
 	return PX4_OK;
 }
@@ -428,8 +436,8 @@ LidarLiteI2C::collect()
 		// We detect if V3HP is being used
 		if (_model == Model::v3hp) {
 			//Normalize signal strength to 0...100 percent using the absolute signal strength.
-			signal_quality = 100 * math::max(ll40ls_signal_strength - LL40LS_SIGNAL_STRENGTH_MIN_V3HP, 0) /
-					 (LL40LS_SIGNAL_STRENGTH_MAX_V3HP - LL40LS_SIGNAL_STRENGTH_MIN_V3HP);
+			signal_quality = 100 * math::max(ll40ls_signal_strength - _ll40ls_signal_strength_min_v3hp, 0) /
+					 (LL40LS_SIGNAL_STRENGTH_MAX_V3HP - _ll40ls_signal_strength_min_v3hp);
 
 		} else {
 			// Absolute peak strength measurement, i.e. absolute strength of main signal peak.
