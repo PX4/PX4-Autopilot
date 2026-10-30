@@ -54677,7 +54677,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 265">
+<div class="param-group" style="--param-count: 266">
 
 <div class="param">
 
@@ -58792,6 +58792,22 @@ Configure on which serial port to run LeddarOne Rangefinder.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_LL40LS_MAX (`FLOAT`) {#SENS_LL40LS_MAX}
+
+Lidar-Lite (LL40LS) maximum distance.
+
+Maximum distance the driver reports as valid. Set to 0 to use the driver's built-in
+limit for the detected hardware version.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 100 | 0.5 | 0 | m | &nbsp;
 
 </div>
 
