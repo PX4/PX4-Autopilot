@@ -421,6 +421,7 @@
 *(.text.nxsig_timeout)
 *(.text._ZN11RateControl19setSaturationStatusERKN6matrix7Vector3IbEES4_)
 *(.text._ZN3Ekf17measurementUpdateERN6matrix6VectorIfLj24EEERKS2_ff)
+*(.text._ZNK3Ekf17computeKalmanGainERKN6matrix6VectorIfLj24EEEf)
 *(.text._ZN19MavlinkStreamVFRHUD4sendEv)
 *(.text.hrt_call_reschedule)
 *(.text.nxsem_boost_priority)
