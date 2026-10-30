@@ -55,6 +55,7 @@
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/fixed_wing_skid_setpoint.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/parameter_update.h>
@@ -134,6 +135,7 @@ private:
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _position_setpoint_sub{ORB_ID(position_setpoint)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
+	uORB::Subscription _fixed_wing_skid_setpoint_sub{ORB_ID(fixed_wing_skid_setpoint)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
 	uORB::SubscriptionData<flight_phase_estimation_s> _flight_phase_estimation_sub{ORB_ID(flight_phase_estimation)};
 
@@ -146,6 +148,8 @@ private:
 	vehicle_local_position_s _vehicle_local_position {};
 	vehicle_status_s _vehicle_status {};
 	position_setpoint_s _position_setpoint {};
+	fixed_wing_skid_setpoint_s _fixed_wing_skid_setpoint {};
+	bool _skid_to_turn{false}; /**< true while the vehicle intentionally turns with sideslip */
 
 	WindEstimator	_wind_estimator_sideslip; /**< wind estimator instance only fusing sideslip */
 	airspeed_wind_s _wind_estimate_sideslip {}; /**< wind estimate message for wind estimator instance only fusing sideslip */
@@ -447,6 +451,7 @@ AirspeedModule::Run()
 		input_data.tecs_timestamp = _tecs_status.timestamp;
 		input_data.fixed_wing_throttle_filtered = _throttle_filtered.getState();
 		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
+		input_data.skid_to_turn = _skid_to_turn;
 
 		// iterate through all airspeed sensors, poll new data from them and update their validators
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
@@ -694,6 +699,11 @@ void AirspeedModule::poll_topics()
 
 	_tecs_status_sub.update(&_tecs_status);
 
+	// the setpoint is published continuously while the fixed-wing lateral controller runs
+	_fixed_wing_skid_setpoint_sub.update(&_fixed_wing_skid_setpoint);
+	_skid_to_turn = (_time_now_usec < _fixed_wing_skid_setpoint.timestamp + 1_s)
+			&& (fabsf(_fixed_wing_skid_setpoint.lateral_acceleration) > FLT_EPSILON);
+
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude;
 		_vehicle_attitude_sub.update(&vehicle_attitude);
@@ -722,7 +732,8 @@ void AirspeedModule::update_wind_estimator_sideslip()
 
 	if (_gnss_lpos_valid
 	    && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-	    && !_vehicle_land_detected.landed) {
+	    && !_vehicle_land_detected.landed
+	    && !_skid_to_turn) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 
 		const float hor_vel_variance =  _vehicle_local_position.evh * _vehicle_local_position.evh;

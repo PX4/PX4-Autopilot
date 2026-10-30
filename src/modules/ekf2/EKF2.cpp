@@ -2822,11 +2822,19 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 {
+	// skid-to-turn, the setpoint is published continuously while the fixed-wing lateral controller runs
+	_fixed_wing_skid_setpoint_sub.update(&_fixed_wing_skid_setpoint);
+	const bool skid_to_turn = (ekf2_timestamps.timestamp < _fixed_wing_skid_setpoint.timestamp + 1_s)
+				  && (fabsf(_fixed_wing_skid_setpoint.lateral_acceleration) > FLT_EPSILON);
+	const bool skid_to_turn_changed = (skid_to_turn != _skid_to_turn);
+	_skid_to_turn = skid_to_turn;
+
 	// EKF system flags
-	if (_status_sub.updated() || _vehicle_land_detected_sub.updated()) {
+	if (_status_sub.updated() || _vehicle_land_detected_sub.updated() || skid_to_turn_changed) {
 
 		systemFlagUpdate flags{};
 		flags.time_us = ekf2_timestamps.timestamp;
+		flags.skid_to_turn = _skid_to_turn;
 
 		// vehicle_status
 		vehicle_status_s vehicle_status;
