@@ -279,11 +279,6 @@ bool GZBridge::subscribeDistanceSensor(bool required)
 	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
 				   "/link/lidar_sensor_link/sensor/lidar/scan";
 
-	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
-		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
-		return required ? false : true;
-	}
-
 	// Find the lidar link orientation relative to the base_link
 	gz::msgs::Empty req;
 	gz::msgs::Scene scene;
@@ -316,6 +311,12 @@ bool GZBridge::subscribeDistanceSensor(bool required)
 
 	} else {
 		PX4_WARN("scene/info request failed, assuming lidar link aligned with base_link");
+	}
+
+	// subscribe only once _lidar_link_q is set, so the callback never reads it mid-update
+	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
+		return required ? false : true;
 	}
 
 	return true;
