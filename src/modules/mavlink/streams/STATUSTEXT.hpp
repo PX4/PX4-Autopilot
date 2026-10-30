@@ -90,7 +90,13 @@ private:
 						constexpr unsigned max_chunk_size = sizeof(msg.text);
 						msg.severity = mavlink_log.severity;
 						msg.chunk_seq = 0;
-						msg.id = _id++;
+
+						// id 0 marks a STATUSTEXT that is not chunked, so skip it, also when the counter wraps
+						if (++_id == 0) {
+							++_id;
+						}
+
+						msg.id = _id;
 						unsigned text_size;
 
 						while ((text_size = strlen(text)) > 0) {
@@ -108,6 +114,13 @@ private:
 							mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
 
 							if (text_size <= max_chunk_size) {
+								if (text_size == max_chunk_size) {
+									// a full chunk has no NUL to end the message, so send an empty chunk after it
+									msg.chunk_seq += 1;
+									memset(&msg.text[0], 0, max_chunk_size);
+									mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
+								}
+
 								break;
 
 							} else {
