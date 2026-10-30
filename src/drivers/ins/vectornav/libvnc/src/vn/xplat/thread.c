@@ -1,6 +1,7 @@
 #define _BSD_SOURCE
 
 #include "vn/xplat/thread.h"
+#include <px4_platform_common/module.h>
 
 #if (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 	#include <stdlib.h>
@@ -88,7 +89,7 @@ VnError VnThread_startNew(VnThread *thread, VnThread_StartRoutine startRoutine, 
 	// priority
 	struct sched_param param;
 	pthread_attr_getschedparam(&attr, &param);
-	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+	param.sched_priority = SCHED_PRIORITY_VECTORNAV_DRIVER;
 	pthread_attr_setschedparam(&attr, &param);
 
 	errorCode = pthread_create(

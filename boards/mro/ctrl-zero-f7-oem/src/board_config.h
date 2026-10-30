@@ -141,9 +141,9 @@
 
 #define GPIO_RSSI_IN                       /* PC1  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN1)
 
-/* Safety Switch: Enable the FMU to control it if there is no px4io fixme:This should be BOARD_SAFETY_LED(__ontrue) */
+/* Safety Switch: Enable the FMU to control it if there is no px4io */
 #define GPIO_SAFETY_SWITCH_IN              /* PC4 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN4)
-/* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
+/* Enable the FMU to use the switch if there is no px4io */
 #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
 
 /* Power switch controls ******************************************************/

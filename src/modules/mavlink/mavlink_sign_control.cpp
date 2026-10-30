@@ -41,7 +41,11 @@
 #include "mavlink_sign_control.h"
 #include <sys/stat.h>
 
+// Shared by all instances so that a signed message cannot be replayed on another link.
+// Guarded by _streams_mutex.
 static mavlink_signing_streams_t global_mavlink_signing_streams = {};
+
+pthread_mutex_t MavlinkSignControl::_streams_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Messages accepted without signing per MAVLink spec recommendation.
 // HEARTBEAT is required for link discovery/interop but allows spoofed phantom vehicles on GCS.

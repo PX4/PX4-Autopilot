@@ -173,7 +173,7 @@ void DifferentialManualMode::position()
 
 	if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
 	    || fabsf(speed_setpoint) < FLT_EPSILON) {
-		_pos_ctl_course_direction = Vector2f(NAN, NAN);
+		_pos_ctl_bearing = NAN;
 
 		// Speed control
 		rover_speed_setpoint_s rover_speed_setpoint{};
@@ -196,8 +196,8 @@ void DifferentialManualMode::position()
 
 		rover_position_setpoint_s rover_position_setpoint{};
 		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = NAN;
-		rover_position_setpoint.position_ned[1] = NAN;
+		rover_position_setpoint.target_ned[0] = NAN;
+		rover_position_setpoint.target_ned[1] = NAN;
 		rover_position_setpoint.start_ned[0] = NAN;
 		rover_position_setpoint.start_ned[1] = NAN;
 		rover_position_setpoint.arrival_speed = NAN;
@@ -205,25 +205,28 @@ void DifferentialManualMode::position()
 		rover_position_setpoint.yaw = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
-	} else { // Course control
-		if (!_pos_ctl_course_direction.isAllFinite()) {
-			_pos_ctl_course_direction = Vector2f(cos(_vehicle_yaw), sin(_vehicle_yaw));
+	} else { // Follow an endless linear desired track
+		if (!PX4_ISFINITE(_pos_ctl_bearing)) {
+			// The bearing points backwards when driving in reverse
+			_pos_ctl_bearing = speed_setpoint > 0.f ? _vehicle_yaw : matrix::wrap_pi(_vehicle_yaw + M_PI_F);
 			_pos_ctl_start_position_ned = _curr_pos_ned;
 		}
 
-		// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
-		const Vector2f start_to_curr_pos = _curr_pos_ned - _pos_ctl_start_position_ned;
-		const float vector_scaling = fabsf(start_to_curr_pos * _pos_ctl_course_direction) + _param_pp_lookahd_max.get();
-		const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(speed_setpoint) *
-						     vector_scaling * _pos_ctl_course_direction;
+		// Hold the linear desired track through the start position: the target is kept beyond the maximum lookahead, so it is never reached
+		const Vector2f bearing_direction(cosf(_pos_ctl_bearing), sinf(_pos_ctl_bearing));
+		const float distance_along_track = fabsf((_curr_pos_ned - _pos_ctl_start_position_ned) * bearing_direction);
+		const Vector2f target_ned = _pos_ctl_start_position_ned + (distance_along_track + _param_pp_lookahd_max.get()) *
+					    bearing_direction;
+
 		rover_position_setpoint_s rover_position_setpoint{};
 		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = target_waypoint_ned(0);
-		rover_position_setpoint.position_ned[1] = target_waypoint_ned(1);
+		rover_position_setpoint.target_ned[0] = target_ned(0);
+		rover_position_setpoint.target_ned[1] = target_ned(1);
 		rover_position_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
 		rover_position_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
-		rover_position_setpoint.arrival_speed = NAN;
 		rover_position_setpoint.cruising_speed = speed_setpoint;
+		// Arriving at the target with the cruising speed keeps the rover from braking for it
+		rover_position_setpoint.arrival_speed = fabsf(speed_setpoint);
 		rover_position_setpoint.yaw = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 	}
@@ -232,7 +235,7 @@ void DifferentialManualMode::position()
 void DifferentialManualMode::reset()
 {
 	_stab_yaw_setpoint = NAN;
-	_pos_ctl_course_direction = Vector2f(NAN, NAN);
+	_pos_ctl_bearing = NAN;
 	_pos_ctl_start_position_ned = Vector2f(NAN, NAN);
 	_curr_pos_ned = Vector2f(NAN, NAN);
 }

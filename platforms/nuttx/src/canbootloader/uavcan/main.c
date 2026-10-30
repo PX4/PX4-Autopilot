@@ -611,6 +611,11 @@ static uavcan_error_t wait_for_beginfirmwareupdate(bl_timer_id tboot, uavcan_Pat
 		status = uavcan_rx_dsdl(DSDLReqBeginFirmwareUpdate, &protocol,
 					(uint8_t *) &request, &rx_length,
 					UavcanServiceTimeOutMs);
+
+		/* A request too short to hold source_node_id would underflow the path length below */
+		if (status == UavcanOk && rx_length < uavcan_byte_count(BeginFirmwareUpdate, source_node_id)) {
+			status = UavcanError;
+		}
 	}
 
 	if (UavcanOk == status) {
@@ -761,7 +766,6 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 	size_t length;
 
 	protocol.tail_init.u8  = 0;
-	int a_percent = fw_image_size / 100;
 
 	do {
 		/* reset the rate limit */
@@ -845,7 +849,7 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 					      length + (length & 1));
 
 		request.offset  += length;
-		bootloader.percentage_done = (request.offset / a_percent);
+		bootloader.percentage_done = (uint32_t)request.offset * 100 / fw_image_size;
 
 		watchdog_pet();
 

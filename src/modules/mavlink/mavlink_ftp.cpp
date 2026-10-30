@@ -120,6 +120,74 @@ MavlinkFTP::_read_session(uint32_t offset, uint8_t *buf, uint16_t count)
 }
 
 unsigned
+MavlinkFTP::packet_overhead() const
+{
+	// PayloadHeader, the three target fields and the v2 framing, plus the
+	// signature block when signing is active - without accounting for that the
+	// packet silently grows past what the radio carries in one piece again.
+	unsigned overhead = sizeof(PayloadHeader) + 3 + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+	const mavlink_status_t *status = mavlink_get_channel_status(_mavlink.get_channel());
+
+	if ((status != nullptr) && (status->signing != nullptr)) {
+		overhead += MAVLINK_SIGNATURE_BLOCK_LEN;
+	}
+
+	return overhead;
+}
+
+unsigned
+MavlinkFTP::radio_clamped_length(unsigned requested) const
+{
+	// Only shrink behind a radio; a direct link has no such constraint.
+	if (!_mavlink.radio_status_available()) {
+		return requested;
+	}
+
+	// Only MAVLink 2 drops the trailing zeros of a payload, so on a MAVLink 1
+	// link a shorter reply still goes out as a full 251 byte payload. Shrinking
+	// it there would cost the client bytes without making the packet smaller.
+	if (_mavlink.getProtocolVersion() == 1) {
+		return requested;
+	}
+
+	const unsigned overhead = packet_overhead();
+
+	if (kRadioMaxPacketLength <= overhead) {
+		return requested;
+	}
+
+	return math::min(requested, kRadioMaxPacketLength - overhead);
+}
+
+unsigned
+MavlinkFTP::burst_data_length() const
+{
+	// What the client asked for. Zero means as much as fits, which is what
+	// ArduPilot does and what the spec describes.
+	const unsigned requested = (_session_info.stream_size == 0) ?
+				   (unsigned)kMaxDataLength :
+				   math::min((unsigned)_session_info.stream_size, (unsigned)kMaxDataLength);
+
+	// The clamp comes after the request, never instead of it: every ground
+	// station out there asks for a full payload, so honouring the request on
+	// its own would hand a radio packets it has to split.
+	return radio_clamped_length(requested);
+}
+
+unsigned
+MavlinkFTP::burst_wire_size() const
+{
+	// A MAVLink 1 packet carries the whole payload whatever we put in it, so
+	// that is what it costs the link, and pacing has to budget for it.
+	if (_mavlink.getProtocolVersion() == 1) {
+		return kMaxDataLength + packet_overhead();
+	}
+
+	return burst_data_length() + packet_overhead();
+}
+
+unsigned
 MavlinkFTP::get_size()
 {
 	if (_session_info.stream_download) {
@@ -130,7 +198,7 @@ MavlinkFTP::get_size()
 	}
 }
 
-uint8_t
+uint32_t
 MavlinkFTP::_getServerSystemId()
 {
 	return _mavlink.get_system_id();
@@ -157,10 +225,12 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 		mavlink_file_transfer_protocol_t ftp_request;
 		mavlink_msg_file_transfer_protocol_decode(msg, &ftp_request);
 
-		PX4_DEBUG("FTP: received ftp protocol message target_system: %d target_component: %d, seq: %d",
-			  ftp_request.target_system, ftp_request.target_component, msg->seq);
+		const uint32_t target_system = mavlink_target_system(msg, ftp_request.target_system);
 
-		if ((ftp_request.target_system == _getServerSystemId() || ftp_request.target_system == 0) &&
+		PX4_DEBUG("FTP: received ftp protocol message target_system: %" PRIu32 " target_component: %d, seq: %d",
+			  target_system, ftp_request.target_component, msg->seq);
+
+		if ((target_system == _getServerSystemId() || target_system == 0) &&
 		    (ftp_request.target_component == _getServerComponentId() || ftp_request.target_component == 0)) {
 			_process_request(&ftp_request, msg->sysid, msg->compid);
 		}
@@ -171,7 +241,7 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 void
 MavlinkFTP::_process_request(
 	mavlink_file_transfer_protocol_t *ftp_req,
-	uint8_t target_system_id,
+	uint32_t target_system_id,
 	uint8_t target_comp_id)
 {
 	bool stream_send = false;
@@ -195,7 +265,7 @@ MavlinkFTP::_process_request(
 		const PayloadHeader *last_payload = reinterpret_cast<const PayloadHeader *>(&last_reply->payload[0]);
 
 		if (payload->seq_number + 1 == last_payload->seq_number
-		    && last_reply->target_system == target_system_id
+		    && _last_reply_target_system == target_system_id
 		    && last_reply->target_component == target_comp_id) {
 			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
 			// resent the request. The request buffer is no longer needed, so expand the compact cache into it;
@@ -203,7 +273,7 @@ MavlinkFTP::_process_request(
 			memset(ftp_req, 0, sizeof(*ftp_req));
 			memcpy(ftp_req, _last_reply, sizeof(_last_reply));
 			_mavlink.lock_send();
-			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), ftp_req);
+			mavlink_msg_send_struct_target(_mavlink.get_channel(), FILE_TRANSFER_PROTOCOL, ftp_req, target_system_id);
 			_mavlink.unlock_send();
 			return;
 		}
@@ -327,10 +397,9 @@ out:
 	// Stream download replies are sent through mavlink stream mechanism. Unless we need to Nack.
 	if (!stream_send || errorCode != kErrNone) {
 		// respond to the request
-		ftp_req->target_system = target_system_id;
 		ftp_req->target_network = 0;
 		ftp_req->target_component = target_comp_id;
-		_reply(ftp_req);
+		_reply(ftp_req, target_system_id);
 	}
 }
 
@@ -341,7 +410,7 @@ void MavlinkFTP::_ensure_buffers_exist()
 
 /// @brief Sends the specified FTP response message out through mavlink
 void
-MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
+MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_system_id)
 {
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 
@@ -363,6 +432,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	    && !(payload->opcode == kRspNak && payload->data[0] == kErrNoSessionsAvailable)) {
 		_last_reply_valid = true;
 		memcpy(_last_reply, ftp_req, sizeof(_last_reply));
+		_last_reply_target_system = target_system_id;
 	}
 
 	PX4_DEBUG("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
@@ -370,7 +440,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	// Called from the receiver thread; the per-channel mavlink_status global is
 	// also written by the sending task_main thread, so serialize via lock_send().
 	_mavlink.lock_send();
-	mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), ftp_req);
+	mavlink_msg_send_struct_target(_mavlink.get_channel(), FILE_TRANSFER_PROTOCOL, ftp_req, target_system_id);
 	_mavlink.unlock_send();
 }
 void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
@@ -663,7 +733,11 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 	PX4_DEBUG("FTP: read offset:%" PRIu32, payload->offset);
 
-	const int bytes_read = _read_session(payload->offset, payload->data, payload->size);
+	// Same clamp as a burst: a recovery read that fragments defeats the point
+	// of keeping the burst inside one radio packet. Only behind a radio, and
+	// the size field says what was actually read.
+	const int bytes_read = _read_session(payload->offset, payload->data,
+					     radio_clamped_length(payload->size));
 
 	if (bytes_read < 0) {
 		PX4_ERR("read fail: %s", strerror(_our_errno));
@@ -682,7 +756,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 /// @brief Responds to a Stream command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id)
+MavlinkFTP::_workBurst(PayloadHeader *payload, uint32_t target_system_id, uint8_t target_component_id)
 {
 	if ((payload->session != 0) || !_session_open()) {
 		PX4_DEBUG("_workBurst: no session or no fd");
@@ -691,9 +765,11 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t
 
 	PX4_DEBUG("FTP: burst offset:%" PRIu32, payload->offset);
 	// Setup for streaming sends
+	_last_burst_send = 0;
 	_session_info.stream_download = true;
 	_session_info.stream_offset = payload->offset;
 	_session_info.stream_chunk_transmitted = 0;
+	_session_info.stream_size = payload->size;
 	_session_info.stream_seq_number = payload->seq_number + 1;
 	_session_info.stream_target_system_id = target_system_id;
 	_session_info.stream_target_component_id = target_component_id;
@@ -1141,6 +1217,42 @@ void MavlinkFTP::send()
 		return;
 	}
 
+	// Pace the burst against the link budget. Otherwise the only bound is the
+	// local UART buffer, which knows nothing about what the radio behind it can
+	// carry, and we hand it several times its capacity.
+	const int datarate = _mavlink.radio_status_available() ? _mavlink.get_data_rate() : 0;
+
+	if (datarate > 0) {
+		const hrt_abstime now = hrt_absolute_time();
+
+		// The first packet of a burst goes out immediately, after that wait
+		// until the link has earned one.
+		if (_last_burst_send != 0) {
+			// Scaled by the radio's own txbuf feedback, so the burst finds
+			// whatever the link can actually carry: that differs by more than
+			// two to one depending on whether the radio has error correction
+			// enabled, which we have no way of knowing here.
+			//
+			// Deliberately not get_rate_mult(), which also folds in the budget
+			// split this share has already been subtracted from - applying that
+			// would count the reduction twice and starve the burst into the
+			// client's inter-packet timeout.
+			const float rate = (float)datarate * _mavlink.bulk_bandwidth_share() * _mavlink.radio_status_mult();
+			const float credit = (float)(now - _last_burst_send) * rate / 1e6f;
+
+			if (credit < (float)burst_wire_size()) {
+				return;
+			}
+		}
+
+		// Exactly one packet per call, never a batch. Otherwise the loop below
+		// fills the whole UART buffer, a dozen packets back to back. A SiK
+		// radio only fits about three per transmit window and drops the rest.
+		// Credit is not banked either, so a pause cannot be spent at once.
+		_last_burst_send = now;
+		max_bytes_to_send = burst_wire_size();
+	}
+
 	// Send stream packets until buffer is full
 
 	bool more_data;
@@ -1163,7 +1275,7 @@ void MavlinkFTP::send()
 
 		PX4_DEBUG("stream send: offset %" PRIu32, _session_info.stream_offset);
 
-		const int bytes_read = _read_session(payload->offset, &payload->data[0], kMaxDataLength);
+		const int bytes_read = _read_session(payload->offset, &payload->data[0], burst_data_length());
 
 		if (bytes_read < 0) {
 			error_code = kErrFailErrno;
@@ -1181,6 +1293,10 @@ void MavlinkFTP::send()
 
 		if (error_code != kErrNone) {
 			payload->opcode = kRspNak;
+			// The burst ends here, whether the file did or something went wrong.
+			// ArduPilot marks this packet the same way, and a client that waits
+			// for the end of the burst would otherwise keep waiting.
+			payload->burst_complete = true;
 			payload->size = 1;
 			uint8_t *pData = &payload->data[0];
 			*pData = error_code; // Straight reference to data[0] is causing bogus gcc array subscript error
@@ -1209,10 +1325,14 @@ void MavlinkFTP::send()
 			}
 		}
 
-		ftp_msg.target_system = _session_info.stream_target_system_id;
 		ftp_msg.target_network = 0;
 		ftp_msg.target_component = _session_info.stream_target_component_id;
-		_reply(&ftp_msg);
+		_reply(&ftp_msg, _session_info.stream_target_system_id);
+
+		// Streaming a burst is activity: without this the session is torn down
+		// from under a burst that runs longer than the inactivity timeout, which
+		// on a slow link a single chunk easily does.
+		_last_work_buffer_access = hrt_absolute_time();
 	} while (more_data);
 }
 

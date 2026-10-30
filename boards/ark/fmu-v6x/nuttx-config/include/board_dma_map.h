@@ -33,6 +33,10 @@
 
 #pragma once
 
+// Streams are handed out first-free per controller at runtime and the serial
+// driver does not handle a failed allocation, so count every user, including
+// the DShot timers, against each controller's 8 streams.
+
 // DMAMUX1 Using at most 8 Channels on DMA1 --------   Assigned
 //                                                     V
 
@@ -60,9 +64,9 @@
 // Assigned in timer_config.cpp
 
 // Timer 4                                          /* 7 DMA1:32 TIM4UP */
-// Timer 5                                          /* 8 DMA1:50 TIM5UP */
+// Timer 5                                          /* 8 DMA1:59 TIM5UP */
 
-// DMAMUX2 Using at most 8 Channels on DMA2 --------   Assigned
+// DMAMUX1 Using at most 8 Channels on DMA2 --------   Assigned
 //                                                     V
 
 #define DMAMAP_SPI3_RX    DMAMAP_DMA12_SPI3RX_1     /* 1 DMA2:61 BMI088 */
@@ -72,13 +76,13 @@
 #define DMAMAP_USART3_TX  DMAMAP_DMA12_USART3TX_1   /* 4 DMA2:46 DEBUG */
 
 #define DMAMAP_UART5_RX   DMAMAP_DMA12_UART5RX_1    /* 5 DMA2:65 TELEM2 */
-#define DMAMAP_UART5_TX   DMAMAP_DMA12_UART5TX_1    /* 6 DMA2:66  TELEM2 */
+#define DMAMAP_UART5_TX   DMAMAP_DMA12_UART5TX_1    /* 6 DMA2:66 TELEM2 */
 
-#define DMAMAP_UART7_RX   DMAMAP_DMA12_UART7RX_1    /* 7 DMA1:79  TELEM1 */
-#define DMAMAP_UART7_TX   DMAMAP_DMA12_UART7TX_1    /* 8 DMA1:80  TELEM1 */
+#define DMAMAP_UART7_RX   DMAMAP_DMA12_UART7RX_1    /* 7 DMA2:79 TELEM1 */
+#define DMAMAP_UART7_TX   DMAMAP_DMA12_UART7TX_1    /* 8 DMA2:80 TELEM1 */
 
-//#define DMAMAP_UART8_RX   DMAMAP_DMA12_UART8RX_1  /*  DMA1:81  GPS2 */
-//#define DMAMAP_UART8_TX   DMAMAP_DMA12_UART8TX_1  /*  DMA1:82  GPS2 */
+//#define DMAMAP_UART8_RX   DMAMAP_DMA12_UART8RX_1  /*  DMA2:81 GPS2 */
+//#define DMAMAP_UART8_TX   DMAMAP_DMA12_UART8TX_1  /*  DMA2:82 GPS2 */
 
 // DMAMUX2 Using at most 8 Channels on BDMA --------   Assigned
 //                                                     V

@@ -40,6 +40,10 @@ add_subdirectory(MulticopterThrowLaunch)
 
 set(SRCS)
 
+if(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+	list(APPEND SRCS airspeed_calibration.cpp)
+endif()
+
 if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 	list(APPEND SRCS mag_calibration.cpp)
 endif()
@@ -51,7 +55,6 @@ px4_add_module(
 	SRCS
 		${SRCS}
 		accelerometer_calibration.cpp
-		airspeed_calibration.cpp
 		baro_calibration.cpp
 		calibration_routines.cpp
 		Commander.cpp
@@ -89,3 +92,4 @@ if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 	px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)
 endif()
 px4_add_functional_gtest(SRC ModeManagementTest.cpp LINKLIBS modules__commander)
+px4_add_functional_gtest(SRC HomePositionTest.cpp LINKLIBS modules__commander)

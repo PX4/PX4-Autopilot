@@ -4,6 +4,11 @@ on:
     - cron: '30 1 * * *'
   workflow_dispatch:
 
+permissions:
+  actions: write        # actions/stale keeps its state in the Actions cache
+  issues: write
+  pull-requests: write
+
 jobs:
   stale:
     runs-on: ubuntu-latest

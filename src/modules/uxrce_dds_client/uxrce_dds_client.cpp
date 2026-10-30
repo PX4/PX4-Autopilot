@@ -172,12 +172,14 @@ bool UxrceddsClient::init()
 	if (_transport == Transport::Udp) {
 		_transport_udp = new uxrUDPTransport();
 
-		if (_transport_udp && uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
+		if (_transport_udp && uxr_init_udp_transport(_transport_udp, IP_VERSION, _agent_ip, _port)) {
 
 			PX4_INFO("init UDP agent IP:%s, port:%s", _agent_ip, _port);
 
 			_comm = &_transport_udp->comm;
 			_fd = _transport_udp->platform.poll_fd.fd;
+
+			_comm->mtu = UDP_MTU;
 
 			configure_udp_socket_nonblocking(_fd);
 
@@ -217,6 +219,7 @@ void UxrceddsClient::deinit()
 
 bool UxrceddsClient::setupSession(uxrSession *session)
 {
+	_previous_session_found = false;
 	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
 	_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
 
@@ -255,12 +258,21 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	_reliable_out = uxr_create_output_reliable_stream(session, _output_reliable_stream_buffer,
 			sizeof(_output_reliable_stream_buffer), STREAM_HISTORY);
 
+	// one MTU per input slot
+	const size_t reliable_in_size = (size_t)_comm->mtu * INPUT_STREAM_HISTORY;
+
+#if defined(UXRCE_DDS_CLIENT_UDP)
+	const size_t best_effort_size = (_transport == Transport::Udp) ? UDP_BEST_EFFORT : SERIAL_BEST_EFFORT;
+#else
+	const size_t best_effort_size = SERIAL_BEST_EFFORT;
+#endif
+
 	_best_effort_out = uxr_create_output_best_effort_stream(session, _output_data_stream_buffer,
-			   sizeof(_output_data_stream_buffer));
+			   best_effort_size);
 
 	uxrStreamId reliable_in = uxr_create_input_reliable_stream(session, _input_reliable_stream_buffer,
-				  sizeof(_input_reliable_stream_buffer),
-				  STREAM_HISTORY);
+				  reliable_in_size,
+				  INPUT_STREAM_HISTORY);
 
 	uxrStreamId best_effort_in = uxr_create_input_best_effort_stream(session);
 
@@ -274,7 +286,7 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	if (_participant_config == ParticipantConfig::Custom) {
 		// Create participant by reference (XML not required)
 		participant_req = uxr_buffer_create_participant_ref(session, _reliable_out, _participant_id, domain_id,
-				  "px4_participant", UXR_REPLACE);
+				  "px4_participant", 0);
 
 	} else {
 		// Construct participant XML and create participant by XML
@@ -319,13 +331,21 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 		}
 
 		participant_req = uxr_buffer_create_participant_xml(session, _reliable_out, _participant_id, domain_id,
-				  participant_xml, UXR_REPLACE);
+				  participant_xml, 0);
 	}
 
 	uint8_t request_status;
 
 	if (!uxr_run_session_until_all_status(session, 1000, &participant_req, &request_status, 1)) {
-		PX4_ERR("create entities failed: participant: %i", request_status);
+		_previous_session_found = (request_status == UXR_STATUS_ERR_ALREADY_EXISTS);
+
+		if (_previous_session_found) {
+			PX4_INFO("previous session found on the agent, deleting it");
+
+		} else {
+			PX4_ERR("create entities failed: participant: %i", request_status);
+		}
+
 		return false;
 	}
 
@@ -655,7 +675,11 @@ void UxrceddsClient::run()
 			if (!setupSession(&session)) {
 				deleteSession(&session);
 				px4_usleep(1'000'000);
-				PX4_ERR("session setup failed, will retry now");
+
+				if (!_previous_session_found) {
+					PX4_ERR("session setup failed, will retry now");
+				}
+
 				continue;
 			}
 
@@ -670,17 +694,40 @@ void UxrceddsClient::run()
 
 		hrt_abstime last_sync_session = 0;
 		int poll_error_counter = 0;
+#if defined(__PX4_NUTTX)
+		bool transport_poll_error = false;
+#endif
 		resetConnectivityCounters();
 
 		while (!should_exit() && _connected) {
 			perf_begin(_loop_perf);
 			perf_count(_loop_interval_perf);
 
-			// Keep loop latency low without busy-looping:
-			// - Use a short uORB poll timeout (instead of 10ms)
-			// - If transport has pending data, don't block in uORB poll at all.
-			int orb_poll_timeout_ms = 1;
+			// The last fds slot is reserved for the transport fd (see SendTopicsSubs)
+			const unsigned num_orb_fds = (sizeof(_subs->fds) / sizeof(_subs->fds[0])) - 1;
+			unsigned num_poll_fds = num_orb_fds;
+			int poll_timeout_ms = 1;
 
+#if defined(__PX4_NUTTX)
+
+			// On NuttX the transport fd is a regular file descriptor: poll it together with the
+			// uORB subscriptions so the loop only wakes up on topic updates or incoming agent data,
+			// instead of spinning on a 1ms timeout. The timeout is only a fallback for housekeeping.
+			// If the transport fd reported an error on the previous iteration (e.g. POLLHUP on a
+			// disconnected USB link), skip it once and wait on uORB with the short timeout instead,
+			// so a persistent error can't make poll() return immediately and spin the loop.
+			if (_fd >= 0 && !transport_poll_error) {
+				_subs->fds[num_orb_fds].fd = _fd;
+				_subs->fds[num_orb_fds].events = POLLIN;
+				_subs->fds[num_orb_fds].revents = 0;
+				num_poll_fds = num_orb_fds + 1;
+				poll_timeout_ms = 10;
+			}
+
+#else
+
+			// px4_poll() on POSIX only handles uORB fds: keep a short timeout and
+			// don't block in uORB poll at all if the transport has pending data.
 			if (_fd >= 0) {
 				struct pollfd transport_pollfd {};
 				transport_pollfd.fd = _fd;
@@ -688,12 +735,19 @@ void UxrceddsClient::run()
 				const int transport_poll = poll(&transport_pollfd, 1, 0);
 
 				if (transport_poll > 0) {
-					orb_poll_timeout_ms = 0;
+					poll_timeout_ms = 0;
 				}
 			}
 
-			/* Wait for topic updates */
-			int poll = px4_poll(_subs->fds, (sizeof(_subs->fds) / sizeof(_subs->fds[0])), orb_poll_timeout_ms);
+#endif
+
+			/* Wait for topic updates (and incoming agent data on NuttX) */
+			int poll = px4_poll(_subs->fds, num_poll_fds, poll_timeout_ms);
+
+#if defined(__PX4_NUTTX)
+			transport_poll_error = (num_poll_fds > num_orb_fds)
+					       && (_subs->fds[num_orb_fds].revents & (POLLERR | POLLHUP | POLLNVAL));
+#endif
 
 			/* Handle the poll results */
 			if (poll > 0) {

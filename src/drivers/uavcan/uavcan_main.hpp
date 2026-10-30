@@ -216,11 +216,12 @@ public:
 	typedef UAVCAN_DRIVER::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 	enum eServerAction : int {None, Start, Stop, CheckFW, Busy};
 
-	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
+	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id, uint32_t bitrate);
 
 	virtual		~UavcanNode();
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
+	static int	stop();
 
 	uavcan::Node<>	&get_node() { return _node; }
 
@@ -268,6 +269,9 @@ private:
 	uavcan_node::Allocator	 _pool_allocator;
 
 	bool                    _node_init{false};
+	int                     _can_init_error{0};		///< last CAN driver init error reported
+	const uavcan::NodeID	_node_id;			///< node ID, validated by uavcan_main()
+	const uint32_t		_bitrate;			///< CAN bit rate in bit/s
 	uavcan::Node<>			_node;				///< library instance
 	pthread_mutex_t			_node_mutex;
 
@@ -330,6 +334,8 @@ private:
 		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &)> RestartNodeCallback;
 
 	void cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+	void cb_save_params(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
+	void cb_reset_node(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result);
 
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vcmd_sub{ORB_ID(vehicle_command)};

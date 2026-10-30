@@ -63,6 +63,9 @@ static constexpr hrt_abstime ROLL_WARNING_TIMEOUT = 2_s;
 // [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 
+// [deg] roll angle limit at full underspeed
+static constexpr float ROLL_LIMIT_UNDERSPEED = 20.f;
+
 // [m/s/s] slew rate limit for airspeed setpoint changes
 static constexpr float ASPD_SP_SLEW_RATE = 1.f;
 
@@ -318,6 +321,16 @@ void FwLateralLongitudinalControl::Run()
 						      radians(_param_fw_r_lim.get()));
 				pitch_body = constrain(pitch_body, radians(_param_fw_p_lim_min.get()),
 						       radians(_param_fw_p_lim_max.get()));
+			}
+
+			// Reduce max roll angle during underspeed to lower load factor
+			const float underspeed_ratio = _tecs.get_underspeed_ratio();
+
+			if (underspeed_ratio > FLT_EPSILON) {
+				const float roll_limit_normal = radians(_param_fw_r_lim.get());
+				const float roll_limit = math::lerp(roll_limit_normal,
+								    math::min(radians(ROLL_LIMIT_UNDERSPEED), roll_limit_normal), underspeed_ratio);
+				roll_body = constrain(roll_body, -roll_limit, roll_limit);
 			}
 
 			// roll slew rate
@@ -680,9 +693,12 @@ void FwLateralLongitudinalControl::updateAttitude() {
 
 		// Used to compensate for higher induced drag during banking
 		_tecs.set_load_factor(_load_factor_from_bank_angle);
-		// Used to give underspeed mitigation the correct minimum airspeed
+		// Used to give underspeed mitigation the correct minimum and stall airspeed
 		_tecs.set_equivalent_airspeed_min(
 			_performance_model.getMinimumCalibratedAirspeed(_load_factor_from_bank_angle, _flaps_setpoint)
+		);
+		_tecs.set_equivalent_airspeed_stall(
+			_performance_model.getCalibratedStallAirspeed(_load_factor_from_bank_angle, _flaps_setpoint)
 		);
 	}
 }
@@ -925,6 +941,12 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 	} else {
 		_long_configuration.speed_weight = _param_t_spdweight.get();
 	}
+
+	// the landing sets this to scale the TECS altitude time constant by FW_LND_THRTC_SC
+	_long_configuration.enforce_low_height_condition = configuration_in.enforce_low_height_condition;
+
+	// takeoff and landing set this so that TECS does not trade altitude for airspeed near the ground
+	_long_configuration.disable_underspeed_protection = configuration_in.disable_underspeed_protection;
 }
 
 extern "C" __EXPORT int fw_lat_lon_control_main(int argc, char *argv[])
