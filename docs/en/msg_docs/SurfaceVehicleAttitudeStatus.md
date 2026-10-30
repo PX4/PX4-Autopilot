@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# RoverAttitudeStatus (UORB message)
+# SurfaceVehicleAttitudeStatus (UORB message)
 
-Rover Attitude Status.
+Surface Vehicle Attitude Status.
 
-**TOPICS:** rover_attitude_status
+**TOPICS:** surface_vehicle_attitude_status
 
 ## Fields
 
@@ -18,12 +18,12 @@ Rover Attitude Status.
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverAttitudeStatus.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SurfaceVehicleAttitudeStatus.msg)
 
 ::: details Click here to see original file
 
 ```c
-# Rover Attitude Status
+# Surface Vehicle Attitude Status
 
 uint64 timestamp               # [us] Time since system start
 float32 measured_yaw           # [rad] [@range -pi, pi] [@frame NED]Measured yaw

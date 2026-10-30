@@ -14,7 +14,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
    In stabilized mode the closed loop yaw control is only active when driving a straight line (no yaw rate input).
    To tune it start with a value of 1 for [RO_YAW_P](#RO_YAW_P).
    Put the rover into stabilized mode and move the left stick of your controller up to drive forwards.
-   Disarm the rover and from the flight log plot the `measured_yaw` and the `adjusted_yaw_setpoint` from the [RoverAttitudeStatus](../msg_docs/RoverAttitudeStatus.md) message over each other.
+   Disarm the rover and from the flight log plot the `measured_yaw` and the `adjusted_yaw_setpoint` from the [SurfaceVehicleAttitudeStatus](../msg_docs/SurfaceVehicleAttitudeStatus.md) message over each other.
    Increase/Decrease the parameter until you are satisfied with the setpoint tracking.
    If you observe a steady state error in the yaw setpoint increase the integrator of the rate controller: [RO_YAW_RATE_I](../advanced_config/parameter_reference.md#RO_YAW_RATE_I) .
    :::
