@@ -1812,7 +1812,6 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"DEBUG_FLOAT_ARRAY", 1.0f},
 	{"DEBUG_VECT", 1.0f},
 	{"NAMED_VALUE_FLOAT", 1.0f},
-	{"LINK_NODE_STATUS", 1.0f},
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
@@ -1895,7 +1894,6 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"DEBUG_FLOAT_ARRAY", 10.0f},
 	{"DEBUG_VECT", 10.0f},
 	{"NAMED_VALUE_FLOAT", 10.0f},
-	{"LINK_NODE_STATUS", 1.0f},
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
@@ -1963,7 +1961,6 @@ constexpr StreamRateDefault streams_mode_extvision_min[] = {
 	{"DEBUG_FLOAT_ARRAY", 1.0f},
 	{"DEBUG_VECT", 1.0f},
 	{"NAMED_VALUE_FLOAT", 1.0f},
-	{"LINK_NODE_STATUS", 1.0f},
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 	{"FIGURE_EIGHT_EXECUTION_STATUS", 2.0f},
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
@@ -2070,7 +2067,6 @@ constexpr StreamRateDefault streams_mode_config[] = {
 	{"DEBUG_FLOAT_ARRAY", 50.0f},
 	{"DEBUG_VECT", 50.0f},
 	{"NAMED_VALUE_FLOAT", 50.0f},
-	{"LINK_NODE_STATUS", 1.0f},
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
@@ -2094,10 +2090,6 @@ constexpr StreamRateDefault streams_mode_minimal[] = {
 	{"RC_CHANNELS", 0.5f},
 	{"SYS_STATUS", 0.1f},
 	{"VFR_HUD", 1.0f},
-
-#if !defined(CONSTRAINED_FLASH)
-	{"LINK_NODE_STATUS", 1.0f},
-#endif // !CONSTRAINED_FLASH
 };
 
 constexpr StreamRateDefault streams_mode_onboard_low_bandwidth[] = {
