@@ -6,6 +6,8 @@
 
 #define ATOMIC_ENTER lock()
 #define ATOMIC_LEAVE unlock()
+#define ATOMIC_PAUSE
+#define ATOMIC_RESUME
 
 namespace cdev
 {
