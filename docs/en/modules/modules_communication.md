@@ -82,7 +82,8 @@ mavlink <command> [arguments...]
                  default: 14556
      [-o <val>]  Select UDP Network Port (remote)
                  default: 14550
-     [-t <val>]  Partner IP (broadcasting can be enabled via -p flag)
+     [-t <val>]  Partner IP, can also be p:<param_name> (broadcasting can be
+                 enabled via -p flag)
                  default: 127.0.0.1
      [-m <val>]  Mode: sets default streams and rates
                  values: custom|camera|onboard|osd|magic|config|iridium|minimal|

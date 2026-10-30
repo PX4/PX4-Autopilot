@@ -42773,7 +42773,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## MAVLink
 
-<div class="param-group" style="--param-count: 42">
+<div class="param-group" style="--param-count: 45">
 
 <div class="param">
 
@@ -42984,6 +42984,24 @@ rather than to 0. Raise it if you know your link is better.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 0 |  |  | 2000 | B/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MAV_0_REMOTE_IP (`INT32`) {#MAV_0_REMOTE_IP}
+
+MAVLink Partner IP for instance 0.
+
+Messages go to this address at port MAV_0_REMOTE_PRT. Encoded as int32
+with the first octet in the most significant byte, e.g. 192.168.1.2 is -1062731518.
+Set to 0 to discover the partner from received packets.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
 
 </div>
 
@@ -43235,6 +43253,24 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### MAV_1_REMOTE_IP (`INT32`) {#MAV_1_REMOTE_IP}
+
+MAVLink Partner IP for instance 1.
+
+Messages go to this address at port MAV_1_REMOTE_PRT. Encoded as int32
+with the first octet in the most significant byte, e.g. 192.168.1.2 is -1062731518.
+Set to 0 to discover the partner from received packets.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### MAV_1_REMOTE_PRT (`INT32`) {#MAV_1_REMOTE_PRT}
 
 MAVLink Remote Port for instance 1.
@@ -43476,6 +43512,24 @@ rather than to 0. Raise it if you know your link is better.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 0 |  |  | 0 | B/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MAV_2_REMOTE_IP (`INT32`) {#MAV_2_REMOTE_IP}
+
+MAVLink Partner IP for instance 2.
+
+Messages go to this address at port MAV_2_REMOTE_PRT. Encoded as int32
+with the first octet in the most significant byte, e.g. 192.168.1.2 is -1062731518.
+Set to 0 to discover the partner from received packets.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
 
 </div>
 
