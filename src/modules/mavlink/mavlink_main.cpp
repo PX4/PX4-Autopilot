@@ -3010,6 +3010,12 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_receiver.stop();
 
+	// the receiver, which opens the shell, has stopped: free the shell for the next instance
+	{
+		const LockGuard lg{_mavlink_shell_mutex};
+		close_shell();
+	}
+
 	delete[] _subscribe_to_stream.load();
 	_subscribe_to_stream.store(nullptr);
 

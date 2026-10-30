@@ -2165,7 +2165,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 	}
 
 	if (shell) {
-		// Only this thread creates and deletes the shell, so it can be used without the lock.
+		// While this thread runs, only it creates and deletes the shell, so it can be used without the lock.
 		// Do not hold the lock while writing: the write blocks while a shell pipe is full, and
 		// the output pipe is drained by Mavlink::handleMavlinkShellOutput(), which needs the lock.
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
