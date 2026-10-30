@@ -78,17 +78,18 @@ config NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		queues the next item without blocking its main loop.
 
 config NAVIGATOR_SAFE_POINT_BATCH_SIZE
-	int "Maximum rally points scored per mission-route planning batch"
+	int "Rally points per route planning batch"
 	default 32 if BOARD_TESTING
 	default 16
 	range 16 32
 	depends on MODULES_NAVIGATOR
 	---help---
-		Rally points projected per scan of the mission route. With more rally
-		points, the route is scanned once per batch, and once more for the rally
-		points whose candidates fail geofence checks. The minimum of 16 limits
-		repeated route scans. Each slot reserves 392 bytes of static RAM when
-		the planner is linked (6.3 KB at 16), plus about 1.4 KB for path checks.
-		Planning is synchronous; blocked candidates can require one path check
-		per route segment during the extra scan.
-		See docs/en/concept/mission_route_planning.md for timing and memory limits.
+		Number of rally points the route planner projects onto the mission
+		route in one pass. Each batch takes one pass over the route, plus at
+		most one more when the geofence rejects some of its candidates.
+		The minimum of 16 keeps planning fast by limiting the number of
+		passes. The maximum of 32 is the number of rally points that can be
+		stored, so they all fit in one batch.
+		Each slot uses 392 bytes of static RAM, plus 1.4 KB in total for
+		geofence path checks. Only used when NAVIGATOR_FULL_MISSION_CACHE_SIZE
+		is above 0.

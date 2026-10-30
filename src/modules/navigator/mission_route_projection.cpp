@@ -548,7 +548,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 }
 
 // A projection is kept only at a local minimum of the distance to the route: an interior point,
-// a V-corner shared with the previous leg, or the route end. See mission_route_planning.md.
+// a V-corner shared with the previous leg, or the route end.
 static bool localMinimumOnSegment(bool proj_on_start, bool proj_on_end, bool prev_proj_on_end, bool jumping,
 				  bool last_segment)
 {

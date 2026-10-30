@@ -115,7 +115,8 @@ bool GeofencePathChecker::referenceAllowed(const ProjectionReference &reference)
 	return position.valid() && _geofence.checkPointAgainstAllGeofences(position.lat, position.lon, position.alt);
 }
 
-// The vehicle may start segments outside the altitude and Home limits; their ends are checked.
+// Polygons and circles only: a vehicle above the altitude limits or too far from Home must still get a
+// way back. The ends of its segments are checked against every limit.
 bool GeofencePathChecker::vehicleAllowed(const Position &position) const
 {
 	return position.valid() && _geofence.isInsideHorizontalFences(position.lat, position.lon, position.alt);
@@ -157,12 +158,13 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 		const ProjectionReference &reference = batch.items[i];
 		const Position &anchor = reference.position;
 
+		// A vehicle in recovery keeps all its candidates unchecked: set bits 0 to count - 1.
 		if (exempt(reference)) {
 			shared_paths.valid_masks[i] = static_cast<uint8_t>((1U << reference.candidate_buffer.count) - 1U);
 			continue;
 		}
 
-		// First check that this vehicle or safe point is in an allowed area.
+		// A vehicle or safe point outside the allowed area keeps no candidates: its mask stays 0.
 		if (reference.candidate_buffer.count == 0 || !referenceAllowed(reference)) {
 			continue;
 		}
