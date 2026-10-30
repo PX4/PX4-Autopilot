@@ -66,6 +66,8 @@ public:
 	{
 	}
 
+	// A publisher calls call() until the callback is unregistered, and by the time this runs the subclass
+	// that implements it is gone. Subclasses must unregister in their own destructor.
 	virtual ~SubscriptionCallback()
 	{
 		unregisterCallback();
@@ -138,7 +140,10 @@ public:
 	{
 	}
 
-	virtual ~SubscriptionCallbackWorkItem() = default;
+	virtual ~SubscriptionCallbackWorkItem()
+	{
+		unregisterCallback();
+	}
 
 	void call(unsigned generation) override
 	{
