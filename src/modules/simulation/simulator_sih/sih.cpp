@@ -55,6 +55,29 @@ using namespace time_literals;
 
 ModuleBase::Descriptor Sih::desc{task_spawn, custom_command, print_usage};
 
+#if defined(__PX4_POSIX)
+// Poses for the orient command, named after the face pointing down as the calibration names them
+static constexpr struct {
+	const char *name;
+	float roll;
+	float pitch;
+} orient_sides[] = {
+	{"down", 0.f, 0.f},
+	{"up", M_PI_F, 0.f},
+	{"front", 0.f, -M_PI_F / 2.f},
+	{"back", 0.f, M_PI_F / 2.f},
+	{"left", -M_PI_F / 2.f, 0.f},
+	{"right", M_PI_F / 2.f, 0.f},
+};
+
+static constexpr float ORIENT_RATE_MAX = M_PI_F;	// [rad/s] turn rate between poses
+static constexpr float ORIENT_YAW_RATE = 1.5f;		// [rad/s] rotation about the vertical
+static constexpr float ORIENT_WOBBLE = 0.4f;		// [rad] tilt swing while rotating, so the accel never reads still
+static constexpr float ORIENT_WOBBLE_FREQ = 0.5f;	// [Hz]
+static constexpr hrt_abstime ORIENT_ALL_HOLD = 10_s;	// still on each side for the accel calibration,
+static constexpr hrt_abstime ORIENT_ALL_ROTATE = 10_s;	// then rotating for the mag calibration
+#endif // __PX4_POSIX
+
 Sih::Sih() :
 	ModuleParams(nullptr)
 {
@@ -253,9 +276,21 @@ void Sih::sensor_step()
 
 	read_motors(dt);
 
-	generate_force_and_torques(dt);
+#if defined(__PX4_POSIX)
+	orient_update(now);
 
+	if (_orient_mode == OrientMode::Off) {
+		generate_force_and_torques(dt);
+		equations_of_motion(dt);
+
+	} else {
+		orient_step(now, dt);
+	}
+
+#else
+	generate_force_and_torques(dt);
 	equations_of_motion(dt);
+#endif // __PX4_POSIX
 
 	reconstruct_sensors_signals(now);
 
@@ -713,6 +748,120 @@ void Sih::equations_of_motion(const float dt)
 	_lpos(2) = -(_lla.altitude() - _lpos_ref_alt);
 }
 
+#if defined(__PX4_POSIX)
+void Sih::orient_update(const hrt_abstime &now)
+{
+	static_assert(sizeof(orient_sides) / sizeof(orient_sides[0]) == ORIENT_SIDE_COUNT, "orient side table");
+
+	int request = _orient_request.load();
+
+	if (request == ORIENT_NONE || !_orient_request.compare_exchange(&request, ORIENT_NONE)) {
+		return;
+	}
+
+	if (request == ORIENT_OFF) {
+		if (_orient_mode != OrientMode::Off) {
+			_orient_mode = OrientMode::Leveling;
+		}
+
+		return;
+	}
+
+	if (_orient_mode == OrientMode::Off) {
+		if (!_grounded) {
+			PX4_WARN("orient: vehicle not on the ground");
+			return;
+		}
+
+		_orient_yaw = Eulerf(_q).psi();
+	}
+
+	_orient_start = now;
+
+	if (request == ORIENT_ALL) {
+		_orient_mode = OrientMode::AllSides;
+		_orient_side = -1;
+
+	} else {
+		_orient_mode = (request >= ORIENT_ROTATE) ? OrientMode::Rotate : OrientMode::Hold;
+		_orient_side = request % ORIENT_ROTATE;
+	}
+}
+
+void Sih::orient_step(const hrt_abstime &now, const float dt)
+{
+	bool rotate = (_orient_mode == OrientMode::Rotate);
+	hrt_abstime rotate_start = _orient_start;
+
+	if (_orient_mode == OrientMode::AllSides) {
+		static constexpr hrt_abstime side_time = ORIENT_ALL_HOLD + ORIENT_ALL_ROTATE;
+		const hrt_abstime elapsed = now - _orient_start;
+		const int side = elapsed / side_time;
+
+		if (side >= ORIENT_SIDE_COUNT) {
+			PX4_INFO("orient: all sides done");
+			_orient_mode = OrientMode::Leveling;
+
+		} else {
+			if (side != _orient_side) {
+				PX4_INFO("orient: %s side", orient_sides[side].name);
+				_orient_side = side;
+			}
+
+			rotate = (elapsed % side_time) >= ORIENT_ALL_HOLD;
+			rotate_start = _orient_start + side * side_time + ORIENT_ALL_HOLD;
+		}
+	}
+
+	const Quatf q_yaw{AxisAnglef(Vector3f(0.f, 0.f, 1.f), _orient_yaw)};
+	Quatf q_target = q_yaw;
+
+	if (_orient_mode != OrientMode::Leveling) {
+		const Quatf q_side{Eulerf(orient_sides[_orient_side].roll, orient_sides[_orient_side].pitch, 0.f)};
+
+		if (rotate) {
+			const float t = (now - rotate_start) * 1e-6f;
+			const float tilt = ORIENT_WOBBLE * sinf(2.f * M_PI_F * ORIENT_WOBBLE_FREQ * t);
+			const Quatf q_spin = Quatf(AxisAnglef(Vector3f(0.f, 0.f, 1.f), ORIENT_YAW_RATE * t));
+			const Quatf q_wobble = Quatf(AxisAnglef(Vector3f(1.f, 0.f, 0.f), tilt));
+			q_target = q_yaw * q_spin * q_wobble * q_side;
+
+		} else {
+			q_target = q_yaw * q_side;
+		}
+	}
+
+	// turn towards the target at a bounded rate, with the gyro reading the turn
+	Quatf q_error = _q.inversed() * q_target;
+	q_error.canonicalize();
+	Vector3f rotation = AxisAnglef(q_error);
+	const float max_angle = ORIENT_RATE_MAX * dt;
+
+	if (rotation.norm() > max_angle) {
+		rotation = rotation.normalized() * max_angle;
+	}
+
+	if (_orient_mode == OrientMode::Leveling && rotation.norm() < 1e-4f) {
+		_orient_mode = OrientMode::Off;
+		_w_B.zero();
+		return;
+	}
+
+	_w_B = (dt > FLT_EPSILON) ? rotation / dt : Vector3f{};
+
+	// at rest in place
+	_specific_force_E = -Vector3f(_R_N2E.col(2)) * LatLonAlt::Wgs84::gravity(_lla.latitude_rad());
+	_v_E.zero();
+	_v_E_dot.zero();
+	_v_N_dot.zero();
+
+	_q_E = Quatf(_R_N2E) * _q * Quatf(AxisAnglef(rotation));
+	_q_E.normalize();
+
+	ecefToNed();
+}
+#endif // __PX4_POSIX
+
 void Sih::ecefToNed()
 {
 	_lla = LatLonAlt::fromEcef(_p_E);
@@ -1006,6 +1155,16 @@ int Sih::print_status()
 	}
 
 	PX4_INFO("vehicle landed: %d", _grounded);
+
+#if defined(__PX4_POSIX)
+
+	if (_orient_mode != OrientMode::Off) {
+		PX4_INFO("orient: %s", (_orient_mode == OrientMode::Leveling || _orient_side < 0) ? "moving" :
+			 orient_sides[_orient_side].name);
+	}
+
+#endif // __PX4_POSIX
+
 	PX4_INFO("local position NED (m)");
 	_lpos.print();
 	PX4_INFO("local velocity NED (m/s)");
@@ -1065,6 +1224,48 @@ Sih *Sih::instantiate(int argc, char *argv[])
 
 int Sih::custom_command(int argc, char *argv[])
 {
+#if defined(__PX4_POSIX)
+	Sih *sih = get_instance<Sih>(desc);
+
+	if (!is_running(desc) || !sih) {
+		return print_usage("not running");
+	}
+
+	if (argc >= 2 && !strcmp(argv[0], "orient")) {
+		int request = ORIENT_NONE;
+
+		if (!strcmp(argv[1], "off")) {
+			request = ORIENT_OFF;
+
+		} else if (!strcmp(argv[1], "all")) {
+			request = ORIENT_ALL;
+
+		} else {
+			for (int side = 0; side < ORIENT_SIDE_COUNT; side++) {
+				if (!strcmp(argv[1], orient_sides[side].name)) {
+					request = side;
+				}
+			}
+
+			if (request != ORIENT_NONE && argc >= 3) {
+				if (strcmp(argv[2], "rotate") != 0) {
+					return print_usage("unknown orient option");
+				}
+
+				request += ORIENT_ROTATE;
+			}
+		}
+
+		if (request == ORIENT_NONE) {
+			return print_usage("unknown side");
+		}
+
+		sih->_orient_request.store(request);
+		return 0;
+	}
+
+#endif // __PX4_POSIX
+
 	return print_usage("unknown command");
 }
 
@@ -1092,11 +1293,26 @@ Quaternion representation is used for the attitude.
 Forward Euler is used for integration.
 Most of the variables are declared global in the .hpp file to avoid stack overflow.
 
+### Examples
+Pose the vehicle on the ground for accel and mag calibration (SITL only), sides named as the calibration names them.
+With `rotate` it turns about the vertical with a tilt swing, as the mag calibration asks for:
+$ simulator_sih orient left rotate
+
+Each side in turn: 10 s still, then 10 s rotating, then level. This completes either calibration.
+$ simulator_sih orient all
+
+Level the vehicle and resume the flight dynamics:
+$ simulator_sih orient off
 
 )DESCR_STR");
 
     PRINT_MODULE_USAGE_NAME("simulator_sih", "simulation");
     PRINT_MODULE_USAGE_COMMAND("start");
+#if defined(__PX4_POSIX)
+    PRINT_MODULE_USAGE_COMMAND_DESCR("orient", "Pose the vehicle on the ground for calibration");
+    PRINT_MODULE_USAGE_ARG("down|up|front|back|left|right|all|off", "Side facing down, every side in turn, or level", false);
+    PRINT_MODULE_USAGE_ARG("rotate", "Rotate about the vertical", true);
+#endif // __PX4_POSIX
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
