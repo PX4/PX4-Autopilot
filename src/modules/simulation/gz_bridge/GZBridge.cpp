@@ -284,34 +284,41 @@ bool GZBridge::subscribeDistanceSensor(bool required)
 	gz::msgs::Scene scene;
 	bool result = false;
 
-	if (_node.Request("/world/" + _world_name + "/scene/info", req, 1000, scene, result) && result) {
-		for (const auto &model : scene.model()) {
-			if (model.name() != _model_name) { continue; }
-
-			// link poses are relative to the model frame
-			gz::math::Quaterniond q_model_base{gz::math::Quaterniond::Identity};
-			gz::math::Quaterniond q_model_lidar{gz::math::Quaterniond::Identity};
-			bool lidar_found = false;
-
-			for (const auto &link : model.link()) {
-				if (link.name() == "base_link") {
-					q_model_base = gz::msgs::Convert(link.pose()).Rot();
-
-				} else if (link.name() == "lidar_sensor_link") {
-					q_model_lidar = gz::msgs::Convert(link.pose()).Rot();
-					lidar_found = true;
-				}
-			}
-
-			// models without a lidar have no lidar_sensor_link, nothing to report
-			if (lidar_found) {
-				_lidar_link_q = q_model_base.Inverse() * q_model_lidar;
-			}
-		}
-
-	} else {
-		PX4_WARN("scene/info request failed, assuming lidar link aligned with base_link");
+	// Without the link orientation a down-facing lidar would be reported as forward-facing, so publish nothing
+	if (!_node.Request("/world/" + _world_name + "/scene/info", req, 1000, scene, result) || !result) {
+		PX4_WARN("scene/info request failed, lidar orientation unknown, not publishing distance_sensor");
+		return required ? false : true;
 	}
+
+	const auto model = std::find_if(scene.model().begin(), scene.model().end(),
+	[this](const gz::msgs::Model & m) { return m.name() == _model_name; });
+
+	if (model == scene.model().end()) {
+		PX4_WARN("%s not found in scene/info, lidar orientation unknown, not publishing distance_sensor", _model_name.c_str());
+		return required ? false : true;
+	}
+
+	// link poses are relative to the model frame
+	gz::math::Quaterniond q_model_base{gz::math::Quaterniond::Identity};
+	gz::math::Quaterniond q_model_lidar{gz::math::Quaterniond::Identity};
+	bool lidar_found = false;
+
+	for (const auto &link : model->link()) {
+		if (link.name() == "base_link") {
+			q_model_base = gz::msgs::Convert(link.pose()).Rot();
+
+		} else if (link.name() == "lidar_sensor_link") {
+			q_model_lidar = gz::msgs::Convert(link.pose()).Rot();
+			lidar_found = true;
+		}
+	}
+
+	// models without a lidar have no lidar_sensor_link, nothing to subscribe to
+	if (!lidar_found) {
+		return true;
+	}
+
+	_lidar_link_q = q_model_base.Inverse() * q_model_lidar;
 
 	// subscribe only once _lidar_link_q is set, so the callback never reads it mid-update
 	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
