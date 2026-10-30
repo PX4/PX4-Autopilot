@@ -38,3 +38,9 @@ Upstream PX4 is also inconsistent with MAVLink (velocity in FRDY, acceleration i
 ## Notes for porting new PX4 Versions
 
 MAVLink has `MAV_FRAME_LOCAL_FRD` which is the correct MAVLink frame for FRDY. PX4 does not yet accept it.
+
+## Testing & Validation
+
+We've deliberately not created unit tests for this. We are trying to keep each diff small and contained.
+
+To validate this we need to use SI2 to issue commands to PX4 (for example on a Mission / Joystick / Direct).
