@@ -35,7 +35,8 @@ def test_accel_calibration(tester_calibration: AutopilotTesterCalibration) -> No
     pytest.param({"param2": 1}, "all", "[cal] down side calibration: progress", 0.0,
                  id="mag_collecting"),
     pytest.param({"param5": 2}, "down rotate", None, 2.0, id="level_moving"),
-    pytest.param({"param3": 1}, None, None, 1.0, id="baro"),
+    pytest.param({"param1": 1}, "down rotate", None, 2.0, id="gyro_moving"),
+    pytest.param({"param3": 1}, None, None, 0.0, id="baro"),
 ])
 def test_calibration_cancel(tester_calibration: AutopilotTesterCalibration,
                             params: Dict[str, float], orient: Optional[str],
