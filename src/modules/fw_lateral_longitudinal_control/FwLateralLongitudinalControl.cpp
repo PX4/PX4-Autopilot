@@ -344,6 +344,9 @@ void FwLateralLongitudinalControl::Run()
 
 			_attitude_sp_pub.publish(_att_sp);
 
+		} else {
+			// TECS is not in control: reset airspeed setpoint so adapt_airspeed_setpoint reinitialises when resuming
+			_airspeed_slew_rate_controller.setForcedValue(NAN);
 		}
 
 		// Publish flight phase with low rate, but immediately if updated
@@ -410,6 +413,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		|| _vehicle_status_sub.get().in_transition_mode)) {
 		tecs_is_running = false;
+		_airspeed_slew_rate_controller.setForcedValue(NAN);
 		return flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 	}
 
@@ -762,7 +766,8 @@ FwLateralLongitudinalControl::adapt_airspeed_setpoint(const float control_interv
 
 	if (!PX4_ISFINITE(_airspeed_slew_rate_controller.getState())) {
 
-		// initialize the airspeed setpoint
+		// Airspeed setpoint is invalid (switching from a non-TECS mode or first run). Initialise it.
+
 		if (PX4_ISFINITE(_long_control_state.airspeed_eas) && _long_control_state.airspeed_eas < system_min_airspeed) {
 			// current airpseed is below minimum - init with minimum
 			_airspeed_slew_rate_controller.setForcedValue(system_min_airspeed);
@@ -779,6 +784,7 @@ FwLateralLongitudinalControl::adapt_airspeed_setpoint(const float control_interv
 			// current airpseed is invalid - init with setpoint
 			_airspeed_slew_rate_controller.setForcedValue(calibrated_airspeed_setpoint);
 		}
+
 	} else {
 		// update slew rate state
 		if (_airspeed_slew_rate_controller.getState() < system_min_airspeed) {
