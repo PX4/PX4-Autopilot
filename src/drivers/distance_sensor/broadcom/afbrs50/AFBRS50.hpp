@@ -184,6 +184,7 @@ private:
 	// polled at a quarter frame time: 20 retries = 5 frame times without
 	// progress before recoverFromTriggerStall() aborts and reconfigures.
 	static constexpr uint32_t kMaxTriggerRetries = 20;
+	static constexpr hrt_abstime kTriggerMargin = 1000; // one system tick, us
 	uint32_t _trigger_retry_count{0};
 
 	// Consecutive CONFIGURE failures (350 ms apart) before the device is

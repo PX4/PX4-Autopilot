@@ -205,12 +205,13 @@ void WorkQueue::Run()
 			// down. Without this, a Run() executing after Deinit has
 			// popped the item will call Schedule* on dead memory,
 			// corrupting the hrt callout queue.
-			work->_run_in_progress.store(true);
+			_running_item.store(work);
 
 			work_unlock(); // unlock work queue to run (item may requeue itself)
 			work->RunPreamble();
 			work->Run();
-			work->_run_in_progress.store(false);
+			// Note: after Run() we cannot access work anymore, as it might have been deleted
+			_running_item.store(nullptr);
 			work_lock(); // re-lock
 		}
 

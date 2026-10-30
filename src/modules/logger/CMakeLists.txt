@@ -62,6 +62,11 @@ px4_add_module(
 		component_general_json # for checksums.h
 	)
 
+# Optimize topic setup and directory parsing for size in MinSizeRel builds.
+set_property(SOURCE logged_topics.cpp util_parse.cpp APPEND PROPERTY
+	COMPILE_OPTIONS "$<$<CONFIG:MinSizeRel>:-Os>"
+)
+
 px4_add_unit_gtest(SRC ULogMessagesTest.cpp)
 
 if(BUILD_TESTING)

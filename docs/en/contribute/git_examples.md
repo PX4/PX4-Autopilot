@@ -273,7 +273,13 @@ git checkout <branch name>
 
 ### Force push to forked repository
 
-After having done the first PR, people from the PX4 community will review your changes. In most cases this means that you have to fix your local branch according to the review. After changing the files locally, the feature branch needs to be rebased again with the most recent upstream/main. However, after the rebase, it is no longer possible to push the feature branch to your forked repository directly, but instead you need to use a force push:
+After you open a PR, people from the PX4 community will review your changes.
+In most cases this means that you have to fix your local branch according to the review.
+Add the fixes as new commits and push them normally.
+Do not amend or squash commits that are already pushed: a force push erases the history a reviewer has read, and they can no longer see what changed since their last review.
+
+A force push is only needed after the feature branch has been rebased on the most recent upstream/main, for example to resolve merge conflicts.
+Keep the existing commits when rebasing, where possible:
 
 ```sh
 git push --force-with-lease origin <your feature branch name>

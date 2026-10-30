@@ -59,11 +59,17 @@ void RtlMissionFast::on_inactive()
 	_vehicle_status_sub.update();
 	_mission_index_prior_rtl = _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ?
 				   _mission.current_seq : INT32_C(-1);
+	_mission_id_prior_rtl = _mission.mission_id;
 }
 
 void RtlMissionFast::on_activation()
 {
 	_home_pos_sub.update();
+
+	// Discard the saved index if the mission was replaced.
+	if (_mission.mission_id != _mission_id_prior_rtl) {
+		_mission_index_prior_rtl = INT32_C(-1);
+	}
 
 	// set mission item to closest item if not already in mission
 	if (_mission_index_prior_rtl < INT32_C(0)) {
@@ -157,14 +163,7 @@ void RtlMissionFast::setActiveMissionItems()
 			handleLanding(new_work_item_type, next_mission_items, num_found_items);
 
 		} else {
-			// convert mission item to a simple waypoint, keep loiter to alt
-			if (_mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			}
-
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0.0f;
-
+			makeRtlPositionItem(_mission_item);
 		}
 
 		if (num_found_items > 0) {
@@ -175,6 +174,7 @@ void RtlMissionFast::setActiveMissionItems()
 
 		// Only set the previous position item if the current one really changed
 		if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
+		    (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND) &&
 		    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 			pos_sp_triplet->previous = current_setpoint_copy;
 		}
@@ -184,7 +184,8 @@ void RtlMissionFast::setActiveMissionItems()
 						   _mission_item.nav_cmd == NAV_CMD_WAYPOINT;
 		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
 				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
-				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+				(new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
+				 new_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND);
 
 		if (fw_on_mission_landing || mc_landing_after_transition) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;

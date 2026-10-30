@@ -128,6 +128,7 @@ public:
 
 private:
 	bool isArmed() const { return (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED); }
+	bool isTerminated() const { return (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION); }
 	static ModeChangeSource getSourceFromCommand(const vehicle_command_s &cmd);
 
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
@@ -214,7 +215,7 @@ private:
 
 	enum class PrearmedMode {
 		DISABLED = 0,
-		SAFETY_BUTTON = 1,
+		WHEN_SAFETY_OFF = 1,
 		ALWAYS = 2
 	};
 
@@ -289,6 +290,7 @@ private:
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
 	bool _mission_in_progress{false};
+	bool _takeoff_hold_course{false}; ///< the takeoff command carried a course, continue in Guided Course
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
@@ -345,6 +347,7 @@ private:
 		(ParamBool<px4::params::COM_HOME_IN_AIR>)   _param_com_home_in_air,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,
 		(ParamInt<px4::params::COM_PREARM_MODE>)    _param_com_prearm_mode,
+		(ParamInt<px4::params::COM_SAFETY_MODE>)    _param_com_safety_mode,
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,

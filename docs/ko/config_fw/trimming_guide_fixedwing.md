@@ -17,8 +17,8 @@ The [Advanced Trimming](#advanced-trimming) section introduces parameters that c
   These parameters are set automatically during [RC calibration](../config/radio.md).
 - [CA_SV_CSx_TRIM](../advanced_config/parameter_reference.md#CA_SV_CS0_TRIM) applies trim to a control surfaces channel.
   이들은 비행 전에 제어 표면을 기본 각도로 미세하게 정렬하는 데 사용됩니다.
-- [FW_PSP_OFF](../advanced_config/parameter_reference.md#FW_PSP_OFF) applies an offset to the pitch setpoint.
-  항공기가 순항 속도로 비행해야하는 공격 각도를 설정하는 데 사용됩니다.
+- [FW_PSP_OFF](../advanced_config/parameter_reference.md#FW_PSP_OFF) is the pitch angle at which your aircraft flies level at trim airspeed.
+  See [Level-Flight Pitch](#level-flight-pitch) for how PX4 defines and uses it.
 - [FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM) is used by the rate controllers to scale their output depending on the measured airspeed.
   See [Airspeed Scaling](../flight_stack/controller_diagrams.md#airspeed-scaling) for more details.
 - [TRIM_ROLL](../advanced_config/parameter_reference.md#TRIM_ROLL), [TRIM_PITCH](../advanced_config/parameter_reference.md#TRIM_PITCH) and [TRIM_YAW](../advanced_config/parameter_reference.md#TRIM_YAW) apply trim to the control signals _before_ mixing.
@@ -28,14 +28,37 @@ The [Advanced Trimming](#advanced-trimming) section introduces parameters that c
 위의 매개 변수를 설정하는 올바른 순서는 다음과 같습니다.
 
 1. Trim the servos by physically adjusting the linkages lengths if possible and fine tune by trimming the PWM channels (use `PWM_MAIN/AUX_TRIMx`) on the bench to properly set the control surfaces to their theoretical position.
-2. Fly in stabilized mode at cruise speed and set the pitch setpoint offset (`FW_PSP_OFF`) to desired angle of attack.
-   순항 속도에서 필요한 공격 각도는 날개 높이 비행 중에 일정한 고도를 유지하기 위해 비행기가 비행해야 하는 피치 각도에 해당합니다.
+2. Fly in stabilized mode at cruise speed and set `FW_PSP_OFF` to the pitch angle that the airplane needs to fly at in order to keep constant altitude during wing-leveled flight.
    If you are using an airspeed sensor, also set the correct cruise airspeed (`FW_AIRSPD_TRIM`).
 3. Look at the actuator controls in the log file (upload it to [Flight Review](https://logs.px4.io) and check the _Actuator Controls_ plot for example) and set the pitch trim (`TRIM_PITCH`).
    이 값을 수평 비행 중의 피치 신호의 평균 오프셋으로 설정합니다.
 
 로그 조회가 필요가 없거나 수동 모드에서 편안하게 비행 할 수있는 경우 2 단계 전에 3 단계를 수행할 수 있습니다.
 You can then trim your remote (with the trim switches) and report the values to `TRIM_PITCH` (and remove the trims from your transmitter) or update `TRIM_PITCH` directly during flight via telemetry and QGC.
+
+## Level-Flight Pitch
+
+PX4 measures the fixed-wing pitch angle θ between the body x-axis and the horizon.
+The body frame is fixed to the vehicle: x points forward through the nose, y along the right wing and z down.
+Its orientation follows the mounting of the flight controller (see [Flight Controller Orientation](../config/flight_controller_orientation.md)), not the wing chord.
+For tailsitters, the fixed-wing body frame is the multicopter body frame rotated by 90° in pitch.
+
+![Side view of a fixed-wing aircraft pitched up: the body x-axis points forward, z down and y along the right wing out of the page; the pitch angle θ is the angle between the body x-axis and the horizon, and in level flight at trim airspeed it equals FW_PSP_OFF](../../assets/config/fw/fw_pitch_angle_definition.svg)
+
+[FW_PSP_OFF](../advanced_config/parameter_reference.md#FW_PSP_OFF) is θ in level flight at trim airspeed ([FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)).
+In level flight the velocity is horizontal, so this is also the angle of attack measured from the body x-axis.
+It differs from the angle of attack of the wing by the angle between the wing chord and the body x-axis.
+
+Pitch setpoints and pitch limits in PX4 are absolute pitch angles θ, and `FW_PSP_OFF` is not added to them.
+This applies for example to [FW_P_LIM_MIN](../advanced_config/parameter_reference.md#FW_P_LIM_MIN), [FW_P_LIM_MAX](../advanced_config/parameter_reference.md#FW_P_LIM_MAX), [FW_TKO_PITCH_MIN](../advanced_config/parameter_reference.md#FW_TKO_PITCH_MIN), [FW_LND_FL_PMIN](../advanced_config/parameter_reference.md#FW_LND_FL_PMIN), [FW_LND_FL_PMAX](../advanced_config/parameter_reference.md#FW_LND_FL_PMAX) and [RWTO_PSP](../advanced_config/parameter_reference.md#RWTO_PSP).
+
+`FW_PSP_OFF` itself is used in these places:
+
+- The altitude and airspeed controller (TECS) uses `FW_PSP_OFF` as the pitch at zero climb angle: its pitch setpoint is `FW_PSP_OFF` plus the commanded climb angle plus an integrator correction.
+  The logged TECS pitch setpoint (`tecs_status.pitch_sp_rad`) is absolute, while the logged pitch integrator (`tecs_status.pitch_integ`) is a correction added to it rather than a pitch angle.
+- In [Stabilized mode](../flight_modes_fw/stabilized.md), the centred pitch stick commands `FW_PSP_OFF`.
+- During the front transition, standard VTOLs ramp their pitch setpoint to `FW_PSP_OFF`, and tailsitters end their pitch-down rotation at it.
+- The first principle check of the [airspeed validation](../advanced_config/airspeed_validation.md) considers the vehicle to be pitching down when θ is below `FW_PSP_OFF`.
 
 ## 고급 트리밍
 

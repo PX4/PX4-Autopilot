@@ -1,11 +1,41 @@
 # Selected GNSS solution
 #
-# Published by the sensors module for every sample of the selected receiver.
+# Published by the sensors module for every sample of the selected receiver, usable or not, with the selection state and the check result for that sample.
 # Heading is on vehicle_gnss_heading.
 
 uint64 timestamp        # [us] Time since system start
-uint64 timestamp_sample # [us] Measurement time, corrected by SENS_GNSSn_DELAY or PPS. Use this, not receiver.timestamp_sample: same value, but only top-level timestamps are time-synced over uXRCE-DDS
+uint64 timestamp_sample # [us] Measurement time, delay corrected. Use this rather than receiver.timestamp_sample, which holds the same value
 
 SensorGnss receiver # The selected receiver's sensor_gnss sample with the corrected timestamp_sample
 
-float32[3] antenna_offset # [m] [@frame FRD] Antenna position of the selected receiver (SENS_GNSSn_OFFX/Y/Z)
+float32[3] antenna_offset # [m] [@frame FRD] Antenna position of the selected receiver
+
+# Selection state
+uint8 selected_instance       # [-] sensor_gnss instance of the selected receiver
+uint8 selection_count         # [-] Increments when the selected receiver changes
+uint8 selection_reason        # [@enum SELECTION] Why this receiver is selected
+uint8 SELECTION_PREFERRED    = 0 # The preferred receiver
+uint8 SELECTION_ONLY         = 1 # No other receiver has published
+uint8 SELECTION_RANKED       = 2 # No receiver is preferred, and no other one ranks higher
+uint8 SELECTION_TIMEOUT      = 3 # The previously selected or the preferred receiver stopped publishing
+uint8 SELECTION_UNHEALTHY    = 4 # The previously selected or the preferred receiver failed its checks or delivered samples late, continuously or often
+uint8 SELECTION_STRICT       = 5 # Passes the strict checks, which the previously selected receiver didn't
+uint8 SELECTION_RTK_FIXED    = 6 # Passes the strict checks with an RTK fixed solution, and the previously selected receiver ranked lower
+
+# Check result for this sample. The strict checks are the GNSS_REQ_* thresholds, satellite count, PDOP and drift at rest on the ground; the relaxed checks are fixed, looser limits on fix type, accuracy, spoofing and jamming.
+bool usable                  # Sample may be used: the checks that decide it have passed without a failure for long enough
+bool strict                  # The strict checks decide usable: they haven't passed since the vehicle was disarmed on the ground, or they pass. Otherwise the relaxed checks decide
+uint16 failed_strict_checks  # [@enum CHECK] Enabled checks this sample fails at the strict thresholds, evaluated on every sample
+uint16 failed_relaxed_checks # [@enum CHECK] Enabled checks this sample fails at the relaxed thresholds, evaluated on every sample
+uint16 CHECK_NSATS   = 1    # Too few satellites
+uint16 CHECK_PDOP    = 2    # Position dilution of precision too high
+uint16 CHECK_EPH     = 4    # Horizontal position accuracy too low
+uint16 CHECK_EPV     = 8    # Vertical position accuracy too low
+uint16 CHECK_SACC    = 16   # Speed accuracy too low
+uint16 CHECK_HDRIFT  = 32   # Horizontal position drift at rest too high
+uint16 CHECK_VDRIFT  = 64   # Vertical position drift at rest too high
+uint16 CHECK_HSPEED  = 128  # Horizontal speed at rest too high
+uint16 CHECK_VSPEED  = 256  # Vertical speed at rest too high
+uint16 CHECK_SPOOFED = 512  # Receiver reports spoofing
+uint16 CHECK_FIX     = 1024 # Fix type too low
+uint16 CHECK_JAMMED  = 2048 # Receiver reports jamming

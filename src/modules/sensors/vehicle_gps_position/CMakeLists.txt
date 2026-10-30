@@ -35,16 +35,17 @@ px4_add_library(vehicle_gps_position
 	VehicleGPSPosition.cpp
 	VehicleGPSPosition.hpp
 	GnssHeadingBaseline.hpp
-	gps_blending.cpp
-	gps_blending.hpp
+	GnssSelector.cpp
+	GnssSelector.hpp
 	PpsTimeSync.cpp
 	PpsTimeSync.hpp
 )
 target_link_libraries(vehicle_gps_position
 	PRIVATE
 		geo
+		gnss_checks
 		px4_work_queue
 )
 
-px4_add_unit_gtest(SRC gps_blending_test.cpp LINKLIBS vehicle_gps_position)
+px4_add_unit_gtest(SRC GnssSelectorTest.cpp LINKLIBS vehicle_gps_position)
 px4_add_unit_gtest(SRC GnssHeadingBaselineTest.cpp)

@@ -55,6 +55,9 @@ static constexpr int64_t DIFF_CONVERSION_INTERVAL = (1000000 / DIFF_MEAS_RATE); 
 /* reading too fast can yield all zero data -> incorrect sensor reading */
 static_assert(DIFF_CONVERSION_INTERVAL >= 7000, "Conversion interval is too fast");
 
+/* Status byte of a completed reading without error */
+static constexpr uint8_t STATUS_BYTE_EXPECTED_DIFF = 0x50;
+
 /* Valid AUAV types */
 static constexpr int32_t AUAV_LD_05 = 5;
 static constexpr int32_t AUAV_LD_10 = 10;

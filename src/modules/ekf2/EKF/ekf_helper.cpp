@@ -104,14 +104,21 @@ bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const f
 		return false;
 	}
 
-	if (!_local_origin_lat_lon.isInitialized() && isLocalHorizontalPositionValid()) {
-		// Already navigating in a local frame, use the origin to initialize global position
+	if (!_local_origin_lat_lon.isInitialized()) {
+		// Until the first origin the local frame is referenced to lat/lon (0, 0). Keep the local position
+		// and place the global position where the new origin puts it: the latitude feeds the Earth rate,
+		// gravity and magnetic field model before any position aiding, and no reset needs reporting.
 		const Vector2f pos_prev = getLocalHorizontalPosition();
 		_local_origin_lat_lon.initReference(latitude, longitude, _time_delayed_us);
 		double new_latitude;
 		double new_longitude;
 		_local_origin_lat_lon.reproject(pos_prev(0), pos_prev(1), new_latitude, new_longitude);
-		resetHorizontalPositionTo(new_latitude, new_longitude, hpos_var);
+		_gpos.setLatLonDeg(new_latitude, new_longitude);
+		_output_predictor.resetLatLonTo(new_latitude, new_longitude);
+
+		if (PX4_ISFINITE(hpos_var)) {
+			P.uncorrelateCovarianceSetVariance<2>(State::pos.idx, math::max(sq(0.01f), hpos_var));
+		}
 
 	} else {
 		// Simply move the origin and compute the change in local position
@@ -142,11 +149,7 @@ bool Ekf::setAltOrigin(const float altitude, const float vpos_var)
 	} else {
 		const float delta_origin_alt = altitude - _local_origin_alt;
 		_local_origin_alt = altitude;
-		updateVerticalPositionResetStatus(-delta_origin_alt);
-
-#if defined(CONFIG_EKF2_TERRAIN)
-		updateTerrainResetStatus(-delta_origin_alt);
-#endif // CONFIG_EKF2_TERRAIN
+		updateVerticalPositionResetStatus(delta_origin_alt);
 	}
 
 	return true;

@@ -38,14 +38,9 @@ void GnssYaw::setYawAccuracy(const float yaw_acc)
 	_gnss_yaw_data.yaw_acc = yaw_acc;
 }
 
-void GnssYaw::setSpoofed(const bool spoofed)
+void GnssYaw::setUsable(const bool usable)
 {
-	_gnss_yaw_data.spoofed = spoofed;
-}
-
-void GnssYaw::setJammed(const bool jammed)
-{
-	_gnss_yaw_data.jammed = jammed;
+	_gnss_yaw_data.usable = usable;
 }
 
 } // namespace sensor

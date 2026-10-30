@@ -4,7 +4,9 @@ pageClass: is-wide-page
 
 # VehicleGnssHeading (UORB message)
 
-GNSS heading from a dual-antenna or moving-baseline receiver, published by the sensors module from sensor_gnss_relative. Only headings whose reported baseline matches the configured SENS_GNSSn_HDG baseline are published. Consumed by EKF2. independently from position/velocity.
+GNSS heading from a dual-antenna or moving-baseline receiver.
+
+Published by the sensors module from sensor_gnss_relative. Consumed by EKF2 independently from position and velocity.
 
 **TOPICS:** vehicle_gnss_heading
 
@@ -21,6 +23,7 @@ GNSS heading from a dual-antenna or moving-baseline receiver, published by the s
 | <a id="fld_baseline_length"></a>baseline_length   | `float32` |              |            | antenna baseline length reported by the receiver, NaN if it doesn't report one (m)                                                   |
 | <a id="fld_jamming_state"></a>jamming_state       | `uint8`   |              |            | jamming_state of the receiver providing the heading, values as in SensorGnss (0: Unknown, 1: OK, 2: Mitigated, 3: Detected)          |
 | <a id="fld_spoofing_state"></a>spoofing_state     | `uint8`   |              |            | spoofing_state of the receiver providing the heading, values as in SensorGnss (0: Unknown, 1: OK, 2: Mitigated, 3: Detected)         |
+| <a id="fld_usable"></a>usable                     | `bool`    |              |            | heading may be used: its receiver reports no spoofing or jamming that the enabled checks reject                                      |
 
 ## Source Message
 
@@ -29,9 +32,9 @@ GNSS heading from a dual-antenna or moving-baseline receiver, published by the s
 ::: details Click here to see original file
 
 ```c
-# GNSS heading from a dual-antenna or moving-baseline receiver, published by the sensors module from sensor_gnss_relative.
-# Only headings whose reported baseline matches the configured SENS_GNSSn_HDG baseline are published. Consumed by EKF2
-# independently from position/velocity.
+# GNSS heading from a dual-antenna or moving-baseline receiver
+#
+# Published by the sensors module from sensor_gnss_relative. Consumed by EKF2 independently from position and velocity.
 
 uint64 timestamp              # time since system start (microseconds)
 uint64 timestamp_sample       # time since system start (microseconds) - actual measurement time
@@ -45,6 +48,7 @@ float32 baseline_length       # antenna baseline length reported by the receiver
 
 uint8 jamming_state           # jamming_state of the receiver providing the heading, values as in SensorGnss (0: Unknown, 1: OK, 2: Mitigated, 3: Detected)
 uint8 spoofing_state          # spoofing_state of the receiver providing the heading, values as in SensorGnss (0: Unknown, 1: OK, 2: Mitigated, 3: Detected)
+bool usable                   # heading may be used: its receiver reports no spoofing or jamming that the enabled checks reject
 ```
 
 :::

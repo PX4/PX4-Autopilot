@@ -270,6 +270,35 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-10-20: the single heater's SENS_* parameters became those of heater instance 1
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_IMU_TEMP", "HEATER1_TEMP"},
+			{"SENS_IMU_TEMP_FF", "HEATER1_TEMP_FF"},
+			{"SENS_IMU_TEMP_I", "HEATER1_TEMP_I"},
+			{"SENS_IMU_TEMP_P", "HEATER1_TEMP_P"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+
+		// SENS_TEMP_ID 0 kept the heater from starting, while HEATER1_SENS_ID 0 selects a sensor and -1 disables it
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("SENS_TEMP_ID", node->name) == 0)) {
+			if (node->i32 == 0) {
+				node->i32 = -1;
+			}
+
+			strcpy(node->name, "HEATER1_SENS_ID");
+			PX4_INFO("migrating %s -> %s", "SENS_TEMP_ID", "HEATER1_SENS_ID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2026-06-29: MPC_LAND_RC_HELP replaced by the MPC_AUTO_NUDGING bitmask (landing nudging = bit 1).
 	// The old in-Hold yaw nudge is not migrated; it now lives in bit 0 (yaw nudging in all auto modes).
 	{
@@ -310,9 +339,10 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 	// 2026-08-05: the protocol selection moved out of VTX_DEVICE into VTX_PROTOCOL. VTX_DEVICE keeps
 	// the old layout that holds the device in its high byte, so only the protocol has to be derived:
-	// the Peak THOR T67 speaks SmartAudio, the Rush MAX SOLO speaks Tramp. A value that is not listed
-	// stays untouched and acts as a generic device on SmartAudio, which is what both parameters
-	// default to, so the old value 0 needs nothing.
+	// the Peak THOR speaks SmartAudio. The Rush MAX SOLO entry was removed and falls back to a generic
+	// device on Tramp, the only protocol it speaks. A value that is not listed stays untouched and acts
+	// as a generic device on SmartAudio, which is what both parameters default to, so the old value 0
+	// needs nothing.
 	{
 		static constexpr int32_t PROTOCOL_SMART_AUDIO = 0; // VTX_PROTOCOL value, not in msg/Vtx.msg
 
@@ -326,13 +356,13 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				protocol = vtx_s::PROTOCOL_TRAMP;
 				break;
 
-			case 5120: // Peak THOR T67, SmartAudio only
-				device = vtx_s::DEVICE_PEAK_THOR_T67 << 8;
+			case 5120: // Peak THOR (T35, T67, T78, T89), SmartAudio only
+				device = vtx_s::DEVICE_PEAK_THOR << 8;
 				protocol = PROTOCOL_SMART_AUDIO;
 				break;
 
-			case 10240: // Rush MAX SOLO, Tramp only
-				device = vtx_s::DEVICE_RUSH_MAX_SOLO << 8;
+			case 10240: // Rush MAX SOLO -> generic device, Tramp
+				device = vtx_s::DEVICE_UNKNOWN << 8;
 				protocol = vtx_s::PROTOCOL_TRAMP;
 				break;
 			}
@@ -378,6 +408,41 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
 				return param_modify_on_import_ret::PARAM_MODIFIED;
 			}
+		}
+	}
+
+	// 2026-09-29: the GNSS checks move from EKF2 to the sensors module
+	{
+		static constexpr const char *kRenames[][2] {
+			{"EKF2_GPS_CHECK", "GNSS_CHECK"},
+			{"EKF2_REQ_EPH", "GNSS_REQ_EPH"},
+			{"EKF2_REQ_EPV", "GNSS_REQ_EPV"},
+			{"EKF2_REQ_NSATS", "GNSS_REQ_NSATS"},
+			{"EKF2_REQ_PDOP", "GNSS_REQ_PDOP"},
+			{"EKF2_REQ_HDRIFT", "GNSS_REQ_HDRIFT"},
+			{"EKF2_REQ_VDRIFT", "GNSS_REQ_VDRIFT"},
+			{"EKF2_REQ_FIX", "GNSS_REQ_FIX"},
+			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
+			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-10-06: translate CBRK_IO_SAFETY -> COM_SAFETY_MODE. Any value but the breaker key had safety enabled, with
+	// both the switch and the MAVLink command able to turn it off.
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("CBRK_IO_SAFETY", node->name) == 0)) {
+			node->i32 = (node->i32 == 22027) ? 0 : 1;
+			strcpy(node->name, "COM_SAFETY_MODE");
+			PX4_INFO("migrating %s -> %s", "CBRK_IO_SAFETY", "COM_SAFETY_MODE");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 

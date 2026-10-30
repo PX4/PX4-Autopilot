@@ -106,42 +106,22 @@ feat(boards/px4_fmu-v6x)!: remove deprecated driver API
 perf(mc_rate_control): reduce loop latency
 ```
 
-### Commits to avoid
-
-These will be flagged by CI and should be squashed or reworded before merging:
-
-```
-fix                                    # too vague, no type or scope
-update                                 # too vague, no type or scope
-ekf2: fix something                   # missing type prefix
-apply suggestions from code review     # squash into parent commit
-do make format                         # squash into parent commit
-WIP: trying something                  # not ready for main
-oops                                   # not descriptive
-```
-
 ### PR titles
 
-The PR title follows the same `type(scope): description` format. This is enforced by CI and is especially important because the PR title becomes the commit message when a PR is squash-merged.
+The PR title follows the same `type(scope): description` format. This is enforced by CI.
 
 ### Merge policy
 
-Commits should be atomic and independently revertable. Squash at reviewer discretion for obvious cases (multiple WIP commits, messy review-response history). When your commits are clean and logical, they will be preserved as individual commits on `main`.
+PRs are typically squash-merged, so the PR title becomes the commit message on `main` and the individual commits on the branch are discarded. Write them well anyway: reviewers read them to follow how the PR evolved.
 
-### Cleaning up commits
+### Updating a PR under review
 
-If CI flags your commit messages, you can fix them with an interactive rebase:
+Once review has begun, address feedback by adding new commits. Do not amend, squash or otherwise rewrite commits that are already pushed: a force-push erases the history a reviewer has read, and they can no longer see what changed since their last review.
+
+Rebasing onto `main` is the exception, because it cannot be pushed without force. Rebase only when the PR needs it (merge conflicts, or a change on `main` it depends on), and keep the existing commits where possible rather than squashing them:
 
 ```bash
-# Squash all commits into one:
-git rebase -i HEAD~N   # replace N with the number of commits
-# mark all commits except the first as 'squash' or 'fixup'
-# reword the remaining commit to follow the format
-git push --force-with-lease
-
-# Or reword specific commits:
-git rebase -i HEAD~N
-# mark the bad commits as 'reword'
+git rebase main
 git push --force-with-lease
 ```
 

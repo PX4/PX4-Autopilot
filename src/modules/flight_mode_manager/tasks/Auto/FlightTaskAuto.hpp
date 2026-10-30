@@ -151,6 +151,8 @@ protected:
 	matrix::Vector3f _land_position;
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 	bool _is_emergency_braking_active{false};
+	float _emergency_braking_best_speed{0.f}; /**< lowest speed reached since braking was activated */
+	hrt_abstime _emergency_braking_progress_timestamp{}; /**< last time the braking was still slowing down */
 	bool _want_takeoff{false};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,

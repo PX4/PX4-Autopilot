@@ -61,7 +61,7 @@ void UavcanNodeParamManager::assignParamValue(const Name &name, const Value &val
 	if (value.is(uavcan::protocol::param::Value::Tag::integer_value) && (value_type == PARAM_TYPE_INT32)) {
 		auto val = *value.as<uavcan::protocol::param::Value::Tag::integer_value>();
 
-		if ((val <= INT32_MAX) || (val >= INT32_MIN)) {
+		if ((val <= INT32_MAX) && (val >= INT32_MIN)) {
 			int32_t in_param = val;
 			param_set(param_handle, &in_param);
 		}

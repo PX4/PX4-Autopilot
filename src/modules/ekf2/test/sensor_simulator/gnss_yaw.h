@@ -53,8 +53,8 @@ public:
 	void setYaw(const float yaw);
 	void setYawOffset(const float yaw_offset);
 	void setYawAccuracy(const float yaw_acc);
-	void setSpoofed(const bool spoofed);
-	void setJammed(const bool jammed);
+	// false like the sensors module marks a heading whose receiver reports spoofing or jamming
+	void setUsable(const bool usable);
 
 	const gnssYawSample &getData() const { return _gnss_yaw_data; }
 
@@ -63,7 +63,7 @@ private:
 
 	static constexpr uint64_t kGnssYawDelayUs{110000};
 
-	gnssYawSample _gnss_yaw_data{.yaw = NAN};
+	gnssYawSample _gnss_yaw_data{.yaw = NAN, .usable = true};
 };
 
 } // namespace sensor

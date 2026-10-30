@@ -49,9 +49,13 @@
 #include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/pps_capture.h>
+#include <uORB/topics/sensors_status_gnss.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
+#include <lib/gnss/gnss_checks.hpp>
 
 #include "GnssHeadingBaseline.hpp"
-#include "gps_blending.hpp"
+#include "GnssSelector.hpp"
 #include "PpsTimeSync.hpp"
 
 using namespace time_literals;
@@ -74,11 +78,13 @@ private:
 	void Run() override;
 
 	void ParametersUpdate(bool force = false);
+	void UpdateVehicleState();
+	void PublishStatus();
 
 	// define max number of GPS receivers supported
 	static constexpr int GPS_MAX_RECEIVERS = 2;
-	static_assert(GPS_MAX_RECEIVERS == GpsBlending::GPS_MAX_RECEIVERS_BLEND,
-		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
+	static_assert(GPS_MAX_RECEIVERS == GnssSelector::GNSS_MAX_RECEIVERS,
+		      "GPS_MAX_RECEIVERS must match to GNSS_MAX_RECEIVERS");
 
 	static constexpr hrt_abstime kDefaultDelay{110_ms}; // matches SENS_GNSS*_DELAY default
 	static constexpr hrt_abstime kHeadingSourceTimeout{3_s};
@@ -90,10 +96,17 @@ private:
 		hrt_abstime delay_us{kDefaultDelay};
 		float baseline_length{0.f};  // of the antenna baseline the heading is measured along (m)
 		float heading_offset{0.f};   // yaw of the baseline in the body frame (rad)
+		bool heading_enabled{false}; // SENS_GNSSn_HDG isn't Disabled
 	};
 
 	// SENS_GNSSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gnss instance
 	const GpsParamSlot *findParamSlot(uint32_t device_id, int instance) const;
+
+	// sensor_gnss instance of the receiver SENS_GNSS_PRIME designates, or of the moving base with -1; -1 for none
+	int resolvePreferredInstance() const;
+
+	// SENS_GNSS_PRIME names a receiver, or a moving base pair is configured, whether or not it has published yet
+	bool hasConfiguredPreference() const;
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	struct HeadingSample {
@@ -110,8 +123,8 @@ private:
 	void UpdateGnssHeading();
 	void handleHeadingSample(const HeadingSample &sample, const GpsParamSlot *slot);
 
-	// sensor_gnss instance publishing this device_id, or -1, with its latest sample in gnss_data (zeroed when not found)
-	int findGnssInstance(uint32_t device_id, sensor_gnss_s &gnss_data);
+	// sensor_gnss instance publishing this device_id, or -1
+	int findGnssInstance(uint32_t device_id) const;
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	static uint64_t resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
@@ -127,6 +140,10 @@ private:
 	};
 
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	uORB::Publication<sensors_status_gnss_s> _sensors_status_gnss_pub{ORB_ID(sensors_status_gnss)};
 
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	uORB::Publication<vehicle_gnss_heading_s> _vehicle_gnss_heading_pub {ORB_ID(vehicle_gnss_heading)};
@@ -143,11 +160,27 @@ private:
 	} _heading_source{};
 
 	bool _heading_unconfigured_reported{false};
+	bool _heading_no_baseline_reported{false};
+
+	int _moving_base_slot{-1}; ///< SENS_GNSSn_* slot of the moving base of a moving base pair, or -1
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
-	GpsBlending _gps_blending;
+	GnssSelector _gnss_selector;
+
+	GnssChecks _gnss_checks[GPS_MAX_RECEIVERS] {};
+	sensor_gnss_s _latest_sample[GPS_MAX_RECEIVERS] {}; ///< timestamp_sample corrected, timestamp 0 until it publishes
+	uint32_t _selected_device_id{0};
+	int8_t _preferred_instance{-1};
+	uint8_t _first_publication[GPS_MAX_RECEIVERS] {}; ///< 1 for the first receiver to publish, 2 for the next, 0 before
+	uint8_t _receivers_published{0};
+
+	// The checks run the strict thresholds while disarmed on the ground and the drift checks only at rest; while
+	// disarmed, the selection stays on the preferred receiver
+	bool _armed{false};
+	bool _in_air{false};
+	bool _at_rest{false};
 	PpsTimeSync _pps_time_sync;
 
 	GpsParamSlot _gnss_param_slots[GPS_MAX_RECEIVERS] {};
@@ -173,7 +206,17 @@ private:
 		(ParamFloat<px4::params::SENS_GNSS1_AUXZ>) _param_sens_gnss1_auxz,
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 		(ParamInt<px4::params::SENS_GNSS0_DELAY>) _param_sens_gnss0_delay,
-		(ParamInt<px4::params::SENS_GNSS1_DELAY>) _param_sens_gnss1_delay
+		(ParamInt<px4::params::SENS_GNSS1_DELAY>) _param_sens_gnss1_delay,
+		(ParamInt<px4::params::GNSS_CHECK>) _param_gnss_check,
+		(ParamInt<px4::params::GNSS_REQ_NSATS>) _param_gnss_req_nsats,
+		(ParamFloat<px4::params::GNSS_REQ_PDOP>) _param_gnss_req_pdop,
+		(ParamFloat<px4::params::GNSS_REQ_EPH>) _param_gnss_req_eph,
+		(ParamFloat<px4::params::GNSS_REQ_EPV>) _param_gnss_req_epv,
+		(ParamFloat<px4::params::GNSS_REQ_SACC>) _param_gnss_req_sacc,
+		(ParamFloat<px4::params::GNSS_REQ_HDRIFT>) _param_gnss_req_hdrift,
+		(ParamFloat<px4::params::GNSS_REQ_VDRIFT>) _param_gnss_req_vdrift,
+		(ParamInt<px4::params::GNSS_REQ_FIX>) _param_gnss_req_fix,
+		(ParamFloat<px4::params::GNSS_REQ_TIME>) _param_gnss_req_time
 	)
 };
 }; // namespace sensors

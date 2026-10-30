@@ -16,8 +16,8 @@ PX4 为以下机体提供 X-Plane SITL 机架配置：
 
 | Vehicle        | 类型              | PX4 构建目标                                   |
 | -------------- | --------------- | ------------------------------------------ |
-| Cessna 172     | Plane           | `make px4_sitl_default xplane_cessna172`   |
-| TB2            | Plane           | `make px4_sitl_default xplane_tb2`         |
+| Cessna 172     | 飞机              | `make px4_sitl_default xplane_cessna172`   |
+| TB2            | 飞机              | `make px4_sitl_default xplane_tb2`         |
 | Ehang 184      | 多旋翼             | `make px4_sitl_default xplane_ehang184`    |
 | Alia-250       | VTOL quadplane  | `make px4_sitl_default xplane_alia250`     |
 | QuadTailsitter | VTOL tailsitter | `make px4_sitl_default xplane_qtailsitter` |

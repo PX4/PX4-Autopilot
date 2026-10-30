@@ -45,6 +45,12 @@ class TesterInterface:
 
 
 class Tester:
+    # Markers of reports from ASan, LSan, TSan and UBSan. A test case fails
+    # if any process prints one, even if the test itself passed.
+    SANITIZER_REPORT_PATTERN = re.compile(
+        r'(ERROR: AddressSanitizer:|ERROR: LeakSanitizer:|'
+        r'WARNING: ThreadSanitizer:|:\d+:\d+: runtime error: )')
+
     def __init__(self,
                  config: Dict[str, Any],
                  iterations: int,
@@ -76,10 +82,12 @@ class Tester:
         self.tests = self.determine_tests(config['tests'], model, case)
         self.active_runners = []
         self.pre_test_hook: Optional[Callable[[str, str], None]] = None
+        self.sanitizer_reports: List[str] = []
 
     @staticmethod
     def wildcard_match(pattern: str, potential_match: str) -> bool:
-        return fnmatch.fnmatchcase(potential_match, pattern)
+        # Only '*' and '?' are wildcards: '[' is literal, as in the IDs of parametrized tests.
+        return fnmatch.fnmatchcase(potential_match, pattern.replace('[', '[[]'))
 
     @staticmethod
     def plural_s(n_items: int) -> str:
@@ -104,6 +112,9 @@ class Tester:
         return tests
 
     def run(self) -> bool:
+        if self.num_cases() == 0:
+            print(colorize("No test case selected", color.RED))
+            return False
         self.show_plans()
         self.prepare_for_results()
         self.run_tests()
@@ -239,7 +250,9 @@ class Tester:
                                       str(iteration + 1).zfill(digits))
 
         foldername = os.path.join(foldername, model)
-        foldername = os.path.join(foldername, case.replace(" ", "_"))
+        # Case names can be pytest node IDs which contain "::".
+        foldername = os.path.join(foldername,
+                                  re.sub(r'[^A-Za-z0-9._-]+', '_', case))
 
         return foldername
 
@@ -254,6 +267,7 @@ class Tester:
 
         logfile_path = self.determine_logfile_path(log_dir, 'combined')
         self.start_combined_log(logfile_path)
+        self.sanitizer_reports = []
 
         self.start_runners(log_dir, test, case)
 
@@ -278,6 +292,16 @@ class Tester:
         # Collect what was left in output buffers.
         self.collect_runner_output()
         self.stop_combined_log()
+
+        if self.sanitizer_reports:
+            print(colorize(
+                "Sanitizer reported {} issue{}:".format(
+                    len(self.sanitizer_reports),
+                    self.plural_s(len(self.sanitizer_reports))),
+                color.BOLD))
+            for report in self.sanitizer_reports:
+                print("  {}".format(report))
+            is_success = False
 
         result = {'success': is_success,
                   'logfiles': [runner.get_log_filename()
@@ -307,9 +331,11 @@ class Tester:
 
         if self.config['mode'] == 'sitl':
             if self.config.get('simulator') == 'gazebo':
-                # Use RegEx to extract worldname.world from case name
+                # The world comes from the config, or from "(name.world)" in the case name.
                 match = re.search(r'\((.*?\.world)\)', case)
-                if match:
+                if 'world' in test:
+                    world_name = test['world']
+                elif match:
                     world_name = match.group(1)
                 else:
                     world_name = 'empty.world'
@@ -413,6 +439,8 @@ class Tester:
                     break
 
                 self.add_to_combined_log(line)
+                if self.SANITIZER_REPORT_PATTERN.search(line):
+                    self.sanitizer_reports.append(line.strip())
                 if self.verbose:
                     print(line, end="")
 

@@ -75,6 +75,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			stopMagFusion();
 
 			_mag_lpf.reset(mag_sample.mag);
+			_mag_lpf_time_last_us = mag_sample.time_us;
 			_mag_counter = 1;
 
 			if (!_control_status.flags.in_air && !_control_status.flags.yaw_manual) {
@@ -84,7 +85,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			}
 
 		} else {
-			_mag_lpf.update(mag_sample.mag);
+			// the filter runs once per magnetometer sample, not once per EKF update
+			_mag_lpf.update(mag_sample.mag, mag_sample.time_us - _mag_lpf_time_last_us);
+			_mag_lpf_time_last_us = mag_sample.time_us;
 			_mag_counter++;
 		}
 
@@ -214,13 +217,12 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-				if (checkHaglYawResetReq() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D
-							       || _control_status.flags.yaw_manual)) {
-					ECL_INFO("reset to %s", AID_SRC_NAME);
-					const bool reset_heading = isHeadingResetToMagAllowed()
-								   && !isNorthEastAidingActive(); // NE aiding makes heading observable
-
-					resetMagStates(_mag_lpf.getState(), reset_heading);
+				if (isMagInFlightAlignmentRequired() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D
+						|| _control_status.flags.yaw_manual)) {
+					ECL_INFO("%s in-flight alignment", AID_SRC_NAME);
+					// Keep the heading: at launch, onboard sources can disturb the field. The mag states
+					// absorb the error, which declination fusion or North-East aiding corrects over time.
+					resetMagStates(_mag_lpf.getState(), false);
 
 					// record the start time for the magnetic field alignment
 					_control_status.flags.mag_aligned_in_flight = true;
@@ -373,15 +375,13 @@ void Ekf::stopMagFusion()
 	}
 }
 
-bool Ekf::checkHaglYawResetReq() const
+bool Ekf::isMagInFlightAlignmentRequired() const
 {
 #if defined(CONFIG_EKF2_TERRAIN)
 
-	// We need to reset the yaw angle after climbing away from the ground to enable
-	// recovery from ground level magnetic interference.
+	// Re-align the mag field states once away from ground level magnetic interference
+	// learned before takeoff
 	if (_control_status.flags.in_air && _control_status.flags.yaw_align && !_control_status.flags.mag_aligned_in_flight) {
-		// Check if height has increased sufficiently to be away from ground magnetic anomalies
-		// and request a yaw reset if not already requested.
 		static constexpr float mag_anomalies_max_hagl = 1.5f;
 		const bool above_mag_anomalies = (getTerrainVPos() + _gpos.altitude()) > mag_anomalies_max_hagl;
 		return above_mag_anomalies;
@@ -412,22 +412,17 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 
 		// mag_I: reset, skipped if negligible change in state
 		const Vector3f mag_I = _wmm_earth_field_gauss;
-		bool mag_I_reset = false;
 
 		if ((_state.mag_I - mag_I).longerThan(kMagEarthMinGauss)) {
 			_state.mag_I = mag_I;
 			resetMagEarthCov();
-			mag_I_reset = true;
 		}
 
-		// mag_B: reset, skipped if mag_I didn't change
 		if (!reset_heading && _control_status.flags.yaw_align) {
-			if (mag_I_reset) {
-				// mag_B: reset using WMM
-				const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
-				_state.mag_B = mag - (R_to_body * _wmm_earth_field_gauss);
-				resetMagBiasCov();
-			} // otherwise keep existing mag_B state (!mag_I_reset)
+			// trust the heading: attribute the field error to the body
+			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
+			_state.mag_B = mag - (R_to_body * _state.mag_I);
+			resetMagBiasCov();
 
 		} else {
 			_state.mag_B.zero();

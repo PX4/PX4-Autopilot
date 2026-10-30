@@ -84,6 +84,6 @@ failure gps ok
 ```
 
 :::tip
-To test the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) you can simulate a second GPS receiver: set the antenna-offset parameter [SENS_GPS1_OFFX](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX) or [SENS_GPS1_OFFY](../advanced_config/parameter_reference.md#SENS_GPS1_OFFY) to a non-zero value, and the simulator publishes a second `sensor_gps` instance offset by that distance (in metres).
+To test the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) you can simulate a second GPS receiver: set the antenna-offset parameter [SENS_GNSS1_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX) or [SENS_GNSS1_OFFY](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFY) to a non-zero value, and the simulator publishes a second `sensor_gnss` instance offset by that distance (in metres).
 You can then fail an individual receiver with the `-i` flag (`-i 0` = all instances, `-i 1` = first GPS, `-i 2` = second), for example `failure gps wrong -i 2`.
 :::

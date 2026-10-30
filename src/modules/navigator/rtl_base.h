@@ -56,7 +56,25 @@ public:
 
 	virtual void setRtlAlt(float alt) { (void)alt;};
 
+	/** Refresh the cached mission before RTL selects the destination and activates this mode. */
+	void refreshMission() { updateMavlinkMission(); }
+
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+protected:
+	/** Return never takes off, so it does not start its items while landed, also when they reload. */
+	bool canStartMission() const override { return !_land_detected_sub.get().landed; }
+
+	/** Convert a caller-selected position item into a waypoint, retaining loiter-to-altitude. */
+	static void makeRtlPositionItem(mission_item_s &item)
+	{
+		if (item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
+			item.nav_cmd = NAV_CMD_WAYPOINT;
+		}
+
+		item.autocontinue = true;
+		item.time_inside = 0.f;
+	}
 };

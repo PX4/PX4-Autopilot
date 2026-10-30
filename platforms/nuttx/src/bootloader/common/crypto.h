@@ -49,9 +49,9 @@
 #include "hw_config.h"
 #include "image_toc.h"
 
-bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries);
+bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr);
 
-bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries);
+bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr);
 
 #else
 
@@ -59,11 +59,11 @@ bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries);
 
 /* No security, application verification passes always */
 
-static inline bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries) {return true;}
+static inline bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr) {return true;}
 
 /* No security, decrypting is not possible */
 
-static inline bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries) {return false;}
+static inline bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries, const uint8_t *base_addr) {return false;}
 
 # endif
 
