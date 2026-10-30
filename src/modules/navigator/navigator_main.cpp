@@ -195,6 +195,17 @@ Navigator::Navigator() :
 		}
 	}
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	// Node budget is fixed until reboot, as the planner buffers are allocated once here.
+	int32_t gf_avoid_nodes = 0;
+	param_get(param_find("GF_AVOID_NODES"), &gf_avoid_nodes);
+
+	if (!_geofence_avoidance_planner.init(gf_avoid_nodes)) {
+		PX4_ERR("geofence avoidance alloc failed (%" PRId32 " nodes), disabled", gf_avoid_nodes);
+	}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 
 	_handle_mpc_jerk_auto = param_find("MPC_JERK_AUTO");
@@ -679,15 +690,17 @@ void Navigator::run()
 				// param2: target bearing [deg, 0=north]
 				const bool control_course = (lroundf(cmd.param1) == 0);
 
-				if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-				    && _navigation_mode == &_course && control_course && PX4_ISFINITE(cmd.param2)) {
+				const bool course_supported = _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+							      || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER;
+
+				if (course_supported && _navigation_mode == &_course && control_course && PX4_ISFINITE(cmd.param2)) {
 					float course_rad = cmd.param2 * M_DEG_TO_RAD_F;
 
 					if (_course.set_course(course_rad)) {
 						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					}
 
-					// DENIED if not FW, not in course mode, not correct heading type, or no positioning available
+					// DENIED if not FW or rover, not in course mode, not correct heading type, or no positioning available
 				}
 
 				publish_vehicle_command_ack(cmd, result);
@@ -821,8 +834,15 @@ void Navigator::run()
 				// The yaw setpoint generation is handled by FlightTaskAuto.
 				rep->current.yaw = NAN;
 
-				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
-				    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON)) {
+				const bool takeoff_position_valid = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
+								    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON);
+
+				// Fixed-wing: without a takeoff position, a finite yaw field is the course to continue on after the climbout.
+				// A takeoff position takes precedence, as many senders leave an unused yaw field at 0.
+				const bool hold_course = PX4_ISFINITE(cmd.param4) && !takeoff_position_valid
+							 && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+				if (takeoff_position_valid) {
 					rep->current.lat = cmd.param5;
 					rep->current.lon = cmd.param6;
 
@@ -841,8 +861,10 @@ void Navigator::run()
 				rep->next.valid = false;
 
 				// Fixed-wing: vehicle will takeoff towards these coordinates and establish on a loiter there
-				_takeoff.setLoiterPosition(matrix::Vector2d(cmd.param5, cmd.param6));
+				_takeoff.setLoiterPosition(hold_course ? matrix::Vector2d(static_cast<double>(NAN), static_cast<double>(NAN))
+							   : matrix::Vector2d(cmd.param5, cmd.param6));
 				_takeoff.setLoiterAltitudeAmsl(cmd.param7);
+				_takeoff.setHoldCourse(hold_course ? matrix::wrap_pi(math::radians(cmd.param4)) : NAN);
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
@@ -852,9 +874,8 @@ void Navigator::run()
 
 				_vtol_takeoff.setTransitionAltitudeAbsolute(cmd.param7);
 
-				if (std::fabs(cmd.param2 - 3.0f) < FLT_EPSILON) { // Specified transition direction
-					_vtol_takeoff.setTransitionDirection(cmd.param4);
-				}
+				// Specified transition direction, otherwise NAN to head for the loiter location
+				_vtol_takeoff.setTransitionDirection(std::fabs(cmd.param2 - 3.0f) < FLT_EPSILON ? cmd.param4 : NAN);
 
 				// after the transition the vehicle will establish on a loiter at this position
 				_vtol_takeoff.setLoiterLocation(matrix::Vector2d(cmd.param5, cmd.param6));
@@ -1159,8 +1180,23 @@ void Navigator::run()
 			// Add granularity with more status values / user messages if needed.
 
 			switch (planner_status) {
+			case PlannerStatus::BudgetExceeded:
+				// Fence is valid, but larger than the node budget configured with GF_AVOID_NODES
+				mavlink_log_warning(&_mavlink_log_pub, "Geofence too large for Return avoidance (needs %d of %d nodes), Return will fly directly\t",
+						    _geofence_avoidance_planner.requiredNodes(), _geofence_avoidance_planner.maxNodes());
+				/* EVENT
+				 * @description
+				 * The geofence needs more graph nodes than configured with <param>GF_AVOID_NODES</param>.
+				 * Return will fly directly to its destination, ignoring the geofence.
+				 * Increase <param>GF_AVOID_NODES</param> to at least the required count (reboot required),
+				 * or set it to 0 to disable geofence avoidance in Return.
+				 */
+				events::send<uint16_t, uint16_t>(events::ID("rtl_avoidance_budget_exceeded"), {events::Log::Warning, events::LogInternal::Info},
+								 "Geofence too large for Return avoidance (needs {1} of {2} nodes), Return will fly directly",
+								 (uint16_t)_geofence_avoidance_planner.requiredNodes(), (uint16_t)_geofence_avoidance_planner.maxNodes());
+				break;
+
 			// Failure in building fence graph / path. Collapse to one generic user message. Add granularity if needed.
-			case PlannerStatus::BudgetExceeded: // TODO make this more specific now that it is more likely
 			case PlannerStatus::OutOfRange:
 			case PlannerStatus::Degenerate:
 			case PlannerStatus::DijkstraFailed:

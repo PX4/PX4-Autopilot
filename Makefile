@@ -360,9 +360,20 @@ px4io_update:
 bootloaders_update: \
 	3dr_ctrl-n1_bootloader \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
+	ark_can-flow_canbootloader \
+	ark_can-flow-lr_canbootloader \
+	ark_can-flow-mr_canbootloader \
+	ark_can-gps_canbootloader \
+	ark_can-rtk-gps_canbootloader \
+	ark_cannode_canbootloader \
+	ark_dist_canbootloader \
+	ark_f9p-gps_canbootloader \
 	ark_fmu-v6x_bootloader \
 	ark_fpv_bootloader \
+	ark_mag_canbootloader \
 	ark_pi6x_bootloader \
+	ark_septentrio-gps_canbootloader \
+	ark_x20-gps_canbootloader \
 	auterion_fmu-v6s_bootloader \
 	auterion_fmu-v6x_bootloader \
 	cuav_nora_bootloader \
@@ -445,7 +456,7 @@ check_newlines:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_neural tests_coverage tests_mission tests_mission_coverage tests_offboard
+.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_neural tests_nocache tests_coverage tests_mission tests_mission_coverage tests_offboard
 .PHONY: rostest python_coverage
 
 tests:
@@ -475,12 +486,22 @@ tests_vtest_moving:
 
 # This target builds the neural configuration, the only one that enables mc_nn_control.
 tests_neural:
-	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),RescaleAction))
+	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),RescaleAction|NnControl)")
 	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
 	$(eval ARGS += test_results)
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
 	$(eval UBSAN_OPTIONS += color=always)
 	$(call cmake-build,px4_sitl_neural)
+
+# The default px4_sitl_test board builds the navigator mission cache, which NuttX boards leave out by default.
+# This target builds without it (CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0).
+tests_nocache:
+	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),test_RTL|test_mission_base)")
+	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test-nocache)
 
 # work around lcov bug #316; remove once lcov is fixed (see https://github.com/linux-test-project/lcov/issues/316)
 LCOBUG = --ignore-errors mismatch,negative
@@ -500,13 +521,11 @@ rostest: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
 
 tests_integration: px4_sitl_default
-	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
 	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sih-sitl.json
 
 tests_integration_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
 	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sih-sitl.json
 	@mkdir -p coverage
 	@lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info

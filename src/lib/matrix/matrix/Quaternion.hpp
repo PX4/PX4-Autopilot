@@ -171,13 +171,14 @@ public:
 	{
 		Quaternion &q = *this;
 		Type angle = aa.norm();
-		Vector<Type, 3> axis = aa.unit();
 
 		if (angle < Type(1e-10)) {
 			q(0) = Type(1);
 			q(1) = q(2) = q(3) = 0;
 
 		} else {
+			// only normalize once the angle is known to be non-zero
+			Vector<Type, 3> axis = aa.unit();
 			Type magnitude = std::sin(angle / Type(2));
 			q(0) = std::cos(angle / Type(2));
 			q(1) = axis(0) * magnitude;

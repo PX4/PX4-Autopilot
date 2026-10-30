@@ -98,7 +98,7 @@ In addition to surveying/mapping, it is suitable for many other use-cases, inclu
 
 ## 설정
 
-[CUAV Docs](https://doc.cuav.net/gps/c-rtk2/en/quick-start-c-rtk2.html)
+[CUAV Docs](https://doc.cuav.net/en/gnss/c-rtk-series/c-rtk2/quick-start-c-rtk2.html)
 
 ## 핀배열
 
@@ -110,4 +110,4 @@ In addition to surveying/mapping, it is suitable for many other use-cases, inclu
 
 ## More information
 
-[CUAV Docs](https://doc.cuav.net/gps/c-rtk-series/en/c-rtk-9ps/)
+[CUAV Docs](https://doc.cuav.net/en/gnss/c-rtk-series/c-rtk-9ps/)

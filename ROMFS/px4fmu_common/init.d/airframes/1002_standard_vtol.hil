@@ -68,7 +68,6 @@ param set-default CA_ROTOR4_AZ 0
 param set-default CA_ROTOR4_PX 0.2
 
 # Square quadrotor X PX4 numbering
-param set-default CA_ROTOR_COUNT 4
 param set-default CA_ROTOR0_PX 1
 param set-default CA_ROTOR0_PY 1
 param set-default CA_ROTOR1_PX -1

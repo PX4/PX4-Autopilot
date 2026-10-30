@@ -270,6 +270,35 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-10-20: the single heater's SENS_* parameters became those of heater instance 1
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_IMU_TEMP", "HEATER1_TEMP"},
+			{"SENS_IMU_TEMP_FF", "HEATER1_TEMP_FF"},
+			{"SENS_IMU_TEMP_I", "HEATER1_TEMP_I"},
+			{"SENS_IMU_TEMP_P", "HEATER1_TEMP_P"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+
+		// SENS_TEMP_ID 0 kept the heater from starting, while HEATER1_SENS_ID 0 selects a sensor and -1 disables it
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("SENS_TEMP_ID", node->name) == 0)) {
+			if (node->i32 == 0) {
+				node->i32 = -1;
+			}
+
+			strcpy(node->name, "HEATER1_SENS_ID");
+			PX4_INFO("migrating %s -> %s", "SENS_TEMP_ID", "HEATER1_SENS_ID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2026-06-29: MPC_LAND_RC_HELP replaced by the MPC_AUTO_NUDGING bitmask (landing nudging = bit 1).
 	// The old in-Hold yaw nudge is not migrated; it now lives in bit 0 (yaw nudging in all auto modes).
 	{
@@ -393,6 +422,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			{"EKF2_REQ_HDRIFT", "GNSS_REQ_HDRIFT"},
 			{"EKF2_REQ_VDRIFT", "GNSS_REQ_VDRIFT"},
 			{"EKF2_REQ_FIX", "GNSS_REQ_FIX"},
+			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
+			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
 		};
 
 		for (const auto &rename : kRenames) {
@@ -404,23 +435,14 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2026-09-30: EKF2_REQ_SACC and EKF2_REQ_GPS_H stay EKF2 parameters for EKF2's own thresholds and waits, while the
-	// GNSS checks use GNSS_REQ_SACC and GNSS_REQ_TIME. A value tuned before the checks moved applied to both, so it is
-	// copied to the check parameter. Parameters are exported sorted by name, so a GNSS_* value saved alongside is
-	// imported after this and takes precedence.
+	// 2026-10-06: translate CBRK_IO_SAFETY -> COM_SAFETY_MODE. Any value but the breaker key had safety enabled, with
+	// both the switch and the MAVLink command able to turn it off.
 	{
-		static constexpr const char *kCopies[][2] {
-			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
-			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
-		};
-
-		for (const auto &copy : kCopies) {
-			if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp(copy[0], node->name) == 0)) {
-				const float value = static_cast<float>(node->d);
-				param_set(param_find(copy[1]), &value);
-				PX4_INFO("copying %s -> %s", copy[0], copy[1]);
-				return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
-			}
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("CBRK_IO_SAFETY", node->name) == 0)) {
+			node->i32 = (node->i32 == 22027) ? 0 : 1;
+			strcpy(node->name, "COM_SAFETY_MODE");
+			PX4_INFO("migrating %s -> %s", "CBRK_IO_SAFETY", "COM_SAFETY_MODE");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 

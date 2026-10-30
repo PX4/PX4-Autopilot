@@ -63,6 +63,9 @@ static constexpr hrt_abstime ROLL_WARNING_TIMEOUT = 2_s;
 // [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 
+// [deg] roll angle limit at full underspeed
+static constexpr float ROLL_LIMIT_UNDERSPEED = 20.f;
+
 // [m/s/s] slew rate limit for airspeed setpoint changes
 static constexpr float ASPD_SP_SLEW_RATE = 1.f;
 
@@ -121,6 +124,7 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
+	_tecs.set_level_flight_pitch(radians(_param_fw_psp_off.get()));
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 
@@ -234,11 +238,9 @@ void FwLateralLongitudinalControl::Run()
 						       now
 					       );
 
-			// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
-			// so it has to be added back here.
 			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct)
 				   ?  _long_control_sp.pitch_direct
-				   : _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
+				   : _tecs.get_pitch_setpoint();
 
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
@@ -321,6 +323,16 @@ void FwLateralLongitudinalControl::Run()
 						       radians(_param_fw_p_lim_max.get()));
 			}
 
+			// Reduce max roll angle during underspeed to lower load factor
+			const float underspeed_ratio = _tecs.get_underspeed_ratio();
+
+			if (underspeed_ratio > FLT_EPSILON) {
+				const float roll_limit_normal = radians(_param_fw_r_lim.get());
+				const float roll_limit = math::lerp(roll_limit_normal,
+								    math::min(radians(ROLL_LIMIT_UNDERSPEED), roll_limit_normal), underspeed_ratio);
+				roll_body = constrain(roll_body, -roll_limit, roll_limit);
+			}
+
 			// roll slew rate
 			roll_body = _roll_slew_rate.update(roll_body, control_interval);
 
@@ -373,7 +385,8 @@ void FwLateralLongitudinalControl::updateControllerConfiguration(hrt_abstime tim
 		_lateral_control_configuration_sub.copy(&configuration_in);
 		_lateral_configuration.timestamp = configuration_in.timestamp;
 
-		if (PX4_ISFINITE(configuration_in.lateral_accel_max)) {
+		// a negative limit would invert the constrain() bounds of the setpoint; treat it like an unset one
+		if (PX4_ISFINITE(configuration_in.lateral_accel_max) && (configuration_in.lateral_accel_max >= 0.f)) {
 			_lateral_configuration.lateral_accel_max = min(configuration_in.lateral_accel_max, tanf(radians(
 						_param_fw_r_lim.get())) * CONSTANTS_ONE_G);
 
@@ -409,22 +422,27 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
 	const float airspeed_rate_estimate = 0.f;
 
-	_tecs.update(_long_control_state.pitch_rad - radians(_param_fw_psp_off.get()),
-		     _long_control_state.altitude_msl,
-		     alt_sp,
-		     airspeed_sp,
-		     _long_control_state.airspeed_eas,
-		     _long_control_state.eas2tas,
-		     throttle_min,
-		     throttle_max,
-		     throttle_trim_compensated,
-		     pitch_min_rad - radians(_param_fw_psp_off.get()),
-		     pitch_max_rad - radians(_param_fw_psp_off.get()),
-		     desired_max_climbrate,
-		     desired_max_sinkrate,
-		     airspeed_rate_estimate,
-		     _long_control_state.height_rate,
-		     hgt_rate_sp);
+	// PX4 disables -Wmissing-field-initializers globally; enable it here so a field left out of TECS::Input fails the build
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wmissing-field-initializers"
+	_tecs.update(TECS::Input {
+		.altitude = _long_control_state.altitude_msl,
+		.altitude_rate = _long_control_state.height_rate,
+		.altitude_setpoint = alt_sp,
+		.altitude_rate_setpoint = hgt_rate_sp,
+		.equivalent_airspeed = _long_control_state.airspeed_eas,
+		.speed_deriv_forward = airspeed_rate_estimate,
+		.equivalent_airspeed_setpoint = airspeed_sp,
+		.eas_to_tas = _long_control_state.eas2tas,
+		.throttle_min = throttle_min,
+		.throttle_max = throttle_max,
+		.throttle_trim = throttle_trim_compensated,
+		.pitch_min = pitch_min_rad,
+		.pitch_max = pitch_max_rad,
+		.target_climbrate = desired_max_climbrate,
+		.target_sinkrate = desired_max_sinkrate,
+	});
+#pragma GCC diagnostic pop
 
 	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_compensated, now);
 
@@ -531,9 +549,7 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 	tecs_status.pitch_integ = debug_output.control.pitch_integrator;
 	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
 
-	// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
-	// so it has to be added back here.
-	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
+	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;
@@ -671,16 +687,18 @@ void FwLateralLongitudinalControl::updateAttitude() {
 		}
 
 		const Eulerf euler_angles(R);
-		_long_control_state.pitch_rad = euler_angles.theta();
 		_yaw = euler_angles.psi();
 
 		_load_factor_from_bank_angle = 1.0f / max(cosf(euler_angles.phi()), FLT_EPSILON);
 
 		// Used to compensate for higher induced drag during banking
 		_tecs.set_load_factor(_load_factor_from_bank_angle);
-		// Used to give underspeed mitigation the correct minimum airspeed
+		// Used to give underspeed mitigation the correct minimum and stall airspeed
 		_tecs.set_equivalent_airspeed_min(
 			_performance_model.getMinimumCalibratedAirspeed(_load_factor_from_bank_angle, _flaps_setpoint)
+		);
+		_tecs.set_equivalent_airspeed_stall(
+			_performance_model.getCalibratedStallAirspeed(_load_factor_from_bank_angle, _flaps_setpoint)
 		);
 	}
 }
@@ -923,6 +941,12 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 	} else {
 		_long_configuration.speed_weight = _param_t_spdweight.get();
 	}
+
+	// the landing sets this to scale the TECS altitude time constant by FW_LND_THRTC_SC
+	_long_configuration.enforce_low_height_condition = configuration_in.enforce_low_height_condition;
+
+	// takeoff and landing set this so that TECS does not trade altitude for airspeed near the ground
+	_long_configuration.disable_underspeed_protection = configuration_in.disable_underspeed_protection;
 }
 
 extern "C" __EXPORT int fw_lat_lon_control_main(int argc, char *argv[])

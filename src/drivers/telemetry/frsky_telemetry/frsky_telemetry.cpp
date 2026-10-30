@@ -759,7 +759,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 		thread_should_exit = true;
 
 		while (thread_running) {
-			usleep(1000000);
+			px4_usleep(1000000);
 			PX4_INFO(".");
 		}
 

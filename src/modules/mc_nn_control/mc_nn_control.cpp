@@ -52,25 +52,19 @@ ModuleBase::Descriptor MulticopterNeuralNetworkControl::desc{task_spawn, custom_
 
 namespace
 {
-// This number should be the number of operations in the model, like tanh and fully connected
-using NNControlOpResolver = tflite::MicroMutableOpResolver<3>;
-
-TfLiteStatus RegisterOps(NNControlOpResolver &op_resolver)
-{
-	// Add the operations to you need to the op_resolver
-	TF_LITE_ENSURE_STATUS(op_resolver.AddFullyConnected());
-	TF_LITE_ENSURE_STATUS(op_resolver.AddRelu());
-	TF_LITE_ENSURE_STATUS(op_resolver.AddAdd());
-	return kTfLiteOk;
-}
 }  // namespace
 
 MulticopterNeuralNetworkControl::MulticopterNeuralNetworkControl() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
-
+	// Unset until the mode is entered or a setpoint arrives, so the network is
+	// never pointed at whatever happened to be in memory
+	_trajectory_setpoint.position[0] = NAN;
+	_trajectory_setpoint.position[1] = NAN;
+	_trajectory_setpoint.position[2] = NAN;
+	_trajectory_setpoint.yaw = NAN;
 }
 
 MulticopterNeuralNetworkControl::~MulticopterNeuralNetworkControl()
@@ -92,6 +86,10 @@ bool MulticopterNeuralNetworkControl::init()
 
 	updateParams();
 	UpdateMotorLimits();
+
+	// The first run registers the mode and arms the watchdog, so it must not wait
+	// for a sensor that may never publish
+	ScheduleNow();
 
 	return true;
 }
@@ -146,6 +144,35 @@ void MulticopterNeuralNetworkControl::ReportInvalidLimits()
 					      (int32_t)_param_max_rpm.get(), (int32_t)_param_min_rpm.get(), _param_thrust_coeff.get());
 }
 
+void MulticopterNeuralNetworkControl::CheckObservations()
+{
+	nn_control::ObservationSnapshot snapshot{};
+	snapshot.position_timestamp = _position.timestamp;
+	snapshot.xy_valid = _position.xy_valid;
+	snapshot.z_valid = _position.z_valid;
+	snapshot.v_xy_valid = _position.v_xy_valid;
+	snapshot.v_z_valid = _position.v_z_valid;
+	snapshot.position[0] = _position.x;
+	snapshot.position[1] = _position.y;
+	snapshot.position[2] = _position.z;
+	snapshot.velocity[0] = _position.vx;
+	snapshot.velocity[1] = _position.vy;
+	snapshot.velocity[2] = _position.vz;
+	snapshot.attitude_timestamp = _attitude.timestamp;
+
+	for (int i = 0; i < 4; i++) {
+		snapshot.q[i] = _attitude.q[i];
+	}
+
+	snapshot.angular_velocity_timestamp = _angular_velocity.timestamp;
+
+	for (int i = 0; i < 3; i++) {
+		snapshot.angular_velocity[i] = _angular_velocity.xyz[i];
+	}
+
+	_observation_fault = nn_control::check_observations(snapshot, hrt_absolute_time());
+}
+
 void MulticopterNeuralNetworkControl::ReportActionRange()
 {
 	// Say which part of the action range this motor can reproduce, so a mismatch
@@ -176,10 +203,17 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 	// Initialize the neural network
 	const tflite::Model *control_model = ::tflite::GetModel(control_net_tflite);
 
-	// Set up the interpreter
-	static NNControlOpResolver resolver;
+	// Checked before the interpreter touches it, a model from another schema
+	// cannot be parsed
+	if (control_model->version() != TFLITE_SCHEMA_VERSION) {
+		PX4_ERR("model rejected: schema version %d, expected %d", (int)control_model->version(), TFLITE_SCHEMA_VERSION);
+		return -1;
+	}
 
-	if (RegisterOps(resolver) != kTfLiteOk) {
+	// Set up the interpreter
+	static nn_control::OpResolver resolver;
+
+	if (nn_control::register_ops(resolver) != kTfLiteOk) {
 		PX4_ERR("Failed to register ops");
 		return -1;
 	}
@@ -204,11 +238,36 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 	}
 
 	_input_tensor = _interpreter->input(0);
+	TfLiteTensor *output_tensor = _interpreter->output(0);
 
-	if (_input_tensor == nullptr) {
-		PX4_ERR("Input tensor is null");
+	if ((_input_tensor == nullptr) || (output_tensor == nullptr)) {
+		PX4_ERR("model has no input or output tensor");
 		delete _interpreter;
 		_interpreter = nullptr;
+		return -1;
+	}
+
+	// The documentation tells users to swap the model array, so check that what was
+	// loaded is the shape this module feeds and reads
+	auto element_count = [](const TfLiteTensor * tensor) {
+		int count = 1;
+
+		for (int i = 0; i < tensor->dims->size; i++) {
+			count *= tensor->dims->data[i];
+		}
+
+		return count;
+	};
+
+	const char *problem = nn_control::model_layout_problem(control_model->version(), TFLITE_SCHEMA_VERSION,
+			      (int)_interpreter->inputs_size(), element_count(_input_tensor), _input_tensor->type == kTfLiteFloat32,
+			      (int)_interpreter->outputs_size(), element_count(output_tensor), output_tensor->type == kTfLiteFloat32);
+
+	if (problem != nullptr) {
+		PX4_ERR("model rejected: %s", problem);
+		delete _interpreter;
+		_interpreter = nullptr;
+		_input_tensor = nullptr;
 		return -1;
 	}
 
@@ -272,7 +331,9 @@ void MulticopterNeuralNetworkControl::ReplyToArmingCheck(int8 request_id)
 	arming_check_reply.registration_id = _arming_check_id;
 	arming_check_reply.health_component_index = arming_check_reply.HEALTH_COMPONENT_INDEX_NONE;
 	arming_check_reply.num_events = 0;
-	arming_check_reply.can_arm_and_run = _motor_limits_valid;
+	arming_check_reply.can_arm_and_run = _motor_limits_valid
+					     && (_observation_fault == nn_control::ObservationFault::None)
+					     && !_output_fault;
 
 	// The reason is a standalone event, repeated while the limits stay invalid so
 	// it is not lost on a link that came up later
@@ -510,10 +571,22 @@ int MulticopterNeuralNetworkControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
+void MulticopterNeuralNetworkControl::HoldLastCommand()
+{
+	// The mixer keeps the last command on its own, so repeating it changes nothing
+	// at the motors. It keeps the actuator topic and the lockstep simulators, which
+	// wait for an output every step, going while the commander leaves the mode.
+	// Only a command from this session is repeated, never one from an earlier one.
+	if (_have_last_command) {
+		PublishOutput(_last_command);
+	}
+}
+
 void MulticopterNeuralNetworkControl::Run()
 {
 	if (should_exit()) {
 		_angular_velocity_sub.unregisterCallback();
+		ScheduleClear();
 
 		if (_sent_mode_registration) {
 			UnregisterNeuralFlightMode(_arming_check_id, _mode_id);
@@ -522,6 +595,11 @@ void MulticopterNeuralNetworkControl::Run()
 		exit_and_cleanup(desc);
 		return;
 	}
+
+	// Runs are driven by angular velocity updates. This delayed run is what keeps the
+	// module registering, checking the observations and answering the commander when
+	// those updates stop, in the mode or not.
+	ScheduleDelayed(nn_control::kAngularVelocityWatchdog);
 
 	// Register the flight mode with the commander
 	if (!_sent_mode_registration) {
@@ -556,6 +634,13 @@ void MulticopterNeuralNetworkControl::Run()
 		if (!prev_use_neural && _use_neural) {
 			ConfigureNeuralFlightMode(_mode_id);
 			ReportActionRange();
+
+			// Without a setpoint of its own the mode holds the position it was entered at
+			if (!PX4_ISFINITE(_trajectory_setpoint.position[0])
+			    || !PX4_ISFINITE(_trajectory_setpoint.position[1])
+			    || !PX4_ISFINITE(_trajectory_setpoint.position[2])) {
+				reset_trajectory_setpoint(_position);
+			}
 		}
 	}
 
@@ -566,8 +651,60 @@ void MulticopterNeuralNetworkControl::Run()
 		UpdateMotorLimits();
 	}
 
+	// The observations are refreshed and checked on every cycle, in the mode or not,
+	// so the arming check reply always describes the current state
+	const bool angular_velocity_updated = _angular_velocity_sub.update(&_angular_velocity);
+
+	if (_attitude_sub.updated()) {
+		_attitude_sub.copy(&_attitude);
+	}
+
+	const bool position_updated = _position_sub.updated();
+
+	if (position_updated) {
+		_position_sub.copy(&_position);
+	}
+
+	CheckObservations();
+
 	if (!_use_neural || !_mapping_valid) {
-		// If the neural network flight mode is not enabled, do nothing
+		// If the neural network flight mode is not enabled, do nothing. A network that
+		// misbehaved is trusted again once the mode has been left.
+		_output_fault = false;
+		_reported_observation_fault = nn_control::ObservationFault::None;
+		_have_last_command = false;
+		perf_end(_loop_perf);
+		return;
+	}
+
+	if (_observation_fault != nn_control::ObservationFault::None) {
+		// Not run on observations that are missing, stale or not finite. The last
+		// command of this session is repeated and the arming check reply has the
+		// commander leave the mode. Checked here rather than on the angular velocity
+		// update so that a lost angular velocity stream is reported too.
+		if (_reported_observation_fault == nn_control::ObservationFault::None) {
+			/* EVENT
+			 * @description
+			 * The network is not run on observations that are missing, stale or not finite. The last
+			 * command is repeated and the mode reports itself unable to run so the commander leaves it.
+			 * Reason: 1 position invalid, 2 position stale, 3 position not finite, 4 attitude stale,
+			 * 5 attitude not finite, 6 angular velocity stale, 7 angular velocity not finite.
+			 */
+			events::send<uint8_t>(events::ID("mc_nn_control_observations_invalid"), events::Log::Error,
+					      "Neural control: observations invalid ({1}), not running the network",
+					      (uint8_t)_observation_fault);
+			_reported_observation_fault = _observation_fault;
+		}
+
+		HoldLastCommand();
+		perf_end(_loop_perf);
+		return;
+	}
+
+	_reported_observation_fault = nn_control::ObservationFault::None;
+
+	if (_output_fault) {
+		HoldLastCommand();
 		perf_end(_loop_perf);
 		return;
 	}
@@ -575,23 +712,16 @@ void MulticopterNeuralNetworkControl::Run()
 	int32_t start_time1 = GetTime();
 
 	// run controller on angular velocity updates
-	if (_angular_velocity_sub.update(&_angular_velocity)) {
+	if (angular_velocity_updated) {
 		const float dt = math::constrain(((_angular_velocity.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
 		_last_run = _angular_velocity.timestamp_sample;
 
-		if (_attitude_sub.updated()) {
-			_attitude_sub.copy(&_attitude);
-		}
-
-		if (_position_sub.updated()) {
-			_position_sub.copy(&_position);
-
-			// If there is no position setpoint, use the position when switching mode as the setpoint
-			if (!PX4_ISFINITE(_trajectory_setpoint.position[0])
-			    && !PX4_ISFINITE(_trajectory_setpoint.position[1])
-			    && !PX4_ISFINITE(_trajectory_setpoint.position[2])) {
-				reset_trajectory_setpoint(_position);
-			}
+		// If there is no position setpoint, use the position when switching mode as the setpoint
+		if (position_updated
+		    && !PX4_ISFINITE(_trajectory_setpoint.position[0])
+		    && !PX4_ISFINITE(_trajectory_setpoint.position[1])
+		    && !PX4_ISFINITE(_trajectory_setpoint.position[2])) {
+			reset_trajectory_setpoint(_position);
 		}
 
 		if (_param_manual_control.get()) {
@@ -638,9 +768,31 @@ void MulticopterNeuralNetworkControl::Run()
 			return;
 		}
 
+		if (!nn_control::outputs_finite(_output_tensor->data.f, nn_control::kOutputSize)) {
+			// One bad channel would stop one motor while the other three keep thrusting.
+			// Repeat the last command instead and let the commander leave the mode. The
+			// network is not trusted again until it has.
+			_output_fault = true;
+			/* EVENT
+			 * @description
+			 * The last command is repeated and the mode reports itself unable to run so the commander
+			 * leaves it. The network is not run again until the mode has been left.
+			 */
+			events::send(events::ID("mc_nn_control_output_not_finite"), events::Log::Error,
+				     "Neural control: network output not finite, not running the network");
+			HoldLastCommand();
+			perf_end(_loop_perf);
+			return;
+		}
+
 		// Convert the output tensor to actuator values
 		RescaleActions();
 
+		for (int i = 0; i < nn_control::kOutputSize; i++) {
+			_last_command[i] = _output_tensor->data.f[i];
+		}
+
+		_have_last_command = true;
 		PublishOutput(_output_tensor->data.f);
 
 		int32_t full_controller_time = GetTime() - start_time1;
