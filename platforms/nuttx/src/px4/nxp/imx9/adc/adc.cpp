@@ -67,9 +67,7 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 #if defined(CONFIG_IMX9_SAR_ADC)
 	uint32_t value = 0;
 
-	irqstate_t flags = px4_enter_critical_section();
 	int ret = imx9_sar_adc_read_channel(channel, &value);
-	px4_leave_critical_section(flags);
 
 	if (ret < 0) {
 		return UINT32_MAX;

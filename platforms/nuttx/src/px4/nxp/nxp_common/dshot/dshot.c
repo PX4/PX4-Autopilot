@@ -624,6 +624,22 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 	_dshot_armed = false;
 	_edt_enabled = edt_enable;
 
+	if (bdshot_channel_mask != 0 && (BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 5 / 4) / 2) > 0xFF) {
+		/*
+		* The dual 8-bit divider cannot generate the required GCR sampling rate for
+		* bidirectional DShot150 from BOARD_FLEXIO_PREQ, so receiver training fails.
+		* Most ESCs do not support bidirectional DShot150 anyway, so fall back to
+		* regular DShot. TODO: Consider adjusting the FlexIO clock per DShot rate,
+		* although this complicates mixing rates and must preserve support for the
+		* commonly used bidirectional DShot600.
+		*/
+		PX4_ERR("bidirectional DShot not supported at %u bit/s, using plain DShot", dshot_pwm_freq);
+		/* Cannot capture, so it must never hold up DShot.cpp's all-channels-ready wait */
+		bdshot_ready_mask = bdshot_channel_mask;
+		channel_mask |= bdshot_channel_mask;
+		bdshot_channel_mask = 0;
+	}
+
 	/* Calculate dshot timings based on dshot_pwm_freq */
 	dshot_speed = dshot_pwm_freq;
 	dshot_tcmp = 0x2F00 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);

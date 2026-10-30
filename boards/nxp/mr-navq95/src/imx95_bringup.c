@@ -116,6 +116,10 @@ int imx95_bringup(void)
 
 	imx9_iomux_configure(IOMUX_CFG(IOMUXC_PAD_XSPI1_SS1_B_GPIO5_IO11, IOMUXC_PAD_PU_ON, 0));
 
+	/* Safety switch on pad GPIO_IO07, no on-board pull */
+
+	imx9_iomux_configure(IOMUX_CFG(IOMUXC_PAD_GPIO_IO07_GPIO2_IO07, IOMUXC_PAD_PU_ON, 0));
+
 #ifdef CONFIG_PWM
 	/* Configure PWM outputs */
 

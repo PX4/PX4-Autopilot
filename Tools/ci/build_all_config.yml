@@ -60,6 +60,7 @@ special_labels:
 # NXP chip families are pooled under "nxp-{chip}" regardless of board directory
 nxp_chip_families:
   - imxrt
+  - imx9
   - kinetis
   - s32k
 
@@ -70,6 +71,7 @@ seeders:
   stm32f4: "px4_fmu-v4_default"
   stm32f1: "px4_io-v2_default"
   imxrt: "nxp_mr-tropic_default"
+  imx9: "nxp_mr-navq95_default"
   kinetis: "nxp_fmuk66-v3_default"
   s32k: "nxp_mr-canhubk3_default"
   rp2040: "raspberrypi_pico_default"

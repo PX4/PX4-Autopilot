@@ -138,9 +138,9 @@ static int io_timer_handler(uint16_t timer_index)
 
 	uint32_t statusr = rSTATUS(timer_index);
 
-	/* Acknowledge all that are pending */
+	/* Acknowledge all that are pending (STATUS is write-1-to-clear) */
 
-	rSTATUS(timer_index) = 0;
+	rSTATUS(timer_index) = statusr;
 
 	/* Iterate over the timer_io_channels table */
 
@@ -149,7 +149,10 @@ static int io_timer_handler(uint16_t timer_index)
 
 	for (unsigned chan_index = first_channel_index; chan_index < last_channel_index; chan_index++) {
 
-		uint16_t chan = 1 << chan_index;
+		/* STATUS CHnF bits and CnV are indexed by the hardware channel, not the logical output */
+
+		const uint32_t hw_chan = timer_io_channels[chan_index].timer_channel;
+		uint16_t chan = 1 << hw_chan;
 
 		if (statusr & chan) {
 
@@ -160,7 +163,7 @@ static int io_timer_handler(uint16_t timer_index)
 			if (channel_handlers[chan_index].callback) {
 				channel_handlers[chan_index].callback(channel_handlers[chan_index].context, tmr,
 								      chan_index, &timer_io_channels[chan_index],
-								      now, count, _REG32(tmr->base, IMX9_TPM_CXV_OFFSET(chan_index)));
+								      now, count, _REG32(tmr->base, IMX9_TPM_CXV_OFFSET(hw_chan)));
 			}
 		}
 
@@ -416,11 +419,38 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 	return rv;
 }
 
+/* Actual counter tick of a timer: the root clock divided by the active prescaler.
+ * Only power-of-two prescalers exist, so a root that is not a power-of-two multiple
+ * of BOARD_PWM_FREQ (TPM3 runs from the 133.33 MHz bus_wakeup root on i.MX95) does
+ * not tick at BOARD_PWM_FREQ. MOD and CnV are scaled by the real tick instead.
+ */
+static inline uint32_t timer_tick(unsigned timer)
+{
+	return io_timers[timer].clock_rate >> (rSC(timer) & TPM_SC_PS_MASK);
+}
+
+/* Both conversions round to nearest, so a value read back with io_channel_get_ccr()
+ * matches what was written with io_timer_set_ccr().
+ */
+static inline uint32_t us_to_ticks(unsigned timer, uint32_t us)
+{
+	return (uint32_t)((((uint64_t)us * timer_tick(timer)) + (BOARD_PWM_FREQ / 2)) / BOARD_PWM_FREQ);
+}
+
+static inline uint32_t ticks_to_us(unsigned timer, uint32_t ticks)
+{
+	const uint32_t tick = timer_tick(timer);
+
+	return tick ? (uint32_t)((((uint64_t)ticks * BOARD_PWM_FREQ) + (tick / 2)) / tick) : 0;
+}
+
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
 	/* configure the timer to update at the desired rate */
-	while (rMOD(timer) != ((BOARD_PWM_FREQ / rate) - 1)) {
-		rMOD(timer) = (BOARD_PWM_FREQ / rate) - 1;
+	const uint32_t mod = (timer_tick(timer) / rate) - 1;
+
+	while (rMOD(timer) != mod) {
+		rMOD(timer) = mod;
 	}
 
 	return 0;
@@ -459,7 +489,8 @@ void io_timer_trigger(unsigned channel_mask)
 	for (unsigned channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (channel_mask & (1 << channel)) {
 			uint32_t timer = channels_timer(channel);
-			REG(timer, IMX9_TPM_CXV_OFFSET(timer_io_channels[channel].timer_channel)) = channel_values[channel];
+			REG(timer, IMX9_TPM_CXV_OFFSET(timer_io_channels[channel].timer_channel)) = us_to_ticks(timer,
+					channel_values[channel]);
 		}
 	}
 
@@ -556,6 +587,17 @@ int io_timer_set_pwm_rate(unsigned timer, unsigned rate)
 	/* Request to use OneShot ?*/
 
 	if (PWM_RATE_ONESHOT == rate) {
+
+		/* OneShot needs an exact BOARD_ONESHOT_FREQ tick and the TPM prescaler only divides by 2^0..2^7.
+		 * A 1 MHz root gives a ratio of 0 (div2psc(0) is undefined) and 133.33 MHz gives 16 with a
+		 * remainder, so neither can run OneShot.
+		 */
+		const uint32_t oneshot_div = io_timers[timer].clock_rate / BOARD_ONESHOT_FREQ;
+
+		if (oneshot_div == 0 || oneshot_div > 128 || (oneshot_div & (oneshot_div - 1)) != 0 ||
+		    (io_timers[timer].clock_rate % BOARD_ONESHOT_FREQ) != 0) {
+			return -EINVAL;
+		}
 
 		/* Request to use OneShot
 		 */
@@ -800,8 +842,9 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 	if ((rv == 0) && (channel < MAX_TIMER_IO_CHANNELS)) {
 
 		irqstate_t flags = px4_enter_critical_section();
+		const unsigned timer = channels_timer(channel);
 		channel_values[channel] = value;
-		REG(channels_timer(channel), IMX9_TPM_CXV_OFFSET(timer_io_channels[channel].timer_channel)) = value;
+		REG(timer, IMX9_TPM_CXV_OFFSET(timer_io_channels[channel].timer_channel)) = us_to_ticks(timer, value);
 		px4_leave_critical_section(flags);
 
 	}
@@ -819,7 +862,8 @@ uint16_t io_channel_get_ccr(unsigned channel)
 		if ((mode == IOTimerChanMode_PWMOut) ||
 		    (mode == IOTimerChanMode_OneShot) ||
 		    (mode == IOTimerChanMode_Trigger)) {
-			value = REG(channels_timer(channel), IMX9_TPM_CXV_OFFSET(timer_io_channels[channel].timer_channel));
+			const unsigned timer = channels_timer(channel);
+			value = ticks_to_us(timer, REG(timer, IMX9_TPM_CXV_OFFSET(timer_io_channels[channel].timer_channel)));
 		}
 	}
 

@@ -60,9 +60,12 @@
  * Definitions
  ****************************************************************************************************/
 
-/* SPI bus pins as GPIOs, parked as pulled-down inputs by board_spi_reset() */
+/* SPI bus pins as GPIOs, parked as inputs by board_spi_reset().
+ * gpio_pinset_t carries no pad control (bits 9-10 are GPIO_INTCFG), so a pull
+ * has to be applied through the pad mux with imx9_iomux_configure().
+ */
 
-#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT | IOMUXC_PAD_PD_ON))
+#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | GPIO_INPUT)
 
 #define GPIO_LPSPI1_SCK   /* SAI1_TXD0 */  (GPIO_PORT1 | GPIO_PIN13)
 #define GPIO_LPSPI1_MISO  /* SAI1_TXC  */  (GPIO_PORT1 | GPIO_PIN12)
@@ -93,8 +96,6 @@
 	 (1 << ADC_ADC_3V3_CHANNEL))
 
 #define SYSTEM_ADC_BASE     IMX9_ADC_BASE
-
-#define BOARD_I2C_LATEINIT 1 /* See Note about SE550 Eanable */
 
 /* PWM
  */
@@ -138,28 +139,25 @@
 #define BOARD_NUMBER_BRICKS             1
 #define BOARD_ADC_BRICK_VALID           1
 
-/* Safety switch on pad GPIO_IO07 (GPIO2_IO07, net GPIO07_ARM_IO), GPS connector J8 pin 6, no on-board pull */
+/* Safety switch on pad GPIO_IO07 (GPIO2_IO07, net GPIO07_ARM_IO), GPS connector J8 pin 6, no on-board pull.
+ * The pull-up is applied on the pad mux in imx95_bringup().
+ */
 
-#define GPIO_BTN_SAFETY  /* GPIO_IO07 J8 pin 6 */ (GPIO_PORT2 | GPIO_PIN7 | GPIO_INPUT | IOMUXC_PAD_PU_ON)
+#define GPIO_BTN_SAFETY  /* GPIO_IO07 J8 pin 6 */ (GPIO_PORT2 | GPIO_PIN7 | GPIO_INPUT)
 
 /* The safety LED (J8 pin 7) and the RGB LED sit on the IO-board PCAL6416A I2C expander
  * at LPI2C4 address 0x20, which PX4 does not drive yet.
  */
 
-/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
+/* This board doesn't expose USB directly
  */
 
-#define BOARD_ADC_USB_VALID     (1)
-#define BOARD_ADC_USB_CONNECTED (1)
+#define BOARD_ADC_USB_VALID     (0)
+#define BOARD_ADC_USB_CONNECTED (0)
 
 /* The servo rail is always powered */
 
 #define BOARD_ADC_SERVO_VALID     (1)
-
-/* This board provides a DMA pool and APIs */
-#define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 
 #define PX4_GPIO_INIT_LIST { \

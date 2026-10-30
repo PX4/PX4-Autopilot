@@ -51,4 +51,6 @@ constexpr px4_spi_bus_t px4_spi_buses[] = {
 		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin12}, SPI::DRDY{GPIO::Port2, GPIO::Pin17}),
 	}),
 };
+
+static constexpr bool unused = validateSPIConfig(px4_spi_buses);
 #endif
