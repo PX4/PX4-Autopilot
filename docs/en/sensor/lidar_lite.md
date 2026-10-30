@@ -163,14 +163,14 @@ The driver detects the hardware version of the connected sensor, and uses this t
 - Other versions: 25 m or 35 m, depending on the detected hardware version
 
 The minimum range is 5 cm.
-The maximum range can be overridden using [SENS_LL40LS_MAX](#max_range).
+The maximum range is defined by [SENS_LL40LS_MAX](#max_range).
 
 ### PWM {#px4_configuration_pwm}
 
 Set [SENS_EN_LL40LS](../advanced_config/parameter_reference.md#SENS_EN_LL40LS) to `1`.
 
 PX4 uses a range of 5 cm to 25 m for all versions of the sensor.
-The maximum range can be overridden using [SENS_LL40LS_MAX](#max_range).
+The maximum range is defined by [SENS_LL40LS_MAX](#max_range).
 
 ### Maximum Range {#max_range}
 
