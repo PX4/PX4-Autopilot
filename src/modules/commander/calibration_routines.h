@@ -80,7 +80,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,	///< 
 		void *worker_data,						///< Opaque data passed to worker routine
 		bool lenient_still_detection);					///< true: Use more lenient still position detection
 
-/// Lets a GCS cancel the calibration about to run on this thread. It must call calibrate_cancel_check() often.
+/// Lets a GCS cancel the calibration about to start. It must call calibrate_cancel_check() often.
 void calibrate_cancel_open();
 
 /// Ends cancelling when the calibration returns. A cancel it never acted on is rejected.
