@@ -833,27 +833,38 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 
 	const float distance = static_cast<float>(msg.ranges()[0]);
 
-	const gz::math::Quaterniond q_body = _lidar_link_q * q_sensor;
+	const gz::math::Quaterniond q_body_flu = _lidar_link_q * q_sensor;
+
+	// Gazebo uses FLU, distance_sensor.q is expected in FRD (rotate 180 deg about x on both sides)
+	const gz::math::Quaterniond q_body(q_body_flu.W(), q_body_flu.X(), -q_body_flu.Y(), -q_body_flu.Z());
 	const gz::math::Vector3d dir = q_body.RotateVector(gz::math::Vector3d::UnitX);
 
 	auto points_like = [&](const gz::math::Vector3d & ref) {
 		return dir.Dot(ref) > std::cos(3.0 * M_PI / 180.0);
 	};
 
-	const gz::math::Vector3d forward = gz::math::Vector3d::UnitX;
-	const gz::math::Vector3d downward = -gz::math::Vector3d::UnitZ;
-	const gz::math::Vector3d leftward = gz::math::Vector3d::UnitY;
-
-	if (points_like(forward)) {
+	if (points_like(gz::math::Vector3d::UnitX)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_FORWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (points_like(downward)) {
+	} else if (points_like(gz::math::Vector3d::UnitZ)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_DOWNWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (points_like(leftward)) {
+	} else if (points_like(-gz::math::Vector3d::UnitZ)) {
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_UPWARD_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
+
+	} else if (points_like(-gz::math::Vector3d::UnitY)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_LEFT_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
+
+	} else if (points_like(gz::math::Vector3d::UnitY)) {
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_RIGHT_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
+
+	} else if (points_like(-gz::math::Vector3d::UnitX)) {
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_BACKWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
 	} else {
