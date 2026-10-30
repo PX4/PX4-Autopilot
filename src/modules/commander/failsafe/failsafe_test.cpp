@@ -1059,6 +1059,43 @@ TEST_F(FailsafeTest, RoverUnsupportedDescendToDisarm)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Disarm);
 }
 
+TEST_F(FailsafeTest, FixedWingCannotRunFollowTargetOrOrbit)
+{
+	// Follow Target and Orbit only exist as multicopter flight tasks, and both clear
+	// flag_control_auto_enabled. On a fixed-wing that leaves no outer loop at all: fw_pos_control
+	// falls through to FW_POSCTRL_MODE_OTHER, TECS stops and the attitude setpoint freezes.
+	failsafe_flags_s fw_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_FIXED_WING, fw_flags);
+	EXPECT_TRUE(fw_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET));
+	EXPECT_TRUE(fw_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT));
+
+	// Both stay available for multicopters, including a VTOL in hover
+	failsafe_flags_s mc_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, mc_flags);
+	EXPECT_FALSE(mc_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET));
+	EXPECT_FALSE(mc_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT));
+
+	// A vehicle that ends up in Follow Target as a fixed-wing gets taken out of it
+	Failsafe failsafe(nullptr);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, fw_flags);
+
+	// Advance past the COM_FAIL_ACT_T hold delay set in SetUp()
+	time += 6_s;
+	const uint8_t updated_user_intended_mode = failsafe.update(time, state, false, false, fw_flags);
+
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+	// The user intention stays on Follow Target, but the mode actually flown is RTL
+	EXPECT_EQ(FailsafeBase::modeFromAction(failsafe.selectedAction(), updated_user_intended_mode),
+		  vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+}
+
 TEST_F(FailsafeTest, GnssLostUsesGnssLossActParam)
 {
 	// Each param value is exercised on its own fresh Failsafe instance, to avoid
