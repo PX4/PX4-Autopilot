@@ -321,6 +321,12 @@ void RTL::setRtlTypeAndDestination()
 		}
 
 	} else if (_param_rtl_type.get() == RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT) {
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+		_home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(mission_route_cache, destination,
+					  _home_pos_sub.get().alt);
+#endif
+
 		// Set _rtl_direct with the home destination so calc_rtl_time_estimate() can check its reachability
 		const float rtl_alt_home = computeReturnAltitude(destination);
 		_rtl_direct.setRtlAlt(rtl_alt_home);
