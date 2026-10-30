@@ -36,4 +36,5 @@ add_library(output_predictor
 	output_predictor.h
 )
 
-add_dependencies(output_predictor prebuild_targets lat_lon_alt)
+add_dependencies(output_predictor prebuild_targets)
+target_link_libraries(output_predictor PRIVATE lat_lon_alt)
