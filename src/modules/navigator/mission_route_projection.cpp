@@ -753,24 +753,12 @@ static bool replaceUnflownJumpTwin(ProjectionCandidateBuffer &candidate_buffer,
 	return false;
 }
 
-// Clears one reference's candidates and window before a walk.
-static void resetCandidateSearch(ProjectionReference &reference, bool rescan)
+// Clears one reference's candidates and window before the walk.
+static void resetCandidateSearch(ProjectionReference &reference)
 {
 	reference.candidate_buffer.count = 0;
 	reference.search_state = {};
-	reference.search_state.rescan = rescan;
 	reference.search_state.cos_lat = static_cast<float>(cos(math::radians(reference.position.lat)));
-}
-
-// The prune removed the candidate that set the window, or one from a full buffer that may have pushed out a
-// farther candidate. Either may hide candidates that pass.
-static bool pruneMayHideCandidates(const ProjectionReference &reference)
-{
-	const CandidateSearchState &state = reference.search_state;
-	const ProjectionCandidateBuffer &candidates = reference.candidate_buffer;
-	const bool lost_closest = state.min_xtrack_m < FLT_MAX
-				  && (candidates.count == 0 || candidates.candidates[0].dist.xtrack_m > state.min_xtrack_m);
-	return lost_closest || (state.unpruned_count == kMaxSegmentCandidates && candidates.count < kMaxSegmentCandidates);
 }
 
 void MissionRouteProjection::processCandidateForSegment(ProjectionReference &reference,
@@ -838,20 +826,6 @@ void MissionRouteProjection::processCandidateForSegment(ProjectionReference &ref
 		return;
 	}
 
-	// A blocked candidate must neither narrow the rescanned window nor take a place in it.
-	if (state.rescan && _path_checker) {
-		bool clear = false;
-
-		if (!_path_checker->checkCandidate(reference, candidate, clear)) {
-			stats.geofence_unavailable = true;
-			return;
-		}
-
-		if (!clear) {
-			return;
-		}
-	}
-
 	if (projection.xtrack_m < state.min_xtrack_m) {
 		// A new closest projection tightens the search window, so prune stale candidates first.
 		state.min_xtrack_m = projection.xtrack_m;
@@ -873,7 +847,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 	}
 
 	for (uint8_t i = 0; i < batch.count; ++i) {
-		resetCandidateSearch(batch.items[i], false);
+		resetCandidateSearch(batch.items[i]);
 	}
 
 	ActiveJumpContext active_jump{};
@@ -886,101 +860,48 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 
 	SegmentDistanceAlong current_segment_bounds{};
 	bool current_segment_located = !request.compute_current_segment_bounds;
-	float route_length = 0.f;
-	int32_t route_end_index = -1;
 	ProjectionScanStats stats{};
 	RouteSegmentView segment_view{};
+	RouteSegmentCursor cursor(_provider, request.home_altitude_amsl);
 
-	// A second walk rescans only the references whose candidates the prune may have hidden, so without a fence
-	// obstacle there is one walk and one batched prune.
-	for (int walk = 0; walk < 2; ++walk) {
-		const bool rescan = walk > 0;
-		RouteSegmentCursor cursor(_provider, request.home_altitude_amsl);
+	if (!cursor.init()) {
+		return cursor.failureReason();
+	}
 
-		if (!cursor.init()) {
-			return cursor.failureReason();
+	while (cursor.next(segment_view)) {
+		stats.segments_processed++;
+
+		if (!current_segment_located) {
+			current_segment_located = locateCurrentSegment(segment_view, request, active_jump, current_segment_bounds);
 		}
 
-		while (cursor.next(segment_view)) {
-			stats.segments_processed++;
+		// Keep the vertical segment the vehicle flies (e.g. B' -> LAND while descending) despite a small
+		// drift toward the horizontal leg. During a jump the vehicle flies the jump edge instead.
+		const bool flying_vertical_segment = segment_view.zero_length_xy && !segment_view.segment.isLoop()
+						     && !active_jump.valid()
+						     && isVehicleSegment(segment_view.segment, segment_view.start_dist_along_route_m,
+								     segment_view.length_m, request.mission_index, request.is_flying_reverse);
 
-			if (!current_segment_located) {
-				current_segment_located = locateCurrentSegment(segment_view, request, active_jump, current_segment_bounds);
-			}
-
-			// Keep the vertical segment the vehicle flies (e.g. B' -> LAND while descending) despite a small
-			// drift toward the horizontal leg. During a jump the vehicle flies the jump edge instead.
-			const bool flying_vertical_segment = segment_view.zero_length_xy && !segment_view.segment.isLoop()
-							     && !active_jump.valid()
-							     && isVehicleSegment(segment_view.segment, segment_view.start_dist_along_route_m,
-									     segment_view.length_m, request.mission_index, request.is_flying_reverse);
-
-			// Skip other vertical segments; the next horizontal leg provides the candidate at their
-			// location. Preserve the previous corner state, including true at the route start.
-			if (segment_view.zero_length_xy && !segment_view.last_segment && !flying_vertical_segment) {
-				continue;
-			}
-
-			for (uint8_t i = 0; i < batch.count; ++i) {
-				if (!rescan || batch.items[i].search_state.rescan) {
-					processCandidateForSegment(batch.items[i], segment_view, request.xtrack_margin_m, flying_vertical_segment,
-								   active_jump.jump_item_index, stats);
-				}
-			}
-
-			if (stats.geofence_unavailable) {
-				return FailureReason::kGeofenceUnavailable;
-			}
+		// Skip other vertical segments; the next horizontal leg provides the candidate at their
+		// location. Preserve the previous corner state, including true at the route start.
+		if (segment_view.zero_length_xy && !segment_view.last_segment && !flying_vertical_segment) {
+			continue;
 		}
-
-		if (cursor.failed()) {
-			return cursor.failureReason();
-		}
-
-		if (rescan) {
-			break;
-		}
-
-		route_length = cursor.routeLength();
-		route_end_index = cursor.nominalPositionIndex();
-
-		if (!_path_checker) {
-			break;
-		}
-
-		// Geofence checks prune the retained candidates before any selection.
-		for (uint8_t i = 0; i < batch.count; ++i) {
-			batch.items[i].search_state.unpruned_count = batch.items[i].candidate_buffer.count;
-		}
-
-		if (!_path_checker->pruneCandidates(batch)) {
-			return FailureReason::kGeofenceUnavailable;
-		}
-
-		bool rescan_needed = false;
 
 		for (uint8_t i = 0; i < batch.count; ++i) {
-			ProjectionReference &reference = batch.items[i];
-			bool clear = false;
-
-			if (!pruneMayHideCandidates(reference)) {
-				continue;
-			}
-
-			if (!_path_checker->checkReference(reference, clear)) {
-				return FailureReason::kGeofenceUnavailable;
-			}
-
-			// Nothing passes from a reference outside the fence: it keeps no candidates.
-			if (clear) {
-				resetCandidateSearch(reference, true);
-				rescan_needed = true;
-			}
+			processCandidateForSegment(batch.items[i], segment_view, request.xtrack_margin_m, flying_vertical_segment,
+						   active_jump.jump_item_index, stats);
 		}
+	}
 
-		if (!rescan_needed) {
-			break;
-		}
+	if (cursor.failed()) {
+		return cursor.failureReason();
+	}
+
+	// One geofence check of the kept candidates. A failing candidate is removed and not replaced, even when
+	// it kept a farther candidate that would pass out of the window or of the full buffer.
+	if (_path_checker && !_path_checker->pruneCandidates(batch)) {
+		return FailureReason::kGeofenceUnavailable;
 	}
 
 	bool any_candidate_found = false;
@@ -994,8 +915,8 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 
 	if (any_candidate_found) {
 		distance_summary.current_segment_bounds = current_segment_bounds;
-		distance_summary.route_length = route_length;
-		distance_summary.route_end_index = route_end_index;
+		distance_summary.route_length = cursor.routeLength();
+		distance_summary.route_end_index = cursor.nominalPositionIndex();
 		return FailureReason::kNone;
 	}
 

@@ -37,9 +37,7 @@ namespace mission_route
 {
 
 struct Position;
-struct ProjectionReference;
 struct ProjectionReferenceBatch;
-struct RouteProjectionCandidate;
 
 /**
  * Path checks used by the planner, independent of the Navigator geofence implementation.
@@ -54,19 +52,6 @@ public:
 	 * Discarded candidates are not replaced. Return false if checks are unavailable.
 	 */
 	virtual bool pruneCandidates(ProjectionReferenceBatch &batch) const = 0;
-
-	/**
-	 * Check that segments may start at this reference, the first rule of pruneCandidates().
-	 * Return false if unavailable; otherwise clear says whether it passes.
-	 */
-	virtual bool checkReference(const ProjectionReference &reference, bool &clear) const = 0;
-
-	/**
-	 * Check one candidate of a reference that passed checkReference(), with the other rules of pruneCandidates().
-	 * Return false if unavailable; otherwise clear says whether it passes.
-	 */
-	virtual bool checkCandidate(const ProjectionReference &reference, const RouteProjectionCandidate &candidate,
-				    bool &clear) const = 0;
 
 	/** Check one segment from the vehicle. Return false if unavailable; otherwise clear says whether it passes. */
 	virtual bool checkPath(const Position &start, const Position &end, bool &clear) const = 0;

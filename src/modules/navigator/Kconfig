@@ -85,8 +85,7 @@ config NAVIGATOR_SAFE_POINT_BATCH_SIZE
 	depends on MODULES_NAVIGATOR
 	---help---
 		Number of rally points the route planner projects onto the mission
-		route in one pass. Each batch takes one pass over the route, plus at
-		most one more when the geofence rejects some of its candidates.
+		route in one pass. Each batch takes one pass over the route.
 		The minimum of 16 keeps planning fast by limiting the number of
 		passes. The maximum of 32 is the number of rally points that can be
 		stored, so they all fit in one batch.

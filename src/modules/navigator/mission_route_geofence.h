@@ -40,6 +40,8 @@ class Geofence;
 namespace mission_route
 {
 
+struct ProjectionReference;
+
 /**
  * Checks route segments against the loaded Navigator geofence.
  *
@@ -56,13 +58,9 @@ public:
 	GeofencePathChecker(Geofence &geofence, const Position &vehicle_position);
 
 	bool pruneCandidates(ProjectionReferenceBatch &batch) const override;
-	bool checkReference(const ProjectionReference &reference, bool &clear) const override;
-	bool checkCandidate(const ProjectionReference &reference, const RouteProjectionCandidate &candidate,
-			    bool &clear) const override;
 	bool checkPath(const Position &start, const Position &end, bool &clear) const override;
 
 private:
-	bool checkEndAndPath(const Position &start, const Position &end, bool &clear) const;
 	bool exempt(const ProjectionReference &reference) const;
 	bool referenceAllowed(const ProjectionReference &reference) const;
 	bool vehicleAllowed(const Position &position) const;

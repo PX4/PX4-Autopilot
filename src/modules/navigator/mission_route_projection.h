@@ -75,8 +75,6 @@ struct RouteDistanceSummary {
 /** @brief Per-reference scan scratch maintained while walking the mission segments. */
 struct CandidateSearchState {
 	bool prev_projection_on_end{true};
-	bool rescan{false}; /**< The prune may have hidden candidates that pass: rescan, checking each candidate first. */
-	uint8_t unpruned_count{0}; /**< Candidates the first walk kept, counted before the prune. */
 	float min_xtrack_m{FLT_MAX};
 	float xtrack_limit_m{FLT_MAX};
 	float cos_lat{1.f}; /**< Cosine of the reference latitude, for the cross-track lower bound. */
@@ -186,7 +184,7 @@ public:
 
 	/**
 	 * @brief Scan the mission and collect projection candidates for every reference point in the batch.
-	 * With a path checker, the references whose candidates the prune may have hidden are scanned a second time.
+	 * With a path checker, the candidates whose segment fails the geofence checks are then removed.
 	 *
 	 * distance_summary is cleared on entry and populated only when kNone is returned.
 	 */
@@ -206,7 +204,6 @@ private:
 	struct ProjectionScanStats {
 		uint32_t segments_processed{0};
 		uint32_t local_min_found{0};
-		bool geofence_unavailable{false};
 	};
 
 	/**

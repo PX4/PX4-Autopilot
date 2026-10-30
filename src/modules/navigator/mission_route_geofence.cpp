@@ -218,36 +218,6 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 	return true;
 }
 
-bool GeofencePathChecker::checkReference(const ProjectionReference &reference, bool &clear) const
-{
-	clear = false;
-
-	if (!_geofence.isReadyForPathChecks()) {
-		return false;
-	}
-
-	clear = exempt(reference) || referenceAllowed(reference);
-	return true;
-}
-
-bool GeofencePathChecker::checkCandidate(const ProjectionReference &reference,
-		const RouteProjectionCandidate &candidate, bool &clear) const
-{
-	clear = false;
-
-	if (!_geofence.isReadyForPathChecks()) {
-		return false;
-	}
-
-	// The same rules and order as for one candidate in pruneCandidates().
-	if (exempt(reference)) {
-		clear = true;
-		return true;
-	}
-
-	return checkEndAndPath(reference.position, candidate.projection, clear);
-}
-
 bool GeofencePathChecker::checkPath(const Position &start, const Position &end, bool &clear) const
 {
 	clear = false;
@@ -265,17 +235,8 @@ bool GeofencePathChecker::checkPath(const Position &start, const Position &end, 
 		return true;
 	}
 
-	if (!vehicleAllowed(start)) {
-		return true;
-	}
-
-	return checkEndAndPath(start, end, clear);
-}
-
-// The end point limits, then the horizontal path, from a start that passed its own checks.
-bool GeofencePathChecker::checkEndAndPath(const Position &start, const Position &end, bool &clear) const
-{
-	if (!withinScalarLimits(end)) {
+	// The same rules as for one vehicle candidate in pruneCandidates(): the start, the end limits, then the path.
+	if (!vehicleAllowed(start) || !withinScalarLimits(end)) {
 		return true;
 	}
 
