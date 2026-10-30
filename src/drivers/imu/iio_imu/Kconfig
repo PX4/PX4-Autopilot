@@ -1,0 +1,7 @@
+menuconfig DRIVERS_IMU_IIO_IMU
+	bool "Generic Linux IIO IMU"
+	default n
+	depends on PLATFORM_POSIX && BOARD_LINUX_TARGET
+	---help---
+		Enable the generic userspace adapter for Linux buffered IIO IMUs.
+		See src/drivers/imu/iio_imu/README.md for the kernel ABI contract.
