@@ -240,7 +240,6 @@ public:
 
 		// Energy control param
 		float ste_rate_time_const;				///< Filter time constant for specific total energy rate (damping path) [s].
-		float seb_rate_ff;					///< Specific energy balance rate feedforward gain.
 
 		// Pitch control param
 		float pitch_speed_weight;				///< Speed control weighting used by pitch demand calculation.
@@ -626,7 +625,7 @@ private:
 
 private:
 	// State
-	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	AlphaFilter<float> _ste_rate_error_filter;		///< Low pass filter for the specific total energy rate error (feedback path).
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _fast_descend_prev{0.0f};				///< Fast descend ratio of the last update [0,1].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
@@ -741,8 +740,6 @@ public:
 	void set_load_factor(float load_factor) { _control_param.load_factor = load_factor; }
 
 	void set_ste_rate_time_const(float time_const) { _control_param.ste_rate_time_const = time_const; }
-
-	void set_seb_rate_ff_gain(float ff_gain) { _control_param.seb_rate_ff = ff_gain; }
 
 	/**
 	 * Set the pitch angle in level flight at trim airspeed [rad], fed forward as the pitch at zero climb angle
@@ -860,7 +857,6 @@ private:
 		.altitude_setpoint_gain_ff = 0.0f,
 		.airspeed_error_gain = 0.1f,
 		.ste_rate_time_const = 0.1f,
-		.seb_rate_ff = 1.0f,
 		.pitch_speed_weight = 1.0f,
 		.integrator_gain_pitch = 0.0f,
 		.pitch_damping_gain = 0.0f,

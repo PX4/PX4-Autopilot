@@ -231,9 +231,8 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 
 	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, param);
 
-	_ste_rate_estimate_filter.reset(specific_energy_rate.spe_rate.estimate + specific_energy_rate.ske_rate.estimate);
-
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rate, param)};
+	_ste_rate_error_filter.reset(_getControlError(ste_rate));
 
 	_throttle_setpoint = _calcThrottleControlOutput(limit, ste_rate, param, flag);
 
@@ -384,7 +383,14 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 		pitch_speed_weight = 0.0f;
 	}
 
-	weight.spe_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 2.f);
+	// Constrain the SPE weight to a max of 1. For low weight < 1 we only
+	// fade out the airspeed demand, but do not increase altitude demand.
+	// For high weight > 1, the altitude demand on pitch is still faded out
+	// and is too low compared to throttle, leading to airspeed errors.
+	weight.spe_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 1.f);
+
+	// The SKE weight is still allowed to go up to 2, as now fast descend
+	// and underspeed rely on the increased airspeed gain through pitch.
 	weight.ske_weighting = constrain(pitch_speed_weight, 0.f, 2.f);
 
 	return weight;
@@ -534,9 +540,7 @@ float TECSControl::_climbAngleToSebRate(const Input &input, const Param &param)
 float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param) const
 {
 	// Calculate a specific energy correction that doesn't include the integrator contribution
-	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain +
-				    param.seb_rate_ff *
-				    seb_rate.setpoint;
+	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain + seb_rate.setpoint;
 
 	// Convert the specific energy balance rate correction to a climb angle and add the level-flight pitch, the angle
 	// of attack at zero climb angle, to get the absolute pitch setpoint. This calculation assumes:
@@ -559,11 +563,13 @@ float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValu
 void TECSControl::_calcThrottleControl(float dt, const STERateLimit &limit,
 				       const SpecificEnergyRates &specific_energy_rates, const Param &param, const Flag &flag)
 {
-	// Update STE rate estimate LP filter
-	const float STE_rate_estimate_raw = specific_energy_rates.spe_rate.estimate + specific_energy_rates.ske_rate.estimate;
-	_ste_rate_estimate_filter.setParameters(dt, param.ste_rate_time_const);
-	_ste_rate_estimate_filter.update(STE_rate_estimate_raw);
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rates, param)};
+
+	// Low-pass the energy rate error for the feedback; the feedforward acts on the unfiltered setpoint. Filtering
+	// the error rather than the estimate keeps a setpoint change from appearing as a lagged phantom error.
+	_ste_rate_error_filter.setParameters(dt, param.ste_rate_time_const);
+	_ste_rate_error_filter.update(_getControlError(ste_rate));
+
 	// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
 	float throttle_setpoint{param.throttle_min};
 
@@ -602,7 +608,7 @@ TECSControl::ControlValues TECSControl::_calcThrottleControlSteRate(const STERat
 	ste_rate.setpoint += param.load_factor_correction * (param.load_factor - 1.f);
 
 	ste_rate.setpoint = constrain(ste_rate.setpoint, limit.STE_rate_min, limit.STE_rate_max);
-	ste_rate.estimate = _ste_rate_estimate_filter.getState();
+	ste_rate.estimate = specific_energy_rates.spe_rate.estimate + specific_energy_rates.ske_rate.estimate;
 
 	return ste_rate;
 }
@@ -616,7 +622,7 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 	if (flag.airspeed_enabled) {
 		if (param.integrator_gain_throttle > FLT_EPSILON) {
 			// underspeed conditions zero out integration
-			float throttle_integ_input = (_getControlError(ste_rate) * param.integrator_gain_throttle) * dt *
+			float throttle_integ_input = (_ste_rate_error_filter.getState() * param.integrator_gain_throttle) * dt *
 						     STE_rate_to_throttle * (1.0f - _ratio_undersped);
 
 			// only allow integrator propagation into direction which unsaturates throttle
@@ -669,8 +675,8 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 
 	}
 
-	// Add proportional and derivative control feedback to the predicted throttle and constrain to throttle limits
-	float throttle_setpoint = (_getControlError(ste_rate) * param.throttle_damping_gain) * STE_rate_to_throttle +
+	// Add proportional control feedback to the predicted throttle and constrain to throttle limits
+	float throttle_setpoint = (_ste_rate_error_filter.getState() * param.throttle_damping_gain) * STE_rate_to_throttle +
 				  throttle_predicted;
 
 	if (flag.airspeed_enabled) {
