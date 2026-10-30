@@ -85,7 +85,8 @@ class AutopilotTesterCalibration(AutopilotTester):
         that late ack would be counted against the cancel."""
         self._send_calibration_command(param1, param2, param3, param4, param5, param6, param7)
         assert self.poll_condition_with_timeout(lambda: bool(self.calibration_acks()),
-                                                START_ACK_TIMEOUT_S), "No ack for the calibration start"
+                                                START_ACK_TIMEOUT_S), \
+            "No ack for the calibration start"
         assert self.calibration_acks() == [MAV_RESULT_ACCEPTED]
 
     def cancel_calibration(self) -> None:
