@@ -56,6 +56,7 @@ using namespace time_literals;
 
 ModuleBase::Descriptor Sih::desc{task_spawn, custom_command, print_usage};
 
+#if defined(__PX4_POSIX)
 // Poses for the orient command, named after the face pointing down as the calibration names them
 static constexpr struct {
 	const char *name;
@@ -76,6 +77,7 @@ static constexpr float ORIENT_WOBBLE = 0.4f;		// [rad] tilt swing while rotating
 static constexpr float ORIENT_WOBBLE_FREQ = 0.5f;	// [Hz]
 static constexpr hrt_abstime ORIENT_ALL_HOLD = 10_s;	// still on each side for the accel calibration,
 static constexpr hrt_abstime ORIENT_ALL_ROTATE = 10_s;	// then rotating for the mag calibration
+#endif // __PX4_POSIX
 
 Sih::Sih() :
 	ModuleParams(nullptr)
@@ -301,6 +303,7 @@ void Sih::sensor_step()
 
 	read_motors(dt);
 
+#if defined(__PX4_POSIX)
 	orient_update(now);
 
 	if (_orient_mode == OrientMode::Off) {
@@ -310,6 +313,11 @@ void Sih::sensor_step()
 	} else {
 		orient_step(now, dt);
 	}
+
+#else
+	generate_force_and_torques(dt);
+	equations_of_motion(dt);
+#endif // __PX4_POSIX
 
 	reconstruct_sensors_signals(now);
 
@@ -811,6 +819,7 @@ void Sih::equations_of_motion(const float dt)
 	_lpos(2) = -(_lla.altitude() - _lpos_ref_alt);
 }
 
+#if defined(__PX4_POSIX)
 void Sih::orient_update(const hrt_abstime &now)
 {
 	static_assert(sizeof(orient_sides) / sizeof(orient_sides[0]) == ORIENT_SIDE_COUNT, "orient side table");
@@ -922,6 +931,7 @@ void Sih::orient_step(const hrt_abstime &now, const float dt)
 
 	ecefToNed();
 }
+#endif // __PX4_POSIX
 
 void Sih::ecefToNed()
 {
@@ -1305,10 +1315,14 @@ int Sih::print_status()
 
 	PX4_INFO("vehicle landed: %d", _grounded);
 
+#if defined(__PX4_POSIX)
+
 	if (_orient_mode != OrientMode::Off) {
 		PX4_INFO("orient: %s", (_orient_mode == OrientMode::Leveling || _orient_side < 0) ? "moving" :
 			 orient_sides[_orient_side].name);
 	}
+
+#endif // __PX4_POSIX
 
 	PX4_INFO("local position NED (m)");
 	_lpos.print();
@@ -1369,6 +1383,7 @@ Sih *Sih::instantiate(int argc, char *argv[])
 
 int Sih::custom_command(int argc, char *argv[])
 {
+#if defined(__PX4_POSIX)
 	Sih *sih = get_instance<Sih>(desc);
 
 	if (!is_running(desc) || !sih) {
@@ -1408,6 +1423,8 @@ int Sih::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+#endif // __PX4_POSIX
+
 	return print_usage("unknown command");
 }
 
@@ -1436,7 +1453,7 @@ Forward Euler is used for integration.
 Most of the variables are declared global in the .hpp file to avoid stack overflow.
 
 ### Examples
-Pose the vehicle on the ground for accel and mag calibration, sides named as the calibration names them.
+Pose the vehicle on the ground for accel and mag calibration (SITL only), sides named as the calibration names them.
 With `rotate` it turns about the vertical with a tilt swing, as the mag calibration asks for:
 $ simulator_sih orient left rotate
 
@@ -1450,9 +1467,11 @@ $ simulator_sih orient off
 
     PRINT_MODULE_USAGE_NAME("simulator_sih", "simulation");
     PRINT_MODULE_USAGE_COMMAND("start");
+#if defined(__PX4_POSIX)
     PRINT_MODULE_USAGE_COMMAND_DESCR("orient", "Pose the vehicle on the ground for calibration");
     PRINT_MODULE_USAGE_ARG("down|up|front|back|left|right|all|off", "Side facing down, every side in turn, or level", false);
     PRINT_MODULE_USAGE_ARG("rotate", "Rotate about the vertical", true);
+#endif // __PX4_POSIX
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
