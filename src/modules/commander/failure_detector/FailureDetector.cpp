@@ -198,8 +198,14 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 	// When the command drops below the actual descent (stick release, mode switch, stale setpoint), the allowed
 	// descent rate decays at a minimum braking deceleration: the stopping distance does not trigger, while a
 	// vehicle that cannot brake still does.
-	_alt_loss_allowed_descent_rate = math::max(commanded_descent_rate,
-					 _alt_loss_allowed_descent_rate - _alt_loss_min_braking_decel * dt);
+	float braking_descent_rate = _alt_loss_allowed_descent_rate - _alt_loss_min_braking_decel * dt;
+
+	// Once the vehicle has slowed down, the remaining stopping allowance must not mask a following altitude loss.
+	if (lpos.v_z_valid && PX4_ISFINITE(lpos.vz)) {
+		braking_descent_rate = math::min(braking_descent_rate, math::max(lpos.vz, 0.f) + _alt_loss_descent_rate_margin);
+	}
+
+	_alt_loss_allowed_descent_rate = math::max(commanded_descent_rate, braking_descent_rate);
 
 	bool reference_valid = false;
 

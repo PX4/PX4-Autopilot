@@ -405,6 +405,7 @@ The reference altitude depends on what the vehicle is commanded to do:
   It is only lowered at the commanded descent rate, so altitude loss is detected while climbing, holding or descending manually, without triggering on a commanded descent.
   A commanded climb never raises the reference above the altitude actually reached, so a vehicle that climbs slower than commanded (or cannot climb at all) does not trigger, as long as it does not lose altitude.
 - When the vehicle descends faster than commanded (for example after switching from [Stabilized mode](../flight_modes_mc/manual_stabilized.md) during a fast descent), the reference follows it down while it brakes at 2 m/s² or more, so the stopping distance does not trigger.
+  Once the vehicle has slowed down, the reference is lowered no faster than its current descent speed plus 2 m/s, so an altitude loss after stopping is not masked.
 
 | Parameter                                                                                          | Description                                                                                                                                     |
 | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
