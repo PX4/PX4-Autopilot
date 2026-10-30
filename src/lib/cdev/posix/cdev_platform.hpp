@@ -6,11 +6,21 @@
 
 #if defined(__PX4_ZEPHYR)
 #include <zephyr/irq.h>
+#include <zephyr/kernel.h>
+
+static inline void cdev_atomic_leave(unsigned int key)
+{
+	irq_unlock(key);
+
+	// irq_unlock() is not a reschedule point: a work queue that a publication made ready under
+	// the lock preempts the publisher now, instead of when the publisher blocks
+	k_reschedule();
+}
 
 // The node lock masks the interrupts, as on NuttX: with a semaphore, a low priority thread
 // preempted while it copies a topic would block the higher priority threads that use it
 #define ATOMIC_ENTER unsigned int atomic_key = irq_lock()
-#define ATOMIC_LEAVE irq_unlock(atomic_key)
+#define ATOMIC_LEAVE cdev_atomic_leave(atomic_key)
 #define ATOMIC_PAUSE irq_unlock(atomic_key)
 #define ATOMIC_RESUME atomic_key = irq_lock()
 #else
