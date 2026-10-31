@@ -68,6 +68,11 @@ It has a PAW3902 optical flow sensor, Broadcom AFBR-S50LV85D 30 meter distance s
 [ARK Flow MR](../dronecan/ark_flow_mr.md) is a [DroneCAN](../dronecan/index.md) optical flow sensor, [distance sensor](../sensor/rangefinders.md), and IMU, for mid-range applications.
 It has a PixArt PAA3905 optical flow sensor, Broadcom AFBR-S50LX85D 50 meter distance sensor, and Invensense IIM-42653 6-Axis IMU.
 
+### Dronaware Optical Flow
+
+[Dronaware Optical Flow](../sensor/dronaware_optical_flow.md) is proprietary (closed-source) firmware that can be flashed on off-the-shelf ESP32 and ESP32-S3 camera boards, such as the AI-Thinker ESP32-CAM and Waveshare ESP32-S3-CAM.
+It sends `OPTICAL_FLOW_RAD` over a MAVLink UART at up to 100 Hz (as measured on an AI-Thinker ESP32-CAM with an OV3660 camera), and must be paired with a separate [distance sensor](../sensor/rangefinders.md).
+
 ### Holybro H-Flow
 
 The [Holybro H-Flow](https://holybro.com/products/h-flow) is a compact [DroneCAN](../dronecan/index.md) optical flow and [distance sensor](../sensor/rangefinders.md) module.

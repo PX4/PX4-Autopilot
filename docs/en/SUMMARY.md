@@ -309,6 +309,7 @@
       - [Agam FloRange](dronecan/agam_florange.md)
       - [ARK Flow](dronecan/ark_flow.md)
       - [ARK Flow MR](dronecan/ark_flow_mr.md)
+      - [Dronaware Optical Flow](sensor/dronaware_optical_flow.md)
       - [PMW3901](sensor/pmw3901.md)
       - [✘ PX4FLOW](sensor/px4flow.md)
     - [Tachometers (Revolution Counters)](sensor/tachometers.md)
