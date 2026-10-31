@@ -382,6 +382,10 @@ MissionBlock::is_mission_item_reached_or_completed()
 			}
 		}
 
+		if (_mission_item.heading_only) {
+			_waypoint_position_reached = true;
+		}
+
 		if (_waypoint_position_reached) {
 			// reached just now
 			_time_wp_reached = now;

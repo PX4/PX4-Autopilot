@@ -154,8 +154,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### VTOL
 
-- Mission mode: a VTOL front transition item now waits for a running back transition to end, then aligns where the vehicle hovers. During a front transition, including one commanded from the ground station or RC during the alignment, a transition item is sent at once without aligning: a front transition item targets the next waypoint, a back transition item ends the front transition. A front transition from the ground station or RC during the VTOL takeoff alignment no longer skips the takeoff waypoint.
-- Mission mode: the heading alignment before a VTOL transition item now holds where the vehicle is instead of at the last reached waypoint, and an immediate transition (param 2 = 1) no longer makes it hold within 1 m.
+- Mission mode: a VTOL front transition item now waits for a running back transition to end, then aligns. During a front transition, including one commanded from the ground station or RC during the alignment, a transition item is sent at once without aligning: a front transition item targets the next waypoint, a back transition item ends the front transition. A front transition from the ground station or RC during the VTOL takeoff alignment no longer skips the takeoff waypoint.
+- Mission mode: before a VTOL front transition item the vehicle no longer stops to turn towards the next waypoint. It keeps flying towards that waypoint while it turns, without descending, and the transition starts once the heading is within [MIS_YAW_ERR](../advanced_config/parameter_reference.md#MIS_YAW_ERR). The heading alignment before a back transition item in hover now holds where the vehicle is instead of at the last reached waypoint, and an immediate transition (param 2 = 1) no longer makes it hold within 1 m.
 
 ### Fixed-wing
 
