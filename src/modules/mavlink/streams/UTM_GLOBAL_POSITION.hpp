@@ -48,9 +48,6 @@ public:
 	static constexpr const char *get_name_static() { return "UTM_GLOBAL_POSITION"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_UTM_GLOBAL_POSITION; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	bool const_rate() override { return true; }
 
 	unsigned get_size() override
