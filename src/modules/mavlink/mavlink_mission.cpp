@@ -1065,14 +1065,14 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_transfer_land_marker = -1;
 
 		} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
-			_time_last_recv = hrt_absolute_time();
-
 			if (msg->sysid != _transfer_partner_sysid || msg->compid != _transfer_partner_compid) {
 				PX4_DEBUG("WPM: Request from another partner while receiveing. Ignore");
 
 				send_mission_ack(msg->sysid, msg->compid, MAV_MISSION_ERROR);
 				return;
 			}
+
+			_time_last_recv = hrt_absolute_time();
 
 			if (_transfer_seq == 0) {
 				/* looks like our MISSION_REQUEST was lost, try again */
