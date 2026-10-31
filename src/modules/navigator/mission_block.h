@@ -165,7 +165,7 @@ protected:
 	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
 	void setLoiterFromLastLink(struct mission_item_s *item);
 
-	void setLoiterItemCommonFields(struct mission_item_s *item);
+	void setLoiterItemCommonFields(struct mission_item_s *item, uint8_t frame = NAV_FRAME::NAV_FRAME_GLOBAL);
 
 	/**
 	 * Publish a setpoint that holds a course (ground track) at an altitude, without a position target
