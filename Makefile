@@ -496,7 +496,7 @@ tests_neural:
 # The default px4_sitl_test board builds the navigator mission cache, which NuttX boards leave out by default.
 # This target builds without it (CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0).
 tests_nocache:
-	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),test_RTL|test_mission_base)")
+	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),test_RTL|rallyPointCheck|vtol_rtl_transition|test_mission_base|mission_vtol_transition)")
 	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
 	$(eval ARGS += test_results)
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)

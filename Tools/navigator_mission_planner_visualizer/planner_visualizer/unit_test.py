@@ -1,0 +1,185 @@
+"""Turn a scenario and the plan the CLI returned into a planner unit test."""
+
+from dataclasses import fields
+import re
+from typing import Optional
+
+from .cpp_parser import request_defaults
+from .generator import cpp_float, generate_cpp
+from .models import Base, Position, Scene
+from .planner_cli import PlanRequest, PlanResult, first_mission, vehicle_position
+
+_RESUME_FIELDS = (
+    "current_route_direction_reversed",
+    "home_altitude_amsl",
+    "projection_search_distance_m",
+    "acceptance_radius_m",
+    "is_fixed_wing",
+    "in_transition_to_fw",
+    "is_vtol",
+    "fw_u_turn_penalty_m",
+)
+_LAT_LON_TOLERANCE = "1e-6"
+
+
+def gtest_name(text: str) -> str:
+    """CamelCase identifier: capitalise each word, keep capitals already there, drop the rest."""
+    name = re.sub(r"[^A-Za-z0-9]", "", "".join(word[:1].upper() + word[1:] for word in text.split()))
+    return name if name and not name[0].isdigit() else "GeneratedScenario"
+
+
+def generate_unit_test(
+    scene: Scene,
+    base: Optional[Base],
+    request: PlanRequest,
+    result: PlanResult,
+    name: str,
+    vehicle: Optional[Position] = None,
+) -> str:
+    """A TEST_F for the planner or real-geofence tests, asserting what the planner returned.
+
+    The expectations are whatever the planner did, so the test is only as right as the
+    review of the plan on the map. Say what the scenario checks in the comment. Only the
+    vehicle the plan was made for is emitted; unused positions would fail -Werror.
+    """
+    rtl = request.action == "RTL"
+    vehicle = vehicle or vehicle_position(scene)
+    fixtures = _fixtures(scene, base, vehicle)
+    fixture = "MissionRouteGeofenceTest" if scene.fences else "MissionRoutePlannerTest"
+    lines = [
+        "// Describe the intent of this scenario here, not the numbers.",
+        f"TEST_F({fixture}, {gtest_name(name)})",
+        "{",
+    ]
+    lines += ["\t" + line if line else "" for line in fixtures.splitlines()]
+    planner_args = "mission, safe_points" if scene.safe_points else "mission"
+    lines.append(f"\tconst auto provider = makeRouteProvider({planner_args});")
+    request_type = "RtlRouteRequest" if rtl else "MissionResumeRequest"
+    helper = "makeRtlRouteRequest" if rtl else "makeMissionResumeRequest"
+    vehicle_name = vehicle.name if vehicle is not None else "vehicle_position"
+    if scene.fences:
+        lines += [
+            "\t// The map specifies Home altitude, but no Home latitude/longitude.",
+            "\t_navigator.get_home_position()->valid_hpos = false;",
+            f"\t_navigator.get_home_position()->alt = {request.home_altitude_amsl:.3f}f;",
+            "\t_navigator.get_home_position()->valid_alt = true;",
+            "\tASSERT_TRUE(loadFence(fence_points));",
+            f"\tconst mission_route::GeofencePathChecker checker{{_fence, {vehicle_name}}};",
+            "\tMissionRoutePlanner planner{provider, &checker};",
+            f"\tmission_route::{request_type} request{{}};",
+            f"\trequest.vehicle_position = {vehicle_name};",
+            f"\trequest.mission_index = {request.mission_index};",
+        ]
+    else:
+        lines += [
+            "\tMissionRoutePlanner planner{provider};",
+            f"\tmission_route::{request_type} request = {helper}({vehicle_name}, {request.mission_index});",
+        ]
+    lines += [f"\t{line}" for line in _request_overrides(request, scene, rtl, None if scene.fences else helper)]
+    plan_type = "RtlRoutePlan" if rtl else "MissionResumePlan"
+    method = "planRtlRoute" if rtl else "planMissionResumeJoin"
+    lines += [
+        f"\tmission_route::{plan_type} plan{{}};",
+        "",
+        f"\tconst mission_route::FailureReason status = planner.{method}(request, plan);",
+        "",
+    ]
+    if not result.ok:
+        lines += [
+            f"\t// The planner reported: {result.failure}",
+            "\tEXPECT_NE(status, mission_route::FailureReason::kNone);",
+            "\tEXPECT_FALSE(plan.valid());",
+            "}",
+        ]
+        return "\n".join(lines)
+    lines.append(
+        "\tASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);"
+    )
+    lines.append("\tEXPECT_TRUE(plan.valid());")
+    lines += [f"\t{line}" for line in _expectations(result, rtl)]
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def _fixtures(scene: Scene, base: Optional[Base], vehicle: Optional[Position]) -> str:
+    # One mission named `mission`, whatever the pasted source called it, and one vehicle.
+    _, items = first_mission(scene)
+    named = Scene(
+        missions={"mission": items},
+        safe_points=scene.safe_points,
+        positions=[vehicle] if vehicle is not None else [],
+        fences=scene.fences,
+        constants=scene.constants,
+    )
+    return generate_cpp(named, base)
+
+
+def _request_overrides(request: PlanRequest, scene: Scene, rtl: bool, helper: Optional[str]):
+    """Request fields the helper does not already set to the same value, or all of them without a helper."""
+    defaults = request_defaults(helper) if helper else {}
+    for item in fields(request):
+        name, value = item.name, getattr(request, item.name)
+        if name in ("action", "mission_index") or (not rtl and name not in _RESUME_FIELDS):
+            continue
+        if item.type is bool:
+            if value:
+                yield f"request.{name} = true;"
+        elif item.type is int:
+            if value >= 0:  # mission_land_index, -1 when unset
+                yield f"request.{name} = {value};"
+        else:
+            # The CLI gets 1 mm precision, so defaults are compared at that precision.
+            default = defaults.get(name)
+            if default is not None and abs(round(value, 3) - default) < 1e-6:
+                continue
+            literal = cpp_float(value) if helper else f"{value:.3f}f"
+            yield f"request.{name} = {literal};"
+    if scene.velocity is not None:
+        for axis, value in zip(("north", "east"), scene.velocity):
+            literal = cpp_float(value) if helper else f"{value:.3f}f"
+            yield f"request.velocity_{axis}_m_s = {literal};"
+
+
+def _expectations(result: PlanResult, rtl: bool):
+    yield f"EXPECT_EQ(plan.first_mission_item_index, {result.int_field('first_mission_item_index')});"
+    yield _expect_bool("plan.direction_reversed", result.bool_field("direction_reversed"))
+    yield _expect_bool("plan.use_current_altitude", result.bool_field("use_current_altitude"))
+    transition = _transition_enum(result.plan.get("vtol_transition_action", ""))
+    yield f"EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::k{transition});"
+    yield from _expect_position("join_position", result.position("join"))
+    if not rtl:
+        return
+    goal_type = result.plan.get("goal_type", "")
+    yield f"EXPECT_EQ(plan.goal_type, mission_route::GoalType::k{_goal_enum(goal_type)});"
+    if goal_type == "safe_point":
+        yield f"EXPECT_EQ(plan.safe_point_index, {result.int_field('safe_point_index')});"
+        yield f"EXPECT_EQ(plan.branch_off_mission_item_index, {result.int_field('branch_off_mission_item_index')});"
+        yield from _expect_position("branch_off_position", result.position("branch_off"))
+    yield _expect_bool("plan.fly_direct_to_goal", result.bool_field("fly_direct_to_goal"))
+    yield _expect_bool("plan.geofence_prevents_shortcut", result.bool_field("geofence_prevents_shortcut"))
+
+
+def _goal_enum(goal_type: str) -> str:
+    return {
+        "safe_point": "SafePoint",
+        "mission_land": "MissionLand",
+        "mission_takeoff": "MissionTakeoff",
+    }.get(goal_type, "None")
+
+
+def _transition_enum(action: str) -> str:
+    return {"front_transition": "FrontTransition", "back_transition": "BackTransition"}.get(action, "None")
+
+
+def _expect_bool(expression: str, value: bool) -> str:
+    return f"EXPECT_{'TRUE' if value else 'FALSE'}({expression});"
+
+
+def _expect_position(field: str, position):
+    if position is None:
+        return
+    lat, lon, alt = position
+    yield f"EXPECT_NEAR(plan.{field}.lat, {lat:.7f}, {_LAT_LON_TOLERANCE});"
+    yield f"EXPECT_NEAR(plan.{field}.lon, {lon:.7f}, {_LAT_LON_TOLERANCE});"
+    # Full CLI precision: an interpolated altitude rounded to 0.1 m would miss the 0.01 m tolerance.
+    yield f"EXPECT_NEAR(plan.{field}.alt, {alt:.3f}f, 0.01f);"

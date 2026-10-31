@@ -60,7 +60,9 @@ public:
 	~Mission() = default;
 
 	virtual void on_inactive() override;
+	virtual void on_inactivation() override;
 	virtual void on_activation() override;
+	virtual void on_active() override;
 
 	/**
 	 * Set the current mission item.
@@ -68,10 +70,11 @@ public:
 	 * @param index Mission sequence to set as current, or -1 to keep the current item unchanged
 	 *              (e.g. to reset jump counters in place).
 	 * @param reset_jump_counters Reset all DO_JUMP repeat counters and mission completion flag
+	 * @param selection_timestamp Command timestamp, or zero for a selection made now
 	 * @return true if the current mission item was set successfully (or the reset-only, unchanged-index
 	 *         request could be honored), false if index is out of range or there is no current mission item.
 	 */
-	bool set_current_mission_index(int32_t index, bool reset_jump_counters = false);
+	bool set_current_mission_index(int32_t index, bool reset_jump_counters = false, hrt_abstime selection_timestamp = 0);
 
 	uint16_t get_land_start_index() const { return _mission.land_start_index; }
 	bool get_land_start_available() const { return hasMissionLandStart(); }
@@ -82,9 +85,14 @@ private:
 	bool setNextMissionItem() override;
 
 	/**
+	 * Recheck the mission after a Home update while armed on the ground, before takeoff
+	 */
+	void recheckAfterHomeUpdateOnGround();
+
+	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff
 	 */
-	bool do_need_move_to_takeoff();
+	bool do_need_move_to_takeoff(const mission_item_s &takeoff_item);
 
 	/**
 	 * Calculate takeoff height for mission item considering ground clearance
@@ -100,8 +108,35 @@ private:
 
 	void handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
 
-	void handleVtolTransition(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
-				  size_t &num_found_items);
+	bool handleVtolTransition(const mission_item_s next_mission_items[], size_t num_found_items);
+	void prepareVtolTransitionItem(bool aligning) override;
 
 	bool _need_mission_save{false};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	friend class MissionTestPeer;
+
+	/**
+	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
+	 *
+	 * @param keep_mission_index True while an explicit selection or landing-abort approach is pending.
+	 * @return true if a join route was armed, false to fly directly to the current item.
+	 */
+	bool trySetRouteJoinOnActivation(bool keep_mission_index);
+
+	// Apply selection updates and cancel earlier selections when Return starts.
+	void updateMissionItemSelection() override;
+	void keepCurrentMissionItem(hrt_abstime selection_timestamp);
+	uORB::SubscriptionData<mission_item_selection_s> _mission_item_selection_sub{ORB_ID(mission_item_selection)};
+	hrt_abstime _last_mission_item_selection{0};
+	hrt_abstime _last_return_started{0};
+	uint8_t _last_selection_nav_state{vehicle_status_s::NAVIGATION_STATE_MAX};
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		MissionBase,
+		(ParamInt<px4::params::MIS_ROUTE_JOIN>)    _param_mis_route_join,
+		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist,
+		(ParamFloat<px4::params::MIS_FW_SEG_DIST>) _param_mis_fw_seg_dist
+	)
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 };

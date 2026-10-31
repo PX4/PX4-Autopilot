@@ -191,7 +191,7 @@ MavlinkMissionManager::update_active_mission_locked(dm_item_t mission_dataman_id
 
 void
 MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
-		bool write_to_dataman)
+		bool write_to_dataman, bool item_selected)
 {
 	pthread_mutex_lock(&_shared_state_mutex);
 	mission_s mission = update_active_mission_locked(mission_dataman_id, count, seq, crc32);
@@ -205,6 +205,19 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 			PX4_ERR("Can't update mission state in Dataman");
 		}
 	}
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// Send the selection first; Navigator waits for the matching mission update.
+	// Fence and rally updates leave this selection unchanged.
+	mission_item_selection_s selection{};
+	selection.timestamp = mission.timestamp;
+	selection.mission_id = mission.mission_id;
+	selection.mission_dataman_id = mission.mission_dataman_id;
+	selection.selected_seq = item_selected ? mission.current_seq : -1;
+	_mission_item_selection_pub.publish(selection);
+#else
+	(void)item_selected;
+#endif
 
 	_offboard_mission_pub.publish(mission);
 }
@@ -771,7 +784,8 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 			_time_last_recv = hrt_absolute_time();
 
 			if (wpc.seq < _count[MAV_MISSION_TYPE_MISSION]) {
-				update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq, _crc32[MAV_MISSION_TYPE_MISSION]);
+				update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq, _crc32[MAV_MISSION_TYPE_MISSION],
+						      true, true);
 
 			} else {
 				PX4_ERR("WPM: MISSION_SET_CURRENT seq=%d ERROR: not in list", wpc.seq);
