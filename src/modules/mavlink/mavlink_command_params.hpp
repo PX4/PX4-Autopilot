@@ -101,15 +101,19 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  195, 0x70, 0x71 }, // DO_SET_ROI_LOCATION:         mission:p5-7:lat/lon/alt; cmd:p1:gimbal,p5-7:lat/lon/alt
 	{  196, 0x01, 0x01 }, // DO_SET_ROI_WPNEXT_OFFSET:   p1:gimbal_id
 	{  197, 0x01, 0x01 }, // DO_SET_ROI_NONE:             p1:gimbal_id
+	{  200, 0x0F, 0x0F }, // DO_CONTROL_VIDEO:            p1:camera_id,p2:transmission,p3:interval,p4:recording
 	{  201, 0x07, 0x07 }, // DO_SET_ROI:                  p1:mode,p2:wp_idx,p3:roi_idx
+	{  203, 0x7F, 0x7F }, // DO_DIGICAM_CONTROL:          p1-p7 all used
 	{  206, 0x0F, 0x0F }, // DO_SET_CAM_TRIGG_DIST:       p1:dist,p2:shutter,p3:trigger,p4:camera_id
 	{  211, 0x03, 0x03 }, // DO_GRIPPER:                  p1:id,p2:action
 	{  212, 0x03, 0x03 }, // DO_AUTOTUNE_ENABLE:          p1:enable,p2:axis
 	{  214, 0x07, 0x07 }, // DO_SET_CAM_TRIGG_INTERVAL:  p1:cycle,p2:shutter,p3:camera_id
 	{  224, 0x00, 0x03 }, // DO_SET_MISSION_CURRENT:      cmd:p1:seq,p2:reset_jump_counters
+	{  260, 0x3F, 0x3F }, // OBLIQUE_SURVEY:              p1:dist,p2:shutter,p3:min_interval,p4:positions,p5:roll,p6:pitch
 	{  400, 0x03, 0x03 }, // COMPONENT_ARM_DISARM:        p1:arm,p2:force
 	{  420, 0x0F, 0x0F }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance,p4:instance bitmask
 	{  530, 0x03, 0x03 }, // SET_CAMERA_MODE:             p1:camera_id,p2:mode
+	{  531, 0x07, 0x07 }, // SET_CAMERA_ZOOM:             p1:zoom_type,p2:value,p3:camera_id
 	{  532, 0x07, 0x07 }, // SET_CAMERA_FOCUS:            p1:focus_type,p2:value,p3:camera_id
 	{  534, 0x07, 0x07 }, // SET_CAMERA_SOURCE:           p1:camera_id,p2:primary,p3:secondary
 	{  611, 0x00, 0x70 }, // DO_SET_GLOBAL_ORIGIN:        cmd:p5-7:lat/lon/alt (not a mission item)
