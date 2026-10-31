@@ -610,3 +610,23 @@ TEST_F(MissionRouteGeofenceTest, FourBlockedClosestLegsHideClearLeg)
 
 	EXPECT_EQ(planner.planRtlRoute(rtlRequest(vehicle, 1), plan), mission_route::FailureReason::kNoValidCandidateFound);
 }
+
+// Within the acceptance radius of LAND, the vehicle keeps its altitude and may fly straight to it. That hop crosses
+// a wall that no pruned segment touches, so neither Return nor the mission join may use it.
+TEST_F(MissionRouteGeofenceTest, CurrentAltitudeHopToLandingIsChecked)
+{
+	ASSERT_TRUE(loadFence(polygon(false, {{597.f, 1.f}, {598.f, 1.f}, {598.f, 10.f}, {597.f, 10.f}})));
+	const Position vehicle = routePosition(595.f, 5.f);
+	const GeofencePathChecker checker{_fence, vehicle};
+	const std::vector<mission_item_s> mission{routeItem(0.f, 0.f), routeItem(600.f, 0.f, NAV_CMD_LAND)};
+	const auto provider = makeRouteProvider(mission, {safePointItem(700.f, 0.f)});
+	MissionRoutePlanner planner{provider, &checker};
+
+	mission_route::RtlRoutePlan plan{};
+	EXPECT_EQ(planner.planRtlRoute(rtlRequest(vehicle, 1), plan), mission_route::FailureReason::kNoValidPath);
+	EXPECT_FALSE(plan.valid());
+
+	mission_route::MissionResumePlan join{};
+	EXPECT_EQ(planner.planMissionResumeJoin(rtlRequest(vehicle, 1), join), mission_route::FailureReason::kNoValidPath);
+	EXPECT_FALSE(join.valid());
+}
