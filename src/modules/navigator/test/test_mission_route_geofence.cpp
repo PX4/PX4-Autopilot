@@ -140,10 +140,6 @@ TEST_F(MissionRouteGeofenceTest, ChecksMoreThanOnePathBatchAndThePartialTail)
 	// with the eleventh reference split across the boundary of 32 paths.
 	static constexpr uint8_t kReferenceCount = 13;
 
-	if (mission_route::kMaxSafePointBatch < kReferenceCount) {
-		GTEST_SKIP() << "requires at least thirteen configured projection batch slots";
-	}
-
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	GeofencePathChecker checker{_fence, routePosition(0.f, 0.f)};
 	ProjectionReferenceBatch batch{};
@@ -305,10 +301,6 @@ TEST_F(MissionRouteGeofenceTest, UnavailablePathBatchDiscardsAllCandidates)
 TEST_F(MissionRouteGeofenceTest, UnavailableTailDiscardsPreviouslyAcceptedPathBatch)
 {
 	static constexpr uint8_t kReferenceCount = 13;
-
-	if (mission_route::kMaxSafePointBatch < kReferenceCount) {
-		GTEST_SKIP() << "requires at least thirteen configured projection batch slots";
-	}
 
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	GeofencePathChecker checker{_fence, routePosition(0.f, 0.f)};
