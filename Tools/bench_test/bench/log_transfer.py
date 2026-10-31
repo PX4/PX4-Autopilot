@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from px4bench import (Reporter, MavlinkShell, SHELL_OPEN_TIMEOUT,
                       add_connection_args, connect, make_report_dir,
                       send_heartbeat)
-from px4bench.ftp import LOG_ROOT, ULOG_MAGIC7, ftp_list, ftp_download, mavftp
+from px4bench.ftp import ULOG_MAGIC7, find_log_root, ftp_list, ftp_download, mavftp
 
 SHELL_TIMEOUT = 10.0
 MIN_LOG_SIZE = 1024            # a real ULog is more than 1 KB
@@ -105,17 +105,17 @@ def main():
         ftp = mavftp.MAVFTP(mav, target_system=mav.target_system,
                             target_component=mav.target_component)
 
-        entries = ftp_list(ftp, LOG_ROOT)
+        log_root, entries = find_log_root(ftp)
         dirs = sorted([e.name for e in entries if e.is_dir])
         if not dirs:
             report.fail('ftp_list_root',
                         'no log directories under {} (found: {})'.format(
-                            LOG_ROOT, [e.name for e in entries]))
+                            log_root, [e.name for e in entries]))
             sys.exit(report.finish())
         newest_dir = dirs[-1]
         report.ok('ftp_list_root', 'newest log dir: {}'.format(newest_dir))
 
-        log_dir = '{}/{}'.format(LOG_ROOT, newest_dir)
+        log_dir = '{}/{}'.format(log_root, newest_dir)
         entries = ftp_list(ftp, log_dir)
         ulgs = sorted([e for e in entries if not e.is_dir and e.name.endswith('.ulg')],
                       key=lambda e: e.name)
