@@ -97,9 +97,9 @@ Sets the vehicle emergency state
 - `5`: Interference
 - `6`: Downed
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 6        |           | 0       |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 6        |           | 0       |      | &nbsp;    |
 
 ### ADSB_EMIT_TYPE (`INT32`) {#ADSB_EMIT_TYPE}
 
@@ -151,9 +151,9 @@ Sets GPS lataral offset encoding
 - `6`: LatRight4M
 - `7`: LatRight6M
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 7        |           | 0       |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 7        |           | 0       |      | &nbsp;    |
 
 ### ADSB_GPS_OFF_LON (`INT32`) {#ADSB_GPS_OFF_LON}
 
@@ -166,9 +166,9 @@ Sets GPS longitudinal offset encoding
 - `0`: NoData
 - `1`: AppliedBySensor
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1        |           | 0       |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1        |           | 0       |      | &nbsp;    |
 
 ### ADSB_ICAO_ID (`INT32`) {#ADSB_ICAO_ID}
 
@@ -186,9 +186,9 @@ ADSB-In Special ICAO configuration.
 
 This vehicle is always tracked. Use 0 to disable.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 16777215 |           | 0       |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 16777215 |           | 0       |      | &nbsp;    |
 
 ### ADSB_IDENT (`INT32`) {#ADSB_IDENT}
 
@@ -201,9 +201,9 @@ Enable Identification of Position feature
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### ADSB_LEN_WIDTH (`INT32`) {#ADSB_LEN_WIDTH}
 
@@ -270,9 +270,9 @@ ADSB-Out squawk code configuration.
 
 This parameter defines the squawk code. Value should be between 0000 and 7777.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 7777     |           | 1200    |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 7777     |           | 1200    |      | &nbsp;    |
 
 ## Actuator Outputs
 
@@ -36642,9 +36642,9 @@ Maximum number of log directories to keep.
 
 If greater than 0, the oldest log directories are deleted at log start to keep the total directory count at or below this value. This cleanup is orthogonal to the free-space cleanup driven by SDLOG_ROTATE and SDLOG_MAX_SIZE, and is useful for capping log usage by count independent of available disk size (e.g. in SITL). A value of 0 disables this count-based cleanup.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1000     |           | 0       |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 0       |      | &nbsp;    |
 
 ### SDLOG_EXCH_KEY (`INT32`) {#SDLOG_EXCH_KEY}
 
@@ -36672,9 +36672,9 @@ Maximum log file size.
 
 Maximum size of a single log file in mebibytes (1 MiB = 1024 \* 1024 bytes). When reached, the log file is closed and a new one is started. This value is also added to the cleanup threshold (see SDLOG_ROTATE) to reserve headroom for the next log file. A value of 0 disables both file rotation and the cleanup reservation. Must stay below the FAT32 file size limit of 4 GiB.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 4095     |           | 1024    | MiB  | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 4095     |           | 1024    | MiB  | &nbsp;    |
 
 ### SDLOG_MISSION (`INT32`) {#SDLOG_MISSION}
 
@@ -36741,9 +36741,9 @@ Maximum disk usage percentage.
 
 Maximum percentage of disk space that logs may occupy during operation, including while writing a new log file. For example, a value of 90 means at least 10% of disk is always kept free, even while writing. A value of 100 lets logs fill the disk completely. A value of 0 disables space-based cleanup entirely. At log start, oldest logs are deleted as needed to maintain this guarantee, accounting for the next file write of up to SDLOG_MAX_SIZE. Cleanup always happens at log start (not boot) so logs can be downloaded via FTP before deletion.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 100      |           | 90      |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 100      |           | 90      |      | &nbsp;    |
 
 ### SDLOG_UTC_OFFSET (`INT32`) {#SDLOG_UTC_OFFSET}
 
@@ -39060,9 +39060,9 @@ Heater controller 1 integrator clamp.
 
 Limits the maximum (and minimum) contribution of the integrator term to the controller output.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
 
 ### HEATER1_NOM_V (`FLOAT`) {#HEATER1_NOM_V}
 
@@ -39071,9 +39071,9 @@ Nominal supply voltage for heater 1.
 Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
 to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
 ### HEATER1_SENS_ID (`INT32`) {#HEATER1_SENS_ID}
 
@@ -39108,9 +39108,9 @@ Heater 1 controller feedforward value.
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1.0      |           | 0.05    | %    | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1.0      |           | 0.05    | %    | &nbsp;    |
 
 ### HEATER1_TEMP_I (`FLOAT`) {#HEATER1_TEMP_I}
 
@@ -39119,9 +39119,9 @@ Heater 1 controller integrator gain value.
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1.0      |           | 0.025   | us/C | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1.0      |           | 0.025   | us/C | &nbsp;    |
 
 ### HEATER1_TEMP_P (`FLOAT`) {#HEATER1_TEMP_P}
 
@@ -39129,9 +39129,9 @@ Heater 1 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
 
 ### HEATER1_TEMP_SRC (`INT32`) {#HEATER1_TEMP_SRC}
 
@@ -39150,9 +39150,9 @@ Heater controller 2 integrator clamp.
 
 Limits the maximum (and minimum) contribution of the integrator term to the controller output.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
 
 ### HEATER2_NOM_V (`FLOAT`) {#HEATER2_NOM_V}
 
@@ -39161,9 +39161,9 @@ Nominal supply voltage for heater 2.
 Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
 to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
 ### HEATER2_SENS_ID (`INT32`) {#HEATER2_SENS_ID}
 
@@ -39198,9 +39198,9 @@ Heater 2 controller feedforward value.
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1.0      |           | 0.05    | %    | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1.0      |           | 0.05    | %    | &nbsp;    |
 
 ### HEATER2_TEMP_I (`FLOAT`) {#HEATER2_TEMP_I}
 
@@ -39209,9 +39209,9 @@ Heater 2 controller integrator gain value.
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1.0      |           | 0.025   | us/C | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1.0      |           | 0.025   | us/C | &nbsp;    |
 
 ### HEATER2_TEMP_P (`FLOAT`) {#HEATER2_TEMP_P}
 
@@ -39219,9 +39219,9 @@ Heater 2 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
 
 ### HEATER2_TEMP_SRC (`INT32`) {#HEATER2_TEMP_SRC}
 
@@ -39240,9 +39240,9 @@ Heater controller 3 integrator clamp.
 
 Limits the maximum (and minimum) contribution of the integrator term to the controller output.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
 
 ### HEATER3_NOM_V (`FLOAT`) {#HEATER3_NOM_V}
 
@@ -39251,9 +39251,9 @@ Nominal supply voltage for heater 3.
 Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
 to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
 ### HEATER3_SENS_ID (`INT32`) {#HEATER3_SENS_ID}
 
@@ -39288,9 +39288,9 @@ Heater 3 controller feedforward value.
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1.0      |           | 0.05    | %    | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1.0      |           | 0.05    | %    | &nbsp;    |
 
 ### HEATER3_TEMP_I (`FLOAT`) {#HEATER3_TEMP_I}
 
@@ -39299,9 +39299,9 @@ Heater 3 controller integrator gain value.
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1.0      |           | 0.025   | us/C | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1.0      |           | 0.025   | us/C | &nbsp;    |
 
 ### HEATER3_TEMP_P (`FLOAT`) {#HEATER3_TEMP_P}
 
@@ -39309,9 +39309,9 @@ Heater 3 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
 
 ### HEATER3_TEMP_SRC (`INT32`) {#HEATER3_TEMP_SRC}
 
@@ -39364,9 +39364,9 @@ leads to reduced control latency and permits to increase the P gains.
 
 A value of 0 disables the filter.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1000     | 0.1       | 20.0    | Hz   | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     | 0.1       | 20.0    | Hz   | &nbsp;    |
 
 ### IMU_GYRO_CAL_EN (`INT32`) {#IMU_GYRO_CAL_EN}
 
@@ -39391,9 +39391,9 @@ It applies also to the angular acceleration (D-Term filter), see IMU_DGYRO_CUTOF
 
 A value of 0 disables the filter.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1000     | 0.1       | 40.0    | Hz   | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     | 0.1       | 40.0    | Hz   | &nbsp;    |
 
 ### IMU_GYRO_DNF_BW (`FLOAT`) {#IMU_GYRO_DNF_BW}
 
@@ -39501,9 +39501,9 @@ The frequency width of the stop band for the 2nd order notch filter on the prima
 See "IMU_GYRO_NF0_FRQ" to activate the filter and to set the notch frequency.
 Applies to both angular velocity and angular acceleration sent to the controllers.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 100      | 0.1       | 20.0    | Hz   | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 100      | 0.1       | 20.0    | Hz   | &nbsp;    |
 
 ### IMU_GYRO_NF0_FRQ (`FLOAT`) {#IMU_GYRO_NF0_FRQ}
 
@@ -39517,9 +39517,9 @@ See "IMU_GYRO_NF0_BW" to set the bandwidth of the filter.
 
 A value of 0 disables the filter.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1000     | 0.1       | 0.0     | Hz   | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     | 0.1       | 0.0     | Hz   | &nbsp;    |
 
 ### IMU_GYRO_NF1_BW (`FLOAT`) {#IMU_GYRO_NF1_BW}
 
@@ -39529,9 +39529,9 @@ The frequency width of the stop band for the 2nd order notch filter on the prima
 See "IMU_GYRO_NF1_FRQ" to activate the filter and to set the notch frequency.
 Applies to both angular velocity and angular acceleration sent to the controllers.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 100      | 0.1       | 20.0    | Hz   | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 100      | 0.1       | 20.0    | Hz   | &nbsp;    |
 
 ### IMU_GYRO_NF1_FRQ (`FLOAT`) {#IMU_GYRO_NF1_FRQ}
 
@@ -39545,9 +39545,9 @@ See "IMU_GYRO_NF1_BW" to set the bandwidth of the filter.
 
 A value of 0 disables the filter.
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 1000     | 0.1       | 0.0     | Hz   | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     | 0.1       | 0.0     | Hz   | &nbsp;    |
 
 ### IMU_GYRO_RATEMAX (`INT32`) {#IMU_GYRO_RATEMAX}
 
@@ -46368,9 +46368,9 @@ This parameter defines the operating mode of the MXS
 - `2`: Standby
 - `3`: Alt
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 3        |           | 0       |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 3        |           | 0       |      | &nbsp;    |
 
 ### MXS_SER_CFG (`INT32`) {#MXS_SER_CFG}
 
@@ -46409,9 +46409,9 @@ The MXS communication port to receive Target data from
 - `1`: COM0
 - `2`: COM1
 
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 2        |           | 1       |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 2        |           | 1       |      | &nbsp;    |
 
 ## UAVCAN
 
@@ -46427,9 +46427,12 @@ UAVCAN CAN bus bitrate.
 
 UAVCAN CAN node ID (0 for dynamic allocation).
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 127      |           | 0       |      | &nbsp;    |
+Set to 0 (default) to use dynamic node ID allocation (DNA).
+Set to 1-125 to use a static node ID, which must be unique on the bus.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 125      |           | 0       |      | &nbsp;    |
 
 ### CANNODE_PT_SENS (`INT32`) {#CANNODE_PT_SENS}
 
