@@ -1771,9 +1771,12 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	    && PX4_ISFINITE(odom_in.pitchspeed)
 	    && PX4_ISFINITE(odom_in.yawspeed)) {
 
+		// Same FLU body frame as assumed for the attitude above
+		const bool body_flu = (odom_in.frame_id == MAV_FRAME_LOCAL_ENU) || (odom_in.frame_id == MAV_FRAME_LOCAL_FLU);
+
 		odom.angular_velocity[0] = odom_in.rollspeed;
-		odom.angular_velocity[1] = odom_in.pitchspeed;
-		odom.angular_velocity[2] = odom_in.yawspeed;
+		odom.angular_velocity[1] = body_flu ? -odom_in.pitchspeed : odom_in.pitchspeed;
+		odom.angular_velocity[2] = body_flu ? -odom_in.yawspeed : odom_in.yawspeed;
 	}
 
 	odom.reset_counter = odom_in.reset_counter;
