@@ -40,9 +40,13 @@ namespace open_drone_id
 
 static constexpr uint8_t UAS_ID_SIZE = 20;
 static constexpr uint8_t UAS_ID_TYPE_SERIAL_NUMBER = 1;
+// WIP proposal MAV_ODID_ID_TYPE_CN_PRODUCT_ID in mavlink/mavlink#2500.
+// Requires matching GCS/RID endpoints; this is not an ASTM on-air ID allocation.
+static constexpr uint8_t UAS_ID_TYPE_CN_PRODUCT_ID = 5;
 static constexpr int32_t UAS_ID_MODE_LOCK_FIRST_BASIC_ID = 1;
 
 struct UasId {
+	uint8_t id_type{0};
 	uint8_t ua_type{0};
 	uint8_t uas_id[UAS_ID_SIZE] {};
 };
@@ -78,7 +82,7 @@ class BidStorage
 {
 public:
 	static BidLockInfo get();
-	static BidStoreResult checkOrStore(uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE]);
+	static BidStoreResult checkOrStore(uint8_t id_type, uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE]);
 };
 
 class BidLock

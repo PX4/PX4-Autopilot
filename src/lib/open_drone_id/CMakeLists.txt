@@ -34,7 +34,14 @@
 if(CONFIG_BOARD_HAS_RID_EEPROM)
 	px4_add_library(open_drone_id
 		odid_bid_storage.cpp
+		odid_identity.cpp
 	)
 
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/odid_params.yaml)
 endif()
+
+px4_add_unit_gtest(SRC OdidIdentityTest.cpp
+	EXTRA_SRCS
+		odid_identity.cpp
+		${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/lib_crc32.c
+)
