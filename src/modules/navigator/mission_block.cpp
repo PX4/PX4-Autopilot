@@ -186,6 +186,9 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_navigator->get_global_position()->alt,
 				&dist_xy, &dist_z);
 
+		/*
+			Takeoff for  Multirotor and VTOL(MC) in Global coordinates
+		*/
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
@@ -211,6 +214,9 @@ MissionBlock::is_mission_item_reached_or_completed()
 			}
 
 
+		/*
+			Takeoff for  Multirotor  in Local coordinates
+		*/
 		} else if((_mission_item.nav_cmd == NAV_CMD_TAKEOFF_LOCAL)
 		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
@@ -218,14 +224,16 @@ MissionBlock::is_mission_item_reached_or_completed()
 			float altitude_acceptance_radius = _navigator->get_altitude_acceptance_radius();
 
 			/* It should be safe to just use half of the takoeff_alt as an acceptance radius. */
-			if (fabsf(takeoff_alt) < altitude_acceptance_radius) {
-				altitude_acceptance_radius = takeoff_alt / 2.0f;
+			if (fabsf(takeoff_height) < altitude_acceptance_radius) {
+				altitude_acceptance_radius = takeoff_height / 2.0f;
 			}
 			if(fabsf(_navigator->get_local_position()->z - takeoff_height) < altitude_acceptance_radius){
 
 				_waypoint_position_reached = true;
 			}
-
+		/*
+		Takeoff for Fixed Wing
+		*/
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			/* fixed-wing takeoff is reached once the mode manager has finished the climbout */
@@ -233,6 +241,9 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_waypoint_position_reached = true;
 			}
 
+		/*
+		Takeoff for Rover
+		*/
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 			// Accept takeoff waypoint to be reached if the distance in 2D plane is within acceptance radius
