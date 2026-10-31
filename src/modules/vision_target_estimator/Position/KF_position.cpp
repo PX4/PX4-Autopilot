@@ -70,6 +70,36 @@ void KF_position::predict(float dt, float acc_uav)
 	_state_covariance = cov_next;
 }
 
+void KF_position::resetPositionAndBias(float position, float position_var, float bias, float bias_var, float latency)
+{
+#if defined(CONFIG_VTEST_MOVING)
+	// Move the retained motion estimate back to the capture time. Forward prediction must
+	// restore today's target velocity, not integrate its acceleration for a second time.
+	_state(vtest::State::vel_target) -= _state(vtest::State::acc_target) * latency;
+	SquareMatrixState rewind;
+	rewind.setIdentity();
+	rewind(vtest::State::vel_target, vtest::State::acc_target) = -latency;
+	_state_covariance = rewind * _state_covariance * rewind.transpose();
+#else
+	(void)latency;
+#endif // CONFIG_VTEST_MOVING
+
+	_state(vtest::State::pos_rel) = position;
+	_state(vtest::State::bias) = bias;
+
+	// Only the replaced states lose their previous correlations. Retain the motion
+	// covariance; subsequent prediction adds process noise without subtracting past noise.
+	for (size_t i = 0; i < kStateSize; ++i) {
+		_state_covariance(vtest::State::pos_rel, i) = 0.f;
+		_state_covariance(i, vtest::State::pos_rel) = 0.f;
+		_state_covariance(vtest::State::bias, i) = 0.f;
+		_state_covariance(i, vtest::State::bias) = 0.f;
+	}
+
+	_state_covariance(vtest::State::pos_rel, vtest::State::pos_rel) = fmaxf(position_var, kMinVar);
+	_state_covariance(vtest::State::bias, vtest::State::bias) = fmaxf(bias_var, kMinVar);
+}
+
 void KF_position::predictState(float dt, float acc,
 			       const VectorState &x_in,
 			       const SquareMatrixState &P_in,
@@ -94,14 +124,20 @@ void KF_position::pushHistory(const uint64_t time_us)
 	_oosm.push(time_us, _state, _state_covariance, _last_acc);
 }
 
-void KF_position::resetHistory()
+void KF_position::resetHistory(FusionTimes times)
 {
-	_oosm.reset();
+	_oosm.reset(times);
 }
 
 FusionResult KF_position::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold)
 {
 	return _oosm.fuse(*this, meas, now_us, nis_threshold, _state, _state_covariance, _last_acc);
+}
+
+void KF_position::fuseScalarsAtTime(const ScalarMeas *meas, size_t count, uint64_t now_us, float nis_threshold,
+				    FusionResult *results)
+{
+	_oosm.fuseBatch(*this, meas, count, now_us, nis_threshold, _state, _state_covariance, _last_acc, results);
 }
 
 void KF_position::applyCorrection(VectorState &state, SquareMatrixState &cov, const VectorState &K, float innov, float S)

@@ -103,13 +103,17 @@ public:
 	struct PathCheck {
 		matrix::Vector2d start; ///< latitude, longitude in degrees
 		matrix::Vector2d end;
+		float end_radius{0.f}; ///< Circle radius at end in metres; zero checks only the path.
 	};
 
 	/**
-	 * Check 1..MAX_PATH_CHECKS paths against horizontal fences. Boundary contact is a breach.
+	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences.
+	 * Circles are also checked against the maximum distance from Home.
+	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
+	 * a fixed-wing waypoint turned into a loiter to reach its altitude cannot be predicted here.
 	 * At least one endpoint of each path must be valid under the existing point check.
 	 * For a connected chain, checking the first point is enough if all preceding paths pass.
-	 * Check anchors and paths against the same loaded fence; check Home and altitude limits separately.
+	 * Check anchors and paths against the same loaded fence; check positions against Home and altitude limits separately.
 	 * Uses cached fence data only. Paths may cross the antimeridian.
 	 * Polygon checks approximate great-circle paths with a 2 m subdivision target; this is not a clearance margin.
 	 * Great circles approximate local guidance near the EKF origin. Paths that could reach a pole or exceed

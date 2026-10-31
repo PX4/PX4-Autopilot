@@ -209,7 +209,7 @@ If a critical issue is discovered during RC testing that must be fixed before re
 3. Maintainers vote on whether to merge the fix
 4. If approved, merge the fix and create a new RC tag (e.g., `v1.18.0-rc2`)
 
-### 7) Release Vote
+### 7. Release Vote
 
 The release vote takes place during the [Weekly Community Q&A Call](../contribute/dev_call.md):
 
@@ -254,7 +254,7 @@ When a version tag is pushed, the [build_all_targets.yml](https://github.com/PX4
 2. Uploads firmware artifacts to AWS S3 (`Firmware/vX.Y.Z/` and updates `Firmware/stable/`)
 3. Creates a **draft release** on GitHub with all `.px4` firmware files attached
 
-### 11) Publish GitHub Release
+### 11. Publish GitHub Release
 
 Edit the draft release on GitHub:
 

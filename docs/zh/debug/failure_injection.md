@@ -126,7 +126,7 @@ While the selected aux switch is on the configured failure is injected; switchin
 ## MAVSDK Failure Plugin
 
 The [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html) can be used to programmatically inject failures.
-It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsdk.md) to simulate failure cases (for example, see [PX4-Autopilot/test/mavsdk_tests/autopilot_tester.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/autopilot_tester.cpp)).
+It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsdk.md) to simulate failure cases (for example, see [PX4-Autopilot/test/mavsdk_tests/test_multicopter_failsafe.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/test_multicopter_failsafe.py)).
 
 The plugin API is a direct mapping of the failure command shown above, with a few additional error signals related to the connection.
 

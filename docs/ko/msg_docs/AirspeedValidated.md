@@ -24,7 +24,7 @@ Used by controllers, estimators and for airspeed reporting to operator.
 | <a id="fld_calibraded_airspeed_synth_m_s"></a>calibraded_airspeed_synth_m_s                            | `float32` | m/s                                                              |                   | Synthetic airspeed (Invalid: NaN)                                                                                            |
 | <a id="fld_airspeed_derivative_filtered"></a>airspeed_derivative_filtered                                                                        | `float32` | m/s^2                                                            |                   | Filtered indicated airspeed derivative                                                                                                                          |
 | <a id="fld_throttle_filtered"></a>throttle_filtered                                                                                                                   | `float32` |                                                                  |                   | Filtered fixed-wing throttle                                                                                                                                    |
-| <a id="fld_pitch_filtered"></a>pitch_filtered                                                                                                                         | `float32` | rad                                                              |                   | Filtered pitch                                                                                                                                                  |
+| <a id="fld_pitch_filtered"></a>pitch_filtered                                                                                                                         | `float32` | rad                                                              |                   | Filtered absolute pitch angle of the fixed-wing body x-axis above the horizon                                                                                   |
 
 ## Enums
 
@@ -80,7 +80,7 @@ float32 calibrated_ground_minus_wind_m_s # [m/s] [@invalid NaN] CAS calculated f
 float32 calibraded_airspeed_synth_m_s # [m/s] [@invalid NaN] Synthetic airspeed
 float32 airspeed_derivative_filtered # [m/s^2] Filtered indicated airspeed derivative
 float32 throttle_filtered # [-] Filtered fixed-wing throttle
-float32 pitch_filtered # [rad] Filtered pitch
+float32 pitch_filtered # [rad] Filtered absolute pitch angle of the fixed-wing body x-axis above the horizon
 ```
 
 :::

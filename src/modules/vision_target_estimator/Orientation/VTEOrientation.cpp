@@ -42,6 +42,8 @@
 
 #include <px4_platform_common/defines.h>
 
+#include <cmath>
+
 #include <mathlib/mathlib.h>
 
 #include "VTEOrientation.h"
@@ -63,12 +65,6 @@ VTEOrientation::VTEOrientation() : ModuleParams(nullptr)
 
 VTEOrientation::~VTEOrientation() = default;
 
-bool VTEOrientation::init()
-{
-	_target_est_yaw.resetHistory();
-	return true;
-}
-
 void VTEOrientation::resetFilter(hrt_abstime min_sample_time)
 {
 	// Keep the frame boundary across subsequent timeout/task resets.
@@ -76,14 +72,15 @@ void VTEOrientation::resetFilter(hrt_abstime min_sample_time)
 		_min_sample_time = min_sample_time;
 	}
 
-	_estimator_initialized = false;
-	_target_est_yaw.resetHistory();
-
-	if (min_sample_time != 0) {
+	// Tell consumers the last published yaw no longer holds.
+	if (_estimator_initialized || (min_sample_time != 0)) {
 		_orientation_msg = {};
 		_orientation_msg.timestamp = nowUs();
 		_target_orientation_pub.publish(_orientation_msg);
 	}
+
+	_estimator_initialized = false;
+	_target_est_yaw.resetHistory();
 }
 
 void VTEOrientation::update()
@@ -118,9 +115,7 @@ void VTEOrientation::update()
 	}
 
 	// Fuse the latest observation and publish innovations.
-	if (performUpdateStep()) {
-		_last_update = _last_predict;
-	}
+	performUpdateStep();
 
 	if (_estimator_initialized) {
 		// Store the post-fusion posterior snapshot at the current timestamp for OOSM fusion.
@@ -135,18 +130,40 @@ void VTEOrientation::initEstimator(const VisionObs &vision_obs)
 	OrientationStateVec state_init{};
 	state_init(KF_orientation::kYaw) = vision_obs.yaw;
 
+	// The yaw is no better known than the sample that seeds it.
 	OrientationStateVec state_var_init;
 	state_var_init.setAll(fmaxf(_param_vte_yaw_unc_in.get(), kMinVariance));
+	state_var_init(KF_orientation::kYaw) = fmaxf(state_var_init(KF_orientation::kYaw), vision_obs.yaw_var);
 
 	_target_est_yaw.setState(state_init);
 	_target_est_yaw.setStateCovarianceDiag(state_var_init);
-	_target_est_yaw.resetHistory();
 
 	PX4_DEBUG("VTE Orientation initialized with yaw: %.2f [rad]", (double)vision_obs.yaw);
 
 	_estimator_initialized = true;
-	_last_update = nowUs();
-	_last_predict = _last_update;
+	_last_predict = nowUs();
+	_last_update = vision_obs.timestamp;
+
+	// The sample is the state, so it is not fused. Snapshot it at its capture time for later replays.
+	_target_est_yaw.resetHistory({vision_obs.timestamp, 0});
+	_target_est_yaw.pushHistory(vision_obs.timestamp);
+
+	vte_aid_source1d_s aid{};
+	aid.timestamp = _last_predict;
+	aid.timestamp_sample = vision_obs.timestamp;
+	aid.time_last_predict = _last_predict;
+	aid.time_since_meas_ms = (_last_predict - vision_obs.timestamp) * kMicrosecondsToMilliseconds;
+	aid.observation = vision_obs.yaw;
+	aid.observation_variance = vision_obs.yaw_var;
+	aid.innovation = NAN;
+	aid.innovation_variance = NAN;
+	aid.test_ratio = NAN;
+	aid.replay_test_ratio_max = -1.f;
+	aid.fusion_status = FusionStatus::STATUS_INITIALIZED;
+	_vte_aid_ev_yaw_pub.publish(aid);
+
+	// Propagate the sample to now with the process noise.
+	predictionStep((_last_predict - vision_obs.timestamp) * kMicrosecondsToSeconds);
 }
 
 void VTEOrientation::predictionStep(float dt)
@@ -155,31 +172,20 @@ void VTEOrientation::predictionStep(float dt)
 	_target_est_yaw.predict(dt);
 }
 
-bool VTEOrientation::performUpdateStep()
+void VTEOrientation::performUpdateStep()
 {
 	VisionObs vision_obs{};
 
 	if (!_vte_aid_mask.flags.use_vision_pos || !processObsVision(vision_obs)) {
-		return false;
+		return;
 	}
 
 	if (!_estimator_initialized) {
 		initEstimator(vision_obs);
+		return;
 	}
 
-	return fuseMeas(vision_obs);
-}
-
-bool VTEOrientation::shouldEmitWarning(hrt_abstime &last_warn)
-{
-	const hrt_abstime now = nowUs();
-
-	if ((last_warn == 0) || (now < last_warn) || ((now - last_warn) > kWarnThrottleIntervalUs)) {
-		last_warn = now;
-		return true;
-	}
-
-	return false;
+	fuseMeas(vision_obs);
 }
 
 bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw)
@@ -207,8 +213,19 @@ bool VTEOrientation::processObsVision(VisionObs &vision_obs)
 {
 	fiducial_marker_yaw_report_s fiducial_marker_yaw;
 
-	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw) ||
-	    !isVisionDataValid(fiducial_marker_yaw)) {
+	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw)) {
+		return false;
+	}
+
+	if (!alignFutureSampleTime(fiducial_marker_yaw.timestamp_sample, nowUs())) {
+		if (shouldEmitWarning(_vision_warn_last)) {
+			PX4_WARN("VTE: Vision yaw timestamp in the future!");
+		}
+
+		return false;
+	}
+
+	if (!isVisionDataValid(fiducial_marker_yaw)) {
 		return false;
 	}
 
@@ -222,7 +239,7 @@ bool VTEOrientation::processObsVision(VisionObs &vision_obs)
 	return true;
 }
 
-bool VTEOrientation::fuseMeas(const VisionObs &vision_obs)
+void VTEOrientation::fuseMeas(const VisionObs &vision_obs)
 {
 	vte_aid_source1d_s target_innov = {};
 	const float nis_threshold = fmaxf(_param_vte_yaw_nis_thre.get(), kMinNisThreshold);
@@ -249,10 +266,14 @@ bool VTEOrientation::fuseMeas(const VisionObs &vision_obs)
 	target_innov.test_ratio          = result.test_ratio;
 	target_innov.fusion_status       = static_cast<uint8_t>(result.status);
 	target_innov.history_steps       = result.history_steps;
+	target_innov.replayed_count      = result.replayed_count;
+	target_innov.replay_revised_count = result.replay_revised_count;
+	target_innov.replay_test_ratio_max = result.replay_test_ratio_max;
 
 	_vte_aid_ev_yaw_pub.publish(target_innov);
 
-	return (result.status == FusionStatus::STATUS_FUSED_CURRENT || result.status == FusionStatus::STATUS_FUSED_OOSM);
+	// Replay can revise a stored sample even when the newly arrived sample is rejected.
+	_last_update = _target_est_yaw.getFusionTimes().last_fused;
 }
 
 void VTEOrientation::publishTarget()
@@ -288,20 +309,8 @@ void VTEOrientation::print_status() const
 
 	const bool orientation_valid = _estimator_initialized && !hasTimedOut(_last_update, _target_valid_timeout_us);
 
-	PX4_INFO("  orientation state: initialized: %s, valid: %s, last predict/update age: %.3f / %.3f s",
+	PX4_INFO("  initialized: %s, valid: %s, predict/update age: %.3f / %.3f s",
 		 yes_no(_estimator_initialized), yes_no(orientation_valid), age_s(_last_predict), age_s(_last_update));
-
-	if (!_estimator_initialized) {
-		return;
-	}
-
-	const OrientationStateVec &state = _target_est_yaw.getState();
-
-	PX4_INFO("    yaw: %.3f rad (%.1f deg)",
-		 (double)state(KF_orientation::kYaw),
-		 (double)math::degrees(state(KF_orientation::kYaw)));
-	PX4_INFO("    yaw rate: %.3f rad/s",
-		 (double)state(KF_orientation::kYawRate));
 }
 
 void VTEOrientation::updateParams()

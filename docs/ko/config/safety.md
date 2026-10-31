@@ -154,6 +154,7 @@ This is intended for operations where a switch to Hold on manual control loss is
 
 If Hold cannot be entered (for example without a valid position estimate), the normal failsafe takes over and escalates from there (Return, Land, Descend, or Terminate as applicable).
 Manual control loss in any non-manual (auto/offboard) mode is ignored with this setting.
+If another failsafe would fall back to a manual mode while manual control is lost, for example an Offboard loss with [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) set to Position mode, the vehicle switches to Hold instead.
 
 ## 데이터 연결불량 안전장치
 
@@ -278,14 +279,19 @@ Triggers on either of:
 
 - **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
 - **Position divergence**: two receivers disagree beyond their expected separation (configured via [SENS_GNSS0_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS1_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX)) plus reported accuracy. Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
+  Receivers might report an optimistic accuracy, so the reported accuracy of each receiver is floored with [EKF2_GPS_P_NOISE](../advanced_config/parameter_reference.md#EKF2_GPS_P_NOISE).
 
 At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
 Loss of a single GPS when none are required is handled by other GPS health checks.
 
-| Parameter                                                                                                                                                                  | 설명                                                                                                                                             |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required for arming. If two are required then they also need to be consistent. |
-| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT)                      | Failsafe action when a GNSS failure is detected in flight.                                                                     |
+When `COM_GNSSLOSS_ACT` is set to `Warning`, both triggers produce a warning only and never block arming.
+When set to `Warning, block arming`, both triggers block arming and only produce a warning in flight.
+When set to `Return`, `Land`, or `Terminate`, both triggers block arming and fire the configured in-flight failsafe action (subject to the `SYS_HAS_NUM_GNSS` condition above).
+
+| Parameter                                                                                                                                                                  | 설명                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required. If two are required then they also need to be consistent.                                                                                                                                                                                                          |
+| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT)                      | Failsafe action when a GNSS failure is detected. `0`: Warning only (default), `1`: Return, `2`: Land, `3`: Terminate, `4`: Warning, block arming. Values above Warning also block arming. |
 
 ## 오프 보드 안전 장치
 
@@ -415,27 +421,21 @@ If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) meters below the s
 
 ### Motor Failure Trigger
 
-The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected threshold for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
-A motor flagged by this current check stays flagged until the vehicle disarms, because the reaction to a failure may stop the motor and thereby make it look healthy again.
+The failure detector can be configured to detect a failed motor (or a lost or broken propeller, a seized bearing, a rubbing blade, and so on).
+More specifically, it detects a motor that has stopped producing the thrust it was commanded, by comparing the current each ESC reports against the current expected for that motor's command.
+A motor whose current stays too far below or above that expectation for long enough is flagged as failed, and stays flagged until the vehicle disarms, because the reaction to a failure may stop the motor and thereby make it look healthy again.
 
-The undercurrent and overcurrent conditions are defined by:
+The trigger needs ESC that report per-motor current, and thresholds calibrated for the specific airframe.
+For how the check works, and how to set the `MOTFAIL_*` thresholds, see [Motor Failure Detection](../config/motor_failure_detection.md).
 
-```text
-undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_OFF}
-overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_OFF}
-```
-
-The action on motor failure is set with [CA_FAILURE_MODE](#CA_FAILURE_MODE).
-Actions depend on the vehicle type, and might include warning the user, removing failed motors from control allocation, disabling symmetrically opposite motors, and so on.
+The action on motor failure is set with [COM_ACT_FAIL_ACT](../advanced_config/parameter_reference.md#COM_ACT_FAIL_ACT) and [CA_FAILURE_MODE](#CA_FAILURE_MODE).
+Actions depend on the vehicle type, and might include warning the user, running a failsafe, removing failed motors from control allocation, disabling symmetrically opposite motors, and so on.
 For more information see [Motor Failure Recovery](motor_failure_recovery.md).
 
-| Parameter                                                                                                                                          | 설명                                                                                                                                                                                                                                                                                      |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                                                                                                                                                                    |
-| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)                                  | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%). |
-| <a id="MOTFAIL_OFF"></a>[MOTFAIL_OFF](../advanced_config/parameter_reference.md#MOTFAIL_OFF)                                  | Under/over-current detection threshold offset (A). Added/subtracted to the expected current to form the upper and lower bounds.                                                                                                      |
-| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)                               | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                                        |
-| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Failure mode. See [Motor Failure Recovery](motor_failure_recovery.md).                                                                                                                                                                                  |
+| Parameter                                                                                                                                          | 설명                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                   |
+| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Failure mode. See [Motor Failure Recovery](motor_failure_recovery.md). |
 
 ### External Automatic Trigger System (ATS)
 
@@ -550,4 +550,5 @@ In addition there are a number of parameters that configure system and sensor li
 
 ## 추가 정보
 
-- [QGroundControl User Guide > Safety Setup](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html)
+- [QGroundControl User Guide > Failsafes (PX4)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/failsafes.html)
+- [QGroundControl User Guide > Return & Land (PX4)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/return_land.html)

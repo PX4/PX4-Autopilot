@@ -101,7 +101,12 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 
 void Battery::updateVoltage(const float voltage_v)
 {
-	_voltage_v = voltage_v;
+	// Skip a non-finite sample and keep the last valid voltage
+	_voltage_valid = PX4_ISFINITE(voltage_v);
+
+	if (_voltage_valid) {
+		_voltage_v = voltage_v;
+	}
 }
 
 void Battery::updateCurrent(const float current_a)
@@ -111,7 +116,8 @@ void Battery::updateCurrent(const float current_a)
 		_current_a = _params.i_overwrite;
 
 	} else {
-		_current_a = current_a;
+		// -1 is the invalid value, a non-finite current would corrupt the discharge count and the filters
+		_current_a = PX4_ISFINITE(current_a) ? current_a : -1.f;
 	}
 }
 
@@ -207,6 +213,10 @@ void Battery::publishBatteryStatus(const battery_status_s &battery_status)
 
 void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
 {
+	if (!_voltage_valid) {
+		return;
+	}
+
 	updateBatteryStatus(timestamp);
 
 	battery_status_s battery_status = getBatteryStatus();
@@ -240,7 +250,7 @@ void Battery::updateDt(const hrt_abstime &timestamp)
 
 float Battery::sumDischarged(float current_a)
 {
-	if (_dt_discharge > FLT_EPSILON && fabsf(current_a + 1.f) > FLT_EPSILON) {
+	if (_dt_discharge > FLT_EPSILON && PX4_ISFINITE(current_a) && fabsf(current_a + 1.f) > FLT_EPSILON) {
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
 		// current = -1 means invalid current measurement
 		_discharged_mah_loop = (current_a * 1e3f) * (_dt_discharge / 3600.f);
@@ -327,7 +337,8 @@ void Battery::resetInternalResistanceEstimation(const float voltage_v, const flo
 void Battery::estimateStateOfCharge()
 {
 	// choose which quantity we're using for final reporting
-	if ((_capacity_mah > 0.f) && _battery_initialized) {
+	// without a cell count the starting charge is unknown, so coulomb counting can't help
+	if ((_capacity_mah > 0.f) && _battery_initialized && (_params.n_cells > 0)) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		// The lower the voltage the more adjust the estimate with it to avoid deep discharge
 		const float weight_v = 3e-2f * (1 - _state_of_charge_volt_based);
@@ -405,7 +416,7 @@ float Battery::computeRemainingTime(float current_a)
 
 	_vehicle_status_was_fw = _vehicle_status_is_fw;
 
-	if (_armed && PX4_ISFINITE(current_a)) {
+	if (_armed && PX4_ISFINITE(current_a) && fabsf(current_a + 1.f) > FLT_EPSILON) {
 		// For FW only update when we are in level flight
 		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
 					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
@@ -418,8 +429,8 @@ float Battery::computeRemainingTime(float current_a)
 		}
 	}
 
-	// Remaining time estimation only possible with capacity
-	if (_capacity_mah > 0.f) {
+	// Remaining time estimation only possible with capacity and a known state of charge
+	if ((_capacity_mah > 0.f) && (_state_of_charge >= 0.f)) {
 		const float remaining_capacity_mah = _state_of_charge * _capacity_mah;
 		const float current_ma = fmaxf(_current_average_filter_a.getState() * 1e3f, FLT_EPSILON);
 		time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;

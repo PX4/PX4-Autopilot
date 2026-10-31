@@ -93,12 +93,11 @@ void NodeInfoPublisher::registerNodeInfo(uint8_t node_id, const uavcan::protocol
 
 		found = true;
 
-		if (!_device_informations[i].has_node_info) {
-			populateDeviceInfoFields(_device_informations[i], node_info);
+		// libuavcan re-requests GetNodeInfo after a node restarts or reconnects, always take the latest response
+		populateDeviceInfoFields(_device_informations[i], node_info);
 
-			if (_device_informations[i].device_type != DEVICE_TYPE_NONE) {
-				publishSingleDeviceInformation(_device_informations[i]);
-			}
+		if (_device_informations[i].device_type != DEVICE_TYPE_NONE) {
+			publishSingleDeviceInformation(_device_informations[i]);
 		}
 	}
 
@@ -127,7 +126,7 @@ void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info,
 
 void NodeInfoPublisher::registerCapability(uint8_t node_id, uint32_t device_id, uint8_t device_type)
 {
-	int multi_capability_index = -1;
+	int template_index = -1;
 
 	for (size_t i = 0; i < _device_informations_size; ++i) {
 		if (_device_informations[i].node_id != node_id) { continue; }
@@ -138,35 +137,37 @@ void NodeInfoPublisher::registerCapability(uint8_t node_id, uint32_t device_id, 
 			return;
 		}
 
-		// Different device_type on same node — remember for multi-capability copy
-		if (_device_informations[i].device_type != DEVICE_TYPE_NONE &&
-		    _device_informations[i].device_type != device_type) {
-			multi_capability_index = i;
+		// Remember another capability on the same node so the new entry inherits node info
+		if (_device_informations[i].device_type != DEVICE_TYPE_NONE) {
+			template_index = i;
 			continue;
 		}
 
-		// No device_type yet but has node info — fill it in and publish
-		if (_device_informations[i].device_type == DEVICE_TYPE_NONE &&
-		    _device_informations[i].has_node_info) {
-			_device_informations[i].device_id = device_id;
-			_device_informations[i].device_type = device_type;
-			publishSingleDeviceInformation(_device_informations[i]);
-			return;
-		}
+		// Untyped entries come only from registerNodeInfo(), so this one already has node info
+		_device_informations[i].device_id = device_id;
+		_device_informations[i].device_type = device_type;
+		publishSingleDeviceInformation(_device_informations[i]);
+		return;
 	}
 
 	// No existing entry to update — create a new one
 	if (extendDeviceInformationsArray()) {
-		if (multi_capability_index >= 0) {
-			_device_informations[_device_informations_size - 1] = _device_informations[multi_capability_index];
+		DeviceInformation &entry = _device_informations[_device_informations_size - 1];
+
+		if (template_index >= 0) {
+			entry = _device_informations[template_index];
 
 		} else {
-			_device_informations[_device_informations_size - 1] = DeviceInformation();
+			entry = DeviceInformation();
 		}
 
-		_device_informations[_device_informations_size - 1].node_id = node_id;
-		_device_informations[_device_informations_size - 1].device_id = device_id;
-		_device_informations[_device_informations_size - 1].device_type = device_type;
+		entry.node_id = node_id;
+		entry.device_id = device_id;
+		entry.device_type = device_type;
+
+		if (entry.has_node_info) {
+			publishSingleDeviceInformation(entry);
+		}
 	}
 }
 

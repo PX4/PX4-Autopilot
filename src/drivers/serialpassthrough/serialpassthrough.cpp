@@ -267,7 +267,7 @@ int SerialPassthrough::run_trampoline(int argc, char *argv[])
 }
 
 void SerialPassthrough::pushFromMavlink(const uint8_t *data, size_t len,
-					uint8_t sysid, uint8_t compid, uint8_t device,
+					uint32_t sysid, uint8_t compid, uint8_t device,
 					uint8_t channel)
 {
 	// Store reply metadata
@@ -296,7 +296,7 @@ void SerialPassthrough::pushFromMavlink(const uint8_t *data, size_t len,
 }
 
 size_t SerialPassthrough::popToMavlink(uint8_t *buf, size_t max_len,
-				       uint8_t *out_sysid, uint8_t *out_compid, uint8_t *out_device,
+				       uint32_t *out_sysid, uint8_t *out_compid, uint8_t *out_device,
 				       uint8_t channel)
 {
 	pthread_mutex_lock(&_meta_mutex);

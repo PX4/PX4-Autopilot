@@ -11,7 +11,7 @@ pageClass: is-wide-page
 | 명칭                                                                                      | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
 | --------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
 | <a id="fld_timestamp"></a>timestamp                                                     | `uint64` |                                                                  |            | time since system start (microseconds) |
-| <a id="fld_active_sys_id"></a>active_sys_id   | `uint8`  |                                                                  |            | mavlink system id of the currently active camera          |
+| <a id="fld_active_sys_id"></a>active_sys_id   | `uint32` |                                                                  |            | mavlink system id of the currently active camera          |
 | <a id="fld_active_comp_id"></a>active_comp_id | `uint8`  |                                                                  |            | mavlink component id of currently active camera           |
 
 ## Source Message
@@ -24,7 +24,7 @@ Click here to see original file
 ```c
 uint64 timestamp		# time since system start (microseconds)
 
-uint8 active_sys_id		# mavlink system id of the currently active camera
+uint32 active_sys_id		# mavlink system id of the currently active camera
 uint8 active_comp_id 	# mavlink component id of currently active camera
 ```
 

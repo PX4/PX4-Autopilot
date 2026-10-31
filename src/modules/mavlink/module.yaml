@@ -7,6 +7,10 @@ serial_config:
             set MAV_ARGS "-d ${SERIAL_DEV} -b p:${BAUD_PARAM} -m p:MAV_${i}_MODE -r p:MAV_${i}_RATE"
         else
             set MAV_ARGS "-u p:MAV_${i}_UDP_PRT -o p:MAV_${i}_REMOTE_PRT -m p:MAV_${i}_MODE -r p:MAV_${i}_RATE"
+            if ! param compare MAV_${i}_REMOTE_IP 0
+            then
+                set MAV_ARGS "${MAV_ARGS} -t p:MAV_${i}_REMOTE_IP"
+            fi
             if param compare MAV_${i}_BROADCAST 1
             then
                 set MAV_ARGS "${MAV_ARGS} -p"
@@ -158,6 +162,20 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             default: [14550, 0, 0]
+            requires_ethernet: true
+
+        MAV_${i}_REMOTE_IP:
+            description:
+                short: MAVLink Partner IP for instance ${i}
+                long: |
+                    Messages go to this address at port MAV_${i}_REMOTE_PRT. Encoded as int32
+                    with the first octet in the most significant byte, e.g. 192.168.1.2 is -1062731518.
+                    Set to 0 to discover the partner from received packets.
+
+            type: int32
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            default: [0, 0, 0]
             requires_ethernet: true
 
         MAV_${i}_BROADCAST:
