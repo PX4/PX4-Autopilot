@@ -280,5 +280,5 @@ loiter_point_s RtlRouteSafePoint::selectGoalLandApproach(const mission_route::Pr
 
 	const land_approaches_s approaches = mission_route::getVtolLandApproachesAtSafePointIndex(provider,
 					     safe_point_index, home_position.alt);
-	return mission_route::chooseBestLandingApproach(approaches, atan2f(wind.windspeed_east, wind.windspeed_north));
+	return mission_route::chooseBestLandingApproach(approaches, wind);
 }
