@@ -73,7 +73,7 @@ public:
 	}
 
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
-	void data_handler(const z_loaned_sample_t *sample)
+	void data_handler(const z_loaned_sample_t *sample) override
 	{
 		char data[_uorb_meta->o_size + CDR_SAFETY_MARGIN];
 
@@ -133,7 +133,7 @@ public:
 		memcpy(data, &now, sizeof(hrt_abstime));
 	}
 
-	void print()
+	void print() override
 	{
 		Zenoh_Subscriber::print("uORB", _uorb_meta->o_name);
 	}
