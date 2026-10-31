@@ -47,5 +47,15 @@ void sendWithoutMessage(uint32_t id, Log external, LogInternal internal)
 	send(e);
 }
 
+void sendWithArguments(uint32_t id, Log external, LogInternal internal, const uint8_t *arguments,
+		       unsigned arguments_size)
+{
+	event_s e{};
+	e.log_levels = ((uint8_t)internal << 4) | (uint8_t)external;
+	e.id = id;
+	memcpy(e.arguments, arguments, arguments_size);
+	send(e);
+}
+
 } /* namespace util */
 } /* namespace events */

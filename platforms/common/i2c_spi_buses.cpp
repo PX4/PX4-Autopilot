@@ -906,6 +906,13 @@ I2CSPIDriverBase *I2CSPIDriverBase::init_instance(I2CSPIDriverBase *instance, in
 	return instance;
 }
 
+void I2CSPIDriverBase::exit_if_requested()
+{
+	if (should_exit()) {
+		exit_and_cleanup();
+	}
+}
+
 bool I2CSPIDriverBase::request_stop_and_wait()
 {
 	_task_should_exit.store(true);
