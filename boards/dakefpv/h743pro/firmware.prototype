@@ -1,0 +1,13 @@
+{
+    "board_id": 1194,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the DAKEFPV H743 Pro board",
+    "image": "",
+    "build_time": 0,
+    "summary": "DAKEFPV H743 Pro",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1835008,
+    "git_identity": "",
+    "board_revision": 0
+}
