@@ -110,6 +110,138 @@ TEST_F(ParameterTest, testUorbSendReceive)
 	EXPECT_EQ(0, memcmp(&message, &obstacle_distance, sizeof(message)));
 }
 
+// Every kind of DEFINE_PARAMETERS member, so the table loader is checked for each slot layout
+class ParamTableModule : public ModuleParams
+{
+public:
+	ParamTableModule() : ModuleParams(nullptr), _param_cp_delay(_ext_delay), _param_sys_autocfg(_ext_autoconfig) {}
+
+	void update() { updateParams(); }
+
+	float ext_delay() const { return _ext_delay; }
+	int32_t ext_autoconfig() const { return _ext_autoconfig; }
+
+	// declared before the parameters, so they exist before the table loads into them
+	float _ext_delay{-1.f};
+	int32_t _ext_autoconfig{-1};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist,
+		(ParamBool<px4::params::CP_GO_NO_DATA>) _param_cp_go_no_data,
+		(ParamExtFloat<px4::params::CP_DELAY>) _param_cp_delay,
+		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,
+		(ParamExtInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autocfg,
+		(ParamFloat<px4::params::CP_GUIDE_ANG>) _param_cp_guide_ang
+	)
+};
+
+TEST_F(ParameterTest, testDefineParametersTable)
+{
+	const float dist = 3.5f, delay = 0.25f, guide_ang = 12.f;
+	const int32_t go_no_data = 1, autostart = 4001, autoconfig = 2;
+
+	// GIVEN: non-default values for each kind of parameter
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DIST), &dist));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_GO_NO_DATA), &go_no_data));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DELAY), &delay));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOSTART), &autostart));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOCONFIG), &autoconfig));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_GUIDE_ANG), &guide_ang));
+
+	// WHEN: the module is constructed
+	ParamTableModule module;
+
+	// THEN: every member holds the stored value and is marked used
+	EXPECT_FLOAT_EQ(dist, module._param_cp_dist.get());
+	EXPECT_TRUE(module._param_cp_go_no_data.get());
+	EXPECT_FLOAT_EQ(delay, module._param_cp_delay.get());
+	EXPECT_FLOAT_EQ(delay, module.ext_delay());
+	EXPECT_EQ(autostart, module._param_sys_autostart.get());
+	EXPECT_EQ(autoconfig, module._param_sys_autocfg.get());
+	EXPECT_EQ(autoconfig, module.ext_autoconfig());
+	EXPECT_FLOAT_EQ(guide_ang, module._param_cp_guide_ang.get());
+	EXPECT_TRUE(param_used(param_handle(px4::params::CP_DIST)));
+	EXPECT_TRUE(param_used(param_handle(px4::params::CP_GUIDE_ANG)));
+
+	// WHEN: the stored values change and the module updates
+	const float dist2 = 7.f, delay2 = 0.5f, guide_ang2 = 20.f;
+	const int32_t go_no_data2 = 0, autostart2 = 4002, autoconfig2 = 0;
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DIST), &dist2));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_GO_NO_DATA), &go_no_data2));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DELAY), &delay2));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOSTART), &autostart2));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOCONFIG), &autoconfig2));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_GUIDE_ANG), &guide_ang2));
+	module.update();
+
+	// THEN: every member holds the new value
+	EXPECT_FLOAT_EQ(dist2, module._param_cp_dist.get());
+	EXPECT_FALSE(module._param_cp_go_no_data.get());
+	EXPECT_FLOAT_EQ(delay2, module.ext_delay());
+	EXPECT_EQ(autostart2, module._param_sys_autostart.get());
+	EXPECT_EQ(autoconfig2, module.ext_autoconfig());
+	EXPECT_FLOAT_EQ(guide_ang2, module._param_cp_guide_ang.get());
+}
+
+// A parent and a child that each declare parameters, so each class has its own table
+class ParamTableParent : public ModuleParams
+{
+public:
+	ParamTableParent() : ModuleParams(nullptr) {}
+
+	void update() { updateParams(); }
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
+					(ParamFloat<px4::params::CP_DIST>) _param_cp_dist,
+					(ParamBool<px4::params::CP_GO_NO_DATA>) _param_cp_go_no_data
+				       )
+};
+
+class ParamTableChild : public ParamTableParent
+{
+public:
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ParamTableParent,
+					(ParamFloat<px4::params::CP_DELAY>) _param_cp_delay,
+					(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart
+				       )
+};
+
+TEST_F(ParameterTest, testDefineParametersTableCustomParent)
+{
+	const float dist = 3.5f, delay = 0.25f;
+	const int32_t go_no_data = 1, autostart = 4001;
+
+	// GIVEN: non-default values for the parent's and the child's parameters
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DIST), &dist));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_GO_NO_DATA), &go_no_data));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DELAY), &delay));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOSTART), &autostart));
+
+	// WHEN: the child is constructed
+	ParamTableChild child;
+
+	// THEN: both tables are loaded
+	EXPECT_FLOAT_EQ(dist, child._param_cp_dist.get());
+	EXPECT_TRUE(child._param_cp_go_no_data.get());
+	EXPECT_FLOAT_EQ(delay, child._param_cp_delay.get());
+	EXPECT_EQ(autostart, child._param_sys_autostart.get());
+
+	// WHEN: the stored values change and the child updates
+	const float dist2 = 7.f, delay2 = 0.5f;
+	const int32_t go_no_data2 = 0, autostart2 = 4002;
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DIST), &dist2));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_GO_NO_DATA), &go_no_data2));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DELAY), &delay2));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOSTART), &autostart2));
+	child.update();
+
+	// THEN: the parent's and the child's parameters hold the new values
+	EXPECT_FLOAT_EQ(dist2, child._param_cp_dist.get());
+	EXPECT_FALSE(child._param_cp_go_no_data.get());
+	EXPECT_FLOAT_EQ(delay2, child._param_cp_delay.get());
+	EXPECT_EQ(autostart2, child._param_sys_autostart.get());
+}
+
 // A BSON null in an import resets the param (a delta tombstone on flash boards).
 TEST_F(ParameterTest, testImportTombstoneResets)
 {

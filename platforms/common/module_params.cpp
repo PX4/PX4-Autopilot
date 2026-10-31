@@ -32,6 +32,39 @@
  ****************************************************************************/
 
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/param.h>
+
+#include <string.h>
+
+namespace do_not_explicitly_use_this_namespace
+{
+
+void param_table_load(const uint16_t *entries, unsigned count, uint8_t *first, bool mark_used)
+{
+	for (unsigned i = 0; i < count; i++) {
+		const param_t handle = entries[i] & param_table_handle_mask;
+		const uint16_t kind = entries[i] & ~param_table_handle_mask;
+		uint8_t *slot = first + i * param_slot_size;
+		void *dest = slot;
+		int32_t bool_value;
+
+		if (kind == param_table_external) {
+			memcpy(&dest, slot, sizeof(dest));
+
+		} else if (kind == param_table_bool) {
+			dest = &bool_value;
+		}
+
+		// (param_get) is the C function, not the type-checked C++ wrapper macro
+		const int ret = mark_used ? param_get_mark_used(handle, dest) : (param_get)(handle, dest);
+
+		if (kind == param_table_bool && ret == 0) {
+			*reinterpret_cast<bool *>(slot) = bool_value != 0;
+		}
+	}
+}
+
+} // namespace do_not_explicitly_use_this_namespace
 
 ModuleParams::ModuleParams(ModuleParams *parent)
 {
