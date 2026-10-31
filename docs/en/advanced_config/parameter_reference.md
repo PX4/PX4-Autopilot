@@ -27756,7 +27756,7 @@ Specify USB MAVLink mode.
 - `9`: extvisionmin
 - `10`: gimbal
 - `11`: onboard_low_bandwidth
-- `12`: uavionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -42909,6 +42909,10 @@ MAVLink Mode for instance 0.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 
 
 **Values:**
@@ -42923,7 +42927,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -43173,6 +43177,10 @@ MAVLink Mode for instance 1.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 
 
 **Values:**
@@ -43187,7 +43195,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -43437,6 +43445,10 @@ MAVLink Mode for instance 2.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 
 
 **Values:**
@@ -43451,7 +43463,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
