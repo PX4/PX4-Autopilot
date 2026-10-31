@@ -46,7 +46,7 @@
 #include <perf/perf_counter.h>
 
 #include <drivers/device/device.h>
-#include <modules/px4iofirmware/protocol.h>
+#include <lib/px4io_protocol/protocol.h>
 
 class PX4IO_serial : public device::Device
 {

@@ -48,7 +48,7 @@
 
 #include <board_config.h>
 
-#include "protocol.h"
+#include <lib/px4io_protocol/protocol.h>
 
 __BEGIN_DECLS
 
