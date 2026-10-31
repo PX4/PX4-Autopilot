@@ -80,10 +80,10 @@ void AckermannActControl::updateActControl()
 	}
 
 	// Servo control
-	if (_rover_steering_setpoint_sub.updated()) {
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-		_steering_setpoint = rover_steering_setpoint.normalized_steering_setpoint;
+	if (_surface_vehicle_steering_setpoint_sub.updated()) {
+		surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
+		_surface_vehicle_steering_setpoint_sub.copy(&surface_vehicle_steering_setpoint);
+		_steering_setpoint = surface_vehicle_steering_setpoint.normalized_steering_setpoint;
 	}
 
 	if (PX4_ISFINITE(_steering_setpoint)) {
