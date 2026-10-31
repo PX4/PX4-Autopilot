@@ -660,12 +660,12 @@ void Mission::prepareVtolTransitionItem(bool aligning)
 			_mission_item.lat = _global_pos_sub.get().lat;
 			_mission_item.lon = _global_pos_sub.get().lon;
 			_mission_item.altitude = _global_pos_sub.get().alt;
-			// Nominal missions publish the next target while checking the alignment item.
-			mission_item_to_position_setpoint(_vtol_transition.target, &triplet.current);
+			// Hold position and align heading towards the next waypoint.
+			mission_item_to_position_setpoint(_mission_item, &triplet.current);
 		}
 
 	} else {
-		// Without an alignment during a front transition, publish the target as the alignment would.
+		// A front transition item started during a front transition is not aligned: target the next waypoint.
 		const bool publish_target = front_transition && _vehicle_status_sub.get().in_transition_to_fw
 					    && mission_item_contains_position(_vtol_transition.target);
 

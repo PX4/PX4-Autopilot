@@ -301,7 +301,7 @@ protected:
 
 TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 {
-	// The alignment tracks the next waypoint and waits out a back transition; the command is sent once.
+	// The alignment holds position, turns towards the next waypoint and waits out a back transition; the command is sent once.
 	MissionTestPeer mission(&_navigator);
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	auto target = makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
@@ -339,10 +339,10 @@ TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 
 		const auto &triplet = *_navigator.get_position_setpoint_triplet();
 		ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
-		// Nominal Mission still tracks the next waypoint while checking a separate alignment item.
-		EXPECT_DOUBLE_EQ(triplet.current.lat, target.lat);
-		EXPECT_DOUBLE_EQ(triplet.current.lon, target.lon);
-		EXPECT_FLOAT_EQ(triplet.current.yaw, target.yaw);
+		// Mission holds where the vehicle is and turns towards the next waypoint.
+		EXPECT_DOUBLE_EQ(triplet.current.lat, position.lat);
+		EXPECT_DOUBLE_EQ(triplet.current.lon, position.lon);
+		EXPECT_NEAR(triplet.current.yaw, yaw, 1e-4f);
 		EXPECT_NEAR(mission.currentMissionItemForTest().yaw, yaw, 1e-4f);
 		mission.publishItemsForTest();
 		mission.on_active();
@@ -369,8 +369,8 @@ TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 		ASSERT_TRUE(command_sub.update(&command));
 		EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 		EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-		EXPECT_DOUBLE_EQ(triplet.current.lat, target.lat);
-		EXPECT_FLOAT_EQ(triplet.current.yaw, target.yaw);
+		EXPECT_DOUBLE_EQ(triplet.current.lat, position.lat);
+		EXPECT_NEAR(triplet.current.yaw, yaw, 1e-4f);
 		EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 
 		// Republish during FT without repeating the command or advancing the uploaded item.
