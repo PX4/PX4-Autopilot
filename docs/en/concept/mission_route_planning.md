@@ -285,7 +285,8 @@ It flies that path at the approach altitude.
 ## Geofence Checks {#geofence-checks}
 
 Before selecting a branch-in or branch-off point, the planner checks the segment between that point and the vehicle or safe point.
-Both ends must be within the permitted area, altitude and distance-from-home limits.
+A safe point must be within every geofence limit, and the vehicle inside the fence polygons and circles.
+The point on the route must also be within the altitude and distance-from-home limits.
 A segment that touches or crosses an inclusion or exclusion fence boundary is rejected.
 
 The planner checks the candidates kept by [Point Projection](#point-projection), up to four per vehicle or safe point, once the route has been scanned.
@@ -299,13 +300,14 @@ If no branch-in candidate passes, smart rejoin is skipped and route-following Re
 If no safe point has a usable branch-off, Return can still select a mission takeoff or landing endpoint.
 
 [Route-skip shortcuts](#route-skip-shortcuts) are checked separately because they fly directly to the destination instead of following the checked branch-in and branch-off segments.
-Uploaded mission segments are checked by mission feasibility validation, except `DO_JUMP` loop edges, which Mission, smart rejoin and route-following Return can fly.
+Uploaded mission segments, including the edges of repeating `DO_JUMP` items, are checked by mission feasibility validation.
 The planner does not find detours around fences or check landing-approach geometry.
 A VTOL arriving in fixed-wing mode flies from the branch-off point to the selected landing-approach loiter.
 That leg and the loiters are not checked.
 
-When the vehicle already breaches the loaded fence, the planner skips the checks of segments that start at the vehicle, to allow recovery along the route.
-Branch-off segments are still checked, so a breach cannot route the vehicle through a fence on the way to a safe point.
+When the vehicle is outside a fence polygon or circle, the planner skips the checks of segments that start at the vehicle, to allow recovery along the route.
+A vehicle outside only the altitude or distance-from-home limits gets no exemption: its segments are checked.
+Branch-off segments are always checked, so a breach cannot route the vehicle through a fence on the way to a safe point.
 If the fence is unavailable or still loading:
 
 - When Mission mode resumes a mission, smart rejoin is skipped with a warning and is not retried during that activation.
