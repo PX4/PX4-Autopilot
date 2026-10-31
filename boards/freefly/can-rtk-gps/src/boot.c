@@ -193,6 +193,18 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 {
 }
 
+__EXPORT void px4_log_info(const char *moduleName, const char *fmt, ...)
+{
+}
+
+__EXPORT void px4_log_warn(const char *moduleName, const char *fmt, ...)
+{
+}
+
+__EXPORT void px4_log_error(const char *moduleName, const char *fmt, ...)
+{
+}
+
 // I2C Driver wants to use printf etal (putc,wite) so cut it off here
 
 int printf(FAR const IPTR char *fmt, ...)
