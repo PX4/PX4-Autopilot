@@ -662,10 +662,9 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 		ref_lon = 0.0;
 	}
 
-	// init the projection when its reference moved: the same reference gives the same projection
-	const bool reference_moved = !_reference_position.isInitialized()
-				     || !PX4_ISFINITE(ref_lat) || !PX4_ISFINITE(ref_lon)
-				     || (fabs(ref_lat - _reference_lat) > 0.0) || (fabs(ref_lon - _reference_lon) > 0.0);
+	// init the projection when its reference moved: the same reference gives the same projection.
+	// A NaN on either side counts as moved, so a valid reference always replaces a NaN one.
+	const bool reference_moved = !((fabs(ref_lat - _reference_lat) <= 0.0) && (fabs(ref_lon - _reference_lon) <= 0.0));
 
 	if (reference_moved) {
 		_reference_position.initReference(ref_lat, ref_lon, _time_stamp_current);
