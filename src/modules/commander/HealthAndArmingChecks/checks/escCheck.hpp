@@ -38,7 +38,9 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/motor_failure_detector/MotorFailureDetector.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_detector_status.h>
 
@@ -70,6 +72,7 @@ private:
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	const hrt_abstime _start_time{hrt_absolute_time()};
 
