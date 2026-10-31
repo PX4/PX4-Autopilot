@@ -462,13 +462,13 @@ int PX4IO::init()
 	}
 
 	/* dis-arm IO before touching anything */
-	io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED | PX4IO_P_SETUP_ARMING_LOCKDOWN,
-		      0);
+	ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED | PX4IO_P_SETUP_ARMING_LOCKDOWN,
+			    0);
 
 	if (ret != OK) {
-		mavlink_log_critical(&_mavlink_log_pub, "IO RC config upload fail\t");
-		events::send(events::ID("px4io_io_rc_config_upload_failed"), events::Log::Critical,
-			     "IO RC config upload failed, aborting initialization");
+		mavlink_log_critical(&_mavlink_log_pub, "IO disarm failed\t");
+		events::send(events::ID("px4io_disarm_failed"), events::Log::Critical,
+			     "IO disarm failed, aborting initialization");
 		return ret;
 	}
 
