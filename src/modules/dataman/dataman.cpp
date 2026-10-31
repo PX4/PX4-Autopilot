@@ -588,7 +588,7 @@ _file_initialize(unsigned max_offset)
 
 	if ((unsigned)offset != max_offset) {
 		close(dm_operations_data.file.fd);
-		PX4_WARN("Could not seek data manager file %s", k_data_manager_device_path);
+		PX4_WARN("Could not size data manager file %s", k_data_manager_device_path);
 		px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
