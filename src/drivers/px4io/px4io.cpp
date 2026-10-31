@@ -452,15 +452,6 @@ int PX4IO::init()
 		_max_rc_input = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
 
-	uint16_t reg = 0;
-
-	/* get IO's last seen FMU state */
-	ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, &reg, 1);
-
-	if (ret != OK) {
-		return ret;
-	}
-
 	/* dis-arm IO before touching anything */
 	ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED | PX4IO_P_SETUP_ARMING_LOCKDOWN,
 			    0);
