@@ -37,7 +37,9 @@ function(message)
     endif()
 endfunction()
 
-set(POSIX_COMPATIBLE YES)
+if(NOT APPLE)
+    set(POSIX_COMPATIBLE YES)
+endif()
 set(BUILD_SHARED_LIBS OFF)
 set(BUILD_TESTING OFF)
 set(CHECK_THREADS NO)
@@ -131,6 +133,7 @@ px4_add_module(
 			-Wno-address-of-packed-member
 			-Wno-double-promotion
 			-Wno-unused
+			-Wno-missing-braces
 			-DZENOH_LINUX
 			-D_Bool=int8_t
 )
