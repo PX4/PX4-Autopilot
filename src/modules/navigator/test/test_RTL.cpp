@@ -48,11 +48,14 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <parameters/param.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/wind.h>
@@ -199,6 +202,13 @@ struct ReadFailureCase {
 	uint8_t expected_count;
 };
 
+struct StopAtCurrentPositionCase {
+	const char *test_name;
+	bool is_vtol;
+	uint8_t vehicle_type;
+	bool lands;
+};
+
 } // namespace
 
 class RTLTestPeer : public RTL
@@ -234,6 +244,9 @@ public:
 	void decideRtlTypeForTest() { setRtlTypeAndDestination(); }
 
 	RtlType rtlTypeForTest() const { return _rtl_type; }
+
+	// the estimate RTL publishes while the return type is a direct Return
+	rtl_time_estimate_s directEstimateForTest() { return _rtl_direct.calc_rtl_time_estimate(); }
 };
 
 template <typename RtlMissionType>
@@ -2101,4 +2114,128 @@ TEST_F(RTLTest, ReturnActivationFliesTheMissionPublishedSinceTheLastInactiveCycl
 	// the dataman is shared by every case in this binary, so leave the mission slots as they were found
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
+}
+
+class RTLStopAtCurrentPositionTest :
+	public RTLTest,
+	public ::testing::WithParamInterface<StopAtCurrentPositionCase>
+{
+};
+
+// WHY: RTL_TYPE 5 without a rally point stops where the vehicle is, so the destination altitude is the
+// airborne altitude. A fixed-wing landing there would flare in the air.
+// WHAT: A pure fixed-wing circles above the stop instead of landing; the other vehicles land there.
+TEST_P(RTLStopAtCurrentPositionTest, RallyPointReturnWithoutRallyPointLandsOnlyVehiclesThatCanHover)
+{
+	const StopAtCurrentPositionCase &test_case = GetParam();
+
+	auto setVehicleType = [&](bool is_vtol, uint8_t vehicle_type) {
+		publishVehicleStatus(is_vtol, vehicle_type, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+		_navigator.get_vstatus()->is_vtol = is_vtol;
+		_navigator.get_vstatus()->vehicle_type = vehicle_type;
+	};
+
+	auto setPosition = [&](double lat, double lon, float alt) {
+		publishGlobalPosition(lat, lon, alt);
+		_navigator.get_global_position()->lat = lat;
+		_navigator.get_global_position()->lon = lon;
+		_navigator.get_global_position()->alt = alt;
+	};
+
+	// GIVEN: RTL_TYPE 5 with no rally point and the default RTL_LAND_DELAY of 0, while flying 2 km from home
+	int32_t rtl_type = 5; // RTL_TYPE_SAFE_POINT_DIRECT
+	param_set(param_find("RTL_TYPE"), &rtl_type);
+	_rtl.updateParamsForTest();
+	loadSafePointsIntoRouteCache({});
+
+	const PositionYawSetpoint stop = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 2000.f, 0.f, kAlt + 100.f);
+	setVehicleType(test_case.is_vtol, test_case.vehicle_type);
+	setPosition(stop.lat, stop.lon, stop.alt);
+	publishLandDetected(false);
+	_navigator.get_land_detected()->landed = false;
+
+	uORB::Subscription vehicle_command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s vehicle_command{};
+
+	while (vehicle_command_sub.update(&vehicle_command)) {}
+
+	// WHEN: Return starts and the vehicle reaches every setpoint it gets
+	_rtl.on_activation();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	for (int cycle = 0; (cycle < 20) && (current.type != position_setpoint_s::SETPOINT_TYPE_LAND); ++cycle) {
+		ASSERT_TRUE(current.valid);
+		setPosition(current.lat, current.lon, current.alt);
+
+		// a VTOL completes the back transition it is commanded
+		while (vehicle_command_sub.update(&vehicle_command)) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+				setVehicleType(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			}
+		}
+
+		_rtl.on_active();
+	}
+
+	// THEN: Vehicles that can hover land at the stop, a pure fixed-wing circles above it indefinitely
+	EXPECT_NEAR(current.lat, stop.lat, 1e-7);
+	EXPECT_NEAR(current.lon, stop.lon, 1e-7);
+
+	if (test_case.lands) {
+		EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+
+	} else {
+		float descend_alt = NAN;
+		param_get(param_find("RTL_DESCEND_ALT"), &descend_alt);
+		navigator_mission_item_s mission_item{};
+		uORB::Subscription{ORB_ID(navigator_mission_item)}.copy(&mission_item);
+		EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_LOITER);
+		EXPECT_FLOAT_EQ(current.alt, stop.alt + descend_alt);
+		EXPECT_EQ(mission_item.nav_cmd, NAV_CMD_LOITER_UNLIMITED);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(
+	RTL,
+	RTLStopAtCurrentPositionTest,
+	::testing::Values(
+		StopAtCurrentPositionCase{"FixedWing", false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false},
+		StopAtCurrentPositionCase{"Multicopter", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true},
+		StopAtCurrentPositionCase{"VtolFixedWing", true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
+		StopAtCurrentPositionCase{"VtolRotaryWing", true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true}),
+	[](const ::testing::TestParamInfo<RTLStopAtCurrentPositionTest::ParamType> &param_info)
+{
+	return std::string(param_info.param.test_name);
+});
+
+// WHY: A stop that never lands must not count a landing in the remaining time estimate.
+// WHAT: The RTL_TYPE 5 stop of a pure fixed-wing has the same estimate with RTL_LAND_DELAY 0 as with -1.
+TEST_F(RTLTest, RallyPointReturnWithoutRallyPointEstimatesNoFixedWingLanding)
+{
+	// GIVEN: RTL_TYPE 5 with no rally point, while a pure fixed-wing flies 2 km from home
+	int32_t rtl_type = 5; // RTL_TYPE_SAFE_POINT_DIRECT
+	param_set(param_find("RTL_TYPE"), &rtl_type);
+	loadSafePointsIntoRouteCache({});
+
+	const PositionYawSetpoint stop = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 2000.f, 0.f, kAlt + 100.f);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(stop.lat, stop.lon, stop.alt);
+	publishLandDetected(false);
+
+	auto estimateWithLandDelay = [&](float land_delay) {
+		param_set(param_find("RTL_LAND_DELAY"), &land_delay);
+		RTLTestPeer rtl{&_navigator}; // reads the parameters on construction
+		rtl.on_inactive();
+		rtl.decideRtlTypeForTest();
+		return rtl.directEstimateForTest();
+	};
+
+	// WHEN: the inactive Return estimates its time with RTL_LAND_DELAY 0 and with -1
+	const rtl_time_estimate_s no_delay = estimateWithLandDelay(0.f);
+	const rtl_time_estimate_s hold = estimateWithLandDelay(-1.f);
+
+	// THEN: both end at the hold
+	ASSERT_TRUE(no_delay.valid && hold.valid);
+	EXPECT_FLOAT_EQ(no_delay.time_estimate, hold.time_estimate);
 }

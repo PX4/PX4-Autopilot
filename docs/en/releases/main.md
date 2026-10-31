@@ -71,6 +71,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - A fixed-wing vehicle landing at the end of a reverse mission Return ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4) uses the home altitude again instead of flaring at flight altitude, a regression in the v1.18 pre-releases.
 - A mission Return mode ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1, 2, 3 or 4) now reads the current mission on the cycle that activates it, so a mission uploaded or changed right as Return starts is used for the return type, the geofence avoidance destination and the starting item. The fast variants also discard the item index they recorded from an earlier mission when a different one is current. ([PX4-Autopilot#28748](https://github.com/PX4/PX4-Autopilot/pull/28748))
 - A `DO_JUMP` whose counter cannot be written to storage, for example on a failing SD card, is now skipped with a message to the operator. Previously the jump was taken again on every pass, repeating the same mission segment until a failsafe stopped the mission. ([PX4-Autopilot#28752](https://github.com/PX4/PX4-Autopilot/pull/28752))
+- With [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 5 and no rally point, a fixed-wing vehicle now circles where Return started, whatever [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY) is.
+  It used to land there when `RTL_LAND_DELAY` was not -1, with the altitude it was flying at as the ground altitude.
+  VTOLs and multicopters still follow `RTL_LAND_DELAY`.
 
 ### Hardware Support
 
