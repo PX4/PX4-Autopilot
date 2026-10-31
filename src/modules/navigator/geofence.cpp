@@ -885,24 +885,7 @@ bool Geofence::isWithinAltitudeBand(float altitude)
 
 bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 {
-	if (isEmpty()) {
-		/* Empty fence -> accept all points */
-		return true;
-	}
-
-	/* Vertical check */
-	if (!isWithinAltitudeBand(altitude)) {
-		return false;
-	}
-
-	/* Horizontal check: iterate all polygons & circles */
-	bool checksPass = true;
-
-	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
-		checksPass &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
-	}
-
-	return checksPass;
+	return isWithinAltitudeBand(altitude) && isInsideHorizontalFences(lat, lon, altitude);
 }
 
 bool Geofence::isInsideHorizontalFences(double lat, double lon, float altitude)
