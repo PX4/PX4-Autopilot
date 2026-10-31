@@ -64,7 +64,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on SPI
  */
-class __EXPORT SPI : public CDev
+class __EXPORT SPI : public Device
 {
 public:
 	typedef int (*_config_spi_bus_func_t)();
