@@ -39,7 +39,7 @@ It also highlights devices that connect via the CAN bus, and those which support
 | [DATAGNSS GEM1305 RTK Receiver](../gps_compass/rtk_gps_gem1305.md)                                                 |       TAU951M        | IST8310  |            |                  ✘                  |     |
 | [Eview HB6](https://gnss-solutions.com/product/hb6-gnss-receiver/)                                                 |      Mosaic-X5       |    ✘     |            |                                     |  ✓  |
 | [Eview HB6 Pro](https://gnss-solutions.com/product/hb6-pro-gnss-receiver/)                                         |       Mosaic-H       |    ✘     |            |      [Septentrio Dual Antenna]      |  ✓  |
-| [Eview HB51](https://gnss-solutions.com/product/hb51-gnss-receiver/)                                               |   [mosaic-G5 P3H]    |  RM3100  |            | [Heading Capability][mosaic-G5 P3H] |  ✓  |
+| [Eview HB51](https://gnss-solutions.com/product/hb51-gnss-receiver/)                                               |   [mosaic-G5 P3H]    |  RM3100  |            |      [Septentrio Dual Antenna]      |     |
 | [Eview HB52](https://gnss-solutions.com/product/hb52-gnss-receiver/)                                               |    [mosaic-G5 P3]    |    ✘     |            |                                     |  ✓  |
 | [Femtones MINI2 Receiver](../gps_compass/rtk_gps_fem_mini2.md)                                                     |     FB672, FB6A0     |    ✓     |            |                                     |     |
 | [Freefly RTK GPS](../gps_compass/rtk_gps_freefly.md)                                                               |         F9P          | IST8310  |            |                                     |     |
