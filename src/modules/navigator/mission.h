@@ -98,6 +98,8 @@ private:
 
 	void setActiveMissionItems() override;
 
+	bool isCurrentItemReached() override;
+
 	void handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
 
 	/** Keep the previous setpoint, send the command of _mission_item if it has one, set the work item and publish. */
@@ -105,6 +107,8 @@ private:
 
 	/** Start the transition in _vtol_transition.command, first aligning in hover towards alignment_target (copied). */
 	void startVtolTransition(const mission_item_s *alignment_target, WorkItemType completion_work);
+	/** Apply the transition rules for this cycle; return true when the item is done. */
+	bool updateVtolTransition();
 	/** Publish the alignment item (aligning) or send the transition command. */
 	void setVtolTransitionStep(bool aligning);
 	bool vtolTransitionActive() const { return _vtol_transition.command.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION; }
