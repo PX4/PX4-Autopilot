@@ -94,8 +94,10 @@ public:
 
 	/**
 	 * Checks whether an unsigned message should be accepted
+	 * @param traffic_link true if the link is configured for a traffic receiver, which may
+	 *                     send traffic messages unsigned
 	 */
-	bool accept_unsigned(uint32_t message_id);
+	bool accept_unsigned(uint32_t message_id, bool traffic_link);
 
 	/**
 	 * Only call from the instance's receiver thread, which is the only thread that changes it.
