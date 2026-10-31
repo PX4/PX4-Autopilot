@@ -79,8 +79,7 @@ parameters:
         short: Magnetometer auto calibration
         long: Automatically initialize magnetometer calibration from bias estimate
           if available. The estimate only captures hard-iron offsets, so a full
-          calibration is still recommended. Mainly intended for remote nodes
-          (e.g. CAN GPS units) that cannot be calibrated from a ground station.
+          calibration is still recommended.
       category: System
       type: boolean
       default: 0
