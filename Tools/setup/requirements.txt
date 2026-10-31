@@ -3,6 +3,7 @@ cerberus
 coverage
 empy>=3.3,<4
 future
+imgtool>=2.0.0
 jinja2>=2.8
 jsonschema
 kconfiglib

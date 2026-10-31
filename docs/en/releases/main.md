@@ -82,6 +82,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   ([PX4-Autopilot#28782: feat(tools): add mavlink_serial_bridge.py reference bridge application](https://github.com/PX4/PX4-Autopilot/pull/28782))
 - [Agam FloRange](../dronecan/agam_florange.md): new DroneCAN optical flow, distance sensor and IMU module (PAA3905, AFBR-S50LV85D, ICM-42688-P). ([PX4-Autopilot#28901](https://github.com/PX4/PX4-Autopilot/pull/28901))
 
+#### New Flight Controllers
+
+- [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md): an i.MX 95 board with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores. ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
+
 ### Common
 
 - The unit and functional test suite builds, links and runs on macOS (`make tests`), and `px4_poll()` timeouts on macOS wait for their full duration instead of returning at once. The blended GPS timestamp is accumulated in double and rounded once instead of truncating each weighted term. ([PX4-Autopilot#28516](https://github.com/PX4/PX4-Autopilot/pull/28516))
