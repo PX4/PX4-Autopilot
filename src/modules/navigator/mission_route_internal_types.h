@@ -98,6 +98,12 @@ struct Segment {
 	bool isLoop() const { return jump_item_index >= 0; }
 	bool valid() const;
 	bool validLoop() const;
+
+	/** A jump edge and a nominal segment with the same endpoints: one leg, flown with or without the jump. */
+	bool isTwin(const Segment &other) const
+	{
+		return isLoop() != other.isLoop() && start.idx == other.start.idx && end.idx == other.end.idx;
+	}
 };
 
 /** @brief The along-track interval of one segment within the full route. */

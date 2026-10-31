@@ -361,8 +361,11 @@ RoutePath scoreBranchOffCandidate(const ProjectionContext &projection_context,
 				  const PlannerConfig &config,
 				  const RouteProjectionCandidate &branch_off)
 {
-	const bool same_active_loop = branch_off.segment.isLoop()
-				      && branch_off.segment.jump_item_index == projection_context.route_projection.segment.jump_item_index;
+	const Segment &vehicle_segment = projection_context.route_projection.segment;
+	// The safe point scan keeps the nominal twin in place of a jump edge, so it also stands for the vehicle's own.
+	const bool same_active_loop = vehicle_segment.isLoop()
+				      && (branch_off.segment.jump_item_index == vehicle_segment.jump_item_index
+					  || branch_off.segment.isTwin(vehicle_segment));
 
 	// A loop edge is only reachable from the vehicle's own active loop.
 	if (branch_off.segment.isLoop() && !same_active_loop) {

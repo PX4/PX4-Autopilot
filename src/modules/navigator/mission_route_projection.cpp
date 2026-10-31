@@ -702,12 +702,6 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment)
 	return state;
 }
 
-// A nominal segment and a jump edge can share endpoints but have different execution state.
-static bool isSegmentTwin(const Segment &a, const Segment &b)
-{
-	return a.isLoop() != b.isLoop() && a.start.idx == b.start.idx && a.end.idx == b.end.idx;
-}
-
 // After the geofence check, the closest candidate left sets the search window. Positive margins include the
 // boundary. Zero margin keeps only that candidate and the nominal twin of a jump edge: without its anchor the
 // jump edge is not flown, nor scored as a branch-off.
@@ -734,7 +728,7 @@ static void keepWithinWindow(ProjectionCandidateBuffer &candidate_buffer, float 
 	uint8_t kept = 1;
 
 	for (uint8_t i = 1; i < candidate_buffer.count; ++i) {
-		if (isSegmentTwin(closest.segment, candidate_buffer.candidates[i].segment)) {
+		if (closest.segment.isTwin(candidate_buffer.candidates[i].segment)) {
 			candidate_buffer.candidates[kept++] = candidate_buffer.candidates[i];
 			break;
 		}
@@ -755,8 +749,7 @@ static bool replaceUnflownJumpTwin(ProjectionCandidateBuffer &candidate_buffer,
 	for (uint8_t i = 0; i < candidate_buffer.count; ++i) {
 		RouteProjectionCandidate &other = candidate_buffer.candidates[i];
 
-		if (other.segment.isLoop() && other.segment.jump_item_index != flown_jump_item_index
-		    && other.segment.start.idx == candidate.segment.start.idx && other.segment.end.idx == candidate.segment.end.idx) {
+		if (other.segment.isTwin(candidate.segment) && other.segment.jump_item_index != flown_jump_item_index) {
 			other = candidate;
 			return true;
 		}

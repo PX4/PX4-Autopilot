@@ -1670,6 +1670,42 @@ TEST_F(MissionRoutePlannerTest, ActiveJumpStillNarrowsSafePointProjectionWindow)
 	}
 }
 
+// A DO_JUMP over commands only: its edge [1->4] and the nominal leg [1->4] are twins. On either, the safe
+// point branches off ahead on [1->4], not after flying to item 4 and back.
+TEST_F(MissionRoutePlannerTest, ActiveJumpEdgeTwinBranchesOffAhead)
+{
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),   // 0
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt), // 1
+		speed_change,                                                     // 2 jump target
+		makeDoJump(2, 2, 2),                                              // 3 exhausted, edge [1->4]
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt), // 4
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 175.f, 40.f, kAlt),
+	};
+	TestPlanner planner(mission, safe_points);
+	mission_route::RtlRouteRequest request =
+		makeRtlRouteRequest(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 5.f, kAlt), 4);
+
+	for (const int32_t anchor : {3, -1}) {
+		SCOPED_TRACE(::testing::Message() << "anchor " << anchor);
+		request.active_jump_anchor = {anchor};
+		mission_route::RtlRoutePlan plan{};
+		const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
+
+		ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+		ASSERT_TRUE(plan.valid());
+		EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+		EXPECT_EQ(plan.active_jump_anchor.jump_item_index, anchor);
+		EXPECT_FALSE(plan.direction_reversed);
+		EXPECT_EQ(plan.first_mission_item_index, 4);
+		EXPECT_EQ(plan.branch_off_mission_item_index, 4);
+	}
+}
+
 // Loop case where the cheapest path is nominal: rally 3, branch-off on [7-9].
 TEST_F(MissionRoutePlannerTest, LoopScenarioSelectsRally3OnSegment7To9)
 {
