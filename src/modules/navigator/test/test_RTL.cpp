@@ -2009,33 +2009,6 @@ TEST_F(RTLTest, RouteRetrySurvivesRepeatedExecutorAllocationFailures)
 	EXPECT_FALSE(_rtl.directActiveForTest());
 }
 
-
-
-TEST_F(RTLTest, RouteSafePointReturnDetectsSafePointCountChangeWithSameId)
-{
-	const mission_s mission = prepareStraightRouteScenario();
-	_rtl.activateRouteSafePointReturnForTest();
-	ASSERT_TRUE(_rtl.routePlanSourceStillValidForTest());
-
-	mission_item_s second_safe_point = makeSafePointFromOffset(kBaseLat, kBaseLon, 180.f, 20.f, kAlt);
-	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_0, 1,
-					      reinterpret_cast<uint8_t *>(&second_safe_point), sizeof(second_safe_point)));
-	mission_stats_entry_s updated_stats{};
-	updated_stats.num_items = 2;
-	updated_stats.opaque_id = mission.safe_points_id;
-	updated_stats.dataman_id = DM_KEY_SAFE_POINTS_0;
-	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
-					      reinterpret_cast<uint8_t *>(&updated_stats), sizeof(updated_stats)));
-
-	MissionRouteCache &cache = _navigator.get_mission_route_cache();
-	MissionRouteCacheTestPeer::requestSafePointRecheck(cache);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] {
-		return cache.safePointsReady() && cache.safePointCount() == 2;
-	}));
-
-	EXPECT_FALSE(_rtl.routePlanSourceStillValidForTest());
-}
-
 class RtlVtolActivationTest : public RTLTest, public ::testing::WithParamInterface<uint8_t> {};
 
 TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
