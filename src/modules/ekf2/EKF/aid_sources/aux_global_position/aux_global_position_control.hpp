@@ -73,8 +73,7 @@ private:
 	};
 
 	enum class Ctrl : uint8_t {
-		kHPos  = (1 << 0),
-		kVPos  = (1 << 1)
+		kHPos  = (1 << 0)
 	};
 
 	enum class Mode : uint8_t {

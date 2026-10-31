@@ -99,8 +99,6 @@ void AgpSource::bufferData(const aux_global_position_s &msg, const estimator::im
 
 bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
-	// the parameter is a bitmask: bit 0 enables the horizontal position fusion below; bit 1 (vertical position)
-	// has no fusion path yet, so it enables nothing
 	ekf._fc.agp[_slot].available = (_params.ctrl & static_cast<int32_t>(Ctrl::kHPos)) != 0;
 
 	AuxGlobalPositionSample sample;
