@@ -2279,7 +2279,9 @@ void Commander::checkForMissionUpdate()
 
 				if (!continue_on_course) {
 					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
+					if(!_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true)){
+						printRejectMode(target_nav_state);
+					}
 				}
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
@@ -2287,8 +2289,9 @@ void Commander::checkForMissionUpdate()
 
 				// However, only do so if there's no pending mode change, so there isn't already a pending change (like Return).
 				if (_user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-				}
+					if (!_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+						printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					}
 			}
 		}
 	}
