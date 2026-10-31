@@ -209,6 +209,14 @@ protected:
 	float _dist_to_bottom{}; /**< current height above ground level if dist_bottom is valid */
 	float _dist_to_ground{}; /**< equals _dist_to_bottom if available, height above home otherwise */
 
+	enum class DistToGroundSource : uint8_t {
+		DistBottom, // _dist_to_bottom from the estimator
+		Home, // height above home
+		LocalZ // height above the local origin
+	};
+
+	DistToGroundSource _dist_to_ground_source{DistToGroundSource::LocalZ}; /**< what _dist_to_ground is derived from */
+
 	/**
 	 * Setpoints which the position controller has to execute.
 	 * Setpoints that are set to NAN are not controlled. Not all setpoints can be set at the same time.

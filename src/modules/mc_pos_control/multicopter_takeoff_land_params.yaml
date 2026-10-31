@@ -78,3 +78,18 @@ parameters:
       unit: m/s
       min: 0.1
       decimal: 1
+    MPC_LAND_APPR:
+      description:
+        short: Land approach descend rate without distance to ground
+        long: |-
+          Descend rate used during auto landing while no distance to ground
+          is available. Limited to MPC_Z_VEL_MAX_DN.
+
+          Set to 0 to slow down based on the height above home.
+      type: float
+      default: 0.0
+      unit: m/s
+      min: 0
+      max: 4
+      decimal: 1
+      increment: 0.1
