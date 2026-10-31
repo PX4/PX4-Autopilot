@@ -40,7 +40,7 @@
  *
  */
 
-static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
+static constexpr uint16_t param_info_count = px4::parameters_count;
 
 /**
  * Test whether a param_t is value.
@@ -75,12 +75,16 @@ param_t param_for_index(unsigned index)
 
 const char *param_name(param_t param)
 {
-	return handle_in_range(param) ? px4::parameters[param].name : nullptr;
+	return handle_in_range(param) ? &px4::parameters_names[px4::parameters_name_offset[param]] : nullptr;
 }
 
 param_type_t param_type(param_t param)
 {
-	return handle_in_range(param) ? px4::parameters_type[param] : PARAM_TYPE_UNKNOWN;
+	if (!handle_in_range(param)) {
+		return PARAM_TYPE_UNKNOWN;
+	}
+
+	return (px4::parameters_float_mask[param / 32] & (1u << (param % 32))) ? PARAM_TYPE_FLOAT : PARAM_TYPE_INT32;
 }
 
 bool param_is_volatile(param_t param)
@@ -143,11 +147,11 @@ param_get_system_default_value(param_t param, void *default_val)
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
-		memcpy(default_val, &px4::parameters[param].val.i, param_size(param));
+		memcpy(default_val, &px4::parameters_default[param].i, param_size(param));
 		break;
 
 	case PARAM_TYPE_FLOAT:
-		memcpy(default_val, &px4::parameters[param].val.f, param_size(param));
+		memcpy(default_val, &px4::parameters_default[param].f, param_size(param));
 		break;
 
 	default:

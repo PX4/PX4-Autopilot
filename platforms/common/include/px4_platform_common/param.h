@@ -42,6 +42,8 @@
 #include "param_macros.h"
 #include <float.h>
 #include <math.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include <parameters/px4_parameters.hpp>
 
@@ -59,15 +61,22 @@ inline static param_t param_handle(px4::params p)
 #define _DEFINE_SINGLE_PARAMETER(x) \
 	do_not_explicitly_use_this_namespace::PAIR(x);
 
-#define _CALL_UPDATE(x) \
-	STRIP(x).update();
+#define _PARAM_TABLE_ENTRY(x) \
+	do_not_explicitly_use_this_namespace::param_table_entry<decltype(STRIP(x))>(),
+
+// The parameters declared by the macro are consecutive one-slot members, so a single
+// member placed right after them can load all of them from a table of handles.
+// This keeps per-parameter code out of every constructor and updateParamsImpl().
+#define _DEFINE_PARAMETER_TABLE(...) \
+	do_not_explicitly_use_this_namespace::ParamTable<APPLY_ALL(_PARAM_TABLE_ENTRY, __VA_ARGS__) \
+	do_not_explicitly_use_this_namespace::param_table_end> _param_table;
 
 // define the parameter update method, which will update all parameters.
 // It is marked as 'final', so that wrong usages lead to a compile error (see below)
 #define _DEFINE_PARAMETER_UPDATE_METHOD(...) \
 	protected: \
 	void updateParamsImpl() final { \
-		APPLY_ALL(_CALL_UPDATE, __VA_ARGS__) \
+		_param_table.update(); \
 	} \
 	private:
 
@@ -79,6 +88,7 @@ inline static param_t param_handle(px4::params p)
 // that tree.
 #define DEFINE_PARAMETERS(...) \
 	APPLY_ALL(_DEFINE_SINGLE_PARAMETER, __VA_ARGS__) \
+	_DEFINE_PARAMETER_TABLE(__VA_ARGS__) \
 	_DEFINE_PARAMETER_UPDATE_METHOD(__VA_ARGS__)
 
 
@@ -86,12 +96,13 @@ inline static param_t param_handle(px4::params p)
 	protected: \
 	void updateParamsImpl() override { \
 		parent_class::updateParamsImpl(); \
-		APPLY_ALL(_CALL_UPDATE, __VA_ARGS__) \
+		_param_table.update(); \
 	} \
 	private:
 
 #define DEFINE_PARAMETERS_CUSTOM_PARENT(parent_class, ...) \
 	APPLY_ALL(_DEFINE_SINGLE_PARAMETER, __VA_ARGS__) \
+	_DEFINE_PARAMETER_TABLE(__VA_ARGS__) \
 	_DEFINE_PARAMETER_UPDATE_METHOD_CUSTOM_PARENT(parent_class, __VA_ARGS__)
 
 
@@ -101,6 +112,52 @@ inline static param_t param_handle(px4::params p)
 // makes sure that update() is automatically called).
 namespace do_not_explicitly_use_this_namespace
 {
+
+// Every Param takes exactly one pointer-sized slot, so the parameters of a class form an array
+static constexpr size_t param_slot_size = sizeof(void *);
+
+// Table entry: parameter handle in the low bits, how to store its value in the top two
+static constexpr unsigned param_table_kind_shift = 14;
+static constexpr uint16_t param_table_handle_mask = (1u << param_table_kind_shift) - 1;
+static constexpr uint16_t param_table_value = 0u << param_table_kind_shift;    // float or int32_t in the slot
+static constexpr uint16_t param_table_bool = 1u << param_table_kind_shift;     // bool in the slot
+static constexpr uint16_t param_table_external = 2u << param_table_kind_shift; // pointer to the value in the slot
+static constexpr uint16_t param_table_end = 0xffff;
+
+/**
+ * Load `count` parameters into consecutive slots starting at `first`.
+ * Implemented in module_params.cpp.
+ */
+__EXPORT void param_table_load(const uint16_t *entries, unsigned count, uint8_t *first, bool mark_used);
+
+template<typename P>
+constexpr uint16_t param_table_entry()
+{
+	static_assert(sizeof(P) == param_slot_size && alignof(P) == param_slot_size, "Param must fill exactly one slot");
+	return P::table_entry;
+}
+
+/**
+ * Declared right after the parameters of a class (by DEFINE_PARAMETERS), so the
+ * parameters end where this member starts.
+ */
+template<uint16_t... Entries>
+class ParamTable
+{
+public:
+	ParamTable() { load(true); }
+
+	void update() { load(false); }
+
+private:
+	static constexpr unsigned count = sizeof...(Entries) - 1; // without param_table_end
+
+	void load(bool mark_used)
+	{
+		static constexpr uint16_t entries[] = {Entries...};
+		param_table_load(entries, count, reinterpret_cast<uint8_t *>(this) - count * param_slot_size, mark_used);
+	}
+};
 
 template<typename T, px4::params p>
 class Param
@@ -113,13 +170,14 @@ template<px4::params p>
 class Param<float, p>
 {
 public:
+	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
+	static constexpr uint16_t table_entry = (uint16_t)p | param_table_value;
+
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
 
-	Param()
-	{
-		param_get_mark_used(handle(), &_val);
-	}
+	// loaded by the ParamTable that follows the parameters
+	Param() = default;
 
 	float get() const { return _val; }
 
@@ -155,7 +213,7 @@ public:
 
 	param_t handle() const { return param_handle(p); }
 private:
-	float _val;
+	alignas(param_slot_size) float _val;
 };
 
 // external version
@@ -163,29 +221,32 @@ template<px4::params p>
 class Param<float &, p>
 {
 public:
+	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
+	static constexpr uint16_t table_entry = (uint16_t)p | param_table_external;
+
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
 
+	// loaded by the ParamTable that follows the parameters
 	Param(float &external_val)
-		: _val(external_val)
+		: _val(&external_val)
 	{
-		param_get_mark_used(handle(), &_val);
 	}
 
-	float get() const { return _val; }
+	float get() const { return *_val; }
 
-	const float &reference() const { return _val; }
+	const float &reference() const { return *_val; }
 
 	/// Store the parameter value to the parameter storage (@see param_set())
-	bool commit() const { return param_set(handle(), &_val) == 0; }
+	bool commit() const { return param_set(handle(), _val) == 0; }
 
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
+	bool commit_no_notification() const { return param_set_no_notification(handle(), _val) == 0; }
 
 	/// Set and commit a new value. Returns true if the value changed.
 	bool commit_no_notification(float val)
 	{
-		if (fabsf(val - _val) > FLT_EPSILON) {
+		if (fabsf(val - *_val) > FLT_EPSILON) {
 			set(val);
 			commit_no_notification();
 			return true;
@@ -194,7 +255,7 @@ public:
 		return false;
 	}
 
-	void set(float val) { _val = val; }
+	void set(float val) { *_val = val; }
 
 	void reset()
 	{
@@ -202,24 +263,25 @@ public:
 		update();
 	}
 
-	bool update() { return param_get(handle(), &_val) == 0; }
+	bool update() { return param_get(handle(), _val) == 0; }
 
 	param_t handle() const { return param_handle(p); }
 private:
-	float &_val;
+	float *_val; // a pointer rather than a reference, so the table loader can read it
 };
 
 template<px4::params p>
 class Param<int32_t, p>
 {
 public:
+	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
+	static constexpr uint16_t table_entry = (uint16_t)p | param_table_value;
+
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
 
-	Param()
-	{
-		param_get_mark_used(handle(), &_val);
-	}
+	// loaded by the ParamTable that follows the parameters
+	Param() = default;
 
 	int32_t get() const { return _val; }
 
@@ -255,7 +317,7 @@ public:
 
 	param_t handle() const { return param_handle(p); }
 private:
-	int32_t _val;
+	alignas(param_slot_size) int32_t _val;
 };
 
 //external version
@@ -263,29 +325,32 @@ template<px4::params p>
 class Param<int32_t &, p>
 {
 public:
+	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
+	static constexpr uint16_t table_entry = (uint16_t)p | param_table_external;
+
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
 
+	// loaded by the ParamTable that follows the parameters
 	Param(int32_t &external_val)
-		: _val(external_val)
+		: _val(&external_val)
 	{
-		param_get_mark_used(handle(), &_val);
 	}
 
-	int32_t get() const { return _val; }
+	int32_t get() const { return *_val; }
 
-	const int32_t &reference() const { return _val; }
+	const int32_t &reference() const { return *_val; }
 
 	/// Store the parameter value to the parameter storage (@see param_set())
-	bool commit() const { return param_set(handle(), &_val) == 0; }
+	bool commit() const { return param_set(handle(), _val) == 0; }
 
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
+	bool commit_no_notification() const { return param_set_no_notification(handle(), _val) == 0; }
 
 	/// Set and commit a new value. Returns true if the value changed.
 	bool commit_no_notification(int32_t val)
 	{
-		if (val != _val) {
+		if (val != *_val) {
 			set(val);
 			commit_no_notification();
 			return true;
@@ -294,7 +359,7 @@ public:
 		return false;
 	}
 
-	void set(int32_t val) { _val = val; }
+	void set(int32_t val) { *_val = val; }
 
 	void reset()
 	{
@@ -302,28 +367,25 @@ public:
 		update();
 	}
 
-	bool update() { return param_get(handle(), &_val) == 0; }
+	bool update() { return param_get(handle(), _val) == 0; }
 
 	param_t handle() const { return param_handle(p); }
 private:
-	int32_t &_val;
+	int32_t *_val; // a pointer rather than a reference, so the table loader can read it
 };
 
 template<px4::params p>
 class Param<bool, p>
 {
 public:
+	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
+	static constexpr uint16_t table_entry = (uint16_t)p | param_table_bool;
+
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
 
-	Param()
-	{
-		int32_t value_int;
-
-		if (param_get_mark_used(handle(), &value_int) == 0) {
-			_val = value_int != 0;
-		}
-	}
+	// loaded by the ParamTable that follows the parameters
+	Param() = default;
 
 	bool get() const { return _val; }
 
@@ -378,7 +440,7 @@ public:
 
 	param_t handle() const { return param_handle(p); }
 private:
-	bool _val;
+	alignas(param_slot_size) bool _val;
 };
 
 template <px4::params p>

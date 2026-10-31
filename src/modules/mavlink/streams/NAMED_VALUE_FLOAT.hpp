@@ -44,9 +44,6 @@ public:
 	static constexpr const char *get_name_static() { return "NAMED_VALUE_FLOAT"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_NAMED_VALUE_FLOAT; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		return _debug_key_value_sub.advertised() ? MAVLINK_MSG_ID_NAMED_VALUE_FLOAT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
