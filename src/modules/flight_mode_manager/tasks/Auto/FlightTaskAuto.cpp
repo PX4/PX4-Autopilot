@@ -636,12 +636,9 @@ bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 
 bool FlightTaskAuto::_evaluateGlobalReference()
 {
-	// check if reference has changed and update.
-	// Only update if reference timestamp has changed AND no valid reference altitude
-	// is available.
-	// TODO: this needs to be revisited and needs a more clear implementation
-	if (_sub_vehicle_local_position.get().ref_timestamp == _time_stamp_reference && PX4_ISFINITE(_reference_altitude)) {
-		// don't need to update anything
+	// Without a global origin the reference is the local origin, which doesn't move. With one, refresh on
+	// every cycle: EKF2 can move the altitude reference without a new ref_timestamp.
+	if (_sub_vehicle_local_position.get().ref_timestamp == 0 && PX4_ISFINITE(_reference_altitude)) {
 		return true;
 	}
 
