@@ -824,14 +824,16 @@ void
 MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item,
 		const position_setpoint_s &reference_setpoint)
 {
-	setLoiterItemCommonFields(&item);
+	const position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	item.lat = reference_setpoint.lat;
-	item.lon = reference_setpoint.lon;
-	item.altitude = reference_setpoint.alt;
-	item.loiter_radius = reference_setpoint.loiter_direction_counter_clockwise ?
-			     -reference_setpoint.loiter_radius : reference_setpoint.loiter_radius;
-	item.yaw = reference_setpoint.yaw;
+	setLoiterItemCommonFields(item, pos_sp_triplet->current.frame);
+
+	item->lat = pos_sp_triplet->current.lat;
+	item->lon = pos_sp_triplet->current.lon;
+	item->altitude = pos_sp_triplet->current.alt;
+	item->loiter_radius = pos_sp_triplet->current.loiter_direction_counter_clockwise ?
+			      -pos_sp_triplet->current.loiter_radius : pos_sp_triplet->current.loiter_radius;
+	item->yaw = pos_sp_triplet->current.yaw;
 }
 
 void
@@ -875,10 +877,10 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 }
 
 void
-MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
+MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item, uint8_t frame)
 {
 	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
+	item->frame = frame;
 
 	item->altitude_is_relative = false;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
