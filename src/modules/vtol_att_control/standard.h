@@ -79,8 +79,11 @@ private:
 	float _airspeed_trans_blend_margin{0.0f};
 	hrt_abstime _last_time_pusher_transition_update{0};
 	float _front_transition_pitch{NAN};
+	bool _full_mc_control_in_back_transition{false}; // no mc weight ramp after a stopped front transition
 
 	void parameters_update() override;
+
+	float getForwardSpeed() const;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::VT_PSHER_SLEW>) _param_vt_psher_slew,
