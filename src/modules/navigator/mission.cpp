@@ -88,6 +88,17 @@ Mission::on_activation()
 
 	check_mission_valid(true);
 
+	// A front transition stopped before fixed-wing after its item completed: resume at that item, unless the mission
+	// has moved on since.
+	if (_front_transition_index >= 0 && _front_transition_mission_id == _mission.mission_id
+	    && _front_transition_next_index == _mission.current_seq
+	    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    && !_land_detected_sub.get().landed) {
+		setMissionIndex(_front_transition_index);
+	}
+
+	_front_transition_index = -1;
+
 	MissionBase::on_activation();
 }
 
@@ -95,6 +106,8 @@ Mission::on_activation()
 bool
 Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 {
+	_front_transition_index = -1;
+
 	if (!_navigator->get_mission_result()->valid || (_mission.count == 0)) {
 		return false;
 	}
@@ -299,6 +312,7 @@ void Mission::setActiveMissionItems()
 
 	} else if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 		_vtol_transition.command = _mission_item;
+		_vtol_transition.target_is_next = num_found_items > 0 && next_mission_items_index[0] == _mission.current_seq + 1;
 		startVtolTransition(num_found_items > 0 ? &next_mission_items[0] : nullptr,
 				    WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 		return;
@@ -405,6 +419,7 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    !_land_detected_sub.get().landed) {
 		_vtol_transition.command = _mission_item;
+		_vtol_transition.target_is_next = true;
 		set_vtol_transition_item(&_vtol_transition.command, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 		_vtol_transition.command.yaw = NAN;
 
@@ -457,6 +472,10 @@ void Mission::startVtolTransition(const mission_item_s *alignment_target, WorkIt
 
 bool Mission::isCurrentItemReached()
 {
+	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		_front_transition_index = -1;
+	}
+
 	return vtolTransitionActive() ? updateVtolTransition() : is_mission_item_reached_or_completed();
 }
 
@@ -474,7 +493,16 @@ bool Mission::updateVtolTransition()
 	}
 
 	if (_work_item_type == _vtol_transition.completion_work) {
-		// The command is sent, the item completes in the new mode.
+		// The command is sent. A front transition directly followed by its waypoint completes once it runs, so the
+		// vehicle follows the mission during it; other transitions complete in the new mode.
+		if (status.in_transition_to_fw && _vtol_transition.target_is_next
+		    && int(_vtol_transition.command.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+			_front_transition_index = _mission.current_seq;
+			_front_transition_next_index = takeoff ? _mission.current_seq : _mission.current_seq + 1;
+			_front_transition_mission_id = _mission.mission_id;
+			return true;
+		}
+
 		return is_mission_item_reached_or_completed();
 	}
 
@@ -551,20 +579,20 @@ void Mission::setVtolTransitionStep(bool aligning)
 					    && int(_vtol_transition.command.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
 					    && mission_item_contains_position(_vtol_transition.target);
 
-		if (takeoff) {
-			if (!do_need_move_to_takeoff(_vtol_transition.target)) {
-				_vtol_transition.completion_work = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-			}
+		if (takeoff && !do_need_move_to_takeoff(_vtol_transition.target)) {
+			_vtol_transition.completion_work = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		}
 
-		} else if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
-			// The transition starts where the vehicle is, which is also the previous setpoint.
+		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
+			// The transition starts where the vehicle is, which is also the previous setpoint until the mission
+			// continues.
 			triplet.current.lat = _global_pos_sub.get().lat;
 			triplet.current.lon = _global_pos_sub.get().lon;
 			triplet.current.alt = _global_pos_sub.get().alt;
 			triplet.previous = triplet.current;
 			current_setpoint_copy = triplet.current;
 
-		} else if (publish_target) {
+		} else if (publish_target && !takeoff) {
 			mission_item_to_position_setpoint(_vtol_transition.target, &triplet.current);
 		}
 

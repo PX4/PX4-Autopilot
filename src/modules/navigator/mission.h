@@ -118,7 +118,13 @@ private:
 		mission_item_s command{}; // Transition command, kept while _mission_item is the alignment item.
 		mission_item_s target{}; // Next position item or takeoff item to align towards, empty if there is none.
 		WorkItemType completion_work{WorkItemType::WORK_ITEM_TYPE_DEFAULT}; // Work item once commanded.
+		bool target_is_next{false}; // The target directly follows the item, so a front transition can complete early.
 	} _vtol_transition{};
+
+	// Item of a front transition that completed when it started, and the item it went on to, until fixed-wing.
+	int32_t _front_transition_index{-1};
+	int32_t _front_transition_next_index{-1};
+	uint32_t _front_transition_mission_id{0};
 
 	bool _need_mission_save{false};
 };
