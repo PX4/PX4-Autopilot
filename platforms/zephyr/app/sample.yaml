@@ -1,0 +1,31 @@
+sample:
+  name: PX4 Autopilot
+  description: PX4 running on Zephyr
+common:
+  tags:
+    - px4
+tests:
+  px4.app:
+    platform_allow:
+      - mps2/an386
+    integration_platforms:
+      - mps2/an386
+    harness: console
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "HW arch: ZEPHYR_GENERIC"
+        - "OS: Zephyr"
+  px4.app.sih:
+    platform_allow:
+      - mps2/an386
+    integration_platforms:
+      - mps2/an386
+    extra_args:
+      - FILE_SUFFIX=sih
+    timeout: 600
+    harness: pytest
+    harness_config:
+      pytest_root:
+        - "pytest/test_sih.py"
