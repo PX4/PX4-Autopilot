@@ -19,7 +19,7 @@ uint8 SOURCE_MAGNETIC = 5 # Magnetic
 uint8 SOURCE_ESTIMATOR = 6 # Estimator
 uint8 SOURCE_LEO = 7 # Low Earth Orbit satellite-based positioning
 
-# lat, lon: required for horizontal position fusion, alt: required for vertical position fusion
+# lat, lon: required for horizontal position fusion, alt: not fused, only initialises the EKF altitude when this source sets the global origin
 float64 lat # [deg] Latitude in WGS84
 float64 lon # [deg] Longitude in WGS84
 float32 alt # [m] [@invalid NaN] Altitude above mean sea level (AMSL)
