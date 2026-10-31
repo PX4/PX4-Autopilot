@@ -344,6 +344,9 @@ void FwLateralLongitudinalControl::Run()
 
 			_attitude_sp_pub.publish(_att_sp);
 
+		} else {
+			// TECS is not in control: reset airspeed setpoint so adapt_airspeed_setpoint reinitialises when resuming
+			_airspeed_slew_rate_controller.setForcedValue(NAN);
 		}
 
 		// Publish flight phase with low rate, but immediately if updated
@@ -410,6 +413,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		|| _vehicle_status_sub.get().in_transition_mode)) {
 		tecs_is_running = false;
+		_airspeed_slew_rate_controller.setForcedValue(NAN);
 		return flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 	}
 
@@ -739,62 +743,35 @@ float
 FwLateralLongitudinalControl::adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
 		float calibrated_min_airspeed_guidance, float wind_speed)
 {
-	float system_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(_load_factor_from_bank_angle, _flaps_setpoint);
+	const bool fly_trim_airspeed = !PX4_ISFINITE(calibrated_airspeed_setpoint) || calibrated_airspeed_setpoint <= FLT_EPSILON;
 
-	const float system_max_airspeed = _performance_model.getMaximumCalibratedAirspeed();
+	const float min_airspeed_perfmodel = _performance_model.getMinimumCalibratedAirspeed(_load_factor_from_bank_angle, _flaps_setpoint);
+	const float max_airspeed_perfmodel = _performance_model.getMaximumCalibratedAirspeed();
 
-	// airspeed setpoint adjustments
-	if (!PX4_ISFINITE(calibrated_airspeed_setpoint) || calibrated_airspeed_setpoint <= FLT_EPSILON) {
-		calibrated_airspeed_setpoint = _performance_model.getCalibratedTrimAirspeed();
+	// Additional option to increase the min airspeed setpoint based on wind estimate for more stability in higher winds.
+	const float wind_margin = (fly_trim_airspeed && _wind_valid && _param_fw_wind_arsp_sc.get() > FLT_EPSILON)
+				  ? _param_fw_wind_arsp_sc.get() * wind_speed : 0.f;
 
-		// Aditional option to increase the min airspeed setpoint based on wind estimate for more stability in higher winds.
-		if (_wind_valid && _param_fw_wind_arsp_sc.get() > FLT_EPSILON) {
-			system_min_airspeed = math::min(system_min_airspeed + _param_fw_wind_arsp_sc.get() *
-			wind_speed, system_max_airspeed);
-		}
-	}
+	// If min exceeds max (high load factor), prioritise the min (stall margin). Should
+	// not happen on proper configuration, checked by PerformanceModel::runSanityChecks.
+	const float max_airspeed = math::max(max_airspeed_perfmodel, min_airspeed_perfmodel);
 
-	// increase setpoint to at what's at least required for the lateral guidance
-	calibrated_airspeed_setpoint = math::max(calibrated_airspeed_setpoint, calibrated_min_airspeed_guidance);
+	const float min_airspeed = math::min(min_airspeed_perfmodel + wind_margin, max_airspeed);
 
-	// constrain airspeed to feasible range
-	calibrated_airspeed_setpoint = math::constrain(calibrated_airspeed_setpoint, system_min_airspeed, system_max_airspeed);
+	const float airspeed_setpoint_unconstrained = math::max(
+			fly_trim_airspeed ? _performance_model.getCalibratedTrimAirspeed() : calibrated_airspeed_setpoint,
+			calibrated_min_airspeed_guidance
+		);
 
-	if (!PX4_ISFINITE(_airspeed_slew_rate_controller.getState())) {
+	const float airspeed_setpoint = math::constrain(airspeed_setpoint_unconstrained, min_airspeed, max_airspeed);
 
-		// initialize the airspeed setpoint
-		if (PX4_ISFINITE(_long_control_state.airspeed_eas) && _long_control_state.airspeed_eas < system_min_airspeed) {
-			// current airpseed is below minimum - init with minimum
-			_airspeed_slew_rate_controller.setForcedValue(system_min_airspeed);
+	// Start from the current airspeed when TECS was not running, otherwise slew toward the setpoint
+	const float slewed_setpoint = PX4_ISFINITE(_airspeed_slew_rate_controller.getState())
+				      ? _airspeed_slew_rate_controller.update(airspeed_setpoint, control_interval)
+				      : _long_control_state.airspeed_eas;
 
-		} else if (PX4_ISFINITE(_long_control_state.airspeed_eas) && _long_control_state.airspeed_eas > system_max_airspeed) {
-			// current airpseed is above maximum - init with maximum
-			_airspeed_slew_rate_controller.setForcedValue(system_max_airspeed);
-
-		} else if (PX4_ISFINITE(_long_control_state.airspeed_eas)) {
-			// current airpseed is between min and max - init with current
-			_airspeed_slew_rate_controller.setForcedValue(_long_control_state.airspeed_eas);
-
-		} else {
-			// current airpseed is invalid - init with setpoint
-			_airspeed_slew_rate_controller.setForcedValue(calibrated_airspeed_setpoint);
-		}
-	} else {
-		// update slew rate state
-		if (_airspeed_slew_rate_controller.getState() < system_min_airspeed) {
-			// current airpseed setpoint is below minimum - reset to minimum
-			_airspeed_slew_rate_controller.setForcedValue(system_min_airspeed);
-
-		} else if (_airspeed_slew_rate_controller.getState() > system_max_airspeed) {
-			// current airpseed setpoint is above maximum - reset to maximum
-			_airspeed_slew_rate_controller.setForcedValue(system_max_airspeed);
-
-		} else if (PX4_ISFINITE(_long_control_state.airspeed_eas)) {
-			// current airpseed setpoint is between min and max - update
-			_airspeed_slew_rate_controller.update(calibrated_airspeed_setpoint, control_interval);
-
-		}
-	}
+	// The feasible range can move faster than the slew rate (bank angle, flaps): never command outside it
+	_airspeed_slew_rate_controller.setForcedValue(math::constrain(slewed_setpoint, min_airspeed, max_airspeed));
 
 	return _airspeed_slew_rate_controller.getState();
 }
