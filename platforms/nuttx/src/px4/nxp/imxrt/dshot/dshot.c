@@ -40,6 +40,7 @@
 #include <px4_arch/dshot.h>
 #include <px4_arch/io_timer.h>
 #include <drivers/drv_dshot.h>
+#include <dshot_telemetry/dshot_telemetry.h>
 #include <drivers/drv_hrt.h>
 #include <nuttx/irq.h>
 #include <string.h>
@@ -56,13 +57,6 @@
 #if defined(IOMUX_PULL_UP_47K)
 #define IOMUX_PULL_UP IOMUX_PULL_UP_47K
 #endif
-
-static const uint32_t gcr_decode[32] = {
-	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-	0x0, 0x9, 0xA, 0xB, 0x0, 0xD, 0xE, 0xF,
-	0x0, 0x0, 0x2, 0x3, 0x0, 0x5, 0x6, 0x7,
-	0x0, 0x0, 0x8, 0x1, 0x0, 0x4, 0xC, 0x0
-};
 
 typedef enum {
 	DSHOT_START = 0,
@@ -362,9 +356,6 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 
 static inline bool decode_gcr_payload(uint32_t value, uint16_t *payload)
 {
-	uint32_t data;
-	uint32_t csum_data;
-
 	/* if lowest significant bit isn't 1 we've got a framing error */
 	if ((value & 0x1) == 0) {
 		return false;
@@ -373,23 +364,7 @@ static inline bool decode_gcr_payload(uint32_t value, uint16_t *payload)
 	/* Decode RLL */
 	value = value ^ (value >> 1);
 
-	/* Decode GCR */
-	data = gcr_decode[value & 0x1fU];
-	data |= gcr_decode[(value >> 5U) & 0x1fU] << 4U;
-	data |= gcr_decode[(value >> 10U) & 0x1fU] << 8U;
-	data |= gcr_decode[(value >> 15U) & 0x1fU] << 12U;
-
-	/* Calculate checksum */
-	csum_data = data;
-	csum_data = csum_data ^ (csum_data >> 8U);
-	csum_data = csum_data ^ (csum_data >> NIBBLES_SIZE);
-
-	if ((csum_data & 0xFU) != 0xFU) {
-		return false;
-	}
-
-	*payload = (data >> 4) & 0xFFF;
-	return true;
+	return dshot_decode_gcr_payload(value, payload);
 }
 
 static void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet)

@@ -34,4 +34,5 @@
 px4_add_library(arch_dshot
 	dshot.c
 )
+target_link_libraries(arch_dshot PUBLIC dshot_telemetry)
 target_compile_options(arch_dshot PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
