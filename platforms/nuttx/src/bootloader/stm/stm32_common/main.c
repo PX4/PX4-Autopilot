@@ -279,17 +279,6 @@ board_init(void)
 	px4_arch_gpiowrite(BOARD_POWER_PIN_OUT, BOARD_POWER_ON);
 #endif
 
-#if INTERFACE_USB
-#if !defined(BOARD_USB_VBUS_SENSE_DISABLED)
-	/* enable configured GPIO to sample VBUS */
-#  if defined(USE_VBUS_PULL_DOWN)
-	px4_arch_configgpio((GPIO_OTGFS_VBUS & GPIO_PUPD_MASK) | GPIO_PULLDOWN);
-#  else
-	px4_arch_configgpio((GPIO_OTGFS_VBUS & GPIO_PUPD_MASK) | GPIO_FLOAT);
-#  endif
-#endif
-#endif
-
 #if INTERFACE_USART
 #endif
 
