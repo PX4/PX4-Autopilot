@@ -395,14 +395,22 @@ The failure detector is active in all vehicle types and modes, except for those 
 
 <Badge type="tip" text="PX4 v1.18" /> <Badge type="tip" text="MC, VTOL only" />
 
-The failure detector can be configured to trigger if a rotary-wing vehicle loses too much altitude below its commanded setpoint while in an altitude-controlled flight mode (such as [Position mode](../flight_modes_mc/position.md) or [Altitude mode](../flight_modes_mc/altitude.md)).
+The failure detector can be configured to trigger if a rotary-wing vehicle loses too much altitude while in an altitude-controlled flight mode (such as [Position mode](../flight_modes_mc/position.md) or [Altitude mode](../flight_modes_mc/altitude.md)).
 
-If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) meters below the setpoint, [flight termination](../advanced_config/flight_termination.md) is triggered, which may deploy a [parachute](../peripherals/parachute.md).
+If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) metres below its reference altitude, [flight termination](../advanced_config/flight_termination.md) is triggered, which may deploy a [parachute](../peripherals/parachute.md).
+The reference altitude depends on what the vehicle is commanded to do:
 
-| Parameter                                                                                          | Description                                                                                                                           |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FD_ALT_LOSS"></a>[FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS)       | Altitude loss threshold (m). Flight termination is triggered when the vehicle drops this far below the setpoint. Set to 0 to disable. |
-| <a id="FD_ALT_LOSS_T"></a>[FD_ALT_LOSS_T](../advanced_config/parameter_reference.md#FD_ALT_LOSS_T) | Time (s) the vehicle must remain below the threshold before flight termination is triggered.                                          |
+- With an altitude setpoint (for example when holding altitude or flying a mission), the reference is the highest altitude reached while below the setpoint.
+- Without an altitude setpoint but with a commanded vertical speed (for example while the pilot moves the throttle stick), the reference is the highest altitude reached.
+  It is only lowered at the commanded descent rate, so altitude loss is detected while climbing, holding or descending manually, without triggering on a commanded descent.
+  A commanded climb never raises the reference above the altitude actually reached, so a vehicle that climbs slower than commanded (or cannot climb at all) does not trigger, as long as it does not lose altitude.
+- When the vehicle descends faster than commanded (for example after switching from [Stabilized mode](../flight_modes_mc/manual_stabilized.md) during a fast descent), the reference follows it down while it brakes at 2 m/s² or more, so the stopping distance does not trigger.
+  Once the vehicle has slowed down, the reference is lowered no faster than its current descent speed plus 2 m/s, so an altitude loss after stopping is not masked.
+
+| Parameter                                                                                          | Description                                                                                                                                     |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ALT_LOSS"></a>[FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS)       | Altitude loss threshold (m). Flight termination is triggered when the vehicle drops this far below the reference altitude. Set to 0 to disable. |
+| <a id="FD_ALT_LOSS_T"></a>[FD_ALT_LOSS_T](../advanced_config/parameter_reference.md#FD_ALT_LOSS_T) | Time (s) the vehicle must remain below the threshold before flight termination is triggered.                                                    |
 
 ### Attitude Trigger
 

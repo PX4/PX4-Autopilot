@@ -108,6 +108,11 @@ private:
 
 	float _alt_loss_ref_z{NAN}; // ratcheting NED-z reference for altitude loss detection
 	uint8_t _alt_loss_z_reset_counter{0}; // tracks EKF z resets to avoid false altitude loss triggers
+	hrt_abstime _alt_loss_timestamp_prev{0}; // used to integrate the commanded vertical velocity
+	float _alt_loss_allowed_descent_rate{0.f}; // [m/s] rate at which the reference is lowered
+	static constexpr hrt_abstime _alt_loss_setpoint_timeout{500_ms}; // commanded descent is ignored when older
+	static constexpr float _alt_loss_descent_rate_margin{2.f}; // [m/s] tolerated descent faster than commanded
+	static constexpr float _alt_loss_min_braking_decel{2.f}; // [m/s^2] slowest braking of a faster descent tolerated
 
 	static constexpr hrt_abstime _imbalanced_prop_lpf_time_constant{5_s};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
