@@ -31009,13 +31009,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 0 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31108,13 +31108,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 1 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31207,13 +31207,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 2 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31306,13 +31306,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 3 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -54755,7 +54755,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 266">
+<div class="param-group" style="--param-count: 265">
 
 <div class="param">
 
@@ -56050,18 +56050,6 @@ INA226 Power Monitor Shunt.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 1e-09 | 0.1 | 1e-09 | 0.0005 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### INA228_CONFIG (`INT32`) {#INA228_CONFIG}
-
-INA228 Power Monitor Config.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 65535 | 1 | 63779 |  | &nbsp;
 
 </div>
 

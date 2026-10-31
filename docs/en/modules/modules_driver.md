@@ -526,6 +526,9 @@ Multiple instances can run simultaneously on separate buses or different I2C add
 If the device is not powered at startup, pass `-k` (keep_running) and the driver
 will retry initialization every 500 ms so the battery can be plugged in later.
 
+The device is sampled at 100 Hz. Every sample is triggered by the driver, so the latency
+from the measurement to the publication is the same for every sample.
+
 ### Usage {#ina226_usage}
 
 ```
@@ -557,16 +560,17 @@ Source: [drivers/power_monitor/ina228](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Description
 
-Driver for the INA228 power monitor.
+Driver for the Texas Instruments INA228 power monitor.
 
-Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
+Multiple instances can run simultaneously on separate buses or different I2C addresses.
 
-For example, one instance can run on Bus 2, address 0x45, and one can run on Bus 2, address 0x45.
+If the device is not powered at startup, pass `-k` (keep_running) and the driver
+will retry initialization every 500 ms so the battery can be plugged in later.
 
-If the INA228 module is not powered, then by default, initialization of the driver will fail. To change this, use
-the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
-every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
-this flag set, the battery must be plugged in before starting the driver.
+The device is sampled at 100 Hz. Every sample is triggered by the driver, so the latency
+from the measurement to the publication is the same for every sample. The configuration
+registers are read back periodically and rewritten if the device was reset (e.g. by a
+brown-out while plugging the battery).
 
 ### Usage {#ina228_usage}
 
@@ -605,6 +609,9 @@ Multiple instances can run simultaneously on separate buses or different I2C add
 
 If the device is not powered at startup, pass `-k` (keep_running) and the driver
 will retry initialization every 500 ms so the battery can be plugged in later.
+
+The device is sampled at 100 Hz. Every sample is triggered by the driver, so the latency
+from the measurement to the publication is the same for every sample.
 
 ### Usage {#ina238_usage}
 
