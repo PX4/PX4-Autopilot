@@ -53,6 +53,11 @@
 extern "C" {
 #endif
 __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...);
+#if !defined(__PX4_QURT) && !defined(PRINTF_LOG) && !defined(TRACE_BUILD) && !defined(DEBUG_BUILD) && !defined(RELEASE_BUILD)
+#define MAVLINK_LOG_AND_PRINT 1
+__EXPORT void mavlink_log_and_print(int severity, int log_level, const char *module_name,
+				    orb_advert_t *mavlink_log_pub, const char *fmt, ...) __attribute__((format(printf, 5, 6)));
+#endif
 #ifdef __cplusplus
 }
 #endif
@@ -72,6 +77,8 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
  *
  * http://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
  */
+
+#if !defined(MAVLINK_LOG_AND_PRINT)
 
 /**
  * Send a mavlink info message (also printed to console).
@@ -120,3 +127,29 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 		mavlink_vasprintf(_MSG_PRIO_CRITICAL, _pub, _text, ##__VA_ARGS__); \
 		PX4_WARN(_text, ##__VA_ARGS__); \
 	} while(0);
+
+#else
+
+// One call formats the text for both MAVLink and the console, instead of passing the arguments twice at every site
+
+#define mavlink_log_info(_pub, _text, ...) \
+	do { \
+		mavlink_log_and_print(_MSG_PRIO_INFO, _PX4_LOG_LEVEL_INFO, MODULE_NAME, _pub, _text, ##__VA_ARGS__); \
+	} while(0);
+
+#define mavlink_log_warning(_pub, _text, ...) \
+	do { \
+		mavlink_log_and_print(_MSG_PRIO_WARNING, _PX4_LOG_LEVEL_WARN, MODULE_NAME, _pub, _text, ##__VA_ARGS__); \
+	} while(0);
+
+#define mavlink_log_emergency(_pub, _text, ...) \
+	do { \
+		mavlink_log_and_print(_MSG_PRIO_EMERGENCY, _PX4_LOG_LEVEL_ERROR, MODULE_NAME, _pub, _text, ##__VA_ARGS__); \
+	} while(0);
+
+#define mavlink_log_critical(_pub, _text, ...) \
+	do { \
+		mavlink_log_and_print(_MSG_PRIO_CRITICAL, _PX4_LOG_LEVEL_WARN, MODULE_NAME, _pub, _text, ##__VA_ARGS__); \
+	} while(0);
+
+#endif
