@@ -90,10 +90,6 @@ set(NAVIGATOR_DEPENDS
 	navigator_mission_route
 	rtl_time_estimator)
 
-if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
-	list(APPEND NAVIGATOR_SOURCES mission_route_geofence.cpp)
-endif()
-
 if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
 	list(APPEND NAVIGATOR_SOURCES rtl_geofence_avoidance_helper.cpp)
 	list(APPEND NAVIGATOR_DEPENDS geofence_avoidance_planner)
@@ -122,7 +118,8 @@ if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
 endif()
 
 if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
-	list(APPEND NAVIGATOR_SOURCES rtl_mission_safe_point_follow.cpp rtl_route_safe_point.cpp mission_route_join.cpp)
+	list(APPEND NAVIGATOR_SOURCES rtl_mission_safe_point_follow.cpp rtl_route_safe_point.cpp mission_route_geofence.cpp
+		mission_route_join.cpp)
 	list(APPEND NAVIGATOR_DEPENDS navigator_mission_route_planner)
 	list(APPEND NAVIGATOR_MODULE_CONFIG mission_route_params.yaml)
 endif()
