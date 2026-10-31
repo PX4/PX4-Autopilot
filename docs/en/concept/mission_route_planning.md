@@ -430,6 +430,7 @@ The direct segment to the destination must also pass the [Geofence Checks](#geof
 If flying straight to the safe point would cross a fence or breach a limit, the vehicle follows the selected route instead.
 For a nearby mission landing or takeoff endpoint, the branch-in point may already count as reached, so following the route could immediately lead to the same rejected segment.
 In that case, the planner rejects the plan and Return has [no route available](#route-following-no-route).
+The same applies when the route to a safe point first flies to such a nearby endpoint: if the segment from the vehicle to it fails, Return has no route.
 
 **Example:** In the image below the vehicle is already on the branch-off leg, after a GoTo or a cancelled Return.
 If a new Return is requested, the vehicle flies straight to the rally point (`R`) instead of flying back to the branch-in point only to branch off again.
