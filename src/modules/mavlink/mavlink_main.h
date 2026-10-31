@@ -238,7 +238,7 @@ public:
 			return "Low Bandwidth";
 
 		case MAVLINK_MODE_UAVIONIX:
-			return "uAvionix";
+			return "ADS-B/Traffic (uAvionix)";
 
 		case MAVLINK_MODE_DISTANCE_SENSOR:
 			return "DistanceSensor";
