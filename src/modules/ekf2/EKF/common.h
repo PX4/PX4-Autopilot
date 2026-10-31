@@ -289,7 +289,7 @@ static constexpr uint8_t MAX_AGP_INSTANCES = 4;
 
 struct FusionSensor {
 	bool enabled{false};   // runtime toggleable via MAVLink
-	bool available{false}; // CTRL-param != disabled-value (functions as factory-setting)
+	bool available{false}; // CTRL-param != disabled-value (functions as factory-setting); AGP: bit 0 of its CTRL param
 	bool intended() const { return enabled && available; }
 };
 
