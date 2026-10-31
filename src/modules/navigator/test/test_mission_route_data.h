@@ -92,9 +92,6 @@ static inline std::vector<mission_item_s> safePoints()
 	};
 }
 
-// Typical test velocity magnitude
-static constexpr float kVel = 15.f;
-
 } // namespace default_dataset
 
 
@@ -145,7 +142,6 @@ static inline std::vector<mission_item_s> safePoints()
 	};
 }
 
-static constexpr float kVelFast = 30.f;
 static constexpr float kVelDiag = 15.f;
 
 } // namespace corner_dataset
@@ -154,14 +150,14 @@ static constexpr float kVelDiag = 15.f;
 namespace uturn_penalty_dataset
 {
 
+using navigator_test::route_test_reference::kAlt;
+using navigator_test::route_test_reference::kBaseLat;
+using navigator_test::route_test_reference::kBaseLon;
+
 static constexpr int kMissionIndex = 1;
 
 static inline std::vector<mission_item_s> mission()
 {
-	using navigator_test::route_test_reference::kAlt;
-	using navigator_test::route_test_reference::kBaseLat;
-	using navigator_test::route_test_reference::kBaseLon;
-
 	return {
 		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt),
@@ -173,10 +169,6 @@ static inline std::vector<mission_item_s> mission()
 
 static inline std::vector<mission_item_s> safePoints()
 {
-	using navigator_test::route_test_reference::kAlt;
-	using navigator_test::route_test_reference::kBaseLat;
-	using navigator_test::route_test_reference::kBaseLon;
-
 	return {
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 20.f, kAlt),
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 1100.f, 20.f, kAlt),
@@ -185,9 +177,6 @@ static inline std::vector<mission_item_s> safePoints()
 
 static inline mission_route::Position vehiclePosition()
 {
-	using navigator_test::route_test_reference::kAlt;
-	using navigator_test::route_test_reference::kBaseLat;
-	using navigator_test::route_test_reference::kBaseLon;
 	return makePositionFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt);
 }
 

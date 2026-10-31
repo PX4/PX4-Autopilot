@@ -905,6 +905,21 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	return checksPass;
 }
 
+bool Geofence::isInsideHorizontalFences(double lat, double lon, float altitude)
+{
+	if (isEmpty()) {
+		return true;
+	}
+
+	bool inside = true;
+
+	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
+		inside &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
+	}
+
+	return inside;
+}
+
 bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
 {
 	bool checksPass = true;

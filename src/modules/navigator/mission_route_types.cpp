@@ -44,6 +44,7 @@
 #include "mission_item_utils.h"
 
 #include <px4_platform_common/log.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 namespace mission_route
 {
@@ -67,11 +68,6 @@ bool ActiveJumpAnchor::valid() const
 	return jump_item_index >= 0;
 }
 
-bool ActiveJumpAnchor::validForMission(int mission_count) const
-{
-	return empty() || (valid() && jump_item_index < mission_count);
-}
-
 bool MissionResumePlan::valid() const
 {
 	return join_position.valid() && first_mission_item_index >= 0
@@ -80,8 +76,7 @@ bool MissionResumePlan::valid() const
 
 bool RtlRoutePlan::valid() const
 {
-	if (!join_position.valid() || first_mission_item_index < 0 || goal_type == GoalType::kNone
-	    || !goal_position.valid() || (!active_jump_anchor.empty() && !active_jump_anchor.valid())) {
+	if (!MissionResumePlan::valid() || !goal_position.valid()) {
 		return false;
 	}
 
@@ -108,6 +103,52 @@ bool isLandingCmd(uint16_t nav_cmd)
 bool isTakeoffCmd(uint16_t nav_cmd)
 {
 	return nav_cmd == NAV_CMD_TAKEOFF || nav_cmd == NAV_CMD_VTOL_TAKEOFF;
+}
+
+VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state, bool fw_like)
+{
+	// The target needs MC while the vehicle flies FW or transitions to it.
+	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && fw_like) {
+		return VtolTransitionAction::kBackTransition;
+	}
+
+	// The target needs FW while the vehicle flies MC or transitions back to it.
+	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !fw_like) {
+		return VtolTransitionAction::kFrontTransition;
+	}
+
+	return VtolTransitionAction::kNone;
+}
+
+bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t &state, bool before_transition)
+{
+	if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF && !before_transition) {
+		state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		return true;
+	}
+
+	if (mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+		return false;
+	}
+
+	const float target = roundf(mission_item.params[0]);
+
+	if (target >= 0.f && target <= UINT8_MAX) {
+		const uint8_t target_state = static_cast<uint8_t>(target);
+
+		if (target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
+		    || target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+			if (before_transition) {
+				state = target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+					? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+			} else {
+				state = target_state;
+			}
+		}
+	}
+
+	return true;
 }
 
 float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl)
@@ -163,19 +204,6 @@ bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_
 	return position.valid();
 }
 
-bool copyPositionToYawSetpoint(const Position &position, PositionYawSetpoint &setpoint)
-{
-	if (!position.valid()) {
-		return false;
-	}
-
-	setpoint.lat = position.lat;
-	setpoint.lon = position.lon;
-	setpoint.alt = position.alt;
-	setpoint.yaw = NAN;
-	return true;
-}
-
 loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl)
 {
 	const Position position{mission_item.lat, mission_item.lon,
@@ -223,9 +251,6 @@ const char *failureReasonString(FailureReason failure_reason)
 	case FailureReason::kLoadFailed:
 		return "LoadFailed";
 
-	case FailureReason::kInvalidProjectionContext:
-		return "InvalidProjectionContext";
-
 	case FailureReason::kNoLocalMinFound:
 		return "NoLocalMinFound";
 
@@ -235,7 +260,9 @@ const char *failureReasonString(FailureReason failure_reason)
 	case FailureReason::kNoValidCandidateFound:
 		return "NoValidCandidateFound";
 
-	case FailureReason::kUnknown:
+	case FailureReason::kGeofenceUnavailable:
+		return "GeofenceUnavailable";
+
 	default:
 		return "Unknown";
 	}
