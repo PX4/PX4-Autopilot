@@ -225,7 +225,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 			/* It should be safe to just use half of the takoeff_alt as an acceptance radius. */
 			if (fabsf(takeoff_height) < altitude_acceptance_radius) {
-				altitude_acceptance_radius = takeoff_height / 2.0f;
+				altitude_acceptance_radius = fabsf(takeoff_height) / 2.0f;
 			}
 			if(fabsf(_navigator->get_local_position()->z - takeoff_height) < altitude_acceptance_radius){
 
@@ -801,9 +801,13 @@ MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &it
 	const position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	setLoiterItemCommonFields(item, pos_sp_triplet->current.frame);
-
-	item->lat = pos_sp_triplet->current.lat;
-	item->lon = pos_sp_triplet->current.lon;
+	if(pos_sp_triplet->current.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED){
+		item->x = pos_sp_triplet->current.x;
+		item->y = pos_sp_triplet->current.y;
+	} else{
+		item->lat = pos_sp_triplet->current.lat;
+		item->lon = pos_sp_triplet->current.lon;
+	}
 	item->altitude = pos_sp_triplet->current.alt;
 	item->loiter_radius = pos_sp_triplet->current.loiter_direction_counter_clockwise ?
 			      -pos_sp_triplet->current.loiter_radius : pos_sp_triplet->current.loiter_radius;
