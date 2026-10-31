@@ -47,10 +47,7 @@ class ModuleParams : public ListNode<ModuleParams *>
 {
 public:
 
-	ModuleParams(ModuleParams *parent)
-	{
-		setParent(parent);
-	}
+	ModuleParams(ModuleParams *parent);
 
 	/**
 	 * @brief Sets the parent module. This is typically not required,
