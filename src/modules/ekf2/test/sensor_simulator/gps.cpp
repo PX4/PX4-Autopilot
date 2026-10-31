@@ -65,6 +65,11 @@ void Gps::setYawOffset(const float yaw_offset)
 	_gps_data.yaw_offset = yaw_offset;
 }
 
+void Gps::setYawAccuracy(const float yaw_acc)
+{
+	_gps_data.yaw_acc = yaw_acc;
+}
+
 void Gps::setFixType(const int fix_type)
 {
 	_gps_data.fix_type = fix_type;
