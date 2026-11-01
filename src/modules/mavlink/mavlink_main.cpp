@@ -1323,8 +1323,7 @@ Mavlink::send_autopilot_capabilities()
 	if (vehicle_status_sub.copy(&status)) {
 		mavlink_autopilot_version_t msg{};
 
-		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
-		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_INT;
+		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_INT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_ENCODE_BYTEWISE;
