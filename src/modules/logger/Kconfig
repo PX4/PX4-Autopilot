@@ -18,3 +18,11 @@ menuconfig LOGGER_STACK_SIZE
 	---help---
 		Stack size of the logger task. Some configurations require more stack
 		than the default.
+
+config LOGGER_WRITER_STACK_SIZE
+	int "stack size of log writer thread"
+	default 1170
+	depends on MODULES_LOGGER
+	---help---
+		Stack size of the log writer thread. Flash-based logging with
+		LittleFS requires more stack than SD card logging (use 4096).
