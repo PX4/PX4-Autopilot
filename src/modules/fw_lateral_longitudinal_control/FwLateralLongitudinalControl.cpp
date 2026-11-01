@@ -125,6 +125,7 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 	_tecs.set_level_flight_pitch(radians(_param_fw_psp_off.get()));
+	_tecs.set_spoiler_max(_param_fw_t_spoiler_max.get());
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 
@@ -551,6 +552,7 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 
 	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
+	tecs_status.spoiler_sp = _tecs.get_spoiler_setpoint();
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;
 	tecs_status.weight_ratio = _performance_model.getWeightRatio();
