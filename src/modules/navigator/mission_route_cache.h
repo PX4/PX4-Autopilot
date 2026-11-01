@@ -139,7 +139,7 @@ public:
 	 *
 	 * Call this from Navigator's serialized task after every successful active-mission write.
 	 * Loaded items are not re-read.
-	 * SyncResult describes only the full cache; land-cache updates are independent.
+	 * Only the full cache is synced: in-place writes only change DO_JUMP counters, never the landing item.
 	 */
 	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 
@@ -174,7 +174,6 @@ private:
 	};
 
 	void updateMissionLandItemCache(const mission_s &mission);
-	void syncMissionLandItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 	bool missionLandMatchesCache(const mission_s &mission) const;
 	bool queueMissionLandItem();
 	void updateSafePointCache(const mission_s &mission);

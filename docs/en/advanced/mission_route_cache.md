@@ -107,7 +107,7 @@ The generation check is not a lock; another task would need explicit synchroniza
 
 Already-loaded mission items are not automatically read from storage again.
 After a successful active-mission Dataman write, the writer must call `syncMissionItem()` from Navigator's task.
-This call synchronizes the caches; it does not perform the Dataman write.
+This call synchronizes the full cache; it does not perform the Dataman write.
 
 For a ready full cache, synchronization patches that item in the array and advances the generation:
 
@@ -133,7 +133,7 @@ Writes during loading depend on how far the load has progressed:
 Mission execution follows this process after successful `DO_JUMP` counter increments and resets.
 The next route computation therefore sees the current number of remaining loops.
 
-The mission-land cache is synchronized independently when the written index is the published land item.
+The mission-land item is not synchronized: in-place writes only change `DO_JUMP` counters, never a landing item.
 
 A mission upload or replacement is different from an in-place runtime write.
 Its new mission identity causes a complete generation to load.

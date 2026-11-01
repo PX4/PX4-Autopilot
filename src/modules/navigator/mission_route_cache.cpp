@@ -191,48 +191,7 @@ bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index,
 MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
 		const mission_item_s &mission_item)
 {
-	// Update the land cache even if the full cache is unavailable.
-	syncMissionLandItem(mission, index, mission_item);
 	return _full_mission_cache.syncMissionItem(mission, index, mission_item);
-}
-
-void MissionRouteCache::syncMissionLandItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
-{
-	// Ignore writes outside the tracked mission land item.
-	if (index < 0 || index != _mission_land.index || !missionLandMatchesCache(mission)) {
-		return;
-	}
-
-	const hrt_abstime now = hrt_absolute_time();
-
-	if (_mission_land.ready) {
-		const bool patched = _dataman_cache_land_item.updateCachedItem(
-					     static_cast<dm_item_t>(_mission_land.dataman_id), index,
-					     reinterpret_cast<const uint8_t *>(&mission_item), sizeof(mission_item));
-
-		if (!patched || !mission_route::isLandingCmd(mission_item.nav_cmd)) {
-			_dataman_cache_land_item.invalidate();
-			_mission_land.ready = false;
-			_mission_land.validation_pending = false;
-			_mission_land.retry.scheduleRetry(now);
-		}
-
-	} else {
-		_dataman_cache_land_item.invalidate();
-		_mission_land.validation_pending = false;
-		_mission_land.retry.clear();
-
-		if (mission_route::isLandingCmd(mission_item.nav_cmd)) {
-			_mission_land.validation_pending = queueMissionLandItem();
-
-			if (!_mission_land.validation_pending) {
-				_mission_land.retry.scheduleRetry(now);
-			}
-
-		} else {
-			_mission_land.retry.scheduleRetry(now);
-		}
-	}
 }
 
 void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
