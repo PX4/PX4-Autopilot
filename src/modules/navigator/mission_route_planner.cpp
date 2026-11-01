@@ -143,10 +143,10 @@ matrix::Vector2f computeDesiredCourseVector(const MissionResumeRequest &request,
 					    &desired_course_vec(0), &desired_course_vec(1));
 
 	} else {
-		const Position &segment_start = will_fly_reverse ? projection_context.route_projection.segment_positions.end
-						: projection_context.route_projection.segment_positions.start;
-		const Position &segment_end = will_fly_reverse ? projection_context.route_projection.segment_positions.start
-					      : projection_context.route_projection.segment_positions.end;
+		const Position &segment_start = will_fly_reverse ? projection_context.route_segment_positions.end
+						: projection_context.route_segment_positions.start;
+		const Position &segment_end = will_fly_reverse ? projection_context.route_segment_positions.start
+					      : projection_context.route_segment_positions.end;
 
 		get_vector_to_next_waypoint(segment_start.lat, segment_start.lon,
 					    segment_end.lat, segment_end.lon,
@@ -234,8 +234,8 @@ RoutePath solveShortestRoutePath(float goal_dist_along_route_m, const MissionRes
 
 	const RouteProjectionCandidate &route_projection = projection_context.route_projection;
 	path.first_item = choose_segment_start
-			  ? firstRouteItem(route_projection.segment.start, route_projection.segment_positions.start)
-			  : firstRouteItem(route_projection.segment.end, route_projection.segment_positions.end);
+			  ? firstRouteItem(route_projection.segment.start, projection_context.route_segment_positions.start)
+			  : firstRouteItem(route_projection.segment.end, projection_context.route_segment_positions.end);
 
 	return path;
 }
@@ -269,13 +269,13 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_dist_along_route_m,
 	RoutePath path{};
 
 	if (use_path_a) {
-		path.first_item = firstRouteItem(loop_edge.segment.end, loop_edge.segment_positions.end);
+		path.first_item = firstRouteItem(loop_edge.segment.end, projection_context.route_segment_positions.end);
 		path.direction_reversed = mustFlyReverse(goal_dist_along_route_m,
 					  projection_context.loop_bounds.end_dist_along_route_m, direction_mode);
 		path.total_cost_m = path_a_cost;
 
 	} else {
-		path.first_item = firstRouteItem(loop_edge.segment.start, loop_edge.segment_positions.start);
+		path.first_item = firstRouteItem(loop_edge.segment.start, projection_context.route_segment_positions.start);
 		path.direction_reversed = mustFlyReverse(goal_dist_along_route_m,
 					  projection_context.loop_bounds.start_dist_along_route_m, direction_mode);
 		path.total_cost_m = path_b_cost;

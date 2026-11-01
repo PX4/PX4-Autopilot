@@ -83,8 +83,6 @@ struct SegmentEndpoint {
 struct SegmentPositions {
 	Position start{};
 	Position end{};
-
-	bool valid() const;
 };
 
 /** @brief One mission segment, optionally representing a synthetic DO_JUMP edge. */
@@ -116,7 +114,6 @@ struct SegmentDistanceAlong {
 /** @brief One projected route candidate retained during a mission scan. */
 struct RouteProjectionCandidate {
 	Segment segment{};
-	SegmentPositions segment_positions{};
 	Position projection{};
 	ProjectionDistance dist{};
 
@@ -132,6 +129,7 @@ struct ProjectionCandidateBuffer {
 /** @brief Internal vehicle projection and route state used for scoring. */
 struct ProjectionContext {
 	RouteProjectionCandidate route_projection{};
+	SegmentPositions route_segment_positions{}; /**< Both ends of route_projection's segment. A landing leg ends at its start altitude. */
 	float route_length{0.f};
 	int32_t route_end_index{-1};
 	SegmentDistanceAlong loop_bounds{}; /**< Along-route distances of both exits when route_projection is on a loop. */

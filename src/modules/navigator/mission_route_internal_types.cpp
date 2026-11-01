@@ -58,11 +58,6 @@ bool SegmentEndpoint::valid() const
 	return idx >= 0 && nav_cmd != NAV_CMD_INVALID;
 }
 
-bool SegmentPositions::valid() const
-{
-	return start.valid() && end.valid();
-}
-
 bool Segment::valid() const
 {
 	const bool valid_jump = jump_item_index >= 0
@@ -86,7 +81,7 @@ bool SegmentDistanceAlong::valid() const
 
 bool RouteProjectionCandidate::valid() const
 {
-	return segment.valid() && segment_positions.valid() && projection.valid() && dist.valid();
+	return segment.valid() && projection.valid() && dist.valid();
 }
 
 bool RoutePath::valid() const

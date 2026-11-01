@@ -165,7 +165,6 @@ bool buildProjectionCandidate(const RouteSegmentView &segment_view,
 {
 	const SegmentPositions &segment_positions = segment_view.positions;
 	candidate.segment = segment_view.segment;
-	candidate.segment_positions = segment_positions;
 	candidate.dist.xtrack_m = projection.xtrack_m;
 	candidate.dist.along_route_m = segment_view.start_dist_along_route_m + projection.along_segment_m;
 	candidate.dist.segment_length_m = segment_view.length_m;
@@ -187,6 +186,34 @@ bool buildProjectionCandidate(const RouteSegmentView &segment_view,
 				   + projection.along_fraction * (segment_positions.end.alt - segment_positions.start.alt);
 
 	return candidate.valid();
+}
+
+// Landing descent starts after reaching the waypoint, so a landing leg keeps its start altitude.
+void applyLandingLegAltitude(SegmentPositions &positions, uint16_t end_nav_cmd)
+{
+	if (isLandingCmd(end_nav_cmd)) {
+		positions.end.alt = positions.start.alt;
+	}
+}
+
+// Candidates do not keep their segment's positions: only the chosen branch-in needs them.
+FailureReason loadSegmentPositions(const Provider &provider, float home_altitude_amsl, const Segment &segment,
+				   SegmentPositions &positions)
+{
+	mission_item_s start_item{};
+	mission_item_s end_item{};
+
+	if (!provider.loadMissionItem(segment.start.idx, start_item) || !provider.loadMissionItem(segment.end.idx, end_item)) {
+		return FailureReason::kLoadFailed;
+	}
+
+	if (!extractMissionPosition(start_item, home_altitude_amsl, positions.start)
+	    || !extractMissionPosition(end_item, home_altitude_amsl, positions.end)) {
+		return FailureReason::kPositionItemInvalid;
+	}
+
+	applyLandingLegAltitude(positions, segment.end.nav_cmd);
+	return FailureReason::kNone;
 }
 
 bool extractIndexedPosition(int32_t index, const mission_item_s &mission_item, float home_altitude_amsl,
@@ -365,10 +392,7 @@ bool RouteSegmentCursor::fail(FailureReason failure_reason)
 
 void RouteSegmentCursor::prepareSegmentView(SegmentBoundary boundary, RouteSegmentView &view)
 {
-	if (isLandingCmd(_segment.end.nav_cmd)) {
-		// Landing descent starts after reaching the waypoint.
-		_positions.end.alt = _positions.start.alt;
-	}
+	applyLandingLegAltitude(_positions, _segment.end.nav_cmd);
 
 	view = {};
 	view.segment = _segment;
@@ -1043,6 +1067,13 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const MissionResu
 	projection_context.route_projection = candidate_buffer.candidates[branch_in_index];
 	projection_context.route_length = distance_summary.route_length;
 	projection_context.route_end_index = distance_summary.route_end_index;
+
+	const FailureReason positions_status = loadSegmentPositions(_provider, request.home_altitude_amsl,
+					       projection_context.route_projection.segment, projection_context.route_segment_positions);
+
+	if (positions_status != FailureReason::kNone) {
+		return positions_status;
+	}
 
 	if (projection_context.route_projection.segment.validLoop()) {
 		const FailureReason loop_status = findLoopBounds(projection_context.route_projection,

@@ -985,7 +985,8 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 	EXPECT_FALSE(plan.direction_reversed);
 	EXPECT_NEAR(plan.goal_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.goal_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
-	EXPECT_LE(provider.missionLoadCount(), 6); // one route scan plus the two endpoint lookups
+	// One route scan, the branch-in segment's two items and the two endpoint lookups.
+	EXPECT_LE(provider.missionLoadCount(), 8);
 }
 
 // LAND as the first position leaves no route segment to plan.
