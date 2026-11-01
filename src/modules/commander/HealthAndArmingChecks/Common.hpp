@@ -340,6 +340,9 @@ private:
 	FRIEND_TEST(ReporterTest, daaCheckIgnoresStaleConflict);
 	FRIEND_TEST(ReporterTest, daaCheckIgnoresConflictWhileArmed);
 #endif // CONFIG_NAVIGATOR_ADSB
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	FRIEND_TEST(RallyPointChecksTest, RouteReturnWarningIsReportedInEveryMode);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
 	 * Reset current results.

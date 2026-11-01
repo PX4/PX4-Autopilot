@@ -67,6 +67,8 @@ parameters:
           - 5 (Direct to rally point only): Return directly to safe landing point (do not consider mission landing and Home).
 
           - 6 (Home if battery allows, else rally point): Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
+
+          - 7 (Mission route to rally point, landing or takeoff): Follow the mission route to the rally point with the lowest route cost, else to the mission landing or takeoff. Boards built without route planning use type 3.
       type: enum
       values:
         0: Direct to home or rally point
@@ -76,6 +78,7 @@ parameters:
         4: Mission path, closest of landing or home
         5: Direct to rally point only
         6: Home if battery allows, else rally point
+        7: Mission route to rally point, landing or takeoff
       default: 0
     RTL_CONE_ANG:
       description:

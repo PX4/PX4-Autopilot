@@ -47,6 +47,7 @@
 #include "navigator.h"
 #include "support/geofence_test_helpers.h"
 #include "support/mission_route_cache_test_peer.h"
+#include "support/mission_route_test_helpers.h"
 #include "support/navigator_dataman_test.h"
 #include "support/vector_mission_item_store.h"
 
@@ -54,13 +55,16 @@
 #include <vector>
 
 #include <cstring>
+#include <drivers/drv_hrt.h>
+#include <parameters/param.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 
 class MissionBaseTestPeer : public MissionBase
 {
@@ -70,6 +74,16 @@ public:
 	void setActiveMissionItems() override { ++mission_items_set_count; }
 	bool setNextMissionItem() override { return false; }
 	unsigned mission_items_set_count{0};
+
+	// Join transitions, prepared as in Mission.
+	void prepareVtolTransitionItem(bool aligning) override
+	{
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		prepareRouteTransitionItem(aligning);
+#else
+		(void)aligning;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	}
 
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
 	{
@@ -135,6 +149,83 @@ public:
 
 	bool missionChecked() const { return _mission_check_state == MissionCheckState::Complete; }
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	void setVehicleStatus(bool is_vtol, bool fixed_wing)
+	{
+		vehicle_status_s status{};
+		status.is_vtol = is_vtol;
+		status.vehicle_type = fixed_wing ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				      : vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		status.timestamp = hrt_absolute_time();
+		_vehicle_status_pub.publish(status);
+		_vehicle_status_sub.update();
+
+		if (_navigator) {
+			*_navigator->get_vstatus() = status;
+		}
+	}
+
+	void updateJumpAnchorForNextNominalAdvance(mission_route::ActiveJumpAnchor &anchor)
+	{
+		_active_jump_anchor = anchor;
+		updateActiveJumpAnchorForNominalAdvance();
+		anchor = _active_jump_anchor;
+	}
+
+	bool runJoinWorkItem()
+	{
+		if (vtolTransitionActive()) {
+			if (!updateVtolTransition()) {
+				return true;
+			}
+
+			resetVtolTransition();
+		}
+
+		loadCurrentMissionItem();
+		return handleJoinRouteWorkItems();
+	}
+
+	void setJoinWaypointReached(bool reached)
+	{
+		_waypoint_position_reached = reached;
+		_waypoint_yaw_reached = reached;
+	}
+
+	void processMissionSourceChange(bool items_changed = true)
+	{
+		onMissionUpdate(items_changed);
+	}
+
+	bool joinWorkItemActive() const
+	{
+		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+	}
+
+	bool transitionAfterJoinActive() const
+	{
+		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
+	}
+
+	bool alignmentActive() const { return _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING; }
+
+	bool alignmentAfterJoinActive() const
+	{
+		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING
+		       && _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
+	}
+
+	const RouteJoinContext &joinContext() const
+	{
+		return _route_join_context;
+	}
+
+	const mission_item_s &currentMissionItem() const
+	{
+		return _mission_item;
+	}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	using MissionBase::findNextPositionIndex;
 	using MissionBase::findPreviousPositionIndex;
 	using MissionBase::getNonJumpItem;
@@ -143,10 +234,18 @@ public:
 	using MissionBase::goToNextPositionItem;
 	using MissionBase::goToPreviousPositionItem;
 	using MissionBase::MissionTraversalType;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	using MissionBase::VtolTransitionAction;
+	using MissionBase::RouteJoinContext;
+	using MissionBase::setupJoinRoute;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	using MissionBase::resetMissionJumpCounter;
 
 private:
 	navigator_test::VectorMissionItemStore _mission_store{};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	uORB::Publication<vehicle_status_s> _vehicle_status_pub {ORB_ID(vehicle_status)};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 };
 
 class IgnoreDoJumpMissionBaseTestPeer : public MissionBaseTestPeer
@@ -161,34 +260,6 @@ protected:
 static constexpr double kBaseLat = 47.0;
 static constexpr double kBaseLon = 8.0;
 static constexpr float kAlt = 100.f;
-
-static mission_item_s makePositionItem(double lat, double lon, float altitude)
-{
-	mission_item_s item{};
-	item.nav_cmd = NAV_CMD_WAYPOINT;
-	item.lat = lat;
-	item.lon = lon;
-	item.altitude = altitude;
-	return item;
-}
-
-static mission_item_s makeDoJump(int32_t target_index, uint16_t repeat_count, uint16_t current_count = 0)
-{
-	mission_item_s item{};
-	item.nav_cmd = NAV_CMD_DO_JUMP;
-	item.do_jump_mission_index = target_index;
-	item.do_jump_repeat_count = repeat_count;
-	item.do_jump_current_count = current_count;
-	return item;
-}
-
-static mission_item_s makeVtolTransitionItem(int transition_mode)
-{
-	mission_item_s item{};
-	item.nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
-	item.params[0] = static_cast<float>(transition_mode);
-	return item;
-}
 
 class MissionBaseTraversalTest : public NavigatorDatamanTestBase
 {
@@ -724,6 +795,159 @@ INSTANTIATE_TEST_SUITE_P(ChangedInputs, MissionBaseChangedInputTest, ::testing::
 {
 	return test_info.param.name;
 });
+
+// A mission checked on the ground while disarmed, and the Home updates Commander makes around takeoff
+class MissionHomeUpdateTest : public MissionBaseFeasibilityTest
+{
+protected:
+	void SetUp() override
+	{
+		MissionBaseFeasibilityTest::SetUp();
+		_global_position_pub.publish(*_navigator.get_global_position());
+		setLanded(true);
+		_mission.run(false);
+		ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	}
+
+	void TearDown() override
+	{
+		// later cases read these topics too
+		publishStatus(vehicle_status_s::ARMING_STATE_DISARMED, 0);
+		setLanded(true);
+		MissionBaseFeasibilityTest::TearDown();
+	}
+
+	void publishStatus(uint8_t arming_state, hrt_abstime takeoff_time)
+	{
+		vehicle_status_s *status = _navigator.get_vstatus();
+		status->timestamp = hrt_absolute_time();
+		status->arming_state = arming_state;
+		status->takeoff_time = takeoff_time;
+		_status_pub.publish(*status);
+	}
+
+	void setLanded(bool landed)
+	{
+		vehicle_land_detected_s *land_detected = _navigator.get_land_detected();
+		land_detected->timestamp = hrt_absolute_time();
+		land_detected->landed = landed;
+		_land_detected_pub.publish(*land_detected);
+	}
+
+	// Navigator copies Home before it runs the modes
+	void moveHome(float alt_change)
+	{
+		home_position_s *home = _navigator.get_home_position();
+		home->timestamp = hrt_absolute_time();
+		home->alt += alt_change;
+		++home->update_count;
+		_home_pub.publish(*home);
+	}
+
+	bool checkedWithCurrentHome()
+	{
+		return _navigator.get_mission_result()->home_position_counter == _navigator.get_home_position()->update_count;
+	}
+
+	Mission _mission{&_navigator};
+	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+};
+
+// WHY: Navigator copies Home at the start of its cycle and Mission reads vehicle_status later, so Mission can see
+// the armed state one cycle before the arming Home.
+// WHAT: the recheck runs once that Home arrives, not only when the armed state changes.
+TEST_F(MissionHomeUpdateTest, MissionIsCheckedOnceTheArmingHomeArrives)
+{
+	// GIVEN: armed on the ground, one cycle before the arming Home
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(false);
+
+	// WHEN: the arming Home arrives
+	moveHome(0.f);
+	_mission.run(false);
+
+	// THEN: Mission rechecks with it
+	EXPECT_TRUE(checkedWithCurrentHome());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
+// WHY: DO_SET_HOME can move Home while the vehicle is armed in Mission on the ground, before it takes off.
+// WHAT: the active Mission rechecks with the new Home and ends a mission it now rejects.
+TEST_F(MissionHomeUpdateTest, SetHomeBeforeTakeoffRechecksTheActiveMission)
+{
+	// the waypoint is 100 m above Home, below a 120 m limit
+	const float maximum_altitude = 120.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum_altitude), PX4_OK);
+	_navigator.updateParams();
+
+	// GIVEN: armed in Mission on the ground
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(true);
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	ASSERT_FALSE(_navigator.get_mission_result()->finished);
+
+	// WHEN: DO_SET_HOME moves Home 30 m down
+	moveHome(-30.f);
+	_mission.run(true);
+
+	// THEN: Mission rechecks, rejects the mission and ends it
+	EXPECT_TRUE(checkedWithCurrentHome());
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_navigator.get_mission_result()->finished);
+}
+
+// WHY: a recheck of the active Mission reloads its items, so it must run once per Home update, not every cycle.
+// WHAT: after the recheck, further cycles on the ground keep the current item.
+TEST_F(MissionHomeUpdateTest, MissionIsRecheckedOncePerHomeUpdate)
+{
+	// GIVEN: armed in Mission on the ground, rechecked after a Home update
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(true);
+	moveHome(1.f);
+	_mission.run(true);
+	ASSERT_TRUE(checkedWithCurrentHome());
+	const hrt_abstime setpoint_timestamp = _navigator.get_position_setpoint_triplet()->current.timestamp;
+
+	// WHEN: Mission keeps running without another Home update
+	px4_usleep(2000);
+	_mission.run(true);
+	_mission.run(true);
+
+	// THEN: it does not reload and restart the current item
+	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.timestamp, setpoint_timestamp);
+}
+
+// WHY: in flight a recheck with the new Home can reject the mission being flown, and Commander would then fail
+// over out of Mission.
+// WHAT: Home updates after takeoff keep the verdict, also before vehicle_status carries the takeoff time and after
+// a landing.
+TEST_F(MissionHomeUpdateTest, HomeUpdatesAfterTakeoffKeepTheVerdict)
+{
+	// GIVEN: armed on the ground
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(false);
+
+	// WHEN: the takeoff Home arrives before vehicle_status carries the takeoff time
+	setLanded(false);
+	moveHome(0.f);
+	_mission.run(false);
+	EXPECT_FALSE(checkedWithCurrentHome());
+
+	// WHEN: Mission flies and a GNSS altitude correction moves Home
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, hrt_absolute_time());
+	_mission.run(true);
+	moveHome(1.5f);
+	_mission.run(true);
+	EXPECT_FALSE(checkedWithCurrentHome());
+
+	// WHEN: Home moves after a landing, before disarming
+	setLanded(true);
+	moveHome(0.f);
+	_mission.run(true);
+	EXPECT_FALSE(checkedWithCurrentHome());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 class MissionBaseRouteCacheSyncTest : public NavigatorDatamanTestBase
@@ -1559,3 +1783,208 @@ TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGo
 	EXPECT_EQ(ret, PX4_OK);
 	EXPECT_EQ(mission_base.currentSequence(), 1);
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+// MissionBase logic shared by the route join and the route RTL.
+class MissionBaseRouteTest : public NavigatorDatamanTestBase
+{
+protected:
+	// Reset the vehicle_status and landed state left by a previous test.
+	void SetUp() override
+	{
+		mission_base.setVehicleStatus(false, false);
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		_land_detected_pub.publish(land_detected);
+	}
+
+	MissionBaseTestPeer mission_base{};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+};
+
+TEST_F(MissionBaseRouteTest, JoinRouteRunsWaypointTransitionAndResumeFlow)
+{
+	Navigator navigator{};
+	MissionBaseTestPeer mission_base_with_nav{&navigator};
+	const std::vector<mission_item_s> items{
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt + 20.f),
+	};
+	mission_base_with_nav.loadTestMission(items);
+	mission_base_with_nav.setCurrentSequence(2);
+	mission_base_with_nav.setVehicleStatus(true, false);
+
+	vehicle_global_position_s global_position{};
+	global_position.lat = kBaseLat + 0.0004;
+	global_position.lon = kBaseLon;
+	global_position.alt = kAlt + 5.f;
+	*navigator.get_global_position() = global_position;
+
+	const mission_route::Position join{kBaseLat + 0.0005, kBaseLon, kAlt + 10.f};
+	mission_base_with_nav.setupJoinRoute(join, true, MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
+	ASSERT_TRUE(mission_base_with_nav.joinWorkItemActive());
+
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	const position_setpoint_s &join_setpoint = navigator.get_position_setpoint_triplet()->current;
+	ASSERT_TRUE(join_setpoint.valid);
+	EXPECT_DOUBLE_EQ(join_setpoint.lat, join.lat);
+	EXPECT_DOUBLE_EQ(join_setpoint.lon, join.lon);
+	EXPECT_FLOAT_EQ(join_setpoint.alt, global_position.alt);
+
+	mission_base_with_nav.setJoinWaypointReached(true);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	ASSERT_TRUE(mission_base_with_nav.alignmentAfterJoinActive());
+	EXPECT_EQ(mission_base_with_nav.currentMissionItem().nav_cmd, NAV_CMD_WAYPOINT);
+	EXPECT_TRUE(mission_base_with_nav.currentMissionItem().force_heading);
+	const float expected_yaw = get_bearing_to_next_waypoint(global_position.lat, global_position.lon,
+				   items[2].lat, items[2].lon);
+	EXPECT_NEAR(join_setpoint.yaw, expected_yaw, 1e-4f);
+
+	mission_base_with_nav.setJoinWaypointReached(true);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	ASSERT_TRUE(mission_base_with_nav.transitionAfterJoinActive());
+	EXPECT_EQ(mission_base_with_nav.currentMissionItem().nav_cmd, NAV_CMD_DO_VTOL_TRANSITION);
+	EXPECT_FLOAT_EQ(mission_base_with_nav.currentMissionItem().params[0],
+			static_cast<float>(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW));
+	EXPECT_NEAR(join_setpoint.yaw, expected_yaw, 1e-4f);
+
+	mission_base_with_nav.setVehicleStatus(true, true);
+	EXPECT_FALSE(mission_base_with_nav.runJoinWorkItem());
+	EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
+	EXPECT_FALSE(mission_base_with_nav.alignmentAfterJoinActive());
+	EXPECT_FALSE(mission_base_with_nav.transitionAfterJoinActive());
+	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
+}
+
+TEST_F(MissionBaseRouteTest, JoinRouteBackTransitionDoesNotWaitForHeading)
+{
+	Navigator navigator{};
+	MissionBaseTestPeer mission_base_with_nav{&navigator};
+	mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
+	mission_base_with_nav.setVehicleStatus(true, true);
+
+	mission_base_with_nav.setupJoinRoute({kBaseLat, kBaseLon, kAlt}, false,
+					     MissionBaseTestPeer::VtolTransitionAction::kBackTransition);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	EXPECT_TRUE(mission_base_with_nav.currentMissionItem().vtol_back_transition);
+
+	mission_base_with_nav.setJoinWaypointReached(true);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	EXPECT_TRUE(mission_base_with_nav.transitionAfterJoinActive());
+	EXPECT_FALSE(mission_base_with_nav.alignmentAfterJoinActive());
+	EXPECT_EQ(mission_base_with_nav.currentMissionItem().nav_cmd, NAV_CMD_DO_VTOL_TRANSITION);
+	EXPECT_FLOAT_EQ(mission_base_with_nav.currentMissionItem().params[0],
+			static_cast<float>(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC));
+}
+
+TEST_F(MissionBaseRouteTest, MissionSourceChangeClearsJoinHeadingAlignment)
+{
+	Navigator navigator{};
+	MissionBaseTestPeer mission_base_with_nav{&navigator};
+	mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt)});
+	mission_base_with_nav.setVehicleStatus(true, false);
+	navigator.get_global_position()->lat = kBaseLat;
+	navigator.get_global_position()->lon = kBaseLon;
+	navigator.get_global_position()->alt = kAlt;
+
+	mission_base_with_nav.setupJoinRoute({kBaseLat, kBaseLon, kAlt}, false,
+					     MissionBaseTestPeer::VtolTransitionAction::kFrontTransition);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	mission_base_with_nav.setJoinWaypointReached(true);
+	ASSERT_TRUE(mission_base_with_nav.runJoinWorkItem());
+	ASSERT_TRUE(mission_base_with_nav.alignmentAfterJoinActive());
+
+	mission_base_with_nav.processMissionSourceChange();
+	EXPECT_FALSE(mission_base_with_nav.alignmentAfterJoinActive());
+	EXPECT_FALSE(mission_base_with_nav.alignmentActive());
+	EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
+}
+
+// A replacement mission and an external sequence change both drop the join.
+TEST_F(MissionBaseRouteTest, MissionUpdateClearsJoin)
+{
+	for (const bool items_changed : {true, false}) {
+		SCOPED_TRACE(items_changed);
+		Navigator navigator{};
+		MissionBaseTestPeer mission_base_with_nav{&navigator};
+		mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
+		mission_base_with_nav.setupJoinRoute({kBaseLat, kBaseLon, kAlt}, false,
+						     MissionBaseTestPeer::VtolTransitionAction::kNone);
+		ASSERT_TRUE(mission_base_with_nav.joinWorkItemActive());
+
+		mission_base_with_nav.processMissionSourceChange(items_changed);
+
+		EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
+		EXPECT_FALSE(mission_base_with_nav.joinContext().valid());
+	}
+}
+
+TEST_F(MissionBaseRouteTest, NextNominalAdvanceCapturesActiveLoopEdge)
+{
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makeDoJump(0, 3, 1),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+	});
+	mission_base.setCurrentSequence(1);
+
+	mission_route::ActiveJumpAnchor anchor{};
+	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
+	ASSERT_TRUE(anchor.valid());
+	EXPECT_EQ(anchor.jump_item_index, 2);
+}
+
+TEST_F(MissionBaseRouteTest, InvalidLoopTargetClearsPreviousLoopSegment)
+{
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makeDoJump(10, 3, 1),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+	});
+	mission_base.setCurrentSequence(1);
+
+	mission_route::ActiveJumpAnchor anchor{2};
+	ASSERT_TRUE(anchor.valid());
+
+	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
+
+	EXPECT_TRUE(anchor.empty());
+}
+
+TEST_F(MissionBaseRouteTest, JumpAnchorSurvivesCommandsBeforeTheJumpTargetPosition)
+{
+	mission_base.loadTestMission({
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makeDoJump(0, 3, 1),
+	});
+	mission_base.setCurrentSequence(0);
+	mission_route::ActiveJumpAnchor anchor{3};
+
+	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
+
+	EXPECT_EQ(anchor.jump_item_index, 3);
+
+	mission_base.setCurrentSequence(1);
+	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
+
+	EXPECT_TRUE(anchor.empty());
+}
+
+TEST_F(MissionBaseRouteTest, ExhaustedJumpDoesNotBecomeAnActiveAnchor)
+{
+	mission_base.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makeDoJump(0, 1, 1),
+	});
+	mission_route::ActiveJumpAnchor anchor{1};
+
+	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
+
+	EXPECT_TRUE(anchor.empty());
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
