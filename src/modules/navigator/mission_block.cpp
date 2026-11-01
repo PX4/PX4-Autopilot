@@ -683,7 +683,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		sp->alt = get_absolute_altitude_for_item(item);
 		sp->yaw = item.yaw;
 		sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
-			    	_navigator->get_loiter_radius();
+			    	_navigator->get_default_loiter_rad();
 		sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
 		if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
@@ -762,7 +762,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		sp->alt = item.altitude;
 		sp->yaw = item.yaw;
 		sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
-			    	_navigator->get_loiter_radius();
+			    	_navigator->get_default_loiter_rad();
 		sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
 		if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
@@ -824,20 +824,19 @@ void
 MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item,
 		const position_setpoint_s &reference_setpoint)
 {
-	const position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	setLoiterItemCommonFields(&item, reference_setpoint.frame);
 
-	setLoiterItemCommonFields(item, pos_sp_triplet->current.frame);
-	if(pos_sp_triplet->current.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED){
-		item->x = pos_sp_triplet->current.x;
-		item->y = pos_sp_triplet->current.y;
+	if(reference_setpoint.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED){
+		item.x = reference_setpoint.x;
+		item.y = reference_setpoint.y;
 	} else{
-		item->lat = pos_sp_triplet->current.lat;
-		item->lon = pos_sp_triplet->current.lon;
+		item.lat = reference_setpoint.lat;
+		item.lon = reference_setpoint.lon;
 	}
-	item->altitude = pos_sp_triplet->current.alt;
-	item->loiter_radius = pos_sp_triplet->current.loiter_direction_counter_clockwise ?
-			      -pos_sp_triplet->current.loiter_radius : pos_sp_triplet->current.loiter_radius;
-	item->yaw = pos_sp_triplet->current.yaw;
+	item.altitude = reference_setpoint.alt;
+	item.loiter_radius = reference_setpoint.loiter_direction_counter_clockwise ?
+			      -reference_setpoint.loiter_radius : reference_setpoint.loiter_radius;
+	item.yaw = reference_setpoint.yaw;
 }
 
 void
@@ -928,6 +927,26 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 }
 
 void
+MissionBlock::set_local_takeoff_item(struct mission_item_s *item, float local_altitude)
+{
+	item->nav_cmd = NAV_CMD_TAKEOFF_LOCAL;
+
+	/* use current position */
+	item->frame = NAV_FRAME::NAV_FRAME_LOCAL_NED;
+	item->x = static_cast<double>(_navigator->get_local_position()->x);
+	item->y = static_cast<double>(_navigator->get_local_position()->y);
+	item->yaw = NAN;
+
+	item->altitude = local_altitude;
+	item->altitude_is_relative = false;
+
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
+}
+
+void
 MissionBlock::publishCourseHoldSetpoint(const float course_rad, const float altitude_amsl)
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -964,24 +983,6 @@ MissionBlock::publishCourseHoldSetpoint(const float course_rad, const float alti
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
-MissionBlock::set_local_takeoff_item(struct mission_item_s *item, float local_altitude)
-{
-	item->nav_cmd = NAV_CMD_TAKEOFF_LOCAL;
-
-	/* use current position */
-	item->frame = NAV_FRAME::NAV_FRAME_LOCAL_NED;
-	item->x = static_cast<double>(_navigator->get_local_position()->x);
-	item->y = static_cast<double>(_navigator->get_local_position()->y);
-	item->yaw = NAN;
-
-	item->altitude = local_altitude;
-	item->altitude_is_relative = false;
-
-	item->acceptance_radius = _navigator->get_acceptance_radius();
-	item->loiter_radius = _navigator->get_loiter_radius();
-	item->autocontinue = false;
-	item->origin = ORIGIN_ONBOARD;
-}
 
 void
 MissionBlock::set_land_item(struct mission_item_s *item)
