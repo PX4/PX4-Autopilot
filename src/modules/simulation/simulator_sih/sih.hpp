@@ -201,6 +201,7 @@ private:
 
 	// reconstruct the noisy sensor signals
 	void reconstruct_sensors_signals(const hrt_abstime &time_now_us);
+	void update_motor_vibration(const hrt_abstime &time_now_us);
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void send_ranging_beacon(const hrt_abstime &time_now_us);
@@ -315,6 +316,12 @@ private:
 
 	esc_status_s _esc_status{};
 
+	// rotor imbalance vibration
+	float _vibration_phase[esc_status_s::CONNECTED_ESC_MAX] {};
+	hrt_abstime _vibration_time{0};
+	matrix::Vector3f _gyro_vibration{};
+	matrix::Vector3f _accel_vibration{};
+
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,
@@ -355,6 +362,8 @@ private:
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
 		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
 		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e,
-		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise
+		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise,
+		(ParamFloat<px4::params::SIH_GYRO_VIB>) _sih_gyro_vibration,
+		(ParamFloat<px4::params::SIH_ACCEL_VIB>) _sih_accel_vibration
 	)
 };
