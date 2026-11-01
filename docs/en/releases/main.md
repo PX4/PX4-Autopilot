@@ -57,6 +57,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Distance-aware return is not available together with `COM_LOW_BAT_ACT` `0` (Warning) or `2` (Land), and the warning can no longer be disabled (previously `COM_FLTT_LOW_ACT=0`). ([PX4-Autopilot#26955](https://github.com/PX4/PX4-Autopilot/pull/26955))
 - **`DO_JUMP` can only loop back and its repeat count must fit.**
   A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0, and if its repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
+  It is also rejected if the items from a `DO_JUMP`'s target reach a `DO_JUMP` before a waypoint, the jump itself included, even if its repeat count is 0.
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
 - **`MAV_CMD_MISSION_START` no longer arms the vehicle.**
   The command switches to [Mission mode](../flight_modes_mc/mission.md) at the requested item, and the mission starts once the vehicle is armed.
