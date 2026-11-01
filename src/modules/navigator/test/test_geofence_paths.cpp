@@ -430,6 +430,15 @@ TEST_F(GeofenceTest, NonFinitePathRejectsWholeBatch)
 	EXPECT_FALSE(clear[1]);
 }
 
+TEST_F(GeofenceTest, ReloadStartDisablesPathChecks)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	ASSERT_TRUE(_fence.isReadyForPathChecks());
+	GeofenceTestPeer::queueRacedUpdate(_fence);
+	_fence.run();
+	EXPECT_FALSE(_fence.isReadyForPathChecks());
+}
+
 TEST_F(GeofenceTest, MissingCacheRejectsWholeBatch)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
