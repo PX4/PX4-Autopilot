@@ -121,8 +121,6 @@ struct MissionResumeRequest {
 
 /** @brief Inputs for the RTL route-following return: the join inputs plus goal selection. */
 struct RtlRouteRequest : MissionResumeRequest {
-	/** LAND/VTOL_LAND index in the same validated mission source; -1 if unavailable. */
-	int32_t mission_land_index{-1};
 	float safe_point_projection_search_distance_m{0.f};
 	float direct_goal_acceptance_radius_m{0.f};
 	float altitude_acceptance_radius_m{0.f};

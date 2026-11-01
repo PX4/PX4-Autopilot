@@ -465,7 +465,6 @@ void selectMissionEndpointFallback(const Provider &provider,
 				   RoutePath &goal_path)
 {
 	const float home_altitude_amsl = request.home_altitude_amsl;
-	const int32_t mission_land_index = request.mission_land_index;
 	Position takeoff_position{};
 
 	// Takeoff carries the climb altitude, so its location is only a usable return goal
@@ -481,9 +480,8 @@ void selectMissionEndpointFallback(const Provider &provider,
 	mission_item_s land_item{};
 	Position land_position{};
 
-	// route_end_index is a valid item index, so it also bounds mission_land_index.
-	if (mission_land_index == projection_context.route_end_index
-	    && provider.loadMissionItem(mission_land_index, land_item)
+	// The route ends at the first landing item, if the mission has one.
+	if (provider.loadMissionItem(projection_context.route_end_index, land_item)
 	    && isLandingCmd(land_item.nav_cmd)
 	    && extractMissionPosition(land_item, home_altitude_amsl, land_position)) {
 		const RoutePath path_to_land = findShortestPathAlongRoute(projection_context.route_length, request,

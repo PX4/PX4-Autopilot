@@ -280,7 +280,6 @@ TEST_F(MissionRoutePlannerTest, GeofenceRejectsAllVehicleCandidates)
 	EXPECT_LE(provider.missionLoadCount(), baseline_provider.missionLoadCount());
 
 	auto rtl_request = makeRtlRouteRequest(request.vehicle_position, 1);
-	rtl_request.mission_land_index = 2;
 	mission_route::RtlRoutePlan rtl_plan{};
 	EXPECT_EQ(planner.planRtlRoute(rtl_request, rtl_plan), mission_route::FailureReason::kNoValidCandidateFound);
 	EXPECT_FALSE(rtl_plan.valid());
@@ -302,7 +301,6 @@ TEST_F(MissionRoutePlannerTest, UnavailableGeofenceRejectsVehicleJoinForMissionA
 	EXPECT_FALSE(mission_plan.valid());
 
 	auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
-	request.mission_land_index = 1;
 	mission_route::RtlRoutePlan rtl_plan{};
 	EXPECT_EQ(planner.planRtlRoute(request, rtl_plan), mission_route::FailureReason::kGeofenceUnavailable);
 	EXPECT_FALSE(rtl_plan.valid());
@@ -357,7 +355,6 @@ TEST_F(MissionRoutePlannerTest, GeofenceBlockedSafePointsFallBackToMissionLand)
 	checker.candidate_clear = [](const auto & reference, const auto &) { return reference.source_index < 0; };
 	MissionRoutePlanner planner{provider, &checker};
 	auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
-	request.mission_land_index = 2;
 	mission_route::RtlRoutePlan plan{};
 	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
 	ASSERT_TRUE(plan.valid());
@@ -381,7 +378,6 @@ TEST_F(MissionRoutePlannerTest, UnavailableLaterGeofenceBatchDiscardsEarlierWinn
 	};
 	MissionRoutePlanner planner{provider, &checker};
 	auto request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
-	request.mission_land_index = 2;
 	mission_route::RtlRoutePlan plan{};
 	ASSERT_EQ(MissionRoutePlanner{provider}.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
 	ASSERT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
@@ -474,7 +470,6 @@ TEST_F(MissionRoutePlannerTest, BlockedDirectLandingCannotFallBackToAnAlreadyRea
 	VectorProvider provider = makeRouteProvider(mission, {});
 	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 95.f, 0.f, kAlt + 75.f);
 	auto request = makeRtlRouteRequest(vehicle, 1);
-	request.mission_land_index = 1;
 	mission_route::RtlRoutePlan plan{};
 	ASSERT_EQ(MissionRoutePlanner{provider}.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
 	ASSERT_TRUE(plan.fly_direct_to_goal);
@@ -783,7 +778,6 @@ TEST_F(MissionRoutePlannerTest, RequiredVtolApproachFallsBackToMissionEndpoint)
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
 	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 1);
-	request.mission_land_index = land_index;
 	request.require_vtol_approach = true;
 	mission_route::RtlRoutePlan plan{};
 
@@ -860,33 +854,6 @@ TEST_F(MissionRoutePlannerTest, ApproachRecordsDoNotConsumeSafePointBatchCapacit
 
 // ---- LAND and mission endpoint fallback ----
 
-// The published index points to a waypoint even though a later LAND exists. The planner must
-// reject that exact item and use takeoff fallback instead of rescanning the mission for LAND.
-TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackDoesNotRescanNonLandConfiguredIndex)
-{
-	std::vector<mission_item_s> mission{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt - 10.f),
-	};
-	const int32_t non_land_index = 2;
-
-	TestPlanner planner(mission);
-	const mission_route::Position vehicle_position =
-		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
-	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 2);
-	request.mission_land_index = non_land_index;
-	mission_route::RtlRoutePlan plan{};
-
-	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
-
-	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
-	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionTakeoff);
-	EXPECT_NEAR(plan.goal_position.lat, mission[0].lat, kLatLonToleranceDeg);
-	EXPECT_NEAR(plan.goal_position.lon, mission[0].lon, kLatLonToleranceDeg);
-}
-
 // Returning to TAKEOFF uses home altitude, never the takeoff item's climb altitude.
 TEST_F(MissionRoutePlannerTest, MissionTakeoffFallbackRequiresHomeAltitude)
 {
@@ -921,7 +888,6 @@ TEST_F(MissionRoutePlannerTest, MissingHomeAltitudeKeepsAbsoluteMissionLandFallb
 	TestPlanner planner(mission);
 	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicleOnFirstSegment(), 1);
 	request.home_altitude_amsl = NAN;
-	request.mission_land_index = 2;
 	mission_route::RtlRoutePlan plan{};
 
 	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
@@ -975,7 +941,6 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
 	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 2);
-	request.mission_land_index = land_index;
 	mission_route::RtlRoutePlan plan{};
 
 	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
@@ -1003,7 +968,6 @@ TEST_F(MissionRoutePlannerTest, MissionLandAsFirstPositionHasNoRouteSegment)
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, land_index);
-	request.mission_land_index = land_index;
 	mission_route::RtlRoutePlan plan{};
 	plan.goal_type = mission_route::GoalType::kMissionLand;
 
@@ -1032,7 +996,6 @@ TEST_F(MissionRoutePlannerTest, SafePointAfterMissionLandBranchesFromLandEndpoin
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
 	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 1);
-	request.mission_land_index = land_index;
 	mission_route::RtlRoutePlan plan{};
 
 	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
@@ -1146,7 +1109,6 @@ TEST_F(MissionRoutePlannerTest, RtlDuringStackedLandingKeepsCurrentAltitude)
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 98.f, 0.5f, kAlt + 10.f);
 	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 3);
-	request.mission_land_index = 3;
 	mission_route::RtlRoutePlan plan{};
 
 	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
@@ -1280,7 +1242,6 @@ TEST_F(MissionRoutePlannerTest, SafePointScanFailureFallsBackToMissionEndpoint)
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
 	mission_route::RtlRouteRequest request = makeRtlRouteRequest(vehicle_position, 1);
-	request.mission_land_index = land_index;
 	mission_route::RtlRoutePlan plan{};
 
 	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
@@ -2304,7 +2265,6 @@ static std::vector<mission_route::RtlRouteRequest> makeFingerprintRequests(const
 	mission_route::RtlRouteRequest request{};
 	request.home_altitude_amsl = kFingerprintHomeAlt;
 	request.acceptance_radius_m = 10.f;
-	request.mission_land_index = count - 1;
 	request.safe_point_projection_search_distance_m = 30.f;
 	request.direct_goal_acceptance_radius_m = 30.f;
 	request.altitude_acceptance_radius_m = 5.f;
