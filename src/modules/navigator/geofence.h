@@ -120,7 +120,7 @@ public:
 	 * the subdivision budget are unavailable when polygon fences are loaded.
 	 *
 	 * @return true when results are available (true per clear path); false if unavailable or invalid.
-	 * On failure, results are false when the output buffer and count are valid.
+	 * On failure, results are false when the count is valid.
 	 */
 	bool checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results);
 	bool isReadyForPathChecks() const { return _path_check_ready; }
@@ -306,7 +306,6 @@ private:
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;
-	bool readPathFencePoint(unsigned index, mission_fence_point_s &point);
 	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces, size_t num_paths,
 			       bool *results);
 	bool checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
