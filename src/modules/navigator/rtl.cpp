@@ -375,7 +375,8 @@ void RTL::setRtlTypeAndDestination()
 
 	const float rtl_alt = computeReturnAltitude(destination);
 	_rtl_direct.setRtlAlt(rtl_alt);
-	_rtl_direct.setRtlPosition(destination, landing_loiter);
+	_rtl_direct.setRtlPosition(destination, landing_loiter,
+				   destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION);
 
 	const bool new_type_is_mission_based = (new_rtl_type == RtlType::RTL_MISSION_FAST)
 					       || (new_rtl_type == RtlType::RTL_MISSION_FAST_REVERSE)
@@ -597,7 +598,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		destination.alt = _global_pos_sub.get().alt;
 		destination.lat = _global_pos_sub.get().lat;
 		destination.lon = _global_pos_sub.get().lon;
-		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+		destination_type = DestinationType::DESTINATION_TYPE_CURRENT_POSITION;
 	}
 }
 
