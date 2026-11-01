@@ -390,7 +390,7 @@ bool RouteSegmentCursor::fail(FailureReason failure_reason)
 	return false;
 }
 
-void RouteSegmentCursor::prepareSegmentView(SegmentBoundary boundary, RouteSegmentView &view)
+void RouteSegmentCursor::prepareSegmentView(bool last_segment, RouteSegmentView &view)
 {
 	applyLandingLegAltitude(_positions, _segment.end.nav_cmd);
 
@@ -399,7 +399,7 @@ void RouteSegmentCursor::prepareSegmentView(SegmentBoundary boundary, RouteSegme
 	view.positions = _positions;
 	view.start_dist_along_route_m = _dist_along_route_m;
 	view.first_segment = (_segment.start.idx == _first_position_index);
-	view.last_segment = (boundary == SegmentBoundary::kFinal);
+	view.last_segment = last_segment;
 	view.zero_length_xy = sameLatLon(_positions.start, _positions.end);
 
 	if (!view.zero_length_xy) {
@@ -411,13 +411,13 @@ void RouteSegmentCursor::prepareSegmentView(SegmentBoundary boundary, RouteSegme
 }
 
 void RouteSegmentCursor::prepareNominalSegment(const SegmentEndpoint &end, const Position &end_position,
-		SegmentBoundary boundary, RouteSegmentView &view)
+		bool last_segment, RouteSegmentView &view)
 {
 	_segment.end = end;
 	_segment.jump_item_index = -1;
 	_segment.has_remaining_repeats = false;
 	_positions.end = end_position;
-	prepareSegmentView(boundary, view);
+	prepareSegmentView(last_segment, view);
 
 	_dist_along_route_m += view.length_m;
 	_segment.start = _segment.end;
@@ -450,7 +450,7 @@ bool RouteSegmentCursor::prepareJumpSegment(int32_t index, const mission_item_s 
 	_segment.jump_item_index = index;
 	_segment.has_remaining_repeats = jump_item.do_jump_current_count < jump_item.do_jump_repeat_count;
 	_positions.end = target.position;
-	prepareSegmentView(SegmentBoundary::kIntermediate, view);
+	prepareSegmentView(false, view);
 	return true;
 }
 
@@ -516,13 +516,13 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 	}
 
 	if (isLandingCmd(segment_end.endpoint.nav_cmd)) {
-		prepareNominalSegment(segment_end.endpoint, segment_end.position, SegmentBoundary::kFinal, view);
+		prepareNominalSegment(segment_end.endpoint, segment_end.position, true, view);
 		_done = true;
 		return true;
 	}
 
 	// Look ahead so the route endpoint can be marked as a local minimum.
-	SegmentBoundary boundary{SegmentBoundary::kFinal};
+	bool last_segment = true;
 	bool next_zero_length_xy = false;
 	const FailureReason scan_failure = scanNextCursorItem(_provider, _home_altitude_amsl, _index, item);
 
@@ -538,7 +538,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 		_next_endpoint = item.loaded_position.endpoint;
 		_next_position = item.loaded_position.position;
 		_next_position_cached = true;
-		boundary = SegmentBoundary::kIntermediate;
+		last_segment = false;
 		next_zero_length_xy = sameLatLon(segment_end.position, _next_position);
 		break;
 
@@ -557,7 +557,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 			}
 
 			if (next_position.endpoint.idx >= 0) {
-				boundary = SegmentBoundary::kIntermediate;
+				last_segment = false;
 				next_zero_length_xy = sameLatLon(segment_end.position, next_position.position);
 			}
 
@@ -565,7 +565,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 		}
 	}
 
-	prepareNominalSegment(segment_end.endpoint, segment_end.position, boundary, view);
+	prepareNominalSegment(segment_end.endpoint, segment_end.position, last_segment, view);
 	view.next_zero_length_xy = next_zero_length_xy;
 	_done = item.type == CursorItemType::kEnd;
 	return true;
@@ -686,8 +686,7 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment)
 			return state;
 		}
 
-		if (jump_item.nav_cmd != NAV_CMD_DO_JUMP || jump_item.do_jump_mission_index < 0
-		    || jump_item.do_jump_mission_index > segment.end.idx) {
+		if (jump_item.nav_cmd != NAV_CMD_DO_JUMP || jump_item.do_jump_mission_index < 0) {
 			return state;
 		}
 
@@ -782,14 +781,6 @@ static bool replaceUnflownJumpTwin(ProjectionCandidateBuffer &candidate_buffer,
 	return false;
 }
 
-// Clears one reference's candidates and window before the walk.
-static void resetCandidateSearch(ProjectionReference &reference)
-{
-	reference.candidate_buffer.count = 0;
-	reference.search_state = {};
-	reference.search_state.cos_lat = static_cast<float>(cos(math::radians(reference.position.lat)));
-}
-
 void MissionRouteProjection::processCandidateForSegment(ProjectionReference &reference,
 		const RouteSegmentView &segment_view,
 		bool force_candidate,
@@ -866,8 +857,12 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 		return FailureReason::kInvalidRequest;
 	}
 
+	// Clear each reference's candidates and window before the walk.
 	for (uint8_t i = 0; i < batch.count; ++i) {
-		resetCandidateSearch(batch.items[i]);
+		ProjectionReference &reference = batch.items[i];
+		reference.candidate_buffer.count = 0;
+		reference.search_state = {};
+		reference.search_state.cos_lat = static_cast<float>(cos(math::radians(reference.position.lat)));
 	}
 
 	ActiveJumpContext active_jump{};
@@ -879,7 +874,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 	}
 
 	SegmentDistanceAlong current_segment_bounds{};
-	bool current_segment_located = !request.compute_current_segment_bounds;
+	bool current_segment_located = request.mission_index < 0;
 	bool any_segment = false;
 	RouteSegmentView segment_view{};
 	RouteSegmentCursor cursor(_provider, request.home_altitude_amsl);
@@ -977,7 +972,7 @@ static int selectBranchInCandidate(const ProjectionCandidateBuffer &candidate_bu
 		// The segment being flown wins outright: the anchored jump edge, else the vehicle segment.
 		// A current TAKEOFF stack needs it: its score only ties with the closer first leg.
 		const bool priority_match = active_jump_anchor.valid()
-					    ? (candidate.segment.validLoop()
+					    ? (candidate.segment.isLoop()
 					       && active_jump_anchor.jump_item_index == candidate.segment.jump_item_index)
 					    : isVehicleSegment(candidate.segment, candidate.dist.along_route_m,
 							    candidate.dist.segment_length_m, mission_index, is_flying_reverse);
@@ -1025,7 +1020,6 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const MissionResu
 	ProjectionScanRequest scan_request{};
 	scan_request.home_altitude_amsl = request.home_altitude_amsl;
 	scan_request.xtrack_margin_m = request.projection_search_distance_m;
-	scan_request.compute_current_segment_bounds = true;
 	scan_request.mission_index = mission_index;
 	scan_request.is_flying_reverse = request.current_route_direction_reversed;
 	scan_request.active_jump_anchor = request.active_jump_anchor;
@@ -1064,7 +1058,7 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const MissionResu
 		return positions_status;
 	}
 
-	if (projection_context.route_projection.segment.validLoop()) {
+	if (projection_context.route_projection.segment.isLoop()) {
 		const FailureReason loop_status = findLoopBounds(projection_context.route_projection,
 						  request.home_altitude_amsl, projection_context.loop_bounds);
 

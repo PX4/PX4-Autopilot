@@ -146,7 +146,6 @@ struct RtlRoutePlan : MissionResumePlan {
 	/** Mission item replaced by branch_off_position: segment end nominally, segment start in reverse. */
 	int32_t branch_off_mission_item_index{-1};
 	bool fly_direct_to_goal{false}; /**< Bypass route following for either a safe point or endpoint goal. */
-	bool geofence_prevents_shortcut{false}; /**< A direct shortcut failed the path check; follow the checked route instead. */
 
 	bool valid() const;
 };

@@ -532,15 +532,12 @@ bool canUseCurrentAltitudeForJoinTarget(const RoutePath &path, const Position &v
 	return PX4_ISFINITE(dist_to_first_item) && dist_to_first_item < acceptance_radius_m;
 }
 
-// With use_current_altitude, callers may skip the branch-in point and fly level to the first item. Candidate
-// pruning only checked the segment to the branch-in point, so check this one too. It ends above the item, at the
-// landing leg's altitude.
-FailureReason checkCurrentAltitudeJoin(const PathChecker &path_checker, const Position &vehicle_position,
-				       const RoutePath &path)
+// Check a segment that candidate pruning did not cover: kNoValidPath when it fails.
+FailureReason checkDirectPath(const PathChecker &path_checker, const Position &start, const Position &end)
 {
 	bool clear = false;
 
-	if (!path_checker.checkPath(vehicle_position, path.first_item.position, clear)) {
+	if (!path_checker.checkPath(start, end, clear)) {
 		return FailureReason::kGeofenceUnavailable;
 	}
 
@@ -602,16 +599,6 @@ bool canSkipRouteFollowToSelectedGoal(const RtlRouteRequest &request, const RtlR
 					  request.altitude_acceptance_radius_m);
 }
 
-// Plans carry the jump identity only when the vehicle is projected onto a valid loop.
-ActiveJumpAnchor activeJumpAnchor(const Segment &segment)
-{
-	if (segment.isLoop()) {
-		return {segment.jump_item_index};
-	}
-
-	return {};
-}
-
 void fillRouteJoinPlan(MissionResumePlan &plan, const MissionResumeRequest &request,
 		       const ProjectionContext &projection_context, const RoutePath &path)
 {
@@ -620,7 +607,8 @@ void fillRouteJoinPlan(MissionResumePlan &plan, const MissionResumeRequest &requ
 	plan.direction_reversed = path.direction_reversed;
 	plan.use_current_altitude = canUseCurrentAltitudeForJoinTarget(path, request.vehicle_position,
 				    request.acceptance_radius_m);
-	plan.active_jump_anchor = activeJumpAnchor(projection_context.route_projection.segment);
+	// Nominal segments carry -1: the plan names a jump only when the branch-in is on its edge.
+	plan.active_jump_anchor = {projection_context.route_projection.segment.jump_item_index};
 	plan.vtol_transition_action = request.is_vtol
 				      ? vtolTransitionActionForState(projection_context.projected_segment_vtol_state,
 						      request.is_fixed_wing || request.in_transition_to_fw)
@@ -690,8 +678,11 @@ FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequ
 		return FailureReason::kNoValidPath;
 	}
 
+	// With use_current_altitude, callers may skip the branch-in point and fly level to the first item. Pruning only
+	// checked the segment to the branch-in point, so check this one, up to the item at the landing leg's altitude.
 	if (_path_checker && candidate.use_current_altitude) {
-		const FailureReason join_status = checkCurrentAltitudeJoin(*_path_checker, request.vehicle_position, path);
+		const FailureReason join_status = checkDirectPath(*_path_checker, request.vehicle_position,
+						  path.first_item.position);
 
 		if (join_status != FailureReason::kNone) {
 			return join_status;
@@ -732,40 +723,33 @@ FailureReason MissionRoutePlanner::planRtlRoute(const RtlRouteRequest &request,
 	}
 
 	bool fly_direct_to_goal = canSkipRouteFollowToSelectedGoal(request, candidate, goal_path);
-	bool geofence_prevents_shortcut = false;
 
 	if (_path_checker && fly_direct_to_goal) {
-		// Pruning checked vehicle-to-branch-in and branch-off-to-safe-point segments.
-		// Flying straight to the goal skips those segments and needs its own check.
-		bool clear = false;
+		// Pruning checked vehicle-to-branch-in and branch-off-to-safe-point segments, not this one.
+		const FailureReason direct_status = checkDirectPath(*_path_checker, request.vehicle_position,
+						    candidate.goal_position);
 
-		if (!_path_checker->checkPath(request.vehicle_position, candidate.goal_position, clear)) {
-			return FailureReason::kGeofenceUnavailable;
+		// Near a landing or takeoff endpoint the branch-in point is already reached, so following the
+		// route would skip straight to it too. A blocked safe point shortcut keeps the checked route.
+		if (direct_status == FailureReason::kGeofenceUnavailable
+		    || (direct_status != FailureReason::kNone && candidate.goal_type != GoalType::kSafePoint)) {
+			return direct_status;
 		}
 
-		if (!clear && candidate.goal_type != GoalType::kSafePoint) {
-			// The branch-in point near this landing/takeoff endpoint is already within
-			// acceptance radius. Restoring it would still skip straight to the endpoint.
-			return FailureReason::kNoValidPath;
-		}
-
-		// Keep the checked route if the direct segment fails, and expose the reason
-		// so callers can report it when using this plan.
-		geofence_prevents_shortcut = !clear;
-		fly_direct_to_goal = clear;
+		fly_direct_to_goal = direct_status == FailureReason::kNone;
 	}
 
 	fillRouteJoinPlan(candidate, request, projection_context, goal_path);
 	candidate.fly_direct_to_goal = fly_direct_to_goal;
-	candidate.geofence_prevents_shortcut = geofence_prevents_shortcut;
 
 	if (!candidate.valid()) {
 		return FailureReason::kNoValidPath;
 	}
 
-	// A direct flight to the goal was checked above.
+	// The same hop as in planMissionResumeJoin(). A direct flight to the goal was checked above.
 	if (_path_checker && candidate.use_current_altitude && !candidate.fly_direct_to_goal) {
-		const FailureReason join_status = checkCurrentAltitudeJoin(*_path_checker, request.vehicle_position, goal_path);
+		const FailureReason join_status = checkDirectPath(*_path_checker, request.vehicle_position,
+						  goal_path.first_item.position);
 
 		if (join_status != FailureReason::kNone) {
 			return join_status;

@@ -243,7 +243,6 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, TrailingCommandRetainsLastSegment
 
 	auto batch = singleReferenceBatch(vehicle);
 	auto request = scanRequest(config.projection_search_distance_m);
-	request.compute_current_segment_bounds = true;
 	request.mission_index = 4;
 	mission_route::RouteDistanceSummary summary{};
 	ASSERT_EQ(projection.findProjectionCandidates(request, batch, summary), mission_route::FailureReason::kNone);
@@ -421,7 +420,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 		projection.collectVehicleProjection(vehicle, 0, config, batch, projection_context);
 
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
-	EXPECT_TRUE(projection_context.route_projection.segment.validLoop());
+	EXPECT_TRUE(projection_context.route_projection.segment.isLoop());
 	EXPECT_EQ(projection_context.route_projection.segment.jump_item_index, 3);
 	EXPECT_TRUE(projection_context.route_projection.segment.has_remaining_repeats);
 	EXPECT_EQ(projection_context.route_projection.segment.start.idx, 2);
@@ -446,7 +445,6 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PreRouteMissionIndexResolvesRoute
 		SCOPED_TRACE(::testing::Message() << "mission index " << mission_index);
 		auto batch = singleReferenceBatch(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kAlt));
 		mission_route::ProjectionScanRequest request = scanRequest(60.f);
-		request.compute_current_segment_bounds = true;
 		request.mission_index = mission_index;
 
 		mission_route::RouteDistanceSummary distance_summary{};
@@ -746,7 +744,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, ZeroMarginKeepsFirstExactCl
 	const mission_route::ProjectionCandidateBuffer &candidates = batch.items[0].candidate_buffer;
 	ASSERT_EQ(candidates.count, 1U);
 	const mission_route::RouteProjectionCandidate &candidate = candidates.candidates[0];
-	EXPECT_TRUE(candidate.segment.validLoop());
+	EXPECT_TRUE(candidate.segment.isLoop());
 	EXPECT_EQ(candidate.segment.jump_item_index, 3);
 	EXPECT_EQ(candidate.segment.start.idx, 2);
 	EXPECT_EQ(candidate.segment.end.idx, 0);
@@ -774,7 +772,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, ExhaustedJumpEdgeRemainsRou
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
 	const mission_route::RouteProjectionCandidate *candidate = findCandidate(batch.items[0].candidate_buffer, 2, 0);
 	ASSERT_NE(candidate, nullptr);
-	EXPECT_TRUE(candidate->segment.validLoop());
+	EXPECT_TRUE(candidate->segment.isLoop());
 	EXPECT_EQ(candidate->segment.jump_item_index, 3);
 	EXPECT_FALSE(candidate->segment.has_remaining_repeats);
 	EXPECT_NEAR(candidate->dist.xtrack_m, 0.f, kDistanceTolerance);
@@ -1172,7 +1170,7 @@ TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 		EXPECT_EQ(segments[i].segment.has_remaining_repeats, expected[i].has_remaining_repeats);
 	}
 
-	EXPECT_TRUE(segments[1].segment.validLoop());
+	EXPECT_TRUE(segments[1].segment.isLoop());
 	EXPECT_FALSE(segments[0].last_segment);
 	EXPECT_FALSE(segments[1].last_segment);
 	EXPECT_TRUE(segments[2].last_segment);
@@ -1207,7 +1205,7 @@ TEST_P(RouteSegmentCursorDoJumpTest, KeepsFinalNominalEndpointBeforeTerminalJump
 	// Marking the nominal endpoint final must still leave every terminal jump available.
 	for (const int32_t jump_index : {2, 4}) {
 		ASSERT_TRUE(cursor.next(segment));
-		EXPECT_TRUE(segment.segment.validLoop());
+		EXPECT_TRUE(segment.segment.isLoop());
 		EXPECT_EQ(segment.segment.start.idx, 1);
 		EXPECT_EQ(segment.segment.end.idx, 0);
 		EXPECT_EQ(segment.segment.jump_item_index, jump_index);
@@ -1233,7 +1231,6 @@ TEST_P(RouteSegmentCursorDoJumpTest, ProjectsBeyondTerminalJumpSourceOntoNominal
 	TestProjection projection(mission);
 	auto batch = singleReferenceBatch(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kAlt));
 	mission_route::ProjectionScanRequest request = scanRequest(60.f);
-	request.compute_current_segment_bounds = true;
 	request.mission_index = 2;
 	request.active_jump_anchor.jump_item_index = 2;
 	mission_route::RouteDistanceSummary distance_summary{};
@@ -1715,7 +1712,6 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, AllZeroRouteKeepsFinalPoint
 			TestProjection projection(mission);
 			auto batch = singleReferenceBatch(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kAlt));
 			auto request = scanRequest(100.f);
-			request.compute_current_segment_bounds = true;
 			request.mission_index = 0; // Pre-route index; with four items the bounds come from a skipped vertical segment.
 			mission_route::RouteDistanceSummary summary{};
 			ASSERT_EQ(projection.findProjectionCandidates(request, batch, summary), mission_route::FailureReason::kNone);

@@ -60,8 +60,7 @@ struct ProjectionScanRequest {
 	float home_altitude_amsl{NAN};
 	float xtrack_margin_m{0.f};
 
-	bool compute_current_segment_bounds{false};
-	int32_t mission_index{-1};
+	int32_t mission_index{-1}; /**< Item the vehicle targets; when set, the scan also locates its segment. */
 	bool is_flying_reverse{false};
 	ActiveJumpAnchor active_jump_anchor{}; /**< DO_JUMP whose edge the vehicle flies, empty for none. */
 };
@@ -136,15 +135,10 @@ public:
 	int32_t nominalPositionIndex() const { return _segment.start.idx; }
 
 private:
-	enum class SegmentBoundary : uint8_t {
-		kIntermediate,
-		kFinal
-	};
-
 	bool prepareJumpSegment(int32_t index, const mission_item_s &jump_item, RouteSegmentView &view);
-	void prepareNominalSegment(const SegmentEndpoint &end, const Position &end_position,
-				   SegmentBoundary boundary, RouteSegmentView &view);
-	void prepareSegmentView(SegmentBoundary boundary, RouteSegmentView &view);
+	void prepareNominalSegment(const SegmentEndpoint &end, const Position &end_position, bool last_segment,
+				   RouteSegmentView &view);
+	void prepareSegmentView(bool last_segment, RouteSegmentView &view);
 	bool fail(FailureReason failure_reason);
 
 	const Provider &_provider;

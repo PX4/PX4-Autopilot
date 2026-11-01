@@ -68,11 +68,6 @@ bool Segment::valid() const
 	return start.valid() && end.valid() && start.idx != end.idx && (valid_jump || valid_nominal);
 }
 
-bool Segment::validLoop() const
-{
-	return isLoop() && valid();
-}
-
 bool SegmentDistanceAlong::valid() const
 {
 	return PX4_ISFINITE(start_dist_along_route_m) && start_dist_along_route_m > -FLT_EPSILON

@@ -70,8 +70,7 @@ bool ActiveJumpAnchor::valid() const
 
 bool MissionResumePlan::valid() const
 {
-	return join_position.valid() && first_mission_item_index >= 0
-	       && (active_jump_anchor.empty() || active_jump_anchor.valid());
+	return join_position.valid() && first_mission_item_index >= 0;
 }
 
 bool RtlRoutePlan::valid() const

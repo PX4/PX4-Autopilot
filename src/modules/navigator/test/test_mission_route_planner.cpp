@@ -401,7 +401,6 @@ TEST_F(MissionRoutePlannerTest, GeofenceChecksDirectShortcutFromVehicleToSelecte
 	mission_route::RtlRoutePlan plan{};
 	ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
 	ASSERT_TRUE(plan.fly_direct_to_goal);
-	EXPECT_FALSE(plan.geofence_prevents_shortcut);
 	ASSERT_EQ(checker.path_checks, 1u);
 	EXPECT_DOUBLE_EQ(checker.checked_start.lat, request.vehicle_position.lat);
 	EXPECT_DOUBLE_EQ(checker.checked_start.lon, request.vehicle_position.lon);
@@ -415,12 +414,10 @@ TEST_F(MissionRoutePlannerTest, GeofenceChecksDirectShortcutFromVehicleToSelecte
 	EXPECT_TRUE(plan.valid());
 	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
 	EXPECT_FALSE(plan.fly_direct_to_goal);
-	EXPECT_TRUE(plan.geofence_prevents_shortcut);
 
 	checker.path_available = false;
 	EXPECT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kGeofenceUnavailable);
 	EXPECT_FALSE(plan.valid());
-	EXPECT_FALSE(plan.geofence_prevents_shortcut);
 }
 
 // Near LAND the join keeps the live altitude and flies to the landing item. That segment gets its own fence check,
@@ -2330,9 +2327,9 @@ static void hashPlan(uint64_t &hash, mission_route::FailureReason status, const 
 {
 	hashPlan(hash, status, static_cast<const mission_route::MissionResumePlan &>(plan));
 	char text[256];
-	snprintf(text, sizeof(text), "%d %d %d %d %d %a %a %a %a %a %a\n", static_cast<int>(plan.goal_type),
+	snprintf(text, sizeof(text), "%d %d %d %d %a %a %a %a %a %a\n", static_cast<int>(plan.goal_type),
 		 static_cast<int>(plan.safe_point_index), static_cast<int>(plan.branch_off_mission_item_index),
-		 plan.fly_direct_to_goal, plan.geofence_prevents_shortcut, plan.goal_position.lat, plan.goal_position.lon,
+		 plan.fly_direct_to_goal, plan.goal_position.lat, plan.goal_position.lon,
 		 static_cast<double>(plan.goal_position.alt), plan.branch_off_position.lat, plan.branch_off_position.lon,
 		 static_cast<double>(plan.branch_off_position.alt));
 	hashText(hash, text);
