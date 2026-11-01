@@ -52,6 +52,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them. ([PX4-Autopilot#28520](https://github.com/PX4/PX4-Autopilot/pull/28520), [PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
 - **`DO_JUMP` can only loop back and its repeat count must fit.**
   A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0, and if its repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
+  It is also rejected if the items from a `DO_JUMP`'s target reach a `DO_JUMP` before a waypoint, the jump itself included, even if its repeat count is 0.
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
 - **`MAV_CMD_MISSION_START` no longer arms the vehicle.**
   The command switches to [Mission mode](../flight_modes_mc/mission.md) at the requested item, and the mission starts once the vehicle is armed.
