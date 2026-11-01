@@ -50,6 +50,7 @@
 
 #include <matrix/matrix/math.hpp>
 #include <mathlib/math/Limits.hpp>
+#include <lib/slew_rate/SlewRate.hpp>
 
 class AttitudeControl
 {
@@ -72,6 +73,13 @@ public:
 
 	/// Set per-axis saturation on the FF angular-velocity contribution [rad/s]; 0 = disabled.
 	void setFeedForwardLimit(float limit) { _ff_max = math::max(limit, 0.f); }
+
+	/**
+	 * Set angular acceleration limits of the reference model
+	 * The yaw limit also bounds how fast the commanded yaw rate changes.
+	 * @param accel_max [rad/s^2] 3D vector containing limits for roll, pitch, yaw; 0 = disabled
+	 */
+	void setRefModelAccelerationLimit(const matrix::Vector3f &accel_max);
 
 	/**
 	 * Set hard limit for output rate setpoints
@@ -123,10 +131,12 @@ private:
 	matrix::Quatf _q_ref;                  ///< reference attitude tracked by the 2nd-order ref model
 	matrix::Vector3f _omega_correction;    ///< error-driven correction (2nd-order state); reference rate = _omega_correction + _omega_command
 	matrix::Vector3f _omega_command;       ///< commanded (analytical) reference rate; exempt from the feedforward limit
+	SlewRate<float> _yawspeed_command;     ///< commanded yaw rate [rad/s], changing at most at the yaw acceleration limit
 	bool _ref_initialized{false};
 
 	float _omega_n{50.f};                  ///< ref-model natural frequency [rad/s]
 	float _kq{_omega_n * _omega_n};        ///< stiffness coefficient, kept in sync with _omega_n
+	matrix::Vector3f _accel_max{INFINITY, INFINITY, INFINITY}; ///< ref-model angular acceleration limit [rad/s^2]
 
 	float _ff_gain{1.f};
 	float _ff_max{0.f};

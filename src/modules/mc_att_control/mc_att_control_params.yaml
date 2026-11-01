@@ -132,6 +132,55 @@ parameters:
       max: 1800.0
       decimal: 0
       increment: 5
+    MC_REF_ACC_R_MAX:
+      description:
+        short: Attitude reference-model roll acceleration limit
+        long: |-
+          Angular acceleration limit of the attitude reference model on the roll axis.
+          Far from the setpoint the reference brakes so that it stops within the limit,
+          and its rate is bounded by MC_ROLLRATE_MAX. Small setpoint changes keep the
+          response set by MC_REF_W_N. 0 disables the limit.
+      type: float
+      default: 0.0
+      unit: deg/s^2
+      min: 0.0
+      max: 3600.0
+      decimal: 0
+      increment: 10
+    MC_REF_ACC_P_MAX:
+      description:
+        short: Attitude reference-model pitch acceleration limit
+        long: |-
+          Angular acceleration limit of the attitude reference model on the pitch axis.
+          Far from the setpoint the reference brakes so that it stops within the limit,
+          and its rate is bounded by MC_PITCHRATE_MAX. Small setpoint changes keep the
+          response set by MC_REF_W_N. 0 disables the limit.
+      type: float
+      default: 0.0
+      unit: deg/s^2
+      min: 0.0
+      max: 3600.0
+      decimal: 0
+      increment: 10
+    MC_REF_ACC_Y_MAX:
+      description:
+        short: Attitude reference-model yaw acceleration limit
+        long: |-
+          Angular acceleration limit of the attitude reference model on the yaw axis.
+          Far from the setpoint the reference brakes so that it stops within the limit,
+          and its rate is bounded by MC_YAWRATE_MAX. Small setpoint changes keep the
+          response set by MC_REF_W_N. 0 disables the limit.
+
+          A commanded yaw rate (yaw stick, auto yaw rate) also changes at most at this
+          limit. When the command stops faster than that, the vehicle turns past the
+          heading it then holds and comes back to it.
+      type: float
+      default: 0.0
+      unit: deg/s^2
+      min: 0.0
+      max: 3600.0
+      decimal: 0
+      increment: 10
 - group: Multicopter Position Control
   definitions:
     MC_MAN_TILT_TAU:
