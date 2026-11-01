@@ -64,10 +64,6 @@ void MissionRouteCache::update(const mission_s &mission)
 
 bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
 {
-	if (_mission_land.index < 0 || _mission_land.index >= _mission_land.count) {
-		return false;
-	}
-
 	mission_item_s land_item;
 
 	if (!_dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id),
@@ -193,12 +189,8 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 			PX4_ERR("Land cache: bad dataman id");
 		}
 
-		if (state.index >= 0) {
-			state.validation_pending = queueMissionLandItem();
-
-			if (!state.validation_pending) {
-				state.retry.scheduleRetry(now);
-			}
+		if (state.index >= 0 && !queueMissionLandItem()) {
+			state.retry.scheduleRetry(now);
 		}
 	}
 
@@ -208,12 +200,10 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 		return;
 	}
 
-	if (state.validation_pending) {
+	if (!state.retry.scheduled()) {
 		if (_dataman_cache_land_item.isLoading()) {
 			return;
 		}
-
-		state.validation_pending = false;
 
 		if (missionLandItemCacheFullyLoaded()) {
 			state.ready = true;
@@ -228,9 +218,7 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 	} else if (state.retry.due(now)) {
 		_dataman_cache_land_item.invalidate();
 
-		state.validation_pending = queueMissionLandItem();
-
-		if (state.validation_pending) {
+		if (queueMissionLandItem()) {
 			state.retry.retry_at = 0;
 
 		} else {
@@ -241,13 +229,7 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 
 bool MissionRouteCache::queueMissionLandItem()
 {
-	const MissionLandState &state = _mission_land;
-
-	if (state.index < 0) {
-		return false;
-	}
-
-	if (_dataman_cache_land_item.load(static_cast<dm_item_t>(state.dataman_id), state.index)) {
+	if (_dataman_cache_land_item.load(static_cast<dm_item_t>(_mission_land.dataman_id), _mission_land.index)) {
 		return true;
 	}
 

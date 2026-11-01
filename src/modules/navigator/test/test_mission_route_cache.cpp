@@ -414,6 +414,13 @@ TEST_F(MissionRouteCacheTest, MissionLandItemRejectsNonLandPublishedIndex)
 	mission_item_s land_item{};
 	EXPECT_FALSE(_cache.getMissionLandItem(land_index, land_item));
 	EXPECT_EQ(land_index, 123);
+
+	// A retry reads the item again: once it holds a landing command, the land item is ready.
+	writeMissionItem(makeLandItemFromOffset(kBaseLat, kBaseLon, 120.f, 0.f, kAlt), 1);
+	MissionRouteCacheTestPeer::expireMissionLandRetryBackoff(_cache);
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionLandItemReady(); }));
+	EXPECT_FALSE(_cache.missionLandItemUpdatePending());
+	EXPECT_FALSE(_cache.missionLandItemAttemptFailed());
 }
 
 TEST_F(MissionRouteCacheTest, MissionLandItemRejectsInvalidDatamanId)
@@ -516,13 +523,11 @@ TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsReplacementSet)
 	_cache.update(mission);
 	EXPECT_EQ(_cache.safePointsId(), mission.safe_points_id);
 	EXPECT_FALSE(_cache.safePointsReady());
-	EXPECT_TRUE(_cache.safePointUpdatePending());
 	EXPECT_EQ(_cache.safePointCount(), 0);
 	EXPECT_FALSE(_cache.loadSafePointItem(0, safe_point));
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
 			<< "safe-point cache did not become ready";
-	EXPECT_FALSE(_cache.safePointUpdatePending());
 
 	// The stale set is replaced, including its size.
 	EXPECT_EQ(_cache.safePointCount(), 2);
@@ -650,6 +655,7 @@ TEST_F(MissionRouteCacheTest, MissionSourceChangeDuringReadDoesNotPublishOldGene
 	ASSERT_TRUE(MissionRouteCacheTestPeer::missionLoadInProgress(_cache));
 	ASSERT_NE(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
 	EXPECT_EQ(MissionRouteCacheTestPeer::missionLoadPerfEventCount(_cache), 0U);
+	ASSERT_TRUE(MissionRouteCacheTestPeer::receiveMissionRead(_cache));
 
 	// Replace the contents without changing the Dataman bank or item indices.
 	writeMissionItems(mission_items_b);
@@ -797,6 +803,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemRereadsInFlightMissionItem)
 	writeMissionItems(mission_items);
 	_cache.update(mission);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::missionLoadInProgress(_cache));
+	ASSERT_TRUE(MissionRouteCacheTestPeer::receiveMissionRead(_cache));
 
 	// Complete the authoritative write before the cache consumes its old read response.
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);

@@ -419,7 +419,7 @@ void RTL::setRtlTypeAndDestination()
 	// Publish rtl status
 	rtl_status_s rtl_status{};
 	rtl_status.safe_points_id = mission_route_cache.safePointsId();
-	rtl_status.is_evaluation_pending = mission_route_cache.safePointUpdatePending()
+	rtl_status.is_evaluation_pending = !mission_route_cache.safePointsReady()
 					   || mission_route_cache.missionLandItemUpdatePending();
 	rtl_status.has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
 	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);

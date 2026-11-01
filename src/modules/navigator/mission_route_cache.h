@@ -74,21 +74,9 @@ public:
 
 	bool missionItemsReady(const mission_s &mission) const;
 	bool safePointsReady() const { return _safe_point.ready; }
-	bool safePointUpdatePending() const { return !_safe_point.ready; }
 	uint32_t safePointsId() const { return _safe_point.source_id; }
-	bool missionLandItemReady() const
-	{
-		return _mission_land.ready
-		       && _mission_land.index >= 0
-		       && _mission_land.index < _mission_land.count;
-	}
-	bool missionLandItemUpdatePending() const
-	{
-		return _mission_land.index >= 0
-		       && _mission_land.index < _mission_land.count
-		       && !_mission_land.ready
-		       && (_mission_land.validation_pending || _mission_land.retry.retry_at != 0);
-	}
+	bool missionLandItemReady() const { return _mission_land.ready; }
+	bool missionLandItemUpdatePending() const { return _mission_land.index >= 0 && !_mission_land.ready; }
 	/** True after queuing, reading, or validating the current mission land item failed. */
 	bool missionLandItemAttemptFailed() const { return _mission_land.retry.retry_count > 0; }
 
@@ -140,10 +128,9 @@ private:
 	struct MissionLandState {
 		uint32_t mission_id{0};
 		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
-		int32_t index{-1};
+		int32_t index{-1}; ///< Loads until ready, except while a retry is scheduled.
 		int32_t count{0}; ///< Published mission.count the index was validated against.
 		bool ready{false};
-		bool validation_pending{false};
 		mission_route::CacheRetryBackoff retry{};
 	};
 

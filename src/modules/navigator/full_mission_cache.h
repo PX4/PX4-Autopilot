@@ -66,7 +66,8 @@ struct CacheRetryBackoff {
 	hrt_abstime retry_at{0};
 	uint8_t retry_count{0};
 
-	bool due(hrt_abstime now) const { return retry_at != 0 && now >= retry_at; }
+	bool scheduled() const { return retry_at != 0; }
+	bool due(hrt_abstime now) const { return scheduled() && now >= retry_at; }
 	void clear()
 	{
 		retry_at = 0;
@@ -117,14 +118,11 @@ private:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	struct MissionCacheState {
 		uint32_t id{0};
-		int32_t count{0};
+		int32_t count{-1}; ///< No mission matches the state before the first update.
 		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
 		int32_t next_index{0}; ///< First unread item; retries resume here.
-		bool initialized{false};
-		bool source_valid{false};
+		bool loadable{false}; ///< Valid source that fits the cache. It loads until ready, except while a retry is scheduled.
 		bool ready{false};
-		bool too_large{false};
-		bool validation_pending{false};
 		mission_route::CacheRetryBackoff retry{};
 	};
 
@@ -135,8 +133,6 @@ private:
 	};
 
 	bool missionMatchesCache(const mission_s &mission) const;
-	void startMissionLoad();
-	void resumeMissionLoad();
 
 	mission_item_s *_mission_items{nullptr};
 	DatamanClient _dataman_client_mission{};
