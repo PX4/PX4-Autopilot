@@ -46,7 +46,6 @@
 #include <float.h>
 
 #include <dataman/dataman.h>
-#include <matrix/math.hpp>
 #include <uORB/topics/vtol_vehicle_status.h>
 
 namespace mission_route
@@ -84,8 +83,6 @@ struct SegmentEndpoint {
 struct SegmentPositions {
 	Position start{};
 	Position end{};
-
-	bool valid() const;
 };
 
 /** @brief One mission segment, optionally representing a synthetic DO_JUMP edge. */
@@ -97,7 +94,6 @@ struct Segment {
 
 	bool isLoop() const { return jump_item_index >= 0; }
 	bool valid() const;
-	bool validLoop() const;
 
 	/** A jump edge and a nominal segment with the same endpoints: one leg, flown with or without the jump. */
 	bool isTwin(const Segment &other) const
@@ -117,7 +113,6 @@ struct SegmentDistanceAlong {
 /** @brief One projected route candidate retained during a mission scan. */
 struct RouteProjectionCandidate {
 	Segment segment{};
-	SegmentPositions segment_positions{};
 	Position projection{};
 	ProjectionDistance dist{};
 
@@ -130,23 +125,10 @@ struct ProjectionCandidateBuffer {
 	uint8_t count{0};
 };
 
-/** @brief Live vehicle kinematics and mode flags copied into one planning pass. */
-struct VehicleStateContext {
-	bool is_flying_reverse{false}; /**< True when flying towards the mission start (takeoff) */
-	matrix::Vector2f velocity_ne{NAN, NAN}; /**< North, East*/
-	bool velocity_valid{false};
-	bool is_vtol{false};
-	bool is_fixed_wing{false};
-	bool in_transition_to_fw{false};
-	bool require_vtol_approach{false};
-};
-
 /** @brief Internal vehicle projection and route state used for scoring. */
 struct ProjectionContext {
-	Position vehicle_position{};
-	int32_t mission_index{-1};
 	RouteProjectionCandidate route_projection{};
-	VehicleStateContext vehicle_state{};
+	SegmentPositions route_segment_positions{}; /**< Both ends of route_projection's segment. A landing leg ends at its start altitude. */
 	float route_length{0.f};
 	int32_t route_end_index{-1};
 	SegmentDistanceAlong loop_bounds{}; /**< Along-route distances of both exits when route_projection is on a loop. */
@@ -171,45 +153,6 @@ struct RoutePath {
 	float total_cost_m{FLT_MAX};
 
 	bool valid() const;
-};
-
-/** @brief The branch-off is the point on the route where the UAV leaves it towards its goal (e.g. rally point). */
-struct BranchOff {
-	Segment segment{};
-	Position projection{};
-};
-
-/** @brief Internal winning goal and the scored path used to reach it. */
-struct GoalSelection {
-	GoalType goal_type{GoalType::kNone};
-	Position goal_position{};
-	int32_t safe_point_index{-1};
-	RoutePath path{};
-	BranchOff branch_off{};
-
-	bool found() const { return goal_type != GoalType::kNone; }
-};
-
-/** @brief Normalized parameters shared by projection and goal-selection helpers during one planning pass. */
-struct PlannerParameters {
-	float vehicle_projection_search_dist_m{0.f}; /**< Vehicle scan margin: keep candidates within this distance of the closest projection. */
-	float safe_point_projection_search_dist_m{0.f}; /**< Safe-point scan margin: keep candidates within this distance of the closest projection. */
-	float nav_acceptance_radius_m{0.f}; /**< Navigator WP acceptance radius: an item or the branch-off leg counts as reached within it. */
-	float straight_to_safe_point_rad_m{0.f}; /**< Fly straight to a safe point closer than this, skipping the route. */
-	float altitude_acceptance_radius_m{0.f};
-	float home_altitude_amsl{NAN};
-	float fw_u_turn_penalty_m{0.f};
-
-	bool validForVehicleProjection() const;
-	bool validForRtlRoute() const;
-};
-
-/** @brief Everything one planning pass reads: normalized parameters, vehicle state and jump policy. */
-struct PlannerConfig {
-	PlannerParameters parameters{};
-	VehicleStateContext state{};
-	ActiveJumpAnchor active_jump_anchor{};
-	bool respect_jump_repeats{false};
 };
 
 } // namespace mission_route

@@ -75,10 +75,8 @@ enum class FailureReason : uint8_t {
 	kNoValidWaypoints,
 	kNoValidSafePoints,
 	kNoValidPath,
-	kNoSegmentsFound,
 	kInternalError,
 	kLoadFailed,
-	kNoLocalMinFound,
 	kPositionItemInvalid,
 	kNoValidCandidateFound,
 	kGeofenceUnavailable
@@ -121,8 +119,6 @@ struct MissionResumeRequest {
 
 /** @brief Inputs for the RTL route-following return: the join inputs plus goal selection. */
 struct RtlRouteRequest : MissionResumeRequest {
-	/** LAND/VTOL_LAND index in the same validated mission source; -1 if unavailable. */
-	int32_t mission_land_index{-1};
 	float safe_point_projection_search_distance_m{0.f};
 	float direct_goal_acceptance_radius_m{0.f};
 	float altitude_acceptance_radius_m{0.f};
@@ -150,7 +146,6 @@ struct RtlRoutePlan : MissionResumePlan {
 	/** Mission item replaced by branch_off_position: segment end nominally, segment start in reverse. */
 	int32_t branch_off_mission_item_index{-1};
 	bool fly_direct_to_goal{false}; /**< Bypass route following for either a safe point or endpoint goal. */
-	bool geofence_prevents_shortcut{false}; /**< A direct shortcut failed the path check; follow the checked route instead. */
 
 	bool valid() const;
 };

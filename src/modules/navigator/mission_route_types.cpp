@@ -70,8 +70,7 @@ bool ActiveJumpAnchor::valid() const
 
 bool MissionResumePlan::valid() const
 {
-	return join_position.valid() && first_mission_item_index >= 0
-	       && (active_jump_anchor.empty() || active_jump_anchor.valid());
+	return join_position.valid() && first_mission_item_index >= 0;
 }
 
 bool RtlRoutePlan::valid() const
@@ -242,17 +241,11 @@ const char *failureReasonString(FailureReason failure_reason)
 	case FailureReason::kNoValidPath:
 		return "NoValidPath";
 
-	case FailureReason::kNoSegmentsFound:
-		return "NoSegmentsFound";
-
 	case FailureReason::kInternalError:
 		return "InternalError";
 
 	case FailureReason::kLoadFailed:
 		return "LoadFailed";
-
-	case FailureReason::kNoLocalMinFound:
-		return "NoLocalMinFound";
 
 	case FailureReason::kPositionItemInvalid:
 		return "PositionItemInvalid";

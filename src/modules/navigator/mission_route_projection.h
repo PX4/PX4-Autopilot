@@ -60,8 +60,7 @@ struct ProjectionScanRequest {
 	float home_altitude_amsl{NAN};
 	float xtrack_margin_m{0.f};
 
-	bool compute_current_segment_bounds{false};
-	int32_t mission_index{-1};
+	int32_t mission_index{-1}; /**< Item the vehicle targets; when set, the scan also locates its segment. */
 	bool is_flying_reverse{false};
 	ActiveJumpAnchor active_jump_anchor{}; /**< DO_JUMP whose edge the vehicle flies, empty for none. */
 };
@@ -70,6 +69,7 @@ struct RouteDistanceSummary {
 	SegmentDistanceAlong current_segment_bounds{};
 	float route_length{0.f};
 	int32_t route_end_index{-1};
+	int32_t flown_jump_item_index{-1}; /**< The anchored DO_JUMP, or -1 for none or an ignored anchor. */
 };
 
 /** @brief Per-reference scan scratch maintained while walking the mission segments. */
@@ -136,15 +136,10 @@ public:
 	int32_t nominalPositionIndex() const { return _segment.start.idx; }
 
 private:
-	enum class SegmentBoundary : uint8_t {
-		kIntermediate,
-		kFinal
-	};
-
 	bool prepareJumpSegment(int32_t index, const mission_item_s &jump_item, RouteSegmentView &view);
-	void prepareNominalSegment(const SegmentEndpoint &end, const Position &end_position,
-				   SegmentBoundary boundary, RouteSegmentView &view);
-	void prepareSegmentView(SegmentBoundary boundary, RouteSegmentView &view);
+	void prepareNominalSegment(const SegmentEndpoint &end, const Position &end_position, bool last_segment,
+				   RouteSegmentView &view);
+	void prepareSegmentView(bool last_segment, RouteSegmentView &view);
 	bool fail(FailureReason failure_reason);
 
 	const Provider &_provider;
@@ -196,16 +191,10 @@ public:
 	 *
 	 * projection_context is only valid when kNone is returned.
 	 */
-	FailureReason collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
-					       const PlannerConfig &config, ProjectionReferenceBatch &batch,
+	FailureReason collectVehicleProjection(const MissionResumeRequest &request, ProjectionReferenceBatch &batch,
 					       ProjectionContext &projection_context) const;
 
 private:
-	struct ProjectionScanStats {
-		uint32_t segments_processed{0};
-		uint32_t local_min_found{0};
-	};
-
 	/**
 	 * @brief Project one reference point onto one segment, apply local-minimum rules,
 	 * and keep the closest projections.
@@ -217,8 +206,7 @@ private:
 	void processCandidateForSegment(ProjectionReference &reference,
 					const RouteSegmentView &segment_view,
 					bool force_candidate,
-					int32_t flown_jump_item_index,
-					ProjectionScanStats &stats) const;
+					int32_t flown_jump_item_index) const;
 
 	FailureReason findLoopBounds(const RouteProjectionCandidate &vehicle_projection, float home_altitude_amsl,
 				     SegmentDistanceAlong &loop_bounds) const;

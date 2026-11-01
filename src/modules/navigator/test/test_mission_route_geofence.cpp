@@ -442,7 +442,6 @@ TEST_F(MissionRouteGeofenceTest, BlockedClosestLegDoesNotHideClearSafePointBranc
 		{safePointItem(300.f, 150.f)});
 		MissionRoutePlanner planner{provider, &checker};
 		mission_route::RtlRouteRequest request = rtlRequest(vehicle, 1);
-		request.mission_land_index = land_at_d ? 3 : -1;
 		mission_route::RtlRoutePlan plan{};
 
 		const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
