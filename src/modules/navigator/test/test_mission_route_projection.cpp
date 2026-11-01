@@ -51,15 +51,15 @@ using navigator_test::route_test_reference::kAlt;
 using navigator_test::route_test_reference::kBaseLat;
 using navigator_test::route_test_reference::kBaseLon;
 
-static mission_route::PlannerConfig defaultProjectionConfig()
+static mission_route::RtlRouteRequest defaultProjectionConfig()
 {
-	mission_route::PlannerConfig config{};
-	config.parameters.vehicle_projection_search_dist_m = 60.f;
-	config.parameters.safe_point_projection_search_dist_m = 60.f;
-	config.parameters.nav_acceptance_radius_m = 10.f;
-	config.parameters.straight_to_safe_point_rad_m = 10.f;
-	config.parameters.altitude_acceptance_radius_m = 10.f;
-	config.parameters.home_altitude_amsl = 500.f;
+	mission_route::RtlRouteRequest config{};
+	config.projection_search_distance_m = 60.f;
+	config.safe_point_projection_search_distance_m = 60.f;
+	config.acceptance_radius_m = 10.f;
+	config.direct_goal_acceptance_radius_m = 10.f;
+	config.altitude_acceptance_radius_m = 10.f;
+	config.home_altitude_amsl = 500.f;
 	return config;
 }
 
@@ -77,7 +77,7 @@ protected:
 	mission_route::ProjectionScanRequest scanRequest(float xtrack_margin_m) const
 	{
 		mission_route::ProjectionScanRequest request{};
-		request.home_altitude_amsl = config.parameters.home_altitude_amsl;
+		request.home_altitude_amsl = config.home_altitude_amsl;
 		request.xtrack_margin_m = xtrack_margin_m;
 		return request;
 	}
@@ -97,7 +97,7 @@ protected:
 		return nullptr;
 	}
 
-	mission_route::PlannerConfig config{defaultProjectionConfig()};
+	mission_route::RtlRouteRequest config{defaultProjectionConfig()};
 };
 
 class MissionRouteProjectionLocalSegmentTest : public MissionRouteProjectionTestBase {};
@@ -115,12 +115,14 @@ public:
 	{}
 
 	mission_route::FailureReason collectVehicleProjection(const mission_route::Position &vehicle_position,
-			int32_t mission_index, const mission_route::PlannerConfig &planner_config,
+			int32_t mission_index, const mission_route::MissionResumeRequest &config,
 			mission_route::ProjectionReferenceBatch &batch,
 			mission_route::ProjectionContext &projection_context) const
 	{
-		return _projection.collectVehicleProjection(vehicle_position, mission_index, planner_config, batch,
-				projection_context);
+		mission_route::MissionResumeRequest request = config;
+		request.vehicle_position = vehicle_position;
+		request.mission_index = mission_index;
+		return _projection.collectVehicleProjection(request, batch, projection_context);
 	}
 
 	mission_route::FailureReason findProjectionCandidates(const mission_route::ProjectionScanRequest &request,
@@ -237,10 +239,10 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, TrailingCommandRetainsLastSegment
 	};
 	TestProjection projection(mission);
 	const auto vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 500.f, kAlt);
-	config.parameters.vehicle_projection_search_dist_m = 100.f;
+	config.projection_search_distance_m = 100.f;
 
 	auto batch = singleReferenceBatch(vehicle);
-	auto request = scanRequest(config.parameters.vehicle_projection_search_dist_m);
+	auto request = scanRequest(config.projection_search_distance_m);
 	request.compute_current_segment_bounds = true;
 	request.mission_index = 4;
 	mission_route::RouteDistanceSummary summary{};
@@ -273,7 +275,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersCurrentMissionSegmentOverC
 	TestProjection projection(mission);
 	auto batch = singleReferenceBatch({});
 	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 500.f, kAlt);
-	config.parameters.vehicle_projection_search_dist_m = 150.f;
+	config.projection_search_distance_m = 150.f;
 
 	mission_route::ProjectionContext projection_context{};
 	const mission_route::FailureReason status =
@@ -297,7 +299,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, ReverseFlightPrefersReverseCurren
 	};
 	TestProjection projection(mission);
 	auto batch = singleReferenceBatch({});
-	config.state.is_flying_reverse = true;
+	config.current_route_direction_reversed = true;
 	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 10.f, kAlt);
 
 	mission_route::ProjectionContext projection_context{};
@@ -327,7 +329,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, JumpEdgeWithNominalTwinRespectsAn
 	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt);
 
 	for (const float margin : {0.f, 60.f}) {
-		config.parameters.vehicle_projection_search_dist_m = margin;
+		config.projection_search_distance_m = margin;
 
 		for (const bool anchored : {false, true}) {
 			config.active_jump_anchor.jump_item_index = anchored ? 3 : -1;
@@ -574,7 +576,7 @@ TEST_P(MissionRouteProjectionEndpointLocalMinimumTest, KeepsEndpointCandidate)
 
 	mission_route::RouteDistanceSummary distance_summary{};
 	const mission_route::FailureReason status =
-		projection.findProjectionCandidates(scanRequest(config.parameters.safe_point_projection_search_dist_m), batch,
+		projection.findProjectionCandidates(scanRequest(config.safe_point_projection_search_distance_m), batch,
 				distance_summary);
 
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
@@ -1000,7 +1002,7 @@ TEST_F(RouteSegmentCursorTest, StopsAtFirstLandBeforePostLandPositions)
 		};
 		mission[2].nav_cmd = landing_command;
 		VectorProvider provider = makeRouteProvider(mission);
-		mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
+		mission_route::RouteSegmentCursor cursor(provider, config.home_altitude_amsl);
 		std::vector<mission_route::RouteSegmentView> segments;
 		mission_route::RouteSegmentView segment{};
 
@@ -1045,7 +1047,7 @@ TEST_F(RouteSegmentCursorTest, IgnoresInvalidAndUnreadableItemsAfterLand)
 			provider.setMissionLoadFailures({3});
 		}
 
-		mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
+		mission_route::RouteSegmentCursor cursor(provider, config.home_altitude_amsl);
 		mission_route::RouteSegmentView segment{};
 		int segment_count = 0;
 
@@ -1083,7 +1085,7 @@ TEST_F(RouteSegmentCursorTest, SkipsJumpWithoutPositionAfterTarget)
 		}
 
 		VectorProvider provider = makeRouteProvider(mission);
-		mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
+		mission_route::RouteSegmentCursor cursor(provider, config.home_altitude_amsl);
 		std::vector<mission_route::RouteSegmentView> segments;
 		mission_route::RouteSegmentView segment{};
 
@@ -1131,7 +1133,7 @@ TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
+	mission_route::RouteSegmentCursor cursor(provider, config.home_altitude_amsl);
 	std::vector<mission_route::RouteSegmentView> segments;
 	mission_route::RouteSegmentView segment{};
 
@@ -1192,7 +1194,7 @@ TEST_P(RouteSegmentCursorDoJumpTest, KeepsFinalNominalEndpointBeforeTerminalJump
 		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
+	mission_route::RouteSegmentCursor cursor(provider, config.home_altitude_amsl);
 	mission_route::RouteSegmentView segment{};
 
 	ASSERT_TRUE(cursor.init()) << mission_route::failureReasonString(cursor.failureReason());

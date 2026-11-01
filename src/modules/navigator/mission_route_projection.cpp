@@ -984,11 +984,12 @@ static int selectBranchInCandidate(const ProjectionCandidateBuffer &candidate_bu
 	return best_candidate_index;
 }
 
-FailureReason MissionRouteProjection::collectVehicleProjection(const Position &vehicle_position,
-		int32_t mission_index, const PlannerConfig &config, ProjectionReferenceBatch &batch,
-		ProjectionContext &projection_context) const
+FailureReason MissionRouteProjection::collectVehicleProjection(const MissionResumeRequest &request,
+		ProjectionReferenceBatch &batch, ProjectionContext &projection_context) const
 {
-	if (!vehicle_position.valid()) {
+	const int32_t mission_index = request.mission_index;
+
+	if (!request.vehicle_position.valid()) {
 		return FailureReason::kNoValidGlobalPos;
 	}
 
@@ -1004,17 +1005,17 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const Position &v
 
 	// The vehicle reuses the batched safe point scan as a batch of one, which resets its candidates.
 	batch.count = 1;
-	batch.items[0].position = vehicle_position;
+	batch.items[0].position = request.vehicle_position;
 	batch.items[0].source_index = -1;
 
 	// The vehicle scan also locates the current segment used for the branch-in selection score.
 	ProjectionScanRequest scan_request{};
-	scan_request.home_altitude_amsl = config.parameters.home_altitude_amsl;
-	scan_request.xtrack_margin_m = config.parameters.vehicle_projection_search_dist_m;
+	scan_request.home_altitude_amsl = request.home_altitude_amsl;
+	scan_request.xtrack_margin_m = request.projection_search_distance_m;
 	scan_request.compute_current_segment_bounds = true;
 	scan_request.mission_index = mission_index;
-	scan_request.is_flying_reverse = config.state.is_flying_reverse;
-	scan_request.active_jump_anchor = config.active_jump_anchor;
+	scan_request.is_flying_reverse = request.current_route_direction_reversed;
+	scan_request.active_jump_anchor = request.active_jump_anchor;
 
 	RouteDistanceSummary distance_summary{};
 	const FailureReason scan_status = findProjectionCandidates(scan_request, batch, distance_summary);
@@ -1032,23 +1033,20 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const Position &v
 		  static_cast<int>(mission_index));
 
 	const int branch_in_index = selectBranchInCandidate(candidate_buffer, distance_summary.current_segment_bounds,
-				    mission_index, config.state.is_flying_reverse, config.active_jump_anchor);
+				    mission_index, request.current_route_direction_reversed, request.active_jump_anchor);
 
 	if (branch_in_index < 0) {
 		PX4_ERR("Route projection: no candidate");
 		return FailureReason::kNoValidCandidateFound;
 	}
 
-	projection_context.vehicle_position = vehicle_position;
-	projection_context.mission_index = mission_index;
 	projection_context.route_projection = candidate_buffer.candidates[branch_in_index];
-	projection_context.vehicle_state = config.state;
 	projection_context.route_length = distance_summary.route_length;
 	projection_context.route_end_index = distance_summary.route_end_index;
 
 	if (projection_context.route_projection.segment.validLoop()) {
 		const FailureReason loop_status = findLoopBounds(projection_context.route_projection,
-						  config.parameters.home_altitude_amsl, projection_context.loop_bounds);
+						  request.home_altitude_amsl, projection_context.loop_bounds);
 
 		if (loop_status != FailureReason::kNone) {
 			return loop_status;

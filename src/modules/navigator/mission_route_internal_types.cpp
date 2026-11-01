@@ -95,20 +95,4 @@ bool RoutePath::valid() const
 	       && PX4_ISFINITE(total_cost_m) && total_cost_m >= 0.f;
 }
 
-bool PlannerParameters::validForVehicleProjection() const
-{
-	// home_altitude_amsl is intentionally not checked: NAN is valid for absolute-altitude missions.
-	return PX4_ISFINITE(vehicle_projection_search_dist_m) && vehicle_projection_search_dist_m >= 0.f
-	       && PX4_ISFINITE(nav_acceptance_radius_m) && nav_acceptance_radius_m >= 0.f
-	       && PX4_ISFINITE(fw_u_turn_penalty_m) && fw_u_turn_penalty_m >= 0.f;
-}
-
-bool PlannerParameters::validForRtlRoute() const
-{
-	return validForVehicleProjection()
-	       && PX4_ISFINITE(safe_point_projection_search_dist_m) && safe_point_projection_search_dist_m >= 0.f
-	       && PX4_ISFINITE(straight_to_safe_point_rad_m) && straight_to_safe_point_rad_m >= 0.f
-	       && PX4_ISFINITE(altitude_acceptance_radius_m) && altitude_acceptance_radius_m >= 0.f;
-}
-
 } // namespace mission_route

@@ -196,8 +196,7 @@ public:
 	 *
 	 * projection_context is only valid when kNone is returned.
 	 */
-	FailureReason collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
-					       const PlannerConfig &config, ProjectionReferenceBatch &batch,
+	FailureReason collectVehicleProjection(const MissionResumeRequest &request, ProjectionReferenceBatch &batch,
 					       ProjectionContext &projection_context) const;
 
 private:
