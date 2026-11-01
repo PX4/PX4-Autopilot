@@ -515,7 +515,7 @@ bool Mission::updateVtolTransition()
 void Mission::setVtolTransitionStep(bool aligning)
 {
 	position_setpoint_triplet_s &triplet = *_navigator->get_position_setpoint_triplet();
-	const position_setpoint_s current_setpoint_copy = triplet.current;
+	position_setpoint_s current_setpoint_copy = triplet.current;
 	const bool takeoff = _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 
 	if (aligning) {
@@ -531,9 +531,18 @@ void Mission::setVtolTransitionStep(bool aligning)
 		} else {
 			_mission_item = _vtol_transition.command;
 			set_align_mission_item(&_mission_item, &_vtol_transition.target);
+
+			if (int(_vtol_transition.command.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+				// Keep flying towards the target while turning, so the vehicle does not stop, without descending.
+				_mission_item.lat = _vtol_transition.target.lat;
+				_mission_item.lon = _vtol_transition.target.lon;
+				_mission_item.altitude = math::max(_mission_item.altitude,
+								   get_absolute_altitude_for_item(_vtol_transition.target));
+				_mission_item.heading_only = true;
+			}
 		}
 
-		// Hold position and turn towards the target.
+		// Turn towards the target: in place, or on the way to it before a front transition.
 		mission_item_to_position_setpoint(_mission_item, &triplet.current);
 
 	} else {
@@ -548,7 +557,12 @@ void Mission::setVtolTransitionStep(bool aligning)
 			}
 
 		} else if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
+			// The transition starts where the vehicle is, which is also the previous setpoint.
+			triplet.current.lat = _global_pos_sub.get().lat;
+			triplet.current.lon = _global_pos_sub.get().lon;
+			triplet.current.alt = _global_pos_sub.get().alt;
 			triplet.previous = triplet.current;
+			current_setpoint_copy = triplet.current;
 
 		} else if (publish_target) {
 			mission_item_to_position_setpoint(_vtol_transition.target, &triplet.current);

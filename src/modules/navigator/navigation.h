@@ -187,7 +187,8 @@ struct mission_item_s {
 			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
 			 autocontinue : 1,			/**< true if next waypoint should follow after this one */
 			 vtol_back_transition : 1,		/**< part of the vtol back transition sequence */
-			 _padding0 : 4;				/**< padding remaining unused bits  */
+			 heading_only : 1,			/**< only the heading needs to be reached, not the position */
+			 _padding0 : 3;				/**< padding remaining unused bits  */
 	};
 
 	uint8_t _padding1[2];				/**< padding struct size to alignment boundary  */

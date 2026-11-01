@@ -30,6 +30,12 @@ In fixed-wing mode there are the following exceptions:
 - [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) is transformed into [MAV_CMD_NAV_VTOL_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_LAND) unless [NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) is set to `0` (disabled).
 - [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF) is not supported.
 
+## Mission Transitions
+
+Before a [MAV_CMD_DO_VTOL_TRANSITION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_VTOL_TRANSITION) front transition item, a vehicle in multicopter mode turns towards the next waypoint while it keeps flying towards it, climbing to that waypoint's altitude but not descending.
+The transition starts once the heading is within [MIS_YAW_ERR](../advanced_config/parameter_reference.md#MIS_YAW_ERR) of the direction to that waypoint.
+If the vehicle cannot reach that heading, it flies on to the waypoint in multicopter mode and keeps turning there: set [MIS_YAW_TMT](../advanced_config/parameter_reference.md#MIS_YAW_TMT) to fail the mission after a timeout instead (the vehicle then returns).
+
 ## Mission Command Timeouts
 
 Some mission commands/items can take time to complete, such as a gripper opening and closing, a winch extending or retracting, or a gimbal moving to point at a region of interest.
