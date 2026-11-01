@@ -200,11 +200,6 @@ public:
 					       ProjectionContext &projection_context) const;
 
 private:
-	struct ProjectionScanStats {
-		uint32_t segments_processed{0};
-		uint32_t local_min_found{0};
-	};
-
 	/**
 	 * @brief Project one reference point onto one segment, apply local-minimum rules,
 	 * and keep the closest projections.
@@ -216,8 +211,7 @@ private:
 	void processCandidateForSegment(ProjectionReference &reference,
 					const RouteSegmentView &segment_view,
 					bool force_candidate,
-					int32_t flown_jump_item_index,
-					ProjectionScanStats &stats) const;
+					int32_t flown_jump_item_index) const;
 
 	FailureReason findLoopBounds(const RouteProjectionCandidate &vehicle_projection, float home_altitude_amsl,
 				     SegmentDistanceAlong &loop_bounds) const;

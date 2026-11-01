@@ -75,10 +75,8 @@ enum class FailureReason : uint8_t {
 	kNoValidWaypoints,
 	kNoValidSafePoints,
 	kNoValidPath,
-	kNoSegmentsFound,
 	kInternalError,
 	kLoadFailed,
-	kNoLocalMinFound,
 	kPositionItemInvalid,
 	kNoValidCandidateFound,
 	kGeofenceUnavailable

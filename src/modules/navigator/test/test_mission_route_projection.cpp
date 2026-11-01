@@ -1355,7 +1355,7 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, SingleWaypointMissionHasNoSegments)
 	const mission_route::FailureReason status =
 		projection.collectVehicleProjection(vehicle, 0, config, batch, projection_context);
 
-	EXPECT_EQ(status, mission_route::FailureReason::kNoSegmentsFound);
+	EXPECT_EQ(status, mission_route::FailureReason::kNoValidWaypoints);
 }
 
 // A mission read failure is fatal to the scan and remains distinguishable from missing geometry.

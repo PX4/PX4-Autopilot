@@ -793,8 +793,7 @@ static void resetCandidateSearch(ProjectionReference &reference)
 void MissionRouteProjection::processCandidateForSegment(ProjectionReference &reference,
 		const RouteSegmentView &segment_view,
 		bool force_candidate,
-		int32_t flown_jump_item_index,
-		ProjectionScanStats &stats) const
+		int32_t flown_jump_item_index) const
 {
 	const Position &reference_position = reference.position;
 	CandidateSearchState &state = reference.search_state;
@@ -834,8 +833,6 @@ void MissionRouteProjection::processCandidateForSegment(ProjectionReference &ref
 			return;
 		}
 	}
-
-	stats.local_min_found++;
 
 	if (!projection.valid || projection.xtrack_m > state.xtrack_limit_m) {
 		return;
@@ -883,7 +880,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 
 	SegmentDistanceAlong current_segment_bounds{};
 	bool current_segment_located = !request.compute_current_segment_bounds;
-	ProjectionScanStats stats{};
+	bool any_segment = false;
 	RouteSegmentView segment_view{};
 	RouteSegmentCursor cursor(_provider, request.home_altitude_amsl);
 
@@ -892,7 +889,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 	}
 
 	while (cursor.next(segment_view)) {
-		stats.segments_processed++;
+		any_segment = true;
 
 		if (!current_segment_located) {
 			current_segment_located = locateCurrentSegment(segment_view, request, active_jump, current_segment_bounds);
@@ -913,7 +910,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 
 		for (uint8_t i = 0; i < batch.count; ++i) {
 			processCandidateForSegment(batch.items[i], segment_view, flying_vertical_segment,
-						   active_jump.jump_item_index, stats);
+						   active_jump.jump_item_index);
 		}
 	}
 
@@ -947,15 +944,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 		return FailureReason::kNone;
 	}
 
-	if (stats.segments_processed == 0) {
-		return FailureReason::kNoSegmentsFound;
-	}
-
-	if (stats.local_min_found == 0) {
-		return FailureReason::kNoLocalMinFound;
-	}
-
-	return FailureReason::kNoValidCandidateFound;
+	return any_segment ? FailureReason::kNoValidCandidateFound : FailureReason::kNoValidWaypoints;
 }
 
 // Returns the index of the branch-in candidate, or -1 when no candidate has a finite score.

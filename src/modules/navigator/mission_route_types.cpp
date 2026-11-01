@@ -242,17 +242,11 @@ const char *failureReasonString(FailureReason failure_reason)
 	case FailureReason::kNoValidPath:
 		return "NoValidPath";
 
-	case FailureReason::kNoSegmentsFound:
-		return "NoSegmentsFound";
-
 	case FailureReason::kInternalError:
 		return "InternalError";
 
 	case FailureReason::kLoadFailed:
 		return "LoadFailed";
-
-	case FailureReason::kNoLocalMinFound:
-		return "NoLocalMinFound";
 
 	case FailureReason::kPositionItemInvalid:
 		return "PositionItemInvalid";

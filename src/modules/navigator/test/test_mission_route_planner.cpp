@@ -973,7 +973,7 @@ TEST_F(MissionRoutePlannerTest, MissionLandAsFirstPositionHasNoRouteSegment)
 
 	const mission_route::FailureReason status = planner.planRtlRoute(request, plan);
 
-	EXPECT_EQ(status, mission_route::FailureReason::kNoSegmentsFound);
+	EXPECT_EQ(status, mission_route::FailureReason::kNoValidWaypoints);
 	EXPECT_FALSE(plan.valid());
 	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kNone);
 }
