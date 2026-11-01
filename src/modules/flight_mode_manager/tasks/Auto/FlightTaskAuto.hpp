@@ -88,7 +88,6 @@ public:
 	virtual ~FlightTaskAuto() = default;
 
 	static constexpr uint8_t kRequiredInputs = PositionXY | VelocityXY | PositionZ | VelocityZ;
-	uint8_t requiredInputs() const override { return kRequiredInputs; }
 
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	void reActivate() override;

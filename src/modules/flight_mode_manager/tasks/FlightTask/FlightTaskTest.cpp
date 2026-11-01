@@ -72,6 +72,8 @@ TEST(FlightTaskTest, StaleLocalPositionProvidesNoLocalInputs)
 	local_position.v_z_valid = true;
 	local_position.heading = 0.f;
 
+	// published after now was read
+	EXPECT_EQ(FlightTask::availableInputs(local_position, true, true, local_position.timestamp - 1), 0xff);
 	EXPECT_EQ(FlightTask::availableInputs(local_position, true, true, local_position.timestamp + 499'999), 0xff);
 	EXPECT_EQ(FlightTask::availableInputs(local_position, true, true, local_position.timestamp + 500'000),
 		  FlightTask::ManualControl | FlightTask::HomeAltitude);

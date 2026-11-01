@@ -133,7 +133,6 @@ public:
 
 	// Altitude setpoints are relative to the home altitude
 	static constexpr uint8_t kRequiredInputs = HomeAltitude;
-	uint8_t requiredInputs() const override { return kRequiredInputs; }
 
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	bool update() override;

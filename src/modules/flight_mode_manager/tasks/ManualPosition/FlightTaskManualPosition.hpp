@@ -51,7 +51,6 @@ public:
 	virtual ~FlightTaskManualPosition() = default;
 
 	static constexpr uint8_t kRequiredInputs = FlightTaskManualAltitude::kRequiredInputs | PositionXY | VelocityXY;
-	uint8_t requiredInputs() const override { return kRequiredInputs; }
 
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 

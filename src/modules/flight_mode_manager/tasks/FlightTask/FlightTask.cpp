@@ -42,7 +42,8 @@ uint8_t FlightTask::availableInputs(const vehicle_local_position_s &local_positi
 {
 	uint8_t inputs = 0;
 
-	if ((now - local_position.timestamp) < _timeout) {
+	// not now - timestamp, which wraps when the sample was published after now was read
+	if (now < local_position.timestamp + _timeout) {
 		inputs |= LocalPosition;
 
 		if (local_position.xy_valid) { inputs |= PositionXY; }
@@ -79,8 +80,7 @@ bool FlightTask::updateInitialize()
 	_evaluateVehicleLocalPositionSetpoint();
 	_evaluateDistanceToGround();
 
-	const uint8_t required_inputs = requiredInputs();
-	return (_available_inputs & required_inputs) == required_inputs;
+	return (_available_inputs & _required_inputs) == _required_inputs;
 }
 
 bool FlightTask::update()

@@ -91,7 +91,8 @@ public:
 	static uint8_t availableInputs(const vehicle_local_position_s &local_position, bool home_altitude_valid,
 				       bool manual_control_available, hrt_abstime now);
 
-	virtual uint8_t requiredInputs() const { return kRequiredInputs; }
+	/** Set by the manager on construction from the task's kRequiredInputs, so the gate and the task check one set */
+	void setRequiredInputs(uint8_t required_inputs) { _required_inputs = required_inputs; }
 
 	/**
 	 * Call once on the event where you switch to the task
@@ -118,7 +119,7 @@ public:
 	/**
 	 * Call before activate() or update()
 	 * to initialize time and input data
-	 * @return true if all inputs in requiredInputs() are available, false otherwise
+	 * @return true if all required inputs are available, false otherwise
 	 */
 	virtual bool updateInitialize();
 
@@ -224,6 +225,7 @@ protected:
 	float _deltatime{}; /**< passed time in seconds since the task was last updated */
 
 	uint8_t _available_inputs{0}; /**< bitmask of Input, evaluated in updateInitialize() */
+	uint8_t _required_inputs{0}; /**< bitmask of Input, see setRequiredInputs() */
 
 	hrt_abstime _time_stamp_activate{}; /**< time stamp when task was activated */
 	hrt_abstime _time_stamp_current{}; /**< time stamp at the beginning of the current task update */

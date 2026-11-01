@@ -60,7 +60,6 @@ public:
 
 	static constexpr uint8_t kRequiredInputs = (FlightTaskManualAltitudeSmoothVel::kRequiredInputs & ~ManualControl)
 			| PositionXY | VelocityXY;
-	uint8_t requiredInputs() const override { return kRequiredInputs; }
 
 	bool applyCommandParameters(const vehicle_command_s &command, bool &success) override;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;

@@ -198,7 +198,7 @@ void FlightModeManager::start_flight_task()
 	    && !nav_state_descend) {
 		found_some_task = true;
 
-		if (switchTask(FlightTaskIndex::Auto) != FlightTaskError::NoError) {
+		if (switchTask(FlightTaskIndex::Auto, task_failure) != FlightTaskError::NoError) {
 			matching_task_running = false;
 			task_failure = true;
 		}
@@ -218,7 +218,7 @@ void FlightModeManager::start_flight_task()
 
 		switch (_param_mpc_pos_mode.get()) {
 		case 0:
-			error = switchTask(FlightTaskIndex::ManualPosition);
+			error = switchTask(FlightTaskIndex::ManualPosition, task_failure);
 			break;
 
 		case 4:
@@ -229,7 +229,7 @@ void FlightModeManager::start_flight_task()
 				_param_mpc_pos_mode.commit();
 			}
 
-			error = switchTask(FlightTaskIndex::ManualAcceleration);
+			error = switchTask(FlightTaskIndex::ManualAcceleration, task_failure);
 			break;
 		}
 
@@ -244,12 +244,12 @@ void FlightModeManager::start_flight_task()
 
 		switch (_param_mpc_pos_mode.get()) {
 		case 0:
-			error = switchTask(FlightTaskIndex::ManualAltitude);
+			error = switchTask(FlightTaskIndex::ManualAltitude, task_failure);
 			break;
 
 		case 3:
 		default:
-			error = switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
+			error = switchTask(FlightTaskIndex::ManualAltitudeSmoothVel, task_failure);
 			break;
 		}
 
@@ -384,17 +384,19 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	_old_landing_gear_position = landing_gear.landing_gear;
 }
 
-FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
+FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index, bool fallback)
 {
-	// switch to the running task, nothing to do
+	const uint8_t required_inputs = _requiredInputs(new_task_index);
+	const bool inputs_available = (_available_inputs & required_inputs) == required_inputs;
+
 	if (new_task_index == _current_task.index) {
-		return FlightTaskError::NoError;
+		// A running fallback that lost its inputs gives way to the next fallback. The task of the navigation
+		// state keeps running and fails in updateInitialize() until commander switches mode.
+		return (fallback && !inputs_available) ? FlightTaskError::ActivationFailed : FlightTaskError::NoError;
 	}
 
 	// Constructing a task reads all of its parameters, so only construct one that can activate
-	const uint8_t required_inputs = _requiredInputs(new_task_index);
-
-	if ((_available_inputs & required_inputs) != required_inputs) {
+	if (!inputs_available) {
 		return FlightTaskError::ActivationFailed;
 	}
 
@@ -410,18 +412,22 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 		return FlightTaskError::InvalidTask;
 	}
 
-	if (!isAnyTaskActive()) {
+	if (!isAnyTaskActive() || (new_task_index == FlightTaskIndex::None)) {
 		// no task running
 		return FlightTaskError::NoError;
 	}
 
+	_current_task.task->setRequiredInputs(required_inputs);
+
 	// The task evaluates the same inputs the manager just checked, so this only happens when a task's own
 	// checks disagree with its declared inputs or the local position changed in between
+	const uint32_t task_bit = 1u << static_cast<int>(new_task_index);
+
 	if (!_current_task.task->updateInitialize() || !_current_task.task->activate(last_setpoint)) {
-		if (!_activation_failed_error_printed) {
+		if (!(_activation_failed_tasks & task_bit)) {
 			PX4_ERR("Flight task %" PRIu32 " failed to activate with its required inputs available",
 				static_cast<uint32_t>(new_task_index));
-			_activation_failed_error_printed = true;
+			_activation_failed_tasks |= task_bit;
 		}
 
 		_current_task.task->~FlightTask();
@@ -430,7 +436,7 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 		return FlightTaskError::ActivationFailed;
 	}
 
-	_activation_failed_error_printed = false;
+	_activation_failed_tasks &= ~task_bit;
 	_command_failed = false;
 
 	return FlightTaskError::NoError;

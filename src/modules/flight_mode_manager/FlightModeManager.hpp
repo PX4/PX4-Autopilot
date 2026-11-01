@@ -99,9 +99,10 @@ private:
 	/**
 	 * Switch to a specific task (for normal usage)
 	 * @param new_task_index index to switch to
+	 * @param fallback true when switching because the task of the navigation state failed
 	 * @return 0 on success, <0 on error
 	 */
-	FlightTaskError switchTask(FlightTaskIndex new_task_index);
+	FlightTaskError switchTask(FlightTaskIndex new_task_index, bool fallback = false);
 	FlightTaskError switchTask(int new_task_index);
 
 	/**
@@ -136,7 +137,8 @@ private:
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_UNINITIALIZED};
 
 	bool _no_matching_task_error_printed{false};
-	bool _activation_failed_error_printed{false};
+	uint32_t _activation_failed_tasks{0}; ///< bit per FlightTaskIndex, reported once until that task activates
+	static_assert(static_cast<int>(FlightTaskIndex::Count) <= 32, "_activation_failed_tasks too small");
 
 	Sticks _sticks{this};
 	uint8_t _available_inputs{0}; ///< bitmask of FlightTask::Input evaluated once per cycle
