@@ -1,0 +1,5 @@
+#!/bin/sh
+# apply method "none": the coprocessor runtime picks the image up from its
+# install path by itself (for example a DSP loader reading /usr/lib/rfsa/adsp).
+# run-hooks never calls this; it is here so every method name has a file.
+exit 0

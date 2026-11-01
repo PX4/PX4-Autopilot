@@ -258,12 +258,12 @@ modalai_voxl2_deb: modalai_voxl2_slpi
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
-# DEB package targets: builds _default config, then runs cpack.
-# Multi-processor boards (e.g. VOXL2) chain companion builds automatically
-# via existing cmake prerequisites.
+# Board package targets: build every component target of
+# boards/<vendor>/<board>/package.yaml, then package build/<board>_package.
+# Boards without a descriptor fall back to cpack inside build/<board>_default.
+# The recipe runs make recursively, hence the +.
 %_deb:
-	@$(call cmake-build,$(subst _deb,_default,$@)$(BUILD_DIR_SUFFIX))
-	@cd "$(SRC_DIR)/build/$(subst _deb,_default,$@)" && cpack -G DEB
+	+@"$(SRC_DIR)"/Tools/packaging/build_package.py --make "$(MAKE)" $(subst _deb,,$@)
 
 updateconfig:
 	@./Tools/kconfig/updateconfig.py
@@ -563,7 +563,7 @@ python_coverage:
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
 .PHONY: scan-build px4_sitl_default-clang px4_sitl_default-clang-test clang-tidy clang-tidy-fix
-.PHONY: cppcheck shellcheck_all validate_module_configs
+.PHONY: cppcheck shellcheck_all validate_module_configs validate_package_configs
 
 scan-build:
 	@export CCC_CC=clang
@@ -621,6 +621,8 @@ cppcheck: px4_sitl_default
 
 shellcheck_all:
 	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/ROMFS/px4fmu_common/
+	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/Tools/packaging/hooks/
+	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/Tools/packaging/deb/
 	@make px4_fmu-v5_default shellcheck
 
 validate_module_configs:
@@ -634,6 +636,9 @@ validate_module_configs:
 	-not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" \
 	-not -path "$(SRC_DIR)/src/lib/tensorflow_lite_micro/*" -print0 | \
 	xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
+
+validate_package_configs:
+	@"$(SRC_DIR)"/Tools/packaging/package_descriptor.py validate --all
 
 # Cleanup
 # --------------------------------------------------------------------
