@@ -67,7 +67,7 @@ public:
 		clearWriteFailures();
 	}
 
-	/** Configure indices whose loadItem() calls should fail. */
+	/** Configure indices whose item() and loadItem() calls should fail. */
 	void setLoadFailureIndices(const std::vector<int32_t> &indices)
 	{
 		_load_failure_indices = indices;
@@ -111,19 +111,31 @@ public:
 		return true;
 	}
 
-	/** Return false for injected failures and out-of-range indices; otherwise copy the item out. */
-	bool loadItem(int32_t index, mission_item_s &mission_item) const
+	/** Return nullptr for injected failures and out-of-range indices; otherwise the stored item. */
+	const mission_item_s *item(int32_t index) const
 	{
 		if (std::find(_load_failure_indices.begin(), _load_failure_indices.end(), index)
 		    != _load_failure_indices.end()) {
-			return false;
+			return nullptr;
 		}
 
 		if (index < 0 || index >= static_cast<int32_t>(_items.size())) {
+			return nullptr;
+		}
+
+		return &_items[static_cast<std::size_t>(index)];
+	}
+
+	/** Return false for injected failures and out-of-range indices; otherwise copy the item out. */
+	bool loadItem(int32_t index, mission_item_s &mission_item) const
+	{
+		const mission_item_s *stored_item = item(index);
+
+		if (stored_item == nullptr) {
 			return false;
 		}
 
-		mission_item = _items[static_cast<std::size_t>(index)];
+		mission_item = *stored_item;
 		return true;
 	}
 

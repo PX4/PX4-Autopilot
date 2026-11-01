@@ -176,9 +176,9 @@ TEST_F(MissionRouteCacheTest, DatamanRequestsSurviveAnotherClientBeingDestroyed)
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
 		return _cache.missionItemsReady(mission);
 	}));
-	mission_item_s item{};
-	ASSERT_TRUE(_cache.loadMissionItem(0, item));
-	expectMissionItemMatches(item, expected);
+	const mission_item_s *item = _cache.missionItem(0);
+	ASSERT_NE(item, nullptr);
+	expectMissionItemMatches(*item, expected);
 }
 
 // Fully loaded mission cache with readable items.
@@ -1223,9 +1223,12 @@ TEST_F(MissionRouteCacheTest, FullMissionCachePollsPendingResponses)
 	EXPECT_EQ(full_cache.responseSubscription(), ORB_SUB_INVALID);
 	EXPECT_EQ(full_cache.missionCount(), static_cast<int>(mission_items.size()));
 
-	mission_item_s cached_item{};
-	ASSERT_TRUE(full_cache.loadMissionItem(0, cached_item));
-	expectMissionItemMatches(cached_item, mission_items.front());
-	ASSERT_TRUE(full_cache.loadMissionItem(static_cast<int32_t>(mission_items.size()) - 1, cached_item));
-	expectMissionItemMatches(cached_item, mission_items.back());
+	const mission_item_s *cached_item = full_cache.missionItem(0);
+	ASSERT_NE(cached_item, nullptr);
+	expectMissionItemMatches(*cached_item, mission_items.front());
+	cached_item = full_cache.missionItem(static_cast<int32_t>(mission_items.size()) - 1);
+	ASSERT_NE(cached_item, nullptr);
+	expectMissionItemMatches(*cached_item, mission_items.back());
+	EXPECT_EQ(full_cache.missionItem(-1), nullptr);
+	EXPECT_EQ(full_cache.missionItem(static_cast<int32_t>(mission_items.size())), nullptr);
 }

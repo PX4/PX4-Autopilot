@@ -102,7 +102,8 @@ public:
 	 * getMissionView() for consistency across reads or update() cycles.
 	 */
 	int missionCount() const override;
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override;
+	/** Points into the cache: the item may change at the next update() or syncMissionItem(). */
+	const mission_item_s *missionItem(int index) const override;
 
 	/**
 	 * @brief Borrow the mission items without copying them.

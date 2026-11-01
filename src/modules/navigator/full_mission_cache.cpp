@@ -116,14 +116,13 @@ int FullMissionCache::missionCount() const
 	return _mission.ready ? _mission.count : 0;
 }
 
-bool FullMissionCache::loadMissionItem(int index, mission_item_s &mission_item) const
+const mission_item_s *FullMissionCache::missionItem(int index) const
 {
 	if (_mission.ready && index >= 0 && index < _mission.count) {
-		mission_item = _mission_items[index];
-		return true;
+		return &_mission_items[index];
 	}
 
-	return false;
+	return nullptr;
 }
 
 bool FullMissionCache::getMissionView(const mission_s &mission, MissionView &view) const
@@ -306,7 +305,7 @@ void FullMissionCache::update(const mission_s &) {}
 void FullMissionCache::invalidate() {}
 bool FullMissionCache::missionItemsReady(const mission_s &) const { return false; }
 int FullMissionCache::missionCount() const { return 0; }
-bool FullMissionCache::loadMissionItem(int, mission_item_s &) const { return false; }
+const mission_item_s *FullMissionCache::missionItem(int) const { return nullptr; }
 bool FullMissionCache::getMissionView(const mission_s &, MissionView &) const { return false; }
 bool FullMissionCache::missionViewStillValid(const MissionView &) const { return false; }
 FullMissionCache::SyncResult FullMissionCache::syncMissionItem(const mission_s &, int32_t, const mission_item_s &)
