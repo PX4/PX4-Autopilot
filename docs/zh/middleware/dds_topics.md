@@ -75,6 +75,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/sensor_gnss`                        | [px4_msgs::msg::SensorGnss](../msg_docs/SensorGnss.md)                                             |
 | `/fmu/in/sensor_optical_flow`                | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md)                               |
 | `/fmu/in/setpoint_config`                    | [px4_msgs::msg::SetpointConfig](../msg_docs/SetpointConfig.md)                                     |
+| `/fmu/in/surface_vehicle_course_setpoint`    | [px4_msgs::msg::SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md)         |
 | `/fmu/in/telemetry_status`                   | [px4_msgs::msg::TelemetryStatus](../msg_docs/TelemetryStatus.md)                                   |
 | `/fmu/in/trajectory_setpoint`                | [px4_msgs::msg::TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                             |
 | `/fmu/in/unregister_ext_component`           | [px4_msgs::msg::UnregisterExtComponent](../msg_docs/UnregisterExtComponent.md)                     |
