@@ -324,9 +324,12 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 			float alt_acc_rad_m = _navigator->get_altitude_acceptance_radius();
 
+			// The fixed-wing controller also flies a front transition: accept waypoints as in fixed-wing flight.
+			const bool front_transition = _navigator->get_vstatus()->in_transition_to_fw;
+
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
 			if (_mission_item.vtol_back_transition
-			    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			    && (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || front_transition)) {
 
 				float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
 						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
@@ -346,7 +349,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 			bool passed_curr_wp = false;
 
-			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || front_transition) {
 
 				const float dist_prev_to_curr = get_distance_to_next_waypoint(_navigator->get_position_setpoint_triplet()->previous.lat,
 								_navigator->get_position_setpoint_triplet()->previous.lon, _navigator->get_position_setpoint_triplet()->current.lat,
@@ -391,8 +394,9 @@ MissionBlock::is_mission_item_reached_or_completed()
 			_time_wp_reached = now;
 		}
 
-		// consider yaw reached for non-rotary wing vehicles (such as fixed-wing)
-		if (_navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		// consider yaw reached for non-rotary wing vehicles (such as fixed-wing) and during a front transition
+		if (_navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    || _navigator->get_vstatus()->in_transition_to_fw) {
 			_waypoint_yaw_reached = true;
 		}
 	}
@@ -579,7 +583,8 @@ float
 MissionBlock::get_time_inside(const mission_item_s &item) const
 {
 	if ((item.nav_cmd == NAV_CMD_WAYPOINT
-	     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) ||
+	     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	     && !_navigator->get_vstatus()->in_transition_to_fw) ||
 	    item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 	    item.nav_cmd == NAV_CMD_DELAY) {
 
