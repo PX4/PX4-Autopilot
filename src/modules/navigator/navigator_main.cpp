@@ -852,8 +852,8 @@ void Navigator::run()
 				rep->previous.y = get_local_position()->y;
 				rep->previous.alt = get_local_position()->z;
 
-				rep->current.loiter_radius = get_loiter_radius();
-				rep->current.loiter_direction_counter_clockwise = false;
+				rep->current.loiter_radius = get_default_loiter_rad();
+				rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 				rep->current.cruising_speed = -1.f; // reset to default
 

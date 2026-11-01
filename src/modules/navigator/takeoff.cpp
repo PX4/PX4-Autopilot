@@ -226,9 +226,8 @@ Takeoff::set_takeoff_position()
 	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 
 
+	float takeoff_altitude_amsl = 0.f;
 	if(rep->current.frame == position_setpoint_s::FRAME_TYPE_GLOBAL){
-
-		float takeoff_altitude_amsl = 0.f;
 
 		if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
 			takeoff_altitude_amsl = rep->current.alt;
