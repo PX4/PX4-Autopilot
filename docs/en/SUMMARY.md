@@ -518,6 +518,7 @@
     - [Flight Controller Porting Guide](hardware/porting_guide.md)
       - [PX4 Board Configuration (kconfig)](hardware/porting_guide_config.md)
       - [NuttX Board Porting Guide](hardware/porting_guide_nuttx.md)
+      - [Zephyr Board Porting Guide](hardware/porting_guide_zephyr.md)
       - [Board Firmware Packaging (.deb)](hardware/board_packaging.md)
     - [Serial Port Mapping](hardware/serial_port_mapping.md)
     - [Airframes](dev_airframes/index.md)

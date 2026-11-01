@@ -1,0 +1,14 @@
+name: px4
+build:
+  cmake: platforms/zephyr/module
+  kconfig: platforms/zephyr/module/Kconfig
+  settings:
+    dts_root: platforms/zephyr
+samples:
+  - platforms/zephyr/app
+tests:
+  - platforms/zephyr/tests
+package-managers:
+  pip:
+    requirement-files:
+      - platforms/zephyr/requirements.txt

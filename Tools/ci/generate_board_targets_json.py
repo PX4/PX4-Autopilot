@@ -45,7 +45,7 @@ grouped_targets = {}
 # which the CI image does not have.
 excluded_boards = ['px4_ros2', 'espressif_esp32', 'aifoundry_erbium']
 excluded_manufacturers = ['atlflight']
-excluded_platforms = []
+excluded_platforms = ['zephyr']  # built with west, see platforms/zephyr
 
 # Container overrides for platforms/boards that need a non-default container
 platform_container_overrides = {
