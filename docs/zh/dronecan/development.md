@@ -1,13 +1,13 @@
-# DroneCAN Development
+# DroneCAN 开发
 
 :::info
-This article is a stub.
+本文是一篇简短条目。
 
-Additional documentation on how to use Babel/other SLCAN adapters, the DroneCAN GUI tool, and PX4's upcoming slcan passthrough is coming soon.
+关于如何使用 Babel/其他 SLCAN 适配器、DroneCAN GUI 工具以及 PX4 即将推出的 slcan 直通功能的更多文档即将发布。
 :::
 
-## Debugging with Zubax Babel
+## 用 Zubax Babel 进行调试
 
-A great tool to debug the transmission on the CAN bus is the [Zubax Babel](https://shop.zubax.com/products/zubax-babel) in combination with the [GUI tool](https://dronecan.github.io/GUI_Tool/Overview/).
+在CAN 总线上调试通信的一个很好的工具是[Zubax Babel](https://shop.zubax.com/products/zubax-babel) 与 [GUI 工具](https://dronecan.github.io/GUI_Tool/Overview/)。
 
-They can also be used independently from Pixhawk hardware in order to test a node or manually control DroneCAN enabled ESCs.
+它们还可以独立于 Pixhawk 硬件使用，以测试节点或手动控制启用了 DroneCAN 的电调。

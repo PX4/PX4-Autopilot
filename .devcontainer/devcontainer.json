@@ -13,14 +13,12 @@
 
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
-		"chiehyu.vscode-astyle",
 		"dan-c-underwood.arm",
 		"editorconfig.editorconfig",
 		"fredericbonnet.cmake-test-adapter",
 		"github.vscode-pull-request-github",
 		"marus25.cortex-debug",
 		"ms-azuretools.vscode-docker",
-		"ms-iot.vscode-ros",
 		"ms-python.python",
 		"ms-vscode.cmake-tools",
 		"ms-vscode.cpptools",
@@ -28,7 +26,6 @@
 		"redhat.vscode-yaml",
 		"streetsidesoftware.code-spell-checker",
 		"twxs.cmake",
-		"uavcan.dsdl",
 		"wholroyd.jinja",
 		"zixuanwang.linkerscript",
 		"ms-vscode.makefile-tools"

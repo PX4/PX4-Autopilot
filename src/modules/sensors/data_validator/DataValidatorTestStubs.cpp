@@ -56,6 +56,24 @@ void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 	(void)fmt;
 }
 
+void px4_log_info(const char *moduleName, const char *fmt, ...)
+{
+	(void)moduleName;
+	(void)fmt;
+}
+
+void px4_log_warn(const char *moduleName, const char *fmt, ...)
+{
+	(void)moduleName;
+	(void)fmt;
+}
+
+void px4_log_error(const char *moduleName, const char *fmt, ...)
+{
+	(void)moduleName;
+	(void)fmt;
+}
+
 void px4_log_raw(int level, const char *fmt, ...)
 {
 	(void)level;

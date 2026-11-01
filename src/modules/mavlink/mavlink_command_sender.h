@@ -41,6 +41,7 @@
 #pragma once
 
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/sem.h>
 #include <drivers/drv_hrt.h>
 
@@ -80,7 +81,7 @@ public:
 	 * Handle mavlink command_ack.
 	 * thread-safe
 	 */
-	void handle_mavlink_command_ack(const mavlink_command_ack_t &ack, uint8_t from_sysid, uint8_t from_compid,
+	void handle_mavlink_command_ack(const mavlink_command_ack_t &ack, uint32_t from_sysid, uint8_t from_compid,
 					uint8_t channel);
 
 private:
@@ -110,6 +111,7 @@ private:
 
 	struct command_item_s {
 		mavlink_command_long_t command = {};
+		uint32_t target_system = 0; ///< command only holds the 8-bit payload field
 		hrt_abstime timestamp_us = 0;
 		hrt_abstime last_time_sent_us = 0;
 		// -1: channel did not request this command to be sent, -2: channel got an ack for this command
@@ -123,6 +125,7 @@ private:
 	};
 
 	TimestampedList<command_item_s, 3> _commands{};
+	px4::atomic<int> _num_commands{0}; ///< number of commands in the list, written under the lock, read without it
 
 	bool _debug_enabled = false;
 	static constexpr uint8_t RETRIES = 3;

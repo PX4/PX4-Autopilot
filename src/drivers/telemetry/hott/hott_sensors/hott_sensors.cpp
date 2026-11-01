@@ -74,7 +74,7 @@ extern "C" __EXPORT int hott_sensors_main(int argc, char *argv[]);
  */
 int hott_sensors_thread_main(int argc, char *argv[]);
 
-static int recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id);
+static int recv_data(int uart, uint8_t *buffer, size_t buffer_size, size_t *size, uint8_t *id);
 static int send_poll(int uart, uint8_t *buffer, size_t size);
 
 int
@@ -96,7 +96,7 @@ send_poll(int uart, uint8_t *buffer, size_t size)
 }
 
 int
-recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
+recv_data(int uart, uint8_t *buffer, size_t buffer_size, size_t *size, uint8_t *id)
 {
 	static const int timeout_ms = 1000;
 
@@ -106,11 +106,18 @@ recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
 
 	// XXX should this poll be inside the while loop???
 	if (poll(&fds, 1, timeout_ms) > 0) {
-		int i = 0;
+		size_t i = 0;
 		bool stop_byte_read = false;
 
 		while (true)  {
-			read(uart, &buffer[i], sizeof(buffer[i]));
+			// A message that does not end within the buffer is not one we can use
+			if (i >= buffer_size) {
+				return PX4_ERROR;
+			}
+
+			if (read(uart, &buffer[i], 1) != 1) {
+				return PX4_ERROR;
+			}
 
 			if (stop_byte_read) {
 				// XXX process checksum
@@ -119,7 +126,7 @@ recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
 			}
 
 			// XXX can some other field not have the STOP BYTE value?
-			if (buffer[i] == STOP_BYTE) {
+			if (buffer[i] == STOP_BYTE && i >= 1) {
 				*id = buffer[1];
 				stop_byte_read = true;
 			}
@@ -175,7 +182,9 @@ hott_sensors_thread_main(int argc, char *argv[])
 		// The sensor will need a little time before it starts sending.
 		usleep(5000);
 
-		recv_data(uart, &buffer[0], &size, &id);
+		if (recv_data(uart, &buffer[0], sizeof(buffer), &size, &id) != OK) {
+			continue;
+		}
 
 		// Determine which module sent it and process accordingly.
 		if (id == GAM_SENSOR_ID) {

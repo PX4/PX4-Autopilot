@@ -87,5 +87,5 @@ parameters:
       unit: m/s^3
       min: 0.5
       max: 500
-      decimal: 0
+      decimal: 1
       increment: 1

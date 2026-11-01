@@ -150,7 +150,7 @@ static constexpr size_t g_per_item_size_with_hdr[DM_KEY_NUM_KEYS] = {
 /* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
-static uint8_t dataman_clients_count = 1;
+static uint16_t dataman_clients_count = 1;
 
 static perf_counter_t _dm_read_perf{nullptr};
 static perf_counter_t _dm_write_perf{nullptr};
@@ -545,6 +545,27 @@ _file_clear(dm_item_t item)
 #endif
 
 #ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
+/* Write zeros up to size, for file systems that can't seek past the end of a file */
+static off_t
+_file_extend(int fd, unsigned size)
+{
+	const uint8_t zeros[64] {};
+	off_t end = lseek(fd, 0, SEEK_END);
+
+	while ((end >= 0) && ((unsigned)end < size)) {
+		const unsigned remaining = size - (unsigned)end;
+		const ssize_t written = write(fd, zeros, (remaining < sizeof(zeros)) ? remaining : sizeof(zeros));
+
+		if (written <= 0) {
+			return -1;
+		}
+
+		end += written;
+	}
+
+	return end;
+}
+
 static int
 _file_initialize(unsigned max_offset)
 {
@@ -559,9 +580,15 @@ _file_initialize(unsigned max_offset)
 		return -1;
 	}
 
-	if ((unsigned)lseek(dm_operations_data.file.fd, max_offset, SEEK_SET) != max_offset) {
+	off_t offset = lseek(dm_operations_data.file.fd, max_offset, SEEK_SET);
+
+	if ((unsigned)offset != max_offset) {
+		offset = _file_extend(dm_operations_data.file.fd, max_offset);
+	}
+
+	if ((unsigned)offset != max_offset) {
 		close(dm_operations_data.file.fd);
-		PX4_WARN("Could not seek data manager file %s", k_data_manager_device_path);
+		PX4_WARN("Could not size data manager file %s", k_data_manager_device_path);
 		px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
@@ -752,7 +779,7 @@ task_main(int argc, char *argv[])
 				switch (request.request_type) {
 
 				case DM_GET_ID:
-					if (dataman_clients_count < UINT8_MAX) {
+					if (dataman_clients_count < UINT16_MAX) {
 						response.client_id = dataman_clients_count++;
 						/* Send the timestamp of the request over the data buffer so that the "dataman client"
 						 * can distinguish whether the request was made by it. */

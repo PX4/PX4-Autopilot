@@ -75,8 +75,6 @@ In other words, a setpoint of `0` produces the configured **Minimum** output and
 :::info
 When the engine is commanded off, the throttle setpoint is `NAN`, which by definition drives the output to its configured **Disarmed** value rather than to **Minimum**.
 This lets you park the throttle servo at an idle-stop position that is different from the closed-throttle position used to switch off the engine.
-
-The throttle output also goes to _Disarmed_ while the engine is running if the [idle governor](#idle-rpm-governor) is disabled and the throttle demand drops to near zero (the fixed-wing controller stops the motor below 2% thrust).
 :::
 
 Points to note when setting the values:

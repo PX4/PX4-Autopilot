@@ -90,6 +90,11 @@ bool FlightTaskAutoFollowTarget::activate(const trajectory_setpoint_s &last_setp
 	if (_sub_home_position.get().valid_alt) {
 		_home_position_z = _sub_home_position.get().z;
 
+		// home z is taken to be in the current frame, the first update records which one that is
+		_ref_alt = NAN;
+		_ref_timestamp = 0;
+		_vehicle_z_last = NAN;
+
 	} else {
 		ret = false; // Don't activate Follow Target task if home position is not valid
 	}
@@ -131,8 +136,15 @@ void FlightTaskAutoFollowTarget::updateTargetPositionVelocityFilter(const follow
 						TARGET_ESTIMATOR_TIMEOUT_US);
 	_last_valid_target_estimator_timestamp = follow_target_estimator.timestamp;
 
+	// the estimate restarted, in a new local frame or after it was lost, so the filter restarts on it instead
+	// of sliding over from where it was
+	const bool target_estimator_restarted = follow_target_estimator.last_filter_reset_timestamp !=
+						_last_target_estimator_reset_timestamp;
+	_last_target_estimator_reset_timestamp = follow_target_estimator.last_filter_reset_timestamp;
+
 	if (!_target_position_velocity_filter.getState().isAllFinite()
-	    || !_target_position_velocity_filter.getRate().isAllFinite() || target_estimator_timed_out) {
+	    || !_target_position_velocity_filter.getRate().isAllFinite() || target_estimator_timed_out
+	    || target_estimator_restarted) {
 		_target_position_velocity_filter.reset(pos_ned_est, vel_ned_est);
 
 	} else {
@@ -308,7 +320,48 @@ bool FlightTaskAutoFollowTarget::update()
 	// Get the latest target estimator message for target position and velocity
 	_follow_target_estimator_sub.update(&_follow_target_estimator);
 
-	if (_follow_target_estimator.timestamp > 0 && _follow_target_estimator.valid) {
+	// A reference change, on an estimator switch or a new origin, moves the local frame under the vehicle, and
+	// home moves with it by the change of the reference altitude. EKF2 publishes ref_alt 0 with z_global set
+	// while it has no altitude origin and keeps z where it is when the first origin arrives, so from or to that
+	// placeholder home moves by the jump the vehicle's own z makes instead. That and the delta_z of minus the
+	// origin altitude EKF2 reports at that moment are EKF2 bugs with their own fix to come, after which this
+	// fallback can go. The task holds until the estimate has restarted in the new frame, and the filtered
+	// target restarts with it.
+	const vehicle_local_position_s &local_position = _sub_vehicle_local_position.get();
+	bool frame_moved = false;
+
+	if (local_position.xy_global && (local_position.ref_timestamp != _ref_timestamp)) {
+		frame_moved = (_ref_timestamp != 0);
+		_ref_timestamp = local_position.ref_timestamp;
+	}
+
+	if (local_position.z_global && PX4_ISFINITE(local_position.ref_alt)
+	    && (!PX4_ISFINITE(_ref_alt) || (fabsf(local_position.ref_alt - _ref_alt) > 1e-3f))) {
+		if (PX4_ISFINITE(_ref_alt)) {
+			frame_moved = true;
+
+			if (!matrix::isEqualF(_ref_alt, 0.f) && !matrix::isEqualF(local_position.ref_alt, 0.f)) {
+				_home_position_z += local_position.ref_alt - _ref_alt;
+
+			} else if (PX4_ISFINITE(_vehicle_z_last) && PX4_ISFINITE(_position(2))) {
+				// the vehicle's z jump, less what it flew in this cycle
+				const float flown = PX4_ISFINITE(_velocity(2)) ? _velocity(2) * _deltatime : 0.f;
+				_home_position_z += _position(2) - _vehicle_z_last - flown;
+			}
+		}
+
+		_ref_alt = local_position.ref_alt;
+	}
+
+	_vehicle_z_last = _position(2);
+
+	if (!PX4_ISFINITE(_dist_to_bottom) && _sub_home_position.get().valid_alt) {
+		// without a distance sensor the base class measures the distance to ground from home's published local z,
+		// which commander doesn't move when the frame changes, so take it from the tracked home z instead
+		_dist_to_ground = _home_position_z - _position(2);
+	}
+
+	if (_follow_target_estimator.timestamp > 0 && _follow_target_estimator.valid && !frame_moved) {
 		updateTargetPositionVelocityFilter(_follow_target_estimator);
 		const Vector3f target_position_filtered = _target_position_velocity_filter.getState();
 		const Vector3f target_velocity_filtered = _target_position_velocity_filter.getRate();
@@ -401,6 +454,7 @@ bool FlightTaskAutoFollowTarget::update()
 		// Target estimate is invalid : Stay in current position
 		_position_setpoint.setAll(NAN);
 		_velocity_setpoint.setAll(0.0f);
+		_acceleration_setpoint.setAll(NAN);
 	}
 
 	// Follow Target Status message for debugging

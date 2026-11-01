@@ -1,6 +1,6 @@
 ---
 title: Fixed-wing Auto-Tuning
-frame: Plane
+frame: 飞机
 newEditLink: en/config/_autotune.md
 ---
 

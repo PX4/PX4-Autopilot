@@ -348,7 +348,21 @@ void RCUpdate::set_params_from_rc()
 						  _rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
 						  _rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
 
-			param_set(_parameter_handles.rc_param[i], &param_val);
+			const param_t handle = _parameter_handles.rc_param[i];
+
+			// RC tuning always computes a float. Convert to the target type so an
+			// INT32 parameter stores the numeric value, not the raw float bytes.
+			if (param_type(handle) == PARAM_TYPE_INT32) {
+				// Reject non-finite input, then convert so an INT32 parameter stores
+				// the numeric value instead of the raw float bytes.
+				if (PX4_ISFINITE(param_val)) {
+					const int32_t int_val = float_to_param_int32(param_val);
+					param_set(handle, &int_val);
+				}
+
+			} else {
+				param_set(handle, &param_val);
+			}
 		}
 	}
 }

@@ -45,13 +45,9 @@ namespace uORB
 template <bool ATOMIC>
 bool SubscriptionIntervalBase<ATOMIC>::updated()
 {
-	hrt_abstime last_update = _last_update.load();
-
-	if (advertised() && (hrt_elapsed_time(&last_update) >= _interval_us.load())) {
-		return _subscription.updated();
-	}
-
-	return false;
+	// New data implies advertised(); checking it first keeps the clock read off
+	// the common no-update path.
+	return _subscription.updated() && interval_elapsed();
 }
 
 template <bool ATOMIC>

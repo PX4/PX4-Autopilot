@@ -39,6 +39,7 @@
 #include <px4_platform_common/param.h>
 #include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/esc_status.h>
 
 using namespace time_literals;
@@ -59,12 +60,16 @@ public:
 		const int32_t one = 1;
 		param_set_no_notification(param_find("COM_ARM_CHK_ESCS"), &one);
 		param_set_no_notification(param_find("FD_ACT_EN"), &one);
+
+		const float trigger_time = 0.2f; // keeps the motor failure tests short
+		param_set_no_notification(param_find("MOTFAIL_UND_TIME"), &trigger_time);
 	}
 
 	void TearDown() override
 	{
 		param_reset(param_find("COM_ARM_CHK_ESCS"));
 		param_reset(param_find("FD_ACT_EN"));
+		param_reset(param_find("MOTFAIL_UND_TIME"));
 	}
 
 	// Publish a quad ESC status with every ESC fresh except `stale_index` whose last report is `age` old
@@ -84,6 +89,44 @@ public:
 		_esc_status_pub.publish(esc_status);
 	}
 
+	// Fly armed for `duration` of simulated time: the motor failure detector runs on the ESC sample
+	// timestamps, so they advance in kTick steps without waiting. All motors are commanded kCommand,
+	// each ESC reports the current its motor draws at the default model (MOTFAIL_C2T * kCommand),
+	// except ESC `failed_index` reporting 0 A. `functions` maps the ESC slots to motors,
+	// `reversible_flags` is published per motor.
+	void fly(hrt_abstime duration, int failed_index, uint16_t reversible_flags = 0,
+		 const uint8_t (&functions)[4] = kQuadFunctions)
+	{
+		if (_esc_time == 0) { _esc_time = hrt_absolute_time(); }
+
+		for (hrt_abstime t = 0; t < duration; t += kTick) {
+			_esc_time += kTick;
+
+			actuator_motors_s actuator_motors{};
+			actuator_motors.timestamp = _esc_time;
+			actuator_motors.reversible_flags = reversible_flags;
+
+			for (int i = 0; i < 4; i++) { actuator_motors.control[i] = kCommand; }
+
+			_actuator_motors_pub.publish(actuator_motors);
+
+			esc_status_s esc_status{};
+			esc_status.timestamp = _esc_time;
+			esc_status.esc_count = 4;
+			esc_status.esc_online_flags = 0b1111;
+			esc_status.esc_armed_flags = 0b1111;
+
+			for (int i = 0; i < 4; i++) {
+				esc_status.esc[i].timestamp = esc_status.timestamp - i; // each ESC reports at its own time
+				esc_status.esc[i].actuator_function = functions[i];
+				esc_status.esc[i].esc_current = (i == failed_index) ? 0.f : kHealthyCurrent;
+			}
+
+			_esc_status_pub.publish(esc_status);
+			runCheck(true);
+		}
+	}
+
 	void runCheck(bool armed = false)
 	{
 		vehicle_status_s status{};
@@ -100,7 +143,15 @@ public:
 		_health_error_escs = reporter.healthResults().error & health_component_t::motors_escs;
 	}
 
+	static constexpr hrt_abstime kTick = 50_ms;
+	static constexpr float kCommand = 0.5f;
+	static constexpr float kHealthyCurrent = 35.f * kCommand; // MOTFAIL_C2T default, MOTFAIL_IDLE 0
+	static constexpr uint8_t kMotor1 = esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
+	static constexpr uint8_t kQuadFunctions[4] {kMotor1, kMotor1 + 1, kMotor1 + 2, kMotor1 + 3};
+
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	hrt_abstime _esc_time{0}; // simulated ESC sample time, starts at the real time of the first fly()
 	failsafe_flags_s _failsafe_flags{};
 	bool _can_arm{true};
 	bool _health_error_escs{false};
@@ -166,4 +217,48 @@ TEST_F(EscChecksTest, EscOfflineIgnoredWithChecksDisabled)
 	EXPECT_FALSE(_health_error_escs);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
 	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+}
+
+// A motor whose current collapses while commanded is flagged once it stays under the band for the
+// trigger time; the failure is latched until disarm.
+TEST_F(EscChecksTest, MotorUndercurrentLatchesUntilDisarm)
+{
+	fly(200_ms, -1); // healthy: every ESC reports current, so every ESC gets judged
+	ASSERT_EQ(_check.getMotorFailureMask(), 0u);
+
+	fly(600_ms, 2);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+	EXPECT_TRUE(_health_error_escs);
+
+	fly(300_ms, -1); // current back: still latched
+	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
+
+	publishWithStaleEsc(-1, 0);
+	runCheck(false); // disarm resets the detector
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+
+	fly(200_ms, -1); // the next flight starts without the old failure
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+}
+
+// The current model only describes forward thrust: a reversible motor is not judged.
+TEST_F(EscChecksTest, ReversibleMotorNotJudged)
+{
+	fly(200_ms, -1);
+	fly(600_ms, 2, 0b0100);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+}
+
+// Every ESC is judged on its own, also when two ESCs share a motor function.
+TEST_F(EscChecksTest, EscSharingMotorFunctionJudgedSeparately)
+{
+	const uint8_t functions[4] {kMotor1, kMotor1 + 1, kMotor1 + 2, kMotor1 + 2}; // ESCs 3 and 4 both drive motor 3
+	fly(200_ms, -1, 0, functions);
+	fly(600_ms, 2, 0, functions); // the first of the two fails, the second stays healthy
+	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
 }

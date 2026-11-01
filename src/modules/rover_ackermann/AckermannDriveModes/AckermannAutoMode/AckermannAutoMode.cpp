@@ -39,6 +39,7 @@ AckermannAutoMode::AckermannAutoMode(ModuleParams *parent) : ModuleParams(parent
 {
 	updateParams();
 	_rover_position_setpoint_pub.advertise();
+	_surface_vehicle_course_setpoint_pub.advertise();
 }
 
 void AckermannAutoMode::updateParams()
@@ -72,8 +73,8 @@ void AckermannAutoMode::autoControl()
 
 		rover_position_setpoint_s rover_position_setpoint{};
 		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = _curr_wp_ned(0);
-		rover_position_setpoint.position_ned[1] = _curr_wp_ned(1);
+		rover_position_setpoint.target_ned[0] = _curr_wp_ned(0);
+		rover_position_setpoint.target_ned[1] = _curr_wp_ned(1);
 		rover_position_setpoint.start_ned[0] = _prev_wp_ned(0);
 		rover_position_setpoint.start_ned[1] = _prev_wp_ned(1);
 		rover_position_setpoint.arrival_speed = arrivalSpeed(_cruising_speed, _min_speed, _acceptance_radius, _curr_wp_type,
@@ -152,4 +153,35 @@ float AckermannAutoMode::arrivalSpeed(const float cruising_speed, const float mi
 	}
 
 	return cruising_speed; // Fallthrough
+}
+
+void AckermannAutoMode::guidedCourse()
+{
+	position_setpoint_triplet_s position_setpoint_triplet{};
+	_course_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
+	const position_setpoint_s &current = position_setpoint_triplet.current;
+
+	if (!current.valid || !PX4_ISFINITE(current.course)) {
+		return;
+	}
+
+	// The speed is owned here rather than by the navigator, which cannot store a speed of zero. Until one is
+	// commanded, the rover keeps going at the speed it entered the mode with, forwards only, so entered at rest
+	// it does not drive off.
+	if (!PX4_ISFINITE(_course_speed)) {
+		vehicle_local_position_s vehicle_local_position{};
+		_vehicle_local_position_sub.copy(&vehicle_local_position);
+		const float heading = vehicle_local_position.heading;
+		_course_speed = vehicle_local_position.v_xy_valid && PX4_ISFINITE(heading) ? math::max(vehicle_local_position.vx * cosf(
+					heading) + vehicle_local_position.vy * sinf(heading), 0.f) : 0.f;
+	}
+
+	// Streamed, so the course is held again after the position controller was reset on a control mode change
+	surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint{};
+	surface_vehicle_course_setpoint.timestamp = hrt_absolute_time();
+	// The navigator publishes the course in [0, 2pi)
+	surface_vehicle_course_setpoint.course = matrix::wrap_pi(current.course);
+	surface_vehicle_course_setpoint.speed = math::min(_course_speed, _param_ro_speed_limit.get());
+	surface_vehicle_course_setpoint.yaw = NAN;
+	_surface_vehicle_course_setpoint_pub.publish(surface_vehicle_course_setpoint);
 }
