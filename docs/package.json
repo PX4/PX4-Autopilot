@@ -22,8 +22,10 @@
     "lite-youtube-embed": "^0.3.4",
     "markdown-it-mathjax3": "^4.3.2",
     "medium-zoom": "^1.1.0",
+    "mermaid": "11.17.2",
     "open-editor": "^5.0.0",
     "vitepress": "^1.6.3",
+    "vitepress-plugin-mermaid": "2.0.17",
     "vp-dynamic-nav": "0.1.0",
     "vue3-tabs-component": "^1.3.7"
   },

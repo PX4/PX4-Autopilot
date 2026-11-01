@@ -1,0 +1,226 @@
+# Cerberus validation schema for board package descriptors
+# (boards/<vendor>/<board>/package.yaml).
+# See http://docs.python-cerberus.org/en/stable/validation-rules.html
+#
+# A descriptor declares how PX4 is packaged for a board whose Linux side is
+# part of the product: which build targets go into the package, where their
+# outputs land on the target filesystem, how coprocessor firmware is applied,
+# and what the systemd unit looks like. The package format (deb today) is a
+# backend; the install tree, the hooks and the unit are the contract.
+# Tools/packaging/package_descriptor.py applies the cross-field rules this
+# schema cannot express (target exists, apply method constraints, paths).
+
+package:
+    type: dict
+    required: true
+    schema:
+        name:
+            # Package name. Defaults to px4-<vendor>-<board>.
+            type: string
+            regex: '^[a-z0-9][a-z0-9+.-]+$'
+        description:
+            # One line; becomes the package description and the unit Description.
+            type: string
+            required: true
+        maintainer:
+            # RFC 822 style: "Name <email>".
+            type: string
+            required: true
+            regex: '^[^<>]+ <[^<>@ ]+@[^<>@ ]+>$'
+        architecture:
+            # Debian architecture of the package. Derived from the host
+            # component's toolchain when omitted; "all" when there is no host
+            # component.
+            type: string
+            allowed: [all, amd64, arm64, armhf]
+        section:
+            type: string
+            default: misc
+        formats:
+            # Per-format package relations. The deb backend reads deb; rpm is
+            # reserved for a later backend and validated for shape only.
+            type: dict
+            schema:
+                deb:
+                    type: dict
+                    schema:
+                        depends:
+                            type: list
+                            schema: {type: string}
+                        recommends:
+                            type: list
+                            schema: {type: string}
+                        conflicts:
+                            type: list
+                            schema: {type: string}
+                        replaces:
+                            type: list
+                            schema: {type: string}
+                        provides:
+                            type: list
+                            schema: {type: string}
+                rpm:
+                    type: dict
+                    schema:
+                        requires:
+                            type: list
+                            schema: {type: string}
+                        conflicts:
+                            type: list
+                            schema: {type: string}
+                        obsoletes:
+                            type: list
+                            schema: {type: string}
+                        provides:
+                            type: list
+                            schema: {type: string}
+
+layout:
+    # Target filesystem layout. Every path is absolute (cerberus anchors a
+    # regex at both ends, hence the trailing .*). The defaults follow the FHS;
+    # boards with an existing install base override them here rather than in
+    # CMake.
+    type: dict
+    schema:
+        bin_dir:
+            # px4 binary, px4-<module> symlinks, px4-alias.sh, vendor scripts.
+            type: string
+            regex: '^/.*'
+            default: /usr/bin
+        share_dir:
+            # ROMFS (etc/), component metadata (etc/extras/), package.json.
+            type: string
+            regex: '^/.*'
+            default: /usr/share/px4
+        data_dir:
+            # Writable storage: parameters, logs, dataman. PX4 compiles this
+            # path in from the host target's CONFIG_BOARD_ROOT_PATH, which a
+            # Linux board must set (the Kconfig default is the NuttX SD card);
+            # data_dir defaults to it and must agree with it when given.
+            # Without a host component it defaults to /var/lib/px4.
+            type: string
+            regex: '^/.*'
+        config_dir:
+            # Site configuration the vendor or operator edits.
+            type: string
+            regex: '^/.*'
+            default: /etc/px4
+        firmware_dir:
+            # Coprocessor images for the remoteproc apply method.
+            type: string
+            regex: '^/.*'
+            default: /lib/firmware/px4
+
+service:
+    # systemd unit. Generated from the descriptor; vendors do not ship units.
+    type: dict
+    schema:
+        name:
+            # Unit name without .service. Defaults to the package name.
+            type: string
+            regex: '^[a-zA-Z0-9:_.\\-]+$'
+        exec_start:
+            # Main process. Defaults to the px4 binary started with the
+            # packaged ROMFS and data_dir. Ignored without a host component:
+            # the unit is then oneshot and only runs the hooks.
+            type: string
+        user:
+            type: string
+        after:
+            type: list
+            schema: {type: string}
+        requires:
+            type: list
+            schema: {type: string}
+        wants:
+            type: list
+            schema: {type: string}
+        restart:
+            type: string
+            allowed: [no, on-failure, on-abnormal, always]
+            default: on-failure
+        enable:
+            # Enable and start the unit on install, restart it on upgrade.
+            type: boolean
+            default: true
+
+components:
+    # Build targets that go into the package. At most one host component.
+    type: list
+    required: true
+    minlength: 1
+    schema:
+        type: dict
+        schema:
+            name:
+                # Identifier used in hook environment variables and package.json.
+                type: string
+                required: true
+                regex: '^[a-z][a-z0-9_]*$'
+            role:
+                # host: the PX4 binary that runs on Linux.
+                # coprocessor: an image for another core, delivered as a file.
+                type: string
+                required: true
+                allowed: [host, coprocessor]
+            target:
+                # <vendor>_<board>_<label>, a .px4board file in this board.
+                type: string
+                required: true
+                regex: '^[a-zA-Z0-9_-]+$'
+            artifact:
+                # coprocessor only: build output, relative to build/<target>.
+                type: string
+            install:
+                # coprocessor only: absolute install path of the artifact.
+                type: string
+                regex: '^/.*'
+            apply:
+                # coprocessor only: how the image reaches the core.
+                #   none        the coprocessor runtime loads it from install
+                #   remoteproc  Linux remoteproc; install must be under
+                #               layout.firmware_dir and remoteproc is required
+                #   hook        the vendor's apply-firmware.d hooks do it
+                # mcuboot is planned and rejected until the staging command exists.
+                type: string
+                allowed: [none, remoteproc, hook]
+            remoteproc:
+                # remoteproc only: /sys/class/remoteproc/<name> device or the
+                # value of its name attribute.
+                type: string
+            romfs:
+                # host only: package the build's ROMFS (etc/) under share_dir.
+                type: boolean
+                default: true
+            metadata:
+                # host only: package component metadata (*.json.xz) under
+                # share_dir/etc/extras.
+                type: boolean
+                default: true
+            optional:
+                # Skip the component instead of failing when its artifact is missing.
+                type: boolean
+                default: false
+
+files:
+    # Extra files from the board directory, or from a component's build
+    # directory with source "build:<component>/<path>".
+    type: list
+    schema:
+        type: dict
+        schema:
+            source:
+                type: string
+                required: true
+            destination:
+                # Absolute. A trailing slash keeps the source file name.
+                type: string
+                required: true
+                regex: '^/.*'
+            mode:
+                # Octal, as a string; defaults to 0755 for executables and 0644 otherwise.
+                type: string
+                regex: '^0[0-7]{3}$'
+            optional:
+                type: boolean
+                default: false

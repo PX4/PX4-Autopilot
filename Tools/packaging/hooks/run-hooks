@@ -1,0 +1,76 @@
+#!/bin/sh
+# PX4 package hook dispatcher: /usr/lib/px4/run-hooks <point>
+#
+# Points: post-install pre-remove apply-firmware pre-start post-stop.
+# The maintainer scripts call the first two, the systemd unit the rest.
+# Every hook sees the package facts from /usr/lib/px4/package.env (PX4_BOARD,
+# PX4_VERSION, PX4_DATA_DIR, ...) plus PX4_HOOK, PX4_ACTION and
+# PX4_OLD_VERSION as the caller set them. Hooks are the executables in
+# /usr/lib/px4/hooks/<point>.d, run in name order; names with a dot are
+# skipped (editor backups, dpkg leftovers). The first failing hook aborts.
+#
+# apply-firmware runs once per coprocessor component: the built-in method
+# in /usr/lib/px4/apply/<method>, or the board's apply-firmware.d hooks for
+# method "hook", with PX4_COMPONENT* describing the component.
+set -e
+
+lib_dir=/usr/lib/px4
+point=$1
+
+if [ -z "$point" ]; then
+	echo "usage: run-hooks <point>" >&2
+	exit 2
+fi
+
+case "$point" in
+	post-install|pre-remove|apply-firmware|pre-start|post-stop) ;;
+	*)
+		echo "run-hooks: unknown hook point '$point'" >&2
+		exit 2
+		;;
+esac
+
+# shellcheck source=/dev/null
+. "$lib_dir/package.env"
+export PX4_PACKAGE PX4_BOARD PX4_BOARD_VENDOR PX4_BOARD_MODEL PX4_VERSION PX4_GIT_TAG PX4_SERVICE
+export PX4_BIN_DIR PX4_SHARE_DIR PX4_DATA_DIR PX4_CONFIG_DIR PX4_FIRMWARE_DIR
+export PX4_HOST_COMPONENT PX4_COPROCESSORS
+export PX4_HOOK="$point"
+export PX4_ACTION="${PX4_ACTION:-}"
+export PX4_OLD_VERSION="${PX4_OLD_VERSION:-}"
+
+run_dir() {
+	dir=$1
+	[ -d "$dir" ] || return 0
+	for hook in "$dir"/*; do
+		[ -f "$hook" ] || continue
+		[ -x "$hook" ] || continue
+		case "${hook##*/}" in *.*) continue ;; esac
+		"$hook"
+	done
+}
+
+if [ "$point" != apply-firmware ]; then
+	run_dir "$lib_dir/hooks/$point.d"
+	exit 0
+fi
+
+for component in $PX4_COPROCESSORS; do
+	eval "PX4_COMPONENT_TARGET=\${PX4_COPROCESSOR_${component}_TARGET}"
+	eval "PX4_COMPONENT_FIRMWARE=\${PX4_COPROCESSOR_${component}_FIRMWARE}"
+	eval "PX4_COMPONENT_APPLY=\${PX4_COPROCESSOR_${component}_APPLY}"
+	eval "PX4_COMPONENT_REMOTEPROC=\${PX4_COPROCESSOR_${component}_REMOTEPROC}"
+	export PX4_COMPONENT="$component"
+	export PX4_COMPONENT_TARGET PX4_COMPONENT_FIRMWARE PX4_COMPONENT_APPLY PX4_COMPONENT_REMOTEPROC
+	case "$PX4_COMPONENT_APPLY" in
+		none) ;;
+		hook) run_dir "$lib_dir/hooks/apply-firmware.d" ;;
+		*)
+			if [ ! -x "$lib_dir/apply/$PX4_COMPONENT_APPLY" ]; then
+				echo "run-hooks: no apply method '$PX4_COMPONENT_APPLY' for component $component" >&2
+				exit 1
+			fi
+			"$lib_dir/apply/$PX4_COMPONENT_APPLY"
+			;;
+	esac
+done

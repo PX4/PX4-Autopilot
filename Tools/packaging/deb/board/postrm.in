@@ -1,0 +1,23 @@
+#!/bin/sh
+# postrm for @PX4_PACKAGE@, generated from Tools/packaging/deb/board/postrm.in.
+# The package files are already gone, so there are no hooks to run here.
+# Flight data under @PX4_DATA_DIR@ is kept even on purge.
+set -e
+
+service='@PX4_SERVICE@'
+
+case "$1" in
+	remove)
+		if [ -d /run/systemd/system ]; then
+			systemctl daemon-reload || true
+		fi
+		;;
+	purge)
+		if command -v deb-systemd-helper >/dev/null 2>&1; then
+			deb-systemd-helper purge "$service.service" >/dev/null || true
+			deb-systemd-helper unmask "$service.service" >/dev/null || true
+		fi
+		;;
+esac
+
+exit 0

@@ -38,6 +38,8 @@ These are already provided by the Linux image available for the board (which nee
 
 - [boards/px4/raspberrypi/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/raspberrypi/default.px4board) - RPi cross-compilation. <!-- NEED px4_version -->
 
+Boards whose Linux side is part of the product ship PX4 as a package, see [Board Packaging](board_packaging.md).
+
 ## Middleware Components and Configuration
 
 This section describes the various middleware components, and the configuration file updates needed to port them to new flight controller hardware.
