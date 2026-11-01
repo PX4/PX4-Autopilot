@@ -400,8 +400,8 @@ void RouteSegmentCursor::prepareNominalSegment(const SegmentEndpoint &end, const
 	_positions.start = _positions.end;
 }
 
-// Returns false without failing for a jump with no position at or after its target, such as a
-// camera loop after the last waypoint: it adds no edge.
+// Returns false without failing for a jump with no position at or after its target: it adds no edge.
+// The mission check rejects such a jump.
 bool RouteSegmentCursor::prepareJumpSegment(int32_t index, const mission_item_s &jump_item,
 		RouteSegmentView &view)
 {

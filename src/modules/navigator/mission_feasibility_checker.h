@@ -64,15 +64,23 @@ private:
 	};
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
+	enum class JumpTarget { Position, Jump, ReadFailed };
+
 	Navigator *_navigator{nullptr};
 	DatamanClient &_dataman_client;
 	FeasibilityChecker _feasibility_checker;
 
+	/**
+	 * Read from a DO_JUMP's target to the first position item or DO_JUMP, the jump itself included.
+	 * @param index The position item, or the item that could not be read.
+	 */
+	JumpTarget findJumpTarget(const mission_s &mission, int32_t target_index, size_t jump_index, size_t &index,
+				  mission_item_s &item);
+	bool checkJumpTarget(const mission_s &mission, const mission_item_s &jump_item, size_t jump_index);
 	bool checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid);
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-	bool checkJumpDestinations(const mission_s &mission, const mission_item_s &jump_item, size_t jump_index,
-				   const matrix::Vector2d *previous_position, GeofencePathBatch &batch);
-	bool rejectGeofenceJump(GeofencePathBatch &batch, size_t jump_index);
+	bool checkJumpDestination(const mission_s &mission, const mission_item_s &jump_item, size_t jump_index,
+				  const matrix::Vector2d *previous_position, GeofencePathBatch &batch);
 	bool addGeofencePath(GeofencePathBatch &batch, const Geofence::PathCheck &path, size_t mission_index, bool is_jump = false);
 	bool checkGeofencePathBatch(GeofencePathBatch &batch);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
