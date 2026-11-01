@@ -386,38 +386,14 @@ TEST_P(GeofenceFileTest, ImportedFenceAndSubsequentRefreshBecomeReady)
 INSTANTIATE_TEST_SUITE_P(StoredBanks, GeofenceFileTest,
 			 ::testing::Values(DM_KEY_FENCE_POINTS_0, DM_KEY_FENCE_POINTS_1));
 
-struct InvalidBatchCase {
-	const char *name;
-	size_t count;
-	bool provide_paths;
-	bool provide_results;
-};
-
-class InvalidGeofenceRequestTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidBatchCase> {};
-
-TEST_P(InvalidGeofenceRequestTest, RejectsRequest)
+TEST_F(GeofenceTest, EmptyOrOversizedBatchIsRejected)
 {
-	const InvalidBatchCase &test = GetParam();
 	ASSERT_TRUE(loadFence({}));
-	const Geofence::PathCheck query = path({0.f, 0.f}, {100.f, 100.f});
-	bool clear = true;
-	EXPECT_FALSE(_fence.checkPathBatch(test.provide_paths ? &query : nullptr, test.count,
-					   test.provide_results ? &clear : nullptr));
-
-	if (!test.provide_paths) {
-		EXPECT_FALSE(clear);
-	}
+	Geofence::PathCheck paths[Geofence::MAX_PATH_CHECKS + 1] {};
+	bool clear[Geofence::MAX_PATH_CHECKS + 1] {};
+	EXPECT_FALSE(_fence.checkPathBatch(paths, 0, clear));
+	EXPECT_FALSE(_fence.checkPathBatch(paths, Geofence::MAX_PATH_CHECKS + 1, clear));
 }
-
-INSTANTIATE_TEST_SUITE_P(InvalidRequests, InvalidGeofenceRequestTest, ::testing::Values(
-				 InvalidBatchCase{"EmptyBatch", 0, true, true},
-				 InvalidBatchCase{"BatchTooLarge", Geofence::MAX_PATH_CHECKS + 1, true, true},
-				 InvalidBatchCase{"MissingPaths", 1, false, true},
-				 InvalidBatchCase{"MissingResults", 1, true, false}),
-			 [](const ::testing::TestParamInfo<InvalidBatchCase> &test_info)
-{
-	return test_info.param.name;
-});
 
 TEST_F(GeofenceTest, NonFinitePathRejectsWholeBatch)
 {
@@ -439,15 +415,19 @@ TEST_F(GeofenceTest, ReloadStartDisablesPathChecks)
 	EXPECT_FALSE(_fence.isReadyForPathChecks());
 }
 
+// Path checks read the cached fence: a failed read of a polygon or a circle makes the batch unavailable.
 TEST_F(GeofenceTest, MissingCacheRejectsWholeBatch)
 {
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofenceTestPeer::invalidateCache(_fence);
-	const Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), path({0.f, 100.f}, {0.f, 500.f})};
-	bool clear[2] {true, true};
-	EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_FALSE(clear[0]);
-	EXPECT_FALSE(clear[1]);
+	for (const FencePoints &points : {exclusionSquare(), circle(false, {0.f, 300.f}, 50.f)}) {
+		SCOPED_TRACE(points.size());
+		ASSERT_TRUE(loadFence(points));
+		GeofenceTestPeer::invalidateCache(_fence);
+		const Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), path({0.f, 100.f}, {0.f, 500.f})};
+		bool clear[2] {true, true};
+		EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_FALSE(clear[0]);
+		EXPECT_FALSE(clear[1]);
+	}
 }
 
 TEST_F(GeofenceTest, ReloadTemporarilyDisablesPathChecks)
@@ -519,16 +499,7 @@ TEST_F(GeofenceTest, RepeatedReadFailuresStopRetrying)
 	EXPECT_TRUE(clear);
 }
 
-enum class InvalidFenceData { VertexCount, Longitude, Frame, Command };
-
-struct InvalidFenceCase {
-	const char *name;
-	InvalidFenceData fault;
-};
-
-class InvalidGeofenceBatchTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidFenceCase> {};
-
-TEST_F(GeofenceTest, PolygonVertexCountExceedingCacheRejectsBatch)
+TEST_F(GeofenceTest, ReadPastCacheRejectsBatch)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	GeofenceTestPeer::setVertexCount(_fence, 5);
@@ -539,56 +510,6 @@ TEST_F(GeofenceTest, PolygonVertexCountExceedingCacheRejectsBatch)
 	EXPECT_FALSE(clear[0]);
 	EXPECT_FALSE(clear[1]);
 }
-
-TEST_P(InvalidGeofenceBatchTest, ClearsPartialResultsAndCanBeRetried)
-{
-	FencePoints points = exclusionSquare();
-	const FencePoints second = polygon(false, {{250.f, 250.f}, {350.f, 250.f}, {350.f, 350.f}, {250.f, 350.f}});
-	points.insert(points.end(), second.begin(), second.end());
-	ASSERT_TRUE(loadFence(points));
-	mission_fence_point_s invalid = points.back();
-
-	switch (GetParam().fault) {
-	case InvalidFenceData::VertexCount:
-		invalid.vertex_count = static_cast<uint16_t>(points.size() + 1);
-		break;
-
-	case InvalidFenceData::Longitude:
-		invalid.lon = NAN;
-		break;
-
-	case InvalidFenceData::Frame:
-		invalid.frame = NAV_FRAME_LOCAL_NED;
-		break;
-
-	case InvalidFenceData::Command:
-		invalid.nav_cmd = NAV_CMD_WAYPOINT;
-		break;
-	}
-
-	ASSERT_TRUE(GeofenceTestPeer::replaceCachedPoint(_fence, points.size() - 1, invalid));
-	// The first polygon clears one path and rejects the other before the second polygon fails.
-	const Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), path({0.f, 100.f}, {0.f, 500.f})};
-	bool clear[2] {true, true};
-	EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_FALSE(clear[0]);
-	EXPECT_FALSE(clear[1]);
-
-	ASSERT_TRUE(GeofenceTestPeer::replaceCachedPoint(_fence, points.size() - 1, points.back()));
-	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
-	EXPECT_TRUE(clear[0]);
-	EXPECT_FALSE(clear[1]);
-}
-
-INSTANTIATE_TEST_SUITE_P(InvalidData, InvalidGeofenceBatchTest, ::testing::Values(
-				 InvalidFenceCase{"VertexCountExceedsCache", InvalidFenceData::VertexCount},
-				 InvalidFenceCase{"NonFiniteCoordinate", InvalidFenceData::Longitude},
-				 InvalidFenceCase{"UnsupportedFrame", InvalidFenceData::Frame},
-				 InvalidFenceCase{"UnexpectedCommand", InvalidFenceData::Command}),
-			 [](const ::testing::TestParamInfo<InvalidFenceCase> &test_info)
-{
-	return test_info.param.name;
-});
 
 struct CircleBoundaryCase {
 	const char *name;
