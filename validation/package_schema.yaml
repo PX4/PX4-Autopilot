@@ -93,9 +93,11 @@ layout:
             regex: '^/.*'
             default: /usr/share/px4
         data_dir:
-            # Writable storage: parameters, logs, dataman. Defaults to the host
-            # component's CONFIG_BOARD_ROOT_PATH when the .px4board sets one,
-            # otherwise /var/lib/px4. The two must agree when both are given.
+            # Writable storage: parameters, logs, dataman. PX4 compiles this
+            # path in from the host target's CONFIG_BOARD_ROOT_PATH, which a
+            # Linux board must set (the Kconfig default is the NuttX SD card);
+            # data_dir defaults to it and must agree with it when given.
+            # Without a host component it defaults to /var/lib/px4.
             type: string
             regex: '^/.*'
         config_dir:

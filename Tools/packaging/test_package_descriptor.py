@@ -221,6 +221,13 @@ class DescriptorRulesTest(unittest.TestCase):
         # would be created, owned and backed up for nothing
         self.assertIn('CONFIG_BOARD_ROOT_PATH', tree.problems())
 
+    @with_tree(TWO_CORES)
+    def test_host_target_must_set_the_board_root_path(self, tree):
+        # the Kconfig default is the NuttX SD card; a Linux board that leaves it
+        # alone would write parameters and logs to /fs/microsd
+        tree.write(tree.board_dir / 'default.px4board', HOST_BOARD.replace('CONFIG_BOARD_ROOT_PATH="/data/px4"\n', ''))
+        self.assertIn('does not set CONFIG_BOARD_ROOT_PATH', tree.problems())
+
     @with_tree(dict(HOST_LESS, service={'exec_start': '/usr/bin/px4'}))
     def test_exec_start_needs_a_host_component(self, tree):
         self.assertIn('exec_start', tree.problems())

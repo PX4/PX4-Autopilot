@@ -265,8 +265,13 @@ class Descriptor:
             problems.append('service.exec_start needs a host component')
 
         if host and (self.board_dir / f'{self._label(host["target"])}.px4board').exists():
+            # PX4 compiles its storage path in from CONFIG_BOARD_ROOT_PATH, whose
+            # Kconfig default (/fs/microsd) is the NuttX SD card.
             root_path = px4board_config(self.board_dir / f'{self._label(host["target"])}.px4board').get('CONFIG_BOARD_ROOT_PATH')
-            if root_path and layout.get('data_dir', root_path) != root_path:
+            if not root_path:
+                problems.append(f'{host["target"]} does not set CONFIG_BOARD_ROOT_PATH; PX4 stores parameters, logs '
+                                f'and dataman there, and the default /fs/microsd is for NuttX')
+            elif layout.get('data_dir', root_path) != root_path:
                 problems.append(f'layout.data_dir {layout["data_dir"]} differs from CONFIG_BOARD_ROOT_PATH '
                                 f'{root_path} of {host["target"]}; PX4 writes to the latter')
             layout.setdefault('data_dir', root_path or '/var/lib/px4')
