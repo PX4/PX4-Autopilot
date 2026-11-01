@@ -49,8 +49,10 @@ class FlightTaskManualPosition : public FlightTaskManualAltitude
 public:
 	FlightTaskManualPosition() = default;
 	virtual ~FlightTaskManualPosition() = default;
+
+	static constexpr uint8_t kRequiredInputs = FlightTaskManualAltitude::kRequiredInputs | PositionXY | VelocityXY;
+
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
-	bool updateInitialize() override;
 
 protected:
 	void _updateXYlock(); /**< applies position lock based on stick and velocity */

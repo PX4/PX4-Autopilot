@@ -44,11 +44,6 @@
 
 using namespace matrix;
 
-FlightTaskOrbit::FlightTaskOrbit()
-{
-	_sticks_data_required = false;
-}
-
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command, bool &success)
 {
 	if (command.command != vehicle_command_s::VEHICLE_CMD_DO_ORBIT) {
@@ -182,9 +177,6 @@ bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 	_heading_smoothing.reset(PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw,
 				 PX4_ISFINITE(last_setpoint.yawspeed) ? last_setpoint.yawspeed : 0.f);
 	_slew_rate_velocity.setSlewRate(_param_mpc_acc_hor.get());
-
-	// need a valid position and velocity
-	ret = ret && _position.isAllFinite() && _velocity.isAllFinite();
 
 	Vector3f pos_prev{last_setpoint.position};
 	Vector3f vel_prev{last_setpoint.velocity};
