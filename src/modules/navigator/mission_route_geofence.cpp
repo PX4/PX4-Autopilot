@@ -163,7 +163,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 	return true;
 }
 
-bool GeofencePathChecker::checkPath(const Position &start, const Position &end, bool &clear) const
+bool GeofencePathChecker::checkPath(const Position &vehicle, const Position &end, bool &clear) const
 {
 	clear = false;
 
@@ -171,17 +171,17 @@ bool GeofencePathChecker::checkPath(const Position &start, const Position &end, 
 		return false;
 	}
 
-	if (!start.valid() || !end.valid()) {
+	if (!vehicle.valid() || !end.valid()) {
 		return true;
 	}
 
 	// The same rules as for one vehicle candidate in pruneCandidates().
-	if (recovering(start)) {
+	if (recovering(vehicle)) {
 		clear = true;
 		return true;
 	}
 
-	const Geofence::PathCheck path{{start.lat, start.lon}, {end.lat, end.lon}};
+	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}};
 	return _geofence.checkPathBatch(&path, 1, &clear);
 }
 

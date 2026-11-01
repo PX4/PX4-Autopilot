@@ -57,7 +57,7 @@ public:
 	explicit GeofencePathChecker(Geofence &geofence) : _geofence(geofence) {}
 
 	bool pruneCandidates(ProjectionReferenceBatch &batch) const override;
-	bool checkPath(const Position &start, const Position &end, bool &clear) const override;
+	bool checkPath(const Position &vehicle, const Position &end, bool &clear) const override;
 
 private:
 	bool recovering(const Position &vehicle) const;
