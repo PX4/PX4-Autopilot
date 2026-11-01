@@ -1109,6 +1109,34 @@ TEST_F(RouteSegmentCursorTest, SkipsJumpWithoutPositionAfterTarget)
 	}
 }
 
+// A DO_JUMP with no position at or after its target adds no edge, so its anchor changes nothing.
+TEST_F(MissionRouteProjectionEdgeCaseTest, AnchorOnJumpWithoutPositionAfterTargetIsIgnored)
+{
+	mission_item_s camera{};
+	camera.nav_cmd = NAV_CMD_DO_DIGICAM_CONTROL;
+	TestProjection projection({
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 10.f, kAlt),
+		camera,
+		makeDoJump(3, 3, 1),
+	});
+
+	// The return leg 1 -> 2 is closer, but the flown leg 0 -> 1 wins, with or without the anchor.
+	for (const int32_t anchor : {-1, 4}) {
+		SCOPED_TRACE(anchor);
+		auto batch = singleReferenceBatch({});
+		config.active_jump_anchor = {anchor};
+		mission_route::ProjectionContext projection_context{};
+		const mission_route::FailureReason status = projection.collectVehicleProjection(
+					makePositionFromOffset(kBaseLat, kBaseLon, 500.f, 20.f, kAlt), 1, config, batch, projection_context);
+
+		ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+		EXPECT_FALSE(projection_context.route_projection.segment.isLoop());
+		EXPECT_EQ(projection_context.route_projection.segment.end.idx, 1);
+	}
+}
+
 struct DoJumpEdgeCase {
 	const char *name;
 	uint16_t current_count;

@@ -324,10 +324,15 @@ FailureReason resolveActiveJump(const Provider &provider, float home_altitude_am
 
 	LoadedPosition target{};
 	const FailureReason target_status = findNextMissionPosition(provider, home_altitude_amsl,
-					    jump_item.do_jump_mission_index, target, FailureReason::kInternalError);
+					    jump_item.do_jump_mission_index, target, FailureReason::kNone);
 
 	if (target_status != FailureReason::kNone) {
 		return target_status;
+	}
+
+	// Without a position at or after its target the jump adds no edge, so the vehicle cannot fly it.
+	if (target.endpoint.idx < 0) {
+		return FailureReason::kNone;
 	}
 
 	context.jump_item_index = anchor.jump_item_index;
@@ -936,6 +941,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 		distance_summary.current_segment_bounds = current_segment_bounds;
 		distance_summary.route_length = cursor.routeLength();
 		distance_summary.route_end_index = cursor.nominalPositionIndex();
+		distance_summary.flown_jump_item_index = active_jump.jump_item_index;
 		return FailureReason::kNone;
 	}
 
@@ -945,7 +951,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 // Returns the index of the branch-in candidate, or -1 when no candidate has a finite score.
 static int selectBranchInCandidate(const ProjectionCandidateBuffer &candidate_buffer,
 				   const SegmentDistanceAlong &current_segment_bounds, int32_t mission_index,
-				   bool is_flying_reverse, const ActiveJumpAnchor &active_jump_anchor)
+				   bool is_flying_reverse, int32_t flown_jump_item_index)
 {
 	int best_candidate_index = -1;
 	float min_path_distance_m = FLT_MAX;
@@ -971,9 +977,8 @@ static int selectBranchInCandidate(const ProjectionCandidateBuffer &candidate_bu
 
 		// The segment being flown wins outright: the anchored jump edge, else the vehicle segment.
 		// A current TAKEOFF stack needs it: its score only ties with the closer first leg.
-		const bool priority_match = active_jump_anchor.valid()
-					    ? (candidate.segment.isLoop()
-					       && active_jump_anchor.jump_item_index == candidate.segment.jump_item_index)
+		const bool priority_match = flown_jump_item_index >= 0
+					    ? (candidate.segment.isLoop() && candidate.segment.jump_item_index == flown_jump_item_index)
 					    : isVehicleSegment(candidate.segment, candidate.dist.along_route_m,
 							    candidate.dist.segment_length_m, mission_index, is_flying_reverse);
 
@@ -1040,7 +1045,7 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const MissionResu
 		  static_cast<int>(mission_index));
 
 	const int branch_in_index = selectBranchInCandidate(candidate_buffer, distance_summary.current_segment_bounds,
-				    mission_index, request.current_route_direction_reversed, request.active_jump_anchor);
+				    mission_index, request.current_route_direction_reversed, distance_summary.flown_jump_item_index);
 
 	if (branch_in_index < 0) {
 		PX4_ERR("Route projection: no candidate");

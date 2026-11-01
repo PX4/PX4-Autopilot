@@ -69,6 +69,7 @@ struct RouteDistanceSummary {
 	SegmentDistanceAlong current_segment_bounds{};
 	float route_length{0.f};
 	int32_t route_end_index{-1};
+	int32_t flown_jump_item_index{-1}; /**< The anchored DO_JUMP, or -1 for none or an ignored anchor. */
 };
 
 /** @brief Per-reference scan scratch maintained while walking the mission segments. */
