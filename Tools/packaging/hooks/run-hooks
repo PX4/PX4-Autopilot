@@ -43,7 +43,8 @@ run_dir() {
 	dir=$1
 	[ -d "$dir" ] || return 0
 	for hook in "$dir"/*; do
-		[ -f "$hook" ] && [ -x "$hook" ] || continue
+		[ -f "$hook" ] || continue
+		[ -x "$hook" ] || continue
 		case "${hook##*/}" in *.*) continue ;; esac
 		"$hook"
 	done

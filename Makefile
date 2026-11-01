@@ -622,7 +622,7 @@ cppcheck: px4_sitl_default
 shellcheck_all:
 	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/ROMFS/px4fmu_common/
 	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/Tools/packaging/hooks/
-	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/Tools/packaging/deb/
+	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/Tools/packaging/deb/board/
 	@make px4_fmu-v5_default shellcheck
 
 validate_module_configs:
