@@ -101,7 +101,7 @@ public:
 
 	bool missionItemsReady(const mission_s &mission) const;
 	int missionCount() const;
-	bool loadMissionItem(int index, mission_item_s &mission_item) const;
+	const mission_item_s *missionItem(int index) const;
 
 	/** Apply a successful Dataman item write from Navigator's serialized task. */
 	void syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);

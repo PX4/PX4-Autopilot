@@ -83,14 +83,13 @@ int FullMissionCache::missionCount() const
 	return _mission.ready ? _mission.count : 0;
 }
 
-bool FullMissionCache::loadMissionItem(int index, mission_item_s &mission_item) const
+const mission_item_s *FullMissionCache::missionItem(int index) const
 {
 	if (_mission.ready && index >= 0 && index < _mission.count) {
-		mission_item = _mission_items[index];
-		return true;
+		return &_mission_items[index];
 	}
 
-	return false;
+	return nullptr;
 }
 
 void FullMissionCache::syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
@@ -236,7 +235,7 @@ orb_sub_t FullMissionCache::responseSubscription() const
 void FullMissionCache::update(const mission_s &) {}
 bool FullMissionCache::missionItemsReady(const mission_s &) const { return false; }
 int FullMissionCache::missionCount() const { return 0; }
-bool FullMissionCache::loadMissionItem(int, mission_item_s &) const { return false; }
+const mission_item_s *FullMissionCache::missionItem(int) const { return nullptr; }
 void FullMissionCache::syncMissionItem(const mission_s &, int32_t, const mission_item_s &) {}
 orb_sub_t FullMissionCache::responseSubscription() const { return ORB_SUB_INVALID; }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE

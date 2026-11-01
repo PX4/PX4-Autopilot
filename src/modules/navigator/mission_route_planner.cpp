@@ -443,14 +443,14 @@ FailureReason selectSafePoint(const Provider &provider,
 bool findMissionTakeoffPosition(const Provider &provider, float home_altitude_amsl, Position &position)
 {
 	for (int i = 0; i < provider.missionCount(); ++i) {
-		mission_item_s item{};
+		const mission_item_s *item = provider.missionItem(i);
 
-		if (!provider.loadMissionItem(i, item)) {
+		if (item == nullptr) {
 			return false;
 		}
 
-		if (mission_item_contains_position(item)) {
-			return isTakeoffCmd(item.nav_cmd) && extractMissionPosition(item, home_altitude_amsl, position);
+		if (mission_item_contains_position(*item)) {
+			return isTakeoffCmd(item->nav_cmd) && extractMissionPosition(*item, home_altitude_amsl, position);
 		}
 	}
 
@@ -477,13 +477,13 @@ void selectMissionEndpointFallback(const Provider &provider,
 						       GoalProjectionLocation::kOutsideActiveLoopJump);
 	}
 
-	mission_item_s land_item{};
+	const mission_item_s *land_item = provider.missionItem(projection_context.route_end_index);
 	Position land_position{};
 
 	// The route ends at the first landing item, if the mission has one.
-	if (provider.loadMissionItem(projection_context.route_end_index, land_item)
-	    && isLandingCmd(land_item.nav_cmd)
-	    && extractMissionPosition(land_item, home_altitude_amsl, land_position)) {
+	if (land_item != nullptr
+	    && isLandingCmd(land_item->nav_cmd)
+	    && extractMissionPosition(*land_item, home_altitude_amsl, land_position)) {
 		const RoutePath path_to_land = findShortestPathAlongRoute(projection_context.route_length, request,
 					       projection_context, PathDirectionMode::kForceNominal,
 					       GoalProjectionLocation::kOutsideActiveLoopJump);
