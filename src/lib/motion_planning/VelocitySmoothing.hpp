@@ -43,7 +43,19 @@ struct Trajectory {
 /**
  * @class VelocitySmoothing
  *
- * TODO: document the algorithm
+ * Jerk-limited, time-optimal 1D velocity trajectory generator (3-phase S-curve).
+ *
+ * Drives the current state (x0, v0, a0) to a target velocity setpoint (vel_sp)
+ * with zero final acceleration (a = 0), while respecting maximum jerk,
+ * acceleration, and velocity constraints.
+ *
+ * The generated trajectory consists of three phases:
+ *  - T1 (increasing acceleration): constant jerk j = direction * max_jerk
+ *  - T2 (constant acceleration):   zero jerk j = 0 (used when max_accel is reached
+ *                                  or when stretched by timeSynchronization)
+ *  - T3 (decreasing acceleration): constant jerk j = -direction * max_jerk
+ *                                  until acceleration reaches 0 at v = vel_sp
+ *
  *    |T1| T2 |T3|
  *     ___
  *   __| |____   __ Jerk
@@ -57,6 +69,11 @@ struct Trajectory {
  *         / 	 Velocity
  *        ;
  *   ----"
+ *
+ * Typical usage on every control cycle:
+ *  1. Call updateDurations(vel_setpoint) on each axis.
+ *  2. (Optional) Call timeSynchronization() to align total trajectory duration across axes.
+ *  3. Call updateTraj(dt) to integrate the state forward by dt.
  */
 class VelocitySmoothing
 {
@@ -138,42 +155,74 @@ private:
 	/**
 	 * Compute the direction of the jerk to be applied in order to drive the current state
 	 * to the desired one
+	 * @return direction (+1 for positive jerk in T1, -1 for negative jerk in T1, 0 for zero)
 	 */
 	int computeDirection() const;
 
 	/**
 	 * Compute the velocity at which the trajectory will be if the maximum jerk is applied
 	 * during the time required to cancel the current acceleration
+	 * @return velocity when acceleration reaches zero
 	 */
 	float computeVelAtZeroAcc() const;
 
 	/**
 	 * Compute increasing acceleration time
+	 * @param a0 initial acceleration
+	 * @param v3 desired velocity change (vel_sp - v0)
+	 * @param j_max signed maximum jerk applied during T1 (direction * _max_jerk)
+	 * @param a_max maximum acceleration limit (_max_accel)
+	 * @return duration T1 [s]
 	 */
 	inline float computeT1(float a0, float v3, float j_max, float a_max) const;
 
 	/**
 	 * Compute increasing acceleration time using total time constraint
+	 * @param T123 desired total time of the trajectory (T1 + T2 + T3)
+	 * @param a0 initial acceleration
+	 * @param v3 desired velocity change (vel_sp - v0)
+	 * @param j_max signed maximum jerk applied during T1 (direction * _max_jerk)
+	 * @param a_max maximum acceleration limit (_max_accel)
+	 * @return duration T1 [s]
 	 */
 	inline float computeT1(float T123, float a0, float v3, float j_max, float a_max) const;
 
 	/**
 	 * Saturate T1 in order to respect the maximum acceleration constraint
+	 * @param a0 initial acceleration
+	 * @param j_max signed maximum jerk applied during T1 (direction * _max_jerk)
+	 * @param T1 unconstrained T1 duration
+	 * @param a_max maximum acceleration limit (_max_accel)
+	 * @return saturated T1 duration [s]
 	 */
 	inline float saturateT1ForAccel(float a0, float j_max, float T1, float a_max) const;
 
 	/**
 	 * Compute constant acceleration time
+	 * @param T1 increasing acceleration duration
+	 * @param T3 decreasing acceleration duration
+	 * @param a0 initial acceleration
+	 * @param v3 desired velocity change (vel_sp - v0)
+	 * @param j_max signed maximum jerk applied during T1 (direction * _max_jerk)
+	 * @return duration T2 [s]
 	 */
 	inline float computeT2(float T1, float T3, float a0, float v3, float j_max) const;
 
 	/**
 	 * Compute constant acceleration time using total time constraint
+	 * @param T123 desired total time of the trajectory (T1 + T2 + T3)
+	 * @param T1 increasing acceleration duration
+	 * @param T3 decreasing acceleration duration
+	 * @return duration T2 [s]
 	 */
 	inline float computeT2(float T123, float T1, float T3) const;
 
 	/**
 	 * Compute decreasing acceleration time
+	 * @param T1 increasing acceleration duration
+	 * @param a0 initial acceleration
+	 * @param j_max signed maximum jerk applied during T1 (direction * _max_jerk)
+	 * @return duration T3 [s]
 	 */
 	inline float computeT3(float T1, float a0, float j_max) const;
 
