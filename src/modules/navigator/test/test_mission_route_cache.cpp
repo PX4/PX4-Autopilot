@@ -68,8 +68,6 @@ protected:
 		mission_stats_entry_s empty_stats{};
 		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
 						      reinterpret_cast<uint8_t *>(&empty_stats), sizeof(empty_stats)));
-
-		_cache.invalidate();
 	}
 
 	mission_s makeMission(uint32_t mission_id, uint16_t count, uint32_t safe_points_id = 0,
@@ -205,43 +203,14 @@ TEST_F(MissionRouteCacheTest, MissionCacheLoadsAllMissionItems)
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "mission cache did not become ready";
 
-	MissionRouteCache::MissionView view{};
-	ASSERT_TRUE(_cache.getMissionView(mission, view));
-	ASSERT_NE(view.items, nullptr);
-	EXPECT_EQ(view.count, static_cast<int32_t>(mission_items.size()));
-	EXPECT_EQ(view.mission_id, mission.mission_id);
-	EXPECT_EQ(view.dataman_id, mission.mission_dataman_id);
-	EXPECT_NE(view.generation, 0U);
-	EXPECT_EQ(reinterpret_cast<uintptr_t>(view.items) % alignof(mission_item_s), 0U);
-
 	// Every cached item matches the source.
 	ASSERT_EQ(_cache.missionCount(), static_cast<int>(mission_items.size()));
 
 	for (size_t i = 0; i < mission_items.size(); ++i) {
-		expectMissionItemMatches(view.items[i], mission_items[i]);
-
 		mission_item_s cached_item{};
 		ASSERT_TRUE(_cache.loadMissionItem(mission, static_cast<int32_t>(i), cached_item));
 		expectMissionItemMatches(cached_item, mission_items[i]);
 	}
-}
-
-TEST_F(MissionRouteCacheTest, InvalidateImmediatelyHidesMissionView)
-{
-	const std::vector<mission_item_s> mission_items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-	};
-	const mission_s mission = makeMission(16, static_cast<uint16_t>(mission_items.size()));
-	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
-
-	MissionRouteCache::MissionView view{};
-	ASSERT_TRUE(_cache.getMissionView(mission, view));
-
-	_cache.invalidate();
-
-	EXPECT_FALSE(_cache.getMissionView(mission, view));
-	EXPECT_EQ(_cache.missionCount(), 0);
 }
 
 // Failed mission reads stay unavailable and schedule a retry.
@@ -267,8 +236,6 @@ TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenReadFails)
 	EXPECT_EQ(_cache.missionCount(), 0);
 	EXPECT_GT(MissionRouteCacheTestPeer::missionRetryCount(_cache), 0U);
 	EXPECT_EQ(MissionRouteCacheTestPeer::missionLoadPerfEventCount(_cache), 0U);
-	MissionRouteCache::MissionView view{};
-	EXPECT_FALSE(_cache.getMissionView(mission, view));
 
 	mission_item_s cached_item{};
 	EXPECT_FALSE(_cache.loadMissionItem(mission, 0, cached_item));
@@ -276,10 +243,12 @@ TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenReadFails)
 	// The resumed load completes the same generation from the failed index.
 	MissionRouteCacheTestPeer::expireMissionRetryBackoff(_cache);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
-	ASSERT_TRUE(_cache.getMissionView(mission, view));
 	EXPECT_EQ(MissionRouteCacheTestPeer::missionLoadPerfEventCount(_cache), 1U);
-	expectMissionItemMatches(view.items[0], mission_items[0]);
-	expectMissionItemMatches(view.items[1], mission_items[1]);
+
+	for (size_t i = 0; i < mission_items.size(); ++i) {
+		ASSERT_TRUE(_cache.loadMissionItem(mission, static_cast<int32_t>(i), cached_item));
+		expectMissionItemMatches(cached_item, mission_items[i]);
+	}
 }
 
 // Oversized missions are rejected before cache loads are queued.
@@ -612,13 +581,6 @@ TEST_F(MissionRouteCacheTest, EmptyMissionIsReadyAndHasNoItems)
 			<< "empty mission did not become ready";
 	EXPECT_EQ(_cache.missionCount(), 0);
 
-	MissionRouteCache::MissionView view{};
-	ASSERT_TRUE(_cache.getMissionView(mission, view));
-	EXPECT_EQ(view.items, nullptr);
-	EXPECT_EQ(view.count, 0);
-	EXPECT_EQ(view.mission_id, mission.mission_id);
-	EXPECT_NE(view.generation, 0U);
-
 	mission_item_s cached_item{};
 	EXPECT_FALSE(_cache.loadMissionItem(mission, 0, cached_item));
 
@@ -650,8 +612,6 @@ TEST_F(MissionRouteCacheTest, MissionDatamanIdChangeReloadsCache)
 	mission_item_s cached_item{};
 	ASSERT_TRUE(_cache.loadMissionItem(mission_0, 1, cached_item));
 	expectMissionItemMatches(cached_item, mission_items_0[1]);
-	MissionRouteCache::MissionView view_0{};
-	ASSERT_TRUE(_cache.getMissionView(mission_0, view_0));
 
 	// Same mission_id and count, but now stored in dataman id 1.
 	const mission_s mission_1 = makeMission(31, static_cast<uint16_t>(mission_items_1.size()), 0, -1,
@@ -662,17 +622,10 @@ TEST_F(MissionRouteCacheTest, MissionDatamanIdChangeReloadsCache)
 	// A replacement source immediately hides the old generation while the new one loads.
 	EXPECT_FALSE(_cache.missionItemsReady(mission_0));
 	EXPECT_EQ(_cache.missionCount(), 0);
-	MissionRouteCache::MissionView unavailable_view{};
-	EXPECT_FALSE(_cache.getMissionView(mission_0, unavailable_view));
-	EXPECT_FALSE(_cache.getMissionView(mission_1, unavailable_view));
+	EXPECT_FALSE(_cache.missionItemsReady(mission_1));
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_1, [&] { return _cache.missionItemsReady(mission_1); }))
 			<< "mission cache did not reload after dataman id change";
-
-	MissionRouteCache::MissionView view_1{};
-	ASSERT_TRUE(_cache.getMissionView(mission_1, view_1));
-	EXPECT_NE(view_1.generation, view_0.generation);
-	EXPECT_EQ(view_1.dataman_id, mission_1.mission_dataman_id);
 
 	ASSERT_TRUE(_cache.loadMissionItem(mission_1, 1, cached_item));
 	expectMissionItemMatches(cached_item, mission_items_1[1]);
@@ -705,18 +658,18 @@ TEST_F(MissionRouteCacheTest, MissionSourceChangeDuringReadDoesNotPublishOldGene
 	// call. In both cases the replacement load remains response-driven.
 	EXPECT_NE(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
 
-	MissionRouteCache::MissionView view{};
-	EXPECT_FALSE(_cache.getMissionView(mission_a, view));
-	EXPECT_FALSE(_cache.getMissionView(mission_b, view));
+	EXPECT_FALSE(_cache.missionItemsReady(mission_a));
+	EXPECT_FALSE(_cache.missionItemsReady(mission_b));
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_b, [&] { return _cache.missionItemsReady(mission_b); }));
 	EXPECT_EQ(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
-	ASSERT_TRUE(_cache.getMissionView(mission_b, view));
-	ASSERT_EQ(view.count, static_cast<int32_t>(mission_items_b.size()));
+	ASSERT_EQ(_cache.missionCount(), static_cast<int>(mission_items_b.size()));
 	EXPECT_EQ(MissionRouteCacheTestPeer::missionLoadPerfEventCount(_cache), 1U);
 
 	for (size_t i = 0; i < mission_items_b.size(); ++i) {
-		expectMissionItemMatches(view.items[i], mission_items_b[i]);
+		mission_item_s cached_item{};
+		ASSERT_TRUE(_cache.loadMissionItem(mission_b, static_cast<int32_t>(i), cached_item));
+		expectMissionItemMatches(cached_item, mission_items_b[i]);
 	}
 }
 
@@ -820,21 +773,13 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemPatchesReadyMissionCache)
 	writeMissionItems(mission_items);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "mission cache did not become ready";
-	MissionRouteCache::MissionView before_sync{};
-	ASSERT_TRUE(_cache.getMissionView(mission, before_sync));
 	ASSERT_EQ(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
 
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);
 	writeMissionItem(updated, 1);
-	ASSERT_EQ(_cache.syncMissionItem(mission, 1, updated), MissionRouteCache::SyncResult::kPatched);
+	_cache.syncMissionItem(mission, 1, updated);
 	EXPECT_TRUE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
-	EXPECT_FALSE(_cache.missionViewStillValid(before_sync));
-
-	MissionRouteCache::MissionView after_sync{};
-	ASSERT_TRUE(_cache.getMissionView(mission, after_sync));
-	EXPECT_NE(after_sync.generation, before_sync.generation);
-	expectMissionItemMatches(after_sync.items[1], updated);
 
 	mission_item_s cached_item{};
 	ASSERT_TRUE(_cache.loadMissionItem(mission, 1, cached_item));
@@ -857,7 +802,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemRereadsInFlightMissionItem)
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);
 	writeMissionItem(updated, 0);
 
-	EXPECT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kDeferred);
+	_cache.syncMissionItem(mission, 0, updated);
 	EXPECT_FALSE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
@@ -895,7 +840,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemAheadOfLoadFrontKeepsProgress)
 
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 999.f, 42.f, kAlt + 77.f);
 	writeMissionItem(updated, sync_index);
-	EXPECT_EQ(_cache.syncMissionItem(mission, sync_index, updated), MissionRouteCache::SyncResult::kDeferred);
+	_cache.syncMissionItem(mission, sync_index, updated);
 
 	// No progress was dropped: the loaded prefix is not re-read.
 	EXPECT_EQ(MissionRouteCacheTestPeer::missionNextIndex(_cache), load_front);
@@ -932,7 +877,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemWithoutDatamanWriteKeepsStoredItem)
 
 	// Sync an unread index whose new value never reached dataman.
 	const mission_item_s never_written = makePositionItemFromOffset(kBaseLat, kBaseLon, 999.f, 42.f, kAlt + 77.f);
-	EXPECT_EQ(_cache.syncMissionItem(mission, sync_index, never_written), MissionRouteCache::SyncResult::kDeferred);
+	_cache.syncMissionItem(mission, sync_index, never_written);
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
 
@@ -956,7 +901,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemDuringRetryBackoffPatchesLoadedPref
 
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);
 	writeMissionItem(updated, 0);
-	EXPECT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kPatched);
+	_cache.syncMissionItem(mission, 0, updated);
 
 	// The retry resumes at the failed index.
 	MissionRouteCacheTestPeer::expireMissionRetryBackoff(_cache);
@@ -988,45 +933,12 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemRejectsInactiveMission)
 	mission_s other_mission = mission;
 	other_mission.mission_id = 999;
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 5.f);
-	EXPECT_EQ(_cache.syncMissionItem(other_mission, 0, updated), MissionRouteCache::SyncResult::kRejected);
+	_cache.syncMissionItem(other_mission, 0, updated);
 
 	// The original cached item is untouched.
 	mission_item_s cached_item{};
 	ASSERT_TRUE(_cache.loadMissionItem(mission, 0, cached_item));
 	expectMissionItemMatches(cached_item, mission_items[0]);
-}
-
-// missionViewStillValid() pins a borrowed view to its generation.
-TEST_F(MissionRouteCacheTest, MissionViewStillValidTracksGeneration)
-{
-	const std::vector<mission_item_s> mission_items{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt + 10.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-	};
-	const mission_s mission = makeMission(46, static_cast<uint16_t>(mission_items.size()));
-	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
-			<< "mission cache did not become ready";
-
-	// A default view has never been published.
-	EXPECT_FALSE(_cache.missionViewStillValid(MissionRouteCache::MissionView{}));
-
-	MissionRouteCache::MissionView view{};
-	ASSERT_TRUE(_cache.getMissionView(mission, view));
-	EXPECT_TRUE(_cache.missionViewStillValid(view));
-
-	// An authoritative in-place patch advances the generation and stales older views.
-	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 5.f);
-	writeMissionItem(updated, 0);
-	ASSERT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kPatched);
-	EXPECT_FALSE(_cache.missionViewStillValid(view));
-
-	MissionRouteCache::MissionView refreshed{};
-	ASSERT_TRUE(_cache.getMissionView(mission, refreshed));
-	EXPECT_TRUE(_cache.missionViewStillValid(refreshed));
-
-	_cache.invalidate();
-	EXPECT_FALSE(_cache.missionViewStillValid(refreshed));
 }
 
 // Each Dataman completion wakes the cache and immediately chains the next async read.

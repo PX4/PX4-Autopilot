@@ -72,55 +72,13 @@ If the source changes while a read is in flight, that response is consumed but n
 
 :::
 
-::: details Developer details: Borrowing a mission view
-
-`getMissionView()` returns a zero-copy view of the cache-owned array.
-The view contains a pointer, item count, mission identity, and generation number; it does not own or copy the items.
-
-A consumer should acquire a complete view, compute synchronously, and validate the same view before accepting the result:
-
-```text
-Acquire view → compute route → generation still valid?
-                                      |
-                         yes ─────────┴──────── no
-                          |                       |
-                    accept result          discard result
-                                           acquire new view
-                                           recompute
-```
-
-The caller does not update the pointer inside a stale view.
-It discards the view and anything derived from it, then calls `getMissionView()` again and recomputes.
-
-After an item in a ready generation is patched, a fresh view is available immediately.
-While a replacement mission is loading, acquiring a new view fails until the complete generation is ready.
-
-The refreshed view may contain the same pointer address because the backing allocation is reused.
-The generation, not pointer equality, determines whether its contents are current.
-
-Use a borrowed view only during serialized Navigator work, and check it with `missionViewStillValid()` before accepting the result.
-The generation check is not a lock; another task would need explicit synchronization or its own snapshot.
-
-:::
-
 ::: details Developer details: Keeping mission writes coherent
 
 Already-loaded mission items are not automatically read from storage again.
 After a successful active-mission Dataman write, the writer must call `syncMissionItem()` from Navigator's task.
 This call synchronizes the full cache; it does not perform the Dataman write.
 
-For a ready full cache, synchronization patches that item in the array and advances the generation:
-
-```text
-Successful Dataman write
-        ↓
-Patch the cached item
-        ↓
-Advance the generation
-        ↓
-Old views and route results are stale
-```
-
+For a ready full cache, synchronization patches that item in the array.
 The complete route stays ready.
 Reloading the whole mission for a one-item change would make it unavailable and add one read per mission item without improving consistency.
 
@@ -153,6 +111,6 @@ perf reset
 perf
 ```
 
-Replaced, invalidated, empty, or incomplete loads do not add a sample.
+Replaced, empty, or incomplete loads do not add a sample.
 
 :::

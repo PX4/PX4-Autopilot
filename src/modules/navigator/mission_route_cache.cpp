@@ -62,16 +62,6 @@ void MissionRouteCache::update(const mission_s &mission)
 	updateSafePointCache(mission);
 }
 
-void MissionRouteCache::invalidate()
-{
-	_full_mission_cache.invalidate();
-
-	_mission_land = {};
-	_dataman_cache_land_item.invalidate();
-
-	resetSafePointCacheState(true);
-}
-
 bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
 {
 	if (_mission_land.index < 0 || _mission_land.index >= _mission_land.count) {
@@ -107,15 +97,14 @@ bool MissionRouteCache::safePointCacheFullyLoaded() const
 	return true;
 }
 
-void MissionRouteCache::resetSafePointCacheState(bool clear_source_identity)
+void MissionRouteCache::resetSafePointCacheState()
 {
 	// Drop any in-flight response before resetting the local state machine.
 	_dataman_client_safepoint.abortCurrentOperation();
 	_dataman_cache_safepoint.invalidate();
 
-	const uint32_t source_id = clear_source_identity ? 0 : _safe_point.source_id;
-	const uint8_t source_dataman_id = clear_source_identity ? static_cast<uint8_t>(DM_KEY_SAFE_POINTS_0) :
-					  _safe_point.source_dataman_id;
+	const uint32_t source_id = _safe_point.source_id;
+	const uint8_t source_dataman_id = _safe_point.source_dataman_id;
 	_safe_point = {};
 	_safe_point.source_id = source_id;
 	_safe_point.source_dataman_id = source_dataman_id;
@@ -134,16 +123,6 @@ int MissionRouteCache::missionCount() const
 bool MissionRouteCache::loadMissionItem(int index, mission_item_s &mission_item) const
 {
 	return _full_mission_cache.loadMissionItem(index, mission_item);
-}
-
-bool MissionRouteCache::getMissionView(const mission_s &mission, MissionView &view) const
-{
-	return _full_mission_cache.getMissionView(mission, view);
-}
-
-bool MissionRouteCache::missionViewStillValid(const MissionView &view) const
-{
-	return _full_mission_cache.missionViewStillValid(view);
 }
 
 int MissionRouteCache::safePointCount() const
@@ -188,10 +167,9 @@ bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index,
 	return missionItemsReady(mission) && loadMissionItem(index, mission_item);
 }
 
-MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
-		const mission_item_s &mission_item)
+void MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
 {
-	return _full_mission_cache.syncMissionItem(mission, index, mission_item);
+	_full_mission_cache.syncMissionItem(mission, index, mission_item);
 }
 
 void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
@@ -286,7 +264,7 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 		// A new safe-point source makes any in-flight read and cached items stale.
 		state.source_id = mission.safe_points_id;
 		state.source_dataman_id = mission.safepoint_dataman_id;
-		resetSafePointCacheState(false);
+		resetSafePointCacheState();
 	}
 
 	switch (state.dataman_state) {
@@ -391,7 +369,7 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 			// resetSafePointCacheState() clears the backoff, so save it first.
 			const mission_route::CacheRetryBackoff retry = state.retry;
 			PX4_WARN("Safe point cache retry");
-			resetSafePointCacheState(false);
+			resetSafePointCacheState();
 			state.retry = retry;
 			state.retry.scheduleRetry(hrt_absolute_time());
 

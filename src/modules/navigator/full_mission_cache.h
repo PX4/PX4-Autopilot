@@ -91,36 +91,19 @@ class FullMissionCache
 public:
 	static constexpr int32_t kMaxMissionCacheSize{CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE};
 
-	struct MissionView {
-		const mission_item_s *items{nullptr};
-		int32_t count{0};
-		uint32_t mission_id{0};
-		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
-		uint32_t generation{0};
-	};
-
-	enum class SyncResult : uint8_t {
-		kRejected,  ///< Source mismatch, index out of range, or the cache is compiled out.
-		kPatched,   ///< A loaded item was updated in place; any borrowed view becomes stale.
-		kDeferred   ///< The item is not loaded yet; the pending load reads it from dataman.
-	};
-
 	explicit FullMissionCache(orb_advert_t *mavlink_log_pub = nullptr);
 	~FullMissionCache();
 	FullMissionCache(const FullMissionCache &) = delete;
 	FullMissionCache &operator=(const FullMissionCache &) = delete;
 
 	void update(const mission_s &mission);
-	void invalidate();
 
 	bool missionItemsReady(const mission_s &mission) const;
 	int missionCount() const;
 	bool loadMissionItem(int index, mission_item_s &mission_item) const;
-	bool getMissionView(const mission_s &mission, MissionView &view) const;
-	bool missionViewStillValid(const MissionView &view) const;
 
 	/** Apply a successful Dataman item write from Navigator's serialized task. */
-	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
+	void syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 
 	/**
 	 * Response subscription while a read is pending. Polling it while idle can spin
@@ -154,7 +137,6 @@ private:
 	bool missionMatchesCache(const mission_s &mission) const;
 	void startMissionLoad();
 	void resumeMissionLoad();
-	void advanceMissionGeneration();
 
 	mission_item_s *_mission_items{nullptr};
 	DatamanClient _dataman_client_mission{};

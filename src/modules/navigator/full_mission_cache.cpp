@@ -72,23 +72,6 @@ FullMissionCache::~FullMissionCache()
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-void FullMissionCache::advanceMissionGeneration()
-{
-	++_mission_generation;
-
-	// Zero identifies a view that has never been published.
-	if (_mission_generation == 0) {
-		++_mission_generation;
-	}
-}
-
-void FullMissionCache::invalidate()
-{
-	perf_cancel(_load_perf);
-	advanceMissionGeneration();
-	_mission = {};
-}
-
 void FullMissionCache::startMissionLoad()
 {
 	_mission.ready = false;
@@ -126,54 +109,25 @@ bool FullMissionCache::loadMissionItem(int index, mission_item_s &mission_item) 
 	return false;
 }
 
-bool FullMissionCache::getMissionView(const mission_s &mission, MissionView &view) const
-{
-	if (!missionItemsReady(mission)) {
-		return false;
-	}
-
-	view.items = (_mission.count > 0) ? _mission_items : nullptr;
-	view.count = _mission.count;
-	view.mission_id = _mission.id;
-	view.dataman_id = _mission.dataman_id;
-	view.generation = _mission_generation;
-	return true;
-}
-
-bool FullMissionCache::missionViewStillValid(const MissionView &view) const
-{
-	// Pre-ready retries and patches can keep the generation because no view is exposed.
-	return view.generation != 0 && view.generation == _mission_generation && _mission.ready;
-}
-
-FullMissionCache::SyncResult FullMissionCache::syncMissionItem(const mission_s &mission, int32_t index,
-		const mission_item_s &mission_item)
+void FullMissionCache::syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
 {
 	if (!_mission.source_valid || _mission.too_large
 	    || !missionMatchesCache(mission) || index < 0 || index >= _mission.count) {
-		return SyncResult::kRejected;
-	}
-
-	if (_mission.ready) {
-		// A ready cache has no pending read. Patch it and invalidate borrowed views.
-		_mission_items[index] = mission_item;
-		advanceMissionGeneration();
-		return SyncResult::kPatched;
+		return;
 	}
 
 	if (index < _mission.next_index) {
-		// Loaded items are not re-read, so patch the prefix in place.
+		// Loaded items are not re-read, so patch them in place. A ready cache has loaded them all.
 		_mission_items[index] = mission_item;
-		return SyncResult::kPatched;
+		return;
 	}
 
 	if (_mission_request.pending && _mission_request.index == index) {
 		// Discard the read started before the write and queue this index again.
-		advanceMissionGeneration();
+		++_mission_generation;
 	}
 
 	// Unread items pick up the Dataman write.
-	return SyncResult::kDeferred;
 }
 
 void FullMissionCache::update(const mission_s &mission)
@@ -183,7 +137,7 @@ void FullMissionCache::update(const mission_s &mission)
 	if (!missionMatchesCache(mission)) {
 		// Invalidate now, but drain any older read before issuing a new one.
 		perf_cancel(_load_perf);
-		advanceMissionGeneration();
+		++_mission_generation;
 		state = {};
 		state.id = mission.mission_id;
 		state.count = mission.count;
@@ -303,15 +257,9 @@ orb_sub_t FullMissionCache::responseSubscription() const
 
 #else
 void FullMissionCache::update(const mission_s &) {}
-void FullMissionCache::invalidate() {}
 bool FullMissionCache::missionItemsReady(const mission_s &) const { return false; }
 int FullMissionCache::missionCount() const { return 0; }
 bool FullMissionCache::loadMissionItem(int, mission_item_s &) const { return false; }
-bool FullMissionCache::getMissionView(const mission_s &, MissionView &) const { return false; }
-bool FullMissionCache::missionViewStillValid(const MissionView &) const { return false; }
-FullMissionCache::SyncResult FullMissionCache::syncMissionItem(const mission_s &, int32_t, const mission_item_s &)
-{
-	return SyncResult::kRejected;
-}
+void FullMissionCache::syncMissionItem(const mission_s &, int32_t, const mission_item_s &) {}
 orb_sub_t FullMissionCache::responseSubscription() const { return ORB_SUB_INVALID; }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE

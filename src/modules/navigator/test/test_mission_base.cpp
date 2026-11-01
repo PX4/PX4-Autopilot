@@ -732,12 +732,6 @@ protected:
 	void SetUp() override
 	{
 		ASSERT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
-		_navigator.get_mission_route_cache().invalidate();
-	}
-
-	void TearDown() override
-	{
-		_navigator.get_mission_route_cache().invalidate();
 	}
 
 	DatamanClient _dataman_client{};
