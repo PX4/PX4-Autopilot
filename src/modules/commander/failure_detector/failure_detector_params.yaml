@@ -114,3 +114,29 @@ parameters:
       max: 5.0
       unit: s
       decimal: 2
+    FD_IMPACT_THR:
+      description:
+        short: Impact detection threshold
+        long: |-
+          Specific force (averaged over ~20 ms) above which an impact is reported while airborne.
+          A crash is reported if the vehicle then stops rotating for FD_IMPACT_T. Warning only, multicopter only.
+          Set to 0 to disable.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 300.0
+      unit: m/s^2
+      decimal: 0
+      increment: 5
+    FD_IMPACT_T:
+      description:
+        short: Crash detection time after an impact
+        long: |-
+          Time without rotation (LNDMC_ROT_MAX) after an impact before a crash is reported.
+          A crash is only reported if this time is reached within 10 s after the latest impact.
+      type: float
+      default: 2.0
+      min: 0.0
+      max: 5.0
+      unit: s
+      decimal: 1
