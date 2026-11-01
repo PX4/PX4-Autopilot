@@ -115,7 +115,7 @@ public:
 
 	bool missionItemsReady(const mission_s &mission) const;
 	int missionCount() const;
-	bool loadMissionItem(int index, mission_item_s &mission_item) const;
+	const mission_item_s *missionItem(int index) const;
 	bool getMissionView(const mission_s &mission, MissionView &view) const;
 	bool missionViewStillValid(const MissionView &view) const;
 

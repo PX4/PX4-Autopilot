@@ -131,9 +131,9 @@ int MissionRouteCache::missionCount() const
 	return _full_mission_cache.missionCount();
 }
 
-bool MissionRouteCache::loadMissionItem(int index, mission_item_s &mission_item) const
+const mission_item_s *MissionRouteCache::missionItem(int index) const
 {
-	return _full_mission_cache.loadMissionItem(index, mission_item);
+	return _full_mission_cache.missionItem(index);
 }
 
 bool MissionRouteCache::getMissionView(const mission_s &mission, MissionView &view) const
@@ -185,7 +185,14 @@ bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_
 
 bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const
 {
-	return missionItemsReady(mission) && loadMissionItem(index, mission_item);
+	const mission_item_s *item = missionItemsReady(mission) ? missionItem(index) : nullptr;
+
+	if (item == nullptr) {
+		return false;
+	}
+
+	mission_item = *item;
+	return true;
 }
 
 MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
