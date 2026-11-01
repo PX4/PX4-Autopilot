@@ -66,7 +66,8 @@ struct CacheRetryBackoff {
 	hrt_abstime retry_at{0};
 	uint8_t retry_count{0};
 
-	bool due(hrt_abstime now) const { return retry_at != 0 && now >= retry_at; }
+	bool scheduled() const { return retry_at != 0; }
+	bool due(hrt_abstime now) const { return scheduled() && now >= retry_at; }
 	void clear()
 	{
 		retry_at = 0;
@@ -91,36 +92,19 @@ class FullMissionCache
 public:
 	static constexpr int32_t kMaxMissionCacheSize{CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE};
 
-	struct MissionView {
-		const mission_item_s *items{nullptr};
-		int32_t count{0};
-		uint32_t mission_id{0};
-		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
-		uint32_t generation{0};
-	};
-
-	enum class SyncResult : uint8_t {
-		kRejected,  ///< Source mismatch, index out of range, or the cache is compiled out.
-		kPatched,   ///< A loaded item was updated in place; any borrowed view becomes stale.
-		kDeferred   ///< The item is not loaded yet; the pending load reads it from dataman.
-	};
-
 	explicit FullMissionCache(orb_advert_t *mavlink_log_pub = nullptr);
 	~FullMissionCache();
 	FullMissionCache(const FullMissionCache &) = delete;
 	FullMissionCache &operator=(const FullMissionCache &) = delete;
 
 	void update(const mission_s &mission);
-	void invalidate();
 
 	bool missionItemsReady(const mission_s &mission) const;
 	int missionCount() const;
 	bool loadMissionItem(int index, mission_item_s &mission_item) const;
-	bool getMissionView(const mission_s &mission, MissionView &view) const;
-	bool missionViewStillValid(const MissionView &view) const;
 
 	/** Apply a successful Dataman item write from Navigator's serialized task. */
-	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
+	void syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 
 	/**
 	 * Response subscription while a read is pending. Polling it while idle can spin
@@ -134,14 +118,11 @@ private:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	struct MissionCacheState {
 		uint32_t id{0};
-		int32_t count{0};
+		int32_t count{-1}; ///< No mission matches the state before the first update.
 		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
 		int32_t next_index{0}; ///< First unread item; retries resume here.
-		bool initialized{false};
-		bool source_valid{false};
+		bool loadable{false}; ///< Valid source that fits the cache. It loads until ready, except while a retry is scheduled.
 		bool ready{false};
-		bool too_large{false};
-		bool validation_pending{false};
 		mission_route::CacheRetryBackoff retry{};
 	};
 
@@ -152,9 +133,6 @@ private:
 	};
 
 	bool missionMatchesCache(const mission_s &mission) const;
-	void startMissionLoad();
-	void resumeMissionLoad();
-	void advanceMissionGeneration();
 
 	mission_item_s *_mission_items{nullptr};
 	DatamanClient _dataman_client_mission{};
