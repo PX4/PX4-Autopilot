@@ -362,9 +362,9 @@ RoutePath scoreBranchOffCandidate(const RtlRouteRequest &request, const Projecti
 	return path;
 }
 
-// Fold one projected batch into selection, which keeps the cheapest safe point; the first one wins a tie.
+// Fold one projected batch into the plan, which keeps the cheapest safe point; the first one wins a tie.
 void selectLowestCostSafePoint(const RtlRouteRequest &request, const ProjectionContext &projection_context,
-			       const ProjectionReferenceBatch &batch, GoalSelection &selection)
+			       const ProjectionReferenceBatch &batch, RtlRoutePlan &plan, RoutePath &goal_path)
 {
 	for (uint8_t batch_index = 0; batch_index < batch.count; ++batch_index) {
 		const ProjectionReference &reference = batch.items[batch_index];
@@ -374,25 +374,28 @@ void selectLowestCostSafePoint(const RtlRouteRequest &request, const ProjectionC
 			const RouteProjectionCandidate &branch_off = candidate_buffer.candidates[candidate_index];
 			const RoutePath path = scoreBranchOffCandidate(request, projection_context, branch_off);
 
-			if (path.valid() && path.total_cost_m < selection.path.total_cost_m) {
-				selection.goal_type = GoalType::kSafePoint;
-				selection.goal_position = reference.position;
-				selection.safe_point_index = reference.source_index;
-				selection.path = path;
-				selection.branch_off.segment = branch_off.segment;
-				selection.branch_off.projection = branch_off.projection;
+			if (path.valid() && path.total_cost_m < goal_path.total_cost_m) {
+				goal_path = path;
+				plan.goal_type = GoalType::kSafePoint;
+				plan.goal_position = reference.position;
+				plan.safe_point_index = reference.source_index;
+				plan.branch_off_position = branch_off.projection;
+				// The branch-off point replaces the item flown toward on its segment.
+				plan.branch_off_mission_item_index = path.direction_reversed ? branch_off.segment.start.idx
+								     : branch_off.segment.end.idx;
 			}
 		}
 	}
 }
 
-// selection must start empty and is only meaningful when kNone is returned.
+// plan must start empty and is only meaningful when kNone is returned.
 FailureReason selectSafePoint(const Provider &provider,
 			      const MissionRouteProjection &projection,
 			      const RtlRouteRequest &request,
 			      const ProjectionContext &projection_context,
 			      ProjectionReferenceBatch &batch,
-			      GoalSelection &selection)
+			      RtlRoutePlan &plan,
+			      RoutePath &goal_path)
 {
 	const int safe_point_count = provider.safePointCount();
 
@@ -430,10 +433,10 @@ FailureReason selectSafePoint(const Provider &provider,
 			continue;
 		}
 
-		selectLowestCostSafePoint(request, projection_context, batch, selection);
+		selectLowestCostSafePoint(request, projection_context, batch, plan, goal_path);
 	}
 
-	return selection.found() ? FailureReason::kNone : scan_failure_reason;
+	return plan.goal_type != GoalType::kNone ? FailureReason::kNone : scan_failure_reason;
 }
 
 // The takeoff endpoint is the first position item, if it is a takeoff.
@@ -454,11 +457,12 @@ bool findMissionTakeoffPosition(const Provider &provider, float home_altitude_am
 	return false;
 }
 
-// Fill the empty selection with the mission takeoff or landing, whichever costs less along the route.
+// Fill the empty plan with the mission takeoff or landing, whichever costs less along the route.
 void selectMissionEndpointFallback(const Provider &provider,
 				   const RtlRouteRequest &request,
 				   const ProjectionContext &projection_context,
-				   GoalSelection &selection)
+				   RtlRoutePlan &plan,
+				   RoutePath &goal_path)
 {
 	const float home_altitude_amsl = request.home_altitude_amsl;
 	const int32_t mission_land_index = request.mission_land_index;
@@ -468,10 +472,10 @@ void selectMissionEndpointFallback(const Provider &provider,
 	// when the caller also supplies the home altitude for the destination.
 	if (PX4_ISFINITE(home_altitude_amsl) && findMissionTakeoffPosition(provider, home_altitude_amsl, takeoff_position)) {
 		takeoff_position.alt = home_altitude_amsl;
-		selection.goal_type = GoalType::kMissionTakeoff;
-		selection.goal_position = takeoff_position;
-		selection.path = findShortestPathAlongRoute(0.f, request, projection_context, PathDirectionMode::kForceReverse,
-				 GoalProjectionLocation::kOutsideActiveLoopJump);
+		plan.goal_type = GoalType::kMissionTakeoff;
+		plan.goal_position = takeoff_position;
+		goal_path = findShortestPathAlongRoute(0.f, request, projection_context, PathDirectionMode::kForceReverse,
+						       GoalProjectionLocation::kOutsideActiveLoopJump);
 	}
 
 	mission_item_s land_item{};
@@ -487,10 +491,10 @@ void selectMissionEndpointFallback(const Provider &provider,
 					       GoalProjectionLocation::kOutsideActiveLoopJump);
 
 		// The landing wins a tie.
-		if (!selection.found() || path_to_land.total_cost_m <= selection.path.total_cost_m) {
-			selection.goal_type = GoalType::kMissionLand;
-			selection.goal_position = land_position;
-			selection.path = path_to_land;
+		if (plan.goal_type == GoalType::kNone || path_to_land.total_cost_m <= goal_path.total_cost_m) {
+			plan.goal_type = GoalType::kMissionLand;
+			plan.goal_position = land_position;
+			goal_path = path_to_land;
 		}
 	}
 }
@@ -501,17 +505,18 @@ FailureReason selectBestGoal(const Provider &provider,
 			     const RtlRouteRequest &request,
 			     const ProjectionContext &projection_context,
 			     ProjectionReferenceBatch &batch,
-			     GoalSelection &selection)
+			     RtlRoutePlan &plan,
+			     RoutePath &goal_path)
 {
 	const FailureReason safe_point_status = selectSafePoint(provider, projection, request, projection_context, batch,
-						selection);
+						plan, goal_path);
 
 	if (safe_point_status == FailureReason::kNone || safe_point_status == FailureReason::kGeofenceUnavailable) {
 		return safe_point_status;
 	}
 
-	selectMissionEndpointFallback(provider, request, projection_context, selection);
-	return selection.found() ? FailureReason::kNone : safe_point_status;
+	selectMissionEndpointFallback(provider, request, projection_context, plan, goal_path);
+	return plan.goal_type != GoalType::kNone ? FailureReason::kNone : safe_point_status;
 }
 
 // Landing items, and takeoff items flown in reverse, sit at ground level: keep the vehicle
@@ -545,17 +550,17 @@ FailureReason checkCurrentAltitudeJoin(const PathChecker &path_checker, const Po
 }
 
 bool closeToBranchOffSegment(const Position &position,
-			     const GoalSelection &selection,
+			     const RtlRoutePlan &plan,
 			     float acceptance_radius_m,
 			     float altitude_acceptance_radius_m)
 {
-	const Position &branch_off_projection = selection.branch_off.projection;
+	const Position &branch_off_projection = plan.branch_off_position;
 
 	// Compare the vehicle and branch-off leg in the same local north/east frame.
 	matrix::Vector2f branch_vector{};   // branch-off projection -> goal (safe point)
 	matrix::Vector2f position_vector{}; // branch-off projection -> vehicle position
 	get_vector_to_next_waypoint(branch_off_projection.lat, branch_off_projection.lon,
-				    selection.goal_position.lat, selection.goal_position.lon,
+				    plan.goal_position.lat, plan.goal_position.lon,
 				    &branch_vector(0), &branch_vector(1));
 	get_vector_to_next_waypoint(branch_off_projection.lat, branch_off_projection.lon,
 				    position.lat, position.lon,
@@ -579,22 +584,23 @@ bool closeToBranchOffSegment(const Position &position,
 	return PX4_ISFINITE(alt_error) && alt_error < altitude_acceptance_radius_m;
 }
 
-bool canSkipRouteFollowToSelectedGoal(const RtlRouteRequest &request, const GoalSelection &selection)
+bool canSkipRouteFollowToSelectedGoal(const RtlRouteRequest &request, const RtlRoutePlan &plan,
+				      const RoutePath &goal_path)
 {
 	const Position &vehicle_position = request.vehicle_position;
 
-	if (selection.goal_type != GoalType::kSafePoint) {
-		return canUseCurrentAltitudeForJoinTarget(selection.path, vehicle_position, request.acceptance_radius_m);
+	if (plan.goal_type != GoalType::kSafePoint) {
+		return canUseCurrentAltitudeForJoinTarget(goal_path, vehicle_position, request.acceptance_radius_m);
 	}
 
 	// Safe-point goals only skip when the selected destination or branch-off leg is already close.
 	const float dist_to_goal_m = get_distance_to_next_waypoint(vehicle_position.lat, vehicle_position.lon,
-				     selection.goal_position.lat, selection.goal_position.lon);
+				     plan.goal_position.lat, plan.goal_position.lon);
 	const bool close_to_safe_point_direct = PX4_ISFINITE(dist_to_goal_m)
 						&& dist_to_goal_m < request.direct_goal_acceptance_radius_m;
 
 	return close_to_safe_point_direct
-	       || closeToBranchOffSegment(vehicle_position, selection, request.acceptance_radius_m,
+	       || closeToBranchOffSegment(vehicle_position, plan, request.acceptance_radius_m,
 					  request.altitude_acceptance_radius_m);
 }
 
@@ -718,15 +724,16 @@ FailureReason MissionRoutePlanner::planRtlRoute(const RtlRouteRequest &request,
 
 	// Find the lowest-cost safe point, falling back to mission endpoints if none is usable.
 	const MissionRouteProjection projection{_provider, _path_checker};
-	GoalSelection selection{};
+	RtlRoutePlan candidate{};
+	RoutePath goal_path{};
 	const FailureReason selection_status = selectBestGoal(_provider, projection, request, projection_context,
-					       reference_batch, selection);
+					       reference_batch, candidate, goal_path);
 
 	if (selection_status != FailureReason::kNone) {
 		return selection_status;
 	}
 
-	bool fly_direct_to_goal = canSkipRouteFollowToSelectedGoal(request, selection);
+	bool fly_direct_to_goal = canSkipRouteFollowToSelectedGoal(request, candidate, goal_path);
 	bool geofence_prevents_shortcut = false;
 
 	if (_path_checker && fly_direct_to_goal) {
@@ -734,11 +741,11 @@ FailureReason MissionRoutePlanner::planRtlRoute(const RtlRouteRequest &request,
 		// Flying straight to the goal skips those segments and needs its own check.
 		bool clear = false;
 
-		if (!_path_checker->checkPath(request.vehicle_position, selection.goal_position, clear)) {
+		if (!_path_checker->checkPath(request.vehicle_position, candidate.goal_position, clear)) {
 			return FailureReason::kGeofenceUnavailable;
 		}
 
-		if (!clear && selection.goal_type != GoalType::kSafePoint) {
+		if (!clear && candidate.goal_type != GoalType::kSafePoint) {
 			// The branch-in point near this landing/takeoff endpoint is already within
 			// acceptance radius. Restoring it would still skip straight to the endpoint.
 			return FailureReason::kNoValidPath;
@@ -750,36 +757,23 @@ FailureReason MissionRoutePlanner::planRtlRoute(const RtlRouteRequest &request,
 		fly_direct_to_goal = clear;
 	}
 
-	fillRouteJoinPlan(plan, request, projection_context, selection.path);
-	plan.goal_type = selection.goal_type;
-	plan.goal_position = selection.goal_position;
-	plan.safe_point_index = selection.safe_point_index;
-	plan.fly_direct_to_goal = fly_direct_to_goal;
-	plan.geofence_prevents_shortcut = geofence_prevents_shortcut;
+	fillRouteJoinPlan(candidate, request, projection_context, goal_path);
+	candidate.fly_direct_to_goal = fly_direct_to_goal;
+	candidate.geofence_prevents_shortcut = geofence_prevents_shortcut;
 
-	if (selection.goal_type == GoalType::kSafePoint) {
-		// The branch-off point replaces the item flown toward on its segment.
-		const Segment &branch_off_segment = selection.branch_off.segment;
-		plan.branch_off_position = selection.branch_off.projection;
-		plan.branch_off_mission_item_index = selection.path.direction_reversed
-						     ? branch_off_segment.start.idx : branch_off_segment.end.idx;
-	}
-
-	if (!plan.valid()) {
-		plan = {};
+	if (!candidate.valid()) {
 		return FailureReason::kNoValidPath;
 	}
 
 	// A direct flight to the goal was checked above.
-	if (_path_checker && plan.use_current_altitude && !plan.fly_direct_to_goal) {
-		const FailureReason join_status = checkCurrentAltitudeJoin(*_path_checker, request.vehicle_position,
-						  selection.path);
+	if (_path_checker && candidate.use_current_altitude && !candidate.fly_direct_to_goal) {
+		const FailureReason join_status = checkCurrentAltitudeJoin(*_path_checker, request.vehicle_position, goal_path);
 
 		if (join_status != FailureReason::kNone) {
-			plan = {};
 			return join_status;
 		}
 	}
 
+	plan = candidate;
 	return FailureReason::kNone;
 }

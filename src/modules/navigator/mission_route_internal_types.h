@@ -156,21 +156,4 @@ struct RoutePath {
 	bool valid() const;
 };
 
-/** @brief The branch-off is the point on the route where the UAV leaves it towards its goal (e.g. rally point). */
-struct BranchOff {
-	Segment segment{};
-	Position projection{};
-};
-
-/** @brief Internal winning goal and the scored path used to reach it. */
-struct GoalSelection {
-	GoalType goal_type{GoalType::kNone};
-	Position goal_position{};
-	int32_t safe_point_index{-1};
-	RoutePath path{};
-	BranchOff branch_off{};
-
-	bool found() const { return goal_type != GoalType::kNone; }
-};
-
 } // namespace mission_route
