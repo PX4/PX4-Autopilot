@@ -84,7 +84,7 @@ private:
 	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff
 	 */
-	bool do_need_move_to_takeoff();
+	bool do_need_move_to_takeoff(const mission_item_s &takeoff_item);
 
 	/**
 	 * Calculate takeoff height for mission item considering ground clearance
@@ -100,8 +100,21 @@ private:
 
 	void handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
 
-	void handleVtolTransition(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
-				  size_t &num_found_items);
+	/** Keep the previous setpoint, send the command of _mission_item if it has one, set the work item and publish. */
+	void publishActiveItem(const position_setpoint_s &current_setpoint_copy, WorkItemType new_work_item_type);
+
+	/** Start the transition in _vtol_transition.command, first aligning in hover towards alignment_target (copied). */
+	void startVtolTransition(const mission_item_s *alignment_target, WorkItemType completion_work);
+	/** Publish the alignment item (aligning) or send the transition command. */
+	void setVtolTransitionStep(bool aligning);
+	bool vtolTransitionActive() const { return _vtol_transition.command.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION; }
+	void resetVtolTransition() { _vtol_transition.command.nav_cmd = NAV_CMD_IDLE; }
+
+	struct VtolTransitionContext {
+		mission_item_s command{}; // Transition command, kept while _mission_item is the alignment item.
+		mission_item_s target{}; // Next position item or takeoff item to align towards, empty if there is none.
+		WorkItemType completion_work{WorkItemType::WORK_ITEM_TYPE_DEFAULT}; // Work item once commanded.
+	} _vtol_transition{};
 
 	bool _need_mission_save{false};
 };

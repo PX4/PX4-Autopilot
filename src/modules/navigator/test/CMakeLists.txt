@@ -35,6 +35,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 px4_add_functional_gtest(SRC test_geofence.cpp LINKLIBS modules__navigator modules__dataman)
 px4_add_functional_gtest(SRC test_mission_base.cpp LINKLIBS modules__navigator modules__dataman)
+px4_add_functional_gtest(SRC test_mission_vtol_transition.cpp LINKLIBS modules__navigator modules__dataman)
 px4_add_functional_gtest(SRC test_RTL.cpp LINKLIBS modules__navigator modules__dataman)
 px4_add_functional_gtest(SRC test_prec_land.cpp LINKLIBS modules__navigator modules__dataman)
 px4_add_functional_gtest(SRC test_geofence_paths.cpp LINKLIBS modules__navigator modules__dataman)
