@@ -47,7 +47,11 @@ class RtlBase : public MissionBase
 {
 public:
 	RtlBase(Navigator *navigator, int32_t dataman_cache_size_signed):
-		MissionBase(navigator, dataman_cache_size_signed, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {};
+		MissionBase(navigator, dataman_cache_size_signed, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)
+	{
+		// RTL creates this mode only for a mission and fence that Mission has already checked
+		_mission_check_state = MissionCheckState::Complete;
+	}
 	virtual ~RtlBase() = default;
 
 	virtual rtl_time_estimate_s calc_rtl_time_estimate() = 0;
