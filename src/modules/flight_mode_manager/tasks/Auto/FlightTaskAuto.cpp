@@ -636,12 +636,9 @@ bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 
 bool FlightTaskAuto::_evaluateGlobalReference()
 {
-	// check if reference has changed and update.
-	// Only update if reference timestamp has changed AND no valid reference altitude
-	// is available.
-	// TODO: this needs to be revisited and needs a more clear implementation
-	if (_sub_vehicle_local_position.get().ref_timestamp == _time_stamp_reference && PX4_ISFINITE(_reference_altitude)) {
-		// don't need to update anything
+	// Without a global origin the reference is the local origin, which doesn't move. With one, refresh on
+	// every cycle: EKF2 can move the altitude reference without a new ref_timestamp.
+	if (_sub_vehicle_local_position.get().ref_timestamp == 0 && PX4_ISFINITE(_reference_altitude)) {
 		return true;
 	}
 
@@ -662,8 +659,15 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 		ref_lon = 0.0;
 	}
 
-	// init projection
-	_reference_position.initReference(ref_lat, ref_lon, _time_stamp_current);
+	// init the projection when its reference moved: the same reference gives the same projection.
+	// A NaN on either side counts as moved, so a valid reference always replaces a NaN one.
+	const bool reference_moved = !((fabs(ref_lat - _reference_lat) <= 0.0) && (fabs(ref_lon - _reference_lon) <= 0.0));
+
+	if (reference_moved) {
+		_reference_position.initReference(ref_lat, ref_lon, _time_stamp_current);
+		_reference_lat = ref_lat;
+		_reference_lon = ref_lon;
+	}
 
 	// check if everything is still finite
 	return PX4_ISFINITE(_reference_altitude) && PX4_ISFINITE(ref_lat) && PX4_ISFINITE(ref_lon);

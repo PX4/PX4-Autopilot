@@ -26,7 +26,7 @@ The message includes fields for the roll, pitch, yaw, throttle and flaps, along 
 | <a id="fld_timestamp_sample"></a>timestamp_sample                            | `uint64`  |                                                                  |            | the timestamp of the raw data (microseconds)                                   |
 | <a id="fld_valid"></a>valid                                                                       | `bool`    |                                                                  |            |                                                                                                   |
 | <a id="fld_data_source"></a>data_source                                      | `uint8`   |                                                                  |            |                                                                                                   |
-| <a id="fld_source_system_id"></a>source_system_id       | `uint8`   |                                                                  |            | MAVLink system ID of the manual control source (Invalid: 0)    |
+| <a id="fld_source_system_id"></a>source_system_id       | `uint32`  |                                                                  |            | MAVLink system ID of the manual control source (Invalid: 0)    |
 | <a id="fld_source_component_id"></a>source_component_id | `uint8`   |                                                                  |            | MAVLink component ID of the manual control source (Invalid: 0) |
 | <a id="fld_roll"></a>roll                                                                         | `float32` |                                                                  |            | move right, positive roll rotation, right side down                                               |
 | <a id="fld_pitch"></a>pitch                                                                       | `float32` |                                                                  |            | move forward, negative pitch rotation, nose down                                                  |
@@ -46,7 +46,7 @@ The message includes fields for the roll, pitch, yaw, throttle and flaps, along 
 
 | 参数名                                                                                       | 类型       | 值 | 描述                                                               |
 | ----------------------------------------------------------------------------------------- | -------- | - | ---------------------------------------------------------------- |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                        | `uint32` | 1 |                                                                  |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                        | `uint32` | 2 |                                                                  |
 | <a id="#SOURCE_UNKNOWN"></a> SOURCE_UNKNOWN                          | `uint8`  | 0 |                                                                  |
 | <a id="#SOURCE_RC"></a> SOURCE_RC                                    | `uint8`  | 1 | radio control (input_rc) |
 | <a id="#SOURCE_MAVLINK_0"></a> SOURCE_MAVLINK_0 | `uint8`  | 2 | mavlink instance 0                                               |
@@ -76,7 +76,7 @@ Click here to see original file
 #
 # The message includes fields for the roll, pitch, yaw, throttle and flaps, along with auxiliary channels and button states.
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp                        # time since system start (microseconds)
 uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
@@ -93,7 +93,7 @@ uint8 SOURCE_MAVLINK_4 = 6		# mavlink instance 4
 uint8 SOURCE_MAVLINK_5 = 7		# mavlink instance 5
 
 uint8 data_source
-uint8 source_system_id  # [@invalid 0] MAVLink system ID of the manual control source
+uint32 source_system_id # [@invalid 0] MAVLink system ID of the manual control source
 uint8 source_component_id # [@invalid 0] MAVLink component ID of the manual control source
 
 # Any of the channels may not be available and be set to NaN

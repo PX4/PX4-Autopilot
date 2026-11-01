@@ -126,6 +126,7 @@ void TargetEstimator::update()
 
 	// Get GPS reference location for NED frame, needed for projection
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
+	reset_on_reference_change();
 
 	// Perform sensor fusion update if there's a new GPS message from the follow-target
 	prediction_update(deltatime);
@@ -168,9 +169,10 @@ void TargetEstimator::update()
 	follow_target_estimator.valid = states_are_finite;
 	follow_target_estimator.stale = is_stale(GPS_MESSAGE_STALE_TIMEOUT_MS);
 	follow_target_estimator.last_filter_reset_timestamp = _last_filter_reset_timestamp;
-	follow_target_estimator.lat_est = get_lat_lon_alt_est()(0);
-	follow_target_estimator.lon_est = get_lat_lon_alt_est()(1);
-	follow_target_estimator.alt_est = get_lat_lon_alt_est()(2);
+	const Vector3<double> lat_lon_alt_est = get_lat_lon_alt_est();
+	follow_target_estimator.lat_est = lat_lon_alt_est(0);
+	follow_target_estimator.lon_est = lat_lon_alt_est(1);
+	follow_target_estimator.alt_est = lat_lon_alt_est(2);
 	_filter_states.pos_ned_est.copyTo(follow_target_estimator.pos_est);
 	_filter_states.vel_ned_est.copyTo(follow_target_estimator.vel_est);
 	_filter_states.acc_ned_est.copyTo(follow_target_estimator.acc_est);
@@ -227,12 +229,15 @@ bool TargetEstimator::measurement_can_be_fused(const Vector3f &current_measureme
 
 void TargetEstimator::measurement_update(const follow_target_s &follow_target)
 {
+	if (!_reference_position.isInitialized()) {
+		// nothing to project the measurement into yet
+		return;
+	}
+
 	_fusion_count++;
 	// Decompose follow_target message into the individual measurements for position and velocity
 	const Vector3f vel_measured{follow_target.vx, follow_target.vy, follow_target.vz};
-	Vector3f pos_measured{NAN, NAN, -(follow_target.alt - _vehicle_local_position.ref_alt)};
-	_reference_position.initReference(_vehicle_local_position.ref_lat, _vehicle_local_position.ref_lon,
-					  hrt_absolute_time());
+	Vector3f pos_measured{NAN, NAN, -(follow_target.alt - _ref_alt)};
 	_reference_position.project(follow_target.lat, follow_target.lon, pos_measured(0), pos_measured(1));
 
 	// Initialize filter if necessary
@@ -306,6 +311,33 @@ void TargetEstimator::measurement_update(const follow_target_s &follow_target)
 
 }
 
+void TargetEstimator::reset_on_reference_change()
+{
+	const vehicle_local_position_s &local_position = _vehicle_local_position;
+
+	// EKF2 publishes NaN and MicroStrain zeros without a reference, and LPE sets xy_global before its
+	// origin exists, so both global flags and finite values are required
+	const bool reference_valid = local_position.xy_global && local_position.z_global
+				     && PX4_ISFINITE(local_position.ref_lat) && PX4_ISFINITE(local_position.ref_lon)
+				     && PX4_ISFINITE(local_position.ref_alt);
+
+	if (!reference_valid) {
+		return;
+	}
+
+	// the reference timestamp changes whenever the origin is set, and the altitude can change on its own
+	if ((local_position.ref_timestamp != _ref_timestamp) || (fabsf(local_position.ref_alt - _ref_alt) > 1e-3f)) {
+		if (_ref_timestamp != 0) {
+			// the states are in the old frame, so the estimate restarts from the next measurement in the new one
+			reset();
+		}
+
+		_reference_position.initReference(local_position.ref_lat, local_position.ref_lon, hrt_absolute_time());
+		_ref_timestamp = local_position.ref_timestamp;
+		_ref_alt = local_position.ref_alt;
+	}
+}
+
 void TargetEstimator::prediction_update(float deltatime)
 {
 	_prediction_count++;
@@ -329,7 +361,7 @@ Vector3<double> TargetEstimator::get_lat_lon_alt_est() const
 	if (Vector2f(_filter_states.pos_ned_est).isAllFinite()) {
 		_reference_position.reproject(_filter_states.pos_ned_est(0), _filter_states.pos_ned_est(1), lat_lon_alt(0),
 					      lat_lon_alt(1));
-		lat_lon_alt(2) = -(double)_filter_states.pos_ned_est(2) + (double)_vehicle_local_position.ref_alt;
+		lat_lon_alt(2) = -(double)_filter_states.pos_ned_est(2) + (double)_ref_alt;
 	}
 
 	return lat_lon_alt;
@@ -344,7 +376,7 @@ bool TargetEstimator::is_stale(const float timeout_duration_ms) const
 
 void TargetEstimator::reset()
 {
-	_last_filter_reset_timestamp = hrt_absolute_time();  // debug only
+	_last_filter_reset_timestamp = hrt_absolute_time();  // the task restarts its target filter on this
 	_last_position_fusion_timestamp = _last_velocity_fusion_timestamp = 0;
 	_last_follow_target_timestamp = 0;
 	_filter_states.pos_ned_est.setAll(NAN);

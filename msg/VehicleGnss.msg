@@ -11,12 +11,22 @@ SensorGnss receiver # The selected receiver's sensor_gnss sample with the correc
 float32[3] antenna_offset # [m] [@frame FRD] Antenna position of the selected receiver
 
 # Selection state
-uint8 selected_instance # [-] sensor_gnss instance of the selected receiver
-uint8 selection_count   # [-] Increments when the selected receiver changes
+uint8 selected_instance       # [-] sensor_gnss instance of the selected receiver
+uint8 selection_count         # [-] Increments when the selected receiver changes
+uint8 selection_reason        # [@enum SELECTION] Why this receiver is selected
+uint8 SELECTION_PREFERRED    = 0 # The preferred receiver
+uint8 SELECTION_ONLY         = 1 # No other receiver has published
+uint8 SELECTION_RANKED       = 2 # No receiver is preferred, and no other one ranks higher
+uint8 SELECTION_TIMEOUT      = 3 # The previously selected or the preferred receiver stopped publishing
+uint8 SELECTION_UNHEALTHY    = 4 # The previously selected or the preferred receiver failed its checks or delivered samples late, continuously or often
+uint8 SELECTION_STRICT       = 5 # Passes the strict checks, which the previously selected receiver didn't
+uint8 SELECTION_RTK_FIXED    = 6 # Passes the strict checks with an RTK fixed solution, and the previously selected receiver ranked lower
 
-# Check result for this sample
-bool usable                 # Sample may be used: the receiver has passed its checks for long enough
-uint16 failed_checks        # [@enum CHECK] Bitmask of the enabled checks that failed
+# Check result for this sample. The strict checks are the GNSS_REQ_* thresholds, satellite count, PDOP and drift at rest on the ground; the relaxed checks are fixed, looser limits on fix type, accuracy, spoofing and jamming.
+bool usable                  # Sample may be used: the checks that decide it have passed without a failure for long enough
+bool strict                  # The strict checks decide usable: they haven't passed since the vehicle was disarmed on the ground, or they pass. Otherwise the relaxed checks decide
+uint16 failed_strict_checks  # [@enum CHECK] Enabled checks this sample fails at the strict thresholds, evaluated on every sample
+uint16 failed_relaxed_checks # [@enum CHECK] Enabled checks this sample fails at the relaxed thresholds, evaluated on every sample
 uint16 CHECK_NSATS   = 1    # Too few satellites
 uint16 CHECK_PDOP    = 2    # Position dilution of precision too high
 uint16 CHECK_EPH     = 4    # Horizontal position accuracy too low

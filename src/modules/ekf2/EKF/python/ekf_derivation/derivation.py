@@ -120,7 +120,7 @@ def predict_covariance(
     gyro: sf.V3,
     gyro_var: sf.Scalar,
     dt: sf.Scalar
-) -> MTangent:
+) -> sf.Matrix:
 
     state = vstate_to_state(state)
     g = sf.Symbol("g") # does not appear in the jacobians
@@ -216,7 +216,14 @@ def predict_covariance(
             if index > j:
                 P_new[index,j] = 0
 
-    return P_new
+    # The states after the kinematic ones have an identity process model and no process
+    # noise here, so their rows of the upper triangle are copies of P: only return the rows
+    # up to the last kinematic state and let the implementation keep the rest of P.
+    n = state.tangent_dim()
+    I = sf.Matrix.eye(n)
+    n_predicted = 1 + max(i for i in range(n) if A[i, :] != I[i, :] or G[i, :] != sf.Matrix.zeros(1, G.shape[1]))
+
+    return P_new[:n_predicted, :]
 
 def jacobian_chain_rule(expr: sf.Scalar , state: State):
     # First compute the jacobian in the parameter space

@@ -42,6 +42,15 @@
 #include "ParamManager.hpp"
 #include <px4_platform_common/defines.h>
 
+// A register name on the wire is not NUL-terminated and carries its own length, so it
+// matches only if that length and every character agree. Comparing just the request's
+// length would let a prefix, or an empty name, select a register.
+static bool register_name_matches(const uavcan_register_Name_1_0 &name, const char *register_name)
+{
+	const size_t length = strlen(register_name);
+	return name.name.count == length && memcmp(name.name.elements, register_name, length) == 0;
+}
+
 bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_Value_1_0 &value)
 {
 	for (auto &param : _uavcan_params) {
@@ -71,7 +80,7 @@ bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_
 bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, uavcan_register_Value_1_0 &value)
 {
 	for (auto &param : _uavcan_params) {
-		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
+		if (register_name_matches(name, param.uavcan_name)) {
 			param_t param_handle = param_find(param.px4_name);
 
 			if (param_handle == PARAM_INVALID) {
@@ -83,7 +92,7 @@ bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, ua
 	}
 
 	for (auto &param : _type_registers) {
-		if (strncmp((char *)name.name.elements, param.name, name.name.count) == 0) {
+		if (register_name_matches(name, param.name)) {
 			uavcan_register_Value_1_0_select_string_(&value);
 			value._string.value.count = strlen(param.value);
 			memcpy(&value._string, param.value, value._string.value.count);
@@ -118,7 +127,7 @@ bool UavcanParamManager::GetParamName(uint32_t id, uavcan_register_Name_1_0 &nam
 bool UavcanParamManager::SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value)
 {
 	for (auto &param : _uavcan_params) {
-		if (strncmp((char *)name.name.elements, param.uavcan_name, name.name.count) == 0) {
+		if (register_name_matches(name, param.uavcan_name)) {
 			param_t param_handle = param_find(param.px4_name);
 
 			if (param_handle == PARAM_INVALID) {

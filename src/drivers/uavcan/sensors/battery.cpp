@@ -117,14 +117,15 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		}
 	}
 
-	if (_node_info_publisher != nullptr) {
-		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				msg.battery_id, device_information_s::DEVICE_TYPE_BATTERY);
-	}
-
 	if (instance >= battery_status_s::MAX_INSTANCES
 	    || _batt_update_mod[instance] == BatteryDataType::CBAT) {
 		return;
+	}
+
+	// CBAT batteries are registered under their node ID in cbat_sub_cb()
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				msg.battery_id, device_information_s::DEVICE_TYPE_BATTERY);
 	}
 
 	_node_ids[instance] = msg.getSrcNodeID().get();
@@ -330,6 +331,11 @@ void
 UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg,
 				uint8_t instance)
 {
+	// Skip a non-finite voltage sample
+	if (!PX4_ISFINITE(msg.voltage)) {
+		return;
+	}
+
 	_battery[instance]->setConnected(true);
 	_battery[instance]->updateVoltage(msg.voltage);
 	_battery[instance]->updateCurrent(msg.current);

@@ -71,7 +71,7 @@ struct I2C::_bus_mutex_t I2C::_bus_mutex[I2C::MAX_I2C_BUS] = {
 };
 
 I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency) :
-	CDev(name, nullptr),
+	Device(name),
 	_frequency(frequency / 1000)
 {
 	_device_id.devid = 0;
@@ -147,10 +147,10 @@ I2C::init()
 	}
 
 	// do base class init, which will create device node, etc
-	ret = CDev::init();
+	ret = Device::init();
 
 	if (ret != OK) {
-		PX4_ERR("i2c cdev init failed");
+		PX4_ERR("i2c init failed");
 		goto out;
 	}
 

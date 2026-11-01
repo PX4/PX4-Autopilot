@@ -47,25 +47,20 @@
 
 #include <dataman/dataman.h>
 #include <matrix/math.hpp>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 namespace mission_route
 {
 
 static constexpr float kRoundingToleranceM{0.1f};
 static constexpr double kCornerLatLonTolDeg{1e-5};
-static constexpr uint8_t kMaxSegmentCandidates{3};
+/** Closest projections kept per point. The fence check runs before the search margin is applied. */
+static constexpr uint8_t kMaxSegmentCandidates{4};
 
-/**
- * Number of safe points projected during one mission scan pass.
- *
- * Batching trades fixed RAM for fewer complete mission-route walks. This lets all references in a
- * batch share route loading and future expensive route checks instead of repeating that work for every safe point.
- */
+/** Safe points projected per route walk: larger batches trade fixed RAM for fewer walks. */
 static constexpr uint8_t kMaxSafePointBatch{CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE};
-static_assert(CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE >= 1 && CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE <= 255,
-	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must fit the uint8_t batch counters");
-static_assert(kMaxSafePointBatch <= DM_KEY_SAFE_POINTS_MAX,
-	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must not exceed DM_KEY_SAFE_POINTS_MAX");
+static_assert(kMaxSafePointBatch >= 16 && kMaxSafePointBatch <= DM_KEY_SAFE_POINTS_MAX,
+	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must be 16..DM_KEY_SAFE_POINTS_MAX");
 
 /** @brief Key distances for a point projected onto one segment. */
 struct ProjectionDistance {
@@ -103,6 +98,12 @@ struct Segment {
 	bool isLoop() const { return jump_item_index >= 0; }
 	bool valid() const;
 	bool validLoop() const;
+
+	/** A jump edge and a nominal segment with the same endpoints: one leg, flown with or without the jump. */
+	bool isTwin(const Segment &other) const
+	{
+		return isLoop() != other.isLoop() && start.idx == other.start.idx && end.idx == other.end.idx;
+	}
 };
 
 /** @brief The along-track interval of one segment within the full route. */
@@ -129,15 +130,6 @@ struct ProjectionCandidateBuffer {
 	uint8_t count{0};
 };
 
-/** @brief Active DO_JUMP geometry and along-route interval used while solving a path. */
-struct LoopContext {
-	Segment segment{};
-	SegmentPositions segment_positions{};
-	SegmentDistanceAlong bounds{};
-
-	bool valid() const;
-};
-
 /** @brief Live vehicle kinematics and mode flags copied into one planning pass. */
 struct VehicleStateContext {
 	bool is_flying_reverse{false}; /**< True when flying towards the mission start (takeoff) */
@@ -157,11 +149,12 @@ struct ProjectionContext {
 	VehicleStateContext vehicle_state{};
 	float route_length{0.f};
 	int32_t route_end_index{-1};
-	LoopContext loop_context{};
+	SegmentDistanceAlong loop_bounds{}; /**< Along-route distances of both exits when route_projection is on a loop. */
 	/** Required VTOL state on the vehicle's projected segment, resolved once per planning pass. */
 	uint8_t projected_segment_vtol_state{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
-
-	bool valid() const;
+	/** U-turn cost of following the route nominally or in reverse, resolved once per planning pass. */
+	float u_turn_cost_nominal_m{0.f};
+	float u_turn_cost_reverse_m{0.f};
 };
 
 /** @brief First route item to target when the vehicle starts following the path. */
@@ -169,13 +162,11 @@ struct FirstRouteItem {
 	int32_t index{-1};
 	uint16_t nav_cmd{NAV_CMD_INVALID};
 	Position position{};
-	bool in_acc_rad{false}; /**< Vehicle is already inside the item's acceptance radius. */
 };
 
 /** @brief One scored route path to a goal. */
 struct RoutePath {
 	bool direction_reversed{false}; /**< True when flying towards the mission start (takeoff) */
-	bool u_turn_required{false};
 	FirstRouteItem first_item{};
 	float total_cost_m{FLT_MAX};
 
@@ -186,8 +177,6 @@ struct RoutePath {
 struct BranchOff {
 	Segment segment{};
 	Position projection{};
-
-	bool valid() const;
 };
 
 /** @brief Internal winning goal and the scored path used to reach it. */
@@ -197,11 +186,8 @@ struct GoalSelection {
 	int32_t safe_point_index{-1};
 	RoutePath path{};
 	BranchOff branch_off{};
-	bool fly_direct_to_goal{false}; /**< Skip route following: the vehicle is already at the goal or on the branch-off leg. */
 
 	bool found() const { return goal_type != GoalType::kNone; }
-	bool valid() const;
-	int32_t branchOffIndex() const;
 };
 
 /** @brief Normalized parameters shared by projection and goal-selection helpers during one planning pass. */
@@ -212,9 +198,7 @@ struct PlannerParameters {
 	float straight_to_safe_point_rad_m{0.f}; /**< Fly straight to a safe point closer than this, skipping the route. */
 	float altitude_acceptance_radius_m{0.f};
 	float home_altitude_amsl{NAN};
-	float fw_u_turn_penalty_m{4000.f}; /**< FW-only cost of a u-turn (default estimated from turn time and route deviation)*/
-	/** Fallback VTOL state when no preceding explicit or implicit (e.g. VTOL_TAKEOFF) transition establishes the state. */
-	uint8_t vtol_state_on_mission_upload{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
+	float fw_u_turn_penalty_m{0.f};
 
 	bool validForVehicleProjection() const;
 	bool validForRtlRoute() const;

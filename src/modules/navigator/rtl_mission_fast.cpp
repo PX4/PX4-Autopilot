@@ -163,14 +163,7 @@ void RtlMissionFast::setActiveMissionItems()
 			handleLanding(new_work_item_type, next_mission_items, num_found_items);
 
 		} else {
-			// convert mission item to a simple waypoint, keep loiter to alt
-			if (_mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			}
-
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0.0f;
-
+			makeRtlPositionItem(_mission_item);
 		}
 
 		if (num_found_items > 0) {
@@ -181,6 +174,7 @@ void RtlMissionFast::setActiveMissionItems()
 
 		// Only set the previous position item if the current one really changed
 		if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
+		    (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND) &&
 		    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 			pos_sp_triplet->previous = current_setpoint_copy;
 		}
@@ -190,7 +184,8 @@ void RtlMissionFast::setActiveMissionItems()
 						   _mission_item.nav_cmd == NAV_CMD_WAYPOINT;
 		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
 				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
-				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+				(new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
+				 new_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND);
 
 		if (fw_on_mission_landing || mc_landing_after_transition) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;

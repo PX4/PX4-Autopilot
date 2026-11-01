@@ -433,3 +433,433 @@ TEST_F(MissionFeasibilityGeofenceTest, UnreadableMissionStorageRejectsUpload)
 	EXPECT_TRUE(logContains("dataman read failed at item 0"));
 	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_dm_read_fail"), 0));
 }
+
+class MissionGeofenceJumpTest : public MissionFeasibilityGeofenceTest
+{
+protected:
+	void expectJumpFailure(uint16_t item, bool invalid = false)
+	{
+		const std::string message = invalid ? "Mission rejected: DO_JUMP " + std::to_string(item) + " path cannot be resolved" :
+					    "Geofence breach on DO_JUMP " + std::to_string(item) + " path";
+		EXPECT_TRUE(logContains(message.c_str()));
+		EXPECT_TRUE(waypointEvent(invalid ? events::ID("navigator_mis_do_jump_invalid") :
+					  events::ID("navigator_mis_geofence_jump_breach"), item));
+	}
+};
+
+struct MissionJumpRepeatCase {
+	const char *name;
+	uint16_t repeats;
+	uint16_t current;
+	bool feasible;
+	size_t preceding_positions{1};
+};
+
+class MissionGeofenceJumpRepeatTest : public MissionGeofenceJumpTest,
+	public ::testing::WithParamInterface<MissionJumpRepeatCase> {};
+
+TEST_P(MissionGeofenceJumpRepeatTest, ChecksRepeatableJumpsWithoutChangingCounters)
+{
+	const MissionJumpRepeatCase &test = GetParam();
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	// Sequential legs go around the square; the jump cuts diagonally across it.
+	// Repeated safe positions place that jump on either side of a batch boundary.
+	std::vector<mission_item_s> items(test.preceding_positions, waypoint({300.f, 500.f}));
+	items.push_back(waypoint({300.f, 100.f}));
+	items.push_back(waypoint({-300.f, 100.f}));
+	const uint16_t jump_index = items.size();
+	items.push_back(navigator_test::makeDoJump(0, test.repeats, test.current));
+	EXPECT_EQ(missionFeasible(items), test.feasible);
+
+	if (!test.feasible) {
+		expectJumpFailure(jump_index + 1);
+	}
+
+	mission_item_s stored{};
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, jump_index,
+					     reinterpret_cast<uint8_t *>(&stored), sizeof(stored)));
+	EXPECT_EQ(stored.do_jump_repeat_count, test.repeats);
+	EXPECT_EQ(stored.do_jump_current_count, test.current);
+
+	if (!test.feasible) {
+		// The next upload must discard buffered jumps and report its ordinary leg.
+		EXPECT_FALSE(missionFeasible({waypoint({0.f, 100.f}), waypoint({0.f, 500.f})}));
+		expectPathViolation(2);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionJumpRepeats, MissionGeofenceJumpRepeatTest, ::testing::Values(
+				 MissionJumpRepeatCase{"ActiveAtBatchEnd", 1, 0, false, Geofence::MAX_PATH_CHECKS - 3},
+				 MissionJumpRepeatCase{"ZeroRepeats", 0, 0, true},
+				 MissionJumpRepeatCase{"SpentCounterIsIgnored", 1, 1, false},
+				 MissionJumpRepeatCase{"LargeRepeatCountAfterBatchEnd", UINT16_MAX, 0, false, Geofence::MAX_PATH_CHECKS - 2}),
+			 [](const ::testing::TestParamInfo<MissionJumpRepeatCase> &test_info)
+{
+	return test_info.param.name;
+});
+
+TEST_F(MissionGeofenceJumpTest, FallthroughLegIsReportedWithItsWaypoint)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	// The jump back to the same waypoint is clear; the leg flown once it is spent belongs to item 3.
+	EXPECT_FALSE(missionFeasible({
+		waypoint({0.f, 100.f}), navigator_test::makeDoJump(0, 1, 1), waypoint({0.f, 500.f})
+	}));
+	expectPathViolation(3);
+}
+
+TEST_F(MissionGeofenceJumpTest, ChecksCommandAndChainedDestination)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	// Item 6 reaches the southwest corner through an earlier command and jump.
+	EXPECT_FALSE(missionFeasible({
+		waypoint({-300.f, 100.f}), changeSpeed(), navigator_test::makeDoJump(0, 1),
+		waypoint({300.f, 100.f}), waypoint({300.f, 500.f}), navigator_test::makeDoJump(1, 1)
+	}));
+	expectJumpFailure(6);
+}
+
+class MissionGeofenceNestedJumpTest : public MissionGeofenceJumpTest,
+	public ::testing::WithParamInterface<bool> {};
+
+TEST_P(MissionGeofenceNestedJumpTest, ChecksFallthroughAfterNestedJumpExhausts)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	const bool spent_counter = GetParam();
+	// Item 2 jumps to the southeast corner while active, then falls through to the
+	// southwest corner. That second destination makes item 6's backward jump cross the square.
+	// A stored counter does not change this: the check ignores execution state.
+	EXPECT_FALSE(missionFeasible({
+		waypoint({-300.f, 500.f}), navigator_test::makeDoJump(0, 1, spent_counter ? 1 : 0),
+		waypoint({-300.f, 100.f}), waypoint({300.f, 100.f}), waypoint({300.f, 500.f}),
+		navigator_test::makeDoJump(1, 2)
+	}));
+	expectJumpFailure(6);
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionNestedJumps, MissionGeofenceNestedJumpTest, ::testing::Bool(),
+			 [](const ::testing::TestParamInfo<bool> &test_info)
+{
+	return test_info.param ? "SpentCounterIgnored" : "ExhaustsOnLaterVisit";
+});
+
+struct MissionJumpChainCase {
+	const char *name;
+	unsigned jumps;
+	bool commands_between;
+	bool feasible;
+};
+
+class MissionGeofenceJumpChainTest : public MissionGeofenceJumpTest,
+	public ::testing::WithParamInterface<MissionJumpChainCase> {};
+
+TEST_P(MissionGeofenceJumpChainTest, ResolvesChainsLikeTheMission)
+{
+	const MissionJumpChainCase &test = GetParam();
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+	std::vector<mission_item_s> items{waypoint({0.f, 0.f})};
+
+	// The final backward jump targets a chain of disabled jumps leading to a safe waypoint.
+	// Every target is earlier, and even disabled jumps count towards NAV_MAX_JUMP_ITERATION.
+	// Non-jump commands between them start a new resolution count.
+	for (unsigned i = 1; i < test.jumps; ++i) {
+		items.push_back(navigator_test::makeDoJump(0, 0));
+
+		if (test.commands_between) {
+			items.push_back(changeSpeed());
+		}
+	}
+
+	items.push_back(waypoint({0.f, 100.f}));
+	const uint16_t jump_index = items.size();
+	items.push_back(navigator_test::makeDoJump(1, 1));
+	EXPECT_EQ(missionFeasible(items), test.feasible);
+
+	if (!test.feasible) {
+		expectJumpFailure(jump_index + 1, true);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionJumpChains, MissionGeofenceJumpChainTest, ::testing::Values(
+				 MissionJumpChainCase{"LongestResolvableChain", NAV_MAX_JUMP_ITERATION - 1, false, true},
+				 MissionJumpChainCase{"UnresolvableChain", NAV_MAX_JUMP_ITERATION, false, false},
+				 MissionJumpChainCase{"CommandsBetweenJumps", NAV_MAX_JUMP_ITERATION + 1, true, true}),
+			 [](const ::testing::TestParamInfo<MissionJumpChainCase> &test_info)
+{
+	return test_info.param.name;
+});
+
+TEST_F(MissionGeofenceJumpTest, RejectsLoopThroughACommand)
+{
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+	// The traversal limit must also stop a loop containing a non-position command.
+	EXPECT_FALSE(missionFeasible({changeSpeed(), navigator_test::makeDoJump(0, 1)}));
+	expectJumpFailure(2, true);
+}
+
+class MissionGeofenceJumpOrderTest : public MissionGeofenceJumpTest,
+	public ::testing::WithParamInterface<bool> {};
+
+TEST_P(MissionGeofenceJumpOrderTest, BufferedJumpBreachPrecedesLaterFailure)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	std::vector<mission_item_s> items{
+		waypoint({300.f, 100.f}), waypoint({300.f, 500.f}), waypoint({-300.f, 500.f}),
+		waypoint({-300.f, 100.f}), navigator_test::makeDoJump(1, 1)
+	};
+
+	if (GetParam()) {
+		items.push_back(navigator_test::makeDoJump(99, 1));
+
+	} else {
+		const float maximum = 150.f;
+		ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum), PX4_OK);
+		_navigator.updateParams();
+		mission_item_s invalid = waypoint({-300.f, 100.f});
+		invalid.altitude = 600.f;
+		items.push_back(invalid);
+	}
+
+	EXPECT_FALSE(missionFeasible(items));
+	expectJumpFailure(5);
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionJumpOrder, MissionGeofenceJumpOrderTest, ::testing::Bool(),
+			 [](const ::testing::TestParamInfo<bool> &test_info)
+{
+	return test_info.param ? "BeforeInvalidJump" : "BeforeInvalidWaypoint";
+});
+
+class MissionGeofenceLoiterTest : public MissionFeasibilityGeofenceTest
+{
+protected:
+	bool configureVehicle(uint8_t type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING, bool is_vtol = false)
+	{
+		// These missions exercise fences without a takeoff or landing sequence.
+		const int32_t takeoff_land_requirement = 0;
+
+		if (param_set(param_find("MIS_TKO_LAND_REQ"), &takeoff_land_requirement) != PX4_OK) {
+			return false;
+		}
+
+		vehicle_status_s status = *_navigator.get_vstatus();
+		status.vehicle_type = type;
+		status.is_vtol = is_vtol;
+		*_navigator.get_vstatus() = status;
+		_status_pub.publish(status);
+		return true;
+	}
+
+	mission_item_s loiter(float east, float radius, uint16_t command = NAV_CMD_LOITER_UNLIMITED) const
+	{
+		mission_item_s item = waypoint({0.f, east});
+		item.nav_cmd = command;
+		item.loiter_radius = radius;
+		return item;
+	}
+
+	void expectLoiterViolation(int16_t waypoint_index)
+	{
+		const std::string message = "Geofence breach by loiter circle of waypoint " + std::to_string(waypoint_index);
+		EXPECT_TRUE(logContains(message.c_str()));
+		EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_loiter_breach"), waypoint_index));
+	}
+};
+
+struct MissionLoiterCase {
+	const char *name;
+	uint16_t command;
+	float radius;
+	bool feasible;
+	uint8_t vehicle_type{vehicle_status_s::VEHICLE_TYPE_FIXED_WING};
+	bool is_vtol{false};
+	float default_radius{40.f};
+	bool followed_by_waypoint{false};
+};
+
+class MissionGeofenceLoiterRadiusTest : public MissionGeofenceLoiterTest,
+	public ::testing::WithParamInterface<MissionLoiterCase> {};
+
+TEST_P(MissionGeofenceLoiterRadiusTest, ChecksRadiusForCirclingVehicles)
+{
+	const MissionLoiterCase &test = GetParam();
+	ASSERT_TRUE(configureVehicle(test.vehicle_type, test.is_vtol));
+	ASSERT_EQ(param_set(param_find("NAV_LOITER_RAD"), &test.default_radius), PX4_OK);
+	_navigator.updateParams();
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// The centre is 50 m inside the eastern edge: 40 m fits, 60 m crosses it.
+	std::vector<mission_item_s> items{waypoint({0.f, 800.f}), changeSpeed(), loiter(950.f, test.radius, test.command)};
+
+	if (test.followed_by_waypoint) {
+		items.push_back(waypoint({0.f, 800.f}));
+	}
+
+	EXPECT_EQ(missionFeasible(items), test.feasible);
+
+	if (!test.feasible) {
+		expectLoiterViolation(3);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionLoiterRadii, MissionGeofenceLoiterRadiusTest, ::testing::Values(
+				 MissionLoiterCase{"CircleFits", NAV_CMD_LOITER_UNLIMITED, 40.f, true},
+				 MissionLoiterCase{"UnlimitedLoiterCrosses", NAV_CMD_LOITER_UNLIMITED, 60.f, false},
+				 MissionLoiterCase{"TimedLoiterNegativeRadius", NAV_CMD_LOITER_TIME_LIMIT, -60.f, false,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false, 40.f, true},
+				 MissionLoiterCase{"LoiterToAltitudeCrosses", NAV_CMD_LOITER_TO_ALT, 60.f, false,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false, 40.f, true},
+				 MissionLoiterCase{"ZeroUsesConfiguredDefault", NAV_CMD_LOITER_UNLIMITED, 0.f, true},
+				 MissionLoiterCase{"ZeroDefaultCrosses", NAV_CMD_LOITER_UNLIMITED, 0.f, false,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false, 60.f},
+				 MissionLoiterCase{"NaNUsesDefault", NAV_CMD_LOITER_UNLIMITED, NAN, false,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false, 60.f},
+				 MissionLoiterCase{"InfiniteRadiusRejected", NAV_CMD_LOITER_UNLIMITED, INFINITY, false},
+				 MissionLoiterCase{"MulticopterHovers", NAV_CMD_LOITER_UNLIMITED, 60.f, true,
+						 vehicle_status_s::VEHICLE_TYPE_ROTARY_WING},
+				 MissionLoiterCase{"VtolMayTransition", NAV_CMD_LOITER_UNLIMITED, 60.f, false,
+						 vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true},
+				 MissionLoiterCase{"WaypointIgnoresRadius", NAV_CMD_WAYPOINT, 60.f, true,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false, 40.f, true}),
+			 [](const ::testing::TestParamInfo<MissionLoiterCase> &test_info)
+{
+	return test_info.param.name;
+});
+
+TEST_F(MissionGeofenceLoiterTest, EmptyFenceStillChecksCircleDistanceFromHome)
+{
+	ASSERT_TRUE(configureVehicle());
+	const float maximum = 300.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum), PX4_OK);
+	_navigator.updateParams();
+
+	// Both centres pass; only the 60 m circle reaches beyond the Home limit.
+	EXPECT_TRUE(missionFeasible({loiter(250.f, 40.f)}));
+	EXPECT_FALSE(missionFeasible({loiter(250.f, 60.f)}));
+	expectLoiterViolation(1);
+}
+
+TEST_F(MissionGeofenceLoiterTest, NaNDefaultRadiusRejectsTheEndLoiter)
+{
+	ASSERT_TRUE(configureVehicle());
+	const float radius = NAN;
+	ASSERT_EQ(param_set(param_find("NAV_LOITER_RAD"), &radius), PX4_OK);
+	_navigator.updateParams();
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// The mission ends in a loiter whose circle cannot be checked.
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, -500.f}), waypoint({0.f, 0.f})}));
+	EXPECT_TRUE(logContains("geofence path check unavailable"));
+}
+
+class MissionGeofenceLoiterBatchTest : public MissionGeofenceLoiterTest,
+	public ::testing::WithParamInterface<bool> {};
+
+TEST_P(MissionGeofenceLoiterBatchTest, ChecksCircleAtBatchBoundaryAndResetsForNextMission)
+{
+	ASSERT_TRUE(configureVehicle());
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+	// The circle either fills the first batch or follows an incoming leg that fills it.
+	const size_t preceding_positions = Geofence::MAX_PATH_CHECKS - (GetParam() ? 1 : 2);
+	std::vector<mission_item_s> items(preceding_positions, waypoint({0.f, 800.f}));
+	items.push_back(loiter(950.f, 60.f));
+	EXPECT_FALSE(missionFeasible(items));
+	expectLoiterViolation(static_cast<int16_t>(items.size()));
+	EXPECT_TRUE(missionFeasible({loiter(950.f, 40.f)}));
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionLoiterBatches, MissionGeofenceLoiterBatchTest, ::testing::Bool(),
+			 [](const ::testing::TestParamInfo<bool> &test_info)
+{
+	return test_info.param ? "CircleStartsNextBatch" : "CircleEndsFirstBatch";
+});
+
+class MissionGeofenceLoiterOrderTest : public MissionGeofenceLoiterTest,
+	public ::testing::WithParamInterface<bool> {};
+
+TEST_P(MissionGeofenceLoiterOrderTest, ReportsFirstBreachInMissionOrder)
+{
+	ASSERT_TRUE(configureVehicle());
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+
+	// The leg crosses the exclusion. A circle on either end also overlaps it.
+	if (GetParam()) {
+		EXPECT_FALSE(missionFeasible({waypoint({0.f, 100.f}), loiter(500.f, 160.f)}));
+		expectPathViolation(2);
+
+	} else {
+		EXPECT_FALSE(missionFeasible({loiter(100.f, 160.f), waypoint({0.f, 500.f})}));
+		expectLoiterViolation(1);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionLoiterOrder, MissionGeofenceLoiterOrderTest, ::testing::Bool(),
+			 [](const ::testing::TestParamInfo<bool> &test_info)
+{
+	return test_info.param ? "IncomingPathBeforeCircle" : "CircleBeforeFollowingPath";
+});
+
+enum class MissionEnd { Waypoint, Land, Loiter };
+
+struct MissionEndCase {
+	const char *name;
+	MissionEnd last_item;
+	float default_radius;
+	uint8_t vehicle_type;
+	bool feasible;
+};
+
+class MissionGeofenceEndLoiterTest : public MissionGeofenceLoiterTest,
+	public ::testing::WithParamInterface<MissionEndCase> {};
+
+TEST_P(MissionGeofenceEndLoiterTest, ChecksTheLoiterAfterTheLastPosition)
+{
+	const MissionEndCase &test = GetParam();
+	ASSERT_TRUE(configureVehicle(test.vehicle_type));
+	ASSERT_EQ(param_set(param_find("NAV_LOITER_RAD"), &test.default_radius), PX4_OK);
+	_navigator.updateParams();
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// The mission ends 50 m inside the eastern edge, approached from far enough west for a landing.
+	std::vector<mission_item_s> items{waypoint({0.f, -500.f})};
+	mission_item_s last = waypoint({0.f, 950.f});
+
+	switch (test.last_item) {
+	case MissionEnd::Waypoint:
+		break;
+
+	case MissionEnd::Land:
+		last.nav_cmd = NAV_CMD_LAND;
+		last.altitude = kAltitude - 100.f;
+		break;
+
+	case MissionEnd::Loiter:
+		last = loiter(950.f, 40.f);
+		break;
+	}
+
+	items.push_back(last);
+	// End-of-mission loiter belongs to the last position, even with trailing command items.
+	items.push_back(changeSpeed());
+	EXPECT_EQ(missionFeasible(items), test.feasible);
+
+	if (!test.feasible) {
+		expectLoiterViolation(2);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(MissionEnds, MissionGeofenceEndLoiterTest, ::testing::Values(
+				 MissionEndCase{"WaypointCirclesAtDefaultRadius", MissionEnd::Waypoint, 60.f,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false},
+				 MissionEndCase{"WaypointFitsWithSmallerDefault", MissionEnd::Waypoint, 40.f,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
+				 MissionEndCase{"LandingDoesNotLoiter", MissionEnd::Land, 60.f,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
+				 MissionEndCase{"ExplicitLoiterUsesItsOwnRadius", MissionEnd::Loiter, 60.f,
+						 vehicle_status_s::VEHICLE_TYPE_FIXED_WING, true},
+				 MissionEndCase{"MulticopterHoversAtTheEnd", MissionEnd::Waypoint, 60.f,
+						 vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true}),
+			 [](const ::testing::TestParamInfo<MissionEndCase> &test_info)
+{
+	return test_info.param.name;
+});

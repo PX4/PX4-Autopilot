@@ -71,7 +71,7 @@ For the initial build you might attach components using double sided tape.
 For a longer term solution we highly recommend 3d printing mounts that you attach to the chassis using the mounting points.
 :::
 
-## Building the Firmware
+## 构建固件
 
 This frame works with the usual Rover firmware variants on most flight controllers.
 You can use either prebuilt versions or build the firmware yourself (see [Flashing the Rover Build](../config_rover/index.md#flashing-the-rover-build) and [Building Rover](../config_rover/index.md#building-rover) in _Rover Configuration/Tuning_).

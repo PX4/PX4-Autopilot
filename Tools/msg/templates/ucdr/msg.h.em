@@ -127,50 +127,57 @@ static inline constexpr int ucdr_topic_size_@(topic)()
 static inline bool ucdr_serialize_@(topic)(const void* data, ucdrBuffer& buf, int64_t time_offset = 0)
 {
 	const @(uorb_struct)& topic = *static_cast<const @(uorb_struct)*>(data);
+	// Each field is written at a fixed offset from the current position and the
+	// buffer is advanced once at the end, so the compiler does not have to reload
+	// the iterator after every memcpy (which may alias it) and store it back.
+	uint8_t* const out = buf.iterator;
 @{
+offset = 0
 for field_type, field_name, field_size, padding in fields:
-	if padding > 0:
-		print('\tbuf.iterator += {:}; // padding'.format(padding))
-		print('\tbuf.offset += {:}; // padding'.format(padding))
+	offset += padding # padding bytes are skipped, not written
 
 	print('\tstatic_assert(sizeof(topic.{0}) == {1}, "size mismatch");'.format(field_name, field_size))
 
 	if field_type == 'uint64' and field_name == 'timestamp':
 		print('\tconst uint64_t timestamp_adjusted = topic.timestamp + time_offset;')
-		print('\tmemcpy(buf.iterator, &timestamp_adjusted, sizeof(topic.{0}));'.format(field_name))
+		print('\tmemcpy(out + {1}, &timestamp_adjusted, sizeof(topic.{0}));'.format(field_name, offset))
 
 	elif field_type == 'uint64' and field_name == 'timestamp_sample':
 		print('\tconst uint64_t timestamp_sample_adjusted = topic.timestamp_sample + time_offset;')
-		print('\tmemcpy(buf.iterator, &timestamp_sample_adjusted, sizeof(topic.{0}));'.format(field_name))
+		print('\tmemcpy(out + {1}, &timestamp_sample_adjusted, sizeof(topic.{0}));'.format(field_name, offset))
 
 	else:
-		print('\tmemcpy(buf.iterator, &topic.{0}, sizeof(topic.{0}));'.format(field_name))
+		print('\tmemcpy(out + {1}, &topic.{0}, sizeof(topic.{0}));'.format(field_name, offset))
 
-	print('\tbuf.iterator += sizeof(topic.{:});'.format(field_name))
-	print('\tbuf.offset += sizeof(topic.{:});'.format(field_name))
+	offset += field_size
 
+assert offset == struct_size
 }@
+	buf.iterator += @(struct_size);
+	buf.offset += @(struct_size);
 	return true;
 }
 
 static inline bool ucdr_deserialize_@(topic)(ucdrBuffer& buf, @(uorb_struct)& topic, int64_t time_offset = 0)
 {
+	const uint8_t* const in = buf.iterator;
 @{
+offset = 0
 for field_type, field_name, field_size, padding in fields:
-	if padding > 0:
-		print('\tbuf.iterator += {:}; // padding'.format(padding))
-		print('\tbuf.offset += {:}; // padding'.format(padding))
+	offset += padding # padding bytes are skipped, not read
 
 	print('\tstatic_assert(sizeof(topic.{0}) == {1}, "size mismatch");'.format(field_name, field_size))
-	print('\tmemcpy(&topic.{0}, buf.iterator, sizeof(topic.{0}));'.format(field_name))
+	print('\tmemcpy(&topic.{0}, in + {1}, sizeof(topic.{0}));'.format(field_name, offset))
 
 	if field_type == 'uint64' and (field_name == 'timestamp' or field_name == 'timestamp_sample'):
 		print('\tif (topic.{0} == 0) topic.{0} = hrt_absolute_time();'.format(field_name, field_name))
 		print('\telse topic.{0} = math::min(topic.{0} - time_offset, hrt_absolute_time());'.format(field_name, field_name))
 
-	print('\tbuf.iterator += sizeof(topic.{:});'.format(field_name))
-	print('\tbuf.offset += sizeof(topic.{:});'.format(field_name))
+	offset += field_size
 
+assert offset == struct_size
 }@
+	buf.iterator += @(struct_size);
+	buf.offset += @(struct_size);
 	return true;
 }

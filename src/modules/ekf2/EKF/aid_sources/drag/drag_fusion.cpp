@@ -171,7 +171,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		    && (test_ratio < 1.f)
 		   ) {
 
-			VectorState K = P * H / innovation_variance(axis_index);
+			VectorState K = computeKalmanGain(H, innovation_variance(axis_index));
 
 			measurementUpdate(K, H, R_ACC, innovation(axis_index));
 		}

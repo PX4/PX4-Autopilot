@@ -435,6 +435,12 @@ public:
 
 	static bool orb_device_node_exists(ORB_ID orb_id, uint8_t instance);
 
+	/**
+	 * Changes every time a device node is added, so a failed orb_add_internal_subscriber() cannot
+	 * succeed before it changes. 0 if unknown, e.g. in user space of a protected build.
+	 */
+	static unsigned orb_node_generation();
+
 	static void *orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation);
 
 	static void orb_remove_internal_subscriber(void *node_handle);
@@ -461,6 +467,27 @@ public:
 	static unsigned updates_available(const void *node_handle, unsigned last_generation);
 
 	static bool is_advertised(const void *node_handle);
+#endif
+
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	/* Publish through a node handle whose data is known to match its topic (the typed wrappers). */
+	static int orb_publish_node(orb_advert_t handle, const void *data)
+	{
+#ifdef ORB_USE_PUBLISHER_RULES
+
+		if (handle == _Instance) {
+			return PX4_OK; //pretend success
+		}
+
+#endif /* ORB_USE_PUBLISHER_RULES */
+
+		if ((handle == nullptr) || (data == nullptr)) {
+			errno = EFAULT;
+			return PX4_ERROR;
+		}
+
+		return static_cast<DeviceNode *>(handle)->publish_data(data);
+	}
 #endif
 
 #ifdef CONFIG_ORB_COMMUNICATOR

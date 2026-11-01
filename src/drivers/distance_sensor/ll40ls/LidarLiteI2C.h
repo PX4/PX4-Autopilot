@@ -49,6 +49,7 @@
 #include <drivers/device/device.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <perf/perf_counter.h>
+#include <lib/parameters/param.h>
 
 using namespace time_literals;
 
@@ -73,7 +74,6 @@ static constexpr uint8_t LL40LS_UNIT_ID_LOW           = 0x17;
 static constexpr uint8_t LL40LS_SIG_COUNT_VAL_REG     = 0x02; /* Maximum acquisition count register */
 static constexpr uint8_t LL40LS_SIG_COUNT_VAL_MAX     = 0xFF; /* Maximum acquisition count max value */
 
-static constexpr int LL40LS_SIGNAL_STRENGTH_MIN_V3HP  = 70;  /* Min signal strength for V3HP */
 static constexpr int LL40LS_SIGNAL_STRENGTH_MAX_V3HP  = 255; /* Max signal strength for V3HP */
 
 static constexpr int LL40LS_SIGNAL_STRENGTH_LOW       = 24;  /* Minimum signal strength for a valid measurement */
@@ -201,4 +201,6 @@ private:
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ll40ls: read")};
 	perf_counter_t _sensor_resets{perf_alloc(PC_COUNT, "ll40ls: resets")};
 	perf_counter_t _sensor_zero_resets{perf_alloc(PC_COUNT, "ll40ls: zero resets")};
+
+	int _ll40ls_signal_strength_min_v3hp = 70; 	/* Min signal strength for V3HP. Modified by param: SENS_LL40LS_SMIN */
 };
