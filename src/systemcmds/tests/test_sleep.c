@@ -71,6 +71,19 @@ int test_sleep(int argc, char *argv[])
 		}
 	}
 
+	// longer than the second that usleep() has to support
+	printf("\t 1.2 s sleep\n");
+	fflush(stdout);
+
+	const hrt_abstime time_start = hrt_absolute_time();
+	const int ret = px4_usleep(1200000);
+	const hrt_abstime elapsed = hrt_absolute_time() - time_start;
+
+	if (ret != 0 || elapsed < 1200000) {
+		PX4_ERR("\t Sleep test failed, returned %d after %llu us", ret, (unsigned long long)elapsed);
+		return PX4_ERROR;
+	}
+
 	printf("\t Sleep test successful.\n");
 
 	return OK;

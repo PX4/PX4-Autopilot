@@ -89,71 +89,18 @@ bool RouteProjectionCandidate::valid() const
 	return segment.valid() && segment_positions.valid() && projection.valid() && dist.valid();
 }
 
-bool LoopContext::valid() const
-{
-	return segment.validLoop() && bounds.valid() && segment_positions.valid();
-}
-
-bool ProjectionContext::valid() const
-{
-	return vehicle_position.valid() && route_projection.valid();
-}
-
 bool RoutePath::valid() const
 {
 	return first_item.index >= 0 && first_item.nav_cmd != NAV_CMD_INVALID
 	       && PX4_ISFINITE(total_cost_m) && total_cost_m >= 0.f;
 }
 
-bool BranchOff::valid() const
-{
-	return segment.valid() && projection.valid();
-}
-
-bool GoalSelection::valid() const
-{
-	if (!path.valid() || !goal_position.valid()) {
-		return false;
-	}
-
-	// No default case: -Wswitch flags this list when GoalType grows.
-	switch (goal_type) {
-	case GoalType::kNone:
-		return false;
-
-	case GoalType::kSafePoint:
-		return safe_point_index >= 0 && branch_off.valid();
-
-	case GoalType::kMissionLand:
-	case GoalType::kMissionTakeoff:
-		return true;
-	}
-
-	return false;
-}
-
-int32_t GoalSelection::branchOffIndex() const
-{
-	if (branch_off.segment.valid()) {
-		// The item the vehicle flies toward on the branch-off segment
-		return path.direction_reversed ? branch_off.segment.start.idx : branch_off.segment.end.idx;
-	}
-
-	return path.first_item.index;
-}
-
 bool PlannerParameters::validForVehicleProjection() const
 {
-	const bool vtol_upload_state_valid =
-		vtol_state_on_mission_upload == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED
-		|| vtol_state_on_mission_upload == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
-		|| vtol_state_on_mission_upload == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-
 	// home_altitude_amsl is intentionally not checked: NAN is valid for absolute-altitude missions.
 	return PX4_ISFINITE(vehicle_projection_search_dist_m) && vehicle_projection_search_dist_m >= 0.f
 	       && PX4_ISFINITE(nav_acceptance_radius_m) && nav_acceptance_radius_m >= 0.f
-	       && PX4_ISFINITE(fw_u_turn_penalty_m) && fw_u_turn_penalty_m >= 0.f
-	       && vtol_upload_state_valid;
+	       && PX4_ISFINITE(fw_u_turn_penalty_m) && fw_u_turn_penalty_m >= 0.f;
 }
 
 bool PlannerParameters::validForRtlRoute() const

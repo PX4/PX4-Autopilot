@@ -868,8 +868,6 @@ VnError VnSensor_readUserTag(VnSensor *s, char *tagBuffer, size_t tagBufferLengt
 	VnError error;
 	char responseBuffer[0x100];
 	size_t responseLength = sizeof(responseBuffer);
-	/*Put this here to avoid compiler warnings.*/
-	UNUSED(tagBufferLength);
 
 	if ((error = VnUartPacket_genReadUserTag(toSend, sizeof(toSend), s->sendErrorDetectionMode, &length)) != E_NONE)
 		return error;
@@ -877,7 +875,7 @@ VnError VnSensor_readUserTag(VnSensor *s, char *tagBuffer, size_t tagBufferLengt
 	if ((error = VnSensor_transactionNoFinalize(s, toSend, length, true, responseBuffer, &responseLength)) != E_NONE)
 		return error;
 
-	VnUartPacket_parseUserTagRaw(responseBuffer, tagBuffer);
+	VnUartPacket_parseUserTagRaw(responseBuffer, tagBuffer, tagBufferLength);
 
 	return E_NONE;
 }
@@ -908,8 +906,6 @@ VnError VnSensor_readModelNumber(VnSensor *s, char *productNameBuffer, size_t pr
 	VnError error;
 	char responseBuffer[0x100];
 	size_t responseLength = sizeof(responseBuffer);
-	/*Put this here to avoid compiler warnings.*/
-	UNUSED(productNameBufferLength);
 
 	if ((error = VnUartPacket_genReadModelNumber(toSend, sizeof(toSend), s->sendErrorDetectionMode, &length)) != E_NONE)
 		return error;
@@ -917,7 +913,7 @@ VnError VnSensor_readModelNumber(VnSensor *s, char *productNameBuffer, size_t pr
 	if ((error = VnSensor_transactionNoFinalize(s, toSend, length, true, responseBuffer, &responseLength)) != E_NONE)
 		return error;
 
-	VnUartPacket_parseModelNumberRaw(responseBuffer, productNameBuffer);
+	VnUartPacket_parseModelNumberRaw(responseBuffer, productNameBuffer, productNameBufferLength);
 
 	return E_NONE;
 }
@@ -967,8 +963,6 @@ VnError VnSensor_readFirmwareVersion(VnSensor *s, char *firmwareVersionBuffer, s
 	VnError error;
 	char responseBuffer[0x100];
 	size_t responseLength = sizeof(responseBuffer);
-	/*Put this here to avoid compiler warnings.*/
-	UNUSED(firmwareVersionBufferLength);
 
 	if ((error = VnUartPacket_genReadFirmwareVersion(toSend, sizeof(toSend), s->sendErrorDetectionMode, &length)) != E_NONE)
 		return error;
@@ -976,7 +970,7 @@ VnError VnSensor_readFirmwareVersion(VnSensor *s, char *firmwareVersionBuffer, s
 	if ((error = VnSensor_transactionNoFinalize(s, toSend, length, true, responseBuffer, &responseLength)) != E_NONE)
 		return error;
 
-	VnUartPacket_parseFirmwareVersionRaw(responseBuffer, firmwareVersionBuffer);
+	VnUartPacket_parseFirmwareVersionRaw(responseBuffer, firmwareVersionBuffer, firmwareVersionBufferLength);
 
 	return E_NONE;
 }

@@ -333,10 +333,13 @@ MulticopterAttitudeControl::Run()
 					const float setpoint_dt = (_last_attitude_setpoint > 0)
 								  ? (vehicle_attitude_setpoint.timestamp - _last_attitude_setpoint) * 1e-6f
 								  : -1.f;
-					_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d),
-									      vehicle_attitude_setpoint.yaw_sp_move_rate, setpoint_dt);
-					_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
-					_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
+
+					// Drop the whole message if its attitude is invalid: its thrust cannot be trusted either
+					if (_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d),
+							vehicle_attitude_setpoint.yaw_sp_move_rate, setpoint_dt)) {
+						_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+						_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
+					}
 				}
 			}
 
@@ -363,16 +366,16 @@ MulticopterAttitudeControl::Run()
 			Vector3f rates_sp = _attitude_control.update(q);
 
 			const hrt_abstime now = hrt_absolute_time();
-			autotune_attitude_control_status_s pid_autotune;
 
-			if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
-				if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
-				    && ((now - pid_autotune.timestamp) < 1_s)) {
-					rates_sp += Vector3f(pid_autotune.rate_sp);
-				}
+			// the status is only published while autotuning, so copy it only when it changed
+			_autotune_attitude_control_status_sub.update(&_pid_autotune);
+
+			if ((_pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
+			     || _pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
+			     || _pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
+			     || _pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
+			    && ((now - _pid_autotune.timestamp) < 1_s)) {
+				rates_sp += Vector3f(_pid_autotune.rate_sp);
 			}
 
 			// publish rate setpoint

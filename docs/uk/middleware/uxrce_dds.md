@@ -78,8 +78,8 @@ The following table explains the required Micro-XRCE-DDS-Agent versions and `UXR
 | Humble        | 2.6.x  | 2.4.2 | unset / `N`                                                         |
 | Jazzy         | 2.14.0 | 2.4.3 | unset / `N`                                                         |
 | Kilted        | 2.14.4 | 2.4.3 | unset / `N`                                                         |
-| Lyrical       | 3.6.x  | 3.0.1 | set / `Y`                                                           |
-| Rolling       | 3.6.x  | 3.0.1 | set / `Y`                                                           |
+| Lyrical       | 3.6.x  | 3.0.2 | set / `Y`                                                           |
+| Rolling       | 3.6.x  | 3.0.2 | set / `Y`                                                           |
 
 ## Встановлення Micro XRCE-DDS Agent
 
@@ -115,7 +115,7 @@ sudo ldconfig /usr/local/lib/
 :::tab DDS v3
 
 ```sh
-git clone -b v3.0.1 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+git clone -b v3.0.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
 cd Micro-XRCE-DDS-Agent
 mkdir build
 cd build
@@ -156,7 +156,7 @@ You must already have installed ROS 2 following the instructions in: [ROS 2 User
 
    ```sh
    cd ~/px4_ros_uxrce_dds_ws/src
-   git clone -b v3.0.1 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   git clone -b v3.0.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
    ```
 
    Don't forget to set `UXRCE_DDS_CLIENT_USE_DDS_V3` before building PX4 when using DDS v3!
@@ -418,7 +418,9 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
     Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
     See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
   - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="PX4 v1.18" />: Serial port hardware flow control enable.
-    To use hardware flow control, a custom MicroXRCE Agent needs to be adopted. Please refer to [this PR](https://github.com/eProsima/Micro-XRCE-DDS-Agent/pull/407) for the required changes, cherry-pick them on top of the [agent version](#build-run-within-ros-2-workspace) you need to use and then run the agent with the additional `--flow-control` option.
+    This feature is available on MicroXRCE Agent version `>=3.0.2` (ROS 2 Lyrical and newer).
+    To use it in previous versions please refer to [Micro-XRCE-DDS-Agent#407](https://github.com/eProsima/Micro-XRCE-DDS-Agent/pull/407) for the required changes and cherry-pick them on top of the [agent version](#build-run-within-ros-2-workspace) you need to use.
+    On the agent side flow control is enable passing the `--flow-control` option.
 
 :::info
 Many ports already have a default configuration.

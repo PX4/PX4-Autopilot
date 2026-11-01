@@ -45,7 +45,6 @@
 #include <float.h>
 
 #include <px4_platform_common/defines.h>
-#include <vte_orientation_derivation/generated/getTransitionMatrix.h>
 #include <vte_orientation_derivation/generated/predictState.h>
 #include <vte_orientation_derivation/generated/predictCov.h>
 
@@ -68,11 +67,6 @@ void KF_orientation::predict(float dt)
 
 	_state = state_next;
 	_state_covariance = cov_next;
-}
-
-SquareMatrixState KF_orientation::getTransitionMatrix(float dt) const
-{
-	return sym::Gettransitionmatrix(dt);
 }
 
 void KF_orientation::predictState(float dt, const EmptyInput &input,
@@ -113,9 +107,9 @@ void KF_orientation::pushHistory(const uint64_t time_us)
 	_oosm.push(time_us, _state, _state_covariance, EmptyInput{});
 }
 
-void KF_orientation::resetHistory()
+void KF_orientation::resetHistory(FusionTimes times)
 {
-	_oosm.reset();
+	_oosm.reset(times);
 }
 
 FusionResult KF_orientation::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold)

@@ -245,7 +245,7 @@ The specific differences for SIH simulation airframes are listed in the sections
 
 :::
 
-- `param set-default SENS_GPS0_DELAY 0` to improve state estimator performance (the assumption of instant GPS measurements would normally be unrealistic, but is accurate for SIH).
+- `param set-default SENS_GNSS0_DELAY 0` to improve state estimator performance (the assumption of instant GPS measurements would normally be unrealistic, but is accurate for SIH).
 
 ### SIH on Flight Controller
 

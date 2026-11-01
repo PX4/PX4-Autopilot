@@ -192,7 +192,7 @@ They should always be used when first tuning/testing a new frame design, or when
 Joystick systems use QGroundControl to encode the control information from a "standard" computer gaming joystick into MAVLink messages, and sent it to the vehicle using the (shared) telemetry radio channel.
 They can be used for most manual flight use cases such as taking off, surveys, and so on, provided your telemetry channel has a high enough bandwidth/low latency.
 
-Joysticks are often used in integrated GCS/manual control systems because it is cheaper and easier to integrate a joystick than a separate radio system, and for the majority of use cases, the lower latency does not matter.
+Joysticks are often used in [integrated GCS](../config/integrated_gcs.md)/manual control systems because it is cheaper and easier to integrate a joystick than a separate radio system, and for the majority of use cases, the lower latency does not matter.
 They are also perfect for flying the PX4 simulator, because you can plug them directly into your ground control computer.
 
 ::: info

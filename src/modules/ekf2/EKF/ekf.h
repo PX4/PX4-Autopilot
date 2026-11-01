@@ -284,6 +284,9 @@ public:
 	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
 					bool constrain_variances = true);
 
+	// Kalman gain P * H / innov_var for a scalar observation with Jacobian H
+	VectorState computeKalmanGain(const VectorState &H, const float innov_var) const;
+
 	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation);
 
 	// gyro bias
@@ -299,6 +302,9 @@ public:
 
 	// latitude-dependent gravity magnitude
 	float getGravityMss() const { return _gravity; }
+
+	// latitude-dependent Earth rotation rate in rad/s
+	const Vector3f &getEarthRateNED() const { return _earth_rate_NED; }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
@@ -400,8 +406,8 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// set minimum continuous period without GPS fail required to mark a healthy GPS status
-	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
+	// After a GNSS heading failure, a yaw reset to the GNSS heading waits this long
+	void set_gnss_yaw_reset_wait(uint32_t time_us) { _gnss_yaw_reset_wait_us = time_us; }
 
 	bool gps_checks_passed() const { return _gnss_usable; };
 
@@ -538,7 +544,7 @@ private:
 	LatLonAlt _last_known_gpos{};
 
 	Vector3f _earth_rate_NED{}; ///< earth rotation vector (NED) in rad/s
-	double _earth_rate_lat_ref_rad{0.0}; ///< latitude at which the earth rate was evaluated (radians)
+	double _earth_rate_lat_ref_rad{static_cast<double>(NAN)}; ///< latitude at which the earth rate was evaluated (radians)
 
 	float _gravity{CONSTANTS_ONE_G}; ///< latitude-dependent gravity magnitude (m/s^2)
 
@@ -615,7 +621,6 @@ private:
 	uint64_t _time_last_gnss_sample_accepted_us{0}; ///< last delayed-horizon time a GNSS sample was usable and within the velocity limit (us)
 	bool _gnss_usable{false};                   ///< the latest GNSS sample at the fusion time horizon was usable
 	bool _gnss_checks_passed_reported{false};   ///< gps_checks_passed was reported since the last reset
-	uint64_t _time_last_gnss_fusion_stop_us{0}; ///< when GNSS velocity and position fusion were last both stopped
 
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 
@@ -924,7 +929,7 @@ private:
 	bool fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSample &ev_sample);
 	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
 	{
-		VectorState Kfusion = P * H / innov_var;
+		VectorState Kfusion = computeKalmanGain(H, innov_var);
 		measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
 		aid_src.fused = true;
 	}
@@ -943,21 +948,6 @@ private:
 	bool isGnssVelResetAllowed() const;
 	bool isGnssPosResetAllowed() const;
 
-	// After velocity and position fusion both stop, a restart waits for the GNSS health time while disarmed on the
-	// ground, where the checks are strict, otherwise for a tenth of it and at least a second. The duration follows the
-	// current armed/in-air state, so arming during a ground hold-off shortens the remainder to the in-flight value.
-	// Computed here so the EKF does not depend on the checker's state.
-	uint64_t gnssRestartHoldOffUs() const
-	{
-		const bool disarmed_on_ground = !_control_status.flags.armed && !_control_status.flags.in_air;
-		return disarmed_on_ground ? (uint64_t)_min_gps_health_time_us
-		       : math::max((uint64_t)1e6, (uint64_t)(_min_gps_health_time_us / 10));
-	}
-
-	bool isGnssRestartHoldOffElapsed() const
-	{
-		return isTimedOut(_time_last_gnss_fusion_stop_us, gnssRestartHoldOffUs());
-	}
 	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
 	bool tryYawEmergencyReset();
 	void resetVelocityToGnss(estimator_aid_source3d_s &aid_src);
@@ -1008,7 +998,7 @@ private:
 	// control fusion of magnetometer observations
 	void controlMagFusion(const imuSample &imu_sample);
 
-	bool checkHaglYawResetReq() const;
+	bool isMagInFlightAlignmentRequired() const;
 	bool isHeadingResetToMagAllowed() const;
 
 	void resetMagHeading(const Vector3f &mag);

@@ -66,7 +66,18 @@ def _settings(args: argparse.Namespace) -> pipeline.Settings:
                                     max_turns=20, timeout_s=600,
                                     sandbox_env=sandbox_env),
         model_label=label,
+        report_url=_run_url(),
     )
+
+
+def _run_url() -> str:
+    """This Actions run, whose job summary carries the full report."""
+    parts = [os.environ.get(k, '') for k in
+             ('GITHUB_SERVER_URL', 'GITHUB_REPOSITORY', 'GITHUB_RUN_ID')]
+    if not all(parts):
+        return ''
+    server, repo, run_id = parts
+    return f'{server}/{repo}/actions/runs/{run_id}'
 
 
 def _guard_leaks(out_dir: Path, work_dir: Path) -> None:

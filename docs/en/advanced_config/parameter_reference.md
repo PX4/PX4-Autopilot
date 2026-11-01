@@ -143,7 +143,7 @@ Sets the vehicle emergency state
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 6 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 6 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -209,7 +209,7 @@ Sets GPS lataral offset encoding
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 7 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 7 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -230,7 +230,7 @@ Sets GPS longitudinal offset encoding
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 1 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -275,7 +275,7 @@ This vehicle is always tracked. Use 0 to disable.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 16777215 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 16777215 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -295,7 +295,7 @@ Enable Identification of Position feature
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | Disabled (0) |  | &nbsp;
+&nbsp; |  |  |  | Disabled (0) |  | &nbsp;
 
 </div>
 
@@ -386,7 +386,7 @@ This parameter defines the squawk code. Value should be between 0000 and 7777.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 7777 |  | 1200 |  | &nbsp;
+&nbsp; | 0 | 7777 |  | 1200 |  | &nbsp;
 
 </div>
 
@@ -394,7 +394,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Actuator Outputs
 
-<div class="param-group" style="--param-count: 700">
+<div class="param-group" style="--param-count: 770">
 
 <div class="param">
 
@@ -7761,11 +7761,291 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### RBCLW_DIS10 (`INT32`) {#RBCLW_DIS10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS11 (`INT32`) {#RBCLW_DIS11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS12 (`INT32`) {#RBCLW_DIS12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS13 (`INT32`) {#RBCLW_DIS13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS14 (`INT32`) {#RBCLW_DIS14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS15 (`INT32`) {#RBCLW_DIS15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS16 (`INT32`) {#RBCLW_DIS16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### RBCLW_DIS2 (`INT32`) {#RBCLW_DIS2}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 Roboclaw Driver Channel 2 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS3 (`INT32`) {#RBCLW_DIS3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS4 (`INT32`) {#RBCLW_DIS4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS5 (`INT32`) {#RBCLW_DIS5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS6 (`INT32`) {#RBCLW_DIS6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS7 (`INT32`) {#RBCLW_DIS7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS8 (`INT32`) {#RBCLW_DIS8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 127 |  | 127 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_DIS9 (`INT32`) {#RBCLW_DIS9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Disarmed Value.
 
 This is the output value that is set when not armed.
 
@@ -7795,7 +8075,147 @@ When set to -1 (default), the value depends on the function (see RBCLW_FUNC1).
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -1 | 257 |  | -1 |  | &nbsp;
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL10 (`INT32`) {#RBCLW_FAIL10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC10).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL11 (`INT32`) {#RBCLW_FAIL11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC11).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL12 (`INT32`) {#RBCLW_FAIL12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC12).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL13 (`INT32`) {#RBCLW_FAIL13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC13).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL14 (`INT32`) {#RBCLW_FAIL14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC14).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL15 (`INT32`) {#RBCLW_FAIL15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC15).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL16 (`INT32`) {#RBCLW_FAIL16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC16).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
 
 </div>
 
@@ -7815,7 +8235,147 @@ When set to -1 (default), the value depends on the function (see RBCLW_FUNC2).
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -1 | 257 |  | -1 |  | &nbsp;
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL3 (`INT32`) {#RBCLW_FAIL3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC3).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL4 (`INT32`) {#RBCLW_FAIL4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC4).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL5 (`INT32`) {#RBCLW_FAIL5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC5).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL6 (`INT32`) {#RBCLW_FAIL6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC6).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL7 (`INT32`) {#RBCLW_FAIL7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC7).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL8 (`INT32`) {#RBCLW_FAIL8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC8).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FAIL9 (`INT32`) {#RBCLW_FAIL9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see RBCLW_FUNC9).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 254 |  | -1 |  | &nbsp;
 
 </div>
 
@@ -7828,6 +8388,615 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Roboclaw Driver Channel 1 Output Function.
 
 Select what should be output on Roboclaw Driver Channel 1.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC10 (`INT32`) {#RBCLW_FUNC10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 10.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC11 (`INT32`) {#RBCLW_FUNC11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 11.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC12 (`INT32`) {#RBCLW_FUNC12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 12.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC13 (`INT32`) {#RBCLW_FUNC13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 13.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC14 (`INT32`) {#RBCLW_FUNC14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 14.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC15 (`INT32`) {#RBCLW_FUNC15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 15.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC16 (`INT32`) {#RBCLW_FUNC16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 16.
 
 The default failsafe value is set according to the selected function:
 - 'Min' for ConstantMin
@@ -7995,11 +9164,746 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### RBCLW_FUNC3 (`INT32`) {#RBCLW_FUNC3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 3.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC4 (`INT32`) {#RBCLW_FUNC4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 4.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC5 (`INT32`) {#RBCLW_FUNC5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 5.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC6 (`INT32`) {#RBCLW_FUNC6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 6.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC7 (`INT32`) {#RBCLW_FUNC7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 7.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC8 (`INT32`) {#RBCLW_FUNC8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 8.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_FUNC9 (`INT32`) {#RBCLW_FUNC9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Output Function.
+
+Select what should be output on Roboclaw Driver Channel 9.
+
+The default failsafe value is set according to the selected function:
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### RBCLW_MAX1 (`INT32`) {#RBCLW_MAX1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 Roboclaw Driver Channel 1 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX10 (`INT32`) {#RBCLW_MAX10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX11 (`INT32`) {#RBCLW_MAX11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX12 (`INT32`) {#RBCLW_MAX12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX13 (`INT32`) {#RBCLW_MAX13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX14 (`INT32`) {#RBCLW_MAX14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX15 (`INT32`) {#RBCLW_MAX15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX16 (`INT32`) {#RBCLW_MAX16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Maximum Value.
 
 Maxmimum output value (when not disarmed).
 
@@ -8031,11 +9935,263 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### RBCLW_MAX3 (`INT32`) {#RBCLW_MAX3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX4 (`INT32`) {#RBCLW_MAX4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX5 (`INT32`) {#RBCLW_MAX5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX6 (`INT32`) {#RBCLW_MAX6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX7 (`INT32`) {#RBCLW_MAX7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX8 (`INT32`) {#RBCLW_MAX8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MAX9 (`INT32`) {#RBCLW_MAX9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 127 | 254 |  | 254 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### RBCLW_MIN1 (`INT32`) {#RBCLW_MIN1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 Roboclaw Driver Channel 1 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN10 (`INT32`) {#RBCLW_MIN10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 10 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN11 (`INT32`) {#RBCLW_MIN11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 11 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN12 (`INT32`) {#RBCLW_MIN12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 12 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN13 (`INT32`) {#RBCLW_MIN13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 13 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN14 (`INT32`) {#RBCLW_MIN14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 14 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN15 (`INT32`) {#RBCLW_MIN15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 15 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN16 (`INT32`) {#RBCLW_MIN16}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 16 Minimum Value.
 
 Minimum output value (when not disarmed).
 
@@ -8067,6 +10223,132 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### RBCLW_MIN3 (`INT32`) {#RBCLW_MIN3}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 3 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN4 (`INT32`) {#RBCLW_MIN4}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 4 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN5 (`INT32`) {#RBCLW_MIN5}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 5 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN6 (`INT32`) {#RBCLW_MIN6}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 6 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN7 (`INT32`) {#RBCLW_MIN7}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 7 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN8 (`INT32`) {#RBCLW_MIN8}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 8 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_MIN9 (`INT32`) {#RBCLW_MIN9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+Roboclaw Driver Channel 9 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 127 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### RBCLW_REV (`INT32`) {#RBCLW_REV}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -8082,11 +10364,25 @@ Note: this is only useful for servos.
 
 - `0`: Roboclaw Driver Channel 1
 - `1`: Roboclaw Driver Channel 2
+- `2`: Roboclaw Driver Channel 3
+- `3`: Roboclaw Driver Channel 4
+- `4`: Roboclaw Driver Channel 5
+- `5`: Roboclaw Driver Channel 6
+- `6`: Roboclaw Driver Channel 7
+- `7`: Roboclaw Driver Channel 8
+- `8`: Roboclaw Driver Channel 9
+- `9`: Roboclaw Driver Channel 10
+- `10`: Roboclaw Driver Channel 11
+- `11`: Roboclaw Driver Channel 12
+- `12`: Roboclaw Driver Channel 13
+- `13`: Roboclaw Driver Channel 14
+- `14`: Roboclaw Driver Channel 15
+- `15`: Roboclaw Driver Channel 16
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 3 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 65535 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -25460,7 +27756,7 @@ Specify USB MAVLink mode.
 - `9`: extvisionmin
 - `10`: gimbal
 - `11`: onboard_low_bandwidth
-- `12`: uavionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -26760,6 +29056,7 @@ Action the system takes when a GNSS failure is detected during flight.
 Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
 when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
 with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
+The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
 Any value above Warning also blocks arming.
 
 
@@ -26769,6 +29066,7 @@ Any value above Warning also blocks arming.
 - `1`: Return
 - `2`: Land
 - `3`: Terminate
+- `4`: Warning, block arming
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -28607,7 +30905,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## EKF2
 
-<div class="param-group" style="--param-count: 155">
+<div class="param-group" style="--param-count: 154">
 
 <div class="param">
 
@@ -28711,13 +31009,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 0 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -28764,7 +31062,7 @@ Sensor ID for slot 0. Set to 0 to disable this slot.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 255 |  | 0 |  | &nbsp;
+&check; | 0 | 255 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -28810,13 +31108,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 1 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -28863,7 +31161,7 @@ Sensor ID for slot 1. Set to 0 to disable this slot.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 255 |  | 0 |  | &nbsp;
+&check; | 0 | 255 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -28909,13 +31207,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 2 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -28962,7 +31260,7 @@ Sensor ID for slot 2. Set to 0 to disable this slot.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 255 |  | 0 |  | &nbsp;
+&check; | 0 | 255 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -29008,13 +31306,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 3 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -29061,7 +31359,7 @@ Sensor ID for slot 3. Set to 0 to disable this slot.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 255 |  | 0 |  | &nbsp;
+&check; | 0 | 255 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -29750,6 +32048,21 @@ Measurement noise for GNSS velocity.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.01 | 5.0 |  | 0.3 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_GPS_YAW_RST (`FLOAT`) {#EKF2_GPS_YAW_RST}
+
+GNSS heading reset wait.
+
+After GNSS heading fusion fails, or the heading receiver reports spoofing or jamming, EKF2 waits this long before resetting yaw to the GNSS heading.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 |  |  | 10.0 | s | &nbsp;
 
 </div>
 
@@ -30493,36 +32806,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_REQ_GPS_H (`FLOAT`) {#EKF2_REQ_GPS_H}
-
-GNSS fusion restart and heading reset wait.
-
-After EKF2 stops GNSS velocity and position fusion, it restarts it only after this time while disarmed on the ground, and after a tenth of it, at least 1 s, otherwise. After a GNSS heading failure, a yaw reset to the GNSS heading also waits this long. The GNSS checks use GNSS_REQ_TIME.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 |  |  | 10.0 | s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_REQ_SACC (`FLOAT`) {#EKF2_REQ_SACC}
-
-GNSS speed accuracy for vertical velocity and yaw estimator.
-
-Below this speed accuracy EKF2 trusts the GNSS vertical velocity while the accelerometer clips, and feeds the GNSS velocity to the EKF-GSF yaw estimator. The GNSS checks use GNSS_REQ_SACC.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### EKF2_RNGBC_CTRL (`INT32`) {#EKF2_RNGBC_CTRL}
 
 Ranging beacon fusion control.
@@ -31138,7 +33421,10 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Maximum manual pitch angle.
 
-Applies to both directions in all manual modes with attitude stabilization but without altitude control
+Pitch angle commanded by full stick deflection, relative to FW_PSP_OFF (the centred-stick pitch).
+The resulting pitch setpoint is additionally limited to this angle around level,
+so with a non-zero FW_PSP_OFF the range is not symmetric.
+Applies in all manual modes with attitude stabilization but without altitude control.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31184,9 +33470,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Pitch setpoint offset (pitch at level flight).
 
-An airframe specific offset of the pitch setpoint in degrees, the value is
-added to the pitch setpoint and should correspond to the pitch at
-typical cruise speed of the airframe.
+Pitch angle of the body x-axis above the horizon in level flight at trim airspeed (FW_AIRSPD_TRIM).
+
+The altitude and airspeed controller (TECS) uses it as the pitch at zero climb angle,
+and in Stabilized mode the centred pitch stick commands it.
+Pitch setpoints and pitch limits set elsewhere, for example FW_P_LIM_MIN and FW_P_LIM_MAX,
+are absolute and do not include it.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31482,10 +33771,12 @@ Landing flare altitude (relative to landing altitude).
 
 NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * |z-velocity|) is taken as the flare altitude
 
+Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 |  | 0.5 | 0.5 | m | &nbsp;
+&nbsp; | -1.0 |  | 0.5 | 0.5 | m | &nbsp;
 
 </div>
 
@@ -31493,7 +33784,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_LND_FL_PMAX (`FLOAT`) {#FW_LND_FL_PMAX}
 
-Flare, maximum pitch.
+Flare, maximum absolute pitch.
 
 Maximum pitch during landing flare.
 
@@ -31508,7 +33799,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_LND_FL_PMIN (`FLOAT`) {#FW_LND_FL_PMIN}
 
-Flare, minimum pitch.
+Flare, minimum absolute pitch.
 
 Minimum pitch during landing flare.
 
@@ -31545,10 +33836,12 @@ to trigger the flare.
 
 NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
 
+Set FW_LND_FLALT or FW_LND_FL_TIME to -1 to disable the flare (land on the glide slope at landing airspeed).
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 5.0 | 0.1 | 1.0 | s | &nbsp;
+&nbsp; | -1.0 | 5.0 | 0.1 | 1.0 | s | &nbsp;
 
 </div>
 
@@ -31893,7 +34186,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_TKO_PITCH_MIN (`FLOAT`) {#FW_TKO_PITCH_MIN}
 
-Minimum pitch during takeoff.
+Minimum absolute pitch during takeoff.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -31964,7 +34257,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_P_LIM_MAX (`FLOAT`) {#FW_P_LIM_MAX}
 
-Maximum pitch angle setpoint.
+Maximum absolute pitch angle setpoint.
 
 Applies in any altitude controlled flight mode.
 
@@ -31979,7 +34272,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FW_P_LIM_MIN (`FLOAT`) {#FW_P_LIM_MIN}
 
-Minimum pitch angle setpoint.
+Minimum absolute pitch angle setpoint.
 
 Applies in any altitude controlled flight mode.
 
@@ -32095,6 +34388,9 @@ Adjusts the amount of weighting that the pitch control
 applies to speed vs height errors.
 0 -> control height only
 2 -> control speed only (gliders)
+Up to a weight of 1, pitch only trades height for speed up to trim airspeed;
+accelerating above trim is left to the throttle. Between 1 and 2, pitch
+increasingly tracks airspeed setpoints above trim as well.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -33018,6 +35314,7 @@ Chose source for manual setting of flaps in manual flight modes.
 - `4`: Aux4
 - `5`: Aux5
 - `6`: Flaps channel
+- `7`: Aux6
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -33276,6 +35573,7 @@ Chose source for manual setting of spoilers in manual flight modes.
 - `4`: Aux3
 - `5`: Aux4
 - `6`: Aux5
+- `7`: Aux6
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -40475,7 +42773,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## MAVLink
 
-<div class="param-group" style="--param-count: 42">
+<div class="param-group" style="--param-count: 45">
 
 <div class="param">
 
@@ -40611,6 +42909,10 @@ MAVLink Mode for instance 0.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 
 
 **Values:**
@@ -40625,7 +42927,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -40671,13 +42973,39 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 |  |  | 1200 | B/s | &nbsp;
+&check; | 0 |  |  | 2000 | B/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MAV_0_REMOTE_IP (`INT32`) {#MAV_0_REMOTE_IP}
+
+MAVLink Partner IP for instance 0.
+
+Messages go to this address at port MAV_0_REMOTE_PRT. Encoded as int32
+with the first octet in the most significant byte, e.g. 192.168.1.2 is -1062731518.
+Set to 0 to discover the partner from received packets.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
 
 </div>
 
@@ -40849,6 +43177,10 @@ MAVLink Mode for instance 1.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 
 
 **Values:**
@@ -40863,7 +43195,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -40909,13 +43241,39 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 0 |  |  | 0 | B/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MAV_1_REMOTE_IP (`INT32`) {#MAV_1_REMOTE_IP}
+
+MAVLink Partner IP for instance 1.
+
+Messages go to this address at port MAV_1_REMOTE_PRT. Encoded as int32
+with the first octet in the most significant byte, e.g. 192.168.1.2 is -1062731518.
+Set to 0 to discover the partner from received packets.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
 
 </div>
 
@@ -41087,6 +43445,10 @@ MAVLink Mode for instance 2.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 
 
 **Values:**
@@ -41101,7 +43463,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -41147,13 +43509,39 @@ each stream is automatically decreased.
 
 If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
 This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-8N1-configured links).
+8N1-configured links). USB and UDP links have no baudrate, so for those 0
+means 100000 Bytes/s.
+
+Note that for a telemetry radio the serial baudrate says little about what
+the link can actually carry over the air. A SiK radio at the common 57600
+baud, 64 kbps air rate carries roughly 2000 B/s with error correction
+enabled and about twice that without, where baudrate/20 would suggest 2880.
+Instance 0 therefore defaults to a fixed value that is safe either way
+rather than to 0. Raise it if you know your link is better.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 0 |  |  | 0 | B/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MAV_2_REMOTE_IP (`INT32`) {#MAV_2_REMOTE_IP}
+
+MAVLink Partner IP for instance 2.
+
+Messages go to this address at port MAV_2_REMOTE_PRT. Encoded as int32
+with the first octet in the most significant byte, e.g. 192.168.1.2 is -1062731518.
+Set to 0 to discover the partner from received packets.
+
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
 
 </div>
 
@@ -41325,9 +43713,19 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MAVLink system ID.
 
+IDs above 255 use the 32-bit system ID extension of MAVLink 2,
+which forces MAV_PROTO_VER to 2. Every system on the network needs
+to support the extension to talk to such a system.
+
+Only use IDs above 255 for vehicles, and keep ground stations and
+other controlling systems at 255 or below. The gimbal protocol and
+other messages that carry a system ID inside the payload, such as
+the ID of the system in control, still only support IDs up to 255.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1 | 250 |  | 1 |  | &nbsp;
+&check; | 1 | 2147483647 |  | 1 |  | &nbsp;
 
 </div>
 
@@ -41698,12 +44096,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### MIS_MNT_YAW_CTL (`INT32`) {#MIS_MNT_YAW_CTL}
 
-Enable gimbal yaw control in missions.
+Enable gimbal yaw control in missions and Hold.
 
-Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
+Enable yaw control of the mount. (Only affects multicopters with an active ROI)
 
 If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
-If disabled, the vehicle will yaw towards the ROI.
+If disabled, the vehicle will yaw towards the ROI in Mission and Hold mode.
 
 
 **Values:**
@@ -42117,7 +44515,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Motor Failure
 
-<div class="param-group" style="--param-count: 4">
+<div class="param-group" style="--param-count: 7">
 
 <div class="param">
 
@@ -42125,9 +44523,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Enable Actuator Failure check.
 
-If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amount of ESC current per throttle
-level is being consumed.
-Otherwise this indicates an motor failure.
+If enabled, the HealthAndArmingChecks compare each motor's ESC current against the expected
+current for the commanded throttle, and flag a motor whose current stays too far from that
+expectation (too low or too high) for a set time.
 This check only works for ESCs that report current consumption.
 
 
@@ -42146,12 +44544,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### MOTFAIL_C2T (`FLOAT`) {#MOTFAIL_C2T}
 
-Motor Failure Current/Throttle Scale.
-
-Determines the slope between expected steady state current and linearized, normalized thrust command.
-E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
-FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
-
+Motor failure model current-vs-command slope.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -42161,11 +44554,23 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### MOTFAIL_OFF (`FLOAT`) {#MOTFAIL_OFF}
+### MOTFAIL_IDLE (`FLOAT`) {#MOTFAIL_IDLE}
 
-Under/over-current motor failure limit offset.
+Motor failure model idle current.
 
-Check is triggered if `abs(FD_ACT_MOT_C2T * thrust - FD_ACT_OFF)` is above this value.
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 20.0 | 1 | 0.0 | A | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MOTFAIL_OVER (`FLOAT`) {#MOTFAIL_OVER}
+
+Motor failure overcurrent trip band.
+
+Set 0 to disable overcurrent detection.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42176,16 +44581,46 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### MOTFAIL_TIME (`FLOAT`) {#MOTFAIL_TIME}
+### MOTFAIL_OVR_TIME (`FLOAT`) {#MOTFAIL_OVR_TIME}
 
-Motor Failure Hysteresis Time.
+Motor failure overcurrent trigger time.
 
-Motor failure only triggers after current thresholds are exceeded for this time.
+Motor failure only triggers after MOTFAIL_OVER is exceeded for this time.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.01 | 10 | 1 | 1.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MOTFAIL_UNDER (`FLOAT`) {#MOTFAIL_UNDER}
+
+Motor failure undercurrent trip band.
+
+Set 0 to disable undercurrent detection.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 30 | 1 | 10.0 | A | &nbsp;
+
+</div>
+
+<div class="param">
+
+### MOTFAIL_UND_TIME (`FLOAT`) {#MOTFAIL_UND_TIME}
+
+Motor failure undercurrent trigger time.
+
+Motor failure only triggers after MOTFAIL_UNDER is exceeded for this time.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 10 | 1 | 1.0 | s | &nbsp;
 
 </div>
 
@@ -42900,7 +45335,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Multicopter Position Control
 
-<div class="param-group" style="--param-count: 66">
+<div class="param-group" style="--param-count: 67">
 
 <div class="param">
 
@@ -43942,6 +46377,18 @@ For manually controlled modes and offboard see MPC_Z_VEL_MAX_UP
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.5 | 8 | 0.5 | 3.0 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_MAN_TILT_MAX (`FLOAT`) {#SC_MAN_TILT_MAX}
+
+Maximal tilt angle in Stabilized or Manual mode.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 90 | 1 | 90.0 | deg | &nbsp;
 
 </div>
 
@@ -45017,6 +47464,35 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 </div>
 
+## Open Drone ID
+
+<div class="param-group" style="--param-count: 1">
+
+<div class="param">
+
+### ODID_BID_SRC (`INT32`) {#ODID_BID_SRC}
+
+Open Drone ID UAS ID source.
+
+Selects how the Open Drone ID UAS ID is sourced.
+
+In locked mode, the first received Basic ID UAS ID is expected to be stored persistently and reused on subsequent boots.
+
+
+**Values:**
+
+- `0`: PX4 board GUID legacy fallback
+- `1`: Lock first received Basic ID
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+</div>
+
 ## PWM Outputs
 
 <div class="param-group" style="--param-count: 2">
@@ -45376,8 +47852,8 @@ Select your RC input protocol or auto to scan.
 - `1`: PPM
 - `2`: SBUS
 - `3`: DSM
-- `4`: ST24
-- `5`: SUMD
+- `4`: SUMD
+- `5`: ST24
 - `6`: CRSF
 - `7`: GHST
 
@@ -48150,13 +50626,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Roboclaw Driver
 
-<div class="param-group" style="--param-count: 2">
+<div class="param-group" style="--param-count: 4">
 
 <div class="param">
 
 ### RBCLW_ADDRESS (`INT32`) {#RBCLW_ADDRESS}
 
-Address of the ESC on the bus.
+First Roboclaw address on the bus.
 
 The ESC has to be configured to have an address from 0x80 to 0x87. This parameter needs to match the configured value.
 
@@ -48175,7 +50651,49 @@ The ESC has to be configured to have an address from 0x80 to 0x87. This paramete
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 128 | 135 |  | 128 |  | &nbsp;
+&check; | 128 | 135 |  | 128 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_BAUD (`INT32`) {#RBCLW_BAUD}
+
+Roboclaw packet serial baud rate.
+
+Must match the packet serial baud rate configured on every Roboclaw controller on this bus.
+
+
+**Values:**
+
+- `2400`: 2400
+- `9600`: 9600
+- `19200`: 19200
+- `38400`: 38400
+- `57600`: 57600
+- `115200`: 115200
+- `230400`: 230400
+- `460800`: 460800
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 38400 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RBCLW_COUNT (`INT32`) {#RBCLW_COUNT}
+
+Number of Roboclaw controllers on the serial bus.
+
+Controllers must use consecutive unique addresses starting at RBCLW_ADDRESS. Each controller uses two output channels.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 1 | 8 |  | 1 |  | &nbsp;
 
 </div>
 
@@ -48802,7 +51320,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### RWTO_PSP (`FLOAT`) {#RWTO_PSP}
 
-Pitch setpoint during taxi / before rotation.
+Absolute pitch setpoint during taxi / before rotation.
 
 Pitch setpoint during taxi / before takeoff rotation airspeed is reached
 
@@ -48958,7 +51476,7 @@ At log start, oldest log directories are deleted to stay within this count. Inde
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 1000 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -49003,7 +51521,7 @@ Maximum size of a single log file in mebibytes (1 MiB = 1024 * 1024 bytes). When
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 4095 |  | 1024 | MiB | &nbsp;
+&nbsp; | 0 | 4095 |  | 1024 | MiB | &nbsp;
 
 </div>
 
@@ -49095,7 +51613,7 @@ The limit includes the log being written. Oldest logs are deleted at log start (
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 |  | 90 |  | &nbsp;
+&nbsp; | 0 | 100 |  | 90 |  | &nbsp;
 
 </div>
 
@@ -49277,7 +51795,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensor Calibration
 
-<div class="param-group" style="--param-count: 151">
+<div class="param-group" style="--param-count: 157">
 
 <div class="param">
 
@@ -50184,6 +52702,96 @@ Barometer 3 priority.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | -1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES0_ID (`INT32`) {#CAL_DPRES0_ID}
+
+Differential pressure sensor 0 calibration device ID.
+
+Device ID of the differential pressure sensor this calibration applies to.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES0_OFF (`FLOAT`) {#CAL_DPRES0_OFF}
+
+Differential pressure sensor 0 offset.
+
+The zero-reading of this differential pressure sensor, in Pascal.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES1_ID (`INT32`) {#CAL_DPRES1_ID}
+
+Differential pressure sensor 1 calibration device ID.
+
+Device ID of the differential pressure sensor this calibration applies to.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES1_OFF (`FLOAT`) {#CAL_DPRES1_OFF}
+
+Differential pressure sensor 1 offset.
+
+The zero-reading of this differential pressure sensor, in Pascal.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES2_ID (`INT32`) {#CAL_DPRES2_ID}
+
+Differential pressure sensor 2 calibration device ID.
+
+Device ID of the differential pressure sensor this calibration applies to.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### CAL_DPRES2_OFF (`FLOAT`) {#CAL_DPRES2_OFF}
+
+Differential pressure sensor 2 offset.
+
+The zero-reading of this differential pressure sensor, in Pascal.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 |  | &nbsp;
 
 </div>
 
@@ -52055,9 +54663,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SENS_DPRES_OFF (`FLOAT`) {#SENS_DPRES_OFF}
 
-Differential pressure sensor offset.
+Differential pressure sensor offset of the first airspeed sensor.
 
-The offset (zero-reading) in Pascal
+The offset (zero-reading) in Pascal of the sensor holding calibration slot 0.
+
+Kept as a mirror of CAL_DPRES0_OFF so that ground stations can still detect whether
+airspeed has been calibrated. The firmware applies CAL_DPRESx_OFF, not this value.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -52144,7 +54755,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 264">
+<div class="param-group" style="--param-count: 265">
 
 <div class="param">
 
@@ -52426,6 +55037,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Required speed accuracy to use GNSS.
 
+EKF2 also feeds GNSS velocity to the EKF-GSF yaw estimator, and trusts the GNSS vertical velocity while the accelerometer clips, only below this speed accuracy, in flight too. With the speed accuracy check disabled in GNSS_CHECK, it does both whatever the speed accuracy.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.5 | 5.0 |  | 0.5 | m/s | &nbsp;
@@ -52523,7 +55137,7 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
+&nbsp; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
 
 </div>
 
@@ -52540,7 +55154,7 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100.0 |  | 0.0 | V | &nbsp;
+&nbsp; | 0 | 100.0 |  | 0.0 | V | &nbsp;
 
 </div>
 
@@ -52600,7 +55214,7 @@ e.g. 5 to only start heating once the temperature drops below 5°C.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
+&nbsp; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
 
 </div>
 
@@ -52617,7 +55231,7 @@ helping to reduce adjustment time.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.05 | % | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.05 | % | &nbsp;
 
 </div>
 
@@ -52634,7 +55248,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
 
 </div>
 
@@ -52650,7 +55264,7 @@ The proportional gain determines how quickly the controller responds to temperat
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
+&nbsp; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
 
 </div>
 
@@ -52683,7 +55297,7 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
+&nbsp; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
 
 </div>
 
@@ -52700,7 +55314,7 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100.0 |  | 0.0 | V | &nbsp;
+&nbsp; | 0 | 100.0 |  | 0.0 | V | &nbsp;
 
 </div>
 
@@ -52760,7 +55374,7 @@ e.g. 5 to only start heating once the temperature drops below 5°C.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
+&nbsp; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
 
 </div>
 
@@ -52777,7 +55391,7 @@ helping to reduce adjustment time.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.05 | % | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.05 | % | &nbsp;
 
 </div>
 
@@ -52794,7 +55408,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
 
 </div>
 
@@ -52810,7 +55424,7 @@ The proportional gain determines how quickly the controller responds to temperat
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
+&nbsp; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
 
 </div>
 
@@ -52843,7 +55457,7 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
+&nbsp; | 0.0 | 0.25 |  | 0.25 |  | &nbsp;
 
 </div>
 
@@ -52860,7 +55474,7 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100.0 |  | 0.0 | V | &nbsp;
+&nbsp; | 0 | 100.0 |  | 0.0 | V | &nbsp;
 
 </div>
 
@@ -52920,7 +55534,7 @@ e.g. 5 to only start heating once the temperature drops below 5°C.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
+&nbsp; | -100.0 | 200.0 |  | 200.0 | celcius | &nbsp;
 
 </div>
 
@@ -52937,7 +55551,7 @@ helping to reduce adjustment time.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.05 | % | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.05 | % | &nbsp;
 
 </div>
 
@@ -52954,7 +55568,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
+&nbsp; | 0 | 1.0 |  | 0.025 | us/C | &nbsp;
 
 </div>
 
@@ -52970,7 +55584,7 @@ The proportional gain determines how quickly the controller responds to temperat
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
+&nbsp; | 0 | 2.0 |  | 1.0 | us/C | &nbsp;
 
 </div>
 
@@ -53048,7 +55662,7 @@ A value of 0 disables the filter.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 | 0.1 | 20.0 | Hz | &nbsp;
+&nbsp; | 0 | 1000 | 0.1 | 20.0 | Hz | &nbsp;
 
 </div>
 
@@ -53084,7 +55698,7 @@ A value of 0 disables the filter.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 | 0.1 | 40.0 | Hz | &nbsp;
+&nbsp; | 0 | 1000 | 0.1 | 40.0 | Hz | &nbsp;
 
 </div>
 
@@ -53183,12 +55797,11 @@ IMU gyro FFT length.
 - `256`: 256
 - `512`: 512
 - `1024`: 1024
-- `4096`: 4096
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 512 | Hz | &nbsp;
+&check; |  |  |  | 512 |  | &nbsp;
 
 </div>
 
@@ -53241,7 +55854,7 @@ Applies to both angular velocity and angular acceleration sent to the controller
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 | 0.1 | 20.0 | Hz | &nbsp;
+&nbsp; | 0 | 100 | 0.1 | 20.0 | Hz | &nbsp;
 
 </div>
 
@@ -53262,7 +55875,7 @@ A value of 0 disables the filter.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 | 0.1 | 0.0 | Hz | &nbsp;
+&nbsp; | 0 | 1000 | 0.1 | 0.0 | Hz | &nbsp;
 
 </div>
 
@@ -53279,7 +55892,7 @@ Applies to both angular velocity and angular acceleration sent to the controller
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 | 0.1 | 20.0 | Hz | &nbsp;
+&nbsp; | 0 | 100 | 0.1 | 20.0 | Hz | &nbsp;
 
 </div>
 
@@ -53300,7 +55913,7 @@ A value of 0 disables the filter.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 | 0.1 | 0.0 | Hz | &nbsp;
+&nbsp; | 0 | 1000 | 0.1 | 0.0 | Hz | &nbsp;
 
 </div>
 
@@ -53437,18 +56050,6 @@ INA226 Power Monitor Shunt.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 1e-09 | 0.1 | 1e-09 | 0.0005 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### INA228_CONFIG (`INT32`) {#INA228_CONFIG}
-
-INA228 Power Monitor Config.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 65535 | 1 | 63779 |  | &nbsp;
 
 </div>
 
@@ -56127,21 +58728,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Multi GPS primary instance.
 
-Preferred GPS receiver instance.
-The GPS selection logic waits until the primary receiver is available to
-send data to the EKF even if a secondary instance is already available.
-The secondary instance is then only used if the primary one times out.
-
-To select a DroneCAN GPS, set this to the node ID.
-
-GPS_RAW_INT reports the preferred receiver, or without one the first receiver
-to publish, and GPS2_RAW the other one. Neither follows the selection.
-
+The primary receiver is used while it passes the strict checks (GNSS_REQ_*), and while disarmed whenever it publishes. In flight, the other receiver is used when the primary fails its checks (GNSS_CHECK) or stops publishing for 2 s, and then for the rest of the flight unless it fails too. The other receiver is also used once it has been better through a hold: when the primary failed the strict checks while the other passed them, or when the primary was usable for a clearly smaller share of the last 10 s or so (availability lower by 0.2). The primary is used again once it has been better through the hold. The hold is 10 s and doubles with every such switch in a flight, so the first return takes 20 s. With Auto, the moving base of a moving base pair (SENS_GNSSn_HDG) is the primary. Without a primary, a receiver that passes the strict checks is preferred, and among those one with an RTK fixed solution. To make a DroneCAN receiver the primary, set its node ID (2 to 127). GPS_RAW_INT reports the primary receiver, or the first receiver to publish if there is no primary.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -1 | 127 |  | 0 |  | &nbsp;
+&nbsp; | -1 | 127 |  | -1 |  | &nbsp;
 
 </div>
 
@@ -56266,6 +58858,34 @@ Configure on which serial port to run LeddarOne Rangefinder.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_LL40LS_MAX (`FLOAT`) {#SENS_LL40LS_MAX}
+
+Lidar-Lite (LL40LS) maximum distance.
+
+Maximum distance the driver reports as valid. Set to 0 to use the driver's built-in
+limit for the detected hardware version.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 100 | 0.5 | 0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_LL40LS_SMIN (`INT32`) {#SENS_LL40LS_SMIN}
+
+Min signal strength for V3HP.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 254 |  | 70 |  | &nbsp;
 
 </div>
 
@@ -58569,7 +61189,42 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Simulation
 
-<div class="param-group" style="--param-count: 8">
+<div class="param-group" style="--param-count: 9">
+
+<div class="param">
+
+### SIM_GZ_EC_SIGNED (`INT32`) {#SIM_GZ_EC_SIGNED}
+
+Signed command for non-motor ESC channels.
+
+For motors, use CA_R_REV; bits set here for motor channels are ignored. Select simulated ESC channels assigned a non-motor function (e.g. Peripheral via Actuator Set or Servo) to send values from -MAX (full reverse) to +MAX (full forward), with 0 as neutral. For signed channels, keep DISARMED at 0, set MIN to 1, and use FAILSAFE 0 for neutral failsafe behavior. Failsafe values use the same MIN/MAX-to-signed mapping as normal outputs. Mirrors UAVCAN_EC_SIGNED.
+
+
+**Bitmask:**
+
+- `0`: ESC1
+- `1`: ESC2
+- `2`: ESC3
+- `3`: ESC4
+- `4`: ESC5
+- `5`: ESC6
+- `6`: ESC7
+- `7`: ESC8
+- `8`: ESC9
+- `9`: ESC10
+- `10`: ESC11
+- `11`: ESC12
+- `12`: ESC13
+- `13`: ESC14
+- `14`: ESC15
+- `15`: ESC16
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 65535 |  | 0 |  | &nbsp;
+
+</div>
 
 <div class="param">
 
@@ -58593,12 +61248,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_BARO (`INT32`) {#SIM_GZ_EN_BARO}
 
-Enable barometer/air pressure sensor in Gazebo bridge.
+Enable barometer/air pressure sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 barometer sensor
+- `2`: Simulate 2 barometer sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -58629,12 +61285,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_GPS (`INT32`) {#SIM_GZ_EN_GPS}
 
-Enable GPS/NavSat sensor in Gazebo bridge.
+Enable GPS/NavSat sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 GPS sensor
+- `2`: Simulate 2 GPS sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -58647,12 +61304,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_IMU (`INT32`) {#SIM_GZ_EN_IMU}
 
-Enable IMU sensor in Gazebo bridge.
+Enable IMU sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 IMU sensor
+- `2`: Simulate 2 IMU sensors
+- `3`: Simulate 3 IMU sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -58683,12 +61342,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### SIM_GZ_EN_MAG (`INT32`) {#SIM_GZ_EN_MAG}
 
-Enable magnetometer sensor in Gazebo bridge.
+Enable magnetometer sensor(s) in Gazebo bridge.
 
 **Values:**
 
 - `0`: Disabled
-- `1`: Enabled
+- `1`: Simulate 1 magnometer sensor
+- `2`: Simulate 2 magnometer sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -59379,6 +62039,913 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 </div>
 
+## Spacecraft Attitude Control
+
+<div class="param-group" style="--param-count: 7">
+
+<div class="param">
+
+### SC_PITCHRATE_MAX (`FLOAT`) {#SC_PITCHRATE_MAX}
+
+Max pitch rate.
+
+Limit for pitch rate in manual and auto modes (except acro).
+Has effect for large rotations in autonomous mode, to avoid large control
+output and mixer saturation.
+
+This is not only limited by the vehicle's properties, but also by the maximum
+measurement rate of the gyro.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1800.0 | 5 | 220.0 | deg/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_PITCH_P (`FLOAT`) {#SC_PITCH_P}
+
+Pitch P gain.
+
+Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 12 | 0.1 | 6.5 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ROLLRATE_MAX (`FLOAT`) {#SC_ROLLRATE_MAX}
+
+Max roll rate.
+
+Limit for roll rate in manual and auto modes (except acro).
+Has effect for large rotations in autonomous mode, to avoid large control
+output and mixer saturation.
+
+This is not only limited by the vehicle's properties, but also by the maximum
+measurement rate of the gyro.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1800.0 | 5 | 220.0 | deg/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ROLL_P (`FLOAT`) {#SC_ROLL_P}
+
+Roll P gain.
+
+Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 12 | 0.1 | 6.5 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_YAWRATE_MAX (`FLOAT`) {#SC_YAWRATE_MAX}
+
+Max yaw rate.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1800.0 | 5 | 200.0 | deg/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_YAW_P (`FLOAT`) {#SC_YAW_P}
+
+Yaw P gain.
+
+Yaw proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 5 | 0.1 | 2.8 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_YAW_WEIGHT (`FLOAT`) {#SC_YAW_WEIGHT}
+
+Yaw weight.
+
+A fraction [0,1] deprioritizing yaw compared to roll and pitch in non-linear attitude control.
+Deprioritizing yaw is necessary because multicopters have much less control authority
+in yaw compared to the other axes and it makes sense because yaw is not critical for
+stable hovering or 3D navigation.
+
+For yaw control tuning use SC_YAW_P. This ratio has no impact on the yaw gain.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.1 | 0.4 |  | &nbsp;
+
+</div>
+
+</div>
+
+## Spacecraft Position Control
+
+<div class="param-group" style="--param-count: 21">
+
+<div class="param">
+
+### SC_MAN_TILT_TAU (`FLOAT`) {#SC_MAN_TILT_TAU}
+
+Manual tilt input filter time constant.
+
+Setting this parameter to 0 disables the filter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 2.0 |  | 0.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_MAN_Y_SCALE (`FLOAT`) {#SC_MAN_Y_SCALE}
+
+Max manual yaw rate for Stabilized, Altitude, Position mode.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 400 | 10 | 150.0 | deg/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_ACC (`FLOAT`) {#SPC_ACC}
+
+Acceleration for autonomous and for manual modes.
+
+When piloting manually, this parameter is only used in MPC_POS_MODE 4.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 2 | 15 | 1 | 3.0 | m/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_ACC_MAX (`FLOAT`) {#SPC_ACC_MAX}
+
+Maximum accelaration in autonomous modes.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 2 | 15 | 1 | 5.0 | m/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_JERK_AUTO (`FLOAT`) {#SPC_JERK_AUTO}
+
+Jerk limit in autonomous modes.
+
+Limit the maximum jerk of the vehicle (how fast the acceleration can change).
+A lower value leads to smoother vehicle motions but also limited agility.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1 | 80 | 1 | 4.0 | m/s^3 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_JERK_MAX (`FLOAT`) {#SPC_JERK_MAX}
+
+Maximum jerk in Position/Altitude mode.
+
+Limit the maximum jerk of the vehicle (how fast the acceleration can change).
+A lower value leads to smoother motions but limits agility
+(how fast it can change directions or break).
+
+Setting this to the maximum value essentially disables the limit.
+
+Only used with smooth MPC_POS_MODE 3 and 4.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 500 | 1 | 8.0 | m/s^3 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_MAN_Y_MAX (`FLOAT`) {#SPC_MAN_Y_MAX}
+
+Max manual yaw rate for Stabilized, Altitude, Position mode.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 400 | 10 | 150.0 | deg/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_MAN_Y_TAU (`FLOAT`) {#SPC_MAN_Y_TAU}
+
+Manual yaw rate input filter time constant.
+
+Not used in Stabilized mode
+Setting this parameter to 0 disables the filter
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 5 | 0.01 | 0.08 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_POS_I (`FLOAT`) {#SPC_POS_I}
+
+Integral gain for position error.
+
+Defined as corrective velocity in m/s per m velocity error
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 15 | 0.1 | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_POS_I_LIM (`FLOAT`) {#SPC_POS_I_LIM}
+
+Integral limit for position error.
+
+Defined as corrective velocity in m/s per m velocity error
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 5 | 0.01 | 1.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_POS_P (`FLOAT`) {#SPC_POS_P}
+
+Proportional gain for position error.
+
+Defined as corrective velocity in m/s per m position error
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 2 | 0.1 | 0.2 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_THR_MAX (`FLOAT`) {#SPC_THR_MAX}
+
+Maximum collective thrust.
+
+Limit allowed thrust
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 1 | 0.05 | 1.0 | norm | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VELD_LP (`FLOAT`) {#SPC_VELD_LP}
+
+Numerical velocity derivative low pass cutoff frequency.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 10 | 0.5 | 5.0 | Hz | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VEL_ALL (`FLOAT`) {#SPC_VEL_ALL}
+
+Overall Velocity Limit.
+
+If set to a value greater than zero, other parameters are automatically set (such as
+MPC_VEL_MAX or MPC_VEL_MANUAL).
+If set to a negative value, the existing individual parameters are used.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -20 | 20 | 1 | -10.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VEL_CRUISE (`FLOAT`) {#SPC_VEL_CRUISE}
+
+Cruising elocity setpoint in autonomous modes.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 3 | 20 | 1 | 10.0 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VEL_D (`FLOAT`) {#SPC_VEL_D}
+
+Derivative gain for velocity error.
+
+Defined as corrective acceleration in m/s^2 per m/s velocity error
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 15 | 0.1 | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VEL_I (`FLOAT`) {#SPC_VEL_I}
+
+Integral gain for velocity error.
+
+Defined as corrective acceleration in m/s^2 per m/s velocity error
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 15 | 0.1 | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VEL_I_LIM (`FLOAT`) {#SPC_VEL_I_LIM}
+
+Integral limit for velocity error.
+
+Defined as corrective acceleration in m/s^2 per m/s velocity error
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 5 | 0.1 | 1.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VEL_MANUAL (`FLOAT`) {#SPC_VEL_MANUAL}
+
+Maximum velocity setpoint in Position mode.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 3 | 20 | 1 | 10.0 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VEL_MAX (`FLOAT`) {#SPC_VEL_MAX}
+
+Maximum velocity.
+
+Absolute maximum for all velocity controlled modes.
+Any higher value is truncated.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 20 | 1 | 12.0 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VEL_P (`FLOAT`) {#SPC_VEL_P}
+
+Proportional gain for velocity error.
+
+Defined as corrective acceleration in m/s^2 per m/s velocity error
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 15 | 0.1 | 6.55 |  | &nbsp;
+
+</div>
+
+</div>
+
+## Spacecraft Rate Control
+
+<div class="param-group" style="--param-count: 28">
+
+<div class="param">
+
+### SC_ACRO_EXPO (`FLOAT`) {#SC_ACRO_EXPO}
+
+Acro mode Expo factor for Roll and Pitch.
+
+Exponential factor for tuning the input curve shape.
+
+0 Purely linear input curve
+1 Purely cubic input curve
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 1 |  | 0.69 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ACRO_EXPO_Y (`FLOAT`) {#SC_ACRO_EXPO_Y}
+
+Acro mode Expo factor for Yaw.
+
+Exponential factor for tuning the input curve shape.
+
+0 Purely linear input curve
+1 Purely cubic input curve
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 1 |  | 0.69 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ACRO_P_MAX (`FLOAT`) {#SC_ACRO_P_MAX}
+
+Max acro pitch rate.
+
+default: 2 turns per second
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1800.0 | 5 | 720.0 | deg/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ACRO_R_MAX (`FLOAT`) {#SC_ACRO_R_MAX}
+
+Max acro roll rate.
+
+default: 2 turns per second
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1800.0 | 5 | 720.0 | deg/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ACRO_SUPEXPO (`FLOAT`) {#SC_ACRO_SUPEXPO}
+
+Acro mode SuperExpo factor for Roll and Pitch.
+
+SuperExpo factor for refining the input curve shape tuned using SC_ACRO_EXPO.
+
+0 Pure Expo function
+0.7 reasonable shape enhancement for intuitive stick feel
+0.95 very strong bent input curve only near maxima have effect
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 0.95 |  | 0.7 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ACRO_SUPEXPOY (`FLOAT`) {#SC_ACRO_SUPEXPOY}
+
+Acro mode SuperExpo factor for Yaw.
+
+SuperExpo factor for refining the input curve shape tuned using SC_ACRO_EXPO_Y.
+
+0 Pure Expo function
+0.7 reasonable shape enhancement for intuitive stick feel
+0.95 very strong bent input curve only near maxima have effect
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 0.95 |  | 0.7 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ACRO_Y_MAX (`FLOAT`) {#SC_ACRO_Y_MAX}
+
+Max acro yaw rate.
+
+default 1.5 turns per second
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1800.0 | 5 | 540.0 | deg/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_BAT_SCALE_EN (`INT32`) {#SC_BAT_SCALE_EN}
+
+Battery power level scaler.
+
+This compensates for voltage drop of the battery over time by attempting to
+normalize performance across the operating range of the battery. The copter
+should constantly behave as if it was fully charged with reduced max acceleration
+at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
+it will still be 0.5 at 60% battery.
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_MAN_F_MAX (`FLOAT`) {#SC_MAN_F_MAX}
+
+Manual mode maximum force.
+
+*
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 1.0 |  | 1.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_MAN_T_MAX (`FLOAT`) {#SC_MAN_T_MAX}
+
+Manual mode maximum torque.
+
+*
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 1.0 |  | 1.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_PITCHRATE_D (`FLOAT`) {#SC_PITCHRATE_D}
+
+Pitch rate D gain.
+
+Pitch rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 0.0005 | 0.003 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_PITCHRATE_FF (`FLOAT`) {#SC_PITCHRATE_FF}
+
+Pitch rate feedforward.
+
+Improves tracking performance.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  |  | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_PITCHRATE_I (`FLOAT`) {#SC_PITCHRATE_I}
+
+Pitch rate I gain.
+
+Pitch rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 0.01 | 0.2 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_PITCHRATE_K (`FLOAT`) {#SC_PITCHRATE_K}
+
+Pitch rate controller gain.
+
+Global gain of the controller.
+
+This gain scales the P, I and D terms of the controller:
+output = SC_PITCHRATE_K * (SC_PITCHRATE_P * error
++ SC_PITCHRATE_I * error_integral
++ SC_PITCHRATE_D * error_derivative)
+Set SC_PITCHRATE_P=1 to implement a PID in the ideal form.
+Set SC_PITCHRATE_K=1 to implement a PID in the parallel form.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 5.0 | 0.0005 | 1.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_PITCHRATE_P (`FLOAT`) {#SC_PITCHRATE_P}
+
+Pitch rate P gain.
+
+Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 0.6 | 0.01 | 0.15 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_PR_INT_LIM (`FLOAT`) {#SC_PR_INT_LIM}
+
+Pitch rate integrator limit.
+
+Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large pitch moment trim changes.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 0.01 | 0.3 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ROLLRATE_D (`FLOAT`) {#SC_ROLLRATE_D}
+
+Roll rate D gain.
+
+Roll rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 0.01 | 0.0005 | 0.003 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ROLLRATE_FF (`FLOAT`) {#SC_ROLLRATE_FF}
+
+Roll rate feedforward.
+
+Improves tracking performance.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  |  | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ROLLRATE_I (`FLOAT`) {#SC_ROLLRATE_I}
+
+Roll rate I gain.
+
+Roll rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 0.01 | 0.2 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ROLLRATE_K (`FLOAT`) {#SC_ROLLRATE_K}
+
+Roll rate controller gain.
+
+Global gain of the controller.
+
+This gain scales the P, I and D terms of the controller:
+output = SC_ROLLRATE_K * (SC_ROLLRATE_P * error
++ SC_ROLLRATE_I * error_integral
++ SC_ROLLRATE_D * error_derivative)
+Set SC_ROLLRATE_P=1 to implement a PID in the ideal form.
+Set SC_ROLLRATE_K=1 to implement a PID in the parallel form.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 5.0 | 0.0005 | 1.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_ROLLRATE_P (`FLOAT`) {#SC_ROLLRATE_P}
+
+Roll rate P gain.
+
+Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 0.5 | 0.01 | 0.15 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_RR_INT_LIM (`FLOAT`) {#SC_RR_INT_LIM}
+
+Roll rate integrator limit.
+
+Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large roll moment trim changes.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 0.01 | 0.3 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_YAWRATE_D (`FLOAT`) {#SC_YAWRATE_D}
+
+Yaw rate D gain.
+
+Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 0.01 | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_YAWRATE_FF (`FLOAT`) {#SC_YAWRATE_FF}
+
+Yaw rate feedforward.
+
+Improves tracking performance.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 0.01 | 0.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_YAWRATE_I (`FLOAT`) {#SC_YAWRATE_I}
+
+Yaw rate I gain.
+
+Yaw rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 0.01 | 0.865 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_YAWRATE_K (`FLOAT`) {#SC_YAWRATE_K}
+
+Yaw rate controller gain.
+
+Global gain of the controller.
+
+This gain scales the P, I and D terms of the controller:
+output = SC_YAWRATE_K * (SC_YAWRATE_P * error
++ SC_YAWRATE_I * error_integral
++ SC_YAWRATE_D * error_derivative)
+Set SC_YAWRATE_P=1 to implement a PID in the ideal form.
+Set SC_YAWRATE_K=1 to implement a PID in the parallel form.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 5.0 | 0.0005 | 1.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_YAWRATE_P (`FLOAT`) {#SC_YAWRATE_P}
+
+Yaw rate P gain.
+
+Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 10.0 | 0.01 | 10.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SC_YR_INT_LIM (`FLOAT`) {#SC_YR_INT_LIM}
+
+Yaw rate integrator limit.
+
+Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 0.01 | 0.2 |  | &nbsp;
+
+</div>
+
+</div>
+
 ## System
 
 <div class="param-group" style="--param-count: 27">
@@ -60018,7 +63585,43 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Testing
 
-<div class="param-group" style="--param-count: 12">
+<div class="param-group" style="--param-count: 18">
+
+<div class="param">
+
+### TEST_1 (`INT32`) {#TEST_1}
+
+TEST_1.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 2 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### TEST_2 (`INT32`) {#TEST_2}
+
+TEST_2.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 4 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### TEST_3 (`FLOAT`) {#TEST_3}
+
+TEST_3.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 5.0 |  | &nbsp;
+
+</div>
 
 <div class="param">
 
@@ -60149,6 +63752,42 @@ TEST_P.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 0.2 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### TEST_PARAMS (`INT32`) {#TEST_PARAMS}
+
+TEST_PARAMS.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 12345678 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### TEST_RC2_X (`INT32`) {#TEST_RC2_X}
+
+TEST_RC2_X.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 16 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### TEST_RC_X (`INT32`) {#TEST_RC_X}
+
+TEST_RC_X.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 8 |  | &nbsp;
 
 </div>
 
@@ -63067,7 +66706,7 @@ This parameter defines the operating mode of the MXS
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 3 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 3 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -63122,7 +66761,7 @@ The MXS communication port to receive Target data from
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 2 |  | 1 |  | &nbsp;
+&nbsp; | 0 | 2 |  | 1 |  | &nbsp;
 
 </div>
 
@@ -63130,7 +66769,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## UAVCAN
 
-<div class="param-group" style="--param-count: 49">
+<div class="param-group" style="--param-count: 50">
 
 <div class="param">
 
@@ -63401,6 +67040,37 @@ Maximum fuel capacity of fuel tank 3.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 0.0 | 100000.0 | 0.1 | 15.0 | liters | &nbsp;
+
+</div>
+
+<div class="param">
+
+### UAVCAN_EC_SIGNED (`INT32`) {#UAVCAN_EC_SIGNED}
+
+Signed command for non-motor ESC channels.
+
+For motors, use CA_R_REV; bits set here for motor channels are ignored. Select ESC channels assigned a non-motor function (e.g. Peripheral via Actuator Set or Servo) to send signed RawCommand values from -MAX (full reverse) to +MAX (full forward), with 0 as neutral. Keep MIN at its default of 1 so full reverse remains distinct from disarmed and failsafe values of 0. Failsafe values use the same MIN/MAX-to-signed mapping as normal outputs.
+
+
+**Bitmask:**
+
+- `0`: ESC1
+- `1`: ESC2
+- `2`: ESC3
+- `3`: ESC4
+- `4`: ESC5
+- `5`: ESC6
+- `6`: ESC7
+- `7`: ESC8
+- `8`: ESC9
+- `9`: ESC10
+- `10`: ESC11
+- `11`: ESC12
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 4095 |  | 0 |  | &nbsp;
 
 </div>
 
@@ -66878,14 +70548,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 UAV acceleration white-noise power spectral density.
 
-White-noise PSD on the UAV acceleration input. The
-1-sigma vel_uav change allowed over a time t is sqrt(VTE_ACC_D_UNC * t).
-
-This is a variance rate, not a per-step variance; the value is independent
-of the filter update rate. Higher values let the filter follow new
-measurements more tightly and reject fewer outliers.
-
-Unit: m^2/s^3.
+UAV velocity variance growth rate from acceleration noise (m^2/s^3), independent of update rate.
+Higher values follow measurements faster and reject fewer outliers.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -66900,16 +70564,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Target acceleration random-walk process noise.
 
-Process-noise spectral density of the target acceleration random walk
-(moving-target builds only). The 1-sigma target-acceleration change over a
-time t is sqrt(VTE_ACC_T_UNC * t) (e.g. for the 0.1 default, ~0.32 m/s^2
-after 1 s, ~1.0 m/s^2 after 10 s).
-
-This is a variance rate, not a linear rate of change; the value is
-independent of the filter update rate. Higher values let the filter follow
-target manoeuvres more aggressively and accept more outliers.
-
-Unit: ((m/s^2)^2)/s.
+Target acceleration variance growth rate (m^2/s^5), independent of update rate. Moving-target builds only.
+Higher values track manoeuvres faster and reject fewer outliers.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -66924,13 +70580,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial target absolute acceleration uncertainty.
 
-Initial variance of the relative target acceleration in x, y, and z directions
-(moving-target builds only).
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
-Once the filter is running, the steady-state target-acceleration variance is
-governed by VTE_ACC_T_UNC and the measurement updates, so this parameter does
-not influence runtime behaviour.
+Initial absolute target-acceleration variance per axis (moving-target builds only).
+Changes apply at initialization/reset. Use VTE_ACC_T_UNC for ongoing manoeuvre tracking.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -66945,9 +70596,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Integer bitmask controlling data fusion and aiding methods.
 
-Selects which measurements the vision target estimator fuses.
-Bits 0, 3 and 5 give an absolute pad position. It is converted to a relative observation with the vehicle GNSS position, and its offset to the vision-based pad position is estimated as the GNSS bias.
-Only one absolute pad position is fused at a time: bit 0 takes precedence over bits 3 and 5, which are also ignored in moving-target builds.
+Absolute target references (bits 0, 3, 5) require vehicle GNSS; their offset from vision is estimated as a bias.
+Bit 0 overrides bits 3 and 5, which are ignored in moving-target builds.
 
 
 **Bitmask:**
@@ -66972,18 +70622,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Bias random-walk process noise.
 
-Process-noise spectral density of the GPS/vision bias random walk. The
-1-sigma expected bias change over a time t is sqrt(VTE_BIAS_UNC * t) (e.g.
-for the 0.001 default, ~3 cm after 1 s, ~10 cm after 10 s, ~32 cm after
-100 s).
-
-This is a variance rate, not a linear drift rate; the value is independent
-of the filter update rate. Higher values let the bias follow new
-observations more aggressively; lower values keep it stiff. Tune to match
-the realistic physical drift of the absolute reference (typically a few
-centimetres over tens of seconds for consumer GNSS, less for RTK).
-
-Unit: m^2/s.
+GNSS/vision position-bias variance growth rate (m^2/s), independent of update rate.
+Higher values track reference drift faster; lower values keep the bias steadier.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -66998,10 +70638,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial GNSS/vision bias averaging threshold.
 
-When the GNSS/vision bias first becomes observable while the estimator is still referenced to GNSS,
-VTE low-pass filters the first GNSS/vision bias samples before activating the bias estimate.
-The LPF exit requires consecutive raw bias samples to stay within this threshold and for the LPF
-to have run for at least 2 * tau, or until VTE_BIA_AVG_TOUT elapses.
+Maximum 3D difference between raw and filtered bias to finish averaging after GNSS-first startup.
+Lower values require steadier samples. Requires 5 consecutive matches and at least 0.6 s, or VTE_BIA_AVG_TOUT.
+Set to 0 to disable averaging.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67016,14 +70655,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial GNSS/vision bias averaging timeout.
 
-Maximum time spent averaging the initial GNSS bias before activating it once GNSS and vision
-are jointly observable while the estimator is still referenced to GNSS. During that phase, valid
-vision samples keep updating the LPF. While the current GNSS-relative measurement stays valid,
-it can be propagated with the UAV velocity estimate to match the vision timestamp. If that GNSS
-sample is no longer valid, averaging stops, the current vision position is used, and the current
-LPF bias is activated.
-
-Set to 0 to disable averaging and activate the bias immediately.
+Maximum time to average the GNSS/vision bias when starting from GNSS position. Vision fusion waits meanwhile.
+If GNSS expires, switch to vision with the filtered bias. Set to 0 to disable averaging.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67038,12 +70671,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial GPS bias uncertainty.
 
-Initial variance of the bias between the GPS on the target and the GPS on the drone.
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
-Once the filter is running, the steady-state bias variance is governed by VTE_BIAS_UNC
-and the measurement updates, so this parameter does not influence runtime behaviour.
-Keep it large so initialization can absorb initial misalignments.
+Initial GNSS/vision position-bias variance per axis. Higher values allow larger initial bias corrections.
+Applied at initialization/reset and bias activation. Use VTE_BIAS_UNC for ongoing drift.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67058,12 +70687,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Vision target timeout.
 
-Time after which the target is considered lost without any new fused measurements. When this timeout expires, the estimator is reset and can restart immediately once an enabled fusion source is available.
+Reset after this long without accepted position or yaw updates, tracked separately.
+Velocity updates do not prevent position resets.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 50 | 0.5 | 3.0 | s | &nbsp;
+&nbsp; | 0.1 | 50 | 0.5 | 3.0 | s | &nbsp;
 
 </div>
 
@@ -67090,13 +70720,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum standard deviation for vision yaw observations.
 
-Lower bound on the standard deviation used when fusing the vision yaw
-observation. The estimator squares this value and clamps the per-sample
-observation variance to max(reported_variance, VTE_EVA_NOISE^2). The floor only
-takes effect when the sensor under-reports its own noise.
-The default of ~0.07 rad (4 deg) is a reasonable starting point for marker-based
-yaw detection. Lowering it makes the filter trust each yaw sample more, which
-can cause the controller to chase the resulting setpoint changes and oscillate.
+Minimum vision yaw noise; used only when reported noise is lower. Default: about 4 deg.
+Lower values increase trust in yaw measurements and can cause control oscillations.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67111,10 +70736,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum standard deviation for vision relative-position observations.
 
-Lower bound on the standard deviation used when fusing the vision relative
-position. The estimator squares this value and clamps the per-sample
-observation variance to max(reported_variance, VTE_EVP_NOISE^2). The floor only
-takes effect when the sensor under-reports its own noise.
+Minimum vision position noise; used only when reported noise is lower.
+Increase to reduce trust in position measurements.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67129,10 +70752,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum standard deviation for GPS position observations.
 
-Lower bound on the standard deviation used when fusing GPS position (target or
-mission landing waypoint). The estimator squares this value and clamps the
-per-sample observation variance to max(reported_variance, VTE_GPS_P_NOISE^2).
-The floor only takes effect when the sensor under-reports its own noise.
+Minimum GNSS position noise for target, mission or home aiding; used only when reported noise is lower.
+Increase to reduce trust in position measurements.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67147,11 +70768,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Minimum standard deviation for GPS velocity observations.
 
-Lower bound on the standard deviation used when fusing GPS velocity. The
-estimator squares this value and clamps the per-sample observation variance
-to max(reported_variance, VTE_GPS_V_NOISE^2). The floor only takes effect when
-the sensor under-reports its own noise; if the reported variance is already
-above the floor, this parameter has no effect.
+Minimum GNSS velocity noise; used only when reported noise is lower.
+Increase to reduce trust in velocity measurements.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67166,12 +70784,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Measurement recent timeout.
 
-Time window for considering a raw measurement as recent and eligible for fusion.
+Maximum raw measurement age allowed for fusion.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 10 | 0.05 | 1.0 | s | &nbsp;
+&nbsp; | 0.1 | 10 | 0.05 | 1.0 | s | &nbsp;
 
 </div>
 
@@ -67181,12 +70799,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Measurement updated timeout.
 
-Maximum allowed age of a retained measurement before it is discarded from the estimator's cache.
+Maximum age of local position, velocity and antenna-offset corrections. GNSS-to-vision alignment may span the measurement recent timeout.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 5 | 0.01 | 0.1 | s | &nbsp;
+&nbsp; | 0.01 | 5 | 0.01 | 0.1 | s | &nbsp;
 
 </div>
 
@@ -67213,10 +70831,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Normalized innovation squared threshold for the position estimator.
 
-Lower values mean that more measurements will be rejected. Null hypothesis H0: the innovation is
-consistent with the innovation covariance matrix. Values of 0.46, 1.64, 2.71, 3.84, 6.63, and 10.83
-correspond to 50%, 20%, 10%, 5%, 1%, and 0.1% probability respectively that H0 is incorrectly rejected.
-The confidence interval is computed from the chi-squared distribution.
+Per-axis outlier gate for position and velocity measurements. Lower values reject more samples.
+For Gaussian innovations, 3.84 rejects about 5% of valid samples; 6.63 rejects 1%.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67231,9 +70847,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial target and drone relative position uncertainty.
 
-Initial variance of the relative target position in x, y, and z direction.
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
+Minimum initial variance of the relative target position in x, y, and z direction.
+The variance reported by the initializing observation is used if it is larger.
+Applied at initialization/reset and GNSS/vision bias activation.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67247,12 +70863,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 ### VTE_TASK_MASK (`INT32`) {#VTE_TASK_MASK}
 
 Integer bitmask controlling the tasks of the target estimator.
-
-Set bits in the following positions to enable:
-0 : Set to true to use the vision target estimator for precision landing. (+1)
-1 : DEBUG, always active. (+2)
-2 : Set to true to use the vision target estimator for precision takeoff. (+4)
-
 
 **Bitmask:**
 
@@ -67273,12 +70883,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Target validity timeout.
 
-Maximum time without any fused measurements before the published relative pose/yaw is flagged invalid.
+Maximum time without accepted position or yaw updates before that estimate becomes invalid.
+Keep below VTE_BTOUT.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 50 | 0.25 | 2.0 | s | &nbsp;
+&nbsp; | 0.1 | 50 | 0.25 | 2.0 | s | &nbsp;
 
 </div>
 
@@ -67288,9 +70899,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial target and drone relative velocity uncertainty.
 
-Initial variance of the relative target velocity in x, y, and z directions.
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
+Initial velocity variance per axis, applied separately to the UAV and moving target.
+Changes apply at initialization/reset.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67305,16 +70915,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Yaw acceleration white-noise power spectral density.
 
-White-noise PSD on the yaw acceleration driving the
-yaw-rate state. The 1-sigma yaw-rate change allowed over a time t is
-sqrt(VTE_YAW_ACC_UNC * t) (e.g. for the 0.004 default, ~3.6 deg/s after 1 s,
-~11.5 deg/s after 10 s).
-
-This is a variance rate, not a per-step variance; the value is independent
-of the filter update rate. Higher values let the filter follow rapid
-heading changes; lower values smooth the yaw estimate aggressively.
-
-Unit: rad^2/s^3.
+Yaw-rate variance growth rate from acceleration noise (rad^2/s^3), independent of update rate.
+Higher values track heading changes faster; lower values smooth yaw more.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67346,10 +70948,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Normalized innovation squared threshold for the orientation estimator.
 
-Lower values mean that more measurements will be rejected. Null hypothesis H0: the innovation is
-consistent with the innovation covariance matrix. Values of 0.46, 1.64, 2.71, 3.84, 6.63, and 10.83
-correspond to 50%, 20%, 10%, 5%, 1%, and 0.1% probability respectively that H0 is incorrectly rejected.
-The confidence interval is computed from the chi-squared distribution.
+Yaw outlier gate. Lower values reject more samples.
+For Gaussian innovations, 3.84 rejects about 5% of valid samples; 6.63 rejects 1%.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67364,9 +70964,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Initial orientation uncertainty.
 
-Initial variance of the target orientation yaw in rad^2.
-Changes while the estimator is running are picked up immediately by the module but only take effect
-the next time the estimator initializes or resets.
+Initial yaw variance (rad^2); also used for yaw-rate variance ((rad/s)^2).
+Changes apply at initialization/reset.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -67408,7 +71007,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Miscellaneous
 
-<div class="param-group" style="--param-count: 9">
+<div class="param-group" style="--param-count: 10">
 
 <div class="param">
 
@@ -67493,6 +71092,18 @@ Lightware laser rangefinder Operation Mode.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 2 |  | 1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SPC_VEHICLE_RESP (`FLOAT`) {#SPC_VEHICLE_RESP}
+
+SPC_VEHICLE_RESP.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.5 |  | &nbsp;
 
 </div>
 

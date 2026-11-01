@@ -4,24 +4,31 @@ The reviewer and the validator return JSON constrained by the schemas
 below (passed to the agent with --json-schema). Parsing re-checks every
 field anyway: model output is untrusted. Anything that breaks the
 contract is rejected rather than repaired, with one cosmetic exception:
-an over-long title is shortened, since losing a finding over its heading
-helps nobody.
+an over-long title or comment is shortened, since losing a finding over
+its length helps nobody.
 
 A finding either points at lines of a changed file (path and line set) or
-is about the PR as a whole (path and line null): missing test evidence, a
-description that does not match the change, a missing upgrade note.
+is about the PR as a whole (path and line null). Its kind says whether it
+is about the code or about the contribution process (test evidence, the
+description, upgrade notes, docs); only code findings decide the verdict.
+
+`comment` is the only finding text posted on the PR. The other text fields
+are evidence for the validator and the job-summary report.
 """
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 SEVERITIES = ('blocker', 'concern', 'nit')
+KINDS = ('code', 'process')
 CONFIDENCES = ('high', 'medium', 'low')
 CHECKLIST_ITEMS = ('problem', 'tests', 'description', 'compatibility',
                    'docs')
 CHECKLIST_STATUSES = ('ok', 'gap', 'not_applicable')
 
 MAX_TITLE = 100
+# one sentence; the prompt asks for under 300 characters
+MAX_COMMENT = 400
 MAX_TEXT = 4000
 MAX_FINDINGS = 25
 
@@ -30,7 +37,9 @@ FINDING_FIELDS = {
     'line': {'type': ['integer', 'null'], 'minimum': 1},
     'start_line': {'type': ['integer', 'null'], 'minimum': 1},
     'severity': {'type': 'string', 'enum': list(SEVERITIES)},
+    'kind': {'type': 'string', 'enum': list(KINDS)},
     'title': {'type': 'string'},
+    'comment': {'type': 'string'},
     'body': {'type': 'string'},
     'trigger': {'type': 'string'},
     'suggestion': {'type': 'string'},
@@ -39,8 +48,8 @@ FINDING_FIELDS = {
     'rule': {'type': ['string', 'null']},
 }
 REQUIRED_FINDING_FIELDS = (
-    'path', 'line', 'severity', 'title', 'body', 'trigger', 'suggestion',
-    'uncertainty')
+    'path', 'line', 'severity', 'kind', 'title', 'comment', 'body',
+    'trigger', 'suggestion', 'uncertainty')
 
 CHECKLIST_ENTRY = {
     'type': 'object',
@@ -99,7 +108,9 @@ class Finding:
     line: Optional[int]
     start_line: Optional[int]
     severity: str
+    kind: str
     title: str
+    comment: str
     body: str
     trigger: str
     suggestion: str
@@ -156,13 +167,13 @@ def _text(obj: Dict[str, Any], key: str, limit: int,
     return value
 
 
-def _title(obj: Dict[str, Any]) -> str:
-    value = obj.get('title')
+def _short_text(obj: Dict[str, Any], key: str, limit: int) -> str:
+    value = obj.get(key)
     if not isinstance(value, str) or not value.strip():
-        raise ContractError('title: expected a non-empty string')
+        raise ContractError(f'{key}: expected a non-empty string')
     value = ' '.join(value.split())
-    if len(value) > MAX_TITLE:
-        cut = value[:MAX_TITLE - 1].rsplit(' ', 1)[0]
+    if len(value) > limit:
+        cut = value[:limit - 1].rsplit(' ', 1)[0]
         value = cut.rstrip(',;:') + '…'
     return value
 
@@ -207,6 +218,9 @@ def parse_finding(obj: Any) -> Finding:
     severity = obj['severity']
     if severity not in SEVERITIES:
         raise ContractError(f'severity: must be one of {SEVERITIES}')
+    kind = obj['kind']
+    if kind not in KINDS:
+        raise ContractError(f'kind: must be one of {KINDS}')
     replacement = _text(obj, 'replacement', MAX_TEXT, optional=True)
     if path is None and replacement is not None:
         raise ContractError('replacement: only for line findings')
@@ -215,7 +229,9 @@ def parse_finding(obj: Any) -> Finding:
         line=line,
         start_line=start_line,
         severity=severity,
-        title=_title(obj),
+        kind=kind,
+        title=_short_text(obj, 'title', MAX_TITLE),
+        comment=_short_text(obj, 'comment', MAX_COMMENT),
         body=_text(obj, 'body', MAX_TEXT) or '',
         trigger=_text(obj, 'trigger', MAX_TEXT) or '',
         suggestion=_text(obj, 'suggestion', MAX_TEXT) or '',

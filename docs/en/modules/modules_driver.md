@@ -526,6 +526,9 @@ Multiple instances can run simultaneously on separate buses or different I2C add
 If the device is not powered at startup, pass `-k` (keep_running) and the driver
 will retry initialization every 500 ms so the battery can be plugged in later.
 
+The device is sampled at 100 Hz. Every sample is triggered by the driver, so the latency
+from the measurement to the publication is the same for every sample.
+
 ### Usage {#ina226_usage}
 
 ```
@@ -557,16 +560,17 @@ Source: [drivers/power_monitor/ina228](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Description
 
-Driver for the INA228 power monitor.
+Driver for the Texas Instruments INA228 power monitor.
 
-Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
+Multiple instances can run simultaneously on separate buses or different I2C addresses.
 
-For example, one instance can run on Bus 2, address 0x45, and one can run on Bus 2, address 0x45.
+If the device is not powered at startup, pass `-k` (keep_running) and the driver
+will retry initialization every 500 ms so the battery can be plugged in later.
 
-If the INA228 module is not powered, then by default, initialization of the driver will fail. To change this, use
-the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
-every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
-this flag set, the battery must be plugged in before starting the driver.
+The device is sampled at 100 Hz. Every sample is triggered by the driver, so the latency
+from the measurement to the publication is the same for every sample. The configuration
+registers are read back periodically and rewritten if the device was reset (e.g. by a
+brown-out while plugging the battery).
 
 ### Usage {#ina228_usage}
 
@@ -605,6 +609,9 @@ Multiple instances can run simultaneously on separate buses or different I2C add
 
 If the device is not powered at startup, pass `-k` (keep_running) and the driver
 will retry initialization every 500 ms so the battery can be plugged in later.
+
+The device is sampled at 100 Hz. Every sample is triggered by the driver, so the latency
+from the measurement to the publication is the same for every sample.
 
 ### Usage {#ina238_usage}
 
@@ -762,6 +769,8 @@ mcp230xx <command> [arguments...]
                  default: 0
      [-M <val>]  First minor number
                  default: 0
+
+   write         Set the output pins to the state given with -O
 
    stop
 
@@ -1121,7 +1130,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
 
 ### Usage {#rgbled_usage}
 
@@ -1138,9 +1147,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 
@@ -1277,11 +1284,12 @@ It performs two tasks:
 - Read the wheel encoders and publish the raw data in the `wheel_encoders` uORB topic
 
 In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
-your flight controller's UART port should be connected to the Roboclaw as shown in the documentation.
-The driver needs to be enabled using the parameter `RBCLW_SER_CFG`, the baudrate needs to be set correctly and
-the address `RBCLW_ADDRESS` needs to match the ESC configuration.
+your flight controller's UART port should be connected to the Roboclaw as shown in the documentation. Enable the
+driver with `RBCLW_SER_CFG` and set `RBCLW_BAUD` to match the controllers. Set `RBCLW_COUNT` and configure consecutive
+unique addresses starting at `RBCLW_ADDRESS`. Each controller uses two output channels (M1, M2) and publishes a
+separate wheel_encoders instance. Bus parameters require a driver restart.
 
-The command to start this driver is: `$ roboclaw start <UART device> <baud rate>`
+The command to start this driver is: `$ roboclaw start <UART device>`
 
 ### Usage {#roboclaw_usage}
 

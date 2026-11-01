@@ -270,6 +270,35 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-10-20: the single heater's SENS_* parameters became those of heater instance 1
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_IMU_TEMP", "HEATER1_TEMP"},
+			{"SENS_IMU_TEMP_FF", "HEATER1_TEMP_FF"},
+			{"SENS_IMU_TEMP_I", "HEATER1_TEMP_I"},
+			{"SENS_IMU_TEMP_P", "HEATER1_TEMP_P"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+
+		// SENS_TEMP_ID 0 kept the heater from starting, while HEATER1_SENS_ID 0 selects a sensor and -1 disables it
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("SENS_TEMP_ID", node->name) == 0)) {
+			if (node->i32 == 0) {
+				node->i32 = -1;
+			}
+
+			strcpy(node->name, "HEATER1_SENS_ID");
+			PX4_INFO("migrating %s -> %s", "SENS_TEMP_ID", "HEATER1_SENS_ID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2026-06-29: MPC_LAND_RC_HELP replaced by the MPC_AUTO_NUDGING bitmask (landing nudging = bit 1).
 	// The old in-Hold yaw nudge is not migrated; it now lives in bit 0 (yaw nudging in all auto modes).
 	{
@@ -393,6 +422,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			{"EKF2_REQ_HDRIFT", "GNSS_REQ_HDRIFT"},
 			{"EKF2_REQ_VDRIFT", "GNSS_REQ_VDRIFT"},
 			{"EKF2_REQ_FIX", "GNSS_REQ_FIX"},
+			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
+			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
 		};
 
 		for (const auto &rename : kRenames) {
@@ -400,26 +431,6 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 				strcpy(node->name, rename[1]);
 				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
 				return param_modify_on_import_ret::PARAM_MODIFIED;
-			}
-		}
-	}
-
-	// 2026-09-30: EKF2_REQ_SACC and EKF2_REQ_GPS_H stay EKF2 parameters for EKF2's own thresholds and waits, while the
-	// GNSS checks use GNSS_REQ_SACC and GNSS_REQ_TIME. A value tuned before the checks moved applied to both, so it is
-	// copied to the check parameter. Parameters are exported sorted by name, so a GNSS_* value saved alongside is
-	// imported after this and takes precedence.
-	{
-		static constexpr const char *kCopies[][2] {
-			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
-			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
-		};
-
-		for (const auto &copy : kCopies) {
-			if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp(copy[0], node->name) == 0)) {
-				const float value = static_cast<float>(node->d);
-				param_set(param_find(copy[1]), &value);
-				PX4_INFO("copying %s -> %s", copy[0], copy[1]);
-				return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 			}
 		}
 	}
@@ -432,6 +443,34 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			strcpy(node->name, "COM_SAFETY_MODE");
 			PX4_INFO("migrating %s -> %s", "CBRK_IO_SAFETY", "COM_SAFETY_MODE");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-10-20: the auxiliary global position parameters became per-source EKF2_AGP<n>_* parameters, so the single
+	// source configured before goes to the first slot. That slot is only used once EKF2_AGP0_ID is set to the source's id.
+	// v1.17 messages had none, but a v1.17 source now arrives with id 1 either way: the message translation node assigns
+	// it, and it is GlobalPositionMeasurementInterface's default.
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("EKF2_AGP_CTRL", node->name) == 0) && (node->i32 != 0)) {
+			const int32_t agp_id = 1;
+			param_set(param_find("EKF2_AGP0_ID"), &agp_id);
+			PX4_INFO("setting EKF2_AGP0_ID to %" PRId32, agp_id);
+		}
+
+		static constexpr const char *kRenames[][2] {
+			{"EKF2_AGP_CTRL", "EKF2_AGP0_CTRL"},
+			{"EKF2_AGP_MODE", "EKF2_AGP0_MODE"},
+			{"EKF2_AGP_DELAY", "EKF2_AGP0_DELAY"},
+			{"EKF2_AGP_NOISE", "EKF2_AGP0_NOISE"},
+			{"EKF2_AGP_GATE", "EKF2_AGP0_GATE"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
 		}
 	}
 

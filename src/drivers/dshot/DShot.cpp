@@ -1111,7 +1111,7 @@ bool DShot::initialize_dshot()
 
 		if (freq > 0) {
 			if (_dshot_frequency != 0 && _dshot_frequency != freq) {
-				PX4_WARN("Mixed DShot frequencies across timers, using freq: %lu", freq);
+				PX4_WARN("Mixed DShot frequencies across timers, using freq: %" PRIu32, freq);
 			}
 
 			_dshot_frequency = freq;
@@ -1180,7 +1180,7 @@ int DShot::print_status()
 	default: break;
 	}
 
-	PX4_INFO("  ESC Type:           %s (%ld)", esc_type_str, _param_dshot_esc_type.get());
+	PX4_INFO("  ESC Type:           %s (%" PRId32 ")", esc_type_str, _param_dshot_esc_type.get());
 	PX4_INFO("  3D Mode:            %s", _param_dshot_3d_enable.get() ? "Enabled" : "Disabled");
 
 	// Per-motor pole counts

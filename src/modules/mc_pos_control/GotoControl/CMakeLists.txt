@@ -36,3 +36,8 @@ px4_add_library(GotoControl
 	GotoControl.hpp
 )
 target_include_directories(GotoControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# GotoControl holds a PositionSmoothing member, so it needs the library that defines it.
+# Without this the dependency is only satisfied by link order, which breaks any target that
+# pulls GotoControl in transitively.
+target_link_libraries(GotoControl PUBLIC motion_planning)

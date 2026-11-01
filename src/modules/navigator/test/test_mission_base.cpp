@@ -42,8 +42,10 @@
 
 #include <gtest/gtest.h>
 
+#include "mission.h"
 #include "mission_base.h"
 #include "navigator.h"
+#include "support/geofence_test_helpers.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/navigator_dataman_test.h"
 #include "support/vector_mission_item_store.h"
@@ -52,16 +54,22 @@
 #include <vector>
 
 #include <cstring>
+#include <px4_platform_common/posix.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 class MissionBaseTestPeer : public MissionBase
 {
 public:
 	explicit MissionBaseTestPeer(Navigator *navigator = nullptr) : MissionBase(navigator, 8, 0) {}
 
-	void setActiveMissionItems() override {}
+	void setActiveMissionItems() override { ++mission_items_set_count; }
 	bool setNextMissionItem() override { return false; }
+	unsigned mission_items_set_count{0};
 
 	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
 	{
@@ -118,6 +126,14 @@ public:
 	{
 		return _mission.current_seq;
 	}
+
+	bool checkMission(bool forced = false)
+	{
+		check_mission_valid(forced);
+		return missionChecked();
+	}
+
+	bool missionChecked() const { return _mission_check_state == MissionCheckState::Complete; }
 
 	using MissionBase::findNextPositionIndex;
 	using MissionBase::findPreviousPositionIndex;
@@ -185,6 +201,529 @@ class IgnoreDoJumpMissionBaseTraversalTest : public NavigatorDatamanTestBase
 protected:
 	IgnoreDoJumpMissionBaseTestPeer mission_base{};
 };
+
+class MissionBaseTestNavigator : public Navigator
+{
+public:
+	using Navigator::updateParams;
+};
+
+class MissionBaseFeasibilityTest : public NavigatorDatamanTestBase
+{
+protected:
+	void SetUp() override
+	{
+		param_reset_all();
+		_navigator.updateParams();
+		ASSERT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+		ASSERT_TRUE(_dataman_client.clearSync(DM_KEY_FENCE_POINTS_0));
+
+		home_position_s *home = _navigator.get_home_position();
+		home->timestamp = hrt_absolute_time();
+		home->lat = kBaseLat;
+		home->lon = kBaseLon;
+		home->alt = 0.f;
+		home->valid_hpos = true;
+		home->valid_alt = true;
+		_home_pub.publish(*home);
+		_navigator.get_land_detected()->landed = true;
+		vehicle_global_position_s *global_position = _navigator.get_global_position();
+		global_position->timestamp = home->timestamp;
+		global_position->lat = home->lat;
+		global_position->lon = home->lon;
+		global_position->alt = home->alt;
+
+		vehicle_status_s status{};
+		status.timestamp = hrt_absolute_time();
+		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		*_navigator.get_vstatus() = status;
+		_status_pub.publish(status);
+
+		mission_fence_point_s circle{};
+		circle.nav_cmd = NAV_CMD_FENCE_CIRCLE_INCLUSION;
+		circle.frame = NAV_FRAME_GLOBAL;
+		circle.lat = kBaseLat;
+		circle.lon = kBaseLon;
+		circle.circle_radius = 100.f;
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_0, 0,
+						      reinterpret_cast<uint8_t *>(&circle), sizeof(circle)));
+		mission_stats_entry_s stats{};
+		stats.dataman_id = DM_KEY_FENCE_POINTS_0;
+		stats.opaque_id = 1;
+		stats.num_items = 1;
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
+						      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+		_navigator.get_geofence().updateFence();
+		ASSERT_TRUE(finishFenceUpdate());
+
+		mission_s mission{};
+		mission.timestamp = hrt_absolute_time();
+		mission.mission_id = 1;
+		mission.geofence_id = stats.opaque_id;
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		_mission_base.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)}, mission);
+		mission.count = 1;
+		_mission_pub.publish(mission);
+		ASSERT_TRUE(writeWaypoint(0.f));
+	}
+
+	void TearDown() override { param_reset_all(); }
+
+	bool finishFenceUpdate()
+	{
+		Geofence &fence = _navigator.get_geofence();
+		const hrt_abstime start = hrt_absolute_time();
+
+		while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start) < 1_s) {
+			fence.run();
+			px4_usleep(1000);
+		}
+
+		return fence.isReadyForPathChecks();
+	}
+
+	bool writeWaypoint(float north_m)
+	{
+		mission_item_s item = makePositionItem(kBaseLat, kBaseLon, kAlt);
+		add_vector_to_global_position(kBaseLat, kBaseLon, north_m, 0.f, &item.lat, &item.lon);
+		return _dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
+						 reinterpret_cast<uint8_t *>(&item), sizeof(item));
+	}
+
+	DatamanClient _dataman_client{};
+	MissionBaseTestNavigator _navigator{};
+	MissionBaseTestPeer _mission_base{&_navigator};
+	uORB::Publication<home_position_s> _home_pub{ORB_ID(home_position)};
+	uORB::Publication<vehicle_status_s> _status_pub{ORB_ID(vehicle_status)};
+	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)};
+};
+
+TEST_F(MissionBaseFeasibilityTest, DeferredCheckPreservesVerdictUntilRetry)
+{
+	ASSERT_TRUE(_mission_base.checkMission(true));
+	const mission_result_s checked_result = *_navigator.get_mission_result();
+	ASSERT_TRUE(checked_result.valid);
+
+	// Change storage without changing IDs to verify that the pending check really runs.
+	ASSERT_TRUE(writeWaypoint(200.f));
+	_navigator.get_geofence().updateFence();
+	EXPECT_FALSE(_mission_base.checkMission(true));
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_FALSE(_mission_base.missionChecked());
+	EXPECT_EQ(_navigator.get_mission_result()->mission_id, checked_result.mission_id);
+	EXPECT_EQ(_navigator.get_mission_result()->geofence_id, checked_result.geofence_id);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, checked_result.home_position_counter);
+
+	ASSERT_TRUE(finishFenceUpdate());
+	EXPECT_TRUE(_mission_base.checkMission());
+	ASSERT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_mission_base.missionChecked());
+
+	// An unforced request can reuse a completed rejection when the inputs have not changed.
+	ASSERT_TRUE(writeWaypoint(0.f));
+	EXPECT_TRUE(_mission_base.checkMission());
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+
+	_navigator.get_geofence().updateFence();
+	EXPECT_FALSE(_mission_base.checkMission(true));
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_FALSE(_mission_base.missionChecked());
+	ASSERT_TRUE(finishFenceUpdate());
+	EXPECT_TRUE(_mission_base.checkMission());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_mission_base.missionChecked());
+}
+
+TEST_F(MissionBaseFeasibilityTest, SpentFenceRetriesLetTheCheckReject)
+{
+	_mission_base.on_inactive();
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = _navigator.get_mission_result()->mission_id;
+	mission.geofence_id = _navigator.get_mission_result()->geofence_id + 1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.count = 1;
+	_mission_pub.publish(mission);
+
+	Geofence &fence = _navigator.get_geofence();
+	fence.updateFence();
+
+	for (unsigned attempt = 0; attempt <= GeofenceTestPeer::maxLoadRetries(); ++attempt) {
+		SCOPED_TRACE(attempt);
+		// The verdict is kept while a retry is still pending.
+		_mission_base.on_inactive();
+		EXPECT_TRUE(_navigator.get_mission_result()->valid);
+		EXPECT_FALSE(_mission_base.missionChecked());
+		GeofenceTestPeer::expireRetryDelay(fence);
+		fence.run();
+		fence.run();
+		ASSERT_TRUE(GeofenceTestPeer::failPendingRead(fence));
+		fence.run();
+		fence.run();
+	}
+
+	// Once the fence gives up, the deferred check runs and rejects the mission.
+	ASSERT_FALSE(fence.isFenceUpdatePending());
+	// A fresh checker must also reject the unusable fence, even with matching cached IDs.
+	MissionBaseTestPeer fresh_mission{&_navigator};
+	mission_s unchanged = mission;
+	unchanged.geofence_id = _navigator.get_mission_result()->geofence_id;
+	fresh_mission.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)}, unchanged);
+	EXPECT_TRUE(fresh_mission.checkMission());
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+
+	_mission_base.on_inactive();
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_mission_base.missionChecked());
+}
+
+TEST_F(MissionBaseFeasibilityTest, SecondCheckerReusesVerdictAfterFenceReload)
+{
+	// Mission and an RTL mission handle are two checkers sharing one mission_result.
+	MissionBaseTestPeer second{&_navigator};
+	_mission_base.on_inactive();
+	second.on_inactive();
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+
+	mission_stats_entry_s stats{};
+	stats.dataman_id = DM_KEY_FENCE_POINTS_0;
+	stats.opaque_id = _navigator.get_mission_result()->geofence_id + 1;
+	stats.num_items = 1;
+	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
+					      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = _navigator.get_mission_result()->mission_id;
+	mission.geofence_id = stats.opaque_id;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.count = 1;
+	_mission_pub.publish(mission);
+	_navigator.get_geofence().updateFence();
+	_mission_base.on_inactive();
+	second.on_inactive();
+	ASSERT_TRUE(finishFenceUpdate());
+
+	_mission_base.on_inactive();
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+
+	// Change storage without changing IDs: only a redundant second check would see it.
+	ASSERT_TRUE(writeWaypoint(200.f));
+	second.on_inactive();
+	EXPECT_TRUE(second.missionChecked());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
+TEST_F(MissionBaseFeasibilityTest, NewMissionCannotReuseVerdictWhileFenceLoads)
+{
+	_mission_base.on_inactive();
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	ASSERT_TRUE(_mission_base.missionChecked());
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = _navigator.get_mission_result()->mission_id + 1;
+	mission.geofence_id = _navigator.get_mission_result()->geofence_id;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.count = 1;
+	_mission_pub.publish(mission);
+	_navigator.get_geofence().updateFence();
+	_mission_base.on_inactive();
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_FALSE(_mission_base.missionChecked());
+
+	ASSERT_TRUE(finishFenceUpdate());
+	_mission_base.on_inactive();
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_mission_base.missionChecked());
+	EXPECT_EQ(_navigator.get_mission_result()->mission_id, mission.mission_id);
+}
+
+TEST_F(MissionBaseFeasibilityTest, NewMissionIsCheckedOnceHomeReturns)
+{
+	_mission_base.on_inactive();
+	ASSERT_TRUE(_mission_base.missionChecked());
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = _navigator.get_mission_result()->mission_id + 1;
+	mission.geofence_id = _navigator.get_mission_result()->geofence_id;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.count = 1;
+	_mission_pub.publish(mission);
+	_navigator.get_home_position()->valid_hpos = false;
+	_mission_base.on_inactive();
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_FALSE(_mission_base.missionChecked());
+
+	// The check request must survive until Home is back.
+	_navigator.get_home_position()->valid_hpos = true;
+	_mission_base.on_inactive();
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_mission_base.missionChecked());
+	EXPECT_EQ(_navigator.get_mission_result()->mission_id, mission.mission_id);
+}
+
+TEST_F(MissionBaseFeasibilityTest, DeferredActiveCheckKeepsCurrentMissionItems)
+{
+	_mission_base.on_inactive();
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	_mission_base.on_activation();
+	ASSERT_EQ(_mission_base.mission_items_set_count, 1u);
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = _navigator.get_mission_result()->mission_id;
+	mission.geofence_id = _navigator.get_mission_result()->geofence_id + 1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.count = 1;
+	_mission_pub.publish(mission);
+	_navigator.get_geofence().updateFence();
+
+	_mission_base.on_active();
+	_mission_base.on_active();
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_FALSE(_mission_base.missionChecked());
+	EXPECT_EQ(_mission_base.mission_items_set_count, 1u);
+}
+
+class MissionActivationTestPeer : public Mission
+{
+public:
+	using Mission::Mission;
+	bool missionChecked() const { return _mission_check_state == MissionCheckState::Complete; }
+	void setActiveMissionItems() override { ++mission_items_set_count; }
+	unsigned mission_items_set_count{0};
+};
+
+class MissionActivationFeasibilityTest : public MissionBaseFeasibilityTest,
+	public ::testing::WithParamInterface<bool> {};
+
+TEST_P(MissionActivationFeasibilityTest, ForcedActivationCheckRetriesAfterFenceLoad)
+{
+	MissionActivationTestPeer mission{&_navigator};
+	mission.run(false);
+	ASSERT_TRUE(mission.missionChecked());
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+
+	if (GetParam()) {
+		// Parameter changes need the forced check: mission, fence and Home IDs remain unchanged.
+		const float maximum_altitude = kAlt / 2.f;
+		ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum_altitude), PX4_OK);
+		_navigator.updateParams();
+	}
+
+	_navigator.get_geofence().updateFence();
+	mission.run(true); // Calls the real Mission::on_activation(), including its forced check.
+	EXPECT_FALSE(mission.missionChecked());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_EQ(mission.mission_items_set_count, 1u);
+
+	// Process another fence publication while loading, then return to the original fence.
+	mission_s updated{};
+	updated.timestamp = hrt_absolute_time();
+	updated.mission_id = _navigator.get_mission_result()->mission_id;
+	updated.geofence_id = _navigator.get_mission_result()->geofence_id + 1;
+	updated.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	updated.count = 1;
+	_mission_pub.publish(updated);
+	mission.run(true);
+	EXPECT_FALSE(mission.missionChecked());
+	EXPECT_EQ(mission.mission_items_set_count, 1u);
+
+	ASSERT_TRUE(finishFenceUpdate());
+	// The final publication is consumed after loading: matching cached IDs must not erase
+	// the deferred forced check when there is no longer a pending load to defer it again.
+	updated.timestamp = hrt_absolute_time();
+	updated.geofence_id = _navigator.get_mission_result()->geofence_id;
+	_mission_pub.publish(updated);
+	mission.run(true);
+	EXPECT_TRUE(mission.missionChecked());
+	EXPECT_EQ(_navigator.get_mission_result()->valid, !GetParam());
+	EXPECT_EQ(_navigator.get_mission_result()->finished, GetParam());
+	EXPECT_EQ(mission.mission_items_set_count, GetParam() ? 1u : 2u);
+}
+
+INSTANTIATE_TEST_SUITE_P(ForcedActivation, MissionActivationFeasibilityTest, ::testing::Bool(),
+			 [](const ::testing::TestParamInfo<bool> &test_info)
+{
+	return test_info.param ? "RejectsChangedAltitudeLimit" : "AcceptsValidMission";
+});
+
+enum class ReplacementReadiness { Ready, FenceLoading, HomeUnavailable, PositionUnavailable, FenceStatusMismatch };
+
+struct MissionReplacementCase {
+	const char *name;
+	float north;
+	ReplacementReadiness readiness;
+	bool accepted;
+};
+
+class MissionReplacementFeasibilityTest : public MissionBaseFeasibilityTest,
+	public ::testing::WithParamInterface<MissionReplacementCase>
+{
+protected:
+	void SetUp() override
+	{
+		MissionBaseFeasibilityTest::SetUp();
+		// Already airborne at mission altitude, so no climb item obscures the commanded waypoint.
+		_navigator.get_global_position()->alt = kAlt;
+		_global_position_pub.publish(*_navigator.get_global_position());
+		_navigator.get_land_detected()->landed = false;
+		_land_detected_pub.publish(*_navigator.get_land_detected());
+	}
+
+	void TearDown() override
+	{
+		_navigator.get_land_detected()->landed = true;
+		_land_detected_pub.publish(*_navigator.get_land_detected());
+		MissionBaseFeasibilityTest::TearDown();
+	}
+
+	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+};
+
+TEST_P(MissionReplacementFeasibilityTest, CommandsReplacementOnlyAfterValidation)
+{
+	const MissionReplacementCase &test = GetParam();
+	Mission mission{&_navigator};
+	mission.run(false);
+	mission.run(true); // run() also marks the mode active, unlike calling on_activation() directly.
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	ASSERT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+
+	mission_item_s replacement = makePositionItem(kBaseLat, kBaseLon, kAlt);
+	add_vector_to_global_position(kBaseLat, kBaseLon, test.north, 0.f, &replacement.lat, &replacement.lon);
+	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_1, 0,
+					      reinterpret_cast<uint8_t *>(&replacement), sizeof(replacement)));
+	mission_s uploaded{};
+	uploaded.timestamp = hrt_absolute_time();
+	uploaded.mission_id = _navigator.get_mission_result()->mission_id + 1;
+	uploaded.geofence_id = _navigator.get_mission_result()->geofence_id;
+	uploaded.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+	uploaded.count = 1;
+
+	switch (test.readiness) {
+	case ReplacementReadiness::Ready:
+		break;
+
+	case ReplacementReadiness::FenceLoading:
+		_navigator.get_geofence().updateFence();
+		break;
+
+	case ReplacementReadiness::HomeUnavailable:
+		_navigator.get_home_position()->valid_hpos = false;
+		break;
+
+	case ReplacementReadiness::PositionUnavailable:
+		_navigator.get_global_position()->timestamp = 0;
+		break;
+
+	case ReplacementReadiness::FenceStatusMismatch:
+		++uploaded.geofence_id;
+		break;
+	}
+
+	_mission_pub.publish(uploaded);
+
+	for (unsigned cycle = 0; cycle < 2; ++cycle) {
+		SCOPED_TRACE(cycle);
+		mission.run(true);
+		EXPECT_EQ(_navigator.get_mission_result()->valid, test.accepted);
+		const position_setpoint_s &target = _navigator.get_position_setpoint_triplet()->current;
+		ASSERT_TRUE(target.valid);
+		EXPECT_EQ(target.type, test.accepted ? position_setpoint_s::SETPOINT_TYPE_POSITION : position_setpoint_s::SETPOINT_TYPE_LOITER);
+		EXPECT_DOUBLE_EQ(target.lat, test.accepted ? replacement.lat : kBaseLat);
+		EXPECT_DOUBLE_EQ(target.lon, test.accepted ? replacement.lon : kBaseLon);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(ReplacementSetpoints, MissionReplacementFeasibilityTest, ::testing::Values(
+				 MissionReplacementCase{"ValidMission", 25.f, ReplacementReadiness::Ready, true},
+				 MissionReplacementCase{"BreachingMission", 200.f, ReplacementReadiness::Ready, false},
+				 MissionReplacementCase{"FenceLoading", 200.f, ReplacementReadiness::FenceLoading, false},
+				 MissionReplacementCase{"HomeUnavailable", 200.f, ReplacementReadiness::HomeUnavailable, false},
+				 MissionReplacementCase{"PositionUnavailable", 200.f, ReplacementReadiness::PositionUnavailable, false},
+				 MissionReplacementCase{"FenceStatusMismatch", 200.f, ReplacementReadiness::FenceStatusMismatch, false}),
+			 [](const ::testing::TestParamInfo<MissionReplacementCase> &test_info)
+{
+	return test_info.param.name;
+});
+
+enum class MissionFeasibilityInput { Mission, Geofence, Home };
+
+struct ChangedMissionInput {
+	const char *name;
+	MissionFeasibilityInput input;
+	bool keeps_verdict;
+};
+
+class MissionBaseChangedInputTest : public MissionBaseFeasibilityTest,
+	public ::testing::WithParamInterface<ChangedMissionInput> {};
+
+TEST_P(MissionBaseChangedInputTest, DeferredCheckInvalidatesOnlyAnUncheckedMission)
+{
+	_mission_base.checkMission(true);
+	const mission_result_s checked_result = *_navigator.get_mission_result();
+	ASSERT_TRUE(checked_result.valid);
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = checked_result.mission_id;
+	mission.geofence_id = checked_result.geofence_id;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+
+	switch (GetParam().input) {
+	case MissionFeasibilityInput::Mission:
+		++mission.mission_id;
+		break;
+
+	case MissionFeasibilityInput::Geofence:
+		++mission.geofence_id;
+		{
+			mission_stats_entry_s stats{};
+			stats.dataman_id = DM_KEY_FENCE_POINTS_0;
+			stats.opaque_id = mission.geofence_id;
+			stats.num_items = 1;
+			ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
+							      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+		}
+		break;
+
+	case MissionFeasibilityInput::Home:
+		++_navigator.get_home_position()->update_count;
+		break;
+	}
+
+	_mission_base.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)}, mission);
+	_navigator.get_geofence().updateFence();
+	_mission_base.checkMission(true);
+	// A fence or Home change keeps the checked mission flyable until the recheck.
+	EXPECT_EQ(_navigator.get_mission_result()->valid, GetParam().keeps_verdict);
+	EXPECT_FALSE(_mission_base.missionChecked());
+	// No result has been computed for the changed inputs yet.
+	EXPECT_EQ(_navigator.get_mission_result()->mission_id, checked_result.mission_id);
+	EXPECT_EQ(_navigator.get_mission_result()->geofence_id, checked_result.geofence_id);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, checked_result.home_position_counter);
+
+	ASSERT_TRUE(finishFenceUpdate());
+	_mission_base.checkMission();
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_mission_base.missionChecked());
+	EXPECT_EQ(_navigator.get_mission_result()->mission_id, mission.mission_id);
+	EXPECT_EQ(_navigator.get_mission_result()->geofence_id, mission.geofence_id);
+	EXPECT_EQ(_navigator.get_mission_result()->home_position_counter, _navigator.get_home_position()->update_count);
+}
+
+INSTANTIATE_TEST_SUITE_P(ChangedInputs, MissionBaseChangedInputTest, ::testing::Values(
+				 ChangedMissionInput{"Mission", MissionFeasibilityInput::Mission, false},
+				 ChangedMissionInput{"Geofence", MissionFeasibilityInput::Geofence, true},
+				 ChangedMissionInput{"Home", MissionFeasibilityInput::Home, true}),
+			 [](const ::testing::TestParamInfo<ChangedMissionInput> &test_info)
+{
+	return test_info.param.name;
+});
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 class MissionBaseRouteCacheSyncTest : public NavigatorDatamanTestBase
