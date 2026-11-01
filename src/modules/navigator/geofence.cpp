@@ -231,6 +231,8 @@ void Geofence::run()
 		if (_initiate_fence_updated || (_fence_retry_time != 0 && hrt_absolute_time() >= _fence_retry_time)) {
 			_initiate_fence_updated = false;
 			_fence_retry_time = 0;
+			// updateFence() clears it too, but may run on another thread (navigator fencefile).
+			_path_check_ready = false;
 			_dataman_state	= DatamanState::Read;
 			_publishStatus(geofence_status_s::GF_STATUS_LOADING);
 		}

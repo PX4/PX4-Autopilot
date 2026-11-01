@@ -64,6 +64,9 @@ public:
 
 	static void invalidateCache(Geofence &fence) { fence._dataman_cache.invalidate(); }
 
+	// What updateFence() from another thread can leave: a reload queued, path checks still ready.
+	static void queueRacedUpdate(Geofence &fence) { fence._initiate_fence_updated = true; }
+
 	static bool replaceCachedPoint(Geofence &fence, uint32_t index, const mission_fence_point_s &point)
 	{
 		return fence._dataman_cache.updateCachedItem(static_cast<dm_item_t>(fence._stats.dataman_id), index,
