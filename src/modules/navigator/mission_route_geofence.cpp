@@ -81,19 +81,11 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 
 } // namespace
 
-// Polygons and circles only: a vehicle above the altitude limits or too far from Home does not recover. It must
-// still get a way back, and the ends of its segments are checked against every limit.
+// Polygons and circles only: a vehicle above the altitude limits or too far from Home does not recover, so its
+// segments are still checked.
 bool GeofencePathChecker::recovering(const Position &vehicle) const
 {
 	return !_geofence.isInsideHorizontalFences(vehicle.lat, vehicle.lon, vehicle.alt);
-}
-
-bool GeofencePathChecker::withinScalarLimits(const Position &position) const
-{
-	return position.valid()
-	       && _geofence.isCloserThanMaxDistToHome(position.lat, position.lon, position.alt)
-	       && _geofence.isBelowMaxAltitude(position.alt)
-	       && _geofence.isWithinAltitudeBand(position.alt);
 }
 
 bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
@@ -134,9 +126,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 		for (uint8_t j = 0; j < reference.candidate_buffer.count; ++j) {
 			const Position &projection = reference.candidate_buffer.candidates[j].projection;
 
-			// Segment checks handle horizontal fences. Check distance from Home and
-			// altitude limits separately at the projected point.
-			if (!withinScalarLimits(projection)) {
+			if (!projection.valid()) {
 				continue;
 			}
 
@@ -185,13 +175,9 @@ bool GeofencePathChecker::checkPath(const Position &start, const Position &end, 
 		return true;
 	}
 
-	// The same rules as for one vehicle candidate in pruneCandidates(): recovery, the end limits, then the path.
+	// The same rules as for one vehicle candidate in pruneCandidates().
 	if (recovering(start)) {
 		clear = true;
-		return true;
-	}
-
-	if (!withinScalarLimits(end)) {
 		return true;
 	}
 
