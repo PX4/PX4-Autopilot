@@ -47,9 +47,7 @@ namespace mission_route
 namespace
 {
 
-constexpr size_t kCandidateCapacity = kMaxSafePointBatch * kMaxSegmentCandidates;
-constexpr size_t kPathBatchSize = kCandidateCapacity < Geofence::MAX_PATH_CHECKS
-				  ? kCandidateCapacity : Geofence::MAX_PATH_CHECKS;
+constexpr size_t kPathBatchSize = Geofence::MAX_PATH_CHECKS;
 static_assert(kMaxSegmentCandidates <= 8, "Candidate validity must fit in a byte");
 
 struct PathBatch {
@@ -60,13 +58,6 @@ struct PathBatch {
 	uint8_t valid_masks[kMaxSafePointBatch];
 	size_t count{0};
 };
-
-void clearCandidates(ProjectionReferenceBatch &batch)
-{
-	for (uint8_t i = 0; i < batch.count && i < kMaxSafePointBatch; ++i) {
-		batch.items[i].candidate_buffer.count = 0;
-	}
-}
 
 bool checkBatch(Geofence &geofence, PathBatch &batch)
 {
@@ -90,58 +81,17 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 
 } // namespace
 
-GeofencePathChecker::GeofencePathChecker(Geofence &geofence, const Position &vehicle_position) :
-	_geofence(geofence),
-	_recovering(geofence.isReadyForPathChecks() && vehicle_position.valid()
-		    && !geofence.isInsideHorizontalFences(vehicle_position.lat, vehicle_position.lon, vehicle_position.alt))
+// Polygons and circles only: a vehicle above the altitude limits or too far from Home does not recover, so its
+// segments are still checked.
+bool GeofencePathChecker::recovering(const Position &vehicle) const
 {
-}
-
-// Recovery only exempts the vehicle reference; safe point segments are still checked.
-bool GeofencePathChecker::exempt(const ProjectionReference &reference) const
-{
-	return _recovering && reference.source_index < 0;
-}
-
-// A segment entirely inside an exclusion area would cross no boundary, so its start must be allowed too.
-bool GeofencePathChecker::referenceAllowed(const ProjectionReference &reference) const
-{
-	const Position &position = reference.position;
-
-	if (reference.source_index < 0) {
-		return vehicleAllowed(position);
-	}
-
-	return position.valid() && _geofence.checkPointAgainstAllGeofences(position.lat, position.lon, position.alt);
-}
-
-// Polygons and circles only: a vehicle above the altitude limits or too far from Home must still get a
-// way back. The ends of its segments are checked against every limit.
-bool GeofencePathChecker::vehicleAllowed(const Position &position) const
-{
-	return position.valid() && _geofence.isInsideHorizontalFences(position.lat, position.lon, position.alt);
-}
-
-bool GeofencePathChecker::withinScalarLimits(const Position &position) const
-{
-	return position.valid()
-	       && _geofence.isCloserThanMaxDistToHome(position.lat, position.lon, position.alt)
-	       && _geofence.isBelowMaxAltitude(position.alt)
-	       && _geofence.isWithinAltitudeBand(position.alt);
+	return !_geofence.isInsideHorizontalFences(vehicle.lat, vehicle.lon, vehicle.alt);
 }
 
 bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 {
-	if (!_geofence.isReadyForPathChecks() || batch.count > kMaxSafePointBatch) {
-		clearCandidates(batch);
+	if (!_geofence.isReadyForPathChecks()) {
 		return false;
-	}
-
-	for (uint8_t i = 0; i < batch.count; ++i) {
-		if (batch.items[i].candidate_buffer.count > kMaxSegmentCandidates) {
-			clearCandidates(batch);
-			return false;
-		}
 	}
 
 	// One buffer for every call, off the task stack. All-zero defaults keep it in .bss.
@@ -152,34 +102,31 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 		shared_paths.valid_masks[i] = 0;
 	}
 
-	const bool horizontal_fence_empty = _geofence.isEmpty();
-
 	for (uint8_t i = 0; i < batch.count; ++i) {
 		const ProjectionReference &reference = batch.items[i];
 		const Position &anchor = reference.position;
 
-		// A vehicle in recovery keeps all its candidates unchecked: set bits 0 to count - 1.
-		if (exempt(reference)) {
-			shared_paths.valid_masks[i] = static_cast<uint8_t>((1U << reference.candidate_buffer.count) - 1U);
+		if (reference.candidate_buffer.count == 0 || !anchor.valid()) {
 			continue;
 		}
 
-		// A vehicle or safe point outside the allowed area keeps no candidates: its mask stays 0.
-		if (reference.candidate_buffer.count == 0 || !referenceAllowed(reference)) {
+		if (reference.source_index < 0) {
+			// A vehicle in recovery keeps all its candidates unchecked: set bits 0 to count - 1.
+			if (recovering(anchor)) {
+				shared_paths.valid_masks[i] = static_cast<uint8_t>((1U << reference.candidate_buffer.count) - 1U);
+				continue;
+			}
+
+		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt)) {
+			// A safe point outside the allowed area keeps no candidates: a segment entirely inside an exclusion
+			// area would cross no boundary.
 			continue;
 		}
 
 		for (uint8_t j = 0; j < reference.candidate_buffer.count; ++j) {
 			const Position &projection = reference.candidate_buffer.candidates[j].projection;
 
-			// Segment checks handle horizontal fences. Check distance from Home and
-			// altitude limits separately at the projected point.
-			if (!withinScalarLimits(projection)) {
-				continue;
-			}
-
-			if (horizontal_fence_empty) {
-				shared_paths.valid_masks[i] |= 1U << j;
+			if (!projection.valid()) {
 				continue;
 			}
 
@@ -189,14 +136,12 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 			++shared_paths.count;
 
 			if (shared_paths.count == kPathBatchSize && !checkBatch(_geofence, shared_paths)) {
-				clearCandidates(batch);
 				return false;
 			}
 		}
 	}
 
 	if (!checkBatch(_geofence, shared_paths)) {
-		clearCandidates(batch);
 		return false;
 	}
 
@@ -218,7 +163,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 	return true;
 }
 
-bool GeofencePathChecker::checkPath(const Position &start, const Position &end, bool &clear) const
+bool GeofencePathChecker::checkPath(const Position &vehicle, const Position &end, bool &clear) const
 {
 	clear = false;
 
@@ -226,26 +171,17 @@ bool GeofencePathChecker::checkPath(const Position &start, const Position &end, 
 		return false;
 	}
 
-	if (!start.valid() || !end.valid()) {
+	if (!vehicle.valid() || !end.valid()) {
 		return true;
 	}
 
-	if (_recovering) {
+	// The same rules as for one vehicle candidate in pruneCandidates().
+	if (recovering(vehicle)) {
 		clear = true;
 		return true;
 	}
 
-	// The same rules as for one vehicle candidate in pruneCandidates(): the start, the end limits, then the path.
-	if (!vehicleAllowed(start) || !withinScalarLimits(end)) {
-		return true;
-	}
-
-	if (_geofence.isEmpty()) {
-		clear = true;
-		return true;
-	}
-
-	const Geofence::PathCheck path{{start.lat, start.lon}, {end.lat, end.lon}};
+	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}};
 	return _geofence.checkPathBatch(&path, 1, &clear);
 }
 

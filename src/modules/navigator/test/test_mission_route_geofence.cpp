@@ -120,7 +120,7 @@ TEST_F(MissionRouteGeofenceTest, PrunesCrossingSegmentsAndPreservesCandidateOrde
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	const Position vehicle = routePosition(0.f, 100.f);
-	GeofencePathChecker checker{_fence, vehicle};
+	GeofencePathChecker checker{_fence};
 	ProjectionReferenceBatch batch{};
 	batch.count = 1;
 	batch.items[0].position = vehicle;
@@ -141,7 +141,7 @@ TEST_F(MissionRouteGeofenceTest, ChecksMoreThanOnePathBatchAndThePartialTail)
 	static constexpr uint8_t kReferenceCount = 13;
 
 	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence, routePosition(0.f, 0.f)};
+	GeofencePathChecker checker{_fence};
 	ProjectionReferenceBatch batch{};
 	batch.count = kReferenceCount;
 
@@ -173,26 +173,24 @@ TEST_F(MissionRouteGeofenceTest, ChecksMoreThanOnePathBatchAndThePartialTail)
 	}
 }
 
-TEST_F(MissionRouteGeofenceTest, RejectsReferenceWhollyInsideExclusionPolygon)
+TEST_F(MissionRouteGeofenceTest, RejectsSafePointWhollyInsideExclusionPolygon)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence, routePosition(0.f, 0.f)};
+	GeofencePathChecker checker{_fence};
 	ProjectionReferenceBatch batch{};
 	batch.count = 1;
 	batch.items[0].position = routePosition(0.f, 300.f);
+	batch.items[0].source_index = 0;
 	addCandidate(batch.items[0], routePosition(10.f, 310.f));
 
 	ASSERT_TRUE(checker.pruneCandidates(batch));
 	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
-	bool clear = true;
-	ASSERT_TRUE(checker.checkPath(routePosition(0.f, 300.f), routePosition(10.f, 310.f), clear));
-	EXPECT_FALSE(clear);
 }
 
 TEST_F(MissionRouteGeofenceTest, DirectShortcutMustClearTheFenceIndependently)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence, routePosition(0.f, 100.f)};
+	GeofencePathChecker checker{_fence};
 	bool clear = true;
 	ASSERT_TRUE(checker.checkPath(routePosition(0.f, 100.f), routePosition(0.f, 500.f), clear));
 	EXPECT_FALSE(clear);
@@ -200,94 +198,76 @@ TEST_F(MissionRouteGeofenceTest, DirectShortcutMustClearTheFenceIndependently)
 	EXPECT_TRUE(clear);
 }
 
-TEST_F(MissionRouteGeofenceTest, LoadedEmptyFenceStillChecksHomeAndAltitudeLimits)
-{
-	const float maximum_horizontal = 300.f;
-	const float maximum_vertical = 150.f;
-	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum_horizontal), PX4_OK);
-	ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum_vertical), PX4_OK);
-	_navigator.updateParams();
-	const Position vehicle = routePosition(0.f, 100.f);
-	GeofencePathChecker checker{_fence, vehicle};
-	ProjectionReferenceBatch batch{};
-	batch.count = 1;
-	batch.items[0].position = vehicle;
-	addCandidate(batch.items[0], routePosition(0.f, 200.f), 1);
-	addCandidate(batch.items[0], routePosition(0.f, 400.f), 2);
-	addCandidate(batch.items[0], routePosition(0.f, 200.f, 600.f), 3);
-
-	ASSERT_TRUE(checker.pruneCandidates(batch));
-	ASSERT_EQ(batch.items[0].candidate_buffer.count, 1);
-	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.start.idx, 1);
-	bool clear = true;
-	ASSERT_TRUE(checker.checkPath(vehicle, routePosition(0.f, 400.f), clear));
-	EXPECT_FALSE(clear);
-	ASSERT_TRUE(checker.checkPath(vehicle, routePosition(0.f, 200.f, 600.f), clear));
-	EXPECT_FALSE(clear);
-}
-
-TEST_F(MissionRouteGeofenceTest, ChecksLoadedAltitudeBandAtBothEnds)
+// A safe point below the loaded altitude band keeps no candidates.
+TEST_F(MissionRouteGeofenceTest, SafePointBelowAltitudeBandKeepsNoCandidates)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	GeofenceTestPeer::setAltitudeBand(_fence, 450.f, 550.f);
-	GeofencePathChecker checker{_fence, routePosition(0.f, 0.f)};
+	GeofencePathChecker checker{_fence};
 	ProjectionReferenceBatch batch{};
 	batch.count = 1;
-	batch.items[0].position = routePosition(0.f, 100.f);
-	batch.items[0].source_index = 0;
-	addCandidate(batch.items[0], routePosition(0.f, 200.f, 600.f));
-	ASSERT_TRUE(checker.pruneCandidates(batch));
-	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
-
 	batch.items[0].position = routePosition(0.f, 100.f, 400.f);
+	batch.items[0].source_index = 0;
 	addCandidate(batch.items[0], routePosition(0.f, 200.f));
 	ASSERT_TRUE(checker.pruneCandidates(batch));
 	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
-
-	// A vehicle below the band does not recover: its segments may start there, but must end inside the band.
-	const Position low_vehicle = routePosition(0.f, 100.f, 400.f);
-	const GeofencePathChecker vehicle_checker{_fence, low_vehicle};
-	batch.items[0] = {};
-	batch.items[0].position = low_vehicle;
-	addCandidate(batch.items[0], routePosition(0.f, 200.f), 1);
-	addCandidate(batch.items[0], routePosition(0.f, 200.f, 600.f), 2);
-	ASSERT_TRUE(vehicle_checker.pruneCandidates(batch));
-	ASSERT_EQ(batch.items[0].candidate_buffer.count, 1);
-	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.start.idx, 1);
 }
 
-TEST_F(MissionRouteGeofenceTest, LoadingFenceClearsCandidatesAndDoesNotEnableRecovery)
+// A safe point beyond GF_MAX_HOR_DIST keeps no candidates.
+TEST_F(MissionRouteGeofenceTest, SafePointBeyondHomeDistanceKeepsNoCandidates)
+{
+	const float maximum_horizontal = 300.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum_horizontal), PX4_OK);
+	_navigator.updateParams();
+	GeofencePathChecker checker{_fence};
+	ProjectionReferenceBatch batch{};
+	batch.count = 1;
+	batch.items[0].position = routePosition(0.f, 400.f);
+	batch.items[0].source_index = 0;
+	addCandidate(batch.items[0], routePosition(0.f, 200.f));
+	ASSERT_TRUE(checker.pruneCandidates(batch));
+	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
+}
+
+// A loading fence is unavailable, also for a vehicle in breach.
+TEST_F(MissionRouteGeofenceTest, LoadingFenceIsUnavailable)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	_fence.updateFence();
 	ASSERT_FALSE(_fence.isReadyForPathChecks());
-	GeofencePathChecker checker{_fence, routePosition(0.f, 300.f)};
+	GeofencePathChecker checker{_fence};
+	const Position vehicle = routePosition(0.f, 300.f);
 	ProjectionReferenceBatch batch{};
 	batch.count = 1;
-	batch.items[0].position = routePosition(0.f, 100.f);
-	addCandidate(batch.items[0], routePosition(0.f, 200.f));
+	batch.items[0].position = vehicle;
+	addCandidate(batch.items[0], routePosition(0.f, 100.f));
 	EXPECT_FALSE(checker.pruneCandidates(batch));
-	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
 	bool clear = true;
-	EXPECT_FALSE(checker.checkPath(routePosition(0.f, 100.f), routePosition(0.f, 200.f), clear));
+	EXPECT_FALSE(checker.checkPath(vehicle, routePosition(0.f, 100.f), clear));
 	EXPECT_FALSE(clear);
 }
 
+// A fence that never loaded is unavailable too, although it is empty.
 TEST_F(MissionRouteGeofenceTest, UnloadedEmptyFenceIsUnavailable)
 {
 	ASSERT_TRUE(resetFence());
 	ASSERT_TRUE(_fence.isEmpty());
 	ASSERT_FALSE(_fence.isReadyForPathChecks());
-	GeofencePathChecker checker{_fence, routePosition(0.f, 0.f)};
+	GeofencePathChecker checker{_fence};
+	ProjectionReferenceBatch batch{};
+	batch.count = 1;
+	batch.items[0].position = routePosition(0.f, 100.f);
+	addCandidate(batch.items[0], routePosition(0.f, 200.f));
+	EXPECT_FALSE(checker.pruneCandidates(batch));
 	bool clear = true;
 	EXPECT_FALSE(checker.checkPath(routePosition(0.f, 100.f), routePosition(0.f, 200.f), clear));
 	EXPECT_FALSE(clear);
 }
 
-TEST_F(MissionRouteGeofenceTest, UnavailablePathBatchDiscardsAllCandidates)
+TEST_F(MissionRouteGeofenceTest, UnavailablePathBatchFailsThePrune)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence, routePosition(0.f, 0.f)};
+	GeofencePathChecker checker{_fence};
 	// Keep point membership valid, but make the cached path metadata inconsistent.
 	GeofenceTestPeer::setVertexCount(_fence, 3);
 	ProjectionReferenceBatch batch{};
@@ -295,15 +275,14 @@ TEST_F(MissionRouteGeofenceTest, UnavailablePathBatchDiscardsAllCandidates)
 	batch.items[0].position = routePosition(60.f, 100.f);
 	addCandidate(batch.items[0], routePosition(60.f, 500.f));
 	EXPECT_FALSE(checker.pruneCandidates(batch));
-	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
 }
 
-TEST_F(MissionRouteGeofenceTest, UnavailableTailDiscardsPreviouslyAcceptedPathBatch)
+TEST_F(MissionRouteGeofenceTest, UnavailableTailFailsThePrune)
 {
 	static constexpr uint8_t kReferenceCount = 13;
 
 	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence, routePosition(0.f, 0.f)};
+	GeofencePathChecker checker{_fence};
 	ProjectionReferenceBatch batch{};
 	batch.count = kReferenceCount;
 
@@ -316,22 +295,22 @@ TEST_F(MissionRouteGeofenceTest, UnavailableTailDiscardsPreviouslyAcceptedPathBa
 	}
 
 	// This late segment exceeds the polygon subdivision budget. The first
-	// 32 paths succeed, but none may survive the unavailable second chunk.
+	// 32 paths succeed, but the unavailable second chunk fails the whole prune.
 	batch.items[kReferenceCount - 1].position = {47.0, -80.0, kAltitude};
 	batch.items[kReferenceCount - 1].candidate_buffer.candidates[0].projection = {47.0, 80.0, kAltitude};
 	EXPECT_FALSE(checker.pruneCandidates(batch));
-
-	for (uint8_t i = 0; i < batch.count; ++i) {
-		EXPECT_EQ(batch.items[i].candidate_buffer.count, 0);
-	}
 }
 
-TEST_F(MissionRouteGeofenceTest, InvalidVehiclePositionDoesNotEnableRecovery)
+// An invalid position does not recover: neither it nor a path to it is clear.
+TEST_F(MissionRouteGeofenceTest, InvalidPositionIsNotClear)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence, Position{}};
+	GeofencePathChecker checker{_fence};
 	bool clear = true;
-	ASSERT_TRUE(checker.checkPath(routePosition(0.f, 300.f), routePosition(0.f, 100.f), clear));
+	ASSERT_TRUE(checker.checkPath(Position{}, routePosition(0.f, 100.f), clear));
+	EXPECT_FALSE(clear);
+	clear = true;
+	ASSERT_TRUE(checker.checkPath(routePosition(0.f, 100.f), Position{}, clear));
 	EXPECT_FALSE(clear);
 }
 
@@ -339,7 +318,7 @@ TEST_F(MissionRouteGeofenceTest, ExistingBreachSkipsOnlyVehicleSegments)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	const Position vehicle = routePosition(0.f, 300.f);
-	GeofencePathChecker recovery{_fence, vehicle};
+	GeofencePathChecker recovery{_fence};
 	ProjectionReferenceBatch batch{};
 	batch.count = 2;
 	batch.items[0].position = vehicle;
@@ -357,31 +336,28 @@ TEST_F(MissionRouteGeofenceTest, ExistingBreachSkipsOnlyVehicleSegments)
 	ASSERT_TRUE(recovery.checkPath(vehicle, routePosition(0.f, 100.f), clear));
 	EXPECT_TRUE(clear);
 
-	// Recovery snapshots never authorize paths through an unavailable new fence.
+	// Recovery never authorizes a path while the fence loads.
 	_fence.updateFence();
 	EXPECT_FALSE(recovery.checkPath(vehicle, routePosition(0.f, 100.f), clear));
 	EXPECT_FALSE(clear);
 }
 
-// The prune and checkPath() apply the same rules to a segment from the vehicle, for every fence type and limit,
+// The prune and checkPath() apply the same rules to a segment from the vehicle, for every fence type,
 // also while the vehicle recovers.
 TEST_F(MissionRouteGeofenceTest, VehicleCandidatesInPruneAgreeWithCheckPath)
 {
 	struct FenceCase {
 		const char *name;
 		FencePoints points;
-		float max_horizontal_distance;
 	};
 
 	const FenceCase fence_cases[] {
-		{"exclusion polygon", exclusionSquare(), 0.f},
-		{"inclusion polygon", polygon(true, {{-250.f, -250.f}, {250.f, -250.f}, {250.f, 400.f}, {-250.f, 400.f}}), 0.f},
-		{"exclusion circle", circle(false, {0.f, 300.f}, 60.f), 0.f},
-		{"inclusion circle", circle(true, {0.f, 150.f}, 300.f), 0.f},
-		{"maximum distance", {}, 400.f},
+		{"exclusion polygon", exclusionSquare()},
+		{"inclusion polygon", polygon(true, {{-250.f, -250.f}, {250.f, -250.f}, {250.f, 400.f}, {-250.f, 400.f}})},
+		{"exclusion circle", circle(false, {0.f, 300.f}, 60.f)},
+		{"inclusion circle", circle(true, {0.f, 150.f}, 300.f)},
 	};
-	// Each fence case has spots outside the allowed area. The vehicle recovers there, except beyond only the
-	// maximum distance, where its segments are still checked.
+	// Each fence case has spots outside the allowed area, where the vehicle recovers.
 	const Position spots[] {routePosition(0.f, 100.f), routePosition(100.f, 100.f), routePosition(0.f, 300.f),
 				routePosition(0.f, 500.f), routePosition(-300.f, 0.f)
 			       };
@@ -390,13 +366,11 @@ TEST_F(MissionRouteGeofenceTest, VehicleCandidatesInPruneAgreeWithCheckPath)
 
 	for (const FenceCase &fence_case : fence_cases) {
 		SCOPED_TRACE(fence_case.name);
-		ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &fence_case.max_horizontal_distance), PX4_OK);
-		_navigator.updateParams();
 		ASSERT_TRUE(loadFence(fence_case.points));
 
 		for (size_t spot = 0; spot < 5; ++spot) {
 			SCOPED_TRACE(::testing::Message() << "vehicle at spot " << spot);
-			const GeofencePathChecker checker{_fence, spots[spot]};
+			const GeofencePathChecker checker{_fence};
 			ProjectionReferenceBatch batch{};
 			batch.count = 1;
 			batch.items[0].position = spots[spot];
@@ -434,7 +408,7 @@ TEST_F(MissionRouteGeofenceTest, BlockedClosestLegDoesNotHideClearSafePointBranc
 {
 	ASSERT_TRUE(loadFence(boxBesideLegCD()));
 	const Position vehicle = routePosition(100.f, 0.f);
-	const GeofencePathChecker checker{_fence, vehicle};
+	const GeofencePathChecker checker{_fence};
 
 	for (const bool land_at_d : {false, true}) {
 		SCOPED_TRACE(::testing::Message() << "land at D " << land_at_d);
@@ -461,7 +435,7 @@ TEST_F(MissionRouteGeofenceTest, BlockedClosestLegDoesNotHideClearBranchIn)
 {
 	ASSERT_TRUE(loadFence(boxBesideLegCD()));
 	const Position vehicle = routePosition(300.f, 150.f);
-	const GeofencePathChecker checker{_fence, vehicle};
+	const GeofencePathChecker checker{_fence};
 	const auto provider = makeRouteProvider(rectangleMission(), {safePointItem(0.f, -50.f)});
 	MissionRoutePlanner planner{provider, &checker};
 	const mission_route::RtlRouteRequest request = rtlRequest(vehicle, 1);
@@ -492,7 +466,7 @@ TEST_F(MissionRouteGeofenceTest, AltitudeBreachKeepsPolygonChecks)
 	ASSERT_FALSE(_fence.isBelowMaxAltitude(breach_altitude));
 
 	const Position vehicle = routePosition(300.f, 150.f, breach_altitude);
-	const GeofencePathChecker checker{_fence, vehicle};
+	const GeofencePathChecker checker{_fence};
 	const auto provider = makeRouteProvider(rectangleMission(), {safePointItem(0.f, -50.f)});
 	MissionRoutePlanner planner{provider, &checker};
 	mission_route::MissionResumePlan join{};
@@ -508,9 +482,8 @@ TEST_F(MissionRouteGeofenceTest, AltitudeBreachKeepsPolygonChecks)
 	EXPECT_EQ(plan.branch_off_mission_item_index, 0);
 
 	const Position above_land = routePosition(3.f, 198.f, breach_altitude);
-	const GeofencePathChecker land_checker{_fence, above_land};
 	const auto land_provider = makeRouteProvider(rectangleMission(NAV_CMD_LAND), {});
-	MissionRoutePlanner land_planner{land_provider, &land_checker};
+	MissionRoutePlanner land_planner{land_provider, &checker};
 	status = land_planner.planMissionResumeJoin(rtlRequest(above_land, 3), join);
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
 	EXPECT_TRUE(join.use_current_altitude);
@@ -524,7 +497,7 @@ TEST_F(MissionRouteGeofenceTest, SafePointOutsideLimitsIsNotSelected)
 	ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum_vertical), PX4_OK);
 	_navigator.updateParams();
 	const Position vehicle = routePosition(100.f, 0.f);
-	const GeofencePathChecker checker{_fence, vehicle};
+	const GeofencePathChecker checker{_fence};
 	mission_item_s high_safe_point = safePointItem(300.f, 20.f);
 	high_safe_point.altitude = kAltitude + 60.f; // 160 m above Home
 	const auto provider = makeRouteProvider(rectangleMission(), {high_safe_point, safePointItem(500.f, 20.f)});
@@ -550,7 +523,7 @@ TEST_F(MissionRouteGeofenceTest, BlockedClosestLegDoesNotHideCheaperLegBeyondSur
 		routeItem(600.f, 110.f), routeItem(0.f, 110.f), // 10 m, behind the wall
 	};
 	const Position vehicle = routePosition(100.f, 45.f);
-	const GeofencePathChecker checker{_fence, vehicle};
+	const GeofencePathChecker checker{_fence};
 	const auto provider = makeRouteProvider(mission, {safePointItem(300.f, 100.f)});
 	MissionRoutePlanner planner{provider, &checker};
 	mission_route::RtlRoutePlan plan{};
@@ -576,7 +549,7 @@ TEST_F(MissionRouteGeofenceTest, BlockedLegsInFullBufferDoNotPushOutCheaperLeg)
 		routeItem(0.f, 120.f), routeItem(600.f, 120.f), // 20 m, behind the wall
 	};
 	const Position vehicle = routePosition(100.f, 75.f);
-	const GeofencePathChecker checker{_fence, vehicle};
+	const GeofencePathChecker checker{_fence};
 	const auto provider = makeRouteProvider(mission, {safePointItem(300.f, 100.f)});
 	MissionRoutePlanner planner{provider, &checker};
 	mission_route::RtlRoutePlan plan{};
@@ -603,7 +576,7 @@ TEST_F(MissionRouteGeofenceTest, FourBlockedClosestLegsHideClearLeg)
 		routeItem(600.f, 125.f), routeItem(0.f, 125.f), // 25 m, behind the wall
 	};
 	const Position vehicle = routePosition(100.f, 70.f);
-	const GeofencePathChecker checker{_fence, vehicle};
+	const GeofencePathChecker checker{_fence};
 	const auto provider = makeRouteProvider(mission, {safePointItem(300.f, 100.f)});
 	MissionRoutePlanner planner{provider, &checker};
 	mission_route::RtlRoutePlan plan{};
@@ -617,7 +590,7 @@ TEST_F(MissionRouteGeofenceTest, CurrentAltitudeHopToLandingIsChecked)
 {
 	ASSERT_TRUE(loadFence(polygon(false, {{597.f, 1.f}, {598.f, 1.f}, {598.f, 10.f}, {597.f, 10.f}})));
 	const Position vehicle = routePosition(595.f, 5.f);
-	const GeofencePathChecker checker{_fence, vehicle};
+	const GeofencePathChecker checker{_fence};
 	const std::vector<mission_item_s> mission{routeItem(0.f, 0.f), routeItem(600.f, 0.f, NAV_CMD_LAND)};
 	const auto provider = makeRouteProvider(mission, {safePointItem(700.f, 0.f)});
 	MissionRoutePlanner planner{provider, &checker};

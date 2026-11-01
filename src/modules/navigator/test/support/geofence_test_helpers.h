@@ -91,13 +91,6 @@ public:
 
 	static constexpr unsigned maxLoadRetries() { return Geofence::kMaxFenceLoadRetries; }
 
-	// A load is running or a failed one still waits for its retry.
-	static bool isUpdatePending(const Geofence &fence)
-	{
-		return fence._initiate_fence_updated || fence._dataman_state != Geofence::DatamanState::UpdateRequestWait
-		       || fence._fence_retry_time != 0;
-	}
-
 	static bool waitForPendingRead(Geofence &fence)
 	{
 		return DatamanClientTestPeer::waitForOperation(fence._dataman_client, 1_s);

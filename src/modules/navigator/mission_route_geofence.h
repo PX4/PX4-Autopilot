@@ -40,34 +40,29 @@ class Geofence;
 namespace mission_route
 {
 
-struct ProjectionReference;
-
 /**
  * Checks route segments against the loaded Navigator geofence.
  *
- * Create one checker per planning call. Calls must not overlap because they reuse
- * the same scratch buffer; Navigator calls it from a single task.
+ * Calls must not overlap because they reuse the same scratch buffer; Navigator calls it from a single task.
+ * Segments are checked against the polygons and circles. Mission legs passed the altitude and Home limits in the
+ * mission check, and these limits are convex, so points on the legs are not checked again: plan only on a checked
+ * mission. Safe points are checked against every limit.
  * When the vehicle breaches a polygon or circle, segments from the vehicle, including every
  * checkPath() segment, are not checked so it can recover. Safe point segments still are.
- * Outside only the altitude or Home limits, the vehicle may start segments, which are checked.
  * Planning must still wait for the fence to finish loading.
  */
 class GeofencePathChecker final : public PathChecker
 {
 public:
-	GeofencePathChecker(Geofence &geofence, const Position &vehicle_position);
+	explicit GeofencePathChecker(Geofence &geofence) : _geofence(geofence) {}
 
 	bool pruneCandidates(ProjectionReferenceBatch &batch) const override;
-	bool checkPath(const Position &start, const Position &end, bool &clear) const override;
+	bool checkPath(const Position &vehicle, const Position &end, bool &clear) const override;
 
 private:
-	bool exempt(const ProjectionReference &reference) const;
-	bool referenceAllowed(const ProjectionReference &reference) const;
-	bool vehicleAllowed(const Position &position) const;
-	bool withinScalarLimits(const Position &position) const;
+	bool recovering(const Position &vehicle) const;
 
 	Geofence &_geofence;
-	bool _recovering{false};
 };
 
 } // namespace mission_route
