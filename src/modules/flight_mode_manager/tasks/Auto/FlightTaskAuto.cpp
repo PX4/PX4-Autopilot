@@ -303,6 +303,11 @@ void FlightTaskAuto::_prepareLandSetpoints()
 			       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
 			       _param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get());
 
+	// Without distance to bottom the height above ground is unknown, optionally use a fixed approach speed instead
+	if ((_dist_to_ground_source != DistToGroundSource::DistBottom) && (_param_mpc_land_appr.get() > FLT_EPSILON)) {
+		vertical_speed = math::min(_param_mpc_land_appr.get(), _param_mpc_z_vel_max_dn.get());
+	}
+
 	bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
 
 	if (range_dist_available && _dist_to_bottom <= _param_mpc_land_alt3.get()) {
