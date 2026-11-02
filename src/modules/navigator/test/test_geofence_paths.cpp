@@ -470,10 +470,10 @@ TEST_F(GeofenceTest, ReadFailureIsRetriedUntilPathChecksRecover)
 	// The previous fence keeps serving point checks until the retry replaces it.
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
-	EXPECT_TRUE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_TRUE(_fence.isFenceUpdatePending());
 	GeofenceTestPeer::expireRetryDelay(_fence);
 	ASSERT_TRUE(waitForFence());
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
 	EXPECT_TRUE(clear);
 	EXPECT_TRUE(logContains("Geofence loaded, fence is active"));
@@ -492,7 +492,7 @@ TEST_F(GeofenceTest, RepeatedReadFailuresStopRetrying)
 	}
 
 	// The retry budget is spent: nothing is pending and no read is issued.
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_FALSE(failFenceMetadataRead());
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
@@ -704,7 +704,7 @@ TEST_F(GeofenceTest, FailedVertexReadClearsTheFenceUntilStorageRecovers)
 	// cache slot and the load fails after the vertices were requested.
 	ASSERT_TRUE(loadFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX), geofence_status_s::GF_STATUS_FAILED, 1));
 	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_TRUE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_TRUE(_fence.isFenceUpdatePending());
 	// A fragment is never kept, so point checks fail open while the retries run.
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
@@ -717,7 +717,7 @@ TEST_F(GeofenceTest, FailedVertexReadClearsTheFenceUntilStorageRecovers)
 		ASSERT_TRUE(waitForFence(geofence_status_s::GF_STATUS_FAILED));
 	}
 
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_FALSE(logContains("fence is not active"));
 	// Repairing the stored fence and asking again recovers.
 	ASSERT_TRUE(loadFence(exclusionSquare()));
@@ -738,7 +738,7 @@ TEST_F(GeofenceTest, InactiveFenceIsReportedEvenIfARetryRecovers)
 	GeofenceTestPeer::expireRetryDelay(_fence);
 	ASSERT_TRUE(waitForFence());
 	EXPECT_TRUE(logContains("Geofence loaded, fence is active"));
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
 }
@@ -761,7 +761,7 @@ TEST_F(GeofenceTest, RetryThatDropsThePreviousFenceIsReported)
 TEST_F(GeofenceTest, UnreadableMetadataWithoutFenceIsReportedBeforeRetrying)
 {
 	ASSERT_TRUE(failFenceMetadataRead());
-	EXPECT_TRUE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_TRUE(_fence.isFenceUpdatePending());
 	EXPECT_TRUE(logContains("Geofence load failed, fence is not active"));
 }
 
@@ -775,7 +775,7 @@ TEST_F(GeofenceTest, ReadFailureWithEmptyFenceIsReportedAsInactive)
 	GeofenceTestPeer::expireRetryDelay(_fence);
 	ASSERT_TRUE(waitForFence());
 	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_TRUE(logContains("Geofence loaded, no fence configured"));
 }
 
@@ -790,7 +790,7 @@ TEST_F(GeofenceTest, RecoveryWithEmptyFenceDoesNotClaimProtection)
 	GeofenceTestPeer::expireRetryDelay(_fence);
 	ASSERT_TRUE(waitForFence());
 	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_TRUE(logContains("Geofence loaded, no fence configured"));
 }
 
@@ -854,7 +854,7 @@ TEST_P(InvalidGeofenceLoadTest, RejectsFenceWhenLoading)
 
 	ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
 	// Invalid data is reported once, not retried, and leaves no fence behind.
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_TRUE(_fence.isEmpty());
 	EXPECT_TRUE(logContains("invalid, fence is not active"));
 	const Geofence::PathCheck query = path({0.f, 100.f}, {0.f, 500.f});
