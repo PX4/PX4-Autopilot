@@ -113,6 +113,9 @@ private:
 	{
 		if (!_mixing_output.isMotor(output_channel)) { return -1; }
 
+		// channels selected as GPIO are driven by gpio_out
+		if (_gpio_mask & (1u << output_channel)) { return -1; }
+
 		int idx = (int)_mixing_output.outputFunction(output_channel) - (int)OutputFunction::Motor1;
 		return (idx >= 0 && idx < DSHOT_MAX_MOTORS) ? idx : -1;
 	}
@@ -151,6 +154,7 @@ private:
 	// Actuator-order masks (indexed by output channel)
 	uint32_t _output_mask{0};
 	uint32_t _bdshot_output_mask{0};
+	uint32_t _gpio_mask{0};
 
 	// Motor-order masks (indexed by motor number: Motor1=0, Motor2=1, etc.)
 	uint32_t _motor_mask{0};

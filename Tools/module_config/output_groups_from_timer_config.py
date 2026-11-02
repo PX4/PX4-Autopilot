@@ -142,6 +142,7 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
         channel_labels=["PWM Main", "PWM Capture"],
         standard_params=[],
         extra_function_groups=[], pwm_timer_param=None,
+        custom_params=None,
         verbose=False):
     """ convert the timer groups into an output_groups section of module.yaml
     and extra timer params
@@ -182,6 +183,9 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
             'channel_label_module_name_prefix': False,
         }
 
+        if custom_params is not None:
+            group['custom_params'] = deepcopy(custom_params)
+
         if pwm_timer_param is not None:
             pwm_timer_param_cp = deepcopy(pwm_timer_param)
             timer_param_name = param_prefix+'_TIM'+str(timer_index)
@@ -198,6 +202,9 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
 
                 for standard_param in group['standard_params']:
                     group['standard_params'][standard_param]['show_if'] = timer_param_name + '>=-1'
+
+                for custom_param in group.get('custom_params', []):
+                    custom_param['show_if'] = timer_param_name + '>=-1'
 
                 # indicate support for changing motor spin direction
                 group['supported_actions'] = {

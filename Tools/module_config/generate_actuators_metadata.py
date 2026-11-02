@@ -182,6 +182,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 standard_params = group.get('standard_params', [])
                 extra_function_groups = group.get('extra_function_groups', [])
                 pwm_timer_param = group.get('pwm_timer_param', None)
+                custom_params = group.get('custom_params', None)
                 if 'timer_config_file' in group:
                     timer_config_file = os.path.join(root_dir, group['timer_config_file'])
                 if timer_config_file is None:
@@ -190,6 +191,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 timer_output_groups, timer_params = get_output_groups(timer_groups,
                     param_prefix, channel_labels,
                     standard_params, extra_function_groups, pwm_timer_param,
+                    custom_params=custom_params,
                     verbose=verbose)
                 output_groups.extend(timer_output_groups)
             else:
@@ -266,11 +268,13 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
 
         custom_params = group.get('custom_params', [])
         for custom_param in custom_params:
-            # Simply pulls all custom params, assuming they are valid ones
             param = {
                 'name': param_prefix+'_'+custom_param['name'],
             }
-            # TODO: check and match the custom params in output_groups with module-level parameters
+            # skip custom params that are not defined by any module in this build
+            if param['name'] not in defined_params:
+                if verbose: print('skipping undefined custom param: {}'.format(param['name']))
+                continue
             del custom_param['name']
             for param_key in custom_param:
                 # '-' is used in actuators.schema.json, while '_' is used in module_schema.yml
@@ -462,9 +466,15 @@ def get_mixers(yaml_config, output_functions, verbose):
     return mixers
 
 
-for yaml_file in args.config_files:
-    yaml_config = load_yaml_file(yaml_file)
+yaml_configs = [(yaml_file, load_yaml_file(yaml_file)) for yaml_file in args.config_files]
 
+# all parameter names defined in the module configs of this build
+defined_params = set()
+for _, yaml_config in yaml_configs:
+    for param_group in yaml_config.get('parameters', []):
+        defined_params.update(param_group.get('definitions', {}).keys())
+
+for yaml_file, yaml_config in yaml_configs:
     try:
         actuator_output = get_actuator_output(yaml_config,
                 output_functions, timer_config_file, verbose)
