@@ -487,6 +487,8 @@
       - [Controller Diagrams](flight_stack/controller_diagrams.md)
     - [Parameters & Configs](advanced/parameters_and_configurations.md)
     - [Events Interface](concept/events_interface.md)
+    - [Navigation Terminology](concept/navigation_terminology.md)
+      - [Navigation Terminology (Advanced)](concept/navigation_terminology_advanced.md)
     - [Flight Modes](concept/flight_modes.md)
     - [Flight Tasks](concept/flight_tasks.md)
     - [Control Allocation](concept/control_allocation.md)
