@@ -74,6 +74,21 @@ void WorkerThread::startTask(Request request)
 
 	_request = request;
 
+	// Open before the thread starts, so a cancel Commander handles before the low priority thread runs reaches it
+	switch (_request) {
+	case Request::GyroCalibration:
+	case Request::MagCalibration:
+	case Request::AccelCalibration:
+	case Request::LevelCalibration:
+	case Request::AirspeedCalibration:
+	case Request::BaroCalibration:
+		calibrate_cancel_open();
+		break;
+
+	default:
+		break;
+	}
+
 	/* initialize low priority thread */
 	pthread_attr_t low_prio_attr;
 	pthread_attr_init(&low_prio_attr);
@@ -94,6 +109,7 @@ void WorkerThread::startTask(Request request)
 
 	} else {
 		PX4_ERR("Failed to start thread (%i)", ret);
+		calibrate_cancel_close();
 		_state.store((int)State::Finished);
 		_ret_value = ret;
 	}
@@ -221,6 +237,8 @@ void WorkerThread::threadEntry()
 			break;
 		}
 	}
+
+	calibrate_cancel_close();
 
 	_state.store((int)State::Finished); // set this last to signal the main thread we're done
 }

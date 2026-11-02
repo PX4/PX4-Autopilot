@@ -55,6 +55,7 @@
  */
 #pragma once
 
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
@@ -211,6 +212,27 @@ private:
 	void sensor_step();
 
 	void ecefToNed();
+
+#if defined(__PX4_POSIX)
+	// orient command: poses the vehicle on the ground for accel and mag calibration.
+	// SITL only: Commander denies sensor calibration when SIH runs on flight controller hardware.
+	void orient_update(const hrt_abstime &now);
+	void orient_step(const hrt_abstime &now, const float dt);
+
+	static constexpr int ORIENT_SIDE_COUNT = 6;
+	static constexpr int ORIENT_NONE = -1;	// no request
+	static constexpr int ORIENT_OFF = ORIENT_SIDE_COUNT;
+	static constexpr int ORIENT_ALL = ORIENT_SIDE_COUNT + 1;
+	static constexpr int ORIENT_ROTATE = 8;	// added to a side
+
+	enum class OrientMode {Off, Hold, Rotate, AllSides, Leveling};
+
+	px4::atomic_int _orient_request{ORIENT_NONE};	// set by the CLI, taken by the simulation loop
+	OrientMode _orient_mode{OrientMode::Off};
+	int _orient_side{0};
+	hrt_abstime _orient_start{0};
+	float _orient_yaw{0.f};	// heading kept while posing
+#endif // __PX4_POSIX
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
