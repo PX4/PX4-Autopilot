@@ -47,24 +47,37 @@ The estimator corrects for this automatically, using the World Magnetic Model or
 ### Heading
 
 The heading is where the x-axis (nose, or bow, or front) of the vehicle points.
-It says nothing about the direction in which the vehicle moves: a multicopter can fly sideways, a plane crabs in a crosswind, and a boat is pushed off by wind and current.
+It says nothing about the direction in which the vehicle _moves_: a multicopter can fly sideways, a plane crabs in a crosswind, and a boat is pushed off by wind and current.
 
-In PX4: `vehicle_local_position.heading` (estimate), `trajectory_setpoint.yaw` and `rover_attitude_setpoint.yaw_setpoint` (setpoints), MAVLink `GLOBAL_POSITION_INT.hdg` and `VFR_HUD.heading`.
+PX4 uses _heading_ and _yaw_ (the yaw angle of the vehicle attitude) as synonyms: `vehicle_local_position.heading` is the Euler yaw angle, and heading setpoints are named `yaw`.
+The yaw angle is the direction of the body x-axis projected onto the horizontal plane, so the two only part ways when the x-axis points (nearly) straight up or down, where the heading is undefined.
+Note that _yaw_ also names the rotation about the vertical axis (yaw rate, yaw moment), which is not a direction.
+
+PX4 represents the heading using:
+
+- [`vehicle_local_position.heading`](../msg_docs/VehicleLocalPosition.md) (estimate).
+- [`trajectory_setpoint.yaw`](../msg_docs/TrajectorySetpoint.md) and [`rover_attitude_setpoint.yaw_setpoint`](../msg_docs/RoverAttitudeSetpoint.md) (setpoints).
+- MAVLink [`GLOBAL_POSITION_INT.hdg`](https://mavlink.io/en/messages/common.html#GLOBAL_POSITION_INT) and [`VFR_HUD.heading`](https://mavlink.io/en/messages/common.html#VFR_HUD).
 
 ### Course
 
 The course is the direction the vehicle _should_ move over the ground, for example along the line to the next waypoint.
 It is a setpoint: whether the vehicle actually moves that way is shown by the [course over ground](#course-over-ground).
 
-In PX4: `fixed_wing_lateral_setpoint.course` ("Desired direction of travel over ground w.r.t (true) North").
+PX4 represents the course using:
+
+- [`fixed_wing_lateral_setpoint.course`](../msg_docs/FixedWingLateralSetpoint.md) ("Desired direction of travel over ground w.r.t (true) North").
 
 ### Course Over Ground
 
 The course over ground (COG) is the direction the vehicle _actually_ moves over the ground: the direction of its ground velocity.
-It is what a GNSS receiver reports as "course", and what avionics show as _TRK_.
+It is what a GNSS receiver reports as "course", and what avionics show as _TRK_ (track).
 It is undefined when the vehicle is stationary, and noisy at low speed.
 
-In PX4: `sensor_gnss.course` ("Course over ground, not heading"), MAVLink `GPS_RAW_INT.cog`.
+PX4 represents the course over ground using:
+
+- [`sensor_gnss.course`](../msg_docs/SensorGnss.md) ("Course over ground, not heading").
+- MAVLink [`GPS_RAW_INT.cog`](https://mavlink.io/en/messages/common.html#GPS_RAW_INT).
 
 ### Track and Desired Track
 
@@ -83,7 +96,9 @@ To avoid confusion, PX4 always writes _desired track_ for the intended path.
 A bearing is the direction from one point to another, for example from the vehicle to the next waypoint.
 It depends only on the two positions, not on where the vehicle points or moves.
 
-In PX4: `pure_pursuit_status.bearing_to_waypoint`.
+PX4 represents the bearing using:
+
+- [`pure_pursuit_status.bearing_to_waypoint`](../msg_docs/PurePursuitStatus.md).
 
 ### Cross-Track Error
 
@@ -91,7 +106,10 @@ The cross-track error (XTE) is how far the vehicle is off the [desired track](#t
 
 In PX4, the cross-track error is **positive when the vehicle is to the right of the desired track**, and negative when it is to the left, looking in the direction of travel.
 
-In PX4: `pure_pursuit_status.crosstrack_error` (rovers), `fixed_wing_lateral_guidance_status.signed_track_error` (fixed-wing).
+PX4 represents the cross-track error using:
+
+- [`pure_pursuit_status.crosstrack_error`](../msg_docs/PurePursuitStatus.md) (rovers).
+- [`fixed_wing_lateral_guidance_status.signed_track_error`](../msg_docs/FixedWingLateralGuidanceStatus.md) (fixed-wing).
 
 The [overview figure](#summary) shows a positive cross-track error: the vehicle is to the right of the desired track.
 
@@ -104,15 +122,20 @@ Multicopters and mecanum rovers can also move sideways on purpose.
 ### Airspeed and Ground Speed
 
 Ground speed (called _speed over ground_, SOG, in marine navigation) is the speed over the ground, in the direction of the course over ground.
-Airspeed is the speed through the air.
+Airspeed is the speed through the air (see [Airspeed in PX4](../config_fw/airspeed_scale_handling.md#airspeed-in-px4) for indicated, calibrated and true airspeed).
 The two differ by the wind.
 
 ### Wind Direction
 
 Wind is reported by the direction it blows **from**: a wind "from 90°" blows from the east towards the west.
 
-PX4 wind estimates (`wind`) are velocity vectors instead, which point where the air moves **to**.
+PX4 wind estimates are velocity vectors instead, which point where the air moves **to**.
 A wind from the north therefore has a negative `windspeed_north` in PX4.
+
+PX4 represents the wind using:
+
+- [`wind.windspeed_north`](../msg_docs/Wind.md) and `wind.windspeed_east` (estimate, NED).
+- MAVLink [`WIND_COV.wind_x`](https://mavlink.io/en/messages/common.html#WIND_COV) and `WIND_COV.wind_y` (same sign convention as `wind`).
 
 ## Wind Triangle
 
