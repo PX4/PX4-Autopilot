@@ -374,6 +374,21 @@ parameters:
       default: 0.1
       min: 0.1
       decimal: 1
+    SIH_FW_SIDE_A:
+      description:
+        short: Fixed-wing side panel area
+        long: |-
+          Area of an extra square vertical panel at the center of mass of the fixed-wing
+          (and standard VTOL in forward flight) model.
+          It adds side force with sideslip without changing the yaw stability,
+          which allows testing skid-to-turn (FW_SKID_AY_MAX).
+          Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: m^2
+      min: 0.0
+      max: 1.0
+      decimal: 3
     SIH_F_RPM_MAX:
       description:
         short: Forward thruster max RPM

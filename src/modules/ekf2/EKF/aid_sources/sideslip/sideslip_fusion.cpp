@@ -52,7 +52,8 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 	_control_status.flags.fuse_beta = _params.ekf2_fuse_beta
 					  && (_control_status.flags.fixed_wing || _control_status.flags.fuse_aspd)
 					  && _control_status.flags.in_air
-					  && !_control_status.flags.fake_pos;
+					  && !_control_status.flags.fake_pos
+					  && !_skid_to_turn;
 
 	if (_control_status.flags.fuse_beta) {
 

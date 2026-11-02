@@ -291,6 +291,7 @@ struct systemFlagUpdate {
 	bool gnd_effect{false};
 	bool constant_pos{false};
 	bool in_transition{false};
+	bool skid_to_turn{false}; ///< true while the vehicle intentionally turns with sideslip
 };
 
 // Runtime fusion control. Populated by EKF2 module, read by EKF core.
