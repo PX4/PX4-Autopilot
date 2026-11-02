@@ -1,12 +1,12 @@
 # Navigation Terminology
 
 This page explains the navigation terms you meet when operating PX4, reading logs or tuning: _heading_, _course_, _track_, _bearing_, _cross-track error_ and _drift angle_.
-PX4 uses the official definitions of these terms from aviation and marine navigation, and does not define its own vocabulary.
+PX4 uses the official definitions of these terms from aviation and marine navigation, with one deliberate exception: _course_ (see [Course](#course)).
 
 For the official definitions quoted with their sources, how conflicting definitions are resolved, ground vehicle terms, and where PX4 represents things differently, see [Navigation Terminology (Advanced)](../concept/navigation_terminology_advanced.md).
 
 ::: tip
-In short: **heading** is where the vehicle _points_, **course** is where it _should move_ over the ground, **course over ground** is where it _does move_, and **bearing** is where something _is_.
+In short: **heading** is where the vehicle _points_, **course** is where it _moves_ over the ground, **course setpoint** is where it _should move_, and **bearing** is where something _is_.
 :::
 
 ## Summary
@@ -14,8 +14,8 @@ In short: **heading** is where the vehicle _points_, **course** is where it _sho
 | Term                                      | Official meaning                                              | Example in PX4                            |
 | ----------------------------------------- | ------------------------------------------------------------- | ----------------------------------------- |
 | [Heading](#heading)                       | Direction in which the body x-axis of the vehicle points.     | `vehicle_local_position.heading`          |
-| [Course](#course)                         | Intended direction of motion over the ground.                 | `fixed_wing_lateral_setpoint.course`      |
-| [Course over ground](#course-over-ground) | Actual direction of the path over the ground.                 | `sensor_gnss.course`                      |
+| [Course](#course)                         | Actual direction of motion over the ground.                   | `sensor_gnss.course`                      |
+| [Course setpoint](#course-setpoint)       | Intended direction of motion over the ground.                 | `fixed_wing_lateral_setpoint.course`      |
 | [Track](#track-and-desired-track)         | Actual path of the vehicle over the ground.                   | Path plotted from a log                   |
 | [Desired track](#track-and-desired-track) | Intended path over the ground, such as between two waypoints. | Line from previous to current waypoint    |
 | [Bearing](#bearing)                       | Direction from one point to another.                          | `pure_pursuit_status.bearing_to_waypoint` |
@@ -24,7 +24,7 @@ In short: **heading** is where the vehicle _points_, **course** is where it _sho
 
 ![Overview of navigation terms, seen from above (placeholder)](../../assets/concepts/navigation/overview_heading_bearing_course_track.svg)
 
-_Overview figure: vehicle seen from above, north arrow, desired track between two waypoints, heading arrow along the body x-axis, ground velocity arrow (course over ground), bearing to the next waypoint, cross-track error as the perpendicular to the desired track._
+_Overview figure: vehicle seen from above, north arrow, desired track between two waypoints, heading arrow along the body x-axis, ground velocity arrow (course), course setpoint along the desired track (measured at the point of the desired track closest to the vehicle), bearing to the next waypoint, cross-track error as the perpendicular to the desired track._
 
 ## Directions and Frames
 
@@ -61,30 +61,37 @@ PX4 represents the heading using:
 
 ### Course
 
-The course is the direction the vehicle _should_ move over the ground, for example along the line to the next waypoint.
-It is a setpoint: whether the vehicle actually moves that way is shown by the [course over ground](#course-over-ground).
-
-PX4 represents the course using:
-
-- [`fixed_wing_lateral_setpoint.course`](../msg_docs/FixedWingLateralSetpoint.md) ("Desired direction of travel over ground w.r.t (true) North").
-
-### Course Over Ground
-
-The course over ground (COG) is the direction the vehicle _actually_ moves over the ground: the direction of its ground velocity.
-It is what a GNSS receiver reports as "course", and what avionics show as _TRK_ (track).
+The course is the direction the vehicle _actually_ moves over the ground: the direction of its ground velocity.
+It is also called _course over ground_ (COG) in marine navigation, and it is what a GNSS receiver reports as "course" and what avionics show as _TRK_ (track).
 It is undefined when the vehicle is stationary, and noisy at low speed.
 
-PX4 represents the course over ground using:
+PX4 represents the course using:
 
 - [`sensor_gnss.course`](../msg_docs/SensorGnss.md) ("Course over ground, not heading").
 - MAVLink [`GPS_RAW_INT.cog`](https://mavlink.io/en/messages/common.html#GPS_RAW_INT).
 
+### Course Setpoint
+
+The course setpoint is the direction the vehicle _should_ move over the ground, for example along the line to the next waypoint.
+Whether the vehicle actually moves that way is shown by the [course](#course).
+
+PX4 represents the course setpoint using:
+
+- [`fixed_wing_lateral_setpoint.course`](../msg_docs/FixedWingLateralSetpoint.md) ("Desired direction of travel over ground w.r.t (true) North").
+
+::: warning PX4 differs from aviation and marine navigation
+In aviation and marine navigation, bare _course_ means the _intended_ direction, and the actual direction is the _course over ground_ or _track angle_.
+PX4 instead uses _course_ for the measured or estimated direction and _course setpoint_ for the intended one, like _heading_ and _heading setpoint_.
+Keep this in mind when you read aviation or marine sources, for example the FAA wind correction angle, which applies to the course setpoint in PX4 terms.
+See [Course Is the Actual Direction](../concept/navigation_terminology_advanced.md#course-is-the-actual-direction) for the reasoning.
+:::
+
 ### Track and Desired Track
 
 - **Track:** The actual path the vehicle traced over the ground, such as the path plotted from a log.
-  Its direction at any point is the [course over ground](#course-over-ground).
+  Its direction at any point is the [course](#course).
 - **Desired track:** The intended path over the ground, which the vehicle tries to follow.
-  This is usually the line between two waypoints, but it can also be a line along a course the vehicle holds.
+  This is usually the line between two waypoints, but it can also be a line along a course setpoint the vehicle holds.
 
 ::: info
 In marine navigation, bare "track" means the _intended_ path.
@@ -115,13 +122,13 @@ The [overview figure](#summary) shows a positive cross-track error: the vehicle 
 
 ### Drift Angle
 
-The drift angle is the difference between where the vehicle points ([heading](#heading)) and where it moves ([course over ground](#course-over-ground)).
+The drift angle is the difference between where the vehicle points ([heading](#heading)) and where it moves ([course](#course)).
 Wind causes it for aircraft, wind and current for boats, and wheel slip for rovers.
 Multicopters and mecanum rovers can also move sideways on purpose.
 
 ### Airspeed and Ground Speed
 
-Ground speed (called _speed over ground_, SOG, in marine navigation) is the speed over the ground, in the direction of the course over ground.
+Ground speed (called _speed over ground_, SOG, in marine navigation) is the speed over the ground, in the direction of the course.
 Airspeed is the speed through the air (see [Airspeed in PX4](../config_fw/airspeed_scale_handling.md#airspeed-in-px4) for indicated, calibrated and true airspeed).
 The two differ by the wind.
 
@@ -139,13 +146,13 @@ PX4 represents the wind using:
 
 ## Wind Triangle
 
-Heading and course over ground differ because the vehicle moves through air (or water) that itself moves over the ground:
+Heading and course differ because the vehicle moves through air (or water) that itself moves over the ground:
 
 $$
 \mathbf{v}_{ground} = \mathbf{v}_{air} + \mathbf{v}_{wind}
 $$
 
-- The direction of $\mathbf{v}_{ground}$ is the **course over ground**, and its magnitude is the **ground speed**.
+- The direction of $\mathbf{v}_{ground}$ is the **course**, and its magnitude is the **ground speed**.
 - For a fixed-wing aircraft, $\mathbf{v}_{air}$ points along the **heading**, and its magnitude is the **airspeed**.
 - The angle between the heading and $\mathbf{v}_{ground}$ is the **drift angle**.
 
@@ -155,6 +162,7 @@ $$
 
 - The official definitions of each term, quoted from the aviation, marine and ground vehicle sources, and the rule PX4 uses when they disagree.
 - The reference frames in detail (WGS 84, NED, FRD, along-track/cross-track), north references and z-up conventions such as ROS and ISO 8855.
+- Why PX4 uses _course_ for the actual direction, unlike aviation and marine navigation.
 - Ground vehicle terms (yaw, course and sideslip angle), and why _sideslip_ means different things for planes and rovers.
 - Where PX4 represents things differently from the norms, and existing field names that deviate.
 - Guidelines for contributors, and terms PX4 does not use yet.

@@ -7,7 +7,7 @@ PX4 flies aircraft, drives rovers, and can drive boats, so its code and document
 These traditions use the same words (_heading_, _course_, _track_, _bearing_, _drift_, _sideslip_), and they do not always mean the same thing.
 
 This page collects the official definitions, the reference frames they are measured in, and the rule PX4 applies when they conflict.
-PX4 uses these definitions as they are: it does not define its own navigation vocabulary.
+PX4 uses these definitions, with one deliberate exception: it uses _course_ for the actual direction of motion, and _course setpoint_ for the intended one (see [Course Is the Actual Direction](#course-is-the-actual-direction)).
 Where PX4 represents or computes something differently from the norms, this is described separately in [Where PX4 Differs](#where-px4-differs).
 
 ## Sources and Precedence
@@ -23,6 +23,7 @@ Where definitions of the same word conflict between these traditions, PX4 applie
 
 1. **Aviation definitions take precedence** (ICAO first, then FAA).
    They are international standards, and most existing PX4 interfaces already follow them.
+   The one exception is _course_, see [Course Is the Actual Direction](#course-is-the-actual-direction).
 2. **Marine terms are used for marine concepts** that aviation does not define, such as speed through the water, and leeway and set and drift (see [Terms Not Yet Used in PX4](#terms-not-yet-used-in-px4)).
 3. **Ground vehicle terms are used for vehicle dynamics concepts** that navigation does not define, such as tyre slip angle (see [Terms Not Yet Used in PX4](#terms-not-yet-used-in-px4)).
    For directions (heading, course, drift angle), the navigation terms apply to rovers too.
@@ -149,11 +150,12 @@ Aviation and marine definitions agree, and ground vehicle dynamics (ISO 8855, SA
 > **Bowditch:** "Course (C, Cn) is the horizontal direction in which a vessel is intended to be steered, expressed as angular distance from north clockwise through 360°. Strictly used, the term applies to direction through the water, not the direction intended to be made good over the ground."
 > — Bowditch (2019), Art. 107
 
-The course is an _intended_ direction.
+In aviation and marine navigation, the course is an _intended_ direction.
 In aviation it is intended over the ground, while in strict marine usage it is the direction steered through the water.
-Following the [precedence rule](#sources-and-precedence), PX4 uses the aviation meaning: the intended direction of motion over the ground.
 
-In PX4: `fixed_wing_lateral_setpoint.course` and `position_setpoint.course`.
+PX4 deviates from both: it calls the intended direction of motion over the ground the _course setpoint_, and uses _course_ for the actual direction, the [course over ground](#course-over-ground) (see [Course Is the Actual Direction](#course-is-the-actual-direction)).
+
+Course setpoints in PX4: `fixed_wing_lateral_setpoint.course` and `position_setpoint.course`.
 
 ### Course Over Ground
 
@@ -168,6 +170,7 @@ $$
 $$
 
 Ground vehicle dynamics (ISO 8855, SAE J670) calls the same angle the _course angle_ (see [Ground Vehicles](#ground-vehicles-yaw-course-and-sideslip-angle)).
+PX4 calls it the _course_, and uses _course over ground_ as a synonym (see [Course Is the Actual Direction](#course-is-the-actual-direction)).
 
 It is the direction of the [track](#track) at the current point.
 This is why avionics display it as _TRK_ (track angle), and why NMEA 0183 `VTG` labels it "track made good".
@@ -195,9 +198,9 @@ In marine navigation the track is the _intended_ path.
 Following the [precedence rule](#sources-and-precedence), PX4 uses the aviation terms:
 
 - **Track:** The actual path over the ground.
-  Its direction at any point is the [course over ground](#course-over-ground).
+  Its direction at any point is the [course](#course-over-ground).
 - **Desired track:** The intended path over the ground, from which the [cross-track error](#cross-track-error) is measured.
-  This is usually the line between two waypoints, but it can also be a line along a course the vehicle holds, which the FAA definition does not cover.
+  This is usually the line between two waypoints, but it can also be a line along a course setpoint the vehicle holds, which the FAA definition does not cover.
 
 Marine readers understand bare "track" as the intended path, so always write _desired track_ for the intended path.
 
@@ -254,7 +257,7 @@ ISO 8855 and SAE J670 describe the horizontal motion of a ground vehicle with th
 - **Yaw angle** ($\psi$): The angle from the earth-fixed x-axis to the vehicle x-axis.
   This is the [heading](#heading).
 - **Course angle** ($\nu$): The angle from the earth-fixed x-axis to the horizontal velocity of the vehicle over the ground.
-  This is the actual direction of motion, which is the [course over ground](#course-over-ground), **not** the intended [course](#course) of the FAA definition.
+  This is the actual direction of motion, which is the PX4 [course](#course-over-ground), **not** the intended [course](#course) of the FAA definition.
 - **Sideslip angle** ($\beta = \nu - \psi$): The angle from the vehicle x-axis to the horizontal velocity over the ground.
   This is the ground vehicle counterpart of the [drift angle](#drift-angle), and **not** the air-relative sideslip angle of flight dynamics.
 
@@ -262,10 +265,10 @@ ISO 8855 measures these angles counterclockwise about a z-up axis, so its sidesl
 
 Following the [precedence rule](#sources-and-precedence), use these terms for rovers:
 
-- _Heading_ for the yaw angle, _course over ground_ for the course angle and _drift angle_ for the vehicle sideslip angle.
+- _Heading_ for the yaw angle, _course_ for the course angle and _drift angle_ for the vehicle sideslip angle.
 - When code or documentation follows vehicle dynamics literature, the ISO 8855 terms may be used, but write _vehicle sideslip angle_ and cite ISO 8855, so that it is not confused with aerodynamic sideslip.
 
-For a rover that drives without wheel slip (Ackermann or differential drive), the course over ground equals the heading when driving forwards, and the heading plus 180° when reversing.
+For a rover that drives without wheel slip (Ackermann or differential drive), the course equals the heading when driving forwards, and the heading plus 180° when reversing.
 A drift angle appears when the wheels slip, for example on loose ground or in fast turns, and by design on mecanum rovers.
 
 ### Airspeed, Ground Speed and Speed Over Ground
@@ -294,18 +297,37 @@ The current is described by its [set and drift](#set-and-drift), and $\mathbf{v}
 These are the terms where the traditions disagree, and the official term PX4 uses as a result of the [precedence rule](#sources-and-precedence).
 Heading (yaw angle in ISO 8855), bearing, course over ground and cross-track error mean the same in all of them.
 
-| Term                   | Aviation (ICAO/FAA, ISO 1151)                                     | Marine (Bowditch)                                  | Ground vehicles (ISO 8855/SAE J670)                               | Term to use in PX4                                                                              |
-| ---------------------- | ----------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Track                  | Actual path over the ground; the intended path is _desired track_ | Intended path over the ground                      | —                                                                 | _Track_ (actual) and _desired track_ (intended)                                                 |
-| Course                 | Intended direction over the ground                                | Direction steered through the water (strict sense) | _Course angle_: actual direction of motion over the ground        | _Course_ (intended) and _course over ground_ (actual)                                           |
-| Drift                  | _Drift angle_: angle between heading and track                    | Speed of the current, with _set_ as its direction  | —                                                                 | _Drift angle_ (angle); never bare _drift_                                                       |
-| Sideslip               | Angle between the body x-axis and the airflow                     | —                                                  | Angle between the vehicle x-axis and the velocity over the ground | _Sideslip angle_ (air-relative) and _drift angle_ or _vehicle sideslip angle_ (ground-relative) |
-| True to magnetic north | _Magnetic variation_                                              | _Variation_                                        | —                                                                 | _Declination_ (World Magnetic Model term, used by EKF2)                                         |
+| Term                   | Aviation (ICAO/FAA, ISO 1151)                                     | Marine (Bowditch)                                  | Ground vehicles (ISO 8855/SAE J670)                               | Term to use in PX4                                                                                                                                                          |
+| ---------------------- | ----------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Track                  | Actual path over the ground; the intended path is _desired track_ | Intended path over the ground                      | —                                                                 | _Track_ (actual) and _desired track_ (intended)                                                                                                                             |
+| Course                 | Intended direction over the ground                                | Direction steered through the water (strict sense) | _Course angle_: actual direction of motion over the ground        | _Course_ (actual, also _course over ground_) and _course setpoint_ (intended); differs from aviation, see [Course Is the Actual Direction](#course-is-the-actual-direction) |
+| Drift                  | _Drift angle_: angle between heading and track                    | Speed of the current, with _set_ as its direction  | —                                                                 | _Drift angle_ (angle); never bare _drift_                                                                                                                                   |
+| Sideslip               | Angle between the body x-axis and the airflow                     | —                                                  | Angle between the vehicle x-axis and the velocity over the ground | _Sideslip angle_ (air-relative) and _drift angle_ or _vehicle sideslip angle_ (ground-relative)                                                                             |
+| True to magnetic north | _Magnetic variation_                                              | _Variation_                                        | —                                                                 | _Declination_ (World Magnetic Model term, used by EKF2)                                                                                                                     |
 
 ## Where PX4 Differs
 
-PX4 follows the official definitions above.
+PX4 follows the official definitions above, except for the meaning of _course_.
 The sections below describe where PX4 represents, computes or names a quantity differently from the norms, so that you can convert correctly.
+
+### Course Is the Actual Direction
+
+The norms use bare _course_ for an _intended_ direction (FAA, Bowditch), and _course over ground_ (IHO) or _track angle_ (avionics) for the _actual_ direction.
+PX4 deliberately uses:
+
+- **Course:** The actual (measured or estimated) direction of motion over the ground.
+  _Course over ground_ (COG) is a synonym.
+- **Course setpoint:** The intended direction of motion over the ground, which aviation calls the _course_.
+
+The reasons are:
+
+- PX4 names a quantity by its actual value and adds _setpoint_ for the commanded value, as for _heading_ and _heading setpoint_, or _velocity_ and _velocity setpoint_.
+  With the aviation meaning, the course setpoint would be the setpoint of an intended value, and the actual value would need a different word.
+- It matches the _course angle_ of ground vehicle dynamics (ISO 8855) and what GNSS receivers report as course (`sensor_gnss.course`, NMEA `RMC` and `VTG`).
+- Existing fields already fit: `sensor_gnss.course` is measured, and the `course` fields of setpoint topics (`fixed_wing_lateral_setpoint.course`, `position_setpoint.course`) are setpoints.
+
+When you read aviation or marine sources, translate their _course_ to the PX4 _course setpoint_.
+For example, the FAA [wind correction angle](#wind-correction-angle) is applied to the course setpoint in PX4 terms.
 
 ### Angles in Radians
 
@@ -352,7 +374,7 @@ A vehicle with a positive cross-track error gets NMEA "steer L".
 ### Drift Angle Sign
 
 The FAA defines the drift angle as the angle between heading and track, without a sign.
-Where PX4 needs a signed value, it is `wrap_pi(course_over_ground - heading)`: positive when the vehicle moves to the right of where its nose points.
+Where PX4 needs a signed value, it is `wrap_pi(course - heading)`: positive when the vehicle moves to the right of where its nose points.
 
 ### Wind as a Velocity Vector
 
@@ -367,13 +389,13 @@ Read them with the meaning given here, and use the official term in new code:
 
 | Field                                                                                                                                                                                                | Actual meaning                                                                                                                                                                                                                       | Official term                                                         |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `position_setpoint.course` (comment: "desired course (bearing)")                                                                                                                                     | Intended direction of motion over the ground.                                                                                                                                                                                        | Course                                                                |
+| `position_setpoint.course` (comment: "desired course (bearing)")                                                                                                                                     | Intended direction of motion over the ground.                                                                                                                                                                                        | Course setpoint                                                       |
 | `position_controller_status.nav_bearing` (MAVLink `NAV_CONTROLLER_OUTPUT.nav_bearing`)                                                                                                               | Intended for the direction commanded by the guidance law. Not populated by current controllers (always 0).                                                                                                                           | Course or heading setpoint                                            |
 | `position_controller_status.xtrack_error` (MAVLink `NAV_CONTROLLER_OUTPUT.xtrack_error`)                                                                                                             | Intended for the signed cross-track error. Not populated by current controllers (always 0).                                                                                                                                          | Cross-track error                                                     |
-| `fixed_wing_lateral_guidance_status.bearing_feas`                                                                                                                                                    | Feasibility of the course commanded by NPFG (NPFG calls it "bearing").                                                                                                                                                               | Course                                                                |
-| `transponder_report.heading` (MAVLink `ADSB_VEHICLE.heading`)                                                                                                                                        | Course over ground of the other aircraft, as reported by ADS-B.                                                                                                                                                                      | Course over ground                                                    |
+| `fixed_wing_lateral_guidance_status.bearing_feas`                                                                                                                                                    | Feasibility of the course commanded by NPFG (NPFG calls it "bearing").                                                                                                                                                               | Course setpoint                                                       |
+| `transponder_report.heading` (MAVLink `ADSB_VEHICLE.heading`)                                                                                                                                        | Course over ground of the other aircraft, as reported by ADS-B.                                                                                                                                                                      | Course                                                                |
 | `bearing_setpoint` in the rover position controllers (for example `AckermannPosControl`)                                                                                                             | Course setpoint, taken from the bearing to the pure pursuit lookahead point (`PurePursuit::calcTargetBearing()`, which is a bearing). Ackermann and differential rovers use it directly as heading (yaw) setpoint, assuming no slip. | Course setpoint (mecanum), heading setpoint (Ackermann, differential) |
-| "Direction (bearing)" of the velocity setpoint in [Rover Velocity Tuning](../config_rover/velocity_tuning.md) and "bearing setpoints" in [Rover Position Tuning](../config_rover/position_tuning.md) | Intended direction of motion over the ground.                                                                                                                                                                                        | Course                                                                |
+| "Direction (bearing)" of the velocity setpoint in [Rover Velocity Tuning](../config_rover/velocity_tuning.md) and "bearing setpoints" in [Rover Position Tuning](../config_rover/position_tuning.md) | Intended direction of motion over the ground.                                                                                                                                                                                        | Course setpoint                                                       |
 
 ## Guidelines for Contributors
 
@@ -381,7 +403,8 @@ When you add or change uORB fields, parameters, MAVLink handling, log analysis t
 
 - **Use the official terms on these pages. Do not introduce new navigation terms.**
   If a concept is missing, look up its official name in the [references](#references) and add it here.
-- Use _heading_ only for the direction the vehicle points, _course_ only for the intended direction over the ground, _course over ground_ for the actual direction over the ground, and _bearing_ only for the direction from one point to another.
+- Use _heading_ only for the direction the vehicle points, _course_ for the actual direction of motion over the ground, _course setpoint_ for the intended direction over the ground, and _bearing_ only for the direction from one point to another.
+  Do not use bare _course_ for an intended direction, even where an aviation or marine source does (see [Course Is the Actual Direction](#course-is-the-actual-direction)).
 - Write _desired track_ for an intended path, and never use bare _drift_.
 - Use _sideslip angle_ only for the angle against the airflow. For the ground-relative angle, use _drift angle_, or _vehicle sideslip angle_ with a reference to ISO 8855.
 - Use the PX4 [signed cross-track error](#signed-cross-track-error) convention.
@@ -395,14 +418,14 @@ They are kept here for reference, so that new code uses the official term when i
 
 :::: details Show terms not yet used in PX4
 
-| Term                                            | Official meaning                                                                         | Source             |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------ |
-| [Track made good](#track-made-good)             | Net direction from the point of departure to the point of arrival.                       | Bowditch           |
-| [Relative bearing](#relative-bearing)           | Bearing measured from the vehicle's heading.                                             | Bowditch           |
-| [Wind correction angle](#wind-correction-angle) | Correction applied to the course to obtain a heading that keeps the track on the course. | FAA                |
-| [Tyre slip angle](#tyre-slip-angle)             | Angle between the wheel plane and the direction of travel of the tyre contact patch.     | ISO 8855, SAE J670 |
-| [Leeway](#leeway)                               | Leeward motion of a vessel due to the wind.                                              | Bowditch           |
-| [Set and drift](#set-and-drift)                 | Direction (toward) and speed of a current.                                               | Bowditch           |
+| Term                                            | Official meaning                                                                          | Source             |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------ |
+| [Track made good](#track-made-good)             | Net direction from the point of departure to the point of arrival.                        | Bowditch           |
+| [Relative bearing](#relative-bearing)           | Bearing measured from the vehicle's heading.                                              | Bowditch           |
+| [Wind correction angle](#wind-correction-angle) | Correction applied to the course setpoint to obtain a heading that keeps the track on it. | FAA                |
+| [Tyre slip angle](#tyre-slip-angle)             | Angle between the wheel plane and the direction of travel of the tyre contact patch.      | ISO 8855, SAE J670 |
+| [Leeway](#leeway)                               | Leeward motion of a vessel due to the wind.                                               | Bowditch           |
+| [Set and drift](#set-and-drift)                 | Direction (toward) and speed of a current.                                                | Bowditch           |
 
 #### Track Made Good
 
@@ -427,8 +450,9 @@ PX4 controllers do not use it, but it is useful in log analysis.
 > **FAA:** "WCA—correction applied to the course to establish a heading so that track coincides with course."
 > — FAA PHAK, Chapter 16
 
-The **wind correction angle** (WCA, also called _crab angle_) is the angle by which the heading is offset from the course into the wind, so that the track stays on the course.
-In the [wind triangle](../concept/navigation_terminology.md#wind-triangle), it is the angle between the heading and the course.
+The **wind correction angle** (WCA, also called _crab angle_) is the angle by which the heading is offset from the course setpoint into the wind, so that the track follows the course setpoint.
+The FAA definition calls this intended direction the _course_ (see [Course Is the Actual Direction](#course-is-the-actual-direction)).
+In the [wind triangle](../concept/navigation_terminology.md#wind-triangle), it is the angle between the heading and the course setpoint.
 
 #### Tyre Slip Angle
 
