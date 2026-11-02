@@ -135,6 +135,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### uXRCE-DDS / Zenoh / ROS 2
 
 - (uXRCE-DDS): SITL multi vehicle automatic namespace prefix is now `uav_{px4_instance}` and it is aligned with the behaviour of `UXRCE_DDS_NS_IDX`. ([PX4-Autopilot#28338](https://github.com/PX4/PX4-Autopilot/pull/28338))
+- (uXRCE-DDS): RTK corrections can be published from ROS 2 on `/fmu/in/rtcm_corrections` ([RtcmData](../msg_docs/RtcmData.md)); see [Corrections from ROS 2](../advanced/rtk_gps.md#corrections-from-ros-2). ([PX4-Autopilot#29368](https://github.com/PX4/PX4-Autopilot/pull/29368))
 
 ### MAVLink
 
