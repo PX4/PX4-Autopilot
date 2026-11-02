@@ -366,8 +366,6 @@ private:
 	// float _alpha_eff_dot;	// effectie angle of attack derivative
 	float _alpha_eff_old;	// angle of attack [rad]
 
-	float _pressure; 	// pressure in Pa at current altitude
-	float _temperature;	// temperature in K at current altitude
 	float _prop_radius;	// propeller radius [m], used to create the slipstream
 	// float _v_slipstream;	// slipstream velocity [m/s], computed from momentum theory
 
@@ -456,10 +454,7 @@ public:
 	void update_aero(const matrix::Vector3f &v_B, const matrix::Vector3f &w_B, float alt = 0.0f, float def = 0.0f,
 			 float thrust = 0.0f)
 	{
-		// ISA model taken from Mustafa Cavcar, Anadolu University, Turkey
-		_pressure = P0 * powf(1.0f - 0.0065f * alt / T0_K, 5.2561f);
-		_temperature = T0_K + TEMP_GRADIENT * alt;
-		_rho = _pressure / R / _temperature;
+		_rho = air_density(alt);
 
 		_v_S = _C_BS.transpose() * (v_B + w_B % _p_B); 	// velocity in segment frame
 
@@ -492,6 +487,15 @@ public:
 
 	// return the air density at current altitude, must be called after update_aero()
 	float get_rho() const { return _rho; }
+
+	// air density of the standard atmosphere at given altitude above sea level [m]
+	static float air_density(float alt)
+	{
+		// ISA model taken from Mustafa Cavcar, Anadolu University, Turkey
+		const float pressure = P0 * powf(1.0f - 0.0065f * alt / T0_K, 5.2561f);
+		const float temperature = T0_K + TEMP_GRADIENT * alt;
+		return pressure / R / temperature;
+	}
 
 	// return angle of attack in radians
 	float get_aoa() const {return _alpha;}

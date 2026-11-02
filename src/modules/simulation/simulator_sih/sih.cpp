@@ -814,7 +814,8 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);
 	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + math::generate_wgn() * 0.2f);
-	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
+	const float rho = AeroSeg::air_density(_lpos_ref_alt - _lpos(2));
+	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(rho / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
 	_airspeed_pub.publish(airspeed);
