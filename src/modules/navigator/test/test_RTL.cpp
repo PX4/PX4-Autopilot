@@ -48,6 +48,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <parameters/param.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_status.h>
@@ -57,6 +58,7 @@
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/wind.h>
 
+#include "MissionFeasibility/FeasibilityChecker.hpp"
 #include "navigator.h"
 #include "rtl.h"
 #include "rtl_direct_mission_land.h"
@@ -234,6 +236,25 @@ public:
 	void decideRtlTypeForTest() { setRtlTypeAndDestination(); }
 
 	RtlType rtlTypeForTest() const { return _rtl_type; }
+	bool directActiveForTest() { return _rtl_direct.isActive(); }
+
+	// an inactive evaluation of the given RTL_TYPE with the latest vehicle state
+	void evaluateReturnTypeForTest(int32_t rtl_type)
+	{
+		_param_rtl_type.set(rtl_type);
+		_global_pos_sub.update();
+		_vehicle_status_sub.update();
+		_mission_sub.update();
+		_home_pos_sub.update();
+		_wind_sub.update();
+		setRtlTypeAndDestination();
+	}
+
+	void activateReturnTypeForTest(int32_t rtl_type)
+	{
+		_param_rtl_type.set(rtl_type);
+		run(true);
+	}
 };
 
 template <typename RtlMissionType>
@@ -434,6 +455,11 @@ protected:
 		}
 	}
 
+	void publishGlobalPosition(const PositionYawSetpoint &position)
+	{
+		publishGlobalPosition(position.lat, position.lon, position.alt);
+	}
+
 	void publishLandDetected(bool landed)
 	{
 		vehicle_land_detected_s land_detected{};
@@ -465,6 +491,19 @@ protected:
 		result->mission_id = mission.mission_id;
 		result->geofence_id = mission.geofence_id;
 		result->home_position_counter = 0;
+	}
+
+	// the vehicle state Navigator copies in its own cycle, which the tests do not run
+	void primeNavigatorState()
+	{
+		uORB::Subscription vehicle_sub{ORB_ID(vehicle_status)};
+		uORB::Subscription global_sub{ORB_ID(vehicle_global_position)};
+		uORB::Subscription home_sub{ORB_ID(home_position)};
+		uORB::Subscription land_sub{ORB_ID(vehicle_land_detected)};
+		ASSERT_TRUE(vehicle_sub.copy(_navigator.get_vstatus()));
+		ASSERT_TRUE(global_sub.copy(_navigator.get_global_position()));
+		ASSERT_TRUE(home_sub.copy(_navigator.get_home_position()));
+		ASSERT_TRUE(land_sub.copy(_navigator.get_land_detected()));
 	}
 
 	// Record the mission target through the normal inactive cycle before switching to RTL.
@@ -2102,3 +2141,210 @@ TEST_F(RTLTest, ReturnActivationFliesTheMissionPublishedSinceTheLastInactiveCycl
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
 }
+
+// WHY: Navigator activates the next mode, e.g. a precision landing, in the cycle that leaves Return.
+// WHAT: Return stops its executors in that cycle, so none stops the new mode a cycle later.
+TEST_F(RTLTest, ReturnExitStopsItsExecutorsBeforeTheNextMode)
+{
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	_rtl.activateReturnTypeForTest(0);
+	ASSERT_TRUE(_rtl.directActiveForTest());
+
+	// GIVEN: Return is left for precision landing, and Navigator runs Return's exit cycle first
+	PrecLand &precland = *_navigator.get_precland();
+	_rtl.run(false);
+	EXPECT_FALSE(_rtl.directActiveForTest());
+	precland.run(true);
+	ASSERT_TRUE(precland.is_activated());
+
+	// WHEN: Return runs its next inactive cycle
+	_rtl.run(false);
+
+	// THEN: the precision landing keeps running
+	EXPECT_TRUE(precland.is_activated());
+}
+
+// WHY: leaving Return and selecting it again in the next cycle skips Return's inactive cycle in between.
+// WHAT: the new activation flies to its own destination, not to the one of the previous activation.
+TEST_F(RTLTest, QuickReturnReentryFliesToTheNewDestination)
+{
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	_rtl.activateReturnTypeForTest(0);
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	ASSERT_TRUE(current.valid);
+	ASSERT_NEAR(current.lat, kBaseLat, 1e-7);
+	ASSERT_NEAR(current.lon, kBaseLon, 1e-7);
+
+	// GIVEN: Return is left for one cycle, in which Home moves
+	_rtl.run(false);
+	const PositionYawSetpoint new_home = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 300.f, kAlt);
+	publishHomePosition(new_home);
+	primeNavigatorState();
+
+	// WHEN: Return is selected again
+	_rtl.run(true);
+
+	// THEN: it returns to the new Home
+	EXPECT_TRUE(current.valid);
+	EXPECT_NEAR(current.lat, new_home.lat, 1e-7);
+	EXPECT_NEAR(current.lon, new_home.lon, 1e-7);
+}
+
+// WHY: a mission-fast Return continues from the item Mission was flying to, which its executor records while inactive.
+// WHAT: Return selected again right after it was left starts at the item closest to the vehicle, not from that record.
+TEST_F(RTLTest, QuickReturnReentryFollowsTheMissionFromTheClosestItem)
+{
+	// five waypoints 100 m apart to the north, then the mission landing
+	std::vector<mission_item_s> items;
+
+	for (int i = 0; i < 5; ++i) {
+		const PositionYawSetpoint waypoint = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f * (i + 1), 0.f, kAlt);
+		items.push_back(makeSafePointItem(waypoint.lat, waypoint.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT));
+		items.back().autocontinue = true;
+	}
+
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+	items.push_back(land_start);
+	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt);
+	items.push_back(makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND));
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, items);
+
+	const struct {
+		int32_t rtl_type;
+		RTL::RtlType executor;
+		int32_t mission_seq; // the item Mission flies to when Return starts
+		float mission_north;
+		int32_t return_seq; // the item Return flies to when it is left
+		float return_north;
+		size_t closest_item;
+	} cases[] {
+		{2, RTL::RtlType::RTL_MISSION_FAST, 1, 150.f, 3, 330.f, 2},
+		{4, RTL::RtlType::RTL_MISSION_FAST_REVERSE, 2, 250.f, 0, 120.f, 0},
+	};
+
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	for (const auto &c : cases) {
+		SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << c.rtl_type);
+		int32_t rtl_type = c.rtl_type;
+		ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
+		_rtl.updateParamsForTest();
+
+		mission_s mission = makeMissionHeader(21, c.mission_seq, static_cast<uint16_t>(items.size()));
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission.land_start_index = 5;
+		mission.land_index = 6;
+		publishMission(mission);
+		setMissionResultValid(mission);
+
+		// GIVEN: Return started from Mission, and its executor went on to a later item
+		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, c.mission_north, 0.f, kAlt));
+		publishLandDetected(false);
+		primeNavigatorState();
+		_rtl.evaluateReturnTypeForTest(c.rtl_type);
+		ASSERT_EQ(_rtl.rtlTypeForTest(), c.executor);
+		_rtl.run(false);
+
+		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+		primeNavigatorState();
+		_rtl.run(true);
+		mission.current_seq = c.return_seq;
+		mission.timestamp = hrt_absolute_time();
+		publishMission(mission);
+		publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, c.return_north, 0.f, kAlt));
+		primeNavigatorState();
+		_rtl.run(true);
+		ASSERT_NEAR(current.lat, items[c.return_seq].lat, 1e-7);
+
+		// WHEN: Return is left for one cycle and selected again
+		_rtl.run(false);
+		_rtl.run(true);
+
+		// THEN: it flies to the item closest to the vehicle
+		EXPECT_EQ(_rtl.rtlTypeForTest(), c.executor);
+		EXPECT_NEAR(current.lat, items[c.closest_item].lat, 1e-7);
+		_rtl.run(false);
+	}
+
+	// the dataman is shared by every case in this binary, so leave the mission slot as it was found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+}
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+// WHY: rtl_status.has_vtol_approach tells the mission check whether Return can land a VTOL on an approach.
+// WHAT: a Return type that does not look for approaches reports none, whatever an earlier type found.
+TEST_F(RTLTest, ReturnTypeChangesDiscardPreviousApproachStatus)
+{
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+	const ApproachGeometry geometry = makeApproachGeometry();
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+
+	for (const bool approach_at_home : {true, false}) {
+		publishHomePosition(approach_at_home ? geometry.land :
+				    makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
+
+		// Mission-fast types do not inspect approaches; rally-only Return does not inspect home.
+		for (const int32_t rtl_type : {2, 4, 5}) {
+			SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << rtl_type << ", approach at home=" << approach_at_home);
+			loadSafePointsIntoRouteCache({
+				makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+				makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+			});
+
+			_rtl.evaluateReturnTypeForTest(3);
+			ASSERT_TRUE(rtl_status_sub.update());
+			ASSERT_TRUE(rtl_status_sub.get().has_vtol_approach);
+
+			loadSafePointsIntoRouteCache({});
+			_rtl.evaluateReturnTypeForTest(rtl_type);
+			ASSERT_TRUE(rtl_status_sub.update());
+			EXPECT_FALSE(rtl_status_sub.get().has_vtol_approach);
+		}
+	}
+}
+
+// WHY: with MIS_TKO_LAND_REQ=5, an in-air VTOL mission needs a landing unless Return has a VTOL approach.
+// WHAT: an approach found for an earlier RTL_TYPE no longer lets a mission without a landing pass.
+TEST_F(RTLTest, MissionWithoutLandingNeedsAnApproachOfTheCurrentReturnType)
+{
+	int32_t takeoff_land_req = 5;
+	ASSERT_EQ(param_set(param_find("MIS_TKO_LAND_REQ"), &takeoff_land_req), PX4_OK);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+
+	// a rally point with a landing approach, away from Home
+	const ApproachGeometry geometry = makeApproachGeometry();
+	loadSafePointsIntoRouteCache({
+		makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+	});
+
+	FeasibilityChecker checker;
+	const auto acceptsMissionWithoutLanding = [&]() {
+		mission_item_s waypoint = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+		checker.processNextItem(waypoint, 0, 1);
+		return !checker.someCheckFailed();
+	};
+
+	// GIVEN: Return type 3 can land at the rally point with its approach
+	_rtl.evaluateReturnTypeForTest(3);
+	ASSERT_TRUE(acceptsMissionWithoutLanding());
+
+	// WHEN: RTL_TYPE changes to 2, which follows the mission and uses no approach
+	_rtl.evaluateReturnTypeForTest(2);
+
+	// THEN: the mission needs its own landing again
+	EXPECT_FALSE(acceptsMissionWithoutLanding());
+}
+#endif
