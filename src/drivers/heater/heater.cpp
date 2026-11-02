@@ -139,6 +139,9 @@ Heater::Heater(uint8_t instance) :
 	snprintf(name, sizeof(name), "HEATER%u_NOM_V", (unsigned)_instance);
 	_param_handles.nom_v = param_find(name);
 
+	snprintf(name, sizeof(name), "HEATER%u_SLEW", (unsigned)_instance);
+	_param_handles.slew = param_find(name);
+
 	_heater_status_pub.advertise(); //
 
 	// Initialization parameter values
@@ -423,6 +426,12 @@ void Heater::Run()
 		_battery_status_last_update_time = hrt_absolute_time();
 	}
 
+	actuator_armed_s actuator_armed;
+
+	if (_actuator_armed_sub.update(&actuator_armed)) {
+		_armed = actuator_armed.armed;
+	}
+
 	float current_temp = NAN;
 	const bool use_hygro = (_params.temp_src == heater_status_s::TEMPERATURE_SOURCE_HYGRO);
 
@@ -471,6 +480,8 @@ void Heater::Run()
 		if (temperature_updated) {
 			_proportional_value = temperature_delta * _params.temp_p;
 
+			const float integrator_prev = _integrator_value;
+
 			_integrator_value += temperature_delta * _params.temp_i;
 
 			_integrator_value = math::constrain(_integrator_value, -_params.temp_imax, _params.temp_imax);
@@ -479,6 +490,29 @@ void Heater::Run()
 						   _integrator_value) * static_cast<float>(CONTROLLER_PERIOD_DEFAULT));
 
 			_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, CONTROLLER_PERIOD_DEFAULT);
+
+			// A fast change in heater power shifts the accelerometer offset for seconds, so the power
+			// demand is rate limited while armed. Disarmed, the heater warms up at full power. The supply
+			// voltage scaling below still acts immediately.
+			float duty = static_cast<float>(_controller_time_on_usec) / CONTROLLER_PERIOD_DEFAULT;
+			const hrt_abstime now = hrt_absolute_time();
+
+			if (_armed && _params.slew > 0.f) {
+				const float dt = (_duty_last_update_time == 0) ? CONTROLLER_PERIOD_DEFAULT * 1e-6f
+						 : math::constrain((now - _duty_last_update_time) * 1e-6f, 0.f, 1.f);
+				const float max_step = _params.slew * dt;
+
+				if (fabsf(duty - _duty_last) > max_step) {
+					// hold the integrator while the output is rate limited
+					_integrator_value = integrator_prev;
+					duty = math::constrain(duty, _duty_last - max_step, _duty_last + max_step);
+					_controller_time_on_usec = static_cast<int>(duty * CONTROLLER_PERIOD_DEFAULT);
+				}
+			}
+
+			// float, so slow rates are not lost to whole-microsecond on-times
+			_duty_last = duty;
+			_duty_last_update_time = now;
 
 			const float nom_v = _params.nom_v;
 			_nominal_multiplier = 1.f;
@@ -722,6 +756,10 @@ void Heater::update_params(const bool force)
 
 		if (_param_handles.nom_v != PARAM_INVALID) {
 			param_get(_param_handles.nom_v, &_params.nom_v);
+		}
+
+		if (_param_handles.slew != PARAM_INVALID) {
+			param_get(_param_handles.slew, &_params.slew);
 		}
 
 		_heater_initialized = true;
