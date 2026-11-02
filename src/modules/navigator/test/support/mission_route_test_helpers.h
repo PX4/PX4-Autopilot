@@ -48,8 +48,8 @@
 #include "vector_mission_item_store.h"
 
 #include <lib/geo/geo.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
-#include <initializer_list>
 #include <vector>
 
 namespace navigator_test
@@ -71,14 +71,17 @@ public:
 	void setMissionItems(const std::vector<mission_item_s> &items) { _mission_items.setItems(items); }
 	void setSafePointItems(const std::vector<mission_item_s> &items) { _safe_point_items.setItems(items); }
 	void setMissionLoadFailures(const std::vector<int32_t> &indices) { _mission_items.setLoadFailureIndices(indices); }
-	void setSafePointLoadFailures(const std::vector<int32_t> &indices) { _safe_point_items.setLoadFailureIndices(indices); }
 
 	int missionCount() const override { return static_cast<int>(_mission_items.itemCount()); }
 
 	bool loadMissionItem(int index, mission_item_s &mission_item) const override
 	{
+		++_mission_load_count;
 		return _mission_items.loadItem(index, mission_item);
 	}
+
+	/** Number of loadMissionItem() calls, failed ones included. */
+	int missionLoadCount() const { return _mission_load_count; }
 
 	int safePointCount() const override { return static_cast<int>(_safe_point_items.itemCount()); }
 
@@ -90,6 +93,7 @@ public:
 private:
 	VectorMissionItemStore _mission_items{};
 	VectorMissionItemStore _safe_point_items{};
+	mutable int _mission_load_count{0};
 };
 
 // Provider over a mission route with optional safe points, the common planner-test setup.
@@ -165,6 +169,10 @@ static inline mission_item_s makeDoJump(int16_t jump_target_index, uint16_t repe
 	return item;
 }
 
+static constexpr uint8_t kVtolUndefined{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
+static constexpr uint8_t kVtolMc{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
+static constexpr uint8_t kVtolFw{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW};
+
 static inline mission_item_s makeVtolTransitionItem(uint8_t target_state)
 {
 	mission_item_s item{};
@@ -215,11 +223,13 @@ static constexpr float kDistanceTolerance = 5.0f;
 
 } // namespace navigator_test
 
-using navigator_test::VectorMissionRouteProvider;
 using VectorProvider = navigator_test::VectorMissionRouteProvider;
 using navigator_test::kAltitudeTolerance;
 using navigator_test::kDistanceTolerance;
 using navigator_test::kLatLonToleranceDeg;
+using navigator_test::kVtolFw;
+using navigator_test::kVtolMc;
+using navigator_test::kVtolUndefined;
 using navigator_test::makeDoJump;
 using navigator_test::makeRouteProvider;
 using navigator_test::makeLandItem;

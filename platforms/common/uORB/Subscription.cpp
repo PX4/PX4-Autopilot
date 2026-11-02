@@ -37,6 +37,7 @@
  */
 
 #include "Subscription.hpp"
+#include "SubscriptionMultiArray.hpp"
 #include <px4_platform_common/defines.h>
 
 namespace uORB
@@ -192,6 +193,14 @@ bool Subscription::updated()
 	}
 
 	return false;
+}
+
+void subscribeMultiArray(Subscription *subscriptions, uint8_t count, ORB_ID id)
+{
+	for (uint8_t i = 0; i < count; i++) {
+		subscriptions[i] = Subscription{id, i};
+		subscriptions[i].subscribe();
+	}
 }
 
 } // namespace uORB

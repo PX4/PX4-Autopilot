@@ -185,6 +185,14 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 make agam_fmu-v6xrt_default
 ```
 
+## Secure Boot
+
+The board supports [Bootloader Secure Boot](../advanced_config/bootloader_secure_boot.md), which only runs firmware signed with a key the bootloader trusts.
+The build targets are:
+
+- `agam_fmu-v6xrt_bootloader_secureboot`: the secure bootloader.
+- `agam_fmu-v6xrt_secureboot`: PX4 firmware, signed as part of the build.
+
 ## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
