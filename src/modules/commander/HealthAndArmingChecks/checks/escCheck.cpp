@@ -71,6 +71,8 @@ static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_r
 
 void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
+	const hrt_abstime now = hrt_absolute_time();
+
 	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered.
 	// CBRK_SUPPLY_CHK disables that report, so the ESC checks then stay the only ones to block arming.
 	bool required_battery_missing = false;
@@ -85,11 +87,15 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 	if (!context.isArmed() && required_battery_missing
 	    && !circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
+		// Clear what the disarmed checks clear, a failure from before the battery dropped would otherwise stay set
 		_motor_failure_mask = 0;
+		_motor_failure_detector.reset();
+		_esc_arm_hysteresis.set_state_and_update(false, now);
+		reporter.failsafeFlags().fd_motor_failure = false;
+		reporter.failsafeFlags().fd_esc_arming_failure = false;
 		return;
 	}
 
-	const hrt_abstime now = hrt_absolute_time();
 	esc_status_s esc_status;
 
 	// Run motor status checks even when no new ESC data arrives (to detect timeouts)
