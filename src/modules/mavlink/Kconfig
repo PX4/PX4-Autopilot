@@ -11,6 +11,15 @@ depends on MODULES_MAVLINK
 	---help---
 		Select the Mavlink dialect to generate and use.
 
+menuconfig MAVLINK_NUM_CONFIG_INSTANCES
+depends on MODULES_MAVLINK
+	int "Number of MAVLink instance configurations"
+	default 3
+	range 1 6
+	---help---
+		Number of MAV_x_* parameter sets. At most 6 MAVLink instances can
+		run at once (4 on constrained-memory boards), including USB.
+
 menuconfig MAVLINK_UAVCAN_PARAMETERS
 depends on MODULES_MAVLINK && DRIVERS_UAVCAN
         bool "Mavlink UAVCAN parameter support"

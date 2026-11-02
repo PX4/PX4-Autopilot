@@ -72,9 +72,23 @@ serial_config:
                 # For multiple instances, '${i}' can be used to refer to
                 # an instance, for example in the parameter name or script
                 # command.
+                # Either an integer, or a Kconfig int symbol (without the
+                # CONFIG_ prefix) that sets the count per board, plus the
+                # count used when the symbol is not set.
+                # A list default shorter than the count repeats its last entry.
                 # Default: 1
-                type: integer
-                min: 1
+                anyof: &num_instances
+                    - type: integer
+                      min: 1
+                    - type: dict
+                      schema:
+                          kconfig:
+                              type: string
+                              required: true
+                          default:
+                              type: integer
+                              min: 1
+                              required: true
             supports_networking:
                 # set to true if the module supports networking (UDP)
                 type: boolean
@@ -207,9 +221,9 @@ parameters:
                             # For multiple instances, '${i}' can be used to
                             # refer to an instance, for example in the parameter
                             # name or description.
+                            # Same format as serial_config num_instances.
                             # Default: 1
-                            type: integer
-                            min: 1
+                            anyof: *num_instances
                         instance_start:
                             # The value of the first instance for multiple
                             # instances, used in '${i}'. If 0, ${i} expands to
