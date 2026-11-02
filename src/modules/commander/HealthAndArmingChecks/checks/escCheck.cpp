@@ -73,7 +73,8 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	const hrt_abstime now = hrt_absolute_time();
 
-	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered.
+	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered,
+	// and give them ESC_INIT_TIME_US to boot once it connects.
 	// CBRK_SUPPLY_CHK disables that report, so the ESC checks then stay the only ones to block arming.
 	bool required_battery_missing = false;
 
@@ -85,7 +86,13 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (!context.isArmed() && required_battery_missing
+	if (_required_battery_missing && !required_battery_missing) {
+		_escs_init_end = now + ESC_INIT_TIME_US;
+	}
+
+	_required_battery_missing = required_battery_missing;
+
+	if (!context.isArmed() && (required_battery_missing || now < _escs_init_end)
 	    && !circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
 		// Clear what the disarmed checks clear, a failure from before the battery dropped would otherwise stay set
 		_motor_failure_mask = 0;
@@ -127,7 +134,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.setIsPresent(health_component_t::motors_escs);
 		reporter.failsafeFlags().fd_motor_failure = (mask != 0);
 
-	} else if ((_param_com_arm_chk_escs.get() > 0) && now > _start_time + 3_s) { // Allow ESCs to init
+	} else if ((_param_com_arm_chk_escs.get() > 0) && now > _start_time + ESC_INIT_TIME_US) { // Allow ESCs to init
 		/* EVENT
 		 * @description
 		 * <profile name="dev">

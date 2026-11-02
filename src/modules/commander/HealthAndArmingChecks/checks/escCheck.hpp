@@ -59,6 +59,9 @@ public:
 	// An ESC whose last telemetry report is older than this is reported offline
 	static constexpr hrt_abstime ESC_OFFLINE_TIMEOUT_US = 400_ms;
 
+	// Time the ESCs get to boot and report telemetry once powered
+	static constexpr hrt_abstime ESC_INIT_TIME_US = 3_s;
+
 	// Time an ESC may report disarmed while PX4 is armed, e.g. right after arming, before "Not all ESCs are armed" fires
 	// VertiQ ESCs over DroneCAN reliably report being armed after 800-890 ms
 	static constexpr hrt_abstime ESC_ARMING_TIMEOUT_US = 900_ms;
@@ -75,6 +78,9 @@ private:
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	const hrt_abstime _start_time{hrt_absolute_time()};
+
+	bool _required_battery_missing{false};
+	hrt_abstime _escs_init_end{0}; // end of the boot time of ESCs powered by a required battery that just connected
 
 	uint16_t _motor_failure_mask = 0;
 	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
