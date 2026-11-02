@@ -37,9 +37,9 @@ using namespace time_literals;
 
 MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent)
 {
-	_rover_speed_setpoint_pub.advertise();
+	_surface_vehicle_speed_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();
-	_rover_attitude_setpoint_pub.advertise();
+	_surface_vehicle_attitude_setpoint_pub.advertise();
 
 	updateParams();
 }
@@ -92,18 +92,18 @@ void MecanumPosControl::updatePosControl()
 							       speed_setpoint * sinf(bearing_setpoint), 0.f);
 			const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
 
-			rover_speed_setpoint_s rover_speed_setpoint{};
-			rover_speed_setpoint.timestamp = timestamp;
-			rover_speed_setpoint.speed_body_x = velocity_in_body_frame(0);
-			rover_speed_setpoint.speed_body_y = velocity_in_body_frame(1);
-			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
+			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
+			surface_vehicle_speed_setpoint.timestamp = timestamp;
+			surface_vehicle_speed_setpoint.speed_body_x = velocity_in_body_frame(0);
+			surface_vehicle_speed_setpoint.speed_body_y = velocity_in_body_frame(1);
+			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 		} else {
-			rover_speed_setpoint_s rover_speed_setpoint{};
-			rover_speed_setpoint.timestamp = timestamp;
-			rover_speed_setpoint.speed_body_x = 0.f;
-			rover_speed_setpoint.speed_body_y = 0.f;
-			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
+			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
+			surface_vehicle_speed_setpoint.timestamp = timestamp;
+			surface_vehicle_speed_setpoint.speed_body_x = 0.f;
+			surface_vehicle_speed_setpoint.speed_body_y = 0.f;
+			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 			if (!_stopped && fabsf(_vehicle_speed) < FLT_EPSILON) {
 				_stopped = true;
@@ -137,15 +137,15 @@ void MecanumPosControl::updateSubscriptions()
 		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-	if (_rover_position_setpoint_sub.updated()) {
-		rover_position_setpoint_s rover_position_setpoint;
-		_rover_position_setpoint_sub.copy(&rover_position_setpoint);
-		_start_ned = Vector2f(rover_position_setpoint.start_ned[0], rover_position_setpoint.start_ned[1]);
+	if (_surface_vehicle_position_setpoint_sub.updated()) {
+		surface_vehicle_position_setpoint_s surface_vehicle_position_setpoint;
+		_surface_vehicle_position_setpoint_sub.copy(&surface_vehicle_position_setpoint);
+		_start_ned = Vector2f(surface_vehicle_position_setpoint.start_ned[0], surface_vehicle_position_setpoint.start_ned[1]);
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
-		_arrival_speed = PX4_ISFINITE(rover_position_setpoint.arrival_speed) ? rover_position_setpoint.arrival_speed : 0.f;
-		_cruising_speed = PX4_ISFINITE(rover_position_setpoint.cruising_speed) ? rover_position_setpoint.cruising_speed :
+		_arrival_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.arrival_speed) ? surface_vehicle_position_setpoint.arrival_speed : 0.f;
+		_cruising_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.cruising_speed) ? surface_vehicle_position_setpoint.cruising_speed :
 				  _param_ro_speed_limit.get();
-		_target_waypoint_ned = Vector2f(rover_position_setpoint.target_ned[0], rover_position_setpoint.target_ned[1]);
+		_target_waypoint_ned = Vector2f(surface_vehicle_position_setpoint.target_ned[0], surface_vehicle_position_setpoint.target_ned[1]);
 		_course = NAN;
 		_stopped = false;
 	}
