@@ -557,13 +557,36 @@ const char *get_stream_name(const uint16_t msg_id)
 	return nullptr;
 }
 
+static_assert(sizeof(streams_list) / sizeof(streams_list[0]) <= UINT8_MAX + 1, "stream index must fit in uint8_t");
+
+static MavlinkStream *create_list_item(uint8_t index, Mavlink *mavlink)
+{
+	MavlinkStream *stream = streams_list[index].new_instance(mavlink);
+
+	if (stream != nullptr) {
+		stream->set_list_index(index);
+	}
+
+	return stream;
+}
+
+const char *MavlinkStream::get_name() const
+{
+	return streams_list[_list_index].get_name();
+}
+
+uint16_t MavlinkStream::get_id() const
+{
+	return streams_list[_list_index].get_id();
+}
+
 MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink)
 {
 	// search for stream with specified name in supported streams list
 	if (stream_name != nullptr) {
-		for (const auto &stream : streams_list) {
-			if (strcmp(stream_name, stream.get_name()) == 0) {
-				return stream.new_instance(mavlink);
+		for (unsigned i = 0; i < sizeof(streams_list) / sizeof(streams_list[0]); i++) {
+			if (strcmp(stream_name, streams_list[i].get_name()) == 0) {
+				return create_list_item(i, mavlink);
 			}
 		}
 	}
@@ -574,9 +597,9 @@ MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink)
 MavlinkStream *create_mavlink_stream(const uint16_t msg_id, Mavlink *mavlink)
 {
 	// search for stream with specified name in supported streams list
-	for (const auto &stream : streams_list) {
-		if (msg_id == stream.get_id()) {
-			return stream.new_instance(mavlink);
+	for (unsigned i = 0; i < sizeof(streams_list) / sizeof(streams_list[0]); i++) {
+		if (msg_id == streams_list[i].get_id()) {
+			return create_list_item(i, mavlink);
 		}
 	}
 
