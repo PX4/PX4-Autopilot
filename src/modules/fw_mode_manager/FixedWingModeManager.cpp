@@ -1533,14 +1533,19 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	}
 
 	float altitude_setpoint;
+	float approach_height_rate_setpoint = NAN;
 
 	if (_current_altitude > glide_slope_reference_alt + glide_slope_rel_alt) {
 		// descend to the glide slope
 		altitude_setpoint = glide_slope_reference_alt + glide_slope_rel_alt;
 
 	} else {
-		// continue horizontally
+		// below the glide slope: continue horizontally until it is intercepted. Command a zero
+		// height rate rather than the current altitude: an altitude setpoint that follows the
+		// vehicle down is turned into a sink-rate command by the TECS altitude reference model
+		// (and fed forward with FW_T_HRATE_FF), so the descent would never be arrested.
 		altitude_setpoint = _current_altitude;
+		approach_height_rate_setpoint = 0.f;
 	}
 
 	if (parachute_landing_active) {
@@ -1696,7 +1701,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
 			.altitude = altitude_setpoint,
-			.height_rate = NAN,
+			.height_rate = approach_height_rate_setpoint,
 			.equivalent_airspeed = airspeed_land,
 			.pitch_direct = NAN,
 			.throttle_direct = NAN
