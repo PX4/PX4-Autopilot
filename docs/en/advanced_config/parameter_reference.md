@@ -29680,7 +29680,7 @@ e.g. for stuck rotors before the vehicle is off the ground
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 30 | 0.1 | 1.0 | s | &nbsp;
+&nbsp; | 0 | 30 | 0.1 | 2.0 | s | &nbsp;
 
 </div>
 
