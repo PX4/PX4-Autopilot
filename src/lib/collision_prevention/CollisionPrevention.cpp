@@ -100,12 +100,62 @@ void CollisionPrevention::modifySetpoint(Vector2f &setpoint_accel, const Vector2
 	_updateObstacleData();
 	_calculateConstrainedSetpoint(setpoint_accel, setpoint_vel);
 
+	// report once when collision prevention starts holding back the commanded motion
+	const float setpoint_length = original_setpoint.norm();
+
+	if (_obstacle_data_present && setpoint_length > FLT_EPSILON) {
+		const Vector2f setpoint_dir = original_setpoint / setpoint_length;
+
+		if (setpoint_accel.dot(setpoint_dir) < (1.f - LIMIT_REPORT_RATIO) * setpoint_length) {
+			if (getElapsedTime(&_last_limiting) > LIMIT_REPORT_REARM_US) {
+				_reportLimitingObstacle(setpoint_dir);
+			}
+
+			_last_limiting = getTime();
+		}
+	}
+
 	// publish constraints
 	collision_constraints_s	constraints{};
 	original_setpoint.copyTo(constraints.original_setpoint);
 	setpoint_accel.copyTo(constraints.adapted_setpoint);
 	constraints.timestamp = getTime();
 	_constraints_pub.publish(constraints);
+}
+
+void CollisionPrevention::_reportLimitingObstacle(const Vector2f &setpoint_dir)
+{
+	const float setpoint_angle_deg = ObstacleMath::wrap_360(math::degrees(atan2f(setpoint_dir(1),
+					 setpoint_dir(0)) - _vehicle_yaw) - _obstacle_map_body_frame.angle_offset);
+	const int setpoint_bin = ObstacleMath::get_bin_at_angle(BIN_SIZE, setpoint_angle_deg);
+	const int half_width_bins = LIMIT_REPORT_HALF_ANGLE_DEG / BIN_SIZE;
+
+	int closest_bin = -1;
+	uint16_t closest_distance = UINT16_MAX;
+
+	for (int i = setpoint_bin - half_width_bins; i <= setpoint_bin + half_width_bins; i++) {
+		const int bin = ObstacleMath::wrap_bin(i, BIN_COUNT);
+		const uint16_t distance = _obstacle_map_body_frame.distances[bin];
+
+		// a reading at the sensor's maximum range is not an obstacle
+		if (distance < _data_maxranges[bin] && distance < closest_distance) {
+			closest_distance = distance;
+			closest_bin = bin;
+		}
+	}
+
+	if (closest_bin < 0) {
+		return;
+	}
+
+	const float distance_m = closest_distance * 0.01f;
+	const int16_t bearing_deg = static_cast<int16_t>(lroundf(ObstacleMath::wrap_360(closest_bin * BIN_SIZE +
+				    _obstacle_map_body_frame.angle_offset)) % 360);
+
+	mavlink_log_info(&_mavlink_log_pub, "Obstacle at %.1f m, %d deg CW from nose, limiting speed\t",
+			 (double)distance_m, bearing_deg);
+	events::send<float, int16_t>(events::ID("col_prev_limiting"), {events::Log::Info, events::LogInternal::Info},
+				     "Obstacle at {1:.1m}, {2} deg CW from nose, limiting speed", distance_m, bearing_deg);
 }
 
 void CollisionPrevention::_updateObstacleMap()
