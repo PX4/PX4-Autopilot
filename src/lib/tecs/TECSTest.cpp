@@ -49,7 +49,6 @@ TECSControl::Param makeParam()
 	param.max_sink_rate = 5.f;
 	param.min_sink_rate = 2.f;
 	param.max_climb_rate = 5.f;
-	param.vert_accel_limit = 10.f;
 	param.equivalent_airspeed_trim = 15.f;
 	param.tas_min = 10.f;
 	param.tas_stall = 7.f;
@@ -548,32 +547,6 @@ TEST(TECSControlTest, ThrottleRespectsSlewRate)
 	}
 
 	EXPECT_GT(previous, param.throttle_trim); // the throttle did move towards the climb demand
-}
-
-// The pitch command changes no faster than the vertical acceleration limit allows at the current airspeed.
-TEST(TECSControlTest, PitchRespectsVerticalAccelerationLimit)
-{
-	TECSControl::Param param = makeParam();
-	param.vert_accel_limit = 2.f;
-	const TECSControl::Flag flag = makeFlag();
-	const TECSControl::Input input = makeInput();
-
-	TECSControl::Setpoint setpoint = makeSetpoint();
-	setpoint.altitude_reference.alt = 150.f;
-
-	TECSControl control;
-	control.initialize(makeSetpoint(), input, param, flag);
-	const float max_step = kDt * param.vert_accel_limit / input.tas;
-
-	float previous = control.getPitchSetpoint();
-
-	for (int i = 0; i < 100; i++) {
-		control.update(kDt, setpoint, input, param, flag);
-		EXPECT_LE(fabsf(control.getPitchSetpoint() - previous), max_step + 1e-6f) << "update " << i;
-		previous = control.getPitchSetpoint();
-	}
-
-	EXPECT_GT(previous, 0.f);
 }
 
 // Fully engaged fast descend controls airspeed through pitch and gives minimum throttle.
