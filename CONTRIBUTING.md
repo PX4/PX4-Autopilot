@@ -135,11 +135,13 @@ AI coding assistants are welcome, under the [AI coding assistants policy](docs/e
 
 ## Test your changes
 
-PX4 is safety-critical software. All contributions must include adequate testing where practical:
+PX4 is safety-critical software. Every pull request must show how it was tested:
 
-- **New features** must include unit tests and/or integration tests that exercise the new functionality, where practical. Hardware-dependent changes that cannot be tested in SITL should include bench test or flight test evidence.
-- **Bug fixes** must include a regression test where practical. When automated testing is not feasible (hardware-specific issues, race conditions, etc.), provide a link to a flight log demonstrating the fix and the reproduction steps for the original bug.
-- **Reviewers** will verify that tests or test evidence exist before approving a pull request.
+- **State what you ran and what it showed**: a SITL scenario, a bench test, a flight log, or a test written to check the change. For a bug fix, show the failure before the fix and its absence after, with the steps that reproduce it.
+- **Hardware-dependent changes** need bench or flight evidence.
+- **A test written to check your change does not need to be committed.** Add a test to the tree only when it guards behavior that is easy to break later and hard to notice otherwise, such as a contract between modules or non-trivial math. Every committed test builds and runs in CI on every pull request from then on.
+- **Committed tests must run fast**, with no real-time sleeps.
+- **Reviewers** verify the test evidence before approving a pull request.
 
 ### Types of tests
 
