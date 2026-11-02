@@ -582,18 +582,19 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 
 	// reject GNSS altitudes that are too different compared to the uncalibrated baro altitude
 	const float max_delta = _param_sens_bar_ac_gate.get();
-	const float delta_stable = _delta_baro_gnss_lpf.getState();
+	const float baro_pressure_uncal = baro_pressure + _calibration[_selected_sensor_sub_index].offset();
+	const float delta_uncal = getAltitudeFromPressure(baro_pressure_uncal, pressure_sealevel) - target_altitude;
 
-	if (!_gnss_height_reference && max_delta > 0.f && fabsf(delta_stable) > max_delta) {
+	if (!_gnss_height_reference && max_delta > 0.f && fabsf(delta_uncal) > max_delta) {
 		mavlink_log_warning(&_mavlink_log_pub, "Baro autocal skipped: GNSS and baro differ by %.0f m\t",
-				    (double)fabsf(delta_stable));
+				    (double)fabsf(delta_uncal));
 		/* EVENT
 		 * @description
 		 * The GNSS altitude differs from the uncalibrated baro altitude by more than <param>SENS_BAR_AC_GATE</param>.
 		 * The barometer is not calibrated. Check GNSS or set <param>SENS_BARO_QNH</param>.
 		 */
 		events::send<float>(events::ID("sensor_baro_autocal_skipped"), events::Log::Warning,
-				    "Baro autocal skipped: GNSS and baro differ by {1:.0m}", fabsf(delta_stable));
+				    "Baro autocal skipped: GNSS and baro differ by {1:.0m}", fabsf(delta_uncal));
 		return true;
 	}
 

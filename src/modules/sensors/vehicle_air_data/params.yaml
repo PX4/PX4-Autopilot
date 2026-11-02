@@ -35,13 +35,9 @@ parameters:
       description:
         short: Barometer auto calibration gate
         long: |-
-          Maximum allowed difference between GNSS altitude and uncalibrated baro
-          altitude for the auto calibration to be applied. Otherwise the calibration
-          is skipped. This limits how far a wrong or spoofed GNSS altitude can shift
-          the baro. The uncalibrated baro error is mostly weather (about 8.5 m per hPa),
-          so on very high or low pressure days set SENS_BARO_QNH or increase this value.
-          The check is not applied if EKF2_HGT_REF is set to GPS.
-          Set to 0 to disable the check.
+          Maximum difference between GNSS and uncalibrated baro altitude for the
+          auto calibration to be applied. Not applied if EKF2_HGT_REF is GPS.
+          Set to 0 to disable.
       category: System
       type: float
       default: 50.0
