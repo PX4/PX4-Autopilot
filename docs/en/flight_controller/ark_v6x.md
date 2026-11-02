@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
 :::
 
-The USA-built [ARKV6X](https://docs.arkelectron.com/flight-controllers/arkv6x) flight controller is based on the [FMUv6X and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
+The USA-built [ARKV6X](https://docs.arkelectron.com/products/flight-controller/arkv6x) flight controller is based on the [FMUv6X and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
 
 With triple synced IMUs, data averaging, voting, and filtering are possible.
 The Pixhawk Autopilot Bus (PAB) form factor enables the ARKV6X to be used on any [PAB-compatible carrier board](../flight_controller/pixhawk_autopilot_bus.md), such as the [ARK Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md).
@@ -30,7 +30,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **IMU:**
   - ARKV6X: 2× [InvenSense ICM-42688-P](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p) (SPI2, SPI3), [InvenSense IIM-42652](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42652) (industrial, SPI1)
-  - ARKV6X Extended Range: 3× [InvenSense IIM-42653](https://invensense.tdk.com/products/smartindustrial/iim-42653/) (SPI1, SPI2, SPI3), for a 4000 degrees per second (dps) gyroscope and 32 g accelerometer range
+  - ARKV6X Extended Range: 3× [InvenSense IIM-42653](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42653) (SPI1, SPI2, SPI3), for a 4000 degrees per second (dps) gyroscope and 32 g accelerometer range
 - **Barometer:** [Bosch BMP390](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/) (I2C4)
 - **Magnetometer:** [Bosch BMM150](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf) (I2C4)
 - **Heater:** 1 W, keeps the sensors warm in extreme conditions. It regulates on the temperature of the IIM-42652 (IIM-42653 on the Extended Range).
@@ -51,9 +51,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 5 V
+- **Input voltage:** 5 V (4.8 V to 5.5 V)
 - **Current draw:** 500 mA (300 mA main system, 200 mA heater)
-- **Power monitoring:** Digital, up to 3 power monitors (INA226 by default)
+- **Power monitoring:** 2 digital power inputs (INA226 by default)
 
 ### Mechanical Data {#mechanical_data}
 
@@ -152,8 +152,8 @@ The sections below describe the [ARK PAB Carrier](../flight_controller/ark_pab.m
 
 ### Radio Control {#radio_control}
 
-A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
-You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate.
+A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate.
 
 How a receiver connects depends on the carrier:
 
@@ -212,7 +212,7 @@ On the ARK PAB Carrier this is a 10-pin JST-SH port that follows the [Pixhawk De
 
 ## Further Information {#further_information}
 
-- [ARK Electronics ARKV6X](https://docs.arkelectron.com/flight-controllers/arkv6x) (ARK Docs)
+- [ARK Electronics ARKV6X](https://docs.arkelectron.com/products/flight-controller/arkv6x) (ARK Docs)
 - [ARKV6X Datasheet](https://github.com/ARK-Electronics/ark-hardware/blob/main/ARKV6X/datasheet/ARKV6X_Datasheet.pdf) (ARK)
 - [ARKV6X 3D model](https://github.com/ARK-Electronics/ark-hardware/tree/main/ARKV6X/model) (ARK)
 - [ARK Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md)
