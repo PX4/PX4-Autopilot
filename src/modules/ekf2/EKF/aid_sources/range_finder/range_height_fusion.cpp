@@ -45,7 +45,7 @@ bool Ekf::fuseHaglRng(estimator_aid_source1d_s &aid_src, bool update_height, boo
 	sym::ComputeHaglH(&H);
 
 	// calculate the Kalman gain
-	VectorState K = P * H / aid_src.innovation_variance;
+	VectorState K = computeKalmanGain(H, aid_src.innovation_variance);
 
 	if (!update_terrain) {
 		K(State::terrain.idx) = 0.f;

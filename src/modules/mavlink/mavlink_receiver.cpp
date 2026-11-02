@@ -215,7 +215,12 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
-		handle_message_distance_sensor(msg);
+
+		// The peer streams its ranges back on this link, ours among them, and the stream would send them out again
+		if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_DISTANCE_SENSOR) {
+			handle_message_distance_sensor(msg);
+		}
+
 		break;
 
 	case MAVLINK_MSG_ID_FOLLOW_TARGET:
@@ -1381,23 +1386,26 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			const double lon = target_global_int.lon_int / 1e7;
 			global_local_proj_ref.project(lat, lon, setpoint.position[0], setpoint.position[1]);
 
-			if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_INT) {
+			if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL
+			    || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_INT) {
 				setpoint.position[2] = local_pos.ref_alt - target_global_int.alt;
 
-			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT
+				   || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 				home_position_s home_position{};
 				_home_position_sub.copy(&home_position);
 
 				if (home_position.valid_alt) {
-					const float alt = home_position.alt - target_global_int.alt;
-					setpoint.position[2] = alt - local_pos.ref_alt;
+					const float alt = home_position.alt + target_global_int.alt;
+					setpoint.position[2] = local_pos.ref_alt - alt;
 
 				} else {
 					// home altitude required
 					return;
 				}
 
-			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) {
+			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT
+				   || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) {
 				vehicle_global_position_s vehicle_global_position{};
 				_vehicle_global_position_sub.copy(&vehicle_global_position);
 
@@ -1659,14 +1667,32 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	// q: the quaternion of the ODOMETRY msg represents a rotation from body frame to a local frame
 	if (matrix::Quatf(odom_in.q).isAllFinite()) {
 
-		odom.q[0] = odom_in.q[0];
-		odom.q[1] = odom_in.q[1];
-		odom.q[2] = odom_in.q[2];
-		odom.q[3] = odom_in.q[3];
+		// The position above is converted to NED/FRD, so the attitude has to be too, otherwise the
+		// estimator fuses an ENU/FLU yaw as if it were NED. ENU and FLU frames follow ROS REP 103,
+		// where the body frame is FLU.
+		const matrix::Quatf q_ned_enu{0.f, M_SQRT1_2_F, M_SQRT1_2_F, 0.f};
+		const matrix::Quatf q_flu_frd{0.f, 1.f, 0.f, 0.f}; // also FRD from FLU
+		const matrix::Quatf q_in{odom_in.q};
+		matrix::Quatf q{q_in};
+
+		switch (odom_in.frame_id) {
+		case MAV_FRAME_LOCAL_ENU:
+			q = q_ned_enu * q_in * q_flu_frd;
+			break;
+
+		case MAV_FRAME_LOCAL_FLU:
+			q = q_flu_frd * q_in * q_flu_frd;
+			break;
+
+		default:
+			break;
+		}
+
+		q.copyTo(odom.q);
 
 		// pose_covariance (roll, pitch, yaw)
 		//  states: x, y, z, roll, pitch, yaw; first six entries are the first ROW, next five entries are the second ROW, etc.
-		//  TODO: fix pose_covariance for MAV_FRAME_LOCAL_ENU, MAV_FRAME_LOCAL_FLU
+		//  The ENU/FLU conversion only flips the sign of angle axes, so the variances are unchanged.
 		if (odom_in.estimator_type != MAV_ESTIMATOR_TYPE_NAIVE) {
 			odom.orientation_variance[0] = odom_in.pose_covariance[15]; // R  row 3, col 3
 			odom.orientation_variance[1] = odom_in.pose_covariance[18]; // P  row 4, col 4
@@ -1759,9 +1785,12 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	    && PX4_ISFINITE(odom_in.pitchspeed)
 	    && PX4_ISFINITE(odom_in.yawspeed)) {
 
+		// Same FLU body frame as assumed for the attitude above
+		const bool body_flu = (odom_in.frame_id == MAV_FRAME_LOCAL_ENU) || (odom_in.frame_id == MAV_FRAME_LOCAL_FLU);
+
 		odom.angular_velocity[0] = odom_in.rollspeed;
-		odom.angular_velocity[1] = odom_in.pitchspeed;
-		odom.angular_velocity[2] = odom_in.yawspeed;
+		odom.angular_velocity[1] = body_flu ? -odom_in.pitchspeed : odom_in.pitchspeed;
+		odom.angular_velocity[2] = body_flu ? -odom_in.yawspeed : odom_in.yawspeed;
 	}
 
 	odom.reset_counter = odom_in.reset_counter;
@@ -1876,6 +1905,13 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			// Drop the whole message, including the offboard heartbeat, so the offboard loss failsafe
 			// still triggers if a companion only sends unusable attitudes.
 			// Keep in sync with the check in AttitudeControl::setAttitudeSetpoint().
+			return;
+		}
+
+		// A non-finite thrust setpoint stops the motors on that axis (see VehicleThrustSetpoint.msg), so drop the
+		// whole message for the same reason as an unusable attitude.
+		if ((thrust_body && !matrix::Vector3f(attitude_target.thrust_body).isAllFinite())
+		    || (!thrust_body && thrust && !PX4_ISFINITE(attitude_target.thrust))) {
 			return;
 		}
 
@@ -2079,6 +2115,7 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.temperature = (battery_mavlink.temperature == INT16_MAX) ?
 				     NAN : (float)battery_mavlink.temperature / 100.0f;
 	battery_status.connected = true;
+	battery_status.source = battery_status_s::SOURCE_EXTERNAL;
 	battery_status.time_remaining_s = (battery_mavlink.time_remaining > 0) ? static_cast<float>(battery_mavlink.time_remaining) : NAN;
 
 	// Set the battery warning based on remaining charge, if available.
@@ -2157,7 +2194,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 	}
 
 	if (shell) {
-		// Only this thread creates and deletes the shell, so it can be used without the lock.
+		// While this thread runs, only it creates and deletes the shell, so it can be used without the lock.
 		// Do not hold the lock while writing: the write blocks while a shell pipe is full, and
 		// the output pipe is drained by Mavlink::handleMavlinkShellOutput(), which needs the lock.
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
@@ -4056,8 +4093,30 @@ MavlinkReceiver::run()
 					// which busy-waits for the Mavlink main thread — and that thread may be
 					// waiting for lock_send(), producing a circular wait. Individual handlers
 					// that actually send take lock_send() locally.
+					//
+					// With signing active, mavlink_frame_char() also checks signatures against the
+					// replay table shared by all instances. It only does so on the last byte of a
+					// signature, so take the table lock for that byte only, inside the send lock,
+					// which also protects the parser state read here.
+					const bool signing_active = _mavlink.is_signing_active();
 					_mavlink.lock_send();
+
+					const mavlink_status_t *parser_status = mavlink_get_channel_status(_mavlink.get_channel());
+					const bool checks_signature = signing_active
+								      && (parser_status->parse_state == MAVLINK_PARSE_STATE_SIGNATURE_WAIT
+									  || parser_status->parse_state == MAVLINK_PARSE_STATE_SIGNATURE_WAIT_BAD_CRC)
+								      && parser_status->signature_wait == 1;
+
+					if (checks_signature) {
+						MavlinkSignControl::lock_streams();
+					}
+
 					const uint8_t framing = mavlink_frame_char(_mavlink.get_channel(), buf[i], &msg, &_status);
+
+					if (checks_signature) {
+						MavlinkSignControl::unlock_streams();
+					}
+
 					const FrameCheck frame_check = check_frame(framing, msg);
 
 					if (frame_check == FrameCheck::Invalid) {

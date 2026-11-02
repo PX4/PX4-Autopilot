@@ -272,9 +272,7 @@ private:
 class I2CSPIDriverBase : public px4::ScheduledWorkItem, public I2CSPIInstance
 {
 public:
-	I2CSPIDriverBase(const I2CSPIDriverConfig &config)
-		: ScheduledWorkItem(config.module_name, config.wq_config),
-		  I2CSPIInstance(config) {}
+	I2CSPIDriverBase(const I2CSPIDriverConfig &config);
 
 	static int module_stop(BusInstanceIterator &iterator);
 	static int module_status(BusInstanceIterator &iterator);

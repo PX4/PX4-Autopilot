@@ -56,7 +56,7 @@ board_container_overrides = {
 }
 excluded_labels = [
     'stackcheck',
-    'nolockstep', 'replay', 'test',
+    'nolockstep', 'replay', 'test', 'test-nocache',
     'uavcanv1', # TODO: fix and enable
     ]
 

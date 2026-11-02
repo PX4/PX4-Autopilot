@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_MURATA_ZEROONE_SCH16T
+	bool "ZEROONE_SCH16T"
+	default n
+	---help---
+		Enable support for murata ZEROONE_SCH16T

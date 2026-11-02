@@ -267,10 +267,19 @@ protected:
 	// Alpha-Beta-Gamma estimator for initial estimation of target position and velocity
 	TargetEstimator _target_estimator;
 	// Struct to hold target estimator's output data
-	follow_target_estimator_s _follow_target_estimator;
+	follow_target_estimator_s _follow_target_estimator{};
 
 	// Last target estimator timestamp to handle timeout filter reset
 	uint64_t _last_valid_target_estimator_timestamp{0};
+
+	// Last estimator restart seen, the filtered target position restarts on the new estimate with it
+	uint64_t _last_target_estimator_reset_timestamp{0};
+
+	// The local position reference seen last, home's altitude moves with its ref_alt
+	float _ref_alt{NAN};
+	uint64_t _ref_timestamp{0};
+	// The vehicle's z of the last cycle, for the move from or to EKF2's placeholder ref_alt
+	float _vehicle_z_last{NAN};
 
 	// Second Order Filter to calculate kinematically feasible target position
 	SecondOrderReferenceModel<matrix::Vector3f> _target_position_velocity_filter;

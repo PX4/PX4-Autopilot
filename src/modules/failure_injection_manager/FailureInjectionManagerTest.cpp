@@ -78,6 +78,10 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, WRONG));
+	// VIO supports OFF/STUCK (STUCK replays the last odometry sample), but not WRONG.
+	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, WRONG));
 	// Traffic avoidance supports OFF (blind)
 	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OK));
 	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OFF));

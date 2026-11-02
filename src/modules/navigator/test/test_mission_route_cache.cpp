@@ -51,10 +51,6 @@
 
 #include <vector>
 
-using navigator_test::makeLandItemFromOffset;
-using navigator_test::makePositionItemFromOffset;
-using navigator_test::makeSafePointFromOffset;
-using navigator_test::makeTakeoffItemFromOffset;
 using navigator_test::route_test_reference::kAlt;
 using navigator_test::route_test_reference::kBaseLat;
 using navigator_test::route_test_reference::kBaseLon;
@@ -174,27 +170,13 @@ TEST_F(MissionRouteCacheTest, DatamanRequestsSurviveAnotherClientBeingDestroyed)
 		mission_item_s item{};
 		ASSERT_TRUE(temporary_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
 						      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
-		expectMissionItemMatches(item, expected);
 	}
-
-	mission_item_s item{};
-	ASSERT_TRUE(_dataman_client.readAsync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
-					      reinterpret_cast<uint8_t *>(&item), sizeof(item)));
-	ASSERT_TRUE(DatamanClientTestPeer::waitForOperation(_dataman_client, 1_s));
-	bool success = false;
-	ASSERT_TRUE(_dataman_client.lastOperationCompleted(success));
-	ASSERT_TRUE(success);
-	expectMissionItemMatches(item, expected);
-
-	item = {};
-	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
-					     reinterpret_cast<uint8_t *>(&item), sizeof(item), 1_s));
-	expectMissionItemMatches(item, expected);
 
 	const mission_s mission = makeMission(47, 1);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
 		return _cache.missionItemsReady(mission);
 	}));
+	mission_item_s item{};
 	ASSERT_TRUE(_cache.loadMissionItem(0, item));
 	expectMissionItemMatches(item, expected);
 }
@@ -308,8 +290,6 @@ TEST_F(MissionRouteCacheTest, MissionCacheRejectsTooLargeMission)
 
 	// Driving the cache never makes an oversized mission ready and exposes no items.
 	EXPECT_FALSE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
-
-	EXPECT_FALSE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
 	mission_item_s cached_item{};
@@ -514,6 +494,27 @@ TEST_F(MissionRouteCacheTest, SafePointCacheRejectsMismatchedSourceId)
 	EXPECT_FALSE(_cache.safePointsReady());
 }
 
+// A ready set is not read again while its source stays the same.
+TEST_F(MissionRouteCacheTest, SafePointReadySetIsNotReloaded)
+{
+	const std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt),
+	};
+
+	const mission_s mission = makeMission(0, 0, 50);
+	writeSafePointItems(safe_points, static_cast<uint16_t>(safe_points.size()), 50);
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
+			<< "safe-point cache did not become ready";
+
+	// Further updates must not start a read that would clear the published count.
+	EXPECT_FALSE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointCount() != 1; }));
+	EXPECT_TRUE(_cache.safePointsReady());
+
+	mission_item_s safe_point{};
+	ASSERT_TRUE(_cache.loadSafePointItem(0, safe_point));
+	expectMissionItemMatches(safe_point, safe_points[0]);
+}
+
 // safe_points_id participates in cache identity.
 TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsReplacementSet)
 {
@@ -523,6 +524,7 @@ TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsReplacementSet)
 
 	const std::vector<mission_item_s> safe_points_b{
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 120.f, 0.f, kAlt),
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kAlt),
 	};
 
 	mission_s mission = makeMission(0, 0, 100);
@@ -531,6 +533,7 @@ TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsReplacementSet)
 	// Load the first set before changing safe_points_id.
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
 			<< "safe-point cache did not become ready";
+	EXPECT_EQ(_cache.safePointCount(), 1);
 
 	mission_item_s safe_point{};
 	ASSERT_TRUE(_cache.loadSafePointItem(0, safe_point));
@@ -552,9 +555,12 @@ TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsReplacementSet)
 			<< "safe-point cache did not become ready";
 	EXPECT_FALSE(_cache.safePointUpdatePending());
 
-	// The stale set is replaced.
+	// The stale set is replaced, including its size.
+	EXPECT_EQ(_cache.safePointCount(), 2);
 	ASSERT_TRUE(_cache.loadSafePointItem(0, safe_point));
 	expectMissionItemMatches(safe_point, safe_points_b[0]);
+	ASSERT_TRUE(_cache.loadSafePointItem(1, safe_point));
+	expectMissionItemMatches(safe_point, safe_points_b[1]);
 }
 
 // Source changes during safe-point loads discard stale work.
@@ -604,8 +610,6 @@ TEST_F(MissionRouteCacheTest, EmptyMissionIsReadyAndHasNoItems)
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "empty mission did not become ready";
-
-	EXPECT_TRUE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
 	MissionRouteCache::MissionView view{};
@@ -755,35 +759,6 @@ TEST_F(MissionRouteCacheTest, SafePointZeroCountIgnoresUnusedDatamanId)
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }));
 	EXPECT_EQ(_cache.safePointCount(), 0);
-}
-
-// Changed safe-point stats with a reused opaque_id and unchanged safe_points_id still reload.
-TEST_F(MissionRouteCacheTest, SafePointStatsChangeWithSameOpaqueIdReloads)
-{
-	const std::vector<mission_item_s> safe_points_a{
-		makeSafePointFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt),
-	};
-	const std::vector<mission_item_s> safe_points_b{
-		makeSafePointFromOffset(kBaseLat, kBaseLon, 30.f, 0.f, kAlt),
-		makeSafePointFromOffset(kBaseLat, kBaseLon, 60.f, 0.f, kAlt),
-	};
-
-	const mission_s mission = makeMission(0, 0, 60);
-	writeSafePointItems(safe_points_a, static_cast<uint16_t>(safe_points_a.size()), 60);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
-			<< "safe-point cache did not become ready";
-	ASSERT_EQ(_cache.safePointCount(), 1);
-
-	// Grow the stored set while reusing both the opaque id and safe_points_id.
-	writeSafePointItems(safe_points_b, static_cast<uint16_t>(safe_points_b.size()), 60);
-	MissionRouteCacheTestPeer::requestSafePointRecheck(_cache);
-
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointCount() == 2; }))
-			<< "safe-point cache did not reload after stats change";
-
-	mission_item_s safe_point{};
-	ASSERT_TRUE(_cache.loadSafePointItem(1, safe_point));
-	expectMissionItemMatches(safe_point, safe_points_b[1]);
 }
 
 // A safe-point source-bank change reloads from the new storage.

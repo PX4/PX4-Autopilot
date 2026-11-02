@@ -188,6 +188,7 @@ private:
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gnss_s> _gnss_stuck[_MAX_GNSS_SENSORS];
+	failure_injection::Stuck<vehicle_odometry_s> _visual_odometry_stuck{};
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node};
 	GZMixingInterfaceServo _mixing_interface_servo{_node};
@@ -205,6 +206,7 @@ private:
 
 	const std::string _world_name;
 	const std::string _model_name;
+	gz::math::Quaterniond _lidar_link_q{gz::math::Quaterniond::Identity};
 
 	float _temperature{15.0f}; // default temperature in Celsius
 

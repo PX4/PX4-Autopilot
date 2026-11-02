@@ -34,8 +34,18 @@
 #include <board_config.h>
 #include "SafetyButton.hpp"
 
-#ifndef GPIO_BTN_SAFETY
-#error "board needs to define a safety button gpio pin to use this module"
+// BOARD_SAFETY_BUTTON() is true while the safety button is pressed, and BOARD_SAFETY_LED(on_true) turns the safety
+// LED on and off: by default, the GPIO_BTN_SAFETY input, high while pressed, and the active low GPIO_LED_SAFETY
+#if !defined(BOARD_SAFETY_BUTTON) && defined(GPIO_BTN_SAFETY)
+#define BOARD_SAFETY_BUTTON() px4_arch_gpioread(GPIO_BTN_SAFETY)
+#endif
+
+#if !defined(BOARD_SAFETY_LED) && defined(GPIO_LED_SAFETY)
+#define BOARD_SAFETY_LED(on_true) px4_arch_gpiowrite(GPIO_LED_SAFETY, !(on_true))
+#endif
+
+#ifndef BOARD_SAFETY_BUTTON
+#error "board needs to define a safety button (BOARD_SAFETY_BUTTON or GPIO_BTN_SAFETY) to use this module"
 #endif
 
 using namespace time_literals;
@@ -114,7 +124,7 @@ SafetyButton::CheckPairingRequest(bool button_pressed)
 void
 SafetyButton::FlashButton()
 {
-#if defined(GPIO_LED_SAFETY)
+#if defined(BOARD_SAFETY_LED)
 	vehicle_status_s vehicle_status;
 
 	if (_vehicle_status_sub.update(&vehicle_status)) {
@@ -144,14 +154,15 @@ SafetyButton::FlashButton()
 		}
 
 		// Turn the LED on if we have a 1 at the current bit position
-		px4_arch_gpiowrite(GPIO_LED_SAFETY, !((uint16_t)pattern & (1 << (_blink_counter++ / 3))));
+		const bool lit = (uint16_t)pattern & (1 << (_blink_counter++ / 3));
+		BOARD_SAFETY_LED(lit);
 
 		if (_blink_counter >= 48) {
 			_blink_counter = 0;
 		}
 	}
 
-#endif // GPIO_LED_SAFETY
+#endif // BOARD_SAFETY_LED
 }
 
 void
@@ -162,7 +173,7 @@ SafetyButton::Run()
 		return;
 	}
 
-	const bool button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
+	const bool button_pressed = BOARD_SAFETY_BUTTON();
 
 	// control safety switch LED & safety button
 	if (!_has_px4io) {

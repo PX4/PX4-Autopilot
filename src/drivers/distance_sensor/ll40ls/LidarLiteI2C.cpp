@@ -41,6 +41,8 @@
 
 #include "LidarLiteI2C.h"
 
+#include <lib/parameters/param.h>
+
 LidarLiteI2C::LidarLiteI2C(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
@@ -75,6 +77,13 @@ LidarLiteI2C::init()
 		int32_t ll40ls_signal_strength_min_v3hp;
 		param_get(handle, &ll40ls_signal_strength_min_v3hp);
 		_ll40ls_signal_strength_min_v3hp = (int)ll40ls_signal_strength_min_v3hp;
+	}
+
+	// Override the version-specific default set during probe, if configured.
+	float max_distance = 0.f;
+
+	if (param_get(param_find("SENS_LL40LS_MAX"), &max_distance) == PX4_OK && max_distance > LL40LS_MIN_DISTANCE) {
+		_px4_rangefinder.set_max_distance(max_distance);
 	}
 
 	start();

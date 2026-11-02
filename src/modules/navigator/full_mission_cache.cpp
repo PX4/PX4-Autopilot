@@ -44,16 +44,6 @@
 #include <px4_platform_common/log.h>
 #include <systemlib/mavlink_log.h>
 
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-namespace
-{
-bool isMissionDatamanIdValid(uint8_t dataman_id)
-{
-	return dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1;
-}
-} // namespace
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-
 FullMissionCache::FullMissionCache(orb_advert_t *mavlink_log_pub)
 {
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
@@ -115,24 +105,20 @@ void FullMissionCache::resumeMissionLoad()
 	_mission.retry.retry_at = 0;
 }
 
-bool FullMissionCache::missionCacheAvailable() const
-{
-	return _mission.initialized && _mission.source_valid && !_mission.too_large && _mission.ready;
-}
-
+// Only a loaded, valid source that fits the cache is ever marked ready.
 bool FullMissionCache::missionItemsReady(const mission_s &mission) const
 {
-	return missionCacheAvailable() && missionMatchesCache(mission);
+	return _mission.ready && missionMatchesCache(mission);
 }
 
 int FullMissionCache::missionCount() const
 {
-	return missionCacheAvailable() ? _mission.count : 0;
+	return _mission.ready ? _mission.count : 0;
 }
 
 bool FullMissionCache::loadMissionItem(int index, mission_item_s &mission_item) const
 {
-	if (missionCacheAvailable() && index >= 0 && index < _mission.count) {
+	if (_mission.ready && index >= 0 && index < _mission.count) {
 		mission_item = _mission_items[index];
 		return true;
 	}
@@ -203,7 +189,7 @@ void FullMissionCache::update(const mission_s &mission)
 		state.count = mission.count;
 		state.dataman_id = mission.mission_dataman_id;
 		state.initialized = true;
-		state.source_valid = mission.count == 0 || isMissionDatamanIdValid(mission.mission_dataman_id);
+		state.source_valid = mission.count == 0 || mission_route::isMissionDatamanIdValid(mission.mission_dataman_id);
 		state.ready = state.source_valid && mission.count == 0;
 		state.too_large = mission.count > kMaxMissionCacheSize;
 

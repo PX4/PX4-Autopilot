@@ -79,6 +79,8 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 	delete _ranging_beacon_buffer;
 #endif // CONFIG_EKF2_RANGING_BEACON
+
+	delete _system_flag_buffer;
 }
 
 // Accumulate imu data and store to buffer at desired rate

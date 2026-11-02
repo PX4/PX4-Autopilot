@@ -98,6 +98,9 @@ void RtlMissionFast::on_activation()
 		}
 	}
 
+	// Used once: an activation without an inactive cycle before it starts at the closest item.
+	_mission_index_prior_rtl = INT32_C(-1);
+
 	if (_land_detected_sub.get().landed) {
 		// already landed, no need to do anything, invalidad the position mission item.
 		_is_current_planned_mission_item_valid = false;
@@ -163,14 +166,7 @@ void RtlMissionFast::setActiveMissionItems()
 			handleLanding(new_work_item_type, next_mission_items, num_found_items);
 
 		} else {
-			// convert mission item to a simple waypoint, keep loiter to alt
-			if (_mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			}
-
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0.0f;
-
+			makeRtlPositionItem(_mission_item);
 		}
 
 		if (num_found_items > 0) {

@@ -72,8 +72,7 @@ They may also be created by a MAVLink API such as [MAVSDK](../robotics/mavsdk.md
 6. Місія скине тільки тоді, коли транспортний засіб буде роззброєний або коли буде завантажена нова місія.
 
    :::tip
-   Щоб автоматично роззброїти транспортний засіб після посадки, у _QGroundControl_ перейдіть до [Налаштування Транспортного Засобу > Безпека](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), перейдіть до _Налаштувань Режиму Посадки_ та позначте прапорець _Роззброювати після_.
-   Введіть час очікування після посадки перед відброюванням транспортного засобу.
+   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Return & Land](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/return_land.html#landing) and set the _Touchdown_ disarm delay (a value of 0 or less disables it).
 
 :::
 
