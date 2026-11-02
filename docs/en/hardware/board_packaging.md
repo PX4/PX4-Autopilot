@@ -1,8 +1,9 @@
 # Board Packaging
 
 Flight controllers are moving onto compute modules: an application processor running Linux next to a real-time core or a DSP, with PX4 split across them.
-Some boards run PX4 modules on the Linux side as well as on the coprocessor, others run everything on the coprocessor and only use Linux to deliver it.
-In both cases Linux is where PX4 is installed, updated and started, and a _board package_ is how it gets there.
+Some boards run PX4 modules on the Linux side as well as on the coprocessor.
+Others run everything on the coprocessor, which Linux either loads at boot or only updates because it boots on its own.
+In all of them Linux is where PX4 is installed and updated, and a _board package_ is how it gets there.
 
 This page is for board vendors.
 It explains how to describe the package for a board, how to build and inspect it, and how it is shipped.
@@ -39,9 +40,9 @@ Those three are the contract, and they are the same whether the files arrive in 
 PX4 does not assume a particular distribution either.
 The runtime pieces are POSIX `sh` scripts and a systemd unit, and every installation path can be changed in the descriptor.
 
-## Two Board Shapes
+## Board Shapes
 
-The descriptor covers both shapes of board that exist today.
+The descriptor covers the three shapes of board that exist today.
 
 ```mermaid
 flowchart LR
@@ -51,20 +52,26 @@ flowchart LR
     unitA -- "apply-firmware" --> imageA["coprocessor image<br>coprocessor component"]
     imageA --> coreA["DSP or MCU"]
   end
-  subgraph copro ["PX4 only on the coprocessor"]
+  subgraph copro ["Coprocessor loaded by Linux"]
     direction TB
     unitB["px4-vendor-board.service<br>(oneshot)"] -- "apply-firmware" --> imageB["/lib/firmware/px4/vendor-board-m7.bin"]
     imageB -- remoteproc --> coreB["Cortex-M7"]
   end
+  subgraph own ["Coprocessor boots itself"]
+    direction TB
+    unitC["px4-vendor-board.service<br>(oneshot)"] -- "apply-firmware<br>once per version" --> imageC["/lib/firmware/px4/vendor-board-m7.bin"]
+    imageC -- "stage, ask PX4 to reboot" --> coreC["Cortex-M7<br>own flash, MCUboot"]
+  end
   both ~~~ copro
+  copro ~~~ own
 ```
 
 - PX4 on both cores: a _host_ component is the PX4 binary that runs on Linux, and one or more _coprocessor_ components are images for other cores.
-  The unit starts the host binary.
-  The coprocessor image is placed where its loader expects it, or applied by a hook.
-- PX4 only on the coprocessor: there is no host component.
-  The package carries the image and is built as `Architecture: all`, because nothing in it runs on the Linux CPU.
-  The unit is a `oneshot` that applies the firmware and runs the hooks.
+  The unit starts the host binary, and the coprocessor image is placed where its loader expects it or applied by a hook.
+- Coprocessor loaded by Linux: there is no host component, and the core does not run until Linux loads it.
+  The package carries the image and is built as `Architecture: all`, because nothing in it runs on the Linux CPU, and the unit is a `oneshot` that loads the core on every boot.
+- Coprocessor boots itself: there is no host component, and the core starts from its own flash at power-up, usually behind MCUboot, and is running before Linux is up.
+  The package is `Architecture: all` as well, and the unit is a `oneshot` whose hook stages a new image for the core only when the package version changed, see the [`hook` apply method](board_packaging_hooks.md#hook).
 
 ## Components
 
@@ -78,14 +85,14 @@ A descriptor has at most one host component.
 A coprocessor component is any target whose build produces a file for another core: a NuttX image, a Hexagon DSP library, and later a Zephyr image.
 The descriptor names the file (`artifact`, relative to `build/<target>/`), where it is installed (`install`, an absolute path) and how it reaches its core (`apply`):
 
-| `apply`      | What happens when the unit starts                                                                                                                                                                                                         |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `none`       | Nothing. The coprocessor runtime loads the image from `install` by itself, for example a DSP loader that watches a fixed directory.                                                                                                       |
-| `remoteproc` | The core is restarted on the installed image through the Linux remoteproc framework. `install` must be under `layout.firmware_dir`, and `remoteproc` names the device (`remoteproc0`) or the value of its `name` attribute (`imx95-cm7`). |
-| `hook`       | The board's own `hooks/apply-firmware.d` scripts do it, for a vendor loader or an update agent.                                                                                                                                           |
+| `apply`      | What happens when the unit starts                                                                                                                                                                                           |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `none`       | Nothing. The coprocessor runtime loads the image from `install` by itself, for example a DSP loader that watches a fixed directory.                                                                                         |
+| `remoteproc` | The core is restarted on the installed image through the Linux remoteproc framework. `install` must be under `layout.firmware_dir`, and `remoteproc` names the device (`remoteproc0`) or the value of its `name` attribute. |
+| `hook`       | The board's own `hooks/apply-firmware.d` scripts do it, for a core that Linux loads through a vendor tool, or a core that boots itself and only gets updated.                                                               |
 
-Staging an image into an MCUboot slot is planned.
-Until the staging command exists the descriptor rejects it, so the failure happens at build time rather than on a vehicle.
+A built-in method that stages an image into an MCUboot slot is planned.
+Until the staging command exists the descriptor rejects `apply: mcuboot`, so the failure happens at build time rather than on a vehicle, and a core behind MCUboot is declared with `apply: hook`.
 
 ## Writing the Descriptor
 
@@ -125,7 +132,7 @@ files:
 With `default.px4board` cross compiled for `aarch64-linux-gnu` and `CONFIG_BOARD_ROOT_PATH="/var/lib/px4"`, this produces `px4-acme-widget_<version>_arm64.deb`.
 The package name, the unit name and the paths all come from their defaults: binaries in `/usr/bin`, ROMFS and metadata under `/usr/share/px4`, writable data in `/var/lib/px4`.
 
-A board that runs PX4 only on a Cortex-M7 behind Linux:
+A board that runs PX4 only on a Cortex-M7 that Linux loads at boot:
 
 ```yaml
 # boards/acme/widget/package.yaml
@@ -140,10 +147,30 @@ components:
     artifact: acme_widget_m7.bin
     install: /lib/firmware/px4/acme-widget-m7.bin
     apply: remoteproc
-    remoteproc: imx95-cm7
+    remoteproc: acme-m7
 ```
 
-Nothing from PX4 runs on Linux here, so the package is `px4-acme-widget_<version>_all.deb`, the unit is a `oneshot`, and starting it restarts the `imx95-cm7` remoteproc on the installed image.
+Nothing from PX4 runs on Linux here, so the package is `px4-acme-widget_<version>_all.deb`, the unit is a `oneshot`, and starting it restarts the `acme-m7` remoteproc on the installed image.
+
+A board whose Cortex-M7 boots PX4 from its own flash, behind MCUboot, and where Linux only updates it:
+
+```yaml
+# boards/acme/widget/package.yaml
+package:
+  description: PX4 Autopilot for the ACME Widget M7 core
+  maintainer: ACME Robotics <support@acme.example>
+
+components:
+  - name: m7
+    role: coprocessor
+    target: acme_widget_m7
+    artifact: acme_widget_m7.bin
+    install: /lib/firmware/px4/acme-widget-m7.bin
+    apply: hook
+```
+
+Nothing from PX4 runs on Linux here either, so the package is again `Architecture: all` and the unit a `oneshot`.
+The core needs no loading, so the unit's `apply-firmware` step runs the board's hook, which stages a new image for the core's bootloader when the package version changed and returns at once otherwise, see the [`hook` apply method](board_packaging_hooks.md#hook).
 
 The descriptor is validated against [validation/package_schema.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/validation/package_schema.yaml) plus the rules below.
 

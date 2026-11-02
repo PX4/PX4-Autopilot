@@ -1,6 +1,6 @@
 # Board Packaging Hooks
 
-A board package copies files, and then there is everything else a board needs on the target: directories and ownership, a signature the DSP loader insists on, loading a core, waiting for a device.
+A board package copies files, and then there is everything else a board needs on the target: directories and ownership, a signature the DSP loader insists on, loading or updating a core, waiting for a device.
 That logic goes into _hooks_: POSIX `sh` scripts under `boards/<vendor>/<board>/hooks/<point>.d/`, installed to `/usr/lib/px4/hooks/<point>.d/` and run by `/usr/lib/px4/run-hooks` at fixed points.
 
 This page describes the hook points, what runs them, the environment they see and the rules they follow.
@@ -8,13 +8,13 @@ How the package itself is described and built is covered in [Board Packaging](bo
 
 ## Hook Points
 
-| Point            | Run by                   | When                                                                                                                                                           | Typical use                                                              |
-| ---------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `post-install`   | `postinst`               | After the files are on disk, before the unit is enabled and started. On every install and upgrade.                                                             | Create directories, set ownership, migrate data from an earlier version. |
-| `pre-remove`     | `prerm`                  | After the unit is stopped, while the files are still on disk. On removal, and before an upgrade replaces the files.                                            | Undo `post-install`, remove generated files.                             |
-| `apply-firmware` | the unit, `ExecStartPre` | Every start of the unit, once per coprocessor component. The board's scripts run only for components with `apply: hook`; `none` and `remoteproc` are built in. | Hand the image to a vendor loader or an update agent.                    |
-| `pre-start`      | the unit, `ExecStartPre` | After `apply-firmware`, before `ExecStart`.                                                                                                                    | Wait for a device node, reset a core, check a signature.                 |
-| `post-stop`      | the unit, `ExecStopPost` | After the main process exits or the unit is stopped.                                                                                                           | Power a core down, collect a crash log.                                  |
+| Point            | Run by                   | When                                                                                                                                                           | Typical use                                                                           |
+| ---------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `post-install`   | `postinst`               | After the files are on disk, before the unit is enabled and started. On every install and upgrade.                                                             | Create directories, set ownership, migrate data from an earlier version.              |
+| `pre-remove`     | `prerm`                  | After the unit is stopped, while the files are still on disk. On removal, and before an upgrade replaces the files.                                            | Undo `post-install`, remove generated files.                                          |
+| `apply-firmware` | the unit, `ExecStartPre` | Every start of the unit, once per coprocessor component. The board's scripts run only for components with `apply: hook`; `none` and `remoteproc` are built in. | Load a core through a vendor tool, or stage a new image for a core that boots itself. |
+| `pre-start`      | the unit, `ExecStartPre` | After `apply-firmware`, before `ExecStart`.                                                                                                                    | Wait for a device node, reset a core, check a signature.                              |
+| `post-stop`      | the unit, `ExecStopPost` | After the main process exits or the unit is stopped.                                                                                                           | Power a core down, collect a crash log.                                               |
 
 There is deliberately no `pre-install` or `post-remove` point.
 dpkg runs a new package's `preinst` and an old package's `postrm` while the package files are not on disk, so there would be nothing to run.
@@ -63,17 +63,6 @@ sequenceDiagram
 On removal `postrm` reloads systemd, and on purge it clears the unit's enablement state.
 Flight data under `data_dir` is kept even on purge.
 
-`apply-firmware` dispatches on each coprocessor component's `apply` method:
-
-```mermaid
-flowchart TD
-  start["run-hooks apply-firmware"] --> each["for each coprocessor component"]
-  each --> method{"apply"}
-  method -- none --> none["nothing, the runtime loads<br>the installed image"]
-  method -- remoteproc --> rproc["apply/remoteproc<br>stop, set firmware, start"]
-  method -- hook --> hook["apply-firmware.d/*<br>PX4_COMPONENT set"]
-```
-
 ## Writing a Hook
 
 - Start with `#!/bin/sh` and stay POSIX.
@@ -88,7 +77,7 @@ flowchart TD
   Use `set -e`; the first failing hook aborts the point.
   A failing `post-install` leaves the package unconfigured in dpkg, a failing `apply-firmware` or `pre-start` fails the unit start, and both are visible in `journalctl`.
 - Be idempotent.
-  `post-install` runs on every upgrade and `pre-start` on every boot.
+  `post-install` runs on every upgrade, `apply-firmware` and `pre-start` on every boot.
 - Keep package time to the filesystem.
   `post-install` and `pre-remove` also run inside image builds and chroots, where there is no hardware and no running systemd.
   Anything that touches a core, a bus or a device belongs in `apply-firmware`, `pre-start` or `post-stop`.
@@ -117,7 +106,7 @@ if ! ls /usr/lib/rfsa/adsp/testsig-*.so >/dev/null 2>&1; then
 fi
 ```
 
-An `apply-firmware` hook for a component declared with `apply: hook`.
+An `apply-firmware` hook for a core that Linux loads through a vendor tool, declared with `apply: hook`.
 It runs once per such component, so a board with several of them switches on `PX4_COMPONENT`:
 
 ```sh
@@ -152,15 +141,85 @@ During `apply-firmware` the component being applied is also described by `PX4_CO
 `package.env` is a plain shell file.
 Source it in a terminal when debugging a hook by hand.
 
-## Built-in Apply Methods
+## Apply Methods
 
-`none` does nothing.
+`apply-firmware` runs at every start of the unit, once per coprocessor component, and dispatches on the component's `apply` method:
+
+```mermaid
+flowchart TD
+  start["run-hooks apply-firmware"] --> each["for each coprocessor component"]
+  each --> method{"apply"}
+  method -- none --> none["nothing, the runtime loads<br>the installed image"]
+  method -- remoteproc --> rproc["apply/remoteproc<br>stop, set firmware, start"]
+  method -- hook --> hook["apply-firmware.d/*<br>PX4_COMPONENT set"]
+```
+
+### `none`
+
+Nothing happens at start.
 Use it when the coprocessor runtime picks the image up from its install path by itself, as a DSP loader that watches a fixed directory does.
 
-`remoteproc` restarts the core on the installed image through `/sys/class/remoteproc`.
+### `remoteproc`
+
+The core is restarted on the installed image through `/sys/class/remoteproc`.
 It looks for `/sys/class/remoteproc/<remoteproc>` first, then for a device whose `name` attribute equals `<remoteproc>`.
 If the core is not `offline` it is stopped, the firmware name (the install path relative to `/lib/firmware`) is written to the device's `firmware` attribute, and the core is started.
 This is why `install` must be under `layout.firmware_dir`: the kernel resolves firmware names against its own search path.
+
+### `hook`
+
+The board's `hooks/apply-firmware.d` scripts run, with `PX4_COMPONENT` and the `PX4_COMPONENT_*` variables describing the component.
+They cover the two kinds of core the built-in methods do not:
+
+- A core that Linux loads through a vendor tool.
+  The hook loads it on every start, as `remoteproc` does, see the example in [Writing a Hook](#writing-a-hook).
+- A core that boots itself from its own flash, usually behind MCUboot, and is running before Linux is up.
+  Linux never loads or resets such a core.
+  The hook only updates it, and only because a package was installed or upgraded.
+
+A hook for a core that boots itself follows three rules:
+
+- It records the version it last applied in a stamp under `PX4_DATA_DIR` and returns at once when the stamp matches `PX4_VERSION`, so every other boot does nothing.
+  An image recipe that flashes the core image itself writes the stamp into the image, so the first boot does not repeat the work.
+- It stages the image in the core's upgrade slot and asks PX4 on the core to reboot with the MAVLink reboot command, which PX4 refuses while armed.
+  That is the same check that protects a Pixhawk when the uploader asks it to reboot into its bootloader.
+  A reset line or remoteproc would bypass it.
+- It writes the stamp only after the core is back and reports the new version.
+  A refused or failed update fails the unit, which is visible in `journalctl`, and the next boot retries it.
+
+```mermaid
+sequenceDiagram
+  participant postinst
+  participant systemd
+  participant hook as apply-firmware hook
+  participant px4 as PX4 on the core
+  postinst->>systemd: restart the unit (install or upgrade)
+  systemd->>hook: apply-firmware
+  Note over hook: stamp matches PX4_VERSION? return
+  hook->>px4: stage the image in the upgrade slot
+  hook->>px4: MAVLink reboot command
+  alt armed
+    px4-->>hook: denied, the hook fails and the next boot retries
+  else disarmed
+    px4->>px4: reboot, the bootloader swaps the slots
+    px4-->>hook: reports the new version
+    Note over hook: write the stamp
+  end
+```
+
+The hook for the [example descriptor](board_packaging.md#writing-the-descriptor) of such a board, with the vendor's own tool doing the board-specific parts:
+
+```sh
+#!/bin/sh
+# hooks/apply-firmware.d/10-m7
+set -e
+stamp="$PX4_DATA_DIR/applied-$PX4_COMPONENT"
+[ "$(cat "$stamp" 2>/dev/null)" != "$PX4_VERSION" ] || exit 0
+acme-m7 stage "$PX4_COMPONENT_FIRMWARE"
+acme-m7 reboot
+acme-m7 wait-for-version "$PX4_GIT_TAG"
+echo "$PX4_VERSION" >"$stamp"
+```
 
 ## The Unit
 
