@@ -555,26 +555,34 @@ private:
 	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
 
 	/**
-	 * @brief Derivative of the specific energy balance rate with respect to the climb angle.
+	 * @brief Climb angle that realises a specific energy balance rate.
+	 *
+	 * The balance rate depends on the throttle as well as on the climb angle, SEB rate = 2 g V gamma - STE rate,
+	 * so the total energy rate the throttle flies has to be added back: gamma = (SEB rate + STE rate) / (2 g V).
+	 * For a balance rate increment at unchanged throttle pass a zero total energy rate.
 	 *
 	 * Uses the filtered true airspeed, which is trim airspeed without a valid measurement, floored at the minimum
 	 * airspeed so the conversion stays well conditioned at low or invalid airspeed.
 	 *
+	 * @param seb_rate is the specific energy balance rate to realise in [m²/s³].
+	 * @param ste_rate is the specific total energy rate the throttle flies in [m²/s³].
 	 * @param input is the current input measurement of the UAS.
 	 * @param param is the control parameters.
-	 * @return climb angle to specific energy balance rate gain in [m²/s³/rad].
+	 * @return climb angle in [rad].
 	 */
-	static float _climbAngleToSebRate(const Input &input, const Param &param);
+	static float _sebRateToClimbAngle(float seb_rate, float ste_rate, const Input &input, const Param &param);
 
 	/**
 	 * @brief Calculate the pitch control output function.
 	 *
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
+	 * @param ste_rate_setpoint is the specific total energy rate setpoint the throttle flies in [m²/s³].
 	 * @param param is the control parameters.
 	 * @return absolute pitch setpoint [rad].
 	 */
-	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param) const;
+	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float ste_rate_setpoint,
+				      const Param &param) const;
 
 	/**
 	 * @brief Update controlled throttle setpoint.
