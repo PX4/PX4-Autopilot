@@ -229,7 +229,7 @@ void Ekf::fuseGnssYaw(float antenna_yaw_offset)
 
 	// calculate the Kalman gains
 	// only calculate gains for states we are using
-	VectorState Kfusion = P * H / aid_src.innovation_variance;
+	VectorState Kfusion = computeKalmanGain(H, aid_src.innovation_variance);
 
 	measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
 

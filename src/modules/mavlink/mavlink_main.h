@@ -238,7 +238,7 @@ public:
 			return "Low Bandwidth";
 
 		case MAVLINK_MODE_UAVIONIX:
-			return "uAvionix";
+			return "ADS-B/Traffic (uAvionix)";
 
 		case MAVLINK_MODE_DISTANCE_SENSOR:
 			return "DistanceSensor";
@@ -598,9 +598,10 @@ public:
 		return (active > 1) ? (kBulkBandwidthShare / (float)active) : kBulkBandwidthShare;
 	}
 
-	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
+	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id, _mode == MAVLINK_MODE_UAVIONIX); }
+	bool is_signing_active() const { return _sign_control.is_signing_active(); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
-	void check_signing_key_dirty() { if (_signing_key_dirty.load()) { _signing_key_dirty.store(false); _sign_control.reload_key(); } }
+	void check_signing_key_dirty();
 
 
 private:
@@ -651,7 +652,7 @@ private:
 
 	List<MavlinkStream *>		_streams;
 
-	px4::atomic<MavlinkShell *>	_mavlink_shell{nullptr}; ///< written by the receiver thread under _mavlink_shell_mutex; atomic for the unlocked fast check in handleMavlinkShellOutput()
+	px4::atomic<MavlinkShell *>	_mavlink_shell{nullptr}; ///< written under _mavlink_shell_mutex, by the receiver thread and, once it has stopped, by the task; atomic for the unlocked fast check in handleMavlinkShellOutput()
 	pthread_mutex_t		_mavlink_shell_mutex{};
 	MavlinkULog		*_mavlink_ulog{nullptr};
 	static events::EventBuffer	*_event_buffer;

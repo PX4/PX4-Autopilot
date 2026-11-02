@@ -40,12 +40,14 @@
 // Library includes
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
+#include <lib/rover_control/RoverControl.hpp>
 #include <math.h>
 
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_course_setpoint.h>
 #include <uORB/topics/rover_speed_setpoint.h>
 #include <uORB/topics/rover_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -69,7 +71,7 @@ public:
 	~AckermannPosControl() = default;
 
 	/**
-	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint.
+	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint or surfaceVehicleCourseSetpoint.
 	 */
 	void updatePosControl();
 
@@ -82,7 +84,7 @@ public:
 	/**
 	 * @brief Reset position controller.
 	 */
-	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _course = NAN; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false; _drift_angle_estimator.reset();};
 
 protected:
 	/**
@@ -100,6 +102,7 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
+	uORB::Subscription _surface_vehicle_course_setpoint_sub{ORB_ID(surface_vehicle_course_setpoint)};
 	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
 
 	// uORB publications
@@ -112,6 +115,8 @@ private:
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
 	Vector2f _target_waypoint_ned{};
+	float _course{NAN};
+	RoverControl::DriftAngleEstimator _drift_angle_estimator{};
 	float _arrival_speed{0.f};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};

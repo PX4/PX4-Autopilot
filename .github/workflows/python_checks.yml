@@ -12,6 +12,9 @@ on:
     paths-ignore:
       - 'docs/**'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]

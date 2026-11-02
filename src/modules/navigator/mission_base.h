@@ -293,6 +293,11 @@ protected:
 	void update_mission();
 
 	/**
+	 * Whether update_mission() may start flying the mission items now
+	 */
+	virtual bool canStartMission() const { return true; }
+
+	/**
 	 * Move on to next mission item or switch to loiter
 	 */
 	void advance_mission();

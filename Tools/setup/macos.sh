@@ -37,20 +37,6 @@ do
 	fi
 done
 
-# Leave a checkout that is already there. `brew tap` on one would try to
-# unshallow it, and CI has already checked these repos out at a commit.
-brew_tap() {
-	local name="$1"
-	local user="${name%%/*}"
-	local repo="${name#*/}"
-	local path
-	path="$(brew --repo)/Library/Taps/${user}/homebrew-${repo}"
-	if [[ -d "${path}/.git" ]]; then
-		return 0
-	fi
-	brew tap "$name"
-}
-
 echo "[macos.sh] Installing the development dependencies for the PX4 Autopilot"
 
 if ! command -v brew &> /dev/null
@@ -92,8 +78,8 @@ if brew trust --help &> /dev/null; then
 	brew trust PX4/px4
 fi
 
-brew_tap osx-cross/arm
-brew_tap PX4/px4
+brew tap osx-cross/arm
+brew tap PX4/px4
 
 # Package list. This replaces the px4-dev meta-formula, which is kept
 # as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
@@ -203,8 +189,7 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	# XQuartz is required for Gazebo GUI display on macOS.
 	if ! brew list --cask xquartz &> /dev/null; then
 		echo "[macos.sh] Installing XQuartz (required for Gazebo display)"
-		# XQuartz is not in the pinned package repos.
-		env -u HOMEBREW_NO_INSTALL_FROM_API brew install --cask xquartz
+		brew install --cask xquartz
 	fi
 fi
 

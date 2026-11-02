@@ -106,7 +106,7 @@ An integrator can harden a deployment with any of:
   See [uXRCE-DDS](docs/en/middleware/uxrce_dds.md) and [Zenoh](docs/en/middleware/zenoh.md) for how.
 - **Enable [MAVLink message signing](docs/en/mavlink/message_signing.md).**
   This authenticates MAVLink frames but does not encrypt them.
-  A small allowlist (`HEARTBEAT`, `RADIO_STATUS`, `ADSB_VEHICLE`, `COLLISION`) is currently accepted unsigned.
+  A small allowlist is accepted unsigned: `HEARTBEAT` and `RADIO_STATUS` on every link, and `ADSB_VEHICLE` and `COLLISION` only on a link configured for a traffic receiver.
   Signing is inactive if the key file is absent, which is deliberate: removing the card is the recovery path when a key is lost.
 - **Lock the configuration.**
   Read-only parameters, [secure boot](docs/en/advanced_config/bootloader_secure_boot.md) with a replaced key, and no wired reflash.

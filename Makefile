@@ -456,7 +456,7 @@ check_newlines:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_neural tests_coverage tests_mission tests_mission_coverage tests_offboard
+.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_neural tests_nocache tests_coverage tests_mission tests_mission_coverage tests_offboard
 .PHONY: rostest python_coverage
 
 tests:
@@ -492,6 +492,16 @@ tests_neural:
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
 	$(eval UBSAN_OPTIONS += color=always)
 	$(call cmake-build,px4_sitl_neural)
+
+# The default px4_sitl_test board builds the navigator mission cache, which NuttX boards leave out by default.
+# This target builds without it (CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0).
+tests_nocache:
+	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),test_RTL|test_mission_base)")
+	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test-nocache)
 
 # work around lcov bug #316; remove once lcov is fixed (see https://github.com/linux-test-project/lcov/issues/316)
 LCOBUG = --ignore-errors mismatch,negative

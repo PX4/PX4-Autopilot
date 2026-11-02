@@ -797,6 +797,7 @@
         - [SensorsStatus](/msg_docs/SensorsStatus.md)
         - [SensorsStatusGnss](/msg_docs/SensorsStatusGnss.md)
         - [SensorsStatusImu](/msg_docs/SensorsStatusImu.md)
+        - [SurfaceVehicleCourseSetpoint](/msg_docs/SurfaceVehicleCourseSetpoint.md)
         - [SystemPower](/msg_docs/SystemPower.md)
         - [TakeoffStatus](/msg_docs/TakeoffStatus.md)
         - [TargetGnss](/msg_docs/TargetGnss.md)

@@ -347,6 +347,7 @@
       - [无线电系统设置](config/radio.md)
       - [飞行模式](config/flight_mode.md)
     - [Joysticks](config/joystick.md)
+    - [Integrated GCS](config/integrated_gcs.md)
 
   - [Data Links](data_links/index.md)
     - [MAVLink 回传（OSD/GCS）](peripherals/mavlink_peripherals.md)
@@ -820,6 +821,7 @@
         - [SensorsStatus](msg_docs/SensorsStatus.md)
         - [SensorsStatusGnss](msg_docs/SensorsStatusGnss.md)
         - [SensorsStatusImu](msg_docs/SensorsStatusImu.md)
+        - [SurfaceVehicleCourseSetpoint](msg_docs/SurfaceVehicleCourseSetpoint.md)
         - [SystemPower](msg_docs/SystemPower.md)
         - [TakeoffStatus](msg_docs/TakeoffStatus.md)
         - [TargetGnss](msg_docs/TargetGnss.md)

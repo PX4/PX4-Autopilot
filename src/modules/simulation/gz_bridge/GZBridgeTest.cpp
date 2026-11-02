@@ -39,6 +39,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/failure_injection.h>
 #include <uORB/topics/sensor_gnss.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 class GZBridgeTestPeer
 {
@@ -46,6 +47,11 @@ public:
 	static void navSatCallback(GZBridge &bridge, const gz::msgs::NavSat &message)
 	{
 		bridge.navSatCallback(message, 0);
+	}
+
+	static void odometryCallback(GZBridge &bridge, const gz::msgs::OdometryWithCovariance &message)
+	{
+		bridge.odometryCallback(message);
 	}
 };
 
@@ -64,19 +70,47 @@ gz::msgs::NavSat navSat(double latitude_deg, double longitude_deg)
 	return message;
 }
 
-failure_injection_s gpsFailure(uint8_t failure_type)
+gz::msgs::OdometryWithCovariance odometry(double east, double north, double up)
+{
+	gz::msgs::OdometryWithCovariance message;
+	gz::msgs::Pose *pose = message.mutable_pose_with_covariance()->mutable_pose();
+	pose->mutable_position()->set_x(east);
+	pose->mutable_position()->set_y(north);
+	pose->mutable_position()->set_z(up);
+	pose->mutable_orientation()->set_w(1.0);
+	message.mutable_twist_with_covariance()->mutable_twist()->mutable_linear()->set_x(1.0);
+
+	for (int i = 0; i < 36; i++) {
+		message.mutable_pose_with_covariance()->mutable_covariance()->add_data(0.01);
+		message.mutable_twist_with_covariance()->mutable_covariance()->add_data(0.01);
+	}
+
+	return message;
+}
+
+failure_injection_s sensorFailure(uint8_t unit, uint8_t failure_type)
 {
 	failure_injection_s config{};
 	config.timestamp = hrt_absolute_time();
 
 	if (failure_type != failure_injection_s::FAILURE_TYPE_OK) {
 		config.count = 1;
-		config.unit[0] = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
+		config.unit[0] = unit;
 		config.instance_mask[0] = 1;
 		config.failure_type[0] = failure_type;
 	}
 
 	return config;
+}
+
+failure_injection_s gpsFailure(uint8_t failure_type)
+{
+	return sensorFailure(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, failure_type);
+}
+
+failure_injection_s vioFailure(uint8_t failure_type)
+{
+	return sensorFailure(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, failure_type);
 }
 
 } // namespace
@@ -122,4 +156,52 @@ TEST(GZBridge, AppliesGpsFailureInjectionAtNavSatPublication)
 	EXPECT_EQ(recovered.fix_type, sensor_gnss_s::FIX_TYPE_3D);
 	EXPECT_NE(recovered.latitude, baseline.latitude);
 	EXPECT_NE(recovered.longitude, baseline.longitude);
+}
+
+TEST(GZBridge, AppliesVioFailureInjectionAtOdometryPublication)
+{
+	GZBridge bridge{"default", "x500"};
+	uORB::Publication<failure_injection_s> failure_pub{ORB_ID(failure_injection)};
+	uORB::Subscription visual_odometry_sub{ORB_ID(vehicle_visual_odometry)};
+
+	// gz odometry is ENU; the bridge publishes NED (north, east, down).
+	GZBridgeTestPeer::odometryCallback(bridge, odometry(1.0, 2.0, 3.0));
+
+	vehicle_odometry_s baseline{};
+	ASSERT_TRUE(visual_odometry_sub.update(&baseline));
+	ASSERT_FLOAT_EQ(baseline.position[0], 2.f);
+	ASSERT_FLOAT_EQ(baseline.position[1], 1.f);
+	ASSERT_FLOAT_EQ(baseline.position[2], -3.f);
+
+	ASSERT_TRUE(failure_pub.publish(vioFailure(failure_injection_s::FAILURE_TYPE_STUCK)));
+	GZBridgeTestPeer::odometryCallback(bridge, odometry(11.0, 12.0, 13.0));
+
+	// Stuck keeps publishing, with fresh timestamps, the last good sample.
+	vehicle_odometry_s stuck{};
+	ASSERT_TRUE(visual_odometry_sub.update(&stuck));
+	EXPECT_FLOAT_EQ(stuck.position[0], baseline.position[0]);
+	EXPECT_FLOAT_EQ(stuck.position[1], baseline.position[1]);
+	EXPECT_FLOAT_EQ(stuck.position[2], baseline.position[2]);
+	EXPECT_GE(stuck.timestamp_sample, baseline.timestamp_sample);
+
+	ASSERT_TRUE(failure_pub.publish(vioFailure(failure_injection_s::FAILURE_TYPE_OFF)));
+	GZBridgeTestPeer::odometryCallback(bridge, odometry(11.0, 12.0, 13.0));
+	EXPECT_FALSE(visual_odometry_sub.updated());
+
+	// A GPS failure must not affect visual odometry.
+	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_OFF)));
+	GZBridgeTestPeer::odometryCallback(bridge, odometry(11.0, 12.0, 13.0));
+
+	vehicle_odometry_s unaffected{};
+	ASSERT_TRUE(visual_odometry_sub.update(&unaffected));
+	EXPECT_FLOAT_EQ(unaffected.position[0], 12.f);
+
+	ASSERT_TRUE(failure_pub.publish(vioFailure(failure_injection_s::FAILURE_TYPE_OK)));
+	GZBridgeTestPeer::odometryCallback(bridge, odometry(21.0, 22.0, 23.0));
+
+	vehicle_odometry_s recovered{};
+	ASSERT_TRUE(visual_odometry_sub.update(&recovered));
+	EXPECT_FLOAT_EQ(recovered.position[0], 22.f);
+	EXPECT_FLOAT_EQ(recovered.position[1], 21.f);
+	EXPECT_FLOAT_EQ(recovered.position[2], -23.f);
 }

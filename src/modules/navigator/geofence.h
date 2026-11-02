@@ -151,6 +151,9 @@ public:
 
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
+	/** Check the polygons and circles only, without the altitude band. */
+	bool isInsideHorizontalFences(double lat, double lon, float altitude);
+
 	bool valid();
 
 	/**
