@@ -485,6 +485,9 @@ void Sih::generate_force_and_torques(const float dt)
 	// air-relative velocity in body frame [m/s]
 	_v_B = _q_E.rotateVectorInverse(_R_N2E * _v_apparent_N);
 
+	// air density at the current altitude for the propeller model
+	const float rho = AeroSeg::air_density(_lpos_ref_alt - _lpos(2));
+
 	if (_vehicle == VehicleType::Quadcopter) {
 
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
@@ -518,8 +521,8 @@ void Sih::generate_force_and_torques(const float dt)
 
 	} else if (_vehicle == VehicleType::FixedWing) {
 
-		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[3], _v_B(0));
-		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[3], _v_B(0));
+		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[3], _v_B(0), rho);
+		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[3], _v_B(0), rho);
 		_T_B = Vector3f(_T[0], 0.0f, 0.0f); 	// forward thruster
 		_Mt_B = Vector3f(_Q[0], 0.0f, 0.0f);	// thruster torque
 		generate_fw_aerodynamics(_u[0], _u[1], _u[2], _T[0]);
@@ -527,8 +530,8 @@ void Sih::generate_force_and_torques(const float dt)
 	} else if (_vehicle == VehicleType::TailsitterVTOL) {
 
 		for (size_t i = 0; i < NUM_DYN_THRUSTER; i++) {
-			_T[i] = _thruster[i].compute_thrust_from_throttle(_u[i], -_v_B(2));
-			_Q[i] = _thruster[i].compute_torque_from_throttle(_u[i], -_v_B(2));
+			_T[i] = _thruster[i].compute_thrust_from_throttle(_u[i], -_v_B(2), rho);
+			_Q[i] = _thruster[i].compute_torque_from_throttle(_u[i], -_v_B(2), rho);
 		}
 
 		_T_B = Vector3f(0.0f, 0.0f, -_T[0] - _T[1]);
@@ -537,8 +540,8 @@ void Sih::generate_force_and_torques(const float dt)
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 
-		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[7], _v_B(0));
-		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[7], _v_B(0));
+		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[7], _v_B(0), rho);
+		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[7], _v_B(0), rho);
 		_T_B = Vector3f(_T[0], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]) + _Q[0],
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
