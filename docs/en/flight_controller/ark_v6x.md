@@ -1,6 +1,6 @@
 # ARK Electronics ARKV6X
 
-<Badge type="tip" text="PX4 v1.14" />
+<Badge type="tip" text="PX4 v1.13" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
@@ -88,19 +88,10 @@ Servos and other hardware on the outputs must be [powered separately](../periphe
 
 ## Voltage Ratings {#voltage_ratings}
 
-**Normal Operation Maximum Ratings**
+The ARKV6X takes 5 V from its carrier through the PAB connector: 4.8 V minimum, 5.5 V absolute maximum.
 
-Under these conditions, all power sources will be used in this order to power the system:
-
-1. `POWER1` and `POWER2` inputs (4.9 V to 5.5 V)
-1. USB input (4.75 V to 5.25 V)
-
-**Absolute Maximum Ratings**
-
-Under these conditions, the system will not draw any power (will not be operational), but will remain intact.
-
-1. `POWER1` and `POWER2` inputs (operational range 4.1 V to 5.7 V, 0 V to 10 V undamaged)
-1. USB input (operational range 4.1 V to 5.7 V, 0 V to 6 V undamaged)
+On the ARK PAB Carrier, power is taken from `POWER1`, then `POWER2`, then USB.
+The carrier has overvoltage protection at 5.8 V and undervoltage protection at 3.9 V.
 
 ## PWM Outputs {#pwm_outputs}
 
