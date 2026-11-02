@@ -116,6 +116,10 @@
 #include "streams/POSITION_TARGET_LOCAL_NED.hpp"
 #include "streams/PROTOCOL_VERSION.hpp"
 #include "streams/RAW_RPM.hpp"
+#if defined(MAVLINK_MSG_ID_UAVCAN_NODE_STATUS)
+#include "streams/UAVCAN_NODE_STATUS.hpp"
+#endif
+
 #include "streams/RC_CHANNELS.hpp"
 #include "streams/SCALED_IMU.hpp"
 #include "streams/SCALED_IMU2.hpp"
@@ -522,6 +526,10 @@ static constexpr StreamListItem streams_list[] = {
 #if defined(RAW_RPM_HPP)
 	create_stream_list_item<MavlinkStreamRawRpm>(),
 #endif // RAW_RPM_HPP
+
+#if defined(MAVLINK_MSG_ID_UAVCAN_NODE_STATUS)
+	create_stream_list_item<MavlinkStreamUavcanNodeStatus>(),
+#endif
 #if defined(EFI_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamEfiStatus>(),
 #endif // EFI_STATUS_HPP
