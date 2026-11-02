@@ -648,6 +648,8 @@ MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
 		handle_mission_count(msg);
 		break;
 
+	// MISSION_ITEM is deprecated and not parsed. It is answered with MAV_MISSION_UNSUPPORTED so a float
+	// upload fails at once instead of being ignored until the sync timeout.
 	case MAVLINK_MSG_ID_MISSION_ITEM:
 		handle_mission_item_float(msg);
 		break;
@@ -1062,7 +1064,6 @@ MavlinkMissionManager::handle_mission_item_float(const mavlink_message_t *msg)
 	    && msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid
 	    && _state == MAVLINK_WPM_STATE_GETLIST) {
 
-		PX4_DEBUG("WPM: MISSION_ITEM is deprecated, upload with MISSION_ITEM_INT");
 		send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_UNSUPPORTED);
 		switch_to_idle_state();
 		_transfer_in_progress = false;
@@ -1929,7 +1930,8 @@ uint32_t MavlinkMissionManager::crc32_for_mission_item(const mavlink_mission_ite
 	// so a small waypoint move could keep the same mission ID.
 	float x_bits;
 	float y_bits;
-	static_assert(sizeof(x_bits) == sizeof(mission_item.x), "x must fit a float");
+	static_assert(sizeof(x_bits) == sizeof(mission_item.x) && sizeof(y_bits) == sizeof(mission_item.y),
+		      "x and y must fit a float");
 	memcpy(&x_bits, &mission_item.x, sizeof(x_bits));
 	memcpy(&y_bits, &mission_item.y, sizeof(y_bits));
 
