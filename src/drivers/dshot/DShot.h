@@ -126,6 +126,10 @@ private:
 	void update_motor_outputs(uint16_t *outputs, int num_outputs);
 	void update_motor_commands(int num_outputs);
 	void select_next_command();
+	bool queue_eeprom_write();
+	bool queue_edt_request();
+	bool queue_settings_request();
+	void queue_command(uint16_t command, uint16_t motor_mask, uint8_t num_repetitions);
 	void clear_edt_confirmation(int motor_index);
 
 	bool set_next_telemetry_index(); // Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
@@ -231,46 +235,61 @@ private:
 	perf_counter_t	_serial_telem_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": serial telem timeout")};
 	perf_counter_t	_serial_telem_allsampled_perf{perf_alloc(PC_COUNT, MODULE_NAME": serial telem all sampled")};
 
-	// Commands
+	// One DShot command, repeated for a number of frames to a set of motors
 	struct DShotCommand {
-		uint16_t command{};
-		int num_repetitions{0};
-		uint16_t motor_mask{(1u << DSHOT_MAXIMUM_CHANNELS) - 1};
-		bool save{false};
-		bool is_save{false}; // programming address and value frames can also carry DSHOT_CMD_SAVE_SETTINGS
-		bool expect_response{false};
+		uint16_t command{DSHOT_CMD_MOTOR_STOP};
+		uint16_t motor_mask{0};
+		uint8_t num_repetitions{0};
+		bool expect_response{false}; // the ESC answers over the telemetry UART
+		bool saves_settings{false}; // the ESC writes its settings to flash
 
 		bool finished() const { return num_repetitions == 0; }
-		void clear()
-		{
-			command = 0;
-			num_repetitions = 0;
-			motor_mask = 0;
-			save = false;
-			is_save = false;
-			expect_response = false;
-		}
 	};
 
+	// Commands go out one at a time while the motors are stopped. A sequence nothing may interrupt (one EEPROM
+	// setting as enter, address, value and exit; an actuator command with its save) is queued whole.
+	class CommandQueue
+	{
+	public:
+		bool push(const DShotCommand &command)
+		{
+			if (_count == CAPACITY) {
+				return false;
+			}
+
+			_commands[(_head + _count++) % CAPACITY] = command;
+			return true;
+		}
+
+		bool pop(DShotCommand &command)
+		{
+			if (_count == 0) {
+				return false;
+			}
+
+			command = _commands[_head];
+			_head = (_head + 1) % CAPACITY;
+			_count--;
+			return true;
+		}
+
+		bool empty() const { return _count == 0; }
+		int space() const { return CAPACITY - _count; }
+
+	private:
+		static constexpr int CAPACITY = 8;
+		DShotCommand _commands[CAPACITY] {};
+		int _head{0};
+		int _count{0};
+	};
+
+	CommandQueue _command_queue;
 	DShotCommand _current_command{};
 
-	// DShot Programming Mode
-	enum class ProgrammingState {
-		Idle,
-		EnterMode,
-		SendAddress,
-		SendValue,
-		ExitMode
-	};
-
-	esc_eeprom_write_s _esc_eeprom_write{};
-	bool _dshot_programming_active = {false};
-	uint32_t _settings_written_mask[2] = {};
-
-	ProgrammingState _programming_state{ProgrammingState::Idle};
-
-	uint16_t _programming_address{};
-	uint16_t _programming_value{};
+	// The EEPROM write in progress, expanded one setting at a time as the queue drains
+	esc_eeprom_write_s _eeprom_write{};
+	uint16_t _eeprom_write_motor_mask{0};
+	int _eeprom_write_next{-1}; // index of the next setting to queue, -1 when no write is in progress
 
 	param_t _param_pole_count_handles[DSHOT_MAX_MOTORS] {};
 	int32_t _pole_count_params[DSHOT_MAX_MOTORS] {};
