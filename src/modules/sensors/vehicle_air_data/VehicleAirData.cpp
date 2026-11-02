@@ -109,6 +109,15 @@ bool VehicleAirData::ParametersUpdate(bool force)
 
 		updateParams();
 
+		const param_t param_ekf2_hgt_ref_handle = param_find("EKF2_HGT_REF");
+		int32_t ekf2_hgt_ref = 0;
+
+		if (param_ekf2_hgt_ref_handle != PARAM_INVALID) {
+			param_get(param_ekf2_hgt_ref_handle, &ekf2_hgt_ref);
+		}
+
+		_gnss_height_reference = (ekf2_hgt_ref == kHeightReferenceGnss);
+
 		// update priority
 		for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
 
@@ -270,7 +279,7 @@ void VehicleAirData::Run()
 		if (!_relative_calibration_done) {
 			_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
 
-		} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get() && latest_estimator_status_flags.cs_gps_hgt) {
+		} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get()) {
 			baro_gnss_calibration_running = true;
 			_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
 		}
@@ -569,6 +578,23 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 
 	if (!gnss_baro_offset_stable) {
 		return false;
+	}
+
+	// reject GNSS altitudes that are too different compared to the uncalibrated baro altitude
+	const float max_delta = _param_sens_bar_ac_gate.get();
+	const float delta_stable = _delta_baro_gnss_lpf.getState();
+
+	if (!_gnss_height_reference && max_delta > 0.f && fabsf(delta_stable) > max_delta) {
+		mavlink_log_warning(&_mavlink_log_pub, "Baro autocal skipped: GNSS and baro differ by %.0f m\t",
+				    (double)fabsf(delta_stable));
+		/* EVENT
+		 * @description
+		 * The GNSS altitude differs from the uncalibrated baro altitude by more than <param>SENS_BAR_AC_GATE</param>.
+		 * The barometer is not calibrated. Check GNSS or set <param>SENS_BARO_QNH</param>.
+		 */
+		events::send<float>(events::ID("sensor_baro_autocal_skipped"), events::Log::Warning,
+				    "Baro autocal skipped: GNSS and baro differ by {1:.0m}", fabsf(delta_stable));
+		return true;
 	}
 
 	// Binary search
