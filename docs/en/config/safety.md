@@ -274,14 +274,19 @@ Note that if there is no horizontal aiding source anymore, the position estimate
 
 <Badge type="tip" text="PX4 v1.18" />
 
-Triggers on either of:
+The GNSS check failsafe has two triggers, both configured by [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT):
 
-- **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
-- **Position divergence**: two receivers disagree beyond their expected separation (configured via [SENS_GNSS0_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS1_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX)) plus reported accuracy. Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
-  Receivers might report an optimistic accuracy, so the reported accuracy of each receiver is floored with [EKF2_GPS_P_NOISE](../advanced_config/parameter_reference.md#EKF2_GPS_P_NOISE).
+- **Count drop**: the number of receivers with a 3D fix drops below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No action when `SYS_HAS_NUM_GNSS=0`, only a warning.
+- **Position divergence**: after removing the expected separation of the antennas on the vehicle (configured via `SENS_GNSS0_OFFX/Y/Z` and `SENS_GNSS1_OFFX/Y/Z`, e.g. [SENS_GNSS0_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX)), two receivers disagree by more than [COM_GNSS_H_MAX](#COM_GNSS_H_MAX) horizontally or [COM_GNSS_V_MAX](#COM_GNSS_V_MAX) vertically.
+  The expected separation is rotated with the vehicle attitude, so heading and tilt are accounted for.
+  Until the heading is aligned, only the horizontal distance between the receivers is compared.
+  The reported accuracy of the receivers is not used.
+  Before arming, a divergence is reported immediately and only clears after the receivers agree continuously for 2 seconds.
+  In flight, a divergence has to persist for 2 seconds before it is reported.
 
-At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
-Loss of a single GPS when none are required is handled by other GPS health checks.
+  The configured `COM_GNSSLOSS_ACT` failsafe action is only triggered when `SYS_HAS_NUM_GNSS=2`.
+  Note that a warning is always emitted by this trigger regardless of `SYS_HAS_NUM_GNSS` or `COM_GNSSLOSS_ACT`.
+  Make sure to configure the lever arm offsets of both receivers for accurate detection.
 
 When `COM_GNSSLOSS_ACT` is set to `Warning`, both triggers produce a warning only and never block arming.
 When set to `Warning, block arming`, both triggers block arming and only produce a warning in flight.
@@ -289,8 +294,10 @@ When set to `Return`, `Land`, or `Terminate`, both triggers block arming and fir
 
 | Parameter                                                                                                   | Description                                                                                                                                                                               |
 | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required. If two are required then they also need to be consistent.                                                                                       |
+| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of GNSS receivers required for arming and flight. `0`: No minimum (default), `1`: Require one, `2`: Require two.                                                                   |
 | <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected. `0`: Warning only (default), `1`: Return, `2`: Land, `3`: Terminate, `4`: Warning, block arming. Values above Warning also block arming. |
+| <a id="COM_GNSS_H_MAX"></a>[COM_GNSS_H_MAX](../advanced_config/parameter_reference.md#COM_GNSS_H_MAX)       | Maximum horizontal disagreement between two GNSS receivers (default 2 m).                                                                                                                 |
+| <a id="COM_GNSS_V_MAX"></a>[COM_GNSS_V_MAX](../advanced_config/parameter_reference.md#COM_GNSS_V_MAX)       | Maximum vertical disagreement between two GNSS receivers (default 2 m).                                                                                                                   |
 
 ## Offboard Loss Failsafe
 

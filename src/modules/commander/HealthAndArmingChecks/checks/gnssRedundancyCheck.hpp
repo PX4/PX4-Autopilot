@@ -35,10 +35,14 @@
 
 #include "../Common.hpp"
 #include <lib/hysteresis/hysteresis.h>
+#include <lib/matrix/matrix/math.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_selector_status.h>
+#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensors_status_gnss.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 class GnssRedundancyChecks : public HealthAndArmingCheckBase
 {
@@ -54,18 +58,28 @@ private:
 				sensors_status_gnss_s::device_ids[0])), "sensors_status_gnss has too few receiver entries");
 	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_INSTANCES> _sensor_gnss_sub{ORB_ID::sensor_gnss};
 	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription _estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
+
+	// Antenna offset (body FRD) of a receiver, matched to its SENS_GNSSx slot like in VehicleGPSPosition
+	matrix::Vector3f antennaOffset(uint32_t device_id, int instance) const;
 
 	uint8_t _peak_healthy_count{0};
 	systemlib::Hysteresis _divergence_hysteresis;
 
-	const param_t _param_ekf2_gps_p_noise_handle;
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>) _param_sys_has_num_gnss,
 					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act,
+					(ParamFloat<px4::params::COM_GNSS_H_MAX>) _param_com_gnss_h_max,
+					(ParamFloat<px4::params::COM_GNSS_V_MAX>) _param_com_gnss_v_max,
+					(ParamInt<px4::params::SENS_GNSS0_ID>) _param_sens_gnss0_id,
+					(ParamInt<px4::params::SENS_GNSS1_ID>) _param_sens_gnss1_id,
 					(ParamFloat<px4::params::SENS_GNSS0_OFFX>) _param_sens_gnss0_offx,
 					(ParamFloat<px4::params::SENS_GNSS0_OFFY>) _param_sens_gnss0_offy,
+					(ParamFloat<px4::params::SENS_GNSS0_OFFZ>) _param_sens_gnss0_offz,
 					(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_sens_gnss1_offx,
-					(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_sens_gnss1_offy
+					(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_sens_gnss1_offy,
+					(ParamFloat<px4::params::SENS_GNSS1_OFFZ>) _param_sens_gnss1_offz
 				       )
 };
