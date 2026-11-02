@@ -261,9 +261,10 @@ void FwLateralLongitudinalControl::Run()
 			if (PX4_ISFINITE(_lat_control_sp.course) && !PX4_ISFINITE(_lat_control_sp.airspeed_direction)) {
 				// only use the course setpoint if it's finite but airspeed_direction is not
 
+				const float true_airspeed_sp = airspeed_sp_eas * _long_control_state.eas2tas;
 				airspeed_direction_sp = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(
 								_lat_control_sp.course, _lateral_control_state.wind_speed,
-								airspeed_sp_eas);
+								true_airspeed_sp);
 
 				// Note: the here updated _min_airspeed_from_guidance is only used in the next iteration
 				// in the longitudinal controller.
