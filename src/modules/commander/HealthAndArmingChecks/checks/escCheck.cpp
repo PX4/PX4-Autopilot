@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "escCheck.hpp"
+#include <lib/circuit_breaker/circuit_breaker.h>
 #include <px4_platform_common/events.h>
 #include <uORB/topics/actuator_motors.h>
 
@@ -70,7 +71,8 @@ static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_r
 
 void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered
+	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered.
+	// CBRK_SUPPLY_CHK disables that report, so the ESC checks then stay the only ones to block arming.
 	bool required_battery_missing = false;
 
 	for (auto &battery_sub : _battery_status_subs) {
@@ -81,7 +83,8 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (!context.isArmed() && required_battery_missing) {
+	if (!context.isArmed() && required_battery_missing
+	    && !circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
 		_motor_failure_mask = 0;
 		return;
 	}
