@@ -205,6 +205,7 @@
       - [Sky-Drones AIRLink](flight_controller/airlink.md)
       - [SPRacing SPRacingH7EXTREME](flight_controller/spracingh7extreme.md)
       - [SVehicle E2](flight_controller/svehicle_e2.md)
+      - [Syro V6X](flight_controller/syro_v6x.md)
       - [ThePeach FCC-K1](flight_controller/thepeach_k1.md)
       - [ThePeach FCC-R1](flight_controller/thepeach_r1.md)
       - [AP-H743-R1](flight_controller/x-mav_ap-h743r1.md)
