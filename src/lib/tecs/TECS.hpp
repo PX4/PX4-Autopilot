@@ -210,6 +210,20 @@ class TECSControl
 {
 public:
 	/**
+	 * Energy mode law: shape the energy rate demands in the two invariant directions of the closed loop, SPE and SEB,
+	 * with the altitude and airspeed time constants, instead of the speed-weighted setpoints. See
+	 * _calcEnergyModeRates(). The speed weight has no effect with this law.
+	 */
+	static constexpr bool kEnergyModeLaw = true;
+
+	/**
+	 * With the energy mode law, form the kinetic energy error as V (V_sp - V), which keeps the airspeed loop linear
+	 * as today at the expense of a kinetic energy loop with a gain of 2V / (V_sp + V), or as 0.5 (V_sp^2 - V^2),
+	 * linear in kinetic energy, which makes a pure energy exchange exactly throttle-neutral.
+	 */
+	static constexpr bool kAirspeedLinearKineticError = true;
+
+	/**
 	 * @brief The control parameters.
 	 *
 	 */
@@ -472,6 +486,21 @@ private:
 	 */
 	SpecificEnergyRates _calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint, const Input &input) const;
 	/**
+	 * @brief Energy rate setpoints of the energy mode law.
+	 *
+	 * Decomposes the (SPE, SKE) error into the SPE direction and the SEB direction, lets each decay with its own
+	 * time constant, and converts back to the (SPE, SKE) rate pair the throttle and the pitch realise together.
+	 *
+	 * @param setpoint is the control setpoint; the airspeed setpoint is capped by the caller for the pitch loop.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits.
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @return Specific energy rates in [m²/s³].
+	 */
+	SpecificEnergyRates _calcEnergyModeRates(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+			const Param &param, const Flag &flag) const;
+	/**
 	 * @brief Detect underspeed.
 	 *
 	 * @param input is the current input measurement of the UAS.
@@ -542,6 +571,19 @@ private:
 	 */
 	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
 					       const SpecificEnergyRates &specific_energy_rate) const;
+	/**
+	 * @brief Specific energy balance rate setpoint and estimate of the pitch loop, with either law.
+	 *
+	 * @param setpoint is the control setpoint.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits.
+	 * @param specific_energy_rates is the specific energy rates of the throttle loop in [m²/s³].
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @return specific energy balance rate values in [m²/s³].
+	 */
+	ControlValues _calcPitchControlSebRateValues(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+			const SpecificEnergyRates &specific_energy_rates, const Param &param, const Flag &flag);
 
 	/**
 	 * @brief Calculate the pitch control update function.
