@@ -84,6 +84,7 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,
+					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
 					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
 					(ParamFloat<px4::params::MOTFAIL_IDLE>) _param_motfail_idle,
