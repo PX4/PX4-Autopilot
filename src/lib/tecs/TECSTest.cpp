@@ -642,6 +642,37 @@ TEST(TECSControlTest, AirspeedlessIgnoresAirspeed)
 	EXPECT_FLOAT_EQ(control_slow.getThrottleSetpoint(), control_reference.getThrottleSetpoint());
 }
 
+// Without airspeed, a persistent altitude error must not wind up the pitch integrator (which would trade unobserved
+// airspeed for height), and an integrator wound up before the airspeed was lost must be cleared at once.
+TEST(TECSControlTest, AirspeedlessDisablesPitchIntegrator)
+{
+	const TECSControl::Param param = makeParam();
+	TECSControl::Flag flag = makeFlag();
+	const TECSControl::Input input = makeInput();
+
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 102.f; // persistent small climb demand
+
+	TECSControl control;
+	control.initialize(makeSetpoint(), input, param, flag);
+
+	for (int i = 0; i < 50; i++) {
+		control.update(kDt, setpoint, input, param, flag);
+	}
+
+	ASSERT_GT(control.getDebugOutput().pitch_integrator, 0.f);
+
+	flag.airspeed_enabled = false;
+
+	for (int i = 0; i < 500; i++) {
+		control.update(kDt, setpoint, input, param, flag);
+		EXPECT_FLOAT_EQ(control.getDebugOutput().pitch_integrator, 0.f) << "update " << i;
+	}
+
+	// The altitude error is still corrected through throttle
+	EXPECT_GT(control.getThrottleSetpoint(), param.throttle_trim);
+}
+
 // Below the minimum airspeed, the pitch integrator must integrate exactly as fast as at the minimum airspeed: it uses
 // the same floored airspeed as the pitch output.
 TEST(TECSControlTest, PitchIntegratorUsesMinimumAirspeedBelowIt)

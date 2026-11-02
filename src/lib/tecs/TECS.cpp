@@ -439,7 +439,7 @@ void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const In
 
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, pitch_specific_energy_rates)};
 
-	_calcPitchControlUpdate(dt, input, seb_rate, param);
+	_calcPitchControlUpdate(dt, input, seb_rate, param, flag);
 	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, param)};
 
 	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
@@ -480,7 +480,7 @@ TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificE
 }
 
 void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate,
-		const Param &param)
+		const Param &param, const Flag &flag)
 {
 
 	// In fast descend, the pitch integrator converges to the (substantially
@@ -492,7 +492,9 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 
 	_fast_descend_prev = param.fast_descend;
 
-	if (param.integrator_gain_pitch > FLT_EPSILON) {
+	// Without airspeed, pitch is the only proxy for airspeed: an integrator holding altitude against an energy
+	// deficit would pitch up and bleed airspeed unnoticed. Leave the energy deficit to the throttle instead.
+	if (flag.airspeed_enabled && param.integrator_gain_pitch > FLT_EPSILON) {
 
 		const float climb_angle_to_SEB_rate = _climbAngleToSebRate(input, param);
 
