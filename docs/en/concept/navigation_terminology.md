@@ -53,6 +53,8 @@ PX4 uses _heading_ and _yaw_ (the yaw angle of the vehicle attitude) as synonyms
 The yaw angle is the direction of the body x-axis projected onto the horizontal plane, so the two only part ways when the x-axis points (nearly) straight up or down, where the heading is undefined.
 Note that _yaw_ also names the rotation about the vertical axis (yaw rate, yaw moment), which is not a direction.
 
+![Heading: angle from north to the body x-axis](../../assets/concepts/navigation/detail_heading.svg)
+
 PX4 represents the heading using:
 
 - [`vehicle_local_position.heading`](../msg_docs/VehicleLocalPosition.md) (estimate).
@@ -65,6 +67,8 @@ The course is the direction the vehicle _actually_ moves over the ground: the di
 It is also called _course over ground_ (COG) in marine navigation, and it is what a GNSS receiver reports as "course" and what avionics show as _TRK_ (track).
 It is undefined when the vehicle is stationary, and noisy at low speed.
 
+![Course: angle from north to the ground velocity, tangent to the track](../../assets/concepts/navigation/detail_course.svg)
+
 PX4 represents the course using:
 
 - [`sensor_gnss.course`](../msg_docs/SensorGnss.md) ("Course over ground, not heading").
@@ -74,6 +78,8 @@ PX4 represents the course using:
 
 The course setpoint is the direction the vehicle _should_ move over the ground, for example along the line to the next waypoint.
 Whether the vehicle actually moves that way is shown by the [course](#course).
+
+![Course setpoint: angle from north to the desired track, at the point closest to the vehicle](../../assets/concepts/navigation/detail_course_setpoint.svg)
 
 PX4 represents the course setpoint using:
 
@@ -118,13 +124,15 @@ PX4 represents the cross-track error using:
 - [`pure_pursuit_status.crosstrack_error`](../msg_docs/PurePursuitStatus.md) (rovers).
 - [`fixed_wing_lateral_guidance_status.signed_track_error`](../msg_docs/FixedWingLateralGuidanceStatus.md) (fixed-wing).
 
-The [overview figure](#summary) shows a positive cross-track error: the vehicle is to the right of the desired track.
+![Cross-track error: positive to the right of the desired track, negative to the left](../../assets/concepts/navigation/detail_cross_track_error.svg)
 
 ### Drift Angle
 
 The drift angle is the difference between where the vehicle points ([heading](#heading)) and where it moves ([course](#course)).
 Wind causes it for aircraft, wind and current for boats, and wheel slip for rovers.
 Multicopters and mecanum rovers can also move sideways on purpose.
+
+![Drift angle: angle between heading and course](../../assets/concepts/navigation/detail_drift_angle.svg)
 
 ### Airspeed and Ground Speed
 
@@ -155,6 +163,8 @@ $$
 - The direction of $\mathbf{v}_{ground}$ is the **course**, and its magnitude is the **ground speed**.
 - For a fixed-wing aircraft, $\mathbf{v}_{air}$ points along the **heading**, and its magnitude is the **airspeed**.
 - The angle between the heading and $\mathbf{v}_{ground}$ is the **drift angle**.
+
+![Wind triangle: air velocity along the heading plus wind velocity gives the ground velocity along the course](../../assets/concepts/navigation/detail_wind_triangle.svg)
 
 ## Further Information
 
