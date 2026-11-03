@@ -71,6 +71,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - A fixed-wing vehicle landing at the end of a reverse mission Return ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4) uses the home altitude again instead of flaring at flight altitude, a regression in the v1.18 pre-releases.
 - A mission Return mode ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1, 2, 3 or 4) now reads the current mission on the cycle that activates it, so a mission uploaded or changed right as Return starts is used for the return type, the geofence avoidance destination and the starting item. The fast variants also discard the item index they recorded from an earlier mission when a different one is current. ([PX4-Autopilot#28748](https://github.com/PX4/PX4-Autopilot/pull/28748))
 - A `DO_JUMP` whose counter cannot be written to storage, for example on a failing SD card, is now skipped with a message to the operator. Previously the jump was taken again on every pass, repeating the same mission segment until a failsafe stopped the mission. ([PX4-Autopilot#28752](https://github.com/PX4/PX4-Autopilot/pull/28752))
+- Return mode now stops in the cycle it is left, not one cycle later. Before, a precision landing selected right after Return was partly reset, and Return selected again after one cycle of Hold hovered in place instead of returning. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
+- If a mission-based Return cannot allocate its executor, it now flies directly to its destination, the mission landing point or Home, and tells the pilot "Return: cannot follow the mission; flying directly". Before, Return did nothing. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
+- Return no longer reports a stale VTOL landing approach in `rtl_status`, for example one found before an [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) change. With [MIS_TKO_LAND_REQ](../advanced_config/parameter_reference.md#MIS_TKO_LAND_REQ) = 5, a mission without a landing, uploaded or started in the air, can therefore now be rejected where it passed before. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
 
 ### Hardware Support
 
@@ -108,6 +111,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
 - [Secure boot](../advanced_config/bootloader_secure_boot.md#multi-part-signed-images) now supports applications that can boot securely from SD card or eMMC. ([PX4-Autopilot#28228](https://github.com/PX4/PX4-Autopilot/pull/28228))
 - [Motor failure detection](../config/motor_failure_detection.md) now compares a low-pass filtered current residual against a separate trip band and trigger time for the undercurrent and overcurrent directions, instead of one symmetric band on the instantaneous current, and the current model gains an offset term. See [Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27711](https://github.com/PX4/PX4-Autopilot/pull/27711), [PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
+- For MC, arming check can detect [stuck motors](../config/safety.md#motor-not-spinning-after-arming) and disarm before takeoff. ([PX4-Autopilot#29436](https://github.com/PX4/PX4-Autopilot/pull/29436))
 
 ### Estimation
 

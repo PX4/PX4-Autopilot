@@ -742,6 +742,11 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 
 				} else if (wpa.type != MAV_MISSION_ACCEPTED) {
 					PX4_WARN("Mission ack result was %d", wpa.type);
+
+					if (_mission_type == wpa.mission_type) {
+						switch_to_idle_state();
+						_transfer_in_progress = false;
+					}
 				}
 			}
 
@@ -898,6 +903,10 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 
 				} else if (wpr.seq == _transfer_seq - 1) {
 					PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) seq %u from ID %" PRIu32 " (again)", wpr.seq, msg->sysid);
+
+				} else if (wpr.seq < _transfer_count && wpr.seq < current_item_count()) {
+					// An unexpected in-range request is recoverable; retain the expected sequence.
+					return;
 
 				} else {
 					if (_transfer_seq > 0 && _transfer_seq < _transfer_count) {
@@ -1147,6 +1156,12 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			if (wp.mission_type != _mission_type) {
 				PX4_WARN("WPM: Unexpected mission type (%d %d)", (int)wp.mission_type, (int)_mission_type);
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+
+				if (_state == MAVLINK_WPM_STATE_GETLIST) {
+					switch_to_idle_state();
+					_transfer_in_progress = false;
+				}
+
 				return;
 			}
 

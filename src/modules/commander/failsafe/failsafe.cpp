@@ -720,6 +720,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		_last_state_fd_esc_arming = checkFailsafe(_caller_id_fd_esc_arming, _last_state_fd_esc_arming,
 					    status_flags.fd_esc_arming_failure,
 					    ActionOptions(Action::Disarm).cannotBeDeferred());
+		_last_state_fd_motor_stuck = checkFailsafe(_caller_id_fd_motor_stuck, _last_state_fd_motor_stuck,
+					     status_flags.fd_motor_stuck_failure,
+					     ActionOptions(Action::Disarm).cannotBeDeferred());
 		_last_state_battery_unhealthy_spoolup = checkFailsafe(_caller_id_battery_unhealthy_spoolup,
 							_last_state_battery_unhealthy_spoolup, status_flags.battery_unhealthy,
 							ActionOptions(Action::Disarm).cannotBeDeferred());

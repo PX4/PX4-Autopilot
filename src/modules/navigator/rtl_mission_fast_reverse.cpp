@@ -98,6 +98,9 @@ void RtlMissionFastReverse::on_activation()
 		}
 	}
 
+	// Used once: an activation without an inactive cycle before it starts at the closest item.
+	_mission_index_prior_rtl = INT32_C(-1);
+
 	if (_land_detected_sub.get().landed) {
 		// already landed, no need to do anything, invalidate the position mission item.
 		_is_current_planned_mission_item_valid = false;
