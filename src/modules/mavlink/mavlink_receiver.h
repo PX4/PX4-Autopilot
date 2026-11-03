@@ -307,6 +307,7 @@ private:
 	void reset_parser_after_rejected_frame(uint8_t c);
 
 	void publish_hil_battery();
+	void publish_battery_status(uint8_t component_id, battery_status_s &battery);
 	void publish_rtcm_corrections(const uint8_t *data, size_t len);
 
 	px4::atomic_bool 	_should_exit{false};
@@ -367,7 +368,6 @@ private:
 
 	// ORB publications
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
-	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
