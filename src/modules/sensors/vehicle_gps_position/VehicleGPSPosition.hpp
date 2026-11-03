@@ -85,6 +85,9 @@ private:
 	void UpdateVehicleState();
 	void PublishStatus();
 
+	// One event per change of the receiver that vehicle_gnss carries
+	void reportSwitch(int previous, int selected, uint8_t reason) const;
+
 	// define max number of GPS receivers supported
 	static constexpr int GPS_MAX_RECEIVERS = 2;
 	static_assert(GPS_MAX_RECEIVERS == GnssSelector::GNSS_MAX_RECEIVERS,
@@ -183,6 +186,7 @@ private:
 	sensor_gnss_s _latest_sample[GPS_MAX_RECEIVERS] {}; ///< timestamp_sample corrected, timestamp 0 until it publishes
 	uint32_t _selected_device_id{0};
 	int8_t _published_instance{-1}; ///< receiver of the last vehicle_gnss sample, -1 before the first one
+	uint8_t _published_selection_count{0};
 	int8_t _preferred_instance{-1};
 	uint8_t _first_publication[GPS_MAX_RECEIVERS] {}; ///< 1 for the first receiver to publish, 2 for the next, 0 before
 	uint8_t _receivers_published{0};

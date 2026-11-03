@@ -272,8 +272,13 @@ void VehicleGPSPosition::Run()
 			gnss_output.timestamp = hrt_absolute_time();
 			_vehicle_gnss_pub.publish(gnss_output);
 
+			if ((_published_instance >= 0) && (gnss_output.selection_count != _published_selection_count)) {
+				reportSwitch(_published_instance, selected, gnss_output.selection_reason);
+			}
+
 			_selected_device_id = gnss_output.receiver.device_id;
 			_published_instance = selected;
+			_published_selection_count = gnss_output.selection_count;
 		}
 
 		PublishStatus();
@@ -281,6 +286,10 @@ void VehicleGPSPosition::Run()
 	} else if (_receivers_published > 0) {
 		// A receiver that stopped publishing still has to time out and lose availability when no other one publishes
 		_gnss_selector.update(hrt_absolute_time());
+		PublishStatus();
+
+	} else if (hasConfiguredPreference()) {
+		// A configured primary is reported offline even when no receiver ever published
 		PublishStatus();
 	}
 
@@ -509,6 +518,11 @@ void VehicleGPSPosition::PublishStatus()
 	const bool heading_aligned = attitude_valid && _estimator_status_flags_sub.copy(&estimator_status_flags)
 				     && estimator_status_flags.cs_yaw_align;
 
+	if (hasConfiguredPreference()) {
+		const int primary = resolvePreferredInstance();
+		status.primary_offline = (primary < 0) || !publishing[primary];
+	}
+
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		const GnssChecks &checks = _gnss_checks[i];
 		const sensor_gnss_s &sample = _latest_sample[i];
@@ -535,6 +549,25 @@ void VehicleGPSPosition::PublishStatus()
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_gnss_pub.publish(status);
+}
+
+void VehicleGPSPosition::reportSwitch(int previous, int selected, uint8_t reason) const
+{
+	// A failed receiver is a warning; a return to the preferred or a more accurate receiver is not
+	const bool failure = (reason == vehicle_gnss_s::SELECTION_TIMEOUT) || (reason == vehicle_gnss_s::SELECTION_UNHEALTHY);
+
+	/* EVENT
+	 * @description
+	 * The estimator uses the new receiver from now on.
+	 *
+	 * <profile name="dev">
+	 * Set a preferred receiver with <param>SENS_GNSS_PRIME</param>.
+	 * </profile>
+	 */
+	events::send<uint8_t, events::px4::enums::gnss_selection_reason_t, uint8_t>(events::ID("gnss_receiver_switched"),
+	{failure ? events::Log::Warning : events::Log::Info, events::LogInternal::Info},
+	"Switched from GPS {3} to GPS {1}: {2}", static_cast<uint8_t>(selected),
+	static_cast<events::px4::enums::gnss_selection_reason_t>(reason), static_cast<uint8_t>(previous));
 }
 
 matrix::Vector3f VehicleGPSPosition::antennaOffset(int instance) const
