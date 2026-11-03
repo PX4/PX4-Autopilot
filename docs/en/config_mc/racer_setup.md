@@ -10,7 +10,7 @@ Many things described here can also be applied to improve the flight performance
 :::
 
 ::: info
-A racer usually omits some sensors (e.g. GPS).
+A racer usually omits some sensors (e.g. GNSS).
 As a result, fewer failsafe options are available.
 :::
 
@@ -24,9 +24,9 @@ The minimal configuration is to use only a gyro and accelerometer sensor.
 If the board has an internal magnetometer, it should not be used (small racers are particularly prone to strong electromagnetic interference).
 :::
 
-Racers typically do not have a GPS as it adds some weight and is prone to damage during crashes (a GPS + external magnetometer must be placed on a GPS mast away from high currents to avoid magnetic interference, which unfortunately means that it is easy to break).
+Racers typically do not have a GNSS receiver as it adds some weight and is prone to damage during crashes (a GNSS receiver + external magnetometer must be placed on a GNSS mast away from high currents to avoid magnetic interference, which unfortunately means that it is easy to break).
 
-There are however some benefits in adding GPS, particularly for beginners:
+There are however some benefits in adding GNSS, particularly for beginners:
 
 - You can go into position hold and the vehicle will just stay in one place.
   This is handy if you lose the orientation or need a brake.
@@ -37,7 +37,7 @@ There are however some benefits in adding GPS, particularly for beginners:
   This can help to improve your acrobatic flight skills.
 
 ::: info
-During aggressive acrobatic maneuvers the GPS can lose its position fix for a short time.
+During aggressive acrobatic maneuvers the GNSS receiver can lose its position fix for a short time.
 If you switch into [position mode](../flight_modes_mc/position.md) during that time, [altitude mode](../flight_modes_mc/altitude.md) will be used instead until the position becomes valid again.
 :::
 
@@ -82,7 +82,7 @@ These parameters are important:
 
 ### Estimator
 
-If you use a GPS you can skip this section and use the default estimator.
+If you use a GNSS receiver you can skip this section and use the default estimator.
 Otherwise you should switch to the Q attitude estimator, which works without a magnetometer or barometer.
 
 To enable it set [ATT_EN = 1](../advanced_config/parameter_reference.md#ATT_EN), [EKF2_EN =0 ](../advanced_config/parameter_reference.md#EKF2_EN) and [LPE_EN = 0](../advanced_config/parameter_reference.md#LPE_EN) (for more information see [Switching State Estimators](../advanced/switching_state_estimators.md#how-to-enable-different-estimators)).
@@ -97,7 +97,7 @@ Then change the following parameters:
 ### Failsafe
 
 Configure [RC loss and low battery failsafe](../config/safety.md).
-If you do not use a GPS, set the failsafe to **Lockdown**, which turns off the motors.
+If you do not use a GNSS receiver, set the failsafe to **Lockdown**, which turns off the motors.
 Test RC loss on the bench without props attached by turning off the remote when the vehicle is armed.
 
 Make sure to assign a [kill switch](../config/safety.md#kill-switch) or an [arming switch](../config/safety.md#arm-disarm-switch).

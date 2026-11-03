@@ -1,10 +1,10 @@
 # RTK GNSS/GPS (PX4 Integration)
 
-[Real Time Kinematic](https://en.wikipedia.org/wiki/Real_Time_Kinematic) (RTK) provides centimeter-level GPS accuracy.
+[Real Time Kinematic](https://en.wikipedia.org/wiki/Real_Time_Kinematic) (RTK) provides centimeter-level GNSS accuracy.
 This page explains how RTK is integrated into PX4.
 
 :::tip
-Instructions for _using_ RTK GNSS are provided in [Hardware > RTK GPS](../gps_compass/rtk_gps.md).
+Instructions for _using_ RTK GNSS are provided in [Hardware > RTK GNSS](../gps_compass/rtk_gps.md).
 :::
 
 ## Overview
@@ -13,7 +13,7 @@ RTK uses measurements of the phase of the signal's carrier wave, rather than the
 It relies on a single reference station to provide real-time corrections, which can work with multiple mobile stations.
 
 Two RTK GNSS modules and a datalink are required to setup RTK with PX4.
-The fixed-position ground-based GPS unit is called the _Base_ and the in-air unit is called the _Rover_.
+The fixed-position ground-based GNSS receiver is called the _Base_ and the in-air unit is called the _Rover_.
 The Base unit connects to _QGroundControl_ (via USB) and uses the datalink to stream RTCM corrections to the vehicle (using the MAVLink [GPS_RTCM_DATA](https://mavlink.io/en/messages/common.html#GPS_RTCM_DATA) message).
 On the autopilot, `GPS_RTCM_DATA` packets are reassembled according to the MAVLink fragment and sequence fields before the RTCM byte stream is forwarded to the Rover unit, where it is processed to get the RTK solution.
 
@@ -30,9 +30,9 @@ Make sure to select the correct variant.
 
 ## Automatic Configuration
 
-The PX4 GPS stack automatically sets up the GPS modules to send and receive the correct messages over the UART or USB, depending on where the module is connected (to _QGroundControl_ or the autopilot).
+The PX4 GNSS stack automatically sets up the GNSS modules to send and receive the correct messages over the UART or USB, depending on where the module is connected (to _QGroundControl_ or the autopilot).
 
-As soon as the autopilot receives `GPS_RTCM_DATA` MAVLink messages, it reassembles fragmented packets when needed and then forwards the RTCM data to the attached GPS module over existing data channels (a dedicated channel for correction data is not required).
+As soon as the autopilot receives `GPS_RTCM_DATA` MAVLink messages, it reassembles fragmented packets when needed and then forwards the RTCM data to the attached GNSS module over existing data channels (a dedicated channel for correction data is not required).
 
 ::: info
 Firmware built with `CONFIG_GPS_SPARTN` (default off; enabled on selected targets such as ARK GNSS nodes and SITL) also frames [SPARTN](https://www.spartnformat.org/) corrections on that same inject path — for example u-blox PointPerfect streams carried in `GPS_RTCM_DATA` / `rtcm_corrections`. PX4 does not provision SPARTN decryption keys; those must already be configured on the receiver.
@@ -70,7 +70,7 @@ Current limitations:
 QGroundControl configures the RTK base station to output the following RTCM3.2 frames, each with 1 Hz, unless otherwise stated:
 
 - **1005** - Station coordinates XYZ for antenna reference point (Base position), 0.2 Hz.
-- **1077** - Full GPS pseudo-ranges, carrier phases, Doppler and signal strength (high resolution).
+- **1077** - Full GNSS pseudo-ranges, carrier phases, Doppler and signal strength (high resolution).
 - **1087** - Full GLONASS pseudo-ranges, carrier phases, Doppler and signal strength (high resolution).
 - **1230** - GLONASS code-phase biases.
 - **1097** - Full Galileo pseudo-ranges, carrier phases, Doppler and signal strength (high resolution)

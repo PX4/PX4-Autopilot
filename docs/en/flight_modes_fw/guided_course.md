@@ -11,7 +11,7 @@ This mode is suited to situations where an operator wants to guide a fixed-wing 
 
 ::: info
 
-- Requires a horizontal velocity estimate (e.g. GPS/dead-reckoning).
+- Requires a horizontal velocity estimate (e.g. GNSS/dead-reckoning).
   Course commands will be rejected if the velocity estimate is unavailable.
 - Manual control input is ignored.
 

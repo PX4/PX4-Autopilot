@@ -6,7 +6,7 @@ Test that optical flow works as expected
 
 ## Preflight
 
-Disconnect all GPS / compasses and ensure vehicle is using optical flow for navigation ([setup information here](../sensor/optical_flow.md))
+Disconnect all GNSS / compasses and ensure vehicle is using optical flow for navigation ([setup information here](../sensor/optical_flow.md))
 
 Ensure there are no other sources of positioning besides optical flow:
 

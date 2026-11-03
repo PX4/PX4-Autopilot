@@ -41,7 +41,7 @@ The QGC Arming Checks UI is available in the QGC Daily Build (QGC v4.2.0 and lat
 ## Flight Logs
 
 Preflight errors are also reported in _QGroundControl_ as `PREFLIGHT FAIL` messages.
-The `vehicle_gnss.failed_strict_checks` and `failed_relaxed_checks` fields [in the logs](../getting_started/flight_reporting.md) show which GPS quality checks the selected receiver fails at each set of thresholds, in [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) bit order, and `vehicle_gnss.strict` which set decides; `sensors_status_gnss` reports the same for each receiver.
+The `vehicle_gnss.failed_strict_checks` and `failed_relaxed_checks` fields [in the logs](../getting_started/flight_reporting.md) show which GNSS quality checks the selected receiver fails at each set of thresholds, in [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) bit order, and `vehicle_gnss.strict` which set decides; `sensors_status_gnss` reports the same for each receiver.
 
 Note that the [Arming Check Report](#qgc-arming-check-report) is a much easier way to determine reasons for failure, but the logs may be useful in versions prior to PX4 v1.14.
 
@@ -112,7 +112,7 @@ It should only be attempted if you have data showing it will improve the perform
 
 #### PREFLIGHT FAIL: EKF INTERNAL CHECKS
 
-- This error message is generated if the innovation magnitudes of either the horizontal GPS velocity, magnetic yaw, vertical GPS velocity or vertical position sensor (Baro by default but could be range finder or GPS if non-standard parameters are being used) are excessive. Innovations are the difference between the value predicted by the inertial navigation calculation and measured by the sensor.
+- This error message is generated if the innovation magnitudes of either the horizontal GNSS velocity, magnetic yaw, vertical GNSS velocity or vertical position sensor (Baro by default but could be range finder or GNSS if non-standard parameters are being used) are excessive. Innovations are the difference between the value predicted by the inertial navigation calculation and measured by the sensor.
 - Users should check the innovation levels in the log file to determine the cause. These can be found under the `ekf2_innovations` message.
   Common problems/solutions include:
   - IMU drift on warmup. May be resolved by restarting the autopilot. May require an IMU accel and gyro calibration.

@@ -44,7 +44,7 @@ Before starting the calibration:
    :::
 1. Connect via telemetry radio rather than USB if at all possible.
    USB can potentially cause significant magnetic interference.
-1. If using an external compass (or a combined GPS/compass module), make sure it is [mounted](../assembly/mount_gps_compass.md) as far as possible from other electronics in order to reduce magnetic interference, and in a _supported orientation_.
+1. If using an external compass (or a combined GNSS/compass module), make sure it is [mounted](../assembly/mount_gps_compass.md) as far as possible from other electronics in order to reduce magnetic interference, and in a _supported orientation_.
 
 ### Complete Calibration
 
@@ -174,7 +174,7 @@ Complete calibration provides the most accurate soft-iron compensation.
 Recalibrate the compass when:
 
 - _The compass module or its mounting orientation has changed._
-  This includes replacing the GPS or mag unit, rotating the mast, or altering how the module is fixed to the airframe.
+  This includes replacing the GNSS receiver or mag unit, rotating the mast, or altering how the module is fixed to the airframe.
 - _The vehicle has been exposed to a strong magnetic disturbance._
   Examples include transport or storage near large steel structures, welding operations near the airframe, or operation close to high-current equipment.
 - _Structural, wiring, or payload changes may have altered the magnetic field around the sensors._
@@ -211,7 +211,7 @@ See [Logging](../dev_log/logging.md) for more information.
 
 ## Further Information
 
-- [Peripherals > GPS & Compass](../gps_compass/index.md)
+- [Peripherals > GNSS & Compass](../gps_compass/index.md)
 - [Basic Assembly](../assembly/index.md) (setup guides for each flight controller)
 - [Compass Power Compensation](../advanced_config/compass_power_compensation.md) (Advanced Configuration)
 - [QGroundControl User Guide > Sensors](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/sensors_px4.html#compass)

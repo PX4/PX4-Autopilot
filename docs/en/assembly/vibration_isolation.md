@@ -18,7 +18,7 @@ Further isolation may be needed in order to reduce vibration to the level that s
 
 A few of simple steps that may reduce vibrations are:
 
-- Make sure everything is firmly attached on the vehicle (landing gear, GPS mast, etc.).
+- Make sure everything is firmly attached on the vehicle (landing gear, GNSS mast, etc.).
 - Use balanced propellers.
 - Make sure to use high-quality components for the propellers, motors, ESC and airframe.
   Each of these components can make a big difference.

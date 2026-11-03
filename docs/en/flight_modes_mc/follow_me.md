@@ -14,7 +14,7 @@ _Follow Me_ mode allows a multicopter to autonomously hold position and altitude
 - Mode requires wind and flight time are within allowed limits (specified via parameters).
 - This mode is currently only supported on multicopter (or VTOL in MC mode).
 - The follow target must also be able to supply position information.
-- Follow-me mode is supported by _QGroundControl_ on Android devices with a GPS module, and [MAVSDK](#follow-me-with-mavsdk).
+- Follow-me mode is supported by _QGroundControl_ on Android devices with a GNSS module, and [MAVSDK](#follow-me-with-mavsdk).
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
 
@@ -88,7 +88,7 @@ The following flight precautions should be observed:
 
 ![Follow-me QGC Example](../../assets/flight_modes/followme_qgc_example.jpg)
 
-_Follow Me_ mode is supported using _QGroundControl_ as a target on ground station hardware that has a GPS module.
+_Follow Me_ mode is supported using _QGroundControl_ as a target on ground station hardware that has a GNSS module.
 The recommended configuration is a USB OTG-capable Android device with two telemetry radios.
 
 To setup _Follow Me_ mode:
@@ -96,7 +96,7 @@ To setup _Follow Me_ mode:
 - Connect a telemetry radio to your ground station device and another to the vehicle (this allows positioning information to be relayed between the two radios).
 - Disable sleep-mode on your Android device:
   - This setting can usually be found under: **Settings > Display**.
-  - It is important that you set your Android device to not go to sleep as this could cause the GPS signal to cease being emitted at regular intervals.
+  - It is important that you set your Android device to not go to sleep as this could cause the GNSS signal to cease being emitted at regular intervals.
 - Takeoff to a height of at least 2-3 metres (recommended even though auto-takeoff is supported).
   - Set the vehicle on the ground, press the safety switch and step back at least 10 meters.
   - Arm the vehicle and takeoff.
@@ -135,13 +135,13 @@ The altitude control mode determine whether the vehicle altitude is relative to 
   - Note that height is relative to the ground underneath the vehicle, not the follow target.
     The drone may not follow altitude changes of the target!
 
-- `3D tracking` mode makes the drone follow at a height relative to the follow target, as supplied by its GPS sensor.
+- `3D tracking` mode makes the drone follow at a height relative to the follow target, as supplied by its GNSS sensor.
   This adapts to target altitude changes, such as when you walk up a hill.
 
 :::warning
 Do not set the **Altitude mode ([FLW_TGT_ALT_M](#FLW_TGT_ALT_M)**) to `3D Tracking` when using QGC for Android (or more generally, without checking that [FOLLOW_TARGET.altitude](https://mavlink.io/en/messages/common.html#FOLLOW_TARGET) is an AMSL value).
 
-The MAVLink [FOLLOW_TARGET](https://mavlink.io/en/messages/common.html#FOLLOW_TARGET) message definition expects an altitude relative to mean sea level (AMSL) while QGC on Android is sending an altitude relative to the GPS ellipsoid.
+The MAVLink [FOLLOW_TARGET](https://mavlink.io/en/messages/common.html#FOLLOW_TARGET) message definition expects an altitude relative to mean sea level (AMSL) while QGC on Android is sending an altitude relative to the GNSS ellipsoid.
 This can differ as much as 200 meters!
 
 The drone probably won't crash due to the built-in minimum safety altitude limit (1 meter), but it may fly much higher than expected.
@@ -157,7 +157,7 @@ The follow-me behavior can be configured using the following parameters:
 | <a id="FLW_TGT_HT"></a>[FLW_TGT_HT](../advanced_config/parameter_reference.md#FLW_TGT_HT)                | Vehicle follow-me height, in metres. Note that this height is fixed _relative to the home/arming position_ (not the target vehicle). Default and minimum height is 8 meters (about 26 ft)                                                                                                                                                                  |
 | <a id="FLW_TGT_DST"></a>[FLW_TGT_DST](../advanced_config/parameter_reference.md#FLW_TGT_DST)             | Vehicle/ground station separation in the _horizontal_ (x,y) plane, in metres. Minimum allowed separation is 1 meter. Default distance is 8 meters (about 26 ft).                                                                                                                                                                                           |
 | <a id="FLW_TGT_FA"></a>[FLW_TGT_FA](../advanced_config/parameter_reference.md#FLW_TGT_FA)                | Follow angle relative to the target's heading, in degrees. If a value out of the range [`-180.0`, `+180.0`] is entered, it will get automatically wrapped and applied (e.g. `480.0` will be converted to `120.0`)                                                                                                                                          |
-| <a id="FLW_TGT_ALT_M"></a>[FLW_TGT_ALT_M](../advanced_config/parameter_reference.md#FLW_TGT_ALT_M)       | Altitude control mode. <br>- `0` = 2D Tracking (Altitude Fixed) <br>- `1` = 2D Tracking + Terrain Following <br>- `2` = 3D Tracking of the target's GPS altitude **WARNING: [DO NOT USE WITH QGC for Android](#altitude-control-mode)**.                                                                                                                   |
+| <a id="FLW_TGT_ALT_M"></a>[FLW_TGT_ALT_M](../advanced_config/parameter_reference.md#FLW_TGT_ALT_M)       | Altitude control mode. <br>- `0` = 2D Tracking (Altitude Fixed) <br>- `1` = 2D Tracking + Terrain Following <br>- `2` = 3D Tracking of the target's GNSS altitude **WARNING: [DO NOT USE WITH QGC for Android](#altitude-control-mode)**.                                                                                                                  |
 | <a id="FLW_TGT_MAX_VEL"></a>[FLW_TGT_MAX_VEL](../advanced_config/parameter_reference.md#FLW_TGT_MAX_VEL) | Maximum relative velocity for orbital motion around the target, in m/s.<br>- 10 m/s has proven to be a sweet spot for aggressiveness vs smoothness.<br>- Setting it to higher value means the orbit trajectory around the target will move faster, but if the drone is physically not capable of achieving that speed, it leads to an aggressive behavior. |
 | <a id="FLW_TGT_RS"></a>[FLW_TGT_RS](../advanced_config/parameter_reference.md#FLW_TGT_RS)                | Dynamic filtering algorithm responsiveness that filters incoming target location.<br>- `0.0` = Very sensitive to movements and noisy estimates of position, velocity and acceleration.<br>- `1.0` = Very stable but not responsive filter                                                                                                                  |
 
@@ -165,9 +165,9 @@ The follow-me behavior can be configured using the following parameters:
 
 1. Set the [follow distance](#FLW_TGT_DST) to more than 12 meters (8 meters is a "recommended minimum").
 
-   There is an inherent position bias (3 ~ 5 meters) between the target and the drone's GPS sensor, which makes the drone follow a 'ghost target' somewhere near the actual target.
+   There is an inherent position bias (3 ~ 5 meters) between the target and the drone's GNSS sensor, which makes the drone follow a 'ghost target' somewhere near the actual target.
    This is more obvious when the follow distance is very small.
-   We recommend that the follow distance is set to be large enough such that the GPS bias is not significant.
+   We recommend that the follow distance is set to be large enough such that the GNSS bias is not significant.
 
 2. The speed at which you can change the follow angle depends on the [maximum tangential velocity](#FLW_TGT_MAX_VEL) setting.
 
@@ -181,7 +181,7 @@ The follow-me behavior can be configured using the following parameters:
 
 ## Known Issues
 
-- The SiK 915 Mhz [telemetry radio](../telemetry/sik_radio.md) is known to interfere with the GPS signal being received by some Android devices.
+- The SiK 915 Mhz [telemetry radio](../telemetry/sik_radio.md) is known to interfere with the GNSS signal being received by some Android devices.
   Keep the radio and Android device as far apart as possible when using the follow target mode to avoid interference.
 - QGC for Android reports an incorrect altitude (altitude above elipsoid rather than AMSL).
   The follow altitude can be off by up to 200m!

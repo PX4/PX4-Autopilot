@@ -3,13 +3,13 @@
 A GNSS system is needed for missions, and some other automatic and manual/assisted modes.
 PX4 supports Global Navigation Satellite Systems (GNSS) such as GPS, GLONASS, Galileo, Beidou, QZSS and SBAS, etc. using receivers that communicate via the u-blox, MTK Ashtech or Emlid protocols, or via UAVCAN.
 
-Up to two GPS modules can be connected using either a UART or the CAN bus:
+Up to two GNSS modules can be connected using either a UART or the CAN bus:
 
 - A primary [GNSS module](../gps_compass/#supported-gnss) that usually also includes a [compass/magnetometer](../gps_compass/magnetometer.md), [buzzer](../getting_started/px4_basic_concepts.md#buzzer), [safety switch](../getting_started/px4_basic_concepts.md#safety-switch), and [UI LED](../getting_started/led_meanings.md#ui-led).
 - An optional secondary GNSS/compass module; PX4 [selects](#multiple-receivers) which receiver it uses.
   This may include a buzzer, safety switch, LEDs, but these are not used by PX4.
 
-![GPS + Compass](../../assets/hardware/gps/gps_compass.jpg)
+![GNSS + Compass](../../assets/hardware/gps/gps_compass.jpg)
 
 ::: info
 PX4 also supports [Real Time Kinematic (RTK)](../gps_compass/rtk_gps.md) and **Post-Processing Kinematic (PPK)** GNSS Receivers, which extend GNSS systems to centimetre-level precision.
@@ -22,7 +22,7 @@ PX4 should work with any unit that communicates via the u-blox, MTK Ashtech or E
 This table contains non-RTK GNSS units (most of which also have a compass).
 These have been tested by the PX4 dev team, or which are popular within the PX4 community.
 
-| Device                                                       |     GPS     |          Compass          | [CAN](../dronecan/index.md) | Buzzer / SafeSw / LED | Notes                       |
+| Device                                                       |     GNSS    |          Compass          | [CAN](../dronecan/index.md) | Buzzer / SafeSw / LED | Notes                       |
 | :----------------------------------------------------------- | :---------: | :-----------------------: | :-------------------------: | :-------------------: | :-------------------------- |
 | [ARK GPS](../dronecan/ark_gps.md)                            |     M9N     |          BMM150           |              ✓              |           ✓           | + Baro, IMU                 |
 | [ARK DAN GPS](../gps_compass/ark_dan_gps.md)                 |  DAN-F10N   |          IIS2MDC          |                             |           ✓           |                             |
@@ -68,7 +68,7 @@ Notes:
 
 - ✓ or a specific part number indicate that a features is supported, while ✘ or empty show that the feature is not supported.
   "?" indicates "unknown".
-- Where possible and relevant the part name is used (i.e. ✓ in the GPS column indicates that a GPS module is present but the part is not known).
+- Where possible and relevant the part name is used (i.e. ✓ in the GNSS column indicates that a GNSS module is present but the part is not known).
 - The list may omit some discontinued hardware that is still supported (check earlier versions for info about discontinued modules).
   Removed items include:
   - _Here_ GPS
@@ -94,7 +94,7 @@ Because of this standardization, many popular GNSS/Compass modules plug directly
 If you're using GNSS/Compass modules that connect via generic UARTs and serial protocols like I2C:
 
 - The primary GNSS/Compass module should be connected to the 10-pin port labelled `GPS1`, `GPS&SAFETY`, or `GPS` (this is port described as "Full GPS + Safety Switch Port" in the connector standard).
-  The GPS should incorporate a [buzzer](../getting_started/px4_basic_concepts.md#buzzer), [safety switch](../getting_started/px4_basic_concepts.md#safety-switch), and [UI LED](../getting_started/led_meanings.md#ui-led).
+  The GNSS receiver should incorporate a [buzzer](../getting_started/px4_basic_concepts.md#buzzer), [safety switch](../getting_started/px4_basic_concepts.md#safety-switch), and [UI LED](../getting_started/led_meanings.md#ui-led).
 - An (optional) secondary module can be connected to the 6-pin `GPS2` port, if present (this is "Basic GPS Port" in the standard).
 - The ports are generally plug-n-play for u-blox modules (only).
 
@@ -107,7 +107,7 @@ However if you do this then you will need to [configure the ports](../peripheral
 
 For [DroneCAN](../dronecan/index.md#supported-hardware) GNSS/compass modules:
 
-- DroneCan GPS modules are connected to CAN-bus ports, which are 4-pin ports labeled `CAN1` or `CAN2`.
+- DroneCan GNSS modules are connected to CAN-bus ports, which are 4-pin ports labeled `CAN1` or `CAN2`.
 
 ### Other Flight Controllers/GNSS Modules
 
@@ -123,12 +123,12 @@ Pinouts for other controllers and the GNSS modules should be included in their m
 
 ## GNSS Configuration
 
-The default configuration for GPS module connected via the GPS serial port is provided below.
+The default configuration for GNSS module connected via the GNSS serial port is provided below.
 Additional device-specific configuration may be provided in PX4 or manufacturer device documentation (e.g. [Trimble MB-Two > Configuration](../gps_compass/rtk_gps_trimble_mb_two.md#configuration)).
 
-### Primary GPS Configuration (UART)
+### Primary GNSS Configuration (UART) {#primary-gps-configuration-uart}
 
-Primary GPS configuration on Pixhawk is handled transparently for U-Blox GPS modules — simply connect the GPS module to the port labeled `GPS1`, `GPS&SAFETY`, or `GPS` (if there is only one GPS port), and everything should work.
+Primary GNSS configuration on Pixhawk is handled transparently for U-Blox GNSS modules — simply connect the GNSS module to the port labeled `GPS1`, `GPS&SAFETY`, or `GPS` (if there is only one GPS port), and everything should work.
 
 The default [Serial Port Configuration](../peripherals/serial_configuration.md#default_port_mapping) configures `GPS1` as a GPS port using [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG), sets the protocol to `u-blox` with [GPS_1_PROTOCOL](../advanced_config/parameter_reference.md#GPS_1_PROTOCOL), and a baud rate of `0: Auto` with [SER_GPS1_BAUD](../advanced_config/parameter_reference.md#SER_GPS1_BAUD).
 
@@ -137,14 +137,14 @@ For _Trimble MB-Two_ you will also need to modify `SER_GPS1_BAUD` to set the rat
 
 <a id="dual_gps"></a>
 
-### Secondary GPS Configuration (UART)
+### Secondary GNSS Configuration (UART) {#secondary-gps-configuration-uart}
 
-To use a secondary GPS, you will generally attach it to the port named `GPS2`, if present, and otherwise attach it to any free UART port.
+To use a secondary GNSS receiver, you will generally attach it to the port named `GPS2`, if present, and otherwise attach it to any free UART port.
 The port may be pre-configured, but unlike the primary port, this is not guaranteed.
 
 To ensure the port is set up correctly perform a [Serial Port Configuration](../peripherals/serial_configuration.md) to assign [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to the selected port.
 
-The following steps show how to configure a secondary GPS on the `GPS 2` port in _QGroundControl_:
+The following steps show how to configure a secondary GNSS receiver on the `GPS 2` port in _QGroundControl_:
 
 1. [Find and set](../advanced_config/parameters.md) the parameter [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to **GPS 2**.
    - Open _QGroundControl_ and navigate to the **Vehicle Setup > Parameters** section.
@@ -209,10 +209,10 @@ With both IDs at 0, `SENS_GNSSn_*` applies to `sensor_gnss` instance `n`, which 
 [GNSS_REQ_SACC]: ../advanced_config/parameter_reference.md#GNSS_REQ_SACC
 [SYS_HAS_NUM_GNSS]: ../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS
 
-### Configuring GPS as Yaw/Heading Source
+### Configuring GNSS as Yaw/Heading Source {#configuring-gps-as-yaw-heading-source}
 
-GPS can be used as a source for yaw fusion when using modules where _yaw output is supported by the device_.
-This is documented in [RTK GPS > Configuring GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source).
+GNSS can be used as a source for yaw fusion when using modules where _yaw output is supported by the device_.
+This is documented in [RTK GNSS > Configuring GNSS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source).
 
 ## Compass Configuration
 
@@ -227,32 +227,32 @@ It is also streamed via MAVLink using messages such as [GPS_RAW_INT](https://mav
 Some of GNSS terms that are useful for interpreting the data include:
 
 - `DOP`: Dilution of position (dimensionless).
-  This is a measure of the geometric quality of satellite positions and their effect on the precision of the GPS receiver's calculations.
+  This is a measure of the geometric quality of satellite positions and their effect on the precision of the GNSS receiver's calculations.
 - `EPH`: Standard deviation of horizontal position error (metres).
-  This represents the uncertainty in the GPS fix latitude and longitude.
+  This represents the uncertainty in the GNSS fix latitude and longitude.
 - `EPV`: Standard deviation of vertical position error (metres).
-  This represents the uncertainty in the GPS fix altitude.
+  This represents the uncertainty in the GNSS fix altitude.
 
 ### DOP vs EPH/EPV
 
 DOP is a measure of the potential for high accuracy based on satellite positions.
-EPH/EPV are more comprehensive: they are direct estimates of the GPS position error and consider both satellite geometry and other error sources like signal noise and atmospheric effects.
+EPH/EPV are more comprehensive: they are direct estimates of the GNSS position error and consider both satellite geometry and other error sources like signal noise and atmospheric effects.
 It is possible to have low DOP (good satellite geometry) but still have high EPH/EPV if there is significant signal noise or atmospheric interference.
 
-EPH/EPV values therefore provide a more immediate and practical estimate of the actual GPS accuracy you can expect under current conditions.
+EPH/EPV values therefore provide a more immediate and practical estimate of the actual GNSS accuracy you can expect under current conditions.
 
 ### GNSS Position Fusion
 
 GNSS position fusion will not begin until yaw alignment is established.
-If a magnetometer is available, the EKF aligns yaw using the magnetic heading, allowing GPS position fusion to start soon after boot.
-If no magnetometer is present, the system must rely on GPS yaw (from a dual-antenna setup) or movement-based yaw estimation.
-Until one of these provides a valid heading, the EKF will not start GPS position fusion, and the vehicle will remain in a “no position” state even though attitude data is valid.
+If a magnetometer is available, the EKF aligns yaw using the magnetic heading, allowing GNSS position fusion to start soon after boot.
+If no magnetometer is present, the system must rely on GNSS yaw (from a dual-antenna setup) or movement-based yaw estimation.
+Until one of these provides a valid heading, the EKF will not start GNSS position fusion, and the vehicle will remain in a “no position” state even though attitude data is valid.
 This behavior prevents large position errors that could occur when the yaw reference is uncertain.
 
 ## Developer Information
 
-- GPS/RTK-GPS
-  - [RTK-GPS](../advanced/rtk_gps.md)
+- GNSS/RTK-GNSS
+  - [RTK-GNSS](../advanced/rtk_gps.md)
   - [PPS Time Synchronization](../advanced/pps_time_sync.md)
   - [GPS driver](../modules/modules_driver.md#gps)
   - [PPS driver](../modules/modules_driver.md#pps-capture)

@@ -1,7 +1,7 @@
 # Visual Inertial Odometry (VIO)
 
 _Visual Inertial Odometry_ (VIO) is a [computer vision](../computer_vision/index.md) technique used for estimating the 3D _pose_ (local position and orientation) and _velocity_ of a moving vehicle relative to a _local_ starting position.
-It is commonly used to navigate a vehicle in situations where GPS is absent or unreliable (e.g. indoors, or when flying under a bridge).
+It is commonly used to navigate a vehicle in situations where GNSS is absent or unreliable (e.g. indoors, or when flying under a bridge).
 
 VIO uses [Visual Odometry](https://en.wikipedia.org/wiki/Visual_odometry) to estimate vehicle _pose_ from camera images, combined with inertial measurements from the vehicle IMU (to correct for errors associated with rapid vehicle movement resulting in poor image capture).
 
@@ -146,7 +146,7 @@ If it is connecting properly common problems/solutions are:
   - Make sure the orientation of the camera matches the transform in the launch file.
     Use the _QGroundControl_ [MAVLink Inspector](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_inspector.html) to verify that the velocities in the `ODOMETRY` message coming from MAVROS are aligned to the FRD coordinate system.
 
-- **Problem:** I want to use vision position to do loop closing, and also want to run GPS.
+- **Problem:** I want to use vision position to do loop closing, and also want to run GNSS.
   - This is really difficult, because when they disagree it will confuse the EKF.
     From testing it is more reliable to just use vision velocity (if you figure out a way to make this configuration reliable, let us know).
 
