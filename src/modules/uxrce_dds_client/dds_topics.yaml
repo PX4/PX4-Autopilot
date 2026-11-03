@@ -248,3 +248,8 @@ subscriptions_multi:
     type: px4_msgs::msg::AuxGlobalPosition
     route_field: id
     max_instances: 4
+
+  - topic: /fmu/in/rtcm_corrections
+    type: px4_msgs::msg::RtcmData
+    route_field: device_id
+    max_instances: 4
