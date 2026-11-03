@@ -276,7 +276,7 @@ Note that if there is no horizontal aiding source anymore, the position estimate
 
 Triggers on either of:
 
-- **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
+- **Count drop**: receivers passing their [quality checks](../advanced_config/tuning_the_ecl_ekf.md#gnss-performance-requirements) drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
 - **Position divergence**: a receiver disagrees with the selected one by more than [COM_GNSS_H_MAX](#COM_GNSS_H_MAX) horizontally or [COM_GNSS_V_MAX](#COM_GNSS_V_MAX) vertically, after their antenna positions ([SENS_GNSS0_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS1_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX)). Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
   The limit widens to three times the receivers' combined reported accuracy where that is larger.
   Until the heading is aligned only the distance between the receivers is compared, so swapped antennas are detected only after alignment, and only with a limit below twice the antenna separation.
