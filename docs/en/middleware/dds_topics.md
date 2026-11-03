@@ -93,6 +93,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | Topic                       | Type                                                                 | Route Field | Max Instances |
 | --------------------------- | -------------------------------------------------------------------- | ----------- | ------------- |
 | /fmu/in/aux_global_position | [px4_msgs::msg::AuxGlobalPosition](../msg_docs/AuxGlobalPosition.md) | `id`        | 4             |
+| /fmu/in/rtcm_corrections    | [px4_msgs::msg::RtcmData](../msg_docs/RtcmData.md)                   | `device_id` | 4             |
 
 ## Not Exported
 
@@ -263,7 +264,6 @@ They are not build into the module, and hence are neither published or subscribe
 - [RoverRateStatus](../msg_docs/RoverRateStatus.md)
 - [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md)
 - [Rpm](../msg_docs/Rpm.md)
-- [RtcmData](../msg_docs/RtcmData.md)
 - [RtlStatus](../msg_docs/RtlStatus.md)
 - [RtlTimeEstimate](../msg_docs/RtlTimeEstimate.md)
 - [SatelliteInfo](../msg_docs/SatelliteInfo.md)
