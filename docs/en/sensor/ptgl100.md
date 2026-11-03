@@ -2,15 +2,8 @@
 
 <Badge type="tip" text="main (PX4 v2.0)" />
 
-The [JRT PTGL-100](https://www.jrt-measure.com/) is a 905±5 nm laser [rangefinder](../sensor/rangefinders.md) with a specified measurement range of 0.2–100 m (100 m against a 30% reflectance target) and a measurement rate of 100 Hz.
+The [JRT PTGL-100](https://www.jrt-measure.com/) is a time-of-flight (ToF) laser [rangefinder](../sensor/rangefinders.md) operating at 905±5 nm, with a specified measurement range of 0.2–100 m (100 m against a 30% reflectance target) and a measurement rate of 100 Hz.
 It connects to the flight controller using a UART (serial) port.
-
-![JRT PTGL-100 laser rangefinder](../../assets/hardware/sensors/ptgl100/ptgl100_hero.jpg)
-
-The image above is a product rendering from the manufacturer's manual.
-
-The module must be set to 460800 baud, 8N1, with no flow control.
-PX4 does not change the module's baud rate.
 
 ::: info
 The driver is not included in the firmware for most boards.
@@ -21,12 +14,12 @@ The rangefinder has been tested on the [Amovlab Flycore](../flight_controller/am
 
 ## Specifications {#specifications}
 
-- **Technology:** Laser, 905±5 nm
+- **Technology:** ToF (IR laser), 905±5 nm
 - **Range:** 0.2 m (90% reflectance) – 100 m (30% reflectance)
 - **Update rate:** 100 Hz
 - **Beam divergence:** ≤5 mrad (typical)
 - **Accuracy:** ±3 cm up to 30 m, ±7 cm at 30–50 m, ±15 cm at 50–100 m (90% reflectance target)
-- **Interface:** UART, 3.3 V TTL, 460800 baud (factory)
+- **Interface:** UART, 3.3 V TTL, 460800 baud (factory default)
 - **Input voltage:** 3.3–5 V DC
 - **Power consumption:** ≤0.45 W at 3.3 V and 25 °C (≤0.56 W at 60 °C)
 - **Dimensions:** 10.7 × 16.8 × 22 mm
@@ -38,6 +31,15 @@ The rangefinder has been tested on the [Amovlab Flycore](../flight_controller/am
 ## Where to Buy {#store}
 
 For PTGL-100 purchasing enquiries, contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com), the sales address listed in the manual.
+
+## Sensor Configuration {#sensor_configuration}
+
+PTGL-100 modules ship with a factory-default baud rate of 460800.
+No baud-rate change is needed for a factory-configured module.
+The PX4 driver uses 460800 baud, 8N1, with no flow control, and does not change the module's baud rate.
+
+To confirm or change the module's baud-rate configuration, contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) for instructions.
+The module must use 460800 baud to communicate with the PX4 driver.
 
 ## Hardware Setup {#hardware_setup}
 
@@ -60,13 +62,15 @@ For any other direction, set [SENS_PTGL100_ROT](../advanced_config/parameter_ref
 ### Wiring {#wiring}
 
 The manufacturer's packing list includes one module and one power cable.
-The tested setup uses a GH1.25 connector at the Flycore end and a six-pin SH1.25 connector at the module end.
+The module uses a six-pin `HC-0.8-6PWT` connector with a 0.8 mm pitch.
+The Flycore end of the tested setup uses a JST-GH connector with a 1.25 mm pitch.
+An adapter cable is required to connect the module to the flight controller; the connectors do not mate directly.
 
 The PTGL-100 can be connected to any unused serial port (UART), such as `TELEM2`, `TELEM3` or `GPS2`.
 UART signals use 3.3 V TTL levels.
 The module requires a 3.3–5 V supply, and draws up to 0.45 W (0.56 W at 60 °C).
 
-The Flycore hardware test used the following four connections to [TELEM3](../flight_controller/amovlab_flycore.md#telem3-port):
+Connect the module to Flycore [TELEM3](../flight_controller/amovlab_flycore.md#telem3-port) as follows:
 
 | Module Pin | Module Signal | Flycore TELEM3 Pin | Flycore TELEM3 Signal |
 | ---------- | ------------- | ------------------ | --------------------- |
@@ -74,8 +78,9 @@ The Flycore hardware test used the following four connections to [TELEM3](../fli
 | 1          | GND           | 3                  | GND                   |
 | 4          | TXD           | 1                  | RX                    |
 | 5          | RXD           | 2                  | TX                    |
+| 6          | EN            | 3                  | GND                   |
 
-Pin 6 (`EN`) was left unconnected in the tested setup.
+Connect pin 6 (`EN`) to GND for normal operation; do not leave it unconnected.
 
 Both TX and RX are required because PX4 sends the continuous measurement command.
 
@@ -137,6 +142,8 @@ The driver rejects corrupt frames and does not publish distance bytes from faile
 During a communication outage it does not repeat an old distance with a new timestamp.
 After one second without a complete measurement reply it retries the continuous measurement command, at most once per second.
 Measurement failure replies count as communication with the module and are reported separately from communication errors.
+If no measurement reply has been received, or the last reply is at least one second old, `ptgl100 status` prompts you to check the sensor's power, EN connection to GND, TX/RX wiring and 460800 baud setting.
+The driver uses a fixed baud rate and does not automatically detect or change the module's baud rate.
 
 To run the driver manually, first disable automatic startup (set [SENS_PTGL100_CFG](../advanced_config/parameter_reference.md#SENS_PTGL100_CFG) to `Disabled` and reboot), then run:
 
@@ -172,9 +179,9 @@ It uses a pseudo-terminal in a temporary directory and does not require a connec
 ### Protocol
 
 The driver uses the `0x68` (single) and `0x69` (continuous) measurement commands, and rejects measurement replies that use the older `0x88`/`0x89` commands.
-For the frame format and checksums, see the command table on [printed pages 6–7 (PDF pages 8–9)](../../assets/hardware/sensors/ptgl100/ptgl100_manual.pdf#page=8) of the manual.
+For the frame format and checksums, request the PTGL-100 User and Maintenance Manual from JRT (see [Further Information](#further_information)).
 
 ## Further Information {#further_information}
 
 - [ptgl100 driver](../modules/modules_driver_distance_sensor.md#ptgl100) (module reference)
-- [PTGL-100 User and Maintenance Manual (Chinese)](../../assets/hardware/sensors/ptgl100/ptgl100_manual.pdf)
+- Contact [JRT](https://www.jrt-measure.com/) at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) to obtain the latest PTGL-100 User and Maintenance Manual (Chinese).

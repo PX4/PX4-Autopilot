@@ -298,7 +298,15 @@ int PTGL100::print_status()
 		PX4_INFO("no successful measurement yet");
 	}
 
-	PX4_INFO("last measurement status: %u", _last_measurement_status);
+	if (_last_measurement_reply != 0) {
+		PX4_INFO("last measurement status: %u, reply age: %.3f s", _last_measurement_status,
+			 (double)hrt_elapsed_time(&_last_measurement_reply) / 1e6);
+	}
+
+	if (_last_measurement_reply == 0 || hrt_elapsed_time(&_last_measurement_reply) >= RETRY_INTERVAL) {
+		PX4_WARN("no recent measurement replies; retrying at 460800 baud");
+		PX4_INFO("check sensor power, EN connected to GND, TX/RX wiring, and sensor baud rate (460800)");
+	}
 
 	if (_self_test_received) {
 		PX4_INFO("self test status: %u, error: 0x%02x", _self_test_status, _self_test_error);
