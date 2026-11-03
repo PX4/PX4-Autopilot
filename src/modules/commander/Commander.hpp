@@ -65,6 +65,7 @@
 #include <uORB/topics/action_request.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/iridiumsbd_status.h>
@@ -297,6 +298,7 @@ private:
 	// commander publications
 	actuator_armed_s        _actuator_armed{};
 	vehicle_control_mode_s  _vehicle_control_mode{};
+	uint8_t _controllable_axes{vehicle_control_mode_s::CONTROLLABLE_AXIS_ALL}; ///< last report from the control allocator
 	vtol_vehicle_status_s	_vtol_vehicle_status{};
 
 	// Subscriptions
@@ -308,6 +310,7 @@ private:
 	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription					_vehicle_command_mode_executor_sub{ORB_ID(vehicle_command_mode_executor)};
 	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription					_control_allocator_status_sub{ORB_ID(control_allocator_status)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
