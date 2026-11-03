@@ -114,8 +114,6 @@ private:
 
 	uint8_t			_reached_sent_count{0};			///< last time when the vehicle reached a waypoint
 
-	bool			_int_mode{true};			///< Use accurate int32 instead of float
-
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
 	static dm_item_t	_mission_dataman_id;			///< Global Dataman storage ID for active mission
@@ -251,35 +249,31 @@ private:
 	void handle_mission_request_list(const mavlink_message_t *msg);
 
 	void handle_mission_request(const mavlink_message_t *msg);
-	void handle_mission_request_int(const mavlink_message_t *msg);
-	void handle_mission_request_both(const mavlink_message_t *msg);
 
 	void handle_mission_count(const mavlink_message_t *msg);
 
+	void handle_mission_item_float(const mavlink_message_t *msg);
 	void handle_mission_item(const mavlink_message_t *msg);
-	void handle_mission_item_int(const mavlink_message_t *msg);
-	void handle_mission_item_both(const mavlink_message_t *msg);
 
 	void handle_mission_clear_all(const mavlink_message_t *msg);
 
 	/**
-	 * Parse mavlink MISSION_ITEM message to get mission_item_s.
+	 * Parse mavlink MISSION_ITEM_INT message to get mission_item_s.
 	 *
-	 * @param mavlink_mission_item pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
-	 *			       depending on _int_mode
+	 * @param mavlink_mission_item pointer to the received item
 	 * @param mission_item	       pointer to mission_item to construct
 	 */
-	int parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
+	int parse_mavlink_mission_item(const mavlink_mission_item_int_t *mavlink_mission_item,
+				       struct mission_item_s *mission_item);
 
 	/**
-	 * Format mission_item_s as mavlink MISSION_ITEM(_INT) message.
+	 * Format mission_item_s as mavlink MISSION_ITEM_INT message.
 	 *
 	 * @param mission_item:		pointer to the existing mission item
-	 * @param mavlink_mission_item: pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
-	 *				depending on _int_mode.
+	 * @param mavlink_mission_item: pointer to the item to fill
 	 */
 	int format_mavlink_mission_item(const struct mission_item_s *mission_item,
-					mavlink_mission_item_t *mavlink_mission_item);
+					mavlink_mission_item_int_t *mavlink_mission_item);
 
 	/**
 	 * set _state to idle (and do necessary cleanup)
@@ -299,7 +293,7 @@ private:
 	 * params[1] and params[4], you need to call with 'start_idx = 2' and 'end_idx = 5'!
 	 */
 	void copy_params_from_mavlink_to_mission_item(struct mission_item_s *mission_item,
-			const mavlink_mission_item_t *mavlink_mission_item, int8_t start_idx = 1, int8_t end_idx = 7);
+			const mavlink_mission_item_int_t *mavlink_mission_item, int8_t start_idx = 1, int8_t end_idx = 7);
 
 	/**
 	 * Update crc calculation including new mission item
@@ -307,5 +301,5 @@ private:
 	 * @param[in] prev_crc32 crc32 checksum of all previous mission item
 	 * @return updated crc32 checksum of mission items
 	 */
-	static uint32_t crc32_for_mission_item(const mavlink_mission_item_t &mission_item, uint32_t prev_crc32);
+	static uint32_t crc32_for_mission_item(const mavlink_mission_item_int_t &mission_item, uint32_t prev_crc32);
 };

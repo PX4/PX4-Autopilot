@@ -58,6 +58,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   This also applies to `MAV_CMD_DO_LAND_START`, which uses it internally.
   Ground stations and scripts that relied on the command to arm must send `MAV_CMD_COMPONENT_ARM_DISARM` separately (QGroundControl, MAVSDK and the PX4 ROS 2 Interface Library already do).
   See the [MAVLink spec clarification](https://github.com/mavlink/mavlink/pull/2648).
+- **Plans are transferred only with the integer mission messages.**
+  PX4 requests and sends plan items with `MISSION_REQUEST_INT` and `MISSION_ITEM_INT` only, and no longer reports `MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT`.
+  The deprecated `MISSION_REQUEST` is answered with `MISSION_ITEM_INT`, as the [MAVLink mission protocol](https://mavlink.io/en/services/mission.html) asks, and an upload that sends the deprecated `MISSION_ITEM` is rejected with `MAV_MISSION_UNSUPPORTED`.
+  _QGroundControl_ and MAVSDK already use the integer messages.
+  Scripts that upload with `MISSION_ITEM` (for example pymavlink's `mission_item_send()`) must send `MISSION_ITEM_INT`, with latitude and longitude in degrees × 10⁷.
 - **The primary GNSS receiver defaults to Auto.**
   [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) now defaults to `-1` (Auto) instead of `0`, and saved values are not changed: with Auto the moving base of a moving base pair is the primary receiver, and without one, a receiver that passes the strict checks ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH) and the other `GNSS_REQ_*` parameters) is used, then one with an RTK fixed solution.
   To keep preferring the receiver on the main serial port, set `SENS_GNSS_PRIME` to `0`.
