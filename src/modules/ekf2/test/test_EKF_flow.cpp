@@ -391,3 +391,40 @@ TEST_F(EkfFlowTest, deadReckoning)
 	EXPECT_NEAR(lpos_after_reset(1), lpos_before_reset(1), 1e-3);
 	EXPECT_NEAR(lpos_after_reset(2), lpos_before_reset(2) + (altitude_new - altitude_ref_prev), 1e-3);
 }
+
+TEST_F(EkfFlowTest, restartAfterRejectedFramesUsesGoodFlowOnly)
+{
+	// GIVEN: flow-only aiding 5 m above ground while moving
+	const float simulated_distance_to_ground = 5.f;
+	_sensor_simulator._trajectory[2].setCurrentPosition(-simulated_distance_to_ground);
+	startRangeFinderFusion(simulated_distance_to_ground);
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.runSeconds(5.f);
+
+	const Vector2f simulated_horz_velocity(0.5f, -0.2f);
+	flowSample good_flow = _sensor_simulator._flow.dataAtRest();
+	setFlowFromHorizontalVelocityAndDistance(good_flow, simulated_horz_velocity, simulated_distance_to_ground);
+	_sensor_simulator._flow.setData(good_flow);
+	_ekf_wrapper.enableFlowFusion();
+	_sensor_simulator.startFlow();
+	_sensor_simulator.runSeconds(1.f);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
+
+	// WHEN: the sensor reports only rejected frames for longer than the no-aid timeout
+	flowSample rejected_flow = _sensor_simulator._flow.dataAtRest();
+	rejected_flow.quality = 0;
+	_sensor_simulator._flow.setData(rejected_flow);
+	_sensor_simulator.runSeconds(3.f);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingFlowFusion());
+
+	// AND: good frames return
+	_sensor_simulator._flow.setData(good_flow);
+	_sensor_simulator.runSeconds(0.5f);
+
+	// THEN: flow fusion restarts at the velocity the good frames measure, not one dragged toward zero
+	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
+	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
+	EXPECT_NEAR(estimated_horz_velocity(0), simulated_horz_velocity(0), 0.05f);
+	EXPECT_NEAR(estimated_horz_velocity(1), simulated_horz_velocity(1), 0.05f);
+}
