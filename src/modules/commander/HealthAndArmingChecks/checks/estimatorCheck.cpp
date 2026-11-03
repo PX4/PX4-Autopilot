@@ -66,6 +66,10 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	bool missing_data = false;
 	const NavModes required_groups = (NavModes)reporter.failsafeFlags().mode_req_attitude;
 
+	// Without a report from the estimator, GNSS counts as not in use
+	estimator_status_flags_s estimator_status_flags{};
+	estimator_status_flags.gnss_fusion_state = estimator_status_flags_s::GNSS_FUSION_INACTIVE;
+
 	// Change topics to primary estimator instance
 	if (_param_sens_imu_mode.get() == 0) { // multi-ekf
 		estimator_selector_status_s estimator_selector_status;
@@ -85,13 +89,19 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (!missing_data) {
+		estimator_status_flags_s flags;
+
+		if (_estimator_status_flags_sub.copy(&flags) && (hrt_elapsed_time(&flags.timestamp) < kEstimatorStatusFlagsTimeout)) {
+			estimator_status_flags = flags;
+		}
+
 		estimator_status_s estimator_status;
 
 		if (_estimator_status_sub.copy(&estimator_status)) {
 			pre_flt_fail_innov_vel_horiz = estimator_status.pre_flt_fail_innov_vel_horiz;
 			pre_flt_fail_innov_pos_horiz = estimator_status.pre_flt_fail_innov_pos_horiz;
 
-			checkEstimatorStatus(context, reporter, estimator_status, required_groups);
+			checkEstimatorStatus(context, reporter, estimator_status, estimator_status_flags, vehicle_gnss, required_groups);
 			checkEstimatorStatusFlags(context, reporter, estimator_status, lpos);
 
 		} else {
@@ -122,20 +132,21 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 
 	// set mode requirements
 	setModeRequirementFlags(context, pre_flt_fail_innov_vel_horiz, pre_flt_fail_innov_pos_horiz, lpos,
-				vehicle_gnss, reporter.failsafeFlags(), reporter);
+				vehicle_gnss, estimator_status_flags, reporter.failsafeFlags(), reporter);
 
 	lowPositionAccuracy(context, reporter, lpos);
 }
 
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
-		const estimator_status_s &estimator_status, NavModes required_groups)
+		const estimator_status_s &estimator_status, const estimator_status_flags_s &estimator_status_flags,
+		const vehicle_gnss_s &vehicle_gnss, NavModes required_groups)
 {
 	checkInnovationsPreflight(context, reporter, estimator_status, required_groups);
 	checkMagneticInterferencePreflight(context, reporter, estimator_status, required_groups);
 
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
 	if (_param_sys_has_gps.get()) {
-		checkGnssFusion(context, reporter, estimator_status);
+		checkGnssFusion(context, reporter, estimator_status, estimator_status_flags, vehicle_gnss);
 	}
 }
 
@@ -252,19 +263,27 @@ void EstimatorChecks::checkMagneticInterferencePreflight(const Context &context,
 	}
 }
 
-void EstimatorChecks::checkGnssFusion(const Context &context, Report &reporter, const estimator_status_s &estimator_status)
+void EstimatorChecks::checkGnssFusion(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
+				      const estimator_status_flags_s &estimator_status_flags, const vehicle_gnss_s &vehicle_gnss)
 {
 	const bool gnss_fused = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GNSS_POS);
 
-	// The flags describe only the newest sample, while EKF2 keeps rejecting samples for a while
-	// after one failed and keeps fusing for longer still, so the check that kept GNSS out may
-	// have passed again by the time the position goes. Each check is remembered for a while after
-	// it last failed, on its own, so one that keeps failing doesn't keep the others alive.
+	// A sample is marked usable again only after its checks passed for a while, and the estimator, a sample delay
+	// behind, keeps fusing for longer still, so the check that kept GNSS out may have passed again by the time the
+	// position goes. Each check is remembered for a while after it last failed, on its own, so one that keeps failing
+	// doesn't keep the others alive.
 	for (int i = 0; i < kNumGnssChecks; i++) {
-		if (estimator_status.gps_check_fail_flags & (1 << i)) {
-			_last_gnss_check_fail_time_us[i] = estimator_status.timestamp;
+		if (vehicle_gnss.failed_checks & (1 << i)) {
+			_last_gnss_check_fail_time_us[i] = vehicle_gnss.timestamp;
 		}
 	}
+
+	// The receiver's checks are reported only while the estimator intends to use GNSS and has data. A receiver
+	// the estimator ignores must not block arming.
+	const uint8_t gnss_fusion_state = estimator_status_flags.gnss_fusion_state;
+	const bool gnss_checks_apply = (gnss_fusion_state != estimator_status_flags_s::GNSS_FUSION_INACTIVE)
+				       && (gnss_fusion_state != estimator_status_flags_s::GNSS_FUSION_NO_DATA);
+	const uint16_t failed_checks = gnss_checks_apply ? vehicle_gnss.failed_checks : 0;
 
 	if (gnss_fused) {
 		reporter.setIsPresent(health_component_t::gps); // should be based on the sensor data directly
@@ -272,10 +291,10 @@ void EstimatorChecks::checkGnssFusion(const Context &context, Report &reporter, 
 	}
 
 	reportGnssFusionChange(context, reporter, gnss_fused);
-	reportGnssInterference(reporter, estimator_status.gps_check_fail_flags);
+	reportGnssInterference(reporter, failed_checks);
 
-	if (!context.isArmed() && (estimator_status.gps_check_fail_flags > 0)) {
-		reportFailedGnssCheckPreflight(reporter, estimator_status, gnss_fused);
+	if (!context.isArmed()) {
+		reportGnssPreflight(reporter, gnss_fusion_state, failed_checks);
 	}
 }
 
@@ -307,10 +326,10 @@ void EstimatorChecks::reportGnssFusionChange(const Context &context, Report &rep
 	_gps_was_fused = gnss_fused;
 }
 
-void EstimatorChecks::reportGnssInterference(Report &reporter, uint16_t gps_check_fail_flags)
+void EstimatorChecks::reportGnssInterference(Report &reporter, uint16_t failed_checks)
 {
 	// Each is reported once, when it starts
-	const bool spoofed = gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_SPOOFED);
+	const bool spoofed = failed_checks & vehicle_gnss_s::CHECK_SPOOFED;
 
 	if (spoofed && !_gnss_spoofed) {
 		if (reporter.mavlink_log_pub()) {
@@ -323,7 +342,7 @@ void EstimatorChecks::reportGnssInterference(Report &reporter, uint16_t gps_chec
 
 	_gnss_spoofed = spoofed;
 
-	const bool jammed = gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_JAMMED);
+	const bool jammed = failed_checks & vehicle_gnss_s::CHECK_JAMMED;
 
 	if (jammed && !_gnss_jammed) {
 		if (reporter.mavlink_log_pub()) {
@@ -337,9 +356,15 @@ void EstimatorChecks::reportGnssInterference(Report &reporter, uint16_t gps_chec
 	_gnss_jammed = jammed;
 }
 
-void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const estimator_status_s &estimator_status,
-		bool gnss_fused)
+void EstimatorChecks::reportGnssPreflight(Report &reporter, uint8_t gnss_fusion_state, uint16_t failed_checks)
 {
+	const bool rejected = (gnss_fusion_state == estimator_status_flags_s::GNSS_FUSION_REJECTED)
+			      || (gnss_fusion_state == estimator_status_flags_s::GNSS_FUSION_VEL_LIMIT);
+
+	if ((failed_checks == 0) && !rejected) {
+		return;
+	}
+
 	// What COM_ARM_WO_GPS makes of a failing check: the modes it blocks and how loudly it is reported
 	NavModesMessageFail required_modes;
 	events::Log log_level;
@@ -371,7 +396,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 	// Only report the first failure to avoid spamming
 	const char *message = nullptr;
 
-	if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_GPS_FIX)) {
+	if (failed_checks & vehicle_gnss_s::CHECK_FIX) {
 		message = "Preflight%s: GPS fix too low";
 		/* EVENT
 		 * @description
@@ -383,7 +408,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_fix_too_low"),
 					    log_level, "GPS fix too low");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_NSATS) {
 		message = "Preflight%s: not enough GPS Satellites";
 		/* EVENT
 		 * @description
@@ -395,7 +420,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_num_sats_too_low"),
 					    log_level, "Not enough GPS Satellites");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_PDOP)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_PDOP) {
 		message = "Preflight%s: GPS PDOP too high";
 		/* EVENT
 		 * @description
@@ -407,7 +432,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_pdop_too_high"),
 					    log_level, "GPS PDOP too high");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_EPH) {
 		message = "Preflight%s: GPS Horizontal Pos Error too high";
 		/* EVENT
 		 * @description
@@ -419,7 +444,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_hor_pos_err_too_high"),
 					    log_level, "GPS Horizontal Position Error too high");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_EPV) {
 		message = "Preflight%s: GPS Vertical Pos Error too high";
 		/* EVENT
 		 * @description
@@ -431,7 +456,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_vert_pos_err_too_high"),
 					    log_level, "GPS Vertical Position Error too high");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_SACC) {
 		message = "Preflight%s: GPS Speed Accuracy too low";
 		/* EVENT
 		 * @description
@@ -443,7 +468,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_speed_acc_too_low"),
 					    log_level, "GPS Speed Accuracy too low");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_HDRIFT) {
 		message = "Preflight%s: GPS Horizontal Pos Drift too high";
 		/* EVENT
 		 * @description
@@ -455,7 +480,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_hor_pos_drift_too_high"),
 					    log_level, "GPS Horizontal Position Drift too high");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_VDRIFT) {
 		message = "Preflight%s: GPS Vertical Pos Drift too high";
 		/* EVENT
 		 * @description
@@ -467,7 +492,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_vert_pos_drift_too_high"),
 					    log_level, "GPS Vertical Position Drift too high");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_HSPEED) {
 		message = "Preflight%s: GPS Hor Speed Drift too high";
 		/* EVENT
 		 * @description
@@ -479,7 +504,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_hor_speed_drift_too_high"),
 					    log_level, "GPS Horizontal Speed Drift too high");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_VSPEED) {
 		message = "Preflight%s: GPS Vert Speed Drift too high";
 		/* EVENT
 		 * @description
@@ -491,7 +516,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_vert_speed_drift_too_high"),
 					    log_level, "GPS Vertical Speed Drift too high");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_SPOOFED)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_SPOOFED) {
 		message = "Preflight%s: GPS signal spoofed";
 		/* EVENT
 		 * @description
@@ -503,7 +528,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_spoofed"),
 					    log_level, "GPS signal spoofed");
 
-	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_JAMMED)) {
+	} else if (failed_checks & vehicle_gnss_s::CHECK_JAMMED) {
 		message = "Preflight%s: GPS signal jammed";
 		/* EVENT
 		 * @description
@@ -515,10 +540,12 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_jammed"),
 					    log_level, "GPS signal jammed");
 
-	} else if (!gnss_fused) {
-		// Likely cause unknown
+	} else if (rejected) {
 		message = "Preflight%s: Estimator not using GPS";
 		/* EVENT
+		 * @description
+		 * The receiver passes its checks, but the estimator rejects its samples: they disagree with the estimate,
+		 * or report a velocity above <param>EKF2_VEL_LIM</param>.
 		 */
 		reporter.armingCheckFailure(required_modes, health_component_t::gps,
 					    events::ID("check_estimator_gps_not_fusing"),
@@ -706,41 +733,70 @@ void EstimatorChecks::checkGnss(const Context &context, Report &reporter, const 
 }
 
 void EstimatorChecks::reportGnssReasonForPositionLoss(const Context &context, Report &reporter,
-		const hrt_abstime &now, const vehicle_gnss_s &vehicle_gnss) const
+		const hrt_abstime &now, const vehicle_gnss_s &vehicle_gnss, const estimator_status_flags_s &estimator_status_flags) const
 {
-	// In flight only, and only when GNSS was in use. Without GNSS in the loop neither a failing
-	// receiver check nor a silent receiver says anything about why the estimate went.
+	// In flight only, and only when GNSS was in use. Without GNSS in the loop nothing about it explains why the
+	// estimate went.
 	if (!context.isArmed() || (now > _last_gnss_fusion_time_us + kGnssRecentlyFusedTimeout)) {
 		return;
 	}
 
-	uint16_t failed_checks = 0;
+	const uint8_t receiver = vehicle_gnss.selected_instance;
+	const uint8_t state = estimator_status_flags.gnss_fusion_state;
 
-	for (int i = 0; i < kNumGnssChecks; i++) {
-		if ((_last_gnss_check_fail_time_us[i] != 0) && (now <= _last_gnss_check_fail_time_us[i] + kGnssRecentlyFusedTimeout)) {
-			failed_checks |= 1 << i;
-		}
-	}
+	// The estimator declares a fault after rejecting the samples for too long
+	const bool rejected = (state == estimator_status_flags_s::GNSS_FUSION_REJECTED)
+			      || ((state == estimator_status_flags_s::GNSS_FUSION_INACTIVE)
+				  && (estimator_status_flags.cs_gnss_fault || estimator_status_flags.cs_gnss_hgt_fault));
 
-	// EKF2 runs the checks only on new samples, so a receiver that stopped keeps the flags of
-	// its last sample. The silence is the reason then, and it is tested first.
-	if ((vehicle_gnss.timestamp == 0) || (now > vehicle_gnss.timestamp + kGnssDataTimeout)) {
+	if (state == estimator_status_flags_s::GNSS_FUSION_NO_DATA) {
 		/* EVENT
 		 * @description
 		 * The receiver had stopped delivering samples when the local position estimate became invalid.
 		 */
-		events::send(events::ID("check_estimator_position_lost_gnss_no_data"), events::Log::Error,
-			     "Local position lost, no GNSS data");
+		events::send<uint8_t>(events::ID("check_estimator_position_lost_gnss_no_data"), events::Log::Error,
+				      "Local position lost, no data from GNSS {1}", receiver);
 
-	} else if (failed_checks != 0) {
+	} else if (state == estimator_status_flags_s::GNSS_FUSION_UNUSABLE) {
+		uint16_t failed_checks = 0;
+
+		for (int i = 0; i < kNumGnssChecks; i++) {
+			if ((_last_gnss_check_fail_time_us[i] != 0) && (now <= _last_gnss_check_fail_time_us[i] + kGnssRecentlyFusedTimeout)) {
+				failed_checks |= 1 << i;
+			}
+		}
+
 		/* EVENT
 		 * @description
-		 * The GNSS quality checks that failed in the run up to the local position estimate becoming invalid.
-		 * In flight EKF2 checks the fix type, the horizontal, vertical and speed accuracy, spoofing and jamming.
+		 * The receiver checks that failed in the run up to the local position estimate becoming invalid.
+		 * In flight they test the fix type, the horizontal, vertical and speed accuracy, spoofing and jamming.
+		 *
+		 * <profile name="dev">
+		 * The checks are selected with <param>GNSS_CHECK</param>.
+		 * </profile>
 		 */
-		events::send<events::px4::enums::gnss_check_fail_t>(events::ID("check_estimator_position_lost_gnss_reason"),
-				events::Log::Error, "Local position lost, GNSS check failed: {1}",
+		events::send<uint8_t, events::px4::enums::gnss_check_fail_t>(events::ID("check_estimator_position_lost_gnss_reason"),
+				events::Log::Error, "Local position lost, GNSS {1} check failed: {2}", receiver,
 				static_cast<events::px4::enums::gnss_check_fail_t>(failed_checks));
+
+	} else if (rejected) {
+		/* EVENT
+		 * @description
+		 * The receiver passed its checks, but its samples disagreed with the estimate, and the estimator could not
+		 * reset to them while another source constrained the position.
+		 */
+		events::send<uint8_t>(events::ID("check_estimator_position_lost_gnss_rejected"), events::Log::Error,
+				      "Local position lost, GNSS {1} rejected by the estimator", receiver);
+
+	} else if (state == estimator_status_flags_s::GNSS_FUSION_VEL_LIMIT) {
+		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * The receiver reported a velocity above <param>EKF2_VEL_LIM</param>.
+		 * </profile>
+		 */
+		events::send<uint8_t>(events::ID("check_estimator_position_lost_gnss_vel_limit"), events::Log::Error,
+				      "Local position lost, GNSS {1} velocity above the limit", receiver);
 	}
 }
 
@@ -784,7 +840,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_vel_horiz,
 		bool pre_flt_fail_innov_pos_horiz, const vehicle_local_position_s &lpos, const vehicle_gnss_s &vehicle_gnss,
-		failsafe_flags_s &failsafe_flags, Report &reporter)
+		const estimator_status_flags_s &estimator_status_flags, failsafe_flags_s &failsafe_flags, Report &reporter)
 {
 	// The following flags correspond to mode requirements, and are reported in the corresponding mode checks
 	vehicle_global_position_s gpos;
@@ -835,7 +891,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
 
 	if (local_position_was_valid && failsafe_flags.local_position_invalid) {
-		reportGnssReasonForPositionLoss(context, reporter, now, vehicle_gnss);
+		reportGnssReasonForPositionLoss(context, reporter, now, vehicle_gnss, estimator_status_flags);
 	}
 
 	// In some modes we assume that the operator will compensate for the drift so we do not need to check the position error
