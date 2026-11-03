@@ -3,14 +3,19 @@
 # PX4 SITL Configuration for QuadTailsitter in X-Plane
 ################################################################################
 #
-# X-Plane model:     QuadTailsitter.acf
+# X-Plane model:     NewQuadTailsitter.acf (owner-supplied compact model)
 # Compatible Sim:    X-Plane 12
 # Control:           Four fixed rotors, no aerodynamic control surfaces
 #
-# This airframe targets a 5 kg, 6S, control-surface-less quad tailsitter with a
+# This airframe targets a 2 kg, 0.6 m span, 6S quad tailsitter with four
+# fixed 10x8 propellers and no control surfaces. It uses a
 # body-axis virtual pitot. PX4 sensors are mounted in the multicopter body frame;
 # airspeed is projected along the fixed-wing nose axis so TECS and transition
 # logic receive positive calibrated airspeed in forward flight.
+#
+# Draft model migration: these defaults are NOT for the older 5 kg model.
+# The matching aircraft is distributed separately by its owner; do not
+# substitute the legacy QuadTailsitter.acf or reuse its saved parameters.
 #
 # USAGE:
 #   make px4_sitl_default xplane_qtailsitter
@@ -37,39 +42,41 @@ param set-default CA_AIRFRAME 4
 #   PX4_Y =  XPLANE_X * 0.3048
 # The canted rotor axes match the X-Plane aircraft and add yaw authority without
 # requiring aerodynamic control surfaces.
+# CT is a common normalized allocation scale, not maximum thrust in N.
+# Keep the yaw axis above the allocator weak-axis threshold.
 param set-default CA_ROTOR_COUNT 4
 
-param set-default CA_ROTOR0_PX 0.22
-param set-default CA_ROTOR0_PY 0.43
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.3
 param set-default CA_ROTOR0_AX -0.078
-param set-default CA_ROTOR0_AY 0.040
+param set-default CA_ROTOR0_AY 0.04
 param set-default CA_ROTOR0_AZ -0.996
-param set-default CA_ROTOR0_CT 2.0
-param set-default CA_ROTOR0_KM 0.04
+param set-default CA_ROTOR0_CT 6.5
+param set-default CA_ROTOR0_KM 0.0190505557
 
-param set-default CA_ROTOR1_PX -0.22
-param set-default CA_ROTOR1_PY -0.43
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.3
 param set-default CA_ROTOR1_AX 0.078
-param set-default CA_ROTOR1_AY -0.040
+param set-default CA_ROTOR1_AY -0.04
 param set-default CA_ROTOR1_AZ -0.996
-param set-default CA_ROTOR1_CT 2.0
-param set-default CA_ROTOR1_KM 0.04
+param set-default CA_ROTOR1_CT 6.5
+param set-default CA_ROTOR1_KM 0.0190505557
 
-param set-default CA_ROTOR2_PX 0.22
-param set-default CA_ROTOR2_PY -0.43
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.3
 param set-default CA_ROTOR2_AX -0.078
-param set-default CA_ROTOR2_AY -0.040
+param set-default CA_ROTOR2_AY -0.04
 param set-default CA_ROTOR2_AZ -0.996
-param set-default CA_ROTOR2_CT 2.0
-param set-default CA_ROTOR2_KM -0.04
+param set-default CA_ROTOR2_CT 6.5
+param set-default CA_ROTOR2_KM -0.0190505557
 
-param set-default CA_ROTOR3_PX -0.22
-param set-default CA_ROTOR3_PY 0.43
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.3
 param set-default CA_ROTOR3_AX 0.078
-param set-default CA_ROTOR3_AY 0.040
+param set-default CA_ROTOR3_AY 0.04
 param set-default CA_ROTOR3_AZ -0.996
-param set-default CA_ROTOR3_CT 2.0
-param set-default CA_ROTOR3_KM -0.04
+param set-default CA_ROTOR3_CT 6.5
+param set-default CA_ROTOR3_KM -0.0190505557
 
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
@@ -125,25 +132,25 @@ param set-default IMU_GYRO_RATEMAX 200
 param set-default MC_AIRMODE 2
 param set-default MAN_ARM_GESTURE 0
 
-param set-default MC_ROLL_P 0.9
-param set-default MC_PITCH_P 0.58
+param set-default MC_ROLL_P 1.4
+param set-default MC_PITCH_P 1
 param set-default MC_YAW_P 0.65
 param set-default MC_YAW_WEIGHT 0.35
 
-param set-default MC_ROLLRATE_P 0.10
-param set-default MC_ROLLRATE_I 0.02
-param set-default MC_ROLLRATE_D 0.0008
+param set-default MC_ROLLRATE_P 0.06
+param set-default MC_ROLLRATE_I 0.007954
+param set-default MC_ROLLRATE_D 0.000636
 param set-default MC_ROLLRATE_MAX 80
 
-param set-default MC_PITCHRATE_P 0.115
-param set-default MC_PITCHRATE_I 0.02
+param set-default MC_PITCHRATE_P 0.16
+param set-default MC_PITCHRATE_I 0.015
 param set-default MC_PITCHRATE_D 0.0012
-param set-default MC_PITCHRATE_K 0.92
+param set-default MC_PITCHRATE_K 1
 param set-default MC_PITCHRATE_MAX 110
 
-param set-default MC_YAWRATE_I 0.015
-param set-default MC_YAWRATE_D 0.025
-param set-default MC_YAWRATE_K 1.10
+param set-default MC_YAWRATE_I 0.007875
+param set-default MC_YAWRATE_D 0.000829
+param set-default MC_YAWRATE_K 1
 param set-default MC_YAWRATE_MAX 55
 
 
@@ -161,31 +168,31 @@ param set-default MPC_Z_VEL_P_ACC 2.0
 param set-default MPC_Z_VEL_I_ACC 0.5
 param set-default MPC_Z_VEL_D_ACC 0.6
 
-param set-default MPC_XY_VEL_MAX 4.0
-param set-default MPC_XY_CRUISE 3.5
-param set-default MPC_VEL_MANUAL 4.0
-param set-default MPC_Z_V_AUTO_UP 2.0
-param set-default MPC_Z_V_AUTO_DN 1.4
-param set-default MPC_Z_VEL_MAX_UP 2.4
-param set-default MPC_Z_VEL_MAX_DN 1.4
+param set-default MPC_XY_VEL_MAX 6
+param set-default MPC_XY_CRUISE 5
+param set-default MPC_VEL_MANUAL 5
+param set-default MPC_Z_V_AUTO_UP 2.5
+param set-default MPC_Z_V_AUTO_DN 1.6
+param set-default MPC_Z_VEL_MAX_UP 3
+param set-default MPC_Z_VEL_MAX_DN 1.8
 param set-default MPC_XY_ERR_MAX 10
 
-param set-default MPC_ACC_HOR 0.7
-param set-default MPC_ACC_HOR_MAX 1.0
+param set-default MPC_ACC_HOR 2
+param set-default MPC_ACC_HOR_MAX 2
 param set-default MPC_ACC_UP_MAX 2.2
 param set-default MPC_ACC_DOWN_MAX 1.5
-param set-default MPC_JERK_AUTO 0.7
+param set-default MPC_JERK_AUTO 4
 param set-default MPC_JERK_MAX 1.2
 
 param set-default MPC_MAN_TILT_MAX 30
 param set-default MPC_TILTMAX_AIR 30
 param set-default MPC_TILTMAX_LND 8
 
-param set-default MPC_THR_HOVER 0.22
+param set-default MPC_THR_HOVER 0.26
 param set-default MPC_THR_MIN 0.08
 param set-default MPC_THR_XY_MARG 0.4
 
-param set-default MPC_TKO_SPEED 1.2
+param set-default MPC_TKO_SPEED 1.5
 param set-default MPC_TKO_RAMP_T 2.5
 param set-default MIS_TAKEOFF_ALT 1.5
 param set-default MPC_LAND_ALT1 8
@@ -219,13 +226,14 @@ param set-default SYS_HAS_NUM_ASPD 0
 param set-default EKF2_ARSP_THR 24.0
 param set-default EKF2_GSF_TAS 0.0
 
-param set-default FW_AIRSPD_STALL 16
-param set-default FW_AIRSPD_MIN 19
-param set-default FW_AIRSPD_TRIM 27
-param set-default FW_AIRSPD_MAX 36
+param set-default FW_AIRSPD_STALL 17
+param set-default FW_AIRSPD_MIN 21
+param set-default FW_AIRSPD_TRIM 26
+param set-default FW_AIRSPD_MAX 34
 
-param set-default FW_THR_TRIM 0.14
-param set-default FW_THR_MAX 0.50
+# Local cruise trim seed; PX4 applies air-density compensation.
+param set-default FW_THR_TRIM 0.18
+param set-default FW_THR_MAX 1
 param set-default FW_THR_SLEW_MAX 0.20
 
 param set-default FW_T_SINK_MAX 3
@@ -235,25 +243,27 @@ param set-default FW_T_RLL2THR 2.0
 param set-default FW_T_STE_R_TC 1.0
 param set-default FW_T_THR_DAMPING 0.25
 param set-default FW_T_PTCH_DAMP 0.25
-param set-default FW_T_I_GAIN_PIT 0.25
+param set-default FW_T_I_GAIN_PIT 0.1
 param set-default FW_T_CLMB_R_SP 2.0
 
 param set-default FW_P_TC 0.6
 param set-default FW_PSP_OFF 2.0
 param set-default FW_P_LIM_MAX 35
 param set-default FW_P_LIM_MIN -15
-param set-default FW_PR_P 0.50
-param set-default FW_PR_I 0.30
+param set-default FW_PR_P 0.133333
+param set-default FW_PR_I 0.016667
 
+# Retain the flight-tested outer-loop value during this draft migration.
+# 1.5 exceeds metadata max 1.0; resolving it needs separate flight validation.
 param set-default FW_R_TC 1.5
 param set-default FW_R_LIM 16
-param set-default FW_RR_P 0.10
-param set-default FW_RR_I 0.04
-param set-default FW_RR_FF 0.05
+param set-default FW_RR_P 0.26
+param set-default FW_RR_I 0.014318
+param set-default FW_RR_FF 0
 
-param set-default FW_YR_P 0.01
-param set-default FW_YR_I 0.0
-param set-default FW_YR_FF 0.0
+param set-default FW_YR_P 0.099422
+param set-default FW_YR_I 0.024856
+param set-default FW_YR_FF 0
 
 
 ################################################################################
@@ -261,13 +271,13 @@ param set-default FW_YR_FF 0.0
 ################################################################################
 
 param set-default VT_ARSP_BLEND 20
-param set-default VT_ARSP_TRANS 28
+param set-default VT_ARSP_TRANS 25
 param set-default VT_F_TRANS_DUR 10.0
-param set-default VT_F_TRANS_THR 0.36
+param set-default VT_F_TRANS_THR 0.4
 param set-default VT_F_TR_OL_TM 14.0
 param set-default VT_TRANS_MIN_TM 8.0
 param set-default VT_TRANS_TIMEOUT 30
-param set-default VT_B_TRANS_DUR 5.0
+param set-default VT_B_TRANS_DUR 15
 param set-default VT_B_DEC_MSS 1.0
 param set-default VT_B_DEC_I 0.12
 param set-default VT_B_TRANS_RAMP 1.5
@@ -277,7 +287,7 @@ param set-default VT_PITCH_MIN -10
 
 param set-default VT_FW_DIFTHR_EN 7
 param set-default VT_FW_DIFTHR_S_R 0.55
-param set-default VT_FW_DIFTHR_S_P 0.90
+param set-default VT_FW_DIFTHR_S_P 0.9
 param set-default VT_FW_DIFTHR_S_Y 0.32
 
 
@@ -303,6 +313,27 @@ param set-default FD_FAIL_P 85
 param set-default FD_FAIL_R_TTRI 1.0
 param set-default FD_FAIL_P_TTRI 1.0
 param set-default WV_EN 0
+
+# Additional compact-model overrides from the reviewed R16 profile.
+# MC pitch damping is not propagated into the independent FW pitch loop.
+# Rotor-only control does not use aerodynamic-surface V^-2 output scaling.
+param set-default CA_ROTOR0_PZ -0.0449999999
+param set-default CA_ROTOR1_PZ -0.0449999999
+param set-default CA_ROTOR2_PZ -0.0449999999
+param set-default CA_ROTOR3_PZ -0.0449999999
+param set-default MC_ROLLRATE_K 1
+param set-default MC_ROLLRATE_FF 0
+param set-default MC_YAWRATE_P 0.041448
+param set-default MC_YAWRATE_FF 0
+param set-default MC_PITCHRATE_FF 0
+param set-default FW_RR_D 0.001507
+param set-default FW_PR_D 0.001333
+param set-default FW_PR_FF 0
+param set-default FW_YR_D 0.001987
+param set-default FW_ARSP_SCALE_EN 0
+param set-default FW_USE_AIRSPD 1
+param set-default FW_THR_MIN 0.08
+param set-default FW_RLL_TO_YAW_FF 0
 
 ################################################################################
 # END OF FILE
