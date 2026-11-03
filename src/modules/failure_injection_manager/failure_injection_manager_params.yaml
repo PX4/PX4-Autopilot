@@ -105,17 +105,62 @@ parameters:
           long: |-
             GNSS fix type reported by the addressed receiver while a GPS 'wrong'
             failure injection is active. The reported position is left untouched.
-            The default 2D fix is rejected by the estimator, which requires a 3D
-            fix, and makes the GNSS redundancy check report a lost fix. Values above
-            3D fix report a better solution than the receiver really has.
+            The default 2D fix fails the GNSS checks, which require a 3D fix.
+            Values above 3D fix report a better solution than the receiver really has.
+            Unchanged keeps the receiver's own fix type, to inject only the other
+            SYS_FAIL_GPS_* fields.
         type: enum
         default: 2
         values:
+          0: Unchanged
           1: "Fix: None"
           2: "Fix: 2D"
           3: "Fix: 3D"
           5: "Fix: RTK float"
           6: "Fix: RTK fixed"
+      SYS_FAIL_GPS_EPH:
+        description:
+          short: GPS Wrong-failure horizontal accuracy
+          long: |-
+            Horizontal position accuracy (eph) reported by the addressed receiver while
+            a GPS 'wrong' failure injection is active. 0 keeps the receiver's own value.
+        type: float
+        default: 0
+        min: 0
+        unit: m
+        decimal: 2
+      SYS_FAIL_GPS_EPV:
+        description:
+          short: GPS Wrong-failure vertical accuracy
+          long: |-
+            Vertical position accuracy (epv) reported by the addressed receiver while
+            a GPS 'wrong' failure injection is active. 0 keeps the receiver's own value.
+        type: float
+        default: 0
+        min: 0
+        unit: m
+        decimal: 2
+      SYS_FAIL_GPS_SAC:
+        description:
+          short: GPS Wrong-failure speed accuracy
+          long: |-
+            Speed accuracy reported by the addressed receiver while a GPS 'wrong'
+            failure injection is active. 0 keeps the receiver's own value.
+        type: float
+        default: 0
+        min: 0
+        unit: m/s
+        decimal: 2
+      SYS_FAIL_GPS_SAT:
+        description:
+          short: GPS Wrong-failure satellite count
+          long: |-
+            Number of satellites used reported by the addressed receiver while a GPS
+            'wrong' failure injection is active. 0 keeps the receiver's own value.
+        type: int32
+        default: 0
+        min: 0
+        max: 255
       SYS_FAIL_GPS_JAM:
         description:
           short: GPS Wrong-failure jamming state
@@ -123,8 +168,7 @@ parameters:
             GNSS jamming state reported by the addressed receiver while a GPS 'wrong'
             failure injection is active. The reported position is left untouched, so
             'Detected' simulates a receiver that still delivers a valid fix while
-            reporting interference. Leave at 'Unchanged' to keep the simulated
-            receiver's own jamming state.
+            reporting interference. Unchanged keeps the receiver's own jamming state.
         type: enum
         default: 0
         values:
@@ -132,6 +176,30 @@ parameters:
           1: OK
           2: Mitigated
           3: Detected
+      SYS_FAIL_GPS_SPF:
+        description:
+          short: GPS Wrong-failure spoofing state
+          long: |-
+            GNSS spoofing state reported by the addressed receiver while a GPS 'wrong'
+            failure injection is active. The reported position is left untouched.
+            Unchanged keeps the receiver's own spoofing state.
+        type: enum
+        default: 0
+        values:
+          0: Unchanged
+          1: OK
+          2: Mitigated
+          3: Detected
+      SYS_FAIL_GPS_DIV:
+        description:
+          short: GPS Slow-failure rate divider
+          long: |-
+            While a GPS 'slow' failure injection is active, the addressed receiver
+            publishes one sample in SYS_FAIL_GPS_DIV.
+        type: int32
+        default: 4
+        min: 1
+        max: 100
       SYS_FAIL_BAT_LVL:
         description:
           short: Battery failure injection severity
