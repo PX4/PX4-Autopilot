@@ -191,7 +191,6 @@ static float get_sphere_radius()
 
 static calibrate_return mag_calibration_worker(detect_orientation_return orientation, void *data)
 {
-	const hrt_abstime calibration_started = hrt_absolute_time();
 	calibrate_return result = calibrate_return_ok;
 
 	mag_worker_data_t *worker_data = (mag_worker_data_t *)(data);
@@ -221,22 +220,12 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 	uORB::SubscriptionBlocking<sensor_gyro_s> gyro_sub{ORB_ID(sensor_gyro)};
 
-	hrt_abstime last_cancel_check = hrt_absolute_time();
-
 	while (fabsf(gyro_x_integral) < gyro_int_thresh_rad &&
 	       fabsf(gyro_y_integral) < gyro_int_thresh_rad &&
 	       fabsf(gyro_z_integral) < gyro_int_thresh_rad) {
 
-		// Throttle cancel check — calibrate_cancel_check() creates a new
-		// uORB::Subscription each call, triggering an O(n) topic lookup.
-		// At high sensor rates this dominates CPU. Check at most every 200ms.
-		if (hrt_elapsed_time(&last_cancel_check) > 200_ms) {
-			last_cancel_check = hrt_absolute_time();
-
-			if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
-				result = calibrate_return_cancelled;
-				return result;
-			}
+		if (calibrate_cancel_check(worker_data->mavlink_log_pub)) {
+			return calibrate_return_cancelled;
 		}
 
 		/* abort with timeout */
@@ -281,21 +270,12 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	unsigned poll_errcount = 0;
 	unsigned calibration_counter_side = 0;
 
-	last_cancel_check = hrt_absolute_time();
-
 	while (hrt_absolute_time() < calibration_deadline &&
 	       calibration_counter_side < worker_data->calibration_points_perside) {
 
-		// Throttle cancel check — calibrate_cancel_check() creates a new
-		// uORB::Subscription each call, triggering an O(n) topic lookup.
-		// At high sensor rates this dominates CPU. Check at most every 200ms.
-		if (hrt_elapsed_time(&last_cancel_check) > 200_ms) {
-			last_cancel_check = hrt_absolute_time();
-
-			if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
-				result = calibrate_return_cancelled;
-				break;
-			}
+		if (calibrate_cancel_check(worker_data->mavlink_log_pub)) {
+			result = calibrate_return_cancelled;
+			break;
 		}
 
 		// Yield CPU — updatedBlocking() returns immediately when data is

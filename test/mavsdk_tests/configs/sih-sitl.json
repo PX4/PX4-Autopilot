@@ -33,6 +33,11 @@
         },
         {
             "model": "quadx",
+            "test_filter": "calibration",
+            "timeout_min": 10
+        },
+        {
+            "model": "quadx",
             "test_filter": "sih_home_yaw",
             "timeout_min": 10,
             "env": {
