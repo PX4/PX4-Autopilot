@@ -3,7 +3,7 @@
 # PX4 SITL Configuration for QuadTailsitter in X-Plane
 ################################################################################
 #
-# X-Plane model:     NewQuadTailsitter.acf (owner-supplied compact model)
+# X-Plane model:     QuadTailsitter (owner-supplied compact model)
 # Compatible Sim:    X-Plane 12
 # Control:           Four fixed rotors, no aerodynamic control surfaces
 #

@@ -26,11 +26,11 @@ The matching X-Plane aircraft files and bridge configuration are distributed by 
 Additional X-Plane aircraft or vehicle models can also be integrated when PX4 has a matching SITL-capable control path and px4xplane can map the required actuator outputs to writable X-Plane datarefs.
 
 ::: warning QuadTailsitter model migration (draft)
-The revised `5021` defaults target the compact 2 kg `NewQuadTailsitter.acf`, not the older 5 kg `QuadTailsitter.acf`.
+The revised `5021` defaults target the compact 2 kg QuadTailsitter model, not the older 5 kg model.
 The compact model is owner-supplied and is not included in PX4 or the public plugin package.
 Do not run the revised defaults with the older aircraft or carry its saved SITL parameters into the new model.
 Use the matching model, bridge mapping and a separate SITL parameter directory.
-The target name remains `xplane_qtailsitter`; this draft does not add a new target or change flight-control algorithms.
+The vehicle remains QuadTailsitter, with target `xplane_qtailsitter` and ID `5021`; this draft does not rename the airframe or change flight-control algorithms.
 See the [model-pairing and migration guide](https://github.com/alireza787b/px4xplane/blob/feat/qtailsitter-r16-closeout/docs/compact-qtailsitter.md) for the validation scope and remaining limitations.
 :::
 
