@@ -16,7 +16,7 @@ The image below shows how to connect the most important sensors and peripherals 
 ![Pixhawk 4 Wiring Overview](../../assets/flight_controller/pixhawk4/pixhawk4_wiring_overview.png)
 
 :::tip
-More information about available ports can be found here: [Pixhawk 4 > Connections](../flight_controller/pixhawk4.md#connectors).
+More information about available ports can be found here: [Pixhawk 4 > Connections](../flight_controller/pixhawk4.md#pinouts).
 :::
 
 ## Mount and Orient Controller

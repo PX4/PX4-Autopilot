@@ -3,7 +3,7 @@
 This topic shows how to determine the mapping between USART/UART serial port device names (e.g. "ttyS0") and the associated ports on a flight controller, such as `TELEM1`, `TELEM2`, `GPS1`, `RC SBUS`, `Debug console`.
 
 The instructions are used to generate serial port mapping tables in flight controller documentation.
-For example: [Pixhawk 4 > Serial Port Mapping](../flight_controller/pixhawk4.md#serial-port-mapping).
+For example: [Pixhawk 4 > Serial Port Mapping](../flight_controller/pixhawk4.md#serial_port_mapping).
 
 ::: info
 The function assigned to each port does not _have to_ match the name (in most cases), and is set using a [Serial Port Configuration](../peripherals/serial_configuration.md).
@@ -117,7 +117,7 @@ ttyS5 CONFIG_STM32F7_UART7=y DEBUG
 ttyS6 CONFIG_STM32F7_UART8=y PX4IO
 ```
 
-In the [flight controller docs](../flight_controller/pixhawk4.md#serial-port-mapping) the resulting table is:
+In the [flight controller docs](../flight_controller/pixhawk4.md#serial_port_mapping) the resulting table is:
 
 | UART   | Device     | Port                  |
 | ------ | ---------- | --------------------- |
