@@ -48,6 +48,8 @@
 
 #include <cstdint>
 
+#include <drivers/drv_hrt.h>
+#include <matrix/math.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_injection.h>
@@ -67,6 +69,7 @@ enum class Mode : uint8_t {
 	Slow         = failure_injection_s::FAILURE_TYPE_SLOW,
 	Delayed      = failure_injection_s::FAILURE_TYPE_DELAYED,
 	Intermittent = failure_injection_s::FAILURE_TYPE_INTERMITTENT,
+	Drift        = failure_injection_s::FAILURE_TYPE_DRIFT,
 };
 
 /** Masks of motors failed by injection, bit i = motor instance i+1. */
@@ -237,6 +240,16 @@ esc_status_s process_esc(const Config &config, const esc_status_s &status);
  */
 MotorFailureMasks process_motor(const Config &config);
 
+/**
+ * IMU counterpart to process(): per-axis offset (in the sample's SI units) to add to a
+ * FAILURE_UNIT_SENSOR_GYRO / _ACCEL sample for the given 0-based uORB instance. Wrong adds a
+ * constant bias (SYS_FAIL_{G,A}_BIAS), Garbage uniform noise within +-SYS_FAIL_{G,A}_NOISE
+ * and Drift a bias growing by SYS_FAIL_{G,A}_DRIFT per second since drift_start, which is
+ * latched on onset and reset otherwise. Zero for any other mode. Call after Config::update().
+ */
+matrix::Vector3f imu_offset(const Config &config, uint8_t unit, uint8_t uorb_instance, hrt_abstime now,
+			    hrt_abstime &drift_start);
+
 #else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 class Config
@@ -269,6 +282,8 @@ inline bool process_gnss(const Config &, uint8_t, sensor_gnss_s &, Stuck<sensor_
 inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
 
 inline MotorFailureMasks process_motor(const Config &) { return {}; }
+
+inline matrix::Vector3f imu_offset(const Config &, uint8_t, uint8_t, hrt_abstime, hrt_abstime &) { return {}; }
 
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 

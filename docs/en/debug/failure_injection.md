@@ -11,13 +11,13 @@ What differs is whether a _consumer_ applies the failure, and that depends on th
 
 ## Supported Failure Types
 
-The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
+The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong`, `garbage`, `drift` (`ok` is not listed, but clears an active injection on all environments).
 A `—` means the module still accepts the command, but no consumer applies it in that environment.
 
 | Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic) | Hardware                |
 | ----------------- | ----------------------- | ----------------------- | ------------------------------------ | ----------------------- |
-| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
+| `gyro`            | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` |
+| `accel`           | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` |
 | `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
 | `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
 | `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
@@ -36,6 +36,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 ::: info
 
 - `gps off | stuck | wrong` on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
+- `gyro` / `accel` `wrong`, `garbage` and `drift` corrupt the addressed IMU's samples on all three axes: `wrong` adds a constant bias ([SYS_FAIL_G_BIAS](../advanced_config/parameter_reference.md#SYS_FAIL_G_BIAS) / [SYS_FAIL_A_BIAS](../advanced_config/parameter_reference.md#SYS_FAIL_A_BIAS)), `garbage` uniform noise within ±[SYS_FAIL_G_NOISE](../advanced_config/parameter_reference.md#SYS_FAIL_G_NOISE) / [SYS_FAIL_A_NOISE](../advanced_config/parameter_reference.md#SYS_FAIL_A_NOISE), and `drift` a bias growing by [SYS_FAIL_G_DRIFT](../advanced_config/parameter_reference.md#SYS_FAIL_G_DRIFT) / [SYS_FAIL_A_DRIFT](../advanced_config/parameter_reference.md#SYS_FAIL_A_DRIFT) per second since injection.
 - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
 - `vio off | stuck` on Gazebo (Gz): applied to the external-vision odometry that the bridge publishes from the model's odometry topic (for example `x500_vision`); `stuck` keeps publishing the last good sample with fresh timestamps.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
