@@ -451,6 +451,9 @@ void PAW3902::RunImpl()
 							static_cast<uint32_t>(1_ms), static_cast<uint32_t>(200_ms));
 				}
 
+				// Poor optical quality does not indicate a sensor fault, but an all-zero burst is not a live frame.
+				const bool dead_burst = (shutter == 0) && (buffer.data.SQUAL == 0) && (buffer.data.RawData_Sum == 0);
+
 				bool published = false;
 
 				if (data_valid) {
@@ -526,9 +529,11 @@ void PAW3902::RunImpl()
 						}
 					}
 
-				} else if (_discard_reading == 0 && !stale_read && frame_consumed && buffer.data.RawData_Sum <= 0x98) {
+				} else if (_discard_reading == 0 && !dead_burst && frame_consumed && buffer.data.RawData_Sum <= 0x98
+					   && (!stale_read || (hrt_elapsed_time(&_last_publish) >= kBackupScheduleIntervalUs))) {
 					// A rejected frame still consumed its window. Report it blind (quality 0, no flow) so the
-					// stream stays continuous and consumers can tell dark from dead.
+					// stream stays continuous and consumers can tell dark from dead. A dark scene can repeat
+					// every register exactly, so a read that looks stale still goes out on the backup timeout.
 					sensor_optical_flow.pixel_flow[0] = 0;
 					sensor_optical_flow.pixel_flow[1] = 0;
 					sensor_optical_flow.quality = 0;
@@ -538,8 +543,6 @@ void PAW3902::RunImpl()
 					published = true;
 				}
 
-				// Poor optical quality does not indicate a sensor fault, but an all-zero burst is not a live frame.
-				const bool dead_burst = (shutter == 0) && (buffer.data.SQUAL == 0) && (buffer.data.RawData_Sum == 0);
 				success = (buffer.data.RawData_Sum <= 0x98) && !dead_burst;
 
 				if (success && _failure_count > 0) {
