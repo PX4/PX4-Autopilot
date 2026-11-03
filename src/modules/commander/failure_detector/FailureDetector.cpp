@@ -180,6 +180,11 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 
 	const hrt_abstime now = hrt_absolute_time();
 
+	if (_alt_loss_timestamp_prev == 0) {
+		// Starting while descending (e.g. switching from Stabilized) must allow for the stopping distance
+		_alt_loss_allowed_descent_rate = (lpos.v_z_valid && PX4_ISFINITE(lpos.vz)) ? math::max(lpos.vz, 0.f) : 0.f;
+	}
+
 	const float dt = (_alt_loss_timestamp_prev > 0 && lpos.timestamp > _alt_loss_timestamp_prev)
 			 ? math::min((lpos.timestamp - _alt_loss_timestamp_prev) * 1e-6f, 1.f) : 0.f;
 	_alt_loss_timestamp_prev = lpos.timestamp;
@@ -190,11 +195,6 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 	const bool setpoint_fresh = lpos.timestamp < lpos_sp.timestamp + kAltLossSetpointTimeout;
 	const float commanded_descent_rate = (setpoint_fresh && PX4_ISFINITE(lpos_sp.vz) && lpos_sp.vz > 0.f)
 					     ? lpos_sp.vz + kAltLossDescentRateMargin : 0.f;
-
-	if (!PX4_ISFINITE(_alt_loss_ref_z)) {
-		// Starting while descending (e.g. switching from Stabilized) must allow for the stopping distance
-		_alt_loss_allowed_descent_rate = (lpos.v_z_valid && PX4_ISFINITE(lpos.vz)) ? math::max(lpos.vz, 0.f) : 0.f;
-	}
 
 	// When the command drops below the actual descent (stick release, mode switch, stale setpoint), the allowed
 	// descent rate decays at a minimum braking deceleration: the stopping distance does not trigger, while a
