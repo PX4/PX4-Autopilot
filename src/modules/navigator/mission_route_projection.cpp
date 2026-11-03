@@ -72,7 +72,7 @@ enum class CursorItemType : uint8_t {
 struct CursorItem {
 	CursorItemType type{CursorItemType::kEnd};
 	int32_t index{-1};
-	mission_item_s mission_item{};
+	const mission_item_s *mission_item{nullptr};
 	LoadedPosition loaded_position{};
 };
 
@@ -200,15 +200,15 @@ void applyLandingLegAltitude(SegmentPositions &positions, uint16_t end_nav_cmd)
 FailureReason loadSegmentPositions(const Provider &provider, float home_altitude_amsl, const Segment &segment,
 				   SegmentPositions &positions)
 {
-	mission_item_s start_item{};
-	mission_item_s end_item{};
+	const mission_item_s *start_item = provider.missionItem(segment.start.idx);
+	const mission_item_s *end_item = (start_item != nullptr) ? provider.missionItem(segment.end.idx) : nullptr;
 
-	if (!provider.loadMissionItem(segment.start.idx, start_item) || !provider.loadMissionItem(segment.end.idx, end_item)) {
+	if (start_item == nullptr || end_item == nullptr) {
 		return FailureReason::kLoadFailed;
 	}
 
-	if (!extractMissionPosition(start_item, home_altitude_amsl, positions.start)
-	    || !extractMissionPosition(end_item, home_altitude_amsl, positions.end)) {
+	if (!extractMissionPosition(*start_item, home_altitude_amsl, positions.start)
+	    || !extractMissionPosition(*end_item, home_altitude_amsl, positions.end)) {
 		return FailureReason::kPositionItemInvalid;
 	}
 
@@ -232,13 +232,14 @@ FailureReason scanNextCursorItem(const Provider &provider, float home_altitude_a
 
 	while (next_index < provider.missionCount()) {
 		item.index = next_index++;
+		item.mission_item = provider.missionItem(item.index);
 
-		if (!provider.loadMissionItem(item.index, item.mission_item)) {
+		if (item.mission_item == nullptr) {
 			return FailureReason::kLoadFailed;
 		}
 
-		if (mission_item_contains_position(item.mission_item)) {
-			if (!extractIndexedPosition(item.index, item.mission_item, home_altitude_amsl, item.loaded_position)) {
+		if (mission_item_contains_position(*item.mission_item)) {
+			if (!extractIndexedPosition(item.index, *item.mission_item, home_altitude_amsl, item.loaded_position)) {
 				return FailureReason::kPositionItemInvalid;
 			}
 
@@ -246,7 +247,7 @@ FailureReason scanNextCursorItem(const Provider &provider, float home_altitude_a
 			return FailureReason::kNone;
 		}
 
-		if (item.mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
+		if (item.mission_item->nav_cmd == NAV_CMD_DO_JUMP) {
 			item.type = CursorItemType::kJump;
 			return FailureReason::kNone;
 		}
@@ -266,17 +267,17 @@ FailureReason findNextMissionPosition(const Provider &provider, float home_altit
 	}
 
 	for (int32_t index = start_index; index < provider.missionCount(); ++index) {
-		mission_item_s mission_item{};
+		const mission_item_s *mission_item = provider.missionItem(index);
 
-		if (!provider.loadMissionItem(index, mission_item)) {
+		if (mission_item == nullptr) {
 			return FailureReason::kLoadFailed;
 		}
 
-		if (!mission_item_contains_position(mission_item)) {
+		if (!mission_item_contains_position(*mission_item)) {
 			continue;
 		}
 
-		if (!extractIndexedPosition(index, mission_item, home_altitude_amsl, loaded_position)) {
+		if (!extractIndexedPosition(index, *mission_item, home_altitude_amsl, loaded_position)) {
 			return FailureReason::kPositionItemInvalid;
 		}
 
@@ -308,23 +309,23 @@ FailureReason resolveActiveJump(const Provider &provider, float home_altitude_am
 		return FailureReason::kInvalidRequest;
 	}
 
-	mission_item_s jump_item{};
+	const mission_item_s *jump_item = provider.missionItem(anchor.jump_item_index);
 
-	if (!provider.loadMissionItem(anchor.jump_item_index, jump_item)) {
+	if (jump_item == nullptr) {
 		return FailureReason::kLoadFailed;
 	}
 
-	if (jump_item.nav_cmd != NAV_CMD_DO_JUMP) {
+	if (jump_item->nav_cmd != NAV_CMD_DO_JUMP) {
 		return FailureReason::kInvalidRequest;
 	}
 
-	if (jump_item.do_jump_mission_index < 0) {
+	if (jump_item->do_jump_mission_index < 0) {
 		return FailureReason::kInternalError;
 	}
 
 	LoadedPosition target{};
 	const FailureReason target_status = findNextMissionPosition(provider, home_altitude_amsl,
-					    jump_item.do_jump_mission_index, target, FailureReason::kNone);
+					    jump_item->do_jump_mission_index, target, FailureReason::kNone);
 
 	if (target_status != FailureReason::kNone) {
 		return target_status;
@@ -510,7 +511,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 				break;
 			}
 
-			if (prepareJumpSegment(item.index, item.mission_item, view)) {
+			if (prepareJumpSegment(item.index, *item.mission_item, view)) {
 				return true;
 			}
 
@@ -667,15 +668,15 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment)
 	// The last transition in an executed command range determines the state, if there is one.
 	auto resolve_state_in_range = [&](int32_t first_index, int32_t end_index) {
 		for (int32_t i = end_index - 1; i >= first_index; --i) {
-			mission_item_s mission_item{};
+			const mission_item_s *mission_item = provider.missionItem(i);
 
-			if (!provider.loadMissionItem(i, mission_item)) {
+			if (mission_item == nullptr) {
 				PX4_WARN("VTOL state: item %d read failed", static_cast<int>(i));
 				lookback_complete = false;
 				continue;
 			}
 
-			if (updateVtolStateFromMissionItem(mission_item, state)) {
+			if (updateVtolStateFromMissionItem(*mission_item, state)) {
 				return true;
 			}
 		}
@@ -684,20 +685,20 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment)
 	};
 
 	if (segment.isLoop()) {
-		mission_item_s jump_item{};
+		const mission_item_s *jump_item = provider.missionItem(segment.jump_item_index);
 
-		if (!provider.loadMissionItem(segment.jump_item_index, jump_item)) {
+		if (jump_item == nullptr) {
 			PX4_WARN("VTOL state: jump item %d read failed", static_cast<int>(segment.jump_item_index));
 			return state;
 		}
 
-		if (jump_item.nav_cmd != NAV_CMD_DO_JUMP || jump_item.do_jump_mission_index < 0) {
+		if (jump_item->nav_cmd != NAV_CMD_DO_JUMP || jump_item->do_jump_mission_index < 0) {
 			return state;
 		}
 
 		// The jump may target commands before its resolved waypoint. Those commands run last,
 		// so their transitions override the state reached before DO_JUMP.
-		if (resolve_state_in_range(jump_item.do_jump_mission_index, segment.end.idx)) {
+		if (resolve_state_in_range(jump_item->do_jump_mission_index, segment.end.idx)) {
 			return state;
 		}
 	}
@@ -711,18 +712,18 @@ uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment)
 	// Only an undefined prefix uses lookahead, in nominal order even when RTL flies in reverse.
 	// Ignore DO_JUMP repeats and targets, scanning as if all repeats were consumed.
 	for (int32_t index = segment.end.idx; index < mission_count; ++index) {
-		mission_item_s mission_item{};
+		const mission_item_s *mission_item = provider.missionItem(index);
 
-		if (!provider.loadMissionItem(index, mission_item)) {
+		if (mission_item == nullptr) {
 			break;
 		}
 
 		// Do not infer a mode from another takeoff or landing section.
-		if (isTakeoffCmd(mission_item.nav_cmd) || isLandingCmd(mission_item.nav_cmd)) {
+		if (isTakeoffCmd(mission_item->nav_cmd) || isLandingCmd(mission_item->nav_cmd)) {
 			break;
 		}
 
-		if (updateVtolStateFromMissionItem(mission_item, state, true)) {
+		if (updateVtolStateFromMissionItem(*mission_item, state, true)) {
 			break;
 		}
 	}
