@@ -37,6 +37,7 @@ MAV_MISSION_INVALID_PARAM6 = 11
 MAV_MISSION_INVALID_PARAM7 = 12
 
 MAV_RESULT_ACCEPTED = 0
+MAV_RESULT_TEMPORARILY_REJECTED = 1
 MAV_RESULT_DENIED = 2
 
 MAV_FRAME_GLOBAL_INT = 5
@@ -410,6 +411,37 @@ def run_command_tests(mav: Any, timeout: float) -> None:
     )
 
 
+def run_command_int_tests(mav: Any, timeout: float) -> None:
+    print("\n=== Command (COMMAND_INT) unset-field tests ===")
+
+    for x, y, valid in (
+        (0, 0, True),
+        (INT32_MAX, INT32_MAX, True),
+        (INT32_MIN, INT32_MIN, True),
+        (INT32_MAX, 0, True),
+        (0, INT32_MAX, True),
+        (INT32_MAX, 1, False),
+        (1, INT32_MAX, False),
+    ):
+        mav.mav.command_int_send(
+            mav.target_system, mav.target_component,
+            MAV_FRAME_MISSION, CMD_NAV_RTL, 0, 0,
+            0.0, 0.0, 0.0, 0.0, x, y, 0.0,
+        )
+        ack = mav.recv_match(
+            type="COMMAND_ACK", condition=f"COMMAND_ACK.command == {CMD_NAV_RTL}",
+            blocking=True, timeout=timeout,
+        )
+        result = int(ack.result) if ack else None
+        # Commander may reject RTL without a valid home/position. DENIED
+        # comes from parameter validation; a missing ACK must fail too.
+        expected = (
+            (MAV_RESULT_ACCEPTED, MAV_RESULT_TEMPORARILY_REJECTED)
+            if valid else (MAV_RESULT_DENIED,)
+        )
+        _check(f"NAV_RTL COMMAND_INT x={x}, y={y}", result in expected, True)
+
+
 # Entry point
 
 
@@ -432,6 +464,7 @@ def main() -> int:
 
     run_mission_tests(mav, args.timeout)
     run_command_tests(mav, args.timeout)
+    run_command_int_tests(mav, args.timeout)
 
     passed = sum(_results)
     total = len(_results)
