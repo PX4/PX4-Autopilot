@@ -77,7 +77,7 @@ public:
 	static bool supportsVehicle(const vehicle_status_s &vehicle_status);
 	/** Match the uploaded mission independently of safe-point changes, preserving route progress through reloads. */
 	bool missionMatches(const mission_s &mission) const;
-	/** Check full source identity, cache and fence readiness, mission generation, and safe-point count. */
+	/** Check full source identity, cache and fence readiness, and safe-point count. */
 	bool sourceStillValid(const mission_s &mission) const;
 	bool evaluationPending(const mission_s &mission) const;
 	/** Whether the cached mission and rally points and the fence describe @p mission. */
@@ -100,7 +100,6 @@ public:
 	void reportRouteResumed() const;
 	void reportRouteWaitEnded() const;
 
-	uint32_t missionGeneration() const;
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const;
 
 	/** Read only after evaluate() returns success; a failed evaluation may invalidate the plan. */
@@ -111,7 +110,6 @@ private:
 	/** Identity of the mission, safe points, and fence used by the last successful plan. */
 	struct SourceSnapshot {
 		uint32_t mission_id{0};
-		uint32_t mission_generation{0};
 		uint32_t safe_points_id{0};
 		uint32_t geofence_id{0};
 		int32_t mission_land_index{-1};

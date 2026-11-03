@@ -103,9 +103,9 @@ Every vehicle position gets its own run, all with the same request. Each path is
 - **Plan Return** runs the route-following Return: join point, route direction, branch-off and the selected goal.
 - **Plan Mission rejoin** runs the Mission resume join.
 
-The planned path is drawn as a dashed line, with pins for branch-in, branch-off and the goal. The plan fields appear under the buttons, including `geofence_prevents_shortcut` when a fence requires following the route instead of flying directly to the goal.
+The planned path is drawn as a dashed line, with pins for branch-in, branch-off and the goal. The plan fields appear under the buttons.
 
-The vehicle state sits above the buttons: mission index (`current_seq`), land index and whether the route is currently flown in reverse. **Parameters** holds the rest, labelled with the PX4 parameter it comes from: cross-track margins (`MIS_MC_SEG_DIST`, `MIS_FW_SEG_DIST`, `RTL_RP_SEG_DIST`), acceptance radii, the fixed-wing U-turn penalty (`RTL_FW_UTURN_PEN`), home altitude, vehicle type and VTOL state. Change them freely between runs; nothing is rebuilt.
+The vehicle state sits above the buttons: mission index (`current_seq`) and whether the route is currently flown in reverse. **Parameters** holds the rest, labelled with the PX4 parameter it comes from: cross-track margins (`MIS_MC_SEG_DIST`, `MIS_FW_SEG_DIST`, `RTL_RP_SEG_DIST`), acceptance radii, the fixed-wing U-turn penalty (`RTL_FW_UTURN_PEN`), home altitude, vehicle type and VTOL state. Change them freely between runs; nothing is rebuilt.
 
 Under the map, **Planner trace** shows the planner's own debug output, which the CLI compiles in; the text is informal and may change.
 

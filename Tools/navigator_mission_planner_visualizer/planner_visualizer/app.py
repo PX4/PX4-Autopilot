@@ -567,14 +567,7 @@ def render_request(items: List[Waypoint]) -> PlanRequest:
     def metres(label, key, value, step=1.0):
         return st.number_input(label, min_value=0.0, value=value, step=step, key=key)
 
-    # One row of columns per pair, bottom aligned, so a wrapped label does not shift its input.
-    left, right = st.columns(2, vertical_alignment="bottom")
-    mission_index = index_input(
-        left, "Mission index (current_seq)", "req_mission_index", min(1, last_index), 0
-    )
-    mission_land_index = index_input(
-        right, "Mission land index (-1 = none)", "req_land_index", planner_cli.land_index(items)
-    )
+    mission_index = index_input(st, "Mission index (current_seq)", "req_mission_index", min(1, last_index), 0)
     reversed_now = st.checkbox("Currently flying the route in reverse", key="req_reversed")
     with st.expander("Parameters", expanded=False):
         home_altitude = st.number_input(
@@ -613,7 +606,6 @@ def render_request(items: List[Waypoint]) -> PlanRequest:
         )
     return PlanRequest(
         mission_index=mission_index,
-        mission_land_index=mission_land_index,
         current_route_direction_reversed=reversed_now,
         home_altitude_amsl=home_altitude,
         projection_search_distance_m=vehicle_margin,

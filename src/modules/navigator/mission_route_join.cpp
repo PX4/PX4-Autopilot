@@ -103,7 +103,7 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 		request.velocity_east_m_s = local_position->vy;
 	}
 
-	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence(), request.vehicle_position};
+	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence()};
 	MissionRoutePlanner planner{mission_route_cache, &path_checker};
 	mission_route::MissionResumePlan join_plan{};
 	const mission_route::FailureReason failure_reason = planner.planMissionResumeJoin(request, join_plan);

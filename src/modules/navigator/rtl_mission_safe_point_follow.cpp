@@ -254,10 +254,6 @@ void RtlMissionSafePointFollow::on_activation()
 	}
 
 	if (_is_current_planned_mission_item_valid && !_plan.fly_direct_to_goal) {
-		if (_plan.geofence_prevents_shortcut) {
-			PX4_WARN("RTL direct segment breaches geofence; following mission route");
-		}
-
 		setupJoinRoute(_plan.join_position, _plan.use_current_altitude, allowedRouteTransition(_plan.vtol_transition_action));
 
 		PX4_DEBUG("RTL route join: alt=%.1f AMSL use_current_alt=%u",

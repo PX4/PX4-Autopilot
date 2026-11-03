@@ -40,7 +40,6 @@ PLAN branch_off_lon 8.545594000
 PLAN branch_off_alt 500.000
 PLAN branch_off_mission_item_index 3
 PLAN fly_direct_to_goal 0
-PLAN geofence_prevents_shortcut 0
 END
 """
 
@@ -128,10 +127,6 @@ class EncodeTest(unittest.TestCase):
         scene.positions = []
         with self.assertRaises(ValueError):
             planner_cli.encode(scene, make_request())
-
-    def test_land_index_finds_the_landing_item(self):
-        self.assertEqual(planner_cli.land_index(make_scene().missions["mission"]), 4)
-        self.assertEqual(planner_cli.land_index([point(0, 0)]), -1)
 
 
 class ParseTest(unittest.TestCase):
@@ -470,17 +465,14 @@ class UnitTestGenerationTest(unittest.TestCase):
         self.assertIn("EXPECT_NEAR(plan.join_position.lat, 47.4040373, 1e-6);", code)
         self.assertIn("EXPECT_NEAR(plan.join_position.alt, 500.000f, 0.01f);", code)
         self.assertIn("EXPECT_FALSE(plan.fly_direct_to_goal);", code)
-        self.assertIn("EXPECT_FALSE(plan.geofence_prevents_shortcut);", code)
         self.assertTrue(code.rstrip().endswith("}"))
 
-    def test_vtol_transition_and_geofence_shortcut_are_asserted(self):
+    def test_vtol_transition_is_asserted(self):
         output = CLI_OUTPUT.replace("vtol_transition_action none", "vtol_transition_action back_transition")
-        output = output.replace("geofence_prevents_shortcut 0", "geofence_prevents_shortcut 1")
         code = generate_unit_test(self.scene, self.base, make_request(), planner_cli.parse_output(output), "x")
         self.assertIn(
             "EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kBackTransition);", code
         )
-        self.assertIn("EXPECT_TRUE(plan.geofence_prevents_shortcut);", code)
 
     def test_interpolated_altitude_keeps_the_cli_precision(self):
         # Rounded to 501.8 m, this altitude would miss the 0.01 m tolerance.
@@ -492,11 +484,9 @@ class UnitTestGenerationTest(unittest.TestCase):
         request = make_request()
         request.projection_search_distance_m = 150.0
         request.is_fixed_wing = True
-        request.mission_land_index = 4
         code = generate_unit_test(self.scene, self.base, request, self.result, "x")
         self.assertIn("request.projection_search_distance_m = 150.f;", code)
         self.assertIn("request.is_fixed_wing = true;", code)
-        self.assertIn("request.mission_land_index = 4;", code)
 
     def test_request_values_are_written_when_the_helper_defaults_are_unknown(self):
         # Outside the repo nothing is known about makeRtlRouteRequest(), so nothing may be left out.
@@ -515,7 +505,6 @@ class UnitTestGenerationTest(unittest.TestCase):
         self.assertIn("makeMissionResumeRequest(vehicle_position, 2)", code)
         self.assertIn("planner.planMissionResumeJoin(request, plan);", code)
         self.assertNotIn("goal_type", code)
-        self.assertNotIn("geofence_prevents_shortcut", code)
         self.assertIn("EXPECT_EQ(plan.vtol_transition_action, mission_route::VtolTransitionAction::kNone);", code)
         self.assertNotIn("safe_point_projection_search_distance_m", code)
 

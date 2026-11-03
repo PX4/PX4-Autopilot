@@ -1385,7 +1385,6 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, MissionLandGoalForecastFliesLastL
 		mission_route::RtlRouteRequest request{};
 		request.vehicle_position = vehicle_position;
 		request.mission_index = 2;
-		request.mission_land_index = 4;
 		request.home_altitude_amsl = kAlt;
 		request.projection_search_distance_m = 60.f;
 		request.safe_point_projection_search_distance_m = 60.f;
@@ -2006,7 +2005,6 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, DirectStackedLandingPlanPreserves
 	mission_route::RtlRouteRequest request{};
 	request.vehicle_position = vehicle_position;
 	request.mission_index = 3;
-	request.mission_land_index = 3;
 	request.home_altitude_amsl = kAlt;
 	request.projection_search_distance_m = 60.f;
 	request.safe_point_projection_search_distance_m = 60.f;

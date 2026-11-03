@@ -47,7 +47,6 @@ class PlanRequest:
 
     action: str = "RTL"
     mission_index: int = 1
-    mission_land_index: int = -1
     current_route_direction_reversed: bool = False
     home_altitude_amsl: float = 500.0
     projection_search_distance_m: float = 30.0  # MIS_MC_SEG_DIST (MIS_FW_SEG_DIST is 150 m)
@@ -140,13 +139,6 @@ def vehicle_positions(scene: Scene) -> List[Position]:
 def vehicle_position(scene: Scene) -> Optional[Position]:
     vehicles = vehicle_positions(scene)
     return vehicles[0] if vehicles else None
-
-
-def land_index(items: Sequence[Waypoint]) -> int:
-    for index, item in enumerate(items):
-        if item.cmd in LAND_COMMANDS:
-            return index
-    return -1
 
 
 def encode(scene: Scene, request: PlanRequest, vehicle: Optional[Position] = None) -> str:

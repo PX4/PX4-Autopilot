@@ -341,7 +341,6 @@ public:
 	int32_t missionSequenceForTest() const { return _mission_sub.get().current_seq; }
 	bool routePlanSourceStillValidForTest() const { return _route_safe_point.sourceStillValid(_mission_sub.get()); }
 	bool routePlanMatchesSourceForTest(const mission_s &mission) const { return _route_safe_point.sourceStillValid(mission); }
-	uint32_t routePlanMissionGenerationForTest() const { return _route_safe_point.missionGeneration(); }
 	mission_route::ActiveJumpAnchor lastRouteLoopSegmentForTest() const { return _route_safe_point.activeJumpAnchor(); }
 #endif
 
@@ -838,7 +837,6 @@ protected:
 		EXPECT_TRUE(finishFenceUpdate());
 
 		MissionRouteCache &cache = _navigator.get_mission_route_cache();
-		cache.invalidate();
 		EXPECT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] {
 			return cache.missionItemsReady(mission) && cache.safePointsReady();
 		}));
@@ -873,7 +871,6 @@ protected:
 		++replacement.mission_id;
 		replacement.timestamp = hrt_absolute_time();
 		publishMission(replacement);
-		_navigator.get_mission_route_cache().invalidate();
 		return replacement;
 	}
 
@@ -928,7 +925,7 @@ protected:
 		return mission;
 	}
 
-	// A square exclusion fence east of the route; path checks pass until setVertexCount(fence, 3) breaks them.
+	// A square exclusion fence east of the route; path checks pass until setVertexCount(fence, 5) breaks them.
 	mission_s prepareSquareFenceScenario(const mission_item_s &safe_point)
 	{
 		mission_s mission = loadRoutePlanningCache({
@@ -1510,7 +1507,6 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	ASSERT_TRUE(estimate_sub.update());
 	ASSERT_TRUE(estimate_sub.get().valid);
 	const float last_leg_time = estimate_sub.get().time_estimate;
-	const uint32_t generation = _rtl.routePlanMissionGenerationForTest();
 	const auto last_leg_join = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 20.f, kAlt + 50.f);
 	const auto last_leg_plan = _rtl.routePlanForTest();
 	ASSERT_TRUE(last_leg_plan.valid());
@@ -1528,7 +1524,6 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	const float first_leg_time = estimate_sub.get().time_estimate;
 	EXPECT_LT(first_leg_time, last_leg_time);
 	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
-	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), generation);
 	const auto first_leg_join = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 50.f);
 	const auto first_leg_plan = _rtl.routePlanForTest();
 	ASSERT_TRUE(first_leg_plan.valid());
@@ -1593,38 +1588,6 @@ TEST_F(RTLTest, RouteReturnResumesFromIndefiniteHoldAfterValidation)
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
-TEST_F(RTLTest, RouteSafePointReturnUsesPlannerAndTracksCacheGeneration)
-{
-	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
-	const mission_s mission = prepareStraightRouteScenario();
-
-	_rtl.activateRouteSafePointReturnForTest();
-
-	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
-	const uint32_t original_generation = _rtl.routePlanMissionGenerationForTest();
-	ASSERT_TRUE(rtl_status_sub.update());
-	EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
-	EXPECT_EQ(rtl_status_sub.get().safe_point_index, 0);
-
-	mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 1.f);
-	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0,
-					      reinterpret_cast<uint8_t *>(&updated), sizeof(updated)));
-	ASSERT_EQ(_navigator.get_mission_route_cache().syncMissionItem(mission, 0, updated),
-		  MissionRouteCache::SyncResult::kPatched);
-	EXPECT_FALSE(_rtl.routePlanSourceStillValidForTest());
-
-	MissionRouteCache::MissionView updated_view{};
-	ASSERT_TRUE(_navigator.get_mission_route_cache().getMissionView(mission, updated_view));
-	ASSERT_NE(updated_view.generation, original_generation);
-
-	_rtl.run(true);
-
-	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
-	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), updated_view.generation);
-}
-
 // Keep the status recent: commander checks the route again as soon as Return is left.
 TEST_F(RTLTest, ActiveRouteReturnRepublishesItsStatus)
 {
@@ -1673,7 +1636,6 @@ TEST_F(RTLTest, RouteSafePointReturnReplansAfterFenceReplacementFinishesLoading)
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 	ASSERT_EQ(_rtl.routePlanForTest().safe_point_index, 0);
 	ASSERT_TRUE(_rtl.routePlanSourceStillValidForTest());
-	const uint32_t mission_generation = _rtl.routePlanMissionGenerationForTest();
 
 	// Either fence identity field changing invalidates a plan, even while the old fence is ready.
 	mission_s changed_source = mission;
@@ -1711,7 +1673,6 @@ TEST_F(RTLTest, RouteSafePointReturnReplansAfterFenceReplacementFinishesLoading)
 	EXPECT_EQ(_rtl.routePlanForTest().safe_point_index, 1);
 	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 2u);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
-	EXPECT_EQ(_rtl.routePlanMissionGenerationForTest(), mission_generation);
 }
 
 TEST_F(RTLTest, RouteReturnStopsAfterFenceReplacementFailsPermanently)
@@ -1749,8 +1710,8 @@ TEST_F(RTLTest, RouteReturnStopsAfterFenceReplacementFailsPermanently)
 TEST_F(RTLTest, RouteReturnWithoutPathChecksStopsHere)
 {
 	prepareSquareFenceScenario(makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt));
-	// Point checks still pass, but every path check is unavailable, as for an over-long path.
-	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 3);
+	// Every path check is unavailable: it reads past the cached polygon.
+	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 5);
 	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
 
 	_rtl.activateRouteSafePointReturnForTest();
@@ -1826,7 +1787,7 @@ TEST_F(RTLTest, RouteFollowerIsReusedAfterTemporaryFailure)
 	ASSERT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 
 	// Path checks become unavailable, then recover with the same mission, rally points and fence.
-	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 3);
+	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 5);
 	_rtl.evaluateInactiveRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 4);
@@ -1838,9 +1799,10 @@ TEST_F(RTLTest, RouteFollowerIsReusedAfterTemporaryFailure)
 // Activated while the cache loads, Return stops here and retries once the cache is ready.
 TEST_F(RTLTest, RouteReturnResumesAfterCacheLoads)
 {
-	const mission_s mission = prepareStraightRouteScenario();
+	// A mission upload: the cache has not loaded the replacement yet.
+	const mission_s mission = startMissionReplacement(prepareStraightRouteScenario());
+	setMissionResultValid(mission);
 	MissionRouteCache &cache = _navigator.get_mission_route_cache();
-	cache.invalidate();
 	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, -500.f, 0.f, kAlt));
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
@@ -2264,7 +2226,6 @@ TEST_F(RTLTest, MissionReplacementMidReturnStopsThenResumesReplacement)
 	++replacement.mission_id;
 	replacement.timestamp = hrt_absolute_time();
 	publishMission(replacement);
-	_navigator.get_mission_route_cache().invalidate();
 	uORB::SubscriptionData<navigator_mission_item_s> item_sub{ORB_ID(navigator_mission_item)};
 	_rtl.run(true);
 	expectStoppedAt(start);
@@ -2533,7 +2494,6 @@ TEST_F(RTLTest, ReuploadOfAnEarlierMissionWaitsForItToLoad)
 	mission_s again = mission;
 	again.timestamp = hrt_absolute_time();
 	publishMission(again);
-	cache.invalidate();
 
 	for (unsigned cycle = 0; cycle < 5; ++cycle) {
 		flyReturnCycles(1);
@@ -2901,7 +2861,6 @@ TEST_F(RTLTest, RouteArrivalKeepsExecutorAndGoalAcrossSourceReplacement)
 	++replacement.mission_id;
 	replacement.timestamp = hrt_absolute_time();
 	publishMission(replacement);
-	_navigator.get_mission_route_cache().invalidate();
 	_navigator.get_mission_result()->valid = false;
 	fly_to(before_arrival.current.lat, before_arrival.current.lon, route_altitude - 10.f);
 	_rtl.run(true);
