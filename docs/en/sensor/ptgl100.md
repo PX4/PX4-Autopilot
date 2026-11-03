@@ -62,6 +62,7 @@ For any other direction, set [SENS_PTGL100_ROT](../advanced_config/parameter_ref
 ### Wiring {#wiring}
 
 The manufacturer's packing list includes one module and one power cable.
+The Flycore hardware test used a custom-made adapter cable.
 The module uses a six-pin `HC-0.8-6PWT` connector with a 0.8 mm pitch.
 The Flycore end of the tested setup uses a JST-GH connector with a 1.25 mm pitch.
 An adapter cable is required to connect the module to the flight controller; the connectors do not mate directly.
