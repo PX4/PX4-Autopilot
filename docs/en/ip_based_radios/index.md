@@ -1,54 +1,35 @@
-# IP-Based Radios
+# IP-based Radios
 
-IP-based radios are wireless data links that carry standard Ethernet (IP) traffic instead of a single dedicated stream, such as [serial radio control](../getting_started/rc_transmitter_receiver).
-To the vehicle and ground control stations (GCS), the link behaves like a network cable, which is replaced by radio.
+IP-based radios provide wireless communication between networked devices, such as PX4 [Flight Controllers](../flight_controller/index.md), [companion computers](../companion_computer/index.md), and [ground control stations](../getting_started/px4_basic_concepts.md#ground-control-stations) (GCS).
 
-![Basic IP-based radio connection diagram](../../assets/hardware/ip_based_radios/ip_based_radios_basic_diagram.svg)
+Unlike conventional [serial telemetry radios](../telemetry/sik_radio.md), the radios act as a wireless network connection between the vehicle and GCS, similar to replacing an Ethernet cable with a radio link.
+
+![Simple IP-based Radio Connection Diagram](../../assets/hardware/ip_based_radios/ip_based_radios_basic_diagram.svg)
 
 This has several advantages:
 
-- Many Ethernet-enabled devices can share the link within the available [bandwidth](<https://en.wikipedia.org/wiki/Bandwidth_(computing)>).
+- Many communication streams can share the link within the available [bandwidth](https://en.wikipedia.org/wiki/Bandwidth_(computing)).
 - Some radios support [mesh networking](#mesh-and-manet), which allows many vehicles and GCSs to connect to each other.
 
 ## Connectivity
 
-Devices can connect to the radio using standard Ethernet, Ethernet over USB, serial, or other data formats, depending on the radio hardware.
-The radio converts this data into Ethernet packets for transmission, sends them over RF, and the radio on the other side converts it back.
+They can transport multiple types of network traffic over the same wireless link, including [MAVLink telemetry](../mavlink/index.md), control commands, and video streams. 
 
-Because the devices on a vehicle can connect to the radio through a network switch, the number of Ethernet-enabled devices connected is limited by the bandwidth.
+Depending on the hardware, radios may provide several connection interfaces:
 
-![Point-to-point Ethernet Connection](../../assets/hardware/ip_based_radios/p2p_ethernet_connection_more_complex.svg)
+- [Ethernet](https://en.wikipedia.org/wiki/Ethernet) — For connecting flight controllers, companion computers, and other networked devices.
+- [Serial](https://en.wikipedia.org/wiki/Serial_communication) — For transmitting serial data, such as MAVLink, through a serial-to-network gateway.
+- [USB networking](https://en.wikipedia.org/wiki/Ethernet_over_USB) — For connecting compatible computers or other USB networking hosts without a physical Ethernet port.
 
-IP-based radios can usually be configured in a way to offer enough bandwidth to carry video, telemetry and manual control at the same time, usually with low latency and high reliability.
-Actual performance depends on the radio model, the frequency band and the link conditions, so check the datasheet of your radio.
 
-::: tip
-Most IP-based radios can be configured to favour bandwidth, range or reliability.
-Improving one usually costs some of the others, so choose the balance that suits your goals.
+::: info
+Non-network data usually requires additional software to be transmitted over the IP-based radio link.
+Refer to the vendor-specific documentation for further information.
 :::
 
-## Mesh and MANET
+### Point-to-point Connection Setup
 
-Many IP-based radios also support [mesh networking](https://en.wikipedia.org/wiki/Mesh_networking).
-In a mesh, devices on several PX4 vehicles can join the same network and communicate with each other, instead of being limited to a [point-to-point](<https://en.wikipedia.org/wiki/Point-to-point_(telecommunications)>) connection.
-
-A diagram of a mesh network where all nodes are directly connected:
-
-![Full Mesh Network Topology](../../assets/hardware/ip_based_radios/network_topology_full_mesh.webp){width=30%}
-
-### MANET
-
-A [MANET](https://en.wikipedia.org/wiki/Wireless_ad_hoc_network) (mobile ad hoc network) is a mesh network in which the [nodes](<https://en.wikipedia.org/wiki/Node_(computer_networking)>) can move.
-The network has no fixed infrastructure, such as a base station, and configures itself automatically.
-Each node sends its own traffic and forwards traffic from other nodes, so data can reach a distant vehicle by hopping through other vehicles.
-
-A diagram of a mesh network where the nodes move and not all of them are directly connected:
-
-![Mesh Network Topology](../../assets/hardware/ip_based_radios/network_topology_mesh.webp){width=30%}
-
-## Point-to-point Connection Setup
-
-Setting up a vehicle with an IP-based radio is currently only documented for flight controllers with an Ethernet port.
+Setting up a vehicle with by using an IP-based radio with an ethernet interface is currently only documented for flight controllers with an Ethernet port.
 See the [list of supported PX4 flight controllers](../advanced_config/ethernet_setup.md#supported-flight-controllers).
 
 ::: tip
@@ -58,39 +39,66 @@ This approach is not documented for PX4.
 
 To set up the vehicle:
 
-1. [Connect the flight controller to Ethernet](../advanced_config/ethernet_setup.md) on the vehicle side.
-   The flight controller gets its own IP address on the network.
-2. Connect the GCS to the Ethernet link on the GCS side.
-3. Set up the radio link.
-   Configuration steps will vary depending on your specific brand and model.
-   Once established, this connection alone is sufficient for executing waypoint missions and fully autonomous flights.
-
+1. [Configure Ethernet on PX4](../advanced_config/ethernet_setup.md), including its IP address and MAVLink interface.
+   ::: tip
+   PX4 can obtain an IP address automatically using [DHCP](https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol) if a DHCP server is available on the network.
+   This can simplify replacing flight controllers with identical MAVLink configurations, without manually assigning IP addresses.
+   :::
+1. Connect the flight controller to the vehicle-side radio.
+1. Connect the GCS to the ground-side radio.
+1. Configure the radio link according to the manufacturer's instructions.
+   This may include configuring the RF link and network settings.
    ::: warning
    Several devices on the network, usually also including the radios, each have their own IP address.
-   Make sure that no two devices share the same address, and that all devices are on the same subnet.
+   For a simple [P2P configuration](https://en.wikipedia.org/wiki/Point-to-point_(telecommunications)), sure that no two devices share the same IP address, and that all devices are on the same [subnet](https://en.wikipedia.org/wiki/Subnet).
    :::
+1. [Configure QGroundControl](../advanced_config/ethernet_setup.md#qgroundcontrol-setup-example) to receive MAVLink traffic over the network.
+1. For manual control, configure a [joystick](../config/joystick.md) in QGroundControl.
 
-4. For manual control of the vehicle, set up a [joystick](../config/joystick.md) input.
+### Networking Capabilities
 
-## IP-Based Radio Vendors
+Multiple devices can share the same radio network through a [network switch](https://en.wikipedia.org/wiki/Network_switch).
+
+![Point-to-point Ethernet Connection](../../assets/hardware/ip_based_radios/p2p_ethernet_connection_more_complex.svg)
+
+Depending on the available bandwidth, the link can carry video, telemetry, and control data simultaneously.
+Actual throughput, latency, and reliability depend on the radio model, configuration, and link conditions.
+
+::: tip
+Some radios allow users to favour throughput, range, or link reliability.
+These properties often involve trade-offs, so choose settings appropriate for your application.
+:::
+
+## Supported IP-based Radios
 
 - [Doodle Labs](https://doodlelabs.com/) <!-- Tested by UXV Technologies on PX4 v 1.16.0 and QGC v5.0.8 -->
+<!-- Probably message the manufacturer-->
 - [Microhard](https://www.microhardcorp.com/products.php) <!-- Used in the SKY-DRONES AIRLink Telemetry Set, mentioned in PX4 docs: https://docs.px4.io/main/en/flight_controller/airlink-->
+<!-- Probably message the manufacturer-->
 
 ::: info
-Other IP-Based radios from brands such as [Domo Tactical](https://www.dtccodan.com/), [Persistent Systems](https://persistentsystems.com/), [Rajant Kinetic Mesh Network](https://rajant.com/technology/rajant-kinetic-wireless-mesh-networks/), [Silvus Technologies](https://silvustechnologies.com/), [Trellisware](https://www.trellisware.com/trellisware-radios/) should offer the same capabilities.
+Other IP-based radios from brands such as [Domo Tactical](https://www.dtccodan.com/), [Persistent Systems](https://persistentsystems.com/), [Rajant Kinetic Mesh Network](https://rajant.com/technology/rajant-kinetic-wireless-mesh-networks/), [Silvus Technologies](https://silvustechnologies.com/), [Trellisware](https://www.trellisware.com/trellisware-radios/) should offer the same capabilities.
 They have not been explicitly tested with PX4 and QGC.
 :::
 
-## Swappable Radio Modules (SRM)
+### Interfaces
+- [UXV Technologies Swappable Radio Modules (SRM)](https://www.uxvtechnologies.com/news/increase-flexibility-and-efficiency-with-our-new-swappable-radio-modules) - Standard defined by UXV Technologies and later added to the US DoW Blue UAS Framework.
+   It allows radios and GCS from various vendors to work together using a common interface.
+![SRM Radio](../../assets/hardware/ip_based_radios/uxv_technologies_srm_s_mh_+.png){width=27%}
+![SRM Airside](../../assets/hardware/ip_based_radios/uxv_technologies_airside_eth_front.png){width=45%}
 
-[Swappable Radio Modules (SRM)](https://www.uxvtechnologies.com/products?series=SRM+Radios), as the name suggests, allow the radios to be easily swapped for one another.
-This enables one [SRM-Compatible](https://www.uxvtechnologies.com/products?product-category=Ground+Control+Stations) Ground Control Station (GCS) to be used with different vehicles with different (IP-Based) radios, or in different situations.
+## Mesh and MANET
 
-<!-- Tested by UXV Technologies on PX4 v 1.16.0 and QGC v5.0.8 -->
+Some IP-based radios support [mesh networking](https://en.wikipedia.org/wiki/Mesh_networking), including [mobile ad hoc networks (MANETs)](https://en.wikipedia.org/wiki/Wireless_ad_hoc_network).
+These allow multiple vehicles and ground stations to communicate through intermediate radio nodes without fixed infrastructure.
+MANETs can automatically adapt network routes as devices move or wireless links change.
+Additional MAVLink configuration may be required for communication between vehicles.
 
-![UXV Technologies SRM-S-MH+](../../assets/hardware/ip_based_radios/uxv_technologies_srm_s_mh_+.png){width=40%}
+The diagrams below show examples of mesh network topologies:
+
+![Full Mesh Network Topology](../../assets/hardware/ip_based_radios/network_topology_full_mesh.webp){width=30%}
+![Partial Mesh Network Topology](../../assets/hardware/ip_based_radios/network_topology_mesh.webp){width=30%}
 
 ::: info
-PX4 has been proven to work with SRM-S-DL+ and SRM-S-MH+, but other Ethernet-based radios should offer the same capability.
+Mesh networking is an advanced use case that may require additional configuration and testing to operate reliably under real-world conditions.
 :::
