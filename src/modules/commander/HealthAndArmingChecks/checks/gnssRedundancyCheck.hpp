@@ -43,7 +43,7 @@
 class GnssRedundancyChecks : public HealthAndArmingCheckBase
 {
 public:
-	GnssRedundancyChecks();
+	GnssRedundancyChecks() = default;
 	~GnssRedundancyChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
@@ -58,14 +58,10 @@ private:
 	uint8_t _peak_healthy_count{0};
 	systemlib::Hysteresis _divergence_hysteresis;
 
-	const param_t _param_ekf2_gps_p_noise_handle;
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>) _param_sys_has_num_gnss,
 					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act,
-					(ParamFloat<px4::params::SENS_GNSS0_OFFX>) _param_sens_gnss0_offx,
-					(ParamFloat<px4::params::SENS_GNSS0_OFFY>) _param_sens_gnss0_offy,
-					(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_sens_gnss1_offx,
-					(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_sens_gnss1_offy
+					(ParamFloat<px4::params::COM_GNSS_H_MAX>) _param_com_gnss_h_max,
+					(ParamFloat<px4::params::COM_GNSS_V_MAX>) _param_com_gnss_v_max
 				       )
 };
