@@ -88,11 +88,9 @@ public:
 		_failsafe_flags.mode_req_global_position = ~0u;
 
 		// the topics keep their last sample across cases, so each case starts from the same clean state
-		publishEstimatorStatus(false, 0);
-		estimator_status_flags_s flags{};
-		flags.timestamp = hrt_absolute_time();
-		flags.cs_yaw_align = true;
-		publishStatusFlags(flags);
+		publishEstimatorStatus(false);
+		publishFusionState(estimator_status_flags_s::GNSS_FUSION_FUSED);
+		publishReceiver(0);
 		estimator_sensor_bias_s bias{};
 		bias.timestamp = hrt_absolute_time();
 		publishSensorBias(bias);
@@ -120,19 +118,28 @@ public:
 	void publishAttitude(const vehicle_attitude_s &attitude) { _attitude_pub.publish(attitude); }
 	void publishAngularVelocity(const vehicle_angular_velocity_s &rates) { _angular_velocity_pub.publish(rates); }
 
-	// what the estimator reports: whether it fuses GNSS position, and which receiver checks fail.
-	// An age stands in for a report seen that long ago.
-	void publishEstimatorStatus(bool gnss_fused, uint16_t gps_check_fail_flags, hrt_abstime age = 0)
+	// what the estimator reports: whether it fuses GNSS position
+	void publishEstimatorStatus(bool gnss_fused)
 	{
 		estimator_status_s status{};
-		status.timestamp = hrt_absolute_time() - age;
+		status.timestamp = hrt_absolute_time();
 		status.control_mode_flags = gnss_fused ? (1ULL << estimator_status_s::CS_GNSS_POS) : 0;
-		status.gps_check_fail_flags = gps_check_fail_flags;
 		_estimator_status_pub.publish(status);
 	}
 
-	// the receiver's last sample, fresh or from before it went silent
-	void publishReceiver(hrt_abstime age)
+	// why the estimator fuses the GNSS samples or not, and whether it declared GNSS faulty
+	void publishFusionState(uint8_t gnss_fusion_state, bool gnss_fault = false)
+	{
+		estimator_status_flags_s flags{};
+		flags.timestamp = hrt_absolute_time();
+		flags.cs_yaw_align = true;
+		flags.cs_gnss_fault = gnss_fault;
+		flags.gnss_fusion_state = gnss_fusion_state;
+		_status_flags_pub.publish(flags);
+	}
+
+	// the selected receiver's last sample, fresh or from before it went silent, with the checks it failed
+	void publishReceiver(hrt_abstime age, uint16_t failed_checks = 0, uint8_t instance = 0)
 	{
 		vehicle_gnss_s gnss{};
 		gnss.timestamp = hrt_absolute_time() - age;
@@ -141,6 +148,9 @@ public:
 		gnss.receiver.timestamp_sample = gnss.timestamp;
 		gnss.receiver.device_id = 1;
 		gnss.receiver.fix_type = 3;
+		gnss.selected_instance = instance;
+		gnss.usable = (failed_checks == 0);
+		gnss.failed_checks = failed_checks;
 		_receiver_pub.publish(gnss);
 	}
 
@@ -230,10 +240,22 @@ public:
 		_events.clear();
 	}
 
+	// the receiver named by an event, its first argument
+	static uint8_t eventReceiver(const event_s &event) { return event.arguments[0]; }
+
+	// the checks named by a reason event, after the receiver
+	static uint16_t eventChecks(const event_s &event)
+	{
+		uint16_t checks = 0;
+		memcpy(&checks, event.arguments + 1, sizeof(checks));
+		return checks;
+	}
+
 	// a vehicle flying on GNSS with a valid position and a live receiver, the starting point of every case
 	void flyOnGnss()
 	{
-		publishEstimatorStatus(true, 0);
+		publishEstimatorStatus(true);
+		publishFusionState(estimator_status_flags_s::GNSS_FUSION_FUSED);
 		publishReceiver(0);
 		publishLocalPosition(true);
 		runCheck(true);
@@ -244,15 +266,17 @@ public:
 
 	static constexpr uint32_t kReasonEvent = events::ID("check_estimator_position_lost_gnss_reason");
 	static constexpr uint32_t kNoDataEvent = events::ID("check_estimator_position_lost_gnss_no_data");
+	static constexpr uint32_t kRejectedEvent = events::ID("check_estimator_position_lost_gnss_rejected");
+	static constexpr uint32_t kVelLimitEvent = events::ID("check_estimator_position_lost_gnss_vel_limit");
 	static constexpr uint32_t kFusionStartedEvent = events::ID("check_estimator_gnss_fusion_started");
 	static constexpr uint32_t kFusionStoppedEvent = events::ID("check_estimator_gnss_fusion_stopped");
 	static constexpr uint32_t kSpoofingEvent = events::ID("check_estimator_gnss_warning_spoofing");
 	static constexpr uint32_t kJammingEvent = events::ID("check_estimator_gnss_warning_jamming");
 	static constexpr uint32_t kFailureImminentEvent = events::ID("check_estimator_position_failure_imminent");
-	static constexpr uint16_t kSpeedAccuracy = 1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR;
-	static constexpr uint16_t kSpoofed = 1 << estimator_status_s::GPS_CHECK_FAIL_SPOOFED;
-	static constexpr uint16_t kJammed = 1 << estimator_status_s::GPS_CHECK_FAIL_JAMMED;
-	static constexpr uint16_t kFixTooLow = 1 << estimator_status_s::GPS_CHECK_FAIL_GPS_FIX;
+	static constexpr uint16_t kSpeedAccuracy = vehicle_gnss_s::CHECK_SACC;
+	static constexpr uint16_t kSpoofed = vehicle_gnss_s::CHECK_SPOOFED;
+	static constexpr uint16_t kJammed = vehicle_gnss_s::CHECK_JAMMED;
+	static constexpr uint16_t kFixTooLow = vehicle_gnss_s::CHECK_FIX;
 
 	uORB::PublicationMulti<estimator_status_s> _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::PublicationMulti<estimator_status_flags_s> _status_flags_pub{ORB_ID(estimator_status_flags)};
@@ -274,40 +298,39 @@ TEST_F(EstimatorChecksTest, NamesTheFailingCheckWhenPositionIsLostInFlight)
 {
 	flyOnGnss();
 
-	// the receiver's speed accuracy fails the in-flight check and the position estimate goes with it
-	publishEstimatorStatus(true, kSpeedAccuracy);
+	// the receiver's speed accuracy fails the in-flight check, the estimator skips its samples, and the position
+	// estimate goes with it
+	publishReceiver(0, kSpeedAccuracy, 1);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
 	publishLocalPosition(false);
 	runCheck(true);
 
 	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
 
 	event_s event{};
-	EXPECT_EQ(countEvents(kReasonEvent, &event), 1);
-	uint16_t reported_flags = 0;
-	memcpy(&reported_flags, event.arguments, sizeof(reported_flags));
-	EXPECT_EQ(reported_flags, kSpeedAccuracy);
+	ASSERT_EQ(countEvents(kReasonEvent, &event), 1);
+	EXPECT_EQ(eventReceiver(event), 1);
+	EXPECT_EQ(eventChecks(event), kSpeedAccuracy);
 }
 
 TEST_F(EstimatorChecksTest, NamesACheckThatFailedShortlyBeforePositionWasLost)
 {
 	flyOnGnss();
 
-	// the check fails on one sample, passes again on the next, and the position goes a cycle later.
-	// EKF2 was still rejecting samples from the failure, so it is the reason even though the newest
-	// sample is clean.
-	publishEstimatorStatus(true, kSpeedAccuracy);
-	publishReceiver(0);
+	// the check fails on one sample and passes again on the next. The receiver's samples stay unusable for a while
+	// after the failure, so the estimator skips them and the position goes a cycle later: the failed check is the
+	// reason even though the newest sample passes.
+	publishReceiver(0, kSpeedAccuracy);
 	publishLocalPosition(true);
 	runCheck(true);
 
-	publishEstimatorStatus(true, 0);
 	publishReceiver(0);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
 	publishLocalPosition(true);
 	runCheck(true);
 	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
 	drainEvents();
 
-	publishEstimatorStatus(true, 0);
 	publishReceiver(0);
 	publishLocalPosition(false);
 	runCheck(true);
@@ -315,9 +338,7 @@ TEST_F(EstimatorChecksTest, NamesACheckThatFailedShortlyBeforePositionWasLost)
 	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
 	event_s event{};
 	ASSERT_EQ(countEvents(kReasonEvent, &event), 1) << "the check that kept GNSS out is the reason";
-	uint16_t reported_flags = 0;
-	memcpy(&reported_flags, event.arguments, sizeof(reported_flags));
-	EXPECT_EQ(reported_flags, kSpeedAccuracy);
+	EXPECT_EQ(eventChecks(event), kSpeedAccuracy);
 }
 
 TEST_F(EstimatorChecksTest, ForgetsACheckThatStoppedFailingLongBefore)
@@ -326,36 +347,36 @@ TEST_F(EstimatorChecksTest, ForgetsACheckThatStoppedFailingLongBefore)
 
 	// spoofing was flagged once, well before the speed accuracy failed and the position went. Each
 	// check expires on its own, so the speed accuracy failing doesn't keep the spoofing in the reason.
-	publishEstimatorStatus(true, kSpoofed, 15_s);
+	publishReceiver(15_s, kSpoofed);
 	runCheck(true);
 	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
 	drainEvents();
 
-	publishEstimatorStatus(true, kSpeedAccuracy);
-	publishReceiver(0);
+	publishReceiver(0, kSpeedAccuracy);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
 	publishLocalPosition(false);
 	runCheck(true);
 
 	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
 	event_s event{};
 	ASSERT_EQ(countEvents(kReasonEvent, &event), 1);
-	uint16_t reported_flags = 0;
-	memcpy(&reported_flags, event.arguments, sizeof(reported_flags));
-	EXPECT_EQ(reported_flags, kSpeedAccuracy);
+	EXPECT_EQ(eventChecks(event), kSpeedAccuracy);
 }
 
 TEST_F(EstimatorChecksTest, ReportsOnceWhilePositionStaysLost)
 {
 	flyOnGnss();
 
-	publishEstimatorStatus(true, kSpeedAccuracy);
+	publishReceiver(0, kSpeedAccuracy);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
 	publishLocalPosition(false);
 	runCheck(true);
 	ASSERT_EQ(countEvents(kReasonEvent), 1);
 	drainEvents();
 
 	for (int i = 0; i < 5; i++) {
-		publishEstimatorStatus(false, kSpeedAccuracy);
+		publishEstimatorStatus(false);
+		publishReceiver(0, kSpeedAccuracy);
 		publishLocalPosition(false);
 		runCheck(true);
 	}
@@ -367,23 +388,21 @@ TEST_F(EstimatorChecksTest, EveryFailingCheckIsInTheEvent)
 {
 	flyOnGnss();
 
-	publishEstimatorStatus(true, kSpeedAccuracy | kSpoofed);
+	publishReceiver(0, kSpeedAccuracy | kSpoofed);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
 	publishLocalPosition(false);
 	runCheck(true);
 
 	event_s event{};
 	ASSERT_EQ(countEvents(kReasonEvent, &event), 1);
-	uint16_t reported_flags = 0;
-	memcpy(&reported_flags, event.arguments, sizeof(reported_flags));
-	EXPECT_EQ(reported_flags, kSpeedAccuracy | kSpoofed) << "the event carries every failing check";
+	EXPECT_EQ(eventChecks(event), kSpeedAccuracy | kSpoofed) << "the event carries every failing check";
 }
 
-TEST_F(EstimatorChecksTest, NothingWhenNoCheckIsFailing)
+TEST_F(EstimatorChecksTest, NothingWhileGnssIsFused)
 {
 	flyOnGnss();
 
-	// position lost with the receiver alive and every check passing, so nothing gets blamed on GNSS
-	publishEstimatorStatus(true, 0);
+	// position lost while the estimator fuses every sample, so nothing gets blamed on GNSS
 	publishReceiver(0);
 	publishLocalPosition(false);
 	runCheck(true);
@@ -391,20 +410,25 @@ TEST_F(EstimatorChecksTest, NothingWhenNoCheckIsFailing)
 	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
 	EXPECT_EQ(countEvents(kReasonEvent), 0);
 	EXPECT_EQ(countEvents(kNoDataEvent), 0);
+	EXPECT_EQ(countEvents(kRejectedEvent), 0);
+	EXPECT_EQ(countEvents(kVelLimitEvent), 0);
 }
 
 TEST_F(EstimatorChecksTest, NamesTheReceiverThatStoppedSending)
 {
 	flyOnGnss();
 
-	// the receiver goes silent: no sample, so no check runs and no check bit is set
-	publishEstimatorStatus(false, 0);
-	publishReceiver(2_s);
+	// the receiver goes silent, and so does vehicle_gnss
+	publishEstimatorStatus(false);
+	publishReceiver(2_s, 0, 1);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_NO_DATA);
 	publishLocalPosition(false);
 	runCheck(true);
 
 	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
-	EXPECT_EQ(countEvents(kNoDataEvent), 1);
+	event_s event{};
+	ASSERT_EQ(countEvents(kNoDataEvent, &event), 1);
+	EXPECT_EQ(eventReceiver(event), 1);
 	EXPECT_EQ(countEvents(kReasonEvent), 0) << "a silent receiver is not a failing check";
 }
 
@@ -412,10 +436,9 @@ TEST_F(EstimatorChecksTest, NamesTheReceiverThatStoppedAfterAFailingSample)
 {
 	flyOnGnss();
 
-	// the last sample before the receiver went quiet failed a check, and EKF2 keeps those flags
-	// since no newer sample replaces them. The silence is still the reason.
-	publishEstimatorStatus(true, kSpeedAccuracy);
-	publishReceiver(2_s);
+	// the last sample before the receiver went quiet failed a check. The silence is still the reason.
+	publishReceiver(2_s, kSpeedAccuracy);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_NO_DATA);
 	publishLocalPosition(false);
 	runCheck(true);
 
@@ -424,11 +447,68 @@ TEST_F(EstimatorChecksTest, NamesTheReceiverThatStoppedAfterAFailingSample)
 	EXPECT_EQ(countEvents(kReasonEvent), 0) << "flags left by the last sample do not outrank the silence";
 }
 
+TEST_F(EstimatorChecksTest, NamesAReceiverTheEstimatorRejects)
+{
+	flyOnGnss();
+
+	// the receiver passes its checks, but its samples disagree with the estimate
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_REJECTED);
+	publishLocalPosition(false);
+	runCheck(true);
+
+	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	EXPECT_EQ(countEvents(kRejectedEvent), 1);
+	EXPECT_EQ(countEvents(kReasonEvent), 0);
+}
+
+TEST_F(EstimatorChecksTest, NamesAReceiverTheEstimatorDeclaredFaulty)
+{
+	flyOnGnss();
+
+	// after rejecting the samples for too long, the estimator declares GNSS faulty and stops using it
+	publishEstimatorStatus(false);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_INACTIVE, true);
+	publishLocalPosition(false);
+	runCheck(true);
+
+	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	EXPECT_EQ(countEvents(kRejectedEvent), 1);
+}
+
+TEST_F(EstimatorChecksTest, NothingWhenGnssWasDisabled)
+{
+	flyOnGnss();
+
+	// GNSS is turned off in flight, then the position goes: that is not a GNSS failure
+	publishEstimatorStatus(false);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_INACTIVE);
+	publishLocalPosition(false);
+	runCheck(true);
+
+	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	EXPECT_EQ(countEvents(kRejectedEvent), 0);
+	EXPECT_EQ(countEvents(kReasonEvent), 0);
+	EXPECT_EQ(countEvents(kNoDataEvent), 0);
+}
+
+TEST_F(EstimatorChecksTest, NamesTheVelocityLimit)
+{
+	flyOnGnss();
+
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_VEL_LIMIT);
+	publishLocalPosition(false);
+	runCheck(true);
+
+	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	EXPECT_EQ(countEvents(kVelLimitEvent), 1);
+}
+
 TEST_F(EstimatorChecksTest, NothingWhenGnssWasNotInUse)
 {
 	// a vehicle with a valid position from another source, the receiver failing its checks all along
-	publishEstimatorStatus(false, kSpeedAccuracy);
-	publishReceiver(2_s);
+	publishEstimatorStatus(false);
+	publishReceiver(0, kSpeedAccuracy);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
 	publishLocalPosition(true);
 	runCheck(true);
 	runCheck(true);
@@ -451,8 +531,8 @@ TEST_F(EstimatorChecksTest, NothingWithoutGnssConfigured)
 
 	flyOnGnss();
 
-	publishEstimatorStatus(true, kSpeedAccuracy);
-	publishReceiver(2_s);
+	publishReceiver(2_s, kSpeedAccuracy);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_NO_DATA);
 	publishLocalPosition(false);
 	runCheck(true);
 
@@ -463,7 +543,7 @@ TEST_F(EstimatorChecksTest, NothingWithoutGnssConfigured)
 
 TEST_F(EstimatorChecksTest, NothingWhileDisarmed)
 {
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 	publishReceiver(0);
 	publishLocalPosition(true);
 	runCheck(false);
@@ -472,7 +552,8 @@ TEST_F(EstimatorChecksTest, NothingWhileDisarmed)
 	drainEvents();
 
 	// on the ground the preflight checks already name the failing check
-	publishEstimatorStatus(true, kSpeedAccuracy);
+	publishReceiver(0, kSpeedAccuracy);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
 	publishLocalPosition(false);
 	runCheck(false);
 
@@ -544,7 +625,7 @@ TEST_F(EstimatorChecksTest, GnssFusionStartAndStopAreReportedInFlight)
 	runCheck(true);
 	drainEvents();
 
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 	runCheck(true);
 	EXPECT_EQ(countEvents(kFusionStartedEvent), 1);
 
@@ -552,7 +633,7 @@ TEST_F(EstimatorChecksTest, GnssFusionStartAndStopAreReportedInFlight)
 	EXPECT_EQ(countEvents(kFusionStartedEvent), 1) << "reported on the change, not every cycle";
 
 	event_s event{};
-	publishEstimatorStatus(false, 0);
+	publishEstimatorStatus(false);
 	runCheck(true);
 	ASSERT_EQ(countEvents(kFusionStoppedEvent, &event), 1);
 	EXPECT_EQ(event.log_levels & 0x0f, (uint8_t)events::Log::Error) << "an error while the position estimate is still valid";
@@ -568,7 +649,7 @@ TEST_F(EstimatorChecksTest, GnssFusionStopIsOnlyInformationOncePositionIsLost)
 	drainEvents();
 
 	event_s event{};
-	publishEstimatorStatus(false, 0);
+	publishEstimatorStatus(false);
 	runCheck(true);
 	ASSERT_EQ(countEvents(kFusionStoppedEvent, &event), 1);
 	EXPECT_EQ(event.log_levels & 0x0f, (uint8_t)events::Log::Info);
@@ -576,15 +657,15 @@ TEST_F(EstimatorChecksTest, GnssFusionStopIsOnlyInformationOncePositionIsLost)
 
 TEST_F(EstimatorChecksTest, GnssFusionChangesAreNotReportedOnTheGround)
 {
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 	runCheck(false);
-	publishEstimatorStatus(false, 0);
+	publishEstimatorStatus(false);
 	runCheck(false);
 	EXPECT_EQ(countEvents(kFusionStartedEvent), 0);
 	EXPECT_EQ(countEvents(kFusionStoppedEvent), 0);
 
 	// the state is still followed, so arming does not report a change that happened on the ground
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 	runCheck(false);
 	runCheck(true);
 	EXPECT_EQ(countEvents(kFusionStartedEvent), 0);
@@ -592,30 +673,41 @@ TEST_F(EstimatorChecksTest, GnssFusionChangesAreNotReportedOnTheGround)
 
 TEST_F(EstimatorChecksTest, SpoofingAndJammingAreReportedOnceUntilTheyClear)
 {
-	publishEstimatorStatus(true, kSpoofed);
+	publishEstimatorStatus(true);
+	publishReceiver(0, kSpoofed);
 	runCheck(false);
 	runCheck(false);
 	EXPECT_EQ(countEvents(kSpoofingEvent), 1);
 
-	publishEstimatorStatus(true, 0);
+	publishReceiver(0);
 	runCheck(false);
-	publishEstimatorStatus(true, kSpoofed);
+	publishReceiver(0, kSpoofed);
 	runCheck(false);
 	EXPECT_EQ(countEvents(kSpoofingEvent), 2) << "reported again once it cleared in between";
 
-	publishEstimatorStatus(true, kJammed);
+	publishReceiver(0, kJammed);
 	runCheck(false);
 	runCheck(false);
 	EXPECT_EQ(countEvents(kJammingEvent), 1);
 }
 
+TEST_F(EstimatorChecksTest, NoInterferenceReportWhileGnssIsNotInUse)
+{
+	// the estimator doesn't use GNSS, so a receiver reporting spoofing is not reported
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_INACTIVE);
+	publishReceiver(0, kSpoofed);
+	runCheck(false);
+	EXPECT_EQ(countEvents(kSpoofingEvent), 0);
+}
+
 TEST_F(EstimatorChecksTest, AFailingGnssCheckBlocksArmingAsConfigured)
 {
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 	runCheck(false);
 	const uint64_t can_arm_with_good_gnss = _report.can_arm_mode_flags;
 
-	publishEstimatorStatus(true, kFixTooLow);
+	publishReceiver(0, kFixTooLow);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_UNUSABLE);
 
 	setParam("COM_ARM_WO_GPS", 0); // deny arming
 	runCheck(false);
@@ -638,20 +730,55 @@ TEST_F(EstimatorChecksTest, AFailingGnssCheckBlocksArmingAsConfigured)
 	EXPECT_FALSE(armingError(health_component_t::gps)) << "the quality checks are only judged on the ground";
 }
 
+TEST_F(EstimatorChecksTest, AReceiverTheEstimatorIgnoresDoesNotBlockArming)
+{
+	setParam("COM_ARM_WO_GPS", 0); // deny arming
+	publishReceiver(0, kFixTooLow);
+
+	// GNSS fusion disabled
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_INACTIVE);
+	runCheck(false);
+	EXPECT_FALSE(armingError(health_component_t::gps));
+
+	// the last sample of a receiver that stopped
+	publishReceiver(2_s, kFixTooLow);
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_NO_DATA);
+	runCheck(false);
+	EXPECT_FALSE(armingError(health_component_t::gps));
+}
+
+TEST_F(EstimatorChecksTest, ARejectedReceiverIsReportedBeforeArming)
+{
+	setParam("COM_ARM_WO_GPS", 0); // deny arming
+
+	// the receiver passes its checks, but the estimator rejects its samples
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_REJECTED);
+	runCheck(false);
+	EXPECT_TRUE(armingError(health_component_t::gps));
+
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_VEL_LIMIT);
+	runCheck(false);
+	EXPECT_TRUE(armingError(health_component_t::gps));
+
+	publishFusionState(estimator_status_flags_s::GNSS_FUSION_FUSED);
+	runCheck(false);
+	EXPECT_FALSE(armingError(health_component_t::gps));
+}
+
 TEST_F(EstimatorChecksTest, GnssIsPresentWhileTheEstimatorFusesIt)
 {
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 	runCheck(false);
 	EXPECT_TRUE(isPresent(health_component_t::gps));
 
-	publishEstimatorStatus(false, 0);
+	publishEstimatorStatus(false);
 	runCheck(false);
 	EXPECT_FALSE(isPresent(health_component_t::gps));
 }
 
 TEST_F(EstimatorChecksTest, HighSensorBiasBlocksArming)
 {
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 
 	estimator_sensor_bias_s bias{};
 	bias.timestamp = hrt_absolute_time();
@@ -683,7 +810,7 @@ TEST_F(EstimatorChecksTest, HighSensorBiasBlocksArming)
 
 TEST_F(EstimatorChecksTest, CompassFaultBlocksEveryMode)
 {
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 
 	estimator_status_flags_s flags{};
 	flags.timestamp = hrt_absolute_time();
@@ -698,7 +825,7 @@ TEST_F(EstimatorChecksTest, CompassFaultBlocksEveryMode)
 
 TEST_F(EstimatorChecksTest, NoHeadingReferenceBlocksArmingOnlyWithAGlobalOrigin)
 {
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 
 	estimator_status_flags_s flags{};
 	flags.timestamp = hrt_absolute_time();
@@ -719,7 +846,7 @@ TEST_F(EstimatorChecksTest, NoHeadingReferenceBlocksArmingOnlyWithAGlobalOrigin)
 
 TEST_F(EstimatorChecksTest, PositionFailureImminentIsWarnedOnceWhileDeadReckoning)
 {
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 	publishLocalPosition(true);
 
 	// a global position that is still valid but whose error is close to COM_POS_FS_EPH
@@ -756,7 +883,7 @@ TEST_F(EstimatorChecksTest, LowPositionAccuracyIsFlaggedAndReportedInFlight)
 {
 	setParam("COM_POS_LOW_EPH", 1.f);
 	setParam("COM_POS_LOW_ACT", 1);
-	publishEstimatorStatus(true, 0);
+	publishEstimatorStatus(true);
 
 	publishLocalPosition(true, 2.f);
 	runCheck(true);
