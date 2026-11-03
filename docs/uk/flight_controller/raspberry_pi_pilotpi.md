@@ -1,6 +1,6 @@
 # RPi PilotPi Shield
 
-<LinkedBadge type="warning" text="Experimental" url="../flight_controller/autopilot_experimental.html"/>
+[<Badge type="warning" text="Experimental"/>](../flight_controller/autopilot_experimental.md)
 
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.

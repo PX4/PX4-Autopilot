@@ -373,8 +373,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 #ifdef Z_SUBSCRIBE
-	_zenoh_subscribers = (Zenoh_Subscriber **)malloc(sizeof(Zenoh_Subscriber *)*_sub_count);
-	memset(_zenoh_subscribers, 0x0, sizeof(Zenoh_Subscriber *)*_sub_count);
+	_zenoh_subscribers = (Zenoh_Subscriber **)calloc(_sub_count, sizeof(Zenoh_Subscriber *));
+
+	if (_sub_count > 0 && !_zenoh_subscribers) {
+		PX4_ERR("Failed to allocate subscribers");
+		return -1;
+	}
 
 	if (_zenoh_subscribers) {
 		char topic[TOPIC_INFO_SIZE];
@@ -430,8 +434,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 #ifdef Z_PUBLISH
-	_zenoh_publishers = (uORB_Zenoh_Publisher **)malloc(_pub_count * sizeof(uORB_Zenoh_Publisher *));
-	memset(_zenoh_publishers, 0x0, _pub_count * sizeof(uORB_Zenoh_Publisher *));
+	_zenoh_publishers = (uORB_Zenoh_Publisher **)calloc(_pub_count, sizeof(uORB_Zenoh_Publisher *));
+
+	if (_pub_count > 0 && !_zenoh_publishers) {
+		PX4_ERR("Failed to allocate publishers");
+		return -1;
+	}
 
 	if (_zenoh_publishers) {
 		char topic[TOPIC_INFO_SIZE];

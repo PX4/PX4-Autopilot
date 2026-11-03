@@ -48,12 +48,6 @@
 
 #include <px4_platform_common/log.h>
 
-// The mission and land caches only accept these dataman storages as their source.
-static bool isMissionDatamanIdValid(uint8_t dataman_id)
-{
-	return dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1;
-}
-
 MissionRouteCache::MissionRouteCache(orb_advert_t *mavlink_log_pub)
 	: _full_mission_cache(mavlink_log_pub)
 {
@@ -68,22 +62,8 @@ void MissionRouteCache::update(const mission_s &mission)
 	updateSafePointCache(mission);
 }
 
-void MissionRouteCache::invalidate()
-{
-	_full_mission_cache.invalidate();
-
-	_mission_land = {};
-	_dataman_cache_land_item.invalidate();
-
-	resetSafePointCacheState(true);
-}
-
 bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
 {
-	if (_mission_land.index < 0 || _mission_land.index >= _mission_land.count) {
-		return false;
-	}
-
 	mission_item_s land_item;
 
 	if (!_dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id),
@@ -99,11 +79,6 @@ bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
 
 bool MissionRouteCache::safePointCacheFullyLoaded() const
 {
-	// Validate against the set currently being loaded.
-	if (_safe_point.read_stats.num_items == 0) {
-		return true;
-	}
-
 	mission_item_s safe_point_item;
 
 	// A miss means async preloading did not finish cleanly.
@@ -118,35 +93,14 @@ bool MissionRouteCache::safePointCacheFullyLoaded() const
 	return true;
 }
 
-bool MissionRouteCache::safePointCacheMatchesReadStats() const
-{
-	const SafePointState &state = _safe_point;
-
-	// Comparing the opaque id alone is not enough
-	// because it can be reused across different safe-point sets
-	return state.ready
-	       && state.cached_source_id == state.source_id
-	       && state.cached_stats.opaque_id == state.read_stats.opaque_id
-	       && state.cached_stats.num_items == state.read_stats.num_items
-	       && state.cached_stats.dataman_id == state.read_stats.dataman_id;
-}
-
-void MissionRouteCache::publishSafePointCache()
-{
-	// Only call after a successful (re)build.
-	_safe_point.cached_stats = _safe_point.read_stats;
-	_safe_point.cached_source_id = _safe_point.source_id;
-}
-
-void MissionRouteCache::resetSafePointCacheState(bool clear_source_identity)
+void MissionRouteCache::resetSafePointCacheState()
 {
 	// Drop any in-flight response before resetting the local state machine.
 	_dataman_client_safepoint.abortCurrentOperation();
 	_dataman_cache_safepoint.invalidate();
 
-	const uint32_t source_id = clear_source_identity ? 0 : _safe_point.source_id;
-	const uint8_t source_dataman_id = clear_source_identity ? static_cast<uint8_t>(DM_KEY_SAFE_POINTS_0) :
-					  _safe_point.source_dataman_id;
+	const uint32_t source_id = _safe_point.source_id;
+	const uint8_t source_dataman_id = _safe_point.source_dataman_id;
 	_safe_point = {};
 	_safe_point.source_id = source_id;
 	_safe_point.source_dataman_id = source_dataman_id;
@@ -162,31 +116,21 @@ int MissionRouteCache::missionCount() const
 	return _full_mission_cache.missionCount();
 }
 
-bool MissionRouteCache::loadMissionItem(int index, mission_item_s &mission_item) const
+const mission_item_s *MissionRouteCache::missionItem(int index) const
 {
-	return _full_mission_cache.loadMissionItem(index, mission_item);
-}
-
-bool MissionRouteCache::getMissionView(const mission_s &mission, MissionView &view) const
-{
-	return _full_mission_cache.getMissionView(mission, view);
-}
-
-bool MissionRouteCache::missionViewStillValid(const MissionView &view) const
-{
-	return _full_mission_cache.missionViewStillValid(view);
+	return _full_mission_cache.missionItem(index);
 }
 
 int MissionRouteCache::safePointCount() const
 {
-	return safePointsReady() ? _safe_point.cached_stats.num_items : 0;
+	return safePointsReady() ? _safe_point.read_stats.num_items : 0;
 }
 
 bool MissionRouteCache::loadSafePointItem(int index, mission_item_s &safe_point_item) const
 {
 	return safePointsReady()
-	       && index >= 0 && index < _safe_point.cached_stats.num_items
-	       && _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_safe_point.cached_stats.dataman_id), index,
+	       && index >= 0 && index < _safe_point.read_stats.num_items
+	       && _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_safe_point.read_stats.dataman_id), index,
 			       reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item),
 			       kCacheOnlyLoadWait);
 }
@@ -216,54 +160,19 @@ bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_
 
 bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const
 {
-	return missionItemsReady(mission) && loadMissionItem(index, mission_item);
-}
+	const mission_item_s *item = missionItemsReady(mission) ? missionItem(index) : nullptr;
 
-MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
-		const mission_item_s &mission_item)
-{
-	// Update the land cache even if the full cache is unavailable.
-	syncMissionLandItem(mission, index, mission_item);
-	return _full_mission_cache.syncMissionItem(mission, index, mission_item);
-}
-
-void MissionRouteCache::syncMissionLandItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
-{
-	// Ignore writes outside the tracked mission land item.
-	if (index < 0 || index != _mission_land.index || !missionLandMatchesCache(mission)) {
-		return;
+	if (item == nullptr) {
+		return false;
 	}
 
-	const hrt_abstime now = hrt_absolute_time();
+	mission_item = *item;
+	return true;
+}
 
-	if (_mission_land.ready) {
-		const bool patched = _dataman_cache_land_item.updateCachedItem(
-					     static_cast<dm_item_t>(_mission_land.dataman_id), index,
-					     reinterpret_cast<const uint8_t *>(&mission_item), sizeof(mission_item));
-
-		if (!patched || !mission_route::isLandingCmd(mission_item.nav_cmd)) {
-			_dataman_cache_land_item.invalidate();
-			_mission_land.ready = false;
-			_mission_land.validation_pending = false;
-			_mission_land.retry.scheduleRetry(now);
-		}
-
-	} else {
-		_dataman_cache_land_item.invalidate();
-		_mission_land.validation_pending = false;
-		_mission_land.retry.clear();
-
-		if (mission_route::isLandingCmd(mission_item.nav_cmd)) {
-			_mission_land.validation_pending = queueMissionLandItem();
-
-			if (!_mission_land.validation_pending) {
-				_mission_land.retry.scheduleRetry(now);
-			}
-
-		} else {
-			_mission_land.retry.scheduleRetry(now);
-		}
-	}
+void MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
+{
+	_full_mission_cache.syncMissionItem(mission, index, mission_item);
 }
 
 void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
@@ -271,7 +180,7 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 	MissionLandState &state = _mission_land;
 	const hrt_abstime now = hrt_absolute_time();
 	// Trust the published land_index, no mission rescanning.
-	const bool valid_dataman_id = isMissionDatamanIdValid(mission.mission_dataman_id);
+	const bool valid_dataman_id = mission_route::isMissionDatamanIdValid(mission.mission_dataman_id);
 	const bool valid_land_index = mission.land_index >= 0 && mission.land_index < mission.count;
 	const int32_t land_index = (valid_dataman_id && valid_land_index) ? mission.land_index : -1;
 
@@ -287,12 +196,8 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 			PX4_ERR("Land cache: bad dataman id");
 		}
 
-		if (state.index >= 0) {
-			state.validation_pending = queueMissionLandItem();
-
-			if (!state.validation_pending) {
-				state.retry.scheduleRetry(now);
-			}
+		if (state.index >= 0 && !queueMissionLandItem()) {
+			state.retry.scheduleRetry(now);
 		}
 	}
 
@@ -302,12 +207,10 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 		return;
 	}
 
-	if (state.validation_pending) {
+	if (!state.retry.scheduled()) {
 		if (_dataman_cache_land_item.isLoading()) {
 			return;
 		}
-
-		state.validation_pending = false;
 
 		if (missionLandItemCacheFullyLoaded()) {
 			state.ready = true;
@@ -322,9 +225,7 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 	} else if (state.retry.due(now)) {
 		_dataman_cache_land_item.invalidate();
 
-		state.validation_pending = queueMissionLandItem();
-
-		if (state.validation_pending) {
+		if (queueMissionLandItem()) {
 			state.retry.retry_at = 0;
 
 		} else {
@@ -335,13 +236,7 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 
 bool MissionRouteCache::queueMissionLandItem()
 {
-	const MissionLandState &state = _mission_land;
-
-	if (state.index < 0) {
-		return false;
-	}
-
-	if (_dataman_cache_land_item.load(static_cast<dm_item_t>(state.dataman_id), state.index)) {
+	if (_dataman_cache_land_item.load(static_cast<dm_item_t>(_mission_land.dataman_id), _mission_land.index)) {
 		return true;
 	}
 
@@ -358,13 +253,14 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 		// A new safe-point source makes any in-flight read and cached items stale.
 		state.source_id = mission.safe_points_id;
 		state.source_dataman_id = mission.safepoint_dataman_id;
-		resetSafePointCacheState(false);
+		resetSafePointCacheState();
 	}
 
 	switch (state.dataman_state) {
 	case SafePointDatamanState::kUpdateRequestWait:
-		if (state.update_requested && hrt_absolute_time() >= state.retry.retry_at) {
-			state.update_requested = false;
+
+		// Only a reset clears ready, so read_stats never changes while the cache is ready.
+		if (!state.ready && hrt_absolute_time() >= state.retry.retry_at) {
 			state.dataman_state = SafePointDatamanState::kRead;
 		}
 
@@ -405,17 +301,7 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 			break;
 		}
 
-		// The RAM cache already holds this exact set, skip the rebuild.
-		if (safePointCacheMatchesReadStats()) {
-			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
-			state.ready = true;
-			state.retry.clear();
-			break;
-		}
-
-		// Cache miss, rebuild the cache from the new read state.
-		state.ready = false;
-
+		// Rebuild the RAM cache from the new read state.
 		_dataman_cache_safepoint.invalidate();
 
 		if (_dataman_cache_safepoint.size() != state.read_stats.num_items) {
@@ -443,7 +329,6 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 
 		} else {
 			// Zero safe points is still a valid ready state.
-			publishSafePointCache();
 			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
 			state.ready = true;
 			state.retry.clear();
@@ -459,7 +344,6 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 		}
 
 		if (safePointCacheFullyLoaded()) {
-			publishSafePointCache();
 			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
 			state.ready = true;
 			state.retry.clear();
@@ -470,19 +354,11 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 
 		break;
 
-	case SafePointDatamanState::kError:
-	default: {
+	case SafePointDatamanState::kError: {
 			// resetSafePointCacheState() clears the backoff, so save it first.
-			const RetryBackoff retry = state.retry;
-
-			if (state.dataman_state == SafePointDatamanState::kError) {
-				PX4_WARN("Safe point cache retry");
-
-			} else {
-				PX4_ERR("Safe point cache state invalid");
-			}
-
-			resetSafePointCacheState(false);
+			const mission_route::CacheRetryBackoff retry = state.retry;
+			PX4_WARN("Safe point cache retry");
+			resetSafePointCacheState();
 			state.retry = retry;
 			state.retry.scheduleRetry(hrt_absolute_time());
 

@@ -34,3 +34,5 @@
 
 px4_add_functional_gtest(SRC uORBMessageFieldsTest.cpp LINKLIBS uORB)
 px4_add_functional_gtest(SRC uORBSubscriptionTest.cpp LINKLIBS uORB)
+px4_add_functional_gtest(SRC uORBSubscriptionIntervalTest.cpp LINKLIBS uORB)
+px4_add_functional_gtest(SRC uORBSubscriptionCallbackTest.cpp LINKLIBS uORB)

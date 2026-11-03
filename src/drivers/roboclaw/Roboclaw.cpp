@@ -42,166 +42,173 @@
  */
 
 #include "Roboclaw.hpp"
-#include <termios.h>
+
+// MixingOutput updates and encoder publication need more stack than a UART-only worker.
+static constexpr px4::wq_config_t roboclaw_work_queue{"wq:roboclaw", 4096, px4::wq_configurations::ttyUnknown.relative_priority};
 
 ModuleBase::Descriptor Roboclaw::desc{task_spawn, custom_command, print_usage};
 
-Roboclaw::Roboclaw(const char *device_name, const char *bad_rate_parameter) :
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
+Roboclaw::Roboclaw(const char *device_name) :
+	OutputModuleInterface(MODULE_NAME, roboclaw_work_queue),
+	_uart(device_name)
 {
-	strncpy(_stored_device_name, device_name, sizeof(_stored_device_name) - 1);
-	_stored_device_name[sizeof(_stored_device_name) - 1] = '\0'; // Ensure null-termination
-
-	strncpy(_stored_baud_rate_parameter, bad_rate_parameter, sizeof(_stored_baud_rate_parameter) - 1);
-	_stored_baud_rate_parameter[sizeof(_stored_baud_rate_parameter) - 1] = '\0'; // Ensure null-termination
+	_mixing_output.setMaxTopicUpdateRate(20_ms);
+	_mixing_output.setAllDisarmedValues(127);
 }
 
 Roboclaw::~Roboclaw()
 {
-	close(_uart_fd);
+	_uart.close();
 }
 
-int Roboclaw::initializeUART()
+bool Roboclaw::init()
 {
-	// The Roboclaw has a serial communication timeout of 10ms
-	// Add a little extra to account for timing inaccuracy
-	static constexpr int TIMEOUT_US = 11_ms;
-	_uart_fd_timeout = { .tv_sec = 0, .tv_usec = TIMEOUT_US };
+	updateParams();
+	_controller_count = _param_rbclw_count.get();
 
-	int32_t baud_rate_parameter_value{0};
-	int32_t baud_rate_posix{0};
-	param_get(param_find(_stored_baud_rate_parameter), &baud_rate_parameter_value);
-
-	switch (baud_rate_parameter_value) {
-	case 0: // Auto
-	default:
-		PX4_ERR("Please configure the port's baud_rate_parameter_value");
-		break;
-
-	case 2400:
-		baud_rate_posix = B2400;
-		break;
-
-	case 9600:
-		baud_rate_posix = B9600;
-		break;
-
-	case 19200:
-		baud_rate_posix = B19200;
-		break;
-
-	case 38400:
-		baud_rate_posix = B38400;
-		break;
-
-	case 57600:
-		baud_rate_posix = B57600;
-		break;
-
-	case 115200:
-		baud_rate_posix = B115200;
-		break;
-
-	case 230400:
-		baud_rate_posix = B230400;
-		break;
-
-	case 460800:
-		baud_rate_posix = B460800;
-		break;
+	if (_controller_count < 1 || _controller_count > MAX_CONTROLLERS
+	    || _param_rbclw_address.get() < 128 || _param_rbclw_address.get() + _controller_count > 136
+	    || _param_rbclw_counts_rev.get() < 1 || _param_rbclw_baud.get() <= 0) {
+		PX4_ERR("Invalid controller count, address range or encoder resolution");
+		return false;
 	}
 
-	// start serial port
-	_uart_fd = open(_stored_device_name, O_RDWR | O_NOCTTY);
+	PX4_INFO("Opening %s at %ld baud", _uart.getPort(), (long)_param_rbclw_baud.get());
 
-	if (_uart_fd < 0) { err(1, "could not open %s", _stored_device_name); }
-
-	int ret = 0;
-	struct termios uart_config {};
-	ret = tcgetattr(_uart_fd, &uart_config);
-
-	if (ret < 0) { err(1, "failed to get attr"); }
-
-	uart_config.c_oflag &= ~ONLCR; // no CR for every LF
-	uart_config.c_cflag &= ~CRTSCTS;
-
-	// Set baud rate
-	ret = cfsetispeed(&uart_config, baud_rate_posix);
-
-	if (ret < 0) { err(1, "failed to set input speed"); }
-
-	ret = cfsetospeed(&uart_config, baud_rate_posix);
-
-	if (ret < 0) { err(1, "failed to set output speed"); }
-
-	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
-
-	if (ret < 0) { err(1, "failed to set attr"); }
-
-	FD_ZERO(&_uart_fd_set);
-	FD_SET(_uart_fd, &_uart_fd_set);
-
-	// Make sure the device does respond
-	static constexpr int READ_STATUS_RESPONSE_SIZE = 6;
-	uint8_t response_buffer[READ_STATUS_RESPONSE_SIZE];
-
-	if (receiveTransaction(Command::ReadStatus, response_buffer, READ_STATUS_RESPONSE_SIZE) < READ_STATUS_RESPONSE_SIZE) {
-		PX4_ERR("No valid response, stopping driver");
-		request_stop();
-		return ERROR;
-
-	} else {
-		PX4_INFO("Successfully connected");
-		return OK;
+	if (!_uart.setBaudrate(_param_rbclw_baud.get()) || !_uart.open()) {
+		PX4_ERR("Could not open %s at %ld baud", _uart.getPort(), (long)_param_rbclw_baud.get());
+		return false;
 	}
+
+	_base_address = _param_rbclw_address.get();
+
+	for (unsigned i = 0; i < _controller_count; ++i) {
+		_address = _base_address + i;
+		uint8_t response[6] {};
+		PX4_INFO("Probing address 0x%02x", _address);
+
+		if (receiveTransaction(Command::ReadStatus, response, sizeof(response)) != sizeof(response)) {
+			PX4_ERR("No valid response from address 0x%02x", _address);
+			stopMotors();
+			return false;
+		}
+	}
+
+	stopMotors();
+	PX4_INFO("Connected to %u controller(s) on %s at %lu baud", _controller_count, _uart.getPort(),
+		 (unsigned long)_uart.getBaudrate());
+	_mixing_output.setMaxNumOutputs(_controller_count * CHANNELS_PER_CONTROLLER);
+	return true;
+}
+
+void Roboclaw::reversibleMaskChanged(uint32_t reversible_mask)
+{
+	for (unsigned i = 0; i < _controller_count * CHANNELS_PER_CONTROLLER; ++i) {
+		int32_t minimum = 0;
+		param_get(_mixing_output.minParamHandle(i), &minimum);
+		const OutputFunction function = _mixing_output.outputFunction(i);
+
+		// Non-reversible motors use the forward half of the packet serial range.
+		if (function >= OutputFunction::Motor1 && function <= OutputFunction::MotorMax
+		    && !(reversible_mask & (1u << i))) {
+			minimum = 127;
+		}
+
+		_mixing_output.minValue(i) = math::constrain(minimum, int32_t{0}, int32_t{127});
+	}
+}
+
+void Roboclaw::mixerChanged()
+{
+	reversibleMaskChanged(_mixing_output.reversibleOutputs());
 }
 
 bool Roboclaw::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	setMotorSpeed(Motor::Right, (outputs[0] - 127.0f) / 127.f);
-	setMotorSpeed(Motor::Left, (outputs[1] - 127.0f) / 127.f);
-	return true;
+	bool success = true;
+
+	for (unsigned i = 0; i < _controller_count * CHANNELS_PER_CONTROLLER; ++i) {
+		_address = _base_address + i / CHANNELS_PER_CONTROLLER;
+		float value = 0.f;
+
+		if (i < num_outputs && _mixing_output.isFunctionSet(i) && PX4_ISFINITE(outputs[i])) {
+			value = math::constrain((outputs[i] - 127.f) / 127.f, -1.f, 1.f);
+		}
+
+		if (setMotorSpeed(i % CHANNELS_PER_CONTROLLER, value) != OK) {
+			++_communication_errors;
+			success = false;
+		}
+	}
+
+	return success;
+}
+
+void Roboclaw::stopMotors()
+{
+	if (!_uart.isOpen()) { return; }
+
+	for (unsigned i = 0; i < _controller_count; ++i) {
+		_address = _base_address + i;
+
+		if (setMotorSpeed(0, 0.f) != OK) { ++_communication_errors; }
+
+		if (setMotorSpeed(1, 0.f) != OK) { ++_communication_errors; }
+	}
 }
 
 void Roboclaw::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup(desc);
 		_mixing_output.unregister();
+		stopMotors();
+		exit_and_cleanup(desc);
 		return;
+	}
+
+	if (!_initialized) {
+		if (!init()) {
+			ScheduleClear();
+			_mixing_output.unregister();
+			exit_and_cleanup(desc);
+			return;
+		}
+
+		_initialized = true;
+	}
+
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s parameter_update;
+		_parameter_update_sub.copy(&parameter_update);
+		updateParams();
+		reversibleMaskChanged(_mixing_output.reversibleOutputs());
 	}
 
 	_mixing_output.update();
 
-	if (!_uart_initialized) {
-		initializeUART();
-		_uart_initialized = true;
+	// Poll one controller at a time, even when no actuator functions are assigned.
+	if (hrt_elapsed_time(&_last_encoder_read) >= 100_ms) {
+		_last_encoder_read = hrt_absolute_time();
+		_address = _base_address + _encoder_controller;
+
+		if (readEncoder(_encoder_controller) != OK) {
+			++_communication_errors;
+		}
+
+		_encoder_controller = (_encoder_controller + 1) % _controller_count;
 	}
 
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// Read from topic to clear updated flag
-		parameter_update_s parameter_update;
-		_parameter_update_sub.copy(&parameter_update);
-
-		updateParams();
-	}
-
-	_actuator_armed_sub.update();
 	_mixing_output.updateSubscriptions(false);
-
-	if (readEncoder() != OK) {
-		PX4_ERR("Error reading encoders");
-	}
+	ScheduleDelayed(20_ms);
 }
 
-int Roboclaw::readEncoder()
+int Roboclaw::readEncoder(unsigned controller)
 {
 	static constexpr int ENCODER_MESSAGE_SIZE = 10; // response size for ReadEncoderCounters
 	static constexpr int ENCODER_SPEED_MESSAGE_SIZE = 7; // response size for CMD_READ_SPEED_{1,2}
 
-	uint8_t buffer_positon[ENCODER_MESSAGE_SIZE];
+	uint8_t buffer_position[ENCODER_MESSAGE_SIZE];
 	uint8_t buffer_speed_right[ENCODER_SPEED_MESSAGE_SIZE];
 	uint8_t buffer_speed_left[ENCODER_SPEED_MESSAGE_SIZE];
 
@@ -215,90 +222,37 @@ int Roboclaw::readEncoder()
 		return ERROR;
 	}
 
-	if (receiveTransaction(Command::ReadEncoderCounters, buffer_positon, ENCODER_MESSAGE_SIZE) < ENCODER_MESSAGE_SIZE) {
+	if (receiveTransaction(Command::ReadEncoderCounters, buffer_position, ENCODER_MESSAGE_SIZE) < ENCODER_MESSAGE_SIZE) {
 		return ERROR;
 	}
 
-	int32_t speed_right = swapBytesInt32(&buffer_speed_right[0]);
-	int32_t speed_left = swapBytesInt32(&buffer_speed_left[0]);
-	int32_t position_right = swapBytesInt32(&buffer_positon[0]);
-	int32_t position_left = swapBytesInt32(&buffer_positon[4]);
+	int64_t speed_right = swapBytesInt32(buffer_speed_right);
+	int64_t speed_left = swapBytesInt32(buffer_speed_left);
+
+	int32_t position_right = swapBytesInt32(&buffer_position[0]);
+	int32_t position_left = swapBytesInt32(&buffer_position[4]);
 
 	wheel_encoders_s wheel_encoders{};
-	wheel_encoders.wheel_speed[0] = static_cast<float>(speed_right) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
-	wheel_encoders.wheel_speed[1] = static_cast<float>(speed_left) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
-	wheel_encoders.wheel_angle[0] = static_cast<float>(position_right) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
-	wheel_encoders.wheel_angle[1] = static_cast<float>(position_left) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
+	wheel_encoders.wheel_speed[0] = static_cast<float>(speed_right) / math::max(_param_rbclw_counts_rev.get(), int32_t{1}) * M_TWOPI_F;
+	wheel_encoders.wheel_speed[1] = static_cast<float>(speed_left) / math::max(_param_rbclw_counts_rev.get(), int32_t{1}) * M_TWOPI_F;
+	wheel_encoders.wheel_angle[0] = static_cast<float>(position_right) / math::max(_param_rbclw_counts_rev.get(), int32_t{1}) * M_TWOPI_F;
+	wheel_encoders.wheel_angle[1] = static_cast<float>(position_left) / math::max(_param_rbclw_counts_rev.get(), int32_t{1}) * M_TWOPI_F;
 	wheel_encoders.timestamp = hrt_absolute_time();
-	_wheel_encoders_pub.publish(wheel_encoders);
+
+	if (!_wheel_encoders_pub[controller].publish(wheel_encoders)) { return ERROR; }
+
+	++_encoder_updates[controller];
 
 	return OK;
 }
 
-void Roboclaw::setMotorSpeed(Motor motor, float value)
+int Roboclaw::setMotorSpeed(unsigned motor, float value)
 {
-	Command command;
-
-	// send command
-	if (motor == Motor::Right) {
-		if (value > 0.f) {
-			command = Command::DriveForwardMotor1;
-
-		} else {
-			command = Command::DriveBackwardsMotor1;
-		}
-
-	} else if (motor == Motor::Left) {
-		if (value > 0.f) {
-			command = Command::DriveForwardMotor2;
-
-		} else {
-			command = Command::DriveBackwardsMotor2;
-		}
-
-	} else {
-		return;
-	}
-
-	sendUnsigned7Bit(command, value);
-}
-
-void Roboclaw::setMotorDutyCycle(Motor motor, float value)
-{
-	Command command;
-
-	// send command
-	if (motor == Motor::Right) {
-		command = Command::DutyCycleMotor1;
-
-	} else if (motor == Motor::Left) {
-		command = Command::DutyCycleMotor2;
-
-	} else {
-		return;
-	}
-
-	return sendSigned16Bit(command, value);
-}
-
-void Roboclaw::resetEncoders()
-{
-	sendTransaction(Command::ResetEncoders, nullptr, 0);
-}
-
-void Roboclaw::sendUnsigned7Bit(Command command, const float data)
-{
-	uint8_t byte = static_cast<uint8_t>(lroundf(fabs(data) * INT8_MAX));
-	sendTransaction(command, &byte, 1);
-}
-
-void Roboclaw::sendSigned16Bit(Command command, float data)
-{
-	int16_t value = math::constrain(data, -1.f, 1.f) * INT16_MAX;
-	uint8_t buff[2];
-	buff[0] = (value >> 8) & 0xFF; // High byte
-	buff[1] = value & 0xFF; // Low byte
-	sendTransaction(command, (uint8_t *) &buff, 2);
+	const Command command = motor == 0
+				? (value >= 0.f ? Command::DriveForwardMotor1 : Command::DriveBackwardsMotor1)
+				: (value >= 0.f ? Command::DriveForwardMotor2 : Command::DriveBackwardsMotor2);
+	uint8_t data = static_cast<uint8_t>(lroundf(fabsf(math::constrain(value, -1.f, 1.f)) * INT8_MAX));
+	return sendTransaction(command, &data, sizeof(data));
 }
 
 int Roboclaw::sendTransaction(Command cmd, uint8_t *write_buffer, size_t bytes_to_write)
@@ -312,11 +266,13 @@ int Roboclaw::sendTransaction(Command cmd, uint8_t *write_buffer, size_t bytes_t
 
 int Roboclaw::writeCommandWithPayload(Command command, uint8_t *wbuff, size_t bytes_to_write)
 {
-	size_t packet_size = 2 + bytes_to_write + 2;
-	uint8_t buffer[packet_size];
+	if (bytes_to_write > 2) { return ERROR; }
+
+	const size_t packet_size = 2 + bytes_to_write + 2;
+	uint8_t buffer[6] {};
 
 	// Add address + command ID
-	buffer[0] = (uint8_t) _param_rbclw_address.get();
+	buffer[0] = _address;
 	buffer[1] = static_cast<uint8_t>(command);
 
 	// Add payload
@@ -330,11 +286,12 @@ int Roboclaw::writeCommandWithPayload(Command command, uint8_t *wbuff, size_t by
 	buffer[packet_size - 1] = sum & 0xFFu;
 
 	// Write to device
-	size_t bytes_written = write(_uart_fd, buffer, packet_size);
+	_uart.flush();
+	ssize_t bytes_written = _uart.writeBlocking(buffer, packet_size, TRANSACTION_TIMEOUT_MS);
 
 	// Not all bytes sent
-	if (bytes_written < packet_size) {
-		PX4_ERR("Only wrote %zu out of %zu bytes", bytes_written, bytes_to_write);
+	if (bytes_written != static_cast<ssize_t>(packet_size)) {
+		PX4_ERR("Only wrote %zd out of %zu bytes", bytes_written, packet_size);
 		return ERROR;
 	}
 
@@ -343,18 +300,10 @@ int Roboclaw::writeCommandWithPayload(Command command, uint8_t *wbuff, size_t by
 
 int Roboclaw::readAcknowledgement()
 {
-	int select_status = select(_uart_fd + 1, &_uart_fd_set, nullptr, nullptr, &_uart_fd_timeout);
-
-	if (select_status <= 0) {
-		PX4_ERR("ACK timeout");
-		return ERROR;
-	}
-
 	uint8_t acknowledgement{0};
-	int bytes_read = read(_uart_fd, &acknowledgement, 1);
+	int bytes_read = _uart.readAtLeast(&acknowledgement, 1, 1, TRANSACTION_TIMEOUT_MS);
 
 	if ((bytes_read != 1) || (acknowledgement != 0xFF)) {
-		PX4_ERR("ACK wrong");
 		return ERROR;
 	}
 
@@ -375,13 +324,14 @@ int Roboclaw::writeCommand(Command command)
 	uint8_t buffer[2];
 
 	// Just address + command ID
-	buffer[0] = (uint8_t)_param_rbclw_address.get();
+	buffer[0] = _address;
 	buffer[1] = static_cast<uint8_t>(command);
 
-	size_t bytes_written = write(_uart_fd, buffer, 2);
+	_uart.flush();
+	ssize_t bytes_written = _uart.writeBlocking(buffer, sizeof(buffer), TRANSACTION_TIMEOUT_MS);
 
-	if (bytes_written < 2) {
-		PX4_ERR("Only wrote %zu out of %d bytes", bytes_written, 2);
+	if (bytes_written != 2) {
+		PX4_ERR("Only wrote %zd out of %d bytes", bytes_written, 2);
 		return ERROR;
 	}
 
@@ -390,33 +340,14 @@ int Roboclaw::writeCommand(Command command)
 
 int Roboclaw::readResponse(Command command, uint8_t *read_buffer, size_t bytes_to_read)
 {
-	size_t total_bytes_read = 0;
+	const int total_bytes_read = _uart.readAtLeast(read_buffer, bytes_to_read, bytes_to_read, TRANSACTION_TIMEOUT_MS);
 
-	while (total_bytes_read < bytes_to_read) {
-		int select_status = select(_uart_fd + 1, &_uart_fd_set, nullptr, nullptr, &_uart_fd_timeout);
-
-		if (select_status <= 0) {
-			PX4_ERR("Select timeout %d\n", select_status);
-			return ERROR;
-		}
-
-		int bytes_read = read(_uart_fd, &read_buffer[total_bytes_read], bytes_to_read - total_bytes_read);
-
-		if (bytes_read <= 0) {
-			PX4_ERR("Read timeout %d\n", select_status);
-			return ERROR;
-		}
-
-		total_bytes_read += bytes_read;
-	}
-
-	if (total_bytes_read < 2) {
-		PX4_ERR("Too short payload received\n");
+	if (total_bytes_read != static_cast<int>(bytes_to_read) || total_bytes_read < 2) {
 		return ERROR;
 	}
 
 	// Verify response checksum
-	uint8_t address = static_cast<uint8_t>(_param_rbclw_address.get());
+	uint8_t address = _address;
 	uint8_t command_byte = static_cast<uint8_t>(command);
 	uint16_t crc_calculated = _calcCRC(&address, 1); // address
 	crc_calculated = _calcCRC(&command_byte, 1, crc_calculated); // command
@@ -424,7 +355,6 @@ int Roboclaw::readResponse(Command command, uint8_t *read_buffer, size_t bytes_t
 	uint16_t crc_received = (read_buffer[total_bytes_read - 2] << 8) + read_buffer[total_bytes_read - 1];
 
 	if (crc_calculated != crc_received) {
-		PX4_ERR("Checksum mismatch\n");
 		return ERROR;
 	}
 
@@ -453,7 +383,7 @@ uint16_t Roboclaw::_calcCRC(const uint8_t *buffer, size_t bytes, uint16_t init)
 
 int32_t Roboclaw::swapBytesInt32(uint8_t *buffer)
 {
-	return (buffer[0] << 24)
+	return (static_cast<uint32_t>(buffer[0]) << 24)
 	       | (buffer[1] << 16)
 	       | (buffer[2] << 8)
 	       | buffer[3];
@@ -461,28 +391,24 @@ int32_t Roboclaw::swapBytesInt32(uint8_t *buffer)
 
 int Roboclaw::task_spawn(int argc, char *argv[])
 {
-	const char *device_name = argv[1];
-	const char *baud_rate_parameter_value = argv[2];
-
-	Roboclaw *instance = new Roboclaw(device_name, baud_rate_parameter_value);
-
-	if (instance) {
-		desc.object.store(instance);
-		desc.task_id = task_id_is_work_queue;
-		instance->ScheduleNow();
-		return OK;
-
-	} else {
-		PX4_ERR("alloc failed");
+	if (argc != 2 || !device::Serial::validatePort(argv[1])) {
+		print_usage("Usage: roboclaw start <UART device>");
+		return ERROR;
 	}
 
-	delete instance;
-	desc.object.store(nullptr);
-	desc.task_id = -1;
+	Roboclaw *instance = new Roboclaw(argv[1]);
 
-	printf("Ending task_spawn");
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return ERROR;
+	}
 
-	return ERROR;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
+
+	instance->ScheduleNow();
+
+	return OK;
 }
 
 int Roboclaw::custom_command(int argc, char *argv[])
@@ -506,11 +432,12 @@ It performs two tasks:
  - Read the wheel encoders and publish the raw data in the `wheel_encoders` uORB topic
 
 In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
-your flight controller's UART port should be connected to the Roboclaw as shown in the documentation.
-The driver needs to be enabled using the parameter `RBCLW_SER_CFG`, the baudrate needs to be set correctly and
-the address `RBCLW_ADDRESS` needs to match the ESC configuration.
+your flight controller's UART port should be connected to the Roboclaw as shown in the documentation. Enable the
+driver with `RBCLW_SER_CFG` and set `RBCLW_BAUD` to match the controllers. Set `RBCLW_COUNT` and configure consecutive
+unique addresses starting at `RBCLW_ADDRESS`. Each controller uses two output channels (M1, M2) and publishes a
+separate wheel_encoders instance. Bus parameters require a driver restart.
 
-The command to start this driver is: `$ roboclaw start <UART device> <baud rate>`
+The command to start this driver is: `$ roboclaw start <UART device>`
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("roboclaw", "driver");
@@ -521,6 +448,15 @@ The command to start this driver is: `$ roboclaw start <UART device> <baud rate>
 
 int Roboclaw::print_status()
 {
+	PX4_INFO("Port: %s, baud: %lu", _uart.getPort(), (unsigned long)_uart.getBaudrate());
+	PX4_INFO("Communication errors: %lu", (unsigned long)_communication_errors);
+
+	for (unsigned i = 0; i < _controller_count; ++i) {
+		PX4_INFO("Address 0x%02x, channels %u-%u, encoder updates: %lu",
+			 _base_address + i, i * 2 + 1, i * 2 + 2, (unsigned long)_encoder_updates[i]);
+	}
+
+	_mixing_output.printStatus();
 	return 0;
 }
 

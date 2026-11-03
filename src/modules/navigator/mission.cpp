@@ -67,12 +67,16 @@ static constexpr int32_t DEFAULT_MISSION_CACHE_SIZE = 10;
 Mission::Mission(Navigator *navigator) :
 	MissionBase(navigator, DEFAULT_MISSION_CACHE_SIZE, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 {
+	param_set_used(param_handle(px4::params::MIS_DIST_1WP));
+	param_set_used(param_handle(px4::params::MIS_TKO_LAND_REQ));
 }
 
 void
 Mission::on_inactive()
 {
 	_vehicle_status_sub.update();
+	_land_detected_sub.update();
+	recheckAfterHomeUpdateOnGround();
 
 	if (_need_mission_save && _vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 		save_mission_state();
@@ -89,6 +93,34 @@ Mission::on_activation()
 	check_mission_valid(true);
 
 	MissionBase::on_activation();
+}
+
+void
+Mission::on_active()
+{
+	_vehicle_status_sub.update();
+	_land_detected_sub.update();
+	recheckAfterHomeUpdateOnGround();
+
+	MissionBase::on_active();
+}
+
+void
+Mission::recheckAfterHomeUpdateOnGround()
+{
+	// takeoff_time is cleared only at disarm, and the land detector reports the takeoff
+	// before Commander sets Home for it, so Home updates in flight keep the verdict.
+	const vehicle_status_s &status = _vehicle_status_sub.get();
+
+	// At takeoff Navigator sees 1. landed = false 2. the takeoff Home 3. takeoff_time in vehicle_status.
+	// landed covers the gap between 2 and 3, takeoff_time covers a landing (it stays set until disarm).
+	const bool on_ground_before_first_takeoff = (status.takeoff_time == 0) && _land_detected_sub.get().landed;
+
+	if ((status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && on_ground_before_first_takeoff
+	    && (_mission_check_state == MissionCheckState::Complete)
+	    && (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count)) {
+		_mission_check_state = MissionCheckState::Unchecked;
+	}
 }
 
 
@@ -238,7 +270,8 @@ void Mission::setActiveMissionItems()
 						   _mission_item.nav_cmd == NAV_CMD_WAYPOINT;
 		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
 				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
-				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+				(new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
+				 new_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND);
 
 		if (fw_on_mission_landing || mc_landing_after_transition) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
@@ -295,6 +328,7 @@ void Mission::setActiveMissionItems()
 
 	// Only set the previous position item if the current one really changed
 	if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
+	    (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND) &&
 	    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 		pos_sp_triplet->previous = current_setpoint_copy;
 	}
@@ -448,8 +482,8 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 
 		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
 
-		/* set position setpoint to target during the transition */
-		mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->current);
+		/* hold position and align heading towards the next waypoint */
+		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	}
 
 	/* yaw is aligned now */

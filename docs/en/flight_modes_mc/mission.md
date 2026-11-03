@@ -68,8 +68,7 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
 1. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
 
    :::tip
-   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
-   Enter the time to wait after landing before disarming the vehicle.
+   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Return & Land](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/return_land.html#landing) and set the _Touchdown_ disarm delay (a value of 0 or less disables it).
    :::
 
 Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_mc/hold.md) or [Position mode](../flight_modes_mc/position.md)), and resumed by switching back to mission mode.

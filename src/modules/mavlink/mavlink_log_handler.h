@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #pragma once
+#include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
 #include "mavlink_bridge_header.h"
 
@@ -57,6 +58,9 @@ public:
 
 	void send();
 	void handle_message(const mavlink_message_t *msg);
+
+	/// True while LOG_DATA is streaming out.
+	bool sending_data() const { return _state == LogHandlerState::SendingData; }
 
 private:
 	struct LogEntry {
@@ -123,6 +127,7 @@ private:
 	LogEntry 			_current_entry{};
 	LogEntryRequest 	_entry_request{};
 	bool 				_file_send_finished{};
+	hrt_abstime			_last_data_send{0};
 
 	perf_counter_t _create_file_elapsed{perf_alloc(PC_ELAPSED, MODULE_NAME": create file")};
 	perf_counter_t _listing_elapsed{perf_alloc(PC_ELAPSED, MODULE_NAME": listing")};

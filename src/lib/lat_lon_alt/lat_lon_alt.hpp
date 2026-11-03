@@ -104,7 +104,11 @@ public:
 	matrix::Vector3f computeAngularRateNavFrame(const matrix::Vector3f &v_ned) const;
 
 	// Compute the ECEF to NED coordinate transformation matrix at the current position
-	matrix::Dcmf computeRotEcefToNed() const;
+	template<typename Type = float>
+	matrix::Dcm<Type> computeRotEcefToNed() const;
+
+	static void computeRadiiOfCurvature(const double latitude, double &meridian_radius_of_curvature,
+					    double &transverse_radius_of_curvature);
 
 	struct Wgs84 {
 		static constexpr double equatorial_radius = 6378137.0;
@@ -129,9 +133,6 @@ public:
 private:
 	// Convert between curvilinear and cartesian errors
 	static matrix::Vector2d deltaLatLonToDeltaXY(const double latitude, const float altitude);
-
-	static void computeRadiiOfCurvature(const double latitude, double &meridian_radius_of_curvature,
-					    double &transverse_radius_of_curvature);
 
 	double _latitude_rad{0.0};
 	double _longitude_rad{0.0};

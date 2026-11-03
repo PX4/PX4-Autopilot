@@ -41,6 +41,8 @@
 
 #include "LidarLiteI2C.h"
 
+#include <lib/parameters/param.h>
+
 LidarLiteI2C::LidarLiteI2C(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
@@ -67,6 +69,21 @@ LidarLiteI2C::init()
 	// Perform I2C init (and probe) first.
 	if (I2C::init() != PX4_OK) {
 		return PX4_ERROR;
+	}
+
+	param_t handle = param_find("SENS_LL40LS_SMIN");
+
+	if (handle != PARAM_INVALID) {
+		int32_t ll40ls_signal_strength_min_v3hp;
+		param_get(handle, &ll40ls_signal_strength_min_v3hp);
+		_ll40ls_signal_strength_min_v3hp = (int)ll40ls_signal_strength_min_v3hp;
+	}
+
+	// Override the version-specific default set during probe, if configured.
+	float max_distance = 0.f;
+
+	if (param_get(param_find("SENS_LL40LS_MAX"), &max_distance) == PX4_OK && max_distance > LL40LS_MIN_DISTANCE) {
+		_px4_rangefinder.set_max_distance(max_distance);
 	}
 
 	start();
@@ -428,8 +445,8 @@ LidarLiteI2C::collect()
 		// We detect if V3HP is being used
 		if (_model == Model::v3hp) {
 			//Normalize signal strength to 0...100 percent using the absolute signal strength.
-			signal_quality = 100 * math::max(ll40ls_signal_strength - LL40LS_SIGNAL_STRENGTH_MIN_V3HP, 0) /
-					 (LL40LS_SIGNAL_STRENGTH_MAX_V3HP - LL40LS_SIGNAL_STRENGTH_MIN_V3HP);
+			signal_quality = 100 * math::max(ll40ls_signal_strength - _ll40ls_signal_strength_min_v3hp, 0) /
+					 (LL40LS_SIGNAL_STRENGTH_MAX_V3HP - _ll40ls_signal_strength_min_v3hp);
 
 		} else {
 			// Absolute peak strength measurement, i.e. absolute strength of main signal peak.

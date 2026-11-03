@@ -498,7 +498,7 @@ div.frame_variant td, div.frame_variant th {
 </table>
 </div>
 
-## Plane
+## 飞机
 
 ### Flying Wing
 
@@ -673,6 +673,10 @@ div.frame_variant td, div.frame_variant th {
 <tr id="spacecraft_free-flyer_kth-atmos">
  <td><a href="https://atmos.discower.io">KTH-ATMOS</a></td>
  <td>Maintainer: DISCOWER<p><code>SYS_AUTOSTART</code> = 70000</p></td>
+</tr>
+<tr id="spacecraft_free-flyer_kth-atmos-dual">
+ <td><a href="https://atmos.discower.io">KTH-ATMOS-DUAL</a></td>
+ <td>Maintainer: DISCOWER<p><code>SYS_AUTOSTART</code> = 70001</p><br><b>Specific Outputs:</b><ul><li><b>UAVCAN1</b>: propeller 1, -x thrust</li><li><b>UAVCAN2</b>: propeller 2, +x thrust</li><li><b>UAVCAN3</b>: propeller 3, -y thrust</li><li><b>UAVCAN4</b>: propeller 4, +y thrust</li></ul></td>
 </tr>
 </tbody>
 </table>
