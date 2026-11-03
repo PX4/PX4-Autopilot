@@ -187,25 +187,37 @@ param set SYS_FAIL_GPS_WRG 0
 param set SYS_FAIL_GPS_EPH 60
 failure gps wrong -i 1
 
-# Update rate below a third: one sample in SYS_FAIL_GPS_DIV
+# Update rate below 1 Hz: one sample in SYS_FAIL_GPS_DIV of the 8 Hz SIH receiver
+param set SYS_FAIL_GPS_DIV 10
 failure gps slow -i 1
 
 failure gps ok -i 1
 ```
 
-The `[gnss_failover]` cases in [test/mavsdk_tests](https://github.com/PX4/PX4-Autopilot/tree/main/test/mavsdk_tests) run these failures in SIH.
+The selection takes a lower update rate above about 1 Hz as the receiver's own, so `slow` fails the receiver only below that.
+
+The `gnss_failover` cases in [test/mavsdk_tests/test_multicopter_gnss_failover.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/test_multicopter_gnss_failover.py) run these failures in SIH, with the second receiver that the `gnss_failover` entry of `test/mavsdk_tests/configs/sih-sitl.json` sets up.
+Most cases grade their flight log with the [log report](#log-report).
+See [MAVSDK Integration Testing](../test_and_ci/integration_testing_mavsdk.md) for the Python packages they need.
+
+```sh
+test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sih-sitl.json --speed-factor 10 --model quadx --case 'test_multicopter_gnss_failover.py::*'
+```
 
 ### Companion Computer Tool
 
-`gnss_failover` injects one GNSS failure from a companion computer while a pilot flies, using the same scenario code as the SIH tests.
+`gnss_failover` ([test/mavsdk_tests/gnss_failover.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/gnss_failover.py)) injects one GNSS failure from a companion computer while a pilot flies, using the same scenario code as the SIH tests.
 It never arms or changes the mode, refuses to inject unless [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) is set, both receivers report a 3D fix on `GPS_RAW_INT` and `GPS2_RAW`, and the vehicle is armed, in the air and in a position-controlled mode (`--ground` allows a bench test).
 It sends `ok` when it ends, including on `SIGINT` and `SIGTERM`; an injection stays active in the vehicle until then.
 The firmware needs the failure-injection module, which only `px4_sitl` builds by default.
+The companion computer needs Python 3 and the packages in `Tools/setup/test-requirements.txt`, and a copy of `gnss_failover.py` and `gnss_failover_scenario.py` from `test/mavsdk_tests`.
 
 ```sh
-cmake -S test/mavsdk_tests -B build/gnss_failover && cmake --build build/gnss_failover --target gnss_failover
-build/gnss_failover/gnss_failover --url serial:///dev/ttyS1:921600 --instance 1 --type off --duration 20 --record flight.csv
+pip install -r Tools/setup/test-requirements.txt
+test/mavsdk_tests/gnss_failover.py --url serial:///dev/ttyS1:921600 --instance 1 --type off --duration 20 --record flight.csv
 ```
+
+`test/mavsdk_tests/gnss_failover.py -h` lists the options, including the `wrong` payload (`--fix`, `--eph`, `--sacc` and others) and the `slow` divider.
 
 The record holds every injection and acknowledgement, both receivers, estimator resets, position validity, mode changes and events, with wall and vehicle time.
 
