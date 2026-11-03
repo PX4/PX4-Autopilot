@@ -41,15 +41,23 @@
 #pragma once
 
 #include <matrix/math.hpp>
+#include <stddef.h>
 
 namespace math
 {
 
 /**
- * Generate a white Gaussian noise sample with zero mean and unit standard deviation.
+ * Fill out[0..n) with independent white Gaussian noise samples with zero mean and unit standard
+ * deviation.
  *
- * Polar Box-Muller on top of rand(); seed with srand() once before first use. Stateless apart from
+ * Polar Box-Muller on top of rand(); seed with srand() once before first use. Each accepted draw
+ * yields two samples, so prefer one call for n samples over n scalar calls. Stateless apart from
  * rand() itself, so it is safe to call from several threads.
+ */
+void generate_wgn(float *out, size_t n);
+
+/**
+ * Generate a single white Gaussian noise sample with zero mean and unit standard deviation.
  */
 float generate_wgn();
 

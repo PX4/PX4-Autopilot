@@ -69,6 +69,36 @@ TEST(WhiteGaussianNoiseTest, unitNormalStatistics)
 	EXPECT_GT(max, 3.f);
 }
 
+TEST(WhiteGaussianNoiseTest, fillArrayPairsAreIndependent)
+{
+	srand(7);
+	constexpr int n = 5; // odd length exercises the discarded second sample of the last draw
+	constexpr int reps = 40000;
+	double sum[n] {};
+	double sum_sq[n] {};
+	double cross_01 = 0.0; // samples 0 and 1 come from the same Box-Muller draw
+
+	for (int r = 0; r < reps; r++) {
+		float x[n];
+		math::generate_wgn(x, n);
+
+		for (int i = 0; i < n; i++) {
+			EXPECT_TRUE(std::isfinite(x[i]));
+			sum[i] += (double)x[i];
+			sum_sq[i] += (double)x[i] * (double)x[i];
+		}
+
+		cross_01 += (double)x[0] * (double)x[1];
+	}
+
+	for (int i = 0; i < n; i++) {
+		EXPECT_NEAR(sum[i] / reps, 0.0, 0.03) << "sample " << i;
+		EXPECT_NEAR(sum_sq[i] / reps, 1.0, 0.04) << "sample " << i;
+	}
+
+	EXPECT_NEAR(cross_01 / reps, 0.0, 0.03);
+}
+
 TEST(WhiteGaussianNoiseTest, vectorScalesByStd)
 {
 	srand(42);

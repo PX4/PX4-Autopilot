@@ -40,28 +40,43 @@
 namespace math
 {
 
+void generate_wgn(float *out, size_t n)
+{
+	// polar Box-Muller: every accepted draw yields two independent samples, so a vector of n
+	// samples needs only ceil(n / 2) draws. All state lives on the stack, so concurrent callers
+	// (sih task, sensor_*_sim work queue, gz_bridge) cannot corrupt each other's samples.
+	for (size_t i = 0; i < n; i += 2) {
+		float v1;
+		float v2;
+		float s;
+
+		do {
+			v1 = 2.0f * (float)rand() / (float)RAND_MAX - 1.0f;
+			v2 = 2.0f * (float)rand() / (float)RAND_MAX - 1.0f;
+			s = v1 * v1 + v2 * v2;
+		} while (s >= 1.0f || s < 1e-8f);
+
+		const float factor = sqrtf(-2.0f * logf(s) / s);
+		out[i] = v1 * factor;
+
+		if (i + 1 < n) {
+			out[i + 1] = v2 * factor;
+		}
+	}
+}
+
 float generate_wgn()
 {
-	// polar Box-Muller. The second sample of each pair is discarded on purpose: callers run on
-	// different threads (sih task, sensor_*_sim work queue, gz_bridge), and caching it in static
-	// state lets a reader pick up a rejected intermediate S >= 1 from another thread's loop, which
-	// turns into a NaN sample.
-	float v1;
-	float v2;
-	float s;
-
-	do {
-		v1 = 2.0f * (float)rand() / (float)RAND_MAX - 1.0f;
-		v2 = 2.0f * (float)rand() / (float)RAND_MAX - 1.0f;
-		s = v1 * v1 + v2 * v2;
-	} while (s >= 1.0f || s < 1e-8f);
-
-	return v1 * sqrtf(-2.0f * logf(s) / s);
+	float x;
+	generate_wgn(&x, 1);
+	return x;
 }
 
 matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz)
 {
-	return matrix::Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
+	float x[3];
+	generate_wgn(x, 3);
+	return matrix::Vector3f(x[0] * stdx, x[1] * stdy, x[2] * stdz);
 }
 
 } // namespace math
