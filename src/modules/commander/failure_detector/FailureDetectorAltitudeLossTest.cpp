@@ -62,7 +62,7 @@ public:
 
 	// Publish position and setpoint, then run the detector. Returns the alt flag state.
 	bool update(float lpos_z, float lpos_sp_z, float delta_z = 0.f, uint8_t z_reset_counter = 0, float lpos_sp_vz = 0.f,
-		    bool publish_setpoint = true, float lpos_vz = 0.f)
+		    bool publish_setpoint = true, float lpos_vz = 0.f, bool attitude_control = true)
 	{
 		// Each update represents 1s of flight for integrating the commanded vertical velocity
 		_timestamp += 1_s;
@@ -89,8 +89,8 @@ public:
 		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 		vehicle_control_mode_s control_mode{};
-		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_altitude_enabled = true;
+		control_mode.flag_control_attitude_enabled = attitude_control;
+		control_mode.flag_control_altitude_enabled = attitude_control;
 
 		_fd.update(status, control_mode);
 
@@ -107,6 +107,12 @@ public:
 	bool updatePositionOnly(float lpos_z, float lpos_vz = 0.f)
 	{
 		return update(lpos_z, NAN, 0.f, 0, NAN, false, lpos_vz);
+	}
+
+	// Update in a mode without attitude control (e.g. Acro)
+	bool updateWithoutAttitudeControl(float lpos_z, float lpos_vz = 0.f)
+	{
+		return update(lpos_z, NAN, 0.f, 0, NAN, true, lpos_vz, false);
 	}
 
 private:
@@ -359,4 +365,17 @@ TEST_F(FailureDetectorAltitudeLossTest, TriggerOnFallFasterThanCommandedDescentW
 	}
 
 	EXPECT_TRUE(update(-64.f, -63.5f, 0.f, 0, 3.f, true, 6.f)); // drop = 6m, triggers
+}
+
+TEST_F(FailureDetectorAltitudeLossTest, NoTriggerOnBrakingAfterSwitchFromAcro)
+{
+	// Same as NoTriggerOnBrakingAfterSwitchFromFastDescent, but coming from a mode without attitude control:
+	// the time spent in that mode must not be integrated on the first update after the switch
+	EXPECT_FALSE(updateVelocity(-120.f, 0.f, 0.f));
+	EXPECT_FALSE(updateWithoutAttitudeControl(-110.f, 10.f));
+	EXPECT_FALSE(updateVelocity(-100.f, 0.f, 10.f));    // ref = -100, allowed descent rate 10m/s
+	EXPECT_FALSE(updateVelocity(-91.25f, 0.f, 7.5f));   // rate 8m/s, ref = -92, drop = 0.75m
+	EXPECT_FALSE(updateVelocity(-85.f, 0.f, 5.f));      // rate 6m/s, ref = -86, drop = 1m
+	EXPECT_FALSE(updateVelocity(-81.25f, 0.f, 2.5f));   // rate 4m/s, ref = -82, drop = 0.75m
+	EXPECT_FALSE(updateVelocity(-80.f, 0.f, 0.f));      // rate 2m/s, ref follows the vehicle
 }

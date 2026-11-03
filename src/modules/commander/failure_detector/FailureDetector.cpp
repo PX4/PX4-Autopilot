@@ -71,6 +71,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_failure_detector_status.flags.ext = false;
 		// Reset altitude loss state so it reinitialises cleanly when altitude control re-engages.
 		_alt_loss_ref_z = NAN;
+		_alt_loss_timestamp_prev = 0;
 		_alt_loss_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
