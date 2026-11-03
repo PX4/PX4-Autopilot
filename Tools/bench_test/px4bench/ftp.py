@@ -1,9 +1,10 @@
 """MAVFTP helpers: directory listing, bounded file download, ULog constants.
 
 Built on pymavlink.mavftp. cmd_get only sends OpenFileRO and returns; the
-transfer itself is driven by process_ftp_reply, so ftp_download pumps it in
-bounded slices with its own budget and stall detection: a transfer that
-stops mid-file becomes an error naming the byte count, never a hang.
+transfer itself is driven by process_ftp_reply, so ftp_download drives it
+within its own budget, with the idle detection of pymavlink as the stall
+detection: a transfer that stops mid-file becomes an error naming the byte
+count, never a hang.
 """
 
 import sys
@@ -45,17 +46,21 @@ def ftp_download(mav, ftp, remote, local, report):
 
     cmd_get only sends OpenFileRO and returns; the transfer itself is driven
     by process_ftp_reply, which loops recv_match -> __mavlink_packet (burst
-    read handling, temp-file writes) -> __idle_task until idle or timeout.
-    We use a completion callback so we know the burst read finished, and we
-    pump process_ftp_reply in bounded slices so a stalled burst becomes a
-    named FAIL instead of a hang. process_ftp_reply requires its timeout to
-    be greater than idle_detection_time (default 3.7s).
+    read handling, temp-file writes) -> __idle_task until the read completes,
+    the link is idle for idle_detection_time (default 3.7s), or the timeout.
+    It is driven in one call bounded by FTP_BUDGET: process_ftp_reply
+    terminates the session when it times out, so shorter slices would abort
+    any transfer that takes longer than one slice (a slow link, a big log).
+    A stalled burst read ends on the idle detection and becomes a named FAIL
+    with the byte count, never a hang. Heartbeats go out from the progress
+    callback, which runs on every burst read reply.
 
     Returns (elapsed_seconds, None) on success, (None, error_string) on
     failure, so the caller can branch on the error explicitly instead of
     ever mixing a message string into arithmetic.
     """
     done = {'ok': False}
+    next_hb = [0.0]
 
     def on_complete(fh):
         # fh is a BytesIO on success, or None if the session was terminated
@@ -71,34 +76,23 @@ def ftp_download(mav, ftp, remote, local, report):
         except Exception as e:  # noqa: BLE001 - surface write failures to the caller
             report.info('local write failed: {}'.format(e))
 
-    ftp.cmd_get([remote], callback=on_complete)
-
-    start = time.monotonic()
-    last_bytes = 0
-    last_progress = start
-    next_hb = 0.0
-    # process_ftp_reply timeout must exceed idle_detection_time; use a short
-    # slice and loop so we can enforce our own budget and stall detection.
-    slice_timeout = max(4.0, ftp.ftp_settings.idle_detection_time + 0.5)
-    while not done['ok']:
+    def on_progress(_fraction):
         now = time.monotonic()
-        if now > next_hb:
+        if now > next_hb[0]:
             send_heartbeat(mav)
-            next_hb = now + 1.0
-        if now - start > FTP_BUDGET:
-            cur = ftp.read_total if ftp.read_total else last_bytes
+            next_hb[0] = now + 1.0
+
+    send_heartbeat(mav)
+    start = time.monotonic()
+    ftp.cmd_get([remote], callback=on_complete, progress_callback=on_progress)
+    ret = ftp.process_ftp_reply('OpenFileRO', timeout=FTP_BUDGET)
+
+    if not done['ok']:
+        elapsed = time.monotonic() - start
+        if elapsed >= FTP_BUDGET:
             return None, 'MAVFTP transfer stalled at {} bytes (budget {:.0f}s)'.format(
-                cur, FTP_BUDGET)
-        # drive one slice of the FTP state machine
-        ftp.process_ftp_reply('OpenFileRO', timeout=slice_timeout)
-        cur = ftp.read_total
-        if cur > last_bytes:
-            last_bytes = cur
-            last_progress = now
-        elif now - last_progress > 30.0 and not done['ok']:
-            # no forward progress for 30s and callback never fired
-            return None, 'MAVFTP transfer stalled at {} bytes (no progress 30s)'.format(cur)
-        # if the session ended without completing, process_ftp_reply keeps
-        # returning immediately on idle; break out via the budget/stall checks
+                ftp.read_total, FTP_BUDGET)
+        return None, 'MAVFTP transfer stalled at {} bytes ({})'.format(
+            ftp.read_total, ret.error_code.name)
     elapsed = time.monotonic() - start
     return elapsed, None

@@ -61,8 +61,8 @@ void AckermannOffboardMode::offboardControl()
 	if (offboard_control_mode.position) {
 		rover_position_setpoint_s rover_position_setpoint{};
 		rover_position_setpoint.timestamp = timestamp;
-		rover_position_setpoint.position_ned[0] = trajectory_setpoint.position[0];
-		rover_position_setpoint.position_ned[1] = trajectory_setpoint.position[1];
+		rover_position_setpoint.target_ned[0] = trajectory_setpoint.position[0];
+		rover_position_setpoint.target_ned[1] = trajectory_setpoint.position[1];
 		rover_position_setpoint.start_ned[0] = NAN;
 		rover_position_setpoint.start_ned[1] = NAN;
 		rover_position_setpoint.cruising_speed = NAN;

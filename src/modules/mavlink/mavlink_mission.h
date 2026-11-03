@@ -148,7 +148,7 @@ private:
 
 	int32_t			_transfer_current_seq{-1};		///< Current item ID for current transmission (-1 means not initialized)
 
-	uint8_t			_transfer_partner_sysid{0};		///< Partner system ID for current transmission
+	uint32_t		_transfer_partner_sysid{0};		///< Partner system ID for current transmission
 	uint8_t			_transfer_partner_compid{0};		///< Partner component ID for current transmission
 	int32_t 		_transfer_land_start_marker{-1}; 	///< index of land start mission item in current transmission (if unavailable, index of land mission item, -1 otherwise)
 	int32_t 		_transfer_land_marker{-1}; 		///< index of land mission item in current transmission (-1 if unavailable)
@@ -215,7 +215,7 @@ private:
 	/**
 	 *  @brief Sends an waypoint ack message
 	 */
-	void send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t type, uint32_t opaque_id = 0U);
+	void send_mission_ack(uint32_t sysid, uint8_t compid, uint8_t type, uint32_t opaque_id = 0U);
 
 	/**
 	 *  @brief Broadcasts the new target waypoint and directs the MAV to fly there
@@ -228,12 +228,12 @@ private:
 	 */
 	void send_mission_current(uint16_t seq);
 
-	void send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type,
+	void send_mission_count(uint32_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type,
 				uint32_t opaque_id);
 
-	void send_mission_item(uint8_t sysid, uint8_t compid, uint16_t seq);
+	void send_mission_item(uint32_t sysid, uint8_t compid, uint16_t seq);
 
-	void send_mission_request(uint8_t sysid, uint8_t compid, uint16_t seq);
+	void send_mission_request(uint32_t sysid, uint8_t compid, uint16_t seq);
 
 	/**
 	 *  @brief emits a message that a waypoint reached

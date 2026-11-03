@@ -1,6 +1,6 @@
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 4
+uint32 MESSAGE_VERSION = 5
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -102,7 +102,7 @@ bool in_transition_to_fw # True if VTOL is doing a transition from MC to FW
 
 # MAVLink identification
 uint8 system_type  # system type, contains mavlink MAV_TYPE
-uint8 system_id	   # system id, contains MAVLink's system ID field
+uint32 system_id	   # system id, contains MAVLink's system ID field
 uint8 component_id # subsystem / component id, contains MAVLink's component ID field
 
 bool safety_button_available # Set to true if a safety button is connected

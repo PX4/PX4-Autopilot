@@ -24,7 +24,7 @@ parameters:
       unit: m
       min: 0.05
       max: 200.0
-      decimal: 1
+      decimal: 2
       increment: 0.5
     NAV_FW_ALT_RAD:
       description:
@@ -34,7 +34,7 @@ parameters:
       unit: m
       min: 0.05
       max: 200.0
-      decimal: 1
+      decimal: 2
       increment: 0.5
     NAV_FW_ALTL_RAD:
       description:
@@ -46,7 +46,7 @@ parameters:
       unit: m
       min: 0.05
       max: 200.0
-      decimal: 1
+      decimal: 2
     NAV_MC_ALT_RAD:
       description:
         short: MC Altitude acceptance radius
@@ -55,7 +55,7 @@ parameters:
       unit: m
       min: 0.05
       max: 200.0
-      decimal: 1
+      decimal: 2
       increment: 0.5
     NAV_TRAFF_AVOID:
       description:

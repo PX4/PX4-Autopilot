@@ -252,7 +252,7 @@ TEST_F(EkfHeightFusionTest, gpsHeightFusionContinuesThroughHorizontalStop)
 	_sensor_simulator.runSeconds(0.5);
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 
-	// THEN: height fusion continues, both during the horizontal restart hold-off (1 s) and after it
+	// THEN: height fusion continues while horizontal fusion is stopped
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
 	EXPECT_GT(_ekf->aid_src_gnss_hgt().time_last_fuse, time_stopped);
 	_sensor_simulator.runSeconds(1.5);

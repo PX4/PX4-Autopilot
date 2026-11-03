@@ -124,4 +124,12 @@
 #  define BOOT_DEVICES_FILTER_ONUSB USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
 #endif
 
+/* Secure-boot variant */
+#if defined(PX4_CRYPTO)
+#include <px4_platform_common/crypto_algorithms.h>
+#define BOOTLOADER_USE_SECURITY        1
+#define BOOTLOADER_SIGNING_ALGORITHM   CRYPTO_ED25519
+#define BOARD_IMAGE_TOC_OFFSET         0x0
+#endif
+
 #endif /* HW_CONFIG_H_ */

@@ -67,6 +67,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
+	add_topic("esc_eeprom_read");
 	add_topic("esc_status", 100);
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
@@ -129,6 +130,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensors_status_gnss", 200);
 	add_topic("sensors_status_imu", 200);
 	add_optional_topic("spoilers_setpoint", 1000);
+	add_optional_topic("surface_vehicle_course_setpoint", 100);
 	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
 	add_optional_topic("tecs_status", 200);

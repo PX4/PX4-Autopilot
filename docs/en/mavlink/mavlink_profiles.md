@@ -21,7 +21,8 @@ The available profiles (in source-code declaration order) are:
 - _Minimal_ (`MAVLINK_MODE_MINIMAL`): Minimal set of messages for use with a GCS on a poor telemetry link.
 - _Onboard Low Bandwidth_ (`MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH`): Set of messages to be streamed to a companion computer for re-routing to a reduced-traffic link, such as a GCS.
 - _Low Bandwidth_ (`MAVLINK_MODE_LOW_BANDWIDTH`): Reduced message set for low bandwidth links.
-- _uAvionix_ (`MAVLINK_MODE_UAVIONIX`): Messages for a uAvionix ADS-B beacon.
+- _ADS-B/Traffic (uAvionix)_ (`MAVLINK_MODE_UAVIONIX`): Link to a traffic receiver such as an ADS-B or FLARM device, plus the messages a uAvionix ADS-B beacon needs.
+  With [message signing](../mavlink/message_signing.md) active, unsigned `ADSB_VEHICLE` and `COLLISION` are only accepted on links in this mode.
 - _Distance Sensor_ (`MAVLINK_MODE_DISTANCE_SENSOR`): Streams distance sensor data at unlimited rate.
 
 :::tip

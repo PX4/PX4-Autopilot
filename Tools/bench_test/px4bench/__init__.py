@@ -478,6 +478,13 @@ def list_usb_devices(pattern=None):
     return devs
 
 
+def device_family_glob(device):
+    """Glob of the nodes of the same family as a serial device
+    (/dev/cu.usbmodem01 -> /dev/cu.usbmodem*), or None."""
+    base = re.sub(r'\d+$', '', device)
+    return base + '*' if base != device else None
+
+
 def wait_device_gone(device, timeout=30):
     """Wait until the serial device node disappears. Returns elapsed or None."""
     start = time.monotonic()
@@ -488,22 +495,26 @@ def wait_device_gone(device, timeout=30):
     return None
 
 
-def wait_device_back(device, timeout=45, pattern=None):
+def wait_device_back(device, timeout=45, pattern=None, others=None):
     """Wait until the device node (or a matching one) reappears.
 
     USB enumeration can change the node name (usbmodem01 -> usbmodem101 on
     macOS), so if the exact node does not come back we fall back to a glob
-    for the same device family. Returns (device_path, elapsed) or (None, None).
+    for the same device family, ignoring the nodes that were already there
+    (a debug probe or another board, also a usbmodem node, stays while the
+    board reboots): `others`, or the ones there when called. Returns
+    (device_path, elapsed) or (None, None).
     """
     if pattern is None:
-        base = re.sub(r'\d+$', '', device)
-        pattern = base + '*' if base != device else None
+        pattern = device_family_glob(device)
+    if others is None:
+        others = set(glob.glob(pattern)) - {device} if pattern else set()
     start = time.monotonic()
     while time.monotonic() - start < timeout:
         if os.path.exists(device):
             return device, time.monotonic() - start
         if pattern:
-            found = sorted(glob.glob(pattern))
+            found = sorted(set(glob.glob(pattern)) - others)
             if found:
                 return found[0], time.monotonic() - start
         time.sleep(0.2)
@@ -523,9 +534,12 @@ def wait_reconnect(conn_str, baud=DEFAULT_BAUD, timeout=60, start=None):
         start = time.monotonic()
 
     if is_serial_device(conn_str):
+        # the other devices of the family, before the board comes back under another name
+        pattern = device_family_glob(conn_str)
+        others = set(glob.glob(pattern)) - {conn_str} if pattern else set()
         gone = wait_device_gone(conn_str, timeout=15)
         # Some boards re-enumerate too fast to observe the node vanish; that is fine.
-        newdev, _ = wait_device_back(conn_str, timeout=timeout)
+        newdev, _ = wait_device_back(conn_str, timeout=timeout, pattern=pattern, others=others)
         if newdev is None:
             raise TimeoutError('serial device {} did not come back within {}s '
                                '(gone after {})'.format(

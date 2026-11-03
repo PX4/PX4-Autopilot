@@ -79,7 +79,7 @@ The Septentrio G5 module firmware can be updated using the Septentrio [RxTools](
 
 ## Flight Controller Setup
 
-### Enabling DroneCAN
+### 启用 DroneCAN
 
 In order to use the ARK G5 RTK HEADING GPS, connect it to the Pixhawk CAN bus and enable the DroneCAN driver by setting parameter [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to `2` for dynamic node allocation (or `3` if using [DroneCAN ESCs](../dronecan/escs.md)).
 

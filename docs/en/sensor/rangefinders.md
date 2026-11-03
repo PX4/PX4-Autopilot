@@ -17,10 +17,11 @@ There may also be other DroneCAN rangefinders than those listed here.
 
 | Rangefinder                                 | Technology      | Range (min – max) | Connections      | NDAA | Notes                               |
 | ------------------------------------------- | --------------- | ----------------- | ---------------- | ---- | ----------------------------------- |
-| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar | ~50 m             | UART             | ✔️   |                                     |
+| [Ainstein US-D1 Standard Radar Altimeter]   | Microwave radar | 0.5 m – 50 m      | UART             | ✔️   | All-weather, works over water       |
 | [ARK DIST SR]                               | ToF (850 nm IR) | 8 cm to ~30 m     | DroneCAN, UART   | ✔️   |                                     |
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m     | DroneCAN, UART   | ✔️   |                                     |
-| [Benewake TFmini]                           | ToF (IR laser)  | ~12 m             | UART             | ~    |                                     |
+| [Benewake TFmini Plus]                      | ToF (IR LED)    | 0.1 m – 12 m      | UART             | ~    | PX4 minimum 0.4 m                   |
+| [Benewake TFmini-S]                         | ToF (IR laser)  | 0.1 m – 12 m      | UART             | ~    | PX4 minimum 0.4 m                   |
 | [Garmin LIDAR-Lite v3]                      | ToF (IR laser)  | up to 40 m        | I2C, PWM         | ~    | PX4 caps range to 35 m or less      |
 | [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m        | I2C              | ~    |                                     |
 | [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m       | UART             | ~    |                                     |
@@ -44,7 +45,8 @@ There may also be other DroneCAN rangefinders than those listed here.
 [Ainstein US-D1 Standard Radar Altimeter]: ../sensor/ulanding_radar.md
 [ARK DIST SR]: ../dronecan/ark_dist.md
 [ARK DIST MR]: ../dronecan/ark_dist_mr.md
-[Benewake TFmini]: ../sensor/tfmini.md
+[Benewake TFmini Plus]: ../sensor/tfmini.md
+[Benewake TFmini-S]: ../sensor/tfmini.md
 [Garmin LIDAR-Lite v3]: ../sensor/lidar_lite.md
 [Holybro ST VL53L1X Lidar]: #holybro-st-vl53l1x-lidar
 [Lanbao PSK-CM8JL65-CC5]: ../sensor/cm8jl65_ir_distance_sensor.md
@@ -130,18 +132,18 @@ PX4 supports the following models connected via the I2C bus: TeraRanger Evo 60m,
 
 ### Ainstein US-D1 Standard Radar Altimeter
 
-The _Ainstein_ [US-D1 Standard Radar Altimeter](../sensor/ulanding_radar.md) is compact microwave rangefinder that has been optimised for use on UAVs.
-It has a sensing range of around 50m.
-A particular advantages of this product are that it can operate effectively in all weather conditions and over all terrain types (including water).
+The [Ainstein US-D1 Standard Radar Altimeter](../sensor/ulanding_radar.md) is a compact microwave radar rangefinder with a range of 0.5 m to 50 m and a 100 Hz update rate.
+It can operate effectively in all weather conditions and over all terrain types (including water).
+It must be connected to a UART/serial bus.
 
 ### LeddarOne
 
 [LeddarOne](../sensor/leddar_one.md) is small Lidar module with a narrow, yet diffuse beam that offers excellent overall detection range and performance, in a robust, reliable, cost-effective package.
 It has a sensing range from 1cm to 40m and needs to be connected to a UART/serial bus.
 
-### TFmini
+### Benewake TFmini LiDAR
 
-The [Benewake TFmini Lidar](../sensor/tfmini.md) is a tiny, low cost, and low power LIDAR with 12m range.
+The [Benewake TFmini](../sensor/tfmini.md) LiDAR rangefinders (TFmini-S and TFmini Plus) have a range of 0.1–12 m and connect to a serial port (UART).
 
 ### PSK-CM8JL65-CC5
 
@@ -201,6 +203,23 @@ These include (non exhaustively):
 - [EKF2_RNG_DELAY](../advanced_config/parameter_reference.md#EKF2_RNG_DELAY) - approximate delay of data reaching the estimator from the sensor.
 - [EKF2_RNG_SFE](../advanced_config/parameter_reference.md#EKF2_RNG_SFE) - Range finder range dependent noise scaler.
 - [EKF2_RNG_NOISE](../advanced_config/parameter_reference.md#EKF2_RNG_NOISE) - Measurement noise for range finder fusion
+
+### Health Reporting
+
+PX4 reports the rangefinder status to ground stations in the [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) message, using the `MAV_SYS_STATUS_SENSOR_LASER_POSITION` bit (this bit is used for all distance sensor types, not just lasers):
+
+- `onboard_control_sensors_present`: set once any distance sensor has published data.
+- `onboard_control_sensors_health`: cleared if a required distance sensor is missing or stops providing valid data (no update for more than 1 second).
+
+The required distance sensors are the first [SYS_HAS_NUM_DIST](../advanced_config/parameter_reference.md#SYS_HAS_NUM_DIST) sensors.
+For example, with `SYS_HAS_NUM_DIST` set to 2 and three sensors connected, only the first two affect the health bit.
+A required sensor that fails also blocks arming.
+
+WARNING : `SYS_HAS_NUM_DIST` is `0` by default, which means no distance sensor is required.
+The health bit is then always reported as healthy, even if a rangefinder stops working.
+Set `SYS_HAS_NUM_DIST` if you want rangefinder failures to be reported.
+
+You can check these bits in the `SYS_STATUS` message using the [QGroundControl MAVLink Inspector](#qgroundcontrol-mavlink-inspector).
 
 ## Testing
 

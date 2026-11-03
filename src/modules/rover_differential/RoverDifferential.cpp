@@ -121,11 +121,34 @@ void RoverDifferential::generateSetpoints()
 	vehicle_status_s vehicle_status{};
 	_vehicle_status_sub.copy(&vehicle_status);
 
+	// Each entry into Guided Course takes the speed the rover is driving at
+	if (vehicle_status.nav_state != _nav_state) {
+		_nav_state = vehicle_status.nav_state;
+		_auto_mode.reset();
+	}
+
+	// Navigator stores and acks the speed, Guided Course applies it right away
+	vehicle_command_s vehicle_command{};
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		// Zero stops driving. Negative is -1 "no change" or -2 "default" in MAVLink,
+		// and the speed the mode was entered with is the default there, so both keep the speed.
+		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED
+		    && _nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE && vehicle_command.param2 > -FLT_EPSILON) {
+			_auto_mode.setCourseSpeed(vehicle_command.param2);
+		}
+	}
+
 	switch (vehicle_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 		_auto_mode.autoControl();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
+		_auto_mode.guidedCourse();
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
@@ -213,6 +236,7 @@ void RoverDifferential::reset()
 	_differential_att_control.reset();
 	_differential_rate_control.reset();
 	_manual_mode.reset();
+	_auto_mode.reset();
 }
 
 int RoverDifferential::task_spawn(int argc, char *argv[])

@@ -49,6 +49,7 @@ bool fd_critical_failure              # Critical failure (attitude limit exceede
 bool fd_esc_arming_failure            # ESC failed to arm
 bool fd_imbalanced_prop               # Imbalanced propeller detected
 bool fd_motor_failure                 # Motor failure
+bool fd_motor_stuck_failure           # Motor-stuck failure during spool-up
 bool fd_alt_loss                      # Uncommanded altitude loss (rotary-wing, altitude-controlled flight)
 
 # Other

@@ -226,11 +226,35 @@ bool GZBridge::subscribePoseInfo(bool required)
 
 bool GZBridge::subscribeImu(bool required)
 {
-	std::string imu_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/imu_sensor/imu";
+	uint8_t count = math::min(_MAX_IMU_SENSORS, static_cast<uint8_t>(_sim_gz_en_imu.get()));
 
-	if (!_node.Subscribe(imu_topic, &GZBridge::imuCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", imu_topic.c_str());
-		return required ? false : true;
+	for (uint8_t i = 0; i < _MAX_IMU_SENSORS; i++) {
+		std::string imu_topic;
+
+		if (i == 0) {
+			imu_topic = buildBaseTopic() + "imu_sensor/imu";
+
+		} else {
+			imu_topic = buildBaseTopic() + "imu_sensor_" + std::to_string(i) + "/imu";
+		}
+
+		// Pass IMU index in the callback
+		std::function<void(const gz::msgs::IMU &)> callback = [this, i](const gz::msgs::IMU & msg) {
+			imuCallback(msg, i);
+		};
+
+		if (!_node.Subscribe(imu_topic, callback)) {
+			// Only fail if instance 0 fails and it's marked as required
+			if (i == 0 && required) {
+				PX4_ERR("failed to subscribe to primary IMU topic: %s", imu_topic.c_str());
+				return false;
+			}
+
+			if (i < count) { PX4_WARN("IMU instance %d topic not found: %s", i, imu_topic.c_str()); }
+
+		} else {
+			PX4_INFO("Subscribed to IMU[%d]: %s", i, imu_topic.c_str());
+		}
 	}
 
 	return true;
@@ -238,12 +262,35 @@ bool GZBridge::subscribeImu(bool required)
 
 bool GZBridge::subscribeMag(bool required)
 {
-	std::string mag_topic = "/world/" + _world_name + "/model/" + _model_name +
-				"/link/base_link/sensor/magnetometer_sensor/magnetometer";
+	uint8_t count = math::min(_MAX_MAG_SENSORS, static_cast<uint8_t>(_sim_gz_en_mag.get()));
 
-	if (!_node.Subscribe(mag_topic, &GZBridge::magnetometerCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", mag_topic.c_str());
-		return required ? false : true;
+	for (uint8_t i = 0; i < _MAX_MAG_SENSORS; i++) {
+		std::string mag_topic;
+
+		if (i == 0) {
+			mag_topic = buildBaseTopic() + "magnetometer_sensor/magnetometer";
+
+		} else {
+			mag_topic = buildBaseTopic() + "magnetometer_sensor_" + std::to_string(i) + "/magnetometer";
+		}
+
+		// Pass Magnetometer index in the callback
+		std::function<void(const gz::msgs::Magnetometer &)> callback = [this, i](const gz::msgs::Magnetometer & msg) {
+			magnetometerCallback(msg, i);
+		};
+
+		if (!_node.Subscribe(mag_topic, callback)) {
+			// Only fail if instance 0 fails and it's marked as required
+			if (i == 0 && required) {
+				PX4_ERR("failed to subscribe to primary Magnetometer topic: %s", mag_topic.c_str());
+				return false;
+			}
+
+			if (i < count) { PX4_WARN("Magnetometer instance %d topic not found: %s", i, mag_topic.c_str()); }
+
+		} else {
+			PX4_INFO("Subscribed to Magnetometer[%d]: %s", i, mag_topic.c_str());
+		}
 	}
 
 	return true;
@@ -264,7 +311,7 @@ bool GZBridge::subscribeOdometry(bool required)
 
 bool GZBridge::subscribeLaserScan(bool required)
 {
-	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
+	std::string laser_scan_topic = buildBaseTopic("link") + "lidar_2d_v2/scan";
 
 	if (!_node.Subscribe(laser_scan_topic, &GZBridge::laserScanCallback, this)) {
 		PX4_WARN("failed to subscribe to %s", laser_scan_topic.c_str());
@@ -276,9 +323,50 @@ bool GZBridge::subscribeLaserScan(bool required)
 
 bool GZBridge::subscribeDistanceSensor(bool required)
 {
-	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
-				   "/link/lidar_sensor_link/sensor/lidar/scan";
+	std::string lidar_sensor = buildBaseTopic("lidar_sensor_link") + "lidar/scan";
 
+	// Find the lidar link orientation relative to the base_link
+	gz::msgs::Empty req;
+	gz::msgs::Scene scene;
+	bool result = false;
+
+	// Without the link orientation a down-facing lidar would be reported as forward-facing, so publish nothing
+	if (!_node.Request("/world/" + _world_name + "/scene/info", req, 1000, scene, result) || !result) {
+		PX4_WARN("scene/info request failed, lidar orientation unknown, not publishing distance_sensor");
+		return required ? false : true;
+	}
+
+	const auto model = std::find_if(scene.model().begin(), scene.model().end(),
+	[this](const gz::msgs::Model & m) { return m.name() == _model_name; });
+
+	if (model == scene.model().end()) {
+		PX4_WARN("%s not found in scene/info, lidar orientation unknown, not publishing distance_sensor", _model_name.c_str());
+		return required ? false : true;
+	}
+
+	// link poses are relative to the model frame
+	gz::math::Quaterniond q_model_base{gz::math::Quaterniond::Identity};
+	gz::math::Quaterniond q_model_lidar{gz::math::Quaterniond::Identity};
+	bool lidar_found = false;
+
+	for (const auto &link : model->link()) {
+		if (link.name() == "base_link") {
+			q_model_base = gz::msgs::Convert(link.pose()).Rot();
+
+		} else if (link.name() == "lidar_sensor_link") {
+			q_model_lidar = gz::msgs::Convert(link.pose()).Rot();
+			lidar_found = true;
+		}
+	}
+
+	// models without a lidar have no lidar_sensor_link, nothing to subscribe to
+	if (!lidar_found) {
+		return true;
+	}
+
+	_lidar_link_q = q_model_base.Inverse() * q_model_lidar;
+
+	// subscribe only once _lidar_link_q is set, so the callback never reads it mid-update
 	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
 		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
 		return required ? false : true;
@@ -289,8 +377,7 @@ bool GZBridge::subscribeDistanceSensor(bool required)
 
 bool GZBridge::subscribeAirspeed(bool required)
 {
-	std::string airspeed_topic = "/world/" + _world_name + "/model/" + _model_name +
-				     "/link/airspeed_link/sensor/air_speed/air_speed";
+	std::string airspeed_topic = buildBaseTopic("airspeed_link") + "air_speed/air_speed";
 
 	if (!_node.Subscribe(airspeed_topic, &GZBridge::airspeedCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", airspeed_topic.c_str());
@@ -302,12 +389,35 @@ bool GZBridge::subscribeAirspeed(bool required)
 
 bool GZBridge::subscribeAirPressure(bool required)
 {
-	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
-					 "/link/base_link/sensor/air_pressure_sensor/air_pressure";
+	uint8_t count = math::min(_MAX_BARO_SENSORS, static_cast<uint8_t>(_sim_gz_en_baro.get()));
 
-	if (!_node.Subscribe(air_pressure_topic, &GZBridge::airPressureCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", air_pressure_topic.c_str());
-		return required ? false : true;
+	for (uint8_t i = 0; i < _MAX_BARO_SENSORS; i++) {
+		std::string baro_topic;
+
+		if (i == 0) {
+			baro_topic = buildBaseTopic() + "air_pressure_sensor/air_pressure";
+
+		} else {
+			baro_topic = buildBaseTopic() + "air_pressure_sensor_" + std::to_string(i) + "/air_pressure";
+		}
+
+		// Pass Barometer index in the callback
+		std::function<void(const gz::msgs::FluidPressure &)> callback = [this, i](const gz::msgs::FluidPressure & msg) {
+			airPressureCallback(msg, i);
+		};
+
+		if (!_node.Subscribe(baro_topic, callback)) {
+			// Only fail if instance 0 fails and it's marked as required
+			if (i == 0 && required) {
+				PX4_ERR("failed to subscribe to primary Barometer topic: %s", baro_topic.c_str());
+				return false;
+			}
+
+			if (i < count) { PX4_WARN("Barometer instance %d topic not found: %s", i, baro_topic.c_str()); }
+
+		} else {
+			PX4_INFO("Subscribed to Barometer[%d]: %s", i, baro_topic.c_str());
+		}
 	}
 
 	return true;
@@ -315,12 +425,35 @@ bool GZBridge::subscribeAirPressure(bool required)
 
 bool GZBridge::subscribeNavsat(bool required)
 {
-	std::string nav_sat_topic = "/world/" + _world_name + "/model/" + _model_name +
-				    "/link/base_link/sensor/navsat_sensor/navsat";
+	uint8_t count = math::min(_MAX_GNSS_SENSORS, static_cast<uint8_t>(_sim_gz_en_gps.get()));
 
-	if (!_node.Subscribe(nav_sat_topic, &GZBridge::navSatCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
-		return required ? false : true;
+	for (uint8_t i = 0; i < _MAX_GNSS_SENSORS; i++) {
+		std::string gnss_topic;
+
+		if (i == 0) {
+			gnss_topic = buildBaseTopic() + "navsat_sensor/navsat";
+
+		} else {
+			gnss_topic = buildBaseTopic() + "navsat_sensor_" + std::to_string(i) + "/navsat";
+		}
+
+		// Pass GPS index in the callback
+		std::function<void(const gz::msgs::NavSat &)> callback = [this, i](const gz::msgs::NavSat & msg) {
+			navSatCallback(msg, i);
+		};
+
+		if (!_node.Subscribe(gnss_topic, callback)) {
+			// Only fail if instance 0 fails and it's marked as required
+			if (i == 0 && required) {
+				PX4_ERR("failed to subscribe to primary GPS topic: %s", gnss_topic.c_str());
+				return false;
+			}
+
+			if (i < count) { PX4_WARN("GPS instance %d topic not found: %s", i, gnss_topic.c_str()); }
+
+		} else {
+			PX4_INFO("Subscribed to GPS[%d]: %s", i, gnss_topic.c_str());
+		}
 	}
 
 	return true;
@@ -328,8 +461,7 @@ bool GZBridge::subscribeNavsat(bool required)
 
 bool GZBridge::subscribeOpticalFlow(bool required)
 {
-	std::string flow_topic = "/world/" + _world_name + "/model/" + _model_name +
-				 "/link/flow_link/sensor/optical_flow/optical_flow";
+	std::string flow_topic = buildBaseTopic("flow_link") + "optical_flow/optical_flow";
 
 	if (!_node.Subscribe(flow_topic, &GZBridge::opticalFlowCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", flow_topic.c_str());
@@ -348,10 +480,7 @@ void GZBridge::clockCallback(const gz::msgs::Clock &msg)
 
 	if (!_realtime_clock_set) {
 		// Set initial real time clock at startup
-		if (_param_sys_time_src.get() & SYS_TIME_SRC_SIMULATOR) {
-			px4_clock_settime(CLOCK_REALTIME, &ts);
-		}
-
+		px4_clock_settime(CLOCK_REALTIME, &ts);
 		_realtime_clock_set = true;
 
 	} else {
@@ -394,11 +523,18 @@ void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &msg)
 	_optical_flow_pub.publish(report);
 }
 
-void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
+void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg, uint8_t instance_index)
 {
+	// Bounds check and safety guard
+	uint8_t count = math::min(_MAX_MAG_SENSORS, static_cast<uint8_t>(_sim_gz_en_mag.get()));
+
+	if (instance_index >= count) {
+		return;
+	}
+
 	const uint64_t timestamp = hrt_absolute_time();
 
-	_px4_mag.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
+	_px4_mag[instance_index].set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
 
 	// The field is in tesla and in the sensor's FLU frame if the Magnetometer system is loaded with
 	// use_units_gauss=false and use_earth_frame_ned=false (server.config, gz-sim >= 8.6).
@@ -416,7 +552,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 			legacy_warned = true;
 		}
 
-		_px4_mag.update(timestamp, -field.Y(), -field.X(), field.Z());
+		_px4_mag[instance_index].update(timestamp, -field.Y(), -field.X(), field.Z());
 		return;
 	}
 
@@ -426,13 +562,20 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 
 	const gz::math::Vector3d field_frd = q_FLU_to_FRD.RotateVector(field) * TESLA_TO_GAUSS;
 
-	_px4_mag.update(timestamp, field_frd.X(), field_frd.Y(), field_frd.Z());
+	_px4_mag[instance_index].update(timestamp, field_frd.X(), field_frd.Y(), field_frd.Z());
 }
 
-void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
+void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg, uint8_t instance_index)
 {
-	_px4_baro.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
-	_px4_baro.update(hrt_absolute_time(), msg.pressure());
+	// Bounds check and safety guard
+	uint8_t count = math::min(_MAX_BARO_SENSORS, static_cast<uint8_t>(_sim_gz_en_baro.get()));
+
+	if (instance_index >= count) {
+		return;
+	}
+
+	_px4_baro[instance_index].set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
+	_px4_baro[instance_index].update(hrt_absolute_time(), msg.pressure());
 }
 
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
@@ -456,8 +599,15 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 	_differential_pressure_pub.publish(report);
 }
 
-void GZBridge::imuCallback(const gz::msgs::IMU &msg)
+void GZBridge::imuCallback(const gz::msgs::IMU &msg, uint8_t instance_index)
 {
+	// Bounds check and safety guard
+	uint8_t count = math::min(_MAX_IMU_SENSORS, static_cast<uint8_t>(_sim_gz_en_imu.get()));
+
+	if (instance_index >= count) {
+		return;
+	}
+
 	const uint64_t timestamp_sample = msg.header().stamp().sec() * 1000000ULL + msg.header().stamp().nsec() / 1000ULL;
 
 	// The simulated clock can be marginally behind the header stamp due to topic delivery ordering
@@ -471,14 +621,14 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 					     msg.linear_acceleration().y(),
 					     msg.linear_acceleration().z()));
 
-	_px4_accel.update(timestamp, accel_b.X(), accel_b.Y(), accel_b.Z());
-
 	gz::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
 					    msg.angular_velocity().x(),
 					    msg.angular_velocity().y(),
 					    msg.angular_velocity().z()));
 
-	_px4_gyro.update(timestamp, gyro_b.X(), gyro_b.Y(), gyro_b.Z());
+	// Update the specific IMU instance wrapper
+	_px4_accel[instance_index].update(timestamp, accel_b.X(), accel_b.Y(), accel_b.Z());
+	_px4_gyro[instance_index].update(timestamp, gyro_b.X(), gyro_b.Y(), gyro_b.Z());
 }
 
 void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
@@ -628,7 +778,13 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 	report.velocity_variance[2] = msg.twist_with_covariance().covariance().data(14); // Z  row 2, col 2
 
 	// report.reset_counter = vpe.reset_counter;
-	_visual_odometry_pub.publish(report);
+
+	_failure_config.update();
+
+	if (failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_VIO, 0, report,
+				       _visual_odometry_stuck)) {
+		_visual_odometry_pub.publish(report);
+	}
 }
 
 float GZBridge::generate_wgn()
@@ -663,44 +819,50 @@ float GZBridge::generate_wgn()
 }
 
 void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
-			   float &vel_north, float &vel_east, float &vel_down)
+			   float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index)
 {
-	_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
-			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-			   0.02f * _gps_pos_noise_n;
+	_gnss_pos_noise_n[instance_index] = _pos_markov_time * _gnss_pos_noise_n[instance_index] +
+					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					    0.02f * _gnss_pos_noise_n[instance_index];
 
-	_gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
-			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-			   0.02f * _gps_pos_noise_e;
+	_gnss_pos_noise_e[instance_index] = _pos_markov_time * _gnss_pos_noise_e[instance_index] +
+					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					    0.02f * _gnss_pos_noise_e[instance_index];
 
-	_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
-			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
-			   0.02f * _gps_pos_noise_d;
+	_gnss_pos_noise_d[instance_index] = _pos_markov_time * _gnss_pos_noise_d[instance_index] +
+					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
+					    0.02f * _gnss_pos_noise_d[instance_index];
 
-	latitude += math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
-	longitude += math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
-	altitude += (double)_gps_pos_noise_d;
+	latitude += math::degrees((double)_gnss_pos_noise_n[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
+	longitude += math::degrees((double)_gnss_pos_noise_e[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
+	altitude += (double)_gnss_pos_noise_d[instance_index];
 
-	_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
-			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+	_gnss_vel_noise_n[instance_index] = _vel_markov_time * _gnss_vel_noise_n[instance_index] +
+					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
-	_gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
-			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+	_gnss_vel_noise_e[instance_index] = _vel_markov_time * _gnss_vel_noise_e[instance_index] +
+					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
-	_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
-			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+	_gnss_vel_noise_d[instance_index] = _vel_markov_time * _gnss_vel_noise_d[instance_index] +
+					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
 
-	vel_north += _gps_vel_noise_n;
-	vel_east += _gps_vel_noise_e;
-	vel_down += _gps_vel_noise_d;
+	vel_north += _gnss_vel_noise_n[instance_index];
+	vel_east += _gnss_vel_noise_e[instance_index];
+	vel_down += _gnss_vel_noise_d[instance_index];
 }
 
-void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
+void GZBridge::navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_index)
 {
+	uint8_t count = math::min(_MAX_GNSS_SENSORS, static_cast<uint8_t>(_sim_gz_en_gps.get()));
+
+	if (instance_index >= count) {
+		return;
+	}
+
 	const uint64_t timestamp = hrt_absolute_time();
 	_failure_config.update();
 
-	// initialize gps position
+	// initialize gnss position
 	if (!_pos_ref.isInitialized()) {
 		_pos_ref.initReference(msg.latitude_deg(), msg.longitude_deg(), timestamp);
 		_alt_ref = msg.altitude();
@@ -714,25 +876,25 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	float vel_east = msg.velocity_east();
 	float vel_down = -msg.velocity_up();
 
-	vehicle_global_position_s gps_truth{};
-
-	// Publish GPS groundtruth
-	gps_truth.timestamp = timestamp;
-	gps_truth.timestamp_sample = timestamp;
-	gps_truth.lat = latitude;
-	gps_truth.lon = longitude;
-	gps_truth.alt = altitude;
-	_gpos_ground_truth_pub.publish(gps_truth);
+	if (instance_index == 0) {
+		vehicle_global_position_s gnss_truth{};
+		gnss_truth.timestamp = timestamp;
+		gnss_truth.timestamp_sample = timestamp;
+		gnss_truth.lat = latitude;
+		gnss_truth.lon = longitude;
+		gnss_truth.alt = altitude;
+		_gpos_ground_truth_pub.publish(gnss_truth);
+	}
 
 	// Apply noise model (based on ublox F9P)
-	addGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
+	addGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down, instance_index);
 
 	// Device ID
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
 	id.devid_s.bus = 1;
-	id.devid_s.address = 1;
+	id.devid_s.address = instance_index + 1;
 
 	sensor_gnss_s sensor_gnss{};
 
@@ -779,8 +941,8 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	sensor_gnss.vel_ned_valid = true;
 	sensor_gnss.satellites_used = _sim_gps_used.get();
 
-	if (failure_injection::process_gnss(_failure_config, _sensor_gnss_pub.get_instance(), sensor_gnss, _gnss_stuck)) {
-		_sensor_gnss_pub.publish(sensor_gnss);
+	if (failure_injection::process_gnss(_failure_config, instance_index, sensor_gnss, _gnss_stuck[instance_index])) {
+		_sensor_gnss_pub[instance_index].publish(sensor_gnss);
 	}
 }
 
@@ -790,6 +952,8 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 	_px4_rangefinder.set_max_distance(static_cast<float>(msg.range_max()));
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 
+	// despite its name, world_pose is the sensor pose relative to its parent link (lidar_sensor_link),
+	// which is why it is composed with _lidar_link_q below to get the orientation in the body frame
 	gz::msgs::Quaternion pose_orientation = msg.world_pose().orientation();
 	gz::math::Quaterniond q_sensor = gz::math::Quaterniond(
 			pose_orientation.w(),
@@ -797,33 +961,49 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 			pose_orientation.y(),
 			pose_orientation.z());
 
-	const gz::math::Quaterniond q_left(0.7071068, 0, 0, -0.7071068);
-
-	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
-
-	const gz::math::Quaterniond q_down(0, 1, 0, 0);
-
 	const float distance = static_cast<float>(msg.ranges()[0]);
 
-	if (q_sensor.Equal(q_front, 0.03)) {
+	const gz::math::Quaterniond q_body_flu = _lidar_link_q * q_sensor;
+
+	// Gazebo uses FLU, distance_sensor.q is expected in FRD (rotate 180 deg about x on both sides)
+	const gz::math::Quaterniond q_body(q_body_flu.W(), q_body_flu.X(), -q_body_flu.Y(), -q_body_flu.Z());
+	const gz::math::Vector3d dir = q_body.RotateVector(gz::math::Vector3d::UnitX);
+
+	auto points_like = [&](const gz::math::Vector3d & ref) {
+		return dir.Dot(ref) > std::cos(3.0 * M_PI / 180.0);
+	};
+
+	if (points_like(gz::math::Vector3d::UnitX)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_FORWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (q_sensor.Equal(q_down, 0.03)) {
+	} else if (points_like(gz::math::Vector3d::UnitZ)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_DOWNWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (q_sensor.Equal(q_left, 0.03)) {
+	} else if (points_like(-gz::math::Vector3d::UnitZ)) {
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_UPWARD_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
+
+	} else if (points_like(-gz::math::Vector3d::UnitY)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_LEFT_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
+
+	} else if (points_like(gz::math::Vector3d::UnitY)) {
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_RIGHT_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
+
+	} else if (points_like(-gz::math::Vector3d::UnitX)) {
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_BACKWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
 	} else {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_CUSTOM);
 		const float q[4] = {
-			static_cast<float>(q_sensor.W()),
-			static_cast<float>(q_sensor.X()),
-			static_cast<float>(q_sensor.Y()),
-			static_cast<float>(q_sensor.Z())
+			static_cast<float>(q_body.W()),
+			static_cast<float>(q_body.X()),
+			static_cast<float>(q_body.Y()),
+			static_cast<float>(q_body.Z())
 		};
 		_px4_rangefinder.update(hrt_absolute_time(), distance, -1, q, 4);
 	}
@@ -926,6 +1106,11 @@ void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::m
 
 	// final rotation composition
 	q_FRD_to_NED = q_ENU_to_NED * q_FLU_to_ENU * q_FLU_to_FRD.Inverse();
+}
+
+std::string GZBridge::buildBaseTopic(std::string sensor_link)
+{
+	return "/world/" + _world_name + "/model/" + _model_name + "/link/" + sensor_link + "/sensor/";
 }
 
 int GZBridge::task_spawn(int argc, char *argv[])

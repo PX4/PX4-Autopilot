@@ -221,7 +221,9 @@ public:
 		float vert_accel_limit;			///< Magnitude of the maximum vertical acceleration allowed [m/s²].
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
 		float tas_min;				///< True airspeed demand lower limit [m/s].
+		float tas_stall;			///< True stall airspeed [m/s].
 		float tas_max;				///< True airspeed demand upper limit [m/s].
+		float tas_trim;				///< True airspeed trim [m/s].
 		float pitch_max;			///< Maximum absolute pitch angle setpoint [rad].
 		float pitch_min;			///< Minimum absolute pitch angle setpoint [rad].
 		float level_flight_pitch;		///< Pitch angle in level flight at trim airspeed, fed forward at zero climb angle [rad].
@@ -234,8 +236,6 @@ public:
 		float altitude_setpoint_gain_ff;	///< Gain from altitude demand derivative to demanded climb rate.
 
 		// Airspeed control param
-		/// [0,1] percentage of true airspeed trim corresponding to expected (safe) true airspeed tracking errors
-		float tas_error_percentage;
 		float airspeed_error_gain;				///< Airspeed error inverse time constant [1/s].
 
 		// Energy control param
@@ -488,17 +488,50 @@ private:
 	 */
 	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Param &param, const Flag &flag);
 	/**
+	 * @brief Calculate the specific kinetic energy rate setpoint used by the pitch loop.
+	 *
+	 * @param setpoint is the control setpoints.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @param weight is the weighting use of the potential and kinetic energy.
+	 * @return specific kinetic energy rate setpoint in [m²/s³].
+	 */
+	float _calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+					       const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const;
+	/**
+	 * @brief Specific energy rates as seen by the pitch loop.
+	 *
+	 * The airspeed setpoint is capped as in _calcPitchControlSkeRateSetpoint, and between trim airspeed and the
+	 * airspeed setpoint the kinetic energy rate estimate is removed as well, so that pitch does not counter the
+	 * throttle's acceleration.
+	 *
+	 * @param setpoint is the control setpoints.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param specific_energy_rates is the specific energy rates of the outer loops in [m²/s³].
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @param weight is the weighting use of the potential and kinetic energy.
+	 * @return specific energy rates for the pitch loop in [m²/s³].
+	 */
+	SpecificEnergyRates _calcPitchControlEnergyRates(const Setpoint &setpoint, const Input &input,
+			const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates, const Param &param,
+			const Flag &flag, const SpecificEnergyWeighting &weight) const;
+	/**
 	 * @brief Calculate pitch control.
 	 *
 	 * @param dt is the update time interval in [s].
+	 * @param setpoint is the control setpoints.
 	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the calculated specific energy.
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 */
-	void _calcPitchControl(float dt, const Input &input, const SpecificEnergyRates &specific_energy_rate,
-			       const Param &param,
-			       const Flag &flag);
+	void _calcPitchControl(float dt, const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+			       const SpecificEnergyRates &specific_energy_rate, const Param &param, const Flag &flag);
 
 	/**
 	 * @brief Calculate pitch control specific energy balance rates.
@@ -691,6 +724,7 @@ public:
 	void set_fast_descend_altitude_error(float altitude_error) { _fast_descend_alt_err = altitude_error; }
 
 	void set_equivalent_airspeed_min(float airspeed) { _equivalent_airspeed_min = airspeed; }
+	void set_equivalent_airspeed_stall(float airspeed) { _equivalent_airspeed_stall = airspeed; }
 	void set_equivalent_airspeed_max(float airspeed) { _equivalent_airspeed_max = airspeed; }
 	void set_equivalent_airspeed_trim(float airspeed) { _control_param.equivalent_airspeed_trim = airspeed; _airspeed_filter_param.equivalent_airspeed_trim = airspeed; }
 
@@ -779,6 +813,7 @@ private:
 	hrt_abstime _update_timestamp{0};				///< last timestamp of the update function call.
 
 	float _equivalent_airspeed_min{10.0f};				///< equivalent airspeed demand lower limit (m/sec)
+	float _equivalent_airspeed_stall{7.0f};				///< equivalent stall airspeed (m/sec)
 	float _equivalent_airspeed_max{20.0f};				///< equivalent airspeed demand upper limit (m/sec)
 	float _fast_descend_alt_err{-1.f};	 				///< Altitude difference between current altitude to altitude setpoint needed to descend with higher airspeed [m].
 	float _fast_descend{0.f};					///< Value for fast descend in [0,1]. continuous value used to flatten the high speed value out when close to target altitude.
@@ -812,7 +847,9 @@ private:
 		.vert_accel_limit = 0.0f,
 		.equivalent_airspeed_trim = 15.0f,
 		.tas_min = 10.0f,
+		.tas_stall = 7.0f,
 		.tas_max = 20.0f,
+		.tas_trim = 15.0f,
 		.pitch_max = 0.5f,
 		.pitch_min = -0.5f,
 		.level_flight_pitch = 0.f,
@@ -821,7 +858,6 @@ private:
 		.throttle_min = 0.1f,
 		.altitude_error_gain = 0.2f,
 		.altitude_setpoint_gain_ff = 0.0f,
-		.tas_error_percentage = 0.15f,
 		.airspeed_error_gain = 0.1f,
 		.ste_rate_time_const = 0.1f,
 		.seb_rate_ff = 1.0f,

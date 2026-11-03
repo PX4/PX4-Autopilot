@@ -33,7 +33,9 @@
 
 #include "worker_thread.hpp"
 #include "accelerometer_calibration.h"
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 #include "airspeed_calibration.h"
+#endif
 #include "calibration_routines.h"
 #include "baro_calibration.h"
 #include "esc_calibration.h"
@@ -146,9 +148,17 @@ void WorkerThread::threadEntry()
 		_ret_value = do_accel_calibration_quick(&_mavlink_log_pub);
 		break;
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+
 	case Request::AirspeedCalibration:
 		_ret_value = do_airspeed_calibration(&_mavlink_log_pub);
 		break;
+#else
+
+	case Request::AirspeedCalibration:
+		_ret_value = -1;
+		break;
+#endif
 
 	case Request::ESCCalibration:
 		_ret_value = do_esc_calibration(&_mavlink_log_pub);

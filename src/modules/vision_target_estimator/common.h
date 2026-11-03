@@ -67,9 +67,9 @@ constexpr hrt_abstime kEstimatorUpdatePeriodUs = 20_ms;
 constexpr hrt_abstime kOosmMinTimeUs = kEstimatorUpdatePeriodUs;
 constexpr hrt_abstime kOosmMaxTimeUs = 500_ms;
 constexpr int kOosmHistorySize = static_cast<int>(kOosmMaxTimeUs / kEstimatorUpdatePeriodUs);
-constexpr int kExpectedAxisCount = 3;
-constexpr int kExpectedStaticPositionStateCount = 3;
-constexpr int kExpectedMovingPositionStateCount = 5;
+// Observations kept per position axis for replays: 50 Hz vision and three 10 Hz GNSS streams need 40
+// over the window, plus margin. Beyond that the oldest are dropped and the replay window shrinks.
+constexpr int kOosmMaxStoredObs = 48;
 
 // Fusion status values are defined as message constants in VteAidSource1d.msg / VteAidSource3d.msg
 // (both messages declare the same STATUS_* values). Using vte_aid_source1d_s here keeps a single
@@ -116,12 +116,34 @@ inline hrt_abstime nowUs()
 	return TimeSourceProvider::nowUs();
 }
 
+// Velocity aiding must not refresh position validity; relative position also backs EKF2 aiding.
+enum class FusionSource : uint8_t { Primary, Relative, Untracked };
+
+struct FusionTimes {
+	uint64_t last_fused{0};
+	uint64_t last_relative_fused{0};
+
+	void record(FusionSource source, uint64_t capture_time)
+	{
+		if (source != FusionSource::Untracked && capture_time > last_fused) {
+			last_fused = capture_time;
+		}
+
+		if (source == FusionSource::Relative && capture_time > last_relative_fused) {
+			last_relative_fused = capture_time;
+		}
+	}
+};
+
 struct FusionResult {
 	uint8_t status{FusionStatus::STATUS_IDLE};
 	float innov{0.f};
 	float innov_var{0.f};
 	float test_ratio{-1.f}; // Normalized NIS (beta / threshold)
 	uint8_t history_steps{0};
+	uint8_t replayed_count{0}; // Stored observations gated again after this one
+	uint8_t replay_revised_count{0}; // Those whose gate decision changed
+	float replay_test_ratio_max{-1.f}; // Highest test ratio among those accepted before, -1 if none
 };
 
 static inline bool hasTimedOutAt(const hrt_abstime now, const hrt_abstime ts, const hrt_abstime timeout_us)
@@ -142,6 +164,34 @@ static inline bool hasTimedOutAt(const hrt_abstime now, const hrt_abstime ts, co
 static inline bool hasTimedOut(const hrt_abstime ts, const hrt_abstime timeout_us)
 {
 	return hasTimedOutAt(nowUs(), ts, timeout_us);
+}
+
+// Clock-sync jitter can stamp an external sample slightly after now: treat it as current, like the
+// OOSM fast path. Returns false for samples too far in the future to trust.
+static inline bool alignFutureSampleTime(hrt_abstime &ts, const hrt_abstime now)
+{
+	if (ts > now) {
+		if ((ts - now) >= kOosmMinTimeUs) {
+			return false;
+		}
+
+		ts = now;
+	}
+
+	return true;
+}
+
+// Rate limit a warning to one per kWarnThrottleIntervalUs.
+inline bool shouldEmitWarning(hrt_abstime &last_warn)
+{
+	const hrt_abstime now = nowUs();
+
+	if ((last_warn == 0) || (now < last_warn) || ((now - last_warn) > kWarnThrottleIntervalUs)) {
+		last_warn = now;
+		return true;
+	}
+
+	return false;
 }
 
 constexpr inline int64_t signedTimeDiffUs(const hrt_abstime newer, const hrt_abstime older)

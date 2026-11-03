@@ -225,7 +225,9 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 	const SpecificEnergyRates specific_energy_rate{_updateOuterLoops(altitude_loop_setpoint, input, limit, param, flag)};
 
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rate)};
+	const SpecificEnergyRates pitch_specific_energy_rate{_calcPitchControlEnergyRates(setpoint, input, limit,
+			specific_energy_rate, param, flag, weight)};
+	ControlValues seb_rate{_calcPitchControlSebRate(weight, pitch_specific_energy_rate)};
 
 	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, param);
 
@@ -256,7 +258,7 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 	const SpecificEnergyRates specific_energy_rate{_updateOuterLoops(setpoint, input, limit, param, flag)};
 
-	_calcPitchControl(dt, input, specific_energy_rate, param, flag);
+	_calcPitchControl(dt, setpoint, input, limit, specific_energy_rate, param, flag);
 
 	_calcThrottleControl(dt, limit, specific_energy_rate, param, flag);
 }
@@ -355,18 +357,14 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 		return;
 	}
 
-	// this is the expected (something like standard) deviation from the airspeed setpoint that we allow the airspeed
-	// to vary in before ramping in underspeed mitigation
-	const float tas_error_bound = param.tas_error_percentage * param.equivalent_airspeed_trim;
+	// Underspeed starts at 1/3 stall + 2/3 min
+	const float tas_underspeed_starting = (param.tas_stall + 2.f * param.tas_min) / 3.f;
 
-	// this is the soft boundary where underspeed mitigation is ramped in
-	const float tas_underspeed_soft_bound = tas_error_bound;
+	// Underspeed complete halfway between stall and start, but limit ramp width to 2 m/s
+	const float tas_underspeed_complete = fmaxf(0.5f * (param.tas_stall + tas_underspeed_starting),
+					      tas_underspeed_starting - 2.0f);
 
-	const float tas_fully_undersped = math::max(param.tas_min - tas_error_bound - tas_underspeed_soft_bound, 0.0f);
-	const float tas_starting_to_underspeed = math::max(param.tas_min - tas_error_bound, tas_fully_undersped);
-
-	_ratio_undersped = 1.0f - math::constrain((input.tas - tas_fully_undersped) /
-			   math::max(tas_starting_to_underspeed - tas_fully_undersped, FLT_EPSILON), 0.0f, 1.0f);
+	_ratio_undersped = math::interpolate(input.tas, tas_underspeed_complete, tas_underspeed_starting, 1.0f, 0.0f);
 }
 
 TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(const Param &param, const Flag &flag)
@@ -392,11 +390,54 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 	return weight;
 }
 
-void TECSControl::_calcPitchControl(float dt, const Input &input, const SpecificEnergyRates &specific_energy_rates,
-				    const Param &param, const Flag &flag)
+float TECSControl::_calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, const Input &input,
+		const STERateLimit &limit, const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const
+{
+	// Trading altitude for speed with pitch is only wanted up to trim airspeed. Above trim, accelerating is left to
+	// the throttle loop: if it saturates, the vehicle settles at a lower airspeed instead of below the altitude setpoint.
+	// The airspeed setpoint seen by the pitch loop is therefore capped at max(trim, current airspeed). Between trim
+	// and the setpoint the pitch loop holds altitude, while an overspeed above the setpoint is still corrected.
+	// With a speed weight of 2 (speed priority, e.g. gliders, fast descend or underspeed) pitch is the only way to
+	// track the setpoint, so the cap is faded out as the weight goes from 1 to 2.
+	const float tas_setpoint_capped = min(setpoint.tas_setpoint, max(param.tas_trim, input.tas));
+
+	Setpoint pitch_control_setpoint{setpoint};
+	pitch_control_setpoint.tas_setpoint = lerp(tas_setpoint_capped, setpoint.tas_setpoint,
+					      constrain(weight.ske_weighting - 1.f, 0.f, 1.f));
+
+	// d/dt(0.5 V^2) = V * dV/dt: the measured airspeed, not the setpoint, keeps the airspeed loop linear
+	return input.tas * _calcAirspeedControlOutput(pitch_control_setpoint, input, limit, param, flag);
+}
+
+TECSControl::SpecificEnergyRates TECSControl::_calcPitchControlEnergyRates(const Setpoint &setpoint,
+		const Input &input, const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates,
+		const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const
+{
+	SpecificEnergyRates pitch_specific_energy_rates{specific_energy_rates};
+	pitch_specific_energy_rates.ske_rate.setpoint = _calcPitchControlSkeRateSetpoint(setpoint, input, limit, param, flag,
+			weight);
+
+	// Between trim airspeed and the airspeed setpoint the throttle alone accelerates the vehicle. The capped setpoint
+	// above already removes the kinetic setpoint of the pitch loop there, faded in with speed priority. But the
+	// throttle's acceleration would still show up in the kinetic energy rate estimate, and the pitch loop would pitch
+	// up to turn it into height. Remove the estimate from the pitch loop in this band as well, with the same fade, so
+	// that pitch controls height only. The setpoint must not be scaled again, or it would be faded twice.
+	const bool throttle_accelerates = input.tas > param.tas_trim && input.tas < setpoint.tas_setpoint;
+	const float kinetic_estimate_gain = throttle_accelerates ? constrain(weight.ske_weighting - 1.f, 0.f, 1.f) : 1.f;
+	pitch_specific_energy_rates.ske_rate.estimate *= kinetic_estimate_gain;
+
+	return pitch_specific_energy_rates;
+}
+
+void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+				    const SpecificEnergyRates &specific_energy_rates, const Param &param, const Flag &flag)
 {
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rates)};
+
+	const SpecificEnergyRates pitch_specific_energy_rates{_calcPitchControlEnergyRates(setpoint, input, limit,
+			specific_energy_rates, param, flag, weight)};
+
+	ControlValues seb_rate{_calcPitchControlSebRate(weight, pitch_specific_energy_rates)};
 
 	_calcPitchControlUpdate(dt, input, seb_rate, param);
 	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, param)};
@@ -663,7 +704,9 @@ void TECS::initControlParams(const Input &input)
 	_reference_param.target_sinkrate = input.target_sinkrate;
 	// Control
 	_control_param.tas_min = input.eas_to_tas * _equivalent_airspeed_min;
+	_control_param.tas_stall = input.eas_to_tas * _equivalent_airspeed_stall;
 	_control_param.tas_max = input.eas_to_tas * _equivalent_airspeed_max;
+	_control_param.tas_trim = input.eas_to_tas * _control_param.equivalent_airspeed_trim;
 	_control_param.pitch_max = input.pitch_max;
 	_control_param.pitch_min = input.pitch_min;
 	_control_param.throttle_trim = input.throttle_trim;
@@ -740,6 +783,14 @@ void TECS::update(const Input &input)
 		// Update Reference model submodule
 		if (fastDescendFullyEngaged(_fast_descend)) {
 			// Reset the altitude reference model, while we are in fast descend.
+			const TECSAltitudeReferenceModel::AltitudeReferenceState init_state{
+				.alt = input.altitude,
+				.alt_rate = input.altitude_rate};
+			_altitude_reference_model.initialize(init_state);
+
+		} else if (_control.getUnderspeedRatio() > 0.5f) {
+			// Reset altitude reference during underspeed to prevent altitude error accumulation
+			// that would cause aggressive pitch-up (and potential secondary stall) on recovery.
 			const TECSAltitudeReferenceModel::AltitudeReferenceState init_state{
 				.alt = input.altitude,
 				.alt_rate = input.altitude_rate};

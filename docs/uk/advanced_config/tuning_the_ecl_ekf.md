@@ -295,27 +295,24 @@ Weightings applied by the GSF to the individual 3-state EKF outputs are in the`w
 
 #### Подвійні приймачі
 
-Дані з приймачів GPS можуть бути змішані за допомогою алгоритму, який вагує дані на основі звітної точності (це працює найкраще, якщо обидва приймачі виводять дані з однаковою частотою та використовують однакову точність).
-Механізм також забезпечує автоматичний перехід на резервний варіант, якщо дані від приймача втрачаються (це дозволяє, наприклад, використовувати стандартний GPS як резервний варіант для більш точного приймача RTK).
-This is controlled by the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter.
+When two GPS receivers are connected, PX4 uses the data from one of them at a time, and automatically fails over to the other if the selected receiver is lost or its fix degrades (this allows, for example, a standard GPS to be used as a backup to a more accurate RTK receiver).
 
-The [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set by default to disable blending and always use the first receiver, so it will have to be set to select which receiver accuracy metrics are used to decide how much each receiver output contributes to the blended solution.
-Where different receiver models are used, it is important that the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set to a value that uses accuracy metrics that are supported by both receivers.
-For example do not set bit position 0 to `true` unless the drivers for both receivers publish values in the `speed_accuracy` field of the `sensor_gnss` message that are comparable.
-Це може бути складним з приймачами від різних виробників через різний спосіб визначення точності, наприклад, CEP проти 1-сигма і т.д.
+The receiver is selected as follows:
+
+- The preferred receiver, set by [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME), is used while it is publishing data and has at least a 3D fix.
+  By default this is the main serial GPS.
+- Otherwise the receiver with the best fix type is used, and if both have the same fix type, the one using the most satellites.
+- Set [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) to `-1` to give both receivers equal priority, so that the best one is always used.
+- A receiver that has not published data for 2 seconds is not used.
+
+The EKF resets its horizontal position to the new receiver when the selected receiver changes.
 
 Наступні елементи слід перевірити під час налаштування:
 
 - Перевірте, що дані для другого приймача присутні.
   This will be logged as `sensor_gnss_1` and can also be checked when connected via the _nsh console_ using the command `listener sensor_gnss -i 1`.
   Параметр [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) повинен бути встановлений правильно.
-- Check the `speed_accuracy`, `eph` and `epv` data from each receiver and decide which accuracy metrics can be used.
-  If both receivers output sensible `speed_accuracy` and `eph` data, and GPS vertical position is not being used directly for navigation, then setting [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 3 is recommended.
-  Where only `eph` data is available and both receivers do not output `speed_accuracy` data, set [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 2.
-  Позиція біта 2 буде встановлена, лише якщо GPS було вибрано як джерело опорної висоти за допомогою параметра [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) і обидва приймачі видають чутливі дані `epv`.
-- The output from the blended receiver data is logged as `vehicle_gnss`, and can be checked whilst connect via the nsh terminal using the command `listener vehicle_gnss`.
-- У випадку, якщо приймачі видають дані на різних швидкостях, вихідне змішане значення буде відповідати швидкості повільнішого приймача.
-  Де це можливо, приймачі повинні бути налаштовані на видачу даних з однаковою швидкістю.
+- The data from the selected receiver is logged as `vehicle_gnss`, and can be checked whilst connected via the nsh terminal using the command `listener vehicle_gnss`.
 
 #### Вимоги до продуктивності GNSS
 

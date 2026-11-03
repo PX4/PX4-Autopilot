@@ -175,6 +175,30 @@ $$\dot{B} = \frac{\dot{B_s}}{g V_T} \approx \gamma - \frac{\dot{V_T}}{g}$$
 TECS computes the energy rates in their specific form (m²/s³).
 It only converts the energy balance rate to its normalised form, an equivalent flight path angle, when forming the pitch setpoint.
 
+#### Speed and Altitude Weighting
+
+[FW_T_SPDWEIGHT](../advanced_config/parameter_reference.md#FW_T_SPDWEIGHT) sets how the pitch loop weights speed errors against height errors in the energy balance.
+A value of 0 controls height only, which is also used when flying without an airspeed sensor.
+A value of 2 controls speed only, which is intended for gliders.
+The default of 1 weights both equally.
+
+Pitch only trades altitude for speed up to the trim airspeed ([FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)): accelerating beyond trim is the throttle's job.
+With an airspeed setpoint above trim, what the pitch loop does therefore depends on the measured airspeed:
+
+![Pitch and throttle roles along the measured airspeed: below trim, pitch trades height for speed aiming for trim; between trim and the airspeed setpoint, pitch holds height only and the throttle accelerates; above the setpoint, pitch trades speed for height and the throttle is reduced](../../assets/diagrams/tecs_speed_regions.svg)
+
+- Below trim, pitch trades height for speed, but only aims for trim airspeed.
+- Between trim and the setpoint, pitch ignores airspeed and holds height only.
+  It neither descends to gain speed nor pitches up to turn the throttle's acceleration into height.
+  If the throttle saturates at [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX), the vehicle holds its altitude and settles at a lower airspeed than commanded.
+- Above the setpoint, pitch trades speed for height to correct the overspeed.
+
+With an airspeed setpoint at or below trim there is no middle region, and pitch and throttle share speed control as weighted by `FW_T_SPDWEIGHT`.
+
+These regions apply up to a speed weight of 1 and are faded out as the speed weight goes from 1 to 2, so with a weight of 2 pitch alone tracks the full airspeed setpoint.
+Gliders, which have no throttle to accelerate with, should therefore use `FW_T_SPDWEIGHT` = 2.
+The speed weight is also raised towards 2 automatically during underspeed recovery and fast descend, which therefore still use pitch to reach their airspeed setpoint.
+
 ## Fixed-Wing Attitude Controller
 
 ### Setpoint modificaiton

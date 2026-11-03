@@ -73,6 +73,7 @@ struct SendSubscription {
 	UcdrSerializeMethod ucdr_serialize_method;
 	uint64_t publish_interval_ms;
 	uint8_t orb_instance;
+	bool too_large_reported{false};
 };
 
 // Subscribers for messages to send
@@ -92,7 +93,9 @@ struct SendTopicsSubs {
 @[    end for]@
 	};
 
-	px4_pollfd_struct_t fds[@(len(publications))] {};
+	// One entry per publication, plus a trailing slot the client uses for the
+	// transport fd, so it can wait on uORB updates and incoming agent data together.
+	px4_pollfd_struct_t fds[@(len(publications)) + 1] {};
 
 	uint32_t num_payload_sent{};
 
@@ -173,8 +176,11 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 						needs_flush = true;
 						num_payload_sent += topic_size;
 
-					} else {
-						//PX4_ERR("Error uxr_prepare_output_stream UXR_INVALID_REQUEST_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
+					} else if (!send_subscriptions[idx].too_large_reported) {
+						// sample is larger than the stream (report only once)
+						PX4_ERR("%s (%" PRIu32 " B) does not fit into the best-effort stream",
+							send_subscriptions[idx].orb_meta->o_name, topic_size);
+						send_subscriptions[idx].too_large_reported = true;
 					}
 
 				} else {
