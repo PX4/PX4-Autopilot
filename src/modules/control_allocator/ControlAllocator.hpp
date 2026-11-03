@@ -230,6 +230,8 @@ private:
 	uint16_t _handled_motor_failure_bitmask{0};
 	uint16_t _motor_stop_mask{0};
 
+	uint8_t _controllable_axes{0}; ///< axes the effectiveness matrices can control independently, bit (1 << ControlAxis)
+
 	// Motor-failure recovery: the geometric-opposite motor is made reversible at runtime to recover
 	// control authority after a motor failure.
 	uint16_t _runtime_reversible_bitmask{0}; // motors made reversible at runtime because of failure event
