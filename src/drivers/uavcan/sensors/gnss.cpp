@@ -628,7 +628,8 @@ void UavcanGnssBridge::drainRtcmCorrections()
 
 		have_msg = false;
 		num_injections++;
-		PublishRTCMStream(msg.data, msg.len);
+		// uXRCE-DDS passes the publisher's len through unchecked
+		PublishRTCMStream(msg.data, math::min<size_t>(msg.len, sizeof(msg.data)));
 		_rtcm_injection_rate_message_count++;
 		_last_rtcm_injection_time = hrt_absolute_time();
 	}
