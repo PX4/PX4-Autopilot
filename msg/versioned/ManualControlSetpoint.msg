@@ -10,7 +10,7 @@
 #
 # The message includes fields for the roll, pitch, yaw, throttle and flaps, along with auxiliary channels and button states.
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp                        # time since system start (microseconds)
 uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
@@ -27,7 +27,7 @@ uint8 SOURCE_MAVLINK_4 = 6		# mavlink instance 4
 uint8 SOURCE_MAVLINK_5 = 7		# mavlink instance 5
 
 uint8 data_source
-uint8 source_system_id  # [@invalid 0] MAVLink system ID of the manual control source
+uint32 source_system_id # [@invalid 0] MAVLink system ID of the manual control source
 uint8 source_component_id # [@invalid 0] MAVLink component ID of the manual control source
 
 # Any of the channels may not be available and be set to NaN

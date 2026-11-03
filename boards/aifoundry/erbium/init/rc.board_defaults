@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# AIFoundry Erbium specific board defaults
+#------------------------------------------------------------------------------
+
+# No power supply monitoring
+param set-default CBRK_SUPPLY_CHK 894281
+
+# The board has no sensor or actuator drivers yet: run the SIH quadcopter so
+# that the flight stack runs end to end.
+param set-default SYS_AUTOSTART 1100

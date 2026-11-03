@@ -166,8 +166,10 @@ void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y,
 void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 {
 	// rotate all raw samples and publish fifo
-	for (int n = 0; n < sample.samples; n++) {
-		rotate_3i(_rotation, sample.x[n], sample.y[n], sample.z[n]);
+	if (_rotation != ROTATION_NONE) {
+		for (int n = 0; n < sample.samples; n++) {
+			rotate_3i(_rotation, sample.x[n], sample.y[n], sample.z[n]);
+		}
 	}
 
 	sample.device_id = _device_id;

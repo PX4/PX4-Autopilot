@@ -35,6 +35,9 @@ px4_add_library(pure_pursuit
 	PurePursuit.cpp
 	PurePursuit.hpp
 )
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/purepursuit_params.yaml)
+# The library is only linked by the rover modules, so its parameters are only needed with them
+if(CONFIG_MODULES_ROVER_ACKERMANN OR CONFIG_MODULES_ROVER_DIFFERENTIAL OR CONFIG_MODULES_ROVER_MECANUM OR BUILD_TESTING)
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/purepursuit_params.yaml)
+endif()
 
 px4_add_unit_gtest(SRC PurePursuitTest.cpp LINKLIBS pure_pursuit)

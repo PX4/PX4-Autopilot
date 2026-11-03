@@ -293,6 +293,11 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			# remove bootloader from extras
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
+	elseif(${extra_file_base_name} MATCHES "_io-v[0-9]+_default\\.bin$")
+		# px4io firmware: only the px4io driver can use it
+		if(NOT CONFIG_DRIVERS_PX4IO)
+			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
+		endif()
 	endif()
 endforeach()
 

@@ -127,11 +127,6 @@ protected:
 	const char 	*_item_name;
 	uint32_t	_run_count{0};
 
-	// True while a WorkQueue worker is inside Run() for this item.
-	// Set before Run(), cleared after. Used by Deinit to wait out any
-	// in-flight Run() before the owning object's memory can be reused.
-	px4::atomic_bool	_run_in_progress{false};
-
 private:
 
 	WorkQueue	*_wq{nullptr};

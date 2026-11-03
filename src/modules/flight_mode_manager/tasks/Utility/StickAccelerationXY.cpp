@@ -192,16 +192,18 @@ Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const flo
 
 void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
 {
-	// fetch the tilt limit which is lower than the maximum during takeoff
-	takeoff_status_s takeoff_status{};
-	_takeoff_status_sub.copy(&takeoff_status);
+	// fetch the tilt limit which is lower than the maximum during takeoff, it is published on change
+	takeoff_status_s takeoff_status;
+
+	if (_takeoff_status_sub.update(&takeoff_status)) {
+		_acceleration_tilt_max = tanf(takeoff_status.tilt_limit) * CONSTANTS_ONE_G;
+	}
 
 	// Check if acceleration would exceed the tilt limit
 	const float acc = acceleration.length();
-	const float acc_tilt_max = tanf(takeoff_status.tilt_limit) * CONSTANTS_ONE_G;
 
-	if (acc > acc_tilt_max) {
-		acceleration *= acc_tilt_max / acc;
+	if (acc > _acceleration_tilt_max) {
+		acceleration *= _acceleration_tilt_max / acc;
 	}
 }
 

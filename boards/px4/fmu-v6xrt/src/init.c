@@ -235,7 +235,7 @@ static const struct flexspi_nor_config_s *imxrt_octl_flash_select(void)
 	return &g_flash_fast_config;
 }
 
-locate_code(".ramfunc")
+locate_code(".ramfunc") __attribute__((noinline))
 void imxrt_octl_flash_initialize(void)
 {
 	const uint32_t instance =  1;
@@ -486,7 +486,7 @@ static void imxrt_flexspi_dll_calibrate(struct flexspi_type_s *flexspi)
 	up_irq_restore(flags);
 }
 
-locate_code(".ramfunc")
+locate_code(".ramfunc") __attribute__((noinline))
 void imxrt_flash_setup_prefetch_partition(void)
 {
 	struct flexspi_type_s *flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;

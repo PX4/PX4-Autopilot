@@ -69,7 +69,7 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(GPS, WRONG));
 	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));   // detected motor failure
 	EXPECT_TRUE(FailureTable::isSupported(MOTOR, WRONG)); // undetected motor failure
-	EXPECT_FALSE(FailureTable::isSupported(MOTOR, STUCK)); // nothing to freeze on an actuator
+	EXPECT_TRUE(FailureTable::isSupported(MOTOR, STUCK)); // rotor stuck, ESC healthy
 	EXPECT_TRUE(FailureTable::isSupported(ESC, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(ESC, WRONG));   // ESC: offline or wrong telemetry
 	EXPECT_FALSE(FailureTable::isSupported(ESC, STUCK));   // no frozen-telemetry (stuck) support
@@ -78,6 +78,10 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, WRONG));
+	// VIO supports OFF/STUCK (STUCK replays the last odometry sample), but not WRONG.
+	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, WRONG));
 	// Traffic avoidance supports OFF (blind)
 	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OK));
 	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OFF));

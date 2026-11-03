@@ -83,7 +83,6 @@ In order to use the ARK RTK GPS, connect it to the Pixhawk CAN bus and enable th
 You need to set necessary [DroneCAN](index.md) parameters and define offsets if the sensor is not centred within the vehicle:
 
 - Enable GPS yaw fusion by setting bit 3 of [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to true.
-- Enable GPS blending to ensure the heading is always published by setting [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 7 (all three bits checked).
 - If using [Moving Baseline & GPS Heading](#setting-up-moving-baseline-gps-heading), set [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) to the CAN node ID of the _Moving Base_ module. The moving base is preferred because the rover receiver in a moving baseline configuration can experience degraded navigation rate and increased data latency when corrections are intermittent.
 - Enable [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS), [UAVCAN_SUB_MAG](../advanced_config/parameter_reference.md#UAVCAN_SUB_MAG), and [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO).
 - The parameters [SENS_GNSS0_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS0_OFFY](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFY) and [SENS_GNSS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFZ) can be set to account for the offset of the ARK RTK GPS from the vehicles centre of gravity.

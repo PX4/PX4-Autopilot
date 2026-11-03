@@ -152,6 +152,10 @@ typedef struct {
 #define SCHED_PRIORITY_PARAMS			(SCHED_PRIORITY_DEFAULT - 15)
 //      SCHED_PRIORITY_IDLE
 
+// Vectornav should run at a high priority, but not max where it can clobber other modules
+// after repeated calls to a failed init()
+#define SCHED_PRIORITY_VECTORNAV_DRIVER		(PX4_WQ_HP_BASE - 20)
+
 typedef int (*px4_main_t)(int argc, char *argv[]);
 
 __BEGIN_DECLS

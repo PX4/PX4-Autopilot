@@ -115,7 +115,7 @@ The behaviour is fairly complex because it depends on the flight mode, and wheth
 :::
 
 :::warning
-This return type does have [geofence awareness](#geofence_awareness) (at any stage).
+This return type does not have [geofence awareness](#geofence_awareness) (at any stage).
 :::
 
 Mission _with_ landing pattern:
@@ -255,8 +255,10 @@ The figures below show an exclusion zone and an inclusion zone.
 
 ### Geofence Limitations
 
-- Geofence awareness currently supports a maximum of 99 polygon vertices in total (circles count as 8 vertices each).
-  If this limit is exceeded, the autopilot falls back to a direct path as described above.
+- The size of geofence that can be handled is limited by [GF_AVOID_NODES](../advanced_config/parameter_reference.md#GF_AVOID_NODES) (default 100, maximum 200, reboot required).
+  Each circle counts as 8 nodes, and each polygon counts as its number of vertices plus extra nodes for sharp corners.
+  If the geofence needs more nodes than configured, the autopilot falls back to a direct path as described above.
+  Setting the parameter to 0 disables geofence awareness in Return entirely.
 - The autopilot does not check at upload time whether every part of the allowed area is still reachable once the [safety margin](#shortest-path-calculation) has been applied.
   A region can be "cut off" by the margin — for example where several exclusion zones overlap — without any error being reported when the geofence is uploaded.
   The error is only reported when a return is triggered and no feasible path can be found, at which point the vehicle falls back to flying directly to the destination.
@@ -266,6 +268,14 @@ The figures below show an exclusion zone and an inclusion zone.
 - The safety margin in the [Shortest-path Calculation](#shortest-path-calculation) above may not be appropriate for all vehicles.
   It is derived from [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD) for fixed-wing and VTOL vehicles, and from twice [NAV_ACC_RAD](../advanced_config/parameter_reference.md#NAV_ACC_RAD) for multicopters.
   It is not directly configurable.
+
+### Geofence Awareness Messages
+
+The following messages are reported to the ground station and stored in the flight log, and can help you understand how a return was flown:
+
+- `Return: avoiding geofence` (info): The return started on a geofence-aware path.
+- `Return: no geofence avoidance path; flying directly` (critical): The return started, but no feasible geofence-aware path was found, so the vehicle flies directly to the destination.
+- `Geofence too large for Return avoidance (needs N of M nodes), Return will fly directly` (warning): Reported when the geofence is uploaded or the safety margin changes, if the geofence needs more nodes than [GF_AVOID_NODES](../advanced_config/parameter_reference.md#GF_AVOID_NODES) allows.
 
 ## 悬停/降落在目的地
 

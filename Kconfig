@@ -138,6 +138,15 @@ config BOARD_ETHERNET
     help
         flag to indicate that ethernet is enabled
 
+config BOARD_HAS_RID_EEPROM
+    bool "Remote ID identity EEPROM"
+    default n
+    depends on PLATFORM_NUTTX && SYSTEMCMDS_MTD
+    help
+        Enable persistent Open Drone ID Basic ID storage on boards with
+        an MTD_ID EEPROM partition. Includes the ODID_BID_SRC parameter
+        and the MAVLink/DroneCAN locked identity paths.
+
 config BOARD_CRYPTO
     bool "Crypto support"
     help

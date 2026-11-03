@@ -175,13 +175,108 @@ INSTANTIATE_TEST_SUITE_P(Paths, GeofencePathTest, ::testing::Values(
 	return test_info.param.name;
 });
 
+struct LoiterFenceCase {
+	const char *name;
+	bool circle_fence;
+	bool inclusion;
+};
+
+class GeofenceLoiterTest : public navigator_test::GeofenceTestBase,
+	public ::testing::WithParamInterface<LoiterFenceCase>
+{
+public:
+	GeofenceLoiterTest() : GeofenceTestBase(0.0, 0.0) {}
+
+protected:
+	void SetUp() override { ASSERT_TRUE(resetFence()); }
+};
+
+TEST_P(GeofenceLoiterTest, ChecksCircleClearanceInMixedBatch)
+{
+	const LoiterFenceCase &test = GetParam();
+	FencePoints points;
+
+	// Each fence has its nearest boundary 75 m from the circle centre at Home.
+	if (test.circle_fence) {
+		points = circle(test.inclusion, {0.f, test.inclusion ? -25.f : 100.f}, test.inclusion ? 100.f : 25.f);
+
+	} else if (test.inclusion) {
+		points = polygon(true, {{-75.f, -75.f}, {75.f, -75.f}, {75.f, 75.f}, {-75.f, 75.f}});
+
+	} else {
+		points = polygon(false, {{-25.f, 75.f}, {25.f, 75.f}, {25.f, 125.f}, {-25.f, 125.f}});
+	}
+
+	ASSERT_TRUE(loadFence(points));
+	const auto center = position(0.f, 0.f);
+	// Check a point, a clear circle, boundary contact, a circle that encloses the entire exclusion and an infinite one.
+	const Geofence::PathCheck paths[] {{center, center}, {center, center, 50.f}, {center, center, 75.f}, {center, center, 150.f},
+		{center, center, INFINITY}
+	};
+	bool clear[5] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 5, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_TRUE(clear[1]);
+	EXPECT_FALSE(clear[2]);
+	EXPECT_FALSE(clear[3]);
+	EXPECT_FALSE(clear[4]);
+}
+
+INSTANTIATE_TEST_SUITE_P(LoiterFences, GeofenceLoiterTest, ::testing::Values(
+				 LoiterFenceCase{"InclusionPolygon", false, true},
+				 LoiterFenceCase{"ExclusionPolygon", false, false},
+				 LoiterFenceCase{"InclusionCircle", true, true},
+				 LoiterFenceCase{"ExclusionCircle", true, false}),
+			 [](const ::testing::TestParamInfo<LoiterFenceCase> &test_info)
+{
+	return test_info.param.name;
+});
+
+TEST_F(GeofenceTest, CircleClearanceUsesMetresAtItsLatitude)
+{
+	// At 47 degrees latitude, the short east/west clearance needs longitude scaling.
+	ASSERT_TRUE(loadFence(polygon(true, {{-1000.f, -100.f}, {1000.f, -100.f}, {1000.f, 100.f}, {-1000.f, 100.f}})));
+	const auto center = position(0.f, 0.f);
+	const Geofence::PathCheck paths[] {{center, center, 90.f}, {center, center, 110.f}};
+	bool clear[2] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+}
+
+struct InvalidRadiusCase {
+	const char *name;
+	float radius;
+};
+
+class InvalidGeofenceRadiusTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidRadiusCase> {};
+
+TEST_P(InvalidGeofenceRadiusTest, RejectsWholeBatch)
+{
+	ASSERT_TRUE(loadFence({}));
+	Geofence::PathCheck paths[] {path({0.f, 0.f}, {100.f, 0.f}), path({100.f, 0.f}, {100.f, 0.f})};
+	paths[1].end_radius = GetParam().radius;
+	bool clear[2] {true, true};
+	EXPECT_FALSE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_FALSE(clear[0]);
+	EXPECT_FALSE(clear[1]);
+}
+
+INSTANTIATE_TEST_SUITE_P(InvalidRadii, InvalidGeofenceRadiusTest, ::testing::Values(
+				 InvalidRadiusCase{"Negative", -1.f},
+				 InvalidRadiusCase{"NaN", NAN}),
+			 [](const ::testing::TestParamInfo<InvalidRadiusCase> &test_info)
+{
+	return test_info.param.name;
+});
+
 TEST_F(GeofenceTest, FullBatchMatchesIndividualChecks)
 {
-	ASSERT_TRUE(loadFence(exclusionSquare()));
+	ASSERT_TRUE(loadFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX)));
 	std::array<Geofence::PathCheck, Geofence::MAX_PATH_CHECKS> paths;
 	std::array<bool, Geofence::MAX_PATH_CHECKS> clear{};
 
-	// Alternate between crossing the square and passing 10 m north of it.
+	// Alternate between crossing the full-size polygon and passing 10 m north of it.
 	for (size_t i = 0; i < paths.size(); ++i) {
 		const float north = i % 2 == 0 ? 0.f : 60.f;
 		paths[i] = path({north, 100.f}, {north, 500.f});
@@ -275,6 +370,17 @@ TEST_P(GeofenceFileTest, ImportedFenceAndSubsequentRefreshBecomeReady)
 	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
 	EXPECT_TRUE(clear[0]);
 	EXPECT_FALSE(clear[1]);
+
+	// Importing identical contents preserves the fence ID but switches the storage bank.
+	ASSERT_EQ(_fence.loadFromFile(_filename), PX4_OK);
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_FENCE_POINTS_STATE, 0,
+					     reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+	EXPECT_EQ(stats.opaque_id, _fence_id);
+	EXPECT_EQ(stats.dataman_id, GetParam());
+	ASSERT_TRUE(waitForFence());
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_FALSE(clear[1]);
 }
 
 INSTANTIATE_TEST_SUITE_P(StoredBanks, GeofenceFileTest,
@@ -364,10 +470,10 @@ TEST_F(GeofenceTest, ReadFailureIsRetriedUntilPathChecksRecover)
 	// The previous fence keeps serving point checks until the retry replaces it.
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
-	EXPECT_TRUE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_TRUE(_fence.isFenceUpdatePending());
 	GeofenceTestPeer::expireRetryDelay(_fence);
 	ASSERT_TRUE(waitForFence());
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
 	EXPECT_TRUE(clear);
 	EXPECT_TRUE(logContains("Geofence loaded, fence is active"));
@@ -386,7 +492,7 @@ TEST_F(GeofenceTest, RepeatedReadFailuresStopRetrying)
 	}
 
 	// The retry budget is spent: nothing is pending and no read is issued.
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_FALSE(failFenceMetadataRead());
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
@@ -413,29 +519,10 @@ struct InvalidFenceCase {
 
 class InvalidGeofenceBatchTest : public GeofenceTest, public ::testing::WithParamInterface<InvalidFenceCase> {};
 
-TEST_P(InvalidGeofenceBatchTest, RejectsWholeBatch)
+TEST_F(GeofenceTest, PolygonVertexCountExceedingCacheRejectsBatch)
 {
-	FencePoints points = exclusionSquare();
-	ASSERT_TRUE(loadFence(points));
-
-	if (GetParam().fault == InvalidFenceData::VertexCount) {
-		GeofenceTestPeer::setVertexCount(_fence, 5);
-
-	} else {
-		mission_fence_point_s &point = points.back();
-
-		if (GetParam().fault == InvalidFenceData::Longitude) {
-			point.lon = NAN;
-
-		} else if (GetParam().fault == InvalidFenceData::Frame) {
-			point.frame = NAV_FRAME_LOCAL_NED;
-
-		} else {
-			point.nav_cmd = NAV_CMD_WAYPOINT;
-		}
-
-		ASSERT_TRUE(GeofenceTestPeer::replaceCachedPoint(_fence, points.size() - 1, point));
-	}
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	GeofenceTestPeer::setVertexCount(_fence, 5);
 
 	const Geofence::PathCheck paths[] {path({100.f, 100.f}, {100.f, 500.f}), path({0.f, 100.f}, {0.f, 500.f})};
 	bool clear[2] {true, true};
@@ -617,7 +704,7 @@ TEST_F(GeofenceTest, FailedVertexReadClearsTheFenceUntilStorageRecovers)
 	// cache slot and the load fails after the vertices were requested.
 	ASSERT_TRUE(loadFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX), geofence_status_s::GF_STATUS_FAILED, 1));
 	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_TRUE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_TRUE(_fence.isFenceUpdatePending());
 	// A fragment is never kept, so point checks fail open while the retries run.
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_TRUE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
@@ -630,7 +717,7 @@ TEST_F(GeofenceTest, FailedVertexReadClearsTheFenceUntilStorageRecovers)
 		ASSERT_TRUE(waitForFence(geofence_status_s::GF_STATUS_FAILED));
 	}
 
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_FALSE(logContains("fence is not active"));
 	// Repairing the stored fence and asking again recovers.
 	ASSERT_TRUE(loadFence(exclusionSquare()));
@@ -651,7 +738,7 @@ TEST_F(GeofenceTest, InactiveFenceIsReportedEvenIfARetryRecovers)
 	GeofenceTestPeer::expireRetryDelay(_fence);
 	ASSERT_TRUE(waitForFence());
 	EXPECT_TRUE(logContains("Geofence loaded, fence is active"));
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	const auto inside_exclusion = position(0.f, 300.f);
 	EXPECT_FALSE(_fence.checkPointAgainstAllGeofences(inside_exclusion(0), inside_exclusion(1), 500.f));
 }
@@ -674,7 +761,7 @@ TEST_F(GeofenceTest, RetryThatDropsThePreviousFenceIsReported)
 TEST_F(GeofenceTest, UnreadableMetadataWithoutFenceIsReportedBeforeRetrying)
 {
 	ASSERT_TRUE(failFenceMetadataRead());
-	EXPECT_TRUE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_TRUE(_fence.isFenceUpdatePending());
 	EXPECT_TRUE(logContains("Geofence load failed, fence is not active"));
 }
 
@@ -688,7 +775,7 @@ TEST_F(GeofenceTest, ReadFailureWithEmptyFenceIsReportedAsInactive)
 	GeofenceTestPeer::expireRetryDelay(_fence);
 	ASSERT_TRUE(waitForFence());
 	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_TRUE(logContains("Geofence loaded, no fence configured"));
 }
 
@@ -703,7 +790,7 @@ TEST_F(GeofenceTest, RecoveryWithEmptyFenceDoesNotClaimProtection)
 	GeofenceTestPeer::expireRetryDelay(_fence);
 	ASSERT_TRUE(waitForFence());
 	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_TRUE(logContains("Geofence loaded, no fence configured"));
 }
 
@@ -767,7 +854,7 @@ TEST_P(InvalidGeofenceLoadTest, RejectsFenceWhenLoading)
 
 	ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
 	// Invalid data is reported once, not retried, and leaves no fence behind.
-	EXPECT_FALSE(GeofenceTestPeer::isUpdatePending(_fence));
+	EXPECT_FALSE(_fence.isFenceUpdatePending());
 	EXPECT_TRUE(_fence.isEmpty());
 	EXPECT_TRUE(logContains("invalid, fence is not active"));
 	const Geofence::PathCheck query = path({0.f, 100.f}, {0.f, 500.f});
@@ -866,6 +953,61 @@ TEST_F(AntimeridianGeofenceTest, ShortPathsMayCrossTheAntimeridian)
 		EXPECT_EQ(clear[0], test.clear);
 		EXPECT_EQ(clear[1], test.clear);
 	}
+}
+
+TEST_F(AntimeridianGeofenceTest, LoiterRadiusCrossesTheAntimeridian)
+{
+	for (double side : {-1.0, 1.0}) {
+		SCOPED_TRACE(side);
+		const matrix::Vector2d center{47.0, side * 179.999};
+		const Geofence::PathCheck paths[] {{center, center, 90.f}, {center, center, 120.f}};
+		// The nearest edge across the antimeridian is about 99 m from the centre.
+		ASSERT_TRUE(loadFence(exclusionAt(47.0, -side * 179.9995)));
+		ASSERT_TRUE(_fence.checkPointAgainstAllGeofences(center(0), center(1), 500.f));
+		bool clear[2] {};
+		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_TRUE(clear[0]);
+		EXPECT_FALSE(clear[1]);
+
+		// Shift both edge vertices together: independently wrapping them can turn this
+		// distant edge across the centre's antipodal longitude into a nearby edge.
+		ASSERT_TRUE(loadFence(exclusionAt(47.0, -side * 0.001)));
+		ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+		EXPECT_TRUE(clear[0]);
+		EXPECT_TRUE(clear[1]);
+	}
+}
+
+class HighLatitudeGeofenceTest : public GeofenceTest
+{
+protected:
+	HighLatitudeGeofenceTest() : GeofenceTest(70.0, 10.0) {}
+};
+
+TEST_F(HighLatitudeGeofenceTest, LargeCircleTouchesThePolewardEdge)
+{
+	// The first edge is 9,998 m north-east of Home. A longitude scale fixed at 70 deg reads 10,006 m there.
+	const double vertices[3][2] {{70.02985, 10.26065}, {70.07391, 10.16934}, {70.12, 10.4}};
+	FencePoints points;
+
+	for (const auto &vertex : vertices) {
+		mission_fence_point_s point{};
+		point.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
+		point.frame = NAV_FRAME_GLOBAL;
+		point.lat = vertex[0];
+		point.lon = vertex[1];
+		point.vertex_count = 3;
+		points.push_back(point);
+	}
+
+	ASSERT_TRUE(loadFence(points));
+	const matrix::Vector2d center{70.0, 10.0};
+	ASSERT_TRUE(_fence.checkPointAgainstAllGeofences(center(0), center(1), 500.f));
+	const Geofence::PathCheck paths[] {{center, center, 9900.f}, {center, center, 10000.f}};
+	bool clear[2] {};
+	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
+	EXPECT_TRUE(clear[0]);
+	EXPECT_FALSE(clear[1]);
 }
 
 TEST_F(AntimeridianGeofenceTest, MultiPiecePathsMayCrossTheAntimeridian)

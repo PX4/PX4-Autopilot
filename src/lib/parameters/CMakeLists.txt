@@ -60,6 +60,11 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 	list(REMOVE_DUPLICATES module_config_files)
 endif()
 
+# Keep the opt-in identity parameter out of builds that scan all module YAMLs.
+if(NOT CONFIG_BOARD_HAS_RID_EEPROM)
+	list(REMOVE_ITEM module_config_files ${PX4_SOURCE_DIR}/src/lib/open_drone_id/odid_params.yaml)
+endif()
+
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
 set(generated_serial_params_file ${generated_params_dir}/serial_params.c)
 set(generated_module_params_file ${generated_params_dir}/module_params.c)
