@@ -1062,8 +1062,7 @@ TEST_F(FailsafeTest, RoverUnsupportedDescendToDisarm)
 TEST_F(FailsafeTest, FixedWingCannotRunFollowTargetOrOrbit)
 {
 	// Follow Target and Orbit only exist as multicopter flight tasks, and both clear
-	// flag_control_auto_enabled. On a fixed-wing that leaves no outer loop at all: fw_pos_control
-	// falls through to FW_POSCTRL_MODE_OTHER, TECS stops and the attitude setpoint freezes.
+	// flag_control_auto_enabled.
 	failsafe_flags_s fw_flags{};
 	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_FIXED_WING, fw_flags);
 	EXPECT_TRUE(fw_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET));
