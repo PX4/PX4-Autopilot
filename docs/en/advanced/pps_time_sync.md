@@ -57,10 +57,10 @@ param set PWM_MAIN_FUNC10 2064
 param set PPS_CAP_ENABLE 1
 ```
 
-#### Multi-GPS Setups
+#### Multi-GNSS Setups {#multi-gps-setups}
 
-If you have multiple GPS receivers, set `PPS_CAP_GPS_ID` to the device ID of the GPS receiver that emits the PPS signal.
-When set to `0` (default), the driver uses the first available GPS instance.
+If you have multiple GNSS receivers, set `PPS_CAP_GPS_ID` to the device ID of the GNSS receiver that emits the PPS signal.
+When set to `0` (default), the driver uses the first available GNSS instance.
 
 You can find the device ID by running:
 

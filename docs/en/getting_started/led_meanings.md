@@ -11,22 +11,22 @@
 ## UI LED
 
 The RGB _UI LED_ indicates the current _readiness for flight_ status of the vehicle.
-This is typically a superbright I2C peripheral, which may or may not be mounted on the flight controller board (i.e. FMUv4 does not have one on board, and typically uses an LED mounted on the GPS).
+This is typically a superbright I2C peripheral, which may or may not be mounted on the flight controller board (i.e. FMUv4 does not have one on board, and typically uses an LED mounted on the GNSS receiver).
 
 The image below shows the relationship between LED and vehicle status.
 
 :::warning
-It is possible to have a GPS lock (Green LED) and still not be able to arm the vehicle because PX4 has not yet [passed preflight checks](../flying/pre_flight_checks.md). **A valid global position estimate is required to takeoff!**
+It is possible to have a GNSS lock (Green LED) and still not be able to arm the vehicle because PX4 has not yet [passed preflight checks](../flying/pre_flight_checks.md). **A valid global position estimate is required to takeoff!**
 :::
 
 :::tip
-In the event of an error (blinking red), or if the vehicle can't achieve GPS lock (change from blue to green), check for more detailed status information in _QGroundControl_ including calibration status, and errors messages reported by the [Preflight Checks (Internal)](../flying/pre_flight_checks.md).
-Also check that the GPS module is properly attached, Pixhawk is reading your GPS properly, and that the GPS is sending a proper GPS position.
+In the event of an error (blinking red), or if the vehicle can't achieve GNSS lock (change from blue to green), check for more detailed status information in _QGroundControl_ including calibration status, and errors messages reported by the [Preflight Checks (Internal)](../flying/pre_flight_checks.md).
+Also check that the GNSS module is properly attached, Pixhawk is reading your GNSS properly, and that the GNSS receiver is sending a proper GNSS position.
 :::
 
 ![LED meanings](../../assets/flight_controller/pixhawk_led_meanings.gif)
 
-- **[Solid Blue] Armed, No GPS Lock:** Indicates vehicle has been armed and has no position lock from a GPS unit.
+- **[Solid Blue] Armed, No GPS Lock:** Indicates vehicle has been armed and has no position lock from a GNSS receiver.
   When vehicle is armed, PX4 will unlock control of the motors, allowing you to fly your drone.
   As always, exercise caution when arming, as large propellers can be dangerous at high revolutions.
   Vehicle cannot perform guided missions in this mode.
@@ -34,13 +34,13 @@ Also check that the GPS module is properly attached, Pixhawk is reading your GPS
 - **[Pulsing Blue] Disarmed, No GPS Lock:** Similar to above, but your vehicle is disarmed.
   This means you will not be able to control motors, but all other subsystems are working.
 
-- **[Solid Green] Armed, GPS Lock:** Indicates vehicle has been armed and has a valid position lock from a GPS unit.
+- **[Solid Green] Armed, GPS Lock:** Indicates vehicle has been armed and has a valid position lock from a GNSS receiver.
   When vehicle is armed, PX4 will unlock control of the motors, allowing you to fly your drone.
   As always, exercise caution when arming, as large propellers can be dangerous at high revolutions.
   In this mode, vehicle can perform guided missions.
 
 - **[Pulsing Green] Disarmed, GPS Lock:** Similar to above, but your vehicle is disarmed.
-  This means you will not be able to control motors, but all other subsystems including GPS position lock are working.
+  This means you will not be able to control motors, but all other subsystems including GNSS position lock are working.
 
 - **[Solid Purple] Failsafe Mode:** This mode will activate whenever vehicle encounters an issue during flight,
   such as losing manual control, a critically low battery, or an internal error.

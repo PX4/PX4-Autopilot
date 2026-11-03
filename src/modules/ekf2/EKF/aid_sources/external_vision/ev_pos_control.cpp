@@ -290,7 +290,7 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 			// Data seems good, attempt a reset
 			ECL_WARN("%s fusion failing, resetting", EV_AID_SRC_NAME);
 
-			// We are fusing GPS measurements data, and we are fusing our
+			// We are fusing GNSS measurements data, and we are fusing our
 			// position state within _params.no_aid_timeout_max
 			if (_control_status.flags.gnss_pos && !pos_xy_fusion_failing) {
 				// reset EV position bias: We havent received a EV measurement within the

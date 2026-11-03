@@ -70,10 +70,10 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 {
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
 
-	// GPS (used for reference)
+	// GNSS (used for reference)
 	uORB::SubscriptionMultiArray<sensor_gnss_s, 3> sensor_gnss_subs{ORB_ID::sensor_gnss};
-	float gps_altitude_sum = NAN;
-	int gps_altitude_sum_count = 0;
+	float gnss_altitude_sum = NAN;
+	int gnss_altitude_sum_count = 0;
 
 
 	uORB::SubscriptionMultiArray<sensor_baro_s, MAX_SENSOR_COUNT> sensor_baro_subs{ORB_ID::sensor_baro};
@@ -111,13 +111,13 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 
 					float alt = (float)sensor_gnss.altitude_msl;
 
-					if (PX4_ISFINITE(gps_altitude_sum)) {
-						gps_altitude_sum += alt;
-						gps_altitude_sum_count++;
+					if (PX4_ISFINITE(gnss_altitude_sum)) {
+						gnss_altitude_sum += alt;
+						gnss_altitude_sum_count++;
 
 					} else {
-						gps_altitude_sum = alt;
-						gps_altitude_sum_count = 1;
+						gnss_altitude_sum = alt;
+						gnss_altitude_sum_count = 1;
 					}
 				}
 			}
@@ -126,13 +126,13 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 		px4_usleep(100_ms);
 	}
 
-	float gps_altitude = NAN;
+	float gnss_altitude = NAN;
 
-	if (PX4_ISFINITE(gps_altitude_sum) && (gps_altitude_sum_count > 0)) {
-		gps_altitude = gps_altitude_sum / gps_altitude_sum_count;
+	if (PX4_ISFINITE(gnss_altitude_sum) && (gnss_altitude_sum_count > 0)) {
+		gnss_altitude = gnss_altitude_sum / gnss_altitude_sum_count;
 	}
 
-	if (!PX4_ISFINITE(gps_altitude)) {
+	if (!PX4_ISFINITE(gnss_altitude)) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "GPS required for baro cal");
 		return PX4_ERROR;
 	}
@@ -146,12 +146,12 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 
 			float pressure_altitude = getAltitudeFromPressure(pressure_pa, kPressRefSeaLevelPa);
 
-			// Use GPS altitude as a reference to compute the baro bias measurement
-			const float baro_bias = pressure_altitude - gps_altitude;
+			// Use GNSS altitude as a reference to compute the baro bias measurement
+			const float baro_bias = pressure_altitude - gnss_altitude;
 
 			float altitude = pressure_altitude - baro_bias;
 
-			// find pressure offset that aligns baro altitude with GPS via binary search
+			// find pressure offset that aligns baro altitude with GNSS via binary search
 			float low = -10000.f;
 			float high = 10000.f;
 			static constexpr float kTolerance = 0.1f;

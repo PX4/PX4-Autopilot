@@ -14,7 +14,7 @@ See [PX4 Simulation QuickStart](../simulation/px4_simulation_quickstart.md) for 
 ## Overview
 
 SIH runs as a PX4 module that replaces real sensor and actuator hardware with a simulated physics model.
-It provides simulated IMU, GPS, barometer, magnetometer, and airspeed sensor data via uORB, and reads actuator outputs to update the vehicle state at each timestep.
+It provides simulated IMU, GNSS, barometer, magnetometer, and airspeed sensor data via uORB, and reads actuator outputs to update the vehicle state at each timestep.
 
 The simulation runs in lockstep with PX4, ensuring deterministic and reproducible results.
 It also integrates seamlessly with ROS 2 with no additional configuration (see [ROS 2 Integration](#ros-2-integration) below).
@@ -238,12 +238,12 @@ The specific differences for SIH simulation airframes are listed in the sections
 
   ::: info
   This also disables input from real sensors.
-  For SIH on the FC (only), it also enables the simulated GPS, barometer, magnetometer, and airspeed sensor.
+  For SIH on the FC (only), it also enables the simulated GNSS receiver, barometer, magnetometer, and airspeed sensor.
 
   For SIH on SITL you will need to explicitly enable these sensors as shown below.
   :::
 
-- `param set-default SENS_GNSS0_DELAY 0` to improve state estimator performance (the assumption of instant GPS measurements would normally be unrealistic, but is accurate for SIH).
+- `param set-default SENS_GNSS0_DELAY 0` to improve state estimator performance (the assumption of instant GNSS measurements would normally be unrealistic, but is accurate for SIH).
 
 ### SIH on Flight Controller
 

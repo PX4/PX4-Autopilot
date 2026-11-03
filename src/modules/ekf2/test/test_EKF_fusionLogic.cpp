@@ -93,63 +93,63 @@ TEST_F(EkfFusionLogicTest, doNoFusion)
 	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 }
 
-TEST_F(EkfFusionLogicTest, doGpsFusion)
+TEST_F(EkfFusionLogicTest, doGnssFusion)
 {
 	// GIVEN: a tilt and heading aligned filter
-	// WHEN: we enable GPS fusion and we send good quality gps data for 11s
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	// WHEN: we enable GNSS fusion and we send good quality gnss data for 11s
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(11);
 
-	// THEN: EKF should intend to fuse GPS
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	// THEN: EKF should intend to fuse GNSS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 	// THEN: Local and global position should be valid
 	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());
 
-	// WHEN: GPS data is not send for 11s
-	_sensor_simulator.stopGps();
+	// WHEN: GNSS data is not send for 11s
+	_sensor_simulator.stopGnss();
 	_sensor_simulator.runSeconds(11);
 
-	// THEN: EKF should stop to intend to fuse GPS
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	// THEN: EKF should stop to intend to fuse GNSS
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssFusion());
 	EXPECT_FALSE(_ekf->isLocalHorizontalPositionValid());
 	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 
-	// WHEN: GPS data is send again for 11s
-	_sensor_simulator.startGps();
+	// WHEN: GNSS data is send again for 11s
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(11);
 
-	// THEN: EKF should to intend to fuse GPS
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	// THEN: EKF should to intend to fuse GNSS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());
 
-	// WHEN: clients decides to stop GPS fusion
-	_ekf_wrapper.disableGpsFusion();
+	// WHEN: clients decides to stop GNSS fusion
+	_ekf_wrapper.disableGnssFusion();
 
-	// THEN: EKF should stop to intend to fuse GPS immediately
+	// THEN: EKF should stop to intend to fuse GNSS immediately
 	_sensor_simulator.runSeconds(0.01);
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssFusion());
 }
 
-TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
+TEST_F(EkfFusionLogicTest, rejectGnssSignalJump)
 {
 	// GIVEN: a tilt and heading aligned filter
-	// WHEN: we enable GPS fusion and we send good quality gps data for 11s
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	// WHEN: we enable GNSS fusion and we send good quality gnss data for 11s
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(15);
 
-	// THEN: EKF should intend to fuse GPS
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	// THEN: EKF should intend to fuse GNSS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 
-	// WHEN: Having a big horizontal position Gps jump coming from the Gps Receiver
+	// WHEN: Having a big horizontal position Gnss jump coming from the Gnss Receiver
 	const Vector3f pos_old = _ekf->getPosition();
 	const Vector3f vel_old = _ekf->getVelocity();
 	const Vector3f accel_bias_old = _ekf->getAccelBias();
 	const Vector3f pos_step{20.0f, 0.0f, 0.f};
-	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f(pos_step));
+	_sensor_simulator._gnss.stepHorizontalPositionByMeters(Vector2f(pos_step));
 	_sensor_simulator.runSeconds(2);
 
 	// THEN: The estimate should not change much in the short run
@@ -160,7 +160,7 @@ TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
 	EXPECT_TRUE(matrix::isEqual(vel_new, vel_old, 0.01f));
 	EXPECT_TRUE(matrix::isEqual(accel_bias_new, accel_bias_old, 0.01f));
 
-	// BUT THEN: GPS fusion should reset after a while
+	// BUT THEN: GNSS fusion should reset after a while
 	// (it takes some time because vel fusion is still good)
 	_sensor_simulator.runSeconds(14);
 	pos_new = _ekf->getPosition();
@@ -169,14 +169,14 @@ TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
 	EXPECT_TRUE(matrix::isEqual(pos_new, pos_old + pos_step, 0.01f));
 	EXPECT_TRUE(matrix::isEqual(vel_new, vel_old, 0.01f));
 	EXPECT_TRUE(matrix::isEqual(accel_bias_new, accel_bias_old, 0.01f));
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 }
 
-TEST_F(EkfFusionLogicTest, fallbackFromGpsToFlow)
+TEST_F(EkfFusionLogicTest, fallbackFromGnssToFlow)
 {
-	// GIVEN: GPS and flow setup up and with valid data
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	// GIVEN: GNSS and flow setup up and with valid data
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 
 	const float max_flow_rate = 5.f;
 	const float min_ground_distance = 0.f;
@@ -190,23 +190,23 @@ TEST_F(EkfFusionLogicTest, fallbackFromGpsToFlow)
 	_sensor_simulator.runSeconds(15);
 
 	// THEN: both should be fused
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
 
-	// WHEN: GPS data stops
-	_sensor_simulator.stopGps();
+	// WHEN: GNSS data stops
+	_sensor_simulator.stopGnss();
 	_sensor_simulator.runSeconds(10);
 
 	// THEN: GNSS fusion stops after a timing out
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
 
-	// BUT WHEN: GPS starts after passing the checks again
-	_sensor_simulator.startGps();
+	// BUT WHEN: GNSS starts after passing the checks again
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(6);
 
 	// THEN: use it again
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
 }
 
@@ -359,10 +359,10 @@ TEST_F(EkfFusionLogicTest, doVisionHeadingFusion)
 
 TEST_F(EkfFusionLogicTest, doBaroHeightFusion)
 {
-	// GIVEN: EKF that receives baro and GPS data
-	_sensor_simulator.startGps();
+	// GIVEN: EKF that receives baro and GNSS data
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(11);
-	_ekf_wrapper.enableGpsHeightFusion();
+	_ekf_wrapper.enableGnssHeightFusion();
 
 	// THEN: EKF should intend to fuse baro by default
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
@@ -371,9 +371,9 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusion)
 	_sensor_simulator.stopBaro();
 	_sensor_simulator.runSeconds(6);
 
-	// THEN: EKF should stop to intend to use baro hgt and use GPS as a fallback
+	// THEN: EKF should stop to intend to use baro hgt and use GNSS as a fallback
 	EXPECT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 }
 
 TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
@@ -399,9 +399,9 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 
-	// BUT WHEN: GPS height data is also available
-	_sensor_simulator.startGps();
-	_ekf_wrapper.enableGpsHeightFusion();
+	// BUT WHEN: GNSS height data is also available
+	_sensor_simulator.startGnss();
+	_ekf_wrapper.enableGnssHeightFusion();
 	_sensor_simulator.runSeconds(11);
 	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
@@ -412,29 +412,29 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
 	_sensor_simulator.runSeconds(20);
 	reset_logging_checker.capturePostResetState();
 
-	// THEN: EKF should fallback to GPS height (without reset)
+	// THEN: EKF should fallback to GNSS height (without reset)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 }
 
-TEST_F(EkfFusionLogicTest, doGpsHeightFusion)
+TEST_F(EkfFusionLogicTest, doGnssHeightFusion)
 {
-	// WHEN: commanding GPS height and sending GPS data
-	_ekf_wrapper.enableGpsHeightFusion();
-	_sensor_simulator.startGps();
+	// WHEN: commanding GNSS height and sending GNSS data
+	_ekf_wrapper.enableGnssHeightFusion();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(11);
 
-	// THEN: EKF should intend to fuse gps height
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	// THEN: EKF should intend to fuse gnss height
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssHeightFusion());
 
-	// WHEN: stop sending gps data
-	_sensor_simulator.stopGps();
+	// WHEN: stop sending gnss data
+	_sensor_simulator.stopGnss();
 	_sensor_simulator.runSeconds(5);
 
-	// THEN: EKF should stop to intend to use gps height
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	// THEN: EKF should stop to intend to use gnss height
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGnssHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 }
 

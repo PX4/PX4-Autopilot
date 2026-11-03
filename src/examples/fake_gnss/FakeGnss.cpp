@@ -31,13 +31,13 @@
  *
  ****************************************************************************/
 
-#include "FakeGps.hpp"
+#include "FakeGnss.hpp"
 
 using namespace time_literals;
 
-ModuleBase::Descriptor FakeGps::desc{task_spawn, custom_command, print_usage};
+ModuleBase::Descriptor FakeGnss::desc{task_spawn, custom_command, print_usage};
 
-FakeGps::FakeGps(double latitude_deg, double longitude_deg, double altitude_m) :
+FakeGnss::FakeGnss(double latitude_deg, double longitude_deg, double altitude_m) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
 	_latitude(latitude_deg),
@@ -46,13 +46,13 @@ FakeGps::FakeGps(double latitude_deg, double longitude_deg, double altitude_m) :
 {
 }
 
-bool FakeGps::init()
+bool FakeGnss::init()
 {
 	ScheduleOnInterval(SENSOR_INTERVAL_US);
 	return true;
 }
 
-void FakeGps::Run()
+void FakeGnss::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -97,9 +97,9 @@ void FakeGps::Run()
 	_sensor_gnss_status_pub.publish(sensor_gnss_status);
 }
 
-int FakeGps::task_spawn(int argc, char *argv[])
+int FakeGnss::task_spawn(int argc, char *argv[])
 {
-	FakeGps *instance = new FakeGps();
+	FakeGnss *instance = new FakeGnss();
 
 	if (instance) {
 		desc.object.store(instance);
@@ -120,12 +120,12 @@ int FakeGps::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FakeGps::custom_command(int argc, char *argv[])
+int FakeGnss::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int FakeGps::print_usage(const char *reason)
+int FakeGnss::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -137,13 +137,13 @@ int FakeGps::print_usage(const char *reason)
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("fake_gps", "driver");
+	PRINT_MODULE_USAGE_NAME("fake_gnss", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
 
-extern "C" __EXPORT int fake_gps_main(int argc, char *argv[])
+extern "C" __EXPORT int fake_gnss_main(int argc, char *argv[])
 {
-	return ModuleBase::main(FakeGps::desc, argc, argv);
+	return ModuleBase::main(FakeGnss::desc, argc, argv);
 }

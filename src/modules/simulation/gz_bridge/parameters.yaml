@@ -50,12 +50,12 @@ parameters:
       reboot_required: true
     SIM_GZ_EN_GPS:
       description:
-        short: Enable GPS/NavSat sensor(s) in Gazebo bridge
+        short: Enable GNSS/NavSat sensor(s) in Gazebo bridge
       type: enum
       values:
         0: Disabled
-        1: Simulate 1 GPS sensor
-        2: Simulate 2 GPS sensors
+        1: Simulate 1 GNSS sensor
+        2: Simulate 2 GNSS sensors
       default: 1
       reboot_required: true
     SIM_GZ_EN_IMU:

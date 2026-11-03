@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "SensorGpsSim.hpp"
+#include "SensorGnssSim.hpp"
 
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
@@ -40,26 +40,26 @@
 
 using namespace matrix;
 
-ModuleBase::Descriptor SensorGpsSim::desc{task_spawn, custom_command, print_usage};
+ModuleBase::Descriptor SensorGnssSim::desc{task_spawn, custom_command, print_usage};
 
-SensorGpsSim::SensorGpsSim() :
+SensorGnssSim::SensorGnssSim() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 }
 
-SensorGpsSim::~SensorGpsSim()
+SensorGnssSim::~SensorGnssSim()
 {
 	perf_free(_loop_perf);
 }
 
-bool SensorGpsSim::init()
+bool SensorGnssSim::init()
 {
 	ScheduleOnInterval(125_ms); // 8 Hz
 	return true;
 }
 
-float SensorGpsSim::generate_wgn()
+float SensorGnssSim::generate_wgn()
 {
 	// generate white Gaussian noise sample with std=1
 
@@ -90,7 +90,7 @@ float SensorGpsSim::generate_wgn()
 	return X;
 }
 
-void SensorGpsSim::Run()
+void SensorGnssSim::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -127,9 +127,9 @@ void SensorGpsSim::Run()
 		_vehicle_global_position_sub.copy(&gpos);
 
 		const Dcmf body_to_ned{_attitude};
-		const int receivers = math::constrain(static_cast<int>(_sim_gnss_num.get()), 1, GPS_MAX_INSTANCES);
+		const int receivers = math::constrain(static_cast<int>(_sim_gnss_num.get()), 1, GNSS_MAX_INSTANCES);
 
-		const Vector3f biases[GPS_MAX_INSTANCES] {
+		const Vector3f biases[GNSS_MAX_INSTANCES] {
 			{_param_sim_gnss0_bias_n.get(), _param_sim_gnss0_bias_e.get(), _param_sim_gnss0_bias_d.get()},
 			{_param_sim_gnss1_bias_n.get(), _param_sim_gnss1_bias_e.get(), _param_sim_gnss1_bias_d.get()},
 		};
@@ -156,14 +156,14 @@ void SensorGpsSim::Run()
 						 / cos(math::radians(gpos.lat));
 			const double altitude = (double)(gpos.alt - position_error(2));
 
-			const Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noise.velocity;
+			const Vector3f gnss_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noise.velocity;
 
 			// device id
 			device::Device::DeviceId device_id;
 			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 			device_id.devid_s.bus = 0;
 			device_id.devid_s.address = instance;
-			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+			device_id.devid_s.devtype = DRV_GNSS_DEVTYPE_SIM;
 
 			sensor_gnss_s sensor_gnss{};
 
@@ -197,12 +197,12 @@ void SensorGpsSim::Run()
 			sensor_gnss.altitude_ellipsoid = altitude;
 			sensor_gnss.noise = 0;
 			sensor_gnss.jamming_indicator = 0;
-			sensor_gnss.ground_speed = sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1)); // GPS ground speed, (metres/sec)
-			sensor_gnss.vel_north = gps_vel(0);
-			sensor_gnss.vel_east = gps_vel(1);
-			sensor_gnss.vel_down = gps_vel(2);
-			sensor_gnss.course = atan2(gps_vel(1),
-						   gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+			sensor_gnss.ground_speed = sqrtf(gnss_vel(0) * gnss_vel(0) + gnss_vel(1) * gnss_vel(1)); // GNSS ground speed, (metres/sec)
+			sensor_gnss.vel_north = gnss_vel(0);
+			sensor_gnss.vel_east = gnss_vel(1);
+			sensor_gnss.vel_down = gnss_vel(2);
+			sensor_gnss.course = atan2(gnss_vel(1),
+						   gnss_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
 			sensor_gnss.timestamp_time_relative = 0;
 			sensor_gnss.automatic_gain_control = 0;
 			sensor_gnss.jamming_state = 0;
@@ -218,7 +218,7 @@ void SensorGpsSim::Run()
 	perf_end(_loop_perf);
 }
 
-void SensorGpsSim::publishWithFailures(int instance, sensor_gnss_s gnss)
+void SensorGnssSim::publishWithFailures(int instance, sensor_gnss_s gnss)
 {
 	uORB::PublicationMulti<sensor_gnss_s> &pub = _sensor_gnss_pub[instance];
 	gnss.timestamp = hrt_absolute_time();
@@ -230,7 +230,7 @@ void SensorGpsSim::publishWithFailures(int instance, sensor_gnss_s gnss)
 	pub.publish(gnss);
 }
 
-Vector3f SensorGpsSim::antennaOffset(int instance) const
+Vector3f SensorGnssSim::antennaOffset(int instance) const
 {
 	if (instance == 0) {
 		return {_param_gnss0_offx.get(), _param_gnss0_offy.get(), _param_gnss0_offz.get()};
@@ -239,7 +239,7 @@ Vector3f SensorGpsSim::antennaOffset(int instance) const
 	return {_param_gnss1_offx.get(), _param_gnss1_offy.get(), _param_gnss1_offz.get()};
 }
 
-void SensorGpsSim::publishRelativeHeading(int instance, const sensor_gnss_s &gnss, const Dcmf &body_to_ned)
+void SensorGnssSim::publishRelativeHeading(int instance, const sensor_gnss_s &gnss, const Dcmf &body_to_ned)
 {
 #if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
 	static constexpr int32_t HEADING_MOVING_BASE_ROVER = 1;
@@ -306,12 +306,12 @@ void SensorGpsSim::publishRelativeHeading(int instance, const sensor_gnss_s &gns
 #endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 }
 
-void SensorGpsSim::updateFailureConfig()
+void SensorGnssSim::updateFailureConfig()
 {
 	_failure_config.update();
 }
 
-bool SensorGpsSim::updateRtcmCorrections()
+bool SensorGnssSim::updateRtcmCorrections()
 {
 	rtcm_data_s msg;
 
@@ -324,9 +324,9 @@ bool SensorGpsSim::updateRtcmCorrections()
 	return (_last_rtcm_time != 0) && (hrt_elapsed_time(&_last_rtcm_time) < RTCM_TIMEOUT);
 }
 
-int SensorGpsSim::task_spawn(int argc, char *argv[])
+int SensorGnssSim::task_spawn(int argc, char *argv[])
 {
-	SensorGpsSim *instance = new SensorGpsSim();
+	SensorGnssSim *instance = new SensorGnssSim();
 
 	if (instance) {
 		desc.object.store(instance);
@@ -347,12 +347,12 @@ int SensorGpsSim::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SensorGpsSim::custom_command(int argc, char *argv[])
+int SensorGnssSim::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int SensorGpsSim::print_usage(const char *reason)
+int SensorGnssSim::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -365,14 +365,14 @@ int SensorGpsSim::print_usage(const char *reason)
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("sensor_gps_sim", "system");
+	PRINT_MODULE_USAGE_NAME("sensor_gnss_sim", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-extern "C" __EXPORT int sensor_gps_sim_main(int argc, char *argv[])
+extern "C" __EXPORT int sensor_gnss_sim_main(int argc, char *argv[])
 {
-	return ModuleBase::main(SensorGpsSim::desc, argc, argv);
+	return ModuleBase::main(SensorGnssSim::desc, argc, argv);
 }

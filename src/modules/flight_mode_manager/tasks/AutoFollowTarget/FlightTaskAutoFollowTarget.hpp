@@ -34,7 +34,7 @@
 /**
  * @file FlightTaskAutoFollowTarget.hpp
  *
- * Flight task for autonomous, gps driven follow-me mode.
+ * Flight task for autonomous, gnss driven follow-me mode.
  *
  * @author Alessandro Simovic <potaito-dev@protonmail.com>
  * @author Junwoo Hwang <junwoo091400@gmail.com>

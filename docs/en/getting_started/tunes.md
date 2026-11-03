@@ -159,7 +159,7 @@ These tones/tunes are emitted during normal operation.
 
 - Critical low battery warning ([failsafe](../config/safety.md#battery-level-failsafe)).
 
-#### GPS Warning Slow
+#### GNSS Warning Slow {#gps-warning-slow}
 
 <audio controls><source src="../../assets/tunes/9_gps_warning_slow.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
 

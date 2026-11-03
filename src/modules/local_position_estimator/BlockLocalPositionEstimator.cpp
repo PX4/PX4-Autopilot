@@ -37,7 +37,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_flowQStats(this, ""),
 	_visionStats(this, ""),
 	_mocapStats(this, ""),
-	_gpsStats(this, ""),
+	_gnssStats(this, ""),
 
 	// low pass
 	_xLowPass(this, "X_LP"),
@@ -56,7 +56,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_time_last_hist(0),
 	_time_last_flow(0),
 	_time_last_baro(0),
-	_time_last_gps(0),
+	_time_last_gnss(0),
 	_time_last_lidar(0),
 	_time_last_sonar(0),
 	_time_init_sonar(0),
@@ -70,10 +70,10 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_altOriginInitialized(false),
 	_altOriginGlobal(false),
 	_baroAltOrigin(0),
-	_gpsAltOrigin(0),
+	_gnssAltOrigin(0),
 
 	// status
-	_receivedGps(false),
+	_receivedGnss(false),
 	_lastArmedState(false),
 
 	// masks
@@ -83,7 +83,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 
 	// sensor update flags
 	_flowUpdated(false),
-	_gpsUpdated(false),
+	_gnssUpdated(false),
 	_visionUpdated(false),
 	_mocapUpdated(false),
 	_lidarUpdated(false),
@@ -126,7 +126,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	PX4_INFO("fuse gps: %d, flow: %d, vis_pos: %d, "
 		 "landing_target: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
 		 "baro: %d\n",
-		 (_param_lpe_fusion.get() & FUSE_GPS) != 0,
+		 (_param_lpe_fusion.get() & FUSE_GNSS) != 0,
 		 (_param_lpe_fusion.get() & FUSE_FLOW) != 0,
 		 (_param_lpe_fusion.get() & FUSE_VIS_POS) != 0,
 		 (_param_lpe_fusion.get() & FUSE_LAND_TARGET) != 0,
@@ -273,7 +273,7 @@ void BlockLocalPositionEstimator::Run()
 	}
 
 	_flowUpdated = (_param_lpe_fusion.get() & FUSE_FLOW) && _sub_flow.update();
-	_gpsUpdated = (_param_lpe_fusion.get() & FUSE_GPS) && _sub_gnss.update();
+	_gnssUpdated = (_param_lpe_fusion.get() & FUSE_GNSS) && _sub_gnss.update();
 	_visionUpdated = (_param_lpe_fusion.get() & FUSE_VIS_POS) && _sub_visual_odom.update();
 	_mocapUpdated = _sub_mocap_odom.update();
 	_lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->update();
@@ -304,14 +304,14 @@ void BlockLocalPositionEstimator::Run()
 	}
 
 	if (_estimatorInitialized & EST_XY) {
-		// if valid and gps has timed out, set to not valid
-		if (!vxy_stddev_ok && (_sensorTimeout & SENSOR_GPS)) {
+		// if valid and gnss has timed out, set to not valid
+		if (!vxy_stddev_ok && (_sensorTimeout & SENSOR_GNSS)) {
 			_estimatorInitialized &= ~EST_XY;
 		}
 
 	} else {
 		if (vxy_stddev_ok) {
-			if (!(_sensorTimeout & SENSOR_GPS)
+			if (!(_sensorTimeout & SENSOR_GNSS)
 			    || !(_sensorTimeout & SENSOR_FLOW)
 			    || !(_sensorTimeout & SENSOR_VISION)
 			    || !(_sensorTimeout & SENSOR_MOCAP)
@@ -429,12 +429,12 @@ void BlockLocalPositionEstimator::Run()
 	predict(imu);
 
 	// sensor corrections/ initializations
-	if (_gpsUpdated) {
-		if (_sensorTimeout & SENSOR_GPS) {
-			gpsInit();
+	if (_gnssUpdated) {
+		if (_sensorTimeout & SENSOR_GNSS) {
+			gnssInit();
 
 		} else {
-			gpsCorrect();
+			gnssCorrect();
 		}
 	}
 
@@ -545,7 +545,7 @@ void BlockLocalPositionEstimator::Run()
 void BlockLocalPositionEstimator::checkTimeouts()
 {
 	baroCheckTimeout();
-	gpsCheckTimeout();
+	gnssCheckTimeout();
 	lidarCheckTimeout();
 	flowCheckTimeout();
 	sonarCheckTimeout();

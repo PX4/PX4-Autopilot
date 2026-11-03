@@ -264,7 +264,7 @@ int Commander::custom_command(int argc, char *argv[])
 						heading_deg = matrix::wrap(roundf(heading_deg), 0.f, 360.f);
 					}
 
-					// Send command with heading (param1), other params zeroed (use GPS)
+					// Send command with heading (param1), other params zeroed (use GNSS)
 					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_FIXED_MAG_CAL_YAW,
 							     heading_deg,  // param1: Yaw of vehicle in earth frame (deg)
 							     0.0f,         // param2: CompassMask, 0 for all

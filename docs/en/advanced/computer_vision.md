@@ -21,7 +21,7 @@ Motion Capture (MoCap) is a technique for estimating the 3D _pose_ (position and
 MoCap systems most commonly detect motion using infrared cameras, but other types of cameras, Lidar, or Ultra Wideband (UWB) may also be used.
 
 ::: info
-MoCap is commonly used to navigate a vehicle in situations where GPS is absent (e.g. indoors), and provides position relative to a _local_ coordinate system.
+MoCap is commonly used to navigate a vehicle in situations where GNSS is absent (e.g. indoors), and provides position relative to a _local_ coordinate system.
 :::
 
 For information about MoCap see:
@@ -33,7 +33,7 @@ For information about MoCap see:
 ## Visual Inertial Odometry (VIO)
 
 Visual Inertial Odometry (VIO) is used for estimating the 3D _pose_ (position and orientation) and _velocity_ of a moving vehicle relative to a _local_ starting position.
-It is commonly used to navigate a vehicle in situations where GPS is absent (e.g. indoors) or unreliable (e.g. when flying under a bridge).
+It is commonly used to navigate a vehicle in situations where GNSS is absent (e.g. indoors) or unreliable (e.g. when flying under a bridge).
 
 VIO uses [Visual Odometry](https://en.wikipedia.org/wiki/Visual_odometry) to estimate vehicle _pose_ from visual information, combined with inertial measurements from an IMU (to correct for errors associated with rapid vehicle movement resulting in poor image capture).
 
@@ -83,8 +83,8 @@ VIO:
 A combination (fusing both) is probably the most reliable, though not necessary in most real-world scenarios.
 Normally you will select the system that suits your operating environment, required features, and cost constraints:
 
-- Use VIO if you plan on flying outdoors without GPS (or outdoors and indoors), or if you need to support obstacle avoidance and other computer vision features.
-- Use Optical Flow if you plan on only flying indoors (without GPS) and cost is an important consideration.
+- Use VIO if you plan on flying outdoors without GNSS (or outdoors and indoors), or if you need to support obstacle avoidance and other computer vision features.
+- Use Optical Flow if you plan on only flying indoors (without GNSS) and cost is an important consideration.
 
 ## External Resources
 

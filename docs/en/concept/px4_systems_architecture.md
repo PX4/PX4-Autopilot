@@ -19,7 +19,7 @@ The hardware consists of
 
 - [Flight controller](../flight_controller/index.md) (running the PX4 flight stack). This often includes internal IMUs, compass and barometer.
 - [Motor ESCs](../peripherals/esc_motors.md) connected to [PWM outputs](../peripherals/pwm_escs_and_servo.md), [DroneCAN](../dronecan/escs.md) (DroneCAN allows two-way communication, not single direction as shown) or some other bus.
-- Sensors ([GPS](../gps_compass/index.md), [compass](../gps_compass/index.md), distance sensors, barometers, optical flow, barometers, ADSB transponders, etc.) connected via I2C, SPI, CAN, UART etc.
+- Sensors ([GNSS](../gps_compass/index.md), [compass](../gps_compass/index.md), distance sensors, barometers, optical flow, barometers, ADSB transponders, etc.) connected via I2C, SPI, CAN, UART etc.
 - [Camera](../camera/index.md) or other payload. Cameras can be connected to PWM outputs or via MAVLink.
 - [Telemetry radios](../telemetry/index.md) for connecting to a ground station computer/software.
 - [RC Control System](../getting_started/rc_transmitter_receiver.md) for manual control

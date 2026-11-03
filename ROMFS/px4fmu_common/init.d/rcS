@@ -400,7 +400,7 @@ else
 	then
 		sensors start -h
 
-		# disable GPS
+		# disable GNSS
 		param set GPS_1_CONFIG 0
 
 		# start the simulator in hardware if needed
@@ -409,7 +409,7 @@ else
 			simulator_sih start
 			sensor_baro_sim start
 			sensor_mag_sim start
-			sensor_gps_sim start
+			sensor_gnss_sim start
 			sensor_agp_sim start
 		fi
 

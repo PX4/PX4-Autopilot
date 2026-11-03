@@ -147,7 +147,7 @@ parameters:
       decimal: 3
     VTE_BIA_UNC_IN:
       description:
-        short: Initial GPS bias uncertainty
+        short: Initial GNSS bias uncertainty
         long: |-
           Initial GNSS/vision position-bias variance per axis. Higher values allow larger initial bias corrections.
           Applied at initialization/reset and bias activation. Use VTE_BIAS_UNC for ongoing drift.
@@ -212,7 +212,7 @@ parameters:
       decimal: 3
     VTE_GPS_V_NOISE:
       description:
-        short: Minimum standard deviation for GPS velocity observations
+        short: Minimum standard deviation for GNSS velocity observations
         long: |-
           Minimum GNSS velocity noise; used only when reported noise is lower.
           Increase to reduce trust in velocity measurements.
@@ -224,7 +224,7 @@ parameters:
       decimal: 2
     VTE_GPS_P_NOISE:
       description:
-        short: Minimum standard deviation for GPS position observations
+        short: Minimum standard deviation for GNSS position observations
         long: |-
           Minimum GNSS position noise for target, mission or home aiding; used only when reported noise is lower.
           Increase to reduce trust in position measurements.
