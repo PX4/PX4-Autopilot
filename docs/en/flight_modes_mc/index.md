@@ -11,7 +11,7 @@ Manual modes provide different levels of autopilot support when flying manually 
 
 Manual-Easy:
 
-- [Position mode](../flight_modes_mc/position.md) — Easiest and safest manual mode for vehicles that have a position fix/GPS.
+- [Position mode](../flight_modes_mc/position.md) — Easiest and safest manual mode for vehicles that have a position fix/GNSS.
   The roll and pitch sticks control _acceleration_ over ground in the vehicle's forward-back and left-right directions (similar to a car's accelerator pedal), the yaw stick controls horizontal rotation, and the throttle controls speed of ascent-descent.
   Releasing sticks levels the vehicle, actively brakes it to a stop, and locks it to the current 3D position (even against wind and other forces).
 - [Position Slow mode](../flight_modes_mc/position_slow.md) — A velocity and yaw rate limited version of _Position mode_.
@@ -33,9 +33,9 @@ Autonomous:
 
 - [Hold](../flight_modes_mc/hold.md) — Vehicle stops and hovers at its current position and altitude, maintaining its position against wind and other forces.
 - [Return](../flight_modes_mc/return.md) — Vehicle ascends to a safe altitude, flies a clear path to a safe location (home or a rally point) and then lands.
-  This requires a global position estimate (GPS).
+  This requires a global position estimate (GNSS).
 - [Mission](../flight_modes_mc/mission.md) — Vehicle executes a [predefined mission/flight plan](../flying/missions.md) that has been uploaded to the flight controller.
-  This requires a global position estimate (GPS).
+  This requires a global position estimate (GNSS).
 - [Takeoff](../flight_modes_mc/takeoff.md) — Vehicle takes off vertically and then switches to _Hold mode_.
 - [Land](../flight_modes_mc/land.md) — Vehicle lands immediately.
 - [Descend](../flight_modes_mc/descend.md) — Failsafe fallback: the vehicle descends without horizontal position control (used when the position estimate is lost). Not pilot-selectable.
@@ -46,7 +46,7 @@ Autonomous:
 - [Offboard](../flight_modes_mc/offboard.md) — Vehicle obeys position, velocity, or attitude, setpoints provided via MAVLink or ROS 2.
 
 Pilots transition between flight modes using switches on the remote control or with a ground control station (see [Flight Mode Configuration](../config/flight_mode.md)).
-Some flight modes make sense only under specific pre-flight and in-flight conditions (e.g. GPS lock, airspeed sensor, vehicle attitude sensing along an axis).
+Some flight modes make sense only under specific pre-flight and in-flight conditions (e.g. GNSS lock, airspeed sensor, vehicle attitude sensing along an axis).
 PX4 will not allow transitions to those modes until the right conditions are met.
 
 Select the mode-specific sidebar topics for more detailed technical information.

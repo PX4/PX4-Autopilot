@@ -4,7 +4,7 @@ This page shows you which state estimators are available and how you can switch 
 
 :::tip
 EKF2 is the default and should be used unless you have a reason not to (in particular on vehicles with a GNSS/GPS).
-The Q-Estimator can be used if you don't have GPS, and is commonly used in [multicopter racers](../config_mc/racer_setup.md).
+The Q-Estimator can be used if you don't have GNSS, and is commonly used in [multicopter racers](../config_mc/racer_setup.md).
 :::
 
 ## Available Estimators
@@ -20,7 +20,7 @@ The available estimators are:
   :::
 
 - **Q attitude estimator** - A very simple, quaternion based complementary filter for attitude.
-  It does not require a GPS, magnetometer, or barometer.
+  It does not require a GNSS receiver, magnetometer, or barometer.
   <!-- Q estimator is supported (at time of writing in PX4 v1.14). Test added in PX4-Autopilot/pull/21922 -->
 
 ## How to Enable Different Estimators

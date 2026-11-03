@@ -46,7 +46,7 @@ To run PX4 SITL without setting up a build environment, [pre-built packages and 
 | **External Dependencies** | Gazebo packages, rendering libs           | None                                                                |
 | **Vehicle Types**         | Quad, VTOL, Plane, Rovers                 | Quad, Hex, Plane, Tailsitter, Std VTOL, Rover                       |
 | **Multi-vehicle**         | Yes (documented)                          | Yes ([multi-vehicle](../sim_sih/index.md#multi-vehicle-simulation)) |
-| **Sensor Simulation**     | Camera, LiDAR, depth, IMU, GPS, baro, mag | IMU, GPS, baro, mag, airspeed                                       |
+| **Sensor Simulation**     | Camera, LiDAR, depth, IMU, GNSS, baro, mag | IMU, GNSS, baro, mag, airspeed                                      |
 | **Custom Worlds/Models**  | Yes (SDF, large model library)            | No                                                                  |
 | **ROS 2 Integration**     | Yes (uXRCE-DDS)                           | Yes (uXRCE-DDS)                                                     |
 | **Extensibility**         | Plugins, custom sensors, environments     | Modify C++ source, tune SIH\_\* parameters                          |
@@ -95,7 +95,7 @@ The messages are described below (see links for specific detail).
 | [MAV_MODE:MAV_MODE_FLAG_HIL_ENABLED][mav_mode_flag_hil_enabled] | NA         | Mode flag when using simulation. All motors/actuators are blocked, but internal software is fully operational.                                                                                                                                |
 | [HIL_ACTUATOR_CONTROLS][hil_actuator_controls]                  | PX4 to Sim | PX4 control outputs (to motors, actuators).                                                                                                                                                                                                   |
 | [HIL_SENSOR][hil_sensor]                                        | Sim to PX4 | Simulated IMU readings in SI units in NED body frame.                                                                                                                                                                                         |
-| [HIL_GPS][hil_gps]                                              | Sim to PX4 | The simulated GPS RAW sensor value.                                                                                                                                                                                                           |
+| [HIL_GPS][hil_gps]                                              | Sim to PX4 | The simulated GNSS RAW sensor value.                                                                                                                                                                                                          |
 | [HIL_OPTICAL_FLOW][hil_optical_flow]                            | Sim to PX4 | Simulated optical flow from a flow sensor (e.g. PX4FLOW or optical mouse sensor)                                                                                                                                                              |
 | [HIL_STATE_QUATERNION][hil_state_quaternion]                    | Sim to PX4 | Contains the actual "simulated" vehicle position, attitude, speed etc. This can be logged and compared to PX4's estimates for analysis and debugging (for example, checking how well an estimator works for noisy (simulated) sensor inputs). |
 | [HIL_RC_INPUTS_RAW][hil_rc_inputs_raw]                          | Sim to PX4 | The RAW values of the RC channels received.                                                                                                                                                                                                   |
@@ -234,7 +234,7 @@ See [System Startup](../concept/system_startup.md) for more information.
 
 ### Simulating Failsafes and Sensor/Hardware Failure
 
-[Simulate Failsafes](../simulation/failsafes.md) explains how to trigger safety failsafes like GPS failure and battery drain.
+[Simulate Failsafes](../simulation/failsafes.md) explains how to trigger safety failsafes like GNSS failure and battery drain.
 
 ### Environment Configuration
 

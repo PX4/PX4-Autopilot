@@ -10,7 +10,7 @@ This section contains topics about integrating PX4 with _new_ autopilot and peri
 - [Device Drivers](../middleware/drivers.md)
 - [Telemetry Radio/Modems](../data_links/telemetry.md) and other communications links
 - [Sensor and Actuator I/O](../sensor_bus/index.md)
-- [RTK GPS (Integration)](../advanced/rtk_gps.md)
+- [RTK GNSS (Integration)](../advanced/rtk_gps.md)
 
 :::tip
 Other sections show how to _use_ and _configure_ supported [autopilot](../flight_controller/index.md), [companion computer](../companion_computer/index.md) and [peripheral](../peripherals/index.md) hardware.

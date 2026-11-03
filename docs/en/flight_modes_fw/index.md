@@ -11,7 +11,7 @@ Manual modes provide different levels of autopilot support when flying manually 
 
 Manual-Easy:
 
-- [Cruise mode](../flight_modes_fw/cruise.md) — Easiest and safest manual mode for vehicles that have a position fix/GPS.
+- [Cruise mode](../flight_modes_fw/cruise.md) — Easiest and safest manual mode for vehicles that have a position fix/GNSS.
   The vehicle performs a [coordinated turn](https://en.wikipedia.org/wiki/Coordinated_flight) if the roll stick is non-zero, while the pitch stick controls the rate of ascent/descent.
   If the sticks are released the vehicle levels out and holds a straight flight path, even against wind.
   Airspeed is actively controlled if an airspeed sensor is installed.
@@ -33,10 +33,10 @@ Manual-Acrobatic
   No sensor feedback is used to compensate for disturbances.
 
 Autonomous:
-All autonomous flight modes require a valid position estimate (GPS).
+All autonomous flight modes require a valid position estimate (GNSS).
 Airspeed is actively controlled if an airspeed sensor is installed in any autonomous flight mode.
 
-- [Hold](../flight_modes_fw/hold.md) — Vehicle circles around the GPS hold position at the current altitude.
+- [Hold](../flight_modes_fw/hold.md) — Vehicle circles around the GNSS hold position at the current altitude.
   The mode can be used to pause a mission or to help regain control of a vehicle in an emergency.
   It can be activated with a pre-programmed RC switch or the QGroundControl Pause button.
 - [Guided Course](../flight_modes_fw/guided_course.md) — Vehicle maintains a constant ground track, altitude, and airspeed.
@@ -51,7 +51,7 @@ Airspeed is actively controlled if an airspeed sensor is installed in any autono
 - [Offboard](../flight_modes_fw/offboard.md) — Vehicle obeys attitude setpoints provided via MAVLink or ROS 2.
 
 Pilots transition between flight modes using switches on the remote control or with a ground control station (see [Flight Mode Configuration](../config/flight_mode.md)).
-Some flight modes make sense only under specific pre-flight and in-flight conditions (e.g. GPS lock, airspeed sensor, vehicle attitude sensing along an axis).
+Some flight modes make sense only under specific pre-flight and in-flight conditions (e.g. GNSS lock, airspeed sensor, vehicle attitude sensing along an axis).
 PX4 will not allow transitions to those modes until the right conditions are met.
 
 Select the mode-specific sidebar topics for detailed technical information.
