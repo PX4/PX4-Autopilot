@@ -656,7 +656,7 @@ void UavcanGnssBridge::drainMovingBaseline()
 				 last_generation, _rtcm_moving_baseline_sub.get_last_generation());
 		}
 
-		PublishMovingBaselineData(msg.data, msg.len);
+		PublishMovingBaselineData(msg.data, math::min<size_t>(msg.len, sizeof(msg.data)));
 	}
 }
 
