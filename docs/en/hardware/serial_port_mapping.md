@@ -119,15 +119,15 @@ ttyS6 CONFIG_STM32F7_UART8=y PX4IO
 
 In the [flight controller docs](../flight_controller/pixhawk4.md#serial_port_mapping) the resulting table is:
 
-| UART   | Device     | Port                  |
-| ------ | ---------- | --------------------- |
-| UART1  | /dev/ttyS0 | GPS                   |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  | /dev/ttyS3 | TELEM4                |
-| USART6 | /dev/ttyS4 | RC SBUS               |
-| UART7  | /dev/ttyS5 | Debug Console         |
-| UART8  | /dev/ttyS6 | PX4IO                 |
+| UART   | Device       | Port                      | Flow Control |
+| ------ | ------------ | ------------------------- | ------------ |
+| USART1 | `/dev/ttyS0` | `GPS MODULE`              |              |
+| USART2 | `/dev/ttyS1` | `TELEM1`                  | Yes          |
+| USART3 | `/dev/ttyS2` | `TELEM2`                  | Yes          |
+| UART4  | `/dev/ttyS3` | `UART & I2C B` (`TELEM4`) |              |
+| USART6 | `/dev/ttyS4` | RC SBUS                   |              |
+| UART7  | `/dev/ttyS5` | Debug Console             |              |
+| UART8  | `/dev/ttyS6` | PX4IO                     |              |
 
 ## Other Architectures
 

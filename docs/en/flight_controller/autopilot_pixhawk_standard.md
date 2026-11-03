@@ -20,7 +20,7 @@ The boards in this category are:
 - [Holybro Pixhawk 6C Mini](../flight_controller/pixhawk6c_mini.md) (FMUv6C)
 - [Holybro Pix32 v6](../flight_controller/holybro_pix32_v6.md) (FMUv6C)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md) (FMUv5X)
-- [Holybro Pixhawk 4](../flight_controller/pixhawk4.md) (FMUv5)
+- [Holybro Pixhawk 4](../flight_controller/pixhawk4.md) (FMUv5) - Discontinued by Holybro but supported by PX4
 - [Holybro Pixhawk 4 Mini](../flight_controller/pixhawk4_mini.md) (FMUv5) - Discontinued by Holybro but supported by PX4
 - [Drotek Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md) (FMUv4pro) - Discontinued by Drotek but supported by PX4
 - [mRo Pixracer](../flight_controller/pixracer.md) (FMUv4)

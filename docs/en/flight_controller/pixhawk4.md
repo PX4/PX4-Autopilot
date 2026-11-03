@@ -1,4 +1,11 @@
-# Holybro Pixhawk 4
+# Holybro Pixhawk 4 (Discontinued)
+
+<Badge type="tip" text="PX4 v1.7" /> <Badge type="info" text="Discontinued" />
+
+::: warning
+This flight controller has been discontinued and is no longer available from Holybro.
+It is still supported by PX4.
+:::
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
@@ -21,13 +28,13 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 ### Processor {#processor}
 
 - **Main FMU processor:** STM32F765 (32 Bit Arm® Cortex®-M7, 216 MHz, 2 MB memory, 512 KB RAM)
-- **IO processor:** STM32F100 (32 Bit Arm® Cortex®-M3, 24 MHz, 8 KB SRAM)
+- **IO processor:** STM32F103 (32 Bit Arm® Cortex®-M3, 72 MHz, 64 KB SRAM), or STM32F100 (32 Bit Arm® Cortex®-M3, 24 MHz, 8 KB SRAM) on earlier boards
 
 ### Sensors {#sensors}
 
-- **IMU:** ICM-20689, and BMI055 or ICM-20602
-- **Barometer:** MS5611
-- **Magnetometer:** IST8310
+- **IMU:** ICM-20689 (SPI1), and BMI055 or ICM-20602 (SPI1)
+- **Barometer:** MS5611 (SPI4)
+- **Magnetometer:** IST8310 (I2C3)
 - **GPS:** u-blox Neo-M8N GPS/GLONASS receiver, with integrated IST8310 magnetometer
 
 ### Interfaces {#interfaces}
@@ -40,18 +47,22 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - **I2C ports:** 3
 - **SPI buses:** 4
 - **CAN buses:** up to 2, for dual CAN with serial ESC
+- **USB:** Micro-USB
+- **Parameter storage:** FRAM (SPI2)
+- **SD card:** MicroSD slot
 
 ### Electrical Data {#electrical_data}
 
 - **Power module output:** 4.9 V to 5.5 V
+- **Max input voltage:** 6 V
 - **USB power input:** 4.75 V to 5.25 V
 - **Servo rail input:** 0 V to 36 V
-- **Power monitoring:** analog inputs for voltage and current of 2 batteries
+- **Power monitoring:** analog inputs for voltage and current of 2 batteries, up to 120 A
 
 ### Mechanical Data {#mechanical_data}
 
 - **Dimensions:** 44 × 84 × 12 mm
-- **Weight:** 15.8 g
+- **Weight:** 33.3 g (plastic case), 49 g (aluminium case)
 - **Operating temperature:** -40 °C to 85 °C
 
 ![Pixhawk 4 Dimensions](../../assets/flight_controller/pixhawk4/pixhawk4_dimensions.jpg)
@@ -78,6 +89,11 @@ Connector pin assignments are left to right (i.e. Pin 1 is the left-most pin).
 The exception is the [debug port(s)](#debug_port) (pin 1 is the right-most, as shown below).
 :::
 
+## Power {#power}
+
+The `POWER1` and `POWER2` ports are 6-pin inputs for analog power modules, which supply the board and report battery voltage and current.
+See [Pixhawk 4 Wiring Quick Start > Power](../assembly/quick_start_pixhawk4.md#power) for wiring, and [Battery and Power Module Setup](../config/battery.md) for configuration.
+
 ## Voltage Ratings {#voltage_ratings}
 
 _Pixhawk 4_ can be triple-redundant on the power supply if three power sources are supplied.
@@ -103,21 +119,68 @@ Under these conditions the system will not draw any power (will not be operation
 1. `USB` input (operational range 4.1 V to 5.7 V, 0 V to 6 V undamaged)
 1. Servo input: `VDD_SERVO` pin of `FMU PWM OUT` and `I/O PWM OUT` (0 V to 42 V undamaged)
 
+## PWM Outputs {#pwm_outputs}
+
+The Pixhawk 4 has 8 IO PWM outputs (`MAIN`) on the `I/O PWM OUT` port, and 8 FMU PWM outputs (`AUX`) on the `FMU PWM OUT` port.
+
+[DShot](../peripherals/dshot.md) is not supported.
+
+The 8 FMU outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-6 in group2 (Timer4)
+- Outputs 7-8 in group3 (Timer12)
+
+All outputs within the same group must use the same output protocol and rate.
+
+The 3 capture inputs (`FMU_CAP1` to `FMU_CAP3`, Timer2) are on the `CAP & ADC IN` port, and appear in the [actuator configuration](../config/actuators.md) as `PWM Capture 1-3`.
+
+## SD Card (Optional) {#sd_card}
+
+The Pixhawk 4 has a MicroSD card slot.
+See [Pixhawk 4 Wiring Quick Start > SD Card](../assembly/quick_start_pixhawk4.md#sd_card).
+
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device       | Port                    |
-| ------ | ------------ | ----------------------- |
-| UART1  | `/dev/ttyS0` | `GPS`                   |
-| USART2 | `/dev/ttyS1` | `TELEM1` (flow control) |
-| USART3 | `/dev/ttyS2` | `TELEM2` (flow control) |
-| UART4  | `/dev/ttyS3` | `TELEM4`                |
-| USART6 | `/dev/ttyS4` | RC SBUS                 |
-| UART7  | `/dev/ttyS5` | Debug Console           |
-| UART8  | `/dev/ttyS6` | PX4IO                   |
+| UART   | Device       | Port                      | Flow Control |
+| ------ | ------------ | ------------------------- | ------------ |
+| USART1 | `/dev/ttyS0` | `GPS MODULE`              |              |
+| USART2 | `/dev/ttyS1` | `TELEM1`                  | Yes          |
+| USART3 | `/dev/ttyS2` | `TELEM2`                  | Yes          |
+| UART4  | `/dev/ttyS3` | `UART & I2C B` (`TELEM4`) |              |
+| USART6 | `/dev/ttyS4` | RC SBUS                   |              |
+| UART7  | `/dev/ttyS5` | Debug Console             |              |
+| UART8  | `/dev/ttyS6` | PX4IO                     |              |
 
 ## Assembly {#assembly}
 
 The [Pixhawk 4 Wiring Quick Start](../assembly/quick_start_pixhawk4.md) provides instructions on how to assemble required/important peripherals including GPS, Power Management Board etc.
+
+### Radio Control {#radio_control}
+
+A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate.
+
+- Spektrum/DSM and S.BUS receivers connect to the `DSM/SBUS RC` port.
+- PPM receivers connect to the `PPM RC` port.
+  PWM receivers, which have one wire per channel, need a [PPM encoder](../getting_started/rc_transmitter_receiver.md#connecting-receivers).
+- CRSF and GHST receivers connect to a free `TELEM` port.
+  Enable the driver by [setting](../advanced_config/parameters.md) [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to that port.
+
+### GPS & Compass {#gps_compass}
+
+Connect a GPS module to the 10-pin `GPS MODULE` port, which also carries I2C for its compass, the safety switch, safety LED and buzzer.
+A second GPS can be connected to the `UART & I2C B` port.
+See [Pixhawk 4 Wiring Quick Start](../assembly/quick_start_pixhawk4.md) and [Mounting a GPS/Compass](../assembly/mount_gps_compass.md).
+
+### Telemetry Radios (Optional) {#telemetry}
+
+A [telemetry radio](../telemetry/index.md) connected to `TELEM1` needs no further configuration.
+
+### CAN {#can}
+
+The `CAN1` and `CAN2` ports can be used for [DroneCAN](../dronecan/index.md) peripherals.
+DroneCAN is not enabled by default: set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to enable it.
 
 ## Building Firmware {#building_firmware}
 
@@ -134,12 +197,12 @@ make px4_fmu-v5_default
 
 ## Debug Port {#debug_port}
 
-The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the `FMU Debug` port, while the I/O console and SWD interface can be accessed via `I/O Debug` port.
+The [PX4 System Console](../debug/system_console.md) (UART7) and [SWD interface](../debug/swd_debug.md) run on the `FMU Debug` port, while the I/O console and SWD interface can be accessed via `I/O Debug` port.
 In order to access these ports, the user must remove the _Pixhawk 4_ casing.
 
 ![Pixhawk 4 Debug Ports](../../assets/flight_controller/pixhawk4/pixhawk4_debug_port.jpg)
 
-The pinout uses the standard [Pixhawk debug connector pinout](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
+The pinout uses the standard [Pixhawk debug connector pinout](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf): both are [Pixhawk Debug Mini](../debug/swd_debug.md#pixhawk-debug-mini) ports.
 For wiring information see:
 
 - [System Console > Pixhawk Debug Port](../debug/system_console.md#pixhawk_debug_port)
