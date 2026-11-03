@@ -145,6 +145,17 @@ class Console:
         assert match, status
         return int(match[1])
 
+    def measurement_replies(self, receiving, expected_status=None):
+        output = self.command("ptgl100 status")
+        assert ("no recent measurement replies" in output) == (not receiving), output
+        assert ("check sensor power" in output) == (not receiving), output
+        if not receiving:
+            assert "EN connected to GND" in output and "TX/RX wiring" in output, output
+            assert "sensor baud rate (460800)" in output, output
+        if expected_status is not None:
+            assert f"last measurement status: {expected_status}, reply age:" in output, output
+        return output
+
     def open_sensor_descriptors(self, path):
         count = 0
         for descriptor in Path(f"/proc/{self.process.pid}/fd").iterdir():
@@ -188,6 +199,8 @@ def run(executable, directory):
         assert "Task start failed" not in output, output
         wait_for(lambda: len(sensor.start_times) >= 2)
         assert console.samples() == 0
+        status = console.measurement_replies(receiving=False)
+        assert "last measurement status:" not in status, status
         assert all(b - a >= 0.95 for a, b in zip(sensor.start_times, sensor.start_times[1:]))
 
         config = termios.tcgetattr(sensor.slave)
@@ -202,6 +215,7 @@ def run(executable, directory):
         time.sleep(0.3)
         console.distance(12.3)
         assert console.samples() >= 10
+        console.measurement_replies(receiving=True, expected_status=1)
         console.command("logger start -f -m file")
         print("PASS: fragmented 100 Hz measurements publish distance_sensor")
 
@@ -230,12 +244,16 @@ def run(executable, directory):
             assert console.samples() == before, f"{mode} refreshed distance"
             if mode == "failed":
                 assert len(sensor.start_times) == starts_before, "failure replies triggered restart"
+                console.measurement_replies(receiving=True, expected_status=0)
             else:
                 assert len(sensor.start_times) > starts_before, f"{mode} did not trigger retry"
+                console.measurement_replies(receiving=False)
             sensor.mode = "valid"
             time.sleep(0.2)
             assert console.samples() > before
+            console.measurement_replies(receiving=True, expected_status=1)
         print("PASS: failed/corrupt/control/legacy replies and outages never republish stale distance")
+        print("PASS: missing-reply diagnostics distinguish failed measurements and clear after recovery")
 
         sensor.mode = "noise"
         sensor.distance = 23400
