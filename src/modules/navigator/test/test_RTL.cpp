@@ -65,6 +65,7 @@
 #include <uORB/topics/wind.h>
 #include <px4_platform_common/events.h>
 
+#include "MissionFeasibility/FeasibilityChecker.hpp"
 #include "mission.h"
 #include "navigator.h"
 #include "rtl.h"
@@ -258,6 +259,7 @@ public:
 	RtlType rtlTypeForTest() const { return _rtl_type; }
 	bool directActiveForTest() { return _rtl_direct.isActive(); }
 
+	// an inactive evaluation of the given RTL_TYPE with the latest vehicle state
 	void evaluateReturnTypeForTest(int32_t rtl_type)
 	{
 		_param_rtl_type.set(rtl_type);
@@ -700,6 +702,7 @@ protected:
 		ASSERT_EQ(param_set(param_find("RTL_LAND_DELAY"), &delay), PX4_OK);
 	}
 
+	// the vehicle state Navigator copies in its own cycle, which the tests do not run
 	void primeNavigatorState()
 	{
 		uORB::Subscription vehicle_sub{ORB_ID(vehicle_status)};
@@ -742,11 +745,6 @@ protected:
 		} else {
 			orb_publish(ORB_ID(wind), _wind_pub, &wind);
 		}
-	}
-
-	void publishGlobalPosition(const PositionYawSetpoint &position)
-	{
-		publishGlobalPosition(position.lat, position.lon, position.alt);
 	}
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
@@ -984,13 +982,15 @@ TEST_F(RTLTest, MissionValidityMatchesMissionAndFence)
 	mission_result->geofence_id = mission.geofence_id - 1;
 	EXPECT_FALSE(_rtl.hasValidMissionForTest());
 
-	// Home updates do not re-run the check, so a verdict from an older Home still holds
+	// RTL does not compare Home, so a verdict from an older Home still holds
 	mission_result->geofence_id = mission.geofence_id;
 	mission_result->home_position_counter = home_update_count - 1;
 	EXPECT_TRUE(_rtl.hasValidMissionForTest());
 }
 
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+// WHY: rtl_status.has_vtol_approach tells the mission check whether Return can land a VTOL on an approach.
+// WHAT: a Return type that does not look for approaches reports none, whatever an earlier type found.
 TEST_F(RTLTest, ReturnTypeChangesDiscardPreviousApproachStatus)
 {
 	// This also runs without the full mission cache: approach status must not depend on that feature.
@@ -3110,11 +3110,14 @@ TEST_F(RTLTest, RouteExecutorInitFailureStopsHere)
 	publishLandDetected(false);
 	_rtl.failNextExecutorInitForTest();
 	navigator_test::EventRecorder events;
+	navigator_test::EventRecorder direct_events;
 
 	_rtl.activateRouteSafePointReturnForTest();
 
 	expectStoppedAt(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
 	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
+	// It does not also claim to fly directly.
+	EXPECT_FALSE(direct_events.sent(events::ID("rtl_mission_executor_failed")));
 	ASSERT_TRUE(rtl_status_sub.update());
 	EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
 	EXPECT_EQ(rtl_status_sub.get().safe_point_index, UINT8_MAX);
@@ -4558,7 +4561,7 @@ TEST_F(RTLTest, ReturnExitStopsItsExecutorsBeforeTheNextMode)
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 100.f));
 	publishLandDetected(false);
 	primeNavigatorState();
-	_rtl.run(true);
+	_rtl.activateReturnTypeForTest(0);
 	ASSERT_TRUE(_rtl.directActiveForTest());
 
 	// GIVEN: Return is left for precision landing, and Navigator runs Return's exit cycle first
@@ -4583,7 +4586,7 @@ TEST_F(RTLTest, QuickReturnReentryFliesToTheNewDestination)
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 100.f));
 	publishLandDetected(false);
 	primeNavigatorState();
-	_rtl.run(true);
+	_rtl.activateReturnTypeForTest(0);
 	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
 	ASSERT_TRUE(current.valid);
 	ASSERT_NEAR(current.lat, kBaseLat, 1e-7);
@@ -4686,6 +4689,43 @@ TEST_F(RTLTest, QuickReturnReentryFollowsTheMissionFromTheClosestItem)
 	// the dataman is shared by every case in this binary, so leave the mission slot as it was found
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 }
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+// WHY: with MIS_TKO_LAND_REQ=5, an in-air VTOL mission needs a landing unless Return has a VTOL approach.
+// WHAT: an approach found for an earlier RTL_TYPE no longer lets a mission without a landing pass.
+TEST_F(RTLTest, MissionWithoutLandingNeedsAnApproachOfTheCurrentReturnType)
+{
+	int32_t takeoff_land_req = 5;
+	ASSERT_EQ(param_set(param_find("MIS_TKO_LAND_REQ"), &takeoff_land_req), PX4_OK);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(false);
+
+	// a rally point with a landing approach, away from Home
+	const ApproachGeometry geometry = makeApproachGeometry();
+	loadSafePointsIntoRouteCache({
+		makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+	});
+
+	FeasibilityChecker checker;
+	const auto acceptsMissionWithoutLanding = [&]() {
+		mission_item_s waypoint = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+		checker.processNextItem(waypoint, 0, 1);
+		return !checker.someCheckFailed();
+	};
+
+	// GIVEN: Return type 3 can land at the rally point with its approach
+	_rtl.evaluateReturnTypeForTest(3);
+	ASSERT_TRUE(acceptsMissionWithoutLanding());
+
+	// WHEN: RTL_TYPE changes to 2, which follows the mission and uses no approach
+	_rtl.evaluateReturnTypeForTest(2);
+
+	// THEN: the mission needs its own landing again
+	EXPECT_FALSE(acceptsMissionWithoutLanding());
+}
+#endif
 
 // WHY: a mission executor allocation can fail, and it is retried at every evaluation, every 2 s while inactive.
 // WHAT: types 1 to 4 then return directly to their destination, and a failure is logged once until an init succeeds.

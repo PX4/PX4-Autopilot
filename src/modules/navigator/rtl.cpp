@@ -117,7 +117,8 @@ void RTL::on_inactive()
 
 void RTL::on_inactivation()
 {
-	// Deactivate the executors now rather than in the next on_inactive(), e.g. before a quick reactivation.
+	// Stop the executors in the exit cycle, not in the next on_inactive().
+	// Modes after RTL in Navigator's mode array, such as precision landing, start after this.
 	if (_rtl_mission_type_handle) {
 		_rtl_mission_type_handle->run(false);
 	}
@@ -179,7 +180,8 @@ void RTL::on_activation()
 	reportNoRoute();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
-	if (_init_failure_reported != RtlType::NONE) {
+	// Without its follower, route Return stops here instead, and reportNoRoute() says so.
+	if ((_init_failure_reported != RtlType::NONE) && (_init_failure_reported != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)) {
 		// The executor allocation failed: tell the pilot this Return flies directly.
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: cannot follow the mission; flying directly\t");
 		events::send(events::ID("rtl_mission_executor_failed"), {events::Log::Critical, events::LogInternal::Error},
@@ -481,6 +483,7 @@ void RTL::setRtlTypeAndDestination()
 	landing_loiter.lon = destination.lon;
 	landing_loiter.height_m = NAN;
 
+	// Not every type looks for approaches: report only those this evaluation finds.
 	_home_has_land_approach = false;
 	_one_rally_point_has_land_approach = false;
 
@@ -539,8 +542,8 @@ void RTL::setRtlTypeAndDestination()
 	} else if (_param_rtl_type.get() == RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT) {
 
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
-		_home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(mission_route_cache, destination,
-					  _home_pos_sub.get().alt);
+		_home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(_navigator->get_mission_route_cache(),
+					  destination, _home_pos_sub.get().alt);
 #endif
 
 		// Set _rtl_direct with the home destination so calc_rtl_time_estimate() can check its reachability
@@ -656,18 +659,28 @@ void RTL::setRtlTypeAndDestination()
 		}
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		const bool route_follower_failed = new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
 
-		if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+		if (route_follower_failed) {
 			// The direct executor was given the route goal, which is no direct destination.
 			setCurrentPositionAsDestination(destination);
 			destination_is_current_position = true;
 			safe_point_index = RTL_STATUS_NO_SAFE_POINT;
-			configure_direct_rtl();
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+		// Without an executor, return directly to the destination of the selected type.
+		new_rtl_type = RtlType::RTL_DIRECT;
+		rtl_alt = configure_direct_rtl();
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		if (route_follower_failed) {
 			keep_altitude();
 		}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-		new_rtl_type = RtlType::RTL_DIRECT;
 
 	} else if (should_init_mission_type) {
 		// A later failure of the same type is logged again.
@@ -1062,7 +1075,7 @@ bool RTL::hasMissionLandStart() const
 
 bool RTL::hasValidMission() const
 {
-	// Home is not compared: a Home update does not re-run the mission check.
+	// Home is not compared: Mission rechecks with the Home set at arming, and in flight a Home update keeps the verdict.
 	const mission_result_s &mission_result = *_navigator->get_mission_result();
 	return mission_result.valid
 	       && mission_result.mission_id == _mission_sub.get().mission_id
