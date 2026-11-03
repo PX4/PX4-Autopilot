@@ -72,39 +72,6 @@ FullMissionCache::~FullMissionCache()
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-void FullMissionCache::advanceMissionGeneration()
-{
-	++_mission_generation;
-
-	// Zero identifies a view that has never been published.
-	if (_mission_generation == 0) {
-		++_mission_generation;
-	}
-}
-
-void FullMissionCache::invalidate()
-{
-	perf_cancel(_load_perf);
-	advanceMissionGeneration();
-	_mission = {};
-}
-
-void FullMissionCache::startMissionLoad()
-{
-	_mission.ready = false;
-	_mission.next_index = 0;
-	_mission.validation_pending = true;
-	_mission.retry.retry_at = 0;
-	perf_begin(_load_perf);
-}
-
-// Retry from the load front without clearing the prefix or retry count.
-void FullMissionCache::resumeMissionLoad()
-{
-	_mission.validation_pending = true;
-	_mission.retry.retry_at = 0;
-}
-
 // Only a loaded, valid source that fits the cache is ever marked ready.
 bool FullMissionCache::missionItemsReady(const mission_s &mission) const
 {
@@ -126,54 +93,24 @@ bool FullMissionCache::loadMissionItem(int index, mission_item_s &mission_item) 
 	return false;
 }
 
-bool FullMissionCache::getMissionView(const mission_s &mission, MissionView &view) const
+void FullMissionCache::syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
 {
-	if (!missionItemsReady(mission)) {
-		return false;
-	}
-
-	view.items = (_mission.count > 0) ? _mission_items : nullptr;
-	view.count = _mission.count;
-	view.mission_id = _mission.id;
-	view.dataman_id = _mission.dataman_id;
-	view.generation = _mission_generation;
-	return true;
-}
-
-bool FullMissionCache::missionViewStillValid(const MissionView &view) const
-{
-	// Pre-ready retries and patches can keep the generation because no view is exposed.
-	return view.generation != 0 && view.generation == _mission_generation && _mission.ready;
-}
-
-FullMissionCache::SyncResult FullMissionCache::syncMissionItem(const mission_s &mission, int32_t index,
-		const mission_item_s &mission_item)
-{
-	if (!_mission.source_valid || _mission.too_large
-	    || !missionMatchesCache(mission) || index < 0 || index >= _mission.count) {
-		return SyncResult::kRejected;
-	}
-
-	if (_mission.ready) {
-		// A ready cache has no pending read. Patch it and invalidate borrowed views.
-		_mission_items[index] = mission_item;
-		advanceMissionGeneration();
-		return SyncResult::kPatched;
+	if (!_mission.loadable || !missionMatchesCache(mission) || index < 0 || index >= _mission.count) {
+		return;
 	}
 
 	if (index < _mission.next_index) {
-		// Loaded items are not re-read, so patch the prefix in place.
+		// Loaded items are not re-read, so patch them in place. A ready cache has loaded them all.
 		_mission_items[index] = mission_item;
-		return SyncResult::kPatched;
+		return;
 	}
 
 	if (_mission_request.pending && _mission_request.index == index) {
 		// Discard the read started before the write and queue this index again.
-		advanceMissionGeneration();
+		++_mission_generation;
 	}
 
 	// Unread items pick up the Dataman write.
-	return SyncResult::kDeferred;
 }
 
 void FullMissionCache::update(const mission_s &mission)
@@ -183,21 +120,17 @@ void FullMissionCache::update(const mission_s &mission)
 	if (!missionMatchesCache(mission)) {
 		// Invalidate now, but drain any older read before issuing a new one.
 		perf_cancel(_load_perf);
-		advanceMissionGeneration();
+		++_mission_generation;
 		state = {};
 		state.id = mission.mission_id;
 		state.count = mission.count;
 		state.dataman_id = mission.mission_dataman_id;
-		state.initialized = true;
-		state.source_valid = mission.count == 0 || mission_route::isMissionDatamanIdValid(mission.mission_dataman_id);
-		state.ready = state.source_valid && mission.count == 0;
-		state.too_large = mission.count > kMaxMissionCacheSize;
+		const bool source_valid = mission.count == 0 || mission_route::isMissionDatamanIdValid(mission.mission_dataman_id);
 
-		if (!state.source_valid) {
+		if (!source_valid) {
 			PX4_ERR("Mission cache: bad dataman id");
-		}
 
-		if (state.source_valid && state.too_large) {
+		} else if (mission.count > kMaxMissionCacheSize) {
 			if (_mavlink_log_pub != nullptr) {
 				mavlink_log_warning(_mavlink_log_pub, "Mission with %u items exceeds route cache capacity %d\t",
 						    mission.count, static_cast<int>(kMaxMissionCacheSize));
@@ -207,15 +140,17 @@ void FullMissionCache::update(const mission_s &mission)
 			{events::Log::Warning, events::LogInternal::Info},
 			"Mission with {1} items exceeds the route cache capacity {2}",
 			mission.count, kMaxMissionCacheSize);
-		}
 
-		if (state.source_valid && !state.too_large && mission.count > 0 && _mission_items == nullptr) {
+		} else if (mission.count > 0 && _mission_items == nullptr) {
 			PX4_ERR("Mission cache alloc failed");
-			state.too_large = true;
-		}
 
-		if (state.source_valid && !state.too_large && mission.count > 0) {
-			startMissionLoad();
+		} else {
+			state.loadable = true;
+			state.ready = mission.count == 0;
+
+			if (!state.ready) {
+				perf_begin(_load_perf);
+			}
 		}
 	}
 
@@ -228,16 +163,14 @@ void FullMissionCache::update(const mission_s &mission)
 			return;
 		}
 
-		const bool current_generation = _mission_request.generation == _mission_generation;
-		const bool current_index = _mission_request.index == state.next_index;
 		_mission_request.pending = false;
 
-		if (current_generation && current_index && state.validation_pending) {
+		// A response from an older generation is dropped.
+		if (_mission_request.generation == _mission_generation) {
 			if (request_success) {
 				++state.next_index;
 
 			} else {
-				state.validation_pending = false;
 				PX4_WARN("Mission cache retry");
 				state.retry.scheduleRetry(hrt_absolute_time());
 				return;
@@ -245,13 +178,13 @@ void FullMissionCache::update(const mission_s &mission)
 		}
 	}
 
-	if (!state.source_valid || state.ready || state.too_large || mission.count <= 0) {
+	if (!state.loadable || state.ready) {
 		return;
 	}
 
 	const hrt_abstime now = hrt_absolute_time();
 
-	if (state.validation_pending) {
+	if (!state.retry.scheduled()) {
 		if (_mission_request.pending) {
 			return;
 		}
@@ -270,7 +203,6 @@ void FullMissionCache::update(const mission_s &mission)
 				_mission_request.pending = true;
 
 			} else {
-				state.validation_pending = false;
 				PX4_WARN("Mission cache read failed");
 				state.retry.scheduleRetry(now);
 			}
@@ -278,20 +210,19 @@ void FullMissionCache::update(const mission_s &mission)
 			return;
 		}
 
-		state.validation_pending = false;
 		state.ready = true;
 		state.retry.clear();
 		perf_end(_load_perf);
 
 	} else if (state.retry.due(now)) {
-		resumeMissionLoad();
+		// Resume from the load front, keeping the loaded prefix and the retry count.
+		state.retry.retry_at = 0;
 	}
 }
 
 bool FullMissionCache::missionMatchesCache(const mission_s &mission) const
 {
-	return _mission.initialized
-	       && mission.mission_id == _mission.id
+	return mission.mission_id == _mission.id
 	       && mission.count == _mission.count
 	       && mission.mission_dataman_id == _mission.dataman_id;
 }
@@ -303,15 +234,9 @@ orb_sub_t FullMissionCache::responseSubscription() const
 
 #else
 void FullMissionCache::update(const mission_s &) {}
-void FullMissionCache::invalidate() {}
 bool FullMissionCache::missionItemsReady(const mission_s &) const { return false; }
 int FullMissionCache::missionCount() const { return 0; }
 bool FullMissionCache::loadMissionItem(int, mission_item_s &) const { return false; }
-bool FullMissionCache::getMissionView(const mission_s &, MissionView &) const { return false; }
-bool FullMissionCache::missionViewStillValid(const MissionView &) const { return false; }
-FullMissionCache::SyncResult FullMissionCache::syncMissionItem(const mission_s &, int32_t, const mission_item_s &)
-{
-	return SyncResult::kRejected;
-}
+void FullMissionCache::syncMissionItem(const mission_s &, int32_t, const mission_item_s &) {}
 orb_sub_t FullMissionCache::responseSubscription() const { return ORB_SUB_INVALID; }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE

@@ -57,9 +57,6 @@ public:
 	static constexpr uint32_t kInitialSafePointCacheSize{0};
 	static constexpr uint32_t kInitialLandItemCacheSize{1};
 
-	using MissionView = FullMissionCache::MissionView;
-	using SyncResult = FullMissionCache::SyncResult;
-
 	// The optional mavlink log advert (Navigator's) reports a mission exceeding the cache.
 	explicit MissionRouteCache(orb_advert_t *mavlink_log_pub = nullptr);
 	~MissionRouteCache();
@@ -68,7 +65,6 @@ public:
 
 	/** @brief Advance the cache state machines for the published mission. */
 	void update(const mission_s &mission);
-	void invalidate();
 
 	/** Full-mission Dataman response subscription while an async read is pending. */
 	orb_sub_t fullMissionResponseSubscription() const
@@ -78,44 +74,19 @@ public:
 
 	bool missionItemsReady(const mission_s &mission) const;
 	bool safePointsReady() const { return _safe_point.ready; }
-	bool safePointUpdatePending() const { return !_safe_point.ready; }
 	uint32_t safePointsId() const { return _safe_point.source_id; }
-	bool missionLandItemReady() const
-	{
-		return _mission_land.ready
-		       && _mission_land.index >= 0
-		       && _mission_land.index < _mission_land.count;
-	}
-	bool missionLandItemUpdatePending() const
-	{
-		return _mission_land.index >= 0
-		       && _mission_land.index < _mission_land.count
-		       && !_mission_land.ready
-		       && (_mission_land.validation_pending || _mission_land.retry.retry_at != 0);
-	}
+	bool missionLandItemReady() const { return _mission_land.ready; }
+	bool missionLandItemUpdatePending() const { return _mission_land.index >= 0 && !_mission_land.ready; }
 	/** True after queuing, reading, or validating the current mission land item failed. */
 	bool missionLandItemAttemptFailed() const { return _mission_land.retry.retry_count > 0; }
 
 	/**
 	 * Item count of the complete, validated mission. Zero both while a replacement is
-	 * pending and for a ready empty mission. These reads carry no mission identity, use
-	 * getMissionView() for consistency across reads or update() cycles.
+	 * pending and for a ready empty mission. These reads carry no mission identity:
+	 * check missionItemsReady() first.
 	 */
 	int missionCount() const override;
 	bool loadMissionItem(int index, mission_item_s &mission_item) const override;
-
-	/**
-	 * @brief Borrow the mission items without copying them.
-	 *
-	 * Valid for the current synchronous call only, re-check it with missionViewStillValid().
-	 *
-	 * @return true for a complete view, including a ready empty mission.
-	 *         On failure the view is left unchanged.
-	 */
-	bool getMissionView(const mission_s &mission, MissionView &view) const;
-
-	/** True while a borrowed view belongs to the current ready cache generation. */
-	bool missionViewStillValid(const MissionView &view) const;
 
 	/**
 	 * Returns the item count of the complete, validated safe-point generation.
@@ -139,9 +110,9 @@ public:
 	 *
 	 * Call this from Navigator's serialized task after every successful active-mission write.
 	 * Loaded items are not re-read.
-	 * SyncResult describes only the full cache; land-cache updates are independent.
+	 * Only the full cache is synced: in-place writes only change DO_JUMP counters, never the landing item.
 	 */
-	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
+	void syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 
 private:
 	friend class MissionRouteCacheTestPeer;
@@ -157,10 +128,9 @@ private:
 	struct MissionLandState {
 		uint32_t mission_id{0};
 		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
-		int32_t index{-1};
+		int32_t index{-1}; ///< Loads until ready, except while a retry is scheduled.
 		int32_t count{0}; ///< Published mission.count the index was validated against.
 		bool ready{false};
-		bool validation_pending{false};
 		mission_route::CacheRetryBackoff retry{};
 	};
 
@@ -174,16 +144,14 @@ private:
 	};
 
 	void updateMissionLandItemCache(const mission_s &mission);
-	void syncMissionLandItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 	bool missionLandMatchesCache(const mission_s &mission) const;
 	bool queueMissionLandItem();
 	void updateSafePointCache(const mission_s &mission);
 	bool missionLandItemCacheFullyLoaded() const;
 	bool safePointCacheFullyLoaded() const;
-	void resetSafePointCacheState(bool clear_source_identity);
+	void resetSafePointCacheState();
 
-	// Navigator accesses MissionRouteCache from one serialized task loop. The
-	// typed mission view can therefore be borrowed for one synchronous planning call.
+	// Navigator accesses MissionRouteCache from one serialized task loop.
 	FullMissionCache _full_mission_cache;
 	mutable DatamanCache _dataman_cache_safepoint {"navigator_dm_cache_route_safepoint", kInitialSafePointCacheSize};
 	mutable DatamanCache _dataman_cache_land_item{"navigator_dm_cache_route_land", kInitialLandItemCacheSize};
