@@ -117,14 +117,14 @@ Sensors::~Sensors()
 
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS)
 
 	if (_vehicle_gnss) {
 		_vehicle_gnss->Stop();
 		delete _vehicle_gnss;
 	}
 
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+#endif // CONFIG_SENSORS_VEHICLE_GNSS
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 
@@ -250,9 +250,9 @@ int Sensors::parameters_update()
 	InitializeVehicleAirspeed();
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS)
 	InitializeVehicleGnss();
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+#endif // CONFIG_SENSORS_VEHICLE_GNSS
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 	InitializeVehicleMagnetometer();
@@ -365,7 +365,7 @@ void Sensors::InitializeVehicleAirspeed()
 }
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS)
 void Sensors::InitializeVehicleGnss()
 {
 	if (_param_sys_has_gps.get()) {
@@ -378,7 +378,7 @@ void Sensors::InitializeVehicleGnss()
 		}
 	}
 }
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+#endif // CONFIG_SENSORS_VEHICLE_GNSS
 
 void Sensors::InitializeVehicleIMU()
 {
@@ -502,7 +502,7 @@ void Sensors::Run()
 
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS)
 		const int n_gnss = orb_group_count(ORB_ID(sensor_gnss));
 
 		if (n_gnss != _n_gnss) {
@@ -510,7 +510,7 @@ void Sensors::Run()
 			updated = true;
 		}
 
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+#endif // CONFIG_SENSORS_VEHICLE_GNSS
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 		const int n_mag = orb_group_count(ORB_ID(sensor_mag));
@@ -686,14 +686,14 @@ int Sensors::print_status()
 	_vehicle_angular_velocity.PrintStatus();
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS)
 
 	if (_vehicle_gnss) {
 		PX4_INFO_RAW("\n");
 		_vehicle_gnss->PrintStatus();
 	}
 
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+#endif // CONFIG_SENSORS_VEHICLE_GNSS
 
 	PX4_INFO_RAW("\n");
 
