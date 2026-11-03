@@ -67,6 +67,8 @@ static constexpr int32_t DEFAULT_MISSION_CACHE_SIZE = 10;
 Mission::Mission(Navigator *navigator) :
 	MissionBase(navigator, DEFAULT_MISSION_CACHE_SIZE, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 {
+	param_set_used(param_handle(px4::params::MIS_DIST_1WP));
+	param_set_used(param_handle(px4::params::MIS_TKO_LAND_REQ));
 }
 
 void
