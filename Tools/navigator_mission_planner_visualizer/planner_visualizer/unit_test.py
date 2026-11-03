@@ -64,7 +64,7 @@ def generate_unit_test(
             f"\t_navigator.get_home_position()->alt = {request.home_altitude_amsl:.3f}f;",
             "\t_navigator.get_home_position()->valid_alt = true;",
             "\tASSERT_TRUE(loadFence(fence_points));",
-            f"\tconst mission_route::GeofencePathChecker checker{{_fence, {vehicle_name}}};",
+            "\tconst mission_route::GeofencePathChecker checker{_fence};",
             "\tMissionRoutePlanner planner{provider, &checker};",
             f"\tmission_route::{request_type} request{{}};",
             f"\trequest.vehicle_position = {vehicle_name};",
@@ -124,9 +124,6 @@ def _request_overrides(request: PlanRequest, scene: Scene, rtl: bool, helper: Op
         if item.type is bool:
             if value:
                 yield f"request.{name} = true;"
-        elif item.type is int:
-            if value >= 0:  # mission_land_index, -1 when unset
-                yield f"request.{name} = {value};"
         else:
             # The CLI gets 1 mm precision, so defaults are compared at that precision.
             default = defaults.get(name)
@@ -156,7 +153,6 @@ def _expectations(result: PlanResult, rtl: bool):
         yield f"EXPECT_EQ(plan.branch_off_mission_item_index, {result.int_field('branch_off_mission_item_index')});"
         yield from _expect_position("branch_off_position", result.position("branch_off"))
     yield _expect_bool("plan.fly_direct_to_goal", result.bool_field("fly_direct_to_goal"))
-    yield _expect_bool("plan.geofence_prevents_shortcut", result.bool_field("geofence_prevents_shortcut"))
 
 
 def _goal_enum(goal_type: str) -> str:

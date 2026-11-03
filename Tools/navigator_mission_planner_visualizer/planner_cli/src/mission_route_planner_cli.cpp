@@ -92,18 +92,21 @@ public:
 	std::vector<mission_item_s> safe_points;
 
 	int missionCount() const override { return static_cast<int>(mission.size()); }
-	bool loadMissionItem(int index, mission_item_s &item) const override { return load(mission, index, item); }
-	int safePointCount() const override { return static_cast<int>(safe_points.size()); }
-	bool loadSafePointItem(int index, mission_item_s &item) const override { return load(safe_points, index, item); }
 
-private:
-	static bool load(const std::vector<mission_item_s> &items, int index, mission_item_s &item)
+	const mission_item_s *missionItem(int index) const override
 	{
-		if (index < 0 || index >= static_cast<int>(items.size())) {
+		return (index >= 0 && index < static_cast<int>(mission.size())) ? &mission[index] : nullptr;
+	}
+
+	int safePointCount() const override { return static_cast<int>(safe_points.size()); }
+
+	bool loadSafePointItem(int index, mission_item_s &item) const override
+	{
+		if (index < 0 || index >= static_cast<int>(safe_points.size())) {
 			return false;
 		}
 
-		item = items[index];
+		item = safe_points[index];
 		return true;
 	}
 };
@@ -249,8 +252,6 @@ bool lineEnded(std::istringstream &line)
 bool setRequestField(RtlRouteRequest &request, const std::string &key, const std::string &value)
 {
 	if (key == "mission_index") { return parseInt32(value, request.mission_index); }
-
-	if (key == "mission_land_index") { return parseInt32(value, request.mission_land_index); }
 
 	if (key == "home_altitude_amsl") { return parseFloat(value, request.home_altitude_amsl); }
 
@@ -467,7 +468,6 @@ void runPlanner(const Scenario &scenario, const PathChecker *checker = nullptr)
 			printPosition("branch_off", plan.branch_off_position);
 			printf("PLAN branch_off_mission_item_index %d\n", static_cast<int>(plan.branch_off_mission_item_index));
 			printf("PLAN fly_direct_to_goal %d\n", static_cast<int>(plan.fly_direct_to_goal));
-			printf("PLAN geofence_prevents_shortcut %d\n", static_cast<int>(plan.geofence_prevents_shortcut));
 		}
 
 		return;
@@ -602,7 +602,7 @@ bool runWithGeofence(const Scenario &scenario, std::string &error)
 		printf("Geofence: vehicle already breaches the fence; segments from the vehicle are not checked.\n");
 	}
 
-	GeofencePathChecker checker{fence, vehicle};
+	GeofencePathChecker checker{fence};
 	runPlanner(scenario, &checker);
 	return true;
 }

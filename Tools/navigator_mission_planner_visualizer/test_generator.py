@@ -134,7 +134,7 @@ class GeneratorTest(unittest.TestCase):
         code = generate_unit_test(scene, BASE, request, result, "Reject fence crossing")
         self.assertIn("TEST_F(MissionRouteGeofenceTest, RejectFenceCrossing)", code)
         self.assertIn("ASSERT_TRUE(loadFence(fence_points));", code)
-        self.assertIn("GeofencePathChecker checker{_fence, vehicle_position};", code)
+        self.assertIn("GeofencePathChecker checker{_fence};", code)
         self.assertIn("MissionRoutePlanner planner{provider, &checker};", code)
         self.assertIn("request.projection_search_distance_m = 60.000f;", code)
         self.assertIn("request.home_altitude_amsl = 500.000f;", code)

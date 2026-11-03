@@ -438,7 +438,7 @@ bool RTL::routeInputsPending() const
 	const MissionRouteCache &cache = _navigator->get_mission_route_cache();
 	return _route_safe_point.supportsVehicle(_vehicle_status_sub.get())
 	       && (_route_safe_point.evaluationPending(_mission_sub.get()) || missionValidationPending()
-		   || cache.safePointUpdatePending() || cache.safePointsId() != _mission_sub.get().safe_points_id);
+		   || !cache.safePointsReady() || cache.safePointsId() != _mission_sub.get().safe_points_id);
 }
 
 bool RTL::waitForRouteInputs() const
@@ -735,7 +735,7 @@ void RTL::publishRtlStatus(uint8_t safe_point_index)
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 	rtl_status_s rtl_status{};
 	rtl_status.safe_points_id = mission_route_cache.safePointsId();
-	rtl_status.is_evaluation_pending = mission_route_cache.safePointUpdatePending()
+	rtl_status.is_evaluation_pending = !mission_route_cache.safePointsReady()
 					   || mission_route_cache.missionLandItemUpdatePending();
 	rtl_status.has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
 	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);

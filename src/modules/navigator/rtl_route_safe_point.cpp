@@ -101,12 +101,9 @@ bool RtlRouteSafePoint::sourceMatches(const mission_s &mission) const
 
 bool RtlRouteSafePoint::sourceStillValid(const mission_s &mission) const
 {
-	// The count and generation also catch in-place edits of the same sources.
-	const MissionRouteCache &cache = _navigator->get_mission_route_cache();
-	MissionRouteCache::MissionView view{};
+	// The count also catches in-place edits of the same safe points. Return plans ignore DO_JUMP counters.
 	return sourceMatches(mission) && inputsReady(mission)
-	       && cache.safePointCount() == _source.safe_point_count
-	       && cache.getMissionView(mission, view) && view.generation == _source.mission_generation;
+	       && _navigator->get_mission_route_cache().safePointCount() == _source.safe_point_count;
 }
 
 bool RtlRouteSafePoint::evaluationPending(const mission_s &mission) const
@@ -148,15 +145,9 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 		return evaluation;
 	}
 
-	MissionRouteCache::MissionView mission_view{};
-
-	if (!cache.getMissionView(mission, mission_view)) {
-		return evaluation;
-	}
-
 	const mission_route::RtlRouteRequest request = buildPlannerRequest(mission, vehicle_status, global_position,
 			home_position, require_vtol_approach);
-	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence(), request.vehicle_position};
+	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence()};
 	const MissionRoutePlanner planner{cache, &path_checker};
 	const mission_route::FailureReason failure = planner.planRtlRoute(request, _plan);
 
@@ -180,7 +171,6 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 	_active_jump_anchor = _plan.active_jump_anchor;
 	_source = {
 		.mission_id = mission.mission_id,
-		.mission_generation = mission_view.generation,
 		.safe_points_id = cache.safePointsId(),
 		.geofence_id = mission.geofence_id,
 		.mission_land_index = mission.land_index,
@@ -221,11 +211,6 @@ void RtlRouteSafePoint::reportRouteWaitEnded() const
 	events::send(events::ID("rtl_route_wait_ended"), events::Log::Info, "Return: stopped waiting for uploaded data");
 }
 
-uint32_t RtlRouteSafePoint::missionGeneration() const
-{
-	return _source.mission_generation;
-}
-
 mission_route::ActiveJumpAnchor RtlRouteSafePoint::activeJumpAnchor() const
 {
 	return _active_jump_anchor;
@@ -240,7 +225,6 @@ mission_route::RtlRouteRequest RtlRouteSafePoint::buildPlannerRequest(const miss
 	mission_route::RtlRouteRequest request{};
 	request.vehicle_position = {global_position.lat, global_position.lon, global_position.alt};
 	request.mission_index = mission.current_seq >= 0 ? mission.current_seq : 0;
-	request.mission_land_index = mission.land_index;
 	request.current_route_direction_reversed = _direction_reversed;
 	request.active_jump_anchor = _active_jump_anchor;
 	request.projection_search_distance_m =
