@@ -53,7 +53,6 @@ class MigrateParamFileTest(unittest.TestCase):
             (1, 'MAN_OVERRIDE_SPD'): ('-1.000000000000000000', 9),
             (1, 'MPC_AUTO_NUDGING'): ('2', 6),
             (1, 'HEATER1_TEMP'): ('45.000000000000000000', 9),
-            (1, 'HEATER1_SENS_ID'): ('-1', 6),
             (1, 'MPC_XY_VEL_MAX'): ('8.000000000000000000', 9),
         })
 
@@ -61,13 +60,17 @@ class MigrateParamFileTest(unittest.TestCase):
         _, values, log = migrate(
             (1, 'COM_RC_OVERRIDE', '1', 6),
             (1, 'MNT_RANGE_PITCH', '0.000000000000000000', 9),
-            (1, 'MPC_LAND_RC_HELP', '0', 6))
+            (1, 'MPC_LAND_RC_HELP', '0', 6),
+            (1, 'SENS_TEMP_ID', '0', 6))
         self.assertEqual(values, {})
         self.assertIn('converted: COM_RC_OVERRIDE 1 -> nothing to set', log)
+        self.assertIn('converted: SENS_TEMP_ID 0 -> nothing to set', log)
 
     def test_heater_sensor_id_kept(self):
-        _, values, _ = migrate((1, 'SENS_TEMP_ID', '2621474', 6))
+        _, values, log = migrate((1, 'SENS_TEMP_ID', '2621474', 6))
         self.assertEqual(values, {(1, 'HEATER1_SENS_ID'): ('2621474', 6)})
+        self.assertEqual(log, ['converted: SENS_TEMP_ID 2621474 ->'
+                               ' HEATER1_SENS_ID 2621474'])
 
     def test_landing_nudging_merged_into_existing_bits(self):
         _, values, _ = migrate((1, 'MPC_AUTO_NUDGING', '1', 6),
@@ -100,6 +103,14 @@ class MigrateParamFileTest(unittest.TestCase):
         self.assertEqual(
             log, ['default: FD_ACT_EN 1 is a v1.17 default, v1.18 uses 0'])
 
+    def test_vehicle_type_default_listed_with_its_scope(self):
+        _, values, log = migrate(
+            (1, 'EKF2_REQ_PDOP', '2.500000000000000000', 9))
+        self.assertEqual(values,
+                         {(1, 'EKF2_REQ_PDOP'): ('2.500000000000000000', 9)})
+        self.assertEqual(log, ['default: EKF2_REQ_PDOP 2.5 is a v1.17 default,'
+                               ' v1.18 uses 4 on fixed-wing'])
+
     def test_other_components_untouched(self):
         _, values, log = migrate((154, 'EKF2_GPS_DELAY', '150.0', 9))
         self.assertEqual(values, {(154, 'EKF2_GPS_DELAY'): ('150.0', 9)})
@@ -112,12 +123,20 @@ class MigrateParamFileTest(unittest.TestCase):
         self.assertEqual(log, ['copied unchanged, not in the QGroundControl'
                                ' format: EKF2_GPS_DELAY,150'])
 
+    def test_line_without_newline_kept_apart(self):
+        lines = m.migrate(['# saved by hand'] + params_file(
+            (1, 'MPC_XY_VEL_MAX', '8.0', 9))[len(HEADER):], lambda _: None)
+        self.assertEqual(lines, ['# saved by hand\n',
+                                 '1\t1\tMPC_XY_VEL_MAX\t8.0\t9\n'])
+
     def test_every_written_parameter_has_a_type(self):
         for kind, new, _ in m.CONVERSIONS.values():
             for name in (new,) if isinstance(new, str) else new:
                 self.assertIn(name, m.NEW_TYPES)
 
     def test_firmware_translates_every_converted_parameter(self):
+        # Catches a translation removed from the firmware, not a changed
+        # target: main already writes SENS_GNSS*, the script the v1.18 names
         with open(TRANSLATION, encoding='utf-8') as f:
             source = f.read()
         for old in m.CONVERSIONS:

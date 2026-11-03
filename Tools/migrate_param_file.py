@@ -78,8 +78,10 @@ CONVERSIONS = {
     'SENS_IMU_TEMP_FF': ('rename', 'HEATER1_TEMP_FF', None),
     'SENS_IMU_TEMP_I': ('rename', 'HEATER1_TEMP_I', None),
     'SENS_IMU_TEMP_P': ('rename', 'HEATER1_TEMP_P', None),
-    # SENS_TEMP_ID 0 kept the heater off, HEATER1_SENS_ID 0 auto-selects
-    'SENS_TEMP_ID': ('heater_sensor', 'HEATER1_SENS_ID', None),
+    # SENS_TEMP_ID 0 is the v1.17 default, which the vehicle does not store,
+    # so the upgrade leaves HEATER1_SENS_ID at its v1.18 default (the file
+    # cannot show a 0 stored over a board default, which becomes -1)
+    'SENS_TEMP_ID': ('if_nonzero_rename_int', 'HEATER1_SENS_ID', None),
     # landing nudging is bit 1 of MPC_AUTO_NUDGING (v1.18 default 0)
     'MPC_LAND_RC_HELP': ('if_nonzero_set_bit', 'MPC_AUTO_NUDGING', 1),
 }
@@ -152,13 +154,27 @@ DEFAULT_CHANGES = {
     'SENS_MAG_AUTOCAL': (1, 0),
     'VT_LND_PITCH_MIN': (-5.0, 0.0),
     'VT_PITCH_MIN': (-5.0, 0.0),
+    # set by the v1.18 fixed-wing defaults, still 2.5 for other vehicles
+    'EKF2_REQ_PDOP': (2.5, 4.0),
     # set by the v1.17 multicopter airframes, no longer in v1.18
     'NAV_ACC_RAD': (2.0, 10.0),
+}
+
+# Defaults that v1.18 changed for one vehicle type only
+DEFAULT_CHANGE_SCOPES = {
+    'EKF2_REQ_PDOP': 'on fixed-wing',
 }
 
 
 def float32(value):
     return struct.unpack('<f', struct.pack('<f', value))[0]
+
+
+def show(value):
+    """Format a value for the log, integers without an exponent."""
+    if float(value).is_integer():
+        return str(int(value))
+    return f'{value:g}'
 
 
 def format_value(value, mav_type):
@@ -185,8 +201,8 @@ def convert(name, value, current):
         return [(new[0], half), (new[1], -half)]
     if kind == 'if_zero_set':
         return [(new, arg)] if value == 0 else []
-    if kind == 'heater_sensor':
-        return [(new, -1 if value == 0 else int(value))]
+    if kind == 'if_nonzero_rename_int':
+        return [(new, int(value))] if value != 0 else []
     if kind == 'if_nonzero_set_bit':
         if value == 0:
             return []
@@ -207,7 +223,8 @@ def migrate(lines, log):
             if line.strip() and not line.startswith('#'):
                 log(f'copied unchanged, not in the QGroundControl format:'
                     f' {line.strip()}')
-            rows.append(line)
+            # parameters follow these lines in the output
+            rows.append(line if line.endswith('\n') else line + '\n')
             continue
         rows.append(fields)
 
@@ -228,11 +245,12 @@ def migrate(lines, log):
             writes = convert(name, value, {**current, **new_values})
             for new_name, new_value in writes:
                 new_values[new_name] = new_value
-            done = ', '.join(f'{n} {v:g}' for n, v in writes)
-            log(f'converted: {name} {value:g} -> {done or "nothing to set"}')
+            done = ', '.join(f'{n} {show(v)}' for n, v in writes)
+            log(f'converted: {name} {show(value)} ->'
+                f' {done or "nothing to set"}')
         elif name in REMOVED:
             hint = f': {REMOVED[name]}' if REMOVED[name] else ''
-            log(f'removed: {name} {value:g}{hint}')
+            log(f'removed: {name} {show(value)}{hint}')
         elif name in REVERSE_PARAMS and row[4] != str(MAV_PARAM_TYPE_INT32):
             reverse = -1 if value < 0 else 1
             if reverse < 0:
@@ -243,8 +261,10 @@ def migrate(lines, log):
             if name in DEFAULT_CHANGES:
                 old, new = DEFAULT_CHANGES[name]
                 if value == float32(old):
-                    log(f'default: {name} {value:g} is a v1.17 default,'
-                        f' v1.18 uses {new:g}')
+                    scope = DEFAULT_CHANGE_SCOPES.get(name)
+                    log(f'default: {name} {show(value)} is a v1.17 default,'
+                        f' v1.18 uses {show(new)}'
+                        + (f' {scope}' if scope else ''))
             out.append(row)
 
     # A converted value replaces the file's own value of that parameter
