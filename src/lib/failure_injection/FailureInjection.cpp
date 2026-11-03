@@ -226,10 +226,8 @@ MotorFailureMasks process_motor(const Config &config)
 	return masks;
 }
 
-matrix::Vector3f imu_offset(const Config &config, uint8_t unit, uint8_t uorb_instance, hrt_abstime now,
-			    hrt_abstime &drift_start)
+matrix::Vector3f imu_offset(Mode mode, uint8_t unit, hrt_abstime now, hrt_abstime &drift_start)
 {
-	const Mode mode = config.mode(unit, uorb_instance + 1);
 	const bool gyro = (unit == failure_injection_s::FAILURE_UNIT_SENSOR_GYRO);
 	float magnitude = 0.f;
 

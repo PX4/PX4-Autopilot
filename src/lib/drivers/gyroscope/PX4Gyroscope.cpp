@@ -155,14 +155,8 @@ void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y,
 
 	_failure_config.update();
 
-	const matrix::Vector3f offset = failure_injection::imu_offset(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
-					_sensor_pub.get_instance(), report.timestamp, _drift_start);
-	report.x += offset(0);
-	report.y += offset(1);
-	report.z += offset(2);
-
-	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
-					_sensor_pub.get_instance(), report, _stuck)) {
+	if (!failure_injection::process_imu(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
+					    _sensor_pub.get_instance(), report, _stuck, _drift_start)) {
 		return;
 	}
 
@@ -185,20 +179,9 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 
 	_failure_config.update();
 
-	// injected bias/noise/drift on the raw samples also reaches the integrated report below
-	const matrix::Vector3f offset = failure_injection::imu_offset(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
-					_sensor_pub.get_instance(), sample.timestamp, _drift_start) / _scale;
-
-	if (offset.longerThan(0.f)) {
-		for (int n = 0; n < sample.samples; n++) {
-			sample.x[n] = (int16_t)math::constrain(roundf(sample.x[n] + offset(0)), (float)INT16_MIN, (float)INT16_MAX);
-			sample.y[n] = (int16_t)math::constrain(roundf(sample.y[n] + offset(1)), (float)INT16_MIN, (float)INT16_MAX);
-			sample.z[n] = (int16_t)math::constrain(roundf(sample.z[n] + offset(2)), (float)INT16_MIN, (float)INT16_MAX);
-		}
-	}
-
-	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
-					_sensor_pub.get_instance(), sample, _stuck_fifo)) {
+	// Off / Stuck / bias / noise / drift on the raw samples also reach the integrated report below
+	if (!failure_injection::process_imu(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
+					    _sensor_pub.get_instance(), sample, _stuck_fifo, _drift_start)) {
 		return;
 	}
 
@@ -233,11 +216,6 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 	report.clip_counter[2] = clipping(sample.z, N, clip_limit);
 	report.samples = N;
 	report.timestamp = hrt_absolute_time();
-
-	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
-					_sensor_pub.get_instance(), report, _stuck)) {
-		return;
-	}
 
 	_sensor_pub.publish(report);
 }
