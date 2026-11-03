@@ -399,6 +399,40 @@
                         }
                     }
                 },
+                "gnss_selection_reason_t": {
+                    "type": "uint8_t",
+                    "description": "Why the sensors module selected a GNSS receiver, the values of vehicle_gnss.selection_reason",
+                    "entries": {
+                        "0": {
+                            "name": "preferred",
+                            "description": "Preferred receiver"
+                        },
+                        "1": {
+                            "name": "only",
+                            "description": "Only receiver"
+                        },
+                        "2": {
+                            "name": "ranked",
+                            "description": "No receiver ranks higher"
+                        },
+                        "3": {
+                            "name": "timeout",
+                            "description": "Previous receiver stopped publishing"
+                        },
+                        "4": {
+                            "name": "unhealthy",
+                            "description": "Previous receiver failed its checks or was late"
+                        },
+                        "5": {
+                            "name": "requirements",
+                            "description": "Meets the accuracy requirements, the previous receiver didn't"
+                        },
+                        "6": {
+                            "name": "rtk_fixed",
+                            "description": "RTK fixed, the previous receiver wasn't"
+                        }
+                    }
+                },
                 "arming_state_t": {
                     "type": "uint8_t",
                     "description": "State of the main arming state machine",
