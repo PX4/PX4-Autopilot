@@ -70,6 +70,13 @@ Above we only write to the battery fields that are defined in the topic.
 На практиці ви оновлювали б всі поля або з дійсними, або з недійсними значеннями: це було скорочено для стислості.
 :::
 
+:::tip
+If the message has a `target_system` field, don't compare the decoded field with `mavlink_system.sysid` directly.
+MAVLink system IDs can be 32 bit: a target above 255 is sent in a header extension and the 8-bit payload field only holds 255.
+Use `mavlink_target_system(msg, decoded.target_system)` to get the full target instead.
+When sending a message to a system, use `mavlink_msg_send_struct_target()` instead of `mavlink_msg_<name>_send_struct()` so a target above 255 is not truncated.
+:::
+
 and finally make sure it is called in [MavlinkReceiver::handle_message()](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_receiver.cpp#L228)
 
 ```cpp

@@ -51,6 +51,8 @@ class MissionRouteCacheTestPeer
 public:
 	static constexpr hrt_abstime kDefaultCacheTestTimeoutUs{5'000'000}; // 5 s
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// The full mission cache has no state on boards without it; the safe point and land item caches do.
 	static bool missionRetryScheduled(const MissionRouteCache &cache)
 	{
 		return cache._full_mission_cache._mission.retry.retry_at != 0;
@@ -89,6 +91,7 @@ public:
 			cache._full_mission_cache._mission.retry.retry_at = hrt_absolute_time();
 		}
 	}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	static bool missionLandRetryScheduled(const MissionRouteCache &cache)
 	{
@@ -116,14 +119,6 @@ public:
 	{
 		return cache._safe_point.dataman_state == MissionRouteCache::SafePointDatamanState::kLoad
 		       && cache._dataman_cache_safepoint.isLoading();
-	}
-
-	// Force safe-point read without changing safe_points_id, simulating a re-validation cycle.
-	static void requestSafePointRecheck(MissionRouteCache &cache)
-	{
-		cache._safe_point.update_requested = true;
-		cache._safe_point.dataman_state = MissionRouteCache::SafePointDatamanState::kUpdateRequestWait;
-		cache._safe_point.retry.retry_at = 0;
 	}
 
 	static void expireSafePointRetryBackoff(MissionRouteCache &cache)
@@ -170,6 +165,8 @@ private:
 	// Returns false when nothing can progress without waiting on a scheduled retry backoff.
 	static bool progressOneEvent(MissionRouteCache &cache, const mission_s &mission, hrt_abstime timeout)
 	{
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
 		if (cache._full_mission_cache._mission_request.pending) {
 			if (!DatamanClientTestPeer::waitForOperation(cache._full_mission_cache._dataman_client_mission, timeout)) {
 				return false;
@@ -184,12 +181,14 @@ private:
 			return true;
 		}
 
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 		if (cache._mission_land.index >= 0 && cache._dataman_cache_land_item.isLoading()) {
 			return DatamanCacheTestPeer::processNextBlocking(cache._dataman_cache_land_item, timeout);
 		}
 
 		if (cache._safe_point.dataman_state == MissionRouteCache::SafePointDatamanState::kUpdateRequestWait
-		    && cache._safe_point.update_requested
+		    && !cache._safe_point.ready
 		    && cache._safe_point.retry.retry_at == 0) {
 			cache.update(mission);
 			return true;

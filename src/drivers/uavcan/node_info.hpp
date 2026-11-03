@@ -41,7 +41,6 @@
 using namespace time_literals;
 
 constexpr int DEVICE_INFO_PUBLISH_INTERVAL_MS = 1000;
-constexpr hrt_abstime DEVICE_INFO_PUBLISH_RATE_LIMIT_US = 100_ms;
 
 class NodeInfoPublisher : private uavcan::INodeInfoListener, private uavcan::TimerBase
 {
@@ -109,7 +108,6 @@ private:
 	size_t _device_informations_size{0};
 	size_t _device_informations_capacity{0};
 	uORB::Publication<device_information_s> _device_info_pub{ORB_ID(device_information)};
-	hrt_abstime _last_device_info_publish{0};
 
 	// Round-robin publishing
 	size_t _next_device_to_publish{0};

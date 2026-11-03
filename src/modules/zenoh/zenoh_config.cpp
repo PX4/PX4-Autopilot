@@ -109,8 +109,8 @@ int Zenoh_Config::AddPubSub(char *topic, char *datatype, int instance_no, const 
 
 		while (getPubSubMapping(f_topic, f_type, &f_new_instance, filename) > 0) {
 			if (strcmp(topic, f_topic) == 0
-			    || strcmp(datatype, f_type) == 0) {
-				printf("Already mapped to uORB %s -> %s\n", f_type, f_topic);
+			    || (strcmp(datatype, f_type) == 0 && instance_no == f_new_instance)) {
+				printf("Already mapped to uORB %s (instance %d) -> %s\n", f_type, f_new_instance, f_topic);
 				return 0;
 			}
 

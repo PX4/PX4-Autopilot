@@ -107,9 +107,9 @@ void KF_orientation::pushHistory(const uint64_t time_us)
 	_oosm.push(time_us, _state, _state_covariance, EmptyInput{});
 }
 
-void KF_orientation::resetHistory()
+void KF_orientation::resetHistory(FusionTimes times)
 {
-	_oosm.reset();
+	_oosm.reset(times);
 }
 
 FusionResult KF_orientation::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold)

@@ -68,6 +68,9 @@ sudo pacman -Sy --noconfirm --needed \
 # Python dependencies
 echo "Installing PX4 Python3 dependencies"
 pip install --break-system-packages -r ${DIR}/${REQUIREMENTS_FILE}
+if [[ -f "${DIR}/test-requirements.txt" ]]; then
+	pip install --break-system-packages -r ${DIR}/test-requirements.txt
+fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then

@@ -99,7 +99,9 @@ void AgpSource::bufferData(const aux_global_position_s &msg, const estimator::im
 
 bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
-	ekf._fc.agp[_slot].available = (_params.ctrl != 0);
+	// the parameter is a bitmask: bit 0 enables the horizontal position fusion below; bit 1 (vertical position)
+	// has no fusion path yet, so it enables nothing
+	ekf._fc.agp[_slot].available = (_params.ctrl & static_cast<int32_t>(Ctrl::kHPos)) != 0;
 
 	AuxGlobalPositionSample sample;
 
@@ -124,6 +126,8 @@ bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 					  innovation,                                          // innovation
 					  Vector2f(ekf.getPositionVariance()) + pos_obs_var,   // innovation variance
 					  math::max(_params.gate, 1.f));                              // innovation gate
+
+		_aid_src.device_id = sample.id;
 
 		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)
 						 && ekf.control_status_flags().yaw_align;

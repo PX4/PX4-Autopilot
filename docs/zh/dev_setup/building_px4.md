@@ -73,8 +73,7 @@ make px4_fmu-v5_default
 ```
 
 :::tip
-You can also build using the [px4-dev Docker container](../test_and_ci/docker.md) without installing the toolchain locally.
-From the PX4-Autopilot directory:
+您也可以使用 [px4-dev Docker 容器](../test_and_ci/docker.md) 进行构建，而无需在本地安装工具链。来自 PX4-Autopilot 目录：
 
 ```sh
 ./Tools/docker_run.sh 'make px4_fmu-v5_default'
@@ -113,9 +112,9 @@ From the PX4-Autopilot directory:
 
 - [Pixhawk 4 Mini (FMUv5)](../flight_controller/pixhawk4_mini.md): `make px4_fmu-v5_default`
 
-- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_default` - Discontinued
+- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_default` - 已停产
 
-- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_default` - Discontinued
+- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_default` - 已停产
 
 - [Pixracer (FMUv4)](../flight_controller/pixracer.md): `make px4_fmu-v4_default`
 
@@ -127,17 +126,16 @@ From the PX4-Autopilot directory:
 
 - [mRo Pixhawk (FMUv3)](../flight_controller/mro_pixhawk.md): `make px4_fmu-v3_default` (支持 2MB Flash)
 
-- [Holybro pix32 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Holybro pix32 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default`  - 已停产
 
-- [Pixfalcon (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Pixfalcon (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default`  - 已停产
 
-- [Dropix (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Dropix (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default`  - 已停产
 
-- [Pixhawk 1 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Pixhawk 1 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - 已停产
 
-  :::warning
-  You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
-  使用不受支持的GCC进行构建可能会失败，因为PX4接近板载1MB闪存的容量限制。
+  :::警告
+  您**必须**使用受支持的 GCC 版本来构建此开发板（例如，当前 Ubuntu LTS 中的 `gcc-arm-none-eabi` 软件包，这与 CI 所使用的工具链相同），或者从构建中移除某些模块。使用不受支持的GCC进行构建可能会失败，因为PX4接近板载1MB闪存的容量限制。
 
 :::
 
@@ -178,26 +176,23 @@ Rebooting.
 make list_config_targets
 ```
 
-## Submodules
+## 子模块
 
-PX4 pulls a number of libraries (NuttX, MAVLink, and others) in as git submodules.
-Each build checks them once when it configures:
+PX4 将多个库（如 NuttX、MAVLink 等）作为 Git 子模块引入。每次构建在配置时都会检查它们一次：
 
-| Submodule state                                                                            | Local build               | CI (`CI=true`) |
-| ------------------------------------------------------------------------------------------ | ------------------------- | --------------------------------- |
-| At the commit PX4 records                                                                  | Builds                    | Builds                            |
-| Missing                                                                                    | Fetched, then builds      | Fetched, then builds              |
-| At another commit (e.g. you changed it) | Warns, builds it as it is | Fails                             |
+| 子模块状态                              | 本地编译      | CI (`CI=true`) |
+| ---------------------------------- | --------- | --------------------------------- |
+| 在提交时，PX4 会记录                       | Builds    | Builds                            |
+| 缺失                                 | 获取，然后编译版本 | 获取，然后编译版本                         |
+| 在另一个提交 (例如你改变它) | 警告，将其构建为  | 失败                                |
 
-A submodule at another commit is never reset, so you can develop and test changes to a submodule (for example a NuttX upgrade) in place.
-The build warns about it every time, and you are responsible for keeping it in the state you want.
-To check out the commits PX4 records (for example after switching branches), run:
+处于其他提交版本的子模块绝不会被重置，因此您可以直接对子模块（例如 NuttX 升级）的更改进行开发和测试。每次构建时系统都会对此发出警告，而您有责任将其保持在您期望的状态。要查看 PX4 记录的提交（例如在切换分支后），请运行：
 
 ```sh
 git submodule sync --recursive && git submodule update --init --recursive
 ```
 
-Set `GIT_SUBMODULES_ARE_EVIL=1` to skip the check entirely and manage submodules yourself.
+将 CMake 变量 `PX4_GIT_SUBMODULES` 设置为子模块路径的列表，以便仅检查这些路径，例如当另一个项目构建 PX4 且仅使用其中部分库时。如果构建中使用了尚未检出的子模块，则配置步骤将停止。设置 `GIT_SUBMODULES_ARE_EVIL=1`，即可完全跳过该检查，并自行管理子模块。
 
 ## 用图形界面 IDE 编译
 
@@ -218,8 +213,7 @@ make distclean
 
 `region 'flash' overflowed by XXXX bytes` 错误表明固件对目标硬件平台太大了。这对于`make px4_fmu-v2_default` 构建是常见的，它的 flash 大小被限制在 1MB。
 
-如果您正在构建_vanilla_master 分支，最可能的原因是使用不支持的 GCC版本。
-In this case, install the `gcc-arm-none-eabi` package from the current Ubuntu LTS as described in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
+如果您正在构建_vanilla_master 分支，最可能的原因是使用不支持的 GCC版本。在这种情况下，安装当前的 Ubuntu LTS 的 `gcc-arm-none-eabi` 包，正如[开发者工具链] (../dev_setup/dev_env.md) 说明的那样。
 
 如果在构建自己的分支，您可能已将固件大小增加到超过1MB的限制。在这种情况下，您需要从构建中删除您不需要的任何驱动程序/模块。
 
@@ -234,22 +228,21 @@ PX4构建系统打开大量文件，因此您可能会超出此数量。
 arm-none-eabi-ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
 ```
 
-The solution is to increase the maximum allowed number of open files (to 2048, matching the [macOS setup instructions](../dev_setup/dev_env_mac.md#prerequisites)).
-您可以在每个会话的 macOS _终端_ 中这样做：
+解决方案是增加打开文件的最大允许数量(到 2048, 匹配[macOS 安装指令](../dev_setup/dev_env_mac.md#prerequisites))。您可以在每个会话的 macOS _终端_ 中这样做：
 
-- Source this script [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh) (it must be sourced, not executed, to affect your current shell):
+- 源于此脚本 [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh) (它必须来源，不执行才能影响您当前的 shell):
 
   ```sh
   source Tools/mac_set_ulimit.sh
   ```
 
-- Or enter the command directly:
+- 或者直接输入命令：
 
   ```sh
   ulimit -S -n 2048
   ```
 
-To apply it to every new terminal, add the `ulimit` line to `~/.zshrc` as described in the macOS setup.
+若要将它应用到每个新终端，请将 `ulimit` 行添加到`~/zshrc` 中，如macOS setup中所述。
 
 ### macOS Catalina：运行cmake时出现问题
 
@@ -262,7 +255,7 @@ sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /us
 
 ### 导入Python软件包失败
 
-"Failed to import" errors when running the `make px4_sitl gz_x500` command indicates that some Python packages are not installed (where expected).
+运行 `make px4_sitl gz_x500` 命令时出现“导入失败”错误，表明某些 Python 包未安装（或未安装在预期位置）。
 
 ```sh
 Failed to import jinja2: No module named 'jinja2'
@@ -270,9 +263,9 @@ Failed to import jinja2: No module named 'jinja2'
     pip3 install --user jinja2
 ```
 
-If you have already installed these dependencies this may be because there is more than one Python version on the computer (e.g. Python 2.7.16 and Python 3.8.3), and the module is not present in the version used by the build toolchain.
+如果您已经安装了这些依赖项，这可能是因为计算机上安装了多个 Python 版本（例如 Python 2.7.16 和 Python 3.8.3），而构建工具链所使用的版本中并不包含该模块。
 
-You should be able to fix this by installing the dependencies from the repository's requirements file:
+你可以通过安装仓库中 requirements 文件所列的依赖项来解决这个问题：
 
 ```sh
 pip3 install --user -r Tools/setup/requirements.txt
@@ -294,8 +287,7 @@ make [VENDOR_][MODEL][_VARIANT] [VIEWER_MODEL_DEBUGGER_WORLD]
 - \*\*VENDOR：\*\*主板制造商：`px4`、`aerotenna`、`airmind`、`atlflight`、`auav`、`beaglebone`、`intel`、`nxp` 等。
   Pixhawk 系列主板的供应商名称为 `px4`。
 - \*\*MODEL：\*\*飞控板型号 “model”：`sitl`、`fmu-v2`、`fmu-v3`、`fmu-v4`、`fmu-v5`、`navio2` 等。
-- **VARIANT:** Indicates particular configurations: e.g. `bootloader`, `cyphal`, `sih`, which add or remove components to/from the `default` configuration.
-  最常见的情况是 `default`, 并且可能被省略。
+- **VARIANT：** 表示特定的配置：例如 `bootloader`、`cyphal`、`sih`，这些配置会在 `default` 配置的基础上添加或移除组件。最常见的情况是 `default`, 并且可能被省略。
 
 :::tip
 您可以使用下面的命令获取一个可用的`CONFIGURATION_TARGET`选项列表：
@@ -308,11 +300,10 @@ make list_config_targets
 
 **VIEWER_MODEL_DEBUGER_WORLD:**
 
-- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `none` <!-- , ?airsim -->
+- **VIEWER：** 这是用于启动和连接的模拟器（“查看器”）：`gz`、`gazebo`、`none` <!-- 、?airsim -->
 
   :::tip
-  `none` can be used if you want to launch PX4 and wait for a simulator (Gazebo, Gazebo Classic, or some other simulator).
-  例如，`make px4_sitl none_iris` 在没有模拟器的情况下启动 PX4 (但使用 iris 机架)。
+  如果要启动 PX4 并等待模拟器（Gazebo、Gazebo Classic 或其他模拟器）就绪，可以使用 `none`。例如，`make px4_sitl none_iris` 在没有模拟器的情况下启动 PX4 (但使用 iris 机架)。
 
 :::
 
@@ -328,8 +319,7 @@ make list_config_targets
 
 - `CONFIGURATION_TARGET`和`VIEWER_MODEBUGER`中的大多数值都有默认值，因此是可选的。例如，`gazebo-classic`等于`gazebo-classic_iris`或`gazebo-classic_iris_none`。
 - 如果要在其他两个设置之间指定默认值，可以使用三个下划线。例如，`gazebo-classic___gdb`相当于`gazebo-classic_iris_gdb`。
-- 你可以使用 "none" 值为 "VIEWER_MODEBUGER" 来启动 PX4 并等待模拟器。
-  For example start PX4 using `make px4_sitl_default none` and then start your simulator.
+- 你可以使用 "none" 值为 "VIEWER_MODEBUGER" 来启动 PX4 并等待模拟器。例如，使用 `make px4_sitl_default none` 启动 PX4，然后启动模拟器。
 
 :::
 

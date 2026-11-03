@@ -653,6 +653,12 @@ static void initializer_trampoline(void *argument)
 	data->instance = data->instantiate(data->config, data->runtime_instance);
 }
 
+I2CSPIDriverBase::I2CSPIDriverBase(const I2CSPIDriverConfig &config)
+	: ScheduledWorkItem(config.module_name, config.wq_config),
+	  I2CSPIInstance(config)
+{
+}
+
 int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator,
 				   void(*print_usage)(), instantiate_method instantiate)
 {

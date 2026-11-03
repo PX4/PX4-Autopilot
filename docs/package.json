@@ -32,7 +32,8 @@
     "markdown_link_checker_sc": "^0.0.145"
   },
   "resolutions": {
-    "markdown-it": "^14.1.1",
-    "esbuild": "^0.25.0"
+    "markdown-it": "^14.3.3",
+    "esbuild": "^0.25.0",
+    "@xmldom/xmldom": "^0.9.12"
   }
 }

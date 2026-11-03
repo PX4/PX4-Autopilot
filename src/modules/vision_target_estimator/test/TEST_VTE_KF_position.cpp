@@ -192,6 +192,93 @@ TEST(KFPositionTest, PredictRejectsInvalidInputs)
 	expectStateAndCovUnchanged(filter, state_before, cov_before);
 }
 
+// Batch replay must preserve mixed measurement rows, equal-time ordering and the
+// acceleration input of each history interval in both static and moving modes.
+TEST(KFPositionTest, BatchMatchesSequentialFusionWithChangingInputs)
+{
+	constexpr uint64_t kStart = 1_s;
+	constexpr uint64_t kStep = 20_ms;
+	constexpr uint64_t kNow = 1110_ms;
+	constexpr float kNisThreshold = 9.f;
+	StateVec state{};
+	state(vtest::State::pos_rel) = 2.f;
+	state(vtest::State::vel_uav) = 1.f;
+	state(vtest::State::bias) = 0.3f;
+	StateVec cov_diag{};
+
+	for (size_t i = 0; i < vte::KF_position::kStateSize; ++i) {
+		cov_diag(i) = 1.f + 0.2f * static_cast<float>(i);
+	}
+
+	StateVec position_h{};
+	position_h(vtest::State::pos_rel) = 1.f;
+	StateVec velocity_h{};
+	velocity_h(vtest::State::vel_uav) = 1.f;
+	vte::KF_position batch;
+	vte::KF_position sequential;
+
+	for (auto *filter : {&batch, &sequential}) {
+		setFilterState(*filter, state, cov_diag);
+		filter->setInputVar(0.2f);
+		filter->setBiasVar(0.01f);
+		filter->setTargetAccVar(0.05f);
+		filter->pushHistory(kStart);
+
+		for (unsigned step = 1; step <= 5; ++step) {
+			const float acceleration = ((step % 2) ? 0.8f : -0.6f) * step;
+			filter->predict(kStep * 1e-6f, acceleration);
+			const StateVec &H = (step % 2) ? position_h : velocity_h;
+			const uint64_t time = kStart + step * kStep;
+			const ScalarMeas stored{time, (H.transpose() * filter->getState())(0, 0) + 0.05f, 0.2f, H};
+			ASSERT_EQ(filter->fuseScalarAtTime(stored, time, kNisThreshold).status,
+				  vte::FusionStatus::STATUS_FUSED_CURRENT);
+			filter->pushHistory(time);
+		}
+
+		filter->predict(0.01f, -3.f); // Distinct input after the newest snapshot.
+	}
+
+	const ScalarMeas measurements[] {
+		{kNow, 1.8f, 0.2f, position_h},
+		{1030_ms, 1.3f, 0.2f, velocity_h},
+		{1065_ms, 1000.f, 0.2f, position_h}, // Rejected between accepted updates.
+		{1030_ms, 2.25f, 0.2f, position_h}, // Same timestamp, different measurement row.
+		{1075_ms, 1.2f, 0.2f, velocity_h}, // Accepted after a rejection within the same prediction interval.
+	};
+	constexpr size_t kCount = sizeof(measurements) / sizeof(measurements[0]);
+	vte::FusionResult batch_results[kCount] {};
+	vte::FusionResult sequential_results[kCount] {};
+	batch.fuseScalarsAtTime(measurements, kCount, kNow, kNisThreshold, batch_results);
+
+	for (size_t i : {1u, 3u, 2u, 4u, 0u}) {
+		sequential_results[i] = sequential.fuseScalarAtTime(measurements[i], kNow, kNisThreshold);
+	}
+
+	ASSERT_EQ(batch_results[0].status, vte::FusionStatus::STATUS_FUSED_CURRENT);
+	ASSERT_EQ(batch_results[1].status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	ASSERT_EQ(batch_results[2].status, vte::FusionStatus::STATUS_REJECT_NIS);
+	ASSERT_EQ(batch_results[3].status, vte::FusionStatus::STATUS_FUSED_OOSM);
+	ASSERT_EQ(batch_results[4].status, vte::FusionStatus::STATUS_FUSED_OOSM);
+
+	for (size_t i = 0; i < kCount; ++i) {
+		SCOPED_TRACE(i);
+		EXPECT_EQ(batch_results[i].status, sequential_results[i].status);
+		EXPECT_NEAR(batch_results[i].innov, sequential_results[i].innov, kTolerance);
+		EXPECT_NEAR(batch_results[i].innov_var, sequential_results[i].innov_var, kTolerance);
+		EXPECT_FLOAT_EQ(batch_results[i].test_ratio, sequential_results[i].test_ratio);
+	}
+
+	expectStateAndCovUnchanged(batch, sequential.getState(), sequential.getStateCovariance());
+
+	// Another older observation must replay all accepted batch updates from retained history.
+	const ScalarMeas follow_up{1025_ms, 2.15f, 0.2f, position_h};
+	ASSERT_EQ(batch.fuseScalarAtTime(follow_up, kNow, kNisThreshold).status,
+		  vte::FusionStatus::STATUS_FUSED_OOSM);
+	ASSERT_EQ(sequential.fuseScalarAtTime(follow_up, kNow, kNisThreshold).status,
+		  vte::FusionStatus::STATUS_FUSED_OOSM);
+	expectStateAndCovUnchanged(batch, sequential.getState(), sequential.getStateCovariance());
+}
+
 #if !defined(CONFIG_VTEST_MOVING)
 
 // WHY:   State propagation and process-noise integration are the backbone of the
@@ -688,3 +775,47 @@ TEST(KFPositionTest, PredictMovingTargetAddsUavInputNoise)
 	expectSymmetric(cov);
 }
 #endif // defined(CONFIG_VTEST_MOVING)
+
+// WHY: A delayed position/bias reset must not advance the retained motion estimate twice.
+// WHAT: Reset at capture time and bridge back to now, including target acceleration in the moving model.
+TEST(KFPositionTest, DelayedPositionBiasResetPreservesCurrentMotion)
+{
+	vte::KF_position filter;
+	StateVec initial{};
+	initial(vtest::State::vel_uav) = 2.f;
+#if defined(CONFIG_VTEST_MOVING)
+	initial(vtest::State::vel_target) = 3.f;
+	initial(vtest::State::acc_target) = 2.f;
+#endif
+	StateVec variance;
+	variance.setAll(0.5f);
+	setFilterState(filter, initial, variance);
+	filter.setInputVar(0.2f);
+	filter.setTargetAccVar(0.2f);
+	filter.predict(0.2f, 0.f); // Establish the usual motion-state correlations.
+	const StateVec before = filter.getState();
+	const StateCov covariance_before = filter.getStateCovariance();
+	constexpr float latency = 0.1f;
+	constexpr float position = 10.f;
+	float expected_position = position - before(vtest::State::vel_uav) * latency;
+#if defined(CONFIG_VTEST_MOVING)
+	expected_position += before(vtest::State::vel_target) * latency
+			     - 0.5f * before(vtest::State::acc_target) * latency * latency;
+#endif
+
+	filter.resetPositionAndBias(position, 1.f, 0.3f, 0.5f, latency);
+	filter.predict(latency, 0.f);
+
+	EXPECT_NEAR(filter.getState()(vtest::State::pos_rel), expected_position, kTolerance);
+	EXPECT_NEAR(filter.getState()(vtest::State::bias), 0.3f, kTolerance);
+
+	for (size_t i = 0; i < vte::KF_position::kStateSize; ++i) {
+		if ((i != vtest::State::pos_rel) && (i != vtest::State::bias)) {
+			EXPECT_NEAR(filter.getState()(i), before(i), kTolerance);
+			EXPECT_GE(filter.getStateCovariance()(i, i), covariance_before(i, i) - kTightTolerance);
+		}
+	}
+
+	expectSymmetric(filter.getStateCovariance());
+	EXPECT_GE(filter.getStateCovariance()(vtest::State::pos_rel, vtest::State::pos_rel), 1.f);
+}

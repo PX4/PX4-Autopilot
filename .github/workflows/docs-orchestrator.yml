@@ -28,6 +28,9 @@ on:
       - ".github/workflows/docs-orchestrator.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: docs-orchestrator-${{ github.ref }}
   cancel-in-progress: true

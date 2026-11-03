@@ -297,10 +297,11 @@ protected:
 		ASSERT_TRUE(_attitude_pub->publish(msg));
 	}
 
-	void publishAcceleration(const matrix::Vector3f &accel, hrt_abstime timestamp)
+	void publishAcceleration(const matrix::Vector3f &accel, hrt_abstime timestamp, hrt_abstime sample_time = 0)
 	{
 		vehicle_acceleration_s msg{};
 		msg.timestamp = timestamp;
+		msg.timestamp_sample = sample_time;
 		msg.xyz[0] = accel(0);
 		msg.xyz[1] = accel(1);
 		msg.xyz[2] = accel(2);
@@ -571,21 +572,22 @@ TEST_F(VisionTargetEstTest, ComputeGpsVelocityOffsetRequiresOffsetAndData)
 	expectVectorNear(vel_offset, expected_offset);
 }
 
-// WHY: Attitude is required to transform body-frame data into NED.
-// WHAT: Call pollEstimatorInput without attitude and expect it to fail.
-TEST_F(VisionTargetEstTest, PollEstimatorInputRequiresAttitude)
+// Acceleration arriving before attitude must remain available for the next poll.
+TEST_F(VisionTargetEstTest, PollEstimatorInputKeepsAccelerationUntilAttitudeArrives)
 {
-	// GIVEN: No vehicle attitude sample has been published.
-	matrix::Vector3f acc_ned{};
+	const hrt_abstime sample_time = vte_test::nowUs();
+	const hrt_abstime now = vte_test::advanceMicroseconds(1_ms);
+	publishAcceleration(matrix::Vector3f(1.f, 2.f, -kGravity), now, sample_time);
+	matrix::Vector3f acc_ned{}, gps_offset{}, vel_offset{};
 	matrix::Quaternionf q_att{};
-	matrix::Vector3f gps_offset{};
-	matrix::Vector3f vel_offset{};
-	const bool vel_offset_updated = true;
-	bool acc_valid = true;
+	bool acc_valid = false;
+	EXPECT_FALSE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset, false, acc_valid));
 
-	// WHEN: The estimator input is polled.
-	EXPECT_FALSE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset,
-					      vel_offset_updated, acc_valid));
+	publishAttitude(vte_test::identityQuat(), now);
+	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset, false, acc_valid));
+	EXPECT_TRUE(acc_valid);
+	EXPECT_EQ(_vte->_vehicle_acc_body.timestamp, sample_time);
+	expectVectorNear(acc_ned, matrix::Vector3f(1.f, 2.f, 0.f));
 }
 
 // WHY: Valid inputs should be rotated into NED and include gravity compensation.
@@ -950,7 +952,6 @@ TEST_F(VisionTargetEstTest, PrecisionLandTaskHasPriorityOverPrecisionTakeoff)
 // WHAT: Switch to takeoff without usable home and verify the previous landing point cannot seed GNSS bias.
 TEST_F(VisionTargetEstTest, NewTaskClearsPreviousGnssBiasReference)
 {
-	ASSERT_TRUE(_vte->_vte_position.init());
 	_vte->_vte_position_enabled = true;
 	vte::SensorFusionMaskU aid_mask{};
 	aid_mask.flags.use_mission_pos = 1;
@@ -1077,8 +1078,8 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffReplacesInactiveHomeAidReference)
 	EXPECT_TRUE(_vte->missionPositionMatches(home_lat, home_lon, home_alt));
 }
 
-// WHY: Estimator restarts in flight must reuse the pad reference cached on the ground.
-// WHAT: Activate on the ground, go airborne, verify the cached reference survives.
+// WHY: Task activation can arrive after liftoff, when home no longer identifies the pad safely.
+// WHAT: Cache home while idle and landed, then activate airborne with a changed home.
 TEST_F(VisionTargetEstTest, PrecisionTakeoffActivationCachesHomeReference)
 {
 	const double lat = 47.0;
@@ -1088,19 +1089,85 @@ TEST_F(VisionTargetEstTest, PrecisionTakeoffActivationCachesHomeReference)
 	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
 	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
 
-	// GIVEN: The task is activated on the ground.
 	_vte->_vte_task_mask = vte::task_bits::kPrecTakeoff;
 	_vte->clearCurrentTask();
-	_vte->setPrecTakeoffActive(true);
-	EXPECT_TRUE(_vte->setNewTaskIfAvailable());
-	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
+	_vte->updateTaskTopics();
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
 
-	// WHEN: The vehicle is airborne and the reference is queried again.
+	// A new home near the airborne vehicle must not replace the cached pad.
+	vte_test::advanceMicroseconds(500_ms);
+	const double airborne_lat = lat + 0.00001;
+	publishHomePosition(airborne_lat, lon, alt + 1.f, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(airborne_lat, lon, alt + 1.f, vte_test::advanceMicroseconds(kStepUs));
 	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+	_vte->setPrecTakeoffActive(true);
+	ASSERT_TRUE(_vte->setNewTaskIfAvailable());
 	EXPECT_FALSE(_vte->updatePrecTakeoffHomeReference());
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
+	EXPECT_DOUBLE_EQ(_vte->precTakeoffHomeReferenceLat(), lat);
 
-	// THEN: The cached reference is kept.
+	// Estimator starts and restarts use the original pad.
+	_vte->seedPrecTakeoffPositionReference();
+	EXPECT_TRUE(_vte->missionPositionMatches(lat, lon, alt));
+}
+
+// WHY: A subsequent flight or a disabled task must not resurrect a previous pad reference.
+// WHAT: Invalidate stale ground data, capture the next pad, then disable and re-enable airborne.
+TEST_F(VisionTargetEstTest, PrecisionTakeoffCacheIsRevalidatedForEachFlight)
+{
+	const double lat = 47.0;
+	const double lon = 8.0;
+	const float alt = 500.f;
+	_vte->_vte_task_mask = vte::task_bits::kPrecTakeoff;
+	publishHomePosition(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
+
+	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
 	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
+
+	// A landing with stale GNSS invalidates the old pad instead of retaining it.
+	vte_test::advanceMicroseconds(2_s);
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	const double next_lat = lat + 0.001;
+	publishHomePosition(next_lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(next_lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
+	EXPECT_DOUBLE_EQ(_vte->precTakeoffHomeReferenceLat(), next_lat);
+
+	// Losing land-detection continuity also ends the cached flight, even if its last state was airborne.
+	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	EXPECT_TRUE(_vte->precTakeoffHomeReferenceValid());
+	vte_test::advanceMicroseconds(2_s);
+	_vte->updateTaskTopics();
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	// Recapture on the ground before exercising task disable/re-enable.
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
+	publishUavGnssAt(next_lat, lon, alt, vte_test::advanceMicroseconds(kStepUs));
+	_vte->updateTaskTopics();
+	ASSERT_TRUE(_vte->precTakeoffHomeReferenceValid());
+
+	setParamInt("VTE_TASK_MASK", 0);
+	_vte->updateParams();
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+
+	publishLandDetected(false, vte_test::advanceMicroseconds(kStepUs));
+	setParamInt("VTE_TASK_MASK", vte::task_bits::kPrecTakeoff);
+	_vte->updateParams();
+	_vte->updateTaskTopics();
+	_vte->_prec_takeoff_task.onActivate();
+	_vte->seedPrecTakeoffPositionReference();
+	EXPECT_FALSE(_vte->precTakeoffHomeReferenceValid());
+	EXPECT_FALSE(_vte->missionPositionValid());
 }
 
 // WHY: The acceleration downsample must reset after timeout to avoid stale averages.
@@ -1254,7 +1321,6 @@ TEST_F(VisionTargetEstTest, RestartTimedOutEstimatorsRearmsPositionEstimatorImme
 	_vte->_position_estimator_running = true;
 	_vte->_orientation_estimator_running = false;
 
-	ASSERT_TRUE(_vte->_vte_position.init());
 	vte::SensorFusionMaskU aid_mask{};
 	aid_mask.flags.use_vision_pos = 1;
 	_vte->_vte_position.setVteAidMask(aid_mask.value);
@@ -1289,7 +1355,6 @@ TEST_F(VisionTargetEstTest, RestartTimedOutEstimatorsRearmsOrientationEstimatorI
 	_vte->_orientation_estimator_running = true;
 	_vte->_position_estimator_running = false;
 
-	ASSERT_TRUE(_vte->_vte_orientation.init());
 	vte::SensorFusionMaskU aid_mask{};
 	aid_mask.flags.use_vision_pos = 1;
 	_vte->_vte_orientation.setVteAidMask(aid_mask.value);
@@ -1349,7 +1414,7 @@ TEST_F(VisionTargetEstTest, UpdateEstimatorsDropsStaleAcceleration)
 
 	const hrt_abstime stale_timestamp =
 		timestamp - (VisionTargetEstTestable::kAccUpdatedTimeoutUs + 1_ms);
-	publishAcceleration(matrix::Vector3f(0.1f, -0.2f, 9.5f), stale_timestamp);
+	publishAcceleration(matrix::Vector3f(0.1f, -0.2f, 9.5f), timestamp, stale_timestamp);
 
 	// WHEN: Estimator updates run with stale acceleration input.
 	_vte->updateEstimators();
@@ -1366,8 +1431,6 @@ TEST_F(VisionTargetEstTest, AttitudeResetReacquiresAndRejectsOldFrameSamples)
 	mask.flags.use_vision_pos = 1;
 	_vte->_vte_position.setVteAidMask(mask.value);
 	_vte->_vte_orientation.setVteAidMask(mask.value);
-	ASSERT_TRUE(_vte->_vte_position.init());
-	ASSERT_TRUE(_vte->_vte_orientation.init());
 	_vte->_vte_orientation_enabled = true;
 	_vte->_orientation_estimator_running = true; // Position stays stopped: exercise yaw-only reset detection.
 
@@ -1435,7 +1498,6 @@ TEST_F(VisionTargetEstTest, AttitudeResetReacquiresAndRejectsOldFrameSamples)
 
 TEST_F(VisionTargetEstTest, PollEstimatorInputResetsCachedFrame)
 {
-	ASSERT_TRUE(_vte->_vte_position.init());
 	matrix::Vector3f acceleration{}, position_offset{}, velocity_offset{};
 	matrix::Quaternionf attitude{};
 	bool acceleration_valid = false;
@@ -1475,6 +1537,22 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputResetsCachedFrame)
 		_vte->_vte_position.update(matrix::Vector3f{});
 		EXPECT_EQ(_vte->positionInitialized(), fresh_velocity);
 	}
+}
+
+// WHY: A non-finite acceleration sample must not reach the prediction, which would otherwise skip a step.
+TEST_F(VisionTargetEstTest, PollEstimatorInputRejectsNonFiniteAcceleration)
+{
+	matrix::Vector3f acceleration{}, position_offset{}, velocity_offset{};
+	matrix::Quaternionf attitude{};
+	bool acceleration_valid = true;
+	const hrt_abstime now = vte_test::advanceMicroseconds(kStepUs);
+	publishAcceleration(matrix::Vector3f(NAN, 0.f, 0.f), now);
+	publishAttitude(vte_test::identityQuat(), now);
+
+	ASSERT_TRUE(_vte->pollEstimatorInput(acceleration, attitude, position_offset, velocity_offset, false,
+					     acceleration_valid));
+	EXPECT_FALSE(acceleration_valid);
+	EXPECT_TRUE(acceleration.isAllFinite());
 }
 
 TEST_F(VisionTargetEstTest, PollLocalPoseUsesSampleTime)

@@ -5,10 +5,19 @@ parameters:
     MAV_SYS_ID:
       description:
         short: MAVLink system ID
+        long: |-
+          IDs above 255 use the 32-bit system ID extension of MAVLink 2,
+          which forces MAV_PROTO_VER to 2. Every system on the network needs
+          to support the extension to talk to such a system.
+
+          Only use IDs above 255 for vehicles, and keep ground stations and
+          other controlling systems at 255 or below. The gimbal protocol and
+          other messages that carry a system ID inside the payload, such as
+          the ID of the system in control, still only support IDs up to 255.
       type: int32
       default: 1
       min: 1
-      max: 250
+      max: 2147483647
       reboot_required: true
     MAV_COMP_ID:
       description:

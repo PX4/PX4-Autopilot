@@ -238,7 +238,8 @@ void Mission::setActiveMissionItems()
 						   _mission_item.nav_cmd == NAV_CMD_WAYPOINT;
 		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
 				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
-				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+				(new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
+				 new_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND);
 
 		if (fw_on_mission_landing || mc_landing_after_transition) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
@@ -295,6 +296,7 @@ void Mission::setActiveMissionItems()
 
 	// Only set the previous position item if the current one really changed
 	if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
+	    (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND) &&
 	    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 		pos_sp_triplet->previous = current_setpoint_copy;
 	}
@@ -448,8 +450,8 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 
 		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
 
-		/* set position setpoint to target during the transition */
-		mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->current);
+		/* hold position and align heading towards the next waypoint */
+		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	}
 
 	/* yaw is aligned now */

@@ -545,6 +545,27 @@ _file_clear(dm_item_t item)
 #endif
 
 #ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
+/* Write zeros up to size, for file systems that can't seek past the end of a file */
+static off_t
+_file_extend(int fd, unsigned size)
+{
+	const uint8_t zeros[64] {};
+	off_t end = lseek(fd, 0, SEEK_END);
+
+	while ((end >= 0) && ((unsigned)end < size)) {
+		const unsigned remaining = size - (unsigned)end;
+		const ssize_t written = write(fd, zeros, (remaining < sizeof(zeros)) ? remaining : sizeof(zeros));
+
+		if (written <= 0) {
+			return -1;
+		}
+
+		end += written;
+	}
+
+	return end;
+}
+
 static int
 _file_initialize(unsigned max_offset)
 {
@@ -559,9 +580,15 @@ _file_initialize(unsigned max_offset)
 		return -1;
 	}
 
-	if ((unsigned)lseek(dm_operations_data.file.fd, max_offset, SEEK_SET) != max_offset) {
+	off_t offset = lseek(dm_operations_data.file.fd, max_offset, SEEK_SET);
+
+	if ((unsigned)offset != max_offset) {
+		offset = _file_extend(dm_operations_data.file.fd, max_offset);
+	}
+
+	if ((unsigned)offset != max_offset) {
 		close(dm_operations_data.file.fd);
-		PX4_WARN("Could not seek data manager file %s", k_data_manager_device_path);
+		PX4_WARN("Could not size data manager file %s", k_data_manager_device_path);
 		px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
