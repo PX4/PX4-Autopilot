@@ -97,10 +97,9 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		_peak_healthy_count = healthy_count;
 	}
 
-	// The expected antenna baseline depends on heading and tilt, so the receivers are only compared with a valid attitude
+	// The expected antenna baseline depends on heading and tilt, so the receivers are only compared with an attitude (last published one)
 	vehicle_attitude_s attitude{};
-	const bool attitude_valid = _vehicle_attitude_sub.copy(&attitude) && (hrt_elapsed_time(&attitude.timestamp) < 1_s);
-	const bool can_compare = (healthy_count >= 2) && attitude_valid;
+	const bool can_compare = (healthy_count >= 2) && _vehicle_attitude_sub.copy(&attitude);
 
 	// Before arming, a disagreement blocks immediately. In flight, it has to persist for 2s to not react to short glitches.
 	_divergence_hysteresis.set_hysteresis_time_from(false, context.isArmed() ? 2_s : 0_s);
@@ -110,7 +109,6 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	// Position divergence check: flag if two healthy receivers disagree by more than COM_GNSS_H_MAX horizontally
 	// or COM_GNSS_V_MAX vertically. The expected baseline between the antennas is rotated from body to NED with
 	// the current attitude, so heading and tilt are accounted for and the full error vector is checked.
-	// Until the heading is aligned, only the horizontal distances are compared, which does not depend on heading.
 	float divergence_h_m = 0.f;
 	float divergence_v_m = 0.f;
 
@@ -125,28 +123,9 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		// Expected baseline from the antenna offsets
 		const Vector3f expected = Quatf(attitude.q).rotateVector(healthy_gnss[1].antenna_offset - healthy_gnss[0].antenna_offset);
 
-		// Yaw alignment of the primary EKF (the attitude source)
-		estimator_selector_status_s estimator_selector_status;
-
-		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
-			_estimator_status_flags_sub.ChangeInstance(estimator_selector_status.primary_instance);
-		}
-
-		estimator_status_flags_s estimator_status_flags{};
-		// Published at ~1 Hz
-		const bool heading_valid = _estimator_status_flags_sub.copy(&estimator_status_flags)
-					   && (hrt_elapsed_time(&estimator_status_flags.timestamp) < 2_s)
-					   && estimator_status_flags.cs_yaw_align;
-
-		if (heading_valid) {
-			divergence_h_m = Vector2f(north - expected(0), east - expected(1)).length();
-
-		} else {
-			divergence_h_m = fabsf(Vector2f(north, east).length() - Vector2f(expected(0), expected(1)).length());
-		}
-
-		// The vertical component does not depend on heading
-		divergence_v_m = fabsf(down - expected(2));
+		const Vector3f error = Vector3f(north, east, down) - expected;
+		divergence_h_m = Vector2f(error(0), error(1)).length();
+		divergence_v_m = fabsf(error(2));
 
 		const bool diverging = (divergence_h_m > _param_com_gnss_h_max.get()) || (divergence_v_m > _param_com_gnss_v_max.get());
 		_divergence_hysteresis.set_state_and_update(diverging, hrt_absolute_time());

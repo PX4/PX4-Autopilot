@@ -279,7 +279,6 @@ The GNSS check failsafe has two triggers, both configured by [COM_GNSSLOSS_ACT](
 - **Count drop**: the number of receivers with a 3D fix drops below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No action when `SYS_HAS_NUM_GNSS=0`, only a warning.
 - **Position divergence**: after removing the expected separation of the antennas on the vehicle (configured via `SENS_GNSS0_OFFX/Y/Z` and `SENS_GNSS1_OFFX/Y/Z`, e.g. [SENS_GNSS0_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX)), two receivers disagree by more than [COM_GNSS_H_MAX](#COM_GNSS_H_MAX) horizontally or [COM_GNSS_V_MAX](#COM_GNSS_V_MAX) vertically.
   The expected separation is rotated with the vehicle attitude, so heading and tilt are accounted for.
-  Until the heading is aligned, only the horizontal distance between the receivers is compared.
   The reported accuracy of the receivers is not used.
   Before arming, a divergence is reported immediately and only clears after the receivers agree continuously for 2 seconds.
   In flight, a divergence has to persist for 2 seconds before it is reported.

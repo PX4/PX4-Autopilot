@@ -142,7 +142,6 @@ parameters:
           Two receivers are reported as diverging if their horizontal positions
           disagree by more than this value, after removing the expected antenna
           separation rotated with the vehicle attitude.
-          Until the heading is aligned, only their horizontal distance is compared.
           Before arming a divergence is reported immediately and clears after 2s of
           continuous agreement. In flight it has to persist for 2s to be reported.
           See COM_GNSSLOSS_ACT for the resulting action.

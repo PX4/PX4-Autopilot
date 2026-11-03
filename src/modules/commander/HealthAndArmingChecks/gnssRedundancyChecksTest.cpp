@@ -44,7 +44,6 @@
 #include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensors_status_gnss.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_local_position.h>
 
 // to run: make tests TESTFILTER=gnssRedundancyChecks
 
@@ -58,7 +57,7 @@ static constexpr double BASE_LON = 8.545594;
 static constexpr double BASE_ALT = 488.0;
 
 // With GNSS0 at +35cm X and GNSS1 at -35cm X, GNSS1 is expected 0.70m behind GNSS0.
-// The vehicle is level and heading north with an aligned heading unless a test sets otherwise.
+// The vehicle is level and heading north unless a test sets another attitude.
 // The divergence limits COM_GNSS_H_MAX and COM_GNSS_V_MAX default to 2m.
 // AGREEING_LAT puts GNSS1 ~0.70m south of GNSS0, matching the expected baseline.
 // DIVERGING_FAR_LAT puts GNSS1 ~5.0m south, ~4.3m off the expected position, above the limit.
@@ -149,16 +148,11 @@ public:
 	// Run the check and store results in _failsafe_flags, _health_warning_gps and _can_arm_all_modes.
 	void runCheck(bool armed = false)
 	{
-		// Publish the attitude and heading state on every run so they are never stale after a hysteresis wait.
+		// Publish the attitude on every run so it is never stale after a hysteresis wait.
 		vehicle_attitude_s attitude{};
 		attitude.timestamp = hrt_absolute_time();
 		_attitude_q.copyTo(attitude.q);
 		_attitude_pub.publish(attitude);
-
-		vehicle_local_position_s local_position{};
-		local_position.timestamp = hrt_absolute_time();
-		local_position.heading_good_for_control = _heading_aligned;
-		_local_position_pub.publish(local_position);
 
 		vehicle_status_s status{};
 
@@ -196,10 +190,8 @@ public:
 	uORB::PublicationMulti<sensor_gnss_s> _gnss1_pub{ORB_ID(sensor_gnss)};
 	uORB::Publication<sensors_status_gnss_s> _status_pub{ORB_ID(sensors_status_gnss)};
 	uORB::Publication<vehicle_attitude_s> _attitude_pub{ORB_ID(vehicle_attitude)};
-	uORB::Publication<vehicle_local_position_s> _local_position_pub{ORB_ID(vehicle_local_position)};
 	sensors_status_gnss_s _status{};
 	matrix::Quatf     _attitude_q{}; // level, heading north
-	bool              _heading_aligned{true};
 	failsafe_flags_s  _failsafe_flags{};
 	bool              _health_warning_gps{false};
 	bool              _can_arm_all_modes{false};
@@ -432,28 +424,6 @@ TEST_F(GnssRedundancyChecksTest, SwappedReceiversDetected)
 	setFloatParam("COM_GNSS_H_MAX", 1.f);
 
 	publishBoth(SWAPPED_LAT);
-	runCheck();
-	EXPECT_TRUE(_failsafe_flags.gnss_lost);
-	EXPECT_FALSE(_can_arm_all_modes);
-}
-
-// Without an aligned heading (e.g. no compass before takeoff), the unaligned heading estimate is not trusted:
-// only the horizontal distances are compared, so large disagreements are still detected.
-TEST_F(GnssRedundancyChecksTest, HeadingNotAlignedDistanceOnly)
-{
-	setRequiredGnss(2);
-	setGnssLossAct(4); // Warning, block arming
-	setFloatParam("COM_GNSS_H_MAX", 1.f);
-	_heading_aligned = false;
-
-	// Vehicle actually heading south while the unaligned estimate says north: no false 1.4m divergence.
-	publishBoth(SWAPPED_LAT);
-	runCheck();
-	EXPECT_FALSE(_failsafe_flags.gnss_lost);
-	EXPECT_TRUE(_can_arm_all_modes);
-
-	// 5.0m measured - 0.7m expected = 4.3m > 1m
-	publishBoth(DIVERGING_FAR_LAT);
 	runCheck();
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
 	EXPECT_FALSE(_can_arm_all_modes);
