@@ -513,8 +513,6 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>)        _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)        _param_mis_yaw_err,
 		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)     _param_mis_lnd_abrt_alt,
-		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout,
-		(ParamFloat<px4::params::MIS_DIST_1WP>)     _param_mis_dist_1wp,
-		(ParamInt<px4::params::MIS_TKO_LAND_REQ>)   _param_mis_tko_land_req
+		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout
 	)
 };
