@@ -42,28 +42,21 @@ namespace math
 
 float generate_wgn()
 {
-	// polar Box-Muller: returns both samples of a pair over two consecutive calls
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
+	// polar Box-Muller. The second sample of each pair is discarded on purpose: callers run on
+	// different threads (sih task, sensor_*_sim work queue, gz_bridge), and caching it in static
+	// state lets a reader pick up a rejected intermediate S >= 1 from another thread's loop, which
+	// turns into a NaN sample.
+	float v1;
+	float v2;
+	float s;
 
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
+	do {
+		v1 = 2.0f * (float)rand() / (float)RAND_MAX - 1.0f;
+		v2 = 2.0f * (float)rand() / (float)RAND_MAX - 1.0f;
+		s = v1 * v1 + v2 * v2;
+	} while (s >= 1.0f || s < 1e-8f);
 
-		X = V1 * sqrtf(-2.0f * logf(S) / S);
-
-	} else {
-		X = V2 * sqrtf(-2.0f * logf(S) / S);
-	}
-
-	phase = !phase;
-	return X;
+	return v1 * sqrtf(-2.0f * logf(s) / s);
 }
 
 matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz)

@@ -48,7 +48,8 @@ namespace math
 /**
  * Generate a white Gaussian noise sample with zero mean and unit standard deviation.
  *
- * Polar Box-Muller on top of rand(); seed with srand() once before first use.
+ * Polar Box-Muller on top of rand(); seed with srand() once before first use. Stateless apart from
+ * rand() itself, so it is safe to call from several threads.
  */
 float generate_wgn();
 
