@@ -94,6 +94,7 @@
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -187,6 +188,7 @@ public:
 	uint8_t                      get_takeoff_state() { return _takeoff_status_sub.get().takeoff_state; }
 	vehicle_local_position_s    *get_local_position() { return &_local_pos; }
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
+	vehicle_control_mode_s      *get_control_mode() { return &_control_mode; }
 	void set_rtl_return_alt_min(bool enable) { _rtl.set_return_alt_min(enable); }
 	MissionRouteCache           &get_mission_route_cache() { return _mission_route_cache; }
 
@@ -315,6 +317,14 @@ public:
 	 */
 	bool get_yaw_to_be_accepted(float mission_item_yaw);
 
+	/**
+	 * @return false if commander reports that the vehicle cannot control yaw (e.g. motor failure), assumed controllable before the first report
+	 */
+	bool is_yaw_controllable() const
+	{
+		return _control_mode.timestamp == 0 || (_control_mode.controllable_axes & vehicle_control_mode_s::CONTROLLABLE_AXIS_YAW);
+	}
+
 	orb_advert_t *get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void set_mission_failure_heading_timeout();
@@ -333,6 +343,7 @@ public:
 	int get_landing_abort_min_alt() const { return _param_mis_lnd_abrt_alt.get(); }
 	float get_param_mis_takeoff_alt() const { return _param_mis_takeoff_alt.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
+	float get_rtl_yaw_timeout() const { return _param_rtl_yaw_tmt.get(); }
 	float get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
 	float get_nav_min_gnd_dist_param() const { return _param_nav_min_gnd_dist.get(); }
 
@@ -380,6 +391,7 @@ private:
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};		/**< gps position subscription */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};	/**< controllable axes from commander */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _fw_takeoff_status_sub{ORB_ID(fixed_wing_takeoff_status)};	/**< fixed-wing takeoff status subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
@@ -400,8 +412,9 @@ private:
 	home_position_s					_home_pos{};		/**< home position for Return */
 	mission_result_s				_mission_result{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
-	vehicle_gnss_s				_vehicle_gnss{};	/**< gps position */
+	vehicle_gnss_s					_vehicle_gnss{};	/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
+	vehicle_control_mode_s				_control_mode{};	/**< vehicle control mode (controllable axes) */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
@@ -512,6 +525,7 @@ private:
 		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>)    _param_mis_takeoff_alt,
 		(ParamFloat<px4::params::MIS_YAW_TMT>)        _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)        _param_mis_yaw_err,
+		(ParamFloat<px4::params::RTL_YAW_TMT>)        _param_rtl_yaw_tmt,
 		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)     _param_mis_lnd_abrt_alt,
 		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout
 	)
