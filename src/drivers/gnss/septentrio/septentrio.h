@@ -116,7 +116,7 @@ enum class ReceiverSetup {
 */
 enum class ReceiverResetType {
 	/**
-	 * There is no pending GPS reset.
+	 * There is no pending GNSS reset.
 	 */
 	None,
 
@@ -269,7 +269,7 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	/**
-	 * @brief Reset the connected GPS receiver.
+	 * @brief Reset the connected GNSS receiver.
 	 *
 	 * @return `PX4_OK` on success, `PX4_ERROR` on otherwise
 	 */
@@ -503,7 +503,7 @@ private:
 	int write(const uint8_t *buf, size_t buf_length);
 
 	/**
-	 * @brief Initialize uORB GPS logging and advertise the topic.
+	 * @brief Initialize uORB GNSS logging and advertise the topic.
 	 *
 	 * @return `PX4_OK` on success, `PX4_ERROR` otherwise
 	 */
@@ -526,7 +526,7 @@ private:
 	void start_injection();
 
 	/**
-	 * @brief Publish new GPS data with uORB.
+	 * @brief Publish new GNSS data with uORB.
 	 */
 	void publish();
 
@@ -536,7 +536,7 @@ private:
 	void publish_relative_position(uint32_t tow);
 
 	/**
-	 * @brief Publish new GPS satellite data with uORB.
+	 * @brief Publish new GNSS satellite data with uORB.
 	 */
 	void publish_satellite_info();
 
@@ -556,7 +556,7 @@ private:
 	void publish_moving_baseline(uint8_t *data, size_t len);
 
 	/**
-	 * @brief Dump gps communication.
+	 * @brief Dump gnss communication.
 	 *
 	 * @param data The raw data of the message.
 	 * @param len The size of `data`.
@@ -657,7 +657,7 @@ private:
 	bool is_healthy() const;
 
 	/**
-	 * @brief Reset the GPS state uORB message for reuse.
+	 * @brief Reset the GNSS state uORB message for reuse.
 	*/
 	void reset_gnss_state_message();
 
@@ -707,7 +707,7 @@ private:
 
 	State                                  _state {State::OpeningSerialPort};                            ///< Driver state which allows for single run loop
 	px4::atomic<int>                       _scheduled_reset {static_cast<int>(ReceiverResetType::None)}; ///< The type of receiver reset that is scheduled
-	DumpMode                               _dump_communication_mode {DumpMode::Disabled};                ///< GPS communication dump mode
+	DumpMode                               _dump_communication_mode {DumpMode::Disabled};                ///< GNSS communication dump mode
 	device::Serial                         _uart {};                                                     ///< Serial UART port for communication with the receiver
 	char                                   _port[20] {};                                                 ///< The path of the used serial device
 	gnss::CorrectionInjector               _injector;
@@ -751,10 +751,10 @@ private:
 	gps_dump_s                                     *_message_data_to_receiver {nullptr};           		///< uORB topic for dumping data to the receiver
 	gps_dump_s                                     *_message_data_from_receiver {nullptr};         		///< uORB topic for dumping data from the receiver
 	satellite_info_s                               *_message_satellite_info {nullptr};             		///< uORB topic for satellite info
-	uORB::PublicationMulti<sensor_gnss_s>          _sensor_gnss_pub {ORB_ID(sensor_gnss)};           		///< uORB publication for gps position
+	uORB::PublicationMulti<sensor_gnss_s>          _sensor_gnss_pub {ORB_ID(sensor_gnss)};           		///< uORB publication for gnss position
 	uORB::PublicationMulti<sensor_gnss_status_s>   _sensor_gnss_status_pub {ORB_ID(sensor_gnss_status)};	///< uORB publication for gnss status
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub {ORB_ID(sensor_gnss_relative)};	///< uORB publication for relative position and heading
-	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};              		///< uORB publication for dump GPS data
+	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};              		///< uORB publication for dump GNSS data
 	uORB::Publication<rtcm_data_s>      _rtcm_moving_baseline_pub {ORB_ID(rtcm_moving_baseline)}; ///< uORB publication for moving-baseline RTCM output
 	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   		///< uORB publication for satellite info
 

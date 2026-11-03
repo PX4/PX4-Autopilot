@@ -95,10 +95,10 @@ param set-default PWM_MAIN_FUNC4 104
 #   * Tolerates FPS-induced timing gaps and altitude transients
 #   * Prevents false "BARO switch" errors during mission climbs
 #
-# GPS TUNING:
+# GNSS TUNING:
 # - GPS_P_NOISE: 0.15 m, kept conservative for this X-Plane model.
 #   * Barometer remains the primary smooth height source, but not centimeter-class.
-# - Horizontal noise: 0.01m (GPS horizontal is more accurate)
+# - Horizontal noise: 0.01m (GNSS horizontal is more accurate)
 #
 # INNOVATION GATES:
 # All gates increased from default values for FPS variability tolerance.
@@ -150,7 +150,7 @@ param set-default CAL_ACC0_XOFF 0.0
 param set-default CAL_ACC0_YOFF 0.0
 param set-default CAL_ACC0_ZOFF 0.0
 
-# GPS parameters
+# GNSS parameters
 param set-default SENS_GNSS0_DELAY 10
 param set-default SENS_GNSS1_DELAY 10
 param set-default EKF2_GPS_P_NOISE 1.5    # X-Plane HIL position covariance
@@ -318,7 +318,7 @@ param set-default NAV_MC_ALT_RAD 2        # Vertical acceptance radius (m)
 param set-default RTL_DESCEND_ALT 30
 
 
-# GPS configuration
+# GNSS configuration
 param set-default GPS_UBX_DYNMODEL 6      # Airborne <1g
 
 ################################################################################

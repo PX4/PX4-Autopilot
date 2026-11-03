@@ -69,7 +69,7 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, NodeInfoPublisher *node_
 		_channel_using_fix2[i] = false;
 	}
 
-	set_device_type(DRV_GPS_DEVTYPE_UAVCAN);
+	set_device_type(DRV_GNSS_DEVTYPE_UAVCAN);
 }
 
 UavcanGnssBridge::~UavcanGnssBridge()
@@ -346,7 +346,7 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 		device_id.devid_s.bus_type = DeviceBusType::DeviceBusType_UAVCAN;
 		device_id.devid_s.bus = 0;
 		device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;
-		device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
+		device_id.devid_s.devtype = DRV_GNSS_DEVTYPE_UAVCAN;
 
 		dump.instance = 0; // TODO: How can we determine the instance? Startup order of CANnodes is non-deterministic.
 		dump.device_id = device_id.devid;
@@ -377,7 +377,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	sensor_gnss.device_id = make_uavcan_device_id(msg);
 
-	// Register GPS capability with NodeInfoPublisher after first successful message
+	// Register GNSS capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
 				sensor_gnss.device_id,
@@ -479,7 +479,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	// into HRT, then subtract (msg.timestamp - msg.gnss_timestamp), which is
 	// the node-measured receiver processing delay. Nodes that leave
 	// msg.timestamp unset or on a non-UTC timebase fail the guard and fall
-	// through to the SENS_GNSS*_DELAY path in VehicleGPSPosition.
+	// through to the SENS_GNSS*_DELAY path in VehicleGnss.
 	const uint64_t msg_ts_usec = uavcan::UtcTime(msg.timestamp).toUSec();
 
 	// Sanity-bound the node-measured processing delay before it drives the clock
@@ -524,7 +524,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		}
 	}
 
-	// If we haven't already done so, set the system clock using GPS data
+	// If we haven't already done so, set the system clock using GNSS data
 	if (sensor_gnss.time_utc_usec != 0 && (fix_type >= sensor_gnss_s::FIX_TYPE_2D) && !_system_clock_set) {
 		int32_t sys_time_src = 0;
 		param_get(param_find("SYS_TIME_SRC"), &sys_time_src);
@@ -634,7 +634,7 @@ void UavcanGnssBridge::drainRtcmCorrections()
 	}
 }
 
-// Drains rtcm_moving_baseline (moving-base RTCM 4072 from a peer GPS) to
+// Drains rtcm_moving_baseline (moving-base RTCM 4072 from a peer GNSS receiver) to
 // ardupilot::MovingBaselineData. Single publisher (instance 0), so no stale-link selection.
 void UavcanGnssBridge::drainMovingBaseline()
 {

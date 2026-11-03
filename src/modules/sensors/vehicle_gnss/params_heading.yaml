@@ -1,6 +1,6 @@
-__max_num_gps_instances: &max_num_gps_instances 2
+__max_num_gnss_instances: &max_num_gnss_instances 2
 
-module_name: vehicle_gps_position
+module_name: vehicle_gnss
 
 parameters:
     - group: Sensors
@@ -23,7 +23,7 @@ parameters:
                 1: Moving base rover
                 2: Dual antenna
             default: 0
-            num_instances: *max_num_gps_instances
+            num_instances: *max_num_gnss_instances
             instance_start: 0
 
         SENS_GNSS${i}_AUXX:
@@ -36,7 +36,7 @@ parameters:
             default: 0.0
             unit: m
             decimal: 3
-            num_instances: *max_num_gps_instances
+            num_instances: *max_num_gnss_instances
             instance_start: 0
 
         SENS_GNSS${i}_AUXY:
@@ -49,7 +49,7 @@ parameters:
             default: 0.0
             unit: m
             decimal: 3
-            num_instances: *max_num_gps_instances
+            num_instances: *max_num_gnss_instances
             instance_start: 0
 
         SENS_GNSS${i}_AUXZ:
@@ -62,5 +62,5 @@ parameters:
             default: 0.0
             unit: m
             decimal: 3
-            num_instances: *max_num_gps_instances
+            num_instances: *max_num_gnss_instances
             instance_start: 0

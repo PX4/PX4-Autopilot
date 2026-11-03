@@ -65,7 +65,7 @@ param set-default MIS_TAKEOFF_ALT 1.1
 #####################################
 # EKF
 #####################################
-# Enable optical flow and GPS
+# Enable optical flow and GNSS
 param set-default EKF2_MAG_TYPE 1
 param set-default EKF2_OF_QMIN 80
 

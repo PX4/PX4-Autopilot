@@ -437,7 +437,7 @@ bool GZBridge::subscribeNavsat(bool required)
 			gnss_topic = buildBaseTopic() + "navsat_sensor_" + std::to_string(i) + "/navsat";
 		}
 
-		// Pass GPS index in the callback
+		// Pass GNSS index in the callback
 		std::function<void(const gz::msgs::NavSat &)> callback = [this, i](const gz::msgs::NavSat & msg) {
 			navSatCallback(msg, i);
 		};
@@ -445,14 +445,14 @@ bool GZBridge::subscribeNavsat(bool required)
 		if (!_node.Subscribe(gnss_topic, callback)) {
 			// Only fail if instance 0 fails and it's marked as required
 			if (i == 0 && required) {
-				PX4_ERR("failed to subscribe to primary GPS topic: %s", gnss_topic.c_str());
+				PX4_ERR("failed to subscribe to primary GNSS topic: %s", gnss_topic.c_str());
 				return false;
 			}
 
-			if (i < count) { PX4_WARN("GPS instance %d topic not found: %s", i, gnss_topic.c_str()); }
+			if (i < count) { PX4_WARN("GNSS instance %d topic not found: %s", i, gnss_topic.c_str()); }
 
 		} else {
-			PX4_INFO("Subscribed to GPS[%d]: %s", i, gnss_topic.c_str());
+			PX4_INFO("Subscribed to GNSS[%d]: %s", i, gnss_topic.c_str());
 		}
 	}
 
@@ -818,8 +818,8 @@ float GZBridge::generate_wgn()
 	return X;
 }
 
-void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
-			   float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index)
+void GZBridge::addGnssNoise(double &latitude, double &longitude, double &altitude,
+			    float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index)
 {
 	_gnss_pos_noise_n[instance_index] = _pos_markov_time * _gnss_pos_noise_n[instance_index] +
 					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
@@ -887,12 +887,12 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_inde
 	}
 
 	// Apply noise model (based on ublox F9P)
-	addGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down, instance_index);
+	addGnssNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down, instance_index);
 
 	// Device ID
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	id.devid_s.devtype = DRV_GNSS_DEVTYPE_SIM;
 	id.devid_s.bus = 1;
 	id.devid_s.address = instance_index + 1;
 

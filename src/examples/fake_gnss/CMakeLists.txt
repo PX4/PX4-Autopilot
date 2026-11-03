@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,15 +32,12 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__simulation__sensor_gps_sim
-	MAIN sensor_gps_sim
+	MODULE modules__fake_gnss
+	MAIN fake_gnss
 	COMPILE_FLAGS
 	SRCS
-		SensorGpsSim.cpp
-		SensorGpsSim.hpp
-	MODULE_CONFIG
-		parameters.yaml
+		FakeGnss.cpp
+		FakeGnss.hpp
 	DEPENDS
-		failure_injection
 		px4_work_queue
-	)
+)

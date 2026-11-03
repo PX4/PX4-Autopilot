@@ -284,9 +284,9 @@ private:
 	uORB::Publication<rpm_s>			_rpm_pub{ORB_ID(rpm)};
 
 	// HIL GPS
-	static constexpr int MAX_GPS = 3;
-	uORB::PublicationMulti<sensor_gnss_s>	*_sensor_gnss_pubs[MAX_GPS] {};
-	uint8_t _gps_ids[MAX_GPS] {};
+	static constexpr int MAX_GNSS = 3;
+	uORB::PublicationMulti<sensor_gnss_s>	*_sensor_gnss_pubs[MAX_GNSS] {};
+	uint8_t _gnss_ids[MAX_GNSS] {};
 	std::default_random_engine _gen{};
 
 	// uORB subscription handlers
@@ -312,7 +312,7 @@ private:
 	hrt_abstime _last_gyro_fifo_timestamp{0};
 
 	// Per-HIL_GPS-instance last-good sample, for the Stuck failure.
-	failure_injection::Stuck<sensor_gnss_s> _gnss_stuck[MAX_GPS];
+	failure_injection::Stuck<sensor_gnss_s> _gnss_stuck[MAX_GNSS];
 
 	// airspeed and VIO failure injection (no PX4* helper class applies these).
 	bool _airspeed_disconnected{false};

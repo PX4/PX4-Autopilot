@@ -101,7 +101,7 @@ Inject failures into system.
 This system command sends a vehicle command over uORB to trigger failure.
 
 ### Examples
-Test the GPS failsafe by stopping GPS:
+Test the GNSS failsafe by stopping GNSS:
 
 failure gps off
 )DESCR_STR");

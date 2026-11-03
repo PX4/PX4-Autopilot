@@ -35,7 +35,7 @@
  * @file FlightTaskAutoFollowTarget.cpp
  *
  * Flight Task for follow-me flight mode. It consumes follow_target_estimator messages from
- * TargetEstimator. The drone then tracks this target's GPS coordinates from a specified
+ * TargetEstimator. The drone then tracks this target's GNSS coordinates from a specified
  * angle and distance.
  *
  */

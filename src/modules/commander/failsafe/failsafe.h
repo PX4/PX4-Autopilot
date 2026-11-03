@@ -169,7 +169,7 @@ private:
 		Land = 4,
 	};
 
-	enum class gps_redundancy_failsafe_mode : int32_t {
+	enum class gnss_redundancy_failsafe_mode : int32_t {
 		Warning = 0,
 		Return_mode = 1,
 		Land_mode = 2,

@@ -76,10 +76,10 @@ public:
 TEST_F(EkfExternalVisionTest, visionNedBiasSurvivesYawAlignmentLoss)
 {
 	_sensor_simulator.runSeconds(_tilt_align_time);
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(12.f);
-	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 	_sensor_simulator._vio.setPositionFrameToLocalNED();
 	_sensor_simulator._vio.setPosition(Vector3f(10.f, -5.f, 0.f));
 	_ekf_wrapper.enableExternalVisionPositionFusion();
@@ -88,7 +88,7 @@ TEST_F(EkfExternalVisionTest, visionNedBiasSurvivesYawAlignmentLoss)
 	ASSERT_TRUE(_ekf_wrapper.isIntendingExternalVisionPositionFusion());
 	const Vector3f before = _ekf->getPosition();
 
-	_sensor_simulator.stopGps();
+	_sensor_simulator.stopGnss();
 	_sensor_simulator.runSeconds(3.f);
 	_sensor_simulator.stopExternalVision();
 	_sensor_simulator.runSeconds(3.f);

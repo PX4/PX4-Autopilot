@@ -139,9 +139,9 @@ TEST_F(EkfAirspeedTest, testResetWindUsingAirspeed)
 {
 	const Vector3f simulated_velocity_earth(-3.6f, 8.f, 0.0f);
 	const Vector2f airspeed_body(15.f, 0.0f);
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator._gps.setVelocity(simulated_velocity_earth);
-	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator._gnss.setVelocity(simulated_velocity_earth);
+	_sensor_simulator.startGnss();
 	_sensor_simulator.runSeconds(11);
 
 	_ekf->set_in_air_status(true);

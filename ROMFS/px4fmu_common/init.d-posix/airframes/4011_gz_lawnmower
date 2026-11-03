@@ -13,7 +13,7 @@ param set-default SIM_GZ_EN 1 # Gazebo bridge
 
 param set-default NAV_ACC_RAD 0.5
 
-# We can arm and drive in manual mode when it slides and GPS check fails:
+# We can arm and drive in manual mode when it slides and GNSS check fails:
 param set-default COM_ARM_WO_GPS 1
 
 # Differential Parameters
@@ -101,7 +101,7 @@ param set-default CA_SV_CS_COUNT 2
 #param set-default SIM_GZ_SV_DIS5 1000
 #param set-default SIM_GZ_SV_FAIL5 1000
 
-# Horn, PCA9685 servo channel 6, "Servo 6" (206) - for alarms like GPS failure:
+# Horn, PCA9685 servo channel 6, "Servo 6" (206) - for alarms like GNSS failure:
 #param set-default SIM_GZ_SV_FUNC6 206
 
 # Spare PCA9685 servo channel 7 on "RC AUX2" (408) - right knob, or "Servo 7" (207):

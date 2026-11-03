@@ -248,7 +248,7 @@ void Ekf::resetAltitudeTo(const float new_altitude, float new_vert_pos_var)
 #if defined(CONFIG_EKF2_GNSS)
 
 	if (_control_status.flags.gps_hgt) {
-		_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + delta_z);
+		_gnss_hgt_b_est.setBias(_gnss_hgt_b_est.getBias() + delta_z);
 	}
 
 #endif // CONFIG_EKF2_GNSS

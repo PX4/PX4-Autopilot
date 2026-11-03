@@ -56,13 +56,13 @@
 
 using namespace time_literals;
 
-class SensorGpsSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
+class SensorGnssSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	static Descriptor desc;
 
-	SensorGpsSim();
-	~SensorGpsSim() override;
+	SensorGnssSim();
+	~SensorGnssSim() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -76,7 +76,7 @@ public:
 	bool init();
 
 private:
-	static constexpr int GPS_MAX_INSTANCES = 2;
+	static constexpr int GNSS_MAX_INSTANCES = 2;
 
 	// Each receiver has its own Gauss-Markov error, so that two receivers disagree by more than their biases
 	struct ReceiverNoise {
@@ -111,8 +111,8 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub{ORB_ID::rtcm_corrections};
 
-	uORB::PublicationMulti<sensor_gnss_s> _sensor_gnss_pub[GPS_MAX_INSTANCES] {{ORB_ID(sensor_gnss)}, {ORB_ID(sensor_gnss)}};
-	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub[GPS_MAX_INSTANCES] {
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gnss_pub[GNSS_MAX_INSTANCES] {{ORB_ID(sensor_gnss)}, {ORB_ID(sensor_gnss)}};
+	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub[GNSS_MAX_INSTANCES] {
 		{ORB_ID(sensor_gnss_relative)}, {ORB_ID(sensor_gnss_relative)}
 	};
 
@@ -120,15 +120,15 @@ private:
 
 	// Failure injection (FAILURE_UNIT_SENSOR_GPS): active config + per-instance last-good sample.
 	failure_injection::Config _failure_config;
-	failure_injection::Stuck<sensor_gnss_s> _stuck[GPS_MAX_INSTANCES];
-	failure_injection::Stuck<sensor_gnss_relative_s> _stuck_relative[GPS_MAX_INSTANCES];
+	failure_injection::Stuck<sensor_gnss_s> _stuck[GNSS_MAX_INSTANCES];
+	failure_injection::Stuck<sensor_gnss_relative_s> _stuck_relative[GNSS_MAX_INSTANCES];
 
 	static constexpr hrt_abstime RTCM_TIMEOUT{5_s};
 	hrt_abstime _last_rtcm_time{0};
 
 	matrix::Quatf _attitude{};
 
-	ReceiverNoise _noise[GPS_MAX_INSTANCES] {};
+	ReceiverNoise _noise[GNSS_MAX_INSTANCES] {};
 
 	// Gauss-Markov noise parameters, rate-corrected from GZBridge (30 Hz) to SIH (8 Hz)
 	static constexpr float _pos_noise_amplitude{0.8f};

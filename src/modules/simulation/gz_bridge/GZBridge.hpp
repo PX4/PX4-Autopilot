@@ -141,8 +141,8 @@ private:
 
 	static float generate_wgn();
 
-	void addGpsNoise(double &latitude, double &longitude, double &altitude,
-			 float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index);
+	void addGnssNoise(double &latitude, double &longitude, double &altitude,
+			  float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index);
 
 	uORB::SubscriptionInterval                    _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -213,7 +213,7 @@ private:
 	bool _realtime_clock_set{false};
 	gz::transport::Node _node;
 
-	// GPS noise model
+	// GNSS noise model
 	float _gnss_pos_noise_n[_MAX_GNSS_SENSORS] {0.0f, 0.0f};
 	float _gnss_pos_noise_e[_MAX_GNSS_SENSORS] {0.0f, 0.0f};
 	float _gnss_pos_noise_d[_MAX_GNSS_SENSORS] {0.0f, 0.0f};

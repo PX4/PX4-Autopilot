@@ -54,7 +54,7 @@
 #include "imu.h"
 #include "mag.h"
 #include "baro.h"
-#include "gps.h"
+#include "gnss.h"
 #include "gnss_yaw.h"
 #include "flow.h"
 #include "range_finder.h"
@@ -66,7 +66,7 @@ using namespace sensor_simulator::sensor;
 
 struct sensor_info {
 	uint64_t timestamp{};
-	enum class measurement_t {IMU, MAG, BARO, GPS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type =
+	enum class measurement_t {IMU, MAG, BARO, GNSS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type =
 		measurement_t::IMU;
 	std::array<double, 10> sensor_data{};
 };
@@ -93,8 +93,8 @@ public:
 	void startBaro() { _baro.start(); }
 	void stopBaro() { _baro.stop(); }
 
-	void startGps() { _gps.start(); }
-	void stopGps() { _gps.stop(); }
+	void startGnss() { _gnss.start(); }
+	void stopGnss() { _gnss.stop(); }
 
 	void startGnssYaw() { _gnss_yaw.start(); }
 	void stopGnssYaw() { _gnss_yaw.stop(); }
@@ -111,9 +111,9 @@ public:
 	void startAirspeedSensor() { _airspeed.start(); }
 	void stopAirspeedSensor() { _airspeed.stop(); }
 
-	void setGpsLatitude(const double latitude);
-	void setGpsLongitude(const double longitude);
-	void setGpsAltitude(const float altitude);
+	void setGnssLatitude(const double latitude);
+	void setGnssLongitude(const double longitude);
+	void setGnssAltitude(const float altitude);
 
 	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 
@@ -126,7 +126,7 @@ public:
 	Airspeed    _airspeed;
 	Baro        _baro;
 	Flow        _flow;
-	Gps         _gps;
+	Gnss         _gnss;
 	GnssYaw     _gnss_yaw;
 	Imu         _imu;
 	Mag         _mag;
