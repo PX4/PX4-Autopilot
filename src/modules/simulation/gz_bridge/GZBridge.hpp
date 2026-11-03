@@ -38,6 +38,7 @@
 #include "GZMixingInterfaceWheel.hpp"
 #include "GZGimbal.hpp"
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -138,8 +139,6 @@ private:
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 	std::string buildBaseTopic(std::string sensor_link = "base_link");
-
-	static float generate_wgn();
 
 	void addGpsNoise(double &latitude, double &longitude, double &altitude,
 			 float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index);

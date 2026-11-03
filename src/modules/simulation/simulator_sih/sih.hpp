@@ -55,6 +55,7 @@
  */
 #pragma once
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
@@ -119,11 +120,6 @@ public:
 
 	/** @see ModuleBase::run() */
 	void run() override;
-
-	static float generate_wgn();    // generate white Gaussian noise sample
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	static matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
 
 private:
 	void parameters_updated();
