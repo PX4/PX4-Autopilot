@@ -62,7 +62,7 @@ public:
 
 	// Publish position and setpoint, then run the detector. Returns the alt flag state.
 	bool update(float lpos_z, float lpos_sp_z, float delta_z = 0.f, uint8_t z_reset_counter = 0, float lpos_sp_vz = 0.f,
-		    bool publish_setpoint = true)
+		    bool publish_setpoint = true, float lpos_vz = 0.f)
 	{
 		// Each update represents 1s of flight for integrating the commanded vertical velocity
 		_timestamp += 1_s;
@@ -71,6 +71,8 @@ public:
 		lpos.timestamp = _timestamp;
 		lpos.z = lpos_z;
 		lpos.z_valid = true;
+		lpos.vz = lpos_vz;
+		lpos.v_z_valid = true;
 		lpos.delta_z = delta_z;
 		lpos.z_reset_counter = z_reset_counter;
 		_lpos_pub.publish(lpos);
@@ -275,4 +277,21 @@ TEST_F(FailureDetectorAltitudeLossTest, TriggerOnDropWithStaleDescentSetpoint)
 	EXPECT_FALSE(updateVelocity(-97.f, 3.f));   // ref = -97
 	EXPECT_FALSE(updatePositionOnly(-94.f));    // setpoint stale, ref stays at -97, drop = 3m
 	EXPECT_TRUE(updatePositionOnly(-91.f));     // drop = 6m, triggers
+}
+
+TEST_F(FailureDetectorAltitudeLossTest, TriggerOnFallWithSetpointFollowingVehicle)
+{
+	// Emergency braking in auto modes keeps the altitude setpoint on the vehicle while it falls,
+	// the setpoint must not drag the reference down
+	EXPECT_FALSE(update(-100.f, -100.5f, 0.f, 0, 0.f, true, 0.f)); // ref = -100
+	EXPECT_FALSE(update(-97.f, -97.5f, 0.f, 0, 0.f, true, 3.f));   // drop = 3m
+	EXPECT_TRUE(update(-94.f, -94.5f, 0.f, 0, 0.f, true, 3.f));    // drop = 6m, triggers
+}
+
+TEST_F(FailureDetectorAltitudeLossTest, TriggerOnFallWithSetpointBelowVehicle)
+{
+	// The setpoint kept on the vehicle can end up just below it: falling faster than allowed keeps the reference
+	EXPECT_FALSE(update(-100.f, -100.5f, 0.f, 0, 0.f, true, 0.f)); // ref = -100
+	EXPECT_FALSE(update(-97.f, -96.5f, 0.f, 0, 0.f, true, 3.f));   // above setpoint but falling, drop = 3m
+	EXPECT_TRUE(update(-94.f, -94.5f, 0.f, 0, 0.f, true, 3.f));    // drop = 6m, triggers
 }
