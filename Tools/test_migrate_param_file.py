@@ -72,6 +72,34 @@ class MigrateParamFileTest(unittest.TestCase):
         self.assertEqual(log, ['converted: SENS_TEMP_ID 2621474 ->'
                                ' HEATER1_SENS_ID 2621474'])
 
+    def test_aux_global_position_moved_to_first_source(self):
+        _, values, log = migrate(
+            (1, 'EKF2_AGP_CTRL', '1', 6),
+            (1, 'EKF2_AGP_MODE', '1', 6),
+            (1, 'EKF2_AGP_DELAY', '50.000000000000000000', 9),
+            (1, 'EKF2_AGP_NOISE', '0.899999976158142090', 9),
+            (1, 'EKF2_AGP_GATE', '3.000000000000000000', 9))
+        self.assertEqual(values, {
+            (1, 'EKF2_AGP0_CTRL'): ('1', 6),
+            (1, 'EKF2_AGP0_ID'): ('1', 6),
+            (1, 'EKF2_AGP0_MODE'): ('1', 6),
+            (1, 'EKF2_AGP0_DELAY'): ('50.000000000000000000', 9),
+            (1, 'EKF2_AGP0_NOISE'): ('0.899999976158142090', 9),
+            (1, 'EKF2_AGP0_GATE'): ('3.000000000000000000', 9),
+        })
+        self.assertIn('converted: EKF2_AGP_CTRL 1 ->'
+                      ' EKF2_AGP0_CTRL 1, EKF2_AGP0_ID 1', log)
+        self.assertIn('reboot: EKF2_AGP0_* are listed only after EKF2_AGP0_ID'
+                      ' is set, so load the file again after a reboot', log)
+        self.assertIn('default: EKF2_AGP_NOISE 0.9 is a v1.17 default,'
+                      ' v1.18 uses 1', log)
+
+    def test_aux_global_position_id_kept_when_disabled(self):
+        _, values, log = migrate((1, 'EKF2_AGP_CTRL', '0', 6))
+        self.assertEqual(values, {(1, 'EKF2_AGP0_CTRL'): ('0', 6)})
+        self.assertEqual(log, ['converted: EKF2_AGP_CTRL 0 ->'
+                               ' EKF2_AGP0_CTRL 0'])
+
     def test_landing_nudging_merged_into_existing_bits(self):
         _, values, _ = migrate((1, 'MPC_AUTO_NUDGING', '1', 6),
                                (1, 'MPC_LAND_RC_HELP', '1', 6))
@@ -133,6 +161,8 @@ class MigrateParamFileTest(unittest.TestCase):
         for kind, new, _ in m.CONVERSIONS.values():
             for name in (new,) if isinstance(new, str) else new:
                 self.assertIn(name, m.NEW_TYPES)
+        for name in m.REBOOT_NOTES:
+            self.assertIn(name, m.NEW_TYPES)
 
     def test_firmware_translates_every_converted_parameter(self):
         # Catches a translation removed from the firmware, not a changed

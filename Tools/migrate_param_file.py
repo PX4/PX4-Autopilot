@@ -84,6 +84,21 @@ CONVERSIONS = {
     'SENS_TEMP_ID': ('if_nonzero_rename_int', 'HEATER1_SENS_ID', None),
     # landing nudging is bit 1 of MPC_AUTO_NUDGING (v1.18 default 0)
     'MPC_LAND_RC_HELP': ('if_nonzero_set_bit', 'MPC_AUTO_NUDGING', 1),
+    # the first source slot only fuses messages with id EKF2_AGP0_ID, which
+    # is set to 1 (the id v1.17 sources arrive with) when fusion was enabled
+    'EKF2_AGP_CTRL': ('rename_if_nonzero_set',
+                      ('EKF2_AGP0_CTRL', 'EKF2_AGP0_ID'), 1),
+    'EKF2_AGP_MODE': ('rename', 'EKF2_AGP0_MODE', None),
+    'EKF2_AGP_DELAY': ('rename', 'EKF2_AGP0_DELAY', None),
+    'EKF2_AGP_NOISE': ('rename', 'EKF2_AGP0_NOISE', None),
+    'EKF2_AGP_GATE': ('rename', 'EKF2_AGP0_GATE', None),
+}
+
+# Parameters that QGroundControl only lists after another one is set and
+# the vehicle reboots: written name: note
+REBOOT_NOTES = {
+    'EKF2_AGP0_ID': 'EKF2_AGP0_* are listed only after EKF2_AGP0_ID is set,'
+                    ' so load the file again after a reboot',
 }
 
 # Types of the parameters the conversions write
@@ -103,12 +118,17 @@ NEW_TYPES = {
     'HEATER1_TEMP_P': MAV_PARAM_TYPE_REAL32,
     'HEATER1_SENS_ID': MAV_PARAM_TYPE_INT32,
     'MPC_AUTO_NUDGING': MAV_PARAM_TYPE_INT32,
+    'EKF2_AGP0_CTRL': MAV_PARAM_TYPE_INT32,
+    'EKF2_AGP0_ID': MAV_PARAM_TYPE_INT32,
+    'EKF2_AGP0_MODE': MAV_PARAM_TYPE_INT32,
+    'EKF2_AGP0_DELAY': MAV_PARAM_TYPE_REAL32,
+    'EKF2_AGP0_NOISE': MAV_PARAM_TYPE_REAL32,
+    'EKF2_AGP0_GATE': MAV_PARAM_TYPE_REAL32,
 }
 
 # RC*_REV changed from float to int32
 REVERSE_PARAMS = {f'RC{i}_REV' for i in range(1, 19)}
 
-_SEE_AGP = 'see EKF2_AGP0_* and EKF2_AGP0_ID'
 _SEE_LIGHTS = 'see UAVCAN_LGT_MODE, UAVCAN_LGT_NUM, UAVCAN_LGT_IDn/FNn'
 
 # Parameters removed in v1.18 without a conversion: name: hint
@@ -123,9 +143,6 @@ REMOVED = {
     'COM_RC_STICK_OV': 'see MAN_OVERRIDE_SPD (stick speed in 1/s)',
     'COM_TAKEOFF_ACT': '',
     'DSHOT_BIDIR_EN': 'choose BDShot in PWM_MAIN_TIMn / PWM_AUX_TIMn',
-    'EKF2_AGP_CTRL': _SEE_AGP, 'EKF2_AGP_DELAY': _SEE_AGP,
-    'EKF2_AGP_GATE': _SEE_AGP, 'EKF2_AGP_MODE': _SEE_AGP,
-    'EKF2_AGP_NOISE': _SEE_AGP,
     'FD_ACT_MOT_C2T': 'see MOTFAIL_C2T and MOTFAIL_OFF',
     'FD_ACT_MOT_THR': '',
     'FD_ACT_MOT_TOUT': 'see MOTFAIL_TIME (in s)',
@@ -144,7 +161,9 @@ REMOVED = {
 
 
 # Defaults changed in v1.18: name: (v1.17 default, v1.18 default)
+# A converted parameter is listed under its v1.17 name.
 DEFAULT_CHANGES = {
+    'EKF2_AGP_NOISE': (0.9, 1.0),
     'FD_ACT_EN': (1, 0),
     'FW_T_HRATE_FF': (0.3, 0.5),
     'MPC_LAND_RADIUS': (1000.0, -1.0),
@@ -203,11 +222,24 @@ def convert(name, value, current):
         return [(new, arg)] if value == 0 else []
     if kind == 'if_nonzero_rename_int':
         return [(new, int(value))] if value != 0 else []
+    if kind == 'rename_if_nonzero_set':
+        return [(new[0], value)] + ([(new[1], arg)] if value != 0 else [])
     if kind == 'if_nonzero_set_bit':
         if value == 0:
             return []
         return [(new, int(current.get(new, 0)) | (1 << arg))]
     raise ValueError(kind)
+
+
+def log_old_default(name, value, log):
+    """List a value still at a v1.17 default that v1.18 changed."""
+    if name in DEFAULT_CHANGES:
+        old, new = DEFAULT_CHANGES[name]
+        if value == float32(old):
+            scope = DEFAULT_CHANGE_SCOPES.get(name)
+            log(f'default: {name} {show(value)} is a v1.17 default,'
+                f' v1.18 uses {show(new)}'
+                + (f' {scope}' if scope else ''))
 
 
 def migrate(lines, log):
@@ -248,6 +280,10 @@ def migrate(lines, log):
             done = ', '.join(f'{n} {show(v)}' for n, v in writes)
             log(f'converted: {name} {show(value)} ->'
                 f' {done or "nothing to set"}')
+            for new_name, _ in writes:
+                if new_name in REBOOT_NOTES:
+                    log(f'reboot: {REBOOT_NOTES[new_name]}')
+            log_old_default(name, value, log)
         elif name in REMOVED:
             hint = f': {REMOVED[name]}' if REMOVED[name] else ''
             log(f'removed: {name} {show(value)}{hint}')
@@ -258,13 +294,7 @@ def migrate(lines, log):
             out.append([row[0], row[1], name, str(reverse),
                         str(MAV_PARAM_TYPE_INT32)])
         else:
-            if name in DEFAULT_CHANGES:
-                old, new = DEFAULT_CHANGES[name]
-                if value == float32(old):
-                    scope = DEFAULT_CHANGE_SCOPES.get(name)
-                    log(f'default: {name} {show(value)} is a v1.17 default,'
-                        f' v1.18 uses {show(new)}'
-                        + (f' {scope}' if scope else ''))
+            log_old_default(name, value, log)
             out.append(row)
 
     # A converted value replaces the file's own value of that parameter
