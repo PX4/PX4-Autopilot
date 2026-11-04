@@ -14,6 +14,7 @@ The increased processing power lets firmware developers run more complex algorit
 
 The board uses sensors from InvenSense® and Bosch®, and ships in two sensor-set variants (see [Sensors](#sensors)).
 Redundant IMU and barometer sensors sit on separate buses, and 2 of the 3 IMUs are mounted on a shock-isolated, heated sensor board, separate from the FMU board itself, to improve accuracy in flight and across a wide temperature range.
+The sensor-board heater is not supported by the default firmware.
 
 An integrated Ethernet interface (100BASE-T1, 2-wire) provides high-speed, low-latency connectivity to companion computers (for example a Raspberry Pi or NVIDIA Jetson), cameras, or data-transmission systems.
 
@@ -46,26 +47,27 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - On-board sensors — Agam Autopilot v6X-RT ships in two sensor-set variants (Sensor Set 1 and Sensor Set 3, per [Pixhawk Standards](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-020%20Pixhawk%20Autopilot%20v6X-RT%20Standard.pdf)):
   - Sensor Set 1:
-    - 2x [InvenSense ICM-42688-P IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p)
+    - [InvenSense ICM-42686-P IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42686-p)
+    - [InvenSense ICM-42688-P IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p)
     - [Bosch BMI088 IMU](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088/)
     - [Bosch BMM150 Magnetometer](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf)
-    - 2x [Bosch BMP388 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
+    - 2x Bosch BMP388 Barometer
   - Sensor Set 3:
     - 2x [TDK InvenSense ICM-45686 IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686)
     - [Bosch BMI088 IMU](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088/)
     - [Bosch BMM350 Magnetometer](https://www.bosch-sensortec.com/en/products/motion-sensors/magnetometers/bmm350)
-    - 2x [Bosch BMP388 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
+    - 2x [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
 
 ::: tip
-This board ships with `SENS_IMU_MODE` and `EKF2_MULTI_IMU` set so that only the FMU-board IMU is used by default.
-To take advantage of the triple-redundant IMU set `SENS_IMU_MODE` to `Disabled (0)`, reboot, set `EKF2_MULTI_IMU` to `3`, and reboot again.
+By default PX4 runs a single EKF2 instance on the IMU selected by the sensors module, which switches to another IMU if the selected one fails.
+To [run an EKF2 instance on each IMU](../advanced_config/tuning_the_ecl_ekf.md#running-multiple-ekf-instances), set [SENS_IMU_MODE](../advanced_config/parameter_reference.md#SENS_IMU_MODE) to `Disabled (0)`, reboot, set [EKF2_MULTI_IMU](../advanced_config/parameter_reference.md#EKF2_MULTI_IMU) to `3`, and reboot again.
 See [Agam's IMU triple redundancy notes](https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart/imu-triple-redundancy-feature) for more information.
 :::
 
 ### Interfaces {#interfaces}
 
 - 12 PWM/DShot outputs (8 DShot-capable, 4 PWM-only)
-- 1x RC input, SBUS/PPM
+- 1x RC input, SBUS
 - 1x dedicated DSM/Spektrum RC input
 - 3x TELEM ports (`TELEM1`, `TELEM2`, `TELEM3`), full flow control
 - 2x GPS ports (`GPS1` full GPS plus safety switch and buzzer, `GPS2` basic)
@@ -114,7 +116,7 @@ Agam Autopilot v6X-RT's pinout is the same as other v6X-RT-family boards:
 
 Notes:
 
-- The [camera capture pin](../camera/fc_connected_camera.md#camera-capture-configuration) (`PI0`) is pin 2 on the AD&IO port, marked `FMU_CAP`.
+- Pin 2 on the AD&IO port is marked `FMU_CAP` (`GPIO_EMC_B1_20`), but is not used for camera capture by the default firmware.
 
 ## Power {#power}
 
@@ -144,36 +146,37 @@ Under these conditions the system will not draw any power (will not be operation
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART     | Device     | Port    |
-| -------- | ---------- | ------- |
-| LPUART1  | /dev/ttyS0 | Console |
-| LPUART3  | /dev/ttyS1 | GPS     |
-| LPUART4  | /dev/ttyS2 | TELEM1  |
-| LPUART5  | /dev/ttyS3 | GPS2    |
-| LPUART6  | /dev/ttyS4 | PX4IO   |
-| LPUART8  | /dev/ttyS5 | TELEM2  |
-| LPUART10 | /dev/ttyS6 | TELEM3  |
-| LPUART11 | /dev/ttyS7 | EXT2    |
+| UART     | Device     | Port     |
+| -------- | ---------- | -------- |
+| LPUART1  | /dev/ttyS0 | Console  |
+| LPUART3  | /dev/ttyS1 | GPS1     |
+| LPUART4  | /dev/ttyS2 | TELEM1   |
+| LPUART5  | /dev/ttyS3 | GPS2     |
+| LPUART6  | /dev/ttyS4 | RC       |
+| LPUART8  | /dev/ttyS5 | TELEM2   |
+| LPUART10 | /dev/ttyS6 | TELEM3   |
+| LPUART11 | /dev/ttyS7 | UART&I2C |
 
 ## Assembly {#assembly}
 
-Agam Autopilot v6X-RT is a Pixhawk-standard v6X-RT board, electrically and mechanically identical to the NXP reference design, differing from it only in enclosure.
+Agam Autopilot v6X-RT is based on the NXP FMUv6X-RT reference design, and differs from it only in enclosure.
 Wiring is similar to the [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md#connections) and other boards that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 
-For wiring and assembly, follow the [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md), which applies to this board other than the enclosure.
+For wiring and assembly, follow the [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md).
+This board has no PX4IO and no `I/O PWM OUT` port: motors and servos connect to `FMU PWM OUT`, and RC receivers need their protocol enabled (see [Radio Control](#radio_control)).
 
 ### Radio Control {#radio_control}
 
 A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-The ports and supported protocols are:
+Connect the receiver to the `RC IN` port, or a Spektrum/DSM receiver to the `DSM RC` port, which supplies the receiver's 3.3 V on pin 1 (`VDD_3V3_SPEKTRUM`).
+Both go to the FMU (LPUART6, `/dev/ttyS4`).
 
-- `RC IN` (FMU): SBUS/PPM
-- `DSM RC` (FMU): Spektrum/DSM
-
-For PPM and S.Bus receivers, a single signal wire carries all channels.
-If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md).
+The firmware includes the [CRSF](../telemetry/crsf_telemetry.md), DSM, GHST and S.BUS drivers (see [PX4-Compatible Receivers](../getting_started/rc_transmitter_receiver.md#compatible_receivers)), but none is enabled by default.
+Enable the one for your receiver by [setting](../advanced_config/parameters.md) its port parameter to `Radio Controller` (300): [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG), [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) or [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG).
+Only one protocol can be enabled on the port.
+PPM is not supported by the default firmware, so PPM receivers (and PWM receivers through a PPM encoder) can't be used.
 
 ## Building Firmware {#building_firmware}
 
@@ -203,18 +206,18 @@ The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debu
 The pinout and connector comply with the [Pixhawk Debug Full](../debug/swd_debug.md#pixhawk-debug-full) interface defined in the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (JST SH 1mm pitch, 10-pin connector).
 Pin 6 is `SPI6_MOSI_EXTERNAL1`, which is the pad's `JTAG_TDO` function and carries `SWO` when the debug port is in serial-wire mode.
 
-| Pin        | Signal         | Volt  |
-| ---------- | -------------- | ----- |
-| 1 (red)    | `FMU_VDD_3V3`  | +3.3V |
-| 2 (black)  | `FMU_USART_TX` | +3.3V |
-| 3 (black)  | `FMU_USART_RX` | +3.3V |
-| 4 (black)  | `FMU_SWD_IO`   | +3.3V |
-| 5 (black)  | `FMU_SWD_CK`   | +3.3V |
-| 6 (black)  | `SWO`          | +3.3V |
-| 7 (black)  | NFC GPIO       | +3.3V |
-| 8 (black)  | PH11           | +3.3V |
-| 9 (black)  | `FMU_nRST`     | +3.3V |
-| 10 (black) | `GND`          | GND   |
+| Pin        | Signal           | Volt  |
+| ---------- | ---------------- | ----- |
+| 1 (red)    | `FMU_VDD_3V3`    | +3.3V |
+| 2 (black)  | `FMU_USART_TX`   | +3.3V |
+| 3 (black)  | `FMU_USART_RX`   | +3.3V |
+| 4 (black)  | `FMU_SWD_IO`     | +3.3V |
+| 5 (black)  | `FMU_SWD_CK`     | +3.3V |
+| 6 (black)  | `SWO`            | +3.3V |
+| 7 (black)  | NFC GPIO         | +3.3V |
+| 8 (black)  | `GPIO_EMC_B2_12` | +3.3V |
+| 9 (black)  | `FMU_nRST`       | +3.3V |
+| 10 (black) | `GND`            | GND   |
 
 For information about using this port see:
 
