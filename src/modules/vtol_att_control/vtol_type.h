@@ -219,6 +219,7 @@ public:
 	float pusher_assist();
 
 	virtual void blendThrottleAfterFrontTransition(float scale) {};
+	virtual void blendPitchAfterFrontTransition(float scale) {};
 
 	mode get_mode() {return _common_vtol_mode;}
 

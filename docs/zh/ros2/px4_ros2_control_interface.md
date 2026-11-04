@@ -1,6 +1,6 @@
 # PX4 ROS 2 控制接口
 
-<Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.15" />
 
 :::warning
 Experimental

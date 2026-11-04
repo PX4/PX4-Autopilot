@@ -1,6 +1,6 @@
 module_name: Roboclaw Driver
 serial_config:
-  - command: roboclaw start ${SERIAL_DEV} ${BAUD_PARAM}
+  - command: roboclaw start ${SERIAL_DEV}
     port_config_param:
       name: RBCLW_SER_CFG
       group: Roboclaw
@@ -13,12 +13,37 @@ actuator_output:
         disarmed: { min: 127, max: 127, default: 127 }
         min: { min: 0, max: 127, default: 0 }
         max: { min: 127, max: 254, default: 254 }
-        failsafe: { min: 0, max: 257 }
-      num_channels: 2
+        failsafe: { min: 0, max: 254 }
+      num_channels: 16
 
 parameters:
   - group: Roboclaw Driver
     definitions:
+      RBCLW_BAUD:
+        description:
+          short: Roboclaw packet serial baud rate
+          long: Must match the packet serial baud rate configured on every Roboclaw controller on this bus.
+        type: enum
+        default: 38400
+        reboot_required: true
+        values:
+          2400: '2400'
+          9600: '9600'
+          19200: '19200'
+          38400: '38400'
+          57600: '57600'
+          115200: '115200'
+          230400: '230400'
+          460800: '460800'
+      RBCLW_COUNT:
+        description:
+          short: Number of Roboclaw controllers on the serial bus
+          long: Controllers must use consecutive unique addresses starting at RBCLW_ADDRESS. Each controller uses two output channels.
+        type: int32
+        default: 1
+        min: 1
+        max: 8
+        reboot_required: true
       RBCLW_COUNTS_REV:
         description:
           short: Number of encoder counts for one wheel revolution
@@ -28,9 +53,10 @@ parameters:
         min: 1
       RBCLW_ADDRESS:
         description:
-          short: Address of the ESC on the bus
+          short: First Roboclaw address on the bus
           long: The ESC has to be configured to have an address from 0x80 to 0x87. This parameter needs to match the configured value.
         type: enum
+        reboot_required: true
         default: 128
         min: 128
         max: 135

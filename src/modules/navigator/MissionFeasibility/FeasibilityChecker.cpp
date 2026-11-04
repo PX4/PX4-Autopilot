@@ -294,6 +294,16 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 		return false;
 	}
 
+	// DO_JUMP is supported only for repeating mission items that precede the jump.
+	if (mission_item.nav_cmd == NAV_CMD_DO_JUMP
+	    && (mission_item.do_jump_mission_index < 0 || mission_item.do_jump_mission_index >= current_index)) {
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: DO_JUMP %i must target an earlier item\t",
+				     current_index + 1);
+		events::send<uint16_t>(events::ID("navigator_mis_jump_not_backward"), {events::Log::Error, events::LogInternal::Info},
+				       "Mission rejected: DO_JUMP {1} must target an earlier item", current_index + 1);
+		return false;
+	}
+
 	// check if the mission starts with a land command while the vehicle is landed
 	if ((current_index == 0) && mission_item.nav_cmd == NAV_CMD_LAND && _is_landed) {
 

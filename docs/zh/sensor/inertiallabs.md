@@ -21,8 +21,8 @@ The mode is configurable using a parameter.
 [Get technical support or send requests to sales team](https://inertiallabs.com/inertial-labs-inc/contact-inertial-labs-team/).
 Recommended sensors:
 
-- [INS-U GNSS/INS](https://inertiallabs.com/wp-content/uploads/2026/01/INS-U_INS-U-OEM_Datasheet_REV2.18_JAN2026.pdf): Recommended for fixed-wing systems without hovering, where static heading is not necessary.
-- [INS-DU DUAL GNSS/INS](https://inertiallabs.com/wp-content/uploads/2025/12/INS-DU_INS-DU-OEM_Datasheet_REV1.00_DEC2025.pdf): Recommended for multicopter systems where hovering and low dynamics requires the use of static heading.
+- [INS-U GNSS/INS](https://inertiallabs.com/library/ins_u_datasheet.pdf): Recommended for fixed-wing systems without hovering, where static heading is not necessary.
+- [INS-DU DUAL GNSS/INS](https://inertiallabs.com/library/ins_du_datasheet.pdf): Recommended for multicopter systems where hovering and low dynamics requires the use of static heading.
 
 ## 硬件安装
 
@@ -108,7 +108,7 @@ These uORB topics are published:
 - [sensor_gyro](../msg_docs/SensorGyro.md)
 - [sensor_mag](../msg_docs/SensorMag.md)
 - [sensor_baro](../msg_docs/SensorBaro.md)
-- [sensor_gps](../msg_docs/SensorGps.md)
+- [sensor_gnss](../msg_docs/SensorGnss.md)
 
 If enabled as an external INS, publishes:
 

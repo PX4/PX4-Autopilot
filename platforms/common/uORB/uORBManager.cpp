@@ -419,6 +419,13 @@ bool uORB::Manager::orb_device_node_exists(ORB_ID orb_id, uint8_t instance)
 	       device_master->deviceNodeExists(orb_id, instance);
 }
 
+unsigned uORB::Manager::orb_node_generation()
+{
+	// no device master means no device node yet: 0, so that subscribers retry
+	const DeviceMaster *device_master = uORB::Manager::get_instance()->_device_master;
+	return (device_master != nullptr) ? device_master->nodeGeneration() : 0;
+}
+
 void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation)
 {
 	uORB::DeviceNode *node = nullptr;

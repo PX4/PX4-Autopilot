@@ -34,6 +34,7 @@
 #include "ManualControl.hpp"
 
 #include <px4_platform_common/events.h>
+#include <lib/mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command.h>
 
@@ -355,7 +356,8 @@ void ManualControl::updateParams()
 	_stick_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
 	_stick_disarm_hysteresis.set_hysteresis_time_from(false, 1_s);
 	_button_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
-	_stick_kill_hysteresis.set_hysteresis_time_from(false, _param_man_kill_gest_t.get() * 1_s);
+	// A negative MAN_KILL_GEST_T disables the gesture, don't convert it to an unsigned time
+	_stick_kill_hysteresis.set_hysteresis_time_from(false, math::max(_param_man_kill_gest_t.get(), 0.f) * 1_s);
 
 	_selector.setRcInMode(_param_com_rc_in_mode.get());
 	_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);

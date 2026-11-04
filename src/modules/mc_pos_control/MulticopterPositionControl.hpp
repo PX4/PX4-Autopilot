@@ -91,6 +91,8 @@ public:
 	bool init();
 
 private:
+	friend class MulticopterPositionControlTestPeer;
+
 	void Run() override;
 
 	TakeoffHandling _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
@@ -113,6 +115,12 @@ private:
 
 	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 	hrt_abstime _time_position_control_enabled{0};
+
+	// Velocity limits decaying from a speed higher than maximum after a control mode change to the configured maximum
+	float _vel_limit_xy{NAN};
+	float _vel_limit_up{NAN};
+	float _vel_limit_down{NAN};
+	hrt_abstime _time_vel_limit_reset{0};
 
 	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
 	trajectory_setpoint_s _last_valid_setpoint{PositionControl::empty_trajectory_setpoint};
@@ -252,7 +260,10 @@ private:
 	 * @brief adjust existing (or older) setpoint with any EKF reset deltas and update the local counters
 	 *
 	 * @param[in] vehicle_local_position struct containing EKF reset deltas and counters
-	 * @param[out] setpoint trajectory setpoint struct to be adjusted
+	 * @param[in,out] setpoint trajectory setpoint struct to be adjusted
+	 * @param[in,out] fallback_setpoint stored last valid setpoint, adjusted here because this
+	 *                call latches the reset counters
 	 */
-	void adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position, trajectory_setpoint_s &setpoint);
+	void adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
+					trajectory_setpoint_s &setpoint, trajectory_setpoint_s &fallback_setpoint);
 };

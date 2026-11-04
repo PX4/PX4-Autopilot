@@ -390,6 +390,7 @@ typedef enum PX4_SOC_ARCH_ID_t {
 	PX4_SOC_ARCH_ID_NXPS32K146     =  0x0007,
 	PX4_SOC_ARCH_ID_NXPS32K344     =  0x0008,
 	PX4_SOC_ARCH_ID_NXPIMXRT1176   =  0x0009,
+	PX4_SOC_ARCH_ID_ERBIUM         =  0x000A,
 
 	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
 	PX4_SOC_ARCH_ID_QURT           =  0x1002,
@@ -1134,6 +1135,21 @@ int board_get_px4_guid_formated(char *format_buffer, int size);
 #else
 __EXPORT int board_mcu_version(char *rev, const char **revstr, const char **errata);
 #endif // !defined(BOARD_OVERRIDE_CPU_VERSION)
+
+/************************************************************************************
+ * Name: board_get_flash_type_name
+ *
+ * Description:
+ *   Optional. Boards that identify their external flash at boot provide the part
+ *   name, so it can be reported next to the chip version. Weak: test the symbol
+ *   before calling it, boards that do not identify their flash do not define it.
+ *   Spelled out rather than using NuttX's weak_function, this header is also
+ *   used by builds that do not provide that macro.
+ *
+ * Returned Value:
+ *   The flash part name, or NULL if it is not known
+ */
+__EXPORT const char *board_get_flash_type_name(void) __attribute__((weak));
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 /************************************************************************************

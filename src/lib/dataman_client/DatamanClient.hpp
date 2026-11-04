@@ -199,9 +199,9 @@ private:
 
 	px4_pollfd_struct_t _fds;
 
-	static constexpr uint8_t CLIENT_ID_NOT_SET{0};
+	static constexpr uint16_t CLIENT_ID_NOT_SET{0};
 
-	uint8_t _client_id{CLIENT_ID_NOT_SET};
+	uint16_t _client_id{CLIENT_ID_NOT_SET};
 
 	perf_counter_t _sync_perf{nullptr};
 };

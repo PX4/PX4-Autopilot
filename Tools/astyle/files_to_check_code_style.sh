@@ -30,7 +30,6 @@ exec find boards msg src platforms test \
     -path src/modules/mc_raptor/blob -prune -o \
     -path src/modules/simulation/gz_plugins/optical_flow/PX4-OpticalFlow -prune -o \
     -path test/fuzztest -prune -o \
-    -path test/mavsdk_tests/catch2 -prune -o \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/crypto/libtomcrypt -prune -o \
     -path src/lib/crypto/libtommath -prune -o \
@@ -39,6 +38,7 @@ exec find boards msg src platforms test \
     -path src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3 -prune -o \
     -path src/lib/cdrstream/cyclonedds -prune -o \
     -path src/lib/cdrstream/rosidl -prune -o \
+    -path src/lib/ulog_cpp -prune -o \
     -path src/modules/zenoh/zenoh-pico -prune -o \
     -path boards/modalai/voxl2/libfc-sensor-api -prune -o \
     -path boards/modalai/voxl2/src/lib/mpa/libmodal-json -prune -o \

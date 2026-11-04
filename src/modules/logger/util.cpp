@@ -204,6 +204,13 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 		}
 
 		total_dirs = info.num_sess + info.num_dates;
+		// a directory may have been removed without deleting a file; re-check the count limit on the fresh scan
+		need_count_cleanup = (max_dirs_to_keep > 0) && (total_dirs > max_dirs_to_keep);
+
+		if (!need_space_cleanup && !need_count_cleanup) {
+			break;
+		}
+
 		bool found_sess = info.num_sess > 0;
 		bool found_date = info.num_dates > 0;
 

@@ -1,6 +1,6 @@
 # Інтерфейс керування PX4 ROS 2
 
-<Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.15" />
 
 :::warning
 Експериментальні налаштування

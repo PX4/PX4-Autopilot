@@ -118,13 +118,20 @@ inline void send(uint32_t id, const LogLevels &log_levels, const char *message, 
 	send(e);
 }
 
+namespace util
+{
+/**
+ * publish/send an event without arguments. The message is deliberately not passed: it is only
+ * needed by the event generator and the optional console output, so the compiler can drop it.
+ * The levels are passed as two scalars so that each call site stays a few instructions.
+ */
+void sendWithoutMessage(uint32_t id, Log external, LogInternal internal);
+} // namespace util
+
 inline void send(uint32_t id, const LogLevels &log_levels, const char *message)
 {
-	event_s e{};
-	e.log_levels = ((uint8_t)log_levels.internal << 4) | (uint8_t)log_levels.external;
-	e.id = id;
-	CONSOLE_PRINT_EVENT(e.log_level_external, e.id, message);
-	send(e);
+	CONSOLE_PRINT_EVENT(log_levels.external, id, message);
+	util::sendWithoutMessage(id, log_levels.external, log_levels.internal);
 }
 
 static constexpr uint16_t initial_event_sequence = 65535 - 10; // initialize with a high number so it wraps soon

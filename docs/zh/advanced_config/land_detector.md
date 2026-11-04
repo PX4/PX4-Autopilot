@@ -6,92 +6,84 @@
 
 当飞行器着陆时着陆探测器会为飞行器自动加锁。
 
-You can set [COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND) to specify the number of seconds after landing that the system should disarm (or turn off auto-disarming by setting the parameter to -1).
+您可以设置 [COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND) 来指定着陆后系统上锁前的秒数（或通过将参数设置为 -1 关闭自动上锁）。
 
 ## 多旋翼配置
 
-The complete set of relevant landing detector parameters are listed in the parameter reference with the prefix [LNDMC](../advanced_config/parameter_reference.md#land-detector) (these can be edited in QGroundControl via the [parameter editor](../advanced_config/parameters.md)).
+相关着陆探测器参数的完整组列于参数引用前缀 [LNDMC](../advanced_config/parameter_reference.md#land-detector) (这些参数可以通过 [参数编辑器](../advanced_config/parameters.md)在QGroundControl中进行编辑。
 
 :::tip
-Information about how the parameters affect landing can be found below in [Land Detector States](#mc-land-detector-states).
+有关这些参数如何影响着陆的信息，请参见下文的[着陆检测器状态](#mc-land-detector-states)。
 :::
 
 为了改善特定机架上的着陆，您可能需要调整的其他关键参数包括:
 
-- [MPC_THR_HOVER](../advanced_config/parameter_reference.md#MPC_THR_HOVER) - the hover throttle of the system (default is 50%).
-  正确设置这一点是很重要的, 因为它使高度控制更加准确, 并确保正确的地面检测。没有安装有效载荷的穿越机或大型相机的无人机可能需要更低的悬停油门 (例如 35%)。
+- [MPC_THR_HOVER](../advanced_config/parameter_reference.md#MPC_THR_HOVER) - 系统的悬停油门(默认值为50%)。正确设置这一点是很重要的, 因为它使高度控制更加准确, 并确保正确的地面检测。没有安装有效载荷的穿越机或大型相机的无人机可能需要更低的悬停油门 (例如 35%)。
 
-  ::: info
-  Incorrectly setting `MPC_THR_HOVER` may result in ground-contact or maybe-landed detection while still in air (in particular, while descending in [Position mode](../flight_modes_mc/position.md) or [Altitude mode](../flight_modes_mc/altitude.md)).
-  这将导致载具 "抽搐" （关闭电机，然后立即将其重新打开）。
+  ::: 信息
+  如果错误地设置了 `MPC_THR_HOVER`，可能会导致飞行器仍在空中时（特别是当在 [位置模式](../flight_modes_mc/position.md) 或 [高度模式](../flight_modes_mc/altitude.md) 下下降时）触发触地或疑似着陆检测。这将导致载具 "抽搐" （关闭电机，然后立即将其重新打开）。
 
 :::
 
-- [MPC_THR_MIN](../advanced_config/parameter_reference.md#MPC_THR_MIN) - the overall minimum throttle of the system.
-  应该将其设置为可控的下降
+- [MPC_THR_MIN](../advanced_config/parameter_reference.md#MPC_THR_MIN) - 系统的总最小油门。应将此设置为“启用”以实现受控下降。
 
-- [MPC_LAND_CRWL](../advanced_config/parameter_reference.md#MPC_LAND_CRWL) - the vertical speed applied in the last stage of autonomous landing if the system has a distance sensor and it is present and working. Has to be set larger than LNDMC_Z_VEL_MAX.
+- [MPC_LAND_CRWL](../advanced_config/parameter_reference.md#MPC_LAND_CRWL) —— 若系统配备距离传感器且该传感器存在并正常工作，则在自主着陆的最后阶段应用的垂直速度。必须设置大于 LNDMC_Z_VEL_MAX。
 
-### MC Land Detector States
+### 着陆探测器状态
 
-为了探测着陆，多旋翼首先必须经历三个不同的状态，其中每个状态都包含来自先前状态的条件以及更严格的约束。如果由于缺少传感器而无法达到条件，则默认情况下认为该条件为真。
-For instance, in [Acro mode](../flight_modes_mc/acro.md) and no sensor is active except for the gyro sensor, then the detection solely relies on thrust output and time.
+为了探测着陆，多旋翼首先必须经历三个不同的状态，其中每个状态都包含来自先前状态的条件以及更严格的约束。如果由于缺少传感器而无法达到条件，则默认情况下认为该条件为真。例如，在 [特技模式](../flight_modes_mc/acro.md) 下，如果除了陀螺仪传感器外没有其他传感器处于活动状态，那么检测将完全依赖于推力输出和时间。
 
-In order to proceed to the next state, each condition has to be true for 300ms.
-If the vehicle is equipped with a distance sensor, but the distance to ground is currently not measurable (usually because it is too large), the trigger time is increased by a factor of 3.
+为了进入下一个状态，每个条件必须在某个预定义的时间内为真 300ms。如果机体配备了距离传感器，但当前无法测量与地面的距离（通常是因为距离过大），则触发时间将增加3倍。
 
 如果一个条件失败，则陆地探测器立即退出当前状态。
 
 #### 地面接触
 
-Conditions for this state:
+此状态的条件：
 
-- no vertical movement ([LNDMC_Z_VEL_MAX](../advanced_config/parameter_reference.md#LNDMC_Z_VEL_MAX))
-- no horizontal movement ([LNDMC_XY_VEL_MAX](../advanced_config/parameter_reference.md#LNDMC_XY_VEL_MAX))
-- lower thrust than [MPC_THR_MIN](../advanced_config/parameter_reference.md#MPC_THR_MIN) + (hover throttle - [MPC_THR_MIN](../advanced_config/parameter_reference.md#MPC_THR_MIN)) \* (0.3, unless a hover thrust estimate is available, then 0.6),
-- additional check if vehicle is currently in a height-rate controlled flight mode: the vehicle has to have the intent to descend (vertical velocity setpoint above LNDMC_Z_VEL_MAX).
-- additional check for vehicles with a distance sensor: current distance to ground is below 1m.
+- 无垂直移动([LNDMC_Z_VEL_MAX](../advanced_config/parameter_reference.md#LNDMC_Z_VEL_MAX))
+- 无水平移动([LNDMC_XY_VEL_MAX](../advanced_config/parameter_reference.md#LNDMC_XY_VEL_MAX))
+- 推力低于 [MPC_THR_MIN](../advanced_config/parameter_reference.md#MPC_THR_MIN) + (悬停油门值 - [MPC_THR_MIN](../advanced_config/parameter_reference.md#MPC_THR_MIN)) × (0.3，除非有悬停推力估计值，否则为 0.6)，
+- 额外检查：机体当前是否处于高度速率控制飞行模式：飞行器必须具有下降意图（垂直速度设定值高于 LNDMC_Z_VEL_MAX）。
+- 额外检查配有距离传感器的机体：目前距离地面的距离不到1米。
 
-If the vehicle is in position- or velocity-control and ground contact was detected,
-the position controller will set the thrust vector along the body x-y-axis to zero.
+如果机体处于位置控制或速度控制模式，且检测到与地面的接触，
+位置控制器将把沿机身x-y轴方向的推力矢量设为零。
 
 #### 可能着陆
 
-Conditions for this state:
+此状态的条件：
 
-- all conditions of the [ground contact](#ground-contact) state are true
-- is not rotating ([LNDMC_ROT_MAX](../advanced_config/parameter_reference.md#LNDMC_ROT_MAX))
-- has low thrust `MPC_THR_MIN + (MPC_THR_HOVER - MPC_THR_MIN) * 0.1`
-- no freefall detected
+- [着陆](#ground-contact) 状态的所有条件均为真
+- 没有在旋转([LNDMC_ROT_MAX](../advanced_config/parameter_reference.md#LNDMC_ROT_MAX))
+- 具有低推力 MPC_THR_MIN + (MPC_THR_HOVER - MPC_THR_MIN) \* 0.1\`
+- 未检测到自由落体事件
 
-If the vehicle only has knowledge of thrust and angular rate,
-in order to proceed to the next state the vehicle has to have low thrust and no rotation for 8.0 seconds.
+如果飞行器只知道推力和角速度，为了进入下一个状态，机体必须具有较低的油门和非旋转状态达到 8.0 秒。
 
-If the vehicle is in position or velocity control and maybe landed was detected,
-the position controller will set the thrust vector to zero.
+如果机体处于位置或速度控制模式，且检测到可能已着陆，
+位置控制器将把推力矢量设为零。
 
 #### 降落完成
 
-Conditions for this state:
+此状态的条件：
 
-- all conditions of the [maybe landed](#maybe-landed) state are true
+- [着陆](#maybe-landed) 状态的所有条件均为真
 
-## Fixed-wing Configuration
+## 固定翼配置
 
-Tuning parameters for fixed-wing land detection:
+调节固定翼着陆探测参数：
 
-- [LNDFW_AIRSPD_MAX](../advanced_config/parameter_reference.md#LNDFW_AIRSPD_MAX) - the maximum airspeed allowed for the system still to be considered landed.
-  Has to be a tradeoff between airspeed sensing accuracy and triggering fast enough.
-  越好的空速传感器允许此参数的值越低。
-- [LNDFW_VEL_XY_MAX ](../advanced_config/parameter_reference.md#LNDFW_VEL_XY_MAX) - the maximum horizontal velocity for the system to be still be considered landed.
-- [LNDFW_VEL_Z_MAX](../advanced_config/parameter_reference.md#LNDFW_VEL_XY_MAX) - the maximum vertical velocity for the system to be still be considered landed.
-- [LNDFW_XYACC_MAX](../advanced_config/parameter_reference.md#LNDFW_XYACC_MAX) - the maximal horizontal acceleration for the system to still be considered landed.
-- [LNDFW_TRIG_TIME](../advanced_config/parameter_reference.md#LNDFW_TRIG_TIME) - Trigger time during which the conditions above have to be fulfilled to declare a landing.
+- [LNDFW_AIRSPD_MAX](../advanced_config/parameter_reference.md#LNDFW_AIRSPD_MAX) - 允许系统仍被视为着陆的最大空速。必须在空速检测精度与触发速度之间权衡取舍。越好的空速传感器允许此参数的值越低。
+- [LNDFW_VEL_XY_MAX ](../advanced_config/parameter_reference.md#LNDFW_VEL_XY_MAX) —— 系统仍被视为已着陆时的最大水平速度。
+- [LNDFW_VEL_Z_MAX](../advanced_config/parameter_reference.md#LNDFW_VEL_XY_MAX) —— 系统仍被视为已着陆时的最大垂直速度。
+- [LNDFW_XYACC_MAX](../advanced_config/parameter_reference.md#LNDFW_XYACC_MAX) ——系统仍被视为已着陆时的最大水平加速度。
+- [LNDFW_TRIG_TIME](../advanced_config/parameter_reference.md#LNDFW_TRIG_TIME) - 触发时间，在此期间必须满足上述条件，才能判定为着陆。
 
 :::info
-When FW launch detection is enabled ([FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON)), the vehicle will stay in "landed" state until takeoff is detected (which is purely based on acceleration and not velocity).
+当启用FW起飞检测功能时（[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON)），机体将保持在“着陆”状态，直到检测到起飞（该检测仅基于加速度，而非速度）。
 :::
 
-## VTOL Land Detector
+## VTOL 着陆探测器
 
-The VTOL land detector is 1:1 the same as the MC land detector if the system is in hover mode. In FW mode, land detection is disabled.
+如果系统处于悬停模式，VTOL着陆探测器为1:1，与MC着陆探测器相同。在FW模式下，着陆探测功能被禁用。

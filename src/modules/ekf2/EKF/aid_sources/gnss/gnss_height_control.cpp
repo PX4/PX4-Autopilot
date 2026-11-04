@@ -61,9 +61,9 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
 		float noise = math::max(gps_sample.vacc, 1.5f * _params.ekf2_gps_p_noise); // use 1.5 as a typical ratio of vacc/hacc
 
-		if (!isOnlyActiveSourceOfVerticalPositionAiding(_control_status.flags.gps_hgt)) {
-			// if we are not using another source of aiding, then we are reliant on the GPS
-			// observations to constrain attitude errors and must limit the observation noise value.
+		if (!isOtherSourceOfVerticalPositionAidingThan(_control_status.flags.gps_hgt)) {
+			// if we are not using another height source, then we are reliant on the GNSS
+			// observations to constrain the height and must limit the observation noise value.
 			if (noise > _params.ekf2_noaid_noise) {
 				noise = _params.ekf2_noaid_noise;
 			}

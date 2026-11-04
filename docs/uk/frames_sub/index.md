@@ -1,6 +1,6 @@
 # Підводні човни (Безпілотна Підводна Техніка- UUV)
 
-<LinkedBadge type="warning" text="Experimental" url="../airframes/#experimental-vehicles"/>
+[<Badge type="warning" text="Experimental"/>](../airframes/index.md#experimental-vehicles)
 
 :::warning
 Support for UUVs is [experimental](../airframes/index.md#experimental-vehicles).

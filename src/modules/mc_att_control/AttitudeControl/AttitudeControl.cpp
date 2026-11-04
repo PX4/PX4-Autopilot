@@ -62,10 +62,20 @@ void AttitudeControl::setRefModelFrequency(float omega_n)
 	_kq      = _omega_n * _omega_n;
 }
 
-void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
+bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
 {
-	Quatf qd_normalized = qd;
-	qd_normalized.normalize();
+	// The reference model integrates from its previous state, so a single invalid setpoint would make
+	// it NaN until reboot. Keep tracking the last valid reference instead.
+	// A zero, non-finite or overflowing quaternion has no attitude: normalizing it gives NaN or zero.
+	// Keep in sync with handle_message_set_attitude_target() in mavlink_receiver.cpp, which drops
+	// these messages so they do not keep offboard alive.
+	const float qd_norm = qd.norm();
+
+	if (!PX4_ISFINITE(qd_norm) || (qd_norm < 1e-3f)) {
+		return false;
+	}
+
+	const Quatf qd_normalized = qd / qd_norm;
 
 	if (_ref_initialized && dt > 0.f) {
 		propagateReferenceModel(qd_normalized, yawspeed_setpoint, dt);
@@ -77,6 +87,8 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		_omega_command.zero();
 		_ref_initialized = true;
 	}
+
+	return true;
 }
 
 void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)
@@ -167,7 +179,8 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	qd = qd_red * Quatf(cosf(_yaw_w * acosf(qd_dyaw(0))), 0.f, 0.f, sinf(_yaw_w * asinf(qd_dyaw(3))));
 
 	// quaternion attitude control law, qe is rotation from q to qd
-	const Quatf qe = qmul(qinv(q), qd);
+	const Quatf q_inv = qinv(q);
+	const Quatf qe = qmul(q_inv, qd);
 
 	// using sin(alpha/2) scaled rotation axis as attitude error (see quaternion definition by axis angle)
 	// also taking care of the antipodal unit quaternion ambiguity
@@ -177,7 +190,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	Vector3f rate_setpoint = eq.emult(_proportional_gain);
 
 	// Map reference-frame rates into the current body frame.
-	const Quatf q_rel = qmul(qinv(q), _q_ref);
+	const Quatf q_rel = qmul(q_inv, _q_ref);
 
 	// The commanded reference rate (e.g. manual/auto yaw rate) is a setpoint, not a model prediction, so it
 	// bypasses the reference model: it is fed forward at unity regardless of the feedforward gain and limit.

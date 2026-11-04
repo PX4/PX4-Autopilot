@@ -59,6 +59,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	flags.mode_req_prevent_arming = 0;
 	flags.mode_req_manual_control = 0;
 	flags.mode_req_other = 0;
+	flags.mode_not_supported = 0;
 
 	// NAVIGATION_STATE_MANUAL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_MANUAL, flags.mode_req_manual_control);
@@ -72,12 +73,20 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_local_alt);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_manual_control);
 
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_not_supported);
+	}
+
 	// NAVIGATION_STATE_ALTITUDE_CRUISE
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_req_attitude);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_req_local_alt);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE,
 		       flags.mode_req_manual_control); // COM_RCL_EXCEPT can override this
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_not_supported);
+	}
 
 	// NAVIGATION_STATE_POSCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_angular_velocity);
@@ -159,6 +168,10 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_req_attitude);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_req_prevent_arming);
 
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_not_supported);
+	}
+
 	// NAVIGATION_STATE_TERMINATION
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_TERMINATION, flags.mode_req_prevent_arming);
 
@@ -222,6 +235,10 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 
 	} else {
 		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_position);
+	}
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_not_supported);
 	}
 
 	// NAVIGATION_STATE_EXTERNALx: handled outside

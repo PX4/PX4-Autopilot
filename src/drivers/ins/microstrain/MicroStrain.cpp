@@ -202,7 +202,7 @@ mip_cmd_result MicroStrain::forceIdle()
 			break;
 
 		} else {
-			usleep(1_s);
+			px4_usleep(1_s);
 		}
 	}
 

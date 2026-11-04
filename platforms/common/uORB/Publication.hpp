@@ -64,7 +64,8 @@ protected:
 
 	PublicationBase(ORB_ID id) : _orb_id(id) {}
 
-	~PublicationBase();
+	// Single-instance publishers share the node, so destruction must not unadvertise it.
+	~PublicationBase() = default;
 
 	// type-independent publish; data points to a message of the topic's type
 	bool publish(const void *data);

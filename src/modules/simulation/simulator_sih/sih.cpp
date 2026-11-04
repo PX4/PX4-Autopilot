@@ -58,7 +58,7 @@ ModuleBase::Descriptor Sih::desc{task_spawn, custom_command, print_usage};
 Sih::Sih() :
 	ModuleParams(nullptr)
 {
-	srand(1234); // initialize the random seed once before calling generate_wgn()
+	srand(1234); // initialize the random seed once before calling math::generate_wgn()
 }
 
 Sih::~Sih()
@@ -228,6 +228,14 @@ void Sih::updateFailureConfig()
 			  == failure_injection::Mode::Off);
 	_gyro_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, 1)
 			 == failure_injection::Mode::Off);
+
+	_stuck_motor_mask = 0;
+
+	for (int i = 0; i < NUM_ACTUATORS_MAX; i++) {
+		if (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1) == failure_injection::Mode::Stuck) {
+			_stuck_motor_mask |= 1u << i;
+		}
+	}
 }
 
 void Sih::sensor_step()
@@ -379,8 +387,15 @@ void Sih::read_motors(const float dt)
 				_u[i] = actuators_out.output[i];
 
 			} else {
-				float u_sp = actuators_out.output[i];
-				_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				const int motor_index = motor_index_from_actuator(i);
+
+				if (motor_index >= 0 && (_stuck_motor_mask & (1u << motor_index))) {
+					_u[i] = 0.f; // rotor stuck: no thrust and no RPM, the ESC keeps reporting
+
+				} else {
+					float u_sp = actuators_out.output[i];
+					_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				}
 			}
 		}
 
@@ -397,13 +412,31 @@ uint8_t Sih::num_motors() const
 
 	case VehicleType::TailsitterVTOL: return NUM_DYN_THRUSTER; // motors at index 0..1, surfaces at 4..5
 
-	case VehicleType::StandardVTOL:   return 4;                // hover motors at 0..3; pusher at 7 excluded for simplicity
+	case VehicleType::StandardVTOL:   return 5;                // hover motors at 0..3, pusher at 7 (Motor5)
 
 	case VehicleType::FixedWing:      return 1;                // motor at index 3, surfaces at 0..2 are skipped
 
 	case VehicleType::RoverAckermann: return 1;
 
 	default:                          return 0;
+	}
+}
+
+int Sih::motor_index_from_actuator(int actuator_index) const
+{
+	switch (_vehicle) {
+	case VehicleType::FixedWing:      return actuator_index < 3 ? -1 : actuator_index - 3; // surfaces at 0..2
+
+	case VehicleType::TailsitterVTOL: return actuator_index > 3 ? -1 : actuator_index;     // surfaces after the motors
+
+	case VehicleType::StandardVTOL:
+		if (actuator_index < 4) { return actuator_index; } // hover motors
+
+		return actuator_index == 7 ? 4 : -1;              // pusher (Motor5) at 7, surfaces at 4..6
+
+	case VehicleType::RoverAckermann: return actuator_index == 0 ? -1 : actuator_index - 1; // steering at 0
+
+	default:                          return actuator_index;
 	}
 }
 
@@ -421,9 +454,7 @@ void Sih::publish_esc_status()
 	}
 
 	for (int i = 0; i < NUM_ACTUATORS_MAX && motor_idx < num_motors(); i++) {
-		if ((_vehicle == VehicleType::FixedWing && i < 3)
-		    || (_vehicle == VehicleType::TailsitterVTOL && i > 3)
-		    || (_vehicle == VehicleType::RoverAckermann && i == 0)) {
+		if (motor_index_from_actuator(i) < 0) {
 			continue; // control surface / steering channel, not a motor
 		}
 
@@ -740,13 +771,13 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro_noise;
 
 	if (false && _T_B.longerThan(FLT_EPSILON)) { // too much noise at least for the low update rate O.O
-		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
-		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
+		accel_noise = math::noiseGauss3f(0.5f, 1.7f, 1.4f);
+		gyro_noise = math::noiseGauss3f(0.14f, 0.07f, 0.03f);
 
 	} else {
 		// Lower noise when not armed
-		accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
-		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
+		accel_noise = math::noiseGauss3f(0.1f, 0.1f, 0.1f);
+		gyro_noise = math::noiseGauss3f(0.01f, 0.01f, 0.01f);
 	}
 
 	Vector3f specific_force_B = R_E2B * _specific_force_E;
@@ -772,12 +803,17 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	}
 
 	// TODO: send differential pressure instead?
+	device::Device::DeviceId device_id{};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
+	airspeed.device_id = device_id.devid;
 
 	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + generate_wgn() * 0.2f);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + math::generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
@@ -830,7 +866,7 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 		const double true_range_m = delta_ecef.norm();
 
 		const float noise_std = _sih_ranging_beacon_noise.get();
-		const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
+		const float noise_m = (noise_std > 0.f) ? math::generate_wgn() * noise_std : 0.f;
 		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
 
 		ranging_beacon_s msg{};
@@ -929,40 +965,6 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
-}
-
-float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
-{
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
-Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
-{
-	return Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
 }
 
 int Sih::print_status()

@@ -31,8 +31,10 @@
 #
 ############################################################################
 
-add_library(afbrs50_m4_fpu STATIC IMPORTED GLOBAL)
-set_property(TARGET afbrs50_m4_fpu PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Lib/libafbrs50_m4_fpu.a)
+# Broadcom's -Os build without logging: PX4 implements no print() hook, so the
+# logging build only adds unreachable error strings.
+add_library(afbrs50_m4_fpu_os_nolog STATIC IMPORTED GLOBAL)
+set_property(TARGET afbrs50_m4_fpu_os_nolog PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Lib/libafbrs50_m4_fpu_os_nolog.a)
 
 px4_add_module(
 	MODULE drivers__distance_sensor__afbrs50
@@ -56,7 +58,7 @@ px4_add_module(
 	DEPENDS
 		px4_work_queue
 		drivers_rangefinder
-		afbrs50_m4_fpu
+		afbrs50_m4_fpu_os_nolog
 	)
 
-target_link_libraries(afbrs50_m4_fpu INTERFACE drivers__distance_sensor__afbrs50)
+target_link_libraries(afbrs50_m4_fpu_os_nolog INTERFACE drivers__distance_sensor__afbrs50)
