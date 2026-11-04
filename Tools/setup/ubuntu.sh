@@ -216,6 +216,9 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	# General simulation dependencies
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		bc \
+		libgeotiff-dev \
+		libproj-dev \
+		libtiff-dev \
 		;
 
 	# Gazebo Harmonic installation (Ubuntu 22.04+)
