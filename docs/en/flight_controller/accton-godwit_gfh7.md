@@ -41,14 +41,14 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **I2C buses:** 2 (1 external, 1 internal)
 - **SPI buses:** 3, all internal (both IMUs and the OSD)
 - **CAN buses:** 1
-- **Ethernet:** RMII and PPS on a connector (reserved for future use; not enabled in PX4)
-- **USB:** USB Type-C, with DFU button
+- **Ethernet:** RMII and pulse-per-second (PPS) signals on a connector (reserved for future use; not enabled in PX4)
+- **USB:** USB Type-C, with [DFU](../advanced_config/bootloader_update_from_betaflight.md#dfu-mode) button
 - **RC input:** Yes (serial, on the `SBUS` and `ELRS` connectors)
 - **Parameter storage:** processor flash
 - **SD card:** microSD slot
 - **ADC inputs:** 3 (battery voltage, battery current, and analog RSSI)
 - **OSD:** analog (AT7456-compatible)
-- **Other:** 2 LED indicators, buzzer, video input, and video output
+- **Other:** 2 LED indicators, active buzzer output, video input, and video output
 
 ### Electrical Data {#electrical_data}
 
@@ -85,7 +85,7 @@ The board is powered from the battery through the `VBAT` pins on the `ESC` conne
 Onboard BECs supply 5 V/3 A and 12 V/3 A to peripherals.
 
 The 12 V output is on at boot.
-To switch it from your transmitter, assign an RC switch to [RC_MAP_PAY_SW](../advanced_config/parameter_reference.md#RC_MAP_PAY_SW): the 12 V output then stays off until the switch is set to on.
+To switch it from your transmitter, [assign](../advanced_config/parameters.md) an RC switch to [RC_MAP_PAY_SW](../advanced_config/parameter_reference.md#RC_MAP_PAY_SW): the 12 V output then stays off until the switch is set to on.
 
 Battery voltage monitoring is configured by default ([BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) is set to `17.0`).
 Current monitoring depends on the ESC's current sensor, so you must set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) as described in [Battery and Power Module Setup](../config/battery.md).
@@ -109,7 +109,7 @@ Under these conditions the system will not draw any power (will not be operation
 
 ::: info
 The flight controller keeps working below 13 V on the battery input.
-The 12 V output for the camera and VTX is generated from the battery input, and needs about 13 V or more to stay at 12 V.
+The 12 V output for the camera and video transmitter (VTX) is generated from the battery input and needs about 13 V or more to stay at 12 V.
 Below that, the camera and VTX lose power.
 :::
 
@@ -136,7 +136,7 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 
 ## IMU Heater {#imu_heater}
 
-The board has a resistive IMU heater, which draws about 67 mA (0.33 W, calculated from the heater resistor value, not measured) from the 5 V supply.
+The board has a resistive IMU heater, which draws about 67 mA (0.33 W, calculated from the heater resistor value) from the 5 V supply.
 
 The heater is off by default.
 To enable it, set [SENS_EN_THERMAL](../advanced_config/parameter_reference.md#SENS_EN_THERMAL) to `1` and reboot.
@@ -171,8 +171,8 @@ No ports have flow control.
 | `TELEM`           | Connect a telemetry radio or MAVLink device.    |
 | `CAN`             | Connect CAN peripherals.                        |
 | `I2C`             | Connect external I2C sensors.                   |
-| `BZ`              | Connect an external buzzer.                     |
-| `VIDEO-IN`        | Connect the analog video input.                 |
+| `BZ`              | Connect an external active buzzer.              |
+| `VIDEO-IN`        | Connect an analog camera.                       |
 | `A-VTX` / `D-VTX` | Connect an analog or digital video transmitter. |
 
 ## Assembly {#assembly}
@@ -205,7 +205,8 @@ The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
   The TX pin on the `A-VTX` connector shares the `UART5_TX` line.
   If VTX control is enabled on `Radio Controller`, the `SBUS` connector cannot be used as a receiver at the same time.
 
-Other protocols are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to.
+The other built-in protocols, DSM and GHST, are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to, and `RC_CRSF_PRT_CFG` to `Disabled`.
+DSM receivers can't be bound from PX4 or _QGroundControl_ on this board, so bind the receiver using its own bind procedure.
 Only one protocol can be active on a port.
 PPM receivers are not supported, so PWM receivers can't be used either, even with a PPM encoder.
 
@@ -238,12 +239,12 @@ DroneCAN is disabled by default: enable it by setting [UAVCAN_ENABLE](../advance
 
 ### OSD {#osd}
 
-The board has an [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) chip (AT7456-compatible), which is enabled by default in NTSC mode.
+The board has an [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) co-processor (AT7456-compatible), which is enabled by default in NTSC mode.
 Connect the camera to `VIDEO-IN` and the analog video transmitter to `A-VTX`.
 The TX pin on the `A-VTX` connector carries the SmartAudio/Tramp control line, and the VTX driver is enabled in the default firmware.
 To use it, set [VTX_SER_CFG](../advanced_config/parameter_reference.md#VTX_SER_CFG) to `Radio Controller`, and set [VTX_PROTOCOL](../advanced_config/parameter_reference.md#VTX_PROTOCOL) and [VTX_DEVICE](../advanced_config/parameter_reference.md#VTX_DEVICE) per the [Analog Video Transmitters](../vtx/index.md) page.
 Because UART5 (the `Radio Controller` port) is also used by the `SBUS` connector, VTX control and an S.BUS receiver on the `SBUS` connector cannot be used at the same time.
-Set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `2` for PAL, or `0` to disable it, and reboot.
+Set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `2` for PAL, or `0` to disable the OSD, and reboot.
 
 For a digital video transmitter on the `D-VTX` connector, set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `TELEM 3` to enable [MSP OSD](../peripherals/osd.md#msp-osd).
 
@@ -279,7 +280,7 @@ The `R V G C D` pad group is the [SWD interface](../debug/swd_debug.md) of the S
 | `C` | FMU_SWCLK | 3.3 V   |
 | `D` | FMU_SWDIO | 3.3 V   |
 
-The `R C D G V` pad group is the SWD interface of the OSD co-processor (STM32G431), which is not used by PX4:
+The `R C D G V` pad group is the OSD co-processor's (STM32G431) SWD interface, which PX4 doesn't use:
 
 | Pad | Signal     | Voltage |
 | --- | ---------- | ------- |
@@ -300,7 +301,7 @@ The debug build enables the system console on UART4 (the `ELRS` connector):
 make accton-godwit_gfh7_debug
 ```
 
-`TELEM/SERIAL 4` is not available in that build, so an ELRS receiver can't be used.
+`TELEM/SERIAL 4` is not available in that build, so the `ELRS` connector can't be used for a receiver.
 To use an S.BUS receiver on the `SBUS` connector instead, set [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller`.
 
 ## Further Information {#further_information}
