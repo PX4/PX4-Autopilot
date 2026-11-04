@@ -154,7 +154,7 @@
       - [Holybro Pix32 v6 (FMUv6C)](flight_controller/holybro_pix32_v6.md)
       - [Holybro Pixhawk 5X (FMUv5X)](flight_controller/pixhawk5x.md)
         - [Wiring Quickstart](assembly/quick_start_pixhawk5x.md)
-      - [Holybro Pixhawk 4 (FMUv5)](flight_controller/pixhawk4.md)
+      - [Holybro Pixhawk 4 (FMUv5) - Discontinued](flight_controller/pixhawk4.md)
         - [Wiring Quickstart](assembly/quick_start_pixhawk4.md)
       - [mRo Pixracer (FMUv4)](flight_controller/pixracer.md)
         - [Wiring Quickstart](assembly/quick_start_pixracer.md)
