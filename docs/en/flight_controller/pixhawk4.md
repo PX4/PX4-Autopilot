@@ -1,9 +1,9 @@
 # Holybro Pixhawk 4 (Discontinued)
 
-<Badge type="tip" text="PX4 v1.7" /> <Badge type="info" text="Discontinued" />
+<Badge type="tip" text="PX4 v1.7" /> <Badge type="info" text="Discontinued" px4_current="v1.18" year="2026"/>
 
 ::: warning
-This flight controller has been discontinued and is no longer available from Holybro.
+This flight controller has been [discontinued](../flight_controller/autopilot_discontinued.md) and is no longer commercially available.
 It is still supported by PX4.
 :::
 
@@ -54,15 +54,15 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 ### Electrical Data {#electrical_data}
 
 - **Input voltage:** 4.9 V to 5.5 V (`POWER1`, `POWER2`), 4.75 V to 5.25 V (`USB`)
-- **Max input voltage:** 6 V
+- **Max input voltage:** 6 V (`POWER1`, `POWER2`, `USB`)
 - **Servo rail input:** 0 V to 36 V
 - **Power monitoring:** analog inputs for voltage and current of 2 batteries, up to 120 A
 
 ### Mechanical Data {#mechanical_data}
 
 - **Dimensions:** 44 × 84 × 12 mm
-- **Weight:** 33.3 g
-- **Operating temperature:** -40 °C to 80 °C
+- **Weight:** 31.2 g (plastic case), 48.5 g (aluminium case)
+- **Operating temperature:** -40 °C to 85 °C
 
 ![Pixhawk 4 Dimensions](../../assets/flight_controller/pixhawk4/pixhawk4_dimensions.jpg)
 
@@ -70,7 +70,7 @@ Additional information can be found in the [Pixhawk 4 Technical Data Sheet](http
 
 ## Where to Buy {#store}
 
-Order from [Holybro](https://holybro.com/products/pixhawk-4).
+[Holybro](https://holybro.com/products/pixhawk-4) (No longer available).
 
 ## Pinouts {#pinouts}
 
@@ -115,15 +115,15 @@ Under these conditions all power sources will be used in this order to power the
 
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
-1. `POWER1` and `POWER2` inputs (operational range 4.1 V to 5.7 V, 0 V to 10 V undamaged)
-1. `USB` input (operational range 4.1 V to 5.7 V, 0 V to 6 V undamaged)
+1. `POWER1`, `POWER2` and `USB` inputs (operational range 4.1 V to 5.7 V, 0 V to 6 V undamaged)
 1. Servo input: `VDD_SERVO` pin of `FMU PWM OUT` and `I/O PWM OUT` (0 V to 42 V undamaged)
 
 ## PWM Outputs {#pwm_outputs}
 
 The Pixhawk 4 has 8 IO PWM outputs (`MAIN`) on the `I/O PWM OUT` port, and 8 FMU PWM outputs (`AUX`) on the `FMU PWM OUT` port.
 
-[DShot](../peripherals/dshot.md) is not supported.
+[DShot](../peripherals/dshot.md) can be used on FMU outputs 1-4 (group1).
+[Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) is not supported.
 
 The 8 FMU outputs are in 3 groups:
 
@@ -149,7 +149,7 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 | USART2 | `/dev/ttyS1` | `TELEM1`                  | Yes          |
 | USART3 | `/dev/ttyS2` | `TELEM2`                  | Yes          |
 | UART4  | `/dev/ttyS3` | `UART & I2C B` (`TELEM4`) |              |
-| USART6 | `/dev/ttyS4` | RC SBUS                   |              |
+| USART6 | `/dev/ttyS4` | `DSM/SBUS RC`             |              |
 | UART7  | `/dev/ttyS5` | `FMU Debug` (Console)     |              |
 | UART8  | `/dev/ttyS6` | PX4IO                     |              |
 
