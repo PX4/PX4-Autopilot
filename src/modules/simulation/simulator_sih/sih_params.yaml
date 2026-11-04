@@ -273,7 +273,7 @@ parameters:
         short: Distance sensor measurement noise standard deviation
         long: |-
           Gaussian noise added to the simulated distance sensor measurements.
-          Set to 0 to disable noise.
+          A square law in the range, 0.10 m at 25 m, adds to it. Set to 0 to remove the floor.
       type: float
       default: 0.01
       unit: m

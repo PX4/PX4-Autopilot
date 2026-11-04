@@ -335,3 +335,35 @@ TEST(TestTerrain, Formula0101IsFrozen)
 	set_params(0.f, 200.f, 0);
 	set_octaves(6);
 }
+
+TEST(TestRangefinder, NoiseIsSquareInRange)
+{
+	using terrain_sim::rangefinder_reading;
+	/* one standard deviation at 25 m is the constant, a quarter of it at 12.5 m and four times at 50 m */
+	EXPECT_NEAR(rangefinder_reading(25.f, 1.f, 0.f, 0.10f) - 25.f, 0.10f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(12.5f, 1.f, 0.f, 0.10f) - 12.5f, 0.025f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(50.f, 1.f, 0.f, 0.10f) - 50.f, 0.40f, 1e-5f);
+	EXPECT_NEAR(rangefinder_reading(2.f, 1.f, 0.f, 0.10f) - 2.f, 0.00064f, 1e-6f);
+	/* no draw, no noise, and the constant at zero is the exact reading */
+	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 0.f, 0.f, 0.10f), 37.25f);
+	EXPECT_FLOAT_EQ(rangefinder_reading(37.25f, 3.f, 0.f, 0.f), 37.25f);
+	/* the floor adds to the law, 1 cm at 2 m is the floor plus 0.64 mm, at 25 m it is 11 cm */
+	EXPECT_NEAR(rangefinder_reading(2.f, 1.f, 0.01f, 0.10f) - 2.f, 0.01064f, 1e-6f);
+	EXPECT_NEAR(rangefinder_reading(25.f, 1.f, 0.01f, 0.10f) - 25.f, 0.11f, 1e-5f);
+	/* the floor alone when the 25 m constant is zero */
+	EXPECT_NEAR(rangefinder_reading(40.f, 1.f, 0.01f, 0.f) - 40.f, 0.01f, 1e-5f);
+	/* a draw that would take the reading below zero is clamped */
+	EXPECT_FLOAT_EQ(rangefinder_reading(1.f, -1e6f, 0.f, 0.10f), 0.f);
+}
+
+TEST(TestRangefinder, UniformDrawIsInRangeAndRepeatable)
+{
+	uint32_t a = 0x9e3779b9u, b = 0x9e3779b9u;
+
+	for (int i = 0; i < 100000; ++i) {
+		const float u = terrain_sim::rand_uniform(a);
+		EXPECT_GE(u, 0.f);
+		EXPECT_LT(u, 1.f);
+		EXPECT_EQ(u, terrain_sim::rand_uniform(b));
+	}
+}

@@ -127,6 +127,13 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
+	// anchor for the range noise law, the spread at 25 m over grass
+	// set it to your rangefinder's figure and the square law scales the rest
+	static constexpr float kDistSnsrNoiseAt25M = 0.10f;
+
+	// white Gaussian noise sample with std=1 for the distance sensor, on its own generator
+	static float generate_wgn();
+
 private:
 	void parameters_updated();
 	void updateFailureConfig();

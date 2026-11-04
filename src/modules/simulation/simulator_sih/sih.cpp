@@ -1104,13 +1104,20 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 			signal_quality = 0;
 
 		} else {
-			current_distance = math::max(true_distance + generate_wgn() * _distance_snsr_noise, 0.f);
+			// the noise law lives in the library with the terrain, the module makes the one Gaussian draw per reading
+			current_distance = terrain_sim::rangefinder_reading(true_distance, generate_wgn(), _distance_snsr_noise,
+					   kDistSnsrNoiseAt25M);
 
 			// the returned signal gets weaker as the target moves away
 			const float derate_start = DISTSNSR_QUALITY_DERATE * _distance_snsr_max;
 			const float derate_span = _distance_snsr_max - derate_start;
 
-			if (true_distance > derate_start && derate_span > FLT_EPSILON) {
+			if (current_distance > _distance_snsr_max) {
+				// a draw past the limit reads as out of range
+				current_distance = DISTSNSR_OUT_OF_RANGE;
+				signal_quality = 0;
+
+			} else if (true_distance > derate_start && derate_span > FLT_EPSILON) {
 				const float derated = (true_distance - derate_start) / derate_span;
 				signal_quality = static_cast<int8_t>(constrain(roundf(100.f - 99.f * derated), 1.f, 100.f));
 
@@ -1176,7 +1183,7 @@ void Sih::send_optical_flow(const hrt_abstime &time_now_us)
 
 	if (tracking) {
 		// white noise on the flow rate estimate, integrated over the interval
-		pixel_flow += Vector2f(generate_wgn(), generate_wgn()) * (_sih_optical_flow_noise.get() * integration_time);
+		pixel_flow += Vector2f(math::generate_wgn(), math::generate_wgn()) * (_sih_optical_flow_noise.get() * integration_time);
 		flow.quality = UINT8_MAX;
 
 	} else {
@@ -1328,6 +1335,34 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
+}
+
+float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
+{
+	// polar method on xorshift32 draws, since NuttX rand() repeats as a fixed multiple of the last
+	// value and patterns the noise
+	static uint32_t rng = 1234u;
+	static float V1, V2, S;
+	static bool phase = true;
+	float X;
+
+	if (phase) {
+		do {
+			float U1 = terrain_sim::rand_uniform(rng);
+			float U2 = terrain_sim::rand_uniform(rng);
+			V1 = 2.0f * U1 - 1.0f;
+			V2 = 2.0f * U2 - 1.0f;
+			S = V1 * V1 + V2 * V2;
+		} while (S >= 1.0f || fabsf(S) < 1e-8f);
+
+		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
+
+	} else {
+		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
+	}
+
+	phase = !phase;
+	return X;
 }
 
 int Sih::print_status()

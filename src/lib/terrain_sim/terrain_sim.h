@@ -136,4 +136,25 @@ void set_params(float amp, float wavelength, int seed);
 /** number of noise octaves, 1 to 9, 6 by default, more is finer detail at more cost per call */
 void set_octaves(int octaves);
 
+/** uniform in [0, 1) from a xorshift32 state, the state must start nonzero */
+inline float rand_uniform(uint32_t &state)
+{
+	state ^= state << 13; state ^= state >> 17; state ^= state << 5;
+	return (float)(state >> 8) * (1.f / 16777216.f);
+}
+
+/**
+ * Turns the true range along the beam into the simulated rangefinder's reading.
+ *
+ * The return off a diffuse surface weakens with the square of range, and
+ * the weaker the return the less precisely the sensor can time it, so the
+ * spread grows with the square of range. noise_floor_m is the standard
+ * deviation at zero range. noise_at_25m is what the square law adds at
+ * 25 m. gauss is one standard normal draw the caller makes, so a test can
+ * hand in any value.
+ *
+ * @return the reading [m], never negative
+ */
+float rangefinder_reading(float true_range_m, float gauss, float noise_floor_m, float noise_at_25m);
+
 } // namespace terrain_sim

@@ -318,4 +318,13 @@ void set_octaves(int octaves)
 	s_params.home_offset = raw_eval(0.f, 0.f);
 }
 
+float rangefinder_reading(float true_range_m, float gauss, float noise_floor_m, float noise_at_25m)
+{
+	/* the floor is the spread at zero range, the square law adds the rest */
+	static constexpr float kNoiseRefRangeM = 25.f;
+	const float ratio = true_range_m / kNoiseRefRangeM;
+	const float sigma = noise_floor_m + noise_at_25m * ratio * ratio;
+	return fmaxf(true_range_m + gauss * sigma, 0.f);
+}
+
 } // namespace terrain_sim
