@@ -185,15 +185,15 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 	// A commanded descent lowers the reference with a margin on the descent rate, so a small velocity tracking
 	// error does not accumulate into a trigger over a long descent.
 	// A stale setpoint must not keep lowering the reference, as that could mask a real altitude loss.
-	const bool setpoint_fresh = lpos.timestamp < lpos_sp.timestamp + _alt_loss_setpoint_timeout;
+	const bool setpoint_fresh = lpos.timestamp < lpos_sp.timestamp + kAltLossSetpointTimeout;
 	const float commanded_descent_rate = (setpoint_fresh && PX4_ISFINITE(lpos_sp.vz) && lpos_sp.vz > 0.f)
-					     ? lpos_sp.vz + _alt_loss_descent_rate_margin : 0.f;
+					     ? lpos_sp.vz + kAltLossDescentRateMargin : 0.f;
 
 	bool reference_valid = false;
 
 	if (PX4_ISFINITE(lpos_sp.z)) {
 		if (lpos.z > lpos_sp.z
-		    || (lpos.v_z_valid && lpos.vz > commanded_descent_rate + _alt_loss_descent_rate_margin)) {
+		    || (lpos.v_z_valid && lpos.vz > commanded_descent_rate + kAltLossDescentRateMargin)) {
 			// Ratcheting NED-z reference: tracks the highest altitude reached while below setpoint, or while
 			// falling faster than allowed.
 			if (!PX4_ISFINITE(_alt_loss_ref_z)) {
