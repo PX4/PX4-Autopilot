@@ -40,9 +40,11 @@
 
 #include "navigator.h"
 #include "rtl_direct.h"
+#include "support/event_recorder.h"
 #include "support/navigator_dataman_test.h"
 
 #include <lib/geo/geo.h>
+#include <px4_platform_common/events.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/navigator_mission_item.h>
@@ -389,6 +391,33 @@ TEST_F(RtlDirectTest, FixedWingStopAtCurrentPositionLoitersDespiteFiniteLandingD
 		_rtl->ageWaypointReached(land_delay + 1.f);
 		_rtl->run(true);
 		EXPECT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
+		_rtl->run(false);
+	}
+}
+
+// WHY: RTL reports the hold of a route stop itself. Other stops at the current position, such as
+// RTL_TYPE 5 without a rally point, still report that Return completed.
+TEST_F(RtlDirectTest, OnlyTheRouteStopSkipsTheLoiterNotice)
+{
+	setVehicle(true, false);
+	_destination = {kLatitude, kLongitude, kReturnAltitude, NAN};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	const bool route_stop_exists = true;
+#else
+	// Without the mission route cache there is no route stop.
+	const bool route_stop_exists = false;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	for (const bool route_stop : {false, true}) {
+		SCOPED_TRACE(route_stop);
+		navigator_test::EventRecorder events;
+		_rtl->setRtlAlt(kReturnAltitude);
+		_rtl->setRtlPosition(_destination, {}, true, route_stop);
+		_rtl->run(true);
+		completePositionItem();
+		completePositionItem();
+		ASSERT_EQ(_rtl->missionItem().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
+		EXPECT_EQ(events.sent(events::ID("rtl_completed_loiter")), !(route_stop && route_stop_exists));
 		_rtl->run(false);
 	}
 }

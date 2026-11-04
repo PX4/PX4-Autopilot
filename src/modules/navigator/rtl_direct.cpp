@@ -153,7 +153,7 @@ void RtlDirect::on_inactive()
 }
 
 void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const loiter_point_s &loiter_pos,
-			       bool destination_is_current_position)
+			       bool destination_is_current_position, bool route_stop)
 {
 	parameters_update();
 
@@ -161,6 +161,7 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 	if (!isActive()) {
 		_destination = rtl_position;
 		_destination_is_current_position = destination_is_current_position;
+		_route_stop = route_stop;
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 		_wait_for_route = false;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -694,7 +695,7 @@ float RtlDirect::landDelay() const
 void RtlDirect::setWaitForRoute(bool wait)
 {
 	const float land_delay = landDelay();
-	_wait_for_route = wait && _destination_is_current_position;
+	_wait_for_route = wait && _route_stop;
 
 	// The hold item carries the delay, so a started hold is rebuilt when the delay changes.
 	if (isActive() && _rtl_state == RTLState::ARRIVAL && _arrival.phase() == RtlArrival::Phase::Hold

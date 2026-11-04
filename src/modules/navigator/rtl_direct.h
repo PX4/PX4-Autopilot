@@ -112,7 +112,7 @@ public:
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
 	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos,
-			    bool destination_is_current_position = false);
+			    bool destination_is_current_position = false, bool route_stop = false);
 
 	bool isLanding()
 	{
@@ -123,7 +123,7 @@ public:
 	/** A no-route hold may resume a route until the landing sequence starts. */
 	bool canResumeRoute()
 	{
-		return isActive() && _destination_is_current_position
+		return isActive() && _route_stop
 		       && (_rtl_state == RTLState::CLIMBING
 			   || (_rtl_state == RTLState::ARRIVAL && _arrival.phase() != RtlArrival::Phase::Land));
 	}
@@ -202,7 +202,7 @@ private:
 	bool isRouteStop() const
 	{
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-		return _destination_is_current_position;
+		return _route_stop;
 #else
 		return false;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -211,6 +211,7 @@ private:
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
 	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
+	bool _route_stop{false}; ///< The stop of route-following Return without a route.
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	bool _wait_for_route {false}; ///< The stop holds without landing until RTL ends the wait.
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
