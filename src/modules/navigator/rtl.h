@@ -97,19 +97,6 @@ public:
 
 	bool isLanding();
 
-protected:
-	/**
-	 * @brief initialize Return mission type
-	 *
-	 * @return false if the executor could not be allocated
-	 */
-#if defined(__PX4_POSIX)
-	// Virtual only so tests can fail the executor allocation; NuttX boards keep a direct call.
-	virtual bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
-#else
-	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
-#endif // __PX4_POSIX
-
 private:
 	friend class RTLTestPeer;
 
@@ -192,6 +179,13 @@ private:
 	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
 	void stopAndDeleteRtlMissionType();
+
+	/**
+	 * @brief initialize Return mission type
+	 *
+	 * @return false if the executor could not be allocated
+	 */
+	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
 
 	/**
 	 * @brief Update parameters
