@@ -139,13 +139,12 @@ parameters:
         short: Maximum horizontal disagreement between GNSS receivers
         long: |-
           Two receivers diverge when their horizontal positions disagree by more than
-          this, after their antenna positions. When three times their combined reported
-          horizontal accuracy is larger, that is the limit instead.
+          this, after their antenna positions. The default suits standalone receivers.
           Detecting swapped antennas needs a limit below twice the distance between them.
           Before arming a divergence is reported at once and clears after 2 s of
           agreement. In flight it has to persist for 2 s. See COM_GNSSLOSS_ACT for the action.
       type: float
-      default: 2.0
+      default: 5.0
       unit: m
       min: 0.1
       max: 20.0
@@ -156,11 +155,10 @@ parameters:
         short: Maximum vertical disagreement between GNSS receivers
         long: |-
           Two receivers diverge when their heights disagree by more than this, after
-          their antenna positions. When three times their combined reported vertical
-          accuracy is larger, that is the limit instead.
+          their antenna positions. The default suits standalone receivers.
           Same timing and action as COM_GNSS_H_MAX.
       type: float
-      default: 2.0
+      default: 10.0
       unit: m
       min: 0.1
       max: 20.0

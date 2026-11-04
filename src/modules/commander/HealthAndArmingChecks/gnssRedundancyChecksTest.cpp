@@ -51,11 +51,11 @@
  */
 
 // The sensors module compares the receivers; these tests publish its result. GNSS0 (device ID 1) is the selected
-// receiver, and the limits COM_GNSS_H_MAX and COM_GNSS_V_MAX default to 2 m.
+// receiver, and the limits COM_GNSS_H_MAX and COM_GNSS_V_MAX default to 5 m and 10 m.
 static constexpr float RTK_ACCURACY = 0.02f;
 static constexpr float AGREEING = 0.3f;
-static constexpr float WITHIN_LIMIT = 1.5f;
-static constexpr float DIVERGING = 5.f;
+static constexpr float WITHIN_LIMIT = 4.f;
+static constexpr float DIVERGING = 12.f;
 
 // In flight a divergence has to be sustained for the 2 s hysteresis time before it is reported. Before arming it is
 // reported at once and only clears after 2 s of continuous agreement.
@@ -308,18 +308,13 @@ TEST_F(GnssRedundancyChecksTest, VerticalDivergence)
 	EXPECT_TRUE(_health_warning_gps);
 }
 
-// Receivers that report a poor accuracy get a wider limit: 3 times their combined accuracy.
-TEST_F(GnssRedundancyChecksTest, ReportedAccuracyWidensTheLimits)
+// The reported accuracy doesn't move the limits.
+TEST_F(GnssRedundancyChecksTest, ReportedAccuracyKeepsTheLimits)
 {
 	setRequiredGnss(2);
-
-	// 1.5 m accuracy each: about 6.4 m
-	runSustained(DIVERGING, DIVERGING, false, 1.5f);
-	EXPECT_FALSE(_failsafe_flags.gnss_lost);
-	EXPECT_FALSE(_health_warning_gps);
-
-	runSustained(7.f, 0.f, false, 1.5f);
+	runSustained(6.f, 0.f, false, 5.f);
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+	EXPECT_TRUE(_health_warning_gps);
 }
 
 // The limits are configurable.
@@ -330,7 +325,7 @@ TEST_F(GnssRedundancyChecksTest, LimitsConfigurable)
 	runSustained(WITHIN_LIMIT);
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
 
-	setFloatParam("COM_GNSS_H_MAX", 6.f);
+	setFloatParam("COM_GNSS_H_MAX", 15.f);
 	setFloatParam("COM_GNSS_V_MAX", 1.f);
 	runSustained(DIVERGING, 0.5f);
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);

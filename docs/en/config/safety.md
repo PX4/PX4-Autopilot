@@ -278,7 +278,6 @@ Triggers on either of:
 
 - **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
 - **Position divergence**: a receiver disagrees with the selected one by more than [COM_GNSS_H_MAX](#COM_GNSS_H_MAX) horizontally or [COM_GNSS_V_MAX](#COM_GNSS_V_MAX) vertically, after their antenna positions ([SENS_GNSS0_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS1_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX)). Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
-  The limit widens to three times the receivers' combined reported accuracy where that is larger.
   Until the heading is aligned only the distance between the receivers is compared, so swapped antennas are detected only after alignment, and only with a limit below twice the antenna separation.
   Before arming a divergence is reported at once and clears after 2 s of agreement. In flight it has to persist for 2 s.
 
@@ -293,8 +292,8 @@ When set to `Return`, `Land`, or `Terminate`, both triggers block arming and fir
 | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required. If two are required then they also need to be consistent.                                                                                       |
 | <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) | Failsafe action when a GNSS failure is detected. `0`: Warning only (default), `1`: Return, `2`: Land, `3`: Terminate, `4`: Warning, block arming. Values above Warning also block arming. |
-| <a id="COM_GNSS_H_MAX"></a>[COM_GNSS_H_MAX](../advanced_config/parameter_reference.md#COM_GNSS_H_MAX)       | Horizontal disagreement between two receivers above which they diverge (default 2 m).                                                                                                     |
-| <a id="COM_GNSS_V_MAX"></a>[COM_GNSS_V_MAX](../advanced_config/parameter_reference.md#COM_GNSS_V_MAX)       | Vertical disagreement between two receivers above which they diverge (default 2 m).                                                                                                       |
+| <a id="COM_GNSS_H_MAX"></a>[COM_GNSS_H_MAX](../advanced_config/parameter_reference.md#COM_GNSS_H_MAX)       | Horizontal disagreement between two receivers above which they diverge (default 5 m).                                                                                                     |
+| <a id="COM_GNSS_V_MAX"></a>[COM_GNSS_V_MAX](../advanced_config/parameter_reference.md#COM_GNSS_V_MAX)       | Vertical disagreement between two receivers above which they diverge (default 10 m).                                                                                                      |
 
 ## Offboard Loss Failsafe
 
