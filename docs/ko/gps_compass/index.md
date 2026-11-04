@@ -160,8 +160,8 @@ The following steps show how to configure a secondary GPS on the `GPS 2` port in
 
 보조 GPS 포트를 설정 후 :
 
-1. 두 GPS 시스템의 데이터를 혼합하도록 ECL/EKF2 추정기를 설정합니다.
-   For detailed instructions see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
+1. Optionally set which receiver is preferred using [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME).
+   For more information see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
 
 ### DroneCAN GNSS Configuration
 

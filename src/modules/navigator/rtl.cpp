@@ -52,7 +52,6 @@
 
 using namespace time_literals;
 using namespace math;
-using matrix::wrap_pi;
 
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
 
@@ -103,6 +102,17 @@ void RTL::on_inactive()
 
 }
 
+void RTL::on_inactivation()
+{
+	// Stop the executors in the exit cycle, not in the next on_inactive().
+	// Modes after RTL in Navigator's mode array, such as precision landing, start after this.
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->run(false);
+	}
+
+	_rtl_direct.run(false);
+}
+
 void RTL::publishRemainingTimeEstimate()
 {
 	const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
@@ -148,7 +158,15 @@ void RTL::on_activation()
 		_rtl_mission_type_handle->refreshMission();
 	}
 
+	_init_failure_reported = RtlType::NONE;
 	setRtlTypeAndDestination();
+
+	if (_init_failure_reported != RtlType::NONE) {
+		// The executor allocation failed: tell the pilot this Return flies directly.
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: cannot follow the mission; flying directly\t");
+		events::send(events::ID("rtl_mission_executor_failed"), {events::Log::Critical, events::LogInternal::Error},
+			     "Return: cannot follow the mission; flying directly");
+	}
 
 	switch (_rtl_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
@@ -273,6 +291,10 @@ void RTL::setRtlTypeAndDestination()
 	landing_loiter.lon = destination.lon;
 	landing_loiter.height_m = NAN;
 
+	// Not every type looks for approaches: report only those this evaluation finds.
+	_home_has_land_approach = false;
+	_one_rally_point_has_land_approach = false;
+
 	if (_param_rtl_type.get() == RTL_TYPE_MISSION_FAST) {
 		if (hasMissionLandStart()) {
 			new_rtl_type = RtlType::RTL_MISSION_FAST;
@@ -298,6 +320,12 @@ void RTL::setRtlTypeAndDestination()
 		}
 
 	} else if (_param_rtl_type.get() == RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT) {
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+		_home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(mission_route_cache, destination,
+					  _home_pos_sub.get().alt);
+#endif
+
 		// Set _rtl_direct with the home destination so calc_rtl_time_estimate() can check its reachability
 		const float rtl_alt_home = computeReturnAltitude(destination);
 		_rtl_direct.setRtlAlt(rtl_alt_home);
@@ -362,6 +390,29 @@ void RTL::setRtlTypeAndDestination()
 		}
 	}
 
+	const float rtl_alt = computeReturnAltitude(destination);
+
+	const bool new_type_is_mission_based = (new_rtl_type == RtlType::RTL_MISSION_FAST)
+					       || (new_rtl_type == RtlType::RTL_MISSION_FAST_REVERSE)
+					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND);
+
+	const bool should_init_mission_type = new_type_is_mission_based && (_rtl_type != new_rtl_type);
+
+	if (should_init_mission_type && !initRtlMissionType(new_rtl_type, rtl_alt)) {
+		// Retried at every evaluation, every 2 s while inactive:
+		// log a failing type once until an init succeeds or Return activates.
+		if (_init_failure_reported != new_rtl_type) {
+			PX4_ERR("RTL executor init failed");
+			_init_failure_reported = new_rtl_type;
+		}
+
+		// Without an executor, return directly to the destination of the selected type.
+		new_rtl_type = RtlType::RTL_DIRECT;
+
+	} else if (should_init_mission_type) {
+		_init_failure_reported = RtlType::NONE;
+	}
+
 	if (new_rtl_type == RtlType::RTL_DIRECT) {
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 		landing_loiter = selectLandingApproach(destination);
@@ -374,17 +425,9 @@ void RTL::setRtlTypeAndDestination()
 		}
 	}
 
-	const float rtl_alt = computeReturnAltitude(destination);
 	_rtl_direct.setRtlAlt(rtl_alt);
-	_rtl_direct.setRtlPosition(destination, landing_loiter);
-
-	const bool new_type_is_mission_based = (new_rtl_type == RtlType::RTL_MISSION_FAST)
-					       || (new_rtl_type == RtlType::RTL_MISSION_FAST_REVERSE)
-					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND);
-
-	if (new_type_is_mission_based && (_rtl_type != new_rtl_type)) {
-		initRtlMissionType(new_rtl_type, rtl_alt);
-	}
+	_rtl_direct.setRtlPosition(destination, landing_loiter,
+				   destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION);
 
 	_rtl_type = new_rtl_type;
 
@@ -420,7 +463,7 @@ void RTL::setRtlTypeAndDestination()
 	// Publish rtl status
 	rtl_status_s rtl_status{};
 	rtl_status.safe_points_id = mission_route_cache.safePointsId();
-	rtl_status.is_evaluation_pending = mission_route_cache.safePointUpdatePending()
+	rtl_status.is_evaluation_pending = !mission_route_cache.safePointsReady()
 					   || mission_route_cache.missionLandItemUpdatePending();
 	rtl_status.has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
 	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);
@@ -598,7 +641,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		destination.alt = _global_pos_sub.get().alt;
 		destination.lat = _global_pos_sub.get().lat;
 		destination.lon = _global_pos_sub.get().lon;
-		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+		destination_type = DestinationType::DESTINATION_TYPE_CURRENT_POSITION;
 	}
 }
 
@@ -652,7 +695,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 	}
 }
 
-void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
+bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 {
 	if (_rtl_mission_type_handle) {
 		delete _rtl_mission_type_handle;
@@ -694,6 +737,8 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 	default:
 		break;
 	}
+
+	return _rtl_mission_type_handle != nullptr;
 }
 
 void RTL::parameters_update()
@@ -720,11 +765,11 @@ bool RTL::hasMissionLandStart() const
 
 bool RTL::hasValidMission() const
 {
+	// Home is not compared: Mission rechecks with the Home set at arming, and in flight a Home update keeps the verdict.
 	const mission_result_s &mission_result = *_navigator->get_mission_result();
 	return mission_result.valid
 	       && mission_result.mission_id == _mission_sub.get().mission_id
-	       && mission_result.geofence_id == _mission_sub.get().geofence_id
-	       && mission_result.home_position_counter == _home_pos_sub.get().update_count;
+	       && mission_result.geofence_id == _mission_sub.get().geofence_id;
 }
 
 bool RTL::reverseIsFurther() const
@@ -734,56 +779,14 @@ bool RTL::reverseIsFurther() const
 
 loiter_point_s RTL::selectLandingApproach(const PositionYawSetpoint &destination) const
 {
-	loiter_point_s landing_approach{};
-
 	// Only a VTOL currently flying as fixed wing needs a wind-selected approach loiter.
 	if (!_vehicle_status_sub.get().is_vtol
 	    || (_vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
-		return landing_approach;
+		return {};
 	}
 
 	const land_approaches_s vtol_land_approaches =
 		mission_route::getVtolLandApproachesNearLocation(_navigator->get_mission_route_cache(), destination,
 				_home_pos_sub.get().alt);
-
-	if (vtol_land_approaches.isAnyApproachValid()) {
-		landing_approach = chooseBestLandingApproach(vtol_land_approaches);
-	}
-
-	return landing_approach;
-}
-
-loiter_point_s RTL::chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const
-{
-	if (!vtol_land_approaches.land_location_lat_lon.isAllFinite()) {
-		return loiter_point_s();
-	}
-
-	const float wind_direction = atan2f(_wind_sub.get().windspeed_east, _wind_sub.get().windspeed_north);
-	int8_t min_index = -1;
-	float wind_angle_prev = INFINITY;
-
-	for (int i = 0; i < vtol_land_approaches.num_approaches_max; i++) {
-
-		if (vtol_land_approaches.approaches[i].isValid()) {
-			// The approach circles are defined around the land location.
-			const float wind_angle = wrap_pi(get_bearing_to_next_waypoint(vtol_land_approaches.land_location_lat_lon(0),
-							 vtol_land_approaches.land_location_lat_lon(1), vtol_land_approaches.approaches[i].lat,
-							 vtol_land_approaches.approaches[i].lon) - wind_direction);
-
-			if (fabsf(wind_angle) < wind_angle_prev) {
-				min_index = i;
-				wind_angle_prev = fabsf(wind_angle);
-			}
-
-		}
-	}
-
-	if (min_index >= 0) {
-		return vtol_land_approaches.approaches[min_index];
-
-	} else {
-
-		return loiter_point_s();
-	}
+	return mission_route::chooseBestLandingApproach(vtol_land_approaches, _wind_sub.get());
 }

@@ -51,6 +51,7 @@
 #include <px4_platform_common/events.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
+#include <cstring>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -76,10 +77,13 @@ bool MavlinkMissionManager::_transfer_in_progress = false;
 pthread_mutex_t MavlinkMissionManager::_shared_state_mutex = PTHREAD_MUTEX_INITIALIZER;
 constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
 
-#define CHECK_SYSID_COMPID_MISSION(_msg)		(_msg.target_system == mavlink_system.sysid && \
-		((_msg.target_component == mavlink_system.compid) || \
-		 (_msg.target_component == MAV_COMP_ID_MISSIONPLANNER) || \
-		 (_msg.target_component == MAV_COMP_ID_ALL)))
+static inline bool targets_mission_manager(const mavlink_message_t *msg, uint8_t target_system, uint8_t target_component)
+{
+	return mavlink_target_system(msg, target_system) == mavlink_system.sysid
+	       && ((target_component == mavlink_system.compid)
+		   || (target_component == MAV_COMP_ID_MISSIONPLANNER)
+		   || (target_component == MAV_COMP_ID_ALL));
+}
 
 MavlinkMissionManager::MavlinkMissionManager(Mavlink &mavlink) :
 	_mavlink(mavlink)
@@ -287,21 +291,20 @@ MavlinkMissionManager::update_safepoint_count(dm_item_t safepoint_dataman_id, un
 }
 
 void
-MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t type, uint32_t opaque_id)
+MavlinkMissionManager::send_mission_ack(uint32_t sysid, uint8_t compid, uint8_t type, uint32_t opaque_id)
 {
 	mavlink_mission_ack_t wpa{};
 
-	wpa.target_system = sysid;
 	wpa.target_component = compid;
 	wpa.type = type;
 	wpa.mission_type = _mission_type;
 	wpa.opaque_id = opaque_id;
 
 	_mavlink.lock_send();
-	mavlink_msg_mission_ack_send_struct(_mavlink.get_channel(), &wpa);
+	mavlink_msg_send_struct_target(_mavlink.get_channel(), MISSION_ACK, &wpa, sysid);
 	_mavlink.unlock_send();
 
-	PX4_DEBUG("WPM: Send MISSION_ACK type %u to ID %u", wpa.type, wpa.target_system);
+	PX4_DEBUG("WPM: Send MISSION_ACK type %u to ID %" PRIu32, wpa.type, sysid);
 }
 
 void
@@ -326,28 +329,27 @@ MavlinkMissionManager::send_mission_current(uint16_t seq)
 }
 
 void
-MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type,
+MavlinkMissionManager::send_mission_count(uint32_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type,
 		uint32_t opaque_id)
 {
 	_time_last_sent = hrt_absolute_time();
 
 	mavlink_mission_count_t wpc{};
 
-	wpc.target_system = sysid;
 	wpc.target_component = compid;
 	wpc.count = count;
 	wpc.mission_type = mission_type;
 	wpc.opaque_id = opaque_id;
 
 	_mavlink.lock_send();
-	mavlink_msg_mission_count_send_struct(_mavlink.get_channel(), &wpc);
+	mavlink_msg_send_struct_target(_mavlink.get_channel(), MISSION_COUNT, &wpc, sysid);
 	_mavlink.unlock_send();
 
-	PX4_DEBUG("WPM: Send MISSION_COUNT %u to ID %u, mission type=%i", wpc.count, wpc.target_system, mission_type);
+	PX4_DEBUG("WPM: Send MISSION_COUNT %u to ID %" PRIu32 ", mission type=%i", wpc.count, sysid, mission_type);
 }
 
 void
-MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t seq)
+MavlinkMissionManager::send_mission_item(uint32_t sysid, uint8_t compid, uint16_t seq)
 {
 	mission_item_s mission_item{};
 	bool read_success = false;
@@ -397,36 +399,18 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 	if (read_success) {
 		_time_last_sent = hrt_absolute_time();
 
-		if (_int_mode) {
-			mavlink_mission_item_int_t wp{};
-			format_mavlink_mission_item(&mission_item, reinterpret_cast<mavlink_mission_item_t *>(&wp));
+		mavlink_mission_item_int_t wp{};
+		format_mavlink_mission_item(&mission_item, &wp);
 
-			wp.target_system = sysid;
-			wp.target_component = compid;
-			wp.seq = seq;
-			wp.current = (_current_seq == seq) ? 1 : 0;
+		wp.target_component = compid;
+		wp.seq = seq;
+		wp.current = (_current_seq == seq) ? 1 : 0;
 
-			_mavlink.lock_send();
-			mavlink_msg_mission_item_int_send_struct(_mavlink.get_channel(), &wp);
-			_mavlink.unlock_send();
+		_mavlink.lock_send();
+		mavlink_msg_send_struct_target(_mavlink.get_channel(), MISSION_ITEM_INT, &wp, sysid);
+		_mavlink.unlock_send();
 
-			PX4_DEBUG("WPM: Send MISSION_ITEM_INT seq %u to ID %u", wp.seq, wp.target_system);
-
-		} else {
-			mavlink_mission_item_t wp{};
-			format_mavlink_mission_item(&mission_item, &wp);
-
-			wp.target_system = sysid;
-			wp.target_component = compid;
-			wp.seq = seq;
-			wp.current = (_current_seq == seq) ? 1 : 0;
-
-			_mavlink.lock_send();
-			mavlink_msg_mission_item_send_struct(_mavlink.get_channel(), &wp);
-			_mavlink.unlock_send();
-
-			PX4_DEBUG("WPM: Send MISSION_ITEM seq %u to ID %u", wp.seq, wp.target_system);
-		}
+		PX4_DEBUG("WPM: Send MISSION_ITEM_INT seq %u to ID %" PRIu32, wp.seq, sysid);
 
 	} else {
 		send_mission_ack(sysid, compid, MAV_MISSION_ERROR);
@@ -479,37 +463,20 @@ MavlinkMissionManager::get_current_mission_type_crc()
 }
 
 void
-MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint16_t seq)
+MavlinkMissionManager::send_mission_request(uint32_t sysid, uint8_t compid, uint16_t seq)
 {
 	if (seq < current_max_item_count()) {
 		_time_last_sent = hrt_absolute_time();
 
-		if (_int_mode) {
-			mavlink_mission_request_int_t wpr{};
-			wpr.target_system = sysid;
-			wpr.target_component = compid;
-			wpr.seq = seq;
-			wpr.mission_type = _mission_type;
-			_mavlink.lock_send();
-			mavlink_msg_mission_request_int_send_struct(_mavlink.get_channel(), &wpr);
-			_mavlink.unlock_send();
+		mavlink_mission_request_int_t wpr{};
+		wpr.target_component = compid;
+		wpr.seq = seq;
+		wpr.mission_type = _mission_type;
+		_mavlink.lock_send();
+		mavlink_msg_send_struct_target(_mavlink.get_channel(), MISSION_REQUEST_INT, &wpr, sysid);
+		_mavlink.unlock_send();
 
-			PX4_DEBUG("WPM: Send MISSION_REQUEST_INT seq %u to ID %u", wpr.seq, wpr.target_system);
-
-		} else {
-
-			mavlink_mission_request_t wpr{};
-			wpr.target_system = sysid;
-			wpr.target_component = compid;
-			wpr.seq = seq;
-			wpr.mission_type = _mission_type;
-
-			_mavlink.lock_send();
-			mavlink_msg_mission_request_send_struct(_mavlink.get_channel(), &wpr);
-			_mavlink.unlock_send();
-
-			PX4_DEBUG("WPM: Send MISSION_REQUEST seq %u to ID %u", wpr.seq, wpr.target_system);
-		}
+		PX4_DEBUG("WPM: Send MISSION_REQUEST_INT seq %u to ID %" PRIu32, wpr.seq, sysid);
 
 	} else {
 		_mavlink.send_statustext_critical("ERROR: Waypoint index exceeds list capacity\t");
@@ -671,24 +638,24 @@ MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
 		handle_mission_request_list(msg);
 		break;
 
+	// MISSION_REQUEST is deprecated and answered like MISSION_REQUEST_INT, as the MAVLink spec asks.
 	case MAVLINK_MSG_ID_MISSION_REQUEST:
-		handle_mission_request(msg);
-		break;
-
 	case MAVLINK_MSG_ID_MISSION_REQUEST_INT:
-		handle_mission_request_int(msg);
+		handle_mission_request(msg);
 		break;
 
 	case MAVLINK_MSG_ID_MISSION_COUNT:
 		handle_mission_count(msg);
 		break;
 
+	// MISSION_ITEM is deprecated and not parsed. It is answered with MAV_MISSION_UNSUPPORTED so a float
+	// upload fails at once instead of being ignored until the sync timeout.
 	case MAVLINK_MSG_ID_MISSION_ITEM:
-		handle_mission_item(msg);
+		handle_mission_item_float(msg);
 		break;
 
 	case MAVLINK_MSG_ID_MISSION_ITEM_INT:
-		handle_mission_item_int(msg);
+		handle_mission_item(msg);
 		break;
 
 	case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
@@ -706,7 +673,7 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 	mavlink_mission_ack_t wpa{};
 	mavlink_msg_mission_ack_decode(msg, &wpa);
 
-	if (CHECK_SYSID_COMPID_MISSION(wpa)) {
+	if (targets_mission_manager(msg, wpa.target_system, wpa.target_component)) {
 		if ((msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid)) {
 			if (_state == MAVLINK_WPM_STATE_SENDLIST && _mission_type == wpa.mission_type) {
 
@@ -726,25 +693,18 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 
 			} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
 
-				// INT or float mode is not supported
-				if (wpa.type == MAV_MISSION_UNSUPPORTED) {
-
-					if (_int_mode) {
-						_int_mode = false;
-						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
-
-					} else {
-						_int_mode = true;
-						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
-					}
-
-				} else if (wpa.type == MAV_MISSION_OPERATION_CANCELLED) {
+				if (wpa.type == MAV_MISSION_OPERATION_CANCELLED) {
 					PX4_DEBUG("WPM: MISSION_ACK CANCELLED, switch to state IDLE");
 					switch_to_idle_state();
 					_transfer_in_progress = false;
 
 				} else if (wpa.type != MAV_MISSION_ACCEPTED) {
 					PX4_WARN("Mission ack result was %d", wpa.type);
+
+					if (_mission_type == wpa.mission_type) {
+						switch_to_idle_state();
+						_transfer_in_progress = false;
+					}
 				}
 			}
 
@@ -764,7 +724,7 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 	mavlink_mission_set_current_t wpc;
 	mavlink_msg_mission_set_current_decode(msg, &wpc);
 
-	if (CHECK_SYSID_COMPID_MISSION(wpc)) {
+	if (targets_mission_manager(msg, wpc.target_system, wpc.target_component)) {
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			_time_last_recv = hrt_absolute_time();
 
@@ -796,7 +756,7 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 	mavlink_mission_request_list_t wprl;
 	mavlink_msg_mission_request_list_decode(msg, &wprl);
 
-	if (CHECK_SYSID_COMPID_MISSION(wprl)) {
+	if (targets_mission_manager(msg, wprl.target_system, wprl.target_component)) {
 		const bool maybe_completed = (_state == MAVLINK_WPM_STATE_SENDLIST) && (_transfer_seq == current_item_count());
 
 		// If all mission items have been sent and a new mission request list comes in, we can proceed even if MISSION_ACK was
@@ -855,34 +815,11 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::handle_mission_request(const mavlink_message_t *msg)
 {
-	// The request comes in the old float mode, so we switch to it.
-	if (_int_mode) {
-		_int_mode = false;
-	}
+	// MISSION_REQUEST and MISSION_REQUEST_INT have the same payload layout.
+	mavlink_mission_request_int_t wpr;
+	mavlink_msg_mission_request_int_decode(msg, &wpr);
 
-	handle_mission_request_both(msg);
-}
-
-void
-MavlinkMissionManager::handle_mission_request_int(const mavlink_message_t *msg)
-{
-	// The request comes in the new int mode, so we switch to it.
-	if (!_int_mode) {
-		_int_mode = true;
-	}
-
-	handle_mission_request_both(msg);
-}
-
-void
-MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
-{
-	/* The mavlink_message_t could also be a mavlink_mission_request_int_t, however the structs
-	 * are basically the same, so we can ignore it. */
-	mavlink_mission_request_t wpr;
-	mavlink_msg_mission_request_decode(msg, &wpr);
-
-	if (CHECK_SYSID_COMPID_MISSION(wpr)) {
+	if (targets_mission_manager(msg, wpr.target_system, wpr.target_component)) {
 		if (msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid) {
 			if (_state == MAVLINK_WPM_STATE_SENDLIST) {
 
@@ -895,24 +832,28 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 
 				/* _transfer_seq contains sequence of expected request */
 				if (wpr.seq == _transfer_seq && _transfer_seq < _transfer_count) {
-					PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) seq %u from ID %u", wpr.seq, msg->sysid);
+					PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) seq %u from ID %" PRIu32, wpr.seq, msg->sysid);
 
 					_transfer_seq++;
 
 				} else if (wpr.seq == _transfer_seq - 1) {
-					PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) seq %u from ID %u (again)", wpr.seq, msg->sysid);
+					PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) seq %u from ID %" PRIu32 " (again)", wpr.seq, msg->sysid);
+
+				} else if (wpr.seq < _transfer_count && wpr.seq < current_item_count()) {
+					// An unexpected in-range request is recoverable; retain the expected sequence.
+					return;
 
 				} else {
 					if (_transfer_seq > 0 && _transfer_seq < _transfer_count) {
-						PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: seq %u from ID %u unexpected, must be %i or %i", wpr.seq, msg->sysid,
+						PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: seq %u from ID %" PRIu32 " unexpected, must be %i or %i", wpr.seq, msg->sysid,
 							  _transfer_seq - 1, _transfer_seq);
 
 					} else if (_transfer_seq <= 0) {
-						PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: seq %u from ID %u unexpected, must be %i", wpr.seq, msg->sysid,
+						PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: seq %u from ID %" PRIu32 " unexpected, must be %i", wpr.seq, msg->sysid,
 							  _transfer_seq);
 
 					} else {
-						PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: seq %u from ID %u unexpected, must be %i", wpr.seq, msg->sysid,
+						PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: seq %u from ID %" PRIu32 " unexpected, must be %i", wpr.seq, msg->sysid,
 							  _transfer_seq - 1);
 					}
 
@@ -972,7 +913,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 	mavlink_mission_count_t wpc;
 	mavlink_msg_mission_count_decode(msg, &wpc);
 
-	if (CHECK_SYSID_COMPID_MISSION(wpc)) {
+	if (targets_mission_manager(msg, wpc.target_system, wpc.target_component)) {
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			_time_last_recv = hrt_absolute_time();
 
@@ -1035,7 +976,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 				return;
 			}
 
-			PX4_DEBUG("WPM: MISSION_COUNT %u from ID %u, changing state to MAVLINK_WPM_STATE_GETLIST", wpc.count, msg->sysid);
+			PX4_DEBUG("WPM: MISSION_COUNT %u from ID %" PRIu32 ", changing state to MAVLINK_WPM_STATE_GETLIST", wpc.count, msg->sysid);
 
 			switch (_mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
@@ -1079,7 +1020,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 
 			if (_transfer_seq == 0) {
 				/* looks like our MISSION_REQUEST was lost, try again */
-				PX4_DEBUG("WPM: MISSION_COUNT %u from ID %u (again)", wpc.count, msg->sysid);
+				PX4_DEBUG("WPM: MISSION_COUNT %u from ID %" PRIu32 " (again)", wpc.count, msg->sysid);
 
 			} else {
 				PX4_DEBUG("WPM: MISSION_COUNT ERROR: busy, already receiving seq %u", _transfer_seq);
@@ -1114,42 +1055,38 @@ MavlinkMissionManager::switch_to_idle_state()
 
 
 void
-MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
+MavlinkMissionManager::handle_mission_item_float(const mavlink_message_t *msg)
 {
-	if (_int_mode) {
-		// It seems that we should be using the float mode, let's switch out of int mode.
-		_int_mode = false;
-	}
-
-	handle_mission_item_both(msg);
-}
-
-void
-MavlinkMissionManager::handle_mission_item_int(const mavlink_message_t *msg)
-{
-	if (!_int_mode) {
-		// It seems that we should be using the int mode, let's switch to it.
-		_int_mode = true;
-	}
-
-	handle_mission_item_both(msg);
-}
-
-void
-MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
-{
-
-	// The mavlink_message could also contain a mavlink_mission_item_int_t. We ignore that here
-	// and take care of it later in parse_mavlink_mission_item depending on _int_mode.
-
 	mavlink_mission_item_t wp;
 	mavlink_msg_mission_item_decode(msg, &wp);
 
-	if (CHECK_SYSID_COMPID_MISSION(wp)) {
+	if (targets_mission_manager(msg, wp.target_system, wp.target_component)
+	    && msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid
+	    && _state == MAVLINK_WPM_STATE_GETLIST) {
+
+		send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_UNSUPPORTED);
+		switch_to_idle_state();
+		_transfer_in_progress = false;
+	}
+}
+
+void
+MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
+{
+	mavlink_mission_item_int_t wp;
+	mavlink_msg_mission_item_int_decode(msg, &wp);
+
+	if (targets_mission_manager(msg, wp.target_system, wp.target_component)) {
 		if ((msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid)) {
 			if (wp.mission_type != _mission_type) {
 				PX4_WARN("WPM: Unexpected mission type (%d %d)", (int)wp.mission_type, (int)_mission_type);
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+
+				if (_state == MAVLINK_WPM_STATE_GETLIST) {
+					switch_to_idle_state();
+					_transfer_in_progress = false;
+				}
+
 				return;
 			}
 
@@ -1414,7 +1351,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 	mavlink_mission_clear_all_t wpca;
 	mavlink_msg_mission_clear_all_decode(msg, &wpca);
 
-	if (CHECK_SYSID_COMPID_MISSION(wpca)) {
+	if (targets_mission_manager(msg, wpca.target_system, wpca.target_component)) {
 
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			/* don't touch mission items storage itself, but only items count in mission state */
@@ -1477,35 +1414,16 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 }
 
 int
-MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item,
+MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int_t *mavlink_mission_item,
 		struct mission_item_s *mission_item)
 {
 	if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
 	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT ||
-	    (_int_mode && (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
-			   mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT))) {
+	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
+	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 		// This is a mission item with a global coordinate
-
-		// Switch to int mode if that is what we are receiving
-		if ((mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
-		     mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT)) {
-			_int_mode = true;
-		}
-
-		if (_int_mode) {
-			/* The argument is actually a mavlink_mission_item_int_t in int_mode.
-			 * mavlink_mission_item_t and mavlink_mission_item_int_t have the same
-			 * alignment, so we can just swap float for int32_t. */
-			const mavlink_mission_item_int_t *item_int
-				= reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
-			mission_item->lat = ((double)item_int->x) * 1e-7;
-			mission_item->lon = ((double)item_int->y) * 1e-7;
-
-		} else {
-			mission_item->lat = (double)mavlink_mission_item->x;
-			mission_item->lon = (double)mavlink_mission_item->y;
-		}
-
+		mission_item->lat = ((double)mavlink_mission_item->x) * 1e-7;
+		mission_item->lon = ((double)mavlink_mission_item->y) * 1e-7;
 		mission_item->altitude = mavlink_mission_item->z;
 
 		if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
@@ -1519,24 +1437,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		{
 			uint8_t zero_mask = 0;
-			int bad = -1;
-
-			if (_int_mode) {
-				const mavlink_mission_item_int_t *item_int =
-					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
-				bad = mavlink_cmd_params::check_params_int_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
-						mavlink_mission_item->param1, mavlink_mission_item->param2,
-						mavlink_mission_item->param3, mavlink_mission_item->param4,
-						item_int->x, item_int->y,
-						mavlink_mission_item->z, &zero_mask);
-
-			} else {
-				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
-						mavlink_mission_item->param1, mavlink_mission_item->param2,
-						mavlink_mission_item->param3, mavlink_mission_item->param4,
-						mavlink_mission_item->x, mavlink_mission_item->y,
-						mavlink_mission_item->z, &zero_mask);
-			}
+			const int bad = mavlink_cmd_params::check_params_int_for_vehicle(mavlink_mission_item->command, true,
+					_vehicle_type_bitmask,
+					mavlink_mission_item->param1, mavlink_mission_item->param2,
+					mavlink_mission_item->param3, mavlink_mission_item->param4,
+					mavlink_mission_item->x, mavlink_mission_item->y,
+					mavlink_mission_item->z, &zero_mask);
 
 			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
 
@@ -1676,29 +1582,19 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		{
 			uint8_t zero_mask = 0;
-			int bad = -1;
-
-			if (_int_mode) {
-				const mavlink_mission_item_int_t *item_int =
-					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
-				// x/y are p5/p6 generic params (not lat/lon) for non-position frames.
-				// Turn both int values that mean "param not used" (INT32_MAX per the
-				// spec, INT32_MIN from ground stations converting NaN to int32) into
-				// NaN so the validation treats them as not used.
-				const float p5 = mavlink_cmd_params::int_param_is_unset(item_int->x) ? NAN : (float)item_int->x;
-				const float p6 = mavlink_cmd_params::int_param_is_unset(item_int->y) ? NAN : (float)item_int->y;
-				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
-						mavlink_mission_item->param1, mavlink_mission_item->param2,
-						mavlink_mission_item->param3, mavlink_mission_item->param4,
-						p5, p6, mavlink_mission_item->z, &zero_mask);
-
-			} else {
-				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
-						mavlink_mission_item->param1, mavlink_mission_item->param2,
-						mavlink_mission_item->param3, mavlink_mission_item->param4,
-						(float)mavlink_mission_item->x, (float)mavlink_mission_item->y,
-						mavlink_mission_item->z, &zero_mask);
-			}
+			// x/y are p5/p6 generic params (not lat/lon) for non-position frames.
+			// Turn both int values that mean "param not used" (INT32_MAX per the
+			// spec, INT32_MIN from ground stations converting NaN to int32) into
+			// NaN so the validation treats them as not used.
+			const float p5 = mavlink_cmd_params::int_param_is_unset(mavlink_mission_item->x) ? NAN :
+					 (float)mavlink_mission_item->x;
+			const float p6 = mavlink_cmd_params::int_param_is_unset(mavlink_mission_item->y) ? NAN :
+					 (float)mavlink_mission_item->y;
+			const int bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true,
+					_vehicle_type_bitmask,
+					mavlink_mission_item->param1, mavlink_mission_item->param2,
+					mavlink_mission_item->param3, mavlink_mission_item->param4,
+					p5, p6, mavlink_mission_item->z, &zero_mask);
 
 			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
 
@@ -1712,20 +1608,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		mission_item->params[2] = mavlink_mission_item->param3;
 		mission_item->params[3] = mavlink_mission_item->param4;
 
-		if (_int_mode) {
-			/* The argument is actually a mavlink_mission_item_int_t in int_mode.
-			 * mavlink_mission_item_t and mavlink_mission_item_int_t have the same
-			 * alignment, so we can just swap float for int32_t. */
-			const mavlink_mission_item_int_t *item_int
-				= reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
-			mission_item->params[4] = ((double)item_int->x);
-			mission_item->params[5] = ((double)item_int->y);
-
-		} else {
-			mission_item->params[4] = (double)mavlink_mission_item->x;
-			mission_item->params[5] = (double)mavlink_mission_item->y;
-		}
-
+		mission_item->params[4] = (double)mavlink_mission_item->x;
+		mission_item->params[5] = (double)mavlink_mission_item->y;
 		mission_item->params[6] = mavlink_mission_item->z;
 
 		switch (mavlink_mission_item->command) {
@@ -1830,7 +1714,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 int
 MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *mission_item,
-		mavlink_mission_item_t *mavlink_mission_item)
+		mavlink_mission_item_int_t *mavlink_mission_item)
 {
 	mavlink_mission_item->frame = mission_item->frame;
 	mavlink_mission_item->command = mission_item->nav_cmd;
@@ -1844,24 +1728,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		mavlink_mission_item->param3 = mission_item->params[2];
 		mavlink_mission_item->param4 = mission_item->params[3];
 
-		mavlink_mission_item->x = mission_item->params[4];
-		mavlink_mission_item->y = mission_item->params[5];
-
-		if (_int_mode) {
-			// This function actually receives a mavlink_mission_item_int_t in _int_mode
-			// which has the same alignment as mavlink_mission_item_t and the only
-			// difference is int32_t vs. float for x and y.
-			mavlink_mission_item_int_t *item_int =
-				reinterpret_cast<mavlink_mission_item_int_t *>(mavlink_mission_item);
-
-			item_int->x = round(mission_item->params[4]);
-			item_int->y = round(mission_item->params[5]);
-
-		} else {
-			mavlink_mission_item->x = (float)mission_item->params[4];
-			mavlink_mission_item->y = (float)mission_item->params[5];
-		}
-
+		mavlink_mission_item->x = round(mission_item->params[4]);
+		mavlink_mission_item->y = round(mission_item->params[5]);
 		mavlink_mission_item->z = mission_item->params[6];
 
 		switch (mavlink_mission_item->command) {
@@ -1905,38 +1773,15 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		mavlink_mission_item->param3 = 0.0f;
 		mavlink_mission_item->param4 = 0.0f;
 
-		if (_int_mode) {
-			// This function actually receives a mavlink_mission_item_int_t in _int_mode
-			// which has the same alignment as mavlink_mission_item_t and the only
-			// difference is int32_t vs. float for x and y.
-			mavlink_mission_item_int_t *item_int =
-				reinterpret_cast<mavlink_mission_item_int_t *>(mavlink_mission_item);
-
-			item_int->x = round(mission_item->lat * 1e7);
-			item_int->y = round(mission_item->lon * 1e7);
-
-		} else {
-			mavlink_mission_item->x = (float)mission_item->lat;
-			mavlink_mission_item->y = (float)mission_item->lon;
-		}
-
+		mavlink_mission_item->x = round(mission_item->lat * 1e7);
+		mavlink_mission_item->y = round(mission_item->lon * 1e7);
 		mavlink_mission_item->z = mission_item->altitude;
 
 		if (mission_item->altitude_is_relative) {
-			if (_int_mode) {
-				mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT;
-
-			} else {
-				mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
-			}
+			mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT;
 
 		} else {
-			if (_int_mode) {
-				mavlink_mission_item->frame = MAV_FRAME_GLOBAL_INT;
-
-			} else {
-				mavlink_mission_item->frame = MAV_FRAME_GLOBAL;
-			}
+			mavlink_mission_item->frame = MAV_FRAME_GLOBAL_INT;
 		}
 
 		switch (mission_item->nav_cmd) {
@@ -2005,7 +1850,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 }
 
 void MavlinkMissionManager::copy_params_from_mavlink_to_mission_item(struct mission_item_s *mission_item,
-		const mavlink_mission_item_t *mavlink_mission_item, int8_t start_idx, int8_t end_idx)
+		const mavlink_mission_item_int_t *mavlink_mission_item, int8_t start_idx, int8_t end_idx)
 {
 	// Copy each param1 ~ 7 if they are within the range specified
 	if (start_idx <= 1 && 1 <= end_idx) {
@@ -2073,12 +1918,22 @@ void MavlinkMissionManager::check_active_mission()
 	}
 }
 
-uint32_t MavlinkMissionManager::crc32_for_mission_item(const mavlink_mission_item_t &mission_item, uint32_t prev_crc32)
+uint32_t MavlinkMissionManager::crc32_for_mission_item(const mavlink_mission_item_int_t &mission_item,
+		uint32_t prev_crc32)
 {
 	union {
 		CrcMissionItem_t item;
 		uint8_t raw[sizeof(CrcMissionItem_t)];
 	} u;
+
+	// Hash x and y by their bits. Converting the 1e7-degree integers to float would round away up to a metre,
+	// so a small waypoint move could keep the same mission ID.
+	float x_bits;
+	float y_bits;
+	static_assert(sizeof(x_bits) == sizeof(mission_item.x) && sizeof(y_bits) == sizeof(mission_item.y),
+		      "x and y must fit a float");
+	memcpy(&x_bits, &mission_item.x, sizeof(x_bits));
+	memcpy(&y_bits, &mission_item.y, sizeof(y_bits));
 
 	u.item.frame = mission_item.frame;
 	u.item.command = mission_item.command;
@@ -2087,8 +1942,8 @@ uint32_t MavlinkMissionManager::crc32_for_mission_item(const mavlink_mission_ite
 	u.item.params[1] = mission_item.param2;
 	u.item.params[2] = mission_item.param3;
 	u.item.params[3] = mission_item.param4;
-	u.item.params[4] = mission_item.x;
-	u.item.params[5] = mission_item.y;
+	u.item.params[4] = x_bits;
+	u.item.params[5] = y_bits;
 	u.item.params[6] = mission_item.z;
 
 	return crc32part(u.raw, sizeof(u), prev_crc32);

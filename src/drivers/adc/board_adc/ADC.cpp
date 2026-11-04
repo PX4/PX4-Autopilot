@@ -82,7 +82,7 @@ ADC::~ADC()
 	ScheduleClear();
 
 	if (_samples != nullptr) {
-		delete _samples;
+		delete[] _samples;
 	}
 
 	perf_free(_sample_perf);
@@ -107,6 +107,12 @@ int ADC::init()
 
 void ADC::Run()
 {
+	if (should_exit()) {
+		ScheduleClear();
+		exit_and_cleanup(desc);
+		return;
+	}
+
 	if (_first_run) {
 		open_gpio_devices();
 		_first_run = false;

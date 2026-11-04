@@ -50,17 +50,14 @@ For larger aircraft the use of CAN or other differential signaling based interfa
 This turns/cable-length recommendation has been successfully used with I2C sensors including the [ThunderFly TFSLOT airspeed sensor](../sensor/airspeed_tfslot.md) and [TFRPM01 Revolution Counter](../sensor/thunderfly_tachometer.md).
 :::
 
-#### Pull-up resistors
+#### 上拉电阻
 
-Pull-up resistors are required for all ends of an I2C bus.
-This acts both as [signal termination](https://en.wikipedia.org/wiki/Electrical_termination) and as bus idle signal generator.
+每个I2C总线的末端都需要上拉电阻。它们既有[信号终止](https://en.wikipedia.org/wiki/Electrical_termination)作用， 也产生总线空闲信号。
 
-An oscilloscope measurement is sometimes required to check correct value of pull-up resistors.
-The signals on the I2C bus should have clear sharp rectangle-like edges and amplitude of few volts.
-In case the signal has a low amplitude, the value of pull-up resistors is too low and should be decreased.
-In the case of rounded signals, the value of pull-up resistors is too high.
+为了检查上拉电阻的正确阻值，有时需要使用示波器测量。
+I2C总线信号应为方波，边缘尖锐，幅值3-5伏特。如果信号幅值偏低，难以下拉至0V，那么上拉电阻阻值太小，应当增加阻值。相反，如果信号方波是弧形而非尖锐，那么上拉电阻阻值太大。
 
-### UAVCAN cables
+### UAVCAN线缆
 
 | 信号                         | Pixhawk                   | ThunderFly                | Zubax                     | CUAV (I2C/CAN) |
 | -------------------------- | ------------------------- | ------------------------- | ------------------------- | --------------------------------- |
@@ -69,10 +66,9 @@ In the case of rounded signals, the value of pull-up resistors is too high.
 | CAN_L | ![black][blkcircle] Black | ![yellow][ycircle] Yellow | ![yellow][ycircle] Yellow | ![yellow][ycircle] Yellow         |
 | GND                        | ![black][blkcircle] Black | ![black][blkcircle] Black | ![black][blkcircle] Black | ![black][blkcircle] Black         |
 
-#### Cable Twisting
+#### 绞线
 
-CAN cables should also be twisted, for exactly the same reason as I2C cables.
-For CAN the recommended twisting is:
+CAN线缆应当为双绞线。对于CAN线，建议的绞线方式为：
 
 - 10 turns for each pair GND/+5V and CAN_L/CAN_H per 30cm cable length.
   ![CAN JST-GH cable](../../assets/hardware/cables/can_jst-gh_cable.jpg)

@@ -192,12 +192,12 @@ private:
 	estimator_bias_s fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
 					      uint64_t timestamp, uint32_t device_id = 0);
 	void PublishEventFlags(const hrt_abstime &timestamp);
-	void PublishGlobalPosition(const hrt_abstime &timestamp);
+	void PublishGlobalPosition(const hrt_abstime &timestamp, const LatLonAlt &lla);
 	void PublishInnovations(const hrt_abstime &timestamp);
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
-	void PublishLocalPosition(const hrt_abstime &timestamp);
-	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample);
+	void PublishLocalPosition(const hrt_abstime &timestamp, const Vector3f &position);
+	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample, const Vector3f &position);
 	void PublishSensorBias(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
@@ -491,7 +491,7 @@ private:
 
 	float _last_gnss_hgt_bias_published{};
 
-	uint16_t _gnss_failed_checks{0}; ///< failed_checks of the latest vehicle_gnss sample
+	uint16_t _gnss_failed_checks{0}; ///< failed checks of the latest vehicle_gnss sample, among those that decide usable
 
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
@@ -561,8 +561,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>) _param_ekf2_gps_p_gate,
 		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _param_ekf2_gps_v_gate,
 
-		(ParamExtFloat<px4::params::EKF2_REQ_SACC>) _param_ekf2_req_sacc,
-		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h,
+		(ParamFloat<px4::params::EKF2_GPS_YAW_RST>) _param_ekf2_gps_yaw_rst,
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas,

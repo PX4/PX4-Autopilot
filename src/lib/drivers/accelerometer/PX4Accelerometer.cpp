@@ -167,8 +167,10 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 {
 	// rotate all raw samples and publish fifo
-	for (int n = 0; n < sample.samples; n++) {
-		rotate_3i(_rotation, sample.x[n], sample.y[n], sample.z[n]);
+	if (_rotation != ROTATION_NONE) {
+		for (int n = 0; n < sample.samples; n++) {
+			rotate_3i(_rotation, sample.x[n], sample.y[n], sample.z[n]);
+		}
 	}
 
 	sample.device_id = _device_id;

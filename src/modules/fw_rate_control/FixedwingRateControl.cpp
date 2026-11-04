@@ -130,14 +130,12 @@ FixedwingRateControl::vehicle_manual_poll()
 
 			} else {
 				// Manual/direct control, filled in FW-frame. Note that setpoints will get transformed to body frame prior publishing.
-				const float airspeed_scaling_sq = _airspeed_scaling * _airspeed_scaling;
-
 				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-								  _param_trim_roll.get() * airspeed_scaling_sq, -1.f, 1.f);
+								  _param_trim_roll.get(), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() +
-								  _param_trim_pitch.get() * airspeed_scaling_sq, -1.f, 1.f);
+								  _param_trim_pitch.get(), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-								  _param_trim_yaw.get() * airspeed_scaling_sq, -1.f, 1.f);
+								  _param_trim_yaw.get(), -1.f, 1.f);
 
 				_vehicle_thrust_setpoint.xyz[0] = math::constrain((_manual_control_setpoint.throttle + 1.f) * .5f, 0.f, 1.f);
 			}

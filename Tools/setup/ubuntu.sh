@@ -111,16 +111,22 @@ echo
 echo "[ubuntu.sh] Installing PX4 Python3 dependencies"
 PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
 REQUIRED_VERSION="3.11"
-if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" == "$REQUIRED_VERSION" ]]; then
-	python3 -m pip install --break-system-packages -r ${DIR}/requirements.txt
-else
-	if [ -n "$VIRTUAL_ENV" ]; then
-		# virtual environments don't allow --user option
-		python -m pip install -r ${DIR}/requirements.txt
-	else
-		python3 -m pip install --user -r ${DIR}/requirements.txt
+# The integration test requirements are not staged into every container build context.
+for REQUIREMENTS in requirements.txt test-requirements.txt; do
+	if [[ ! -f "${DIR}/${REQUIREMENTS}" ]]; then
+		continue
 	fi
-fi
+	if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" == "$REQUIRED_VERSION" ]]; then
+		python3 -m pip install --break-system-packages -r ${DIR}/${REQUIREMENTS}
+	else
+		if [ -n "$VIRTUAL_ENV" ]; then
+			# virtual environments don't allow --user option
+			python -m pip install -r ${DIR}/${REQUIREMENTS}
+		else
+			python3 -m pip install --user -r ${DIR}/${REQUIREMENTS}
+		fi
+	fi
+done
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then

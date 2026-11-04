@@ -187,6 +187,9 @@ A subscriber will then have to choose to which instance to subscribe to using `o
 
 Make sure not to mix `orb_advertise_multi` and `orb_advertise` for the same topic!
 
+Destroying a `uORB::PublicationMulti` frees its instance for the next publisher.
+Destroying a `uORB::Publication` leaves the topic advertised with its last sample, because other publishers may share it.
+
 The full API is documented in [platforms/common/uORB/uORBManager.hpp](https://github.com/PX4/PX4-Autopilot/blob/main/platforms/common/uORB/uORBManager.hpp).
 
 ## 토픽 나열 및 듣기

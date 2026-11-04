@@ -381,7 +381,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
 				sensor_gnss.device_id,
-				NodeInfoPublisher::DeviceCapability::GPS);
+				device_information_s::DEVICE_TYPE_GPS);
 	}
 
 	/*
@@ -628,7 +628,8 @@ void UavcanGnssBridge::drainRtcmCorrections()
 
 		have_msg = false;
 		num_injections++;
-		PublishRTCMStream(msg.data, msg.len);
+		// uXRCE-DDS passes the publisher's len through unchecked
+		PublishRTCMStream(msg.data, math::min<size_t>(msg.len, sizeof(msg.data)));
 		_rtcm_injection_rate_message_count++;
 		_last_rtcm_injection_time = hrt_absolute_time();
 	}
@@ -655,7 +656,7 @@ void UavcanGnssBridge::drainMovingBaseline()
 				 last_generation, _rtcm_moving_baseline_sub.get_last_generation());
 		}
 
-		PublishMovingBaselineData(msg.data, msg.len);
+		PublishMovingBaselineData(msg.data, math::min<size_t>(msg.len, sizeof(msg.data)));
 	}
 }
 

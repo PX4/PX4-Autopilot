@@ -50,6 +50,9 @@
 
 #define TOC_FLAG1_RDCT 0x80
 
+#define TOC_FLAG2_USE_SBI 0x1            /* RISC-V: boot via SBI */
+#define TOC_FLAG2_RELATIVE_ADDRESSES 0x2 /* TOC address values are relative to load address */
+
 #define TOC_START_MAGIC 0x00434f54 /* "TOC" */
 #define TOC_END_MAGIC 0x00444e45 /* "END" */
 
@@ -78,7 +81,8 @@ typedef struct __attribute__((__packed__)) image_toc_entry {
 	uint8_t signature_key;  /* Key index for the signature */
 	uint8_t encryption_key; /* Key index for encryption */
 	uint8_t flags1;         /* Flags */
-	uint32_t reserved;      /* e.g. for more flags */
+	uint8_t flags2;         /* More flags */
+	uint8_t reserved[3];    /* Reserved for future use */
 } image_toc_entry_t;
 
 #define IMAGE_MAIN_TOC(len)                              \
@@ -107,7 +111,8 @@ typedef struct __attribute__((__packed__))
 	uint8_t signature[];
 } image_cert_t;
 
-extern bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len);
+extern bool find_toc(const uint8_t *buf, size_t buf_len,
+		     const image_toc_entry_t **toc_entries, uint8_t *len);
 
 /* If decrypt or copy flags are defined, this returns the target address.
  * Otherwise, return the start address.
@@ -116,6 +121,36 @@ inline static const void *get_base_addr(const image_toc_entry_t *e)
 {
 	return (e->flags1 & TOC_FLAG1_DECRYPT) || (e->flags1 & TOC_FLAG1_COPY) ?
 	       e->target : e->start;
+}
+
+/*
+ * Absolute address of the image bytes described by a TOC entry, after
+ * any load step has run. Returns ->target when set (COPY / DECRYPT
+ * relocate the bytes there); otherwise base_addr + ->start when a
+ * base is supplied, or the raw ->start pointer. This is the address
+ * signature verification should hash against.
+ *
+ *   e         : the TOC entry to resolve.
+ *   base_addr : base address that entry->start is added to. Pass NULL
+ *               when start is already absolute (XIP) or when the entry
+ *               is known to have ->target set.
+ */
+inline static const void *toc_entry_image_addr(const image_toc_entry_t *e,
+		const void *base_addr)
+{
+	const void *addr;
+
+	if (e->target) {
+		addr = e->target;
+
+	} else if (e->flags2 & TOC_FLAG2_RELATIVE_ADDRESSES) {
+		addr = (const void *)((uintptr_t)base_addr + (uintptr_t)e->start);
+
+	} else {
+		addr = e->start;
+	}
+
+	return addr;
 }
 
 #endif

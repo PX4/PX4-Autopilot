@@ -194,7 +194,14 @@ private:
 
 	static bool isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_mask_parameter);
 
-	Action manualControlLossFallbackAction() const { return fromNavDllOrRclActParam(_param_nav_rcl_act.get()).action; }
+	Action manualControlLossFallbackAction() const
+	{
+		// A NAV_RCL_ACT value with no failsafe action of its own, like "Hold mode (no failsafe)", still has to
+		// replace a manual mode that cannot be flown without manual control. Hold is what that setting promises
+		// for the manual case, and the action cascade escalates from there if Hold cannot run.
+		const Action action = fromNavDllOrRclActParam(_param_nav_rcl_act.get()).action;
+		return (action == Action::None) ? Action::Hold : action;
+	}
 
 	const int _caller_id_mode_fallback{genCallerId()};
 	bool _last_state_mode_fallback{false};
@@ -209,6 +216,8 @@ private:
 	bool _last_state_battery_warning_emergency{false};
 	const int _caller_id_fd_esc_arming{genCallerId()};
 	bool _last_state_fd_esc_arming{false};
+	const int _caller_id_fd_motor_stuck{genCallerId()};
+	bool _last_state_fd_motor_stuck{false};
 	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
 	bool _last_state_battery_unhealthy_spoolup{false};
 
