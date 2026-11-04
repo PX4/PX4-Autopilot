@@ -141,6 +141,7 @@ parameters:
           Two receivers diverge when their horizontal positions disagree by more than
           this, after their antenna positions. The default suits standalone receivers.
           Detecting swapped antennas needs a limit below twice the distance between them.
+          It also needs a heading that doesn't come from these two receivers.
           Before arming a divergence is reported at once and clears after 2 s of
           agreement. In flight it has to persist for 2 s. See COM_GNSSLOSS_ACT for the action.
       type: float

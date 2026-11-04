@@ -279,6 +279,7 @@ Triggers on either of:
 - **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
 - **Position divergence**: a receiver disagrees with the selected one by more than [COM_GNSS_H_MAX](#COM_GNSS_H_MAX) horizontally or [COM_GNSS_V_MAX](#COM_GNSS_V_MAX) vertically, after their antenna positions ([SENS_GNSS0_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS1_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX)). Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
   Until the heading is aligned only the distance between the receivers is compared, so swapped antennas are detected only after alignment, and only with a limit below twice the antenna separation.
+  A heading from the same two receivers as a moving baseline turns with swapped antennas, so then they aren't detected.
   Before arming a divergence is reported at once and clears after 2 s of agreement. In flight it has to persist for 2 s.
 
 At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
