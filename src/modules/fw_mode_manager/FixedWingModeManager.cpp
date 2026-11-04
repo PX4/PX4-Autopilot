@@ -1494,6 +1494,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	// touchdown may get nudged by manual inputs
 	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
 	const Vector2f landing_approach_vector = calculateLandingApproachVector();
+	const Vector2f landing_approach_unit_vector = landing_approach_vector.unit_or_zero();
 
 	const bool parachute_landing_active = _param_fw_lnd_para_en.get() && !_parachute_release_commanded
 					      && !_vehicle_status.is_vtol;
@@ -1504,8 +1505,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 					    _param_fw_lnd_para_sink.get());
 
 	// calculate the altitude setpoint based on the landing glide slope
-	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
-				local_position - local_land_point);
+	const float along_track_dist_to_touchdown = -landing_approach_unit_vector.dot(local_position - local_land_point);
 	const float glide_slope = _landing_approach_entrance_rel_alt / _landing_approach_entrance_offset_vector.norm();
 
 	// NOTE: this relative altitude can go below zero, this is intentional. in the case the vehicle is tracking the glide
@@ -1527,7 +1527,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 	if (parachute_landing_active && _wind_valid) {
 		// compensate the crosswind drift under canopy by aiming upwind of the landing point
-		local_land_point -= parachuteCrosswindAimShift(_wind_vel, landing_approach_vector.unit_or_zero(),
+		local_land_point -= parachuteCrosswindAimShift(_wind_vel, landing_approach_unit_vector,
 				    _current_altitude - terrain_alt, parachute_release_alt, parachute_release_floor,
 				    _param_fw_lnd_para_sink.get());
 	}
@@ -1558,7 +1558,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		const float altitude_above_ground = math::max(_current_altitude - terrain_alt, 0.f);
 
 		const float release_distance = parachuteReleaseDistance(ground_speed, _wind_vel, _wind_valid,
-					       landing_approach_vector.unit_or_zero(), altitude_above_ground,
+					       landing_approach_unit_vector, altitude_above_ground,
 					       _param_fw_lnd_para_sink.get());
 
 		if (along_track_dist_to_touchdown <= release_distance) {
