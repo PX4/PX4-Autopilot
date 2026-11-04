@@ -193,7 +193,7 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 
 	if (PX4_ISFINITE(lpos_sp.z)) {
 		if (lpos.z > lpos_sp.z
-		    || (lpos.v_z_valid && lpos.vz > commanded_descent_rate + kAltLossDescentRateMargin)) {
+		    || (lpos.v_z_valid && lpos.vz > commanded_descent_rate)) {
 			// Ratcheting NED-z reference: tracks the highest altitude reached while below setpoint, or while
 			// falling faster than allowed.
 			if (!PX4_ISFINITE(_alt_loss_ref_z)) {

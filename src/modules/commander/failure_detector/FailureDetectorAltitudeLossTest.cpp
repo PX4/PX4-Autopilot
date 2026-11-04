@@ -295,3 +295,14 @@ TEST_F(FailureDetectorAltitudeLossTest, TriggerOnFallWithSetpointBelowVehicle)
 	EXPECT_FALSE(update(-97.f, -96.5f, 0.f, 0, 0.f, true, 3.f));   // above setpoint but falling, drop = 3m
 	EXPECT_TRUE(update(-94.f, -94.5f, 0.f, 0, 0.f, true, 3.f));    // drop = 6m, triggers
 }
+
+TEST_F(FailureDetectorAltitudeLossTest, TriggerOnFallFasterThanCommandedDescentWithSetpointBelowVehicle)
+{
+	// Descent commanded at 3m/s with the setpoint kept just below the vehicle, vehicle falls at 6m/s:
+	// the reference is lowered at 3m/s + 2m/s margin, so the drop grows by 1m each second
+	for (int i = 0; i < 6; i++) {
+		EXPECT_FALSE(update(-100.f + 6.f * i, -99.5f + 6.f * i, 0.f, 0, 3.f, true, 6.f)); // drop = i m
+	}
+
+	EXPECT_TRUE(update(-64.f, -63.5f, 0.f, 0, 3.f, true, 6.f)); // drop = 6m, triggers
+}
