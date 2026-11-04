@@ -47,6 +47,7 @@
 #include <uORB/topics/fixed_wing_runway_control.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 
 #include "LandDetector.h"
 
@@ -70,12 +71,19 @@ private:
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 	uORB::Subscription _fixed_wing_runway_control_sub{ORB_ID(fixed_wing_runway_control)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
 
 	float _airspeed_filtered{0.0f};
 	float _velocity_xy_filtered{0.0f};
 	float _velocity_z_filtered{0.0f};
 	float _xy_accel_filtered{0.0f};
 	float _velocity_rot_filtered{0.0f};
+
+	// throttle above this fraction of the cruise throttle FW_THR_TRIM counts as flying on power
+	static constexpr float kThrottleUpFractionOfTrim = 0.5f;
+
+	float _z_ground{NAN};		///< local z of the ground the vehicle took off from, NAN while unknown [m]
+	uint8_t _z_reset_counter{0};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
@@ -84,7 +92,9 @@ private:
 		(ParamFloat<px4::params::LNDFW_VEL_XY_MAX>) _param_lndfw_vel_xy_max,
 		(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)  _param_lndfw_vel_z_max,
 		(ParamFloat<px4::params::LNDFW_ROT_MAX>)    _param_lndfw_rot_max,
-		(ParamFloat<px4::params::LNDFW_TRIG_TIME>)  _param_lndfw_trig_time
+		(ParamFloat<px4::params::LNDFW_TRIG_TIME>)  _param_lndfw_trig_time,
+		(ParamFloat<px4::params::LNDFW_AGL_MAX>)    _param_lndfw_agl_max,
+		(ParamFloat<px4::params::FW_THR_TRIM>)      _param_fw_thr_trim
 	);
 };
 

@@ -56,7 +56,26 @@ bool FixedwingLandDetector::_get_landed_state()
 {
 	// Only trigger flight conditions if we are armed.
 	if (!_armed) {
+		_z_ground = NAN;
 		return true;
+	}
+
+	// Remember the altitude of the ground while the vehicle sits on it and isn't rolling, so the takeoff roll
+	// doesn't move it. Once the airspeed is gone the ground speed alone can't tell a landing from flying into a
+	// headwind, the height above that ground can.
+	if (_vehicle_local_position.z_valid) {
+		const bool rolling = _vehicle_local_position.v_xy_valid
+				     && sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx
+					      + _vehicle_local_position.vy * _vehicle_local_position.vy) > _param_lndfw_vel_xy_max.get();
+
+		if (_landed_hysteresis.get_state() && !rolling) {
+			_z_ground = _vehicle_local_position.z;
+
+		} else if (_vehicle_local_position.z_reset_counter != _z_reset_counter && PX4_ISFINITE(_z_ground)) {
+			_z_ground += _vehicle_local_position.delta_z;
+		}
+
+		_z_reset_counter = _vehicle_local_position.z_reset_counter;
 	}
 
 	// Force the landed state to stay landed if we're currently in an early state of the takeoff state machines.
@@ -165,12 +184,44 @@ bool FixedwingLandDetector::_get_landed_state()
 		const float max_rotation_threshold = (!_vehicle_local_position.v_xy_valid
 						      && airspeed_invalid) ? math::radians(_param_lndfw_rot_max.get()) : INFINITY;
 
+		// Without airspeed a headwind can push the ground speed under the threshold in level flight. Once the
+		// vehicle has taken off, a landing on ground speed alone also has to look like one, the vehicle
+		// near the ground or the throttle back down.
+		bool flying_on_power = false;
+
+		if (airspeed_invalid && _vehicle_status.takeoff_time != 0 && _param_lndfw_agl_max.get() > 0.f) {
+			// an unknown height counts as not near the ground
+			bool near_ground = false;
+			bool height_known = false;
+
+			if (_vehicle_local_position.dist_bottom_valid) {
+				near_ground = _vehicle_local_position.dist_bottom < _param_lndfw_agl_max.get();
+				height_known = true;
+
+			} else if (_vehicle_local_position.z_valid && PX4_ISFINITE(_z_ground)) {
+				near_ground = fabsf(_vehicle_local_position.z - _z_ground) < _param_lndfw_agl_max.get();
+				height_known = true;
+			}
+
+			vehicle_thrust_setpoint_s thrust{};
+			_vehicle_thrust_setpoint_sub.copy(&thrust);
+			const bool throttle_up = hrt_elapsed_time(&thrust.timestamp) < 1_s && PX4_ISFINITE(thrust.xyz[0])
+						 && thrust.xyz[0] > kThrottleUpFractionOfTrim * _param_fw_thr_trim.get();
+
+			flying_on_power = !near_ground && throttle_up;
+
+			if (height_known) {
+				_land_detected.close_to_ground_or_skipped_check &= near_ground;
+			}
+		}
+
 		// Crude land detector for fixedwing.
 		landDetected = _airspeed_filtered         < _param_lndfw_airspd.get()
 			       && _velocity_xy_filtered   < vel_xy_max_threshold
 			       && _velocity_z_filtered    < _param_lndfw_vel_z_max.get()
 			       && _xy_accel_filtered      < _param_lndfw_xyaccel_max.get()
-			       && _velocity_rot_filtered  < max_rotation_threshold;
+			       && _velocity_rot_filtered  < max_rotation_threshold
+			       && !flying_on_power;
 
 	} else {
 		// Control state topic has timed out and we need to assume we're landed.
