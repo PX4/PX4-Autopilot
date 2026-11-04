@@ -93,7 +93,7 @@
 *(.text._ZN3Ekf18controlFusionModesERKN9estimator9imuSampleE)
 *(.text._ZN4cdev4CDev11poll_notifyEm)
 *(.text.file_vioctl)
-*(.text._ZN7sensors18VotedSensorsUpdate11sensorsPollER17sensor_combined_s)
+*(.text._ZN7sensors18VotedSensorsUpdate11sensorsPollER17sensor_combined_sb)
 *(.text.nxsig_nanosleep)
 *(.text.sem_wait)
 *(.text.perf_count_interval.part.0)
