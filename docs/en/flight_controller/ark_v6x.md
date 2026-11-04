@@ -30,7 +30,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **IMU:**
   - ARKV6X: 2× [InvenSense ICM-42688-P](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p) (SPI2, SPI3), [InvenSense IIM-42652](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42652) (industrial, SPI1)
-  - ARKV6X Extended Range: 3× [InvenSense IIM-42653](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42653) (SPI1, SPI2, SPI3), for a 4000 degrees per second (dps) gyroscope and 32 g accelerometer range
+  - ARKV6X Extended Range: 3× [InvenSense IIM-42653](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42653) (SPI1, SPI2, SPI3), for a 4000 degrees per second (dps) gyroscope and 32 g accelerometer range.
+    The Extended Range needs PX4 v1.14 or later.
 - **Barometer:** [Bosch BMP390](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/) (I2C4)
 - **Magnetometer:** [Bosch BMM150](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf) (I2C4)
 - **Heater:** 1 W, keeps the sensors warm in extreme conditions. It regulates on the temperature of the IIM-42652 (IIM-42653 on the Extended Range).
@@ -51,7 +52,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 5 V (4.8 V to 5.5 V)
+- **Input voltage:** 5 V nominal (4.8 V minimum, 5.5 V absolute maximum)
 - **Current draw:** 500 mA (300 mA main system, 200 mA heater)
 - **Power monitoring:** 2 digital power inputs (INA226 by default)
 
@@ -65,7 +66,10 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-Order from [ARK Electronics](https://arkelectron.com/product/arkv6x/) (US).
+Order from ARK Electronics (US):
+
+- [ARKV6X](https://arkelectron.com/product/arkv6x/)
+- [ARKV6X Extended Range](https://arkelectron.com/product/arkv6x-iim-42653/)
 
 ## Pinouts {#pinouts}
 
@@ -76,10 +80,11 @@ For the pinout of the ARKV6X see the [DS-010 Pixhawk Autopilot Bus Standard](htt
 The ARKV6X is powered with 5 V from its carrier board, through the PAB connector.
 
 On the ARK PAB Carrier, power comes in on `POWER1` and `POWER2`, which are 6-pin Molex CLIK-Mate connectors.
-The ARKV6X can be powered from `POWER1`, `POWER2` or USB, and selects between them automatically.
+The carrier selects between `POWER1`, `POWER2` and USB automatically, using an LTC4417 power selector.
 
 Battery monitoring is digital: both power ports carry I2C for a digital power module.
 INA226 power monitors are enabled by default ([SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226)).
+The [ARK 12S PAB Power Module](../power_module/ark_12s_pab_power_module.md) uses an INA238 instead: set [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226) to 0 and [SENS_EN_INA238](../advanced_config/parameter_reference.md#SENS_EN_INA238) to 1 (see its page for the full setup).
 See [Battery and Power Module Setup](../config/battery.md) for configuration.
 
 ::: info
@@ -92,13 +97,19 @@ Servos and other hardware on the outputs must be [powered separately](../periphe
 The ARKV6X takes 5 V from its carrier through the PAB connector: 4.8 V minimum, 5.5 V absolute maximum.
 
 On the ARK PAB Carrier, power is taken from `POWER1`, then `POWER2`, then USB.
-The carrier has overvoltage protection at 5.8 V and undervoltage protection at 3.9 V.
+The carrier has overvoltage protection at 5.85 V and undervoltage protection at 3.81 V.
+
+::: warning
+An input up to 5.85 V is still selected by the carrier and passed straight to the ARKV6X.
+Keep the supply at or below the ARKV6X's 5.5 V absolute maximum.
+:::
 
 ## PWM Outputs {#pwm_outputs}
 
 The ARKV6X provides 8 FMU PWM outputs, and 8 more from a PX4IO on carriers that fit one.
 How many reach a connector depends on the carrier: the [ARK PAB Carrier](../flight_controller/ark_pab.md) has no PX4IO, and breaks out FMU outputs 1-8.
-The firmware is built with PX4IO support, so the FMU outputs are labelled `AUX` in the [actuator configuration](../config/actuators.md), whichever carrier is used.
+The default firmware is built with PX4IO support, so the FMU outputs are labelled `AUX` in the [actuator configuration](../config/actuators.md), whichever carrier is used.
+The `ark_fmu-v6x_encrypted_logs` build has no PX4IO support, so its FMU outputs are labelled `MAIN`.
 
 FMU outputs 1-6 support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 Outputs 7-8 do not support DShot.
@@ -113,6 +124,7 @@ The 8 FMU outputs are in 3 groups:
 All outputs within the same group must use the same output protocol and rate.
 
 A ninth timer channel, `FMU_CAP` (Timer1), is intended for camera capture, and appears in the actuator configuration as `PWM Capture 1`.
+It is a normal timer channel, so it can also be used as a ninth PWM or OneShot output (with any output function), but not DShot.
 On the ARK PAB Carrier it is on the `ADIO` port.
 
 ## Ethernet {#ethernet}
@@ -161,8 +173,9 @@ How a receiver connects depends on the carrier:
   The firmware includes the [CRSF](../telemetry/crsf_telemetry.md), DSM, GHST and S.BUS drivers (see [PX4-Compatible Receivers](../getting_started/rc_transmitter_receiver.md#compatible_receivers)), but none is enabled by default.
   Enable the one for your receiver by [setting](../advanced_config/parameters.md) its port parameter to `Radio Controller` (300): [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG), [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) or [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG).
   Only one protocol can be enabled on the port.
-  The carrier's `PPM` and `DSM` ports are not supported by the default firmware: connect a DSM receiver to the `RC/SBUS` port instead.
-  PPM receivers are not supported.
+  The carrier's `PPM` and `DSM` ports are not supported by the default firmware, so PPM receivers can't be used.
+  Connect a DSM (Spektrum) receiver to the `RC/SBUS` port instead, powered with 3.3 V from pin 4 (`VDD_3V3_SPEKTRUM`).
+  PX4 and _QGroundControl_ can't bind a receiver on this port, because the bind pulses go only to the `PPM` and `DSM` ports: bind it another way, such as with the receiver's bind button.
 - **Carriers with a PX4IO**: connect the receiver to the carrier's RC input, which goes to the PX4IO.
   The PX4IO detects the [protocols it supports](../modules/modules_driver.md#px4io) automatically.
   CRSF and GHST receivers can't be decoded by the PX4IO, and must be connected to an FMU serial port instead.
