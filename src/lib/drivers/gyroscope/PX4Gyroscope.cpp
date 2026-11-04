@@ -179,7 +179,6 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 
 	_failure_config.update();
 
-	// Off / Stuck / bias / noise / drift on the raw samples also reach the integrated report below
 	if (!failure_injection::process_imu(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
 					    _sensor_pub.get_instance(), sample, _stuck_fifo, _drift_start)) {
 		return;
