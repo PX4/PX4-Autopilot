@@ -78,34 +78,49 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	float divergence_h_m = 0.f;
 	float divergence_v_m = 0.f;
 	bool diverging = false;
-	bool compared = false;
+	bool paired = false;
+	bool unknown = false;
 
 	for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
 		if ((selected < 0) || (i == selected) || !gnss_healthy[i]) {
 			continue;
 		}
 
+		paired = true;
 		const float horizontal = status.inconsistency_horizontal[i];
 		const float vertical = status.inconsistency_vertical[i];
 
-		if (PX4_ISFINITE(horizontal)) {
-			diverging |= (horizontal > _param_com_gnss_h_max.get());
-			divergence_h_m = math::max(divergence_h_m, horizontal);
-			compared = true;
+		// The sensors module doesn't compare samples too far apart in time. That says nothing about agreement.
+		if (!PX4_ISFINITE(horizontal)) {
+			unknown = true;
+			continue;
 		}
+
+		diverging |= (horizontal > _param_com_gnss_h_max.get());
+		divergence_h_m = math::max(divergence_h_m, horizontal);
 
 		if (PX4_ISFINITE(vertical)) {
 			diverging |= (vertical > _param_com_gnss_v_max.get());
 			divergence_v_m = math::max(divergence_v_m, vertical);
-			compared = true;
 		}
 	}
 
+	const hrt_abstime now = hrt_absolute_time();
+
 	// Before arming, a disagreement is reported at once. In flight it has to persist for 2 s, so short glitches pass.
 	_divergence_hysteresis.set_hysteresis_time_from(false, context.isArmed() ? 2_s : 0_s);
-	// A disagreement clears after 2 s of continuous agreement, or at once when the receivers can't be compared
-	_divergence_hysteresis.set_hysteresis_time_from(true, compared ? 2_s : 0_s);
-	_divergence_hysteresis.set_state_and_update(diverging, hrt_absolute_time());
+	// A disagreement clears after 2 s of continuous agreement, or at once without a healthy pair to compare
+	_divergence_hysteresis.set_hysteresis_time_from(true, paired ? 2_s : 0_s);
+
+	if (unknown && !diverging) {
+		// Keep the state and any running timer until that receiver can be compared again
+		_divergence_hysteresis.update(now);
+
+	} else {
+		_divergence_hysteresis.set_state_and_update(diverging, now);
+		_divergence_h_m = divergence_h_m;
+		_divergence_v_m = divergence_v_m;
+	}
 
 	const bool below_required = (_param_sys_has_num_gnss.get() > 0) && (healthy_count < _param_sys_has_num_gnss.get());
 	const bool dropped_below_peak = (_peak_healthy_count > 1) && (healthy_count < _peak_healthy_count);
@@ -165,6 +180,6 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 						     events::ID("check_gps_position_divergence"),
 						     log_level,
 						     "GPS receivers disagree by {1:.1}m horizontally, {2:.1}m vertically",
-						     divergence_h_m, divergence_v_m);
+						     _divergence_h_m, _divergence_v_m);
 	}
 }

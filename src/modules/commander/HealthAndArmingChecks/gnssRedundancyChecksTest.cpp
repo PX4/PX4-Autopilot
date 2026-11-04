@@ -334,8 +334,9 @@ TEST_F(GnssRedundancyChecksTest, LimitsConfigurable)
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
 }
 
-// Receivers the sensors module can't compare clear a pre-arm divergence at once.
-TEST_F(GnssRedundancyChecksTest, UnknownDisagreementNotCompared)
+// A disagreement the sensors module can't compute, with samples too far apart in time, doesn't clear a pre-arm
+// divergence.
+TEST_F(GnssRedundancyChecksTest, UnknownDisagreementKeepsADivergence)
 {
 	setRequiredGnss(2);
 	publishBoth(DIVERGING);
@@ -343,6 +344,38 @@ TEST_F(GnssRedundancyChecksTest, UnknownDisagreementNotCompared)
 	ASSERT_TRUE(_failsafe_flags.gnss_lost);
 
 	publishBoth(NAN, NAN);
+	runCheck();
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+	EXPECT_TRUE(_health_warning_gps);
+}
+
+// In flight, an unknown disagreement doesn't restart the hysteresis time of a divergence.
+TEST_F(GnssRedundancyChecksTest, InFlightUnknownDisagreementKeepsTheTimer)
+{
+	setRequiredGnss(2);
+	publishBoth(DIVERGING);
+	runCheck(true);
+
+	publishBoth(NAN, NAN);
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+
+	px4_usleep(HYSTERESIS_WAIT_US);
+	publishBoth(DIVERGING);
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+}
+
+// Without a healthy pair to compare, a pre-arm divergence clears at once.
+TEST_F(GnssRedundancyChecksTest, NoPairClearsADivergence)
+{
+	setRequiredGnss(2);
+	publishBoth(DIVERGING);
+	runCheck();
+	ASSERT_TRUE(_failsafe_flags.gnss_lost);
+
+	_status.device_id_selected = 0;
+	publishBoth(DIVERGING);
 	runCheck();
 	EXPECT_FALSE(_failsafe_flags.gnss_lost);
 	EXPECT_FALSE(_health_warning_gps);
