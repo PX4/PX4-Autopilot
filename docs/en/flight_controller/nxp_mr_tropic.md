@@ -67,31 +67,38 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Pinouts {#pinouts}
 
-MR-VMU-TROPIC connectors follow a mix of Pixhawk (e.g. debug) and Betaflight (e.g. motor control) connectors.
-All connectors are described in detail on the [NXP Robotics GitHub page](https://github.com/NXP-Robotics/MR-VMU-TROPIC).
+The `TELEM1`, `TELEM2`, `AUX`, `GPS`, `I2C`, `CAN` and `DEBUG` connectors follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (DS-009).
+The ESC headers (`PWM_A` and `PWM_B`) follow the [Betaflight ESC connector standard](https://betaflight.com/docs/development/manufacturer/connector-standard#standard-esc-pin-configuration).
+
+The pinout of every connector is given in NXP's [MR-VMU-TROPIC hardware reference](https://github.com/NXP-Robotics/MR-VMU-TROPIC#board-overview) (also as a [PDF](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/MR-VMU-Tropic-hardware-reference.pdf) and a one-page [cheat sheet](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/MR-VMU-Tropic-cheatsheet.pdf)).
+The schematic is [SPF-94468_F.pdf](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/schematics_and_production_files/tropic_rev_F/SPF-94468_F.pdf) (rev F).
 
 ### Top Side Connectors
 
-- `J2`: Power input
-- `J3`: Debug interface compliant with the Pixhawk Debug Full standard (DCD-F), including SWD and console access
-- `J4`: Primary GPS port
-- `J5`: CAN: CAN FD interface with a CAN-SIC (Signal Improvement) transceiver
-- `J6`: OSD: SPI expansion connector
-- `J7`: Auxiliary UART connector
-- `J8`: Telemetry port 1
-- `J9`: Telemetry port 2
-- `J10`: I2C port
-- `J11`: RC receiver connector
-- `P1`: T1-ETH: 100BASE-T1 two-wire 100 Mbps Ethernet
+| Connector | Label       | Function                                                            | Type                | Standard            |
+| --------- | ----------- | ------------------------------------------------------------------- | ------------------- | ------------------- |
+| `J2`      | `POWER`     | Power module input: 5 V and battery monitor I2C                     | Molex CLIK-Mate 1x6 | —                   |
+| `J3`      | `DEBUG`     | SWD and console                                                     | JST-SH 1x10         | DS-009 (Debug Full) |
+| `J4`      | `GPS`       | GPS, compass, safety switch and buzzer                              | JST-GH 1x10         | DS-009              |
+| `J5`      | `CAN`       | CAN FD, CAN-SIC (Signal Improvement) transceiver, 120 Ω termination | JST-GH 1x4          | DS-009              |
+| `J6`      | `SPI (OSD)` | External SPI port for an OSD board                                  | JST-GH 1x8          | —                   |
+| `J7`      | `AUX`       | Spare serial port                                                   | JST-GH 1x6          | DS-009              |
+| `J8`      | `TELEM1`    | Telemetry port 1, with flow control                                 | JST-GH 1x6          | DS-009              |
+| `J9`      | `TELEM2`    | Telemetry port 2, with flow control                                 | JST-GH 1x6          | DS-009              |
+| `J10`     | `I2C`       | External I2C bus, shared with `GPS`                                 | JST-GH 1x4          | DS-009              |
+| `J11`     | `RC`        | Serial RC receiver                                                  | JST-GH 1x4          | —                   |
+| `P1`      | `ETH`       | 100BASE-T1 (two-wire) 100 Mbps Ethernet                             | JST-GH 1x2          | —                   |
 
 ![MR-VMU-TROPIC top-side connectors](../../assets/flight_controller/nxp_mr_tropic/overview_top.svg)
 
 ### Bottom Side Connectors
 
-- `J1`: USB-C interface
-- `J12`: PWM_B
-- `J13`: PWM_A
-- `CN1`: microSD card slot
+| Connector | Label     | Function                       | Type               | Standard       |
+| --------- | --------- | ------------------------------ | ------------------ | -------------- |
+| `J1`      | `USB`     | USB 2.0 device port            | USB-C              | —              |
+| `J12`     | `PWM_B`   | Motor outputs 5–8 (ESC header) | JST-SH 1x8         | Betaflight ESC |
+| `J13`     | `PWM_A`   | Motor outputs 1–4 (ESC header) | JST-SH 1x8         | Betaflight ESC |
+| `CN1`     | `MICROSD` | microSD card slot              | microSD, push-push | —              |
 
 ![MR-VMU-TROPIC bottom-side connectors](../../assets/flight_controller/nxp_mr_tropic/overview_bottom.svg)
 
@@ -101,6 +108,8 @@ The board has two power rails: **POWER1** and **USB**.
 The **POWER1** rail is supplied via the `J2` connector (the 6-circuit [2.00 mm pitch CLIK-Mate wire-to-board PCB receptacle](https://www.molex.com/en-us/products/part-detail/5024430670)) and directly powers the following ports: I2C (`J10`), GPS (`J4`), AUX (`J7`), CAN (`J5`), TELEM1 (`J8`), TELEM2 (`J9`), RC (`J11`) and SPI-OSD (`J6`).
 
 ::: warning
+Feed only 5 V into `POWER` (`J2`): there is no regulator behind this connector, and a higher voltage damages the board.
+Every other 5 V pin on the board is an output: never feed power into it.
 Any device connected to these ports must be compatible with the **POWER1** voltage rail.
 :::
 
@@ -144,11 +153,16 @@ The outputs are divided into 4 groups:
 
 All outputs within the same group must use the same output protocol and rate.
 
-Serial ESC telemetry is read on `/dev/ttyS5` (ESC ONEWIRE), and is enabled by default.
+Outputs 1–4 are on `PWM_A` (`J13`) and outputs 5–8 on `PWM_B` (`J12`).
+Both headers follow the [Betaflight ESC connector standard](https://betaflight.com/docs/development/manufacturer/connector-standard#standard-esc-pin-configuration), so a 4-in-1 ESC with a standard 8-pin cable fits.
+The headers have no 5 V pin, and their battery voltage and current pins (1 and 3) are not connected: the board doesn't use the ESC's BEC or read battery voltage or current from the ESC.
+
+Serial ESC telemetry is received on pin 4 of both headers (`/dev/ttyS5`, ESC ONEWIRE), and is enabled by default.
 
 ## Ethernet {#ethernet}
 
 The `P1` port provides 100BASE-T1 (two-wire) Ethernet.
+The other end needs a 100BASE-T1 device or a media converter.
 MAVLink runs on Ethernet by default, using UDP port 14550 ([MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG) is set to `Ethernet`).
 
 See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for more information.
@@ -191,7 +205,8 @@ Only one protocol can be active on a port.
 ### GPS & Compass {#gps_compass}
 
 Connect the GPS module to the `GPS` port (`J4`), which carries the GPS serial port (`/dev/ttyS1`) and the I2C1 bus for an external compass.
-The port also carries the safety switch.
+The port also carries the safety switch and its LED, and the buzzer.
+The `I2C` port (`J10`) is on the same I2C bus, so devices on the two ports share its addresses.
 
 See [Mounting the GPS/Compass](../assembly/mount_gps_compass.md) for more information.
 
@@ -204,6 +219,19 @@ See [Mounting the GPS/Compass](../assembly/mount_gps_compass.md) for more inform
 
 Connect [DroneCAN](../dronecan/index.md) peripherals to the `CAN` port (`J5`).
 DroneCAN is disabled by default; enable it with [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE).
+
+## PX4 Bootloader Update {#bootloader}
+
+NXP's [PX4 setup guide](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/PX4_Autopilot.md) says that a board that doesn't come with the PX4 bootloader needs it flashed before PX4 can be installed.
+
+To flash it over USB, follow [Bootloader Update Pixhawk V6X-RT via USB](../advanced_config/bootloader_update_v6xrt.md), with these changes:
+
+- Use `nxp_mr-tropic_bootloader.bin` (see [Building Firmware](#building_firmware)).
+- Select the MIMXRT1064 in place of the MIMXRT1170.
+- Skip the _Boot Memory Configuration_ step.
+- To start the serial downloader, hold the `BOOT` button (`SW2`) while powering the board.
+
+You can also flash `nxp_mr-tropic_bootloader.bin` at address `0x70000000` with an SWD debugger on the `DEBUG` port.
 
 ## Building Firmware {#building_firmware}
 
@@ -246,5 +274,8 @@ The pinouts and connector comply with the [Pixhawk Debug Full](../debug/swd_debu
 ## Further Information {#further_information}
 
 - [MR-VMU-TROPIC hardware reference](https://github.com/NXP-Robotics/MR-VMU-TROPIC) (NXP Robotics GitHub)
+- [MR-VMU-TROPIC PX4 setup guide](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/PX4_Autopilot.md) (NXP Robotics GitHub)
+- [MR-VMU-TROPIC schematic, rev F](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/schematics_and_production_files/tropic_rev_F/SPF-94468_F.pdf)
+- [MR-VMU-TROPIC](https://nxp.gitbook.io/vmu-rt1176/tropic) (NXP gitbook)
 - [NXP Community](https://community.nxp.com/) (hardware support)
 - [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf)
