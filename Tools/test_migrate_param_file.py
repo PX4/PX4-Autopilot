@@ -89,8 +89,6 @@ class MigrateParamFileTest(unittest.TestCase):
         })
         self.assertIn('converted: EKF2_AGP_CTRL 1 ->'
                       ' EKF2_AGP0_CTRL 1, EKF2_AGP0_ID 1', log)
-        self.assertIn('reboot: EKF2_AGP0_* are listed only after EKF2_AGP0_ID'
-                      ' is set, so load the file again after a reboot', log)
         self.assertIn('default: EKF2_AGP_NOISE 0.9 is a v1.17 default,'
                       ' v1.18 uses 1', log)
 
@@ -188,8 +186,6 @@ class MigrateParamFileTest(unittest.TestCase):
         for kind, new, _ in m.CONVERSIONS.values():
             for name in (new,) if isinstance(new, str) else new:
                 self.assertIn(name, m.NEW_TYPES)
-        for name in m.REBOOT_NOTES:
-            self.assertIn(name, m.NEW_TYPES)
 
     def test_firmware_translates_every_converted_parameter(self):
         # Catches a translation removed from the firmware, not a changed

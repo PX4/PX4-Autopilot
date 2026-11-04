@@ -96,13 +96,6 @@ CONVERSIONS = {
     'EKF2_AGP_GATE': ('rename', 'EKF2_AGP0_GATE', None),
 }
 
-# Parameters that QGroundControl only lists after another one is set and
-# the vehicle reboots: written name: note
-REBOOT_NOTES = {
-    'EKF2_AGP0_ID': 'EKF2_AGP0_* are listed only after EKF2_AGP0_ID is set,'
-                    ' so load the file again after a reboot',
-}
-
 # Types of the parameters the conversions write
 NEW_TYPES = {
     'SENS_GPS0_OFFX': MAV_PARAM_TYPE_REAL32,
@@ -298,9 +291,6 @@ def migrate(lines, log):
             done = ', '.join(f'{n} {show(v)}' for n, v in writes)
             log(f'converted: {name} {show(value)} ->'
                 f' {done or "nothing to set"}')
-            for new_name, _ in writes:
-                if new_name in REBOOT_NOTES:
-                    log(f'reboot: {REBOOT_NOTES[new_name]}')
             log_old_default(name, value, log)
         elif name in REMOVED:
             hint = f': {REMOVED[name]}' if REMOVED[name] else ''
