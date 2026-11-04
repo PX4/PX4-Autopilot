@@ -21,29 +21,29 @@ publications:
   - topic: /fmu/out/register_ext_component_reply
     type: px4_msgs::msg::RegisterExtComponentReply
     options:
-      cc: block
-      rel: reliable
+      cc: drop
+      rel: best_effort
       express: true
 
   - topic: /fmu/out/arming_check_request
     type: px4_msgs::msg::ArmingCheckRequest
     options:
-      cc: block
-      rel: reliable
+      cc: drop
+      rel: best_effort
       express: true
 
   - topic: /fmu/out/setpoint_config_reply
     type: px4_msgs::msg::SetpointConfigReply
     options:
-      cc: block
-      rel: reliable
+      cc: drop
+      rel: best_effort
       express: true
 
   - topic: /fmu/out/mode_completed
     type: px4_msgs::msg::ModeCompleted
     options:
-      cc: block
-      rel: reliable
+      cc: drop
+      rel: best_effort
       express: true
 
   - topic: /fmu/out/battery_status
@@ -123,6 +123,10 @@ publications:
 
   - topic: /fmu/out/vehicle_status
     type: px4_msgs::msg::VehicleStatus
+    options:
+      cc: drop
+      rel: best_effort
+      express: true
 
   - topic: /fmu/out/airspeed_validated
     type: px4_msgs::msg::AirspeedValidated
