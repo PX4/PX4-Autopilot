@@ -630,20 +630,24 @@ Source: [systemcmds/netman](https://github.com/PX4/PX4-Autopilot/tree/main/src/s
 
 Network configuration manager saves the network settings in non-volatile
 memory. On boot the `update` option will be run. If a network configuration
-does not exist. The default setting will be saved in non-volatile and the
+does not exist. The default setting will be saved in [non-volatile memory](https://en.wikipedia.org/wiki/Non-volatile_memory) and the
 system rebooted.
 
 #### update
 
-`netman update` is run automatically by [a startup script](../concept/system_startup.md#system-startup).
+`netman update` is run automatically by a [startup script](../concept/system_startup.md#system-startup).
 When run, the `update` option will check for the existence of `net.cfg` in the root of the SD Card.
 It then saves the network settings from `net.cfg` in non-volatile memory,
 deletes the file and reboots the system.
 
+::: info
+Use this command when changing the network settings on a flight controller without having to reboot it for debugging. 
+:::
+
 #### save
 
 The `save` option will save settings from non-volatile memory to a file named
-`net.cfg` on the SD Card filesystem for editing. Use this to edit the settings.
+`net.cfg` on the SD Card filesystem for editing. Use this to load the current settings for editing, then use the `update` option to save them.
 Save does not immediately apply the network settings; the user must reboot the flight stack.
 By contrast, the `update` command is run by the start-up script, commits the settings to non-volatile memory,
 and reboots the flight controller (which will then use the new settings).
