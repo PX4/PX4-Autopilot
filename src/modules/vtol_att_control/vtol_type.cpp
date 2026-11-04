@@ -153,6 +153,104 @@ void VtolType::update_fw_state()
 	check_quadchute_condition();
 }
 
+void VtolType::update_vtol_state()
+{
+	if (_vtol_vehicle_status->fixed_wing_system_failure) {
+		// Failsafe event, engage mc motors immediately
+		if (_common_vtol_mode != mode::ROTARY_WING) {
+			onFixedWingSystemFailure();
+		}
+
+		_common_vtol_mode = mode::ROTARY_WING;
+
+	} else if (!_attc->is_fixed_wing_requested()) {
+
+		switch (_common_vtol_mode) {
+		case mode::ROTARY_WING:
+			break;
+
+		case mode::FIXED_WING:
+			// regular back transition
+			resetTransitionStates();
+			onTransitionStart();
+			_common_vtol_mode = mode::TRANSITION_TO_MC;
+			break;
+
+		case mode::TRANSITION_TO_FW:
+			// abort into hover
+			onFrontTransitionAborted();
+			_common_vtol_mode = mode::ROTARY_WING;
+			break;
+
+		case mode::TRANSITION_TO_MC:
+			if (isBackTransitionCompleted()) {
+				_common_vtol_mode = mode::ROTARY_WING;
+			}
+
+			break;
+		}
+
+	} else {
+
+		switch (_common_vtol_mode) {
+		case mode::ROTARY_WING:
+			// start a front transition
+			resetTransitionStates();
+			onTransitionStart();
+			_common_vtol_mode = mode::TRANSITION_TO_FW;
+			break;
+
+		case mode::FIXED_WING:
+			break;
+
+		case mode::TRANSITION_TO_FW:
+			if (isFrontTransitionCompleted()) {
+				_common_vtol_mode = mode::FIXED_WING;
+				_trans_finished_ts = hrt_absolute_time();
+				onFrontTransitionCompleted();
+			}
+
+			break;
+
+		case mode::TRANSITION_TO_MC:
+
+			// fixed-wing requested again while the back transition is still running
+			if (canSwitchToFixedWingDuringBackTransition()) {
+				_common_vtol_mode = mode::FIXED_WING;
+				_trans_finished_ts = hrt_absolute_time();
+
+			} else {
+				// restart the front transition instead of switching to fixed-wing from a partially
+				// completed back transition, which can result in an unsafe flying state
+				resetTransitionStates();
+				onTransitionStart();
+				_common_vtol_mode = mode::TRANSITION_TO_FW;
+			}
+
+			break;
+		}
+	}
+}
+
+bool VtolType::isBackTransitionSpeedOrTimeExitConditionMet() const
+{
+	// speed exit condition: use ground if valid, otherwise airspeed
+	bool exit_backtransition_speed_condition = false;
+
+	if (_local_pos->v_xy_valid) {
+		const Dcmf R_to_body(Quatf(_v_att->q).inversed());
+		const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
+		exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get();
+
+	} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
+		exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get();
+	}
+
+	const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get();
+
+	return exit_backtransition_speed_condition || exit_backtransition_time_condition;
+}
+
 void VtolType::update_transition_state()
 {
 	hrt_abstime t_now = hrt_absolute_time();

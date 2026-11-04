@@ -55,7 +55,6 @@ public:
 	Standard(VtolAttitudeControl *_att_controller);
 	~Standard() override = default;
 
-	void update_vtol_state() override;
 	void update_transition_state() override;
 	void update_fw_state() override;
 	void update_mc_state() override;
@@ -66,14 +65,7 @@ public:
 
 private:
 
-	enum class vtol_mode {
-		MC_MODE = 0,
-		TRANSITION_TO_FW,
-		TRANSITION_TO_MC,
-		FW_MODE
-	};
 
-	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
 
 	float _pusher_throttle{0.0f};
 	float _airspeed_trans_blend_margin{0.0f};
@@ -81,6 +73,11 @@ private:
 	float _front_transition_pitch{NAN};
 
 	void parameters_update() override;
+
+	bool isBackTransitionCompleted() override;
+	void onFrontTransitionCompleted() override;
+	void onFrontTransitionAborted() override;
+	void onFixedWingSystemFailure() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::VT_PSHER_SLEW>) _param_vt_psher_slew,

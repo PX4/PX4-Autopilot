@@ -112,9 +112,10 @@ public:
 	bool init();
 
 	/**
-	 * Update vtol state.
+	 * Update vtol state. Runs the mode state machine common to all VTOL types,
+	 * type-specific behaviour is injected through the virtual hooks below.
 	 */
-	virtual void update_vtol_state() = 0;
+	void update_vtol_state();
 
 	/**
 	 * Update transition state.
@@ -322,8 +323,49 @@ protected:
 
 	bool _quadchute_command_treated{false};
 
-	bool isFrontTransitionCompleted();
+	/**
+	 * @return true if the front transition is complete and the vehicle can switch to fixed-wing mode
+	 */
+	virtual bool isFrontTransitionCompleted();
 	virtual bool isFrontTransitionCompletedBase();
+
+	/**
+	 * @return true if the back transition is complete and the vehicle can switch to hover mode
+	 */
+	virtual bool isBackTransitionCompleted() = 0;
+
+	/**
+	 * @return true if the vehicle is below the back transition exit speed (MPC_XY_CRUISE) or the back transition
+	 * has lasted longer than VT_B_TRANS_DUR
+	 */
+	bool isBackTransitionSpeedOrTimeExitConditionMet() const;
+
+	/**
+	 * Called when fixed-wing is requested while a back transition is in progress.
+	 *
+	 * @return true to switch to fixed-wing mode immediately, false to restart the front transition
+	 */
+	virtual bool canSwitchToFixedWingDuringBackTransition() { return false; }
+
+	/**
+	 * Called when a front or back transition starts, after the transition timer states have been reset.
+	 */
+	virtual void onTransitionStart() {}
+
+	/**
+	 * Called on the switch from front transition to fixed-wing mode.
+	 */
+	virtual void onFrontTransitionCompleted() {}
+
+	/**
+	 * Called when a front transition is aborted into hover because fixed-wing is no longer requested.
+	 */
+	virtual void onFrontTransitionAborted() {}
+
+	/**
+	 * Called once when a fixed-wing system failure forces the vehicle into hover.
+	 */
+	virtual void onFixedWingSystemFailure() {}
 
 	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
 

@@ -59,122 +59,17 @@ Tiltrotor::parameters_update()
 	VtolType::updateParams();
 }
 
-void Tiltrotor::update_vtol_state()
+bool Tiltrotor::isFrontTransitionCompleted()
 {
-	/* simple logic using a two way switch to perform transitions.
-	 * after flipping the switch the vehicle will start tilting rotors, picking up
-	 * forward speed. After the vehicle has picked up enough speed the rotors are tilted
-	 * forward completely. For the backtransition the motors simply rotate back.
-	*/
+	// if the rotors have been tilted completely we switch to fw mode
+	return _front_transition_phase_2 && _tilt_control >= _param_vt_tilt_fw.get();
+}
 
-	if (_vtol_vehicle_status->fixed_wing_system_failure) {
-		// Failsafe event, switch to MC mode immediately
-		_vtol_mode = vtol_mode::MC_MODE;
+bool Tiltrotor::isBackTransitionCompleted()
+{
+	const bool exit_backtransition_tilt_condition = _tilt_control <= (_param_vt_tilt_mc.get() + 0.01f);
 
-	} else 	if (!_attc->is_fixed_wing_requested()) {
-
-		// plane is in multicopter mode
-		switch (_vtol_mode) {
-		case vtol_mode::MC_MODE:
-			break;
-
-		case vtol_mode::FW_MODE:
-			resetTransitionStates();
-			_vtol_mode = vtol_mode::TRANSITION_BACK;
-			break;
-
-		case vtol_mode::TRANSITION_FRONT_P1:
-			// failsafe into multicopter mode
-			_vtol_mode = vtol_mode::MC_MODE;
-			break;
-
-		case vtol_mode::TRANSITION_FRONT_P2:
-			// failsafe into multicopter mode
-			_vtol_mode = vtol_mode::MC_MODE;
-			break;
-
-		case vtol_mode::TRANSITION_BACK:
-			const bool exit_backtransition_tilt_condition = _tilt_control <= (_param_vt_tilt_mc.get() + 0.01f);
-
-			// speed exit condition: use ground if valid, otherwise airspeed
-			bool exit_backtransition_speed_condition = false;
-
-			if (_local_pos->v_xy_valid) {
-				const Dcmf R_to_body(Quatf(_v_att->q).inversed());
-				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
-				exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get() ;
-
-			} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
-				exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get() ;
-			}
-
-			const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get() ;
-
-			if (exit_backtransition_tilt_condition && (exit_backtransition_speed_condition || exit_backtransition_time_condition)) {
-				_vtol_mode = vtol_mode::MC_MODE;
-			}
-
-			break;
-		}
-
-	} else {
-
-		switch (_vtol_mode) {
-		case vtol_mode::MC_MODE:
-			// initialise a front transition
-			resetTransitionStates();
-			_vtol_mode = vtol_mode::TRANSITION_FRONT_P1;
-			break;
-
-		case vtol_mode::FW_MODE:
-			break;
-
-		case vtol_mode::TRANSITION_FRONT_P1: {
-				if (isFrontTransitionCompleted()) {
-					_vtol_mode = vtol_mode::TRANSITION_FRONT_P2;
-					_trans_finished_ts = hrt_absolute_time();
-					resetTransitionStates();
-				}
-
-				break;
-			}
-
-		case vtol_mode::TRANSITION_FRONT_P2:
-
-			// if the rotors have been tilted completely we switch to fw mode
-			if (_tilt_control >= _param_vt_tilt_fw.get()) {
-				_vtol_mode = vtol_mode::FW_MODE;
-				_tilt_control = _param_vt_tilt_fw.get();
-			}
-
-			break;
-
-		case vtol_mode::TRANSITION_BACK:
-			// failsafe into fixed wing mode
-			_vtol_mode = vtol_mode::FW_MODE;
-			break;
-		}
-	}
-
-	// map tiltrotor specific control phases to simple control modes
-	switch (_vtol_mode) {
-	case vtol_mode::MC_MODE:
-		_common_vtol_mode = mode::ROTARY_WING;
-		break;
-
-	case vtol_mode::FW_MODE:
-		_common_vtol_mode = mode::FIXED_WING;
-		break;
-
-	case vtol_mode::TRANSITION_FRONT_P1:
-	case vtol_mode::TRANSITION_FRONT_P2:
-		_common_vtol_mode = mode::TRANSITION_TO_FW;
-		break;
-
-	case vtol_mode::TRANSITION_BACK:
-		_common_vtol_mode = mode::TRANSITION_TO_MC;
-		break;
-	}
+	return exit_backtransition_tilt_condition && isBackTransitionSpeedOrTimeExitConditionMet();
 }
 
 void Tiltrotor::update_mc_state()
@@ -234,7 +129,15 @@ void Tiltrotor::update_transition_state()
 		roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 	}
 
-	if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
+	if (_common_vtol_mode == mode::TRANSITION_TO_FW && !_front_transition_phase_2
+	    && VtolType::isFrontTransitionCompleted()) {
+		// first part done: the plane is ready to go into fixed wing mode, tilt the rotors forward completely
+		_front_transition_phase_2 = true;
+		_trans_finished_ts = hrt_absolute_time();
+		resetTransitionStates();
+	}
+
+	if (_common_vtol_mode == mode::TRANSITION_TO_FW && !_front_transition_phase_2) {
 		// for the first part of the transition all rotors are enabled
 
 		// tilt rotors forward up to certain angle
@@ -273,7 +176,7 @@ void Tiltrotor::update_transition_state()
 		// add minimum throttle for front transition
 		_thrust_transition = math::max(_thrust_transition, FRONTTRANS_THR_MIN);
 
-	} else if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P2) {
+	} else if (_common_vtol_mode == mode::TRANSITION_TO_FW) {
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
 		_tilt_control = math::constrain(_param_vt_tilt_trans.get() +
 						fabsf(_param_vt_tilt_fw.get() - _param_vt_tilt_trans.get()) * _time_since_trans_start /
@@ -289,7 +192,7 @@ void Tiltrotor::update_transition_state()
 		// if this is not then then there is race condition where the fw rate controller still publishes a zero sample throttle after transition
 		_v_att_sp->thrust_body[0] = _thrust_transition;
 
-	} else if (_vtol_mode == vtol_mode::TRANSITION_BACK) {
+	} else if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 
 		// tilt rotors back once motors are idle
 		if (_time_since_trans_start > BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
@@ -388,7 +291,7 @@ void Tiltrotor::fill_actuator_outputs()
 	// by the allocator directly.
 	float collective_thrust_normalized_setpoint = 0.f;
 
-	if (_vtol_mode == vtol_mode::FW_MODE) {
+	if (_common_vtol_mode == mode::FIXED_WING) {
 
 		collective_thrust_normalized_setpoint = _vehicle_thrust_setpoint_virtual_fw->xyz[0];
 		_thrust_setpoint_0->xyz[2] = -collective_thrust_normalized_setpoint;
@@ -404,7 +307,7 @@ void Tiltrotor::fill_actuator_outputs()
 	}
 
 	// Fixed wing output
-	if (!_param_vt_elev_mc_lock.get() || _vtol_mode != vtol_mode::MC_MODE) {
+	if (!_param_vt_elev_mc_lock.get() || _common_vtol_mode != mode::ROTARY_WING) {
 		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0];
 		_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1];
 		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2];
