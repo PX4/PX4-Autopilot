@@ -151,7 +151,6 @@ It’s important to know what to expect when you revert a transition command _du
 
 When transitioning from **multirotor to fixed-wing** (transition switch is on/fixed-wing) then reverting the switch back (off/multirotor position) _before_ the transition happens it will immediately return to multirotor mode.
 
-When transitioning from **fixed-wing to multirotor** for this type of VTOL the switch is immediate so there isn’t really a backing out option here.
-A tilt rotor VTOL can back out only while its rotors are still forward of [VT_TILT_TRANS](../advanced_config/parameter_reference.md#VT_TILT_TRANS), after that it restarts the front transition as well.
+When transitioning from **fixed-wing to multirotor** for this type of VTOL the switch is immediate so there isn’t really a backing out option here, unlike for tilt rotor VTOLs.
 If you want it to go back into fixed-wing you will need to go through the full transition.
 If it’s still travelling fast this should happen quickly.
