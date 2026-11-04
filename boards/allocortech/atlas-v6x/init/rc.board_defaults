@@ -8,6 +8,9 @@ param set-default SENS_EN_INA238 0
 param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 0
 
+# Use the onboard ADS1115 ADC
+param set-default ADC_ADS1115_EN 1
+
 # Mavlink mission computer (TELEM2)
 param set-default MAV_1_CONFIG 102
 param set-default MAV_1_MODE 0
