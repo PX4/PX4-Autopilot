@@ -72,6 +72,19 @@ void Sih::run()
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
 
+	// the vehicle type is needed by parameters_updated() to place the vehicle on the terrain
+	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
+					    static_cast<int32_t>(VehicleType::First),
+					    static_cast<int32_t>(VehicleType::Last)));
+
+#if defined(SIH_TERRAIN_DEM)
+
+	if (_terrain_dem && !terrain_active()) {
+		PX4_WARN("terrain is not supported for SIH_VEHICLE_TYPE %" PRId32 ", using flat ground", _sih_vtype.get());
+	}
+
+#endif
+
 	parameters_updated();
 
 	const hrt_abstime task_start = hrt_absolute_time();
@@ -79,9 +92,6 @@ void Sih::run()
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
 	_ranging_beacon_time = task_start;
-	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
-					    static_cast<int32_t>(VehicleType::First),
-					    static_cast<int32_t>(VehicleType::Last)));
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	lockstep_loop();
@@ -336,9 +346,14 @@ void Sih::parameters_updated()
 	if (!_lpos_ref.isInitialized()
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_lpos_ref_alt - _sih_h0.get()) > FLT_EPSILON)) {
+	    || (fabsf(_h0_applied - _sih_h0.get()) > FLT_EPSILON)) {
 		_lpos_ref.initReference(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()));
-		_lpos_ref_alt = _sih_h0.get();
+		_h0_applied = _sih_h0.get();
+
+		// start on the ground: flat at SIH_LOC_H0, or on the terrain DEM
+		_lpos_ref_alt = _h0_applied;
+		_lpos_ref_alt = terrain_alt(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()));
+		_ground_alt = _lpos_ref_alt;
 
 		// Reset earth position, velocity and attitude
 		_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
@@ -680,7 +695,7 @@ void Sih::equations_of_motion(const float dt)
 	const float force_down = Vector3f(_R_N2E.transpose() * sum_of_forces_E)(2);
 	Vector3f ground_force_E;
 
-	if ((_lla.altitude() - _lpos_ref_alt) < 0.f && force_down > 0.f) {
+	if (_lla.altitude() < _ground_alt && force_down > 0.f) {
 		if (_vehicle == VehicleType::Quadcopter
 		    || _vehicle == VehicleType::Hexacopter
 		    || _vehicle == VehicleType::TailsitterVTOL
@@ -739,10 +754,121 @@ void Sih::equations_of_motion(const float dt)
 	_w_B = constrain(_w_B + w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 
 	ecefToNed();
+	update_ground_alt(); // ground below the new position, for the next contact check and the sensors
+
+#if defined(SIH_TERRAIN_DEM)
+
+	if (terrain_active()) {
+		// the ground force only stops the vertical motion, keep the vehicle from sinking into rising terrain
+		static constexpr float MAX_PENETRATION = 0.05f; // [m]
+
+		if (_lla.altitude() < _ground_alt - MAX_PENETRATION) {
+			_lla.setAltitude(_ground_alt - MAX_PENETRATION);
+			_p_E = _lla.toEcef();
+
+			if (_v_N(2) > 0.f) {
+				_v_N(2) = 0.f;
+				_v_E = _R_N2E * _v_N;
+				_v_apparent_N = _v_N + _v_wind_N;
+			}
+		}
+	}
+
+#endif
 
 	_lpos_ref.project(_lla.latitude_deg(), _lla.longitude_deg(), _lpos(0), _lpos(1));
 	_lpos(2) = -(_lla.altitude() - _lpos_ref_alt);
 }
+
+float Sih::terrain_alt(double lat_deg, double lon_deg, bool *in_dem) const
+{
+#if defined(SIH_TERRAIN_DEM)
+
+	if (terrain_active()) {
+		float alt;
+		const bool valid = _terrain_dem->elevation(lat_deg, lon_deg, alt);
+
+		if (in_dem) {
+			*in_dem = valid;
+		}
+
+		// outside the DEM the ground is flat at SIH_LOC_H0
+		return valid ? alt : _h0_applied;
+	}
+
+#endif
+
+	return _lpos_ref_alt;
+}
+
+void Sih::update_ground_alt()
+{
+	bool in_dem = true;
+	_ground_alt = terrain_alt(_lla.latitude_deg(), _lla.longitude_deg(), &in_dem);
+
+#if defined(SIH_TERRAIN_DEM)
+
+	if (!in_dem && !_terrain_outside_warned) {
+		PX4_WARN("outside the terrain DEM, using flat ground at SIH_LOC_H0 (%.1f m)", (double)_h0_applied);
+
+	} else if (in_dem && _terrain_outside_warned) {
+		PX4_INFO("back inside the terrain DEM");
+	}
+
+	_terrain_outside_warned = !in_dem;
+#endif
+}
+
+#if defined(SIH_TERRAIN_DEM)
+bool Sih::terrain_active() const
+{
+	return _terrain_dem
+	       && (_vehicle == VehicleType::Quadcopter
+		   || _vehicle == VehicleType::Hexacopter
+		   || _vehicle == VehicleType::FixedWing
+		   || _vehicle == VehicleType::TailsitterVTOL
+		   || _vehicle == VehicleType::StandardVTOL);
+}
+
+float Sih::terrain_ray_distance() const
+{
+	// march along the body z axis until the ray is below the terrain
+	const Vector3f dir = _q.dcm_z();
+
+	if (dir(2) <= 0.f) {
+		return INFINITY;
+	}
+
+	// sample each DEM cell at least twice, the bilinear terrain is then followed within centimetres
+	static constexpr float STEPS_PER_CELL = 2.f;
+	static constexpr float MAX_STEP = 1.f; // [m]
+	const float step = math::min(_terrain_dem->cellSizeM() / STEPS_PER_CELL, MAX_STEP);
+	float prev_distance = 0.f;
+	float prev_height = _lla.altitude() - _ground_alt; // height above the terrain along the ray
+
+	if (prev_height <= 0.f) {
+		return 0.f;
+	}
+
+	for (float distance = step; distance < _distance_snsr_max + step; distance += step) {
+		const Vector3f point = _lpos + dir * distance;
+		double lat;
+		double lon;
+		_lpos_ref.reproject(point(0), point(1), lat, lon);
+		const float height = (_lpos_ref_alt - point(2)) - terrain_alt(lat, lon);
+
+		if (height <= 0.f) {
+			// interpolate the crossing between the last two samples
+			return prev_distance + (distance - prev_distance) * prev_height / (prev_height - height);
+		}
+
+		prev_distance = distance;
+		prev_height = height;
+	}
+
+	return INFINITY;
+}
+#endif
 
 void Sih::ecefToNed()
 {
@@ -833,6 +959,14 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 
 	} else {
 		current_distance = -_lpos(2) / _q.dcm_z()(2);
+
+#if defined(SIH_TERRAIN_DEM)
+
+		if (terrain_active()) {
+			current_distance = terrain_ray_distance();
+		}
+
+#endif
 
 		if (current_distance > _distance_snsr_max) {
 			// this is based on lightware lw20 behaviour
@@ -949,6 +1083,8 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		local_position.heading_good_for_control = true;
 		local_position.unaided_heading = NAN;
 
+		local_position.dist_bottom = _lla.altitude() - _ground_alt;
+
 		local_position.timestamp = hrt_absolute_time();
 		_local_position_ground_truth_pub.publish(local_position);
 	}
@@ -961,7 +1097,7 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		global_position.lon = _lla.longitude_deg();
 		global_position.alt = _lla.altitude();
 		global_position.alt_ellipsoid = global_position.alt;
-		global_position.terrain_alt = -_lpos(2);
+		global_position.terrain_alt = _ground_alt;
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
@@ -1002,6 +1138,26 @@ int Sih::print_status()
 		PX4_INFO("Rover Ackermann");
 	}
 
+#if defined(SIH_TERRAIN_DEM)
+
+	if (_terrain_dem) {
+		PX4_INFO("terrain: %s (EPSG:%d), %s", _terrain_dem->path(), _terrain_dem->epsg(),
+			 terrain_active() ? "active" : "not supported for this vehicle");
+		PX4_INFO("terrain: lat [%.5f, %.5f] lon [%.5f, %.5f], cell %.1f m",
+			 _terrain_dem->latMin(), _terrain_dem->latMax(), _terrain_dem->lonMin(), _terrain_dem->lonMax(),
+			 (double)_terrain_dem->cellSizeM());
+
+		if (terrain_active()) {
+			PX4_INFO("terrain: vehicle %s the DEM", _terrain_outside_warned ? "outside" : "inside");
+		}
+
+	} else {
+		PX4_INFO("terrain: flat");
+	}
+
+#endif
+
+	PX4_INFO("ground altitude: %.2f m", (double)_ground_alt);
 	PX4_INFO("vehicle landed: %d", _grounded);
 	PX4_INFO("local position NED (m)");
 	_lpos.print();
@@ -1034,6 +1190,42 @@ int Sih::run_trampoline(int argc, char *argv[])
 
 int Sih::task_spawn(int argc, char *argv[])
 {
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+	const char *terrain_path = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "t:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 't':
+			terrain_path = myoptarg;
+			break;
+
+		default:
+			print_usage("unrecognized flag");
+			return -1;
+		}
+	}
+
+	if (terrain_path) {
+#if defined(SIH_TERRAIN_DEM)
+		// load here rather than in the SIH task, which has a small stack, and to fail the start command on error
+		auto dem = std::make_unique<TerrainDem>();
+
+		if (!dem->load(terrain_path)) {
+			return -1;
+		}
+
+		_terrain_dem_loaded = std::move(dem);
+#else
+		PX4_ERR("terrain not supported, PX4 was built without libtiff, libgeotiff or PROJ");
+		return -1;
+#endif
+	}
+
+#endif // CONFIG_ARCH_BOARD_PX4_SITL
+
 	desc.task_id = px4_task_spawn_cmd("sih",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
@@ -1042,8 +1234,12 @@ int Sih::task_spawn(int argc, char *argv[])
 					  (char *const *)argv);
 
 	if (desc.task_id < 0) {
+		const int err = errno;
 		desc.task_id = -1;
-		return -errno;
+#if defined(SIH_TERRAIN_DEM)
+		_terrain_dem_loaded.reset();
+#endif
+		return -err;
 	}
 
 	return 0;
@@ -1056,6 +1252,15 @@ Sih *Sih::instantiate(int argc, char *argv[])
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 	}
+
+#if defined(SIH_TERRAIN_DEM)
+
+	if (instance) {
+		instance->_terrain_dem = std::move(_terrain_dem_loaded);
+	}
+
+	_terrain_dem_loaded.reset();
+#endif
 
 	return instance;
 }
@@ -1094,6 +1299,7 @@ Most of the variables are declared global in the .hpp file to avoid stack overfl
 
     PRINT_MODULE_USAGE_NAME("simulator_sih", "simulation");
     PRINT_MODULE_USAGE_COMMAND("start");
+    PRINT_MODULE_USAGE_PARAM_STRING('t', nullptr, "<file>", "Terrain elevation GeoTIFF (DEM), SITL only", true);
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
