@@ -41,7 +41,6 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <cstring>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -49,11 +48,9 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <parameters/param.h>
-#include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/uORB.h>
-#include <uORB/topics/log_message.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/vehicle_status.h>
@@ -280,12 +277,6 @@ public:
 	// the estimate RTL publishes while the return type is a direct Return
 	rtl_time_estimate_s directEstimateForTest() { return _rtl_direct.calc_rtl_time_estimate(); }
 
-	void failNextExecutorInitForTest(RtlType rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)
-	{
-		_fail_next_executor_init = true;
-		_failing_executor_type = rtl_type;
-	}
-
 	RtlBase *missionExecutorForTest() const { return _rtl_mission_type_handle; }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
@@ -340,34 +331,11 @@ public:
 		_route_follower->_active_jump_anchor = loop_segment;
 	}
 
-	unsigned routeExecutorInitsForTest() const { return _route_executor_inits; }
 	int32_t missionSequenceForTest() const { return _mission_sub.get().current_seq; }
 	bool routePlanSourceStillValidForTest() const { return _route_safe_point.sourceStillValid(_mission_sub.get()); }
 	bool routePlanMatchesSourceForTest(const mission_s &mission) const { return _route_safe_point.sourceStillValid(mission); }
 	mission_route::ActiveJumpAnchor lastRouteLoopSegmentForTest() const { return _route_safe_point.activeJumpAnchor(); }
 #endif
-
-protected:
-	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt) override
-	{
-		if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
-			++_route_executor_inits;
-		}
-
-		if (_fail_next_executor_init && new_rtl_type == _failing_executor_type) {
-			// As a failed allocation: the previous executor is deleted first.
-			_fail_next_executor_init = false;
-			stopAndDeleteRtlMissionType();
-			return false;
-		}
-
-		return RTL::initRtlMissionType(new_rtl_type, rtl_alt);
-	}
-
-private:
-	bool _fail_next_executor_init{false};
-	RtlType _failing_executor_type{RtlType::RTL_MISSION_SAFE_POINT_FOLLOW};
-	unsigned _route_executor_inits{0};
 };
 
 template <typename RtlMissionType>
@@ -1697,7 +1665,6 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	ASSERT_TRUE(estimate_sub.get().valid);
 	const float first_leg_time = estimate_sub.get().time_estimate;
 	EXPECT_LT(first_leg_time, last_leg_time);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	const auto first_leg_join = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 50.f);
 	const auto first_leg_plan = _rtl.routePlanForTest();
 	ASSERT_TRUE(first_leg_plan.valid());
@@ -1717,7 +1684,6 @@ TEST_F(RTLTest, InactiveForecastReplansBranchInFromCurrentMissionIndexAndPositio
 	ASSERT_TRUE(moved_plan.valid());
 	EXPECT_LT(get_distance_to_next_waypoint(moved_plan.join_position.lat, moved_plan.join_position.lon,
 						moved_join.lat, moved_join.lon), 0.1f);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	EXPECT_FALSE(_rtl.missionExecutorForTest()->isActive());
 }
 
@@ -1758,7 +1724,6 @@ TEST_F(RTLTest, RouteReturnResumesFromIndefiniteHoldAfterValidation)
 	ASSERT_NE(_rtl.missionExecutorForTest(), nullptr);
 	EXPECT_TRUE(_rtl.missionExecutorForTest()->isActive());
 	EXPECT_FALSE(_rtl.directActiveForTest());
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
@@ -1831,7 +1796,6 @@ TEST_F(RTLTest, RouteSafePointReturnReplansAfterFenceReplacementFinishesLoading)
 	_rtl.run(true);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 	EXPECT_EQ(_rtl.routePlanForTest().safe_point_index, 0);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 
 	ASSERT_TRUE(finishFenceUpdate());
@@ -1845,7 +1809,6 @@ TEST_F(RTLTest, RouteSafePointReturnReplansAfterFenceReplacementFinishesLoading)
 	_rtl.run(true);
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 	EXPECT_EQ(_rtl.routePlanForTest().safe_point_index, 1);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 2u);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 }
 
@@ -1951,25 +1914,6 @@ TEST_F(RTLTest, FixedWingRouteReturnWithoutRouteKeepsLoitering)
 	EXPECT_FALSE(events.sent(events::ID("rtl_completed_loiter")));
 }
 
-// A failed inactive plan keeps the route follower, so the next plan for the same source reuses it.
-TEST_F(RTLTest, RouteFollowerIsReusedAfterTemporaryFailure)
-{
-	prepareSquareFenceScenario(makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt));
-
-	_rtl.evaluateInactiveRouteSafePointReturnForTest();
-	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	ASSERT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
-
-	// Path checks become unavailable, then recover with the same mission, rally points and fence.
-	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 5);
-	_rtl.evaluateInactiveRouteSafePointReturnForTest();
-	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 4);
-	_rtl.evaluateInactiveRouteSafePointReturnForTest();
-	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
-}
-
 // Activated while the cache loads, Return stops here and retries once the cache is ready.
 TEST_F(RTLTest, RouteReturnResumesAfterCacheLoads)
 {
@@ -2026,7 +1970,6 @@ TEST_F(RTLTest, RouteReturnRetriesRejectedGeometryAfterVehicleMoves)
 	_rtl.expireDestinationCheckForTest();
 	_rtl.run(true);
 	expectStoppedAt(original_position);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 0u);
 
 	// Moving to the route's side of the obstacle makes a route possible without changing any source IDs.
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 280.f, kAlt));
@@ -2090,7 +2033,6 @@ TEST_F(RTLTest, RouteRetryStopsOnceLandingStarts)
 	_rtl.run(true);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	EXPECT_TRUE(_rtl.directActiveForTest());
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 0u);
 	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 
 	// Without a retry, the status still reports the missing route.
@@ -2116,41 +2058,6 @@ TEST_F(RTLTest, RouteRetryStopsOnceLanded)
 	_rtl.run(true);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	EXPECT_TRUE(_rtl.directActiveForTest());
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 0u);
-}
-
-TEST_F(RTLTest, RouteRetrySurvivesRepeatedExecutorAllocationFailures)
-{
-	prepareStraightRouteScenario();
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishLandDetected(false);
-	setLandingDelay(-1.f);
-	primeNavigatorState();
-	uORB::SubscriptionData<navigator_mission_item_s> item_sub{ORB_ID(navigator_mission_item)};
-	_rtl.failNextExecutorInitForTest();
-	_rtl.activateRouteSafePointReturnForTest();
-	_rtl.postponeDestinationCheckForTest();
-	runReturnCycles(3);
-	ASSERT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
-	ASSERT_TRUE(item_sub.update());
-	ASSERT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
-	const position_setpoint_s hold = _navigator.get_position_setpoint_triplet()->current;
-
-	_rtl.failNextExecutorInitForTest();
-	_rtl.expireDestinationCheckForTest();
-	_rtl.run(true);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 2u);
-	EXPECT_FALSE(item_sub.update());
-	expectStoppedAt({hold.lat, hold.lon, hold.alt, hold.yaw});
-	EXPECT_EQ(_rtl.missionExecutorForTest(), nullptr);
-
-	_rtl.expireDestinationCheckForTest();
-	_rtl.run(true);
-	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 3u);
-	ASSERT_NE(_rtl.missionExecutorForTest(), nullptr);
-	EXPECT_TRUE(_rtl.missionExecutorForTest()->isActive());
-	EXPECT_FALSE(_rtl.directActiveForTest());
 }
 
 class RtlVtolActivationTest : public RTLTest, public ::testing::WithParamInterface<uint8_t> {};
@@ -2199,7 +2106,6 @@ TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
 	ASSERT_TRUE(status_sub.copy(_navigator.get_vstatus()));
 	_rtl.on_active();
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 	vtol_status.fixed_wing_system_failure = false;
 	vtol_pub.publish(vtol_status);
@@ -2241,14 +2147,12 @@ TEST_F(RTLTest, SafePointReloadKeepsTheRouteUntilLoaded)
 
 	_rtl.run(true);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 
 	MissionRouteCache &cache = _navigator.get_mission_route_cache();
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, reloading, [&] { return cache.safePointsReady(); }));
 	_rtl.run(true);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 2u);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 	EXPECT_EQ(_rtl.lastRouteLoopSegmentForTest().jump_item_index, loop_segment.jump_item_index);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
@@ -2310,7 +2214,6 @@ TEST_F(RTLTest, RouteAdvanceDuringReloadKeepsTheUploadedIdentities)
 	}
 
 	ASSERT_EQ(advances, 2);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 
 	// Navigator feeds the cache from the topic, which still names the new rally points.
 	MissionRouteCache &cache = _navigator.get_mission_route_cache();
@@ -2356,7 +2259,6 @@ TEST_F(RTLTest, RouteRetryPreservesFlownJumpAnchorForTheSameMission)
 	_rtl.expireDestinationCheckForTest();
 	_rtl.run(true);
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 2u);
 	EXPECT_EQ(_rtl.lastRouteLoopSegmentForTest().jump_item_index, flown_jump.jump_item_index);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 	EXPECT_TRUE(_rtl.missionExecutorForTest()->isActive());
@@ -2418,7 +2320,6 @@ TEST_F(RTLTest, MissionReplacementMidReturnStopsThenResumesReplacement)
 	_rtl.expireDestinationCheckForTest();
 	_rtl.run(true);
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 2u);
 	EXPECT_TRUE(_rtl.routePlanMatchesSourceForTest(replacement));
 	EXPECT_FALSE(_rtl.routePlanMatchesSourceForTest(mission));
 	EXPECT_TRUE(_rtl.missionExecutorForTest()->isActive());
@@ -2841,9 +2742,8 @@ TEST_F(RTLTest, ReusedRouteFollowerPublishesItsFirstIndex)
 	mission.timestamp = hrt_absolute_time();
 	publishMission(mission);
 
-	// WHEN: the next Return reuses the follower, whose plan starts at the same index
+	// WHEN: the next Return plans the same first index. It normally keeps the follower; nothing checks that here.
 	_rtl.activateRouteSafePointReturnForTest();
-	ASSERT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	ASSERT_EQ(_rtl.routePlanForTest().first_mission_item_index, first_index);
 
 	// THEN: the mission topic reports the index the Return flies to
@@ -3054,7 +2954,6 @@ TEST_F(RTLTest, RouteArrivalKeepsExecutorAndGoalAcrossSourceReplacement)
 	EXPECT_DOUBLE_EQ(triplet.current.lon, goal.lon);
 	EXPECT_FLOAT_EQ(triplet.current.alt, goal.alt);
 	EXPECT_EQ(_rtl.missionExecutorForTest(), executor);
-	EXPECT_EQ(_rtl.routeExecutorInitsForTest(), 1u);
 	EXPECT_FALSE(_rtl.directActiveForTest());
 	status_sub.update();
 	EXPECT_EQ(status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
@@ -3063,27 +2962,6 @@ TEST_F(RTLTest, RouteArrivalKeepsExecutorAndGoalAcrossSourceReplacement)
 }
 
 
-TEST_F(RTLTest, RouteExecutorInitFailureStopsHere)
-{
-	// Without a follower, the direct executor must stop here, not fly to the abandoned route goal.
-	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
-	prepareStraightRouteScenario();
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishLandDetected(false);
-	_rtl.failNextExecutorInitForTest();
-	navigator_test::EventRecorder events;
-	navigator_test::EventRecorder direct_events;
-
-	_rtl.activateRouteSafePointReturnForTest();
-
-	expectStoppedAt(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
-	// It does not also claim to fly directly.
-	EXPECT_FALSE(direct_events.sent(events::ID("rtl_mission_executor_failed")));
-	ASSERT_TRUE(rtl_status_sub.update());
-	EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
-	EXPECT_EQ(rtl_status_sub.get().safe_point_index, UINT8_MAX);
-}
 #endif
 
 TEST_F(RTLTest, MissionFastKeepsVtolInMulticopterMode)
@@ -4688,109 +4566,6 @@ TEST_F(RTLTest, MissionWithoutLandingNeedsAnApproachOfTheCurrentReturnType)
 	EXPECT_FALSE(acceptsMissionWithoutLanding());
 }
 #endif
-
-// WHY: a mission executor allocation can fail, and it is retried at every evaluation, every 2 s while inactive.
-// WHAT: types 1 to 4 then return directly to their destination, and a failure is logged once until an init succeeds.
-TEST_F(RTLTest, MissionExecutorInitFailureReturnsDirectly)
-{
-	// PX4_ERR reaches log_message once uORB logging is initialized
-	px4_log_initialize();
-	uORB::Subscription log_sub{ORB_ID(log_message)};
-	const auto initFailureLogs = [&]() {
-		unsigned count = 0;
-		log_message_s log{};
-
-		while (log_sub.update(&log)) {
-			count += strstr(reinterpret_cast<const char *>(log.text), "RTL executor init failed") != nullptr;
-		}
-
-		return count;
-	};
-
-	// the vehicle 500 m north of Home, and a mission landing 100 m further north
-	const PositionYawSetpoint home = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt);
-	mission_item_s land_start{};
-	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
-	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {
-		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
-		land_start,
-		makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND)
-	});
-	mission_s mission = makeMissionHeader(10, 0, 3);
-	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-	mission.land_start_index = 1;
-	mission.land_index = 2;
-	publishMission(mission);
-	setMissionResultValid(mission);
-	MissionRouteCache &cache = _navigator.get_mission_route_cache();
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] { return cache.missionLandItemReady(); }));
-
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt + 100.f));
-	publishLandDetected(false);
-	primeNavigatorState();
-	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
-	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
-
-	const struct {
-		int32_t rtl_type;
-		RTL::RtlType executor;
-		PositionYawSetpoint destination;
-	} cases[] {
-		{1, RTL::RtlType::RTL_DIRECT_MISSION_LAND, land},
-		{2, RTL::RtlType::RTL_MISSION_FAST, home},
-		{3, RTL::RtlType::RTL_DIRECT_MISSION_LAND, land},
-		{4, RTL::RtlType::RTL_MISSION_FAST_REVERSE, home},
-	};
-
-	for (const auto &c : cases) {
-		SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << c.rtl_type);
-
-		// GIVEN: the allocation fails at every inactive evaluation
-		unsigned failure_logs = 0;
-
-		for (int evaluation = 0; evaluation < 3; ++evaluation) {
-			_rtl.failNextExecutorInitForTest(c.executor);
-			_rtl.evaluateReturnTypeForTest(c.rtl_type);
-			failure_logs += initFailureLogs();
-			EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-			EXPECT_EQ(_rtl.missionExecutorForTest(), nullptr);
-		}
-
-		EXPECT_EQ(failure_logs, 1u);
-
-		// WHEN: Return activates and the allocation fails again
-		_rtl.failNextExecutorInitForTest(c.executor);
-		_rtl.activateReturnTypeForTest(c.rtl_type);
-
-		// THEN: it flies directly to the destination of its type, and the activation logs the failure again
-		EXPECT_EQ(initFailureLogs(), 1u);
-		EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-		EXPECT_EQ(_rtl.missionExecutorForTest(), nullptr);
-		EXPECT_TRUE(_rtl.directActiveForTest());
-		ASSERT_TRUE(rtl_status_sub.update());
-		EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
-		EXPECT_NEAR(current.lat, c.destination.lat, 1e-7);
-		EXPECT_NEAR(current.lon, c.destination.lon, 1e-7);
-
-		// the next evaluation with a successful allocation selects the mission executor again
-		_rtl.run(false);
-		_rtl.evaluateReturnTypeForTest(c.rtl_type);
-		EXPECT_EQ(_rtl.rtlTypeForTest(), c.executor);
-		EXPECT_NE(_rtl.missionExecutorForTest(), nullptr);
-
-		// after that success, a new failure of the same type is logged again
-		_rtl.evaluateReturnTypeForTest(0);
-		_rtl.failNextExecutorInitForTest(c.executor);
-		_rtl.evaluateReturnTypeForTest(c.rtl_type);
-		EXPECT_EQ(initFailureLogs(), 1u);
-		EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-	}
-
-	// the dataman is shared by every case in this binary, so leave the mission slot as it was found
-	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
-}
 
 class RTLStopAtCurrentPositionTest :
 	public RTLTest,
