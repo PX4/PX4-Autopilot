@@ -1,4 +1,4 @@
-# Rover Attitude Status
+# Surface Vehicle Attitude Status
 
 uint64 timestamp               # [us] Time since system start
 float32 measured_yaw           # [rad] [@range -pi, pi] [@frame NED]Measured yaw

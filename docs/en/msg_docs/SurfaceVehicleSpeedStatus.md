@@ -2,11 +2,11 @@
 pageClass: is-wide-page
 ---
 
-# RoverSpeedStatus (UORB message)
+# SurfaceVehicleSpeedStatus (UORB message)
 
-Rover Velocity Status.
+Surface Vehicle Speed Status.
 
-**TOPICS:** rover_speed_status
+**TOPICS:** surface_vehicle_speed_status
 
 ## Fields
 
@@ -22,12 +22,12 @@ Rover Velocity Status.
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverSpeedStatus.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SurfaceVehicleSpeedStatus.msg)
 
 ::: details Click here to see original file
 
 ```c
-# Rover Velocity Status
+# Surface Vehicle Speed Status
 
 uint64 timestamp                        # [us] Time since system start
 float32 measured_speed_body_x           # [m/s] [@range -inf (Backwards), inf (Forwards)] [@frame Body] Measured speed in body x direction
