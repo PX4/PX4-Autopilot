@@ -121,12 +121,12 @@ In the [flight controller docs](../flight_controller/pixhawk4.md#serial_port_map
 
 | UART   | Device       | Port                      | Flow Control |
 | ------ | ------------ | ------------------------- | ------------ |
-| USART1 | `/dev/ttyS0` | `GPS MODULE`              |              |
+| USART1 | `/dev/ttyS0` | `GPS MODULE` (`GPS1`)     |              |
 | USART2 | `/dev/ttyS1` | `TELEM1`                  | Yes          |
 | USART3 | `/dev/ttyS2` | `TELEM2`                  | Yes          |
 | UART4  | `/dev/ttyS3` | `UART & I2C B` (`TELEM4`) |              |
 | USART6 | `/dev/ttyS4` | RC SBUS                   |              |
-| UART7  | `/dev/ttyS5` | Debug Console             |              |
+| UART7  | `/dev/ttyS5` | `FMU Debug` (Console)     |              |
 | UART8  | `/dev/ttyS6` | PX4IO                     |              |
 
 ## Other Architectures
