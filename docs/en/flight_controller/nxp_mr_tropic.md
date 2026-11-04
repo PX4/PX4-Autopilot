@@ -1,6 +1,6 @@
 # NXP MR-VMU-TROPIC
 
-<Badge type="tip" text="PX4 v1.18" />
+<Badge type="tip" text="PX4 v1.17" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
@@ -12,14 +12,11 @@ As a reference/evaluation design, it is intended to be replicated, modified or i
 Since it is a reference design, this particular board is not produced in high volume.
 Similar variants will be available from NXP licensees.
 
-It has already gone through all FCC/CE ROHS REACH UKCA, EMI/RFI ESD certifications and is available globally.
-
 The board combines an NXP i.MX RT1064 with sensor technology from Bosch® and InvenSense®, with the FMU, IMUs and other sensors on one compact board.
 It is suitable for controlling any autonomous vehicle, in both academic and commercial applications.
 The high-performance, low-noise IMUs are designed for better stabilisation.
 
-Besides the standard interfaces, the carrier board offers 100BASE-T1 (two-wire) automotive Ethernet.
-It also removes the IO processor to enable 8 PWM ports, all of them providing DShot capability.
+Besides the standard interfaces, it has 100BASE-T1 (two-wire) automotive Ethernet and 8 PWM outputs, all with [DShot](../peripherals/dshot.md).
 
 The MR-VMU-TROPIC reference design suits developers at corporate research labs, startups, academia and commercial companies who want to try out 100BASE-T1 (two-wire) automotive Ethernet.
 
@@ -76,11 +73,12 @@ All connectors are described in detail on the [NXP Robotics GitHub page](https:/
 - `J2`: Power input
 - `J3`: Debug interface compliant with the Pixhawk Debug Full standard (DCD-F), including SWD and console access
 - `J4`: Primary GPS port
-- `J5`: CAN: Dual CAN-FD interfaces employing CAN-SIC (Signal Improvement) CAN transceivers
+- `J5`: CAN: CAN FD interface with a CAN-SIC (Signal Improvement) transceiver
 - `J6`: OSD: SPI expansion connector
 - `J7`: Auxiliary UART connector
 - `J8`: Telemetry port 1
 - `J9`: Telemetry port 2
+- `J10`: I2C port
 - `J11`: RC receiver connector
 - `P1`: T1-ETH: 100BASE-T1 two-wire 100 Mbps Ethernet
 
@@ -89,8 +87,8 @@ All connectors are described in detail on the [NXP Robotics GitHub page](https:/
 ### Bottom Side Connectors
 
 - `J1`: USB-C interface
-- `J12`: PWM_A
-- `J13`: PWM_B
+- `J12`: PWM_B
+- `J13`: PWM_A
 - `CN1`: microSD card slot
 
 ![MR-VMU-TROPIC bottom-side connectors](../../assets/flight_controller/nxp_mr_tropic/overview_bottom.svg)
@@ -139,12 +137,8 @@ Analog battery monitoring via an ADC is not supported on this board.
 | UART8 | /dev/ttyS6 | `RC`        |
 
 ::: info
-The `AUX` port is displayed as TEL3 in PX4 Firmware Configurator.
+The `AUX` port is `TELEM 3` in the [serial port configuration](../peripherals/serial_configuration.md).
 :::
-
-## Assembly {#assembly}
-
-Wiring is similar to the [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md#connections) and other boards that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 
 ## Building Firmware {#building_firmware}
 
