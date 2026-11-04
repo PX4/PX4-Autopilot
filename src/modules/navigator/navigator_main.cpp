@@ -563,98 +563,81 @@ void Navigator::run()
 				// Only update the setpoint if armed and already in a mode that consumes it. Otherwise a later
 				// switch into Hold could execute a stale setpoint (loiter.cpp applies it within a 500ms window).
 
-				if (_navigation_mode == &_course) {
-					// In course mode, update altitude directly (after geofence check)
-					float new_alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
+				vehicle_global_position_s position_setpoint{};
+				position_setpoint.lat = get_global_position()->lat;
+				position_setpoint.lon = get_global_position()->lon;
+				position_setpoint.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
 
-					vehicle_global_position_s position_setpoint{};
-					position_setpoint.lat = get_global_position()->lat;
-					position_setpoint.lon = get_global_position()->lon;
-					position_setpoint.alt = new_alt;
+				if (_navigation_mode != &_course) {
+					// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
+					_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				}
 
-					if (geofence_allows_position(position_setpoint)) {
-						_course.set_altitude(new_alt);
+				if (!geofence_allows_position(position_setpoint)) {
+					mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
+					events::send(events::ID("navigator_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
+						     "Altitude change is outside geofence");
 
-					} else {
-						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
-						events::send(events::ID("navigator_course_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
-							     "Altitude change is outside geofence");
-					}
-
-					// DO_CHANGE_ALTITUDE is acknowledged by commander
+				} else if (_navigation_mode == &_course) {
+					// In course mode, update altitude directly
+					_course.set_altitude(position_setpoint.alt);
 
 				} else {
-
 					// A VEHICLE_CMD_DO_CHANGE_ALTITUDE has the exact same effect as a VEHICLE_CMD_DO_REPOSITION with only the altitude
 					// field populated, this logic is copied from above.
 
 					// only supports MAV_FRAME_GLOBAL and MAV_FRAMEs with absolute altitude amsl
 
-					vehicle_global_position_s position_setpoint{};
-					position_setpoint.lat = get_global_position()->lat;
-					position_setpoint.lon = get_global_position()->lon;
-					position_setpoint.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
+					position_setpoint_triplet_s *rep = get_reposition_triplet();
+					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
-					// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
-					_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+					// store current position as previous position and goal as next
+					rep->previous.yaw = get_local_position()->heading;
+					rep->previous.lat = get_global_position()->lat;
+					rep->previous.lon = get_global_position()->lon;
+					rep->previous.alt = get_global_position()->alt;
 
-					if (geofence_allows_position(position_setpoint)) {
-						position_setpoint_triplet_s *rep = get_reposition_triplet();
-						position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
+					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 
-						// store current position as previous position and goal as next
-						rep->previous.yaw = get_local_position()->heading;
-						rep->previous.lat = get_global_position()->lat;
-						rep->previous.lon = get_global_position()->lon;
-						rep->previous.alt = get_global_position()->alt;
-
-						rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-
-						// on entering Loiter mode, reset speed setpoint to default
-						if (_navigation_mode != &_loiter) {
-							rep->current.cruising_speed = -1.f;
-
-						} else {
-							rep->current.cruising_speed = get_cruising_speed();
-						}
-
-						rep->current.cruising_throttle = get_cruising_throttle();
-						rep->current.acceptance_radius = get_acceptance_radius();
-						rep->current.yaw = NAN;
-
-						// Position is not changing, thus we keep the setpoint
-						rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
-						rep->current.lon = PX4_ISFINITE(curr->current.lon) ? curr->current.lon : get_global_position()->lon;
-
-						// set the altitude corresponding to command
-						rep->current.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
-
-						if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > FLT_EPSILON) {
-							rep->current.loiter_radius = curr->current.loiter_radius;
-
-						} else {
-							rep->current.loiter_radius = get_default_loiter_rad();
-						}
-
-						rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
-
-						rep->previous.timestamp = hrt_absolute_time();
-
-						rep->current.valid = true;
-						rep->current.timestamp = hrt_absolute_time();
-
-						rep->next.valid = false;
-
-						_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
+					// on entering Loiter mode, reset speed setpoint to default
+					if (_navigation_mode != &_loiter) {
+						rep->current.cruising_speed = -1.f;
 
 					} else {
-						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
-						events::send(events::ID("navigator_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
-							     "Altitude change is outside geofence");
+						rep->current.cruising_speed = get_cruising_speed();
 					}
 
-					// DO_CHANGE_ALTITUDE is acknowledged by commander
-				} // else (not course hold)
+					rep->current.cruising_throttle = get_cruising_throttle();
+					rep->current.acceptance_radius = get_acceptance_radius();
+					rep->current.yaw = NAN;
+
+					// Position is not changing, thus we keep the setpoint
+					rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
+					rep->current.lon = PX4_ISFINITE(curr->current.lon) ? curr->current.lon : get_global_position()->lon;
+
+					// set the altitude corresponding to command
+					rep->current.alt = position_setpoint.alt;
+
+					if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > FLT_EPSILON) {
+						rep->current.loiter_radius = curr->current.loiter_radius;
+
+					} else {
+						rep->current.loiter_radius = get_default_loiter_rad();
+					}
+
+					rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
+
+					rep->previous.timestamp = hrt_absolute_time();
+
+					rep->current.valid = true;
+					rep->current.timestamp = hrt_absolute_time();
+
+					rep->next.valid = false;
+
+					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
+				}
+
+				// DO_CHANGE_ALTITUDE is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_GUIDED_CHANGE_HEADING
 				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {

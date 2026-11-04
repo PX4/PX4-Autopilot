@@ -53,9 +53,9 @@ public:
     static const uint16_t MaxMessageDataTypeIDValue = 65535;
     static const uint16_t MaxPossibleDataTypeIDValue = MaxMessageDataTypeIDValue;
 
-    DataTypeID() : value_(0xFFFFFFFFUL) { }
+    UAVCAN_CONSTEXPR DataTypeID() : value_(0xFFFFFFFFUL) { }
 
-    DataTypeID(uint16_t id)  // Implicit
+    UAVCAN_CONSTEXPR DataTypeID(uint16_t id)  // Implicit
         : value_(id)
     { }
 
@@ -111,7 +111,7 @@ class UAVCAN_EXPORT DataTypeSignature
     void mixin64(uint64_t x);
 
 public:
-    DataTypeSignature() : value_(0) { }
+    UAVCAN_CONSTEXPR DataTypeSignature() : value_(0) { }
     explicit DataTypeSignature(uint64_t value) : value_(value) { }
 
     void extend(DataTypeSignature dts);
@@ -137,9 +137,13 @@ class UAVCAN_EXPORT DataTypeDescriptor
 public:
     static const unsigned MaxFullNameLen = 80;
 
-    DataTypeDescriptor() :
-        full_name_(""),
-        kind_(DataTypeKind(0))
+    // All-zero, so that static descriptors are constant-initialised into .bss without a
+    // run-time constructor. isValid() is false until a real descriptor is assigned, because
+    // the name is null.
+    UAVCAN_CONSTEXPR DataTypeDescriptor() :
+        full_name_(UAVCAN_NULLPTR),
+        kind_(DataTypeKind(0)),
+        id_(0)
     { }
 
     DataTypeDescriptor(DataTypeKind kind, DataTypeID id, const DataTypeSignature& signature, const char* name) :

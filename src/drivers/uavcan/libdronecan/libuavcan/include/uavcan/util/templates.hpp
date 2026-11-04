@@ -48,8 +48,8 @@ class UAVCAN_EXPORT Noncopyable
     Noncopyable(const Noncopyable&);
     Noncopyable& operator=(const Noncopyable&);
 protected:
-    Noncopyable() { }
-    ~Noncopyable() { }
+    UAVCAN_CONSTEXPR Noncopyable() { }
+    ~Noncopyable() UAVCAN_DEFAULT_DTOR;
 };
 
 /**

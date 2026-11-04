@@ -106,18 +106,6 @@ constexpr uint32_t ID(const char (&name)[N])
 	return (0xffffff & util::hash_32_fnv1a_const(name)) | component_id;
 }
 
-template<typename... Args>
-inline void send(uint32_t id, const LogLevels &log_levels, const char *message, Args... args)
-{
-	event_s e{};
-	e.log_levels = ((uint8_t)log_levels.internal << 4) | (uint8_t)log_levels.external;
-	e.id = id;
-	static_assert(util::sizeofArguments(args...) <= sizeof(e.arguments), "Too many arguments");
-	util::fillEventArguments((uint8_t *)e.arguments, args...);
-	CONSOLE_PRINT_EVENT(e.log_level_external, e.id, message);
-	send(e);
-}
-
 namespace util
 {
 /**
@@ -126,7 +114,25 @@ namespace util
  * The levels are passed as two scalars so that each call site stays a few instructions.
  */
 void sendWithoutMessage(uint32_t id, Log external, LogInternal internal);
+
+/**
+ * publish/send an event with the already serialized arguments. The event struct is assembled
+ * here so that each call site only has to fill a small argument buffer.
+ */
+void sendWithArguments(uint32_t id, Log external, LogInternal internal, const uint8_t *arguments,
+		       unsigned arguments_size);
 } // namespace util
+
+template<typename... Args>
+inline void send(uint32_t id, const LogLevels &log_levels, const char *message, Args... args)
+{
+	constexpr unsigned arguments_size = (sizeof(Args) + ... + 0u);
+	static_assert(arguments_size <= sizeof(event_s::arguments), "Too many arguments");
+	uint8_t arguments[arguments_size];
+	util::fillEventArguments(arguments, args...);
+	CONSOLE_PRINT_EVENT(log_levels.external, id, message);
+	util::sendWithArguments(id, log_levels.external, log_levels.internal, arguments, arguments_size);
+}
 
 inline void send(uint32_t id, const LogLevels &log_levels, const char *message)
 {

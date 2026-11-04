@@ -45,17 +45,11 @@ AF9838_Driver::AF9838_Driver(const I2CSPIDriverConfig &config)
 
 I2CSPIDriverBase *AF9838_Driver::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	PX4_INFO("AF9838: instantiate bus=%d addr=0x%02X freq=%u",
-		 config.bus, config.i2c_address, config.bus_frequency);
-
 	AF9838_Driver *dev = new AF9838_Driver(config);
 
 	if (!dev) { return nullptr; }
 
-	const int ret = dev->init();
-	PX4_INFO("AF9838: I2C::init ret=%d", ret);
-
-	if (ret != PX4_OK) {
+	if (dev->init() != PX4_OK) {
 		delete dev;
 		return nullptr;
 	}
@@ -69,39 +63,29 @@ int AF9838_Driver::probe()
 	constexpr int MAX_TRIES = 3;
 	uint8_t id = 0xff;
 
-	PX4_INFO("AF9838: probe() on bus=%d addr=0x%02X", get_device_bus(), get_device_address());
-
 	for (int i = 0; i < MAX_TRIES; i++) {
 		if (transfer(&REG_PCODE, 1, &id, 1) == PX4_OK) {
-			PX4_INFO("AF9838: REG_PCODE=0x%02X (try %d)", id, i + 1);
 			return PX4_OK;
 		}
 
 		px4_usleep(1_ms);
 	}
 
-	PX4_ERR("AF9838: probe() failed (no response) bus=%d addr=0x%02X",
-		get_device_bus(), get_device_address());
+	DEVICE_DEBUG("probe failed (no response)");
 	return PX4_ERROR;
 }
 
 
 int AF9838_Driver::init()
 {
-	PX4_INFO("AF9838: init() enter");
-
 	int ret = device::I2C::init();
-	PX4_INFO("AF9838: device::I2C::init ret=%d", ret);
 
 	if (ret != PX4_OK) { return ret; }
 
-	PX4_INFO("AF9838: soft_reset...");
 	(void)soft_reset();
 
-	PX4_INFO("AF9838: configure BISC...");
-
 	if (configure() != PX4_OK) {
-		PX4_ERR("AF9838: configure failed");
+		PX4_ERR("configure failed");
 		return PX4_ERROR;
 	}
 
@@ -115,13 +99,9 @@ int AF9838_Driver::init()
 
 	_running = true;
 	ScheduleOnInterval(_measure_interval_us);
-	PX4_INFO("AF9838: scheduled every %u us (%.1f Hz)",
-		 (unsigned)_measure_interval_us,
-		 1e6 / static_cast<double>(_measure_interval_us));
 
 	const hrt_abstime now = hrt_absolute_time();
 	_px4_mag.update(now, 0.f, 0.f, 0.f);
-	PX4_INFO("AF9838: init() done");
 	return PX4_OK;
 }
 
@@ -140,8 +120,6 @@ int AF9838_Driver::soft_reset()
 
 int AF9838_Driver::configure()
 {
-	PX4_INFO("AF9838: Triggering BISC in configure...");
-
 	if (write_reg(REG_STATE, STATE_SELF_TEST) != PX4_OK) {
 		return PX4_ERROR;
 	}
@@ -250,9 +228,6 @@ void AF9838_Driver::start()
 {
 	_running = true;
 	ScheduleOnInterval(_measure_interval_us);
-	PX4_INFO("AF9838: start() with interval %u us (%.1f Hz)",
-		 (unsigned)_measure_interval_us, 1e6 / static_cast<double>(_measure_interval_us));
-
 }
 void AF9838_Driver::stop()
 {
