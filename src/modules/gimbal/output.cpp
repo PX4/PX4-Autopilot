@@ -287,14 +287,14 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 		}
 	}
 
+	set_last_valid_setpoint(compensate, euler_vehicle);
+
 	_angle_outputs_filtered.setParameters(dt, _parameters.mnt_tau);
 	matrix::Vector3f filtered_outputs = _angle_outputs_filtered.update(matrix::Vector3f(_angle_outputs));
 
 	for (int i = 0; i < 3; i++) {
 		_angle_outputs[i] = filtered_outputs(i);
 	}
-
-	set_last_valid_setpoint(compensate, euler_vehicle);
 
 }
 
