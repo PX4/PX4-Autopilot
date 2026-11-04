@@ -358,8 +358,10 @@ The estimator receives target information through two MAVLink messages emitted b
 
 [TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE) extends the [LANDING_TARGET](https://mavlink.io/en/messages/common.html#LANDING_TARGET) message with a full 3D report that includes orientation and measurement uncertainty:
 
-- A coordinate frame selector (`TARGET_OBS_FRAME`) and a sensor quaternion (`q_sensor`) that, when provided, rotates the measurement into vehicle-carried NED.
-- Target pose (`x`, `y`, `z`, `q_target`) and variances (`pos_std`, `yaw_std`), collected from onboard vision pipelines.
+- A sensor quaternion (`q_sensor`) that rotates the measurement from the sensor frame into vehicle-carried NED.
+  If `q_sensor` is all zeros, the coordinate frame `frame` applies instead: `MAV_FRAME_LOCAL_NED`, `MAV_FRAME_LOCAL_OFFSET_NED` or `MAV_FRAME_BODY_FRD`.
+- Target pose (`x`, `y`, `z`, `q_target`) and standard deviations (`position_std`, `yaw_std`), collected from onboard vision pipelines.
+  A NaN standard deviation means unknown, and the estimator then uses its [noise floors](#noise).
 
 `mavlink_receiver` validates the frame/type and handles the message differently depending on the Vision Target Estimator status:
 
@@ -390,10 +392,10 @@ If the state visibly diverges between measurements and snaps back when a new sam
 
 - **Timestamp** each sample at capture in a clock that is synchronised with the autopilot (typically through `mavlink_timesync`).
   The Out-of-Sequence Measurements ([OOSM](../advanced_features/vision_target_estimator_advanced.md#oosm-implementation)) history replay tolerates transport latency, but only if timestamps are consistent.
-- **Report consistent variances** in `pos_std` and `yaw_std` (for [TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE)) and `position_std` / `vel_std` (for `TARGET_ABSOLUTE`).
+- **Report consistent variances** in `position_std` and `yaw_std` (for [TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE)) and `position_std` / `vel_std` (for `TARGET_ABSOLUTE`).
   Under-reporting variance is the most common cause of overshoots.
   The [Sensor noise floors](#noise) only clamp the lower bound and cannot rescue an over-confident sensor.
-- **Set the coordinate frame** for [TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE) (`TARGET_OBS_FRAME`) and provide the `q_sensor` rotation when the camera frame differs from vehicle-carried NED.
+- **Set the observation frame** for [TARGET_RELATIVE](https://mavlink.io/en/messages/common.html#TARGET_RELATIVE): provide the `q_sensor` rotation from the camera frame to vehicle-carried NED, or leave `q_sensor` all zeros and set `frame`.
 - **Match the target GNSS position to the active task.** Publish the takeoff pad while `prec_takeoff_status` is `ONGOING` and the landing pad while `prec_land_status` is active.
   The estimator fuses whatever it receives and cannot detect a mismatch.
 
