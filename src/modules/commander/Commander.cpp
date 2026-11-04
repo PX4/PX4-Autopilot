@@ -352,34 +352,33 @@ int Commander::custom_command(int argc, char *argv[])
 			return 1;
 		}
 
-		uint8_t group;
-		float value = 1.f;
+		// For thrust use a lower default to avoid unintended takeoffs
+		static constexpr struct {
+			const char *name;
+			uint8_t group;
+			float default_value;
+		} groups[] = {
+			{"roll", vehicle_command_s::ACTUATOR_TEST_GROUP_ROLL_TORQUE, 1.f},
+			{"pitch", vehicle_command_s::ACTUATOR_TEST_GROUP_PITCH_TORQUE, 1.f},
+			{"yaw", vehicle_command_s::ACTUATOR_TEST_GROUP_YAW_TORQUE, 1.f},
+			{"tilt", vehicle_command_s::ACTUATOR_TEST_GROUP_COLLECTIVE_TILT, 1.f},
+			{"xthrust", vehicle_command_s::ACTUATOR_TEST_GROUP_X_THRUST, 0.1f},
+			{"ythrust", vehicle_command_s::ACTUATOR_TEST_GROUP_Y_THRUST, 0.1f},
+			{"zthrust", vehicle_command_s::ACTUATOR_TEST_GROUP_Z_THRUST, -0.1f},
+		};
 
-		if (!strcmp(argv[1], "roll")) {
-			group = vehicle_command_s::ACTUATOR_TEST_GROUP_ROLL_TORQUE;
+		uint8_t group = 0;
+		float value = NAN;
 
-		} else if (!strcmp(argv[1], "pitch")) {
-			group = vehicle_command_s::ACTUATOR_TEST_GROUP_PITCH_TORQUE;
+		for (const auto &g : groups) {
+			if (!strcmp(argv[1], g.name)) {
+				group = g.group;
+				value = g.default_value;
+				break;
+			}
+		}
 
-		} else if (!strcmp(argv[1], "yaw")) {
-			group = vehicle_command_s::ACTUATOR_TEST_GROUP_YAW_TORQUE;
-
-		} else if (!strcmp(argv[1], "tilt")) {
-			group = vehicle_command_s::ACTUATOR_TEST_GROUP_COLLECTIVE_TILT;
-
-		} else if (!strcmp(argv[1], "xthrust")) {
-			group = vehicle_command_s::ACTUATOR_TEST_GROUP_X_THRUST;
-			value = 0.1f; // For thrust use a lower default to avoid unintended takeoffs
-
-		} else if (!strcmp(argv[1], "ythrust")) {
-			group = vehicle_command_s::ACTUATOR_TEST_GROUP_Y_THRUST;
-			value = 0.1f;
-
-		} else if (!strcmp(argv[1], "zthrust")) {
-			group = vehicle_command_s::ACTUATOR_TEST_GROUP_Z_THRUST;
-			value = -0.1f;
-
-		} else {
+		if (!PX4_ISFINITE(value)) {
 			PX4_ERR("argument %s unsupported.", argv[1]);
 			return 1;
 		}
