@@ -90,14 +90,53 @@ private:
 	void moving_baseline_data_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &msg);
 
 
+	// The Fix / Fix2 fields process_fix() consumes, copied out by the callbacks so the
+	// shared body is compiled once instead of once per message type.
+	struct FixFields {
+		uint8_t node_id;
+		uint8_t iface_index;
+		uint8_t gnss_time_standard;
+		uint8_t num_leap_seconds;
+		uint8_t sats_used;
+		int64_t latitude_deg_1e8;
+		int64_t longitude_deg_1e8;
+		int32_t height_msl_mm;
+		int32_t height_ellipsoid_mm;
+		float ned_velocity[3];
+		float pdop;
+		uint64_t gnss_ts_usec;
+		uint64_t msg_ts_usec;
+	};
+
 	template <typename FixType>
-	void process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
-			  uint8_t fix_type,
-			  const float (&pos_cov)[9], const float (&vel_cov)[9],
-			  const bool valid_pos_cov, const bool valid_vel_cov,
-			  const int32_t noise_per_ms,
-			  const int32_t jamming_indicator, const uint8_t jamming_state,
-			  const uint8_t spoofing_state);
+	static FixFields extractFixFields(const uavcan::ReceivedDataStructure<FixType> &msg)
+	{
+		FixFields fix{};
+		fix.node_id = msg.getSrcNodeID().get();
+		fix.iface_index = msg.getIfaceIndex();
+		fix.gnss_time_standard = msg.gnss_time_standard;
+		fix.num_leap_seconds = msg.num_leap_seconds;
+		fix.sats_used = msg.sats_used;
+		fix.latitude_deg_1e8 = msg.latitude_deg_1e8;
+		fix.longitude_deg_1e8 = msg.longitude_deg_1e8;
+		fix.height_msl_mm = msg.height_msl_mm;
+		fix.height_ellipsoid_mm = msg.height_ellipsoid_mm;
+		fix.ned_velocity[0] = msg.ned_velocity[0];
+		fix.ned_velocity[1] = msg.ned_velocity[1];
+		fix.ned_velocity[2] = msg.ned_velocity[2];
+		fix.pdop = msg.pdop;
+		fix.gnss_ts_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();
+		fix.msg_ts_usec = uavcan::UtcTime(msg.timestamp).toUSec();
+		return fix;
+	}
+
+	void process_fix(const FixFields &fix,
+			 uint8_t fix_type,
+			 const float (&pos_cov)[9], const float (&vel_cov)[9],
+			 const bool valid_pos_cov, const bool valid_vel_cov,
+			 const int32_t noise_per_ms,
+			 const int32_t jamming_indicator, const uint8_t jamming_state,
+			 const uint8_t spoofing_state);
 
 	void handleInjectDataTopic();
 	void drainRtcmCorrections();
