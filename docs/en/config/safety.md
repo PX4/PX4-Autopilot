@@ -77,37 +77,54 @@ QGC allows users to set some aspects of the landing behaviour, such as the time 
 
 ### Battery level failsafe
 
-The low battery failsafe is triggered when the battery capacity drops below battery failafe level values.
+The battery level failsafe is triggered when the battery capacity drops below battery failsafe level values.
 You can configure both the levels and the failsafe actions at each level in QGroundControl.
 
 ![Safety - Battery (QGC)](../../assets/qgc/setup/safety/safety_battery.png)
 
-The most common configuration is to set the values and action as above (with `Warn > Failsafe > Emergency`), and to set the [Failsafe Action](#COM_LOW_BAT_ACT) to warn at "warn level", trigger Return mode at "Failsafe level", and land immediately at "Emergency level".
+You should set the failsafe levels with `Warn > Failsafe > Emergency` as shown above.
+Note that PX4 will warn if the battery drops to the "Warn level" for any of action settings.
+
+The failsafe actions can then be set to one of:
+
+- `0: Warning` — Warn only.
+- `2: Land mode` — Land at the "Failsafe level".
+- `3: Distance-aware return, Critical level return, Emergency level land` (recommended) — Return mode at the "Failsafe" (critical) level, Land at the "Emergency" level, plus the [distance-aware return failsafe](#distance-aware-return-failsafe).
+- `5: Critical level return, Emergency level land` — Same as `3`, but without the [distance-aware return failsafe](#distance-aware-return-failsafe) (only warns).
 
 The settings and underlying parameters are shown below.
 
-| Setting                                             | Parameter                                                                    | Description                                                                           |
-| --------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action         | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Return, or Land based when capacity drops below the trigger levels.             |
-| <a id="BAT_LOW_THR"></a>Battery Warn Level          | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)         | Percentage capacity for warnings (or other actions).                                  |
-| <a id="BAT_CRIT_THR"></a>Battery Failsafe Level     | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)       | Percentage capacity for Return action (or other actions if a single action selected). |
-| <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR) | Percentage capacity for triggering Land (immediately) action.                         |
+| Setting                                             | Parameter                                                                    | Description                                                                                                      |
+| --------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action         | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Return, or Land based when capacity drops below the trigger levels. Option `3` adds distance-aware return. |
+| <a id="BAT_LOW_THR"></a>Battery Warn Level          | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)         | Percentage capacity for warnings (or other actions).                                                             |
+| <a id="BAT_CRIT_THR"></a>Battery Failsafe Level     | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)       | Percentage capacity for Return action (or other actions if a single action selected).                            |
+| <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR) | Percentage capacity for triggering Land (immediately) action.                                                    |
 
-### Flight Time Failsafes
+### Distance-Aware Return Failsafe
 
-There are several other "battery related" failsafe mechanisms that may be configured using parameters:
+The _distance-aware return_ failsafe engages [Return mode](../flight_modes/return.md) when the estimated remaining flight time drops to the time needed to return (in aviation this point is known as "bingo fuel").
+Unlike the [battery level failsafe](#battery-level-failsafe), it accounts for how far away the vehicle is: it triggers earlier when the return destination is far away, and later when it is close.
 
-- The "remaining flight time for safe return" failsafe ([COM_FLTT_LOW_ACT](#COM_FLTT_LOW_ACT)) is engaged when PX4 estimates that the vehicle has just enough battery remaining for a return mode landing.
-  You can configure this to ignore the failsafe, warn, or engage Return mode.
+It is enabled by setting [COM_LOW_BAT_ACT](#COM_LOW_BAT_ACT) to `3`.
+With all other options PX4 only warns.
+
+PX4 compares the time needed to return, estimated along the current Return mode path with the safety margin set by [RTL_TIME_FACTOR](../advanced_config/parameter_reference.md#RTL_TIME_FACTOR) and [RTL_TIME_MARGIN](../advanced_config/parameter_reference.md#RTL_TIME_MARGIN), against the remaining flight time of the battery with the least time left.
+Once Return mode has been triggered, it is not cancelled if the estimate improves again on the way back.
+
+::: warning
+The failsafe needs a remaining flight time estimate, such as from the battery capacity ([BAT1_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY)) or a [smart battery](../smart_batteries/index.md).
+Without one it never triggers, and the vehicle is only protected by the [battery level failsafe](#battery-level-failsafe).
+:::
+
+### Other Battery Related Failsafes
+
 - The "maximum flight time failsafe" ([COM_FLT_TIME_MAX](#COM_FLT_TIME_MAX)) allows you to set a maximum flight time after takeoff, at which the vehicle will automatically enter return mode (it will also "warn" at 90% of this time). This is like a "hard coded" estimate of the total flight time in a battery. The feature is disabled by default.
 - The "minimum battery" for arming parameter ([COM_ARM_BAT_MIN](#COM_ARM_BAT_MIN)) prevents arming in the first place if the battery level is below the specified value.
 
-The settings and underlying parameters are shown below.
-
-| Setting                                                              | Parameter                                                                      | Description                                                                                                                     |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_FLTT_LOW_ACT"></a> Low flight time for safe return action | [COM_FLTT_LOW_ACT](../advanced_config/parameter_reference.md#COM_FLTT_LOW_ACT) | Action when return mode can only just reach safety with remaining battery. `0`: None (default), `1`: Warning, `3`: Return mode. |
-| <a id="COM_FLT_TIME_MAX"></a> Maximum flight time failsafe level     | [COM_FLT_TIME_MAX](../advanced_config/parameter_reference.md#COM_FLT_TIME_MAX) | Maximum allowed flight time before Return mode will be engaged, in seconds. `-1`: Disabled (default).                           |
+| Setting                                                          | Parameter                                                                      | Description                                                                                           |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| <a id="COM_FLT_TIME_MAX"></a> Maximum flight time failsafe level | [COM_FLT_TIME_MAX](../advanced_config/parameter_reference.md#COM_FLT_TIME_MAX) | Maximum allowed flight time before Return mode will be engaged, in seconds. `-1`: Disabled (default). |
 
 ## Manual Control Loss Failsafe
 
