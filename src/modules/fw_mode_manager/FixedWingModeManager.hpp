@@ -877,6 +877,7 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_PMIN>) _param_fw_lnd_fl_pmin,
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
+		(ParamFloat<px4::params::FW_SKID_RATIO>) _param_fw_skid_ratio,
 		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
 		(ParamBool<px4::params::FW_LND_PARA_EN>) _param_fw_lnd_para_en,
 		(ParamFloat<px4::params::FW_LND_PARA_ALT>) _param_fw_lnd_para_alt,

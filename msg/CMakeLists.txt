@@ -99,6 +99,7 @@ set(msg_files
 	FuelTankStatus.msg
 	FixedWingLateralGuidanceStatus.msg
 	FixedWingLateralStatus.msg
+	FixedWingSkidSetpoint.msg
 	FixedWingRunwayControl.msg
 	FixedWingTakeoffStatus.msg
 	GeneratorStatus.msg

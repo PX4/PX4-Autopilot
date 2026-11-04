@@ -57,6 +57,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <slew_rate/SlewRate.hpp>
+#include "SkidToTurnAllocator.hpp"
 #include <uORB/uORB.h>
 
 #include <uORB/Publication.hpp>
@@ -65,9 +66,11 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/fixed_wing_lateral_setpoint.h>
 #include <uORB/topics/fixed_wing_lateral_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
+#include <uORB/topics/fixed_wing_skid_setpoint.h>
 #include <uORB/topics/fuel_tank_status.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/flight_phase_estimation.h>
@@ -116,6 +119,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::SubscriptionMultiArray<control_allocator_status_s, 2> _control_allocator_status_subs{ORB_ID::control_allocator_status};
 	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
 	uORB::SubscriptionMultiArray<fuel_tank_status_s> _fuel_tank_status_subs{ORB_ID::fuel_tank_status};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
@@ -141,12 +145,14 @@ private:
 	uORB::Publication <tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::PublicationData <flight_phase_estimation_s> _flight_phase_estimation_pub{ORB_ID(flight_phase_estimation)};
 	uORB::Publication <fixed_wing_lateral_status_s> _fixed_wing_lateral_status_pub{ORB_ID(fixed_wing_lateral_status)};
+	uORB::Publication <fixed_wing_skid_setpoint_s> _fixed_wing_skid_setpoint_pub{ORB_ID(fixed_wing_skid_setpoint)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad,
 		(ParamFloat<px4::params::FW_R_LIM>) _param_fw_r_lim,
+		(ParamFloat<px4::params::FW_SKID_AY_MAX>) _param_fw_skid_ay_max,
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
 		(ParamFloat<px4::params::FW_PN_R_SLEW_MAX>) _param_fw_pn_r_slew_max,
@@ -193,6 +199,9 @@ private:
 	bool _wind_valid{false};
 	hrt_abstime _time_wind_last_received{0};
 	SlewRate<float> _roll_slew_rate;
+	SkidToTurnAllocator _skid_to_turn_allocator;
+	float _skid_authority{1.f}; ///< [-] [0, 1] reduces the sideslip part while the control surfaces saturate
+	bool _control_surfaces_saturated{false};
 	float _yaw{0.f};
 	struct lateral_control_state {
 		matrix::Vector2f ground_speed;
@@ -251,6 +260,17 @@ private:
 	float getGuidanceQualityFactor(const vehicle_local_position_s &local_pos, const bool is_wind_valid) const;
 
 	float getCorrectedLateralAccelSetpoint(float lateral_accel_sp, hrt_abstime now);
+
+	/**
+	 * @brief Returns the maximum lateral acceleration the sideslip may currently generate
+	 *
+	 * Scales FW_SKID_AY_MAX with dynamic pressure and fades it out during underspeed and while the roll or yaw
+	 * control surfaces saturate. Zero when skid-to-turn is not allowed (manual modes, transitions, on ground).
+	 *
+	 * @param control_interval Time since the last update [s]
+	 * @return Maximum sideslip lateral acceleration [m/s^2]
+	 */
+	float updateSkidAccelerationMax(float control_interval);
 
 	void setDefaultLongitudinalControlConfiguration(hrt_abstime now);
 

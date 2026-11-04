@@ -203,6 +203,9 @@ public:
 
 	void set_in_transition(bool in_transition) { _control_status.flags.in_transition = in_transition; }
 
+	// set while the vehicle intentionally turns with sideslip, which invalidates the zero-sideslip assumption
+	void set_skid_to_turn(bool skid_to_turn) { _skid_to_turn = skid_to_turn; }
+
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.ekf2_gnd_eff_dz to adjust for expected rise in static pressure
 	// flag will clear after GNDEFFECT_TIMEOUT uSec
@@ -479,6 +482,7 @@ protected:
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	bool _external_wind_init{false};
+	bool _skid_to_turn{false};
 
 	// this is the current status of the filter control modes
 	filter_control_status_u _control_status{};

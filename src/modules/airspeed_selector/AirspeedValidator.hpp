@@ -68,6 +68,7 @@ struct airspeed_validator_update_data {
 	float vel_test_ratio;
 	float hdg_test_ratio;
 	bool in_fixed_wing_flight;
+	bool skid_to_turn; ///< true while the vehicle intentionally turns with sideslip
 	float fixed_wing_throttle_filtered;
 	float fixed_wing_tecs_throttle_trim;
 	uint64_t tecs_timestamp;
@@ -198,7 +199,7 @@ private:
 
 	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool gnss_valid,
 				   const matrix::Vector3f &vI,
-				   float lpos_evh, float lpos_evv, const Quatf &q_att);
+				   float lpos_evh, float lpos_evv, const Quatf &q_att, bool skid_to_turn);
 	void update_CAS_scale_validated(bool gnss_valid, const matrix::Vector3f &vI, float airspeed_true_raw);
 	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
