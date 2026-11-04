@@ -96,7 +96,7 @@ private:
 	bool isPitchExceeded() override;
 	bool isRollExceeded() override;
 
-	matrix::Eulerf getFixedWingAttitudeEuler() const;
+	matrix::Eulerf getFixedWingAttitudeEuler() const override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off
