@@ -165,9 +165,29 @@ class MigrateParamFileTest(unittest.TestCase):
                                ' v1.18 uses 4 on fixed-wing'])
 
     def test_other_components_untouched(self):
-        _, values, log = migrate((154, 'EKF2_GPS_DELAY', '150.0', 9))
-        self.assertEqual(values, {(154, 'EKF2_GPS_DELAY'): ('150.0', 9)})
+        _, values, log = migrate((1, 'MPC_XY_VEL_MAX', '8.0', 9),
+                                 (154, 'EKF2_GPS_DELAY', '150.0', 9))
+        self.assertEqual(values, {(1, 'MPC_XY_VEL_MAX'): ('8.0', 9),
+                                  (154, 'EKF2_GPS_DELAY'): ('150.0', 9)})
         self.assertEqual(log, [])
+
+    def test_no_autopilot_component_listed(self):
+        _, values, log = migrate((2, 'EKF2_GPS_DELAY', '150.0', 9))
+        self.assertEqual(values, {(2, 'EKF2_GPS_DELAY'): ('150.0', 9)})
+        self.assertEqual(log, ['warning: no parameters of component 1,'
+                               ' nothing converted: only an autopilot with'
+                               ' MAV_COMP_ID 1 is supported'])
+
+    def test_core_heater_removed_with_hint(self):
+        _, values, log = migrate((1, 'CORE_TEMP_ID', '3014698', 6))
+        self.assertEqual(values, {})
+        self.assertEqual(log, ['removed: CORE_TEMP_ID 3014698:'
+                               ' see HEATER2_SENS_ID'])
+
+    def test_nav_acceptance_radius_listed_for_multicopter(self):
+        _, _, log = migrate((1, 'NAV_ACC_RAD', '2.000000000000000000', 9))
+        self.assertEqual(log, ['default: NAV_ACC_RAD 2 is a v1.17 default,'
+                               ' v1.18 uses 10 on multicopter'])
 
     def test_other_lines_copied_and_listed(self):
         log = []

@@ -137,6 +137,12 @@ REMOVED = {
     'COM_OBC_LOSS_T': '', 'COM_RC_ARM_HYST': '',
     'COM_RC_STICK_OV': 'see MAN_OVERRIDE_SPD (stick speed in 1/s)',
     'COM_TAKEOFF_ACT': '',
+    # CUAV X25-EVO core heater, now the second heater instance
+    'CORE_IMU_TEMP': 'see HEATER2_TEMP',
+    'CORE_IMU_TEMP_FF': 'see HEATER2_TEMP_FF',
+    'CORE_IMU_TEMP_I': 'see HEATER2_TEMP_I',
+    'CORE_IMU_TEMP_P': 'see HEATER2_TEMP_P',
+    'CORE_TEMP_ID': 'see HEATER2_SENS_ID',
     'DSHOT_BIDIR_EN': 'choose BDShot in PWM_MAIN_TIMn / PWM_AUX_TIMn',
     'FD_ACT_MOT_C2T': 'see MOTFAIL_C2T and MOTFAIL_OFF',
     'FD_ACT_MOT_THR': '',
@@ -167,13 +173,14 @@ DEFAULT_CHANGES = {
     'VT_PITCH_MIN': (-5.0, 0.0),
     # set by the v1.18 fixed-wing defaults, still 2.5 for other vehicles
     'EKF2_REQ_PDOP': (2.5, 4.0),
-    # set by the v1.17 multicopter airframes, no longer in v1.18
+    # set by the v1.17 multicopter defaults, no longer in v1.18 (boats keep 2)
     'NAV_ACC_RAD': (2.0, 10.0),
 }
 
 # Defaults that v1.18 changed for one vehicle type only
 DEFAULT_CHANGE_SCOPES = {
     'EKF2_REQ_PDOP': 'on fixed-wing',
+    'NAV_ACC_RAD': 'on multicopter',
 }
 
 # RoboClaw outputs: 0 to 256 with stop at 128 in v1.17, 0 to 254 with stop
@@ -273,6 +280,10 @@ def migrate(lines, log):
 
     params = [r for r in rows if isinstance(r, list)
               and r[1] == str(AUTOPILOT_COMPONENT)]
+    if not params and any(isinstance(r, list) for r in rows):
+        log(f'warning: no parameters of component {AUTOPILOT_COMPONENT},'
+            f' nothing converted: only an autopilot with MAV_COMP_ID'
+            f' {AUTOPILOT_COMPONENT} is supported')
     current = {r[2]: float(r[3]) for r in params}
     vehicle = params[0][0] if params else '1'
     new_values = {}
