@@ -252,7 +252,7 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 		if (PX4_ISFINITE(euler_gimbal(i)) && compensate[i] && PX4_ISFINITE(euler_vehicle(i))) {
 			_angle_outputs[i] = euler_gimbal(i) - euler_vehicle(i);
 
-		} else if (PX4_ISFINITE(euler_gimbal(i)) && !_absolute_angle[i]) {
+		} else if (PX4_ISFINITE(euler_gimbal(i)) && !compensate[i]) {
 			_angle_outputs[i] = euler_gimbal(i);
 		}
 
