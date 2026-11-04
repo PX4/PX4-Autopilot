@@ -12,7 +12,7 @@ As a reference/evaluation design, it is intended to be replicated, modified or i
 Since it is a reference design, this particular board is not produced in high volume.
 Similar variants will be available from NXP licensees.
 
-The board combines an NXP i.MX RT1064 with sensor technology from Bosch® and InvenSense®, with the FMU, IMUs and other sensors on one compact board.
+The board combines an NXP i.MX RT1064 with sensor technology from Bosch® and InvenSense® on one compact board.
 It is suitable for controlling any autonomous vehicle, in both academic and commercial applications.
 The high-performance, low-noise IMUs are designed for better stabilisation.
 
@@ -30,14 +30,14 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- **Main FMU processor:** [NXP i.MX RT1064](https://www.nxp.com/products/i.MX-RT1064) Crossover MCU (32-bit Arm® Cortex®-M7 at 600 MHz, 1 MB on-chip SRAM with up to 512 KB configurable as tightly coupled memory (TCM), 4 MB on-chip flash)
+- **Main FMU processor:** [NXP i.MX RT1064](https://www.nxp.com/products/i.MX-RT1064) Crossover MCU (32-bit Arm® Cortex®-M7 at 600 MHz, 1 MB on-chip SRAM with up to 512 KB configurable as tightly coupled memory, 4 MB on-chip flash)
 
 ### Sensors {#sensors}
 
-- **IMU:** TDK InvenSense ICM-45686 (SPI3), Bosch BMI088 (SPI4).
-  Hardware versions with a TDK InvenSense ICM-42686-P in place of the ICM-45686 are also supported.
-- **Barometer:** Bosch BMP390 (I2C4)
-- **Magnetometer:** Bosch BMM350 (I2C4)
+- **IMU:** [TDK InvenSense ICM-45686](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-45686/) (SPI3), [Bosch BMI088](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088/) (SPI4).
+  Hardware versions with a [TDK InvenSense ICM-42686-P](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42686-p/) in place of the ICM-45686 are supported from PX4 v2.0 (currently `main`).
+- **Barometer:** [Bosch BMP390](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/) (I2C4)
+- **Magnetometer:** [Bosch BMM350](https://www.bosch-sensortec.com/en/products/motion-sensors/magnetometers/bmm350/) (I2C4)
 
 ### Interfaces {#interfaces}
 
@@ -46,9 +46,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **I2C buses:** 3 (I2C4 internal; I2C1 and I2C3 external), with 1 external port (`I2C`) for additional sensors and payloads
 - **SPI buses:** 2 internal (SPI3, SPI4), plus 1 external (`SPI (OSD)`) with 1 chip select line, 1 data-ready line and 1 reset line, not used by the default firmware
 - **CAN buses:** 1 (CAN FD, NXP TJA1462ATK transceiver, 120 Ω termination resistor on board)
-- **Ethernet:** 100BASE-T1 (two-wire), 100 Mbps, for transformerless applications and high-speed communication with mission computers (NXP TJA1103 PHY)
-- **USB:** USB-C, high speed (480 Mbit/s)
-- **RC input:** Yes, dedicated input for CRSF/ELRS
+- **Ethernet:** 100BASE-T1, 100 Mbps, for transformerless applications and high-speed communication with mission computers (NXP TJA1103 PHY)
+- **USB:** USB-C, high speed (480 Mbps)
+- **RC input:** Yes, dedicated input for [CRSF/ELRS](../telemetry/crsf_telemetry.md)
 - **Parameter storage:** flash
 - **SD card:** microSD slot
 
@@ -67,7 +67,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Pinouts {#pinouts}
 
-The `TELEM1`, `TELEM2`, `AUX`, `GPS`, `I2C`, `CAN` and `DEBUG` connectors follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (DS-009).
+The `TELEM1`, `TELEM2`, `GPS`, `I2C`, `CAN` and `DEBUG` connectors follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (DS-009).
 The ESC headers (`PWM_A` and `PWM_B`) follow the [Betaflight ESC connector standard](https://betaflight.com/docs/development/manufacturer/connector-standard#standard-esc-pin-configuration).
 
 The pinout of every connector is given in NXP's [MR-VMU-TROPIC hardware reference](https://github.com/NXP-Robotics/MR-VMU-TROPIC#board-overview) (also as a [PDF](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/MR-VMU-Tropic-hardware-reference.pdf) and a one-page [cheat sheet](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/MR-VMU-Tropic-cheatsheet.pdf)).
@@ -82,12 +82,12 @@ The schematic is [SPF-94468_F.pdf](https://github.com/NXP-Robotics/MR-VMU-TROPIC
 | `J4`      | `GPS`       | GPS, compass, safety switch and buzzer                              | JST-GH 1x10         | DS-009              |
 | `J5`      | `CAN`       | CAN FD, CAN-SIC (Signal Improvement) transceiver, 120 Ω termination | JST-GH 1x4          | DS-009              |
 | `J6`      | `SPI (OSD)` | External SPI port for an OSD board                                  | JST-GH 1x8          | —                   |
-| `J7`      | `AUX`       | Spare serial port                                                   | JST-GH 1x6          | DS-009              |
+| `J7`      | `AUX`       | Spare serial port                                                   | JST-GH 1x6          | —                   |
 | `J8`      | `TELEM1`    | Telemetry port 1, with flow control                                 | JST-GH 1x6          | DS-009              |
 | `J9`      | `TELEM2`    | Telemetry port 2, with flow control                                 | JST-GH 1x6          | DS-009              |
 | `J10`     | `I2C`       | External I2C bus, shared with `GPS`                                 | JST-GH 1x4          | DS-009              |
 | `J11`     | `RC`        | Serial RC receiver                                                  | JST-GH 1x4          | —                   |
-| `P1`      | `ETH`       | 100BASE-T1 (two-wire) 100 Mbps Ethernet                             | JST-GH 1x2          | —                   |
+| `P1`      | `ETH`       | 100BASE-T1 100 Mbps Ethernet                                        | JST-GH 1x2          | —                   |
 
 ![MR-VMU-TROPIC top-side connectors](../../assets/flight_controller/nxp_mr_tropic/overview_top.svg)
 
@@ -105,17 +105,17 @@ The schematic is [SPF-94468_F.pdf](https://github.com/NXP-Robotics/MR-VMU-TROPIC
 ## Power {#power}
 
 The board has two power rails: **POWER1** and **USB**.
-The **POWER1** rail is supplied via the `J2` connector (the 6-circuit [2.00 mm pitch CLIK-Mate wire-to-board PCB receptacle](https://www.molex.com/en-us/products/part-detail/5024430670)) and directly powers the following ports: I2C (`J10`), GPS (`J4`), AUX (`J7`), CAN (`J5`), TELEM1 (`J8`), TELEM2 (`J9`), RC (`J11`) and SPI-OSD (`J6`).
+The **POWER1** rail is supplied via the `J2` connector (the 6-circuit [2.00 mm pitch CLIK-Mate wire-to-board PCB receptacle](https://www.molex.com/en-us/products/part-detail/5024430670)) and directly powers the following ports: `I2C` (`J10`), `GPS` (`J4`), `AUX` (`J7`), `CAN` (`J5`), `TELEM1` (`J8`), `TELEM2` (`J9`), `RC` (`J11`) and `SPI (OSD)` (`J6`).
 
 ::: warning
 Feed only 5 V into `POWER` (`J2`): there is no regulator behind this connector, and a higher voltage damages the board.
 Every other 5 V pin on the board is an output: never feed power into it.
-Any device connected to these ports must be compatible with the **POWER1** voltage rail.
+Any device connected to the ports listed above must be compatible with the **POWER1** voltage rail.
 :::
 
 Battery monitoring is digital, over I2C (I2C3 on the `POWER` port).
 An INA226, INA228 or INA238 power monitor is detected automatically.
-To start a specific one instead, set [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226), [SENS_EN_INA228](../advanced_config/parameter_reference.md#SENS_EN_INA228) or [SENS_EN_INA238](../advanced_config/parameter_reference.md#SENS_EN_INA238) to `1`.
+To start a specific one instead, [set](../advanced_config/parameters.md) [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226), [SENS_EN_INA228](../advanced_config/parameter_reference.md#SENS_EN_INA228) or [SENS_EN_INA238](../advanced_config/parameter_reference.md#SENS_EN_INA238) to `1`.
 
 ::: info
 Analog battery monitoring via an ADC is not supported on this board.
@@ -155,13 +155,13 @@ All outputs within the same group must use the same output protocol and rate.
 
 Outputs 1–4 are on `PWM_A` (`J13`) and outputs 5–8 on `PWM_B` (`J12`).
 Both headers follow the [Betaflight ESC connector standard](https://betaflight.com/docs/development/manufacturer/connector-standard#standard-esc-pin-configuration), so a 4-in-1 ESC with a standard 8-pin cable fits.
-The headers have no 5 V pin, and their battery voltage and current pins (1 and 3) are not connected: the board doesn't use the ESC's BEC or read battery voltage or current from the ESC.
+The headers have no 5 V pin, and their battery voltage and current pins (1 and 3) are not connected: the board doesn't use the ESC's [BEC](../peripherals/pwm_escs_and_servo.md#power-connections) or read battery voltage or current from the ESC.
 
-Serial ESC telemetry is received on pin 4 of both headers (`/dev/ttyS5`, ESC ONEWIRE), and is enabled by default.
+Serial ESC telemetry is received on pin 4 of both headers (`/dev/ttyS5`, ESC ONEWIRE) and is enabled by default.
 
 ## Ethernet {#ethernet}
 
-The `P1` port provides 100BASE-T1 (two-wire) Ethernet.
+The `P1` port provides 100BASE-T1 Ethernet.
 The other end needs a 100BASE-T1 device or a media converter.
 MAVLink runs on Ethernet by default, using UDP port 14550 ([MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG) is set to `Ethernet`).
 
@@ -176,7 +176,7 @@ See [SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-ca
 
 | UART    | Device     | Port        | Flow Control |
 | ------- | ---------- | ----------- | ------------ |
-| LPUART6 | /dev/ttyS0 | Debug       | No           |
+| LPUART6 | /dev/ttyS0 | `DEBUG`     | No           |
 | LPUART2 | /dev/ttyS1 | `GPS`       | No           |
 | LPUART3 | /dev/ttyS2 | `TELEM1`    | Yes          |
 | LPUART4 | /dev/ttyS3 | `AUX`       | No           |
@@ -192,28 +192,33 @@ The `AUX` port is `TELEM 3` in the [serial port configuration](../peripherals/se
 
 ### Radio Control {#radio_control}
 
-A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
-You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate.
+A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate.
 
-Connect the receiver to the `RC` port (`J11`), which is the FMU serial port `/dev/ttyS6`.
+Connect the receiver to the `RC` port (`J11`, JST-GH 4-pin), which is the FMU serial port `/dev/ttyS6`.
 CRSF receivers are enabled on this port by default, with telemetry.
 
 The default firmware also includes DSM, GHST and S.BUS drivers.
 To use one of these protocols, set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to `Disabled`, and then set [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) or [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller`.
 Only one protocol can be active on a port.
 
+PPM receivers are not supported, because `RC` is a serial port.
+PWM receivers, which need a PPM encoder, can't be used either.
+
 ### GPS & Compass {#gps_compass}
 
-Connect the GPS module to the `GPS` port (`J4`), which carries the GPS serial port (`/dev/ttyS1`) and the I2C1 bus for an external compass.
+Connect the GPS module to the `GPS` port (`J4`, Pixhawk standard), which carries the GPS serial port (`/dev/ttyS1`) and the I2C1 bus for an external compass.
 The port also carries the safety switch and its LED, and the buzzer.
-The `I2C` port (`J10`) is on the same I2C bus, so devices on the two ports share its addresses.
+The `I2C` port (`J10`) is on the same I2C bus, so devices on the two ports need different addresses.
+The board also has an internal Bosch BMM350 magnetometer.
 
 See [Mounting the GPS/Compass](../assembly/mount_gps_compass.md) for more information.
 
 ### Telemetry Radios (Optional) {#telemetry}
 
-[Telemetry radios](../telemetry/index.md) can be connected to `TELEM1` (`J8`) or `TELEM2` (`J9`).
-`TELEM1` needs no further configuration.
+[Telemetry radios](../telemetry/index.md) can be connected to any free serial port, such as `TELEM1` (`J8`), `TELEM2` (`J9`) or `AUX` (`J7`).
+`TELEM1` is configured for MAVLink by default and needs no further configuration.
+To use another port, see [MAVLink Peripherals](../peripherals/mavlink_peripherals.md).
 
 ### CAN {#can}
 
@@ -227,11 +232,11 @@ NXP's [PX4 setup guide](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/
 To flash it over USB, follow [Bootloader Update Pixhawk V6X-RT via USB](../advanced_config/bootloader_update_v6xrt.md), with these changes:
 
 - Use `nxp_mr-tropic_bootloader.bin` (see [Building Firmware](#building_firmware)).
-- Select the MIMXRT1064 in place of the MIMXRT1170.
+- Select `MIMXRT1064` in place of `MIMXRT1176`.
 - Skip the _Boot Memory Configuration_ step.
 - To start the serial downloader, hold the `BOOT` button (`SW2`) while powering the board.
 
-You can also flash `nxp_mr-tropic_bootloader.bin` at address `0x70000000` with an SWD debugger on the `DEBUG` port.
+You can also flash `nxp_mr-tropic_bootloader.bin` at address `0x70000000` with an [SWD](../debug/swd_debug.md) debugger on the `DEBUG` port.
 
 ## Building Firmware {#building_firmware}
 
@@ -276,6 +281,6 @@ The pinouts and connector comply with the [Pixhawk Debug Full](../debug/swd_debu
 - [MR-VMU-TROPIC hardware reference](https://github.com/NXP-Robotics/MR-VMU-TROPIC) (NXP Robotics GitHub)
 - [MR-VMU-TROPIC PX4 setup guide](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/PX4_Autopilot.md) (NXP Robotics GitHub)
 - [MR-VMU-TROPIC schematic, rev F](https://github.com/NXP-Robotics/MR-VMU-TROPIC/blob/main/schematics_and_production_files/tropic_rev_F/SPF-94468_F.pdf)
-- [MR-VMU-TROPIC](https://nxp.gitbook.io/vmu-rt1176/tropic) (NXP gitbook)
+- [MR-VMU-TROPIC](https://nxp.gitbook.io/vmu-rt1176/tropic) (NXP GitBook)
 - [NXP Community](https://community.nxp.com/) (hardware support)
 - [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf)
