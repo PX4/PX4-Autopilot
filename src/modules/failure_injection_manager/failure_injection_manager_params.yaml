@@ -71,6 +71,7 @@ parameters:
           5: Slow
           6: Delayed
           7: Intermittent
+          8: Drift
       SYS_FAIL_RC_INST:
         description:
           short: Instances failed by the RC switch
@@ -148,7 +149,7 @@ parameters:
           3: Emergency
       SYS_FAIL_G_BIAS:
         description:
-          short: Gyro bias failure injection magnitude
+          short: Gyro bias failure injection offset
           long: Constant offset added to every axis while a gyro 'wrong' failure injection is active.
         type: float
         default: 0.01
@@ -173,7 +174,7 @@ parameters:
         decimal: 3
       SYS_FAIL_A_BIAS:
         description:
-          short: Accel bias failure injection magnitude
+          short: Accel bias failure injection offset
           long: Constant offset added to every axis while an accel 'wrong' failure injection is active.
         type: float
         default: 0.2
