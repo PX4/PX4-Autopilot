@@ -300,11 +300,16 @@ void VtolType::handleEkfResets()
 	}
 }
 
+matrix::Eulerf VtolType::getFixedWingAttitudeEuler() const
+{
+	return Eulerf(Quatf(_v_att->q));
+}
+
 bool VtolType::isPitchExceeded()
 {
 	// fixed-wing maximum pitch angle
 	if (_param_vt_fw_qc_p.get() > 0) {
-		Eulerf euler = Quatf(_v_att->q);
+		const Eulerf euler = getFixedWingAttitudeEuler();
 
 		if (fabsf(euler.theta()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_p.get())))) {
 			return true;
@@ -318,7 +323,7 @@ bool VtolType::isRollExceeded()
 {
 	// fixed-wing maximum roll angle
 	if (_param_vt_fw_qc_r.get() > 0) {
-		Eulerf euler = Quatf(_v_att->q);
+		const Eulerf euler = getFixedWingAttitudeEuler();
 
 		if (fabsf(euler.phi()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_r.get())))) {
 			return true;

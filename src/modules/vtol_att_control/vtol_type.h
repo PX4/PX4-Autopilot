@@ -178,6 +178,11 @@ public:
 	bool isFrontTransitionAltitudeLoss();
 
 	/**
+	 *  @brief Vehicle attitude in the fixed-wing frame, used for the quadchute pitch and roll limits
+	 */
+	virtual matrix::Eulerf getFixedWingAttitudeEuler() const;
+
+	/**
 	 *  @brief Indicates if the absolute value of the vehicle pitch angle exceeds the threshold defined by VT_FW_QC_P
 	 *
 	 * @return     true if exeeded

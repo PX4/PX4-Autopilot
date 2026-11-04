@@ -64,38 +64,12 @@ Eulerf Tailsitter::getFixedWingAttitudeEuler() const
 
 bool Tailsitter::isPitchExceeded()
 {
-	if (_common_vtol_mode != mode::FIXED_WING) {
-		return false;
-	}
-
-	// fixed-wing maximum pitch angle
-	if (_param_vt_fw_qc_p.get() > 0) {
-		const Eulerf euler = getFixedWingAttitudeEuler();
-
-		if (fabsf(euler.theta()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_p.get())))) {
-			return true;
-		}
-	}
-
-	return false;
+	return _common_vtol_mode == mode::FIXED_WING && VtolType::isPitchExceeded();
 }
 
 bool Tailsitter::isRollExceeded()
 {
-	if (_common_vtol_mode != mode::FIXED_WING) {
-		return false;
-	}
-
-	// fixed-wing maximum roll angle
-	if (_param_vt_fw_qc_r.get() > 0) {
-		const Eulerf euler = getFixedWingAttitudeEuler();
-
-		if (fabsf(euler.phi()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_r.get())))) {
-			return true;
-		}
-	}
-
-	return false;
+	return _common_vtol_mode == mode::FIXED_WING && VtolType::isRollExceeded();
 }
 
 void Tailsitter::update_vtol_state()
