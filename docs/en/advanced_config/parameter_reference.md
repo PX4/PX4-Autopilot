@@ -35666,7 +35666,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Altitude loss threshold for termination and parachute deployment.
 
-Maximum altitude loss below the setpoint allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
+Maximum altitude loss allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
