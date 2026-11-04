@@ -10,7 +10,8 @@ See [Toolchain Installation](../dev_setup/dev_env.md) for information about the 
 HITL(Hardware-in-the-Loop)은 일반 PX4 펌웨어가 실제 비행 콘트롤러 하드웨어에서 실행되는 시뮬레이션 모드입니다.
 이 접근 방식은 실제 하드웨어에서 대부분의 실제 비행 코드를 테스트할 수 있습니다.
 
-PX4 supports HITL for multicopters (using [jMAVSim](../sim_jmavsim/index.md) or [Gazebo Classic](../sim_gazebo_classic/index.md)) and VTOL (using Gazebo Classic).
+PX4 supports HITL for multicopters and VTOL using [Gazebo Classic](../sim_gazebo_classic/index.md).
+To simulate on flight controller hardware without an external simulator, use [SIH on hardware](../sim_sih/hardware.md).
 
 For a comparison of HITL and SIH on hardware, see [Hardware Simulation](../simulation/hardware.md).
 
@@ -18,31 +19,31 @@ For a comparison of HITL and SIH on hardware, see [Hardware Simulation](../simul
 
 The set of compatible airframes vs simulators is:
 
-| 기체                                                                                                               | `SYS_AUTOSTART` | Gazebo Classic | jMAVSim |
-| ---------------------------------------------------------------------------------------------------------------- | --------------- | -------------- | ------- |
-| [HIL Quadcopter X](../airframes/airframe_reference.md#copter_simulation_hil_quadcopter_x)                        | 1001            | Y              | Y       |
-| [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 1002            | Y              |         |
+| 기체                                                                                                               | `SYS_AUTOSTART` | Gazebo Classic |
+| ---------------------------------------------------------------------------------------------------------------- | --------------- | -------------- |
+| [HIL Quadcopter X](../airframes/airframe_reference.md#copter_simulation_hil_quadcopter_x)                        | 1001            | Y              |
+| [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 1002            | Y              |
 
 ## HITL Simulation Environment {#simulation_environment}
 
 HITL(Hardware-in-the-Loop) 시뮬레이션을 사용하여, 일반 PX4 펌웨어가 실제 하드웨어에서 실행됩니다.
-JMAVSim or Gazebo Classic (running on a development computer) are connected to the flight controller hardware via USB/UART.
+Gazebo Classic (running on a development computer) is connected to the flight controller hardware via USB/UART.
 The simulator acts as gateway to share MAVLink data between PX4 and _QGroundControl_.
 
 :::info
 The simulator can also be connected via UDP if the flight controller has networking support and uses a stable, low-latency connection (e.g. a wired Ethernet connection - WiFi is usually not sufficiently reliable).
-For example, this configuration has been tested with PX4 running on a Raspberry Pi connected via Ethernet to the computer (a startup configuration that includes the command for running jMAVSim can be found in [px4_hil.config](https://github.com/PX4/PX4-Autopilot/blob/main/posix-configs/rpi/px4_hil.config)).
+For example, this configuration has been tested with PX4 running on a Raspberry Pi connected via Ethernet to the computer (the startup configuration can be found in [px4_hil.config](https://github.com/PX4/PX4-Autopilot/blob/main/posix-configs/rpi/px4_hil.config)).
 :::
 
 아래 다이어그램은 시뮬레이션 환경을 나타냅니다.
 
 - A HITL configuration is selected (via _QGroundControl_) that doesn't start any real sensors.
-- _jMAVSim_ or _Gazebo Classic_ are connected to the flight controller via USB.
+- _Gazebo Classic_ is connected to the flight controller via USB.
 - The simulator is connected to _QGroundControl_ via UDP and bridges its MAVLink messages to PX4.
-- _Gazebo Classic_ and _jMAVSim_ can also connect to an offboard API and bridge MAVLink messages to PX4.
+- _Gazebo Classic_ can also connect to an offboard API and bridge MAVLink messages to PX4.
 - (Optional) A serial connection can be used to connect Joystick/Gamepad hardware via _QGroundControl_.
 
-![HITL Setup - jMAVSim and Gazebo Classic](../../assets/simulation/px4_hitl_overview_jmavsim_gazebo.svg)
+![HITL Setup - Gazebo Classic](../../assets/simulation/px4_hitl_overview_jmavsim_gazebo.svg)
 
 ## HITL 대 SITL
 
@@ -164,30 +165,6 @@ Make sure _QGroundControl_ is not running!
 
 5. Start _QGroundControl_.
    It should autoconnect to PX4 and Gazebo Classic.
-
-#### jMAVSim(쿼드콥터 전용)
-
-:::info
-Make sure _QGroundControl_ is not running!
-:::
-
-1. 비행 콘트롤러를 컴퓨터에 연결하고, 부팅시까지 기다립니다.
-
-2. jMAVSim를 HITL 모드에서 실행:
-
-   ```sh
-   ./Tools/simulation/jmavsim/jmavsim_run.sh -q -s -d /dev/ttyACM0 -b 921600 -r 250
-   ```
-
-   ::: info
-   Replace the serial port name `/dev/ttyACM0` as appropriate.
-   On macOS this port would be `/dev/tty.usbmodem1`.
-   Windows(Cygwin 포함)에서는 COM1 또는 다른 포트입니다. Windows 장치 관리자에서 확인하십시오.
-
-:::
-
-3. Start _QGroundControl_.
-   PX4와 jMAVSim에 자동으로 연결되어야 합니다.
 
 ## HITL에서 자율 임무 비행
 

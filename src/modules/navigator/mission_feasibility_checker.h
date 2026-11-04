@@ -46,17 +46,38 @@
 #include <uORB/topics/mission.h>
 #include <px4_platform_common/module_params.h>
 #include "MissionFeasibility/FeasibilityChecker.hpp"
+#include "geofence.h"
 
 class Navigator;
 
 class MissionFeasibilityChecker: public ModuleParams
 {
 private:
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	static constexpr size_t kGeofencePathBatchSize = Geofence::MAX_PATH_CHECKS;
+	struct GeofencePathBatch {
+		Geofence::PathCheck paths[kGeofencePathBatchSize];
+		uint16_t mission_indices[kGeofencePathBatchSize];
+		bool results[kGeofencePathBatchSize];
+		bool is_jump[kGeofencePathBatchSize];
+		size_t count{0};
+	};
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
 	Navigator *_navigator{nullptr};
 	DatamanClient &_dataman_client;
 	FeasibilityChecker _feasibility_checker;
 
 	bool checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid);
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	bool checkJumpDestinations(const mission_s &mission, const mission_item_s &jump_item, size_t jump_index,
+				   const matrix::Vector2d *previous_position, GeofencePathBatch &batch);
+	bool rejectGeofenceJump(GeofencePathBatch &batch, size_t jump_index);
+	bool addGeofencePath(GeofencePathBatch &batch, const Geofence::PathCheck &path, size_t mission_index, bool is_jump = false);
+	bool checkGeofencePathBatch(GeofencePathBatch &batch);
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+	bool readSyncMissionItem(const mission_s &mission, size_t index, mission_item_s &item);
+	void logGeofenceUnavailable();
 	void logDatamanReadFailure(const size_t mission_item, const uint8_t dataman_id);
 
 public:

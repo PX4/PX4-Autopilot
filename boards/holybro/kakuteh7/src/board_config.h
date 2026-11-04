@@ -176,7 +176,6 @@
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
 		GPIO_TONE_ALARM_IDLE,             \
-		GPIO_RSSI_IN,                     \
 		GPIO_RF_SWITCH,                   \
 	}
 

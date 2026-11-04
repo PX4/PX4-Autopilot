@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 720" width="900" height="720" role="img" aria-labelledby="title desc">
+  <title id="title">Internal combustion engine control state machine</title>
+  <desc id="desc">Four states. Stopped goes to Starting when the engine is requested on and start attempts remain. Starting alternates between Cranking and a one second Rest between attempts, goes to Running once the measured RPM exceeds ICE_MIN_RUN_RPM, and goes to Fault once the attempts are exhausted. Running alternates between the Run sub-state, which passes the motor 1 throttle demand through, and the Idle sub-state, in which the RPM governor drives the throttle; it falls back to Starting if the RPM is lost and ICE_RUN_FAULT_D is enabled. Any state returns to Stopped when the engine is requested off.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#4b5563"/>
+    </marker>
+  </defs>
+
+  <style>
+    .bg    { fill:#ffffff; stroke:#e3e6ec; }
+    .st    { fill:#f3f5f8; stroke:#8a95a5; stroke-width:1.5; }
+    .stc   { fill:#fdf3e7; stroke:#c2701c; stroke-width:2; }
+    .stf   { fill:#fdeeec; stroke:#c0392b; stroke-width:1.5; }
+    .chip  { fill:#ffffff; stroke:#c2701c; stroke-width:1; }
+    text   { font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; fill:#12161f; }
+    .sname { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:14px; font-weight:600; text-anchor:middle; }
+    .cname { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; font-weight:600; text-anchor:middle; }
+    .ssub  { font-size:9.5px; fill:#5b6472; text-anchor:middle; }
+    .csub  { font-size:9.5px; fill:#5b6472; text-anchor:middle; }
+    .elab  { font-size:10px; fill:#5b6472; }
+    .cap   { font-size:10px; fill:#5b6472; }
+    .edge  { stroke:#4b5563; stroke-width:1.6; fill:none; marker-end:url(#arrow); }
+    .plain { stroke:#4b5563; stroke-width:1.6; fill:none; }
+  </style>
+
+  <rect class="bg" x="0.5" y="0.5" width="899" height="719" rx="10"/>
+
+  <!-- Stopped -->
+  <rect class="st" x="320" y="60" width="200" height="60" rx="8"/>
+  <text class="sname" x="420" y="86">Stopped</text>
+  <text class="ssub"  x="420" y="104">ignition off · throttle → disarmed</text>
+
+  <!-- Starting (composite) -->
+  <rect class="stc" x="240" y="180" width="360" height="175" rx="8"/>
+  <text class="sname" x="420" y="203">Starting</text>
+
+  <rect class="chip" x="265" y="218" width="150" height="42" rx="5"/>
+  <text class="cname" x="340" y="236">Cranking</text>
+  <text class="csub"  x="340" y="251">ignition on · starter on</text>
+
+  <rect class="chip" x="265" y="296" width="150" height="42" rx="5"/>
+  <text class="cname" x="340" y="314">Rest</text>
+  <text class="csub"  x="340" y="329">ignition off · 1 s</text>
+
+  <line class="edge" x1="300" y1="260" x2="300" y2="296"/>
+  <line class="edge" x1="380" y1="296" x2="380" y2="260"/>
+  <text class="elab" x="430" y="272">attempt timed out</text>
+  <text class="elab" x="430" y="290">after 1 s</text>
+
+  <!-- Fault -->
+  <rect class="stf" x="700" y="195" width="180" height="70" rx="8"/>
+  <text class="sname" x="790" y="222">Fault</text>
+  <text class="ssub"  x="790" y="240">ignition off · throttle 0</text>
+
+  <!-- Running (composite) -->
+  <rect class="stc" x="240" y="400" width="360" height="195" rx="8"/>
+  <text class="sname" x="420" y="423">Running</text>
+
+  <rect class="chip" x="265" y="438" width="150" height="42" rx="5"/>
+  <text class="cname" x="340" y="456">Run</text>
+  <text class="csub"  x="340" y="471">motor 1 demand</text>
+
+  <rect class="chip" x="265" y="540" width="150" height="42" rx="5"/>
+  <text class="cname" x="340" y="558">Idle</text>
+  <text class="csub"  x="340" y="573">RPM governor</text>
+
+  <line class="edge" x1="300" y1="480" x2="300" y2="540"/>
+  <line class="edge" x1="380" y1="540" x2="380" y2="480"/>
+  <text class="elab" x="430" y="497">throttle &lt; 2%, or</text>
+  <text class="elab" x="430" y="510">RPM &lt; ICE_IDLE_RPM</text>
+  <text class="elab" x="430" y="532">throttle &gt; governor output</text>
+
+  <!-- Main transitions -->
+  <line class="edge" x1="420" y1="120" x2="420" y2="180"/>
+  <text class="elab" x="430" y="152">requested on, attempts remain</text>
+
+  <line class="edge" x1="350" y1="355" x2="350" y2="400"/>
+  <text class="elab" x="358" y="381">RPM &gt; ICE_MIN_RUN_RPM</text>
+
+  <line class="edge" x1="540" y1="400" x2="540" y2="355"/>
+  <text class="elab" x="548" y="381">RPM lost (ICE_RUN_FAULT_D)</text>
+
+  <line class="edge" x1="600" y1="230" x2="700" y2="230"/>
+  <text class="elab" x="616" y="216">attempts</text>
+  <text class="elab" x="616" y="228">exhausted</text>
+
+  <!-- Return to Stopped -->
+  <line class="plain" x1="240" y1="270" x2="160" y2="270"/>
+  <polyline class="edge" points="240,490 160,490 160,90 320,90"/>
+  <text class="elab" x="42" y="290">engine requested off</text>
+
+  <polyline class="edge" points="790,195 790,90 520,90"/>
+  <text class="elab" x="800" y="145">requested off</text>
+
+  <!-- Caption -->
+  <text class="cap" x="40" y="645">state → InternalCombustionEngineStatus.state</text>
+  <text class="cap" x="40" y="662">sub-state → InternalCombustionEngineStatus.substate</text>
+  <text class="cap" x="40" y="684">The Idle sub-state exists only when ICE_IDLE_RPM &gt; 0.</text>
+</svg>

@@ -57,7 +57,7 @@ namespace device
 {
 
 SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency) :
-	CDev(name, nullptr),
+	Device(name),
 	_device(device),
 	_mode(mode),
 	_frequency(frequency)
@@ -73,6 +73,7 @@ SPI::SPI(const I2CSPIDriverConfig &config)
 	: SPI(config.devid_driver_index, config.module_name, config.bus, config.spi_devid, config.spi_mode,
 	      config.bus_frequency)
 {
+	set_external(config.external);
 }
 
 SPI::~SPI()
@@ -106,10 +107,10 @@ SPI::init()
 	}
 
 	/* do base class init, which will create the device node, etc. */
-	ret = CDev::init();
+	ret = Device::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("cdev init failed");
+		DEVICE_DEBUG("init failed");
 		return ret;
 	}
 

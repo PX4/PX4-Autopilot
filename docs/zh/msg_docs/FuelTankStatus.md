@@ -24,6 +24,7 @@ pageClass: is-wide-page
 
 | 参数名                                                                                                                      | 类型      | 值 | 描述                                                                                                                                                                                                                                |
 | ------------------------------------------------------------------------------------------------------------------------ | ------- | - | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="#MAX_INSTANCES"></a> MAX_INSTANCES                                                           | `uint8` | 3 |                                                                                                                                                                                                                                   |
 | <a id="#MAV_FUEL_TYPE_UNKNOWN"></a> MAV_FUEL_TYPE_UNKNOWN | `uint8` | 0 | fuel type not specified. Fuel levels are normalized (i.e., maximum is 1, and other levels are relative to 1).                                  |
 | <a id="#MAV_FUEL_TYPE_LIQUID"></a> MAV_FUEL_TYPE_LIQUID   | `uint8` | 1 | represents generic liquid fuels, such as gasoline or diesel. Fuel levels are measured in millilitres (ml), and flow rates in millilitres per second (ml/s). |
 | <a id="#MAV_FUEL_TYPE_GAS"></a> MAV_FUEL_TYPE_GAS         | `uint8` | 2 | represents a gas fuel, such as hydrogen, methane, or propane. Fuel levels are in kilo-Pascal (kPa), and flow rates are in milliliters per second (ml/s).    |
@@ -36,6 +37,8 @@ pageClass: is-wide-page
 Click here to see original file
 
 ```c
+uint8 MAX_INSTANCES = 3
+
 uint64 timestamp                        # time since system start (microseconds)
 
 float32 maximum_fuel_capacity       	# maximum fuel capacity. Must always be provided, either from the driver or a parameter

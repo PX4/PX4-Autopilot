@@ -54,7 +54,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on I2C
  */
-class __EXPORT I2C : public CDev
+class __EXPORT I2C : public Device
 {
 
 public:
@@ -107,8 +107,6 @@ protected:
 	 *			otherwise.
 	 */
 	int		transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len);
-
-	bool	external() const override { return px4_i2c_device_external(_device_id.devid); }
 
 private:
 	static unsigned	int	_bus_clocks[PX4_NUMBER_I2C_BUSES];

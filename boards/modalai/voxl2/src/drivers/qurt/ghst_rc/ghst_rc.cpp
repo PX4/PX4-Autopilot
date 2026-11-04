@@ -44,7 +44,7 @@
 
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_status.h>
 
 using namespace time_literals;

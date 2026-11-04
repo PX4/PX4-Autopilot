@@ -138,9 +138,12 @@ parameters:
       description:
         short: Pitch setpoint offset (pitch at level flight)
         long: |-
-          An airframe specific offset of the pitch setpoint in degrees, the value is
-          added to the pitch setpoint and should correspond to the pitch at
-          typical cruise speed of the airframe.
+          Pitch angle of the body x-axis above the horizon in level flight at trim airspeed (FW_AIRSPD_TRIM).
+
+          The altitude and airspeed controller (TECS) uses it as the pitch at zero climb angle,
+          and in Stabilized mode the centred pitch stick commands it.
+          Pitch setpoints and pitch limits set elsewhere, for example FW_P_LIM_MIN and FW_P_LIM_MAX,
+          are absolute and do not include it.
       type: float
       default: 0.0
       unit: deg
@@ -174,8 +177,11 @@ parameters:
     FW_MAN_P_MAX:
       description:
         short: Maximum manual pitch angle
-        long: Applies to both directions in all manual modes with attitude stabilization
-          but without altitude control
+        long: |-
+          Pitch angle commanded by full stick deflection, relative to FW_PSP_OFF (the centred-stick pitch).
+          The resulting pitch setpoint is additionally limited to this angle around level,
+          so with a non-zero FW_PSP_OFF the range is not symmetric.
+          Applies in all manual modes with attitude stabilization but without altitude control.
       type: float
       default: 30.0
       unit: deg

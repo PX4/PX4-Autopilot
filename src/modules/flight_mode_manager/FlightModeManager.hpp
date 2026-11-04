@@ -96,7 +96,7 @@ private:
 
 	/**
 	 * Switch to a specific task (for normal usage)
-	 * @param task index to switch to
+	 * @param new_task_index index to switch to
 	 * @return 0 on success, <0 on error
 	 */
 	FlightTaskError switchTask(FlightTaskIndex new_task_index);

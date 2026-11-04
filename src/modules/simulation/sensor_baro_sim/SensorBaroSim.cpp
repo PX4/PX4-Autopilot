@@ -43,7 +43,7 @@ SensorBaroSim::SensorBaroSim() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	srand(1234); // initialize the random seed once before calling generate_wgn()
+	srand(1234); // initialize the random seed once before calling math::generate_wgn()
 }
 
 SensorBaroSim::~SensorBaroSim()
@@ -57,35 +57,14 @@ bool SensorBaroSim::init()
 	return true;
 }
 
-float SensorBaroSim::generate_wgn()
+void SensorBaroSim::updateFailureConfig()
 {
-	// generate white Gaussian noise sample with std=1
+	_failure_config.update();
 
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
+	const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_BARO, 1);
 
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
+	_baro_blocked = (mode == failure_injection::Mode::Off);
+	_baro_stuck = (mode == failure_injection::Mode::Stuck);
 }
 
 void SensorBaroSim::Run()
@@ -107,6 +86,22 @@ void SensorBaroSim::Run()
 		updateParams();
 	}
 
+	updateFailureConfig();
+
+	if (_baro_blocked) {
+		perf_end(_loop_perf);
+		return;
+	}
+
+	if (_baro_stuck) {
+		// Publish stuck (last known) values
+		_px4_baro.set_temperature(_last_temperature);
+		_px4_baro.update(hrt_absolute_time(), _last_pressure);
+
+		perf_end(_loop_perf);
+		return;
+	}
+
 	if (_vehicle_global_position_sub.updated()) {
 		vehicle_global_position_s gpos;
 
@@ -125,35 +120,8 @@ void SensorBaroSim::Run()
 			const float pressure_msl = 101325.0f; // pressure at MSL
 			const float absolute_pressure = pressure_msl / pressure_ratio;
 
-			// generate Gaussian noise sequence using polar form of Box-Muller transformation
-			double y1;
-			{
-				double x1;
-				double x2;
-				double w;
-
-				if (!_baro_rnd_use_last) {
-					do {
-						x1 = 2. * (double)generate_wgn() - 1.;
-						x2 = 2. * (double)generate_wgn() - 1.;
-						w = x1 * x1 + x2 * x2;
-					} while (w >= 1.0);
-
-					w = sqrt((-2.0 * log(w)) / w);
-					// calculate two values - the second value can be used next time because it is uncorrelated
-					y1 = x1 * w;
-					_baro_rnd_y2 = x2 * w;
-					_baro_rnd_use_last = true;
-
-				} else {
-					// no need to repeat the calculation - use the second value from last update
-					y1 = _baro_rnd_y2;
-					_baro_rnd_use_last = false;
-				}
-			}
-
 			// Apply noise and drift
-			const float abs_pressure_noise = 1.f * (float)y1;  // 1 Pa RMS noise
+			const float abs_pressure_noise = 1.f * math::generate_wgn();  // 1 Pa RMS noise
 			_baro_drift_pa += _baro_drift_pa_per_sec * dt;
 			const float absolute_pressure_noisy = absolute_pressure + abs_pressure_noise + _baro_drift_pa;
 
@@ -162,6 +130,10 @@ void SensorBaroSim::Run()
 
 			// calculate temperature in Celsius
 			float temperature = temperature_local - 273.0f + _sim_baro_off_t.get();
+
+			// Store values for stuck mode
+			_last_pressure = pressure;
+			_last_temperature = temperature;
 
 			// publish
 			_px4_baro.set_temperature(temperature);

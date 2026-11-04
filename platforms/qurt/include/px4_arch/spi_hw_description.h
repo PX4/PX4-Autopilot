@@ -54,7 +54,7 @@ static inline constexpr px4_spi_bus_t initSPIBus(int bus, const px4_spi_bus_devi
 	}
 
 	ret.bus = bus;
-	ret.is_external = false; // all buses are marked internal on QuRT
+	ret.topology = BusTopology::Internal; // all buses are marked internal on QuRT
 	ret.requires_locking = false;
 	return ret;
 }

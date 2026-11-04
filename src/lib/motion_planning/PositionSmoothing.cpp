@@ -121,8 +121,10 @@ float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 	const bool target_next_different = fabsf(target(2) - next_target(2)) > 0.001f;
 
 	if (target_next_different) {
-		const float alpha = acosf(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
-						  Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()));
+		// rounding can push the dot product of two unit vectors past 1, which acosf turns into NaN
+		const float cos_alpha = math::constrain(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
+				Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()), -1.f, 1.f);
+		const float alpha = acosf(cos_alpha);
 
 		const float safe_alpha = math::constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
 		float accel_tmp = _trajectory[2].getMaxAccel();
@@ -155,10 +157,20 @@ const Vector3f PositionSmoothing::_getL1Point(const Vector3f &position, const Ve
 {
 	const Vector3f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition(),
 				_trajectory[2].getCurrentPosition());
-	const Vector3f u_prev_to_target = (waypoints[1] - waypoints[0]).unit_or_zero();
+	const Vector3f prev_to_target = waypoints[1] - waypoints[0];
+	const float leg_length = prev_to_target.length();
+	const Vector3f u_prev_to_target = (leg_length > FLT_EPSILON) ? prev_to_target / leg_length : Vector3f();
 	const Vector3f prev_to_pos(pos_traj - waypoints[0]);
-	const Vector3f prev_to_closest(u_prev_to_target * (prev_to_pos * u_prev_to_target));
-	const Vector3f closest_pt = waypoints[0] + prev_to_closest;
+	const float along_track = prev_to_pos * u_prev_to_target;
+
+	// If the trajectory has already passed the target, aim straight at it instead of
+	// projecting the look-ahead point further along the (extended) leg. Otherwise an
+	// overshoot of a not-yet-accepted waypoint marches the setpoint away from it forever.
+	if (along_track >= leg_length) {
+		return waypoints[1];
+	}
+
+	const Vector3f closest_pt = waypoints[0] + u_prev_to_target * along_track;
 
 	// Compute along-track error using L1 distance and cross-track error
 	const float crosstrack_error = (closest_pt - pos_traj).length();
@@ -208,17 +220,11 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 			_max_speed_previous = xy_speed;
 		}
 
-		// Compute XY and Z velocity components independently to avoid
-		// Z clamping from reducing XY speed (and vice versa)
-		const Vector3f pos_to_dest = crossing_point - pos_traj;
-		const Vector2f u_pos_to_dest_xy = Vector2f(pos_to_dest).unit_or_zero();
-		const float z_sign = matrix::sign(pos_to_dest(2));
-
-		Vector3f vel_sp_constrained{
-			u_pos_to_dest_xy(0) *xy_speed,
-			u_pos_to_dest_xy(1) *xy_speed,
-			z_sign *z_speed
-		};
+		// Scale one 3D direction to fit both limits, so the slower axis limits the other
+		// one and a leg that changes altitude is flown as a straight line
+		Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
+		math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
+		math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
 
 		for (int i = 0; i < 3; i++) {
 			// If available, use the existing velocity as a feedforward, otherwise replace it

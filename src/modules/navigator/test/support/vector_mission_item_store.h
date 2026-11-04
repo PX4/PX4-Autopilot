@@ -34,6 +34,11 @@
 /**
  * @file vector_mission_item_store.h
  *
+ * In-memory mission item store for navigator tests.
+ *
+ * Allows to mark specific indices as failed reads to cover error-handling paths
+ * without involving dataman or uORB.
+ *
  * @author Jonas Perolini <jonspero@me.com>
  *
  */
@@ -54,37 +59,87 @@ namespace navigator_test
 class VectorMissionItemStore
 {
 public:
+	/** Replace all stored items and clear any configured load and write failures. */
 	void setItems(const std::vector<mission_item_s> &items)
 	{
 		_items = items;
 		clearLoadFailures();
+		clearWriteFailures();
 	}
 
-	void setLoadFailureIndices(std::initializer_list<int32_t> indices)
+	/** Configure indices whose item() and loadItem() calls should fail. */
+	void setLoadFailureIndices(const std::vector<int32_t> &indices)
 	{
-		_load_failure_indices.assign(indices.begin(), indices.end());
+		_load_failure_indices = indices;
 	}
 
+	/** Remove all injected load failures. */
 	void clearLoadFailures()
 	{
 		_load_failure_indices.clear();
 	}
 
-	bool loadItem(int32_t index, mission_item_s &mission_item) const
+	/** Configure indices whose writeItem() calls should fail. */
+	void setWriteFailureIndices(std::initializer_list<int32_t> indices)
 	{
-		if (std::find(_load_failure_indices.begin(), _load_failure_indices.end(), index)
-		    != _load_failure_indices.end()) {
+		_write_failure_indices.assign(indices.begin(), indices.end());
+	}
+
+	/** Remove all injected write failures. */
+	void clearWriteFailures()
+	{
+		_write_failure_indices.clear();
+	}
+
+	/** Check write eligibility without changing the stored item. */
+	bool canWriteItem(int32_t index) const
+	{
+		return index >= 0
+		       && static_cast<std::size_t>(index) < _items.size()
+		       && std::find(_write_failure_indices.begin(), _write_failure_indices.end(), index)
+		       == _write_failure_indices.end();
+	}
+
+	/** Return false for injected failures and out-of-range indices; otherwise store the item. */
+	bool writeItem(int32_t index, const mission_item_s &mission_item)
+	{
+		if (!canWriteItem(index)) {
 			return false;
 		}
 
-		if (index < 0 || index >= static_cast<int32_t>(_items.size())) {
-			return false;
-		}
-
-		mission_item = _items[static_cast<std::size_t>(index)];
+		_items[static_cast<std::size_t>(index)] = mission_item;
 		return true;
 	}
 
+	/** Return nullptr for injected failures and out-of-range indices; otherwise the stored item. */
+	const mission_item_s *item(int32_t index) const
+	{
+		if (std::find(_load_failure_indices.begin(), _load_failure_indices.end(), index)
+		    != _load_failure_indices.end()) {
+			return nullptr;
+		}
+
+		if (index < 0 || index >= static_cast<int32_t>(_items.size())) {
+			return nullptr;
+		}
+
+		return &_items[static_cast<std::size_t>(index)];
+	}
+
+	/** Return false for injected failures and out-of-range indices; otherwise copy the item out. */
+	bool loadItem(int32_t index, mission_item_s &mission_item) const
+	{
+		const mission_item_s *stored_item = item(index);
+
+		if (stored_item == nullptr) {
+			return false;
+		}
+
+		mission_item = *stored_item;
+		return true;
+	}
+
+	/** Number of stored mission items. */
 	std::size_t itemCount() const
 	{
 		return _items.size();
@@ -93,6 +148,7 @@ public:
 private:
 	std::vector<mission_item_s> _items;
 	std::vector<int32_t> _load_failure_indices;
+	std::vector<int32_t> _write_failure_indices;
 };
 
 } // namespace navigator_test

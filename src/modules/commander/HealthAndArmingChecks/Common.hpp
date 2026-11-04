@@ -329,12 +329,17 @@ private:
 
 	friend class HealthAndArmingChecks;
 	friend class ExternalChecks;
+	friend class BatteryChecksTest; // publishes the reported events
 	FRIEND_TEST(ReporterTest, basic_no_checks);
 	FRIEND_TEST(ReporterTest, basic_fail_all_modes);
 	FRIEND_TEST(ReporterTest, arming_checks_mode_category);
 	FRIEND_TEST(ReporterTest, arming_checks_mode_category2);
 	FRIEND_TEST(ReporterTest, reporting);
 	FRIEND_TEST(ReporterTest, reporting_multiple);
+#if CONFIG_NAVIGATOR_ADSB
+	FRIEND_TEST(ReporterTest, daaCheckIgnoresStaleConflict);
+	FRIEND_TEST(ReporterTest, daaCheckIgnoresConflictWhileArmed);
+#endif // CONFIG_NAVIGATOR_ADSB
 
 	/**
 	 * Reset current results.

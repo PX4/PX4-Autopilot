@@ -30,7 +30,7 @@ Request to register an external component.
 | 명칭                                                                                                                                                        | 형식       | Value | 설명                                                                                                                                                                                                                     |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                        | `uint32` | 2     |                                                                                                                                                                                                                        |
-| <a id="#LATEST_PX4_ROS2_API_VERSION"></a> LATEST_PX4_ROS2_API_VERSION | `uint16` | 1     | API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change. |
+| <a id="#LATEST_PX4_ROS2_API_VERSION"></a> LATEST_PX4_ROS2_API_VERSION | `uint16` | 2     | API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change. |
 | <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                                 | `uint8`  | 2     |                                                                                                                                                                                                                        |
 
 ## Source Message
@@ -50,7 +50,7 @@ uint64 timestamp # time since system start (microseconds)
 uint64 request_id                  # ID, set this to a random value
 char[25] name                      # either the requested mode name, or component name
 
-uint16 LATEST_PX4_ROS2_API_VERSION = 1 # API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change.
+uint16 LATEST_PX4_ROS2_API_VERSION = 2 # API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change.
 
 uint16 px4_ros2_api_version   # Set to LATEST_PX4_ROS2_API_VERSION
 

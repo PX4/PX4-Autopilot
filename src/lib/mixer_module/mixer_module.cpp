@@ -41,9 +41,9 @@ using namespace time_literals;
 
 struct FunctionProvider {
 	using Constructor = FunctionProviderBase * (*)(const FunctionProviderBase::Context &context);
-	FunctionProvider(OutputFunction min_func_, OutputFunction max_func_, Constructor constructor_)
+	constexpr FunctionProvider(OutputFunction min_func_, OutputFunction max_func_, Constructor constructor_)
 		: min_func(min_func_), max_func(max_func_), constructor(constructor_) {}
-	FunctionProvider(OutputFunction func, Constructor constructor_)
+	constexpr FunctionProvider(OutputFunction func, Constructor constructor_)
 		: min_func(func), max_func(func), constructor(constructor_) {}
 
 	OutputFunction min_func;
@@ -51,7 +51,7 @@ struct FunctionProvider {
 	Constructor constructor;
 };
 
-static const FunctionProvider all_function_providers[] = {
+static constexpr FunctionProvider all_function_providers[] = {
 	// Providers higher up take precedence for subscription callback in case there are multiple
 	{OutputFunction::Constant_Min, &FunctionConstantMin::allocate},
 	{OutputFunction::Constant_Max, &FunctionConstantMax::allocate},
@@ -451,6 +451,7 @@ bool MixingOutput::update()
 	// get output values
 	float outputs[MAX_ACTUATORS];
 	bool all_disabled = true;
+	const uint32_t reversible_mask_prev = _reversible_mask;
 	_reversible_mask = 0;
 
 	for (int i = 0; i < _max_num_outputs; ++i) {
@@ -469,6 +470,10 @@ bool MixingOutput::update()
 		} else {
 			outputs[i] = NAN;
 		}
+	}
+
+	if (_reversible_mask != reversible_mask_prev) {
+		_interface.reversibleMaskChanged(_reversible_mask);
 	}
 
 	// Send output if any function mapped or one last disabling sample
@@ -550,8 +555,8 @@ float MixingOutput::output_limit_calc_single(int i, float value) const
 	     || (_function_assignment[i] >= OutputFunction::Gimbal_Roll
 		 && _function_assignment[i] <= OutputFunction::Gimbal_Yaw))
 	    && _param_handles[i].center != PARAM_INVALID
-	    && _center_value[i] >= 800
-	    && _center_value[i] <= 2200) {
+	    && _center_value[i] >= _min_value[i]
+	    && _center_value[i] <= _max_value[i]) {
 		output = math::interpolateNXY(value, {-1.f, 0.f, 1.f}, {(float)_min_value[i], (float)_center_value[i], (float)_max_value[i]});
 	}
 

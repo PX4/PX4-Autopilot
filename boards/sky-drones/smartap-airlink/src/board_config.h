@@ -257,11 +257,6 @@
 #define RC_SERIAL_PORT                     "/dev/ttyS5"
 #define RC_SERIAL_SINGLEWIRE
 
-/* Input Capture Channels. */
-#define INPUT_CAP1_TIMER                  5
-#define INPUT_CAP1_CHANNEL     /* T5C4 */ 4
-#define GPIO_INPUT_CAP1        /*  PI0 */ GPIO_TIM5_CH4IN
-
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
 #define PWMIN_TIMER_CHANNEL    /* T4C2 */ 2
@@ -275,10 +270,10 @@
 #define GPIO_nSAFETY_SWITCH_LED_OUT_INIT   /* PD10 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTD|GPIO_PIN10)
 #define GPIO_nSAFETY_SWITCH_LED_OUT        /* PD10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
 
-/* Enable the FMU to control it if there is no px4io fixme:This should be BOARD_SAFETY_LED(__ontrue) */
+/* Enable the FMU to control it if there is no px4io */
 #define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT
 #define GPIO_SAFETY_SWITCH_IN              /* PH4 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTH|GPIO_PIN4)
-/* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
+/* Enable the FMU to use the switch if there is no px4io */
 #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
 
 /* Power switch controls ******************************************************/
@@ -355,9 +350,6 @@
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 5
-
-
-#define PX4_I2C_BUS_MTD      4,5
 
 __BEGIN_DECLS
 

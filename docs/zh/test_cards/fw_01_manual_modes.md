@@ -6,7 +6,7 @@ To test that manual flight modes work as expected for fixed wing vehicles.
 
 ## Preflight
 
-Ensure that the vehicle can go into Stabilized, Altitude, and Position mode while still on the ground.
+Ensure that the vehicle can go into Stabilized, Altitude, and Cruise while still on the ground.
 
 ## Flight Tests
 
@@ -30,7 +30,7 @@ Ensure that the vehicle can go into Stabilized, Altitude, and Position mode whil
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Roll/Yaw respond correctly to stick movement
 
-❏ 定点
+❏ Cruise
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Vehicle should hold current heading and loiter with stick centered
 

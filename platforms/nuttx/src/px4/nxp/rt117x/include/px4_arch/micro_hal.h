@@ -43,6 +43,7 @@ __BEGIN_DECLS
 #define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO
 
 #include <chip.h>
+#include <ssarc_dump.h>
 #include <imxrt_lpspi.h>
 #include <imxrt_lpi2c.h>
 #include <imxrt_iomuxc.h>
@@ -85,7 +86,7 @@ __BEGIN_DECLS
 
 #define px4_savepanic(fileno, context, length)  ssarc_dump_savepanic(fileno, context, length)
 
-#if defined(CONFIG_BOARD_CRASHDUMP)
+#if defined(CONFIG_BOARD_CRASHDUMP_CUSTOM)
 #  define HAS_SSARC             1
 #  define PX4_HF_GETDESC_IOCTL  SSARC_DUMP_GETDESC_IOCTL
 #  define PX4_SSARC_DUMP_BASE   IMXRT_SSARC_HP_BASE
@@ -111,6 +112,7 @@ int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool 
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  imxrt_gpiosetevent(pinset,r,f,e,fp,a)
 
 #define PX4_MAKE_GPIO_INPUT(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT ))
+#define PX4_MAKE_GPIO_EXTI(gpio) PX4_MAKE_GPIO_INPUT(gpio)
 #define PX4_MAKE_GPIO_PULLED_INPUT(gpio, pull) (PX4_MAKE_GPIO_INPUT((gpio)) | (pull))
 #define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP  | IOMUX_SLEW_FAST))
 #define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ONE | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP   | IOMUX_SLEW_FAST))

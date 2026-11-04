@@ -33,7 +33,7 @@ For more information see: [Flight Analysis](../dev_log/flight_log_analysis.md).
 
 :::tip
 If you have a constant high-rate MAVLink connection to the vehicle (not just a telemetry link) then you can use _QGroundControl_ to automatically upload logs directly to _Flight Review_.
-For more information see [Settings > MAVLink Settings > MAVLink 2 Logging (PX4 only)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/mavlink.html#logging).
+For more information see [Settings > MAVLink Settings > MAVLink 2 Logging (PX4 only)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/px4_log_transfer.html).
 :::
 
 ## Надання доступу до файлів журналів розробникам PX4

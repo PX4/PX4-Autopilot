@@ -78,6 +78,7 @@ function(px4_os_add_flags)
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/common
 
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps/include
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include
 	)
 
 
@@ -91,6 +92,7 @@ function(px4_os_add_flags)
 
 	if(NOT CONFIG_LIB_TFLM)
 		list(APPEND cxx_flags -nostdinc++) # prevent using the toolchain's std c++ library if building for anything else than TFLM
+		list(APPEND cxx_flags -include${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx/abs_overloads.hpp)
 	endif()
 
 	foreach(flag ${cxx_flags})
@@ -176,6 +178,9 @@ function(px4_os_determine_build_chip)
 	elseif(CONFIG_ARCH_CHIP_ESP32)
 		set(CHIP_MANUFACTURER "espressif")
 		set(CHIP "esp32")
+	elseif(CONFIG_ARCH_CHIP_ERBIUM)
+		set(CHIP_MANUFACTURER "aifoundry")
+		set(CHIP "erbium")
 	else()
 		message(FATAL_ERROR "Could not determine chip architecture from NuttX config. You may have to add it.")
 	endif()

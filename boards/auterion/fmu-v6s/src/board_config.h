@@ -84,8 +84,6 @@
  * Note that these are unshifted addresses.
  */
 #define BOARD_MTD_NUM_EEPROM 1 /* MTD: imu_eeprom */
-#define PX4_I2C_BUS_MTD      4
-
 
 /* CAN */
 #define UAVCAN_NUM_IFACES_RUNTIME  1

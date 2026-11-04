@@ -33,7 +33,9 @@
 
 #pragma once
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -42,6 +44,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/failure_injection.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -69,18 +72,19 @@ public:
 
 private:
 	void Run() override;
-
-	// generate white Gaussian noise sample with std=1
-	static float generate_wgn();
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz) { return matrix::Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz); }
+	void updateFailureConfig();
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
+	failure_injection::Config _failure_config;
 
 	PX4Magnetometer _px4_mag{197388, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 3, TYPE: SIMULATION
+
+	bool _mag_blocked{false};
+	bool _mag_stuck{false};
+	bool _last_field_valid{false};
+	matrix::Vector3f _last_field{};
 
 	bool _mag_earth_available{false};
 

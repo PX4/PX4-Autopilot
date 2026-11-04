@@ -25,6 +25,12 @@ then
 	param set-default HEATER1_SENS_ID 3014666
 fi
 
+if ver hwtypecmp ARKFPV001
+then
+	# LSM6DSV32X on SPI1 (device_id Type=0x13, SPI:1)
+	param set-default HEATER1_SENS_ID 1245194
+fi
+
 param set-default BAT1_V_DIV 21.0
 param set-default BAT1_V_FILT 0.075
 param set-default BAT1_I_FILT 0.5

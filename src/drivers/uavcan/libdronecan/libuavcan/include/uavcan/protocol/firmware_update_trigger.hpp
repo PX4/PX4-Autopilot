@@ -142,7 +142,7 @@ class FirmwareUpdateTrigger : public INodeInfoListener,
 
     typedef IFirmwareVersionChecker::FirmwareFilePath FirmwareFilePath;
 
-    enum { DefaultRequestIntervalMs = 1000 };   ///< Shall not be less than default service response timeout.
+    enum { DefaultRequestIntervalMs = 250 };
 
     struct NextNodeIDSearchPredicate : ::uavcan::Noncopyable
     {

@@ -22,12 +22,12 @@ param set-default UAVCAN_SUB_GPS 1
 param set-default UAVCAN_SUB_BAT 1
 
 # IMU thermal control (multi-instance heater)
-# HEATER1_IMU_ID: 6029322(ADIS16607 SPI1)
-# HEATER2_IMU_ID: 3014698(IIM42653 SPI5)
+# HEATER1_SENS_ID: 6029322(ADIS16607 SPI1)
+# HEATER2_SENS_ID: 3014698(IIM42653 SPI5)
 param set-default SENS_EN_THERMAL 1
-param set-default HEATER1_IMU_ID 6029322
+param set-default HEATER1_SENS_ID 6029322
 param set-default HEATER1_TEMP 45
-param set-default HEATER2_IMU_ID 3014698
+param set-default HEATER2_SENS_ID 3014698
 param set-default HEATER2_TEMP 45
 
 # CUAV pwm voltage 3.3V/5V switch

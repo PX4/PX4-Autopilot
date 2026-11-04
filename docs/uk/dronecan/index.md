@@ -71,12 +71,15 @@ DroneCAN was previously known as UAVCAN v0 (or just UAVCAN).
 - Датчики відстані
   - [ARK Dist](ark_dist.md)
   - [Ark Dist MR](ark_dist_mr.md)
-  - [ARK Flow](ark_flow.md)
-  - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
+  - [Smartmicro Drone Altimeter](smartmicro_t132.md)
+
+- Захоплювачі
+  - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 
 - Оптичний потік(Optical Flow)
+  - [Agam FloRange](agam_florange.md)
   - [Ark Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
 
@@ -109,7 +112,7 @@ The PX4 node ID can be configured using the [UAVCAN_NODE_ID](../advanced_config/
 
 Devices running the [PX4 DroneCAN firmware](px4_cannode_fw.md) (such as [ARK CANnode](ark_cannode.md)) can use the
 [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) parameter to set a static node ID.
-Set it to 0 (default) for dynamic allocation, or to a value between 1-127 to use a specific static node ID.
+Set it to 0 (default) for dynamic allocation, or to a value between 1-125 to use a specific static node ID.
 :::
 
 :::warning
@@ -150,6 +153,7 @@ For example, [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_F
 
 For example, to use a connected DroneCAN smart battery you would enable the [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) parameter, which would subscribe PX4 to receive [BatteryInfo](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#batteryinfo) DroneCAN messages.
 If using a peripheral that needs to know if PX4 is armed, you would need to set the [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) parameter so that PX4 starts publishing [ArmingStatus](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus) messages.
+ArmingStatus is published automatically when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is `3` (ESC output).
 
 The parameter names are prefixed with `UAVCAN_SUB_` and `UAVCAN_PUB_` to indicate whether they enable PX4 subscribing or publishing.
 Решта назви вказує на конкретне повідомлення/функцію, яка встановлюється.
@@ -164,7 +168,7 @@ Note that a peripheral might not use `CANNODE_` parameters, in which case it may
 
 #### Датчики
 
-Параметри/підписки сенсора DroneCAN, які можна активувати (у PX4 v1.14):
+The DroneCAN sensor parameters/subscriptions that you can enable are (from PX4 v1.14):
 
 - [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD): Airspeed
 - [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO): Barometer
@@ -194,7 +198,7 @@ GPS CANNODE parameter ([set using QGC](#qgc-cannode-parameter-configuration)):
 
 Інші параметри PX4:
 
-- If the GPS is not positioned at the vehicle centre of gravity you can account for the offset using [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY) and [SENS_GPS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GPS0_OFFZ).
+- If the GPS is not positioned at the vehicle centre of gravity you can account for the offset using [SENS_GNSS0_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS0_OFFY](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFY) and [SENS_GNSS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFZ).
 - If the GPS module provides yaw information, you can enable GPS yaw fusion by setting bit 3 of [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to true.
 
 #### RTK-GPS
@@ -230,7 +234,8 @@ These parameters can be [set on moving base and rover RTK CAN nodes](#qgc-cannod
 - [CANNODE_PUB_MBD](../advanced_config/parameter_reference.md#CANNODE_PUB_MBD) causes a moving base GPS unit to publish [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata)RTCM messages onto the bus (for the rover)
 - [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) tells the rover that it should subscribe to [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata) RTCM messages on the bus (from the moving base).
 
-For PX4 you will also need to set [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET) to indicate the relative position of the moving base and rover: 0 if your Rover is in front of your Moving Base, 90 if Rover is right of Moving Base, 180 if Rover is behind Moving Base, or 270 if Rover is left of Moving Base.
+On the autopilot, set [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Moving base rover` for the rover's slot (matched by [SENS_GNSSn_ID](../advanced_config/parameter_reference.md#SENS_GNSS0_ID)) and the antenna offsets of both nodes (see [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
+A node running older firmware subtracts its own `GPS_YAW_OFFSET`; leave that at 0.
 
 #### Барометр
 
@@ -279,6 +284,14 @@ If the rangefinder is connected via DroneCAN (whether inbuilt or separate), you 
 Параметри PX4 DroneCAN:
 
 - [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) ([Arming Status](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus)): Publish when using DroneCAN components that require the PX4 arming status as a precondition for use.
+  Not required for DroneCAN ESCs: ArmingStatus is published automatically when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is `3`.
+
+#### Захоплювачі
+
+DroneCAN grippers do not require any `UAVCAN_SUB_*`, `UAVCAN_PUB_*`, `CANNODE_SUB_*`, or `CANNODE_PUB_*` parameters.
+When DroneCAN is enabled, PX4 automatically publishes [`uavcan.equipment.hardpoint.Command`](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#uavcanequipmenthardpoint) messages to forward `MAV_CMD_DO_GRIPPER` commands.
+
+See [Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md) for an example setup.
 
 ### ESC & Servos
 
@@ -306,7 +319,7 @@ For example, the screenshot below shows the parameters for a CAN GPS with node i
 
 Common CANNODE parameters that you can configure include:
 
-- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-127) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
+- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-125) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
 - [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM): Enable CAN bus termination on the last node in the bus.
 
 ## Налаштування пристрою
@@ -322,6 +335,17 @@ PX4 identifies valid firmware binaries (`.bin`) based on the presence of an **AP
 PX4 uses this descriptor to match each binary to the correct node and to determine whether an update is needed.
 :::
 
+### Getting Firmware
+
+Every PX4 release publishes the firmware for CAN nodes built by PX4 as `<target>.uavcan.bin` (for example `cuav_can-gps-v1_default.uavcan.bin`), attached to the [GitHub release](https://github.com/PX4/PX4-Autopilot/releases).
+When you build a CAN node target yourself with `make <target>`, the `.uavcan.bin` file is written to `build/<target>/`.
+
+:::info
+Flight controller builds can no longer embed CAN node firmware in their ROMFS.
+The `CONFIG_BOARD_UAVCAN_PERIPHERALS` board option and the `px4_fmu-v5_uavcanv0periph` build that used it (embedding CUAV CAN GPS v1 firmware) were removed after PX4 v1.18.
+Copy the node's `.uavcan.bin` to the SD card as described below instead.
+:::
+
 ### Firmware Directories
 
 Place firmware binaries in one of these locations on the SD card before rebooting:
@@ -334,31 +358,12 @@ On boot, PX4 scans both locations, reads the board ID from the _APDescriptor_ of
 The source file is then deleted.
 Any connected node whose running version does not match is then flashed over the CAN bus.
 
-### Firmware Database
-
-A flat-file database at `/fs/microsd/ufw/FW.db` maps each board ID to the original firmware filename that was installed.
-This may be queried by external tools to determine current firmware versions.
-
-Example entry:
-
-```txt
-122.bin=122-1.17.63eeff1a.uavcan.bin
-```
-
-Entries are removed on boot if their corresponding firmware is not present.
-
 ### Remote Update
 
 Remote updates can be made by uploading the corresponding bin files to `/fs/microsd/ufw_staging/`.
 PX4 will then update firmware on next boot.
 
 This approach enables efficient mass-update of binaries from archives (`.zip` or `.tar` that contains `.bin` files for the target CAN nodes).
-Tools can:
-
-1. Read the PX4 firmware database to determine what firmware is present
-2. Extract the more-recent versions of matching firmware to the staging directory
-
-PX4 does not provide such tools.
 
 :::info
 Auterion uses a form of this workflow to update CAN firmware to SkyNode based devices.
@@ -372,7 +377,7 @@ The `upload_skynode.sh` script with multiple `--ext-fw` flags is used to bundle 
   --ext-fw=build/auterion_canio_default/some_other_default.uavcan.bin
 ```
 
-Another tool then checks the firmware database and extracts just the relevant files to the PX4 firmware staging area.
+Another tool then checks which files were already uploaded using a local database and extracts just the relevant files to the PX4 firmware staging area.
 :::
 
 ## Усунення проблем

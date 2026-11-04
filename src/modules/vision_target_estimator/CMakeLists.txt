@@ -73,7 +73,6 @@ set(VTEST_POSITION_GENERATED_HEADERS
 	predictCov.h
 	computeInnovCov.h
 	predictState.h
-	getTransitionMatrix.h
 	applyCorrection.h
 )
 
@@ -101,7 +100,6 @@ set(VTEST_ORIENTATION_DERIVATION_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Orientation
 set(VTEST_ORIENTATION_PREGENERATED_DIR ${VTEST_ORIENTATION_DERIVATION_SRC_DIR}/generated)
 set(VTEST_ORIENTATION_GENERATED_HEADERS
 	predictState.h
-	getTransitionMatrix.h
 	predictCov.h
 )
 vtest_generated_files_in_dir(VTEST_ORIENTATION_PREGENERATED_FILES
@@ -278,6 +276,7 @@ if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 		SRCS
 			VisionTargetEst.cpp
 			tasks/PrecLandTask.cpp
+			tasks/PrecTakeoffTask.cpp
 			Position/VTEPosition.cpp
 			Position/KF_position.cpp
 			Orientation/VTEOrientation.cpp

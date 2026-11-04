@@ -400,6 +400,17 @@ int8_t UavcanSensorBridgeBase::get_channel_index_for_node(int node_id)
 	return ch;
 }
 
+int UavcanSensorBridgeBase::get_orb_instance_for_node(int node_id)
+{
+	for (unsigned i = 0; i < _max_channels; i++) {
+		if (_channels[i].node_id == node_id) {
+			return _channels[i].instance;
+		}
+	}
+
+	return -1;
+}
+
 void UavcanSensorBridgeBase::print_status() const
 {
 	printf("name: %s\n", _name);

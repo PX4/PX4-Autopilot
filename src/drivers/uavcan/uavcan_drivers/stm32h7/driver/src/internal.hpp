@@ -10,7 +10,6 @@
 #if UAVCAN_STM32H7_NUTTX
 # include <nuttx/arch.h>
 # include <arch/board/board.h>
-# include <hardware/stm32_tim.h>
 # include <syslog.h>
 #else
 # error "Unknown OS"

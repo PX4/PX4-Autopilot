@@ -58,35 +58,14 @@ bool SensorMagSim::init()
 	return true;
 }
 
-float SensorMagSim::generate_wgn()
+void SensorMagSim::updateFailureConfig()
 {
-	// generate white Gaussian noise sample with std=1
+	_failure_config.update();
 
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
+	const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_MAG, 1);
 
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
+	_mag_blocked = (mode == failure_injection::Mode::Off);
+	_mag_stuck = (mode == failure_injection::Mode::Stuck);
 }
 
 void SensorMagSim::Run()
@@ -106,6 +85,13 @@ void SensorMagSim::Run()
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
+	}
+
+	updateFailureConfig();
+
+	if (_mag_blocked) {
+		perf_end(_loop_perf);
+		return;
 	}
 
 	if (_vehicle_global_position_sub.updated()) {
@@ -132,12 +118,24 @@ void SensorMagSim::Run()
 		if (_vehicle_attitude_sub.update(&attitude)) {
 			Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
 
-			expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
+			expected_field += math::noiseGauss3f(0.02f, 0.02f, 0.03f);
+			expected_field += Vector3f(_sim_mag_offset_x.get(),
+						   _sim_mag_offset_y.get(),
+						   _sim_mag_offset_z.get());
+
+			if (_mag_stuck && _last_field_valid) {
+				// Replay the last field seen before the failure was injected
+				expected_field = _last_field;
+
+			} else {
+				_last_field = expected_field;
+				_last_field_valid = true;
+			}
 
 			_px4_mag.update(attitude.timestamp,
-					expected_field(0) + _sim_mag_offset_x.get(),
-					expected_field(1) + _sim_mag_offset_y.get(),
-					expected_field(2) + _sim_mag_offset_z.get());
+					expected_field(0),
+					expected_field(1),
+					expected_field(2));
 		}
 	}
 

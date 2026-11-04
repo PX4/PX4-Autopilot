@@ -114,7 +114,7 @@ class TesterInterfaceRos(test_runner.TesterInterface):
         return "tmp_ros_tests"
 
 
-def main() -> NoReturn:
+def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--list-cases", action='store_true',
                         help="List available test cases")
@@ -139,15 +139,23 @@ def main() -> NoReturn:
                         help="Force colorized output")
     parser.add_argument("--verbose", default=False, action='store_true',
                         help="enable more verbose output")
-    parser.add_argument("--config-file", help="JSON config file to use",
-                        default="test/ros_tests/config.json")
+    parser.add_argument("--config-file",
+                        help="JSON config file to use "
+                             "(default: test/ros_tests/config-sih.json)",
+                        default="test/ros_tests/config-sih.json")
     parser.add_argument("--build-dir", type=str,
-                        default='build/px4_sitl_default/',
-                        help="relative path where the built files are stored")
+                        default='build/px4_sitl_sih/',
+                        help="relative path where the built files are stored "
+                             "(default: build/px4_sitl_sih/)")
     parser.add_argument("--px4-ros2-interface-lib-build-dir", type=str,
                         default=None,
                         help="path which contains the integration_tests binary. "
                              "If not provided, it is determined via 'ros2 pkg'")
+    return parser
+
+
+def main() -> NoReturn:
+    parser = create_argument_parser()
     args = parser.parse_args()
 
     if args.force_color:
@@ -174,6 +182,9 @@ def main() -> NoReturn:
               .format(config["mode"]))
         sys.exit(1)
 
+    if config.get("simulator") == "sih" and args.gui:
+        parser.error("--gui is not supported by the SIH backend")
+
     if not is_everything_ready(config, args.build_dir):
         sys.exit(1)
 
@@ -197,6 +208,12 @@ def main() -> NoReturn:
         args.build_dir,
         tester_interface
     )
+    empty_filters = [test['test_filter'] for test in tester.tests
+                     if test['selected'] and not test['cases']]
+    if empty_filters:
+        parser.error("Configured test filters matched no cases: " + ", ".join(empty_filters))
+    if tester.num_cases() == 0:
+        parser.error("No test cases selected; check --config-file, --model and --case")
     signal.signal(signal.SIGINT, tester.sigint_handler)
 
     # Automatically start & stop the XRCE Agent if not running already
@@ -234,11 +251,16 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
                   "run `killall px4` and try again")
             result = False
         if not os.path.isfile(os.path.join(build_dir, 'bin/px4')):
-            print("PX4 SITL is not built\n"
-                  "run `DONT_RUN=1 make px4_sitl gazebo` or "
-                  "`DONT_RUN=1 make px4_sitl_default gazebo`")
+            if config.get('simulator') == 'sih':
+                print("PX4 SIH SITL is not built\n"
+                      "run `make px4_sitl_sih` and use "
+                      "`--build-dir build/px4_sitl_sih`")
+            else:
+                print("PX4 SITL is not built\n"
+                      "run `DONT_RUN=1 make px4_sitl gazebo` or "
+                      "`DONT_RUN=1 make px4_sitl_default gazebo`")
             result = False
-        if config['simulator'] == 'gazebo':
+        if config.get('simulator') == 'gazebo':
             if is_running('gzserver'):
                 print("gzserver process already running\n"
                       "run `killall gzserver` and try again")

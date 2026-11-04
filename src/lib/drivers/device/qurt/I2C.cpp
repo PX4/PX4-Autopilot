@@ -71,7 +71,7 @@ struct I2C::_bus_mutex_t I2C::_bus_mutex[I2C::MAX_I2C_BUS] = {
 };
 
 I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency) :
-	CDev(name, nullptr),
+	Device(name),
 	_frequency(frequency / 1000)
 {
 	_device_id.devid = 0;
@@ -88,6 +88,7 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 I2C::I2C(const I2CSPIDriverConfig &config)
 	: I2C(config.devid_driver_index, config.module_name, config.bus, config.i2c_address, config.bus_frequency)
 {
+	set_external(config.external);
 }
 
 I2C::~I2C()
@@ -146,10 +147,10 @@ I2C::init()
 	}
 
 	// do base class init, which will create device node, etc
-	ret = CDev::init();
+	ret = Device::init();
 
 	if (ret != OK) {
-		PX4_ERR("i2c cdev init failed");
+		PX4_ERR("i2c init failed");
 		goto out;
 	}
 

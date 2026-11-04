@@ -24,7 +24,7 @@ To subscribe to data coming from nodes that publish in a different frame (for ex
 
 Follow the instructions in [ROS 2 User Guide](../ros2/user_guide.md) to install PX and run the multicopter simulator, install ROS 2, and start the XRCE-DDS Agent.
 
-After that we can follow a similar set of steps to those in [ROS 2 User Guide > Build ROS 2 Workspace](../ros2/user_guide.md#build-ros-2-workspace) to run the example.
+After that we can follow a similar set of steps to those in [ROS 2 User Guide > Running an example (optional)](../ros2/user_guide.md#running-an-example-optional) to run the example.
 
 :::tip
 Make sure that QGC is connected to PX4 before running the ROS 2 node.
@@ -219,4 +219,4 @@ The param and command fields map to [MAVLink commands](https://mavlink.io/en/mes
 
 ## See Also
 
-- [Python ROS2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard).
+- [Python ROS 2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard).

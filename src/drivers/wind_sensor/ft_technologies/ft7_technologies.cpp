@@ -158,8 +158,12 @@ int Ft7Technologies::collect()
 	for (int i = 0; i < ret; i++) {
 		// _px4_windsensor.update(timestamp_sample, (double)ret, 13.0f, _status);
 		// received a full message
-		_readbuf[_byte_counter]  = readbuf[i];
-		_byte_counter += 1;
+		// The counters below only reset on a delimiter or end of line, so a sensor that
+		// sends neither would otherwise walk off the end of each buffer.
+		if (_byte_counter < (int)sizeof(_readbuf)) {
+			_readbuf[_byte_counter] = readbuf[i];
+			_byte_counter += 1;
+		}
 
 
 		if (readbuf[i] == '\n') {
@@ -193,8 +197,8 @@ int Ft7Technologies::collect()
 			_byte_counter = 0;
 			_msg_byte_counter = 0;
 			_checksum_counter = 0;
-			memset(readbuf, 0, sizeof(_linebuf));
-			memset(_readbuf, 0, sizeof(_linebuf));
+			memset(readbuf, 0, sizeof(readbuf));
+			memset(_readbuf, 0, sizeof(_readbuf));
 			memset(_raw_speed, 0, 5);
 			memset(_raw_angle, 0, 5);
 			memset(_raw_status, 0, 2);
@@ -210,18 +214,29 @@ int Ft7Technologies::collect()
 
 			if (readbuf[i] != '.') {
 
+				// Each field is NUL-terminated by the memset on the previous message, so the
+				// last element has to stay clear for the atoi() calls above.
 				if (_msg_part_counter == 3) { // speed measurement
-					_raw_speed[_msg_byte_counter] = readbuf[i];
+					if (_msg_byte_counter < (int)sizeof(_raw_speed) - 1) {
+						_raw_speed[_msg_byte_counter] = readbuf[i];
+					}
 
 				} else if (_msg_part_counter == 4) { // angle measurement
-					_raw_angle[_msg_byte_counter] = readbuf[i];
+					if (_msg_byte_counter < (int)sizeof(_raw_angle) - 1) {
+						_raw_angle[_msg_byte_counter] = readbuf[i];
+					}
 
 				} else if (_msg_part_counter == 5) { // status
-					_raw_status[_msg_byte_counter] = readbuf[i];
+					if (_msg_byte_counter < (int)sizeof(_raw_status) - 1) {
+						_raw_status[_msg_byte_counter] = readbuf[i];
+					}
 
 				} else if (_msg_part_counter == 6) { // checksum
 					_checksum_counter += 1;
-					_raw_checksum[_msg_byte_counter] = readbuf[i];
+
+					if (_msg_byte_counter < (int)sizeof(_raw_checksum) - 1) {
+						_raw_checksum[_msg_byte_counter] = readbuf[i];
+					}
 
 				}
 

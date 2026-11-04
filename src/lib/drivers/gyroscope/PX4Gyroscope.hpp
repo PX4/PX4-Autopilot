@@ -39,15 +39,19 @@
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 
+#include <lib/failure_injection/FailureInjection.hpp>
+
 class PX4Gyroscope
 {
 public:
 	PX4Gyroscope(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
+	PX4Gyroscope(uint32_t device_id, enum Rotation rotation, bool external);
 	~PX4Gyroscope();
 
 
-	void set_device_id(uint32_t device_id) { _device_id = device_id; }
+	void set_device_id(uint32_t device_id);
 	void set_device_type(uint8_t devtype);
+	void set_external(bool external);
 	void set_error_count(uint32_t error_count) { _error_count = error_count; }
 	void set_range(float range) { _range = range; UpdateClipLimit(); }
 	void set_scale(float scale);
@@ -70,6 +74,9 @@ private:
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
 
+	bool			_is_external{false};
+	bool			_external_forced{false}; // classification set by the driver, do not re-derive from the device id
+
 	int32_t			_imu_gyro_rate_max{0};
 
 	float			_range{math::radians(2000.f)};
@@ -81,4 +88,8 @@ private:
 	uint32_t		_error_count{0};
 
 	int16_t			_last_sample[3] {};
+
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<sensor_gyro_s> _stuck;
+	failure_injection::Stuck<sensor_gyro_fifo_s> _stuck_fifo;
 };

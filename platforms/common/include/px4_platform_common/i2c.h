@@ -34,6 +34,7 @@
 #pragma once
 
 #include <board_config.h>
+#include <px4_platform_common/bus_topology.h>
 
 #if defined(CONFIG_I2C)
 
@@ -41,40 +42,72 @@
 
 struct px4_i2c_bus_t {
 	int bus{-1}; ///< physical bus number (1, ...) (-1 means this is unused)
-	bool is_external; ///< static external configuration. Use px4_i2c_bus_external() to check if a bus is really external
+	BusTopology topology{BusTopology::External};
 };
 
 __EXPORT extern const px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS]; ///< board-specific I2C bus configuration
 
-/**
- * runtime-check if a board has a specific bus as external.
- * This can be overridden by a board to add run-time checks.
- */
-__EXPORT bool px4_i2c_bus_external(int bus);
+static inline constexpr px4_i2c_bus_t initI2CBusInternal(int bus)
+{
+	px4_i2c_bus_t ret{};
+	ret.bus = bus;
+	ret.topology = BusTopology::Internal;
+	return ret;
+}
+
+static inline constexpr px4_i2c_bus_t initI2CBusExternal(int bus)
+{
+	px4_i2c_bus_t ret{};
+	ret.bus = bus;
+	ret.topology = BusTopology::External;
+	return ret;
+}
+
+static inline constexpr px4_i2c_bus_t initI2CBusShared(int bus)
+{
+	px4_i2c_bus_t ret{};
+	ret.bus = bus;
+	ret.topology = BusTopology::Shared;
+	return ret;
+}
 
 /**
- * runtime-check if a board has a specific device as external.
- * This can be overridden by a board to add run-time checks.
+ * Bus topology for a physical I2C bus.
+ * Unknown bus numbers are External (a connector we have not listed).
+ * Boards may override this (BOARD_OVERRIDE_I2C_BUS_TOPOLOGY) for runtime HW variants.
  */
-__EXPORT bool px4_i2c_device_external(const uint32_t device_id);
+__EXPORT BusTopology px4_i2c_bus_topology(int bus);
+
+static inline bool px4_i2c_bus_has_external(int bus)
+{
+	return bus_topology_has_external(px4_i2c_bus_topology(bus));
+}
+
+static inline bool px4_i2c_bus_has_internal(int bus)
+{
+	return bus_topology_has_internal(px4_i2c_bus_topology(bus));
+}
 
 /**
  * @class I2CBusIterator
- * Iterate over configured I2C buses by the board
+ * Iterate over configured I2C buses by the board.
+ *
+ * InternalBus: Internal buses, plus a Shared bus when -b pins that bus.
+ * ExternalBus: External and Shared buses (probe for unknown devices).
+ *
+ * -b is the physical bus number (1, 2, ...), not an external-bus index.
+ * external() is the sensor classification implied by the filter (-I vs -X),
+ * not the bus topology.
  */
 class I2CBusIterator
 {
 public:
 	enum class FilterType {
 		All, ///< specific or all buses
-		InternalBus, ///< specific or all internal buses
-		ExternalBus, ///< specific or all external buses
+		InternalBus, ///< onboard sensors: Internal buses, Shared if -b is given
+		ExternalBus, ///< connector sensors: External and Shared buses
 	};
 
-	/**
-	 * @param bus specify bus: starts with 1, -1=all. Internal: arch-specific bus numbering is used,
-	 *             external: n-th external bus
-	 */
 	I2CBusIterator(FilterType filter, int bus = -1)
 		: _filter(filter), _bus(bus) {}
 
@@ -84,7 +117,7 @@ public:
 
 	int externalBusIndex() const { return _external_bus_counter; }
 
-	bool external() const { return px4_i2c_bus_external(bus().bus); }
+	bool external() const { return _filter == FilterType::ExternalBus; }
 
 private:
 	const FilterType _filter;

@@ -2,7 +2,7 @@
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
-Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or compliance issues.
+Contact the [manufacturer](https://www.accton-iot.com/godwit/) for hardware support or compliance issues.
 :::
 
 The G-A1 is a state-of-the-art flight controller derived from the [Pixhawk Autopilot v6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf).
@@ -68,7 +68,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ## Where to Buy {#store}
 
 - [Accton-IoT Godwit](https://www.accton-iot.com/godwit/)
-- [sales@accton-iot.com](sales@accton-iot.com)
+- [sales@accton-iot.com](mailto:sales@accton-iot.com)
 
 ## 핀배열
 
@@ -149,5 +149,5 @@ make accton-godwit_ga1
 ## More Information and Support
 
 - [Accton-IoT Godwit](https://www.accton-iot.com/godwit/)
-- [sales@accton-iot.com](sales@accton-iot.com)
+- [sales@accton-iot.com](mailto:sales@accton-iot.com)
 - [support@accton-iot.com](mailto:support@accton-iot.com)

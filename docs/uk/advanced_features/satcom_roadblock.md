@@ -51,7 +51,7 @@ The details of the [connectors](https://docs.groundcontrol.com/iot/rockblock/spe
 To [switch between the two antennas modes](https://docs.groundcontrol.com/iot/rockblock/user-manual/9603-atenna-mode) the position of a small RF link cable needs to changed.
 Якщо використовується зовнішня антена, завжди переконуйтеся, що антена підключена до модуля перед включенням живлення, щоб уникнути пошкодження модуля.
 
-Стандартна швидкість передачі даних модуля - 19200. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://www.groundcontrol.com/wp-content/uploads/2022/02/IRDM_ISU_ATCommandReferenceMAN0009_Rev2.0_ATCOMM_Oct2012.pdf).
+Стандартна швидкість передачі даних модуля - 19200. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://docs.groundcontrol.com/iot/rockblock/user-manual/at-commands).
 
 1. Connect to the module with using a 19200/8-N-1 setting and check if the communication is working using the command: `AT`.
    Відповідь має бути: `OK`.

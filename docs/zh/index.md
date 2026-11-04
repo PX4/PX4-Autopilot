@@ -13,8 +13,7 @@ PX4 is an open-source autopilot for drones and autonomous vehicles. It runs on m
 
 :::warning
 
-本指南适用于_development_ version of PX4 (`main` 分支)。
-使用 **版本** 选择器查找当前的 _稳定_ 版本。
+本指南适用于_development_ version of PX4 (`main` 分支)。使用 **版本** 选择器查找当前的 _稳定_ 版本。
 
 自稳定版本发布以来的已记录变更，收录在不断更新的(releases/main.md ) 中。
 :::
@@ -33,6 +32,10 @@ Want to modify PX4 or build from source? Start with the [Development Guide](deve
 
 Start with [Basic Concepts](getting_started/px4_basic_concepts.md) for an overview of the flight stack, flight modes, safety features, and supported hardware.
 
+## Developer Kits
+
+The fastest way to get flying hardware for PX4 development. [Official PX4 Developer Kits](dev_kits/index.md) ship with the latest stable PX4 pre-installed on current Pixhawk-standard hardware, need no build skills, and are certified by the PX4 team.
+
 ## Build a Vehicle
 
 Pick your frame type: [Multicopter](frames_multicopter/index.md), [Fixed-Wing](frames_plane/index.md), [VTOL](frames_vtol/index.md), [Helicopter](frames_helicopter/index.md), or [Rover](frames_rover/index.md). Each section covers complete vehicles, kits, and DIY builds. For assembly instructions see [Assembling a Multicopter](assembly/assembly_mc.md) or the equivalent for your frame.
@@ -48,6 +51,11 @@ The [Hardware Selection & Setup](hardware/drone_parts.md) section covers flight 
 ## Fly
 
 Read [Operations](config/operations.md) to understand safety features and failsafe behavior before your first flight. Then see [Basic Flying (Multicopter)](flying/basic_flying_mc.md) or the equivalent for your frame type.
+
+## Security
+
+Securing a deployment is the integrator's responsibility — PX4 ships with every control interface unauthenticated, unsigned, and unencrypted!
+The [Security](security/index.md) section collects the hardening documentation, and links to the [security policy](https://github.com/PX4/PX4-Autopilot/blob/main/SECURITY.md) for reporting a vulnerability.
 
 ## 技术支持
 
@@ -65,14 +73,11 @@ See the [Contributing](contribute/index.md) section for code, [documentation](co
 
 ## 许可证
 
-PX4 代码可依据宽松的 [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause) 免费使用和修改。
-此文档已使用 [CC BY 4.0]授权。(https://creativecommons.org/licenses/by/4.0/)。
-详情见： [Licences](contribute/licenses.md)。
+PX4 代码可依据宽松的 [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause) 免费使用和修改。此文档已使用 [CC BY 4.0]授权。(https://creativecommons.org/licenses/by/4.0/)。详情见： [Licences](contribute/licenses.md)。
 
 ## 日历和活动
 
-_Dronecode 日历_ 展示了面向平台用户和开发者的重要社区活动。
-选择以下链接将其显示在您所在的时区日历中(并将其添加到您自己的日历中)：
+_Dronecode 日历_ 展示了面向平台用户和开发者的重要社区活动。选择以下链接将其显示在您所在的时区日历中(并将其添加到您自己的日历中)：
 
 - [Switzerland – Zurich](https://calendar.google.com/calendar/embed?src=linuxfoundation.org_g21tvam24m7pm7jhev01bvlqh8%40group.calendar.google.com&ctz=Europe%2FZurich)
 - [Pacific Time – Tijuana](https://calendar.google.com/calendar/embed?src=linuxfoundation.org_g21tvam24m7pm7jhev01bvlqh8%40group.calendar.google.com&ctz=America%2FTijuana)
@@ -91,7 +96,7 @@ _Dronecode 日历_ 展示了面向平台用户和开发者的重要社区活动�
 
 <img src="../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" /> _placeholder_icon 由 <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> 通过 <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> 创作，使用 <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 By</a> 授权。
 
-<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ 图标由 <a href="https://www.freepik.com" title="Freepik">Freepik</a> 从 <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> 是由 <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 By</a> 授权的。
+<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.magnific.com/" title="Magnific">Magnific (formerly Freepik)</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
 
 ## 治理
 

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FixedWingLateralGuidanceStatus (UORB message)
 
-Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs.
+Fixed Wing Lateral Guidance Status message. Published by fw_mode_manager module to report the resultant lateral setpoints and NPFG debug outputs.
 
 **TOPICS:** fixed_wing_lateral_guidance_status
 
@@ -31,7 +31,7 @@ Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module t
 
 ```c
 # Fixed Wing Lateral Guidance Status message
-# Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs
+# Published by fw_mode_manager module to report the resultant lateral setpoints and NPFG debug outputs
 
 uint64 timestamp                # time since system start (microseconds)
 

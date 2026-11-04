@@ -177,8 +177,8 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 			PX4_INFO("Playback finished.");
 
 		} else if (argc > 2) {
-			// tune id instead of string has been provided
-			if (tune_control.tune_id == 0) {
+			// tune id or note instead of string has been provided
+			if (tune_control.tune_id == 0 && tune_control.frequency == 0) {
 				tune_control.tune_id = 1;
 			}
 

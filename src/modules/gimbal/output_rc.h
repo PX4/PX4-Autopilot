@@ -50,15 +50,21 @@ public:
 	explicit OutputRC(const Parameters &parameters);
 	virtual ~OutputRC() = default;
 
-	virtual void update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id);
-	virtual void print_status() const;
+	void update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id) override;
+	void print_status() const override;
+
+	// AUX gimbals cannot report their own orientation, so the driver publishes it.
+	bool publishes_mount_orientation() const override { return true; }
 
 private:
 	void _stream_device_attitude_status();
 	float anglesMappedToOutput(const uint8_t index);
+	void _check_gimbal_output_functions_assigned();
 
 	uORB::Publication <gimbal_controls_s>	_gimbal_controls_pub{ORB_ID(gimbal_controls)};
 	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
+
+	bool _gimbal_output_functions_assigned{false};
 };
 
 } /* namespace gimbal */

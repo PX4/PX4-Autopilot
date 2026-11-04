@@ -90,7 +90,7 @@ void AirshipAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_
 	// zero actuators if not armed
 	if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		v_torque_sp.xyz[0] = 0.f;
-		v_torque_sp.xyz[1] = _manual_control_setpoint.pitch;
+		v_torque_sp.xyz[1] = -_manual_control_setpoint.pitch;
 		v_torque_sp.xyz[2] = _manual_control_setpoint.yaw;
 	}
 

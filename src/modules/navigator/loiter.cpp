@@ -53,13 +53,19 @@ Loiter::Loiter(Navigator *navigator) :
 void
 Loiter::on_activation()
 {
+	// Snapshot the setpoint the previous mode left before resetting the triplet, so we can continue
+	// an already-established loiter (used by set_loiter_position()).
+	const position_setpoint_s previous_setpoint = _navigator->get_position_setpoint_triplet()->current;
+	_navigator->reset_triplets();
+	_reposition_yaw_timestamp = 0;
+
 	if (_navigator->get_reposition_triplet()->current.valid
 	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
 		reposition();
 
 	} else {
 		// this is executed when the flight mode is switched to Hold manually, not through a reposition
-		set_loiter_position();
+		set_loiter_position(previous_setpoint);
 	}
 
 	// reset cruising speed to default
@@ -76,13 +82,16 @@ Loiter::on_active()
 
 	if (_param_nav_ltr_last_dl.get() && _navigator->get_vstatus()->failsafe && _navigator->get_vstatus()->gcs_connection_lost) {
 		if (!_loiter_at_last_link_position_executed) {
-			set_loiter_position(); // if we already were in hold (e.g. GoTo), we need to reset the position setpoint
+			// if we already were in hold (e.g. GoTo), we need to reset the position setpoint
+			set_loiter_position(_navigator->get_position_setpoint_triplet()->current);
 			_loiter_at_last_link_position_executed = true;
 		}
 
 	} else {
 		_loiter_at_last_link_position_executed = false;
 	}
+
+	updateHeadingToRoi();
 }
 
 void
@@ -92,7 +101,43 @@ Loiter::on_inactive()
 }
 
 void
-Loiter::set_loiter_position()
+Loiter::updateHeadingToRoi()
+{
+	// With mount yaw control enabled the gimbal yaws towards the ROI instead of the vehicle
+	if (_param_mis_mnt_yaw_ctl.get()
+	    || _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    || _navigator->get_land_detected()->landed
+	    || _navigator->get_vroi().mode != vehicle_roi_s::ROI_LOCATION) {
+		return;
+	}
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	if (!pos_sp_triplet->current.valid || pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+		return;
+	}
+
+	// A reposition with an explicit yaw sent after the ROI takes precedence
+	if (_reposition_yaw_timestamp > _navigator->get_vroi().timestamp) {
+		return;
+	}
+
+	const double lat = _navigator->get_global_position()->lat;
+	const double lon = _navigator->get_global_position()->lon;
+	const double roi_lat = _navigator->get_vroi().lat;
+	const double roi_lon = _navigator->get_vroi().lon;
+
+	// Keep the last heading when close to the ROI to prevent excessive yawing
+	if (get_distance_to_next_waypoint(lat, lon, roi_lat, roi_lon) <= _navigator->get_acceptance_radius()) {
+		return;
+	}
+
+	pos_sp_triplet->current.yaw = get_bearing_to_next_waypoint(lat, lon, roi_lat, roi_lon);
+	_navigator->set_position_setpoint_triplet_updated();
+}
+
+void
+Loiter::set_loiter_position(const position_setpoint_s &reference_setpoint)
 {
 	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED &&
 	    _navigator->get_land_detected()->landed) {
@@ -114,11 +159,11 @@ Loiter::set_loiter_position()
 		// Check if we already loiter on a circle and are on the loiter pattern.
 		bool on_loiter{false};
 
-		if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
-		    && pos_sp_triplet->current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
-			const float d_current = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
+		if (reference_setpoint.valid && reference_setpoint.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+		    && reference_setpoint.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
+			const float d_current = get_distance_to_next_waypoint(reference_setpoint.lat, reference_setpoint.lon,
 						_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-			on_loiter = d_current <= (_navigator->get_acceptance_radius() + pos_sp_triplet->current.loiter_radius);
+			on_loiter = d_current <= (_navigator->get_acceptance_radius() + reference_setpoint.loiter_radius);
 		}
 
 		if (_navigator->get_vstatus()->failsafe && _navigator->get_vstatus()->gcs_connection_lost && _param_nav_ltr_last_dl.get()) {
@@ -126,13 +171,13 @@ Loiter::set_loiter_position()
 			setLoiterFromLastLink(&_mission_item);
 
 		} else if (on_loiter) {
-			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+			setLoiterItemFromCurrentPositionSetpoint(_mission_item, reference_setpoint);
 
 		} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			setLoiterItemFromCurrentPositionWithBraking(&_mission_item);
 
 		} else {
-			setLoiterItemFromCurrentPosition(&_mission_item);
+			setLoiterItemFromCurrentPosition(_mission_item);
 		}
 	}
 
@@ -156,6 +201,7 @@ Loiter::reposition()
 
 	if (rep->current.valid) {
 		// set loiter position based on reposition command
+		_reposition_yaw_timestamp = PX4_ISFINITE(rep->current.yaw) ? rep->current.timestamp : 0;
 
 		// convert mission item to current setpoint
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -164,12 +210,14 @@ Loiter::reposition()
 		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
-		pos_sp_triplet->current.course = NAN;
 		pos_sp_triplet->next.valid = false;
 
 		_navigator->set_position_setpoint_triplet_updated();
 
-		// mark this as done
-		memset(rep, 0, sizeof(*rep));
+		// mark this as done: reset instead of zeroing so unset fields (yaw, course)
+		// stay NaN when the triplet is repopulated by a partial reposition command
+		_navigator->reset_position_setpoint(rep->previous);
+		_navigator->reset_position_setpoint(rep->current);
+		_navigator->reset_position_setpoint(rep->next);
 	}
 }

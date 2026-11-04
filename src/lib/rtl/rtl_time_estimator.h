@@ -34,7 +34,7 @@
 /**
  * @file rtl_time_estimator.h
  *
- * Helper class to calculate the remaining time estimate to go to RTL landing point.
+ * Helper class to calculate the remaining time estimate to go to Return landing point.
  *
  */
 

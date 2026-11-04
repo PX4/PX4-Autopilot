@@ -108,8 +108,7 @@ __END_DECLS
  ************************************************************************************/
 __EXPORT void board_peripheral_reset(int ms)
 {
-	/* off */
-	VTX_9V_EN(false);
+	/* Turn off the 3.3 V sensor supply; VTX power is controlled by manual_control. */
 	VDD_3V3_SENSORS_EN(false);
 
 	board_control_spi_sensors_power(false, 0xffff);
@@ -120,7 +119,6 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* re-enable power */
 	board_control_spi_sensors_power(true, 0xffff);
 	VDD_3V3_SENSORS_EN(true);
-	VTX_9V_EN(true);
 
 	CAM_SWITCH_CAM1;
 }

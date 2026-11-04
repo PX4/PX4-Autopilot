@@ -47,28 +47,15 @@ class ModuleParams : public ListNode<ModuleParams *>
 {
 public:
 
-	ModuleParams(ModuleParams *parent)
-	{
-		setParent(parent);
-	}
+	ModuleParams(ModuleParams *parent);
 
 	/**
 	 * @brief Sets the parent module. This is typically not required,
 	 *         only in cases where the parent cannot be set via constructor.
 	 */
-	void setParent(ModuleParams *parent)
-	{
-		if (parent) {
-			parent->_children.add(this);
-		}
+	void setParent(ModuleParams *parent);
 
-		_parent = parent;
-	}
-
-	virtual ~ModuleParams()
-	{
-		if (_parent) { _parent->_children.remove(this); }
-	}
+	virtual ~ModuleParams();
 
 	// Disallow copy construction and move assignment.
 	ModuleParams(const ModuleParams &) = delete;
@@ -81,14 +68,7 @@ protected:
 	 * @brief Call this method whenever the module gets a parameter change notification.
 	 *        It will automatically call updateParams() for all children, which then call updateParamsImpl().
 	 */
-	virtual void updateParams()
-	{
-		for (const auto &child : _children) {
-			child->updateParams();
-		}
-
-		updateParamsImpl();
-	}
+	virtual void updateParams();
 
 	/**
 	 * @brief The implementation for this is generated with the macro DEFINE_PARAMETERS()

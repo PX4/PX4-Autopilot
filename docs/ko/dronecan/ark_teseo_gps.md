@@ -21,8 +21,8 @@ Order this module from:
     - -162 dBm tracking sensitivity
     - Submeter positioning accuracy
   - [ST IIS2MDC Magnetometer](https://www.st.com/en/mems-and-sensors/iis2mdc.html)
-  - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/pressure-sensors-bmp390.html)
-  - [Invensense ICM-42688-P 6-Axis IMU](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/)
+  - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/pressure-sensors-bmp390.html)
+  - [Invensense ICM-42688-P 6-Axis IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p)
 - STM32F412VGH6 MCU
 - Dual Band (L1/L5) Helical GPS Antenna
 - Two Pixhawk Standard CAN Connectors (4 Pin JST GH)

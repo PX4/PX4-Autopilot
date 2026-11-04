@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Configurable overrides by (external) modes or mode executors.
 
-**TOPICS:** config_overrides config_overrides_request
+**TOPICS:** config_overrides config_overrides_request config_overrides_confirm
 
 ## Fields
 
@@ -57,7 +57,7 @@ uint8 source_id                  # ID depending on source_type
 
 uint8 ORB_QUEUE_LENGTH = 4
 
-# TOPICS config_overrides config_overrides_request
+# TOPICS config_overrides config_overrides_request config_overrides_confirm
 ```
 
 :::

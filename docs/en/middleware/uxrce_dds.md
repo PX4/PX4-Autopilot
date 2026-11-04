@@ -26,6 +26,14 @@ In order for PX4 uORB topics to be shared on the DDS network you will need _uXRC
 
 The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) publishes to/from a defined set of uORB topics to the global DDS data space.
 
+::: warning
+The DDS transport is unauthenticated and reaches uORB directly, so the DDS network must be kept isolated.
+Connect the flight controller to the companion over serial or a dedicated Ethernet cable, not over a shared or wireless network.
+A direct cable is not enough on its own: the agent republishes into the DDS network on the companion, so also keep that local, for example with [UXRCE_DDS_PTCFG](../advanced_config/parameter_reference.md#UXRCE_DDS_PTCFG) set to localhost and `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (`ROS_LOCALHOST_ONLY=1` on Humble).
+If the data has to leave the companion, securing it is up to the integrator.
+See [Security](../security/index.md) for more.
+:::
+
 The [eProsima Micro XRCE-DDS _Agent_](https://github.com/eProsima/Micro-XRCE-DDS-Agent) runs on the companion computer and acts as a proxy for the client in the DDS/ROS 2 network.
 
 The agent itself has no dependency on client-side code and can be built and/or installed independent of PX4 or ROS, as long as version compatibility is ensured.
@@ -70,8 +78,8 @@ The following table explains the required Micro-XRCE-DDS-Agent versions and `UXR
 | Humble        | 2.6.x            | 2.4.2                                 | unset / `N`                                                         |
 | Jazzy         | 2.14.0           | 2.4.3                                 | unset / `N`                                                         |
 | Kilted        | 2.14.4           | 2.4.3                                 | unset / `N`                                                         |
-| Lyrical       | 3.6.x            | 3.0.1                                 | set / `Y`                                                           |
-| Rolling       | 3.6.x            | 3.0.1                                 | set / `Y`                                                           |
+| Lyrical       | 3.6.x            | 3.0.2                                 | set / `Y`                                                           |
+| Rolling       | 3.6.x            | 3.0.2                                 | set / `Y`                                                           |
 
 ## Micro XRCE-DDS Agent Installation
 
@@ -107,7 +115,7 @@ sudo ldconfig /usr/local/lib/
 ::: tab DDS v3
 
 ```sh
-git clone -b v3.0.1 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+git clone -b v3.0.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
 cd Micro-XRCE-DDS-Agent
 mkdir build
 cd build
@@ -148,7 +156,7 @@ To build the agent within ROS:
 
    ```sh
    cd ~/px4_ros_uxrce_dds_ws/src
-   git clone -b v3.0.1 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   git clone -b v3.0.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
    ```
 
    Don't forget to set `UXRCE_DDS_CLIENT_USE_DDS_V3` before building PX4 when using DDS v3!
@@ -327,13 +335,27 @@ sudo MicroXRCEAgent serial --dev /dev/AMA0 -b 921600
 For more information about setting up communications channels see [Pixhawk + Companion Setup > Serial Port setup](../companion_computer/pixhawk_companion.md#serial-port-setup), and sub-documents.
 :::
 
+### PX4 Firmware
+
+The uXRCE-DDS client module [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is included by default in most firmware and simulator targets.
+
+You can check if the module is present on your board by searching for the key `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` in your board's `default.px4board` [KConfig file](../hardware/porting_guide_config.md).
+For example, you can see that the module is present in `px4_fmu-v6x` build targets from [/boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board#L81).
+
+If `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` is not preset you can add this key to your board configuration and rebuild.
+Note that due to flash constraints you may need to remove other components in order to include the module.
+
+::: tip
+You can check if uXRCE-DDS is present at runtime by using QGroundControl to [find the parameter](../advanced_config/parameters.md#finding-a-parameter) [UXRCE_DDS_CFG](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG).
+If present, the module is installed.
+:::
+
 ### Starting the Client
 
-The uXRCE-DDS client module ([uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client)) is included by default in all firmware and the simulator.
-This must be started with appropriate settings for the communication channel that you wish to use to communicate with the agent.
+`uxrce_dds_client` must be started with appropriate settings for the communication channel that you wish to use to communicate with the agent.
 
 ::: info
-The simulator automatically starts the client on localhost UDP port `8888` using the default uxrce-dds namespace.
+The simulator automatically starts the client on localhost UDP port `8888` using the default uxrce-dds namespace unless the `zenoh` target (`px4_sitl_zenoh`) is used.
 :::
 
 The configuration can be done using the [UXRCE-DDS parameters](../advanced_config/parameter_reference.md#uxrce-dds-client):
@@ -384,7 +406,9 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
     Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
     See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
   - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="PX4 v1.18" />: Serial port hardware flow control enable.
-    To use hardware flow control, a custom MicroXRCE Agent needs to be adopted. Please refer to [this PR](https://github.com/eProsima/Micro-XRCE-DDS-Agent/pull/407) for the required changes, cherry-pick them on top of the [agent version](#build-run-within-ros-2-workspace) you need to use and then run the agent with the additional `--flow-control` option.
+    This feature is available on MicroXRCE Agent version `>=3.0.2` (ROS 2 Lyrical and newer).
+    To use it in previous versions please refer to [Micro-XRCE-DDS-Agent#407](https://github.com/eProsima/Micro-XRCE-DDS-Agent/pull/407) for the required changes and cherry-pick them on top of the [agent version](#build-run-within-ros-2-workspace) you need to use.
+    On the agent side flow control is enable passing the `--flow-control` option.
 
 ::: info
 Many ports already have a default configuration.

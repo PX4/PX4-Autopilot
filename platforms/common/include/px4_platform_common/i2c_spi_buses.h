@@ -93,6 +93,8 @@ struct I2CSPIDriverConfig {
 
 	Rotation rotation;
 
+	bool external; ///< sensor classification from -I/-s (false) vs -X/-S (true), independent of bus topology
+
 	bool quiet_start;
 	bool keep_running;
 
@@ -140,20 +142,7 @@ private:
 class BusCLIArguments
 {
 public:
-	BusCLIArguments(bool i2c_support, bool spi_support)
-#if defined(CONFIG_I2C) || defined(CONFIG_SPI)
-		:
-#endif // CONFIG_I2C || CONFIG_SPI
-#if defined(CONFIG_I2C)
-		_i2c_support(i2c_support)
-#endif // CONFIG_I2C
-#if defined(CONFIG_I2C) && defined(CONFIG_SPI)
-		,
-#endif // CONFIG_I2C && CONFIG_SPI
-#if defined(CONFIG_SPI)
-		_spi_support(spi_support)
-#endif // CONFIG_SPI
-	{}
+	BusCLIArguments(bool i2c_support, bool spi_support);
 
 	/**
 	 * Parse CLI arguments (for drivers that don't need any custom arguments, otherwise getopt() should be used)
@@ -234,6 +223,7 @@ public:
 	bool next();
 
 	I2CSPIInstance *instance() const;
+	bool alreadyRunningOnHardware() const;
 	void removeInstance();
 	board_bus_types busType() const;
 	int bus() const;
@@ -282,9 +272,7 @@ private:
 class I2CSPIDriverBase : public px4::ScheduledWorkItem, public I2CSPIInstance
 {
 public:
-	I2CSPIDriverBase(const I2CSPIDriverConfig &config)
-		: ScheduledWorkItem(config.module_name, config.wq_config),
-		  I2CSPIInstance(config) {}
+	I2CSPIDriverBase(const I2CSPIDriverConfig &config);
 
 	static int module_stop(BusInstanceIterator &iterator);
 	static int module_status(BusInstanceIterator &iterator);
@@ -310,6 +298,8 @@ protected:
 
 	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator, void(*print_usage)(),
 				instantiate_method instantiate);
+
+	static I2CSPIDriverBase *init_instance(I2CSPIDriverBase *instance, int init_ret);
 
 private:
 	static void custom_method_trampoline(void *argument);
@@ -366,17 +356,6 @@ private:
 	static I2CSPIDriverBase *instantiate_default(const I2CSPIDriverConfig &config, int runtime_instance)
 	{
 		T *instance = new T(config);
-
-		if (!instance) {
-			PX4_ERR("alloc failed");
-			return nullptr;
-		}
-
-		if (OK != instance->init()) {
-			delete instance;
-			return nullptr;
-		}
-
-		return instance;
+		return I2CSPIDriverBase::init_instance(instance, instance ? instance->init() : PX4_ERROR);
 	}
 };

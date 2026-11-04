@@ -1,7 +1,6 @@
 # 机载计算机外设
 
-本节包含关于机载计算机外设的信息。
-其中既包括可能与机载计算机连接的组件（可能会与PX4交互/访问），也包括将机载计算机与飞行控制器连接起来。
+本节包含关于机载计算机外设的信息。其中既包括可能与机载计算机连接的组件（可能会与PX4交互/访问），也包括将机载计算机与飞行控制器连接起来。
 
 ## Companion/Pixhawk Communication
 
@@ -54,8 +53,8 @@ They are in no way guaranteed to be plug and play with your companion computer.
 
 Popular stereo cameras include:
 
-- [Intel® RealSense™ Depth Camera D435](https://www.realsenseai.com/products/stereo-depth-camera-d435/)
-- [Intel® RealSense™ Depth Camera D415](https://www.realsenseai.com/products/stereo-depth-camera-d415/)
+- [Intel® RealSense™ Depth Camera D435](https://www.realsenseai.com/product-family/430-series/)
+- [Intel® RealSense™ Depth Camera D415](https://www.realsenseai.com/product-family/d415-family/)
 - [DUO MLX](https://duo3d.com/product/duo-minilx-lv1)
 
 ### VIO Cameras/Sensors

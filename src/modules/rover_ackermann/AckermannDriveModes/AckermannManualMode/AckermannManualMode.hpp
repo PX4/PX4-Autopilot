@@ -73,6 +73,12 @@ public:
 	void manual();
 
 	/**
+	 * @brief Publish roverThrottleSetpoint and roverSteeringSetpoint from manualControlSetpoint with
+	 * reduced throttle and full steering authority for precise maneuvering in tight spaces.
+	 */
+	void manualParking();
+
+	/**
 	 * @brief Generate and publish roverThrottleSetpoint and RoverRateSetpoint from manualControlSetpoint.
 	 */
 	void acro();
@@ -115,9 +121,9 @@ private:
 	// Variables
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
 	Quatf _vehicle_attitude_quaternion{};
-	Vector2f _pos_ctl_course_direction{NAN, NAN};
 	Vector2f _pos_ctl_start_position_ned{NAN, NAN};
 	Vector2f _curr_pos_ned{NAN, NAN};
+	float _pos_ctl_bearing{NAN}; // Bearing from the start position to the target, i.e. the direction of the desired track [rad]
 	float _stab_yaw_setpoint{NAN};
 	float _vehicle_yaw{NAN};
 	float _max_yaw_rate{NAN};
@@ -128,7 +134,8 @@ private:
 		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz,
 		(ParamFloat<px4::params::RO_YAW_EXPO>)      _param_ro_yaw_expo,
 		(ParamFloat<px4::params::RO_YAW_SUPEXPO>)   _param_ro_yaw_supexpo,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit
+		(ParamFloat<px4::params::RO_PARK_THR_MAX>)  _param_ro_park_thr_max,
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
 	)
 };

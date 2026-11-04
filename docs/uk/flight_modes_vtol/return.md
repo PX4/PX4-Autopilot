@@ -4,7 +4,7 @@
 
 Режим _повернення_ використовується для _політів засобом перевезення до безпечного місця_ при наявності вільного шляху до безпечного пункту призначення, де він може зачекати (зависнути або обійти колом) або сісти.
 
-Літальні апарати типу VTOL за замовчуванням використовують тип повернення до призначення [місії посадки/точка збору](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1).
+VTOL vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#rtl_type_1) return type by default.
 У цьому типі повернення апарат піднімається на мінімальну безпечну висоту над перешкодами (за необхідності), а потім напряму летить до точки збору або початкової точки призначення місії (яка є найближчою), або додому, якщо жодна з точок збору або місійний маршрут посадки не визначені.
 Якщо призначенням є місійний маршрут посадки, апарат потім дотримуватиметься маршруту для посадки.
 If the destination is a rally point or the home location, the vehicle will fly to that destination and land.
@@ -12,7 +12,7 @@ If the destination is a rally point or the home location, the vehicle will fly t
 Літальний апарат повернеться за допомогою режиму польоту (MC або FW), який він використовував у той момент, коли був активований режим повернення.
 Загалом, він буде дотримуватися того ж поведінкового зразка режиму повернення, що й відповідний тип транспортного засобу, але завжди перейде до режиму MC (якщо потрібно) перед посадкою.
 
-VTOL підтримує [інші типи повернення PX4](../flight_modes/return.md#return-types-rtl-type), включаючи повернення до дому / точки збору, маршрут місії і найближче безпечне місце призначення. Рекомендується використовувати тип за замовчуванням.
+VTOL supports the [other PX4 return types](../flight_modes/return.md#return_types), including home/rally point return, mission path and closest safe destination.
 За замовчуванням рекомендується використовувати цей тип.
 
 ::: info
@@ -32,7 +32,7 @@ VTOL підтримує [інші типи повернення PX4](../flight_m
 
 ## Технічний підсумок
 
-Літальні апарати типу VTOL за замовчуванням використовують тип повернення до призначення [місії посадки/ точки збору](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1), і повертаються, використовуючи режим польоту (MC або FW), який вони використовували в момент активації режиму повернення.
+VTOL vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#rtl_type_1) return type by default, and return using the flying mode (MC or FW) it was using at the point when return mode was triggered.
 
 ### Повернення режиму фіксованого крила (FW)
 
@@ -42,7 +42,8 @@ VTOL підтримує [інші типи повернення PX4](../flight_m
   Транспортний засіб підтримує свою початкову висоту, якщо вона вище, ніж мінімальна висота повернення.
   <!-- Note that return altitude cannot be configured using the "cone" parameter in fixed-wing vehicles. -->
 
-- Летить прямим шляхом на постійній висоті до призначення, яким буде найближча з точки старту місійного маршруту посадки та будь-яка точка збору, або домашня локація, якщо місійний маршрут посадки або точки збору не визначені.
+- Flies via a constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+  The path is chosen to be the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness).
 
 - Якщо призначенням є місійний маршрут посадки, апарат буде дотримуватися маршруту для посадки.
 
@@ -79,7 +80,7 @@ When uploading VTOL approach loiters through MAVLink, [upload them as rally/safe
 The `MAV_CMD_NAV_RALLY_POINT` item must come first, followed by one or more `MAV_CMD_NAV_LOITER_TO_ALT` items that define the approach loiters for that rally point.
 The next `MAV_CMD_NAV_RALLY_POINT` starts a new landing-location block.
 
-For each `MAV_CMD_NAV_LOITER_TO_ALT` item, `x/y/z` define the loiter center and approach altitude, and `param2` defines the loiter radius used by RTL.
+For each `MAV_CMD_NAV_LOITER_TO_ALT` item, `x/y/z` define the loiter center and approach altitude, and `param2` defines the loiter radius used by Return mode.
 If `param2` is unset or zero, PX4 falls back to [RTL_LOITER_RAD](#RTL_LOITER_RAD).
 
 For example, a rally upload with one rally point and two possible approach loiters would use:
@@ -103,16 +104,16 @@ If the selected approach loiter is far from the rally point or home location, th
 
 ## Параметри
 
-Параметри RTL перелічені в [Референсі параметрів > Режим повернення](../advanced_config/parameter_reference.md#return-mode).
+The Return parameters are listed in [Parameter Reference > Return Mode](../advanced_config/parameter_reference.md#return-mode).
 Якщо використовується місійна посадка, значення [RTL_RETURN_ALT](#RTL_RETURN_ALT) та [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) є важливими.
 Інші параметри стають актуальними, якщо призначенням є точка збору або домашня локація.
 
 | Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                                                                   | Тип повернення.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| <a id="RTL_APPR_FORCE"></a>[RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE)                            | [VTOL FW only] If set, PX4 only considers home or rally-point RTL destinations when a valid VTOL approach loiter is defined for that landing location. Mission landing patterns are unaffected.                                                                                                                                                                                                                                                                   |
+| <a id="RTL_APPR_FORCE"></a>[RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE)                            | [VTOL FW only] If set, PX4 only considers home or rally-point return destinations when a valid VTOL approach loiter is defined for that landing location. Mission landing patterns are unaffected.                                                                                                                                                                                                                                                                |
 | <a id="RTL_RETURN_ALT"></a>[RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)                            | Висота повернення в метрах (за замовчуванням: 60 м). Якщо вже знаходиться вище цієї висоти, транспортний засіб повернеться на поточну висоту.                                                                                                                                                                                                                                                                                                                                      |
-| <a id="RTL_CONE_ANG"></a>[RTL_CONE_ANG](../advanced_config/parameter_reference.md#RTL_CONE_ANG)                                  | Половина кута конуса, який визначає висоту повернення транспортного засобу RTL. Значення (у градусах): 0, 25, 45, 65, 80, 90. Зауважте, що 0 означає "без конуса" (завжди повертається на висоту `RTL_RETURN_ALT` або вище), тоді як 90 показує, що транспортний засіб повинен повертатися на поточну висоту або `RTL_DESCEND_ALT` (яка вище).                                                                               |
+| <a id="RTL_CONE_ANG"></a>[RTL_CONE_ANG](../advanced_config/parameter_reference.md#RTL_CONE_ANG)                                  | Half-angle of the cone that defines the vehicle return altitude. Значення (у градусах): 0, 25, 45, 65, 80, 90. Зауважте, що 0 означає "без конуса" (завжди повертається на висоту `RTL_RETURN_ALT` або вище), тоді як 90 показує, що транспортний засіб повинен повертатися на поточну висоту або `RTL_DESCEND_ALT` (яка вище).                                                                                              |
 | <a id="RTL_DESCEND_ALT"></a>[RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT)                         | Мінімальна висота повернення і висота, на якій повітряне судно сповільнює або зупиняє своє початкове зниження з вищої висоти повернення (за замовчуванням: 30 м)                                                                                                                                                                                                                                                                                                                                                   |
 | <a id="RTL_LAND_DELAY"></a>[RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY)                            | Час очікування на висоті `RTL_DESCEND_ALT` перед посадкою (за замовчуванням: 0.5 с) - за замовчуванням цей період короткий, щоб транспортний засіб просто сповільнився, а потім враз відразу приземлився. Якщо встановлено значення -1, система буде кружляти на висоті `RTL_DESCEND_ALT` замість посадки. Затримка надається для того, щоб ви могли налаштувати час для розгортання шасі для посадки (автоматично спрацьовує). |
 | <a id="RTL_LOITER_RAD"></a>[RTL_LOITER_RAD](../advanced_config/parameter_reference.md#RTL_LOITER_RAD)                            | [Літаки з фіксованим крилом] Радіус кола очікування (на висоті [RTL_LAND_DELAY](#RTL_LAND_DELAY).                                                                                                                                                                                                                                                                                                                    |

@@ -35,7 +35,7 @@
 
 HMC5883::HMC5883(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
-	_px4_mag(interface->get_device_id(), config.rotation),
+	_px4_mag(interface->get_device_id(), config.rotation, config.external),
 	_interface(interface),
 	_range_ga(1.9f),
 	_collect_phase(false),
@@ -48,6 +48,7 @@ HMC5883::HMC5883(device::Device *interface, const I2CSPIDriverConfig &config) :
 	_temperature_counter(0),
 	_temperature_error_count(0)
 {
+	_interface->set_external(config.external);
 }
 
 HMC5883::~HMC5883()
@@ -114,6 +115,8 @@ int HMC5883::set_range(unsigned range)
 		_px4_mag.set_scale(1.0f / 230.0f);
 		_range_ga = 8.1f;
 	}
+
+	_px4_mag.set_range(_range_ga);
 
 	/*
 	 * Send the command to set the range

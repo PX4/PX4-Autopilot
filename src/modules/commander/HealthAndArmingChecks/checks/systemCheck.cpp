@@ -106,18 +106,34 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	// safety button
-	if (context.status().safety_button_available && !context.status().safety_off && !context.isArmed()) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * This check can be configured via <param>CBRK_IO_SAFETY</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_safety_button"),
-					    events::Log::Info, "Press safety button first");
+	if (!context.status().safety_off && !context.isArmed()) {
+		if (context.status().safety_button_available) {
+			/* EVENT
+			* @description
+			* <profile name="dev">
+			* This check can be configured via <param>COM_SAFETY_MODE</param> parameter.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_safety_button"),
+						    events::Log::Info, "Press safety button first");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Press safety button first");
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Press safety button first");
+			}
+
+		} else {
+			/* EVENT
+			* @description
+			* <profile name="dev">
+			* This check can be configured via <param>COM_SAFETY_MODE</param> parameter.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_safety"),
+						    events::Log::Info, "Turn safety off first");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Turn safety off first");
+			}
 		}
 	}
 
@@ -158,6 +174,26 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_arm_auth_failed"),
 						    events::Log::Error, "Arm authorization denied");
+		}
+	}
+
+	// Block arming while a UAVCAN node firmware update is pending
+	uavcan_firmware_update_s uavcan_fw_update{};
+
+	if (!circuit_breaker_enabled_by_val(_param_cbrk_uavcan_fw.get(), CBRK_UAVCAN_FW_KEY)
+	    && _uavcan_fw_update_sub.copy(&uavcan_fw_update) && uavcan_fw_update.pending_updates) {
+		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * This check can be configured via <param>CBRK_UAVCAN_FW</param> parameter.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+					    events::ID("check_system_uavcan_fw_update_pending"),
+					    events::Log::Warning, "UAVCAN firmware update in progress");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: UAVCAN firmware update in progress");
 		}
 	}
 }

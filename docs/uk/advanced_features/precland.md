@@ -66,6 +66,14 @@ To use this feature you must [build a firmware that includes the module](../adva
 Without this, `vte_orientation` is never published and [PLD_YAW_EN](#PLD_YAW_EN) has no effect.
 :::
 
+### Precision Takeoff
+
+The Vision Target Estimator can also keep the vehicle over the pad during a vertical takeoff.
+Set [MIS_TKO_PREC](../advanced_config/parameter_reference.md#MIS_TKO_PREC)=1 and enable bit 2 of [VTE_TASK_MASK](../advanced_config/parameter_reference.md#VTE_TASK_MASK).
+[MIS_TKO_PREC_DLY](../advanced_config/parameter_reference.md#MIS_TKO_PREC_DLY) sets how long after the takeoff ramp the setpoint may move onto the target, so the vehicle clears the pad first.
+In static-target builds, bit 5 of [VTE_AID_MASK](../advanced_config/parameter_reference.md#VTE_AID_MASK) fuses home as the pad's absolute position during precision takeoff.
+See [Precision Takeoff](../advanced_features/vision_target_estimator.md#precision-takeoff) for details.
+
 ## Початок точної посадки
 
 Точне приземлення можна використовувати у місіях, під час фази посадки у режимі _Повернення_, або ввійшовши в режим _Точна посадка_.
@@ -85,8 +93,8 @@ Without this, `vte_orientation` is never published and [PLD_YAW_EN](#PLD_YAW_EN)
 Це вмикається за допомогою параметра [RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD), який приймає такі значення:
 
 - `0`: Точна посадка вимкнена (посадка як зазвичай).
-- `1`: [Опортуничний](#opportunistic-mode) режим точної посадки.
-- `2`: [Вимагається](#required-mode) режим точної посадки.
+- `1`: [Opportunistic](#opportunistic-mode) режим точної посадки.
+- `2`: [Required](#required-mode) режим точної посадки.
 
 ### Режим польоту з точною посадкою
 
@@ -110,6 +118,20 @@ commander mode auto:precland
 - Команда [MAV_CMD_DO_SET_MODE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE) має працювати, але вам потрібно визначити відповідні базові і користувацькі режими, які використовує PX4 для представлення режиму точної посадки.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_precland -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_precland -->
 
 ## Налаштування програмного забезпечення
 
@@ -164,18 +186,18 @@ CONFIG_MODULES_LANDING_TARGET_ESTIMATOR=y
 Інші важливі параметри перераховані в посиланнях на параметри в референсі параметрів під [Landing_target estimator](../advanced_config/parameter_reference.md#landing-target-estimator) та [Precision land](../advanced_config/parameter_reference.md#precision-land).
 Деякі з найбільш корисних перераховані нижче.
 
-| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                 |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="SENS_EN_IRLOCK"></a>[SENS_EN_IRLOCK](../advanced_config/parameter_reference.md#SENS_EN_IRLOCK)                            | IR-LOCK Sensor (зовнішній I2C). Disable: `0` (default): Enable: `1`).          |
-| <a id="LTEST_MODE"></a>[LTEST_MODE](../advanced_config/parameter_reference.md#LTEST_MODE)                                                             | Landing target is moving (`0`) or stationary (`1`). За замовчуванням - рухома.                                                 |
-| <a id="PLD_HACC_RAD"></a>[PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD)                                  | Горизонтальний радіус прийняття, всередині якого транспортний засіб почне спускатися. За замовчуванням - 0,2 м.                                                      |
-| <a id="PLD_MOVING_T_MIN"></a>[PLD_MOVING_T_MIN](../advanced_config/parameter_reference.md#PLD_MOVING_T_MIN) | Minimum moving-target prediction time for the precision landing setpoint.                                                                                                            |
-| <a id="PLD_MOVING_T_MAX"></a>[PLD_MOVING_T_MAX](../advanced_config/parameter_reference.md#PLD_MOVING_T_MAX) | Maximum moving-target prediction time for the precision landing setpoint.                                                                                                            |
-| <a id="PLD_BTOUT"></a>[PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)                                                                | Таймаут цілі посадки, після якого припускається, що ціль втрачена. За замовчуванням - 5 секунд.                                                                      |
-| <a id="PLD_FAPPR_ALT"></a>[PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)                               | Висота останнього підходу. Висота останнього підходу. За замовчуванням - 0,1 метра.                                                                  |
-| <a id="PLD_MAX_SRCH"></a>[PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH)                                  | Maximum number of search attempts in a required landing.                                                                                                                             |
-| <a id="PLD_YAW_EN"></a>[PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN)                                        | Enable yaw alignment during precision landing when target orientation is available.                                                                                                  |
-| <a id="RTL_PLD_MD"></a>[RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD)                                        | Режим точної посадки RTL. `0`: disabled, `1`: [Opportunistic](#opportunistic-mode), `2`: [Required](#required-mode). |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="SENS_EN_IRLOCK"></a>[SENS_EN_IRLOCK](../advanced_config/parameter_reference.md#SENS_EN_IRLOCK)                            | IR-LOCK Sensor (зовнішній I2C). Disable: `0` (default): Enable: `1`).            |
+| <a id="LTEST_MODE"></a>[LTEST_MODE](../advanced_config/parameter_reference.md#LTEST_MODE)                                                             | Landing target is moving (`0`) or stationary (`1`). За замовчуванням - рухома.                                                   |
+| <a id="PLD_HACC_RAD"></a>[PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD)                                  | Горизонтальний радіус прийняття, всередині якого транспортний засіб почне спускатися. За замовчуванням - 0,2 м.                                                        |
+| <a id="PLD_MOVING_T_MIN"></a>[PLD_MOVING_T_MIN](../advanced_config/parameter_reference.md#PLD_MOVING_T_MIN) | Minimum moving-target prediction time for the precision landing setpoint.                                                                                                              |
+| <a id="PLD_MOVING_T_MAX"></a>[PLD_MOVING_T_MAX](../advanced_config/parameter_reference.md#PLD_MOVING_T_MAX) | Maximum moving-target prediction time for the precision landing setpoint.                                                                                                              |
+| <a id="PLD_BTOUT"></a>[PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)                                                                | Таймаут цілі посадки, після якого припускається, що ціль втрачена. За замовчуванням - 5 секунд.                                                                        |
+| <a id="PLD_FAPPR_ALT"></a>[PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)                               | Висота останнього підходу. Висота останнього підходу. За замовчуванням - 0,1 метра.                                                                    |
+| <a id="PLD_MAX_SRCH"></a>[PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH)                                  | Maximum number of search attempts in a required landing.                                                                                                                               |
+| <a id="PLD_YAW_EN"></a>[PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN)                                        | Enable yaw alignment during precision landing when target orientation is available.                                                                                                    |
+| <a id="RTL_PLD_MD"></a>[RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD)                                        | Return precision land mode. `0`: disabled, `1`: [Opportunistic](#opportunistic-mode), `2`: [Required](#required-mode). |
 
 ### Масштабування ІЧ-маяка
 

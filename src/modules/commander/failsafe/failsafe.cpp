@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "failsafe.h"
+#include "failsafe_action_modes.h"
 
 #include <px4_platform_common/log.h>
 #include <uORB/topics/vehicle_status.h>
@@ -187,6 +188,7 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 		switch ((LowBatteryAction)param_value) {
 		case LowBatteryAction::Return:
 		case LowBatteryAction::ReturnOrLand:
+		case LowBatteryAction::ReturnOrTerminate:
 			options.action = Action::RTL;
 			break;
 
@@ -217,6 +219,10 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 
 		case LowBatteryAction::Warning:
 			options.action = Action::Warn;
+			break;
+
+		case LowBatteryAction::ReturnOrTerminate:
+			options.action = Action::Terminate;
 			break;
 		}
 
@@ -390,6 +396,7 @@ FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
 
 	switch (gps_redundancy_failsafe_mode(param_value)) {
 	case gps_redundancy_failsafe_mode::Warning:
+	case gps_redundancy_failsafe_mode::Block_arming:
 	default:
 		options.action = Action::Warn;
 		break;
@@ -425,6 +432,7 @@ FailsafeBase::ActionOptions Failsafe::fromParachuteActParam(int param_value)
 		break;
 
 	case parachute_unhealthy_failsafe_mode::Warning:
+	case parachute_unhealthy_failsafe_mode::Error:
 		options.action = Action::Warn;
 		options.clear_condition = ClearCondition::WhenConditionClears;
 		break;
@@ -435,6 +443,36 @@ FailsafeBase::ActionOptions Failsafe::fromParachuteActParam(int param_value)
 		break;
 
 	case parachute_unhealthy_failsafe_mode::Land:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+	}
+
+	return options;
+}
+
+FailsafeBase::ActionOptions Failsafe::fromTrafficAvoidanceActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (static_cast<traffic_avoidance::FailsafeMode>(param_value)) {
+	case traffic_avoidance::FailsafeMode::Disabled:
+	default:
+		options.action = Action::None;
+		break;
+
+	case traffic_avoidance::FailsafeMode::Warning:
+	case traffic_avoidance::FailsafeMode::Error:
+		options.action = Action::Warn;
+		options.clear_condition = ClearCondition::WhenConditionClears;
+		break;
+
+	case traffic_avoidance::FailsafeMode::Return:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case traffic_avoidance::FailsafeMode::Land:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
@@ -592,7 +630,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, mission_failure, Action::RTL);
 
 		// If manual control loss and GCS connection loss are disabled and we lose both command links and the mission finished,
-		// trigger RTL to avoid losing the vehicle
+		// trigger Return to avoid losing the vehicle
 		if ((_param_com_rc_in_mode.get() == int32_t(RcInMode::DisableManualControl)
 		     || isFailsafeIgnored(state.user_intended_mode, _param_com_rcl_except.get()))
 		    && _param_nav_dll_act.get() == int32_t(gcs_connection_loss_failsafe_mode::Disabled)
@@ -640,6 +678,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	// Parachute system health failsafe
 	CHECK_FAILSAFE(status_flags, parachute_unhealthy, ActionOptions(fromParachuteActParam(_param_com_parachute.get())));
 
+	// Traffic avoidance system health failsafe
+	CHECK_FAILSAFE(status_flags, traffic_avoidance_unhealthy, ActionOptions(fromTrafficAvoidanceActParam(_param_com_traff_avoid.get())));
+
 	// Remote ID (Open Drone ID) loss failsafe
 	if (state.armed && _param_com_arm_odid.get() >= int32_t(open_drone_id_failsafe_mode::Return_mode)) {
 		CHECK_FAILSAFE(status_flags, remote_id_unhealthy, fromOdidFailActParam(_param_com_arm_odid.get()));
@@ -679,6 +720,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		_last_state_fd_esc_arming = checkFailsafe(_caller_id_fd_esc_arming, _last_state_fd_esc_arming,
 					    status_flags.fd_esc_arming_failure,
 					    ActionOptions(Action::Disarm).cannotBeDeferred());
+		_last_state_fd_motor_stuck = checkFailsafe(_caller_id_fd_motor_stuck, _last_state_fd_motor_stuck,
+					     status_flags.fd_motor_stuck_failure,
+					     ActionOptions(Action::Disarm).cannotBeDeferred());
 		_last_state_battery_unhealthy_spoolup = checkFailsafe(_caller_id_battery_unhealthy_spoolup,
 							_last_state_battery_unhealthy_spoolup, status_flags.battery_unhealthy,
 							ActionOptions(Action::Disarm).cannotBeDeferred());

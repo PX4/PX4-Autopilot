@@ -63,10 +63,11 @@ private:
 
 	// COM_LOW_BAT_ACT parameter values
 	enum class LowBatteryAction : int32_t {
-		Warning = 0,        // Warning
-		Return = 1,         // Return mode (deprecated)
-		Land = 2,           // Land mode
-		ReturnOrLand = 3    // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+		Warning = 0, // Warning
+		Return = 1, // Return mode (deprecated)
+		Land = 2, // Land mode
+		ReturnOrLand = 3, // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+		ReturnOrTerminate = 4 // Return mode at critically low level, Terminate if reaching dangerously low levels
 	};
 
 	enum class offboard_loss_failsafe_mode : int32_t {
@@ -163,8 +164,9 @@ private:
 	enum class parachute_unhealthy_failsafe_mode : int32_t {
 		Disabled = 0,
 		Warning = 1,
-		Return = 2,
-		Land = 3,
+		Error = 2,
+		Return = 3,
+		Land = 4,
 	};
 
 	enum class gps_redundancy_failsafe_mode : int32_t {
@@ -172,6 +174,7 @@ private:
 		Return_mode = 1,
 		Land_mode = 2,
 		Terminate = 3,
+		Block_arming = 4,
 	};
 
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
@@ -186,11 +189,19 @@ private:
 	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
 	static ActionOptions fromOdidFailActParam(int param_value);
 	static ActionOptions fromParachuteActParam(int param_value);
+	static ActionOptions fromTrafficAvoidanceActParam(int param_value);
 	static ActionOptions fromGnssLossActParam(int param_value);
 
 	static bool isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_mask_parameter);
 
-	Action manualControlLossFallbackAction() const { return fromNavDllOrRclActParam(_param_nav_rcl_act.get()).action; }
+	Action manualControlLossFallbackAction() const
+	{
+		// A NAV_RCL_ACT value with no failsafe action of its own, like "Hold mode (no failsafe)", still has to
+		// replace a manual mode that cannot be flown without manual control. Hold is what that setting promises
+		// for the manual case, and the action cascade escalates from there if Hold cannot run.
+		const Action action = fromNavDllOrRclActParam(_param_nav_rcl_act.get()).action;
+		return (action == Action::None) ? Action::Hold : action;
+	}
 
 	const int _caller_id_mode_fallback{genCallerId()};
 	bool _last_state_mode_fallback{false};
@@ -205,6 +216,8 @@ private:
 	bool _last_state_battery_warning_emergency{false};
 	const int _caller_id_fd_esc_arming{genCallerId()};
 	bool _last_state_fd_esc_arming{false};
+	const int _caller_id_fd_motor_stuck{genCallerId()};
+	bool _last_state_fd_motor_stuck{false};
 	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
 	bool _last_state_battery_unhealthy_spoolup{false};
 
@@ -231,6 +244,7 @@ private:
 					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act,
 					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid,
 					(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute,
+					(ParamInt<px4::params::COM_TRAFF_AVOID>) _param_com_traff_avoid,
 					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act
 				       );
 

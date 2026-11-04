@@ -1,6 +1,6 @@
 # Fused global position in WGS84.
 # This struct contains global position estimation. It is not the raw GPS
-# measurement (@see vehicle_gps_position). This topic is usually published by the position
+# measurement (@see vehicle_gnss). This topic is usually published by the position
 # estimator, which will take more sources of information into account than just GPS,
 # e.g. control inputs of the vehicle in a Kalman-filter implementation.
 #

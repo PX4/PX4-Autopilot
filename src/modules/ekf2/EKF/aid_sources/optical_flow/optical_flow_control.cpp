@@ -128,12 +128,16 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		if (_flow_counter == 0) {
 			_flow_vel_body_lpf.reset(_flow_vel_body);
 			_flow_rate_compensated_lpf.reset(_flow_rate_compensated);
+			_flow_lpf_time_last_us = flow_sample.time_us;
 			_flow_counter = 1;
 
 		} else {
 
-			_flow_vel_body_lpf.update(_flow_vel_body);
-			_flow_rate_compensated_lpf.update(_flow_rate_compensated);
+			// the filters run once per flow sample, not once per EKF update
+			const uint64_t flow_dt_us = flow_sample.time_us - _flow_lpf_time_last_us;
+			_flow_vel_body_lpf.update(_flow_vel_body, flow_dt_us);
+			_flow_rate_compensated_lpf.update(_flow_rate_compensated, flow_dt_us);
+			_flow_lpf_time_last_us = flow_sample.time_us;
 			_flow_counter++;
 		}
 

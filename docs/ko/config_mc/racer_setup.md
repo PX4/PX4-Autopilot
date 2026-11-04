@@ -44,14 +44,14 @@ If you switch into [position mode](../flight_modes_mc/position.md) during that t
 ## 하드웨어 설정
 
 다음 단락에서는 기체 제작시 몇 가지 중요한 사항에 대하여 설명합니다.
-If you need complete build instructions, you can follow the [QAV-R 5" KISS ESC Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md) build log.
+If you need complete build instructions, you can follow the [QAV-R 5" KISS ESC Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer) build log.
 
 ### 진동 설정
 
 진동을 줄이기 위한 여러가지 조립 방법이 있습니다.
-For example, the flight controller can be mounted with vibration dampening foam, or using [O-rings](../frames_multicopter/qav_r_5_kiss_esc_racer.md#mounting).
+For example, the flight controller can be mounted with vibration dampening foam, or using [O-rings](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer#mounting).
 
-While there is no single best method, you will typically have fewer problems with vibrations if you use high-quality components (frame, motors, props) as for example used in the [QAV-R 5" KISS ESC Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md).
+While there is no single best method, you will typically have fewer problems with vibrations if you use high-quality components (frame, motors, props) as for example used in the [QAV-R 5" KISS ESC Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer).
 
 Make sure to use **balanced props**.
 
@@ -146,6 +146,7 @@ For information see: [Filter/Control Latency Tuning](../config_mc/filter_tuning.
 
 :::tip
 You can use the approach described in [Basic MC PID tuning](../config_mc/pid_tuning_guide_multicopter_basic.md) to tune the frame, but you will need to use the [Advanced Multicopter PID Tuning Guide (Advanced/Detailed)](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve) to understand how to tune the thrust curve.
+:::
 
 ### 에어모드
 

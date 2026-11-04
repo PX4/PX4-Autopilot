@@ -145,7 +145,7 @@ private:
 	bool _video_recording{false};
 
 	bool _armed{false};
-	uint8_t _system_id{1};
+	uint32_t _system_id{1};
 	bool _rotary_wing{false};
 	bool _vtol{false};
 

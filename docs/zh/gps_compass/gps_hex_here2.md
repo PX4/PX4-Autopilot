@@ -1,7 +1,7 @@
 # HEX/ProfiCNC Here2 GPS (Discontinued)
 
 :::warning
-This has been superseded by the [Cube Here 3](https://www.cubepilot.com/#/here/here3)
+This has been superseded by the [Cube Here 3](https://cubepilot.org/#/here/here3)
 :::
 
 The _Here2 GPS receiver_ is an update to the Here GPS module from HEX.
@@ -18,7 +18,7 @@ Main features include:
 
 ## 购买渠道
 
-- [Resellers](https://www.cubepilot.com/#/reseller/list)
+- [Resellers](https://cubepilot.org/#/reseller/list)
 
 ## 配置
 
@@ -26,8 +26,8 @@ Setup and use on PX4 is largely plug and play.
 
 ::: info
 
-- If the GPS is _not detected_ then [update the Here2 firmware](https://docs.cubepilot.org/user-guides/here-2/updating-here-2-firmware).
-- If the GPS is detected but does not work, attempt the process outlined in [allocating node uavcan ID](https://docs.cubepilot.org/user-guides/here-2/here-2-can-mode-instruction).
+- If the GPS is _not detected_ then [update the Here2 firmware](https://docs.cubepilot.org/here-2/updating-here-2-firmware).
+- If the GPS is detected but does not work, attempt the process outlined in [allocating node uavcan ID](https://docs.cubepilot.org/here-2/here-2-can-mode-instruction).
 
 :::
 

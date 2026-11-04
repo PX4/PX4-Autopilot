@@ -43,8 +43,7 @@ Enable DShot for your required outputs in the [Actuator Configuration](../config
 DShot comes with different speed options: _DShot150_, _DShot300_, and _DShot600_ where the number indicates the speed in kilo-bits/second.
 您应该将参数设置为您的电调支持的最高速度（根据其说明书）。
 
-然后连接电池并解锁无人机。
-电调应该初始化，电机应该按照正确的方向转动。
+然后连接电池并解锁无人机。电调应该初始化，电机应该按照正确的方向转动。
 
 - If the motors do not spin in the correct direction (for the [selected airframe](../airframes/airframe_reference.md)) you can reverse them in the UI using the **Set Spin Direction** option (this option appears after you select DShot and assign motors).
 
@@ -145,22 +144,20 @@ PX4 automatically reads the full EEPROM from each ESC on boot.
 The ground station can then display individual settings and allow the user to modify them.
 Changes are written back to the ESC one byte at a time using the DShot programming protocol.
 
-<!-- Section below commented out until serial passthrough bridge productised: https://github.com/PX4/PX4-Autopilot/pull/27654#discussion_r3434404781 -->
-
-<!--
 ## ESC Serial Passthrough
 
-<Badge type="tip" text="PX4 v1.18" />
+<Badge type="tip" text="main (PX4 v2.0)" />
 
-PX4 supports direct UART communication through an ESC signal pin using a software bit-bang UART.
-This enables ESC configuration tools, such as _BLHeli Suite_ and the _AM32 configurator_, to communicate with the ESC using UART over MAVLink.
-Note that a MAVLink-to-UART bridge is required on the ground station or companion computer side (you'll need to write your own).
+On STM32F7/H7 boards, PX4 can pass UART traffic through an ESC signal pin using a software bit-bang UART.
+This lets ESC configuration and firmware tools on a ground station or companion computer talk to the ESC over MAVLink, without disconnecting it from the flight controller.
 
-::: warning
-The `PASSTHRU_EN` parameter must be set to `1` (and the vehicle rebooted) before using ESC bitbang passthrough.
-This **disables DShot and PWM output** at boot.
-After the next reboot, `PASSTHRU_EN` automatically resets to `0`, thereby restoring normal DShot/PWM operation.
+To use it, run the [bridge application](../uart/serial_passthrough.md#bridge-application) (`Tools/mavlink_serial_bridge.py`) on the computer connected to the vehicle, and point the tool at the virtual serial port it creates.
+Only one ESC channel can be used at a time, at up to 19200 baud.
+
+:::warning
+ESC passthrough disables DShot and PWM outputs, so the motors can't be driven while it's in use.
+The bridge's `--setup` option sets `PASSTHRU_EN` to `1` and reboots the flight controller, which then boots with DShot and PWM outputs off.
+PX4 resets `PASSTHRU_EN` to `0` during that boot, so normal outputs return on the next reboot.
 :::
 
-See [Serial Passthrough (MAVLink SERIAL_CONTROL)](../uart/serial_passthrough.md) for full configuration details.
--->
+See [Serial Passthrough (MAVLink SERIAL_CONTROL)](../uart/serial_passthrough.md) for build configuration, supported channels, and limitations.

@@ -27,17 +27,13 @@ In the event of an error (blinking red), or if the vehicle can't achieve GPS loc
 ![LED meanings](../../assets/flight_controller/pixhawk_led_meanings.gif)
 
 - **[Solid Blue] Armed, No GPS Lock:** Indicates vehicle has been armed and has no position lock from a GPS unit.
-  当飞行器已经解锁，PX4会解锁对电机的控制，允许你操纵无人机飞行。
-  像往常一样，在解锁时要小心，因为大型螺旋桨在高速旋转时可能很危险。
-  飞行器在这种模式下无法执行引导任务。
+  当飞行器已经解锁，PX4会解锁对电机的控制，允许你操纵无人机飞行。像往常一样，在解锁时要小心，因为大型螺旋桨在高速旋转时可能很危险。飞行器在这种模式下无法执行引导任务。
 
 - **[Pulsing Blue] Disarmed, No GPS Lock:** Similar to above, but your vehicle is disarmed.
   这意味着你将不能控制电机，但是其他子系统正在工作。
 
 - **[Solid Green] Armed, GPS Lock:** Indicates vehicle has been armed and has a valid position lock from a GPS unit.
-  当飞行器已经解锁，PX4会解锁对电机的控制，允许你操纵无人机飞行。
-  像往常一样，在解锁时要小心，因为大型螺旋桨在高速旋转时可能很危险。
-  在这种模式下，飞行器可以执行引导任务。
+  当飞行器已经解锁，PX4会解锁对电机的控制，允许你操纵无人机飞行。像往常一样，在解锁时要小心，因为大型螺旋桨在高速旋转时可能很危险。在这种模式下，飞行器可以执行引导任务。
 
 - **[Pulsing Green] Disarmed, GPS Lock:** Similar to above, but your vehicle is disarmed.
   这意味着你讲无法控制电机，但是其他子系统包括GPS位置锁正在工作。
@@ -51,8 +47,7 @@ In the event of an error (blinking red), or if the vehicle can't achieve GPS loc
   this flight.
 
 - **[Blinking Red] Error / Setup Required:** Indicates that your autopilot needs to be configured or calibrated before flying.
-  将飞行器连接到地面站以找出问题所在。
-  如果您已经完成设置过程，飞行器仍然闪烁红色，这表明还有其他错误。
+  将飞行器连接到地面站以找出问题所在。如果您已经完成设置过程，飞行器仍然闪烁红色，这表明还有其他错误。
 
 <a id="status_led"></a>
 
@@ -63,8 +58,7 @@ Three _Status LEDs_ provide status for the FMU SoC, and three more provide statu
 
 ![Pixhawk 4](../../assets/flight_controller/pixhawk4/pixhawk4_status_leds.jpg)
 
-从上电开始，FMU和PX4IO的CPU首先运行引导程序(BL) 然后运行程序(APP)。
-下表显示了Bootloader 和 APP 如何使用 LED 指示状态。
+从上电开始，FMU和PX4IO的CPU首先运行引导程序(BL) 然后运行程序(APP)。下表显示了Bootloader 和 APP 如何使用 LED 指示状态。
 
 | 颜色     | 标签                                 | 引导加载程序使用        | APP使用   |
 | ------ | ---------------------------------- | --------------- | ------- |

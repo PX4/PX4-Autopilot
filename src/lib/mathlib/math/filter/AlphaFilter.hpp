@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,7 @@
 #pragma once
 
 #include <float.h>
+#include <stdint.h>
 #include <mathlib/math/Functions.hpp>
 
 using namespace math;
@@ -52,28 +53,38 @@ class AlphaFilter
 {
 public:
 	AlphaFilter() = default;
-	explicit AlphaFilter(float sample_interval, float time_constant) { setParameters(sample_interval, time_constant); }
-	explicit AlphaFilter(float time_constant) : _time_constant(time_constant) {};
+	explicit AlphaFilter(float sample_interval_s, float time_constant_s) { setParameters(sample_interval_s, time_constant_s); }
+	explicit AlphaFilter(uint64_t sample_interval_us, uint64_t time_constant_us) { setParameters(sample_interval_us, time_constant_us); }
+	explicit AlphaFilter(float time_constant_s) : _time_constant(time_constant_s) {};
+	explicit AlphaFilter(uint64_t time_constant_us) : _time_constant(static_cast<float>(time_constant_us) * 1e-6f) {};
 
 	~AlphaFilter() = default;
 
 	/**
 	 * Set filter parameters for time abstraction
 	 *
-	 * Both parameters have to be provided in the same units.
-	 *
-	 * @param sample_interval interval between two samples in seconds
-	 * @param time_constant filter time constant determining convergence in seconds
+	 * @param sample_interval_s interval between two samples in seconds
+	 * @param time_constant_s filter time constant determining convergence in seconds
 	 */
-	void setParameters(float sample_interval, float time_constant)
+	void setParameters(float sample_interval_s, float time_constant_s)
 	{
-		const float denominator = time_constant + sample_interval;
+		const float denominator = time_constant_s + sample_interval_s;
 
 		if (denominator > FLT_EPSILON) {
-			setAlpha(sample_interval / denominator);
+			setAlpha(sample_interval_s / denominator);
 		}
 
-		_time_constant = time_constant;
+		_time_constant = time_constant_s;
+	}
+
+	/**
+	 * @param sample_interval_us interval between two samples in microseconds
+	 * @param time_constant_us filter time constant determining convergence in microseconds
+	 */
+	void setParameters(uint64_t sample_interval_us, uint64_t time_constant_us)
+	{
+		setParameters(static_cast<float>(sample_interval_us) * 1e-6f,
+			      static_cast<float>(time_constant_us) * 1e-6f);
 	}
 
 	bool setCutoffFreq(float sample_freq, float cutoff_freq)
@@ -124,14 +135,27 @@ public:
 		return _filter_state;
 	}
 
-	const T update(const T &sample, float dt)
+	const T update(const T &sample, float dt_s)
 	{
-		setParameters(dt, _time_constant);
+		setParameters(dt_s, _time_constant);
+		return update(sample);
+	}
+
+	const T update(const T &sample, uint64_t dt_us)
+	{
+		setParameters(static_cast<float>(dt_us) * 1e-6f, _time_constant);
 		return update(sample);
 	}
 
 	const T &getState() const { return _filter_state; }
-	float getCutoffFreq() const { return 1.f / (M_TWOPI_F * _time_constant); }
+	// a time constant of 0 means no filtering, i.e. an infinite cutoff frequency
+	float getCutoffFreq() const { return (_time_constant > FLT_EPSILON) ? 1.f / (M_TWOPI_F * _time_constant) : INFINITY; }
+
+	// delete mixing seconds with microseconds explicitly -> better compiler error
+	AlphaFilter(uint64_t sample_interval_us, float time_constant_s) = delete;
+	AlphaFilter(float sample_interval_s, uint64_t time_constant_us) = delete;
+	void setParameters(uint64_t sample_interval_us, float time_constant_s) = delete;
+	void setParameters(float sample_interval_s, uint64_t time_constant_us) = delete;
 
 protected:
 	T updateCalculation(const T &sample);

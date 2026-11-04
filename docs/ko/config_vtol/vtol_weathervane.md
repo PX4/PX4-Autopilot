@@ -18,8 +18,8 @@ The weather vane feature will only take effect in [Position mode](../flight_mode
 
 ## 임무 모드 동작 방식
 
-In [Mission mode](../flight_modes_vtol/mission.md) the weather vane feature will always be active when the parameter is enabled.
-임무에서 명령된 모든 요 각도는 무시됩니다.
+In [Mission mode](../flight_modes_vtol/mission.md) the weather vane feature is active (when enabled) for any mission item that does not command a yaw angle.
+If a mission item commands a yaw angle, the weather vane feature is disabled for that item and the commanded yaw is used instead.
 
 <a id="configuration"></a>
 

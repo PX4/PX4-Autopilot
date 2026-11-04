@@ -35,7 +35,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/out/vehicle_command_ack`           | [px4_msgs::msg::VehicleCommandAck](../msg_docs/VehicleCommandAck.md)                   |
 | `/fmu/out/vehicle_control_mode`          | [px4_msgs::msg::VehicleControlMode](../msg_docs/VehicleControlMode.md)                 | 50.0       |
 | `/fmu/out/vehicle_global_position`       | [px4_msgs::msg::VehicleGlobalPosition](../msg_docs/VehicleGlobalPosition.md)           | 50.0       |
-| `/fmu/out/vehicle_gps_position`          | [px4_msgs::msg::SensorGps](../msg_docs/SensorGps.md)                                   | 50.0       |
+| `/fmu/out/vehicle_gnss`                  | [px4_msgs::msg::VehicleGnss](../msg_docs/VehicleGnss.md)                               | 50.0       |
 | `/fmu/out/vehicle_land_detected`         | [px4_msgs::msg::VehicleLandDetected](../msg_docs/VehicleLandDetected.md)               | 5.0        |
 | `/fmu/out/vehicle_local_position`        | [px4_msgs::msg::VehicleLocalPosition](../msg_docs/VehicleLocalPosition.md)             | 50.0       |
 | `/fmu/out/vehicle_odometry`              | [px4_msgs::msg::VehicleOdometry](../msg_docs/VehicleOdometry.md)                       | 100.0      |
@@ -72,8 +72,10 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/rover_speed_setpoint`               | [px4_msgs::msg::RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md)                             |
 | `/fmu/in/rover_steering_setpoint`            | [px4_msgs::msg::RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md)                       |
 | `/fmu/in/rover_throttle_setpoint`            | [px4_msgs::msg::RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md)                       |
+| `/fmu/in/sensor_gnss`                        | [px4_msgs::msg::SensorGnss](../msg_docs/SensorGnss.md)                                             |
 | `/fmu/in/sensor_optical_flow`                | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md)                               |
 | `/fmu/in/setpoint_config`                    | [px4_msgs::msg::SetpointConfig](../msg_docs/SetpointConfig.md)                                     |
+| `/fmu/in/surface_vehicle_course_setpoint`    | [px4_msgs::msg::SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md)         |
 | `/fmu/in/telemetry_status`                   | [px4_msgs::msg::TelemetryStatus](../msg_docs/TelemetryStatus.md)                                   |
 | `/fmu/in/trajectory_setpoint`                | [px4_msgs::msg::TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                             |
 | `/fmu/in/unregister_ext_component`           | [px4_msgs::msg::UnregisterExtComponent](../msg_docs/UnregisterExtComponent.md)                     |
@@ -91,6 +93,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | Topic                       | Type                                                                 | Route Field | Max Instances |
 | --------------------------- | -------------------------------------------------------------------- | ----------- | ------------- |
 | /fmu/in/aux_global_position | [px4_msgs::msg::AuxGlobalPosition](../msg_docs/AuxGlobalPosition.md) | `id`        | 4             |
+| /fmu/in/rtcm_corrections    | [px4_msgs::msg::RtcmData](../msg_docs/RtcmData.md)                   | `device_id` | 4             |
 
 ## Not Exported
 
@@ -130,6 +133,8 @@ They are not build into the module, and hence are neither published or subscribe
 - [DebugKeyValue](../msg_docs/DebugKeyValue.md)
 - [DebugValue](../msg_docs/DebugValue.md)
 - [DebugVect](../msg_docs/DebugVect.md)
+- [DetectAndAvoid](../msg_docs/DetectAndAvoid.md)
+- [DetectAndAvoidMostUrgent](../msg_docs/DetectAndAvoidMostUrgent.md)
 - [DeviceInformation](../msg_docs/DeviceInformation.md)
 - [DifferentialPressure](../msg_docs/DifferentialPressure.md)
 - [DistanceSensorModeChangeRequest](../msg_docs/DistanceSensorModeChangeRequest.md)
@@ -146,7 +151,6 @@ They are not build into the module, and hence are neither published or subscribe
 - [EstimatorBias3d](../msg_docs/EstimatorBias3d.md)
 - [EstimatorEventFlags](../msg_docs/EstimatorEventFlags.md)
 - [EstimatorFusionControl](../msg_docs/EstimatorFusionControl.md)
-- [EstimatorGpsStatus](../msg_docs/EstimatorGpsStatus.md)
 - [EstimatorInnovations](../msg_docs/EstimatorInnovations.md)
 - [EstimatorSelectorStatus](../msg_docs/EstimatorSelectorStatus.md)
 - [EstimatorSensorBias](../msg_docs/EstimatorSensorBias.md)
@@ -154,6 +158,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [EstimatorStatus](../msg_docs/EstimatorStatus.md)
 - [Event](../msg_docs/Event.md)
 - [EventV0](../msg_docs/EventV0.md)
+- [ExternalGimbalManagerStatus](../msg_docs/ExternalGimbalManagerStatus.md)
 - [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md)
 - [FailureInjection](../msg_docs/FailureInjection.md)
 - [FiducialMarkerPosReport](../msg_docs/FiducialMarkerPosReport.md)
@@ -162,6 +167,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [FixedWingLateralGuidanceStatus](../msg_docs/FixedWingLateralGuidanceStatus.md)
 - [FixedWingLateralStatus](../msg_docs/FixedWingLateralStatus.md)
 - [FixedWingRunwayControl](../msg_docs/FixedWingRunwayControl.md)
+- [FixedWingTakeoffStatus](../msg_docs/FixedWingTakeoffStatus.md)
 - [FlightPhaseEstimation](../msg_docs/FlightPhaseEstimation.md)
 - [FollowTarget](../msg_docs/FollowTarget.md)
 - [FollowTargetEstimator](../msg_docs/FollowTargetEstimator.md)
@@ -177,17 +183,18 @@ They are not build into the module, and hence are neither published or subscribe
 - [GimbalManagerInformation](../msg_docs/GimbalManagerInformation.md)
 - [GimbalManagerSetAttitude](../msg_docs/GimbalManagerSetAttitude.md)
 - [GimbalManagerSetManualControl](../msg_docs/GimbalManagerSetManualControl.md)
+- [GimbalManagerSetPitchyaw](../msg_docs/GimbalManagerSetPitchyaw.md)
 - [GimbalManagerStatus](../msg_docs/GimbalManagerStatus.md)
 - [GpioConfig](../msg_docs/GpioConfig.md)
 - [GpioIn](../msg_docs/GpioIn.md)
 - [GpioOut](../msg_docs/GpioOut.md)
 - [GpioRequest](../msg_docs/GpioRequest.md)
 - [GpsDump](../msg_docs/GpsDump.md)
-- [GpsInjectData](../msg_docs/GpsInjectData.md)
 - [Gripper](../msg_docs/Gripper.md)
 - [HealthReport](../msg_docs/HealthReport.md)
 - [HeaterStatus](../msg_docs/HeaterStatus.md)
 - [HomePositionV0](../msg_docs/HomePositionV0.md)
+- [HomePositionV1](../msg_docs/HomePositionV1.md)
 - [HoverThrustEstimate](../msg_docs/HoverThrustEstimate.md)
 - [InternalCombustionEngineControl](../msg_docs/InternalCombustionEngineControl.md)
 - [InternalCombustionEngineStatus](../msg_docs/InternalCombustionEngineStatus.md)
@@ -202,6 +209,8 @@ They are not build into the module, and hence are neither published or subscribe
 - [LoggerStatus](../msg_docs/LoggerStatus.md)
 - [MagWorkerData](../msg_docs/MagWorkerData.md)
 - [MagnetometerBiasEstimate](../msg_docs/MagnetometerBiasEstimate.md)
+- [ManualControlSetpointV0](../msg_docs/ManualControlSetpointV0.md)
+- [ManualControlSetpointV1](../msg_docs/ManualControlSetpointV1.md)
 - [ManualControlSwitches](../msg_docs/ManualControlSwitches.md)
 - [MavlinkLog](../msg_docs/MavlinkLog.md)
 - [MavlinkTunnel](../msg_docs/MavlinkTunnel.md)
@@ -211,6 +220,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [NavigatorMissionItem](../msg_docs/NavigatorMissionItem.md)
 - [NavigatorStatus](../msg_docs/NavigatorStatus.md)
 - [NeuralControl](../msg_docs/NeuralControl.md)
+- [NfsUp](../msg_docs/NfsUp.md)
 - [NormalizedUnsignedSetpoint](../msg_docs/NormalizedUnsignedSetpoint.md)
 - [OpenDroneIdArmStatus](../msg_docs/OpenDroneIdArmStatus.md)
 - [OpenDroneIdBasicId](../msg_docs/OpenDroneIdBasicId.md)
@@ -234,6 +244,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [PowerMonitor](../msg_docs/PowerMonitor.md)
 - [PpsCapture](../msg_docs/PpsCapture.md)
 - [PrecLandStatus](../msg_docs/PrecLandStatus.md)
+- [PrecTakeoffStatus](../msg_docs/PrecTakeoffStatus.md)
 - [PurePursuitStatus](../msg_docs/PurePursuitStatus.md)
 - [PwmInput](../msg_docs/PwmInput.md)
 - [Px4ioStatus](../msg_docs/Px4ioStatus.md)
@@ -262,6 +273,8 @@ They are not build into the module, and hence are neither published or subscribe
 - [SensorBaro](../msg_docs/SensorBaro.md)
 - [SensorCorrection](../msg_docs/SensorCorrection.md)
 - [SensorGnssRelative](../msg_docs/SensorGnssRelative.md)
+- [SensorGnssRf](../msg_docs/SensorGnssRf.md)
+- [SensorGnssSpectrum](../msg_docs/SensorGnssSpectrum.md)
 - [SensorGnssStatus](../msg_docs/SensorGnssStatus.md)
 - [SensorGyro](../msg_docs/SensorGyro.md)
 - [SensorGyroFft](../msg_docs/SensorGyroFft.md)
@@ -273,6 +286,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [SensorTemp](../msg_docs/SensorTemp.md)
 - [SensorUwb](../msg_docs/SensorUwb.md)
 - [SensorsStatus](../msg_docs/SensorsStatus.md)
+- [SensorsStatusGnss](../msg_docs/SensorsStatusGnss.md)
 - [SensorsStatusImu](../msg_docs/SensorsStatusImu.md)
 - [SystemPower](../msg_docs/SystemPower.md)
 - [TakeoffStatus](../msg_docs/TakeoffStatus.md)
@@ -282,6 +296,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [TiltrotorExtraControls](../msg_docs/TiltrotorExtraControls.md)
 - [TrajectorySetpoint6dof](../msg_docs/TrajectorySetpoint6dof.md)
 - [TuneControl](../msg_docs/TuneControl.md)
+- [UavcanFirmwareUpdate](../msg_docs/UavcanFirmwareUpdate.md)
 - [UavcanParameterRequest](../msg_docs/UavcanParameterRequest.md)
 - [UavcanParameterValue](../msg_docs/UavcanParameterValue.md)
 - [UlogStream](../msg_docs/UlogStream.md)
@@ -291,8 +306,11 @@ They are not build into the module, and hence are neither published or subscribe
 - [VehicleAngularVelocity](../msg_docs/VehicleAngularVelocity.md)
 - [VehicleAttitudeSetpointV0](../msg_docs/VehicleAttitudeSetpointV0.md)
 - [VehicleCommandAckV0](../msg_docs/VehicleCommandAckV0.md)
+- [VehicleCommandAckV1](../msg_docs/VehicleCommandAckV1.md)
+- [VehicleCommandV0](../msg_docs/VehicleCommandV0.md)
 - [VehicleConstraints](../msg_docs/VehicleConstraints.md)
 - [VehicleGlobalPositionV0](../msg_docs/VehicleGlobalPositionV0.md)
+- [VehicleGnssHeading](../msg_docs/VehicleGnssHeading.md)
 - [VehicleImu](../msg_docs/VehicleImu.md)
 - [VehicleImuStatus](../msg_docs/VehicleImuStatus.md)
 - [VehicleLocalPositionSetpoint](../msg_docs/VehicleLocalPositionSetpoint.md)
@@ -305,6 +323,7 @@ They are not build into the module, and hence are neither published or subscribe
 - [VehicleStatusV1](../msg_docs/VehicleStatusV1.md)
 - [VehicleStatusV2](../msg_docs/VehicleStatusV2.md)
 - [VehicleStatusV3](../msg_docs/VehicleStatusV3.md)
+- [VehicleStatusV4](../msg_docs/VehicleStatusV4.md)
 - [VelocityLimits](../msg_docs/VelocityLimits.md)
 - [VteAidSource1d](../msg_docs/VteAidSource1d.md)
 - [VteAidSource3d](../msg_docs/VteAidSource3d.md)

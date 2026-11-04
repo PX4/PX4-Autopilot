@@ -42,7 +42,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <drivers/drv_hrt.h>
 
@@ -77,15 +78,17 @@ private:
 	bool send_gps();
 	bool send_attitude();
 	bool send_flight_mode();
+	bool send_baro_altitude();
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	hrt_abstime _last_update{0};
 
-	static constexpr int num_data_types{4}; ///< number of different telemetry data types
+	static constexpr int num_data_types{5}; ///< number of different telemetry data types
 	int _next_type{0};
 
 	int _uart_fd;

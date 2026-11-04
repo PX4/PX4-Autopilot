@@ -87,7 +87,7 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 			set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6")
 			set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 SITL autopilot with SIH physics (no Gazebo)")
 			set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
-				"${PX4_SOURCE_DIR}/Tools/packaging/sih/postinst;${PX4_SOURCE_DIR}/Tools/packaging/sih/postrm")
+				"${PX4_SOURCE_DIR}/Tools/packaging/deb/sih/postinst;${PX4_SOURCE_DIR}/Tools/packaging/deb/sih/postrm")
 		else()
 			set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4-gazebo")
 			set(CPACK_DEBIAN_PACKAGE_NAME "px4-gazebo")
@@ -95,7 +95,7 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 			set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, gz-harmonic, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav")
 			set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 SITL autopilot with Gazebo Harmonic simulation resources")
 			set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
-				"${PX4_SOURCE_DIR}/Tools/packaging/postinst;${PX4_SOURCE_DIR}/Tools/packaging/postrm")
+				"${PX4_SOURCE_DIR}/Tools/packaging/deb/gazebo/postinst;${PX4_SOURCE_DIR}/Tools/packaging/deb/gazebo/postrm")
 		endif()
 
 		# Bake the install prefix into the px4 binary so it can locate its ROMFS

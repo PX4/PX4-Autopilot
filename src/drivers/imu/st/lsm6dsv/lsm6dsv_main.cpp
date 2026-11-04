@@ -43,6 +43,7 @@ void LSM6DSV::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_PARAM_INT('T', 0, 0, 320, "High-g variant for WHO_AM_I 0x73 (80 = LSM6DSV80X, 320 = LSM6DSV320X)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -53,10 +54,16 @@ extern "C" int lsm6dsv_main(int argc, char *argv[])
 	BusCLIArguments cli{false, true};
 	cli.default_spi_frequency = SPI_SPEED;
 
-	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:T:")) != EOF) {
 		switch (ch) {
 		case 'R':
 			cli.rotation = (enum Rotation)atoi(cli.optArg());
+			break;
+
+		case 'T':
+			// High-g variant selector for the shared WHO_AM_I 0x73 (80 = LSM6DSV80X, 320 = LSM6DSV320X).
+			// Set per board in rc.sensors to match the physically-installed part.
+			cli.custom1 = atoi(cli.optArg());
 			break;
 		}
 	}
