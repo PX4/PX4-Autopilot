@@ -471,7 +471,7 @@ void RTL::setRtlTypeAndDestination()
 
 	// init destination with Home (used also with Type 2 and 4 as backup)
 	DestinationType destination_type = DestinationType::DESTINATION_TYPE_HOME;
-	bool destination_is_current_position = false;
+	bool route_stop = false;
 	PositionYawSetpoint destination;
 	destination.lat = _home_pos_sub.get().lat;
 	destination.lon = _home_pos_sub.get().lon;
@@ -534,7 +534,7 @@ void RTL::setRtlTypeAndDestination()
 		} else {
 			// Without a route, hold at the current location instead of returning directly to a destination.
 			setCurrentPositionAsDestination(destination);
-			destination_is_current_position = true;
+			route_stop = true;
 		}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -618,7 +618,7 @@ void RTL::setRtlTypeAndDestination()
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 
 		// A missing route stops here, even when this position is near a rally point with an approach.
-		if (new_rtl_type == RtlType::RTL_DIRECT && !destination_is_current_position) {
+		if (new_rtl_type == RtlType::RTL_DIRECT && !route_stop) {
 			const loiter_point_s landing_approach = selectLandingApproach(destination);
 
 			if (landing_approach.isValid()) {
@@ -630,7 +630,8 @@ void RTL::setRtlTypeAndDestination()
 
 		const float direct_rtl_alt = computeReturnAltitude(destination);
 		_rtl_direct.setRtlAlt(direct_rtl_alt);
-		_rtl_direct.setRtlPosition(destination, landing_loiter, destination_is_current_position);
+		_rtl_direct.setRtlPosition(destination, landing_loiter,
+					   route_stop || destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION, route_stop);
 		return direct_rtl_alt;
 	};
 
@@ -680,7 +681,7 @@ void RTL::setRtlTypeAndDestination()
 		if (route_follower_failed) {
 			// The direct executor was given the route goal, which is no direct destination.
 			setCurrentPositionAsDestination(destination);
-			destination_is_current_position = true;
+			route_stop = true;
 			safe_point_index = RTL_STATUS_NO_SAFE_POINT;
 		}
 
@@ -938,7 +939,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 	} else if (rtl_type == RTL_TYPE_SAFE_POINT_DIRECT) {
 		// for RTL_TYPE=5: if no rally point is found fallback to current position
 		setCurrentPositionAsDestination(destination);
-		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+		destination_type = DestinationType::DESTINATION_TYPE_CURRENT_POSITION;
 	}
 }
 
