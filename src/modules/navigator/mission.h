@@ -61,6 +61,7 @@ public:
 
 	virtual void on_inactive() override;
 	virtual void on_activation() override;
+	virtual void on_active() override;
 
 	/**
 	 * Set the current mission item.
@@ -80,6 +81,11 @@ public:
 private:
 
 	bool setNextMissionItem() override;
+
+	/**
+	 * Recheck the mission after a Home update while armed on the ground, before takeoff
+	 */
+	void recheckAfterHomeUpdateOnGround();
 
 	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff

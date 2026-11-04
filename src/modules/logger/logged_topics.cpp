@@ -67,6 +67,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
+	add_topic("esc_eeprom_read");
 	add_topic("esc_status", 100);
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
@@ -110,14 +111,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
-	add_optional_topic("rover_attitude_setpoint", 100);
-	add_optional_topic("rover_attitude_status", 100);
-	add_optional_topic("rover_position_setpoint", 100);
-	add_optional_topic("rover_rate_setpoint", 100);
-	add_optional_topic("rover_rate_status", 100);
-	add_optional_topic("rover_speed_setpoint", 100);
-	add_optional_topic("rover_speed_status", 100);
-	add_optional_topic("rover_steering_setpoint", 100);
 	add_optional_topic("rover_throttle_setpoint", 100);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);
@@ -129,7 +122,15 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensors_status_gnss", 200);
 	add_topic("sensors_status_imu", 200);
 	add_optional_topic("spoilers_setpoint", 1000);
+	add_optional_topic("surface_vehicle_attitude_setpoint", 100);
+	add_optional_topic("surface_vehicle_attitude_status", 100);
 	add_optional_topic("surface_vehicle_course_setpoint", 100);
+	add_optional_topic("surface_vehicle_position_setpoint", 100);
+	add_optional_topic("surface_vehicle_rate_setpoint", 100);
+	add_optional_topic("surface_vehicle_rate_status", 100);
+	add_optional_topic("surface_vehicle_speed_setpoint", 100);
+	add_optional_topic("surface_vehicle_speed_status", 100);
+	add_optional_topic("surface_vehicle_steering_setpoint", 100);
 	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
 	add_optional_topic("tecs_status", 200);

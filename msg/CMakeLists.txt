@@ -186,14 +186,6 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
-	RoverAttitudeSetpoint.msg
-	RoverAttitudeStatus.msg
-	RoverPositionSetpoint.msg
-	RoverRateSetpoint.msg
-	RoverRateStatus.msg
-	RoverSpeedSetpoint.msg
-	RoverSpeedStatus.msg
-	RoverSteeringSetpoint.msg
 	RoverThrottleSetpoint.msg
 	Rpm.msg
 	RtcmData.msg
@@ -223,7 +215,15 @@ set(msg_files
 	SensorTemp.msg
 	SensorUwb.msg
 	SensorAirflow.msg
+	SurfaceVehicleAttitudeSetpoint.msg
+	SurfaceVehicleAttitudeStatus.msg
 	SurfaceVehicleCourseSetpoint.msg
+	SurfaceVehiclePositionSetpoint.msg
+	SurfaceVehicleRateSetpoint.msg
+	SurfaceVehicleRateStatus.msg
+	SurfaceVehicleSpeedSetpoint.msg
+	SurfaceVehicleSpeedStatus.msg
+	SurfaceVehicleSteeringSetpoint.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg

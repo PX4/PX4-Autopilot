@@ -82,6 +82,7 @@ public:
 	};
 
 	void on_inactive() override;
+	void on_inactivation() override;
 	void on_activation() override;
 	void on_active() override;
 
@@ -97,7 +98,8 @@ private:
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
-		DESTINATION_TYPE_SAFE_POINT
+		DESTINATION_TYPE_SAFE_POINT,
+		DESTINATION_TYPE_CURRENT_POSITION
 	};
 
 	/**
@@ -152,8 +154,9 @@ private:
 	/**
 	 * @brief initialize Return mission type
 	 *
+	 * @return false if the executor could not be allocated
 	 */
-	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
 
 	/**
 	 * @brief Update parameters
@@ -170,6 +173,7 @@ private:
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
+	RtlType _init_failure_reported{RtlType::NONE}; ///< Logged failing executor type, reset by a successful init or activation.
 	uint32_t _mission_land_failure_mission_id{0};
 	uint16_t _mission_land_failure_count{0};
 	int32_t _mission_land_failure_index{-1};

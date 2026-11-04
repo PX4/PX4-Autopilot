@@ -53,8 +53,11 @@ public:
 	 */
 	virtual bool pruneCandidates(ProjectionReferenceBatch &batch) const = 0;
 
-	/** Check one segment from the vehicle. Return false if unavailable; otherwise clear says whether it passes. */
-	virtual bool checkPath(const Position &start, const Position &end, bool &clear) const = 0;
+	/**
+	 * Check one segment from the vehicle. Return false if unavailable; otherwise clear says whether it passes.
+	 * Never pass another start point: a vehicle in breach may pass unchecked so it can recover.
+	 */
+	virtual bool checkPath(const Position &vehicle, const Position &end, bool &clear) const = 0;
 };
 
 } // namespace mission_route

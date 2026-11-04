@@ -787,50 +787,19 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 	}
 }
 
-float GZBridge::generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
-
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
 void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
 			   float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index)
 {
 	_gnss_pos_noise_n[instance_index] = _pos_markov_time * _gnss_pos_noise_n[instance_index] +
-					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					    _pos_random_walk * math::generate_wgn() * _pos_noise_amplitude -
 					    0.02f * _gnss_pos_noise_n[instance_index];
 
 	_gnss_pos_noise_e[instance_index] = _pos_markov_time * _gnss_pos_noise_e[instance_index] +
-					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					    _pos_random_walk * math::generate_wgn() * _pos_noise_amplitude -
 					    0.02f * _gnss_pos_noise_e[instance_index];
 
 	_gnss_pos_noise_d[instance_index] = _pos_markov_time * _gnss_pos_noise_d[instance_index] +
-					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
+					    _pos_random_walk * math::generate_wgn() * _pos_noise_amplitude * 1.5f -
 					    0.02f * _gnss_pos_noise_d[instance_index];
 
 	latitude += math::degrees((double)_gnss_pos_noise_n[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
@@ -838,13 +807,13 @@ void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude
 	altitude += (double)_gnss_pos_noise_d[instance_index];
 
 	_gnss_vel_noise_n[instance_index] = _vel_markov_time * _gnss_vel_noise_n[instance_index] +
-					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+					    _vel_noise_density * math::generate_wgn() * _vel_noise_amplitude;
 
 	_gnss_vel_noise_e[instance_index] = _vel_markov_time * _gnss_vel_noise_e[instance_index] +
-					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+					    _vel_noise_density * math::generate_wgn() * _vel_noise_amplitude;
 
 	_gnss_vel_noise_d[instance_index] = _vel_markov_time * _gnss_vel_noise_d[instance_index] +
-					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+					    _vel_noise_density * math::generate_wgn() * _vel_noise_amplitude * 1.2f;
 
 	vel_north += _gnss_vel_noise_n[instance_index];
 	vel_east += _gnss_vel_noise_e[instance_index];

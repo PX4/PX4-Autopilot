@@ -624,7 +624,7 @@ parameters:
           - Timeout for ESCs and smart batteries to successfulyy do failure checks
           e.g. for stuck rotors before the vehicle is off the ground
       type: float
-      default: 1.0
+      default: 2.0
       min: 0
       max: 30
       decimal: 1

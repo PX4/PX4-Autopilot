@@ -12,6 +12,9 @@
 #   See docs/en/simulation/gazebo_container_gui.md for display authorization,
 #   socket mounts and software/hardware rendering options.
 #
+# Use Zenoh instead of uXRCE-DDS (zenoh router on the host, TCP port 7447):
+#   docker run --rm -it --network host -e HEADLESS=1 -e PX4_ROS2_MIDDLEWARE=zenoh px4io/px4-sitl-gazebo:v1.17.0
+#
 # Persist flight logs on the host (ulog files):
 #   mkdir -p ./px4-logs
 #   docker run --rm -it --network host -e HEADLESS=1 \
@@ -92,7 +95,7 @@ ENV QT_X11_NO_MITSHM=1
 EXPOSE 14550/udp 14540/udp 8888/udp
 
 # Platform-adaptive entrypoint: detects Docker Desktop (macOS/Windows) via
-# host.docker.internal and configures MAVLink + DDS to target the host.
+# host.docker.internal and configures MAVLink, DDS and Zenoh to target the host.
 COPY px4-network.sh /usr/local/lib/px4/network.sh
 COPY px4-entrypoint.sh /opt/px4-gazebo/bin/px4-entrypoint.sh
 RUN chmod +x /opt/px4-gazebo/bin/px4-entrypoint.sh

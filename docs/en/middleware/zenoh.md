@@ -81,10 +81,15 @@ The table below shows some of the PX4 targets that include Zenoh by default.
 | `nxp_tropic-community` |                                                                                             |
 | `nxp_mr-tropic`        |                                                                                             |
 | `nxp_mr-canhubk344`    |                                                                                             |
-| `px4_sitl_zenoh`       | Zenoh-enabled simulation build                                                              |
+| `px4_sitl_default`     | Simulation build, also includes uXRCE-DDS (see below)                                       |
+| `px4_sitl_sih`         | SIH simulation build, also includes uXRCE-DDS (see below)                                   |
+| `px4_sitl_zenoh`       | Zenoh-only simulation build                                                                 |
 | `px4_fmu-v6x_zenoh`    | Zenoh-enabled firmware for FMUv6X                                                           |
 
 Zenoh is not included in the default `px4_fmu-` targets for any firmware other than `px4_fmu-v6xrt` (`px4_sitl_zenoh` and `px4_fmu-v6x_zenoh` [are build variants](../dev_setup/building_px4.md#px4-make-build-targets)).
+
+The SITL builds, including the [prebuilt SITL packages and containers](../simulation/px4_sitl_prebuilt_packages.md#ros-2-integration), include both Zenoh and uXRCE-DDS and run one of them.
+Select Zenoh at startup with the `PX4_ROS2_MIDDLEWARE=zenoh` environment variable, or by setting `ZENOH_ENABLE` as described below.
 
 ::: tip
 You can check if Zenoh is present at runtime by using QGroundControl to [find the parameter](../advanced_config/parameters.md#finding-a-parameter) [ZENOH_ENABLE](../advanced_config/parameter_reference.md#ZENOH_ENABLE).
@@ -105,6 +110,7 @@ When this is disabled, PX4 uses only global publisher option parameters, and per
 ### Enable Zenoh on PX4 Startup
 
 Set the [ZENOH_ENABLE](../advanced_config/parameter_reference.md#ZENOH_ENABLE) parameter to `1` to enable Zenoh on PX4 startup.
+In simulation, this also stops the uXRCE-DDS client from starting.
 
 ### Configure Zenoh Network
 
@@ -117,7 +123,8 @@ If you're using a different IP for the Zenoh daemon, run the following command (
 zenoh config net client tcp/10.41.10.1:7447#iface=eth0
 ```
 
-Note that for the simulation target with Zenoh (`px4_sitl_zenoh`) you won't need to make any changes because the default IP address of the Zenoh daemon is set to `localhost`.
+Note that for the simulation targets you won't need to make any changes because the default IP address of the Zenoh daemon is set to `localhost`.
+In simulation, you can also set the `PX4_ZENOH_LOCATOR` environment variable (for example `PX4_ZENOH_LOCATOR=tcp/192.168.1.5:7447`), which applies this command at startup.
 
 :::warning
 Any changes to the network configuration require a PX4 system reboot to take effect.

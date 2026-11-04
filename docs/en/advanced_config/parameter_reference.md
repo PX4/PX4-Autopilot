@@ -29680,7 +29680,7 @@ e.g. for stuck rotors before the vehicle is off the ground
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 30 | 0.1 | 1.0 | s | &nbsp;
+&nbsp; | 0 | 30 | 0.1 | 2.0 | s | &nbsp;
 
 </div>
 
@@ -55845,7 +55845,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### IMU_GYRO_NF0_BW (`FLOAT`) {#IMU_GYRO_NF0_BW}
 
-Notch filter bandwidth for gyro.
+Notch filter 0 bandwidth for gyro.
 
 The frequency width of the stop band for the 2nd order notch filter on the primary gyro.
 See "IMU_GYRO_NF0_FRQ" to activate the filter and to set the notch frequency.
@@ -55862,7 +55862,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### IMU_GYRO_NF0_FRQ (`FLOAT`) {#IMU_GYRO_NF0_FRQ}
 
-Notch filter frequency for gyro.
+Notch filter 0 frequency for gyro.
 
 The center frequency for the 2nd order notch filter on the primary gyro.
 This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
@@ -55900,7 +55900,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### IMU_GYRO_NF1_FRQ (`FLOAT`) {#IMU_GYRO_NF1_FRQ}
 
-Notch filter 2 frequency for gyro.
+Notch filter 1 frequency for gyro.
 
 The center frequency for the 2nd order notch filter on the primary gyro.
 This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
