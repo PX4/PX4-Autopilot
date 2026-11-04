@@ -86,7 +86,9 @@
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 # include "vehicle_optical_flow/VehicleOpticalFlow.hpp"
-#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
+#elif defined(CONFIG_SENSORS_NODE_OPTICAL_FLOW)
+# include "vehicle_optical_flow/NodeOpticalFlow.hpp"
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW || CONFIG_SENSORS_NODE_OPTICAL_FLOW
 
 using namespace sensors;
 using namespace time_literals;
@@ -128,7 +130,7 @@ private:
 
 	void		InitializeVehicleMagnetometer();
 
-	void		InitializeVehicleOpticalFlow();
+	void		InitializeOpticalFlow();
 
 	const bool _hil_enabled;	/**< if true, HIL is active */
 
@@ -245,9 +247,14 @@ private:
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
-	VehicleOpticalFlow *_vehicle_optical_flow {nullptr};
-	uint8_t _n_optical_flow{0};
-#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
+	VehicleOpticalFlow *_optical_flow {nullptr};
+#elif defined(CONFIG_SENSORS_NODE_OPTICAL_FLOW)
+	NodeOpticalFlow *_optical_flow {nullptr};
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW || CONFIG_SENSORS_NODE_OPTICAL_FLOW
+
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW) || defined(CONFIG_SENSORS_NODE_OPTICAL_FLOW)
+	uint8_t _n_optical_flow {0};
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW || CONFIG_SENSORS_NODE_OPTICAL_FLOW
 
 	DEFINE_PARAMETERS(
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)

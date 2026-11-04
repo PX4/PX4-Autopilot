@@ -31,11 +31,29 @@
 #
 ############################################################################
 
-px4_add_library(vehicle_optical_flow
-	VehicleOpticalFlow.cpp
-	VehicleOpticalFlow.hpp
+px4_add_library(optical_flow_accumulator
+	OpticalFlowAccumulator.cpp
+	OpticalFlowAccumulator.hpp
+	OpticalFlowGyroFeed.cpp
+	OpticalFlowGyroFeed.hpp
 )
-target_link_libraries(vehicle_optical_flow PRIVATE px4_work_queue)
+target_link_libraries(optical_flow_accumulator PRIVATE px4_work_queue sensor_calibration)
+
+if(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+	px4_add_library(vehicle_optical_flow
+		VehicleOpticalFlow.cpp
+		VehicleOpticalFlow.hpp
+	)
+	target_link_libraries(vehicle_optical_flow PRIVATE px4_work_queue PUBLIC optical_flow_accumulator)
+endif()
+
+if(CONFIG_SENSORS_NODE_OPTICAL_FLOW)
+	px4_add_library(node_optical_flow
+		NodeOpticalFlow.cpp
+		NodeOpticalFlow.hpp
+	)
+	target_link_libraries(node_optical_flow PRIVATE px4_work_queue PUBLIC optical_flow_accumulator)
+endif()
 
 if(BUILD_TESTING)
 	add_subdirectory(test)

@@ -36,6 +36,8 @@
  * Template RingBuffer
  */
 
+#pragma once
+
 #include <inttypes.h>
 #include <cstdio>
 #include <cstring>
