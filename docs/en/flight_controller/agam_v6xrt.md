@@ -9,21 +9,19 @@ Contact the [manufacturer](https://www.agamrobotics.com/) for hardware support o
 
 The [Agam Autopilot v6X-RT](https://www.agamrobotics.com/product-page/agam-pixhawk-6x-full-set) flight controller is [Agam Robotics'](https://www.agamrobotics.com/) implementation of the [NXP-led FMUv6X-RT reference design](../flight_controller/nxp_mr_vmu_rt1176.md).
 
+Agam Autopilot v6X-RT uses the NXP i.MX RT1176 MCU, consisting of an Arm® Cortex®-M7 core at 1GHz and an Arm® Cortex®-M4 core at 400MHz, with 2MB SRAM and 64MB Octal SPI flash.
+The increased processing power lets firmware developers run more complex algorithms without being constrained by the flight controller's compute budget.
+
+The board uses sensors from InvenSense® and Bosch®, and ships in two sensor-set variants (see [Sensors](#sensors)).
+Redundant IMU and barometer sensors sit on separate buses, and 2 of the 3 IMUs are mounted on a shock-isolated, heated sensor board, separate from the FMU board itself, to improve accuracy in flight and across a wide temperature range.
+
+An integrated Ethernet interface (100BASE-T1, 2-wire) provides high-speed, low-latency connectivity to companion computers (for example a Raspberry Pi or NVIDIA Jetson), cameras, or data-transmission systems.
+
 ![Agam Autopilot v6X-RT](../../assets/flight_controller/agam_v6xrt/agam_v6xrt_front.png)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
-
-## Introduction
-
-Agam Autopilot v6X-RT uses the NXP i.MX RT1176 MCU, consisting of an Arm® Cortex®-M7 core at 1GHz and an Arm® Cortex®-M4 core at 400MHz, with 2MB SRAM and 64MB Octal SPI flash.
-The increased processing power lets firmware developers run more complex algorithms without being constrained by the flight controller's compute budget.
-
-The board uses sensors from InvenSense® and Bosch®, and ships in two sensor-set variants (see [Processors & Sensors](#processors-sensors)).
-Redundant IMU and barometer sensors sit on separate buses, and 2 of the 3 IMUs are mounted on a shock-isolated, heated sensor board, separate from the FMU board itself, to improve accuracy in flight and across a wide temperature range.
-
-An integrated Ethernet interface (100BASE-T1, 2-wire) provides high-speed, low-latency connectivity to companion computers (for example a Raspberry Pi or NVIDIA Jetson), cameras, or data-transmission systems.
 
 ## Key Design Points
 
@@ -34,19 +32,18 @@ An integrated Ethernet interface (100BASE-T1, 2-wire) provides high-speed, low-l
 - 100BASE-T1 (2-wire) automotive Ethernet for high-speed companion computer integration
 - 256Kbit FRAM
 
-::: tip
-This board ships with `SENS_IMU_MODE` and `EKF2_MULTI_IMU` set so that only the FMU-board IMU is used by default.
-To take advantage of the triple-redundant IMU set `SENS_IMU_MODE` to `Disabled (0)`, reboot, set `EKF2_MULTI_IMU` to `3`, and reboot again.
-See [Agam's IMU triple redundancy notes](https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart/imu-triple-redundancy-feature) for more information.
-:::
+## Specifications {#specifications}
 
-### Processors & Sensors {#processors-sensors}
+### Processor {#processor}
 
 - FMU Processor: [NXP i.MX RT1176 (MIMXRT1176DVMAA)](https://www.nxp.com/products/i.MX-RT1170)
   - Arm® Cortex®-M7 core @ 1GHz
   - Arm® Cortex®-M4 core @ 400MHz (secondary core)
   - 2MB SRAM
   - 64MB external Octal SPI flash
+
+### Sensors {#sensors}
+
 - On-board sensors — Agam Autopilot v6X-RT ships in two sensor-set variants (Sensor Set 1 and Sensor Set 3, per [Pixhawk Standards](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-020%20Pixhawk%20Autopilot%20v6X-RT%20Standard.pdf)):
   - Sensor Set 1:
     - 2x [InvenSense ICM-42688-P IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p)
@@ -59,25 +56,13 @@ See [Agam's IMU triple redundancy notes](https://agamrobotics.gitbook.io/docs/au
     - [Bosch BMM350 Magnetometer](https://www.bosch-sensortec.com/en/products/motion-sensors/magnetometers/bmm350)
     - 2x [Bosch BMP388 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
 
-### Electrical data
+::: tip
+This board ships with `SENS_IMU_MODE` and `EKF2_MULTI_IMU` set so that only the FMU-board IMU is used by default.
+To take advantage of the triple-redundant IMU set `SENS_IMU_MODE` to `Disabled (0)`, reboot, set `EKF2_MULTI_IMU` to `3`, and reboot again.
+See [Agam's IMU triple redundancy notes](https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart/imu-triple-redundancy-feature) for more information.
+:::
 
-- Voltage Ratings:
-  - Max input voltage: 6V
-  - USB Power Input: 4.75\~5.25V
-  - Servo Rail Input: 0\~36V
-- Current Ratings:
-  - `TELEM1` output current limiter: 1.5A
-  - All other port combined output current limiter: 1.5A
-
-### Mechanical data
-
-- Dimensions
-  - Flight controller module: 39 x 32 x 16 mm
-  - Baseboard: 95 x 50 x 19 mm
-- Weight: 90 g
-- Operating temperature: -40°C to 85°C
-
-### Interfaces
+### Interfaces {#interfaces}
 
 - 12 PWM/DShot outputs (8 DShot-capable, 4 PWM-only)
 - 1x RC input, SBUS/PPM
@@ -93,23 +78,32 @@ See [Agam's IMU triple redundancy notes](https://agamrobotics.gitbook.io/docs/au
 - microSD card slot
 - Dual redundant power input (5V via Molex connectors)
 
-## Where To Buy {#store}
+### Electrical Data {#electrical_data}
+
+- Voltage Ratings:
+  - Max input voltage: 6V
+  - USB Power Input: 4.75\~5.25V
+  - Servo Rail Input: 0\~36V
+- Current Ratings:
+  - `TELEM1` output current limiter: 1.5A
+  - All other port combined output current limiter: 1.5A
+
+### Mechanical Data {#mechanical_data}
+
+- Dimensions
+  - Flight controller module: 39 x 32 x 16 mm
+  - Baseboard: 95 x 50 x 19 mm
+- Weight: 90 g
+- Operating temperature: -40°C to 85°C
+
+## Where to Buy {#store}
 
 Order from the [Agam Robotics store](https://www.agamrobotics.com/product-page/agam-pixhawk-6x-full-set).
 
-## Assembly/Setup
-
-Agam Autopilot v6X-RT is a Pixhawk-standard v6X-RT board, electrically and mechanically identical to the NXP reference design, differing from it only in enclosure.
-Wiring is similar to the [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md#connections) and other boards that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
-
-For wiring and assembly, follow the [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md), which applies to this board other than the enclosure.
-
-## Connections
+## Pinouts {#pinouts}
 
 The connectors follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf), which defines the pinout of each port type.
 For the physical layout of the ports on the board see the [Agam Autopilot v6X-RT baseboard ports](https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart/baseboard-port) documentation.
-
-## Pinouts
 
 Agam Autopilot v6X-RT's pinout is the same as other v6X-RT-family boards:
 
@@ -122,37 +116,16 @@ Notes:
 
 - The [camera capture pin](../camera/fc_connected_camera.md#camera-capture-configuration) (`PI0`) is pin 2 on the AD&IO port, marked `FMU_CAP`.
 
-## Serial Port Mapping
-
-| UART     | Device     | Port    |
-| -------- | ---------- | ------- |
-| LPUART1  | /dev/ttyS0 | Console |
-| LPUART3  | /dev/ttyS1 | GPS     |
-| LPUART4  | /dev/ttyS2 | TELEM1  |
-| LPUART5  | /dev/ttyS3 | GPS2    |
-| LPUART6  | /dev/ttyS4 | PX4IO   |
-| LPUART8  | /dev/ttyS5 | TELEM2  |
-| LPUART10 | /dev/ttyS6 | TELEM3  |
-| LPUART11 | /dev/ttyS7 | EXT2    |
-
-## Radio Control {#radio_control}
-
-A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
-You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
-
-The ports and supported protocols are:
-
-- `RC IN` (FMU): SBUS/PPM
-- `DSM RC` (FMU): Spektrum/DSM
-
-For PPM and S.Bus receivers, a single signal wire carries all channels.
-If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md).
-
-## Voltage Ratings
+## Power {#power}
 
 _Agam Autopilot v6X-RT_ can be triple-redundant on the power supply if three power sources are supplied.
 The three power rails are: **POWER1**, **POWER2** and **USB**.
 The **POWER1** & **POWER2** ports use a 6-circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
+
+Digital I2C battery monitoring is enabled by default.
+Analog/ADC battery monitoring is also supported.
+
+## Voltage Ratings {#voltage_ratings}
 
 ### Normal Operation Maximum Ratings
 
@@ -169,10 +142,40 @@ Under these conditions the system will not draw any power (will not be operation
 2. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
 3. Servo input: VDD_SERVO pin of **FMU PWM OUT** (0V to 42V undamaged)
 
-Digital I2C battery monitoring is enabled by default.
-Analog/ADC battery monitoring is also supported.
+## Serial Port Mapping {#serial_port_mapping}
 
-## Building Firmware
+| UART     | Device     | Port    |
+| -------- | ---------- | ------- |
+| LPUART1  | /dev/ttyS0 | Console |
+| LPUART3  | /dev/ttyS1 | GPS     |
+| LPUART4  | /dev/ttyS2 | TELEM1  |
+| LPUART5  | /dev/ttyS3 | GPS2    |
+| LPUART6  | /dev/ttyS4 | PX4IO   |
+| LPUART8  | /dev/ttyS5 | TELEM2  |
+| LPUART10 | /dev/ttyS6 | TELEM3  |
+| LPUART11 | /dev/ttyS7 | EXT2    |
+
+## Assembly {#assembly}
+
+Agam Autopilot v6X-RT is a Pixhawk-standard v6X-RT board, electrically and mechanically identical to the NXP reference design, differing from it only in enclosure.
+Wiring is similar to the [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md#connections) and other boards that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
+
+For wiring and assembly, follow the [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md), which applies to this board other than the enclosure.
+
+### Radio Control {#radio_control}
+
+A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+
+The ports and supported protocols are:
+
+- `RC IN` (FMU): SBUS/PPM
+- `DSM RC` (FMU): Spektrum/DSM
+
+For PPM and S.Bus receivers, a single signal wire carries all channels.
+If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md).
+
+## Building Firmware {#building_firmware}
 
 ::: tip
 Most users will not need to build this firmware from PX4 v2.0.
@@ -227,7 +230,7 @@ For information about using this port see:
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 
-## Further info
+## Further Information {#further_information}
 
 - [Update Pixhawk 6X-RT Bootloader](../advanced_config/bootloader_update_v6xrt.md)
 - [Agam Autopilot v6X-RT Documentation](https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart) (Agam Robotics Docs)
