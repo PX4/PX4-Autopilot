@@ -42,12 +42,14 @@
 
 #include "mission_block.h"
 #include "navigator.h"
+#include "vtol_takeoff.h"
 #include "support/navigator_dataman_test.h"
 
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/Subscription.hpp>
 
 namespace
 {
@@ -144,6 +146,36 @@ protected:
 	}
 
 	void sleepPastTimeout() { px4_usleep((useconds_t)(kTimeout * 1.25e6f)); }
+
+	// VTOL Takeoff hovering at the transition altitude, aligning to a direction 90 deg off its heading
+	void startAligningVtolTakeoff(VtolTakeoff &takeoff)
+	{
+		vehicle_status_s *status = _navigator.get_vstatus();
+		status->is_vtol = true;
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+
+		transitionCommanded(); // drop commands of earlier tests
+		takeoff.setTransitionAltitudeAbsolute(kAlt);
+		takeoff.setTransitionDirection(math::degrees(kItemYaw));
+		takeoff.on_activation();
+		takeoff.on_active();
+		ASSERT_NEAR(_navigator.get_position_setpoint_triplet()->current.yaw, kItemYaw, 1e-4f);
+		takeoff.on_active();
+	}
+
+	bool transitionCommanded()
+	{
+		bool commanded = false;
+		vehicle_command_s vehicle_command{};
+
+		while (_vehicle_command_sub.update(&vehicle_command)) {
+			commanded |= vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
+		}
+
+		return commanded;
+	}
+
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 };
 
 TEST_F(MissionBlockYawTest, HeadingIsAcceptedWhenReached)
@@ -197,13 +229,13 @@ TEST_F(MissionBlockYawTest, ForcedHeadingTimeoutFailsMission)
 	EXPECT_TRUE(_navigator.get_mission_result()->failure);
 }
 
-TEST_F(MissionBlockYawTest, ForcedHeadingTimeoutContinuesInReturn)
+TEST_F(MissionBlockYawTest, ForcedHeadingTimeoutKeepsWaitingOutsideMission)
 {
 	_block.item().force_heading = true;
 	EXPECT_FALSE(_block.reached());
 	sleepPastTimeout();
-	EXPECT_TRUE(_block.reached()); // nothing would react to a mission failure in Return
-	EXPECT_FALSE(_navigator.get_mission_result()->failure);
+	EXPECT_FALSE(_block.reached()); // what follows relies on the heading in every mode
+	EXPECT_FALSE(_navigator.get_mission_result()->failure); // only Mission has a failsafe for it
 }
 
 TEST_F(MissionBlockYawTest, VtolIgnoresHeadingThatIsNotForced)
@@ -217,6 +249,31 @@ TEST_F(MissionBlockYawTest, VtolAwaitsForcedHeading)
 	_navigator.get_vstatus()->is_vtol = true;
 	_block.item().force_heading = true;
 	EXPECT_FALSE(_block.reached());
+}
+
+TEST_F(MissionBlockYawTest, VtolTakeoffTransitionsOnceAligned)
+{
+	VtolTakeoff takeoff{&_navigator};
+	ASSERT_NO_FATAL_FAILURE(startAligningVtolTakeoff(takeoff));
+	EXPECT_FALSE(transitionCommanded());
+
+	_navigator.get_local_position()->heading = kItemYaw;
+	takeoff.on_active();
+	EXPECT_TRUE(transitionCommanded());
+}
+
+TEST_F(MissionBlockYawTest, VtolTakeoffDoesNotTransitionMisaligned)
+{
+	VtolTakeoff takeoff{&_navigator};
+	ASSERT_NO_FATAL_FAILURE(startAligningVtolTakeoff(takeoff));
+	sleepPastTimeout();
+	takeoff.on_active();
+	EXPECT_FALSE(transitionCommanded()); // it would start off the requested direction
+	EXPECT_FALSE(_navigator.get_mission_result()->failure); // no stale failure for a later mission
+
+	_navigator.get_local_position()->heading = kItemYaw;
+	takeoff.on_active();
+	EXPECT_TRUE(transitionCommanded()); // in the requested direction once aligned
 }
 
 TEST_F(MissionBlockYawTest, DisabledTimeoutWaitsIndefinitely)

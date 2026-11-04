@@ -66,7 +66,8 @@ parameters:
           Time from commanding a waypoint heading until a multicopter continues without reaching it,
           to not get stuck with low yaw authority.
 
-          A forced heading in a mission (e.g. before VTOL transition) fails the mission instead.
+          A forced heading (e.g. before a VTOL transition) is never skipped: a mission fails instead,
+          other modes keep waiting.
           VTOLs only wait for forced headings.
           -1: wait indefinitely
       type: float
