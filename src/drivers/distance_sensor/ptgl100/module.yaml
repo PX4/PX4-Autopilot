@@ -1,0 +1,24 @@
+module_name: JRT PTGL-100 Rangefinder
+serial_config:
+    - command: ptgl100 start -d ${SERIAL_DEV} -R p:SENS_PTGL100_ROT
+      port_config_param:
+        name: SENS_PTGL100_CFG
+        group: Sensors
+
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_PTGL100_ROT:
+            description:
+                short: PTGL-100 sensor orientation
+                long: Orientation as MAV_SENSOR_ORIENTATION enum.
+            type: enum
+            values:
+                0: Forward facing
+                2: Right facing
+                4: Backward facing
+                6: Left facing
+                24: Upward facing
+                25: Downward facing
+            default: 25
+            reboot_required: true
