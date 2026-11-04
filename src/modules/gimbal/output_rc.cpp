@@ -241,6 +241,12 @@ void OutputRC::_stream_device_attitude_status()
 	matrix::Quatf q;
 
 	switch (_parameters.mnt_do_stab) {
+	case MntDoStabilize::DISABLED: {
+			attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
+			q = matrix::Quatf(matrix::Eulerf(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]));
+			break;
+		}
+
 	case MntDoStabilize::PITCH_LOCK: {
 			// Report device attitude in relative frame as external apps are dependent
 			attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
