@@ -180,7 +180,6 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 
 	_failure_config.update();
 
-	// Off / Stuck / bias / noise / drift on the raw samples also reach the integrated report below
 	if (!failure_injection::process_imu(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL,
 					    _sensor_pub.get_instance(), sample, _stuck_fifo, _drift_start)) {
 		return;
