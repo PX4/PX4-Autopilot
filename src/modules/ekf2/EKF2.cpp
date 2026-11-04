@@ -766,6 +766,8 @@ void EKF2::Run()
 			sensor_selection_s sensor_selection;
 
 			if (_sensor_selection_sub.copy(&sensor_selection)) {
+				_imu_median = sensor_selection.imu_median;
+
 				if (_device_id_accel != sensor_selection.accel_device_id) {
 
 					_device_id_accel = sensor_selection.accel_device_id;
@@ -1890,7 +1892,8 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			bias.gyro_bias_limit = _ekf.getGyroBiasLimit();
 			bias_var.copyTo(bias.gyro_bias_variance);
 			bias.gyro_bias_valid = bias_var.longerThan(0.f) && !bias_var.longerThan(0.1f);
-			bias.gyro_bias_stable = _gyro_cal.cal_available;
+			// the bias of the IMU median is not the one of the selected IMU, so it must not be learned as its calibration
+			bias.gyro_bias_stable = _gyro_cal.cal_available && !_imu_median;
 			_last_gyro_bias_published = gyro_bias;
 		}
 
@@ -1902,7 +1905,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			bias.accel_bias_limit = _ekf.getAccelBiasLimit();
 			bias_var.copyTo(bias.accel_bias_variance);
 			bias.accel_bias_valid = bias_var.longerThan(0.f) && !bias_var.longerThan(0.1f);
-			bias.accel_bias_stable = _accel_cal.cal_available;
+			bias.accel_bias_stable = _accel_cal.cal_available && !_imu_median;
 			_last_accel_bias_published = accel_bias;
 		}
 

@@ -41,6 +41,7 @@
 
 #include "data_validator/DataValidator.hpp"
 #include "data_validator/DataValidatorGroup.hpp"
+#include "SensorMedian.hpp"
 
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module_params.h>
@@ -94,8 +95,9 @@ public:
 
 	/**
 	 * read new sensor data
+	 * @param armed	the IMU median is only switched to in flight and ends on disarm
 	 */
-	void sensorsPoll(sensor_combined_s &raw);
+	void sensorsPoll(sensor_combined_s &raw, bool armed = false);
 
 	/**
 	 * set the relative timestamps of each sensor timestamp, based on the last sensorsPoll,
@@ -162,6 +164,18 @@ private:
 	 */
 	void calcGyroInconsistency();
 
+	/**
+	 * Accumulate the inconsistency of each sensor of one type beyond threshold
+	 * @return index of the sensor that accumulated the most and more than limit out of at least three, -1 otherwise
+	 */
+	static int accumulateInconsistency(const float inconsistency[], const uint32_t device_ids[], float threshold,
+					   float limit, float dt, float accumulated[]);
+
+	/**
+	 * Switch the IMU outputs to the median of all IMUs once the primary is the inconsistent one (SENS_IMU_MODE 2)
+	 */
+	void updateImuMedian(const sensors_status_imu_s &status, bool armed);
+
 	SensorData _accel{ORB_ID::sensor_accel};
 	SensorData _gyro{ORB_ID::sensor_gyro};
 
@@ -187,6 +201,11 @@ private:
 	matrix::Vector3f _accel_diff[MAX_SENSOR_COUNT] {};		/**< filtered accel differences between IMU units (m/s/s) */
 	matrix::Vector3f _gyro_diff[MAX_SENSOR_COUNT] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
 
+	float _accel_median_error[MAX_SENSOR_COUNT] {};	/**< accel inconsistency beyond SENS_IMU_MED_ACC accumulated in flight (m/s) */
+	float _gyro_median_error[MAX_SENSOR_COUNT] {};	/**< gyro inconsistency beyond SENS_IMU_MED_RAT accumulated in flight (rad) */
+	uint8_t _median_demoted[2] {};	/**< IMUs demoted for the median, restored on disarm */
+	hrt_abstime _median_check_last{0};
+
 	uint32_t _accel_device_id[MAX_SENSOR_COUNT] {};	/**< accel driver device id for each uorb instance */
 	uint32_t _gyro_device_id[MAX_SENSOR_COUNT] {};	/**< gyro driver device id for each uorb instance */
 
@@ -197,7 +216,11 @@ private:
 	bool _parameter_update{false};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+		(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode,
+		(ParamFloat<px4::params::SENS_IMU_MED_RAT>) _param_sens_imu_med_rat,
+		(ParamFloat<px4::params::SENS_IMU_MED_ANG>) _param_sens_imu_med_ang,
+		(ParamFloat<px4::params::SENS_IMU_MED_ACC>) _param_sens_imu_med_acc,
+		(ParamFloat<px4::params::SENS_IMU_MED_VEL>) _param_sens_imu_med_vel
 	)
 };
 

@@ -190,5 +190,37 @@ parameters:
       values:
         0: Disabled
         1: Publish primary IMU selection
+        2: Publish primary IMU selection, median of all IMUs when the primary is inconsistent
       default: 1
       reboot_required: true
+    SENS_IMU_MED_RAT:
+      description:
+        short: IMU median angular rate threshold
+        long: Gyro differences to the mean of all gyros larger than this accumulate angular error.
+      type: float
+      default: 7.0
+      unit: deg/s
+    SENS_IMU_MED_ANG:
+      description:
+        short: IMU median angular threshold
+        long: The primary gyro accumulating more angular error than this switches to the
+          IMU median (SENS_IMU_MODE 2).
+      type: float
+      default: 15.0
+      unit: deg
+    SENS_IMU_MED_ACC:
+      description:
+        short: IMU median acceleration threshold
+        long: Accelerometer differences to the mean of all accelerometers larger than this
+          accumulate velocity error.
+      type: float
+      default: 1.0
+      unit: m/s^2
+    SENS_IMU_MED_VEL:
+      description:
+        short: IMU median velocity threshold
+        long: The primary accelerometer accumulating more velocity error than this switches
+          to the IMU median (SENS_IMU_MODE 2).
+      type: float
+      default: 2.0
+      unit: m/s

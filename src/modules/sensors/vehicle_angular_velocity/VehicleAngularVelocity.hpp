@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <SensorMedian.hpp>
 #include <containers/Bitset.hpp>
 #include <lib/sensor_calibration/Gyroscope.hpp>
 #include <lib/mathlib/math/Limits.hpp>
@@ -115,6 +116,8 @@ private:
 
 	calibration::Gyroscope _calibration{};
 
+	SensorMedian<sensor_gyro_s, calibration::Gyroscope> _median{ORB_ID::sensor_gyro};
+
 	matrix::Vector3f _bias{};
 
 	matrix::Vector3f _angular_velocity{};
@@ -175,6 +178,7 @@ private:
 
 	bool _reset_filters{true};
 	bool _fifo_available{false};
+	bool _imu_median{false};
 	bool _update_sample_rate{true};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gyro filter")};
