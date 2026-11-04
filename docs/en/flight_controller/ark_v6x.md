@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
 :::
 
-The USA-built [ARKV6X](https://docs.arkelectron.com/products/flight-controller/arkv6x) flight controller is based on the [FMUv6X and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
+The USA-built [ARKV6X](https://docs.arkelectron.com/products/flight-controller/arkv6x) flight controller is based on the [FMUv6X](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf) and [Pixhawk Autopilot Bus](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf) open source standards.
 
 With triple synced IMUs, data averaging, voting, and filtering are possible.
 The Pixhawk Autopilot Bus (PAB) form factor enables the ARKV6X to be used on any [PAB-compatible carrier board](../flight_controller/pixhawk_autopilot_bus.md), such as the [ARK Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md).
@@ -43,7 +43,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **I2C buses:** 4 (I2C4 internal, the rest external)
 - **SPI buses:** 5, of which SPI6 is external with 2 chip selects and 2 data-ready lines
 - **CAN buses:** 2
-- **Ethernet:** Yes
+- **Ethernet:** 100 Mbps
 - **USB:** Yes
 - **RC input:** Yes
 - **Parameter storage:** FRAM (FM25V02A) on SPI5
@@ -109,7 +109,7 @@ Keep the supply at or below the ARKV6X's 5.5 V absolute maximum.
 The ARKV6X provides 8 FMU PWM outputs, and 8 more from a PX4IO on carriers that fit one.
 How many reach a connector depends on the carrier: the [ARK PAB Carrier](../flight_controller/ark_pab.md) has no PX4IO, and breaks out FMU outputs 1-8.
 The default firmware is built with PX4IO support, so the FMU outputs are labelled `AUX` in the [actuator configuration](../config/actuators.md), whichever carrier is used.
-The `ark_fmu-v6x_encrypted_logs` build has no PX4IO support, so its FMU outputs are labelled `MAIN`.
+The `ark_fmu-v6x_encrypted_logs` build has no PX4IO support: its FMU outputs are labelled `MAIN`, and a carrier's PX4IO outputs and RC input aren't available.
 
 FMU outputs 1-6 support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 Outputs 7-8 do not support DShot.
@@ -125,13 +125,14 @@ All outputs within the same group must use the same output protocol and rate.
 
 A ninth timer channel, `FMU_CAP` (Timer1), is intended for camera capture, and appears in the actuator configuration as `PWM Capture 1`.
 It is a normal timer channel, so it can also be used as a ninth PWM or OneShot output (with any output function), but not DShot.
-On the ARK PAB Carrier it is on the `ADIO` port.
+On the ARK PAB Carrier it is pin 2 of the `ADIO` port (see [Camera Capture Configuration](../camera/fc_connected_camera.md#camera-capture-configuration)).
 
 ## Ethernet {#ethernet}
 
 The ARKV6X supports Ethernet.
 On the ARK PAB Carrier it is a 100 Mbps, 4-pin JST-GH `ETH` port.
 
+The ARKV6X has the static IP address `192.168.0.4` by default (gateway `192.168.0.1`), and doesn't use DHCP.
 MAVLink instance 2 runs on Ethernet by default, on UDP port 14550.
 See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for how to configure it.
 
@@ -169,12 +170,13 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
 How a receiver connects depends on the carrier:
 
-- **ARK PAB Carrier** (no PX4IO): connect the receiver to the 5-pin `RC/SBUS` port, which goes to the FMU (USART6, `/dev/ttyS5`).
+- **ARK PAB Carrier** (no PX4IO): connect the receiver to the 5-pin JST-GH `RC/SBUS` port, which goes to the FMU (USART6, `/dev/ttyS5`).
   The firmware includes the [CRSF](../telemetry/crsf_telemetry.md), DSM, GHST and S.BUS drivers (see [PX4-Compatible Receivers](../getting_started/rc_transmitter_receiver.md#compatible_receivers)), but none is enabled by default.
   Enable the one for your receiver by [setting](../advanced_config/parameters.md) its port parameter to `Radio Controller` (300): [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG), [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) or [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG).
   Only one protocol can be enabled on the port.
-  The carrier's `PPM` and `DSM` ports are not supported by the default firmware, so PPM receivers can't be used.
-  Connect a DSM (Spektrum) receiver to the `RC/SBUS` port instead, powered with 3.3 V from pin 4 (`VDD_3V3_SPEKTRUM`).
+  The carrier's `PPM` port is not supported by the default firmware, so PPM receivers can't be used.
+  PX4 can't read a receiver on the carrier's `DSM` port.
+  Connect a DSM (Spektrum) receiver to the `RC/SBUS` port, powered with 3.3 V from pin 4 (`VDD_3V3_SPEKTRUM`).
   PX4 and _QGroundControl_ can't bind a receiver on this port, because the bind pulses go only to the `PPM` and `DSM` ports: bind it another way, such as with the receiver's bind button.
 - **Carriers with a PX4IO**: connect the receiver to the carrier's RC input, which goes to the PX4IO.
   The PX4IO detects the [protocols it supports](../modules/modules_driver.md#px4io) automatically.
@@ -229,3 +231,5 @@ On the ARK PAB Carrier this is a 10-pin JST-SH port that follows the [Pixhawk De
 - [ARKV6X Datasheet](https://github.com/ARK-Electronics/ark-hardware/blob/main/ARKV6X/datasheet/ARKV6X_Datasheet.pdf) (ARK)
 - [ARKV6X 3D model](https://github.com/ARK-Electronics/ark-hardware/tree/main/ARKV6X/model) (ARK)
 - [ARK Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md)
+- [Pixhawk Autopilot FMUv6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)
+- [Pixhawk Autopilot Bus Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
