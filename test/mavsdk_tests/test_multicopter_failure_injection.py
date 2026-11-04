@@ -1,5 +1,6 @@
 import pytest
 from mavsdk.plugins.failure import FailureResult, FailureType, FailureUnit  # type: ignore
+from mavsdk.plugins.offboard import PositionNedYaw  # type: ignore
 
 from autopilot_tester import AutopilotTester
 
@@ -81,3 +82,25 @@ def test_undetected_motor_failure_stops_only_failed_motor(tester: AutopilotTeste
     allocator is not informed and the opposite motor keeps running."""
     take_off_and_hover_for_motor_failure(tester)
     fail_and_restore_motor(tester, FailureType.WRONG, 1 << (MOTOR_INSTANCE - 1))
+
+
+@pytest.mark.motor_failure_injection
+def test_return_lands_with_failed_motor_and_heading_off(tester: AutopilotTester) -> None:
+    """Return with the motor still failed. With CA_FAILURE_MODE = 1 the hexarotor flies on four
+    motors and has no yaw authority left. The vehicle faces 90 deg away from the home
+    heading when Return is commanded: navigator must not wait for that heading forever but
+    continue after MIS_YAW_TMT and land."""
+    take_off_and_hover_for_motor_failure(tester)
+
+    # turn away from the heading Return will command at the destination
+    tester.offboard_goto(PositionNedYaw(0.0, 0.0, -FLIGHT_ALTITUDE_M, 90.0),
+                         acceptance_radius_m=1.0)
+    tester.sleep_for(5)
+    tester.hold()
+
+    tester.inject_failure(FailureUnit.SYSTEM_MOTOR, FailureType.OFF, MOTOR_INSTANCE)
+    tester.sleep_for(5)
+    tester.ensure_motors_stopped(0b1001, NUM_MOTORS)
+
+    tester.execute_rtl()
+    tester.wait_until_disarmed(180)
