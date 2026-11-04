@@ -99,47 +99,7 @@ void UavcanBarometerBridge::air_temperature_sub_cb(const
 void UavcanBarometerBridge::air_pressure_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg)
 {
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
-
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get(), msg.getIfaceIndex());
-
-	if (channel == nullptr) {
-		// Something went wrong - no channel to publish on; return
-		return;
-	}
-
-	// Cast our generic CDev pointer to the sensor-specific driver class
-	uORB::PublicationMulti<sensor_baro_s> *baro = static_cast<uORB::PublicationMulti<sensor_baro_s> *>(channel->h_driver);
-
-	if (baro == nullptr) {
-		return;
-	}
-
-	uint32_t device_id = make_uavcan_device_id(msg);
-
-	// Register barometer capability with NodeInfoPublisher after first successful message
-	if (_node_info_publisher != nullptr) {
-		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id,
-				device_information_s::DEVICE_TYPE_BAROMETER);
-	}
-
-	// publish
-	sensor_baro_s sensor_baro{};
-	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = device_id;
-	sensor_baro.is_external = true;
-	sensor_baro.pressure = msg.static_pressure;
-
-	if (PX4_ISFINITE(_last_temperature_kelvin) && (_last_temperature_kelvin >= 0.f)) {
-		sensor_baro.temperature = _last_temperature_kelvin + atmosphere::kAbsoluteNullCelsius;
-
-	} else {
-		sensor_baro.temperature = NAN;
-	}
-
-	sensor_baro.error_count = 0;
-	sensor_baro.timestamp = hrt_absolute_time();
-	baro->publish(sensor_baro);
+	publish_pressure(msg.getSrcNodeID().get(), msg.getIfaceIndex(), msg.static_pressure, _last_temperature_kelvin);
 }
 
 void UavcanBarometerBridge::raw_air_data_sub_cb(const
@@ -151,9 +111,15 @@ void UavcanBarometerBridge::raw_air_data_sub_cb(const
 		return;
 	}
 
+	publish_pressure(msg.getSrcNodeID().get(), msg.getIfaceIndex(), msg.static_pressure, msg.static_air_temperature);
+}
+
+void UavcanBarometerBridge::publish_pressure(uint8_t node_id, uint8_t iface_index, float pressure,
+		float temperature_kelvin)
+{
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get(), msg.getIfaceIndex());
+	uavcan_bridge::Channel *channel = get_channel_for_node(node_id, iface_index);
 
 	if (channel == nullptr) {
 		// Something went wrong - no channel to publish on; return
@@ -167,12 +133,11 @@ void UavcanBarometerBridge::raw_air_data_sub_cb(const
 		return;
 	}
 
-	uint32_t device_id = make_uavcan_device_id(msg);
+	const uint32_t device_id = make_uavcan_device_id(node_id, iface_index);
 
 	// Register barometer capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
-		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id,
-				device_information_s::DEVICE_TYPE_BAROMETER);
+		_node_info_publisher->registerDeviceCapability(node_id, device_id, device_information_s::DEVICE_TYPE_BAROMETER);
 	}
 
 	// publish
@@ -180,12 +145,10 @@ void UavcanBarometerBridge::raw_air_data_sub_cb(const
 	sensor_baro.timestamp_sample = timestamp_sample;
 	sensor_baro.device_id = device_id;
 	sensor_baro.is_external = true;
-	sensor_baro.pressure = msg.static_pressure;
+	sensor_baro.pressure = pressure;
 
-	float temperature = msg.static_air_temperature;
-
-	if (PX4_ISFINITE(temperature) && (temperature >= 0.f)) {
-		sensor_baro.temperature = temperature + atmosphere::kAbsoluteNullCelsius;
+	if (PX4_ISFINITE(temperature_kelvin) && (temperature_kelvin >= 0.f)) {
+		sensor_baro.temperature = temperature_kelvin + atmosphere::kAbsoluteNullCelsius;
 
 	} else {
 		sensor_baro.temperature = NAN;
