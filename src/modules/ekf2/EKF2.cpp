@@ -593,6 +593,18 @@ void EKF2::Run()
 					   ) {
 						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
+						if (!_ekf.control_status().flags.yaw_align && vehicle_command.from_external) {
+							mavlink_log_critical(&_mavlink_log_pub, "External position reset with no valid heading\t");
+
+							/* EVENT
+							* @description
+							* Position reset received while vehicle has unhealy heading
+							* Apply manual heading reset. Recalibrate compass if error persists.
+							*/
+							events::send(events::ID("ekf2_external_pos_reset_no_heading"), events::Log::Warning,
+								     "External position reset with no valid heading");
+						}
+
 					} else {
 						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 					}
