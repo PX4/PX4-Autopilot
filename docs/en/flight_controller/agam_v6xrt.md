@@ -9,10 +9,9 @@ Contact the [manufacturer](https://www.agamrobotics.com/) for hardware support o
 
 The [Agam Autopilot v6X-RT](https://www.agamrobotics.com/product-page/agam-pixhawk-6x-full-set) flight controller is [Agam Robotics'](https://www.agamrobotics.com/) implementation of the [NXP-led FMUv6X-RT reference design](../flight_controller/nxp_mr_vmu_rt1176.md).
 
-The board uses sensors from InvenSense® and Bosch®, and ships in two sensor-set variants (see [Sensors](#sensors)).
-Redundant IMU and barometer sensors sit on separate buses, and 2 of the 3 IMUs are mounted on a shock-isolated, heated sensor board, separate from the FMU board itself, to improve accuracy in flight and across a wide temperature range.
-
-An integrated Ethernet interface (100BASE-T1, 2-wire) provides high-speed, low-latency connectivity to companion computers (for example a Raspberry Pi or NVIDIA Jetson), cameras, or data-transmission systems.
+The board ships with one of two [sensor sets](#sensors).
+Its three IMUs and two barometers are each on a separate bus, and two of the IMUs are on a shock-isolated sensor board, separate from the FMU board.
+A 100BASE-T1 (2-wire) [Ethernet](#ethernet) port connects companion computers, cameras and other networked devices.
 
 ![Agam Autopilot v6X-RT](../../assets/flight_controller/agam_v6xrt/agam_v6xrt_front.png)
 
@@ -80,22 +79,20 @@ Order from the [Agam Robotics store](https://www.agamrobotics.com/product-page/a
 
 ## Pinouts {#pinouts}
 
-Agam Autopilot v6X-RT's pinout is the same as other v6X-RT-family boards:
+For the pinout of each port see the [Agam Autopilot v6X-RT baseboard port pinouts](https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart/baseboard-port) (Agam Robotics Docs).
+
+The pinout follows the same standards as other FMUv6X-RT boards:
 
 - [DS-012 Pixhawk Autopilot v6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)
 - [DS-010 Pixhawk Autopilot Bus Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
 - [DS-009 Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf)
-- [Agam Autopilot v6X-RT Baseboard Port pinouts](https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart/baseboard-port) (agamrobotics.gitbook.io)
 
-Notes:
-
-- Pin 2 on the AD&IO port is marked `FMU_CAP` (`GPIO_EMC_B1_20`), but is not used for camera capture by the default firmware.
+Pin 2 on the `AD&IO` port is marked `FMU_CAP` (`GPIO_EMC_B1_20`), but isn't used for camera capture by the default firmware.
 
 ## Power {#power}
 
-_Agam Autopilot v6X-RT_ can be triple-redundant on the power supply if three power sources are supplied.
-The three power rails are: **POWER1**, **POWER2** and **USB**.
-The **POWER1** & **POWER2** ports use a 6-circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
+The board has three power inputs, `POWER1`, `POWER2` and USB, and has triple-redundant power when all three are connected.
+`POWER1` and `POWER2` are 6-circuit, 2.00 mm pitch [Molex CLIK-Mate](https://www.molex.com/en-us/products/part-detail/5024430670) connectors.
 
 Battery monitoring is digital: `POWER1` and `POWER2` carry I2C for a digital power module.
 INA226, INA228 and INA238 monitors are detected automatically; to start only one driver, set [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226), [SENS_EN_INA228](../advanced_config/parameter_reference.md#SENS_EN_INA228) or [SENS_EN_INA238](../advanced_config/parameter_reference.md#SENS_EN_INA238) to 1.
@@ -111,18 +108,18 @@ The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.m
 
 ### Normal Operation Maximum Ratings
 
-Under these conditions all power sources will be used in this order to power the system:
+Under these conditions the power sources are used in this order:
 
-1. **POWER1** and **POWER2** inputs (4.9V to 5.5V)
-2. **USB** input (4.75V to 5.25V)
+1. `POWER1` and `POWER2` inputs (4.9 V to 5.5 V)
+2. USB input (4.75 V to 5.25 V)
 
 ### Absolute Maximum Ratings
 
-Under these conditions the system will not draw any power (will not be operational), but will remain intact.
+Under these conditions the system doesn't draw power (isn't operational), but remains intact.
 
-1. **POWER1** and **POWER2** inputs (operational range 4.1V to 5.7V, 0V to 10V undamaged)
-2. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
-3. Servo input: VDD_SERVO pin of **FMU PWM OUT** (0V to 42V undamaged)
+1. `POWER1` and `POWER2` inputs (operational range 4.1 V to 5.7 V, 0 V to 10 V undamaged)
+2. USB input (operational range 4.1 V to 5.7 V, 0 V to 6 V undamaged)
+3. Servo input: `VDD_SERVO` pin of `FMU PWM OUT` (0 V to 42 V undamaged)
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -176,8 +173,8 @@ This board has no PX4IO and no `I/O PWM OUT` port: motors and servos connect to 
 
 ### Radio Control {#radio_control}
 
-A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
-You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+An RC radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
 Connect the receiver to the `RC IN` port, or a Spektrum/DSM receiver to the `DSM RC` port, which supplies the receiver's 3.3 V on pin 1 (`VDD_3V3_SPEKTRUM`).
 Both go to the FMU (LPUART6, `/dev/ttyS4`).
@@ -240,23 +237,23 @@ The build targets are:
 
 ## Debug Port {#debug_port}
 
-The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
+The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the `FMU Debug` port.
 
-The pinout and connector comply with the [Pixhawk Debug Full](../debug/swd_debug.md#pixhawk-debug-full) interface defined in the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (JST SH 1mm pitch, 10-pin connector).
-Pin 6 is `SPI6_MOSI_EXTERNAL1`, which is the pad's `JTAG_TDO` function and carries `SWO` when the debug port is in serial-wire mode.
+The pinout and connector comply with the [Pixhawk Debug Full](../debug/swd_debug.md#pixhawk-debug-full) interface defined in the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (JST-SH 1 mm pitch, 10-pin connector).
+Pin 6 is `SPI6_MOSI_EXTERNAL1` (pin function `JTAG_TDO`), which carries `SWO` when the debug port is in serial-wire mode.
 
-| Pin        | Signal           | Volt  |
-| ---------- | ---------------- | ----- |
-| 1 (red)    | `FMU_VDD_3V3`    | +3.3V |
-| 2 (black)  | `FMU_USART_TX`   | +3.3V |
-| 3 (black)  | `FMU_USART_RX`   | +3.3V |
-| 4 (black)  | `FMU_SWD_IO`     | +3.3V |
-| 5 (black)  | `FMU_SWD_CK`     | +3.3V |
-| 6 (black)  | `SWO`            | +3.3V |
-| 7 (black)  | NFC GPIO         | +3.3V |
-| 8 (black)  | `GPIO_EMC_B2_12` | +3.3V |
-| 9 (black)  | `FMU_nRST`       | +3.3V |
-| 10 (black) | `GND`            | GND   |
+| Pin        | Signal           | Volt   |
+| ---------- | ---------------- | ------ |
+| 1 (red)    | `FMU_VDD_3V3`    | +3.3 V |
+| 2 (black)  | `FMU_USART_TX`   | +3.3 V |
+| 3 (black)  | `FMU_USART_RX`   | +3.3 V |
+| 4 (black)  | `FMU_SWD_IO`     | +3.3 V |
+| 5 (black)  | `FMU_SWD_CK`     | +3.3 V |
+| 6 (black)  | `SWO`            | +3.3 V |
+| 7 (black)  | NFC GPIO         | +3.3 V |
+| 8 (black)  | `GPIO_EMC_B2_12` | +3.3 V |
+| 9 (black)  | `FMU_nRST`       | +3.3 V |
+| 10 (black) | `GND`            | GND    |
 
 For information about using this port see:
 
@@ -276,7 +273,7 @@ For information about using this port see:
 - [Update Pixhawk 6X-RT Bootloader](../advanced_config/bootloader_update_v6xrt.md)
 - [Agam Autopilot v6X-RT Documentation](https://agamrobotics.gitbook.io/docs/autopilots-flight-controller/quickstart) (Agam Robotics Docs)
 - [Agam Autopilot v6X-RT setup video playlist](https://www.youtube.com/playlist?list=PLv71BKC3TLci9fgwV4U6_2C2Uxtrm3SQE) (YouTube, Agam Robotics)
-- [Pixhawk 6X Wiring QuickStart](../assembly/quick_start_pixhawk6x.md)
+- [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md)
 - [Agam Digital Power Module (DPM01)](https://agamrobotics.gitbook.io/docs/digital-power-modules-dpm/dpm01-6s)
 - [Agam Analog Power Module (APM)](https://agamrobotics.gitbook.io/docs/analog-power-modules-apm/generic)
 - [Announcing the Pixhawk FMUv6X-RT](https://dronecode.org/announcing-the-pixhawk-fmuv6x-rt/) (Dronecode Foundation)
