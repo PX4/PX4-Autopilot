@@ -426,7 +426,8 @@ void RTL::setRtlTypeAndDestination()
 	}
 
 	_rtl_direct.setRtlAlt(rtl_alt);
-	_rtl_direct.setRtlPosition(destination, landing_loiter);
+	_rtl_direct.setRtlPosition(destination, landing_loiter,
+				   destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION);
 
 	_rtl_type = new_rtl_type;
 
@@ -640,7 +641,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		destination.alt = _global_pos_sub.get().alt;
 		destination.lat = _global_pos_sub.get().lat;
 		destination.lon = _global_pos_sub.get().lon;
-		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+		destination_type = DestinationType::DESTINATION_TYPE_CURRENT_POSITION;
 	}
 }
 
