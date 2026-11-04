@@ -602,7 +602,7 @@ void EKF2::Run()
 							* Apply manual heading reset. Recalibrate compass if error persists.
 							*/
 							events::send(events::ID("ekf2_external_pos_reset_no_heading"), events::Log::Warning,
-								     "External position reset with no valid heading");
+								     "Position not displayed due to uninitialized vehicle heading. ");
 						}
 
 					} else {
