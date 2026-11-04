@@ -130,8 +130,10 @@ make px4_sitl_sih sihsim_quadx
 
 #### Terrain Elevation (DEM) {#terrain}
 
+<Badge type="tip" text="main (PX4 v2.0)" />
+
 By default SIH simulates flat ground at [`SIH_LOC_H0`](../advanced_config/parameter_reference.md#SIH_LOC_H0).
-In SITL, SIH can instead load the terrain elevation from a digital elevation model (DEM) GeoTIFF file, set with the `PX4_SIH_TERRAIN` environment variable (use an absolute path):
+SIH can instead load the terrain elevation from a digital elevation model (DEM) [GeoTIFF](https://www.ogc.org/standards/geotiff/) file, set with the `PX4_SIH_TERRAIN` environment variable:
 
 ```sh
 PX4_SIH_TERRAIN=/path/to/dem.tif make px4_sitl_sih sihsim_quadx
@@ -140,30 +142,33 @@ PX4_SIH_TERRAIN=/path/to/dem.tif make px4_sitl_sih sihsim_quadx
 The terrain is then used for:
 
 - Ground contact: the vehicle starts, lands and rests on the terrain.
-  It is placed at the terrain elevation below [`SIH_LOC_LAT0`](../advanced_config/parameter_reference.md#SIH_LOC_LAT0)/[`SIH_LOC_LON0`](../advanced_config/parameter_reference.md#SIH_LOC_LON0), and `SIH_LOC_H0` is not used for the start altitude.
+  It is placed at the terrain elevation below [`SIH_LOC_LAT0`](../advanced_config/parameter_reference.md#SIH_LOC_LAT0)/[`SIH_LOC_LON0`](../advanced_config/parameter_reference.md#SIH_LOC_LON0) (`PX4_HOME_LAT`/`PX4_HOME_LON`).
+  `SIH_LOC_H0` (`PX4_HOME_ALT`) sets the start altitude only when that point is outside the DEM.
 - The downward facing distance sensor, which measures the range to the terrain along the vehicle body z axis (up to [`SIH_DISTSNSR_MAX`](../advanced_config/parameter_reference.md#SIH_DISTSNSR_MAX)).
 - The `terrain_alt` field of the `vehicle_global_position_groundtruth` topic.
+- The `dist_bottom` field of the `vehicle_local_position_groundtruth` topic.
 
 Outside the area covered by the DEM, or over cells without data, the ground is flat at `SIH_LOC_H0` and a warning is printed.
-Terrain is supported for multicopters, VTOLs and fixed-wing vehicles; the other vehicle types ignore it and keep flat ground.
+Terrain is supported for multicopters, VTOLs and fixed-wing vehicles; Ackermann rovers (and possibly other vehicles added in future) ignore it and keep flat ground.
 `simulator_sih status` shows the loaded DEM and whether the vehicle is inside it.
 
-The DEM must be a single-band GeoTIFF whose coordinate reference system has an EPSG code, either geographic (such as WGS84, `EPSG:4326`) or projected (such as UTM or the Swiss `EPSG:2056`).
-Any TIFF compression and sample type is supported, and the GDAL nodata value is respected.
+The DEM must be a single-band GeoTIFF whose coordinate reference system has an [EPSG code](https://epsg.io/), either geographic (such as WGS84, `EPSG:4326`) or projected (such as UTM or the Swiss `EPSG:2056`).
+8, 16 and 32-bit integer and 32 and 64-bit floating point samples are supported with any TIFF compression, and the [_GDAL_](https://gdal.org/) nodata value is respected.
 Elevations are used as they are, as altitude above mean sea level.
-Free sources include [Copernicus GLO-30](https://registry.opendata.aws/copernicus-dem/) (worldwide, 30 m) and national elevation models such as [swissALTI3D](https://www.swisstopo.admin.ch/en/height-model-swissalti3d) (2 m).
-Crop large files to the area you fly in, for example with GDAL:
+Free sources include [Copernicus GLO-30](https://registry.opendata.aws/copernicus-dem/) (near-global, 30 m, including buildings and vegetation) and national elevation models such as [swissALTI3D](https://www.swisstopo.admin.ch/en/height-model-swissalti3d) (2 m).
+Crop large files to the area you fly in, for example with _GDAL_:
 
 ```sh
 gdal_translate -projwin 8.48 47.44 8.61 47.35 Copernicus_DSM_COG_10_N47_00_E008_00_DEM.tif zurich.tif
 ```
 
-Files in other formats or without an EPSG code can be converted with `gdalwarp -t_srs EPSG:4326 -ot Float32 in.tif out.tif`.
+Files in other formats, with other sample types or without an EPSG code can be converted with `gdalwarp -t_srs EPSG:4326 -ot Float32 in.tif out.tif`.
 
 ::: info
 Terrain support is optional and only available in SITL, not when [running SIH on flight controller hardware](#sih-on-flight-controller-hardware).
-It is compiled in when libtiff, libgeotiff and PROJ are found at build time, which the [Ubuntu](../dev_setup/dev_env_linux_ubuntu.md) setup script installs with the simulation tools (`sudo apt install libgeotiff-dev libproj-dev libtiff-dev`).
-The CMake output shows `SIH terrain (DEM) support enabled` when it is available; otherwise setting `PX4_SIH_TERRAIN` stops SIH from starting with an error.
+The [prebuilt](../simulation/px4_sitl_prebuilt_packages.md) `px4` package and `px4io/px4-sitl` container are built without it, and SIH reports an error and does not start if `PX4_SIH_TERRAIN` is set.
+When building from source, the [setup scripts](../dev_setup/dev_env.md) install the required libraries with the simulation tools.
+The CMake output shows `SIH terrain (DEM) support enabled` when it is available.
 :::
 
 ### ROS 2 Integration
