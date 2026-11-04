@@ -1298,6 +1298,50 @@ INSTANTIATE_TEST_SUITE_P(
 	return std::string(param_info.param.test_name);
 });
 
+class RtlDirectTestPeer : public RtlDirect
+{
+public:
+	using RtlDirect::RtlDirect;
+	const mission_item_s &missionItem() const { return _mission_item; }
+};
+
+// WHY: On the land approach loiter force_heading makes a fixed-wing leave the circle on course to the landing point.
+// A multicopter, e.g. a VTOL that back-transitioned during the Return, would read it as a heading it must reach.
+// WHAT: Return forces the heading on the descend loiter only in fixed-wing flight, and the flag does not carry over
+// to a later Return.
+TEST_F(RTLTest, LandApproachForcesHeadingOnlyInFixedWingFlight)
+{
+	float land_delay = 1.f; // a multicopter only descends on the loiter with a land delay
+	ASSERT_EQ(param_set(param_find("RTL_LAND_DELAY"), &land_delay), PX4_OK);
+
+	const PositionYawSetpoint destination = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const PositionYawSetpoint approach = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 40.f);
+	const float rtl_alt = kAlt + 80.f;
+	RtlDirectTestPeer rtl_direct{&_navigator}; // its mission item outlives each Return
+
+	for (const uint8_t vehicle_type : {vehicle_status_s::VEHICLE_TYPE_FIXED_WING, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING}) {
+		publishVehicleStatus(true, vehicle_type, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+		_navigator.get_vstatus()->is_vtol = true;
+		_navigator.get_vstatus()->vehicle_type = vehicle_type;
+		publishLandDetected(false);
+		_navigator.get_land_detected()->landed = false;
+
+		// at the approach at Return altitude, so the next item is the descend loiter
+		publishGlobalPosition(approach.lat, approach.lon, rtl_alt);
+		_navigator.get_global_position()->lat = approach.lat;
+		_navigator.get_global_position()->lon = approach.lon;
+		_navigator.get_global_position()->alt = rtl_alt;
+
+		rtl_direct.setRtlAlt(rtl_alt);
+		rtl_direct.setRtlPosition(destination, makeLoiterPoint(approach));
+		rtl_direct.on_activation();
+		rtl_direct.on_active();
+
+		ASSERT_EQ(rtl_direct.missionItem().nav_cmd, NAV_CMD_LOITER_TO_ALT);
+		EXPECT_EQ(rtl_direct.missionItem().force_heading, vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	}
+}
+
 // WHY: RTL must pass its wind estimate to the chooser.
 // WHAT: A wind that puts the south approach downwind should select it.
 TEST_F(RTLTest, SelectLandingApproachUsesWindEstimate)

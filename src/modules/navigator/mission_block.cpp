@@ -420,14 +420,14 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_waypoint_yaw_reached = true;
 
 			} else if (yaw_timed_out) {
-				if (_mission_item.force_heading
-				    && _navigator->get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
-					// The mission relies on the heading (e.g. VTOL forward transition), abort it
-					_navigator->set_mission_failure_heading_timeout();
-
-				} else {
+				if (!_mission_item.force_heading) {
 					// Never get stuck, e.g. when yaw authority is lost
 					_waypoint_yaw_reached = true;
+
+				} else if (_navigator->get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+					// What follows relies on a forced heading (e.g. VTOL forward transition), abort the mission.
+					// Other modes keep waiting, no failsafe acts on a mission failure there.
+					_navigator->set_mission_failure_heading_timeout();
 				}
 			}
 
