@@ -9,7 +9,8 @@ It connects to the flight controller using a UART (serial) port.
 The driver is not included in the firmware for most boards.
 See [Firmware Support](#firmware_support) for how to check your board and add it.
 
-The rangefinder has been tested on the [Amovlab Flycore](../flight_controller/amovlab_flycore.md), which includes the driver in its default firmware.
+The rangefinder has been tested on the [Amovlab Flycore](../flight_controller/amovlab_flycore.md) `TELEM3` port, using a custom-made adapter cable.
+The Flycore includes the driver in its default firmware.
 :::
 
 ## Specifications {#specifications}
@@ -34,12 +35,9 @@ For PTGL-100 purchasing enquiries, contact JRT at [sales@jrt-measure.com](mailto
 
 ## Sensor Configuration {#sensor_configuration}
 
-PTGL-100 modules ship with a factory-default baud rate of 460800.
-No baud-rate change is needed for a factory-configured module.
-The PX4 driver uses 460800 baud, 8N1, with no flow control, and does not change the module's baud rate.
-
-To confirm or change the module's baud-rate configuration, contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) for instructions.
-The module must use 460800 baud to communicate with the PX4 driver.
+PTGL-100 modules ship configured for 460800 baud, which is the rate the PX4 driver uses (8N1, no flow control).
+The driver doesn't change the module's baud rate.
+To check or change a module's baud rate, contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) for instructions.
 
 ## Hardware Setup {#hardware_setup}
 
@@ -47,6 +45,9 @@ The module must use 460800 baud to communicate with the PX4 driver.
 
 The driver assumes the sensor is mounted facing downward.
 For any other direction, set [SENS_PTGL100_ROT](../advanced_config/parameter_reference.md#SENS_PTGL100_ROT) (see [PX4 Configuration](#px4_configuration)).
+
+Keep glass and mirror-like surfaces out of the sensor's blind zone, and don't mount it facing another laser rangefinder at close range.
+If the sensor is fitted behind a protective window, the manual (§3.4) recommends H-K9L or fused-silica glass, 2–4 mm thick, with an 855–955 nm anti-reflection coating and an air gap of less than 0.5 mm to the sensor.
 
 ### Pinouts {#pinouts}
 
@@ -62,16 +63,21 @@ For any other direction, set [SENS_PTGL100_ROT](../advanced_config/parameter_ref
 ### Wiring {#wiring}
 
 The manufacturer's packing list includes one module and one power cable.
-The Flycore hardware test used a custom-made adapter cable.
-The module uses a six-pin `HC-0.8-6PWT` connector with a 0.8 mm pitch.
-The Flycore end of the tested setup uses a JST-GH connector with a 1.25 mm pitch.
-An adapter cable is required to connect the module to the flight controller; the connectors do not mate directly.
+The module has a six-pin `HC-0.8-6PWT` connector (0.8 mm pitch), so an adapter cable is needed to connect it to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25 mm pitch JST-GH connectors).
 
 The PTGL-100 can be connected to any unused serial port (UART), such as `TELEM2`, `TELEM3` or `GPS2`.
 UART signals use 3.3 V TTL levels.
-The module requires a 3.3–5 V supply, and draws up to 0.45 W (0.56 W at 60 °C).
+The module requires a 3.3–5 V supply and draws up to 0.45 W at 3.3 V and 25 °C (0.56 W at 60 °C).
 
-Connect the module to Flycore [TELEM3](../flight_controller/amovlab_flycore.md#telem3-port) as follows:
+| Module Pin | Module Signal | Connect To                |
+| ---------- | ------------- | ------------------------- |
+| 1          | GND           | Flight controller GND     |
+| 2          | VCC           | 3.3–5 V supply            |
+| 4          | TXD           | Flight controller UART RX |
+| 5          | RXD           | Flight controller UART TX |
+| 6          | EN            | GND                       |
+
+For example, connect the module to the Flycore [`TELEM3`](../flight_controller/amovlab_flycore.md#telem3-port) port as follows:
 
 | Module Pin | Module Signal | Flycore TELEM3 Pin | Flycore TELEM3 Signal |
 | ---------- | ------------- | ------------------ | --------------------- |
@@ -81,9 +87,11 @@ Connect the module to Flycore [TELEM3](../flight_controller/amovlab_flycore.md#t
 | 5          | RXD           | 2                  | TX                    |
 | 6          | EN            | 3                  | GND                   |
 
-Connect pin 6 (`EN`) to GND for normal operation; do not leave it unconnected.
+Pin 6 (`EN`) must be connected to GND for normal operation.
+You must join module pins 1 and 6 to `TELEM3` pin 3 in the adapter cable.
+The `TELEM3` VCC and GND connections supply power to the module.
 
-Both TX and RX are required because PX4 sends the continuous measurement command.
+Both TX and RX are required because PX4 sends the module a command to start continuous measurement.
 
 ## Firmware Support {#firmware_support}
 
@@ -101,11 +109,10 @@ The driver does not start until it is enabled using the parameters in [PX4 Confi
 
 1. Ensure that the wired UART is not used by another function, such as MAVLink or GNSS.
    If it is, see [Deconflicting Ports](../peripherals/serial_configuration.md#deconflicting-ports) in _Serial Port Configuration_.
-2. Set [SENS_PTGL100_CFG](../advanced_config/parameter_reference.md#SENS_PTGL100_CFG) to that port in _QGroundControl_ and reboot.
+2. [Configure the serial port](../peripherals/serial_configuration.md) on which the rangefinder will run using [SENS_PTGL100_CFG](../advanced_config/parameter_reference.md#SENS_PTGL100_CFG), and then reboot.
 3. If the sensor is not mounted facing down, set [SENS_PTGL100_ROT](../advanced_config/parameter_reference.md#SENS_PTGL100_ROT) to its mounting direction and reboot.
 
-For example, select `TELEM 3` (`103`) for a module connected to the Flycore TELEM3 connector.
-The TELEM3 VCC and GND connections supply power to the module.
+For example, select `TELEM 3` (`103`) for a module connected to the Flycore `TELEM3` port.
 There is no need to set the baud rate for the port (460800), as this is configured by the driver.
 By default, the port is `Disabled` (`0`) and the orientation is `Downward facing` (`25`).
 
@@ -115,7 +122,7 @@ The configuration that is common to all rangefinders, such as the sensor positio
 
 ## Testing {#testing}
 
-In the _QGroundControl_ MAVLink Console, run:
+In the [_QGroundControl_ MAVLink Console](../debug/mavlink_shell.md#qgroundcontrol-mavlink-console), run:
 
 ```sh
 ptgl100 status
@@ -123,6 +130,8 @@ listener distance_sensor -n 10
 ```
 
 `status` reports the UART, baud rate, topic instance, last distance and sample age, measurement status, and error counters.
+If no measurement reply has arrived in the last second, it warns "no recent measurement replies" and lists what to check: the sensor's power, the `EN` connection to GND, the TX/RX wiring, and the module's baud rate (see [Sensor Configuration](#sensor_configuration)).
+
 If several distance sensors are connected, select the instance reported by `status`, for example:
 
 ```sh
@@ -143,8 +152,6 @@ The driver rejects corrupt frames and does not publish distance bytes from faile
 During a communication outage it does not repeat an old distance with a new timestamp.
 After one second without a complete measurement reply it retries the continuous measurement command, at most once per second.
 Measurement failure replies count as communication with the module and are reported separately from communication errors.
-If no measurement reply has been received, or the last reply is at least one second old, `ptgl100 status` prompts you to check the sensor's power, EN connection to GND, TX/RX wiring and 460800 baud setting.
-The driver uses a fixed baud rate and does not automatically detect or change the module's baud rate.
 
 To run the driver manually, first disable automatic startup (set [SENS_PTGL100_CFG](../advanced_config/parameter_reference.md#SENS_PTGL100_CFG) to `Disabled` and reboot), then run:
 
@@ -154,7 +161,7 @@ ptgl100 status
 ptgl100 stop
 ```
 
-The device name above corresponds to Flycore TELEM3.
+The device name above corresponds to the Flycore `TELEM3` port.
 When stopped, the driver attempts to send the stop measurement command before closing the UART.
 
 ### Validation
@@ -179,7 +186,7 @@ It uses a pseudo-terminal in a temporary directory and does not require a connec
 
 ### Protocol
 
-The driver uses the `0x68` (single) and `0x69` (continuous) measurement commands, and rejects measurement replies that use the older `0x88`/`0x89` commands.
+The driver uses the `0x68` (single) and `0x69` (continuous) measurement commands, and rejects measurement replies that use the `0x88`/`0x89` commands.
 For the frame format and checksums, request the PTGL-100 User and Maintenance Manual from JRT (see [Further Information](#further_information)).
 
 ## Further Information {#further_information}
