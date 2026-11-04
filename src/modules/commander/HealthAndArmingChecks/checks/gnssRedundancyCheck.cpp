@@ -42,8 +42,6 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 {
 	bool gps_online[GPS_MAX_INSTANCES] {};
 	bool gnss_healthy[GPS_MAX_INSTANCES] {};
-	float eph[GPS_MAX_INSTANCES] {};
-	float epv[GPS_MAX_INSTANCES] {};
 	uint8_t healthy_count = 0;
 	int selected = -1;
 
@@ -61,8 +59,6 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 			// The sensors module indexes its status by the same sensor_gnss instance
 			if (status_valid && (status.device_ids[i] == gnss.device_id) && status.healthy[i]) {
 				gnss_healthy[i] = true;
-				eph[i] = gnss.eph;
-				epv[i] = gnss.epv;
 				healthy_count++;
 
 				if (gnss.device_id == status.device_id_selected) {
@@ -78,8 +74,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	}
 
 	// Position divergence check: flag a healthy receiver that disagrees with the selected one, after their antenna
-	// positions, by more than the limits. Receivers with a poor reported accuracy disagree by more, so the gate widens to
-	// 3 times their combined accuracy where that is larger: then the disagreement is unlikely to be noise.
+	// positions, by more than the limits
 	float divergence_h_m = 0.f;
 	float divergence_v_m = 0.f;
 	bool diverging = false;
@@ -94,15 +89,13 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		const float vertical = status.inconsistency_vertical[i];
 
 		if (PX4_ISFINITE(horizontal)) {
-			const float gate = math::max(_param_com_gnss_h_max.get(), 3.f * Vector2f(eph[i], eph[selected]).norm());
-			diverging |= (horizontal > gate);
+			diverging |= (horizontal > _param_com_gnss_h_max.get());
 			divergence_h_m = math::max(divergence_h_m, horizontal);
 			compared = true;
 		}
 
 		if (PX4_ISFINITE(vertical)) {
-			const float gate = math::max(_param_com_gnss_v_max.get(), 3.f * Vector2f(epv[i], epv[selected]).norm());
-			diverging |= (vertical > gate);
+			diverging |= (vertical > _param_com_gnss_v_max.get());
 			divergence_v_m = math::max(divergence_v_m, vertical);
 			compared = true;
 		}
