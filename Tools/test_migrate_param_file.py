@@ -131,6 +131,33 @@ class MigrateParamFileTest(unittest.TestCase):
         self.assertEqual(
             log, ['default: FD_ACT_EN 1 is a v1.17 default, v1.18 uses 0'])
 
+    def test_roboclaw_defaults_replaced(self):
+        _, values, log = migrate((1, 'RBCLW_DIS1', '128', 6),
+                                 (1, 'RBCLW_MAX1', '256', 6),
+                                 (1, 'RBCLW_MIN1', '1', 6),
+                                 (1, 'RBCLW_FAIL1', '-1', 6))
+        self.assertEqual(values, {(1, 'RBCLW_DIS1'): ('127', 6),
+                                  (1, 'RBCLW_MAX1'): ('254', 6),
+                                  (1, 'RBCLW_MIN1'): ('0', 6),
+                                  (1, 'RBCLW_FAIL1'): ('-1', 6)})
+        self.assertEqual(log, [
+            'replaced: RBCLW_DIS1 128 -> 127, the v1.17 default by the'
+            ' v1.18 default',
+            'replaced: RBCLW_MAX1 256 -> 254, the v1.17 default by the'
+            ' v1.18 default',
+            'replaced: RBCLW_MIN1 1 -> 0, the v1.17 default by the'
+            ' v1.18 default'])
+
+    def test_roboclaw_set_values_kept_and_listed(self):
+        _, values, log = migrate((1, 'RBCLW_MAX2', '200', 6),
+                                 (1, 'RBCLW_FAIL2', '128', 6))
+        self.assertEqual(values, {(1, 'RBCLW_MAX2'): ('200', 6),
+                                  (1, 'RBCLW_FAIL2'): ('128', 6)})
+        note = ('RoboClaw outputs use 0 to 254 with stop at 127 in v1.18'
+                ' (v1.17: 0 to 256, stop at 128)')
+        self.assertEqual(log, [f'check: RBCLW_MAX2 200: {note}',
+                               f'check: RBCLW_FAIL2 128: {note}'])
+
     def test_vehicle_type_default_listed_with_its_scope(self):
         _, values, log = migrate(
             (1, 'EKF2_REQ_PDOP', '2.500000000000000000', 9))

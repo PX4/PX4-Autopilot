@@ -44,6 +44,8 @@ the parameters v1.18 no longer has, listing each one on stderr.
 
 A saved file also holds the v1.17 defaults. Values still at a v1.17
 default that v1.18 changed are kept and listed, so they can be reviewed.
+The RoboClaw output defaults, whose scale changed, get the v1.18 default,
+as after an upgrade of the parameters stored on the vehicle.
 
 Check the converted file before loading it.
 
@@ -167,9 +169,6 @@ DEFAULT_CHANGES = {
     'FD_ACT_EN': (1, 0),
     'FW_T_HRATE_FF': (0.3, 0.5),
     'MPC_LAND_RADIUS': (1000.0, -1.0),
-    'RBCLW_DIS1': (128, 127), 'RBCLW_DIS2': (128, 127),
-    'RBCLW_MAX1': (256, 254), 'RBCLW_MAX2': (256, 254),
-    'RBCLW_MIN1': (1, 0), 'RBCLW_MIN2': (1, 0),
     'SENS_MAG_AUTOCAL': (1, 0),
     'VT_LND_PITCH_MIN': (-5.0, 0.0),
     'VT_PITCH_MIN': (-5.0, 0.0),
@@ -182,6 +181,25 @@ DEFAULT_CHANGES = {
 # Defaults that v1.18 changed for one vehicle type only
 DEFAULT_CHANGE_SCOPES = {
     'EKF2_REQ_PDOP': 'on fixed-wing',
+}
+
+# RoboClaw outputs: 0 to 256 with stop at 128 in v1.17, 0 to 254 with stop
+# at 127 in v1.18. In v1.18 the v1.17 defaults are out of range or one
+# step off (DIS 128 drives forward while disarmed), so they are replaced:
+# name: (v1.17 default, v1.18 default)
+REPLACED_DEFAULTS = {
+    'RBCLW_DIS1': (128, 127), 'RBCLW_DIS2': (128, 127),
+    'RBCLW_MAX1': (256, 254), 'RBCLW_MAX2': (256, 254),
+    'RBCLW_MIN1': (1, 0), 'RBCLW_MIN2': (1, 0),
+}
+
+_RBCLW_SCALE = ('RoboClaw outputs use 0 to 254 with stop at 127 in v1.18'
+                ' (v1.17: 0 to 256, stop at 128)')
+
+# Parameters whose other values need a check: name: (value to skip, note)
+SCALE_CHECKS = {
+    **{name: (None, _RBCLW_SCALE) for name in REPLACED_DEFAULTS},
+    'RBCLW_FAIL1': (-1, _RBCLW_SCALE), 'RBCLW_FAIL2': (-1, _RBCLW_SCALE),
 }
 
 
@@ -287,6 +305,13 @@ def migrate(lines, log):
         elif name in REMOVED:
             hint = f': {REMOVED[name]}' if REMOVED[name] else ''
             log(f'removed: {name} {show(value)}{hint}')
+        elif (name in REPLACED_DEFAULTS
+              and value == REPLACED_DEFAULTS[name][0]):
+            old, new = REPLACED_DEFAULTS[name]
+            log(f'replaced: {name} {show(old)} -> {show(new)},'
+                f' the v1.17 default by the v1.18 default')
+            out.append([row[0], row[1], name,
+                        format_value(new, int(row[4])), row[4]])
         elif name in REVERSE_PARAMS and row[4] != str(MAV_PARAM_TYPE_INT32):
             reverse = -1 if value < 0 else 1
             if reverse < 0:
@@ -295,6 +320,8 @@ def migrate(lines, log):
                         str(MAV_PARAM_TYPE_INT32)])
         else:
             log_old_default(name, value, log)
+            if name in SCALE_CHECKS and value != SCALE_CHECKS[name][0]:
+                log(f'check: {name} {show(value)}: {SCALE_CHECKS[name][1]}')
             out.append(row)
 
     # A converted value replaces the file's own value of that parameter
