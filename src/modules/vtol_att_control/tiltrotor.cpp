@@ -61,8 +61,20 @@ Tiltrotor::parameters_update()
 
 bool Tiltrotor::isFrontTransitionCompleted()
 {
-	// if the rotors have been tilted completely we switch to fw mode
-	return _front_transition_phase_2 && _tilt_control >= _param_vt_tilt_fw.get();
+	// the rotors only get tilted beyond VT_TILT_TRANS once the common front transition conditions are met
+	// (see update_transition_state), so fully tilted rotors mean the transition is complete
+	return _tilt_control >= _param_vt_tilt_fw.get();
+}
+
+void Tiltrotor::onTransitionStart()
+{
+	// A front transition started from hover begins with the rotors at most at VT_TILT_TRANS: the tilt
+	// being beyond it is what marks the second part of the transition (tilting forward completely).
+	// Hover tilt assist can exceed VT_TILT_TRANS; previously this was snapped back when the second part
+	// started. A restart from a back transition keeps the current tilt.
+	if (_common_vtol_mode == mode::ROTARY_WING) {
+		_tilt_control = math::min(_tilt_control, _param_vt_tilt_trans.get());
+	}
 }
 
 bool Tiltrotor::isBackTransitionCompleted()
@@ -129,26 +141,22 @@ void Tiltrotor::update_transition_state()
 		roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 	}
 
-	if (_common_vtol_mode == mode::TRANSITION_TO_FW && !_front_transition_phase_2
-	    && VtolType::isFrontTransitionCompleted()) {
-		// first part done: the plane is ready to go into fixed wing mode, tilt the rotors forward completely
-		_front_transition_phase_2 = true;
-		_trans_finished_ts = hrt_absolute_time();
-		resetTransitionStates();
-	}
+	// Second part of the front transition: tilt the rotors forward completely once the common front transition
+	// conditions (airspeed / time, or on ground) are met. The tilt beyond VT_TILT_TRANS is the memory that this
+	// has started, so a later airspeed dip does not stop the rotors.
+	const bool tilt_rotors_fully = _common_vtol_mode == mode::TRANSITION_TO_FW
+				       && (_tilt_control > _param_vt_tilt_trans.get() || VtolType::isFrontTransitionCompleted());
 
-	if (_common_vtol_mode == mode::TRANSITION_TO_FW && !_front_transition_phase_2) {
+	if (_common_vtol_mode == mode::TRANSITION_TO_FW && !tilt_rotors_fully) {
 		// for the first part of the transition all rotors are enabled
 
-		// tilt rotors forward up to certain angle
-		if (_tilt_control <= _param_vt_tilt_trans.get()) {
-			const float ramped_up_tilt = _param_vt_tilt_mc.get() +
-						     fabsf(_param_vt_tilt_trans.get() - _param_vt_tilt_mc.get()) *
-						     _time_since_trans_start / _param_vt_f_trans_dur.get() ;
+		// tilt rotors forward up to VT_TILT_TRANS
+		const float ramped_up_tilt = _param_vt_tilt_mc.get() +
+					     fabsf(_param_vt_tilt_trans.get() - _param_vt_tilt_mc.get()) *
+					     _time_since_trans_start / _param_vt_f_trans_dur.get() ;
 
-			// only allow increasing tilt (tilt in hover can already be non-zero)
-			_tilt_control = math::max(_tilt_control, ramped_up_tilt);
-		}
+		// only allow increasing tilt (tilt in hover can already be non-zero), never beyond VT_TILT_TRANS
+		_tilt_control = math::min(math::max(_tilt_control, ramped_up_tilt), _param_vt_tilt_trans.get());
 
 		// at low speeds give full weight to MC
 		_mc_roll_weight = 1.0f;
@@ -176,11 +184,12 @@ void Tiltrotor::update_transition_state()
 		// add minimum throttle for front transition
 		_thrust_transition = math::max(_thrust_transition, FRONTTRANS_THR_MIN);
 
-	} else if (_common_vtol_mode == mode::TRANSITION_TO_FW) {
-		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
-		_tilt_control = math::constrain(_param_vt_tilt_trans.get() +
-						fabsf(_param_vt_tilt_fw.get() - _param_vt_tilt_trans.get()) * _time_since_trans_start /
-						_param_vt_trans_p2_dur.get(), _param_vt_tilt_trans.get(), _param_vt_tilt_fw.get());
+	} else if (tilt_rotors_fully) {
+		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely at the
+		// rate given by VT_TRANS_P2_DUR for the VT_TILT_TRANS to VT_TILT_FW range
+		const float tilt_rate = fabsf(_param_vt_tilt_fw.get() - _param_vt_tilt_trans.get()) /
+					math::max(_param_vt_trans_p2_dur.get(), 0.1f);
+		_tilt_control = math::min(_tilt_control + tilt_rate * _transition_dt, _param_vt_tilt_fw.get());
 
 		_mc_roll_weight = 0.0f;
 		_mc_yaw_weight = 0.0f;

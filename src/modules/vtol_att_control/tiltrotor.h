@@ -75,8 +75,6 @@ private:
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 
-	bool _front_transition_phase_2{false};	/**< rotors at VT_TILT_TRANS and tilting forward completely */
-
 	void parameters_update() override;
 	float timeUntilMotorsAreUp();
 	float moveLinear(float start, float stop, float progress);
@@ -86,7 +84,7 @@ private:
 	bool isFrontTransitionCompleted() override;
 	bool isBackTransitionCompleted() override;
 	bool canSwitchToFixedWingDuringBackTransition() override { return true; }
-	void onTransitionStart() override { _front_transition_phase_2 = false; }
+	void onTransitionStart() override;
 
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
