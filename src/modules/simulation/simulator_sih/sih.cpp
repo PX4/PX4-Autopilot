@@ -58,7 +58,7 @@ ModuleBase::Descriptor Sih::desc{task_spawn, custom_command, print_usage};
 Sih::Sih() :
 	ModuleParams(nullptr)
 {
-	srand(1234); // initialize the random seed once before calling generate_wgn()
+	srand(1234); // initialize the random seed once before calling math::generate_wgn()
 }
 
 Sih::~Sih()
@@ -771,13 +771,13 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro_noise;
 
 	if (false && _T_B.longerThan(FLT_EPSILON)) { // too much noise at least for the low update rate O.O
-		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
-		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
+		accel_noise = math::noiseGauss3f(0.5f, 1.7f, 1.4f);
+		gyro_noise = math::noiseGauss3f(0.14f, 0.07f, 0.03f);
 
 	} else {
 		// Lower noise when not armed
-		accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
-		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
+		accel_noise = math::noiseGauss3f(0.1f, 0.1f, 0.1f);
+		gyro_noise = math::noiseGauss3f(0.01f, 0.01f, 0.01f);
 	}
 
 	Vector3f specific_force_B = R_E2B * _specific_force_E;
@@ -813,7 +813,7 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 
 	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + generate_wgn() * 0.2f);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + math::generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
@@ -866,7 +866,7 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 		const double true_range_m = delta_ecef.norm();
 
 		const float noise_std = _sih_ranging_beacon_noise.get();
-		const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
+		const float noise_m = (noise_std > 0.f) ? math::generate_wgn() * noise_std : 0.f;
 		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
 
 		ranging_beacon_s msg{};
@@ -965,40 +965,6 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
-}
-
-float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
-{
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
-Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
-{
-	return Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
 }
 
 int Sih::print_status()

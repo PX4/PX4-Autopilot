@@ -426,7 +426,8 @@ void RTL::setRtlTypeAndDestination()
 	}
 
 	_rtl_direct.setRtlAlt(rtl_alt);
-	_rtl_direct.setRtlPosition(destination, landing_loiter);
+	_rtl_direct.setRtlPosition(destination, landing_loiter,
+				   destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION);
 
 	_rtl_type = new_rtl_type;
 
@@ -462,7 +463,7 @@ void RTL::setRtlTypeAndDestination()
 	// Publish rtl status
 	rtl_status_s rtl_status{};
 	rtl_status.safe_points_id = mission_route_cache.safePointsId();
-	rtl_status.is_evaluation_pending = mission_route_cache.safePointUpdatePending()
+	rtl_status.is_evaluation_pending = !mission_route_cache.safePointsReady()
 					   || mission_route_cache.missionLandItemUpdatePending();
 	rtl_status.has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
 	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);
@@ -640,7 +641,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		destination.alt = _global_pos_sub.get().alt;
 		destination.lat = _global_pos_sub.get().lat;
 		destination.lon = _global_pos_sub.get().lon;
-		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+		destination_type = DestinationType::DESTINATION_TYPE_CURRENT_POSITION;
 	}
 }
 
@@ -764,11 +765,11 @@ bool RTL::hasMissionLandStart() const
 
 bool RTL::hasValidMission() const
 {
+	// Home is not compared: Mission rechecks with the Home set at arming, and in flight a Home update keeps the verdict.
 	const mission_result_s &mission_result = *_navigator->get_mission_result();
 	return mission_result.valid
 	       && mission_result.mission_id == _mission_sub.get().mission_id
-	       && mission_result.geofence_id == _mission_sub.get().geofence_id
-	       && mission_result.home_position_counter == _home_pos_sub.get().update_count;
+	       && mission_result.geofence_id == _mission_sub.get().geofence_id;
 }
 
 bool RTL::reverseIsFurther() const

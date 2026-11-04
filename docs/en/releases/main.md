@@ -58,6 +58,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   This also applies to `MAV_CMD_DO_LAND_START`, which uses it internally.
   Ground stations and scripts that relied on the command to arm must send `MAV_CMD_COMPONENT_ARM_DISARM` separately (QGroundControl, MAVSDK and the PX4 ROS 2 Interface Library already do).
   See the [MAVLink spec clarification](https://github.com/mavlink/mavlink/pull/2648).
+- **Plans are transferred only with the integer mission messages.**
+  PX4 requests and sends plan items with `MISSION_REQUEST_INT` and `MISSION_ITEM_INT` only, and no longer reports `MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT`.
+  The deprecated `MISSION_REQUEST` is answered with `MISSION_ITEM_INT`, as the [MAVLink mission protocol](https://mavlink.io/en/services/mission.html) asks, and an upload that sends the deprecated `MISSION_ITEM` is rejected with `MAV_MISSION_UNSUPPORTED`.
+  _QGroundControl_ and MAVSDK already use the integer messages.
+  Scripts that upload with `MISSION_ITEM` (for example pymavlink's `mission_item_send()`) must send `MISSION_ITEM_INT`, with latitude and longitude in degrees × 10⁷.
 - **The primary GNSS receiver defaults to Auto.**
   [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) now defaults to `-1` (Auto) instead of `0`, and saved values are not changed: with Auto the moving base of a moving base pair is the primary receiver, and without one, a receiver that passes the strict checks ([GNSS_REQ_EPH](../advanced_config/parameter_reference.md#GNSS_REQ_EPH) and the other `GNSS_REQ_*` parameters) is used, then one with an RTK fixed solution.
   To keep preferring the receiver on the main serial port, set `SENS_GNSS_PRIME` to `0`.
@@ -74,6 +79,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - Return mode now stops in the cycle it is left, not one cycle later. Before, a precision landing selected right after Return was partly reset, and Return selected again after one cycle of Hold hovered in place instead of returning. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
 - If a mission-based Return cannot allocate its executor, it now flies directly to its destination, the mission landing point or Home, and tells the pilot "Return: cannot follow the mission; flying directly". Before, Return did nothing. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
 - Return no longer reports a stale VTOL landing approach in `rtl_status`, for example one found before an [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) change. With [MIS_TKO_LAND_REQ](../advanced_config/parameter_reference.md#MIS_TKO_LAND_REQ) = 5, a mission without a landing, uploaded or started in the air, can therefore now be rejected where it passed before. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
+- With [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 5 and no rally point, a fixed-wing vehicle now circles where Return started, whatever [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY) is.
+  It used to land there when `RTL_LAND_DELAY` was not -1, with the altitude it was flying at as the ground altitude.
+  VTOLs and multicopters still follow `RTL_LAND_DELAY`.
 
 ### Hardware Support
 
@@ -139,6 +147,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### uXRCE-DDS / Zenoh / ROS 2
 
 - (uXRCE-DDS): SITL multi vehicle automatic namespace prefix is now `uav_{px4_instance}` and it is aligned with the behaviour of `UXRCE_DDS_NS_IDX`. ([PX4-Autopilot#28338](https://github.com/PX4/PX4-Autopilot/pull/28338))
+- (uXRCE-DDS): RTK corrections can be published from ROS 2 on `/fmu/in/rtcm_corrections` ([RtcmData](../msg_docs/RtcmData.md)); see [Corrections from ROS 2](../advanced/rtk_gps.md#corrections-from-ros-2). ([PX4-Autopilot#29368](https://github.com/PX4/PX4-Autopilot/pull/29368))
 
 ### MAVLink
 

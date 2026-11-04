@@ -264,19 +264,6 @@ TEST_F(MissionRouteGeofenceTest, UnloadedEmptyFenceIsUnavailable)
 	EXPECT_FALSE(clear);
 }
 
-TEST_F(MissionRouteGeofenceTest, UnavailablePathBatchFailsThePrune)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence};
-	// Keep point membership valid, but make the cached path metadata inconsistent.
-	GeofenceTestPeer::setVertexCount(_fence, 3);
-	ProjectionReferenceBatch batch{};
-	batch.count = 1;
-	batch.items[0].position = routePosition(60.f, 100.f);
-	addCandidate(batch.items[0], routePosition(60.f, 500.f));
-	EXPECT_FALSE(checker.pruneCandidates(batch));
-}
-
 TEST_F(MissionRouteGeofenceTest, UnavailableTailFailsThePrune)
 {
 	static constexpr uint8_t kReferenceCount = 13;

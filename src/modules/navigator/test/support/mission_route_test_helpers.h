@@ -74,13 +74,13 @@ public:
 
 	int missionCount() const override { return static_cast<int>(_mission_items.itemCount()); }
 
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override
+	const mission_item_s *missionItem(int index) const override
 	{
 		++_mission_load_count;
-		return _mission_items.loadItem(index, mission_item);
+		return _mission_items.item(index);
 	}
 
-	/** Number of loadMissionItem() calls, failed ones included. */
+	/** Number of missionItem() calls, failed ones included. */
 	int missionLoadCount() const { return _mission_load_count; }
 
 	int safePointCount() const override { return static_cast<int>(_safe_point_items.itemCount()); }

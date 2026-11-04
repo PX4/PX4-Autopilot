@@ -146,14 +146,14 @@ public:
 
 	int missionCount() const override { return _delegate.missionCount(); }
 
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override
+	const mission_item_s *missionItem(int index) const override
 	{
 		if (_failure_armed && !_failure_injected && index == _failed_mission_index) {
 			_failure_injected = true;
-			return false;
+			return nullptr;
 		}
 
-		return _delegate.loadMissionItem(index, mission_item);
+		return _delegate.missionItem(index);
 	}
 
 	int safePointCount() const override { return _delegate.safePointCount(); }
