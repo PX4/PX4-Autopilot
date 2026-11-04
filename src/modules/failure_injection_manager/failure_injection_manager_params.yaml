@@ -149,7 +149,7 @@ parameters:
       SYS_FAIL_G_BIAS:
         description:
           short: Gyro bias failure injection magnitude
-          long: Constant offset added to every axis while the 'gyro wrong' failure injection is active.
+          long: Constant offset added to every axis while a gyro 'wrong' failure injection is active.
         type: float
         default: 0.01
         unit: rad/s
@@ -157,7 +157,7 @@ parameters:
       SYS_FAIL_G_NOISE:
         description:
           short: Gyro noise failure injection magnitude
-          long: Amplitude of the uniform noise added to every axis while the 'gyro garbage' failure injection is active.
+          long: Amplitude of the uniform noise added to every axis while a gyro 'garbage' failure injection is active.
         type: float
         default: 0.05
         min: 0
@@ -166,7 +166,7 @@ parameters:
       SYS_FAIL_G_DRIFT:
         description:
           short: Gyro drift failure injection rate
-          long: Rate at which the offset added to every axis grows while the 'gyro drift' failure injection is active.
+          long: Rate at which the offset added to every axis grows while a gyro 'drift' failure injection is active.
         type: float
         default: 0.001
         unit: rad/s^2
@@ -174,7 +174,7 @@ parameters:
       SYS_FAIL_A_BIAS:
         description:
           short: Accel bias failure injection magnitude
-          long: Constant offset added to every axis while the 'accel wrong' failure injection is active.
+          long: Constant offset added to every axis while an accel 'wrong' failure injection is active.
         type: float
         default: 0.2
         unit: m/s^2
@@ -182,7 +182,7 @@ parameters:
       SYS_FAIL_A_NOISE:
         description:
           short: Accel noise failure injection magnitude
-          long: Amplitude of the uniform noise added to every axis while the 'accel garbage' failure injection is active.
+          long: Amplitude of the uniform noise added to every axis while an accel 'garbage' failure injection is active.
         type: float
         default: 1.0
         min: 0
@@ -191,7 +191,7 @@ parameters:
       SYS_FAIL_A_DRIFT:
         description:
           short: Accel drift failure injection rate
-          long: Rate at which the offset added to every axis grows while the 'accel drift' failure injection is active.
+          long: Rate at which the offset added to every axis grows while an accel 'drift' failure injection is active.
         type: float
         default: 0.005
         unit: m/s^3
