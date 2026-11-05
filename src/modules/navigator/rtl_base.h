@@ -61,13 +61,22 @@ public:
 	virtual void setRtlAlt(float alt) { (void)alt;};
 
 	/** Refresh the cached mission before RTL selects the destination and activates this mode. */
-	void refreshMission() { updateMavlinkMission(); }
+	void refreshMission()
+	{
+		// The route follower keeps the mission of its route: RTL plans a new follower for an upload.
+		if (shouldAcceptMissionUpdates()) {
+			updateMavlinkMission();
+		}
+	}
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 protected:
+	// Of the Return modes only the route follower calls startVtolTransition(); it overrides this.
+	void prepareVtolTransitionItem(bool aligning) override { (void)aligning; }
+
 	/** Return never takes off, so it does not start its items while landed, also when they reload. */
 	bool canStartMission() const override { return !_land_detected_sub.get().landed; }
 

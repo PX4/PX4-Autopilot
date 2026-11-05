@@ -112,36 +112,56 @@ void MissionBase::updateMavlinkMission()
 
 	_mission = new_mission;
 
-	if (mission_items_changed) {
-		_dataman_cache.invalidate();
-		_load_mission_index = -1;
-
-		// New contents replace any pending check request.
-		_mission_check_state = MissionCheckState::Unchecked;
-		check_mission_valid();
-
-	} else if (geofence_changed && _mission_check_state == MissionCheckState::Complete) {
+	if (geofence_changed && _mission_check_state == MissionCheckState::Complete) {
 		// Recheck against the new fence. A deferred check stays forced.
 		_mission_check_state = MissionCheckState::Unchecked;
 	}
 
 	/* Relevant mission items updated externally*/
 	if (mission_data_changed) {
-		if (isActive()) {
-			_mission_has_been_activated = true;
-			_navigator->reset_triplets();
-			update_mission();
-			set_mission_items();
-
-		} else if (mission_items_changed) {
-			_mission_has_been_activated = false;
-		}
-
-		// reset as when we update mission we don't want to proceed at previous index
-		_inactivation_index = -1;
+		onMissionUpdate(mission_items_changed);
 	}
 
 	_is_current_planned_mission_item_valid = isMissionValid();
+}
+
+void MissionBase::onMissionUpdate(bool has_mission_items_changed)
+{
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// A replacement mission or an external sequence change invalidates the join and the flown jump edge.
+	// Runs before resetVtolTransition(), which would hide a join transition.
+	resetJoinRouteState();
+	_active_jump_anchor = {};
+
+	// A new mission or current item clears the previous selection.
+	// Check for a new selection before Mission follows DO_JUMP or skips action items.
+	_mission_item_selection_pending = false;
+	updateMissionItemSelection();
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	resetVtolTransition();
+
+	if (has_mission_items_changed) {
+		_dataman_cache.invalidate();
+		_load_mission_index = -1;
+
+		// New contents replace any pending check request.
+		_mission_check_state = MissionCheckState::Unchecked;
+		check_mission_valid();
+	}
+
+	if (isActive()) {
+		_mission_has_been_activated = true;
+		_navigator->reset_triplets();
+		update_mission();
+		set_mission_items();
+
+	} else if (has_mission_items_changed) {
+		_mission_has_been_activated = false;
+	}
+
+	// reset as when we update mission we don't want to proceed at previous index
+	_inactivation_index = -1;
 }
 
 void
@@ -153,7 +173,9 @@ MissionBase::on_inactive()
 
 	parameters_update();
 
-	updateMavlinkMission();
+	if (shouldAcceptMissionUpdates()) {
+		updateMavlinkMission();
+	}
 
 	/* Check the mission */
 	if (_mission_check_state != MissionCheckState::Complete) {
@@ -181,8 +203,13 @@ MissionBase::on_inactivation()
 		_navigator->get_precland()->on_inactivation();
 	}
 
+	resetVtolTransition();
+
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	resetJoinRouteState();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/* reset so MISSION_ITEM_REACHED isn't published */
 	_navigator->get_mission_result()->seq_reached = -1;
@@ -208,7 +235,8 @@ MissionBase::on_activation()
 
 	// reset the cache and fill it with the items up to the previous item. The cache contains
 	// commands that are valid for the whole mission, not just a single waypoint.
-	if (_mission.current_seq > 0) {
+	// The route follower never fills it, so it replays nothing.
+	if (shouldReplayMissionActionItems() && _mission.current_seq > 0) {
 		resetItemCache();
 		updateCachedItemsUpToIndex(_mission.current_seq - 1);
 	}
@@ -239,6 +267,16 @@ MissionBase::on_activation()
 	}
 
 	checkClimbRequired(_mission.current_seq);
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// The join waypoint already flies to the route altitude, the rest is climbed along the route.
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
+		_mission_init_climb_altitude_amsl = NAN;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	set_mission_items();
 
 	_mission_activation_index = _mission.current_seq;
@@ -257,7 +295,10 @@ MissionBase::on_active()
 
 	parameters_update();
 
-	updateMavlinkMission();
+	if (shouldAcceptMissionUpdates()) {
+		updateMavlinkMission();
+	}
+
 	updateDatamanCache();
 	updateMissionAltAfterHomeChanged();
 
@@ -273,7 +314,7 @@ MissionBase::on_active()
 	}
 
 	// check if heading alignment is necessary, and add it to the current mission item if necessary
-	if (_align_heading_necessary && is_mission_item_reached_or_completed()) {
+	if (_align_heading_necessary && !vtolTransitionActive() && is_mission_item_reached_or_completed()) {
 
 		// add yaw alignment requirement on the current mission item
 		int32_t next_mission_item_index;
@@ -318,14 +359,14 @@ MissionBase::on_active()
 	}
 
 	/* lets check if we reached the current mission item */
-	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
-		/* If we just completed a takeoff which was inserted before the right waypoint,
-		   there is no need to report that we reached it because we didn't. */
-		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+	if (_mission_type != MissionType::MISSION_TYPE_NONE
+	    && (vtolTransitionActive() ? updateVtolTransition() : is_mission_item_reached_or_completed())) {
+		if (shouldReportMissionItemReached()) {
 			set_mission_item_reached();
 		}
 
 		if (_mission_item.autocontinue) {
+			resetVtolTransition();
 			/* switch to next waypoint if 'autocontinue' flag set */
 			advance_mission();
 			set_mission_items();
@@ -443,8 +484,20 @@ void MissionBase::update_mission()
 			checkClimbRequired(_mission.current_seq);
 		}
 
-		/* reset work item if new mission has been accepted */
-		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		/* reset work item if new mission has been accepted, restarting the item and its VTOL transition */
+		bool keep_work_item = false;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		// The join is armed before activation reaches update_mission(); onMissionUpdate() clears it on a real change.
+		// Join and route Return transitions cannot be restarted, so they keep running through a feasibility refresh.
+		keep_work_item = _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+				 || _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN
+				 || routeReturnTransitionActive();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+		if (!keep_work_item) {
+			resetVtolTransition();
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		}
 
 		/* reset mission failure if we have an updated valid mission */
 		_navigator->get_mission_result()->failure = false;
@@ -501,6 +554,10 @@ MissionBase::set_mission_items()
 	bool set_end_of_mission{false};
 
 	if (_is_current_planned_mission_item_valid && _mission_type == MissionType::MISSION_TYPE_MISSION && isMissionValid()) {
+		if (vtolTransitionActive()) {
+			return;
+		}
+
 		/* By default set the mission item to the current planned mission item. Depending on request, it can be altered. */
 		if (loadCurrentMissionItem()) {
 			/* force vtol land */
@@ -554,6 +611,7 @@ bool MissionBase::loadCurrentMissionItem()
 
 void MissionBase::setEndOfMissionItems()
 {
+	resetVtolTransition();
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 	if (_land_detected_sub.get().landed) {
@@ -592,6 +650,30 @@ MissionBase::set_mission_item_reached()
 	_navigator->set_mission_result_updated();
 
 	reset_mission_item_reached();
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// A reached position item puts the vehicle back on the route, so a later resume may join.
+	if (mission_item_contains_position(_mission_item)) {
+		_mission_item_selection_pending = false;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+}
+
+bool MissionBase::shouldReportMissionItemReached() const
+{
+	switch (_work_item_type) {
+	case WorkItemType::WORK_ITEM_TYPE_CLIMB:
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	case WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE:
+	case WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN:
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+		return false;
+
+	default:
+		return true;
+	}
 }
 
 void
@@ -621,7 +703,8 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			      || (_mission_item.nav_cmd == NAV_CMD_LAND));
 
 	bool needs_vtol_landing = _vehicle_status_sub.get().is_vtol &&
-				  (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
+				  (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				   || (_vehicle_status_sub.get().in_transition_to_fw && shouldLandFrontTransitionAsFixedWing())) &&
 				  (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) &&
 				  !_land_detected_sub.get().landed;
 
@@ -768,6 +851,309 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 
 }
 
+void MissionBase::startVtolTransition(const mission_item_s &command, const mission_item_s *alignment_target,
+				      WorkItemType completion_work)
+{
+	_vtol_transition.command = command;
+
+	if (alignment_target) {
+		_vtol_transition.target = *alignment_target;
+
+	} else {
+		_vtol_transition.target = {};
+	}
+
+	_vtol_transition.completion_work = completion_work;
+	_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
+	reset_mission_item_reached();
+
+	// Report the item here when updateVtolTransition() did not: already in mode, or waiting for a back transition.
+	if (updateVtolTransition() || _work_item_type == WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION) {
+		if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
+			set_mission_result();
+		}
+
+		publish_navigator_mission_item();
+	}
+}
+
+bool MissionBase::updateVtolTransition()
+{
+	const vehicle_status_s &status = _vehicle_status_sub.get();
+	const bool front_transition = int(_vtol_transition.command.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+	const bool in_back_transition = status.in_transition_mode && !status.in_transition_to_fw;
+	const bool in_commanded_mode = front_transition
+				       ? status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				       : status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !status.in_transition_mode;
+
+	const bool command_issued = _work_item_type == _vtol_transition.completion_work;
+	// Uploaded transition items are aligned and commanded even when already in their mode.
+	const bool uploaded_item = _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_DEFAULT
+				   && !routeReturnTransitionActive();
+
+	// Already in the commanded mode: no command. A VTOL takeoff keeps TRANSITION_AFTER_TAKEOFF and flies its waypoint.
+	if ((in_commanded_mode && !uploaded_item) || (front_transition && frontTransitionInhibited())) {
+		_mission_item = _vtol_transition.command;
+		_work_item_type = _vtol_transition.completion_work;
+		return true;
+	}
+
+	if (command_issued) {
+		return !status.in_transition_mode && is_mission_item_reached_or_completed();
+	}
+
+	position_setpoint_triplet_s &triplet = *_navigator->get_position_setpoint_triplet();
+	const bool aligning = _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
+
+	if (front_transition && in_back_transition) {
+		// A back transition can also start during alignment; align again once it finishes.
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION;
+		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+
+		// Only the alignment yaw changes, publish once instead of every cycle.
+		if (PX4_ISFINITE(triplet.current.yaw)) {
+			triplet.current.yaw = NAN;
+			_navigator->set_position_setpoint_triplet_updated();
+		}
+
+		return false;
+	}
+
+	const bool needs_alignment = !_land_detected_sub.get().landed
+				     && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+				     && !status.in_transition_to_fw
+				     && mission_item_contains_position(_vtol_transition.target)
+				     && PX4_ISFINITE(_vtol_transition.target.lat) && PX4_ISFINITE(_vtol_transition.target.lon);
+
+	if (needs_alignment && !aligning) {
+		prepareVtolTransitionItem(true);
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
+
+	} else {
+		const bool landed = _land_detected_sub.get().landed;
+
+		// A landing does not end an alignment: no transition is sent on the ground before it is reached.
+		if ((needs_alignment || (aligning && landed))
+		    && (!is_mission_item_reached_or_completed() || !_mission_item.autocontinue)) {
+			return false;
+		}
+
+		// A VTOL takeoff aligned while landed goes on as a takeoff item, without its front transition.
+		if (aligning && landed
+		    && _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF) {
+			return true;
+		}
+
+		prepareVtolTransitionItem(false);
+		issue_command(_mission_item);
+		_work_item_type = _vtol_transition.completion_work;
+
+		// An aligned item is reported reached when its command is sent, and again in the new mode.
+		if (aligning && shouldReportMissionItemReached()) {
+			set_mission_item_reached();
+		}
+	}
+
+	reset_mission_item_reached();
+
+	if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
+		set_mission_result();
+	}
+
+	publish_navigator_mission_item();
+	_navigator->set_position_setpoint_triplet_updated();
+	return false;
+}
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+void MissionBase::prepareRouteTransitionItem(bool aligning)
+{
+	auto &triplet = *_navigator->get_position_setpoint_triplet();
+
+	if (aligning) {
+		_mission_item = {};
+		set_align_mission_item(&_mission_item, &_vtol_transition.target);
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+		_mission_item.origin = ORIGIN_ONBOARD;
+		mission_item_to_position_setpoint(_mission_item, &triplet.current);
+		triplet.next.valid = false;
+
+	} else {
+		_mission_item = _vtol_transition.command;
+		// FW position control uses the aligned triplet yaw during front transition.
+		triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+	}
+
+	triplet.previous.valid = false;
+}
+
+void MissionBase::setupJoinRoute(const mission_route::Position &join_position, bool use_current_altitude,
+				 VtolTransitionAction transition_action)
+{
+	_route_join_context.projection = join_position;
+	_route_join_context.skip_altitude_requirement = use_current_altitude;
+	_route_join_context.transition_action = transition_action;
+	_work_item_type = WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+	reset_mission_item_reached();
+}
+
+void MissionBase::resetJoinRouteState()
+{
+	const bool join_transition = _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
+
+	if (join_transition) {
+		resetVtolTransition();
+	}
+
+	_route_join_context = {};
+
+	if (join_transition || _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+	    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+	}
+}
+
+bool MissionBase::cameraWasTriggeringAtPause()
+{
+	if (_inactivation_index <= 0) {
+		return false;
+	}
+
+	resetItemCache();
+	updateCachedItemsUpToIndex(_inactivation_index - 1);
+	const bool camera_was_triggering = cameraWasTriggering();
+
+	// Leave the action cache empty (resetItemCache() keeps the speed item); on_activation() refills it past item 0.
+	resetItemCache();
+	_last_speed_change_item = {};
+	return camera_was_triggering;
+}
+
+bool MissionBase::handleJoinRouteWorkItems()
+{
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+		resetJoinRouteState();
+		return false;
+	}
+
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
+		return false;
+	}
+
+	if (!(_waypoint_position_reached && _waypoint_yaw_reached)) {
+		return handleJoinRouteWaypoint();
+	}
+
+	if (!joinRouteTransitionStillRequired()) {
+		resetJoinRouteState();
+		return false;
+	}
+
+	const bool front_transition = _route_join_context.transition_action == VtolTransitionAction::kFrontTransition;
+
+	// set_mission_items() has just loaded the join target into _mission_item.
+	if (front_transition && !mission_item_contains_position(_mission_item)) {
+		PX4_ERR("Route join alignment target unavailable");
+		resetJoinRouteState();
+		setEndOfMissionItems();
+		return true;
+	}
+
+	mission_item_s command{};
+	set_vtol_transition_item(&command, front_transition
+				 ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	// startVtolTransition() copies the target before it changes _mission_item.
+	startVtolTransition(command, front_transition ? &_mission_item : nullptr,
+			    WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN);
+	return true;
+}
+
+bool MissionBase::handleJoinRouteWaypoint()
+{
+	if (!_route_join_context.valid()) {
+		PX4_ERR("Route join active without a valid context");
+		resetJoinRouteState();
+		return false;
+	}
+
+	const position_setpoint_s current_setpoint_copy = _navigator->get_position_setpoint_triplet()->current;
+	mission_item_s join_item;
+	setWaypointMissionItem(join_item, _route_join_context.projection);
+
+	if (_route_join_context.skip_altitude_requirement) {
+		join_item.altitude = _navigator->get_global_position()->alt;
+	}
+
+	if (_route_join_context.transition_action != VtolTransitionAction::kNone) {
+		// The fly-by radius is only for joins without a transition.
+		join_item.acceptance_radius = _navigator->get_acceptance_radius();
+		join_item.vtol_back_transition = _route_join_context.transition_action == VtolTransitionAction::kBackTransition;
+	}
+
+	publishPositionItems(join_item, nullptr, current_setpoint_copy);
+	return true;
+}
+
+void MissionBase::publishPositionItems(const mission_item_s &current_item, const mission_item_s *next_item,
+				       const position_setpoint_s &current_setpoint_copy)
+{
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	mission_item_to_position_setpoint(current_item, &pos_sp_triplet->current);
+
+	if (next_item != nullptr) {
+		mission_item_to_position_setpoint(*next_item, &pos_sp_triplet->next);
+
+	} else {
+		_navigator->reset_position_setpoint(pos_sp_triplet->next);
+	}
+
+	if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
+		pos_sp_triplet->previous = current_setpoint_copy;
+	}
+
+	// Reach checks use the published target, which may be a virtual waypoint.
+	_mission_item = current_item;
+	reset_mission_item_reached();
+
+	if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
+		set_mission_result();
+	}
+
+	publish_navigator_mission_item();
+	_navigator->set_position_setpoint_triplet_updated();
+}
+
+void MissionBase::setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const
+{
+	mission_item = {};
+	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+	mission_item.lat = position.lat;
+	mission_item.lon = position.lon;
+	mission_item.altitude = position.alt;
+	mission_item.altitude_is_relative = false;
+	mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+
+	if (vehicleInFwLikeState(_vehicle_status_sub.get())) {
+		mission_item.acceptance_radius = kJoinRouteFlyByAcceptanceRadiusScale * _navigator->get_acceptance_radius();
+	}
+
+	mission_item.yaw = NAN;
+	mission_item.autocontinue = true;
+	mission_item.origin = ORIGIN_ONBOARD;
+}
+
+bool MissionBase::joinRouteTransitionStillRequired() const
+{
+	const auto &status = _vehicle_status_sub.get();
+	const bool mode_complete = !status.in_transition_mode
+				   && status.vehicle_type == (_route_join_context.transition_action == VtolTransitionAction::kFrontTransition
+						   ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING : vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	return !_land_detected_sub.get().landed && !mode_complete
+	       && _route_join_context.transition_action != VtolTransitionAction::kNone
+	       && !(_route_join_context.transition_action == VtolTransitionAction::kFrontTransition && frontTransitionInhibited());
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 void
 MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 {
@@ -779,7 +1165,7 @@ MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 	_navigator->set_mission_result_updated();
 }
 
-void
+bool
 MissionBase::checkMissionRestart()
 {
 	if (_system_disarmed_while_inactive && _mission_has_been_activated && (_mission.count > 0U)
@@ -790,7 +1176,10 @@ MissionBase::checkMissionRestart()
 		resetMissionJumpCounter();
 		_navigator->reset_cruising_speed();
 		_navigator->reset_vroi();
+		return true;
 	}
+
+	return false;
 }
 
 void
@@ -985,14 +1374,29 @@ MissionBase::do_abort_landing()
 	events::send<float>(events::ID("mission_holding_above_landing"), events::Log::Info,
 			    "Holding at {1:.0m_v} above landing waypoint", alt_sp - alt_landing);
 
-	// reset mission index to start of landing
-	if (hasMissionLandStart()) {
-		_is_current_planned_mission_item_valid = true;
-		setMissionIndex(_mission.land_start_index);
+	// reset mission index to start of landing, unless the landing is not a mission item
+	if (landingAbortMovesMissionIndex()) {
+		if (hasMissionLandStart()) {
+			_is_current_planned_mission_item_valid = true;
+			setMissionIndex(_mission.land_start_index);
 
-	} else {
-		// move mission index back (landing approach point)
-		_is_current_planned_mission_item_valid = (goToPreviousItem(MissionTraversalType::IgnoreDoJump) == PX4_OK);
+		} else {
+			// move mission index back (landing approach point)
+			_is_current_planned_mission_item_valid = (goToPreviousItem(MissionTraversalType::IgnoreDoJump) == PX4_OK);
+		}
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		// Resuming Mission flies the landing approach again instead of joining it.
+		_mission_item_selection_pending = true;
+		// Tell Mission to fly the approach again if the abort happened during Return.
+		mission_item_selection_s selection{};
+		selection.timestamp = hrt_absolute_time();
+		selection.mission_id = _mission.mission_id;
+		selection.mission_dataman_id = _mission.mission_dataman_id;
+		selection.selected_seq = _mission.current_seq;
+		uORB::Publication<mission_item_selection_s> selection_pub{ORB_ID(mission_item_selection)};
+		selection_pub.publish(selection);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	}
 
 	// send reposition cmd to get out of mission
@@ -1107,6 +1511,14 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 					// The repetition cannot be counted, so following the jump would repeat it on
 					// every pass over this item. Continue with the item after the jump instead.
 					follow_jump = false;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+					// Drop only the skipped edge: an earlier jump in a chain can still be active.
+					if (_active_jump_anchor.jump_item_index == new_mission_index) {
+						_active_jump_anchor = {};
+					}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 				}
 			}
 
@@ -1157,9 +1569,34 @@ void MissionBase::setMissionIndex(int32_t index)
 	if (index != _mission.current_seq) {
 		_mission.current_seq = index;
 		_mission.timestamp = hrt_absolute_time();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		if (!shouldAcceptMissionUpdates()) {
+			publishMissionIndex();
+			return;
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		_mission_pub.publish(_mission);
 	}
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+void MissionBase::publishMissionIndex()
+{
+	// _mission ignores topic updates, so only the index is ours: publish it on the latest topic,
+	// and not at all when that topic shows another mission.
+	uORB::Subscription mission_sub{ORB_ID(mission)};
+	mission_s mission{};
+
+	if (mission_sub.copy(&mission) && mission.mission_id == _mission.mission_id
+	    && mission.mission_dataman_id == _mission.mission_dataman_id && mission.count == _mission.count) {
+		mission.current_seq = _mission.current_seq;
+		mission.timestamp = _mission.timestamp;
+		_mission_pub.publish(mission);
+	}
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 bool MissionBase::loadMissionItemFromCache(int32_t index, mission_item_s &mission_item)
 {
@@ -1228,6 +1665,58 @@ bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previo
 
 	return false;
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+bool MissionBase::vehicleInFwLikeState(const vehicle_status_s &vehicle_status)
+{
+	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	       || vehicle_status.in_transition_to_fw;
+}
+
+void MissionBase::updateActiveJumpAnchorForNominalAdvance()
+{
+	mission_item_s current_item{};
+
+	if (!loadMissionItemFromCache(_mission.current_seq, current_item)) {
+		_active_jump_anchor = {};
+		return;
+	}
+
+	// A jump may land on action commands preceding its position target. Keep its identity
+	// until that target is reached, including while those commands are executed.
+	if (mission_item_contains_position(current_item)) {
+		_active_jump_anchor = {};
+	}
+
+	// Only inspect commands consumed before the next position target. A later DO_JUMP
+	// belongs to a future advance and must not become the current continuity anchor.
+	for (int32_t index = _mission.current_seq + 1; index < _mission.count; ++index) {
+		mission_item_s mission_item{};
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			return;
+		}
+
+		if (mission_item.nav_cmd == NAV_CMD_DO_JUMP
+		    && mission_item.do_jump_current_count < mission_item.do_jump_repeat_count) {
+			_active_jump_anchor = {};
+			int32_t target_index = -1;
+
+			if (mission_item.do_jump_mission_index < _mission.count
+			    && findNextPositionIndex(mission_item.do_jump_mission_index, target_index,
+						     MissionTraversalType::IgnoreDoJump)) {
+				_active_jump_anchor.jump_item_index = index;
+			}
+
+			return;
+		}
+
+		if (mission_item_contains_position(mission_item)) {
+			return;
+		}
+	}
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 bool MissionBase::loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
 				    MissionTraversalType traversal_type, bool direction_backward)
