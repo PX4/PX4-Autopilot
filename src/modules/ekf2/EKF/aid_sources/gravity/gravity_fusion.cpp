@@ -58,10 +58,21 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	const bool accel_lpf_norm_good = (accel_lpf_norm_sq > sq(lower_accel_limit))
 					 && (accel_lpf_norm_sq < sq(upper_accel_limit));
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	// The drag model accounts for the horizontal specific force that this observation wrongly attributes to gravity.
+	// Keep fusing gravity when the tilt is poorly constrained (e.g.: low airspeed) to prevent fake position fusion
+	// from starting and corrupting the velocity states used by the drag fusion.
+	const bool drag_constrains_tilt = isRecent(_aid_src_drag.time_last_fuse, (uint64_t)1e6)
+					  && (getTiltVariance() < sq(kFakePosTiltStdThreshold));
+#else
+	const bool drag_constrains_tilt = false;
+#endif // CONFIG_EKF2_DRAG_FUSION
+
 	// fuse gravity observation if our overall acceleration isn't too big
 	_control_status.flags.gravity_vector = (_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
 					       && (accel_lpf_norm_good || _control_status.flags.vehicle_at_rest)
 					       && !isHorizontalAidingActive()
+					       && !drag_constrains_tilt
 					       && _control_status.flags.tilt_align; // Let fake position do the initial alignment (more robust before takeoff)
 
 	// calculate kalman gains and innovation variances
