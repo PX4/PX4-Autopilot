@@ -187,11 +187,15 @@ MissionBlock::is_mission_item_reached_or_completed()
 				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
 				_navigator->get_default_loiter_rad();
 
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
-				_navigator->get_global_position()->lat,
-				_navigator->get_global_position()->lon,
-				_navigator->get_global_position()->alt,
-				&dist_xy, &dist_z);
+		if (_mission_item.nav_cmd != NAV_CMD_TAKEOFF_LOCAL) {
+			// _mission_item.lat/lon alias the local x/y fields for NAV_CMD_TAKEOFF_LOCAL and are not valid WGS84 coordinates.
+			// add more commands which doesn't depend on global navigation here, so that these are not computed each loop
+			dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
+					_navigator->get_global_position()->lat,
+					_navigator->get_global_position()->lon,
+					_navigator->get_global_position()->alt,
+					&dist_xy, &dist_z);
+		}
 
 		/*
 			Takeoff for  Multirotor and VTOL(MC) in Global coordinates
@@ -221,11 +225,12 @@ MissionBlock::is_mission_item_reached_or_completed()
 			}
 
 
-		/*
-			Takeoff for  Multirotor  in Local coordinates
-		*/
-		} else if((_mission_item.nav_cmd == NAV_CMD_TAKEOFF_LOCAL)
-		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			/*
+				Takeoff for  Multirotor  in Local coordinates
+			*/
+
+		} else if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF_LOCAL)
+			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			const float takeoff_height = _mission_item.altitude;
 			float altitude_acceptance_radius = _navigator->get_altitude_acceptance_radius();
@@ -234,13 +239,16 @@ MissionBlock::is_mission_item_reached_or_completed()
 			if (fabsf(takeoff_height) < altitude_acceptance_radius) {
 				altitude_acceptance_radius = fabsf(takeoff_height) / 2.0f;
 			}
-			if(fabsf(_navigator->get_local_position()->z - takeoff_height) < altitude_acceptance_radius){
+
+			if (fabsf(_navigator->get_local_position()->z - takeoff_height) < altitude_acceptance_radius) {
 
 				_waypoint_position_reached = true;
 			}
-		/*
-		Takeoff for Fixed Wing
-		*/
+
+			/*
+			Takeoff for Fixed Wing
+			*/
+
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			/* fixed-wing takeoff is reached once the mode manager has finished the climbout */
@@ -248,9 +256,10 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_waypoint_position_reached = true;
 			}
 
-		/*
-		Takeoff for Rover
-		*/
+			/*
+			Takeoff for Rover
+			*/
+
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 			// Accept takeoff waypoint to be reached if the distance in 2D plane is within acceptance radius
@@ -683,7 +692,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		sp->alt = get_absolute_altitude_for_item(item);
 		sp->yaw = item.yaw;
 		sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
-			    	_navigator->get_default_loiter_rad();
+				    _navigator->get_default_loiter_rad();
 		sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
 		if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
@@ -715,7 +724,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 			// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
 			if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-		    	&& !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed) {
+			    && !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed) {
 
 				sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
@@ -754,15 +763,15 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		sp->frame = position_setpoint_s::FRAME_TYPE_GLOBAL;
 
 		return sp->valid;
-	}
-	else if(item.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED){
+
+	} else if (item.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED) {
 
 		sp->x = item.x;
 		sp->y = item.y;
 		sp->alt = item.altitude;
 		sp->yaw = item.yaw;
 		sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
-			    	_navigator->get_default_loiter_rad();
+				    _navigator->get_default_loiter_rad();
 		sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
 		if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
@@ -793,9 +802,10 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			break;
 
 		case NAV_CMD_TAKEOFF_LOCAL:
+
 			// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
 			if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-		    	&& !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed) {
+			    && !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed) {
 
 				sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
@@ -808,6 +818,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			}
 
 			break;
+
 		default:
 			break;
 		}
@@ -817,6 +828,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 		return sp->valid;
 	}
+
 	return false;
 }
 
@@ -826,16 +838,18 @@ MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &it
 {
 	setLoiterItemCommonFields(&item, reference_setpoint.frame);
 
-	if(reference_setpoint.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED){
+	if (reference_setpoint.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED) {
 		item.x = reference_setpoint.x;
 		item.y = reference_setpoint.y;
-	} else{
+
+	} else {
 		item.lat = reference_setpoint.lat;
 		item.lon = reference_setpoint.lon;
 	}
+
 	item.altitude = reference_setpoint.alt;
 	item.loiter_radius = reference_setpoint.loiter_direction_counter_clockwise ?
-			      -reference_setpoint.loiter_radius : reference_setpoint.loiter_radius;
+			     -reference_setpoint.loiter_radius : reference_setpoint.loiter_radius;
 	item.yaw = reference_setpoint.yaw;
 }
 
