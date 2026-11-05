@@ -512,3 +512,201 @@ TEST_F(AttitudeControlFeedforwardTest, InvalidFirstSetpointIsRejected)
 	EXPECT_TRUE(_attitude_control.getReferenceAttitude().isAllFinite());
 	EXPECT_NEAR(_attitude_control.update(q_d).norm(), 0.f, 1e-5f);
 }
+
+class AttitudeControlAccelerationLimitTest : public ::testing::Test
+{
+public:
+	AttitudeControlAccelerationLimitTest()
+	{
+		_attitude_control.setProportionalGain(Vector3f(6.5f, 6.5f, 2.8f), 0.4f);
+		_attitude_control.setRateLimit(Vector3f(kRateMax, kRateMax, kRateMax));
+		_attitude_control.setFeedForwardGain(1.f);
+		_attitude_control.setRefModelAccelerationLimit(Vector3f(kAccelMax, kAccelMax, kAccelMax));
+		_attitude_control.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
+	}
+
+	// Propagate toward a constant setpoint and record the peak reference rate and acceleration on one axis
+	// (from consecutive reference attitudes) and the peak reference angle on that axis.
+	void stepSetpoint(const Quatf &q_d, int axis, int steps, float dt = kDt)
+	{
+		max_rate = max_accel = max_angle = 0.f;
+		float rate_prev = 0.f;
+		Quatf q_ref_prev = _attitude_control.getReferenceAttitude();
+
+		for (int i = 0; i < steps; i++) {
+			_attitude_control.setAttitudeSetpoint(q_d, 0.f, dt);
+			const Quatf q_ref = _attitude_control.getReferenceAttitude();
+			const float rate = 2.f * (q_ref_prev.inversed() * q_ref).canonical().imag()(axis) / dt;
+
+			max_rate = math::max(max_rate, fabsf(rate));
+			max_accel = math::max(max_accel, fabsf(rate - rate_prev) / dt);
+			max_angle = math::max(max_angle, fabsf(2.f * q_ref.canonical().imag()(axis)));
+			rate_prev = rate;
+			q_ref_prev = q_ref;
+		}
+	}
+
+	float referenceError(const Quatf &q_d) const
+	{
+		const Vector3f error = 2.f * (_attitude_control.getReferenceAttitude().inversed() * q_d).canonical().imag();
+		return error.norm();
+	}
+
+	AttitudeControl _attitude_control;
+	float max_rate{0.f};
+	float max_accel{0.f};
+	float max_angle{0.f};
+
+	static constexpr float kDt = 0.004f;
+	static constexpr float kRateMax = 2.f;    // rad/s
+	static constexpr float kAccelMax = 5.f;   // rad/s^2
+
+	// The reference brakes along a square root at the full acceleration limit, which its rate loop follows with a small
+	// lag, so it can overshoot by a small fraction of the step (<= 2.2% over MC_REF_W_N 20..50 rad/s,
+	// limits 75..1000 deg/s^2 and steps 5..45 deg).
+	static constexpr float kMaxOvershoot = 0.025f;
+};
+
+TEST_F(AttitudeControlAccelerationLimitTest, LargeStepRespectsLimitsAndConverges)
+{
+	// GIVEN: a large roll step that saturates rate and acceleration, at a high and a low setpoint rate
+	const float step = 1.5f;
+	const Quatf q_d(AxisAnglef(Vector3f(step, 0.f, 0.f)));
+
+	for (const float dt : {kDt, 0.02f}) {
+		_attitude_control.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
+
+		// WHEN: the reference model is propagated until it settled
+		stepSetpoint(q_d, 0, static_cast<int>(4.f / dt), dt);
+
+		// THEN: both limits are reached but not exceeded (up to the numerical noise of the finite differences)
+		EXPECT_LE(max_rate, kRateMax * 1.01f) << "dt " << dt;
+		EXPECT_GT(max_rate, kRateMax * 0.95f) << "dt " << dt;
+		EXPECT_LE(max_accel, kAccelMax * 1.02f) << "dt " << dt;
+		EXPECT_GT(max_accel, kAccelMax * 0.9f) << "dt " << dt;
+
+		// THEN: the reference reached the setpoint without significant overshoot and no rate is fed forward anymore
+		EXPECT_LE(max_angle, step * (1.f + kMaxOvershoot)) << "dt " << dt;
+		EXPECT_NEAR(referenceError(q_d), 0.f, 1e-3f) << "dt " << dt;
+		EXPECT_NEAR(_attitude_control.update(_attitude_control.getReferenceAttitude()).norm(), 0.f, 1e-3f) << "dt " << dt;
+	}
+}
+
+TEST_F(AttitudeControlAccelerationLimitTest, TightLimitOvershootStaysSmall)
+{
+	// GIVEN: the default reference bandwidth with a limit far below what its linear response would need
+	// (a 45 deg step peaks at 50^2 * 0.79 ~ 2000 rad/s^2), at a typical rate limit
+	const float accel_max = math::radians(75.f);
+	const float rate_max = math::radians(220.f);
+	_attitude_control.setRefModelAccelerationLimit(Vector3f(accel_max, accel_max, accel_max));
+	_attitude_control.setRateLimit(Vector3f(rate_max, rate_max, rate_max));
+
+	for (const float step_deg : {5.f, 20.f, 45.f}) {
+		_attitude_control.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
+		const float step = math::radians(step_deg);
+		const Quatf q_d(AxisAnglef(Vector3f(step, 0.f, 0.f)));
+
+		// WHEN: the reference model is propagated until it settled
+		stepSetpoint(q_d, 0, 1000);
+
+		// THEN: the limit holds, the overshoot stays small and the reference converged
+		EXPECT_LE(max_accel, accel_max * 1.02f) << "step " << step_deg;
+		EXPECT_LE(max_angle, step * (1.f + kMaxOvershoot)) << "step " << step_deg;
+		EXPECT_NEAR(referenceError(q_d), 0.f, 1e-3f) << "step " << step_deg;
+	}
+}
+
+TEST_F(AttitudeControlAccelerationLimitTest, LongSetpointGapConvergesToSetpoint)
+{
+	// GIVEN: a roll step arriving after a long gap, e.g. the first attitude setpoint after flying a mode without
+	// attitude setpoints, also longer than the substeps cover at their nominal length
+	const float step = 0.3f;
+	const Quatf q_d(AxisAnglef(Vector3f(step, 0.f, 0.f)));
+
+	for (const float gap : {0.6f, 30.f, 600.f}) {
+		_attitude_control.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
+		_attitude_control.setAttitudeSetpoint(q_d, 0.f, gap);
+
+		// THEN: the reference converged onto the setpoint and came to rest
+		EXPECT_NEAR(referenceError(q_d), 0.f, 0.01f * step) << "gap " << gap;
+		EXPECT_NEAR(_attitude_control.update(_attitude_control.getReferenceAttitude()).norm(), 0.f, 1e-3f) << "gap " << gap;
+
+		// WHEN: the setpoint stream resumes at the nominal rate
+		stepSetpoint(q_d, 0, 250);
+
+		// THEN: the reference only closes the small residual and stays on the setpoint
+		EXPECT_LE(max_angle, step * 1.005f) << "gap " << gap;
+		EXPECT_LT(max_rate, 0.05f * kRateMax) << "gap " << gap;
+		EXPECT_NEAR(referenceError(q_d), 0.f, 1e-3f) << "gap " << gap;
+	}
+}
+
+TEST_F(AttitudeControlAccelerationLimitTest, WithinLimitsMatchesLinearModel)
+{
+	// GIVEN: a linear reference model, and one with roll and pitch limited and yaw unlimited
+	AttitudeControl linear;
+	linear.setRateLimit(Vector3f(kRateMax, kRateMax, kRateMax));
+	linear.setRefModelFrequency(10.f);
+	linear.setAttitudeSetpoint(Quatf(), 0.f, -1.f);
+	_attitude_control.setRefModelFrequency(10.f);
+	_attitude_control.setRefModelAccelerationLimit(Vector3f(kAccelMax, kAccelMax, 0.f));
+
+	// WHEN: a step that the linear model closes below the roll and pitch limits (peak 10^2 * 0.04 = 4 rad/s^2), and
+	// beyond the limit on the unlimited yaw axis, is applied to both
+	const Quatf q_d(AxisAnglef(Vector3f(0.04f, -0.03f, 0.3f)));
+
+	for (int i = 0; i < 250; i++) {
+		linear.setAttitudeSetpoint(q_d, 0.f, kDt);
+		_attitude_control.setAttitudeSetpoint(q_d, 0.f, kDt);
+
+		// THEN: both evolve identically
+		const Vector3f diff = 2.f * (linear.getReferenceAttitude().inversed() *
+					     _attitude_control.getReferenceAttitude()).canonical().imag();
+		EXPECT_NEAR(diff.norm(), 0.f, 1e-5f);
+	}
+}
+
+TEST_F(AttitudeControlAccelerationLimitTest, CommandedYawRateRespectsAccelerationLimit)
+{
+	// GIVEN: a yaw rate command that starts and ends abruptly, for a vehicle tracking its rate setpoint perfectly.
+	// As StickYaw does, the setpoint heading follows the vehicle while the rate is commanded and is locked where the
+	// vehicle is once the command ended.
+	const float commanded = 1.5f;
+	const int command_steps = static_cast<int>(1.f / kDt);
+	float vehicle_yaw = 0.f;
+	float locked_yaw = 0.f;
+	float rate_prev = 0.f;
+	float max_overshoot = 0.f;
+	Vector3f rate_setpoint{};
+
+	for (int i = 0; i < static_cast<int>(3.f / kDt); i++) {
+		const bool commanding = i < command_steps;
+
+		if (i <= command_steps) {
+			locked_yaw = vehicle_yaw;
+		}
+
+		_attitude_control.setAttitudeSetpoint(Quatf(Eulerf(0.f, 0.f, locked_yaw)), commanding ? commanded : 0.f, kDt);
+		rate_setpoint = _attitude_control.update(Quatf(Eulerf(0.f, 0.f, vehicle_yaw)));
+		vehicle_yaw = wrap_pi(vehicle_yaw + rate_setpoint(2) * kDt);
+
+		max_rate = math::max(max_rate, fabsf(rate_setpoint(2)));
+		max_accel = math::max(max_accel, fabsf(rate_setpoint(2) - rate_prev) / kDt);
+		rate_prev = rate_setpoint(2);
+
+		if (!commanding) {
+			max_overshoot = math::max(max_overshoot, wrap_pi(vehicle_yaw - locked_yaw));
+		}
+	}
+
+	// THEN: the yaw rate ramped up to the command and back down within the acceleration limit
+	EXPECT_NEAR(max_rate, commanded, 1e-3f);
+	EXPECT_LE(max_accel, kAccelMax * 1.01f);
+	EXPECT_GT(max_accel, kAccelMax * 0.95f);
+
+	// THEN: the vehicle turned past the locked heading by about the braking distance of the limit, came back to it and
+	// rests there
+	EXPECT_LT(max_overshoot, commanded * commanded / (2.f * kAccelMax) * 1.1f);
+	EXPECT_NEAR(wrap_pi(vehicle_yaw - locked_yaw), 0.f, 1e-3f);
+	EXPECT_NEAR(rate_setpoint.norm(), 0.f, 1e-3f);
+}
