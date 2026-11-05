@@ -199,7 +199,8 @@ private:
 
 	/* State (previous setpoints) */
 	Trajectory _state{};
-	int _direction{0};
+	int _direction{0}; ///< Jerk sign of the T1 phase
+	int _direction_T3{0}; ///< Jerk sign of the T3 phase
 
 	/* Initial conditions */
 	Trajectory _state_init{};
