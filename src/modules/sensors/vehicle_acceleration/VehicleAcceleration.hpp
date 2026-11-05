@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <SensorMedian.hpp>
 #include <lib/sensor_calibration/Accelerometer.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
@@ -88,6 +89,9 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_accel)};
 
 	calibration::Accelerometer _calibration{};
+
+	SensorMedian<sensor_accel_s, calibration::Accelerometer> _median{ORB_ID::sensor_accel};
+	bool _imu_median{false};
 
 	matrix::Vector3f _bias{};
 

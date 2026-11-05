@@ -190,5 +190,6 @@ parameters:
       values:
         0: Disabled
         1: Publish primary IMU selection
+        2: Publish primary IMU selection, fly on the median of all IMUs
       default: 1
       reboot_required: true

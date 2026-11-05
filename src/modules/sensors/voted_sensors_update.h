@@ -41,6 +41,7 @@
 
 #include "data_validator/DataValidator.hpp"
 #include "data_validator/DataValidatorGroup.hpp"
+#include "SensorMedian.hpp"
 
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module_params.h>
@@ -197,7 +198,7 @@ private:
 	bool _parameter_update{false};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+		(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
 
