@@ -46,12 +46,14 @@ RoverDifferential::RoverDifferential() :
 
 bool RoverDifferential::init()
 {
+	// Register top-down: controllers sharing a trigger topic run in registration order,
+	// so the position controller's setpoint reaches the speed controller in the same cycle.
 	if (!_vehicle_angular_velocity_sub.registerCallback()
-	    || !_differential_act_control.init()
-	    || !_differential_rate_control.init()
-	    || !_differential_att_control.init()
+	    || !_differential_pos_control.init()
 	    || !_differential_speed_control.init()
-	    || !_differential_pos_control.init()) {
+	    || !_differential_att_control.init()
+	    || !_differential_rate_control.init()
+	    || !_differential_act_control.init()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}

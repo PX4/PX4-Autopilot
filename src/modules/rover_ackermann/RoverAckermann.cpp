@@ -46,12 +46,14 @@ RoverAckermann::RoverAckermann() :
 
 bool RoverAckermann::init()
 {
+	// Register top-down: controllers sharing a trigger topic run in registration order,
+	// so the position controller's setpoint reaches the speed controller in the same cycle.
 	if (!_vehicle_angular_velocity_sub.registerCallback()
-	    || !_ackermann_act_control.init()
-	    || !_ackermann_rate_control.init()
-	    || !_ackermann_att_control.init()
+	    || !_ackermann_pos_control.init()
 	    || !_ackermann_speed_control.init()
-	    || !_ackermann_pos_control.init()) {
+	    || !_ackermann_att_control.init()
+	    || !_ackermann_rate_control.init()
+	    || !_ackermann_act_control.init()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}

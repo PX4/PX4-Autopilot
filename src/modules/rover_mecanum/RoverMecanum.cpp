@@ -46,12 +46,14 @@ RoverMecanum::RoverMecanum() :
 
 bool RoverMecanum::init()
 {
+	// Register top-down: controllers sharing a trigger topic run in registration order,
+	// so the position controller's setpoint reaches the speed controller in the same cycle.
 	if (!_vehicle_angular_velocity_sub.registerCallback()
-	    || !_mecanum_act_control.init()
-	    || !_mecanum_rate_control.init()
-	    || !_mecanum_att_control.init()
+	    || !_mecanum_pos_control.init()
 	    || !_mecanum_speed_control.init()
-	    || !_mecanum_pos_control.init()) {
+	    || !_mecanum_att_control.init()
+	    || !_mecanum_rate_control.init()
+	    || !_mecanum_act_control.init()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
