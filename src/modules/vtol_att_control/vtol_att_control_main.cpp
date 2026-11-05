@@ -96,6 +96,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 VtolAttitudeControl::~VtolAttitudeControl()
 {
+	delete _vtol_type;
 	perf_free(_loop_perf);
 }
 
@@ -239,7 +240,13 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 			return;
 		}
 
-		_vtol_vehicle_status.fixed_wing_system_failure = true;
+		// Commanded by the user, not a detected failure: only switch to multicopter
+		if (reason == QuadchuteReason::ExternalCommand) {
+			_external_quadchute = true;
+
+		} else {
+			_vtol_vehicle_status.fixed_wing_system_failure = true;
+		}
 	}
 }
 
@@ -413,6 +420,9 @@ VtolAttitudeControl::Run()
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
+
+		// a commanded quad-chute only forces the switch, the multicopter transition command then keeps it
+		_external_quadchute = false;
 
 		// check in which mode we are in and call mode specific functions
 		switch (_vtol_type->get_mode()) {

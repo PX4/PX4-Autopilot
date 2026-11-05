@@ -71,7 +71,7 @@ void Standard::update_vtol_state()
 
 	float mc_weight = _mc_roll_weight;
 
-	if (_vtol_vehicle_status->fixed_wing_system_failure) {
+	if (_vtol_vehicle_status->fixed_wing_system_failure || _attc->get_external_quadchute()) {
 		// Failsafe event, engage mc motors immediately
 		_vtol_mode = vtol_mode::MC_MODE;
 		_pusher_throttle = 0.0f;
