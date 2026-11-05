@@ -65,9 +65,6 @@ public:
 	~DifferentialActControl() = default;
 
 	/**
-	 * @brief Generate and publish actuatorMotors setpoints from roverThrottleSetpoint/surfaceVehicleSteeringSetpoint.
-	 */
-	/**
 	 * @brief Register the callback on the topic that triggers the controller.
 	 */
 	bool init();
@@ -77,6 +74,9 @@ public:
 	 */
 	void setEnabled(bool enabled) { _enabled = enabled; }
 
+	/**
+	 * @brief Generate and publish actuatorMotors setpoints from roverThrottleSetpoint/surfaceVehicleSteeringSetpoint.
+	 */
 	void updateActControl();
 
 	/**

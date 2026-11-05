@@ -67,9 +67,6 @@ public:
 	~MecanumRateControl() = default;
 
 	/**
-	 * @brief Generate and publish surfaceVehicleSteeringSetpoint from surfaceVehicleRateSetpoint.
-	 */
-	/**
 	 * @brief Register the callback on the topic that triggers the controller.
 	 */
 	bool init();
@@ -79,6 +76,9 @@ public:
 	 */
 	void setEnabled(bool enabled) { _enabled = enabled; }
 
+	/**
+	 * @brief Generate and publish surfaceVehicleSteeringSetpoint from surfaceVehicleRateSetpoint.
+	 */
 	void updateRateControl();
 
 	/**

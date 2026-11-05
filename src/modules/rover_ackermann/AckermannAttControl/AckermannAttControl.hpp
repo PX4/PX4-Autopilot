@@ -68,9 +68,6 @@ public:
 	~AckermannAttControl() = default;
 
 	/**
-	 * @brief Generate and publish surfaceVehicleRateSetpoint from surfaceVehicleAttitudeSetpoint.
-	 */
-	/**
 	 * @brief Register the callback on the topic that triggers the controller.
 	 */
 	bool init();
@@ -80,6 +77,9 @@ public:
 	 */
 	void setEnabled(bool enabled) { _enabled = enabled; }
 
+	/**
+	 * @brief Generate and publish surfaceVehicleRateSetpoint from surfaceVehicleAttitudeSetpoint.
+	 */
 	void updateAttControl();
 
 	/**

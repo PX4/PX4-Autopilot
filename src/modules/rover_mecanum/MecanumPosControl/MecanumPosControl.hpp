@@ -72,9 +72,6 @@ public:
 	~MecanumPosControl() = default;
 
 	/**
-	 * @brief Generate and publish surfaceVehicleSpeedSetpoint and surfaceVehicleAttitudeSetpoint from surfaceVehiclePositionSetpoint or surfaceVehicleCourseSetpoint.
-	 */
-	/**
 	 * @brief Register the callback on the topic that triggers the controller.
 	 */
 	bool init();
@@ -84,6 +81,9 @@ public:
 	 */
 	void setEnabled(bool enabled) { _enabled = enabled; }
 
+	/**
+	 * @brief Generate and publish surfaceVehicleSpeedSetpoint and surfaceVehicleAttitudeSetpoint from surfaceVehiclePositionSetpoint or surfaceVehicleCourseSetpoint.
+	 */
 	void updatePosControl();
 
 	/**

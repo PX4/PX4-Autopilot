@@ -71,9 +71,6 @@ public:
 	~AckermannSpeedControl() = default;
 
 	/**
-	 * @brief Generate and publish RoverThrottleSetpoint from surfaceVehicleSpeedSetpoint.
-	 */
-	/**
 	 * @brief Register the callback on the topic that triggers the controller.
 	 */
 	bool init();
@@ -83,6 +80,9 @@ public:
 	 */
 	void setEnabled(bool enabled) { _enabled = enabled; }
 
+	/**
+	 * @brief Generate and publish RoverThrottleSetpoint from surfaceVehicleSpeedSetpoint.
+	 */
 	void updateSpeedControl();
 
 	/**
