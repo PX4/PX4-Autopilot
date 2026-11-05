@@ -79,7 +79,14 @@ public:
 	/**
 	 * @brief Run the controller on its trigger topic only while enabled.
 	 */
-	void setEnabled(bool enabled) { _enabled = enabled; }
+	void setEnabled(bool enabled)
+	{
+		if (enabled && !_enabled) {
+			_timestamp = hrt_absolute_time(); // The first dt after (re-)enabling must not span the time spent disabled
+		}
+
+		_enabled = enabled;
+	}
 
 	/**
 	 * @brief Generate and publish RoverThrottleSetpoint from surfaceVehicleSpeedSetpoint.
