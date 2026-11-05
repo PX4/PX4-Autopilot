@@ -1,5 +1,12 @@
-set(BOARD_DEFCONFIG ${PX4_CONFIG_FILE} CACHE FILEPATH "path to defconfig" FORCE)
-set(BOARD_CONFIG ${PX4_BINARY_DIR}/boardconfig CACHE FILEPATH "path to config" FORCE)
+# The board configuration of a subproject is kept in normal variables, out of
+# the CMake cache of the parent project.
+if(PX4_SUBPROJECT)
+	set(BOARD_DEFCONFIG ${PX4_CONFIG_FILE})
+	set(BOARD_CONFIG ${PX4_BINARY_DIR}/boardconfig)
+else()
+	set(BOARD_DEFCONFIG ${PX4_CONFIG_FILE} CACHE FILEPATH "path to defconfig" FORCE)
+	set(BOARD_CONFIG ${PX4_BINARY_DIR}/boardconfig CACHE FILEPATH "path to config" FORCE)
+endif()
 
 execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import menuconfig" RESULT_VARIABLE ret)
 if(ret EQUAL "1")
@@ -127,14 +134,22 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			string(REPLACE "\"" "" Value ${Value})
 
 			# Set the variable
-			set(${Name} ${Value} CACHE INTERNAL "BOARD DEFCONFIG: ${Name}" FORCE)
+			if(PX4_SUBPROJECT)
+				set(${Name} "${Value}")
+			else()
+				set(${Name} ${Value} CACHE INTERNAL "BOARD DEFCONFIG: ${Name}" FORCE)
+			endif()
 
 		else()
 			# Find boolean not set
 			string(REGEX MATCH " (CONFIG[^ ]+) is not set" Name ${NameAndValue})
 
 			if(${CMAKE_MATCH_1})
-				set(${CMAKE_MATCH_1} "" CACHE INTERNAL "BOARD DEFCONFIG: ${CMAKE_MATCH_1}" FORCE)
+				if(PX4_SUBPROJECT)
+					set(${CMAKE_MATCH_1} "")
+				else()
+					set(${CMAKE_MATCH_1} "" CACHE INTERNAL "BOARD DEFCONFIG: ${CMAKE_MATCH_1}" FORCE)
+				endif()
 			endif()
 		endif()
 
@@ -287,7 +302,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if(PLATFORM)
 		# set OS, and append specific platform module path
 		set(PX4_PLATFORM ${PLATFORM} CACHE STRING "PX4 board OS" FORCE)
-		list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
+		set(CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake ${CMAKE_MODULE_PATH})
 
 		# platform-specific include path
 		include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include)
@@ -373,10 +388,6 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	# ROMFS
 	if(ROMFSROOT)
 		set(config_romfs_root ${ROMFSROOT} CACHE INTERNAL "ROMFS root" FORCE)
-
-		if(UAVCAN_PERIPHERALS)
-			set(config_uavcan_peripheral_firmware ${UAVCAN_PERIPHERALS} CACHE INTERNAL "UAVCAN peripheral firmware" FORCE)
-		endif()
 	endif()
 
 	# ADDITIONAL INIT

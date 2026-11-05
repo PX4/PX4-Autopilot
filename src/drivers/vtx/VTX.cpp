@@ -324,7 +324,7 @@ void VTX::handle_uorb()
 	strncpy((char *)msg.power_label, vtxtable().power_label(msg.power_level), sizeof(msg.power_label));
 
 	// Workarounds for specific devices
-	if (_device == vtx_s::DEVICE_PEAK_THOR_T67) {
+	if (_device == vtx_s::DEVICE_PEAK_THOR) {
 		// This device always reports pit mode, but still works fine
 		msg.frequency = vtxtable().frequency(_band, _channel);
 		msg.mode = _pit_mode ? vtx_s::MODE_PIT : vtx_s::MODE_NORMAL;

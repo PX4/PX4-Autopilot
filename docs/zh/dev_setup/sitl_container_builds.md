@@ -140,7 +140,7 @@ GIT_COMMON_DIR=$(git rev-parse --path-format=absolute --git-common-dir)
 docker run --rm -it \
   -v "$SOURCE:$SOURCE" -v "$GIT_COMMON_DIR:$GIT_COMMON_DIR" -w "$SOURCE" \
   -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory \
-  -e "GIT_CONFIG_VALUE_0=$SOURCE" px4-dev-ros2:local bash
+  -e "GIT_CONFIG_VALUE_0=*" px4-dev-ros2:local bash
 ```
 
 The same absolute mounts support both ordinary checkouts and git worktrees.
@@ -195,6 +195,24 @@ Both ROS development images and the CI toolchain reuse `Tools/setup/ubuntu.sh --
 Already installed Ubuntu/ROS Python versions are constrained during installation instead of gratuitously upgrading the ROS stack.
 The SIH image does not acquire Gazebo or the NuttX toolchain.
 Installing the complete source-build toolset increases cold image-build time and size; existing native architecture and incremental cache boundaries remain in use.
+
+## Testing A PX4 Checkout With ROS and Gazebo
+
+The `ghcr.io/px4/px4-dev-ros2-gazebo` image extends `ghcr.io/px4/px4-dev-ros2` by calling `Tools/setup/ubuntu.sh --no-nuttx` and therefore installing Gz Harmonic.
+This allows to test PX4 changes in Gazebo.
+To build the image locally and the start the container to build PX4, run
+
+```sh
+bash Tools/packaging/containers/prepare_context.sh
+ROS_DISTRO=jazzy docker buildx bake -f Tools/packaging/containers/docker-bake.hcl ros2-gazebo-dev \
+  --set ros2-gazebo-dev.tags=px4-dev-ros2-gazebo:local --load
+SOURCE=$(pwd -P)
+GIT_COMMON_DIR=$(git rev-parse --path-format=absolute --git-common-dir)
+docker run --rm -it \
+  -v "$SOURCE:$SOURCE" -v "$GIT_COMMON_DIR:$GIT_COMMON_DIR" -w "$SOURCE" \
+  -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory \
+  -e "GIT_CONFIG_VALUE_0=*" px4-dev-ros2-gazebo:local bash
+```
 
 ## Container SBOMs
 

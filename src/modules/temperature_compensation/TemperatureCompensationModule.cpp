@@ -134,7 +134,7 @@ void TemperatureCompensationModule::parameters_update()
 				_corrections.baro_device_ids[uorb_index] = 0;
 
 			} else {
-				_corrections.baro_device_ids[uorb_index] = temp;
+				_corrections.baro_device_ids[uorb_index] = report.device_id;
 			}
 		}
 	}
@@ -224,7 +224,7 @@ void TemperatureCompensationModule::magPoll()
 				// Use primary baro instance if mag temperature was NAN.
 				sensor_baro_s sensor_baro;
 
-				if (_accel_subs[0].update(&sensor_baro)) {
+				if (_baro_subs[0].update(&sensor_baro)) {
 					_corrections.mag_temperature[uorb_index] = sensor_baro.temperature;
 					_corrections_changed = true;
 				}

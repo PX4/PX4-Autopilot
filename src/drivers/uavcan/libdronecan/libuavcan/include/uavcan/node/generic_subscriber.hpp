@@ -110,6 +110,14 @@ protected:
     void stop(TransferListener* listener);
 
     /**
+     * Type-independent part of handleIncomingTransfer(): sets up the bit stream and the codec,
+     * invokes the per-type decode function on the type-erased target structure and releases the
+     * transfer. Returns true if decoding succeeded, false otherwise (after failure accounting).
+     */
+    bool decodeTransfer(IncomingTransfer& transfer, void* rx_struct,
+                        int (*decode_fn)(void* rx_struct, ScalarCodec& codec));
+
+    /**
      * Type-specific handler for a fully received transfer (message decoding followed by dispatch
      * to the user callback). It is implemented by the templated GenericSubscriber and invoked
      * through TransferForwarder, which keeps this (relatively large) logic the only per-data-type
@@ -228,6 +236,8 @@ class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberOnListener<Trans
 
     void handleIncomingTransfer(IncomingTransfer& transfer) override;
 
+    static int decodeForwarder(void* rx_struct, ScalarCodec& codec);
+
     int genericStart(bool (Dispatcher::*registration_method)(TransferListener*))
     {
         return BaseType::checkInitAndStart(DataTypeKind(DataSpec::DataTypeKind),
@@ -280,34 +290,22 @@ protected:
  * GenericSubscriber
  */
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
+int GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::decodeForwarder(void* rx_struct,
+                                                                                   ScalarCodec& codec)
+{
+    return DataStruct::decode(*static_cast<ReceivedDataStructureSpec*>(rx_struct), codec);
+}
+
+template <typename DataSpec, typename DataStruct, typename TransferListenerType>
 void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomingTransfer(IncomingTransfer& transfer)
 {
+    // Decoding into the temporary storage, then invoking the callback
     ReceivedDataStructureSpec rx_struct(&transfer);
 
-    /*
-     * Decoding into the temporary storage
-     */
-    BitStream bitstream(transfer);
-    ScalarCodec codec(bitstream);
-
-    const int decode_res = DataStruct::decode(rx_struct, codec);
-
-    // We don't need the data anymore, the memory can be reused from the callback:
-    transfer.release();
-
-    if (decode_res <= 0)
+    if (this->decodeTransfer(transfer, &rx_struct, &decodeForwarder))
     {
-        UAVCAN_TRACE("GenericSubscriber", "Unable to decode the message [%i] [%s]",
-                     decode_res, DataSpec::getDataTypeFullName());
-        this->failure_count_++;
-        this->node_.getDispatcher().getTransferPerfCounter().addError();
-        return;
+        this->handleReceivedDataStruct(rx_struct);
     }
-
-    /*
-     * Invoking the callback
-     */
-    this->handleReceivedDataStruct(rx_struct);
 }
 
 

@@ -65,7 +65,7 @@ The following requirements must be met to arm in this mode, or to switch to this
 
 ## Параметри
 
-Параметри RTL перелічені в [Референсі параметрів > Режим повернення](../advanced_config/parameter_reference.md#return-mode).
+The Return parameters are listed in [Parameter Reference > Return Mode](../advanced_config/parameter_reference.md#return-mode).
 Якщо використовується місійна посадка, значення [RTL_RETURN_ALT](#RTL_RETURN_ALT) та [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) є важливими.
 Інші параметри стають актуальними, якщо призначенням є точка збору або домашня локація.
 

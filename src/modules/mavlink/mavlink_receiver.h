@@ -56,9 +56,13 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+#include <lib/open_drone_id/odid_bid_storage.hpp>
+#endif
 #include <lib/systemlib/mavlink_log.h>
 
 #include <lib/failure_injection/FailureInjection.hpp>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -103,7 +107,7 @@
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -159,7 +163,7 @@ public:
 	void start();
 	void stop();
 
-	bool component_was_seen(int system_id, int component_id);
+	bool component_was_seen(uint32_t system_id, int component_id);
 	void enable_message_statistics() { _message_statistics_enabled = true; }
 	void print_detailed_rx_stats() const;
 
@@ -169,7 +173,7 @@ private:
 	static void *start_trampoline(void *context);
 	void run();
 
-	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
+	void acknowledge(uint32_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
 
 	/**
 	 * Common method to handle both mavlink command types, operating on the
@@ -273,7 +277,7 @@ private:
 	int set_message_interval(int msgId, float interval, float param3, float param4, float param7);
 	void get_message_interval(int msgId);
 
-	bool evaluate_target_ok(int command, int target_system, int target_component);
+	bool evaluate_target_ok(int command, uint32_t target_system, int target_component);
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
 
@@ -282,7 +286,25 @@ private:
 	void schedule_tune(const char *tune);
 
 	void update_message_statistics(const mavlink_message_t &message);
-	void update_rx_stats(const mavlink_message_t &message);
+	/**
+	 * @param add_component false to only update components which were already seen
+	 */
+	void update_rx_stats(const mavlink_message_t &message, bool add_component);
+
+	enum class FrameCheck {
+		Incomplete,   ///< no complete frame yet
+		Ok,           ///< valid, handle and forward
+		ForwardOnly,  ///< not in our dialect, can't be handled but can be forwarded
+		BadSignature, ///< signature missing or not valid with our key, drop
+		Invalid,      ///< bad CRC, drop
+	};
+
+	FrameCheck check_frame(uint8_t framing, const mavlink_message_t &message);
+
+	/**
+	 * Reset the parser after a rejected frame, same as mavlink_parse_char() does.
+	 */
+	void reset_parser_after_rejected_frame(uint8_t c);
 
 	void publish_hil_battery();
 	void publish_rtcm_corrections(const uint8_t *data, size_t len);
@@ -311,12 +333,14 @@ private:
 	struct ComponentState {
 		uint32_t received_messages{0};
 		uint32_t missed_messages{0};
-		uint8_t system_id{0};
+		uint32_t system_id{0};
 		uint8_t component_id{0};
 		uint8_t last_sequence{0};
 	};
 	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
-	unsigned _component_states_count{0};
+	// Written only by the receive thread, after the slot is filled in. Other threads
+	// read it via component_was_seen(), so entries below it are safe to read.
+	px4::atomic<unsigned> _component_states_count{0};
 	bool _warned_component_states_full_once{false};
 
 	bool _message_statistics_enabled {false};
@@ -326,7 +350,7 @@ private:
 		float avg_rate_hz{0.f}; // average rate
 		uint32_t last_time_received_ms{0};
 		uint16_t msg_id{0};
-		uint8_t system_id{0};
+		uint32_t system_id{0};
 		uint8_t component_id{0};
 	};
 	ReceivedMessageStats *_received_msg_stats{nullptr};
@@ -334,6 +358,8 @@ private:
 
 	uint64_t _total_received_counter{0};                            ///< The total number of successfully received messages
 	uint64_t _total_lost_counter{0};                                ///< Total messages lost during transmission.
+	uint32_t _unknown_message_counter{0};                           ///< Messages not in our dialect
+	uint32_t _bad_signature_counter{0};                             ///< Messages with missing or invalid signature
 
 	uint8_t _mavlink_status_last_buffer_overrun{0};
 	uint8_t _mavlink_status_last_parse_error{0};
@@ -412,7 +438,7 @@ private:
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
-	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_s>			_sensor_gnss_pub{ORB_ID(sensor_gnss)};
 	uORB::PublicationMulti<sensor_optical_flow_s>           _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 	gnss::GpsRtcmMessageAssembler				_gps_rtcm_message_assembler {};
 
@@ -476,6 +502,9 @@ private:
 	hrt_abstime _heartbeat_component_uart_bridge{0};
 
 	DEFINE_PARAMETERS(
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+		(ParamInt<px4::params::ODID_BID_SRC>)      _param_odid_bid_src,
+#endif
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
@@ -483,6 +512,11 @@ private:
 		(ParamFloat<px4::params::BAT1_V_CHARGED>)   _param_bat_v_charged,
 		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty
 	);
+
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+	open_drone_id::BidLock _odid_bid_lock {};
+	bool _odid_bid_lock_warning_reported{false};
+#endif
 
 	// Disallow copy construction and move assignment.
 	MavlinkReceiver(const MavlinkReceiver &) = delete;

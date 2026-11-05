@@ -189,6 +189,7 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra target)
 	endif()
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
+		BYPRODUCTS ${nuttx_${nuttx_lib}_byproducts}
 		COMMAND make -C ${nuttx_lib_dir} --no-print-directory --silent ${nuttx_lib_target} TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRAFLAGS=${extra} ${bindir_arg}
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		DEPENDS
@@ -227,6 +228,11 @@ if (NOT CONFIG_BUILD_FLAT)
 	add_dependencies(nuttx_proxies_build nuttx_stubs_build) # can't build these in parallel
 	add_nuttx_dir(stubs syscall y -D__KERNEL__ stubs)
 else()
+	if(CONFIG_ARCH_RISCV)
+		# The arch make also builds the RISC-V startup code, as a head object
+		# next to libarch; platforms/nuttx/CMakeLists.txt links it.
+		set(nuttx_arch_byproducts ${NUTTX_DIR}/arch/risc-v/src/${CONFIG_ARCH_CHIP}_head.o)
+	endif()
 	add_nuttx_dir(arch arch/${CONFIG_ARCH}/src y -D__KERNEL__ all)
 	add_nuttx_dir(c libs/libc n "" all)
 	add_nuttx_dir(mm mm n "" mm)

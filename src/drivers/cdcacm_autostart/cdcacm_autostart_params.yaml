@@ -29,7 +29,7 @@ parameters:
         9: extvisionmin
         10: gimbal
         11: onboard_low_bandwidth
-        12: uavionix
+        12: ADS-B/Traffic (uAvionix)
         13: Low Bandwidth
       default: 2
       reboot_required: true

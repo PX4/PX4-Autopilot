@@ -35,7 +35,8 @@ import px4bench
 from px4bench.params import (READ_TIMEOUT_S, SET_ECHO_TIMEOUT_S,
                              drain_param_values, param_float_to_int32,
                              param_id_str, param_is_saved, read_param,
-                             read_until, set_param_int32, wait_param_echo)
+                             read_until, recv_param_value, set_param_int32,
+                             wait_param_echo)
 
 COMMIT_TIMEOUT_S = 8.0
 
@@ -80,7 +81,7 @@ def phase_full_download(report, mav):
                             advertised if advertised is not None else '?'))
             break
 
-        m = mav.recv_match(type='PARAM_VALUE', blocking=True, timeout=1.0)
+        m = recv_param_value(mav, 1.0)
         if m is None:
             continue
 
@@ -111,7 +112,7 @@ def phase_full_download(report, mav):
                 mav.target_system, mav.target_component, b'', idx)
             deadline = time.monotonic() + 2.0
             while time.monotonic() < deadline:
-                m = mav.recv_match(type='PARAM_VALUE', blocking=True, timeout=0.5)
+                m = recv_param_value(mav, 0.5)
                 if m is None:
                     continue
                 r_idx = m.param_index
@@ -206,7 +207,7 @@ def phase_persistence(report, mav, param, conn_str, baud, original_value):
     #    wrong value means save did not persist the marker; retry once, then
     #    fail without rebooting on an unsaved marker.
     shell = px4bench.MavlinkShell(mav)
-    if not shell.open(timeout=5):
+    if not shell.open():
         report.fail('persistence_shell', 'could not open nsh shell for param save')
         return mav
     try:
@@ -302,8 +303,11 @@ def main():
         # Guard: a typo must not silently thrash the wrong (or no) param.
         if args.param not in by_name:
             report.fail('param_exists',
-                        '{} not found in downloaded set; aborting before any set'.format(
-                            args.param))
+                        '{} not in the {} downloaded params (the autopilot lists '
+                        'used params only; a booted board reports hundreds, so a '
+                        'tiny set means a degraded param session, not a missing '
+                        'param); aborting before any set'.format(
+                            args.param, len(by_name)))
             sys.exit(report.finish())
 
         original_value, _ = read_param(mav, args.param, READ_TIMEOUT_S)

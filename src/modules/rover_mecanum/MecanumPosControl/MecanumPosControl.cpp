@@ -37,9 +37,9 @@ using namespace time_literals;
 
 MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent)
 {
-	_rover_speed_setpoint_pub.advertise();
+	_surface_vehicle_speed_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();
-	_rover_attitude_setpoint_pub.advertise();
+	_surface_vehicle_attitude_setpoint_pub.advertise();
 
 	updateParams();
 }
@@ -55,48 +55,55 @@ void MecanumPosControl::updatePosControl()
 
 	hrt_abstime timestamp = hrt_absolute_time();
 
-	if (_target_waypoint_ned.isAllFinite()) {
+	// Course control: like the fixed wing course hold, only the course over ground is controlled, there is no desired track to return to after a sideways offset
+	const bool course_control = PX4_ISFINITE(_course);
 
-		float distance_to_target = (_target_waypoint_ned - _curr_pos_ned).norm();
+	if (course_control || _target_waypoint_ned.isAllFinite()) {
+		float distance_to_target = course_control ? 0.f : (_target_waypoint_ned - _curr_pos_ned).norm();
 
 		if (_arrival_speed > FLT_EPSILON) {
 			distance_to_target -=
 				_param_nav_acc_rad.get(); // shift target to the edge of the acceptance radius if arrival speed not zero
 		}
 
-		if (distance_to_target > _param_nav_acc_rad.get() || _arrival_speed > FLT_EPSILON) {
+		if (course_control || distance_to_target > _param_nav_acc_rad.get() || _arrival_speed > FLT_EPSILON) {
 
 			float speed_setpoint{_cruising_speed};
 
-			if (_param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
+			if (!course_control && _param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
 				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
 							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
 
-			pure_pursuit_status_s pure_pursuit_status{};
-			pure_pursuit_status.timestamp = timestamp;
+			// The speed controller tracks the ground velocity in body frame, so a velocity along the course setpoint needs no drift angle correction
+			float bearing_setpoint{_course};
 
-			const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-						       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _target_waypoint_ned, _start_ned,
-						       _curr_pos_ned, fabsf(speed_setpoint));
-			_pure_pursuit_status_pub.publish(pure_pursuit_status);
+			if (!course_control) {
+				pure_pursuit_status_s pure_pursuit_status{};
+				pure_pursuit_status.timestamp = timestamp;
+
+				bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+						   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _target_waypoint_ned, _start_ned,
+						   _curr_pos_ned, fabsf(speed_setpoint));
+				_pure_pursuit_status_pub.publish(pure_pursuit_status);
+			}
 
 			const Vector3f velocity_in_local_frame(speed_setpoint * cosf(bearing_setpoint),
 							       speed_setpoint * sinf(bearing_setpoint), 0.f);
 			const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
 
-			rover_speed_setpoint_s rover_speed_setpoint{};
-			rover_speed_setpoint.timestamp = timestamp;
-			rover_speed_setpoint.speed_body_x = velocity_in_body_frame(0);
-			rover_speed_setpoint.speed_body_y = velocity_in_body_frame(1);
-			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
+			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
+			surface_vehicle_speed_setpoint.timestamp = timestamp;
+			surface_vehicle_speed_setpoint.speed_body_x = velocity_in_body_frame(0);
+			surface_vehicle_speed_setpoint.speed_body_y = velocity_in_body_frame(1);
+			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 		} else {
-			rover_speed_setpoint_s rover_speed_setpoint{};
-			rover_speed_setpoint.timestamp = timestamp;
-			rover_speed_setpoint.speed_body_x = 0.f;
-			rover_speed_setpoint.speed_body_y = 0.f;
-			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
+			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
+			surface_vehicle_speed_setpoint.timestamp = timestamp;
+			surface_vehicle_speed_setpoint.speed_body_x = 0.f;
+			surface_vehicle_speed_setpoint.speed_body_y = 0.f;
+			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 			if (!_stopped && fabsf(_vehicle_speed) < FLT_EPSILON) {
 				_stopped = true;
@@ -130,15 +137,28 @@ void MecanumPosControl::updateSubscriptions()
 		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-	if (_rover_position_setpoint_sub.updated()) {
-		rover_position_setpoint_s rover_position_setpoint;
-		_rover_position_setpoint_sub.copy(&rover_position_setpoint);
-		_start_ned = Vector2f(rover_position_setpoint.start_ned[0], rover_position_setpoint.start_ned[1]);
+	if (_surface_vehicle_position_setpoint_sub.updated()) {
+		surface_vehicle_position_setpoint_s surface_vehicle_position_setpoint;
+		_surface_vehicle_position_setpoint_sub.copy(&surface_vehicle_position_setpoint);
+		_start_ned = Vector2f(surface_vehicle_position_setpoint.start_ned[0], surface_vehicle_position_setpoint.start_ned[1]);
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
-		_arrival_speed = PX4_ISFINITE(rover_position_setpoint.arrival_speed) ? rover_position_setpoint.arrival_speed : 0.f;
-		_cruising_speed = PX4_ISFINITE(rover_position_setpoint.cruising_speed) ? rover_position_setpoint.cruising_speed :
+		_arrival_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.arrival_speed) ? surface_vehicle_position_setpoint.arrival_speed : 0.f;
+		_cruising_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.cruising_speed) ? surface_vehicle_position_setpoint.cruising_speed :
 				  _param_ro_speed_limit.get();
-		_target_waypoint_ned = Vector2f(rover_position_setpoint.position_ned[0], rover_position_setpoint.position_ned[1]);
+		_target_waypoint_ned = Vector2f(surface_vehicle_position_setpoint.target_ned[0], surface_vehicle_position_setpoint.target_ned[1]);
+		_course = NAN;
+		_stopped = false;
+	}
+
+	if (_surface_vehicle_course_setpoint_sub.updated()) {
+		surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint;
+		_surface_vehicle_course_setpoint_sub.copy(&surface_vehicle_course_setpoint);
+		_start_ned = Vector2f(NAN, NAN);
+		_arrival_speed = 0.f;
+		_cruising_speed = PX4_ISFINITE(surface_vehicle_course_setpoint.speed) ?
+				  surface_vehicle_course_setpoint.speed : _param_ro_speed_limit.get();
+		_target_waypoint_ned = Vector2f(NAN, NAN);
+		_course = surface_vehicle_course_setpoint.course;
 		_stopped = false;
 	}
 }

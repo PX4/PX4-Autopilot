@@ -33,7 +33,7 @@
 /**
  * @file rtl_direct_mission_land.cpp
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -155,7 +155,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.lon = _global_pos_sub.get().lon;
 		_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 
-		// If the vehicle was already established on a loiter when RTL was engaged (e.g. from Hold),
+		// If the vehicle was already established on a loiter when Return was engaged (e.g. from Hold),
 		// keep that loiter's center and radius while climbing instead of re-centering the circle on
 		// the current position. The setpoint was snapshotted on activation before the triplet reset.
 		if (_setpoint_on_activation.valid
@@ -182,13 +182,12 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
 
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL Mission land: climb to %d m\t",
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return mission landing: climb to %d m\t",
 				 (int)ceilf(_rtl_alt));
 		events::send<int32_t>(events::ID("rtl_mission_land_climb"), events::Log::Info,
-				      "RTL Mission Land: climb to {1m_v}",
+				      "Return mission landing: climb to {1m_v}",
 				      (int32_t)ceilf(_rtl_alt));
 
-		_needs_climbing = false;
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_CLIMB;
@@ -276,13 +275,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 			handleLanding(new_work_item_type, next_mission_items, num_found_items);
 
 		} else {
-			// convert mission item to a simple waypoint, keep loiter to alt
-			if (_mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			}
-
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0.0f;
+			makeRtlPositionItem(_mission_item);
 		}
 
 		if (num_found_items > 0) {
@@ -293,6 +286,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		// Only set the previous position item if the current one really changed
 		if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
+		    (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND) &&
 		    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 			pos_sp_triplet->previous = current_setpoint_copy;
 		}
@@ -304,7 +298,8 @@ void RtlDirectMissionLand::setActiveMissionItems()
 						   _mission_item.nav_cmd == NAV_CMD_WAYPOINT;
 		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
 				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
-				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+				(new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
+				 new_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND);
 
 		if (fw_on_mission_landing || mc_landing_after_transition) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
@@ -315,6 +310,9 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 	/* set current work item type */
 	_work_item_type = new_work_item_type;
+
+	// Keep the climb pending across mission updates until it completes.
+	_needs_climbing = _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB;
 
 	reset_mission_item_reached();
 

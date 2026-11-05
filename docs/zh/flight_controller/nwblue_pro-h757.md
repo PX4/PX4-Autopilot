@@ -6,7 +6,7 @@
 PX4 does not manufacture this (or any) autopilot. Contact the manufacturer for hardware support or compliance issues.
 :::
 
-The _NWBlue Pro H757_ is a 36 x 36 mm FPV flight controller built around a [CubePilot CubeNode H757](https://docs.cubepilot.org/user-guides/cubenode/pin-descriptions) module carrying an STM32H757 microcontroller.
+The _NWBlue Pro H757_ is a 36 x 36 mm FPV flight controller built around a [CubePilot CubeNode H757](https://docs.cubepilot.org/cubenode/pin-descriptions) module carrying an STM32H757 microcontroller.
 
 ![NWBlue Pro H757](../../assets/flight_controller/nwblue_pro-h757/nwblue_pro-h757.png)
 
@@ -23,7 +23,7 @@ Order from [NWBlue](https://nwblue.com/products/pro-h757-fpv-flight-controller) 
 - **Processor**
   - **Main FMU processor:** STM32H757 (32-bit Arm® Cortex®-M7 at 480 MHz, 2 MB Flash, 1 MB RAM), on a CubePilot CubeNode module
 - **Sensors**
-  - **IMU:** [InvenSense ICM-45686](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-45686/) (SPI3, inside the CubeNode module)
+  - **IMU:** [InvenSense ICM-45686](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686) (SPI3, inside the CubeNode module)
   - **Barometer:** [Infineon DPS368](https://www.infineon.com/part/DPS368) (SPI3)
   - **Magnetometer:** [ST IIS2MDC](https://www.st.com/en/mems-and-sensors/iis2mdc.html) (I2C3, internal)
 - **Interfaces**

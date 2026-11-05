@@ -108,13 +108,13 @@ TEST(TestLatLonAlt, subLatLonAlt)
 
 TEST(TestLatLonAlt, fromAndToECEF)
 {
-	for (double lat = -M_PI; lat < M_PI; lat += M_PI / 4.0) {
-		for (double lon = -M_PI; lon < M_PI; lon += M_PI / 4.0) {
+	for (double lat_deg = -90.0; lat_deg <= 90.0; lat_deg += 15.0) {
+		for (double lon_deg = -180.0; lon_deg < 180.0; lon_deg += 45.0) {
 			for (float alt = -500.f; alt < 8000.f; alt += 500.f) {
-				LatLonAlt lla(lat, lon, alt);
+				LatLonAlt lla(lat_deg, lon_deg, alt);
 
 				LatLonAlt res = LatLonAlt::fromEcef(lla.toEcef());
-				EXPECT_TRUE(!(lla - res).longerThan(10e-6f)) << "lat: " << lat << ", lon: " << lon << ", alt: " << alt;
+				EXPECT_TRUE(!(lla - res).longerThan(10e-6f)) << "lat: " << lat_deg << ", lon: " << lon_deg << ", alt: " << alt;
 			}
 		}
 	}
@@ -133,4 +133,19 @@ TEST(TestLatLonAlt, somiglianaGravity)
 
 	// stays within the physical envelope and close to the constant used as the pre-global-position default
 	EXPECT_NEAR(LatLonAlt::Wgs84::gravity(radians(48.0)), CONSTANTS_ONE_G, 0.02f);
+}
+
+TEST(TestLatLonAlt, addDeltaPosMatchesEcefDistance)
+{
+	// Short steps make the curvilinear approximation exact enough to check the radii of curvature
+	const float step = 10.f;
+
+	for (const double latitude_deg : {0.0, 30.0, 47.0, 60.0, 80.0}) {
+		const LatLonAlt start(latitude_deg, 8.0, 400.f);
+		const LatLonAlt north = start + Vector3f(step, 0.f, 0.f);
+		const LatLonAlt east = start + Vector3f(0.f, step, 0.f);
+
+		EXPECT_NEAR(Vector3d(north.toEcef() - start.toEcef()).norm(), step, 1e-4) << "latitude " << latitude_deg;
+		EXPECT_NEAR(Vector3d(east.toEcef() - start.toEcef()).norm(), step, 1e-4) << "latitude " << latitude_deg;
+	}
 }

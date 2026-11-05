@@ -61,3 +61,5 @@ px4_add_module(
 		geo
 		SlewRate
 	)
+
+px4_add_functional_gtest(SRC MulticopterPositionControlTest.cpp LINKLIBS modules__mc_pos_control)

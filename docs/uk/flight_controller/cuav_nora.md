@@ -5,7 +5,7 @@ PX4 не розробляє цей (або будь-який інший) авт�
 Contact the [manufacturer](https://www.cuav.net) for hardware support or compliance issues.
 :::
 
-The [Nora](https://doc.cuav.net/controller/x7/en/nora-plus.html)<sup>&reg;</sup> flight controller is a high-performance autopilot.
+The [Nora](https://doc.cuav.net/en/controller/nora-plus/nora-plus.html)<sup>&reg;</sup> flight controller is a high-performance autopilot.
 Це ідеальний вибір для промислових дронів і великомасштабних важких дронів.
 В основному постачається комерційним виробникам.
 
@@ -31,7 +31,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Високопродуктивний процесор
 
 :::tip
-The manufacturer [CUAV Docs](https://doc.cuav.net/controller/x7/en/nora-plus.html) are the canonical reference for Nora.
+The manufacturer [CUAV Docs](https://doc.cuav.net/en/controller/nora-plus/nora-plus.html) are the canonical reference for Nora.
 Вони повинні використовуватися за перевагою, оскільки вони містять найбільш повну та актуальну інформацію.
 :::
 
@@ -83,7 +83,7 @@ When it runs PX4 firmware, only 8 PWM outputs work.
 
 ## З'єднання (Проводка)
 
-[CUAV nora Wiring Quickstart](https://doc.cuav.net/controller/x7/en/quick-start/quick-start-nora.html)
+[CUAV nora Wiring Quickstart](https://doc.cuav.net/en/controller/nora-plus/quick-start-nora.html)
 
 ## Розмір та роз'єми
 
@@ -171,6 +171,6 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 ## Подальша інформація
 
-- [Quick start](https://doc.cuav.net/controller/x7/en/quick-start/quick-start-nora.html)
+- [Quick start](https://doc.cuav.net/en/controller/nora-plus/quick-start-nora.html)
 - [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

@@ -55,7 +55,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -144,7 +144,7 @@ private:
 	* @param ref_sbg_data Contains the received log data as an union.
 	* @param user_arg Optional user supplied argument.
 	*/
-	static void handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg);
+	static void handleLogGnssPosVel(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg);
 
 	/**
 	* @brief Update estimator status message from EKF status flags.
@@ -255,15 +255,12 @@ private:
 	struct GnssData {
 		bool pos_received = false;
 		bool vel_received = false;
-		bool hdt_received = false;
 
 		SbgEComLogGnssPos gps_pos;
 		SbgEComLogGnssVel gps_vel;
-		SbgEComLogGnssHdt gps_hdt;
 
 		hrt_abstime pos_timestamp = 0;
 		hrt_abstime vel_timestamp = 0;
-		hrt_abstime hdt_timestamp = 0;
 	};
 
 	GnssData gnss_data;
@@ -277,7 +274,7 @@ private:
 	PX4Magnetometer  _px4_mag{0};
 
 	// Publications with topic dependent on multi-mode
-	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gnss_pub{ORB_ID(sensor_gnss)};
 	uORB::PublicationMulti<vehicle_attitude_s> _attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::PublicationMulti<vehicle_local_position_s> _local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::PublicationMulti<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};

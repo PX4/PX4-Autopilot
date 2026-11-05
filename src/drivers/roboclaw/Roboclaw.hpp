@@ -45,13 +45,12 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <sys/select.h>
+#include <px4_platform_common/Serial.hpp>
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/wheel_encoders.h>
 
 class Roboclaw : public ModuleBase, public OutputModuleInterface
@@ -59,17 +58,8 @@ class Roboclaw : public ModuleBase, public OutputModuleInterface
 public:
 	static Descriptor desc;
 
-	/**
-	 * @param device_name Name of the serial port e.g. "/dev/ttyS2"
-	 * @param bad_rate_parameter Name of the parameter that holds the baud rate of this serial port
-	 */
-	Roboclaw(const char *device_name, const char *bad_rate_parameter);
-	virtual ~Roboclaw();
-
-	enum class Motor {
-		Right = 0,
-		Left = 1
-	};
+	Roboclaw(const char *device_name);
+	~Roboclaw() override;
 
 	static int task_spawn(int argc, char *argv[]); ///< @see ModuleBase
 	static int custom_command(int argc, char *argv[]); ///< @see ModuleBase
@@ -78,13 +68,11 @@ public:
 
 	void Run() override;
 
+	void reversibleMaskChanged(uint32_t reversible_mask) override;
+	void mixerChanged() override;
+
 	/** @see OutputModuleInterface */
 	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
-
-	void setMotorSpeed(Motor motor, float value); ///< rev/sec
-	void setMotorDutyCycle(Motor motor, float value);
-	int readEncoder();
-	void resetEncoders();
 
 private:
 	enum class Command : uint8_t {
@@ -94,27 +82,37 @@ private:
 		DriveBackwardsMotor1 = 1,
 		DriveForwardMotor2 = 4,
 		DriveBackwardsMotor2 = 5,
-		DutyCycleMotor1 = 32,
-		DutyCycleMotor2 = 33,
 
 		ReadSpeedMotor1 = 18,
 		ReadSpeedMotor2 = 19,
-		ResetEncoders = 20,
 		ReadEncoderCounters = 78,
 	};
 
-	static constexpr int MAX_ACTUATORS = 2;
-	MixingOutput _mixing_output{"RBCLW", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
+	static constexpr unsigned MAX_CONTROLLERS = 8;
+	static constexpr unsigned CHANNELS_PER_CONTROLLER = 2;
+	static constexpr unsigned NUM_OUTPUTS = MAX_CONTROLLERS * CHANNELS_PER_CONTROLLER;
+	static constexpr uint32_t TRANSACTION_TIMEOUT_MS = 100; // Allows a complete encoder response even at 2400 baud.
+	MixingOutput _mixing_output{"RBCLW", NUM_OUTPUTS, *this, MixingOutput::SchedulingPolicy::Auto, false};
 
-	uORB::SubscriptionData<actuator_armed_s> _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Publication<wheel_encoders_s> _wheel_encoders_pub{ORB_ID(wheel_encoders)};
+	uORB::PublicationMulti<wheel_encoders_s> _wheel_encoders_pub[MAX_CONTROLLERS] {
+		{ORB_ID(wheel_encoders)}, {ORB_ID(wheel_encoders)}, {ORB_ID(wheel_encoders)}, {ORB_ID(wheel_encoders)},
+		{ORB_ID(wheel_encoders)}, {ORB_ID(wheel_encoders)}, {ORB_ID(wheel_encoders)}, {ORB_ID(wheel_encoders)}
+	};
+	device::Serial _uart;
+	bool _initialized{false};
+	uint8_t _address{128};
+	uint8_t _base_address{128};
+	unsigned _controller_count{1};
+	unsigned _encoder_controller{0};
+	hrt_abstime _last_encoder_read{0};
+	uint32_t _communication_errors{0};
+	uint32_t _encoder_updates[MAX_CONTROLLERS] {};
 
-	char _stored_device_name[256]; // Adjust size as necessary
-	char _stored_baud_rate_parameter[256]; // Adjust size as necessary
-
-	void sendUnsigned7Bit(Command command, float data);
-	void sendSigned16Bit(Command command, float data);
+	bool init();
+	int readEncoder(unsigned controller);
+	int setMotorSpeed(unsigned motor, float value);
+	void stopMotors();
 
 	// Roboclaw protocol
 	int sendTransaction(Command cmd, uint8_t *write_buffer, size_t bytes_to_write);
@@ -128,15 +126,10 @@ private:
 	static uint16_t _calcCRC(const uint8_t *buf, size_t n, uint16_t init = 0);
 	int32_t swapBytesInt32(uint8_t *buffer);
 
-	// UART handling
-	int initializeUART();
-	bool _uart_initialized{false};
-	int _uart_fd{0};
-	fd_set _uart_fd_set;
-	struct timeval _uart_fd_timeout;
-
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RBCLW_ADDRESS>) _param_rbclw_address,
+		(ParamInt<px4::params::RBCLW_BAUD>) _param_rbclw_baud,
+		(ParamInt<px4::params::RBCLW_COUNT>) _param_rbclw_count,
 		(ParamInt<px4::params::RBCLW_COUNTS_REV>) _param_rbclw_counts_rev
 	)
 };

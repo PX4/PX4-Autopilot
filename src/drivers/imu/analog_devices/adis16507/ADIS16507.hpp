@@ -108,6 +108,12 @@ private:
 
 	bool _self_test_passed{false};
 
+	const char *_model{"unknown"};
+	uint16_t _serial_number{0};
+	uint16_t _firmware_revision{0};
+	uint16_t _firmware_day_month{0};
+	uint16_t _firmware_year{0};
+
 	enum class STATE : uint8_t {
 		RESET,
 		WAIT_FOR_RESET,

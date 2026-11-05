@@ -72,9 +72,6 @@ Checks:          '*,
                   -llvm-header-guard,
                   -llvm-include-order,
                   -llvm-namespace-comment,
-                  -misc-incorrect-roundings,
-                  -misc-macro-parentheses,
-                  -misc-misplaced-widening-cast,
                   -misc-redundant-expression,
                   -misc-unconventional-assign-operator,
                   -misc-unused-parameters,
@@ -177,6 +174,7 @@ Checks:          '*,
                   -misc-definitions-in-headers,
                   -bugprone-casting-through-void,
                   -readability-redundant-string-init,
+                  -google-readability-avoid-underscore-in-googletest-name,
                  '
 WarningsAsErrors: '*'
 CheckOptions:

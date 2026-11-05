@@ -195,7 +195,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 			Vector3f(_param_mpc_xy_vel_i_acc.get(), _param_mpc_xy_vel_i_acc.get(), _param_mpc_z_vel_i_acc.get()),
 			Vector3f(_param_mpc_xy_vel_d_acc.get(), _param_mpc_xy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
 		_control.setHorizontalThrustMargin(_param_mpc_thr_xy_marg.get());
-		_control.decoupleHorizontalAndVecticalAcceleration(_param_mpc_acc_decouple.get());
 		_goto_control.setParamMpcAccHor(_param_mpc_acc_hor.get());
 		_goto_control.setParamMpcAccDownMax(_param_mpc_acc_down_max.get());
 		_goto_control.setParamMpcAccUpMax(_param_mpc_acc_up_max.get());
@@ -395,16 +394,26 @@ void MulticopterPositionControl::Run()
 		_sample_interval_s.update(dt);
 
 		if (_vehicle_control_mode_sub.updated()) {
-			const bool previous_position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
+			const vehicle_control_mode_s previous = _vehicle_control_mode;
 
 			if (_vehicle_control_mode_sub.copy(&_vehicle_control_mode)) {
-				if (!previous_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
+				if (!previous.flag_multicopter_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					_time_position_control_enabled = _vehicle_control_mode.timestamp;
 
-				} else if (previous_position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
+				} else if (previous.flag_multicopter_position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					// clear existing setpoint when controller is no longer active
 					_setpoint = PositionControl::empty_trajectory_setpoint;
 					_control.setInputSetpoint(_setpoint);
+				}
+
+				// Restart the decaying velocity limits when the controlled axes change e.g. altitude to position or VTOL back transition
+				if ((previous.flag_multicopter_position_control_enabled != _vehicle_control_mode.flag_multicopter_position_control_enabled)
+				    || (previous.flag_control_velocity_enabled != _vehicle_control_mode.flag_control_velocity_enabled)
+				    || (previous.flag_control_climb_rate_enabled != _vehicle_control_mode.flag_control_climb_rate_enabled)) {
+					_vel_limit_xy = NAN;
+					_vel_limit_up = NAN;
+					_vel_limit_down = NAN;
+					_time_vel_limit_reset = _vehicle_control_mode.timestamp;
 				}
 			}
 		}
@@ -434,7 +443,7 @@ void MulticopterPositionControl::Run()
 
 		_trajectory_setpoint_sub.update(&_setpoint);
 
-		adjustSetpointForEKFResets(vehicle_local_position, _setpoint);
+		adjustSetpointForEKFResets(vehicle_local_position, _setpoint, _last_valid_setpoint);
 
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 			// set failsafe setpoint if there hasn't been a new
@@ -497,6 +506,10 @@ void MulticopterPositionControl::Run()
 			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::flight);
 			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
+			// Same condition as the [0, 0, 100] idle setpoint below: coupled, it points body_z down
+			// and limitTilt commands full tilt
+			_control.decoupleHorizontalAndVecticalAcceleration(_param_mpc_acc_decouple.get() || not_taken_off || flying_but_ground_contact);
+
 			if (!flying) {
 				_control.setHoverThrust(_param_mpc_thr_hover.get());
 			}
@@ -521,10 +534,8 @@ void MulticopterPositionControl::Run()
 						     ? _param_mpc_tiltmax_lnd.get() : _param_mpc_tiltmax_air.get();
 			_control.setTiltLimit(_tilt_limit_slew_rate.update(math::radians(tilt_limit_deg), dt));
 
-			const float speed_up = _takeoff.updateRamp(dt,
-					       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
-			const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
-						 _param_mpc_z_vel_max_dn.get();
+			const float speed_up = PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get();
+			const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down : _param_mpc_z_vel_max_dn.get();
 
 			// Allow ramping from zero thrust on takeoff
 			const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
@@ -536,10 +547,34 @@ void MulticopterPositionControl::Run()
 				max_speed_xy = math::min(max_speed_xy, vehicle_local_position.vxy_max);
 			}
 
-			_control.setVelocityLimits(
-				max_speed_xy,
-				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
-				math::max(speed_down, 0.f));
+			float limit_speed_up = math::min(speed_up, _param_mpc_z_vel_max_up.get());
+			float limit_speed_down = math::max(speed_down, 0.f);
+
+			// When changing mode flying faster than the limit, allow braking with a decaying limit to
+			// avoid a large velocity error from clamping alone driving the integrator against the brake.
+			// The limit starts at the measured speed, holds while the jerk limited braking builds up and then
+			// ramps down open loop, so it doesn't interfere with the brake but is guaranteed to reach the configured limit.
+			const auto decayingLimit = [&](float & ramp, float measured_speed, float limit) {
+				if (PX4_ISFINITE(ramp)) {
+					if (vehicle_local_position.timestamp_sample > _time_vel_limit_reset + 1_s) {
+						ramp = math::max(ramp - 5.f * dt, 0.f);
+					}
+
+				} else {
+					ramp = PX4_ISFINITE(measured_speed) ? math::max(measured_speed, 0.f) : 0.f;
+				}
+
+				return math::max(limit, ramp);
+			};
+
+			const Vector2f velocity_xy(states.velocity);
+			max_speed_xy = decayingLimit(_vel_limit_xy, velocity_xy.norm(), max_speed_xy);
+			limit_speed_up = decayingLimit(_vel_limit_up, -states.velocity(2), limit_speed_up);
+			limit_speed_down = decayingLimit(_vel_limit_down, states.velocity(2), limit_speed_down);
+
+			limit_speed_up = _takeoff.updateRamp(dt, limit_speed_up); // Takeoff ramp goes last to not be overridden
+
+			_control.setVelocityLimits(max_speed_xy, limit_speed_up, limit_speed_down);
 
 			_control.setInputSetpoint(_setpoint);
 
@@ -577,8 +612,7 @@ void MulticopterPositionControl::Run()
 
 				// Initial update failed - Try fallback if within timeout
 				if (now < _last_valid_setpoint.timestamp + 200_ms) {
-					// Use last valid setpoint
-					adjustSetpointForEKFResets(vehicle_local_position, _last_valid_setpoint);
+					// Already moved into the current estimate frame by adjustSetpointForEKFResets()
 					_control.setInputSetpoint(_last_valid_setpoint);
 				}
 
@@ -682,48 +716,68 @@ trajectory_setpoint_s MulticopterPositionControl::generateFailsafeSetpoint(const
 }
 
 void MulticopterPositionControl::adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
-		trajectory_setpoint_s &setpoint)
+		trajectory_setpoint_s &setpoint, trajectory_setpoint_s &fallback_setpoint)
 {
-	if ((setpoint.timestamp != 0) && (setpoint.timestamp < vehicle_local_position.timestamp)) {
-		if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
-			setpoint.velocity[0] += vehicle_local_position.delta_vxy[0];
-			setpoint.velocity[1] += vehicle_local_position.delta_vxy[1];
-		}
+	auto apply_reset_deltas = [&](trajectory_setpoint_s & setpoint_to_adjust) {
+		if ((setpoint_to_adjust.timestamp != 0) && (setpoint_to_adjust.timestamp < vehicle_local_position.timestamp)) {
+			if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
+				setpoint_to_adjust.position[0] += vehicle_local_position.delta_xy[0];
+				setpoint_to_adjust.position[1] += vehicle_local_position.delta_xy[1];
+			}
 
-		if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
-			setpoint.velocity[2] += vehicle_local_position.delta_vz;
-		}
+			if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
+				setpoint_to_adjust.position[2] += vehicle_local_position.delta_z;
+			}
 
-		if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
-			setpoint.position[0] += vehicle_local_position.delta_xy[0];
-			setpoint.position[1] += vehicle_local_position.delta_xy[1];
-		}
+			if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
+				setpoint_to_adjust.velocity[0] += vehicle_local_position.delta_vxy[0];
+				setpoint_to_adjust.velocity[1] += vehicle_local_position.delta_vxy[1];
+			}
 
-		if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
-			setpoint.position[2] += vehicle_local_position.delta_z;
-		}
+			if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
+				setpoint_to_adjust.velocity[2] += vehicle_local_position.delta_vz;
+			}
 
-		if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
-			setpoint.yaw = wrap_pi(setpoint.yaw + vehicle_local_position.delta_heading);
+			if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
+				setpoint_to_adjust.yaw = wrap_pi(setpoint_to_adjust.yaw + vehicle_local_position.delta_heading);
+			}
 		}
+	};
+
+	apply_reset_deltas(setpoint);
+
+	// The counters are latched below, so a later call would find nothing changed and leave the
+	// stored fallback in the pre-reset frame.
+	apply_reset_deltas(fallback_setpoint);
+
+	if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
+		_goto_control.ekfResetHandlerPosition(Vector3f(vehicle_local_position.x, vehicle_local_position.y, NAN));
+		_xy_reset_counter = vehicle_local_position.xy_reset_counter;
+	}
+
+	if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
+		_goto_control.ekfResetHandlerPosition(Vector3f(NAN, NAN, vehicle_local_position.z));
+		_z_reset_counter = vehicle_local_position.z_reset_counter;
 	}
 
 	if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
 		_vel_xy_lp_filter.reset(_vel_xy_lp_filter.getState() + Vector2f(vehicle_local_position.delta_vxy));
 		_vel_xy_notch_filter.reset();
+		_goto_control.ekfResetHandlerVelocity(Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, NAN));
+		_vxy_reset_counter = vehicle_local_position.vxy_reset_counter;
 	}
 
 	if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
 		_vel_z_lp_filter.reset(_vel_z_lp_filter.getState() + vehicle_local_position.delta_vz);
 		_vel_z_notch_filter.reset();
+		_goto_control.ekfResetHandlerVelocity(Vector3f(NAN, NAN, vehicle_local_position.vz));
+		_vz_reset_counter = vehicle_local_position.vz_reset_counter;
 	}
 
-	// save latest reset counters
-	_vxy_reset_counter = vehicle_local_position.vxy_reset_counter;
-	_vz_reset_counter = vehicle_local_position.vz_reset_counter;
-	_xy_reset_counter = vehicle_local_position.xy_reset_counter;
-	_z_reset_counter = vehicle_local_position.z_reset_counter;
-	_heading_reset_counter = vehicle_local_position.heading_reset_counter;
+	if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
+		_goto_control.ekfResetHandlerHeading(vehicle_local_position.delta_heading);
+		_heading_reset_counter = vehicle_local_position.heading_reset_counter;
+	}
 }
 
 int MulticopterPositionControl::task_spawn(int argc, char *argv[])

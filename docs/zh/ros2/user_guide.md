@@ -28,25 +28,18 @@ The [uXRCE-DDS](../middleware/uxrce_dds.md) communications middleware is a large
 
 <!-- doc source: https://docs.google.com/drawings/d/1WcJOU-EcVOZRPQwNzMEKJecShii2G4U3yhA3U6C4EhE/edit?usp=sharing -->
 
-uXRCE-DDS 中间件由两部分组成：一部分是运行在 PX4 上的客户端，另一部分是运行在机载计算机上的代理；二者之间通过串口、UDP、TCP或自定义链路进行双向数据交换。
-代理充当客户端的代理角色，以便在全局 DDS 数据空间中发布和订阅主题。
+uXRCE-DDS 中间件由两部分组成：一部分是运行在 PX4 上的客户端，另一部分是运行在机载计算机上的代理；二者之间通过串口、UDP、TCP或自定义链路进行双向数据交换。代理充当客户端的代理角色，以便在全局 DDS 数据空间中发布和订阅主题。
 
-PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) 是在构建时生成，并且默认包含在 PX4 固件中。
-它包含“通用”XRCE-DDS客户端代码和它用来发布到来自uORB主题的 PX4 特定转换代码。
-生成到客户端中的 uORB 消息子集在 [dds_topics.yaml](../middleware/dds_topics.md)中说明。
-生成器使用源代码树中的 uORB 消息定义：[PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg) 用于生成发送 ROS 2 消息的代码。
+PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) 是在构建时生成，并且默认包含在 PX4 固件中。它包含“通用”XRCE-DDS客户端代码和它用来发布到来自uORB主题的 PX4 特定转换代码。生成到客户端中的 uORB 消息子集在 [dds_topics.yaml](../middleware/dds_topics.md)中说明。生成器使用源代码树中的 uORB 消息定义：[PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg) 用于生成发送 ROS 2 消息的代码。
 
-ROS 2 应用程序需要在一个工作空间中构建，该工作空间需包含与 PX4 固件中创建 uXRCE-DDS 客户端模块时所用完全相同的消息定义。
-您可以通过克隆接口包[PX4/px4_msgs](https://github.com/PX4/px4_msgs)将这些内容纳入您的 ROS 2 工作空间(repo 中的范围与不同的 PX4 版本的消息相对应)。
+ROS 2 应用程序需要在一个工作空间中构建，该工作空间需包含与 PX4 固件中创建 uXRCE-DDS 客户端模块时所用完全相同的消息定义。您可以通过克隆接口包[PX4/px4_msgs](https://github.com/PX4/px4_msgs)将这些内容纳入您的 ROS 2 工作空间(repo 中的范围与不同的 PX4 版本的消息相对应)。
 
 Starting from PX4 v1.16, in which [message versioning](../middleware/uorb.md#message-versioning) was introduced, ROS 2 applications may use a different version of message definitions than those used to build PX4.
 这需要[ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md)运行ROS 2 消息转换节点，以确保消息能够正确转换和交互。
 
-需要注意的是，微型XRCE-DDS _agent_ 本身并不依赖客户端代码。
-它可以从 [source](https://github.com/eProsima/Micro-XRCE-DDS-Agent) 中单独构建，或者作为ROS构建的一部分，或者作为snap包安装。
+需要注意的是，微型XRCE-DDS _agent_ 本身并不依赖客户端代码。它可以从 [source](https://github.com/eProsima/Micro-XRCE-DDS-Agent) 中单独构建，或者作为ROS构建的一部分，或者作为snap包安装。
 
-在使用 ROS 2 时，您通常需要同时启动客户端和代理。
-需要注意的是，uXRCE-DDS 客户端默认已内置到固件中，但除仿真器构建版本外，不会自动启动。
+在使用 ROS 2 时，您通常需要同时启动客户端和代理。需要注意的是，uXRCE-DDS 客户端默认已内置到固件中，但除仿真器构建版本外，不会自动启动。
 
 See [uXRCE-DDS > Version selection](../middleware/uxrce_dds.md#version-selection) to check which Micro XRCE-DDS version to use for your ROS 2 distribution.
 
@@ -87,8 +80,7 @@ If you're working on Ubuntu 22.04 you can use ROS 2 "Humble" LTS instead.
 若要使用该仿真器，你需要安装 PX4 开发工具链。
 
 :::info
-唯一依赖于ROS2的 PX4 是一组信息定义，它从[px4_msgs](https://github.com/PX4/px4_msgs)获取。
-您只需要安装 PX4 当您需要模拟器时(如我们在本指南中所做的那样)， 或者如果您正在创建一个发布自定义uORB主题的构建。
+唯一依赖于ROS2的 PX4 是一组信息定义，它从[px4_msgs](https://github.com/PX4/px4_msgs)获取。您只需要安装 PX4 当您需要模拟器时(如我们在本指南中所做的那样)， 或者如果您正在创建一个发布自定义uORB主题的构建。
 :::
 
 通过以下方式在 Ubuntu 上配置一个 PX4 开发环境：
@@ -101,8 +93,7 @@ cd PX4-Autopilot/
 make px4_sitl
 ```
 
-请注意，上述命令将为您的Ubuntu版本安装推荐的模拟器。
-如果您想要安装 PX4，但保留您现有的模拟器安装，请使用 "--no-sim-tools" 标志运行 `ubuntu.sh`。
+请注意，上述命令将为您的Ubuntu版本安装推荐的模拟器。如果您想要安装 PX4，但保留您现有的模拟器安装，请使用 "--no-sim-tools" 标志运行 `ubuntu.sh`。
 
 欲了解更多信息和故障排除，请参阅：[Ubuntu 开发环境](../dev_setup/dev_env_linux_ubuntu.md) 和 [下载 PX4 源](../dev_setup/building_px4.md)。
 
@@ -304,8 +295,7 @@ Below we show how to build the agent inside the ROS 2 workspace `~/ros2_px4_ws` 
 代理现已启动，但在我们启动 PX4（下一步） 之前，你不会看到太多。
 
 :::info
-你可以让代理在这个终端中保持运行状态！
-需注意，每个连接通道仅允许运行一个代理
+你可以让代理在这个终端中保持运行状态！需注意，每个连接通道仅允许运行一个代理
 :::
 
 ##### Start the DDS Client
@@ -324,8 +314,7 @@ PX4 仿真器会自动启动 uXRCE-DDS 客户端，并连接到本地主机上�
 
 代理和客户端现已运行并二者应已建立连接。
 
-PX4 终端会显示  [NuttShell/PX4 System Console](../debug/system_console.md) 系统控制台 的输出内容，该输出会在 PX4 启动和运行过程中实时呈现。
-代理一建立连接，输出内容中就应包含 INFO 级别的消息，这些消息会显示数据撰写器的创建情况：
+PX4 终端会显示  [NuttShell/PX4 System Console](../debug/system_console.md) 系统控制台 的输出内容，该输出会在 PX4 启动和运行过程中实时呈现。代理一建立连接，输出内容中就应包含 INFO 级别的消息，这些消息会显示数据撰写器的创建情况：
 
 ```sh
 ...
@@ -442,8 +431,7 @@ The [ROS 2 beginner tutorials](https://docs.ros.org/en/humble/Tutorials/Beginner
    export RMW_IMPLEMENTATION=rmw_zenoh_cpp
    ```
 
-3. 现在启动示例。
-   请注意，此处我们使用的是 ros2 launch，其相关说明如下。
+3. 现在启动示例。请注意，此处我们使用的是 ros2 launch，其相关说明如下。
 
    ```sh
    ros2 launch px4_ros_com sensor_combined_listener.launch.py
@@ -495,8 +483,7 @@ This example is built with PX4 and ROS 2 versions that use the same message defi
 - 订阅 (聆听) PX4 发布的数传主题
 - 发布到导致PX4执行某些操作的主题。
 
-您可以使用的主题定义在[dds_topics.yaml](../middleware/dds_topics.md)， 并且您可以在  [uORB Message Reference](../msg_docs/index.md)获取更多关于他们数据的信息。
-例如，[VehicleGlobalPosition](../msg_docs/VehicleGlobalPosition.md) 可以用来获得机体的全局位置。 [VehicleCommand](../msg_docs/VehicleCommand.md) 可以用于命令诸如起飞和降落等操作。
+您可以使用的主题定义在[dds_topics.yaml](../middleware/dds_topics.md)， 并且您可以在  [uORB Message Reference](../msg_docs/index.md)获取更多关于他们数据的信息。例如，[VehicleGlobalPosition](../msg_docs/VehicleGlobalPosition.md) 可以用来获得机体的全局位置。 [VehicleCommand](../msg_docs/VehicleCommand.md) 可以用于命令诸如起飞和降落等操作。
 
 下面的 [ROS 2 Example applications](#ros-2-example-applications)  示例提供了如何使用这些主题的具体例子。
 
@@ -506,8 +493,7 @@ This example is built with PX4 and ROS 2 versions that use the same message defi
 
 ### ROS 2 订阅者QoS 设置
 
-用于订阅 PX4 发布的话题的 ROS 2 代码，必须指定合适（兼容）的 QoS（服务质量）设置，才能监听这些话题。
-具体而言，节点应使用 ROS 2 预定义的 QoS 传感器数据（可参考[listener example source code](#ros-2-listener)）进行订阅：
+用于订阅 PX4 发布的话题的 ROS 2 代码，必须指定合适（兼容）的 QoS（服务质量）设置，才能监听这些话题。具体而言，节点应使用 ROS 2 预定义的 QoS 传感器数据（可参考[listener example source code](#ros-2-listener)）进行订阅：
 
 ```cpp
 ...
@@ -518,8 +504,7 @@ subscription_ = this->create_subscription<0>("/fmu/out/sensor_combined", qos,
 ...
 ```
 
-需要这样做的原因是，ROS 2 的默认 [Quality of Service (QoS) settings](https://docs.ros.org/en/humble/Concepts/About-Quality-of-Service-Settings.html#qos-profiles)与 PX4 所使用的设置不同。
-并非所有发布者 - 订阅者的 [Qos settings are possible](https://docs.ros.org/en/humble/Concepts/About-Quality-of-Service-Settings.html#qos-compatibilities)，而事实证明，ROS 2 默认的订阅者设置就属于不可行的情况！需注意，ROS 代码在发布时无需设置 QoS参数（在此场景下，PX4 的 QoS 设置与 ROS 的默认 QoS 设置是兼容的）。
+需要这样做的原因是，ROS 2 的默认 [Quality of Service (QoS) settings](https://docs.ros.org/en/humble/Concepts/About-Quality-of-Service-Settings.html#qos-profiles)与 PX4 所使用的设置不同。并非所有发布者 - 订阅者的 [Qos settings are possible](https://docs.ros.org/en/humble/Concepts/About-Quality-of-Service-Settings.html#qos-compatibilities)，而事实证明，ROS 2 默认的订阅者设置就属于不可行的情况！需注意，ROS 代码在发布时无需设置 QoS参数（在此场景下，PX4 的 QoS 设置与 ROS 的默认 QoS 设置是兼容的）。
 
 <!-- From https://github.com/PX4/PX4-user_guide/pull/2259#discussion_r1099788316 -->
 
@@ -540,8 +525,7 @@ See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/re
 
 ![Reference frames](../../assets/lpe/ref_frames.png)
 
-除非在相关消息定义中明确指定，否则所有PX4 话题均采用 FRD（即 NED）坐标系约定。
-因此，想要与 PX4 进行交互的 ROS 2 节点，必须妥善处理坐标系约定问题。
+除非在相关消息定义中明确指定，否则所有PX4 话题均采用 FRD（即 NED）坐标系约定。因此，想要与 PX4 进行交互的 ROS 2 节点，必须妥善处理坐标系约定问题。
 
 - 要将一个向量从ENU坐标系旋转到NED坐标系，必须执行两个基本旋转操作：
   - 首先是绕 Z 轴（朝上方向）旋转 π/2 弧度。
@@ -550,7 +534,7 @@ See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/re
 - 要将一个向量从NED坐标系旋转到ENU坐标系，必须执行两个基本旋转操作：
 
 - - 首先是绕 Z 轴（朝下方向）旋转 π/2 弧度。
-  - 然后是绕 X 轴（原北向 / 新东向）旋转 π 弧度。 需注意，这两种最终得到的操作在数学上是等效的
+  - 然后是绕 X 轴（原北向 / 新东向）旋转 π 弧度。需注意，这两种最终得到的操作在数学上是等效的
 
 - 将向量从 FLU坐标系旋转到 FRD坐标系，仅需绕 X 轴（朝前方向）旋转 π 弧度即可。
 
@@ -561,17 +545,15 @@ See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/re
 - [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)消息中的所有字段；发送这些字段前，需先将其从 ENU坐标系转换为 NED坐标系。
 - [VehicleThrustSetpoint](../msg_docs/VehicleThrustSetpoint.md)消息中的所有字段；发送这些字段前，需先将其从 FLU坐标系转换为 FRD坐标系。
 
-与向量类似，用于表示飞行器（机体坐标系）相对于（w.r.t.）姿态的四元数也是如此。 （相对于）世界坐标系（的四元数）需要进行转换。
+与向量类似，用于表示飞行器（机体坐标系）相对于（w.r.t.）姿态的四元数也是如此。（相对于）世界坐标系（的四元数）需要进行转换。
 
 [PX4/px4_ros_com](https://github.com/PX4/px4_ros_com) 提供了名为  [frame_transforms](https://github.com/PX4/px4_ros_com/blob/main/include/px4_ros_com/frame_transforms.h)的共享库，可便捷地执行此类转换操作。
 
 ### ROS, Gazebo 和 PX4 时间同步
 
-默认情况下，ROS 2 与 PX4 之间的时间同步由[uXRCE-DDS middleware](https://micro-xrce-dds.docs.eprosima.com/en/latest/time_sync.html) 自动管理；若需查看时间同步统计信息，可监听已桥接的话题 /fmu/out/timesync_status。
-当 uXRCE-DDS 客户端运行在飞控器上，且代理运行在机载计算机上时，这便是理想的运行状态 —— 此时时间偏移、时间漂移以及通信延迟会被自动计算并补偿。
+默认情况下，ROS 2 与 PX4 之间的时间同步由[uXRCE-DDS middleware](https://micro-xrce-dds.docs.eprosima.com/en/latest/time_sync.html) 自动管理；若需查看时间同步统计信息，可监听已桥接的话题 /fmu/out/timesync_status。当 uXRCE-DDS 客户端运行在飞控器上，且代理运行在机载计算机上时，这便是理想的运行状态 —— 此时时间偏移、时间漂移以及通信延迟会被自动计算并补偿。
 
-在 Gazebo 仿真中，GZBridge 会在每个仿真步长（sim step）为 PX4 设置时间[Change simulation speed](../sim_gazebo_gz/index.md#change-simulation-speed)。
-需注意，这与 Gazebo Classic所采用的仿真锁步[simulation lockstep](../sim_gazebo_classic/index.md#lockstep)流程不同。
+在 Gazebo 仿真中，GZBridge 会在每个仿真步长（sim step）为 PX4 设置时间[Change simulation speed](../sim_gazebo_gz/index.md#change-simulation-speed)。需注意，这与 Gazebo Classic所采用的仿真锁步[simulation lockstep](../sim_gazebo_classic/index.md#lockstep)流程不同。
 
 ROS 2 users have then two possibilities regarding the [time source](https://design.ros2.org/articles/clock_and_time.html) of their nodes.
 
@@ -685,9 +667,7 @@ public:
 ```
 
 :::info
-该订阅会基于 rmw_qos_profile_sensor_data 设置一个 QoS 配置文件。
-之所以需要这样做，是因为 ROS 2 订阅者的默认 QoS（服务质量）配置文件，与 PX4 发布者的配置文件不兼容。
-欲了解更多信息，请参阅：[ROS 2 Subscriber QoS Settings](#ros-2-subscriber-qos-settings),
+该订阅会基于 rmw_qos_profile_sensor_data 设置一个 QoS 配置文件。之所以需要这样做，是因为 ROS 2 订阅者的默认 QoS（服务质量）配置文件，与 PX4 发布者的配置文件不兼容。欲了解更多信息，请参阅：[ROS 2 Subscriber QoS Settings](#ros-2-subscriber-qos-settings),
 :::
 
 以下代码行创建了一个发布者，用于向 SensorCombined uORB 话题发布数据；该发布者可与一个或多个兼容的 ROS 2 订阅者匹配，这些订阅者监听的是 fmu/sensor_combined/out ROS 2 话题。
@@ -713,8 +693,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-此特殊示例在[launch/sensor_combined_listener.launch.py](https://github.com/PX4/px4_ros_com/blob/main/launch/sensor_combined_listener.launch.py).有一个相关的启动文件。
-这使得它可以通过 [`ros2 launch`](#ros2-launch)  命令启动
+此特殊示例在[launch/sensor_combined_listener.launch.py](https://github.com/PX4/px4_ros_com/blob/main/launch/sensor_combined_listener.launch.py).有一个相关的启动文件。这使得它可以通过 [`ros2 launch`](#ros2-launch)  命令启动
 
 ### ROS 2 发布者
 
@@ -737,8 +716,7 @@ class DebugVectAdvertiser : public rclcpp::Node
 {
 ```
 
-这段代码创建了一个用来发送消息的回调函数。
-发送消息的回调函数由定时器触发的，每秒钟发送两次消息。
+这段代码创建了一个用来发送消息的回调函数。发送消息的回调函数由定时器触发的，每秒钟发送两次消息。
 
 ```cpp
 public:
@@ -822,15 +800,10 @@ See Zenoh client [node setup](../middleware/zenoh.md#px4-zenoh-pico-node-setup) 
 
 ## 自定义 uORB 主题
 
-ROS 2需要有用于在 PX4 固件中创建 uXRCE-DDS客户端模块的 _sam_message 定义，以便解释消息。
-这些定义存储在 ROS 2 接口包[PX4/px4_msgs](https://github.com/PX4/px4_msgs)中，并且会通过CI在 main（主）分支和发布分支上自动同步。
-需要注意的是，PX4 源代码中的所有消息均存在于该代码仓库中，但只有在dds_topics.yaml文件中列出的消息，才会作为 ROS 2 话题可用。
-因此
+ROS 2需要有用于在 PX4 固件中创建 uXRCE-DDS客户端模块的 _sam_message 定义，以便解释消息。这些定义存储在 ROS 2 接口包[PX4/px4_msgs](https://github.com/PX4/px4_msgs)中，并且会通过CI在 main（主）分支和发布分支上自动同步。需要注意的是，PX4 源代码中的所有消息均存在于该代码仓库中，但只有在dds_topics.yaml文件中列出的消息，才会作为 ROS 2 话题可用。因此
 
 - 如果您正在使用 PX4 的主要版本或发布版本，您可以通过克隆接口包[PX4/px4_msgs](https://github.com/PX4/px4_msgs)获得消息定义。
-- 如果您要创建或修改 uORB 消息，必须从 PX4 源代码树中手动更新工作空间中的消息。
-  一般来说，这意味着您将更新 [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml)，克隆接口包。 然后手动同步，将新的/修改的消息定义从 [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg)复制到它的 `msg` 文件夹。
-  假定PX4-Autopilot在你的主目录`~`中，而`px4_msgs`则在`~/ros2_ws/src/`中，命令可能是：
+- 如果您要创建或修改 uORB 消息，必须从 PX4 源代码树中手动更新工作空间中的消息。一般来说，这意味着您将更新 [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml)，克隆接口包。 然后手动同步，将新的/修改的消息定义从 [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg)复制到它的 `msg` 文件夹。假定PX4-Autopilot在你的主目录`~`中，而`px4_msgs`则在`~/ros2_ws/src/`中，命令可能是：
 
   ```sh
   rm ~/ros2_ws/src/px4_msgs/msg/*.msg
@@ -838,8 +811,7 @@ ROS 2需要有用于在 PX4 固件中创建 uXRCE-DDS客户端模块的 _sam_mes
   ```
 
   ::: info
-  从技术角度而言，[dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml) 这个文件完整定义了 PX4 uORB 话题与 ROS 2 消息之间的对应关系。
-  欲了解更多信息，请参阅[uXRCE-DDS > DDS Topics YAML](../middleware/uxrce_dds.md#dds-topics-yaml)。
+  从技术角度而言，[dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml) 这个文件完整定义了 PX4 uORB 话题与 ROS 2 消息之间的对应关系。欲了解更多信息，请参阅[uXRCE-DDS > DDS Topics YAML](../middleware/uxrce_dds.md#dds-topics-yaml)。
 
 :::
 
@@ -847,13 +819,11 @@ ROS 2需要有用于在 PX4 固件中创建 uXRCE-DDS客户端模块的 _sam_mes
 
 自定义主题和服务命名空间可以在构建时间(更改 [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml))或运行时间(对多载体操作有用)：
 
-- 一种可能性是在从命令行启动[uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client)时使用 "-n" 选项。
-  这种技术既可用于模拟，也可用于实际机体。
+- 一种可能性是在从命令行启动[uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client)时使用 "-n" 选项。这种技术既可用于模拟，也可用于实际机体。
 - 在开始模拟前，可以通过设置环境变量 `PX4_UXRCE_DDS_NS`来提供自定义命名空间 (仅限)
 
 :::info
-更改运行时的命名空间将会将所需的命名空间作为一个前缀附加到 [dds_topics.yaml](../middleware/dds_topics.md) 中所有的 "topic " 字段和所有 [service servers](#px4-ros-2-service-servers)。
-因此，命令如下：
+更改运行时的命名空间将会将所需的命名空间作为一个前缀附加到 [dds_topics.yaml](../middleware/dds_topics.md) 中所有的 "topic " 字段和所有 [service servers](#px4-ros-2-service-servers)。因此，命令如下：
 
 ```sh
 uxrce_dds_client start -n uav_1
@@ -907,8 +877,7 @@ VehicleCommand request
 VehicleCommandAck reply
 ```
 
-用户可通过发送  [VehicleCommand](../msg_docs/VehicleCommand.md)消息发起服务请求，并会收到一条[VehicleCommandAck](../msg_docs/VehicleCommandAck.md) 消息作为响应。
-该服务可确保仅将针对用户发起的特定请求所生成的 VehicleCommandAck回复返回。
+用户可通过发送  [VehicleCommand](../msg_docs/VehicleCommand.md)消息发起服务请求，并会收到一条[VehicleCommandAck](../msg_docs/VehicleCommandAck.md) 消息作为响应。该服务可确保仅将针对用户发起的特定请求所生成的 VehicleCommandAck回复返回。
 
 #### 载体指挥服务离板控制示例
 
@@ -922,15 +891,13 @@ First the ROS 2 application declares a service client of type `px4_msgs::srv::Ve
 rclcpp::Client<0>::SharedPtr vehicle_command_client_;
 ```
 
-然后客户端初始化到正确的 ROS 2 服务 (`/fmu/vehicle_command` )。
-当应用程序假设使用标准的 PX4 命名空间时，这样做的代码看起来就像这样：
+然后客户端初始化到正确的 ROS 2 服务 (`/fmu/vehicle_command` )。当应用程序假设使用标准的 PX4 命名空间时，这样做的代码看起来就像这样：
 
 ```cpp
 vehicle_command_client_{this->create_client<px4_msgs::srv::VehicleCommand>("/fmu/vehicle_command")}
 ```
 
-此后，客户可以用来发送任何机体命令请求。
-例如，`arm()`函数用于请求机体放置：
+此后，客户可以用来发送任何机体命令请求。例如，`arm()`函数用于请求机体放置：
 
 ```cpp
 void OffboardControl::arm()
@@ -985,10 +952,7 @@ void OffboardControl::response_callback(
 
 ## ros2 CLI
 
-[ros2 CLI](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools.html)是一个有用的工具来处理ROS。
-例如，您可以使用它快速检查话题是否正在发布；如果您的工作空间中包含 px4_msg，还可以详细查看这些话题的内容。
-该命令还允许您通过启动文件（launch file）启动更复杂的 ROS 系统。
-下文显示了几种可能性。
+[ros2 CLI](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools.html)是一个有用的工具来处理ROS。例如，您可以使用它快速检查话题是否正在发布；如果您的工作空间中包含 px4_msg，还可以详细查看这些话题的内容。该命令还允许您通过启动文件（launch file）启动更复杂的 ROS 系统。下文显示了几种可能性。
 
 ### ros2 topic list
 
@@ -1040,8 +1004,7 @@ hil_state: 0
 
 ### ros2 topic hz
 
-你可以使用 ros2 topic hz 命令获取消息速率相关的统计信息。
-例如，获取`SensorCombined`速率：
+你可以使用 ros2 topic hz 命令获取消息速率相关的统计信息。例如，获取`SensorCombined`速率：
 
 ```sh
 ros2 topic hz /fmu/out/sensor_combined
@@ -1066,8 +1029,7 @@ min: 0.000s max: 0.012s std dev: 0.00148s window: 3960
 
 ### ros2 launch
 
-ros2 launch 命令用于启动一个 ROS 2 启动文件
-例如，前面我们使用 ros2 launch px4_ros_com sensor_combined_listener.launch.py 命令启动了监听器示例。
+ros2 launch 命令用于启动一个 ROS 2 启动文件例如，前面我们使用 ros2 launch px4_ros_com sensor_combined_listener.launch.py 命令启动了监听器示例。
 
 你并非必须使用启动文件，但如果你的 ROS 2 系统较为复杂，需要启动多个组件，那么启动文件会非常实用。
 
@@ -1081,15 +1043,13 @@ ros2 launch 命令用于启动一个 ROS 2 启动文件
 
 如果有任何缺失，可以单独添加：
 
-- **`colcon`** 构建工具应该在开发工具中。
-  可以使用以下方式安装它：
+- **`colcon`** 构建工具应该在开发工具中。可以使用以下方式安装它：
 
   ```sh
   sudo apt install python3-colcon-common-extensions
   ```
 
-- 变换库（transforms library）所使用的 Eigen3 库，应同时存在于桌面版（desktop）功能包和基础版（base）功能包中。
-  它应该安装在显示中：
+- 变换库（transforms library）所使用的 Eigen3 库，应同时存在于桌面版（desktop）功能包和基础版（base）功能包中。它应该安装在显示中：
 
   :::: tabs
 

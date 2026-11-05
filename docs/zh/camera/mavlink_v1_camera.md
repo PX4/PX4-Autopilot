@@ -3,8 +3,7 @@
 本节说明了如何使用 PX4 的 MAVLink [相机](../camera/index.md), 实现了 [Camera Protocol v1 (简单触发协议)](https://mavlink.io/en/services/camera_v1.html) 的 PX4 和地面站。
 
 :::warning
-[MAVLink 相机](../camera/mavlink_v2_camera.md) 使用[MAVLink 相机协议 v2](https://mavlink.io/en/services/camera.html)应在可能时使用！
-此方法保留用于旧的 MAVLink 相机。
+[MAVLink 相机](../camera/mavlink_v2_camera.md) 使用[MAVLink 相机协议 v2](https://mavlink.io/en/services/camera.html)应在可能时使用！此方法保留用于旧的 MAVLink 相机。
 :::
 
 ## 综述
@@ -36,8 +35,7 @@ PX4 also re-emits any camera mission items it encounters in a mission as camera 
 - [MAV_CMD_OBLIQUE_SURVEY](https://mavlink.io/en/messages/common.html#MAV_CMD_OBLIQUE_SURVEY)
 - [MAV_CMD_DO_CONTROL_VIDEO](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CONTROL_VIDEO)
 
-MAVLink 摄像头将支持这些命令的一些子集。
-由于协议没有发现过程的功能，唯一的方法是检查响应中返回的[COMMAND_ACK](https://mavlink.io/en/messages/common.html#COMMAND_ACK)。
+MAVLink 摄像头将支持这些命令的一些子集。由于协议没有发现过程的功能，唯一的方法是检查响应中返回的[COMMAND_ACK](https://mavlink.io/en/messages/common.html#COMMAND_ACK)。
 
 相机在每次拍摄图像时也应发出[CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER)。
 
@@ -45,11 +43,9 @@ MAVLink 摄像头将支持这些命令的一些子集。
 
 ### 地面站
 
-地面站可以使用 [Camera Protocol v1（简单触发协议）](https://mavlink.io/en/services/camera_v1.html) 中的任何命令，并且应该将这些命令发送给自驾仪组件 id。
-如果相机不支持命令，它将返回带有错误结果的[COMMAND_ACK](https://mavlink.io/en/messages/common.html#COMMAND_ACK)。
+地面站可以使用 [Camera Protocol v1（简单触发协议）](https://mavlink.io/en/services/camera_v1.html) 中的任何命令，并且应该将这些命令发送给自驾仪组件 id。如果相机不支持命令，它将返回带有错误结果的[COMMAND_ACK](https://mavlink.io/en/messages/common.html#COMMAND_ACK)。
 
-通常命令是针对自驾仪的，因为这样无论相机是通过 MAVLink 连接还是直接连接飞控都能工作。
-如果发送给自驾仪 PX4，每次拍摄图像时 PX4 都会发出[CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER)，并可能记录相机拍摄事件。
+通常命令是针对自驾仪的，因为这样无论相机是通过 MAVLink 连接还是直接连接飞控都能工作。如果发送给自驾仪 PX4，每次拍摄图像时 PX4 都会发出[CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER)，并可能记录相机拍摄事件。
 
 <!-- "May" because the camera feedback module is "supposed"  to log just camera capture from a capture pin connected to camera hotshoe, but currently logs all camera trigger events from the camera trigger driver https://github.com/PX4/PX4-Autopilot/pull/23103 -->
 
@@ -80,13 +76,11 @@ PX4 重新使用与自驾仪相同的系统 ID 和组件 ID [MAV_COMP_ID_ALL](ht
 
 ### MAVLink 端口和转发配置
 
-将 PX4 连接到您的 MAVLink 相机上，将它连接到您飞控上一个未使用的串口，如`TELEM2`。
-然后，您可以将端口配置为[MAVLink 外设](../peripherals/mavlink_peripherals.md).
+将 PX4 连接到您的 MAVLink 相机上，将它连接到您飞控上一个未使用的串口，如`TELEM2`。然后，您可以将端口配置为[MAVLink 外设](../peripherals/mavlink_peripherals.md).
 本文件解释了如何做，总的来说：
 
 1. 修改一个未使用的 `MAV_n_CONFIG` 参数，例如[MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)，使其分配给相机连接的端口。
-2. 将对应的 [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) 设置为 `2` (板载)。
-   这确保正确的 MAVLink 消息集被发出和转发。
+2. 将对应的 [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) 设置为 `2` (板载)。这确保正确的 MAVLink 消息集被发出和转发。
 3. 您可能需要设置一些其他参数，取决于您的连接 - 例如波特率。
 
 然后按照其用户指南中的建议连接和配置相机。

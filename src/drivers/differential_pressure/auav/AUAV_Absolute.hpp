@@ -57,6 +57,9 @@ static_assert(ABS_CONVERSION_INTERVAL >= 7000, "Conversion interval is too fast"
 /* Conversions */
 static constexpr float MBAR_TO_PA = 100.0f;
 
+/* Status byte of a completed reading without error */
+static constexpr uint8_t STATUS_BYTE_EXPECTED_ABS = 0x40;
+
 class AUAV_Absolute : public AUAV
 {
 public:

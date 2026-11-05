@@ -64,10 +64,10 @@ void MecanumActControl::updateActControl()
 		_throttle_y_setpoint = rover_throttle_setpoint.throttle_body_y;
 	}
 
-	if (_rover_steering_setpoint_sub.updated()) {
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-		_speed_diff_setpoint = rover_steering_setpoint.normalized_steering_setpoint;
+	if (_surface_vehicle_steering_setpoint_sub.updated()) {
+		surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
+		_surface_vehicle_steering_setpoint_sub.copy(&surface_vehicle_steering_setpoint);
+		_speed_diff_setpoint = surface_vehicle_steering_setpoint.normalized_steering_setpoint;
 	}
 
 	if (PX4_ISFINITE(_throttle_x_setpoint) && PX4_ISFINITE(_throttle_y_setpoint) && PX4_ISFINITE(_speed_diff_setpoint)) {
@@ -118,6 +118,7 @@ Vector4f MecanumActControl::computeInverseKinematics(float throttle_body_x, floa
 
 void MecanumActControl::stopVehicle()
 {
+	_timestamp = hrt_absolute_time();
 	actuator_motors_s actuator_motors{};
 	actuator_motors.reversible_flags = _param_r_rev.get();
 	actuator_motors.control[0] = 0.f;

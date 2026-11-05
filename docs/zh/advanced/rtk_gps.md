@@ -9,8 +9,7 @@ Instructions for _using_ RTK GNSS are provided in [Hardware > RTK GPS](../gps_co
 
 ## 综述
 
-RTK是使用导航信号的载波相位来进行测距的，而不是使用导航信号所搭载的信息。
-它依靠一个单一的参考基站站实时校正，这种校正可以与多个流动站一起工作。
+RTK是使用导航信号的载波相位来进行测距的，而不是使用导航信号所搭载的信息。它依靠一个单一的参考基站站实时校正，这种校正可以与多个流动站一起工作。
 
 PX4 配置 RTK 需要两个 RTK GPS 模块和一个数传。
 The fixed-position ground-based GPS unit is called the _Base_ and the in-air unit is called the _Rover_.
@@ -79,14 +78,13 @@ QGroundControl 配置RTK 基地站输出以下 RTCM3.2 帧, 每个帧均为 1 Hz
 ## 上行数据速率
 
 The raw RTCM messages from the base are packed into a MAVLink `GPS_RTCM_DATA` message and sent over the datalink.
-MAVLink 消息的最大长度是182字节。 根据RTCM的信息类型，MAVLink信息是不会填满的。
+MAVLink 消息的最大长度是182字节。根据RTCM的信息类型，MAVLink信息是不会填满的。
 
 RTCM 基础位置消息(1005)长度为 22 字节， 而其他卫星的长度则因可见卫星的数量和卫星信号的数量而异（M8P等L1单元只有一个）。
 Since at a given time, the _maximum_ number of satellites visible from any single constellation is 12, under real-world conditions, theoretically an uplink rate of 300 B/s is sufficient.
 
 If _MAVLink 1_ is used, a 182-byte `GPS_RTCM_DATA` message is sent for every RTCM message, irrespective of its length.
-因此，大约每秒上行需求是700多个字节。
-这可能导致低带宽半双轨遥测模块 (如3DR Telemetry Radios) 连接的饱和。
+因此，大约每秒上行需求是700多个字节。这可能导致低带宽半双轨遥测模块 (如3DR Telemetry Radios) 连接的饱和。
 
 If _MAVLink 2_ is used then any empty space in the `GPS_RTCM_DATA message` is removed.
 由此产生的上行链路需求与理论值 (约 300 字节/秒) 大致相同。
@@ -95,7 +93,7 @@ If _MAVLink 2_ is used then any empty space in the `GPS_RTCM_DATA message` is re
 PX4 automatically switches to MAVLink 2 if the GCS and telemetry modules support it.
 :::
 
-MAVLink 2 必须用于低带宽链接以保证 RTK 性能。 必须注意确保数传链在整个过程中使用 MAVLink 2。
+MAVLink 2 必须用于低带宽链接以保证 RTK 性能。必须注意确保数传链在整个过程中使用 MAVLink 2。
 You can verify the protocol version by using the `mavlink status` command on the system console:
 
 ```sh

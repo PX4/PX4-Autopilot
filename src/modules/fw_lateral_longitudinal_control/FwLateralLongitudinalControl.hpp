@@ -184,7 +184,6 @@ private:
 	// Smooths changes in the altitude tracking error time constant value
 	SlewRate<float> _tecs_alt_time_const_slew_rate;
 	struct longitudinal_control_state {
-		float pitch_rad{0.f};
 		float altitude_msl{0.f};
 		float airspeed_eas{0.f};
 		float eas2tas{1.f};

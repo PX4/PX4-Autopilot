@@ -67,9 +67,17 @@ private:
 	 */
 	void set_loiter_position(const position_setpoint_s &reference_setpoint);
 
+	/**
+	 * Point the vehicle heading towards the ROI location (multicopter only).
+	 */
+	void updateHeadingToRoi();
+
 	bool _loiter_at_last_link_position_executed{false};
 
+	hrt_abstime _reposition_yaw_timestamp{0}; ///< time of the last reposition with an explicit yaw, 0 if none
+
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::NAV_LTR_LAST_DL>) _param_nav_ltr_last_dl
+		(ParamInt<px4::params::NAV_LTR_LAST_DL>) _param_nav_ltr_last_dl,
+		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
 	)
 };

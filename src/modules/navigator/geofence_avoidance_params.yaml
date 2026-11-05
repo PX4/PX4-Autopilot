@@ -1,0 +1,20 @@
+module_name: navigator
+parameters:
+- group: Geofence
+  definitions:
+    GF_AVOID_NODES:
+      description:
+        short: Max graph nodes for geofence avoidance in Return
+        long: |-
+          Maximum number of geofence vertices the Return geofence avoidance planner can use.
+          Circles use 8 vertices each, polygons their vertex count plus extra vertices for sharp corners.
+          If the fence needs more vertices, Return flies directly and ignores the geofence.
+          Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number
+          (about 2 * N^2 bytes, e.g. 20 kB for 100 nodes).
+          The maximum of 200 is sufficient for any fence that can be stored.
+          Set to 0 to disable geofence avoidance in Return.
+      type: int32
+      default: 100
+      min: 0
+      max: 200
+      reboot_required: true

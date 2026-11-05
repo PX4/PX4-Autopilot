@@ -179,7 +179,7 @@ The MicroStrain driver continuously publishes sensor data to the following uORB 
 
 For GNSS/INS devices, GPS data is also published to:
 
-- [sensor_gps](../msg_docs/SensorGps.md)
+- [sensor_gnss](../msg_docs/SensorGnss.md)
 
 If used as an external INS replacing EKF2, it publishes:
 

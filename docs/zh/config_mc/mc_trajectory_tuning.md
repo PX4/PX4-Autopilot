@@ -21,8 +21,7 @@ The input to the P/PID controller is a _desired setpoint_ that the vehicle shoul
 [PID Tuning](../config_mc/pid_tuning_guide_multicopter.md) ("Lower level tuning") aims to reduce the error between the desired setpoint and the estimate of the vehicle state.
 
 The _desired setpoint_ passed to the P/PID controller is itself calculated from a _demanded setpoint_ based on a stick position (in RC modes) or from a mission command.
-要求设定值可能会改变得很快（例如，如果用户“一下子”将摇杆从零移动到最大值）。
-如果缓慢调整相应的目标设定值, 飞行器的特性就会更好。
+要求设定值可能会改变得很快（例如，如果用户“一下子”将摇杆从零移动到最大值）。如果缓慢调整相应的目标设定值, 飞行器的特性就会更好。
 
 _Setpoint value tuning_ ("higher level tuning") is used to specify the mapping between the _demanded_ and the _desired_ setpoints - i.e. defining the "ramp" at which the desired setpoint follows the demanded setpoint.
 

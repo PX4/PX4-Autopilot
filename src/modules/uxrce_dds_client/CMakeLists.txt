@@ -43,6 +43,11 @@ else()
 	endif()
 	set(microxrceddsclient_build_dir ${CMAKE_CURRENT_BINARY_DIR})
 
+	# Upper bound for the UDP receive buffer
+	if(CONFIG_NET_ETH_PKTSIZE)
+		set(microxrceddsclient_udp_mtu_arg -DUCLIENT_UDP_TRANSPORT_MTU:STRING=${CONFIG_NET_ETH_PKTSIZE})
+	endif()
+
 	px4_add_git_submodule(TARGET git_micro_xrce_dds_client PATH "${microxrceddsclient_src_dir}")
 
 	# If a toolchain file is given, explicitly define its path when building the Micro-XRCE-DDS-CLient
@@ -61,11 +66,6 @@ else()
 		set(cxx_flags_with_includes "${cxx_flags_with_includes} -I${dir}")
 	endforeach()
 
-	# GCC 14 promotes implicit function declarations to hard errors; the
-	# client's POSIX UDP transport (compiled but never linked on NuttX)
-	# trips this via getaddrinfo/freeaddrinfo
-	set(c_flags_with_includes "${c_flags_with_includes} -Wno-error=implicit-function-declaration")
-
 	set(lib_dir ${CMAKE_INSTALL_LIBDIR})
 	if("${lib_dir}" STREQUAL "")
 		set(lib_dir "lib")
@@ -73,6 +73,13 @@ else()
 
 	if(PX4_PLATFORM STREQUAL "nuttx")
 		set(c_flags_with_includes "${c_flags_with_includes} -Wno-cast-align -D__PX4_NUTTX")
+	endif()
+
+	# Match UXRCE_DDS_CLIENT_UDP in uxrce_dds_client.h: NuttX targets without networking have no UDP transport
+	if(PX4_PLATFORM STREQUAL "nuttx" AND NOT CONFIG_NET)
+		set(uclient_profile_udp OFF)
+	else()
+		set(uclient_profile_udp ON)
 	endif()
 
 	include(ExternalProject)
@@ -90,7 +97,8 @@ else()
 			-DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
 			-DUCLIENT_PIC:BOOL=OFF
 			-DUCLIENT_PROFILE_TCP:BOOL=OFF
-			-DUCLIENT_PROFILE_UDP:BOOL=ON
+			-DUCLIENT_PROFILE_UDP:BOOL=${uclient_profile_udp}
+			${microxrceddsclient_udp_mtu_arg}
 			-DUCLIENT_PROFILE_SERIAL:BOOL=ON
 			-DUCLIENT_PROFILE_DISCOVERY:BOOL=OFF
 			-DUCLIENT_PROFILE_CUSTOM_TRANSPORT:BOOL=OFF

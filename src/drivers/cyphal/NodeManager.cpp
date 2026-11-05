@@ -140,10 +140,14 @@ bool NodeManager::HandleNodeIDRequest(uavcan_pnp_NodeIDAllocationData_2_0 &msg)
 
 void NodeManager::HandleListResponse(const CanardRxTransfer &receive)
 {
-	uavcan_register_List_Response_1_0 msg;
+	uavcan_register_List_Response_1_0 msg{};
 
 	size_t register_in_size_bits = receive.payload_size;
-	uavcan_register_List_Response_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
+
+	if (uavcan_register_List_Response_1_0_deserialize_(&msg, (const uint8_t *)receive.payload,
+			&register_in_size_bits) < 0) {
+		return;
+	}
 
 	if (msg.name.name.count == 0) {
 		// Index doesn't exist, we've parsed through all registers

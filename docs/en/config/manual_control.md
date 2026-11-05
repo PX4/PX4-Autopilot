@@ -8,7 +8,7 @@ PX4 also supports using RC and/or multiple Joysticks, with fallback from one typ
 ## Overview
 
 _Joystick_ setups use QGroundControl to encode the control information from a "standard" computer gaming joystick into [MAVLink messages](https://mavlink.io/en/services/manual_control.html) that are sent to the vehicle over the (shared) telemetry radio channel.
-They are often used in integrated GCS/manual control systems because it is cheaper and easier to integrate a joystick than a separate radio system.
+They are often used in [integrated GCS](../config/integrated_gcs.md)/manual control systems because it is cheaper and easier to integrate a joystick than a separate radio system.
 
 Joysticks are suitable for most applications provided your telemetry channel has a high enough bandwidth/low latency.
 They are perfect for flying the PX4 simulator, because you can plug them directly into your ground control computer and start flying.
@@ -56,3 +56,4 @@ Notes:
 
 - [Radio Control (RC)](../getting_started/rc_transmitter_receiver.md)
 - [Joysticks](../config/joystick.md)
+- [Integrated GCS](../config/integrated_gcs.md)

@@ -42,6 +42,8 @@
 
 #include "ghst_telemetry.hpp"
 #include <lib/rc/ghst.hpp>
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 
 using time_literals::operator ""_s;
 
@@ -104,30 +106,34 @@ bool GHSTTelemetry::send_battery_status()
 
 bool GHSTTelemetry::send_gps1_status()
 {
-	sensor_gps_s vehicle_gps_position;
+	vehicle_gnss_s vehicle_gnss;
 
-	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+	if (!_vehicle_gnss_sub.update(&vehicle_gnss)) {
 		return false;
 	}
 
-	int32_t latitude = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7));        // 1e-7 degrees
-	int32_t longitude = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7));      // 1e-7 degrees
-	uint16_t altitude = static_cast<int16_t>(round(vehicle_gps_position.altitude_msl_m));           // meters
+	int32_t latitude = static_cast<int32_t>(round(vehicle_gnss.receiver.latitude * 1e7));        // 1e-7 degrees
+	int32_t longitude = static_cast<int32_t>(round(vehicle_gnss.receiver.longitude * 1e7));      // 1e-7 degrees
+	uint16_t altitude = static_cast<int16_t>(round(vehicle_gnss.receiver.altitude_msl));         // meters
 
 	return ghst_send_telemetry_gps1_status(_uart_fd, latitude, longitude, altitude);
 }
 
 bool GHSTTelemetry::send_gps2_status()
 {
-	sensor_gps_s vehicle_gps_position;
+	vehicle_gnss_s vehicle_gnss;
 
-	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+	if (!_vehicle_gnss_sub.update(&vehicle_gnss)) {
 		return false;
 	}
 
-	uint16_t ground_speed = (uint16_t)(vehicle_gps_position.vel_d_m_s / 3.6f * 10.f);
-	uint16_t ground_course = (uint16_t)(math::degrees(vehicle_gps_position.cog_rad) * 100.f);
-	uint8_t num_sats = vehicle_gps_position.satellites_used;
+	// the frame carries the ground speed in cm/s and the course in 0.1 degree (0..3600)
+	const float ground_speed_mps = PX4_ISFINITE(vehicle_gnss.receiver.ground_speed) ? math::max(
+					       vehicle_gnss.receiver.ground_speed, 0.f) : 0.f;
+	const float course_rad = PX4_ISFINITE(vehicle_gnss.receiver.course) ? matrix::wrap_2pi(vehicle_gnss.receiver.course) : 0.f;
+	uint16_t ground_speed = static_cast<uint16_t>(lroundf(ground_speed_mps * 100.f));
+	uint16_t ground_course = static_cast<uint16_t>(lroundf(math::degrees(course_rad) * 10.f) % 3600);   // 359.96 deg rounds to 3600
+	uint8_t num_sats = vehicle_gnss.receiver.satellites_used;
 
 	// TBD: Can these be computed in a RC telemetry driver?
 	uint16_t home_dist = 0;

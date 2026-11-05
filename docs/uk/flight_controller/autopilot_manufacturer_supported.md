@@ -56,4 +56,5 @@ This category includes boards that are not fully compliant with the pixhawk stan
 - [ThePeach FCC-K1](../flight_controller/thepeach_k1.md)
 - [ThePeach FCC-R1](../flight_controller/thepeach_r1.md)
 - [X-MAV AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md)
+- [ZenFC H743](../flight_controller/zenfc_h743.md)
 - [SIYI-UniFC-6-PICO](../flight_controller/siyi-unifc-6-pico.md)

@@ -94,8 +94,6 @@ protected:
 	{
 		(void)navigatorDatamanRuntime();
 	}
-
-	static void TearDownTestSuite() {}
 };
 
 class DatamanClientTestPeer
@@ -110,6 +108,20 @@ public:
 		client._response_status = dataman_response_s::STATUS_FAILURE_READ_FAILED;
 		client._state = DatamanClient::State::ResponseReceived;
 		return true;
+	}
+
+	// Point the pending read at an index the dataman rejects and let the client's own retransmit
+	// fetch a genuine failed response, so the regular response handling runs.
+	static bool failPendingReadThroughDataman(DatamanClient &client)
+	{
+		if (client._state != DatamanClient::State::RequestSent || client._active_request.request_type != DM_READ) {
+			return false;
+		}
+
+		client._active_request.index = UINT32_MAX;
+		client._active_request.timestamp = 0; // retransmit on the next update()
+
+		return waitForOperation(client, 1_s) && client._response_status != dataman_response_s::STATUS_SUCCESS;
 	}
 
 	static bool waitForOperation(DatamanClient &client, hrt_abstime timeout)
