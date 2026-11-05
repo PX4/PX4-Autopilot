@@ -195,7 +195,7 @@ The board has two RC input paths:
 - `S.Bin` and `RCin` (on the servo rail) go to the [IO processor](../modules/modules_driver.md#px4io), which detects the protocol with no configuration.
   SBUS receivers connect to `S.Bin` or `RCin`, and PPM receivers connect to `RCin`.
 - `Uart8` goes to the FMU, where the [rc_input](../modules/modules_driver_radio_control.md#rc-input) driver detects the protocol with no configuration.
-  Use it for CRSF and GHST receivers, which the IO processor can't decode.
+  Use it for CRSF receivers, which the IO processor can't decode.
   PX4 uses `Uart8` as a single-wire port on its `RX` pin, so connect the receiver's `TX` output to that pin.
   [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) sets the port that `rc_input` uses, and defaults to `Radio Controller` (`Uart8`).
 
