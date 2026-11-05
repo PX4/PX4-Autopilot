@@ -307,15 +307,6 @@
 #define HRT_TIMER               8  /* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
-#define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
-#define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
-
-/* Some RC protocols are bi-directional, therefore we need a half-duplex UART */
-#define RC_SERIAL_SINGLEWIRE
-/* The STM32 UART by default wires half-duplex mode to the TX pin, but our
- * signal in routed to the RX pin, so we need to swap the pins */
-#define RC_SERIAL_SWAP_RXTX
-
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  1
 #define INPUT_CAP1_CHANNEL     /* T1C2 */ 2
@@ -340,23 +331,6 @@
 #define GPIO_SAFETY_SWITCH_IN              /* PF5 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTF|GPIO_PIN5)
 /* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
 #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
-
-/* Power switch controls ******************************************************/
-
-#define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
-
-/*
- * FMUv6X has a separate RC_IN
- *
- * GPIO PPM_IN on PI5 T8CH1
- * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC7
- *   Inversion is possible in the UART and can drive  GPIO PPM_IN as an output
- */
-
-#define GPIO_PPM_IN_AS_OUT             (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN5)
-#define SPEKTRUM_RX_AS_GPIO_OUTPUT()   px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
-#define SPEKTRUM_RX_AS_UART()          /* Can be left as uart */
-#define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
 #define SDIO_SLOTNO                    0  /* Only one slot */
 #define SDIO_MINOR                     0

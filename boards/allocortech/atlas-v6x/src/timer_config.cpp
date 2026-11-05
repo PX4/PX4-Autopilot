@@ -52,7 +52,6 @@
  * TIM2_CH3  T HEATER                 > PWM OUT or GPIO
  *
  * TIM14_CH1 T BUZZER_1              - Driven by other driver
- * TIM8_CH1_IN T FMU_PPM_INPUT       - Sampled byt HRT by other driver
  */
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {

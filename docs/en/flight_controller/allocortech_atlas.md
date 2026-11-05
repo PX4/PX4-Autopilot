@@ -326,7 +326,7 @@ See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for more informat
 | USART3 | /dev/ttyS2 | Debug console               |
 | UART4  | /dev/ttyS3 | TELEM4 (RS-232, `FREE-232`) |
 | UART5  | /dev/ttyS4 | TELEM2 (mission computer)   |
-| USART6 | /dev/ttyS5 | PX4IO (and RC input)        |
+| USART6 | /dev/ttyS5 | PX4IO                       |
 | UART7  | /dev/ttyS6 | TELEM1 (RS-422)             |
 | UART8  | /dev/ttyS7 | GPS2 (RS-422)               |
 
@@ -375,8 +375,8 @@ RC input is connected to the I/O processor, not directly to the FMU.
 The I/O processor decodes the RC signal and passes it to PX4 over the PX4IO link (`USART6`), in the same way as on other [Pixhawk FMUv6X](../flight_controller/pixhawk6x.md) boards.
 Connect the receiver to `F_RC_INPUT` (PPM, S.Bus) or `F_DSM_INPUT` (Spektrum DSM) on `J2`.
 
-Receivers that need a bidirectional UART, such as CRSF or GHST, cannot use the I/O processor input.
-Connect them to a free serial port instead, and set [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) to that port.
+The I/O processor input is receive-only, so receivers that need a bidirectional UART, such as CRSF or GHST, are not supported.
+The default firmware does not include the FMU RC drivers.
 
 ### GPS & Compass {#gps_compass}
 
