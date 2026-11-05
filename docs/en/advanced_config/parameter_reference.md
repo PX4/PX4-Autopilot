@@ -59819,14 +59819,15 @@ Models differ in range and FoV.
 
 **Values:**
 
-- `1`: TFMINI
+- `1`: TFMINI / TFMINI-S
 - `2`: ISTRA24
 - `3`: ISTRA24_100m
+- `4`: TFMINI Plus
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1 | 3 |  | 1 |  | &nbsp;
+&check; | 1 | 4 |  | 1 |  | &nbsp;
 
 </div>
 
