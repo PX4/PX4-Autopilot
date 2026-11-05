@@ -1,20 +1,2 @@
-# Secure-boot variant of the fmu-v6x app.
-#
-# Inherits everything from default.px4board, then:
-#   - selects nuttx-config/scripts/secureboot-script.ld as the linker
-#     script (via CONFIG_BOARD_LINKER_PREFIX, same mechanism
-#     flash-analysis.px4board uses), which reserves the image TOC
-#     slot at FLASH+0x800 and a .signature section at end-of-FLASH.
-#   - the board CMakeLists.txt detects this label and adds src/toc.c
-#     to drivers_board so the TOC is actually populated.
-#
-# The output .bin is meant to be signed by Tools/secure_bootloader/sign_firmware.py
-# and uploaded to a board running the px4_fmu-v6x_bootloader_secureboot bootloader.
-
 CONFIG_BOARD_LINKER_PREFIX="secureboot"
 CONFIG_BOARD_SECUREBOOT=y
-# CONFIG_BOARD_SECUREBOOT_KEY defaults to Tools/test_keys/test_keys.json,
-# which is pre-paired with Tools/test_keys/key0.pub baked into the
-# matching bootloader_secureboot.px4board build. Set the env var
-# BOARD_SECUREBOOT_KEY to a custom JSON private key path to override
-# without editing this file.

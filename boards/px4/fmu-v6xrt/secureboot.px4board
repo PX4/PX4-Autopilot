@@ -1,4 +1,2 @@
-# Secure-boot variant of the fmu-v6xrt
-
 CONFIG_BOARD_LINKER_PREFIX="secureboot"
 CONFIG_BOARD_SECUREBOOT=y
