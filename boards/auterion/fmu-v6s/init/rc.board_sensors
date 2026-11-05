@@ -62,8 +62,15 @@ then
 	set INA_CONFIGURED yes
 fi
 
-# Auterion auto starter
-auterion_autostarter start
+# The Auterion autostarter also starts the PCA9685, from the EEPROM or through
+# PCA9685_EN_BUS. Only start it here when the autostarter is not available.
+if ! auterion_autostarter start
+then
+	if param greater PCA9685_EN_BUS 0
+	then
+		pca9685_pwm_out start -X
+	fi
+fi
 
 if param compare BAT1_V_CHANNEL -2
 then
@@ -75,9 +82,3 @@ fi
 
 # External compass IST8310 on I2C1
 ist8310 -X -b 1 -R 10 start
-
-# Start an external PWM generator
-if param greater PCA9685_EN_BUS 0
-then
-	pca9685_pwm_out start -X
-fi
