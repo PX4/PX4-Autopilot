@@ -398,6 +398,47 @@ The functions are defined in source at [/src/lib/mixer_module/output_functions.y
 This list is correct at PX4 v1.15.
 :::
 
+### GPIO Outputs
+
+Individual FMU PWM outputs can be used as plain digital (on/off) outputs instead of PWM.
+For example to switch a relay, a LED or a payload power rail.
+The output is assigned a [function](#output-functions) as usual, but instead of a pulse the pin is held high or low:
+
+- **High** if the output value is above the midpoint of its minimum and maximum, (`> (MINn + MAXn) / 2`).
+- **Low** otherwise.
+
+To configure an output as GPIO:
+
+1. Enable **Advanced**.
+2. Make sure the timer group of the channel is set to a PWM rate or OneShot.
+   The **GPIO Output** column is hidden for timer groups set to DShot.
+3. Check the channel in the **GPIO Output** column of the PWM tab.
+   This sets the bitmask parameter `PWM_MAIN_GPIO_EN` or `PWM_AUX_GPIO_EN`, depending on which tab shows the FMU outputs on your flight controller (`PWM_AUX` on boards with an I/O board).
+
+   ![Actuator Outputs - PWM MAIN tab with GPIO Output column](../../assets/config/actuators/qgc_actuators_pwm_gpio_output.png)
+
+4. Assign a function, minimum, maximum and disarmed value as for any other output.
+5. Reboot the vehicle.
+
+The selected channels are skipped by `pwm_out` and `dshot`, and driven by the `gpio_out` driver instead.
+The remaining outputs of the same timer group can still be used as PWM or OneShot outputs.
+
+The output keeps its reset level until `gpio_out` starts, which happens after the other output drivers during boot.
+It is then set to the level of its disarmed value.
+
+::: info
+GPIO outputs are only available on FMU outputs, and only on boards where the `gpio_out` driver is enabled in the board configuration (`CONFIG_DRIVERS_GPIO_OUT`).
+Outputs on an I/O board (`PWM_MAIN` on boards with an I/O board) are not supported.
+Outputs on a timer group set to DShot are not supported either.
+If such a channel is selected in `PWM_MAIN_GPIO_EN` or `PWM_AUX_GPIO_EN` (for example through the parameter list), `gpio_out` ignores it and prints a warning.
+:::
+
+::: tip
+The [PCA9685](../modules/modules_driver.md#pca9685-pwm-out) PWM driver supports the same feature through the `PCA9685_GPIO_EN` parameter (**GPIO Mode** column of the PCA9685 tab).
+
+![Actuator Outputs - PCA9685 tab with GPIO Mode column](../../assets/config/actuators/qgc_actuators_pca9685_gpio_mode.png)
+:::
+
 ## Actuator Testing
 
 The _Actuator Testing_ section in lower-right corner provides sliders that can be used to test (and determine) actuator and motor settings.
