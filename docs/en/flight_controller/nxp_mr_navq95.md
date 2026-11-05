@@ -232,12 +232,12 @@ The board brings up `can0` and `can1` only when [UAVCAN_ENABLE](../advanced_conf
 The Linux side must run the NavQ95 BSP built from [imx-manifest-navq95](https://github.com/NXP-Robotics/imx-manifest-navq95).
 It provides the RPMsg links PX4 depends on:
 
-| Linux device     | PX4 side                  | Purpose                                                          |
-| ---------------- | ------------------------- | ---------------------------------------------------------------- |
-| `/dev/ttynsh`    | NSH console               | PX4 shell (the system console)                                   |
-| `/dev/ttyproxy`  | `mavlink` in onboard mode | MAVLink at 921600 baud for the companion computer                |
-| `/dev/ttymavmin` | `mavlink` in minimal mode | Second MAVLink link at 115200 baud (flags in `rc.board_mavlink`) |
-| `/dev/ttyros`    | none                      | Reserved for a future ROS/uXRCE-DDS link, unused today           |
+| Linux device     | PX4 side                            | Purpose                                                                                                           |
+| ---------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `/dev/ttynsh`    | NSH console                         | PX4 shell (the system console)                                                                                    |
+| `/dev/ttyproxy`  | `mavlink` in onboard mode           | MAVLink at 921600 baud for the companion computer                                                                 |
+| `/dev/ttymavmin` | `mavlink` in minimal mode           | Second MAVLink link at 115200 baud (flags in `rc.board_mavlink`)                                                  |
+| `/dev/ttyros`    | `uxrce_dds_client` (off by default) | [uXRCE-DDS](../middleware/uxrce_dds.md) link for ROS 2, registered as serial port `TELEM 2` (see [ROS 2](#ros_2)) |
 
 PX4 has no local storage.
 `/fs/rpmsg` on the PX4 side is an RPMsg filesystem (rpmsgfs) served by Linux, and it holds the parameters, dataman and the flight logs.
@@ -252,18 +252,39 @@ Keeping the parameters on the on-board octal NOR flash instead, so the M7 is sel
 There is no telemetry radio in the path by default: the MAVLink link leaves the board over the network.
 
 The onboard-mode `mavlink` instance on PX4 shows up on Linux as `/dev/ttyproxy`.
-The BSP hands that device to [mavlink-router](https://github.com/mavlink-router/mavlink-router), which runs as a service and republishes the stream on the network, so several clients can use the same link at the same time:
+To on-board software it looks like an autopilot on a serial port: MAVSDK, MAVROS or any other MAVLink application from the [companion computer](../companion_computer/index.md#companion-computer-software) guide can open it directly.
+The `imx-image-ros` image instead runs [mavlink-router](https://github.com/mavlink-router/mavlink-router) as a service on that device (on `imx-image-mr` you have to install it yourself).
+It republishes the stream on the network, so several clients can use the same link at the same time:
 
 ```
 PX4 (M7)  --RPMsg-->  /dev/ttyproxy  -->  mavlink-router  -->  UDP/TCP on Wi-Fi or Ethernet
 ```
 
-[_QGroundControl_](../getting_started/px4_basic_concepts.md#qgc) connects to that endpoint over either the on-board Wi-Fi or the Ethernet port, and on-board software (MAVSDK, ROS 2 via the uXRCE-DDS bridge, or a camera or mission application) can attach to further endpoints in parallel.
-_mavlink-router_ reads its endpoints and ports from its configuration in `/etc/mavlink-router/` on the Linux image; add your ground station address there.
+The shipped configuration (`/etc/mavlink-router/main.conf`) listens for UDP on port 10000 and does not broadcast, so the Wi-Fi is not flooded with UDP traffic that access points tend to drop.
+The ground station therefore has to connect to the board: in [_QGroundControl_](../getting_started/px4_basic_concepts.md#qgc), add a UDP comm link with the board's IP address and port 10000 as its server.
+To push the stream to a fixed ground station instead, add a `UdpEndpoint` with `Mode = Normal` and the ground station's `Address` and `Port` (14550 for _QGroundControl_) to that file.
+The endpoint types and modes are described in the [mavlink-router README](https://github.com/mavlink-router/mavlink-router#endpoints).
+On-board software can attach to further endpoints of the router in parallel.
 
 ::: tip
 If _QGroundControl_ does not find the vehicle, check that the RPMsg links came up on Linux (`ls /dev/ttyproxy`) and that _mavlink-router_ is running (`systemctl status mavlink-router`) before looking at PX4.
 :::
+
+### ROS 2 {#ros_2}
+
+The RPMsg link `/dev/ttyros` is registered as the `TELEM 2` serial port of PX4, but nothing runs on it by default.
+To use [ROS 2](../ros2/user_guide.md) through the [uXRCE-DDS](../middleware/uxrce_dds.md) bridge:
+
+1. Set [UXRCE_DDS_CFG](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG) to `TELEM 2` and reboot PX4.
+   The client then starts on `/dev/ttyros` at the `SER_TEL2_BAUD` rate (921600 by default, which only has to match the agent).
+2. [Install the Micro XRCE-DDS Agent](../middleware/uxrce_dds.md#micro-xrce-dds-agent-installation) on the Linux side; the images do not ship it.
+3. Start the agent on the same device:
+
+   ```sh
+   sudo MicroXRCEAgent serial --dev /dev/ttyros -b 921600
+   ```
+
+The PX4 topics then appear in ROS 2 on the board, as described in the [ROS 2 User Guide](../ros2/user_guide.md).
 
 ## Building Firmware {#building_firmware}
 
