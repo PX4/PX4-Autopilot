@@ -42,7 +42,7 @@ We'll go through each of these in detail in the following sections.
 
 Mount the CyberX-v10 with the arrow on its case pointing towards the front of the vehicle.
 
-![CyberX-v10 top view, with the arrow on the case pointing towards the front of the vehicle](../../assets/flight_controller/cyberx_v10/cyberx_v10_front.png)
+![CyberX-v10 top view, with the arrow on the case pointing towards the front of the vehicle](../../assets/flight_controller/cyberx_v10/cyberx_v10_front.webp)
 
 ::: info
 If the controller cannot be mounted in the recommended/default orientation (e.g. due to space constraints) you will need to configure the autopilot software with the orientation that you actually used: [Flight Controller Orientation](../config/flight_controller_orientation.md).

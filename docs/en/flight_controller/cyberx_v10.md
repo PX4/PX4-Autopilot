@@ -12,7 +12,7 @@ The CyberX-v10 is an advanced autopilot manufactured by [CyberCraft Internationa
 The autopilot is recommended for commercial system integration, but is also suitable for academic research and other applications.
 It brings you ultimate performance, stability, and reliability in every aspect.
 
-![CyberX-v10](../../assets/flight_controller/cyberx_v10/cyberx_v10_product.png)
+![CyberX-v10](../../assets/flight_controller/cyberx_v10/cyberx_v10_product.webp)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
