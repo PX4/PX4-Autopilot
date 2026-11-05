@@ -470,8 +470,7 @@ TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificE
 	 * The weighting can be adjusted between 0 and 2 depending on speed and altitude accuracy requirements.
 	*/
 	seb_rate.setpoint = specific_energy_rates.spe_rate.setpoint * weight.spe_weighting -
-			    specific_energy_rates.ske_rate.setpoint *
-			    weight.ske_weighting;
+			    specific_energy_rates.ske_rate.setpoint * weight.ske_weighting;
 
 	seb_rate.estimate = (specific_energy_rates.spe_rate.estimate * weight.spe_weighting) -
 			    (specific_energy_rates.ske_rate.estimate * weight.ske_weighting);
@@ -781,15 +780,9 @@ void TECS::update(const Input &input)
 		_airspeed_filter.update(dt, airspeed_input, _airspeed_filter_param, _control_flag.airspeed_enabled);
 
 		// Update Reference model submodule
-		if (fastDescendFullyEngaged(_fast_descend)) {
-			// Reset the altitude reference model, while we are in fast descend.
-			const TECSAltitudeReferenceModel::AltitudeReferenceState init_state{
-				.alt = input.altitude,
-				.alt_rate = input.altitude_rate};
-			_altitude_reference_model.initialize(init_state);
-
-		} else if (_control.getUnderspeedRatio() > 0.5f) {
-			// Reset altitude reference during underspeed to prevent altitude error accumulation
+		if (fastDescendFullyEngaged(_fast_descend) || _control.getUnderspeedRatio() > 0.5f) {
+			// Fast descend: Reset reference model as altitude demand is completely ignored.
+			// Underspeed: Reset if above 0.5 to prevent altitude error accumulation
 			// that would cause aggressive pitch-up (and potential secondary stall) on recovery.
 			const TECSAltitudeReferenceModel::AltitudeReferenceState init_state{
 				.alt = input.altitude,
