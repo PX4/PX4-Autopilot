@@ -5,8 +5,11 @@
 class FlightTaskAltitudeCruise : public FlightTaskManualAltitudeSmoothVel
 {
 public:
-	FlightTaskAltitudeCruise();
+	FlightTaskAltitudeCruise() = default;
 	virtual ~FlightTaskAltitudeCruise() = default;
+
+	// Keeps running with centered sticks when the manual control signal is lost
+	static constexpr uint8_t kRequiredInputs = FlightTaskManualAltitudeSmoothVel::kRequiredInputs & ~ManualControl;
 
 	void reActivate() override;
 

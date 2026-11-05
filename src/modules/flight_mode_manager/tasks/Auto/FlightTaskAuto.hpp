@@ -86,6 +86,9 @@ class FlightTaskAuto : public FlightTask
 public:
 	FlightTaskAuto() = default;
 	virtual ~FlightTaskAuto() = default;
+
+	static constexpr uint8_t kRequiredInputs = PositionXY | VelocityXY | PositionZ | VelocityZ;
+
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	void reActivate() override;
 	bool updateInitialize() override;

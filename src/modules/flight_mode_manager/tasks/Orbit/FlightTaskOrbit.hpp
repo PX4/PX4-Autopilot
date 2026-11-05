@@ -55,8 +55,11 @@ class FlightTaskOrbit : public FlightTaskManualAltitudeSmoothVel
 {
 public:
 
-	FlightTaskOrbit();
+	FlightTaskOrbit() = default;
 	virtual ~FlightTaskOrbit() = default;
+
+	static constexpr uint8_t kRequiredInputs = (FlightTaskManualAltitudeSmoothVel::kRequiredInputs & ~ManualControl)
+			| PositionXY | VelocityXY;
 
 	bool applyCommandParameters(const vehicle_command_s &command, bool &success) override;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;

@@ -36,3 +36,5 @@ px4_add_library(FlightTask
 )
 
 target_include_directories(FlightTask PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+px4_add_functional_gtest(SRC FlightTaskTest.cpp LINKLIBS FlightTask geo)
