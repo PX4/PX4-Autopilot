@@ -27,9 +27,6 @@ param set-default UXRCE_DDS_PTCFG 2
 param set-default UXRCE_DDS_AG_IP 170461697
 param set-default UXRCE_DDS_CFG 1000
 
-# Enable RPM measurement
-param set-default SENS_EN_PCF8583 1
-
 # Update default IP config if needed
 netman update_default -i eth0
 
