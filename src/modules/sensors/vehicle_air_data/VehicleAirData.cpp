@@ -490,7 +490,8 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 
 	sensor_gps_s gps_pos;
 
-	if (!_vehicle_gps_position_sub.update(&gps_pos)) {
+	// no baro samples accumulated yet, leave the GNSS sample for the next run
+	if ((_data_sum_count[_selected_sensor_sub_index] == 0) || !_vehicle_gps_position_sub.update(&gps_pos)) {
 		return false;
 	}
 
