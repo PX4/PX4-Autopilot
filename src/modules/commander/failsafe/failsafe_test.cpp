@@ -35,6 +35,7 @@
 
 #include "failsafe.h"
 #include "failsafe_action_modes.h"
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_status.h>
 #include "../ModeUtil/mode_requirements.hpp"
 
@@ -1091,4 +1092,59 @@ TEST_F(FailsafeTest, GnssLostUsesGnssLossActParam)
 	EXPECT_EQ(selectedActionFor(3), FailsafeBase::Action::Terminate); // Terminate
 	// "Warning, block arming" only differs from Warning on the ground, in flight both just warn
 	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Warn); // Warning, block arming
+}
+
+TEST_F(FailsafeTest, BatteryFailsafeUsesLowBatActParam)
+{
+	// Each param value is exercised on its own fresh Failsafe instance, to avoid
+	// action hysteresis/clear-conditions from one value leaking into the next.
+	auto selectedActionFor = [](int32_t com_low_bat_act, uint8_t battery_warning, bool remaining_flight_time_low) {
+		param_set(param_handle(px4::params::COM_LOW_BAT_ACT), &com_low_bat_act);
+
+		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
+		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+		Failsafe failsafe(nullptr);
+
+		failsafe_flags_s failsafe_flags{};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+		FailsafeBase::State state{};
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		// Arm without battery warning, a battery warning that is already present at arming only warns
+		failsafe.update(5_s, state, false, false, failsafe_flags);
+
+		failsafe_flags.battery_warning = battery_warning;
+		failsafe_flags.battery_low_remaining_time = remaining_flight_time_low;
+		failsafe.update(5_s + 10_ms, state, false, false, failsafe_flags);
+		return failsafe.selectedAction();
+	};
+
+	static constexpr uint8_t kNone = battery_status_s::WARNING_NONE;
+	static constexpr uint8_t kCritical = battery_status_s::WARNING_CRITICAL;
+	static constexpr uint8_t kEmergency = battery_status_s::WARNING_EMERGENCY;
+
+	// Remaining flight time low: only the distance-aware return options return, all others warn
+	EXPECT_EQ(selectedActionFor(0, kNone, true), FailsafeBase::Action::Warn); // Warning
+	EXPECT_EQ(selectedActionFor(2, kNone, true), FailsafeBase::Action::Warn); // Land mode
+	// Distance-aware return, Critical level return, Emergency level land
+	EXPECT_EQ(selectedActionFor(3, kNone, true), FailsafeBase::Action::RTL);
+	// Distance-aware return, Critical level return, Emergency level terminate
+	EXPECT_EQ(selectedActionFor(4, kNone, true), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(5, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level land
+	EXPECT_EQ(selectedActionFor(6, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level terminate
+
+	// Battery levels: the options without distance-aware return act like the ones with it
+	EXPECT_EQ(selectedActionFor(3, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(5, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(4, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(6, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(3, kEmergency, false), FailsafeBase::Action::Land);
+	EXPECT_EQ(selectedActionFor(5, kEmergency, false), FailsafeBase::Action::Land);
+	EXPECT_EQ(selectedActionFor(4, kEmergency, false), FailsafeBase::Action::Terminate);
+	EXPECT_EQ(selectedActionFor(6, kEmergency, false), FailsafeBase::Action::Terminate);
 }

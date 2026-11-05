@@ -50,6 +50,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - **The GNSS check parameters moved from EKF2 to the sensors module.**
   `EKF2_GPS_CHECK` is now [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK), `EKF2_REQ_EPH`, `EKF2_REQ_EPV`, `EKF2_REQ_NSATS`, `EKF2_REQ_PDOP`, `EKF2_REQ_HDRIFT`, `EKF2_REQ_VDRIFT`, `EKF2_REQ_FIX` and `EKF2_REQ_SACC` are now `GNSS_REQ_*`, and `EKF2_REQ_GPS_H` is now [GNSS_REQ_TIME](../advanced_config/parameter_reference.md#GNSS_REQ_TIME).
   Saved parameters are migrated automatically, but loading a QGC parameter file with the old names does not restore them. ([PX4-Autopilot#28520](https://github.com/PX4/PX4-Autopilot/pull/28520), [PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
+- **`COM_FLTT_LOW_ACT` has been removed: distance-aware return is now set with [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT).**
+  A low remaining flight time is now always reported as a warning, and `COM_LOW_BAT_ACT` options `3` and `4` also engage Return mode ([distance-aware return failsafe](../config/safety.md#distance-aware-return-failsafe)).
+  The new options `5` and `6` are the same as `3` and `4` without distance-aware return (they only warn).
+  `COM_FLTT_LOW_ACT` is not migrated: if you use `COM_LOW_BAT_ACT` `3` or `4` and do not want distance-aware return, change it to `5` or `6`.
+  Distance-aware return is not available together with `COM_LOW_BAT_ACT` `0` (Warning) or `2` (Land), and the warning can no longer be disabled (previously `COM_FLTT_LOW_ACT=0`). ([PX4-Autopilot#26955](https://github.com/PX4/PX4-Autopilot/pull/26955))
 - **`DO_JUMP` can only loop back and its repeat count must fit.**
   A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0, and if its repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
@@ -58,6 +63,18 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   This also applies to `MAV_CMD_DO_LAND_START`, which uses it internally.
   Ground stations and scripts that relied on the command to arm must send `MAV_CMD_COMPONENT_ARM_DISARM` separately (QGroundControl, MAVSDK and the PX4 ROS 2 Interface Library already do).
   See the [MAVLink spec clarification](https://github.com/mavlink/mavlink/pull/2648).
+- **Multicopters stop waiting for a waypoint heading after a timeout.**
+  [MIS_YAW_TMT](../advanced_config/parameter_reference.md#MIS_YAW_TMT) now defaults to `10` instead of `-1` and is counted from when the heading is commanded instead of from when the waypoint is reached.
+  A multicopter that cannot reach a waypoint heading in time, in a mission or in Return mode, continues without it instead of hovering indefinitely.
+  If a mission requires the heading, the mission fails and the vehicle returns.
+  The meaning of parameter values changes:
+  - Multicopters with `MIS_YAW_TMT` set above `0` used to skip all headings that the mission does not require. They now wait for them for up to `MIS_YAW_TMT`.
+  - VTOL vehicles in multicopter mode now always skip headings that the mission does not require, even with `MIS_YAW_TMT` set to `-1`.
+  - `MIS_YAW_TMT` set to `0` used to wait indefinitely, like `-1`. It now means not to wait.
+  - Set `MIS_YAW_TMT` to `-1` to keep waiting indefinitely for headings that are awaited.
+
+  See [Mission Mode > Waypoint Heading Timeout](../flight_modes_mc/mission.md#waypoint-heading-timeout).
+
 - **Plans are transferred only with the integer mission messages.**
   PX4 requests and sends plan items with `MISSION_REQUEST_INT` and `MISSION_ITEM_INT` only, and no longer reports `MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT`.
   The deprecated `MISSION_REQUEST` is answered with `MISSION_ITEM_INT`, as the [MAVLink mission protocol](https://mavlink.io/en/services/mission.html) asks, and an upload that sends the deprecated `MISSION_ITEM` is rejected with `MAV_MISSION_UNSUPPORTED`.
@@ -92,6 +109,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [Serial Passthrough](../uart/serial_passthrough.md): new reference [bridge application](../uart/serial_passthrough.md#bridge-application), `Tools/mavlink_serial_bridge.py`, exposes a flight controller serial port or ESC signal pin as a virtual serial port on a Linux/macOS host, so ESC configuration and GPS tools can connect to it over MAVLink.
   ([PX4-Autopilot#28782: feat(tools): add mavlink_serial_bridge.py reference bridge application](https://github.com/PX4/PX4-Autopilot/pull/28782))
 - [Agam FloRange](../dronecan/agam_florange.md): new DroneCAN optical flow, distance sensor and IMU module (PAA3905, AFBR-S50LV85D, ICM-42688-P). ([PX4-Autopilot#28901](https://github.com/PX4/PX4-Autopilot/pull/28901))
+- [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md): new FMUv6X-RT flight controller (NXP i.MX RT1176) with triple-redundant IMUs and 100BASE-T1 Ethernet. ([PX4-Autopilot#28285](https://github.com/PX4/PX4-Autopilot/pull/28285))
 
 ### Common
 
@@ -114,6 +132,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   - Multiple sensor instances can be failed simultaneously via a bitmask, and failures can be triggered from an RC switch.
   - Changed default behaviour of injected WRONG failure for Batteries, to publish a wrong level, and not stop publishing
 - [Motor failure recovery](../config/motor_failure_recovery.md) for hexarotors: on a single motor failure the control allocator removes the failed motor and additionally stops ([CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1`) or reverses (`2`) the motor opposite it to recover the lost yaw authority. Mode `2` requires a reverse-capable ESC and models the reverse thrust of a forward propeller with the new [CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) (default `0.4`). Reversible motor outputs on DroneCAN are now sent as signed `RawCommand` values (negative is reverse). ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
+- [Distance-aware return failsafe](../config/safety.md#distance-aware-return-failsafe) (also known as "bingo fuel"): engaging Return mode when the remaining flight time is only just enough to return is now part of [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) `3` and `4` (the new options `5` and `6` opt out), instead of with the separate `COM_FLTT_LOW_ACT`. See the [Upgrade Guide](#upgrade-guide). ([PX4-Autopilot#26955](https://github.com/PX4/PX4-Autopilot/pull/26955))
 - Added `RTL_TYPE=6` for battery-aware home priority return ([PX4-Autopilot#26968](https://github.com/PX4/PX4-Autopilot/pull/26968)).
   Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
@@ -129,7 +148,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Sensors
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
-- Disabling the selected IMU at runtime (setting its [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO) or [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO) to `0`) now hands over to the next IMU without a sensor failure report, including while the vehicle is armed. A re-enabled IMU reappears in `sensors_status_imu` and the IMU consistency check only once it publishes new data. ([PX4-Autopilot#28811](https://github.com/PX4/PX4-Autopilot/pull/28811))
 
 ### Simulation
 
@@ -164,6 +182,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - The neural network controller (`mc_nn_control`) now maps its actions to motor commands over the real motor range, so action -1 idles a motor instead of stopping it and the top of the range no longer runs past full scale. The two RPM limits and the thrust coefficient (`MC_NN_MIN_RPM`, `MC_NN_MAX_RPM`, `MC_NN_THRST_COEF`) are now checked against each other, and the module has its first unit tests. ([PX4-Autopilot#28433](https://github.com/PX4/PX4-Autopilot/pull/28433))
 - The neural network controller (`mc_nn_control`) now rejects at load a model whose input or output shape does not match what the controller expects, checks the position, attitude and angular velocity observations each cycle for validity, age and finiteness, and reports a fault on a bad observation or a non-finite output instead of stopping one motor. ([PX4-Autopilot#28504](https://github.com/PX4/PX4-Autopilot/pull/28504))
 - The multicopter position controller now moves its stored fallback setpoint along with the current setpoint when the estimator resets its position, velocity or heading, so when the setpoint is unusable at the moment of a reset the controller no longer flies a fallback setpoint that is offset by the amount of the reset. ([PX4-Autopilot#28810](https://github.com/PX4/PX4-Autopilot/pull/28810))
+- [Follow Me](../flight_modes_mc/follow_me.md) no longer treats an [EKF2 instance switch](../advanced_config/tuning_the_ecl_ekf.md#running-multiple-ekf-instances) or a change of the local origin as a jump of the target while the mode is active. The vehicle holds its position until the next target position message and keeps its altitude instead of climbing or descending by the change in reference altitude. ([PX4-Autopilot#29029](https://github.com/PX4/PX4-Autopilot/pull/29029))
 
 ### VTOL
 
@@ -172,6 +191,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Fixed-wing
 
 - TECS underspeed protection now starts at the minimum airspeed ([FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN)) and is fully active at 90% of it, or halfway to [FW_AIRSPD_STALL](../advanced_config/parameter_reference.md#FW_AIRSPD_STALL) if that is higher. Previously it only started 15% of trim airspeed below the minimum airspeed. The roll angle is limited towards 20° (or [FW_R_LIM](../advanced_config/parameter_reference.md#FW_R_LIM) if lower) while undersped, and the altitude reference is reset to avoid a pitch-up on recovery. ([PX4-Autopilot#26859](https://github.com/PX4/PX4-Autopilot/pull/26859))
+- Fixed-wing course control now maps the course setpoint to a heading using the [true airspeed](../config_fw/airspeed_scale_handling.md#airspeed-in-px4) setpoint, so the wind triangle against the estimated wind is also correct at altitude. Previously it used the equivalent airspeed setpoint, which at 3000 m and 15 m/s airspeed pointed the heading about 7° too far into a 10 m/s crosswind and left the vehicle a few metres upwind of its track. ([PX4-Autopilot#29567](https://github.com/PX4/PX4-Autopilot/pull/29567))
 
 ### Rover
 

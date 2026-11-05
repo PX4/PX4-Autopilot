@@ -61,6 +61,9 @@ publications:
   - topic: /fmu/out/manual_control_setpoint
     type: px4_msgs::msg::ManualControlSetpoint
 
+  - topic: /fmu/out/message_format_response
+    type: px4_msgs::msg::MessageFormatResponse
+
   - topic: /fmu/out/position_setpoint_triplet
     type: px4_msgs::msg::PositionSetpointTriplet
 
@@ -69,6 +72,9 @@ publications:
 
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
+
+  - topic: /fmu/out/transponder_report
+    type: px4_msgs::msg::TransponderReport
 
   # - topic: /fmu/out/vehicle_angular_velocity
   #   type: px4_msgs::msg::VehicleAngularVelocity
@@ -127,12 +133,30 @@ publications:
   - topic: /fmu/out/airspeed_validated
     type: px4_msgs::msg::AirspeedValidated
 
+  - topic: /fmu/out/vtol_vehicle_status
+    type: px4_msgs::msg::VtolVehicleStatus
+
+  - topic: /fmu/out/home_position
+    type: px4_msgs::msg::HomePosition
+
+  - topic: /fmu/out/wind
+    type: px4_msgs::msg::Wind
+
+  - topic: /fmu/out/gimbal_device_attitude_status
+    type: px4_msgs::msg::GimbalDeviceAttitudeStatus
+
   - topic: /fmu/out/config_overrides_confirm
     type: px4_msgs::msg::ConfigOverrides
     options:
       cc: block
       rel: reliable
       express: true
+
+  - topic: /fmu/out/vtx
+    type: px4_msgs::msg::Vtx
+
+  - topic: /fmu/out/input_rc
+    type: px4_msgs::msg::InputRc
 
 # Create uORB::Publication
 subscriptions:
@@ -150,6 +174,9 @@ subscriptions:
 
   - topic: /fmu/in/arming_check_reply
     type: px4_msgs::msg::ArmingCheckReply
+
+  - topic: /fmu/in/message_format_request
+    type: px4_msgs::msg::MessageFormatRequest
 
   - topic: /fmu/in/mode_completed
     type: px4_msgs::msg::ModeCompleted
@@ -210,6 +237,42 @@ subscriptions:
 
   - topic: /fmu/in/actuator_servos
     type: px4_msgs::msg::ActuatorServos
+
+  - topic: /fmu/in/sensor_gnss
+    type: px4_msgs::msg::SensorGnss
+
+  - topic: /fmu/in/fixed_wing_longitudinal_setpoint
+    type: px4_msgs::msg::FixedWingLongitudinalSetpoint
+
+  - topic: /fmu/in/fixed_wing_lateral_setpoint
+    type: px4_msgs::msg::FixedWingLateralSetpoint
+
+  - topic: /fmu/in/longitudinal_control_configuration
+    type: px4_msgs::msg::LongitudinalControlConfiguration
+
+  - topic: /fmu/in/lateral_control_configuration
+    type: px4_msgs::msg::LateralControlConfiguration
+
+  - topic: /fmu/in/rover_position_setpoint
+    type: px4_msgs::msg::RoverPositionSetpoint
+
+  - topic: /fmu/in/rover_speed_setpoint
+    type: px4_msgs::msg::RoverSpeedSetpoint
+
+  - topic: /fmu/in/rover_attitude_setpoint
+    type: px4_msgs::msg::RoverAttitudeSetpoint
+
+  - topic: /fmu/in/rover_rate_setpoint
+    type: px4_msgs::msg::RoverRateSetpoint
+
+  - topic: /fmu/in/rover_throttle_setpoint
+    type: px4_msgs::msg::RoverThrottleSetpoint
+
+  - topic: /fmu/in/rover_steering_setpoint
+    type: px4_msgs::msg::RoverSteeringSetpoint
+
+  - topic: /fmu/in/landing_gear
+    type: px4_msgs::msg::LandingGear
 
   - topic: /fmu/in/aux_global_position
     type: px4_msgs::msg::AuxGlobalPosition
