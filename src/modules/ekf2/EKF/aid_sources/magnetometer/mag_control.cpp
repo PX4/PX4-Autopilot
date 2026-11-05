@@ -96,10 +96,12 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 		if (global_origin().isInitialized()) {
 
-			bool origin_newer_than_last_mag = (global_origin().getProjectionReferenceTimestamp() > aid_src.time_last_fuse);
+			// an origin set between two updates has the time of the last one, which can also be the time of the last fusion
+			bool origin_newer_than_last_mag = (global_origin().getProjectionReferenceTimestamp() >= aid_src.time_last_fuse);
 
-			if (global_origin_valid()
-			    && (origin_newer_than_last_mag || (isLocalHorizontalPositionValid() && isTimedOut(_wmm_mag_time_last_checked, 10e6)))
+			// without position aiding the position estimate is meaningless (0N 0E at startup), use the origin instead
+			if (isLocalHorizontalPositionValid()
+			    && (origin_newer_than_last_mag || isTimedOut(_wmm_mag_time_last_checked, 10e6))
 			   ) {
 				if (updateWorldMagneticModel(_gpos.latitude_deg(), _gpos.longitude_deg())) {
 					wmm_updated = true;
