@@ -91,7 +91,7 @@ void OutputRC::_check_gimbal_output_functions_assigned()
 	_gimbal_output_functions_assigned = false;
 
 	for (int i = 0; i < 3; ++i) {
-		_axis_assigned[i] = false;
+		_axis_actuated[i] = false;
 	}
 
 	for (unsigned i = 0; i < param_count(); ++i) {
@@ -125,7 +125,14 @@ void OutputRC::_check_gimbal_output_functions_assigned()
 
 		if (function >= (int32_t)OutputFunction::Gimbal_Roll && function <= (int32_t)OutputFunction::Gimbal_Yaw) {
 			_gimbal_output_functions_assigned = true;
-			_axis_assigned[function - (int32_t)OutputFunction::Gimbal_Roll] = true;
+			_axis_actuated[function - (int32_t)OutputFunction::Gimbal_Roll] = true;
+		}
+	}
+
+	// gimbal_controls may still be consumed without an output function, so keep driving every axis.
+	if (!_gimbal_output_functions_assigned) {
+		for (int i = 0; i < 3; ++i) {
+			_axis_actuated[i] = true;
 		}
 	}
 }
@@ -154,17 +161,17 @@ void OutputRC::_publish_device_information()
 
 	info.cap_flags = gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL;
 
-	if (_axis_assigned[0]) {
+	if (_axis_actuated[0]) {
 		info.cap_flags |= gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS
 				  | gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_LOCK;
 	}
 
-	if (_axis_assigned[1]) {
+	if (_axis_actuated[1]) {
 		info.cap_flags |= gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS
 				  | gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_LOCK;
 	}
 
-	if (_axis_assigned[2]) {
+	if (_axis_actuated[2]) {
 		info.cap_flags |= gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS
 				  | gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK;
 	}

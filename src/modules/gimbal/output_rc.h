@@ -68,7 +68,6 @@ private:
 	uORB::Publication <gimbal_device_information_s>	_device_information_pub{ORB_ID(gimbal_device_information)};
 
 	bool _gimbal_output_functions_assigned{false};
-	bool _axis_assigned[3] {};
 	gimbal_device_information_s _device_information{};
 };
 
