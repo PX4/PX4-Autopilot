@@ -66,7 +66,8 @@ private:
 		Warning = 0,        // Warning
 		Return = 1,         // Return mode (deprecated)
 		Land = 2,           // Land mode
-		ReturnOrLand = 3    // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+		ReturnOrLand = 3,   // Return mode at critically low level, Land mode at current position if reaching dangerously low levels, plus distance-aware return
+		ReturnOrLandWithoutDistanceAwareReturn = 5 // ReturnOrLand, but only warn when the remaining flight time is only just enough to return
 	};
 
 	enum class offboard_loss_failsafe_mode : int32_t {
@@ -145,12 +146,6 @@ private:
 		Land_mode = 5
 	};
 
-	enum class command_after_remaining_flight_time_low : int32_t {
-		None = 0,
-		Warning = 1,
-		Return_mode = 3
-	};
-
 	enum class open_drone_id_failsafe_mode : int32_t {
 		None = 0,
 		Warning = 1,
@@ -184,7 +179,6 @@ private:
 	static Action fromOffboardLossActParam(int param_value, uint8_t &user_intended_mode);
 	static ActionOptions fromHighWindLimitActParam(int param_value);
 	static ActionOptions fromPosLowActParam(int param_value);
-	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
 	static ActionOptions fromOdidFailActParam(int param_value);
 	static ActionOptions fromParachuteActParam(int param_value);
 	static ActionOptions fromGnssLossActParam(int param_value);
@@ -235,7 +229,6 @@ private:
 					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act,
-					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act,
 					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act,
 					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid,
 					(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute,
