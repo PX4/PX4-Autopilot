@@ -101,8 +101,11 @@ public:
 	 */
 	bool default_update_data() const { return _default_update_data; }
 
-	virtual const char *get_name() const = 0;
-	virtual uint16_t get_id() = 0;
+	// name and message ID come from the stream list entry the stream was created from
+	const char *get_name() const;
+	uint16_t get_id() const;
+
+	void set_list_index(uint8_t index) { _list_index = index; }
 
 	/**
 	 * @return true if steam rate shouldn't be adjusted
@@ -164,6 +167,7 @@ private:
 	hrt_abstime _last_sent{0};
 	bool _first_message_sent{false};
 	bool _default_update_data{false};
+	uint8_t _list_index{0};
 };
 
 

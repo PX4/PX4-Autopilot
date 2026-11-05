@@ -46,9 +46,6 @@ public:
 	static constexpr const char *get_name_static() { return "ESC_STATUS"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_ESC_STATUS; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		static constexpr unsigned message_size = MAVLINK_MSG_ID_ESC_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;

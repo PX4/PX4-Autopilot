@@ -46,9 +46,6 @@ public:
 	static constexpr const char *get_name_static() { return "GLOBAL_POSITION_INT"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_GLOBAL_POSITION_INT; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		return _gpos_sub.advertised() ? MAVLINK_MSG_ID_GLOBAL_POSITION_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;

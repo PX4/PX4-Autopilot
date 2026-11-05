@@ -45,9 +45,6 @@ public:
 	static constexpr const char *get_name_static() { return "VIBRATION"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_VIBRATION; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		if (_sensor_selection_sub.advertised() && _vehicle_imu_status_subs.advertised()) {

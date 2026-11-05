@@ -53,6 +53,21 @@ def generate(xml_file, dest='.', readonly_config=None):
     if not os.path.isdir(dest):
         os.path.mkdir(dest)
 
+    # names are stored back to back, each found by a 16-bit offset into the blob
+    name_offsets = []
+    offset = 0
+    for param in params:
+        name_offsets.append(offset)
+        offset += len(param.attrib["name"]) + 1
+    if offset > 0xffff:
+        raise Exception("parameter names exceed the 16-bit offset range ({} bytes)".format(offset))
+
+    # one bit per parameter, set for FLOAT
+    float_mask = [0] * ((len(params) + 31) // 32)
+    for i, param in enumerate(params):
+        if param.attrib["type"] == "FLOAT":
+            float_mask[i // 32] |= 1 << (i % 32)
+
     template_files = [
         'px4_parameters.hpp.jinja',
     ]
@@ -60,7 +75,8 @@ def generate(xml_file, dest='.', readonly_config=None):
         template = env.get_template(template_file)
         with open(os.path.join(
                 dest, template_file.replace('.jinja','')), 'w') as fid:
-            fid.write(template.render(params=params, readonly_params=readonly_params))
+            fid.write(template.render(params=params, readonly_params=readonly_params,
+                                      name_offsets=name_offsets, float_mask=float_mask))
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()

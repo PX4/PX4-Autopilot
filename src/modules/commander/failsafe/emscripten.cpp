@@ -98,7 +98,7 @@ void param_set_used(param_t param)
 	}
 
 	Param p;
-	memcpy(&p.val, &px4::parameters[param].val, sizeof(p.val));
+	memcpy(&p.val, &px4::parameters_default[param], sizeof(p.val));
 	used_params[param] = p;
 }
 
@@ -114,7 +114,7 @@ std::vector<std::string> get_used_params()
 	std::map<param_t, Param> &used_params = failsafe_instance.params();
 
 	for (const auto &param_iter : used_params) {
-		ret.push_back(px4::parameters[param_iter.first].name);
+		ret.push_back(&px4::parameters_names[px4::parameters_name_offset[param_iter.first]]);
 	}
 
 	return ret;
@@ -124,7 +124,7 @@ param_value_u get_param_value(const std::string &name)
 	std::map<param_t, Param> &used_params = failsafe_instance.params();
 
 	for (const auto &param_iter : used_params) {
-		if (name == px4::parameters[param_iter.first].name) {
+		if (name == &px4::parameters_names[px4::parameters_name_offset[param_iter.first]]) {
 			return param_iter.second.val;
 		}
 	}
@@ -148,7 +148,7 @@ void set_param_value(const std::string &name, const param_value_u value)
 	std::map<param_t, Param> &used_params = failsafe_instance.params();
 
 	for (auto &param_iter : used_params) {
-		if (name == px4::parameters[param_iter.first].name) {
+		if (name == &px4::parameters_names[px4::parameters_name_offset[param_iter.first]]) {
 			param_iter.second.val = value;
 			break;
 		}
