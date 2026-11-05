@@ -171,13 +171,17 @@ SD cards are used for [log files and for storing missions](../getting_started/px
 In the product, UART7 does not have an external connector, but it exists on the circuit board for debugging purposes.
 :::
 
+::: info
+The bootloader enables only UART5, so `Uart5` is the only serial port that [px4_uploader.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4_uploader.py) can flash firmware over.
+:::
+
 ## Assembly {#assembly}
 
 The [CyberX-v10 Wiring Quick Start](../assembly/quick_start_cyberx_v10.md) provides instructions on how to assemble required/important peripherals including GPS, Power Module etc.
 
 ### Wiring Diagram {#wiring_diagram}
 
-![CyberX-v10 block diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_block_diagram.png)
+![CyberX-v10 wiring diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_block_diagram.png)
 
 ### Radio Control {#radio_control}
 
@@ -185,11 +189,18 @@ A Radio Control (RC) system is required if you want to manually control your veh
 
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-SBUS receivers connect to the `S.Bin` port or the `RCin` pin on the servo rail (both routed to the PX4IO).
-PPM receivers connect to the `RCin` pin.
-CRSF and GHST receivers connect to the `Uart8` port (routed to the FMU).
+The board has two RC input paths:
+
+- `S.Bin` and `RCin` (on the servo rail) go to the [IO processor](../modules/modules_driver.md#px4io), which detects the protocol with no configuration.
+  SBUS receivers connect to `S.Bin` or `RCin`, and PPM receivers connect to `RCin`.
+- `Uart8` goes to the FMU, where the [rc_input](../modules/modules_driver_radio_control.md#rc-input) driver detects the protocol with no configuration.
+  Use it for CRSF and GHST receivers, which the IO processor can't decode.
+  PX4 uses `Uart8` as a single-wire port on its `RX` pin, so connect the receiver's `TX` output to that pin.
+  [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) sets the port that `rc_input` uses, and defaults to `Radio Controller` (`Uart8`).
+
+Spektrum/DSM receivers are not supported.
+
 If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#connecting-receivers).
-You can then bind the transmitter and receiver together.
 
 ### GPS & Compass {#gps_compass}
 
@@ -200,6 +211,7 @@ The GPS ports are:
 
 - `GPS1`: 6-pin port with UART and I2C (for an external compass).
 - `GPS2`: 6-pin port with UART and I2C (for an external compass).
+  Set [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to `GPS 2` to use it.
 
 The GPS ports do not include safety switch, LED or buzzer pins.
 These are on the separate `SW+BUZ` port.
@@ -217,6 +229,8 @@ The other radio is connected to your ground station computer or mobile device (u
 ### CAN {#can}
 
 The board has two CAN ports, `CAN1` and `CAN2`, which can be used for [DroneCAN](../dronecan/index.md) peripherals.
+DroneCAN is disabled by default.
+To enable it, set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE).
 
 ## Building Firmware {#building_firmware}
 

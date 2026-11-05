@@ -2,6 +2,11 @@
 
 <Badge type="tip" text="main (PX4 v2.0)" />
 
+::: warning
+PX4 does not manufacture this (or any) autopilot.
+Contact the [manufacturer](https://int.woocoo.vip/) for hardware support or compliance issues.
+:::
+
 This quick start guide shows how to power the [CyberX-v10](../flight_controller/cyberx_v10.md) flight controller and connect its most important peripherals.
 
 ## Wiring Chart Overview
@@ -49,6 +54,7 @@ The CyberX-v10 can be purchased with a GNSS module that has an integrated compas
 The module has two 6-pin connectors: connect them to the `GPS1` and `SW+BUZ` ports.
 
 A second GPS module (for example, an RTK or redundant GPS) can be connected to the `GPS2` port.
+Set [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to `GPS 2` to use it.
 
 The GPS/compass should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction markings towards the front of the vehicle (separating the compass from other electronics will reduce interference).
 
@@ -66,9 +72,10 @@ A remote control (RC) radio system is required if you want to _manually_ control
 
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-- SBUS receivers connect to the **S.Bin** port or the **RCin** pin.
-- PPM receivers connect to the **RCin** pin.
-- CRSF and GHST receivers connect to the **Uart8** port.
+- SBUS receivers connect to the `S.Bin` port or the `RCin` pin.
+- PPM receivers connect to the `RCin` pin.
+- CRSF and GHST receivers connect to the `Uart8` port, with the receiver's `TX` output on the `RX` pin.
+- Spektrum/DSM receivers are not supported.
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
 
