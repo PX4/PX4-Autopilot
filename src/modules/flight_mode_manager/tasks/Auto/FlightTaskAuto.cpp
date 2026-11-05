@@ -440,10 +440,10 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
 
-	if(position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_GLOBAL){
+	if (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_GLOBAL) {
 
 		if (!PX4_ISFINITE(position_setpoint_triplet.current.lat)
-	    	|| !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
+		    || !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
 			// No position provided in xy. Lock position
 			if (!_lock_position_xy.isAllFinite()) {
 				tmp_target(0) = _lock_position_xy(0) = _position(0);
@@ -460,12 +460,12 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 
 			// Convert from global to local frame.
 			_reference_position.project(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon,
-					    	tmp_target(0), tmp_target(1));
+						    tmp_target(0), tmp_target(1));
 		}
 
 		tmp_target(2) = -(position_setpoint_triplet.current.alt - _reference_altitude);
 
-	} else if(position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_LOCAL){
+	} else if (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
 
 		tmp_target(0) = position_setpoint_triplet.current.x;
 		tmp_target(1) = position_setpoint_triplet.current.y;
