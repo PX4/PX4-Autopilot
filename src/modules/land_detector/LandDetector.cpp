@@ -103,6 +103,25 @@ void LandDetector::Run()
 
 	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
 		_acceleration = matrix::Vector3f{vehicle_acceleration.xyz};
+
+		const bool first_sample = (_time_last_acceleration_sample_us == 0);
+		const float dt_s = (vehicle_acceleration.timestamp_sample - _time_last_acceleration_sample_us) * 1e-6f;
+		_time_last_acceleration_sample_us = vehicle_acceleration.timestamp_sample;
+
+		if (first_sample || (dt_s > 1.f)) {
+			_specific_force_fast.reset(_acceleration);
+			_specific_force_slow.reset(_acceleration);
+		}
+
+		// Catches smooth accelerations, such as a takeoff roll, that the high-passed vibration metrics miss.
+		static constexpr float kSpecificForceChangeMax = 0.3f;
+
+		const matrix::Vector3f specific_force_change = _specific_force_fast.update(_acceleration, dt_s)
+				- _specific_force_slow.update(_acceleration, dt_s);
+
+		if (specific_force_change.longerThan(kSpecificForceChangeMax)) {
+			_time_last_move_detect_us = vehicle_acceleration.timestamp_sample;
+		}
 	}
 
 	vehicle_angular_velocity_s vehicle_angular_velocity{};
