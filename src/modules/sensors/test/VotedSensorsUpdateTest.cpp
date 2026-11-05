@@ -204,14 +204,14 @@ public:
 
 	// run the voter at the rate the sensors module polls it, feeding it the given samples
 	template<typename Feed>
-	static sensor_combined_s pollFor(VotedSensorsUpdate &voter, hrt_abstime duration, Feed feed, bool armed = false)
+	static sensor_combined_s pollFor(VotedSensorsUpdate &voter, hrt_abstime duration, Feed feed)
 	{
 		const hrt_abstime start = hrt_absolute_time();
 		sensor_combined_s raw{};
 
 		do {
 			feed();
-			voter.sensorsPoll(raw, armed);
+			voter.sensorsPoll(raw);
 			px4_usleep(10_ms);
 		} while (hrt_absolute_time() < start + duration);
 
@@ -631,7 +631,7 @@ TEST_F(VotedSensorsUpdateTest, ReEnablingAnImuWhileArmedWaitsForDisarm)
 	EXPECT_EQ(status.accel_device_ids[0], kAccelIds[0]);
 }
 
-TEST_F(VotedSensorsUpdateTest, AnInconsistentPrimaryImuSwitchesToTheMedianUntilDisarm)
+TEST_F(VotedSensorsUpdateTest, ImuMode2FliesOnTheMedianFromTheStart)
 {
 	setParam("SENS_IMU_MODE", 2);
 	setPriority(0, 75, 75);
@@ -641,48 +641,51 @@ TEST_F(VotedSensorsUpdateTest, AnInconsistentPrimaryImuSwitchesToTheMedianUntilD
 	ImuSubscriptionOwner owner;
 	VotedSensorsUpdate voter(false, owner.subs);
 
-	float gyro_x_imu0 = 0.f;
+	// the primary gyro reads 1 rad/s off from the start, the two healthy gyros differ a little
+	// so that only the median gives 0.05
 	auto feed = [&]() {
-		// the two healthy gyros differ a little, so that only the median gives 0.05
-		publishImu(0, 9.8f, gyro_x_imu0);
+		publishImu(0, 9.8f, 1.f);
 		publishImu(1, 9.8f);
 		publishImu(3, 9.8f, 0.05f);
 	};
 
 	start(voter, feed);
-	pollFor(voter, 300_ms, feed, true);
+	const sensor_combined_s raw = pollFor(voter, 300_ms, feed);
 
 	sensor_selection_s selection{};
 	ASSERT_TRUE(readSelection(selection));
-	ASSERT_EQ(selection.gyro_device_id, kGyroIds[0]);
-	ASSERT_FALSE(selection.imu_median) << "consistent IMUs fly on the primary";
-
-	// the primary gyro drifts 1 rad/s away from the other two in flight
-	gyro_x_imu0 = 1.f;
-	const sensor_combined_s raw = pollFor(voter, 1_s, feed, true);
-
-	ASSERT_TRUE(readSelection(selection));
 	EXPECT_TRUE(selection.imu_median);
-	EXPECT_EQ(selection.gyro_device_id, kGyroIds[1]) << "consumers of the selected device move to a healthy IMU";
-	EXPECT_EQ(selection.accel_device_id, kAccelIds[1]);
-	EXPECT_NEAR(raw.gyro_rad[0], 0.05f, 0.01f) << "the median, not the selected IMU (0) nor the mean (0.35)";
-	EXPECT_EQ(Peer::gyroFailoverCount(voter), 0u) << "switching to the median is not a sensor failure";
-
-	// the primary agrees again, but the median stays until landing
-	gyro_x_imu0 = 0.f;
-	pollFor(voter, 300_ms, feed, true);
-	ASSERT_TRUE(readSelection(selection));
-	EXPECT_TRUE(selection.imu_median);
-
-	pollFor(voter, 100_ms, feed);
-	ASSERT_TRUE(readSelection(selection));
-	EXPECT_FALSE(selection.imu_median) << "disarming ends the median";
-	EXPECT_EQ(selection.gyro_device_id, kGyroIds[0]) << "and the next flight starts on the configured primary";
-	EXPECT_EQ(Peer::gyroPriority(voter, 0), 75);
-	EXPECT_EQ(Peer::accelPriority(voter, 0), 75);
+	EXPECT_EQ(selection.gyro_device_id, kGyroIds[0]) << "the median does not change the selected IMU";
+	EXPECT_EQ(selection.accel_device_id, kAccelIds[0]);
+	EXPECT_NEAR(raw.gyro_rad[0], 0.05f, 0.01f) << "the median, not the selected IMU (1) nor the mean (0.35)";
+	EXPECT_EQ(Peer::gyroFailoverCount(voter), 0u);
 }
 
-TEST_F(VotedSensorsUpdateTest, TwoImusCannotTellWhichOneIsWrongAndKeepThePrimary)
+TEST_F(VotedSensorsUpdateTest, ImuMode1FliesOnThePrimary)
+{
+	setPriority(0, 75, 75);
+	setPriority(1, 60, 60);
+	setPriority(3, 50, 50);
+
+	ImuSubscriptionOwner owner;
+	VotedSensorsUpdate voter(false, owner.subs);
+
+	auto feed = [&]() {
+		publishImu(0, 9.8f, 1.f);
+		publishImu(1, 9.8f);
+		publishImu(3, 9.8f, 0.05f);
+	};
+
+	start(voter, feed);
+	const sensor_combined_s raw = pollFor(voter, 300_ms, feed);
+
+	sensor_selection_s selection{};
+	ASSERT_TRUE(readSelection(selection));
+	EXPECT_FALSE(selection.imu_median);
+	EXPECT_NEAR(raw.gyro_rad[0], 1.f, 0.01f);
+}
+
+TEST_F(VotedSensorsUpdateTest, WithTwoImusTheMedianKeepsThePrimary)
 {
 	setParam("SENS_IMU_MODE", 2);
 	setPriority(0, 75, 75);
@@ -697,10 +700,10 @@ TEST_F(VotedSensorsUpdateTest, TwoImusCannotTellWhichOneIsWrongAndKeepThePrimary
 	};
 
 	start(voter, feed);
-	pollFor(voter, 1_s, feed, true);
+	const sensor_combined_s raw = pollFor(voter, 300_ms, feed);
 
 	sensor_selection_s selection{};
 	ASSERT_TRUE(readSelection(selection));
-	EXPECT_FALSE(selection.imu_median);
 	EXPECT_EQ(selection.gyro_device_id, kGyroIds[0]);
+	EXPECT_NEAR(raw.gyro_rad[0], 1.f, 0.01f) << "two IMUs have no median, the primary is used";
 }

@@ -562,7 +562,7 @@ void Sensors::Run()
 		}
 	}
 
-	_voted_sensors_update.sensorsPoll(_sensor_combined, _armed);
+	_voted_sensors_update.sensorsPoll(_sensor_combined);
 
 	if (_sensor_combined.timestamp != _sensor_combined_prev_timestamp) {
 
