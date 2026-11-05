@@ -77,7 +77,7 @@ void DifferentialAttControl::updateAttControl()
 {
 	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	// Runs at the EKF2 output rate (EKF2_PREDICT_US up to 20 ms), allow for that plus jitter
+	// Runs on every vehicle_attitude publication (EKF2 output predictor at IMU_INTEG_RATE >= 100 Hz), allow for jitter
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
 	if (_vehicle_attitude_sub.updated()) {
