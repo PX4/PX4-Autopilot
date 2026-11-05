@@ -199,7 +199,6 @@ private:
 	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overridden using DO_CHANGE_SPEED
 
 	MapProjection _reference_position{}; /**< Class used to project lat/lon setpoint into local frame. */
-	bool _global_reference_init{false}; /*Indicate an global reference frame was initialised previously*/
 	float _reference_altitude{NAN}; /**< Altitude relative to ground. */
 	double _reference_lat{static_cast<double>(NAN)}; /**< latitude the projection reference was initialized with */
 	double _reference_lon{static_cast<double>(NAN)}; /**< longitude the projection reference was initialized with */
@@ -212,7 +211,7 @@ private:
 	bool _evaluatePositionSetpointTriplet();
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	void _setLocalPositionFromSetpoint(const position_setpoint_s &sp,
-					    matrix::Vector3f &local_pos); /**< Converts a setpoint (global or local frame) into the local frame. */
+					   matrix::Vector3f &local_pos); /**< Converts a setpoint (global or local frame) into the local frame. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
 	bool _hasPassedCurrentWaypoint() const; /**< True if the vehicle is past the current waypoint */
 	void _set_heading_from_mode(); /**< @see  MPC_YAW_MODE */
