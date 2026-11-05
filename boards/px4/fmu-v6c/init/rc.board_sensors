@@ -15,10 +15,13 @@ else
        bmi055 -G -R 4 -s start
 fi
 
-# Internal SPI bus IMU (probe-based: LSM6DSV or ICM42688P on same CS)
+# Internal SPI bus IMU (probe-based: ICM42688P, LSM6DSV or ASM330LHH on same CS)
 if ! icm42688p -R 6 -s -q start
 then
-    lsm6dsv -R 6 -s start
+    if ! lsm6dsv -R 6 -s -q start
+    then
+        asm330lhh -R 6 -s start
+    fi
 fi
 
 # Internal barometer on I2C4 (shared with a connector)

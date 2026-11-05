@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_ST_ASM330LHH
+	bool "asm330lhh"
+	default n
+	---help---
+		Enable support for asm330lhh
