@@ -12,17 +12,29 @@ parameters:
       default: 0.5
       min: 0.0
       unit: A
-    SIM_BAT_I_MOT:
+    SIM_BAT_I_MOT_A:
       description:
-        short: Simulated battery current draw per motor at full throttle
+        short: Simulated battery motor current, linear coefficient
         long: |-
-          Current drawn from each simulated battery by a single motor at full thrust. Each motor draws this current scaled by its normalized thrust command to the power of 1.5 (momentum theory). With several batteries enabled, each one is drained by this full current.
-          With the default SIM_BAT_I_IDLE, the default draws about 8 A for a quadcopter hovering at 60% thrust.
-          The battery simulator only starts if SIM_BAT_I_IDLE or SIM_BAT_I_MOT is greater than 0. Set both to 0 to disable it entirely (useful when battery state is provided externally, e.g. via MAVLink).
+          Coefficient a of the motor current a·Σu + b·Σu³V², where u is the normalized thrust command of each motor and V the battery voltage. This term covers the losses growing linearly with the command: each motor draws this current at full thrust. With several batteries enabled, each one is drained by this full current.
+          The battery simulator only starts if SIM_BAT_I_IDLE, SIM_BAT_I_MOT_A or SIM_BAT_I_MOT_B is greater than 0. Set all of them to 0 to disable it entirely (useful when battery state is provided externally, e.g. via MAVLink).
       type: float
-      default: 4.0
+      default: 0.5
       min: 0.0
       unit: A
+    SIM_BAT_I_MOT_B:
+      description:
+        short: Simulated battery motor current, cubic coefficient
+        long: |-
+          Coefficient b of the motor current a·Σu + b·Σu³V², where u is the normalized thrust command of each motor and V the battery voltage of the previous iteration. The rotor speed follows uV and the aerodynamic power its cube, so the current P/V grows with u³V². With several batteries enabled, each one is drained by this full current.
+          With the default SIM_BAT_I_IDLE and SIM_BAT_I_MOT_A, the default draws about 8 A for a fully charged 4S quadcopter hovering at 60% thrust.
+          The battery simulator only starts if SIM_BAT_I_IDLE, SIM_BAT_I_MOT_A or SIM_BAT_I_MOT_B is greater than 0. Set all of them to 0 to disable it entirely (useful when battery state is provided externally, e.g. via MAVLink).
+      type: float
+      default: 0.025
+      min: 0.0
+      decimal: 4
+      increment: 0.001
+      unit: A/V^2
     SIM_BAT${i}_I_IDLE:
       description:
         short: Simulated battery ${i} current draw with motors stopped
@@ -35,16 +47,30 @@ parameters:
       unit: A
       num_instances: 3
       instance_start: 1
-    SIM_BAT${i}_I_MOT:
+    SIM_BAT${i}_I_MOT_A:
       description:
-        short: Simulated battery ${i} current draw per motor at full throttle
+        short: Simulated battery ${i} motor current, linear coefficient
         long: |-
-          Current drawn from simulated battery ${i} by a single motor at full thrust. Set to -1 to use SIM_BAT_I_MOT.
+          Coefficient a of the motor current a·Σu + b·Σu³V² drawn from simulated battery ${i}. Set to -1 to use SIM_BAT_I_MOT_A.
           Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE.
       type: float
       default: [-1.0, -1.0, -1.0]
       min: -1
       unit: A
+      num_instances: 3
+      instance_start: 1
+    SIM_BAT${i}_I_MOT_B:
+      description:
+        short: Simulated battery ${i} motor current, cubic coefficient
+        long: |-
+          Coefficient b of the motor current a·Σu + b·Σu³V² drawn from simulated battery ${i}. Set to -1 to use SIM_BAT_I_MOT_B.
+          Only has an effect if battery ${i} is enabled through BAT${i}_SOURCE.
+      type: float
+      default: [-1.0, -1.0, -1.0]
+      min: -1
+      decimal: 4
+      increment: 0.001
+      unit: A/V^2
       num_instances: 3
       instance_start: 1
     SIM_BAT_MIN_PCT:

@@ -41,7 +41,13 @@ This enables testing of battery indication in GCS UIs without triggering low bat
 
 To change this minimal battery percentage value use the parameter [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT).
 
-The current drawn from the battery is computed from the motor commands: [SIM_BAT_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT_I_IDLE) plus, for each motor, [SIM_BAT_I_MOT](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT) scaled by its normalised thrust command to the power of 1.5 (momentum theory).
+The current drawn from the battery is computed from the motor commands and the battery voltage:
+
+$$I = I_{idle} + a \sum_i |u_i| + b \sum_i |u_i|^3 V^2$$
+
+where $u_i$ is the normalised thrust command of motor $i$, $V$ is the battery voltage of the previous iteration, $I_{idle}$ is [SIM_BAT_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT_I_IDLE), $a$ is [SIM_BAT_I_MOT_A](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT_A) and $b$ is [SIM_BAT_I_MOT_B](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT_B).
+The rotor speed follows the command times the voltage, so the aerodynamic power grows with $u^3 V^3$ and the current with $u^3 V^2$.
+The linear term covers the losses that grow with the command.
 This applies to all vehicle types, including VTOL in either mode, so aggressive manoeuvres and climbs drain the battery faster than hovering or cruising.
 Until motor commands are available, only the idle current is drawn.
 The battery drains according to the drawn current and its capacity [BAT1_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY) (5000 mAh by default in SITL, for all battery instances), and is recharged when the vehicle disarms.
@@ -55,12 +61,12 @@ In that case the battery drains at this idle current while the vehicle is disarm
 By changing [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) in flight, you can also test regaining capacity to simulate inaccurate battery state estimation or in-air charging technology.
 :::
 
-The simulated battery can be completely disabled by setting [SIM_BAT_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT_I_IDLE) and [SIM_BAT_I_MOT](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT) to 0. This is useful, for example, if you provide an external battery simulation via MAVLink.
-Setting only one of them to 0 is not enough: the simulator starts if either is greater than 0.
+The simulated battery can be completely disabled by setting [SIM_BAT_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT_I_IDLE), [SIM_BAT_I_MOT_A](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT_A) and [SIM_BAT_I_MOT_B](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT_B) to 0. This is useful, for example, if you provide an external battery simulation via MAVLink.
+Setting only some of them to 0 is not enough: the simulator starts if any of them is greater than 0.
 
 :::warning
-`SIM_BAT_DRAIN` has been replaced by `SIM_BAT_I_IDLE` and `SIM_BAT_I_MOT`.
-Setups that disabled the simulated battery with `SIM_BAT_DRAIN` set to 0 (for example, to use an external battery over MAVLink) must now set both `SIM_BAT_I_IDLE` and `SIM_BAT_I_MOT` to 0.
+`SIM_BAT_DRAIN` has been replaced by `SIM_BAT_I_IDLE`, `SIM_BAT_I_MOT_A` and `SIM_BAT_I_MOT_B`.
+Setups that disabled the simulated battery with `SIM_BAT_DRAIN` set to 0 (for example, to use an external battery over MAVLink) must now set all three to 0.
 Otherwise the simulator starts and publishes a second `battery_status` alongside the external one.
 :::
 
@@ -72,7 +78,7 @@ Each simulated battery is published as its own `battery_status` instance.
 Each battery drains according to its own capacity, e.g. [BAT2_CAPACITY](../advanced_config/parameter_reference.md#BAT2_CAPACITY), which also defaults to 5000 mAh in SITL.
 A battery whose capacity is not set (`-1`) does not drain: it stays at 100% and a warning is printed.
 
-All batteries deplete according to [SIM_BAT_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT_I_IDLE), [SIM_BAT_I_MOT](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT), and [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) unless overridden for an individual battery with [SIM_BATx_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT1_I_IDLE), [SIM_BATx_I_MOT](../advanced_config/parameter_reference.md#SIM_BAT1_I_MOT), and [SIM_BATx_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT1_MIN_PCT).
+All batteries deplete according to [SIM_BAT_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT_I_IDLE), [SIM_BAT_I_MOT_A](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT_A), [SIM_BAT_I_MOT_B](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT_B), and [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) unless overridden for an individual battery with [SIM_BATx_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT1_I_IDLE), [SIM_BATx_I_MOT_A](../advanced_config/parameter_reference.md#SIM_BAT1_I_MOT_A), [SIM_BATx_I_MOT_B](../advanced_config/parameter_reference.md#SIM_BAT1_I_MOT_B), and [SIM_BATx_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT1_MIN_PCT).
 Setting any of these per-battery parameters to a negative value uses the shared one.
 The current is applied per battery: with several batteries enabled, each one is drained by the full configured current.
 This can be used to test multi-battery behaviour, for example one battery depleting faster than the others.
