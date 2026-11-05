@@ -69,7 +69,7 @@ parameters:
           A forced heading (e.g. before a VTOL transition) is never skipped: a mission fails instead,
           other modes keep waiting.
           VTOLs only wait for forced headings.
-          -1: wait indefinitely
+          0: don't wait, -1: wait indefinitely
       type: float
       default: 10.0
       unit: s

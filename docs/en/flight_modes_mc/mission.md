@@ -233,7 +233,7 @@ If getting to the waypoint takes longer than `MIS_YAW_TMT`, the vehicle does not
 Some headings must be reached for the mission to continue safely, such as the alignment towards the next waypoint before a mission with camera triggering is resumed.
 If such a heading is not reached within `MIS_YAW_TMT`, the mission fails and the vehicle switches to [Return mode](../flight_modes_mc/return.md).
 
-Set `MIS_YAW_TMT` to -1 to always wait for the heading.
+Set `MIS_YAW_TMT` to 0 to never wait for a heading, or to -1 to always wait for it.
 <Badge type="tip" text="main (PX4 v2.0)" />
 
 ## Rounded turns: Inter-Waypoint Trajectory

@@ -284,6 +284,13 @@ TEST_F(MissionBlockYawTest, DisabledTimeoutWaitsIndefinitely)
 	EXPECT_FALSE(_block.reached());
 }
 
+TEST_F(MissionBlockYawTest, ZeroTimeoutDoesNotWait)
+{
+	setYawTimeout(0.f);
+	_block.reached(); // first check is when the heading got commanded
+	EXPECT_TRUE(_block.reached());
+}
+
 TEST_F(MissionBlockYawTest, ResetRestartsTimeout)
 {
 	EXPECT_FALSE(_block.reached());
