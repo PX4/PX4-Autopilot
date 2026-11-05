@@ -227,7 +227,8 @@ Takeoff::set_takeoff_position()
 
 
 	float takeoff_altitude_amsl = 0.f;
-	if(rep->current.frame == position_setpoint_s::FRAME_TYPE_GLOBAL){
+
+	if (rep->current.frame == position_setpoint_s::FRAME_TYPE_GLOBAL) {
 
 		if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
 			takeoff_altitude_amsl = rep->current.alt;
@@ -235,11 +236,11 @@ Takeoff::set_takeoff_position()
 		} else {
 			takeoff_altitude_amsl = _navigator->get_global_position()->alt + _navigator->get_param_mis_takeoff_alt();
 			mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 	"Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
+					 "Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
 
 			events::send<float>(events::ID("navigator_takeoff_default_alt"), {events::Log::Info, events::LogInternal::Info},
-				    	"Using default takeoff altitude: {1:.2m}",
-				    	_navigator->get_param_mis_takeoff_alt());
+					    "Using default takeoff altitude: {1:.2m}",
+					    _navigator->get_param_mis_takeoff_alt());
 		}
 
 		if (takeoff_altitude_amsl < _navigator->get_global_position()->alt) {
@@ -247,12 +248,21 @@ Takeoff::set_takeoff_position()
 			takeoff_altitude_amsl = _navigator->get_global_position()->alt;
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
 			events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
-			     	"Already higher than takeoff altitude (not descending)");
+				     "Already higher than takeoff altitude (not descending)");
 		}
 
 		set_takeoff_item(&_mission_item, takeoff_altitude_amsl);
-	}
-	else if(rep->current.frame == position_setpoint_s::FRAME_TYPE_LOCAL){
+
+		if (!PX4_ISFINITE(_loiter_altitude_msl)) {
+			_loiter_altitude_msl = takeoff_altitude_amsl;
+
+			if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
+				_loiter_altitude_msl = math::max(_loiter_altitude_msl, takeoff_altitude_amsl + _navigator->get_loiter_min_alt());
+
+			}
+		}
+
+	} else if (rep->current.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
 
 		float takeoff_height = 0.f;
 
@@ -262,7 +272,7 @@ Takeoff::set_takeoff_position()
 		} else {
 			takeoff_height = _navigator->get_local_position()->z - _navigator->get_param_mis_takeoff_alt();
 			mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 	"Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
+					 "Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
 
 			// events::send<float>(events::ID("navigator_takeoff_default_alt"), {events::Log::Info, events::LogInternal::Info},
 			// 	    	"Using default takeoff altitude: {1:.2m}",
@@ -276,17 +286,9 @@ Takeoff::set_takeoff_position()
 			// events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
 			//      	"Already higher than takeoff altitude (not descending)");
 		}
+
 		set_local_takeoff_item(&_mission_item, takeoff_height);
 
-	}
-
-	if (!PX4_ISFINITE(_loiter_altitude_msl)) {
-		_loiter_altitude_msl = takeoff_altitude_amsl;
-
-		if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
-			_loiter_altitude_msl = math::max(_loiter_altitude_msl, takeoff_altitude_amsl + _navigator->get_loiter_min_alt());
-
-		}
 	}
 
 	// set current mission item to takeoff
