@@ -136,7 +136,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Sensors
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
-- Disabling the selected IMU at runtime (setting its [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO) or [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO) to `0`) now hands over to the next IMU without a sensor failure report, including while the vehicle is armed. A re-enabled IMU reappears in `sensors_status_imu` and the IMU consistency check only once it publishes new data. ([PX4-Autopilot#28811](https://github.com/PX4/PX4-Autopilot/pull/28811))
 
 ### Simulation
 
@@ -171,6 +170,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - The neural network controller (`mc_nn_control`) now maps its actions to motor commands over the real motor range, so action -1 idles a motor instead of stopping it and the top of the range no longer runs past full scale. The two RPM limits and the thrust coefficient (`MC_NN_MIN_RPM`, `MC_NN_MAX_RPM`, `MC_NN_THRST_COEF`) are now checked against each other, and the module has its first unit tests. ([PX4-Autopilot#28433](https://github.com/PX4/PX4-Autopilot/pull/28433))
 - The neural network controller (`mc_nn_control`) now rejects at load a model whose input or output shape does not match what the controller expects, checks the position, attitude and angular velocity observations each cycle for validity, age and finiteness, and reports a fault on a bad observation or a non-finite output instead of stopping one motor. ([PX4-Autopilot#28504](https://github.com/PX4/PX4-Autopilot/pull/28504))
 - The multicopter position controller now moves its stored fallback setpoint along with the current setpoint when the estimator resets its position, velocity or heading, so when the setpoint is unusable at the moment of a reset the controller no longer flies a fallback setpoint that is offset by the amount of the reset. ([PX4-Autopilot#28810](https://github.com/PX4/PX4-Autopilot/pull/28810))
+- [Follow Me](../flight_modes_mc/follow_me.md) no longer treats an [EKF2 instance switch](../advanced_config/tuning_the_ecl_ekf.md#running-multiple-ekf-instances) or a change of the local origin as a jump of the target while the mode is active. The vehicle holds its position until the next target position message and keeps its altitude instead of climbing or descending by the change in reference altitude. ([PX4-Autopilot#29029](https://github.com/PX4/PX4-Autopilot/pull/29029))
 
 ### VTOL
 
@@ -179,6 +179,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Fixed-wing
 
 - TECS underspeed protection now starts at the minimum airspeed ([FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN)) and is fully active at 90% of it, or halfway to [FW_AIRSPD_STALL](../advanced_config/parameter_reference.md#FW_AIRSPD_STALL) if that is higher. Previously it only started 15% of trim airspeed below the minimum airspeed. The roll angle is limited towards 20° (or [FW_R_LIM](../advanced_config/parameter_reference.md#FW_R_LIM) if lower) while undersped, and the altitude reference is reset to avoid a pitch-up on recovery. ([PX4-Autopilot#26859](https://github.com/PX4/PX4-Autopilot/pull/26859))
+- Fixed-wing course control now maps the course setpoint to a heading using the [true airspeed](../config_fw/airspeed_scale_handling.md#airspeed-in-px4) setpoint, so the wind triangle against the estimated wind is also correct at altitude. Previously it used the equivalent airspeed setpoint, which at 3000 m and 15 m/s airspeed pointed the heading about 7° too far into a 10 m/s crosswind and left the vehicle a few metres upwind of its track. ([PX4-Autopilot#29567](https://github.com/PX4/PX4-Autopilot/pull/29567))
 
 ### Rover
 
