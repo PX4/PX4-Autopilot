@@ -37,7 +37,7 @@ using namespace time_literals;
 
 MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) :
 	ModuleParams(parent),
-	WorkItem("rover_mecanum_speed_control", px4::wq_configurations::rate_ctrl)
+	WorkItem("rover_mecanum_speed_control", px4::wq_configurations::nav_and_controllers)
 {
 	_rover_throttle_setpoint_pub.advertise();
 	_surface_vehicle_speed_status_pub.advertise();

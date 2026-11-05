@@ -37,7 +37,7 @@ using namespace time_literals;
 
 MecanumPosControl::MecanumPosControl(ModuleParams *parent) :
 	ModuleParams(parent),
-	WorkItem("rover_mecanum_pos_control", px4::wq_configurations::rate_ctrl)
+	WorkItem("rover_mecanum_pos_control", px4::wq_configurations::nav_and_controllers)
 {
 	_surface_vehicle_speed_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();

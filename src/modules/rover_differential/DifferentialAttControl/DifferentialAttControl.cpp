@@ -37,7 +37,7 @@ using namespace time_literals;
 
 DifferentialAttControl::DifferentialAttControl(ModuleParams *parent) :
 	ModuleParams(parent),
-	WorkItem("rover_differential_att_control", px4::wq_configurations::rate_ctrl)
+	WorkItem("rover_differential_att_control", px4::wq_configurations::nav_and_controllers)
 {
 	_surface_vehicle_rate_setpoint_pub.advertise();
 	_surface_vehicle_attitude_status_pub.advertise();

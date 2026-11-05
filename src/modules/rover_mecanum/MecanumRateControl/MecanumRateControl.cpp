@@ -37,7 +37,7 @@ using namespace time_literals;
 
 MecanumRateControl::MecanumRateControl(ModuleParams *parent) :
 	ModuleParams(parent),
-	WorkItem("rover_mecanum_rate_control", px4::wq_configurations::rate_ctrl)
+	WorkItem("rover_mecanum_rate_control", px4::wq_configurations::nav_and_controllers)
 {
 	_surface_vehicle_steering_setpoint_pub.advertise();
 	_surface_vehicle_rate_status_pub.advertise();

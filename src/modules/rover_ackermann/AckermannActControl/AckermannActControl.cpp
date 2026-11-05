@@ -37,7 +37,7 @@ using namespace time_literals;
 
 AckermannActControl::AckermannActControl(ModuleParams *parent) :
 	ModuleParams(parent),
-	WorkItem("rover_ackermann_act_control", px4::wq_configurations::rate_ctrl)
+	WorkItem("rover_ackermann_act_control", px4::wq_configurations::nav_and_controllers)
 {
 	updateParams();
 }

@@ -39,7 +39,7 @@ ModuleBase::Descriptor RoverDifferential::desc{task_spawn, custom_command, print
 
 RoverDifferential::RoverDifferential() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	updateParams();
 }
