@@ -191,7 +191,8 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 void
 VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
-	if (!is_quadchute_active()) {
+	// a detected quad-chute can replace a commanded one
+	if (!is_fixed_wing_system_failure()) {
 		// only publish generic warning through mavlink to safe flash
 		mavlink_log_critical(&_mavlink_log_pub, "Quad-chute triggered\t");
 

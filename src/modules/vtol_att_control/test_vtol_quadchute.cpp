@@ -34,13 +34,18 @@
 /**
  * @file test_vtol_quadchute.cpp
  *
- * A quad-chute commanded by the user only switches to multicopter. A detected one is a fixed-wing failure,
- * which triggers the quad-chute failsafe action and blocks arming.
+ * A quad-chute commanded by the user only switches to multicopter and keeps pusher assist. A detected one is a
+ * fixed-wing failure, which triggers the quad-chute failsafe action, blocks arming and stops pusher assist.
  */
 
 #include <gtest/gtest.h>
 
+#include <lib/parameters/param.h>
+
+#include "standard.h"
 #include "vtol_att_control_main.h"
+
+using namespace matrix;
 
 TEST(VtolQuadchuteTest, CommandedQuadchuteIsNoFixedWingFailure)
 {
@@ -56,4 +61,79 @@ TEST(VtolQuadchuteTest, DetectedQuadchuteIsFixedWingFailure)
 	vtol_att_control.quadchute(QuadchuteReason::TransitionTimeout);
 	EXPECT_TRUE(vtol_att_control.is_quadchute_active());
 	EXPECT_TRUE(vtol_att_control.is_fixed_wing_system_failure());
+}
+
+TEST(VtolQuadchuteTest, DetectedQuadchuteReplacesCommandedOne)
+{
+	VtolAttitudeControl vtol_att_control;
+	vtol_att_control.quadchute(QuadchuteReason::ExternalCommand);
+	vtol_att_control.quadchute(QuadchuteReason::TransitionTimeout);
+	EXPECT_TRUE(vtol_att_control.is_fixed_wing_system_failure());
+}
+
+class VtolQuadchutePusherTest : public ::testing::Test
+{
+protected:
+	void SetUp() override
+	{
+		param_control_autosave(false);
+
+		const int32_t fwd_thrust_en = 4; // pusher assist enabled constantly
+		param_set(param_find("VT_FWD_THRUST_EN"), &fwd_thrust_en);
+	}
+
+	void TearDown() override
+	{
+		param_reset(param_find("VT_FWD_THRUST_EN"));
+		param_control_autosave(true);
+	}
+
+	// Hover with a nose-down pitch setpoint, which pusher assist replaces with pusher thrust
+	void setHover(VtolAttitudeControl &attc)
+	{
+		attc.get_control_mode()->flag_control_climb_rate_enabled = true;
+		Quatf().copyTo(attc.get_att()->q);
+		Quatf(Eulerf(0.f, math::radians(-30.f), 0.f)).copyTo(attc.get_mc_virtual_att_sp()->q_d);
+	}
+
+	// Pusher command of one Run() cycle, update_mc_state() only runs on a new attitude setpoint
+	float runCycle(VtolAttitudeControl &attc, Standard &standard, bool new_attitude_setpoint)
+	{
+		standard.update_vtol_state();
+
+		if (new_attitude_setpoint) {
+			standard.update_mc_state();
+		}
+
+		standard.fill_actuator_outputs();
+		return attc.get_thrust_setpoint_0()->xyz[0];
+	}
+};
+
+TEST_F(VtolQuadchutePusherTest, CommandedQuadchuteKeepsPusherAssist)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc);
+	attc.quadchute(QuadchuteReason::ExternalCommand);
+
+	const float pusher = runCycle(attc, standard, true);
+	EXPECT_GT(pusher, 0.1f);
+
+	// no stop and start between attitude setpoints
+	EXPECT_FLOAT_EQ(runCycle(attc, standard, false), pusher);
+}
+
+TEST_F(VtolQuadchutePusherTest, DetectedQuadchuteStopsPusherAssist)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc);
+	attc.quadchute(QuadchuteReason::ExternalCommand);
+	EXPECT_GT(runCycle(attc, standard, true), 0.1f);
+
+	// a detected quad-chute stops the pusher at once and keeps pusher assist off (NAN stops the pusher)
+	attc.quadchute(QuadchuteReason::TransitionTimeout);
+	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, false)));
+	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
 }
