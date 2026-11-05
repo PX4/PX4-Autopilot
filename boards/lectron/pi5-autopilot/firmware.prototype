@@ -1,0 +1,13 @@
+{
+    "board_id": 702,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the Lectron Pi5 Autopilot board",
+    "image": "lectron_pi5-autopilot_default.px4",
+    "build_time": 0,
+    "summary": "LectronPi5Autopilot",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}
