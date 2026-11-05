@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,31 +30,33 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
  * @file TF02PRO.hpp
  *
  * Driver for the SRF02 sonar range finder adapted from the Maxbotix sonar range finder driver (srf02).
  */
-
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+
+#if defined(CONFIG_I2C)
 #include <drivers/device/i2c.h>
+#endif
+
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 
 /* Configuration Constants */
-#define TF02PRO_BASEADDR			0x10 	// 7-bit address. 8-bit address is 0x20.
+#define TF02PRO_BASEADDR 0x10 // 7-bit address. 8-bit address is 0x20.
 
 /* Device limits */
-#define TF02PRO_MIN_DISTANCE 			(0.10f)
-#define TF02PRO_MAX_DISTANCE 			(35.00f)
+#define TF02PRO_MIN_DISTANCE (0.10f)
+#define TF02PRO_MAX_DISTANCE (35.00f)
+#define TF02PRO_CONVERSION_INTERVAL 100000 // 100 ms for one sensor.
 
-#define TF02PRO_CONVERSION_INTERVAL 		100000	// 100 ms for one sensor.
-
+#if defined(CONFIG_I2C)
 class TF02PRO : public device::I2C, public I2CSPIDriver<TF02PRO>
 {
 public:
@@ -69,7 +71,6 @@ public:
 	void RunImpl();
 
 private:
-
 	void start();
 	int collect();
 	int measure();
@@ -85,9 +86,15 @@ private:
 	PX4Rangefinder _px4_rangefinder;
 
 	int _interval{TF02PRO_CONVERSION_INTERVAL};
-
 	bool _collect_phase{false};
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED,  MODULE_NAME": read")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 };
+#else
+class TF02PRO
+{
+public:
+	static void print_usage();
+};
+#endif
