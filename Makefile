@@ -563,7 +563,7 @@ python_coverage:
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
 .PHONY: scan-build px4_sitl_default-clang px4_sitl_default-clang-test clang-tidy clang-tidy-fix
-.PHONY: cppcheck shellcheck_all validate_module_configs
+.PHONY: cppcheck shellcheck_all validate_module_configs check_param_sources
 
 scan-build:
 	@export CCC_CC=clang
@@ -634,6 +634,9 @@ validate_module_configs:
 	-not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" \
 	-not -path "$(SRC_DIR)/src/lib/tensorflow_lite_micro/*" -print0 | \
 	xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
+
+check_param_sources:
+	@"$(SRC_DIR)"/Tools/ci/check_param_sources.py
 
 # Cleanup
 # --------------------------------------------------------------------
