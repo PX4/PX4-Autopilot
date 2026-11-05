@@ -104,13 +104,43 @@ bool FlightTaskAuto::updateInitialize()
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_position_setpoint_triplet_sub.update();
 	_takeoff_status_sub.update();
+	_landing_target_pose_sub.update();
 
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluatePositionSetpointTriplet();
 	// require valid position
 	ret = ret && _position.isAllFinite() && _velocity.isAllFinite();
 
+	if (ret) {
+		_evaluateDistanceToLandingPoint();
+	}
+
 	return ret;
+}
+
+void FlightTaskAuto::_evaluateDistanceToLandingPoint()
+{
+	if (PX4_ISFINITE(_dist_to_bottom) || (_type != WaypointType::land)) {
+		return;
+	}
+
+	// Without distance sensor, prefer the landing target, then the landing waypoint altitude over home as ground reference
+	const landing_target_pose_s &landing_target_pose = _landing_target_pose_sub.get();
+	const bool landing_target_valid = landing_target_pose.abs_pos_valid && PX4_ISFINITE(landing_target_pose.z_abs)
+					  && (hrt_elapsed_time(&landing_target_pose.timestamp) < _timeout);
+
+	// Only Mission and Return provide a landing altitude, Land mode sends a placeholder altitude
+	const uint8_t nav_state = _sub_vehicle_status.get().nav_state;
+	const bool landing_altitude_valid = ((nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
+					     || (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))
+					    && PX4_ISFINITE(_triplet_current(2));
+
+	if (landing_target_valid) {
+		_dist_to_ground = landing_target_pose.z_abs - _position(2);
+
+	} else if (landing_altitude_valid) {
+		_dist_to_ground = _triplet_current(2) - _position(2);
+	}
 }
 
 bool FlightTaskAuto::update()

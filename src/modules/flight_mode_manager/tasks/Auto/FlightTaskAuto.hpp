@@ -46,6 +46,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/takeoff_status.h>
+#include <uORB/topics/landing_target_pose.h>
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/prec_takeoff_status.h>
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
@@ -117,6 +118,7 @@ protected:
 	bool _followPrecisionTakeoffTarget() const;
 
 	void _prepareLandSetpoints();
+	void _evaluateDistanceToLandingPoint(); /**< Uses the landing target or waypoint altitude as ground reference if no distance sensor */
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 
 	void updateParams() override; /**< See ModuleParam class */
@@ -130,6 +132,7 @@ protected:
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<takeoff_status_s> _takeoff_status_sub{ORB_ID(takeoff_status)};
+	uORB::SubscriptionData<landing_target_pose_s> _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	uORB::SubscriptionData<prec_takeoff_status_s> _prec_takeoff_status_sub {ORB_ID(prec_takeoff_status)};
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
