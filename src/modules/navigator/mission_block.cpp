@@ -839,8 +839,8 @@ MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &it
 	setLoiterItemCommonFields(&item, reference_setpoint.frame);
 
 	if (reference_setpoint.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED) {
-		item.x = reference_setpoint.x;
-		item.y = reference_setpoint.y;
+		item.x = static_cast<double>(reference_setpoint.x);
+		item.y = static_cast<double>(reference_setpoint.y);
 
 	} else {
 		item.lat = reference_setpoint.lat;
