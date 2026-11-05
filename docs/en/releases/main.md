@@ -70,6 +70,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   The meaning of parameter values changes:
   - Multicopters with `MIS_YAW_TMT` set above `0` used to skip all headings that the mission does not require. They now wait for them for up to `MIS_YAW_TMT`.
   - VTOL vehicles in multicopter mode now always skip headings that the mission does not require, even with `MIS_YAW_TMT` set to `-1`.
+  - `MIS_YAW_TMT` set to `0` used to wait indefinitely, like `-1`. It now means not to wait.
   - Set `MIS_YAW_TMT` to `-1` to keep waiting indefinitely for headings that are awaited.
 
   See [Mission Mode > Waypoint Heading Timeout](../flight_modes_mc/mission.md#waypoint-heading-timeout).

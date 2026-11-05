@@ -410,7 +410,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 		    && _navigator->get_local_position()->heading_good_for_control) {
 
 			const float yaw_err = wrap_pi(_mission_item.yaw - _navigator->get_local_position()->heading);
-			const bool yaw_timed_out = (_navigator->get_yaw_timeout() >= FLT_EPSILON)
+			const bool yaw_timed_out = (_navigator->get_yaw_timeout() >= 0.f) // negative disables the timeout
 						   && (now > _time_item_started + (hrt_abstime)(_navigator->get_yaw_timeout() * 1_s));
 
 			// Accept yaw if reached, VTOLs only care about forced headings
