@@ -395,6 +395,11 @@ VtolAttitudeControl::Run()
 		action_request_poll();
 		vehicle_cmd_poll();
 
+		// a commanded quad-chute ends on disarm, a detected one stays until the next front transition command
+		if (!_vehicle_control_mode.flag_armed && _quadchute_reason == QuadchuteReason::ExternalCommand) {
+			_quadchute_reason = QuadchuteReason::None;
+		}
+
 		vehicle_air_data_s air_data;
 
 		if (_vehicle_air_data_sub.update(&air_data)) {

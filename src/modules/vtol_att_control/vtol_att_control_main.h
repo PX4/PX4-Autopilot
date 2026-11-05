@@ -123,7 +123,7 @@ public:
 
 	void reset_immediate_transition() {_immediate_transition = false;}
 
-	/** Any quad-chute forces multicopter until the next front transition command */
+	/** Any quad-chute forces multicopter until the next front transition command or, if commanded, until disarm */
 	bool is_quadchute_active() const { return _quadchute_reason != QuadchuteReason::None; }
 	/** Only a detected quad-chute is a fixed-wing failure, not a commanded one */
 	bool is_fixed_wing_system_failure() const { return is_quadchute_active() && _quadchute_reason != QuadchuteReason::ExternalCommand; }
