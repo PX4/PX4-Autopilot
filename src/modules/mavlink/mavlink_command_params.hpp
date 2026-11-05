@@ -99,9 +99,9 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  179, 0x7F, 0x7F }, // DO_SET_HOME:                 p1:use_current,p2:roll,p3:pitch,p4:yaw; p5-7:lat/lon/alt
 	{  189, 0x70, 0x70 }, // DO_LAND_START:               p5-7:lat/lon/alt (optional marker position per spec; QGC sets it)
 	{  195, 0x70, 0x71 }, // DO_SET_ROI_LOCATION:         mission:p5-7:lat/lon/alt; cmd:p1:gimbal,p5-7:lat/lon/alt
-	{  196, 0x01, 0x01 }, // DO_SET_ROI_WPNEXT_OFFSET:   p1:gimbal_id
+	{  196, 0x71, 0x71 }, // DO_SET_ROI_WPNEXT_OFFSET:   p1:gimbal_id; p5-7:pitch/roll/yaw offset
 	{  197, 0x01, 0x01 }, // DO_SET_ROI_NONE:             p1:gimbal_id
-	{  201, 0x07, 0x07 }, // DO_SET_ROI:                  p1:mode,p2:wp_idx,p3:roi_idx
+	{  201, 0x77, 0x77 }, // DO_SET_ROI:                  p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
 	{  206, 0x0F, 0x0F }, // DO_SET_CAM_TRIGG_DIST:       p1:dist,p2:shutter,p3:trigger,p4:camera_id
 	{  211, 0x03, 0x03 }, // DO_GRIPPER:                  p1:id,p2:action
 	{  212, 0x03, 0x03 }, // DO_AUTOTUNE_ENABLE:          p1:enable,p2:axis
