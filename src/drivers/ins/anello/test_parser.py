@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compile and run the standalone decoder tests using a configured PX4 build."""
 import argparse
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -10,8 +11,10 @@ parser.add_argument("--build", default="build/px4_sitl_default")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[4]
 build = root / args.build
-# Common is generated as a dependency of PX4's dialect.
-header = build / "mavlink/common/mavlink.h"
+# Use the root dialect: inherited command enums may be emitted only there.
+dialect = re.search(r'#define CONFIG_MAVLINK_DIALECT "([^"]+)"',
+                    (build / "px4_boardconfig.h").read_text()).group(1)
+header = build / "mavlink" / dialect / "mavlink.h"
 if not header.exists():
     raise SystemExit("Build PX4 first to generate the MAVLink headers")
 with tempfile.TemporaryDirectory(prefix="anello-test-") as directory:

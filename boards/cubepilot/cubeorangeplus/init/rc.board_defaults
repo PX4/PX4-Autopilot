@@ -12,4 +12,18 @@ param set-default BAT2_A_PER_V 17
 # Disable IMU thermal control
 param set-default SENS_EN_THERMAL 0
 
+# ANELLO Maritime INS on TELEM1. Saved user settings retain precedence.
+param set-default MAV_0_CONFIG 0
+param set-default SENS_ANELLO_CFG 101
+param set-default ANELLO_BAUD 921600
+param set-default ANELLO_MODE 1
+param set-default ANELLO_AUTOCFG 1
+param set-default EKF2_EN 0
+param set-default -s ATT_EN 0
+param set-default SENS_IMU_MODE 1
+param set-default ANELLO_EPH 100
+param set-default ANELLO_EPV 100
+param set-default ANELLO_EV 100
+param set-default SYS_HAS_GPS 0
+
 set IOFW "/etc/extras/cubepilot_io-v2_default.bin"

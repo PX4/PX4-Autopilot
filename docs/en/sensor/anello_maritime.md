@@ -9,7 +9,8 @@ Onboard accelerometers and gyroscopes remain enabled, including the onboard gyro
 
 Configure the INS to stream `ATTITUDE_QUATERNION` and/or `ATTITUDE` at 50 Hz or faster and `GLOBAL_POSITION_INT` at 5 Hz or faster.
 Validate the required position update rate and latency for the intended controller; 5 Hz is a minimum input requirement, not a flight performance guarantee.
-The driver does not configure the INS, request message rates, or transmit MAVLink.
+With `ANELLO_AUTOCFG=1` (the default), the driver requests 50 Hz `ATTITUDE_QUATERNION`, 50 Hz `ATTITUDE`, and 10 Hz `GLOBAL_POSITION_INT` using `MAV_CMD_SET_MESSAGE_INTERVAL` on the connected serial link.
+Both TX and RX must be connected. Set `ANELLO_AUTOCFG=0` for receive-only operation and configure the INS rates separately.
 Body axes must be forward/right/down and attitude must transform body into NED.
 Configure mounting alignment in the INS; this driver applies no mounting rotation.
 
@@ -22,7 +23,7 @@ The first fresh attitude/position pair establishes the fixed local origin.
 Earth-ellipsoid altitude, terrain height, acceleration and covariance are unavailable.
 
 The port must carry only the INS output.
-The first accepted navigation message locks the driver to its system and component IDs until restart.
+The first accepted navigation message or non-GCS heartbeat locks the driver to its system and component IDs until restart.
 All navigation messages must use that same pair.
 CRC failures, malformed rotations, non-finite attitude/rates and out-of-range coordinates are rejected.
 MAVLink signing authentication is not configured; use a trusted physical link.
@@ -32,6 +33,19 @@ The INS must suppress invalid or unconverged output.
 Freshness alone cannot detect a frozen solution that continues transmitting, delayed/replayed packets, or degraded dead reckoning.
 Local receipt time is used; sender clocks are not synchronised.
 An INS reset or solution discontinuity requires stopping operation and reinitialising the system; automatic reset compensation and EKF fallback are not provided.
+
+## Automatic Stream Configuration
+
+The driver discovers the INS system/component IDs from incoming traffic and addresses requests to that peer.
+Requests use the board's `MAV_SYS_ID` and the peripheral component ID, with private MAVLink transmit state.
+Each rate request waits for an acknowledgment, with at most three attempts.
+Unsupported or unanswered requests appear as failures in `anello status`; they do not block receiving navigation.
+An accepted acknowledgment confirms the command response, not the measured output rate or navigation quality.
+
+Rates are requested again after more than three seconds without accepted peer traffic, or a detected backward navigation boot-clock jump greater than one second.
+This reapplies runtime settings; it does not save configuration inside the INS.
+If the INS sends no heartbeat or navigation messages, peer discovery cannot begin.
+Reconfiguring streams after an INS restart does not compensate for navigation discontinuities.
 
 ## Build
 
@@ -49,12 +63,38 @@ Use TELEM1 at 921600 baud.
 TELEM1 maps to `/dev/ttyS0` on Cube Orange Plus; on FMUv6X it maps to `/dev/ttyS6`.
 Check electrical levels against the INS interface documentation before connecting the UART.
 
+This checkout sets the following Cube Orange Plus firmware defaults for the requested ANELLO test setup.
+Other board targets retain their existing estimator defaults.
+
+| Parameter | Firmware default |
+| --- | --- |
+| `MAV_0_CONFIG` | `0` |
+| `SENS_ANELLO_CFG` | `101` (TELEM1) |
+| `ANELLO_BAUD` | `921600` |
+| `ANELLO_MODE` | `1` (primary) |
+| `ANELLO_AUTOCFG` | `1` |
+| `EKF2_EN` | `0` |
+| `ATT_EN` | `0`, if present |
+| `SENS_IMU_MODE` | `1` |
+| `ANELLO_EPH` | `100` m |
+| `ANELLO_EPV` | `100` m |
+| `ANELLO_EV` | `100` m/s |
+| `SYS_HAS_GPS` | `0` (no separate GNSS receiver) |
+
+These are `param set-default` settings: saved user values take precedence after flashing.
+Inspect the parameters and reset only the intended parameters to their defaults when needed; preserve sensor calibrations.
+The three uncertainty values are user-selected test assumptions, not measured accuracy.
+At these values, PX4 accuracy checks may reject navigation for position control.
+No accuracy or arming checks are relaxed.
+
+For a staged monitor-to-primary bench test, explicitly apply the following settings:
+
 1. Move or disable every existing serial consumer assigned to TELEM1, including the default MAVLink instance (`MAV_0_CONFIG` when assigned to this port).
    USB telemetry can remain enabled.
 2. Set `SENS_ANELLO_CFG=101` (TELEM1), `ANELLO_BAUD=921600`, and `ANELLO_MODE=0`.
 3. Reboot and inspect `anello status`, `listener external_ins_attitude`, `listener external_ins_local_position`, and `listener external_ins_global_position`.
 4. Configure `ANELLO_EPH`, `ANELLO_EPV`, and `ANELLO_EV` with validated conservative one-sigma bounds for horizontal position (m), vertical position (m), and velocity (m/s).
-   The default `-1` keeps position and velocity invalid rather than claiming unknown accuracy is perfect.
+   The generic parameter default `-1` keeps position and velocity invalid rather than claiming unknown accuracy is perfect; the Cube defaults above override it.
    These fixed assumptions are not measured INS uncertainties and do not adapt to GNSS degradation.
 5. To select the INS as primary, set `ANELLO_MODE=1`, `EKF2_EN=0`, `ATT_EN=0` (if this parameter is present), and `SENS_IMU_MODE=1`, then reboot.
    Disable any other external estimator publisher.
@@ -89,9 +129,11 @@ python3 src/drivers/ins/anello/test_sitl.py
 
 This test uses a pseudo-UART at 921600 baud and an isolated PX4 instance with temporary parameters.
 It checks monitor isolation, primary-start guards, local/global conversions, independent attitude/position timeouts and recovery without moving the origin.
+It also checks receive-only mode, request addressing and rates, acknowledgment retry, and stream reconfiguration after INS reboot and link interruption.
 The real-time variant is used because the test sender runs on wall time rather than a physics simulator clock.
 
 The decoder tests cover MAVLink 1/2 framing, fragmented packets, CRC rejection and recovery, quaternion normalisation and priority, Euler fallback, invalid values, source isolation, coordinate units and timeout boundaries.
+Stream configuration tests cover private transmit framing, partial writes, acknowledgment filtering, bounded retries, rejection/progress responses, reconnect detection and sender-clock wrap.
 
 Before operational use, bench-test the physical link and configured rates, axis signs, heading, altitude datum and local origin.
 Disconnect the INS and stop each output stream separately to verify the expected attitude and navigation failsafes.

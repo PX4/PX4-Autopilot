@@ -18,6 +18,13 @@ parameters:
                 1: Primary INS (vehicle topics)
             default: 0
             reboot_required: true
+        ANELLO_AUTOCFG:
+            description:
+                short: Automatically request INS output rates
+                long: "Requests attitude and quaternion at 50 Hz and global position at 10 Hz after discovering the INS and after reconnection or detected restart. Requires TX and RX wiring. Set to 0 to disable."
+            type: boolean
+            default: true
+            reboot_required: true
         ANELLO_BAUD:
             description:
                 short: INS serial baud rate

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 PX4 Development Team.
 
-#include "AnelloParser.hpp"
+#include "AnelloStreamConfig.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -49,6 +49,12 @@ public:
 		PX4_INFO("read cycles: %u, received bytes: %u", (unsigned)_cycles, (unsigned)_bytes);
 		PX4_INFO("read errors: %u, last errno: %d", (unsigned)_read_errors, _last_read_errno);
 		PX4_INFO("accepted attitude: %u, position: %u", (unsigned)_attitude_count, (unsigned)_position_count);
+		PX4_INFO("stream setup: %s, target: %u/%u, accepted: %u/3, failed: %u/3, sent: %u, sessions: %u",
+			 _param_autocfg.get() == 0 ? "disabled" : !_stream_config.havePeer() ? "waiting for INS" :
+			 _stream_config.complete() ? "complete" : "in progress",
+			 (unsigned)_stream_config.targetSystem(), (unsigned)_stream_config.targetComponent(),
+			 _stream_config.accepted(), _stream_config.failed(), _stream_config.sent(), _stream_config.sessions());
+		PX4_INFO("TX bytes: %u, TX errors: %u", (unsigned)_tx_bytes, (unsigned)_tx_errors);
 		return PX4_OK;
 	}
 
@@ -69,6 +75,15 @@ private:
 				return false;
 			}
 		}
+
+		int32_t system_id = 1;
+		const param_t system_id_handle = param_find_no_notification("MAV_SYS_ID");
+
+		if (system_id_handle != PARAM_INVALID) {
+			param_get(system_id_handle, &system_id);
+		}
+
+		_stream_config.setSender(static_cast<uint8_t>(system_id));
 
 		// NuttX file descriptors belong to a task group. Open the UART in Run(),
 		// in the same work-queue context that reads and closes it.
@@ -137,7 +152,13 @@ private:
 			const hrt_abstime now = hrt_absolute_time();
 
 			for (ssize_t i = 0; i < count; ++i) {
-				switch (_parser.parse(buffer[i], now)) {
+				const auto update = _parser.parse(buffer[i], now);
+
+				if (_param_autocfg.get() != 0) {
+					_stream_config.observe(_parser, update, now);
+				}
+
+				switch (update) {
 				case anello::Parser::Update::Attitude: {
 						vehicle_attitude_s attitude{};
 						attitude.timestamp_sample = _parser.attitude_time;
@@ -154,6 +175,8 @@ private:
 					++_position_count;
 					break;
 
+				case anello::Parser::Update::Heartbeat:
+				case anello::Parser::Update::CommandAck:
 				case anello::Parser::Update::None:
 					break;
 				}
@@ -161,6 +184,24 @@ private:
 		}
 
 		const hrt_abstime now = hrt_absolute_time();
+
+		if (_param_autocfg.get() != 0) {
+			_stream_config.update(now);
+
+			if (_stream_config.size() > 0) {
+				const ssize_t written = _serial.write(_stream_config.data(), _stream_config.size());
+
+				if (written > 0) {
+					_stream_config.written(written, now);
+					_tx_bytes += written;
+
+				} else if (written < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
+					++_tx_errors;
+					_stream_config.abortTransmission(now);
+				}
+			}
+		}
+
 		const bool attitude_fresh = _parser.attitudeFresh(now);
 
 		if (_attitude_valid && !attitude_fresh) {
@@ -263,18 +304,22 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::ANELLO_MODE>) _param_mode,
 		(ParamInt<px4::params::ANELLO_BAUD>) _param_baud,
+		(ParamInt<px4::params::ANELLO_AUTOCFG>) _param_autocfg,
 		(ParamFloat<px4::params::ANELLO_EPH>) _param_eph,
 		(ParamFloat<px4::params::ANELLO_EPV>) _param_epv,
 		(ParamFloat<px4::params::ANELLO_EV>) _param_ev
 	)
 	device::Serial _serial;
 	anello::Parser _parser;
+	anello::StreamConfig _stream_config;
 	MapProjection _reference;
 	float _reference_altitude{0.f};
 	bool _attitude_valid{false};
 	bool _navigation_valid{false};
 	uint32_t _cycles{0};
 	uint32_t _bytes{0};
+	uint32_t _tx_bytes{0};
+	uint32_t _tx_errors{0};
 	uint32_t _read_errors{0};
 	int _last_read_errno{0};
 	uint32_t _attitude_count{0};
