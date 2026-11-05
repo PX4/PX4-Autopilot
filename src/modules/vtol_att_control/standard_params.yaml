@@ -66,7 +66,7 @@ parameters:
         long: A pusher failure is detected in multicopter mode when, for this time, the
           pusher assist throttle is above VT_EF_THROT and the forward velocity setpoint
           above VT_EF_VSP_THRESH, but the forward velocity below VT_EF_V_THRESH. It triggers
-          the quad-chute failsafe, and until reboot every front transition triggers it again.
+          the quad-chute failsafe, and until reboot or until disabled, every front transition triggers it again.
           Only used by standard VTOLs when VT_FWD_THRUST_EN is enabled. Set to 0 to disable.
       type: float
       default: 5.0

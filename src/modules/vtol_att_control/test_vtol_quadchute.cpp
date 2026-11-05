@@ -141,7 +141,7 @@ TEST_F(VtolQuadchutePusherTest, DetectedQuadchuteStopsPusherAssist)
 	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
 }
 
-// Pusher failures detected in multicopter mode trigger the quad-chute again on each front transition.
+// Pusher failures detected in multicopter mode block front transitions until VT_EF_TIME is set to 0 or reboot.
 class VtolPusherFailureTest : public VtolQuadchutePusherTest
 {
 protected:
@@ -210,6 +210,42 @@ TEST_F(VtolPusherFailureTest, NoForwardMotionIsPusherFailure)
 	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, false)));
 	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
 	EXPECT_EQ(standard.get_mode(), mode::ROTARY_WING);
+}
+
+TEST_F(VtolPusherFailureTest, DisablingDetectionAllowsFrontTransitions)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 0.f);
+
+	fly(attc, standard, 2_s);
+	ASSERT_TRUE(attc.is_fixed_wing_system_failure());
+
+	// VT_EF_TIME set to 0 in flight, then a front transition command clears the quad-chute for good
+	const float ef_time = 0.f;
+	param_set(param_find("VT_EF_TIME"), &ef_time);
+	static_cast<VtolType &>(standard).parameters_update();
+	commandFrontTransition(attc);
+	ASSERT_TRUE(attc.is_fixed_wing_requested());
+	ASSERT_FALSE(attc.is_quadchute_active());
+	standard.update_vtol_state();
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+	EXPECT_EQ(standard.get_mode(), mode::TRANSITION_TO_FW);
+}
+
+TEST_F(VtolPusherFailureTest, PusherFailureReplacesCommandedQuadchute)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 0.f);
+	attc.quadchute(QuadchuteReason::ExternalCommand);
+	ASSERT_FALSE(attc.is_fixed_wing_system_failure());
+	EXPECT_GT(runCycle(attc, standard, true), 0.1f);
+
+	fly(attc, standard, 2_s);
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, false)));
+	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
 }
 
 TEST_F(VtolPusherFailureTest, ForwardMotionIsNoPusherFailure)
