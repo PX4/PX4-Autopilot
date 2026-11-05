@@ -57,11 +57,17 @@ void AckermannActControl::updateParams()
 
 bool AckermannActControl::init()
 {
-	return _surface_vehicle_steering_setpoint_sub.registerCallback();
+	// Paced by the gyro like the rate controller, so actuator setpoints are published every cycle,
+	// also when no new steering setpoint arrives (e.g. the cycle after a mode change resets the rate controller)
+	return _vehicle_angular_velocity_sub.registerCallback();
 }
 
 void AckermannActControl::Run()
 {
+	// Drain the trigger, its value is not used here
+	vehicle_angular_velocity_s angular_velocity;
+	_vehicle_angular_velocity_sub.update(&angular_velocity);
+
 	if (_enabled) {
 		updateActControl();
 	}

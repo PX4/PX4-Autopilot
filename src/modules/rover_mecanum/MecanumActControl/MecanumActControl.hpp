@@ -47,6 +47,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/surface_vehicle_steering_setpoint.h>
 #include <uORB/topics/rover_throttle_setpoint.h>
 
@@ -110,7 +111,8 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::SubscriptionCallbackWorkItem _surface_vehicle_steering_setpoint_sub{this, ORB_ID(surface_vehicle_steering_setpoint)}; // Triggers the controller
+	uORB::Subscription _surface_vehicle_steering_setpoint_sub{ORB_ID(surface_vehicle_steering_setpoint)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)}; // Triggers the controller after the rate controller
 	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
 
 	// uORB publications

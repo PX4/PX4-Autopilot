@@ -47,7 +47,8 @@ RoverDifferential::RoverDifferential() :
 bool RoverDifferential::init()
 {
 	// Register top-down: controllers sharing a trigger topic run in registration order,
-	// so the position controller's setpoint reaches the speed controller in the same cycle.
+	// so the position controller's setpoint reaches the speed controller and the rate controller's (or a manual mode's)
+	// steering setpoint reaches the actuator controller in the same cycle.
 	if (!_vehicle_angular_velocity_sub.registerCallback()
 	    || !_differential_pos_control.init()
 	    || !_differential_speed_control.init()
