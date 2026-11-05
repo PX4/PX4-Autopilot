@@ -82,14 +82,14 @@ private:
 
 	gz::transport::Node::Publisher _actuators_pub;
 	hrt_abstime _prev_t{0};
-#if defined(CONFIG_MODULE_ROVER_DIFFERENTIAL) || defined (CONFIG_MODULE_ROVER_ACKERMANN)
+#if defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined (CONFIG_MODULES_ROVER_ACKERMANN)
 	float  _prev_wheel_speed[2] {-1.f, -1.f};
 	float  _curr_wheel_speed[2] {-1.f, -1.f};
-	float  _wheel_pos_m[2];
+	float  _wheel_pos_m[2] {0.f, 0.f};
 #else
 	float  _prev_wheel_speed[4] {-1.f, -1.f, -1.f, -1.f};
 	float  _curr_wheel_speed[4] {-1.f, -1.f, -1.f, -1.f};
-	float  _wheel_pos_m[4];
+	float  _wheel_pos_m[4] {0.f, 0.f, 0.f, 0.f};
 #endif
 
 

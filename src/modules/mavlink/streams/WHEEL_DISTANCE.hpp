@@ -1,15 +1,15 @@
-#ifndef WHEEL_ENCODER_HPP
-#define WHEEL_ENCODER_HPP
+#ifndef WHEEL_DISTANCE_HPP
+#define WHEEL_DISTANCE_HPP
 
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/wheel_encoders.h>
 
-class MavlinkStreamWheelEncoder : public MavlinkStream
+class MavlinkStreamWheelDistance : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamWheelEncoder(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamWheelDistance(mavlink); }
 
-	static constexpr const char *get_name_static() { return "WHEEL_ENCODER"; }
+	static constexpr const char *get_name_static() { return "WHEEL_DISTANCE"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_WHEEL_DISTANCE; }
 
 	const char *get_name() const override { return get_name_static(); }
@@ -20,10 +20,11 @@ public:
 		return (MAVLINK_MSG_ID_WHEEL_DISTANCE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 private:
-	explicit MavlinkStreamWheelEncoder(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamWheelDistance(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::SubscriptionMultiArray<wheel_encoders_s> _wheel_encoders_subs{ORB_ID::wheel_encoders};
 
+	// Not able to handle multiple instances: if using 4 encoders must publish to the same uorb instance
 	bool send() override
 	{
 		bool updated = false;
@@ -75,4 +76,4 @@ private:
 	}
 };
 
-#endif // WHEEL_ENCODER_HPP
+#endif // WHEEL_DISTANCE_HPP

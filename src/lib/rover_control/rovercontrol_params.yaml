@@ -275,7 +275,7 @@ parameters:
       type: float
       default: 0.1
       unit: m
-      min: 0
+      min: 0.01
       max: 10
       increment: 0.001
       decimal: 3

@@ -1807,7 +1807,7 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"VIBRATION", 0.1f},
 	{"WIND_COV", 0.5f},
 #if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
-	{"WHEEL_ENCODER", 1.0f},
+	{"WHEEL_DISTANCE", 1.0f},
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
@@ -1893,7 +1893,7 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"VIBRATION", 0.5f},
 	{"WIND_COV", 10.0f},
 #if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
-	{"WHEEL_ENCODER", 1.0f},
+	{"WHEEL_DISTANCE", 1.0f},
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
@@ -2071,7 +2071,7 @@ constexpr StreamRateDefault streams_mode_config[] = {
 	{"VIBRATION", 2.5f},
 	{"WIND_COV", 10.0f},
 #if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
-	{"WHEEL_ENCODER", 1.0f},
+	{"WHEEL_DISTANCE", 1.0f},
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
