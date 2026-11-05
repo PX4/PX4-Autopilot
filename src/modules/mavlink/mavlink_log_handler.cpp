@@ -115,6 +115,18 @@ void MavlinkLogHandler::handle_message(const mavlink_message_t *msg)
 	}
 }
 
+void MavlinkLogHandler::close_files()
+{
+	if (_current_entry.fp) {
+		fclose(_current_entry.fp);
+		_current_entry.fp = nullptr;
+	}
+
+	_current_entry = LogEntry{};
+	_entry_request = LogEntryRequest{};
+	_state = LogHandlerState::Idle;
+}
+
 void MavlinkLogHandler::state_idle()
 {
 	if (_current_entry.fp && _file_send_finished) {
