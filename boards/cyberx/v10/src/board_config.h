@@ -117,9 +117,9 @@
 
 /* SPI */
 
-#define SPI6_nRESET_EXTERNAL1       /* PC2       */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN2)
-#define SPI6_nRESET_EXTERNAL2       /* PC3 add   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN3)
-#define GPIO_SYNC                   /* PE9 NC    */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_100MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)
+//#define SPI6_nRESET_EXTERNAL1       /* PC2       */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN2)
+//#define SPI6_nRESET_EXTERNAL2       /* PC3 add   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN3)
+//#define GPIO_SYNC                   /* PE9 NC    */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_100MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)
 
 /* I2C busses */
 
@@ -181,6 +181,8 @@
 #define ADC_HW_VER_SENSE_CHANNEL                /* PH3  */  ADC3_CH(14)
 #define ADC_HW_REV_SENSE_CHANNEL                /* PH4  */  ADC3_CH(15)
 
+#define ADC_RC_RSSI_CHANNEL		         9
+
 #define ADC_CHANNELS \
 	(((1 << ADC_BATTERY_VOLTAGE_CHANNEL)         | \
 	  (1 << ADC_BATTERY_CURRENT_CHANNEL)         | \
@@ -233,7 +235,7 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   9
+#define DIRECT_PWM_OUTPUT_CHANNELS   8
 
 
 /* Power supply control and monitoring GPIOs */
@@ -350,11 +352,8 @@
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
 
 /*
- * FMUv6X has a separate RC_IN
- *
  * GPIO PPM_IN on PI5 T8CH1
- * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC7
- *   Inversion is possible in the UART and can drive  GPIO PPM_IN as an output
+ * Inversion is possible in the UART and can drive  GPIO PPM_IN as an output
  */
 
 #define GPIO_PPM_IN_AS_OUT             (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN5)
@@ -426,9 +425,6 @@
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_SW_I2C_CAN_EN,               \
-		GPIO_SYNC,                        \
-		SPI6_nRESET_EXTERNAL1,            \
-		SPI6_nRESET_EXTERNAL2,            \
 		GPIO_ETH_POWER_EN,                \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
