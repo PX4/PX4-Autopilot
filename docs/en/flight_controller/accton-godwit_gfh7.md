@@ -46,7 +46,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **RC input:** Yes (serial, on the `SBUS` and `ELRS` connectors)
 - **Parameter storage:** processor flash
 - **SD card:** microSD slot
-- **ADC inputs:** 3 (battery voltage, battery current, and analog RSSI)
+- **ADC inputs:** 3 (battery voltage, battery current, and analog RSSI, which PX4 doesn't read)
 - **OSD:** analog (AT7456-compatible)
 - **Other:** 2 LED indicators, active buzzer output, video input, and video output
 
@@ -55,7 +55,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Input voltage:** Up to 12S LiPo
 - **Current draw:** 110 mA at 5 V (static), plus about 67 mA (0.33 W, calculated) with the IMU heater on
 - **BEC output:** 5 V/3 A and 12 V/3 A (supports power-saving mode)
-- **Power monitoring:** one analog input (battery voltage and current)
+- **Power monitoring:** analog battery voltage and current
 
 ### Mechanical Data {#mechanical_data}
 
@@ -146,15 +146,15 @@ If you enable the heater, run the [accelerometer calibration](../config/accelero
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device     | Port             | Connector                                                               |
-| ------ | ---------- | ---------------- | ----------------------------------------------------------------------- |
-| USART1 | /dev/ttyS0 | EXT2             | `ESC` (ESC telemetry, RX only)                                          |
-| USART2 | /dev/ttyS1 | TELEM 2          | `T2`/`R2` solder pads                                                   |
-| USART3 | /dev/ttyS2 | GPS 1            | `GPS`                                                                   |
-| UART4  | /dev/ttyS3 | TELEM/SERIAL 4   | `ELRS` (CRSF by default)                                                |
-| UART5  | /dev/ttyS4 | Radio Controller | `SBUS` (RX and TX), `A-VTX` (TX, VTX control), `D-VTX` (`SBUS` pin, RX) |
-| UART7  | /dev/ttyS5 | TELEM 1          | `TELEM`                                                                 |
-| UART8  | /dev/ttyS6 | TELEM 3          | `D-VTX`                                                                 |
+| UART   | Device     | Port             | Connector                                                            |
+| ------ | ---------- | ---------------- | -------------------------------------------------------------------- |
+| USART1 | /dev/ttyS0 | EXT2             | `ESC` (ESC telemetry, RX only)                                       |
+| USART2 | /dev/ttyS1 | TELEM 2          | `T2`/`R2` solder pads                                                |
+| USART3 | /dev/ttyS2 | GPS 1            | `GPS`                                                                |
+| UART4  | /dev/ttyS3 | TELEM/SERIAL 4   | `ELRS` (CRSF by default)                                             |
+| UART5  | /dev/ttyS4 | Radio Controller | `SBUS` (RX and TX), `A-VTX` (TX, not used), `D-VTX` (`SBUS` pin, RX) |
+| UART7  | /dev/ttyS5 | TELEM 1          | `TELEM`                                                              |
+| UART8  | /dev/ttyS6 | TELEM 3          | `D-VTX`                                                              |
 
 `EXT2` is receive-only, so it can't be used for MAVLink or other two-way protocols.
 It reads [ESC telemetry](../peripherals/dshot.md#esc-telemetry) from the `ESC` connector ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) is set to `EXT2` by default).
@@ -202,8 +202,7 @@ The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
   To use it, set [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller` and `RC_CRSF_PRT_CFG` to `Disabled`.
   The connector is wired to both `UART5_RX` and `UART5_TX`.
   The `SBUS` pin on the `D-VTX` connector shares the `UART5_RX` line, for digital video systems that output S.BUS.
-  The TX pin on the `A-VTX` connector shares the `UART5_TX` line.
-  If VTX control is enabled on `Radio Controller`, the `SBUS` connector cannot be used as a receiver at the same time.
+  The TX pin on the `A-VTX` connector shares the `UART5_TX` line, but PX4 doesn't use this pin.
 
 The other built-in protocols, DSM and GHST, are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to, and `RC_CRSF_PRT_CFG` to `Disabled`.
 DSM receivers can't be bound from PX4 or _QGroundControl_ on this board, so bind the receiver using its own bind procedure.
@@ -241,9 +240,7 @@ DroneCAN is disabled by default: enable it by setting [UAVCAN_ENABLE](../advance
 
 The board has an [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) co-processor (AT7456-compatible), which is enabled by default in NTSC mode.
 Connect the camera to `VIDEO-IN` and the analog video transmitter to `A-VTX`.
-The TX pin on the `A-VTX` connector carries the SmartAudio/Tramp control line, and the VTX driver is enabled in the default firmware.
-To use it, set [VTX_SER_CFG](../advanced_config/parameter_reference.md#VTX_SER_CFG) to `Radio Controller`, and set [VTX_PROTOCOL](../advanced_config/parameter_reference.md#VTX_PROTOCOL) and [VTX_DEVICE](../advanced_config/parameter_reference.md#VTX_DEVICE) per the [Analog Video Transmitters](../vtx/index.md) page.
-Because UART5 (the `Radio Controller` port) is also used by the `SBUS` connector, VTX control and an S.BUS receiver on the `SBUS` connector cannot be used at the same time.
+PX4 doesn't use the TX pin on the `A-VTX` connector, so VTX control (SmartAudio/Tramp) is not supported on this board.
 Set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `2` for PAL, or `0` to disable the OSD, and reboot.
 
 For a digital video transmitter on the `D-VTX` connector, set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `TELEM 3` to enable [MSP OSD](../peripherals/osd.md#msp-osd).
