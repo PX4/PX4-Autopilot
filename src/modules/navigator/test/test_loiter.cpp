@@ -142,6 +142,24 @@ TEST_F(LoiterTest, holdFollowsEstimateReset)
 	EXPECT_NEAR(currentSetpoint().alt, hold.alt + 0.8f, 0.001f);
 }
 
+TEST_F(LoiterTest, fixedWingHoldFollowsOnlyAltitudeReset)
+{
+	// GIVEN: a fixed-wing holding where it is
+	_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	_loiter.on_activation();
+	_loiter.on_active();
+
+	const position_setpoint_s hold = currentSetpoint();
+	ASSERT_TRUE(hold.valid);
+
+	// WHEN: the position estimate resets, as when GNSS returns after dead reckoning on wind
+	resetEstimate(150.f, -80.f, -0.8f);
+	_loiter.on_active();
+
+	// THEN: the orbit stays where Hold was engaged, the altitude moves with the reset
+	expectSetpointShift(hold, 0.f, 0.f, 0.8f);
+}
+
 TEST_F(LoiterTest, holdIgnoresMovedOrigin)
 {
 	// GIVEN: a vehicle holding where it is

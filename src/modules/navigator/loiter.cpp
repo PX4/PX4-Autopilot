@@ -255,8 +255,14 @@ Loiter::followPositionResets()
 	const bool lat_lon_origin_moved = (local_pos.ref_timestamp != _position_reset_state.ref_timestamp);
 	const bool alt_origin_moved = !(fabsf(local_pos.ref_alt - _position_reset_state.ref_alt) < FLT_EPSILON);
 
+	// Fixed-wing Hold has no position accuracy requirement and can dead-reckon on wind for minutes, so a horizontal
+	// reset may correct a drift of any size. Its orbit is too large for an offset between receivers to matter, so it
+	// keeps flying back to the hold position.
+	const bool follow_xy_resets = _follow_xy_resets
+				      && (_navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+
 	if (current.valid) {
-		if (_follow_xy_resets && (local_pos.xy_reset_counter != _position_reset_state.xy_reset_counter) && !lat_lon_origin_moved
+		if (follow_xy_resets && (local_pos.xy_reset_counter != _position_reset_state.xy_reset_counter) && !lat_lon_origin_moved
 		    && PX4_ISFINITE(local_pos.delta_xy[0]) && PX4_ISFINITE(local_pos.delta_xy[1])) {
 			add_vector_to_global_position(current.lat, current.lon, local_pos.delta_xy[0], local_pos.delta_xy[1],
 						      &current.lat, &current.lon);
