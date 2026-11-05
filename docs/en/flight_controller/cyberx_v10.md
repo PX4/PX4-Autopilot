@@ -69,33 +69,11 @@ Order from [CyberCraft International Limited](https://int.woocoo.vip/).
 
 ![CyberX-v10 line drawing showing the servo rail end](../../assets/flight_controller/cyberx_v10/cyberx_v10_right.png)
 
-![CyberX-v10 block diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_block_diagram.png)
-
 ![CyberX-v10 pinout diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_pinout.png)
 
 ![CyberX-v10 per-connector tables](../../assets/flight_controller/cyberx_v10/cyberx_v10_connector.png)
 
 ## Power {#power}
-
-**Voltage Ratings**
-
-CyberX-v10 can be triple-redundant on the power supply if three power sources are supplied.
-The three power rails are: **PWR1**, **PWR2** and **USB**.
-
-**Normal Operation Maximum Ratings**
-
-Under these conditions all power sources will be used in this order to power the system:
-
-1. **PWR1** and **PWR2** inputs (4.75V to 5.5V)
-2. **USB** input (4.75V to 5.25V)
-
-**Absolute Maximum Ratings**
-
-Under these conditions the system will not draw any power (will not be operational), but will remain intact.
-
-1. **PWR1** and **PWR2** inputs (operational range 4.7V to 5.7V, 0V to 6V undamaged)
-2. **USB input** (operational range 4.7V to 5.7V, 0V to 6V undamaged)
-3. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0V to 6V undamaged)
 
 ::: warning
 The PWM outputs (`M1` to `M16`) are not powered by the `PWR1` or `PWR2` ports.
@@ -117,6 +95,26 @@ The power module supplied with the CyberX-v10 has both an analog interface and a
 Connect the analog interface to `PWR1` and the I2C interface to `PWR2`.
 
 See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to configure the battery and power monitor.
+
+## Voltage Ratings {#voltage_ratings}
+
+CyberX-v10 can be triple-redundant on the power supply if three power sources are supplied.
+The three power rails are: **PWR1**, **PWR2** and **USB**.
+
+**Normal Operation Maximum Ratings**
+
+Under these conditions all power sources will be used in this order to power the system:
+
+1. **PWR1** and **PWR2** inputs (4.75V to 5.5V)
+2. **USB** input (4.75V to 5.25V)
+
+**Absolute Maximum Ratings**
+
+Under these conditions the system will not draw any power (will not be operational), but will remain intact.
+
+1. **PWR1** and **PWR2** inputs (operational range 4.7V to 5.7V, 0V to 6V undamaged)
+2. **USB input** (operational range 4.7V to 5.7V, 0V to 6V undamaged)
+3. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0V to 6V undamaged)
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -175,6 +173,10 @@ In the product, UART7 does not have an external connector, but it exists on the 
 ## Assembly {#assembly}
 
 The [CyberX-v10 Wiring Quick Start](../assembly/quick_start_cyberx_v10.md) provides instructions on how to assemble required/important peripherals including GPS, Power Module etc.
+
+### Wiring Diagram {#wiring_diagram}
+
+![CyberX-v10 block diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_block_diagram.png)
 
 ### Radio Control {#radio_control}
 
@@ -243,8 +245,3 @@ The port does not include the [PX4 System Console](../debug/system_console.md) U
 | 4 (blk) | IO_SWDIO  | +3.3V   |
 | 5 (blk) | IO_SWCLK  | +3.3V   |
 | 6 (blk) | GND       | GND     |
-
-## Supported Platforms / Airframes
-
-Any multi-rotor/airplane/rover or boat that can be controlled using normal RC servos or Futaba SBUS servos.
-The complete set of supported configurations can be found in the [Airframe Reference](../airframes/airframe_reference.md).
