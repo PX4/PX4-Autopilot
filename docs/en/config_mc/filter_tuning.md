@@ -84,6 +84,11 @@ The following parameters should be set to enable and configure dynamic notch fil
 | <a id="IMU_GYRO_DNF_BW"></a>[IMU_GYRO_DNF_BW](../advanced_config/parameter_reference.md#IMU_GYRO_DNF_BW)    | Bandwidth for each notch filter in Hz.                                                     |
 | <a id="IMU_GYRO_DNF_HMC"></a>[IMU_GYRO_DNF_HMC](../advanced_config/parameter_reference.md#IMU_GYRO_NF0_BW)  | Number of harmonics to filter.                                                             |
 
+To check that the dynamic notch filters track the noise, enable the high-rate logging profile (bit `4` of [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE)) and the raw gyro FIFO profile (bit `8`).
+The high-rate profile logs the filtered gyro data (`vehicle_angular_velocity`) and the frequencies the notch filters are applied at (`gyro_filter_status`), the FIFO profile the raw gyro data before filtering (`sensor_gyro_fifo`).
+Comparing the spectrum before and after filtering with the notch filter frequencies over time shows whether the notches sit on the noise.
+The raw gyro data makes these logs large, so only enable the FIFO profile for tuning flights.
+
 ### Low-pass Filter
 
 A low pass filter on the gyro data can be configured with the [IMU_GYRO_CUTOFF](../advanced_config/parameter_reference.md#IMU_GYRO_CUTOFF) parameter.

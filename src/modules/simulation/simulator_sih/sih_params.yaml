@@ -381,3 +381,35 @@ parameters:
       default: 6000.0
       min: 0.1
       decimal: 1
+    SIH_GYRO_VIB:
+      description:
+        short: Gyro vibration from the rotors
+        long: |-
+          Amplitude of the rotor imbalance vibration added to the simulated gyro,
+          at a rotor speed of 6000 RPM (100 Hz). The vibration is at the rotation
+          frequency of each motor and its 2nd and 3rd harmonic, and grows with the
+          square of the rotor speed. A broadband part is added as well.
+          Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: rad/s
+      min: 0.0
+      max: 5.0
+      decimal: 2
+      increment: 0.05
+    SIH_ACCEL_VIB:
+      description:
+        short: Accelerometer vibration from the rotors
+        long: |-
+          Amplitude of the rotor imbalance vibration added to the simulated
+          accelerometer, at a rotor speed of 6000 RPM (100 Hz). Same model as
+          SIH_GYRO_VIB: rotation frequency of each motor and its 2nd and 3rd
+          harmonic, growing with the square of the rotor speed, plus a broadband part.
+          Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: m/s^2
+      min: 0.0
+      max: 50.0
+      decimal: 1
+      increment: 0.5
