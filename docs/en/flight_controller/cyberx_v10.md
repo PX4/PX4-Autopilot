@@ -35,12 +35,12 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **PWM outputs:** 16 (8 IO + 8 FMU)
 - **Serial ports:** 6 (`GPS1`, `GPS2`, `TEL1`, `TEL2`, `Uart5`, `Uart8`), `TEL1` and `TEL2` with flow control
-- **I2C buses:** 4 (I2C1 and I2C2 on the `GPS1` and `GPS2` ports; I2C3 and I2C4 shared between on-board sensors and the `I2C3` and `I2C4` ports)
+- **I2C buses:** 4 (I2C1 and I2C2 on the `GPS1` and `GPS2` ports; I2C3 and I2C4 shared between on-board sensors and the `I2C3` and `I2C4` ports; I2C3 also on `PWR2`)
 - **SPI buses:** 6, of which SPI6 is external with 2 chip select lines
 - **CAN buses:** 2 (`CAN1`, `CAN2`)
 - **Ethernet:** 100Mbps, with transformer
 - **USB:** Type-C
-- **RC input:** SBUS on `S.Bin`, SBUS or PPM on `RCin`, CRSF on `Uart8`
+- **RC input:** SBUS on `S.Bin`, SBUS or PPM on `RCin`, CRSF or GHST on `Uart8`
 - **RSSI input:** 1 analog/PWM
 - **Analog inputs:** 2 on the `ADC` port (3.3V and 6.6V)
 - **Power inputs:** 2 (`PWR1` ADC, `PWR2` I2C)
@@ -161,7 +161,7 @@ SD cards are used for [log files and for storing missions](../getting_started/px
 | USART2 | /dev/ttyS1 | `TEL1`             | Yes          |
 | USART3 | /dev/ttyS2 | `TEL2`             | Yes          |
 | UART4  | /dev/ttyS3 | `GPS2`             | No           |
-| UART5  | /dev/ttyS4 | `Uart5`            | No           |
+| UART5  | /dev/ttyS4 | `Uart5` (EXT2)     | No           |
 | USART6 | /dev/ttyS5 | PX4IO              | No           |
 | UART7  | /dev/ttyS6 | Debug (Reserved)   | No           |
 | UART8  | /dev/ttyS7 | `Uart8` (RC input) | No           |
@@ -186,7 +186,7 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
 SBUS receivers connect to the `S.Bin` port or the `RCin` pin on the servo rail (both routed to the PX4IO).
 PPM receivers connect to the `RCin` pin.
-CRSF receivers connect to the `Uart8` port (routed to the FMU).
+CRSF and GHST receivers connect to the `Uart8` port (routed to the FMU).
 If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#connecting-receivers).
 You can then bind the transmitter and receiver together.
 

@@ -18,8 +18,8 @@ We'll go through each of these in detail in the following sections.
 | `GPS1`, `GPS2`    | GPS/RTK modules                                                                                                 |
 | `SW+BUZ`          | Safety switch, safety LED and buzzer (usually from the GPS module)                                              |
 | `TEL1`, `TEL2`    | Telemetry radios or other MAVLink devices                                                                       |
-| `Uart5`           | Spare serial port                                                                                               |
-| `Uart8`           | RC input for CRSF receivers                                                                                     |
+| `Uart5`           | General-purpose serial port (EXT2)                                                                              |
+| `Uart8`           | RC input for CRSF and GHST receivers                                                                            |
 | `S.Bin`           | SBUS receiver (`SBUS_IN`) and RSSI input (`RSSI_IN`)                                                            |
 | `RCin`            | SBUS or PPM receiver (pin on the servo rail)                                                                    |
 | `I2C3`, `I2C4`    | I2C peripherals, such as an MS4525DO airspeed sensor                                                            |
@@ -68,7 +68,7 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
 - SBUS receivers connect to the **S.Bin** port or the **RCin** pin.
 - PPM receivers connect to the **RCin** pin.
-- CRSF receivers connect to the **Uart8** port.
+- CRSF and GHST receivers connect to the **Uart8** port.
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
 
