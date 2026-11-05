@@ -232,6 +232,12 @@ The board has two CAN ports, `CAN1` and `CAN2`, which can be used for [DroneCAN]
 DroneCAN is disabled by default.
 To enable it, set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE).
 
+### OSD {#osd}
+
+The default firmware includes the [MSP OSD](../peripherals/osd.md#msp-osd) driver, for HD VTX units that render the OSD themselves.
+Connect the VTX to a free serial port, such as `Uart5`, and set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to that port (`EXT2` for `Uart5`).
+No port is assigned by default.
+
 ## Building Firmware {#building_firmware}
 
 ::: tip
@@ -260,3 +266,8 @@ The port does not include the [PX4 System Console](../debug/system_console.md) U
 | 4 (blk) | IO_SWDIO  | +3.3V   |
 | 5 (blk) | IO_SWCLK  | +3.3V   |
 | 6 (blk) | GND       | GND     |
+
+## Further Information {#further_information}
+
+- [CyberCraft International Limited](https://int.woocoo.vip/) (manufacturer)
+- [CyberX-v10 Wiring Quick Start](../assembly/quick_start_cyberx_v10.md)
