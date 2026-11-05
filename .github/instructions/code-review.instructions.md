@@ -23,7 +23,7 @@ applyTo: "src/**,boards/**,platforms/**,msg/**,cmake/**,Makefile,CMakeLists.txt,
 - **Framework reuse**: use PX4_ERR/WARN/INFO, existing libraries (AlphaFilter, SlewRate, RateControl), MAVLink constants from the library
 - **Naming**: accurate, no unjustified abbreviations, current terminology (GPS -> GNSS for new code)
 - **Unnecessary complexity**: can code be removed instead of added? Is there a simpler pattern?
-- **Test coverage**: new features should include unit or integration tests; bug fixes should include regression tests where practical
+- **Test evidence**: the PR states what was run and what it showed; don't ask for tests to be committed. A committed test must guard behavior that is easy to break later and run fast, with no real-time sleeps; flag tests that only re-check the change
 - **Formatting**: `make format` / `make check_format` (astyle) for C/C++ files; `clang-tidy` clean
 - **Coding style**: C/C++ must follow the PX4 coding style (https://docs.px4.io/main/en/contribute/code.html)
 - **Necessity**: challenge every addition. Is this actually needed or just copied?
