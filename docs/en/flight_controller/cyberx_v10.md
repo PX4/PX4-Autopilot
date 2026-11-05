@@ -23,7 +23,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Processor {#processor}
 
 - **Main FMU processor:** [STM32H743IIK6](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html) (32 Bit Arm® Cortex®-M7, 480 MHz, 2 MB Flash, 1 MB RAM)
-- **IO processor:** [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html) (32 Bit Arm® Cortex®-M3, 72 MHz, 128 KB Flash, 20 KB SRAM)
+- **IO processor:** PX4IO v2, on carriers that fit one.
 
 ### Sensors {#sensors}
 
@@ -52,6 +52,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Electrical Data {#electrical_data}
 
 - **Input voltage:** 4.75 V to 5.5 V (`PWR1`, `PWR2`)
+- **Current draw:** 500 mA
 - **USB power input:** 4.75 V to 5.25 V
 - **Power monitoring:** 1 analog (`PWR1`) and 1 digital (`PWR2`, INA228), both on by default
 - **Output current limits:** `TEL1` and `TEL2` combined 1.5 A; all other ports combined 1.5 A
@@ -63,7 +64,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-Order from [CyberCraft International Limited](https://int.woocoo.vip/).
+Order from [CyberCraft International Limited](https://int.woocoo.vip/detail).
 
 ## Pinouts {#pinouts}
 
@@ -165,7 +166,7 @@ SD cards are used for [log files and for storing missions](../getting_started/px
 | UART4  | /dev/ttyS3 | `GPS2`             | No           |
 | UART5  | /dev/ttyS4 | `Uart5` (EXT2)     | No           |
 | USART6 | /dev/ttyS5 | PX4IO              | No           |
-| UART7  | /dev/ttyS6 | Debug (Reserved)   | No           |
+| UART7  | /dev/ttyS6 | Unused             | No           |
 | UART8  | /dev/ttyS7 | `Uart8` (RC input) | No           |
 
 ::: info
@@ -196,7 +197,7 @@ The board has two RC input paths:
   SBUS receivers connect to `S.Bin` or `RCin`, and PPM receivers connect to `RCin`.
 - `Uart8` goes to the FMU, where the [rc_input](../modules/modules_driver_radio_control.md#rc-input) driver detects the protocol with no configuration.
   Use it for CRSF receivers, which the IO processor can't decode.
-  PX4 uses `Uart8` as a single-wire port on its `RX` pin, so connect the receiver's `TX` output to that pin.
+  PX4 uses `Uart8`s `RX` pin as the receiver port and its `TX` pin as the transmit port.
   [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) sets the port that `rc_input` uses, and defaults to `Radio Controller` (`Uart8`).
 
 Spektrum/DSM receivers are not supported.
