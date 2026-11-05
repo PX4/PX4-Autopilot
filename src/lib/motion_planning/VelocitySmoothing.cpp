@@ -204,6 +204,7 @@ float VelocitySmoothing::computeVelAtZeroAcc() const
 
 void VelocitySmoothing::updateDurationsMinimizeTotalTime()
 {
+	_direction_T3 = -_direction;
 	float jerk_max_T1 = _direction * _max_jerk;
 	float delta_v = _vel_sp - _state.v;
 
@@ -254,7 +255,7 @@ void VelocitySmoothing::updateTraj(float dt, float time_stretch)
 
 	if (t_remain > 0.f) {
 		float t3 = math::min(t_remain, _T3);
-		_state = evaluatePoly(_max_jerk, _state.a, _state.v, _state.x, t3, -_direction);
+		_state = evaluatePoly(_max_jerk, _state.a, _state.v, _state.x, t3, _direction_T3);
 		t_remain -= t3;
 	}
 
@@ -289,8 +290,30 @@ void VelocitySmoothing::timeSynchronization(VelocitySmoothing *traj, int n_traj)
 
 void VelocitySmoothing::updateDurationsGivenTotalTime(float T123)
 {
+	_direction_T3 = -_direction;
 	float jerk_max_T1 = _direction * _max_jerk;
 	float delta_v = _vel_sp - _state.v;
+
+	if ((_max_jerk > FLT_EPSILON) && (_state.a * delta_v > 0.f)) {
+		// If holding the current acceleration and ramping it out at the end already changes the velocity by more
+		// than delta_v within T123, no profile that first increases the acceleration fits, and the solution below
+		// would hold the acceleration and overshoot the velocity setpoint. Instead lower the acceleration to a
+		// constant level and then ramp it out, with the same jerk sign in both ramps.
+		const float accel_abs = fabsf(_state.a);
+		const float delta_v_abs = fabsf(delta_v);
+		const float t_ramp = accel_abs / _max_jerk;
+		const float delta_v_ramp = 0.5f * accel_abs * t_ramp;
+
+		if ((T123 > t_ramp) && (delta_v_abs >= delta_v_ramp) && (delta_v_abs < accel_abs * T123 - delta_v_ramp)) {
+			const float accel_T2 = (delta_v_abs - delta_v_ramp) / (T123 - t_ramp);
+			_direction = (_state.a > 0.f) ? -1 : 1;
+			_direction_T3 = _direction;
+			_T1 = (accel_abs - accel_T2) / _max_jerk;
+			_T3 = accel_T2 / _max_jerk;
+			_T2 = T123 - t_ramp;
+			return;
+		}
+	}
 
 	if (fabsf(jerk_max_T1) > FLT_EPSILON) { // zero direction or jerk would lead to division by zero
 		// compute increasing acceleration time
