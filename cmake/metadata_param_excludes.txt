@@ -1,0 +1,10 @@
+# Parameter yaml files left out of the full parameter reference
+# (make parameters_metadata, cmake/metadata.cmake), which otherwise reads
+# every yaml file under src/.
+#
+# One repository-relative path per line, with the reason after '#'.
+# Configuring fails if a listed file no longer exists.
+
+# Duplicates of PWM_MAIN_* from px4io
+src/drivers/linux_pwm_out/module.yaml  # PWM output on Linux boards
+src/modules/simulation/pwm_out_sim/module_sim.yaml  # SITL actuator output
