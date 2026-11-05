@@ -74,6 +74,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   - Set `MIS_YAW_TMT` to `-1` to keep waiting indefinitely for headings that are awaited.
 
   See [Mission Mode > Waypoint Heading Timeout](../flight_modes_mc/mission.md#waypoint-heading-timeout).
+
 - **Plans are transferred only with the integer mission messages.**
   PX4 requests and sends plan items with `MISSION_REQUEST_INT` and `MISSION_ITEM_INT` only, and no longer reports `MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT`.
   The deprecated `MISSION_REQUEST` is answered with `MISSION_ITEM_INT`, as the [MAVLink mission protocol](https://mavlink.io/en/services/mission.html) asks, and an upload that sends the deprecated `MISSION_ITEM` is rejected with `MAV_MISSION_UNSUPPORTED`.

@@ -44196,17 +44196,18 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Waypoint heading timeout.
 
-Time in seconds we wait on reaching target heading at a waypoint if it is forced
+Time from commanding a waypoint heading until a multicopter continues without reaching it,
+to not get stuck with low yaw authority.
 
-If set > 0 it will ignore the target heading for normal waypoint acceptance. If the
-waypoint forces the heading the timeout will matter. For example on VTOL forwards transition.
-Mainly useful for VTOLs that have less yaw authority and might not reach target
-yaw in wind. Disabled by default.
+A forced heading (e.g. before a VTOL transition) is never skipped: a mission fails instead,
+other modes keep waiting.
+VTOLs only wait for forced headings.
+0: don't wait, -1: wait indefinitely
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -1 | 20 | 1 | -1.0 | s | &nbsp;
+&nbsp; | -1 | 60 | 1 | 10.0 | s | &nbsp;
 
 </div>
 
