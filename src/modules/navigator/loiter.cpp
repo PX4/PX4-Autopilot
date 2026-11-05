@@ -80,8 +80,6 @@ Loiter::on_activation()
 void
 Loiter::on_active()
 {
-	followPositionResets();
-
 	if (_navigator->get_reposition_triplet()->current.valid
 	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
 		reposition();

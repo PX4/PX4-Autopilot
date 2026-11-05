@@ -107,6 +107,13 @@ protected:
 		*_navigator.get_reposition_sources() = {source_xy, source_z};
 	}
 
+	// One navigator cycle in Hold, in the order Navigator runs it
+	void runCycle()
+	{
+		_loiter.followPositionResets();
+		_loiter.on_active();
+	}
+
 	const position_setpoint_s &currentSetpoint() { return _navigator.get_position_setpoint_triplet()->current; }
 
 	void expectSetpointShift(const position_setpoint_s &before, float delta_north, float delta_east, float delta_up)
@@ -124,14 +131,14 @@ TEST_F(LoiterTest, holdFollowsEstimateReset)
 {
 	// GIVEN: a vehicle holding where it is
 	_loiter.on_activation();
-	_loiter.on_active();
+	runCycle();
 
 	const position_setpoint_s hold = currentSetpoint();
 	ASSERT_TRUE(hold.valid);
 
 	// WHEN: the position estimate resets 1.5 m north and 0.8 m up, as on a switch of the GNSS receiver
 	resetEstimate(1.5f, 0.f, -0.8f);
-	_loiter.on_active();
+	runCycle();
 
 	// THEN: the hold position moves with it, so that the vehicle stays where it is
 	float north = 0.f;
@@ -147,14 +154,14 @@ TEST_F(LoiterTest, fixedWingHoldFollowsOnlyAltitudeReset)
 	// GIVEN: a fixed-wing holding where it is
 	_navigator.get_vstatus()->vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 	_loiter.on_activation();
-	_loiter.on_active();
+	runCycle();
 
 	const position_setpoint_s hold = currentSetpoint();
 	ASSERT_TRUE(hold.valid);
 
 	// WHEN: the position estimate resets, as when GNSS returns after dead reckoning on wind
 	resetEstimate(150.f, -80.f, -0.8f);
-	_loiter.on_active();
+	runCycle();
 
 	// THEN: the orbit stays where Hold was engaged, the altitude moves with the reset
 	expectSetpointShift(hold, 0.f, 0.f, 0.8f);
@@ -164,7 +171,7 @@ TEST_F(LoiterTest, holdIgnoresMovedOrigin)
 {
 	// GIVEN: a vehicle holding where it is
 	_loiter.on_activation();
-	_loiter.on_active();
+	runCycle();
 
 	const position_setpoint_s hold = currentSetpoint();
 
@@ -172,7 +179,7 @@ TEST_F(LoiterTest, holdIgnoresMovedOrigin)
 	resetEstimate(20.f, 10.f, 5.f);
 	_navigator.get_local_position()->ref_timestamp = 2;
 	_navigator.get_local_position()->ref_alt = 405.f;
-	_loiter.on_active();
+	runCycle();
 
 	// THEN: the hold position stays
 	EXPECT_DOUBLE_EQ(currentSetpoint().lat, hold.lat);
@@ -184,7 +191,7 @@ TEST_F(LoiterTest, repositionTargetIgnoresEstimateReset)
 {
 	// GIVEN: a vehicle holding, then sent to a reposition target
 	_loiter.on_activation();
-	_loiter.on_active();
+	runCycle();
 
 	position_setpoint_triplet_s *reposition = _navigator.get_reposition_triplet();
 	reposition->current.valid = true;
@@ -193,14 +200,14 @@ TEST_F(LoiterTest, repositionTargetIgnoresEstimateReset)
 	reposition->current.lat = kLat + 0.001;
 	reposition->current.lon = kLon;
 	reposition->current.alt = kAlt + 10.f;
-	_loiter.on_active();
+	runCycle();
 
 	const position_setpoint_s target = currentSetpoint();
 	ASSERT_DOUBLE_EQ(target.lat, kLat + 0.001);
 
 	// WHEN: the position estimate resets
 	resetEstimate(1.5f, 0.f, -0.8f);
-	_loiter.on_active();
+	runCycle();
 
 	// THEN: the target stays where it was commanded
 	EXPECT_DOUBLE_EQ(currentSetpoint().lat, target.lat);
@@ -213,14 +220,14 @@ TEST_F(LoiterTest, pauseFollowsEstimateReset)
 	// GIVEN: a vehicle paused into Hold where it is, by a reposition without coordinates as QGC's Pause sends it
 	repositionTo(kLat, kLon, kAlt, Navigator::RepositionSource::Vehicle, Navigator::RepositionSource::Vehicle);
 	_loiter.on_activation();
-	_loiter.on_active();
+	runCycle();
 
 	const position_setpoint_s hold = currentSetpoint();
 	ASSERT_TRUE(hold.valid);
 
 	// WHEN: the position estimate resets 1.5 m north and 0.8 m up
 	resetEstimate(1.5f, 0.f, -0.8f);
-	_loiter.on_active();
+	runCycle();
 
 	// THEN: the hold position moves with it, so that the vehicle stays where it is
 	float north = 0.f;
@@ -235,17 +242,17 @@ TEST_F(LoiterTest, altitudeChangeKeepsFollowingHorizontally)
 {
 	// GIVEN: a vehicle holding where it is, then sent to a new altitude only
 	_loiter.on_activation();
-	_loiter.on_active();
+	runCycle();
 	repositionTo(currentSetpoint().lat, currentSetpoint().lon, kAlt + 10.f, Navigator::RepositionSource::Setpoint,
 		     Navigator::RepositionSource::Command);
-	_loiter.on_active();
+	runCycle();
 
 	const position_setpoint_s target = currentSetpoint();
 	ASSERT_FLOAT_EQ(target.alt, kAlt + 10.f);
 
 	// WHEN: the position estimate resets 1.5 m north and 0.8 m up
 	resetEstimate(1.5f, 0.f, -0.8f);
-	_loiter.on_active();
+	runCycle();
 
 	// THEN: the hold position moves with it horizontally, the commanded altitude stays
 	float north = 0.f;
@@ -334,7 +341,7 @@ TEST_F(LoiterTest, horizontalCommandFollowsOnlyAltitudeReset)
 	const position_setpoint_s target = currentSetpoint();
 
 	resetEstimate(1.5f, 0.5f, -0.8f);
-	_loiter.on_active();
+	runCycle();
 
 	EXPECT_DOUBLE_EQ(currentSetpoint().lat, target.lat);
 	EXPECT_DOUBLE_EQ(currentSetpoint().lon, target.lon);
@@ -350,11 +357,11 @@ TEST_F(LoiterTest, altitudeChangeKeepsCommandedHorizontalTarget)
 	// Updating altitude must preserve the reset behavior of the commanded horizontal target.
 	repositionTo(currentSetpoint().lat, currentSetpoint().lon, kAlt + 10.f, Navigator::RepositionSource::Setpoint,
 		     Navigator::RepositionSource::Command);
-	_loiter.on_active();
+	runCycle();
 	const position_setpoint_s target = currentSetpoint();
 
 	resetEstimate(1.5f, 0.5f, -0.8f);
-	_loiter.on_active();
+	runCycle();
 
 	EXPECT_DOUBLE_EQ(currentSetpoint().lat, target.lat);
 	EXPECT_DOUBLE_EQ(currentSetpoint().lon, target.lon);
@@ -364,7 +371,7 @@ TEST_F(LoiterTest, altitudeChangeKeepsCommandedHorizontalTarget)
 TEST_F(LoiterTest, freshVehicleTargetDoesNotApplyResetTwice)
 {
 	_loiter.on_activation();
-	_loiter.on_active();
+	runCycle();
 	const position_setpoint_s hold = currentSetpoint();
 
 	// A pause built from the new estimate already includes this cycle's reset.
@@ -374,20 +381,20 @@ TEST_F(LoiterTest, freshVehicleTargetDoesNotApplyResetTwice)
 	global_pos.alt += 0.8f;
 	repositionTo(global_pos.lat, global_pos.lon, global_pos.alt, Navigator::RepositionSource::Vehicle,
 		     Navigator::RepositionSource::Vehicle);
-	_loiter.on_active();
+	runCycle();
 
 	expectSetpointShift(hold, 1.5f, 0.5f, 0.8f);
 
 	// Subsequent resets still move the hold target.
 	resetEstimate(1.5f, 0.5f, -0.8f);
-	_loiter.on_active();
+	runCycle();
 	expectSetpointShift(hold, 3.f, 1.f, 1.6f);
 }
 
 TEST_F(LoiterTest, modeReentryDoesNotReusePreviousHoldResetPolicy)
 {
 	_loiter.on_activation();
-	_loiter.on_active();
+	runCycle();
 	_loiter.on_inactive();
 
 	// Another mode leaves a commanded target, then an altitude-only reposition enters Hold again.
@@ -399,7 +406,7 @@ TEST_F(LoiterTest, modeReentryDoesNotReusePreviousHoldResetPolicy)
 	const position_setpoint_s target = currentSetpoint();
 
 	resetEstimate(1.5f, 0.5f, -0.8f);
-	_loiter.on_active();
+	runCycle();
 
 	EXPECT_DOUBLE_EQ(currentSetpoint().lat, target.lat);
 	EXPECT_DOUBLE_EQ(currentSetpoint().lon, target.lon);
@@ -443,6 +450,7 @@ TEST_F(LoiterTest, geofenceHoldFollowsEstimateReset)
 	local_pos.xy_reset_counter++;
 	local_pos.delta_z = -0.8f;
 	local_pos.z_reset_counter++;
+	loiter.followPositionResets();
 	loiter.on_active();
 
 	const position_setpoint_s &current = navigator.get_position_setpoint_triplet()->current;

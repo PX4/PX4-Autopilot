@@ -56,7 +56,10 @@ public:
 	void on_active() override;
 	void on_inactive() override;
 
-	/** Update Hold before Navigator copies its setpoint into a reposition request. */
+	/**
+	 * Move the hold position along with a reset of the position estimate. Navigator calls this once per cycle,
+	 * before commands that copy the hold position into a reposition.
+	 */
 	void followPositionResets();
 
 private:
