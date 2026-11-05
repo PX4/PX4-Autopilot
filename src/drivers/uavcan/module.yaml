@@ -47,6 +47,19 @@ parameters:
         0: Hobbywing 1-based esc_index
       default: 0
       reboot_required: true
+    UAVCAN_ESC_RPMSC:
+      description:
+        short: ESC RPM telemetry scale
+        long: Multiplies the RPM reported in uavcan.equipment.esc.Status by this factor
+          before publishing, for ESCs that report RPM off by a fixed factor (e.g. electrical
+          instead of mechanical RPM). Applies to all DroneCAN ESCs.
+      type: float
+      default: 1.0
+      min: 0.001
+      max: 100.0
+      decimal: 4
+      increment: 0.01
+      reboot_required: true
     UAVCAN_EC_SIGNED:
       description:
         short: Signed command for non-motor ESC channels
