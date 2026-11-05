@@ -22,13 +22,13 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- **Main FMU processor:** STM32H743IIK6 (32 Bit Arm® Cortex®-M7, 480MHz, 2MB Flash, 1MB RAM)
-- **IO processor:** STM32F103 (32 Bit Arm® Cortex®-M3, 72MHz, 128KB Flash, 20KB SRAM)
+- **Main FMU processor:** [STM32H743IIK6](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html) (32 Bit Arm® Cortex®-M7, 480 MHz, 2 MB Flash, 1 MB RAM)
+- **IO processor:** [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html) (32 Bit Arm® Cortex®-M3, 72 MHz, 128 KB Flash, 20 KB SRAM)
 
 ### Sensors {#sensors}
 
-- **IMU:** ICM-20689 (SPI1), BMI088 (SPI3), ICM-42688-P (SPI4)
-- **Barometer:** BMP581 (SPI2), ICP-20100 (I2C4)
+- **IMU:** ICM-20689 (SPI1), [BMI088](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088) (SPI3), [ICM-42688-P](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p) (SPI4)
+- **Barometer:** [BMP581](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp581) (SPI2), [ICP-20100](https://www.invensense.tdk.com/en-us/products/smartindustrial/icp-20100) (I2C4)
 - **Magnetometer:** IST8310 (I2C3)
 
 ### Interfaces {#interfaces}
@@ -38,11 +38,11 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **I2C buses:** 4 (I2C1 and I2C2 on the `GPS1` and `GPS2` ports; I2C3 and I2C4 shared between on-board sensors and the `I2C3` and `I2C4` ports; I2C3 also on `PWR2`)
 - **SPI buses:** 6, of which SPI6 is external with 2 chip select lines
 - **CAN buses:** 2 (`CAN1`, `CAN2`)
-- **Ethernet:** 100Mbps, with transformer
+- **Ethernet:** 100 Mbps, with transformer
 - **USB:** Type-C
 - **RC input:** SBUS on `S.Bin`, SBUS or PPM on `RCin`, CRSF or GHST on `Uart8`
 - **RSSI input:** 1 analog/PWM
-- **Analog inputs:** 2 on the `ADC` port (3.3V and 6.6V)
+- **Analog inputs:** 2 on the `ADC` port (3.3 V and 6.6 V)
 - **Power inputs:** 2 (`PWR1` ADC, `PWR2` I2C)
 - **Parameter storage:** FRAM (FM25V02A) on SPI5
 - **SD card:** microSD card slot
@@ -50,14 +50,15 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Max input voltage:** 5.5V
-- **USB power input:** 4.75 ~ 5.25V
-- **Output current limits:** `TEL1` and `TEL2` combined 1.5A; all other ports combined 1.5A
+- **Input voltage:** 4.75 V to 5.5 V (`PWR1`, `PWR2`)
+- **USB power input:** 4.75 V to 5.25 V
+- **Power monitoring:** 1 analog (`PWR1`) and 1 digital (`PWR2`, INA228), both on by default
+- **Output current limits:** `TEL1` and `TEL2` combined 1.5 A; all other ports combined 1.5 A
 
 ### Mechanical Data {#mechanical_data}
 
-- **Size:** 83mm x 57mm x 15.1mm
-- **Weight:** 72.4g
+- **Dimensions:** 83 x 57 x 15.1 mm
+- **Weight:** 72.4 g
 
 ## Where to Buy {#store}
 
