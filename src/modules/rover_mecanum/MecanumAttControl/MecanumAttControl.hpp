@@ -36,6 +36,7 @@
 // PX4 includes
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/events.h>
 
 // Libraries
@@ -48,6 +49,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/surface_vehicle_rate_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/surface_vehicle_attitude_status.h>
@@ -58,7 +60,7 @@ using namespace time_literals;
 /**
  * @brief Class for mecanum attitude control.
  */
-class MecanumAttControl : public ModuleParams
+class MecanumAttControl : public ModuleParams, public px4::WorkItem
 {
 public:
 	/**
@@ -71,6 +73,16 @@ public:
 	/**
 	 * @brief Generate and publish surfaceVehicleRateSetpoint from surfaceVehicleAttitudeSetpoint.
 	 */
+	/**
+	 * @brief Register the callback on the topic that triggers the controller.
+	 */
+	bool init();
+
+	/**
+	 * @brief Run the controller on its trigger topic only while enabled.
+	 */
+	void setEnabled(bool enabled) { _enabled = enabled; }
+
 	void updateAttControl();
 
 	/**
@@ -91,9 +103,11 @@ protected:
 	void updateParams() override;
 
 private:
+	void Run() override;
+
 
 	// uORB subscriptions
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)}; // Triggers the controller
 	uORB::Subscription _surface_vehicle_attitude_setpoint_sub{ORB_ID(surface_vehicle_attitude_setpoint)};
 
 	// uORB publications
@@ -101,6 +115,7 @@ private:
 	uORB::Publication<surface_vehicle_attitude_status_s> _surface_vehicle_attitude_status_pub{ORB_ID(surface_vehicle_attitude_status)};
 
 	// Variables
+	bool _enabled{false};
 	float _vehicle_yaw{0.f};
 	hrt_abstime _timestamp{0};
 	float _max_yaw_rate{0.f};

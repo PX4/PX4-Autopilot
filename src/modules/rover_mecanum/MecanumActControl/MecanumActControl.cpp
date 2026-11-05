@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-MecanumActControl::MecanumActControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumActControl::MecanumActControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	WorkItem("rover_mecanum_act_control", px4::wq_configurations::rate_ctrl)
 {
 	updateParams();
 }
@@ -47,6 +49,18 @@ void MecanumActControl::updateParams()
 	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
 		_adjusted_throttle_x_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
 		_adjusted_throttle_y_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
+	}
+}
+
+bool MecanumActControl::init()
+{
+	return _surface_vehicle_steering_setpoint_sub.registerCallback();
+}
+
+void MecanumActControl::Run()
+{
+	if (_enabled) {
+		updateActControl();
 	}
 }
 

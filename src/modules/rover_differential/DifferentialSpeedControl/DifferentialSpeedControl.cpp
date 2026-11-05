@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-DifferentialSpeedControl::DifferentialSpeedControl(ModuleParams *parent) : ModuleParams(parent)
+DifferentialSpeedControl::DifferentialSpeedControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	WorkItem("rover_differential_speed_control", px4::wq_configurations::rate_ctrl)
 {
 	_rover_throttle_setpoint_pub.advertise();
 	_surface_vehicle_speed_status_pub.advertise();
@@ -54,6 +56,18 @@ void DifferentialSpeedControl::updateParams()
 	// Set up slew rate
 	if (_param_ro_accel_limit.get() > FLT_EPSILON) {
 		_adjusted_speed_setpoint.setSlewRate(_param_ro_accel_limit.get());
+	}
+}
+
+bool DifferentialSpeedControl::init()
+{
+	return _vehicle_local_position_sub.registerCallback();
+}
+
+void DifferentialSpeedControl::Run()
+{
+	if (_enabled) {
+		updateSpeedControl();
 	}
 }
 

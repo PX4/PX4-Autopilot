@@ -46,7 +46,12 @@ RoverDifferential::RoverDifferential() :
 
 bool RoverDifferential::init()
 {
-	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+	if (!_vehicle_angular_velocity_sub.registerCallback()
+	    || !_differential_act_control.init()
+	    || !_differential_rate_control.init()
+	    || !_differential_att_control.init()
+	    || !_differential_speed_control.init()
+	    || !_differential_pos_control.init()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -67,7 +72,7 @@ void RoverDifferential::Run()
 		return;
 	}
 
-	// Drain the trigger. The gyro paces the loop; its value is not used here.
+	// Drain the trigger. The gyro paces the setpoint generation; its value is not used here.
 	vehicle_angular_velocity_s angular_velocity;
 	_vehicle_angular_velocity_sub.update(&angular_velocity);
 
@@ -101,14 +106,16 @@ void RoverDifferential::Run()
 
 		_was_armed = true;
 		generateSetpoints();
-		updateControllers();
+		enableControllers(true);
 
 	} else if (_was_armed) { // Reset all controllers and stop the vehicle
+		enableControllers(false);
 		reset();
 		_differential_act_control.stopVehicle();
 		_was_armed = false;
 
 	} else {
+		enableControllers(false);
 		_differential_act_control.stopVehicle();
 	}
 
@@ -181,27 +188,13 @@ void RoverDifferential::generateSetpoints()
 
 }
 
-void RoverDifferential::updateControllers()
+void RoverDifferential::enableControllers(const bool enabled)
 {
-	if (_vehicle_control_mode.flag_control_position_enabled) {
-		_differential_pos_control.updatePosControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_attitude_enabled) {
-		_differential_att_control.updateAttControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_rates_enabled) {
-		_differential_rate_control.updateRateControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_differential_speed_control.updateSpeedControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_allocation_enabled) {
-		_differential_act_control.updateActControl();
-	}
+	_differential_pos_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled);
+	_differential_att_control.setEnabled(enabled && _vehicle_control_mode.flag_control_attitude_enabled);
+	_differential_rate_control.setEnabled(enabled && _vehicle_control_mode.flag_control_rates_enabled);
+	_differential_speed_control.setEnabled(enabled && _vehicle_control_mode.flag_control_velocity_enabled);
+	_differential_act_control.setEnabled(enabled && _vehicle_control_mode.flag_control_allocation_enabled);
 }
 
 void RoverDifferential::runSanityChecks()

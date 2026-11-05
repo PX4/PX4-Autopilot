@@ -35,6 +35,7 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/events.h>
 
 // Libraries
@@ -47,6 +48,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/surface_vehicle_speed_status.h>
 #include <uORB/topics/surface_vehicle_speed_setpoint.h>
@@ -59,7 +61,7 @@ using namespace matrix;
 /**
  * @brief Class for differential speed control.
  */
-class DifferentialSpeedControl : public ModuleParams
+class DifferentialSpeedControl : public ModuleParams, public px4::WorkItem
 {
 public:
 	/**
@@ -72,6 +74,16 @@ public:
 	/**
 	 * @brief Generate and publish RoverThrottleSetpoint from surfaceVehicleSpeedSetpoint.
 	 */
+	/**
+	 * @brief Register the callback on the topic that triggers the controller.
+	 */
+	bool init();
+
+	/**
+	 * @brief Run the controller on its trigger topic only while enabled.
+	 */
+	void setEnabled(bool enabled) { _enabled = enabled; }
+
 	void updateSpeedControl();
 
 	/**
@@ -92,6 +104,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void Run() override;
+
 	/**
 	 * @brief Update uORB subscriptions used in speed controller.
 	 */
@@ -105,7 +119,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)}; // Triggers the controller
 	uORB::Subscription _surface_vehicle_speed_setpoint_sub{ORB_ID(surface_vehicle_speed_setpoint)};
 	uORB::Subscription _surface_vehicle_steering_setpoint_sub{ORB_ID(surface_vehicle_steering_setpoint)};
 
@@ -114,6 +128,7 @@ private:
 	uORB::Publication<surface_vehicle_speed_status_s> _surface_vehicle_speed_status_pub{ORB_ID(surface_vehicle_speed_status)};
 
 	// Variables
+	bool _enabled{false};
 	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards

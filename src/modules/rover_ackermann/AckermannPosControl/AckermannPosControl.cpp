@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-AckermannPosControl::AckermannPosControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannPosControl::AckermannPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	WorkItem("rover_ackermann_pos_control", px4::wq_configurations::rate_ctrl)
 {
 	_pure_pursuit_status_pub.advertise();
 	_surface_vehicle_speed_setpoint_pub.advertise();
@@ -50,6 +52,18 @@ void AckermannPosControl::updateParams()
 	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 	_min_speed = _param_ra_wheel_base.get() * _max_yaw_rate / tanf(_param_ra_max_str_ang.get());
 
+}
+
+bool AckermannPosControl::init()
+{
+	return _vehicle_local_position_sub.registerCallback();
+}
+
+void AckermannPosControl::Run()
+{
+	if (_enabled) {
+		updatePosControl();
+	}
 }
 
 void AckermannPosControl::updatePosControl()

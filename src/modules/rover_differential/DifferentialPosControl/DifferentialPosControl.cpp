@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) : ModuleParams(parent)
+DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	WorkItem("rover_differential_pos_control", px4::wq_configurations::rate_ctrl)
 {
 	_pure_pursuit_status_pub.advertise();
 	_surface_vehicle_speed_setpoint_pub.advertise();
@@ -47,6 +49,18 @@ DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) : ModulePar
 void DifferentialPosControl::updateParams()
 {
 	ModuleParams::updateParams();
+}
+
+bool DifferentialPosControl::init()
+{
+	return _vehicle_local_position_sub.registerCallback();
+}
+
+void DifferentialPosControl::Run()
+{
+	if (_enabled) {
+		updatePosControl();
+	}
 }
 
 void DifferentialPosControl::updatePosControl()

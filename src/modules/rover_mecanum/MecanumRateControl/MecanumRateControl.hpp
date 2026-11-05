@@ -35,6 +35,7 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/events.h>
 
 // Libraries
@@ -46,6 +47,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/surface_vehicle_rate_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/surface_vehicle_steering_setpoint.h>
@@ -54,7 +56,7 @@
 /**
  * @brief Class for mecanum rate control.
  */
-class MecanumRateControl : public ModuleParams
+class MecanumRateControl : public ModuleParams, public px4::WorkItem
 {
 public:
 	/**
@@ -67,6 +69,16 @@ public:
 	/**
 	 * @brief Generate and publish surfaceVehicleSteeringSetpoint from surfaceVehicleRateSetpoint.
 	 */
+	/**
+	 * @brief Register the callback on the topic that triggers the controller.
+	 */
+	bool init();
+
+	/**
+	 * @brief Run the controller on its trigger topic only while enabled.
+	 */
+	void setEnabled(bool enabled) { _enabled = enabled; }
+
 	void updateRateControl();
 
 	/**
@@ -87,16 +99,19 @@ protected:
 	void updateParams() override;
 
 private:
+	void Run() override;
+
 
 	// uORB subscriptions
 	uORB::Subscription _surface_vehicle_rate_setpoint_sub{ORB_ID(surface_vehicle_rate_setpoint)};
-	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)}; // Triggers the controller
 
 	// uORB publications
 	uORB::Publication<surface_vehicle_steering_setpoint_s> _surface_vehicle_steering_setpoint_pub{ORB_ID(surface_vehicle_steering_setpoint)};
 	uORB::Publication<surface_vehicle_rate_status_s>       _surface_vehicle_rate_status_pub{ORB_ID(surface_vehicle_rate_status)};
 
 	// Variables
+	bool _enabled{false};
 	hrt_abstime _timestamp{0};
 	float _vehicle_yaw_rate{0.f};
 	float _yaw_rate_setpoint{NAN};

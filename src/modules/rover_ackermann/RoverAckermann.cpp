@@ -46,7 +46,12 @@ RoverAckermann::RoverAckermann() :
 
 bool RoverAckermann::init()
 {
-	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+	if (!_vehicle_angular_velocity_sub.registerCallback()
+	    || !_ackermann_act_control.init()
+	    || !_ackermann_rate_control.init()
+	    || !_ackermann_att_control.init()
+	    || !_ackermann_speed_control.init()
+	    || !_ackermann_pos_control.init()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -67,7 +72,7 @@ void RoverAckermann::Run()
 		return;
 	}
 
-	// Drain the trigger. The gyro paces the loop; its value is not used here.
+	// Drain the trigger. The gyro paces the setpoint generation; its value is not used here.
 	vehicle_angular_velocity_s angular_velocity;
 	_vehicle_angular_velocity_sub.update(&angular_velocity);
 
@@ -100,14 +105,16 @@ void RoverAckermann::Run()
 	if (_vehicle_control_mode.flag_armed && _sanity_checks_passed) {
 		_was_armed = true;
 		generateSetpoints();
-		updateControllers();
+		enableControllers(true);
 
 	} else if (_was_armed) { // Reset all controllers and stop the vehicle
+		enableControllers(false);
 		reset();
 		_ackermann_act_control.stopVehicle();
 		_was_armed = false;
 
 	} else {
+		enableControllers(false);
 		_ackermann_act_control.stopVehicle();
 	}
 
@@ -180,27 +187,13 @@ void RoverAckermann::generateSetpoints()
 
 }
 
-void RoverAckermann::updateControllers()
+void RoverAckermann::enableControllers(const bool enabled)
 {
-	if (_vehicle_control_mode.flag_control_position_enabled) {
-		_ackermann_pos_control.updatePosControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_ackermann_speed_control.updateSpeedControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_attitude_enabled) {
-		_ackermann_att_control.updateAttControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_rates_enabled) {
-		_ackermann_rate_control.updateRateControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_allocation_enabled) {
-		_ackermann_act_control.updateActControl();
-	}
+	_ackermann_pos_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled);
+	_ackermann_att_control.setEnabled(enabled && _vehicle_control_mode.flag_control_attitude_enabled);
+	_ackermann_rate_control.setEnabled(enabled && _vehicle_control_mode.flag_control_rates_enabled);
+	_ackermann_speed_control.setEnabled(enabled && _vehicle_control_mode.flag_control_velocity_enabled);
+	_ackermann_act_control.setEnabled(enabled && _vehicle_control_mode.flag_control_allocation_enabled);
 }
 
 void RoverAckermann::runSanityChecks()

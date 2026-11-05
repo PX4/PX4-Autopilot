@@ -35,6 +35,7 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/events.h>
 
 // Libraries
@@ -46,6 +47,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/surface_vehicle_speed_setpoint.h>
 #include <uORB/topics/surface_vehicle_attitude_setpoint.h>
 #include <uORB/topics/surface_vehicle_position_setpoint.h>
@@ -59,7 +61,7 @@ using namespace matrix;
 /**
  * @brief Class for mecanum position control.
  */
-class MecanumPosControl : public ModuleParams
+class MecanumPosControl : public ModuleParams, public px4::WorkItem
 {
 public:
 	/**
@@ -72,6 +74,16 @@ public:
 	/**
 	 * @brief Generate and publish surfaceVehicleSpeedSetpoint and surfaceVehicleAttitudeSetpoint from surfaceVehiclePositionSetpoint or surfaceVehicleCourseSetpoint.
 	 */
+	/**
+	 * @brief Register the callback on the topic that triggers the controller.
+	 */
+	bool init();
+
+	/**
+	 * @brief Run the controller on its trigger topic only while enabled.
+	 */
+	void setEnabled(bool enabled) { _enabled = enabled; }
+
 	void updatePosControl();
 
 	/**
@@ -94,6 +106,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void Run() override;
+
 	/**
 	 * @brief Update uORB subscriptions used in position controller.
 	 */
@@ -101,7 +115,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)}; // Triggers the controller
 	uORB::Subscription _surface_vehicle_position_setpoint_sub{ORB_ID(surface_vehicle_position_setpoint)};
 	uORB::Subscription _surface_vehicle_course_setpoint_sub{ORB_ID(surface_vehicle_course_setpoint)};
 
@@ -111,6 +125,7 @@ private:
 	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
 
 	// Variables
+	bool _enabled{false};
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};

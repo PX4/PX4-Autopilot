@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-AckermannRateControl::AckermannRateControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannRateControl::AckermannRateControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	WorkItem("rover_ackermann_rate_control", px4::wq_configurations::rate_ctrl)
 {
 	_surface_vehicle_steering_setpoint_pub.advertise();
 	_surface_vehicle_rate_status_pub.advertise();
@@ -54,6 +56,18 @@ void AckermannRateControl::updateParams()
 
 	// Set up slew rate
 	_adjusted_yaw_rate_setpoint.setSlewRate(_param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F);
+}
+
+bool AckermannRateControl::init()
+{
+	return _vehicle_angular_velocity_sub.registerCallback();
+}
+
+void AckermannRateControl::Run()
+{
+	if (_enabled) {
+		updateRateControl();
+	}
 }
 
 void AckermannRateControl::updateRateControl()

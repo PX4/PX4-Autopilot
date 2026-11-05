@@ -35,6 +35,7 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/events.h>
 
 // Libraries
@@ -46,6 +47,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/surface_vehicle_rate_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/surface_vehicle_steering_setpoint.h>
@@ -55,7 +57,7 @@
 /**
  * @brief Class for ackermann rate control.
  */
-class AckermannRateControl : public ModuleParams
+class AckermannRateControl : public ModuleParams, public px4::WorkItem
 {
 public:
 	/**
@@ -68,6 +70,16 @@ public:
 	/**
 	 * @brief Generate and publish surfaceVehicleSteeringSetpoint from surfaceVehicleRateSetpoint.
 	 */
+	/**
+	 * @brief Register the callback on the topic that triggers the controller.
+	 */
+	bool init();
+
+	/**
+	 * @brief Run the controller on its trigger topic only while enabled.
+	 */
+	void setEnabled(bool enabled) { _enabled = enabled; }
+
 	void updateRateControl();
 
 	/**
@@ -88,6 +100,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void Run() override;
+
 	/**
 	 * @brief Update uORB subscriptions used in rate controller.
 	 */
@@ -95,7 +109,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _surface_vehicle_rate_setpoint_sub{ORB_ID(surface_vehicle_rate_setpoint)};
-	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)}; // Triggers the controller
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 
 	// uORB publications
@@ -103,6 +117,7 @@ private:
 	uORB::Publication<surface_vehicle_rate_status_s>       _surface_vehicle_rate_status_pub{ORB_ID(surface_vehicle_rate_status)};
 
 	// Variables
+	bool _enabled{false};
 	float _estimated_speed{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed]
 					       between [0, 0] and [1, _param_ro_max_thr_speed].*/
 	float _max_yaw_rate{0.f};

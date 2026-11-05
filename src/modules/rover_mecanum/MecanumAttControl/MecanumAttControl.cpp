@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-MecanumAttControl::MecanumAttControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumAttControl::MecanumAttControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	WorkItem("rover_mecanum_att_control", px4::wq_configurations::rate_ctrl)
 {
 	_surface_vehicle_rate_setpoint_pub.advertise();
 	_surface_vehicle_attitude_status_pub.advertise();
@@ -57,6 +59,18 @@ void MecanumAttControl::updateParams()
 
 	// Set up slew rate
 	_adjusted_yaw_setpoint.setSlewRate(_max_yaw_rate);
+}
+
+bool MecanumAttControl::init()
+{
+	return _vehicle_attitude_sub.registerCallback();
+}
+
+void MecanumAttControl::Run()
+{
+	if (_enabled) {
+		updateAttControl();
+	}
 }
 
 void MecanumAttControl::updateAttControl()

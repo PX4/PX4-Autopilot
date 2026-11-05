@@ -46,7 +46,12 @@ RoverMecanum::RoverMecanum() :
 
 bool RoverMecanum::init()
 {
-	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+	if (!_vehicle_angular_velocity_sub.registerCallback()
+	    || !_mecanum_act_control.init()
+	    || !_mecanum_rate_control.init()
+	    || !_mecanum_att_control.init()
+	    || !_mecanum_speed_control.init()
+	    || !_mecanum_pos_control.init()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -67,7 +72,7 @@ void RoverMecanum::Run()
 		return;
 	}
 
-	// Drain the trigger. The gyro paces the loop; its value is not used here.
+	// Drain the trigger. The gyro paces the setpoint generation; its value is not used here.
 	vehicle_angular_velocity_s angular_velocity;
 	_vehicle_angular_velocity_sub.update(&angular_velocity);
 
@@ -101,14 +106,16 @@ void RoverMecanum::Run()
 
 		_was_armed = true;
 		generateSetpoints();
-		updateControllers();
+		enableControllers(true);
 
 	} else if (_was_armed) { // Reset all controllers and stop the vehicle
+		enableControllers(false);
 		reset();
 		_mecanum_act_control.stopVehicle();
 		_was_armed = false;
 
 	} else {
+		enableControllers(false);
 		_mecanum_act_control.stopVehicle();
 	}
 
@@ -181,27 +188,13 @@ void RoverMecanum::generateSetpoints()
 
 }
 
-void RoverMecanum::updateControllers()
+void RoverMecanum::enableControllers(const bool enabled)
 {
-	if (_vehicle_control_mode.flag_control_position_enabled) {
-		_mecanum_pos_control.updatePosControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_attitude_enabled) {
-		_mecanum_att_control.updateAttControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_rates_enabled) {
-		_mecanum_rate_control.updateRateControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_mecanum_speed_control.updateSpeedControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_allocation_enabled) {
-		_mecanum_act_control.updateActControl();
-	}
+	_mecanum_pos_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled);
+	_mecanum_att_control.setEnabled(enabled && _vehicle_control_mode.flag_control_attitude_enabled);
+	_mecanum_rate_control.setEnabled(enabled && _vehicle_control_mode.flag_control_rates_enabled);
+	_mecanum_speed_control.setEnabled(enabled && _vehicle_control_mode.flag_control_velocity_enabled);
+	_mecanum_act_control.setEnabled(enabled && _vehicle_control_mode.flag_control_allocation_enabled);
 }
 
 void RoverMecanum::runSanityChecks()
