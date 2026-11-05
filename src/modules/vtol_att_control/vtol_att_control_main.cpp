@@ -190,7 +190,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 void
 VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
-	if (!is_fixed_wing_system_failure()) {
+	if (!is_quadchute_active()) {
 		// only publish generic warning through mavlink to safe flash
 		mavlink_log_critical(&_mavlink_log_pub, "Quad-chute triggered\t");
 
