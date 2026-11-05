@@ -136,6 +136,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Sensors
 
 - Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
+- [Benewake TFmini Plus](../sensor/tfmini.md) rangefinder support: select it with [SENS_TFMINI_HW](../advanced_config/parameter_reference.md#SENS_TFMINI_HW) = 4 (0.1–12 m, 3.6° field of view). The TFmini-S field of view is corrected to 2°. ([PX4-Autopilot#29575](https://github.com/PX4/PX4-Autopilot/pull/29575))
 
 ### Simulation
 
