@@ -64,19 +64,23 @@ inline static param_t param_handle(px4::params p)
 #define _PARAM_TABLE_ENTRY(x) \
 	do_not_explicitly_use_this_namespace::param_table_entry<decltype(STRIP(x))>(),
 
-// The parameters declared by the macro are consecutive one-slot members, so a single
-// member placed right after them can load all of them from a table of handles.
+// The member name of the first parameter in a list
+#define _FIRST_PARAMETER(...) _FIRST_PARAMETER_H(__VA_ARGS__, unused)
+#define _FIRST_PARAMETER_H(x, ...) STRIP(x)
+
+// A single member declared after the parameters loads all of them from a table of handles,
+// starting at the first parameter's address.
 // This keeps per-parameter code out of every constructor and updateParamsImpl().
 #define _DEFINE_PARAMETER_TABLE(...) \
 	do_not_explicitly_use_this_namespace::ParamTable<APPLY_ALL(_PARAM_TABLE_ENTRY, __VA_ARGS__) \
-	do_not_explicitly_use_this_namespace::param_table_end> _param_table;
+	do_not_explicitly_use_this_namespace::param_table_end> _param_table{&_FIRST_PARAMETER(__VA_ARGS__)};
 
 // define the parameter update method, which will update all parameters.
 // It is marked as 'final', so that wrong usages lead to a compile error (see below)
 #define _DEFINE_PARAMETER_UPDATE_METHOD(...) \
 	protected: \
 	void updateParamsImpl() final { \
-		_param_table.update(); \
+		_param_table.update(&_FIRST_PARAMETER(__VA_ARGS__)); \
 	} \
 	private:
 
@@ -96,7 +100,7 @@ inline static param_t param_handle(px4::params p)
 	protected: \
 	void updateParamsImpl() override { \
 		parent_class::updateParamsImpl(); \
-		_param_table.update(); \
+		_param_table.update(&_FIRST_PARAMETER(__VA_ARGS__)); \
 	} \
 	private:
 
@@ -113,50 +117,60 @@ inline static param_t param_handle(px4::params p)
 namespace do_not_explicitly_use_this_namespace
 {
 
-// Every Param takes exactly one pointer-sized slot, so the parameters of a class form an array
-static constexpr size_t param_slot_size = sizeof(void *);
-
-// Table entry: parameter handle in the low bits, how to store its value in the top two
+// Table entry: parameter handle in the low bits, how its member stores the value in the top two
 static_assert(sizeof(param_t) >= 2);
 static constexpr unsigned param_table_kind_shift = 14;
 static constexpr param_t param_table_handle_mask = (1u << param_table_kind_shift) - 1;
-static constexpr param_t param_table_value = 0u << param_table_kind_shift;    // float or int32_t in the slot
-static constexpr param_t param_table_bool = 1u << param_table_kind_shift;     // bool in the slot
-static constexpr param_t param_table_external = 2u << param_table_kind_shift; // pointer to the value in the slot
+static constexpr param_t param_table_value = 0u << param_table_kind_shift;    // float or int32_t
+static constexpr param_t param_table_bool = 1u << param_table_kind_shift;     // bool
+static constexpr param_t param_table_external = 2u << param_table_kind_shift; // pointer to the value
 static constexpr param_t param_table_end = 0xffff;
 
+constexpr size_t param_table_member_size(param_t kind)
+{
+	return kind == param_table_external ? sizeof(void *) : kind == param_table_bool ? sizeof(bool) : sizeof(float);
+}
+
+constexpr size_t param_table_member_align(param_t kind)
+{
+	return kind == param_table_external ? alignof(void *) : kind == param_table_bool ? alignof(bool) : alignof(float);
+}
+
 /**
- * Load `count` parameters into consecutive slots starting at `first`.
+ * Load `count` parameters into consecutive members starting at `first`, placing each
+ * member at the next address its alignment allows, as the compiler lays them out.
  * Implemented in module_params.cpp.
  */
-__EXPORT void param_table_load(const param_t *entries, unsigned count, uint8_t *first, bool mark_used);
+__EXPORT void param_table_load(const param_t *entries, unsigned count, void *first, bool mark_used);
 
 template<typename P>
 constexpr param_t param_table_entry()
 {
-	static_assert(sizeof(P) == param_slot_size && alignof(P) == param_slot_size, "Param must fill exactly one slot");
+	constexpr param_t kind = P::table_entry & ~param_table_handle_mask;
+	static_assert(sizeof(P) == param_table_member_size(kind) && alignof(P) == param_table_member_align(kind),
+		      "Param layout must match the table loader");
 	return P::table_entry;
 }
 
 /**
- * Declared right after the parameters of a class (by DEFINE_PARAMETERS), so the
- * parameters end where this member starts.
+ * Declared after the parameters of a class by DEFINE_PARAMETERS, so it loads them
+ * once they are all constructed.
  */
 template<param_t... Entries>
 class ParamTable
 {
 public:
-	ParamTable() { load(true); }
+	explicit ParamTable(void *first) { load(first, true); }
 
-	void update() { load(false); }
+	void update(void *first) { load(first, false); }
 
 private:
 	static constexpr unsigned count = sizeof...(Entries) - 1; // without param_table_end
 
-	void load(bool mark_used)
+	static void load(void *first, bool mark_used)
 	{
 		static constexpr param_t entries[] = {Entries...};
-		param_table_load(entries, count, reinterpret_cast<uint8_t *>(this) - count * param_slot_size, mark_used);
+		param_table_load(entries, count, first, mark_used);
 	}
 };
 
@@ -214,7 +228,7 @@ public:
 
 	param_t handle() const { return param_handle(p); }
 private:
-	alignas(param_slot_size) float _val;
+	float _val;
 };
 
 // external version
@@ -318,7 +332,7 @@ public:
 
 	param_t handle() const { return param_handle(p); }
 private:
-	alignas(param_slot_size) int32_t _val;
+	int32_t _val;
 };
 
 //external version
@@ -441,7 +455,7 @@ public:
 
 	param_t handle() const { return param_handle(p); }
 private:
-	alignas(param_slot_size) bool _val;
+	bool _val;
 };
 
 template <px4::params p>

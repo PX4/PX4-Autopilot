@@ -110,7 +110,8 @@ TEST_F(ParameterTest, testUorbSendReceive)
 	EXPECT_EQ(0, memcmp(&message, &obstacle_distance, sizeof(message)));
 }
 
-// Every kind of DEFINE_PARAMETERS member, so the table loader is checked for each slot layout
+// Every kind of DEFINE_PARAMETERS member. The two bools share a word, and on 64 bit
+// the external pointers need padding before them.
 class ParamTableModule : public ModuleParams
 {
 public:
@@ -128,6 +129,7 @@ public:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist,
 		(ParamBool<px4::params::CP_GO_NO_DATA>) _param_cp_go_no_data,
+		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 		(ParamExtFloat<px4::params::CP_DELAY>) _param_cp_delay,
 		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,
 		(ParamExtInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autocfg,
@@ -138,11 +140,12 @@ public:
 TEST_F(ParameterTest, testDefineParametersTable)
 {
 	const float dist = 3.5f, delay = 0.25f, guide_ang = 12.f;
-	const int32_t go_no_data = 1, autostart = 4001, autoconfig = 2;
+	const int32_t go_no_data = 1, has_gps = 0, autostart = 4001, autoconfig = 2;
 
 	// GIVEN: non-default values for each kind of parameter
 	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DIST), &dist));
 	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_GO_NO_DATA), &go_no_data));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_HAS_GPS), &has_gps));
 	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DELAY), &delay));
 	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOSTART), &autostart));
 	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOCONFIG), &autoconfig));
@@ -154,6 +157,7 @@ TEST_F(ParameterTest, testDefineParametersTable)
 	// THEN: every member holds the stored value and is marked used
 	EXPECT_FLOAT_EQ(dist, module._param_cp_dist.get());
 	EXPECT_TRUE(module._param_cp_go_no_data.get());
+	EXPECT_FALSE(module._param_sys_has_gps.get());
 	EXPECT_FLOAT_EQ(delay, module._param_cp_delay.get());
 	EXPECT_FLOAT_EQ(delay, module.ext_delay());
 	EXPECT_EQ(autostart, module._param_sys_autostart.get());
@@ -165,9 +169,10 @@ TEST_F(ParameterTest, testDefineParametersTable)
 
 	// WHEN: the stored values change and the module updates
 	const float dist2 = 7.f, delay2 = 0.5f, guide_ang2 = 20.f;
-	const int32_t go_no_data2 = 0, autostart2 = 4002, autoconfig2 = 0;
+	const int32_t go_no_data2 = 0, has_gps2 = 1, autostart2 = 4002, autoconfig2 = 0;
 	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DIST), &dist2));
 	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_GO_NO_DATA), &go_no_data2));
+	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_HAS_GPS), &has_gps2));
 	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DELAY), &delay2));
 	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOSTART), &autostart2));
 	ASSERT_EQ(0, param_set(param_handle(px4::params::SYS_AUTOCONFIG), &autoconfig2));
@@ -177,6 +182,7 @@ TEST_F(ParameterTest, testDefineParametersTable)
 	// THEN: every member holds the new value
 	EXPECT_FLOAT_EQ(dist2, module._param_cp_dist.get());
 	EXPECT_FALSE(module._param_cp_go_no_data.get());
+	EXPECT_TRUE(module._param_sys_has_gps.get());
 	EXPECT_FLOAT_EQ(delay2, module.ext_delay());
 	EXPECT_EQ(autostart2, module._param_sys_autostart.get());
 	EXPECT_EQ(autoconfig2, module.ext_autoconfig());
