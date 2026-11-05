@@ -101,6 +101,10 @@ protected:
 	// Pitch and role are by default aligned with the horizon.
 	// Yaw follows the vehicle (not lock/absolute mode).
 	bool _absolute_angle[3] = {true, true, false };
+
+	// Axes without an actuator are held at zero, whatever the setpoint.
+	bool _axis_actuated[3] = {true, true, true};
+
 	AlphaFilter<matrix::Vector3f> _angle_outputs_filtered;
 
 	/** calculate the _angle_outputs (with speed) and stabilize if needed */
