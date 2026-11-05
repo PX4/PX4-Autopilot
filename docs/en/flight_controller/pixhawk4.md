@@ -217,11 +217,6 @@ For wiring information see:
 - [Telemetry Radio Modules](../telemetry/index.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
-## Supported Platforms / Airframes
-
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S.BUS servos.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Further Information {#further_information}
 
 - [Pixhawk 4 Technical Data Sheet](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-DataSheet.pdf) (Holybro)
