@@ -339,6 +339,7 @@ bool CameraStream::runPipeline(bool useCuda, bool &usedNvenc)
 	GstElement *queue1 = gst_element_factory_make("queue", nullptr);
 	GstElement *videoRate = gst_element_factory_make("videorate", nullptr);
 	GstElement *converter = gst_element_factory_make("videoconvert", nullptr);
+	GstElement *formatFilter = gst_element_factory_make("capsfilter", nullptr);
 	GstElement *queue2 = gst_element_factory_make("queue", nullptr);
 
 	// Configure source and queues for better buffering
@@ -419,8 +420,8 @@ bool CameraStream::runPipeline(bool useCuda, bool &usedNvenc)
 			     NULL);
 	}
 
-	if (!_source || !queue1 || !videoRate || !converter || !queue2 || !encoder ||
-	    !payloader || !sink) {
+	if (!_source || !queue1 || !videoRate || !converter || !formatFilter || !queue2 ||
+	    !encoder || !payloader || !sink) {
 		gzerr << "Failed to create one or more GStreamer elements" << std::endl;
 		gst_object_unref(_pipeline);
 		_pipeline = nullptr;
@@ -454,13 +455,20 @@ bool CameraStream::runPipeline(bool useCuda, bool &usedNvenc)
 	g_object_set(G_OBJECT(capsFilter), "caps", rateCaps, NULL);
 	gst_caps_unref(rateCaps);
 
+	// Force I420 after the converter: from RGB input, videoconvert otherwise picks Y444,
+	// making x264enc emit a High 4:4:4 stream that limited decoders (e.g. openh264dec) reject.
+	GstCaps *formatCaps =
+		gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "I420", NULL);
+	g_object_set(G_OBJECT(formatFilter), "caps", formatCaps, NULL);
+	gst_caps_unref(formatCaps);
+
 	// Add elements to pipeline
 	gst_bin_add_many(GST_BIN(_pipeline), _source, queue1, videoRate, capsFilter,
-			 converter, queue2, encoder, payloader, sink, nullptr);
+			 converter, formatFilter, queue2, encoder, payloader, sink, nullptr);
 
 	// Link elements
 	if (!gst_element_link_many(_source, queue1, videoRate, capsFilter, converter,
-				   queue2, encoder, payloader, sink, nullptr)) {
+				   formatFilter, queue2, encoder, payloader, sink, nullptr)) {
 		gzerr << "Failed to link GStreamer elements" << std::endl;
 		gst_object_unref(_pipeline);
 		_pipeline = nullptr;
