@@ -46,9 +46,8 @@ RoverDifferential::RoverDifferential() :
 
 bool RoverDifferential::init()
 {
-	// Register top-down: controllers sharing a trigger topic run in registration order,
-	// so the position controller's setpoint reaches the speed controller and the rate controller's (or a manual mode's)
-	// steering setpoint reaches the actuator controller in the same cycle.
+	// The module registers its gyro callback first and keeps it, so the setpoints it generates reach the controllers in the same cycle.
+	// The controllers only check their trigger here, they register it while enabled, see enableControllers().
 	if (!_vehicle_angular_velocity_sub.registerCallback()
 	    || !_differential_pos_control.init()
 	    || !_differential_speed_control.init()
@@ -193,11 +192,31 @@ void RoverDifferential::generateSetpoints()
 
 void RoverDifferential::enableControllers(const bool enabled)
 {
-	_differential_pos_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled);
-	_differential_att_control.setEnabled(enabled && _vehicle_control_mode.flag_control_attitude_enabled);
-	_differential_rate_control.setEnabled(enabled && _vehicle_control_mode.flag_control_rates_enabled);
-	_differential_speed_control.setEnabled(enabled && _vehicle_control_mode.flag_control_velocity_enabled);
-	_differential_act_control.setEnabled(enabled && _vehicle_control_mode.flag_control_allocation_enabled);
+	const bool pos_was_enabled = _differential_pos_control.enabled();
+	const bool speed_was_enabled = _differential_speed_control.enabled();
+	const bool rate_was_enabled = _differential_rate_control.enabled();
+	const bool act_was_enabled = _differential_act_control.enabled();
+
+	// Enable top-down, so newly enabled controllers run in cascade order in this cycle
+	bool registered = _differential_pos_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled);
+	registered = _differential_speed_control.setEnabled(enabled && _vehicle_control_mode.flag_control_velocity_enabled) && registered;
+	registered = _differential_att_control.setEnabled(enabled && _vehicle_control_mode.flag_control_attitude_enabled) && registered;
+	registered = _differential_rate_control.setEnabled(enabled && _vehicle_control_mode.flag_control_rates_enabled) && registered;
+	registered = _differential_act_control.setEnabled(enabled && _vehicle_control_mode.flag_control_allocation_enabled) && registered;
+
+	// Callbacks sharing a trigger topic run in registration order: keep the position controller ahead of the speed
+	// controller (vehicle_local_position) and the rate controller ahead of the actuator controller (vehicle_angular_velocity)
+	if (!pos_was_enabled && _differential_pos_control.enabled() && speed_was_enabled && _differential_speed_control.enabled()) {
+		registered = _differential_speed_control.reregisterTrigger() && registered;
+	}
+
+	if (!rate_was_enabled && _differential_rate_control.enabled() && act_was_enabled && _differential_act_control.enabled()) {
+		registered = _differential_act_control.reregisterTrigger() && registered;
+	}
+
+	if (!registered) {
+		PX4_ERR("controller callback registration failed");
+	}
 }
 
 void RoverDifferential::runSanityChecks()

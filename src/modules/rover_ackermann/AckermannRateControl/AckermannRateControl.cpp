@@ -60,7 +60,10 @@ void AckermannRateControl::updateParams()
 
 bool AckermannRateControl::init()
 {
-	return _vehicle_angular_velocity_sub.registerCallback();
+	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
+	const bool registered = _vehicle_angular_velocity_sub.registerCallback();
+	_vehicle_angular_velocity_sub.unregisterCallback();
+	return registered;
 }
 
 void AckermannRateControl::Run()

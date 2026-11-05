@@ -103,7 +103,7 @@ private:
 	/**
 	 * @brief Enable the controllers the active control mode needs.
 	 *
-	 * Each controller runs on its own trigger topic, see the controller classes.
+	 * Each controller runs on its own trigger topic, see the controller classes, and only the enabled ones are woken by it.
 	 * They share this module's work queue, so enabling and resetting them here never overlaps with their Run().
 	 *
 	 * @param enabled false disables all controllers

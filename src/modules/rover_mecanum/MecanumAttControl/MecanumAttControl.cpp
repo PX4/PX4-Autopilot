@@ -63,7 +63,10 @@ void MecanumAttControl::updateParams()
 
 bool MecanumAttControl::init()
 {
-	return _vehicle_attitude_sub.registerCallback();
+	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
+	const bool registered = _vehicle_attitude_sub.registerCallback();
+	_vehicle_attitude_sub.unregisterCallback();
+	return registered;
 }
 
 void MecanumAttControl::Run()

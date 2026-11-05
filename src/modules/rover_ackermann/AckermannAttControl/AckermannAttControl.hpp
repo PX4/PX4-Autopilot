@@ -74,15 +74,30 @@ public:
 
 	/**
 	 * @brief Run the controller on its trigger topic only while enabled.
+	 *
+	 * Only an enabled controller is woken by its trigger topic. On enabling it also runs once right away,
+	 * so it does not miss the trigger that was published before it registered.
+	 *
+	 * @return false if the trigger callback could not be registered
 	 */
-	void setEnabled(bool enabled)
+	bool setEnabled(bool enabled)
 	{
+		bool registered = true;
+
 		if (enabled && !_enabled) {
 			_timestamp = hrt_absolute_time(); // The first dt after (re-)enabling must not span the time spent disabled
+			registered = _vehicle_attitude_sub.registerCallback();
+			ScheduleNow();
+
+		} else if (!enabled && _enabled) {
+			_vehicle_attitude_sub.unregisterCallback();
 		}
 
 		_enabled = enabled;
+		return registered;
 	}
+
+	bool enabled() const { return _enabled; }
 
 	/**
 	 * @brief Generate and publish surfaceVehicleRateSetpoint from surfaceVehicleAttitudeSetpoint.

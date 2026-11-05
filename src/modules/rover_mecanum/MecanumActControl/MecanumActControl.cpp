@@ -56,7 +56,10 @@ bool MecanumActControl::init()
 {
 	// Paced by the gyro like the rate controller, so actuator setpoints are published every cycle,
 	// also when no new steering setpoint arrives (e.g. the cycle after a mode change resets the rate controller)
-	return _vehicle_angular_velocity_sub.registerCallback();
+	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
+	const bool registered = _vehicle_angular_velocity_sub.registerCallback();
+	_vehicle_angular_velocity_sub.unregisterCallback();
+	return registered;
 }
 
 void MecanumActControl::Run()

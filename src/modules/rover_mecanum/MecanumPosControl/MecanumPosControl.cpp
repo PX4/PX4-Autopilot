@@ -53,7 +53,10 @@ void MecanumPosControl::updateParams()
 
 bool MecanumPosControl::init()
 {
-	return _vehicle_local_position_sub.registerCallback();
+	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
+	const bool registered = _vehicle_local_position_sub.registerCallback();
+	_vehicle_local_position_sub.unregisterCallback();
+	return registered;
 }
 
 void MecanumPosControl::Run()

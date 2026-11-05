@@ -71,14 +71,38 @@ public:
 
 	/**
 	 * @brief Run the controller on its trigger topic only while enabled.
+	 *
+	 * Only an enabled controller is woken by its trigger topic. On enabling it also runs once right away,
+	 * so it does not miss the trigger that was published before it registered.
+	 *
+	 * @return false if the trigger callback could not be registered
 	 */
-	void setEnabled(bool enabled)
+	bool setEnabled(bool enabled)
 	{
+		bool registered = true;
+
 		if (enabled && !_enabled) {
 			_timestamp = hrt_absolute_time(); // The first dt after (re-)enabling must not span the time spent disabled
+			registered = _vehicle_angular_velocity_sub.registerCallback();
+			ScheduleNow();
+
+		} else if (!enabled && _enabled) {
+			_vehicle_angular_velocity_sub.unregisterCallback();
 		}
 
 		_enabled = enabled;
+		return registered;
+	}
+
+	bool enabled() const { return _enabled; }
+
+	/**
+	 * @brief Move the trigger callback to the end of the callback list. Callbacks sharing a topic run in registration order.
+	 */
+	bool reregisterTrigger()
+	{
+		_vehicle_angular_velocity_sub.unregisterCallback();
+		return _vehicle_angular_velocity_sub.registerCallback();
 	}
 
 	/**
