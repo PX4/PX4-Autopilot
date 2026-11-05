@@ -582,6 +582,8 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			}
 		}
 
+		uint8_t controllable_axes = 0;
+
 		for (int i = 0; i < _num_control_allocation; ++i) {
 			_control_allocation[i]->setActuatorMin(minimum[i]);
 			_control_allocation[i]->setActuatorMax(maximum[i]);
@@ -611,7 +613,19 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			int total_num_actuators = config.num_actuators_matrix[i];
 			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
 					config.linearization_point[i], total_num_actuators, reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+
+			// setEffectivenessMatrix() zeroes the rows that are not independently achievable (dropDependentAxes()),
+			// so a non-zero stored row is a controllable axis.
+			const auto &effectiveness = _control_allocation[i]->getEffectivenessMatrix();
+
+			for (int axis = 0; axis < NUM_AXES; axis++) {
+				if (effectiveness.row(axis).norm_squared() > FLT_EPSILON) {
+					controllable_axes |= static_cast<uint8_t>(1u << axis);
+				}
+			}
 		}
+
+		_controllable_axes = controllable_axes;
 
 		trims.timestamp = hrt_absolute_time();
 		_actuator_servos_trim_pub.publish(trims);
@@ -710,6 +724,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 	}
 
 	// Handled motor failures
+	control_allocator_status.controllable_axes = _controllable_axes;
 	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask;
 	control_allocator_status.motor_stop_mask = _motor_stop_mask;
 

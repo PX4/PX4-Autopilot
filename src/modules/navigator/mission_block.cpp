@@ -401,6 +401,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    && _navigator->is_yaw_controllable()
 		    && _navigator->get_yaw_to_be_accepted(_mission_item.yaw)
 		    && _navigator->get_local_position()->heading_good_for_control) {
 
@@ -411,6 +412,17 @@ MissionBlock::is_mission_item_reached_or_completed()
 			    || (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading)) {
 
 				_waypoint_yaw_reached = true;
+			}
+
+			/* in Return, land anyway if the heading is not reached within RTL_YAW_TMT */
+			if (!_waypoint_yaw_reached && _navigator->in_rtl_state()
+			    && (_navigator->get_rtl_yaw_timeout() >= FLT_EPSILON)
+			    && (now - _time_wp_reached >= (hrt_abstime)(_navigator->get_rtl_yaw_timeout() * 1e6f))) {
+
+				_waypoint_yaw_reached = true;
+				mavlink_log_warning(_navigator->get_mavlink_log_pub(), "Return: heading not reached, continuing\t");
+				events::send(events::ID("rtl_heading_timeout"), events::Log::Warning,
+					     "Return: heading not reached, continuing");
 			}
 
 			/* if heading needs to be reached, the timeout is enabled and we don't make it, abort mission */

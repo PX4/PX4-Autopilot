@@ -37,6 +37,18 @@ parameters:
       min: -1
       decimal: 1
       increment: 0.5
+    RTL_YAW_TMT:
+      description:
+        short: Return mode heading timeout
+        long: Time to wait for the commanded heading after reaching a Return waypoint before
+          continuing without it. Set to -1 to disable.
+      type: float
+      default: 20.0
+      unit: s
+      min: -1
+      max: 120
+      decimal: 1
+      increment: 1
     RTL_MIN_DIST:
       description:
         short: Min distance for return cone altitude calculation

@@ -2821,6 +2821,15 @@ void Commander::updateControlMode()
 		    || _vehicle_control_mode.flag_control_climb_rate_enabled
 		    || _vehicle_control_mode.flag_control_position_enabled
 		    || _vehicle_control_mode.flag_control_velocity_enabled);
+
+	// Controllable axes are decided by the control allocator from the effectiveness matrices (e.g. after a motor failure)
+	control_allocator_status_s control_allocator_status;
+
+	if (_control_allocator_status_sub.update(&control_allocator_status)) {
+		_controllable_axes = control_allocator_status.controllable_axes;
+	}
+
+	_vehicle_control_mode.controllable_axes = _controllable_axes;
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
 	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
 }

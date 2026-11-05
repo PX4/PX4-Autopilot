@@ -361,6 +361,7 @@ void Navigator::run()
 		}
 
 		_land_detected_sub.update(&_land_detected);
+		_vehicle_control_mode_sub.update(&_control_mode);
 		_position_controller_status_sub.update();
 		_fw_lateral_guidance_status_sub.update();
 		_takeoff_status_sub.update();
