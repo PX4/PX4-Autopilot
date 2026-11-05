@@ -473,8 +473,8 @@ float VtolType::pusher_assist()
 		return 0.0f;
 	}
 
-	// Do not engage pusher assist during a quad-chute (could be a problem with the fixed wing drive)
-	if (_attc->is_quadchute_active()) {
+	// Do not engage pusher assist after a detected quad-chute (could be a problem with the fixed wing drive)
+	if (_attc->is_fixed_wing_system_failure()) {
 		return 0.0f;
 	}
 
