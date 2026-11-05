@@ -135,11 +135,7 @@ void VtolAttitudeControl::action_request_poll()
 			case action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING:
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 				_immediate_transition = false;
-
-				// reset fixed_wing_system_failure flag when a new transition to FW is triggered
-				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-					_vtol_vehicle_status.fixed_wing_system_failure = false;
-				}
+				_quadchute_reason = QuadchuteReason::None; // a new transition to FW ends the quad-chute
 
 				break;
 			}
@@ -172,9 +168,8 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 				_transition_command = transition_command_param1;
 				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? static_cast<int>(lround(vehicle_command.param2)) : false;
 
-				// reset fixed_wing_system_failure flag when a new transition to FW is triggered
 				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-					_vtol_vehicle_status.fixed_wing_system_failure = false;
+					_quadchute_reason = QuadchuteReason::None; // a new transition to FW ends the quad-chute
 				}
 			}
 
@@ -196,7 +191,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 void
 VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
-	if (!_vtol_vehicle_status.fixed_wing_system_failure) {
+	if (!is_fixed_wing_system_failure()) {
 		// only publish generic warning through mavlink to safe flash
 		mavlink_log_critical(&_mavlink_log_pub, "Quad-chute triggered\t");
 
@@ -241,13 +236,7 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 			return;
 		}
 
-		// Commanded by the user, not a detected failure: only switch to multicopter
-		if (reason == QuadchuteReason::ExternalCommand) {
-			_external_quadchute = true;
-
-		} else {
-			_vtol_vehicle_status.fixed_wing_system_failure = true;
-		}
+		_quadchute_reason = reason;
 	}
 }
 
@@ -422,9 +411,6 @@ VtolAttitudeControl::Run()
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
 
-		// a commanded quad-chute only forces the switch, the multicopter transition command then keeps it
-		_external_quadchute = false;
-
 		// check in which mode we are in and call mode specific functions
 		switch (_vtol_type->get_mode()) {
 		case mode::TRANSITION_TO_FW:
@@ -480,6 +466,7 @@ VtolAttitudeControl::Run()
 		_vehicle_torque_setpoint1_pub.publish(_torque_setpoint_1);
 
 		// Advertise/publish vtol vehicle status -- immediately if changed, otherwise at 1 Hz
+		_vtol_vehicle_status.fixed_wing_system_failure = is_fixed_wing_system_failure();
 		const bool vtol_vehicle_status_changed =
 			(_vtol_vehicle_status.vehicle_vtol_state != _prev_published_vtol_vehicle_status.vehicle_vtol_state) ||
 			(_vtol_vehicle_status.fixed_wing_system_failure != _prev_published_vtol_vehicle_status.fixed_wing_system_failure);
