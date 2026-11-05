@@ -1571,6 +1571,12 @@ bool Navigator::force_vtol()
 	       && _param_nav_force_vt.get();
 }
 
+bool Navigator::front_transition_inhibited()
+{
+	vtol_vehicle_status_s vtol_vehicle_status;
+	return _vtol_vehicle_status_sub.copy(&vtol_vehicle_status) && vtol_vehicle_status.fixed_wing_system_failure;
+}
+
 int Navigator::custom_command(int argc, char *argv[])
 {
 	if (!is_running(desc)) {

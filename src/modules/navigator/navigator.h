@@ -100,6 +100,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
 
@@ -340,6 +341,12 @@ public:
 
 	bool force_vtol();
 
+	/**
+	 * After a quadchute the next front transition would likely fail too, so navigator does not command one.
+	 * The quadchute stays latched until a front transition is commanded (e.g. by the pilot) or the vehicle reboots.
+	 */
+	bool front_transition_inhibited();
+
 	void acquire_gimbal_control();
 	void release_gimbal_control();
 	void set_gimbal_neutral();
@@ -383,6 +390,7 @@ private:
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _fw_takeoff_status_sub{ORB_ID(fixed_wing_takeoff_status)};	/**< fixed-wing takeoff status subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
+	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};

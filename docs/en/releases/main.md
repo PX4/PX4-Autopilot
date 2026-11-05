@@ -173,7 +173,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### VTOL
 
-- TBD
+- After a [quad-chute](../config/safety.md#quad-chute-failsafe), Mission and VTOL Takeoff mode no longer command forward transitions and continue in multicopter mode. Before, a resumed mission commanded the next transition again, which also cleared the quad-chute, and with [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) set to Warning a quad-chute during a mission transition left the mission waiting at that item.
 
 ### Fixed-wing
 
