@@ -83,7 +83,7 @@ private:
 	float _front_transition_pitch{NAN};
 
 	systemlib::Hysteresis _pusher_failure_hysteresis{false};
-	bool _pusher_failed{false}; ///< never cleared, front transitions stay a quad-chute until reboot
+	bool _pusher_failed{false}; ///< front transitions stay a quad-chute until reboot or VT_EF_TIME is set to 0
 
 	void parameters_update() override;
 

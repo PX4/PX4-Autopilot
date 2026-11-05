@@ -60,6 +60,11 @@ Standard::parameters_update()
 
 	// make sure that pusher ramp in backtransition is smaller than back transition (max) duration
 	_param_vt_b_trans_ramp.set(math::min(_param_vt_b_trans_ramp.get(), _param_vt_b_trans_dur.get()));
+
+	// disabling the detection in flight overrides a detected pusher failure, e.g. a false positive in strong wind
+	if (_param_vt_ef_time.get() < FLT_EPSILON) {
+		_pusher_failed = false;
+	}
 }
 
 void Standard::update_vtol_state()

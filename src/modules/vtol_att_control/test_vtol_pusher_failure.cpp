@@ -35,7 +35,8 @@
  * @file test_vtol_pusher_failure.cpp
  *
  * A pusher failure is detected in multicopter mode when pusher assist pushes but the vehicle does not move
- * forward. It triggers the quad-chute failsafe, which front transitions then trigger again until reboot.
+ * forward. It triggers the quad-chute failsafe, which front transitions then trigger again until reboot or until
+ * VT_EF_TIME is set to 0.
  */
 
 #include <gtest/gtest.h>
@@ -108,6 +109,24 @@ TEST_F(VtolPusherFailureTest, NoForwardMotionIsPusherFailure)
 	attc.get_vtol_vehicle_status()->fixed_wing_system_failure = false;
 	standard.update_vtol_state();
 	EXPECT_TRUE(attc.get_vtol_vehicle_status()->fixed_wing_system_failure);
+}
+
+TEST_F(VtolPusherFailureTest, DisablingDetectionAllowsFrontTransitions)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 0.f);
+
+	fly(attc, standard, 2_s);
+	ASSERT_TRUE(attc.get_vtol_vehicle_status()->fixed_wing_system_failure);
+
+	// VT_EF_TIME set to 0 in flight, then a front transition command clears the flag for good
+	const float ef_time = 0.f;
+	param_set(param_find("VT_EF_TIME"), &ef_time);
+	static_cast<VtolType &>(standard).parameters_update();
+	attc.get_vtol_vehicle_status()->fixed_wing_system_failure = false;
+	standard.update_vtol_state();
+	EXPECT_FALSE(attc.get_vtol_vehicle_status()->fixed_wing_system_failure);
 }
 
 TEST_F(VtolPusherFailureTest, ForwardMotionIsNoPusherFailure)
