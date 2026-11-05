@@ -10,7 +10,7 @@ Contact the [manufacturer](https://www.droneer.com) for hardware support or comp
 The Droneer X6 is a flight controller manufactured by Droneer.
 It is based on the open-source [Pixhawk FMUv6X](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf) reference design and the [Pixhawk Autopilot Bus](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf) specification.
 
-![Droneer X6](../../assets/flight_controller/droneer_x6/droneerx6_v1.png)
+![Droneer X6](../../assets/flight_controller/droneer_x6/droneerx6_v1.jpg)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -25,7 +25,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Sensors {#sensors}
 
-- **IMU:** 3x ICM-45686 (SPI1, SPI2, SPI3): IMU1 and IMU2 with vibration isolation, IMU3 without
+- **IMU:** 3x ICM-45686 (SPI1, SPI2, SPI3): IMU2 and IMU3 with vibration isolation, IMU1(spi1) without
 - **Barometer:** 2x ICP-20100 (one on I2C4)
 - **Magnetometer:** RM3100 (I2C4)
 - **Heater:** 1 W, keeps the sensors warm in extreme conditions
@@ -33,8 +33,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Interfaces {#interfaces}
 
 - **PWM outputs:** 16: 8 FMU outputs (`AUX`) and 8 PX4IO outputs (`MAIN`)
-- **Serial ports:** 8 (`GPS & SAFETY`, `GPS 2`, `TELEM 1`, `TELEM 2`, `TELEM 3`, `UART4&I2C`, PX4IO/RC, Debug Console)
-  - `TELEM 1`, `TELEM 2` and `TELEM 3` have full flow control
+- **Serial ports:** 8 (`GPS & SAFETY`, `GPS 2`, `TELEM 1`, `TELEM 2`, `TELEM 3`, `UART4&I2C`, PX4IO/RC)
+  - `TELEM 2` and `TELEM 3` have full flow control,`TELEM 1` supports TX/RX without RTS/CTS.
   - `UART4&I2C` carries a serial port and an I2C bus
 - **GPS ports:** 2
   - `GPS & SAFETY` (GPS1): full GPS port with safety switch
@@ -61,10 +61,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Mechanical Data {#mechanical_data}
 
-- **Weight:** 89 g
+- **Weight:** 89 g(module + baseboard)
 - **Form factor:** [Pixhawk Autopilot Bus (PAB)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
 - **Operating and storage temperature:** -20 to 85 °C
-- **Manufactured in:** USA
 
 ## Where to Buy {#store}
 
@@ -125,11 +124,11 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 | ------ | ---------- | --------------------- | ------------ |
 | USART1 | /dev/ttyS0 | `GPS & SAFETY` (GPS1) | No           |
 | USART2 | /dev/ttyS1 | `TELEM 3`             | Yes          |
-| USART3 | /dev/ttyS2 | Debug Console         | No           |
+| USART3 | /dev/ttyS2 | not user-accessible   | No           |
 | UART4  | /dev/ttyS3 | `UART4&I2C`           | No           |
 | UART5  | /dev/ttyS4 | `TELEM 2`             | Yes          |
 | USART6 | /dev/ttyS5 | PX4IO/RC              | No           |
-| UART7  | /dev/ttyS6 | `TELEM 1`             | Yes          |
+| UART7  | /dev/ttyS6 | `TELEM 1`             | No           |
 | UART8  | /dev/ttyS7 | `GPS 2`               | No           |
 
 ## Assembly {#assembly}
@@ -176,10 +175,6 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 ```sh
 make droneer_x6_default
 ```
-
-## Debug Port {#debug_port}
-
-The [PX4 System Console](../debug/system_console.md) runs on USART3 (`/dev/ttyS2`).
 
 ## Supported Platforms / Airframes
 
