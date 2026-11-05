@@ -9,7 +9,7 @@ parameters:
           This enables continuous calibration of the magnetometers
           before takeoff using gyro data.
       type: boolean
-      default: 1
+      default: 0
       reboot_required: true
     MBE_LEARN_GAIN:
       description:
