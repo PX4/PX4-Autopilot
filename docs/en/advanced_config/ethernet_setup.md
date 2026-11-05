@@ -56,7 +56,8 @@ Which is to say that a knowledge of how IP networks work is highly desirable!
 
 PX4 uses the [netman](../modules/modules_system.md#netman) module to apply and update network settings.
 
-The default configuration first requests an IP address from DHCP, and if that fails will fallback to the default static address `10.41.10.2`.
+On most boards the default configuration first requests an IP address from DHCP, and if that fails will fallback to the default static address `10.41.10.2`.
+The ARK Electronics boards listed above use the static address `192.168.0.4` by default.
 You can explicitly set any static IP address (including the default address), to bypass the initial DHCP check and make the connection a little faster.
 
 ::: info
