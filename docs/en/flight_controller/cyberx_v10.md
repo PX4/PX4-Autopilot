@@ -257,6 +257,7 @@ make cyberx_v10_default
 
 The `DEBUG` port provides the [SWD interface](../debug/swd_debug.md) for both the FMU and the IO processor.
 It uses a 6-pin JST GH (1.25 mm pitch) connector with the pinout below, which is not a [Pixhawk Debug](../debug/swd_debug.md#pixhawk-standard-debug-ports) port.
+A `DEBUG` cable is supplied with the board.
 The port does not include the [PX4 System Console](../debug/system_console.md) UART.
 
 | Pin     | Signal    | Voltage |
