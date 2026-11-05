@@ -45,6 +45,7 @@
 #include "navigation.h"
 
 #include <drivers/drv_hrt.h>
+#include <matrix/math.hpp>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/mission.h>
@@ -99,6 +100,16 @@ public:
 	 * @return true if mission item is a marker
 	 */
 	static bool item_contains_marker(const mission_item_s &item);
+
+	/**
+	 * Point where a loiter leaves its circle on the tangent towards the next position
+	 *
+	 * @param radius loiter radius in [m], the sign is ignored
+	 * @param counter_clockwise loiter direction
+	 * @return latitude and longitude of the tangent point in [deg]
+	 */
+	static matrix::Vector2d loiterExitPoint(const matrix::Vector2d &center, const matrix::Vector2d &next, float radius,
+						bool counter_clockwise);
 
 	/**
 	 * Set the item_has_timeout() command timeout

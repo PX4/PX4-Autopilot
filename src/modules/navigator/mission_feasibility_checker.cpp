@@ -42,6 +42,7 @@
 
 #include "mission_feasibility_checker.h"
 
+#include "mission_block.h"
 #include "mission_item_utils.h"
 #include "navigator.h"
 
@@ -138,6 +139,15 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 	// Radius of the loiter flown at the last position if the mission ends there, see setEndOfMissionItems().
 	float end_loiter_radius = 0.f;
 	size_t end_loiter_item = 0;
+
+	// A loiter the fixed-wing leaves towards the next position.
+	struct {
+		bool active{false};
+		bool counter_clockwise{false};
+		bool force_heading{false};
+		bool exit_xtrack{false};
+		float radius{0.f};
+	} exit_loiter;
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	for (size_t i = 0; i < mission.count; i++) {
@@ -214,12 +224,28 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			have_previous_position = true;
 		}
 
-		if (!addGeofencePath(batch, {previous_position, position}, i)) {
+		if (exit_loiter.active) {
+			// With a forced heading the fixed-wing leaves on the tangent of its turn direction. Otherwise it
+			// leaves wherever the loiter ends and both tangents bound the straight exits. Without exit
+			// xtrack the tracked line still starts at the centre, see is_mission_item_reached_or_completed().
+			const matrix::Vector2d exit_point = MissionBlock::loiterExitPoint(previous_position, position, exit_loiter.radius,
+							    exit_loiter.counter_clockwise);
+			const matrix::Vector2d other_point = MissionBlock::loiterExitPoint(previous_position, position, exit_loiter.radius,
+							     !exit_loiter.counter_clockwise);
+
+			if (!addGeofencePath(batch, {exit_point, position}, i)
+			    || (!exit_loiter.force_heading && !addGeofencePath(batch, {other_point, position}, i))
+			    || (!exit_loiter.exit_xtrack && !addGeofencePath(batch, {previous_position, position}, i))) {
+				return false;
+			}
+
+		} else if (!addGeofencePath(batch, {previous_position, position}, i)) {
 			return false;
 		}
 
 		previous_position = position;
 		end_loiter_radius = 0.f;
+		exit_loiter.active = false;
 
 		if (!circling_vehicle || missionitem.nav_cmd == NAV_CMD_LAND || missionitem.nav_cmd == NAV_CMD_VTOL_LAND) {
 			continue;
@@ -235,6 +261,12 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			if (!addGeofencePath(batch, {position, position, radius}, i)) {
 				return false;
 			}
+
+			exit_loiter.active = missionitem.nav_cmd != NAV_CMD_LOITER_UNLIMITED;
+			exit_loiter.counter_clockwise = missionitem.loiter_radius < 0.f;
+			exit_loiter.force_heading = missionitem.force_heading;
+			exit_loiter.exit_xtrack = missionitem.loiter_exit_xtrack;
+			exit_loiter.radius = radius;
 
 		} else {
 			end_loiter_radius = radius;
