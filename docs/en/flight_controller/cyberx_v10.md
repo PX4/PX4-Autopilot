@@ -100,32 +100,32 @@ See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to c
 ## Voltage Ratings {#voltage_ratings}
 
 CyberX-v10 can be triple-redundant on the power supply if three power sources are supplied.
-The three power rails are: **PWR1**, **PWR2** and **USB**.
+The three power rails are: `PWR1`, `PWR2` and `USB`.
 
 **Normal Operation Maximum Ratings**
 
 Under these conditions all power sources will be used in this order to power the system:
 
-1. **PWR1** and **PWR2** inputs (4.75V to 5.5V)
-2. **USB** input (4.75V to 5.25V)
+1. `PWR1` and `PWR2` inputs (4.75 V to 5.5 V)
+2. `USB` input (4.75 V to 5.25 V)
 
 **Absolute Maximum Ratings**
 
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
-1. **PWR1** and **PWR2** inputs (operational range 4.7V to 5.7V, 0V to 6V undamaged)
-2. **USB input** (operational range 4.7V to 5.7V, 0V to 6V undamaged)
-3. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0V to 6V undamaged)
+1. `PWR1` and `PWR2` inputs (operational range 4.7 V to 5.7 V, 0 V to 6 V undamaged)
+2. `USB` input (operational range 4.7 V to 5.7 V, 0 V to 6 V undamaged)
+3. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0 V to 6 V undamaged)
 
 ## PWM Outputs {#pwm_outputs}
 
 The CyberX-v10 supports up to 16 PWM outputs.
-The first 8 outputs (labelled `M1` to `M8`) are controlled by the dedicated STM32F103 IO controller.
+The first 8 outputs (labelled `M1` to `M8`) are controlled by the dedicated STM32F103 IO processor.
 The remaining 8 outputs (labelled `M9` to `M16`) are the "auxiliary" outputs directly attached to the STM32H743 FMU.
 
 All 16 outputs support normal PWM.
 The FMU outputs `M9` to `M14` support [DShot](../peripherals/dshot.md), including [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-The IO outputs `M1` to `M8`, and the FMU outputs `M15` and `M16` (no DMA), do not support DShot.
+The IO outputs `M1` to `M8`, and the FMU outputs `M15` and `M16`, do not support DShot.
 
 The 8 IO PWM outputs are in 3 groups:
 
@@ -144,7 +144,7 @@ If any channel in a group uses DShot then all channels in the group need to use 
 
 ## Ethernet {#ethernet}
 
-The board has a 100Mbps Ethernet port with an on-board transformer, on the 4-pin `ETH` connector (TX+, TX-, RX+, RX-).
+The board has a 100 Mbps Ethernet port with an on-board transformer, on the 4-pin `ETH` connector (TX+, TX-, RX+, RX-).
 
 MAVLink is enabled on Ethernet by default ([MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG) is set to `1000`), broadcasting on UDP port 14550.
 See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for how to configure the network.
@@ -220,7 +220,7 @@ The board has an on-board IST8310 magnetometer, but an external compass is recom
 
 ### Telemetry Radios (Optional) {#telemetry}
 
-[Telemetry radios](../telemetry/index.md) may be used to communicate and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
+[Telemetry radios](../telemetry/index.md) may be used to communicate with and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
 
 The vehicle-based radio should be connected to the `TEL1` or `TEL2` port.
 If connected to `TEL1`, no further configuration is required.
@@ -235,7 +235,7 @@ To enable it, set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVC
 ## Building Firmware {#building_firmware}
 
 ::: tip
-Most users will not need to build this firmware from PX4 v2.0.
+From PX4 v2.0, most users will not need to build this firmware!
 It will be pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 Boards are shipped with the bootloader pre-installed, so you do not need to build or flash it yourself.
 :::
@@ -249,7 +249,7 @@ make cyberx_v10_default
 ## Debug Port {#debug_port}
 
 The `DEBUG` port provides the [SWD interface](../debug/swd_debug.md) for both the FMU and the IO processor.
-It uses a 6-pin JST GH (1.25mm pitch) connector with the pinout below, which is not a [Pixhawk Debug](../debug/swd_debug.md#pixhawk-standard-debug-ports) port.
+It uses a 6-pin JST GH (1.25 mm pitch) connector with the pinout below, which is not a [Pixhawk Debug](../debug/swd_debug.md#pixhawk-standard-debug-ports) port.
 The port does not include the [PX4 System Console](../debug/system_console.md) UART.
 
 | Pin     | Signal    | Voltage |

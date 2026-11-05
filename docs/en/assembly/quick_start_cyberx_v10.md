@@ -1,4 +1,4 @@
-# CyberX-v10 Wiring Quick Start
+# CyberCraft CyberX-v10 Wiring Quick Start
 
 <Badge type="tip" text="main (PX4 v2.0)" />
 
@@ -20,7 +20,7 @@ We'll go through each of these in detail in the following sections.
 | :---------------- | :-------------------------------------------------------------------------------------------------------------- |
 | `PWR1`            | Analog (ADC) power module                                                                                       |
 | `PWR2`            | I2C power module                                                                                                |
-| `GPS1`, `GPS2`    | GPS/RTK modules                                                                                                 |
+| `GPS1`, `GPS2`    | GPS/[RTK](../gps_compass/rtk_gps.md) modules                                                                    |
 | `SW+BUZ`          | Safety switch, safety LED and buzzer (usually from the GPS module)                                              |
 | `TEL1`, `TEL2`    | Telemetry radios or other MAVLink devices                                                                       |
 | `Uart5`           | General-purpose serial port (EXT2)                                                                              |
@@ -30,12 +30,12 @@ We'll go through each of these in detail in the following sections.
 | `I2C3`, `I2C4`    | I2C peripherals, such as an MS4525DO airspeed sensor                                                            |
 | `CAN1`, `CAN2`    | [DroneCAN](../dronecan/index.md) peripherals                                                                    |
 | `ETH`             | Ethernet devices, such as companion computers                                                                   |
-| `ADC`             | Two analog inputs (3.3V and 6.6V)                                                                               |
+| `ADC`             | Two analog inputs (3.3 V and 6.6 V)                                                                             |
 | `S.Bout+SPI6`     | SBUS output and external SPI bus                                                                                |
 | `M1`–`M8`         | IO PWM outputs, for ESCs and servos                                                                             |
 | `M9`–`M16`        | FMU PWM outputs, for ESCs, servos and camera triggers; `M9`–`M14` also support [DShot](../peripherals/dshot.md) |
 | `USB`             | Connection to a computer, for example to load firmware                                                          |
-| `DEBUG`           | SWD debug port for the FMU and IO processors                                                                    |
+| `DEBUG`           | [SWD](../debug/swd_debug.md) debug port for the FMU and IO processors                                           |
 | microSD card slot | Log storage (a card is pre-inserted at the factory)                                                             |
 
 ## Vehicle Front
@@ -50,7 +50,7 @@ If the controller cannot be mounted in the recommended/default orientation (e.g.
 
 ## GPS + Compass + Buzzer + Safety Switch + LED
 
-The CyberX-v10 can be purchased with a GNSS module that has an integrated compass, safety switch, buzzer and LEDs.
+The CyberX-v10 can be purchased with a GPS module that has an integrated compass, safety switch, buzzer and LEDs.
 The module has two 6-pin connectors: connect them to the `GPS1` and `SW+BUZ` ports.
 
 A second GPS module (for example, an RTK or redundant GPS) can be connected to the `GPS2` port.
@@ -60,7 +60,7 @@ The GPS/compass should be [mounted on the frame](../assembly/mount_gps_compass.m
 
 ::: info
 The safety switch is disabled by default, so it has no effect unless you enable it.
-To use it, set [CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY) to `0`.
+To use it, set [CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY) to `0` (see [Finding/Updating Parameters](../advanced_config/parameters.md)).
 When enabled, PX4 will not let you arm the vehicle until you press and hold the safety switch for 1 second.
 You can press the safety switch again to enable safety and disarm the vehicle (this can be useful if, for whatever reason, you are unable to disarm the vehicle from your remote control or ground station).
 For more information see [Arming Sequence: Pre Arm Mode & Safety Button](../advanced_config/prearm_arm_disarm.md#arming-sequence-pre-arm-mode-safety-button).
@@ -68,9 +68,9 @@ For more information see [Arming Sequence: Pre Arm Mode & Safety Button](../adva
 
 ## Radio Control
 
-A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+A Radio Control (RC) system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 
-You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
 - SBUS receivers connect to the `S.Bin` port or the `RCin` pin.
 - PPM receivers connect to the `RCin` pin.
@@ -85,8 +85,8 @@ The CyberX-v10 is supplied with a PMU Lite power module that supports 2S to 20S 
 The module has both an analog (ADC) and an I2C interface: connect its analog connector to `PWR1` and its I2C connector to `PWR2`.
 
 The CyberX-v10 is configured by default for an analog power monitor on `PWR1`, and an INA228 I2C power monitor on `PWR2` that reports voltage and current.
-The power module's VCC output must provide at least 3A continuous current, and should default to 5.2V.
-A lower voltage of 5V is still acceptable but discouraged.
+The power module's VCC output must provide at least 3 A continuous current, and should default to 5.2 V.
+A lower voltage of 5 V is still acceptable but discouraged.
 
 ## Telemetry (Radio) System
 
@@ -116,7 +116,7 @@ Use the FMU outputs (`M9`–`M16`) for motors where possible: they have lower la
 ## Servo Power Supply
 
 The CyberX-v10 does not supply power to the servo rail.
-If the rail must power servos or other hardware, connect an external BEC (e.g. a BEC-equipped ESC or a separate 5V BEC) to one of the power (+) pins on `M1`–`M16`.
+If the rail must power servos or other hardware, connect an external BEC (e.g. a BEC-equipped ESC or a separate 5 V BEC) to one of the power (+) pins on `M1`–`M16`.
 For more information see [PWM Servos and ESCs](../peripherals/pwm_escs_and_servo.md).
 
 ::: info
