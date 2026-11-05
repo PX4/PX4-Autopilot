@@ -117,21 +117,22 @@ namespace do_not_explicitly_use_this_namespace
 static constexpr size_t param_slot_size = sizeof(void *);
 
 // Table entry: parameter handle in the low bits, how to store its value in the top two
+static_assert(sizeof(param_t) >= 2);
 static constexpr unsigned param_table_kind_shift = 14;
-static constexpr uint16_t param_table_handle_mask = (1u << param_table_kind_shift) - 1;
-static constexpr uint16_t param_table_value = 0u << param_table_kind_shift;    // float or int32_t in the slot
-static constexpr uint16_t param_table_bool = 1u << param_table_kind_shift;     // bool in the slot
-static constexpr uint16_t param_table_external = 2u << param_table_kind_shift; // pointer to the value in the slot
-static constexpr uint16_t param_table_end = 0xffff;
+static constexpr param_t param_table_handle_mask = (1u << param_table_kind_shift) - 1;
+static constexpr param_t param_table_value = 0u << param_table_kind_shift;    // float or int32_t in the slot
+static constexpr param_t param_table_bool = 1u << param_table_kind_shift;     // bool in the slot
+static constexpr param_t param_table_external = 2u << param_table_kind_shift; // pointer to the value in the slot
+static constexpr param_t param_table_end = 0xffff;
 
 /**
  * Load `count` parameters into consecutive slots starting at `first`.
  * Implemented in module_params.cpp.
  */
-__EXPORT void param_table_load(const uint16_t *entries, unsigned count, uint8_t *first, bool mark_used);
+__EXPORT void param_table_load(const param_t *entries, unsigned count, uint8_t *first, bool mark_used);
 
 template<typename P>
-constexpr uint16_t param_table_entry()
+constexpr param_t param_table_entry()
 {
 	static_assert(sizeof(P) == param_slot_size && alignof(P) == param_slot_size, "Param must fill exactly one slot");
 	return P::table_entry;
@@ -141,7 +142,7 @@ constexpr uint16_t param_table_entry()
  * Declared right after the parameters of a class (by DEFINE_PARAMETERS), so the
  * parameters end where this member starts.
  */
-template<uint16_t... Entries>
+template<param_t... Entries>
 class ParamTable
 {
 public:
@@ -154,7 +155,7 @@ private:
 
 	void load(bool mark_used)
 	{
-		static constexpr uint16_t entries[] = {Entries...};
+		static constexpr param_t entries[] = {Entries...};
 		param_table_load(entries, count, reinterpret_cast<uint8_t *>(this) - count * param_slot_size, mark_used);
 	}
 };
@@ -171,7 +172,7 @@ class Param<float, p>
 {
 public:
 	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
-	static constexpr uint16_t table_entry = (uint16_t)p | param_table_value;
+	static constexpr param_t table_entry = (param_t)p | param_table_value;
 
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
@@ -222,7 +223,7 @@ class Param<float &, p>
 {
 public:
 	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
-	static constexpr uint16_t table_entry = (uint16_t)p | param_table_external;
+	static constexpr param_t table_entry = (param_t)p | param_table_external;
 
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
@@ -275,7 +276,7 @@ class Param<int32_t, p>
 {
 public:
 	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
-	static constexpr uint16_t table_entry = (uint16_t)p | param_table_value;
+	static constexpr param_t table_entry = (param_t)p | param_table_value;
 
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
@@ -326,7 +327,7 @@ class Param<int32_t &, p>
 {
 public:
 	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
-	static constexpr uint16_t table_entry = (uint16_t)p | param_table_external;
+	static constexpr param_t table_entry = (param_t)p | param_table_external;
 
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
@@ -379,7 +380,7 @@ class Param<bool, p>
 {
 public:
 	static_assert((int)p <= param_table_handle_mask, "parameter handle does not fit a table entry");
-	static constexpr uint16_t table_entry = (uint16_t)p | param_table_bool;
+	static constexpr param_t table_entry = (param_t)p | param_table_bool;
 
 	// static type-check
 	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");

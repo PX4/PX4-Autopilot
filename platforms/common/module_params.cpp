@@ -39,11 +39,11 @@
 namespace do_not_explicitly_use_this_namespace
 {
 
-void param_table_load(const uint16_t *entries, unsigned count, uint8_t *first, bool mark_used)
+void param_table_load(const param_t *entries, unsigned count, uint8_t *first, bool mark_used)
 {
 	for (unsigned i = 0; i < count; i++) {
 		const param_t handle = entries[i] & param_table_handle_mask;
-		const uint16_t kind = entries[i] & ~param_table_handle_mask;
+		const param_t kind = entries[i] & ~param_table_handle_mask;
 		uint8_t *slot = first + i * param_slot_size;
 		void *dest = slot;
 		int32_t bool_value;
