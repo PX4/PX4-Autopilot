@@ -35,6 +35,8 @@
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
+#include <cstdlib>
+
 #include <parameters/param.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_gnss.h>
@@ -222,6 +224,46 @@ MotorFailureMasks process_motor(const Config &config)
 	}
 
 	return masks;
+}
+
+matrix::Vector3f imu_offset(Mode mode, uint8_t unit, hrt_abstime now, hrt_abstime &drift_start)
+{
+	const bool gyro = (unit == failure_injection_s::FAILURE_UNIT_SENSOR_GYRO);
+	float magnitude = 0.f;
+
+	if (mode != Mode::Drift) {
+		drift_start = 0;
+	}
+
+	switch (mode) {
+	case Mode::Wrong: {
+			static const param_t acc = param_find("SYS_FAIL_A_BIAS"), gyr = param_find("SYS_FAIL_G_BIAS");
+			param_get(gyro ? gyr : acc, &magnitude);
+			return matrix::Vector3f{magnitude, magnitude, magnitude};
+		}
+
+	case Mode::Garbage: {
+			static const param_t acc = param_find("SYS_FAIL_A_NOISE"), gyr = param_find("SYS_FAIL_G_NOISE");
+			param_get(gyro ? gyr : acc, &magnitude);
+			const auto noise = [magnitude]() { return magnitude * (2.f * rand() / (float)RAND_MAX - 1.f); };
+			return matrix::Vector3f{noise(), noise(), noise()};
+		}
+
+	case Mode::Drift: {
+			static const param_t acc = param_find("SYS_FAIL_A_DRIFT"), gyr = param_find("SYS_FAIL_G_DRIFT");
+			param_get(gyro ? gyr : acc, &magnitude);
+
+			if (drift_start == 0) {
+				drift_start = now;
+			}
+
+			magnitude *= (now - drift_start) * 1e-6f;
+			return matrix::Vector3f{magnitude, magnitude, magnitude};
+		}
+
+	default:
+		return matrix::Vector3f{};
+	}
 }
 
 } // namespace failure_injection
