@@ -189,7 +189,15 @@ private:
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500_ms};
 	static constexpr uint64_t TIMEOUT_HOLD_US{5_s};
 
+	static constexpr float LIMIT_REPORT_RATIO{0.5f};		/**< report when the commanded acceleration is cut by more than this */
+	static constexpr uint64_t LIMIT_REPORT_REARM_US{1_s};		/**< report again only after this long without limiting */
+	static constexpr int LIMIT_REPORT_HALF_ANGLE_DEG{45};		/**< look for the obstacle within this angle of the command */
+
+	/** Reports the closest obstacle within LIMIT_REPORT_HALF_ANGLE_DEG of the commanded direction */
+	void _reportLimitingObstacle(const matrix::Vector2f &setpoint_dir);
+
 	hrt_abstime	_last_timeout_warning{0};
+	hrt_abstime	_last_limiting{0};
 	hrt_abstime	_time_activated{0};
 
 	DEFINE_PARAMETERS(

@@ -8,7 +8,13 @@ param set-default SENS_FLOW_RATE 150
 param set-default SENS_IMU_CLPNOTI 0
 
 # Internal SPI
-paa3905 -s start
+
+# Flow only measures ground motion when facing down. SENS_AFBR_ROT describes
+# the whole module, since the flow sensor and rangefinder share a face.
+if param compare -s SENS_AFBR_ROT 25
+then
+	paa3905 -s start
+fi
 
 icm42688p -R 0 -B 258 -s start
 
