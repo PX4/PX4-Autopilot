@@ -48,7 +48,11 @@ public:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
-	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
+
+	// Unlike a magnetometer, an external IMU is never a better primary than the
+	// on-board one: it is behind a bus with its own clock and transport latency
+	// and is not thermally managed, so it must not win the vote uncalibrated.
+	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 25;
 
 	static constexpr const char *SensorString() { return "ACC"; }
 
