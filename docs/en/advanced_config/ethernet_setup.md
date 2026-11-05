@@ -171,12 +171,16 @@ PX4 configures the serial port to connect to a GCS via MAVLink, using the parame
 | [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE)             | 0      | Send the "normal" set of MAVLink messages (i.e. the GCS set) |
 | [MAV_2_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_2_RADIO_CTL)   | 0      | Disable software throttling of MAVLink traffic               |
 | [MAV_2_RATE](../advanced_config/parameter_reference.md#MAV_2_RATE)             | 100000 | Maximum sending rate                                         |
+| [MAV_2_REMOTE_IP](../advanced_config/parameter_reference.md#MAV_2_REMOTE_IP)   | 0      | Auto-discover the partner address from incoming packets      |
 | [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT) | 14550  | MAVLink Remote Port of 14550 (GCS)                           |
 | [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT)       | 14550  | MAVLink Network Port of 14550 (GCS)                          |
 
 Normally a companion computer would use port `14540` (rather than `14550`) and stream the set of MAVLink messages specified in the `Onboard` profile.
 You can configure this setup by changing [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT) and [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) to `14540` and [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
 Note however that this will still work using the GCS profile.
+
+With the default `MAV_2_REMOTE_IP` of `0`, PX4 waits for the peer to send the first UDP packet and then replies to that address — this is why the GCS or companion computer initiates the connection in the examples below.
+If PX4 instead needs to initiate the connection to a peer with a known, fixed address, set [MAV_2_REMOTE_IP](../advanced_config/parameter_reference.md#MAV_2_REMOTE_IP) to that address (see [MAVLink Peripherals > ETHERNET](../peripherals/mavlink_peripherals.md#ethernet) for how the value is encoded).
 
 For more information on MAVLink serial port configuration see [MAVLink Peripherals (GCS/OSD/Companion)](../peripherals/mavlink_peripherals.md)
 
