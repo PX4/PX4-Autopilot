@@ -35,6 +35,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **PWM outputs:** 16 (8 IO + 8 FMU)
 - **Serial ports:** 6 (`GPS1`, `GPS2`, `TEL1`, `TEL2`, `Uart5`, `Uart8`), `TEL1` and `TEL2` with flow control
+- **Connectors:** JST GH (1.25 mm pitch)
 - **I2C buses:** 4 (I2C1 and I2C2 on the `GPS1` and `GPS2` ports; I2C3 and I2C4 shared between on-board sensors and the `I2C3` and `I2C4` ports; I2C3 also on `PWR2`)
 - **SPI buses:** 6, of which SPI6 is external with 2 chip select lines
 - **CAN buses:** 2 (`CAN1`, `CAN2`)
