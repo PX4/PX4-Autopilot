@@ -40,6 +40,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Hardware Support
 
 - [DroneCAN ESCs](../dronecan/escs.md) no longer need to set `UAVCAN_PUB_ARM` as `ArmingStatus` is published automatically whenever `UAVCAN_ENABLE` is `3` (ESC output enabled). ([PX4-Autopilot#28364](https://github.com/PX4/PX4-Autopilot/pull/28364))
+- [CyberCraft CyberX-v10](../flight_controller/cyberx_v10.md): STM32H743 autopilot with PX4IO, triple IMUs (ICM-20689, BMI088, ICM-42688-P), dual barometers (BMP581, ICP-20100), an IST8310 magnetometer, and 100 Mbps Ethernet. ([PX4-Autopilot#28797](https://github.com/PX4/PX4-Autopilot/pull/28797))
 
 ### Common
 
