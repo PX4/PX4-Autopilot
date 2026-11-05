@@ -41,11 +41,14 @@
 #include <gtest/gtest.h>
 
 #include <lib/parameters/param.h>
+#include <px4_platform_common/time.h>
+#include <uORB/Publication.hpp>
 
 #include "standard.h"
 #include "vtol_att_control_main.h"
 
 using namespace matrix;
+using namespace time_literals;
 
 TEST(VtolQuadchuteTest, CommandedQuadchuteIsNoFixedWingFailure)
 {
@@ -89,11 +92,11 @@ protected:
 	}
 
 	// Hover with a nose-down pitch setpoint, which pusher assist replaces with pusher thrust
-	void setHover(VtolAttitudeControl &attc)
+	void setHover(VtolAttitudeControl &attc, float pitch_degrees = -30.f)
 	{
 		attc.get_control_mode()->flag_control_climb_rate_enabled = true;
 		Quatf().copyTo(attc.get_att()->q);
-		Quatf(Eulerf(0.f, math::radians(-30.f), 0.f)).copyTo(attc.get_mc_virtual_att_sp()->q_d);
+		Quatf(Eulerf(0.f, math::radians(pitch_degrees), 0.f)).copyTo(attc.get_mc_virtual_att_sp()->q_d);
 	}
 
 	// Pusher command of one Run() cycle, update_mc_state() only runs on a new attitude setpoint
@@ -136,4 +139,85 @@ TEST_F(VtolQuadchutePusherTest, DetectedQuadchuteStopsPusherAssist)
 	attc.quadchute(QuadchuteReason::TransitionTimeout);
 	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, false)));
 	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
+}
+
+// Pusher failures detected in multicopter mode trigger the quad-chute again on each front transition.
+class VtolPusherFailureTest : public VtolQuadchutePusherTest
+{
+protected:
+	void SetUp() override
+	{
+		VtolQuadchutePusherTest::SetUp();
+
+		const float ef_time = 0.1f;
+		param_set(param_find("VT_EF_TIME"), &ef_time);
+	}
+
+	void TearDown() override
+	{
+		param_reset(param_find("VT_EF_TIME"));
+		VtolQuadchutePusherTest::TearDown();
+	}
+
+	// Level hover with a pitch setpoint of -45 deg, which pusher assist replaces with thrust above VT_EF_THROT
+	void setHover(VtolAttitudeControl &attc, float forward_velocity)
+	{
+		VtolQuadchutePusherTest::setHover(attc, -45.f);
+		attc.get_local_pos()->v_xy_valid = true;
+		attc.get_local_pos()->vx = forward_velocity;
+		attc.get_local_pos_sp()->vx = 5.f;
+	}
+
+	void commandFrontTransition(VtolAttitudeControl &attc)
+	{
+		vehicle_command_s command{};
+		command.timestamp = hrt_absolute_time();
+		command.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
+		command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+		ASSERT_TRUE(command_pub.publish(command));
+		attc.vehicle_cmd_poll();
+	}
+
+	// Fly multicopter mode until the quad-chute or the timeout, returns the flight time
+	hrt_abstime fly(VtolAttitudeControl &attc, Standard &standard, hrt_abstime timeout)
+	{
+		const hrt_abstime start = hrt_absolute_time();
+
+		while (!attc.is_fixed_wing_system_failure() && hrt_elapsed_time(&start) < timeout) {
+			runCycle(attc, standard, true);
+			px4_usleep(10_ms);
+		}
+
+		return hrt_elapsed_time(&start);
+	}
+};
+
+TEST_F(VtolPusherFailureTest, NoForwardMotionIsPusherFailure)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 0.f);
+
+	const hrt_abstime flight_time = fly(attc, standard, 2_s);
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	EXPECT_GE(flight_time, 100_ms); // not before VT_EF_TIME
+
+	// a front transition command clears the reason, the next update detects the latched pusher failure again
+	commandFrontTransition(attc);
+	ASSERT_TRUE(attc.is_fixed_wing_requested());
+	ASSERT_FALSE(attc.is_quadchute_active());
+	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, false)));
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	EXPECT_EQ(standard.get_mode(), mode::ROTARY_WING);
+}
+
+TEST_F(VtolPusherFailureTest, ForwardMotionIsNoPusherFailure)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 1.f);
+
+	fly(attc, standard, 300_ms);
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 }
