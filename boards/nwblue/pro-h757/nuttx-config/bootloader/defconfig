@@ -9,7 +9,6 @@
 # CONFIG_DISABLE_PSEUDOFS_OPERATIONS is not set
 # CONFIG_DISABLE_PTHREAD is not set
 # CONFIG_SPI_EXCHANGE is not set
-# CONFIG_STM32H7_SYSCFG is not set
 CONFIG_ARCH="arm"
 CONFIG_ARCH_BOARD_CUSTOM=y
 CONFIG_ARCH_BOARD_CUSTOM_DIR="../../../../boards/nwblue/pro-h757/nuttx-config"
