@@ -1,0 +1,58 @@
+module_name: ANELLO Maritime INS
+serial_config:
+    - command: anello start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_ANELLO_CFG
+        group: Sensors
+
+parameters:
+    - group: ANELLO
+      definitions:
+        ANELLO_MODE:
+            description:
+                short: Navigation output mode
+                long: "Primary requires EKF2_EN=0, ATT_EN=0 and SENS_IMU_MODE=1 before reboot. Keep onboard inertial sensors enabled. Use a dedicated port with no other navigation publisher."
+            type: enum
+            values:
+                0: Monitor (external_ins topics)
+                1: Primary INS (vehicle topics)
+            default: 0
+            reboot_required: true
+        ANELLO_BAUD:
+            description:
+                short: INS serial baud rate
+            type: int32
+            min: 9600
+            max: 3000000
+            default: 115200
+            reboot_required: true
+        ANELLO_EPH:
+            description:
+                short: Assumed horizontal position uncertainty
+                long: "MAVLink input has no uncertainty. Set a validated conservative one-sigma bound for the operating conditions. Set to -1 to keep navigation invalid."
+            type: float
+            unit: m
+            min: -1
+            max: 1000
+            default: -1
+            reboot_required: true
+        ANELLO_EPV:
+            description:
+                short: Assumed vertical position uncertainty
+                long: "MAVLink input has no uncertainty. Set a validated conservative one-sigma bound for the operating conditions. Set to -1 to keep navigation invalid."
+            type: float
+            unit: m
+            min: -1
+            max: 1000
+            default: -1
+            reboot_required: true
+        ANELLO_EV:
+            description:
+                short: Assumed velocity uncertainty
+                long: "MAVLink input has no uncertainty. Set a validated conservative one-sigma bound for the operating conditions. Set to -1 to keep navigation invalid."
+            type: float
+            unit: m/s
+            min: -1
+            max: 100
+            default: -1
+            reboot_required: true

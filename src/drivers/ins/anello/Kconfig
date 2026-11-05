@@ -1,0 +1,6 @@
+menuconfig DRIVERS_INS_ANELLO
+	bool "anello"
+	default n
+	depends on MODULES_MAVLINK
+	---help---
+		ANELLO Maritime INS fused navigation over a dedicated MAVLink UART.
