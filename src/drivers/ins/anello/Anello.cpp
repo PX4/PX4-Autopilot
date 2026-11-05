@@ -47,6 +47,7 @@ public:
 			 _parser.attitudeFresh(now) ? "fresh" : "missing/stale",
 			 _parser.positionFresh(now) ? "fresh" : "missing/stale", accuracyConfigured() ? "yes" : "no");
 		PX4_INFO("read cycles: %u, received bytes: %u", (unsigned)_cycles, (unsigned)_bytes);
+		PX4_INFO("read errors: %u, last errno: %d", (unsigned)_read_errors, _last_read_errno);
 		PX4_INFO("accepted attitude: %u, position: %u", (unsigned)_attitude_count, (unsigned)_position_count);
 		return PX4_OK;
 	}
@@ -69,13 +70,9 @@ private:
 			}
 		}
 
-		if (!_serial.open()) {
-			PX4_ERR("cannot open %s", _serial.getPort());
-			return false;
-		}
-
-		_serial.flush();
-		ScheduleOnInterval(5_ms);
+		// NuttX file descriptors belong to a task group. Open the UART in Run(),
+		// in the same work-queue context that reads and closes it.
+		ScheduleNow();
 		return true;
 	}
 
@@ -102,6 +99,20 @@ private:
 			return;
 		}
 
+		if (!_serial.isOpen()) {
+			if (!_serial.open()) {
+				PX4_ERR("cannot open %s (errno %d)", _serial.getPort(), errno);
+				// Serial::open can retain a descriptor if configuration fails.
+				_serial.close();
+				ScheduleClear();
+				exit_and_cleanup(desc);
+				return;
+			}
+
+			_serial.flush();
+			ScheduleOnInterval(5_ms);
+		}
+
 		++_cycles;
 
 		// Bound work even if a sender continuously fills the UART.
@@ -113,6 +124,11 @@ private:
 			const ssize_t count = _serial.read(buffer, sizeof(buffer));
 
 			if (count <= 0) {
+				if (count < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
+					_last_read_errno = errno;
+					++_read_errors;
+				}
+
 				break;
 			}
 
@@ -259,6 +275,8 @@ private:
 	bool _navigation_valid{false};
 	uint32_t _cycles{0};
 	uint32_t _bytes{0};
+	uint32_t _read_errors{0};
+	int _last_read_errno{0};
 	uint32_t _attitude_count{0};
 	uint32_t _position_count{0};
 	hrt_abstime _last_status{0};

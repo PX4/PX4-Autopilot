@@ -150,6 +150,7 @@ with tempfile.TemporaryDirectory(prefix="anello-sitl-") as directory:
         require(local, r"xy_valid: True")
         require(local, r"x: 11\.1")  # Origin survives stream loss.
         require(local, r"z: -1\.000")
+        require(command("anello", "status").stdout, r"read errors: 0, last errno: 0")
         command("anello", "stop")
         # Existing vehicle advertisements prevent a silent estimator takeover.
         result = command("anello", "start", "-d", device, check=False)
