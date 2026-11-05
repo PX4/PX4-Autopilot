@@ -1,3 +1,6 @@
+import statistics
+from typing import List
+
 import pytest
 from mavsdk.plugins.failure import FailureResult, FailureType, FailureUnit  # type: ignore
 
@@ -8,6 +11,18 @@ ALTITUDE_TOLERANCE_M = 1.0
 HOVER_SPEED_TOLERANCE_M_S = 1.0
 NUM_MOTORS = 6
 MOTOR_INSTANCE = 1  # 1-based
+
+# IMU failures are sent as a raw MAV_CMD_INJECT_FAILURE, since MAVSDK's FailureType has no DRIFT.
+MAV_CMD_INJECT_FAILURE = 420
+FAILURE_UNIT_SENSOR_GYRO = 0
+FAILURE_UNIT_SENSOR_ACCEL = 1
+FAILURE_TYPE_OK = 0
+FAILURE_TYPE_GARBAGE = 3
+FAILURE_TYPE_WRONG = 4
+FAILURE_TYPE_DRIFT = 8
+IMU_INSTANCE = 1  # 1-based, SIH has a single IMU
+IMU_FAILURE_DURATION_S = 20
+IMU_WINDOW_S = 3
 
 
 @pytest.mark.multicopter
@@ -81,3 +96,72 @@ def test_undetected_motor_failure_stops_only_failed_motor(tester: AutopilotTeste
     allocator is not informed and the opposite motor keeps running."""
     take_off_and_hover_for_motor_failure(tester)
     fail_and_restore_motor(tester, FailureType.WRONG, 1 << (MOTOR_INSTANCE - 1))
+
+
+def take_off_and_hover(tester: AutopilotTester) -> None:
+    tester.set_takeoff_altitude(FLIGHT_ALTITUDE_M)
+    # Necessary for the takeoff altitude to be applied properly.
+    tester.sleep_for(1)
+
+    tester.arm()
+    tester.takeoff()
+    tester.wait_until_hovering()
+    tester.wait_until_altitude(FLIGHT_ALTITUDE_M, 30)
+    tester.wait_until_speed_lower_than(HOVER_SPEED_TOLERANCE_M_S, 30)
+    # Both waits pass while the vehicle is still slowing down at the top of the climb. Let it
+    # settle, so the altitude reference for the failure is the hover altitude, not mid-climb.
+    tester.sleep_for(5)
+
+
+def inject_imu_failure(tester: AutopilotTester, unit: int, failure_type: int) -> None:
+    tester.send_command_long(MAV_CMD_INJECT_FAILURE, param1=unit, param2=failure_type,
+                             param3=IMU_INSTANCE)
+
+
+def imu_std(tester: AutopilotTester, unit: int) -> List[float]:
+    """Per-axis standard deviation of the IMU data over IMU_WINDOW_S."""
+    samples = tester.record_scaled_imu(IMU_WINDOW_S)
+    if unit == FAILURE_UNIT_SENSOR_GYRO:
+        axes = [(s.angular_velocity_frd.forward_rad_s, s.angular_velocity_frd.right_rad_s,
+                 s.angular_velocity_frd.down_rad_s) for s in samples]
+    else:
+        axes = [(s.acceleration_frd.forward_m_s2, s.acceleration_frd.right_m_s2,
+                 s.acceleration_frd.down_m_s2) for s in samples]
+    return [statistics.pstdev(axis) for axis in zip(*axes)]
+
+
+@pytest.mark.imu_failure_injection
+@pytest.mark.parametrize("unit", [pytest.param(FAILURE_UNIT_SENSOR_GYRO, id="gyro"),
+                                  pytest.param(FAILURE_UNIT_SENSOR_ACCEL, id="accel")])
+def test_hold_altitude_through_imu_failure(tester: AutopilotTester, unit: int) -> None:
+    """IMU bias, noise and drift (`failure gyro|accel wrong|garbage|drift`) in turn, with the
+    default SYS_FAIL_{G,A}_* magnitudes: the vehicle must hold altitude throughout.
+
+    The noise is also checked in the IMU data, which shows that the injection reaches it. Bias
+    and drift are not: the controllers react to them and partly hide them in flight."""
+    tester.wait_until_ready()
+    take_off_and_hover(tester)
+    tester.start_checking_altitude(ALTITUDE_TOLERANCE_M)
+
+    healthy = imu_std(tester, unit)
+    inject_imu_failure(tester, unit, FAILURE_TYPE_GARBAGE)
+    noisy = imu_std(tester, unit)
+    inject_imu_failure(tester, unit, FAILURE_TYPE_OK)
+    cleared = imu_std(tester, unit)
+    for axis in range(3):
+        assert noisy[axis] > 2 * healthy[axis] > cleared[axis], \
+            "Axis {}: std healthy {:.4f}, noisy {:.4f}, cleared {:.4f}".format(
+                axis, healthy[axis], noisy[axis], cleared[axis])
+
+    inject_imu_failure(tester, unit, FAILURE_TYPE_WRONG)
+    tester.sleep_for(IMU_FAILURE_DURATION_S)
+    inject_imu_failure(tester, unit, FAILURE_TYPE_OK)
+
+    inject_imu_failure(tester, unit, FAILURE_TYPE_DRIFT)
+    tester.sleep_for(IMU_FAILURE_DURATION_S)
+    inject_imu_failure(tester, unit, FAILURE_TYPE_OK)
+    tester.sleep_for(5)
+
+    tester.stop_checking_altitude()
+    tester.execute_rtl()
+    tester.wait_until_disarmed(180)
