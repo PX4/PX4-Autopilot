@@ -140,11 +140,11 @@ struct mission_item_s {
 	// lat/lon and x/y alias the same memory: only one pair is valid at a time, selected by `frame`.
 	// Global frames use lat/lon (degrees); NAV_FRAME_LOCAL_NED uses x/y (meters). Check `frame`
 	// before reading/writing either pair.
-	union{
+	union {
 		double lat;					/**< latitude in degrees				*/
 		double x;
 	};
-	union{
+	union {
 		double lon;					/**< longitude in degrees				*/
 		double y;
 	};
