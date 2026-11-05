@@ -68,19 +68,20 @@ inline static param_t param_handle(px4::params p)
 #define _FIRST_PARAMETER(...) _FIRST_PARAMETER_H(__VA_ARGS__, unused)
 #define _FIRST_PARAMETER_H(x, ...) STRIP(x)
 
-// A single member declared after the parameters loads all of them from a table of handles,
-// starting at the first parameter's address.
+// The handles go in a static array of the class, since APPLY_ALL leaves a trailing comma
+// that only a braced list accepts. A single member declared after the parameters loads
+// all of them from it, starting at the first parameter's address.
 // This keeps per-parameter code out of every constructor and updateParamsImpl().
 #define _DEFINE_PARAMETER_TABLE(...) \
-	do_not_explicitly_use_this_namespace::ParamTable<APPLY_ALL(_PARAM_TABLE_ENTRY, __VA_ARGS__) \
-	do_not_explicitly_use_this_namespace::param_table_end> _param_table{&_FIRST_PARAMETER(__VA_ARGS__)};
+	static constexpr param_t _param_table_entries[] = {APPLY_ALL(_PARAM_TABLE_ENTRY, __VA_ARGS__)}; \
+	do_not_explicitly_use_this_namespace::ParamTable _param_table{_param_table_entries, &_FIRST_PARAMETER(__VA_ARGS__)};
 
 // define the parameter update method, which will update all parameters.
 // It is marked as 'final', so that wrong usages lead to a compile error (see below)
 #define _DEFINE_PARAMETER_UPDATE_METHOD(...) \
 	protected: \
 	void updateParamsImpl() final { \
-		_param_table.update(&_FIRST_PARAMETER(__VA_ARGS__)); \
+		_param_table.update(_param_table_entries, &_FIRST_PARAMETER(__VA_ARGS__)); \
 	} \
 	private:
 
@@ -100,7 +101,7 @@ inline static param_t param_handle(px4::params p)
 	protected: \
 	void updateParamsImpl() override { \
 		parent_class::updateParamsImpl(); \
-		_param_table.update(&_FIRST_PARAMETER(__VA_ARGS__)); \
+		_param_table.update(_param_table_entries, &_FIRST_PARAMETER(__VA_ARGS__)); \
 	} \
 	private:
 
@@ -124,7 +125,6 @@ static constexpr param_t param_table_handle_mask = (1u << param_table_kind_shift
 static constexpr param_t param_table_value = 0u << param_table_kind_shift;    // float or int32_t
 static constexpr param_t param_table_bool = 1u << param_table_kind_shift;     // bool
 static constexpr param_t param_table_external = 2u << param_table_kind_shift; // pointer to the value
-static constexpr param_t param_table_end = 0xffff;
 
 constexpr size_t param_table_member_size(param_t kind)
 {
@@ -156,22 +156,14 @@ constexpr param_t param_table_entry()
  * Declared after the parameters of a class by DEFINE_PARAMETERS, so it loads them
  * once they are all constructed.
  */
-template<param_t... Entries>
 class ParamTable
 {
 public:
-	explicit ParamTable(void *first) { load(first, true); }
+	template<size_t N>
+	ParamTable(const param_t (&entries)[N], void *first) { param_table_load(entries, N, first, true); }
 
-	void update(void *first) { load(first, false); }
-
-private:
-	static constexpr unsigned count = sizeof...(Entries) - 1; // without param_table_end
-
-	static void load(void *first, bool mark_used)
-	{
-		static constexpr param_t entries[] = {Entries...};
-		param_table_load(entries, count, first, mark_used);
-	}
+	template<size_t N>
+	void update(const param_t (&entries)[N], void *first) { param_table_load(entries, N, first, false); }
 };
 
 template<typename T, px4::params p>
