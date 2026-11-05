@@ -76,11 +76,26 @@ inline static param_t param_handle(px4::params p)
 	static constexpr param_t _param_table_entries[] = {APPLY_ALL(_PARAM_TABLE_ENTRY, __VA_ARGS__)}; \
 	do_not_explicitly_use_this_namespace::ParamTable _param_table{_param_table_entries, &_FIRST_PARAMETER(__VA_ARGS__)};
 
+#define _PARAM_TABLE_OFFSET(x) \
+	offsetof(_param_table_class, STRIP(x)),
+
+// The language leaves padding between members to the compiler, so this fails the build
+// if any parameter is not where the loader steps. offsetof on a class with virtual
+// functions is only conditionally supported. GCC and Clang support it but warn.
+#define _CHECK_PARAMETER_LAYOUT(...) \
+	using _param_table_class = typename do_not_explicitly_use_this_namespace::param_table_class<decltype(*this)>::type; \
+	_Pragma("GCC diagnostic push") \
+	_Pragma("GCC diagnostic ignored \"-Winvalid-offsetof\"") \
+	static_assert(do_not_explicitly_use_this_namespace::param_table_layout_matches(_param_table_entries, \
+			{APPLY_ALL(_PARAM_TABLE_OFFSET, __VA_ARGS__)}), "Parameters are not laid out where the table loader steps"); \
+	_Pragma("GCC diagnostic pop")
+
 // define the parameter update method, which will update all parameters.
 // It is marked as 'final', so that wrong usages lead to a compile error (see below)
 #define _DEFINE_PARAMETER_UPDATE_METHOD(...) \
 	protected: \
 	void updateParamsImpl() final { \
+		_CHECK_PARAMETER_LAYOUT(__VA_ARGS__) \
 		_param_table.update(_param_table_entries, &_FIRST_PARAMETER(__VA_ARGS__)); \
 	} \
 	private:
@@ -101,6 +116,7 @@ inline static param_t param_handle(px4::params p)
 	protected: \
 	void updateParamsImpl() override { \
 		parent_class::updateParamsImpl(); \
+		_CHECK_PARAMETER_LAYOUT(__VA_ARGS__) \
 		_param_table.update(_param_table_entries, &_FIRST_PARAMETER(__VA_ARGS__)); \
 	} \
 	private:
@@ -136,6 +152,12 @@ constexpr size_t param_table_member_align(param_t kind)
 	return kind == param_table_external ? alignof(void *) : kind == param_table_bool ? alignof(bool) : alignof(float);
 }
 
+// Where a member of `kind` starts after the previous member ends at `end`
+constexpr uintptr_t param_table_member_start(uintptr_t end, param_t kind)
+{
+	return (end + param_table_member_align(kind) - 1) & ~(param_table_member_align(kind) - 1);
+}
+
 /**
  * Load `count` parameters into consecutive members starting at `first`, placing each
  * member at the next address its alignment allows, as the compiler lays them out.
@@ -151,6 +173,38 @@ constexpr param_t param_table_entry()
 		      "Param layout must match the table loader");
 	return P::table_entry;
 }
+
+/**
+ * Whether members at `offsets` within their class sit where param_table_load() steps.
+ * The class is aligned to at least each member's alignment, so stepping through offsets
+ * pads the same as stepping through addresses.
+ */
+template<size_t N>
+constexpr bool param_table_layout_matches(const param_t (&entries)[N], const size_t (&offsets)[N])
+{
+	uintptr_t member = offsets[0];
+
+	for (size_t i = 0; i < N; i++) {
+		const param_t kind = entries[i] & ~param_table_handle_mask;
+		member = param_table_member_start(member, kind);
+
+		if (offsets[i] != member) {
+			return false;
+		}
+
+		member += param_table_member_size(kind);
+	}
+
+	return true;
+}
+
+template<typename T>
+struct param_table_class;
+
+template<typename T>
+struct param_table_class<T &> {
+	using type = T;
+};
 
 /**
  * Declared after the parameters of a class by DEFINE_PARAMETERS, so it loads them
