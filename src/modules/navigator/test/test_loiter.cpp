@@ -48,6 +48,22 @@ namespace
 constexpr double kLat = 47.397742;
 constexpr double kLon = 8.545594;
 constexpr float kAlt = 500.f;
+
+// Runs exactly one real Navigator iteration per runOnce() without a worker thread, stopping at the triplet publication
+class NavigatorIteration : public Navigator, public uORB::SubscriptionCallback
+{
+public:
+	NavigatorIteration() : SubscriptionCallback(ORB_ID(position_setpoint_triplet)) {}
+
+	void runOnce()
+	{
+		_task_should_exit.store(false);
+		set_position_setpoint_triplet_updated();
+		Navigator::run();
+	}
+
+	void call(unsigned) override { request_stop(); }
+};
 }
 
 class LoiterTest : public NavigatorDatamanTestBase
@@ -75,6 +91,12 @@ protected:
 		local_pos.ref_alt = 400.f;
 		local_pos.xy_reset_counter = 3;
 		local_pos.z_reset_counter = 3;
+
+		// A Navigator created in a test still reads the last command an earlier test published
+		vehicle_command_s no_op{};
+		no_op.timestamp = hrt_absolute_time();
+		no_op.command = vehicle_command_s::VEHICLE_CMD_CUSTOM_0;
+		_command_pub.publish(no_op);
 	}
 
 	void TearDown() override
@@ -114,17 +136,57 @@ protected:
 		_loiter.on_active();
 	}
 
+	// Publish Hold and the estimate as the test has set them, then run one Navigator iteration
+	void runNavigator(NavigatorIteration &navigator)
+	{
+		vehicle_status_s status = *_navigator.get_vstatus();
+		status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+		status.timestamp = hrt_absolute_time();
+		ASSERT_TRUE(_status_pub.publish(status));
+		ASSERT_TRUE(_local_pos_pub.publish(*_navigator.get_local_position()));
+		ASSERT_TRUE(_global_pos_pub.publish(*_navigator.get_global_position()));
+		ASSERT_TRUE(_land_detected_pub.publish(*_navigator.get_land_detected()));
+		navigator.runOnce();
+	}
+
+	// A reposition command as QGC sends it, NAN for an unset field
+	static vehicle_command_s repositionCommand(double lat, double lon, float alt)
+	{
+		vehicle_command_s command{};
+		command.timestamp = hrt_absolute_time();
+		command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+		command.param1 = -1.f;
+		command.param2 = 1.f;
+		command.param4 = NAN;
+		command.param5 = lat;
+		command.param6 = lon;
+		command.param7 = alt;
+		return command;
+	}
+
 	const position_setpoint_s &currentSetpoint() { return _navigator.get_position_setpoint_triplet()->current; }
 
-	void expectSetpointShift(const position_setpoint_s &before, float delta_north, float delta_east, float delta_up)
+	static void expectShift(const position_setpoint_s &before, const position_setpoint_s &after, float delta_north,
+				float delta_east, float delta_up)
 	{
 		float north = 0.f;
 		float east = 0.f;
-		get_vector_to_next_waypoint(before.lat, before.lon, currentSetpoint().lat, currentSetpoint().lon, &north, &east);
+		get_vector_to_next_waypoint(before.lat, before.lon, after.lat, after.lon, &north, &east);
 		EXPECT_NEAR(north, delta_north, 0.01f);
 		EXPECT_NEAR(east, delta_east, 0.01f);
-		EXPECT_NEAR(currentSetpoint().alt, before.alt + delta_up, 0.001f);
+		EXPECT_NEAR(after.alt, before.alt + delta_up, 0.001f);
 	}
+
+	void expectSetpointShift(const position_setpoint_s &before, float delta_north, float delta_east, float delta_up)
+	{
+		expectShift(before, currentSetpoint(), delta_north, delta_east, delta_up);
+	}
+
+	uORB::Publication<vehicle_status_s> _status_pub{ORB_ID(vehicle_status)};
+	uORB::Publication<vehicle_local_position_s> _local_pos_pub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<vehicle_global_position_s> _global_pos_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+	uORB::Publication<vehicle_command_s> _command_pub{ORB_ID(vehicle_command)};
 };
 
 TEST_F(LoiterTest, holdFollowsEstimateReset)
@@ -187,6 +249,24 @@ TEST_F(LoiterTest, holdIgnoresMovedOrigin)
 	EXPECT_FLOAT_EQ(currentSetpoint().alt, hold.alt);
 }
 
+TEST_F(LoiterTest, holdIgnoresMovedAltitudeOrigin)
+{
+	// GIVEN: a vehicle holding where it is
+	_loiter.on_activation();
+	runCycle();
+
+	const position_setpoint_s hold = currentSetpoint();
+
+	// WHEN: the estimate resets horizontally while only the altitude origin moves, which EKF2 does without a new
+	// ref_timestamp when it sets a new origin altitude
+	resetEstimate(1.5f, 0.5f, 5.f);
+	_navigator.get_local_position()->ref_alt = 405.f;
+	runCycle();
+
+	// THEN: the hold position moves with the horizontal reset and keeps its altitude
+	expectSetpointShift(hold, 1.5f, 0.5f, 0.f);
+}
+
 TEST_F(LoiterTest, repositionTargetIgnoresEstimateReset)
 {
 	// GIVEN: a vehicle holding, then sent to a reposition target
@@ -217,7 +297,8 @@ TEST_F(LoiterTest, repositionTargetIgnoresEstimateReset)
 
 TEST_F(LoiterTest, pauseFollowsEstimateReset)
 {
-	// GIVEN: a vehicle paused into Hold where it is, by a reposition without coordinates as QGC's Pause sends it
+	// GIVEN: a vehicle paused into Hold. Navigator turns QGC's Pause, which has no coordinates, into a reposition at
+	// the vehicle's position.
 	repositionTo(kLat, kLon, kAlt, Navigator::RepositionSource::Vehicle, Navigator::RepositionSource::Vehicle);
 	_loiter.on_activation();
 	runCycle();
@@ -265,71 +346,87 @@ TEST_F(LoiterTest, altitudeChangeKeepsFollowingHorizontally)
 
 TEST_F(LoiterTest, navigatorAppliesResetBeforeAltitudeCommand)
 {
-	// Stop at the triplet publication to exercise exactly one real Navigator iteration without a worker thread.
-	class NavigatorIteration : public Navigator, public uORB::SubscriptionCallback
-	{
-	public:
-		NavigatorIteration() : SubscriptionCallback(ORB_ID(position_setpoint_triplet)) {}
-
-		void runOnce()
-		{
-			_task_should_exit.store(false);
-			set_position_setpoint_triplet_updated();
-			Navigator::run();
-		}
-
-		void call(unsigned) override { request_stop(); }
-	} navigator;
-
+	NavigatorIteration navigator;
 	ASSERT_TRUE(navigator.registerCallback());
-	uORB::Publication<vehicle_status_s> status_pub{ORB_ID(vehicle_status)};
-	uORB::Publication<vehicle_local_position_s> local_pos_pub{ORB_ID(vehicle_local_position)};
-	uORB::Publication<vehicle_global_position_s> global_pos_pub{ORB_ID(vehicle_global_position)};
-	uORB::Publication<vehicle_land_detected_s> land_detected_pub{ORB_ID(vehicle_land_detected)};
-	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
-	vehicle_status_s status = *_navigator.get_vstatus();
-	status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
-	status.timestamp = hrt_absolute_time();
-	ASSERT_TRUE(status_pub.publish(status));
-	ASSERT_TRUE(local_pos_pub.publish(*_navigator.get_local_position()));
-	ASSERT_TRUE(global_pos_pub.publish(*_navigator.get_global_position()));
-	ASSERT_TRUE(land_detected_pub.publish(*_navigator.get_land_detected()));
-	navigator.runOnce();
+	runNavigator(navigator);
 	const position_setpoint_s hold = navigator.get_position_setpoint_triplet()->current;
 	ASSERT_TRUE(hold.valid);
 
 	// Queue both inputs before the next iteration, so command processing sees the new reset counter.
 	resetEstimate(1.5f, 0.5f, -0.8f);
-	ASSERT_TRUE(local_pos_pub.publish(*_navigator.get_local_position()));
-	vehicle_command_s command{};
-	command.timestamp = hrt_absolute_time();
-	command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
-	command.param1 = -1.f;
-	command.param4 = NAN;
-	command.param5 = NAN;
-	command.param6 = NAN;
-	command.param7 = kAlt + 10.f;
-	ASSERT_TRUE(command_pub.publish(command));
-	status.timestamp = hrt_absolute_time();
-	ASSERT_TRUE(status_pub.publish(status));
-	navigator.runOnce();
+	ASSERT_TRUE(_command_pub.publish(repositionCommand(NAN, NAN, kAlt + 10.f)));
+	runNavigator(navigator);
 
 	const position_setpoint_s target = navigator.get_position_setpoint_triplet()->current;
-	float north = 0.f;
-	float east = 0.f;
-	get_vector_to_next_waypoint(hold.lat, hold.lon, target.lat, target.lon, &north, &east);
-	EXPECT_NEAR(north, 1.5f, 0.01f);
-	EXPECT_NEAR(east, 0.5f, 0.01f);
-	EXPECT_FLOAT_EQ(target.alt, kAlt + 10.f);
+	expectShift(hold, target, 1.5f, 0.5f, 10.f);
 
 	// The next iteration must preserve the corrected target without applying the same reset twice.
-	status.timestamp = hrt_absolute_time();
-	ASSERT_TRUE(status_pub.publish(status));
-	navigator.runOnce();
-	const position_setpoint_s &current = navigator.get_position_setpoint_triplet()->current;
-	EXPECT_DOUBLE_EQ(current.lat, target.lat);
-	EXPECT_DOUBLE_EQ(current.lon, target.lon);
-	EXPECT_FLOAT_EQ(current.alt, target.alt);
+	runNavigator(navigator);
+	expectShift(target, navigator.get_position_setpoint_triplet()->current, 0.f, 0.f, 0.f);
+}
+
+TEST_F(LoiterTest, navigatorPauseFollowsEstimateReset)
+{
+	// GIVEN: a vehicle paused into Hold by a reposition without coordinates or altitude, as QGC sends it
+	NavigatorIteration navigator;
+	ASSERT_TRUE(navigator.registerCallback());
+	runNavigator(navigator);
+	ASSERT_TRUE(_command_pub.publish(repositionCommand(NAN, NAN, NAN)));
+	runNavigator(navigator);
+	ASSERT_FALSE(navigator.get_reposition_triplet()->current.valid);
+	const position_setpoint_s hold = navigator.get_position_setpoint_triplet()->current;
+	ASSERT_TRUE(hold.valid);
+
+	// WHEN: the position estimate resets
+	resetEstimate(1.5f, 0.5f, -0.8f);
+	runNavigator(navigator);
+
+	// THEN: the hold position moves with it on both axes, so that the vehicle stays where it is
+	expectShift(hold, navigator.get_position_setpoint_triplet()->current, 1.5f, 0.5f, 0.8f);
+}
+
+TEST_F(LoiterTest, navigatorGoToKeepsCommandedTarget)
+{
+	// GIVEN: a vehicle in Hold sent to a location and altitude
+	NavigatorIteration navigator;
+	ASSERT_TRUE(navigator.registerCallback());
+	runNavigator(navigator);
+	ASSERT_TRUE(_command_pub.publish(repositionCommand(kLat + 0.001, kLon, kAlt + 10.f)));
+	runNavigator(navigator);
+	ASSERT_FALSE(navigator.get_reposition_triplet()->current.valid);
+	const position_setpoint_s target = navigator.get_position_setpoint_triplet()->current;
+	ASSERT_DOUBLE_EQ(target.lat, kLat + 0.001);
+
+	// WHEN: the position estimate resets
+	resetEstimate(1.5f, 0.5f, -0.8f);
+	runNavigator(navigator);
+
+	// THEN: the target stays where it was commanded
+	expectShift(target, navigator.get_position_setpoint_triplet()->current, 0.f, 0.f, 0.f);
+}
+
+TEST_F(LoiterTest, navigatorChangeAltitudeFollowsOnlyHorizontalReset)
+{
+	// GIVEN: a vehicle holding where it is, then sent to a new altitude
+	NavigatorIteration navigator;
+	ASSERT_TRUE(navigator.registerCallback());
+	runNavigator(navigator);
+	vehicle_command_s command{};
+	command.timestamp = hrt_absolute_time();
+	command.command = vehicle_command_s::VEHICLE_CMD_DO_CHANGE_ALTITUDE;
+	command.param1 = kAlt + 10.f;
+	ASSERT_TRUE(_command_pub.publish(command));
+	runNavigator(navigator);
+	ASSERT_FALSE(navigator.get_reposition_triplet()->current.valid);
+	const position_setpoint_s target = navigator.get_position_setpoint_triplet()->current;
+	ASSERT_FLOAT_EQ(target.alt, kAlt + 10.f);
+
+	// WHEN: the position estimate resets
+	resetEstimate(1.5f, 0.5f, -0.8f);
+	runNavigator(navigator);
+
+	// THEN: the hold position moves with the horizontal reset, the commanded altitude stays
+	expectShift(target, navigator.get_position_setpoint_triplet()->current, 1.5f, 0.5f, 0.f);
 }
 
 TEST_F(LoiterTest, horizontalCommandFollowsOnlyAltitudeReset)
