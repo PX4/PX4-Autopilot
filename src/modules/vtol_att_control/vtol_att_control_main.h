@@ -123,6 +123,9 @@ public:
 
 	void reset_immediate_transition() {_immediate_transition = false;}
 
+	/** Quad-chute commanded by the user: switch to multicopter immediately, but it is no fixed-wing failure */
+	bool get_external_quadchute() const { return _external_quadchute; }
+
 	float getAirDensity() const { return _air_density; }
 
 	struct vehicle_torque_setpoint_s		*get_vehicle_torque_setpoint_virtual_mc() {return &_vehicle_torque_setpoint_virtual_mc;}
@@ -224,6 +227,7 @@ private:
 	 * to waste energy when gliding. */
 	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
 	bool		_immediate_transition{false};
+	bool		_external_quadchute{false};
 
 	uint8_t _nav_state_prev;
 
