@@ -45,11 +45,15 @@
 TEST(VtolQuadchuteTest, CommandedQuadchuteIsNoFixedWingFailure)
 {
 	VtolAttitudeControl vtol_att_control;
-
 	vtol_att_control.quadchute(QuadchuteReason::ExternalCommand);
-	EXPECT_TRUE(vtol_att_control.get_external_quadchute()); // forces multicopter flight
-	EXPECT_FALSE(vtol_att_control.get_vtol_vehicle_status()->fixed_wing_system_failure);
+	EXPECT_TRUE(vtol_att_control.is_quadchute_active()); // forces multicopter flight
+	EXPECT_FALSE(vtol_att_control.is_fixed_wing_system_failure());
+}
 
+TEST(VtolQuadchuteTest, DetectedQuadchuteIsFixedWingFailure)
+{
+	VtolAttitudeControl vtol_att_control;
 	vtol_att_control.quadchute(QuadchuteReason::TransitionTimeout);
-	EXPECT_TRUE(vtol_att_control.get_vtol_vehicle_status()->fixed_wing_system_failure);
+	EXPECT_TRUE(vtol_att_control.is_quadchute_active());
+	EXPECT_TRUE(vtol_att_control.is_fixed_wing_system_failure());
 }

@@ -67,7 +67,7 @@ void Tiltrotor::update_vtol_state()
 	 * forward completely. For the backtransition the motors simply rotate back.
 	*/
 
-	if (_vtol_vehicle_status->fixed_wing_system_failure || _attc->get_external_quadchute()) {
+	if (_attc->is_quadchute_active()) {
 		// Failsafe event, switch to MC mode immediately
 		_vtol_mode = vtol_mode::MC_MODE;
 
