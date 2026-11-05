@@ -349,19 +349,14 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		break;
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
 
 	case MAVLINK_MSG_ID_TARGET_RELATIVE:
 		handle_message_target_relative(msg);
 		break;
-#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
-
-#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
 
 	case MAVLINK_MSG_ID_TARGET_ABSOLUTE:
 		handle_message_target_absolute(msg);
 		break;
-#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
@@ -634,8 +629,6 @@ void SimulatorMavlink::handle_message_landing_target(const mavlink_message_t *ms
 
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-
-#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
 void
 SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 {
@@ -644,12 +637,12 @@ SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 
 	target_gnss_s target_GNSS_report{};
 	target_GNSS_report.timestamp = hrt_absolute_time();
-	target_GNSS_report.timestamp_sample = target_absolute.timestamp;
+	target_GNSS_report.timestamp_sample = target_absolute.time_usec;
 
 	bool updated = false;
 
-	// Position: bit 0
-	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TargetAbsoluteSensorCapability::kPosition))) {
+	// Cast the flags so the SensorSource operator& template does not capture the enum operand.
+	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TARGET_ABSOLUTE_SENSOR_CAPABILITY_POSITION))) {
 		target_GNSS_report.abs_pos_updated = false;
 
 	} else {
@@ -662,39 +655,23 @@ SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 		updated = true;
 	}
 
-	// Velocity: bit 1
-	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TargetAbsoluteSensorCapability::kVelocity))) {
+	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TARGET_ABSOLUTE_SENSOR_CAPABILITY_VELOCITY))) {
 		target_GNSS_report.vel_ned_updated = false;
 
 	} else {
-		const matrix::Quatf q_target(target_absolute.q_target);
-		const bool target_attitude_available = (fabsf(q_target(0)) + fabsf(q_target(1)) + fabsf(q_target(2)) +
-							fabsf(q_target(3))) > FLT_EPSILON;
-
-		if (target_attitude_available) {
-			const matrix::Vector3f vel_target_body(target_absolute.vel[0], target_absolute.vel[1], target_absolute.vel[2]);
-			const matrix::Vector3f vel_target_ned = q_target.rotateVector(vel_target_body);
-
-			target_GNSS_report.vel_ned_updated = true;
-			target_GNSS_report.vel_n_m_s = vel_target_ned(0);
-			target_GNSS_report.vel_e_m_s = vel_target_ned(1);
-			target_GNSS_report.vel_d_m_s = vel_target_ned(2);
-			target_GNSS_report.s_acc_m_s = fmaxf(fabsf(target_absolute.vel_std[0]),
-							     fmaxf(fabsf(target_absolute.vel_std[1]),
-									     fabsf(target_absolute.vel_std[2])));
-			updated = true;
-
-		} else {
-			target_GNSS_report.vel_ned_updated = false;
-		}
+		// vel and vel_std are in NED
+		target_GNSS_report.vel_ned_updated = true;
+		target_GNSS_report.vel_n_m_s = target_absolute.vel[0];
+		target_GNSS_report.vel_e_m_s = target_absolute.vel[1];
+		target_GNSS_report.vel_d_m_s = target_absolute.vel[2];
+		target_GNSS_report.s_acc_m_s = fmaxf(fabsf(target_absolute.vel_std[0]),
+						     fmaxf(fabsf(target_absolute.vel_std[1]), fabsf(target_absolute.vel_std[2])));
+		updated = true;
 	}
 
 	if (updated) { _target_gnss_pub.publish(target_GNSS_report); }
 }
-#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
 
-
-#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
 void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *msg)
 {
 	mavlink_target_relative_t target_relative;
@@ -703,40 +680,35 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 	vehicle_attitude_s	vehicle_attitude;
 	vehicle_local_position_s vehicle_local_position;
 
-	// Unsupported sensor frame
-	if (target_relative.frame != TARGET_OBS_FRAME_LOCAL_OFFSET_NED && target_relative.frame != TARGET_OBS_FRAME_LOCAL_NED &&
-	    target_relative.frame != TARGET_OBS_FRAME_BODY_FRD && target_relative.frame != TARGET_OBS_FRAME_OTHER) {
-		PX4_WARN("target relative: coordinate frame %d unsupported", (int)target_relative.frame);
-		return;
-	}
-
 	// Unsupported measurement type
 	if (target_relative.type != LANDING_TARGET_TYPE_VISION_FIDUCIAL) {
 		PX4_WARN("target relative: unsupported type %d", (int)target_relative.type);
 		return;
 	}
 
+	// A non-zero q_sensor rotates the sensor frame into vehicle-carried NED, frame is then ignored
 	matrix::Quatf q_sensor(target_relative.q_sensor);
 	bool attitude_available = (fabsf(q_sensor(0)) + fabsf(q_sensor(1)) + fabsf(q_sensor(2)) +
 				   fabsf(q_sensor(3))) > FLT_EPSILON;
+	const bool local_ned_frame = !attitude_available && (target_relative.frame == MAV_FRAME_LOCAL_NED);
 
 	// Check if attitude can be infered based on the frame
 	if (!attitude_available) {
-		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_OFFSET_NED || target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+		if (target_relative.frame == MAV_FRAME_LOCAL_OFFSET_NED || target_relative.frame == MAV_FRAME_LOCAL_NED) {
 			// Observation already in NED, set quaternion to identity (1,0,0,0)
 			q_sensor.setIdentity();
 			attitude_available = true;
 
-		} else if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD && _vehicle_attitude_sub.copy(&vehicle_attitude)) {
+		} else if (target_relative.frame == MAV_FRAME_BODY_FRD) {
 			// Set the quaternion to the current attitude
-			const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
-			q_sensor = quat_att;
-			attitude_available = true;
+			if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+				const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+				q_sensor = quat_att;
+				attitude_available = true;
+			}
 
-		} else if (target_relative.frame == TARGET_OBS_FRAME_OTHER) {
-			// Target sensor frame: OTHER and no quaternion is provided
-			PX4_WARN("target relative: coordinate frame %d unsupported when the q_sensor is not filled",
-				 (int)target_relative.frame);
+		} else {
+			PX4_WARN("target relative: coordinate frame %d unsupported", (int)target_relative.frame);
 		}
 	}
 
@@ -764,10 +736,10 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 
 		// Send the target directly to the precision landing algorithm in local NED frame
 		landing_target_pose_s landing_target_pose{};
-		landing_target_pose.timestamp = target_relative.timestamp;
+		landing_target_pose.timestamp = target_relative.time_usec;
 
 		// Measurement already in local NED
-		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+		if (local_ned_frame) {
 
 			landing_target_pose.x_abs = target_relative.x;
 			landing_target_pose.y_abs = target_relative.y;
@@ -782,10 +754,8 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 			// If the local position is available, convert from sensor frame to local NED
 			matrix::Vector3f target_relative_frame(target_relative.x, target_relative.y, target_relative.z);
 
-			if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD || target_relative.frame == TARGET_OBS_FRAME_OTHER) {
-				// Rotate measurement into vehicle-carried NED
-				target_relative_frame = q_sensor.rotateVector(target_relative_frame);
-			}
+			// Rotate measurement into vehicle-carried NED
+			target_relative_frame = q_sensor.rotateVector(target_relative_frame);
 
 			// Convert from vehicle-carried NED to local NED
 			landing_target_pose.x_abs = target_relative_frame(0) + vehicle_local_position.x;
@@ -804,14 +774,14 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 		fiducial_marker_pos_report_s fiducial_marker_pos_report{};
 
 		const hrt_abstime now = hrt_absolute_time();
-		const hrt_abstime timestamp_sample = target_relative.timestamp;
+		const hrt_abstime timestamp_sample = target_relative.time_usec;
 
 		fiducial_marker_pos_report.timestamp = now;
 		fiducial_marker_pos_report.timestamp_sample = timestamp_sample;
 		matrix::Vector3f target_relative_frame(target_relative.x, target_relative.y, target_relative.z);
 
-		// TARGET_OBS_FRAME_LOCAL_NED is absolute in local frame: convert to vehicle-relative.
-		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+		// MAV_FRAME_LOCAL_NED is absolute in local frame: convert to vehicle-relative.
+		if (local_ned_frame) {
 			if (!_vehicle_local_position_sub.copy(&vehicle_local_position)
 			    || !vehicle_local_position.xy_valid || !vehicle_local_position.z_valid) {
 				return;
@@ -826,9 +796,11 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 		fiducial_marker_pos_report.rel_pos[1] = target_relative_frame(1);
 		fiducial_marker_pos_report.rel_pos[2] = target_relative_frame(2);
 
-		fiducial_marker_pos_report.cov_rel_pos[0] = target_relative.pos_std[0] * target_relative.pos_std[0];
-		fiducial_marker_pos_report.cov_rel_pos[1] = target_relative.pos_std[1] * target_relative.pos_std[1];
-		fiducial_marker_pos_report.cov_rel_pos[2] = target_relative.pos_std[2] * target_relative.pos_std[2];
+		// NaN std means unknown: a zero variance makes VTE use its noise floor
+		for (int i = 0; i < 3; i++) {
+			const float position_std = std::isnan(target_relative.position_std[i]) ? 0.f : target_relative.position_std[i];
+			fiducial_marker_pos_report.cov_rel_pos[i] = position_std * position_std;
+		}
 
 		q_sensor.copyTo(fiducial_marker_pos_report.q);
 		_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
@@ -843,18 +815,18 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 			fiducial_marker_yaw_report.timestamp = now;
 			fiducial_marker_yaw_report.timestamp_sample = timestamp_sample;
 
-			// Transform quaternion from the target's frame to the TARGET_OBS_FRAME to the yaw relative to NED
+			// Rotate the target orientation from the observation frame into NED to get its yaw
 			const matrix::Quatf q_in_ned = q_sensor * q_target;
 			const float target_yaw_ned = matrix::Eulerf(q_in_ned).psi();
 
 			fiducial_marker_yaw_report.yaw_ned = target_yaw_ned;
-			fiducial_marker_yaw_report.yaw_var_ned = target_relative.yaw_std * target_relative.yaw_std;
+			const float yaw_std = std::isnan(target_relative.yaw_std) ? 0.f : target_relative.yaw_std;
+			fiducial_marker_yaw_report.yaw_var_ned = yaw_std * yaw_std;
 			_fiducial_marker_yaw_report_pub.publish(fiducial_marker_yaw_report);
 		}
 	}
 
 }
-#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
