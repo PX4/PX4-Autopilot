@@ -207,17 +207,13 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 				return false;
 			}
 
-			// Shared scratch storage: navigator serializes polygon updates. Every used entry
-			// is overwritten below, and addPolygon copies the result into its own buffers.
-			static matrix::Vector2f local_in[DM_KEY_FENCE_POINTS_MAX];
-
 			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
-				local_in[vertex_idx] = get_vertex_local_position(poly_index, vertex_idx, geofence, _reference);
+				_vertices_in[vertex_idx] = get_vertex_local_position(poly_index, vertex_idx, geofence, _reference);
 			}
 
 			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 
-			add_result = _polygons.addPolygon(local_in, info.vertex_count, is_inclusion, margin);
+			add_result = _polygons.addPolygon(_vertices_in, info.vertex_count, is_inclusion, margin);
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 
