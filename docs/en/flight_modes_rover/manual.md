@@ -12,6 +12,8 @@ The sticks provide the same "high level" control effects over direction and rate
 | Differential | Drive the rover forwards/backwards (controlling speed). | -                                               | Make a left/right turn (controlling speed difference in [Manual mode](#manual-mode), and yaw rate in [Acro](#acro-mode), [Stabilized](#stabilized-mode) and [Position](#position-mode) modes). |
 | Mecanum      | Drive the rover forwards/backwards (controlling speed)  | Drive the rover left/right (controlling speed). | Make a left/right turn (controlling speed difference in [Manual mode](#manual-mode), and yaw rate in [Acro](#acro-mode), [Stabilized](#stabilized-mode) and [Position](#position-mode) modes). |
 
+<a id="stick-mapping"></a>
+
 ::: tip
 The sticks can be reassigned with [RO_STICK_MAP](../advanced_config/parameter_reference.md#RO_STICK_MAP).
 Ackermann and differential rovers ignore the sideways ("drive left/right") assignment.
