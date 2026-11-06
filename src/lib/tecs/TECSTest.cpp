@@ -496,9 +496,15 @@ TEST(TECSControlTest, PitchIntegratorDoesNotWindUpAtPitchLimit)
 	ASSERT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
 	const float integrator_saturated = control.getDebugOutput().pitch_integrator;
 
+	// With the input frozen the throttle soon sits at its maximum without the total energy rising. Kinetic priority
+	// then takes the measured total energy rate as the pitch's budget and pulls the pitch off its limit, after which
+	// integrating is legitimate. Check the anti-windup only while the pitch is held at the limit.
 	for (int i = 0; i < 500; i++) {
 		control.update(kDt, setpoint, input, param, flag);
-		EXPECT_LE(control.getDebugOutput().pitch_integrator, integrator_saturated) << "update " << i;
+
+		if (control.getPitchSetpoint() >= param.pitch_max) {
+			EXPECT_LE(control.getDebugOutput().pitch_integrator, integrator_saturated) << "update " << i;
+		}
 	}
 }
 
@@ -869,10 +875,18 @@ namespace
 {
 
 // Pitch setpoint after holding altitude for a while with the given airspeed, airspeed setpoint and airspeed rate.
-float pitchSetpointAtSpeed(float tas, float tas_setpoint, float tas_rate = 0.f)
+// Without throttle range (gliders) the pitch is the only way to track the airspeed setpoint.
+float pitchSetpointAtSpeed(float tas, float tas_setpoint, float tas_rate = 0.f, bool no_throttle_range = false)
 {
 	TECSControl control;
 	TECSControl::Param param = makeParam();
+
+	if (no_throttle_range) {
+		param.throttle_min = 0.f;
+		param.throttle_max = 0.f;
+		param.throttle_trim = 0.f;
+	}
+
 	const TECSControl::Flag flag = makeFlag();
 
 	TECSControl::Input input = makeInput();
@@ -955,6 +969,16 @@ TEST(TECSControlTest, PitchDownToAccelerateBelowTrim)
 	// THEN the pitch loop pitches down, but only as much as needed to reach trim airspeed
 	EXPECT_LT(pitch_setpoint_at_trim, 0.f);
 	EXPECT_NEAR(pitch_setpoint_above_trim, pitch_setpoint_at_trim, 1e-4f);
+}
+
+// Without throttle range (gliders), pitch is the only way to track the airspeed setpoint.
+TEST(TECSControlTest, PitchDownToAccelerateAboveTrimWithoutThrottleRange)
+{
+	// WHEN flying above trim airspeed with a higher airspeed setpoint and no throttle range
+	const float pitch = pitchSetpointAtSpeed(20.f, 30.f, 0.f, true);
+
+	// THEN the pitch loop pitches down to accelerate
+	EXPECT_LT(pitch, 0.f);
 }
 
 // Between trim airspeed and the setpoint the throttle alone accelerates the vehicle: the pitch loop must not react to

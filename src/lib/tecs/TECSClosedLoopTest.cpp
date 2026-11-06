@@ -134,6 +134,43 @@ float ste_rate_modelled(const TECSControl::Param &p, float throttle)
 	       : (throttle - p.throttle_trim) * ste_rate_min_abs / (p.throttle_trim - p.throttle_min);
 }
 
+// Model mismatch of the plant against what TECS assumes. The default plant is TECS' own model.
+struct PlantModel {
+	float pitch_offset{0.f};     // pitch-to-flight-path offset, unknown to TECS
+	bool throttle_failed{false}; // the throttle gives no thrust
+	float climb_power_scale{1.f}; // thrust power above trim throttle relative to what TECS assumes (FW_T_CLMB_MAX)
+	float v_min_power{NAN};      // speed of minimum power required [m/s]; NAN: power required independent of airspeed
+};
+
+// Specific power required for level flight relative to trim airspeed: parasitic drag power growing with V^3,
+// induced drag power with 1/V, with the minimum at v_min_power. 1 everywhere without a speed of minimum power.
+float power_required_ratio(const TECSControl::Param &p, const PlantModel &plant, float V)
+{
+	if (!PX4_ISFINITE(plant.v_min_power)) {
+		return 1.f;
+	}
+
+	const float V_ = math::max(V, 0.1f);
+	const float induced_coeff = 3.f * powf(plant.v_min_power, 4.f); // d/dV (V^3 + c / V) = 0 at v_min_power
+	return (V_ * V_ * V_ + induced_coeff / V_)
+	       / (p.tas_trim * p.tas_trim * p.tas_trim + induced_coeff / p.tas_trim);
+}
+
+// Specific total energy rate of the plant: thrust power minus power required. At trim airspeed and with the default
+// plant this is exactly ste_rate_modelled, with the power required at trim airspeed being the minimum sink rate.
+float ste_rate_plant(const TECSControl::Param &p, const PlantModel &plant, float throttle, float V)
+{
+	const float power_required_trim = p.min_sink_rate * CONSTANTS_ONE_G;
+	float thrust_power = 0.f;
+
+	if (!plant.throttle_failed) {
+		const float ste_rate = ste_rate_modelled(p, throttle);
+		thrust_power = power_required_trim + (ste_rate > 0.f ? plant.climb_power_scale *ste_rate : ste_rate);
+	}
+
+	return thrust_power - power_required_trim * power_required_ratio(p, plant, V);
+}
+
 // Only correct in a linearised sense (close to level) but matches TECS
 float altitude_rate(float pitch_cmd, AircraftState s, float pitch_offset = 0.f)
 {
@@ -143,18 +180,18 @@ float altitude_rate(float pitch_cmd, AircraftState s, float pitch_offset = 0.f)
 // Continuous-time airspeed rate of the plant at the given commands: the energy rate the throttle delivers that
 // the climb does not absorb
 float airspeed_rate(const TECSControl::Param &p, float throttle, float pitch_cmd, AircraftState s,
-		    float pitch_offset = 0.f, bool throttle_failed = false)
+		    const PlantModel &plant = {})
 {
-	const float ste_rate = ste_rate_modelled(p, throttle_failed ? 0.0f : throttle);
-	const float ske_rate = ste_rate - CONSTANTS_ONE_G * altitude_rate(pitch_cmd, s, pitch_offset);
+	const float ste_rate = ste_rate_plant(p, plant, throttle, s.V);
+	const float ske_rate = ste_rate - CONSTANTS_ONE_G * altitude_rate(pitch_cmd, s, plant.pitch_offset);
 	return (s.V > 0.1f) ? ske_rate / s.V : 0.f; // If V < 0.1 we have long stalled...
 }
 
 AircraftState aircraft_step(const TECSControl::Param &p, float dt, float throttle, float pitch_cmd, AircraftState s,
-			    float pitch_offset = 0.f, bool throttle_failed = false)
+			    const PlantModel &plant = {})
 {
-	return {s.V + dt * airspeed_rate(p, throttle, pitch_cmd, s, pitch_offset, throttle_failed),
-		s.h + dt * altitude_rate(pitch_cmd, s, pitch_offset)};
+	return {s.V + dt * airspeed_rate(p, throttle, pitch_cmd, s, plant),
+		s.h + dt * altitude_rate(pitch_cmd, s, plant.pitch_offset)};
 }
 
 }
@@ -183,8 +220,7 @@ protected:
 	float _throttle_prev{_params.throttle_trim}; // throttle command from previous step, for tas_rate input
 
 	// Options to re-introduce some basic model mismatch
-	float _plant_pitch_offset {0.f};  // pitch-to-flight-path offset of the plant, unknown to TECS
-	bool _throttle_failed {false};    // simulate failed throttle (giving min total energy rate)
+	PlantModel _plant{};
 
 	bool  _tecs_initialised {false};
 	FILE *_output_csv_file {nullptr};
@@ -228,7 +264,7 @@ protected:
 	}
 
 	// Climb rate the plant is flying at the current state under the previous pitch command
-	float plantAltitudeRate() const { return altitude_rate(_pitch_prev, _state, _plant_pitch_offset); }
+	float plantAltitudeRate() const { return altitude_rate(_pitch_prev, _state, _plant.pitch_offset); }
 
 	void updateAltRef()
 	{
@@ -262,7 +298,7 @@ protected:
 			.altitude      = _state.h,
 			.altitude_rate = plantAltitudeRate(),
 			.tas           = airspeed ? _state.V : _params.equivalent_airspeed_trim,
-			.tas_rate      = airspeed ? airspeed_rate(_params, _throttle_prev, _pitch_prev, _state, _plant_pitch_offset, _throttle_failed) : 0.f,
+			.tas_rate      = airspeed ? airspeed_rate(_params, _throttle_prev, _pitch_prev, _state, _plant) : 0.f,
 		};
 	}
 
@@ -327,7 +363,7 @@ protected:
 
 			_pitch_prev = _tecs.getPitchSetpoint();
 			_throttle_prev = _tecs.getThrottleSetpoint();
-			_state      = aircraft_step(_params, DT, _throttle_prev, _pitch_prev, _state, _plant_pitch_offset, _throttle_failed);
+			_state      = aircraft_step(_params, DT, _throttle_prev, _pitch_prev, _state, _plant);
 			updateSimStats(_state, _tecs.getDebugOutput());
 
 			if (_output_csv_file) {
@@ -447,7 +483,7 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownLowAccel)
 
 TEST_F(TECSClosedLoopTest, SteadyStateCruisePitchOffset)
 {
-	_plant_pitch_offset = math::radians(10.f);
+	_plant.pitch_offset = math::radians(10.f);
 
 	// Let integrator converge
 	run(120.f);
@@ -461,12 +497,12 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruisePitchOffset)
 	EXPECT_LT(_sim_stats.max_airspeed_error, 0.1f) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	// And the pitch integrator has converged to the plant pitch offset
-	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
+	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant.pitch_offset, math::radians(0.1f));
 }
 
 TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 {
-	_plant_pitch_offset = math::radians(10.f);
+	_plant.pitch_offset = math::radians(10.f);
 
 	// Let integrator converge
 	run(120.0f);
@@ -484,7 +520,29 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 	EXPECT_LT(_sim_stats.max_airspeed_error, 0.1f) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	// And the pitch integrator has converged to the plant pitch offset
-	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
+	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant.pitch_offset, math::radians(0.1f));
+}
+
+// --- Gliding -----------------------------------------------------------------------
+//
+// Without throttle range (throttle min == max, as gliders and gliding waypoints configure it) the pitch flies airspeed
+// only, so it tracks an airspeed setpoint with no propulsion at all.
+
+TEST_F(TECSClosedLoopTest, GlideAirspeedStep)
+{
+	run(10.f);
+	_plant.throttle_failed = true;
+	_params.throttle_min = 0.f;
+	_params.throttle_max = 0.f;
+	run(60.f); // settle into the glide
+
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim + 2.f);
+	run(60.f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
+
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim - 2.f);
+	run(60.f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
 }
 
 // --- Airspeed setpoint change -------------------------------------------------
@@ -601,4 +659,83 @@ TEST_F(TECSClosedLoopTest, AirspeedlessAltitudeStepDown)
 	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_AIRSPEEDLESS_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 	EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+}
+
+// --- Underspeed and power-limited flight -------------------------------------------
+//
+// These use a plant with speed dependent drag: power required is lowest at the speed of minimum power and rises
+// towards slower (induced drag) and faster (parasitic drag) airspeeds. Below the speed of minimum power the vehicle
+// is on the back side of the power curve, where slowing down needs more power.
+
+static constexpr float V_MIN_POWER = 12.f; // between FW_AIRSPD_MIN and FW_AIRSPD_TRIM [m/s]
+
+// Lowest airspeed of the run, tracked independently of the setpoint
+class TECSClosedLoopUnderspeedTest : public TECSClosedLoopTest
+{
+protected:
+	float runTrackingMinAirspeed(float duration)
+	{
+		float V_min = _state.V;
+		const float t_end = _t + duration;
+
+		while (_t < t_end) {
+			run(DT);
+			V_min = math::min(V_min, _state.V);
+		}
+
+		return V_min;
+	}
+
+	// Airspeed at which underspeed handling starts (see _detectUnderspeed())
+	float underspeedStart() const { return (_params.tas_stall + 2.f * _params.tas_min) / 3.f; }
+};
+
+// Starting deep in underspeed, the vehicle recovers to its airspeed setpoint without losing more airspeed and with
+// little altitude loss.
+TEST_F(TECSClosedLoopUnderspeedTest, RecoversFromUnderspeed)
+{
+	_plant.v_min_power = V_MIN_POWER;
+	_state.V = 7.5f;
+
+	const float V_min = runTrackingMinAirspeed(3.f);
+	EXPECT_GE(V_min, 7.5f - 0.2f);
+	EXPECT_GT(_state.V, _params.tas_min) << "not out of underspeed after 3 s";
+
+	run(57.f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+	EXPECT_LT(_sim_stats.max_altitude_error, 2.f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
+}
+
+// The vehicle climbs much worse than FW_T_CLMB_MAX says (heavy, hot and high). The throttle model then believes
+// the climb is funded long before the throttle saturates, and the climb must not be paid with airspeed.
+TEST_F(TECSClosedLoopUnderspeedTest, ClimbBeyondThrustHoldsAirspeed)
+{
+	_plant.v_min_power = V_MIN_POWER;
+	_plant.climb_power_scale = 0.2f; // about 1 m/s climb at full throttle instead of 5 m/s
+	run(30.f);
+
+	setAltitudeSetpoint(ALT_INIT + 50.f);
+	const float V_min = runTrackingMinAirspeed(200.f);
+
+	EXPECT_GE(V_min, _params.tas_min);
+	EXPECT_NEAR(_state.h, _alt_sp, 1.f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.5f);
+}
+
+// As above, but flying at minimum airspeed, on the back side of the power curve: the climb must not push the
+// vehicle into underspeed.
+TEST_F(TECSClosedLoopUnderspeedTest, ClimbBeyondThrustAtMinimumAirspeedAvoidsUnderspeed)
+{
+	_plant.v_min_power = V_MIN_POWER;
+	_plant.climb_power_scale = 0.2f;
+	setAirspeedSetpoint(_params.tas_min);
+	run(60.f);
+
+	setAltitudeSetpoint(ALT_INIT + 50.f);
+	const float V_min = runTrackingMinAirspeed(200.f);
+
+	EXPECT_GE(V_min, underspeedStart());
+	EXPECT_NEAR(_state.h, _alt_sp, 1.f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.5f);
 }

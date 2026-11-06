@@ -224,16 +224,21 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 	const SpecificEnergyRates specific_energy_rate{_updateOuterLoops(altitude_loop_setpoint, input, limit, param, flag)};
 
-	ControlValues seb_rate{_calcPitchControlSebRateValues(altitude_loop_setpoint, input, limit, specific_energy_rate, param,
-			       flag)};
-
-	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate,
-			  specific_energy_rate.spe_rate.setpoint + specific_energy_rate.ske_rate.setpoint, param);
-
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rate, param)};
 	_ste_rate_error_filter.reset(_getControlError(ste_rate));
 
 	_throttle_setpoint = _calcThrottleControlOutput(limit, ste_rate, param, flag);
+
+	// The pitch budget starts from the measured total energy rate
+	_ste_rate_estimate_filter.reset(ste_rate.estimate);
+	_ste_rate_model_error_filter.reset(ste_rate.estimate - _steRateModel(_throttle_setpoint, limit, param));
+	_throttle_shortfall_filter.reset(0.f);
+
+	const PitchControlValues pitch_values{_calcPitchControlSebRateValues(altitude_loop_setpoint, input, limit,
+					      specific_energy_rate, param, flag)};
+	const ControlValues &seb_rate{pitch_values.seb_rate};
+
+	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, pitch_values.ste_rate, param);
 
 	// Debug output
 	_debug_output.total_energy_rate_estimate = ste_rate.estimate;
@@ -375,11 +380,21 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
 				    const SpecificEnergyRates &specific_energy_rates, const Param &param, const Flag &flag)
 {
-	ControlValues seb_rate{_calcPitchControlSebRateValues(setpoint, input, limit, specific_energy_rates, param, flag)};
+	// The pitch's budget when the throttle does not deliver its setpoint: the slowly filtered measured total energy
+	// rate, lowered at once by the throttle model when the throttle is reduced (see kSteRateBudgetTimeConst). Uses the
+	// last throttle output, the pitch runs before the throttle.
+	const float ste_rate_estimate = specific_energy_rates.spe_rate.estimate + specific_energy_rates.ske_rate.estimate;
+	_ste_rate_estimate_filter.setParameters(dt, kSteRateBudgetTimeConst);
+	_ste_rate_estimate_filter.update(ste_rate_estimate);
+	_ste_rate_model_error_filter.setParameters(dt, kSteRateBudgetTimeConst);
+	_ste_rate_model_error_filter.update(ste_rate_estimate - _steRateModel(_throttle_setpoint, limit, param));
+
+	const PitchControlValues pitch_values{_calcPitchControlSebRateValues(setpoint, input, limit, specific_energy_rates,
+					      param, flag)};
+	const ControlValues &seb_rate{pitch_values.seb_rate};
 
 	_calcPitchControlUpdate(dt, input, seb_rate, param);
-	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate,
-				   specific_energy_rates.spe_rate.setpoint + specific_energy_rates.ske_rate.setpoint, param)};
+	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, pitch_values.ste_rate, param)};
 
 	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
 	// NOTE: at zero airspeed, the pitch increment is unbounded
@@ -394,31 +409,89 @@ void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const In
 	_debug_output.pitch_integrator = _pitch_integ_state;
 }
 
-TECSControl::ControlValues TECSControl::_calcPitchControlSebRateValues(const Setpoint &setpoint, const Input &input,
-		const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates, const Param &param, const Flag &flag)
+TECSControl::PitchControlValues TECSControl::_calcPitchControlSebRateValues(const Setpoint &setpoint,
+		const Input &input, const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates, const Param &param,
+		const Flag &flag)
 {
+	const float ste_rate_setpoint = specific_energy_rates.spe_rate.setpoint + specific_energy_rates.ske_rate.setpoint;
+
+	PitchControlValues pitch_values;
+
+	const KineticPriority kinetic_priority{_calcKineticPriority(param, flag)};
+
 	// Trading altitude for airspeed with the pitch is only wanted up to trim airspeed, above it accelerating is
 	// left to the throttle. The pitch's kinetic error therefore uses the airspeed setpoint capped at
-	// max(trim, current airspeed). Between trim and the setpoint the pitch holds altitude.
-	// TODO: underspeed, fast descend and gliding used to fade this cap out and drop the altitude demand (speed
-	// weight 2). Both need a rule for the throttle not delivering its setpoint.
+	// max(trim, current airspeed). Between trim and the setpoint the pitch holds altitude; if the throttle saturates
+	// there, the vehicle settles at a lower airspeed instead of below the altitude setpoint.
+	// When the throttle is overridden or has no authority (fast descend, underspeed, no throttle), the pitch is the
+	// only way to reach the airspeed setpoint, and the cap is faded out.
 	Setpoint pitch_setpoint{setpoint};
-	pitch_setpoint.tas_setpoint = min(setpoint.tas_setpoint, max(param.tas_trim, input.tas));
+	const float tas_setpoint_capped = min(setpoint.tas_setpoint, max(param.tas_trim, input.tas));
+	pitch_setpoint.tas_setpoint = lerp(tas_setpoint_capped, setpoint.tas_setpoint, kinetic_priority.forced);
 	const SpecificEnergyRates pitch_rates{_calcEnergyModeRates(pitch_setpoint, input, limit, param, flag)};
 
-	// The pitch flies the potential energy rate of its pair. With the throttle delivering the total energy rate
-	// of the throttle's pair, the kinetic energy rate is the remainder, and the balance rate setpoint is the
-	// balance of that pair. Without the cap the pairs are equal and this is STE rate sp - 2 SKE rate sp.
-	const float ste_rate_setpoint = specific_energy_rates.spe_rate.setpoint + specific_energy_rates.ske_rate.setpoint;
-	const float spe_rate_pitch = pitch_rates.spe_rate.setpoint;
+	// Kinetic priority: the throttle realises the total energy rate, the pitch splits it into potential and kinetic.
+	// The pitch relies on its total energy rate setpoint while the throttle delivers it. When it does not, the pitch
+	// takes the total energy rate the throttle delivers as its budget and gives the kinetic demand priority:
+	// altitude gets what remains. In full priority the balance rate error becomes 2 (SKE rate - SKE rate sp) on
+	// average, the pitch flies airspeed; the fast part of the measured rate stays in the feedback as damping.
+	// The budget errs on the side of airspeed: the modelled rate of the commanded throttle may only lower it below
+	// the measured rate.
+	const float ste_rate_budget = min(_ste_rate_estimate_filter.getState(),
+					  _steRateModel(_throttle_setpoint, limit, param) + _ste_rate_model_error_filter.getState());
+	const float ste_rate_pitch = lerp(ste_rate_setpoint, ste_rate_budget, kinetic_priority.total);
+	const float spe_rate_pitch = lerp(pitch_rates.spe_rate.setpoint, ste_rate_pitch - pitch_rates.ske_rate.setpoint,
+					  kinetic_priority.total);
+
+	// The pitch flies the potential energy rate of its pair; the kinetic energy rate is the remainder of the total
+	// energy rate it relies on, and the balance rate setpoint is the balance of that pair. Without the cap and
+	// without kinetic priority the pairs are equal and this is STE rate sp - 2 SKE rate sp.
+	pitch_values.seb_rate.setpoint = spe_rate_pitch - (ste_rate_pitch - spe_rate_pitch);
+	pitch_values.ste_rate = ste_rate_pitch;
 
 	// Without airspeed the pitch loop knows nothing about the kinetic energy and controls altitude only
-	ControlValues seb_rate;
-	seb_rate.setpoint = spe_rate_pitch - (ste_rate_setpoint - spe_rate_pitch);
-	seb_rate.estimate = specific_energy_rates.spe_rate.estimate
-			    - (flag.airspeed_enabled ? specific_energy_rates.ske_rate.estimate : 0.f);
+	pitch_values.seb_rate.estimate = specific_energy_rates.spe_rate.estimate
+					 - (flag.airspeed_enabled ? specific_energy_rates.ske_rate.estimate : 0.f);
 
-	return seb_rate;
+	return pitch_values;
+}
+
+float TECSControl::_steRateModel(float throttle, const STERateLimit &limit, const Param &param)
+{
+	if (throttle <= param.throttle_min + FLT_EPSILON) {
+		return limit.STE_rate_min;
+	}
+
+	if (throttle >= param.throttle_max - FLT_EPSILON) {
+		return limit.STE_rate_max;
+	}
+
+	const float throttle_trim = constrain(param.throttle_trim, param.throttle_min, param.throttle_max);
+
+	if (throttle >= throttle_trim) {
+		return (throttle - throttle_trim) / (param.throttle_max - throttle_trim) * limit.STE_rate_max;
+	}
+
+	return (throttle_trim - throttle) / (throttle_trim - param.throttle_min) * limit.STE_rate_min;
+}
+
+TECSControl::KineticPriority TECSControl::_calcKineticPriority(const Param &param, const Flag &flag) const
+{
+	KineticPriority kinetic_priority{0.f, 0.f};
+
+	// Without airspeed there is no kinetic demand to give priority to
+	if (!flag.airspeed_enabled) {
+		return kinetic_priority;
+	}
+
+	// The throttle is overridden (fast descend, underspeed) or cannot move at all (gliders)
+	const bool no_throttle_range = param.throttle_max - param.throttle_min < FLT_EPSILON;
+	kinetic_priority.forced = no_throttle_range ? 1.f : constrain(max(param.fast_descend, _ratio_undersped), 0.f, 1.f);
+
+	// Or it does not deliver its energy rate setpoint, e.g. climbing at full throttle
+	kinetic_priority.total = max(kinetic_priority.forced, constrain(_throttle_shortfall_filter.getState(), 0.f, 1.f));
+
+	return kinetic_priority;
 }
 
 void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate,
@@ -518,6 +591,18 @@ void TECSControl::_calcThrottleControl(float dt, const STERateLimit &limit,
 	// the error rather than the estimate keeps a setpoint change from appearing as a lagged phantom error.
 	_ste_rate_error_filter.setParameters(dt, param.ste_rate_time_const);
 	_ste_rate_error_filter.update(_getControlError(ste_rate));
+
+	// The throttle does not deliver its energy rate setpoint when it is held at a limit (it sits there and its energy
+	// rate error pushes it further in), or when the energy rate error is large although it is not, as with a throttle
+	// model that overestimates the climb performance. The pitch then gives the kinetic demand priority (see
+	// _calcKineticPriority()). Uses the last throttle output, the pitch runs before the throttle.
+	const float ste_rate_error = _ste_rate_error_filter.getState();
+	const bool held_at_max = (_throttle_setpoint >= param.throttle_max - FLT_EPSILON) && (ste_rate_error > 0.f);
+	const bool held_at_min = (_throttle_setpoint <= param.throttle_min + FLT_EPSILON) && (ste_rate_error < 0.f);
+	const float shortfall = interpolate(fabsf(ste_rate_error) * _steRateToThrottle(limit), kThrottleShortfallStart,
+					    kThrottleShortfallFull, 0.f, 1.f);
+	_throttle_shortfall_filter.setParameters(dt, kThrottleShortfallTimeConst);
+	_throttle_shortfall_filter.update((held_at_max || held_at_min) ? 1.f : shortfall);
 
 	// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
 	float throttle_setpoint{param.throttle_min};

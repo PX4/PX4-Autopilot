@@ -196,6 +196,10 @@ With an airspeed setpoint above trim, what the pitch loop does therefore depends
 
 With an airspeed setpoint at or below trim there is no middle region, and pitch and throttle share speed control.
 
+When the throttle cannot deliver the demanded total energy rate, the pitch gives airspeed priority: it takes the energy rate the vehicle actually gains or loses, uses what the airspeed needs and leaves the rest to altitude.
+This is the case when the throttle is held at [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX) or [FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN), during underspeed recovery and fast descend, and without throttle range ([FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN) equal to [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX)), as for gliders and gliding waypoints.
+In the last three cases the trim limit above is lifted as well, so pitch alone tracks the full airspeed setpoint.
+
 ## Fixed-Wing Attitude Controller
 
 ### Setpoint modificaiton
