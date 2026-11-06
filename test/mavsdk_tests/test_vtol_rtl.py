@@ -46,7 +46,8 @@ def test_return_direct_mission_land(tester_rtl: AutopilotTesterRtl) -> None:
 @pytest.mark.vtol
 def test_return_direct_mission_land_without_land_start(tester_rtl: AutopilotTesterRtl) -> None:
     tester = tester_rtl
-    # No DO_LAND_START: Return starts at the landing item, and climbs to it from below the return altitude.
+    # No DO_LAND_START: Return starts at the landing item,
+    # and climbs to it from below the return altitude.
     prepare(tester, MISSION)
     tester.set_rtl_type(1)
     tester.arm()
