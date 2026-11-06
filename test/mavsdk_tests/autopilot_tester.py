@@ -53,6 +53,7 @@ MAV_MISSION_TYPE_MISSION = 0
 MAV_COMP_ID_AUTOPILOT1 = 1
 MAVLINK_MSG_ID_HOME_POSITION = 242
 MAV_RESULT_ACCEPTED = 0
+MAV_RESULT_TEMPORARILY_REJECTED = 1
 MAV_RESULT_IN_PROGRESS = 5
 
 # Like MAVSDK's command sender, but in host time with a longer timeout for sanitizer builds.
@@ -940,10 +941,18 @@ class AutopilotTester:
     # Manual control
     # ------------------------------------------------------------------
 
+    def send_manual_control_input(self, x: float, y: float, z: float, r: float) -> None:
+        """Send one MANUAL_CONTROL input sample.
+
+        Values are normalized to the MAVLink manual-control range. Callers that need to keep the
+        manual-control source valid should send samples continuously with _send_manual_control().
+        """
+        self._manual_control.set_manual_control_input(x, y, z, r)
+
     def _send_manual_control(self, duration_s: float, x: float, y: float, z: float, r: float,
                              stop_when_landed: bool = False) -> None:
         for _ in range(int(duration_s * MANUAL_CONTROL_RATE_HZ)):
-            self._manual_control.set_manual_control_input(x, y, z, r)
+            self.send_manual_control_input(x, y, z, r)
             self.sleep_for(1.0 / MANUAL_CONTROL_RATE_HZ)
             if stop_when_landed and not self._telemetry.in_air():
                 return

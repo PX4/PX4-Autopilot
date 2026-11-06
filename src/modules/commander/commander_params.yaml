@@ -745,6 +745,19 @@ parameters:
         5: Land
       default: 3
       increment: 1
+    COM_MAN_THR_MIN:
+      description:
+        short: Minimum throttle for direct manual takeover
+        long: >-
+          In flight, requests to Manual, Acro, Stabilized or Manual Parking are rejected when the manual control input is unavailable or below this value, unless the current mode already uses direct manual thrust. Only used for multicopters and VTOLs in hover mode. Set to -1 to disable.
+      type: float
+      default: -1.0
+      unit: norm
+      min: -1
+      max: 1
+      decimal: 2
+      increment: 0.05
+      reboot_required: false
     COM_ARMABLE:
       description:
         short: Flag to allow arming
