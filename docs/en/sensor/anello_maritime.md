@@ -52,6 +52,7 @@ Reconfiguring streams after an INS restart does not compensate for navigation di
 The driver is included in these configurations:
 
 - `cubepilot_cubeorangeplus_default`
+- `ark_fmu-v6x_default`
 - `px4_fmu-v6x_default`
 - `px4_sitl_default`
 
@@ -60,10 +61,10 @@ Other boards can enable `CONFIG_DRIVERS_INS_ANELLO=y` with MAVLink support.
 ## Cube Orange Plus Setup
 
 Use TELEM1 at 921600 baud.
-TELEM1 maps to `/dev/ttyS0` on Cube Orange Plus; on FMUv6X it maps to `/dev/ttyS6`.
+TELEM1 maps to `/dev/ttyS0` on Cube Orange Plus; on ARKV6X and FMUv6X it maps to `/dev/ttyS6`.
 Check electrical levels against the INS interface documentation before connecting the UART.
 
-This checkout sets the following Cube Orange Plus firmware defaults for the requested ANELLO test setup.
+This checkout sets the following Cube Orange Plus and ARKV6X firmware defaults for the requested ANELLO test setup.
 Other board targets retain their existing estimator defaults.
 
 | Parameter | Firmware default |
@@ -94,7 +95,7 @@ For a staged monitor-to-primary bench test, explicitly apply the following setti
 2. Set `SENS_ANELLO_CFG=101` (TELEM1), `ANELLO_BAUD=921600`, and `ANELLO_MODE=0`.
 3. Reboot and inspect `anello status`, `listener external_ins_attitude`, `listener external_ins_local_position`, and `listener external_ins_global_position`.
 4. Configure `ANELLO_EPH`, `ANELLO_EPV`, and `ANELLO_EV` with validated conservative one-sigma bounds for horizontal position (m), vertical position (m), and velocity (m/s).
-   The generic parameter default `-1` keeps position and velocity invalid rather than claiming unknown accuracy is perfect; the Cube defaults above override it.
+   The generic parameter default `-1` keeps position and velocity invalid rather than claiming unknown accuracy is perfect; the Cube Orange Plus and ARKV6X defaults above override it.
    These fixed assumptions are not measured INS uncertainties and do not adapt to GNSS degradation.
 5. To select the INS as primary, set `ANELLO_MODE=1`, `EKF2_EN=0`, `ATT_EN=0` (if this parameter is present), and `SENS_IMU_MODE=1`, then reboot.
    Disable any other external estimator publisher.
