@@ -187,7 +187,44 @@ class MigrateParamFileTest(unittest.TestCase):
     def test_nav_acceptance_radius_listed_for_multicopter(self):
         _, _, log = migrate((1, 'NAV_ACC_RAD', '2.000000000000000000', 9))
         self.assertEqual(log, ['default: NAV_ACC_RAD 2 is a v1.17 default,'
-                               ' v1.18 uses 10 on multicopter'])
+                               ' v1.18 uses 10 on multicopter, except'
+                               ' airframes 4016, 4020 and 24001, which keep'
+                               ' 2'])
+
+    def test_multi_ekf_defaults_listed_for_skynode(self):
+        _, values, log = migrate((1, 'EKF2_MULTI_IMU', '3', 6),
+                                 (1, 'SENS_IMU_MODE', '0', 6))
+        self.assertEqual(values, {(1, 'EKF2_MULTI_IMU'): ('3', 6),
+                                  (1, 'SENS_IMU_MODE'): ('0', 6)})
+        self.assertEqual(log, ['default: EKF2_MULTI_IMU 3 is a v1.17 default,'
+                               ' v1.18 uses 0 on Skynode',
+                               'default: SENS_IMU_MODE 0 is a v1.17 default,'
+                               ' v1.18 uses 1 on Skynode'])
+
+    def test_imxrt_defaults_listed(self):
+        boards = 'on i.MX RT boards (fmu-v6xrt, mr-tropic, tropic-community)'
+        _, values, log = migrate((1, 'EKF2_MULTI_IMU', '0', 6),
+                                 (1, 'SENS_IMU_MODE', '1', 6),
+                                 (1, 'IMU_GYRO_FFT_EN', '0', 6),
+                                 (1, 'UAVCAN_ENABLE', '0', 6))
+        self.assertEqual(values, {(1, 'EKF2_MULTI_IMU'): ('0', 6),
+                                  (1, 'SENS_IMU_MODE'): ('1', 6),
+                                  (1, 'IMU_GYRO_FFT_EN'): ('0', 6),
+                                  (1, 'UAVCAN_ENABLE'): ('0', 6)})
+        self.assertEqual(log, [
+            f'default: EKF2_MULTI_IMU 0 is a v1.17 default, v1.18 uses 3'
+            f' {boards}',
+            f'default: SENS_IMU_MODE 1 is a v1.17 default, v1.18 uses 0'
+            f' {boards}',
+            f'default: IMU_GYRO_FFT_EN 0 is a v1.17 default, v1.18 uses 1'
+            f' {boards}',
+            f'default: UAVCAN_ENABLE 0 is a v1.17 default, v1.18 uses 2'
+            f' {boards}'])
+
+    def test_board_default_set_by_hand_not_listed(self):
+        _, _, log = migrate((1, 'EKF2_MULTI_IMU', '2', 6),
+                            (1, 'UAVCAN_ENABLE', '3', 6))
+        self.assertEqual(log, [])
 
     def test_other_lines_copied_and_listed(self):
         log = []

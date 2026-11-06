@@ -173,14 +173,30 @@ DEFAULT_CHANGES = {
     'VT_PITCH_MIN': (-5.0, 0.0),
     # set by the v1.18 fixed-wing defaults, still 2.5 for other vehicles
     'EKF2_REQ_PDOP': (2.5, 4.0),
-    # set by the v1.17 multicopter defaults, no longer in v1.18 (boats keep 2)
+    # set by the v1.17 multicopter defaults, no longer in v1.18 (boats and
+    # airframes 4016, 4020 and 24001 keep 2)
     'NAV_ACC_RAD': (2.0, 10.0),
 }
 
-# Defaults that v1.18 changed for one vehicle type only
+# Defaults that v1.18 changed for some vehicles only
 DEFAULT_CHANGE_SCOPES = {
     'EKF2_REQ_PDOP': 'on fixed-wing',
-    'NAV_ACC_RAD': 'on multicopter',
+    'NAV_ACC_RAD': ('on multicopter, except airframes 4016, 4020 and 24001,'
+                    ' which keep 2'),
+}
+
+_SKYNODE = 'on Skynode'
+_IMXRT = 'on i.MX RT boards (fmu-v6xrt, mr-tropic, tropic-community)'
+
+# Defaults that the v1.18 board or chip defaults changed on some boards:
+# name: [(v1.17 default, v1.18 default, scope)]
+BOARD_DEFAULT_CHANGES = {
+    # Skynode (fmu-v5x) runs a single EKF in v1.18 instead of the three of
+    # the STM32F7 defaults. The i.MX RT defaults now match fmu-v6x.
+    'EKF2_MULTI_IMU': [(3, 0, _SKYNODE), (0, 3, _IMXRT)],
+    'SENS_IMU_MODE': [(0, 1, _SKYNODE), (1, 0, _IMXRT)],
+    'IMU_GYRO_FFT_EN': [(0, 1, _IMXRT)],
+    'UAVCAN_ENABLE': [(0, 2, _IMXRT)],
 }
 
 # RoboClaw outputs: 0 to 256 with stop at 128 in v1.17, 0 to 254 with stop
@@ -258,6 +274,10 @@ def log_old_default(name, value, log):
             log(f'default: {name} {show(value)} is a v1.17 default,'
                 f' v1.18 uses {show(new)}'
                 + (f' {scope}' if scope else ''))
+    for old, new, scope in BOARD_DEFAULT_CHANGES.get(name, []):
+        if value == float32(old):
+            log(f'default: {name} {show(value)} is a v1.17 default,'
+                f' v1.18 uses {show(new)} {scope}')
 
 
 def migrate(lines, log):
