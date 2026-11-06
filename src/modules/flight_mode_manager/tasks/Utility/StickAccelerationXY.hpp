@@ -69,6 +69,9 @@ public:
 	void setVelocityConstraint(float vel);
 	float getVelocityConstraint() { return _velocity_slew_rate_xy.getState(); };
 
+	// Resets in every loop like the constraint, but only lowers the speed the stick commands, not its acceleration
+	void setVelocityLimit(float vel);
+
 private:
 	CollisionPrevention _collision_prevention{this};
 
@@ -76,6 +79,7 @@ private:
 	matrix::Vector2f calculateDrag(matrix::Vector2f drag_coefficient, const float dt, const matrix::Vector2f &stick_xy,
 				       const matrix::Vector2f &vel_sp);
 	void applyTiltLimit(matrix::Vector2f &acceleration);
+	void applyVelocityLimit(const float velocity_limit);
 	void lockPosition(const matrix::Vector3f &pos, const matrix::Vector2f &vel_sp_feedback, const float dt);
 
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
@@ -92,6 +96,7 @@ private:
 	matrix::Vector2f _acceleration_setpoint_prev;
 
 	float _velocity_constraint{INFINITY};
+	float _velocity_limit{INFINITY};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
