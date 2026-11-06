@@ -531,6 +531,13 @@ MissionBlock::reset_mission_item_reached()
 }
 
 void
+MissionBlock::send_front_transition_skipped()
+{
+	events::send(events::ID("navigator_front_transition_skipped"), events::Log::Warning,
+		     "Front transition skipped after quad-chute, continuing in multicopter mode");
+}
+
+void
 MissionBlock::issue_command(const mission_item_s &item)
 {
 	if (mission_item_contains_position(item)
@@ -541,8 +548,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 	if (item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION && int(item.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
 	    && _navigator->front_transition_inhibited()) {
-		events::send(events::ID("navigator_front_transition_skipped"), events::Log::Warning,
-			     "Front transition skipped after quad-chute, continuing in multicopter mode");
+		send_front_transition_skipped();
 		return;
 	}
 

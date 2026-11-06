@@ -412,6 +412,10 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 	     || (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF && _navigator->front_transition_inhibited()))
 	    && _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB) {
 
+		if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+			send_front_transition_skipped();
+		}
+
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
 		_mission_item.yaw = NAN;

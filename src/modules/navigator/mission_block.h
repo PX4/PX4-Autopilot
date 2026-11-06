@@ -218,6 +218,8 @@ protected:
 	 */
 	void issue_command(const mission_item_s &item);
 
+	static void send_front_transition_skipped();
+
 	/**
 	 * [s] Get the time to stay that's specified in the mission item
 	 */
