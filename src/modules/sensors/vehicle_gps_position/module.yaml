@@ -106,7 +106,7 @@ parameters:
                 10: GNSS fix type (GNSS_REQ_FIX)
                 11: Jamming
                 12: Position/velocity consistency (GNSS_REQ_POSVEL)
-            default: 2047
+            default: 6143
             min: 0
             max: 8191
 
@@ -183,11 +183,11 @@ parameters:
         GNSS_REQ_POSVEL:
             description:
                 short: Maximum position/velocity inconsistency to use GNSS
-                long: The rate of change of the reported position, minus the reported velocity, filtered over 1 s.
+                long: 'The rate of change of the reported position, minus the reported velocity, filtered over 1 s.'
             type: float
-            default: 0.5
+            default: 2.0
             min: 0.1
-            max: 5.0
+            max: 20.0
             unit: m/s
             decimal: 2
 

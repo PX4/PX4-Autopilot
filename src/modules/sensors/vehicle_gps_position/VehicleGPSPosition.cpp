@@ -63,6 +63,7 @@ static gnssChecksSample toChecksSample(const sensor_gnss_s &gnss)
 	sample.lon = gnss.longitude;
 	sample.alt = static_cast<float>(gnss.altitude_msl);
 	sample.vel = matrix::Vector3f(gnss.vel_north, gnss.vel_east, gnss.vel_down);
+	sample.vel_valid = gnss.vel_ned_valid;
 	sample.hacc = gnss.eph;
 	sample.vacc = gnss.epv;
 	sample.sacc = gnss.speed_accuracy;

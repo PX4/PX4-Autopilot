@@ -45,6 +45,7 @@ struct gnssChecksSample {
 	double lon{};           ///< longitude (deg)
 	float alt{};            ///< altitude above MSL (m)
 	matrix::Vector3f vel{}; ///< NED velocity (m/s)
+	bool vel_valid{};       ///< the receiver reports the NED velocity as valid
 	float hacc{};           ///< 1-std horizontal position error (m)
 	float vacc{};           ///< 1-std vertical position error (m)
 	float sacc{};           ///< 1-std speed error (m/s)
@@ -59,7 +60,7 @@ class GnssChecks final
 {
 public:
 	struct Params {
-		int32_t check_mask{2047};
+		int32_t check_mask{6143};
 		int32_t req_nsats{6};
 		float req_pdop{2.5f};
 		float req_eph{3.f};
@@ -67,7 +68,7 @@ public:
 		float req_sacc{0.5f};
 		float req_hdrift{0.1f};
 		float req_vdrift{0.2f};
-		float req_posvel{0.5f};
+		float req_posvel{2.f};
 		int32_t req_fix{3};
 		uint64_t min_health_time_us{10'000'000};
 	};
@@ -164,6 +165,7 @@ private:
 	float _vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
 
 	matrix::Vector3f _vel_prev{};
+	bool _vel_prev_valid{false};
 	uint8_t _fix_type_prev{0};
 	matrix::Vector3f _pos_vel_inconsistency_filt{}; ///< position change rate minus the mean velocity, NED, filtered (m/s)
 	uint64_t _time_last_fail_us{0};

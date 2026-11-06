@@ -515,6 +515,20 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 					    events::ID("check_estimator_gps_jammed"),
 					    log_level, "GPS signal jammed");
 
+	} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_POSVEL)) {
+		message = "Preflight%s: GPS position inconsistent with velocity";
+		/* EVENT
+		 * @description
+		 * The change of the reported position does not match the reported velocity, as with multipath.
+		 *
+		 * <profile name="dev">
+		 * Can be configured with <param>GNSS_REQ_POSVEL</param>, <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(required_modes, health_component_t::gps,
+					    events::ID("check_estimator_gps_posvel"),
+					    log_level, "GPS position inconsistent with velocity");
+
 	} else if (!gnss_fused) {
 		// Likely cause unknown
 		message = "Preflight%s: Estimator not using GPS";
