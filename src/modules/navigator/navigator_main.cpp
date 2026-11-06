@@ -366,6 +366,12 @@ void Navigator::run()
 		_takeoff_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
+		vtol_vehicle_status_s vtol_vehicle_status{};
+
+		if (_vtol_vehicle_status_sub.update(&vtol_vehicle_status)) {
+			_front_transition_inhibited = vtol_vehicle_status.fixed_wing_system_failure;
+		}
+
 		// Handle Vehicle commands
 		int vehicle_command_updates = 0;
 
@@ -1569,12 +1575,6 @@ bool Navigator::force_vtol()
 	return _vstatus.is_vtol &&
 	       (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || _vstatus.in_transition_to_fw)
 	       && _param_nav_force_vt.get();
-}
-
-bool Navigator::front_transition_inhibited()
-{
-	vtol_vehicle_status_s vtol_vehicle_status;
-	return _vtol_vehicle_status_sub.copy(&vtol_vehicle_status) && vtol_vehicle_status.fixed_wing_system_failure;
 }
 
 int Navigator::custom_command(int argc, char *argv[])

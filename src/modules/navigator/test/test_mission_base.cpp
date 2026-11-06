@@ -209,6 +209,7 @@ class MissionBaseTestNavigator : public Navigator
 {
 public:
 	using Navigator::updateParams;
+	void setFrontTransitionInhibited(bool inhibited) { _front_transition_inhibited = inhibited; }
 };
 
 class MissionBaseFeasibilityTest : public NavigatorDatamanTestBase
@@ -675,24 +676,15 @@ protected:
 		_navigator.get_local_position()->heading = 0.f;
 		_navigator.get_local_position()->heading_good_for_control = true;
 
-		publishQuadchute(GetParam());
+		_navigator.setFrontTransitionInhibited(GetParam());
 		transitionCommanded(); // drop commands of earlier tests
 	}
 
 	void TearDown() override
 	{
-		publishQuadchute(false);
 		_navigator.get_land_detected()->landed = true;
 		_land_detected_pub.publish(*_navigator.get_land_detected());
 		MissionBaseFeasibilityTest::TearDown();
-	}
-
-	void publishQuadchute(bool quadchute)
-	{
-		vtol_vehicle_status_s vtol_vehicle_status{};
-		vtol_vehicle_status.timestamp = hrt_absolute_time();
-		vtol_vehicle_status.fixed_wing_system_failure = quadchute;
-		_vtol_vehicle_status_pub.publish(vtol_vehicle_status);
 	}
 
 	static mission_item_s waypointNorth(float north_m)
@@ -735,7 +727,6 @@ protected:
 
 	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
-	uORB::Publication<vtol_vehicle_status_s> _vtol_vehicle_status_pub{ORB_ID(vtol_vehicle_status)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 };
 
@@ -757,7 +748,7 @@ TEST_P(QuadchuteFrontTransitionTest, MissionSkipsFrontTransitionItem)
 	EXPECT_EQ(transitionCommanded(), !GetParam());
 
 	if (!GetParam()) {
-		publishQuadchute(true); // during the commanded transition
+		_navigator.setFrontTransitionInhibited(true); // during the commanded transition
 		mission.run(true);
 	}
 

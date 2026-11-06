@@ -345,7 +345,7 @@ public:
 	 * After a quadchute the next front transition would likely fail too, so navigator does not command one.
 	 * The quadchute stays latched until a front transition is commanded (e.g. by the pilot) or the vehicle reboots.
 	 */
-	bool front_transition_inhibited();
+	bool front_transition_inhibited() const { return _front_transition_inhibited; }
 
 	void acquire_gimbal_control();
 	void release_gimbal_control();
@@ -372,6 +372,7 @@ public:
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
 private:
+	friend class MissionBaseTestNavigator;
 
 	orb_sub_t _local_pos_sub{ORB_SUB_INVALID};
 	orb_sub_t _mission_sub{ORB_SUB_INVALID};
@@ -412,6 +413,7 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
+	bool _front_transition_inhibited{false};
 
 	// Publications
 	geofence_result_s				_geofence_result{};
