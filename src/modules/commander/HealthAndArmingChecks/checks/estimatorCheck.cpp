@@ -519,7 +519,7 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		message = "Preflight%s: GPS position inconsistent with velocity";
 		/* EVENT
 		 * @description
-		 * The change of the reported position does not match the reported velocity, as with multipath.
+		 * The change of the reported horizontal position does not match the reported velocity, as with multipath.
 		 *
 		 * <profile name="dev">
 		 * Can be configured with <param>GNSS_REQ_POSVEL</param>, <param>GNSS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.

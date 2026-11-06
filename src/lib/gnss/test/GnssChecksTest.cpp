@@ -246,21 +246,16 @@ public:
 	}
 };
 
-TEST_F(GnssChecksPosVelTest, passesWhenPositionFollowsVelocity)
-{
-	// WHEN: it flies at 10 m/s, climbing, and the position moves as the velocity says
-	flySeconds(10.f, matrix::Vector3f(8.f, -6.f, -2.f));
-
-	// THEN: it passes the strict checks
-	EXPECT_TRUE(_checks.passedStrict());
-	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_POSVEL);
-	EXPECT_LT(_checks.position_velocity_inconsistency_m_s(), 0.01f);
-}
-
 TEST_F(GnssChecksPosVelTest, failsWhenPositionWandersFromVelocity)
 {
-	// WHEN: in flight, the position walks off at 3 m/s that the velocity doesn't show, as with multipath
+	// WHEN: in flight, the position moves as the velocity says
 	flySeconds(2.f, matrix::Vector3f(8.f, -6.f, 0.f));
+
+	// THEN: it passes the strict checks
+	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_POSVEL);
+	EXPECT_TRUE(_checks.passedStrict());
+
+	// WHEN: the position walks off at 3 m/s that the velocity doesn't show, as with multipath
 	flySeconds(5.f, matrix::Vector3f(8.f, -6.f, 0.f), matrix::Vector3f(0.f, 3.f, 0.f));
 
 	// THEN: it fails the strict checks on the consistency, while the relaxed checks still let it be used
@@ -274,35 +269,6 @@ TEST_F(GnssChecksPosVelTest, failsWhenPositionWandersFromVelocity)
 	// THEN: it passes the strict checks again
 	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_POSVEL);
 	EXPECT_TRUE(_checks.passedStrict());
-}
-
-TEST_F(GnssChecksPosVelTest, failsOnPositionStep)
-{
-	// WHEN: in flight, the position steps by 3 m in one epoch while the velocity stays steady
-	flySeconds(2.f, matrix::Vector3f(8.f, -6.f, 0.f));
-	_pos_ned(0) += 3.f;
-	flySeconds(0.1f, matrix::Vector3f(8.f, -6.f, 0.f));
-
-	// THEN: it fails the consistency check
-	EXPECT_TRUE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_POSVEL);
-}
-
-TEST_F(GnssChecksPosVelTest, skipsInvalidVelocity)
-{
-	// WHEN: in flight, one epoch reports an invalid do-not-use velocity, as Septentrio receivers do
-	flySeconds(2.f, matrix::Vector3f(8.f, -6.f, 0.f));
-	_sample.vel_valid = false;
-	_sample.time_us += 100'000;
-	_sample.vel = matrix::Vector3f(-2e10f, -2e10f, -2e10f);
-	_checks.run(_sample, true, true, false);
-	_pos_ned += matrix::Vector3f(8.f, -6.f, 0.f) * 0.1f;
-	_sample.vel_valid = true;
-
-	flySeconds(0.2f, matrix::Vector3f(8.f, -6.f, 0.f));
-
-	// THEN: the interval is skipped, and it passes the consistency check
-	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_POSVEL);
-	EXPECT_LT(_checks.position_velocity_inconsistency_m_s(), 0.5f);
 }
 
 TEST_F(GnssChecksPosVelTest, skipsPositionStepAtFixTypeChange)

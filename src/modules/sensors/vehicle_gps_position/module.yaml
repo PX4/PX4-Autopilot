@@ -105,7 +105,7 @@ parameters:
                 9: Spoofing
                 10: GNSS fix type (GNSS_REQ_FIX)
                 11: Jamming
-                12: Position/velocity consistency (GNSS_REQ_POSVEL)
+                12: Horizontal position/velocity consistency (GNSS_REQ_POSVEL)
             default: 6143
             min: 0
             max: 8191
@@ -182,8 +182,8 @@ parameters:
 
         GNSS_REQ_POSVEL:
             description:
-                short: Maximum position/velocity inconsistency to use GNSS
-                long: 'The rate of change of the reported position, minus the reported velocity, filtered over 1 s.'
+                short: Maximum horizontal position/velocity inconsistency to use GNSS
+                long: 'The rate of change of the reported horizontal position, minus the reported horizontal velocity, filtered over 1 s.'
             type: float
             default: 2.0
             min: 0.1

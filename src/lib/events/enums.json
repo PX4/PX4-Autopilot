@@ -399,7 +399,7 @@
                         },
                         "4096": {
                             "name": "posvel",
-                            "description": "Position inconsistent with velocity"
+                            "description": "Horizontal position inconsistent with velocity"
                         }
                     }
                 },

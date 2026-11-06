@@ -159,20 +159,21 @@ void GnssChecks::runPositionVelocityCheck(const gnssChecksSample &gnss)
 	// The position comes from the code (time of flight) and the velocity from the Doppler shift. Multipath and other
 	// degradation hit the two differently, so the position change stops matching the mean velocity over the interval.
 	const float dt = (int64_t(gnss.time_us) - int64_t(lat_lon_prev.getProjectionReferenceTimestamp())) * 1e-6f;
+	const matrix::Vector2f vel_ne(gnss.vel.xy());
 
 	// Skip the interval in which the fix type changed, or either velocity is invalid
 	if (lat_lon_prev.isInitialized() && (dt > 0.f) && (dt < 1.f) && (gnss.fix_type == _fix_type_prev)
 	    && gnss.vel_valid && _vel_prev_valid) {
-		matrix::Vector3f delta_pos{0.f, 0.f, _alt_prev - gnss.alt};
-		lat_lon_prev.project(gnss.lat, gnss.lon, delta_pos(0), delta_pos(1));
+		matrix::Vector2f delta_pos_ne{};
+		lat_lon_prev.project(gnss.lat, gnss.lon, delta_pos_ne(0), delta_pos_ne(1));
 
 		// Filtering the vector averages out noise, and leaves a position step as the step over the time constant
 		constexpr float filt_time_const = 1.f;
-		const matrix::Vector3f inconsistency = delta_pos / dt - (_vel_prev + gnss.vel) * 0.5f;
+		const matrix::Vector2f inconsistency = delta_pos_ne / dt - (_vel_ne_prev + vel_ne) * 0.5f;
 		_pos_vel_inconsistency_filt += (inconsistency - _pos_vel_inconsistency_filt) * (dt / filt_time_const);
 	}
 
-	_vel_prev = gnss.vel;
+	_vel_ne_prev = vel_ne;
 	_vel_prev_valid = gnss.vel_valid;
 	_fix_type_prev = gnss.fix_type;
 	setFail(_strict_fail_flags, vehicle_gnss_s::CHECK_POSVEL, position_velocity_inconsistency_m_s() > _params.req_posvel);
