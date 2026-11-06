@@ -26,7 +26,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 | `vio`             | `off`, `stuck`          | —                       | `off`                                | —                       |
 | `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
 | `traffic`         | `off`                   | `off`                   | `off`                                | `off`                   |
-| `motor`           | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
+| `motor`           | `off`, `wrong`          | `off`, `stuck`, `wrong` | `off`, `wrong`                       | `off`, `wrong`          |
 | `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
 | `can`             | —                       | —                       | —                                    | `off`                   |
 
@@ -40,7 +40,10 @@ A `—` means the module still accepts the command, but no consumer applies it i
 - `vio off | stuck` on Gazebo (Gz): applied to the external-vision odometry that the bridge publishes from the model's odometry topic (for example `x500_vision`); `stuck` keeps publishing the last good sample with fresh timestamps.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
-- `motor off` and `motor wrong` are the two motor failures, and both require [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE). `motor off` is the _detected_ failure: the motor is reported as failed, so the control allocator removes it from the allocation and handles the opposite motor per `CA_FAILURE_MODE`. Only a single failed motor can be recovered from, so an instance mask naming several motors has no effect. `motor wrong` is the _undetected_ failure: the output is stopped without informing the allocator, which models a failure with no feedback path (such as PWM ESCs), and any number of motors can be addressed.
+- `motor off` and `motor wrong` are the detected and undetected motor failures, and both require [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE). `motor off` is the _detected_ failure: the motor is reported as failed, so the control allocator removes it from the allocation and handles the opposite motor per `CA_FAILURE_MODE`. Only a single failed motor can be recovered from, so an instance mask naming several motors has no effect. `motor wrong` is the _undetected_ failure: the output is stopped without informing the allocator, which models a failure with no feedback path (such as PWM ESCs), and any number of motors can be addressed.
+- `motor stuck` (SIH only) models a stuck rotor with a healthy ESC: the motor is still commanded but produces no thrust, and the ESC stays online, reporting zero RPM.
+  Neither the failure detector nor the control allocator is informed; use it to test the [motor not spinning after arming](../config/safety.md#motor-not-spinning-after-arming) check.
+  Motors are addressed by motor instance, so `-i 1` targets motor 1.
 - `esc off` reports the addressed ESC as offline and blanks its telemetry; `esc wrong` keeps it online but reports implausible telemetry (voltage and current at 10% of the real value, RPM 10x). ESCs are addressed by motor instance (the ESC's actuator function), so `-i 1` targets the ESC driving motor 1.
 - On hardware, ESC injection is applied only by the UAVCAN (DroneCAN) ESC driver; the other ESC drivers (DShot, Cyphal, VOXL, TAP ESC) publish their telemetry unmodified.
 - `can off` takes the addressed CAN bus offline entirely, so every node on it stops responding; the instance selects the bus. Only applied on fmu-v6x-class hardware.
@@ -97,7 +100,8 @@ where:
 - _failure_type_:
   - `ok`: Publish as normal (Disable failure injection)
   - `off`: Stop publishing
-  - `stuck`: Constantly report the same value which _can_ happen on a malfunctioning sensor
+  - `stuck`: Constantly report the same value, which _can_ happen on a malfunctioning sensor.
+    For `motor` (SIH only), `stuck` stops the rotor while its ESC keeps reporting zero RPM.
   - `garbage`: Publish random noise. This looks like reading uninitialized memory
   - `wrong`: Publish invalid values that still look reasonable/aren't "garbage". For an actuator such as `motor` there is nothing to publish, so `wrong` means the motor stops without anything reporting it
   - `slow`: Publish at a reduced rate
@@ -122,7 +126,10 @@ A failure can also be injected from an RC switch, without a console or telemetry
 - [SYS_FAIL_RC_MODE](../advanced_config/parameter_reference.md#SYS_FAIL_RC_MODE): the failure type (the `FAILURE_TYPE` value; e.g. `1` = off).
 - [SYS_FAIL_RC_INST](../advanced_config/parameter_reference.md#SYS_FAIL_RC_INST): the affected instances, as a bitmask (bit 0 = instance 1, e.g. `5` = instances 1 and 3; `0` = all instances).
 
-While the selected aux switch is on the configured failure is injected; switching it back off clears the failure. The injection goes through the same path as the console/MAVLink commands, so for a motor it fails the motor exactly as `failure motor off` (`SYS_FAIL_RC_MODE` = `1`) or `failure motor wrong` (`SYS_FAIL_RC_MODE` = `4`) does, with the same [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) requirement. A `SYS_FAIL_RC_INST` mask addressing several motors only takes effect for `wrong`, the undetected failure.
+While the selected aux switch is on, the configured failure is injected; switching it back off clears the failure.
+The injection goes through the same path as the console/MAVLink commands, so for a motor it fails the motor exactly as `failure motor off` (`SYS_FAIL_RC_MODE` = `1`) or `failure motor wrong` (`SYS_FAIL_RC_MODE` = `4`) does, with the same [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) requirement.
+A `SYS_FAIL_RC_INST` mask addressing several motors only takes effect for `wrong`, the undetected failure.
+In SIH, `SYS_FAIL_RC_MODE` = `2` injects `motor stuck`, which does not need `CA_FAILURE_MODE`.
 
 ## MAVSDK Failure Plugin
 

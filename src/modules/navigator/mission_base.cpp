@@ -217,7 +217,9 @@ MissionBase::on_activation()
 
 	bool resume_mission_on_previous = false;
 
-	if (_inactivation_index > 0 && cameraWasTriggering()) {
+	// The Return types share this activation but have no images to protect
+	if (_inactivation_index > 0 && cameraWasTriggering()
+	    && getNavigatorStateId() == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 		size_t num_found_items{0U};
 		getPreviousPositionItems(_inactivation_index, &resume_index, num_found_items, 1U);
 

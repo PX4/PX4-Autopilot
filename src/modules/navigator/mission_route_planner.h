@@ -50,6 +50,7 @@
 namespace mission_route
 {
 class Provider;
+class PathChecker;
 }
 
 class MissionRoutePlanner
@@ -58,12 +59,14 @@ public:
 	/**
 	 * @brief Construct a planner over one read-only data provider.
 	 *
-	 * The provider must outlive the planner.
+	 * The provider and optional path checker must outlive the planner.
+	 * Callers supply path restrictions through the checker; geometry-only callers may omit it.
 	 *
-	 * Planning calls use shared fixed-memory scratch and must run serially on the Navigator task.
+	 * Planning calls reuse a shared scratch buffer and must not run at the same time.
 	 * Jump targets may include non-position commands before their waypoint. Jump chains are not supported.
 	 */
-	explicit MissionRoutePlanner(const mission_route::Provider &provider);
+	explicit MissionRoutePlanner(const mission_route::Provider &provider,
+				     const mission_route::PathChecker *path_checker = nullptr);
 	MissionRoutePlanner(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner &operator=(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner(MissionRoutePlanner &&) = delete;
@@ -78,4 +81,5 @@ public:
 
 private:
 	const mission_route::Provider &_provider;
+	const mission_route::PathChecker *_path_checker;
 };

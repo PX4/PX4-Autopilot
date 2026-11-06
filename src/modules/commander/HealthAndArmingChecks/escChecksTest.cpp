@@ -33,6 +33,9 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cmath>
+
 #include "checks/escCheck.hpp"
 
 #include <drivers/drv_hrt.h>
@@ -60,7 +63,8 @@ public:
 		const int32_t one = 1;
 		param_set_no_notification(param_find("COM_ARM_CHK_ESCS"), &one);
 		param_set_no_notification(param_find("FD_ACT_EN"), &one);
-
+		const float spoolup = 1.f;
+		param_set_no_notification(param_find("COM_SPOOLUP_TIME"), &spoolup);
 		const float trigger_time = 0.2f; // keeps the motor failure tests short
 		param_set_no_notification(param_find("MOTFAIL_UND_TIME"), &trigger_time);
 	}
@@ -69,6 +73,7 @@ public:
 	{
 		param_reset(param_find("COM_ARM_CHK_ESCS"));
 		param_reset(param_find("FD_ACT_EN"));
+		param_reset(param_find("COM_SPOOLUP_TIME"));
 		param_reset(param_find("MOTFAIL_UND_TIME"));
 	}
 
@@ -140,6 +145,55 @@ public:
 		_check.checkAndReport(context, reporter);
 
 		_can_arm = reporter.armingCheckResults().can_arm == NavModes::All;
+		_health_error_escs = reporter.healthResults().error & health_component_t::motors_escs;
+	}
+
+	// Publish a quad ESC status with the given RPM per motor and the stuck fault on `stuck_index`, plus the motor commands
+	void publishSpinup(std::array<int32_t, 4> rpm, std::array<float, 4> command, int stuck_index = -1,
+			   hrt_abstime motors_age = 0)
+	{
+		esc_status_s esc_status{};
+		esc_status.timestamp = hrt_absolute_time();
+		esc_status.esc_count = 4;
+		esc_status.esc_online_flags = 0b1111;
+		esc_status.esc_armed_flags = 0b1111;
+
+		for (int i = 0; i < 4; i++) {
+			esc_status.esc[i].timestamp = esc_status.timestamp;
+			esc_status.esc[i].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + i;
+			esc_status.esc[i].esc_rpm = rpm[i];
+
+			if (i == stuck_index) {
+				esc_status.esc[i].failures = 1u << esc_report_s::FAILURE_MOTOR_STUCK;
+			}
+		}
+
+		actuator_motors_s motors{};
+		motors.timestamp = hrt_absolute_time() - motors_age;
+
+		for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
+			motors.control[i] = i < 4 ? command[i] : NAN;
+		}
+
+		_actuator_motors_pub.publish(motors);
+		_esc_status_pub.publish(esc_status);
+	}
+
+	void runSpinupCheck(hrt_abstime armed_time, uint8_t vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
+			    hrt_abstime takeoff_time = 0)
+	{
+		vehicle_status_s status{};
+		status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
+		status.armed_time = armed_time;
+		status.takeoff_time = takeoff_time;
+		status.vehicle_type = vehicle_type;
+
+		_check.updateParams();
+		Context context{status};
+		_failsafe_flags = {};
+		Report reporter{_failsafe_flags, 0};
+		_check.checkAndReport(context, reporter);
+
 		_health_error_escs = reporter.healthResults().error & health_component_t::motors_escs;
 	}
 
@@ -217,6 +271,149 @@ TEST_F(EscChecksTest, EscOfflineIgnoredWithChecksDisabled)
 	EXPECT_FALSE(_health_error_escs);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
 	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+}
+
+static const std::array<float, 4> kIdle{0.f, 0.f, 0.f, 0.f};
+static const std::array<int32_t, 4> kSpinning{2000, 2000, 2000, 2000};
+
+TEST(EscChecksNotSpinningMask, DetectsZeroRpmAndStuckFault)
+{
+	esc_status_s esc_status{};
+	actuator_motors_s motors{};
+
+	for (int i = 0; i < 4; i++) {
+		esc_status.esc[i].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + i;
+		esc_status.esc[i].esc_rpm = 1000;
+		motors.control[i] = 0.f;
+	}
+
+	EXPECT_EQ(EscChecks::motorsNotSpinningMask(esc_status, motors), 0u);
+
+	esc_status.esc[1].esc_rpm = 0;
+	EXPECT_EQ(EscChecks::motorsNotSpinningMask(esc_status, motors), 0b0010u);
+
+	esc_status.esc[3].failures = 1u << esc_report_s::FAILURE_MOTOR_STUCK; // stuck fault, even with RPM reported
+	EXPECT_EQ(EscChecks::motorsNotSpinningMask(esc_status, motors), 0b1010u);
+
+	esc_status.esc[2].failures = 1u << esc_report_s::FAILURE_OVER_CURRENT; // other faults are not this check's business
+	EXPECT_EQ(EscChecks::motorsNotSpinningMask(esc_status, motors), 0b1010u);
+}
+
+TEST(EscChecksNotSpinningMask, IgnoresStoppedAndUnmappedMotors)
+{
+	esc_status_s esc_status{};
+	actuator_motors_s motors{};
+
+	for (int i = 0; i < 4; i++) {
+		esc_status.esc[i].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + i;
+		esc_status.esc[i].esc_rpm = 0;
+		motors.control[i] = 0.f;
+	}
+
+	motors.control[0] = NAN; // motor turned off
+	esc_status.esc[3].actuator_function = 0; // unmapped
+	EXPECT_EQ(EscChecks::motorsNotSpinningMask(esc_status, motors), 0b0110u);
+}
+
+TEST(EscChecksNotSpinningMask, IndexesByActuatorFunctionNotEscPosition)
+{
+	esc_status_s esc_status{};
+	actuator_motors_s motors{};
+
+	for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
+		motors.control[i] = NAN;
+	}
+
+	motors.control[2] = 0.f; // only Motor3 runs
+	esc_status.esc[0].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 2; // reported at position 0
+	esc_status.esc[0].esc_rpm = 0;
+	esc_status.esc[1].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
+	esc_status.esc[1].esc_rpm = 0; // Motor1 is stopped
+	EXPECT_EQ(EscChecks::motorsNotSpinningMask(esc_status, motors), 0b0100u);
+}
+
+// The checks are run with a chosen time since arming, 0.5-0.8 x COM_SPOOLUP_TIME (1 s) is the window before the decision
+static constexpr hrt_abstime kBeforeDecision = 700_ms;
+static constexpr hrt_abstime kAtDecision = 850_ms;
+
+TEST_F(EscChecksTest, SpinupHealthyMotorsPass)
+{
+	publishSpinup(kSpinning, kIdle);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+}
+
+// A motor with no RPM, or the stuck fault, fails at the decision time and not before
+TEST_F(EscChecksTest, SpinupStuckMotorFailsAtDecisionTime)
+{
+	publishSpinup({2000, 0, 2000, 2000}, kIdle);
+	runSpinupCheck(hrt_absolute_time() - kBeforeDecision);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_TRUE(_health_error_escs);
+
+	runSpinupCheck(hrt_absolute_time() - 100_ms); // outside the window, forgets which motors were seen spinning
+	publishSpinup(kSpinning, kIdle, 2); // stuck fault with RPM reported
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
+}
+
+// A motor seen spinning while the window was open is not failed, even if it reads zero at the decision
+TEST_F(EscChecksTest, SpinupMotorSeenSpinningIsNotFailed)
+{
+	publishSpinup(kSpinning, kIdle);
+	runSpinupCheck(hrt_absolute_time() - 550_ms);
+	publishSpinup({2000, 0, 2000, 2000}, kIdle);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+}
+
+// Nothing is evaluated during the grace period or after the spool-up time
+TEST_F(EscChecksTest, SpinupOnlyEvaluatedInsideSpoolupWindow)
+{
+	publishSpinup({0, 0, 0, 0}, kIdle);
+	runSpinupCheck(hrt_absolute_time() - 100_ms);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	runSpinupCheck(hrt_absolute_time() - 1100_ms);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+}
+
+// Each of these would fail at the decision time, if it were not for the condition under test
+TEST_F(EscChecksTest, SpinupNotEvaluatedWhenGateNotMet)
+{
+	publishSpinup({0, 0, 0, 0}, kIdle);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, hrt_absolute_time()); // took off
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+
+	publishSpinup({0, 0, 0, 0}, {NAN, NAN, NAN, NAN}); // motors not supposed to spin
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+
+	publishSpinup({0, 0, 0, 0}, kIdle, -1, EscChecks::ESC_OFFLINE_TIMEOUT_US + 100_ms); // stale motor commands
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+
+	publishSpinup({0, 0, 0, 0}, kIdle);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	ASSERT_TRUE(_failsafe_flags.fd_motor_stuck_failure); // fails once none of the above applies
+
+	const int32_t zero = 0;
+	param_set_no_notification(param_find("COM_ARM_CHK_ESCS"), &zero);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+}
+
+// The check must not depend on FD_ACT_EN
+TEST_F(EscChecksTest, SpinupIndependentOfActuatorFailureCheck)
+{
+	const int32_t zero = 0;
+	param_set_no_notification(param_find("FD_ACT_EN"), &zero);
+	publishSpinup({0, 2000, 2000, 2000}, kIdle);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
 }
 
 // A motor whose current collapses while commanded is flagged once it stays under the band for the
