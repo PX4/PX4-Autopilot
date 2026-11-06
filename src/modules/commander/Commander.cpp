@@ -2278,10 +2278,14 @@ void Commander::checkForMissionUpdate()
 								&& _user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE, ModeChangeSource::ModeExecutor);
 
 				if (!continue_on_course) {
-					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
-					if (!_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true)) {
-						printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					if (!_health_and_arming_checks.canRun(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+						mavlink_log_critical(&_mavlink_log_pub, "Takeoff complete, Hold not available (no global position)\t");
+						events::send(events::ID("commander_takeoff_hold_unavailable"), {events::Log::Critical, events::LogInternal::Info},
+							     "Takeoff complete, but Hold is not available without a global position estimate");
 					}
+
+					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
+					!_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
 				}
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
