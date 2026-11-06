@@ -37,3 +37,8 @@ jobs:
 
     - name: Check MAVSDK test scripts with flake8
       run: flake8 test/mavsdk_tests/*.py
+
+    - name: Check parameter file migration
+      run: |
+        flake8 Tools/migrate_param_file.py Tools/test_migrate_param_file.py
+        python3 -m unittest discover -s Tools -p 'test_migrate_param_file.py' -v
