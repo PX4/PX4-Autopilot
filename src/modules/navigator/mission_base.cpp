@@ -44,7 +44,6 @@
 #include "mission_item_utils.h"
 #include "px4_platform_common/defines.h"
 
-#include "mission_feasibility_checker.h"
 #include "navigator.h"
 
 MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed, uint8_t navigator_state_id) :
@@ -846,8 +845,7 @@ MissionBase::check_mission_valid(bool forced)
 		result.geofence_id = _mission.geofence_id;
 		result.home_position_counter = _navigator->get_home_position()->update_count;
 
-		MissionFeasibilityChecker missionFeasibilityChecker(_navigator, _dataman_client);
-		result.valid = missionFeasibilityChecker.checkMissionFeasible(_mission);
+		result.valid = _mission_feasibility_checker.checkMissionFeasible(_mission);
 		result.seq_total = _mission.count;
 		result.seq_reached = -1;
 		result.failure = false;

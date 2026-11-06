@@ -201,16 +201,19 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
-			// Could skip this local copy and pass e.g. a reference to geofence into addPolygon, so it could access directly
-			matrix::Vector2f local_in[info.vertex_count];
+			if (info.vertex_count > DM_KEY_FENCE_POINTS_MAX) {
+				_status = Status::BudgetExceeded;
+				perf_cancel(_update_polygons_perf);
+				return false;
+			}
 
 			for (int vertex_idx = 0; vertex_idx < info.vertex_count; vertex_idx++) {
-				local_in[vertex_idx] = get_vertex_local_position(poly_index, vertex_idx, geofence, _reference);
+				_vertices_in[vertex_idx] = get_vertex_local_position(poly_index, vertex_idx, geofence, _reference);
 			}
 
 			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 
-			add_result = _polygons.addPolygon(local_in, info.vertex_count, is_inclusion, margin);
+			add_result = _polygons.addPolygon(_vertices_in, info.vertex_count, is_inclusion, margin);
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 
