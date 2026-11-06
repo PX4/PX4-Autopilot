@@ -1,4 +1,5 @@
 import pytest
+from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import plan_file
 from autopilot_tester_rtl import AutopilotTesterRtl
@@ -40,6 +41,63 @@ def test_return_direct_mission_land(tester_rtl: AutopilotTesterRtl) -> None:
     tester.arm()
     tester.execute_rtl_when_reaching_mission_sequence(2)
     tester.wait_until_disarmed(150)
+    tester.check_mission_land_within(5.0)
+
+
+@pytest.mark.vtol
+def test_return_goes_home_when_the_mission_is_cleared(tester_rtl: AutopilotTesterRtl) -> None:
+    tester = tester_rtl
+    prepare(tester, MISSION_WITH_LAND_START)
+    tester.set_rtl_type(1)
+    tester.arm()
+    tester.execute_rtl_when_reaching_mission_sequence(2)
+    tester.wait_for_flight_mode(FlightMode.RETURN_TO_LAUNCH, 10)
+    tester.clear_mission_raw()
+    tester.wait_until_disarmed(240)
+    tester.check_home_within(5.0)
+
+
+@pytest.mark.vtol
+def test_return_goes_home_when_a_new_mission_is_rejected(tester_rtl: AutopilotTesterRtl) -> None:
+    tester = tester_rtl
+    prepare(tester, MISSION_WITH_LAND_START)
+    tester.set_rtl_type(1)
+    tester.arm()
+    tester.execute_rtl_when_reaching_mission_sequence(2)
+    tester.wait_for_flight_mode(FlightMode.RETURN_TO_LAUNCH, 10)
+    # A mission needs a landing here, and this one has none.
+    tester.set_takeoff_land_requirements(2)
+    tester.load_qgc_mission_raw_and_move_here(MISSION_WITHOUT_LANDING)
+    tester.wait_until_disarmed(240)
+    tester.check_home_within(5.0)
+
+
+@pytest.mark.vtol
+def test_return_goes_home_when_a_geofence_excludes_the_landing(
+        tester_rtl: AutopilotTesterRtl) -> None:
+    tester = tester_rtl
+    prepare(tester, MISSION_WITH_LAND_START)
+    tester.set_rtl_type(1)
+    tester.arm()
+    tester.execute_rtl_when_reaching_mission_sequence(2)
+    tester.wait_for_flight_mode(FlightMode.RETURN_TO_LAUNCH, 10)
+    tester.upload_geofence_around_mission_landing(60.0)
+    tester.wait_until_disarmed(240)
+    tester.check_home_within(5.0)
+
+
+@pytest.mark.vtol
+def test_return_uses_the_landing_of_a_new_mission(tester_rtl: AutopilotTesterRtl) -> None:
+    tester = tester_rtl
+    prepare(tester, MISSION_WITH_LAND_START)
+    tester.set_rtl_type(1)
+    tester.arm()
+    tester.execute_rtl_when_reaching_mission_sequence(2)
+    tester.wait_for_flight_mode(FlightMode.RETURN_TO_LAUNCH, 10)
+    tester.load_qgc_mission_raw_and_move_here(MISSION_WITH_LAND_START)
+    # It goes to the landing of the new mission, not along the mission from its first item.
+    tester.check_mission_item_not_flown(2)
+    tester.wait_until_disarmed(240)
     tester.check_mission_land_within(5.0)
 
 

@@ -108,6 +108,7 @@ private:
 	 */
 	bool hasMissionLandStart() const;
 	bool hasValidMission() const;
+	bool isMissionChecked() const;
 
 	/**
 	 * @brief Check whether there are more waypoints between current waypoint
@@ -170,6 +171,7 @@ private:
 	loiter_point_s selectLandingApproach(const PositionYawSetpoint &destination) const;
 
 	hrt_abstime _destination_check_time{0};
+	hrt_abstime _mission_change_time{0}; ///< When the mission of an active Return changed or stopped being valid, until Return has planned again.
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
 	RtlType _rtl_type{RtlType::RTL_DIRECT};

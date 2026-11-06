@@ -146,6 +146,8 @@ void RTL::publishRemainingTimeEstimate()
 
 void RTL::on_activation()
 {
+	_mission_change_time = 0;
+
 	_global_pos_sub.update();
 	_vehicle_status_sub.update();
 	_mission_sub.update();
@@ -206,9 +208,40 @@ void RTL::on_active()
 {
 	_global_pos_sub.update();
 	_vehicle_status_sub.update();
+
+	const uint32_t mission_id = _mission_sub.get().mission_id;
+	const uint8_t mission_dataman_id = _mission_sub.get().mission_dataman_id;
 	_mission_sub.update();
+
 	_home_pos_sub.update();
 	_wind_sub.update();
+
+	if (_rtl_type != RtlType::RTL_DIRECT) {
+		// Every mission upload or clear changes one of these. The executor must not take the new mission for its own:
+		// it would fly it from its first item, or loiter until the battery is empty if the mission is not valid.
+		const bool mission_replaced = (_mission_sub.get().mission_id != mission_id)
+					      || (_mission_sub.get().mission_dataman_id != mission_dataman_id);
+
+		// The same mission can stop being valid too, for example when a new geofence excludes its landing.
+		const bool mission_rejected = isMissionChecked() && !_navigator->get_mission_result()->valid;
+
+		if (mission_replaced || (mission_rejected && (_mission_change_time == 0))) {
+			_mission_change_time = hrt_absolute_time();
+		}
+	}
+
+	if (_mission_change_time != 0) {
+		// Plan as if Return was selected again, once the mission's check and landing item are there.
+		const bool mission_pending = !isMissionChecked()
+					     || _navigator->get_mission_route_cache().missionLandItemUpdatePending();
+
+		if (!mission_pending || (hrt_elapsed_time(&_mission_change_time) >= RTL_REPLAN_INTERVAL)) {
+			on_inactivation();
+			on_activation();
+		}
+
+		return;
+	}
 
 	switch (_rtl_type) {
 	case RtlType::RTL_MISSION_FAST:
@@ -765,10 +798,14 @@ bool RTL::hasMissionLandStart() const
 
 bool RTL::hasValidMission() const
 {
+	return _navigator->get_mission_result()->valid && isMissionChecked();
+}
+
+bool RTL::isMissionChecked() const
+{
 	// Home is not compared: Mission rechecks with the Home set at arming, and in flight a Home update keeps the verdict.
 	const mission_result_s &mission_result = *_navigator->get_mission_result();
-	return mission_result.valid
-	       && mission_result.mission_id == _mission_sub.get().mission_id
+	return mission_result.mission_id == _mission_sub.get().mission_id
 	       && mission_result.geofence_id == _mission_sub.get().geofence_id;
 }
 

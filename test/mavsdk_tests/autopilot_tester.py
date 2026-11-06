@@ -664,6 +664,17 @@ class AutopilotTester:
             "Distance to mission landing {:.2f} m, expected < {} m".format(
                 distance_m, acceptance_radius_m)
 
+    def check_mission_item_not_flown(self, item_index: int) -> None:
+        """Fail the test if raw mission item item_index becomes the current item."""
+        def check(velocity: Any, _user_data: Any) -> None:
+            current = self._mission_raw.mission_progress().current
+            self.check_in_callback(
+                current != item_index,
+                "Mission item {} was flown".format(item_index))
+
+        self._telemetry.set_rate_velocity_ned(10)
+        self._telemetry.subscribe_velocity_ned(check)
+
     def check_mission_item_speed_above(self, item_index: int, min_speed_m_s: float) -> None:
         """Fail the test if the horizontal speed is not above min_speed_m_s while flying to
         mission item item_index."""
@@ -682,6 +693,9 @@ class AutopilotTester:
     # ------------------------------------------------------------------
     # Raw missions
     # ------------------------------------------------------------------
+
+    def clear_mission_raw(self) -> None:
+        self._mission_raw.clear_mission()
 
     def upload_mission_raw(self, items: List[Any]) -> None:
         self._mission_raw.upload_mission(items)

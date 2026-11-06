@@ -15,6 +15,7 @@ from geometry import CoordinateTransformation
 
 MAV_CMD_NAV_LOITER_TO_ALT = 31
 MAV_CMD_NAV_RALLY_POINT = 5100
+MAV_MISSION_TYPE_FENCE = 1
 MAV_MISSION_TYPE_RALLY = 2
 
 MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION = 5001
@@ -177,6 +178,14 @@ class AutopilotTesterRtl(AutopilotTester):
     # ------------------------------------------------------------------
     # Geofence
     # ------------------------------------------------------------------
+
+    def upload_geofence_around_mission_landing(self, radius_m: float) -> None:
+        """Exclude a circle around the landing of the uploaded mission, which invalidates it."""
+        land_item = self._mission_raw.download_mission()[-1]
+        self._mission_raw.upload_geofence([raw_mission_item(
+            0, MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION, MAV_FRAME_GLOBAL_RELATIVE_ALT,
+            x=land_item.x, y=land_item.y, param1=radius_m, current=1, autocontinue=0,
+            mission_type=MAV_MISSION_TYPE_FENCE)])
 
     def load_qgc_mission_and_geofence_here(self, plan_file: str) -> None:
         """Upload the mission and geofence of a QGC .plan, both shifted by the same offset so

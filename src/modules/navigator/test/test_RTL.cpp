@@ -2406,6 +2406,187 @@ TEST_F(RTLTest, QuickReturnReentryFollowsTheMissionFromTheClosestItem)
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 }
 
+// WHY: an active Return on the mission took a new mission for its own, and flew it from its first item.
+// WHAT: it plans again as if it was selected again, here to the landing of the new mission.
+TEST_F(RTLTest, ActiveReturnPlansAgainForANewMission)
+{
+	const auto waypoint_at = [](float north_m) {
+		return makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, north_m, 0.f, kAlt);
+	};
+	const auto make_mission = [&](uint32_t mission_id, dm_item_t slot, float waypoint_north_m, float land_north_m) {
+		const PositionYawSetpoint waypoint = waypoint_at(waypoint_north_m);
+		const PositionYawSetpoint land = waypoint_at(land_north_m);
+		mission_item_s land_start{};
+		land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+		land_start.autocontinue = true;
+		writeMissionToDataman(slot, {
+			makeSafePointItem(waypoint.lat, waypoint.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
+			land_start,
+			makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND)
+		});
+		mission_s mission = makeMissionHeader(mission_id, 0, 3);
+		mission.mission_dataman_id = slot;
+		mission.land_start_index = 1;
+		mission.land_index = 2;
+		return mission;
+	};
+
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	// The landing starts a cycle after its DO_LAND_START.
+	const auto run_return_past_land_start = [&] {
+		_rtl.run(true);
+		_rtl.run(true);
+	};
+
+	// GIVEN: a Return on its way to the mission landing
+	const mission_s first = make_mission(7, DM_KEY_WAYPOINTS_OFFBOARD_0, 1000.f, 2000.f);
+	publishMission(first);
+	setMissionResultValid(first);
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, first, [&] { return cache.missionLandItemReady(); }));
+	_rtl.activateReturnTypeForTest(1);
+	run_return_past_land_start();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	ASSERT_NEAR(current.lat, waypoint_at(2000.f).lat, 1e-7);
+
+	// WHEN: another mission is uploaded, and its landing item is still loading
+	const mission_s second = make_mission(8, DM_KEY_WAYPOINTS_OFFBOARD_1, -1000.f, -2000.f);
+	publishMission(second);
+	setMissionResultValid(second);
+	cache.update(second);
+	ASSERT_TRUE(cache.missionLandItemUpdatePending());
+	_rtl.run(true);
+
+	// THEN: Return waits for it, on its way
+	EXPECT_NEAR(current.lat, waypoint_at(2000.f).lat, 1e-7);
+
+	// WHEN: it has loaded
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, second, [&] { return cache.missionLandItemReady(); }));
+	run_return_past_land_start();
+
+	// THEN: Return flies to the landing of the new mission, not to its first item
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	EXPECT_NEAR(current.lat, waypoint_at(-2000.f).lat, 1e-7);
+
+	// WHEN: only the current item of that mission changes, which is no new mission
+	mission_s new_current_item = second;
+	new_current_item.current_seq = 0;
+	publishMission(new_current_item);
+	_rtl.run(true);
+
+	// THEN: Return does not plan again, and flies to that item
+	EXPECT_NEAR(current.lat, waypoint_at(-1000.f).lat, 1e-7);
+
+	// WHEN: a new geofence is checked, and leaves that mission valid
+	mission_s new_geofence = new_current_item;
+	new_geofence.geofence_id = 9;
+	publishMission(new_geofence);
+	_rtl.run(true);
+	setMissionResultValid(new_geofence);
+	_rtl.run(true);
+
+	// THEN: Return does not plan again either
+	EXPECT_NEAR(current.lat, waypoint_at(-1000.f).lat, 1e-7);
+
+	// the dataman is shared by every case in this binary, so leave the mission slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
+}
+
+// WHY: an active Return on the mission whose mission was cleared or stopped being valid loitered until the battery was empty,
+// and selecting Return again changed nothing.
+// WHAT: it flies directly home, for every type that follows the mission.
+TEST_F(RTLTest, ActiveReturnGoesHomeWithoutAValidMission)
+{
+	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 2000.f, 0.f, kAlt);
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {land_start, makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND)});
+	mission_s mission = makeMissionHeader(7, 0, 2);
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.land_start_index = 0;
+	mission.land_index = 1;
+
+	// A cleared mission has no items. A rejected one has, here the same in another dataman slot.
+	const mission_s cleared = makeMissionHeader(0, 0, 0);
+	mission_s rejected = mission;
+	rejected.mission_id = 8;
+	rejected.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_1, {land_start, makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND)});
+
+	const struct {
+		int32_t rtl_type;
+		RTL::RtlType executor;
+	} cases[] {
+		{1, RTL::RtlType::RTL_DIRECT_MISSION_LAND},
+		{2, RTL::RtlType::RTL_MISSION_FAST},
+		{4, RTL::RtlType::RTL_MISSION_FAST_REVERSE},
+	};
+
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	MissionRouteCache &cache = _navigator.get_mission_route_cache();
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	// The same mission can be rejected as well, by the check against a new geofence.
+	mission_s fenced = mission;
+	fenced.geofence_id = 9;
+
+	const mission_s *const invalid_missions[] {&cleared, &rejected, &fenced};
+
+	for (const auto &c : cases) {
+		for (const mission_s *invalid : invalid_missions) {
+			SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << c.rtl_type << " mission " << invalid->mission_id
+				     << " geofence " << invalid->geofence_id);
+			int32_t rtl_type = c.rtl_type;
+			ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
+			_rtl.updateParamsForTest();
+
+			// GIVEN: a Return following the mission
+			publishMission(mission);
+			setMissionResultValid(mission);
+			ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, mission, [&] { return cache.missionLandItemReady(); }));
+			_rtl.run(false);
+			_rtl.run(true);
+			ASSERT_EQ(_rtl.rtlTypeForTest(), c.executor);
+			ASSERT_FALSE(_rtl.directActiveForTest());
+
+			// WHEN: the mission or geofence is replaced by one the check does not accept
+			publishMission(*invalid);
+			_navigator.get_mission_result()->mission_id = invalid->mission_id;
+			_navigator.get_mission_result()->geofence_id = invalid->geofence_id;
+			_navigator.get_mission_result()->valid = false;
+			cache.update(*invalid);
+			_rtl.run(true);
+
+			if (cache.missionLandItemUpdatePending()) {
+				ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, *invalid, [&] { return cache.missionLandItemReady(); }));
+				_rtl.run(true);
+			}
+
+			// THEN: Return flies directly home
+			EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+			EXPECT_TRUE(_rtl.directActiveForTest());
+			EXPECT_TRUE(current.valid);
+			EXPECT_NEAR(current.lat, kBaseLat, 1e-7);
+			EXPECT_NEAR(current.lon, kBaseLon, 1e-7);
+			_rtl.run(false);
+		}
+	}
+
+	// the dataman is shared by every case in this binary, so leave the mission slots as they were found
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
+}
+
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 // WHY: rtl_status.has_vtol_approach tells the mission check whether Return can land a VTOL on an approach.
 // WHAT: a Return type that does not look for approaches reports none, whatever an earlier type found.
