@@ -159,7 +159,6 @@ public:
 	// Current cursor position (0-indexed).
 	int getPathCursor() const { return _path_cursor; }
 
-	// Uses shared scratch storage; calls across planner instances must not overlap.
 	void updateGraphFromGeofence(GeofenceInterface &geofence, float margin = 10.0f);
 
 	void updateDestination(const matrix::Vector2d &destination);
