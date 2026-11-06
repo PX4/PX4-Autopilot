@@ -96,6 +96,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 VtolAttitudeControl::~VtolAttitudeControl()
 {
+	delete _vtol_type;
 	perf_free(_loop_perf);
 }
 
@@ -134,11 +135,7 @@ void VtolAttitudeControl::action_request_poll()
 			case action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING:
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 				_immediate_transition = false;
-
-				// reset fixed_wing_system_failure flag when a new transition to FW is triggered
-				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-					_vtol_vehicle_status.fixed_wing_system_failure = false;
-				}
+				_quadchute_reason = QuadchuteReason::None; // a new transition to FW ends the quad-chute
 
 				break;
 			}
@@ -171,9 +168,8 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 				_transition_command = transition_command_param1;
 				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? static_cast<int>(lround(vehicle_command.param2)) : false;
 
-				// reset fixed_wing_system_failure flag when a new transition to FW is triggered
 				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-					_vtol_vehicle_status.fixed_wing_system_failure = false;
+					_quadchute_reason = QuadchuteReason::None; // a new transition to FW ends the quad-chute
 				}
 			}
 
@@ -195,7 +191,8 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 void
 VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
-	if (!_vtol_vehicle_status.fixed_wing_system_failure) {
+	// a detected quad-chute can replace a commanded one
+	if (!is_fixed_wing_system_failure()) {
 		// only publish generic warning through mavlink to safe flash
 		mavlink_log_critical(&_mavlink_log_pub, "Quad-chute triggered\t");
 
@@ -240,7 +237,7 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 			return;
 		}
 
-		_vtol_vehicle_status.fixed_wing_system_failure = true;
+		_quadchute_reason = reason;
 	}
 }
 
@@ -400,6 +397,11 @@ VtolAttitudeControl::Run()
 		action_request_poll();
 		vehicle_cmd_poll();
 
+		// a commanded quad-chute ends on disarm, a detected one stays until the next front transition command
+		if (!_vehicle_control_mode.flag_armed && _quadchute_reason == QuadchuteReason::ExternalCommand) {
+			_quadchute_reason = QuadchuteReason::None;
+		}
+
 		vehicle_air_data_s air_data;
 
 		if (_vehicle_air_data_sub.update(&air_data)) {
@@ -470,6 +472,7 @@ VtolAttitudeControl::Run()
 		_vehicle_torque_setpoint1_pub.publish(_torque_setpoint_1);
 
 		// Advertise/publish vtol vehicle status -- immediately if changed, otherwise at 1 Hz
+		_vtol_vehicle_status.fixed_wing_system_failure = is_fixed_wing_system_failure();
 		const bool vtol_vehicle_status_changed =
 			(_vtol_vehicle_status.vehicle_vtol_state != _prev_published_vtol_vehicle_status.vehicle_vtol_state) ||
 			(_vtol_vehicle_status.fixed_wing_system_failure != _prev_published_vtol_vehicle_status.fixed_wing_system_failure);

@@ -380,6 +380,7 @@ If the failsafe is triggered, the vehicle will immediately switch to multicopter
 
 ::: info
 The quad-chute can also be triggered by sending a MAVLINK [MAV_CMD_DO_VTOL_TRANSITION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_VTOL_TRANSITION) message with `param2` set to `1`.
+As this is not caused by a failure, it only switches to multicopter mode, without executing [COM_QC_ACT](#COM_QC_ACT) or requiring a reboot before the next arming.
 :::
 
 The parameters that control when the quad-chute will trigger are listed in the table below.
