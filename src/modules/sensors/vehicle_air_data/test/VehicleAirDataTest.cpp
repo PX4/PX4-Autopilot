@@ -327,14 +327,14 @@ TEST_F(VehicleAirDataTest, GnssBaroCalibrationRestartsAfterFlight)
 	EXPECT_FLOAT_EQ(offset, 0.f);
 }
 
-TEST_F(VehicleAirDataTest, GnssBaroCalibrationRestartsAfterGnssHeightFusionStops)
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationSkippedWhenGnssDiffersFromBaro)
 {
-	// as above, with EKF2 dropping GNSS height on the ground instead of the vehicle taking off
-	const float offset = runGnssCalibration({
-		{30, 15., 0},
-		{50, 15., 0, false, false},
-		{5, 15., 0},
-	});
+	// with baro as the height reference, a steady GNSS altitude 100 m above the uncalibrated baro is outside
+	// SENS_BAR_AC_GATE, so the calibration is skipped and the baro keeps its offset
+	setParam("EKF2_HGT_REF", 0);
+	setParamFloat("SENS_BAR_AC_GATE", 50.f);
+
+	const float offset = runGnssCalibration({{60, 100., 0}});
 
 	EXPECT_FLOAT_EQ(offset, 0.f);
 }

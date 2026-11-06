@@ -97,6 +97,7 @@ private:
 	bool BaroGNSSAltitudeOffset();
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
+	static constexpr int32_t kHeightReferenceGnss = 1; // EKF2_HGT_REF GNSS
 
 	uORB::Publication<sensors_status_s> _sensors_status_baro_pub{ORB_ID(sensors_status_baro)};
 
@@ -146,6 +147,7 @@ private:
 
 	bool _relative_calibration_done{false};
 	bool _baro_gnss_calibration_done{false};
+	bool _gnss_height_reference{false}; // EKF2_HGT_REF set to GNSS
 	uint64_t _calibration_t_first{0};
 	AlphaFilter<float> _delta_baro_gnss_lpf{};
 	float _baro_gnss_offset_t1{NAN};
@@ -154,7 +156,8 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
 		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate,
-		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal
+		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal,
+		(ParamFloat<px4::params::SENS_BAR_AC_GATE>) _param_sens_bar_ac_gate
 	)
 };
 }; // namespace sensors
