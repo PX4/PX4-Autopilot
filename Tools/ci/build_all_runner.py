@@ -92,6 +92,15 @@ def build_dir_name(target):
     return target
 
 
+def build_dir_names(target):
+    """Every directory under build/ to collect for `make target`."""
+    names = {build_dir_name(target)}
+    if target.endswith('_deb'):
+        # Tools/packaging/build_package.py packages a descriptor board here
+        names.add(target[:-len('_deb')] + '_package')
+    return names
+
+
 def assign_slots(targets, slots):
     """Split targets into at most `slots` contiguous, count-balanced lists.
 
@@ -277,7 +286,7 @@ def build_slot(source, targets, slot, logs, width):
 
 def collect_build_dirs(root, source, targets):
     """Move a slot's build directories into the checkout's build/."""
-    for name in {build_dir_name(t) for t in targets}:
+    for name in {n for t in targets for n in build_dir_names(t)}:
         src = source / 'build' / name
         if not src.exists():
             continue

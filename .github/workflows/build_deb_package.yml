@@ -8,6 +8,7 @@ on:
       - 'cmake/package.cmake'
       - 'platforms/posix/CMakeLists.txt'
       - 'Tools/packaging/**'
+      - 'validation/package_schema.yaml'
       - 'Tools/ros2/ros2.repos'
       - 'Tools/setup/ubuntu.sh'
       - 'Tools/setup/requirements.txt'
@@ -37,6 +38,25 @@ permissions:
   packages: write
 
 jobs:
+
+  # ---------------------------------------------------------------------------
+  # Board packaging: descriptor rules and a .deb built from a synthetic tree
+  # ---------------------------------------------------------------------------
+  test-board-packaging:
+    name: Board Packaging Tests
+    runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Install Python dependencies
+        run: pip3 install pyyaml cerberus
+
+      - name: Test package descriptors and packaging project
+        working-directory: Tools/packaging
+        run: python3 -m unittest -v test_package_descriptor
 
   # ---------------------------------------------------------------------------
   # Setup: extract version and determine whether to push containers
