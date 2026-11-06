@@ -215,6 +215,7 @@ private:
 		(ParamFloat<px4::params::GNSS_REQ_SACC>) _param_gnss_req_sacc,
 		(ParamFloat<px4::params::GNSS_REQ_HDRIFT>) _param_gnss_req_hdrift,
 		(ParamFloat<px4::params::GNSS_REQ_VDRIFT>) _param_gnss_req_vdrift,
+		(ParamFloat<px4::params::GNSS_REQ_POSVEL>) _param_gnss_req_posvel,
 		(ParamInt<px4::params::GNSS_REQ_FIX>) _param_gnss_req_fix,
 		(ParamFloat<px4::params::GNSS_REQ_TIME>) _param_gnss_req_time
 	)

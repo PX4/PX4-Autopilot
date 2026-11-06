@@ -39,3 +39,4 @@ uint16 CHECK_VSPEED  = 256  # Vertical speed at rest too high
 uint16 CHECK_SPOOFED = 512  # Receiver reports spoofing
 uint16 CHECK_FIX     = 1024 # Fix type too low
 uint16 CHECK_JAMMED  = 2048 # Receiver reports jamming
+uint16 CHECK_POSVEL  = 4096 # Position change inconsistent with velocity

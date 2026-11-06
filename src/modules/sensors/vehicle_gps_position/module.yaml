@@ -105,9 +105,10 @@ parameters:
                 9: Spoofing
                 10: GNSS fix type (GNSS_REQ_FIX)
                 11: Jamming
+                12: Position/velocity consistency (GNSS_REQ_POSVEL)
             default: 2047
             min: 0
-            max: 4095
+            max: 8191
 
         GNSS_REQ_EPH:
             description:
@@ -178,6 +179,20 @@ parameters:
             max: 1.5
             decimal: 2
             unit: m/s
+
+        GNSS_REQ_POSVEL:
+            description:
+                short: Maximum position/velocity inconsistency to use GNSS
+                long: The rate of change of the reported position, minus the reported velocity, filtered over about 1 s.
+                    The position comes from the code and the velocity from the Doppler shift, which degrade differently,
+                    for example with multipath. A receiver that exceeds it no longer passes the strict checks, also in
+                    flight, so the selection prefers another receiver that passes them.
+            type: float
+            default: 0.5
+            min: 0.1
+            max: 5.0
+            unit: m/s
+            decimal: 2
 
         GNSS_REQ_FIX:
             description:

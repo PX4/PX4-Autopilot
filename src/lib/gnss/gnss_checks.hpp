@@ -67,6 +67,7 @@ public:
 		float req_sacc{0.5f};
 		float req_hdrift{0.1f};
 		float req_vdrift{0.2f};
+		float req_posvel{0.5f};
 		int32_t req_fix{3};
 		uint64_t min_health_time_us{10'000'000};
 	};
@@ -102,12 +103,14 @@ public:
 	float horizontal_position_drift_rate_m_s() const { return _horizontal_position_drift_rate_m_s; }
 	float vertical_position_drift_rate_m_s() const { return _vertical_position_drift_rate_m_s; }
 	float filtered_horizontal_velocity_m_s() const { return _filtered_horizontal_velocity_m_s; }
+	float position_velocity_inconsistency_m_s() const { return _pos_vel_inconsistency_filt.norm(); }
 
 private:
 	static constexpr uint16_t kAllChecks = vehicle_gnss_s::CHECK_NSATS | vehicle_gnss_s::CHECK_PDOP | vehicle_gnss_s::CHECK_EPH
 					       | vehicle_gnss_s::CHECK_EPV | vehicle_gnss_s::CHECK_SACC | vehicle_gnss_s::CHECK_HDRIFT
 					       | vehicle_gnss_s::CHECK_VDRIFT | vehicle_gnss_s::CHECK_HSPEED | vehicle_gnss_s::CHECK_VSPEED
-					       | vehicle_gnss_s::CHECK_SPOOFED | vehicle_gnss_s::CHECK_FIX | vehicle_gnss_s::CHECK_JAMMED;
+					       | vehicle_gnss_s::CHECK_SPOOFED | vehicle_gnss_s::CHECK_FIX | vehicle_gnss_s::CHECK_JAMMED
+					       | vehicle_gnss_s::CHECK_POSVEL;
 
 	// A receiver that has not passed for this long qualifies from scratch again, as after a failure. 7 s is the
 	// outage after which the EKF stops using GNSS, and after which it used to reset these checks.
@@ -119,6 +122,7 @@ private:
 		_time_last_pass_us = 0;
 		_time_last_fail_us = 0;
 		resetDriftFilters();
+		_pos_vel_inconsistency_filt.setZero();
 	}
 
 	// How long the checks must pass after a failure before passed() is true
@@ -134,6 +138,7 @@ private:
 	bool runRelaxedChecks(const gnssChecksSample &gnss);
 	bool runStrictChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
 	void runOnGroundGnssChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
+	void runPositionVelocityCheck(const gnssChecksSample &gnss);
 
 	void clearDriftChecks();
 	void resetDriftFilters();
@@ -157,6 +162,9 @@ private:
 	matrix::Vector2f _vel_ne_filt{};
 
 	float _vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
+
+	matrix::Vector3f _vel_prev{};
+	matrix::Vector3f _pos_vel_inconsistency_filt{}; ///< position change rate minus the mean velocity, NED, filtered (m/s)
 	uint64_t _time_last_fail_us{0};
 	uint64_t _time_last_pass_us{0};
 	bool _initial_strict_checks_passed{false};
