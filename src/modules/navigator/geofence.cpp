@@ -68,7 +68,8 @@ static constexpr unsigned kMaxPathPieces = 255;
 static constexpr double kHalfPi = M_PI / 2.0; // M_PI_2 is not available on every platform
 
 // Zero means the path cannot be approximated within the subdivision budget.
-static uint8_t pathPieces(const Geofence::PathCheck &path)
+// Not inlined: its double math would otherwise stay on the checkPaths() stack under checkPolygonPaths().
+static __attribute__((noinline)) uint8_t pathPieces(const Geofence::PathCheck &path)
 {
 	const float distance = get_distance_to_next_waypoint(path.start(0), path.start(1), path.end(0), path.end(1));
 	const double half_angle = static_cast<double>(distance) / (2.0 * CONSTANTS_RADIUS_OF_EARTH);
