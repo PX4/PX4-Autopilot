@@ -307,19 +307,30 @@ TECSControl::SpecificEnergyRates TECSControl::_calcEnergyModeRates(const Setpoin
 		const STERateLimit &limit, const Param &param, const Flag &flag) const
 {
 	// Define the ideal, first order energy dynamics in the eigenbasis of the
-	// closed loop, with the two eigenvectors being:
-	//  - SPE (don't want airspeed errors when correcting an altitude error)
-	//  - SEB (don't want to change the total energy when it is already correct)
+	// closed loop, with the two eigenvectors (the columns of P) being:
+	//  - SPE (1, 0): a pure potential energy error (don't want airspeed errors when correcting an altitude error)
+	//  - SEB (1, -1): a pure exchange between kinetic and potential energy (don't want to change the total energy
+	//    when it is already correct)
+	//
+	// z is the energy error (e_SPE, e_SKE) expressed in these two directions:
 	//
 	//   [ e_SPE ] = P z       P = inv(P) = [ 1   1 ]
 	//   [ e_SKE ]                          [ 0  -1 ]
 	//
-	// In this basis the control law is diagonal and the ideal closed loop is
+	//   z = inv(P) [ e_SPE ] = [ e_SPE + e_SKE ] = [  e_STE ]
+	//              [ e_SKE ]   [    -e_SKE     ]   [ -e_SKE ]
+	//
+	// z_1 is the total energy error, z_2 the kinetic energy surplus to exchange into potential energy.
+	//
+	// In this basis the control law is diagonal, each component is demanded at its error over its own time constant
 	//   z' = diag(1/tau_h, 1/tau_v) z
+	// so the total energy error decays with tau_h and the kinetic energy error with tau_v.
 	//
 	// In the original basis (SPE, SKE) the equivalent controller is
-	//   [ SPE' ] = P diag(1/tau_h, 1/tau_v) inv(P) [ e_SPE ] = [ 1/tau_h   tau_v/tau_h - 1 ] [ e_SPE ]
-	//   [ SKE' ]                                   [ e_SKE ]   [    0           1/tau_v     ] [ e_SKE ]
+	//   [ SPE' ] = P diag(1/tau_h, 1/tau_v) inv(P) [ e_SPE ] = [ 1/tau_h   1/tau_h - 1/tau_v ] [ e_SPE ]
+	//   [ SKE' ]                                   [ e_SKE ]   [    0          1/tau_v        ] [ e_SKE ]
+	//
+	// Below, the coupling term (1/tau_h - 1/tau_v) e_SKE is written as (tau_v/tau_h - 1) e_SKE/tau_v.
 	//
 	// The two error terms below carry what the outer loops add on top: the altitude loop's reference rate
 	// feedforward, the direct altitude rate setpoint, and the clamps of both loops.
