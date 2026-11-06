@@ -164,6 +164,7 @@ private:
 	float _vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
 
 	matrix::Vector3f _vel_prev{};
+	uint8_t _fix_type_prev{0};
 	matrix::Vector3f _pos_vel_inconsistency_filt{}; ///< position change rate minus the mean velocity, NED, filtered (m/s)
 	uint64_t _time_last_fail_us{0};
 	uint64_t _time_last_pass_us{0};

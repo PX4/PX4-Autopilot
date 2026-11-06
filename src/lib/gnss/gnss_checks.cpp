@@ -160,7 +160,8 @@ void GnssChecks::runPositionVelocityCheck(const gnssChecksSample &gnss)
 	// degradation hit the two differently, so the position change stops matching the mean velocity over the interval.
 	const float dt = (int64_t(gnss.time_us) - int64_t(lat_lon_prev.getProjectionReferenceTimestamp())) * 1e-6f;
 
-	if (lat_lon_prev.isInitialized() && (dt > 0.f) && (dt < 1.f)) {
+	// Skip the interval in which the fix type changed
+	if (lat_lon_prev.isInitialized() && (dt > 0.f) && (dt < 1.f) && (gnss.fix_type == _fix_type_prev)) {
 		matrix::Vector3f delta_pos{0.f, 0.f, _alt_prev - gnss.alt};
 		lat_lon_prev.project(gnss.lat, gnss.lon, delta_pos(0), delta_pos(1));
 
@@ -171,6 +172,7 @@ void GnssChecks::runPositionVelocityCheck(const gnssChecksSample &gnss)
 	}
 
 	_vel_prev = gnss.vel;
+	_fix_type_prev = gnss.fix_type;
 	setFail(_strict_fail_flags, vehicle_gnss_s::CHECK_POSVEL, position_velocity_inconsistency_m_s() > _params.req_posvel);
 }
 
