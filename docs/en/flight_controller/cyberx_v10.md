@@ -101,8 +101,15 @@ See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to c
 
 ## Voltage Ratings {#voltage_ratings}
 
-CyberX-v10 can be triple-redundant on the power supply if three power sources are supplied.
-The three power rails are: `PWR1`, `PWR2` and `USB`.
+CyberX-v10 has the following three power sources configuration:
+
+- `PWR1`: One analog ADC channel for monitoring the main power input voltage.
+- `PWR2`: One I2C-based power monitoring IC that monitors the same physical power input and provides additional voltage/current measurements.
+- `USB`: USB power is provided for debugging and development purposes only.
+
+::: info
+`PWR1` and `PWR2` are two independent monitoring methods for the same physical power source, rather than two separate power inputs.
+:::
 
 **Normal Operation Maximum Ratings**
 
@@ -115,7 +122,7 @@ Under these conditions all power sources will be used in this order to power the
 
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
-1. `PWR1` and `PWR2` inputs (operational range 4.7 V to 5.7 V, 0 V to 6 V undamaged)
+1. `PWR1` and `PWR2` inputs (operational range 4.7 V to 6 V, 0 V to 6 V undamaged)
 2. `USB` input (operational range 4.7 V to 5.7 V, 0 V to 6 V undamaged)
 3. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0 V to 6 V undamaged)
 
