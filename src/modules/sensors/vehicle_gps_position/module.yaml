@@ -183,10 +183,7 @@ parameters:
         GNSS_REQ_POSVEL:
             description:
                 short: Maximum position/velocity inconsistency to use GNSS
-                long: The rate of change of the reported position, minus the reported velocity, filtered over about 1 s.
-                    The position comes from the code and the velocity from the Doppler shift, which degrade differently,
-                    for example with multipath. A receiver that exceeds it no longer passes the strict checks, also in
-                    flight, so the selection prefers another receiver that passes them.
+                long: The rate of change of the reported position, minus the reported velocity, filtered over 1 s.
             type: float
             default: 0.5
             min: 0.1
