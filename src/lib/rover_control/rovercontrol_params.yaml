@@ -267,11 +267,9 @@ parameters:
       description:
         short: Wheel radius in meters
         long: |-
-          ```
-          Calculate wheel circumference for mavlink wheel distance conversion
-          ```
-          Used to calculate wheel circumference which is then passed on to Mavlink wheel distance equation.
-          Wheel dist = 2 * PI * RO_WHEEL_RAD * encoder_position / counts_per_revolution
+          Used to convert wheel encoder counts to the distance travelled by each wheel
+          for the MAVLink WHEEL_DISTANCE message:
+          distance = 2 * pi * RO_WHEEL_RAD * encoder_counts / counts_per_rev
       type: float
       default: 0.1
       unit: m
