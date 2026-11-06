@@ -73,8 +73,12 @@ private:
 	bool checkJumpDestinations(const mission_s &mission, const mission_item_s &jump_item, size_t jump_index,
 				   const matrix::Vector2d *previous_position, GeofencePathBatch &batch);
 	bool rejectGeofenceJump(GeofencePathBatch &batch, size_t jump_index);
-	bool addGeofencePath(GeofencePathBatch &batch, const Geofence::PathCheck &path, size_t mission_index, bool is_jump = false);
+	bool addGeofencePath(GeofencePathBatch &batch, const matrix::Vector2d &start, const matrix::Vector2d &end,
+			     float end_radius, size_t mission_index, bool is_jump = false);
 	bool checkGeofencePathBatch(GeofencePathBatch &batch);
+	// Reports stay out of line so their event buffers are not on the stack during the nested path checks.
+	void logGeofencePathBreach(const GeofencePathBatch &batch, size_t index);
+	void logUnresolvedJump(size_t jump_index);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	bool readSyncMissionItem(const mission_s &mission, size_t index, mission_item_s &item);
 	void logGeofenceUnavailable();

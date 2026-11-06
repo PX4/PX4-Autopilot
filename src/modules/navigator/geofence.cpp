@@ -673,7 +673,6 @@ bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *re
 
 bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results)
 {
-	uint8_t pieces[MAX_PATH_CHECKS];
 	bool pieces_calculated = false;
 	const float max_home_distance = _navigator->home_global_position_valid() ? _param_gf_max_hor_dist.get() : 0.f;
 	const home_position_s &home = *_navigator->get_home_position();
@@ -710,9 +709,9 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 			if (!pieces_calculated) {
 				for (size_t i = 0; i < num_paths; ++i) {
-					pieces[i] = pathPieces(paths[i]);
+					_path_pieces[i] = pathPieces(paths[i]);
 
-					if (pieces[i] == 0) {
+					if (_path_pieces[i] == 0) {
 						return false;
 					}
 				}
@@ -720,7 +719,7 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 				pieces_calculated = true;
 			}
 
-			if (!checkPolygonPaths(polygon, paths, pieces, num_paths, results)) {
+			if (!checkPolygonPaths(polygon, paths, _path_pieces, num_paths, results)) {
 				return false;
 			}
 
