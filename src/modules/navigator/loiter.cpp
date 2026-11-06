@@ -58,6 +58,11 @@ Loiter::on_activation()
 	const position_setpoint_s previous_setpoint = _navigator->get_position_setpoint_triplet()->current;
 	_navigator->reset_triplets();
 	_reposition_yaw_timestamp = 0;
+	_position_reset_state.update(*_navigator->get_local_position());
+
+	// the previous mode's setpoint counts as a commanded target when a reposition keeps it
+	_follow_xy_resets = false;
+	_follow_z_resets = false;
 
 	if (_navigator->get_reposition_triplet()->current.valid
 	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
@@ -152,6 +157,10 @@ Loiter::set_loiter_position(const position_setpoint_s &reference_setpoint)
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+	// Hold keeps the vehicle where it is, also when it continues a loiter it was already on
+	_follow_xy_resets = true;
+	_follow_z_resets = true;
+
 	if (_navigator->get_land_detected()->landed) {
 		_mission_item.nav_cmd = NAV_CMD_IDLE;
 
@@ -200,8 +209,18 @@ Loiter::reposition()
 	struct position_setpoint_triplet_s *rep = _navigator->get_reposition_triplet();
 
 	if (rep->current.valid) {
-		// set loiter position based on reposition command
+		// set loiter position based on reposition command. A commanded target stays through a reset of the estimate,
+		// one taken from the vehicle position moves with it, and a kept setpoint keeps its behavior.
 		_reposition_yaw_timestamp = PX4_ISFINITE(rep->current.yaw) ? rep->current.timestamp : 0;
+		const Navigator::RepositionSources &sources = *_navigator->get_reposition_sources();
+
+		if (sources.xy != Navigator::RepositionSource::Setpoint) {
+			_follow_xy_resets = (sources.xy == Navigator::RepositionSource::Vehicle);
+		}
+
+		if (sources.z != Navigator::RepositionSource::Setpoint) {
+			_follow_z_resets = (sources.z == Navigator::RepositionSource::Vehicle);
+		}
 
 		// convert mission item to current setpoint
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -219,5 +238,45 @@ Loiter::reposition()
 		_navigator->reset_position_setpoint(rep->previous);
 		_navigator->reset_position_setpoint(rep->current);
 		_navigator->reset_position_setpoint(rep->next);
+		*_navigator->get_reposition_sources() = {};
+	}
+}
+
+void
+Loiter::followPositionResets()
+{
+	const vehicle_local_position_s &local_pos = *_navigator->get_local_position();
+	position_setpoint_s &current = _navigator->get_position_setpoint_triplet()->current;
+	bool updated = false;
+
+	// A moved origin also counts as a reset of the local position, but the global position the setpoint is in stays
+	const bool lat_lon_origin_moved = (local_pos.ref_timestamp != _position_reset_state.ref_timestamp);
+	const bool alt_origin_moved = !(fabsf(local_pos.ref_alt - _position_reset_state.ref_alt) < FLT_EPSILON);
+
+	// Fixed-wing Hold has no position accuracy requirement and can dead-reckon on wind for minutes, so a horizontal
+	// reset may correct a drift of any size. Its orbit is too large for an offset between receivers to matter, so it
+	// keeps flying back to the hold position.
+	const bool follow_xy_resets = _follow_xy_resets
+				      && (_navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+
+	if (current.valid) {
+		if (follow_xy_resets && (local_pos.xy_reset_counter != _position_reset_state.xy_reset_counter) && !lat_lon_origin_moved
+		    && PX4_ISFINITE(local_pos.delta_xy[0]) && PX4_ISFINITE(local_pos.delta_xy[1])) {
+			add_vector_to_global_position(current.lat, current.lon, local_pos.delta_xy[0], local_pos.delta_xy[1],
+						      &current.lat, &current.lon);
+			updated = true;
+		}
+
+		if (_follow_z_resets && (local_pos.z_reset_counter != _position_reset_state.z_reset_counter) && !alt_origin_moved
+		    && PX4_ISFINITE(local_pos.delta_z)) {
+			current.alt -= local_pos.delta_z;
+			updated = true;
+		}
+	}
+
+	_position_reset_state.update(local_pos);
+
+	if (updated) {
+		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
