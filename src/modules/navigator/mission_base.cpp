@@ -618,6 +618,13 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+	// A climb that led here is over, and the landing starts from its first step as it would without one.
+	// Otherwise the steps below are skipped: a VTOL in fixed-wing flight gets no back transition, and a
+	// multicopter lands where it is.
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+	}
+
 	bool needs_to_land = !_land_detected_sub.get().landed &&
 			     ((_mission_item.nav_cmd == NAV_CMD_VTOL_LAND)
 			      || (_mission_item.nav_cmd == NAV_CMD_LAND));

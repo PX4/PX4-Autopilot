@@ -809,6 +809,84 @@ INSTANTIATE_TEST_SUITE_P(VehicleTypes, RTLClimbUpdateTest,
 					 ::testing::Values(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
 							 vehicle_status_s::VEHICLE_TYPE_FIXED_WING)));
 
+// WHY: With no DO_LAND_START in the mission, Return starts at the landing item itself, so the climb to
+// the return altitude ends right in front of it. The landing sequence must still start from its first
+// step: without it a VTOL in fixed-wing flight flies the landing into the ground as a fixed wing, and a
+// multicopter descends where it is instead of flying to the landing point.
+// WHAT: After the climb, the landing item goes through MOVE_TO_LAND at the landing point.
+class RTLLandingAfterClimbTest : public RTLTest, public ::testing::WithParamInterface<std::tuple<bool, uint8_t, NAV_CMD>> {};
+
+TEST_P(RTLLandingAfterClimbTest, StartsTheLandingSequence)
+{
+	using WorkItemType = RtlDirectMissionLandTestPeer::WorkItemType;
+	const bool is_vtol = std::get<0>(GetParam());
+	const uint8_t vehicle_type = std::get<1>(GetParam());
+	const NAV_CMD land_command = std::get<2>(GetParam());
+	const float return_alt = kAlt + 60.f;
+
+	publishVehicleStatus(is_vtol, vehicle_type);
+	publishLandDetected(false);
+	_navigator.get_vstatus()->is_vtol = is_vtol;
+	_navigator.get_vstatus()->vehicle_type = vehicle_type;
+	_navigator.get_vstatus()->in_transition_mode = false;
+	_navigator.get_land_detected()->landed = false;
+	_navigator.get_mission_result()->valid = true;
+
+	auto setAltitude = [&](float alt) {
+		publishGlobalPosition(kBaseLat, kBaseLon, alt);
+		_navigator.get_global_position()->lat = kBaseLat;
+		_navigator.get_global_position()->lon = kBaseLon;
+		_navigator.get_global_position()->alt = alt;
+		_navigator.get_global_position()->timestamp = hrt_absolute_time();
+	};
+	setAltitude(kAlt);
+
+	const auto land_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt);
+	mission_item_s land = makeSafePointItem(land_position.lat, land_position.lon, kAlt, NAV_FRAME_GLOBAL, land_command);
+	land.autocontinue = true;
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.count = 1;
+	mission.land_start_index = 0; // no DO_LAND_START: Return starts at the landing item
+	mission.land_index = 0;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+	publishMission(mission);
+
+	RtlDirectMissionLandTestPeer rtl{&_navigator, mission};
+	rtl.loadTestMission({land});
+	rtl.setRtlAlt(return_alt);
+
+	// GIVEN: Return climbs first, being below the return altitude.
+	rtl.run(false);
+	rtl.run(true);
+	ASSERT_TRUE(rtl.isClimbing());
+
+	// A fixed-wing loiter-to-altitude raises its setpoint to the target altitude on its first evaluation.
+	rtl.run(true);
+	ASSERT_TRUE(rtl.isClimbing());
+
+	// WHEN: The climb reaches the return altitude.
+	setAltitude(return_alt);
+	rtl.run(true);
+
+	// THEN: The landing sequence starts, by moving to the landing point at altitude.
+	ASSERT_FALSE(rtl.isClimbing());
+	EXPECT_EQ(rtl.activeWorkItemType(), WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
+	EXPECT_EQ(rtl.activeNavCommand(), NAV_CMD_WAYPOINT);
+	const auto &setpoint = _navigator.get_position_setpoint_triplet()->current;
+	EXPECT_EQ(setpoint.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	EXPECT_NEAR(setpoint.lat, land.lat, 1e-9);
+	EXPECT_NEAR(setpoint.lon, land.lon, 1e-9);
+	EXPECT_FLOAT_EQ(setpoint.alt, return_alt);
+}
+
+INSTANTIATE_TEST_SUITE_P(Vehicles, RTLLandingAfterClimbTest,
+			 ::testing::Values(
+				 std::make_tuple(true, static_cast<uint8_t>(vehicle_status_s::VEHICLE_TYPE_FIXED_WING), NAV_CMD_VTOL_LAND),
+				 std::make_tuple(true, static_cast<uint8_t>(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING), NAV_CMD_VTOL_LAND),
+				 std::make_tuple(false, static_cast<uint8_t>(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING), NAV_CMD_LAND)));
+
 // WHY: A VTOL landing with finite yaw, must rotate before proceeding with its landing, however it must
 // also widend its acceptance heights for the landing waypoint to account for the back-transition
 // WHAT: A VTOL_LAND item with a finite yaw is driven through MOVE_TO_LAND, the back-transition,
