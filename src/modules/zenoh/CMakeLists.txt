@@ -37,7 +37,15 @@ function(message)
     endif()
 endfunction()
 
-set(POSIX_COMPATIBLE YES)
+# zenoh-pico's own platform detection checks CMAKE_SYSTEM_NAME MATCHES
+# "Linux" before POSIX_COMPATIBLE, so forcing this unconditionally also
+# pre-empts its correct Darwin (macOS) branch via elseif short-circuiting,
+# making macOS SITL builds wrongly compile with ZENOH_LINUX (e.g. calling
+# the Linux-only getrandom()). Scope it to NuttX, which is the POSIX-like
+# target that actually needs it (CMAKE_SYSTEM_NAME isn't "Linux" there).
+if(CONFIG_PLATFORM_NUTTX)
+	set(POSIX_COMPATIBLE YES)
+endif()
 set(BUILD_SHARED_LIBS OFF)
 set(BUILD_TESTING OFF)
 set(CHECK_THREADS NO)

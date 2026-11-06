@@ -625,6 +625,13 @@ if(CONFIG_MODULES_ZENOH)
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		VERBATIM
 		)
-		add_library(zenoh_topics ${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp)
-		set_target_properties(zenoh_topics PROPERTIES LINKER_LANGUAGE CXX)
+		# zenoh_topics only exists to force uorb_pubsub_factory.hpp to be
+		# generated before it is consumed; it has no sources to compile.
+		# An INTERFACE library (rather than a STATIC library with a
+		# header-only source) avoids creating a zero-member archive, which
+		# GNU ar tolerates but BSD ar (macOS) rejects with "no archive
+		# members specified".
+		add_custom_target(zenoh_topics_header DEPENDS ${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp)
+		add_library(zenoh_topics INTERFACE)
+		add_dependencies(zenoh_topics zenoh_topics_header)
 endif()
