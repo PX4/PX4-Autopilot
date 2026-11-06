@@ -47,12 +47,12 @@
         },
         {
             "model": "quadx_flow",
-            "test_filter": "[optical_flow]",
+            "test_filter": "optical_flow",
             "timeout_min": 10
         },
         {
             "model": "standard_vtol_flow",
-            "test_filter": "[optical_flow_vtol]",
+            "test_filter": "optical_flow_vtol",
             "timeout_min": 10
         },
         {
