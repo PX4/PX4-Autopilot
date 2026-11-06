@@ -231,17 +231,17 @@ public:
 	static constexpr float kThrottleShortfallFull = 0.25f;
 
 	/**
-	 * Time constant of the filters that give the pitch its total energy rate budget under kinetic priority [s].
-	 * The budget is the lower of two estimates of the energy rate the throttle delivers: the low passed measured rate,
-	 * and the rate the throttle model predicts for the commanded throttle plus the low passed model error. A throttle
-	 * reduction reaches the budget immediately through the model. A throttle increase does not: the pitch never assumes
-	 * more energy than measured, as a throttle that does not deliver (engine failure) would make it trade airspeed
-	 * for energy that does not exist. Well above the phugoid period:
+	 * Time constant of the filters that give the pitch the achieved total energy rate under kinetic priority [s].
+	 * The achieved rate is the lower of two estimates of the energy rate the throttle delivers: the low passed measured
+	 * rate, and the rate the throttle model predicts for the commanded throttle plus the low passed model error. A
+	 * throttle reduction reaches the achieved rate immediately through the model. A throttle increase does not: the
+	 * pitch never assumes more energy than measured, as a throttle that does not deliver (engine failure) would make it
+	 * trade airspeed for energy that does not exist. Well above the phugoid period:
 	 * in a phugoid g dh/dt and V dV/dt cancel in the true total energy rate, but not in the estimate, where dV/dt is
 	 * lagged and attenuated by the airspeed filter. A fast correction would feed the uncancelled climb rate back into
 	 * the pitch feedforward with a gain close to one and undamp the phugoid.
 	 */
-	static constexpr float kSteRateBudgetTimeConst = 5.f;
+	static constexpr float kSteRateAchievedTimeConst = 5.f;
 
 	/**
 	 * @brief The control parameters.
@@ -657,9 +657,9 @@ private:
 	// State
 	AlphaFilter<float> _ste_rate_error_filter;		///< Low pass filter for the specific total energy rate error (feedback path).
 	AlphaFilter<float>
-	_ste_rate_estimate_filter;		///< Slow low pass filter for the specific total energy rate estimate (pitch budget under kinetic priority).
+	_ste_rate_estimate_filter;		///< Slow low pass filter for the specific total energy rate estimate (achieved total energy rate of the pitch under kinetic priority).
 	AlphaFilter<float>
-	_ste_rate_model_error_filter;		///< Slow low pass filter of the measured minus the modelled specific total energy rate (pitch budget under kinetic priority).
+	_ste_rate_model_error_filter;		///< Slow low pass filter of the measured minus the modelled specific total energy rate (achieved total energy rate of the pitch under kinetic priority).
 	AlphaFilter<float> _throttle_shortfall_filter;		///< Low pass filter of the throttle not delivering its energy rate setpoint [0,1].
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].

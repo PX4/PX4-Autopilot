@@ -497,7 +497,7 @@ TEST(TECSControlTest, PitchIntegratorDoesNotWindUpAtPitchLimit)
 	const float integrator_saturated = control.getDebugOutput().pitch_integrator;
 
 	// With the input frozen the throttle soon sits at its maximum without the total energy rising. Kinetic priority
-	// then takes the measured total energy rate as the pitch's budget and pulls the pitch off its limit, after which
+	// then uses the measured total energy rate as the achieved one and pulls the pitch off its limit, after which
 	// integrating is legitimate. Check the anti-windup only while the pitch is held at the limit.
 	for (int i = 0; i < 500; i++) {
 		control.update(kDt, setpoint, input, param, flag);
