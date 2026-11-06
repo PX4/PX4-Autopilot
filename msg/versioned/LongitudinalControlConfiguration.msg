@@ -4,7 +4,7 @@
 # and configure the resultant setpoints.
 # Pitch angles are absolute: the angle of the fixed-wing body x-axis above the horizon, without FW_PSP_OFF applied.
 
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # [us] Time since system start
 
