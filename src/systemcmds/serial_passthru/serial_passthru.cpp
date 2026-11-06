@@ -477,8 +477,8 @@ SERIALPASSTHRU *SERIALPASSTHRU::instantiate(int argc, char *argv[])
 			PX4_ERR("Invalid external device (-e) %s", ext_device ? ext_device  : "");
 		}
 
-		if (rok) {
-			PX4_ERR("Invalid internal device (-r) %s", int_device ? int_device  : "");
+		if (!rok) {
+			PX4_ERR("Invalid internal device (-d) %s", int_device ? int_device  : "");
 		}
 	}
 
