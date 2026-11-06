@@ -117,13 +117,6 @@ Under these conditions all power sources will be used in this order to power the
 
 1. `PWR1` and `PWR2` inputs (4.75 V to 5.5 V)
 2. `USB` input (4.75 V to 5.25 V)
-
-**Absolute Maximum Ratings**
-
-Under these conditions the system will not draw any power (will not be operational), but will remain intact.
-
-1. `PWR1` and `PWR2` inputs (operational range 4.7 V to 6 V, 0 V to 6 V undamaged)
-2. `USB` input (operational range 4.7 V to 5.7 V, 0 V to 6 V undamaged)
 3. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0 V to 6 V undamaged)
 
 ## PWM Outputs {#pwm_outputs}
@@ -173,7 +166,7 @@ SD cards are used for [log files and for storing missions](../getting_started/px
 | UART4  | /dev/ttyS3 | `GPS2`             | No           |
 | UART5  | /dev/ttyS4 | `Uart5` (EXT2)     | No           |
 | USART6 | /dev/ttyS5 | PX4IO              | No           |
-| UART7  | /dev/ttyS6 | Unused             | No           |
+| UART7  | /dev/ttyS6 | Debug (Reserved)   | No           |
 | UART8  | /dev/ttyS7 | `Uart8` (RC input) | No           |
 
 ::: info
