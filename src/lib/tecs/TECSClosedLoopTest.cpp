@@ -99,7 +99,6 @@ constexpr TECSControl::Param defaultParams()
 		.airspeed_error_gain       = 1.f / paramDefault(px4::params::FW_T_TAS_TC),
 		.ste_rate_time_const       = paramDefault(px4::params::FW_T_STE_R_TC),
 		.seb_rate_ff               = paramDefault(px4::params::FW_T_SEB_R_FF),
-		.pitch_speed_weight        = paramDefault(px4::params::FW_T_SPDWEIGHT),
 		.integrator_gain_pitch     = paramDefault(px4::params::FW_T_I_GAIN_PIT),
 		.pitch_damping_gain        = paramDefault(px4::params::FW_T_PTCH_DAMP),
 		.integrator_gain_throttle  = paramDefault(px4::params::FW_T_THR_INTEG),
@@ -388,30 +387,6 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseDefaultTuning)
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
 }
 
-TEST_F(TECSClosedLoopTest, SteadyStateCruiseHighSpeedWeight)
-{
-	_params.pitch_speed_weight = 1.5f;
-
-	run(60.f);
-
-	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
-	EXPECT_LT(_sim_stats.max_altitude_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
-	EXPECT_LT(_sim_stats.max_throttle_integ_norm, MAX_NUMERICAL_ERR);
-	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
-}
-
-TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
-{
-	_params.pitch_speed_weight = 0.5f;
-
-	run(60.f);
-
-	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
-	EXPECT_LT(_sim_stats.max_altitude_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
-	EXPECT_LT(_sim_stats.max_throttle_integ_norm, MAX_NUMERICAL_ERR);
-	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
-}
-
 TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuning)
 {
 	run(60.0f);
@@ -432,42 +407,6 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDownDefaultTuning)
 	run(120.f);
 
 	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
-	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
-	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
-}
-
-// --- Altitude step with a speed weight != 1 ----------------------------------
-//
-// Even with a speed weight != 1, the feedforward should still be consistent
-// and not introduce any airspeed errors.
-
-TEST_F(TECSClosedLoopTest, AltitudeStepUpLowSpeedWeight)
-{
-	_params.pitch_speed_weight = 0.5f;
-
-	run(10.f);
-
-	setAltitudeSetpoint(ALT_INIT + 50.f);
-	run(200.f);
-
-	// For some reason this requires higher tolerance. TODO fix
-	// Disappears with _params.integrator_gain_pitch = 0.f;
-	EXPECT_LT(_sim_stats.max_airspeed_error, 2.0f * MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
-	EXPECT_NEAR(_state.V, _V_sp, 1e-3f);
-	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
-}
-
-TEST_F(TECSClosedLoopTest, AltitudeStepDownLowSpeedWeight)
-{
-	_params.pitch_speed_weight = 0.5f;
-
-	run(10.f);
-
-	setAltitudeSetpoint(ALT_INIT - 50.f);
-	run(200.f);
-
-	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
-
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
 	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 }
@@ -546,28 +485,6 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 
 	// And the pitch integrator has converged to the plant pitch offset
 	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
-}
-
-// --- Gliding at speed weight 2 ---------------------------------------------------
-//
-// Speed weight 2 is the glider setting: the pitch flies airspeed only, so it tracks an airspeed setpoint with no
-// propulsion at all.
-
-TEST_F(TECSClosedLoopTest, GlideSpeedWeightTwoAirspeedStep)
-{
-	_params.pitch_speed_weight = 2.f;
-
-	run(10.f);
-	_throttle_failed = true;
-	run(60.f); // settle into the glide
-
-	setAirspeedSetpoint(_params.equivalent_airspeed_trim + 2.f);
-	run(60.f);
-	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
-
-	setAirspeedSetpoint(_params.equivalent_airspeed_trim - 2.f);
-	run(60.f);
-	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
 }
 
 // --- Airspeed setpoint change -------------------------------------------------
