@@ -2285,7 +2285,7 @@ void Commander::checkForMissionUpdate()
 					}
 
 					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
-					!_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
 				}
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
