@@ -71,6 +71,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_failure_detector_status.flags.ext = false;
 		// Reset altitude loss state so it reinitialises cleanly when altitude control re-engages.
 		_alt_loss_ref_z = NAN;
+		_alt_loss_timestamp_prev = 0;
 		_alt_loss_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
@@ -159,6 +160,7 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 	    || vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_failure_detector_status.flags.alt = false;
 		_alt_loss_ref_z = NAN;
+		_alt_loss_timestamp_prev = 0;
 		return;
 	}
 
@@ -178,6 +180,11 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 
 	const hrt_abstime now = hrt_absolute_time();
 
+	if (_alt_loss_timestamp_prev == 0) {
+		// Starting while descending (e.g. switching from Stabilized) must allow for the stopping distance
+		_alt_loss_allowed_descent_rate = (lpos.v_z_valid && PX4_ISFINITE(lpos.vz)) ? math::max(lpos.vz, 0.f) : 0.f;
+	}
+
 	const float dt = (_alt_loss_timestamp_prev > 0 && lpos.timestamp > _alt_loss_timestamp_prev)
 			 ? math::min((lpos.timestamp - _alt_loss_timestamp_prev) * 1e-6f, 1.f) : 0.f;
 	_alt_loss_timestamp_prev = lpos.timestamp;
@@ -189,11 +196,23 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 	const float commanded_descent_rate = (setpoint_fresh && PX4_ISFINITE(lpos_sp.vz) && lpos_sp.vz > 0.f)
 					     ? lpos_sp.vz + kAltLossDescentRateMargin : 0.f;
 
+	// When the command drops below the actual descent (stick release, mode switch, stale setpoint), the allowed
+	// descent rate decays at a minimum braking deceleration: the stopping distance does not trigger, while a
+	// vehicle that cannot brake still does.
+	float braking_descent_rate = _alt_loss_allowed_descent_rate - kAltLossMinBrakingDecel * dt;
+
+	// Once the vehicle has slowed down, the remaining stopping allowance must not mask a following altitude loss.
+	if (lpos.v_z_valid && PX4_ISFINITE(lpos.vz)) {
+		braking_descent_rate = math::min(braking_descent_rate, math::max(lpos.vz, 0.f) + kAltLossDescentRateMargin);
+	}
+
+	_alt_loss_allowed_descent_rate = math::max(commanded_descent_rate, braking_descent_rate);
+
 	bool reference_valid = false;
 
 	if (PX4_ISFINITE(lpos_sp.z)) {
 		if (lpos.z > lpos_sp.z
-		    || (lpos.v_z_valid && lpos.vz > commanded_descent_rate)) {
+		    || (lpos.v_z_valid && lpos.vz > _alt_loss_allowed_descent_rate)) {
 			// Ratcheting NED-z reference: tracks the highest altitude reached while below setpoint, or while
 			// falling faster than allowed.
 			if (!PX4_ISFINITE(_alt_loss_ref_z)) {
@@ -201,19 +220,19 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 			}
 
 			// The setpoint must not drag the reference down, emergency braking keeps it on the vehicle
-			_alt_loss_ref_z = math::min(_alt_loss_ref_z + commanded_descent_rate * dt, lpos.z);
+			_alt_loss_ref_z = math::min(_alt_loss_ref_z + _alt_loss_allowed_descent_rate * dt, lpos.z);
 			reference_valid = true;
 		}
 
 	} else if (PX4_ISFINITE(lpos_sp.vz)) {
 		// No height target (e.g. pilot moving the throttle stick): the reference remembers the highest
-		// altitude reached and only moves down at the commanded descent rate, so a climb or hold command
+		// altitude reached and only moves down at the allowed descent rate, so a climb or hold command
 		// keeps it fixed.
 		if (!PX4_ISFINITE(_alt_loss_ref_z)) {
 			_alt_loss_ref_z = lpos.z;
 		}
 
-		_alt_loss_ref_z = math::min(_alt_loss_ref_z + commanded_descent_rate * dt, lpos.z);
+		_alt_loss_ref_z = math::min(_alt_loss_ref_z + _alt_loss_allowed_descent_rate * dt, lpos.z);
 		reference_valid = true;
 	}
 
