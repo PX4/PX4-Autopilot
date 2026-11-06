@@ -663,7 +663,6 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 
 	const float alt_increment = 4478.f;
 	const float pos_z_prev = _ekf->getPosition()(2);
-	const float hagl_prev = _ekf->getHagl();
 	const uint8_t hagl_reset_count_prev = _ekf->get_hagl_reset_count();
 	_ekf->setEkfGlobalOrigin(lat, lon, alt + alt_increment);
 
@@ -673,7 +672,6 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 	uint8_t z_reset_counter;
 	_ekf->get_posD_reset(&delta_z, &z_reset_counter);
 	EXPECT_NEAR(delta_z, _ekf->getPosition()(2) - pos_z_prev, 0.01f);
-	EXPECT_NEAR(_ekf->getHagl(), hagl_prev, 0.01f);
 	EXPECT_EQ(_ekf->get_hagl_reset_count(), hagl_reset_count_prev);
 
 	_sensor_simulator.runSeconds(10);
@@ -690,6 +688,121 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+}
+
+TEST_F(EkfHeightFusionTest, firstOriginAltWithLocalHeight)
+{
+	// GIVEN: range finder height reference and baro, so the local height is valid but the origin has no altitude
+	_ekf_wrapper.setRangeHeightRef();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_ekf_wrapper.enableRangeHeightFusion();
+	_sensor_simulator.runSeconds(2);
+
+	ASSERT_TRUE(_ekf->isLocalVerticalPositionValid());
+	ASSERT_FALSE(_ekf->isGlobalVerticalPositionValid());
+	ASSERT_TRUE(_ekf->global_origin_valid());
+
+	uint64_t origin_time;
+	double lat;
+	double lon;
+	float alt;
+	_ekf->getEkfGlobalOrigin(origin_time, lat, lon, alt);
+
+	const float pos_z_prev = _ekf->getPosition()(2);
+	const float hagl_prev = _ekf->getHagl();
+	const uint8_t z_reset_count_prev = _ekf->get_posD_reset_count();
+	const uint8_t hagl_reset_count_prev = _ekf->get_hagl_reset_count();
+
+	// WHEN: the origin gets its first altitude
+	_ekf->setEkfGlobalOrigin(lat, lon, 1500.f);
+
+	// THEN: the altitude becomes valid, but neither the local height nor HAGL moves or reports a reset
+	EXPECT_TRUE(_ekf->isGlobalVerticalPositionValid());
+	EXPECT_NEAR(_ekf->getPosition()(2), pos_z_prev, 1e-3f);
+	EXPECT_NEAR(_ekf->getHagl(), hagl_prev, 1e-3f);
+	EXPECT_EQ(_ekf->get_posD_reset_count(), z_reset_count_prev);
+	EXPECT_EQ(_ekf->get_hagl_reset_count(), hagl_reset_count_prev);
+
+	// AND: the height sources keep agreeing with the moved altitude
+	_sensor_simulator.runSeconds(2);
+	EXPECT_NEAR(_ekf->getPosition()(2), pos_z_prev, 0.1f);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
+}
+
+TEST_F(EkfHeightFusionTest, firstExternalAltitudeWithLocalHeight)
+{
+	// GIVEN: range finder height reference and baro, so the local height is valid but the origin has no altitude
+	_ekf_wrapper.setRangeHeightRef();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_ekf_wrapper.enableRangeHeightFusion();
+	_sensor_simulator.runSeconds(2);
+
+	ASSERT_TRUE(_ekf->isLocalVerticalPositionValid());
+	ASSERT_FALSE(_ekf->isGlobalVerticalPositionValid());
+
+	const LatLonAlt lla = _ekf->getLatLonAlt();
+	const float pos_z_prev = _ekf->getPosition()(2);
+	const float hagl_prev = _ekf->getHagl();
+	const uint8_t z_reset_count_prev = _ekf->get_posD_reset_count();
+	const uint8_t hagl_reset_count_prev = _ekf->get_hagl_reset_count();
+
+	// WHEN: an external position estimate brings the first altitude
+	_ekf->resetGlobalPosToExternalObservation(lla.latitude_deg(), lla.longitude_deg(), 1500.f, 1.f, 1.f, 0);
+
+	// THEN: the origin takes the altitude change, so neither the local height nor HAGL moves or reports a reset
+	EXPECT_TRUE(_ekf->isGlobalVerticalPositionValid());
+	EXPECT_NEAR(_ekf->getLatLonAlt().altitude(), 1500.f, 0.1f);
+	EXPECT_NEAR(_ekf->getPosition()(2), pos_z_prev, 1e-3f);
+	EXPECT_NEAR(_ekf->getHagl(), hagl_prev, 1e-3f);
+	EXPECT_EQ(_ekf->get_posD_reset_count(), z_reset_count_prev);
+	EXPECT_EQ(_ekf->get_hagl_reset_count(), hagl_reset_count_prev);
+}
+
+TEST_F(EkfHeightFusionTest, firstOriginAltWithoutHeight)
+{
+	// GIVEN: no height source, so neither the local height nor the origin altitude is set
+	ASSERT_FALSE(_ekf->isLocalVerticalPositionValid());
+	ASSERT_TRUE(_ekf->global_origin_valid());
+
+	uint64_t origin_time;
+	double lat;
+	double lon;
+	float alt;
+	_ekf->getEkfGlobalOrigin(origin_time, lat, lon, alt);
+
+	const float pos_z_prev = _ekf->getPosition()(2);
+
+	// WHEN: the origin gets its first altitude
+	_ekf->setEkfGlobalOrigin(lat, lon, 1500.f);
+
+	// THEN: the reported delta is the jump of the local height
+	float delta_z;
+	uint8_t z_reset_counter;
+	_ekf->get_posD_reset(&delta_z, &z_reset_counter);
+	EXPECT_NEAR(delta_z, _ekf->getPosition()(2) - pos_z_prev, 1e-3f);
+}
+
+TEST_F(EkfHeightFusionTest, firstExternalAltitudeWithoutHeight)
+{
+	// GIVEN: no height source, so neither the local height nor the origin altitude is set
+	ASSERT_FALSE(_ekf->isLocalVerticalPositionValid());
+
+	const LatLonAlt lla = _ekf->getLatLonAlt();
+	const float pos_z_prev = _ekf->getPosition()(2);
+	const float hagl_prev = _ekf->getHagl();
+	const uint8_t hagl_reset_count_prev = _ekf->get_hagl_reset_count();
+
+	// WHEN: an external position estimate brings the first altitude
+	_ekf->resetGlobalPosToExternalObservation(lla.latitude_deg(), lla.longitude_deg(), 1500.f, 1.f, 1.f, 0);
+
+	// THEN: the reported delta is the jump of the local height, and HAGL neither moves nor reports a reset
+	float delta_z;
+	uint8_t z_reset_counter;
+	_ekf->get_posD_reset(&delta_z, &z_reset_counter);
+	EXPECT_NEAR(delta_z, _ekf->getPosition()(2) - pos_z_prev, 1e-3f);
+	EXPECT_NEAR(_ekf->getHagl(), hagl_prev, 1e-3f);
+	EXPECT_EQ(_ekf->get_hagl_reset_count(), hagl_reset_count_prev);
 }
 
 TEST_F(EkfHeightFusionTest, gpsHeightNoiseCappedWhenOnlyHeightSource)
