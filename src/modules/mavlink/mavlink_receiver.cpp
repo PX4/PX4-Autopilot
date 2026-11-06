@@ -2082,6 +2082,76 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 }
 
 void
+MavlinkReceiver::publish_battery_status(uint8_t component_id, battery_status_s &battery)
+{
+	struct BatteryPublication {
+		orb_advert_t handle;
+		int instance;
+		uint8_t component_id;
+		uint8_t id;
+	};
+
+	// Share publishers across links. Keep them after a link stops to detect battery timeouts.
+	// Entries are filled in order and never removed.
+	static BatteryPublication publications[battery_status_s::MAX_INSTANCES] {};
+	static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+	_failure_config.update();
+	LockGuard lock{mutex};
+
+	for (auto &publication : publications) {
+		if (publication.handle != nullptr && publication.id != battery.id) {
+			continue;
+		}
+
+		const bool newly_admitted = (publication.handle == nullptr);
+
+		if (newly_admitted) {
+			// Do not reuse an ID already used by another battery driver.
+			for (uint8_t i = 0; i < battery_status_s::MAX_INSTANCES; ++i) {
+				uORB::Subscription sub{ORB_ID(battery_status), i};
+				battery_status_s existing;
+
+				if (sub.copy(&existing) && existing.id == battery.id) {
+					return;
+				}
+			}
+
+			int instance = 0;
+			orb_advert_t handle = orb_advertise_multi(ORB_ID(battery_status), nullptr, &instance);
+
+			if (handle == nullptr) {
+				return;
+			}
+
+			// uORB allows more instances than the battery checks read.
+			if (instance >= battery_status_s::MAX_INSTANCES) {
+				orb_unadvertise(handle);
+				return;
+			}
+
+			publication = {handle, instance, component_id, battery.id};
+
+		} else if (publication.component_id != component_id) {
+			return;
+		}
+
+		// Failure injection uses the uORB instance, not the battery ID.
+		if (!failure_injection::process_battery(_failure_config, publication.instance + 1, battery)) {
+			if (!newly_admitted) {
+				return;
+			}
+
+			// If Off is already set, replace any old sample with a disconnected battery.
+			battery.connected = false;
+			battery.warning = battery_status_s::WARNING_NONE;
+		}
+
+		orb_publish(ORB_ID(battery_status), publication.handle, &battery);
+		return;
+	}
+}
+
+void
 MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 {
 	if ((msg->sysid != mavlink_system.sysid) || (msg->compid == mavlink_system.compid)) {
@@ -2093,8 +2163,19 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	mavlink_battery_status_t battery_mavlink;
 	mavlink_msg_battery_status_decode(msg, &battery_mavlink);
 
+	if (battery_mavlink.battery_function == MAV_BATTERY_FUNCTION_PAYLOAD) {
+		// Payload batteries do not power the vehicle.
+		return;
+	}
+
+	if (battery_mavlink.id == UINT8_MAX) {
+		// uORB battery IDs start at 1, so MAVLink ID 255 would wrap to 0.
+		return;
+	}
+
 	battery_status_s battery_status{};
 	battery_status.timestamp = hrt_absolute_time();
+	battery_status.id = battery_mavlink.id + 1;
 
 	float voltage_sum = 0.0f;
 	uint8_t cell_count = 0;
@@ -2132,13 +2213,7 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 		}
 	}
 
-	_failure_config.update();
-
-	if (!failure_injection::process_battery(_failure_config, 1, battery_status)) {
-		return;
-	}
-
-	_battery_pub.publish(battery_status);
+	publish_battery_status(msg->compid, battery_status);
 }
 
 void
@@ -2779,6 +2854,7 @@ MavlinkReceiver::publish_hil_battery()
 	battery_status_s hil_battery_status{};
 
 	hil_battery_status.timestamp = hrt_absolute_time();
+	hil_battery_status.id = 1; // MAVLink battery ID 0
 
 	hil_battery_status.cell_count = _param_bat_cells_count.get();
 	hil_battery_status.remaining = 0.70f;
@@ -2795,13 +2871,7 @@ MavlinkReceiver::publish_hil_battery()
 		hil_battery_status.voltage_cell_v[cell_count] = cells_v;
 	}
 
-	_failure_config.update();
-
-	if (!failure_injection::process_battery(_failure_config, 1, hil_battery_status)) {
-		return;
-	}
-
-	_battery_pub.publish(hil_battery_status);
+	publish_battery_status(mavlink_system.compid, hil_battery_status);
 }
 
 void
