@@ -202,6 +202,16 @@ void PositionControl::_velocityControl(const float dt)
 	ControlMath::setZeroIfNanVector3f(vel_error);
 	// Update integral part of velocity control
 	_vel_int += vel_error.emult(_gain_vel_i) * dt;
+
+	// Remember the vertical thrust that holds the vehicle steady. The hover thrust can be far from it, since its estimate
+	// is limited by HTE_THR_RANGE and the integrator makes up the difference. Drag at higher vertical speed would bias it.
+	const bool steady = (fabsf(_vel(2)) < 0.2f) && (fabsf(_vel_dot(2)) < 0.5f);
+	const bool saturated = (_thr_sp(2) >= -_lim_thr_min) || (_thr_sp(2) <= -_lim_thr_max);
+
+	if (steady && !saturated) {
+		const float thrust = -_thr_sp(2);
+		_steady_thrust = PX4_ISFINITE(_steady_thrust) ? _steady_thrust + math::min(dt, 1.f) * (thrust - _steady_thrust) : thrust;
+	}
 }
 
 void PositionControl::_accelerationControl()
@@ -216,8 +226,11 @@ void PositionControl::_accelerationControl()
 
 	Vector3f body_z = Vector3f(-_acc_sp(0), -_acc_sp(1), -z_specific_force).normalized();
 	ControlMath::limitTilt(body_z, Vector3f(0, 0, 1), _lim_tilt);
-	// Convert to thrust assuming hover thrust produces standard gravity
-	const float thrust_ned_z = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
+	// Convert to thrust assuming hover thrust produces standard gravity. Without a vertical velocity estimate nothing
+	// corrects this, and a hover thrust above what the vehicle needs makes it climb: stay below what was seen to hold it up.
+	const bool open_loop = !PX4_ISFINITE(_vel(2)) && PX4_ISFINITE(_steady_thrust);
+	const float hover_thrust = open_loop ? math::min(_hover_thrust, _steady_thrust) : _hover_thrust;
+	const float thrust_ned_z = _acc_sp(2) * (hover_thrust / CONSTANTS_ONE_G) - hover_thrust;
 	// Project thrust to planned body attitude
 	const float cos_ned_body = (Vector3f(0, 0, 1).dot(body_z));
 	const float collective_thrust = math::min(thrust_ned_z / cos_ned_body, -_lim_thr_min);

@@ -161,7 +161,11 @@ public:
 	 * Set the integral term in xy to 0.
 	 * @see _vel_int
 	 */
-	void resetIntegral() { _vel_int.setZero(); }
+	void resetIntegral()
+	{
+		_vel_int.setZero();
+		_steady_thrust = NAN;
+	}
 	void resetIntegralXY() { _vel_int.xy() = matrix::Vector2f(); }
 
 	/**
@@ -217,6 +221,7 @@ private:
 	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
 
 	float _hover_thrust{}; ///< Thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
+	float _steady_thrust{NAN}; ///< Vertical thrust [0,1] last seen to hold the vehicle steady, NAN if not seen since takeoff
 	bool _decouple_horizontal_and_vertical_acceleration{true}; ///< Ignore vertical acceleration setpoint to remove its effect on the tilt setpoint
 
 	// States

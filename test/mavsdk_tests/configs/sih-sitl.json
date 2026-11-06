@@ -41,6 +41,11 @@
             }
         },
         {
+            "model": "quadx",
+            "test_filter": "sih_blind_descent",
+            "timeout_min": 10
+        },
+        {
             "model": "hex",
             "test_filter": "motor_failure_injection",
             "timeout_min": 15

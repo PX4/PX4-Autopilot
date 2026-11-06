@@ -33,6 +33,25 @@ def test_land_on_gps_lost_during_mission(tester: AutopilotTester, height_source:
     tester.wait_until_disarmed(disarm_timeout_s)
 
 
+@pytest.mark.sih_blind_descent
+def test_blind_descent_goes_down_on_an_overpowered_vehicle(tester: AutopilotTester) -> None:
+    tester.wait_until_ready()
+    tester.store_home()
+    tester.set_param_int("SYS_FAILURE_EN", 1)
+    # About five times as much thrust as weight, so it hovers on 0.2, while the estimate of the
+    # hover thrust stops at MPC_THR_HOVER - HTE_THR_RANGE, 0.3.
+    tester.set_param_float("SIH_T_MAX", 12.0)
+    tester.set_param_float("MIS_TAKEOFF_ALT", 30.0)
+    tester.arm()
+    tester.takeoff()
+    tester.wait_until_altitude(30.0, 60)
+    tester.sleep_for(10)
+    # With no vertical aiding left, the descent has no velocity to control.
+    tester.inject_failure(FailureUnit.SENSOR_GPS, FailureType.OFF)
+    tester.inject_failure(FailureUnit.SENSOR_BARO, FailureType.OFF)
+    tester.wait_for_descent_without_climbing(5.0, 1.0, 120)
+
+
 @pytest.mark.multicopter
 def test_continue_on_mag_lost_during_mission(tester: AutopilotTester) -> None:
     start_mission_and_inject_failure(tester, FailureUnit.SENSOR_MAG, FailureType.OFF)

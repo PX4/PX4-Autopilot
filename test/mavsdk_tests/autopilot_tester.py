@@ -280,6 +280,23 @@ class AutopilotTester:
             "Altitude {} m (+-{} m) not reached within {} s".format(
                 rel_altitude_m, delta, timeout_s)
 
+    def wait_for_descent_without_climbing(self, max_climb_m: float, down_to_m: float,
+                                          timeout_s: float) -> None:
+        """Wait for the true height above home to fall to down_to_m, failing if it rises first."""
+        limit_m = (self._telemetry.ground_truth().absolute_altitude_m
+                   - self.home_absolute_altitude_m() + max_climb_m)
+
+        def descended() -> bool:
+            height_m = (self._telemetry.ground_truth().absolute_altitude_m
+                        - self.home_absolute_altitude_m())
+            assert height_m < limit_m, \
+                "Climbed to {:.1f} m instead of descending, limit {:.1f} m".format(
+                    height_m, limit_m)
+            return bool(height_m < down_to_m)
+
+        assert self.poll_condition_with_timeout(descended, timeout_s), \
+            "Not down to {} m within {} s".format(down_to_m, timeout_s)
+
     def wait_until_multicopter(self, timeout_s: float) -> None:
         assert self.poll_condition_with_timeout(
             lambda: self._telemetry.vtol_state() == VtolState.MC, timeout_s), \

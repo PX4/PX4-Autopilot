@@ -33,6 +33,7 @@
 
 #include <gtest/gtest.h>
 #include <PositionControl.hpp>
+#include <geo/geo.h>
 #include <px4_defines.h>
 
 using namespace matrix;
@@ -401,6 +402,120 @@ TEST_F(PositionControlBasicTest, UpdateHoverThrust)
 	// THEN: the integral is updated to avoid discontinuities and
 	// the output is still the same
 	EXPECT_EQ(_output_setpoint.thrust[2], -hover_thrust);
+}
+
+class PositionControlOpenLoopDescentTest : public PositionControlBasicTest
+{
+public:
+	// Hovers with less thrust than the hover thrust says, as when HTE_THR_RANGE limits the estimate.
+	void hoverOnTheIntegrator()
+	{
+		_position_control.setHoverThrust(STEADY_THRUST);
+		Vector3f(0.f, 0.f, 0.f).copyTo(_input_setpoint.velocity);
+		EXPECT_TRUE(runController());
+		_position_control.updateHoverThrust(HOVER_THRUST);
+		EXPECT_TRUE(runController());
+		EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -STEADY_THRUST);
+	}
+
+	// What the emergency descent asks for once the vertical velocity estimate is lost.
+	void loseVerticalVelocityAndDescend()
+	{
+		PositionControlStates states{};
+		states.velocity(2) = NAN;
+		states.acceleration(2) = NAN;
+		_position_control.setState(states);
+		_input_setpoint = PositionControl::empty_trajectory_setpoint;
+		_input_setpoint.velocity[0] = _input_setpoint.velocity[1] = 0.f;
+		_input_setpoint.acceleration[2] = DOWNWARDS;
+		EXPECT_TRUE(runController());
+	}
+
+	static constexpr float STEADY_THRUST = 0.2f;
+	static constexpr float HOVER_THRUST = 0.3f;
+	static constexpr float DOWNWARDS = 0.3f;
+	static constexpr float DESCENT_THRUST = STEADY_THRUST * (1.f - DOWNWARDS / CONSTANTS_ONE_G);
+};
+
+// WHY: the emergency descent took the hover thrust for the truth, and a vehicle that needs less than that climbed.
+TEST_F(PositionControlOpenLoopDescentTest, UsesTheThrustThatHeldTheVehicleSteady)
+{
+	hoverOnTheIntegrator();
+	loseVerticalVelocityAndDescend();
+	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -DESCENT_THRUST);
+}
+
+// WHY: a vehicle that needs more than the hover thrust already goes down, and must behave as it did.
+TEST_F(PositionControlOpenLoopDescentTest, KeepsAHoverThrustBelowTheSteadyThrust)
+{
+	_position_control.setHoverThrust(HOVER_THRUST + 0.1f);
+	Vector3f(0.f, 0.f, 0.f).copyTo(_input_setpoint.velocity);
+	EXPECT_TRUE(runController());
+	_position_control.updateHoverThrust(HOVER_THRUST);
+	EXPECT_TRUE(runController());
+	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -(HOVER_THRUST + 0.1f));
+
+	loseVerticalVelocityAndDescend();
+	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -HOVER_THRUST * (1.f - DOWNWARDS / CONSTANTS_ONE_G));
+}
+
+// WHY: thrust during a climb also pays for drag, and a descent based on that would keep climbing.
+TEST_F(PositionControlOpenLoopDescentTest, IgnoresTheThrustOfAClimb)
+{
+	hoverOnTheIntegrator();
+
+	PositionControlStates climbing{};
+	climbing.velocity(2) = -1.f;
+	_position_control.setState(climbing);
+	Vector3f(0.f, 0.f, -1.f).copyTo(_input_setpoint.velocity);
+	_input_setpoint.acceleration[2] = -5.f;
+	EXPECT_TRUE(runController());
+	EXPECT_LT(_output_setpoint.thrust[2], -STEADY_THRUST);
+
+	loseVerticalVelocityAndDescend();
+	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -DESCENT_THRUST);
+}
+
+// WHY: the idle thrust before takeoff is steady too, and it holds nothing up.
+TEST_F(PositionControlOpenLoopDescentTest, IgnoresSaturatedThrust)
+{
+	_position_control.setHoverThrust(HOVER_THRUST);
+	Vector3f(0.f, 0.f, 0.f).copyTo(_input_setpoint.velocity);
+	_input_setpoint.acceleration[2] = 100.f;
+	EXPECT_TRUE(runController());
+	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -0.1f);
+
+	loseVerticalVelocityAndDescend();
+	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -HOVER_THRUST * (1.f - DOWNWARDS / CONSTANTS_ONE_G));
+}
+
+// WHY: with no steady flight seen yet, the hover thrust is all there is.
+TEST_F(PositionControlOpenLoopDescentTest, FallsBackToTheHoverThrust)
+{
+	_position_control.setHoverThrust(HOVER_THRUST);
+	loseVerticalVelocityAndDescend();
+	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -HOVER_THRUST * (1.f - DOWNWARDS / CONSTANTS_ONE_G));
+}
+
+// WHY: a new flight must not start from the thrust of the last one.
+TEST_F(PositionControlOpenLoopDescentTest, ForgetsTheSteadyThrustOnReset)
+{
+	hoverOnTheIntegrator();
+	_position_control.resetIntegral();
+	loseVerticalVelocityAndDescend();
+	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -HOVER_THRUST * (1.f - DOWNWARDS / CONSTANTS_ONE_G));
+}
+
+// WHY: with a vertical velocity estimate the control loop corrects the thrust, and nothing changes.
+TEST_F(PositionControlOpenLoopDescentTest, DoesNotChangeClosedLoopControl)
+{
+	hoverOnTheIntegrator();
+	_position_control.resetIntegral();
+	_input_setpoint = PositionControl::empty_trajectory_setpoint;
+	_input_setpoint.velocity[0] = _input_setpoint.velocity[1] = 0.f;
+	_input_setpoint.acceleration[2] = DOWNWARDS;
+	EXPECT_TRUE(runController());
+	EXPECT_FLOAT_EQ(_output_setpoint.thrust[2], -HOVER_THRUST * (1.f - DOWNWARDS / CONSTANTS_ONE_G));
 }
 
 TEST_F(PositionControlBasicTest, IntegratorWindupWithInvalidSetpoint)
