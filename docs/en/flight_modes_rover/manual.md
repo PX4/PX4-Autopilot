@@ -27,7 +27,7 @@ The table assumes the RC channels are mapped as for a mode 2 transmitter (thrott
 | 4 (Mode 4)          | -                  | Drive left/right      | Forwards/backwards  | Turn left/right        |
 
 The tables on this page show the default mapping.
-The tank-style [Manual Parking mode](#manual-parking-mode) of differential and mecanum rovers is not affected.
+In the tank-style [Manual Parking mode](#manual-parking-mode) of differential and mecanum rovers only the left/right driving assignment applies.
 :::
 
 The manual modes provide progressively increasing levels of autopilot support for maintaining a course, speed, and rate of turn, compensating for external factors such as slopes or uneven terrain.
@@ -128,11 +128,11 @@ Pushing both sticks in the same direction drives straight, pushing them in oppos
 
 Ackermann vehicles are controlled in the same way as they are in manual mode, but with reduced throttle.
 
-| Rover Type   | Left stick up/down                          | Right stick up/down                        | Right stick left/right                     |
-| ------------ | ------------------------------------------- | ------------------------------------------ | ------------------------------------------ |
-| Ackermann    | Drive the rover forwards/backwards (slowly) | -                                          | Move the steering angle to the left/right. |
-| Differential | Drive the left motor forwards/backwards.    | Drive the right motor forwards/backwards.  | -                                          |
-| Mecanum      | Drive the left motors forwards/backwards.   | Drive the right motors forwards/backwards. | Drive the rover left/right (slowly).       |
+| Rover Type   | Left stick up/down                          | Left stick left/right                | Right stick up/down                        | Right stick left/right                     |
+| ------------ | ------------------------------------------- | ------------------------------------ | ------------------------------------------ | ------------------------------------------ |
+| Ackermann    | Drive the rover forwards/backwards (slowly) | -                                    | -                                          | Move the steering angle to the left/right. |
+| Differential | Drive the left motor forwards/backwards.    | -                                    | Drive the right motor forwards/backwards.  | -                                          |
+| Mecanum      | Drive the left motors forwards/backwards.   | Drive the rover left/right (slowly). | Drive the right motors forwards/backwards. | -                                          |
 
 ::: info
 This mode has to be assigned to a flight mode switch (see [Flight Mode Configuration](../config/flight_mode.md)) or selected via the ground station.

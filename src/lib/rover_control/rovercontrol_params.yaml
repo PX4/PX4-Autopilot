@@ -152,7 +152,7 @@ parameters:
       description:
         short: Stick mapping for the manual modes
         long: |
-          Selects which sticks drive the rover forwards/backwards, turn it and, for mecanum rovers, drive it sideways in Manual, Acro, Stabilized and Position mode. The options follow the RC transmitter modes 1-4, with the pitch stick driving forwards/backwards, the roll stick driving sideways and the yaw stick turning the rover. The stick positions assume the RC channels are mapped as for a mode 2 transmitter (throttle and yaw on the left stick). Ackermann and differential rovers ignore the sideways assignment. The tank-style Manual Parking mode of differential and mecanum rovers is not affected.
+          Selects which sticks drive the rover forwards/backwards, turn it and, for mecanum rovers, drive it sideways in Manual, Acro, Stabilized and Position mode. The options follow the RC transmitter modes 1-4, with the pitch stick driving forwards/backwards, the roll stick driving sideways and the yaw stick turning the rover. The stick positions assume the RC channels are mapped as for a mode 2 transmitter (throttle and yaw on the left stick). Ackermann and differential rovers ignore the sideways assignment. In the tank-style Manual Parking mode of differential and mecanum rovers only the sideways assignment applies.
       type: enum
       values:
         1: 'Mode 1: forward and turn on left stick, sideways on right stick'

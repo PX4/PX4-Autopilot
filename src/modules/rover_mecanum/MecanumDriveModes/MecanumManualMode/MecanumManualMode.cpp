@@ -74,11 +74,13 @@ void MecanumManualMode::manualParking()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
 
 	const float max_throttle = _param_ro_park_thr_max.get();
 	const float throttle_left = max_throttle * manual_control_setpoint.throttle;
 	const float throttle_right = max_throttle * manual_control_setpoint.pitch;
-	const float throttle_lateral = max_throttle * manual_control_setpoint.roll;
+	const float throttle_lateral = max_throttle * sticks.lateral;
 
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
