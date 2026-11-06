@@ -23,8 +23,8 @@ jobs:
       - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
 
-      - name: Install clang
-        run: apt-get update && apt-get install -y clang
+      - name: Install clang and lark
+        run: apt-get update && apt-get install -y clang python3-lark
 
       - uses: ./.github/actions/setup-ccache
         id: ccache
