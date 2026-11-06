@@ -665,9 +665,12 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 		}
 	}
 
+	// The preflight checks below are judged while disarmed, from flags that are recent (less than 5 seconds old)
+	const bool disarmed_with_recent_flags = !context.isArmed()
+						&& (hrt_absolute_time() - estimator_status_flags.timestamp < 5_s);
+
 	// Only require a heading reference when a global origin is set (i.e. global ops are intended)
-	if (!context.isArmed()
-	    && (hrt_absolute_time() - estimator_status_flags.timestamp < 5_s)
+	if (disarmed_with_recent_flags
 	    && !estimator_status_flags.cs_yaw_align
 	    && lpos.xy_global) {
 
@@ -686,6 +689,35 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no heading reference");
+		}
+	}
+
+	// A position that has lost its aiding stays valid for up to EKF2_NOAID_TOUT, long enough to arm and
+	// take off into the position failsafe. In the air the mode requirement flags cover it.
+	if (disarmed_with_recent_flags
+	    && estimator_status_flags.cs_inertial_dead_reckoning
+	    && lpos.xy_valid) {
+
+		const NavModes position_required_groups = (NavModes)(
+					reporter.failsafeFlags().mode_req_local_position |
+					reporter.failsafeFlags().mode_req_local_position_relaxed);
+
+		/* EVENT
+		 * @description
+		 * The estimator lost its horizontal position aiding, usually GNSS, and is dead reckoning. The position
+		 * is still reported valid but becomes invalid once the dead reckoning time runs out. Wait for the
+		 * aiding to come back.
+		 *
+		 * <profile name="dev">
+		 * The position stays valid for <param>EKF2_NOAID_TOUT</param> after the last horizontal aiding.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(position_required_groups, health_component_t::local_position_estimate,
+					    events::ID("check_estimator_position_aiding_lost"),
+					    events::Log::Error, "Position aiding lost");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: position aiding lost");
 		}
 	}
 }
