@@ -105,6 +105,7 @@ They are connected by an internal Ethernet switch and share a common power suppl
 | Input current (Vin = 9 V, loads on)   |       |      | 6.8    | A    |
 | Input power (loads off)               |       |      | 20     | W    |
 | Input power (loads on)                |       |      | 170    | W    |
+| Heater current                        |       | 1.1  |        | A    |
 | PWM output voltage                    | 0     |      | 5      | V    |
 | PWM output impedance                  |       | 150  |        | Ω    |
 | GPO voltage                           | 0     |      | 5      | V    |
@@ -319,16 +320,16 @@ See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for more informat
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device     | Port                        |
-| ------ | ---------- | --------------------------- |
-| USART1 | /dev/ttyS0 | GPS1 (RS-232)               |
-| USART2 | /dev/ttyS1 | TELEM3 (RS-232)             |
-| USART3 | /dev/ttyS2 | Debug console               |
-| UART4  | /dev/ttyS3 | TELEM4 (RS-232, `FREE-232`) |
-| UART5  | /dev/ttyS4 | TELEM2 (mission computer)   |
-| USART6 | /dev/ttyS5 | PX4IO                       |
-| UART7  | /dev/ttyS6 | TELEM1 (RS-422)             |
-| UART8  | /dev/ttyS7 | GPS2 (RS-422)               |
+| UART   | Device     | Port                                                    |
+| ------ | ---------- | ------------------------------------------------------- |
+| USART1 | /dev/ttyS0 | GPS1 (RS-232) or internal GPS, selected by `gps_sel_en` |
+| USART2 | /dev/ttyS1 | TELEM3 (RS-232)                                         |
+| USART3 | /dev/ttyS2 | Debug console                                           |
+| UART4  | /dev/ttyS3 | TELEM4 (RS-232, `FREE-232`)                             |
+| UART5  | /dev/ttyS4 | TELEM2 (mission computer)                               |
+| USART6 | /dev/ttyS5 | PX4IO                                                   |
+| UART7  | /dev/ttyS6 | TELEM1 (RS-422)                                         |
+| UART8  | /dev/ttyS7 | GPS2 (RS-422)                                           |
 
 ## Building Firmware {#building_firmware}
 
@@ -384,7 +385,9 @@ The Atlas has an internal u-blox MAX-M10S GPS, with its antenna connected to the
 The antenna bias voltage (3.3 V) is off by default: if you use an active antenna, enable it with the Wasp `gps_ant_en` parameter (see [GPS and CAN](#wasp_gps_can)).
 
 External GPS modules can be connected to `GPS1` (RS-232) or `GPS2` (RS-422) on `J1`.
-The Wasp `gps_sel_en` parameter selects whether the FMU GPS port is connected to the internal GPS (default) or an external GPS, and `pps_sel_en` does the same for the 1PPS signal.
+The internal GPS and `GPS1` share the FMU's `USART1` (`/dev/ttyS0`), and the Wasp `gps_sel_en` parameter selects which one is connected (the internal GPS by default).
+`GPS2` (`UART8`, `/dev/ttyS7`) is always external.
+The Wasp `pps_sel_en` parameter selects the 1PPS source in the same way.
 An external 1PPS signal (LVDS) can be connected to `GPS_PPS_P`/`N` on `J1`.
 
 The BMM350 magnetometer is inside the Atlas, on the FMU.
@@ -449,7 +452,7 @@ The outputs cannot be switched in flight: they are set once, when the Wasp start
 
 | Parameter             | Description                                                                      | Default |
 | --------------------- | -------------------------------------------------------------------------------- | ------- |
-| `gps_sel_en`          | FMU GPS port source: `0` internal GPS, `1` external GPS.                         | 0       |
+| `gps_sel_en`          | FMU `USART1` source: `0` internal GPS, `1` external GPS on `GPS1`.               | 0       |
 | `pps_sel_en`          | FMU 1PPS input source: `0` internal GPS, `1` external GPS.                       | 0       |
 | `gps_ant_en`          | Enables the bias voltage on the `J3` GPS antenna connector, for active antennas. | 0 (off) |
 | `can1_term_en`        | `CAN1` bus termination.                                                          | 1 (on)  |
