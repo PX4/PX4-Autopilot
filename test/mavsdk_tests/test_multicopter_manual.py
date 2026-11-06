@@ -36,26 +36,27 @@ def test_low_throttle_rtl_to_stabilized_is_rejected(tester: AutopilotTester) -> 
     tester.wait_until_hovering()
 
     # MAVSDK manual control is normalized from 0 (minimum) to 1 (maximum) throttle.
-    tester.send_manual_control_input(0.0, 0.0, 0.0, 0.0)
-    tester.sleep_for(0.2)
+    # Stream continuously so the rejection is caused by low throttle, not by manual-control loss.
+    with tester.manual_control_stream(0.0, 0.0, 0.0, 0.0) as set_manual_control:
+        tester.sleep_for(1.0)
 
-    tester.execute_rtl()
-    tester.wait_for_flight_mode(FlightMode.RETURN_TO_LAUNCH, 10)
+        tester.execute_rtl()
+        tester.wait_for_flight_mode(FlightMode.RETURN_TO_LAUNCH, 10)
 
-    tester.send_command_long(MAV_CMD_DO_SET_MODE,
-                             param1=MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
-                             param2=PX4_CUSTOM_MAIN_MODE_STABILIZED,
-                             expected_result=MAV_RESULT_TEMPORARILY_REJECTED)
-    tester.sleep_for(1.0)
-    tester.wait_for_flight_mode(FlightMode.RETURN_TO_LAUNCH, 1)
+        tester.send_command_long(MAV_CMD_DO_SET_MODE,
+                                 param1=MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+                                 param2=PX4_CUSTOM_MAIN_MODE_STABILIZED,
+                                 expected_result=MAV_RESULT_TEMPORARILY_REJECTED)
+        tester.sleep_for(1.0)
+        tester.wait_for_flight_mode(FlightMode.RETURN_TO_LAUNCH, 1)
 
-    # Centered manual throttle meets the configured threshold and allows the takeover.
-    tester.send_manual_control_input(0.0, 0.0, 0.5, 0.0)
-    tester.sleep_for(0.2)
-    tester.send_command_long(MAV_CMD_DO_SET_MODE,
-                             param1=MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
-                             param2=PX4_CUSTOM_MAIN_MODE_STABILIZED)
-    tester.wait_for_flight_mode(FlightMode.STABILIZED, 5)
+        # Centered manual throttle meets the configured threshold and allows the takeover.
+        set_manual_control(0.0, 0.0, 0.5, 0.0)
+        tester.sleep_for(1.0)
+        tester.send_command_long(MAV_CMD_DO_SET_MODE,
+                                 param1=MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+                                 param2=PX4_CUSTOM_MAIN_MODE_STABILIZED)
+        tester.wait_for_flight_mode(FlightMode.STABILIZED, 5)
 
-    tester.execute_land()
-    tester.wait_until_disarmed(90)
+        tester.execute_land()
+        tester.wait_until_disarmed(90)
