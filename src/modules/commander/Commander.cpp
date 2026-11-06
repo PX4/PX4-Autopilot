@@ -50,6 +50,7 @@
 #include "ModeUtil/conversions.hpp"
 #include <lib/modes/ui.hpp>
 #include <lib/modes/standard_modes.hpp>
+#include <lib/modes/flight_mode.hpp>
 
 /* PX4 headers */
 #include <drivers/drv_hrt.h>
@@ -603,6 +604,10 @@ int Commander::print_status()
 	PX4_INFO("prearm safety: %s", _safety.isSafetyOff() ? "Off" : "On");
 	PX4_INFO("navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state]);
 	PX4_INFO("user intended navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state_user_intention]);
+	PX4_INFO("RC mode switch: %s%s", (_tx_mode_slot_nav_state >= 0
+					   && _tx_mode_slot_nav_state < vehicle_status_s::NAVIGATION_STATE_MAX)
+					  ? mode_util::nav_state_names[_tx_mode_slot_nav_state] : "none",
+		 _tx_rtl_lockout ? " (guided/auto locked out)" : "");
 	PX4_INFO("in failsafe: %s", _failsafe.inFailsafe() ? "yes" : "no");
 	_mode_management.printStatus();
 	perf_print_counter(_loop_perf);
@@ -668,6 +673,18 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 {
 	if (isArmed()) {
 		return TRANSITION_NOT_CHANGED;
+	}
+
+	if (_tx_rtl_lockout) {
+		mavlink_log_critical(&_mavlink_log_pub, "Arming denied: RC mode switch on RTL\t");
+		/* EVENT
+		 * @description Arming was denied because the RC flight mode switch is on RTL.
+		 * Move the mode switch to Stabilized to re-enable arming and guided/auto modes.
+		 */
+		events::send(events::ID("commander_arm_denied_rc_mode_rtl"), {events::Log::Critical, events::LogInternal::Info},
+			     "Arming denied: RC mode switch on RTL");
+		tune_negative(true);
+		return TRANSITION_DENIED;
 	}
 
 	if (_vehicle_status.calibration_enabled
@@ -833,6 +850,15 @@ Commander::Commander() :
 	param_t param_mav_sys_id = param_find("MAV_SYS_ID");
 	_param_mav_type = param_find("MAV_TYPE");
 	_param_rc_map_fltmode = param_find("RC_MAP_FLTMODE");
+
+	static constexpr const char *fltmode_param_names[] = {
+		"COM_FLTMODE1", "COM_FLTMODE2", "COM_FLTMODE3",
+		"COM_FLTMODE4", "COM_FLTMODE5", "COM_FLTMODE6"
+	};
+
+	for (int i = 0; i < 6; ++i) {
+		_param_fltmode[i] = param_find(fltmode_param_names[i]);
+	}
 
 	int32_t value_int32 = 0;
 
@@ -2070,6 +2096,8 @@ void Commander::run()
 
 		manualControlLossModeSwitch();
 
+		updateRcFlightModeLockout();
+
 		offboardControlCheck();
 
 		// data link checks which update the status
@@ -3220,6 +3248,40 @@ void Commander::manualControlLossModeSwitch()
 	}
 
 	_manual_control_lost_prev = manual_control_lost;
+}
+
+void Commander::updateRcFlightModeLockout()
+{
+	manual_control_switches_s switches;
+
+	if (_manual_control_switches_sub.update(&switches)) {
+		int8_t nav_state = -1;
+
+		if (switches.mode_slot >= manual_control_switches_s::MODE_SLOT_1
+		    && switches.mode_slot <= manual_control_switches_s::MODE_SLOT_6) {
+			int32_t param_value = -1;
+			const param_t param = _param_fltmode[switches.mode_slot - 1];
+
+			if (param != PARAM_INVALID) {
+				param_get(param, &param_value);
+			}
+
+			nav_state = mode_util::navStateFromFlightModeParam(param_value);
+		}
+
+		if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+			// Latch: once the TX selects RTL, guided/auto modes and arming stay
+			// locked out until the switch is moved to Stabilized.
+			_tx_rtl_lockout = true;
+
+		} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_STAB) {
+			_tx_rtl_lockout = false;
+		}
+
+		_tx_mode_slot_nav_state = nav_state;
+	}
+
+	_user_mode_intention.setModeChangeLockout(_tx_rtl_lockout);
 }
 
 void Commander::offboardControlCheck()
