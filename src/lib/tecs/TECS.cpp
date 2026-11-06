@@ -269,9 +269,10 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 TECSControl::SpecificEnergyRates TECSControl::_updateOuterLoops(const Setpoint &setpoint, const Input &input,
 		const STERateLimit &limit, const Param &param, const Flag &flag)
 {
-	const SpecificEnergyRates specific_energy_rate{_calcEnergyModeRates(setpoint, input, limit, param, flag)};
-
+	// First, as the airspeed demand limits depend on it
 	_detectUnderspeed(input, param, flag);
+
+	const SpecificEnergyRates specific_energy_rate{_calcEnergyModeRates(setpoint, input, limit, param, flag)};
 
 	// The altitude and airspeed rates the energy rate setpoints demand
 	_debug_output.altitude_rate_control = specific_energy_rate.spe_rate.setpoint / CONSTANTS_ONE_G;
@@ -343,8 +344,7 @@ TECSControl::SpecificEnergyRates TECSControl::_calcEnergyModeRates(const Setpoin
 		const float e_ske = kAirspeedLinearKineticError
 				    ? tas * (setpoint.tas_setpoint - tas)
 				    : 0.5f * (setpoint.tas_setpoint * setpoint.tas_setpoint - tas * tas);
-		// As the airspeed loop today: leave 50% of the total energy rate limits to altitude, less in fast descend
-		const float limit_share = param.fast_descend * 0.5f + 0.5f;
+		const float limit_share = _airspeedShareOfEnergyRateLimits(param);
 		e_ske_over_tau_v = constrain(e_ske * airspeed_error_gain, limit_share * limit.STE_rate_min,
 					     limit_share * limit.STE_rate_max);
 	}
@@ -358,6 +358,13 @@ TECSControl::SpecificEnergyRates TECSControl::_calcEnergyModeRates(const Setpoin
 	specific_energy_rates.ske_rate.estimate = input.tas * input.tas_rate;
 
 	return specific_energy_rates;
+}
+
+float TECSControl::_airspeedShareOfEnergyRateLimits(const Param &param) const
+{
+	// Normally half of the total energy rate limits, leaving the other half to altitude. Fast descend and underspeed
+	// recovery give airspeed priority: the airspeed may then use all of it.
+	return 0.5f + 0.5f * constrain(max(param.fast_descend, _ratio_undersped), 0.f, 1.f);
 }
 
 void TECSControl::_detectUnderspeed(const Input &input, const Param &param, const Flag &flag)

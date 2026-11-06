@@ -513,6 +513,13 @@ private:
 	SpecificEnergyRates _calcEnergyModeRates(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
 			const Param &param, const Flag &flag) const;
 	/**
+	 * @brief Share of the total energy rate limits the airspeed demand may use.
+	 *
+	 * @param param is the control parameters.
+	 * @return share [0.5, 1]: half nominally, all in fast descend and underspeed recovery.
+	 */
+	float _airspeedShareOfEnergyRateLimits(const Param &param) const;
+	/**
 	 * @brief Detect underspeed.
 	 *
 	 * @param input is the current input measurement of the UAS.
