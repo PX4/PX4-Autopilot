@@ -88,6 +88,10 @@
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+#include "mavlink_can_forward.h"
+#endif
+
 #define DEFAULT_BAUD_RATE       57600
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
 
@@ -503,6 +507,18 @@ public:
 		_mavlink_ulog = MavlinkULog::try_start(_datarate, 0.7f, target_system, target_component);
 	}
 
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+	/** CAN forwarding state of this instance, created on first use. Only called by the receiver thread. */
+	MavlinkCanForward	*get_can_forward()
+	{
+		if (_can_forward.load() == nullptr) {
+			_can_forward.store(new MavlinkCanForward());
+		}
+
+		return _can_forward.load();
+	}
+#endif
+
 	const events::SendProtocol &get_events_protocol() const { return _events; };
 	bool ftp_enabled() const { return _ftp_on; }
 
@@ -655,6 +671,9 @@ private:
 	px4::atomic<MavlinkShell *>	_mavlink_shell{nullptr}; ///< written under _mavlink_shell_mutex, by the receiver thread and, once it has stopped, by the task; atomic for the unlocked fast check in handleMavlinkShellOutput()
 	pthread_mutex_t		_mavlink_shell_mutex{};
 	MavlinkULog		*_mavlink_ulog{nullptr};
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+	px4::atomic<MavlinkCanForward *> _can_forward {nullptr}; ///< created by the receiver thread, deleted by the task once both stopped
+#endif
 	static events::EventBuffer	*_event_buffer;
 	events::SendProtocol		_events{*_event_buffer, *this};
 
@@ -827,6 +846,8 @@ private:
 	void handleMavlinkShellOutput();
 
 	void handleSerialPassthroughOutput();
+
+	void handleCanForwardOutput();
 
 	/**
 	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID

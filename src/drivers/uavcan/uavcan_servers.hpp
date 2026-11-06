@@ -79,7 +79,7 @@ public:
 
 	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
 
-	void setArmed(bool armed) { _fw_version_checker.setArmed(armed); }
+	void setSuppressed(bool suppressed) { _fw_version_checker.setSuppressed(suppressed); }
 
 	bool hasPendingFirmwareUpdates() const
 	{

@@ -275,6 +275,15 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_tunnel(msg);
 		break;
 
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+
+	case MAVLINK_MSG_ID_CAN_FRAME:
+	case MAVLINK_MSG_ID_CANFD_FRAME:
+	case MAVLINK_MSG_ID_CAN_FILTER_MODIFY:
+		handle_message_can_forward(msg);
+		break;
+#endif
+
 	case MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS:
 		handle_message_onboard_computer_status(msg);
 		break;
@@ -927,6 +936,19 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 				_mavlink.try_start_ulog_streaming(msg->sysid, msg->compid);
 			}
 		}
+
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+
+		if (vehicle_command.command == MAV_CMD_CAN_FORWARD) {
+			// the uavcan driver handles and acks it; the ack binds forwarding to this instance
+			MavlinkCanForward *can_forward = _mavlink.get_can_forward();
+
+			if (can_forward) {
+				can_forward->handleCommand(msg->sysid, msg->compid, vehicle_command.param1);
+			}
+		}
+
+#endif
 
 		if (!send_ack) {
 			_cmd_pub.publish(vehicle_command);
@@ -2312,6 +2334,29 @@ MavlinkReceiver::handle_message_obstacle_distance(mavlink_message_t *msg)
 
 	_obstacle_distance_pub.publish(obstacle_distance);
 }
+
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+void
+MavlinkReceiver::handle_message_can_forward(mavlink_message_t *msg)
+{
+	// all three messages start with target_system, target_component
+	const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
+	const uint32_t target_system = mavlink_msg_get_target_sysid(msg, meta);
+	const int target_component = mavlink_msg_get_target_compid(msg, meta);
+
+	// frames for another vehicle on the same link must not end up on this vehicle's bus
+	if (!evaluate_target_ok(0, target_system, target_component)) {
+		return;
+	}
+
+	MavlinkCanForward *can_forward = _mavlink.get_can_forward();
+
+	if (can_forward) {
+		can_forward->handleMessage(*msg);
+		_can_forward_frames_received = true;
+	}
+}
+#endif
 
 void
 MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
@@ -4170,6 +4215,16 @@ MavlinkReceiver::run()
 						_mavlink.forward_if_enabled(&msg);
 					}
 				}
+
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+
+				// CAN frames are published in batches, one per receive buffer at most
+				if (_can_forward_frames_received) {
+					_can_forward_frames_received = false;
+					_mavlink.get_can_forward()->flushToBus(hrt_absolute_time());
+				}
+
+#endif
 
 				/* count received bytes (nread will be -1 on read error) */
 				if (nread > 0) {

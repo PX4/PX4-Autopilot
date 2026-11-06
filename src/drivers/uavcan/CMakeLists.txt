@@ -129,6 +129,11 @@ if(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
 	set(remoteid_srcs remoteid.cpp remoteid.hpp)
 endif()
 
+if(CONFIG_UAVCAN_CAN_FORWARD)
+	set(can_forward_srcs can_forwarder.cpp can_forwarder.hpp)
+	set(can_forward_lib can_forward)
+endif()
+
 px4_add_module(
 	MODULE drivers__uavcan
 	MAIN uavcan
@@ -148,6 +153,7 @@ px4_add_module(
 		beep.cpp
 		beep.hpp
 		${remoteid_srcs}
+		${can_forward_srcs}
 		rgbled.cpp
 		rgbled.hpp
 		safety_state.cpp
@@ -206,6 +212,7 @@ px4_add_module(
 		uavcan
 
 		failure_injection
+		${can_forward_lib}
 	)
 
 if(CONFIG_UAVCAN_REMOTEID_CONTROLLER)

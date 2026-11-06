@@ -83,6 +83,10 @@
 
 #include "sensors/sensor_bridge.hpp"
 #include "uavcan_driver.hpp"
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+#include "can_forwarder.hpp"
+#endif
 #include "uavcan_servers.hpp"
 
 #include <lib/drivers/device/Device.hpp>
@@ -400,6 +404,12 @@ private:
 	bool are_node_params_dirty(uint8_t node_id) const { return bool((_param_dirty_bitmap[node_id >> 5] >> (node_id & 31)) & 1); }
 
 	bool _check_fw{false};
+	bool _armed_or_prearmed{false};
 
 	UavcanServers   *_servers{nullptr};
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	CanForwarder _can_forwarder {this};
+	bool _can_forward_active_last{false};
+#endif
 };

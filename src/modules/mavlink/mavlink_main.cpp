@@ -632,6 +632,17 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		return;
 	}
 
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+
+	// CAN frames for this vehicle are handled here, a companion on a forwarding link must not get them
+	if ((msg->msgid == MAVLINK_MSG_ID_CAN_FRAME || msg->msgid == MAVLINK_MSG_ID_CANFD_FRAME
+	     || msg->msgid == MAVLINK_MSG_ID_CAN_FILTER_MODIFY)
+	    && target_is_us_or_broadcast(target_system_id, target_component_id)) {
+		return;
+	}
+
+#endif
+
 	// Avoid locking/iteration when there is no instance to forward to.
 	if (mavlink_instance_count.load() <= 1) {
 		return;
@@ -2911,6 +2922,7 @@ Mavlink::task_main(int argc, char *argv[])
 		handleAndGetCurrentCommandAck();
 		handleMavlinkShellOutput();
 		handleSerialPassthroughOutput();
+		handleCanForwardOutput();
 
 		check_requested_subscriptions();
 
@@ -3061,6 +3073,12 @@ Mavlink::task_main(int argc, char *argv[])
 		_mavlink_ulog = nullptr;
 	}
 
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+	// the receiver thread has stopped, nothing else uses it
+	delete _can_forward.load();
+	_can_forward.store(nullptr);
+#endif
+
 	pthread_mutex_destroy(&_mavlink_shell_mutex);
 	pthread_mutex_destroy(&_radio_status_mutex);
 	pthread_mutex_destroy(&_message_buffer_mutex);
@@ -3134,6 +3152,42 @@ void Mavlink::handleSerialPassthroughOutput()
 			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
 		}
 	}
+
+#endif
+}
+
+void Mavlink::handleCanForwardOutput()
+{
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+	MavlinkCanForward *can_forward = _can_forward.load();
+
+	if (can_forward == nullptr) {
+		return;
+	}
+
+	class Sender : public MavlinkCanForward::Sender
+	{
+	public:
+		explicit Sender(Mavlink &mavlink) : _mavlink(mavlink) {}
+
+		unsigned freeTxBuf() override { return _mavlink.get_free_tx_buf(); }
+
+		void sendCanFrame(mavlink_can_frame_t &msg, uint32_t target_system) override
+		{
+			mavlink_msg_send_struct_target(_mavlink.get_channel(), CAN_FRAME, &msg, target_system);
+		}
+
+	private:
+		Mavlink &_mavlink;
+	};
+
+	Sender sender{*this};
+
+	lock_send();
+
+	can_forward->update(sender);
+
+	unlock_send();
 
 #endif
 }
@@ -3266,6 +3320,15 @@ void Mavlink::handleAndGetCurrentCommandAck()
 					PX4_ERR("vehicle_command_ack lost, generation %u -> %u", last_generation,
 						_vehicle_command_ack_sub.get_last_generation());
 				}
+
+#if defined(CONFIG_MAVLINK_UAVCAN_CAN_FORWARD)
+
+				// binds CAN forwarding to the instance the request came in on
+				if (command_ack.command == vehicle_command_s::VEHICLE_CMD_CAN_FORWARD && _can_forward.load()) {
+					_can_forward.load()->handleAck(command_ack);
+				}
+
+#endif
 
 				const bool is_target_known = _receiver.component_was_seen(command_ack.target_system, command_ack.target_component);
 

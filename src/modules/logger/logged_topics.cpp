@@ -312,6 +312,10 @@ void LoggedTopics::add_default_topics()
 #ifdef CONFIG_BOARD_UAVCAN_INTERFACES
 	add_topic_multi("can_interface_status", 100, CONFIG_BOARD_UAVCAN_INTERFACES);
 #endif
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	add_topic("can_forward_status");
+#endif
 }
 
 void LoggedTopics::add_high_rate_topics()

@@ -76,6 +76,11 @@ UavcanNode *UavcanNode::_instance;
 
 static UavcanNode::CanInitHelper *can = nullptr;
 
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+// wraps can->driver for MAVLink CAN forwarding, lives as long as can
+static can_forward::ForwardingCanDriver *can_forward_driver = nullptr;
+#endif
+
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id, uint32_t bitrate) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
@@ -439,15 +444,36 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	}
 
+	uavcan::ICanDriver *node_driver = &can->driver;
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+
+	if (can_forward_driver == nullptr) {
+		can_forward_driver = new can_forward::ForwardingCanDriver(can->driver, UAVCAN_DRIVER::SystemClock::instance());
+	}
+
+	if (can_forward_driver != nullptr) {
+		node_driver = can_forward_driver;
+
+	} else {
+		PX4_ERR("CAN forwarding: out of memory");
+	}
+
+#endif
+
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance(), node_id, bitrate);
+	_instance = new UavcanNode(*node_driver, UAVCAN_DRIVER::SystemClock::instance(), node_id, bitrate);
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
 		return -1;
 	}
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	_instance->_can_forwarder.init(can_forward_driver);
+#endif
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
 
@@ -805,11 +831,34 @@ UavcanNode::Run()
 		_node_info_retriever.invalidateAll();
 	}
 
-	// propagate armed state to firmware version checker
-	if (_actuator_armed_sub.updated() && _servers != nullptr) {
-		actuator_armed_s actuator_armed{};
-		_actuator_armed_sub.copy(&actuator_armed);
-		_servers->setArmed(actuator_armed.armed || actuator_armed.prearmed);
+	// the only reader of actuator_armed, all users take the state from here
+	actuator_armed_s actuator_armed;
+
+	if (_actuator_armed_sub.update(&actuator_armed)) {
+		_armed_or_prearmed = actuator_armed.armed || actuator_armed.prearmed;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+	bool can_forward_active = false;
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+
+	if (_node.isStarted()) {
+		_can_forwarder.update(now, _armed_or_prearmed, _node.getNodeID().get(), _node.getDispatcher().getCanIOManager());
+		can_forward_active = _can_forwarder.sessionActive();
+	}
+
+	if (!can_forward_active && _can_forward_active_last) {
+		// nodes declined while a GCS was forwarding are offered an update again
+		_check_fw = true;
+	}
+
+	_can_forward_active_last = can_forward_active;
+#endif
+
+	// no firmware update of our own while armed or while a GCS may be updating a node itself
+	if (_servers != nullptr) {
+		_servers->setSuppressed(_armed_or_prearmed || can_forward_active);
 	}
 
 	if (_servers != nullptr) {
@@ -825,6 +874,10 @@ UavcanNode::Run()
 #endif
 
 	_node.spinOnce(); // expected to be non-blocking
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	_can_forwarder.publish(now);
+#endif
 
 	apply_can_failure_injection();
 
@@ -1065,6 +1118,11 @@ UavcanNode::Run()
 	pthread_mutex_unlock(&_node_mutex);
 
 	if (_task_should_exit.load()) {
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+		// before ScheduleClear(): a callback in between would queue another Run()
+		_can_forwarder.deinit();
+#endif
 
 #if defined(UAVCAN_SOCKETCAN_NUTTX)
 		// Left bound, the sockets keep queueing received frames into the IOB pool the IP stack
@@ -1336,7 +1394,8 @@ UavcanNode::print_info()
 	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
 		printf("CAN%u status:\n", unsigned(i + 1));
 
-		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
+		// the platform driver, not the driver the node uses: that may be the CAN forwarding decorator
+		uavcan::ICanIface *iface = can->driver.getIface(i);
 
 		if (iface) {
 #if defined(UAVCAN_SOCKETCAN_NUTTX)
@@ -1397,6 +1456,11 @@ UavcanNode::print_info()
 		br->print_status();
 		printf("\n");
 	}
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	_can_forwarder.printStatus();
+	printf("\n");
+#endif
 
 	// Printing all nodes that are online
 	printf("Online nodes (Node ID, Health, Mode):\n");

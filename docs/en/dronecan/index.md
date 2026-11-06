@@ -373,6 +373,32 @@ The `upload_skynode.sh` script with multiple `--ext-fw` flags is used to bundle 
 Another tool then checks which files were already uploaded using a local database and extracts just the relevant files to the PX4 firmware staging area.
 :::
 
+### Update over MAVLink (DroneCAN over MAVLink)
+
+A ground station can reach the DroneCAN bus through the flight controller's MAVLink link, without a separate CAN adapter.
+PX4 forwards CAN frames between one CAN bus and the requesting ground station using the MAVLink [MAV_CMD_CAN_FORWARD](https://mavlink.io/en/messages/common.html#MAV_CMD_CAN_FORWARD), [CAN_FRAME](https://mavlink.io/en/messages/common.html#CAN_FRAME) and [CAN_FILTER_MODIFY](https://mavlink.io/en/messages/common.html#CAN_FILTER_MODIFY) messages.
+This is the same protocol that ArduPilot uses, so existing tools work unchanged:
+
+- [DroneCAN GUI Tool](https://dronecan.github.io/GUI_Tool/Overview/): select the `mavcan:` interface (for example `mavcan:/dev/ttyACM0` or `mavcan:udpin:0.0.0.0:14550`) and the CAN bus.
+- _Mission Planner_: on the DroneCAN/UAVCAN setup page, use the MAVLink CAN interface for the bus.
+
+With these tools you can list the nodes on the bus, change their parameters and update their firmware.
+The ground station serves the firmware file itself, so no SD card is needed.
+
+Notes:
+
+- Frames from the ground station are only sent on the CAN bus while the vehicle is disarmed and not prearmed.
+  While armed or prearmed the ground station can still see the bus traffic, but nothing is sent.
+  With [COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) set to `Always` nothing can be sent at all.
+- Forwarding stops 5 seconds after the ground station's last `MAV_CMD_CAN_FORWARD` (the tools resend it every second).
+- While a ground station forwards CAN frames PX4 does not start firmware updates of its own (with `UAVCAN_ENABLE` = 3).
+- The ground station appears on the bus as a DroneCAN node (usually node ID 127).
+- Only classic CAN frames are supported.
+- `uavcan status` shows the forwarding state and frame counters.
+  The `can_forward_status` topic is logged.
+
+The feature is part of the `uavcan` driver (`CONFIG_UAVCAN_CAN_FORWARD`, `CONFIG_MAVLINK_UAVCAN_CAN_FORWARD`) and is not included on boards with constrained flash.
+
 ## Troubleshooting
 
 **Q**: My DroneCAN devices aren't working.

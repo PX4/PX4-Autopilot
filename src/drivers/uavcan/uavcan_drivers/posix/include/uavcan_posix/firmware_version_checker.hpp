@@ -58,11 +58,11 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 	};
 
 	// Dynamic allocation is acceptable here: firmware updates only occur before arming
-	// (shouldRequestFirmwareUpdate returns false when armed), so nodes are added and
+	// (shouldRequestFirmwareUpdate returns false when suppressed), so nodes are added and
 	// removed only during the pre-arm phase. The list is cleared in the destructor.
 	List<UpdatingNode *> _updating_nodes;
 
-	bool _armed = false;
+	bool _suppressed = false; ///< armed or prearmed, or a GCS forwards CAN frames and may update nodes itself
 
 	BasePathString base_path_;
 	BasePathString alt_base_path_;
@@ -113,7 +113,7 @@ protected:
 	{
 		using namespace std;
 
-		if (_armed) {
+		if (_suppressed) {
 			return false;
 		}
 
@@ -304,7 +304,7 @@ out_close:
 
 	const BasePathString &getFirmwareAltBasePath() const { return alt_base_path_; }
 
-	void setArmed(bool armed) { _armed = armed; }
+	void setSuppressed(bool suppressed) { _suppressed = suppressed; }
 
 	~FirmwareVersionChecker()
 	{

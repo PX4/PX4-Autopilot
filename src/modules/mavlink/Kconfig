@@ -18,6 +18,14 @@ depends on MODULES_MAVLINK && DRIVERS_UAVCAN
 	---help---
 		Expose UAVCAN parameters over Mavlink.
 
+menuconfig MAVLINK_UAVCAN_CAN_FORWARD
+depends on MODULES_MAVLINK && UAVCAN_CAN_FORWARD
+        bool "Mavlink CAN forwarding (DroneCAN over MAVLink)"
+        default y
+	---help---
+		Handle MAV_CMD_CAN_FORWARD, CAN_FRAME and CAN_FILTER_MODIFY, so a GCS can
+		reach the DroneCAN bus through the autopilot, e.g. to update node firmware.
+
 menuconfig USER_MAVLINK
 	bool "mavlink running as userspace module"
 	default y
