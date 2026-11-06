@@ -1383,7 +1383,8 @@ float Navigator::get_default_acceptance_radius() const
 
 float Navigator::get_altitude_acceptance_radius()
 {
-	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	// The fixed-wing controller also flies a front transition.
+	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || get_vstatus()->in_transition_to_fw) {
 
 		const position_setpoint_s &curr_sp = get_position_setpoint_triplet()->current;
 		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
