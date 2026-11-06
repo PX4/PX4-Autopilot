@@ -838,13 +838,12 @@ UavcanNode::Run()
 		_armed_or_prearmed = actuator_armed.armed || actuator_armed.prearmed;
 	}
 
-	const hrt_abstime now = hrt_absolute_time();
 	bool can_forward_active = false;
 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
 
 	if (_node.isStarted()) {
-		_can_forwarder.update(now, _armed_or_prearmed, _node.getNodeID().get(), _node.getDispatcher().getCanIOManager());
+		_can_forwarder.update(hrt_absolute_time(), _armed_or_prearmed, _node.getNodeID().get(), _node.getDispatcher().getCanIOManager());
 		can_forward_active = _can_forwarder.sessionActive();
 	}
 
@@ -876,7 +875,7 @@ UavcanNode::Run()
 	_node.spinOnce(); // expected to be non-blocking
 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
-	_can_forwarder.publish(now);
+	_can_forwarder.publish(hrt_absolute_time());
 #endif
 
 	apply_can_failure_injection();
