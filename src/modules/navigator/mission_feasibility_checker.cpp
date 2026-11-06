@@ -77,16 +77,14 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 	bool failed = false;
 
 	for (size_t i = 0; i < mission.count; i++) {
-		static mission_item_s missionitem; // off the stack, fully written by a successful read
-
-		if (!readSyncMissionItem(mission, i, missionitem)) {
+		if (!readSyncMissionItem(mission, i, _checked_item)) {
 			_navigator->get_mission_result()->warning = true;
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			logDatamanReadFailure(i, mission.mission_dataman_id);
 			return false;
 		}
 
-		if (!_feasibility_checker.processNextItem(missionitem, i, mission.count)) {
+		if (!_feasibility_checker.processNextItem(_checked_item, i, mission.count)) {
 			failed = true;
 			break;
 		}
@@ -214,7 +212,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			have_previous_position = true;
 		}
 
-		if (!addGeofencePath(batch, previous_position, position, 0.f, i)) {
+		if (!addGeofencePath(batch, previous_position, position, i)) {
 			return false;
 		}
 
@@ -232,7 +230,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		if (missionitem.nav_cmd == NAV_CMD_LOITER_UNLIMITED || missionitem.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT
 		    || missionitem.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
 			// Keep the circle after its incoming leg so the first breach is reported in mission order.
-			if (!addGeofencePath(batch, position, position, radius, i)) {
+			if (!addGeofencePath(batch, position, position, i, radius)) {
 				return false;
 			}
 
@@ -248,7 +246,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 
 	// A NaN radius stays pending so the path check rejects it.
 	if (failure == Failure::None && !(end_loiter_radius <= 0.f)
-	    && !addGeofencePath(batch, previous_position, previous_position, end_loiter_radius, end_loiter_item)) {
+	    && !addGeofencePath(batch, previous_position, previous_position, end_loiter_item, end_loiter_radius)) {
 		return false;
 	}
 
@@ -303,19 +301,13 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 	}
 
 	// Bound memory and reads so branching jump chains or loops cannot stall validation.
-	static constexpr size_t kMaxJumpBranches = 16;
-	struct Branch {
-		uint16_t index; // validated target or fallthrough, at most mission.count
-		uint16_t consecutive_jumps;
-	};
-	static Branch pending[kMaxJumpBranches]; // off the stack like the batch; every slot is written before it is read
 	size_t pending_count = 1;
-	pending[0] = {static_cast<uint16_t>(jump_item.do_jump_mission_index), 1};
+	_pending_branches[0] = {static_cast<uint16_t>(jump_item.do_jump_mission_index), 1};
 	size_t items_read = 0;
 	const size_t read_limit = static_cast<size_t>(mission.count) * kMaxJumpBranches;
 
 	while (pending_count > 0) {
-		const Branch branch = pending[--pending_count];
+		const JumpBranch branch = _pending_branches[--pending_count];
 		int32_t index = branch.index;
 		uint16_t consecutive_jumps = branch.consecutive_jumps;
 
@@ -324,9 +316,7 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 				return rejectGeofenceJump(batch, jump_index);
 			}
 
-			static mission_item_s candidate; // off the stack, fully written by a successful read
-
-			if (!readSyncMissionItem(mission, index, candidate)) {
+			if (!readSyncMissionItem(mission, index, _jump_candidate)) {
 				if (checkGeofencePathBatch(batch)) {
 					logDatamanReadFailure(index, mission.mission_dataman_id);
 				}
@@ -334,18 +324,18 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 				return false;
 			}
 
-			if (candidate.nav_cmd == NAV_CMD_DO_JUMP) {
+			if (_jump_candidate.nav_cmd == NAV_CMD_DO_JUMP) {
 				// getNonJumpItem() gives up after this many jump reads without a non-jump item.
 				if (++consecutive_jumps >= NAV_MAX_JUMP_ITERATION) {
 					return rejectGeofenceJump(batch, jump_index);
 				}
 
-				if (!in_range(candidate.do_jump_mission_index)) {
+				if (!in_range(_jump_candidate.do_jump_mission_index)) {
 					return rejectGeofenceJump(batch, index);
 				}
 
 				// Zero configured repeats always fall through; a target at the next item follows the same path.
-				if (candidate.do_jump_repeat_count == 0 || candidate.do_jump_mission_index == index + 1) {
+				if (_jump_candidate.do_jump_repeat_count == 0 || _jump_candidate.do_jump_mission_index == index + 1) {
 					++index;
 					continue;
 				}
@@ -355,17 +345,18 @@ bool MissionFeasibilityChecker::checkJumpDestinations(const mission_s &mission, 
 				}
 
 				// Check the active target first, then its exhausted fallthrough from the same source.
-				pending[pending_count++] = {static_cast<uint16_t>(index + 1), consecutive_jumps};
-				index = candidate.do_jump_mission_index;
+				_pending_branches[pending_count++] = {static_cast<uint16_t>(index + 1), consecutive_jumps};
+				index = _jump_candidate.do_jump_mission_index;
 				continue;
 			}
 
 			// A non-jump item completes one resolution; the next one starts a new count.
 			consecutive_jumps = 0;
 
-			if (mission_item_contains_position(candidate)) {
+			if (mission_item_contains_position(_jump_candidate)) {
 				if (previous_position
-				    && !addGeofencePath(batch, *previous_position, {candidate.lat, candidate.lon}, 0.f, jump_index, true)) {
+				    && !addGeofencePath(batch, *previous_position, {_jump_candidate.lat, _jump_candidate.lon}, jump_index,
+							0.f, true)) {
 					return false;
 				}
 
@@ -390,7 +381,7 @@ bool MissionFeasibilityChecker::rejectGeofenceJump(GeofencePathBatch &batch, siz
 }
 
 bool MissionFeasibilityChecker::addGeofencePath(GeofencePathBatch &batch, const matrix::Vector2d &start,
-		const matrix::Vector2d &end, float end_radius, size_t mission_index, bool is_jump)
+		const matrix::Vector2d &end, size_t mission_index, float end_radius, bool is_jump)
 {
 	// Fill the slot in place, a PathCheck temporary would stay on the stack of the nested callers.
 	Geofence::PathCheck &path = batch.paths[batch.count];
@@ -453,7 +444,8 @@ void MissionFeasibilityChecker::logGeofencePathBreach(const GeofencePathBatch &b
 	}
 }
 
-// Keep out of rejectGeofenceJump() for the same reason.
+// Keep out of rejectGeofenceJump(): inlined, the event buffers would stay
+// on its stack while it flushes the path batch.
 void MissionFeasibilityChecker::logUnresolvedJump(size_t jump_index)
 {
 	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: DO_JUMP %zu path cannot be resolved\t",
