@@ -1,0 +1,7 @@
+menuconfig DRIVERS_IMU_TDK_ICM42670P
+	bool "TDK ICM42670P SPI driver"
+	depends on !DRIVERS_IMU_INVENSENSE_ICM42670P
+	default n
+	help
+	  Independent ICM42670P SPI accelerometer and gyroscope acquisition.
+	  Disable the original same-named product driver before selecting this driver.
