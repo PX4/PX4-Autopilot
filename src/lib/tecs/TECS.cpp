@@ -49,6 +49,22 @@ using math::min;
 static constexpr bool isValidTimeStep(float dt) { return (PX4_ISFINITE(dt) && dt > FLT_EPSILON);}
 static constexpr bool fastDescendFullyEngaged(float fast_descend) { return 1.f - fast_descend < FLT_EPSILON; }
 
+// AlphaFilter keeps a single non-finite sample in its state for good, so the controller would not recover from a
+// single bad frame (e.g. a non-finite setpoint when exiting offboard velocity mode). Only take finite samples and hold
+// the state otherwise.
+static void updateIfFinite(AlphaFilter<float> &filter, float dt, float time_const, float sample)
+{
+	if (PX4_ISFINITE(sample)) {
+		filter.setParameters(dt, time_const);
+		filter.update(sample);
+	}
+}
+
+static void resetIfFinite(AlphaFilter<float> &filter, float sample, float fallback)
+{
+	filter.reset(PX4_ISFINITE(sample) ? sample : fallback);
+}
+
 void TECSAirspeedFilter::initialize(const float equivalent_airspeed, const float equivalent_airspeed_trim,
 				    const bool airspeed_sensor_available)
 {
@@ -233,9 +249,13 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 			  specific_energy_rate.spe_rate.setpoint + specific_energy_rate.ske_rate.setpoint, param);
 
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rate, param)};
-	_ste_rate_error_filter.reset(_getControlError(ste_rate));
+	resetIfFinite(_ste_rate_error_filter, _getControlError(ste_rate), 0.f);
 
 	_throttle_setpoint = _calcThrottleControlOutput(limit, ste_rate, param, flag);
+
+	if (!PX4_ISFINITE(_throttle_setpoint)) {
+		_throttle_setpoint = constrain(param.throttle_trim, param.throttle_min, param.throttle_max);
+	}
 
 	// Debug output
 	_debug_output.total_energy_rate_estimate = ste_rate.estimate;
@@ -576,8 +596,7 @@ void TECSControl::_calcThrottleControl(float dt, const STERateLimit &limit,
 
 	// Low-pass the energy rate error for the feedback; the feedforward acts on the unfiltered setpoint. Filtering
 	// the error rather than the estimate keeps a setpoint change from appearing as a lagged phantom error.
-	_ste_rate_error_filter.setParameters(dt, param.ste_rate_time_const);
-	_ste_rate_error_filter.update(_getControlError(ste_rate));
+	updateIfFinite(_ste_rate_error_filter, dt, param.ste_rate_time_const, _getControlError(ste_rate));
 
 	// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
 	float throttle_setpoint{param.throttle_min};
@@ -586,6 +605,11 @@ void TECSControl::_calcThrottleControl(float dt, const STERateLimit &limit,
 		_calcThrottleControlUpdate(dt, limit, ste_rate, param, flag);
 		throttle_setpoint = (1.f - param.fast_descend) * _calcThrottleControlOutput(limit, ste_rate, param,
 				    flag) + param.fast_descend * param.throttle_min;
+	}
+
+	// Hold the last throttle on a non-finite demand, e.g. from a non-finite setpoint for a single frame
+	if (!PX4_ISFINITE(throttle_setpoint)) {
+		throttle_setpoint = _throttle_setpoint;
 	}
 
 	// Rate limit the throttle demand
