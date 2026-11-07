@@ -209,6 +209,8 @@ public:
 
 	bool home_global_position_valid() { return (_home_pos.valid_alt && _home_pos.valid_hpos); }
 
+	bool local_position_valid() { return (_local_pos.xy_valid && _local_pos.z_valid); }
+
 	/**
 	 * Whether the fixed-wing mode manager has finished the climbout of the current takeoff.
 	 * Falls back to the given altitude when no takeoff is being flown.

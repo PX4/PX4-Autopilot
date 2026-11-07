@@ -444,6 +444,20 @@ int Commander::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[0], "takeoff_local")) {
+		// switch to takeoff mode and arm
+		uORB::SubscriptionData<vehicle_command_ack_s> vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL);
+
+		if (wait_for_vehicle_command_reply(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL, vehicle_command_ack_sub)) {
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+					     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
+					     0.f);
+		}
+
+		return 0;
+	}
+
 	if (!strcmp(argv[0], "land")) {
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_LAND);
 
@@ -1213,7 +1227,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
+	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF:
+	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL: {
 			/* ok, home set, use it to take off */
 			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, getSourceFromCommand(cmd))) {
 				// fixed-wing: course to continue on after the climbout, unless a takeoff position is set (as in Navigator)
@@ -2263,6 +2278,12 @@ void Commander::checkForMissionUpdate()
 								&& _user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE, ModeChangeSource::ModeExecutor);
 
 				if (!continue_on_course) {
+					if (!_health_and_arming_checks.canRun(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+						mavlink_log_critical(&_mavlink_log_pub, "Takeoff complete, Hold not available (no global position)\t");
+						events::send(events::ID("commander_takeoff_hold_unavailable"), {events::Log::Critical, events::LogInternal::Info},
+							     "Takeoff complete, but Hold is not available without a global position estimate");
+					}
+
 					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
 					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
 				}
@@ -2272,7 +2293,9 @@ void Commander::checkForMissionUpdate()
 
 				// However, only do so if there's no pending mode change, so there isn't already a pending change (like Return).
 				if (_user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					if (!_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+						printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					}
 				}
 			}
 		}
