@@ -829,7 +829,7 @@ TEST_P(RTLLandingAfterClimbTest, MovesToTheLandingAtTheReturnAltitude)
 	const LandingAfterClimbCase &c = GetParam();
 	const float return_alt = kAlt + 30.f;
 
-	// GIVEN: Return heads for a mission landing 200 m away, 15 m below the return altitude
+	// GIVEN: Return heads for a mission landing 200 m away, 15 m below the return altitude, without DO_LAND_START
 	publishVehicleStatus(c.is_vtol, c.vehicle_type);
 	publishLandDetected(false);
 	_navigator.get_vstatus()->is_vtol = c.is_vtol;

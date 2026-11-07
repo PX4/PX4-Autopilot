@@ -140,7 +140,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
-	// The climb was reached: continue as after a mission waypoint, so the landing moves to its position first.
+	// The climb was reached: continue as after a mission waypoint, so the vehicle first flies to the landing position.
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB) {
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 		_needs_climbing = false;
