@@ -323,6 +323,7 @@
       - [ESC Protocols](esc/esc_protocols.md)
       - [PWM ESCs and Servos](peripherals/pwm_escs_and_servo.md)
       - [DShot ESCs](peripherals/dshot.md)
+      - [ESC Configuration over USB](peripherals/esc_configuration_4way.md)
       - [OneShot ESCs and Servos](peripherals/oneshot.md)
       - [DroneCAN ESCs](dronecan/escs.md)
         - [PX4 Sapog ESC Firmware](dronecan/sapog.md)

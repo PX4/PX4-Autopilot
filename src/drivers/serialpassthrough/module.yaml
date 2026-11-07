@@ -7,9 +7,16 @@ parameters:
             description:
                 short: Serial passthrough enable
                 long: |
-                    When enabled, the serial passthrough mode is active and the
-                    normal motor output drivers (dshot, pwm_out) are not started
-                    at boot.
-            type: boolean
+                    Selects a one-boot ESC access mode. When not 0, the normal motor
+                    output drivers (dshot, pwm_out) are not started at boot and the
+                    parameter resets to 0, so the next boot starts them again.
+                    1: MAVLink serial passthrough (SERIAL_CONTROL) to the ESC pins.
+                    2: ESC configuration server (esc_4way) on the USB port instead of
+                    MAVLink, for am32.ca or esc-configurator.com.
+            type: enum
+            values:
+                0: Disabled
+                1: MAVLink serial passthrough
+                2: USB ESC configuration server
             default: 0
             reboot_required: true
