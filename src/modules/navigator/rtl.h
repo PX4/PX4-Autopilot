@@ -129,15 +129,16 @@ private:
 	/** Selects the destination of the current RTL_TYPE, then applies it. */
 	void setRtlTypeAndDestination();
 
+	/** Starts at Home, then lets the policy of the current RTL_TYPE change the selection. */
 	ReturnSelection selectReturn();
 	/** RTL_TYPE 0, 1 and 3: the closest allowed of Home, the mission landing and the rally points. */
-	ReturnSelection selectClosest(int32_t rtl_type);
+	void selectClosest(int32_t rtl_type, ReturnSelection &selection);
 	/** RTL_TYPE 2 and 4: follow the mission, or go to Home without a valid mission. */
-	ReturnSelection selectMissionPath() const;
+	void selectMissionPath(ReturnSelection &selection) const;
 	/** RTL_TYPE 5: the closest rally point, or the current position. */
-	ReturnSelection selectSafePoint();
+	void selectSafePoint(ReturnSelection &selection);
 	/** RTL_TYPE 6: Home if the battery reaches it, else the closest rally point. */
-	ReturnSelection selectHomeIfReachable();
+	void selectHomeIfReachable(ReturnSelection &selection);
 
 	/** Creates and configures the executor, updates the avoidance planner and publishes rtl_status. */
 	void applyReturn(const ReturnSelection &selection);
