@@ -45,6 +45,7 @@
 #include "mission.h"
 #include "mission_base.h"
 #include "navigator.h"
+#include "vtol_takeoff.h"
 #include "support/geofence_test_helpers.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/navigator_dataman_test.h"
@@ -59,8 +60,10 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 class MissionBaseTestPeer : public MissionBase
 {
@@ -206,6 +209,7 @@ class MissionBaseTestNavigator : public Navigator
 {
 public:
 	using Navigator::updateParams;
+	void setFrontTransitionInhibited(bool inhibited) { _front_transition_inhibited = inhibited; }
 };
 
 class MissionBaseFeasibilityTest : public NavigatorDatamanTestBase
@@ -649,6 +653,161 @@ INSTANTIATE_TEST_SUITE_P(ReplacementSetpoints, MissionReplacementFeasibilityTest
 			 [](const ::testing::TestParamInfo<MissionReplacementCase> &test_info)
 {
 	return test_info.param.name;
+});
+
+// WHY: After a quadchute the next front transition would likely fail too, and its command would clear the quadchute.
+// WHAT: With the quadchute latched (true), navigator neither aligns for nor commands a front transition and goes on
+// in multicopter mode. Without it (false), the same steps command the transition.
+class QuadchuteFrontTransitionTest : public MissionBaseFeasibilityTest, public ::testing::WithParamInterface<bool>
+{
+protected:
+	void SetUp() override
+	{
+		MissionBaseFeasibilityTest::SetUp();
+
+		// a VTOL hovering above home at mission altitude, facing north
+		_navigator.get_vstatus()->is_vtol = true;
+		_status_pub.publish(*_navigator.get_vstatus());
+		_navigator.get_global_position()->timestamp = hrt_absolute_time(); // VTOL Takeoff needs a recent position
+		_navigator.get_global_position()->alt = kAlt;
+		_global_position_pub.publish(*_navigator.get_global_position());
+		_navigator.get_land_detected()->landed = false;
+		_land_detected_pub.publish(*_navigator.get_land_detected());
+		_navigator.get_local_position()->heading = 0.f;
+		_navigator.get_local_position()->heading_good_for_control = true;
+
+		_navigator.setFrontTransitionInhibited(GetParam());
+		transitionCommanded(); // drop commands of earlier tests
+	}
+
+	void TearDown() override
+	{
+		_navigator.get_land_detected()->landed = true;
+		_land_detected_pub.publish(*_navigator.get_land_detected());
+		MissionBaseFeasibilityTest::TearDown();
+	}
+
+	static mission_item_s waypointNorth(float north_m)
+	{
+		mission_item_s item = makePositionItem(kBaseLat, kBaseLon, kAlt);
+		add_vector_to_global_position(kBaseLat, kBaseLon, north_m, 0.f, &item.lat, &item.lon);
+		item.yaw = NAN;
+		return item;
+	}
+
+	void uploadMission(std::vector<mission_item_s> items)
+	{
+		for (size_t index = 0; index < items.size(); ++index) {
+			items[index].autocontinue = true;
+			ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, index,
+							      reinterpret_cast<uint8_t *>(&items[index]), sizeof(mission_item_s)));
+		}
+
+		mission_s mission{};
+		mission.timestamp = hrt_absolute_time();
+		mission.mission_id = 2;
+		mission.geofence_id = 1; // the fence of MissionBaseFeasibilityTest
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission.count = items.size();
+		_mission_pub.publish(mission);
+	}
+
+	bool transitionCommanded()
+	{
+		bool commanded = false;
+		vehicle_command_s vehicle_command{};
+
+		while (_vehicle_command_sub.update(&vehicle_command)) {
+			commanded |= vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION
+				     && static_cast<int>(vehicle_command.param1) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		}
+
+		return commanded;
+	}
+
+	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+};
+
+TEST_P(QuadchuteFrontTransitionTest, MissionSkipsFrontTransitionItem)
+{
+	// close to home, so that the loiter circle of the last waypoint stays inside the 100 m fence
+	const mission_item_s next_waypoint = waypointNorth(15.f);
+	uploadMission({waypointNorth(0.f), makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW), next_waypoint});
+	Mission mission{&_navigator};
+	mission.run(false);
+	mission.run(true);
+
+	mission.run(true); // on the first waypoint, the transition item comes next
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	EXPECT_EQ(PX4_ISFINITE(current.yaw), !GetParam()); // the alignment towards the next waypoint
+
+	mission.run(true);
+	mission.run(true);
+	EXPECT_EQ(transitionCommanded(), !GetParam());
+
+	if (!GetParam()) {
+		_navigator.setFrontTransitionInhibited(true); // during the commanded transition
+		mission.run(true);
+	}
+
+	EXPECT_DOUBLE_EQ(current.lat, next_waypoint.lat); // on as a multicopter
+}
+
+TEST_P(QuadchuteFrontTransitionTest, MissionVtolTakeoffInTheAirSkipsTransition)
+{
+	mission_item_s vtol_takeoff = waypointNorth(10.f);
+	vtol_takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
+	uploadMission({vtol_takeoff, waypointNorth(15.f)});
+	Mission mission{&_navigator};
+	mission.run(false);
+	mission.run(true);
+
+	mission.run(true); // already at the takeoff altitude
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	if (GetParam()) {
+		// on to the takeoff waypoint as a multicopter
+		EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+		EXPECT_DOUBLE_EQ(current.lat, vtol_takeoff.lat);
+
+	} else {
+		EXPECT_DOUBLE_EQ(current.lat, kBaseLat); // aligns in place towards the takeoff waypoint
+	}
+
+	mission.run(true);
+	EXPECT_EQ(transitionCommanded(), !GetParam());
+}
+
+TEST_P(QuadchuteFrontTransitionTest, VtolTakeoffSkipsTransition)
+{
+	const mission_item_s loiter = waypointNorth(200.f);
+	VtolTakeoff takeoff{&_navigator};
+	takeoff.setTransitionAltitudeAbsolute(kAlt);
+	takeoff.setTransitionDirection(GetParam() ? 90.f : 0.f); // after a quad-chute no alignment holds it back
+	takeoff.setLoiterLocation(matrix::Vector2d(loiter.lat, loiter.lon));
+	takeoff.setLoiterHeight(20.f);
+	takeoff.on_activation();
+
+	for (int cycle = 0; cycle < 4; ++cycle) {
+		takeoff.on_active();
+	}
+
+	EXPECT_EQ(transitionCommanded(), !GetParam());
+
+	if (GetParam()) {
+		// on to its loiter as a multicopter
+		const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+		EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_LOITER);
+		EXPECT_DOUBLE_EQ(current.lat, loiter.lat);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(Quadchute, QuadchuteFrontTransitionTest, ::testing::Bool(),
+			 [](const ::testing::TestParamInfo<bool> &test_info)
+{
+	return test_info.param ? "AfterQuadchute" : "Nominal";
 });
 
 enum class MissionFeasibilityInput { Mission, Geofence, Home };
