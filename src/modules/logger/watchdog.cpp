@@ -67,7 +67,8 @@ bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_satura
 					sched_param param{};
 					param.sched_priority = watchdog_data.logger_main_priority;
 
-					if (system_load.tasks[watchdog_data.logger_main_task_index].valid) {
+					if (system_load.tasks[watchdog_data.logger_main_task_index].valid
+					    && system_load.tasks[watchdog_data.logger_main_task_index].tcb) {
 						sched_setparam(system_load.tasks[watchdog_data.logger_main_task_index].tcb->pid, &param);
 					}
 
@@ -136,7 +137,8 @@ bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_satura
 					sched_param param{};
 
 					// Get the current priorities
-					if (system_load.tasks[watchdog_data.logger_main_task_index].valid) {
+					if (system_load.tasks[watchdog_data.logger_main_task_index].valid
+					    && system_load.tasks[watchdog_data.logger_main_task_index].tcb) {
 						sched_getparam(system_load.tasks[watchdog_data.logger_main_task_index].tcb->pid, &param);
 						watchdog_data.logger_main_priority = param.sched_priority;
 					}
@@ -147,7 +149,8 @@ bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_satura
 					// Boost the priority to make sure the logger continues to write to the log.
 					param.sched_priority = SCHED_PRIORITY_LOG_WATCHDOG;
 
-					if (system_load.tasks[watchdog_data.logger_main_task_index].valid) {
+					if (system_load.tasks[watchdog_data.logger_main_task_index].valid
+					    && system_load.tasks[watchdog_data.logger_main_task_index].tcb) {
 						sched_setparam(system_load.tasks[watchdog_data.logger_main_task_index].tcb->pid, &param);
 					}
 
@@ -182,7 +185,7 @@ void watchdog_initialize(const pid_t pid_logger_main, const pthread_t writer_thr
 	sched_lock(); // need to lock the tcb access
 
 	for (int i = 0; i < CONFIG_FS_PROCFS_MAX_TASKS; i++) {
-		if (system_load.tasks[i].valid) {
+		if (system_load.tasks[i].valid && system_load.tasks[i].tcb) {
 			if (system_load.tasks[i].tcb->pid == pid_logger_writer) {
 				watchdog_data.logger_writer_task_index = i;
 			}
