@@ -605,8 +605,8 @@ int Commander::print_status()
 	PX4_INFO("navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state]);
 	PX4_INFO("user intended navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state_user_intention]);
 	PX4_INFO("RC mode switch: %s%s", (_tx_mode_slot_nav_state >= 0
-					   && _tx_mode_slot_nav_state < vehicle_status_s::NAVIGATION_STATE_MAX)
-					  ? mode_util::nav_state_names[_tx_mode_slot_nav_state] : "none",
+					  && _tx_mode_slot_nav_state < vehicle_status_s::NAVIGATION_STATE_MAX)
+		 ? mode_util::nav_state_names[_tx_mode_slot_nav_state] : "none",
 		 _tx_rtl_lockout ? " (guided/auto locked out)" : "");
 	PX4_INFO("in failsafe: %s", _failsafe.inFailsafe() ? "yes" : "no");
 	_mode_management.printStatus();
