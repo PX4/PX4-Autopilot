@@ -890,6 +890,7 @@ INSTANTIATE_TEST_SUITE_P(
 		ReturnSelectionCase{"Type5WithoutRallyPointStaysHere", 5, kMulticopter, -100.f, NAN, false, NAN, 0, NAN, 0, kDirect, kHere},
 		ReturnSelectionCase{"Type6GoesHomeWithinBattery", 6, kMulticopter, -300.f, 100.f, false, NAN, 0, 3600.f, 0, kDirect, kHome},
 		ReturnSelectionCase{"Type6TakesRallyPointBeyondBattery", 6, kMulticopter, -300.f, -309.f, false, NAN, 0, 1.f, 0, kDirect, kRallyPoint},
+		ReturnSelectionCase{"Type6WithoutRallyPointGoesHomeBeyondBattery", 6, kMulticopter, -100.f, NAN, false, NAN, 0, 1.f, 0, kDirect, kHome},
 		ReturnSelectionCase{"Type6WithoutBatteryEstimateTakesClosest", 6, kMulticopter, -300.f, 100.f, false, NAN, 0, NAN, 0, kDirect, kRallyPoint},
 		ReturnSelectionCase{"Type6WithoutBatteryEstimateGoesHomeWhenCloser", 6, kMulticopter, -100.f, 300.f, false, NAN, 0, NAN, 0, kDirect, kHome}),
 	[](const ::testing::TestParamInfo<RTLSelectionTest::ParamType> &param_info)
