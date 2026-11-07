@@ -333,23 +333,7 @@ void RTL::setRtlTypeAndDestination()
 
 		const rtl_time_estimate_s time_to_home = _rtl_direct.calc_rtl_time_estimate();
 
-		// Take the worst (smallest) remaining time across all connected batteries, matching the
-		// battery_low_remaining_time failsafe check in BatteryChecks::rtlEstimateCheck()
-		float worst_battery_time_s{NAN};
-
-		for (auto &battery_sub : _battery_status_subs) {
-			battery_status_s battery;
-
-			if (!battery_sub.copy(&battery)) {
-				continue;
-			}
-
-			if (battery.connected
-			    && PX4_ISFINITE(battery.time_remaining_s)
-			    && (!PX4_ISFINITE(worst_battery_time_s) || (battery.time_remaining_s < worst_battery_time_s))) {
-				worst_battery_time_s = battery.time_remaining_s;
-			}
-		}
+		const float worst_battery_time_s = worstBatteryTimeRemaining();
 
 		const bool home_within_reach = time_to_home.valid
 					       && PX4_ISFINITE(worst_battery_time_s)
@@ -450,7 +434,7 @@ void RTL::setRtlTypeAndDestination()
 		planner.updateDestination(planner_destination);
 	}
 
-	const vehicle_global_position_s gpos = _global_pos_sub.get();
+	const vehicle_global_position_s &gpos = _global_pos_sub.get();
 
 	const bool gpos_recent = gpos.timestamp > 0 && hrt_elapsed_time(&gpos.timestamp) < 10_s;
 
@@ -470,6 +454,31 @@ void RTL::setRtlTypeAndDestination()
 	rtl_status.safe_point_index = safe_point_index;
 	rtl_status.timestamp = hrt_absolute_time();
 	_rtl_status_pub.publish(rtl_status);
+}
+
+// Keep out of setRtlTypeAndDestination(): inlined, the battery_status_s copy would stay
+// on its stack while it selects the destination.
+float RTL::worstBatteryTimeRemaining()
+{
+	// Take the worst (smallest) remaining time across all connected batteries, matching the
+	// battery_low_remaining_time failsafe check in BatteryChecks::rtlEstimateCheck()
+	float worst_battery_time_s{NAN};
+
+	for (auto &battery_sub : _battery_status_subs) {
+		battery_status_s battery;
+
+		if (!battery_sub.copy(&battery)) {
+			continue;
+		}
+
+		if (battery.connected
+		    && PX4_ISFINITE(battery.time_remaining_s)
+		    && (!PX4_ISFINITE(worst_battery_time_s) || (battery.time_remaining_s < worst_battery_time_s))) {
+			worst_battery_time_s = battery.time_remaining_s;
+		}
+	}
+
+	return worst_battery_time_s;
 }
 
 PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_point_index)
