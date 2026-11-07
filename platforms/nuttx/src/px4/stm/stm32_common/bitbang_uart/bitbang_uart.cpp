@@ -278,6 +278,14 @@ int bitbang_uart_init(uint32_t baudrate, bool single_wire)
 		return -ENOSYS;
 	}
 
+	// Refuse to take pins owned by an output driver (dshot, pwm_out)
+	for (uint8_t ch = 0; ch < MAX_UART_CHANNELS; ch++) {
+		if (io_timer_get_channel_mode(ch) > IOTimerChanMode_NotUsed) {
+			PX4_ERR("bitbang_uart: channel %u in use by an output driver", ch);
+			return -EBUSY;
+		}
+	}
+
 	// Initialize timer once (shared across all channels)
 	int ret = bitbang_uart_init_timer(baudrate);
 
@@ -515,7 +523,7 @@ int bitbang_uart_write(uint8_t channel, const uint8_t *data, size_t length)
 		px4_usleep(10);
 	}
 
-	return 0;
+	return (int)length;
 }
 
 int bitbang_uart_read(uint8_t channel, uint8_t *data, size_t length, uint32_t timeout_us)
