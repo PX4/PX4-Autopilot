@@ -1094,7 +1094,7 @@ TEST_F(RTLTest, MissionLandingReturnSelectedOnTheGroundClimbsToReturnAltitude)
 {
 	int32_t rtl_type = 1; // the mission landing before Home
 	int32_t cone_angle = 45; // the default
-	float return_alt = 60.f; // the default
+	float return_alt = 60.f; // the parameter default; multicopter airframes start at 30
 	ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
 	ASSERT_EQ(param_set(param_find("RTL_CONE_ANG"), &cone_angle), PX4_OK);
 	ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_alt), PX4_OK);
