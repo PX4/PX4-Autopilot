@@ -47,7 +47,7 @@
 #include "navigator.h"
 
 #include <float.h>
-#include <sys/stat.h>
+#include <unistd.h>
 
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
@@ -236,9 +236,7 @@ void Navigator::run()
 {
 
 	/* Try to load the geofence file if it exists. */
-	struct stat buffer;
-
-	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
+	if (access(GEOFENCE_FILENAME, F_OK) == 0) {
 		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 	}
