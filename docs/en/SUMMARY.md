@@ -411,6 +411,8 @@
     - [ARK CANnode](dronecan/ark_cannode.md)
     - [RaccoonLab CAN Nodes](dronecan/raccoonlab_nodes.md)
     - [DroneCAN Lights](dronecan/lights.md)
+  - [T1 Peripherals](ethernet_t1/index.md)
+    - [NXP MR-MCXN-T1](ethernet_t1/mr_mcxn_t1_node.md)
   - [Cable Wiring](assembly/cable_wiring.md)
   - [Companion Computers](companion_computer/index.md)
     - [Pixhawk + Companion Setup](companion_computer/pixhawk_companion.md)
