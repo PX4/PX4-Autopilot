@@ -55,20 +55,18 @@ def test_loiter_tracks_ground_truth_velocity(tester_flow: AutopilotTesterFlow) -
 
     tester.transition_to_fixedwing()
     tester.wait_until_fixedwing(10)
-    tester.sleep_for(5)  # let the vehicle accelerate to its cruise speed
+    tester.sleep_for(5)  # let the vehicle accelerate to its cruise speed and settle its heading
 
-    # Loiter around wherever the transition ended up, so that the circle does not depend on how
-    # far the vehicle travelled while accelerating.
-    north_m, east_m, _down_m = tester.get_current_position_ned()
-    loiter_center = (north_m, east_m)
+    # Center the loiter so that the current position and heading are already on and tangent to
+    # the circle: the vehicle joins it immediately instead of flying out to it from the (near-)
+    # center, which would otherwise dominate the ground truth comparison below.
+    loiter_center = tester.tangent_circle_center(LOITER_RADIUS_M)
 
     tester.command_orbit(loiter_center, LOITER_RADIUS_M, math.nan, FLIGHT_ALTITUDE_M)
     tester.wait_until_on_circle(loiter_center, LOITER_RADIUS_M, LOITER_CAPTURE_TOLERANCE_M, 180)
 
-    # The capture band is wide enough that it is first entered while the vehicle is still on the
-    # straight leg out from the (near-center) transition point, before the lateral guidance has
-    # actually curved onto the loiter track. Give it time to converge before measuring.
-    tester.sleep_for(10)
+    # Brief settle for the lateral guidance to lock onto the new path precisely.
+    tester.sleep_for(3)
 
     tester.start_ground_truth_comparison()
 

@@ -115,6 +115,22 @@ class AutopilotTesterFlow(AutopilotTester):
             x=round(latitude_deg * 1e7), y=round(longitude_deg * 1e7),
             z=self.home_absolute_altitude_m() + rel_alt_m)
 
+    def tangent_circle_center(self, radius_m: float) -> Local2:
+        """Center of a clockwise circle of radius_m that passes through the current position
+        with the current velocity already tangent to it (center() is 90 degrees clockwise of
+        the velocity, matching command_orbit's positive-radius/clockwise convention).
+
+        Commanding an orbit around this center is joined immediately instead of being flown out
+        to from wherever it happened to be requested."""
+        north_m, east_m, _down_m = self.get_current_position_ned()
+        velocity = self._telemetry.position_velocity_ned().velocity
+        speed_m_s = math.hypot(velocity.north_m_s, velocity.east_m_s)
+        assert speed_m_s > 1.0, \
+            "Not moving fast enough to determine a heading: {:.2f} m/s".format(speed_m_s)
+        north_unit = velocity.north_m_s / speed_m_s
+        east_unit = velocity.east_m_s / speed_m_s
+        return (north_m - radius_m * east_unit, east_m + radius_m * north_unit)
+
     def wait_until_on_circle(self, center: Local2, radius_m: float, tolerance_m: float,
                              timeout_s: float) -> None:
         """Wait until the vehicle is on the circle around center, i.e. its distance to the
