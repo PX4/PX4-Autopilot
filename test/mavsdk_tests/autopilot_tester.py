@@ -8,6 +8,7 @@ swallowed. Checks done in callbacks are therefore collected with check_in_callba
 reported when the tester is closed.
 """
 
+import contextlib
 import datetime
 import json
 import math
@@ -16,7 +17,7 @@ import threading
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from mavsdk import ComponentType, Configuration, ConnectionResult, Mavsdk  # type: ignore
 from mavsdk.plugins.action import Action, ActionError  # type: ignore
@@ -53,6 +54,7 @@ MAV_MISSION_TYPE_MISSION = 0
 MAV_COMP_ID_AUTOPILOT1 = 1
 MAVLINK_MSG_ID_HOME_POSITION = 242
 MAV_RESULT_ACCEPTED = 0
+MAV_RESULT_TEMPORARILY_REJECTED = 1
 MAV_RESULT_IN_PROGRESS = 5
 
 # Like MAVSDK's command sender, but in host time with a longer timeout for sanitizer builds.
@@ -939,6 +941,38 @@ class AutopilotTester:
     # ------------------------------------------------------------------
     # Manual control
     # ------------------------------------------------------------------
+
+    @contextlib.contextmanager
+    def manual_control_stream(self, x: float, y: float, z: float, r: float
+                              ) -> Iterator[Callable[[float, float, float, float], None]]:
+        """Stream MANUAL_CONTROL in the background so the manual-control source stays valid.
+
+        Values are normalized to MAVSDK's manual-control range. Yields a setter that updates the
+        streamed input; streaming stops when the context exits.
+        """
+        lock = threading.Lock()
+        current = [x, y, z, r]
+        stop = threading.Event()
+
+        def set_input(x: float, y: float, z: float, r: float) -> None:
+            with lock:
+                current[:] = [x, y, z, r]
+
+        def run() -> None:
+            period_s = 1.0 / (MANUAL_CONTROL_RATE_HZ * max(self._speed_factor or 1.0, 1.0))
+            while not stop.is_set():
+                with lock:
+                    sample = list(current)
+                self._manual_control.set_manual_control_input(*sample)
+                stop.wait(period_s)
+
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+        try:
+            yield set_input
+        finally:
+            stop.set()
+            thread.join()
 
     def _send_manual_control(self, duration_s: float, x: float, y: float, z: float, r: float,
                              stop_when_landed: bool = False) -> None:

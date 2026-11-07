@@ -75,9 +75,24 @@ The following requirements must be met to arm in this mode, or to switch to this
 These requirements are for arming in Manual mode.
 :::
 
+## Manual Takeover Throttle Interlock
+
+Switching into _Stabilized_, _Manual_ or [Acro](../flight_modes_mc/acro.md) mode passes the throttle stick position directly to the motors.
+If the throttle stick is at minimum when you switch out of an automatic mode (for example from [Return mode](../flight_modes_mc/return.md) in flight), the vehicle can lose thrust immediately.
+
+You can optionally set [COM_MAN_THR_MIN](#COM_MAN_THR_MIN) to reject such a switch while the vehicle is flying and the throttle stick is below the configured value (or manual control is unavailable).
+The vehicle then stays in its current mode and reports `Manual takeover rejected: raise throttle`.
+Switches between these direct-throttle modes, and switches while landed, are not affected.
+
+::: info
+If the switch is rejected, the RC mode switch position no longer matches the active flight mode.
+Raising the throttle does not complete the takeover: move the mode switch away and back again (or select the mode again from the ground station).
+:::
+
 ## Parameters
 
 | Parameter                                                                                          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MPC_THR_HOVER"></a>[MPC_THR_HOVER](../advanced_config/parameter_reference.md#MPC_THR_HOVER) | Hover throttle that is output when the throttle stick is centered and `MPC_THR_CURVE` is set to default.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | <a id="MPC_THR_CURVE"></a>[MPC_THR_CURVE](../advanced_config/parameter_reference.md#MPC_THR_CURVE) | Defines the throttle scaling. By default this is set to **Rescale to hover thrust**, which means that when the throttle stick is centered the configured hover throttle is output (`MPC_THR_HOVER`) and the stick input is linearly rescaled below and above that (allowing for a smooth transition between Stabilized and Altitude/Position control). <br>On powerful vehicles the hover throttle might be very low (e.g. below 20%) so that rescaling distorts the throttle input - i.e. here 80% of the thrust would be controlled by just the top half of the stick input and 20% by the bottom. If needed `MPC_THR_CURVE` can be set to **No Rescale** so that there is no rescaling (stick input to throttle mapping is independent of `MPC_THR_HOVER`). |
+| <a id="COM_MAN_THR_MIN"></a>[COM_MAN_THR_MIN](../advanced_config/parameter_reference.md#COM_MAN_THR_MIN) | Minimum normalized throttle stick position (`-1` to `1`, where `0` is centered) required to switch into a direct-throttle manual mode in flight. Set to `-1` (default) to disable the interlock. A value of `0` requires the throttle stick to be at least centered (hover throttle with the default `MPC_THR_CURVE`). |
