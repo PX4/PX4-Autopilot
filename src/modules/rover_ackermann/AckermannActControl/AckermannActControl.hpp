@@ -35,6 +35,7 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
@@ -43,8 +44,10 @@
 
 // uORB includes
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/surface_vehicle_steering_setpoint.h>
 #include <uORB/topics/rover_throttle_setpoint.h>
@@ -52,7 +55,7 @@
 /**
  * @brief Class for ackermann actuator control.
  */
-class AckermannActControl : public ModuleParams
+class AckermannActControl : public ModuleParams, public px4::WorkItem
 {
 public:
 	/**
@@ -61,6 +64,47 @@ public:
 	 */
 	AckermannActControl(ModuleParams *parent);
 	~AckermannActControl() = default;
+
+	/**
+	 * @brief Register the callback on the topic that triggers the controller.
+	 */
+	bool init();
+
+	/**
+	 * @brief Run the controller on its trigger topic only while enabled.
+	 *
+	 * Only an enabled controller is woken by its trigger topic. On enabling it also runs once right away,
+	 * so it does not miss the trigger that was published before it registered.
+	 *
+	 * @return false if the trigger callback could not be registered
+	 */
+	bool setEnabled(bool enabled)
+	{
+		bool registered = true;
+
+		if (enabled && !_enabled) {
+			_timestamp = hrt_absolute_time(); // The first dt after (re-)enabling must not span the time spent disabled
+			registered = _vehicle_angular_velocity_sub.registerCallback();
+			ScheduleNow();
+
+		} else if (!enabled && _enabled) {
+			_vehicle_angular_velocity_sub.unregisterCallback();
+		}
+
+		_enabled = enabled;
+		return registered;
+	}
+
+	bool enabled() const { return _enabled; }
+
+	/**
+	 * @brief Move the trigger callback to the end of the callback list. Callbacks sharing a topic run in registration order.
+	 */
+	bool reregisterTrigger()
+	{
+		_vehicle_angular_velocity_sub.unregisterCallback();
+		return _vehicle_angular_velocity_sub.registerCallback();
+	}
 
 	/**
 	 * @brief Generate and publish actuatorMotors/actuatorServos setpoints from roverThrottleSetpoint/surfaceVehicleSteeringSetpoint.
@@ -79,11 +123,14 @@ protected:
 	void updateParams() override;
 
 private:
+	void Run() override;
+
 
 	// uORB subscriptions
 	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_servos)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	uORB::Subscription _surface_vehicle_steering_setpoint_sub{ORB_ID(surface_vehicle_steering_setpoint)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)}; // Triggers the controller after the rate controller
 	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
 
 	// uORB publications
@@ -91,6 +138,7 @@ private:
 	uORB::Publication<actuator_servos_s> 	     _actuator_servos_pub{ORB_ID(actuator_servos)};
 
 	// Variables
+	bool _enabled{false};
 	hrt_abstime _timestamp{0};
 	float _throttle_setpoint{NAN};
 	float _steering_setpoint{NAN};

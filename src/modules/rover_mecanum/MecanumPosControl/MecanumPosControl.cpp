@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumPosControl::MecanumPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	WorkItem("rover_mecanum_pos_control", px4::wq_configurations::nav_and_controllers)
 {
 	_surface_vehicle_speed_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();
@@ -47,6 +49,21 @@ MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent
 void MecanumPosControl::updateParams()
 {
 	ModuleParams::updateParams();
+}
+
+bool MecanumPosControl::init()
+{
+	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
+	const bool registered = _vehicle_local_position_sub.registerCallback();
+	_vehicle_local_position_sub.unregisterCallback();
+	return registered;
+}
+
+void MecanumPosControl::Run()
+{
+	if (_enabled) {
+		updatePosControl();
+	}
 }
 
 void MecanumPosControl::updatePosControl()

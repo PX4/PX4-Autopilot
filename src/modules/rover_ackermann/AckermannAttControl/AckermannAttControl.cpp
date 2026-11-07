@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-AckermannAttControl::AckermannAttControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannAttControl::AckermannAttControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	WorkItem("rover_ackermann_att_control", px4::wq_configurations::nav_and_controllers)
 {
 	_surface_vehicle_rate_setpoint_pub.advertise();
 	_surface_vehicle_attitude_status_pub.advertise();
@@ -59,13 +61,29 @@ void AckermannAttControl::updateParams()
 	_adjusted_yaw_setpoint.setSlewRate(_max_yaw_rate);
 }
 
+bool AckermannAttControl::init()
+{
+	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
+	const bool registered = _vehicle_attitude_sub.registerCallback();
+	_vehicle_attitude_sub.unregisterCallback();
+	return registered;
+}
+
+void AckermannAttControl::Run()
+{
+	if (_enabled) {
+		updateAttControl();
+	}
+}
+
 void AckermannAttControl::updateAttControl()
 {
 	updateSubscriptions();
 
 	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
+	// Runs on every vehicle_attitude publication (EKF2 output predictor at IMU_INTEG_RATE >= 100 Hz), allow for jitter
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
 	if (PX4_ISFINITE(_yaw_setpoint)) {
 		// Calculate yaw rate limit for slew rate

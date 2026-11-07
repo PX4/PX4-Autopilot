@@ -35,6 +35,7 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/events.h>
 
 // Libraries
@@ -46,6 +47,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/surface_vehicle_speed_setpoint.h>
 #include <uORB/topics/surface_vehicle_attitude_setpoint.h>
 #include <uORB/topics/pure_pursuit_status.h>
@@ -67,7 +69,7 @@ enum class DrivingState {
 /**
  * @brief Class for differential position control.
  */
-class DifferentialPosControl : public ModuleParams
+class DifferentialPosControl : public ModuleParams, public px4::WorkItem
 {
 public:
 	/**
@@ -76,6 +78,37 @@ public:
 	 */
 	DifferentialPosControl(ModuleParams *parent);
 	~DifferentialPosControl() = default;
+
+	/**
+	 * @brief Register the callback on the topic that triggers the controller.
+	 */
+	bool init();
+
+	/**
+	 * @brief Run the controller on its trigger topic only while enabled.
+	 *
+	 * Only an enabled controller is woken by its trigger topic. On enabling it also runs once right away,
+	 * so it does not miss the trigger that was published before it registered.
+	 *
+	 * @return false if the trigger callback could not be registered
+	 */
+	bool setEnabled(bool enabled)
+	{
+		bool registered = true;
+
+		if (enabled && !_enabled) {
+			registered = _vehicle_local_position_sub.registerCallback();
+			ScheduleNow();
+
+		} else if (!enabled && _enabled) {
+			_vehicle_local_position_sub.unregisterCallback();
+		}
+
+		_enabled = enabled;
+		return registered;
+	}
+
+	bool enabled() const { return _enabled; }
 
 	/**
 	 * @brief Generate and publish surfaceVehicleSpeedSetpoint and surfaceVehicleAttitudeSetpoint from surfaceVehiclePositionSetpoint or surfaceVehicleCourseSetpoint.
@@ -100,6 +133,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void Run() override;
+
 	/**
 	 * @brief Update uORB subscriptions used in position controller.
 	 */
@@ -107,7 +142,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)}; // Triggers the controller
 	uORB::Subscription _surface_vehicle_position_setpoint_sub{ORB_ID(surface_vehicle_position_setpoint)};
 	uORB::Subscription _surface_vehicle_course_setpoint_sub{ORB_ID(surface_vehicle_course_setpoint)};
 
@@ -117,6 +152,7 @@ private:
 	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
 
 	// Variables
+	bool _enabled{false};
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};

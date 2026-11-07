@@ -35,6 +35,7 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/events.h>
 
 // Libraries
@@ -47,6 +48,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/surface_vehicle_speed_status.h>
 #include <uORB/topics/surface_vehicle_speed_setpoint.h>
@@ -59,7 +61,7 @@ using namespace matrix;
 /**
  * @brief Class for differential speed control.
  */
-class DifferentialSpeedControl : public ModuleParams
+class DifferentialSpeedControl : public ModuleParams, public px4::WorkItem
 {
 public:
 	/**
@@ -68,6 +70,47 @@ public:
 	 */
 	DifferentialSpeedControl(ModuleParams *parent);
 	~DifferentialSpeedControl() = default;
+
+	/**
+	 * @brief Register the callback on the topic that triggers the controller.
+	 */
+	bool init();
+
+	/**
+	 * @brief Run the controller on its trigger topic only while enabled.
+	 *
+	 * Only an enabled controller is woken by its trigger topic. On enabling it also runs once right away,
+	 * so it does not miss the trigger that was published before it registered.
+	 *
+	 * @return false if the trigger callback could not be registered
+	 */
+	bool setEnabled(bool enabled)
+	{
+		bool registered = true;
+
+		if (enabled && !_enabled) {
+			_timestamp = hrt_absolute_time(); // The first dt after (re-)enabling must not span the time spent disabled
+			registered = _vehicle_local_position_sub.registerCallback();
+			ScheduleNow();
+
+		} else if (!enabled && _enabled) {
+			_vehicle_local_position_sub.unregisterCallback();
+		}
+
+		_enabled = enabled;
+		return registered;
+	}
+
+	bool enabled() const { return _enabled; }
+
+	/**
+	 * @brief Move the trigger callback to the end of the callback list. Callbacks sharing a topic run in registration order.
+	 */
+	bool reregisterTrigger()
+	{
+		_vehicle_local_position_sub.unregisterCallback();
+		return _vehicle_local_position_sub.registerCallback();
+	}
 
 	/**
 	 * @brief Generate and publish RoverThrottleSetpoint from surfaceVehicleSpeedSetpoint.
@@ -92,6 +135,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void Run() override;
+
 	/**
 	 * @brief Update uORB subscriptions used in speed controller.
 	 */
@@ -105,7 +150,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)}; // Triggers the controller
 	uORB::Subscription _surface_vehicle_speed_setpoint_sub{ORB_ID(surface_vehicle_speed_setpoint)};
 	uORB::Subscription _surface_vehicle_steering_setpoint_sub{ORB_ID(surface_vehicle_steering_setpoint)};
 
@@ -114,6 +159,7 @@ private:
 	uORB::Publication<surface_vehicle_speed_status_s> _surface_vehicle_speed_status_pub{ORB_ID(surface_vehicle_speed_status)};
 
 	// Variables
+	bool _enabled{false};
 	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards
