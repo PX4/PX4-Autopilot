@@ -746,9 +746,11 @@ class RTLSelectionTest : public RTLTest, public ::testing::WithParamInterface<Re
 protected:
 	void TearDown() override
 	{
-		if (_battery_pub != nullptr) {
-			orb_unadvertise(_battery_pub);
-			_battery_pub = nullptr;
+		for (orb_advert_t &battery_pub : _battery_pubs) {
+			if (battery_pub != nullptr) {
+				orb_unadvertise(battery_pub);
+				battery_pub = nullptr;
+			}
 		}
 
 		// the dataman is shared by every case in this binary
@@ -756,7 +758,7 @@ protected:
 		RTLTest::TearDown();
 	}
 
-	orb_advert_t _battery_pub{nullptr};
+	orb_advert_t _battery_pubs[2] {};
 };
 
 // WHY: each RTL_TYPE chooses between Home, rally points and the mission landing in its own way.
@@ -836,11 +838,17 @@ TEST_P(RTLSelectionTest, ReturnTypeChoosesItsDestination)
 	publishMission(mission);
 
 	if (c.rtl_type == 6) {
-		battery_status_s battery{};
-		battery.timestamp = hrt_absolute_time();
-		battery.connected = true;
-		battery.time_remaining_s = c.battery_remaining_s;
-		_battery_pub = orb_advertise(ORB_ID(battery_status), &battery);
+		// Type 6 judges Home by the battery that runs out first, here the second of two.
+		const float time_remaining_s[2] {PX4_ISFINITE(c.battery_remaining_s) ? 3600.f : NAN, c.battery_remaining_s};
+
+		for (int i = 0; i < 2; ++i) {
+			battery_status_s battery{};
+			battery.timestamp = hrt_absolute_time();
+			battery.connected = true;
+			battery.time_remaining_s = time_remaining_s[i];
+			int instance = 0;
+			_battery_pubs[i] = orb_advertise_multi(ORB_ID(battery_status), &battery, &instance);
+		}
 	}
 
 	// WHEN: Return is inactive for a cycle, then activates
