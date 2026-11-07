@@ -13,6 +13,8 @@ Usage:
     Tools/mavlink_serial_bridge.py --connection udpin:0.0.0.0:14550 --port gps2 --port-baud 57600
 
 Add --verbose/-v to print a hex dump of every forwarded packet.
+Add --echo to echo each byte sent by the host back to the PTY, as a single-wire
+USB-serial adapter does, for tools that expect it.
 """
 
 import argparse
@@ -131,12 +133,13 @@ def setup_passthrough(mav):
 class SerialBridge:
     """Forwards bytes between a PTY and SERIAL_CONTROL messages for one FMU device."""
 
-    def __init__(self, mav, master_fd, device, port_baud, verbose=False):
+    def __init__(self, mav, master_fd, device, port_baud, verbose=False, echo=False):
         self.mav = mav
         self.master_fd = master_fd
         self.device = device
         self.port_baud = port_baud
         self.verbose = verbose
+        self.echo = echo
         self.stop = threading.Event()
 
     def pty_to_mavlink(self):
@@ -151,6 +154,8 @@ class SerialBridge:
                     break
                 if not data:
                     continue
+                if self.echo:
+                    os.write(self.master_fd, data)
                 send_serial_control(self.mav, self.device, self.port_baud, data)
                 if self.verbose:
                     print(f"  PTY -> MAVLink: {len(data)} bytes: {data.hex(' ')}")
@@ -207,7 +212,7 @@ class SerialBridge:
             self.stop.set()
 
 
-def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=False):
+def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=False, echo=False):
     master_fd, slave_fd = pty.openpty()
     slave_path = os.ttyname(slave_fd)
 
@@ -237,7 +242,7 @@ def run_bridge(connection_str, baud, device, port_baud, setup=False, verbose=Fal
     time.sleep(2)  # Give FMU time to spawn the task
     print("Bridge running. Press Ctrl+C to stop.\n", flush=True)
 
-    bridge = SerialBridge(mav, master_fd, device, port_baud, verbose)
+    bridge = SerialBridge(mav, master_fd, device, port_baud, verbose, echo)
     threads = [threading.Thread(target=fn, daemon=True)
                for fn in (bridge.pty_to_mavlink, bridge.mavlink_to_pty, bridge.stdin_listener)]
     for t in threads:
@@ -282,6 +287,8 @@ if __name__ == '__main__':
                         help='Set PASSTHRU_EN=1 and reboot FMU before starting bridge')
     parser.add_argument('--verbose', '-v', action='store_true', default=False,
                         help='Print a hex dump of every forwarded packet (noisy, disabled by default)')
+    parser.add_argument('--echo', action='store_true', default=False,
+                        help='Echo every byte written to the PTY back to it, like a single-wire USB-serial adapter')
     args = parser.parse_args()
 
     device = PORT_MAP[args.port]
@@ -295,4 +302,5 @@ if __name__ == '__main__':
         port_baud=port_baud,
         setup=args.setup,
         verbose=args.verbose,
+        echo=args.echo,
     )

@@ -56,6 +56,8 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_armed.h>
 
 #include <string.h>
 #include <errno.h>
@@ -139,7 +141,16 @@ void SerialPassthrough::run()
 				pthread_mutex_unlock(&_rx_mutex);
 			}
 
-			// ESC -> MAVLink: try to read up to 5ms
+			// ESC -> MAVLink: try to read up to 5ms, unless more MAVLink data is
+			// queued (the ESC bootloader aborts a frame on an inter-byte gap)
+			pthread_mutex_lock(&_rx_mutex);
+			const bool rx_pending = _rx_len > 0;
+			pthread_mutex_unlock(&_rx_mutex);
+
+			if (rx_pending) {
+				continue;
+			}
+
 			ssize_t nread = bitbang_uart_read((uint8_t)_esc_channel,
 							  _ser_read_buf, sizeof(_ser_read_buf),
 							  5000 /* us */);
@@ -396,6 +407,16 @@ int SerialPassthrough::startForDevice(uint8_t device_id, uint32_t baudrate)
 #ifdef CONFIG_SERIALPASSTHROUGH_BITBANG
 
 	if (esc_channel >= 0) {
+		// Taking over the ESC signal pins stops the motor outputs
+		actuator_armed_s armed{};
+		uORB::Subscription armed_sub{ORB_ID(actuator_armed)};
+		armed_sub.copy(&armed);
+
+		if (armed.armed) {
+			PX4_ERR("serialpassthrough: refusing ESC channel %d while armed", esc_channel);
+			return -1;
+		}
+
 		// The bitbang UART uses a single shared hardware timer and a single
 		// global state struct — only one ESC channel can be active at a time.
 		// Stop any existing bitbang instance and wait for it to exit before

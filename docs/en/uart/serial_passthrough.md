@@ -9,7 +9,7 @@ Two cases are supported:
 
 - Control of normal ports, such as telemetry or GPS ports.
   This works automatically as long as the [`serialpassthrough` driver](../modules/modules_driver.md#serialpassthrough) is present in firmware.
-- Control of ESC signal pins on STM32F7/H7 boards via a bit-bang UART implemented in software.
+- Control of ESC signal pins via a half-duplex UART on the signal wire (STM32F7/H7 and NXP i.MX RT1064/RT1176 and i.MX95 boards).
   This requires additional configuration.
 
 When serial control is enabled/supported, passthrough is automatic.
@@ -53,13 +53,11 @@ Note that the `PASSTHRU_EN` parameter need not be set.
 Device IDs 20–27 route through a software bit-bang UART on the ESC signal pin rather than a hardware UART.
 This is useful for communicating with ESCs that expose a UART telemetry or configuration port on their signal wire (such as BLHeli_32 passthrough, AM32, or ESC configuration tools).
 
-Bitbang UART is implemented using a hardware timer and direct GPIO toggling.
-Due to interrupt latency, reliable operation is only guaranteed up to **19200 baud**.
+The ESC signal pin is driven as a 19200 baud half-duplex UART.
+This is supported on STM32F7/H7 boards and on the NXP i.MX RT1064/RT1176 and i.MX95 boards: `px4_fmu-v6xrt`, `ark_fmu-v6xrt`, `nxp_mr-tropic` and `nxp_mr-navq95`.
+Only one ESC channel can be active at a time.
 
-Because only one hardware timer is used, only one ESC channel can be active at a time.
-When a request arrives for a different ESC channel, the driver stops the current instance and waits up to 100 ms for it to exit before starting the new one.
-
-Bitbang UART support requires that both `CONFIG_DRIVERS_SERIALPASSTHROUGH=y` and `CONFIG_SERIALPASSTHROUGH_BITBANG=y` are set before building (the timer is selected with `CONFIG_UART_BITBANG_TIMER`, and defaults to `TIM13`).
+Bitbang UART support requires that both `CONFIG_DRIVERS_SERIALPASSTHROUGH=y` and `CONFIG_SERIALPASSTHROUGH_BITBANG=y` are set before building (STM32 boards also use `CONFIG_UART_BITBANG_TIMER`, default `TIM13`).
 The `PASSTHRU_EN` parameter must be set to `1` and the device rebooted in order to enable this mode.
 
 ## Bridge Application
@@ -97,6 +95,8 @@ Once it prints `Bridge running`, point any tool that expects a serial connection
 Run it with `-h` for the full list of options.
 
 For `esc*` ports the UART baud rate is fixed at 19200 (the bitbang limit) and `--port-baud` is ignored.
+
+Use `--echo` to echo each byte sent by the host back to the PTY, as a single-wire USB-serial adapter does, for tools that expect it.
 
 Developers can create their own bridge application in another language if needed, following the protocol described below.
 Data written to the PTY would be sent as `SERIAL_CONTROL` messages with `SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE` set, and incoming `SERIAL_CONTROL` reply messages (with `FLAG_REPLY` set) would be written back to the PTY.
@@ -148,8 +148,8 @@ CONFIG_DRIVERS_SERIALPASSTHROUGH=y # Include the driver
 If you want to use ESC channel targets you must also set the following keys:
 
 ```text
-CONFIG_SERIALPASSTHROUGH_BITBANG=y # ESC channel support (NuttX & STM32 only)
-CONFIG_UART_BITBANG_TIMER=13       # Timer instance (default TIM13)
+CONFIG_SERIALPASSTHROUGH_BITBANG=y # ESC channel support
+CONFIG_UART_BITBANG_TIMER=13       # STM32 only: timer instance
 ```
 
 Then rebuild the firmware.
@@ -173,7 +173,7 @@ The parameter auto-resets to `0` on the following reboot, so DShot/PWM output is
 - **ESC bitbang baud rate:** maximum reliable baud rate is 19200.
   Higher rates may work but are not guaranteed.
 - **ESC channel exclusivity:** only one ESC bitbang channel can be active at a time.
-- **Platform:** bitbang UART is only available on NuttX with STM32F7/H7.
+- **Platform:** ESC channel mode is available on STM32F7/H7 and the NXP i.MX RT/i.MX95 boards listed above.
   Requesting ESC bitbang on an unsupported platform logs an error.
 - **Buffer size:** each instance has a 1 kB receive and 1 kB transmit buffer.
   Frames larger than 1 kB will be truncated with a warning logged.
