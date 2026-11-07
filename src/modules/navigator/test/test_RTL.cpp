@@ -274,6 +274,9 @@ public:
 
 	// the estimate RTL publishes while the return type is a direct Return
 	rtl_time_estimate_s directEstimateForTest() { return _rtl_direct.calc_rtl_time_estimate(); }
+
+	// the estimate RTL publishes while the return type is mission-based
+	rtl_time_estimate_s missionEstimateForTest() { return _rtl_mission_type_handle->calc_rtl_time_estimate(); }
 };
 
 template <typename RtlMissionType>
@@ -1180,14 +1183,22 @@ TEST_F(RTLTest, MissionLandingReturnClimbsToTheLatestReturnAltitude)
 	_rtl.on_inactive();
 	_rtl.decideRtlTypeForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	const rtl_time_estimate_s estimate_before = _rtl.missionEstimateForTest();
 
 	// WHEN: the return altitude is raised, then Return starts
 	return_alt = 120.f;
 	ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_alt), PX4_OK);
 	_rtl.updateParamsForTest();
+
+	// THEN: the estimate published before Return starts already includes the higher climb
+	_rtl.decideRtlTypeForTest();
+	const rtl_time_estimate_s estimate_after = _rtl.missionEstimateForTest();
+	ASSERT_TRUE(estimate_before.valid && estimate_after.valid);
+	EXPECT_GT(estimate_after.time_estimate, estimate_before.time_estimate);
+
 	_rtl.run(true);
 
-	// THEN: it climbs to the new return altitude, not the one from when the executor was created
+	// AND: it climbs to the new return altitude, not the one from when the executor was created
 	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
 	ASSERT_TRUE(current.valid);
 	EXPECT_NEAR(current.alt, kAlt + return_alt, 0.1f);
