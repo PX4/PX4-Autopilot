@@ -161,7 +161,6 @@ void FwLateralLongitudinalControl::Run()
 
 		updateControllerConfiguration(now);
 
-		_tecs.set_speed_weight(_long_configuration.speed_weight);
 		updateTECSAltitudeTimeConstant(checkLowHeightConditions()
 					       || _long_configuration.enforce_low_height_condition, control_interval);
 		_tecs.set_altitude_error_time_constant(_tecs_alt_time_const_slew_rate.getState());
@@ -912,12 +911,6 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 		_long_configuration.sink_rate_target = math::max(0.0f, configuration_in.sink_rate_target);
 	} else {
 		_long_configuration.sink_rate_target = _param_sinkrate_target.get();
-	}
-
-	if (PX4_ISFINITE(configuration_in.speed_weight)) {
-		_long_configuration.speed_weight = math::constrain(configuration_in.speed_weight, 0.f, 2.f);
-	} else {
-		_long_configuration.speed_weight = _param_t_spdweight.get();
 	}
 
 	// the landing sets this to scale the TECS altitude time constant by FW_LND_THRTC_SC
