@@ -2045,6 +2045,20 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.aspd_intended   = _fc.aspd.intended();
 	msg.rngbcn_intended = _fc.rngbcn.intended();
 
+	msg.gps_enabled[0] = _fc.gps.enabled;
+	msg.of_enabled     = _fc.of.enabled;
+	msg.ev_enabled     = _fc.ev.enabled;
+
+	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
+		msg.agp_enabled[i] = _fc.agp[i].enabled;
+	}
+
+	msg.baro_enabled   = _fc.baro.enabled;
+	msg.rng_enabled    = _fc.rng.enabled;
+	msg.mag_enabled    = _fc.mag.enabled;
+	msg.aspd_enabled   = _fc.aspd.enabled;
+	msg.rngbcn_enabled = _fc.rngbcn.enabled;
+
 	const auto &cs = _ekf.control_status_flags();
 	msg.gps_active[0] = cs.gnss_pos || cs.gps_hgt || cs.gnss_vel || cs.gnss_yaw;
 	msg.of_active     = cs.opt_flow;
@@ -2897,19 +2911,20 @@ void EKF2::UpdateFusionControlFromReplay()
 	estimator_fusion_control_s fc;
 
 	if (_estimator_fusion_control_sub.update(&fc)) {
-		_fc.gps.enabled    = fc.gps_intended[0];
-		_fc.of.enabled     = fc.of_intended;
-		_fc.ev.enabled     = fc.ev_intended;
+		// the intent folds in the CTRL params of the flight, so replaying it would ignore their replay overrides
+		_fc.gps.enabled    = fc.gps_enabled[0];
+		_fc.of.enabled     = fc.of_enabled;
+		_fc.ev.enabled     = fc.ev_enabled;
 
 		for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-			_fc.agp[i].enabled = fc.agp_intended[i];
+			_fc.agp[i].enabled = fc.agp_enabled[i];
 		}
 
-		_fc.baro.enabled   = fc.baro_intended;
-		_fc.rng.enabled    = fc.rng_intended;
-		_fc.mag.enabled    = fc.mag_intended;
-		_fc.aspd.enabled   = fc.aspd_intended;
-		_fc.rngbcn.enabled = fc.rngbcn_intended;
+		_fc.baro.enabled   = fc.baro_enabled;
+		_fc.rng.enabled    = fc.rng_enabled;
+		_fc.mag.enabled    = fc.mag_enabled;
+		_fc.aspd.enabled   = fc.aspd_enabled;
+		_fc.rngbcn.enabled = fc.rngbcn_enabled;
 		_fusion_control_from_replay = true;
 	}
 }
