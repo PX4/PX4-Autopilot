@@ -63,6 +63,7 @@ static gnssChecksSample toChecksSample(const sensor_gnss_s &gnss)
 	sample.lon = gnss.longitude;
 	sample.alt = static_cast<float>(gnss.altitude_msl);
 	sample.vel = matrix::Vector3f(gnss.vel_north, gnss.vel_east, gnss.vel_down);
+	sample.vel_valid = gnss.vel_ned_valid;
 	sample.hacc = gnss.eph;
 	sample.vacc = gnss.epv;
 	sample.sacc = gnss.speed_accuracy;
@@ -149,6 +150,7 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		checks_params.req_sacc = _param_gnss_req_sacc.get();
 		checks_params.req_hdrift = _param_gnss_req_hdrift.get();
 		checks_params.req_vdrift = _param_gnss_req_vdrift.get();
+		checks_params.req_posvel = _param_gnss_req_posvel.get();
 		checks_params.req_fix = _param_gnss_req_fix.get();
 		checks_params.min_health_time_us = static_cast<uint64_t>(_param_gnss_req_time.get() * 1e6f);
 
@@ -495,6 +497,7 @@ void VehicleGPSPosition::PublishStatus()
 		status.drift_rate_horizontal[i] = checks.horizontal_position_drift_rate_m_s();
 		status.drift_rate_vertical[i] = checks.vertical_position_drift_rate_m_s();
 		status.speed_horizontal_filtered[i] = checks.filtered_horizontal_velocity_m_s();
+		status.pos_vel_inconsistency[i] = checks.position_velocity_inconsistency_m_s();
 	}
 
 	status.timestamp = hrt_absolute_time();
