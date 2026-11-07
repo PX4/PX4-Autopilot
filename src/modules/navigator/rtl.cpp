@@ -223,21 +223,31 @@ void RTL::setRtlTypeAndDestination()
 
 RTL::ReturnSelection RTL::selectReturn()
 {
+	// Start at Home, the fallback of every type but 5, which keeps only its yaw.
+	ReturnSelection selection{};
+	selection.destination = homeDestination();
+
 	switch (_param_rtl_type.get()) {
 	case RTL_TYPE_MISSION_FAST:
 	case RTL_TYPE_MISSION_FAST_OR_REVERSE:
-		return selectMissionPath();
+		selectMissionPath(selection);
+		break;
 
 	case RTL_TYPE_SAFE_POINT_DIRECT:
-		return selectSafePoint();
+		selectSafePoint(selection);
+		break;
 
 	case RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT:
-		return selectHomeIfReachable();
+		selectHomeIfReachable(selection);
+		break;
 
 	default:
 		// 0, 1 and 3, and any other value
-		return selectClosest(_param_rtl_type.get());
+		selectClosest(_param_rtl_type.get(), selection);
+		break;
 	}
+
+	return selection;
 }
 
 PositionYawSetpoint RTL::homeDestination() const
@@ -250,12 +260,9 @@ PositionYawSetpoint RTL::homeDestination() const
 	return destination;
 }
 
-RTL::ReturnSelection RTL::selectMissionPath() const
+void RTL::selectMissionPath(ReturnSelection &selection) const
 {
 	// Without a valid mission, go direct to Home.
-	ReturnSelection selection{};
-	selection.destination = homeDestination();
-
 	const bool follow_to_landing = hasMissionLandStart()
 				       && ((_param_rtl_type.get() == RTL_TYPE_MISSION_FAST) || reverseIsFurther());
 
@@ -265,15 +272,10 @@ RTL::ReturnSelection RTL::selectMissionPath() const
 	} else if (hasValidMission()) {
 		selection.executor = RtlType::RTL_MISSION_FAST_REVERSE;
 	}
-
-	return selection;
 }
 
-RTL::ReturnSelection RTL::selectHomeIfReachable()
+void RTL::selectHomeIfReachable(ReturnSelection &selection)
 {
-	ReturnSelection selection{};
-	selection.destination = homeDestination();
-
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 	selection.home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(
 			_navigator->get_mission_route_cache(), selection.destination, _home_pos_sub.get().alt);
@@ -307,8 +309,6 @@ RTL::ReturnSelection RTL::selectHomeIfReachable()
 
 		// If no rally points are closer (or none are defined), fall back to home (already set as the destination)
 	}
-
-	return selection;
 }
 
 rtl_time_estimate_s RTL::estimateTimeToHome()
@@ -522,11 +522,8 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, bool skip_near_hom
 	return closest_safe_point;
 }
 
-RTL::ReturnSelection RTL::selectClosest(int32_t rtl_type)
+void RTL::selectClosest(int32_t rtl_type, ReturnSelection &selection)
 {
-	ReturnSelection selection{};
-	selection.destination = homeDestination();
-
 	const bool vtol_in_rw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
@@ -619,27 +616,24 @@ RTL::ReturnSelection RTL::selectClosest(int32_t rtl_type)
 		selection.destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 		selection.executor = RtlType::RTL_DIRECT;
 	}
-
-	return selection;
 }
 
-RTL::ReturnSelection RTL::selectSafePoint()
+void RTL::selectSafePoint(ReturnSelection &selection)
 {
-	ReturnSelection selection{};
-	selection.destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
-	selection.destination = findClosestSafePoint(FLT_MAX, false, selection.safe_point_index,
-				selection.rally_point_has_land_approach);
+	const PositionYawSetpoint safe_point = findClosestSafePoint(FLT_MAX, false, selection.safe_point_index,
+					       selection.rally_point_has_land_approach);
 
-	if (selection.safe_point_index == RTL_STATUS_NO_SAFE_POINT) {
+	if (selection.safe_point_index != RTL_STATUS_NO_SAFE_POINT) {
+		selection.destination = safe_point;
+		selection.destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+
+	} else {
 		// if no rally point is found fallback to current position, which keeps Home's yaw
-		selection.destination = homeDestination();
 		selection.destination.alt = _global_pos_sub.get().alt;
 		selection.destination.lat = _global_pos_sub.get().lat;
 		selection.destination.lon = _global_pos_sub.get().lon;
 		selection.destination_type = DestinationType::DESTINATION_TYPE_CURRENT_POSITION;
 	}
-
-	return selection;
 }
 
 void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const
