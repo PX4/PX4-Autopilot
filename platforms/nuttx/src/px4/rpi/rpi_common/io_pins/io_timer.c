@@ -376,6 +376,11 @@ static inline int free_channel_resource(unsigned channel)
 	return mode;
 }
 
+int io_timer_unallocate_channel(unsigned channel)
+{
+	return free_channel_resource(channel);
+}
+
 int io_timer_free_channel(unsigned channel)
 {
 	if (io_timer_validate_channel_index(channel) != 0) {

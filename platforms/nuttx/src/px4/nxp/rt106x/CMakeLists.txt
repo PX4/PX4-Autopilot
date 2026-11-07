@@ -38,6 +38,11 @@ add_subdirectory(../imxrt/board_hw_info board_hw_info)
 add_subdirectory(../imxrt/board_reset board_reset)
 add_subdirectory(../imxrt/romapi romapi)
 add_subdirectory(../nxp_common/dshot dshot)
+
+if(CONFIG_SERIALPASSTHROUGH_BITBANG)
+	add_subdirectory(../nxp_common/flexio_uart flexio_uart)
+endif()
+
 add_subdirectory(../imxrt/hrt hrt)
 add_subdirectory(../imxrt/led_pwm led_pwm)
 add_subdirectory(../imxrt/io_pins io_pins)
