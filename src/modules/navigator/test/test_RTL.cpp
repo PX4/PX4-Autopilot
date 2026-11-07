@@ -934,6 +934,38 @@ TEST_F(RTLTest, Type6ReportsTheApproachAtHome)
 	EXPECT_TRUE(rtl_status_sub.get().has_vtol_approach);
 	orb_unadvertise(battery_pub);
 }
+
+// WHY: the mission check reads rtl_status.has_vtol_approach for the Return type in use.
+// WHAT: RTL_TYPE 5, and 6 beyond the battery, report the approach of the rally point they choose.
+TEST_F(RTLTest, Types5And6ReportTheApproachAtTheRallyPoint)
+{
+	const ApproachGeometry geometry = makeApproachGeometry();
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt + 100.f);
+	publishLandDetected(false);
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
+	loadSafePointsIntoRouteCache({
+		makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+	});
+	battery_status_s battery{};
+	battery.timestamp = hrt_absolute_time();
+	battery.connected = true;
+	battery.time_remaining_s = 1.f;
+	orb_advert_t battery_pub = orb_advertise(ORB_ID(battery_status), &battery);
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+
+	for (const int32_t rtl_type : {5, 6}) {
+		SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << rtl_type);
+		_rtl.evaluateReturnTypeForTest(rtl_type);
+
+		EXPECT_TRUE(rtl_status_sub.update());
+		EXPECT_EQ(rtl_status_sub.get().safe_point_index, 0);
+		EXPECT_TRUE(rtl_status_sub.get().has_vtol_approach);
+	}
+
+	orb_unadvertise(battery_pub);
+}
 #endif
 
 class RTLClimbUpdateTest : public RTLTest, public ::testing::WithParamInterface<std::tuple<bool, uint8_t>> {};
