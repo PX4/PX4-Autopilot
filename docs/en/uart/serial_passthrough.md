@@ -5,6 +5,8 @@
 Serial Passthrough allows a MAVLink client to read from and write to selected flight controller serial interfaces using the [SERIAL_CONTROL](https://mavlink.io/en/messages/common.html#SERIAL_CONTROL) message.
 Typical use cases include: providing a direct serial channel for ESC configuration tools, and debugging serial peripherals over a telemetry link.
 
+To configure AM32, Bluejay or BLHeli ESCs from a browser over the flight controller's USB port, see [ESC Configuration over USB](../peripherals/esc_configuration_4way.md) instead.
+
 Two cases are supported:
 
 - Control of normal ports, such as telemetry or GPS ports.
