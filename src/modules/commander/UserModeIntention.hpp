@@ -95,6 +95,12 @@ public:
 	uint8_t get() const { return _user_intented_nav_state; }
 
 	/**
+	 * While active, user-initiated mode changes to non-manual modes are rejected.
+	 * Used to lock out guided/auto modes while the RC mode switch is on RTL.
+	 */
+	void setModeChangeLockout(bool active) { _mode_change_lockout = active; }
+
+	/**
 	 * Change the user intention to the last user intended mode where arming is possible
 	 */
 	void onDisarm();
@@ -113,4 +119,5 @@ private:
 	uint8_t _nav_state_after_disarming{vehicle_status_s::NAVIGATION_STATE_POSCTL}; ///< Mode that is switched into after landing/disarming
 
 	bool _had_mode_change{false}; ///< true if there was a mode change call since the last getHadModeChangeAndClear()
+	bool _mode_change_lockout{false}; ///< reject user mode changes to non-manual modes while active
 };

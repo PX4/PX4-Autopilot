@@ -69,6 +69,7 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -147,6 +148,13 @@ private:
 	void dataLinkCheck();
 
 	void manualControlCheck();
+
+	/**
+	 * Track the nav_state selected by the RC flight mode switch and latch a
+	 * lockout while it is on RTL: user-initiated mode changes to non-manual
+	 * modes and arming are rejected until the switch returns to Stabilized.
+	 */
+	void updateRcFlightModeLockout();
 
 	/**
 	 * When NAV_RCL_ACT is set to "Hold mode (no failsafe)", switch from an active manual flight mode to Hold
@@ -285,6 +293,8 @@ private:
 
 	float _last_manual_throttle{-1.f};
 	bool _manual_control_lost_prev{false}; ///< previous manual_control_signal_lost state, for edge detection
+	bool _tx_rtl_lockout{false}; ///< RC mode switch on RTL: lock out guided/auto modes and arming until Stabilized
+	int8_t _tx_mode_slot_nav_state{-1}; ///< nav_state selected by the RC flight mode switch, -1 if none/unknown
 
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
@@ -304,6 +314,7 @@ private:
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription					_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription					_vehicle_command_mode_executor_sub{ORB_ID(vehicle_command_mode_executor)};
@@ -337,6 +348,7 @@ private:
 	// optional parameters
 	param_t _param_mav_type{PARAM_INVALID};
 	param_t _param_rc_map_fltmode{PARAM_INVALID};
+	param_t _param_fltmode[6] {}; ///< COM_FLTMODE1..6
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_DISARM_LAND>)  _param_com_disarm_land,
