@@ -99,6 +99,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - With [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 5 and no rally point, a fixed-wing vehicle now circles where Return started, whatever [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY) is.
   It used to land there when `RTL_LAND_DELAY` was not -1, with the altitude it was flying at as the ground altitude.
   VTOLs and multicopters still follow `RTL_LAND_DELAY`.
+- After its climb, a Return to the mission landing ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1 or 3, or 0 as a last resort) flies to the landing at the return altitude before it descends, and a VTOL transitions back to multicopter there.
+  Since PX4 v1.15 a multicopter descended right after the climb while flying to the landing and could touch down short of it, and a VTOL flew a fixed-wing landing.
 
 ### Hardware Support
 
