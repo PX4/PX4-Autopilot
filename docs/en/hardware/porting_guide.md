@@ -31,6 +31,10 @@ This section describes the purpose and location of the configuration files requi
 
 See [NuttX Board Porting Guide](porting_guide_nuttx.md).
 
+### Zephyr
+
+See [Zephyr Board Porting Guide](porting_guide_zephyr.md).
+
 ### Linux
 
 Linux boards do not include the OS and kernel configuration.

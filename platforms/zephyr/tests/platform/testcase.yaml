@@ -1,0 +1,9 @@
+common:
+  tags:
+    - px4
+  platform_allow:
+    - mps2/an386
+  integration_platforms:
+    - mps2/an386
+tests:
+  px4.platform: {}

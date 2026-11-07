@@ -225,15 +225,11 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 			const uint8_t new_count = _max_pollwaiters > 0 ? _max_pollwaiters * 2 : 1;
 			px4_pollfd_struct_t **prev_pollset = _pollset;
 
-#ifdef __PX4_NUTTX
 			// malloc uses a semaphore, we need to call it enabled IRQ's
-			px4_leave_critical_section(flags);
-#endif
+			ATOMIC_PAUSE;
 			px4_pollfd_struct_t **new_pollset = new px4_pollfd_struct_t *[new_count];
 
-#ifdef __PX4_NUTTX
-			flags = px4_enter_critical_section();
-#endif
+			ATOMIC_RESUME;
 
 			if (prev_pollset == _pollset) {
 				// no one else updated the _pollset meanwhile, so we're good to go
@@ -252,31 +248,23 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 				_max_pollwaiters = new_count;
 
 				// free the previous _pollset (we need to unlock here which is fine because we don't access _pollset anymore)
-#ifdef __PX4_NUTTX
-				px4_leave_critical_section(flags);
-#endif
+				ATOMIC_PAUSE;
 
 				if (prev_pollset) {
 					delete[](prev_pollset);
 				}
 
-#ifdef __PX4_NUTTX
-				flags = px4_enter_critical_section();
-#endif
+				ATOMIC_RESUME;
 
 				// Success
 				ret = PX4_OK;
 				break;
 			}
 
-#ifdef __PX4_NUTTX
-			px4_leave_critical_section(flags);
-#endif
+			ATOMIC_PAUSE;
 			// We have to retry
 			delete[] new_pollset;
-#ifdef __PX4_NUTTX
-			flags = px4_enter_critical_section();
-#endif
+			ATOMIC_RESUME;
 		}
 
 		if (ret == PX4_OK) {
