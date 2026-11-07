@@ -32,6 +32,9 @@
  ****************************************************************************/
 
 #include "odid_bid_storage.hpp"
+#include "odid_identity.hpp"
+
+#include <pthread.h>
 
 #include <fcntl.h>
 #include <stddef.h>
@@ -39,10 +42,8 @@
 #include <unistd.h>
 
 #ifdef __PX4_NUTTX
-#include <nuttx/crc32.h>
+#include <board_config.h>
 #include <px4_platform_common/px4_manifest.h>
-#else
-#include <crc32.h>
 #endif
 
 namespace open_drone_id
@@ -50,70 +51,28 @@ namespace open_drone_id
 namespace
 {
 
-static constexpr uint32_t ODID_UASID_MAGIC = 0x4449444f; // "ODID"
-static constexpr uint8_t ODID_UASID_RECORD_VERSION = 1;
+static pthread_mutex_t storage_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-struct __attribute__((packed)) UasIdRecord {
-	uint32_t magic;
-	uint8_t version;
-	uint8_t id_type;
-	uint8_t ua_type;
-	uint8_t reserved;
-	uint8_t uas_id[UAS_ID_SIZE];
-	uint32_t crc;
-};
+#if defined(__PX4_NUTTX)
+bool getBoardUid(px4_guid_t &uid)
+{
+	static_assert(sizeof(uid) == UID_MAX_SIZE, "Update OpenDroneID UID record size");
+	static_assert(PX4_CPU_MFGUID_BYTE_LENGTH <= sizeof(uid), "MCU UID exceeds PX4 GUID");
+	return board_get_px4_guid(uid) == static_cast<int>(sizeof(uid))
+	       && uidValid(uid + sizeof(uid) - PX4_CPU_MFGUID_BYTE_LENGTH, PX4_CPU_MFGUID_BYTE_LENGTH);
+}
+#endif
 
 class BidStorageBackend
 {
 public:
 	BidLockInfo get();
-	BidStoreResult checkOrStore(uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE]);
+	BidStoreResult checkOrStore(uint8_t id_type, uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE]);
 
 private:
-	static bool uasIdIsEmpty(const uint8_t uas_id[UAS_ID_SIZE])
+	static bool recordMatches(const UasIdRecord &record, uint8_t id_type, const uint8_t uas_id[UAS_ID_SIZE])
 	{
-		for (unsigned i = 0; i < UAS_ID_SIZE; ++i) {
-			if (uas_id[i] != 0) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	static uint32_t recordCrc(const UasIdRecord &record)
-	{
-		return crc32(reinterpret_cast<const uint8_t *>(&record.version),
-			     offsetof(UasIdRecord, crc) - offsetof(UasIdRecord, version));
-	}
-
-	static bool recordValid(const UasIdRecord &record)
-	{
-		return record.magic == ODID_UASID_MAGIC
-		       && record.version == ODID_UASID_RECORD_VERSION
-		       && record.id_type == UAS_ID_TYPE_SERIAL_NUMBER
-		       && !uasIdIsEmpty(record.uas_id)
-		       && record.crc == recordCrc(record);
-	}
-
-	// Check if the record is all 0xff, which is the erased state of flash.
-	// This is needed to distinguish between an unwritten record and a record that was written with all bytes set to 0 (which would be invalid but not unwritten).
-	static bool recordBlank(const UasIdRecord &record)
-	{
-		const uint8_t *bytes = reinterpret_cast<const uint8_t *>(&record);
-
-		for (unsigned i = 0; i < sizeof(record); ++i) {
-			if (bytes[i] != 0xff) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	static bool recordMatches(const UasIdRecord &record, const uint8_t uas_id[UAS_ID_SIZE])
-	{
-		return memcmp(record.uas_id, uas_id, UAS_ID_SIZE) == 0;
+		return record.id_type == id_type && memcmp(record.uas_id, uas_id, UAS_ID_SIZE) == 0;
 	}
 
 	// Write the entire buffer to the file descriptor, handling short writes.
@@ -140,10 +99,16 @@ private:
 static_assert(sizeof(UasIdRecord) <= 256, "OpenDroneID UAS ID record must fit in /fs/mtd_id");
 
 // The UAS ID storage is only supported on PX4 targets with NuttX and an MTD partition named "ID".
-// On other platforms, the get() method will return StorageUnavailable and the checkOrStore() method will return Unsupported.
+// Other platforms return Unsupported.
 BidLockInfo BidStorageBackend::get()
 {
 #if defined(__PX4_NUTTX)
+	px4_guid_t uid {};
+
+	if (!getBoardUid(uid)) {
+		return {BidLockState::StorageUnavailable, {}};
+	}
+
 	const char *path = nullptr;
 
 	if (px4_mtd_query("MTD_ID", nullptr, &path) != 0 || path == nullptr) {
@@ -165,8 +130,9 @@ BidLockInfo BidStorageBackend::get()
 
 	close(fd);
 
-	if (recordValid(record)) {
+	if (recordValid(record, uid, sizeof(uid))) {
 		BidLockInfo info{BidLockState::Locked, {}};
+		info.id.id_type = record.id_type;
 		info.id.ua_type = record.ua_type;
 		memcpy(info.id.uas_id, record.uas_id, UAS_ID_SIZE);
 		return info;
@@ -183,14 +149,21 @@ BidLockInfo BidStorageBackend::get()
 }
 
 // Check if the given UAS ID matches the stored one, or store it if the storage is empty.
-// The storage is write-once, so once a UAS ID is stored it cannot be changed (except by erasing the flash).
-BidStoreResult BidStorageBackend::checkOrStore(uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE])
+// Only erased storage can be provisioned. UID binding detects copied records;
+// neither the UID nor the CRC authenticates the identity against deliberate edits.
+BidStoreResult BidStorageBackend::checkOrStore(uint8_t id_type, uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE])
 {
-	if (uasIdIsEmpty(uas_id)) {
+	if (!uasIdValid(id_type, uas_id, UAS_ID_SIZE)) {
 		return BidStoreResult::InvalidBasicId;
 	}
 
 #if defined(__PX4_NUTTX)
+	px4_guid_t uid {};
+
+	if (!getBoardUid(uid)) {
+		return BidStoreResult::StorageUnavailable;
+	}
+
 	const char *path = nullptr;
 
 	if (px4_mtd_query("MTD_ID", nullptr, &path) != 0 || path == nullptr) {
@@ -210,8 +183,8 @@ BidStoreResult BidStorageBackend::checkOrStore(uint8_t ua_type, const uint8_t ua
 		return BidStoreResult::StorageUnavailable;
 	}
 
-	if (recordValid(existing)) {
-		const BidStoreResult result = recordMatches(existing, uas_id)
+	if (recordValid(existing, uid, sizeof(uid))) {
+		const BidStoreResult result = recordMatches(existing, id_type, uas_id)
 					      ? BidStoreResult::AlreadyLocked
 					      : BidStoreResult::AlreadyLockedDifferent;
 		close(fd);
@@ -224,12 +197,11 @@ BidStoreResult BidStorageBackend::checkOrStore(uint8_t ua_type, const uint8_t ua
 	}
 
 	UasIdRecord record{};
-	record.magic = ODID_UASID_MAGIC;
-	record.version = ODID_UASID_RECORD_VERSION;
-	record.id_type = UAS_ID_TYPE_SERIAL_NUMBER;
-	record.ua_type = ua_type;
-	memcpy(record.uas_id, uas_id, UAS_ID_SIZE);
-	record.crc = recordCrc(record);
+
+	if (!recordCreate(record, id_type, ua_type, uas_id, UAS_ID_SIZE, uid, sizeof(uid))) {
+		close(fd);
+		return BidStoreResult::InvalidBasicId;
+	}
 
 	const uint32_t magic = record.magic;
 	record.magic = 0xffffffff;
@@ -255,21 +227,33 @@ BidStoreResult BidStorageBackend::checkOrStore(uint8_t ua_type, const uint8_t ua
 // Public interface that uses the backend implementation.
 BidLockInfo BidStorage::get()
 {
+	if (pthread_mutex_lock(&storage_mutex) != 0) {
+		return {BidLockState::StorageUnavailable, {}};
+	}
+
 	BidStorageBackend storage;
-	return storage.get();
+	const BidLockInfo info = storage.get();
+	pthread_mutex_unlock(&storage_mutex);
+	return info;
 }
 
-BidStoreResult BidStorage::checkOrStore(uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE])
+BidStoreResult BidStorage::checkOrStore(uint8_t id_type, uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE])
 {
+	// Serialize the entire read/check/write transaction across MAVLink instances.
+	if (pthread_mutex_lock(&storage_mutex) != 0) {
+		return BidStoreResult::StorageUnavailable;
+	}
+
 	BidStorageBackend storage;
-	return storage.checkOrStore(ua_type, uas_id);
+	const BidStoreResult result = storage.checkOrStore(id_type, ua_type, uas_id);
+	pthread_mutex_unlock(&storage_mutex);
+	return result;
 }
 
-//
 BidStoreResult BidLock::resolve(uint8_t id_type, uint8_t ua_type, const uint8_t uas_id[UAS_ID_SIZE],
 				UasId &locked_id)
 {
-	if (id_type != UAS_ID_TYPE_SERIAL_NUMBER) {
+	if (!uasIdValid(id_type, uas_id, UAS_ID_SIZE)) {
 		return BidStoreResult::InvalidBasicId;
 	}
 
@@ -303,11 +287,12 @@ BidStoreResult BidLock::resolve(uint8_t id_type, uint8_t ua_type, const uint8_t 
 		}
 	}
 
-	const BidStoreResult result = BidStorage::checkOrStore(ua_type, uas_id);
+	const BidStoreResult result = BidStorage::checkOrStore(id_type, ua_type, uas_id);
 
 	switch (result) {
 	case BidStoreResult::Stored:
 		_info.state = BidLockState::Locked;
+		_info.id.id_type = id_type;
 		_info.id.ua_type = ua_type;
 		memcpy(_info.id.uas_id, uas_id, UAS_ID_SIZE);
 		locked_id = _info.id;
