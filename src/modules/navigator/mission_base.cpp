@@ -1126,9 +1126,9 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 	}
 
 	if (new_mission.nav_cmd == NAV_CMD_DO_JUMP) {
-		// Ran out of iterations while still on a DO_JUMP (e.g. a jump loop or a chain longer than
-		// MAX_JUMP_ITERATION). Report failure instead of returning an unresolved jump as a valid
-		// item, which would otherwise be loaded as the current mission item.
+		// Ran out of iterations while still on a DO_JUMP (MAX_JUMP_ITERATION DO_JUMPs in a row, or the
+		// loop or chain of a mission that failed its check). Report failure instead of returning an
+		// unresolved jump as a valid item, which would otherwise be loaded as the current mission item.
 		PX4_ERR("Do Jump could not be resolved within %u iterations.", MAX_JUMP_ITERATION);
 		return PX4_ERROR;
 	}
