@@ -135,7 +135,6 @@ px4_add_module(
 			-Wno-address-of-packed-member
 			-Wno-double-promotion
 			-Wno-unused
-			-Wno-missing-braces
 			-DZENOH_LINUX
 			-D_Bool=int8_t
 )
