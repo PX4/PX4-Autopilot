@@ -143,7 +143,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	for (size_t i = 0; i < mission.count; i++) {
-		mission_item_s missionitem; // fully written by a successful read
+		mission_item_s &missionitem = _checked_item;
 
 		if (!readSyncMissionItem(mission, i, missionitem)) {
 			failure = Failure::DatamanRead;
@@ -154,7 +154,24 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 
 		if (missionitem.nav_cmd == NAV_CMD_DO_JUMP) {
-			if (!checkJumpDestination(mission, missionitem, i, have_previous_position ? &previous_position : nullptr, batch)) {
+			// Only a jump with repeats flies its leg; checkJumpTarget() checks every target.
+			// Ignore do_jump_current_count: a mission reset re-arms a spent jump.
+			if (missionitem.do_jump_repeat_count == 0 || !have_previous_position) {
+				continue;
+			}
+
+			size_t index = 0;
+			const JumpTarget target = findJumpTarget(mission, missionitem.do_jump_mission_index, i, index, _jump_candidate);
+
+			if (target == JumpTarget::ReadFailed) {
+				failure = Failure::DatamanRead;
+				failed_item = index;
+				break;
+			}
+
+			// The mission check rejects a target that reaches a jump instead of a position.
+			if (target == JumpTarget::Position
+			    && !addGeofencePath(batch, previous_position, {_jump_candidate.lat, _jump_candidate.lon}, i, 0.f, true)) {
 				return false;
 			}
 
@@ -308,8 +325,8 @@ MissionFeasibilityChecker::JumpTarget MissionFeasibilityChecker::findJumpTarget(
 	return JumpTarget::Jump;
 }
 
-// Execution follows a jump to its target and on to the first position. Reaching a DO_JUMP first, the jump itself
-// included, loops or chains jumps: the lookahead hangs on a loop of commands, and a chain can end the mission early.
+// Reject a DO_JUMP reached before a position, the checked jump included, even with 0 repeats:
+// a loop of commands hangs the lookahead, and a chain of jumps can end the mission early.
 bool MissionFeasibilityChecker::checkJumpTarget(const mission_s &mission, const mission_item_s &jump_item,
 		size_t jump_index)
 {
@@ -336,35 +353,6 @@ bool MissionFeasibilityChecker::checkJumpTarget(const mission_s &mission, const 
 }
 
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-bool MissionFeasibilityChecker::checkJumpDestination(const mission_s &mission, const mission_item_s &jump_item,
-		size_t jump_index, const matrix::Vector2d *previous_position, GeofencePathBatch &batch)
-{
-	// Only a jump with repeats flies its edge. Ignore do_jump_current_count: it is execution state.
-	if (jump_item.do_jump_repeat_count == 0 || !previous_position) {
-		return true;
-	}
-
-	size_t index = 0;
-
-	switch (findJumpTarget(mission, jump_item.do_jump_mission_index, jump_index, index, _jump_candidate)) {
-	case JumpTarget::Position:
-		return addGeofencePath(batch, *previous_position, {_jump_candidate.lat, _jump_candidate.lon}, jump_index, 0.f, true);
-
-	case JumpTarget::Jump:
-		// The mission check rejects this jump.
-		return true;
-
-	case JumpTarget::ReadFailed:
-		if (checkGeofencePathBatch(batch)) {
-			logDatamanReadFailure(index, mission.mission_dataman_id);
-		}
-
-		return false;
-	}
-
-	return false;
-}
-
 bool MissionFeasibilityChecker::addGeofencePath(GeofencePathBatch &batch, const matrix::Vector2d &start,
 		const matrix::Vector2d &end, size_t mission_index, float end_radius, bool is_jump)
 {

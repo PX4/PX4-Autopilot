@@ -84,8 +84,6 @@ private:
 	bool checkJumpTarget(const mission_s &mission, const mission_item_s &jump_item, size_t jump_index);
 	bool checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid);
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-	bool checkJumpDestination(const mission_s &mission, const mission_item_s &jump_item, size_t jump_index,
-				  const matrix::Vector2d *previous_position, GeofencePathBatch &batch);
 	bool addGeofencePath(GeofencePathBatch &batch, const matrix::Vector2d &start, const matrix::Vector2d &end,
 			     size_t mission_index, float end_radius = 0.f, bool is_jump = false);
 	bool checkGeofencePathBatch(GeofencePathBatch &batch);
