@@ -90,6 +90,12 @@
 #include <sys/time.h>
 #endif
 
+#if defined(SIH_TERRAIN_DEM)
+#include <memory>
+
+#include "terrain/TerrainDem.hpp"
+#endif
+
 using namespace time_literals;
 
 class Sih : public ModuleBase, public ModuleParams
@@ -211,6 +217,19 @@ private:
 
 	void ecefToNed();
 
+	// ground altitude [m AMSL] at a position, flat at the origin altitude unless a DEM is in use
+	float terrain_alt(double lat_deg, double lon_deg, bool *in_dem = nullptr) const;
+	void update_ground_alt();
+
+#if defined(SIH_TERRAIN_DEM)
+	bool terrain_active() const;
+	float terrain_ray_distance() const;
+
+	static inline std::unique_ptr<TerrainDem> _terrain_dem_loaded; // loaded by task_spawn(), handed over to the instance
+	std::unique_ptr<TerrainDem> _terrain_dem;
+	bool _terrain_outside_warned{false};
+#endif
+
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
 	int _lockstep_component{-1};
@@ -306,6 +325,8 @@ private:
 	// parameters
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
+	float _h0_applied{0.f};  // SIH_LOC_H0 used for the current origin
+	float _ground_alt{0.f};  // ground altitude below the vehicle [m AMSL]
 	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU, _F_T_MAX, _F_Q_MAX;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix

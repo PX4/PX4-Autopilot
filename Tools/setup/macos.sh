@@ -140,6 +140,7 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		exiftool
 		glog
 		graphviz
+		libgeotiff # SIH terrain elevation (GeoTIFF DEM), pulls libtiff and proj
 		pixi
 	)
 
