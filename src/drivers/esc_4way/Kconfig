@@ -1,0 +1,11 @@
+menuconfig DRIVERS_ESC_4WAY
+	bool "esc_4way (MSP and 4way ESC configuration server over USB or a serial port)"
+	default n
+	depends on SERIALPASSTHROUGH_BITBANG
+	---help---
+		Serves the BLHeli/AM32 4way interface protocol to ESC configurators
+		(am32.ca, esc-configurator.com) through the flight controller: MSP on
+		the host side, the ESC bootloader protocol on the ESC signal pins via
+		the bit-bang UART backend. Started by cdcacm_autostart when
+		PASSTHRU_EN=2 or by "esc_4way start -d <device>". The outputs are
+		stopped for the session and the board reboots afterwards.

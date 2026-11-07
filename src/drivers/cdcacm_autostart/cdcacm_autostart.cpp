@@ -92,6 +92,13 @@ int CdcAcmAutostart::Start()
 	PX4_INFO("Starting CDC/ACM autostart");
 	UpdateParams(true);
 
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+	// Read before rcS resets PASSTHRU_EN for the next boot
+	int32_t passthru_en = 0;
+	param_get(param_find("PASSTHRU_EN"), &passthru_en);
+	_esc_4way = (passthru_en == 2);
+#endif
+
 	ScheduleNow();
 
 	return PX4_OK;
@@ -221,7 +228,8 @@ void CdcAcmAutostart::state_connecting()
 	// /dev/ttyACM0 immediately, but open() returns -ENOTCONN until the host has
 	// enumerated. mavlink exits if its own open retries run out, so only spawn it
 	// once the port is known to be openable, then release the probe.
-	if (_sys_usb_auto.get() == 2) {
+	// PASSTHRU_EN=2 starts the ESC configuration server the same way, instead of MAVLink.
+	if (_sys_usb_auto.get() == 2 || _esc_4way) {
 		if (_ttyacm_fd < 0) {
 			_ttyacm_fd = px4_open(USB_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 		}
@@ -232,11 +240,11 @@ void CdcAcmAutostart::state_connecting()
 		}
 
 		close_ttyacm();
-		PX4_INFO("Starting mavlink on %s (SYS_USB_AUTO=2)", USB_DEVICE_PATH);
+		PX4_INFO("Starting %s on %s", _esc_4way ? "esc_4way" : "mavlink", USB_DEVICE_PATH);
 
-		if (start_mavlink()) {
+		if (_esc_4way ? start_esc_4way() : start_mavlink()) {
 			_state = UsbAutoStartState::connected;
-			_active_protocol = UsbProtocol::mavlink;
+			_active_protocol = _esc_4way ? UsbProtocol::esc_4way : UsbProtocol::mavlink;
 
 		} else {
 			_state = UsbAutoStartState::disconnecting;
@@ -323,6 +331,24 @@ void CdcAcmAutostart::state_connecting()
 
 		return;
 	}
+
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+
+	// Parse for an MSP request from an ESC configurator.
+	if (scan_buffer_for_msp()) {
+		if (start_esc_4way()) {
+			_state = UsbAutoStartState::connected;
+			_active_protocol = UsbProtocol::esc_4way;
+
+		} else {
+			_state = UsbAutoStartState::disconnecting;
+			_reschedule_time = 100_ms;
+		}
+
+		return;
+	}
+
+#endif
 
 	// Parse for carriage returns indicating someone is trying to use the nsh.
 	if (scan_buffer_for_carriage_returns()) {
@@ -517,6 +543,21 @@ bool CdcAcmAutostart::scan_buffer_for_ublox_bytes()
 	return success;
 }
 
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+bool CdcAcmAutostart::scan_buffer_for_msp()
+{
+	// MSP v1 request header, the first bytes the ESC configurators send
+	for (int i = 0; i < _bytes_read - 2; i++) {
+		if (_buffer[i] == '$' && _buffer[i + 1] == 'M' && _buffer[i + 2] == '<') {
+			PX4_INFO("%s: launching esc_4way", USB_DEVICE_PATH);
+			return true;
+		}
+	}
+
+	return false;
+}
+#endif
+
 bool CdcAcmAutostart::start_mavlink()
 {
 	char mavlink_mode_string[16];
@@ -539,6 +580,13 @@ void CdcAcmAutostart::stop_mavlink()
 bool CdcAcmAutostart::start_nsh()
 {
 	char *argv[] { (char *)"nshterm", (char *)USB_DEVICE_PATH, nullptr };
+	return execute_process(argv) > 0;
+}
+
+// The server stops the output drivers itself at the first valid request
+bool CdcAcmAutostart::start_esc_4way()
+{
+	char *argv[] { (char *)"esc_4way", (char *)"start", (char *)"-d", (char *)USB_DEVICE_PATH, nullptr };
 	return execute_process(argv) > 0;
 }
 
@@ -650,6 +698,10 @@ int CdcAcmAutostart::print_status()
 
 	case UsbProtocol::ublox:
 		protocol = "ublox";
+		break;
+
+	case UsbProtocol::esc_4way:
+		protocol = "esc_4way";
 		break;
 	}
 

@@ -80,6 +80,7 @@ private:
 		mavlink,
 		nsh,
 		ublox,
+		esc_4way,
 	};
 
 	void Run() override;
@@ -99,10 +100,14 @@ private:
 	bool scan_buffer_for_mavlink_heartbeat();
 	bool scan_buffer_for_carriage_returns();
 	bool scan_buffer_for_ublox_bytes();
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+	bool scan_buffer_for_msp();
+#endif
 
 	bool start_mavlink();
 	void stop_mavlink();
 	bool start_nsh();
+	bool start_esc_4way();
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 	bool start_ublox_serial_passthru(speed_t baudrate);
 #endif
@@ -115,6 +120,7 @@ private:
 	UsbProtocol _active_protocol{UsbProtocol::none};
 	bool _vbus_present{false};
 	bool _vbus_present_prev{false};
+	bool _esc_4way{false};	///< PASSTHRU_EN=2 at boot: ESC configuration server instead of MAVLink
 	int _ttyacm_fd{-1};
 
 	char _buffer[80] {};

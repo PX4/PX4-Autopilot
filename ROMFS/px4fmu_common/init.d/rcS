@@ -550,12 +550,10 @@ else
 	else
 		commander start
 
-		if param greater -s PASSTHRU_EN 0
+		# PASSTHRU_EN > 0 (serial passthrough or ESC configuration):
+		# leave the ESC lines free, it is reset below for the next boot
+		if ! param greater -s PASSTHRU_EN 0
 		then
-			# serial passthrough requested: leave the ESC lines free and
-			# reset so the next boot starts the outputs normally
-			param set PASSTHRU_EN 0
-		else
 			dshot start
 			pwm_out start
 		fi
@@ -619,6 +617,12 @@ else
 			echo "Starting MAVLink on /dev/ttyACM0"
 			mavlink start -d /dev/ttyACM0
 		fi
+	fi
+
+	# After cdcacm_autostart, which reads PASSTHRU_EN=2 at start
+	if param greater -s PASSTHRU_EN 0
+	then
+		param set PASSTHRU_EN 0
 	fi
 
 	#
