@@ -873,6 +873,7 @@ INSTANTIATE_TEST_SUITE_P(
 		ReturnSelectionCase{"Type0ClosestIsRallyPoint", 0, kMulticopter, -300.f, 100.f, false, NAN, 0, NAN, 0, kDirect, kRallyPoint},
 		ReturnSelectionCase{"Type0IgnoresRallyPointNearHome", 0, kMulticopter, -300.f, -291.f, false, NAN, 0, NAN, 0, kDirect, kHome},
 		ReturnSelectionCase{"Type0VtolWithoutHomeApproachUsesMissionLanding", 0, kVtolInFixedWing, -100.f, NAN, true, 300.f, 0, NAN, 1, kMissionLand, kExecutorOnly},
+		ReturnSelectionCase{"Type0VtolWithHomeApproachIgnoresMissionLanding", 0, kVtolInFixedWing, -100.f, -100.f, true, 50.f, 0, NAN, 1, kDirect, kExecutorOnly},
 		ReturnSelectionCase{"Type0VtolPrefersRallyPointToLastResortLanding", 0, kVtolInFixedWing, -100.f, 300.f, true, 100.f, 0, NAN, 1, kDirect, kRallyPointApproach},
 		ReturnSelectionCase{"Type1PrefersRallyPoint", 1, kMulticopter, -100.f, 300.f, false, NAN, 0, NAN, 0, kDirect, kRallyPoint},
 		ReturnSelectionCase{"Type1PrefersMissionLandingToCloserHome", 1, kMulticopter, -100.f, 300.f, true, 200.f, 0, NAN, 0, kMissionLand, kExecutorOnly},
