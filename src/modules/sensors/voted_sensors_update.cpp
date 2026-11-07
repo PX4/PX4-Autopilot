@@ -174,9 +174,13 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 		if (_vehicle_imu_sub[uorb_index].update(&imu_report) && imuEnabled(uorb_index)) {
 
-			// copy corresponding vehicle_imu_status for accel & gyro error counts
-			vehicle_imu_status_s imu_status{};
-			_vehicle_imu_status_subs[uorb_index].copy(&imu_status);
+			// update the accel & gyro error counts from the corresponding vehicle_imu_status
+			vehicle_imu_status_s imu_status;
+
+			if (_vehicle_imu_status_subs[uorb_index].update(&imu_status)) {
+				_accel_error_count[uorb_index] = imu_status.accel_error_count;
+				_gyro_error_count[uorb_index] = imu_status.gyro_error_count;
+			}
 
 			_accel_device_id[uorb_index] = imu_report.accel_device_id;
 			_gyro_device_id[uorb_index] = imu_report.gyro_device_id;
@@ -207,10 +211,10 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 			_last_accel_timestamp[uorb_index] = imu_report.timestamp_sample;
 
 			_accel.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2,
-					 imu_status.accel_error_count, _accel.priority[uorb_index]);
+					 _accel_error_count[uorb_index], _accel.priority[uorb_index]);
 
 			_gyro.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].gyro_rad,
-					imu_status.gyro_error_count, _gyro.priority[uorb_index]);
+					_gyro_error_count[uorb_index], _gyro.priority[uorb_index]);
 		}
 	}
 

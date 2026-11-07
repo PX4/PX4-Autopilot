@@ -47,11 +47,11 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/rover_throttle_setpoint.h>
-#include <uORB/topics/rover_steering_setpoint.h>
-#include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/rover_speed_setpoint.h>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_steering_setpoint.h>
+#include <uORB/topics/surface_vehicle_rate_setpoint.h>
+#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
+#include <uORB/topics/surface_vehicle_speed_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
 
 using namespace matrix;
 
@@ -69,19 +69,19 @@ public:
 	~MecanumManualMode() = default;
 
 	/**
-	 * @brief Publish roverThrottleSetpoint and roverSteeringSetpoint from manualControlSetpoint.
+	 * @brief Publish roverThrottleSetpoint and surfaceVehicleSteeringSetpoint from manualControlSetpoint.
 	 */
 	void manual();
 
 	/**
-	 * @brief Publish roverThrottleSetpoint and roverSteeringSetpoint from manualControlSetpoint for
+	 * @brief Publish roverThrottleSetpoint and surfaceVehicleSteeringSetpoint from manualControlSetpoint for
 	 * tank-style control with reduced throttle: the left stick drives the left motors, the right stick the right motors
 	 * and the right stick left/right drives the rover sideways.
 	 */
 	void manualParking();
 
 	/**
-	 * @brief Generate and publish roverThrottleSetpoint/RoverRateSetpoint from manualControlSetpoint.
+	 * @brief Generate and publish roverThrottleSetpoint/SurfaceVehicleRateSetpoint from manualControlSetpoint.
 	 */
 	void acro();
 
@@ -114,14 +114,14 @@ private:
 
 	// uORB publications
 	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
-	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
-	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
-	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+	uORB::Publication<surface_vehicle_steering_setpoint_s> _surface_vehicle_steering_setpoint_pub{ORB_ID(surface_vehicle_steering_setpoint)};
+	uORB::Publication<surface_vehicle_rate_setpoint_s>     _surface_vehicle_rate_setpoint_pub{ORB_ID(surface_vehicle_rate_setpoint)};
+	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
+	uORB::Publication<surface_vehicle_speed_setpoint_s> _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
+	uORB::Publication<surface_vehicle_position_setpoint_s> _surface_vehicle_position_setpoint_pub{ORB_ID(surface_vehicle_position_setpoint)};
 
 	// Variables
-	Vector2f _pos_ctl_course_direction{NAN, NAN};
+	Vector2f _pos_ctl_bearing_direction{NAN, NAN}; // Unit vector of the bearing from the start position to the target, i.e. the direction of the desired track
 	Vector2f _pos_ctl_start_position_ned{NAN, NAN};
 	Vector2f _curr_pos_ned{NAN, NAN};
 	Quatf _vehicle_attitude_quaternion;
@@ -137,8 +137,8 @@ private:
 		(ParamFloat<px4::params::RO_YAW_SUPEXPO>)   _param_ro_yaw_supexpo,
 		(ParamFloat<px4::params::RM_YAW_STK_GAIN>)  _param_rm_yaw_stk_gain,
 		(ParamFloat<px4::params::RO_PARK_THR_MAX>)  _param_ro_park_thr_max,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th
+		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
 	)
 };

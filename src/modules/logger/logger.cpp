@@ -1501,7 +1501,7 @@ void Logger::start_log_file(LogType type)
 		hrt_abstime cleanup_start = hrt_absolute_time();
 
 		if (util::cleanup_old_logs(LOG_ROOT[(int)LogType::Full], _mavlink_log_pub,
-					   (uint32_t)_param_sdlog_rotate.get(), (uint32_t)max_size_mib,
+					   (uint32_t)_param_sdlog_rotate.get(), max_size_mib > 0 ? (uint32_t)max_size_mib : 0U,
 					   _param_sdlog_dirs_max.get()) == 1) {
 			return;  // Not enough space even after cleanup
 		}

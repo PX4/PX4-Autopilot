@@ -76,7 +76,7 @@ public:
 	void set_node_id(CanardNodeID id);
 
 private:
-	CanardInterface *_can_interface;
+	CanardInterface *_can_interface{nullptr};
 
 	CanardInstance _canard_instance;
 

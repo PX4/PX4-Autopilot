@@ -37,6 +37,8 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		Roboclaw.cpp
+	DEPENDS
+		mixer_module
 	MODULE_CONFIG
 		module.yaml
 	)

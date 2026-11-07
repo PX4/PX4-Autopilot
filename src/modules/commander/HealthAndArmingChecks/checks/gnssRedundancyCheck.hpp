@@ -58,6 +58,7 @@ private:
 	uint8_t _peak_healthy_count{0};
 	systemlib::Hysteresis _divergence_hysteresis;
 
+	const param_t _param_ekf2_gps_p_noise_handle;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>) _param_sys_has_num_gnss,

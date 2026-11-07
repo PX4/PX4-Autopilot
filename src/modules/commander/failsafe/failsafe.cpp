@@ -166,6 +166,9 @@ FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_valu
 	return options;
 }
 
+// "battery level" to handle the remaining flight time (Distance-aware return)
+static constexpr uint8_t BATTERY_WARNING_DISTANCE_AWARE_RETURN = UINT8_MAX;
+
 FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value, uint8_t battery_warning)
 {
 	ActionOptions options{};
@@ -189,6 +192,8 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 		case LowBatteryAction::Return:
 		case LowBatteryAction::ReturnOrLand:
 		case LowBatteryAction::ReturnOrTerminate:
+		case LowBatteryAction::ReturnOrLandWithoutDistanceAwareReturn:
+		case LowBatteryAction::ReturnOrTerminateWithoutDistanceAwareReturn:
 			options.action = Action::RTL;
 			break;
 
@@ -212,8 +217,9 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 			options.action = Action::RTL;
 			break;
 
-		case LowBatteryAction::ReturnOrLand:
 		case LowBatteryAction::Land:
+		case LowBatteryAction::ReturnOrLand:
+		case LowBatteryAction::ReturnOrLandWithoutDistanceAwareReturn:
 			options.action = Action::Land;
 			break;
 
@@ -222,11 +228,32 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 			break;
 
 		case LowBatteryAction::ReturnOrTerminate:
+		case LowBatteryAction::ReturnOrTerminateWithoutDistanceAwareReturn:
 			options.action = Action::Terminate;
 			break;
 		}
 
 		break;
+
+	case BATTERY_WARNING_DISTANCE_AWARE_RETURN:
+		options.action = Action::Warn;
+		options.cause = Cause::RemainingFlightTimeLow;
+
+		switch ((LowBatteryAction)param_value) {
+		case LowBatteryAction::Return:
+		case LowBatteryAction::ReturnOrLand:
+		case LowBatteryAction::ReturnOrTerminate:
+			options.action = Action::RTL;
+			options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+			break;
+
+		case LowBatteryAction::Warning:
+		case LowBatteryAction::Land:
+		case LowBatteryAction::ReturnOrLandWithoutDistanceAwareReturn:
+		case LowBatteryAction::ReturnOrTerminateWithoutDistanceAwareReturn:
+			options.action = Action::Warn;
+			break;
+		}
 	}
 
 	return options;
@@ -396,6 +423,7 @@ FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
 
 	switch (gps_redundancy_failsafe_mode(param_value)) {
 	case gps_redundancy_failsafe_mode::Warning:
+	case gps_redundancy_failsafe_mode::Block_arming:
 	default:
 		options.action = Action::Warn;
 		break;
@@ -475,36 +503,6 @@ FailsafeBase::ActionOptions Failsafe::fromTrafficAvoidanceActParam(int param_val
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
-	}
-
-	return options;
-}
-
-FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int param_value)
-{
-	ActionOptions options{};
-
-	options.allow_user_takeover = UserTakeoverAllowed::Auto;
-	options.cause = Cause::RemainingFlightTimeLow;
-
-	switch (command_after_remaining_flight_time_low(param_value)) {
-	case command_after_remaining_flight_time_low::None:
-		options.action = Action::None;
-		break;
-
-	case command_after_remaining_flight_time_low::Warning:
-		options.action = Action::Warn;
-		break;
-
-	case command_after_remaining_flight_time_low::Return_mode:
-		options.action = Action::RTL;
-		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
-		break;
-
-	default:
-		options.action = Action::None;
-		break;
-
 	}
 
 	return options;
@@ -661,10 +659,6 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	CHECK_FAILSAFE(status_flags, geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
 
-	// Battery flight time remaining failsafe
-	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
-		       ActionOptions(fromRemainingFlightTimeLowActParam(_param_com_fltt_low_act.get())));
-
 	const hrt_abstime spoolup = static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s);
 
 	if ((_armed_time != 0) && (time_us < _armed_time + spoolup)) {
@@ -713,12 +707,18 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		break;
 	}
 
+	// Battery flight time remaining failsafe (Distance-aware return)
+	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
+		       ActionOptions(fromBatteryWarningActParam(_param_com_low_bat_act.get(), BATTERY_WARNING_DISTANCE_AWARE_RETURN)));
 
 	// Handle fails during spoolup just after arming
 	if ((_armed_time != 0) && (time_us < _armed_time + spoolup)) {
 		_last_state_fd_esc_arming = checkFailsafe(_caller_id_fd_esc_arming, _last_state_fd_esc_arming,
 					    status_flags.fd_esc_arming_failure,
 					    ActionOptions(Action::Disarm).cannotBeDeferred());
+		_last_state_fd_motor_stuck = checkFailsafe(_caller_id_fd_motor_stuck, _last_state_fd_motor_stuck,
+					     status_flags.fd_motor_stuck_failure,
+					     ActionOptions(Action::Disarm).cannotBeDeferred());
 		_last_state_battery_unhealthy_spoolup = checkFailsafe(_caller_id_battery_unhealthy_spoolup,
 							_last_state_battery_unhealthy_spoolup, status_flags.battery_unhealthy,
 							ActionOptions(Action::Disarm).cannotBeDeferred());

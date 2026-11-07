@@ -103,7 +103,7 @@ public:
 		pfd->events = POLLIN;
 	}
 
-	void print()
+	void print() override
 	{
 		printf("uORB %s -> ", _uorb_meta->o_name);
 		Zenoh_Publisher::print();

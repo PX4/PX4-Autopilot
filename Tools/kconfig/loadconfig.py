@@ -125,7 +125,7 @@ def load_target_config(kconf, px4board_path):
 def chip_family(board_path):
     """Chip family of a board, from its NuttX defconfig.
 
-    Returns one of: stm32h7, stm32f7, stm32f4, stm32f1, imxrt, kinetis,
+    Returns one of: stm32h7, stm32f7, stm32f4, stm32f1, imxrt, imx9, kinetis,
     s32k, rp2040, native.
     """
     nsh_defconfig = os.path.join(board_path, 'nuttx-config', 'nsh', 'defconfig')
@@ -149,7 +149,7 @@ def chip_family(board_path):
     if arch_chip is None:
         return 'native'
 
-    if arch_chip in ('stm32h7', 'stm32f7', 'imxrt', 'kinetis', 'rp2040'):
+    if arch_chip in ('stm32h7', 'stm32f7', 'imxrt', 'imx9', 'kinetis', 'rp2040'):
         return arch_chip
     elif arch_chip.startswith('s32k'):
         return 's32k'

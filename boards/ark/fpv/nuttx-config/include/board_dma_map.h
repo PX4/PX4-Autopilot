@@ -33,6 +33,10 @@
 
 #pragma once
 
+// Streams are handed out first-free per controller at runtime and the serial
+// driver does not handle a failed allocation, so count every user, including
+// the DShot timers, against each controller's 8 streams.
+
 // DMAMUX1 Using at most 8 Channels on DMA1 --------   Assigned
 #define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0     // 1 DMA1:37 IIM-42653
 #define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0     // 2 DMA1:38 IIM-42653
@@ -40,10 +44,10 @@
 #define DMAMAP_USART1_TX  DMAMAP_DMA12_USART1TX_0   // 4 DMA1:42 GPS1
 #define DMAMAP_USART6_RX  DMAMAP_DMA12_USART6RX_0   // 5 DMA1:71 RC
 #define DMAMAP_USART6_TX  DMAMAP_DMA12_USART6TX_0   // 6 DMA1:72 RC
-// Timer 4 (DMAMAP_DMA12_TIM4UP_0)                  // 7 DMA1:32 TIM4UP/TIM4CH1-4
-// Timer 5 (DMAMAP_DMA12_TIM5UP_0)                  // 8 DMA1:50 TIM5UP/TIM5CH1-4
+// Timer 5 (DMAMAP_DMA12_TIM5UP_0)                  // 7 DMA1:59 TIM5UP/TIM5CH1-4
+// Timer 8 (DMAMAP_DMA12_TIM8UP_0)                  // 8 DMA1:51 TIM8UP/TIM8CH1-4
 
-// DMAMUX2 Using at most 8 Channels on DMA2 --------   Assigned
+// DMAMUX1 Using at most 8 Channels on DMA2 --------   Assigned
 #define DMAMAP_USART2_RX  DMAMAP_DMA12_USART2RX_1   // 1 DMA2:43 VTX
 #define DMAMAP_UART5_RX   DMAMAP_DMA12_UART5RX_1    // 2 DMA2:65 VTX
 #define DMAMAP_UART5_TX   DMAMAP_DMA12_UART5TX_1    // 3 DMA2:66 VTX

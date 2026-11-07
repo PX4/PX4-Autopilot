@@ -102,7 +102,7 @@ _PX4_ and _Pixhawk_ have been validated with:
   - Futaba
   - FrSky S.BUS and PPM models
   - TBS Crossfire with SBUS as output protocol
-  - Herelink
+  - Herelink ([integrated GCS](../config/integrated_gcs.md))
 
 - TBS Crossfire with ([CRSF protocol](../telemetry/crsf_telemetry.md))
 - Express LRS with ([CRSF protocol](../telemetry/crsf_telemetry.md))

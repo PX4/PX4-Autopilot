@@ -192,7 +192,7 @@ void UavcanRangefinderBridge::range_sub_cb(const
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				rangefinder->get_device_id(), NodeInfoPublisher::DeviceCapability::RANGEFINDER);
+				rangefinder->get_device_id(), device_information_s::DEVICE_TYPE_RANGEFINDER);
 	}
 }
 

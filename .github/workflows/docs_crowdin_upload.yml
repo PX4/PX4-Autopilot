@@ -17,6 +17,9 @@ on:
   #    - 'docs/en/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   upload-to-crowdin:
     #if: github.event.pull_request.merged == true || github.event_name == 'push'  || github.event_name == 'workflow_dispatch'

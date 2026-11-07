@@ -128,9 +128,16 @@ public:
 
 	/**
 	 * Get the RMS values of this validator
-	 * @return		the stored RMS
+	 * @return		the RMS of the values since the last reset, computed on request
 	 */
-	float *rms() { return _rms; }
+	float *rms()
+	{
+		for (unsigned i = 0; i < dimensions; i++) {
+			_rms[i] = (_event_count > 1) ? sqrtf(_M2[i] / (_event_count - 1)) : 0.f;
+		}
+
+		return _rms;
+	}
 
 	/**
 	 * Print the validator value

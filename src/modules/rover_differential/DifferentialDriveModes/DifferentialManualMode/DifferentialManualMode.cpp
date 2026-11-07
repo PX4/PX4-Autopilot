@@ -39,11 +39,11 @@ DifferentialManualMode::DifferentialManualMode(ModuleParams *parent) : ModulePar
 {
 	updateParams();
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_steering_setpoint_pub.advertise();
-	_rover_rate_setpoint_pub.advertise();
-	_rover_attitude_setpoint_pub.advertise();
-	_rover_speed_setpoint_pub.advertise();
-	_rover_position_setpoint_pub.advertise();
+	_surface_vehicle_steering_setpoint_pub.advertise();
+	_surface_vehicle_rate_setpoint_pub.advertise();
+	_surface_vehicle_attitude_setpoint_pub.advertise();
+	_surface_vehicle_speed_setpoint_pub.advertise();
+	_surface_vehicle_position_setpoint_pub.advertise();
 }
 
 void DifferentialManualMode::updateParams()
@@ -56,11 +56,11 @@ void DifferentialManualMode::manual()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
-	rover_steering_setpoint_s rover_steering_setpoint{};
-	rover_steering_setpoint.timestamp = hrt_absolute_time();
-	rover_steering_setpoint.normalized_steering_setpoint = _param_rd_yaw_stk_gain.get() * math::superexpo<float>
+	surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
+	surface_vehicle_steering_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_steering_setpoint.normalized_steering_setpoint = _param_rd_yaw_stk_gain.get() * math::superexpo<float>
 			(manual_control_setpoint.roll, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
-	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+	_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
 	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
@@ -82,10 +82,10 @@ void DifferentialManualMode::manualParking()
 	rover_throttle_setpoint.throttle_body_x = (throttle_left + throttle_right) / 2.f;
 	rover_throttle_setpoint.throttle_body_y = 0.f;
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-	rover_steering_setpoint_s rover_steering_setpoint{};
-	rover_steering_setpoint.timestamp = hrt_absolute_time();
-	rover_steering_setpoint.normalized_steering_setpoint = (throttle_left - throttle_right) / 2.f;
-	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+	surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
+	surface_vehicle_steering_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_steering_setpoint.normalized_steering_setpoint = (throttle_left - throttle_right) / 2.f;
+	_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
 }
 
 void DifferentialManualMode::acro()
@@ -97,11 +97,11 @@ void DifferentialManualMode::acro()
 	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
 	rover_throttle_setpoint.throttle_body_y = 0.f;
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-	rover_rate_setpoint_s rover_rate_setpoint{};
-	rover_rate_setpoint.timestamp = hrt_absolute_time();
-	rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(manual_control_setpoint.roll,
-						_param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
-	_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+	surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
+	surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(manual_control_setpoint.roll,
+			_param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+	_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 }
 
 void DifferentialManualMode::stab()
@@ -126,27 +126,27 @@ void DifferentialManualMode::stab()
 		_stab_yaw_setpoint = NAN;
 
 		// Rate control
-		rover_rate_setpoint_s rover_rate_setpoint{};
-		rover_rate_setpoint.timestamp = hrt_absolute_time();
-		rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
-				manual_control_setpoint.roll, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
-		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
+		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
+					manual_control_setpoint.roll, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
 		// Set uncontrolled setpoint invalid
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = hrt_absolute_time();
-		rover_attitude_setpoint.yaw_setpoint = NAN;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+		surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
+		surface_vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_attitude_setpoint.yaw_setpoint = NAN;
+		_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
 
 	} else { // Heading control
 		if (!PX4_ISFINITE(_stab_yaw_setpoint)) {
 			_stab_yaw_setpoint = _vehicle_yaw;
 		}
 
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = hrt_absolute_time();
-		rover_attitude_setpoint.yaw_setpoint = _stab_yaw_setpoint;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+		surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
+		surface_vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_attitude_setpoint.yaw_setpoint = _stab_yaw_setpoint;
+		_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
 	}
 }
 
@@ -173,66 +173,69 @@ void DifferentialManualMode::position()
 
 	if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
 	    || fabsf(speed_setpoint) < FLT_EPSILON) {
-		_pos_ctl_course_direction = Vector2f(NAN, NAN);
+		_pos_ctl_bearing = NAN;
 
 		// Speed control
-		rover_speed_setpoint_s rover_speed_setpoint{};
-		rover_speed_setpoint.timestamp = hrt_absolute_time();
-		rover_speed_setpoint.speed_body_x = speed_setpoint;
-		_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
+		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
+		surface_vehicle_speed_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_speed_setpoint.speed_body_x = speed_setpoint;
+		_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 		// Rate control
-		rover_rate_setpoint_s rover_rate_setpoint{};
-		rover_rate_setpoint.timestamp = hrt_absolute_time();
-		rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
-				manual_control_setpoint.roll, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
-		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
+		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
+					manual_control_setpoint.roll, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
 		// Set uncontrolled setpoints invalid
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = hrt_absolute_time();
-		rover_attitude_setpoint.yaw_setpoint = NAN;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+		surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
+		surface_vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_attitude_setpoint.yaw_setpoint = NAN;
+		_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
 
-		rover_position_setpoint_s rover_position_setpoint{};
-		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = NAN;
-		rover_position_setpoint.position_ned[1] = NAN;
-		rover_position_setpoint.start_ned[0] = NAN;
-		rover_position_setpoint.start_ned[1] = NAN;
-		rover_position_setpoint.arrival_speed = NAN;
-		rover_position_setpoint.cruising_speed = NAN;
-		rover_position_setpoint.yaw = NAN;
-		_rover_position_setpoint_pub.publish(rover_position_setpoint);
+		surface_vehicle_position_setpoint_s surface_vehicle_position_setpoint{};
+		surface_vehicle_position_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_position_setpoint.target_ned[0] = NAN;
+		surface_vehicle_position_setpoint.target_ned[1] = NAN;
+		surface_vehicle_position_setpoint.start_ned[0] = NAN;
+		surface_vehicle_position_setpoint.start_ned[1] = NAN;
+		surface_vehicle_position_setpoint.arrival_speed = NAN;
+		surface_vehicle_position_setpoint.cruising_speed = NAN;
+		surface_vehicle_position_setpoint.yaw = NAN;
+		_surface_vehicle_position_setpoint_pub.publish(surface_vehicle_position_setpoint);
 
-	} else { // Course control
-		if (!_pos_ctl_course_direction.isAllFinite()) {
-			_pos_ctl_course_direction = Vector2f(cos(_vehicle_yaw), sin(_vehicle_yaw));
+	} else { // Follow an endless linear desired track
+		if (!PX4_ISFINITE(_pos_ctl_bearing)) {
+			// The bearing points backwards when driving in reverse
+			_pos_ctl_bearing = speed_setpoint > 0.f ? _vehicle_yaw : matrix::wrap_pi(_vehicle_yaw + M_PI_F);
 			_pos_ctl_start_position_ned = _curr_pos_ned;
 		}
 
-		// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
-		const Vector2f start_to_curr_pos = _curr_pos_ned - _pos_ctl_start_position_ned;
-		const float vector_scaling = fabsf(start_to_curr_pos * _pos_ctl_course_direction) + _param_pp_lookahd_max.get();
-		const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(speed_setpoint) *
-						     vector_scaling * _pos_ctl_course_direction;
-		rover_position_setpoint_s rover_position_setpoint{};
-		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = target_waypoint_ned(0);
-		rover_position_setpoint.position_ned[1] = target_waypoint_ned(1);
-		rover_position_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
-		rover_position_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
-		rover_position_setpoint.arrival_speed = NAN;
-		rover_position_setpoint.cruising_speed = speed_setpoint;
-		rover_position_setpoint.yaw = NAN;
-		_rover_position_setpoint_pub.publish(rover_position_setpoint);
+		// Hold the linear desired track through the start position: the target is kept beyond the maximum lookahead, so it is never reached
+		const Vector2f bearing_direction(cosf(_pos_ctl_bearing), sinf(_pos_ctl_bearing));
+		const float distance_along_track = fabsf((_curr_pos_ned - _pos_ctl_start_position_ned) * bearing_direction);
+		const Vector2f target_ned = _pos_ctl_start_position_ned + (distance_along_track + _param_pp_lookahd_max.get()) *
+					    bearing_direction;
+
+		surface_vehicle_position_setpoint_s surface_vehicle_position_setpoint{};
+		surface_vehicle_position_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_position_setpoint.target_ned[0] = target_ned(0);
+		surface_vehicle_position_setpoint.target_ned[1] = target_ned(1);
+		surface_vehicle_position_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
+		surface_vehicle_position_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
+		surface_vehicle_position_setpoint.cruising_speed = speed_setpoint;
+		// Arriving at the target with the cruising speed keeps the rover from braking for it
+		surface_vehicle_position_setpoint.arrival_speed = fabsf(speed_setpoint);
+		surface_vehicle_position_setpoint.yaw = NAN;
+		_surface_vehicle_position_setpoint_pub.publish(surface_vehicle_position_setpoint);
 	}
 }
 
 void DifferentialManualMode::reset()
 {
 	_stab_yaw_setpoint = NAN;
-	_pos_ctl_course_direction = Vector2f(NAN, NAN);
+	_pos_ctl_bearing = NAN;
 	_pos_ctl_start_position_ned = Vector2f(NAN, NAN);
 	_curr_pos_ned = Vector2f(NAN, NAN);
 }

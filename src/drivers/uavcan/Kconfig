@@ -29,6 +29,7 @@ if DRIVERS_UAVCAN
     config UAVCAN_REMOTEID_CONTROLLER
         bool "Include remote ID controller"
         default y
+        depends on MODULES_MAVLINK
 
     config UAVCAN_RGB_CONTROLLER
         bool "Include rgb controller"

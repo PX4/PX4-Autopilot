@@ -34,8 +34,6 @@
 px4_add_module(
 	MODULE modules__simulation__simulator_sih
 	MAIN simulator_sih
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		aero.hpp
 		sih.cpp

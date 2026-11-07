@@ -51,6 +51,9 @@ Set the following parameters:
 - [FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN) - set to the minimum throttle the plane should fly at.
 - [FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX) - set to the maximum airspeed you achieved during level flight at `FW_THR_MAX`.
 
+TECS accelerates above trim airspeed with throttle only, rather than by descending (see [Speed and Altitude Weighting](../flight_stack/controller_diagrams.md#speed-and-altitude-weighting)).
+If `FW_AIRSPD_MAX` is set higher than the vehicle can reach in level flight at `FW_THR_MAX`, it will hold altitude and fly slower than commanded.
+
 #### 3rd: Pitch & Climb Rate Limits
 
 :::warning

@@ -168,6 +168,11 @@ protected:
 	void setLoiterItemCommonFields(struct mission_item_s *item);
 
 	/**
+	 * Publish a setpoint that holds a course (ground track) at an altitude, without a position target
+	 */
+	void publishCourseHoldSetpoint(float course_rad, float altitude_amsl);
+
+	/**
 	 * Set a takeoff mission item
 	 */
 	void set_takeoff_item(struct mission_item_s *item, float abs_altitude);
@@ -226,6 +231,7 @@ protected:
 	bool _waypoint_yaw_reached{false};
 
 	hrt_abstime _time_wp_reached{0};
+	hrt_abstime _time_item_started{0}; ///< first reached check of the current item, i.e. when its heading got commanded
 
 	// Mission items that have a timeout to allow the payload e.g. gripper, winch, gimbal executing the command see item_has_timeout()
 	hrt_abstime _timestamp_command_timeout{0}; ///< Timestamp when the current item_has_timeout() command was started

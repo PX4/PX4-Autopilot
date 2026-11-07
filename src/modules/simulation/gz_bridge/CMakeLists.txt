@@ -70,6 +70,7 @@ if (gz-transport_FOUND)
 			GZGimbal.cpp
 			GZGimbal.hpp
 		DEPENDS
+		mathlib
 			drivers_accelerometer
 			drivers_gyroscope
 			drivers_magnetometer

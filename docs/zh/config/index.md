@@ -49,6 +49,10 @@ Joystick/GamePad:
 
 - [Joystick Setup](../config/joystick.md)
 
+Integrated GCS:
+
+- [Integrated Ground Control Stations](../config/integrated_gcs.md)
+
 ### 安全配置
 
 - [Battery Estimation Tuning](../config/battery.md) (requires [Power Module](../power_module/index.md))
