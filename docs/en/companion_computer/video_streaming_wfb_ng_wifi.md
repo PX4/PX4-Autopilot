@@ -58,7 +58,7 @@ If you connect it to **USB3** port via **native USB3 cable** to a **Linux laptop
 
 For **Raspberry PI** (UAV or ground) it must be directly connected to 5V BEC (or high current power adapter in case of ground pi) in one of two ways:
 
-- Make a custom USB cable ([cut `+5V` wire from USB plug and connect it to BEC])(https://electronics.stackexchange.com/questions/218500/usb-charge-and-data-separate-cables)
+- Make a custom USB cable ([cut `+5V` wire from USB plug and connect it to BEC](https://electronics.stackexchange.com/questions/218500/usb-charge-and-data-separate-cables))
 - Cut a `+5V` wire on PCB near USB port and wire it to BEC (don't do this if doubt - use custom cable instead).
 
 You must also add a 470uF **low ESR capacitor** (like ESC has) between **card +5v and ground** to filter voltage spikes.
@@ -120,9 +120,9 @@ If you need a higher bandwidth you can use other MCS index (for example 2 or gre
 
 ## Antennas and Diversity
 
-For simple cases you can use omnidirectional antennas with linear (that bundled with wifi cards) or circular leaf ([circularly polarized Coverleaf Antenna](https://www.antenna-theory.com/antennas/cloverleaf.php)) polarization.
+For simple cases you can use omnidirectional antennas with linear (that bundled with wifi cards) or circular leaf ([circularly polarized Cloverleaf Antenna](https://www.antenna-theory.com/antennas/cloverleaf.php)) polarization.
 If you want to setup long distance link you can use multiple wifi adapters with directional and omnidirectional antennas. TX/RX diversity for multiple adapters supported out of box (just add multiple NICs to `/etc/default/wifibroadcast`).
-If your WiFi adapter has two antennas (like Alfa AWU036ACH) TX diversity is implemented via [STBC](https://en.wikipedia.org/wiki/Space%E2%80%93time_block_code).
+If your WiFi adapter has two antennas (like Alfa AWUS036ACH) TX diversity is implemented via [STBC](https://en.wikipedia.org/wiki/Space%E2%80%93time_block_code).
 Cards with 4 ports (like Alfa AWUS1900) are currently not supported.
 
 ## FAQ
@@ -137,10 +137,10 @@ For example x264 inside RTP or MAVLink.
 **A:** Wifibroadcast uses FEC (forward error correction).
 You can tune it (both TX and RX simultaneously!) to fit your needs.
 
-**Q** _How far I can fly and still connect?_
+**Q:** _How far I can fly and still connect?_
 
-**A** It depends on your antennas and WiFi cards.
-With Alfa AWU036ACH and 20dBi patch antenna on the ground ~20km is possible.
+**A:** It depends on your antennas and WiFi cards.
+With Alfa AWUS036ACH and 20dBi patch antenna on the ground ~20km is possible.
 
 :::warning
 Don't use band that the RC TX operates on!
@@ -158,6 +158,9 @@ But to get RTP stream you need a video encoder (which encodes raw data from came
   Prebuilt images are available, but it supports only h264 video for CSI cameras.
 - Jetson Nano.
   It supports h264 and h265 but you need to setup it yourself according to [Setup HOWTO](https://github.com/svpcom/wfb-ng/wiki/Setup-HOWTO)
+- IP camera boards running [OpenIPC](https://github.com/OpenIPC/firmware) FPV firmware.
+  These include WFB-ng and a hardware h264/h265 encoder, so no separate companion computer is needed on the vehicle.
+  See the [OpenIPC WFB-ng quick start](https://docs.openipc.org/use-cases/fpv/wfb-ng/quick-start/) and [mavfwd](https://docs.openipc.org/use-cases/fpv/wfb-ng/mavfwd/) for forwarding MAVLink from the flight controller UART over the same link.
 
 You can use any other Linux ARM board, but you need to use an Ethernet or USB camera with built-in hardware video codecs (such as Logitech C920).
 
