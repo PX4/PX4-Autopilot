@@ -52,6 +52,14 @@ PWMOut::~PWMOut()
 	/* make sure servos are off */
 	up_pwm_servo_deinit(_pwm_mask);
 
+	// release the pins for other users (e.g. the ESC configuration UART); before init
+	// _pwm_mask still covers channels other drivers may own
+	for (unsigned i = 0; _pwm_initialized && i < 32; i++) {
+		if (_pwm_mask & (1u << i)) {
+			io_timer_unallocate_channel(i);
+		}
+	}
+
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
 }

@@ -402,6 +402,28 @@ int bitbang_uart_deinit()
 	return 0;
 }
 
+int bitbang_uart_idle(uint8_t channel)
+{
+	const uint32_t gpio_pin = io_timer_channel_get_gpio_output(channel);
+
+	if (!uart.initialized || channel >= MAX_UART_CHANNELS || gpio_pin == 0) {
+		return -EINVAL;
+	}
+
+	while (uart.tx_busy.load()) {
+		px4_usleep(10);
+	}
+
+	if (uart.channel != 0xFF) {
+		set_gpio_interrupt(false);
+		STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_DISABLED);
+	}
+
+	px4_arch_configgpio(PX4_MAKE_GPIO_OUTPUT_SET(gpio_pin));
+	uart.channel = 0xFF;	// the next read or write sets the line up again
+	return 0;
+}
+
 static int bitbang_uart_write_byte(uint8_t channel, uint8_t byte)
 {
 	if (!uart.initialized) {

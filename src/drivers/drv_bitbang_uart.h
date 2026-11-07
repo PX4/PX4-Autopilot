@@ -92,4 +92,12 @@ int bitbang_uart_write(uint8_t channel, const uint8_t *data, size_t length);
  */
 int bitbang_uart_read(uint8_t channel, uint8_t *data, size_t length, uint32_t timeout_us);
 
+/**
+ * Park the line: stop receiving and drive it high (UART idle level) until the next read or write
+ *
+ * @param channel Timer/GPIO channel
+ * @return 0 on success, negative error code on failure
+ */
+int bitbang_uart_idle(uint8_t channel);
+
 __END_DECLS
