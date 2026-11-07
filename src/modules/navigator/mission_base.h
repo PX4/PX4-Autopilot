@@ -56,6 +56,7 @@
 #include <uORB/Publication.hpp>
 
 #include "mission_block.h"
+#include "mission_feasibility_checker.h"
 #include "navigation.h"
 
 using namespace time_literals;
@@ -455,6 +456,7 @@ protected:
 
 	DatamanCache _dataman_cache{"mission_dm_cache_miss", 10}; /**< Dataman cache of mission items*/
 	DatamanClient	&_dataman_client = _dataman_cache.client(); /**< Dataman client*/
+	MissionFeasibilityChecker _mission_feasibility_checker{_navigator, _dataman_client};
 
 	uORB::Subscription _mission_sub{ORB_ID(mission)};	/**< mission subscription*/
 	uORB::SubscriptionData<vehicle_land_detected_s> _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */

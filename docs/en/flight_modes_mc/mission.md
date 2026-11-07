@@ -223,6 +223,19 @@ If not provided, or if the feedback is lost, a mission command timeout can be us
 The timeout is set using the [MIS_COMMAND_TOUT](../advanced_config/parameter_reference.md#MIS_COMMAND_TOUT) parameter.
 This should be set to be a small amount greater than the time required for the longest long-running action in the mission to complete.
 
+## Waypoint Heading Timeout
+
+When a mission item sets a heading, the vehicle waits at the waypoint until it is within [MIS_YAW_ERR](../advanced_config/parameter_reference.md#MIS_YAW_ERR) of that heading before it moves on.
+So that a vehicle that cannot turn (for example, after a motor failure has taken away its yaw control) does not hover at the waypoint indefinitely, it continues without the heading once [MIS_YAW_TMT](../advanced_config/parameter_reference.md#MIS_YAW_TMT) has elapsed (default: 10 s).
+The time is counted from when the heading is commanded, which is usually when the vehicle starts flying towards the waypoint.
+If getting to the waypoint takes longer than `MIS_YAW_TMT`, the vehicle does not wait for the heading there at all.
+
+Some headings must be reached for the mission to continue safely, such as the alignment towards the next waypoint before a mission with camera triggering is resumed.
+If such a heading is not reached within `MIS_YAW_TMT`, the mission fails and the vehicle switches to [Return mode](../flight_modes_mc/return.md).
+
+Set `MIS_YAW_TMT` to 0 to never wait for a heading, or to -1 to always wait for it.
+<Badge type="tip" text="main (PX4 v2.0)" />
+
 ## Rounded turns: Inter-Waypoint Trajectory
 
 PX4 expects to follow a straight line from the previous waypoint to the current target (it does not plan any other kind of path between waypoints - if you need one you can simulate this by adding additional waypoints).

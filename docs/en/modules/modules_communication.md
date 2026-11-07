@@ -102,6 +102,8 @@ mavlink <command> [arguments...]
      [-x]        Enable FTP
      [-z]        Force hardware flow control always on
      [-Z]        Force hardware flow control always off
+     [-a]        Configure serial port in raw mode (8N1, no termios processing),
+                 e.g. for NuttX RPMsg ttys
 
    stop-all      Stop all instances
 

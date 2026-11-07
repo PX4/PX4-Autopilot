@@ -22,7 +22,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request.
 - [AuxGlobalPosition](AuxGlobalPosition.md) — Auxiliary global position.
 - [BatteryStatus](BatteryStatus.md) — Battery status.
-- [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors.
+- [ConfigOverrides](ConfigOverrides.md) — Configuration overrides from external modes or mode executors.
 - [Event](Event.md) — Events interface.
 - [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message.
 - [FixedWingLongitudinalSetpoint](FixedWingLongitudinalSetpoint.md) — Fixed Wing Longitudinal Setpoint message.
