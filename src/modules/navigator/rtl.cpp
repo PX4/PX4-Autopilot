@@ -398,7 +398,7 @@ void RTL::setRtlTypeAndDestination()
 
 	const bool should_init_mission_type = new_type_is_mission_based && (_rtl_type != new_rtl_type);
 
-	if (should_init_mission_type && !initRtlMissionType(new_rtl_type, rtl_alt)) {
+	if (should_init_mission_type && !initRtlMissionType(new_rtl_type)) {
 		// Retried at every evaluation, every 2 s while inactive:
 		// log a failing type once until an init succeeds or Return activates.
 		if (_init_failure_reported != new_rtl_type) {
@@ -411,9 +411,10 @@ void RTL::setRtlTypeAndDestination()
 
 	} else if (should_init_mission_type) {
 		_init_failure_reported = RtlType::NONE;
+	}
 
-	} else if (new_type_is_mission_based && _rtl_mission_type_handle && !_rtl_mission_type_handle->isActive()) {
-		// The return altitude follows the vehicle, the landing and the parameters until Return starts.
+	if (new_type_is_mission_based && _rtl_mission_type_handle && !_rtl_mission_type_handle->isActive()) {
+		// A new or kept executor takes the latest altitude at every evaluation until Return starts it.
 		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 	}
 
@@ -699,7 +700,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 	}
 }
 
-bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
+bool RTL::initRtlMissionType(RtlType new_rtl_type)
 {
 	if (_rtl_mission_type_handle) {
 		delete _rtl_mission_type_handle;
@@ -713,7 +714,6 @@ bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 		_rtl_mission_type_handle = new RtlDirectMissionLand(_navigator, new_mission);
 
 		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 			_rtl_mission_type_handle->initialize();
 		}
 

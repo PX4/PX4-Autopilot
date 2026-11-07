@@ -156,7 +156,7 @@ private:
 	 *
 	 * @return false if the executor could not be allocated
 	 */
-	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+	bool initRtlMissionType(RtlType new_rtl_type);
 
 	/**
 	 * @brief Update parameters
