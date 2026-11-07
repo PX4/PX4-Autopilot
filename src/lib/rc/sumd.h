@@ -60,7 +60,7 @@ typedef struct {
 	uint8_t	header;							///< 0xA8 for a valid packet
 	uint8_t	status;							///< 0x01 valid and live SUMD data frame / 0x00 = SUMH / 0x81 = Failsafe
 	uint8_t	length;							///< Channels
-	uint8_t	sumd_data[SUMD_MAX_CHANNELS * 2];	///< ChannelData (High Byte/ Low Byte)
+	uint8_t	sumd_data[SUMD_MAX_CHANNELS * 2 + 1];	///< ChannelData (High Byte/ Low Byte), indexed 1..2*length
 	uint8_t	crc16_high;						///< High Byte of 16 Bit CRC
 	uint8_t	crc16_low;						///< Low Byte of 16 Bit CRC
 	uint8_t	telemetry;						///< Telemetry request
