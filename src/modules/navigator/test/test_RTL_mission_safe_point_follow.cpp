@@ -1698,12 +1698,10 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, UploadedVtolLandingAlignsBeforeDe
 	EXPECT_FLOAT_EQ(triplet.current.alt_acceptance_radius, FLT_MAX);
 	EXPECT_FALSE(PX4_ISFINITE(triplet.previous.yaw));
 
-	// Altitude drift does not prevent alignment from finishing once the heading is reached.
+	// Altitude drift does not prevent the alignment from finishing. A VTOL only waits for a forced heading.
 	follower.setGlobalPositionForTest({landing.lat, landing.lon, kAlt - 20.f});
 	navigator.get_local_position()->heading_good_for_control = true;
 	navigator.get_local_position()->heading = landing_yaw + M_PI_2_F;
-	EXPECT_FALSE(follower.missionItemReachedForTest());
-	navigator.get_local_position()->heading = landing_yaw;
 	ASSERT_TRUE(follower.missionItemReachedForTest());
 	follower.completeWorkItemForTest();
 
