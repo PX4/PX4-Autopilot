@@ -130,6 +130,19 @@ bool RtlDirectMissionLand::setNextMissionItem()
 		return true;
 	}
 
+	if (_geofence_avoidance_leg_active) {
+		// The path was flown in place of the current item. Continue with the first position item from there,
+		// which is the landing itself when the mission has no DO_LAND_START.
+		int32_t next_position_index{-1};
+
+		if (findNextPositionIndex(_mission.current_seq, next_position_index, traversalType())) {
+			setMissionIndex(next_position_index);
+			return true;
+		}
+
+		return false;
+	}
+
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	return (goToNextPositionItem() == PX4_OK);
 }
@@ -139,6 +152,10 @@ void RtlDirectMissionLand::setActiveMissionItems()
 	WorkItemType new_work_item_type{WorkItemType::WORK_ITEM_TYPE_DEFAULT};
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	_geofence_avoidance_leg_active = false;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	// Climb to altitude
 	if (_needs_climbing && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
@@ -201,6 +218,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		const matrix::Vector2d next_point = planner.getNextWaypoint();
 		const bool is_first_waypoint = 0 == planner.getPathCursor();
 		planner.advanceWaypoint();
+		_geofence_avoidance_leg_active = true;
 
 		if (!point.isAllFinite()) {
 			// Should never happen -- the geofence branch is only entered while hasMore() is true.
