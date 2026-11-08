@@ -489,11 +489,6 @@ void RTL::setRtlTypeAndDestination()
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	RtlRouteSafePoint::Evaluation route_evaluation {};
-
-	if (_param_rtl_type.get() != RTL_TYPE_ROUTE_SAFE_POINT) {
-		_route_safe_point.reset();
-	}
-
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	if (_param_rtl_type.get() == RTL_TYPE_MISSION_FAST) {

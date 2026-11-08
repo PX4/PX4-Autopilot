@@ -73,7 +73,6 @@ public:
 
 	RtlRouteSafePoint(ModuleParams *parent, Navigator *navigator);
 
-	void reset();
 	static bool supportsVehicle(const vehicle_status_s &vehicle_status);
 	/** Match the uploaded mission independently of safe-point changes, preserving route progress through reloads. */
 	bool missionMatches(const mission_s &mission) const;

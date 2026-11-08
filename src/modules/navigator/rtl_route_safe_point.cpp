@@ -54,14 +54,6 @@ RtlRouteSafePoint::RtlRouteSafePoint(ModuleParams *parent, Navigator *navigator)
 {
 }
 
-void RtlRouteSafePoint::reset()
-{
-	_active_jump_anchor = {};
-	_source = {};
-	_direction_reversed = false;
-	_last_failure = mission_route::FailureReason::kNone;
-}
-
 bool RtlRouteSafePoint::supportsVehicle(const vehicle_status_s &vehicle_status)
 {
 	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
