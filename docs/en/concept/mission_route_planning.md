@@ -452,7 +452,7 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 The parameters above only exist in firmware built with a non-zero cache size.
 POSIX builds (SITL and Linux boards) default to 500 mission items and other boards to 0; `px4_fmu-v6c_visionTargetEstStatic` sets 300.
 To use it on a NuttX board, set the cache size in the board configuration and check that the RAM fits.
-The cache uses 56 bytes per item, and the Navigator task stack grows by about 3.8 KB in builds with the cache:
+The cache uses 56 bytes per item, and the Navigator task stack grows by about 2.4 KB in builds with the cache:
 
 ```ini
 CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=300
