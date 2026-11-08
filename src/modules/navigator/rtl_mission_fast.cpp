@@ -212,7 +212,7 @@ void RtlMissionFast::setActiveMissionItems()
 
 rtl_time_estimate_s RtlMissionFast::calc_rtl_time_estimate()
 {
-	rtl_time_estimate_s time_estimate;
+	rtl_time_estimate_s time_estimate{};
 	time_estimate.valid = false;
 	time_estimate.timestamp = hrt_absolute_time();
 

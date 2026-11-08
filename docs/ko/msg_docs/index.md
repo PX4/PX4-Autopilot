@@ -22,7 +22,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request.
 - [AuxGlobalPosition](AuxGlobalPosition.md) — Auxiliary global position.
 - [BatteryStatus](BatteryStatus.md) — Battery status.
-- [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors.
+- [ConfigOverrides](ConfigOverrides.md) — Configuration overrides from external modes or mode executors.
 - [Event](Event.md) — Events interface.
 - [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message.
 - [FixedWingLongitudinalSetpoint](FixedWingLongitudinalSetpoint.md) — Fixed Wing Longitudinal Setpoint message.
@@ -238,14 +238,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RateCtrlStatus](RateCtrlStatus.md)
 - [RcChannels](RcChannels.md)
 - [RcParameterMap](RcParameterMap.md)
-- [RoverAttitudeSetpoint](RoverAttitudeSetpoint.md) — Rover Attitude Setpoint.
-- [RoverAttitudeStatus](RoverAttitudeStatus.md) — Rover Attitude Status.
-- [RoverPositionSetpoint](RoverPositionSetpoint.md) — Rover Position Setpoint.
-- [RoverRateSetpoint](RoverRateSetpoint.md) — Rover Rate setpoint.
-- [RoverRateStatus](RoverRateStatus.md) — Rover Rate Status.
-- [RoverSpeedSetpoint](RoverSpeedSetpoint.md) — Rover Speed Setpoint.
-- [RoverSpeedStatus](RoverSpeedStatus.md) — Rover Velocity Status.
-- [RoverSteeringSetpoint](RoverSteeringSetpoint.md) — Rover Steering setpoint.
 - [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint.
 - [Rpm](Rpm.md)
 - [RtcmData](RtcmData.md) — RTCM3 data exchanged with GNSS receivers.
@@ -276,7 +268,15 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SensorsStatusGnss](SensorsStatusGnss.md) — Per-receiver GNSS health and check diagnostics.
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
+- [SurfaceVehicleAttitudeSetpoint](SurfaceVehicleAttitudeSetpoint.md) — Surface Vehicle Attitude Setpoint.
+- [SurfaceVehicleAttitudeStatus](SurfaceVehicleAttitudeStatus.md) — Surface Vehicle Attitude Status.
 - [SurfaceVehicleCourseSetpoint](SurfaceVehicleCourseSetpoint.md) — Surface Vehicle Course Setpoint.
+- [SurfaceVehiclePositionSetpoint](SurfaceVehiclePositionSetpoint.md) — Surface Vehicle Position Setpoint.
+- [SurfaceVehicleRateSetpoint](SurfaceVehicleRateSetpoint.md) — Surface Vehicle Rate Setpoint.
+- [SurfaceVehicleRateStatus](SurfaceVehicleRateStatus.md) — Surface Vehicle Rate Status.
+- [SurfaceVehicleSpeedSetpoint](SurfaceVehicleSpeedSetpoint.md) — Surface Vehicle Speed Setpoint.
+- [SurfaceVehicleSpeedStatus](SurfaceVehicleSpeedStatus.md) — Surface Vehicle Speed Status.
+- [SurfaceVehicleSteeringSetpoint](SurfaceVehicleSteeringSetpoint.md) — Surface Vehicle Steering Setpoint.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
 - [TargetGnss](TargetGnss.md) — Landing target GNSS position in WGS84 coordinates, and optional NED velocity, from a target-mounted receiver.
