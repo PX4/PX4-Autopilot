@@ -80,7 +80,7 @@ public:
 	bool sourceMatches(const mission_s &mission) const;
 	/** Whether the cached mission and rally points and the fence describe @p mission. */
 	bool inputsReady(const mission_s &mission) const;
-	/** Whether the route inputs still load or await Mission's check, so a failed plan is not final yet. */
+	/** Whether the route inputs still load or await Mission's check; rtl_status reports it for the logs. */
 	bool inputsPending(const mission_s &mission, const vehicle_status_s &vehicle_status) const;
 
 	Evaluation evaluate(const mission_s &mission,

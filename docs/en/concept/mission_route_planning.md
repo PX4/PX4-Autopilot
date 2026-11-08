@@ -184,6 +184,7 @@ A critical message reports the loss of the route.
 While airborne, Return retries route planning from the current position every two seconds, also while uploaded data are loading.
 A successful retry resumes route following automatically; a failed retry keeps the original hold position and altitude.
 Retries stop once the vehicle touches down.
+Only a found route or another mode ends the hold, also when `RTL_TYPE` changes during it, so configure a battery failsafe that lands ([COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT)).
 
 No route is available when:
 

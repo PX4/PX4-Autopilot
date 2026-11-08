@@ -115,7 +115,7 @@ public:
 
 	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
 
-	/** A no-route hold may resume a route until the landing sequence starts. */
+	/** The hold without a route may resume the route; it never lands on its own. */
 	bool canResumeRoute()
 	{
 		return isActive() && _route_stop
