@@ -16,7 +16,7 @@ It is built around the STM32H743 processor with two IMU slots, an onboard barome
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Key Features
+## Specifications {#specifications}
 
 - **MCU:**
   - STM32H743VIH6 (32-bit Arm® Cortex®-M7, 480 MHz)
@@ -39,36 +39,19 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Battery voltage sense, plus an analog current sense input (no onboard current shunt)
   - Regulated 5 V and 9 V outputs
 
-## Dimensions
+### Mechanical Data {#mechanical_data}
 
 - **Mounting:** 36.5 mm x 36.5 mm, M4 holes sized for M3 rubber vibration isolators
+
+## Where to Buy {#store}
+
+Order from the [Avian Automata store](https://www.avianautomata.com/products/305ap).
 
 ## Block Diagram
 
 ![305AP block diagram](../../assets/flight_controller/avianautomata_305ap/305ap_block_diagram.svg)
 
-The board has no power-enable GPIOs: every rail, sensor and peripheral is powered whenever the board has power, from the battery input or from USB.
-
-## Where to Buy
-
-Order from the [Avian Automata store](https://www.avianautomata.com/products/305ap).
-
-## Serial Port Mapping
-
-| UART   | Device     | PX4 Port | Board Connector    |
-| ------ | ---------- | -------- | ------------------ |
-| USART1 | /dev/ttyS0 |          | Motors (ESC telem) |
-| USART2 | /dev/ttyS1 | TEL3     | VTX                |
-| USART3 | /dev/ttyS2 | Console  | VTX (SBUS pin)     |
-| UART4  | /dev/ttyS3 | TEL1     | TELEM 1            |
-| UART5  | /dev/ttyS4 | RC       | RC IN              |
-| USART6 | /dev/ttyS5 | GPS1     | GPS                |
-| UART7  | /dev/ttyS6 | TEL2     | TELEM 2            |
-
-`TEL3` is the port labelled `VTX` on the board.
-By default it runs [MSP OSD](../peripherals/osd.md) at 115200 baud.
-
-## Connectors & Pinout
+## Pinouts {#pinouts}
 
 All connectors are JST-GH, except for the 12-pin motor connector and the 3-pin RC connector.
 Pin 1 is marked on each connector housing.
@@ -175,7 +158,15 @@ The 9 V rail is only available when the board is powered from the battery.
 | 2   | RC_IN  | PB13 |
 | 3   | GND    |      |
 
-## PWM Outputs
+## Power {#power}
+
+The board has no power-enable GPIOs: every rail, sensor and peripheral is powered whenever the board has power, from the battery input or from USB.
+
+The board measures battery voltage with a 10k/1k divider ([BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) defaults to `11.0`).
+There is no onboard current shunt.
+To measure current, connect an external sensor to the current sense pin on the motor connector and set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V), which defaults to `0`.
+
+## PWM Outputs {#pwm_outputs}
 
 The 8 outputs are in 4 groups:
 
@@ -188,27 +179,36 @@ All outputs support PWM and [DShot](../peripherals/dshot.md).
 Outputs 1-2 default to DShot300 ([PWM_MAIN_TIM0](../advanced_config/parameter_reference.md#PWM_MAIN_TIM0) = `-4`).
 All outputs in a group must use the same protocol and rate.
 
-## Radio Control
+## Serial Port Mapping {#serial_port_mapping}
+
+| UART   | Device     | PX4 Port | Board Connector    |
+| ------ | ---------- | -------- | ------------------ |
+| USART1 | /dev/ttyS0 |          | Motors (ESC telem) |
+| USART2 | /dev/ttyS1 | TEL3     | VTX                |
+| USART3 | /dev/ttyS2 | Console  | VTX (SBUS pin)     |
+| UART4  | /dev/ttyS3 | TEL1     | TELEM 1            |
+| UART5  | /dev/ttyS4 | RC       | RC IN              |
+| USART6 | /dev/ttyS5 | GPS1     | GPS                |
+| UART7  | /dev/ttyS6 | TEL2     | TELEM 2            |
+
+`TEL3` is the port labelled `VTX` on the board.
+By default it runs [MSP OSD](../peripherals/osd.md) at 115200 baud.
+
+## Assembly {#assembly}
+
+### Radio Control {#radio_control}
 
 RC input is on **UART5** (`/dev/ttyS4`, `RC IN` connector), wired as a single-wire port.
 The receiver protocol is auto-detected by default ([RC_INPUT_PROTO](../advanced_config/parameter_reference.md#RC_INPUT_PROTO) = `-1`).
 CRSF telemetry back to the transmitter needs a full-duplex port, so connect those receivers to `TELEM 1` instead.
 
-## Battery Monitoring
-
-The board measures battery voltage with a 10k/1k divider ([BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) defaults to `11.0`).
-There is no onboard current shunt.
-To measure current, connect an external sensor to the current sense pin on the motor connector and set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V), which defaults to `0`.
-
-## Building Firmware
+## Building Firmware {#building_firmware}
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
 make avianautomata_305ap_default
 ```
-
-## Installing PX4 Firmware
 
 The firmware can be installed in any of the normal ways:
 
@@ -221,11 +221,11 @@ The firmware can be installed in any of the normal ways:
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.
   You can use either pre-built firmware or your own custom firmware.
 
-## Debug Port
+## Debug Port {#debug_port}
 
 The NuttX console output is on USART3 TX (`PD8`), the `SBUS out` pin of the VTX connector.
 The port is transmit-only, so use the [MAVLink Shell](../debug/mavlink_shell.md) over USB for an interactive console.
 
-## Further Information
+## Further Information {#further_information}
 
 - [305AP documentation](https://docs.avianautomata.com)
