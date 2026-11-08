@@ -381,6 +381,8 @@ protected:
 			_land_detected_pub = nullptr;
 		}
 
+		// The next fixture constructs its RTL, which reads the parameters, before its SetUp() resets them
+		param_reset_all();
 		param_control_autosave(true);
 	}
 
