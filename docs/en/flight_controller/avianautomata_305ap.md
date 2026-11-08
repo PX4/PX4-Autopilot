@@ -41,7 +41,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Mechanical Data {#mechanical_data}
 
-- **Mounting:** 36.5 mm x 36.5 mm, M4 holes sized for M3 rubber vibration isolators
+- **Dimensions:** 36.5 mm x 36.5 mm
+- **Mounting hole spacing:** 30.5 mm x 30.5 mm, M4 holes sized for M3 rubber vibration isolators
 
 ## Where to Buy {#store}
 
@@ -96,8 +97,7 @@ This is a 6-pin port, not the 10-pin Pixhawk GPS port.
 | 3   | CAN_L  |
 | 4   | GND    |
 
-Both buses are terminated on the board.
-Do not add external termination at the flight controller end of the bus.
+Both buses are fully terminated on the board, so do not add external termination.
 
 ### External I2C (U20)
 
@@ -160,7 +160,7 @@ The 9 V rail is only available when the board is powered from the battery.
 
 ## Power {#power}
 
-The board has no power-enable GPIOs: every rail, sensor and peripheral is powered whenever the board has power, from the battery input or from USB.
+The board has no power-enable GPIOs: every rail, sensor and peripheral is powered whenever the board has power, except the 9 V rail, which needs battery power.
 
 The board measures battery voltage with a 10k/1k divider ([BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) defaults to `11.0`).
 There is no onboard current shunt.
@@ -191,6 +191,8 @@ All outputs in a group must use the same protocol and rate.
 | USART6 | /dev/ttyS5 | GPS1     | GPS                |
 | UART7  | /dev/ttyS6 | TEL2     | TELEM 2            |
 
+ESC serial telemetry (`Motors` pin 3, USART1) is not supported by the default firmware.
+
 `TEL3` is the port labelled `VTX` on the board.
 By default it runs [MSP OSD](../peripherals/osd.md) at 115200 baud.
 
@@ -200,7 +202,10 @@ By default it runs [MSP OSD](../peripherals/osd.md) at 115200 baud.
 
 RC input is on **UART5** (`/dev/ttyS4`, `RC IN` connector), wired as a single-wire port.
 The receiver protocol is auto-detected by default ([RC_INPUT_PROTO](../advanced_config/parameter_reference.md#RC_INPUT_PROTO) = `-1`).
+PPM receivers are not supported.
+DSM receivers can't be bound from _QGroundControl_ on this board: bind them before connecting.
 CRSF telemetry back to the transmitter needs a full-duplex port, so connect those receivers to `TELEM 1` instead.
+Set [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) to `Disabled` (MAVLink uses `TELEM 1` by default), [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to `TELEM 1` and [RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN) to `1`, then reboot.
 
 ## Building Firmware {#building_firmware}
 
