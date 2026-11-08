@@ -829,7 +829,8 @@ public:
 	using WorkItemType = Mission::WorkItemType;
 
 	void loadTestMission(const std::vector<mission_item_s> &items) { _mission_store.setItems(items); }
-	void activateForTest() { MissionBase::on_activation(); }
+	// Mission::on_activation() would run the forced feasibility check on dataman, not on the items of this test
+	void activateForTest() { MissionBase::on_activation(); } // NOLINT(bugprone-parent-virtual-call)
 	WorkItemType activeWorkItemType() const { return _work_item_type; }
 
 protected:
@@ -876,6 +877,9 @@ protected:
 		_navigator.get_global_position()->lon = kBaseLon;
 		_navigator.get_global_position()->alt = alt;
 	}
+
+	// A climb counts as reached inside the altitude acceptance radius: stop 0.5 m below, inside it for every vehicle
+	void reachClimbAltitude() { setAltitude(kClimbAlt - 0.5f); }
 
 	mission_item_s makeLanding(float alt) const
 	{
@@ -924,7 +928,7 @@ TEST_P(LandingAfterClimbTest, ReturnStartsTheLandingStepsAtTheReturnAltitude)
 
 	// WHEN: the climb is reached (a fixed-wing first enters its loiter, then climbs in it)
 	rtl.run(true);
-	setAltitude(kClimbAlt);
+	reachClimbAltitude();
 	rtl.run(true);
 	ASSERT_FALSE(rtl.isClimbing());
 
@@ -932,8 +936,8 @@ TEST_P(LandingAfterClimbTest, ReturnStartsTheLandingStepsAtTheReturnAltitude)
 	expectLandingStart(rtl.activeWorkItemType());
 }
 
-// WHY: Mission also climbs first when it resumes below its next item, a landing included, and then takes the same
-// landing steps.
+// WHY: Mission also climbs first when it starts or resumes below its next item, a landing included, and then takes
+// the same landing steps.
 // WHAT: once that climb is reached, the landing steps start at the climb altitude; a fixed-wing still gets its
 // landing directly.
 TEST_P(LandingAfterClimbTest, MissionStartsTheLandingStepsAtTheClimbAltitude)
@@ -947,7 +951,7 @@ TEST_P(LandingAfterClimbTest, MissionStartsTheLandingStepsAtTheClimbAltitude)
 
 	// WHEN: the climb is reached
 	mission.on_active();
-	setAltitude(kClimbAlt);
+	reachClimbAltitude();
 	mission.on_active();
 	ASSERT_NE(mission.activeWorkItemType(), WorkItemType::WORK_ITEM_TYPE_CLIMB);
 

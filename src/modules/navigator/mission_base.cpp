@@ -630,6 +630,16 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 	const bool starts_landing = _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
 				    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB;
 
+	// The steps before the descent keep the altitude of the position setpoint or of the climb just reached:
+	// a loiter climb counts as reached within the altitude acceptance radius, below its target.
+	float altitude = _global_pos_sub.get().alt;
+
+	if (pos_sp_triplet->current.valid
+	    && (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION
+		|| _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB)) {
+		altitude = pos_sp_triplet->current.alt;
+	}
+
 	/* move to land wp as fixed wing */
 	if (needs_vtol_landing) {
 		if (starts_landing) {
@@ -639,12 +649,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			/* use current mission item as next position item */
 			num_found_items = 1u;
 			next_mission_items[0u] = _mission_item;
-
-			float altitude = _global_pos_sub.get().alt;
-
-			if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
-			}
 
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
@@ -684,13 +688,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				* XXX: We might want to change that at some point if it is clear to the user
 				* what the altitude means on this waypoint type.
 				*/
-			float altitude = _global_pos_sub.get().alt;
-
-			if (pos_sp_triplet->current.valid
-			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
-			}
-
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -713,13 +710,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			   (starts_landing ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
-
-			float altitude = _global_pos_sub.get().alt;
-
-			if (pos_sp_triplet->current.valid
-			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
-			}
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND;
 
