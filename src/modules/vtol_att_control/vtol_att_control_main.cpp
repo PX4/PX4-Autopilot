@@ -181,13 +181,14 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			const int transition_command_param1 = static_cast<int>(lround(vehicle_command.param1));
 
-			// deny transition from MC to FW in Takeoff, Land, Return (except for route-following Return) and Orbit
+			// deny transition from MC to FW in Takeoff, Land, Return (except for route-following Return), Orbit and Follow Target
 			if (transition_command_param1 == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
 			    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
 			     || (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
 				 && (vehicle_command.from_external || !routeRtlFrontTransitionAllowed(true)))
-			     ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
+			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT
+			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET)) {
 
 				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 

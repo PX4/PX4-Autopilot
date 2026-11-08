@@ -56,6 +56,7 @@
 #include <uORB/Publication.hpp>
 
 #include "mission_block.h"
+#include "mission_feasibility_checker.h"
 #include "navigation.h"
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0

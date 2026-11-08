@@ -378,7 +378,7 @@ void RtlDirect::set_rtl_item()
 				pos_sp_triplet->next.lon = _destination.lon;
 				pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 
-				if (_force_heading) {
+				if (force_exit_course) {
 					_mission_item.force_heading = true;
 				}
 
@@ -398,7 +398,7 @@ void RtlDirect::set_rtl_item()
 					// Set altitude tracking to best effort without strictly enforcing it.
 					altitude_acceptance_radius = FLT_MAX;
 
-					if (_force_heading) {
+					if (force_exit_course) {
 						_mission_item.force_heading = true;
 					}
 				}

@@ -1338,7 +1338,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	// Mission route planning runs on this task; its worst static call chain is about 5.5 KB.
 	static constexpr int kStackSize = 6000;
 #else
-	static constexpr int kStackSize = 2230;
+	static constexpr int kStackSize = 3584;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	desc.task_id = px4_task_spawn_cmd("navigator",
