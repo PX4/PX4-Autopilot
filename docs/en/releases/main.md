@@ -101,6 +101,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   VTOLs and multicopters still follow `RTL_LAND_DELAY`.
 - After its climb, a Return to a mission landing without `DO_LAND_START` ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1 or 3, or 0 as a last resort) flies to the landing at altitude before it descends, and a VTOL transitions back to multicopter there.
   Since PX4 v1.15 a multicopter descended right after the climb while flying to the landing and could touch down short of it, and a VTOL in fixed-wing flight flew a fixed-wing landing.
+  Mission now does the same after the climb it adds when it resumes below a landing item.
 
 ### Hardware Support
 

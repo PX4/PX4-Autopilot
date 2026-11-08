@@ -626,9 +626,13 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				  (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) &&
 				  !_land_detected_sub.get().landed;
 
+	// The landing sequence starts after a normal arrival or after a climb inserted before the landing item.
+	const bool starts_landing = _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
+				    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB;
+
 	/* move to land wp as fixed wing */
 	if (needs_vtol_landing) {
-		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+		if (starts_landing) {
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
@@ -665,8 +669,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 		/* move to landing waypoint before descent if necessary */
 		if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
 		    do_need_move_to_item() &&
-		    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT ||
-		     _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
+		    (starts_landing || _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
@@ -707,7 +710,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 		} else if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
 			   !do_need_move_to_item() &&
 			   PX4_ISFINITE(_mission_item.yaw) && (_mission_item.land_precision == 0) &&
-			   (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT ||
+			   (starts_landing ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
 
