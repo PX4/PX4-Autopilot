@@ -80,10 +80,10 @@ Smart rejoin is attempted on the next airborne Mission activation, subject to ro
 
 Once the current item is in the landing sequence (from the `DO_LAND_START` item, or the landing item if there is none), the rejoin never branches in before that sequence: Mission flies to the current item instead, as without smart rejoin.
 This keeps `MAV_CMD_DO_LAND_START` from flying earlier mission legs.
-A fixed-wing does not rejoin a started landing at all: Mission flies to the current item.
+A fixed-wing never joins into the landing sequence: when the rejoin would branch in there, Mission flies to the current item instead.
 A fixed-wing landing abort, in Mission or Return, moves the current item back to the start of the landing, so continuing Mission flies the whole landing again.
 
-When smart rejoin is eligible, the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
+When smart rejoin is eligible for a multicopter or a VTOL in hover, the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
 This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.
 After moving outside that radius, for example with GoTo during an ordinary paused descent, resuming Mission uses normal smart rejoin, including reaching the route altitude before any required front transition.
 

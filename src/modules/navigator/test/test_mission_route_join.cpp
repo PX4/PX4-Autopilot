@@ -1066,8 +1066,8 @@ TEST_F(MissionRouteJoinTest, JoinIntoFinishedCameraSurveyKeepsTarget)
 	}
 }
 
-// A join selecting a nearby landing executes that item directly, even if the previous target was elsewhere.
-TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSelectsLandWithoutJoin)
+// A fixed-wing near the landing does not land there directly: it flies to the current item, as without the join.
+TEST_F(MissionRouteJoinTest, FixedWingNearTheLandingFliesToTheCurrentItem)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
@@ -1101,16 +1101,16 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSelectsLandWithoutJoin
 
 	mission.on_activation();
 
-	// Keep the planner's selected landing index and let normal FW landing handling execute it.
-	EXPECT_EQ(mission.currentSequenceForTest(), 3);
+	// The planner would land at item 3 directly; a fixed-wing flies its approach from item 2 instead.
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 	EXPECT_FALSE(mission.joinContextForTest().valid());
 	const auto &sp = _navigator.get_position_setpoint_triplet()->current;
-	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
-	EXPECT_DOUBLE_EQ(sp.lat, mission_items[3].lat);
-	EXPECT_DOUBLE_EQ(sp.lon, mission_items[3].lon);
+	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	EXPECT_DOUBLE_EQ(sp.lat, mission_items[2].lat);
+	EXPECT_DOUBLE_EQ(sp.lon, mission_items[2].lon);
 
-	// A VTOL arriving in FW must still back-transition through normal landing handling.
+	// The same for a VTOL in fixed-wing flight: no back transition there.
 	mission.on_inactivation();
 	mission_items[0].nav_cmd = NAV_CMD_VTOL_TAKEOFF;
 	mission_items[3].nav_cmd = NAV_CMD_VTOL_LAND;
@@ -1126,27 +1126,14 @@ TEST_F(MissionRouteJoinTest, MissionSmartRejoinNearLandingSelectsLandWithoutJoin
 	while (commands.update(&command)) {}
 
 	mission.on_activation();
-	EXPECT_EQ(mission.currentSequenceForTest(), 3);
-	EXPECT_FALSE(mission.joinContextForTest().valid());
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
-	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
-	EXPECT_FLOAT_EQ(sp.alt, vehicle_position.alt);
 	mission.on_active();
-	bool back_transition_sent = false;
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
+	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
 
 	while (commands.update(&command)) {
-		if (command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
-			EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-			back_transition_sent = true;
-		}
+		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 	}
-
-	EXPECT_TRUE(back_transition_sent);
-	EXPECT_NE(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
-	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	primeNavigatorState();
-	mission.on_active();
-	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 }
 
 TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
@@ -1281,14 +1268,17 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 	}
 }
 
-// A landing abort restarts the approach, also after entering Return: a fixed-wing does not rejoin a started landing.
+// A landing abort restarts the approach, also after entering Return or selecting an earlier item:
+// a fixed-wing never joins into the landing.
 TEST_F(MissionRouteJoinTest, LandingAbortRestartsApproach)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	uint32_t mission_id = 104;
 
-	for (bool enter_return : {false, true}) {
-		SCOPED_TRACE(enter_return);
+	for (int variant = 0; variant < 3; ++variant) {
+		const bool enter_return = variant == 1;
+		const bool go_around_selected = variant == 2;
+		SCOPED_TRACE(variant);
 		MissionTestPeer mission(&_navigator);
 		publishFixedWingLandingMission(++mission_id);
 		publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
@@ -1322,12 +1312,18 @@ TEST_F(MissionRouteJoinTest, LandingAbortRestartsApproach)
 			mission.run(false);
 		}
 
-		// Hold above touchdown, then Continue.
+		// Hold above touchdown, beside the final leg, then Continue.
 		publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 60.f, 1480.f, kAlt + 30.f));
 		primeNavigatorState();
+
+		if (go_around_selected) {
+			// Without the rule, the join would branch in on the final leg, 60 m before touchdown.
+			ASSERT_TRUE(mission.set_current_mission_index(1));
+		}
+
 		publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 		mission.run(true);
-		EXPECT_EQ(mission.currentSequenceForTest(), 2);
+		EXPECT_EQ(mission.currentSequenceForTest(), go_around_selected ? 1 : 2);
 		EXPECT_FALSE(mission.joinContextForTest().valid());
 		mission.run(false);
 	}
