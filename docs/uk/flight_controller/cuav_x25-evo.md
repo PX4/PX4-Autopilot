@@ -184,11 +184,6 @@ The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debu
 | 5 (blk) | FMU_SWCLK    | +3.3V |
 | 6 (blk) | GND                               | GND                   |
 
-## Підтримувані платформи / Конструкції
-
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Подальша інформація
 
 - [CUAV Docs](https://doc.cuav.net/)

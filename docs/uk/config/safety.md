@@ -75,7 +75,7 @@ QGC allows users to set some aspects of the landing behaviour, such as the time 
 
 ### Battery level failsafe
 
-The low battery failsafe is triggered when the battery capacity drops below battery failafe level values.
+The battery level failsafe is triggered when the battery capacity drops below battery failsafe level values.
 You can configure both the levels and the failsafe actions at each level in QGroundControl.
 
 ![Safety - Battery (QGC)](../../assets/qgc/setup/safety/safety_battery.png)
@@ -86,9 +86,12 @@ Note that PX4 will warn if the battery drops to the "Warn level" for any of acti
 The failsafe actions can then be set to one of:
 
 - `0: Warning` — Warn only.
+
 - `2: Land mode` — Land at the "Failsafe level".
-- `3: Return at critical level, land at emergency level`: (recommended) — Return mode at "Failsafe" level, Land at "Emergency level".
-- `4: Return at critical level, terminate at emergency level`<Badge type="tip" text="main (PX4 v2.0)" /> — Return mode at "Failsafe" level, [Flight termination](#act_term) at "Emergency level".
+
+- `3: Distance-aware return, Critical level return, Emergency level land` (recommended) — Return mode at the "Failsafe" (critical) level, Land at the "Emergency" level, plus the [distance-aware return failsafe](#distance-aware-return-failsafe).
+
+- `4: Distance-aware return, Critical level return, Emergency level terminate`<Badge type="tip" text="main (PX4 v2.0)" /> — Return mode at the "Failsafe" (critical) level, [Flight termination](#act_term) at the "Emergency" level, plus the [distance-aware return failsafe](#distance-aware-return-failsafe).
 
   ::: tip
   This option may be preferred for vehicles that have a [parachute](../peripherals/parachute.md), as it enables controlled landing when there is no power at all.
@@ -97,30 +100,60 @@ The failsafe actions can then be set to one of:
 
 :::
 
-Налаштування та вибрані параметри показані нижче.
+- `5: Critical level return, Emergency level land`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `3`, but without the [distance-aware return failsafe](#distance-aware-return-failsafe) (only warns).
 
-| Налаштування                                        | Parameter                                                                                                                                   | Опис                                                                                                             |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action         | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Land, or Return and then Land or Terminate when capacity drops below the trigger levels.   |
-| <a id="BAT_LOW_THR"></a>Battery Warn Level          | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)                              | Відсоткова ємність для попереджень (або інших дій).                           |
-| <a id="BAT_CRIT_THR"></a>Battery Failsafe Level     | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)                            | Відсоткова ємність для дії Повернення (або інших дій, якщо вибрано одну дію). |
-| <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR)                      | Відсоткова ємність для спрацьовування дії Land (негайно).                     |
-
-### Flight Time Failsafes
-
-There are several other "battery related" failsafe mechanisms that may be configured using parameters:
-
-- The "remaining flight time for safe return" failsafe ([COM_FLTT_LOW_ACT](#COM_FLTT_LOW_ACT)) is engaged when PX4 estimates that the vehicle has just enough battery remaining for a return mode landing.
-  You can configure this to ignore the failsafe, warn, or engage Return mode.
-- The "maximum flight time failsafe" ([COM_FLT_TIME_MAX](#COM_FLT_TIME_MAX)) allows you to set a maximum flight time after takeoff, at which the vehicle will automatically enter return mode (it will also "warn" at 90% of this time). This is like a "hard coded" estimate of the total flight time in a battery. The feature is disabled by default.
-- The "minimum battery" for arming parameter ([COM_ARM_BAT_MIN](#COM_ARM_BAT_MIN)) prevents arming in the first place if the battery level is below the specified value.
+- `6: Critical level return, Emergency level terminate`<Badge type="tip" text="main (PX4 v2.0)" /> — Same as `4`, but without the [distance-aware return failsafe](#distance-aware-return-failsafe) (only warns).
 
 Налаштування та вибрані параметри показані нижче.
 
-| Налаштування                                                         | Parameter                                                                                                                                     | Опис                                                                                                                                                                                                                               |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_FLTT_LOW_ACT"></a> Low flight time for safe return action | [COM_FLTT_LOW_ACT](../advanced_config/parameter_reference.md#COM_FLTT_LOW_ACT) | Action when return mode can only just reach safety with remaining battery. `0`: None, `1`: Warning (default), `3`: Return mode. |
-| <a id="COM_FLT_TIME_MAX"></a> Maximum flight time failsafe level     | [COM_FLT_TIME_MAX](../advanced_config/parameter_reference.md#COM_FLT_TIME_MAX) | Maximum allowed flight time before Return mode will be engaged, in seconds. `-1`: Disabled (default).                                                           |
+| Налаштування                                        | Parameter                                                                                                                                   | Опис                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action         | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Land, or Return and then Land or Terminate when capacity drops below the trigger levels. Options `3` and `4` add distance-aware return.                                                                                                                            |
+| <a id="BAT_LOW_THR"></a>Battery Warn Level          | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)                              | Відсоткова ємність для попереджень (або інших дій).                                                                                                                                                                                                                   |
+| <a id="BAT_CRIT_THR"></a>Battery Failsafe Level     | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)                            | Відсоткова ємність для дії Повернення (або інших дій, якщо вибрано одну дію).                                                                                                                                                                                         |
+| <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR)                      | Відсоткова ємність для спрацьовування дії Land (негайно).                                                                                                                                                                                                             |
+| Minimum Armable State of Charge                     | [COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN) | Prevents arming if the battery state of charge is below the specified value. A negative value (default `-1`) uses `BAT_CRIT_THR`, so arming is blocked at the "Failsafe" (critical) level. `0` disables the check. |
+| <a id="BAT1_CAPACITY"></a>Battery Capacity          | [BATn_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY)                                               | Capacity for each battery (e.g. `BAT1_CAPACITY`, `BAT2_CAPACITY`).                                                                                                                                                                    |
+
+### Distance-Aware Return Failsafe
+
+The _distance-aware return_ failsafe engages [Return mode](../flight_modes/return.md) when the estimated remaining flight time drops to the time needed to return (in aviation this point is known as "bingo fuel").
+Unlike the [battery level failsafe](#battery-level-failsafe), it accounts for how far away the vehicle is: it triggers earlier when the return destination is far away, and later when it is close.
+
+It is enabled by setting [COM_LOW_BAT_ACT](#COM_LOW_BAT_ACT) to `3` or `4`.
+With all other options PX4 only warns ("Low remaining flight time, return advised").
+
+PX4 compares:
+
+- The time needed to return, estimated along the current Return mode path (including climb, descent and landing), with the safety margin set by [RTL_TIME_FACTOR](../advanced_config/parameter_reference.md#RTL_TIME_FACTOR) and [RTL_TIME_MARGIN](../advanced_config/parameter_reference.md#RTL_TIME_MARGIN).
+- The remaining flight time of the battery with the least time left, if more than one is connected.
+
+Once Return mode has been triggered, it is not cancelled if the estimate improves again on the way back.
+
+The remaining flight time comes from the battery:
+
+- Batteries measured by PX4 (analog or digital power modules): computed from the state of charge, the [battery capacity](#BAT1_CAPACITY) (`BATn_CAPACITY`) and the average current.
+  The average current starts from [BAT_AVRG_CURRENT](../advanced_config/parameter_reference.md#BAT_AVRG_CURRENT), which should be set to the vehicle's typical in-flight current.
+- [Smart batteries](../smart_batteries/index.md): the remaining time reported by the battery (SMBus), or computed from the capacity the battery reports (DroneCAN batteries that send `BatteryInfoAux` or `CBAT`).
+  Other DroneCAN batteries only have an estimate if [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) is `2` and `BATn_CAPACITY` is set.
+- MAVLink batteries ([BATTERY_STATUS](https://mavlink.io/en/messages/common.html#BATTERY_STATUS) sent by another component): the `time_remaining` field of the message.
+
+:::warning
+Without a remaining flight time estimate, the distance-aware return failsafe never triggers, and there is no warning either.
+This is the case if `BATn_CAPACITY` is not set (the default is `-1`), if a DroneCAN battery sends only `BatteryInfo`, or if a MAVLink battery does not fill in `time_remaining`.
+This also applies when there is no valid home position or global position estimate.
+The vehicle is then only protected by the [battery level failsafe](#battery-level-failsafe).
+:::
+
+### Maximum Flight Time Failsafe
+
+The maximum flight time failsafe ([COM_FLT_TIME_MAX](#COM_FLT_TIME_MAX)) allows you to set a maximum flight time after takeoff, at which the vehicle will automatically enter Return mode (it will also "warn" at 90% of this time).
+This is intended for regulations that require a mission to be aborted if it exceeds a set time.
+The feature is disabled by default.
+
+| Налаштування                                                     | Parameter                                                                                                                                     | Опис                                                                                                                                                                     |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="COM_FLT_TIME_MAX"></a> Maximum flight time failsafe level | [COM_FLT_TIME_MAX](../advanced_config/parameter_reference.md#COM_FLT_TIME_MAX) | Maximum allowed flight time before Return mode will be engaged, in seconds. `-1`: Disabled (default). |
 
 ## Manual Control Loss Failsafe
 
@@ -394,14 +427,20 @@ The failure detector is active in all vehicle types and modes, except for those 
 
 <Badge type="tip" text="PX4 v1.18" /> <Badge type="tip" text="MC, VTOL only" />
 
-The failure detector can be configured to trigger if a rotary-wing vehicle loses too much altitude below its commanded setpoint while in an altitude-controlled flight mode (such as [Position mode](../flight_modes_mc/position.md) or [Altitude mode](../flight_modes_mc/altitude.md)).
+The failure detector can be configured to trigger if a rotary-wing vehicle loses too much altitude while in an altitude-controlled flight mode (such as [Position mode](../flight_modes_mc/position.md) or [Altitude mode](../flight_modes_mc/altitude.md)).
 
-If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) meters below the setpoint, [flight termination](../advanced_config/flight_termination.md) is triggered, which may deploy a [parachute](../peripherals/parachute.md).
+If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) metres below its reference altitude, [flight termination](../advanced_config/flight_termination.md) is triggered, which may deploy a [parachute](../peripherals/parachute.md).
+The reference altitude depends on what the vehicle is commanded to do:
 
-| Parameter                                                                                                                                                         | Опис                                                                                                                                                                                                                       |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FD_ALT_LOSS"></a>[FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS)                            | Altitude loss threshold (m). Flight termination is triggered when the vehicle drops this far below the setpoint. Установіть значення 0 для відключення. |
-| <a id="FD_ALT_LOSS_T"></a>[FD_ALT_LOSS_T](../advanced_config/parameter_reference.md#FD_ALT_LOSS_T) | Time (s) the vehicle must remain below the threshold before flight termination is triggered.                                                                                            |
+- With an altitude setpoint (for example when holding altitude or flying a mission), the reference is the highest altitude reached while below the setpoint.
+- Without an altitude setpoint but with a commanded vertical speed (for example while the pilot moves the throttle stick), the reference is the highest altitude reached.
+  It is only lowered at the commanded descent rate plus a 2 m/s margin, so altitude loss is detected while climbing, holding or descending manually, without triggering on a commanded descent.
+  A commanded climb never raises the reference above the altitude actually reached, so a vehicle that climbs slower than commanded (or cannot climb at all) does not trigger, as long as it does not lose altitude.
+
+| Parameter                                                                                                                                                         | Опис                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="FD_ALT_LOSS"></a>[FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS)                            | Altitude loss threshold (m). Flight termination is triggered when the vehicle drops this far below the reference altitude. Установіть значення 0 для відключення. |
+| <a id="FD_ALT_LOSS_T"></a>[FD_ALT_LOSS_T](../advanced_config/parameter_reference.md#FD_ALT_LOSS_T) | Time (s) the vehicle must remain below the threshold before flight termination is triggered.                                                                                                      |
 
 ### Тригер висоти
 
@@ -434,6 +473,35 @@ For more information see [Motor Failure Recovery](motor_failure_recovery.md).
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                   |
 | <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Failure mode. See [Motor Failure Recovery](motor_failure_recovery.md). |
+
+### Motor Not Spinning After Arming
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+Rotary-wing vehicles (multicopters and VTOL in MC mode) can also check that every commanded motor starts spinning after arming, before takeoff.
+The check needs per-motor RPM telemetry and is enabled by [COM_ARM_CHK_ESCS](#COM_ARM_CHK_ESCS) (it does not depend on [FD_ACT_EN](#FD_ACT_EN)).
+
+It only runs while the vehicle is still landed and within the spool-up time ([COM_SPOOLUP_TIME](#COM_SPOOLUP_TIME)) after arming:
+
+- For the first 50% of the spool-up time, the motors are given time to start and nothing is evaluated.
+- From 50% to 80% of the spool-up time, a motor that is never seen spinning (that is, never reports non-zero RPM without a motor-stuck fault from its ESC) is considered stuck.
+  The decision is made at 80% of the spool-up time.
+
+If any motor is considered stuck, the vehicle disarms.
+Motors that are not commanded to run (such as stopped motors) are ignored, and the check stops once takeoff is detected.
+
+:::warning
+The check assumes that the minimum motor output spins the motors while armed.
+For DShot, set [DSHOT_MIN](#DSHOT_MIN) high enough, and do not use DShot 3D mode.
+Otherwise, healthy motors report zero RPM and the vehicle disarms.
+ESCs that report no RPM for a motor (for example, a DShot output with neither bidirectional DShot nor serial telemetry enabled) also cause a disarm.
+:::
+
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_ARM_CHK_ESCS"></a>[COM_ARM_CHK_ESCS](../advanced_config/parameter_reference.md#COM_ARM_CHK_ESCS) | Enable the check (along with the other checks on ESCs that report telemetry).                                                                             |
+| <a id="COM_SPOOLUP_TIME"></a>[COM_SPOOLUP_TIME](../advanced_config/parameter_reference.md#COM_SPOOLUP_TIME)                      | Spool-up time after arming. Motors are evaluated from 50% of this time, and the decision is made at 80%. If set to 0, the check is disabled. |
+| <a id="DSHOT_MIN"></a>[DSHOT_MIN](../advanced_config/parameter_reference.md#DSHOT_MIN)                                                                | Minimum DShot motor output. Set it high enough that the motors spin while armed.                                                                             |
 
 ### External Automatic Trigger System (ATS)
 
@@ -538,7 +606,7 @@ These parameters can be used to set conditions that prevent arming.
 | Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_ARMABLE"></a>[COM_ARMABLE](../advanced_config/parameter_reference.md#COM_ARMABLE)                                                          | Enable arming (at all). `0`: Disabled, `1`: Enabled (default).                                                                                                                                                                                                  |
-| <a id="COM_ARM_BAT_MIN"></a>[COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN)    | Minimum battery level for arming. `0`: Disabled (default). Values: `0`-`0.9`,                                                                                                                                                                                                      |
+| <a id="COM_ARM_BAT_MIN"></a>[COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN)    | Minimum battery level for arming. A negative value (default `-1`) uses `BAT_CRIT_THR`, so arming is blocked at the "Failsafe" (critical) level. `0`: Disabled. Values: `-1`-`0.9`,                                                              |
 | <a id="COM_ARM_WO_GPS"></a>[COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS)       | Enable arming without GPS. `0`: Disabled, `1`: Enabled (default).                                                                                                                                                                                                                  |
 | <a id="COM_ARM_MIS_REQ"></a>[COM_ARM_MIS_REQ](../advanced_config/parameter_reference.md#COM_ARM_MIS_REQ)    | Require valid mission to arm. `0`: Disabled (default), `1`: Enabled .                                                                                                                                                                                                              |
 | <a id="COM_ARM_AUTH_REQ"></a>[COM_ARM_AUTH_REQ](../advanced_config/parameter_reference.md#COM_ARM_AUTH_REQ) | Requires arm authorisation from an external (MAVLink) system. Flag to allow arming (at all). `1`: Enabled, `0`: Disabled (default). Associated configuration parameters are prefixed with `COM_ARM_AUTH_`.   |
