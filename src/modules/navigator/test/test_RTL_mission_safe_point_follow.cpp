@@ -70,6 +70,7 @@ class RtlMissionSafePointFollowTestPeer : public RtlMissionSafePointFollow
 {
 public:
 	using Stage = RtlMissionSafePointFollow::Stage;
+	using ArrivalPhase = RtlMissionSafePointFollow::ArrivalPhase;
 	using VtolTransitionAction = mission_route::VtolTransitionAction;
 	using WorkItemType = MissionBase::WorkItemType;
 
@@ -94,7 +95,7 @@ public:
 		_mission.count = static_cast<int32_t>(items.size());
 		_mission.current_seq = 0;
 		_state = {};
-		_arrival.reset();
+		_arrival_phase = ArrivalPhase::Move;
 		_plan = {};
 		resetJoinRouteState();
 		resetVtolTransition();
@@ -129,12 +130,12 @@ public:
 	void setStageForTest(Stage stage) { _state.stage = stage; }
 	Stage stageForTest() const { return _state.stage; }
 
-	RtlArrival::Phase arrivalPhaseForTest() const { return _arrival.phase(); }
+	ArrivalPhase arrivalPhaseForTest() const { return _arrival_phase; }
 
-	void setArrivalPhaseForTest(RtlArrival::Phase phase)
+	void setArrivalPhaseForTest(ArrivalPhase phase)
 	{
 		_state.stage = Stage::Arrival;
-		_arrival.start(phase);
+		_arrival_phase = phase;
 	}
 
 	void setCurrentSequenceForTest(int32_t index) { _mission.current_seq = index; }
@@ -308,6 +309,8 @@ private:
 	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<mission_s> _mission_pub_for_test{ORB_ID(mission)};
 };
+
+using ArrivalPhase = RtlMissionSafePointFollowTestPeer::ArrivalPhase;
 
 /** Executor without a Navigator, for stage transitions that publish no setpoints. */
 class RtlMissionSafePointFollowStageTest : public NavigatorDatamanTestBase
@@ -553,7 +556,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffStartsArrivalMove)
 
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(executor.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+	EXPECT_EQ(executor.arrivalPhaseForTest(), ArrivalPhase::Move);
 }
 
 // Touchdown at a rally point completes Return, as direct RTL does.
@@ -641,7 +644,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffStartsArrivalDescentWithVali
 
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(executor.arrivalPhaseForTest(), RtlArrival::Phase::Descend);
+	EXPECT_EQ(executor.arrivalPhaseForTest(), ArrivalPhase::Descend);
 }
 
 TEST_F(RtlMissionSafePointFollowNavigatorTest, FollowRouteIgnoresExternalCurrentSequenceUpdate)
@@ -731,7 +734,7 @@ TEST_P(RtlMissionSafePointFollowGoalUpdateTest, IgnoresReplacementMission)
 		follower.setStageForTest(stage);
 
 	} else {
-		follower.setArrivalPhaseForTest(RtlArrival::Phase::Descend);
+		follower.setArrivalPhaseForTest(ArrivalPhase::Descend);
 	}
 
 	follower.setVehicleStatusForTest(!landing, false, false);
@@ -765,7 +768,7 @@ TEST_P(RtlMissionSafePointFollowGoalUpdateTest, IgnoresReplacementMission)
 	EXPECT_EQ(follower.stageForTest(), stage);
 
 	if (!landing) {
-		EXPECT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Descend);
+		EXPECT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Descend);
 	}
 
 	EXPECT_EQ(follower.missionIdForTest(), 20u);
@@ -1001,7 +1004,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionStartsArrivalMo
 
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(executor.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+	EXPECT_EQ(executor.arrivalPhaseForTest(), ArrivalPhase::Move);
 }
 
 // Reverse traversal exhausted at the first route item: start the destination arrival sequence.
@@ -1019,7 +1022,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionStartsArrivalMo
 
 	EXPECT_TRUE(advanced);
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(executor.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+	EXPECT_EQ(executor.arrivalPhaseForTest(), ArrivalPhase::Move);
 }
 
 // A front transition flies the fixed-wing arrival item, and no transition takes the zero-delay landing shortcut.
@@ -1035,18 +1038,18 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, TransitionArrivalUsesFixedWingMov
 	for (const bool front_transition : {true, false}) {
 		SCOPED_TRACE(front_transition);
 		follower.setVehicleStatusForTest(true, false, front_transition, !front_transition);
-		follower.setArrivalPhaseForTest(RtlArrival::Phase::Move);
+		follower.setArrivalPhaseForTest(ArrivalPhase::Move);
 		follower.publishActiveMissionItemsForTest();
 		EXPECT_EQ(follower.currentMissionItemForTest().nav_cmd,
 			  front_transition ? NAV_CMD_LOITER_TIME_LIMIT : NAV_CMD_WAYPOINT);
 		ASSERT_TRUE(follower.advanceStageForTest());
-		EXPECT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Descend);
+		EXPECT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Descend);
 	}
 
 	follower.setVehicleStatusForTest(true, false, false);
-	follower.setArrivalPhaseForTest(RtlArrival::Phase::Move);
+	follower.setArrivalPhaseForTest(ArrivalPhase::Move);
 	ASSERT_TRUE(follower.advanceStageForTest());
-	EXPECT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Land);
+	EXPECT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 }
 
 // Endpoint handlers own takeoff and landing.
@@ -1771,7 +1774,7 @@ TEST_P(RtlMissionSafePointFollowArrivalTest, SyntheticGoalHonorsArrivalDescentAn
 
 	const auto &triplet = *navigator.get_position_setpoint_triplet();
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Move);
 	ASSERT_TRUE(triplet.current.valid);
 	EXPECT_EQ(triplet.current.type, fixed_wing ? position_setpoint_s::SETPOINT_TYPE_LOITER :
 		  position_setpoint_s::SETPOINT_TYPE_POSITION);
@@ -1793,7 +1796,7 @@ TEST_P(RtlMissionSafePointFollowArrivalTest, SyntheticGoalHonorsArrivalDescentAn
 
 	if (fixed_wing || fabsf(land_delay) > FLT_EPSILON) {
 		ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-		ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Descend);
+		ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Descend);
 		EXPECT_EQ(follower.currentMissionItemForTest().nav_cmd, NAV_CMD_LOITER_TO_ALT);
 		EXPECT_FLOAT_EQ(triplet.current.alt, vehicle_position.alt);
 		EXPECT_FLOAT_EQ(triplet.current.loiter_radius, fabsf(loiter_radius));
@@ -1807,7 +1810,7 @@ TEST_P(RtlMissionSafePointFollowArrivalTest, SyntheticGoalHonorsArrivalDescentAn
 		ASSERT_TRUE(follower.advanceStageForTest());
 		follower.publishActiveMissionItemsForTest();
 		ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-		ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Hold);
+		ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Hold);
 		EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_LOITER);
 		EXPECT_FLOAT_EQ(triplet.current.alt, goal.alt + descend_altitude);
 		const rtl_time_estimate_s hold_estimate = follower.calc_rtl_time_estimate();
@@ -1885,14 +1888,14 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, SyntheticGoalDoesNotClimbAboveFro
 	ASSERT_TRUE(follower.advanceStageForTest());
 	follower.publishActiveMissionItemsForTest();
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Descend);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Descend);
 	EXPECT_FLOAT_EQ(follower.currentMissionItemForTest().altitude, vehicle_position.alt);
 	EXPECT_FLOAT_EQ(triplet.current.alt, vehicle_position.alt);
 	ASSERT_TRUE(follower.missionItemReachedForTest());
 	ASSERT_TRUE(follower.advanceStageForTest());
 	follower.publishActiveMissionItemsForTest();
 	EXPECT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Hold);
+	EXPECT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Hold);
 	EXPECT_FLOAT_EQ(triplet.current.alt, vehicle_position.alt);
 }
 
@@ -1925,7 +1928,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, ReverseTakeoffEndpointPreviewsAnd
 	ASSERT_TRUE(follower.advanceStageForTest());
 	follower.reloadAndPublishMissionItemsForTest();
 	EXPECT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+	EXPECT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Move);
 	EXPECT_DOUBLE_EQ(triplet.current.lat, goal.lat);
 	EXPECT_FLOAT_EQ(triplet.current.alt, vehicle_position.alt);
 }
@@ -1968,7 +1971,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, DirectStackedTakeoffPlanArrivesWi
 	follower.on_activation();
 
 	EXPECT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+	EXPECT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Move);
 	EXPECT_FALSE(follower.joiningRouteForTest());
 	const auto &triplet = *navigator.get_position_setpoint_triplet();
 	ASSERT_TRUE(triplet.current.valid);
@@ -2234,12 +2237,12 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, FrontTransitionArrivalBackTransit
 	ASSERT_TRUE(follower.advanceStageForTest());
 	follower.publishActiveMissionItemsForTest();
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Descend);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Descend);
 	EXPECT_DOUBLE_EQ(follower.currentMissionItemForTest().lat, approach.lat);
 	ASSERT_TRUE(follower.advanceStageForTest());
 	follower.publishActiveMissionItemsForTest();
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Hold);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Hold);
 	ASSERT_TRUE(follower.advanceStageForTest());
 	follower.publishActiveMissionItemsForTest();
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
@@ -2328,7 +2331,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, CommittedArrivalKeepsGoalAndPreci
 	follower.setPrecisionLandingForTest(2);
 	follower.on_activation();
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Move);
 	ASSERT_TRUE(follower.isLanding());
 
 	// The replacement mission has no matching cache and fails its own feasibility check.
@@ -2344,7 +2347,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, CommittedArrivalKeepsGoalAndPreci
 	ASSERT_TRUE(follower.advanceStageForTest());
 	follower.reloadAndPublishMissionItemsForTest();
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Descend);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Descend);
 	ASSERT_TRUE(follower.isLanding());
 	EXPECT_FALSE(follower.missionItemReachedForTest());
 	EXPECT_FLOAT_EQ(navigator.get_position_setpoint_triplet()->current.alt, goal.alt + 30.f);
@@ -2354,7 +2357,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, CommittedArrivalKeepsGoalAndPreci
 	ASSERT_TRUE(follower.advanceStageForTest());
 	follower.reloadAndPublishMissionItemsForTest();
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Hold);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Hold);
 	ASSERT_TRUE(follower.isLanding());
 	EXPECT_FALSE(follower.missionItemReachedForTest());
 	follower.ageWaypointReachedForTest(6.f);
@@ -2392,18 +2395,18 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, ReactivationRestartsArrivalAltitu
 	follower.setGlobalPositionForTest(initial_position);
 	follower.setArrivalParametersForTest(5.f, 30.f, 60.f);
 	follower.run(true);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Move);
 
 	const auto fly_to_hold = [&]() {
 		// Move, enter the descent loiter, and reach its altitude before starting the hold.
-		for (unsigned step = 0; step < 4u && follower.arrivalPhaseForTest() != RtlArrival::Phase::Hold; ++step) {
+		for (unsigned step = 0; step < 4u && follower.arrivalPhaseForTest() != ArrivalPhase::Hold; ++step) {
 			const position_setpoint_s target = navigator.get_position_setpoint_triplet()->current;
 			ASSERT_TRUE(target.valid);
 			follower.setGlobalPositionForTest({target.lat, target.lon, target.alt});
 			follower.run(true);
 		}
 
-		ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Hold);
+		ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Hold);
 		EXPECT_FALSE(follower.missionItemReachedForTest());
 	};
 	fly_to_hold();
@@ -2411,14 +2414,14 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, ReactivationRestartsArrivalAltitu
 	ASSERT_TRUE(follower.missionItemReachedForTest());
 	follower.run(false);
 	EXPECT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Idle);
-	EXPECT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Land);
+	EXPECT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Move);
 
 	// Reactivation starts a new arrival below both the previous altitude and configured descent height.
 	const auto new_position = makePositionFromOffset(kBaseLat, kBaseLon, -150.f, 0.f, kAlt + 10.f);
 	follower.setGlobalPositionForTest(new_position);
 	follower.run(true);
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Move);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Move);
 	const auto &triplet = *navigator.get_position_setpoint_triplet();
 	EXPECT_DOUBLE_EQ(triplet.current.lat, goal.lat);
 	EXPECT_DOUBLE_EQ(triplet.current.lon, goal.lon);
@@ -2443,7 +2446,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, CommittedApproachHandsOffToGoalWi
 	approach.height_m = kAlt;
 	approach.loiter_radius_m = 60.f;
 	follower.setGoalLandApproachForTest(approach);
-	follower.setArrivalPhaseForTest(RtlArrival::Phase::Descend);
+	follower.setArrivalPhaseForTest(ArrivalPhase::Descend);
 	follower.setVehicleStatusForTest(false, false, false);
 	follower.setLandedForTest(false);
 	follower.setGlobalPositionForTest(goal);
@@ -2454,7 +2457,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, CommittedApproachHandsOffToGoalWi
 	EXPECT_EQ(follower.currentMissionItemForTest().nav_cmd, NAV_CMD_LOITER_TO_ALT);
 	ASSERT_TRUE(follower.advanceStageForTest());
 	ASSERT_EQ(follower.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	ASSERT_EQ(follower.arrivalPhaseForTest(), RtlArrival::Phase::Hold);
+	ASSERT_EQ(follower.arrivalPhaseForTest(), ArrivalPhase::Hold);
 	ASSERT_TRUE(follower.reloadCurrentMissionItemForTest());
 	EXPECT_EQ(follower.currentMissionItemForTest().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
 	ASSERT_TRUE(follower.advanceStageForTest());

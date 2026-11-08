@@ -47,7 +47,6 @@
 #include "mission_route_cache.h"
 #include "mission_route_types.h"
 #include "rtl_base.h"
-#include "rtl_arrival.h"
 #include <lib/rtl/rtl_time_estimator.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
@@ -75,8 +74,15 @@ private:
 		FollowRoute,             /**< Follow the mission geometry in nominal or reverse direction. */
 		TransitionDuringRoute,   /**< Wait for the VTOL transition before resuming the route. */
 		BranchOff,               /**< Fly the virtual branch-off waypoint before leaving the route. */
-		Arrival,                 /**< Move, descend and hold at the destination (RtlArrival). */
+		Arrival,                 /**< Move, descend and hold at the destination approach. */
 		LandAtGoal               /**< Land at the safe point or mission endpoint. */
+	};
+
+	/** Steps of Stage::Arrival, as RtlDirect's move, loiter-down and hold states. */
+	enum class ArrivalPhase : uint8_t {
+		Move,
+		Descend,
+		Hold
 	};
 
 	struct Progress {
@@ -92,8 +98,8 @@ private:
 
 	/** @brief Build the landing item: the mission LAND item for that goal, otherwise a synthetic landing at the goal. */
 	void setGoalLandMissionItem(mission_item_s &mission_item) const;
-	/** @brief Build the arrival item for the phase of @p arrival. */
-	void setGoalArrivalMissionItem(mission_item_s &mission_item, const RtlArrival &arrival) const;
+	/** @brief Build the arrival item for @p phase. */
+	void setGoalArrivalMissionItem(mission_item_s &mission_item, ArrivalPhase phase) const;
 	/** @brief Build the first destination item flown after the branch-off or a route shortcut. */
 	void setGoalMissionItem(mission_item_s &mission_item) const;
 	/** @brief Resolve the destination loiter, capped at the arrival altitude. */
@@ -165,7 +171,7 @@ private:
 	mission_item_s _goal_mission_land_item{};
 	bool _goal_mission_land_item_valid{false};
 	Progress _state{};
-	RtlArrival _arrival{};
+	ArrivalPhase _arrival_phase{ArrivalPhase::Move};
 	loiter_point_s _goal_land_approach{};
 	float _goal_arrival_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator;
