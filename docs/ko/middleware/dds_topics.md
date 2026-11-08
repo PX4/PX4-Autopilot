@@ -66,16 +66,16 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/offboard_control_mode`              | [px4_msgs::msg::OffboardControlMode](../msg_docs/OffboardControlMode.md)                           |
 | `/fmu/in/onboard_computer_status`            | [px4_msgs::msg::OnboardComputerStatus](../msg_docs/OnboardComputerStatus.md)                       |
 | `/fmu/in/register_ext_component_request`     | [px4_msgs::msg::RegisterExtComponentRequest](../msg_docs/RegisterExtComponentRequest.md)           |
-| `/fmu/in/rover_attitude_setpoint`            | [px4_msgs::msg::RoverAttitudeSetpoint](../msg_docs/RoverAttitudeSetpoint.md)                       |
-| `/fmu/in/rover_position_setpoint`            | [px4_msgs::msg::RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md)                       |
-| `/fmu/in/rover_rate_setpoint`                | [px4_msgs::msg::RoverRateSetpoint](../msg_docs/RoverRateSetpoint.md)                               |
-| `/fmu/in/rover_speed_setpoint`               | [px4_msgs::msg::RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md)                             |
-| `/fmu/in/rover_steering_setpoint`            | [px4_msgs::msg::RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md)                       |
 | `/fmu/in/rover_throttle_setpoint`            | [px4_msgs::msg::RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md)                       |
 | `/fmu/in/sensor_gnss`                        | [px4_msgs::msg::SensorGnss](../msg_docs/SensorGnss.md)                                             |
 | `/fmu/in/sensor_optical_flow`                | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md)                               |
 | `/fmu/in/setpoint_config`                    | [px4_msgs::msg::SetpointConfig](../msg_docs/SetpointConfig.md)                                     |
+| `/fmu/in/surface_vehicle_attitude_setpoint`  | [px4_msgs::msg::SurfaceVehicleAttitudeSetpoint](../msg_docs/SurfaceVehicleAttitudeSetpoint.md)     |
 | `/fmu/in/surface_vehicle_course_setpoint`    | [px4_msgs::msg::SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md)         |
+| `/fmu/in/surface_vehicle_position_setpoint`  | [px4_msgs::msg::SurfaceVehiclePositionSetpoint](../msg_docs/SurfaceVehiclePositionSetpoint.md)     |
+| `/fmu/in/surface_vehicle_rate_setpoint`      | [px4_msgs::msg::SurfaceVehicleRateSetpoint](../msg_docs/SurfaceVehicleRateSetpoint.md)             |
+| `/fmu/in/surface_vehicle_speed_setpoint`     | [px4_msgs::msg::SurfaceVehicleSpeedSetpoint](../msg_docs/SurfaceVehicleSpeedSetpoint.md)           |
+| `/fmu/in/surface_vehicle_steering_setpoint`  | [px4_msgs::msg::SurfaceVehicleSteeringSetpoint](../msg_docs/SurfaceVehicleSteeringSetpoint.md)     |
 | `/fmu/in/telemetry_status`                   | [px4_msgs::msg::TelemetryStatus](../msg_docs/TelemetryStatus.md)                                   |
 | `/fmu/in/trajectory_setpoint`                | [px4_msgs::msg::TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                             |
 | `/fmu/in/unregister_ext_component`           | [px4_msgs::msg::UnregisterExtComponent](../msg_docs/UnregisterExtComponent.md)                     |
@@ -93,6 +93,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | Topic                                                                 | 형식                                                                                                                                                        | Route Field | Max Instances |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------- |
 | /fmu/in/aux_global_position | [px4_msgs::msg::AuxGlobalPosition](../msg_docs/AuxGlobalPosition.md) | `id`        | 4             |
+| /fmu/in/rtcm_corrections                         | [px4_msgs::msg::RtcmData](../msg_docs/RtcmData.md)                   | `device_id` | 4             |
 
 ## Not Exported
 
@@ -260,11 +261,7 @@ See messages
 - [RegisterExtComponentReplyV0](../msg_docs/RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](../msg_docs/RegisterExtComponentRequestV0.md)
 - [RegisterExtComponentRequestV1](../msg_docs/RegisterExtComponentRequestV1.md)
-- [RoverAttitudeStatus](../msg_docs/RoverAttitudeStatus.md)
-- [RoverRateStatus](../msg_docs/RoverRateStatus.md)
-- [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md)
 - [Rpm](../msg_docs/Rpm.md)
-- [RtcmData](../msg_docs/RtcmData.md)
 - [RtlStatus](../msg_docs/RtlStatus.md)
 - [RtlTimeEstimate](../msg_docs/RtlTimeEstimate.md)
 - [SatelliteInfo](../msg_docs/SatelliteInfo.md)
@@ -289,6 +286,9 @@ See messages
 - [SensorsStatus](../msg_docs/SensorsStatus.md)
 - [SensorsStatusGnss](../msg_docs/SensorsStatusGnss.md)
 - [SensorsStatusImu](../msg_docs/SensorsStatusImu.md)
+- [SurfaceVehicleAttitudeStatus](../msg_docs/SurfaceVehicleAttitudeStatus.md)
+- [SurfaceVehicleRateStatus](../msg_docs/SurfaceVehicleRateStatus.md)
+- [SurfaceVehicleSpeedStatus](../msg_docs/SurfaceVehicleSpeedStatus.md)
 - [SystemPower](../msg_docs/SystemPower.md)
 - [TakeoffStatus](../msg_docs/TakeoffStatus.md)
 - [TargetGnss](../msg_docs/TargetGnss.md)

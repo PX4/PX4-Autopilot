@@ -65,6 +65,14 @@ Current limitations:
 - Stale partial state is dropped after 1 second if the rest of the fragments do not arrive.
 - The legacy exact-multiple compatibility fallback only works if another `sequence_id` arrives before that 1 second timeout. Otherwise the buffered partial message is dropped.
 
+### Corrections from ROS 2
+
+ROS 2 applications can send corrections over [uXRCE-DDS](../middleware/uxrce_dds.md) by publishing [`px4_msgs/msg/RtcmData`](../msg_docs/RtcmData.md) on `/fmu/in/rtcm_corrections`:
+
+- Split the correction byte stream into consecutive messages of up to 300 bytes (`data`, `len`). Message boundaries need not match RTCM frame boundaries.
+- Give each source its own constant `device_id`. Each value is routed to its own `rtcm_corrections` instance, so two sources sharing an ID interleave their streams.
+- A `timestamp` of 0 is replaced with the time of receipt.
+
 ### RTCM 메시지
 
 명시되어 있지 않은 경우에는 QGroundControl은 RTCM3.2 프레임을 1Hz로 출력하도록 RTK 베이스 스테이션을 구성합니다.
