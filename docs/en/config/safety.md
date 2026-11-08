@@ -139,6 +139,7 @@ The remaining flight time comes from the battery:
 Without a remaining flight time estimate, the distance-aware return failsafe never triggers, and there is no warning either.
 This is the case if `BATn_CAPACITY` is not set (the default is `-1`), if a DroneCAN battery sends only `BatteryInfo`, or if a MAVLink battery does not fill in `time_remaining`.
 This also applies when there is no valid home position or global position estimate.
+It also never triggers with [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4 while a valid mission is loaded: these Return types do not estimate the time to follow the mission.
 The vehicle is then only protected by the [battery level failsafe](#battery-level-failsafe).
 :::
 
