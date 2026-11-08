@@ -78,9 +78,10 @@ public:
 	bool missionMatches(const mission_s &mission) const;
 	/** Match the uploaded mission, safe points and fence of the last plan, ready or not. */
 	bool sourceMatches(const mission_s &mission) const;
-	bool evaluationPending(const mission_s &mission) const;
 	/** Whether the cached mission and rally points and the fence describe @p mission. */
 	bool inputsReady(const mission_s &mission) const;
+	/** Whether the route inputs still load or await Mission's check, so a failed plan is not final yet. */
+	bool inputsPending(const mission_s &mission, const vehicle_status_s &vehicle_status) const;
 
 	Evaluation evaluate(const mission_s &mission,
 			    const vehicle_status_s &vehicle_status,
@@ -116,7 +117,6 @@ private:
 		bool valid{false};
 	};
 
-	bool fenceReady() const;
 	/** Gather the planner inputs; evaluate() has already cleared the flown state of an inactive estimate. */
 	mission_route::RtlRouteRequest buildPlannerRequest(const mission_s &mission,
 			const vehicle_status_s &vehicle_status,

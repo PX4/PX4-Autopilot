@@ -122,7 +122,6 @@ private:
 	bool reverseIsFurther() const;
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	void applyReturnAltMin();
 	RtlRouteSafePoint::Evaluation evaluateRouteSafePoint();
 	/** Retry without changing the current hold unless the route executor is ready. */
 	void retryRouteSafePoint();
@@ -130,10 +129,6 @@ private:
 	uint8_t routeSafePointIndex() const;
 	/** Warn when RTL_TYPE 7 has no route and stops at the current position. */
 	void reportNoRoute() const;
-	/** True while Mission has not validated the uploaded mission and fence yet. */
-	bool missionValidationPending() const;
-	/** True while the route inputs load or await validation, so a failed plan is not final yet. */
-	bool routeInputsPending() const;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	void setRtlTypeAndDestination();

@@ -60,17 +60,26 @@ bool RtlRouteSafePoint::supportsVehicle(const vehicle_status_s &vehicle_status)
 	       || vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 }
 
-bool RtlRouteSafePoint::fenceReady() const
-{
-	const Geofence &geofence = _navigator->get_geofence();
-	return geofence.isReadyForPathChecks() && !geofence.isFenceUpdatePending();
-}
-
 bool RtlRouteSafePoint::inputsReady(const mission_s &mission) const
 {
 	const MissionRouteCache &cache = _navigator->get_mission_route_cache();
-	return cache.missionItemsReady(mission) && cache.safePointsReady()
-	       && cache.safePointsId() == mission.safe_points_id && fenceReady();
+	const Geofence &geofence = _navigator->get_geofence();
+	return cache.missionItemsReady(mission) && cache.safePointsReady() && cache.safePointsId() == mission.safe_points_id
+	       && geofence.isReadyForPathChecks() && !geofence.isFenceUpdatePending();
+}
+
+bool RtlRouteSafePoint::inputsPending(const mission_s &mission, const vehicle_status_s &vehicle_status) const
+{
+	// MAVLink can publish during a navigator cycle, so RTL may see new rally points before the cache does.
+	// A Home change is no upload: in flight nothing checks the mission again for it, so it is not waited for.
+	const MissionRouteCache &cache = _navigator->get_mission_route_cache();
+	const mission_result_s &mission_result = *_navigator->get_mission_result();
+	const bool mission_loading = mission.count <= MissionRouteCache::kMaxFullMissionCacheSize
+				     && (!cache.missionItemsReady(mission) || _navigator->get_geofence().isFenceUpdatePending());
+	return supportsVehicle(vehicle_status)
+	       && (mission_loading || mission_result.mission_id != mission.mission_id
+		   || mission_result.geofence_id != mission.geofence_id
+		   || !cache.safePointsReady() || cache.safePointsId() != mission.safe_points_id);
 }
 
 bool RtlRouteSafePoint::missionMatches(const mission_s &mission) const
@@ -88,13 +97,6 @@ bool RtlRouteSafePoint::sourceMatches(const mission_s &mission) const
 	       && mission.safepoint_dataman_id == _source.safe_points_dataman_id
 	       && mission.geofence_id == _source.geofence_id
 	       && mission.fence_dataman_id == _source.fence_dataman_id;
-}
-
-bool RtlRouteSafePoint::evaluationPending(const mission_s &mission) const
-{
-	return mission.count <= MissionRouteCache::kMaxFullMissionCacheSize
-	       && (!_navigator->get_mission_route_cache().missionItemsReady(mission)
-		   || _navigator->get_geofence().isFenceUpdatePending());
 }
 
 RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &mission,
