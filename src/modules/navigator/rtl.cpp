@@ -382,7 +382,7 @@ void RTL::retryRouteSafePoint()
 	}
 
 	if ((_route_follower == nullptr || evaluation.executor_source_changed)
-	    && !initRtlMissionType(RtlType::RTL_MISSION_SAFE_POINT_FOLLOW, _global_pos_sub.get().alt)) {
+	    && !initRtlMissionType(RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)) {
 		// Allocation failure must not shift the hold or change its altitude. The inputs are ready: stop waiting.
 		_rtl_direct.setWaitForRoute(false);
 		publishRtlStatus(RTL_STATUS_NO_SAFE_POINT);
@@ -651,7 +651,7 @@ void RTL::setRtlTypeAndDestination()
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
-	if (should_init_mission_type && !initRtlMissionType(new_rtl_type, rtl_alt)) {
+	if (should_init_mission_type && !initRtlMissionType(new_rtl_type)) {
 		// Retried at every evaluation, every 2 s while inactive:
 		// log a failing type once until an init succeeds or Return activates.
 		if (_init_failure_reported != new_rtl_type) {
@@ -686,6 +686,11 @@ void RTL::setRtlTypeAndDestination()
 	} else if (should_init_mission_type) {
 		// A later failure of the same type is logged again.
 		_init_failure_reported = RtlType::NONE;
+	}
+
+	if (new_type_is_mission_based && _rtl_mission_type_handle && !_rtl_mission_type_handle->isActive()) {
+		// A new or kept executor takes the latest altitude at every evaluation until Return starts it.
+		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 	}
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
