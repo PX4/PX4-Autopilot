@@ -352,41 +352,66 @@ protected:
 class RtlMissionSafePointFollowArrivalTest : public RtlMissionSafePointFollowNavigatorTest,
 	public ::testing::WithParamInterface<std::tuple<bool, float>> {};
 
-// A completed transition resumes route following without advancing its target.
-TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesFollowRoute)
+// Each row sets a stage, the current index and the plan, then advances the follower once.
+TEST_F(RtlMissionSafePointFollowStageTest, StageAdvances)
 {
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-	});
-	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
-	executor.setAdvanceAfterTransitionForTest(false);
+	using Stage = RtlMissionSafePointFollowTestPeer::Stage;
+	static constexpr int32_t kNotChecked = -1;
+	const struct {
+		const char *name;
+		size_t item_count;
+		Stage stage;
+		int32_t current_seq;
+		bool plan_set; // false keeps an empty plan
+		bool reversed;
+		int32_t branch_off_index;
+		bool advance_after_transition;
+		Stage expected_stage;
+		int32_t expected_seq;
+	} cases[] {
+		{"transition resumes the route", 2, Stage::TransitionDuringRoute, 0, false, false, -1, false, Stage::FollowRoute, kNotChecked},
+		{"transition at the branch-off target", 3, Stage::TransitionDuringRoute, 2, true, false, 2, false, Stage::BranchOff, kNotChecked},
+		{"reverse transition advances", 3, Stage::TransitionDuringRoute, 2, true, true, -1, true, Stage::FollowRoute, 1},
+		{"branch-off starts the arrival", 2, Stage::BranchOff, 0, false, false, -1, false, Stage::Arrival, kNotChecked},
+		// The branch-off anchor keeps FollowRoute active for a possible transition.
+		{"forward advance to the branch-off anchor", 3, Stage::FollowRoute, 1, true, false, 2, false, Stage::FollowRoute, 2},
+		{"reverse advance to the branch-off anchor", 3, Stage::FollowRoute, 2, true, true, 1, false, Stage::FollowRoute, 1},
+		{"forward route end starts the arrival", 2, Stage::FollowRoute, 1, false, false, -1, false, Stage::Arrival, kNotChecked},
+		{"reverse route end starts the arrival", 2, Stage::FollowRoute, 0, true, true, 0, false, Stage::Arrival, kNotChecked},
+	};
 
-	const bool advanced = executor.advanceStageForTest();
+	for (const auto &row : cases) {
+		SCOPED_TRACE(row.name);
+		std::vector<mission_item_s> items;
 
-	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
+		for (size_t index = 0; index < row.item_count; ++index) {
+			items.push_back(makePositionItem(kBaseLat + 0.001 * index, kBaseLon, kAlt));
+		}
+
+		executor.loadTestMission(items);
+		executor.setStageForTest(row.stage);
+		executor.setCurrentSequenceForTest(row.current_seq);
+
+		if (row.plan_set) {
+			executor.setSafePointSelectionForTest(row.reversed, row.branch_off_index);
+		}
+
+		executor.setAdvanceAfterTransitionForTest(row.advance_after_transition);
+
+		EXPECT_TRUE(executor.advanceStageForTest());
+		EXPECT_EQ(executor.stageForTest(), row.expected_stage);
+
+		if (row.expected_seq != kNotChecked) {
+			EXPECT_EQ(executor.currentSequenceForTest(), row.expected_seq);
+		}
+
+		if (row.expected_stage == Stage::Arrival) {
+			EXPECT_EQ(executor.arrivalPhaseForTest(), ArrivalPhase::Move);
+		}
+	}
 }
 
 // A transition on the final route segment hands over to BranchOff, not back to FollowRoute.
-TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesBranchOffWhenTargetIsBranchOff)
-{
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
-	executor.setCurrentSequenceForTest(2);
-	executor.setSafePointSelectionForTest(false, 2);
-	executor.setAdvanceAfterTransitionForTest(false);
-
-	const bool advanced = executor.advanceStageForTest();
-
-	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
-}
-
 // Reverse FT holds at the reached waypoint and points towards the next reverse target.
 class RtlReverseFrontTransitionTest : public RtlMissionSafePointFollowNavigatorTest, public ::testing::WithParamInterface<bool> {};
 
@@ -520,42 +545,6 @@ TEST_F(RtlRouteTransitionTest, TransitionKeepsRunningThroughFeasibilityRefresh)
 	ASSERT_TRUE(command_sub.update(&command));
 	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-}
-
-// Completing a reverse route transition advances current_seq right away, no re-reach needed.
-TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteTransitionCompletionAdvancesToPreviousTarget)
-{
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::TransitionDuringRoute);
-	executor.setCurrentSequenceForTest(2);
-	executor.setSafePointSelectionForTest(true, -1);
-	executor.setAdvanceAfterTransitionForTest(true);
-
-	const bool advanced = executor.advanceStageForTest();
-
-	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	EXPECT_EQ(executor.currentSequenceForTest(), 1);
-}
-
-// Reaching the virtual branch-off waypoint starts the destination arrival sequence.
-TEST_F(RtlMissionSafePointFollowStageTest, BranchOffStartsArrivalMove)
-{
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-	});
-	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::BranchOff);
-
-	const bool advanced = executor.advanceStageForTest();
-
-	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(executor.arrivalPhaseForTest(), ArrivalPhase::Move);
 }
 
 // Touchdown at a rally point completes Return, as direct RTL does.
@@ -911,44 +900,6 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, MissionLandingAbortAfterReplaceme
 	EXPECT_EQ(mission_topic.get().mission_id, 31u);
 }
 
-// Advancing onto the branch-off index stays in FollowRoute so a pending transition can still run.
-TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteAdvanceKeepsFollowRouteUntilBranchOffPublication)
-{
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	executor.setCurrentSequenceForTest(1);
-	executor.setSafePointSelectionForTest(false, 2);
-
-	const bool advanced = executor.advanceStageForTest();
-
-	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	EXPECT_EQ(executor.currentSequenceForTest(), 2);
-}
-
-// Same in reverse: the branch-off anchor keeps FollowRoute active for a possible transition.
-TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteAdvanceKeepsFollowRouteUntilBranchOffPublication)
-{
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	executor.setCurrentSequenceForTest(2);
-	executor.setSafePointSelectionForTest(true, 1);
-
-	const bool advanced = executor.advanceStageForTest();
-
-	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	EXPECT_EQ(executor.currentSequenceForTest(), 1);
-}
-
 // When the branch-off anchor becomes the target, the virtual waypoint is published in the same pass.
 TEST_F(RtlMissionSafePointFollowNavigatorTest, ForwardBranchOffAnchorPublishesVirtualBranchOffImmediately)
 {
@@ -987,41 +938,6 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, ForwardBranchOffAnchorPublishesVi
 	EXPECT_NEAR(triplet->next.lon, safe_point_goal.lon, 1e-9);
 	EXPECT_NEAR(triplet->next.alt, safe_point_goal.alt, 1e-3f);
 	EXPECT_FALSE(follower.missionItemReachedForTest());
-}
-
-// Forward traversal exhausted at the last route item: start the destination arrival sequence.
-TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionStartsArrivalMove)
-{
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-	});
-	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	executor.setCurrentSequenceForTest(1);
-
-	const bool advanced = executor.advanceStageForTest();
-
-	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(executor.arrivalPhaseForTest(), ArrivalPhase::Move);
-}
-
-// Reverse traversal exhausted at the first route item: start the destination arrival sequence.
-TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionStartsArrivalMove)
-{
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-	});
-	executor.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
-	executor.setCurrentSequenceForTest(0);
-	executor.setSafePointSelectionForTest(true, 0);
-
-	const bool advanced = executor.advanceStageForTest();
-
-	EXPECT_TRUE(advanced);
-	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::Arrival);
-	EXPECT_EQ(executor.arrivalPhaseForTest(), ArrivalPhase::Move);
 }
 
 // A front transition flies the fixed-wing arrival item, and no transition takes the zero-delay landing shortcut.
