@@ -77,8 +77,8 @@ public:
 	static bool supportsVehicle(const vehicle_status_s &vehicle_status);
 	/** Match the uploaded mission independently of safe-point changes, preserving route progress through reloads. */
 	bool missionMatches(const mission_s &mission) const;
-	/** Check full source identity, cache and fence readiness, and safe-point count. */
-	bool sourceStillValid(const mission_s &mission) const;
+	/** Match the uploaded mission, safe points and fence of the last plan, ready or not. */
+	bool sourceMatches(const mission_s &mission) const;
 	bool evaluationPending(const mission_s &mission) const;
 	/** Whether the cached mission and rally points and the fence describe @p mission. */
 	bool inputsReady(const mission_s &mission) const;
@@ -112,9 +112,6 @@ private:
 		uint32_t mission_id{0};
 		uint32_t safe_points_id{0};
 		uint32_t geofence_id{0};
-		int32_t mission_land_index{-1};
-		uint16_t mission_count{0};
-		uint16_t safe_point_count{0};
 		uint8_t mission_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
 		uint8_t safe_points_dataman_id{DM_KEY_SAFE_POINTS_0};
 		uint8_t fence_dataman_id{DM_KEY_FENCE_POINTS_0};
@@ -134,8 +131,6 @@ private:
 			const vehicle_status_s &vehicle_status,
 			const home_position_s &home_position,
 			const wind_s &wind);
-	/** Match uploaded mission, safe-point, and fence sources without requiring readiness. */
-	bool sourceMatches(const mission_s &mission) const;
 
 	Navigator *_navigator{nullptr};
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};

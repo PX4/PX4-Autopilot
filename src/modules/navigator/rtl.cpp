@@ -243,8 +243,8 @@ void RTL::on_active()
 	const bool fence_load_failed = !geofence.isReadyForPathChecks() && !geofence.isFenceUpdatePending();
 
 	if (_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_follower && !_route_follower->isLanding()
-	    && !_route_safe_point.sourceStillValid(_mission_sub.get())
-	    && (!mission_matches || fence_load_failed || _route_safe_point.inputsReady(_mission_sub.get()))) {
+	    && (!mission_matches || fence_load_failed
+		|| (_route_safe_point.inputsReady(_mission_sub.get()) && !_route_safe_point.sourceMatches(_mission_sub.get())))) {
 		// The same mission keeps the flown jump edge for the replan.
 		if (mission_matches) {
 			_route_safe_point.setActiveJumpAnchor(_route_follower->activeJumpAnchor());

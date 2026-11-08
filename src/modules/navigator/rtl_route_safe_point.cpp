@@ -83,11 +83,10 @@ bool RtlRouteSafePoint::inputsReady(const mission_s &mission) const
 
 bool RtlRouteSafePoint::missionMatches(const mission_s &mission) const
 {
+	// The count and land index come with the mission id. The ids are upload CRCs, so the content is the same.
 	return _source.valid
 	       && mission.mission_id == _source.mission_id
-	       && mission.count == _source.mission_count
-	       && mission.mission_dataman_id == _source.mission_dataman_id
-	       && mission.land_index == _source.mission_land_index;
+	       && mission.mission_dataman_id == _source.mission_dataman_id;
 }
 
 bool RtlRouteSafePoint::sourceMatches(const mission_s &mission) const
@@ -97,13 +96,6 @@ bool RtlRouteSafePoint::sourceMatches(const mission_s &mission) const
 	       && mission.safepoint_dataman_id == _source.safe_points_dataman_id
 	       && mission.geofence_id == _source.geofence_id
 	       && mission.fence_dataman_id == _source.fence_dataman_id;
-}
-
-bool RtlRouteSafePoint::sourceStillValid(const mission_s &mission) const
-{
-	// The count also catches in-place edits of the same safe points. Return plans ignore DO_JUMP counters.
-	return sourceMatches(mission) && inputsReady(mission)
-	       && _navigator->get_mission_route_cache().safePointCount() == _source.safe_point_count;
 }
 
 bool RtlRouteSafePoint::evaluationPending(const mission_s &mission) const
@@ -173,9 +165,6 @@ RtlRouteSafePoint::Evaluation RtlRouteSafePoint::evaluate(const mission_s &missi
 		.mission_id = mission.mission_id,
 		.safe_points_id = cache.safePointsId(),
 		.geofence_id = mission.geofence_id,
-		.mission_land_index = mission.land_index,
-		.mission_count = mission.count,
-		.safe_point_count = static_cast<uint16_t>(cache.safePointCount()),
 		.mission_dataman_id = mission.mission_dataman_id,
 		.safe_points_dataman_id = mission.safepoint_dataman_id,
 		.fence_dataman_id = mission.fence_dataman_id,

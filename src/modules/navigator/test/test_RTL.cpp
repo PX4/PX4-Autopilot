@@ -332,8 +332,11 @@ public:
 	}
 
 	int32_t missionSequenceForTest() const { return _mission_sub.get().current_seq; }
-	bool routePlanSourceStillValidForTest() const { return _route_safe_point.sourceStillValid(_mission_sub.get()); }
-	bool routePlanMatchesSourceForTest(const mission_s &mission) const { return _route_safe_point.sourceStillValid(mission); }
+	bool routePlanSourceStillValidForTest() const { return routePlanMatchesSourceForTest(_mission_sub.get()); }
+	bool routePlanMatchesSourceForTest(const mission_s &mission) const
+	{
+		return _route_safe_point.sourceMatches(mission) && _route_safe_point.inputsReady(mission);
+	}
 	mission_route::ActiveJumpAnchor lastRouteLoopSegmentForTest() const { return _route_safe_point.activeJumpAnchor(); }
 #endif
 };
