@@ -97,107 +97,55 @@ private:
 };
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-TEST_F(RallyPointChecksTest, RouteReturnWithoutRouteIsUnavailable)
+// Each row publishes a route status, then checks RTL_TYPE in a mode with a user intention.
+TEST_F(RallyPointChecksTest, RouteStatusDecidesWhetherReturnCanRun)
 {
-	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, false);
-	const Result result = check(7);
-	EXPECT_TRUE(result.warned);
-	EXPECT_FALSE(result.return_can_run);
-	EXPECT_TRUE(result.return_required);
-}
+	static constexpr uint8_t kDirect = rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT;
+	static constexpr uint8_t kRoute = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT;
+	static constexpr uint8_t kManual = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+	static constexpr uint8_t kReturn = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+	static constexpr uint8_t kHold = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+	static constexpr uint8_t kMission = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	static constexpr uint8_t kNone = UINT8_MAX;
 
-TEST_F(RallyPointChecksTest, RouteReturnWithRouteIsAvailable)
-{
-	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0);
-	const Result result = check(7);
-	EXPECT_FALSE(result.warned);
-	EXPECT_TRUE(result.return_can_run);
-	EXPECT_FALSE(result.return_required);
-}
-
-TEST_F(RallyPointChecksTest, RouteReturnWithoutTimestampIsUnavailable)
-{
-	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0, 0);
-	const Result result = check(7);
-	EXPECT_TRUE(result.warned);
-	EXPECT_FALSE(result.return_can_run);
-	EXPECT_TRUE(result.return_required);
-}
-
-TEST_F(RallyPointChecksTest, RouteReturnWithStaleRouteIsUnavailable)
-{
-	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0,
-			 hrt_absolute_time() - 6_s);
-	const Result result = check(7);
-	EXPECT_TRUE(result.warned);
-	EXPECT_FALSE(result.return_can_run);
-	EXPECT_TRUE(result.return_required);
-}
-
-TEST_F(RallyPointChecksTest, RouteReturnIsUnavailableWhileTheRouteInputsLoad)
-{
-	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, true);
-	const Result result = check(7);
-	EXPECT_TRUE(result.warned);
-	EXPECT_FALSE(result.return_can_run);
-	EXPECT_TRUE(result.return_required);
-}
-
-TEST_F(RallyPointChecksTest, ActiveRouteReturnIsNotInterrupted)
-{
-	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, false);
-	const Result result = check(7, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-	EXPECT_FALSE(result.warned);
-	EXPECT_TRUE(result.return_can_run);
-	EXPECT_FALSE(result.return_required);
-}
-
-TEST_F(RallyPointChecksTest, ActiveRouteReturnDoesNotRequireFreshStatus)
-{
-	// A running Return, here a failsafe one, does not depend on the status age.
-	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0,
-			 hrt_absolute_time() - 6_s);
-	const Result result = check(7, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-	EXPECT_FALSE(result.warned);
-	EXPECT_TRUE(result.return_can_run);
-	EXPECT_FALSE(result.return_required);
-}
-
-TEST_F(RallyPointChecksTest, FailsafeHoldDuringSelectedRouteReturnKeepsReturnAvailable)
-{
-	// A failsafe Hold replaces the selected Return: without a route it warns, but Return must not fall back to Land.
-	const hrt_abstime now = hrt_absolute_time();
 	const struct {
 		const char *name;
-		uint8_t rtl_type;
+		int32_t rtl_type;
+		uint8_t status_type;
 		bool pending;
 		uint8_t safe_point_index;
-		hrt_abstime timestamp;
-	} statuses[] {
-		{"old route", rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT, false, 0, now - 6_s},
-		{"loading", rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, true, UINT8_MAX, now},
-		{"no route", rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, false, UINT8_MAX, now},
+		int age_s; // -1: no timestamp
+		uint8_t nav_state;
+		uint8_t user_intention;
+		Result expected;
+	} cases[] {
+		{"no route", 7, kDirect, false, kNone, 0, kManual, kManual, {true, false, true}},
+		{"route", 7, kRoute, false, 0, 0, kManual, kManual, {false, true, false}},
+		{"no timestamp", 7, kRoute, false, 0, -1, kManual, kManual, {true, false, true}},
+		{"stale route", 7, kRoute, false, 0, 6, kManual, kManual, {true, false, true}},
+		{"inputs loading", 7, kDirect, true, kNone, 0, kManual, kManual, {true, false, true}},
+		// A running Return, also a failsafe one, is not interrupted and does not depend on the status age.
+		{"active Return without route", 7, kDirect, false, kNone, 0, kReturn, kManual, {false, true, false}},
+		{"active Return, old status", 7, kRoute, false, 0, 6, kReturn, kManual, {false, true, false}},
+		// A failsafe Hold replaces the selected Return: it warns, but Return must not fall back to Land.
+		{"Hold in Return, old route", 7, kRoute, false, 0, 6, kHold, kReturn, {true, true, false}},
+		{"Hold in Return, loading", 7, kDirect, true, kNone, 0, kHold, kReturn, {true, true, false}},
+		{"Hold in Return, no route", 7, kDirect, false, kNone, 0, kHold, kReturn, {true, true, false}},
+		{"Hold in Mission", 7, kDirect, false, kNone, 0, kHold, kMission, {true, false, true}},
+		// Other types ignore the route; type 5 only warns about the missing rally point.
+		{"type 3", 3, kDirect, false, kNone, 0, kManual, kManual, {false, true, false}},
+		{"type 5", 5, kDirect, false, kNone, 0, kManual, kManual, {true, true, false}},
 	};
 
-	for (const auto &status : statuses) {
-		SCOPED_TRACE(status.name);
-		publishRtlStatus(status.rtl_type, status.pending, status.safe_point_index, status.timestamp);
-		const Result result = check(7, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER,
-					    vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-		EXPECT_TRUE(result.warned);
-		EXPECT_TRUE(result.return_can_run);
-		EXPECT_FALSE(result.return_required);
+	for (const auto &row : cases) {
+		SCOPED_TRACE(row.name);
+		const hrt_abstime timestamp = row.age_s < 0 ? 0 : hrt_absolute_time() - static_cast<hrt_abstime>(row.age_s) * 1_s;
+		publishRtlStatus(row.status_type, row.pending, row.safe_point_index, timestamp);
+		const Result result = check(row.rtl_type, row.nav_state, row.user_intention);
+		EXPECT_EQ(result.warned, row.expected.warned);
+		EXPECT_EQ(result.return_can_run, row.expected.return_can_run);
+		EXPECT_EQ(result.return_required, row.expected.return_required);
 	}
-}
-
-TEST_F(RallyPointChecksTest, FailsafeHoldDuringOtherModeKeepsReturnUnavailable)
-{
-	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, false);
-	const Result result = check(7, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER,
-				    vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-	EXPECT_TRUE(result.warned);
-	EXPECT_FALSE(result.return_can_run);
-	EXPECT_TRUE(result.return_required);
 }
 
 TEST_F(RallyPointChecksTest, RouteReturnWarningIsReportedInEveryMode)
@@ -250,21 +198,6 @@ TEST_F(RallyPointChecksTest, RouteReturnWarningIsReportedInEveryMode)
 		EXPECT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_POSCTL));
 		EXPECT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL));
 	}
-}
-
-TEST_F(RallyPointChecksTest, OtherReturnTypesIgnoreTheRoute)
-{
-	publishRtlStatus(rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT, false);
-	const Result direct = check(3);
-	EXPECT_FALSE(direct.warned);
-	EXPECT_TRUE(direct.return_can_run);
-	EXPECT_FALSE(direct.return_required);
-
-	// Type 5 only warns about the missing rally point.
-	const Result rally = check(5);
-	EXPECT_TRUE(rally.warned);
-	EXPECT_TRUE(rally.return_can_run);
-	EXPECT_FALSE(rally.return_required);
 }
 #else
 TEST_F(RallyPointChecksTest, RouteReturnWarnsWithoutRoutePlanning)
