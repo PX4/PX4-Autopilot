@@ -10,7 +10,7 @@ Contact the [manufacturer](https://docs.avianautomata.com) for hardware support 
 The _305AP_ is a compact flight controller designed by Avian Automata.
 It is built around the STM32H743 processor with two IMU slots, an onboard barometer and magnetometer, two CAN buses, and eight motor outputs.
 
-<!-- TODO: add a product photo at ../../assets/flight_controller/avianautomata_305ap/ -->
+![Avian Automata 305AP](../../assets/flight_controller/avianautomata_305ap/305ap.jpg)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -43,9 +43,15 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **Mounting:** 36.5 mm x 36.5 mm, M4 holes sized for M3 rubber vibration isolators
 
+## Block Diagram
+
+![305AP block diagram](../../assets/flight_controller/avianautomata_305ap/305ap_block_diagram.svg)
+
+The board has no power-enable GPIOs: every rail, sensor and peripheral is powered whenever the board has power, from the battery input or from USB.
+
 ## Where to Buy
 
-<!-- TODO: add the product page before this PR leaves draft. -->
+Order from the [Avian Automata store](https://www.avianautomata.com/products/305ap).
 
 ## Serial Port Mapping
 
