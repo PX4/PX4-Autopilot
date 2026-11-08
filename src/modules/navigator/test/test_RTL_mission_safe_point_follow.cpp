@@ -42,7 +42,9 @@
 #include <gtest/gtest.h>
 
 #include "navigator.h"
+#include "mission_item_utils.h"
 #include "mission_route_planner.h"
+#include "mission_route_projection.h"
 #include "rtl_mission_safe_point_follow.h"
 #include "support/mission_route_test_helpers.h"
 #include "support/navigator_dataman_test.h"
@@ -100,6 +102,7 @@ public:
 		resetJoinRouteState();
 		resetVtolTransition();
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		buildVtolStates();
 	}
 
 	void configurePlanForTest(const mission_route::RtlRoutePlan &plan, int32_t land_index = -1)
@@ -282,13 +285,9 @@ public:
 	void clearLoadFailuresForTest() { _mission_store.clearLoadFailures(); }
 	unsigned missionItemWritesForTest() const { return _mission_item_writes; }
 
-	uint8_t vtolStateAtForTest(int32_t anchor_index) { return getVtolStateAtMissionIndex(anchor_index); }
-
-	bool vtolStatesForTest(std::vector<uint8_t> &states)
-	{
-		states.resize(_mission.count);
-		return getVtolStatesForMission(states.data(), static_cast<int32_t>(states.size()));
-	}
+	// configureRoute() builds the table, loadTestMission() too.
+	uint8_t vtolStateAtForTest(int32_t anchor_index) const { return _vtol_states[anchor_index]; }
+	bool buildVtolStatesForTest() { return buildVtolStates(); }
 
 	VtolTransitionAction transitionForTargetForTest(int32_t target_index, bool direction_reversed)
 	{
@@ -2488,34 +2487,8 @@ TEST_F(RtlMissionSafePointFollowVtolStateTest, PlainWaypointMissionDoesNotInvent
 	}
 }
 
-TEST_F(RtlMissionSafePointFollowVtolStateTest, VtolLookaheadResolvesPrefixAndPreservesPrecedingMode)
-{
-	for (const uint8_t target : {vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC}) {
-		const bool next_is_front_transition = target == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-		const uint8_t prefix_mode = next_is_front_transition ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
-					    : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-		executor.loadTestMission({
-			makePositionItem(kBaseLat, kBaseLon, kAlt),
-			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-			makeVtolTransitionItem(target),
-			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-			makeVtolTransitionItem(target),
-			makePositionItem(kBaseLat + 0.003, kBaseLon, kAlt),
-		});
-		EXPECT_EQ(executor.vtolStateAtForTest(1), prefix_mode);
-		// Between repeated transitions, the previous command wins over lookahead.
-		EXPECT_EQ(executor.vtolStateAtForTest(3), target);
-		executor.setVehicleStatusForTest(true, next_is_front_transition, false);
-		const auto action = next_is_front_transition ? mission_route::VtolTransitionAction::kBackTransition
-				    : mission_route::VtolTransitionAction::kFrontTransition;
-		EXPECT_EQ(executor.transitionForTargetForTest(1, false), action);
-		EXPECT_EQ(executor.transitionForTargetForTest(0, true), action);
-		EXPECT_EQ(executor.transitionForTargetForTest(3, false), mission_route::VtolTransitionAction::kNone);
-	}
-}
-
-// The two-pass table used by the route time estimate gives the per-index scan result everywhere.
-TEST_F(RtlMissionSafePointFollowVtolStateTest, VtolStateTableMatchesPerIndexScan)
+// The table gives the route library's state of the leg ending at each position, except at a takeoff item.
+TEST_F(RtlMissionSafePointFollowVtolStateTest, VtolStateTableMatchesTheRouteLibrary)
 {
 	const auto with_command = [](mission_item_s item, uint16_t nav_cmd) {
 		item.nav_cmd = nav_cmd;
@@ -2523,6 +2496,7 @@ TEST_F(RtlMissionSafePointFollowVtolStateTest, VtolStateTableMatchesPerIndexScan
 	};
 	const mission_item_s waypoint = makePositionItem(kBaseLat, kBaseLon, kAlt);
 	const mission_item_s land = with_command(waypoint, NAV_CMD_LAND);
+	const mission_item_s vtol_land = with_command(waypoint, NAV_CMD_VTOL_LAND);
 	const mission_item_s takeoff = with_command(waypoint, NAV_CMD_TAKEOFF);
 	const mission_item_s vtol_takeoff = with_command(waypoint, NAV_CMD_VTOL_TAKEOFF);
 	const mission_item_s front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
@@ -2532,7 +2506,10 @@ TEST_F(RtlMissionSafePointFollowVtolStateTest, VtolStateTableMatchesPerIndexScan
 
 	const std::vector<std::vector<mission_item_s>> missions{
 		{waypoint, waypoint, front_transition, waypoint},
+		{waypoint, waypoint, front_transition, waypoint, front_transition, waypoint},
+		{waypoint, waypoint, back_transition, waypoint, back_transition, waypoint},
 		{waypoint, land, front_transition, waypoint},
+		{waypoint, vtol_land, front_transition},
 		{waypoint, invalid_transition, waypoint, back_transition, waypoint},
 		{waypoint, takeoff, front_transition, waypoint},
 		{vtol_takeoff, waypoint, back_transition, waypoint, land},
@@ -2541,18 +2518,36 @@ TEST_F(RtlMissionSafePointFollowVtolStateTest, VtolStateTableMatchesPerIndexScan
 
 	for (size_t m = 0; m < missions.size(); ++m) {
 		executor.loadTestMission(missions[m]);
-		std::vector<uint8_t> states;
-		ASSERT_TRUE(executor.vtolStatesForTest(states)) << "mission " << m;
+		const navigator_test::VectorMissionRouteProvider provider = navigator_test::makeRouteProvider(missions[m]);
+		int32_t previous = -1;
 
-		for (int32_t index = 0; index < static_cast<int32_t>(states.size()); ++index) {
-			EXPECT_EQ(states[index], executor.vtolStateAtForTest(index)) << "mission " << m << " index " << index;
+		for (int32_t index = 0; index < static_cast<int32_t>(missions[m].size()); ++index) {
+			const mission_item_s &item = missions[m][index];
+
+			if (!mission_item_contains_position(item)) {
+				continue;
+			}
+
+			if (previous >= 0 && !mission_route::isTakeoffCmd(item.nav_cmd)) {
+				mission_route::Segment leg{};
+				leg.start = {previous, missions[m][previous].nav_cmd};
+				leg.end = {index, item.nav_cmd};
+				EXPECT_EQ(executor.vtolStateAtForTest(index), mission_route::vtolStateForSegment(provider, leg))
+						<< "mission " << m << " index " << index;
+			}
+
+			previous = index;
 		}
 	}
 
-	// A load failure leaves the per-target scan in charge.
+	// An unreadable item leaves every leg undefined, so no transition is armed.
 	executor.setLoadFailuresForTest({1});
-	std::vector<uint8_t> states;
-	EXPECT_FALSE(executor.vtolStatesForTest(states));
+	EXPECT_FALSE(executor.buildVtolStatesForTest());
+
+	for (int32_t index = 0; index < static_cast<int32_t>(missions.back().size()); ++index) {
+		EXPECT_EQ(executor.vtolStateAtForTest(index), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
+	}
+
 	executor.clearLoadFailuresForTest();
 }
 
@@ -2577,38 +2572,6 @@ TEST_F(RtlMissionSafePointFollowVtolStateTest, VtolLookaheadIgnoresJumpRepeats)
 			// The lookahead must not consume a repeat.
 			EXPECT_EQ(executor.missionItemWritesForTest(), 0u);
 		}
-	}
-}
-
-TEST_F(RtlMissionSafePointFollowVtolStateTest, VtolLookaheadRequiresReadableMissionSection)
-{
-	executor.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-	});
-	executor.setLoadFailuresForTest({2});
-	EXPECT_EQ(executor.vtolStateAtForTest(1), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
-	executor.setLoadFailuresForTest({0});
-	EXPECT_EQ(executor.vtolStateAtForTest(1), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
-	executor.clearLoadFailuresForTest();
-	EXPECT_EQ(executor.vtolStateAtForTest(1), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-}
-
-TEST_F(RtlMissionSafePointFollowVtolStateTest, VtolLookaheadDoesNotCrossLandingAtTarget)
-{
-	for (const uint16_t command : {NAV_CMD_LAND, NAV_CMD_VTOL_LAND}) {
-		auto landing = makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt);
-		landing.nav_cmd = command;
-		executor.loadTestMission({
-			makePositionItem(kBaseLat, kBaseLon, kAlt),
-			landing,
-			makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-		});
-		EXPECT_EQ(executor.vtolStateAtForTest(1), vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED);
-		executor.setVehicleStatusForTest(true, true, false);
-		EXPECT_EQ(executor.transitionForTargetForTest(1, false), mission_route::VtolTransitionAction::kNone);
 	}
 }
 

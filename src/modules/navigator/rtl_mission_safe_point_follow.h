@@ -124,13 +124,12 @@ private:
 	bool routeReturnTransitionActive() const override;
 	bool frontTransitionInhibited() const override;
 	mission_route::VtolTransitionAction allowedRouteTransition(mission_route::VtolTransitionAction action) const;
-	/** Resolve the VTOL state at a mission position anchor, using lookahead only without a preceding mode. */
-	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);
-	/** getVtolStateAtMissionIndex() for all _mission.count indices in two passes; false if they do not fit or an item cannot be read. */
-	bool getVtolStatesForMission(uint8_t vtol_states[], int32_t capacity);
-	/** @param vtol_states optional getVtolStatesForMission() result, replaces the scan per target */
-	mission_route::VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed,
-			const uint8_t *vtol_states = nullptr);
+	/**
+	 * Fill _vtol_states with the VTOL state of the leg ending at each mission index, in two passes: the rule of
+	 * mission_route::vtolStateForSegment(), except at a takeoff item. All undefined if an item cannot be read.
+	 */
+	bool buildVtolStates();
+	mission_route::VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed);
 	mission_route::VtolTransitionAction vtolTransitionActionAfterReachingReverseTarget(int32_t reached_target_index);
 	/** @brief Publish the route target, or start its VTOL transition or the branch-off. */
 	void handleFollowRouteStage(const position_setpoint_s &current_setpoint_copy);
@@ -175,7 +174,7 @@ private:
 	loiter_point_s _goal_land_approach{};
 	float _goal_arrival_alt{NAN};
 	RtlTimeEstimator _rtl_time_estimator;
-	uint8_t _vtol_states[MissionRouteCache::kMaxFullMissionCacheSize] {}; ///< Scratch table of the time estimate.
+	uint8_t _vtol_states[MissionRouteCache::kMaxFullMissionCacheSize] {}; ///< VTOL state of the leg ending at each index.
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		RtlBase,

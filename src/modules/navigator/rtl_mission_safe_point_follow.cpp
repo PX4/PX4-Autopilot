@@ -94,6 +94,12 @@ void RtlMissionSafePointFollow::configureRoute(const mission_route::RtlRoutePlan
 {
 	_plan = plan;
 	_goal_land_approach = goal_land_approach;
+
+	// The follower ignores mission updates and DO_JUMP counters, so each leg keeps its VTOL state for the route.
+	if (_vehicle_status_sub.get().is_vtol) {
+		buildVtolStates();
+	}
+
 	// Copy the uploaded landing: handleLanding() rewrites _mission_item, and the mission
 	// may be replaced once the landing is committed.
 	_goal_mission_land_item_valid = goalIsMissionLanding()
@@ -104,7 +110,7 @@ void RtlMissionSafePointFollow::configureRoute(const mission_route::RtlRoutePlan
 	// as VTOL_LAND, which back-transitions at the landing point.
 	if (_goal_mission_land_item_valid && _goal_mission_land_item.nav_cmd == NAV_CMD_LAND
 	    && _vehicle_status_sub.get().is_vtol
-	    && getVtolStateAtMissionIndex(_mission.land_index) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
+	    && _vtol_states[_mission.land_index] == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
 		_goal_mission_land_item.nav_cmd = NAV_CMD_VTOL_LAND;
 	}
 
@@ -285,64 +291,20 @@ mission_route::VtolTransitionAction RtlMissionSafePointFollow::allowedRouteTrans
 	       ? mission_route::VtolTransitionAction::kNone : action;
 }
 
-// Same rule as mission_route::vtolStateForSegment(), except for legs that end at a takeoff item.
-uint8_t RtlMissionSafePointFollow::getVtolStateAtMissionIndex(int32_t anchor_index)
+bool RtlMissionSafePointFollow::buildVtolStates()
 {
-	uint8_t vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
-
-	if (anchor_index < 0 || anchor_index >= _mission.count) {
-		return vtol_state;
-	}
-
-	bool lookback_complete = true;
-	bool anchor_is_landing = false;
-
-	for (int32_t index = anchor_index; index >= 0; --index) {
-		mission_item_s mission_item{};
-
-		if (!loadMissionItemFromCache(index, mission_item)) {
-			PX4_ERR("Failed to read mission item %d for VTOL state", static_cast<int>(index));
-			lookback_complete = false;
-			continue;
+	// Undefined gives no transition, also where an item cannot be read.
+	const auto clear = [this]() {
+		for (uint8_t &state : _vtol_states) {
+			state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
 		}
 
-		if (index == anchor_index) {
-			anchor_is_landing = mission_route::isLandingCmd(mission_item.nav_cmd);
-		}
+		return false;
+	};
 
-		if (mission_route::updateVtolStateFromMissionItem(mission_item, vtol_state)) {
-			return vtol_state;
-		}
-	}
+	clear();
 
-	if (!lookback_complete || anchor_is_landing) {
-		return vtol_state;
-	}
-
-	// Match route planning: a future FT implies MC before it, a future BT implies FW.
-	// Ignore DO_JUMP repeats and targets, scanning as if all repeats were consumed.
-	for (int32_t index = anchor_index + 1; index < _mission.count; ++index) {
-		mission_item_s mission_item{};
-
-		if (!loadMissionItemFromCache(index, mission_item)) {
-			break;
-		}
-
-		if (mission_route::isTakeoffCmd(mission_item.nav_cmd) || mission_route::isLandingCmd(mission_item.nav_cmd)) {
-			break;
-		}
-
-		if (mission_route::updateVtolStateFromMissionItem(mission_item, vtol_state, true)) {
-			break;
-		}
-	}
-
-	return vtol_state;
-}
-
-bool RtlMissionSafePointFollow::getVtolStatesForMission(uint8_t vtol_states[], int32_t capacity)
-{
-	if (_mission.count > capacity) {
+	if (_mission.count > MissionRouteCache::kMaxFullMissionCacheSize) {
 		return false;
 	}
 
@@ -354,7 +316,7 @@ bool RtlMissionSafePointFollow::getVtolStatesForMission(uint8_t vtol_states[], i
 		mission_item_s mission_item;
 
 		if (!loadMissionItemFromCache(index, mission_item)) {
-			return false;
+			return clear();
 		}
 
 		uint8_t command_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
@@ -364,22 +326,22 @@ bool RtlMissionSafePointFollow::getVtolStatesForMission(uint8_t vtol_states[], i
 		}
 
 		// A landing anchor without a preceding mode does not look ahead.
-		vtol_states[index] = (preceding_mode == kNoPrecedingMode && mission_route::isLandingCmd(mission_item.nav_cmd))
-				     ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED : preceding_mode;
+		_vtol_states[index] = (preceding_mode == kNoPrecedingMode && mission_route::isLandingCmd(mission_item.nav_cmd))
+				      ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED : preceding_mode;
 	}
 
 	// Lookahead from the next index, filled in backwards.
 	uint8_t following_mode = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED;
 
 	for (int32_t index = _mission.count - 1; index >= 0; --index) {
-		if (vtol_states[index] == kNoPrecedingMode) {
-			vtol_states[index] = following_mode;
+		if (_vtol_states[index] == kNoPrecedingMode) {
+			_vtol_states[index] = following_mode;
 		}
 
 		mission_item_s mission_item;
 
 		if (!loadMissionItemFromCache(index, mission_item)) {
-			return false;
+			return clear();
 		}
 
 		if (mission_route::isTakeoffCmd(mission_item.nav_cmd) || mission_route::isLandingCmd(mission_item.nav_cmd)) {
@@ -398,7 +360,7 @@ bool RtlMissionSafePointFollow::getVtolStatesForMission(uint8_t vtol_states[], i
 }
 
 mission_route::VtolTransitionAction RtlMissionSafePointFollow::vtolTransitionActionForTarget(int32_t target_index,
-		bool direction_reversed, const uint8_t *vtol_states)
+		bool direction_reversed)
 {
 	const auto &vehicle_status = _vehicle_status_sub.get();
 
@@ -420,9 +382,8 @@ mission_route::VtolTransitionAction RtlMissionSafePointFollow::vtolTransitionAct
 		return mission_route::VtolTransitionAction::kNone;
 	}
 
-	const uint8_t target_segment_state = vtol_states != nullptr ? vtol_states[segment_anchor_index]
-					     : getVtolStateAtMissionIndex(segment_anchor_index);
-	return mission_route::vtolTransitionActionForState(target_segment_state, vehicleInFwLikeState(vehicle_status));
+	return mission_route::vtolTransitionActionForState(_vtol_states[segment_anchor_index],
+			vehicleInFwLikeState(vehicle_status));
 }
 
 mission_route::VtolTransitionAction RtlMissionSafePointFollow::vtolTransitionActionAfterReachingReverseTarget(
@@ -1054,11 +1015,6 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 				findAdjacentRouteIndex(_mission.current_seq, walk_index);
 			}
 
-			// Resolve the VTOL state of every mission index in one pass.
-			const bool vtol_states_valid = _vehicle_status_sub.get().is_vtol
-						       && getVtolStatesForMission(_vtol_states, MissionRouteCache::kMaxFullMissionCacheSize);
-			const uint8_t *route_vtol_states = vtol_states_valid ? _vtol_states : nullptr;
-
 			for (int steps = 0; steps < _mission.count && missionIndexInBounds(walk_index); ++steps) {
 				mission_item_s item{};
 
@@ -1073,7 +1029,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 								  && missionItemMatchesSelectedEndpoint(item);
 
 					if (walk_index != _plan.first_mission_item_index && !goal_landing) {
-						set_route_mode(vtolTransitionActionForTarget(walk_index, _plan.direction_reversed, route_vtol_states));
+						set_route_mode(vtolTransitionActionForTarget(walk_index, _plan.direction_reversed));
 					}
 
 					const bool last_route_item = resolveRouteTarget(walk_index, item);
