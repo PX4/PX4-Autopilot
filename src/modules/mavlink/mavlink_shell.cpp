@@ -70,6 +70,10 @@ MavlinkShell::~MavlinkShell()
 	if (_from_shell_fd >= 0) {
 		close(_from_shell_fd);
 	}
+
+	if (_shell_fds[1] >= 0) {
+		close(_shell_fds[1]);
+	}
 }
 
 int MavlinkShell::start()
@@ -144,7 +148,7 @@ int MavlinkShell::start()
 		_task = px4_task_spawn_cmd("mavlink_shell",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_DEFAULT,
-					   2048,
+					   4096,
 					   &MavlinkShell::shell_start_thread,
 #ifdef __PX4_POSIX
 					   argv);
@@ -170,9 +174,8 @@ int MavlinkShell::start()
 
 #endif
 
-	//close unused pipe fd's
+	//close unused pipe fd's; _shell_fds[1] is kept open, write() reuses it to echo input
 	close(_shell_fds[0]);
-	close(_shell_fds[1]);
 
 #ifdef __PX4_NUTTX
 	sched_unlock();
@@ -214,6 +217,10 @@ int MavlinkShell::shell_start_thread(int argc, char *argv[])
 
 size_t MavlinkShell::write(uint8_t *buffer, size_t len)
 {
+	if (::write(_shell_fds[1], buffer, len) < 0) {
+		PX4_WARN("echo failed");
+	}
+
 	return ::write(_to_shell_fd, buffer, len);
 }
 

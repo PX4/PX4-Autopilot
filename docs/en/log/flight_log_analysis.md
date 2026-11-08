@@ -26,6 +26,44 @@ You should check for the presence of this file if a flight log ends abruptly.
 
 ## Analysis Tools
 
+### Data Comets
+
+[Data Comets](https://github.com/dsaffo/DataComets) is a interactive PX4 flight log analysis tool that allows you to encode flight data onto the flight path, filter and brush the data by time - and much more!
+
+You can use the online version of the tool for small log files (< 32Mb), or run it locally in order to analyze longer flights.
+
+![Data Comets](../../assets/flight_log_analysis/data_comets/data_comets_overview.gif)
+
+### DroneBundle Flight Log Viewer
+
+[DroneBundle Flight Log Viewer](https://dronebundle.com/tools/flight-log-viewer/px4) is a free web tool for reviewing a flight and sharing it, rather than for tuning.
+It opens ULog files (`.ulg`) and MAVLink telemetry logs (`.tlog`) in the browser, with no account or installation required.
+Logs are processed locally, except that a file the viewer can't open is sent to DroneBundle for analysis and deleted after one day.
+
+Key features:
+
+- Flight path on a map, with a summary of duration, distance, maximum altitude and speed, and battery used.
+- Replay with live altitude, speed, heading, battery and satellite readouts, and a timeline of flight modes.
+- 3D view of the flight over terrain.
+- Altitude, speed, battery and attitude charts on a shared timeline.
+- Export a PDF flight report, a spreadsheet of every reading, or the processed log.
+- Telemetry logs that hold several flights are split into separate flights.
+
+![DroneBundle Flight Log Viewer](../../assets/flight_log_analysis/dronebundle/dronebundle_flight_log_viewer.jpg)
+
+### FlightPlot
+
+[FlightPlot](https://github.com/PX4/FlightPlot) is a desktop based tool for log analysis. It can be downloaded from [FlightPlot Downloads](https://github.com/PX4/FlightPlot/releases) (Linux, MacOS, Windows).
+
+Key features:
+
+- Java based, cross-platform.
+- Intuitive GUI, no programming knowledge required.
+- Supports both new and old PX4 log formats (.ulg, .px4log, .bin)
+- Allows saving plots as images.
+
+![FlightPlot Charts](../../assets/flight_log_analysis/flightplot_0.2.16.png)
+
 ### Flight Review (Online Tool)
 
 [Flight Review](https://logs.px4.io/) is the successor of _Log Muncher_.
@@ -58,6 +96,24 @@ See [Foxglove PX4 Docs](https://docs.foxglove.dev/docs/getting-started/framework
 
 ![Foxglove](../../assets/flight_log_analysis/foxglove/foxglove_px4.png)
 
+### MAVGCL
+
+[MAVGCL](https://github.com/ecmnet/MAVGCL) is an in-flight log analyzer for PX4.
+It can also be used in offline mode with downloaded uLog files.
+
+Key features:
+
+- Realtime data acquisition (50ms sampling, 100ms rolling display) based on MAVLink messages or ULOG data over MAVLink
+- Timechart annotated by messages (MAVLink and ULog) and parameter changes (MAVLink only)
+- XY Analysis for selected key-figures
+- 3D View (vehicle and observer perspective)
+- MAVLink inspector (reporting raw MAVLink messages)
+- Offline-mode: Import of key-figures from PX4Log/ULog (file or last log from device via WiFi)
+- Java based. Known to work on macOS and Ubuntu.
+- And many more ...
+
+![MAVGCL](../../assets/flight_log_analysis/mavgcl/time_series.png)
+
 ### PlotJuggler
 
 [PlotJuggler](https://github.com/PlotJuggler/PlotJuggler) is a desktop application that allows users to easily visualize and analyze data expressed in the form of time series.
@@ -78,6 +134,35 @@ Source code and downloads are available on [Github](https://github.com/PlotJuggl
 ![PlotJuggler](../../assets/flight_log_analysis/plot_juggler/plotjuggler_example_view.png)
 
 See [Log Analysis using Plot Juggler](../log/plotjuggler_log_analysis.md) for an introduction.
+
+### PX4 ULog Viewer (VS Code Extension)
+
+[PX4 ULog Viewer](https://github.com/anilkir/vscode-ulog-viewer) opens ULog files (`.ulg`, `.ulog`) directly in _VS Code_, _Cursor_, and other _VS Code_-compatible editors.
+Logs are parsed locally and never leave your machine.
+
+Key features:
+
+- Plot any numeric field of any logged uORB topic in time-synchronised panels.
+- Replay the flight on a 2D map with a HUD of key flight data.
+- Browse parameters (including in-flight changes), log metadata, messages, and raw ULog file structure.
+
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=anilkir.vscode-ulog-viewer) or the [Open VSX Registry](https://open-vsx.org/extension/anilkir/vscode-ulog-viewer).
+
+![PX4 ULog Viewer](../../assets/flight_log_analysis/vscode_ulog_viewer/vscode_ulog_viewer.webp)
+
+### PX4Tools
+
+[PX4Tools](https://github.com/dronecrew/px4tools) is a log analysis toolbox for the PX4 autopilot written in Python.
+The recommended installation procedure is to use [anaconda3](https://docs.conda.io/docs/index.html). See [px4tools github page](https://github.com/dronecrew/px4tools) for details.
+
+Key features:
+
+- Easy to share, users can view notebooks on Github (e.g. [15-09-30 Kabir Log.ipynb](https://github.com/jgoppert/lpe-analysis/blob/master/15-09-30%20Kabir%20Log.ipynb))
+- Python based, cross platform, works with anaconda 2 and anaconda3
+- iPython/ jupyter notebooks can be used to share analysis easily
+- Advanced plotting capabilities to allow detailed analysis
+
+![PX4Tools-based analysis](../../assets/flight_log_analysis/px4tools.png)
 
 ### pyulog
 
@@ -140,55 +225,19 @@ Name (multi id, message size in bytes)    number of data points, total bytes
  vehicle_status (0, 45)                       294      13230
 ```
 
-### FlightPlot
+### Roboto
 
-[FlightPlot](https://github.com/PX4/FlightPlot) is a desktop based tool for log analysis. It can be downloaded from [FlightPlot Downloads](https://github.com/PX4/FlightPlot/releases) (Linux, MacOS, Windows).
-
-Key features:
-
-- Java based, cross-platform.
-- Intuitive GUI, no programming knowledge required.
-- Supports both new and old PX4 log formats (.ulg, .px4log, .bin)
-- Allows saving plots as images.
-
-![FlightPlot Charts](../../assets/flight_log_analysis/flightplot_0.2.16.png)
-
-### PX4Tools
-
-[PX4Tools](https://github.com/dronecrew/px4tools) is a log analysis toolbox for the PX4 autopilot written in Python.
-The recommended installation procedure is to use [anaconda3](https://docs.conda.io/docs/index.html). See [px4tools github page](https://github.com/dronecrew/px4tools) for details.
+[Roboto](https://www.roboto.ai/) is a robotics data analytics platform that helps teams automate flight log analysis, detect issues, and debug failures.
 
 Key features:
 
-- Easy to share, users can view notebooks on Github (e.g. [15-09-30 Kabir Log.ipynb](https://github.com/jgoppert/lpe-analysis/blob/master/15-09-30%20Kabir%20Log.ipynb))
-- Python based, cross platform, works with anaconda 2 and anaconda3
-- iPython/ jupyter notebooks can be used to share analysis easily
-- Advanced plotting capabilities to allow detailed analysis
+- Native support for ULog, ROS bag, Journalctl, and other common robotics log formats.
+- AI Chat and Agents for accelerated debug, triage, summarization, and flight analysis using natural language.
+- Automatic detection of common PX4 flight issues such as high vibration, GPS degradation, estimator failures, and log errors.
+- SDK and query APIs to search and aggregate data across flights and fleets.
+- Actions and Triggers to automate custom post-flight analysis and generate reports.
+- Interactive visualization for time-series data, maps, events, and console logs.
 
-![PX4Tools-based analysis](../../assets/flight_log_analysis/px4tools.png)
+See [Working with PX4 Logs](https://www.roboto.ai/docs/user-guides/working-with-px4-logs) for an introduction.
 
-### MAVGCL
-
-[MAVGCL](https://github.com/ecmnet/MAVGCL) is an in-flight log analyzer for PX4.
-It can also be used in offline mode with downloaded uLog files.
-
-Key features:
-
-- Realtime data acquisition (50ms sampling, 100ms rolling display) based on MAVLink messages or ULOG data over MAVLink
-- Timechart annotated by messages (MAVLink and ULog) and parameter changes (MAVLink only)
-- XY Analysis for selected key-figures
-- 3D View (vehicle and observer perspective)
-- MAVLink inspector (reporting raw MAVLink messages)
-- Offline-mode: Import of key-figures from PX4Log/ULog (file or last log from device via WiFi)
-- Java based. Known to work on macOS and Ubuntu.
-- And many more ...
-
-![MAVGCL](../../assets/flight_log_analysis/mavgcl/time_series.png)
-
-### Data Comets
-
-[Data Comets](https://github.com/dsaffo/DataComets) is a interactive PX4 flight log analysis tool that allows you to encode flight data onto the flight path, filter and brush the data by time - and much more!
-
-You can use the online version of the tool for small log files (< 32Mb), or run it locally in order to analyze longer flights.
-
-![Data Comets](../../assets/flight_log_analysis/data_comets/data_comets_overview.gif)
+![Roboto](../../assets/flight_log_analysis/roboto/roboto-px4-flight-log-analysis.jpg)

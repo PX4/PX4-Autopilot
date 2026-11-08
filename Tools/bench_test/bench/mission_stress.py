@@ -30,7 +30,7 @@ import px4bench
 from px4bench import missions
 
 DEFAULT_ITERATIONS = 10
-DEFAULT_ITEMS = 220        # <= smallest CONFIG_NUM_MISSION_ITMES_SUPPORTED (500)
+DEFAULT_ITEMS = 220        # <= smallest CONFIG_NUM_MISSION_ITEMS_SUPPORTED (500)
 DEFAULT_BAUD2 = 57600
 
 

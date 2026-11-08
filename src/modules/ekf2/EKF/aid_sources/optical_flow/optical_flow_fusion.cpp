@@ -85,7 +85,7 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 			return false;
 		}
 
-		VectorState Kfusion = P * H / _aid_src_optical_flow.innovation_variance[index];
+		VectorState Kfusion = computeKalmanGain(H, _aid_src_optical_flow.innovation_variance[index]);
 
 		if (!update_terrain) {
 			Kfusion(State::terrain.idx) = 0.f;

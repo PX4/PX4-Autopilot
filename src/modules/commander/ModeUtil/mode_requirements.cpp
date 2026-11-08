@@ -59,9 +59,13 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	flags.mode_req_prevent_arming = 0;
 	flags.mode_req_manual_control = 0;
 	flags.mode_req_other = 0;
+	flags.mode_not_supported = 0;
 
 	// NAVIGATION_STATE_MANUAL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_MANUAL, flags.mode_req_manual_control);
+
+	// NAVIGATION_STATE_MANUAL_PARKING
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING, flags.mode_req_manual_control);
 
 	// NAVIGATION_STATE_ALTCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_angular_velocity);
@@ -69,12 +73,20 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_local_alt);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_manual_control);
 
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_not_supported);
+	}
+
 	// NAVIGATION_STATE_ALTITUDE_CRUISE
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_req_attitude);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_req_local_alt);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE,
 		       flags.mode_req_manual_control); // COM_RCL_EXCEPT can override this
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_not_supported);
+	}
 
 	// NAVIGATION_STATE_POSCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_angular_velocity);
@@ -156,6 +168,10 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_req_attitude);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_req_prevent_arming);
 
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_not_supported);
+	}
+
 	// NAVIGATION_STATE_TERMINATION
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_TERMINATION, flags.mode_req_prevent_arming);
 
@@ -194,6 +210,11 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET, flags.mode_req_prevent_arming);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET, flags.mode_req_wind_and_flight_time_compliance);
 
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		// Follow Target is only implemented as a multicopter flight task
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET, flags.mode_not_supported);
+	}
+
 	// NAVIGATION_STATE_AUTO_PRECLAND
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND, flags.mode_req_attitude);
@@ -209,6 +230,12 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ORBIT, flags.mode_req_prevent_arming);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ORBIT, flags.mode_req_wind_and_flight_time_compliance);
 
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		// Orbit is only implemented as a multicopter flight task. Commander maps DO_ORBIT to Loiter for
+		// fixed-wing, but a VTOL can still transition to fixed-wing while Orbit is active.
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_ORBIT, flags.mode_not_supported);
+	}
+
 	// NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_attitude);
@@ -219,6 +246,10 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 
 	} else {
 		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_position);
+	}
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_not_supported);
 	}
 
 	// NAVIGATION_STATE_EXTERNALx: handled outside

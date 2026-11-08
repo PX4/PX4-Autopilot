@@ -131,7 +131,7 @@ private:
 	/**
 	 * @brief Send DO_GRIPPER vehicle command with specified gripper action
 	 *
-	 * @param gripper_command GRIPPER_ACTION_GRAB or GRIPPER_ACTION_RELEASE
+	 * @param gripper_action GRIPPER_ACTION_GRAB or GRIPPER_ACTION_RELEASE
 	 */
 	bool send_gripper_vehicle_command(const int32_t gripper_action);
 
@@ -140,7 +140,7 @@ private:
 	 *
 	 * For the case of VEHICLE_CMD_RESULT_IN_PROGRESS, progress percentage parameter will be filled out
 	 */
-	bool send_gripper_vehicle_command_ack(const hrt_abstime now, const uint8_t command_result, const uint8_t target_system,
+	bool send_gripper_vehicle_command_ack(const hrt_abstime now, const uint8_t command_result, const uint32_t target_system,
 					      const uint8_t target_component);
 
 	Gripper _gripper;
@@ -148,7 +148,7 @@ private:
 	// Cached values of the currently running vehicle command for the gripper action
 	// used for conflicting vehicle commands & successful vehicle command acknowledgements
 	int8_t _cur_vcmd_gripper_action{GRIPPER_ACTION_NONE};
-	uint8_t _cur_vcmd_target_system{0};
+	uint32_t _cur_vcmd_target_system{0};
 	uint8_t _cur_vcmd_target_component{0};
 
 	// Subscription

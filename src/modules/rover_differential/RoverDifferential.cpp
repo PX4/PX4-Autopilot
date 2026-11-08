@@ -46,7 +46,11 @@ RoverDifferential::RoverDifferential() :
 
 bool RoverDifferential::init()
 {
-	ScheduleOnInterval(10_ms); // 100 Hz
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
 	return true;
 }
 
@@ -57,6 +61,16 @@ void RoverDifferential::updateParams()
 
 void RoverDifferential::Run()
 {
+	if (should_exit()) {
+		_vehicle_angular_velocity_sub.unregisterCallback();
+		exit_and_cleanup(desc);
+		return;
+	}
+
+	// Drain the trigger. The gyro paces the loop; its value is not used here.
+	vehicle_angular_velocity_s angular_velocity;
+	_vehicle_angular_velocity_sub.update(&angular_velocity);
+
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s param_update{};
 		_parameter_update_sub.copy(&param_update);
@@ -93,8 +107,13 @@ void RoverDifferential::Run()
 		reset();
 		_differential_act_control.stopVehicle();
 		_was_armed = false;
+
+	} else {
+		_differential_act_control.stopVehicle();
 	}
 
+	// reschedule backup
+	ScheduleDelayed(100_ms);
 }
 
 void RoverDifferential::generateSetpoints()
@@ -102,11 +121,34 @@ void RoverDifferential::generateSetpoints()
 	vehicle_status_s vehicle_status{};
 	_vehicle_status_sub.copy(&vehicle_status);
 
+	// Each entry into Guided Course takes the speed the rover is driving at
+	if (vehicle_status.nav_state != _nav_state) {
+		_nav_state = vehicle_status.nav_state;
+		_auto_mode.reset();
+	}
+
+	// Navigator stores and acks the speed, Guided Course applies it right away
+	vehicle_command_s vehicle_command{};
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		// Zero stops driving. Negative is -1 "no change" or -2 "default" in MAVLink,
+		// and the speed the mode was entered with is the default there, so both keep the speed.
+		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED
+		    && _nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE && vehicle_command.param2 > -FLT_EPSILON) {
+			_auto_mode.setCourseSpeed(vehicle_command.param2);
+		}
+	}
+
 	switch (vehicle_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 		_auto_mode.autoControl();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
+		_auto_mode.guidedCourse();
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
@@ -115,6 +157,10 @@ void RoverDifferential::generateSetpoints()
 
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		_manual_mode.manual();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+		_manual_mode.manualParking();
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
@@ -190,6 +236,7 @@ void RoverDifferential::reset()
 	_differential_att_control.reset();
 	_differential_rate_control.reset();
 	_manual_mode.reset();
+	_auto_mode.reset();
 }
 
 int RoverDifferential::task_spawn(int argc, char *argv[])

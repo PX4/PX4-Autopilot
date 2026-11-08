@@ -1,0 +1,18 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+choice IMX95_CODE_LOCATION
+	prompt "Code location"
+
+config IMX95_RUN_FROM_ITCM
+	bool "Run from Instruction Tightly Coupled Memory (ITCM)"
+
+config IMX95_RUN_FROM_DDR
+	bool "Run from SDRAM (DDR)"
+
+config IMX95_RUN_FROM_FLASH
+	bool "Run from NOR flash"
+
+endchoice

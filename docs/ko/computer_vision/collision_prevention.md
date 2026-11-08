@@ -323,7 +323,7 @@ the quaternion `q` is only used if the `orientation` is set to `ROTATION_CUSTOM`
 
 #### 보조 컴퓨터
 
-Companion computers update the `obstacle_distance` topic using ROS2 or the [OBSTACLE_DISTANCE](https://mavlink.io/en/messages/common.html#OBSTACLE_DISTANCE) MAVLink message.
+Companion computers update the `obstacle_distance` topic using ROS 2 or the [OBSTACLE_DISTANCE](https://mavlink.io/en/messages/common.html#OBSTACLE_DISTANCE) MAVLink message.
 
 <!-- to edit the image, open it in inkscape -->
 

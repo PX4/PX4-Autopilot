@@ -11,7 +11,10 @@ if [ -f /usr/bin/px4-alias.sh ]; then
     done
 fi
 
-# Detect platform and generate DSP test signature if needed
+# Detect the platform for platform-specific SLPI setup
+PLATFORM=$(/usr/bin/voxl-platform 2>/dev/null || true)
+
+# Generate DSP test signature if needed
 if ! /bin/ls /usr/lib/rfsa/adsp/testsig-*.so &> /dev/null; then
     echo "[INFO] Generating DSP test signature..."
     if [ -f /share/modalai/qcs6490-slpi-test-sig/generate-test-sig.sh ]; then
@@ -26,7 +29,14 @@ fi
 # Create required data directories
 mkdir -p /data/px4/param
 mkdir -p /data/px4/etc/extras
+mkdir -p /data/px4/slpi
 chown -R root:root /data/px4
+
+if [ "$PLATFORM" = "M0197" ]; then
+    chown fastrpc:fastrpc /data/px4/slpi
+else
+    chown system:system /data/px4/slpi
+fi
 
 # Reload systemd if available
 if command -v systemctl > /dev/null 2>&1; then

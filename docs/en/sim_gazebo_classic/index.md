@@ -62,10 +62,6 @@ make px4_sitl gazebo-classic
 
 The supported vehicles and `make` commands are listed below (click links to see vehicle images).
 
-::: info
-For the full list of build targets run `make px4_sitl list_vmd_make_targets` (and filter on those that start with `gazebo-classic_`).
-:::
-
 | Vehicle                                                                                                                            | Command                                                   |
 | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | [Quadrotor](../sim_gazebo_classic/vehicles.md#quadrotor-default)                                                                   | `make px4_sitl gazebo-classic`                            |

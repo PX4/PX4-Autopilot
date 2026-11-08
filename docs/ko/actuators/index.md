@@ -8,6 +8,12 @@ This section contains topics about the core actuators used for flight control (E
 
 - [ESC Calibration](../advanced_config/esc_calibration.md) — Calibration for PWM ESC (not required for DShot/CAN ESC/servos).
 
+- [Internal Combustion Engines](../actuators/internal_combustion_engine.md) — Petrol/nitro engines, including start/stop sequencing and idle RPM control.
+
+- [Motor Failure Detection](../config/motor_failure_detection.md) — Detect a motor that stops producing thrust, from the current its ESC reports.
+
+- [Motor Failure Recovery](../config/motor_failure_recovery.md) — How allocation is reconfigured if a motor fails.
+
 ## See Also
 
 - [Peripherals](../peripherals/index.md) - includes non-core actuators such as grippers, parachutes, etc.

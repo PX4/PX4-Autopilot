@@ -46,8 +46,8 @@ int ADIS1650x::selected_filt_size = 0;
 ADIS1650x::ADIS1650x(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
 	_reset_perf(perf_alloc(PC_COUNT, MODULE_NAME": reset")),

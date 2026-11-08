@@ -34,8 +34,6 @@
 px4_add_module(
 	MODULE modules__simulation__simulator_sih
 	MAIN simulator_sih
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		aero.hpp
 		sih.cpp
@@ -47,6 +45,7 @@ px4_add_module(
 		drivers_accelerometer
 		drivers_gyroscope
 		drivers_rangefinder
+		failure_injection
 		geo
 	)
 

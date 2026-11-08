@@ -304,7 +304,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		uORB::SubscriptionData<sensor_accel_s> accel_sub{ORB_ID(sensor_accel), cur_accel};
 
 		if (accel_sub.advertised() && (accel_sub.get().device_id != 0) && (accel_sub.get().timestamp > 0)) {
-			worker_data.calibration[cur_accel].set_device_id(accel_sub.get().device_id);
+			worker_data.calibration[cur_accel].set_device_id(accel_sub.get().device_id, accel_sub.get().is_external);
 
 			// clear existing calibration
 			worker_data.calibration[cur_accel].Reset();

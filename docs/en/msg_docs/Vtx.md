@@ -34,8 +34,7 @@ pageClass: is-wide-page
 | <a id="#PROTOCOL_SMART_AUDIO_V2_1"></a> PROTOCOL_SMART_AUDIO_V2_1 | `uint8` | 21    |
 | <a id="#PROTOCOL_TRAMP"></a> PROTOCOL_TRAMP                       | `uint8` | 100   |
 | <a id="#DEVICE_UNKNOWN"></a> DEVICE_UNKNOWN                       | `uint8` | 0     |
-| <a id="#DEVICE_PEAK_THOR_T67"></a> DEVICE_PEAK_THOR_T67           | `uint8` | 20    |
-| <a id="#DEVICE_RUSH_MAX_SOLO"></a> DEVICE_RUSH_MAX_SOLO           | `uint8` | 40    |
+| <a id="#DEVICE_PEAK_THOR"></a> DEVICE_PEAK_THOR                   | `uint8` | 20    |
 | <a id="#MODE_NORMAL"></a> MODE_NORMAL                             | `uint8` | 0     |
 | <a id="#MODE_PIT"></a> MODE_PIT                                   | `uint8` | 1     |
 
@@ -59,8 +58,7 @@ uint8 PROTOCOL_TRAMP = 100
 uint8 protocol
 
 uint8 DEVICE_UNKNOWN = 0
-uint8 DEVICE_PEAK_THOR_T67 = 20
-uint8 DEVICE_RUSH_MAX_SOLO = 40
+uint8 DEVICE_PEAK_THOR = 20
 uint8 device
 
 uint8 MODE_NORMAL = 0

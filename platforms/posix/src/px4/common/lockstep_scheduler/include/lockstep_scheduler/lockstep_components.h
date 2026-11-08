@@ -69,6 +69,8 @@ public:
 	void wait_for_components();
 
 private:
+	void release_waiter();
+
 	const bool _no_cleanup_on_destroy;
 
 	px4_sem_t _components_sem;

@@ -57,7 +57,14 @@ def us2s(time_ms):
 def run(logfile, use_gnss, scale_init):
     log = ULog(logfile)
 
-    if use_gnss:
+    if use_gnss and any(elem.name == 'vehicle_gnss' for elem in log.data_list):
+        v_local = np.array([getData(log, 'vehicle_gnss', 'receiver.vel_north'),
+                  getData(log, 'vehicle_gnss', 'receiver.vel_east'),
+                  getData(log, 'vehicle_gnss', 'receiver.vel_down')])
+        t_v_local = us2s(getData(log, 'vehicle_gnss', 'timestamp'))
+
+    elif use_gnss:
+        # logs recorded before the rename to vehicle_gnss
         v_local = np.array([getData(log, 'vehicle_gps_position', 'vel_n_m_s'),
                   getData(log, 'vehicle_gps_position', 'vel_e_m_s'),
                   getData(log, 'vehicle_gps_position', 'vel_d_m_s')])

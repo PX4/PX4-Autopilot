@@ -1,0 +1,31 @@
+# Gazebo Harmonic for macOS, installed by macos.sh --sim-tools.
+#
+# conda-forge keeps every build it has published, so pixi.lock installs the
+# same gz, protobuf and abseil binaries until someone updates it on purpose.
+# Homebrew rebuilds and drops gz bottles whenever homebrew-core bumps one of
+# their dependencies. Everything the gz modules link against comes from this
+# one environment so only one protobuf is ever loaded.
+#
+# Update the lock with: pixi update --manifest-path Tools/setup/macos/pixi.toml
+
+[workspace]
+name = "px4-macos-gz"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64"]
+
+[dependencies]
+gz-harmonic = "*"
+# gz-transport13's CMake config needs the cppzmq target, but the
+# conda-forge package does not pull it in.
+cppzmq = "*"
+# PX4-OpticalFlow does not build against OpenCV 5, and only needs the C++
+# library: the headless build leaves out Qt 6 and the Python bindings.
+libopencv = { version = "4.*", build = "headless*" }
+# The gz camera plugin's pipeline uses elements from every set: appsrc and
+# videoconvert (base), rtph264pay, udpsink and flvmux (good), rtmpsink
+# (bad) and x264enc (ugly).
+gstreamer = "*"
+gst-plugins-base = "*"
+gst-plugins-good = "*"
+gst-plugins-bad = "*"
+gst-plugins-ugly = "*"

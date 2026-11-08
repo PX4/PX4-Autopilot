@@ -145,7 +145,7 @@ public:
 	static bool serial_instance_exists(const char *device_name, Mavlink *self);
 
 	static void forward_message(const mavlink_message_t *msg, Mavlink *self);
-	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
+	static bool component_was_seen(uint32_t system_id, int component_id, Mavlink &self);
 
 	bool check_events() const { return _should_check_events.load(); }
 	void check_events_enable() { _should_check_events.store(true); }
@@ -154,9 +154,12 @@ public:
 	bool sending_parameters() const { return _sending_parameters.load(); }
 	void set_sending_parameters(bool sending) { _sending_parameters.store(sending); }
 
+	bool sending_all_parameters() const { return _sending_all_parameters.load(); }
+	void set_sending_all_parameters(bool sending) { _sending_all_parameters.store(sending); }
+
 	int get_uart_fd() const { return _uart_fd; }
 
-	int get_system_id() const { return mavlink_system.sysid; }
+	uint32_t get_system_id() const { return mavlink_system.sysid; }
 	int get_component_id() const { return mavlink_system.compid; }
 
 	const char *_device_name{DEFAULT_DEVICE_NAME};
@@ -235,7 +238,7 @@ public:
 			return "Low Bandwidth";
 
 		case MAVLINK_MODE_UAVIONIX:
-			return "uAvionix";
+			return "ADS-B/Traffic (uAvionix)";
 
 		case MAVLINK_MODE_DISTANCE_SENSOR:
 			return "DistanceSensor";
@@ -318,12 +321,12 @@ public:
 	 */
 	void             	send_finish();
 
-	/**
-	 * Resend message as is, don't change sequence number and CRC.
-	 */
-	void			resend_message(mavlink_message_t *msg) { _mavlink_resend_uart(_channel, msg); }
-
 	void			handle_message(const mavlink_message_t *msg);
+
+	/**
+	 * Forward a received message to the other instances if forwarding is enabled.
+	 */
+	void			forward_if_enabled(const mavlink_message_t *msg);
 
 	int			get_instance_id() const { return _instance_id; }
 
@@ -442,9 +445,35 @@ public:
 
 	struct sockaddr_in 	&get_client_source_address() { return _src_addr; }
 
-	void			set_client_source_initialized() { _src_addr_initialized = true; }
+	/**
+	 * Latch onto a client address that we discovered from an incoming packet.
+	 * Also counts as having just heard from it, see client_source_can_be_replaced().
+	 */
+	void			set_client_source_initialized()
+	{
+		_src_addr_initialized = true;
+		_src_addr_discovered = true;
+		mark_client_source_seen();
+	}
 
 	bool			get_client_source_initialized() { return _src_addr_initialized; }
+
+	void			mark_client_source_seen() { _time_last_client_source_packet = hrt_absolute_time(); }
+
+	/**
+	 * Whether another source is allowed to take over as our client.
+	 *
+	 * This is the case if we discovered the current client ourselves (rather than
+	 * having it configured using -t or -c), and it has stopped talking to us. That
+	 * way a client which reconnects from a different source port - which happens
+	 * whenever it is restarted - can take over, instead of us sending into the void
+	 * until the next reboot.
+	 */
+	bool			client_source_can_be_replaced() const
+	{
+		return _src_addr_discovered
+		       && hrt_elapsed_time(&_time_last_client_source_packet) > CLIENT_SOURCE_TIMEOUT;
+	}
 #endif
 
 	uint64_t		get_start_time() { return _mavlink_start_time; }
@@ -467,7 +496,7 @@ public:
 
 	/** get ulog streaming if active, nullptr otherwise */
 	MavlinkULog		*get_ulog_streaming() { return _mavlink_ulog; }
-	void			try_start_ulog_streaming(uint8_t target_system, uint8_t target_component)
+	void			try_start_ulog_streaming(uint32_t target_system, uint8_t target_component)
 	{
 		if (_mavlink_ulog) { return; }
 
@@ -506,11 +535,73 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
-	bool radio_status_critical() const { return _radio_status_critical; }
+	bool radio_status_critical() const;
 
-	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
+	/// True while a radio is reporting RADIO_STATUS on this link.
+	bool radio_status_available() const;
+
+	/**
+	 * The multiplier derived purely from the radio's reported txbuf.
+	 *
+	 * Unlike get_rate_mult() this does not include the budget split between
+	 * streams, so it can be applied to a bulk transfer that has already been
+	 * given its own share without counting the reduction twice.
+	 */
+	float radio_status_mult() const;
+
+	bool ftp_burst_active() const { return _ftp_burst_active.load(); }
+	void set_ftp_burst_active(bool active) { _ftp_burst_active.store(active); }
+
+	bool log_download_active() const { return _log_download_active.load(); }
+	void set_log_download_active(bool active) { _log_download_active.store(active); }
+
+	/**
+	 * Share of the link budget that bulk transfers may use between them.
+	 * A parameter dump, an FTP burst and a log download each get a part of
+	 * this, never one each, or together they leave the streams nothing.
+	 */
+	static constexpr float kBulkBandwidthShare = 0.5f;
+
+	/**
+	 * Number of bulk transfers currently paced against the bulk share. An
+	 * FTP burst and a log download only count behind a radio, which is the
+	 * only case where they are paced at all.
+	 */
+	unsigned active_bulk_transfers() const
+	{
+		unsigned active = 0;
+
+		if (sending_all_parameters()) {
+			++active;
+		}
+
+		if (radio_status_available()) {
+			if (ftp_burst_active()) {
+				++active;
+			}
+
+			if (log_download_active()) {
+				++active;
+			}
+		}
+
+		return active;
+	}
+
+	/**
+	 * Share of the link budget for one bulk transfer, which is the whole
+	 * bulk share split between the transfers that are running.
+	 */
+	float bulk_bandwidth_share() const
+	{
+		const unsigned active = active_bulk_transfers();
+		return (active > 1) ? (kBulkBandwidthShare / (float)active) : kBulkBandwidthShare;
+	}
+
+	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id, _mode == MAVLINK_MODE_UAVIONIX); }
+	bool is_signing_active() const { return _sign_control.is_signing_active(); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
-	void check_signing_key_dirty() { if (_signing_key_dirty.load()) { _signing_key_dirty.store(false); _sign_control.reload_key(); } }
+	void check_signing_key_dirty();
 
 
 private:
@@ -555,12 +646,13 @@ private:
 
 	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
 	px4::atomic_bool	_sending_parameters{false};     /**< True if parameters are currently sent out */
+	px4::atomic_bool	_sending_all_parameters{false}; /**< True while a full parameter dump is in progress */
 
 	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 
 	List<MavlinkStream *>		_streams;
 
-	MavlinkShell		*_mavlink_shell{nullptr};
+	px4::atomic<MavlinkShell *>	_mavlink_shell{nullptr}; ///< written under _mavlink_shell_mutex, by the receiver thread and, once it has stopped, by the task; atomic for the unlocked fast check in handleMavlinkShellOutput()
 	pthread_mutex_t		_mavlink_shell_mutex{};
 	MavlinkULog		*_mavlink_ulog{nullptr};
 	static events::EventBuffer	*_event_buffer;
@@ -579,6 +671,13 @@ private:
 	int			_baudrate{57600};
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
+	px4::atomic_bool	_ftp_burst_active{false};       /**< True while an FTP burst is streaming */
+	px4::atomic_bool	_log_download_active{false};    /**< True while LOG_DATA is streaming */
+
+	float			_streams_const_rate{0.f};	///< theoretical bandwidth of the constant-rate streams, B/s
+	float			_streams_rate{0.f};		///< theoretical bandwidth of the other streams, B/s
+	hrt_abstime		_streams_rate_update{0};	///< when the stream bandwidths were last computed
+	bool			_streams_changed{true};		///< stream set or interval changed since then
 	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};
@@ -597,6 +696,7 @@ private:
 	bool			_udp_initialised{false};
 
 	FLOW_CONTROL_MODE	_flow_control_mode{Mavlink::FLOW_CONTROL_OFF};
+	bool			_raw_mode{false};
 
 	uint64_t		_last_write_success_time{0};
 	uint64_t		_last_write_try_time{0};
@@ -627,7 +727,11 @@ private:
 	sockaddr_in		_src_addr {};
 	sockaddr_in		_bcast_addr {};
 
+	static constexpr hrt_abstime CLIENT_SOURCE_TIMEOUT{3_s};
+	hrt_abstime		_time_last_client_source_packet{0};
+
 	bool			_src_addr_initialized{false};
+	bool			_src_addr_discovered{false};
 	bool			_broadcast_address_found{false};
 	bool			_broadcast_address_not_found_warned{false};
 	bool			_broadcast_failed_warned{false};
@@ -656,7 +760,7 @@ private:
 	pthread_mutex_t		_message_buffer_mutex{};
 	VariableLengthRingbuffer _message_buffer{};
 
-	pthread_mutex_t         _radio_status_mutex {};
+	mutable pthread_mutex_t _radio_status_mutex {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,

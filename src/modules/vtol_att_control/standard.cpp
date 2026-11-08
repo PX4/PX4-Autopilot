@@ -136,6 +136,7 @@ void Standard::update_vtol_state()
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
+				_front_transition_pitch = Eulerf(Quatf(_v_att_sp->q_d)).theta();
 			}
 		}
 	}
@@ -204,15 +205,17 @@ void Standard::update_transition_state()
 			roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 		}
 
+		const float transition_throttle = getFrontTransitionThrottle();
+
 		if (_param_vt_psher_slew.get() <= FLT_EPSILON) {
 			// just set the final target throttle value
-			_pusher_throttle = _param_vt_f_trans_thr.get();
+			_pusher_throttle = transition_throttle;
 
-		} else if (_pusher_throttle <= _param_vt_f_trans_thr.get()) {
+		} else if (_pusher_throttle <= transition_throttle) {
 			// ramp up throttle to the target throttle value
 			const float dt = math::min((now - _last_time_pusher_transition_update) / 1e6f, 0.05f);
 			_pusher_throttle = math::min(_pusher_throttle +
-						     _param_vt_psher_slew.get() * dt, _param_vt_f_trans_thr.get());
+						     _param_vt_psher_slew.get() * dt, transition_throttle);
 
 			_last_time_pusher_transition_update = now;
 		}
@@ -368,12 +371,25 @@ void Standard::fill_actuator_outputs()
 void
 Standard::waiting_on_tecs()
 {
-	// keep thrust from transition
-	_v_att_sp->thrust_body[0] = _pusher_throttle;
+	// keep thrust and pitch from transition
+	blendThrottleAfterFrontTransition(0.0f);
+	blendPitchAfterFrontTransition(0.0f);
 };
 
 void Standard::blendThrottleAfterFrontTransition(float scale)
 {
 	const float tecs_throttle = _v_att_sp->thrust_body[0];
 	_v_att_sp->thrust_body[0] = scale * tecs_throttle + (1.0f - scale) * _pusher_throttle;
+}
+
+void Standard::blendPitchAfterFrontTransition(float scale)
+{
+	if (!PX4_ISFINITE(_front_transition_pitch)) {
+		return;
+	}
+
+	const Eulerf fw_attitude_setpoint(Quatf(_v_att_sp->q_d));
+	const float pitch_body = scale * fw_attitude_setpoint.theta() + (1.0f - scale) * _front_transition_pitch;
+	const Quatf q_sp(Eulerf(fw_attitude_setpoint.phi(), pitch_body, fw_attitude_setpoint.psi()));
+	q_sp.copyTo(_v_att_sp->q_d);
 }

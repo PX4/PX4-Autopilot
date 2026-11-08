@@ -36,7 +36,7 @@ bool mode_req_local_position_relaxed # Requires a more relaxed global position e
 bool mode_req_global_position # Requires a global position estimate
 bool mode_req_global_position_relaxed # Requires a relaxed global position estimate
 bool mode_req_mission # Requires an uploaded mission
-bool mode_req_home_position # Requires a home position (such as RTL/Return mode)
+bool mode_req_home_position # Requires a home position (such as Return mode)
 bool mode_req_prevent_arming # Prevent arming (such as in Land mode)
 bool mode_req_manual_control # Requires a manual controller
 

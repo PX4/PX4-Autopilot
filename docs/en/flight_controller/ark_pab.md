@@ -24,7 +24,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
 
 - PAB Board to Board Interface
   - 100 Pin Hirose DF40
-  - 40 Pin Hirose DF40
+  - 50 Pin Hirose DF40
 - Dual Digital Power Module Inputs
   - 5V Input
   - I2C Power Monitor
@@ -69,8 +69,8 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
 - 5V input on `POWER1`, `POWER2`, `USB C`, and the `USB JST-GH` connector
   - Input is prioritized in the following order: POWER1 > POWER2 > USB
   - `USB C` and the `USB JST-GH` are in parallel
-  - Overvoltage protection at 5.8V
-  - Undervoltage protection at 3.9V
+  - Overvoltage protection at 5.85V
+  - Undervoltage protection at 3.81V
 - `VDD_5V_HIPOWER` and `VDD_5V_PERIPH` can each provide a total of 1.5A across all the connectors
 
 ## LEDS
@@ -220,12 +220,13 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
 ## USB
 
 All signals in parallel with USB C connector
-Pin | Signal | Volt
---- | --- | ---
-1 (red) | `VBUS_IN` | +5.0V
-2 (blk) | USB_N | +3.3V
-3 (blk) | USB_P | +3.3V
-4 (blk) | `GND` | GND
+
+| Pin     | Signal    | Volt  |
+| ------- | --------- | ----- |
+| 1 (red) | `VBUS_IN` | +5.0V |
+| 2 (blk) | USB_N     | +3.3V |
+| 3 (blk) | USB_P     | +3.3V |
+| 4 (blk) | `GND`     | GND   |
 
 ## ETH
 

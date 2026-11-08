@@ -87,6 +87,10 @@ private:
 	gz::math::Vector3d _vehicle_position{0., 0., 0.};
 	gz::math::Vector3d _wind_velocity{0., 0., 0.};
 
+	// once wind is received from the topic, it takes
+	// precedence over the world wind entity
+	bool _wind_received_from_topic{false};
+
 	std::default_random_engine random_generator_;
 	std::normal_distribution<float> standard_normal_distribution_;
 

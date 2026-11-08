@@ -40,7 +40,7 @@
 
 #include <board_config.h>
 
-#ifdef CONFIG_BOARD_CRASHDUMP
+#ifdef CONFIG_BOARD_CRASHDUMP_CUSTOM
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -260,20 +260,23 @@ static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 
 static uint32_t *__attribute__((noinline)) __ebss_addr(void)
 {
-	return &_ebss;
+	return (uint32_t *)(uintptr_t)&_ebss;
 }
 
 #else
 
 static uint32_t *__attribute__((noinline)) __sdata_addr(void)
 {
-	return &_sdata;
+	return (uint32_t *)(uintptr_t)&_sdata;
 }
 
 #endif
 
 
-__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char *filename, int lineno)
+
+__EXPORT void board_crashdump(uintptr_t sp, FAR struct tcb_s *tcb,
+			      FAR const char *filename, int lineno,
+			      FAR const char *msg, FAR void *regs)
 {
 #ifndef BOARD_CRASHDUMP_RESET_ONLY
 	/* We need a chunk of ram to save the complete context in.
@@ -319,7 +322,7 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 	 * fault.
 	 */
 
-	pdump->info.current_regs = (uintptr_t) CURRENT_REGS;
+	pdump->info.current_regs = (uintptr_t) regs;
 
 	/* Save Context */
 
@@ -346,11 +349,11 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 	 * the users context
 	 */
 
-	if (CURRENT_REGS) {
-		pdump->info.stacks.interrupt.sp = currentsp;
+	if (regs) {
+		pdump->info.stacks.interrupt.sp = sp;
 
 		pdump->info.flags |= (eRegsPresent | eUserStackPresent | eIntStackPresent);
-		memcpy(pdump->info.regs, (void *)CURRENT_REGS, sizeof(pdump->info.regs));
+		memcpy(pdump->info.regs, (void *)regs, sizeof(pdump->info.regs));
 		pdump->info.stacks.user.sp = pdump->info.regs[REG_R13];
 
 	} else {
@@ -358,7 +361,7 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 		/* users context */
 		pdump->info.flags |= eUserStackPresent;
 
-		pdump->info.stacks.user.sp = currentsp;
+		pdump->info.stacks.user.sp = sp;
 	}
 
 	if (pdump->info.pid == 0) {
@@ -442,4 +445,4 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 	board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 }
 
-#endif /* CONFIG_BOARD_CRASHDUMP */
+#endif /* CONFIG_BOARD_CRASHDUMP_CUSTOM */

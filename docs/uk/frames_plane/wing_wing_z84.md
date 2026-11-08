@@ -14,7 +14,7 @@ It is small, rugged and just large enough to host a [Pixracer](../flight_control
 
 ### Z-84 Plug n' Fly (PNF/PNP) або Комплект
 
-- [Banggood](https://www.banggood.com/Wing-Wing-Z-84-Z84-EPO-845mm-Wingspan-Flying-Wing-PNP-p-973125.html)
+- [Banggood](https://www.banggood.com/Zeta-Wing-Wing-Z-84-Z84-EPO-845mm-Wingspan-Flying-Wing-PNP-p-973125.html?akmClientCountry=America&)
 
 :::tip
 PNF (or "PNP") versions include motor, propeller and electronic speed controller.

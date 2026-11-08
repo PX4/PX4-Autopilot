@@ -15,8 +15,7 @@ The [PX4 ROS 2 Interface Library](https://github.com/Auterion/px4-ros2-interface
 
 该库为开发者提供了两个高级接口。
 
-1. [Control Interface](./px4_ros2_control_interface.md) 允许开发者创建并动态注册使用 ROS2 编写的模式。
-   它为发送不同类型的设置点提供了课程，涵盖范围从高级导航任务一直到直接执行器控制。
+1. [Control Interface](./px4_ros2_control_interface.md) 允许开发者创建并动态注册使用 ROS2 编写的模式。它为发送不同类型的设置点提供了课程，涵盖范围从高级导航任务一直到直接执行器控制。
 2. [导航界面](./px4_ros2_navigation_interface.md) 允许从ROS 2应用程序（如VIO系统）向PX4发送车辆位置估计数。
 3. [Waypoint Missions](./px4_ros2_waypoint_missions.md) 允许航点飞行任务完全在ROS2中运行。
 
@@ -34,8 +33,7 @@ The [PX4 ROS 2 Interface Library](https://github.com/Auterion/px4-ros2-interface
    ```
 
    提示信息
-   为确保兼容性，请使用 PX4、px4_msgs（PX4 消息包）及该库的最新 main 分支。
-   另请参阅 [here]（https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4）
+   为确保兼容性，请使用 PX4、px4_msgs（PX4 消息包）及该库的最新 main 分支。另请参阅 [here]（https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4）
 
 :::
 
@@ -53,7 +51,6 @@ The [PX4 ROS 2 Interface Library](https://github.com/Auterion/px4-ros2-interface
 
 ## ROS集成测试
 
-向 PX4 提交拉取请求（pull request）时，持续集成（CI）会运行该库的集成测试
-这些测试用于验证模式注册、故障保护（failsafes）和模式替换功能是否按预期工作。
+向 PX4 提交拉取请求（pull request）时，持续集成（CI）会运行该库的集成测试这些测试用于验证模式注册、故障保护（failsafes）和模式替换功能是否按预期工作。
 
-欲了解更多信息，请访问[PX4 ROS2 接口库集成测试](../test_and_ci/integration_testing_px4_ros2_interface.md)。
+For more information see [PX4 ROS 2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md).

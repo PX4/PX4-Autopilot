@@ -4,8 +4,12 @@ parameters:
   definitions:
     SENS_DPRES_OFF:
       description:
-        short: Differential pressure sensor offset
-        long: The offset (zero-reading) in Pascal
+        short: Differential pressure sensor offset of the first airspeed sensor
+        long: |-
+          The offset (zero-reading) in Pascal of the sensor holding calibration slot 0.
+
+          Kept as a mirror of CAL_DPRES0_OFF so that ground stations can still detect whether
+          airspeed has been calibrated. The firmware applies CAL_DPRESx_OFF, not this value.
       category: System
       type: float
       default: 0.0
@@ -186,14 +190,5 @@ parameters:
       values:
         0: Disabled
         1: Publish primary IMU selection
-      default: 1
-      reboot_required: true
-    SENS_INT_BARO_EN:
-      description:
-        short: Enable internal barometers
-        long: For systems with an external barometer, this should be set to false
-          to make sure that the external is used.
-      category: System
-      type: boolean
       default: 1
       reboot_required: true

@@ -52,13 +52,15 @@ public:
 
 	Barometer();
 	explicit Barometer(uint32_t device_id);
+	Barometer(uint32_t device_id, bool external);
 
 	~Barometer() = default;
 
 	void PrintStatus();
 
 	bool set_calibration_index(int calibration_index);
-	void set_device_id(uint32_t device_id);
+	void set_device_id(uint32_t device_id); ///< classification falls back to the device id's bus
+	void set_device_id(uint32_t device_id, bool external);
 	bool set_offset(const float &offset);
 
 	bool calibrated() const { return (_device_id != 0) && (_calibration_index >= 0); }

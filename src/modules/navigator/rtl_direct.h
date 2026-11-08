@@ -33,7 +33,7 @@
 /**
  * @file rtl_direct.h
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -55,6 +55,9 @@
 #include <uORB/topics/wind.h>
 
 #include <lib/rtl/rtl_time_estimator.h>
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+#include "RTLPlanner/geofence_avoidance_planner.h"
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "mission_block.h"
 #include "navigation.h"
 #include "safe_point_land.hpp"
@@ -78,14 +81,14 @@ public:
 
 	/**
 	 * @brief on activation.
-	 * Initialize the return to launch calculations.
+	 * Initialize the return calculations.
 	 *
 	 */
 	void on_activation() override;
 
 	/**
 	 * @brief on active
-	 * Update the return to launch calculation and set new setpoints for controller if necessary.
+	 * Update the return calculation and set new setpoints for controller if necessary.
 	 *
 	 */
 	void on_active() override;
@@ -98,26 +101,28 @@ public:
 	void on_inactive() override;
 
 	/**
-	 * @brief Calculate the estimated time needed to return to launch.
+	 * @brief Calculate the estimated time needed to return.
 	 *
-	 * @return estimated time to return to launch.
+	 * @return estimated return time.
 	 */
 	rtl_time_estimate_s calc_rtl_time_estimate();
 
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos);
+	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos,
+			    bool destination_is_current_position = false);
 
 	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
 
 private:
 	/**
-	 * @brief Return to launch state machine.
+	 * @brief Return state machine.
 	 *
 	 */
 	enum class RTLState {
 		CLIMBING,
+		AVOID_GEOFENCE,
 		MOVE_TO_LOITER,
 		LOITER_DOWN,
 		LOITER_HOLD,
@@ -130,13 +135,13 @@ private:
 
 private:
 	/**
-	 * @brief Update the RTL state machine.
+	 * @brief Update the Return state machine.
 	 *
 	 */
 	void _updateRtlState();
 
 	/**
-	 * @brief Set the return to launch control setpoint.
+	 * @brief Set the return control setpoint.
 	 *
 	 */
 	void set_rtl_item();
@@ -160,15 +165,25 @@ private:
 
 	RTLState getActivationState();
 
+	/**
+	 * @brief Whether the geofence-avoidance planner currently has a path to fly.
+	 * Always false for build without geofence avoidance (CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE).
+	 */
+	bool geofenceAvoidanceActive() const;
+
+	/** RTL_LAND_DELAY, or indefinite where a pure fixed-wing cannot land. */
+	float landDelay() const;
+
 	void setLoiterPosition();
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
+	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
+	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;
 
-	PositionYawSetpoint _destination{(double)NAN, (double)NAN, NAN, NAN}; ///< the RTL position to fly to
+	PositionYawSetpoint _destination{(double)NAN, (double)NAN, NAN, NAN}; ///< the return position to fly to
 	loiter_point_s _land_approach;
-
 	float _rtl_alt{0.0f}; ///< AMSL altitude at which the vehicle should transit to the destination
 
 	DEFINE_PARAMETERS(

@@ -1,5 +1,12 @@
-set(BOARD_DEFCONFIG ${PX4_CONFIG_FILE} CACHE FILEPATH "path to defconfig" FORCE)
-set(BOARD_CONFIG ${PX4_BINARY_DIR}/boardconfig CACHE FILEPATH "path to config" FORCE)
+# The board configuration of a subproject is kept in normal variables, out of
+# the CMake cache of the parent project.
+if(PX4_SUBPROJECT)
+	set(BOARD_DEFCONFIG ${PX4_CONFIG_FILE})
+	set(BOARD_CONFIG ${PX4_BINARY_DIR}/boardconfig)
+else()
+	set(BOARD_DEFCONFIG ${PX4_CONFIG_FILE} CACHE FILEPATH "path to defconfig" FORCE)
+	set(BOARD_CONFIG ${PX4_BINARY_DIR}/boardconfig CACHE FILEPATH "path to config" FORCE)
+endif()
 
 execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import menuconfig" RESULT_VARIABLE ret)
 if(ret EQUAL "1")
@@ -12,6 +19,39 @@ set(GUICONFIG_PATH ${PYTHON_EXECUTABLE} -m guiconfig CACHE INTERNAL "guiconfig p
 set(DEFCONFIG_PATH ${PYTHON_EXECUTABLE} -m defconfig CACHE INTERNAL "defconfig program" FORCE)
 set(SAVEDEFCONFIG_PATH ${PYTHON_EXECUTABLE} -m savedefconfig CACHE INTERNAL "savedefconfig program" FORCE)
 set(GENCONFIG_PATH ${PYTHON_EXECUTABLE} -m genconfig CACHE INTERNAL "genconfig program" FORCE)
+
+# ---------------------------------------------------------------------------
+# Zenoh publisher/subscriber topic catalog
+#
+# src/modules/zenoh/Kconfig sources this file to expose one config option per
+# uORB topic. It is fully generated from the message set, so it is a build
+# artifact rather than source: generate it into the build tree here, before
+# Kconfig is parsed, and let Kconfig source it from there via the
+# ZENOH_KCONFIG_TOPICS environment variable. The build never writes it into the
+# source tree.
+#
+# The catalog is intentionally board-independent: it is generated from every
+# message rather than the per-board subset, so it does not depend on the
+# msg-gating Kconfig symbols it is sourced alongside (which would be circular).
+# The per-board Zenoh factory (generated in msg/CMakeLists.txt) is what actually
+# gates which topics get compiled in; a cataloged-but-unbuilt topic is inert.
+# ---------------------------------------------------------------------------
+set(ZENOH_KCONFIG_TOPICS ${PX4_BINARY_DIR}/src/modules/zenoh/Kconfig.topics)
+file(GLOB zenoh_catalog_msg_files
+	${PX4_SOURCE_DIR}/msg/*.msg
+	${PX4_SOURCE_DIR}/msg/versioned/*.msg
+)
+execute_process(
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
+		--zenoh-config
+		-f ${zenoh_catalog_msg_files}
+		-o ${PX4_BINARY_DIR}/src/modules/zenoh/
+		-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
+	RESULT_VARIABLE zenoh_kconfig_result
+)
+if(NOT zenoh_kconfig_result EQUAL 0)
+	message(FATAL_ERROR "Failed to generate Zenoh Kconfig.topics catalog (${zenoh_kconfig_result})")
+endif()
 
 set(COMMON_KCONFIG_ENV_SETTINGS
 	PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
@@ -26,6 +66,9 @@ set(COMMON_KCONFIG_ENV_SETTINGS
 	ARCHITECTURE=${CMAKE_SYSTEM_PROCESSOR}
 	ROMFSROOT=${config_romfs_root}
 	BASE_DEFCONFIG=${BOARD_CONFIG}
+	# Absolute path to the generated Zenoh topic catalog, sourced by
+	# src/modules/zenoh/Kconfig via source "$(ZENOH_KCONFIG_TOPICS)".
+	ZENOH_KCONFIG_TOPICS=${ZENOH_KCONFIG_TOPICS}
 )
 
 set(config_user_list)
@@ -91,14 +134,22 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			string(REPLACE "\"" "" Value ${Value})
 
 			# Set the variable
-			set(${Name} ${Value} CACHE INTERNAL "BOARD DEFCONFIG: ${Name}" FORCE)
+			if(PX4_SUBPROJECT)
+				set(${Name} "${Value}")
+			else()
+				set(${Name} ${Value} CACHE INTERNAL "BOARD DEFCONFIG: ${Name}" FORCE)
+			endif()
 
 		else()
 			# Find boolean not set
 			string(REGEX MATCH " (CONFIG[^ ]+) is not set" Name ${NameAndValue})
 
 			if(${CMAKE_MATCH_1})
-				set(${CMAKE_MATCH_1} "" CACHE INTERNAL "BOARD DEFCONFIG: ${CMAKE_MATCH_1}" FORCE)
+				if(PX4_SUBPROJECT)
+					set(${CMAKE_MATCH_1} "")
+				else()
+					set(${CMAKE_MATCH_1} "" CACHE INTERNAL "BOARD DEFCONFIG: ${CMAKE_MATCH_1}" FORCE)
+				endif()
 			endif()
 		endif()
 
@@ -251,7 +302,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if(PLATFORM)
 		# set OS, and append specific platform module path
 		set(PX4_PLATFORM ${PLATFORM} CACHE STRING "PX4 board OS" FORCE)
-		list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
+		set(CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake ${CMAKE_MODULE_PATH})
 
 		# platform-specific include path
 		include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include)
@@ -337,23 +388,13 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	# ROMFS
 	if(ROMFSROOT)
 		set(config_romfs_root ${ROMFSROOT} CACHE INTERNAL "ROMFS root" FORCE)
-
-		if(UAVCAN_PERIPHERALS)
-			set(config_uavcan_peripheral_firmware ${UAVCAN_PERIPHERALS} CACHE INTERNAL "UAVCAN peripheral firmware" FORCE)
-		endif()
 	endif()
 
-	# ADDITIONAL INIT
-	if(ADDITIONAL_INIT)
-		set(config_additional_init ${ADDITIONAL_INIT} CACHE INTERNAL "additional init" FORCE)
-	endif()
+	# ADDITIONAL INIT (set unconditionally so clearing the option takes effect in an existing build)
+	set(config_additional_init "${ADDITIONAL_INIT}" CACHE INTERNAL "additional init" FORCE)
 
 	if(UAVCAN_INTERFACES)
 		set(config_uavcan_num_ifaces ${UAVCAN_INTERFACES} CACHE INTERNAL "UAVCAN interfaces" FORCE)
-	endif()
-
-	if(UAVCAN_TIMER_OVERRIDE)
-		set(config_uavcan_timer_override ${UAVCAN_TIMER_OVERRIDE} CACHE INTERNAL "UAVCAN TIMER OVERRIDE" FORCE)
 	endif()
 
 	# OPTIONS

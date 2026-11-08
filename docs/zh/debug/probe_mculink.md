@@ -19,9 +19,9 @@ These instructions have been tested on: FMUv6X-RT, FMUv6X, FMUv6c, FMUv5X.
 
 ## Debugging Configuration using NXP LinkServer
 
-The MCU-Link provides for NXP (FMUv6X-RT) chips the [LinkServer](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/linkserver-for-microcontrollers:LINKERSERVER) GDB server:
+The MCU-Link provides for NXP (FMUv6X-RT) chips the [LinkServer](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/linkserver-for-microcontrollers:LINKSERVER) GDB server:
 
-[Download](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/linkserver-for-microcontrollers:LINKERSERVER#downloads) the Linkserver for your operating system and follow the installation instructions.
+[Download](https://www.nxp.com/design/design-center/software/development-software/mcuxpresso-software-and-tools-/linkserver-for-microcontrollers:LINKSERVER#downloads) the Linkserver for your operating system and follow the installation instructions.
 
 On Windows LinkServer gets installed to `C:\NXP\LinkServer_x.x.x`
 On Linux LinkServer gets installed `/usr/local/LinkServer/LinkServer`

@@ -20,7 +20,10 @@ if (inBrowser) {
 // Support redirect plugin
 import Redirect from "./components/Redirect.vue";
 
-import { createDynamicNav } from "vp-dynamic-nav";
+// Toast shown once per page load, announcing the current docs version
+import VersionToast from "./components/VersionToast.vue";
+
+import { createDynamicNav, DynamicNav } from "vp-dynamic-nav";
 
 // Tabs: https://github.com/Red-Asuka/vitepress-plugin-tabs
 import { Tab, Tabs } from "vue3-tabs-component";
@@ -28,7 +31,17 @@ import "@red-asuka/vitepress-plugin-tabs/dist/style.css";
 
 /** @type {import('vitepress').Theme} */
 export default {
+  // createDynamicNav(DefaultTheme).Layout is a parameterless function that
+  // doesn't forward slots passed to it, so its nav-bar slots are reproduced
+  // here directly against DefaultTheme.Layout instead of nesting through it
+  // (nesting silently drops any slot we'd add, e.g. layout-top for the toast).
   extends: createDynamicNav(DefaultTheme),
+  Layout: () =>
+    h(DefaultTheme.Layout, null, {
+      "nav-bar-content-before": () => h(DynamicNav),
+      "nav-screen-content-after": () => h(DynamicNav, { screen: true }),
+      "layout-top": () => h(VersionToast),
+    }),
   enhanceApp({ app, router, siteData }) {
     app.component("Redirect", Redirect); //Redirect plugin
     //Tabs: https://github.com/Red-Asuka/vitepress-plugin-tabs

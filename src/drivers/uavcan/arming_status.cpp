@@ -63,18 +63,20 @@ void UavcanArmingStatus::periodic_update(const uavcan::TimerEvent &)
 {
 	actuator_armed_s actuator_armed;
 
-	if (_actuator_armed_sub.update(&actuator_armed)) {
-		uavcan::equipment::safety::ArmingStatus cmd;
-
-		bool lockdown_active = actuator_armed.lockdown || actuator_armed.termination || actuator_armed.kill;
-
-		if (!lockdown_active && (actuator_armed.armed || _is_actuator_test_running)) {
-			cmd.status = cmd.STATUS_FULLY_ARMED;
-
-		} else {
-			cmd.status = cmd.STATUS_DISARMED;
-		}
-
-		(void)_arming_status_pub.broadcast(cmd);
+	if (!_actuator_armed_sub.copy(&actuator_armed)) {
+		return;
 	}
+
+	uavcan::equipment::safety::ArmingStatus cmd;
+
+	const bool lockdown_active = actuator_armed.lockdown || actuator_armed.termination || actuator_armed.kill;
+
+	if (!lockdown_active && (actuator_armed.armed || _is_actuator_test_running)) {
+		cmd.status = cmd.STATUS_FULLY_ARMED;
+
+	} else {
+		cmd.status = cmd.STATUS_DISARMED;
+	}
+
+	(void)_arming_status_pub.broadcast(cmd);
 }

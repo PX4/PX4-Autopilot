@@ -10,7 +10,7 @@ _Offboard_ control is dangerous.
 
 :::tip
 This example uses C++.
-A very similar example for Python can be found in [ROS/MAVROS Offboard Example (Python)](../ros/mavros_offboard_python.md) (also see the examples in [integrationtests/python_src/px4_it/mavros](https://github.com/PX4/PX4-Autopilot/tree/main/integrationtests/python_src/px4_it/mavros)).
+A very similar example for Python can be found in [ROS/MAVROS Offboard Example (Python)](../ros/mavros_offboard_python.md).
 :::
 
 <video width="100%" autoplay="true" controls="true">
@@ -142,8 +142,7 @@ ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("m
 ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 ```
 
-我们构建了一个发布者来发布本地位置指令并请求客户端进行加解锁状态及控制模式的切换。
-请注意，对于您自己的系统，"mavros" 前缀可能不同，取决于节点启动文件中指定的名称。
+我们构建了一个发布者来发布本地位置指令并请求客户端进行加解锁状态及控制模式的切换。请注意，对于您自己的系统，"mavros" 前缀可能不同，取决于节点启动文件中指定的名称。
 
 ```cpp
 //the setpoint publishing rate MUST be faster than 2Hz
@@ -163,8 +162,7 @@ while(ros::ok() && !current_state.connected){
 }
 ```
 
-在发布任何消息之前，我们需要等待飞控和MAVROS建立连接。
-在收到心跳包之后，代码便会跳出这个循环。
+在发布任何消息之前，我们需要等待飞控和MAVROS建立连接。在收到心跳包之后，代码便会跳出这个循环。
 
 ```cpp
 geometry_msgs::PoseStamped pose;
@@ -227,8 +225,7 @@ while(ros::ok()){
 
 该代码的其余部分完全是自解释性的。
 We attempt to switch to _Offboard_ mode, after which we arm the quad to allow it to fly.
-我们每隔五秒去调用一次该服务，避免飞控被大量的请求阻塞。
-在同一个循环中，我们按照指定的频率持续发送期望点设定值信息给飞控。
+我们每隔五秒去调用一次该服务，避免飞控被大量的请求阻塞。在同一个循环中，我们按照指定的频率持续发送期望点设定值信息给飞控。
 
 :::tip
 This code has been simplified to the bare minimum for illustration purposes.

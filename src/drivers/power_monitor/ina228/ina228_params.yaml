@@ -9,23 +9,13 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
-    INA228_CONFIG:
-      description:
-        short: INA228 Power Monitor Config
-      type: int32
-      default: 63779
-      min: 0
-      max: 65535
-      decimal: 1
-      increment: 1
-      reboot_required: true
     INA228_CURRENT:
       description:
         short: INA228 Power Monitor Max Current
       type: float
       default: 327.68
       min: 0.1
-      max: 327.68
+      max: 1638.40
       decimal: 2
       increment: 0.1
       reboot_required: true

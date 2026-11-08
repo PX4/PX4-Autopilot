@@ -113,3 +113,11 @@ You can also [set the parameters directly](../advanced_config/parameters.md):
 - [TRIG_INTERFACE](../advanced_config/parameter_reference.md#TRIG_INTERFACE) — `3`: MAVLink
 
 :::
+
+### Capture Reporting
+
+Some MAVLink cameras emit [CAMERA_IMAGE_CAPTURED](https://mavlink.io/en/messages/common.html#CAMERA_IMAGE_CAPTURED) themselves each time an image is captured.
+By default PX4 emits this message for every capture as well, so a ground station would see each capture reported twice.
+
+Set [CAM_CAP_REPORT](../advanced_config/parameter_reference.md#CAM_CAP_REPORT) to `0` to stop PX4 reporting captures, leaving the camera as the only source of the message.
+Captures are still logged for geotagging when reporting is disabled.

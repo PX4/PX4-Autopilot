@@ -98,11 +98,18 @@ PrecLand::on_activation()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	pos_sp_triplet->next.valid = false;
-	pos_sp_triplet->previous.valid = false;
+	// Keep the setpoint the active mode left, then reset the triplet. Started by a mission landing, also
+	// one that goes on after Return was commanded, that setpoint is its land point and we continue to it.
+	// Return starts it the same way and then sets its own land setpoint. Selected as its own mode, the
+	// setpoint belongs to the previous mode and we start at the current position.
+	const position_setpoint_s previous_setpoint = pos_sp_triplet->current;
+	const bool entered_as_mode = (_navigator->get_vstatus()->nav_state == getNavigatorStateId());
+	_navigator->reset_triplets();
 
-	// Check that the current position setpoint is valid, otherwise land at current position
-	if (!pos_sp_triplet->current.valid) {
+	if (previous_setpoint.valid && !entered_as_mode) {
+		pos_sp_triplet->current = previous_setpoint;
+
+	} else {
 		PX4_WARN("Reset");
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;

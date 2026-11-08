@@ -17,8 +17,9 @@ A gripper can instead be configured as a [generic RC or MAVLink actuator](../pay
 
 PX4 підтримує захвати, які мають прості важелі для утримання та відпускання, та використовують наступні інтерфейси (див. зв'язані документи для деталей):
 
-- [PWM Servo Gripper](gripper_servo.md) - Grippers connected to autopilot PWM outputs
-- **MAVLink Gripper** (Untested) - Grippers that support the [MAV_CMD_DO_GRIPPER](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_GRIPPER) MAVLink command.
+- [PWM Servo Gripper](../peripherals/gripper_servo.md) — Grippers connected to autopilot PWM outputs.
+- [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md) — EPM grippers controlled using DroneCAN hardpoint commands.
+- **MAVLink Gripper** (Untested) — Grippers that support the [MAV_CMD_DO_GRIPPER](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_GRIPPER) MAVLink command.
 
 ## Використання захоплювача
 
@@ -38,9 +39,14 @@ MAVLink applications, such as ground stations, can also control the gripper usin
 
 Підтримка захоплювача PX4 пов'язана з функцією доставки пакетів, яка повинна бути увімкнена та налаштована для можливості використання захоплювача.
 
-1. Ensure your board has the Payload Deliverer module enabled: CONFIG_MODULES_PAYLOAD_DELIVERER.
+1. Ensure your board has the Payload Deliverer module enabled:
+
+   ```ini
+   CONFIG_MODULES_PAYLOAD_DELIVERER=y
+   ```
+
 2. Set [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) to match your gripper.
-   For example, set to `Servo` for a [Servo Gripper](gripper_servo.md).
+   Set it to `Binary Grab/Release` for a [Servo Gripper](gripper_servo.md) or [DroneCAN EPM Gripper](../peripherals/gripper_epm.md).
 
 ### Відображення активатора захоплювача
 

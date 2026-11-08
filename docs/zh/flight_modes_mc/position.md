@@ -40,8 +40,7 @@ While very rare on a well calibrated vehicle, sometimes there may be problems wi
 
 ## 技术总结
 
-遥控模式下，横滚、俯仰、油门 (RPT) 杆控制相应轴/方向的运动。
-摇杆居中使机体水平并将其保持在固定的高度和位置并抗风。
+遥控模式下，横滚、俯仰、油门 (RPT) 杆控制相应轴/方向的运动。摇杆居中使机体水平并将其保持在固定的高度和位置并抗风。
 
 - Centered roll, pitch, throttle sticks (within RC deadzone [MAN_DEADZONE](#MAN_DEADZONE)) hold x, y, z position steady against any disturbance like wind.
 - 外部中心：
@@ -56,15 +55,29 @@ While very rare on a well calibrated vehicle, sometimes there may be problems wi
   - Yaw: Assistance from autopilot to stabilize the attitude rate.
     Position of RC stick maps to the rate of rotation of vehicle in that orientation.
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_posctl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_posctl -->
+
 ### 参数
 
 All the parameters in the [Multicopter Position Control](../advanced_config/parameter_reference.md#multicopter-position-control) group are relevant. 下面列出了一些特别值得注意的参数。
 
 | Parameter                                                                                                                                                                                       | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MAN_DEADZONE"></a>[MAN_DEADZONE](../advanced_config/parameter_reference.md#MAN_DEADZONE)                                                                            | 启用位置保持的摇杆死区。 默认值：0.1（摇杆全行程的 10％）。                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| <a id="MPC_Z_VEL_MAX_UP"></a>[MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) | 最大垂直上升速度。 默认：3m/s。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| <a id="MPC_Z_VEL_MAX_DN"></a>[MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) | 最大垂直下降速度。 默认：1m/s。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| <a id="MAN_DEADZONE"></a>[MAN_DEADZONE](../advanced_config/parameter_reference.md#MAN_DEADZONE)                                                                            | 启用位置保持的摇杆死区。默认值：0.1（摇杆全行程的 10％）。                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| <a id="MPC_Z_VEL_MAX_UP"></a>[MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) | 最大垂直上升速度。默认：3m/s。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| <a id="MPC_Z_VEL_MAX_DN"></a>[MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) | 最大垂直下降速度。默认：1m/s。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | <a id="MPC_LAND_ALT1"></a>[MPC_LAND_ALT1](../advanced_config/parameter_reference.md#MPC_LAND_ALT1)                                                    | 触发第一阶段降速的高度。 Below this altitude descending velocity gets limited to a value between [MPC_Z_VEL_MAX_DN](#MPC_Z_VEL_MAX_DN) (or `MPC_Z_V_AUTO_DN`) and [MPC_LAND_SPEED](#MPC_LAND_SPEED). Value needs to be higher than [MPC_LAND_ALT2](#MPC_LAND_ALT2). Default 10m. |
 | <a id="MPC_LAND_ALT2"></a>[MPC_LAND_ALT2](../advanced_config/parameter_reference.md#MPC_LAND_ALT2)                                                    | 触发第二阶段降速的高度。 Below this altitude descending velocity gets limited to [`MPC_LAND_SPEED`](#MPC_LAND_SPEED). Value needs to be lower than "MPC_LAND_ALT1". Default 5m.                                                                                                                                                                                                                                                   |
 | <a id="MPC_xxx"></a>`MPC_XXXX`                                                                                                                                                                  | 大多数 MPC_xxx参数会影响此模式下的飞行行为（至少在某种程度上）。 For example, [MPC_THR_HOVER](../advanced_config/parameter_reference.md#MPC_THR_HOVER) defines the thrust at which a vehicle will hover.                                                                                                                                                                                                                                                     |

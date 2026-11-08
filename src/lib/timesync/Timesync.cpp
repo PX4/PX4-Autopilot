@@ -76,8 +76,8 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 				// Filter gain scheduling
 				if (!sync_converged()) {
 					// Interpolate with a sigmoid function
-					double progress = (double)_sequence / (double)CONVERGENCE_WINDOW;
-					double p = 1.0 - exp(0.5 * (1.0 - 1.0 / (1.0 - progress)));
+					const float progress = (float) _sequence / (float) CONVERGENCE_WINDOW;
+					double p = (double)(1.f - expf(0.5f * (1.f - 1.f / (1.f - progress))));
 					_filter_alpha = p * ALPHA_GAIN_FINAL + (1.0 - p) * ALPHA_GAIN_INITIAL;
 					_filter_beta = p * BETA_GAIN_FINAL + (1.0 - p) * BETA_GAIN_INITIAL;
 

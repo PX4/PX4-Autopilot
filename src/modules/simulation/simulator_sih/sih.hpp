@@ -55,6 +55,7 @@
  */
 #pragma once
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
@@ -74,7 +75,9 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/failure_injection.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -118,13 +121,9 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
-	static float generate_wgn();    // generate white Gaussian noise sample
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	static matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
-
 private:
 	void parameters_updated();
+	void updateFailureConfig();
 
 	// simulated sensors
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -142,6 +141,13 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs_sim)};
+	failure_injection::Config _failure_config;
+
+	bool _airspeed_blocked{false};
+	bool _distance_sensor_blocked{false};
+	bool _accel_blocked{false};
+	bool _gyro_blocked{false};
+	uint16_t _stuck_motor_mask{0};
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
@@ -183,6 +189,8 @@ private:
 	void read_motors(const float dt);
 	void publish_esc_status();
 	uint8_t num_motors() const;
+	// motor number (Motor1 = 0) driven by an actuator channel, or -1 for control surfaces and steering channels
+	int motor_index_from_actuator(int actuator_index) const;
 
 	// generate the motors thrust and torque in the body frame
 	void generate_force_and_torques(const float dt);
@@ -205,6 +213,7 @@ private:
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
+	int _lockstep_component{-1};
 	uint64_t _current_simulation_time_us{0};
 	float _achieved_speedup{0.f};
 #endif
@@ -325,6 +334,7 @@ private:
 		(ParamFloat<px4::params::SIH_LOC_LAT0>) _sih_lat0,
 		(ParamFloat<px4::params::SIH_LOC_LON0>) _sih_lon0,
 		(ParamFloat<px4::params::SIH_LOC_H0>) _sih_h0,
+		(ParamFloat<px4::params::SIH_LOC_YAW0>) _sih_yaw0,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,

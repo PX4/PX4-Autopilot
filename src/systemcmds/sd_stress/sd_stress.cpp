@@ -61,7 +61,7 @@ static void usage()
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("sd_stress", "command");
 	PRINT_MODULE_USAGE_PARAM_INT('r', 5, 1, 10000, "Number of runs", true);
-	PRINT_MODULE_USAGE_PARAM_INT('b', 100, 1, 10000, "Number of bytes", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 100, 1, 10000, "Number of bytes (1-10000)", true);
 }
 
 static bool create_dir(const char *path)
@@ -188,6 +188,12 @@ extern "C" __EXPORT int sd_stress_main(int argc, char *argv[])
 
 		case 'b':
 			num_bytes = strtol(myoptarg, nullptr, 0);
+
+			if (num_bytes < 1 || num_bytes > 10000) {
+				PX4_ERR("invalid number of bytes (expected 1-10000)");
+				return -EINVAL;
+			}
+
 			break;
 
 		default:

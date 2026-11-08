@@ -103,4 +103,29 @@ int board_get_px4_guid_formated(char *format_buffer, int size)
 	size -= offset;
 	return board_get_mfguid_formated(&format_buffer[offset], size);
 }
+
+/* The bytes of each 32-bit word with the most significant first, as board_get_mfguid_formated() prints them */
+int board_get_mfguid(mfguid_t mfgid)
+{
+	uuid_uint32_t uuid;
+	board_get_uuid32(uuid);
+
+	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
+		mfgid[4 * i] = (uuid[i] >> 24) & 0xff;
+		mfgid[4 * i + 1] = (uuid[i] >> 16) & 0xff;
+		mfgid[4 * i + 2] = (uuid[i] >> 8) & 0xff;
+		mfgid[4 * i + 3] = uuid[i] & 0xff;
+	}
+
+	return PX4_CPU_MFGUID_BYTE_LENGTH;
+}
+
+int board_get_px4_guid(px4_guid_t px4_guid)
+{
+	px4_guid[0] = (soc_arch_id >> 8) & 0xff;
+	px4_guid[1] = soc_arch_id & 0xff;
+	memset(&px4_guid[2], 0, PX4_GUID_BYTE_LENGTH - 2 - PX4_CPU_MFGUID_BYTE_LENGTH);
+	board_get_mfguid(&px4_guid[PX4_GUID_BYTE_LENGTH - PX4_CPU_MFGUID_BYTE_LENGTH]);
+	return PX4_GUID_BYTE_LENGTH;
+}
 #endif

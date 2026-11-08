@@ -41,6 +41,7 @@
 #include "takeoff.h"
 #include "navigator.h"
 #include <px4_platform_common/events.h>
+#include <matrix/math.hpp>
 
 Takeoff::Takeoff(Navigator *navigator) :
 	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)
@@ -50,6 +51,9 @@ Takeoff::Takeoff(Navigator *navigator) :
 void
 Takeoff::on_activation()
 {
+	// reset triplets, modes should be explicit about which fields they want to set
+	_navigator->reset_triplets();
+
 	set_takeoff_position();
 
 	// reset cruising speed to default
@@ -59,13 +63,43 @@ Takeoff::on_activation()
 }
 
 void
+Takeoff::on_inactivation()
+{
+	_hold_course = NAN; // only applies to the takeoff it was commanded with
+}
+
+void
 Takeoff::on_active()
 {
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
 		switch (_fw_takeoff_state) {
 		case fw_takeoff_state::CLIMBOUT: {
-				if (_navigator->get_global_position()->alt >= _loiter_altitude_msl) {
+				if (_navigator->fw_climbout_completed(_loiter_altitude_msl)) {
+
+					// the climbout does not necessarily end at the takeoff altitude, and the vehicle should
+					// not descend back to it if it ended up higher
+					const float hold_altitude_amsl = math::max(_loiter_altitude_msl, _navigator->get_global_position()->alt);
+
+					if (PX4_ISFINITE(_hold_course)) {
+						if (_navigator->get_local_position()->v_xy_valid) {
+							publishCourseHoldSetpoint(_hold_course, hold_altitude_amsl);
+
+							events::send<float>(events::ID("navigator_takeoff_hold_course"), events::Log::Info,
+									    "Takeoff complete, continuing on course {1:.0} deg", math::degrees(matrix::wrap_2pi(_hold_course)));
+
+							_navigator->get_mission_result()->finished = true;
+							_navigator->set_mission_result_updated();
+
+							_loiter_altitude_msl = NAN; // reset for next takeoff command
+
+							_fw_takeoff_state = fw_takeoff_state::COURSE_HANDOVER;
+							break;
+						}
+
+						events::send(events::ID("navigator_takeoff_hold_course_no_velocity"), events::Log::Warning,
+							     "No velocity estimate, loitering instead of holding course");
+					}
 
 					setLoiterItemCommonFields(&_mission_item);
 
@@ -79,7 +113,8 @@ Takeoff::on_active()
 					_mission_item.time_inside = 1.f;
 					_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 					_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
-					_mission_item.altitude = _loiter_altitude_msl;
+
+					_mission_item.altitude = hold_altitude_amsl;
 
 					mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 					const bool loiter_lat_valid = PX4_ISFINITE(_loiter_position_lat_lon(0))
@@ -123,7 +158,7 @@ Takeoff::on_active()
 					lateral_acceptance_reached = distance_to_loiter < _navigator->get_acceptance_radius() + mission_item_loiter_radius_abs;
 				}
 
-				const bool vertical_acceptance_reached = _navigator->get_global_position()->alt >= _loiter_altitude_msl -
+				const bool vertical_acceptance_reached = _navigator->get_global_position()->alt >= _mission_item.altitude -
 						_navigator->get_altitude_acceptance_radius();
 
 				if (lateral_acceptance_reached && vertical_acceptance_reached) {
@@ -142,6 +177,10 @@ Takeoff::on_active()
 
 				break;
 			}
+
+		case fw_takeoff_state::COURSE_HANDOVER:
+			// flying the course until Commander switches to Guided Course, or to Hold if that is not possible
+			break;
 
 		default:
 			break;
@@ -167,7 +206,7 @@ Takeoff::on_active()
 			} else {
 				if (pos_sp_triplet->current.valid
 				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+					setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current);
 				}
 			}
 

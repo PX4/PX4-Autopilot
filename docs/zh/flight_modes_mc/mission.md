@@ -11,10 +11,27 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 - The vehicle must be armed before this mode can be engaged.
 - This mode is automatic - no user intervention is _required_ to control the vehicle.
 - 遥控开关可以在任何无人机上更改飞行模式。
-- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
-  This is true for multicopters and VTOL in MC mode.
+- Stick movement will [by default](#MAN_OVERRIDE_SPD) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
+  This is true for multicopters and VTOL in hover.
+- The yaw stick can optionally nudge vehicle heading during the mission without changing mode (see [MPC_AUTO_NUDGING](#MPC_AUTO_NUDGING)).
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_mission -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position`](../flight_modes/mode_requirements.md#mode_req_global_position) — Position measurement updates in a global coordinate frame
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_mission`](../flight_modes/mode_requirements.md#mode_req_mission) — Valid mission in autopilot's storage
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_mission -->
 
 ## 描述
 
@@ -55,8 +72,7 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
 6. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
 
    :::tip
-   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
-   Enter the time to wait after landing before disarming the vehicle.
+   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Return & Land](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/return_land.html#landing) and set the _Touchdown_ disarm delay (a value of 0 or less disables it).
 
 :::
 
@@ -110,11 +126,11 @@ A very small subset are listed below.
 
 General parameters:
 
-| Parameter                                                                                                                                                               | 描述                                                                                                                                                                                                                                         |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                                  | RC loss failsafe mode (what the vehicle will do if it looses RC connection) - e.g. enter hold mode, return mode, terminate etc.                                         |
-| <a id="COM_RC_OVERRIDE"></a>[COM_RC_OVERRIDE](../advanced_config/parameter_reference.md#COM_RC_OVERRIDE)                      | Controls whether stick movement on a multicopter (or VTOL in MC mode) gives control back to the pilot in [Position mode](../flight_modes_mc/position.md). 可以分别为自动模式和 offboard 模式启用此功能，默认情况下在自动模式下启用此功能。 |
-| <a id="COM_RC_STICK_OV"></a>[COM_RC_STICK_OV](../advanced_config/parameter_reference.md#COM_RC_STICK_OV) | The amount of stick movement that causes a transition to [Position mode](../flight_modes_mc/position.md) (if [COM_RC_OVERRIDE](#COM_RC_OVERRIDE) is enabled). |
+| Parameter                                                                                                                                             | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                | RC loss failsafe mode (what the vehicle will do if it looses RC connection) - e.g. enter hold mode, return mode, terminate etc.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| <a id="MAN_OVERRIDE_SPD"></a>[MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD) | Speed (normalized stick travel per second) above which moving the sticks controlling a multicopter (or VTOL in hover) gives control back to the pilot by switching to [Position mode](../flight_modes_mc/position.md) (or Altitude mode if position is unavailable). At the default value of 1 a half-stick movement in ~0.5 s triggers it; lower is more sensitive. A stick held statically has zero speed and will not trigger. Set to -1 to disable. <Badge type="tip" text="PX4 v1.18" /> |
+| <a id="MPC_AUTO_NUDGING"></a>[MPC_AUTO_NUDGING](../advanced_config/parameter_reference.md#MPC_AUTO_NUDGING) | Bitmask enabling stick nudging in Auto modes (multicopter). Bit 0 (yaw nudging) lets the yaw stick nudge heading without switching modes; the heading is held when the stick is released. Switching flight mode (e.g. to Hold and back) clears the held heading and returns yaw to the mode default. Requires stick override to be disabled ([MAN_OVERRIDE_SPD](#MAN_OVERRIDE_SPD) = -1).                                        |
 
 Parameters related to [mission feasibility checks](#mission-feasibility-checks):
 
@@ -139,6 +155,10 @@ Mission Items:
 - [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF)
 - [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT)
 - [MAV_CMD_DO_JUMP](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP)
+  - _Param1_ (sequence number) must refer to an earlier mission item.
+    A mission is rejected if a jump targets itself or a later item, even if its repeat count is 0.
+  - _Param2_ (repeat count) must be from 0 to 65535.
+    A mission with a negative or larger repeat count is rejected.
 - [MAV_CMD_NAV_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_ROI)
 - [MAV_CMD_DO_SET_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI)
 - [MAV_CMD_DO_SET_ROI_LOCATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_LOCATION)
@@ -207,6 +227,18 @@ If not provided, or if the feedback is lost, a mission command timeout can be us
 
 The timeout is set using the [MIS_COMMAND_TOUT](../advanced_config/parameter_reference.md#MIS_COMMAND_TOUT) parameter.
 This should be set to be a small amount greater than the time required for the longest long-running action in the mission to complete.
+
+## Waypoint Heading Timeout
+
+When a mission item sets a heading, the vehicle waits at the waypoint until it is within [MIS_YAW_ERR](../advanced_config/parameter_reference.md#MIS_YAW_ERR) of that heading before it moves on.
+So that a vehicle that cannot turn (for example, after a motor failure has taken away its yaw control) does not hover at the waypoint indefinitely, it continues without the heading once [MIS_YAW_TMT](../advanced_config/parameter_reference.md#MIS_YAW_TMT) has elapsed (default: 10 s).
+The time is counted from when the heading is commanded, which is usually when the vehicle starts flying towards the waypoint.
+If getting to the waypoint takes longer than `MIS_YAW_TMT`, the vehicle does not wait for the heading there at all.
+
+Some headings must be reached for the mission to continue safely, such as the alignment towards the next waypoint before a mission with camera triggering is resumed.
+If such a heading is not reached within `MIS_YAW_TMT`, the mission fails and the vehicle switches to [Return mode](../flight_modes_mc/return.md).
+
+Set `MIS_YAW_TMT` to 0 to never wait for a heading, or to -1 to always wait for it. <Badge type="tip" text="main (PX4 v2.0)" />
 
 ## Rounded turns: Inter-Waypoint Trajectory
 

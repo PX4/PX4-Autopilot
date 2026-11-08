@@ -1,0 +1,375 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+/**
+ * @file mission_route_cache.cpp
+ *
+ * Dataman-backed Provider for mission-route planning. It composes the optional
+ * full-mission cache with the published mission land item and safe-point caches so
+ * the planner can scan route geometry without blocking Navigator on dataman or
+ * SD-card reads. Normal mission execution can keep using smaller sliding caches;
+ * use this cache when a caller needs access to the full route.
+ *
+ * @author Jonas Perolini <jonspero@me.com>
+ */
+
+#include "mission_route_cache.h"
+
+#include "mission_route_types.h"
+
+#include <px4_platform_common/log.h>
+
+MissionRouteCache::MissionRouteCache(orb_advert_t *mavlink_log_pub)
+	: _full_mission_cache(mavlink_log_pub)
+{
+}
+
+MissionRouteCache::~MissionRouteCache() = default;
+
+void MissionRouteCache::update(const mission_s &mission)
+{
+	_full_mission_cache.update(mission);
+	updateMissionLandItemCache(mission);
+	updateSafePointCache(mission);
+}
+
+bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
+{
+	mission_item_s land_item;
+
+	if (!_dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id),
+					       _mission_land.index,
+					       reinterpret_cast<uint8_t *>(&land_item),
+					       sizeof(land_item),
+					       kCacheOnlyLoadWait)) {
+		return false;
+	}
+
+	return mission_route::isLandingCmd(land_item.nav_cmd);
+}
+
+bool MissionRouteCache::safePointCacheFullyLoaded() const
+{
+	mission_item_s safe_point_item;
+
+	// A miss means async preloading did not finish cleanly.
+	for (int32_t index = 0; index < _safe_point.read_stats.num_items; ++index) {
+		if (!_dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_safe_point.read_stats.dataman_id), index,
+						       reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item),
+						       kCacheOnlyLoadWait)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void MissionRouteCache::resetSafePointCacheState()
+{
+	// Drop any in-flight response before resetting the local state machine.
+	_dataman_client_safepoint.abortCurrentOperation();
+	_dataman_cache_safepoint.invalidate();
+
+	const uint32_t source_id = _safe_point.source_id;
+	const uint8_t source_dataman_id = _safe_point.source_dataman_id;
+	_safe_point = {};
+	_safe_point.source_id = source_id;
+	_safe_point.source_dataman_id = source_dataman_id;
+}
+
+bool MissionRouteCache::missionItemsReady(const mission_s &mission) const
+{
+	return _full_mission_cache.missionItemsReady(mission);
+}
+
+int MissionRouteCache::missionCount() const
+{
+	return _full_mission_cache.missionCount();
+}
+
+const mission_item_s *MissionRouteCache::missionItem(int index) const
+{
+	return _full_mission_cache.missionItem(index);
+}
+
+int MissionRouteCache::safePointCount() const
+{
+	return safePointsReady() ? _safe_point.read_stats.num_items : 0;
+}
+
+bool MissionRouteCache::loadSafePointItem(int index, mission_item_s &safe_point_item) const
+{
+	return safePointsReady()
+	       && index >= 0 && index < _safe_point.read_stats.num_items
+	       && _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_safe_point.read_stats.dataman_id), index,
+			       reinterpret_cast<uint8_t *>(&safe_point_item), sizeof(safe_point_item),
+			       kCacheOnlyLoadWait);
+}
+
+bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_item) const
+{
+	if (!missionLandItemReady()) {
+		return false;
+	}
+
+	mission_item_s cached_land_item;
+
+	if (!_dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id), _mission_land.index,
+					       reinterpret_cast<uint8_t *>(&cached_land_item), sizeof(cached_land_item),
+					       kCacheOnlyLoadWait)) {
+		return false;
+	}
+
+	if (!mission_route::isLandingCmd(cached_land_item.nav_cmd)) {
+		return false;
+	}
+
+	index = _mission_land.index;
+	land_item = cached_land_item;
+	return true;
+}
+
+bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const
+{
+	const mission_item_s *item = missionItemsReady(mission) ? missionItem(index) : nullptr;
+
+	if (item == nullptr) {
+		return false;
+	}
+
+	mission_item = *item;
+	return true;
+}
+
+void MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
+{
+	_full_mission_cache.syncMissionItem(mission, index, mission_item);
+}
+
+void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
+{
+	MissionLandState &state = _mission_land;
+	const hrt_abstime now = hrt_absolute_time();
+	// Trust the published land_index, no mission rescanning.
+	const bool valid_dataman_id = mission_route::isMissionDatamanIdValid(mission.mission_dataman_id);
+	const bool valid_land_index = mission.land_index >= 0 && mission.land_index < mission.count;
+	const int32_t land_index = (valid_dataman_id && valid_land_index) ? mission.land_index : -1;
+
+	if (!missionLandMatchesCache(mission) || land_index != state.index) {
+		state = {};
+		state.mission_id = mission.mission_id;
+		state.dataman_id = mission.mission_dataman_id;
+		state.index = land_index;
+		state.count = mission.count;
+		_dataman_cache_land_item.invalidate();
+
+		if (valid_land_index && !valid_dataman_id) {
+			PX4_ERR("Land cache: bad dataman id");
+		}
+
+		if (state.index >= 0 && !queueMissionLandItem()) {
+			state.retry.scheduleRetry(now);
+		}
+	}
+
+	_dataman_cache_land_item.update();
+
+	if (state.index < 0 || state.ready) {
+		return;
+	}
+
+	if (!state.retry.scheduled()) {
+		if (_dataman_cache_land_item.isLoading()) {
+			return;
+		}
+
+		if (missionLandItemCacheFullyLoaded()) {
+			state.ready = true;
+			state.retry.clear();
+
+		} else {
+			PX4_WARN("Land cache retry");
+			_dataman_cache_land_item.invalidate();
+			state.retry.scheduleRetry(now);
+		}
+
+	} else if (state.retry.due(now)) {
+		_dataman_cache_land_item.invalidate();
+
+		if (queueMissionLandItem()) {
+			state.retry.retry_at = 0;
+
+		} else {
+			state.retry.scheduleRetry(now);
+		}
+	}
+}
+
+bool MissionRouteCache::queueMissionLandItem()
+{
+	if (_dataman_cache_land_item.load(static_cast<dm_item_t>(_mission_land.dataman_id), _mission_land.index)) {
+		return true;
+	}
+
+	PX4_WARN("Land cache retry");
+	return false;
+}
+
+void MissionRouteCache::updateSafePointCache(const mission_s &mission)
+{
+	SafePointState &state = _safe_point;
+	bool success = false;
+
+	if (mission.safe_points_id != state.source_id || mission.safepoint_dataman_id != state.source_dataman_id) {
+		// A new safe-point source makes any in-flight read and cached items stale.
+		state.source_id = mission.safe_points_id;
+		state.source_dataman_id = mission.safepoint_dataman_id;
+		resetSafePointCacheState();
+	}
+
+	switch (state.dataman_state) {
+	case SafePointDatamanState::kUpdateRequestWait:
+
+		// Only a reset clears ready, so read_stats never changes while the cache is ready.
+		if (!state.ready && hrt_absolute_time() >= state.retry.retry_at) {
+			state.dataman_state = SafePointDatamanState::kRead;
+		}
+
+		break;
+
+	case SafePointDatamanState::kRead:
+		state.read_stats = {};
+		state.dataman_state = SafePointDatamanState::kReadWait;
+		success = _dataman_client_safepoint.readAsync(DM_KEY_SAFE_POINTS_STATE, 0,
+				reinterpret_cast<uint8_t *>(&state.read_stats), sizeof(mission_stats_entry_s));
+
+		if (!success) {
+			state.dataman_state = SafePointDatamanState::kError;
+		}
+
+		break;
+
+	case SafePointDatamanState::kReadWait:
+		_dataman_client_safepoint.update();
+
+		if (!_dataman_client_safepoint.lastOperationCompleted(success)) {
+			break;
+		}
+
+		if (!success) {
+			state.dataman_state = SafePointDatamanState::kError;
+			break;
+		}
+
+		if (!(state.read_stats.num_items <= DM_KEY_SAFE_POINTS_MAX
+		      && state.read_stats.opaque_id == state.source_id
+		      && (state.read_stats.num_items == 0
+			  || (state.read_stats.dataman_id == state.source_dataman_id
+			      && (state.read_stats.dataman_id == DM_KEY_SAFE_POINTS_0
+				  || state.read_stats.dataman_id == DM_KEY_SAFE_POINTS_1))))) {
+			PX4_ERR("Safe point cache metadata invalid");
+			state.dataman_state = SafePointDatamanState::kError;
+			break;
+		}
+
+		// Rebuild the RAM cache from the new read state.
+		_dataman_cache_safepoint.invalidate();
+
+		if (_dataman_cache_safepoint.size() != state.read_stats.num_items) {
+			_dataman_cache_safepoint.resize(state.read_stats.num_items);
+		}
+
+		if (_dataman_cache_safepoint.size() != state.read_stats.num_items) {
+			state.dataman_state = SafePointDatamanState::kError;
+			break;
+		}
+
+		for (int index = 0; index < state.read_stats.num_items; ++index) {
+			if (!_dataman_cache_safepoint.load(static_cast<dm_item_t>(state.read_stats.dataman_id), index)) {
+				state.dataman_state = SafePointDatamanState::kError;
+				break;
+			}
+		}
+
+		if (state.dataman_state == SafePointDatamanState::kError) {
+			break;
+		}
+
+		if (state.read_stats.num_items > 0) {
+			state.dataman_state = SafePointDatamanState::kLoad;
+
+		} else {
+			// Zero safe points is still a valid ready state.
+			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
+			state.ready = true;
+			state.retry.clear();
+		}
+
+		break;
+
+	case SafePointDatamanState::kLoad:
+		_dataman_cache_safepoint.update();
+
+		if (_dataman_cache_safepoint.isLoading()) {
+			break;
+		}
+
+		if (safePointCacheFullyLoaded()) {
+			state.dataman_state = SafePointDatamanState::kUpdateRequestWait;
+			state.ready = true;
+			state.retry.clear();
+
+		} else {
+			state.dataman_state = SafePointDatamanState::kError;
+		}
+
+		break;
+
+	case SafePointDatamanState::kError: {
+			// resetSafePointCacheState() clears the backoff, so save it first.
+			const mission_route::CacheRetryBackoff retry = state.retry;
+			PX4_WARN("Safe point cache retry");
+			resetSafePointCacheState();
+			state.retry = retry;
+			state.retry.scheduleRetry(hrt_absolute_time());
+
+			break;
+		}
+	}
+}
+
+bool MissionRouteCache::missionLandMatchesCache(const mission_s &mission) const
+{
+	return _mission_land.mission_id == mission.mission_id
+	       && _mission_land.count == mission.count
+	       && _mission_land.dataman_id == mission.mission_dataman_id;
+}

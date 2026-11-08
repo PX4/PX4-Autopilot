@@ -135,7 +135,7 @@ bool PrecLandTask::updateMissionSetpoint()
 	navigator_mission_item_s navigator_mission_item{};
 
 	// The live triplet is rewritten by precland once the task starts, while navigator_mission_item
-	// keeps publishing the logical land item selected by mission or RTL. Prefer that stable source
+	// keeps publishing the logical land item selected by mission or Return. Prefer that stable source
 	// and keep the triplet as a fallback for paths that do not publish navigator mission items.
 	if (_navigator_mission_item_sub.copy(&navigator_mission_item) && cacheMissionSetpoint(navigator_mission_item)) {
 		return true;

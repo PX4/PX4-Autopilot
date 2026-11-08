@@ -34,7 +34,7 @@
  * @file mission_block.h
  *
  * Base class for Mission class and special flight modes like
- * RTL, Land, Loiter, Takeoff, Geofence, etc.
+ * Return, Land, Loiter, Takeoff, Geofence, etc.
  *
  * @author Julian Oes <julian@oes.ch>
  */
@@ -122,6 +122,11 @@ public:
 	void updateFailsafeChecks() override;
 
 protected:
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	/** Steer the current takeoff setpoint onto the landing target when precision takeoff is enabled */
+	void update_precision_takeoff(const hrt_abstime now);
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	/**
 	 * @brief heading mode for setting navigation items
 	 *
@@ -154,13 +159,18 @@ protected:
 	 */
 	bool mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp);
 
-	void setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *item);
+	void setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item, const position_setpoint_s &reference_setpoint);
 
-	void setLoiterItemFromCurrentPosition(struct mission_item_s *item);
+	void setLoiterItemFromCurrentPosition(struct mission_item_s &item);
 	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
 	void setLoiterFromLastLink(struct mission_item_s *item);
 
 	void setLoiterItemCommonFields(struct mission_item_s *item);
+
+	/**
+	 * Publish a setpoint that holds a course (ground track) at an altitude, without a position target
+	 */
+	void publishCourseHoldSetpoint(float course_rad, float altitude_amsl);
 
 	/**
 	 * Set a takeoff mission item
@@ -221,6 +231,7 @@ protected:
 	bool _waypoint_yaw_reached{false};
 
 	hrt_abstime _time_wp_reached{0};
+	hrt_abstime _time_item_started{0}; ///< first reached check of the current item, i.e. when its heading got commanded
 
 	// Mission items that have a timeout to allow the payload e.g. gripper, winch, gimbal executing the command see item_has_timeout()
 	hrt_abstime _timestamp_command_timeout{0}; ///< Timestamp when the current item_has_timeout() command was started

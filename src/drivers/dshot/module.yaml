@@ -28,7 +28,7 @@ parameters:
             unit: norm
             min: 0
             max: 1
-            decimal: 2
+            decimal: 3
             increment: 0.01
             default: 0.055
         DSHOT_3D_ENABLE:

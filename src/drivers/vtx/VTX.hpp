@@ -95,7 +95,8 @@ private:
 		(ParamInt<px4::params::VTX_POWER>) _param_vtx_power,
 		(ParamBool<px4::params::VTX_PIT_MODE>) _param_vtx_pit_mode,
 		(ParamInt<px4::params::VTX_MAP_CONFIG>) _param_vtx_map_config,
-		(ParamInt<px4::params::VTX_DEVICE>) _param_vtx_device
+		(ParamInt<px4::params::VTX_DEVICE>) _param_vtx_device,
+		(ParamInt<px4::params::VTX_PROTOCOL>) _param_vtx_protocol
 	);
 
 	perf_counter_t _perf_cycle;

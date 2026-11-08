@@ -3,7 +3,7 @@
 本节包含关于将PX4与新型自动驾驶仪和外围硬件集成的主题，包括：
 
 - [飞控参考设计](../hardware/reference_design.md)
-- [制造商主板支持指南](../hardware/board_support_guide.md)
+- [Manufacturers](../hardware/manufacturers.md) - board support guide and developer kit program
 - [飞控移植指南](../hardware/porting_guide.md)
 - [串口映射](../hardware/serial_port_mapping.md)
 - [机架](../dev_airframes/index.md)

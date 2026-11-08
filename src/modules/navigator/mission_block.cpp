@@ -68,6 +68,11 @@ MissionBlock::is_mission_item_reached_or_completed()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
+	// The first check after a reset represents when the item and its heading got commanded
+	if (_time_item_started == 0) {
+		_time_item_started = now;
+	}
+
 	// Handle indefinite waypoints and action commands
 	switch (_mission_item.nav_cmd) {
 
@@ -100,6 +105,11 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_CHANGE_SPEED:
 	case NAV_CMD_DO_SET_HOME:
 	case NAV_CMD_RETURN_TO_LAUNCH:
+
+	// Safety net: a DO_JUMP should never reach here as a current item (it is resolved in
+	// loadCurrentMissionItem), but if one ever does, treat it as complete so the navigator
+	// advances instead of hanging on an IDLE setpoint.
+	case NAV_CMD_DO_JUMP:
 
 		return true;
 
@@ -207,8 +217,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-			/* fixed-wing takeoff is reached once the vehicle has exceeded the takeoff altitude */
-			if (_navigator->get_global_position()->alt > mission_item_altitude_amsl) {
+			/* fixed-wing takeoff is reached once the mode manager has finished the climbout */
+			if (_navigator->fw_climbout_completed(mission_item_altitude_amsl)) {
 				_waypoint_position_reached = true;
 			}
 
@@ -388,7 +398,11 @@ MissionBlock::is_mission_item_reached_or_completed()
 		}
 	}
 
-	// Update the 'waypoint position reached' status (only for rotary wing flight)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	update_precision_takeoff(now);
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
+	// Update the 'waypoint yaw reached' status, only rotary wings wait for the heading
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -396,20 +410,25 @@ MissionBlock::is_mission_item_reached_or_completed()
 		    && _navigator->get_local_position()->heading_good_for_control) {
 
 			const float yaw_err = wrap_pi(_mission_item.yaw - _navigator->get_local_position()->heading);
+			const bool yaw_timed_out = (_navigator->get_yaw_timeout() >= 0.f) // negative disables the timeout
+						   && (now > _time_item_started + (hrt_abstime)(_navigator->get_yaw_timeout() * 1_s));
 
-			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
+			// Accept yaw if reached, VTOLs only care about forced headings
 			if (fabsf(yaw_err) < _navigator->get_yaw_threshold()
-			    || (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading)) {
+			    || (_navigator->get_vstatus()->is_vtol && !_mission_item.force_heading)) {
 
 				_waypoint_yaw_reached = true;
-			}
 
-			/* if heading needs to be reached, the timeout is enabled and we don't make it, abort mission */
-			if (!_waypoint_yaw_reached && _mission_item.force_heading &&
-			    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
-			    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
+			} else if (yaw_timed_out) {
+				if (!_mission_item.force_heading) {
+					// Never get stuck, e.g. when yaw authority is lost
+					_waypoint_yaw_reached = true;
 
-				_navigator->set_mission_failure_heading_timeout();
+				} else if (_navigator->get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+					// What follows relies on a forced heading (e.g. VTOL forward transition), abort the mission.
+					// Other modes keep waiting, no failsafe acts on a mission failure there.
+					_navigator->set_mission_failure_heading_timeout();
+				}
 			}
 
 		} else {
@@ -517,6 +536,7 @@ MissionBlock::reset_mission_item_reached()
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
 	_time_wp_reached = 0;
+	_time_item_started = 0;
 }
 
 void
@@ -615,6 +635,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
 	sp->yaw = item.yaw;
+	sp->course = NAN; // mission items never command a course, only Course mode sets it
 	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
 			    _navigator->get_default_loiter_rad();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
@@ -698,27 +719,26 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 }
 
 void
-MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *item)
+MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item,
+		const position_setpoint_s &reference_setpoint)
 {
-	setLoiterItemCommonFields(item);
+	setLoiterItemCommonFields(&item);
 
-	const position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	item->lat = pos_sp_triplet->current.lat;
-	item->lon = pos_sp_triplet->current.lon;
-	item->altitude = pos_sp_triplet->current.alt;
-	item->loiter_radius = pos_sp_triplet->current.loiter_direction_counter_clockwise ?
-			      -pos_sp_triplet->current.loiter_radius : pos_sp_triplet->current.loiter_radius;
-	item->yaw = pos_sp_triplet->current.yaw;
+	item.lat = reference_setpoint.lat;
+	item.lon = reference_setpoint.lon;
+	item.altitude = reference_setpoint.alt;
+	item.loiter_radius = reference_setpoint.loiter_direction_counter_clockwise ?
+			     -reference_setpoint.loiter_radius : reference_setpoint.loiter_radius;
+	item.yaw = reference_setpoint.yaw;
 }
 
 void
-MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
+MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s &item)
 {
-	setLoiterItemCommonFields(item);
+	setLoiterItemCommonFields(&item);
 
-	item->lat = _navigator->get_global_position()->lat;
-	item->lon = _navigator->get_global_position()->lon;
+	item.lat = _navigator->get_global_position()->lat;
+	item.lon = _navigator->get_global_position()->lon;
 
 	// check if minimum loiter altitude is specified, and enforce it if so
 	float loiter_altitude_amsl = _navigator->get_global_position()->alt;
@@ -728,9 +748,9 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 						 _navigator->get_home_position()->alt + _navigator->get_loiter_min_alt());
 	}
 
-	item->altitude = loiter_altitude_amsl;
-	item->loiter_radius = _navigator->get_default_loiter_rad();
-	item->yaw = NAN;
+	item.altitude = loiter_altitude_amsl;
+	item.loiter_radius = _navigator->get_default_loiter_rad();
+	item.yaw = NAN;
 }
 
 void
@@ -795,6 +815,43 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
+}
+
+void
+MissionBlock::publishCourseHoldSetpoint(const float course_rad, const float altitude_amsl)
+{
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	pos_sp_triplet->previous.valid = false;
+
+	pos_sp_triplet->current.valid = true;
+	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+	pos_sp_triplet->current.alt = altitude_amsl;
+
+	// lat/lon are not used for course guidance but FixedWingModeManager::set_control_mode_current() requires
+	// PX4_ISFINITE(lat) && PX4_ISFINITE(lon) to classify the setpoint as valid and enter FW_POSCTRL_MODE_AUTO.
+	// Use current position if available (including during dead-reckoning), otherwise dummy values.
+	if (_navigator->get_local_position()->xy_global) {
+		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
+		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+
+	} else {
+		pos_sp_triplet->current.lat = 0.0;
+		pos_sp_triplet->current.lon = 0.0;
+	}
+
+	pos_sp_triplet->current.yaw = NAN;
+	pos_sp_triplet->current.course = course_rad;
+
+	pos_sp_triplet->current.cruising_speed = _navigator->get_cruising_speed();
+	pos_sp_triplet->current.cruising_throttle = NAN;
+	pos_sp_triplet->current.loiter_radius = NAN;
+	pos_sp_triplet->current.acceptance_radius = _navigator->get_acceptance_radius();
+	pos_sp_triplet->current.timestamp = hrt_absolute_time();
+
+	pos_sp_triplet->next.valid = false;
+
+	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
@@ -1065,10 +1122,43 @@ void MissionBlock::updateMaxHaglFailsafe()
 		_navigator->trigger_hagl_failsafe(getNavigatorStateId());
 
 		// While waiting for a failsafe action from commander, keep the curren position
-		setLoiterItemFromCurrentPosition(&_mission_item);
+		setLoiterItemFromCurrentPosition(_mission_item);
 
 		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
 
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+void
+MissionBlock::update_precision_takeoff(const hrt_abstime now)
+{
+	PrecTakeoff *prec_takeoff = _navigator->get_prec_takeoff();
+
+	if (!prec_takeoff->enabled()) {
+		return;
+	}
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	// Vertical takeoffs only
+	const bool takeoff_item = _mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF;
+	const bool vertical_takeoff = takeoff_item
+				      && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+				      && pos_sp_triplet->current.valid
+				      && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
+	if (!vertical_takeoff) {
+		return;
+	}
+
+	if (prec_takeoff->run(*_navigator->get_local_position(), pos_sp_triplet->current, _waypoint_position_reached, now)) {
+		// Preserve the corrected position when the setpoint is rebuilt, e.g. for VTOL heading alignment.
+		_mission_item.lat = pos_sp_triplet->current.lat;
+		_mission_item.lon = pos_sp_triplet->current.lon;
+
+		_navigator->set_position_setpoint_triplet_updated();
+	}
+}
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR

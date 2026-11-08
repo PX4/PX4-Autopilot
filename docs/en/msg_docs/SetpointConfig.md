@@ -26,25 +26,25 @@ Published by external modes and PX4 will respond with SetpointConfigReply.
 
 Used in field(s): [type](#fld_type)
 
-| Name                                                                                  | Type     | Value | Description                                                |
-| ------------------------------------------------------------------------------------- | -------- | ----- | ---------------------------------------------------------- |
+| Name                                                                                  | Type     | Value | Description                                                    |
+| ------------------------------------------------------------------------------------- | -------- | ----- | -------------------------------------------------------------- |
 | <a id="#TYPE_INVALID"></a> TYPE_INVALID                                               | `uint16` | 0     |
-| <a id="#TYPE_DIRECT_ACTUATORS"></a> TYPE_DIRECT_ACTUATORS                             | `uint16` | 1     | ActuatorMotors and ActuatorServos                          |
-| <a id="#TYPE_MULTICOPTER_GOTO"></a> TYPE_MULTICOPTER_GOTO                             | `uint16` | 2     | GotoSetpoint                                               |
-| <a id="#TYPE_FIXEDWING_LATERAL_LONGITUDINAL"></a> TYPE_FIXEDWING_LATERAL_LONGITUDINAL | `uint16` | 3     | FixedWingLateralSetpoint and FixedWingLongitudinalSetpoint |
-| <a id="#TYPE_TRAJECTORY"></a> TYPE_TRAJECTORY                                         | `uint16` | 4     | TrajectorySetpoint                                         |
-| <a id="#TYPE_RATES"></a> TYPE_RATES                                                   | `uint16` | 5     | VehicleRatesSetpoint                                       |
-| <a id="#TYPE_ATTITUDE"></a> TYPE_ATTITUDE                                             | `uint16` | 6     | VehicleAttitudeSetpoint                                    |
-| <a id="#TYPE_ROVER_POSITION"></a> TYPE_ROVER_POSITION                                 | `uint16` | 7     | RoverPositionSetpoint                                      |
-| <a id="#TYPE_ROVER_SPEED_ATTITUDE"></a> TYPE_ROVER_SPEED_ATTITUDE                     | `uint16` | 8     | RoverSpeedSetpoint and RoverAttitudeSetpoint               |
-| <a id="#TYPE_ROVER_SPEED_RATE"></a> TYPE_ROVER_SPEED_RATE                             | `uint16` | 9     | RoverSpeedSetpoint and RoverRateSetpoint                   |
-| <a id="#TYPE_ROVER_SPEED_STEERING"></a> TYPE_ROVER_SPEED_STEERING                     | `uint16` | 10    | RoverSpeedSetpoint and RoverSteeringSetpoint               |
-| <a id="#TYPE_ROVER_THROTTLE_ATTITUDE"></a> TYPE_ROVER_THROTTLE_ATTITUDE               | `uint16` | 11    | RoverThrottleSetpoint and RoverAttitudeSetpoint            |
-| <a id="#TYPE_ROVER_THROTTLE_RATE"></a> TYPE_ROVER_THROTTLE_RATE                       | `uint16` | 12    | RoverThrottleSetpoint and RoverRateSetpoint                |
-| <a id="#TYPE_ROVER_THROTTLE_STEERING"></a> TYPE_ROVER_THROTTLE_STEERING               | `uint16` | 13    | RoverThrottleSetpoint and RoverSteeringSetpoint            |
-| <a id="#TYPE_TRAJECTORY_6DOF"></a> TYPE_TRAJECTORY_6DOF                               | `uint16` | 14    | TrajectorySetpoint6dof                                     |
-| <a id="#TYPE_THRUST_AND_TORQUE"></a> TYPE_THRUST_AND_TORQUE                           | `uint16` | 15    | VehicleThrustSetpoint and VehicleTorqueSetpoint            |
-| <a id="#TYPE_POSITION_TRIPLET"></a> TYPE_POSITION_TRIPLET                             | `uint16` | 16    | PositionSetpointTriplet                                    |
+| <a id="#TYPE_DIRECT_ACTUATORS"></a> TYPE_DIRECT_ACTUATORS                             | `uint16` | 1     | ActuatorMotors and ActuatorServos                              |
+| <a id="#TYPE_MULTICOPTER_GOTO"></a> TYPE_MULTICOPTER_GOTO                             | `uint16` | 2     | GotoSetpoint                                                   |
+| <a id="#TYPE_FIXEDWING_LATERAL_LONGITUDINAL"></a> TYPE_FIXEDWING_LATERAL_LONGITUDINAL | `uint16` | 3     | FixedWingLateralSetpoint and FixedWingLongitudinalSetpoint     |
+| <a id="#TYPE_TRAJECTORY"></a> TYPE_TRAJECTORY                                         | `uint16` | 4     | TrajectorySetpoint                                             |
+| <a id="#TYPE_RATES"></a> TYPE_RATES                                                   | `uint16` | 5     | VehicleRatesSetpoint                                           |
+| <a id="#TYPE_ATTITUDE"></a> TYPE_ATTITUDE                                             | `uint16` | 6     | VehicleAttitudeSetpoint                                        |
+| <a id="#TYPE_SURFACE_VEHICLE_POSITION"></a> TYPE_SURFACE_VEHICLE_POSITION             | `uint16` | 7     | SurfaceVehiclePositionSetpoint                                 |
+| <a id="#TYPE_SURFACE_VEHICLE_SPEED_ATTITUDE"></a> TYPE_SURFACE_VEHICLE_SPEED_ATTITUDE | `uint16` | 8     | SurfaceVehicleSpeedSetpoint and SurfaceVehicleAttitudeSetpoint |
+| <a id="#TYPE_SURFACE_VEHICLE_SPEED_RATE"></a> TYPE_SURFACE_VEHICLE_SPEED_RATE         | `uint16` | 9     | SurfaceVehicleSpeedSetpoint and SurfaceVehicleRateSetpoint     |
+| <a id="#TYPE_SURFACE_VEHICLE_SPEED_STEERING"></a> TYPE_SURFACE_VEHICLE_SPEED_STEERING | `uint16` | 10    | SurfaceVehicleSpeedSetpoint and SurfaceVehicleSteeringSetpoint |
+| <a id="#TYPE_ROVER_THROTTLE_ATTITUDE"></a> TYPE_ROVER_THROTTLE_ATTITUDE               | `uint16` | 11    | RoverThrottleSetpoint and SurfaceVehicleAttitudeSetpoint       |
+| <a id="#TYPE_ROVER_THROTTLE_RATE"></a> TYPE_ROVER_THROTTLE_RATE                       | `uint16` | 12    | RoverThrottleSetpoint and SurfaceVehicleRateSetpoint           |
+| <a id="#TYPE_ROVER_THROTTLE_STEERING"></a> TYPE_ROVER_THROTTLE_STEERING               | `uint16` | 13    | RoverThrottleSetpoint and SurfaceVehicleSteeringSetpoint       |
+| <a id="#TYPE_TRAJECTORY_6DOF"></a> TYPE_TRAJECTORY_6DOF                               | `uint16` | 14    | TrajectorySetpoint6dof                                         |
+| <a id="#TYPE_THRUST_AND_TORQUE"></a> TYPE_THRUST_AND_TORQUE                           | `uint16` | 15    | VehicleThrustSetpoint and VehicleTorqueSetpoint                |
+| <a id="#TYPE_POSITION_TRIPLET"></a> TYPE_POSITION_TRIPLET                             | `uint16` | 16    | PositionSetpointTriplet                                        |
 
 ## Constants
 
@@ -74,13 +74,13 @@ uint16 TYPE_FIXEDWING_LATERAL_LONGITUDINAL = 3 # FixedWingLateralSetpoint and Fi
 uint16 TYPE_TRAJECTORY = 4 # TrajectorySetpoint
 uint16 TYPE_RATES = 5 # VehicleRatesSetpoint
 uint16 TYPE_ATTITUDE = 6 # VehicleAttitudeSetpoint
-uint16 TYPE_ROVER_POSITION = 7 # RoverPositionSetpoint
-uint16 TYPE_ROVER_SPEED_ATTITUDE = 8 # RoverSpeedSetpoint and RoverAttitudeSetpoint
-uint16 TYPE_ROVER_SPEED_RATE = 9 # RoverSpeedSetpoint and RoverRateSetpoint
-uint16 TYPE_ROVER_SPEED_STEERING = 10 # RoverSpeedSetpoint and RoverSteeringSetpoint
-uint16 TYPE_ROVER_THROTTLE_ATTITUDE = 11 # RoverThrottleSetpoint and RoverAttitudeSetpoint
-uint16 TYPE_ROVER_THROTTLE_RATE = 12 # RoverThrottleSetpoint and RoverRateSetpoint
-uint16 TYPE_ROVER_THROTTLE_STEERING = 13 # RoverThrottleSetpoint and RoverSteeringSetpoint
+uint16 TYPE_SURFACE_VEHICLE_POSITION = 7 # SurfaceVehiclePositionSetpoint
+uint16 TYPE_SURFACE_VEHICLE_SPEED_ATTITUDE = 8 # SurfaceVehicleSpeedSetpoint and SurfaceVehicleAttitudeSetpoint
+uint16 TYPE_SURFACE_VEHICLE_SPEED_RATE = 9 # SurfaceVehicleSpeedSetpoint and SurfaceVehicleRateSetpoint
+uint16 TYPE_SURFACE_VEHICLE_SPEED_STEERING = 10 # SurfaceVehicleSpeedSetpoint and SurfaceVehicleSteeringSetpoint
+uint16 TYPE_ROVER_THROTTLE_ATTITUDE = 11 # RoverThrottleSetpoint and SurfaceVehicleAttitudeSetpoint
+uint16 TYPE_ROVER_THROTTLE_RATE = 12 # RoverThrottleSetpoint and SurfaceVehicleRateSetpoint
+uint16 TYPE_ROVER_THROTTLE_STEERING = 13 # RoverThrottleSetpoint and SurfaceVehicleSteeringSetpoint
 uint16 TYPE_TRAJECTORY_6DOF = 14 # TrajectorySetpoint6dof
 uint16 TYPE_THRUST_AND_TORQUE = 15 # VehicleThrustSetpoint and VehicleTorqueSetpoint
 uint16 TYPE_POSITION_TRIPLET = 16 # PositionSetpointTriplet

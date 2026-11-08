@@ -78,6 +78,11 @@ typedef enum argus_snm_mode_t {
 	 *  Adopts the system performance dynamically to the current ambient conditions. */
 	SNM_MODE_DYNAMIC = 2U,
 
+	/*! Dynamic Plus Shot Noise Monitoring Mode.
+	 *  Adopts the system performance dynamically to the current ambient conditions
+	 *  with reference based on Uncorrelated Noise figure. */
+	SNM_MODE_DYNAMIC_PLUS = 3U,
+
 } argus_snm_mode_t;
 
 

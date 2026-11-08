@@ -50,7 +50,9 @@ float calcTargetBearing(pure_pursuit_status_s &pure_pursuit_status, const float 
 	const Vector2f prev_wp_to_curr_wp = curr_wp_ned - prev_wp_ned;
 	const Vector2f prev_wp_to_curr_pos = curr_pos_ned - prev_wp_ned;
 	const Vector2f prev_wp_to_curr_wp_u = prev_wp_to_curr_wp.unit_or_zero();
-	const Vector2f position_along_path = (prev_wp_to_curr_pos * prev_wp_to_curr_wp_u) *
+	const float distance_along_path = prev_wp_to_curr_pos *
+					  prev_wp_to_curr_wp_u; // Signed distance of the current position along the path, from the previous waypoint
+	const Vector2f position_along_path = distance_along_path *
 					     prev_wp_to_curr_wp_u; // Projection of prev_wp_to_curr_pos onto prev_wp_to_curr_wp
 	const Vector2f curr_pos_to_path = position_along_path -
 					  prev_wp_to_curr_pos; // Shortest vector from the current position to the path
@@ -60,8 +62,11 @@ float calcTargetBearing(pure_pursuit_status_s &pure_pursuit_status, const float 
 	float target_bearing{NAN};
 
 	if (curr_pos_to_curr_wp.norm() < lookahead_distance
-	    || prev_wp_to_curr_wp.norm() <
-	    FLT_EPSILON) { // Target current waypoint if closer to it than lookahead or waypoints overlap
+	    || prev_wp_to_curr_wp.norm() < FLT_EPSILON
+	    || distance_along_path > prev_wp_to_curr_wp.norm()) {
+		// Target current waypoint if closer to it than lookahead, if the waypoints overlap, or if the vehicle has passed
+		// the current waypoint: the lookahead intersection would otherwise lie on the extension of the path beyond it
+		// and lead the vehicle further away
 		target_bearing = bearing_to_curr_waypoint;
 
 	} else if (fabsf(crosstrack_error) >

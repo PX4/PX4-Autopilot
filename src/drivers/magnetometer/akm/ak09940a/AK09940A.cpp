@@ -59,7 +59,7 @@ static constexpr int32_t combine(uint8_t hh, uint8_t hm,  uint8_t hl)
 AK09940A::AK09940A(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 {
 }
 
@@ -292,6 +292,7 @@ bool AK09940A::Configure()
 
 	// mag resolution is 1.0e-4 Gauss per bit (10 nT/LSB)
 	_px4_mag.set_scale(1.0e-4f);
+	_px4_mag.set_range(microTesla2Gauss(1200.f));
 
 	return success;
 }

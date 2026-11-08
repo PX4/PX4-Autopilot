@@ -4,10 +4,10 @@
 
 Режим польоту _Return_ використовується для _повернення транспортного засобу до безпеки_ по вільному шляху до безпечного пункту призначення, де він може приземлитися.
 
-Літаки з фіксованим крилом за замовчуванням використовують тип повернення до призначення [місії посадки/точка збору](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1), і завжди передбачається, що у них буде завдання з шаблоном посадки.
+Fixed-wing vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#rtl_type_1) return type by default, and are expected to always have a mission with a landing pattern.
 З цією конфігурацією режим повернення зумовлює підняття транспортного засобу на мінімальну безпечну висоту над перешкодами (якщо потрібно), польот до початку схеми посадки, визначеної у плані місії, і далі слідує за нею для посадки.
 
-Фіксоване крило підтримує [інші типи повернення PX4](../flight_modes/return.md#return-types-rtl-type), включаючи повернення додому/радільної точки, маршрут місії та найближче безпечне місце призначення.
+Fixed-wing supports the [other PX4 return types](../flight_modes/return.md#return_types), including home/rally point return, mission path and closest safe destination.
 За замовчуванням рекомендується використовувати цей тип.
 
 ::: info
@@ -33,7 +33,8 @@
 - Піднімається на безпечну мінімальну висоту повернення, визначену за допомогою [RTL_RETURN_ALT](#RTL_RETURN_ALT) (безпечно вище будь-яких очікуваних перешкод).
   Транспортний засіб підтримує свою початкову висоту, якщо вона вище, ніж мінімальна висота повернення.
   Зверніть увагу, що висоту повернення не можна налаштувати, використовуючи параметр "cone" в літаках з фіксованим крилом.
-- Летить прямим шляхом на постійній висоті до призначення, яким буде найближча з точки старту місійного маршруту посадки та будь-яка точка збору, або домашня локація, якщо місійний маршрут посадки або точки збору не визначені.
+- Flies via a constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+  The path is chosen to be the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness).
 - Якщо призначення - це шаблон посадки місії, воно буде слідувати за шаблоном для посадки.
 - Якщо місце призначення - це точка ралі або дім, воно спуститься на висоту спуску, а потім обережно почекає або приземлиться (в залежності від параметрів посадки).
 
@@ -46,20 +47,36 @@
 Транспортний засіб може бути змушений приземлитися у пункті призначення, змінивши [RTL_LAND_DELAY](#RTL_LAND_DELAY) так, щоб він не був -1.
 У цьому випадку транспортний засіб приземлиться так само, як [Режим посадки](../flight_modes_fw/land.md).
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_rtl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_global_position_relaxed) — Position measurement updates in a global coordinate frame but accepts poor accuracy
+- [`mode_req_home_position`](../flight_modes/mode_requirements.md#mode_req_home_position) — Global home reference must be set
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_rtl -->
+
 ## Параметри
 
-Параметри RTL перелічені в [Референсі параметрів > Режим повернення](../advanced_config/parameter_reference.md#return-mode).
+The Return parameters are listed in [Parameter Reference > Return Mode](../advanced_config/parameter_reference.md#return-mode).
 Якщо використовується місійна посадка, значення [RTL_RETURN_ALT](#RTL_RETURN_ALT) та [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) є важливими.
 Інші параметри стають актуальними, якщо призначенням є точка збору або домашня локація.
 
-| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                                                                   | Тип повернення.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| <a id="RTL_RETURN_ALT"></a>[RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)                            | Висота повернення в метрах (за замовчуванням: 60 м). Якщо вже знаходиться вище цієї висоти, транспортний засіб повернеться на поточну висоту.                                                                                                                                                                                                                                                                                                                                      |
-| <a id="RTL_DESCEND_ALT"></a>[RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT)                         | Мінімальна висота повернення і висота, на якій повітряне судно сповільнює або зупиняє своє початкове зниження з вищої висоти повернення (за замовчуванням: 30 м)                                                                                                                                                                                                                                                                                                                                                   |
-| <a id="RTL_LAND_DELAY"></a>[RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY)                            | Час очікування на висоті `RTL_DESCEND_ALT` перед посадкою (за замовчуванням: 0.5 с) - за замовчуванням цей період короткий, щоб транспортний засіб просто сповільнився, а потім враз відразу приземлився. Якщо встановлено значення -1, система буде кружляти на висоті `RTL_DESCEND_ALT` замість посадки. Затримка надається для того, щоб ви могли налаштувати час для розгортання шасі для посадки (автоматично спрацьовує). |
-| <a id="RTL_LOITER_RAD"></a>[RTL_LOITER_RAD](../advanced_config/parameter_reference.md#RTL_LOITER_RAD)                            | [Тільки фіксоване крило] Радіус круга обертання (у значенні [RTL_LAND_DELAY](#RTL_LAND_DELAY)).                                                                                                                                                                                                                                                                                                                      |
-| <a id="MIS_TKO_LAND_REQ"></a>[MIS_TKO_LAND_REQ](../advanced_config/parameter_reference.md#MIS_TKO_LAND_REQ) | Вкажіть, чи потрібна місія для посадки або злітної траєкторії необхідна. Фіксовані крила, як правило, потребують цього.                                                                                                                                                                                                                                                                                                                                                                                               |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                                                                   | Тип повернення.                                                                                                                                                                                                                                                                                                                                                                                       |
+| <a id="RTL_RETURN_ALT"></a>[RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)                            | Висота повернення в метрах (за замовчуванням: 60 м). Якщо вже знаходиться вище цієї висоти, транспортний засіб повернеться на поточну висоту.                                                                                                                                                                                                      |
+| <a id="RTL_DESCEND_ALT"></a>[RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT)                         | Мінімальна висота повернення і висота, на якій повітряне судно сповільнює або зупиняє своє початкове зниження з вищої висоти повернення (за замовчуванням: 30 м)                                                                                                                                                                                                                   |
+| <a id="RTL_LAND_DELAY"></a>[RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY)                            | Time to loiter at `RTL_DESCEND_ALT` before landing (default: -1 on fixed-wing airframes). Якщо встановлено значення -1, система буде кружляти на висоті `RTL_DESCEND_ALT` замість посадки. Затримка надається для того, щоб ви могли налаштувати час для розгортання шасі для посадки (автоматично спрацьовує). |
+| <a id="RTL_LOITER_RAD"></a>[RTL_LOITER_RAD](../advanced_config/parameter_reference.md#RTL_LOITER_RAD)                            | [Тільки фіксоване крило] Радіус круга обертання (у значенні [RTL_LAND_DELAY](#RTL_LAND_DELAY)).                                                                                                                                                                                      |
+| <a id="MIS_TKO_LAND_REQ"></a>[MIS_TKO_LAND_REQ](../advanced_config/parameter_reference.md#MIS_TKO_LAND_REQ) | Вкажіть, чи потрібна місія для посадки або злітної траєкторії необхідна. Фіксовані крила, як правило, потребують цього.                                                                                                                                                                                                                                                               |
 
 ## Дивіться також
 

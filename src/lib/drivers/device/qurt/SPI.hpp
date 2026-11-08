@@ -64,7 +64,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on SPI
  */
-class __EXPORT SPI : public CDev
+class __EXPORT SPI : public Device
 {
 public:
 	typedef int (*_config_spi_bus_func_t)();
@@ -189,9 +189,6 @@ protected:
 	 * error.
 	 */
 	uint8_t		_retries{0};
-
-	// bool	external() { return px4_spi_bus_external(get_device_bus()); }
-	// bool	external() { return false; }
 
 };
 

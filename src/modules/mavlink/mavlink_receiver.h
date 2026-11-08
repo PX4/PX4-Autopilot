@@ -56,7 +56,13 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+#include <lib/open_drone_id/odid_bid_storage.hpp>
+#endif
 #include <lib/systemlib/mavlink_log.h>
+
+#include <lib/failure_injection/FailureInjection.hpp>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -80,7 +86,8 @@
 #include <uORB/topics/gimbal_manager_set_manual_control.h>
 #include <uORB/topics/gimbal_device_information.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
-#include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/rtcm_data.h>
+#include <uORB/topics/external_gimbal_manager_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/irlock_report.h>
@@ -100,7 +107,7 @@
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -156,7 +163,7 @@ public:
 	void start();
 	void stop();
 
-	bool component_was_seen(int system_id, int component_id);
+	bool component_was_seen(uint32_t system_id, int component_id);
 	void enable_message_statistics() { _message_statistics_enabled = true; }
 	void print_detailed_rx_stats() const;
 
@@ -166,14 +173,13 @@ private:
 	static void *start_trampoline(void *context);
 	void run();
 
-	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
+	void acknowledge(uint32_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
 
 	/**
-	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
+	 * Common method to handle both mavlink command types, operating on the
+	 * already-normalized vehicle command.
 	 */
-	template<class T>
-	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
-					 const vehicle_command_s &vehicle_command);
+	void handle_message_command_both(mavlink_message_t *msg, const vehicle_command_s &vehicle_command);
 
 	uint8_t handle_request_message_command(uint16_t message_id, float param2 = 0.0f, float param3 = 0.0f,
 					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
@@ -237,6 +243,7 @@ private:
 	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
 	void handle_message_gimbal_device_information(mavlink_message_t *msg);
 	void handle_message_gimbal_device_attitude_status(mavlink_message_t *msg);
+	void handle_message_gimbal_manager_status(mavlink_message_t *msg);
 	void handle_message_global_position_sensor(mavlink_message_t *msg);
 #if defined(MAVLINK_MSG_ID_RANGING_BEACON)
 	void handle_message_ranging_beacon(mavlink_message_t *msg);
@@ -270,7 +277,7 @@ private:
 	int set_message_interval(int msgId, float interval, float param3, float param4, float param7);
 	void get_message_interval(int msgId);
 
-	bool evaluate_target_ok(int command, int target_system, int target_component);
+	bool evaluate_target_ok(int command, uint32_t target_system, int target_component);
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
 
@@ -279,10 +286,28 @@ private:
 	void schedule_tune(const char *tune);
 
 	void update_message_statistics(const mavlink_message_t &message);
-	void update_rx_stats(const mavlink_message_t &message);
+	/**
+	 * @param add_component false to only update components which were already seen
+	 */
+	void update_rx_stats(const mavlink_message_t &message, bool add_component);
+
+	enum class FrameCheck {
+		Incomplete,   ///< no complete frame yet
+		Ok,           ///< valid, handle and forward
+		ForwardOnly,  ///< not in our dialect, can't be handled but can be forwarded
+		BadSignature, ///< signature missing or not valid with our key, drop
+		Invalid,      ///< bad CRC, drop
+	};
+
+	FrameCheck check_frame(uint8_t framing, const mavlink_message_t &message);
+
+	/**
+	 * Reset the parser after a rejected frame, same as mavlink_parse_char() does.
+	 */
+	void reset_parser_after_rejected_frame(uint8_t c);
 
 	void publish_hil_battery();
-	void publish_gps_inject_data(const uint8_t *data, size_t len);
+	void publish_rtcm_corrections(const uint8_t *data, size_t len);
 
 	px4::atomic_bool 	_should_exit{false};
 	pthread_t		_thread {};
@@ -308,12 +333,14 @@ private:
 	struct ComponentState {
 		uint32_t received_messages{0};
 		uint32_t missed_messages{0};
-		uint8_t system_id{0};
+		uint32_t system_id{0};
 		uint8_t component_id{0};
 		uint8_t last_sequence{0};
 	};
 	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
-	unsigned _component_states_count{0};
+	// Written only by the receive thread, after the slot is filled in. Other threads
+	// read it via component_was_seen(), so entries below it are safe to read.
+	px4::atomic<unsigned> _component_states_count{0};
 	bool _warned_component_states_full_once{false};
 
 	bool _message_statistics_enabled {false};
@@ -323,7 +350,7 @@ private:
 		float avg_rate_hz{0.f}; // average rate
 		uint32_t last_time_received_ms{0};
 		uint16_t msg_id{0};
-		uint8_t system_id{0};
+		uint32_t system_id{0};
 		uint8_t component_id{0};
 	};
 	ReceivedMessageStats *_received_msg_stats{nullptr};
@@ -331,6 +358,8 @@ private:
 
 	uint64_t _total_received_counter{0};                            ///< The total number of successfully received messages
 	uint64_t _total_lost_counter{0};                                ///< Total messages lost during transmission.
+	uint32_t _unknown_message_counter{0};                           ///< Messages not in our dialect
+	uint32_t _bad_signature_counter{0};                             ///< Messages with missing or invalid signature
 
 	uint8_t _mavlink_status_last_buffer_overrun{0};
 	uint8_t _mavlink_status_last_parse_error{0};
@@ -347,6 +376,13 @@ private:
 	uORB::Publication<gimbal_manager_set_manual_control_s>	_gimbal_manager_set_manual_control_pub{ORB_ID(gimbal_manager_set_manual_control)};
 	uORB::Publication<gimbal_device_information_s>		_gimbal_device_information_pub{ORB_ID(gimbal_device_information)};
 	uORB::Publication<gimbal_device_attitude_status_s>	_gimbal_device_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
+	uORB::Publication<external_gimbal_manager_status_s>	_external_gimbal_manager_status_pub{ORB_ID(external_gimbal_manager_status)};
+
+	// Component ids known to be external gimbal managers, so we don't treat their
+	// gimbal device information as our own. One bit per component id (0-255).
+	uint32_t _external_gimbal_manager_compid_bits[8] {};
+	void _markExternalGimbalManager(uint8_t compid) { _external_gimbal_manager_compid_bits[compid >> 5] |= (1u << (compid & 31)); }
+	bool _isExternalGimbalManager(uint8_t compid) const { return (_external_gimbal_manager_compid_bits[compid >> 5] & (1u << (compid & 31))) != 0; }
 	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};
@@ -396,13 +432,13 @@ private:
 	// ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<aux_global_position_s>		_aux_global_position_pub{ORB_ID(aux_global_position)};
-	uORB::PublicationMulti<gps_inject_data_s>		_gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	uORB::PublicationMulti<rtcm_data_s>		_rtcm_corrections_pub{ORB_ID(rtcm_corrections)};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc)};
 	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
-	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_s>			_sensor_gnss_pub{ORB_ID(sensor_gnss)};
 	uORB::PublicationMulti<sensor_optical_flow_s>           _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 	gnss::GpsRtcmMessageAssembler				_gps_rtcm_message_assembler {};
 
@@ -410,6 +446,8 @@ private:
 	uORB::Publication<transponder_report_s>  _transponder_report_pub{ORB_ID(transponder_report)};
 	uORB::Publication<vehicle_command_s>     _cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	failure_injection::Config _failure_config;
 
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
@@ -464,6 +502,9 @@ private:
 	hrt_abstime _heartbeat_component_uart_bridge{0};
 
 	DEFINE_PARAMETERS(
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+		(ParamInt<px4::params::ODID_BID_SRC>)      _param_odid_bid_src,
+#endif
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
@@ -471,6 +512,11 @@ private:
 		(ParamFloat<px4::params::BAT1_V_CHARGED>)   _param_bat_v_charged,
 		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty
 	);
+
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
+	open_drone_id::BidLock _odid_bid_lock {};
+	bool _odid_bid_lock_warning_reported{false};
+#endif
 
 	// Disallow copy construction and move assignment.
 	MavlinkReceiver(const MavlinkReceiver &) = delete;

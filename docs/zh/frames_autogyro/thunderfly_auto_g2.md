@@ -6,7 +6,7 @@ Durafly™ Auto-G2 Gyrocopter RC model, with several parts of the original model
 ![Auto-G2](../../assets/airframes/autogyro/auto-g2/autog2_title.jpg)
 
 :::info
-Auto-G2 autogyro’s airframe was originally developed by [ThunderFly](https://www.thunderfly.cz/) and has since evolved into the updated [TF-G2 platform](https://docs.thunderfly.cz/instruments/TF-G2).
+Auto-G2 autogyro’s airframe was originally developed by [ThunderFly](https://www.thunderfly.cz/) and has since evolved into the updated [TF-G2 platform](https://docs.thunderfly.cz/instruments/TF-G2/).
 Check out our site for more information on the current [TF-G2 commercial airframe](https://www.thunderfly.cz/tf-g2.html).
 :::
 
@@ -30,7 +30,7 @@ Modification of the Durafly model are as follows:
 ### 飞控
 
 The aircraft with all of the modifications is already quite heavy.
-Therefore a low-weight flight controller is recommended (e.g. [Holybro pix32](../flight_controller/holybro_pix32.md) or [CUAV nano](../flight_controller/cuav_v5_nano.md)).
+Therefore a low-weight flight controller is recommended.
 
 The autopilot should be mounted on the bottom side of the autogyro on a 3D-printed damping pad.
 We have used the damping platform found on [thingiverse](https://www.thingiverse.com/thing:160655)
@@ -104,7 +104,7 @@ It can be handled, for example, by nulling the engine’s output in the transmit
 
 ### Electronic
 
-- Autopilot ([Holybro pix32](../flight_controller/holybro_pix32.md), [CUAV nano](../flight_controller/cuav_v5_nano.md))
+- Autopilot ([Holybro pix32](../flight_controller/holybro_pix32.md), _CUAV nano_ (discontinued)
 - GPS (GPS Module NEO-6M, with patch antenna)
 - Airspeed sensor ([SDP3x series](https://sensirion.com/products/catalog?categories=differential-pressure&series=SDP3x&page=1&page_size=12))
 - Stronger servos as a substitution for the original ones (optional), ([BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm))

@@ -196,12 +196,6 @@ No Debug port is exposed for the I/O board.
 - [Telemetry Radio Modules](../telemetry/index.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
-## Підтримувані платформи / Конструкції
-
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
-
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Схема розташування виводів
 
 _Durandal_ pinouts are listed below.

@@ -59,11 +59,12 @@ I2CSPIDriverBase *AUAV::instantiate(const I2CSPIDriverConfig &config, const int 
 	return instance;
 }
 
-AUAV::AUAV(const I2CSPIDriverConfig &config) :
+AUAV::AUAV(const I2CSPIDriverConfig &config, const uint8_t status_byte_expected) :
 	I2C(config),
 	I2CSPIDriver(config),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors")),
+	_status_byte_expected(status_byte_expected)
 {
 	I2C::_retries = 5;
 }
@@ -124,8 +125,8 @@ int AUAV::probe()
 		res_data = 0;
 		int status = transfer(nullptr, 0, &res_data, 1);
 
-		/* Check that the sensor is active. Reported in bit 6 of the status byte */
-		if (status == PX4_OK && (res_data & 0x40)) {
+		/* Check that the sensor is powered on, error free and of the expected type (mode bits) */
+		if (status == PX4_OK && res_data == _status_byte_expected) {
 			return PX4_OK;
 		}
 
@@ -201,8 +202,8 @@ void AUAV::handle_state_gather_measurement()
 	uint8_t res_data[7];
 	int status = transfer(nullptr, 0, res_data, sizeof(res_data));
 
-	/* Continue processing if the transfer was a success and bit 5 of the status is set to 0 (indicating the sensor is finished) */
-	if (status == PX4_OK && (res_data[0] & 0x20) == 0) {
+	/* Continue processing if the transfer was a success and the status is as expected (powered on, not busy, no errors) */
+	if (status == PX4_OK && res_data[0] == _status_byte_expected) {
 		const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 		const uint32_t pressure_raw = (res_data[1] << 16) | (res_data[2] << 8) | (res_data[3]);

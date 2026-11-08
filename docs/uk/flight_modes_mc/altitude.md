@@ -39,6 +39,19 @@ RC/manual mode like [Stabilized mode](../flight_modes_mc/manual_stabilized.md) b
   - Курс: Допомога від автопілота для стабілізації швидкості польоту.
     Положення палиці RC відображає швидкість обертання транспортного засобу в цій орієнтації.
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_altctl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_altctl -->
+
 ## Параметри
 
 Режим впливає на наступні параметри:

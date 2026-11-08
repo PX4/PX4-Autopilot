@@ -30,8 +30,10 @@ jobs:
 
       - name: Check PR title
         id: check
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          python3 Tools/ci/check_pr_title.py "${{ github.event.pull_request.title }}" --markdown-file comment.md && rc=0 || rc=$?
+          python3 Tools/ci/check_pr_title.py "$PR_TITLE" --markdown-file comment.md && rc=0 || rc=$?
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
 
       - name: Post or clear comment
@@ -40,6 +42,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ steps.check.outputs.exit_code }}" != "0" ]; then
+            if [ ! -s comment.md ]; then
+              echo "The PR title check failed without producing a report." > comment.md
+            fi
             python3 Tools/ci/pr_comment.py --marker pr-title --pr "$PR_NUMBER" --result fail < comment.md
           else
             python3 Tools/ci/pr_comment.py --marker pr-title --pr "$PR_NUMBER" --result pass
@@ -49,51 +54,6 @@ jobs:
         if: steps.check.outputs.exit_code != '0'
         run: |
           echo "::error::PR title does not follow conventional commits format. See the PR comment for details."
-          exit 1
-
-  commit-messages:
-    name: Commit Messages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          sparse-checkout: Tools/ci
-          fetch-depth: 1
-
-      - name: Check commit messages
-        id: check
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api \
-            "repos/${{ github.repository }}/pulls/${PR_NUMBER}/commits?per_page=100" \
-            | python3 Tools/ci/check_commit_messages.py --markdown-file comment.md && rc=0 || rc=$?
-          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
-          # Check for warnings (non-empty markdown on exit 0)
-          if [ "$rc" -eq 0 ] && [ -s comment.md ]; then
-            echo "has_warnings=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_warnings=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Post or clear comment
-        if: env.IS_FORK == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ "${{ steps.check.outputs.exit_code }}" != "0" ]; then
-            python3 Tools/ci/pr_comment.py --marker commit-msgs --pr "$PR_NUMBER" --result fail < comment.md
-          elif [ "${{ steps.check.outputs.has_warnings }}" == "true" ]; then
-            python3 Tools/ci/pr_comment.py --marker commit-msgs --pr "$PR_NUMBER" --result warn < comment.md
-          else
-            python3 Tools/ci/pr_comment.py --marker commit-msgs --pr "$PR_NUMBER" --result pass
-          fi
-
-      - name: Result
-        if: steps.check.outputs.exit_code != '0'
-        run: |
-          echo "::error::Commit message errors found. See the PR comment for details."
           exit 1
 
   pr-body:

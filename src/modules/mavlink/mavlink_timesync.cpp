@@ -43,6 +43,9 @@
 
 #include <stdlib.h>
 
+#include <lib/parameters/param.h>
+#include <systemlib/system_time_source.h>
+
 MavlinkTimesync::MavlinkTimesync(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
@@ -66,9 +69,8 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				rsync.tc1 = now * 1000ULL;
 				rsync.ts1 = tsync.ts1;
 				rsync.target_component = msg->compid;
-				rsync.target_system = msg->sysid;
 
-				mavlink_msg_timesync_send_struct(_mavlink.get_channel(), &rsync);
+				mavlink_msg_send_struct_target(_mavlink.get_channel(), TIMESYNC, &rsync, msg->sysid);
 
 				return;
 
@@ -94,8 +96,11 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 			time_t remote_time = time.time_unix_usec / 1000000;
 			bool update = (remote_time > PX4_EPOCH_SECS) && (remote_time > local_time + seconds_behind);
 
-			if (update) {
-				PX4_INFO("Setting system clock from SYSTEM_TIME sent by %d/%d", msg->sysid, msg->compid);
+			int32_t sys_time_src = 0;
+			param_get(param_find("SYS_TIME_SRC"), &sys_time_src);
+
+			if (update && (sys_time_src & SYS_TIME_SRC_MAVLINK)) {
+				PX4_INFO("Setting system clock from SYSTEM_TIME sent by %" PRIu32 "/%d", msg->sysid, msg->compid);
 				tv.tv_sec = time.time_unix_usec / 1000000ULL;
 				tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
 

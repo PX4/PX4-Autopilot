@@ -230,3 +230,30 @@ html {
 .dark .diagram-invert {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/**
+ * Parameter Reference: skip style, layout and paint of off-screen parameters.
+ * parameter_reference.md has ~3000 parameters (over 100k elements), which
+ * otherwise blocks the page for seconds on load and on sidebar navigation.
+ * The generator (src/lib/parameters/px4params/markdownout.py) wraps each group
+ * in .param-group (with its parameter count) and each parameter in .param.
+ * -------------------------------------------------------------------------- */
+
+.vp-doc .param-group,
+.vp-doc .param {
+  --param-height-estimate: 440px; /* measured average rendered height */
+  content-visibility: auto;
+  /* content-visibility implies paint containment, which would clip the header
+     anchor (#) drawn left of each heading. Extend the box to cover it. */
+  padding-left: 1em;
+  margin-left: -1em;
+}
+
+.vp-doc .param-group {
+  contain-intrinsic-size: auto
+    calc(var(--param-count, 1) * var(--param-height-estimate));
+}
+
+.vp-doc .param {
+  contain-intrinsic-size: auto var(--param-height-estimate);
+}

@@ -38,6 +38,7 @@ Manual-Acrobatic
   Для цього потрібна глобальна оцінка позиції (GPS).
 - [Зльот](../flight_modes_mc/takeoff.md) — Транспортний засіб злітає вертикально, а потім переходить у режим _Утримання_.
 - [Посадка](../flight_modes_mc/land.md) — Транспортний засіб приземлюється негайно.
+- [Descend](../flight_modes_mc/descend.md) — Failsafe fallback: the vehicle descends without horizontal position control (used when the position estimate is lost). Not pilot-selectable.
 - [Обертання](../flight_modes_mc/orbit.md) - Транспортний засіб летить по колу, повертаючи рульові пристрої так, щоб завжди бути оберненим в бік центру.
   RC керування може опціонально використовуватися для зміни радіуса орбіти, напрямку, швидкості та іншого.
 - [Follow Me/Дотримуйся Мене](../flight_modes_mc/follow_me.md) — Транспортний засіб слідує за маяком, який надає точки встановлення позиції.

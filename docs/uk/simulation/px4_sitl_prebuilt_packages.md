@@ -75,7 +75,7 @@ sudo apt remove px4-gazebo   # Gazebo package
 
 Container images are built using the same `.deb` packages described above, packaged into minimal Docker images.
 They are published to [Docker Hub](https://hub.docker.com/u/px4io) on every tagged release.
-You will need to [install Docker](https://docs.docker.com/get-docker/).
+You will need to [install Docker](https://docs.docker.com/get-started/get-docker/).
 
 | Зображення                    | Симулятор                         |
 | ----------------------------- | --------------------------------- |
@@ -86,46 +86,135 @@ Tags follow PX4 versions (e.g. `v1.17.0`).
 
 ### Запуск
 
+On Docker Desktop (macOS/Windows), the containers automatically send MAVLink to the host using `host.docker.internal`.
+Run QGroundControl, MAVSDK or Hawkeye on the host without publishing their listening ports with Docker `-p`.
+
 ```bash
 # SIH
-docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest
+docker run --rm -it px4io/px4-sitl:latest
 
-# Gazebo
-docker run --rm -it -p 14550:14550/udp px4io/px4-sitl-gazebo:latest
+# Gazebo (headless)
+docker run --rm -it -e HEADLESS=1 px4io/px4-sitl-gazebo:latest
 ```
+
+For a visible Gazebo window on Linux or Windows/WSLg, use the [Gazebo Container GUI](gazebo_container_gui.md) instructions.
+On macOS, run Gazebo headlessly or use a Linux desktop VM.
 
 Pass environment variables with `-e`:
 
 ```bash
-docker run --rm -it -p 14550:14550/udp \
+docker run --rm -it \
   -e PX4_SIM_MODEL=sihsim_airplane \
   px4io/px4-sitl:latest
 ```
 
-The quick-start command above only exposes the QGroundControl port.
-To use MAVSDK, uXRCE-DDS (ROS 2), or MAVSim Viewer, expose the additional ports:
+The default destination ports are:
 
-```bash
-docker run --rm -it \
-  -p 14550:14550/udp \
-  -p 14540:14540/udp \
-  -p 8888:8888/udp \
-  -p 19410:19410/udp \
-  px4io/px4-sitl:latest
-```
+| Порт  | Протокол | Used by                                                         |
+| ----- | -------- | --------------------------------------------------------------- |
+| 14550 | UDP      | QGroundControl                                                  |
+| 14540 | UDP      | MAVSDK / offboard API                                           |
+| 8888  | UDP      | uXRCE-DDS agent (ROS 2)                      |
+| 7447  | TCP      | Zenoh router (ROS 2, when Zenoh is selected) |
+| 19410 | UDP      | [Hawkeye](../sim_hawkeye/index.md) SIH visualisation            |
 
-| Порт  | Протокол | Used by                                        |
-| ----- | -------- | ---------------------------------------------- |
-| 14550 | UDP      | QGroundControl                                 |
-| 14540 | UDP      | MAVSDK / offboard API                          |
-| 8888  | UDP      | uXRCE-DDS agent (ROS 2)     |
-| 19410 | UDP      | SIH display (MAVSim Viewer) |
-
-On Linux, you can skip individual port flags and use `--network host` instead:
+On Linux, add `--network host`:
 
 ```bash
 docker run --rm -it --network host px4io/px4-sitl:latest
 ```
+
+Alternatively, use bridged networking with `--add-host=host.docker.internal:host-gateway`.
+When that hostname is unavailable, PX4 retains its localhost defaults.
+The runtime images also target the host for DDS and Zenoh; the ROS development images keep the middleware inside the container.
+
+### Hawkeye Visualisation
+
+Both `px4io/px4-sitl` and `px4io/px4-sitl-ros2` automatically stream SIH state to the host on UDP 19410.
+After starting PX4, launch [Hawkeye](../sim_hawkeye/index.md) on the host:
+
+```sh
+hawkeye -udp 19410
+```
+
+Use the platform-specific networking options above; no manual MAVLink stream commands or ROS bridge are needed.
+Do not publish port 19410 with Docker `-p`, because Hawkeye must bind that port on the host.
+
+### ROS 2 Development Images
+
+The ROS development variants add ROS 2 Jazzy, Micro XRCE-DDS Agent v2.4.3, the `rmw_zenoh_cpp` middleware and router, `px4_msgs`, and the [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md), including its examples and development tools.
+They also include PX4 source-build dependencies for SITL, without installing the NuttX toolchain.
+They support `amd64` and `arm64`, with the same version tags as the runtime images.
+The ROS message definitions match the packaged PX4 firmware.
+
+| Зображення                         | Симулятор                        |
+| ---------------------------------- | -------------------------------- |
+| `px4io/px4-sitl-ros2:<tag>`        | SIH, without Gazebo dependencies |
+| `px4io/px4-sitl-gazebo-ros2:<tag>` | Gazebo Harmonic                  |
+
+Unlike the runtime images, these open a shell with ROS and the workspace at `/opt/px4_ros2` already sourced.
+PX4 and the DDS Agent (or Zenoh router) are started explicitly and communicate inside the same container.
+
+```sh
+# Terminal 1: open the development environment and start the Agent.
+docker run --rm -it --name px4-ros2 \
+  -e ROS_DOMAIN_ID=83 \
+  -v "$PWD:/workspace" px4io/px4-sitl-ros2:latest
+MicroXRCEAgent udp4 -p 8888
+
+# Terminal 2: start the packaged SIH simulator.
+docker exec -it px4-ros2 /usr/local/bin/ros2-entrypoint.sh px4
+
+# Terminal 3: inspect the ROS topics.
+docker exec -it px4-ros2 /usr/local/bin/ros2-entrypoint.sh ros2 topic list
+```
+
+To use [Zenoh](#zenoh) instead, start `ros2 run rmw_zenoh_cpp rmw_zenohd` in terminal 1, run PX4 with `env PX4_ROS2_MIDDLEWARE=zenoh px4`, and set `RMW_IMPLEMENTATION=rmw_zenoh_cpp` for the ROS commands (for example `docker exec -it -e RMW_IMPLEMENTATION=rmw_zenoh_cpp px4-ros2 ...`).
+
+For headless Gazebo, use `px4io/px4-sitl-gazebo-ros2` and replace `px4` with `env HEADLESS=1 px4-gazebo`.
+For a visible window, configure the container's display using [Gazebo Container GUI](gazebo_container_gui.md#ros-development-image) and leave `HEADLESS` unset.
+Host ROS nodes require additional DDS networking configuration; the example keeps ROS, the Agent and PX4 together and does not require host networking.
+
+When testing modified PX4 firmware, rebuild the ROS workspace against its message definitions rather than using the bundled library.
+Use `--entrypoint /bin/bash` and source `/opt/ros/jazzy/setup.bash` to start without the bundled workspace.
+For source builds and selecting an interface-library commit, see [Testing A PX4 Checkout With ROS](../dev_setup/sitl_container_builds.md#testing-a-px4-checkout-with-ros).
+The standalone `ghcr.io/px4/px4-dev-ros2` toolchain provides Ubuntu 22.04/ROS Humble (`main-humble`) and Ubuntu 24.04/ROS Jazzy (`main-jazzy`) variants for `amd64` and `arm64`, without bundled source checkouts, firmware or a compiled workspace.
+It is also available on Docker Hub as `px4io/px4-dev-ros2`, with matching distro-qualified tags in both registries.
+Release tags retain the Git tag and ROS suffix, for example `v1.18.0-humble` and `v1.18.0-jazzy`; release publication does not move the manually published `main-*` tags.
+Humble support is limited to this standalone toolchain; the packaged SIH/Gazebo ROS images above remain Jazzy-only.
+ROS integration CI uses this toolchain, builds PX4 from the pull request, and regenerates messages from that checkout.
+
+#### Go-To Example
+
+With the Agent and PX4 running as above, start the bundled example from a host terminal:
+
+```sh
+docker exec -it px4-ros2 /usr/local/bin/ros2-entrypoint.sh \
+  ros2 run example_mode_goto_cpp example_mode_goto
+```
+
+Wait for the example to register and for PX4 to report `Ready for takeoff!`.
+At the PX4 `pxh>` prompt, start a simulated take-off:
+
+```text
+commander takeoff
+```
+
+Once the vehicle is hovering, activate the example:
+
+```text
+commander mode ext1
+```
+
+With only this example registered, `ext1` selects `Go-to Example`, which flies a triangular path.
+Take off before selecting it: the example prevents arming while its mode is active.
+Hawkeye can visualise this flight without changing the ROS setup.
+
+To land, enter `commander mode auto:land` at the PX4 prompt.
+To stop the container, run `docker stop px4-ros2` from the host.
+Use a different `ROS_DOMAIN_ID` for each independent ROS simulation to avoid cross-talk.
+
+For local builds, publishing, cache behaviour and SBOMs, see [Building SITL Containers](../dev_setup/sitl_container_builds.md).
 
 ## Налаштування
 
@@ -143,7 +232,7 @@ SIH:
 PX4_SIM_MODEL=sihsim_airplane px4
 
 # Container
-docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest -e PX4_SIM_MODEL=sihsim_airplane
+docker run --rm -it -e PX4_SIM_MODEL=sihsim_airplane px4io/px4-sitl:latest
 ```
 
 Gazebo:
@@ -153,7 +242,7 @@ Gazebo:
 PX4_SIM_MODEL=gz_x500 px4-gazebo
 
 # Container
-docker run --rm -it -p 14550:14550/udp px4io/px4-sitl-gazebo:latest -e PX4_SIM_MODEL=gz_x500
+docker run --rm -it -e HEADLESS=1 -e PX4_SIM_MODEL=gz_x500 px4io/px4-sitl-gazebo:latest
 ```
 
 See [SIH Supported Vehicles](../sim_sih/index.md#supported-vehicle-types) and [Gazebo Vehicles](../sim_gazebo_gz/vehicles.md) for the full lists.
@@ -168,14 +257,16 @@ See [Gazebo Worlds](../sim_gazebo_gz/worlds.md) for available worlds.
 
 ### Environment Variables
 
-| Змінні               | Опис                                                                                                   | Default                       |
-| -------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------- |
-| `PX4_SIM_MODEL`      | Vehicle model (e.g. `gz_x500`, `sihsim_quadx`)      | (required) |
-| `PX4_GZ_WORLD`       | Gazebo world name, without `.sdf` (e.g. `baylands`) | `default`                     |
-| `HEADLESS`           | Set to `1` to disable Gazebo GUI                                                                       | (unset)    |
-| `PX4_UXRCE_DDS_PORT` | uXRCE-DDS agent UDP port                                                                               | `8888`                        |
-| `PX4_UXRCE_DDS_NS`   | uXRCE-DDS ROS namespace                                                                                | (none)     |
-| `XDG_DATA_HOME`      | Base directory for per-instance working data (parameters, dataman)                  | `$HOME/.local/share`          |
+| Змінні                | Опис                                                                                                                              | Default                                                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `PX4_SIM_MODEL`       | Vehicle model (e.g. `gz_x500`, `sihsim_quadx`)                                 | (required)                                      |
+| `PX4_GZ_WORLD`        | Gazebo world name, without `.sdf` (e.g. `baylands`)                            | `default`                                                          |
+| `HEADLESS`            | Set to `1` to disable Gazebo GUI                                                                                                  | (unset)                                         |
+| `PX4_ROS2_MIDDLEWARE` | ROS 2 middleware: `uxrce_dds`, `zenoh` or `none` (see [ROS 2 Integration](#ros-2-integration)) | (unset: `ZENOH_ENABLE` decides) |
+| `PX4_UXRCE_DDS_PORT`  | uXRCE-DDS agent UDP port                                                                                                          | `8888`                                                             |
+| `PX4_UXRCE_DDS_NS`    | uXRCE-DDS ROS namespace                                                                                                           | (none)                                          |
+| `PX4_ZENOH_LOCATOR`   | Zenoh router locator (e.g. `tcp/192.168.1.5:7447`)                             | stored config, `tcp/127.0.0.1:7447`                                |
+| `XDG_DATA_HOME`       | Base directory for per-instance working data (parameters, dataman)                                             | `$HOME/.local/share`                                               |
 
 ## Multi-Instance
 
@@ -191,6 +282,7 @@ PX4_SIM_MODEL=sihsim_quadx px4 -i 1
 ```
 
 MAVLink and uXRCE-DDS port numbers are automatically offset by the instance number.
+Zenoh does not support multiple instances yet: every instance publishes the same topics without a namespace, so use uXRCE-DDS for multi-vehicle ROS 2 setups.
 
 Each package (`px4` and `px4-gazebo`) is a standalone install. Do not mix instances from the two packages in the same session.
 
@@ -213,7 +305,21 @@ Set parameter `MAV_{i}_BROADCAST = 1` to enable network access.
 
 ## ROS 2 Integration
 
-The `uxrce_dds_client` module starts automatically and connects to a Micro XRCE-DDS Agent over UDP.
+PX4 includes both the [uXRCE-DDS](../middleware/uxrce_dds.md) and the [Zenoh](../middleware/zenoh.md) clients; only one of them runs.
+uXRCE-DDS is the default. Select the middleware with `PX4_ROS2_MIDDLEWARE`:
+
+| Значення    | Effect                                                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `uxrce_dds` | Start `uxrce_dds_client`; sets [ZENOH_ENABLE](../advanced_config/parameter_reference.md#ZENOH_ENABLE) to `0` |
+| `zenoh`     | Start `zenoh`; sets `ZENOH_ENABLE` to `1`                                                                                         |
+| `none`      | Start neither                                                                                                                     |
+
+The value is stored in `ZENOH_ENABLE`, so it persists for later runs of the same instance.
+Without the variable, `ZENOH_ENABLE` decides: `1` starts Zenoh, `0` starts uXRCE-DDS.
+
+### uXRCE-DDS
+
+The `uxrce_dds_client` module connects to a Micro XRCE-DDS Agent over UDP.
 Run the agent before starting PX4:
 
 ```sh
@@ -230,6 +336,42 @@ Environment variables `PX4_UXRCE_DDS_PORT` and `PX4_UXRCE_DDS_NS` override the c
 
 ```sh
 PX4_UXRCE_DDS_PORT=9999 PX4_UXRCE_DDS_NS=drone1 PX4_SIM_MODEL=sihsim_quadx px4
+```
+
+### Zenoh
+
+The `zenoh` module connects as a client to a Zenoh router over TCP and is compatible with ROS 2 Jazzy and later through `rmw_zenoh_cpp`.
+Start the router, then PX4:
+
+```sh
+# Terminal 1: Zenoh router
+ros2 run rmw_zenoh_cpp rmw_zenohd
+
+# Terminal 2: PX4
+PX4_ROS2_MIDDLEWARE=zenoh PX4_SIM_MODEL=sihsim_quadx px4
+
+# Terminal 3: ROS 2
+RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 topic list
+```
+
+| Налаштування   | Default              |
+| -------------- | -------------------- |
+| Transport      | TCP                  |
+| Router locator | `tcp/127.0.0.1:7447` |
+
+Set `PX4_ZENOH_LOCATOR` to reach a router elsewhere, for example `PX4_ZENOH_LOCATOR=tcp/192.168.1.5:7447`.
+The locator is written to the instance's Zenoh network configuration, so it persists for later runs.
+`ROS_DOMAIN_ID`, when set, is applied to [ZENOH_DOMAIN_ID](../advanced_config/parameter_reference.md#ZENOH_DOMAIN_ID).
+
+:::warning
+Zenoh does not yet synchronize time with ROS 2: PX4 publishes timestamps in its own boot time, and incoming `timestamp_sample` values are not translated.
+As a result, measurements sent through the [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) navigation interfaces (for example external vision) are not fused by EKF2. Use uXRCE-DDS for those.
+:::
+
+With the runtime container images on Docker Desktop, PX4 connects to a router on the host automatically:
+
+```sh
+docker run --rm -it -e PX4_ROS2_MIDDLEWARE=zenoh px4io/px4-sitl:latest
 ```
 
 ## Daemon Mode
@@ -279,7 +421,8 @@ PX4_SIM_MODEL=sihsim_quadx px4 -d
 ### Runtime directories (created on first run, per user)
 
 ```sh
-$XDG_DATA_HOME/px4/rootfs/<instance>/   # parameters, dataman, eeprom
+$XDG_DATA_HOME/px4/rootfs/<instance>/      # filesystem root
+$XDG_DATA_HOME/px4/rootfs/<instance>/fs/  # storage: parameters, dataman, logs, eeprom
 ```
 
 ## Building .deb Files Locally

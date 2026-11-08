@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/mixer_module/mixer_module.hpp>
 
 #include <gz/msgs.hh>
@@ -53,7 +54,11 @@ public:
 	GZMixingInterfaceESC(gz::transport::Node &node) :
 		OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::rate_ctrl),
 		_node(node)
-	{}
+	{
+		int32_t signed_mask = 0;
+		param_get(param_find("SIM_GZ_EC_SIGNED"), &signed_mask);
+		_signed_mask = static_cast<uint32_t>(signed_mask);
+	}
 
 	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
@@ -74,6 +79,8 @@ private:
 
 	void motorSpeedCallback(const gz::msgs::Actuators &actuators);
 
+	uint32_t _signed_mask{0};
+
 	gz::transport::Node &_node;
 	pthread_mutex_t _node_mutex;
 
@@ -82,5 +89,6 @@ private:
 	gz::transport::Node::Publisher _actuators_pub;
 
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	failure_injection::Config _failure_config;
 
 };

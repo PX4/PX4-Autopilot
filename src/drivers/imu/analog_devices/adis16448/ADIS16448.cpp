@@ -99,10 +99,12 @@ ADIS16448::ADIS16448(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio), // TODO: DRDY disabled
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external),
+	_px4_mag(get_device_id(), config.rotation, config.external),
+	_baro_external(config.external)
 {
+
 	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
@@ -451,6 +453,7 @@ void ADIS16448::RunImpl()
 						sensor_baro_s sensor_baro{};
 						sensor_baro.timestamp_sample = timestamp_sample;
 						sensor_baro.device_id = get_device_id();
+						sensor_baro.is_external = _baro_external;
 						sensor_baro.pressure = pressure_pa;
 						sensor_baro.temperature = temperature;
 						sensor_baro.error_count = error_count;
@@ -537,6 +540,7 @@ bool ADIS16448::Configure()
 	_px4_accel.set_scale(0.833f * 1e-3f * CONSTANTS_ONE_G); // 0.833 mg/LSB
 	_px4_gyro.set_scale(math::radians(0.04f));              // 0.04 °/sec/LSB
 	_px4_mag.set_scale(142.9f * 1e-6f);                     // μgauss/LSB
+	_px4_mag.set_range(1.9f);                               // +/-1.9 gauss
 
 	_px4_accel.set_range(18.f * CONSTANTS_ONE_G);
 	_px4_gyro.set_range(math::radians(1000.f));

@@ -8,19 +8,20 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                                | Type        | Unit [Frame] | Range/Enum | Description                                          |
-| ----------------------------------- | ----------- | ------------ | ---------- | ---------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp | `uint64`    | us           |            | Time since system start                              |
-| <a id="fld_firmware"></a>firmware   | `uint8`     |              |            | ESC firmware type (see ESC_FIRMWARE enum in MAVLink) |
-| <a id="fld_index"></a>index         | `uint8`     |              |            | Index of the ESC (0 = ESC1, 1 = ESC2, etc.)          |
-| <a id="fld_length"></a>length       | `uint16`    |              |            | Length of valid data                                 |
-| <a id="fld_data"></a>data           | `uint8[48]` |              |            | Raw ESC EEPROM data                                  |
+| Name                                              | Type        | Unit [Frame] | Range/Enum | Description                                                                      |
+| ------------------------------------------------- | ----------- | ------------ | ---------- | -------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`    | us           |            | Time since system start                                                          |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`    | us           |            | Time the dump was read from the ESC. Unchanged when a cached dump is republished |
+| <a id="fld_firmware"></a>firmware                 | `uint8`     |              |            | ESC firmware type (see ESC_FIRMWARE enum in MAVLink)                             |
+| <a id="fld_index"></a>index                       | `uint8`     |              |            | Index of the ESC (0 = ESC1, 1 = ESC2, etc.)                                      |
+| <a id="fld_length"></a>length                     | `uint16`    |              |            | Length of valid data                                                             |
+| <a id="fld_data"></a>data                         | `uint8[48]` |              |            | Raw ESC EEPROM data                                                              |
 
 ## Constants
 
-| Name                                            | Type    | Value | Description                      |
-| ----------------------------------------------- | ------- | ----- | -------------------------------- |
-| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 8     | To support 8 queued up responses |
+| Name                                            | Type    | Value | Description                                          |
+| ----------------------------------------------- | ------- | ----- | ---------------------------------------------------- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 12    | One dump per ESC, up to esc_status CONNECTED_ESC_MAX |
 
 ## Source Message
 
@@ -30,12 +31,13 @@ pageClass: is-wide-page
 
 ```c
 uint64 timestamp # [us] Time since system start
+uint64 timestamp_sample # [us] Time the dump was read from the ESC. Unchanged when a cached dump is republished
 uint8 firmware # [-] ESC firmware type (see ESC_FIRMWARE enum in MAVLink)
 uint8 index # [-] Index of the ESC (0 = ESC1, 1 = ESC2, etc.)
 uint16 length # [-] Length of valid data
 uint8[48] data # [-] Raw ESC EEPROM data
 
-uint8 ORB_QUEUE_LENGTH = 8 # To support 8 queued up responses
+uint8 ORB_QUEUE_LENGTH = 12 # One dump per ESC, up to esc_status CONNECTED_ESC_MAX
 ```
 
 :::
