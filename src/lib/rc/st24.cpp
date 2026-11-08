@@ -42,6 +42,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <cmath>
+#include <cstddef>
 #include "st24.h"
 #include "common_rc.h"
 
@@ -68,6 +69,8 @@ static enum ST24_DECODE_STATE _decode_state = ST24_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
 static ReceiverFcPacket &_rxpacket = rc_decode_buf._strxpacket;
+
+static constexpr uint8_t ST24_CRC_SPAN_MAX = sizeof(ReceiverFcPacket) - offsetof(ReceiverFcPacket, length);
 
 uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 {
@@ -144,6 +147,12 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 		break;
 
 	case ST24_DECODE_STATE_GOT_TYPE:
+
+		if (_rxlen == 0 || (unsigned)(_rxlen - 1) >= sizeof(_rxpacket.st24_data)) {
+			_decode_state = ST24_DECODE_STATE_UNSYNCED;
+			break;
+		}
+
 		_rxpacket.st24_data[_rxlen - 1] = byte;
 		_rxlen++;
 
@@ -157,7 +166,8 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 		_rxpacket.crc8 = byte;
 		_rxlen++;
 
-		if (st24_common_crc8((uint8_t *) & (_rxpacket.length), _rxlen) == _rxpacket.crc8) {
+		if (_rxlen <= ST24_CRC_SPAN_MAX
+		    && st24_common_crc8((uint8_t *) & (_rxpacket.length), _rxlen) == _rxpacket.crc8) {
 
 			ret = 0;
 
