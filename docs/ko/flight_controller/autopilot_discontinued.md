@@ -15,6 +15,7 @@ They are listed because you may be using them in an existing drone, and because 
 - _CUAV v5_ (Pixhawk FMUv5) — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/cuav_v5) <!-- 202507 removed doc -->
 - _CUAV Pixhack v3_ (FMUv3) — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/pixhack_v3) <!-- 202603 removed doc -->
 - _Aerotenna OcPoC-Zynq Mini_ — last published in [PX4v1.11](https://docs.px4.io/v1.11/en/flight_controller/ocpoc_zynq#aerotenna-ocpoc-zynq-mini-flight-controller) <!-- 202603 removed doc -->
+- [Holybro Pixhawk 4](../flight_controller/pixhawk4.md) (FMUv5) — discontinued by Holybro but still supported by PX4
 - _Holybro Pixhawk 4 Mini_ (FMUv5) -— last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/pixhawk4_mini) <!-- 202603 removed doc -->
 - _Holybro Kakute F7_ — Marked as discontinued in PX4 v1.15.
   Last published in [PX4 v1.17](https://docs.px4.io/v1.17/en/flight_controller/kakutef7). <!-- 202603 removed doc -->

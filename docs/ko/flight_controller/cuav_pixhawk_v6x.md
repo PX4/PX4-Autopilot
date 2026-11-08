@@ -207,11 +207,6 @@ The pinouts and connector comply with the [Pixhawk Debug Full](../debug/swd_debu
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
-## 지원 플랫폼 및 기체
-
-일반 RC 서보 또는 Futaba S-Bus 서보로 제어 가능한 모든 멀티콥터/비행기/로버 또는 보트.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## 추가 정보
 
 - [CUAV Docs](https://doc.cuav.net/) (CUAV)
