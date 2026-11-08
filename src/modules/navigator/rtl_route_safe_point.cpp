@@ -42,6 +42,7 @@
 #include "mission_route_geofence.h"
 #include "mission_route_land_approaches.h"
 #include "mission_route_planner.h"
+#include "mission_route_vehicle.h"
 #include "navigator.h"
 
 #include <cmath>
@@ -56,8 +57,7 @@ RtlRouteSafePoint::RtlRouteSafePoint(ModuleParams *parent, Navigator *navigator)
 
 bool RtlRouteSafePoint::supportsVehicle(const vehicle_status_s &vehicle_status)
 {
-	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-	       || vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	return mission_route::routeReturnSupported(mission_route::routeAirframe(vehicle_status));
 }
 
 bool RtlRouteSafePoint::inputsReady(const mission_s &mission) const
@@ -213,18 +213,8 @@ mission_route::RtlRouteRequest RtlRouteSafePoint::buildPlannerRequest(const miss
 	request.altitude_acceptance_radius_m = _navigator->get_altitude_acceptance_radius();
 	request.home_altitude_amsl = home_position.valid_alt ? home_position.alt : NAN;
 	request.fw_u_turn_penalty_m = _param_rtl_fw_uturn_pen.get();
-	request.is_fixed_wing = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-	request.in_transition_to_fw = vehicle_status.in_transition_to_fw;
-	request.is_vtol = vehicle_status.is_vtol;
+	mission_route::setRequestVehicle(request, vehicle_status, *_navigator->get_local_position());
 	request.require_vtol_approach = vehicle_status.is_vtol && request.is_fixed_wing && require_vtol_approach;
-
-	const vehicle_local_position_s *local_position = _navigator->get_local_position();
-
-	if (local_position->v_xy_valid) {
-		request.velocity_north_m_s = local_position->vx;
-		request.velocity_east_m_s = local_position->vy;
-	}
-
 	return request;
 }
 

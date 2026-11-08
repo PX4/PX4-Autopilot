@@ -43,6 +43,7 @@
 #include "mission.h"
 #include "mission_route_geofence.h"
 #include "mission_route_planner.h"
+#include "mission_route_vehicle.h"
 #include "navigator.h"
 
 #include <px4_platform_common/events.h>
@@ -56,6 +57,7 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	// A finished mission holds as without the join, so the planned item must still be valid.
 	if (keep_mission_index
 	    || (_param_mis_route_join.get() == 0)
+	    || !mission_route::routeJoinSupported(mission_route::routeAirframe(_vehicle_status_sub.get()))
 	    || !isMissionValid()
 	    || !_is_current_planned_mission_item_valid
 	    || _land_detected_sub.get().landed
@@ -82,7 +84,6 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 
 	const vehicle_global_position_s &global_position = _global_pos_sub.get();
 	const vehicle_status_s &vehicle_status = _vehicle_status_sub.get();
-	const vehicle_local_position_s *local_position = _navigator->get_local_position();
 
 	mission_route::MissionResumeRequest request{};
 	request.vehicle_position = {global_position.lat, global_position.lon, global_position.alt};
@@ -94,14 +95,7 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 	request.acceptance_radius_m = _navigator->get_acceptance_radius();
 	request.home_altitude_amsl = _navigator->get_home_position()->valid_alt
 				     ? _navigator->get_home_position()->alt : NAN;
-	request.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-	request.in_transition_to_fw = vehicle_status.in_transition_to_fw;
-	request.is_vtol = vehicle_status.is_vtol;
-
-	if (local_position->v_xy_valid) {
-		request.velocity_north_m_s = local_position->vx;
-		request.velocity_east_m_s = local_position->vy;
-	}
+	mission_route::setRequestVehicle(request, vehicle_status, *_navigator->get_local_position());
 
 	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence()};
 	MissionRoutePlanner planner{mission_route_cache, &path_checker};
