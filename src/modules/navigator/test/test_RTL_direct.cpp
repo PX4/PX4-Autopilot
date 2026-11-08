@@ -55,6 +55,10 @@
 #include <cfloat>
 #include <memory>
 
+/* EVENT
+ * @skip-file
+ */
+
 class RtlDirectTestPeer : public RtlDirect
 {
 public:
