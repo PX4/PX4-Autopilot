@@ -528,9 +528,11 @@ matrix::Vector2d RtlDirectMissionLand::getRtlPlannerDestination()
 		return position;
 	}
 
+	// DO_LAND_START has no position, so this finds the first position item after it, or the landing itself
+	// when the mission has no DO_LAND_START and the land start is the landing.
 	int32_t next_mission_item_index{-1};
 	size_t num_found_items{0U};
-	getNextPositionItems(_mission.land_start_index + 1, &next_mission_item_index, num_found_items, 1U);
+	getNextPositionItems(_mission.land_start_index, &next_mission_item_index, num_found_items, 1U);
 
 	if (num_found_items == 0U) {
 		return position;
