@@ -60,7 +60,6 @@ public:
 	~Mission() = default;
 
 	virtual void on_inactive() override;
-	virtual void on_inactivation() override;
 	virtual void on_activation() override;
 	virtual void on_active() override;
 
@@ -70,11 +69,10 @@ public:
 	 * @param index Mission sequence to set as current, or -1 to keep the current item unchanged
 	 *              (e.g. to reset jump counters in place).
 	 * @param reset_jump_counters Reset all DO_JUMP repeat counters and mission completion flag
-	 * @param selection_timestamp Command timestamp, or zero for a selection made now
 	 * @return true if the current mission item was set successfully (or the reset-only, unchanged-index
 	 *         request could be honored), false if index is out of range or there is no current mission item.
 	 */
-	bool set_current_mission_index(int32_t index, bool reset_jump_counters = false, hrt_abstime selection_timestamp = 0);
+	bool set_current_mission_index(int32_t index, bool reset_jump_counters = false);
 
 	uint16_t get_land_start_index() const { return _mission.land_start_index; }
 	bool get_land_start_available() const { return hasMissionLandStart(); }
@@ -116,21 +114,15 @@ private:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	friend class MissionTestPeer;
 
+	/** MIS_ROUTE_JOIN is set and the airframe joins. */
+	bool routeJoinEnabled() const;
+
 	/**
 	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
 	 *
-	 * @param keep_mission_index True while an explicit selection or landing-abort approach is pending.
 	 * @return true if a join route was armed, false to fly directly to the current item.
 	 */
-	bool trySetRouteJoinOnActivation(bool keep_mission_index);
-
-	// Apply selection updates and cancel earlier selections when Return starts.
-	void updateMissionItemSelection() override;
-	void keepCurrentMissionItem(hrt_abstime selection_timestamp);
-	uORB::SubscriptionData<mission_item_selection_s> _mission_item_selection_sub{ORB_ID(mission_item_selection)};
-	hrt_abstime _last_mission_item_selection{0};
-	hrt_abstime _last_return_started{0};
-	uint8_t _last_selection_nav_state{vehicle_status_s::NAVIGATION_STATE_MAX};
+	bool trySetRouteJoinOnActivation();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		MissionBase,

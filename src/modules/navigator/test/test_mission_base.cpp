@@ -165,12 +165,7 @@ public:
 		}
 	}
 
-	void updateJumpAnchorForNextNominalAdvance(mission_route::ActiveJumpAnchor &anchor)
-	{
-		_active_jump_anchor = anchor;
-		updateActiveJumpAnchorForNominalAdvance();
-		anchor = _active_jump_anchor;
-	}
+	const mission_route::ActiveJumpAnchor &jumpAnchor() const { return _active_jump_anchor; }
 
 	bool runJoinWorkItem()
 	{
@@ -231,6 +226,7 @@ public:
 	using MissionBase::getNonJumpItem;
 	using MissionBase::getNextPositionItems;
 	using MissionBase::getPreviousPositionItems;
+	using MissionBase::goToNextItem;
 	using MissionBase::goToNextPositionItem;
 	using MissionBase::goToPreviousPositionItem;
 	using MissionBase::MissionTraversalType;
@@ -2070,71 +2066,27 @@ TEST_F(MissionBaseRouteTest, MissionUpdateClearsJoin)
 	}
 }
 
-TEST_F(MissionBaseRouteTest, NextNominalAdvanceCapturesActiveLoopEdge)
+// An advance records the jump it takes as the edge the vehicle flies, but not a jump it steps over.
+TEST_F(MissionBaseRouteTest, AdvanceRecordsTheJumpItTakes)
 {
-	mission_base.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makeDoJump(0, 3, 1),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-	mission_base.setCurrentSequence(1);
+	for (const uint16_t current_count : {uint16_t{1}, uint16_t{3}}) {
+		SCOPED_TRACE(current_count);
+		// Taking the jump reports its counter through the Navigator.
+		Navigator navigator{};
+		MissionBaseTestPeer mission_base_with_nav{&navigator};
+		mission_base_with_nav.loadTestMission({
+			makePositionItem(kBaseLat, kBaseLon, kAlt),
+			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+			makeDoJump(0, 3, current_count),
+			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+		});
+		mission_base_with_nav.setCurrentSequence(1);
 
-	mission_route::ActiveJumpAnchor anchor{};
-	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
-	ASSERT_TRUE(anchor.valid());
-	EXPECT_EQ(anchor.jump_item_index, 2);
-}
+		ASSERT_EQ(mission_base_with_nav.goToNextItem(), PX4_OK);
 
-TEST_F(MissionBaseRouteTest, InvalidLoopTargetClearsPreviousLoopSegment)
-{
-	mission_base.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makeDoJump(10, 3, 1),
-		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-	});
-	mission_base.setCurrentSequence(1);
-
-	mission_route::ActiveJumpAnchor anchor{2};
-	ASSERT_TRUE(anchor.valid());
-
-	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
-
-	EXPECT_TRUE(anchor.empty());
-}
-
-TEST_F(MissionBaseRouteTest, JumpAnchorSurvivesCommandsBeforeTheJumpTargetPosition)
-{
-	mission_base.loadTestMission({
-		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-		makeDoJump(0, 3, 1),
-	});
-	mission_base.setCurrentSequence(0);
-	mission_route::ActiveJumpAnchor anchor{3};
-
-	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
-
-	EXPECT_EQ(anchor.jump_item_index, 3);
-
-	mission_base.setCurrentSequence(1);
-	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
-
-	EXPECT_TRUE(anchor.empty());
-}
-
-TEST_F(MissionBaseRouteTest, ExhaustedJumpDoesNotBecomeAnActiveAnchor)
-{
-	mission_base.loadTestMission({
-		makePositionItem(kBaseLat, kBaseLon, kAlt),
-		makeDoJump(0, 1, 1),
-	});
-	mission_route::ActiveJumpAnchor anchor{1};
-
-	mission_base.updateJumpAnchorForNextNominalAdvance(anchor);
-
-	EXPECT_TRUE(anchor.empty());
+		const bool taken = current_count < 3;
+		EXPECT_EQ(mission_base_with_nav.currentSequence(), taken ? 0 : 3);
+		EXPECT_EQ(mission_base_with_nav.jumpAnchor().jump_item_index, taken ? 2 : -1);
+	}
 }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE

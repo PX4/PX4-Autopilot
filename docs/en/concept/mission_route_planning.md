@@ -59,30 +59,29 @@ The projection search margin is set by [MIS_MC_SEG_DIST](../advanced_config/para
 If a rejoin cannot be planned, Mission mode resumes without smart rejoin and reports a warning.
 This can happen while the mission is still loading into the [route cache](../advanced/mission_route_cache.md).
 Camera-trigger survey resume takes precedence over smart rejoin.
-Mission returns to the previous survey waypoint without a branch-in.
-Explicitly selecting a mission item while Mission mode is active cancels a pending smart rejoin, including when selecting its current target.
+Mission returns to the previous survey waypoint without a branch-in, also when the paused item is selected again.
 A finished mission is not rejoined: Mission mode holds, as it does without smart rejoin.
+
+Mission records a loop, and counts its repeat, when it takes the jump.
+A pause on the jump edge of the last repeat therefore finds the repeats exhausted, and the rejoin may skip that last pass.
+A pause while Mission runs the commands just before a `DO_JUMP` is not on the loop yet: a rejoin on that leg flies back to the waypoint before the commands and runs them again.
 
 With smart rejoin enabled, starting or continuing Mission while airborne attempts to join the route, including the first start after an upload or reboot and a new flight after disarming.
 The join may skip earlier mission items, even on the first start.
 Starting Mission on the ground follows the mission normally; a later airborne resume can use smart rejoin.
 
-Explicitly selecting a mission item overrides smart rejoin: Mission flies to that item using normal mission handling.
-This includes `MISSION_SET_CURRENT`, `MAV_CMD_DO_SET_MISSION_CURRENT`, `MAV_CMD_MISSION_START` with a first item, and `MAV_CMD_DO_LAND_START`.
-The selection persists through Hold, GoTo and further resumes until Mission reaches a mission position item.
+Selecting a mission item while Mission mode is paused makes it the current item of the next resume, like any other current item.
+This includes `MAV_CMD_MISSION_START` with a first item, sent while Mission mode is not active.
+The rejoin then flies the leg to that item if the leg is within the search margin; otherwise it may branch in before or after the item.
+Selecting another item while Mission mode is active flies to it directly, as without smart rejoin, and cancels a pending rejoin.
 
-Entering Return cancels an earlier selection, so continuing Mission afterwards can use smart rejoin, including after an intervening Hold.
-A new explicit selection made after Return starts can override smart rejoin again.
-If Return subsequently replaces that selected item with its next route item, the override is cancelled rather than transferred to the new item.
-Return's automatic mission-index changes do not themselves count as selections.
-
-Uploading a mission cancels an earlier selection, including when uploading the same mission again.
 An upload while Mission is active replaces the mission using normal mission handling; it does not immediately plan a join.
 Smart rejoin is attempted on the next airborne Mission activation, subject to route-cache availability.
 
-A landing abort on the mission landing, in Mission or Return, selects the landing approach again so that it is flown again on Continue.
-This is the fixed-wing go-around mechanism, not an ordinary switch to Hold during landing.
-Like an explicit selection, it overrides smart rejoin across Hold and GoTo until Mission reaches a mission position item; entering Return or uploading a mission cancels it.
+Once the current item is in the landing sequence (from the `DO_LAND_START` item, or the landing item if there is none), the rejoin never branches in before that sequence: Mission flies to the current item instead, as without smart rejoin.
+This keeps `MAV_CMD_DO_LAND_START` from flying earlier mission legs.
+A fixed-wing does not rejoin a started landing at all: Mission flies to the current item.
+A fixed-wing landing abort, in Mission or Return, moves the current item back to the start of the landing, so continuing Mission flies the whole landing again.
 
 When smart rejoin is eligible, the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
 This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.
@@ -477,7 +476,6 @@ Optional approach or loiter items also use these slots.
 This storage limit also caps MAVLink rally-point uploads; changing the batch size does not change that capacity.
 
 Geofence checks use the same candidates and check up to 32 segments at a time, from one static buffer.
-Candidates that fail do not cause another scan of the mission (see [Geofence Checks](#geofence-checks)).
 
 For firmware builds with enough memory, all supported rally points can be checked in one scan:
 

@@ -131,12 +131,6 @@ void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 	// Runs before resetVtolTransition(), which would hide a join transition.
 	resetJoinRouteState();
 	_active_jump_anchor = {};
-
-	// A new mission or current item clears the previous selection.
-	// Check for a new selection before Mission follows DO_JUMP or skips action items.
-	_mission_item_selection_pending = false;
-	updateMissionItemSelection();
-
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	resetVtolTransition();
 
@@ -255,6 +249,10 @@ MissionBase::on_activation()
 			// we restart the mission at the previous position item.
 			// We will replay the cached commands once we reach the previous position item and have yaw aligned.
 			setMissionIndex(resume_index);
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+			// The rewound leg is never a jump edge.
+			_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 			_align_heading_necessary = true;
 			resume_mission_on_previous = true;
@@ -651,15 +649,6 @@ MissionBase::set_mission_item_reached()
 	_navigator->set_mission_result_updated();
 
 	reset_mission_item_reached();
-
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-	// A reached position item puts the vehicle back on the route, so a later resume may join.
-	if (mission_item_contains_position(_mission_item)) {
-		_mission_item_selection_pending = false;
-	}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
 
 bool MissionBase::shouldReportMissionItemReached() const
@@ -1109,10 +1098,7 @@ void MissionBase::publishPositionItems(const mission_item_s &current_item, const
 	_mission_item = current_item;
 	reset_mission_item_reached();
 
-	if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
-		set_mission_result();
-	}
-
+	set_mission_result();
 	publish_navigator_mission_item();
 	_navigator->set_position_setpoint_triplet_updated();
 }
@@ -1159,7 +1145,7 @@ MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 	_navigator->set_mission_result_updated();
 }
 
-bool
+void
 MissionBase::checkMissionRestart()
 {
 	if (_system_disarmed_while_inactive && _mission_has_been_activated && (_mission.count > 0U)
@@ -1170,10 +1156,11 @@ MissionBase::checkMissionRestart()
 		resetMissionJumpCounter();
 		_navigator->reset_cruising_speed();
 		_navigator->reset_vroi();
-		return true;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		// The restarted mission no longer flies the jump edge of the join.
+		_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	}
-
-	return false;
 }
 
 void
@@ -1377,19 +1364,6 @@ MissionBase::do_abort_landing()
 			// move mission index back (landing approach point)
 			_is_current_planned_mission_item_valid = (goToPreviousItem(MissionTraversalType::IgnoreDoJump) == PX4_OK);
 		}
-
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-		// Resuming Mission flies the landing approach again instead of joining it.
-		_mission_item_selection_pending = true;
-		// Tell Mission to fly the approach again if the abort happened during Return.
-		mission_item_selection_s selection{};
-		selection.timestamp = hrt_absolute_time();
-		selection.mission_id = _mission.mission_id;
-		selection.mission_dataman_id = _mission.mission_dataman_id;
-		selection.selected_seq = _mission.current_seq;
-		uORB::Publication<mission_item_selection_s> selection_pub{ORB_ID(mission_item_selection)};
-		selection_pub.publish(selection);
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	}
 
 	// send reposition cmd to get out of mission
@@ -1504,18 +1478,18 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 					// The repetition cannot be counted, so following the jump would repeat it on
 					// every pass over this item. Continue with the item after the jump instead.
 					follow_jump = false;
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-					// Drop only the skipped edge: an earlier jump in a chain can still be active.
-					if (_active_jump_anchor.jump_item_index == new_mission_index) {
-						_active_jump_anchor = {};
-					}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 				}
 			}
 
 			if (follow_jump) {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+				// A counted repeat starts the jump edge, flown until the position item the jump leads to.
+				if (write_jumps) {
+					_active_jump_anchor = {new_mission_index};
+				}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 				new_mission_index = new_mission.do_jump_mission_index;
 
 			} else if (mission_direction_backward) {
@@ -1664,50 +1638,6 @@ bool MissionBase::vehicleInFwLikeState(const vehicle_status_s &vehicle_status)
 {
 	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
 	       || vehicle_status.in_transition_to_fw;
-}
-
-void MissionBase::updateActiveJumpAnchorForNominalAdvance()
-{
-	mission_item_s current_item{};
-
-	if (!loadMissionItemFromCache(_mission.current_seq, current_item)) {
-		_active_jump_anchor = {};
-		return;
-	}
-
-	// A jump may land on action commands preceding its position target. Keep its identity
-	// until that target is reached, including while those commands are executed.
-	if (mission_item_contains_position(current_item)) {
-		_active_jump_anchor = {};
-	}
-
-	// Only inspect commands consumed before the next position target. A later DO_JUMP
-	// belongs to a future advance and must not become the current continuity anchor.
-	for (int32_t index = _mission.current_seq + 1; index < _mission.count; ++index) {
-		mission_item_s mission_item{};
-
-		if (!loadMissionItemFromCache(index, mission_item)) {
-			return;
-		}
-
-		if (mission_item.nav_cmd == NAV_CMD_DO_JUMP
-		    && mission_item.do_jump_current_count < mission_item.do_jump_repeat_count) {
-			_active_jump_anchor = {};
-			int32_t target_index = -1;
-
-			if (mission_item.do_jump_mission_index < _mission.count
-			    && findNextPositionIndex(mission_item.do_jump_mission_index, target_index,
-						     MissionTraversalType::IgnoreDoJump)) {
-				_active_jump_anchor.jump_item_index = index;
-			}
-
-			return;
-		}
-
-		if (mission_item_contains_position(mission_item)) {
-			return;
-		}
-	}
 }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 

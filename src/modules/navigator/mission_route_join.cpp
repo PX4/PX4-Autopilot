@@ -50,14 +50,23 @@
 #include <px4_platform_common/log.h>
 #include <systemlib/mavlink_log.h>
 
-bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
+bool Mission::routeJoinEnabled() const
+{
+	return (_param_mis_route_join.get() != 0)
+	       && mission_route::routeJoinSupported(mission_route::routeAirframe(_vehicle_status_sub.get()));
+}
+
+bool Mission::trySetRouteJoinOnActivation()
 {
 	resetJoinRouteState();
 
+	// A fixed-wing flies a started landing from its current item, as after a landing abort, which moves it to the land start.
+	const bool fixed_wing_landing = vehicleInFwLikeState(_vehicle_status_sub.get()) && hasMissionLandStart()
+					&& (_mission.current_seq >= _mission.land_start_index);
+
 	// A finished mission holds as without the join, so the planned item must still be valid.
-	if (keep_mission_index
-	    || (_param_mis_route_join.get() == 0)
-	    || !mission_route::routeJoinSupported(mission_route::routeAirframe(_vehicle_status_sub.get()))
+	if (!routeJoinEnabled()
+	    || fixed_wing_landing
 	    || !isMissionValid()
 	    || !_is_current_planned_mission_item_valid
 	    || _land_detected_sub.get().landed
@@ -104,6 +113,12 @@ bool Mission::trySetRouteJoinOnActivation(const bool keep_mission_index)
 
 	if (failure_reason != mission_route::FailureReason::kNone) {
 		return fall_back(mission_route::failureReasonString(failure_reason));
+	}
+
+	// A started landing, for example from DO_LAND_START, never goes back to the mission before it.
+	if (hasMissionLandStart() && (_mission.current_seq >= _mission.land_start_index)
+	    && (join_plan.first_mission_item_index < _mission.land_start_index)) {
+		return false;
 	}
 
 	_active_jump_anchor = join_plan.active_jump_anchor;

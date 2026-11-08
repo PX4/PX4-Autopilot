@@ -60,7 +60,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/mission_item_selection.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -93,6 +92,8 @@ static mission_item_s makeCameraTriggerItem(float distance_m)
 class MissionTestPeer : public Mission
 {
 public:
+	void refreshParametersForTest() { updateParams(); }
+
 	explicit MissionTestPeer(Navigator *navigator) : Mission(navigator) {}
 
 	using Mission::trySetRouteJoinOnActivation;
@@ -257,7 +258,7 @@ protected:
 		state.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 		state.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
 		state.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
-		publishMissionUpdate(state, -1);
+		publishMission(state);
 		return state;
 	}
 
@@ -265,18 +266,6 @@ protected:
 	{
 		_mission_pub.publish(mission);
 		_mission_state = mission;
-	}
-
-	// MAVLink publishes the selection first, then the updated mission.
-	void publishMissionUpdate(const mission_s &mission, int32_t selected_seq)
-	{
-		mission_item_selection_s selection{};
-		selection.timestamp = mission.timestamp;
-		selection.mission_id = mission.mission_id;
-		selection.mission_dataman_id = mission.mission_dataman_id;
-		selection.selected_seq = selected_seq;
-		_mission_item_selection_pub.publish(selection);
-		publishMission(mission);
 	}
 
 	void publishVehicleStatus(bool is_vtol, uint8_t vehicle_type, bool in_transition_to_fw = false,
@@ -411,7 +400,7 @@ protected:
 		mission.on_inactive();
 		markMissionResultValid();
 		ASSERT_TRUE(mission.set_current_mission_index(1));
-		mission.on_activation();
+		activateWithoutJoin(mission);
 
 		for (int step = 0; (step < 20) && (mission.currentSequenceForTest() < pause_index); ++step) {
 			reachCurrentItem(mission);
@@ -515,12 +504,21 @@ protected:
 		ASSERT_EQ(_navigator.get_mission_result()->seq_reached, index);
 	}
 
-	// Selects and reaches the current item, then pauses on the way to the next one at resume_position.
-	// The next activation can rejoin because the selection has been reached.
+	void activateWithoutJoin(MissionTestPeer &mission)
+	{
+		int32_t route_join = 0;
+		ASSERT_EQ(param_get(param_find("MIS_ROUTE_JOIN"), &route_join), PX4_OK);
+		setIntParam("MIS_ROUTE_JOIN", 0);
+		mission.refreshParametersForTest();
+		mission.on_activation();
+		setIntParam("MIS_ROUTE_JOIN", route_join);
+		mission.refreshParametersForTest();
+	}
+
+	// Reaches the current item, then pauses on the way to the next one at resume_position.
 	void startReachAndPause(MissionTestPeer &mission, const mission_route::Position &resume_position)
 	{
-		ASSERT_TRUE(mission.set_current_mission_index(mission.currentSequenceForTest()));
-		mission.on_activation();
+		activateWithoutJoin(mission);
 		reachCurrentItem(mission);
 		mission.on_inactivation();
 		publishGlobalPosition(resume_position);
@@ -532,7 +530,6 @@ protected:
 	Navigator _navigator{};
 	DatamanClient _dataman_client{};
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)};
-	uORB::Publication<mission_item_selection_s> _mission_item_selection_pub{ORB_ID(mission_item_selection)};
 	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
 	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
@@ -641,7 +638,7 @@ TEST_F(MissionRouteJoinTest, NominalJumpAnchorMatchesStoredCounterAndRouteRejoin
 						     reinterpret_cast<uint8_t *>(&stored_jump), sizeof(stored_jump)));
 		EXPECT_EQ(stored_jump.do_jump_current_count, fail_write ? 0 : 1);
 
-		ASSERT_TRUE(mission.trySetRouteJoinOnActivation(false));
+		ASSERT_TRUE(mission.trySetRouteJoinOnActivation());
 		EXPECT_EQ(mission.currentSequenceForTest(), fail_write ? 4 : 0);
 		EXPECT_EQ(mission.jumpAnchorForTest().jump_item_index, fail_write ? -1 : 3);
 		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
@@ -703,48 +700,6 @@ TEST_F(MissionRouteJoinTest, ResumingBeforeFirstFrontTransitionRequestsBackTrans
 	EXPECT_EQ(mission.currentSequenceForTest(), 2);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 	EXPECT_EQ(mission.joinTransitionActionForTest(), MissionTestPeer::VtolTransitionAction::kBackTransition);
-}
-
-// Selecting an item before the FT while in FW flies there in FW, as without the join: no back transition.
-TEST_F(MissionRouteJoinTest, ItemSelectedBeforeFirstFrontTransitionIsFlownInFixedWing)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	std::vector<mission_item_s> items;
-
-	for (int index = 0; index <= 15; ++index) {
-		items.push_back(index == 10 ? makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW)
-				: makePositionItemFromOffset(kBaseLat, kBaseLon, index * 100.f, 0.f, kAlt));
-	}
-
-	const mission_route::Position near_wp2 = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt);
-	const mission_s state = publishMissionItems(items, 56, 14);
-	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-	publishLandDetected(false);
-	publishGlobalPosition(near_wp2);
-	publishLocalPosition(0.f, 15.f, 0.f);
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt));
-	primeNavigatorState();
-	updateRouteCacheUntilReady(state);
-	mission.on_inactive();
-	markMissionResultValid();
-	// After flying past the FT, the vehicle has returned near waypoint 2 while still in FW.
-	startReachAndPause(mission, near_wp2);
-	ASSERT_TRUE(mission.set_current_mission_index(2));
-	uORB::Subscription commands{ORB_ID(vehicle_command)};
-	vehicle_command_s command{};
-
-	while (commands.update(&command)) {}
-
-	mission.on_activation();
-
-	EXPECT_EQ(mission.currentSequenceForTest(), 2);
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
-	EXPECT_FALSE(mission.joinContextForTest().valid());
-
-	while (commands.update(&command)) {
-		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
-	}
 }
 
 // Smart rejoin is off by default: an airborne resume flies to the current item.
@@ -1000,441 +955,7 @@ TEST_F(MissionRouteJoinTest, NewFlightAfterLandingJoinsNearestLeg)
 	EXPECT_TRUE(mission.joinContextForTest().valid());
 }
 
-// Uploads clear an earlier selection. An active Mission waits until the next Continue to join.
-TEST_F(MissionRouteJoinTest, UploadClearsSelectionAndJoinsOnNextActivation)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f));
-	uint32_t mission_id = 120;
-	const struct {
-		bool active;
-		bool changed_contents;
-	} uploads[] {{false, false}, {false, true}, {true, true}};
-
-	for (const auto &upload : uploads) {
-		SCOPED_TRACE(::testing::Message() << "active=" << upload.active << ", changed=" << upload.changed_contents);
-		MissionTestPeer mission(&_navigator);
-		mission_s state = publishMissionItems(surveyThenLanding(), ++mission_id, 7, 8);
-		updateRouteCacheUntilReady(state);
-		mission.run(false);
-		markMissionResultValid();
-		ASSERT_TRUE(mission.set_current_mission_index(7));
-		mission.run(true);
-		ASSERT_EQ(mission.currentSequenceForTest(), 7);
-		ASSERT_FALSE(mission.joinContextForTest().valid());
-
-		if (!upload.active) {
-			mission.run(false);
-		}
-
-		// The upload keeps the same item; identical uploads also keep the mission ID.
-		state.timestamp = hrt_absolute_time();
-
-		if (upload.changed_contents) {
-			state.mission_id = ++mission_id;
-		}
-
-		publishMissionUpdate(state, -1);
-		updateRouteCacheUntilReady(state);
-		mission.run(upload.active);
-
-		if (upload.active) {
-			EXPECT_EQ(mission.currentSequenceForTest(), 7);
-			EXPECT_FALSE(mission.joinContextForTest().valid());
-			mission.run(false);
-			mission.run(false);
-
-		} else {
-			markMissionResultValid();
-		}
-
-		mission.run(true);
-		EXPECT_EQ(mission.currentSequenceForTest(), 4);
-		EXPECT_TRUE(mission.joinContextForTest().valid());
-		mission.run(false);
-	}
-}
-
-// An upload and selection can happen before Navigator reads either topic; it sees only the latest values.
-TEST_F(MissionRouteJoinTest, SelectionImmediatelyAfterUploadIsKept)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f));
-	uint32_t mission_id = 140;
-
-	for (int32_t selected_index : {3, 7}) {
-		SCOPED_TRACE(selected_index);
-		mission_s state = publishMissionItems(surveyThenLanding(), ++mission_id, 3, 8);
-		state.timestamp = hrt_absolute_time();
-		state.current_seq = selected_index;
-		publishMissionUpdate(state, selected_index);
-		updateRouteCacheUntilReady(state);
-		mission.run(false);
-		markMissionResultValid();
-		mission.run(true);
-
-		EXPECT_EQ(mission.currentSequenceForTest(), selected_index);
-		EXPECT_FALSE(mission.joinContextForTest().valid());
-		mission.run(false);
-	}
-}
-
-// Navigator handles commands first, so selecting an item must also read any new mission upload.
-TEST_F(MissionRouteJoinTest, SelectionCommandImmediatelyAfterUploadUsesReplacementMission)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f));
-	uint32_t mission_id = 170;
-
-	for (bool was_active : {false, true}) {
-		SCOPED_TRACE(was_active);
-		MissionTestPeer mission(&_navigator);
-		mission_s state = publishMissionItems(loopAroundHome(), ++mission_id, 0);
-		updateRouteCacheUntilReady(state);
-		mission.run(false);
-		markMissionResultValid();
-
-		if (was_active) {
-			ASSERT_TRUE(mission.set_current_mission_index(0));
-			mission.run(true);
-		}
-
-		state = publishMissionItems(surveyThenLanding(), ++mission_id, 3, 8);
-		updateRouteCacheUntilReady(state);
-		// Index 7 exists only in the new mission, which Mission has not read yet.
-		ASSERT_TRUE(mission.set_current_mission_index(7));
-		mission.run(false);
-		mission.run(false);
-		mission.run(true);
-
-		EXPECT_EQ(mission.currentSequenceForTest(), 7);
-		EXPECT_FALSE(mission.joinContextForTest().valid());
-		mission.run(false);
-	}
-}
-
-// An item selected while Mission is paused is flown to directly; the join must not override it.
-TEST_F(MissionRouteJoinTest, ItemSelectedWhilePausedIsKeptOnResume)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	const std::vector<mission_item_s> items = surveyThenLanding();
-	const mission_route::Position beside_leg_3_4 = makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f);
-	publishAirborneMulticopter(beside_leg_3_4);
-	uint32_t mission_id = 77;
-
-	// Item 2 reached, then paused beside survey leg 3-4.
-	const auto start_and_pause_on_survey = [&]() {
-		const mission_s state = publishMissionItems(items, ++mission_id, 2, 8);
-		updateRouteCacheUntilReady(state);
-		mission.on_inactive();
-		markMissionResultValid();
-		startReachAndPause(mission, beside_leg_3_4);
-		return state;
-	};
-
-	// Without a selection, the resume joins the survey leg beside the vehicle.
-	start_and_pause_on_survey();
-	mission.on_activation();
-	ASSERT_EQ(mission.currentSequenceForTest(), 4);
-	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
-	mission.on_inactivation();
-
-	// DO_SET_MISSION_CURRENT and MISSION_START (also sent for DO_LAND_START) select through
-	// set_current_mission_index(), MISSION_SET_CURRENT through the mission topic. The current item counts too.
-	const struct {
-		int32_t index;
-		bool from_mission_topic;
-	} selections[] {{7, false}, {3, false}, {7, true}, {3, true}};
-
-	for (const auto &selection : selections) {
-		SCOPED_TRACE(::testing::Message() << "index=" << selection.index << ", topic=" << selection.from_mission_topic);
-		const mission_s state = start_and_pause_on_survey();
-
-		if (selection.from_mission_topic) {
-			mission_s selected = state;
-			selected.timestamp = hrt_absolute_time();
-			selected.current_seq = selection.index;
-			publishMissionUpdate(selected, selection.index);
-			mission.on_inactive();
-
-		} else {
-			ASSERT_TRUE(mission.set_current_mission_index(selection.index));
-		}
-
-		mission.on_activation();
-
-		EXPECT_EQ(mission.currentSequenceForTest(), selection.index);
-		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
-		EXPECT_FALSE(mission.joinContextForTest().valid());
-		mission.on_inactivation();
-	}
-}
-
-// A selected item is flown to directly across further pauses until it is reached; later resumes join again.
-TEST_F(MissionRouteJoinTest, SelectedItemIsKeptAcrossPausesUntilReached)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	const mission_route::Position beside_leg_3_4 = makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f);
-	publishAirborneMulticopter(beside_leg_3_4);
-	const mission_s state = publishMissionItems(surveyThenLanding(), 90, 2, 8);
-	updateRouteCacheUntilReady(state);
-	mission.on_inactive();
-	markMissionResultValid();
-	startReachAndPause(mission, beside_leg_3_4);
-
-	// The landing approach is selected while paused.
-	ASSERT_TRUE(mission.set_current_mission_index(7));
-	mission.on_activation();
-	ASSERT_EQ(mission.currentSequenceForTest(), 7);
-	ASSERT_FALSE(mission.joinContextForTest().valid());
-
-	// Paused again before reaching it, still beside the survey.
-	mission.on_inactivation();
-	mission.on_inactive();
-	mission.on_activation();
-	EXPECT_EQ(mission.currentSequenceForTest(), 7);
-	EXPECT_FALSE(mission.joinContextForTest().valid());
-
-	// Once it is reached, a resume beside the approach leg rejoins the route.
-	reachCurrentItem(mission);
-	ASSERT_EQ(mission.currentSequenceForTest(), 8);
-	mission.on_inactivation();
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 2050.f, 1010.f, kAlt + 25.f));
-	primeNavigatorState();
-	mission.on_inactive();
-	mission.on_activation();
-	EXPECT_EQ(mission.currentSequenceForTest(), 8);
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
-}
-
-// A selection handled while Mission is still active, e.g. DO_LAND_START in flight, is kept after a pause.
-TEST_F(MissionRouteJoinTest, ItemSelectedInFlightIsKeptAfterPause)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	const mission_route::Position beside_leg_3_4 = makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f);
-	publishAirborneMulticopter(beside_leg_3_4);
-	const mission_s state = publishMissionItems(surveyThenLanding(), 91, 2, 8);
-	updateRouteCacheUntilReady(state);
-	// Run Mission as Navigator does, so that it is active while it handles the selection.
-	mission.run(false);
-	markMissionResultValid();
-	ASSERT_TRUE(mission.set_current_mission_index(2));
-	mission.run(true);
-	reachCurrentItem(mission);
-	publishGlobalPosition(beside_leg_3_4);
-	primeNavigatorState();
-	mission.run(false);
-	mission.run(false);
-	mission.run(true);
-	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
-	mission.run(true);
-
-	// Navigator handles commands before the modes run, so Mission is still active in the cycle that pauses it.
-	// The selection cancels the armed join at once.
-	ASSERT_TRUE(mission.isActive());
-	ASSERT_TRUE(mission.set_current_mission_index(7));
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
-	EXPECT_FALSE(mission.joinContextForTest().valid());
-	mission.run(false);
-	mission.run(false);
-	mission.run(true);
-
-	EXPECT_EQ(mission.currentSequenceForTest(), 7);
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
-	EXPECT_FALSE(mission.joinContextForTest().valid());
-}
-
-TEST_F(MissionRouteJoinTest, SelectingCurrentJoinTargetCancelsJoin)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f));
-	const std::vector<mission_item_s> items = surveyThenLanding();
-	uint32_t mission_id = 180;
-
-	for (bool from_mission_topic : {false, true}) {
-		SCOPED_TRACE(from_mission_topic);
-		MissionTestPeer mission(&_navigator);
-		mission_s state = publishMissionItems(items, ++mission_id, 3, 8);
-		updateRouteCacheUntilReady(state);
-		mission.run(false);
-		markMissionResultValid();
-		mission.run(true);
-		ASSERT_EQ(mission.currentSequenceForTest(), 4);
-		ASSERT_TRUE(mission.joinContextForTest().valid());
-
-		if (from_mission_topic) {
-			state.timestamp = hrt_absolute_time();
-			state.current_seq = 4;
-			publishMissionUpdate(state, 4);
-			mission.run(true);
-
-		} else {
-			ASSERT_TRUE(mission.set_current_mission_index(4));
-		}
-
-		EXPECT_FALSE(mission.joinContextForTest().valid());
-		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
-		EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, items[4].lat);
-		EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, items[4].lon);
-		mission.run(false);
-		mission.run(false);
-		mission.run(true);
-		EXPECT_EQ(mission.currentSequenceForTest(), 4);
-		EXPECT_FALSE(mission.joinContextForTest().valid());
-		mission.run(false);
-	}
-}
-
-// MISSION_SET_CURRENT may select a jump rather than its resolved position target.
-TEST_F(MissionRouteJoinTest, ActiveLegacySelectionOfJumpKeepsResolvedTargetAfterPause)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f));
-	std::vector<mission_item_s> items = surveyThenLanding();
-	items[5] = makeDoJump(2, 1, 0);
-	mission_s state = publishMissionItems(items, 185, 3, 8);
-	updateRouteCacheUntilReady(state);
-	mission.run(false);
-	markMissionResultValid();
-	ASSERT_TRUE(mission.set_current_mission_index(3));
-	mission.run(true);
-
-	state.timestamp = hrt_absolute_time();
-	state.current_seq = 5;
-	publishMissionUpdate(state, 5);
-	mission.run(true);
-	ASSERT_EQ(mission.currentSequenceForTest(), 2);
-	ASSERT_FALSE(mission.joinContextForTest().valid());
-
-	// Pause before reaching the resolved waypoint, still beside survey leg 3-4.
-	mission.run(false);
-	mission.run(false);
-	mission.run(true);
-
-	EXPECT_EQ(mission.currentSequenceForTest(), 2);
-	EXPECT_FALSE(mission.joinContextForTest().valid());
-	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, items[2].lat);
-	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, items[2].lon);
-}
-
-// Return clears an earlier selection even without changing the mission item.
-TEST_F(MissionRouteJoinTest, ReturnClearsSelectionBeforeContinue)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f));
-	uint32_t mission_id = 150;
-	const struct {
-		bool hold_after_return;
-		bool mission_stays_active;
-	} returns[] {{false, false}, {true, false}, {true, true}};
-
-	for (const auto &return_mode : returns) {
-		SCOPED_TRACE(::testing::Message() << "Hold=" << return_mode.hold_after_return
-			     << ", Mission stays active=" << return_mode.mission_stays_active);
-		MissionTestPeer mission(&_navigator);
-		const mission_s state = publishMissionItems(surveyThenLanding(), ++mission_id, 7, 8);
-		updateRouteCacheUntilReady(state);
-		publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-		mission.run(false);
-		markMissionResultValid();
-		ASSERT_TRUE(mission.set_current_mission_index(7));
-		mission.run(true);
-		ASSERT_FALSE(mission.joinContextForTest().valid());
-
-		// During a mission landing, Return can keep Mission running.
-		publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-		mission.run(return_mode.mission_stays_active);
-
-		ASSERT_EQ(mission.currentSequenceForTest(), 7);
-
-		if (return_mode.hold_after_return) {
-			publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-			mission.run(false);
-			mission.run(false);
-		}
-
-		publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-		mission.run(true);
-		EXPECT_EQ(mission.currentSequenceForTest(), 4);
-		EXPECT_TRUE(mission.joinContextForTest().valid());
-		mission.run(false);
-	}
-}
-
-// A late delivery of an older selection must not undo Return's cancellation.
-// A new selection still counts if its timestamp is exactly the same as Return entry.
-TEST_F(MissionRouteJoinTest, ReturnUsesSelectionTimeRatherThanDeliveryTime)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f));
-	uint32_t mission_id = 190;
-
-	for (bool from_mission_topic : {false, true}) {
-		for (bool delayed : {false, true}) {
-			SCOPED_TRACE(::testing::Message() << "topic=" << from_mission_topic << ", delayed=" << delayed);
-			MissionTestPeer mission(&_navigator);
-			mission_s state = publishMissionItems(surveyThenLanding(), ++mission_id, 7, 8);
-			updateRouteCacheUntilReady(state);
-			publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-			mission.run(false);
-			markMissionResultValid();
-			ASSERT_TRUE(mission.set_current_mission_index(7, false, state.timestamp));
-			mission.run(true);
-			publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-			const hrt_abstime selection_timestamp = _vehicle_status.nav_state_timestamp - (delayed ? 1 : 0);
-
-			if (delayed) {
-				mission.run(false);
-				mission.run(false);
-			}
-
-			if (from_mission_topic) {
-				state.timestamp = selection_timestamp;
-				publishMissionUpdate(state, 7);
-
-			} else {
-				ASSERT_TRUE(mission.set_current_mission_index(7, false, selection_timestamp));
-			}
-
-			mission.run(false);
-			mission.run(false);
-			publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-			mission.run(true);
-			EXPECT_EQ(mission.currentSequenceForTest(), delayed ? 4 : 7);
-			EXPECT_EQ(mission.joinContextForTest().valid(), delayed);
-			mission.run(false);
-		}
-	}
-}
-
-// An older command can arrive after a newer message selected the same item.
-TEST_F(MissionRouteJoinTest, OlderCommandDoesNotCancelNewerSelectionOfTheSameItem)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f));
-	mission_s state = publishMissionItems(surveyThenLanding(), 205, 7, 8);
-	updateRouteCacheUntilReady(state);
-	mission.run(false);
-	markMissionResultValid();
-	const hrt_abstime older_command = hrt_absolute_time() - 1;
-	state.timestamp = hrt_absolute_time();
-	publishMissionUpdate(state, 7);
-	mission.run(false);
-	ASSERT_TRUE(mission.set_current_mission_index(7, false, older_command));
-	mission.run(true);
-
-	EXPECT_EQ(mission.currentSequenceForTest(), 7);
-	EXPECT_FALSE(mission.joinContextForTest().valid());
-}
-
 // A Return along the mission moves the index, and continuing the mission rejoins the route.
-// Only a new selection made during that Return remains pending.
 TEST_F(MissionRouteJoinTest, ResumeAfterReturnAlongTheMissionRejoins)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
@@ -1447,107 +968,30 @@ TEST_F(MissionRouteJoinTest, ResumeAfterReturnAlongTheMissionRejoins)
 
 	const mission_route::Position beside_leg_4_5 = makePositionFromOffset(kBaseLat, kBaseLon, 450.f, 5.f, kAlt);
 	publishAirborneMulticopter(beside_leg_4_5);
-	uint32_t mission_id = 80;
-
-	for (bool selection_before_return : {false, true}) {
-		for (bool selection_during_return : {false, true}) {
-			SCOPED_TRACE(::testing::Message() << "before=" << selection_before_return << ", during=" << selection_during_return);
-			const mission_s state = publishMissionItems(items, ++mission_id, 4);
-			updateRouteCacheUntilReady(state);
-			publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-			mission.on_inactive();
-			markMissionResultValid();
-			ASSERT_TRUE(mission.set_current_mission_index(4));
-			mission.on_activation();
-			reachCurrentItem(mission);
-			ASSERT_EQ(mission.currentSequenceForTest(), 5);
-
-			if (selection_before_return) {
-				ASSERT_TRUE(mission.set_current_mission_index(5));
-			}
-
-			// RTL_TYPE 2 without a mission landing returns along the reversed mission and moves the index back.
-			RtlMissionFastReverse rtl(&_navigator, state);
-			rtl.on_inactive();
-			publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-			publishGlobalPosition(beside_leg_4_5);
-			primeNavigatorState();
-			mission.on_inactivation();
-			rtl.on_activation();
-			mission.on_inactive();
-			ASSERT_EQ(mission.currentSequenceForTest(), 4);
-
-			if (selection_during_return) {
-				mission_s selected = state;
-				selected.timestamp = hrt_absolute_time();
-				selected.current_seq = 6;
-				publishMissionUpdate(selected, 6);
-				mission.on_inactive();
-				// Another status publication in the same Return must not clear this later selection.
-				publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-				mission.on_inactive();
-			}
-
-			// The operator continues the mission.
-			rtl.on_inactivation();
-			publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-			mission.on_activation();
-
-			EXPECT_EQ(mission.currentSequenceForTest(), selection_during_return ? 6 : 5);
-			EXPECT_EQ(mission.joinContextForTest().valid(), !selection_during_return);
-			mission.on_inactivation();
-		}
-	}
-}
-
-// When Return advances to another item, the earlier selection must not prevent smart join.
-TEST_F(MissionRouteJoinTest, ReturnAdvancingPastANewSelectionAllowsJoin)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	std::vector<mission_item_s> items;
-
-	for (int index = 0; index <= 6; ++index) {
-		items.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, index * 100.f, 0.f, kAlt));
-	}
-
-	const mission_route::Position beside_leg_4_5 = makePositionFromOffset(kBaseLat, kBaseLon, 450.f, 5.f, kAlt);
-	publishAirborneMulticopter(beside_leg_4_5);
-	const mission_s state = publishMissionItems(items, 160, 5);
+	const mission_s state = publishMissionItems(items, 81, 4);
 	updateRouteCacheUntilReady(state);
 	publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-	mission.run(false);
+	mission.on_inactive();
 	markMissionResultValid();
-	ASSERT_TRUE(mission.set_current_mission_index(5));
-	mission.run(true);
+	activateWithoutJoin(mission);
+	reachCurrentItem(mission);
+	ASSERT_EQ(mission.currentSequenceForTest(), 5);
 
+	// RTL_TYPE 2 without a mission landing returns along the reversed mission and moves the index back.
 	RtlMissionFastReverse rtl(&_navigator, state);
-	rtl.run(false);
+	rtl.on_inactive();
 	publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-	mission.run(false);
-	rtl.run(true);
-	mission.run(false);
-	ASSERT_EQ(mission.currentSequenceForTest(), 4);
-
-	// Select Return's current item after Return has started.
-	ASSERT_TRUE(mission.set_current_mission_index(4));
-	mission.run(false);
-	const position_setpoint_s current = _navigator.get_position_setpoint_triplet()->current;
-	ASSERT_TRUE(current.valid);
-	publishGlobalPosition({current.lat, current.lon, current.alt});
-	primeNavigatorState();
-
-	for (int cycle = 0; cycle < 10 && mission.currentSequenceForTest() == 4; ++cycle) {
-		rtl.run(true);
-		mission.run(false);
-	}
-
-	ASSERT_EQ(mission.currentSequenceForTest(), 3);
-	rtl.run(false);
 	publishGlobalPosition(beside_leg_4_5);
 	primeNavigatorState();
+	mission.on_inactivation();
+	rtl.on_activation();
+	mission.on_inactive();
+	ASSERT_EQ(mission.currentSequenceForTest(), 4);
+
+	// The operator continues the mission.
+	rtl.on_inactivation();
 	publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-	mission.run(true);
+	mission.on_activation();
 
 	EXPECT_EQ(mission.currentSequenceForTest(), 5);
 	EXPECT_TRUE(mission.joinContextForTest().valid());
@@ -1746,7 +1190,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 			markMissionResultValid();
 			// Fly the approach waypoint and the move to the landing point, then descend.
 			ASSERT_TRUE(mission.set_current_mission_index(1));
-			mission.on_activation();
+			activateWithoutJoin(mission);
 			reachCurrentItem(mission);
 			reachCurrentItem(mission);
 			publishGlobalPosition({land.lat, land.lon, descent_altitude});
@@ -1772,11 +1216,16 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 
 			mission.on_activation();
 			EXPECT_FALSE(mission.transitionActiveForTest());
+			// LAND is the land start, so the join never goes back to the earlier leg.
 			const bool near_land = resume_location < 2;
-			const int32_t target_index = resume_location == 3 ? 1 : 2;
+			const bool joins = resume_location == 2;
+			const int32_t target_index = 2;
 			EXPECT_EQ(mission.currentSequenceForTest(), target_index);
 
-			if (near_land) {
+			if (resume_location == 3) {
+				EXPECT_FALSE(mission.joinContextForTest().valid());
+
+			} else if (near_land) {
 				EXPECT_FALSE(mission.joinContextForTest().valid());
 				EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 				EXPECT_DOUBLE_EQ(sp.lat, land.lat);
@@ -1798,8 +1247,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 
 			for (int i = 0; i < 3; ++i) {
 				mission.on_active();
-				EXPECT_EQ(mission.workItemTypeForTest(), near_land ? MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT
-					  : MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+				EXPECT_EQ(mission.workItemTypeForTest() == MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE, joins);
 				EXPECT_EQ(sp.type, near_land ? position_setpoint_s::SETPOINT_TYPE_LAND : position_setpoint_s::SETPOINT_TYPE_POSITION);
 				EXPECT_EQ(mission.currentSequenceForTest(), target_index);
 			}
@@ -1808,7 +1256,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 				EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 			}
 
-			if (is_vtol && !near_land) {
+			if (is_vtol && joins) {
 				// The FT is still available, but only after climbing to the route and aligning.
 				const auto join = mission.joinContextForTest().projection;
 				const float yaw = get_bearing_to_next_waypoint(join.lat, join.lon, items[target_index].lat, items[target_index].lon);
@@ -1833,8 +1281,8 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 	}
 }
 
-// A landing abort restarts the approach. Entering Return cancels that requirement.
-TEST_F(MissionRouteJoinTest, LandingAbortRestartsApproachUnlessReturnIsEntered)
+// A landing abort restarts the approach, also after entering Return: a fixed-wing does not rejoin a started landing.
+TEST_F(MissionRouteJoinTest, LandingAbortRestartsApproach)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	uint32_t mission_id = 104;
@@ -1879,8 +1327,8 @@ TEST_F(MissionRouteJoinTest, LandingAbortRestartsApproachUnlessReturnIsEntered)
 		primeNavigatorState();
 		publishNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 		mission.run(true);
-		EXPECT_EQ(mission.currentSequenceForTest(), enter_return ? 4 : 2);
-		EXPECT_EQ(mission.joinContextForTest().valid(), enter_return);
+		EXPECT_EQ(mission.currentSequenceForTest(), 2);
+		EXPECT_FALSE(mission.joinContextForTest().valid());
 		mission.run(false);
 	}
 }
@@ -2157,4 +1605,241 @@ TEST_F(MissionRouteJoinTest, ExhaustedJumpRejoinResumesNominalExecutionWithoutAn
 	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 3,
 					     reinterpret_cast<uint8_t *>(&exhausted_jump), sizeof(exhausted_jump)));
 	EXPECT_EQ(exhausted_jump.do_jump_current_count, 3);
+}
+
+// An item selected while Mission is paused is the current item of the join, like any resume.
+TEST_F(MissionRouteJoinTest, ItemSelectedWhilePausedJoins)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	// Out on 0, 1, 2 and back 20 m east on 3, 4, 5.
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 20.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 20.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 20.f, kAlt),
+	};
+	// Between the lanes, closer to the way back.
+	const mission_route::Position between_lanes = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 12.f, kAlt);
+	publishAirborneMulticopter(between_lanes);
+	uint32_t mission_id = 77;
+
+	// Item 1 reached, then paused between the lanes.
+	const auto start_and_pause = [&]() {
+		const mission_s state = publishMissionItems(items, ++mission_id, 1);
+		updateRouteCacheUntilReady(state);
+		mission.on_inactive();
+		markMissionResultValid();
+		startReachAndPause(mission, between_lanes);
+		return state;
+	};
+
+	// Without a selection, the resume joins the leg it was flying.
+	start_and_pause();
+	mission.on_activation();
+	ASSERT_EQ(mission.currentSequenceForTest(), 2);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+	mission.on_inactivation();
+
+	// Selecting 4 makes the way back the leg to join. DO_SET_MISSION_CURRENT and MISSION_START select
+	// through set_current_mission_index(), MISSION_SET_CURRENT through the mission topic.
+	for (const bool from_mission_topic : {false, true}) {
+		SCOPED_TRACE(from_mission_topic);
+		const mission_s state = start_and_pause();
+
+		if (from_mission_topic) {
+			mission_s selected = state;
+			selected.timestamp = hrt_absolute_time();
+			selected.current_seq = 4;
+			publishMission(selected);
+			mission.on_inactive();
+
+		} else {
+			ASSERT_TRUE(mission.set_current_mission_index(4));
+		}
+
+		mission.on_activation();
+
+		EXPECT_EQ(mission.currentSequenceForTest(), 4);
+		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+		mission.on_inactivation();
+	}
+}
+
+// The jump edge lasts through the commands at the jump target until its position. The camera survey rewind
+// ends it.
+TEST_F(MissionRouteJoinTest, JumpEdgeLastsUntilTheTargetPosition)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	// The loop jumps back to the camera trigger at 1, before its position at 2.
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makeCameraTriggerItem(10.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
+		makeDoJump(1, 2, 0),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 100.f, kAlt),
+	};
+	const mission_s state = publishMissionItems(items, 954, 0);
+	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
+	updateRouteCacheUntilReady(state);
+	mission.on_inactive();
+	markMissionResultValid();
+	activateWithoutJoin(mission);
+
+	// Items 0 to 3, then the jump back to the camera trigger and on to its position.
+	for (int reached = 0; reached < 5; ++reached) {
+		reachCurrentItem(mission);
+	}
+
+	ASSERT_EQ(mission.currentSequenceForTest(), 2);
+	EXPECT_EQ(mission.jumpAnchorForTest().jump_item_index, 4);
+
+	// A pause on the jump edge with the camera on: the resume rewinds to item 0, off the edge.
+	mission.on_inactivation();
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 50.f, kAlt));
+	primeNavigatorState();
+	mission.on_inactive();
+	markMissionResultValid();
+	mission.on_activation();
+	ASSERT_EQ(mission.currentSequenceForTest(), 0);
+	EXPECT_TRUE(mission.jumpAnchorForTest().empty());
+}
+
+// Leaving a loop ends its jump edge, so a later join does not go back to the loop.
+TEST_F(MissionRouteJoinTest, LeavingTheLoopEndsItsJumpEdge)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	// A loop 1, 2, back to 1 once, then a return lane 20 m east: 4, 5, 6.
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeDoJump(1, 1, 0),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 20.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 20.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 20.f, kAlt),
+	};
+	const mission_s mission_state = publishMissionItems(items, 951, 1);
+	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt));
+	updateRouteCacheUntilReady(mission_state);
+	mission.on_inactive();
+	markMissionResultValid();
+	activateWithoutJoin(mission);
+
+	// Following the loop back to item 1 anchors its jump.
+	reachCurrentItem(mission);
+	reachCurrentItem(mission);
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	ASSERT_EQ(mission.jumpAnchorForTest().jump_item_index, 3);
+
+	// The vehicle leaves the loop onto the return lane.
+	for (int reached = 0; reached < 3; ++reached) {
+		reachCurrentItem(mission);
+	}
+
+	ASSERT_EQ(mission.currentSequenceForTest(), 5);
+	EXPECT_TRUE(mission.jumpAnchorForTest().empty());
+
+	// A resume beside the return lane joins that lane, not the loop edge.
+	mission.on_inactivation();
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 12.f, kAlt));
+	primeNavigatorState();
+	mission.on_inactive();
+	markMissionResultValid();
+	mission.on_activation();
+
+	EXPECT_EQ(mission.currentSequenceForTest(), 5);
+	ASSERT_TRUE(mission.joinContextForTest().valid());
+	float north = NAN;
+	float east = NAN;
+	get_vector_to_next_waypoint(kBaseLat, kBaseLon, mission.joinContextForTest().projection.lat,
+				    mission.joinContextForTest().projection.lon, &north, &east);
+	EXPECT_NEAR(east, 20.f, 1.f);
+}
+
+// A selection while Mission is active flies to the item directly: it cancels an armed join and ends the jump edge.
+TEST_F(MissionRouteJoinTest, SelectionInFlightCancelsJoinAndJumpEdge)
+{
+	MissionTestPeer mission(&_navigator);
+	// A loop 1, 2, back to 1 once, then a return lane 20 m east: 4, 5, 6.
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeDoJump(1, 1, 0),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 20.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 20.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 20.f, kAlt),
+	};
+	const mission_s mission_state = publishMissionItems(items, 952, 1);
+	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt));
+	updateRouteCacheUntilReady(mission_state);
+
+	// Run Mission as Navigator does, so that it is active while it handles the selection. Start without a join.
+	mission.run(false);
+	markMissionResultValid();
+	mission.run(true);
+	reachCurrentItem(mission);
+	reachCurrentItem(mission);
+	ASSERT_EQ(mission.jumpAnchorForTest().jump_item_index, 3);
+
+	// Paused beside the jump edge, then resumed with the join on.
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	mission.refreshParametersForTest();
+	mission.run(false);
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 150.f, -15.f, kAlt));
+	primeNavigatorState();
+	mission.run(false);
+	mission.run(true);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+	ASSERT_EQ(mission.jumpAnchorForTest().jump_item_index, 3);
+
+	ASSERT_TRUE(mission.set_current_mission_index(5));
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
+	EXPECT_TRUE(mission.jumpAnchorForTest().empty());
+	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, items[5].lat);
+	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, items[5].lon);
+}
+
+// A landing selected while paused, as DO_LAND_START does through MISSION_START, does not go back to the survey.
+TEST_F(MissionRouteJoinTest, StartedLandingDoesNotRejoinEarlierLegs)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	const mission_route::Position beside_leg_3_4 = makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f);
+	publishAirborneMulticopter(beside_leg_3_4);
+	mission_item_s land_start{};
+	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
+	land_start.autocontinue = true;
+	std::vector<mission_item_s> with_marker = surveyThenLanding();
+	with_marker.insert(with_marker.begin() + 7, land_start);
+	uint32_t mission_id = 931;
+
+	// The land start is the DO_LAND_START item (7), or LAND (8) without one.
+	for (const bool marker : {true, false}) {
+		SCOPED_TRACE(marker);
+		const int32_t land_start_index = marker ? 7 : 8;
+		mission_s state = publishMissionItems(marker ? with_marker : surveyThenLanding(), ++mission_id, 2,
+						      marker ? 9 : 8);
+		state.land_start_index = land_start_index;
+		publishMission(state);
+		updateRouteCacheUntilReady(state);
+		mission.on_inactive();
+		markMissionResultValid();
+		startReachAndPause(mission, beside_leg_3_4);
+
+		// Navigator turns DO_LAND_START into MISSION_START, which selects the land start before Mission resumes.
+		ASSERT_TRUE(mission.set_current_mission_index(land_start_index));
+		mission.on_activation();
+
+		EXPECT_EQ(mission.currentSequenceForTest(), land_start_index);
+		EXPECT_FALSE(mission.joinContextForTest().valid());
+		mission.on_inactivation();
+	}
 }

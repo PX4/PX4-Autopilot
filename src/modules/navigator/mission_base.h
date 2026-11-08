@@ -61,7 +61,6 @@
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 #include "mission_route_types.h"
-#include <uORB/topics/mission_item_selection.h>
 // Only the route planning modes override these hooks, so without the mission cache they are plain functions.
 #define MISSION_ROUTE_HOOK virtual
 #else
@@ -136,10 +135,6 @@ protected:
 
 	/** DO_JUMP edge being flown, so a rejoin or route replan stays on an active loop. */
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
-
-	/** A selection or landing abort blocks smart join until a mission position item is reached. */
-	bool _mission_item_selection_pending{false};
-	virtual void updateMissionItemSelection() {}
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	struct VtolTransitionContext {
@@ -352,9 +347,8 @@ protected:
 
 	/**
 	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
-	 * @return true if the mission was reset
 	 */
-	bool checkMissionRestart();
+	void checkMissionRestart();
 
 	/** Allow modes with external mission ownership to ignore subscription updates; they publish only their index. */
 	MISSION_ROUTE_HOOK bool shouldAcceptMissionUpdates() { return true; }
@@ -546,9 +540,6 @@ protected:
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	static bool vehicleInFwLikeState(const vehicle_status_s &vehicle_status);
-
-	/** Set _active_jump_anchor to the DO_JUMP edge the next nominal advance follows. */
-	void updateActiveJumpAnchorForNominalAdvance();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/

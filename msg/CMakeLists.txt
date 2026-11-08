@@ -144,7 +144,6 @@ set(msg_files
 	MessageFormatRequest.msg
 	MessageFormatResponse.msg
 	Mission.msg
-	MissionItemSelection.msg
 	MissionResult.msg
 	MountOrientation.msg
 	NavigatorMissionItem.msg
