@@ -15,7 +15,7 @@ Select route-following Return with [RTL_TYPE=7](../flight_modes/return.md#rtl_ty
 Both features need firmware built with the [mission route cache](../advanced/mission_route_cache.md), and the whole mission must fit in it.
 SITL builds include it by default, but most flight controller builds do not; see [Parameters and Build Configuration](#parameters-and-build-configuration).
 With route planning enabled, a planning failure does not select a direct return to another destination.
-Return is unavailable until a route can be planned; an active Return that loses its route holds or lands at the current location, see [No Route Available](#route-following-no-route).
+Return is unavailable until a route can be planned; an active Return that loses its route holds at the current location, see [No Route Available](#route-following-no-route).
 :::
 
 ::: info
@@ -176,21 +176,15 @@ A failsafe configured to Return selects Land instead, without applying [RTL_LAND
 If Land is also unavailable, the normal [failsafe escalation](../config/safety.md#position-loss-failsafe-action) to Descend or Terminate applies.
 While that failsafe remains active, a later successful route evaluation can change the selected action from Land back to Return.
 This availability check does not interrupt a Return that is already active.
-While Return is the selected mode, a failsafe that interrupts it keeps its own action, such as Hold, and a failsafe configured to Return resumes Return, which holds or lands where it is without a route.
+While Return is the selected mode, a failsafe that interrupts it keeps its own action, such as Hold, and a failsafe configured to Return resumes Return, which holds where it is without a route.
 
-If Return starts or continues without a route, it uses the current location for its hold and landing sequence.
-There is no return-altitude climb.
-Multicopters and VTOLs hold at the current altitude.
-While uploaded mission, rally point or fence data are loading, or Mission has not validated them yet, they hold without landing, whatever `RTL_LAND_DELAY` is, until about 30 seconds after the latest upload.
-Once the data are ready and planning still fails, they start landing after `RTL_LAND_DELAY`, or hold indefinitely when that delay is negative.
-A pure fixed-wing vehicle circles until a route becomes available or another mode is selected, regardless of `RTL_LAND_DELAY`, because the current airborne altitude does not provide a safe landing altitude.
-A VTOL already in fixed-wing mode also circles during the configured hold and back-transitions before landing; an active front transition is cancelled.
+If Return starts or continues without a route, it holds at the current location and altitude until a route is found or another mode is selected.
+There is no return-altitude climb, and [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY) does not apply: the vehicle never lands there on its own.
+Multicopters and VTOLs in hover hold position; fixed-wing vehicles and VTOLs in fixed-wing mode circle, and an active front transition is cancelled.
 A critical message reports the loss of the route.
-While still airborne and holding, Return retries route planning from the current position every two seconds, including during an indefinite hold and after failures unrelated to loading.
-A successful retry resumes route following automatically.
-A failed retry keeps the original hold position, altitude and landing timer, so it does not postpone a scheduled landing.
-An upload during the hold makes it wait for the new data again, after which the full landing delay restarts.
-Retries stop once the landing sequence starts or the vehicle touches down.
+While airborne, Return retries route planning from the current position every two seconds, also while uploaded data are loading.
+A successful retry resumes route following automatically; a failed retry keeps the original hold position and altitude.
+Retries stop once the vehicle touches down.
 
 No route is available when:
 
@@ -207,7 +201,7 @@ A pre-arm warning reports this when `RTL_TYPE=7` is set.
 While following a valid route, Return replans when its source data change, rather than every two seconds.
 A replaced mission triggers replanning at once, so Return holds until the new mission is loaded and validated.
 Replaced rally points or a replaced geofence keep the current route while loading is in progress, then trigger replanning when ready.
-If geofence loading fails permanently or the replan finds no route, the vehicle uses the hold or landing sequence described above.
+If geofence loading fails permanently or the replan finds no route, the vehicle holds as described above.
 Once the destination arrival or landing sequence has begun, these changes do not replace it.
 
 ## Point Projection

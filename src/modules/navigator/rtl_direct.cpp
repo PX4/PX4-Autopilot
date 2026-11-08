@@ -160,9 +160,6 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 		_destination = rtl_position;
 		_destination_is_current_position = destination_is_current_position;
 		_route_stop = route_stop;
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-		_wait_for_route = false;
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		_force_heading = false;
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
@@ -708,7 +705,8 @@ void RtlDirect::parameters_update()
 
 float RtlDirect::landDelay() const
 {
-	if (waitingForRoute()) {
+	// The stop without a route holds until the route is found or another mode is selected.
+	if (isRouteStop()) {
 		return -1.f;
 	}
 
@@ -721,19 +719,6 @@ float RtlDirect::landDelay() const
 
 	return _param_rtl_land_delay.get();
 }
-
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-void RtlDirect::setWaitForRoute(bool wait)
-{
-	const float land_delay = landDelay();
-	_wait_for_route = wait && _route_stop;
-
-	// The hold item carries the delay, so a started hold is rebuilt when the delay changes.
-	if (isActive() && _rtl_state == RTLState::LOITER_HOLD && fabsf(landDelay() - land_delay) > FLT_EPSILON) {
-		set_rtl_item();
-	}
-}
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 loiter_point_s RtlDirect::sanitizeLandApproach(const loiter_point_s &land_approach) const
 {

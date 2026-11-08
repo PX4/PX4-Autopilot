@@ -146,9 +146,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - Added [route-following Return](../flight_modes/return.md#rtl_type_7) (`RTL_TYPE=7`), which follows the mission route to a rally point or mission endpoint, and smart mission rejoin ([MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN)).
   With route planning enabled, Return is unavailable until a route is planned; a failsafe configured to Return selects Land instead, without applying `RTL_LAND_DELAY`.
   While Return is selected, a failsafe that interrupts it keeps its own action, such as Hold, and a Return failsafe resumes Return.
-  If an active Return loses its route, it holds at the current location while uploaded data load (until about 30 s after the latest upload); then multicopters and VTOLs hold or land there according to `RTL_LAND_DELAY`, and pure fixed-wing vehicles circle without automatic landing.
-  While airborne and holding, Return retries route planning every two seconds and resumes a recovered route; failed retries preserve the hold position.
-  Retries stop when landing starts or the vehicle touches down; planning failure does not select a direct return to another destination.
+  If an active Return loses its route, it holds at the current location until a route is found or another mode is selected, and retries planning every two seconds; planning failure does not select a direct return to another destination.
   Both need firmware built with the mission route cache.
   SITL builds include it; on most flight controller builds `RTL_TYPE=7` behaves like `RTL_TYPE=3`.
   See [Mission Route Planning](../concept/mission_route_planning.md). ([PX4-Autopilot#27687](https://github.com/PX4/PX4-Autopilot/pull/27687))

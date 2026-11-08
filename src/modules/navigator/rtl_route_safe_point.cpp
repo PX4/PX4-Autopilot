@@ -186,12 +186,6 @@ void RtlRouteSafePoint::reportRouteResumed() const
 	events::send(events::ID("rtl_route_resumed"), events::Log::Info, "Return: mission route found, resuming");
 }
 
-void RtlRouteSafePoint::reportRouteWaitEnded() const
-{
-	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: stopped waiting for uploaded data\t");
-	events::send(events::ID("rtl_route_wait_ended"), events::Log::Info, "Return: stopped waiting for uploaded data");
-}
-
 mission_route::ActiveJumpAnchor RtlRouteSafePoint::activeJumpAnchor() const
 {
 	return _active_jump_anchor;

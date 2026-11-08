@@ -97,7 +97,6 @@ public:
 	/** Messages of the stop without a route; their events only ship on boards built with the mission cache. */
 	void reportRouteUnavailable() const;
 	void reportRouteResumed() const;
-	void reportRouteWaitEnded() const;
 
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const;
 

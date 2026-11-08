@@ -311,8 +311,6 @@ public:
 	}
 
 	void expireDestinationCheckForTest() { _destination_check_time = hrt_absolute_time() - 3'000'000; }
-	static constexpr hrt_abstime routeInputWaitForTest() { return ROUTE_INPUT_WAIT; }
-	void setRouteUploadAgeForTest(hrt_abstime age) { _route_upload_time = hrt_absolute_time() - age; }
 	void postponeDestinationCheckForTest() { _destination_check_time = hrt_absolute_time(); }
 
 	void replaceMissionExecutorForTest(RtlBase *executor, RtlType rtl_type)
@@ -1985,7 +1983,7 @@ TEST_F(RTLTest, RouteReturnRetriesRejectedGeometryAfterVehicleMoves)
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
 }
 
-TEST_F(RTLTest, FailedRouteRetryKeepsHoldPositionAndLandingDelay)
+TEST_F(RTLTest, FailedRouteRetryKeepsTheHold)
 {
 	prepareStraightRouteScenario();
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
@@ -1997,11 +1995,11 @@ TEST_F(RTLTest, FailedRouteRetryKeepsHoldPositionAndLandingDelay)
 	_rtl.activateRouteSafePointReturnForTest();
 	runReturnCycles(3);
 	ASSERT_TRUE(item_sub.update());
-	ASSERT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
+	ASSERT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
 	const position_setpoint_s hold = _navigator.get_position_setpoint_triplet()->current;
 	ASSERT_TRUE(_rtl.isLanding());
 
-	// A failed retry must not recenter the hold on the drifting vehicle or restart its timer.
+	// A failed retry must not recenter the hold on the drifting vehicle.
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 30.f, 0.f, kAlt + 1.f));
 	primeNavigatorState();
 	px4_usleep(200'000);
@@ -2013,35 +2011,12 @@ TEST_F(RTLTest, FailedRouteRetryKeepsHoldPositionAndLandingDelay)
 		expectStoppedAt({hold.lat, hold.lon, hold.alt, hold.yaw});
 	}
 
+	// The stop holds whatever RTL_LAND_DELAY is.
 	px4_usleep(350'000);
 	runReturnCycles(2);
-	ASSERT_TRUE(item_sub.update());
-	EXPECT_EQ(item_sub.get().nav_cmd, NAV_CMD_LAND);
+	EXPECT_FALSE(item_sub.update());
+	EXPECT_NE(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-}
-
-TEST_F(RTLTest, RouteRetryStopsOnceLandingStarts)
-{
-	const mission_s mission = prepareStraightRouteScenario();
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishLandDetected(false);
-	primeNavigatorState();
-	_navigator.get_mission_result()->valid = false;
-	_rtl.activateRouteSafePointReturnForTest();
-	_rtl.run(true);
-	ASSERT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
-	setMissionResultValid(mission);
-	uORB::SubscriptionData<rtl_status_s> status_sub{ORB_ID(rtl_status)};
-	_rtl.expireDestinationCheckForTest();
-	_rtl.run(true);
-	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-	EXPECT_TRUE(_rtl.directActiveForTest());
-	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
-
-	// Without a retry, the status still reports the missing route.
-	ASSERT_TRUE(status_sub.update());
-	EXPECT_EQ(status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
-	EXPECT_EQ(status_sub.get().safe_point_index, UINT8_MAX);
 }
 
 TEST_F(RTLTest, RouteRetryStopsOnceLanded)
@@ -2049,7 +2024,6 @@ TEST_F(RTLTest, RouteRetryStopsOnceLanded)
 	const mission_s mission = prepareStraightRouteScenario();
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishLandDetected(false);
-	setLandingDelay(-1.f);
 	primeNavigatorState();
 	_navigator.get_mission_result()->valid = false;
 	_rtl.activateRouteSafePointReturnForTest();
@@ -2057,10 +2031,16 @@ TEST_F(RTLTest, RouteRetryStopsOnceLanded)
 	setMissionResultValid(mission);
 	publishLandDetected(true);
 	primeNavigatorState();
+	uORB::SubscriptionData<rtl_status_s> status_sub{ORB_ID(rtl_status)};
 	_rtl.expireDestinationCheckForTest();
 	_rtl.run(true);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	EXPECT_TRUE(_rtl.directActiveForTest());
+
+	// Without a retry, the status still reports the missing route.
+	ASSERT_TRUE(status_sub.update());
+	EXPECT_EQ(status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
+	EXPECT_EQ(status_sub.get().safe_point_index, UINT8_MAX);
 }
 
 class RtlVtolActivationTest : public RTLTest, public ::testing::WithParamInterface<uint8_t> {};
@@ -2373,8 +2353,8 @@ TEST_F(RTLTest, MissionUploadMidReturnHoldsUntilTheReplacementLoads)
 	EXPECT_TRUE(events.sent(events::ID("rtl_route_resumed")));
 }
 
-// Once the replacement is loaded and validated, a failed retry starts the landing delay of the stop.
-TEST_F(RTLTest, FailedRetryWithReadyInputsStartsTheLandingDelay)
+// A replacement that loads and still gives no route keeps the stop holding.
+TEST_F(RTLTest, FailedRetryWithReadyInputsKeepsHolding)
 {
 	const mission_s mission = prepareStraightRouteScenario();
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
@@ -2398,55 +2378,12 @@ TEST_F(RTLTest, FailedRetryWithReadyInputsStartsTheLandingDelay)
 	_navigator.get_mission_result()->valid = false;
 	flyReturnCycles(3);
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
-}
-
-// An upload during the timed hold of a stop is retried at once and waits for its data; the full delay then runs again.
-TEST_F(RTLTest, MissionUploadDuringTimedNoRouteHoldRestartsTheLandingDelay)
-{
-	const mission_s mission = prepareStraightRouteScenario();
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishLandDetected(false);
-	setLandingDelay(3.f);
-	primeNavigatorState();
-	_navigator.get_mission_result()->valid = false;
-	uORB::SubscriptionData<navigator_mission_item_s> item_sub{ORB_ID(navigator_mission_item)};
-	_rtl.activateRouteSafePointReturnForTest();
-	flyReturnCycles(3);
-	ASSERT_TRUE(item_sub.update());
-	ASSERT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
-
-	// 2.1 s into the 3 s hold, the upload stops the timer before the 2 s retry is due.
-	px4_usleep(2'100'000);
-	const mission_s replacement = startMissionReplacement(mission);
-	_rtl.postponeDestinationCheckForTest();
-	_rtl.run(true);
-	ASSERT_TRUE(item_sub.update());
-	EXPECT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
-
-	// The replacement gives no route either: the full 3 s delay runs from here, then the stop lands.
-	MissionRouteCache &cache = _navigator.get_mission_route_cache();
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, replacement, [&] {
-		return cache.missionItemsReady(replacement) && cache.safePointsReady();
-	}));
-	setMissionResultValid(replacement);
-	_navigator.get_mission_result()->valid = false;
-	flyReturnCycles(1);
-	ASSERT_TRUE(item_sub.update());
-	EXPECT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
-	EXPECT_FLOAT_EQ(item_sub.get().time_inside, 3.f);
-	flyReturnCycles(1);
-	// A delay that kept running would have ended 0.9 s after the rebuild.
-	px4_usleep(1'000'000);
-	flyReturnCycles(2);
+	EXPECT_FALSE(item_sub.update());
 	EXPECT_NE(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
-	px4_usleep(2'600'000);
-	flyReturnCycles(3);
-	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 }
 
-// A VTOL in fixed-wing mode keeps orbiting while a replacement loads, and back-transitions only once the wait ends.
-TEST_F(RTLTest, VtolInFixedWingOrbitsWhileTheReplacementLoads)
+// A VTOL in fixed-wing mode keeps orbiting while a replacement loads, and also when it gives no route.
+TEST_F(RTLTest, VtolInFixedWingKeepsOrbitingWithoutARoute)
 {
 	const mission_s mission = prepareStraightRouteScenario();
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
@@ -2474,7 +2411,7 @@ TEST_F(RTLTest, VtolInFixedWingOrbitsWhileTheReplacementLoads)
 		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 	}
 
-	// The replacement gives no route: the same orbit times out, then the landing back-transitions.
+	// The replacement gives no route: the same orbit goes on, without a back transition.
 	const position_setpoint_s orbit = _navigator.get_position_setpoint_triplet()->current;
 	MissionRouteCache &cache = _navigator.get_mission_route_cache();
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, replacement, [&] {
@@ -2482,131 +2419,17 @@ TEST_F(RTLTest, VtolInFixedWingOrbitsWhileTheReplacementLoads)
 	}));
 	setMissionResultValid(replacement);
 	_navigator.get_mission_result()->valid = false;
-	flyReturnCycles(1);
-	ASSERT_TRUE(item_sub.update());
-	EXPECT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
-	const position_setpoint_s &timed_orbit = _navigator.get_position_setpoint_triplet()->current;
-	EXPECT_EQ(timed_orbit.type, orbit.type);
-	EXPECT_DOUBLE_EQ(timed_orbit.lat, orbit.lat);
-	EXPECT_DOUBLE_EQ(timed_orbit.lon, orbit.lon);
-	EXPECT_FLOAT_EQ(timed_orbit.alt, orbit.alt);
-	EXPECT_FLOAT_EQ(timed_orbit.loiter_radius, orbit.loiter_radius);
-	EXPECT_EQ(timed_orbit.loiter_direction_counter_clockwise, orbit.loiter_direction_counter_clockwise);
-
-	flyReturnCycles(4);
-	bool back_transition = false;
+	flyReturnCycles(5);
+	EXPECT_FALSE(item_sub.update());
+	const position_setpoint_s &later_orbit = _navigator.get_position_setpoint_triplet()->current;
+	EXPECT_EQ(later_orbit.type, orbit.type);
+	EXPECT_DOUBLE_EQ(later_orbit.lat, orbit.lat);
+	EXPECT_DOUBLE_EQ(later_orbit.lon, orbit.lon);
+	EXPECT_FLOAT_EQ(later_orbit.alt, orbit.alt);
 
 	while (command_sub.update(&command)) {
-		back_transition |= command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION
-				   && lroundf(command.param1) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 	}
-
-	EXPECT_TRUE(back_transition);
-}
-
-// Inputs that never finish loading end the wait 30 s after the upload, and the landing delay starts.
-TEST_F(RTLTest, StuckRouteInputsEndTheWaitAfterItsLimit)
-{
-	const mission_s mission = prepareStraightRouteScenario();
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishLandDetected(false);
-	primeNavigatorState();
-	_rtl.activateRouteSafePointReturnForTest();
-	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-
-	// The replacement never loads.
-	startMissionReplacement(mission);
-	uORB::SubscriptionData<navigator_mission_item_s> item_sub{ORB_ID(navigator_mission_item)};
-	flyReturnCycles(5);
-	ASSERT_TRUE(item_sub.update());
-	ASSERT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
-
-	ASSERT_EQ(RTLTestPeer::routeInputWaitForTest(), 30_s);
-	_rtl.setRouteUploadAgeForTest(29_s);
-	flyReturnCycles(2);
-	EXPECT_FALSE(item_sub.update());
-	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LOITER);
-
-	navigator_test::EventRecorder events;
-	_rtl.setRouteUploadAgeForTest(31_s);
-	flyReturnCycles(3);
-	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
-	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
-	EXPECT_TRUE(events.sent(events::ID("rtl_route_wait_ended")));
-}
-
-// The wait counts from the last upload, also when an upload in between loaded without a failed plan.
-TEST_F(RTLTest, ReuploadOfAnEarlierMissionWaitsForItToLoad)
-{
-	const mission_s mission = prepareStraightRouteScenario();
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishLandDetected(false);
-	primeNavigatorState();
-
-	// Long ago, an inactive plan failed on this mission.
-	_navigator.get_mission_result()->valid = false;
-	_rtl.evaluateInactiveRouteSafePointReturnForTest();
-	_navigator.get_mission_result()->valid = true;
-	_rtl.setRouteUploadAgeForTest(RTLTestPeer::routeInputWaitForTest() + 1_s);
-
-	// Another mission is uploaded to the other slot, loads and is checked, and Return follows it.
-	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_1, {
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	});
-	mission_s other = mission;
-	++other.mission_id;
-	other.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
-	other.timestamp = hrt_absolute_time();
-	publishMission(other);
-	MissionRouteCache &cache = _navigator.get_mission_route_cache();
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, other, [&] {
-		return cache.missionItemsReady(other) && cache.safePointsReady();
-	}));
-	setMissionResultValid(other);
-	_rtl.activateRouteSafePointReturnForTest();
-	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-
-	// The first mission is uploaded again, back to its slot: it must still wait while it loads.
-	mission_s again = mission;
-	again.timestamp = hrt_absolute_time();
-	publishMission(again);
-
-	for (unsigned cycle = 0; cycle < 5; ++cycle) {
-		flyReturnCycles(1);
-		EXPECT_NE(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
-	}
-
-	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
-}
-
-// A Home update is no upload: whatever it does to the mission check, Return must not wait for it.
-TEST_F(RTLTest, HomeUpdateDoesNotKeepTheStopWaiting)
-{
-	const mission_s mission = prepareStraightRouteScenario();
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishLandDetected(false);
-	primeNavigatorState();
-	_rtl.activateRouteSafePointReturnForTest();
-	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-	// The follower uses Mission's verdict and does not check the mission itself.
-	runReturnCycles(2);
-
-	// Commander updates Home in flight; nothing checks the mission again for it.
-	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), 1);
-	primeNavigatorState();
-	_rtl.run(true);
-	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
-
-	// A rally point upload replans once loaded: it resumes the route or starts the landing delay, never waits.
-	const mission_s reloading = startSafePointReload(mission, 1);
-	MissionRouteCache &cache = _navigator.get_mission_route_cache();
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, reloading, [&] { return cache.safePointsReady(); }));
-	flyReturnCycles(3);
-	const bool following = _rtl.rtlTypeForTest() == RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
-	const bool landing = _navigator.get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND;
-	EXPECT_TRUE(landing || (following && _rtl.routePlanSourceStillValidForTest()));
 }
 
 // WHY: RTL creates the route follower only for a mission that Mission has checked, but the follower used to recheck
@@ -2707,11 +2530,12 @@ TEST_F(RTLTest, RouteFollowerReusedAfterAnotherUploadFliesItsRoute)
 	_rtl.activateRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 
-	// WHEN: the first mission is uploaded again to its slot, still loaded, and checked, so a retry plans it
+	// WHEN: the first mission is uploaded again to its slot, still loaded, and checked, so the next retry plans it
 	mission_s again = mission;
 	again.timestamp = hrt_absolute_time();
 	publishMission(again);
 	setMissionResultValid(again);
+	_rtl.expireDestinationCheckForTest();
 	runReturnCycles(3);
 
 	// THEN: the reused follower flies the route instead of ending the Return
@@ -2755,7 +2579,7 @@ TEST_F(RTLTest, ReusedRouteFollowerPublishesItsFirstIndex)
 }
 
 // RTL may see a rally point upload before the cache does, when MAVLink publishes during a navigator cycle.
-TEST_F(RTLTest, RallyUploadSeenBeforeTheCacheWaitsForIt)
+TEST_F(RTLTest, RallyUploadSeenBeforeTheCacheResumesOnceLoaded)
 {
 	const mission_s mission = loadRoutePlanningCache({
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
@@ -2768,11 +2592,10 @@ TEST_F(RTLTest, RallyUploadSeenBeforeTheCacheWaitsForIt)
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt));
 	publishLandDetected(false);
-	setLandingDelay(2.f);
 	primeNavigatorState();
 	setMissionResultValid(mission);
 
-	// Without its rally point this mission has no goal: the stop runs its timed hold.
+	// Without its rally point this mission has no goal: the stop holds.
 	MissionRouteCache &cache = _navigator.get_mission_route_cache();
 	const mission_s without_rally = startSafePointReload(mission, 0);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, without_rally, [&] { return cache.safePointsReady(); }));
@@ -2781,9 +2604,9 @@ TEST_F(RTLTest, RallyUploadSeenBeforeTheCacheWaitsForIt)
 	uORB::SubscriptionData<navigator_mission_item_s> item_sub{ORB_ID(navigator_mission_item)};
 	flyReturnCycles(3);
 	ASSERT_TRUE(item_sub.update());
-	ASSERT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_TIME_LIMIT);
+	ASSERT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
 
-	// The rally point is uploaded again and RTL runs before the cache has seen it.
+	// The rally point is uploaded again and RTL retries before the cache has seen it.
 	mission_s restored = without_rally;
 	restored.timestamp = hrt_absolute_time();
 	++restored.safe_points_id;
@@ -2794,10 +2617,9 @@ TEST_F(RTLTest, RallyUploadSeenBeforeTheCacheWaitsForIt)
 	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats),
 					      sizeof(stats)));
 	publishMission(restored);
-	_rtl.postponeDestinationCheckForTest();
-	_rtl.run(true);
-	ASSERT_TRUE(item_sub.update());
-	EXPECT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
+	flyReturnCycles(1);
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	EXPECT_FALSE(item_sub.update());
 
 	// Loaded, the rally point gives a route.
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(cache, restored, [&] { return cache.safePointsReady(); }));
@@ -2805,8 +2627,8 @@ TEST_F(RTLTest, RallyUploadSeenBeforeTheCacheWaitsForIt)
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 }
 
-// RTL_TYPE changed away from 7 during the wait: nothing retries any more, so the stop runs its landing delay.
-TEST_F(RTLTest, RtlTypeChangeDuringTheWaitEndsIt)
+// RTL_TYPE changed away from 7 during the stop: nothing retries any more, and the stop keeps holding.
+TEST_F(RTLTest, RtlTypeChangeDuringTheStopKeepsHolding)
 {
 	const mission_s mission = prepareStraightRouteScenario();
 	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
@@ -2824,7 +2646,8 @@ TEST_F(RTLTest, RtlTypeChangeDuringTheWaitEndsIt)
 	ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
 	_rtl.updateParamsForTest();
 	flyReturnCycles(3);
-	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_FALSE(item_sub.update());
+	EXPECT_NE(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 }
 
 // Entered on an older route status while new rally points load, Return holds instead of landing.

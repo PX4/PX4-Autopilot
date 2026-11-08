@@ -92,9 +92,6 @@ void RTL::on_inactive()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	trackRouteUpload();
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	parameters_update();
 
@@ -164,9 +161,6 @@ void RTL::on_activation()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	trackRouteUpload();
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	// Activation skips the mode's inactive update,
 	// refresh its mission before destination selection.
@@ -230,12 +224,6 @@ void RTL::on_active()
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
-	// Retry an upload during a stop at once, so a timed hold waits for the new data instead of landing.
-	if (trackRouteUpload() && _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && _rtl_type == RtlType::RTL_DIRECT
-	    && _rtl_direct.canResumeRoute() && !_navigator->get_land_detected()->landed) {
-		retryRouteSafePoint();
-	}
-
 	// Replan when the route source changes, unless the arrival or landing has started.
 	// While rally points or the fence reload, the same mission keeps its route until they are ready.
 	const bool mission_matches = _route_safe_point.missionMatches(_mission_sub.get());
@@ -298,7 +286,6 @@ void RTL::on_active()
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
 		if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT) {
-			// Check after the executor advances: a completed hold must enter landing before a retry can take over.
 			if (_rtl_type == RtlType::RTL_DIRECT && _rtl_direct.canResumeRoute()
 			    && !_navigator->get_land_detected()->landed) {
 				retryRouteSafePoint();
@@ -308,10 +295,6 @@ void RTL::on_active()
 				publishRtlStatus(_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
 						 ? routeSafePointIndex() : RTL_STATUS_NO_SAFE_POINT);
 			}
-
-		} else {
-			// Without RTL_TYPE 7 nothing retries, so a stop must not keep waiting for the route.
-			_rtl_direct.setWaitForRoute(false);
 		}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -369,22 +352,13 @@ void RTL::retryRouteSafePoint()
 	const auto evaluation = evaluateRouteSafePoint();
 
 	if (!evaluation.success) {
-		// Keep waiting while inputs load; the first failure with ready inputs starts the landing delay.
-		const bool wait = waitForRouteInputs();
-
-		if (!wait && _rtl_direct.waitingForRoute() && routeInputsPending()) {
-			_route_safe_point.reportRouteWaitEnded();
-		}
-
-		_rtl_direct.setWaitForRoute(wait);
 		publishRtlStatus(RTL_STATUS_NO_SAFE_POINT);
 		return;
 	}
 
 	if ((_route_follower == nullptr || evaluation.executor_source_changed)
 	    && !initRtlMissionType(RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)) {
-		// Allocation failure must not shift the hold or change its altitude. The inputs are ready: stop waiting.
-		_rtl_direct.setWaitForRoute(false);
+		// Allocation failure must not shift the hold or change its altitude.
 		publishRtlStatus(RTL_STATUS_NO_SAFE_POINT);
 		return;
 	}
@@ -441,27 +415,6 @@ bool RTL::routeInputsPending() const
 		   || !cache.safePointsReady() || cache.safePointsId() != _mission_sub.get().safe_points_id);
 }
 
-bool RTL::waitForRouteInputs() const
-{
-	return routeInputsPending() && hrt_elapsed_time(&_route_upload_time) < ROUTE_INPUT_WAIT;
-}
-
-bool RTL::trackRouteUpload()
-{
-	// An upload changes an identity or the dataman slot. Tracked every cycle, as an upload may load between plans.
-	const mission_s &mission = _mission_sub.get();
-
-	if (mission.mission_id == _route_upload.mission_id && mission.mission_dataman_id == _route_upload.mission_dataman_id
-	    && mission.safe_points_id == _route_upload.safe_points_id
-	    && mission.safepoint_dataman_id == _route_upload.safepoint_dataman_id
-	    && mission.geofence_id == _route_upload.geofence_id && mission.fence_dataman_id == _route_upload.fence_dataman_id) {
-		return false;
-	}
-
-	_route_upload = mission;
-	_route_upload_time = hrt_absolute_time();
-	return true;
-}
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 void RTL::setRtlTypeAndDestination()
@@ -625,8 +578,6 @@ void RTL::setRtlTypeAndDestination()
 
 	if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && !route_evaluation.success) {
 		keep_altitude();
-		// Loading inputs are no reason to land: hold until a plan with ready inputs fails.
-		_rtl_direct.setWaitForRoute(waitForRouteInputs());
 	}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
