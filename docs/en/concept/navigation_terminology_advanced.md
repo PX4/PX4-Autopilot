@@ -36,9 +36,11 @@ The conflicts and the resulting choices are listed in [Terminology Conflicts](#t
 Every position and direction is relative to a reference frame.
 This section describes the frames PX4 uses, and the official convention each one is based on.
 
-### Geodetic Frame (WGS 84)
+### Global Frame (ECEF, WGS 84)
 
-Global positions are given as latitude, longitude and altitude on the World Geodetic System 1984 (WGS 84), the reference system that ICAO requires for aeronautical data and that GNSS receivers use.
+The global frame is the Earth-centred, Earth-fixed (ECEF) frame of the World Geodetic System 1984 (WGS 84), the reference system that ICAO requires for aeronautical data and that GNSS receivers use.
+Its origin is the Earth's centre of mass, and it rotates with the Earth.
+Global positions are given in it as geodetic latitude, longitude and altitude on the WGS 84 ellipsoid.
 
 - Latitude and longitude are in degrees, positive north and east.
 - Altitude has two different references, which must never be mixed up:
@@ -48,7 +50,7 @@ Global positions are given as latitude, longitude and altitude on the World Geod
 In PX4, `vehicle_global_position` carries `lat`, `lon`, `alt` (AMSL) and `alt_ellipsoid`.
 On MAVLink and in mission items, the reference of each altitude is given by its `MAV_FRAME`.
 
-### Local Earth-Fixed Frame (NED)
+### Local Tangent-Plane Frame (NED)
 
 ISO 1151 defines the _normal earth-fixed axis system_: an earth-fixed frame whose z-axis points vertically down.
 Aviation and marine engineering conventionally align its horizontal axes with north and east, which gives the **north-east-down (NED)** frame:
@@ -58,11 +60,21 @@ Aviation and marine engineering conventionally align its horizontal axes with no
 - It is right-handed, so positive rotation about z is clockwise when viewed from above.
   This matches the clockwise sense of headings, courses and bearings.
 
-In PX4, the local frame of `vehicle_local_position` (fields `x`, `y`, `z`, `vx`, `vy`, `vz`) is NED.
-Its origin is the position where the [estimator](../advanced_config/tuning_the_ecl_ekf.md) was initialised (`ref_lat`, `ref_lon`, `ref_alt`).
+In PX4, the positions of `vehicle_local_position` (fields `x`, `y`, `z`) are in this frame.
+Its origin is the position where the [estimator](../advanced_config/tuning_the_ecl_ekf.md) was initialised, or where it was set manually (`ref_lat`, `ref_lon`, `ref_alt`).
 This is the same frame as MAVLink `MAV_FRAME_LOCAL_NED`.
 
-See [Local Frame Is a Map Projection](#local-frame-is-a-map-projection) for how PX4 relates the local frame to the geodetic frame.
+See [Local Frame Is a Map Projection](#local-frame-is-a-map-projection) for how PX4 relates the local tangent-plane frame to the global frame.
+
+### Local Navigation Frame (NED)
+
+The local navigation frame has the same north, east and down axes, but moves with the vehicle:
+
+- Its origin is the body frame origin.
+- Its axes point to true north, east and down at the vehicle's current position.
+
+In PX4, the velocities of `vehicle_local_position` (fields `vx`, `vy`, `vz`), the attitude and the heading are relative to this frame.
+Close to the local origin, its axes and those of the local tangent-plane frame are practically the same.
 
 ### Body Frame (FRD)
 
@@ -72,8 +84,9 @@ ISO 1151 (aircraft) and SNAME (ships and submarines) define the body-fixed axes 
 - y points to the right.
 - z points down, completing a right-handed frame.
 
-PX4 calls this frame **FRD** (front, right, down), which is the same frame as MAVLink `MAV_FRAME_BODY_FRD`.
-The vehicle's attitude is the rotation from NED to FRD, and its [heading](#heading) is the direction of the body x-axis in the horizontal plane.
+PX4 calls this frame **FRD** (forward, right, down), which is the same frame as MAVLink `MAV_FRAME_BODY_FRD`.
+Its origin is the vehicle's centre of mass.
+The vehicle's attitude is the rotation from the [local navigation frame](#local-navigation-frame-ned) to FRD, and its [heading](#heading) is the direction of the body x-axis in the horizontal plane.
 
 ::: info
 Some ground vehicle and robotics conventions use z-up frames instead:
@@ -346,7 +359,7 @@ As a result:
   At the vehicle's position it points to the grid north of the projection, which differs from true north by the meridian convergence.
   The difference grows with distance from the origin, mainly east or west of it.
   It is about 0.1° at 10 km east of an origin at 47° latitude.
-- Heading and velocity are relative to true north at the vehicle, not to the projection's grid north.
+- Heading and velocity are relative to true north at the vehicle ([local navigation frame](#local-navigation-frame-ned)), not to the projection's grid north.
 - A straight line between two waypoints in the local frame is a straight line in the projection.
   The FAA desired track follows the great circle between the waypoints.
   The two are identical for lines through the origin, and practically identical over typical mission distances.

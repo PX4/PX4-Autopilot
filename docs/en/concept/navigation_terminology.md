@@ -35,12 +35,12 @@ All directions on this page are measured clockwise from true north: north is 0°
 _QGroundControl_ shows them in degrees from 0° to 360°, and MAVLink navigation fields usually in centidegrees (for example `GLOBAL_POSITION_INT.hdg`, 0 to 35999).
 Internally, PX4 uses radians, usually from $-\pi$ to $\pi$ (west is $-\pi/2$), which matters when you read logs.
 
-PX4 describes positions and orientations in two main frames:
+PX4 uses four main frames (see [Frames and Reference Directions](../concept/navigation_terminology_advanced.md#frames-and-reference-directions) for details):
 
-- **NED (north, east, down):** The local earth-fixed frame, with its origin where the [estimator](../advanced_config/tuning_the_ecl_ekf.md) started.
-  Positions and velocities in `vehicle_local_position` are in NED.
-- **FRD (front, right, down):** The body frame, fixed to the vehicle.
-  The [heading](#heading) is the direction of the body front axis.
+- **Global (WGS 84):** Latitude, longitude and altitude, for example in `vehicle_global_position`.
+- **Local tangent-plane (NED):** North, east, down from a fixed origin where the [estimator](../advanced_config/tuning_the_ecl_ekf.md) started; the positions in `vehicle_local_position`.
+- **Local navigation (NED):** North, east, down at the vehicle; velocities and attitude are relative to it.
+- **Body (FRD):** Forward, right, down, fixed to the vehicle; the [heading](#heading) is the direction of its forward axis.
 
 A compass measures magnetic north, which differs from true north by the _magnetic declination_.
 The estimator corrects for this automatically, using the World Magnetic Model or [EKF2_MAG_DECL](../advanced_config/parameter_reference.md#EKF2_MAG_DECL) depending on [EKF2_DECL_TYPE](../advanced_config/parameter_reference.md#EKF2_DECL_TYPE).
@@ -190,7 +190,7 @@ The code-level names that deviate are listed in [Field Names That Deviate](../co
 [Navigation Terminology (Advanced)](../concept/navigation_terminology_advanced.md) covers:
 
 - The official definitions of each term, quoted from the aviation, marine and ground vehicle sources, and the rule PX4 uses when they disagree.
-- The reference frames in detail (WGS 84, NED, FRD, along-track/cross-track), north references and z-up conventions such as ROS and ISO 8855.
+- The reference frames in detail (ECEF/WGS 84, local tangent-plane and local navigation NED, FRD, along-track/cross-track), north references and z-up conventions such as ROS and ISO 8855.
 - Why PX4 uses _course_ for the actual direction, unlike aviation and marine navigation.
 - Ground vehicle terms (yaw, course and sideslip angle), and why _sideslip_ means different things for planes and rovers.
 - Where PX4 represents things differently from the official definitions, and existing field names that deviate.
