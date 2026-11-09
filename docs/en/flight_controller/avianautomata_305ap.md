@@ -1,16 +1,16 @@
 # Avian Automata 305AP
 
-<Badge type="tip" text="PX4 main (v2.0)" />
+<Badge type="tip" text="main (PX4 v2.0)" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://docs.avianautomata.com) for hardware support or compliance issues.
 :::
 
-The _305AP_ is a compact flight controller designed by Avian Automata.
+The [305AP](https://www.avianautomata.com/products/305ap) is a compact flight controller designed by [Avian Automata](https://www.avianautomata.com/).
 It is built around the STM32H743 processor with two IMU slots, an onboard barometer and magnetometer, two CAN buses, and eight motor outputs.
 
-![Avian Automata 305AP](../../assets/flight_controller/avianautomata_305ap/305ap.jpg)
+![Avian Automata 305AP](../../assets/flight_controller/avianautomata_305ap/305ap.webp)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -63,7 +63,7 @@ Order from the [Avian Automata store](https://www.avianautomata.com/products/305
 
 ## Pinouts {#pinouts}
 
-All connectors are JST-GH, except for the 12-pin motor connector and the 3-pin RC connector.
+All connectors are JST-GH, except for the 12-pin `Motors` connector and the 3-pin `RC IN` connector.
 Pin 1 is marked on each connector housing.
 
 ### Power (CN1)
@@ -271,7 +271,7 @@ The board also has a rover build variant: `avianautomata_305ap_rover`.
 
 ## Debug Port {#debug_port}
 
-The FMU's [PX4 System Console](../debug/system_console.md) output is on USART3 TX (`PD8`) at 57600 baud, the `SBUS out` pin of the `VTX` connector.
+The FMU's [PX4 System Console](../debug/system_console.md) output is on USART3 TX (PD8) at 57600 baud, the `SBUS out` pin of the `VTX` connector.
 The port is transmit-only, so use the [MAVLink Shell](../debug/mavlink_shell.md) over USB for an interactive console.
 
 ## Further Information {#further_information}
