@@ -36,8 +36,15 @@
  *
  * Architecture-agnostic interface for bit-bang UART.
  *
- * Currently implemented for STM32F7/H7 in:
+ * Implemented for STM32F7/H7 (timer and GPIO) in:
  *   platforms/nuttx/src/px4/stm/stm32_common/bitbang_uart/
+ * and for NXP i.MX RT/i.MX95 (FlexIO) in:
+ *   platforms/nuttx/src/px4/nxp/nxp_common/flexio_uart/
+ *
+ * Init claims every ESC signal pin (-EBUSY while an output driver owns one) and drives all of
+ * them high. A write transmits, then the line listens; every other line, and a line that has
+ * received nothing for 200 ms (checked on a timed-out read), is driven high until the next write.
+ * A read on another channel parks the current one and listens on the new one.
  *
  * NOTE: Currently only single-wire (half-duplex) operation is implemented.
  * The single_wire flag is provided in the API to make this explicit and to
@@ -88,12 +95,12 @@ int bitbang_uart_write(uint8_t channel, const uint8_t *data, size_t length);
  * @param data       Pointer to buffer for received data
  * @param length     Number of bytes to read
  * @param timeout_us Timeout in microseconds (0 = block until length bytes received)
- * @return Number of bytes actually read
+ * @return Number of bytes actually read, or negative error code on failure
  */
 int bitbang_uart_read(uint8_t channel, uint8_t *data, size_t length, uint32_t timeout_us);
 
 /**
- * Park the line: stop receiving and drive it high (UART idle level) until the next read or write
+ * Park the line: stop receiving and drive it high (UART idle level) until the next write
  *
  * @param channel Timer/GPIO channel
  * @return 0 on success, negative error code on failure
