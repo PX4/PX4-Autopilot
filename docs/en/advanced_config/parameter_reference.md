@@ -21496,23 +21496,6 @@ mode command is received.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 4       |      | &nbsp;    |
 
-### COM_FLTT_LOW_ACT (`INT32`) {#COM_FLTT_LOW_ACT}
-
-Remaining flight time low failsafe.
-
-Action the system takes when the remaining flight time is below
-the estimated time it takes to reach the RTL destination.
-
-**Values:**
-
-- `0`: None
-- `1`: Warning
-- `3`: Return
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; |          |          | 1         | 0       |      | &nbsp;    |
-
 ### COM_FLT_TIME_MAX (`INT32`) {#COM_FLT_TIME_MAX}
 
 Maximum allowed flight time.
@@ -21617,14 +21600,18 @@ If no local position is available, home is set to the current position.
 
 Battery failsafe mode.
 
-Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR
-for definition of battery states.
+Action when the battery drops below the critical (BAT_CRIT_THR) or emergency (BAT_EMERGEN_THR) level.
+
+Option 3 also engages Return mode when the remaining flight time is only just enough to return (distance-aware return, with the margin set by RTL_TIME_FACTOR and RTL_TIME_MARGIN).
+This needs a remaining flight time estimate, such as from BATn_CAPACITY or a smart battery.
+The other options only warn.
 
 **Values:**
 
 - `0`: Warning
 - `2`: Land mode
-- `3`: Return at critical level, land at emergency level
+- `3`: Distance-aware return, Critical level return, Emergency level land
+- `5`: Critical level return, Emergency level land
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
