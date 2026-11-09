@@ -101,6 +101,55 @@ bool GZMixingInterfaceWheel::updateOutputs(float outputs[MAX_ACTUATORS],
 
 void GZMixingInterfaceWheel::Run()
 {
+	pthread_mutex_init(&_node_mutex, nullptr);
+
+	_wheel_encoders_pub.advertise();
+
+	ScheduleNow();
+
+	return true;
+}
+
+bool GZMixingInterfaceWheel::updateOutputs(float outputs[MAX_ACTUATORS],
+		unsigned num_outputs,
+		unsigned num_control_groups_updated)
+{
+	unsigned active_output_count = 0;
+
+	for (unsigned i = 0; i < num_outputs; i++) {
+		if (_mixing_output.isFunctionSet(i)) {
+			active_output_count++;
+
+		} else {
+			break;
+		}
+	}
+
+	if (active_output_count > 0) {
+		gz::msgs::Actuators wheel_velocity_message;
+
+		auto *vel = wheel_velocity_message.mutable_velocity();
+		vel->Clear();
+		vel->Reserve(active_output_count);
+
+		// Offsetting the output allows for negative values despite unsigned integer to reverse the wheels
+		static constexpr double output_offset = 100.0;
+
+		for (unsigned i = 0; i < active_output_count; i++) {
+			double scaled_output = static_cast<double>(outputs[i]) - output_offset;
+			vel->Add(scaled_output);
+		}
+
+		if (_actuators_pub.Valid()) {
+			return _actuators_pub.Publish(wheel_velocity_message);
+		}
+	}
+
+	return false;
+}
+
+void GZMixingInterfaceWheel::Run()
+{
 	pthread_mutex_lock(&_node_mutex);
 	_mixing_output.update();
 	_mixing_output.updateSubscriptions(false);
@@ -119,23 +168,30 @@ void GZMixingInterfaceWheel::wheelSpeedCallback(const gz::msgs::Actuators &actua
 
 	wheel_encoders_s wheel_encoders{};
 
-	for (int i = 0; i < actuators.velocity_size(); i++) {
-		float curr_speed = (float)actuators.velocity(i);
-		wheel_encoders.wheel_speed[i] = curr_speed;
-		float curr_wheel_speed_m = _wheel_radius * curr_speed;
-		wheel_encoders.counts_per_rev[i] = 1;
+	// The model can have more wheel outputs than wheel_encoders has slots
+	const int num_wheels = math::min(actuators.velocity_size(), MAX_WHEELS);
 
-		if (_prev_wheel_speed[i] < 0 && _prev_t == 0) {
-			_prev_wheel_speed[i] = curr_wheel_speed_m;
-			_prev_t = current_t;
+	// No integration on the first callback, there is no previous speed yet
+	const float dt = (_prev_t == 0) ? 0.f : (current_t - _prev_t) * 1e-6f;
+
+	for (int i = 0; i < num_wheels; i++) {
+		const float wheel_speed = (float)actuators.velocity(i);
+
+		if (_prev_t == 0) {
+			_prev_wheel_speed[i] = wheel_speed;
 		}
 
-		float dt = (current_t - _prev_t) / 1e6f;
-		float wheel_position = (curr_wheel_speed_m + _prev_wheel_speed[i]) * 0.5f * dt;
-		_wheel_pos_m[i] += wheel_position;
-		int64_t encoder_ticks = _wheel_pos_m[i] / (2.f * static_cast<float>(M_PI) * _wheel_radius);
-		wheel_encoders.encoder_counts[i] = encoder_ticks;
-		_prev_wheel_speed[i] = curr_wheel_speed_m;
+		// Trapezoidal integration of the wheel speed to the unwrapped wheel angle
+		_wheel_angle[i] += 0.5f * (wheel_speed + _prev_wheel_speed[i]) * dt;
+		_prev_wheel_speed[i] = wheel_speed;
+
+		// Quantize like a real encoder
+		const int64_t encoder_counts = static_cast<int64_t>(floorf(_wheel_angle[i] * SIM_COUNTS_PER_REV / M_TWOPI_F));
+
+		wheel_encoders.wheel_speed[i] = wheel_speed;
+		wheel_encoders.counts_per_rev[i] = SIM_COUNTS_PER_REV;
+		wheel_encoders.encoder_counts[i] = encoder_counts;
+		wheel_encoders.wheel_angle[i] = encoder_counts * M_TWOPI_F / SIM_COUNTS_PER_REV;
 	}
 
 	_prev_t = current_t;
