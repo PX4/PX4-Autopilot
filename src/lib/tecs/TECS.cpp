@@ -492,15 +492,28 @@ TECSControl::PitchControlValues TECSControl::_calcPitchControlSebRateValues(cons
 	// Kinetic priority: the throttle delivers its setpoint as long as it is within the limits, and the pitch flies
 	// the potential energy rate of its pair. Where the total energy rate the pitch's pair needs is beyond the limits,
 	// the kinetic energy rate setpoint gets priority and the potential energy rate is limited to what remains.
-	// Purely setpoint based, and continuous across the limits. Note the pitch's pair needs less than the throttle's
-	// when the trim cap is active: the throttle's extra demand is the acceleration above trim, which this leaves to
-	// the throttle as long as it is within the limits.
+	// Purely setpoint based, and continuous across the limits.
 	const float spe_rate_pitch = constrain(spe_rate_setpoint, ste_rate_min - ske_rate_setpoint,
 					       ste_rate_max - ske_rate_setpoint);
 
+	// The total energy rate of the pitch's pair. Equal to the throttle's within the limits, except when the trim cap
+	// is active: the throttle's extra demand is then the acceleration above trim, which is left to the throttle alone.
+	// The pitch must neither rely on it nor react to it not being delivered (throttle lag, saturation, a throttle
+	// model that overestimates the climb performance), or it would trade altitude for the missing airspeed.
+	const float ste_rate_pair = spe_rate_pitch + ske_rate_setpoint;
+
 	// SEB = SPE - SKE = 2 SPE - STE
-	const float seb_rate_setpoint = 2.f * spe_rate_pitch - ste_rate_throttle;
-	const float seb_rate_estimate = specific_energy_rates.spe_rate.estimate - specific_energy_rates.ske_rate.estimate;
+	const float seb_rate_setpoint = 2.f * spe_rate_pitch - ste_rate_pair;
+
+	// Between trim airspeed and the airspeed setpoint the throttle alone accelerates the vehicle, and the pitch holds
+	// altitude: the measured total energy rate, which contains the throttle's acceleration, is replaced by the one of
+	// the pair, and the error is 2 (SPE rate sp - SPE rate). Otherwise the pitch would pitch up to turn the throttle's
+	// acceleration into height, or pitch down when it falls short. Below trim and above the setpoint the pitch shares
+	// airspeed control and sees the full balance.
+	const bool throttle_accelerates = input.tas > param.tas_trim && input.tas < setpoint.tas_setpoint;
+	const float ste_rate_estimate = specific_energy_rates.spe_rate.estimate + specific_energy_rates.ske_rate.estimate;
+	const float seb_rate_estimate = 2.f * specific_energy_rates.spe_rate.estimate
+					- (throttle_accelerates ? ste_rate_pair : ste_rate_estimate);
 
 	// Throttle overridden or without authority: the throttle model is off at the airspeeds of fast descend
 	// (FW_T_SINK_MIN is the sink rate at trim) and underspeed, so its total energy rate must not enter the pitch
@@ -511,7 +524,9 @@ TECSControl::PitchControlValues TECSControl::_calcPitchControlSebRateValues(cons
 	const float seb_rate_setpoint_forced = ste_rate_throttle - 2.f * ske_rate_setpoint;
 	const float seb_rate_estimate_forced = ste_rate_throttle - 2.f * specific_energy_rates.ske_rate.estimate;
 
-	pitch_values.ste_rate = ste_rate_throttle;
+	// Blended like the setpoint, so that the feedforward climb angle (SEB rate sp + STE rate) / (2 g V) is the
+	// potential energy rate of the pitch, lerp(SPE rate pitch, STE rate throttle - SKE rate sp, forced), over g V
+	pitch_values.ste_rate = lerp(ste_rate_pair, ste_rate_throttle, forced);
 	pitch_values.seb_rate.setpoint = lerp(seb_rate_setpoint, seb_rate_setpoint_forced, forced);
 	pitch_values.seb_rate.estimate = lerp(seb_rate_estimate, seb_rate_estimate_forced, forced);
 
