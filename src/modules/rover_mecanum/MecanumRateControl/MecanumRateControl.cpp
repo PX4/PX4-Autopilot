@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-MecanumRateControl::MecanumRateControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumRateControl::MecanumRateControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_mecanum_rate_control", ORB_ID(vehicle_angular_velocity))
 {
 	_surface_vehicle_steering_setpoint_pub.advertise();
 	_surface_vehicle_rate_status_pub.advertise();

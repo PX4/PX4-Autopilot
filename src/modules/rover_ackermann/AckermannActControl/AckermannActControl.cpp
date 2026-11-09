@@ -35,8 +35,12 @@
 
 using namespace time_literals;
 
-AckermannActControl::AckermannActControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannActControl::AckermannActControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_act_control", ORB_ID(vehicle_angular_velocity))
 {
+	// Paced by the gyro like the rate controller, so actuator setpoints are published every cycle,
+	// also when no new steering setpoint arrives (e.g. the cycle after a mode change resets the rate controller)
 	updateParams();
 }
 
