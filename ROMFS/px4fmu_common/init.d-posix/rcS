@@ -269,7 +269,7 @@ then
 	failure_injection_manager start
 fi
 
-if param greater SIM_BAT_DRAIN 0
+if param greater SIM_BAT_I_FW 0 || param greater SIM_BAT_I_MC 0
 then
 	battery_simulator start
 fi

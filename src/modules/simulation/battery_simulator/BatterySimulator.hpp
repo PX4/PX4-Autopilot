@@ -73,7 +73,7 @@ private:
 	void updateParams() override;
 
 	// Time in seconds for the given battery to drain from 100% to 0% while armed
-	float fullDischargeTime(int battery_index) const;
+	float avgCurrent(int battery_index, bool is_fw, bool is_mc) const;
 
 	// Lowest state of charge in percent the given battery drains down to
 	float minimumPercentage(int battery_index) const;
@@ -89,20 +89,26 @@ private:
 	// when constructing an array of them in place.
 	Battery *_batteries[battery_status_s::MAX_INSTANCES] {};
 
-	// Per-battery overrides of SIM_BAT_DRAIN and SIM_BAT_MIN_PCT, negative when unset
-	param_t _drain_handles[battery_status_s::MAX_INSTANCES] {};
+	// Per-battery overrides of SIM_BAT_I_FW, SIM_BAT_I_MC, and SIM_BAT_MIN_PCT, negative when unset
+	param_t _i_fw_handles[battery_status_s::MAX_INSTANCES] {};
+	param_t _i_mc_handles[battery_status_s::MAX_INSTANCES] {};
 	param_t _min_pct_handles[battery_status_s::MAX_INSTANCES] {};
-	float _drain_override_s[battery_status_s::MAX_INSTANCES] {};
+	float _i_fw_override_s[battery_status_s::MAX_INSTANCES] {};
+	float _i_mc_override_s[battery_status_s::MAX_INSTANCES] {};
 	float _min_pct_override[battery_status_s::MAX_INSTANCES] {};
 
 	uint64_t _last_integration_us{0};
 	float _battery_percentage[battery_status_s::MAX_INSTANCES] {};
+	float _consumed_mah[battery_status_s::MAX_INSTANCES] {};
 	bool _armed{false};
+	bool _is_mc{false};
+	bool _is_fw{false};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
+		(ParamFloat<px4::params::SIM_BAT_I_FW>) _param_sim_bat_i_fw, ///< battery avg current in fixed wings
+		(ParamFloat<px4::params::SIM_BAT_I_MC>) _param_sim_bat_i_mc, ///< battery avg current in multicopter
 		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_bat_min_pct //< minimum battery percentage
 	)
 };
