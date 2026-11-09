@@ -871,6 +871,13 @@ satcom_result_code IridiumSBD::read_at(uint8_t *rx_buf, size_t rx_buf_size, int 
 
 				if (rx_buf_pos >= 2 && rx_buf[rx_buf_pos - 1] == '\n' && rx_buf[rx_buf_pos - 2] == '\r') {
 					// found the \r\n delimiter
+					// Terminate the segment before comparing it against the literals below.
+					// The write loop keeps one byte free (rx_buf_pos <= rx_buf_size - 1 here),
+					// so this terminator always fits, and it also keeps the strncmp() calls
+					// from reading past the end of rx_buf when a segment is shorter than the
+					// literal it is compared against.
+					rx_buf[rx_buf_pos] = 0;
+
 					if (rx_buf_pos == last_rn_idx + 2) {
 						//if (verbose) { PX4_INFO("second in a row, ignore it");}
 						; // second in a row, ignore it

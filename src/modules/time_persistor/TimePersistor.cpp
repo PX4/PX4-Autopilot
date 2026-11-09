@@ -46,7 +46,13 @@ TimePersistor::TimePersistor() :
 
 TimePersistor::~TimePersistor()
 {
-	fclose(_file);
+	// _file stays nullptr when init() could not open TIME_FILE_PATH (for example on a
+	// board with no writable storage), and Run() tears the module down in that case, so
+	// the destructor runs with a null pointer. fclose(nullptr) is undefined behaviour.
+	if (_file != nullptr) {
+		fclose(_file);
+		_file = nullptr;
+	}
 }
 
 void TimePersistor::start()

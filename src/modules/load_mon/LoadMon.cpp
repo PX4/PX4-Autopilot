@@ -116,7 +116,13 @@ void LoadMon::Run()
 	if (should_exit()) {
 		ScheduleClear();
 #if defined (__PX4_LINUX)
-		fclose(_proc_fd);
+		// The init block above deliberately tolerates a failed open() (it only logs),
+		// so _proc_fd can still be nullptr here. fclose(nullptr) is undefined behaviour.
+		if (_proc_fd != nullptr) {
+			fclose(_proc_fd);
+			_proc_fd = nullptr;
+		}
+
 #endif
 		exit_and_cleanup(desc);
 		return;
