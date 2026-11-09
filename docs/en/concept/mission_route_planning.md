@@ -78,10 +78,10 @@ Selecting another item while Mission mode is active flies to it directly, as wit
 An upload while Mission is active replaces the mission using normal mission handling; it does not immediately plan a join.
 Smart rejoin is attempted on the next airborne Mission activation, subject to route-cache availability.
 
-Once the current item is in the landing sequence (from the `DO_LAND_START` item, or the landing item if there is none), the rejoin never branches in before that sequence: Mission flies to the current item instead, as without smart rejoin.
-This keeps `MAV_CMD_DO_LAND_START` from flying earlier mission legs.
+The rejoin branches in on a leg near the vehicle (see [Vehicle Projection](#vehicle-projection)), and Mission continues the mission in order from there, also when the current item is in the landing sequence (from the `DO_LAND_START` item, or the landing item if there is none).
+A `MAV_CMD_DO_LAND_START` sent while Mission mode is not active can therefore fly earlier mission legs before the landing; sent while Mission mode is active, it flies to the landing directly.
 A fixed-wing never joins into the landing sequence: when the rejoin would branch in there, Mission flies to the current item instead.
-A fixed-wing landing abort, in Mission or Return, moves the current item back to the start of the landing, so continuing Mission flies the whole landing again.
+A fixed-wing landing abort, in Mission or Return, moves the current item back to the start of the landing, so continuing Mission near the landing flies the whole landing again.
 
 When smart rejoin is eligible for a multicopter or a VTOL in hover, the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
 This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.

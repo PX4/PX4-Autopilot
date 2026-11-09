@@ -110,15 +110,10 @@ bool Mission::trySetRouteJoinOnActivation()
 		return fall_back(mission_route::failureReasonString(failure_reason));
 	}
 
-	// A started landing, for example from DO_LAND_START, never goes back to the mission before it.
-	// A fixed-wing never joins into the landing either: it flies the whole landing, also after a landing abort.
-	if (hasMissionLandStart()) {
-		const bool target_in_landing = join_plan.first_mission_item_index >= _mission.land_start_index;
-
-		if ((_mission.current_seq >= _mission.land_start_index && !target_in_landing)
-		    || (target_in_landing && vehicleInFwLikeState(_vehicle_status_sub.get()))) {
-			return false;
-		}
+	// A fixed-wing never joins into the landing: it flies the whole landing, also after a landing abort.
+	if (hasMissionLandStart() && (join_plan.first_mission_item_index >= _mission.land_start_index)
+	    && vehicleInFwLikeState(vehicle_status)) {
+		return false;
 	}
 
 	_active_jump_anchor = join_plan.active_jump_anchor;

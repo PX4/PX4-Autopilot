@@ -415,20 +415,6 @@ protected:
 		markMissionResultValid();
 	}
 
-	// Survey legs 0-6 at 100 m spacing, then a far landing approach (7) and its LAND (8).
-	static std::vector<mission_item_s> surveyThenLanding()
-	{
-		std::vector<mission_item_s> items;
-
-		for (int index = 0; index <= 6; ++index) {
-			items.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, index * 100.f, 0.f, kAlt + 50.f));
-		}
-
-		items.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, 2000.f, 1000.f, kAlt + 50.f));
-		items.push_back(makeLandItemFromOffset(kBaseLat, kBaseLon, 2100.f, 1000.f, kAlt));
-		return items;
-	}
-
 	// A loop around Home: the first leg starts 300 m away, the last leg ends at Home.
 	static std::vector<mission_item_s> loopAroundHome()
 	{
@@ -1203,16 +1189,12 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 
 			mission.on_activation();
 			EXPECT_FALSE(mission.transitionActiveForTest());
-			// LAND is the land start, so the join never goes back to the earlier leg.
+			// After the GoTo the nearest leg is the earlier one, and Mission continues from there.
 			const bool near_land = resume_location < 2;
-			const bool joins = resume_location == 2;
-			const int32_t target_index = 2;
+			const int32_t target_index = resume_location == 3 ? 1 : 2;
 			EXPECT_EQ(mission.currentSequenceForTest(), target_index);
 
-			if (resume_location == 3) {
-				EXPECT_FALSE(mission.joinContextForTest().valid());
-
-			} else if (near_land) {
+			if (near_land) {
 				EXPECT_FALSE(mission.joinContextForTest().valid());
 				EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 				EXPECT_DOUBLE_EQ(sp.lat, land.lat);
@@ -1234,7 +1216,8 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 
 			for (int i = 0; i < 3; ++i) {
 				mission.on_active();
-				EXPECT_EQ(mission.workItemTypeForTest() == MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE, joins);
+				EXPECT_EQ(mission.workItemTypeForTest(), near_land ? MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT
+					  : MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 				EXPECT_EQ(sp.type, near_land ? position_setpoint_s::SETPOINT_TYPE_LAND : position_setpoint_s::SETPOINT_TYPE_POSITION);
 				EXPECT_EQ(mission.currentSequenceForTest(), target_index);
 			}
@@ -1243,7 +1226,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 				EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 			}
 
-			if (is_vtol && joins) {
+			if (is_vtol && !near_land) {
 				// The FT is still available, but only after climbing to the route and aligning.
 				const auto join = mission.joinContextForTest().projection;
 				const float yaw = get_bearing_to_next_waypoint(join.lat, join.lon, items[target_index].lat, items[target_index].lon);
@@ -1801,41 +1784,4 @@ TEST_F(MissionRouteJoinTest, SelectionInFlightCancelsJoinAndJumpEdge)
 	EXPECT_TRUE(mission.jumpAnchorForTest().empty());
 	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, items[5].lat);
 	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, items[5].lon);
-}
-
-// A landing selected while paused, as DO_LAND_START does through MISSION_START, does not go back to the survey.
-TEST_F(MissionRouteJoinTest, StartedLandingDoesNotRejoinEarlierLegs)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	const mission_route::Position beside_leg_3_4 = makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 10.f, kAlt + 50.f);
-	publishAirborneMulticopter(beside_leg_3_4);
-	mission_item_s land_start{};
-	land_start.nav_cmd = NAV_CMD_DO_LAND_START;
-	land_start.autocontinue = true;
-	std::vector<mission_item_s> with_marker = surveyThenLanding();
-	with_marker.insert(with_marker.begin() + 7, land_start);
-	uint32_t mission_id = 931;
-
-	// The land start is the DO_LAND_START item (7), or LAND (8) without one.
-	for (const bool marker : {true, false}) {
-		SCOPED_TRACE(marker);
-		const int32_t land_start_index = marker ? 7 : 8;
-		mission_s state = publishMissionItems(marker ? with_marker : surveyThenLanding(), ++mission_id, 2,
-						      marker ? 9 : 8);
-		state.land_start_index = land_start_index;
-		publishMission(state);
-		updateRouteCacheUntilReady(state);
-		mission.on_inactive();
-		markMissionResultValid();
-		startReachAndPause(mission, beside_leg_3_4);
-
-		// Navigator turns DO_LAND_START into MISSION_START, which selects the land start before Mission resumes.
-		ASSERT_TRUE(mission.set_current_mission_index(land_start_index));
-		mission.on_activation();
-
-		EXPECT_EQ(mission.currentSequenceForTest(), land_start_index);
-		EXPECT_FALSE(mission.joinContextForTest().valid());
-		mission.on_inactivation();
-	}
 }
