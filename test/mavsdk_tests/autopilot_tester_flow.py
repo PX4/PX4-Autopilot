@@ -202,8 +202,9 @@ class AutopilotTesterFlow(AutopilotTester):
                         (fields["lat"] * 1e-7, fields["lon"] * 1e-7))
 
                 if self._heading_valid:
-                    self._heading_swept_rad += abs(
-                        math.remainder(heading_rad - self._previous_heading_rad, 2.0 * math.pi))
+                    # Signed, so that yaw oscillations cancel out instead of adding up to a turn.
+                    self._heading_swept_rad += math.remainder(
+                        heading_rad - self._previous_heading_rad, 2.0 * math.pi)
 
                 self._previous_heading_rad = heading_rad
                 self._heading_valid = True
@@ -235,7 +236,7 @@ class AutopilotTesterFlow(AutopilotTester):
 
     def _heading_swept_deg(self) -> float:
         with self._velocity_lock:
-            return math.degrees(self._heading_swept_rad)
+            return math.degrees(abs(self._heading_swept_rad))
 
     def wait_until_heading_swept(self, min_sweep_deg: float, timeout_s: float) -> None:
         """Wait until the heading has turned by min_sweep_deg in total since the comparison
