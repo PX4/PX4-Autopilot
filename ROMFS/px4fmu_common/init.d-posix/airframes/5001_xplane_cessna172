@@ -195,8 +195,8 @@ param set-default FW_T_SINK_MIN 1.0
 param set-default FW_T_SINK_MAX 2.5
 param set-default FW_T_VERT_ACC 1.8
 param set-default FW_T_THR_DAMPING 0.25
-param set-default FW_T_PTCH_DAMP 0.20
-param set-default FW_T_I_GAIN_PIT 0.22
+param set-default FW_T_PTCH_DAMP 0.40
+param set-default FW_T_I_GAIN_PIT 0.44
 param set-default FW_T_SINK_R_SP 1.2
 
 param set-default FW_THR_TRIM 0.60
