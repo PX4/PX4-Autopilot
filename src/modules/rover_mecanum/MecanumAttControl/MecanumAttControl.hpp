@@ -80,24 +80,26 @@ public:
 	 *
 	 * Only an enabled controller is woken by its trigger topic. On enabling it also runs once right away,
 	 * so it does not miss the trigger that was published before it registered.
+	 * It only counts as enabled once the trigger callback is registered, otherwise the next call retries.
 	 *
-	 * @return false if the trigger callback could not be registered
+	 * @return true if the operation succeeded
 	 */
 	bool setEnabled(bool enabled)
 	{
-		bool registered = true;
-
 		if (enabled && !_enabled) {
 			_timestamp = hrt_absolute_time(); // The first dt after (re-)enabling must not span the time spent disabled
-			registered = _vehicle_attitude_sub.registerCallback();
-			ScheduleNow();
+			_enabled = _vehicle_attitude_sub.registerCallback();
+
+			if (_enabled) {
+				ScheduleNow();
+			}
 
 		} else if (!enabled && _enabled) {
 			_vehicle_attitude_sub.unregisterCallback();
+			_enabled = false;
 		}
 
-		_enabled = enabled;
-		return registered;
+		return _enabled == enabled;
 	}
 
 	bool enabled() const { return _enabled; }

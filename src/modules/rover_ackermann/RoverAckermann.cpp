@@ -213,9 +213,12 @@ void RoverAckermann::enableControllers(const bool enabled)
 		registered = _ackermann_act_control.reregisterTrigger() && registered;
 	}
 
-	if (!registered) {
-		PX4_ERR("controller callback registration failed");
+	// Report a failure once, the controllers retry on every cycle
+	if (!registered && !_controller_registration_failed) {
+		PX4_ERR("controller callback registration failed, retrying");
 	}
+
+	_controller_registration_failed = !registered;
 }
 
 void RoverAckermann::runSanityChecks()
