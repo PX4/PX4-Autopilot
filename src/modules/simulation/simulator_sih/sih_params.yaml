@@ -358,6 +358,16 @@ parameters:
       type: float
       default: 0.0
       unit: m/s
+    SIH_PLAT_VN:
+      description:
+        short: Platform velocity towards north
+        long: |-
+          Velocity of the ground, to simulate taking off from and landing on a moving platform.
+          While on the ground, a multicopter or VTOL moves with it.
+      type: float
+      default: 0
+      unit: m/s
+      decimal: 1
     SIH_RNGBC_NOISE:
       description:
         short: Ranging beacon measurement noise standard deviation
