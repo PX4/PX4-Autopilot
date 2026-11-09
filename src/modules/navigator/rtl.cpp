@@ -135,18 +135,8 @@ void RTL::publishRemainingTimeEstimate()
 		if (_rtl_type == RtlType::RTL_DIRECT) {
 			estimated_time = _rtl_direct.calc_rtl_time_estimate();
 
-		case RtlType::RTL_DIRECT_MISSION_LAND:
-		case RtlType::RTL_MISSION_FAST:
-		case RtlType::RTL_MISSION_FAST_REVERSE:
-		case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
-			if (_rtl_mission_type_handle) {
-				estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
-			}
-
-			break;
-
-		default:
-			break;
+		} else if (_rtl_mission_type_handle) {
+			estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
 		}
 	}
 
@@ -182,27 +172,7 @@ void RTL::on_activation()
 			     "Return: cannot follow the mission; flying directly");
 	}
 
-	switch (_rtl_type) {
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-		[[fallthrough]];
-
-	case RtlType::RTL_MISSION_FAST:
-		[[fallthrough]];
-
-	case RtlType::RTL_MISSION_FAST_REVERSE:
-		[[fallthrough]];
-
-	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
-		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
-			_rtl_mission_type_handle->run(true);
-		}
-
-		_rtl_direct.run(false);
-
-		break;
-
-	case RtlType::RTL_DIRECT:
+	if (_rtl_type == RtlType::RTL_DIRECT) {
 		_rtl_direct.setReturnAltMin(_enforce_rtl_alt);
 
 	} else if (_rtl_mission_type_handle) {
@@ -253,36 +223,7 @@ void RTL::on_active()
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
-	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST:
-		[[fallthrough]];
-
-	case RtlType::RTL_MISSION_FAST_REVERSE:
-		[[fallthrough]];
-
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-		[[fallthrough]];
-
-	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
-		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->run(true);
-		}
-
-		_rtl_direct.run(false);
-		break;
-
-	case RtlType::RTL_DIRECT:
-		_rtl_direct.run(true);
-
-		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->run(false);
-		}
-
-		break;
-
-	default:
-		break;
-	}
+	runExecutors();
 
 	// Keep publishing remaining time estimates every 2 seconds
 	hrt_abstime now{hrt_absolute_time()};
@@ -323,11 +264,6 @@ void RTL::runExecutors()
 	if (_rtl_type == RtlType::RTL_DIRECT) {
 		_rtl_direct.run(true);
 
-	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST:
-	case RtlType::RTL_MISSION_FAST_REVERSE:
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->run(false);
 		}

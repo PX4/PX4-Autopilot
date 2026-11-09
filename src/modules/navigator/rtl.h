@@ -183,6 +183,9 @@ private:
 	 */
 	bool initRtlMissionType(RtlType new_rtl_type);
 
+	/** Runs the selected executor active, then the other one inactive. */
+	void runExecutors();
+
 	/**
 	 * @brief Update parameters
 	 *

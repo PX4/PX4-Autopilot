@@ -337,6 +337,9 @@ public:
 	}
 	mission_route::ActiveJumpAnchor lastRouteLoopSegmentForTest() const { return _route_safe_point.activeJumpAnchor(); }
 #endif
+
+	// the estimate RTL publishes while the return type is mission-based
+	rtl_time_estimate_s missionEstimateForTest() { return _rtl_mission_type_handle->calc_rtl_time_estimate(); }
 };
 
 template <typename RtlMissionType>
@@ -1593,6 +1596,125 @@ TEST_F(RTLTest, DirectMissionLandMcOnlySkipsAlignWhenYawNotCommanded)
 	EXPECT_EQ(direct_mission_land.activeWorkItemType(), WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_LAND);
 	EXPECT_TRUE(std::isnan(direct_mission_land.activeYaw()));
+}
+
+// WHY: the mission-landing executor kept the return altitude of its creation, here on the ground at the landing.
+// WHAT: with the default cone, a multicopter's Return to the mission landing climbs to RTL_RETURN_ALT.
+TEST_F(RTLTest, MissionLandingReturnSelectedOnTheGroundClimbsToReturnAltitude)
+{
+	int32_t rtl_type = 1; // the mission landing before Home
+	int32_t cone_angle = 45; // the default
+	float return_alt = 60.f; // the parameter default; multicopter airframes start at 30
+	ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
+	ASSERT_EQ(param_set(param_find("RTL_CONE_ANG"), &cone_angle), PX4_OK);
+	ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_alt), PX4_OK);
+	_rtl.updateParamsForTest();
+
+	// GIVEN: a multicopter landed at Home, where its mission lands, which created the mission-landing executor
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt);
+	publishLandDetected(true);
+
+	mission_item_s land_start = makeSafePointItem(0., 0., 0.f, NAV_FRAME_GLOBAL, NAV_CMD_DO_LAND_START);
+	mission_item_s land_item = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND);
+	land_start.autocontinue = true;
+	land_item.autocontinue = true;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {land_start, land_item});
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = 72;
+	mission.count = 2;
+	mission.land_start_index = 0;
+	mission.land_index = 1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	publishMission(mission);
+	setMissionResultValid(mission);
+
+	MissionRouteCache &mission_route_cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(mission_route_cache, mission,
+			[&] { return mission_route_cache.missionLandItemReady(); }));
+
+	_rtl.on_inactive();
+	_rtl.decideRtlTypeForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+
+	// WHEN: Return starts 500 m away, 30 m above the landing
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt + 30.f));
+	publishLandDetected(false);
+	_rtl.run(true);
+
+	// THEN: it first climbs to RTL_RETURN_ALT above the landing
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	ASSERT_TRUE(current.valid);
+	EXPECT_NEAR(current.alt, kAlt + return_alt, 0.1f);
+
+	// the dataman is shared by every case in this binary
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+}
+
+// WHY: Return recomputes its altitude at every evaluation, but the mission-landing executor only got it when created.
+// WHAT: a mission-landing Return climbs to the latest return altitude, here after RTL_RETURN_ALT was raised.
+TEST_F(RTLTest, MissionLandingReturnClimbsToTheLatestReturnAltitude)
+{
+	int32_t rtl_type = 3; // RTL_TYPE_DIRECT_WITH_MISSION_LAND
+	float return_alt = 60.f;
+	ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
+	ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_alt), PX4_OK);
+	_rtl.updateParamsForTest();
+
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt + 30.f);
+	publishLandDetected(false);
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, -300.f, 0.f, kAlt));
+
+	// GIVEN: a mission landing 100 m away, closer than Home, which created the mission-landing executor
+	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+	mission_item_s land_start = makeSafePointItem(0., 0., 0.f, NAV_FRAME_GLOBAL, NAV_CMD_DO_LAND_START);
+	mission_item_s land_item = makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND);
+	land_start.autocontinue = true;
+	land_item.autocontinue = true;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {land_start, land_item});
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = 71;
+	mission.count = 2;
+	mission.land_start_index = 0;
+	mission.land_index = 1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	publishMission(mission);
+	setMissionResultValid(mission);
+
+	MissionRouteCache &mission_route_cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(mission_route_cache, mission,
+			[&] { return mission_route_cache.missionLandItemReady(); }));
+
+	_rtl.on_inactive();
+	_rtl.decideRtlTypeForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	const rtl_time_estimate_s estimate_before = _rtl.missionEstimateForTest();
+
+	// WHEN: the return altitude is raised, then Return starts
+	return_alt = 120.f;
+	ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_alt), PX4_OK);
+	_rtl.updateParamsForTest();
+
+	// THEN: the estimate published before Return starts already includes the higher climb
+	_rtl.decideRtlTypeForTest();
+	const rtl_time_estimate_s estimate_after = _rtl.missionEstimateForTest();
+	ASSERT_TRUE(estimate_before.valid && estimate_after.valid);
+	EXPECT_GT(estimate_after.time_estimate, estimate_before.time_estimate);
+
+	_rtl.run(true);
+
+	// AND: it climbs to the new return altitude, not the one from when the executor was created
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	ASSERT_TRUE(current.valid);
+	EXPECT_NEAR(current.alt, kAlt + return_alt, 0.1f);
+
+	// the dataman is shared by every case in this binary
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
