@@ -154,8 +154,7 @@ public:
 
 		_check.updateParams();
 		Context context{status};
-		_failsafe_flags = {};
-		Report reporter{_failsafe_flags, 0};
+		Report reporter{_failsafe_flags, 0}; // the flags persist across runs, as in commander: a check must clear what it set
 		_check.checkAndReport(context, reporter);
 
 		_can_arm = reporter.armingCheckResults().can_arm == NavModes::All;
@@ -495,6 +494,23 @@ TEST_F(EscChecksTest, EscOfflineReportedArmedWithRequiredBatteryMissing)
 	EXPECT_TRUE(_health_error_escs);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
 	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+}
+
+// A motor failure latched in flight is cleared on disarm also when the required battery is missing,
+// where the ESC checks are skipped
+TEST_F(EscChecksTest, MotorFailureClearedDisarmedWithRequiredBatteryMissing)
+{
+	fly(200_ms, -1);
+	fly(600_ms, 2);
+	ASSERT_EQ(_check.getMotorFailureMask(), 0b0100u);
+	ASSERT_TRUE(_failsafe_flags.fd_motor_failure);
+
+	publishBattery(true, false);
+	runCheck(false);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_failure);
+	EXPECT_FALSE(_health_error_escs);
 }
 
 // CBRK_SUPPLY_CHK stops the battery check from reporting the missing battery, so the ESC checks must still block arming
