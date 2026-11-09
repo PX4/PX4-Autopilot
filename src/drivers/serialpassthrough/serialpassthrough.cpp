@@ -649,7 +649,15 @@ SerialPassthrough *SerialPassthrough::instantiate(int argc, char *argv[])
 	}
 
 	if (esc_channel >= 0) {
-		// Bitbang mode: no device path needed
+		// Bitbang mode: no device path needed. ESC bootloaders run at 19200 baud, the fastest rate
+		// the ESC pin UART supports.
+		static constexpr unsigned ESC_UART_MAX_BAUDRATE = 19200;
+
+		if (baudrate > ESC_UART_MAX_BAUDRATE) {
+			PX4_WARN("ESC channel %d: %u baud not supported, using %u", esc_channel, baudrate, ESC_UART_MAX_BAUDRATE);
+			baudrate = ESC_UART_MAX_BAUDRATE;
+		}
+
 		return new SerialPassthrough("", baudrate, false, false, esc_channel);
 	}
 
