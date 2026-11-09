@@ -73,6 +73,8 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	const hrt_abstime now = hrt_absolute_time();
 
+	reporter.failsafeFlags().fd_motor_stuck_failure = false;
+
 	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered,
 	// and give them ESC_INIT_TIME_US to boot once it connects, during which arming stays blocked.
 	// CBRK_SUPPLY_CHK disables that report, so the ESC checks then stay the only ones to block arming.
@@ -121,8 +123,6 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	esc_status_s esc_status;
-
-	reporter.failsafeFlags().fd_motor_stuck_failure = false;
 
 	// Run motor status checks even when no new ESC data arrives (to detect timeouts)
 	if (_esc_status_sub.copy(&esc_status)) {

@@ -203,8 +203,7 @@ public:
 
 		_check.updateParams();
 		Context context{status};
-		_failsafe_flags = {};
-		Report reporter{_failsafe_flags, 0};
+		Report reporter{_failsafe_flags, 0}; // the flags persist across runs, as in commander
 		_check.checkAndReport(context, reporter);
 
 		_health_error_escs = reporter.healthResults().error & health_component_t::motors_escs;
@@ -511,6 +510,18 @@ TEST_F(EscChecksTest, MotorFailureClearedDisarmedWithRequiredBatteryMissing)
 	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
 	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_failure);
 	EXPECT_FALSE(_health_error_escs);
+}
+
+// A stuck motor flagged at spool-up is cleared on disarm also when the required battery is missing
+TEST_F(EscChecksTest, MotorStuckClearedDisarmedWithRequiredBatteryMissing)
+{
+	publishSpinup({2000, 0, 2000, 2000}, kIdle);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	ASSERT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
+
+	publishBattery(true, false);
+	runCheck(false);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
 }
 
 // CBRK_SUPPLY_CHK stops the battery check from reporting the missing battery, so the ESC checks must still block arming
