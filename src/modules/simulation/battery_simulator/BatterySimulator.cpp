@@ -120,7 +120,6 @@ void BatterySimulator::Run()
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			_is_mc = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 			_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		}
 	}
@@ -158,7 +157,7 @@ void BatterySimulator::Run()
 		float ibatt = 0.f;
 
 		if (_armed && (capacity <= 0.f || percentage > min_percentage)) {
-			ibatt = avgCurrent(i, _is_fw, _is_mc);
+			ibatt = avgCurrent(i, _is_fw);
 
 			if (ibatt > 0.f && capacity <= 0.f && battery.isSourceSelected() && !_capacity_warned[i]) {
 				PX4_WARN("BAT%d_CAPACITY not set, simulated battery %d will not drain", i + 1, i + 1);
@@ -199,18 +198,15 @@ void BatterySimulator::updateParams()
 	}
 }
 
-float BatterySimulator::avgCurrent(int battery_index, bool is_fw, bool is_mc) const
+float BatterySimulator::avgCurrent(int battery_index, bool is_fw) const
 {
 	// A non-positive override means: use the average current time shared by all batteries
-	if (is_mc) {
-		return (_i_mc_override_s[battery_index] > 0.f) ? _i_mc_override_s[battery_index] : _param_sim_bat_i_mc.get();
-
-	} else if (is_fw) {
+	if (is_fw) {
 		return (_i_fw_override_s[battery_index] > 0.f) ? _i_fw_override_s[battery_index] : _param_sim_bat_i_fw.get();
-
-	} else {
-		return -1.0;
 	}
+
+	// Rotary wing and every other vehicle type (rover, boat, airship, unspecified) use the MC current
+	return (_i_mc_override_s[battery_index] > 0.f) ? _i_mc_override_s[battery_index] : _param_sim_bat_i_mc.get();
 }
 
 float BatterySimulator::minimumPercentage(int battery_index) const
