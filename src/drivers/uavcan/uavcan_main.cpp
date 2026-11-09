@@ -933,15 +933,27 @@ UavcanNode::Run()
 				 * This triggers the _param_list_in_progress case below,
 				 * but additionally iterates over all active nodes.
 				 */
-				_param_index = 0;
-				_param_list_in_progress = true;
-				_param_list_node_id = get_next_active_node_id(0);
-				_param_list_all_nodes = true;
+				/* get_next_active_node_id() returns 128 to mean "no such node", which is
+				 * one past the end of _param_counts[] and not a valid DroneCAN NodeID.
+				 * Every other caller of this helper guards with "< 128"; do the same
+				 * here instead of indexing with the raw return value.
+				 */
+				const uint8_t first_id = get_next_active_node_id(0);
 
-				PX4_DEBUG("starting global param list with node %hhu", _param_list_node_id);
+				if (first_id < 128) {
+					_param_index = 0;
+					_param_list_in_progress = true;
+					_param_list_node_id = first_id;
+					_param_list_all_nodes = true;
 
-				if (_param_counts[_param_list_node_id] == 0) {
-					param_count(_param_list_node_id);
+					PX4_DEBUG("starting global param list with node %hhu", _param_list_node_id);
+
+					if (_param_counts[_param_list_node_id] == 0) {
+						param_count(_param_list_node_id);
+					}
+
+				} else {
+					PX4_DEBUG("global param list requested but no node is known");
 				}
 			}
 
@@ -1038,7 +1050,13 @@ UavcanNode::Run()
 						set_node_params_dirty(i);
 					}
 
-					param_opcode(get_next_dirty_node_id(1));
+					{
+						const uint8_t first_dirty = get_next_dirty_node_id(1);
+
+						if (first_dirty < 128) {
+							param_opcode(first_dirty);
+						}
+					}
 					break;
 				}
 			}
