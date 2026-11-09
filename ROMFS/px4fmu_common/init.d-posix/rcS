@@ -158,6 +158,7 @@ param set-default SENS_BOARD_X_OFF 0.000001
 param set-default SENS_DPRES_OFF 0.001
 
 param set-default BAT1_N_CELLS 4
+param set-default BAT1_CAPACITY 5000
 
 # disable check, no CPU load reported on posix yet
 param set-default COM_CPU_MAX -1
