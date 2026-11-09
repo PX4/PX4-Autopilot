@@ -93,8 +93,8 @@ private:
 	param_t _i_fw_handles[battery_status_s::MAX_INSTANCES] {};
 	param_t _i_mc_handles[battery_status_s::MAX_INSTANCES] {};
 	param_t _min_pct_handles[battery_status_s::MAX_INSTANCES] {};
-	float _i_fw_override_s[battery_status_s::MAX_INSTANCES] {};
-	float _i_mc_override_s[battery_status_s::MAX_INSTANCES] {};
+	float _i_fw_override[battery_status_s::MAX_INSTANCES] {};
+	float _i_mc_override[battery_status_s::MAX_INSTANCES] {};
 	float _min_pct_override[battery_status_s::MAX_INSTANCES] {};
 
 	float _last_min_percentage[battery_status_s::MAX_INSTANCES] {};

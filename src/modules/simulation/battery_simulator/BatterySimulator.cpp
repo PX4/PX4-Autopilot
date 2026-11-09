@@ -185,11 +185,11 @@ void BatterySimulator::updateParams()
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
 		if (_i_fw_handles[i] != PARAM_INVALID) {
-			param_get(_i_fw_handles[i], &_i_fw_override_s[i]);
+			param_get(_i_fw_handles[i], &_i_fw_override[i]);
 		}
 
 		if (_i_mc_handles[i] != PARAM_INVALID) {
-			param_get(_i_mc_handles[i], &_i_mc_override_s[i]);
+			param_get(_i_mc_handles[i], &_i_mc_override[i]);
 		}
 
 		if (_min_pct_handles[i] != PARAM_INVALID) {
@@ -200,13 +200,13 @@ void BatterySimulator::updateParams()
 
 float BatterySimulator::avgCurrent(int battery_index, bool is_fw) const
 {
-	// A non-positive override means: use the average current time shared by all batteries
+	// A non-positive override means: use the average current shared by all batteries
 	if (is_fw) {
-		return (_i_fw_override_s[battery_index] > 0.f) ? _i_fw_override_s[battery_index] : _param_sim_bat_i_fw.get();
+		return (_i_fw_override[battery_index] > 0.f) ? _i_fw_override[battery_index] : _param_sim_bat_i_fw.get();
 	}
 
 	// Rotary wing and every other vehicle type (rover, boat, airship, unspecified) use the MC current
-	return (_i_mc_override_s[battery_index] > 0.f) ? _i_mc_override_s[battery_index] : _param_sim_bat_i_mc.get();
+	return (_i_mc_override[battery_index] > 0.f) ? _i_mc_override[battery_index] : _param_sim_bat_i_mc.get();
 }
 
 float BatterySimulator::minimumPercentage(int battery_index) const
