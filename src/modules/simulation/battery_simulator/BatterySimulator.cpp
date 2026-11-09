@@ -64,6 +64,20 @@ BatterySimulator::BatterySimulator() :
 		}
 
 
+		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_IDLE", i + 1);
+		_i_idle_handles[i] = param_find(param_name);
+
+		if (_i_idle_handles[i] == PARAM_INVALID) {
+			PX4_ERR("Could not find parameter with name %s", param_name);
+		}
+
+		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_MOT", i + 1);
+		_i_mot_handles[i] = param_find(param_name);
+
+		if (_i_mot_handles[i] == PARAM_INVALID) {
+			PX4_ERR("Could not find parameter with name %s", param_name);
+		}
+
 		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_MIN_PCT", i + 1);
 		_min_pct_handles[i] = param_find(param_name);
 
@@ -124,6 +138,24 @@ void BatterySimulator::Run()
 		}
 	}
 
+	if (_actuator_motors_sub.updated()) {
+		actuator_motors_s actuator_motors;
+
+		if (_actuator_motors_sub.copy(&actuator_motors)) {
+			// Momentum theory: the power, hence the current, of a rotor grows with its thrust to the power of 1.5
+			// P ~ T¹·⁵ and P = VI
+			_motor_load = 0.f;
+
+			for (const float control : actuator_motors.control) {
+				if (PX4_ISFINITE(control)) {
+					_motor_load += powf(fabsf(control), 1.5f);
+				}
+			}
+
+			_actuator_motors_timestamp = actuator_motors.timestamp;
+		}
+	}
+
 	const hrt_abstime now_us = hrt_absolute_time();
 	const bool disarmed_now = _was_armed && !_armed;
 	_was_armed = _armed;
@@ -157,7 +189,7 @@ void BatterySimulator::Run()
 		float ibatt = 0.f;
 
 		if (_armed && (capacity <= 0.f || percentage > min_percentage)) {
-			ibatt = avgCurrent(i, _is_fw);
+			ibatt = current(i, now_us);
 
 			if (ibatt > 0.f && capacity <= 0.f && battery.isSourceSelected() && !_capacity_warned[i]) {
 				PX4_WARN("BAT%d_CAPACITY not set, simulated battery %d will not drain", i + 1, i + 1);
@@ -192,10 +224,41 @@ void BatterySimulator::updateParams()
 			param_get(_i_mc_handles[i], &_i_mc_override[i]);
 		}
 
+		if (_i_idle_handles[i] != PARAM_INVALID) {
+			param_get(_i_idle_handles[i], &_i_idle_override[i]);
+		}
+
+		if (_i_mot_handles[i] != PARAM_INVALID) {
+			param_get(_i_mot_handles[i], &_i_mot_override[i]);
+		}
+
 		if (_min_pct_handles[i] != PARAM_INVALID) {
 			param_get(_min_pct_handles[i], &_min_pct_override[i]);
 		}
 	}
+}
+
+float BatterySimulator::current(int battery_index, hrt_abstime now_us) const
+{
+	// Fall back to the average current until the motor commands are available, e.g. right after startup
+	const bool motors_valid = (_actuator_motors_timestamp != 0) && (now_us < _actuator_motors_timestamp + 500_ms);
+
+	if (_param_sim_bat_model.get() == MODEL_THROTTLE && motors_valid) {
+		return throttleCurrent(battery_index);
+	}
+
+	return avgCurrent(battery_index, _is_fw);
+}
+
+float BatterySimulator::throttleCurrent(int battery_index) const
+{
+	// A negative override means: use the current shared by all batteries
+	const float i_idle = (_i_idle_override[battery_index] >= 0.f) ? _i_idle_override[battery_index] :
+			     _param_sim_bat_i_idle.get();
+	const float i_mot = (_i_mot_override[battery_index] >= 0.f) ? _i_mot_override[battery_index] :
+			    _param_sim_bat_i_mot.get();
+
+	return i_idle + i_mot * _motor_load;
 }
 
 float BatterySimulator::avgCurrent(int battery_index, bool is_fw) const

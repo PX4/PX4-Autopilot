@@ -42,7 +42,13 @@ This enables testing of battery indication in GCS UIs without triggering low bat
 To change this minimal battery percentage value use the parameter [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT).
 
 To control how much current is drawn from the battery use the parameters [SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW) and [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC) (`SIM_BAT_I_MC` also applies to all other non fixed-wing vehicle types, such as rovers and boats).
-The battery drains according to this current and its capacity [BAT1_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY) (5000 mAh by default in SITL, for all battery instances), and is recharged when the vehicle disarms.
+The battery drains according to the drawn current and its capacity [BAT1_CAPACITY](../advanced_config/parameter_reference.md#BAT1_CAPACITY) (5000 mAh by default in SITL, for all battery instances), and is recharged when the vehicle disarms.
+
+By default these are constant average currents.
+To instead compute the current from the motor commands, set [SIM_BAT_MODEL](../advanced_config/parameter_reference.md#SIM_BAT_MODEL) to `Throttle`.
+The current is then [SIM_BAT_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT_I_IDLE) plus, for each motor, [SIM_BAT_I_MOT](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT) scaled by its normalised thrust command to the power of 1.5.
+This applies to all vehicle types, including VTOL in either mode, so aggressive manoeuvres and climbs drain the battery faster than hovering or cruising.
+Until motor commands are available, the average currents are used.
 
 :::note
 No current is drawn while disarmed, unless [BAT1_I_OVERWRITE](../advanced_config/parameter_reference.md#BAT1_I_OVERWRITE) (or `BATx_I_OVERWRITE` for other batteries) is greater than 0.
@@ -73,6 +79,7 @@ A battery whose capacity is not set (`-1`) does not drain: it stays at 100% and 
 All batteries deplete according to [SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW), [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC), and [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) unless overridden for an individual battery with [SIM_BATx_I_FW](../advanced_config/parameter_reference.md#SIM_BAT1_I_FW), [SIM_BATx_I_MC](../advanced_config/parameter_reference.md#SIM_BAT1_I_MC), and [SIM_BATx_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT1_MIN_PCT).
 Setting `SIM_BATx_I_FW` to a non-positive value uses the shared average current drawn for fixed wing mode. Setting `SIM_BATx_I_MC` to a non-positive value uses the shared average current drawn for multicopter mode. Setting `SIM_BATx_MIN_PCT` to a negative value
 uses the shared minimum charge.
+With the throttle model, [SIM_BATx_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT1_I_IDLE) and [SIM_BATx_I_MOT](../advanced_config/parameter_reference.md#SIM_BAT1_I_MOT) override the shared currents in the same way, with a negative value using the shared one.
 The current is applied per battery: with several batteries enabled, each one is drained by the full configured current.
 This can be used to test multi-battery behaviour, for example one battery depleting faster than the others.
 
