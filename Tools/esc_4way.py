@@ -310,11 +310,12 @@ def run(fd, no_esc, variant, target, toggle_direction=False):
 
     data = msp(fd, MSP_STATUS)
     if variant == b'BTFL':  # Betaflight: longer layout, arming flags at another offset
-        check(len(data) >= 21, f'STATUS: length {len(data)}, expected at least 21')
+        check(len(data) >= 22, f'STATUS: length {len(data)}, expected at least 22')
     else:
-        check(len(data) == 21, f'STATUS: length {len(data)}, expected 21')
+        # esc-configurator reads the reboot-required byte at offset 21
+        check(len(data) == 22, f'STATUS: length {len(data)}, expected 22')
         # layout: cycle u16, i2c u16, sensors u16, modes u32, profile u8, load u16,
-        # gyro u16, extra mode bytes u8, arming flag count u8, arming disable flags u32
+        # gyro u16, extra mode bytes u8, arming flag count u8, arming disable flags u32, reboot required u8
         check(int.from_bytes(data[17:21], 'little') & RX_FAILSAFE, 'STATUS: RX_FAILSAFE arming-disable bit not set')
     step('MSP_STATUS', f'{len(data)} bytes')
 
