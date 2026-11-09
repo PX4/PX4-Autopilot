@@ -39,6 +39,7 @@ CMD_OPEN_FILE_RO = 4
 CMD_READ_FILE = 5
 CMD_CREATE_FILE = 6
 CMD_WRITE_FILE = 7
+CMD_REMOVE_FILE = 8
 CMD_CREATE_DIRECTORY = 9
 CMD_OPEN_FILE_WO = 11
 CMD_BURST_READ_FILE = 15
@@ -50,6 +51,7 @@ ERR_INVALID_SESSION = 4
 ERR_NO_SESSIONS_AVAILABLE = 5
 ERR_EOF = 6
 ERR_FILE_EXISTS = 8
+ERR_FILE_NOT_FOUND = 10
 
 HEADER = struct.Struct("<HBBBBBBI")
 PAYLOAD_LEN = 251
@@ -58,6 +60,7 @@ MAX_DATA = PAYLOAD_LEN - HEADER.size
 RADIO_MAX_PAYLOAD = 118 - HEADER.size - 3 - 12
 
 MAX_SESSIONS = 3  # MavlinkFTP::kMaxSessions
+REPLAY_ENTRIES = 2 * MAX_SESSIONS  # MavlinkFTP::kReplayEntries
 
 TEST_DIR = "/fs/ftp_sessions_test"
 
@@ -103,6 +106,17 @@ class Link:
         self.target_system = hb.get_srcSystem()
         self.target_component = hb.get_srcComponent()
         self.inbox: Dict[Tuple[int, int], List[Reply]] = {}
+        self.sequence: Dict[Tuple[int, int], int] = {}
+
+    def next_seq(self, sysid: int, compid: int) -> int:
+        """
+        Sequence numbers are allocated per MAVLink identity, not per client object: the server can only tell
+        a retry from a new request of that identity by them, so everything sending as one identity has to share
+        one counter.
+        """
+        seq = self.sequence.get((sysid, compid), 0)
+        self.sequence[(sysid, compid)] = (seq + 1) & 0xFFFF
+        return seq
 
     def send(self, sysid: int, compid: int, seq: int, opcode: int, session: int, offset: int, data: bytes,
              size: Optional[int] = None) -> None:
@@ -153,20 +167,18 @@ class Link:
 
 
 class Client:
-    """One MAVLink FTP client identity with its own sequence counter."""
+    """An FTP client sending as one MAVLink identity, which other Client objects may share."""
 
     def __init__(self, link: Link, sysid: int, compid: int = 190) -> None:
         self.link = link
         self.sysid = sysid
         self.compid = compid
-        self.seq = 0
 
     def send(self, opcode: int, session: int = 0, offset: int = 0, data: bytes = b"", size: Optional[int] = None,
              seq: Optional[int] = None) -> int:
         """Send a request without waiting, return its sequence number for a later retry."""
         if seq is None:
-            seq = self.seq
-            self.seq = (self.seq + 1) & 0xFFFF
+            seq = self.link.next_seq(self.sysid, self.compid)
 
         self.link.send(self.sysid, self.compid, seq, opcode, session, offset, data, size)
         return seq
@@ -435,6 +447,118 @@ class FtpSessionTest(unittest.TestCase):
         self.assertEqual(self.a.read(idle.session).error, ERR_INVALID_SESSION)
         self.assertEqual(self.b.read(busy.session).data, b"idle")
         self.assertTrue(self.b.terminate(busy.session).ack)
+
+    def lost(self, client: Client, opcode: int, session: int = 0, data: bytes = b"") -> Tuple[int, Reply]:
+        """Send a request and drop its reply, as if the link lost it."""
+        seq = client.send(opcode, session, data=data)
+        return seq, client.reply(seq)
+
+    def retry(self, client: Client, seq: int, opcode: int, session: int = 0, data: bytes = b"") -> Reply:
+        return client.reply(client.send(opcode, session, data=data, seq=seq))
+
+    def free_sessions(self) -> int:
+        """Open sessions until none is left, return how many that took."""
+        name = self.path("free")
+        Client(self.link, 252).put(name, b"")
+
+        for count in range(MAX_SESSIONS + 1):
+            opened = Client(self.link, 220 + count).open(name)
+
+            if not opened.ack:
+                self.assertEqual(opened.error, ERR_NO_SESSIONS_AVAILABLE)
+                return count
+
+        self.fail("more sessions than MAX_SESSIONS")
+
+    def test_retried_create_is_not_executed_again(self) -> None:
+        name = self.path("create")
+        seq, first = self.lost(self.a, CMD_CREATE_FILE, data=name.encode())
+        self.assertTrue(first.ack)
+
+        # meanwhile another client writes the file
+        other = self.b.open(name, CMD_OPEN_FILE_WO)
+        self.assertTrue(self.b.write(other.session, 0, b"kept").ack)
+        self.assertTrue(self.b.terminate(other.session).ack)
+
+        self.assertEqual(self.retry(self.a, seq, CMD_CREATE_FILE, data=name.encode()), first)
+        # neither truncated again nor a second session
+        self.assertEqual(Client(self.link, 247).get(name), b"kept")
+        self.assertEqual(self.free_sessions(), MAX_SESSIONS - 1)
+
+    def test_retried_terminate_does_not_close_newer_session(self) -> None:
+        name = self.path("terminate")
+        self.a.put(name, b"newer")
+        opened = self.a.open(name)
+        seq, first = self.lost(self.a, CMD_TERMINATE_SESSION, opened.session)
+        self.assertTrue(first.ack)
+
+        # the next session of the same identity
+        same = Client(self.link, self.a.sysid, self.a.compid)
+        newer = same.open(name)
+        self.assertTrue(newer.ack)
+
+        self.assertEqual(self.retry(self.a, seq, CMD_TERMINATE_SESSION, opened.session), first)
+        self.assertEqual(same.read(newer.session).data, b"newer")
+
+    def test_retried_reset_does_not_close_newer_sessions(self) -> None:
+        name = self.path("reset")
+        self.a.put(name, b"newer")
+        seq, first = self.lost(self.a, CMD_RESET_SESSIONS)
+        self.assertTrue(first.ack)
+
+        newer = self.b.open(name)
+        self.assertTrue(newer.ack)
+
+        self.assertEqual(self.retry(self.a, seq, CMD_RESET_SESSIONS), first)
+        self.assertEqual(self.b.read(newer.session).data, b"newer")
+
+    def test_retry_survives_other_sessions_of_same_identity(self) -> None:
+        created, opened = self.path("created"), self.path("opened")
+        self.a.put(opened, b"opened")
+        seq, first = self.lost(self.a, CMD_CREATE_FILE, data=created.encode())
+
+        # meanwhile the same identity works on another session, under the shared sequence numbers
+        same = Client(self.link, self.a.sysid, self.a.compid)
+        other = same.open(opened)
+        self.assertTrue(other.ack)
+        self.assertEqual(same.read(other.session).data, b"opened")
+        self.assertTrue(same.terminate(other.session).ack)
+
+        self.assertEqual(self.retry(self.a, seq, CMD_CREATE_FILE, data=created.encode()), first)
+        self.assertEqual(self.free_sessions(), MAX_SESSIONS - 1)
+
+    def test_reused_sequence_number_is_not_a_retry(self) -> None:
+        created, opened = self.path("created"), self.path("opened")
+        self.a.put(opened, b"opened")
+        seq, first = self.lost(self.a, CMD_CREATE_FILE, data=created.encode())
+
+        # a client that started over, or wrapped around, sends a different request under the same number
+        other = self.a.reply(self.a.send(CMD_OPEN_FILE_RO, data=opened.encode(), seq=seq))
+        self.assertTrue(other.ack)
+        self.assertNotEqual(other.session, first.session)
+        self.assertEqual(self.a.read(other.session).data, b"opened")
+
+    def test_retry_window(self) -> None:
+        name = self.path("window")
+        missing = self.path("missing").encode()
+        seq, first = self.lost(self.a, CMD_CREATE_FILE, data=name.encode())
+
+        # every other client and session holds one reply, however many requests it makes
+        others = [Client(self.link, 200 + i) for i in range(REPLAY_ENTRIES)]
+
+        for other in others[:-1]:
+            self.assertEqual(other.request(CMD_REMOVE_FILE, data=missing).error, ERR_FILE_NOT_FOUND)
+
+        for _ in range(20):
+            self.assertEqual(others[0].request(CMD_REMOVE_FILE, data=missing).error, ERR_FILE_NOT_FOUND)
+
+        self.assertEqual(self.retry(self.a, seq, CMD_CREATE_FILE, data=name.encode()), first)
+
+        # one more pushes out the oldest reply, and the retry is executed as a new request
+        self.assertEqual(others[-1].request(CMD_REMOVE_FILE, data=missing).error, ERR_FILE_NOT_FOUND)
+        again = self.retry(self.a, seq, CMD_CREATE_FILE, data=name.encode())
+        self.assertTrue(again.ack)
+        self.assertNotEqual(again.session, first.session)
 
     def open_bursts(self, clients: List[Client], size: int) -> List[Tuple[bytes, int]]:
         files = []

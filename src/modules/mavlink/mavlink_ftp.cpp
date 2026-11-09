@@ -137,7 +137,7 @@ MavlinkFTP::_close_session(SessionInfo &session)
 	session.param.close();
 	session.stream_download = false;
 	session.file_size = 0;
-	_last_reply_valid = false;
+	_forget_replies(session);
 }
 
 void
@@ -146,6 +146,88 @@ MavlinkFTP::_close_all_sessions()
 	for (SessionInfo &session : _sessions) {
 		if (session.is_open()) {
 			_close_session(session);
+		}
+	}
+}
+
+uint32_t
+MavlinkFTP::_request_crc(const PayloadHeader *payload)
+{
+	// Everything after the sequence number, so a different request that happens to reuse one is not taken for
+	// a retry. The size is checked later, before anything else uses it.
+	const uint8_t *start = &payload->session;
+	const size_t length = sizeof(PayloadHeader) - offsetof(PayloadHeader, session)
+			      + math::min(payload->size, kMaxDataLength);
+	return crc32part(start, length, 0);
+}
+
+const MavlinkFTP::ReplyEntry *
+MavlinkFTP::_find_reply(uint32_t system_id, uint8_t component_id, uint16_t request_seq, uint32_t request_crc) const
+{
+	for (const ReplyEntry &entry : _replies) {
+		if (entry.valid && (entry.system_id == system_id) && (entry.component_id == component_id)
+		    && (entry.request_seq == request_seq) && (entry.request_crc == request_crc)) {
+			return &entry;
+		}
+	}
+
+	return nullptr;
+}
+
+void
+MavlinkFTP::_remember_reply(const mavlink_file_transfer_protocol_t *ftp_reply, uint32_t system_id, uint8_t component_id,
+			    uint16_t request_seq, uint32_t request_crc, int session)
+{
+	const PayloadHeader *payload = reinterpret_cast<const PayloadHeader *>(&ftp_reply->payload[0]);
+
+	// We only keep small responses to reduce RAM usage and avoid large memcpy's. The larger responses are all data
+	// retrievals without side-effects, meaning it's ok to reexecute them if a response gets lost.
+	// Skip only a no-sessions NAK so a retry can Open again. data[0] on an Open ACK is the file-size LSB, not an error code.
+	if ((payload->size > sizeof(uint32_t))
+	    || ((payload->opcode == kRspNak) && (payload->data[0] == kErrNoSessionsAvailable))) {
+		return;
+	}
+
+	// A client only retries its latest request on a session, or outside of one, so that is all an entry holds.
+	// Otherwise take a free entry or the oldest one: other clients' traffic only pushes a reply out once every
+	// entry is newer than it.
+	ReplyEntry *slot = &_replies[0];
+
+	for (ReplyEntry &entry : _replies) {
+		if (entry.valid && (entry.system_id == system_id) && (entry.component_id == component_id)
+		    && (entry.session == session)) {
+			slot = &entry;
+			break;
+		}
+
+		if (!entry.valid) {
+			if (slot->valid) {
+				slot = &entry;
+			}
+
+		} else if (slot->valid && (entry.stored < slot->stored)) {
+			slot = &entry;
+		}
+	}
+
+	slot->valid = true;
+	slot->system_id = system_id;
+	slot->component_id = component_id;
+	slot->session = session;
+	slot->request_seq = request_seq;
+	slot->request_crc = request_crc;
+	slot->stored = hrt_absolute_time();
+	memcpy(slot->reply, ftp_reply, sizeof(slot->reply));
+}
+
+void
+MavlinkFTP::_forget_replies(const SessionInfo &session)
+{
+	// Replaying the open of a session closed since would hand out a session that is gone.
+	for (ReplyEntry &entry : _replies) {
+		if (entry.valid && (entry.session == session.id) && (entry.system_id == session.owner_system_id)
+		    && (entry.component_id == session.owner_component_id)) {
+			entry.valid = false;
 		}
 	}
 }
@@ -310,6 +392,11 @@ MavlinkFTP::_process_request(
 	bool stream_send = false;
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
 	SessionInfo *session = nullptr;
+	const uint16_t request_seq = payload->seq_number;
+	const uint32_t request_crc = _request_crc(payload);
+	const bool opens_session = (payload->opcode == kCmdOpenFileRO) || (payload->opcode == kCmdCreateFile)
+				   || (payload->opcode == kCmdOpenFileWO);
+	const ReplyEntry *previous_reply = nullptr;
 
 	ErrorCode errorCode = kErrNone;
 
@@ -320,25 +407,19 @@ MavlinkFTP::_process_request(
 		goto out;
 	}
 
-	// check the sequence number: if this is a resent request, resend the last response
-	if (_last_reply_valid) {
-		const mavlink_file_transfer_protocol_t *last_reply = reinterpret_cast<const mavlink_file_transfer_protocol_t *>
-				(_last_reply);
-		const PayloadHeader *last_payload = reinterpret_cast<const PayloadHeader *>(&last_reply->payload[0]);
+	// A request we already answered means the (n)ack got lost and the client resent it: resend the response
+	// rather than open, truncate, terminate or reset a second time.
+	previous_reply = _find_reply(target_system_id, target_comp_id, request_seq, request_crc);
 
-		if (payload->seq_number + 1 == last_payload->seq_number
-		    && _last_reply_target_system == target_system_id
-		    && last_reply->target_component == target_comp_id) {
-			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
-			// resent the request. The request buffer is no longer needed, so expand the compact cache into it;
-			// the serializer reads the whole message.
-			memset(ftp_req, 0, sizeof(*ftp_req));
-			memcpy(ftp_req, _last_reply, sizeof(_last_reply));
-			_mavlink.lock_send();
-			mavlink_msg_send_struct_target(_mavlink.get_channel(), FILE_TRANSFER_PROTOCOL, ftp_req, target_system_id);
-			_mavlink.unlock_send();
-			return;
-		}
+	if (previous_reply != nullptr) {
+		// The request buffer is no longer needed, so expand the compact copy into it; the serializer reads
+		// the whole message.
+		memset(ftp_req, 0, sizeof(*ftp_req));
+		memcpy(ftp_req, previous_reply->reply, sizeof(previous_reply->reply));
+		_mavlink.lock_send();
+		mavlink_msg_send_struct_target(_mavlink.get_channel(), FILE_TRANSFER_PROTOCOL, ftp_req, target_system_id);
+		_mavlink.unlock_send();
+		return;
 	}
 
 
@@ -460,14 +541,18 @@ out:
 		}
 	}
 
-	_last_reply_valid = false;
-
 	// Stream download replies are sent through mavlink stream mechanism. Unless we need to Nack.
 	if (!stream_send || errorCode != kErrNone) {
 		// respond to the request
 		ftp_req->target_network = 0;
 		ftp_req->target_component = target_comp_id;
 		_reply(ftp_req, target_system_id);
+
+		// An open files its reply under the session it opened, so that one client's next open does not
+		// displace it. payload->session is that session, or the one the request addressed.
+		const bool for_session = (session != nullptr) || (opens_session && (errorCode == kErrNone));
+		_remember_reply(ftp_req, target_system_id, target_comp_id, request_seq, request_crc,
+				for_session ? payload->session : kNoSession);
 	}
 }
 
@@ -485,18 +570,6 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_sy
 	}
 
 	memset(&payload->data[payload->size], 0, kMaxDataLength - payload->size);
-
-	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
-	// we can simply resend the response.
-	// we only keep small responses to reduce RAM usage and avoid large memcpy's. The larger responses are all data
-	// retrievals without side-effects, meaning it's ok to reexecute them if a response gets lost.
-	// Skip only a no-sessions NAK so a retry can Open again. data[0] on an Open ACK is the file-size LSB, not an error code.
-	if (payload->size <= sizeof(uint32_t)
-	    && !(payload->opcode == kRspNak && payload->data[0] == kErrNoSessionsAvailable)) {
-		_last_reply_valid = true;
-		memcpy(_last_reply, ftp_req, sizeof(_last_reply));
-		_last_reply_target_system = target_system_id;
-	}
 
 	PX4_DEBUG("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 

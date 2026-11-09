@@ -194,6 +194,18 @@ private:
 	void _close_session(SessionInfo &session);
 	void _close_all_sessions();
 
+	static uint32_t _request_crc(const PayloadHeader *payload);
+
+	struct ReplyEntry;
+	const ReplyEntry *_find_reply(uint32_t system_id, uint8_t component_id, uint16_t request_seq,
+				      uint32_t request_crc) const;
+
+	/// Keep a small reply for retries, under the session it belongs to or kNoSession.
+	void _remember_reply(const mavlink_file_transfer_protocol_t *ftp_reply, uint32_t system_id, uint8_t component_id,
+			     uint16_t request_seq, uint32_t request_crc, int session);
+
+	void _forget_replies(const SessionInfo &session);
+
 	/// Read from an open session. Returns bytes read, 0 at EOF, -1 on error with _our_errno set.
 	int _read_session(SessionInfo &session, uint32_t offset, uint8_t *buf, uint16_t count);
 
@@ -266,10 +278,37 @@ private:
 	static constexpr const char _mav_log_dir[] = PX4_STORAGEDIR "/log";
 	static constexpr const int _mav_log_dir_len = sizeof(_mav_log_dir) - 1;
 
-	bool _last_reply_valid = false;
-	uint32_t _last_reply_target_system{0}; ///< _last_reply only holds the 8-bit payload field
-	uint8_t _last_reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
-								      + sizeof(PayloadHeader) + sizeof(uint32_t)];
+	/**
+	 * Small replies kept to answer a retried request without executing it again.
+	 *
+	 * A retry is the same request from the same client: system and component
+	 * id, sequence number and a checksum of the rest. Each client keeps its
+	 * latest reply per session, and one for requests outside of a session,
+	 * so a reply stays until that client moves on, its session is closed
+	 * without a Terminate, or kReplayEntries newer replies of other clients
+	 * or sessions have taken every entry.
+	 *
+	 * Only the sequence number tells a retry from the same request sent anew,
+	 * so everything sending as one MAVLink identity has to share one counter.
+	 * Even then a lost reply outside of a session, such as to ResetSessions,
+	 * is gone once the identity sends its next request outside of a session,
+	 * and the retry is executed again.
+	 */
+	static constexpr unsigned kReplayEntries = 2 * kMaxSessions;
+	static constexpr int kNoSession = -1;
+
+	struct ReplyEntry {
+		bool		valid{false};
+		uint32_t	system_id{0};		///< reply only holds the 8-bit payload field
+		uint8_t		component_id{0};
+		int		session{kNoSession};
+		uint16_t	request_seq{0};
+		uint32_t	request_crc{0};
+		hrt_abstime	stored{0};
+		uint8_t		reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
+										+ sizeof(PayloadHeader) + sizeof(uint32_t)];
+	};
+	ReplyEntry _replies[kReplayEntries] {};
 
 	int _our_errno {0};
 };
