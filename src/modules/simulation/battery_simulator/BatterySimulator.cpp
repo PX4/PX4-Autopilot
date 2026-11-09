@@ -136,13 +136,14 @@ void BatterySimulator::Run()
 
 			// Guard against division by 0
 			ibatt = avgCurrent(i, _is_fw, _is_mc);
+			float capacity = _batteries[i]->getCapacity();
 
-			if (_last_integration_us != 0 && ibatt > 0.0f) {
+			if (_last_integration_us != 0 && ibatt > 0.0f && capacity > 0.0f) {
 				_consumed_mah[i] += (now_us - _last_integration_us) / 3.6e6f * ibatt; //1 uAs = 3.6e-6 mAh
 				_battery_percentage[i] = 1.0f - _consumed_mah[i] / _batteries[i]->getCapacity();
 
-			} else if (_last_integration_us != 0) {
-				PX4_ERR("Battery average current (SIM_BAT_I_FW/SIM_BAT_I_MC) is <= 0.0, cannot simulate battery drain");
+			} else {
+				continue; // No battery capacity set or not battery drain simulation
 			}
 
 		} else {
