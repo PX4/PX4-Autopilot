@@ -138,23 +138,7 @@ void BatterySimulator::Run()
 		}
 	}
 
-	if (_actuator_motors_sub.updated()) {
-		actuator_motors_s actuator_motors;
-
-		if (_actuator_motors_sub.copy(&actuator_motors)) {
-			// Momentum theory: the power, hence the current, of a rotor grows with its thrust to the power of 1.5
-			// P ~ T¹·⁵ and P = VI
-			_motor_load = 0.f;
-
-			for (const float control : actuator_motors.control) {
-				if (PX4_ISFINITE(control)) {
-					_motor_load += powf(fabsf(control), 1.5f);
-				}
-			}
-
-			_actuator_motors_timestamp = actuator_motors.timestamp;
-		}
-	}
+	updateMotorLoad();
 
 	const hrt_abstime now_us = hrt_absolute_time();
 	const bool disarmed_now = _was_armed && !_armed;
@@ -235,6 +219,25 @@ void BatterySimulator::updateParams()
 		if (_min_pct_handles[i] != PARAM_INVALID) {
 			param_get(_min_pct_handles[i], &_min_pct_override[i]);
 		}
+	}
+}
+
+void BatterySimulator::updateMotorLoad()
+{
+	actuator_motors_s actuator_motors;
+
+	if (_actuator_motors_sub.update(&actuator_motors)) {
+		// Momentum theory: the power, hence the current, of a rotor grows with its thrust to the power of 1.5
+		// P ~ T¹·⁵ and P = VI
+		_motor_load = 0.f;
+
+		for (const float control : actuator_motors.control) {
+			if (PX4_ISFINITE(control)) {
+				_motor_load += powf(fabsf(control), 1.5f);
+			}
+		}
+
+		_actuator_motors_timestamp = actuator_motors.timestamp;
 	}
 }
 
