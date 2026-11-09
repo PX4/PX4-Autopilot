@@ -70,8 +70,6 @@ BatterySimulator::BatterySimulator() :
 		if (_min_pct_handles[i] == PARAM_INVALID) {
 			PX4_ERR("Could not find parameter with name %s", param_name);
 		}
-
-		_battery_percentage[i] = 1.f;
 	}
 
 	updateParams();
@@ -128,45 +126,49 @@ void BatterySimulator::Run()
 	}
 
 	const hrt_abstime now_us = hrt_absolute_time();
-
-	float ibatt = -1.0f; // no current sensor in simulation
+	const bool disarmed_now = _was_armed && !_armed;
+	_was_armed = _armed;
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
-		if (_armed) {
+		Battery &battery = *_batteries[i];
 
-			// Guard against division by 0
+		// The Battery library does the coulomb counting on the published current, its discharged capacity is the
+		// simulated state. Without a capacity the battery cannot drain.
+		const float capacity = battery.getCapacity();
+		const float min_percentage = minimumPercentage(i) / 100.f;
+		const bool min_percentage_raised = min_percentage > _last_min_percentage[i];
+		_last_min_percentage[i] = min_percentage;
+
+		if (capacity > 0.f) {
+			const float min_percentage_discharged_mah = (1.f - min_percentage) * capacity;
+
+			if (disarmed_now) {
+				// Fresh battery for the next flight
+				battery.resetDischargedMah();
+
+			} else if (min_percentage_raised && battery.getDischargedMah() > min_percentage_discharged_mah) {
+				// Regain capacity, e.g. to simulate inaccurate state estimation or in-air charging
+				battery.resetDischargedMah(min_percentage_discharged_mah);
+			}
+		}
+
+		const float percentage = (capacity > 0.f) ? math::max(1.f - battery.getDischargedMah() / capacity, min_percentage) : 1.f;
+
+		// No current while disarmed or once the floor is reached, so the coulomb count stops at SIM_BAT_MIN_PCT
+		float ibatt = 0.f;
+
+		if (_armed && (capacity <= 0.f || percentage > min_percentage)) {
 			ibatt = avgCurrent(i, _is_fw, _is_mc);
-			float capacity = _batteries[i]->getCapacity();
 
-			if (ibatt > 0.0f && capacity <= 0.0f && _batteries[i]->isSourceSelected() && !_capacity_warned[i]) {
+			if (ibatt > 0.f && capacity <= 0.f && battery.isSourceSelected() && !_capacity_warned[i]) {
 				PX4_WARN("BAT%d_CAPACITY not set, simulated battery %d will not drain", i + 1, i + 1);
 				_capacity_warned[i] = true;
 			}
-
-			if (_last_integration_us != 0 && ibatt > 0.0f && capacity > 0.0f) {
-				_consumed_mah[i] += (now_us - _last_integration_us) / 3.6e6f * ibatt; //1 uAs = 3.6e-6 mAh
-				_battery_percentage[i] = 1.0f - _consumed_mah[i] / _batteries[i]->getCapacity();
-
-			}
-
-		} else {
-			_consumed_mah[i] = 0.0;
-			_battery_percentage[i] = 1.f;
 		}
 
-		const float min_percentage = minimumPercentage(i) / 100.f;
-
-		if (min_percentage > 0.99f) {
-			_consumed_mah[i] = 0.0;
-		}
-
-		_battery_percentage[i] = math::max(_battery_percentage[i], min_percentage);
-
-		Battery &battery = *_batteries[i];
-
-		float vbatt = math::interpolate(_battery_percentage[i], 0.f, 1.f, battery.empty_cell_voltage(),
-						battery.full_cell_voltage());
-
+		// Open circuit voltage from the state of charge, minus the load drop the Battery library compensates for
+		float vbatt = math::interpolate(percentage, 0.f, 1.f, battery.empty_cell_voltage(), battery.full_cell_voltage());
+		vbatt -= battery.internal_resistance() * math::max(ibatt, 0.f);
 		vbatt *= battery.cell_count();
 
 		battery.setConnected(true);
@@ -174,9 +176,6 @@ void BatterySimulator::Run()
 		battery.updateCurrent(ibatt);
 		battery.updateAndPublishBatteryStatus(now_us);
 	}
-
-	// All batteries integrate over the same interval, so this is only advanced once they are all done
-	_last_integration_us = _armed ? now_us : 0;
 
 	perf_end(_loop_perf);
 }
