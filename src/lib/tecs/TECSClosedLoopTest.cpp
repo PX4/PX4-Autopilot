@@ -574,19 +574,19 @@ TEST_F(TECSClosedLoopTest, AirspeedStepDownDefaultTuning)
 
 	setAirspeedSetpoint(_params.equivalent_airspeed_trim - 1.f);
 
-	// Capture the rough shape of the airspeed step response. This one
-	// is not a nice first order response, because the throttle and pitch
-	// loop both interact, including the pitch integrator.
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f) << "at t=" << _t << " s";
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f) << "at t=" << _t << " s";
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f) << "at t=" << _t << " s";
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f) << "at t=" << _t << " s";
-	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.05f) << "at t=" << _t << " s";
-	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.02f) << "at t=" << _t << " s";
-	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.01f) << "at t=" << _t << " s";
+	// The energy mode law decouples airspeed from altitude: the airspeed error decays as a first-order response
+	// with the airspeed loop time constant FW_T_TAS_TC, up to a small discretisation error
+	const float step = _V_sp - _state.V;
+	const float t_step = _t;
 
-	// This is possible without sacrificing a lot of altitude
-	EXPECT_LT(_sim_stats.max_altitude_error, 0.5f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
+	for (int i = 0; i < 10; i++) {
+		run(5.0f);
+		const float expected_error = step * expf(-(_t - t_step) * _params.airspeed_error_gain);
+		EXPECT_NEAR(_V_sp - _state.V, expected_error, MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+	}
+
+	// Altitude holds to numerical precision
+	EXPECT_LT(_sim_stats.max_altitude_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
 }
 
 TEST_F(TECSClosedLoopTest, FastDescend)
