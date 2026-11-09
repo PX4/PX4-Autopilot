@@ -193,7 +193,12 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 		break;
 
 	case SUMD_DECODE_STATE_GOT_LEN:
-		_rxpacket.sumd_data[_rxlen] = byte;
+		/* length is clamped to SUMD_MAX_CHANNELS, so length*2 <= sizeof(sumd_data).
+		 * Keeping the bound derived from the array makes that invariant explicit and
+		 * survives any future change to the clamp. */
+		if (_rxlen < sizeof(_rxpacket.sumd_data)) {
+			_rxpacket.sumd_data[_rxlen] = byte;
+		}
 
 		if (_sumd) {
 			_crc16 = sumd_crc16(_crc16, byte);
@@ -335,7 +340,11 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 			/* we start at channel 5(index 4) */
 			unsigned chan_index = 4;
 
-			for (i = 4; i < _rxpacket.length; i++) {
+			/* The pair index is i*2+1 / i*2+2, so the last readable channel needs
+			 * i*2+2 <= sizeof(sumd_data)-1. length is clamped to SUMD_MAX_CHANNELS,
+			 * which lets i*2+2 reach sizeof(sumd_data) at i == length-1 -- one past
+			 * the array. Bound the loop by the array, not by length alone. */
+			for (i = 4; i < _rxpacket.length && (i * 2 + 2) < (int)sizeof(_rxpacket.sumd_data); i++) {
 				if (_debug) {
 					printf("ch[%d] : %x %x [ %x    %d ]\n", i + 1, _rxpacket.sumd_data[i * 2 + 1], _rxpacket.sumd_data[i * 2 + 2],
 					       ((_rxpacket.sumd_data[i * 2 + 1] << 8) | _rxpacket.sumd_data[i * 2 + 2]) >> 3,

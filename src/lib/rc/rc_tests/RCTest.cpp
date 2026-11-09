@@ -15,6 +15,7 @@
 #include <lib/rc/sumd.h>
 #include <lib/rc/crsf.h>
 #include <lib/rc/ghst.hpp>
+#include <lib/rc/common_rc.h>
 
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define TEST_DATA_PATH "./test_data/"
@@ -41,6 +42,7 @@ private:
 	bool st24MalformedLengthTest();
 	bool st24Test();
 	bool sumdTest();
+	bool sumdMalformedLengthTest();
 };
 
 bool RCTest::run_tests()
@@ -55,6 +57,7 @@ bool RCTest::run_tests()
 	ut_run_test(st24MalformedLengthTest);
 	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
+	ut_run_test(sumdMalformedLengthTest);
 
 	return (_tests_failed == 0);
 }
@@ -550,6 +553,63 @@ bool RCTest::sumdTest()
 	}
 
 	ut_test(ret == EOF);
+
+	return true;
+}
+
+bool RCTest::sumdMalformedLengthTest()
+{
+	// Regression test for the payload bound in sumd_decode().
+	//
+	// The decoder accepts length values from 2 up to SUMD_MAX_CHANNELS and writes
+	// sumd_data[_rxlen] on entry to SUMD_DECODE_STATE_GOT_LEN, i.e. before the
+	// length-derived bound is evaluated. With length == SUMD_MAX_CHANNELS the loop
+	// reaches _rxlen == 64 while sumd_data has 64 elements (valid indices 0..63),
+	// so the hidden write lands on the next member of the same packed struct.
+	//
+	// That byte is not observable through the decoder's outputs: GOT_DATA rewrites
+	// the member it lands on, and the decoder never reads it back. It is observable
+	// in the shared decode buffer, which is what this test uses: the byte written at
+	// index 64 must not be one of our payload bytes.
+
+	// Use a distinctive payload byte so we can tell an overflow from a legitimate
+	// write to the following member.
+	const uint8_t marker = 0x5A;
+
+	uint8_t rssi = 0, rx_count = 0;
+	uint16_t channel_count = 0;
+	uint16_t channels[32] {};
+	bool failsafe = false;
+
+	const uint8_t len = SUMD_MAX_CHANNELS;
+
+	// header, status, length
+	sumd_decode(0xA8, &rssi, &rx_count, &channel_count, channels, 32, &failsafe);
+	sumd_decode(0x01, &rssi, &rx_count, &channel_count, channels, 32, &failsafe);
+	sumd_decode(len, &rssi, &rx_count, &channel_count, channels, 32, &failsafe);
+
+	// len*2 payload bytes, all equal to the marker
+	for (int i = 0; i < len * 2; ++i) {
+		sumd_decode(marker, &rssi, &rx_count, &channel_count, channels, 32, &failsafe);
+	}
+
+	// At this point the decoder has written every payload byte. With the bound in
+	// place the byte just past sumd_data[] keeps whatever the decoder last put there
+	// (the length/status path), and in particular is not forced to the marker.
+	//
+	// That byte is struct offset 67, which is the named member crc16_high, so read it
+	// by name. Indexing sumd_data[SUMD_MAX_CHANNELS * 2] would name sumd_data[64], one
+	// past the 64-element array: undefined behaviour by the standard, even though the
+	// byte is present in the enclosing struct.
+	uint8_t after[1];
+	memcpy(after, &rc_decode_buf._hottrxpacket.crc16_high, 1);
+
+
+	ut_test(after[0] != marker);
+
+	// The frame is not complete yet (CRC bytes pending), and the channel count must
+	// never exceed what we allowed.
+	ut_test(channel_count <= 32);
 
 	return true;
 }
