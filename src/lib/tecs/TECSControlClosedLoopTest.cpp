@@ -98,7 +98,6 @@ constexpr TECSControl::Param defaultParams()
 		.altitude_setpoint_gain_ff = paramDefault(px4::params::FW_T_HRATE_FF),
 		.airspeed_error_gain       = 1.f / paramDefault(px4::params::FW_T_TAS_TC),
 		.ste_rate_time_const       = paramDefault(px4::params::FW_T_STE_R_TC),
-		.seb_rate_ff               = paramDefault(px4::params::FW_T_SEB_R_FF),
 		.pitch_speed_weight        = paramDefault(px4::params::FW_T_SPDWEIGHT),
 		.integrator_gain_pitch     = paramDefault(px4::params::FW_T_I_GAIN_PIT),
 
@@ -599,33 +598,4 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessSteadyStateCruise)
 	EXPECT_LT(_sim_stats.max_altitude_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
 	EXPECT_LT(_sim_stats.max_throttle_integ_norm, MAX_NUMERICAL_ERR);
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
-}
-
-// Without airspeed the speed weight is 0, so the SEB rate is twice the SPE rate and the pitch feedforward
-// SEB_rate_sp / (V * g) asks for twice the demanded climb angle. A feedforward gain of 0.5 cancels this: the vehicle
-// then flies exactly the demanded climb rate, the SEB rate error stays zero, and the altitude error decays first order
-// with FW_T_ALT_TC. As in AltitudeStepDown, the pitch must follow the raw step as fast as the throttle and the demanded
-// sink rate must not exceed FW_T_SINK_MIN.
-
-TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
-{
-	disableAirspeed();
-	_params.seb_rate_ff = 0.5f;
-
-	run(10.f);
-
-	for (const float step : {-ALT_STEP, ALT_STEP}) {
-		setAltitudeSetpoint(_state.h + step);
-		const float t_step = _t;
-
-		for (int i = 0; i < 30; i++) {
-			run(1.f);
-			const float expected_error = step * expf(-(_t - t_step) * _params.altitude_error_gain);
-			EXPECT_NEAR(_alt_sp - _state.h, expected_error, MAX_NUMERICAL_ERR_OPENLOOP) << "at t=" << _t << " s";
-		}
-	}
-
-	// The throttle feedforward funds the climb exactly, so the open loop airspeed does not move
-	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR_OPENLOOP) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
-	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR_OPENLOOP);
 }
