@@ -35,6 +35,7 @@ from mavsdk.plugins.param import Param  # type: ignore
 from mavsdk.plugins.telemetry import FlightMode, LandedState, Telemetry, VtolState  # type: ignore
 
 from geometry import CoordinateTransformation, Vec3, point_to_line_distance
+from takeoff_checks import AttitudeSample, PositionSample, TakeoffRecording, summarize_takeoff
 
 # Only print the first few callback check failures, they can come at telemetry rate.
 MAX_PRINTED_CALLBACK_FAILURES = 10
@@ -135,6 +136,10 @@ class AutopilotTester:
         self._home: Optional[Tuple[float, float]] = None
         self._home_altitude_m: Optional[float] = None
         self._check_altitude_handle: Any = None
+
+        self._takeoff_lock = threading.Lock()
+        self._takeoff_recording = TakeoffRecording()
+        self._takeoff_handles: List[Any] = []
 
         self._failures_lock = threading.Lock()
         self._callback_failures: List[str] = []
@@ -524,6 +529,51 @@ class AutopilotTester:
         if self._check_altitude_handle is not None:
             self._telemetry.unsubscribe_position_velocity_ned(self._check_altitude_handle)
             self._check_altitude_handle = None
+
+    def start_recording_takeoff(self) -> None:
+        """Record tilt, height and horizontal velocity relative to the current (liftoff) position.
+
+        Uses the raw MAVLink messages for their autopilot timestamps, so the acceleration
+        doesn't depend on the simulation speed or the host's scheduling.
+        """
+        liftoff_down_m = self.get_current_position_ned()[2]
+        height_m = [0.0]  # latest height, shared with the attitude callback
+        with self._takeoff_lock:
+            self._takeoff_recording = TakeoffRecording()
+
+        def on_local_position(message: Any, _user_data: Any) -> None:
+            fields = json.loads(message.fields_json)
+            height_m[0] = liftoff_down_m - float(fields["z"])
+            sample = PositionSample(time_s=fields["time_boot_ms"] * 1e-3, height_m=height_m[0],
+                                    velocity_ne_m_s=(float(fields["vx"]), float(fields["vy"])))
+            with self._takeoff_lock:
+                self._takeoff_recording.position.append(sample)
+
+        def on_attitude(message: Any, _user_data: Any) -> None:
+            fields = json.loads(message.fields_json)
+            cos_tilt = math.cos(fields["roll"]) * math.cos(fields["pitch"])
+            sample = AttitudeSample(time_s=fields["time_boot_ms"] * 1e-3, height_m=height_m[0],
+                                    tilt_deg=math.degrees(math.acos(max(-1.0, min(1.0, cos_tilt)))))
+            with self._takeoff_lock:
+                self._takeoff_recording.attitude.append(sample)
+
+        self._takeoff_handles = [
+            self._mavlink_direct.subscribe_message("LOCAL_POSITION_NED", on_local_position),
+            self._mavlink_direct.subscribe_message("ATTITUDE", on_attitude),
+        ]
+
+    def stop_recording_takeoff(
+            self, platform_ne: Tuple[float, float] = (0.0, 0.0)) -> TakeoffRecording:
+        """Stop recording, log a summary and return the recording for takeoff_checks."""
+        for handle in self._takeoff_handles:
+            self._mavlink_direct.unsubscribe_message(handle)
+        self._takeoff_handles = []
+        with self._takeoff_lock:
+            recording = TakeoffRecording(list(self._takeoff_recording.attitude),
+                                         list(self._takeoff_recording.position))
+        for line in summarize_takeoff(recording, platform_ne, heights_m=[0.1, 0.5, 1.5]):
+            log(line)
+        return recording
 
     # ------------------------------------------------------------------
     # Missions

@@ -1,6 +1,7 @@
 import pytest
 
 from autopilot_tester import AutopilotTester
+from takeoff_checks import check_takeoff
 
 
 @pytest.mark.multicopter
@@ -21,9 +22,12 @@ def test_takeoff_and_hold_position(tester: AutopilotTester) -> None:
     ground_altitude_m = -tester.get_current_position_ned()[2]
 
     tester.arm()
+    tester.start_recording_takeoff()
     tester.takeoff()
     tester.wait_until_hovering()
     tester.wait_until_altitude(ground_altitude_m + takeoff_altitude_m, 15, delta=0.1)
+    failures = check_takeoff(tester.stop_recording_takeoff())
+    assert not failures, "; ".join(failures)
 
     # wait_until_altitude() returns on the first touch of the target band, while the vehicle is
     # still climbing. Let the takeoff overshoot damp out so the hold reference is captured at the

@@ -46,6 +46,15 @@
             }
         },
         {
+            "model": "quadx",
+            "test_filter": "moving_platform",
+            "timeout_min": 5,
+            "env": {
+                "PX4_PARAM_SIH_PLAT_VN": 5,
+                "PX4_PARAM_GNSS_CHECK": 1887
+            }
+        },
+        {
             "model": "hex",
             "test_filter": "motor_failure_injection",
             "timeout_min": 15
