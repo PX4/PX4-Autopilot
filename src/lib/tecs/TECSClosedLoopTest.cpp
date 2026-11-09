@@ -98,7 +98,6 @@ constexpr TECSControl::Param defaultParams()
 		.altitude_setpoint_gain_ff = paramDefault(px4::params::FW_T_HRATE_FF),
 		.airspeed_error_gain       = 1.f / paramDefault(px4::params::FW_T_TAS_TC),
 		.ste_rate_time_const       = paramDefault(px4::params::FW_T_STE_R_TC),
-		.seb_rate_ff               = paramDefault(px4::params::FW_T_SEB_R_FF),
 		.pitch_speed_weight        = paramDefault(px4::params::FW_T_SPDWEIGHT),
 		.integrator_gain_pitch     = paramDefault(px4::params::FW_T_I_GAIN_PIT),
 		.pitch_damping_gain        = paramDefault(px4::params::FW_T_PTCH_DAMP),

@@ -171,15 +171,6 @@ parameters:
       max: 2
       decimal: 2
       increment: 0.01
-    FW_T_SEB_R_FF:
-      description:
-        short: Specific total energy balance rate feedforward gain
-      type: float
-      default: 1.0
-      min: 0.5
-      max: 3
-      decimal: 2
-      increment: 0.01
     FW_WIND_ARSP_SC:
       description:
         short: Wind-based airspeed scaling factor
