@@ -56,6 +56,7 @@
 #include <uORB/Publication.hpp>
 
 #include "mission_block.h"
+#include "mission_feasibility_checker.h"
 #include "navigation.h"
 
 using namespace time_literals;
@@ -88,6 +89,7 @@ protected:
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
 		WORK_ITEM_TYPE_CLIMB,		/**< takeoff before moving to waypoint */
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
+		WORK_ITEM_TYPE_ALIGN_TO_LAND,
 		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align for next waypoint */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
@@ -292,6 +294,11 @@ protected:
 	void update_mission();
 
 	/**
+	 * Whether update_mission() may start flying the mission items now
+	 */
+	virtual bool canStartMission() const { return true; }
+
+	/**
 	 * Move on to next mission item or switch to loiter
 	 */
 	void advance_mission();
@@ -449,6 +456,7 @@ protected:
 
 	DatamanCache _dataman_cache{"mission_dm_cache_miss", 10}; /**< Dataman cache of mission items*/
 	DatamanClient	&_dataman_client = _dataman_cache.client(); /**< Dataman client*/
+	MissionFeasibilityChecker _mission_feasibility_checker{_navigator, _dataman_client};
 
 	uORB::Subscription _mission_sub{ORB_ID(mission)};	/**< mission subscription*/
 	uORB::SubscriptionData<vehicle_land_detected_s> _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
@@ -468,7 +476,7 @@ private:
 	 * @brief Maximum number of jump mission items iterations
 	 *
 	 */
-	static constexpr uint16_t MAX_JUMP_ITERATION{10u};
+	static constexpr uint16_t MAX_JUMP_ITERATION{NAV_MAX_JUMP_ITERATION};
 	/**
 	 * @brief Update Dataman cache
 	 *

@@ -22,7 +22,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request.
 - [AuxGlobalPosition](AuxGlobalPosition.md) — Auxiliary global position.
 - [BatteryStatus](BatteryStatus.md) — Battery status.
-- [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors.
+- [ConfigOverrides](ConfigOverrides.md) — Configuration overrides from external modes or mode executors.
 - [Event](Event.md) — Events interface.
 - [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message.
 - [FixedWingLongitudinalSetpoint](FixedWingLongitudinalSetpoint.md) — Fixed Wing Longitudinal Setpoint message.
@@ -66,17 +66,21 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
 - [HomePositionV1](HomePositionV1.md) — GPS home position in WGS84 coordinates.
 - [ManualControlSetpointV0](ManualControlSetpointV0.md)
+- [ManualControlSetpointV1](ManualControlSetpointV1.md) — Manual control input.
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
 - [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
 - [VehicleCommandAckV0](VehicleCommandAckV0.md) — Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
+- [VehicleCommandAckV1](VehicleCommandAckV1.md) — Vehicle Command Acknowledgement uORB message.
+- [VehicleCommandV0](VehicleCommandV0.md) — Vehicle Command uORB message. Used for commanding a mission / action / etc. Follows the MAVLink COMMAND_INT / COMMAND_LONG definition.
 - [VehicleGlobalPositionV0](VehicleGlobalPositionV0.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 - [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
 - [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.
 - [VehicleStatusV2](VehicleStatusV2.md) — Encodes the system state of the vehicle published by commander.
 - [VehicleStatusV3](VehicleStatusV3.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV4](VehicleStatusV4.md) — Encodes the system state of the vehicle published by commander.
 
 ## Unversioned Messages
 
@@ -234,14 +238,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RateCtrlStatus](RateCtrlStatus.md)
 - [RcChannels](RcChannels.md)
 - [RcParameterMap](RcParameterMap.md)
-- [RoverAttitudeSetpoint](RoverAttitudeSetpoint.md) — Rover Attitude Setpoint.
-- [RoverAttitudeStatus](RoverAttitudeStatus.md) — Rover Attitude Status.
-- [RoverPositionSetpoint](RoverPositionSetpoint.md) — Rover Position Setpoint.
-- [RoverRateSetpoint](RoverRateSetpoint.md) — Rover Rate setpoint.
-- [RoverRateStatus](RoverRateStatus.md) — Rover Rate Status.
-- [RoverSpeedSetpoint](RoverSpeedSetpoint.md) — Rover Speed Setpoint.
-- [RoverSpeedStatus](RoverSpeedStatus.md) — Rover Velocity Status.
-- [RoverSteeringSetpoint](RoverSteeringSetpoint.md) — Rover Steering setpoint.
 - [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint.
 - [Rpm](Rpm.md)
 - [RtcmData](RtcmData.md) — RTCM3 data exchanged with GNSS receivers.
@@ -272,6 +268,15 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SensorsStatusGnss](SensorsStatusGnss.md) — Per-receiver GNSS health and check diagnostics.
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
+- [SurfaceVehicleAttitudeSetpoint](SurfaceVehicleAttitudeSetpoint.md) — Surface Vehicle Attitude Setpoint.
+- [SurfaceVehicleAttitudeStatus](SurfaceVehicleAttitudeStatus.md) — Surface Vehicle Attitude Status.
+- [SurfaceVehicleCourseSetpoint](SurfaceVehicleCourseSetpoint.md) — Surface Vehicle Course Setpoint.
+- [SurfaceVehiclePositionSetpoint](SurfaceVehiclePositionSetpoint.md) — Surface Vehicle Position Setpoint.
+- [SurfaceVehicleRateSetpoint](SurfaceVehicleRateSetpoint.md) — Surface Vehicle Rate Setpoint.
+- [SurfaceVehicleRateStatus](SurfaceVehicleRateStatus.md) — Surface Vehicle Rate Status.
+- [SurfaceVehicleSpeedSetpoint](SurfaceVehicleSpeedSetpoint.md) — Surface Vehicle Speed Setpoint.
+- [SurfaceVehicleSpeedStatus](SurfaceVehicleSpeedStatus.md) — Surface Vehicle Speed Status.
+- [SurfaceVehicleSteeringSetpoint](SurfaceVehicleSteeringSetpoint.md) — Surface Vehicle Steering Setpoint.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
 - [TargetGnss](TargetGnss.md) — Landing target GNSS position in WGS84 coordinates, and optional NED velocity, from a target-mounted receiver.

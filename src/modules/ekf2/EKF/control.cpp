@@ -174,7 +174,9 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	const bool yaw_aiding = _control_status.flags.mag_hdg || _control_status.flags.mag_3D
 				|| _control_status.flags.ev_yaw || _control_status.flags.gnss_yaw;
-	_control_status.flags.heading_observable = isNorthEastAidingActive() || yaw_aiding;
+	// North/East aiding only constrains the heading when the vehicle accelerates horizontally, never at rest
+	const bool ne_aiding_heading = isNorthEastAidingActive() && !_control_status.flags.vehicle_at_rest;
+	_control_status.flags.heading_observable = ne_aiding_heading || yaw_aiding;
 
 	updateYawManualValidity();
 }

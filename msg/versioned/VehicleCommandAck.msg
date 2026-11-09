@@ -3,7 +3,7 @@
 # Used for acknowledging the vehicle command being received.
 # Follows the MAVLink COMMAND_ACK message definition
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp # [us] time since system start
 
@@ -35,7 +35,7 @@ uint16 ARM_AUTH_DENIED_REASON_TIMEOUT = 3
 uint16 ARM_AUTH_DENIED_REASON_AIRSPACE_IN_USE = 4
 uint16 ARM_AUTH_DENIED_REASON_BAD_WEATHER = 5
 
-uint8 target_system # [-] Target system
+uint32 target_system # [-] Target system
 uint16 target_component # Target component / mode executor
 
 bool from_external # Indicates if the command came from an external source

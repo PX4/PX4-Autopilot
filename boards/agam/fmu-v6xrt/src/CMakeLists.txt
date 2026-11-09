@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+if("${PX4_BOARD_LABEL}" MATCHES "^bootloader")
 	add_compile_definitions(BOOTLOADER)
 	add_library(drivers_board
 		bootloader_main.c
@@ -57,6 +57,14 @@ else()
 	    list(APPEND SRCS
 			imxrt_flexspi_fram.c
 	    )
+	endif()
+
+	# Secure-boot variant: populate the image TOC slot the linker
+	# script (selected via CONFIG_BOARD_LINKER_PREFIX) reserves.
+	if("${PX4_BOARD_LABEL}" STREQUAL "secureboot")
+		list(APPEND SRCS
+			toc.c
+		)
 	endif()
 
 	px4_add_library(drivers_board

@@ -76,10 +76,7 @@ public:
 	 */
 	void update();
 
-	/** Prepare per-axis history buffers. Call once at startup. */
-	bool init();
-
-	/** Drop the estimator state. A nonzero sample boundary also publishes invalid yaw. */
+	/** Drop the estimator state and publish an invalid yaw. A nonzero sample boundary drops older samples. */
 	void resetFilter(hrt_abstime min_sample_time = 0);
 
 	/** Timeout after which the whole filter is declared stale (see @c timedOut). */
@@ -137,10 +134,10 @@ private:
 		float yaw_var{0.f};
 	};
 
-	/** Seed state and covariance from the first valid yaw sample. */
+	/** Seed state and covariance from the first valid yaw sample, which is not fused. */
 	void initEstimator(const VisionObs &vision_obs);
-	/** Pull in new observations, initialise on first valid sample, and run fusion. */
-	bool performUpdateStep();
+	/** Pull in the new observation; initialise on the first valid sample, fuse the later ones. */
+	void performUpdateStep();
 	/** Advance the yaw state forward by @p dt using the constant yaw-rate model. */
 	void predictionStep(float dt);
 
@@ -151,9 +148,8 @@ private:
 
 	bool isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw);
 	bool processObsVision(VisionObs &vision_obs);
-	bool fuseMeas(const VisionObs &vision_obs);
+	void fuseMeas(const VisionObs &vision_obs);
 	void publishTarget();
-	bool shouldEmitWarning(hrt_abstime &last_warn);
 
 	uORB::Subscription _fiducial_marker_yaw_report_sub{ORB_ID(fiducial_marker_yaw_report)};
 
@@ -164,7 +160,7 @@ private:
 
 	hrt_abstime _min_sample_time{0}; // Discard measurements from before an attitude reset.
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
-	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
+	hrt_abstime _last_update{0}; // capture time of the newest fused sample (used to check timeout)
 	hrt_abstime _vision_warn_last{0};
 
 	/* parameters from vision_target_estimator_params.yaml */

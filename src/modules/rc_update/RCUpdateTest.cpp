@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+#include <cstdint>
 #include "rc_update.h"
 
 using namespace rc_update;
@@ -343,4 +344,16 @@ TEST_F(RCUpdateTest, PayloadPower3WaySwitchNegativeThresholds)
 	checkPayloadPowerSwitch(-0.5f, -0.75f, -0.25f, 2); // On mid_threshold -> SWITCH_POS_MIDDLE
 	checkPayloadPowerSwitch(-0.501f, -0.75f, -0.25f, 1); // Slightly above on_threshold -> SWITCH_POS_ON
 	checkPayloadPowerSwitch(-1.f, -0.75f, -0.25f, 1); // Above on_threshold -> SWITCH_POS_ON
+}
+
+TEST(RCUpdateParamConversionTest, FloatToInt32RoundsAndClamps)
+{
+	// Nominal values round to the nearest integer instead of storing raw float bytes
+	EXPECT_EQ(float_to_param_int32(2.f), 2);
+	EXPECT_EQ(float_to_param_int32(2.6f), 3);
+	EXPECT_EQ(float_to_param_int32(-3.4f), -3);
+
+	// Out-of-range values are clamped into the representable INT32 range (no UB)
+	EXPECT_EQ(float_to_param_int32(1e20f), 2147483520);
+	EXPECT_EQ(float_to_param_int32(-1e20f), INT32_MIN);
 }

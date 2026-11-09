@@ -15,6 +15,12 @@ param set-default UAVCAN_TRACE_EN 0
 # 200kOhm/10kOhm voltage divider on V_BAT
 param set-default BAT1_V_DIV 21
 
+#BMI088 IMU calibration with zero offsets so it is usable without a calibration.
+param set-default CAL_ACC0_ID 6946842
+param set-default CAL_GYRO0_ID 6684698
+param set-default CAL_ACC0_PRIO 50
+param set-default CAL_GYRO0_PRIO 50
+
 # Uncomment to use PWM9 as Analog input
 # param set-default PWM_MAIN_TIM2 -2
 

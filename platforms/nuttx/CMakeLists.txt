@@ -155,6 +155,35 @@ else()
 	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin)
 endif()
 
+if(CONFIG_BOARD_MCUBOOT_IMGTOOL_ARGS)
+	# Build ${PX4_CONFIG}.signed.bin next to the plain .bin: the image with
+	# the MCUboot header and TLV trailer the on-target bootloader accepts.
+	execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import imgtool"
+		RESULT_VARIABLE _imgtool_missing OUTPUT_QUIET ERROR_QUIET)
+	if(_imgtool_missing)
+		message(WARNING "imgtool is not installed, ${PX4_CONFIG}.signed.bin will not be built "
+			"(pip3 install imgtool, or re-run Tools/setup/ubuntu.sh)")
+	else()
+		set(_mcuboot_bin ${PX4_BINARY_DIR}/${PX4_CONFIG}.signed.bin)
+		separate_arguments(_imgtool_args NATIVE_COMMAND "${CONFIG_BOARD_MCUBOOT_IMGTOOL_ARGS}")
+		# The signing key stays out of the board file: BOARD_MCUBOOT_KEY in the
+		# environment at configure time adds it, relative to the repo root.
+		if(DEFINED ENV{BOARD_MCUBOOT_KEY})
+			list(APPEND _imgtool_args --key $ENV{BOARD_MCUBOOT_KEY})
+		endif()
+		add_custom_command(OUTPUT ${_mcuboot_bin}
+			COMMAND ${PYTHON_EXECUTABLE} -m imgtool.main sign
+				--version ${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH}
+				${_imgtool_args}
+				${PX4_BINARY_DIR}/${PX4_CONFIG}.bin ${_mcuboot_bin}
+			DEPENDS ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+			COMMENT "Creating ${PX4_CONFIG}.signed.bin for MCUboot"
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+		)
+		add_custom_target(px4_mcuboot_image ALL DEPENDS ${_mcuboot_bin})
+	endif()
+endif()
+
 if (NOT CONFIG_BUILD_FLAT)
 
 	target_link_libraries(nuttx_karch
@@ -358,9 +387,20 @@ else()
 	)
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs nuttx_mm)
+	if(CONFIG_OPENAMP)
+		target_link_libraries(nuttx_drivers INTERFACE nuttx_openamp)
+		target_link_libraries(nuttx_openamp INTERFACE nuttx_drivers)
+	endif()
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_mm)
+
+	# RISC-V chips build their startup code as a head object next to libarch,
+	# not into it (see platforms/nuttx/NuttX/CMakeLists.txt).
+	set(NUTTX_HEAD_OBJS)
+	if(CONFIG_ARCH_RISCV)
+		set(NUTTX_HEAD_OBJS ${NUTTX_DIR}/arch/risc-v/src/${CONFIG_ARCH_CHIP}_head.o)
+	endif()
 
 	target_link_libraries(px4 PRIVATE
 
@@ -378,6 +418,7 @@ else()
 		-Wl,--gc-sections
 
 		-Wl,--start-group
+			${NUTTX_HEAD_OBJS}
 			${nuttx_libs}
 		-Wl,--end-group
 
@@ -428,7 +469,7 @@ if (CONFIG_INTELHEX_BINARY)
 endif()
 
 # create .px4 with parameter and airframe metadata
-if (TARGET parameters_xml AND TARGET airframes_xml)
+if (TARGET parameters_xml AND TARGET airframes_xml AND EXISTS ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype)
 
 	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
 
@@ -473,6 +514,25 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 		set(_mkfw_image ${_signed_bin})
 		set(_mkfw_signed_flag --image_signed)
 		set(_mkfw_extra_depends ${_signed_bin})
+
+		# Optional per-board signed TOC block prepended to the signed
+		# app payload. platforms/nuttx/toc/CMakeLists.txt sets
+		# PX4_SIGNED_TOC_BIN when the board ships toc.ld + toc.c.
+		add_subdirectory(toc)
+
+		if(PX4_SIGNED_TOC_BIN)
+			set(_combined_bin ${PX4_BINARY_DIR}/${PX4_CONFIG}_toc_signed.bin)
+			add_custom_command(
+				OUTPUT ${_combined_bin}
+				COMMAND ${CMAKE_COMMAND} -E cat
+					${PX4_SIGNED_TOC_BIN} ${_signed_bin} > ${_combined_bin}
+				DEPENDS ${PX4_SIGNED_TOC_BIN} ${_signed_bin}
+				COMMENT "Prepending signed TOC to ${PX4_CONFIG}_signed.bin"
+				WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			)
+			set(_mkfw_image ${_combined_bin})
+			set(_mkfw_extra_depends ${_combined_bin})
+		endif()
 	endif()
 
 	add_custom_command(

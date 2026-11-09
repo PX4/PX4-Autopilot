@@ -107,7 +107,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			return false;
 		}
 
-		VectorState Kfusion = P * H / aid_src.innovation_variance[index];
+		VectorState Kfusion = computeKalmanGain(H, aid_src.innovation_variance[index]);
 
 		if (update_all_states) {
 			if (!update_tilt) {
@@ -179,7 +179,7 @@ bool Ekf::fuseDeclination(float decl_measurement_rad, float R, bool update_all_s
 	}
 
 	// Calculate the Kalman gains
-	VectorState Kfusion = P * H / innovation_variance;
+	VectorState Kfusion = computeKalmanGain(H, innovation_variance);
 
 	if (update_all_states) {
 		if (!update_tilt) {

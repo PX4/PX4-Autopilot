@@ -43,7 +43,10 @@ public:
 	uint16_t input{0};
 
 	CallbackHandler(orb_id_t id) : uORB::SubscriptionCallback(id) {}
-	virtual ~CallbackHandler() {}
+	virtual ~CallbackHandler()
+	{
+		unregisterCallback();
+	}
 
 	void call(unsigned generation) override
 	{

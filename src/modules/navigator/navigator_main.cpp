@@ -47,7 +47,7 @@
 #include "navigator.h"
 
 #include <float.h>
-#include <sys/stat.h>
+#include <unistd.h>
 
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
@@ -236,9 +236,7 @@ void Navigator::run()
 {
 
 	/* Try to load the geofence file if it exists. */
-	struct stat buffer;
-
-	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
+	if (access(GEOFENCE_FILENAME, F_OK) == 0) {
 		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 	}
@@ -665,15 +663,17 @@ void Navigator::run()
 				// param2: target bearing [deg, 0=north]
 				const bool control_course = (lroundf(cmd.param1) == 0);
 
-				if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-				    && _navigation_mode == &_course && control_course && PX4_ISFINITE(cmd.param2)) {
+				const bool course_supported = _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+							      || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER;
+
+				if (course_supported && _navigation_mode == &_course && control_course && PX4_ISFINITE(cmd.param2)) {
 					float course_rad = cmd.param2 * M_DEG_TO_RAD_F;
 
 					if (_course.set_course(course_rad)) {
 						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					}
 
-					// DENIED if not FW, not in course mode, not correct heading type, or no positioning available
+					// DENIED if not FW or rover, not in course mode, not correct heading type, or no positioning available
 				}
 
 				publish_vehicle_command_ack(cmd, result);
@@ -807,8 +807,15 @@ void Navigator::run()
 				// The yaw setpoint generation is handled by FlightTaskAuto.
 				rep->current.yaw = NAN;
 
-				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
-				    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON)) {
+				const bool takeoff_position_valid = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
+								    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON);
+
+				// Fixed-wing: without a takeoff position, a finite yaw field is the course to continue on after the climbout.
+				// A takeoff position takes precedence, as many senders leave an unused yaw field at 0.
+				const bool hold_course = PX4_ISFINITE(cmd.param4) && !takeoff_position_valid
+							 && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+				if (takeoff_position_valid) {
 					rep->current.lat = cmd.param5;
 					rep->current.lon = cmd.param6;
 
@@ -827,8 +834,10 @@ void Navigator::run()
 				rep->next.valid = false;
 
 				// Fixed-wing: vehicle will takeoff towards these coordinates and establish on a loiter there
-				_takeoff.setLoiterPosition(matrix::Vector2d(cmd.param5, cmd.param6));
+				_takeoff.setLoiterPosition(hold_course ? matrix::Vector2d(static_cast<double>(NAN), static_cast<double>(NAN))
+							   : matrix::Vector2d(cmd.param5, cmd.param6));
 				_takeoff.setLoiterAltitudeAmsl(cmd.param7);
+				_takeoff.setHoldCourse(hold_course ? matrix::wrap_pi(math::radians(cmd.param4)) : NAN);
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
@@ -1324,7 +1333,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	desc.task_id = px4_task_spawn_cmd("navigator",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_NAVIGATION,
-					  PX4_STACK_ADJUSTED(2230),
+					  PX4_STACK_ADJUSTED(3584),
 					  (px4_main_t)&run_trampoline,
 					  (char *const *)argv);
 

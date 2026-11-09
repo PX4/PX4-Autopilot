@@ -34,6 +34,23 @@ You can use the online version of the tool for small log files (< 32Mb), or run 
 
 ![Data Comets](../../assets/flight_log_analysis/data_comets/data_comets_overview.gif)
 
+### DroneBundle Flight Log Viewer
+
+[DroneBundle Flight Log Viewer](https://dronebundle.com/tools/flight-log-viewer/px4) is a free web tool for reviewing a flight and sharing it, rather than for tuning.
+It opens ULog files (`.ulg`) and MAVLink telemetry logs (`.tlog`) in the browser, with no account or installation required.
+Logs are processed locally, except that a file the viewer can't open is sent to DroneBundle for analysis and deleted after one day.
+
+Key features:
+
+- Flight path on a map, with a summary of duration, distance, maximum altitude and speed, and battery used.
+- Replay with live altitude, speed, heading, battery and satellite readouts, and a timeline of flight modes.
+- 3D view of the flight over terrain.
+- Altitude, speed, battery and attitude charts on a shared timeline.
+- Export a PDF flight report, a spreadsheet of every reading, or the processed log.
+- Telemetry logs that hold several flights are split into separate flights.
+
+![DroneBundle Flight Log Viewer](../../assets/flight_log_analysis/dronebundle/dronebundle_flight_log_viewer.jpg)
+
 ### FlightPlot
 
 [FlightPlot](https://github.com/PX4/FlightPlot) is a desktop based tool for log analysis. It can be downloaded from [FlightPlot Downloads](https://github.com/PX4/FlightPlot/releases) (Linux, MacOS, Windows).
@@ -221,6 +238,6 @@ Key features:
 - Actions and Triggers to automate custom post-flight analysis and generate reports.
 - Interactive visualization for time-series data, maps, events, and console logs.
 
-See [Working with PX4 Logs](https://docs.roboto.ai/user-guides/working-with-px4-logs.html) for an introduction.
+See [Working with PX4 Logs](https://www.roboto.ai/docs/user-guides/working-with-px4-logs) for an introduction.
 
 ![Roboto](../../assets/flight_log_analysis/roboto/roboto-px4-flight-log-analysis.jpg)

@@ -357,13 +357,14 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 		return;
 	}
 
-	// Ramp underspeed ratio from 0 at tas_min to 1 at 90% of tas_min, or halfway to tas_stall if that is higher
-	const float tas_fully_undersped = math::min(param.tas_min,
-					  math::max(0.9f * param.tas_min, 0.5f * (param.tas_min + param.tas_stall)));
-	const float underspeed_ramp_width = param.tas_min - tas_fully_undersped;
+	// Underspeed starts at 1/3 stall + 2/3 min
+	const float tas_underspeed_starting = (param.tas_stall + 2.f * param.tas_min) / 3.f;
 
-	_ratio_undersped = math::constrain((param.tas_min - input.tas) / math::max(underspeed_ramp_width, FLT_EPSILON),
-					   0.0f, 1.0f);
+	// Underspeed complete halfway between stall and start, but limit ramp width to 2 m/s
+	const float tas_underspeed_complete = fmaxf(0.5f * (param.tas_stall + tas_underspeed_starting),
+					      tas_underspeed_starting - 2.0f);
+
+	_ratio_undersped = math::interpolate(input.tas, tas_underspeed_complete, tas_underspeed_starting, 1.0f, 0.0f);
 }
 
 TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(const Param &param, const Flag &flag)

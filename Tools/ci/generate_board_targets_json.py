@@ -41,7 +41,9 @@ default_container = ci_config['containers']['default']
 voxl2_container = ci_config['containers']['voxl2']
 build_configs = []
 grouped_targets = {}
-excluded_boards = ['px4_ros2', 'espressif_esp32']  # TODO: fix and enable
+# TODO: fix and enable. aifoundry_erbium needs the riscv-none-elf toolchain,
+# which the CI image does not have.
+excluded_boards = ['px4_ros2', 'espressif_esp32', 'aifoundry_erbium']
 excluded_manufacturers = ['atlflight']
 excluded_platforms = []
 
@@ -54,7 +56,7 @@ board_container_overrides = {
 }
 excluded_labels = [
     'stackcheck',
-    'nolockstep', 'replay', 'test',
+    'nolockstep', 'replay', 'test', 'test-nocache',
     'uavcanv1', # TODO: fix and enable
     ]
 
@@ -337,10 +339,10 @@ if (args.group):
                     chip_label = chip
 
                 # Gather all (manufacturer -> targets) for this chip family
-                # NXP chip families (imxrt, kinetis, s32k) pool all manufacturers
+                # NXP chip families (imxrt, imx9, kinetis, s32k) pool all manufacturers
                 # under "nxp" since all boards use NXP silicon regardless of
                 # which directory they live in (e.g., px4/fmu-v6xrt is imxrt).
-                nxp_chips = tuple(ci_config.get('nxp_chip_families', ['imxrt', 'kinetis', 's32k']))
+                nxp_chips = tuple(ci_config.get('nxp_chip_families', ['imxrt', 'imx9', 'kinetis', 's32k']))
                 man_targets = {}
                 for (c, m), targets in chip_man_buckets.items():
                     if c == chip:

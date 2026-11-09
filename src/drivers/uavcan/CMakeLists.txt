@@ -134,7 +134,6 @@ px4_add_module(
 	MAIN uavcan
 	STACK_MAIN 4096
 	COMPILE_FLAGS
-		-Wno-format-security # logmessage.hpp
 		#-O0
 		#-DDEBUG_BUILD
 	INCLUDES

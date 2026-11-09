@@ -47,7 +47,11 @@ class RtlBase : public MissionBase
 {
 public:
 	RtlBase(Navigator *navigator, int32_t dataman_cache_size_signed):
-		MissionBase(navigator, dataman_cache_size_signed, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {};
+		MissionBase(navigator, dataman_cache_size_signed, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)
+	{
+		// RTL creates this mode only for a mission and fence that Mission has already checked
+		_mission_check_state = MissionCheckState::Complete;
+	}
 	virtual ~RtlBase() = default;
 
 	virtual rtl_time_estimate_s calc_rtl_time_estimate() = 0;
@@ -62,4 +66,19 @@ public:
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+protected:
+	/** Return never takes off, so it does not start its items while landed, also when they reload. */
+	bool canStartMission() const override { return !_land_detected_sub.get().landed; }
+
+	/** Convert a caller-selected position item into a waypoint, retaining loiter-to-altitude. */
+	static void makeRtlPositionItem(mission_item_s &item)
+	{
+		if (item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
+			item.nav_cmd = NAV_CMD_WAYPOINT;
+		}
+
+		item.autocontinue = true;
+		item.time_inside = 0.f;
+	}
 };
