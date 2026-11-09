@@ -235,11 +235,6 @@ For information about using this port see:
 - [Holybro GPS & RTK Systems](https://holybro.com/collections/gps-rtk-systems)
 - [Power Modules & PDBs](https://holybro.com/collections/power-modules-pdbs)
 
-## Supported Platforms/Airframes
-
-일반 RC 서보 또는 Futaba S-Bus 서보로 제어 가능한 모든 멀티콥터/비행기/로버 또는 보트.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## CAD File
 
 Download [here](https://docs.holybro.com/autopilot/pixhawk-6x-pro/download).
