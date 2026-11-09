@@ -105,21 +105,39 @@ def load_target_config(kconf, px4board_path):
     downgrades that to a warning and keeps the symbol's default, so the
     resulting config silently differs from what the file asks for and
     nothing downstream can tell.
+
+    Also exits if the file assigns a symbol that no Kconfig file defines.
+    kconfiglib drops such a line, so it is usually left over from a symbol
+    that was renamed or removed.
     """
     label = os.path.basename(px4board_path)[:-len('.px4board')]
     first_warning = len(kconf.warnings)
-    if label in STANDALONE_LABELS:
-        kconf.load_config(px4board_path, replace=True)
-    else:
-        default_config = os.path.join(os.path.dirname(px4board_path), 'default.px4board')
-        kconf.load_config(default_config, replace=True)
-        kconf.load_config(px4board_path, replace=False)
+    # Callers may turn this warning off, but it is the only report that
+    # names the file and line of an undefined symbol.
+    warn_assign_undef = kconf.warn_assign_undef
+    kconf.warn_assign_undef = True
+    try:
+        if label in STANDALONE_LABELS:
+            kconf.load_config(px4board_path, replace=True)
+        else:
+            default_config = os.path.join(os.path.dirname(px4board_path), 'default.px4board')
+            kconf.load_config(default_config, replace=True)
+            kconf.load_config(px4board_path, replace=False)
+    finally:
+        kconf.warn_assign_undef = warn_assign_undef
 
-    ignored = [w for w in kconf.warnings[first_warning:] if 'assignment ignored' in w]
+    warnings = kconf.warnings[first_warning:]
+    ignored = [w for w in warnings if 'assignment ignored' in w]
     if ignored:
         sys.exit('loadconfig: {}: kconfig discarded an assignment, so the config would '
                  'not match the file\n{}'.format(
                      px4board_path, '\n'.join(w.strip() for w in ignored)))
+
+    undefined = [w for w in warnings if 'to the undefined symbol' in w]
+    if undefined:
+        sys.exit('loadconfig: {}: assigns a symbol that no Kconfig file defines; '
+                 'remove the line or use the new name\n{}'.format(
+                     px4board_path, '\n'.join(w.strip() for w in undefined)))
 
 
 def chip_family(board_path):

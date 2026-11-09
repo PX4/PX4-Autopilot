@@ -84,7 +84,9 @@ def main(kconfig_file, config1, config2):
 
     kconf = Kconfig(kconfig_file, suppress_traceback=True)
 
-    # Enable warnings for assignments to undefined symbols
+    # Do not warn about assignments to undefined symbols: NuttX builds also
+    # run this script to merge the NuttX .config, whose symbols PX4's Kconfig
+    # does not define. Board files are checked in Tools/kconfig/loadconfig.py.
     kconf.warn_assign_undef = False
 
     # (This script uses alldefconfig as the base. Other starting states could be
