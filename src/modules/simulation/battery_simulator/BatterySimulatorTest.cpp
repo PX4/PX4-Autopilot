@@ -84,85 +84,115 @@ public:
 	TestBatterySimulator _simulator;
 };
 
-TEST_F(BatterySimulatorTest, ThrottleCurrentFollowsMotorCommands)
+TEST_F(BatterySimulatorTest, CurrentFollowsMotorCommands)
 {
-	// GIVEN: 1 A idle and 4 A per motor at full throttle
+	// GIVEN: 1 A idle, a = 0.5 A, b = 0.02 A/V², and a 10 V battery
 	setParam("SIM_BAT_I_IDLE", 1.f);
-	setParam("SIM_BAT_I_MOT", 4.f);
+	setParam("SIM_BAT_I_MOT_A", 0.5f);
+	setParam("SIM_BAT_I_MOT_B", 0.02f);
 	_simulator.updateParams();
+	const float voltage = 10.f;
 
-	// WHEN: 4 motors run at 25% thrust
+	// WHEN: 4 motors run at 50% thrust
 	const hrt_abstime now = hrt_absolute_time();
-	publishMotors({0.25f, 0.25f, 0.25f, 0.25f}, now);
+	publishMotors({0.5f, 0.5f, 0.5f, 0.5f}, now);
 
-	// THEN: each motor draws 4 A * 0.25^1.5 = 0.5 A on top of the idle current
-	EXPECT_NEAR(_simulator.current(0, now), 1.f + 4.f * 0.5f, 1e-4f);
+	// THEN: I = 1 + 0.5 * (4 * 0.5) + 0.02 * (4 * 0.125) * 10²
+	EXPECT_NEAR(_simulator.current(0, now, voltage), 1.f + 1.f + 1.f, 1e-4f);
 
 	// WHEN: one motor goes to full throttle and another one is reversed
-	publishMotors({1.f, -0.25f, 0.25f, 0.25f}, now);
+	publishMotors({1.f, -0.5f, 0.5f, 0.5f}, now);
 
-	// THEN: the full throttle motor draws the full motor current, the reversed one the same as forward
-	EXPECT_NEAR(_simulator.current(0, now), 1.f + 4.f * (1.f + 3.f * 0.125f), 1e-4f);
+	// THEN: the reversed motor draws the same as forward
+	EXPECT_NEAR(_simulator.current(0, now, voltage), 1.f + 0.5f * 2.5f + 0.02f * 1.375f * 100.f, 1e-4f);
 
 	// WHEN: the motors are stopped
 	publishMotors({0.f, 0.f, 0.f, 0.f}, now);
 
 	// THEN: only the idle current is drawn
-	EXPECT_NEAR(_simulator.current(0, now), 1.f, 1e-4f);
+	EXPECT_NEAR(_simulator.current(0, now, voltage), 1.f, 1e-4f);
+}
+
+TEST_F(BatterySimulatorTest, CubicTermScalesWithVoltageSquared)
+{
+	// GIVEN: only the cubic term
+	setParam("SIM_BAT_I_IDLE", 0.f);
+	setParam("SIM_BAT_I_MOT_A", 0.f);
+	setParam("SIM_BAT_I_MOT_B", 0.02f);
+	_simulator.updateParams();
+
+	// WHEN: a motor runs at full throttle
+	const hrt_abstime now = hrt_absolute_time();
+	publishMotors({1.f}, now);
+
+	// THEN: the current is b·V²
+	EXPECT_NEAR(_simulator.current(0, now, 10.f), 2.f, 1e-4f);
+
+	// AND: halving the voltage quarters it
+	EXPECT_NEAR(_simulator.current(0, now, 5.f), 0.5f, 1e-4f);
+
+	// AND: without voltage there is no cubic current
+	EXPECT_FLOAT_EQ(_simulator.current(0, now, 0.f), 0.f);
 }
 
 TEST_F(BatterySimulatorTest, DefaultsDrawRealisticHoverCurrent)
 {
-	// GIVEN: the default currents
+	// GIVEN: the default currents and a fully charged 4S battery
 	_simulator.updateParams();
+	const float voltage = 4.f * 4.2f;
 
 	// WHEN: a quadcopter hovers at 60% thrust
 	const hrt_abstime now = hrt_absolute_time();
 	publishMotors({0.6f, 0.6f, 0.6f, 0.6f}, now);
 
 	// THEN: the current is about 8 A, i.e. a 5000 mAh battery lasts close to 40 min
-	EXPECT_NEAR(_simulator.current(0, now), 8.f, 0.2f);
+	EXPECT_NEAR(_simulator.current(0, now, voltage), 8.f, 0.3f);
 }
 
 TEST_F(BatterySimulatorTest, IdleCurrentWithoutMotorCommands)
 {
-	// GIVEN: 1 A idle and 4 A per motor at full throttle
+	// GIVEN: 1 A idle, a = 1 A, b = 0.04 A/V², and a 10 V battery
 	setParam("SIM_BAT_I_IDLE", 1.f);
-	setParam("SIM_BAT_I_MOT", 4.f);
+	setParam("SIM_BAT_I_MOT_A", 1.f);
+	setParam("SIM_BAT_I_MOT_B", 0.04f);
 	_simulator.updateParams();
+	const float voltage = 10.f;
 
 	// WHEN: no motor commands were received yet
 	// THEN: only the idle current is drawn
-	EXPECT_FLOAT_EQ(_simulator.current(0, hrt_absolute_time()), 1.f);
+	EXPECT_FLOAT_EQ(_simulator.current(0, hrt_absolute_time(), voltage), 1.f);
 
 	// WHEN: the motors run at full throttle at a given time
 	const hrt_abstime motors_time = hrt_absolute_time();
 	publishMotors({1.f, 1.f, 1.f, 1.f}, motors_time);
 
-	// THEN: the motor current is drawn while the commands are recent
-	EXPECT_FLOAT_EQ(_simulator.current(0, motors_time + 100_ms), 17.f);
+	// THEN: the motor current is drawn while the commands are recent: 1 + 4 * 1 + 4 * 0.04 * 10²
+	EXPECT_FLOAT_EQ(_simulator.current(0, motors_time + 100_ms, voltage), 21.f);
 
 	// AND: only the idle current once they are stale
-	EXPECT_FLOAT_EQ(_simulator.current(0, motors_time + 1_s), 1.f);
+	EXPECT_FLOAT_EQ(_simulator.current(0, motors_time + 1_s, voltage), 1.f);
 }
 
-TEST_F(BatterySimulatorTest, PerBatteryThrottleOverrides)
+TEST_F(BatterySimulatorTest, PerBatteryOverrides)
 {
-	// GIVEN: shared currents, overridden for battery 2 only
+	// GIVEN: shared coefficients, overridden for battery 2 only
 	setParam("SIM_BAT_I_IDLE", 1.f);
-	setParam("SIM_BAT_I_MOT", 4.f);
+	setParam("SIM_BAT_I_MOT_A", 1.f);
+	setParam("SIM_BAT_I_MOT_B", 0.03f);
 	setParam("SIM_BAT2_I_IDLE", 0.f);
-	setParam("SIM_BAT2_I_MOT", 2.f);
+	setParam("SIM_BAT2_I_MOT_A", 0.f);
+	setParam("SIM_BAT2_I_MOT_B", 0.02f);
 	_simulator.updateParams();
+	const float voltage = 10.f;
 
 	// WHEN: one motor runs at full throttle
 	const hrt_abstime now = hrt_absolute_time();
 	publishMotors({1.f}, now);
 
-	// THEN: batteries 1 and 3 use the shared currents
-	EXPECT_FLOAT_EQ(_simulator.current(0, now), 5.f);
-	EXPECT_FLOAT_EQ(_simulator.current(2, now), 5.f);
+	// THEN: batteries 1 and 3 use the shared coefficients
+	EXPECT_FLOAT_EQ(_simulator.current(0, now, voltage), 5.f);
+	EXPECT_FLOAT_EQ(_simulator.current(2, now, voltage), 5.f);
 
-	// AND: battery 2 uses its own, including a zero idle current
-	EXPECT_FLOAT_EQ(_simulator.current(1, now), 2.f);
+	// AND: battery 2 uses its own, including zero idle and linear currents
+	EXPECT_FLOAT_EQ(_simulator.current(1, now, voltage), 2.f);
 }

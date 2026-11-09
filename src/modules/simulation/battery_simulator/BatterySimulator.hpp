@@ -75,8 +75,8 @@ protected:
 	// Read the latest motor commands into the motor load
 	void updateMotorLoad();
 
-	// Current in A drawn from the given battery, computed from the motor commands
-	float current(int battery_index, hrt_abstime now_us) const;
+	// Current in A drawn from the given battery, computed from the motor commands and the battery voltage in V
+	float current(int battery_index, hrt_abstime now_us, float voltage) const;
 
 private:
 	void Run() override;
@@ -96,16 +96,21 @@ private:
 	// when constructing an array of them in place.
 	Battery *_batteries[battery_status_s::MAX_INSTANCES] {};
 
-	// Per-battery overrides of SIM_BAT_I_IDLE, SIM_BAT_I_MOT, and SIM_BAT_MIN_PCT, negative when unset
+	// Per-battery overrides of SIM_BAT_I_IDLE, SIM_BAT_I_MOT_A, SIM_BAT_I_MOT_B, and SIM_BAT_MIN_PCT, negative when unset
 	param_t _i_idle_handles[battery_status_s::MAX_INSTANCES] {};
-	param_t _i_mot_handles[battery_status_s::MAX_INSTANCES] {};
+	param_t _i_mot_a_handles[battery_status_s::MAX_INSTANCES] {};
+	param_t _i_mot_b_handles[battery_status_s::MAX_INSTANCES] {};
 	param_t _min_pct_handles[battery_status_s::MAX_INSTANCES] {};
 	float _i_idle_override[battery_status_s::MAX_INSTANCES] {};
-	float _i_mot_override[battery_status_s::MAX_INSTANCES] {};
+	float _i_mot_a_override[battery_status_s::MAX_INSTANCES] {};
+	float _i_mot_b_override[battery_status_s::MAX_INSTANCES] {};
 	float _min_pct_override[battery_status_s::MAX_INSTANCES] {};
 
-	float _motor_load{0.f}; // Sum over all motors of |command|^1.5, i.e. the number of motors at full throttle equivalent
+	float _motor_load_linear{0.f}; // Sum over all motors of |u|
+	float _motor_load_cubic{0.f}; // Sum over all motors of |u|³
 	hrt_abstime _actuator_motors_timestamp{0};
+
+	float _last_voltage[battery_status_s::MAX_INSTANCES] {}; // Voltage of the previous iteration in V, 0 before the first
 
 	float _last_min_percentage[battery_status_s::MAX_INSTANCES] {};
 	bool _capacity_warned[battery_status_s::MAX_INSTANCES] {};
@@ -116,7 +121,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_I_IDLE>) _param_sim_bat_i_idle, ///< battery current with motors stopped
-		(ParamFloat<px4::params::SIM_BAT_I_MOT>) _param_sim_bat_i_mot, ///< battery current per motor at full throttle
+		(ParamFloat<px4::params::SIM_BAT_I_MOT_A>) _param_sim_bat_i_mot_a, ///< motor current coefficient linear in the command
+		(ParamFloat<px4::params::SIM_BAT_I_MOT_B>) _param_sim_bat_i_mot_b, ///< motor current coefficient of u³V²
 		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_bat_min_pct //< minimum battery percentage
 	)
 };
