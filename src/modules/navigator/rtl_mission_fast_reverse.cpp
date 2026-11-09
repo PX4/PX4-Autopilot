@@ -296,7 +296,7 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 
 rtl_time_estimate_s RtlMissionFastReverse::calc_rtl_time_estimate()
 {
-	rtl_time_estimate_s time_estimate;
+	rtl_time_estimate_s time_estimate{};
 	time_estimate.valid = false;
 	time_estimate.timestamp = hrt_absolute_time();
 
