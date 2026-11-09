@@ -68,7 +68,7 @@ int LockstepComponents::register_component()
 			}
 
 			if (_components_used_bitset.compare_exchange_weak(expected, expected | (1 << component))) {
-				PX4_DEBUG("%s: got lockstep component %i", px4_get_taskname(), component);
+				PX4_DEBUG("got lockstep component %i", component);
 				return 1 << component;
 			}
 		}
