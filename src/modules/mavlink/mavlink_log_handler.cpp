@@ -246,14 +246,28 @@ void MavlinkLogHandler::state_sending_data()
 
 	while (_mavlink.get_free_tx_buf() > MAVLINK_PACKET_SIZE && bytes_sent < max_bytes_to_send) {
 
-		// Only seek if we need to
-		long int offset = _current_entry.offset - ftell(_current_entry.fp);
+		// Only seek if we need to. ftell() returns -1L on error, which would turn the
+		// computed delta into offset+1 and make fseek() succeed at the wrong position.
+		const long int current_pos = ftell(_current_entry.fp);
 
-		if (offset && fseek(_current_entry.fp, offset, SEEK_CUR)) {
+		if (current_pos < 0) {
+			PX4_DEBUG("ftell error");
 			fclose(_current_entry.fp);
 			_current_entry.fp = nullptr;
-			PX4_DEBUG("seek error");
 			_state = LogHandlerState::Idle;
+			return;
+		}
+
+		const long int offset = (long int)_current_entry.offset - current_pos;
+
+		if (offset && fseek(_current_entry.fp, offset, SEEK_CUR)) {
+			PX4_DEBUG("seek error");
+			fclose(_current_entry.fp);
+			_current_entry.fp = nullptr;
+			_state = LogHandlerState::Idle;
+			// Must return: the code below dereferences _current_entry.fp, which is now
+			// null. Previously this fell through to fread(NULL, ...).
+			return;
 		}
 
 		// Prepare mavlink message
@@ -353,6 +367,10 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 
 		if (!entry.fp) {
 			PX4_DEBUG("Failed to open file %s", entry.filepath);
+			// _current_entry.fp was released above, so leaving the state at
+			// SendingData would make the next dispatch call state_sending_data()
+			// with a null FILE*. Stop the transfer instead.
+			_state = LogHandlerState::Idle;
 			return;
 		}
 
@@ -486,6 +504,12 @@ bool MavlinkLogHandler::create_log_list_file()
 void MavlinkLogHandler::write_entries_to_file(FILE *fp, const char *dir)
 {
 	DIR *dp = opendir(dir);
+
+	if (dp == nullptr) {
+		PX4_DEBUG("Failed to open log subdir %s", dir);
+		return;
+	}
+
 	struct dirent *result = nullptr;
 
 	while (1) {
