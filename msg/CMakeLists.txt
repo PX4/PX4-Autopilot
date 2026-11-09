@@ -624,7 +624,8 @@ if(CONFIG_MODULES_ZENOH)
 		COMMENT "Generating Zenoh Topic Code"
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		VERBATIM
-		)
-		add_library(zenoh_topics ${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp)
-		set_target_properties(zenoh_topics PROPERTIES LINKER_LANGUAGE CXX)
+	)
+	add_custom_target(zenoh_topics
+		DEPENDS ${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp
+	)
 endif()

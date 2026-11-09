@@ -156,7 +156,10 @@ private:
 	 *
 	 * @return false if the executor could not be allocated
 	 */
-	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+	bool initRtlMissionType(RtlType new_rtl_type);
+
+	/** Runs the selected executor active, then the other one inactive. */
+	void runExecutors();
 
 	/**
 	 * @brief Update parameters

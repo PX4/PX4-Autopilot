@@ -61,3 +61,8 @@ jobs:
 
     - name: Test submodule check
       run: python3 -m unittest discover -s Tools -p 'test_check_submodules.py' -v
+
+    - name: Check parameter file migration
+      run: |
+        flake8 Tools/migrate_param_file.py Tools/test_migrate_param_file.py
+        python3 -m unittest discover -s Tools -p 'test_migrate_param_file.py' -v

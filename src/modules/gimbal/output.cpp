@@ -249,14 +249,17 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 
 	for (int i = 0; i < 3; ++i) {
 
-		if (PX4_ISFINITE(euler_gimbal(i)) && compensate[i] && PX4_ISFINITE(euler_vehicle(i))) {
+		if (!_axis_actuated[i]) {
+			_angle_outputs[i] = 0.f;
+
+		} else if (PX4_ISFINITE(euler_gimbal(i)) && compensate[i] && PX4_ISFINITE(euler_vehicle(i))) {
 			_angle_outputs[i] = euler_gimbal(i) - euler_vehicle(i);
 
-		} else if (PX4_ISFINITE(euler_gimbal(i)) && !_absolute_angle[i]) {
+		} else if (PX4_ISFINITE(euler_gimbal(i)) && !compensate[i]) {
 			_angle_outputs[i] = euler_gimbal(i);
 		}
 
-		if (PX4_ISFINITE(_angle_velocity[i])) {
+		if (_axis_actuated[i] && PX4_ISFINITE(_angle_velocity[i])) {
 			_angle_outputs[i] += dt * _angle_velocity[i];
 		}
 
@@ -287,14 +290,14 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 		}
 	}
 
+	set_last_valid_setpoint(compensate, euler_vehicle);
+
 	_angle_outputs_filtered.setParameters(dt, _parameters.mnt_tau);
 	matrix::Vector3f filtered_outputs = _angle_outputs_filtered.update(matrix::Vector3f(_angle_outputs));
 
 	for (int i = 0; i < 3; i++) {
 		_angle_outputs[i] = filtered_outputs(i);
 	}
-
-	set_last_valid_setpoint(compensate, euler_vehicle);
 
 }
 
