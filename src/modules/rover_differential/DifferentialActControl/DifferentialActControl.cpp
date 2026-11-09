@@ -37,8 +37,10 @@ using namespace time_literals;
 
 DifferentialActControl::DifferentialActControl(ModuleParams *parent) :
 	ModuleParams(parent),
-	WorkItem("rover_differential_act_control", px4::wq_configurations::nav_and_controllers)
+	RoverControllerWorkItem("rover_differential_act_control", ORB_ID(vehicle_angular_velocity))
 {
+	// Paced by the gyro like the rate controller, so actuator setpoints are published every cycle,
+	// also when no new steering setpoint arrives (e.g. the cycle after a mode change resets the rate controller)
 	updateParams();
 }
 
@@ -48,27 +50,6 @@ void DifferentialActControl::updateParams()
 
 	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
 		_adjusted_throttle_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
-	}
-}
-
-bool DifferentialActControl::init()
-{
-	// Paced by the gyro like the rate controller, so actuator setpoints are published every cycle,
-	// also when no new steering setpoint arrives (e.g. the cycle after a mode change resets the rate controller)
-	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
-	const bool registered = _vehicle_angular_velocity_sub.registerCallback();
-	_vehicle_angular_velocity_sub.unregisterCallback();
-	return registered;
-}
-
-void DifferentialActControl::Run()
-{
-	// Drain the trigger, its value is not used here
-	vehicle_angular_velocity_s angular_velocity;
-	_vehicle_angular_velocity_sub.update(&angular_velocity);
-
-	if (_enabled) {
-		updateActControl();
 	}
 }
 

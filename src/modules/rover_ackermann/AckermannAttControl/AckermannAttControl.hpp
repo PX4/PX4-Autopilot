@@ -35,10 +35,10 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
 // Library includes
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <math.h>
@@ -47,7 +47,6 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/surface_vehicle_rate_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/surface_vehicle_attitude_status.h>
@@ -57,7 +56,7 @@
 /**
  * @brief Class for ackermann attitude control.
  */
-class AckermannAttControl : public ModuleParams, public px4::WorkItem
+class AckermannAttControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -66,40 +65,6 @@ public:
 	 */
 	AckermannAttControl(ModuleParams *parent);
 	~AckermannAttControl() = default;
-
-	/**
-	 * @brief Register the callback on the topic that triggers the controller.
-	 */
-	bool init();
-
-	/**
-	 * @brief Run the controller on its trigger topic only while enabled.
-	 *
-	 * Only an enabled controller is woken by its trigger topic. On enabling it also runs once right away,
-	 * so it does not miss the trigger that was published before it registered.
-	 * It only counts as enabled once the trigger callback is registered, otherwise the next call retries.
-	 *
-	 * @return true if the operation succeeded
-	 */
-	bool setEnabled(bool enabled)
-	{
-		if (enabled && !_enabled) {
-			_timestamp = hrt_absolute_time(); // The first dt after (re-)enabling must not span the time spent disabled
-			_enabled = _vehicle_attitude_sub.registerCallback();
-
-			if (_enabled) {
-				ScheduleNow();
-			}
-
-		} else if (!enabled && _enabled) {
-			_vehicle_attitude_sub.unregisterCallback();
-			_enabled = false;
-		}
-
-		return _enabled == enabled;
-	}
-
-	bool enabled() const { return _enabled; }
 
 	/**
 	 * @brief Generate and publish surfaceVehicleRateSetpoint from surfaceVehicleAttitudeSetpoint.
@@ -124,7 +89,8 @@ protected:
 	void updateParams() override;
 
 private:
-	void Run() override;
+	void runController() override { updateAttControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
 
 	/**
 	 * @brief Update uORB subscriptions used in attitude controller.
@@ -132,7 +98,7 @@ private:
 	void updateSubscriptions();
 
 	// uORB subscriptions
-	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)}; // Triggers the controller
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	uORB::Subscription _surface_vehicle_attitude_setpoint_sub{ORB_ID(surface_vehicle_attitude_setpoint)};
 
@@ -141,7 +107,6 @@ private:
 	uORB::Publication<surface_vehicle_attitude_status_s>   _surface_vehicle_attitude_status_pub{ORB_ID(surface_vehicle_attitude_status)};
 
 	// Variables
-	bool _enabled{false};
 	float _vehicle_yaw{0.f};
 	hrt_abstime _timestamp{0};
 	float _max_yaw_rate{0.f};

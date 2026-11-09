@@ -37,7 +37,7 @@ using namespace time_literals;
 
 DifferentialAttControl::DifferentialAttControl(ModuleParams *parent) :
 	ModuleParams(parent),
-	WorkItem("rover_differential_att_control", px4::wq_configurations::nav_and_controllers)
+	RoverControllerWorkItem("rover_differential_att_control", ORB_ID(vehicle_attitude))
 {
 	_surface_vehicle_rate_setpoint_pub.advertise();
 	_surface_vehicle_attitude_status_pub.advertise();
@@ -59,21 +59,6 @@ void DifferentialAttControl::updateParams()
 
 	// Set up slew rate
 	_adjusted_yaw_setpoint.setSlewRate(_max_yaw_rate);
-}
-
-bool DifferentialAttControl::init()
-{
-	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
-	const bool registered = _vehicle_attitude_sub.registerCallback();
-	_vehicle_attitude_sub.unregisterCallback();
-	return registered;
-}
-
-void DifferentialAttControl::Run()
-{
-	if (_enabled) {
-		updateAttControl();
-	}
 }
 
 void DifferentialAttControl::updateAttControl()

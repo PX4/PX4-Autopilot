@@ -37,7 +37,7 @@ using namespace time_literals;
 
 MecanumRateControl::MecanumRateControl(ModuleParams *parent) :
 	ModuleParams(parent),
-	WorkItem("rover_mecanum_rate_control", px4::wq_configurations::nav_and_controllers)
+	RoverControllerWorkItem("rover_mecanum_rate_control", ORB_ID(vehicle_angular_velocity))
 {
 	_surface_vehicle_steering_setpoint_pub.advertise();
 	_surface_vehicle_rate_status_pub.advertise();
@@ -55,21 +55,6 @@ void MecanumRateControl::updateParams()
 
 	// Set up slew rate
 	_adjusted_yaw_rate_setpoint.setSlewRate(_param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F);
-}
-
-bool MecanumRateControl::init()
-{
-	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
-	const bool registered = _vehicle_angular_velocity_sub.registerCallback();
-	_vehicle_angular_velocity_sub.unregisterCallback();
-	return registered;
-}
-
-void MecanumRateControl::Run()
-{
-	if (_enabled) {
-		updateRateControl();
-	}
 }
 
 void MecanumRateControl::updateRateControl()

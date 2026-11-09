@@ -35,16 +35,15 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
 #include <math.h>
 
 // uORB includes
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -54,7 +53,7 @@
 /**
  * @brief Class for mecanum actuator control.
  */
-class MecanumActControl : public ModuleParams, public px4::WorkItem
+class MecanumActControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -63,50 +62,6 @@ public:
 	 */
 	MecanumActControl(ModuleParams *parent);
 	~MecanumActControl() = default;
-
-	/**
-	 * @brief Register the callback on the topic that triggers the controller.
-	 */
-	bool init();
-
-	/**
-	 * @brief Run the controller on its trigger topic only while enabled.
-	 *
-	 * Only an enabled controller is woken by its trigger topic. On enabling it also runs once right away,
-	 * so it does not miss the trigger that was published before it registered.
-	 * It only counts as enabled once the trigger callback is registered, otherwise the next call retries.
-	 *
-	 * @return true if the operation succeeded
-	 */
-	bool setEnabled(bool enabled)
-	{
-		if (enabled && !_enabled) {
-			_timestamp = hrt_absolute_time(); // The first dt after (re-)enabling must not span the time spent disabled
-			_enabled = _vehicle_angular_velocity_sub.registerCallback();
-
-			if (_enabled) {
-				ScheduleNow();
-			}
-
-		} else if (!enabled && _enabled) {
-			_vehicle_angular_velocity_sub.unregisterCallback();
-			_enabled = false;
-		}
-
-		return _enabled == enabled;
-	}
-
-	bool enabled() const { return _enabled; }
-
-	/**
-	 * @brief Move the trigger callback to the end of the callback list. Callbacks sharing a topic run in registration order.
-	 */
-	bool reregisterTrigger()
-	{
-		_vehicle_angular_velocity_sub.unregisterCallback();
-		_enabled = _vehicle_angular_velocity_sub.registerCallback(); // On failure the next setEnabled() retries
-		return _enabled;
-	}
 
 	/**
 	 * @brief Generate and publish actuatorMotors setpoints from roverThrottleSetpoint/surfaceVehicleSteeringSetpoint.
@@ -125,7 +80,8 @@ protected:
 	void updateParams() override;
 
 private:
-	void Run() override;
+	void runController() override { updateActControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
 
 	/**
 	 * @brief Compute normalized motor commands based on normalized setpoints.
@@ -139,14 +95,12 @@ private:
 	// uORB subscriptions
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	uORB::Subscription _surface_vehicle_steering_setpoint_sub{ORB_ID(surface_vehicle_steering_setpoint)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)}; // Triggers the controller after the rate controller
 	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
 
 	// uORB publications
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
 
 	// Variables
-	bool _enabled{false};
 	hrt_abstime _timestamp{0};
 	float _throttle_x_setpoint{NAN};
 	float _throttle_y_setpoint{NAN};

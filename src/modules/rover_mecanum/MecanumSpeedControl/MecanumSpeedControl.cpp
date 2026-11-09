@@ -37,7 +37,7 @@ using namespace time_literals;
 
 MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) :
 	ModuleParams(parent),
-	WorkItem("rover_mecanum_speed_control", px4::wq_configurations::nav_and_controllers)
+	RoverControllerWorkItem("rover_mecanum_speed_control", ORB_ID(vehicle_local_position))
 {
 	_rover_throttle_setpoint_pub.advertise();
 	_surface_vehicle_speed_status_pub.advertise();
@@ -60,21 +60,6 @@ void MecanumSpeedControl::updateParams()
 	if (_param_ro_accel_limit.get() > FLT_EPSILON) {
 		_adjusted_speed_x_setpoint.setSlewRate(_param_ro_accel_limit.get());
 		_adjusted_speed_y_setpoint.setSlewRate(_param_ro_accel_limit.get());
-	}
-}
-
-bool MecanumSpeedControl::init()
-{
-	// Registering once creates the trigger topic and proves the callback works, setEnabled() registers it while enabled
-	const bool registered = _vehicle_local_position_sub.registerCallback();
-	_vehicle_local_position_sub.unregisterCallback();
-	return registered;
-}
-
-void MecanumSpeedControl::Run()
-{
-	if (_enabled) {
-		updateSpeedControl();
 	}
 }
 
