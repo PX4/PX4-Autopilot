@@ -496,9 +496,7 @@ TEST(TECSControlTest, PitchIntegratorDoesNotWindUpAtPitchLimit)
 	ASSERT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
 	const float integrator_saturated = control.getDebugOutput().pitch_integrator;
 
-	// With the input frozen the throttle soon sits at its maximum without the total energy rising. Kinetic priority
-	// then uses the measured total energy rate as the achieved one and pulls the pitch off its limit, after which
-	// integrating is legitimate. Check the anti-windup only while the pitch is held at the limit.
+	// Check the anti-windup while the pitch is held at the limit.
 	for (int i = 0; i < 500; i++) {
 		control.update(kDt, setpoint, input, param, flag);
 
@@ -1114,4 +1112,129 @@ TEST(TECSUnderspeedTest, AltitudeReferenceTracksSetpointWhenNotUndersped)
 
 	ASSERT_FLOAT_EQ(tecs.get_underspeed_ratio(), 0.f);
 	EXPECT_GT(tecs.getStatus().altitude_reference, altitude);
+}
+
+// --- Pitch energy allocation ----------------------------------------------------
+//
+// The pitch's share of the energy rates, on setpoints only: the throttle is assumed to deliver what its model says.
+
+class TECSPitchAllocationTest : public ::testing::Test
+{
+protected:
+	struct Result {
+		float seb_rate_setpoint;
+		float seb_rate_estimate;
+		float ste_rate;		// total energy rate the pitch relies on
+		float spe_rate_setpoint;
+		float ske_rate_setpoint;
+		float spe_rate_estimate;
+		float ske_rate_estimate;
+		float ste_rate_min;
+		float ste_rate_max;
+	};
+
+	Result allocate(const TECSControl::Setpoint &setpoint, const TECSControl::Input &input,
+			const TECSControl::Param &param, const TECSControl::Flag &flag = makeFlag())
+	{
+		TECSControl control;
+		control.initialize(setpoint, input, param, flag);
+		const TECSControl::STERateLimit limit = control._calculateTotalEnergyRateLimit(param);
+		const TECSControl::SpecificEnergyRates rates = control._updateOuterLoops(setpoint, input, limit, param, flag);
+		const TECSControl::PitchControlValues pitch = control._calcPitchControlSebRateValues(setpoint, input, limit, rates,
+				param, flag);
+
+		return {pitch.seb_rate.setpoint, pitch.seb_rate.estimate, pitch.ste_rate,
+			rates.spe_rate.setpoint, rates.ske_rate.setpoint, rates.spe_rate.estimate, rates.ske_rate.estimate,
+			limit.STE_rate_min, limit.STE_rate_max};
+	}
+};
+
+// Within the throttle's limits the pitch flies the plain energy balance of the setpoints.
+TEST_F(TECSPitchAllocationTest, WithinLimitsIsPlainBalance)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 102.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 14.5f;
+
+	const Result r = allocate(setpoint, input, makeParam());
+
+	ASSERT_GT(r.spe_rate_setpoint, 0.f);
+	ASSERT_GT(r.ske_rate_setpoint, 0.f);
+	ASSERT_LT(r.spe_rate_setpoint + r.ske_rate_setpoint, r.ste_rate_max);
+	EXPECT_FLOAT_EQ(r.ste_rate, r.spe_rate_setpoint + r.ske_rate_setpoint);
+	EXPECT_FLOAT_EQ(r.seb_rate_setpoint, r.spe_rate_setpoint - r.ske_rate_setpoint);
+	EXPECT_FLOAT_EQ(r.seb_rate_estimate, r.spe_rate_estimate - r.ske_rate_estimate);
+}
+
+// Climbing beyond the maximum total energy rate: the kinetic demand is met, altitude gets what remains.
+TEST_F(TECSPitchAllocationTest, ClimbBeyondMaximumGivesKineticPriority)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 200.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 14.5f;
+
+	const Result r = allocate(setpoint, input, makeParam());
+
+	ASSERT_GT(r.ske_rate_setpoint, 0.f);
+	ASSERT_GT(r.spe_rate_setpoint + r.ske_rate_setpoint, r.ste_rate_max);
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_max);
+	// SEB = SPE - SKE with SPE = STE max - SKE sp
+	EXPECT_FLOAT_EQ(r.seb_rate_setpoint, r.ste_rate_max - 2.f * r.ske_rate_setpoint);
+}
+
+// Descending beyond the minimum total energy rate: the kinetic demand is met, the descent is slower.
+TEST_F(TECSPitchAllocationTest, DescentBeyondMinimumGivesKineticPriority)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 0.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 15.5f;
+
+	const Result r = allocate(setpoint, input, makeParam());
+
+	ASSERT_LT(r.ske_rate_setpoint, 0.f);
+	ASSERT_LT(r.spe_rate_setpoint + r.ske_rate_setpoint, r.ste_rate_min);
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_min);
+	EXPECT_FLOAT_EQ(r.seb_rate_setpoint, r.ste_rate_min - 2.f * r.ske_rate_setpoint);
+}
+
+// In a turn the throttle spends the load factor correction on induced drag, which lowers the total energy rate
+// available to climb and accelerate.
+TEST_F(TECSPitchAllocationTest, LoadFactorLowersAvailableEnergyRate)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 200.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 14.5f;
+	TECSControl::Param param = makeParam();
+	param.load_factor_correction = 10.f;
+	param.load_factor = 1.5f;
+	const float load_factor_ste_rate = 5.f;
+
+	const Result r = allocate(setpoint, input, param);
+
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_max - load_factor_ste_rate);
+	EXPECT_FLOAT_EQ(r.seb_rate_setpoint, r.ste_rate_max - load_factor_ste_rate - 2.f * r.ske_rate_setpoint);
+}
+
+// In fast descend the throttle sits at its minimum and the pitch flies airspeed only: its error is the kinetic
+// energy rate error alone, independent of the climb rate, and it relies on the minimum total energy rate.
+TEST_F(TECSPitchAllocationTest, FastDescendFliesAirspeedOnly)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 0.f;
+	setpoint.tas_setpoint = 30.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 20.f;
+	input.tas_rate = 0.3f;
+	input.altitude_rate = -3.f;
+	TECSControl::Param param = makeParam();
+	param.fast_descend = 1.f;
+
+	const Result r = allocate(setpoint, input, param);
+
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_min);
+	EXPECT_NEAR(r.seb_rate_setpoint - r.seb_rate_estimate, 2.f * (r.ske_rate_estimate - r.ske_rate_setpoint), 1e-4f);
 }
