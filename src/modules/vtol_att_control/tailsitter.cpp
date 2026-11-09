@@ -165,9 +165,11 @@ void Tailsitter::update_vtol_state()
 			}
 
 		case vtol_mode::TRANSITION_BACK:
-			// failsafe into fixed wing mode
-			_vtol_mode = vtol_mode::FW_MODE;
-			_trans_finished_ts = hrt_absolute_time();
+			// fixed-wing requested again during the back transition. Restart the front transition
+			// instead of handing a partly pitched-up attitude at low airspeed to the fixed-wing controller
+			resetTransitionStates();
+			_flag_was_in_trans_mode = false; // recompute the transition start attitude and rotation axis
+			_vtol_mode = vtol_mode::TRANSITION_FRONT_P1;
 			break;
 		}
 	}
