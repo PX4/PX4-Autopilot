@@ -90,12 +90,11 @@ static constexpr uint8_t DEVICE_INIT_FLASH = 0x37;
 static constexpr uint8_t DEVICE_PAGE_ERASE = 0x39;
 static constexpr uint8_t DEVICE_READ = 0x3A;
 static constexpr uint8_t DEVICE_WRITE = 0x3B;
-static constexpr uint8_t DEVICE_READ_EEPROM = 0x3D;
-static constexpr uint8_t DEVICE_WRITE_EEPROM = 0x3E;
 static constexpr uint8_t SET_MODE = 0x3F;
 static constexpr uint8_t ACK_OK = 0x00;
 static constexpr uint8_t ACK_I_INVALID_CMD = 0x02;
 static constexpr uint8_t ACK_I_INVALID_CRC = 0x03;
+static constexpr uint8_t ACK_I_INVALID_CHANNEL = 0x08;
 static constexpr uint8_t ACK_I_INVALID_PARAM = 0x09;
 static constexpr uint8_t ACK_D_GENERAL_ERROR = 0x0F;
 static constexpr uint8_t MODE_SIL_BLB = 1;	// SiLabs BLHeli_S / Bluejay bootloader
@@ -106,8 +105,6 @@ static constexpr uint8_t BL_RUN = 0x00;
 static constexpr uint8_t BL_PROG_FLASH = 0x01;
 static constexpr uint8_t BL_ERASE_FLASH = 0x02;
 static constexpr uint8_t BL_READ_FLASH = 0x03;
-static constexpr uint8_t BL_READ_EEPROM = 0x04;
-static constexpr uint8_t BL_PROG_EEPROM = 0x05;
 static constexpr uint8_t BL_KEEP_ALIVE = 0xFD;
 static constexpr uint8_t BL_SET_BUFFER = 0xFE;
 static constexpr uint8_t BL_SET_ADDRESS = 0xFF;
@@ -120,16 +117,20 @@ static constexpr uint32_t BL_READ_TIMEOUT_US = 500000;
 static constexpr uint32_t SESSION_CONNECT_US = 1500000;	// inside the configurator's 2 s per InitFlash try
 static constexpr uint32_t REBOOT_DELAY_US = 500000;	// lets the last reply drain before the USB drops
 static constexpr int RX_GAP_MS = 100;			// a longer gap inside a host frame drops it
+static constexpr uint32_t UART_RETRY_US = 10000;	// a pending bidirectional DShot capture completes well within this
+static constexpr uint32_t DISARM_POLL_US = 100000;
+static constexpr int32_t OUTPUT_FUNCTION_MOTOR1 = 101;	// PWM_*_FUNCn value of Motor1, Motor2 is 102, ...
 
 // MSP replies, byte-exact as the configurators parse them without bounds checks
 static constexpr uint8_t api_version[] {0, 1, 42};
 static constexpr uint8_t fc_variant[] {'P', 'X', '4', ' '};
 static constexpr uint8_t fc_version[] {3, 3, 1};
-static constexpr uint8_t board_info[] {'N', 'X', 'P', ' ', 0, 0, 0};
+static constexpr uint8_t board_info[] {'P', 'X', '4', ' ', 0, 0, 0};
 static constexpr char build_info[] = __DATE__ __TIME__;	// "Mmm dd yyyyhh:mm:ss", 19 bytes
 // cycle time, i2c errors, sensors, modes (u32), profile, load, gyro cycle, extra mode bytes,
-// arming flag count 26, arming disable flags (u32) with RX_FAILSAFE (bit 2): no motor test
-static constexpr uint8_t status[21] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26, 1 << 2, 0, 0, 0};
+// arming flag count 26, arming disable flags (u32) with RX_FAILSAFE (bit 2): no motor test,
+// reboot required (esc-configurator reads it and fails the ESC read without it)
+static constexpr uint8_t status[22] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26, 1 << 2, 0, 0, 0, 0};
 // cells 4, capacity 0, 16.8 V (0.1 V), 0 mAh, 0 A, state ok, 16.80 V (0.01 V)
 static constexpr uint8_t battery_state[] {4, 0, 0, 168, 0, 0, 0, 0, 0, 0x90, 0x06};
 // 3D deadband low 1406, high 1514, neutral 1460
@@ -137,6 +138,8 @@ static constexpr uint8_t motor_3d_config[] {0x7E, 0x05, 0xEA, 0x05, 0xB4, 0x05};
 // min throttle 1070, max throttle 2000, min command 1000, ESC count (set at start), poles 14, no 3D, no ESC sensor
 static uint8_t motor_config[] {0x2E, 0x04, 0xD0, 0x07, 0xE8, 0x03, 0, 14, 0, 0};
 static uint8_t uid[12];	// the CPU unique id, set at start
+static constexpr uint8_t NO_OUTPUT = 0xFF;
+static uint8_t esc_output[MOTOR_COUNT];	// 4way ESC index -> output channel, set at start
 static constexpr uint8_t zeros[16] {};
 
 static const struct {
@@ -175,9 +178,10 @@ static uint16_t bl_crc(const uint8_t *data, size_t len)
 	return crc;
 }
 
+// Only the esc_4way task calls this
 static bool armed()
 {
-	uORB::Subscription armed_sub{ORB_ID(actuator_armed)};
+	static uORB::Subscription armed_sub{ORB_ID(actuator_armed)};
 	actuator_armed_s armed{};
 	armed_sub.copy(&armed);
 	return armed.armed;
@@ -202,6 +206,13 @@ static int uart_begin()
 #endif
 		(void)stop;
 		ret = bitbang_uart_init(19200, true);
+
+		// A bidirectional DShot capture completion that was already scheduled can claim a pin again
+		// right after the stop
+		if (ret == -EBUSY) {
+			px4_usleep(UART_RETRY_US);
+			ret = bitbang_uart_init(19200, true);
+		}
 	}
 
 	if (ret != 0) {
@@ -337,13 +348,25 @@ void Esc4way::run()
 		bitbang_uart_deinit();
 	}
 
-	if (_reboot) {
+	// Never reboot an armed vehicle (motors on other outputs, e.g. PX4IO or CAN): wait for disarm
+	if (_reboot && armed()) {
+		PX4_WARN("ESC configuration session ended while armed, rebooting after disarm");
+
+		while (armed() && !should_exit()) {
+			px4_usleep(DISARM_POLL_US);
+		}
+	}
+
+	if (_reboot && !armed()) {
 #if defined(CONFIG_BOARDCTL_RESET)
 		PX4_INFO("ESC configuration session ended, rebooting");
 		px4_reboot_request(REBOOT_REQUEST, REBOOT_DELAY_US);
 #else
 		PX4_INFO("ESC configuration session ended, reboot to restore the outputs");
 #endif // CONFIG_BOARDCTL_RESET
+
+	} else if (_session) {
+		PX4_WARN("ESC configuration session stopped, motor outputs stay off until reboot");
 	}
 }
 
@@ -421,11 +444,11 @@ void Esc4way::handle_4way()
 
 	// The configurators send InterfaceExit in their connect recovery before any passthrough and
 	// expect an undisturbed MSP stream: in MSP mode it is ignored. It ends a session that ran a
-	// device command.
+	// device command, or one without ESC access, where the outputs may already be stopped.
 	if (cmd == EXIT) {
 		if (_fourway) {
 			send_4way(cmd, addr, nullptr, 0, ACK_OK);
-			_reboot = _served;
+			_reboot = _served || (_session && !_uart);
 			_fourway = false;
 		}
 
@@ -438,9 +461,12 @@ void Esc4way::handle_4way()
 
 	_fourway = true;
 
-	const bool device_cmd = cmd >= DEVICE_RESET && cmd <= DEVICE_WRITE_EEPROM;
+	// DeviceReadEEprom/DeviceWriteEEprom are for Atmel ESCs only, answered as invalid like Betaflight
+	// does in SiLabs and ARM mode
+	const bool device_cmd = cmd == DEVICE_RESET || cmd == DEVICE_INIT_FLASH || cmd == DEVICE_PAGE_ERASE
+				|| cmd == DEVICE_READ || cmd == DEVICE_WRITE;
 
-	if (device_cmd && !_uart) {
+	if (device_cmd && (!_uart || armed())) {
 		send_4way(cmd, addr, nullptr, 0, ACK_D_GENERAL_ERROR);
 		return;
 	}
@@ -450,7 +476,8 @@ void Esc4way::handle_4way()
 
 	switch (cmd) {
 	case TEST_ALIVE:
-		ack = (_esc.info[3] == 0 || _esc.keep_alive()) ? ACK_OK : ACK_D_GENERAL_ERROR;
+		// No exchange on the ESC pin while armed
+		ack = (_esc.info[3] == 0 || (!armed() && _esc.keep_alive())) ? ACK_OK : ACK_D_GENERAL_ERROR;
 		send_4way(cmd, addr, nullptr, 0, ack);
 		break;
 
@@ -465,7 +492,7 @@ void Esc4way::handle_4way()
 		break;
 
 	case GET_IF_VERSION: {
-			static constexpr uint8_t version[] {20, 5};
+			static constexpr uint8_t version[] {200, 6};	// Betaflight's interface version 20.0.06
 			send_4way(cmd, addr, version, sizeof(version), ack);
 			break;
 		}
@@ -475,23 +502,35 @@ void Esc4way::handle_4way()
 		break;
 
 	case DEVICE_RESET:
+
 		// The app starts and drops back into the bootloader 2 s after the line goes quiet;
 		// the idle loop keeps the line driven high for that.
-		_esc.channel = params[0];
+		if (params[0] >= motor_config[6] || esc_output[params[0]] == NO_OUTPUT) {
+			send_4way(cmd, addr, nullptr, 0, ACK_I_INVALID_CHANNEL);
+			break;
+		}
+
+		_esc.channel = esc_output[params[0]];
 		_esc.info[3] = 0;
 		send_4way(cmd, addr, nullptr, 0, _esc.run() ? ACK_OK : ACK_D_GENERAL_ERROR);
 		break;
 
 	case DEVICE_INIT_FLASH:
-		ack = _esc.connect(params[0], SESSION_CONNECT_US) ? ACK_OK : ACK_D_GENERAL_ERROR;
+		if (params[0] >= motor_config[6] || esc_output[params[0]] == NO_OUTPUT) {
+			memset(_esc.info, 0, sizeof(_esc.info));
+			ack = ACK_I_INVALID_CHANNEL;
+
+		} else {
+			ack = _esc.connect(esc_output[params[0]], SESSION_CONNECT_US) ? ACK_OK : ACK_D_GENERAL_ERROR;
+		}
+
 		send_4way(cmd, 0, _esc.info, sizeof(_esc.info), ack);
 		break;
 
-	case DEVICE_READ:
-	case DEVICE_READ_EEPROM: {
+	case DEVICE_READ: {
 			const size_t len = params[0] ? params[0] : 256;
 
-			if (_esc.read(cmd == DEVICE_READ ? BL_READ_FLASH : BL_READ_EEPROM, addr, len)) {
+			if (_esc.read(BL_READ_FLASH, addr, len)) {
 				send_4way(cmd, addr, _esc.buf, len, ack);
 
 			} else {
@@ -510,8 +549,7 @@ void Esc4way::handle_4way()
 		}
 
 	case DEVICE_WRITE:
-	case DEVICE_WRITE_EEPROM:
-		ack = _esc.write(cmd == DEVICE_WRITE ? BL_PROG_FLASH : BL_PROG_EEPROM, addr, params, n) ? ACK_OK : ACK_D_GENERAL_ERROR;
+		ack = _esc.write(BL_PROG_FLASH, addr, params, n) ? ACK_OK : ACK_D_GENERAL_ERROR;
 		send_4way(cmd, addr, nullptr, 0, ack);
 		break;
 
@@ -573,11 +611,23 @@ bool EscBootloader::init()
 		return false;
 	}
 
+	// Betaflight's device match: SiLabs (BLHeli_S, Bluejay) or ARM (BLHeli_32, AM32: MCU id high byte
+	// 0x01..0x8F, low byte 0x06). Atmel BLHeli and unknown ids are not served by these configurators.
 	const uint16_t sig = (r[4] << 8) | r[5];
+
+	if (sig > 0xE800 && sig < 0xF900) {
+		info[3] = MODE_SIL_BLB;
+
+	} else if (r[4] > 0x00 && r[4] < 0x90 && r[5] == 0x06) {
+		info[3] = MODE_ARM_BLB;
+
+	} else {
+		return false;
+	}
+
 	info[0] = r[5];
 	info[1] = r[4];
 	info[2] = r[3];
-	info[3] = (sig >= 0xE800 && sig <= 0xF900) ? MODE_SIL_BLB : MODE_ARM_BLB;
 	return true;
 }
 
@@ -688,29 +738,49 @@ Esc4way *Esc4way::instantiate(int argc, char *argv[])
 		return nullptr;
 	}
 
+	if (strlen(device) >= sizeof(_device)) {
+		PX4_ERR("device path too long: %s", device);
+		return nullptr;
+	}
+
 	int fd = open_raw(device);
 
-	if (fd < 0 || strlen(device) >= sizeof(_device)) {
+	if (fd < 0) {
 		PX4_ERR("open %s failed (%d)", device, errno);
 		return nullptr;
 	}
 
-	// ESC count: the highest output mapped to Motor1..Motor8 (101..108), so that the configurator's
-	// ESC index is the output index; all outputs when none is mapped
+	// The configurators number ESCs like Betaflight's motors: ESC n is the output mapped to Motor n+1,
+	// and the ESC count is the highest mapped motor. Without any motor mapped,
+	// ESC n is output n.
 	uint8_t count = 0;
+	memset(esc_output, NO_OUTPUT, sizeof(esc_output));
 
-	for (int i = 1; i <= MOTOR_COUNT; i++) {
+	for (int i = 0; i < MOTOR_COUNT; i++) {
 		char name[17];
-		snprintf(name, sizeof(name), PARAM_PREFIX "_FUNC%d", i);
+		snprintf(name, sizeof(name), PARAM_PREFIX "_FUNC%d", i + 1);
 		int32_t func = 0;
 		param_get(param_find(name), &func);
+		const int motor = func - OUTPUT_FUNCTION_MOTOR1;
 
-		if (func >= 101 && func <= 108) {
-			count = i;
+		if (motor >= 0 && motor < MOTOR_COUNT && esc_output[motor] == NO_OUTPUT) {
+			esc_output[motor] = i;
+
+			if (motor + 1 > count) {
+				count = motor + 1;
+			}
 		}
 	}
 
-	motor_config[6] = count ? count : MOTOR_COUNT;
+	if (count == 0) {
+		for (int i = 0; i < MOTOR_COUNT; i++) {
+			esc_output[i] = i;
+		}
+
+		count = MOTOR_COUNT;
+	}
+
+	motor_config[6] = count;
 
 	px4_guid_t guid{};
 	board_get_px4_guid(guid);
