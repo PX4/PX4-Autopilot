@@ -163,7 +163,11 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 		_launch_detection_status_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(estimator_fusion_control)) {
-		_estimator_fusion_control_msg_id = msg_id;
+		// A log from several estimator instances holds one of these per instance. The replayed estimator is a single
+		// one, and an instance above 0 is only advertised once the ones below it are.
+		if (sub.multi_id == 0) {
+			_estimator_fusion_control_msg_id = msg_id;
+		}
 
 	} else if (sub.orb_meta == ORB_ID(ekf2_timestamps)) {
 		_ekf2_timestamps_exists = true;
