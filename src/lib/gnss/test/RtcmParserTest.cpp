@@ -191,6 +191,36 @@ TEST_F(RtcmTest, BufferOverflowProtection)
 	EXPECT_EQ(added, CorrectionFramer::BUFFER_SIZE);
 }
 
+// WHAT: Verify the framer recovers after its buffer has been filled with data that
+//       cannot start a frame.
+// WHY: addData() stores what fits and drops the rest, so a sender that never completes
+//      a frame leaves the framer full. Recovery is what keeps that from becoming a
+//      permanent stall, so it is worth pinning rather than only checking the count.
+TEST_F(RtcmTest, RecoversAfterBufferFull)
+{
+	// GIVEN: more data than the buffer holds, and no byte of it can start a frame
+	std::vector<uint8_t> unframeable(CorrectionFramer::BUFFER_SIZE + 1000, 0xAA);
+
+	// WHEN: it is offered to the framer
+	const size_t added = parser.addData(unframeable.data(), unframeable.size());
+
+	// THEN: exactly the capacity is stored and the remainder is dropped
+	EXPECT_EQ(added, CorrectionFramer::BUFFER_SIZE);
+	EXPECT_EQ(parser.bufferedBytes(), CorrectionFramer::BUFFER_SIZE);
+
+	// AND: no byte is a preamble, so a search discards the whole buffer
+	size_t len = 0;
+	EXPECT_EQ(parser.getNextMessage(&len), nullptr);
+	EXPECT_EQ(parser.bufferedBytes(), 0u);
+
+	// AND: a well-formed frame offered afterwards is still framed
+	auto frame = buildValidFrame(1005, {});
+	EXPECT_EQ(parser.addData(frame.data(), frame.size()), frame.size());
+
+	ASSERT_NE(parser.getNextMessage(&len), nullptr);
+	EXPECT_EQ(len, frame.size());
+}
+
 TEST_F(RtcmTest, EmptyPayloadFrame)
 {
 	auto frame = buildRawFrame({});
