@@ -65,19 +65,13 @@ public:
 	void handle_message(const mavlink_message_t *msg);
 
 	/// True while a burst download is streaming out.
-	bool burst_active() const { return _session_info.stream_download; }
+	bool burst_active() const;
 
 	/// Framing overhead of one FTP reply, signature block included.
 	unsigned packet_overhead() const;
 
 	/// Reduce a requested payload to what the link carries in one piece.
 	unsigned radio_clamped_length(unsigned requested) const;
-
-	/// Burst payload to use for this link.
-	unsigned burst_data_length() const;
-
-	/// On-wire size of one burst packet on this link.
-	unsigned burst_wire_size() const;
 
 	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload.
 	/// This needs to be packed, because it's typecasted from mavlink_file_transfer_protocol_t.payload, which starts
@@ -135,7 +129,33 @@ public:
 
 	unsigned get_size();
 
+	/**
+	 * Sessions open at the same time on one MAVLink instance.
+	 *
+	 * Each one embeds a ParamPckFile, which holds more than 512 bytes for
+	 * @PARAM/param.pck whether or not it is in use, and the server exists
+	 * once per MAVLink instance. Three cover a GCS and a companion each
+	 * transferring a file next to a parameter download or upload.
+	 */
+	static constexpr unsigned kMaxSessions = 3;
+
 private:
+	struct SessionInfo {
+		int		fd{-1};
+		uint8_t		id{0};			///< session field on the wire
+		uint32_t	owner_system_id{0};	///< only the client that opened it may use it
+		uint8_t		owner_component_id{0};
+		uint32_t	file_size{0};
+		bool		stream_download{false};
+		uint32_t	stream_offset{0};
+		uint16_t	stream_seq_number{0};
+		unsigned	stream_chunk_transmitted{0};
+		uint8_t		stream_size{0};		///< payload size the client asked for, 0 = as much as fits
+		ParamPckFile	param;			///< virtual parameter file, open instead of fd
+
+		bool is_open() const { return (fd >= 0) || param.is_open(); }
+	};
+
 	char		*_data_as_cstring(PayloadHeader *payload);
 
 	void		_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_system_id, uint8_t target_comp_id);
@@ -144,11 +164,11 @@ private:
 
 	ErrorCode	_workList(PayloadHeader *payload, bool include_time = false);
 	void		_statDirent(const char *name, uint32_t &size, uint32_t &mtime);
-	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
-	ErrorCode	_workRead(PayloadHeader *payload);
-	ErrorCode	_workBurst(PayloadHeader *payload, uint32_t target_system_id, uint8_t target_component_id);
-	ErrorCode	_workWrite(PayloadHeader *payload);
-	ErrorCode	_workTerminate(PayloadHeader *payload);
+	ErrorCode	_workOpen(PayloadHeader *payload, int oflag, uint32_t owner_system_id, uint8_t owner_component_id);
+	ErrorCode	_workRead(PayloadHeader *payload, SessionInfo *session);
+	ErrorCode	_workBurst(PayloadHeader *payload, SessionInfo *session);
+	ErrorCode	_workWrite(PayloadHeader *payload, SessionInfo *session);
+	ErrorCode	_workTerminate(PayloadHeader *payload, SessionInfo *session);
 	ErrorCode	_workReset(PayloadHeader *payload);
 	ErrorCode	_workRemoveDirectory(PayloadHeader *payload);
 	ErrorCode	_workCreateDirectory(PayloadHeader *payload);
@@ -161,11 +181,29 @@ private:
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
-	bool _session_open() const;
-	void _close_session();
+	/// The open session with this id, if it belongs to the requesting client.
+	SessionInfo *_find_session(uint8_t id, uint32_t system_id, uint8_t component_id);
 
-	/// Read from the open session. Returns bytes read, 0 at EOF, -1 on error with _our_errno set.
-	int _read_session(uint32_t offset, uint8_t *buf, uint16_t count);
+	/// A closed slot to open a session in, nullptr if all are in use.
+	SessionInfo *_free_session();
+
+	/// The next id no open session uses, so a stale request for a closed session does not reach a new one.
+	uint8_t _allocate_session_id();
+
+	void _close_session(SessionInfo &session);
+	void _close_all_sessions();
+
+	/// Read from an open session. Returns bytes read, 0 at EOF, -1 on error with _our_errno set.
+	int _read_session(SessionInfo &session, uint32_t offset, uint8_t *buf, uint16_t count);
+
+	/// Burst payload to use for this session on this link.
+	unsigned _burst_data_length(const SessionInfo &session) const;
+
+	/// On-wire size of one burst packet of this session on this link.
+	unsigned _burst_wire_size(const SessionInfo &session) const;
+
+	/// The session the next burst packet comes from, nullptr if none is streaming.
+	SessionInfo *_next_burst_session();
 
 	/**
 	 * Construct local path by appending `path` to `_root_dir` and storing the result in `dst`.
@@ -198,19 +236,8 @@ private:
 	 */
 	static const unsigned	kRadioMaxPacketLength = 118;
 
-	struct SessionInfo {
-		int		fd;
-		uint32_t	file_size;
-		bool		stream_download;
-		uint32_t	stream_offset;
-		uint16_t	stream_seq_number;
-		uint32_t	stream_target_system_id;
-		uint8_t         stream_target_component_id;
-		unsigned	stream_chunk_transmitted;
-		uint8_t		stream_size;            ///< payload size the client asked for, 0 = as much as fits
-		ParamPckFile	param;			///< virtual parameter file, open instead of fd
-	};
-	struct SessionInfo _session_info {};	///< Session info, fd=-1 for no active session
+	SessionInfo _sessions[kMaxSessions] {};
+	uint8_t _next_session_id{0};
 
 	Mavlink &_mavlink;
 
