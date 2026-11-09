@@ -52,6 +52,8 @@ ERR_FILE_EXISTS = 8
 HEADER = struct.Struct("<HBBBBBBI")
 PAYLOAD_LEN = 251
 MAX_DATA = PAYLOAD_LEN - HEADER.size
+# MavlinkFTP::kRadioMaxPacketLength less the header, target fields and unsigned MAVLink 2 framing
+RADIO_MAX_PAYLOAD = 118 - HEADER.size - 3 - 12
 
 MAX_SESSIONS = 3  # MavlinkFTP::kMaxSessions
 
@@ -117,6 +119,12 @@ class Link:
                           raw[HEADER.size:HEADER.size + fields[3]])
             self.inbox.setdefault((msg.target_system, msg.target_component), []).append(reply)
             msg = self.conn.recv_match(type="FILE_TRANSFER_PROTOCOL", blocking=False)
+
+    def radio_status(self) -> None:
+        """Pretend a telemetry radio with an empty buffer sits on this link, which turns on burst pacing."""
+        self.conn.mav.srcSystem = 51
+        self.conn.mav.srcComponent = 68
+        self.conn.mav.radio_status_send(200, 200, 100, 0, 0, 0, 0)
 
     def take(self, sysid: int, compid: int, match, timeout: float) -> Optional[Reply]:
         deadline = time.monotonic() + timeout
@@ -216,6 +224,64 @@ class Client:
         return content
 
 
+class Burst:
+    """A burst download of one session, re-requested at every chunk end until the file ended."""
+
+    def __init__(self, client: Client, session: int) -> None:
+        self.client = client
+        self.session = session
+        self.content = bytearray()
+        self.sizes: List[int] = []
+        self.done = False
+        self.client.send(CMD_BURST_READ_FILE, session)
+
+    def take(self) -> bool:
+        """Consume one packet if one arrived, return whether it did."""
+        reply = self.client.link.take(self.client.sysid, self.client.compid,
+                                      lambda r: r.req_opcode == CMD_BURST_READ_FILE, 0)
+
+        if reply is None:
+            return False
+
+        assert reply.session == self.session, reply
+
+        if not reply.ack:
+            assert reply.error == ERR_EOF and reply.burst_complete, reply
+            self.done = True
+            return True
+
+        assert reply.offset == len(self.content), "lost burst packet: {}".format(reply)
+        self.content += reply.data
+        self.sizes.append(reply.size)
+
+        if reply.burst_complete:
+            self.client.send(CMD_BURST_READ_FILE, self.session, len(self.content))
+
+        return True
+
+
+def run_bursts(link: Link, bursts: List[Burst], radio: bool = False, timeout: float = 30) -> List[int]:
+    """Drive bursts to their end, return which of them each data or EOF packet belonged to, in arrival order."""
+    order: List[int] = []
+    deadline = time.monotonic() + timeout
+    next_radio = 0.0
+
+    while not all(burst.done for burst in bursts):
+        assert time.monotonic() < deadline, "bursts did not finish"
+
+        if radio and time.monotonic() > next_radio:
+            link.radio_status()
+            next_radio = time.monotonic() + 0.5
+
+        link.poll(0.05)
+
+        for i, burst in enumerate(bursts):
+            while not burst.done and burst.take():
+                order.append(i)
+
+    return order
+
+
 class FtpSessionTest(unittest.TestCase):
     link: Link
 
@@ -309,6 +375,61 @@ class FtpSessionTest(unittest.TestCase):
         self.assertTrue(self.a.terminate(writing.session).ack)
         self.assertTrue(self.a.terminate(reading.session).ack)
         self.assertEqual(self.a.get(copy), content)
+
+    def open_bursts(self, clients: List[Client], size: int) -> List[Tuple[bytes, int]]:
+        files = []
+
+        for i, client in enumerate(clients):
+            content = bytes((i * 37 + n) & 0xFF for n in range(size))
+            name = self.path("burst{}".format(i))
+            client.put(name, content)
+            opened = client.open(name)
+            self.assertTrue(opened.ack)
+            files.append((content, opened.session))
+
+        return files
+
+    def assert_interleaved(self, order: List[int]) -> None:
+        # each burst gets packets out before the other one has finished
+        self.assertLess(order.index(1), len(order) - 1 - order[::-1].index(0), order)
+        self.assertLess(order.index(0), len(order) - 1 - order[::-1].index(1), order)
+
+    def test_bursts_interleave(self) -> None:
+        # larger than one send() call puts out on a UDP link, so a burst cannot finish before the next starts
+        files = self.open_bursts([self.a, self.b], 40000)
+        bursts = [Burst(self.a, files[0][1]), Burst(self.b, files[1][1])]
+        order = run_bursts(self.link, bursts)
+
+        for burst, (content, _) in zip(bursts, files):
+            self.assertEqual(bytes(burst.content), content)
+
+        self.assert_interleaved(order)
+
+    def test_paced_bursts_share_one_budget(self) -> None:
+        size = 6000
+        files = self.open_bursts([self.a, self.b], size)
+        self.link.radio_status()
+        self.link.drain(1.0)
+
+        start = time.monotonic()
+        single = Burst(self.a, files[0][1])
+        run_bursts(self.link, [single], radio=True)
+        single_time = time.monotonic() - start
+        self.assertEqual(bytes(single.content), files[0][0])
+
+        start = time.monotonic()
+        bursts = [Burst(self.a, files[0][1]), Burst(self.b, files[1][1])]
+        order = run_bursts(self.link, bursts, radio=True)
+        both_time = time.monotonic() - start
+
+        for burst, (content, _) in zip(bursts, files):
+            self.assertEqual(bytes(burst.content), content)
+            # behind a radio every packet stays within one radio packet of 118 bytes
+            self.assertLessEqual(max(burst.sizes), RADIO_MAX_PAYLOAD)
+
+        self.assert_interleaved(order)
+        # twice the data through the same budget takes about twice as long, not as long as one burst
+        self.assertGreater(both_time, 1.6 * single_time, (single_time, both_time))
 
 
 def main() -> None:

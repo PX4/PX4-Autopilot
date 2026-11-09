@@ -251,8 +251,11 @@ private:
 	char _work_buffer2[_work_buffer2_len];
 	hrt_abstime _last_work_buffer_access{0};
 
-	/// Paces the burst against the link budget.
+	/// Paces all bursts together against the one link budget.
 	hrt_abstime _last_burst_send{0};
+
+	/// Slot the next burst packet is taken from first.
+	unsigned _burst_cursor{0};
 
 	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
 	// Path traversal via ".." is rejected by _validatePath().

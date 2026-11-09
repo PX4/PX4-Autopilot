@@ -836,8 +836,13 @@ MavlinkFTP::_workBurst(PayloadHeader *payload, SessionInfo *session)
 	}
 
 	PX4_DEBUG("FTP: burst offset:%" PRIu32, payload->offset);
-	// Setup for streaming sends
-	_last_burst_send = 0;
+
+	// Setup for streaming sends. Only a burst on an idle link starts with a
+	// packet straight away; joining the others must not reset their pacing.
+	if (!burst_active()) {
+		_last_burst_send = 0;
+	}
+
 	session->stream_download = true;
 	session->stream_offset = payload->offset;
 	session->stream_chunk_transmitted = 0;
@@ -1272,7 +1277,11 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 MavlinkFTP::SessionInfo *
 MavlinkFTP::_next_burst_session()
 {
-	for (SessionInfo &session : _sessions) {
+	// Round robin, one packet each: concurrent bursts split the one budget of
+	// the link between them rather than each getting its own.
+	for (unsigned i = 0; i < kMaxSessions; i++) {
+		SessionInfo &session = _sessions[(_burst_cursor + i) % kMaxSessions];
+
 		if (session.stream_download) {
 			return &session;
 		}
@@ -1423,6 +1432,7 @@ void MavlinkFTP::send()
 		ftp_msg.target_network = 0;
 		ftp_msg.target_component = stream->owner_component_id;
 		_reply(&ftp_msg, stream->owner_system_id);
+		_burst_cursor = (stream - _sessions + 1) % kMaxSessions;
 
 		// Streaming a burst is activity: without this the session is torn down
 		// from under a burst that runs longer than the inactivity timeout, which
