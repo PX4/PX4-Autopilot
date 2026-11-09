@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include "TECS.hpp"
+#include <lib/geo/geo.h>
 
 using namespace math;
 
@@ -648,6 +649,44 @@ TEST(TECSControlTest, AirspeedlessIgnoresAirspeed)
 	EXPECT_FLOAT_EQ(control_slow.getDebugOutput().true_airspeed_derivative_control, 0.f);
 	EXPECT_FLOAT_EQ(control_slow.getPitchSetpoint(), control_reference.getPitchSetpoint());
 	EXPECT_FLOAT_EQ(control_slow.getThrottleSetpoint(), control_reference.getThrottleSetpoint());
+}
+
+// The pitch damping corrects a climb angle error by FW_T_PTCH_DAMP times that error, with or without airspeed: losing
+// the airspeed sensor must not change the pitch loop gain on altitude. At constant throttle a climb angle error is an
+// exchange of kinetic for potential energy, a balance rate error of 2 g V times the climb angle error, which is what
+// the conversion to pitch divides by. Without airspeed the kinetic half is not measured and must not be missing.
+TEST(TECSControlTest, PitchDampingOnClimbAngleErrorIndependentOfAirspeed)
+{
+	TECSControl::Param param = makeParam();
+	param.integrator_gain_pitch = 0.f; // damping only
+
+	// On the altitude and airspeed setpoints, at trim airspeed: no feedforward, the throttle sits at trim
+	const TECSControl::Setpoint setpoint = makeSetpoint();
+	const float climb_rate_error = 1.f;
+
+	// WHEN climbing at constant total energy, i.e. trading airspeed for height
+	TECSControl::Input input = makeInput();
+	input.altitude_rate = climb_rate_error;
+	input.tas_rate = -CONSTANTS_ONE_G * climb_rate_error / input.tas;
+
+	TECSControl with_airspeed;
+	with_airspeed.initialize(setpoint, input, param, makeFlag());
+
+	// AND the same without airspeed, where the airspeed filter reports trim airspeed and no acceleration
+	TECSControl::Flag flag_airspeedless = makeFlag();
+	flag_airspeedless.airspeed_enabled = false;
+	flag_airspeedless.detect_underspeed_enabled = false;
+	TECSControl::Input input_airspeedless = input;
+	input_airspeedless.tas = param.tas_trim;
+	input_airspeedless.tas_rate = 0.f;
+
+	TECSControl airspeedless;
+	airspeedless.initialize(setpoint, input_airspeedless, param, flag_airspeedless);
+
+	// THEN both pitch down by the damping gain times the climb angle error
+	const float expected_pitch = -param.pitch_damping_gain * climb_rate_error / input.tas;
+	EXPECT_NEAR(with_airspeed.getPitchSetpoint(), expected_pitch, 1e-6f);
+	EXPECT_NEAR(airspeedless.getPitchSetpoint(), expected_pitch, 1e-6f);
 }
 
 // Below the minimum airspeed, the pitch integrator must integrate exactly as fast as at the minimum airspeed: it uses

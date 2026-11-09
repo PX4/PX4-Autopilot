@@ -457,10 +457,12 @@ TECSControl::PitchControlValues TECSControl::_calcPitchControlSebRateValues(cons
 	PitchControlValues pitch_values;
 
 	if (!flag.airspeed_enabled) {
-		// Without airspeed the pitch loop knows nothing about the kinetic energy and controls altitude only
+		// Without airspeed the pitch loop knows nothing about the kinetic energy and controls altitude only. The
+		// unmeasured total energy rate is taken as its setpoint, as in the trim band of the normal case: a climb rate
+		// error is then a balance rate error of 2 g times it, as with airspeed, and the pitch loop keeps its gain.
 		pitch_values.ste_rate = ste_rate_setpoint;
 		pitch_values.seb_rate.setpoint = 2.f * spe_rate_setpoint - ste_rate_setpoint;
-		pitch_values.seb_rate.estimate = specific_energy_rates.spe_rate.estimate;
+		pitch_values.seb_rate.estimate = 2.f * specific_energy_rates.spe_rate.estimate - ste_rate_setpoint;
 		return pitch_values;
 	}
 
