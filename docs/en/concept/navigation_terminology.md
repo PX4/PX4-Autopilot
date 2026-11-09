@@ -80,7 +80,8 @@ PX4 represents the course using:
 ### Course Setpoint
 
 The course setpoint is the direction the vehicle _should_ move over the ground.
-Whether the vehicle actually moves that way is shown by the [course](#course).
+PX4's path-following guidance calculates it from the [desired track](#track-and-desired-track): on the track it points along it, and off the track it points back towards it, so that the vehicle rejoins the track ahead.
+The [course](#course) follows the setpoint with a delay while the vehicle turns, and can differ from it in gusts, or when the wind is too strong for the vehicle to hold it.
 
 <img src="../../assets/concepts/navigation/detail_course_setpoint.svg" alt="Course setpoint: angle from north to the commanded direction of motion, pointing back towards the desired track, with an illustrative future track that rejoins it" class="diagram-invert">
 
