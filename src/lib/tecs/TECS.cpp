@@ -621,10 +621,10 @@ float TECSControl::_sebRateToClimbAngle(float seb_rate, float ste_rate, const In
 float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float ste_rate_setpoint,
 		const Param &param) const
 {
-	// Calculate a specific energy correction that doesn't include the integrator contribution
-	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain +
-				    param.seb_rate_ff *
-				    seb_rate.setpoint;
+	// Calculate a specific energy correction that doesn't include the integrator contribution. The setpoint is fed
+	// forward in full: together with the total energy rate it converts to the potential energy rate the pitch flies,
+	// a partial feedforward would mix in a share of the total energy rate instead.
+	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain + seb_rate.setpoint;
 
 	// Convert the balance rate correction to a climb angle and add the level-flight pitch, the angle of attack at
 	// zero climb angle, to get the absolute pitch setpoint. This calculation assumes:
