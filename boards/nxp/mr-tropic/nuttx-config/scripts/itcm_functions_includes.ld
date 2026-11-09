@@ -701,7 +701,6 @@
 *(.text._ZN22MavlinkStreamESCStatus8get_sizeEv)
 *(.text._Z20px4_spi_bus_externalRK13px4_spi_bus_t)
 *(.text.read)
-*(.text._ZN4uORB15PublicationBaseD1Ev)
 *(.text._ZN22MavlinkStreamDebugVect8get_sizeEv)
 *(.text._ZN7Mission11on_inactiveEv)
 *(.text._ZN7sensors19VehicleMagnetometer20UpdateMagCalibrationEv)

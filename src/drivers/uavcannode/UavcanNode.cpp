@@ -316,6 +316,8 @@ void UavcanNode::busevent_signal_trampoline()
 static void cb_reboot(const uavcan::TimerEvent &)
 {
 	watchdog_pet();
+	// Params persist only through the deferred autosave, which board_reset() does not wait for
+	param_save_default(true);
 	board_reset(0);
 }
 
@@ -360,7 +362,8 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 {
 	_node.setName(board_get_uavcan_hw_name());
 
-	// Was the node_id supplied by the bootloader?
+	// Nonzero node_id came from the bootloader handoff or CANNODE_NODE_ID;
+	// zero means dynamic node ID allocation runs in Run()
 
 	if (node_id != 0) {
 		_node.setNodeID(node_id);
@@ -515,10 +518,13 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 {
 	bool handleRestartRequest(uavcan::NodeID request_source) override
 	{
-		PX4_INFO("UAVCAN: Restarting by request from %i\n", int(request_source.get()));
-		usleep(20 * 1000 * 1000);
-		board_reset(0);
-		return true; // Will never be executed BTW
+		PX4_INFO("UAVCAN: Restarting by request from %i", int(request_source.get()));
+
+		// The response is only sent after this returns, so reset from a timer
+		UavcanNode *node = UavcanNode::instance();
+		node->_reset_timer.setCallback(cb_reboot);
+		node->_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
+		return true;
 	}
 } restart_request_handler;
 
@@ -836,13 +842,18 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		valid = bootloader_app_shared_read(&shared, BootLoader);
 	}
 
+	// Consume the region even when the handoff is rejected below: on boards
+	// booted by a non-PX4 bootloader nothing else ever invalidates it
 	if (valid == 0) {
+		bootloader_app_shared_invalidate();
+	}
+
+	// Trust the handoff only if it carries a plausible bitrate (CANNODE_BITRATE
+	// minimum), healing regions poisoned by firmware running previous code
+	if (valid == 0 && shared.bus_speed >= 20000) {
 
 		bitrate = shared.bus_speed;
 		node_id = shared.node_id;
-
-		// Invalidate to prevent deja vu
-		bootloader_app_shared_invalidate();
 
 	} else {
 		// Node ID
@@ -858,23 +869,19 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		}
 	}
 
-	// Use a static node ID if the parameter is set and in range
+	// CANNODE_NODE_ID == 0 (default) keeps dynamic node ID allocation, reusing an ID the
+	// bootloader may have already allocated. 1..125 sets a static node ID, overriding
+	// anything the bootloader negotiated. The bootloader never sees this parameter: it
+	// learns our node ID only through the firmware update handoff in cb_beginfirmware_update.
 	int32_t cannode_node_id = 0;
 	param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
 
-	if (cannode_node_id < 0 || cannode_node_id > uavcan::NodeID::Max) {
-		PX4_ERR("Invalid static node ID %ld, using dynamic allocation", cannode_node_id);
-		node_id = 0;
+	if (cannode_node_id < 0 || cannode_node_id > uavcan::NodeID::MaxRecommendedForRegularNodes) {
+		PX4_ERR("Invalid CANNODE_NODE_ID %" PRId32 ", ignoring", cannode_node_id);
 
-	} else {
+	} else if (cannode_node_id > 0) {
 		node_id = cannode_node_id;
 	}
-
-	// Persist the node ID for the bootloader
-	bootloader_app_shared_t shared_write = {};
-	shared_write.node_id = node_id;
-	shared_write.bus_speed = 0; // we always want to autobaud
-	bootloader_app_shared_write(&shared_write, BootLoader);
 
 	if (
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)

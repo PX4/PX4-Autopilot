@@ -103,7 +103,7 @@ The parameter is set to 1 by default.
 
 Devices running the [PX4 DroneCAN firmware](px4_cannode_fw.md) (such as [ARK CANnode](ark_cannode.md)) can use the
 [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) parameter to set a static node ID.
-Set it to 0 (default) for dynamic allocation, or to a value between 1-127 to use a specific static node ID.
+Set it to 0 (default) for dynamic allocation, or to a value between 1-125 to use a specific static node ID.
 :::
 
 :::warning
@@ -300,7 +300,7 @@ For example, the screenshot below shows the parameters for a CAN GPS with node i
 
 Common CANNODE parameters that you can configure include:
 
-- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-127) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
+- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-125) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
 - [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM): Enable CAN bus termination on the last node in the bus.
 
 ## Device Specific Setup

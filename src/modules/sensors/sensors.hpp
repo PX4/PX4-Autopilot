@@ -147,6 +147,7 @@ private:
 	uint8_t _n_gyro{0};
 
 	bool _armed{false};		/**< arming status of the vehicle */
+	bool _parameter_update_deferred{false};	/**< parameters changed in flight, read them again once disarmed */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(vehicle_imu), 0},

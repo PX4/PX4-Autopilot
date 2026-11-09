@@ -104,10 +104,10 @@ void WorkItem::Deinit()
 		// and corrupts the hrt callout queue.
 		//
 		// Skip the wait if we're being called from inside Run() on the
-		// worker thread itself (e.g. should_exit() → ScheduleClear),
-		// which would deadlock against our own flag.
+		// worker thread itself (e.g. should_exit() → exit_and_cleanup),
+		// which would deadlock waiting on ourselves.
 		if (!pthread_equal(pthread_self(), wq_temp->runner_tid())) {
-			while (_run_in_progress.load()) {
+			while (wq_temp->is_running(this)) {
 				px4_usleep(100);
 			}
 		}
