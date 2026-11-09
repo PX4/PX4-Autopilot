@@ -304,11 +304,12 @@ private:
 		int		session{kNoSession};
 		uint16_t	request_seq{0};
 		uint32_t	request_crc{0};
-		hrt_abstime	stored{0};
+		uint64_t	stored{0};		///< _replies_stored when it was, a clock can stand still between two
 		uint8_t		reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
 										+ sizeof(PayloadHeader) + sizeof(uint32_t)];
 	};
 	ReplyEntry _replies[kReplayEntries] {};
+	uint64_t _replies_stored{0};
 
 	int _our_errno {0};
 };

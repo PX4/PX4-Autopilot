@@ -216,7 +216,7 @@ MavlinkFTP::_remember_reply(const mavlink_file_transfer_protocol_t *ftp_reply, u
 	slot->session = session;
 	slot->request_seq = request_seq;
 	slot->request_crc = request_crc;
-	slot->stored = hrt_absolute_time();
+	slot->stored = ++_replies_stored;
 	memcpy(slot->reply, ftp_reply, sizeof(slot->reply));
 }
 
