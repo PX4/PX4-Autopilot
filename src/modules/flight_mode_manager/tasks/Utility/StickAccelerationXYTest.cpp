@@ -180,3 +180,23 @@ TEST_F(StickAccelerationXYTest, LimitBelowCurrentSpeedComesDownGradually)
 	EXPECT_LT(max_deceleration, 1.05f * 3.f);
 	EXPECT_NEAR(_velocity(0), 2.f, .01f);
 }
+
+TEST_F(StickAccelerationXYTest, HoldsNoisyLimitSmallerThanOneStepOfDrag)
+{
+	// GIVEN: a limit near 0.04 m/s, less than the drag takes off the speed in one step, that moves a little every loop
+	// as a limit derived from height does
+
+	// WHEN: the stick is held fully forward
+	float min_speed = INFINITY;
+
+	for (int i = 0; i < 400; i++) {
+		step(1.f, (i % 2 == 0) ? .04f : .038f);
+
+		if (i >= 200) {
+			min_speed = fminf(min_speed, _velocity(0));
+		}
+	}
+
+	// THEN: the setpoint follows the limit instead of falling back to zero again and again
+	EXPECT_GT(min_speed, .03f);
+}

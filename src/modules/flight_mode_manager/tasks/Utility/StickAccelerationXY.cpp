@@ -133,12 +133,6 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	// Add drag to limit speed and brake again
 	Vector2f drag = calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity_setpoint);
 
-	// A limit lowers the speed the stick settles at by adding drag rather than by scaling acceleration down. The brake
-	// boost stays off this part, or it would hold the vehicle back for seconds when the stick leaves center.
-	if (velocity_limit < velocity_sc) {
-		drag += acceleration_scale.emult(_velocity_setpoint) * (1.f / velocity_limit - 1.f / velocity_sc);
-	}
-
 	// Don't allow the drag to change the sign of the velocity, otherwise we might get into oscillations around 0, due
 	// to discretization
 	if (((_acceleration_setpoint.norm_squared() < FLT_EPSILON)
@@ -148,6 +142,15 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 
 		drag.setZero();
 		_velocity_setpoint.setZero();
+	}
+
+	// A limit lowers the speed the stick settles at by adding drag rather than by scaling acceleration down. The brake
+	// boost stays off this part, or it would hold the vehicle back for seconds when the stick leaves center. It is
+	// added after the check above, which would zero a setpoint held at a limit smaller than one step of this drag,
+	// and its rate is capped so that it can't reverse the velocity within a step either.
+	if (velocity_limit < velocity_sc) {
+		const float limit_drag_rate = fminf(acceleration_scale(0) * (1.f / velocity_limit - 1.f / velocity_sc), 1.f / dt);
+		drag += _velocity_setpoint * limit_drag_rate;
 	}
 
 	_acceleration_setpoint -= drag;
