@@ -199,6 +199,7 @@ private:
 
 #if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	VehicleAngularVelocity	_vehicle_angular_velocity;
+	VehicleAngularVelocity *_vehicle_angular_velocity_imu_list[MAX_SENSOR_COUNT] {}; // SENS_IMU_MODE 2
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
@@ -226,6 +227,6 @@ private:
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+		(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };

@@ -65,7 +65,12 @@ Sensors::Sensors(bool hil_enabled) :
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
-	_vehicle_angular_velocity.Start();
+
+	// SENS_IMU_MODE 2 filters every gyro instead, see InitializeVehicleIMU()
+	if (_param_sens_imu_mode.get() != 2) {
+		_vehicle_angular_velocity.Start();
+	}
+
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 	param_find("SYS_FAC_CAL_MODE");
@@ -95,6 +100,11 @@ Sensors::~Sensors()
 
 #if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
 	_vehicle_angular_velocity.Stop();
+
+	for (auto &angular_velocity : _vehicle_angular_velocity_imu_list) {
+		delete angular_velocity; // stops itself
+	}
+
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
@@ -402,6 +412,19 @@ void Sensors::InitializeVehicleIMU()
 					if (imu->Start()) {
 						_vehicle_imu_list[i] = imu;
 
+#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
+
+						// SENS_IMU_MODE 2 runs the full gyro filter chain on every IMU and flies on their median
+						if (_param_sens_imu_mode.get() == 2) {
+							_vehicle_angular_velocity_imu_list[i] = new VehicleAngularVelocity(i);
+
+							if (_vehicle_angular_velocity_imu_list[i] != nullptr) {
+								_vehicle_angular_velocity_imu_list[i]->Start();
+							}
+						}
+
+#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
+
 					} else {
 						delete imu;
 					}
@@ -682,8 +705,19 @@ int Sensors::print_status()
 #endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
 
 #if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
-	PX4_INFO_RAW("\n");
-	_vehicle_angular_velocity.PrintStatus();
+
+	if (_param_sens_imu_mode.get() != 2) {
+		PX4_INFO_RAW("\n");
+		_vehicle_angular_velocity.PrintStatus();
+	}
+
+	for (auto &angular_velocity : _vehicle_angular_velocity_imu_list) {
+		if (angular_velocity != nullptr) {
+			PX4_INFO_RAW("\n");
+			angular_velocity->PrintStatus();
+		}
+	}
+
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
