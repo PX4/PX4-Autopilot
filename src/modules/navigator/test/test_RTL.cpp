@@ -809,6 +809,175 @@ INSTANTIATE_TEST_SUITE_P(VehicleTypes, RTLClimbUpdateTest,
 					 ::testing::Values(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
 							 vehicle_status_s::VEHICLE_TYPE_FIXED_WING)));
 
+using LandingStep = RtlDirectMissionLandTestPeer::WorkItemType;
+
+struct LandingAfterClimbCase {
+	const char *name;
+	bool is_vtol;
+	uint8_t vehicle_type;
+	NAV_CMD land_cmd;
+	float landing_north_m; // from the vehicle
+	float landing_yaw; // NAN when not commanded
+	LandingStep first_step; // WORK_ITEM_TYPE_DEFAULT is the landing itself
+};
+
+// Mission with the test's items, activated without the forced feasibility check of Mission::on_activation()
+class MissionTestPeer : public Mission
+{
+public:
+	using Mission::Mission;
+	using WorkItemType = Mission::WorkItemType;
+
+	void loadTestMission(const std::vector<mission_item_s> &items) { _mission_store.setItems(items); }
+	// Mission::on_activation() would run the forced feasibility check on dataman, not on the items of this test
+	void activateForTest() { MissionBase::on_activation(); } // NOLINT(bugprone-parent-virtual-call)
+	WorkItemType activeWorkItemType() const { return _work_item_type; }
+
+protected:
+	bool loadMissionItemFromCache(int32_t index, mission_item_s &mission_item) override
+	{
+		return _mission_store.loadItem(index, mission_item);
+	}
+
+private:
+	navigator_test::VectorMissionItemStore _mission_store{};
+};
+
+// A vehicle 15 m below the climb altitude, with a mission that is only a landing (no DO_LAND_START)
+class LandingAfterClimbTest : public RTLTest, public ::testing::WithParamInterface<LandingAfterClimbCase>
+{
+protected:
+	using WorkItemType = LandingStep;
+	static constexpr float kClimbAlt = kAlt + 30.f;
+
+	void SetUp() override
+	{
+		RTLTest::SetUp();
+		_landing = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, GetParam().landing_north_m, 0.f, kAlt);
+		publishVehicleStatus(GetParam().is_vtol, GetParam().vehicle_type);
+		publishLandDetected(false);
+		_navigator.get_vstatus()->is_vtol = GetParam().is_vtol;
+		_navigator.get_vstatus()->vehicle_type = GetParam().vehicle_type;
+		_navigator.get_land_detected()->landed = false;
+		_navigator.get_mission_result()->valid = true;
+		setAltitude(kClimbAlt - 15.f);
+
+		_mission.timestamp = hrt_absolute_time();
+		_mission.count = 1;
+		_mission.land_start_index = 0;
+		_mission.land_index = 0;
+		_mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+		publishMission(_mission);
+	}
+
+	void setAltitude(float alt)
+	{
+		publishGlobalPosition(kBaseLat, kBaseLon, alt);
+		_navigator.get_global_position()->lat = kBaseLat;
+		_navigator.get_global_position()->lon = kBaseLon;
+		_navigator.get_global_position()->alt = alt;
+	}
+
+	// A climb counts as reached inside the altitude acceptance radius: stop 0.5 m below, inside it for every vehicle
+	void reachClimbAltitude() { setAltitude(kClimbAlt - 0.5f); }
+
+	mission_item_s makeLanding(float alt) const
+	{
+		mission_item_s land = makeSafePointItem(_landing.lat, _landing.lon, alt, NAV_FRAME_GLOBAL, GetParam().land_cmd);
+		land.yaw = GetParam().landing_yaw;
+		land.autocontinue = true;
+		return land;
+	}
+
+	// Once the climb is reached, the first landing step happens at the climb altitude, or the landing starts at once
+	void expectLandingStart(WorkItemType work_item_type)
+	{
+		const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+		ASSERT_TRUE(current.valid);
+		EXPECT_NEAR(current.lat, _landing.lat, 1e-9);
+		EXPECT_NEAR(current.lon, _landing.lon, 1e-9);
+		EXPECT_EQ(work_item_type, GetParam().first_step);
+
+		if (GetParam().first_step == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+			EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+
+		} else {
+			EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+			EXPECT_FLOAT_EQ(current.alt, kClimbAlt);
+		}
+	}
+
+	PositionYawSetpoint _landing{};
+	mission_s _mission{};
+};
+
+// WHY: a land setpoint descends at once, so a multicopter, or a VTOL before its back-transition, first moves to the
+// landing at altitude, and turns to a commanded landing yaw. After Return's climb those steps were skipped, and the
+// vehicle could touch down short.
+// WHAT: once the climb is reached, Return flies to the landing at the return altitude, or aligns there when it climbed
+// above the landing; a fixed-wing still gets its landing directly.
+TEST_P(LandingAfterClimbTest, ReturnStartsTheLandingStepsAtTheReturnAltitude)
+{
+	// GIVEN: Return heads for the mission landing below the return altitude
+	RtlDirectMissionLandTestPeer rtl{&_navigator, _mission};
+	rtl.loadTestMission({makeLanding(kAlt)});
+	rtl.setRtlAlt(kClimbAlt);
+	rtl.run(false);
+	rtl.run(true);
+	ASSERT_TRUE(rtl.isClimbing());
+
+	// WHEN: the climb is reached (a fixed-wing first enters its loiter, then climbs in it)
+	rtl.run(true);
+	reachClimbAltitude();
+	rtl.run(true);
+	ASSERT_FALSE(rtl.isClimbing());
+
+	// THEN: the landing steps start at the return altitude, or a fixed-wing lands directly
+	expectLandingStart(rtl.activeWorkItemType());
+}
+
+// WHY: Mission also climbs first when it starts or resumes below its next item, a landing included, and then takes
+// the same landing steps.
+// WHAT: once that climb is reached, the landing steps start at the climb altitude; a fixed-wing still gets its
+// landing directly.
+TEST_P(LandingAfterClimbTest, MissionStartsTheLandingStepsAtTheClimbAltitude)
+{
+	// GIVEN: Mission resumes in the air on a landing item above the vehicle
+	MissionTestPeer mission{&_navigator};
+	mission.loadTestMission({makeLanding(kClimbAlt)});
+	mission.on_inactive();
+	mission.activateForTest();
+	ASSERT_EQ(mission.activeWorkItemType(), WorkItemType::WORK_ITEM_TYPE_CLIMB);
+
+	// WHEN: the climb is reached
+	mission.on_active();
+	reachClimbAltitude();
+	mission.on_active();
+	ASSERT_NE(mission.activeWorkItemType(), WorkItemType::WORK_ITEM_TYPE_CLIMB);
+
+	// THEN: the landing steps start at the climb altitude, or a fixed-wing lands directly
+	expectLandingStart(mission.activeWorkItemType());
+}
+
+constexpr uint8_t kRotaryWing = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+constexpr uint8_t kFixedWing = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+constexpr LandingStep kMoveToLand = LandingStep::WORK_ITEM_TYPE_MOVE_TO_LAND;
+constexpr LandingStep kAlignToLand = LandingStep::WORK_ITEM_TYPE_ALIGN_TO_LAND;
+constexpr LandingStep kLandAtOnce = LandingStep::WORK_ITEM_TYPE_DEFAULT;
+
+INSTANTIATE_TEST_SUITE_P(
+	Vehicles, LandingAfterClimbTest,
+	::testing::Values(
+		LandingAfterClimbCase{"Multicopter", false, kRotaryWing, NAV_CMD_LAND, 200.f, NAN, kMoveToLand},
+		LandingAfterClimbCase{"MulticopterAboveTheLanding", false, kRotaryWing, NAV_CMD_LAND, 0.f, -0.7f, kAlignToLand},
+		LandingAfterClimbCase{"VtolInHover", true, kRotaryWing, NAV_CMD_VTOL_LAND, 200.f, NAN, kMoveToLand},
+		LandingAfterClimbCase{"VtolInFixedWing", true, kFixedWing, NAV_CMD_VTOL_LAND, 200.f, NAN, kMoveToLand},
+		LandingAfterClimbCase{"FixedWing", false, kFixedWing, NAV_CMD_LAND, 200.f, NAN, kLandAtOnce}),
+	[](const ::testing::TestParamInfo<LandingAfterClimbTest::ParamType> &param_info)
+{
+	return std::string(param_info.param.name);
+});
+
 // WHY: A VTOL landing with finite yaw, must rotate before proceeding with its landing, however it must
 // also widend its acceptance heights for the landing waypoint to account for the back-transition
 // WHAT: A VTOL_LAND item with a finite yaw is driven through MOVE_TO_LAND, the back-transition,
