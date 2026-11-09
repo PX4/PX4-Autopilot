@@ -11,6 +11,7 @@ the SIH ground truth velocity, which is streamed out as HIL_STATE_QUATERNION.
 import json
 import math
 import threading
+import time
 from typing import Any, List, Optional, Tuple
 
 from autopilot_tester import AutopilotTester, log
@@ -19,6 +20,9 @@ from geometry import CoordinateTransformation
 AXES = ("north", "east", "down")
 
 MAV_CMD_DO_ORBIT = 34
+
+# Wall time between SET_GPS_GLOBAL_ORIGIN resends while the estimator has not taken the origin.
+ORIGIN_RESEND_INTERVAL_S = 1.0
 
 # ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER: the nose follows the circle center, so the
 # heading turns by a full revolution per orbit.
@@ -65,23 +69,32 @@ class AutopilotTesterFlow(AutopilotTester):
         SET_GPS_GLOBAL_ORIGIN and wait until the vehicle reports a global position. Requires
         store_home() to have run."""
         home_latitude_deg, home_longitude_deg = self._home_or_fail()
-
-        self.send_mavlink_message("SET_GPS_GLOBAL_ORIGIN", {
+        origin = {
             "target_system": self._target_system_id(),
             "latitude": round(home_latitude_deg * 1e7),
             "longitude": round(home_longitude_deg * 1e7),
             "altitude": round(self.home_absolute_altitude_m() * 1e3),
             "time_usec": 0,
-        })
+        }
 
-        # The estimator only publishes a global position once it has an origin, so a finite
-        # global position confirms the origin was taken.
+        # The SITL startup script starts the estimator after MAVLink, and a subscriber that joins
+        # late only sees the newest vehicle command. SET_GPS_GLOBAL_ORIGIN is not acknowledged, so
+        # it is resent until it is taken. The estimator only publishes a global position once it
+        # has an origin, so a finite global position confirms it.
         log("Waiting for the EKF origin to be set")
+        last_sent_s = -math.inf
 
         def got_origin() -> bool:
+            nonlocal last_sent_s
             position = self._telemetry.position()
-            return bool(math.isfinite(position.latitude_deg)
-                        and math.isfinite(position.longitude_deg))
+            if math.isfinite(position.latitude_deg) and math.isfinite(position.longitude_deg):
+                return True
+
+            now_s = time.monotonic()
+            if now_s - last_sent_s >= ORIGIN_RESEND_INTERVAL_S:
+                self.send_mavlink_message("SET_GPS_GLOBAL_ORIGIN", origin)
+                last_sent_s = now_s
+            return False
 
         assert self.poll_condition_with_timeout(got_origin, timeout_s), \
             "EKF origin not set within {} s".format(timeout_s)
