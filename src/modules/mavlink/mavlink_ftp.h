@@ -151,6 +151,7 @@ private:
 		uint16_t	stream_seq_number{0};
 		unsigned	stream_chunk_transmitted{0};
 		uint8_t		stream_size{0};		///< payload size the client asked for, 0 = as much as fits
+		hrt_abstime	last_activity{0};	///< last request for it or burst packet from it
 		ParamPckFile	param;			///< virtual parameter file, open instead of fd
 
 		bool is_open() const { return (fd >= 0) || param.is_open(); }
@@ -213,9 +214,6 @@ private:
 	bool _validatePath(const char *path);
 	bool _validatePathIsWritable(const char *path);
 
-	/// Stamp last request time; drives the 30 s idle session close.
-	void _ensure_buffers_exist();
-
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
 	static const char	kDirentSkip = 'S';	///< Identifies Skipped entry from List command
@@ -249,7 +247,6 @@ private:
 	static constexpr int _work_buffer2_len = 256;
 	char _work_buffer1[_work_buffer1_len];
 	char _work_buffer2[_work_buffer2_len];
-	hrt_abstime _last_work_buffer_access{0};
 
 	/// Paces all bursts together against the one link budget.
 	hrt_abstime _last_burst_send{0};

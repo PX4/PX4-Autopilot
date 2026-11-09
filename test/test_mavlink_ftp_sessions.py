@@ -8,7 +8,9 @@ and checks that sessions are allocated, isolated, retried and cleaned up
 independently.
 
 Usage:
-    python3 test_mavlink_ftp_sessions.py [--url udpout:127.0.0.1:18570] [unittest args]
+    python3 test_mavlink_ftp_sessions.py [--url udpout:127.0.0.1:18570] [--pid PID] [unittest args]
+
+Set FTP_SESSIONS_SLOW=1 to include the tests that wait for the 30 s idle close.
 
 Requirements:
     pip install pymavlink
@@ -60,6 +62,8 @@ MAX_SESSIONS = 3  # MavlinkFTP::kMaxSessions
 TEST_DIR = "/fs/ftp_sessions_test"
 
 URL = "udpout:127.0.0.1:18570"
+PX4_PID: Optional[int] = None
+IDLE_TIMEOUT = 30  # MavlinkFTP::send()
 
 
 class Reply(NamedTuple):
@@ -376,6 +380,62 @@ class FtpSessionTest(unittest.TestCase):
         self.assertTrue(self.a.terminate(reading.session).ack)
         self.assertEqual(self.a.get(copy), content)
 
+    def open_descriptors(self, name: str) -> int:
+        """Descriptors PX4 holds on test files whose name starts with this one, -1 without --pid."""
+        if PX4_PID is None:
+            return -1
+
+        fd_dir = "/proc/{}/fd".format(PX4_PID)
+        stem = "/" + self.path(name).rsplit("/", 1)[-1]
+        count = 0
+
+        for fd in os.listdir(fd_dir):
+            try:
+                count += stem in os.readlink(os.path.join(fd_dir, fd))
+            except OSError:
+                pass  # closed since listdir
+
+        return count
+
+    def test_reset_closes_every_session(self) -> None:
+        names = [self.path("reset{}".format(i)) for i in range(MAX_SESSIONS)]
+
+        for name in names:
+            self.a.put(name, b"reset")
+
+        held = [(self.a, self.a.open(names[0])), (self.b, self.b.open(names[1])),
+                (self.b, self.b.open(names[2], CMD_OPEN_FILE_WO))]
+        self.assertTrue(all(reply.ack for _, reply in held))
+        self.assertIn(self.open_descriptors("reset"), (-1, MAX_SESSIONS))
+
+        # any client resets every session, not only its own
+        self.assertTrue(Client(self.link, 247).request(CMD_RESET_SESSIONS).ack)
+
+        for client, reply in held:
+            self.assertEqual(client.read(reply.session).error, ERR_INVALID_SESSION)
+
+        self.assertIn(self.open_descriptors("reset"), (-1, 0))
+        reopened = [Client(self.link, 230 + i).open(names[i]) for i in range(MAX_SESSIONS)]
+        self.assertTrue(all(reply.ack for reply in reopened), reopened)
+
+    @unittest.skipUnless(os.environ.get("FTP_SESSIONS_SLOW"), "set FTP_SESSIONS_SLOW=1 to wait for the idle close")
+    def test_idle_sessions_expire_independently(self) -> None:
+        name = self.path("idle")
+        self.a.put(name, b"idle")
+        idle, busy = self.a.open(name), self.b.open(name)
+        self.assertTrue(idle.ack and busy.ack)
+
+        # the idle close is 30 s, client A says nothing meanwhile
+        deadline = time.monotonic() + IDLE_TIMEOUT + 3
+
+        while time.monotonic() < deadline:
+            self.assertEqual(self.b.read(busy.session).data, b"idle")
+            self.link.poll(3)
+
+        self.assertEqual(self.a.read(idle.session).error, ERR_INVALID_SESSION)
+        self.assertEqual(self.b.read(busy.session).data, b"idle")
+        self.assertTrue(self.b.terminate(busy.session).ack)
+
     def open_bursts(self, clients: List[Client], size: int) -> List[Tuple[bytes, int]]:
         files = []
 
@@ -433,11 +493,13 @@ class FtpSessionTest(unittest.TestCase):
 
 
 def main() -> None:
-    global URL
+    global URL, PX4_PID
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--url", default=URL, help="pymavlink connection to the PX4 GCS link")
+    parser.add_argument("--pid", type=int, help="PX4 process on this host, to check it closes the files")
     args, rest = parser.parse_known_args()
     URL = args.url
+    PX4_PID = args.pid
     unittest.main(argv=[sys.argv[0]] + rest, verbosity=2)
 
 

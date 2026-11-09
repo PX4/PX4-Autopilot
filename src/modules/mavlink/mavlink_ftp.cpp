@@ -51,6 +51,9 @@
 
 using namespace time_literals;
 
+/// A session nobody used for this long is closed, each on its own.
+static constexpr hrt_abstime kSessionIdleTimeout = 30_s;
+
 constexpr const char MavlinkFTP::_root_dir[];
 constexpr const char MavlinkFTP::_mav_log_prefix[];
 constexpr const char MavlinkFTP::_mav_log_dir[];
@@ -310,8 +313,6 @@ MavlinkFTP::_process_request(
 
 	ErrorCode errorCode = kErrNone;
 
-	_ensure_buffers_exist();
-
 	// basic sanity checks; must validate length before use
 	if (payload->size > kMaxDataLength) {
 		errorCode = kErrInvalidDataSize;
@@ -345,6 +346,10 @@ MavlinkFTP::_process_request(
 		  _getServerChannel(), payload->opcode, payload->size, payload->offset);
 
 	session = _find_session(payload->session, target_system_id, target_comp_id);
+
+	if (session != nullptr) {
+		session->last_activity = hrt_absolute_time();
+	}
 
 	switch (payload->opcode) {
 	case kCmdNone:
@@ -464,11 +469,6 @@ out:
 		ftp_req->target_component = target_comp_id;
 		_reply(ftp_req, target_system_id);
 	}
-}
-
-void MavlinkFTP::_ensure_buffers_exist()
-{
-	_last_work_buffer_access = hrt_absolute_time();
 }
 
 /// @brief Sends the specified FTP response message out through mavlink
@@ -787,6 +787,7 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag, uint32_t owner_system_i
 	session->owner_component_id = owner_component_id;
 	session->file_size = file_size;
 	session->stream_download = false;
+	session->last_activity = hrt_absolute_time();
 
 	payload->session = session->id;
 	payload->size = sizeof(uint32_t);
@@ -1292,12 +1293,10 @@ MavlinkFTP::_next_burst_session()
 
 void MavlinkFTP::send()
 {
-	if (hrt_elapsed_time(&_last_work_buffer_access) > 30_s) {
-		for (SessionInfo &session : _sessions) {
-			if (session.is_open()) {
-				_close_session(session);
-				PX4_WARN("Session was closed without activity");
-			}
+	for (SessionInfo &session : _sessions) {
+		if (session.is_open() && (hrt_elapsed_time(&session.last_activity) > kSessionIdleTimeout)) {
+			_close_session(session);
+			PX4_WARN("Session was closed without activity");
 		}
 	}
 
@@ -1437,7 +1436,7 @@ void MavlinkFTP::send()
 		// Streaming a burst is activity: without this the session is torn down
 		// from under a burst that runs longer than the inactivity timeout, which
 		// on a slow link a single chunk easily does.
-		_last_work_buffer_access = hrt_absolute_time();
+		stream->last_activity = hrt_absolute_time();
 	} while (more_data);
 }
 
