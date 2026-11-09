@@ -80,12 +80,14 @@ Smart rejoin is attempted on the next airborne Mission activation, subject to ro
 
 The rejoin branches in on a leg near the vehicle (see [Vehicle Projection](#vehicle-projection)), and Mission continues the mission in order from there, also when the current item is in the landing sequence (from the `DO_LAND_START` item, or the landing item if there is none).
 A `MAV_CMD_DO_LAND_START` sent while Mission mode is not active can therefore fly earlier mission legs before the landing; sent while Mission mode is active, it flies to the landing directly.
-A fixed-wing never joins into the landing sequence: when the rejoin would branch in there, Mission flies to the current item instead.
-A fixed-wing landing abort, in Mission or Return, moves the current item back to the start of the landing, so continuing Mission near the landing flies the whole landing again.
+A vehicle that lands as a fixed-wing never branches in on its landing sequence: when the first item to fly after the branch-in is part of it, Mission flies to the current item instead, as without smart rejoin.
+This applies to pure fixed-wings, and to VTOLs in fixed-wing flight when [NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) is disabled.
+After a landing abort, in Mission or Return, such a vehicle that continues Mission near the final leg therefore flies the approach again.
 
-When smart rejoin is eligible for a multicopter or a VTOL in hover, the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
+When smart rejoin is eligible, the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly, as route Return does.
 This lets a paused multicopter descent resume without a front transition to restore the approach's fixed-wing state.
 After moving outside that radius, for example with GoTo during an ordinary paused descent, resuming Mission uses normal smart rejoin, including reaching the route altitude before any required front transition.
+A vehicle that lands as a fixed-wing never lands directly this way, by the rule above.
 
 When a VTOL rejoin requires a front transition, the vehicle follows this sequence:
 

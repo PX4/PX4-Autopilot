@@ -1052,8 +1052,8 @@ TEST_F(MissionRouteJoinTest, JoinIntoFinishedCameraSurveyKeepsTarget)
 	}
 }
 
-// A fixed-wing near the landing does not land there directly: it flies to the current item, as without the join.
-TEST_F(MissionRouteJoinTest, FixedWingNearTheLandingFliesToTheCurrentItem)
+// A pure fixed-wing near the landing does not land there directly: it flies to the current item, as without the join.
+TEST_F(MissionRouteJoinTest, PureFixedWingNearTheLandingFliesToTheCurrentItem)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
@@ -1085,9 +1085,11 @@ TEST_F(MissionRouteJoinTest, FixedWingNearTheLandingFliesToTheCurrentItem)
 	// The first waypoint reached, then paused on the way to the second one.
 	startReachAndPause(mission, vehicle_position);
 
+	navigator_test::EventRecorder events;
 	mission.on_activation();
 
 	// The planner would land at item 3 directly; a fixed-wing flies its approach from item 2 instead.
+	EXPECT_FALSE(events.sent(events::ID("mission_route_rejoin_unavailable")));
 	EXPECT_EQ(mission.currentSequenceForTest(), 2);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 	EXPECT_FALSE(mission.joinContextForTest().valid());
@@ -1096,7 +1098,7 @@ TEST_F(MissionRouteJoinTest, FixedWingNearTheLandingFliesToTheCurrentItem)
 	EXPECT_DOUBLE_EQ(sp.lat, mission_items[2].lat);
 	EXPECT_DOUBLE_EQ(sp.lon, mission_items[2].lon);
 
-	// The same for a VTOL in fixed-wing flight: no back transition there.
+	// A VTOL in fixed-wing flight lands there directly, and back-transitions through normal landing handling.
 	mission.on_inactivation();
 	mission_items[0].nav_cmd = NAV_CMD_VTOL_TAKEOFF;
 	mission_items[3].nav_cmd = NAV_CMD_VTOL_LAND;
@@ -1112,14 +1114,27 @@ TEST_F(MissionRouteJoinTest, FixedWingNearTheLandingFliesToTheCurrentItem)
 	while (commands.update(&command)) {}
 
 	mission.on_activation();
-	mission.on_active();
-	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+	EXPECT_EQ(mission.currentSequenceForTest(), 3);
 	EXPECT_FALSE(mission.joinContextForTest().valid());
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
 	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	EXPECT_FLOAT_EQ(sp.alt, vehicle_position.alt);
+	mission.on_active();
+	bool back_transition_sent = false;
 
 	while (commands.update(&command)) {
-		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+		if (command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+			EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+			back_transition_sent = true;
+		}
 	}
+
+	EXPECT_TRUE(back_transition_sent);
+	EXPECT_NE(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	primeNavigatorState();
+	mission.on_active();
+	EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 }
 
 TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
@@ -1252,7 +1267,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 }
 
 // A landing abort restarts the approach, also after entering Return or selecting an earlier item:
-// a fixed-wing never joins into the landing.
+// a fixed-wing never branches in on its landing.
 TEST_F(MissionRouteJoinTest, LandingAbortRestartsApproach)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);

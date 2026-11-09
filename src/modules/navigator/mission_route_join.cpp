@@ -110,9 +110,9 @@ bool Mission::trySetRouteJoinOnActivation()
 		return fall_back(mission_route::failureReasonString(failure_reason));
 	}
 
-	// A fixed-wing never joins into the landing: it flies the whole landing, also after a landing abort.
-	if (hasMissionLandStart() && (join_plan.first_mission_item_index >= _mission.land_start_index)
-	    && vehicleInFwLikeState(vehicle_status)) {
+	// A vehicle that lands as a fixed-wing never branches in on its landing: it flies to its current item instead.
+	if ((vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) && !_navigator->force_vtol()
+	    && hasMissionLandStart() && (join_plan.first_mission_item_index >= _mission.land_start_index)) {
 		return false;
 	}
 
