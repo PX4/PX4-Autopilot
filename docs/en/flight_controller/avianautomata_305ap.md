@@ -30,7 +30,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Interfaces {#interfaces}
 
-- **PWM outputs:** 8, all supporting [DShot](../peripherals/dshot.md)
+- **PWM outputs:** 8, all supporting [DShot](../peripherals/dshot.md) and [bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry)
 - **Serial ports:** 7 (`TELEM 1`, `TELEM 2`, `GPS`, `RC IN`, `VTX`, the debug console on `VTX`, and USART1 on the `Motors` connector)
 - **I2C buses:** 3 (I2C1 internal; I2C2 and I2C4 external, I2C4 on the `GPS` connector)
 - **SPI buses:** 4, of which SPI4 is external with 2 chip selects
@@ -106,8 +106,6 @@ This is a 6-pin port, not the 10-pin Pixhawk GPS port.
 | 3   | CAN_L  |
 | 4   | GND    |
 
-Both buses are fully terminated on the board, so do not add external termination.
-
 ### External I2C (U20)
 
 | Pin | Signal   | MCU  |
@@ -157,8 +155,6 @@ Both buses are fully terminated on the board, so do not add external termination
 | 5   | SBUS out | PD8 |
 | 6   | GND      |     |
 
-The 9 V rail is only available when the board is powered from the battery.
-
 ### RC IN (U22)
 
 | Pin | Signal | MCU  |
@@ -169,11 +165,14 @@ The 9 V rail is only available when the board is powered from the battery.
 
 ## Power {#power}
 
+The board is powered from the battery on the 6-pin JST-GH `Power` connector (2S-6S), or from USB-C.
 The board has no power-enable GPIOs: every rail, sensor and peripheral is powered whenever the board has power, except the 9 V rail, which needs battery power.
 
+Battery monitoring is analog.
 The board measures battery voltage with a 10k/1k divider ([BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) defaults to `11.0`).
 There is no onboard current shunt.
-To measure current, connect an external sensor to the current sense pin on the motor connector and set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V), which defaults to `0`.
+To measure current, connect an external sensor to the current sense pin on the `Motors` connector and set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V), which defaults to `0` (see [Amps per volt](../config/battery.md#current_divider)).
+See [Battery and Power Module Setup](../config/battery.md) for configuration.
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -184,39 +183,83 @@ The 8 outputs are in 4 groups:
 - Outputs 5-6 in group 3 (TIM3)
 - Outputs 7-8 in group 4 (TIM4)
 
-All outputs support PWM and [DShot](../peripherals/dshot.md).
+All outputs support PWM, [DShot](../peripherals/dshot.md) and [bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
 Outputs 1-2 default to DShot300 ([PWM_MAIN_TIM0](../advanced_config/parameter_reference.md#PWM_MAIN_TIM0) = `-4`).
 All outputs in a group must use the same protocol and rate.
 
+## SD Card (Optional) {#sd_card}
+
+The board has a push-push microSD card slot on the bottom.
+Parameters are stored on the card, so they can't be saved without one.
+For information about choosing and using an SD card see [SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
+
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device     | PX4 Port | Board Connector    |
-| ------ | ---------- | -------- | ------------------ |
-| USART1 | /dev/ttyS0 |          | Motors (ESC telem) |
-| USART2 | /dev/ttyS1 | TEL3     | VTX                |
-| USART3 | /dev/ttyS2 | Console  | VTX (SBUS pin)     |
-| UART4  | /dev/ttyS3 | TEL1     | TELEM 1            |
-| UART5  | /dev/ttyS4 | RC       | RC IN              |
-| USART6 | /dev/ttyS5 | GPS1     | GPS                |
-| UART7  | /dev/ttyS6 | TEL2     | TELEM 2            |
+| UART   | Device       | Port               | Connector              | Flow Control |
+| ------ | ------------ | ------------------ | ---------------------- | ------------ |
+| USART1 | `/dev/ttyS0` |                    | `Motors` (pin 3)       |              |
+| USART2 | `/dev/ttyS1` | `TELEM 3`          | `VTX`                  |              |
+| USART3 | `/dev/ttyS2` | Debug Console      | `VTX` (`SBUS out` pin) |              |
+| UART4  | `/dev/ttyS3` | `TELEM 1`          | `TELEM 1`              | Yes          |
+| UART5  | `/dev/ttyS4` | `Radio Controller` | `RC IN`                |              |
+| USART6 | `/dev/ttyS5` | `GPS 1`            | `GPS`                  |              |
+| UART7  | `/dev/ttyS6` | `TELEM 2`          | `TELEM 2`              | Yes          |
 
 ESC serial telemetry (`Motors` pin 3, USART1) is not supported by the default firmware.
-
-`TEL3` is the port labelled `VTX` on the board.
-By default it runs [MSP OSD](../peripherals/osd.md) at 115200 baud.
 
 ## Assembly {#assembly}
 
 ### Radio Control {#radio_control}
 
-RC input is on **UART5** (`/dev/ttyS4`, `RC IN` connector), wired as a single-wire port.
-The receiver protocol is auto-detected by default ([RC_INPUT_PROTO](../advanced_config/parameter_reference.md#RC_INPUT_PROTO) = `-1`).
-PPM receivers are not supported.
-DSM receivers can't be bound from _QGroundControl_ on this board: bind them before connecting.
-CRSF telemetry back to the transmitter needs a full-duplex port, so connect those receivers to `TELEM 1` instead.
-Set [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) to `Disabled` (MAVLink uses `TELEM 1` by default), [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to `TELEM 1` and [RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN) to `1`, then reboot.
+A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate.
+
+Connect the receiver to the 3-pin `RC IN` connector, a single-wire port on the FMU (UART5, `/dev/ttyS4`).
+
+- S.BUS, DSM, SUMD, ST24, [CRSF](../telemetry/crsf_telemetry.md) and GHST receivers are detected automatically, with no configuration ([RC_INPUT_PROTO](../advanced_config/parameter_reference.md#RC_INPUT_PROTO) = `Auto`).
+- PPM receivers are not supported, so PWM receivers can't be connected through a PPM encoder either.
+- DSM receivers can't be bound from _QGroundControl_ on this board: bind them before connecting.
+- CRSF telemetry back to the transmitter needs a full-duplex port, so connect those receivers to `TELEM 1` or `TELEM 2` instead.
+  Set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to that port and [RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN) to `1`, then reboot.
+  On `TELEM 1`, also set [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) to `Disabled`, since MAVLink uses it by default.
+
+The DSM, GHST and S.BUS drivers can also be run on another serial port, using [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) or [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG).
+Only one protocol can be active on a port.
+
+### GPS & Compass {#gps_compass}
+
+The 6-pin JST-GH `GPS` connector carries GPS (USART6) and I2C (I2C4) for the compass in a GPS module.
+It has no safety switch, buzzer or LED signals.
+
+The board has an onboard MMC5983MA magnetometer.
+The `+5V` pins on all connectors come from the board's 5 V rail, so a load on them that varies in flight (servos, a companion computer, a video transmitter) can upset the onboard compass.
+On such vehicles, use an [external compass](../gps_compass/magnetometer.md) in a GPS module.
+See [Mounting a GPS/Compass](../assembly/mount_gps_compass.md) for more information.
+
+### Telemetry Radios (Optional) {#telemetry}
+
+The board has two [telemetry](../telemetry/index.md) ports, `TELEM 1` and `TELEM 2`, each a 6-pin JST-GH connector with flow control.
+A telemetry radio connected to `TELEM 1` needs no further configuration.
+
+### CAN {#can}
+
+The board has two CAN ports, `CAN 1` and `CAN 2`, each a 4-pin JST-GH connector, for [DroneCAN](../dronecan/index.md) peripherals.
+Both buses are fully terminated on the board, so do not add external termination.
+
+DroneCAN is not enabled by default: set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to enable it.
+
+### OSD {#osd}
+
+Connect the video transmitter to the 6-pin JST-GH `VTX` connector, which carries 9 V power, a UART (USART2) and the `SBUS out` pin.
+[MSP OSD](../peripherals/osd.md) runs on this UART (`TELEM 3`) by default, at 115200 baud ([MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) = `TELEM 3`, [SER_TEL3_BAUD](../advanced_config/parameter_reference.md#SER_TEL3_BAUD) = `115200`).
+The 9 V supply is only available when the board is powered from the battery.
 
 ## Building Firmware {#building_firmware}
+
+::: tip
+From PX4 v2.0, most users will not need to build this firmware!
+It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+:::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
@@ -224,22 +267,13 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 make avianautomata_305ap_default
 ```
 
-The firmware can be installed in any of the normal ways:
-
-- Build and upload the source:
-
-  ```sh
-  make avianautomata_305ap_default upload
-  ```
-
-- [Load the firmware](../config/firmware.md) using _QGroundControl_.
-  You can use either pre-built firmware or your own custom firmware.
+The board also has a rover build variant: `avianautomata_305ap_rover`.
 
 ## Debug Port {#debug_port}
 
-The NuttX console output is on USART3 TX (`PD8`), the `SBUS out` pin of the VTX connector.
+The FMU's [PX4 System Console](../debug/system_console.md) output is on USART3 TX (`PD8`) at 57600 baud, the `SBUS out` pin of the `VTX` connector.
 The port is transmit-only, so use the [MAVLink Shell](../debug/mavlink_shell.md) over USB for an interactive console.
 
 ## Further Information {#further_information}
 
-- [305AP documentation](https://docs.avianautomata.com)
+- [305AP documentation](https://docs.avianautomata.com/305ap/intro)
