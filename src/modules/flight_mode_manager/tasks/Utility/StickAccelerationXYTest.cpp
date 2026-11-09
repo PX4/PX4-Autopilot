@@ -156,3 +156,27 @@ TEST_F(StickAccelerationXYTest, BrakesFromTheLimit)
 	// THEN: it stops within a second
 	EXPECT_LT(time_to_stop, 1.f);
 }
+
+TEST_F(StickAccelerationXYTest, LimitBelowCurrentSpeedComesDownGradually)
+{
+	// GIVEN: flying fast with the stick fully forward and no limit
+	for (int i = 0; i < 1000; i++) {
+		step(1.f, INFINITY);
+	}
+
+	ASSERT_GT(_velocity(0), 5.f);
+
+	// WHEN: a 2 m/s limit appears, as when optical flow becomes the only horizontal aiding
+	float max_deceleration = 0.f;
+	float previous_speed = _velocity(0);
+
+	for (int i = 0; i < 500; i++) {
+		step(1.f, 2.f);
+		max_deceleration = fmaxf(max_deceleration, (previous_speed - _velocity(0)) / kDt);
+		previous_speed = _velocity(0);
+	}
+
+	// THEN: the setpoint comes down at the default 3 m/s^2 instead of in one step, and settles at the limit
+	EXPECT_LT(max_deceleration, 1.05f * 3.f);
+	EXPECT_NEAR(_velocity(0), 2.f, .01f);
+}

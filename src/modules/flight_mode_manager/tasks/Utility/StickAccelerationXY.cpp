@@ -98,7 +98,9 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	const float velocity_constraint = _velocity_slew_rate_xy.update(_velocity_constraint, dt);
 	_velocity_constraint = _param_mpc_vel_manual.get(); // reset, reduced to strictest limit in next loop
 
-	const float velocity_limit = _velocity_limit;
+	// A limit below the current speed comes down at the stick's acceleration, or the setpoint would be cut in one step
+	// and the vehicle would brake as hard as it can
+	const float velocity_limit = fmaxf(_velocity_limit, _velocity_setpoint.norm() - _param_mpc_acc_hor.get() * dt);
 	_velocity_limit = INFINITY; // reset, reduced to strictest limit in next loop
 
 	// maximum commanded velocity can be constrained dynamically
