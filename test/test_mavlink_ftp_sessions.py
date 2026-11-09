@@ -636,6 +636,27 @@ class FtpSessionTest(unittest.TestCase):
         self.assertEqual(self.retry(self.a, seq, CMD_CREATE_FILE, data=created.encode()), first)
         self.assertEqual(self.free_sessions(), MAX_SESSIONS - 1)
 
+    def test_request_outside_session_is_not_for_session_zero(self) -> None:
+        name, missing = self.path("zero"), self.path("missing").encode()
+        self.a.put(name, b"zero")
+
+        # roll the session ids around until the next is 0, the session field outside of a session
+        for _ in range(256):
+            opened = self.a.open(name)
+            self.assertTrue(opened.ack and self.a.terminate(opened.session).ack)
+
+            if opened.session == 255:
+                break
+
+        seq, first = self.lost(self.a, CMD_OPEN_FILE_RO, data=name.encode())
+        self.assertEqual(first.session, 0)
+
+        # the next request of that identity outside of a session carries session 0 as well
+        self.assertEqual(self.a.request(CMD_REMOVE_FILE, data=missing).error, ERR_FILE_NOT_FOUND)
+
+        self.assertEqual(self.retry(self.a, seq, CMD_OPEN_FILE_RO, data=name.encode()), first)
+        self.assertEqual(self.free_sessions(), MAX_SESSIONS - 1)
+
     def test_reused_sequence_number_is_not_a_retry(self) -> None:
         created, opened = self.path("created"), self.path("opened")
         self.a.put(opened, b"opened")

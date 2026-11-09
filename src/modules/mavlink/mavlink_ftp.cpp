@@ -426,10 +426,14 @@ MavlinkFTP::_process_request(
 	PX4_DEBUG("ftp: channel %" PRIu8 " opc %" PRIu8 " size %" PRIu8 " offset %" PRIu32,
 		  _getServerChannel(), payload->opcode, payload->size, payload->offset);
 
-	session = _find_session(payload->session, target_system_id, target_comp_id);
+	// Only these address a session. The others carry session 0 as often as not, which can be an open one.
+	if ((payload->opcode == kCmdReadFile) || (payload->opcode == kCmdBurstReadFile)
+	    || (payload->opcode == kCmdWriteFile) || (payload->opcode == kCmdTerminateSession)) {
+		session = _find_session(payload->session, target_system_id, target_comp_id);
 
-	if (session != nullptr) {
-		session->last_activity = hrt_absolute_time();
+		if (session != nullptr) {
+			session->last_activity = hrt_absolute_time();
+		}
 	}
 
 	switch (payload->opcode) {
