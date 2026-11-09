@@ -510,7 +510,8 @@ TEST_F(EscChecksTest, EscOfflineReportedWithSupplyCheckBreaker)
 	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
 }
 
-// Once the required battery connects its ESCs get ESC_INIT_TIME_US to boot before they are reported offline
+// Once the required battery connects its ESCs get ESC_INIT_TIME_US to boot before they are reported offline,
+// arming stays blocked meanwhile
 TEST_F(EscChecksTest, EscsGivenTimeToBootOnceRequiredBatteryConnects)
 {
 	publishBattery(true, false);
@@ -519,8 +520,9 @@ TEST_F(EscChecksTest, EscsGivenTimeToBootOnceRequiredBatteryConnects)
 
 	publishBattery(true, true);
 	runCheck();
-	EXPECT_TRUE(_can_arm);
+	EXPECT_FALSE(_can_arm);
 	EXPECT_FALSE(_health_error_escs);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
 
 	px4_usleep(EscChecks::ESC_INIT_TIME_US + 50_ms);
 	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US + 50_ms);

@@ -74,7 +74,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 	const hrt_abstime now = hrt_absolute_time();
 
 	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered,
-	// and give them ESC_INIT_TIME_US to boot once it connects.
+	// and give them ESC_INIT_TIME_US to boot once it connects, during which arming stays blocked.
 	// CBRK_SUPPLY_CHK disables that report, so the ESC checks then stay the only ones to block arming.
 	if (!context.isArmed() && !circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
 		bool required_battery_missing = false;
@@ -100,6 +100,22 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 			_esc_arm_hysteresis.set_state_and_update(false, now);
 			reporter.failsafeFlags().fd_motor_failure = false;
 			reporter.failsafeFlags().fd_esc_arming_failure = false;
+
+			// The battery check no longer blocks arming once the battery connects: block it until the ESCs booted
+			if (!required_battery_missing && _param_com_arm_chk_escs.get() > 0) {
+				/* EVENT
+				 * @description
+				 * The ESCs get time to boot once a required battery connects.
+				 *
+				 * <profile name="dev">
+				 * This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
+				 * </profile>
+				 */
+				reporter.armingCheckFailure(NavModes::All, health_component_t::motors_escs,
+							    events::ID("check_escs_initializing"),
+							    events::Log::Info, "Waiting for ESCs to initialize");
+			}
+
 			return;
 		}
 	}
