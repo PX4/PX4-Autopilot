@@ -414,7 +414,7 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 }
 
 void ModeManagement::update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
-			    UpdateRequest &update_request)
+			    uint8_t nav_state, hrt_abstime now, UpdateRequest &update_request)
 {
 	_external_checks.update();
 
@@ -588,9 +588,10 @@ mode_util::SetpointType ModeManagement::getSetpointType(uint8_t nav_state)
 
 	if (mode_change) {
 		if (_modes.valid(_last_served_nav_state)) {
-			// Reset the setpoint type for the deactivated mode
+			// Reset the setpoint type and timeout for the deactivated mode
 			Modes::Mode &mode = _modes.mode(_last_served_nav_state);
 			mode.current_setpoint_type = Modes::Mode::kDefaultSetpointType;
+			mode.setpoint_timeout_ms = 0;
 		}
 
 		_last_served_nav_state = nav_state;
@@ -684,6 +685,7 @@ bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type, boo
 
 				if (setpoint_config.should_apply) {
 					mode.current_setpoint_type = setpoint_type;
+					mode.setpoint_timeout_ms = setpoint_config.timeout_ms;
 					had_update = true;
 				}
 			}

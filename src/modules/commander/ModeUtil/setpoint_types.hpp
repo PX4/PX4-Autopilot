@@ -35,6 +35,7 @@
 
 #include <uORB/topics/setpoint_config.h>
 #include <uORB/topics/setpoint_config_reply.h>
+#include <uORB/topics/uORBTopics.hpp>
 #include <uORB/topics/vehicle_control_mode.h>
 
 namespace mode_util
@@ -78,5 +79,13 @@ enum class SetpointTypeResult : uint8_t {
  * Check if a setpoint type is valid for a given vehicle type
  */
 SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type, bool is_vtol);
+
+using SetpointTopics = ORB_ID[2];
+
+/**
+ * Get the uORB topics (instance 0) an external mode publishes for a setpoint type.
+ * Unused entries are set to ORB_ID::INVALID.
+ */
+void getSetpointTopics(SetpointType setpoint_type, SetpointTopics &topics);
 
 } // namespace mode_util

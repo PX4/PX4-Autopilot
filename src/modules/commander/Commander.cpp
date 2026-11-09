@@ -2088,9 +2088,9 @@ void Commander::run()
 			_status_changed = true;
 		}
 
-		modeManagementUpdate();
-
 		const hrt_abstime now = hrt_absolute_time();
+
+		modeManagementUpdate(now);
 
 		const bool nav_state_or_failsafe_changed = handleModeIntentionAndFailsafe();
 
@@ -2646,11 +2646,11 @@ void Commander::checkAndInformReadyForTakeoff()
 #endif // CONFIG_ARCH_BOARD_PX4_SITL
 }
 
-void Commander::modeManagementUpdate()
+void Commander::modeManagementUpdate(hrt_abstime now)
 {
 	ModeManagement::UpdateRequest mode_management_update{};
 	_mode_management.update(_vehicle_status.vehicle_type, _vehicle_status.is_vtol, isArmed(),
-				_vehicle_status.nav_state_user_intention, mode_management_update);
+				_vehicle_status.nav_state_user_intention, _vehicle_status.nav_state, now, mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
 		_user_mode_intention.change(mode_management_update.user_intended_nav_state);

@@ -220,4 +220,88 @@ SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehic
 
 	return SetpointTypeResult::Unknown;
 }
+
+void getSetpointTopics(SetpointType setpoint_type, SetpointTopics &topics)
+{
+	topics[0] = ORB_ID::INVALID;
+	topics[1] = ORB_ID::INVALID;
+
+	switch (setpoint_type) {
+	case SetpointType::Invalid:
+		break;
+
+	case SetpointType::DirectActuators:
+		topics[0] = ORB_ID::actuator_motors;
+		topics[1] = ORB_ID::actuator_servos;
+		break;
+
+	case SetpointType::Goto:
+		topics[0] = ORB_ID::goto_setpoint;
+		break;
+
+	case SetpointType::FixedwingLateralLongitudinal:
+		topics[0] = ORB_ID::fixed_wing_lateral_setpoint;
+		topics[1] = ORB_ID::fixed_wing_longitudinal_setpoint;
+		break;
+
+	case SetpointType::Trajectory:
+		topics[0] = ORB_ID::trajectory_setpoint;
+		break;
+
+	case SetpointType::Rates:
+		topics[0] = ORB_ID::vehicle_rates_setpoint;
+		break;
+
+	case SetpointType::Attitude:
+		topics[0] = ORB_ID::vehicle_attitude_setpoint;
+		break;
+
+	case SetpointType::SurfaceVehiclePosition:
+		topics[0] = ORB_ID::surface_vehicle_position_setpoint;
+		break;
+
+	case SetpointType::SurfaceVehicleSpeedAttitude:
+		topics[0] = ORB_ID::surface_vehicle_speed_setpoint;
+		topics[1] = ORB_ID::surface_vehicle_attitude_setpoint;
+		break;
+
+	case SetpointType::SurfaceVehicleSpeedRate:
+		topics[0] = ORB_ID::surface_vehicle_speed_setpoint;
+		topics[1] = ORB_ID::surface_vehicle_rate_setpoint;
+		break;
+
+	case SetpointType::SurfaceVehicleSpeedSteering:
+		topics[0] = ORB_ID::surface_vehicle_speed_setpoint;
+		topics[1] = ORB_ID::surface_vehicle_steering_setpoint;
+		break;
+
+	case SetpointType::SurfaceVehicleThrustAttitude:
+		topics[0] = ORB_ID::surface_vehicle_thrust_setpoint;
+		topics[1] = ORB_ID::surface_vehicle_attitude_setpoint;
+		break;
+
+	case SetpointType::SurfaceVehicleThrustRate:
+		topics[0] = ORB_ID::surface_vehicle_thrust_setpoint;
+		topics[1] = ORB_ID::surface_vehicle_rate_setpoint;
+		break;
+
+	case SetpointType::SurfaceVehicleThrustSteering:
+		topics[0] = ORB_ID::surface_vehicle_thrust_setpoint;
+		topics[1] = ORB_ID::surface_vehicle_steering_setpoint;
+		break;
+
+	case SetpointType::Trajectory_6dof:
+		topics[0] = ORB_ID::trajectory_setpoint6dof;
+		break;
+
+	case SetpointType::ThrustAndTorque:
+		topics[0] = ORB_ID::vehicle_thrust_setpoint;
+		topics[1] = ORB_ID::vehicle_torque_setpoint;
+		break;
+
+	case SetpointType::PositionTriplet:
+		topics[0] = ORB_ID::position_setpoint_triplet;
+		break;
+	}
+}
 } // namespace mode_util

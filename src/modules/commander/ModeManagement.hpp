@@ -101,6 +101,7 @@ public:
 		bool request_offboard_setpoints{false};
 		config_overrides_s overrides{};
 		mode_util::SetpointType current_setpoint_type{kDefaultSetpointType};
+		uint16_t setpoint_timeout_ms{0}; ///< from the applied SetpointConfig, 0 = disabled
 	};
 
 	Modes();
@@ -135,8 +136,8 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
-		    UpdateRequest &update_request);
+	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state, uint8_t nav_state,
+		    hrt_abstime now, UpdateRequest &update_request);
 	void setFailsafeState(bool failsafe_action_active)
 	{
 		_failsafe_action_active = failsafe_action_active;
@@ -215,8 +216,8 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
-		    UpdateRequest &update_request) {}
+	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state, uint8_t nav_state,
+		    hrt_abstime now, UpdateRequest &update_request) {}
 	void setFailsafeState(bool failsafe_action_active) {}
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }
