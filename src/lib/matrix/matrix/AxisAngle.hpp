@@ -63,7 +63,7 @@ public:
 	 *
 	 * @param q quaternion
 	 */
-	AxisAngle(const Quaternion<Type> &q)
+	__attribute__((noinline)) AxisAngle(const Quaternion<Type> &q)
 	{
 		AxisAngle &v = *this;
 		Type mag = q.imag().norm();

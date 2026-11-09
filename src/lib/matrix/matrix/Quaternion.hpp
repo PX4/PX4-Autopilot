@@ -95,7 +95,7 @@ public:
 	 *
 	 * @param dcm dcm to set quaternion to
 	 */
-	Quaternion(const Dcm<Type> &R)
+	__attribute__((noinline)) Quaternion(const Dcm<Type> &R)
 	{
 		Quaternion &q = *this;
 		Type t = R.trace();
@@ -143,7 +143,7 @@ public:
 	 *
 	 * @param euler euler angle instance
 	 */
-	Quaternion(const Euler<Type> &euler)
+	__attribute__((noinline)) Quaternion(const Euler<Type> &euler)
 	{
 		Quaternion &q = *this;
 		Type cosPhi_2 = Type(std::cos(euler.phi() / Type(2)));
@@ -167,7 +167,7 @@ public:
 	 *
 	 * @param aa axis-angle vector
 	 */
-	Quaternion(const AxisAngle<Type> &aa)
+	__attribute__((noinline)) Quaternion(const AxisAngle<Type> &aa)
 	{
 		Quaternion &q = *this;
 		Type angle = aa.norm();

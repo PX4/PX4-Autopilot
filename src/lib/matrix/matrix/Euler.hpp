@@ -81,7 +81,7 @@ public:
 	 *
 	 * @param dcm Direction cosine matrix
 	*/
-	Euler(const Dcm<Type> &dcm)
+	__attribute__((noinline)) Euler(const Dcm<Type> &dcm)
 	{
 		theta() = std::asin(-dcm(2, 0));
 
@@ -109,7 +109,7 @@ public:
 	 *
 	 * @param q quaternion
 	*/
-	Euler(const Quaternion<Type> &q) : Vector<Type, 3>(Euler(Dcm<Type>(q)))
+	__attribute__((noinline)) Euler(const Quaternion<Type> &q) : Vector<Type, 3>(Euler(Dcm<Type>(q)))
 	{
 	}
 

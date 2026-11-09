@@ -82,7 +82,7 @@ public:
 	 *
 	 * @param q quaternion to set dcm to
 	 */
-	Dcm(const Quaternion<Type> &q)
+	__attribute__((noinline)) Dcm(const Quaternion<Type> &q)
 	{
 		Dcm &dcm = *this;
 		const Type a = q(0);
@@ -118,7 +118,7 @@ public:
 	 *
 	 * @param euler euler angle instance
 	 */
-	Dcm(const Euler<Type> &euler)
+	__attribute__((noinline)) Dcm(const Euler<Type> &euler)
 	{
 		Dcm &dcm = *this;
 		Type cosPhi = Type(std::cos(euler.phi()));
