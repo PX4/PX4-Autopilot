@@ -53,7 +53,7 @@ Floating wrap_floating(Floating x, Floating low, Floating high)
  * @param high upper limit of the allowed range
  * @return wrapped value inside the range
  */
-inline float wrap(float x, float low, float high)
+__attribute__((noinline)) inline float wrap(float x, float low, float high)
 {
 	return matrix::detail::wrap_floating(x, low, high);
 }
