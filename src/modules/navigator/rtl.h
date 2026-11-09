@@ -175,7 +175,7 @@ private:
 	 * @brief initialize RTL mission type
 	 *
 	 */
-	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+	void initRtlMissionType(RtlType new_rtl_type);
 
 	/**
 	 * @brief Update parameters

@@ -398,7 +398,12 @@ void RTL::setRtlTypeAndDestination()
 					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND);
 
 	if (new_type_is_mission_based && (_rtl_type != new_rtl_type)) {
-		initRtlMissionType(new_rtl_type, rtl_alt);
+		initRtlMissionType(new_rtl_type);
+	}
+
+	if (new_type_is_mission_based && _rtl_mission_type_handle && !_rtl_mission_type_handle->isActive()) {
+		// A new or kept executor takes the latest altitude at every evaluation until Return starts it.
+		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 	}
 
 	_rtl_type = new_rtl_type;
@@ -635,7 +640,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 	}
 }
 
-void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
+void RTL::initRtlMissionType(RtlType new_rtl_type)
 {
 	if (_rtl_mission_type_handle) {
 		delete _rtl_mission_type_handle;
@@ -649,7 +654,6 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 		_rtl_mission_type_handle = new RtlDirectMissionLand(_navigator);
 
 		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 			_rtl_mission_type_handle->initialize();
 		}
 
