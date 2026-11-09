@@ -5,14 +5,15 @@ import pytest
 # Show the values in failed asserts inside the testers, not just in tests.
 pytest.register_assert_rewrite("autopilot_tester", "autopilot_tester_calibration",
                                "autopilot_tester_flow", "autopilot_tester_follow_me",
-                               "autopilot_tester_loiter", "autopilot_tester_rtl",
-                               "autopilot_tester_vision_target")
+                               "autopilot_tester_loiter", "autopilot_tester_moving_platform",
+                               "autopilot_tester_rtl", "autopilot_tester_vision_target")
 
 from autopilot_tester import AutopilotTester  # noqa: E402
 from autopilot_tester_calibration import AutopilotTesterCalibration  # noqa: E402
 from autopilot_tester_flow import AutopilotTesterFlow  # noqa: E402
 from autopilot_tester_follow_me import AutopilotTesterFollowMe  # noqa: E402
 from autopilot_tester_loiter import AutopilotTesterLoiter  # noqa: E402
+from autopilot_tester_moving_platform import AutopilotTesterMovingPlatform  # noqa: E402
 from autopilot_tester_rtl import AutopilotTesterRtl  # noqa: E402
 from autopilot_tester_vision_target import AutopilotTesterVisionTarget  # noqa: E402
 
@@ -82,3 +83,10 @@ def tester_follow_me(request: pytest.FixtureRequest) -> Iterator[AutopilotTester
 def tester_vision_target(request: pytest.FixtureRequest) -> Iterator[AutopilotTesterVisionTarget]:
     """A tester simulating landing target sensors, connected to the vehicle."""
     yield from connected_tester(request, AutopilotTesterVisionTarget)
+
+
+@pytest.fixture
+def tester_moving_platform(
+        request: pytest.FixtureRequest) -> Iterator[AutopilotTesterMovingPlatform]:
+    """A tester recording takeoffs from a moving platform, connected to the vehicle."""
+    yield from connected_tester(request, AutopilotTesterMovingPlatform)
