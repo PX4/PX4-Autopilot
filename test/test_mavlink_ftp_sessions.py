@@ -22,12 +22,12 @@ import struct
 import sys
 import time
 import unittest
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
 
 os.environ.setdefault("MAVLINK20", "1")
 
 try:
-    from pymavlink import mavutil  # type: ignore[import-not-found]
+    from pymavlink import mavutil  # type: ignore
 except ImportError:
     print("ERROR: pymavlink not installed.  Run: pip install pymavlink")
     sys.exit(1)
@@ -58,6 +58,11 @@ PAYLOAD_LEN = 251
 MAX_DATA = PAYLOAD_LEN - HEADER.size
 # MavlinkFTP::kRadioMaxPacketLength less the header, target fields and unsigned MAVLink 2 framing
 RADIO_MAX_PAYLOAD = 118 - HEADER.size - 3 - 12
+
+PARAM_PATH = "@PARAM/param.pck"
+PCK_MAGIC = 0x671B
+PCK_MAGIC_WITH_DEFAULTS = 0x671C
+PCK_TYPE_FLOAT = 4
 
 MAX_SESSIONS = 3  # MavlinkFTP::kMaxSessions
 REPLAY_ENTRIES = 2 * MAX_SESSIONS  # MavlinkFTP::kReplayEntries
@@ -92,12 +97,14 @@ class Reply(NamedTuple):
 
 
 class Link:
-    """One MAVLink connection shared by every client identity, like a GCS and a companion behind one router."""
+    """One MAVLink connection shared by every client identity, like clients behind one router."""
 
     def __init__(self, url: str) -> None:
         self.conn = mavutil.mavlink_connection(url, source_system=250)
         # udpout only learns where PX4 is once something was sent
-        self.conn.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS, mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
+        self.conn.mav.heartbeat_send(
+            mavutil.mavlink.MAV_TYPE_GCS, mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0
+        )
         hb = self.conn.wait_heartbeat(timeout=10)
 
         if hb is None:
@@ -110,22 +117,33 @@ class Link:
 
     def next_seq(self, sysid: int, compid: int) -> int:
         """
-        Sequence numbers are allocated per MAVLink identity, not per client object: the server can only tell
-        a retry from a new request of that identity by them, so everything sending as one identity has to share
-        one counter.
+        Sequence numbers are allocated per MAVLink identity, not per client object: the server
+        can only tell a retry from a new request of that identity by them, so everything sending
+        as one identity has to share one counter.
         """
         seq = self.sequence.get((sysid, compid), 0)
         self.sequence[(sysid, compid)] = (seq + 1) & 0xFFFF
         return seq
 
-    def send(self, sysid: int, compid: int, seq: int, opcode: int, session: int, offset: int, data: bytes,
-             size: Optional[int] = None) -> None:
+    def send(
+        self,
+        sysid: int,
+        compid: int,
+        seq: int,
+        opcode: int,
+        session: int,
+        offset: int,
+        data: bytes,
+        size: Optional[int] = None,
+    ) -> None:
         size = len(data) if size is None else size
         payload = HEADER.pack(seq, session, opcode, size, 0, 0, 0, offset) + data
         payload += bytes(PAYLOAD_LEN - len(payload))
         self.conn.mav.srcSystem = sysid
         self.conn.mav.srcComponent = compid
-        self.conn.mav.file_transfer_protocol_send(0, self.target_system, self.target_component, payload)
+        self.conn.mav.file_transfer_protocol_send(
+            0, self.target_system, self.target_component, payload
+        )
 
     def poll(self, timeout: float) -> None:
         msg = self.conn.recv_match(type="FILE_TRANSFER_PROTOCOL", blocking=True, timeout=timeout)
@@ -133,18 +151,28 @@ class Link:
         while msg is not None:
             raw = bytes(msg.payload)
             fields = HEADER.unpack_from(raw)
-            reply = Reply(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[7],
-                          raw[HEADER.size:HEADER.size + fields[3]])
+            reply = Reply(
+                fields[0],
+                fields[1],
+                fields[2],
+                fields[3],
+                fields[4],
+                fields[5],
+                fields[7],
+                raw[HEADER.size:HEADER.size + fields[3]],
+            )
             self.inbox.setdefault((msg.target_system, msg.target_component), []).append(reply)
             msg = self.conn.recv_match(type="FILE_TRANSFER_PROTOCOL", blocking=False)
 
     def radio_status(self) -> None:
-        """Pretend a telemetry radio with an empty buffer sits on this link, which turns on burst pacing."""
+        """Pretend a telemetry radio with an empty buffer is on this link, to turn on pacing."""
         self.conn.mav.srcSystem = 51
         self.conn.mav.srcComponent = 68
         self.conn.mav.radio_status_send(200, 200, 100, 0, 0, 0, 0)
 
-    def take(self, sysid: int, compid: int, match, timeout: float) -> Optional[Reply]:
+    def take(
+        self, sysid: int, compid: int, match: Callable[[Reply], bool], timeout: float
+    ) -> Optional[Reply]:
         deadline = time.monotonic() + timeout
 
         while True:
@@ -174,8 +202,15 @@ class Client:
         self.sysid = sysid
         self.compid = compid
 
-    def send(self, opcode: int, session: int = 0, offset: int = 0, data: bytes = b"", size: Optional[int] = None,
-             seq: Optional[int] = None) -> int:
+    def send(
+        self,
+        opcode: int,
+        session: int = 0,
+        offset: int = 0,
+        data: bytes = b"",
+        size: Optional[int] = None,
+        seq: Optional[int] = None,
+    ) -> int:
         """Send a request without waiting, return its sequence number for a later retry."""
         if seq is None:
             seq = self.link.next_seq(self.sysid, self.compid)
@@ -186,17 +221,26 @@ class Client:
     def reply(self, seq: int, timeout: float = 2.0) -> Reply:
         expected = (seq + 1) & 0xFFFF
         # burst data is collected by burst(), only a NAK answers a burst request directly
-        reply = self.link.take(self.sysid, self.compid,
-                               lambda r: r.seq == expected and (r.req_opcode != CMD_BURST_READ_FILE or not r.ack),
-                               timeout)
+        reply = self.link.take(
+            self.sysid,
+            self.compid,
+            lambda r: r.seq == expected and (r.req_opcode != CMD_BURST_READ_FILE or not r.ack),
+            timeout,
+        )
 
         if reply is None:
             raise AssertionError("no reply to seq {} for {}".format(seq, self.sysid))
 
         return reply
 
-    def request(self, opcode: int, session: int = 0, offset: int = 0, data: bytes = b"",
-                size: Optional[int] = None) -> Reply:
+    def request(
+        self,
+        opcode: int,
+        session: int = 0,
+        offset: int = 0,
+        data: bytes = b"",
+        size: Optional[int] = None,
+    ) -> Reply:
         return self.reply(self.send(opcode, session, offset, data, size))
 
     def open(self, path: str, opcode: int = CMD_OPEN_FILE_RO) -> Reply:
@@ -232,12 +276,63 @@ class Client:
 
         assert self.terminate(opened.session).ack
 
+    def read_together(self, reads: List[Tuple["Client", int]]) -> List[bytes]:
+        """Read several sessions to their end, one block of each in turn."""
+        contents = [b"" for _ in reads]
+        done = [False for _ in reads]
+
+        while not all(done):
+            for i, (client, session) in enumerate(reads):
+                if not done[i]:
+                    reply = client.read(session, len(contents[i]))
+                    done[i] = reply.error == ERR_EOF
+
+                    if not done[i]:
+                        assert reply.ack, reply
+                        contents[i] += reply.data
+
+        return contents
+
     def get(self, path: str) -> bytes:
         opened = self.open(path)
         assert opened.ack, "open {} failed: {}".format(path, opened)
         content = self.read_all(opened.session)
         assert self.terminate(opened.session).ack
         return content
+
+
+def decode_param_pck(data: bytes) -> Tuple[int, Dict[str, int]]:
+    """Return magic and value bits by name of a @PARAM/param.pck download, see test_param_ftp.py"""
+    magic, num, _ = struct.unpack_from("<HHH", data, 0)
+    params: Dict[str, int] = {}
+    prev = ""
+    i = 6
+
+    while i < len(data):
+        if data[i] == 0:
+            i += 1  # padding
+            continue
+
+        has_default = (data[i] >> 4) & 1
+        common_len, name_len = data[i + 1] & 0x0F, (data[i + 1] >> 4) + 1
+        name = prev[:common_len] + data[i + 2:i + 2 + name_len].decode("ascii")
+        i += 2 + name_len
+        params[name] = int(struct.unpack_from("<I", data, i)[0])
+        i += 4 + 4 * has_default
+        prev = name
+
+    assert len(params) == num, "decoded {} parameters, header says {}".format(len(params), num)
+    return magic, params
+
+
+def encode_param_pck(name: str, value: float) -> bytes:
+    """A @PARAM/param.pck upload setting one float parameter."""
+    body = (
+        bytes([PCK_TYPE_FLOAT, (len(name) - 1) << 4])
+        + name.encode("ascii")
+        + struct.pack("<f", value)
+    )
+    return struct.pack("<HHH", PCK_MAGIC, 1, 6 + len(body)) + body
 
 
 class Burst:
@@ -253,8 +348,9 @@ class Burst:
 
     def take(self) -> bool:
         """Consume one packet if one arrived, return whether it did."""
-        reply = self.client.link.take(self.client.sysid, self.client.compid,
-                                      lambda r: r.req_opcode == CMD_BURST_READ_FILE, 0)
+        reply = self.client.link.take(
+            self.client.sysid, self.client.compid, lambda r: r.req_opcode == CMD_BURST_READ_FILE, 0
+        )
 
         if reply is None:
             return False
@@ -276,8 +372,10 @@ class Burst:
         return True
 
 
-def run_bursts(link: Link, bursts: List[Burst], radio: bool = False, timeout: float = 30) -> List[int]:
-    """Drive bursts to their end, return which of them each data or EOF packet belonged to, in arrival order."""
+def run_bursts(
+    link: Link, bursts: List[Burst], radio: bool = False, timeout: float = 30
+) -> List[int]:
+    """Drive bursts to their end, return the burst of each data or EOF packet in arrival order."""
     order: List[int] = []
     deadline = time.monotonic() + timeout
     next_radio = 0.0
@@ -359,7 +457,9 @@ class FtpSessionTest(unittest.TestCase):
         # same component id from another system, and another component of the same system
         for other in (self.b, Client(self.link, self.a.sysid, self.a.compid + 1)):
             self.assertEqual(other.read(opened.session).error, ERR_INVALID_SESSION)
-            self.assertEqual(other.request(CMD_BURST_READ_FILE, opened.session).error, ERR_INVALID_SESSION)
+            self.assertEqual(
+                other.request(CMD_BURST_READ_FILE, opened.session).error, ERR_INVALID_SESSION
+            )
             self.assertEqual(other.write(opened.session, 0, b"theirs").error, ERR_INVALID_SESSION)
             self.assertEqual(other.terminate(opened.session).error, ERR_INVALID_SESSION)
 
@@ -415,8 +515,11 @@ class FtpSessionTest(unittest.TestCase):
         for name in names:
             self.a.put(name, b"reset")
 
-        held = [(self.a, self.a.open(names[0])), (self.b, self.b.open(names[1])),
-                (self.b, self.b.open(names[2], CMD_OPEN_FILE_WO))]
+        held = [
+            (self.a, self.a.open(names[0])),
+            (self.b, self.b.open(names[1])),
+            (self.b, self.b.open(names[2], CMD_OPEN_FILE_WO)),
+        ]
         self.assertTrue(all(reply.ack for _, reply in held))
         self.assertIn(self.open_descriptors("reset"), (-1, MAX_SESSIONS))
 
@@ -430,7 +533,9 @@ class FtpSessionTest(unittest.TestCase):
         reopened = [Client(self.link, 230 + i).open(names[i]) for i in range(MAX_SESSIONS)]
         self.assertTrue(all(reply.ack for reply in reopened), reopened)
 
-    @unittest.skipUnless(os.environ.get("FTP_SESSIONS_SLOW"), "set FTP_SESSIONS_SLOW=1 to wait for the idle close")
+    @unittest.skipUnless(
+        os.environ.get("FTP_SESSIONS_SLOW"), "set FTP_SESSIONS_SLOW=1 to wait for the idle close"
+    )
     def test_idle_sessions_expire_independently(self) -> None:
         name = self.path("idle")
         self.a.put(name, b"idle")
@@ -448,12 +553,16 @@ class FtpSessionTest(unittest.TestCase):
         self.assertEqual(self.b.read(busy.session).data, b"idle")
         self.assertTrue(self.b.terminate(busy.session).ack)
 
-    def lost(self, client: Client, opcode: int, session: int = 0, data: bytes = b"") -> Tuple[int, Reply]:
+    def lost(
+        self, client: Client, opcode: int, session: int = 0, data: bytes = b""
+    ) -> Tuple[int, Reply]:
         """Send a request and drop its reply, as if the link lost it."""
         seq = client.send(opcode, session, data=data)
         return seq, client.reply(seq)
 
-    def retry(self, client: Client, seq: int, opcode: int, session: int = 0, data: bytes = b"") -> Reply:
+    def retry(
+        self, client: Client, seq: int, opcode: int, session: int = 0, data: bytes = b""
+    ) -> Reply:
         return client.reply(client.send(opcode, session, data=data, seq=seq))
 
     def free_sessions(self) -> int:
@@ -532,7 +641,7 @@ class FtpSessionTest(unittest.TestCase):
         self.a.put(opened, b"opened")
         seq, first = self.lost(self.a, CMD_CREATE_FILE, data=created.encode())
 
-        # a client that started over, or wrapped around, sends a different request under the same number
+        # a client that started over, or wrapped around, sends another request under that number
         other = self.a.reply(self.a.send(CMD_OPEN_FILE_RO, data=opened.encode(), seq=seq))
         self.assertTrue(other.ack)
         self.assertNotEqual(other.session, first.session)
@@ -550,15 +659,72 @@ class FtpSessionTest(unittest.TestCase):
             self.assertEqual(other.request(CMD_REMOVE_FILE, data=missing).error, ERR_FILE_NOT_FOUND)
 
         for _ in range(20):
-            self.assertEqual(others[0].request(CMD_REMOVE_FILE, data=missing).error, ERR_FILE_NOT_FOUND)
+            self.assertEqual(
+                others[0].request(CMD_REMOVE_FILE, data=missing).error, ERR_FILE_NOT_FOUND
+            )
 
         self.assertEqual(self.retry(self.a, seq, CMD_CREATE_FILE, data=name.encode()), first)
 
         # one more pushes out the oldest reply, and the retry is executed as a new request
-        self.assertEqual(others[-1].request(CMD_REMOVE_FILE, data=missing).error, ERR_FILE_NOT_FOUND)
+        self.assertEqual(
+            others[-1].request(CMD_REMOVE_FILE, data=missing).error, ERR_FILE_NOT_FOUND
+        )
         again = self.retry(self.a, seq, CMD_CREATE_FILE, data=name.encode())
         self.assertTrue(again.ack)
         self.assertNotEqual(again.session, first.session)
+
+    def param_value(self, name: str) -> float:
+        conn = self.link.conn
+        conn.mav.srcSystem, conn.mav.srcComponent = 250, 190
+        conn.mav.param_request_read_send(
+            self.link.target_system, self.link.target_component, name.encode(), -1
+        )
+        deadline = time.monotonic() + 2
+
+        while time.monotonic() < deadline:
+            msg = conn.recv_match(type="PARAM_VALUE", blocking=True, timeout=0.2)
+
+            if msg is not None and msg.param_id == name:
+                return float(msg.param_value)
+
+        self.fail("no PARAM_VALUE for " + name)
+
+    def test_parameter_sessions_beside_file_session(self) -> None:
+        name = self.path("file")
+        content = bytes(range(256)) * 3
+        self.b.put(name, content)
+        upload = Client(self.link, 247)
+
+        # two parameter downloads and a file, read in turns
+        file = self.b.open(name)
+        plain = self.a.open(PARAM_PATH)
+        with_defaults = upload.open(PARAM_PATH + "?withdefaults=1")
+        self.assertTrue(file.ack and plain.ack and with_defaults.ack)
+        self.assertEqual(len({file.session, plain.session, with_defaults.session}), 3)
+
+        downloads = self.a.read_together(
+            [(self.a, plain.session), (upload, with_defaults.session), (self.b, file.session)]
+        )
+        self.assertEqual(downloads[2], content)
+        magic, params = decode_param_pck(downloads[0])
+        self.assertEqual(magic, PCK_MAGIC)
+        magic, with_defaults_params = decode_param_pck(downloads[1])
+        self.assertEqual(magic, PCK_MAGIC_WITH_DEFAULTS)
+        self.assertEqual(params.keys(), with_defaults_params.keys())
+        self.assertTrue(upload.terminate(with_defaults.session).ack)
+
+        # a parameter upload while the download and the file stay open
+        param, original = "SENS_BOARD_X_OFF", self.param_value("SENS_BOARD_X_OFF")
+        upload.put(PARAM_PATH, encode_param_pck(param, original + 0.5))
+        self.assertAlmostEqual(self.param_value(param), original + 0.5, places=5)
+
+        # both still read from where they are, as much as the link takes in one piece
+        again = self.a.read(plain.session).data
+        self.assertEqual(again, downloads[0][:len(again)])
+        again = self.b.read(file.session).data
+        self.assertEqual(again, content[:len(again)])
+        upload.put(PARAM_PATH, encode_param_pck(param, original))
+        self.assertAlmostEqual(self.param_value(param), original, places=5)
 
     def open_bursts(self, clients: List[Client], size: int) -> List[Tuple[bytes, int]]:
         files = []
@@ -579,7 +745,7 @@ class FtpSessionTest(unittest.TestCase):
         self.assertLess(order.index(0), len(order) - 1 - order[::-1].index(1), order)
 
     def test_bursts_interleave(self) -> None:
-        # larger than one send() call puts out on a UDP link, so a burst cannot finish before the next starts
+        # more than one send() call puts out on a UDP link, so neither can finish within one call
         files = self.open_bursts([self.a, self.b], 40000)
         bursts = [Burst(self.a, files[0][1]), Burst(self.b, files[1][1])]
         order = run_bursts(self.link, bursts)
@@ -618,9 +784,13 @@ class FtpSessionTest(unittest.TestCase):
 
 def main() -> None:
     global URL, PX4_PID
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--url", default=URL, help="pymavlink connection to the PX4 GCS link")
-    parser.add_argument("--pid", type=int, help="PX4 process on this host, to check it closes the files")
+    parser.add_argument(
+        "--pid", type=int, help="PX4 process on this host, to check it closes the files"
+    )
     args, rest = parser.parse_known_args()
     URL = args.url
     PX4_PID = args.pid
