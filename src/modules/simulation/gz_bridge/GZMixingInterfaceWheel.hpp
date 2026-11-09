@@ -78,6 +78,10 @@ private:
 	gz::transport::Node &_node;
 	pthread_mutex_t _node_mutex;
 
+	// wheel_encoders slot for the wheel motor on output channel `channel`, following the wheel
+	// order in WheelEncoders.msg. -1 if the channel is not a wheel motor or has no slot.
+	int wheelSlot(int channel) const;
+
 	MixingOutput _mixing_output{"SIM_GZ_WH", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	gz::transport::Node::Publisher _actuators_pub;

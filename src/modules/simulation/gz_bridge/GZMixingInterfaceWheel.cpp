@@ -34,6 +34,18 @@
 #include "GZMixingInterfaceWheel.hpp"
 #include <lib/mathlib/mathlib.h>
 
+int GZMixingInterfaceWheel::wheelSlot(int channel) const
+{
+	if (!_mixing_output.isMotor(channel)) {
+		return -1;
+	}
+
+	// WheelEncoders entry i is the wheel driven by Motor(i+1), whichever channel it is assigned to
+	const int motor = static_cast<int>(_mixing_output.outputFunction(channel)) - static_cast<int>(OutputFunction::Motor1);
+
+	return (motor < MAX_WHEELS) ? motor : -1;
+}
+
 bool GZMixingInterfaceWheel::init(const std::string &model_name)
 {
 
@@ -119,30 +131,36 @@ void GZMixingInterfaceWheel::wheelSpeedCallback(const gz::msgs::Actuators &actua
 
 	wheel_encoders_s wheel_encoders{};
 
-	// The model can have more wheel outputs than wheel_encoders has slots
-	const int num_wheels = math::min(actuators.velocity_size(), MAX_WHEELS);
+	// Velocity i belongs to output channel i, see updateOutputs()
+	const int num_channels = math::min(actuators.velocity_size(), MAX_ACTUATORS);
 
 	// No integration on the first callback, there is no previous speed yet
 	const float dt = (_prev_t == 0) ? 0.f : (current_t - _prev_t) * 1e-6f;
 
-	for (int i = 0; i < num_wheels; i++) {
+	for (int i = 0; i < num_channels; i++) {
+		const int slot = wheelSlot(i);
+
+		if (slot < 0) {
+			continue;
+		}
+
 		const float wheel_speed = (float)actuators.velocity(i);
 
 		if (_prev_t == 0) {
-			_prev_wheel_speed[i] = wheel_speed;
+			_prev_wheel_speed[slot] = wheel_speed;
 		}
 
 		// Trapezoidal integration of the wheel speed to the unwrapped wheel angle
-		_wheel_angle[i] += 0.5f * (wheel_speed + _prev_wheel_speed[i]) * dt;
-		_prev_wheel_speed[i] = wheel_speed;
+		_wheel_angle[slot] += 0.5f * (wheel_speed + _prev_wheel_speed[slot]) * dt;
+		_prev_wheel_speed[slot] = wheel_speed;
 
 		// Quantize like a real encoder
-		const int64_t encoder_counts = static_cast<int64_t>(floorf(_wheel_angle[i] * SIM_COUNTS_PER_REV / M_TWOPI_F));
+		const int64_t encoder_counts = static_cast<int64_t>(floorf(_wheel_angle[slot] * SIM_COUNTS_PER_REV / M_TWOPI_F));
 
-		wheel_encoders.wheel_speed[i] = wheel_speed;
-		wheel_encoders.counts_per_rev[i] = SIM_COUNTS_PER_REV;
-		wheel_encoders.encoder_counts[i] = encoder_counts;
-		wheel_encoders.wheel_angle[i] = encoder_counts * M_TWOPI_F / SIM_COUNTS_PER_REV;
+		wheel_encoders.wheel_speed[slot] = wheel_speed;
+		wheel_encoders.counts_per_rev[slot] = SIM_COUNTS_PER_REV;
+		wheel_encoders.encoder_counts[slot] = encoder_counts;
+		wheel_encoders.wheel_angle[slot] = encoder_counts * M_TWOPI_F / SIM_COUNTS_PER_REV;
 	}
 
 	_prev_t = current_t;
