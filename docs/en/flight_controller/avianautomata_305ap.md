@@ -18,30 +18,39 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Specifications {#specifications}
 
-- **MCU:**
-  - STM32H743VIH6 (32-bit Arm® Cortex®-M7, 480 MHz)
-- **IMU:**
-  - 2x IMU slots on separate SPI buses, each fitted with either an ST LSM6DSV16X or a TDK InvenSense ICM-45686 (detected at boot)
-- **Barometer:**
-  - Bosch BMP581
-- **Magnetometer:**
-  - MEMSIC MMC5983MA
-- **Interfaces:**
-  - 7x UARTs
-  - 2x CAN (FDCAN1, FDCAN2)
-  - 2x external I2C (one on the GPS connector)
-  - 1x external SPI with two chip selects
-  - 8x PWM outputs (DShot supported)
-  - microSD card slot
-  - 1x USB-C (USB 2.0 Full Speed)
-- **Power:**
-  - Input range: 2S-6S (approximately 7 V to 25.2 V)
-  - Battery voltage sense, plus an analog current sense input (no onboard current shunt)
-  - Regulated 5 V and 9 V outputs
+### Processor {#processor}
+
+- **Main FMU processor:** [STM32H743VIH6](https://www.st.com/en/microcontrollers-microprocessors/stm32h743vi.html) (32-bit Arm® Cortex®-M7, 480 MHz, 2 MB flash, 1 MB RAM)
+
+### Sensors {#sensors}
+
+- **IMU:** 2 slots (SPI2, SPI3), each fitted with either an [ST LSM6DSV16X](https://www.st.com/en/mems-and-sensors/lsm6dsv16x.html) or a [TDK InvenSense ICM-45686](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686) (detected at boot)
+- **Barometer:** [Bosch BMP581](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp581/) (SPI1)
+- **Magnetometer:** [MEMSIC MMC5983MA](https://www.memsic.com/magnetometer-5) (I2C1)
+
+### Interfaces {#interfaces}
+
+- **PWM outputs:** 8, all supporting [DShot](../peripherals/dshot.md)
+- **Serial ports:** 7 (`TELEM 1`, `TELEM 2`, `GPS`, `RC IN`, `VTX`, the debug console on `VTX`, and USART1 on the `Motors` connector)
+- **I2C buses:** 3 (I2C1 internal; I2C2 and I2C4 external, I2C4 on the `GPS` connector)
+- **SPI buses:** 4, of which SPI4 is external with 2 chip selects
+- **CAN buses:** 2 (FDCAN1, FDCAN2)
+- **USB:** USB-C (USB 2.0 Full Speed)
+- **RC input:** Yes
+- **Parameter storage:** microSD card
+- **SD card:** microSD slot
+- **OSD:** MSP OSD on `VTX`
+
+### Electrical Data {#electrical_data}
+
+- **Input voltage:** 2S-6S (approximately 7 V to 25.2 V)
+- **Power monitoring:** 1 analog battery voltage input, plus an analog current sense input (no onboard current shunt)
+- **Power outputs:** regulated 5 V and 9 V
 
 ### Mechanical Data {#mechanical_data}
 
 - **Dimensions:** 36.5 mm x 36.5 mm
+- **Weight:** 11 g (with microSD card)
 - **Mounting hole spacing:** 30.5 mm x 30.5 mm, M4 holes sized for M3 rubber vibration isolators
 
 ## Where to Buy {#store}
