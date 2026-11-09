@@ -645,21 +645,29 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 		_mission_item.yaw = NAN;
 	}
 
+	// The landing sequence starts after a normal arrival or after a climb inserted before the landing item.
+	const bool starts_landing = _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
+				    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB;
+
+	// The steps before the descent keep the altitude of the position setpoint or of the climb just reached:
+	// a loiter climb counts as reached within the altitude acceptance radius, below its target.
+	float altitude = _global_pos_sub.get().alt;
+
+	if (pos_sp_triplet->current.valid
+	    && (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION
+		|| _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB)) {
+		altitude = pos_sp_triplet->current.alt;
+	}
+
 	/* move to land wp as fixed wing */
 	if (needs_vtol_landing) {
-		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+		if (starts_landing) {
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
 			/* use current mission item as next position item */
 			num_found_items = 1u;
 			next_mission_items[0u] = _mission_item;
-
-			float altitude = _global_pos_sub.get().alt;
-
-			if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
-			}
 
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
@@ -683,8 +691,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 		/* move to landing waypoint before descent if necessary */
 		if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
 		    do_need_move_to_item() &&
-		    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT ||
-		     _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
+		    (starts_landing || _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
@@ -699,13 +706,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				* XXX: We might want to change that at some point if it is clear to the user
 				* what the altitude means on this waypoint type.
 				*/
-			float altitude = _global_pos_sub.get().alt;
-
-			if (pos_sp_triplet->current.valid
-			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
-			}
-
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
