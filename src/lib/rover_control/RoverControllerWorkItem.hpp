@@ -93,7 +93,6 @@ protected:
 	 * @param trigger Topic that triggers the controller
 	 */
 	RoverControllerWorkItem(const char *name, const orb_metadata *trigger);
-	~RoverControllerWorkItem() override = default;
 
 	/**
 	 * @brief Run one controller step, called on every trigger while enabled.
