@@ -12,11 +12,21 @@ Remove the propellers before you connect a configurator.
 
 ## Supported Boards
 
-- [px4_fmu-v6xrt](../flight_controller/pixhawk6x-rt.md)
-- `ark_fmu-v6xrt`
+- [ARK FMU-v6X](../flight_controller/ark_v6x.md) (`ark_fmu-v6x`)
+- [ARK FMU-v6S](../flight_controller/ark_v6s.md) (`ark_fmu-v6s`)
+- [ARK Pi6X Flow](../flight_controller/ark_pi6x.md) (`ark_pi6x`)
+- [ARK FPV](../flight_controller/ark_fpv.md) (`ark_fpv`)
+- [ARK FMU-v6X RT](../flight_controller/ark_v6xrt.md) (`ark_fmu-v6xrt`)
+- [Pixhawk 6X-RT](../flight_controller/pixhawk6x-rt.md) (`px4_fmu-v6xrt`)
 - `nxp_mr-tropic`
 
+Other STM32F7/H7 and NXP i.MX RT boards can be added with a build configuration change, see [Enabling on Other Boards](#enabling-on-other-boards).
+
 Only ESCs connected to the flight controller's own motor outputs can be configured; outputs on an I/O board (PX4IO) are not supported.
+The server needs all of the first eight of these outputs: if one of them is used for camera capture, camera trigger or another input/output function that is not a motor or servo, the ESCs cannot be reached.
+
+The configurator numbers the ESCs by motor: ESC 1 is the output assigned to Motor 1 in [Actuator Configuration](../config/actuators.md), ESC 2 is Motor 2, and so on.
+If no output is assigned to a motor, ESC 1 is the first output, ESC 2 the second, and so on.
 
 ## Configure the ESCs
 
@@ -47,6 +57,8 @@ If [SYS_USB_AUTO](../advanced_config/parameter_reference.md#SYS_USB_AUTO) is set
 This only works while nothing else has claimed the USB port since it was plugged in.
 If QGroundControl connected first, unplug and replug the USB cable.
 
+Any program that sends an MSP request to the USB port first starts the ESC configuration server in this mode, and the motor outputs then stay off until the flight controller reboots.
+
 ## Command Line Tools
 
 ### Host Tool
@@ -73,6 +85,23 @@ The tool needs `pymavlink` for the switch over MAVLink.
 
 am32.ca only shows USB devices from a list of known flight controller vendor IDs, so use a version of the configurator whose list includes the vendor ID of your board's USB port.
 esc-configurator.com has an override for this and shows the port regardless of its vendor ID.
+
+## Enabling on Other Boards
+
+The ESC configuration server drives the ESC signal pins as a half-duplex UART.
+That backend exists for STM32F7/H7 boards and for the NXP i.MX RT1064/RT1176 and i.MX95 boards.
+To enable the server, add these keys to the board's `default.px4board`:
+
+```text
+CONFIG_DRIVERS_SERIALPASSTHROUGH=y
+CONFIG_SERIALPASSTHROUGH_BITBANG=y
+CONFIG_DRIVERS_ESC_4WAY=y
+```
+
+`PASSTHRU_EN=2` and USB auto-detection need the board's USB port to be managed by `cdcacm_autostart` (`CONFIG_DRIVERS_CDCACM_AUTOSTART=y`); without it, start the server manually with `esc_4way start -d <device>`.
+
+On STM32 boards the UART bit timing comes from a spare hardware timer, `CONFIG_UART_BITBANG_TIMER` (default `13`).
+That timer must be enabled in the board's NuttX configuration (`CONFIG_STM32H7_TIM13=y` or `CONFIG_STM32F7_TIM13=y` in `nuttx-config/nsh/defconfig`), and nothing else on the board may use it: not the HRT, the tone alarm, an LED, or a PWM/DShot output timer.
 
 ## See Also
 
