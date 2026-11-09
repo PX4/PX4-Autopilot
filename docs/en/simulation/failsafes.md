@@ -49,6 +49,13 @@ By changing [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_
 :::
 
 The simulated battery can be completely disabled by setting [SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW) and [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC) to 0. This is useful, for example, if you provide an external battery simulation via MAVLink.
+Setting only one of them to 0 is not enough: the simulator starts if either is greater than 0.
+
+:::warning
+`SIM_BAT_DRAIN` has been replaced by `SIM_BAT_I_FW` and `SIM_BAT_I_MC`.
+Setups that disabled the simulated battery with `SIM_BAT_DRAIN` set to 0 (for example, to use an external battery over MAVLink) must now set both `SIM_BAT_I_FW` and `SIM_BAT_I_MC` to 0.
+Otherwise the simulator starts and publishes a second `battery_status` alongside the external one.
+:::
 
 ### Multiple Batteries
 
