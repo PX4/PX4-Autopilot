@@ -71,6 +71,7 @@ Each simulated battery is published as its own `battery_status` instance.
 All batteries deplete according to [SIM_BAT_I_FW](../advanced_config/parameter_reference.md#SIM_BAT_I_FW), [SIM_BAT_I_MC](../advanced_config/parameter_reference.md#SIM_BAT_I_MC), and [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_MIN_PCT) unless overridden for an individual battery with [SIM_BATx_I_FW](../advanced_config/parameter_reference.md#SIM_BAT1_I_FW), [SIM_BATx_I_MC](../advanced_config/parameter_reference.md#SIM_BAT1_I_MC), and [SIM_BATx_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT1_MIN_PCT).
 Setting `SIM_BATx_I_FW` to a non-positive value uses the shared average current drawn for fixed wing mode. Setting `SIM_BATx_I_MC` to a non-positive value uses the shared average current drawn for multicopter mode. Setting `SIM_BATx_MIN_PCT` to a negative value
 uses the shared minimum charge.
+The current is applied per battery: with several batteries enabled, each one is drained by the full configured current.
 This can be used to test multi-battery behaviour, for example one battery depleting faster than the others.
 
 ## Sensor/System Failure
