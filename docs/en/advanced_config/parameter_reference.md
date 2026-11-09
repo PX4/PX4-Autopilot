@@ -61363,13 +61363,35 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Simulation In Hardware
 
-<div class="param-group" style="--param-count: 35">
+<div class="param-group" style="--param-count: 41">
+
+<div class="param">
+
+### SIH_DISTSNSR_EN (`INT32`) {#SIH_DISTSNSR_EN}
+
+Enable the simulated downward facing distance sensor.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 1 |  | &nbsp;
+
+</div>
 
 <div class="param">
 
 ### SIH_DISTSNSR_MAX (`FLOAT`) {#SIH_DISTSNSR_MAX}
 
 distance sensor maximum range.
+
+The signal quality degrades over the last 20% of the range. Beyond the maximum range
+the sensor reports a saturated reading with a zero signal quality.
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -61383,9 +61405,29 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 distance sensor minimum range.
 
+Readings closer than this saturate at the minimum range
+and are reported with a zero signal quality.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 | 10.0 | 0.01 | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_DISTSNSR_NOI (`FLOAT`) {#SIH_DISTSNSR_NOI}
+
+Distance sensor measurement noise standard deviation.
+
+Gaussian noise added to the simulated distance sensor measurements.
+Set to 0 to disable noise.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 10.0 |  | 0.01 | m | &nbsp;
 
 </div>
 
@@ -61395,7 +61437,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 if >= 0 the distance sensor measures will be overridden by this value.
 
-Absolute value superior to 10000 will disable distance sensor
+Set SIH_DISTSNSR_EN to 0 to disable the distance sensor.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -61802,6 +61844,76 @@ This value can be measured by weighting the quad on a scale.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 |  | 0.1 | 1.0 | kg | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_EN (`INT32`) {#SIH_OF_EN}
+
+Enable the simulated optical flow sensor.
+
+The simulated sensor reports the integrated flow only. The flow module completes the
+sample with the vehicle gyro and the downward facing distance sensor, which therefore
+has to be enabled as well (SIH_DISTSNSR_EN) for the flow to be usable by the estimator.
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_H_MAX (`FLOAT`) {#SIH_OF_H_MAX}
+
+Optical flow maximum ground distance.
+
+Above this distance to the ground the simulated sensor cannot track the ground image
+anymore and reports a zero quality.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 |  |  | 30.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_NOISE (`FLOAT`) {#SIH_OF_NOISE}
+
+Optical flow measurement noise standard deviation.
+
+Gaussian noise added to the simulated flow rate.
+Set to 0 to disable noise.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 5.0 |  | 0.05 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_RATE (`FLOAT`) {#SIH_OF_RATE}
+
+Optical flow publication rate.
+
+The simulated sensor integrates the flow over one publication interval.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 | 100.0 |  | 12.0 | Hz | &nbsp;
 
 </div>
 

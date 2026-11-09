@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-AckermannPosControl::AckermannPosControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannPosControl::AckermannPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_pos_control", ORB_ID(vehicle_local_position))
 {
 	_pure_pursuit_status_pub.advertise();
 	_surface_vehicle_speed_setpoint_pub.advertise();

@@ -38,6 +38,7 @@
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
 #include <math.h>
 
@@ -45,13 +46,14 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/surface_vehicle_steering_setpoint.h>
 #include <uORB/topics/rover_throttle_setpoint.h>
 
 /**
  * @brief Class for mecanum actuator control.
  */
-class MecanumActControl : public ModuleParams
+class MecanumActControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -78,6 +80,9 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateActControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
+
 	/**
 	 * @brief Compute normalized motor commands based on normalized setpoints.
 	 * @param throttle_body_x Normalized speed in body x direction [-1, 1].

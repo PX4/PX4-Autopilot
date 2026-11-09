@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumPosControl::MecanumPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_mecanum_pos_control", ORB_ID(vehicle_local_position))
 {
 	_surface_vehicle_speed_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();
