@@ -69,6 +69,7 @@ PX4 represents the heading using:
 The course is the direction the vehicle _actually_ moves over the ground: the direction of its ground velocity.
 It is also called _course over ground_ (COG) in marine navigation, and it is what a GNSS receiver reports as "course" and what avionics show as _TRK_ (track).
 It is undefined when the vehicle is stationary, and noisy at low speed.
+For a rover that drives without wheel slip, the course equals the heading when driving forwards, and the heading plus 180° when reversing.
 
 <img src="../../assets/concepts/navigation/detail_course.svg" alt="Course: angle from north to the ground velocity, tangent to the track" class="diagram-invert">
 
@@ -137,6 +138,9 @@ The drift angle is the difference between where the vehicle points ([heading](#h
 Wind causes it for aircraft, wind and current for boats, and wheel slip for rovers.
 Multicopters and [mecanum rovers](../frames_rover/index.md#mecanum) can also move sideways on purpose.
 
+Rover and vehicle dynamics material calls this angle the _vehicle sideslip angle_, while for aircraft the _sideslip angle_ is measured against the airflow, not the ground.
+In marine navigation, bare _drift_ is the speed of the current, which is why PX4 always writes _drift angle_.
+
 <img src="../../assets/concepts/navigation/detail_drift_angle.svg" alt="Drift angle: angle between heading and course" class="diagram-invert">
 
 ### Airspeed and Ground Speed
@@ -170,6 +174,16 @@ $$
 - The angle between the heading and $\mathbf{v}_{ground}$ is the **drift angle**.
 
 <img src="../../assets/concepts/navigation/detail_wind_triangle.svg" alt="Wind triangle: air velocity along the heading plus wind velocity gives the ground velocity along the course" class="diagram-invert">
+
+## Names That Don't Mean What They Say
+
+Some names you see when tuning, flying or reading logs predate this terminology and don't match it:
+
+- "Bearing" in [Rover Velocity Tuning](../config_rover/velocity_tuning.md) and [Rover Position Tuning](../config_rover/position_tuning.md) means the [course setpoint](#course-setpoint).
+- MAVLink [`NAV_CONTROLLER_OUTPUT.nav_bearing`](https://mavlink.io/en/messages/common.html#NAV_CONTROLLER_OUTPUT) and `NAV_CONTROLLER_OUTPUT.xtrack_error` are always 0 in current PX4.
+- The ADS-B traffic "heading" ([`transponder_report.heading`](../msg_docs/TransponderReport.md), MAVLink [`ADSB_VEHICLE.heading`](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE)) is the other aircraft's [course](#course).
+
+The code-level names that deviate are listed in [Field Names That Deviate](../concept/navigation_terminology_advanced.md#field-names-that-deviate).
 
 ## Further Information
 
