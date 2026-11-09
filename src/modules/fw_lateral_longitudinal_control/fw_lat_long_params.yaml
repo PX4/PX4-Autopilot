@@ -84,7 +84,7 @@ parameters:
           Increase it to trim out speed and height offsets faster,
           with the downside of possible overshoots and oscillations.
       type: float
-      default: 0.1
+      default: 0.2
       min: 0.0
       max: 2.0
       decimal: 2
@@ -120,7 +120,7 @@ parameters:
       description:
         short: Pitch damping gain
       type: float
-      default: 0.1
+      default: 0.2
       min: 0.0
       max: 2.0
       decimal: 2
