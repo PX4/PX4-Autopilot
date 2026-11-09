@@ -2,7 +2,7 @@
 
 Manual modes require stick inputs from the user to drive the vehicle.
 
-![Manual Controls](../../assets/flight_modes/rover_manual_controls.svg )
+![Manual Controls](../../assets/flight_modes/rover_manual_controls.png)
 
 The sticks provide the same "high level" control effects over direction and rate of movement in all manual modes:
 
