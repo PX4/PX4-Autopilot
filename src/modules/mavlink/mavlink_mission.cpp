@@ -213,6 +213,9 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 {
 	pthread_mutex_lock(&_shared_state_mutex);
 	mission_s mission = update_active_mission_locked(mission_dataman_id, count, seq, crc32);
+	// Publish under the lock so check_active_mission() never sees the shared
+	// state ahead of the topic and rolls it back to the previous mission.
+	_offboard_mission_pub.publish(mission);
 	pthread_mutex_unlock(&_shared_state_mutex);
 
 	if (write_to_dataman) {
@@ -223,8 +226,6 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 			PX4_ERR("Can't update mission state in Dataman");
 		}
 	}
-
-	_offboard_mission_pub.publish(mission);
 }
 
 int
@@ -261,9 +262,9 @@ MavlinkMissionManager::update_geofence_count(dm_item_t fence_dataman_id, unsigne
 
 	mission_s mission = update_active_mission_locked(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
 			    _crc32[MAV_MISSION_TYPE_MISSION]);
+	_offboard_mission_pub.publish(mission);
 	pthread_mutex_unlock(&_shared_state_mutex);
 
-	_offboard_mission_pub.publish(mission);
 	return PX4_OK;
 }
 
@@ -301,9 +302,9 @@ MavlinkMissionManager::update_safepoint_count(dm_item_t safepoint_dataman_id, un
 
 	mission_s mission = update_active_mission_locked(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
 			    _crc32[MAV_MISSION_TYPE_MISSION]);
+	_offboard_mission_pub.publish(mission);
 	pthread_mutex_unlock(&_shared_state_mutex);
 
-	_offboard_mission_pub.publish(mission);
 	return PX4_OK;
 }
 
@@ -1948,12 +1949,13 @@ void MavlinkMissionManager::check_active_mission()
 		return;
 	}
 
-	_mission_sub.update();
-
 	// Hold _shared_state_mutex around the check-then-update on _crc32[],
 	// _count[], _mission_dataman_id etc. Multiple receiver threads call
 	// this concurrently and would race on these shared statics.
+	// Copy the snapshot under the lock too: writers publish under it, so
+	// the copy can't be older than the shared state it is compared with.
 	pthread_mutex_lock(&_shared_state_mutex);
+	_mission_sub.update();
 
 	if ((_mission_sub.get().geofence_id != _crc32[MAV_MISSION_TYPE_FENCE])
 	    || (_my_fence_dataman_id != (dm_item_t) _mission_sub.get().fence_dataman_id)) {
