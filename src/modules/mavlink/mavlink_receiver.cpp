@@ -2168,7 +2168,12 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		SerialPassthrough::startForDevice(serial_control_mavlink.device, serial_control_mavlink.baudrate);
 		SerialPassthrough *sp = SerialPassthrough::get_instance_for_device(serial_control_mavlink.device);
 
-		if (sp && serial_control_mavlink.count > 0) {
+		// count is a uint8_t while data[] holds fewer bytes, so it has to be
+		// bounded before it is used as a length (the shell branch below does the
+		// same check). Without this, a count above sizeof(data) reads past the
+		// message struct.
+		if (sp && serial_control_mavlink.count > 0
+		    && serial_control_mavlink.count <= sizeof(serial_control_mavlink.data)) {
 			sp->pushFromMavlink(serial_control_mavlink.data,
 					    serial_control_mavlink.count,
 					    msg->sysid, msg->compid,

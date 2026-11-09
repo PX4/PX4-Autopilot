@@ -54,6 +54,9 @@
 #include <pthread.h>
 
 static constexpr size_t SP_BUF_SIZE      = 1024;
+// MAVLINK_MSG_SERIAL_CONTROL_FIELD_DATA_LEN; a SERIAL_CONTROL frame carries no
+// more than this many payload bytes, so a larger length cannot be backed by data.
+static constexpr size_t SP_MAVLINK_DATA_MAX = 70;
 static constexpr int    SP_MAX_INSTANCES = 8;
 
 class SerialPassthrough

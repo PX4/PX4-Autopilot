@@ -282,6 +282,15 @@ void SerialPassthrough::pushFromMavlink(const uint8_t *data, size_t len,
 		return;
 	}
 
+	// MAVLink SERIAL_CONTROL carries a uint8_t count but only 70 data bytes, so a
+	// caller can pass a len larger than the buffer it points at. Clamp here as well
+	// as at the call site: this is the only place that knows how much it will copy.
+	if (len > SP_MAVLINK_DATA_MAX) {
+		PX4_WARN("serialpassthrough: clamping length %zu to %u", len,
+			 (unsigned)SP_MAVLINK_DATA_MAX);
+		len = SP_MAVLINK_DATA_MAX;
+	}
+
 	pthread_mutex_lock(&_rx_mutex);
 	size_t space   = SP_BUF_SIZE - _rx_len;
 	size_t to_copy = (len < space) ? len : space;
