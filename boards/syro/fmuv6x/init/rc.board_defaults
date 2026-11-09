@@ -12,4 +12,10 @@ param set-default MAV_2_RATE 100000
 param set-default MAV_2_REMOTE_PRT 14550
 param set-default MAV_2_UDP_PRT 14550
 
+# IMU heater: the heater is fitted next to IMU1, IMU2, BARO1 and the internal mag.
+# Regulate on IMU1 (ICM-45686 on SPI2, device ID 3407890). With auto-select it picks
+# IMU0, which sits outside the heated area, and the heater never switches off.
+param set-default SENS_EN_THERMAL 1
+param set-default HEATER1_SENS_ID 3407890
+
 safety_button start
