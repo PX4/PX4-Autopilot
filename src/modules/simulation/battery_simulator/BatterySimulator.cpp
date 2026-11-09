@@ -142,8 +142,6 @@ void BatterySimulator::Run()
 				_consumed_mah[i] += (now_us - _last_integration_us) / 3.6e6f * ibatt; //1 uAs = 3.6e-6 mAh
 				_battery_percentage[i] = 1.0f - _consumed_mah[i] / _batteries[i]->getCapacity();
 
-			} else {
-				continue; // No battery capacity set or not battery drain simulation
 			}
 
 		} else {
