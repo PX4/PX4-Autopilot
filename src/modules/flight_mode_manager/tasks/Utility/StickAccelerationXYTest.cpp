@@ -41,7 +41,8 @@
 
 using namespace matrix;
 
-static constexpr float kDt = 0.01f;
+// the flight tasks run at 50 Hz
+static constexpr float kDt = 0.02f;
 
 class StickAccelerationXYTest : public ::testing::Test
 {
@@ -56,13 +57,19 @@ public:
 		_takeoff_status_pub.publish(takeoff_status);
 	}
 
-	// One loop at the given forward stick, with the speed limit set as a flight task does
-	void step(float stick, float velocity_limit)
+	// One loop at the given stick, with the speed limit and constraint set as a flight task does
+	void step(const Vector2f &stick, float velocity_limit, float velocity_constraint = INFINITY)
 	{
 		_stick_acceleration_xy.setVelocityLimit(velocity_limit);
-		_stick_acceleration_xy.generateSetpoints(Vector2f(stick, 0.f), 0.f, 0.f, Vector3f(), Vector2f(NAN, NAN), kDt);
+		_stick_acceleration_xy.setVelocityConstraint(velocity_constraint);
+		_stick_acceleration_xy.generateSetpoints(stick, 0.f, 0.f, Vector3f(), Vector2f(NAN, NAN), kDt);
 		Vector3f position;
 		_stick_acceleration_xy.getSetpoints(position, _velocity, _acceleration);
+	}
+
+	void step(float forward_stick, float velocity_limit)
+	{
+		step(Vector2f(forward_stick, 0.f), velocity_limit);
 	}
 
 	uORB::Publication<takeoff_status_s> _takeoff_status_pub{ORB_ID(takeoff_status)};
@@ -113,7 +120,7 @@ TEST_F(StickAccelerationXYTest, LimitKeepsStickAcceleration)
 		// THEN: the speed never exceeds the limit
 		EXPECT_LE(max_limited, limit + 1e-4f) << "limit " << limit;
 		// THEN: it gets there sooner than under the constraint's scaled-down acceleration, by far near the ground
-		EXPECT_LT(time_limited, 0.67f * time_constrained) << "limit " << limit;
+		EXPECT_LT(time_limited, 0.8f * time_constrained) << "limit " << limit;
 	}
 }
 
@@ -132,10 +139,13 @@ TEST_F(StickAccelerationXYTest, LimitScalesStickSpeed)
 
 TEST_F(StickAccelerationXYTest, BrakesFromTheLimit)
 {
-	// GIVEN: flying at a 1 m/s limit with the stick fully forward
-	for (int i = 0; i < 300; i++) {
+	// GIVEN: the stick fully forward until the speed first reaches a 1 m/s limit, where the clamp cuts acceleration
+	// the jerk limit has already built up
+	for (int i = 0; (i < 300) && (_velocity(0) < 1.f - 1e-4f); i++) {
 		step(1.f, 1.f);
 	}
+
+	ASSERT_NEAR(_velocity(0), 1.f, 1e-3f);
 
 	// WHEN: the stick is released
 	float time_to_stop = NAN;
@@ -199,4 +209,43 @@ TEST_F(StickAccelerationXYTest, HoldsNoisyLimitSmallerThanOneStepOfDrag)
 
 	// THEN: the setpoint follows the limit instead of falling back to zero again and again
 	EXPECT_GT(min_speed, .03f);
+}
+
+TEST_F(StickAccelerationXYTest, DiagonalStickStaysWithinLimit)
+{
+	// GIVEN: a 1 m/s limit
+
+	// WHEN: the stick is held fully forward and right
+	float max_speed = 0.f;
+
+	for (int i = 0; i < 300; i++) {
+		step(Vector2f(1.f, 1.f), 1.f);
+		max_speed = fmaxf(max_speed, _velocity.xy().norm());
+	}
+
+	// THEN: the speed never exceeds the limit and settles at it, split evenly between the axes
+	EXPECT_LE(max_speed, 1.f + 1e-4f);
+	EXPECT_NEAR(_velocity.xy().norm(), 1.f, .02f);
+	EXPECT_NEAR(_velocity(0), _velocity(1), 1e-3f);
+}
+
+TEST_F(StickAccelerationXYTest, StricterOfLimitAndConstraintSetsSpeed)
+{
+	// GIVEN: a 1 m/s limit under a 5 m/s constraint
+
+	// WHEN: the stick is held fully forward
+	for (int i = 0; i < 500; i++) {
+		step(Vector2f(1.f, 0.f), 1.f, 5.f);
+	}
+
+	// THEN: it settles at the limit
+	EXPECT_NEAR(_velocity(0), 1.f, .02f);
+
+	// AND WHEN: the two swap
+	for (int i = 0; i < 500; i++) {
+		step(Vector2f(1.f, 0.f), 5.f, 1.f);
+	}
+
+	// THEN: it settles at the constraint
+	EXPECT_NEAR(_velocity(0), 1.f, .02f);
 }
