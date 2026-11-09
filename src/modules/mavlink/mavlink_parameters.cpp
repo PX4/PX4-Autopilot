@@ -293,7 +293,10 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				req.message_type = msg->msgid;
 				req.node_id = set.target_component;
 				req.param_index = -1;
-				strncpy(req.param_id, set.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1);
+				// Copy only the bytes the source actually has, then terminate. Passing
+				// PARAM_ID_LEN + 1 as n makes strncpy read one byte past set.param_id,
+				// which is a 16-byte field that the spec allows to be unterminated.
+				strncpy(req.param_id, set.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 				req.param_id[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
 				if (set.param_type == MAV_PARAM_TYPE_REAL32) {
@@ -403,7 +406,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				req.message_type = msg->msgid;
 				req.node_id = req_read.target_component;
 				req.param_index = req_read.param_index;
-				strncpy(req.param_id, req_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1);
+				// Same as above: the source field is 16 bytes, the destination 17.
+				strncpy(req.param_id, req_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 				req.param_id[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
 				// Enque the request and forward the first to the uavcan node
