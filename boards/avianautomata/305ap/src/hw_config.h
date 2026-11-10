@@ -101,7 +101,7 @@
 #define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
 #define BOARD_USB_VBUS_SENSE_DISABLED  /* No VBUS sensing - bus-powered */
 #define GPIO_OTGFS_VBUS /* PE15 NC */ (GPIO_INPUT|GPIO_PULLUP|GPIO_SPEED_2MHz|GPIO_PORTE|GPIO_PIN15)
-#define INTERFACE_USART                1
+#define INTERFACE_USART                0
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,115200"
 #define BOOT_DELAY_ADDRESS             0x000001a0
 #define BOARD_TYPE                     6700

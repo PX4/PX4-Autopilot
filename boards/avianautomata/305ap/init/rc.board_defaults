@@ -12,8 +12,14 @@ param set-default BAT1_A_PER_V 0
 # Internal magnetometer present (MMC5983MA on I2C1)
 param set-default SYS_HAS_MAG 1
 
-# DShot output
+# DShot300 on all outputs
 param set-default PWM_MAIN_TIM0 -4
+param set-default PWM_MAIN_TIM1 -4
+param set-default PWM_MAIN_TIM2 -4
+param set-default PWM_MAIN_TIM3 -4
+
+# ESC serial telemetry on the Motors connector. PA9 is the USART1 TX pin, so RX/TX are swapped.
+dshot telemetry -d /dev/ttyS0 -x
 
 # Auto-detect RC protocol (UART5 SBUS)
 param set-default RC_INPUT_PROTO -1
