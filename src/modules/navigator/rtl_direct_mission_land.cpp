@@ -124,9 +124,16 @@ void RtlDirectMissionLand::on_activation()
 bool RtlDirectMissionLand::setNextMissionItem()
 {
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
+
+	if (_geofence_avoidance_leg_active) {
+		// Advance past the leg only once it is reached, so that reloading the mission items while it is flown
+		// issues the same leg again.
+		planner.advanceWaypoint();
+	}
 
 	// Stay on the same mission item until the geofence-avoidance path is fully consumed.
-	if (_navigator->get_geofence_avoidance_planner().hasMore()) {
+	if (planner.hasMore()) {
 		return true;
 	}
 
@@ -217,7 +224,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		matrix::Vector2d point = planner.getCurrentWaypoint();
 		const matrix::Vector2d next_point = planner.getNextWaypoint();
 		const bool is_first_waypoint = 0 == planner.getPathCursor();
-		planner.advanceWaypoint();
+		// The planner moves past this leg in setNextMissionItem(), once it is reached.
 		_geofence_avoidance_leg_active = true;
 
 		if (!point.isAllFinite()) {
@@ -234,11 +241,17 @@ void RtlDirectMissionLand::setActiveMissionItems()
 			}
 		}
 
-		// Line following only between points on the path, not when flying to the first point
+		// Line following only between points on the path, not when flying to the first point. A leg issued again
+		// keeps its previous setpoint. Only the position is compared, because a fixed wing's acceptance radius
+		// changes in flight.
+		const bool same_leg_again = current_setpoint_copy.valid
+					    && (fabs(current_setpoint_copy.lat - point(0)) < DBL_EPSILON)
+					    && (fabs(current_setpoint_copy.lon - point(1)) < DBL_EPSILON);
+
 		if (is_first_waypoint) {
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
-		} else {
+		} else if (!same_leg_again) {
 			pos_sp_triplet->previous = current_setpoint_copy;
 		}
 
