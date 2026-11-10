@@ -706,6 +706,41 @@ TEST_F(TECSClosedLoopUnderspeedTest, RecoversFromUnderspeed)
 	EXPECT_LT(_sim_stats.max_altitude_error, 2.f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
 }
 
+// As above, but the engine has failed: underspeed commands maximum throttle, which gives no thrust. The pitch must
+// not rely on that throttle: it glides out of full underspeed, never climbs while undersped and loses no airspeed.
+// Not checked: getting out of underspeed altogether. Above the underspeed band the pitch assumes again that the
+// throttle delivers (see DISABLED_ClimbBeyondThrustHoldsAirspeed), so with a failed engine the vehicle settles
+// inside the band.
+TEST_F(TECSClosedLoopUnderspeedTest, GlidesOutOfFullUnderspeedWithEngineFailure)
+{
+	_plant.v_min_power = V_MIN_POWER;
+	_plant.throttle_failed = true;
+	_state.V = 7.5f;
+
+	float max_climb_rate_undersped = -INFINITY;
+	float V_min = _state.V;
+	float max_underspeed_ratio_settled = 0.f;
+	const float t_settled = _t + 5.f;
+	const float t_end = _t + 60.f;
+
+	while (_t < t_end) {
+		run(DT);
+		V_min = math::min(V_min, _state.V);
+
+		if (_tecs.getUnderspeedRatio() > 0.f) {
+			max_climb_rate_undersped = math::max(max_climb_rate_undersped, plantAltitudeRate());
+		}
+
+		if (_t > t_settled) {
+			max_underspeed_ratio_settled = math::max(max_underspeed_ratio_settled, _tecs.getUnderspeedRatio());
+		}
+	}
+
+	EXPECT_GE(V_min, 7.5f - 0.2f);
+	EXPECT_LE(max_climb_rate_undersped, 0.f) << "climbs while undersped without thrust";
+	EXPECT_LT(max_underspeed_ratio_settled, 1.f) << "not out of full underspeed after 5 s";
+}
+
 // The vehicle climbs much worse than FW_T_CLMB_MAX says (heavy, hot and high). The throttle model then believes
 // the climb is funded long before the throttle saturates, and the climb must not be paid with airspeed.
 // Disabled: the pitch allocation assumes the throttle model is correct. Needs the total energy rate limits to adapt

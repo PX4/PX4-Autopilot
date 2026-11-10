@@ -478,11 +478,12 @@ TECSControl::PitchControlValues TECSControl::_calcPitchControlSebRateValues(cons
 	// Normally the throttle delivers its setpoint, clipped to the limits
 	float ste_rate_throttle = constrain(ste_rate_setpoint, ste_rate_min, ste_rate_max);
 
-	// Underspeed ramps the throttle to its maximum (see _calcThrottleControlOutput())
-	ste_rate_throttle = lerp(ste_rate_throttle, ste_rate_max, _ratio_undersped);
-
-	// Fast descend ramps the throttle to its minimum (see _calcThrottleControl())
-	ste_rate_throttle = lerp(ste_rate_throttle, ste_rate_min, constrain(param.fast_descend, 0.f, 1.f));
+	// Fast descend ramps the throttle to its minimum (see _calcThrottleControl()). Underspeed ramps it to its
+	// maximum (see _calcThrottleControlOutput()), but the pitch must not rely on that: the engine may have failed,
+	// the throttle is still slewing up, and near stall the excess power is below the one FW_T_CLMB_MAX states at
+	// trim. Assume gliding instead; if the throttle does deliver, the airspeed recovers faster.
+	ste_rate_throttle = lerp(ste_rate_throttle, ste_rate_min,
+				 constrain(max(param.fast_descend, _ratio_undersped), 0.f, 1.f));
 
 	// Without throttle range the throttle sits at its minimum (gliders)
 	const bool no_throttle_range = param.throttle_max - param.throttle_min < FLT_EPSILON;

@@ -1276,3 +1276,21 @@ TEST_F(TECSPitchAllocationTest, FastDescendFliesAirspeedOnly)
 	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_min);
 	EXPECT_NEAR(r.seb_rate_setpoint - r.seb_rate_estimate, 2.f * (r.ske_rate_estimate - r.ske_rate_setpoint), 1e-4f);
 }
+
+// In underspeed the throttle is commanded to its maximum, but the pitch must not rely on it (engine failure, throttle
+// still slewing up, less excess power near stall): it assumes gliding, i.e. the minimum total energy rate, and flies
+// airspeed only.
+TEST_F(TECSPitchAllocationTest, UnderspeedAssumesGliding)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	TECSControl::Input input = makeInput();
+	input.tas = 7.5f;
+	input.tas_rate = 0.3f;
+	input.altitude_rate = -1.f;
+	const TECSControl::Param param = makeParam();
+
+	const Result r = allocate(setpoint, input, param);
+
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_min);
+	EXPECT_NEAR(r.seb_rate_setpoint - r.seb_rate_estimate, 2.f * (r.ske_rate_estimate - r.ske_rate_setpoint), 1e-4f);
+}
