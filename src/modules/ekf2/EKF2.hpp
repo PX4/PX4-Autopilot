@@ -519,241 +519,229 @@ private:
 	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
 	FusionControl &_fc;
 
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::EKF2_LOG_VERBOSE>) _param_ekf2_log_verbose,
-		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
-		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
-		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
-		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
-		(ParamBool<px4::params::EKF2_POS_LOCK>) _param_ekf2_pos_lock,
-		(ParamExtInt<px4::params::EKF2_SENS_EN>) _param_ekf2_sens_en,
+	PARAMETERS(
+		EKF2_LOG_VERBOSE,
+		EKF2_POS_LOCK,
 
 #if defined(CONFIG_EKF2_AUXVEL)
-		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
-		_param_ekf2_avel_delay,	///< auxiliary velocity measurement delay relative to the IMU (mSec)
-		(ParamBool<px4::params::EKF2_AVEL_EN>)
-		_param_ekf2_avel_en,	///< fuse landing_target_pose relative velocity as auxiliary velocity
+		EKF2_AVEL_EN,	///< fuse landing_target_pose relative velocity as auxiliary velocity
 #endif // CONFIG_EKF2_AUXVEL
 
-		(ParamExtFloat<px4::params::EKF2_GYR_NOISE>)
-		_param_ekf2_gyr_noise,	///< IMU angular rate noise used for covariance prediction (rad/sec)
-		(ParamExtFloat<px4::params::EKF2_ACC_NOISE>)
-		_param_ekf2_acc_noise,	///< IMU acceleration noise use for covariance prediction (m/sec**2)
+#if defined(CONFIG_EKF2_GNSS)
+		EKF2_GPS_YAW_RST,
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+		EKF2_EV_NOISE_MD,	///< determine source of vision observation noise
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+		// sensor positions in body frame, which the estimator holds as vectors
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+		EKF2_RNG_POS_X,
+		EKF2_RNG_POS_Y,
+		EKF2_RNG_POS_Z,
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+		EKF2_EV_POS_X,
+		EKF2_EV_POS_Y,
+		EKF2_EV_POS_Z,
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+		EKF2_OF_POS_X,
+		EKF2_OF_POS_Y,
+		EKF2_OF_POS_Z,
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+		EKF2_IMU_POS_X,
+		EKF2_IMU_POS_Y,
+		EKF2_IMU_POS_Z,
+
+		// output predictor filter time constants
+		EKF2_TAU_VEL,
+		EKF2_TAU_POS
+	)
+
+	// The estimator's parameters load straight into its own struct
+	static constexpr px4::param_member_s _ekf_param_table[] = {
+		PARAMETER_AT(EKF2_PREDICT_US, parameters, ekf2_predict_us),
+		PARAMETER_AT(EKF2_DELAY_MAX, parameters, ekf2_delay_max),
+		PARAMETER_AT(EKF2_IMU_CTRL, parameters, ekf2_imu_ctrl),
+		PARAMETER_AT(EKF2_VEL_LIM, parameters, ekf2_vel_lim),
+		PARAMETER_AT(EKF2_SENS_EN, parameters, ekf2_sens_en),
+
+#if defined(CONFIG_EKF2_AUXVEL)
+		PARAMETER_AT(EKF2_AVEL_DELAY, parameters, ekf2_avel_delay),	///< auxiliary velocity measurement delay relative to the IMU (mSec)
+#endif // CONFIG_EKF2_AUXVEL
+
+		PARAMETER_AT(EKF2_GYR_NOISE, parameters, ekf2_gyr_noise),	///< IMU angular rate noise used for covariance prediction (rad/sec)
+		PARAMETER_AT(EKF2_ACC_NOISE, parameters, ekf2_acc_noise),	///< IMU acceleration noise use for covariance prediction (m/sec**2)
 
 		// process noise
-		(ParamExtFloat<px4::params::EKF2_GYR_B_NOISE>)
-		_param_ekf2_gyr_b_noise,	///< process noise for IMU rate gyro bias prediction (rad/sec**2)
-		(ParamExtFloat<px4::params::EKF2_ACC_B_NOISE>)
-		_param_ekf2_acc_b_noise,///< process noise for IMU accelerometer bias prediction (m/sec**3)
+		PARAMETER_AT(EKF2_GYR_B_NOISE, parameters, ekf2_gyr_b_noise),	///< process noise for IMU rate gyro bias prediction (rad/sec**2)
+		PARAMETER_AT(EKF2_ACC_B_NOISE, parameters, ekf2_acc_b_noise),///< process noise for IMU accelerometer bias prediction (m/sec**3)
 
 #if defined(CONFIG_EKF2_WIND)
-		(ParamExtFloat<px4::params::EKF2_WIND_NSD>) _param_ekf2_wind_nsd,
+		PARAMETER_AT(EKF2_WIND_NSD, parameters, ekf2_wind_nsd),
 #endif // CONFIG_EKF2_WIND
 
-		(ParamExtFloat<px4::params::EKF2_NOAID_NOISE>) _param_ekf2_noaid_noise,
+		PARAMETER_AT(EKF2_NOAID_NOISE, parameters, ekf2_noaid_noise),
 
 #if defined(CONFIG_EKF2_GNSS)
-		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,
-		(ParamExtInt<px4::params::EKF2_GPS_MODE>) _param_ekf2_gps_mode,
-		(ParamExtFloat<px4::params::EKF2_GPS_V_NOISE>) _param_ekf2_gps_v_noise,
-		(ParamExtFloat<px4::params::EKF2_GPS_P_NOISE>) _param_ekf2_gps_p_noise,
+		PARAMETER_AT(EKF2_GPS_CTRL, parameters, ekf2_gps_ctrl),
+		PARAMETER_AT(EKF2_GPS_MODE, parameters, ekf2_gps_mode),
+		PARAMETER_AT(EKF2_GPS_V_NOISE, parameters, ekf2_gps_v_noise),
+		PARAMETER_AT(EKF2_GPS_P_NOISE, parameters, ekf2_gps_p_noise),
 
-		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>) _param_ekf2_gps_p_gate,
-		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _param_ekf2_gps_v_gate,
-
-		(ParamFloat<px4::params::EKF2_GPS_YAW_RST>) _param_ekf2_gps_yaw_rst,
+		PARAMETER_AT(EKF2_GPS_P_GATE, parameters, ekf2_gps_p_gate),
+		PARAMETER_AT(EKF2_GPS_V_GATE, parameters, ekf2_gps_v_gate),
 
 		// Used by EKF-GSF experimental yaw estimator
-		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas,
+		PARAMETER_AT(EKF2_GSF_TAS, parameters, ekf2_gsf_tas),
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
-		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,
-		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>) _param_ekf2_baro_delay,
-		(ParamExtFloat<px4::params::EKF2_BARO_NOISE>) _param_ekf2_baro_noise,
-		(ParamExtFloat<px4::params::EKF2_BARO_GATE>) _param_ekf2_baro_gate,
-		(ParamExtFloat<px4::params::EKF2_GND_EFF_DZ>) _param_ekf2_gnd_eff_dz,
-		(ParamExtFloat<px4::params::EKF2_GND_MAX_HGT>) _param_ekf2_gnd_max_hgt,
+		PARAMETER_AT(EKF2_BARO_CTRL, parameters, ekf2_baro_ctrl),
+		PARAMETER_AT(EKF2_BARO_DELAY, parameters, ekf2_baro_delay),
+		PARAMETER_AT(EKF2_BARO_NOISE, parameters, ekf2_baro_noise),
+		PARAMETER_AT(EKF2_BARO_GATE, parameters, ekf2_baro_gate),
+		PARAMETER_AT(EKF2_GND_EFF_DZ, parameters, ekf2_gnd_eff_dz),
+		PARAMETER_AT(EKF2_GND_MAX_HGT, parameters, ekf2_gnd_max_hgt),
 
 # if defined(CONFIG_EKF2_BARO_COMPENSATION)
 		// Corrections for static pressure position error where Ps_error = Ps_meas - Ps_truth
-		(ParamExtFloat<px4::params::EKF2_ASPD_MAX>) _param_ekf2_aspd_max,
-		(ParamExtFloat<px4::params::EKF2_PCOEF_XP>) _param_ekf2_pcoef_xp,
-		(ParamExtFloat<px4::params::EKF2_PCOEF_XN>) _param_ekf2_pcoef_xn,
-		(ParamExtFloat<px4::params::EKF2_PCOEF_YP>) _param_ekf2_pcoef_yp,
-		(ParamExtFloat<px4::params::EKF2_PCOEF_YN>) _param_ekf2_pcoef_yn,
-		(ParamExtFloat<px4::params::EKF2_PCOEF_Z>) _param_ekf2_pcoef_z,
+		PARAMETER_AT(EKF2_ASPD_MAX, parameters, ekf2_aspd_max),
+		PARAMETER_AT(EKF2_PCOEF_XP, parameters, ekf2_pcoef_xp),
+		PARAMETER_AT(EKF2_PCOEF_XN, parameters, ekf2_pcoef_xn),
+		PARAMETER_AT(EKF2_PCOEF_YP, parameters, ekf2_pcoef_yp),
+		PARAMETER_AT(EKF2_PCOEF_YN, parameters, ekf2_pcoef_yn),
+		PARAMETER_AT(EKF2_PCOEF_Z, parameters, ekf2_pcoef_z),
 # endif // CONFIG_EKF2_BARO_COMPENSATION
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-		(ParamExtFloat<px4::params::EKF2_ASP_DELAY>)
-		_param_ekf2_asp_delay, ///< airspeed measurement delay relative to the IMU (mSec)
-		(ParamExtFloat<px4::params::EKF2_TAS_GATE>)
-		_param_ekf2_tas_gate, ///< True Airspeed innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_EAS_NOISE>)
-		_param_ekf2_eas_noise, ///< measurement noise used for airspeed fusion (m/sec)
+		PARAMETER_AT(EKF2_ASP_DELAY, parameters, ekf2_asp_delay), ///< airspeed measurement delay relative to the IMU (mSec)
+		PARAMETER_AT(EKF2_TAS_GATE, parameters, ekf2_tas_gate), ///< True Airspeed innovation consistency gate size (STD)
+		PARAMETER_AT(EKF2_EAS_NOISE, parameters, ekf2_eas_noise), ///< measurement noise used for airspeed fusion (m/sec)
 
 		// control of airspeed fusion
-		(ParamExtFloat<px4::params::EKF2_ARSP_THR>)
-		_param_ekf2_arsp_thr, ///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
+		PARAMETER_AT(EKF2_ARSP_THR, parameters, ekf2_arsp_thr), ///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)
-		(ParamExtFloat<px4::params::EKF2_BETA_GATE>) _param_ekf2_beta_gate,
-		(ParamExtFloat<px4::params::EKF2_BETA_NOISE>) _param_ekf2_beta_noise,
-		(ParamExtInt<px4::params::EKF2_FUSE_BETA>) _param_ekf2_fuse_beta,
+		PARAMETER_AT(EKF2_BETA_GATE, parameters, ekf2_beta_gate),
+		PARAMETER_AT(EKF2_BETA_NOISE, parameters, ekf2_beta_noise),
+		PARAMETER_AT(EKF2_FUSE_BETA, parameters, ekf2_fuse_beta),
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-		(ParamExtFloat<px4::params::EKF2_MAG_DELAY>) _param_ekf2_mag_delay,
-		(ParamExtFloat<px4::params::EKF2_MAG_E_NOISE>) _param_ekf2_mag_e_noise,
-		(ParamExtFloat<px4::params::EKF2_MAG_B_NOISE>) _param_ekf2_mag_b_noise,
-		(ParamExtFloat<px4::params::EKF2_HEAD_NOISE>) _param_ekf2_head_noise,
-		(ParamExtFloat<px4::params::EKF2_MAG_NOISE>) _param_ekf2_mag_noise,
-		(ParamExtFloat<px4::params::EKF2_MAG_DECL>) _param_ekf2_mag_decl,
-		(ParamExtFloat<px4::params::EKF2_HDG_GATE>) _param_ekf2_hdg_gate,
-		(ParamExtFloat<px4::params::EKF2_MAG_GATE>) _param_ekf2_mag_gate,
-		(ParamExtInt<px4::params::EKF2_DECL_TYPE>) _param_ekf2_decl_type,
-		(ParamExtInt<px4::params::EKF2_MAG_TYPE>) _param_ekf2_mag_type,
-		(ParamExtFloat<px4::params::EKF2_MAG_ACCLIM>) _param_ekf2_mag_acclim,
-		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check,
-		(ParamExtFloat<px4::params::EKF2_MAG_CHK_STR>) _param_ekf2_mag_chk_str,
-		(ParamExtFloat<px4::params::EKF2_MAG_CHK_INC>) _param_ekf2_mag_chk_inc,
-		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>) _param_ekf2_synt_mag_z,
+		PARAMETER_AT(EKF2_MAG_DELAY, parameters, ekf2_mag_delay),
+		PARAMETER_AT(EKF2_MAG_E_NOISE, parameters, ekf2_mag_e_noise),
+		PARAMETER_AT(EKF2_MAG_B_NOISE, parameters, ekf2_mag_b_noise),
+		PARAMETER_AT(EKF2_HEAD_NOISE, parameters, ekf2_head_noise),
+		PARAMETER_AT(EKF2_MAG_NOISE, parameters, ekf2_mag_noise),
+		PARAMETER_AT(EKF2_MAG_DECL, parameters, ekf2_mag_decl),
+		PARAMETER_AT(EKF2_HDG_GATE, parameters, ekf2_hdg_gate),
+		PARAMETER_AT(EKF2_MAG_GATE, parameters, ekf2_mag_gate),
+		PARAMETER_AT(EKF2_DECL_TYPE, parameters, ekf2_decl_type),
+		PARAMETER_AT(EKF2_MAG_TYPE, parameters, ekf2_mag_type),
+		PARAMETER_AT(EKF2_MAG_ACCLIM, parameters, ekf2_mag_acclim),
+		PARAMETER_AT(EKF2_MAG_CHECK, parameters, ekf2_mag_check),
+		PARAMETER_AT(EKF2_MAG_CHK_STR, parameters, ekf2_mag_chk_str),
+		PARAMETER_AT(EKF2_MAG_CHK_INC, parameters, ekf2_mag_chk_inc),
+		PARAMETER_AT(EKF2_SYNT_MAG_Z, parameters, ekf2_synt_mag_z),
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-		(ParamExtInt<px4::params::EKF2_HGT_REF>) _param_ekf2_hgt_ref,    ///< selects the primary source for height data
+		PARAMETER_AT(EKF2_HGT_REF, parameters, ekf2_hgt_ref),    ///< selects the primary source for height data
 
-		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
-		_param_ekf2_noaid_tout,	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
+		PARAMETER_AT(EKF2_NOAID_TOUT, parameters, ekf2_noaid_tout),	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
 
 #if defined(CONFIG_EKF2_TERRAIN) || defined(CONFIG_EKF2_OPTICAL_FLOW) || defined(CONFIG_EKF2_RANGE_FINDER)
-		(ParamExtFloat<px4::params::EKF2_MIN_RNG>) _param_ekf2_min_rng,
+		PARAMETER_AT(EKF2_MIN_RNG, parameters, ekf2_min_rng),
 #endif // CONFIG_EKF2_TERRAIN || CONFIG_EKF2_OPTICAL_FLOW || CONFIG_EKF2_RANGE_FINDER
 #if defined(CONFIG_EKF2_TERRAIN)
-		(ParamExtFloat<px4::params::EKF2_TERR_NOISE>) _param_ekf2_terr_noise,
-		(ParamExtFloat<px4::params::EKF2_TERR_GRAD>) _param_ekf2_terr_grad,
+		PARAMETER_AT(EKF2_TERR_NOISE, parameters, ekf2_terr_noise),
+		PARAMETER_AT(EKF2_TERR_GRAD, parameters, ekf2_terr_grad),
 #endif // CONFIG_EKF2_TERRAIN
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 		// range finder fusion
-		(ParamExtInt<px4::params::EKF2_RNG_CTRL>) _param_ekf2_rng_ctrl,
-		(ParamExtFloat<px4::params::EKF2_RNG_DELAY>) _param_ekf2_rng_delay,
-		(ParamExtFloat<px4::params::EKF2_RNG_NOISE>) _param_ekf2_rng_noise,
-		(ParamExtFloat<px4::params::EKF2_RNG_SFE>) _param_ekf2_rng_sfe,
-		(ParamExtFloat<px4::params::EKF2_RNG_GATE>) _param_ekf2_rng_gate,
-		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _param_ekf2_rng_pitch,
-		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>) _param_ekf2_rng_a_vmax,
-		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>) _param_ekf2_rng_a_hmax,
-		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>) _param_ekf2_rng_qlty_t,
-		(ParamExtFloat<px4::params::EKF2_RNG_K_GATE>) _param_ekf2_rng_k_gate,
-		(ParamExtFloat<px4::params::EKF2_RNG_FOG>) _param_ekf2_rng_fog,
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_X>) _param_ekf2_rng_pos_x,
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_Y>) _param_ekf2_rng_pos_y,
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>) _param_ekf2_rng_pos_z,
+		PARAMETER_AT(EKF2_RNG_CTRL, parameters, ekf2_rng_ctrl),
+		PARAMETER_AT(EKF2_RNG_DELAY, parameters, ekf2_rng_delay),
+		PARAMETER_AT(EKF2_RNG_NOISE, parameters, ekf2_rng_noise),
+		PARAMETER_AT(EKF2_RNG_SFE, parameters, ekf2_rng_sfe),
+		PARAMETER_AT(EKF2_RNG_GATE, parameters, ekf2_rng_gate),
+		PARAMETER_AT(EKF2_RNG_PITCH, parameters, ekf2_rng_pitch),
+		PARAMETER_AT(EKF2_RNG_A_VMAX, parameters, ekf2_rng_a_vmax),
+		PARAMETER_AT(EKF2_RNG_A_HMAX, parameters, ekf2_rng_a_hmax),
+		PARAMETER_AT(EKF2_RNG_QLTY_T, parameters, ekf2_rng_qlty_t),
+		PARAMETER_AT(EKF2_RNG_K_GATE, parameters, ekf2_rng_k_gate),
+		PARAMETER_AT(EKF2_RNG_FOG, parameters, ekf2_rng_fog),
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 		// ranging beacon fusion
-		(ParamExtInt<px4::params::EKF2_RNGBC_CTRL>) _param_ekf2_rngbc_ctrl,
-		(ParamExtFloat<px4::params::EKF2_RNGBC_DELAY>) _param_ekf2_rngbc_delay,
-		(ParamExtFloat<px4::params::EKF2_RNGBC_NOISE>) _param_ekf2_rngbc_noise,
-		(ParamExtFloat<px4::params::EKF2_RNGBC_GATE>) _param_ekf2_rngbc_gate,
+		PARAMETER_AT(EKF2_RNGBC_CTRL, parameters, ekf2_rngbc_ctrl),
+		PARAMETER_AT(EKF2_RNGBC_DELAY, parameters, ekf2_rngbc_delay),
+		PARAMETER_AT(EKF2_RNGBC_NOISE, parameters, ekf2_rngbc_noise),
+		PARAMETER_AT(EKF2_RNGBC_GATE, parameters, ekf2_rngbc_gate),
 #endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		// vision estimate fusion
-		(ParamExtFloat<px4::params::EKF2_EV_DELAY>)
-		_param_ekf2_ev_delay, ///< off-board vision measurement delay relative to the IMU (mSec)
+		PARAMETER_AT(EKF2_EV_DELAY, parameters, ekf2_ev_delay), ///< off-board vision measurement delay relative to the IMU (mSec)
 
-		(ParamExtInt<px4::params::EKF2_EV_CTRL>) _param_ekf2_ev_ctrl,	 ///< external vision (EV) control selection
-		(ParamInt<px4::params::EKF2_EV_NOISE_MD>) _param_ekf2_ev_noise_md, ///< determine source of vision observation noise
-		(ParamExtInt<px4::params::EKF2_EV_QMIN>) _param_ekf2_ev_qmin,
-		(ParamExtFloat<px4::params::EKF2_EVP_NOISE>)
-		_param_ekf2_evp_noise, ///< default position observation noise for exernal vision measurements (m)
-		(ParamExtFloat<px4::params::EKF2_EVV_NOISE>)
-		_param_ekf2_evv_noise, ///< default velocity observation noise for exernal vision measurements (m/s)
-		(ParamExtFloat<px4::params::EKF2_EVA_NOISE>)
-		_param_ekf2_eva_noise, ///< default angular observation noise for exernal vision measurements (rad)
-		(ParamExtFloat<px4::params::EKF2_EVV_GATE>)
-		_param_ekf2_evv_gate, ///< external vision velocity innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_EVP_GATE>)
-		_param_ekf2_evp_gate, ///< external vision position innovation consistency gate size (STD)
+		PARAMETER_AT(EKF2_EV_CTRL, parameters, ekf2_ev_ctrl),	 ///< external vision (EV) control selection
+		PARAMETER_AT(EKF2_EV_QMIN, parameters, ekf2_ev_qmin),
+		PARAMETER_AT(EKF2_EVP_NOISE, parameters, ekf2_evp_noise), ///< default position observation noise for exernal vision measurements (m)
+		PARAMETER_AT(EKF2_EVV_NOISE, parameters, ekf2_evv_noise), ///< default velocity observation noise for exernal vision measurements (m/s)
+		PARAMETER_AT(EKF2_EVA_NOISE, parameters, ekf2_eva_noise), ///< default angular observation noise for exernal vision measurements (rad)
+		PARAMETER_AT(EKF2_EVV_GATE, parameters, ekf2_evv_gate), ///< external vision velocity innovation consistency gate size (STD)
+		PARAMETER_AT(EKF2_EVP_GATE, parameters, ekf2_evp_gate), ///< external vision position innovation consistency gate size (STD)
 
-		(ParamExtFloat<px4::params::EKF2_EV_POS_X>)
-		_param_ekf2_ev_pos_x, ///< X position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>)
-		_param_ekf2_ev_pos_y, ///< Y position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
-		_param_ekf2_ev_pos_z, ///< Z position of VI sensor focal point in body frame (m)
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		// optical flow fusion
-		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
-		_param_ekf2_of_ctrl,
-		(ParamExtInt<px4::params::EKF2_OF_GYR_SRC>)
-		_param_ekf2_of_gyr_src,
-		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)
-		_param_ekf2_of_delay, ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
-		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)
-		_param_ekf2_of_n_min, ///< best quality observation noise for optical flow LOS rate measurements (rad/sec)
-		(ParamExtFloat<px4::params::EKF2_OF_N_MAX>)
-		_param_ekf2_of_n_max, ///< worst quality observation noise for optical flow LOS rate measurements (rad/sec)
-		(ParamExtInt<px4::params::EKF2_OF_QMIN>)
-		_param_ekf2_of_qmin, ///< minimum acceptable quality integer from  the flow sensor when in air
-		(ParamExtInt<px4::params::EKF2_OF_QMIN_GND>)
-		_param_ekf2_of_qmin_gnd, ///< minimum acceptable quality integer from  the flow sensor when on ground
-		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
-		_param_ekf2_of_gate, ///< optical flow fusion innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_X>)
-		_param_ekf2_of_pos_x, ///< X position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_Y>)
-		_param_ekf2_of_pos_y, ///< Y position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_Z>)
-		_param_ekf2_of_pos_z, ///< Z position of optical flow sensor focal point in body frame (m)
+		PARAMETER_AT(EKF2_OF_CTRL, parameters, ekf2_of_ctrl),
+		PARAMETER_AT(EKF2_OF_GYR_SRC, parameters, ekf2_of_gyr_src),
+		PARAMETER_AT(EKF2_OF_DELAY, parameters, ekf2_of_delay), ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
+		PARAMETER_AT(EKF2_OF_N_MIN, parameters, ekf2_of_n_min), ///< best quality observation noise for optical flow LOS rate measurements (rad/sec)
+		PARAMETER_AT(EKF2_OF_N_MAX, parameters, ekf2_of_n_max), ///< worst quality observation noise for optical flow LOS rate measurements (rad/sec)
+		PARAMETER_AT(EKF2_OF_QMIN, parameters, ekf2_of_qmin), ///< minimum acceptable quality integer from  the flow sensor when in air
+		PARAMETER_AT(EKF2_OF_QMIN_GND, parameters, ekf2_of_qmin_gnd), ///< minimum acceptable quality integer from  the flow sensor when on ground
+		PARAMETER_AT(EKF2_OF_GATE, parameters, ekf2_of_gate), ///< optical flow fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-		(ParamExtInt<px4::params::EKF2_DRAG_CTRL>) _param_ekf2_drag_ctrl,		///< drag fusion selection
+		PARAMETER_AT(EKF2_DRAG_CTRL, parameters, ekf2_drag_ctrl),		///< drag fusion selection
 		// Multi-rotor drag specific force fusion
-		(ParamExtFloat<px4::params::EKF2_DRAG_NOISE>)
-		_param_ekf2_drag_noise,	///< observation noise variance for drag specific force measurements (m/sec**2)**2
-		(ParamExtFloat<px4::params::EKF2_BCOEF_X>) _param_ekf2_bcoef_x,		///< ballistic coefficient along the X-axis (kg/m**2)
-		(ParamExtFloat<px4::params::EKF2_BCOEF_Y>) _param_ekf2_bcoef_y,		///< ballistic coefficient along the Y-axis (kg/m**2)
-		(ParamExtFloat<px4::params::EKF2_MCOEF>) _param_ekf2_mcoef,		///< propeller momentum drag coefficient (1/s)
+		PARAMETER_AT(EKF2_DRAG_NOISE, parameters, ekf2_drag_noise),	///< observation noise variance for drag specific force measurements (m/sec**2)**2
+		PARAMETER_AT(EKF2_BCOEF_X, parameters, ekf2_bcoef_x),		///< ballistic coefficient along the X-axis (kg/m**2)
+		PARAMETER_AT(EKF2_BCOEF_Y, parameters, ekf2_bcoef_y),		///< ballistic coefficient along the Y-axis (kg/m**2)
+		PARAMETER_AT(EKF2_MCOEF, parameters, ekf2_mcoef),		///< propeller momentum drag coefficient (1/s)
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
-		(ParamExtFloat<px4::params::EKF2_GRAV_NOISE>) _param_ekf2_grav_noise,
+		PARAMETER_AT(EKF2_GRAV_NOISE, parameters, ekf2_grav_noise),
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
 		// sensor positions in body frame
-		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _param_ekf2_imu_pos_x,		///< X position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_IMU_POS_Y>) _param_ekf2_imu_pos_y,		///< Y position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_IMU_POS_Z>) _param_ekf2_imu_pos_z,		///< Z position of IMU in body frame (m)
 
 		// IMU switch on bias parameters
-		(ParamExtFloat<px4::params::EKF2_GBIAS_INIT>)
-		_param_ekf2_gbias_init,	///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
-		(ParamExtFloat<px4::params::EKF2_ABIAS_INIT>)
-		_param_ekf2_abias_init,	///< 1-sigma accelerometer bias uncertainty at switch on (m/sec**2)
-		(ParamExtFloat<px4::params::EKF2_ANGERR_INIT>)
-		_param_ekf2_angerr_init,	///< 1-sigma tilt error after initial alignment using gravity vector (rad)
+		PARAMETER_AT(EKF2_GBIAS_INIT, parameters, ekf2_gbias_init),	///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
+		PARAMETER_AT(EKF2_ABIAS_INIT, parameters, ekf2_abias_init),	///< 1-sigma accelerometer bias uncertainty at switch on (m/sec**2)
+		PARAMETER_AT(EKF2_ANGERR_INIT, parameters, ekf2_angerr_init),	///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 		// EKF accel bias learning control
-		(ParamExtFloat<px4::params::EKF2_ABL_LIM>) _param_ekf2_abl_lim,	///< Accelerometer bias learning limit (m/s**2)
-		(ParamExtFloat<px4::params::EKF2_ABL_ACCLIM>)
-		_param_ekf2_abl_acclim,	///< Maximum IMU accel magnitude that allows IMU bias learning (m/s**2)
-		(ParamExtFloat<px4::params::EKF2_ABL_GYRLIM>)
-		_param_ekf2_abl_gyrlim,	///< Maximum IMU gyro angular rate magnitude that allows IMU bias learning (m/s**2)
-		(ParamExtFloat<px4::params::EKF2_ABL_TAU>)
-		_param_ekf2_abl_tau,	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
+		PARAMETER_AT(EKF2_ABL_LIM, parameters, ekf2_abl_lim),	///< Accelerometer bias learning limit (m/s**2)
+		PARAMETER_AT(EKF2_ABL_ACCLIM, parameters, ekf2_abl_acclim),	///< Maximum IMU accel magnitude that allows IMU bias learning (m/s**2)
+		PARAMETER_AT(EKF2_ABL_GYRLIM, parameters, ekf2_abl_gyrlim),	///< Maximum IMU gyro angular rate magnitude that allows IMU bias learning (m/s**2)
+		PARAMETER_AT(EKF2_ABL_TAU, parameters, ekf2_abl_tau),	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
 
-		(ParamExtFloat<px4::params::EKF2_GYR_B_LIM>) _param_ekf2_gyr_b_lim,	///< Gyro bias learning limit (rad/s)
+		PARAMETER_AT(EKF2_GYR_B_LIM, parameters, ekf2_gyr_b_lim),	///< Gyro bias learning limit (rad/s)
+	};
 
-		// output predictor filter time constants
-		(ParamFloat<px4::params::EKF2_TAU_VEL>) _param_ekf2_tau_vel,
-		(ParamFloat<px4::params::EKF2_TAU_POS>) _param_ekf2_tau_pos
-	)
+	void loadEkfParams(bool mark_used);
+	void updateParams() override;
 };
 #endif // !EKF2_HPP
