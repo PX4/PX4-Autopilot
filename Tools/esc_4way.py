@@ -44,16 +44,17 @@ MSP + 4way flight controller.
     info                  ESC signature, MCU, bootloader pin and flash layout
     read ADDR LEN [-o F]  raw flash read (byte offset from the flash start)
     write ADDR FILE       raw flash write
-    dump FILE             whole flash
-    flash FILE            AM32 firmware (Intel hex or bin) with boot byte handling
+    dump FILE             whole flash (the bootloader region reads as 0xFF)
+    flash FILE [--force]  AM32 firmware (Intel hex or bin), verified before the boot byte is set
     settings              AM32 settings block, raw and decoded
     direction set 0|1     AM32 motor direction (or: direction toggle)
 
 A port that sends MAVLink heartbeats is switched to the ESC configuration
 server first (PASSTHRU_EN=2 and a reboot, needs pymavlink), and the tool waits
 for MAVLink to come back after the session; --setup does that switch without
-listening for heartbeats first. --no-exit leaves the session open. Exit code 0
-on success.
+listening for heartbeats first. --no-exit leaves the session open: the port then
+keeps DTR raised after it is closed, also for other programs, until a run without
+--no-exit or the board's next reboot. Exit code 0 on success.
 
 """
 
@@ -188,15 +189,17 @@ def fourway_read(fd, deadline, start, what='4way'):
     return head[0], (head[1] << 8) | head[2], rest[:n], ack, crc_ok
 
 
-def open_serial(path, listen=1.2):
+def open_serial(path, listen=1.2, keep_dtr=False):
     """Raw 8N1 at 115200 (no echo, no line discipline): (fd, bytes received while listening).
 
     Listening drops a banner or late replies of an earlier run, and covers one 1 Hz heartbeat.
+    Closing the port drops DTR, which ends a PX4 session; keep_dtr leaves it raised (--no-exit).
     """
     fd = os.open(path, os.O_RDWR | os.O_NOCTTY)
     attr = termios.tcgetattr(fd)
     tty.cfmakeraw(attr)
     attr[2] |= termios.CLOCAL | termios.CREAD
+    attr[2] = attr[2] & ~termios.HUPCL if keep_dtr else attr[2] | termios.HUPCL
     attr[4] = attr[5] = termios.B115200
     attr[6][termios.VMIN], attr[6][termios.VTIME] = 1, 0  # select() does the timing
     termios.tcsetattr(fd, termios.TCSANOW, attr)
@@ -402,6 +405,13 @@ def _wait_port(path, timeout=30):
     return os.path.realpath(port)
 
 
+def _wait_gone(path, timeout=3.0):
+    """Wait for the serial device of a board that reboots after its session to drop (or timeout)."""
+    deadline = time.monotonic() + timeout
+    while os.path.exists(path) and time.monotonic() < deadline:
+        time.sleep(0.05)
+
+
 def _heartbeat(mav, timeout):
     """First autopilot heartbeat within timeout, or None."""
     deadline = time.monotonic() + timeout
@@ -521,7 +531,10 @@ class Esc:
         # magic[8] deviceInfo[9] length shift firmware_start filename_start eeprom_start (u16 LE)
         if d[:8] == DEVINFO_MAGIC and 27 <= d[17] <= 64 and d[18] <= 8:
             self.shift, self.v3 = d[18], True
-            self.app, self.settings = (int.from_bytes(d[o:o + 2], 'little') << self.shift for o in (19, 23))
+            self.app, self.name_addr, self.settings = (int.from_bytes(d[o:o + 2], 'little') << self.shift
+                                                       for o in (19, 21, 23))
+        else:
+            self.name_addr = self.settings - 32  # firmware name, 32 bytes before the settings
         self.layout_ok = self.flash_size and self.flash_size >> self.shift <= 0x10000
 
     def cmd(self, cmd, addr, params):
@@ -575,7 +588,7 @@ def load_image(path, esc):
     """Application bytes from an Intel hex or bin file, as written from the application start."""
     raw = open(path, 'rb').read()
     if path.lower().endswith('.hex'):
-        data, upper = {}, 0
+        data, upper, eof = {}, 0, False
         for line in raw.decode('ascii', 'replace').split():
             try:
                 rec = bytes.fromhex(line.lstrip(':'))
@@ -589,7 +602,12 @@ def load_image(path, esc):
                 for i, b in enumerate(rec[4:4 + n]):
                     data[upper + addr + i] = b
             elif kind in (2, 4):
+                check(n == 2, f'{path}: bad hex record {line}')
                 upper = int.from_bytes(rec[4:6], 'big') << (4 if kind == 2 else 16)
+            elif kind == 1:
+                eof = True
+                break
+        check(eof, f'{path}: no end-of-file record, the file is truncated')
         check(data, f'{path}: no data')
         image = bytearray(b'\xff' * (max(data) + 1 - esc.base))
         for a, b in data.items():
@@ -600,7 +618,14 @@ def load_image(path, esc):
     image = raw[esc.app:]
     check(len(raw) == esc.flash_size or len(raw) <= esc.settings,
           f'{path}: image reaches 0x{len(raw):X}, past the settings at 0x{esc.settings:X}')
-    return image[:esc.settings - esc.app]
+    image = image[:esc.settings - esc.app]
+    check(image.strip(b'\xff'), f'{path}: no application data at 0x{esc.app:X}')
+    return image
+
+
+def firmware_name(block):
+    """AM32 firmware name from the 32 bytes before the settings ('' if none)."""
+    return bytes(b for b in block.split(b'\0')[0] if 32 <= b < 127).decode()
 
 
 def run_command(fd, args):
@@ -624,19 +649,28 @@ def run_command(fd, args):
         check(args.addr >= esc.app, f'refusing to write the bootloader (below 0x{esc.app:X})')
         esc.write(args.addr, open(args.file, 'rb').read())
     elif args.command == 'dump':
-        open(args.file, 'wb').write(esc.read(0, esc.flash_size))
-        print(f'saved {args.file}')
+        # the bootloader does not read itself out, so the dump starts at the application
+        data = b'\xff' * esc.app + esc.read(esc.app, esc.flash_size - esc.app)
+        open(args.file, 'wb').write(data)
+        print(f'saved {args.file} (bootloader region 0x00000-0x{esc.app - 1:05X} left as 0xFF)')
     elif args.command == 'flash':
         image = load_image(args.file, esc)
+        tag = esc.name_addr - esc.app
+        name = firmware_name(image[tag:tag + 32]) if 0 <= tag <= len(image) - 32 else ''
+        current = firmware_name(esc.read(esc.name_addr, 32, quiet=True))
+        check(args.force or name, f'{args.file} carries no firmware name, it may be truncated (--force to flash anyway)')
+        check(args.force or not current or name == current,
+              f'{args.file} is for {name!r}, the ESC runs {current!r} firmware (--force to flash anyway)')
         settings = bytearray(esc.read(esc.settings, AM32_SETTINGS_LEN, quiet=True))
         settings[0] = 0  # boot byte: cleared while the application is incomplete
         esc.write(esc.settings, settings, quiet=True)
         esc.write(esc.app, image)
+        check(esc.read(esc.app, len(image), quiet=True) == image, 'read-back differs, the ESC stays in its bootloader')
         settings[0] = 1
         esc.write(esc.settings, settings, quiet=True)
-        print(f'flashed {len(image)} bytes at 0x{esc.app:05X}')
+        print(f'flashed and verified {len(image)} bytes at 0x{esc.app:05X}')
     elif args.command == 'settings':
-        name = bytes(b for b in esc.read(esc.settings - 32, 32, quiet=True).split(b'\0')[0] if 32 <= b < 127).decode()
+        name = firmware_name(esc.read(esc.name_addr, 32, quiet=True))
         data = esc.read(esc.settings, AM32_SETTINGS_LEN, quiet=True)
         for i in range(0, len(data), 16):
             print(f'  {esc.settings + i:05X}: {data[i:i + 16].hex(" ")}')
@@ -678,7 +712,9 @@ def main(argv=None):
     c.add_argument('addr', type=lambda v: int(v, 0), help='byte offset from the flash start')
     c.add_argument('file')
     sub.add_parser('dump', parents=[common], help='whole flash to a file').add_argument('file')
-    sub.add_parser('flash', parents=[common], help='AM32 firmware, Intel hex or bin').add_argument('file')
+    c = sub.add_parser('flash', parents=[common], help='AM32 firmware, Intel hex or bin')
+    c.add_argument('file')
+    c.add_argument('--force', action='store_true', help='flash an image whose firmware name differs from the ESC\'s')
     sub.add_parser('settings', parents=[common], help='AM32 settings, raw and decoded')
     c = sub.add_parser('direction', parents=[common], help='AM32 motor direction')
     c.add_argument('action', choices=['set', 'toggle'])
@@ -691,37 +727,45 @@ def main(argv=None):
     setup = args.setup
     try:
         if not setup:
-            fd, seen = open_serial(device)
+            fd, seen = open_serial(device, keep_dtr=args.no_exit)
             setup = mavlink_heartbeat_seen(seen)
             if setup:
                 os.close(fd)
                 print(f'{device}: MAVLink heartbeats, switching to the ESC configuration server')
         if setup:
             device = mavlink_esc_mode(device)
-            fd = open_serial(device)[0]
+            fd = open_serial(device, keep_dtr=args.no_exit)[0]
     except (CheckFailed, OSError) as e:
         print(f'FAIL: {e}')
         return 1
+    status, exited = 0, False
     try:
         if args.command == 'check':
             run(fd, args.no_esc, args.variant.encode(), args.target, args.toggle_direction)
+            exited = True  # the check ends with InterfaceExit
         else:
             run_command(fd, args)
             if not args.no_exit:
                 fourway(fd, EXIT)
+                exited = True
                 print('InterfaceExit: the flight controller reboots')
     except (Exception, KeyboardInterrupt) as e:
         print(f'FAIL: {e}' if isinstance(e, (CheckFailed, OSError)) else f'FAIL: {type(e).__name__}: {e}')
         try:  # leave the FC in MSP mode; an InterfaceExit before passthrough is harmless
             os.write(fd, fourway_encode(FOURWAY_REQ, EXIT, 0, b'\0'))
             time.sleep(0.5)
+            exited = True
         except OSError:
             pass
-        return 1
+        status = 1
     finally:
         os.close(fd)
-    # only a session that ran device commands ends in a reboot
-    if setup and not args.no_exit and not getattr(args, 'no_esc', False):
+    # a session ends in a reboot after InterfaceExit or, on USB, when the port closes
+    if exited and not setup:
+        _wait_gone(device)  # a next run must not open the port of a board that is rebooting
+    if status:
+        return status
+    if setup and not args.no_exit:
         try:
             mavlink_esc_mode(device, enter=False)
         except CheckFailed as e:
