@@ -60,7 +60,8 @@ inline static param_t param_handle(px4::params p)
  *
  * Problem: if every parameter loaded itself, each one would cost a param_get_mark_used()
  * call in the class constructor and a param_get() call in updateParamsImpl(). Loading
- * them from a table instead saves about 20 kB of flash on px4_fmu-v6x.
+ * them from a table replaces those with one call per class in each place and one table
+ * entry per parameter.
  *
  * Approach: the macro declares the parameters as consecutive members, so one shared
  * function can load them all. The macro adds three things to the class:
