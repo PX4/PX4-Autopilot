@@ -82,8 +82,8 @@ inline static param_t param_handle(px4::params p)
  *   _param.commit(_param.MC_ROLLRATE_P);
  *
  * A class that derives from another class with parameters uses PARAMETERS_CUSTOM_PARENT()
- * in both. Its own _param hides the parent's, so each class lists every parameter its own
- * code reads, also one the parent lists. Both copies load in the same updateParams().
+ * in both. Its own _param hides the parent's, so it reads a parent's field as
+ * Parent::_param.NAME.
  */
 namespace px4
 {
