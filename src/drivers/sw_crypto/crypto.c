@@ -108,7 +108,7 @@ static void clear_key_cache(void)
 static const uint8_t *crypto_get_key_ptr(keystore_session_handle_t handle, uint8_t key_idx,
 		size_t *len)
 {
-	uint8_t *ret;
+	uint8_t *ret = NULL;
 
 	if (key_idx >= KEY_CACHE_LEN) {
 		*len = 0;
@@ -136,8 +136,10 @@ static const uint8_t *crypto_get_key_ptr(keystore_session_handle_t handle, uint8
 					key_cache[key_idx].key = ret;
 
 				} else {
-					/* key retrieval failed, free the memory */
+					/* key retrieval failed, free the memory and do not
+					 * hand the freed pointer back to the caller */
 					SECMEM_FREE(ret);
+					ret = NULL;
 				}
 			}
 		}
