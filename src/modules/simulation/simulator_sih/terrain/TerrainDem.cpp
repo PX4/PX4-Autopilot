@@ -428,10 +428,10 @@ bool TerrainDem::resampleToWgs84(const Grid &src)
 	proj_trans_generic(wgs84_to_src, PJ_INV, lon.data(), sizeof(double), lon.size(), lat.data(), sizeof(double), lat.size(),
 			   nullptr, 0, 0, nullptr, 0, 0);
 
-	double lon_min = INFINITY;
-	double lon_max = -INFINITY;
-	double lat_min = INFINITY;
-	double lat_max = -INFINITY;
+	double lon_min = static_cast<double>(INFINITY);
+	double lon_max = -static_cast<double>(INFINITY);
+	double lat_min = static_cast<double>(INFINITY);
+	double lat_max = -static_cast<double>(INFINITY);
 
 	for (size_t i = 0; i < lon.size(); i++) {
 		if (!std::isfinite(lon[i]) || !std::isfinite(lat[i])) {
