@@ -60,3 +60,49 @@ parameters:
       min: 0
       increment: 0.01
       decimal: 2
+    VT_EF_TIME:
+      description:
+        short: Pusher failure detection time
+        long: A pusher failure is detected in multicopter mode when, for this time, the
+          pusher assist throttle is above VT_EF_THROT and the forward velocity setpoint
+          above VT_EF_VSP_THRESH, but the forward velocity below VT_EF_V_THRESH. It triggers
+          the quad-chute failsafe, and until reboot or until disabled, every front transition triggers it again.
+          Only used by standard VTOLs when VT_FWD_THRUST_EN is enabled. Set to 0 to disable.
+      type: float
+      default: 5.0
+      unit: s
+      min: 0.0
+      max: 20.0
+      increment: 0.1
+      decimal: 1
+    VT_EF_THROT:
+      description:
+        short: Pusher failure detection throttle threshold
+        long: Has to be below the highest pusher assist throttle, which VT_FWD_THRUST_SC,
+          VT_PITCH_MIN and MPC_TILTMAX_AIR set.
+      type: float
+      default: 0.4
+      min: 0.0
+      max: 0.9
+      increment: 0.01
+      decimal: 2
+    VT_EF_VSP_THRESH:
+      description:
+        short: Pusher failure detection forward velocity setpoint threshold
+      type: float
+      default: 4.0
+      unit: m/s
+      min: 0.0
+      max: 10.0
+      increment: 0.1
+      decimal: 1
+    VT_EF_V_THRESH:
+      description:
+        short: Pusher failure detection forward velocity threshold
+      type: float
+      default: 0.5
+      unit: m/s
+      min: 0.0
+      max: 5.0
+      increment: 0.1
+      decimal: 1

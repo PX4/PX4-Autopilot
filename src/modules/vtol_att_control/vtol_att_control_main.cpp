@@ -235,6 +235,11 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 				     "Quad-chute triggered due to maximum roll angle exceeded");
 			break;
 
+		case QuadchuteReason::PusherFailure:
+			events::send(events::ID("vtol_att_ctrl_quadchute_pusher"), events::Log::Critical,
+				     "Quad-chute triggered due to pusher failure");
+			break;
+
 		case QuadchuteReason::None:
 			// should never get in here
 			return;

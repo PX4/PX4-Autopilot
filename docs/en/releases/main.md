@@ -193,7 +193,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### VTOL
 
-- TBD
+- Standard VTOLs using pusher assist ([VT_FWD_THRUST_EN](../advanced_config/parameter_reference.md#VT_FWD_THRUST_EN)) now detect a pusher failure in multicopter mode, when the vehicle does not move forward although pusher assist pushes. This triggers the [quad-chute](../config/safety.md#quad-chute-failsafe) failsafe, and front transitions trigger it again until reboot. Setting [VT_EF_TIME](../advanced_config/parameter_reference.md#VT_EF_TIME) to 0 disables the detection and, in flight, allows front transitions again.
 
 ### Fixed-wing
 
