@@ -55,8 +55,38 @@ inline static param_t param_handle(px4::params p)
 	return (param_t)p;
 }
 
-
-
+/**
+ * How DEFINE_PARAMETERS loads the parameters of a class
+ *
+ * Problem: if every parameter loaded itself, each one would cost a param_get_mark_used()
+ * call in the class constructor and a param_get() call in updateParamsImpl(). Loading
+ * them from a table instead saves about 20 kB of flash on px4_fmu-v6x.
+ *
+ * Approach: the macro declares the parameters as consecutive members, so one shared
+ * function can load them all. The macro adds three things to the class:
+ *
+ * 1. The Param members, in the order listed. Their constructors do not load a value.
+ * 2. _param_table_entries, a static array with one entry per member. An entry is the
+ *    parameter handle plus the kind of member: a float or int32_t, a bool, or a pointer
+ *    to an external value.
+ * 3. _param_table, a member declared after the parameters. Its constructor loads them
+ *    with one call to param_table_load(), and updateParamsImpl() makes the same call
+ *    when parameters change. Members are constructed in declaration order, so by then
+ *    every external parameter holds its pointer.
+ *
+ * param_table_load() gets the address of the first parameter and no other offsets.
+ * For each entry it rounds the address up to the alignment of that kind, loads the
+ * value there and advances by the size of that kind. That is how the compiler places
+ * consecutive members, so the walk lands on each parameter in turn.
+ *
+ * The C++ standard does not guarantee that placement, so the build checks it.
+ * param_table_entry() asserts that each Param type has the size and alignment the
+ * loader assumes for its kind. _CHECK_PARAMETER_LAYOUT asserts that the offsetof of
+ * every parameter is where the walk arrives. A compiler that pads differently fails
+ * the build instead of loading into the wrong member.
+ *
+ * A Param declared outside these macros is never loaded.
+ */
 
 #define _DEFINE_SINGLE_PARAMETER(x) \
 	do_not_explicitly_use_this_namespace::PAIR(x);
@@ -68,10 +98,8 @@ inline static param_t param_handle(px4::params p)
 #define _FIRST_PARAMETER(...) _FIRST_PARAMETER_H(__VA_ARGS__, unused)
 #define _FIRST_PARAMETER_H(x, ...) STRIP(x)
 
-// The handles go in a static array of the class, since APPLY_ALL leaves a trailing comma
-// that only a braced list accepts. A single member declared after the parameters loads
-// all of them from it, starting at the first parameter's address.
-// This keeps per-parameter code out of every constructor and updateParamsImpl().
+// The entries go in a static array of the class because APPLY_ALL leaves a trailing comma,
+// which only a braced list accepts.
 #define _DEFINE_PARAMETER_TABLE(...) \
 	static constexpr param_t _param_table_entries[] = {APPLY_ALL(_PARAM_TABLE_ENTRY, __VA_ARGS__)}; \
 	do_not_explicitly_use_this_namespace::ParamTable _param_table{_param_table_entries, &_FIRST_PARAMETER(__VA_ARGS__)};
@@ -79,9 +107,10 @@ inline static param_t param_handle(px4::params p)
 #define _PARAM_TABLE_OFFSET(x) \
 	offsetof(_param_table_class, STRIP(x)),
 
-// The language leaves padding between members to the compiler, so this fails the build
-// if any parameter is not where the loader steps. offsetof on a class with virtual
-// functions is only conditionally supported. GCC and Clang support it but warn.
+// Fails the build if any parameter is not where the loader steps. It expands inside a
+// member function, where the class is complete and decltype(*this) names it. offsetof on
+// a class with virtual functions is only conditionally supported. GCC and Clang support
+// it but warn.
 #define _CHECK_PARAMETER_LAYOUT(...) \
 	using _param_table_class = typename do_not_explicitly_use_this_namespace::param_table_class<decltype(*this)>::type; \
 	_Pragma("GCC diagnostic push") \
@@ -129,8 +158,7 @@ inline static param_t param_handle(px4::params p)
 
 
 // This namespace never needs to be used directly. Use the DEFINE_PARAMETERS_CUSTOM_PARENT and
-// DEFINE_PARAMETERS macros instead (the Param classes don't depend on using the macro, the macro just
-// makes sure that update() is automatically called).
+// DEFINE_PARAMETERS macros instead. Only the table those macros add loads a Param.
 namespace do_not_explicitly_use_this_namespace
 {
 
