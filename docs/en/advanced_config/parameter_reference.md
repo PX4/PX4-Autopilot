@@ -51114,7 +51114,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Rover Velocity Control
 
-<div class="param-group" style="--param-count: 9">
+<div class="param-group" style="--param-count: 10">
 
 <div class="param">
 
@@ -51255,6 +51255,23 @@ The minimum threshold for the speed measurement not to be interpreted as zero.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 100 | 0.01 | 0.1 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RO_WHEEL_RAD (`FLOAT`) {#RO_WHEEL_RAD}
+
+Wheel radius in meters.
+
+Used to convert wheel encoder counts to the distance travelled by each wheel
+for the MAVLink WHEEL_DISTANCE message:
+distance = 2 * pi * RO_WHEEL_RAD * encoder_counts / counts_per_rev
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 10 | 0.001 | 0.1 | m | &nbsp;
 
 </div>
 

@@ -42,6 +42,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/out/vehicle_status`                | [px4_msgs::msg::VehicleStatus](../msg_docs/VehicleStatus.md)                           | 5.0        |
 | `/fmu/out/vtol_vehicle_status`           | [px4_msgs::msg::VtolVehicleStatus](../msg_docs/VtolVehicleStatus.md)                   |
 | `/fmu/out/vtx`                           | [px4_msgs::msg::Vtx](../msg_docs/Vtx.md)                                               | 1.0        |
+| `/fmu/out/wheel_encoders`                | [px4_msgs::msg::WheelEncoders](../msg_docs/WheelEncoders.md)                           | 10.0       |
 | `/fmu/out/wind`                          | [px4_msgs::msg::Wind](../msg_docs/Wind.md)                                             | 1.0        |
 
 ## Subscriptions
@@ -331,6 +332,5 @@ They are not build into the module, and hence are neither published or subscribe
 - [VteInput](../msg_docs/VteInput.md)
 - [VteOrientation](../msg_docs/VteOrientation.md)
 - [VtePosition](../msg_docs/VtePosition.md)
-- [WheelEncoders](../msg_docs/WheelEncoders.md)
 - [YawEstimatorStatus](../msg_docs/YawEstimatorStatus.md)
   :::

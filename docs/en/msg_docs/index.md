@@ -316,5 +316,5 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VteOrientation](VteOrientation.md) — Vision Target Estimator orientation state, exposing the full yaw filter output with covariances for logging and tuning.
 - [VtePosition](VtePosition.md) — Vision Target Estimator position state, exposing the full per-axis Kalman filter state with covariances for logging and tuning.
 - [Vtx](Vtx.md)
-- [WheelEncoders](WheelEncoders.md)
+- [WheelEncoders](WheelEncoders.md) — Wheel encoder readings.
 - [YawEstimatorStatus](YawEstimatorStatus.md)
