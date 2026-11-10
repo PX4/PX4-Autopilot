@@ -263,3 +263,17 @@ parameters:
       max: 100
       increment: 0.01
       decimal: 2
+    RO_WHEEL_RAD:
+      description:
+        short: Wheel radius in meters
+        long: |-
+          Used to convert wheel encoder counts to the distance travelled by each wheel
+          for the MAVLink WHEEL_DISTANCE message:
+          distance = 2 * pi * RO_WHEEL_RAD * encoder_counts / counts_per_rev
+      type: float
+      default: 0.1
+      unit: m
+      min: 0.01
+      max: 10
+      increment: 0.001
+      decimal: 3

@@ -233,6 +233,10 @@ int Roboclaw::readEncoder(unsigned controller)
 	int32_t position_left = swapBytesInt32(&buffer_position[4]);
 
 	wheel_encoders_s wheel_encoders{};
+	wheel_encoders.counts_per_rev[0] = _param_rbclw_counts_rev.get();
+	wheel_encoders.counts_per_rev[1] = _param_rbclw_counts_rev.get();
+	wheel_encoders.encoder_counts[0] = position_right;
+	wheel_encoders.encoder_counts[1] = position_left;
 	wheel_encoders.wheel_speed[0] = static_cast<float>(speed_right) / math::max(_param_rbclw_counts_rev.get(), int32_t{1}) * M_TWOPI_F;
 	wheel_encoders.wheel_speed[1] = static_cast<float>(speed_left) / math::max(_param_rbclw_counts_rev.get(), int32_t{1}) * M_TWOPI_F;
 	wheel_encoders.wheel_angle[0] = static_cast<float>(position_right) / math::max(_param_rbclw_counts_rev.get(), int32_t{1}) * M_TWOPI_F;

@@ -169,6 +169,7 @@
 # include "streams/SCALED_PRESSURE3.hpp"
 # include "streams/UAVIONIX_ADSB_OUT_CFG.hpp"
 # include "streams/UAVIONIX_ADSB_OUT_DYNAMIC.hpp"
+# include "streams/WHEEL_DISTANCE.hpp"
 #endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
@@ -543,6 +544,10 @@ static constexpr StreamListItem streams_list[] = {
 #if defined(GLOBAL_POSITION_SENSOR_HPP)
 	create_stream_list_item<MavlinkStreamGlobalPositionSensor>(),
 #endif // GLOBAL_POSITION_SENSOR_HPP
+#if defined(WHEEL_DISTANCE_HPP)
+	create_stream_list_item<MavlinkStreamWheelDistance>(),
+#endif // WHEEL_DISTANCE_HPP
+
 };
 
 const char *get_stream_name(const uint16_t msg_id)
