@@ -276,8 +276,10 @@ class PlainStructChild : public PlainStructParent
 public:
 	float parentDistance() const { return PlainStructParent::_param.CP_DIST; }
 
+	// CP_DIST is also the parent's
 	PARAMETERS_CUSTOM_PARENT(PlainStructParent,
-				 SYS_AUTOSTART
+				 SYS_AUTOSTART,
+				 CP_DIST
 				)
 };
 
@@ -293,6 +295,7 @@ TEST_F(ParameterTest, plainStructChildUpdatesParent)
 	child.update();
 
 	EXPECT_FLOAT_EQ(9.f, child.parentDistance());
+	EXPECT_FLOAT_EQ(9.f, child._param.CP_DIST);
 	EXPECT_EQ(4001, child._param.SYS_AUTOSTART);
 }
 
