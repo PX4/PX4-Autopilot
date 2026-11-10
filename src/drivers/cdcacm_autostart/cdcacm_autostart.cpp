@@ -546,10 +546,30 @@ bool CdcAcmAutostart::scan_buffer_for_ublox_bytes()
 #if defined(CONFIG_DRIVERS_ESC_4WAY)
 bool CdcAcmAutostart::scan_buffer_for_msp()
 {
-	// MSP v1 request header, the first bytes the ESC configurators send
-	for (int i = 0; i < _bytes_read - 2; i++) {
-		if (_buffer[i] == '$' && _buffer[i + 1] == 'M' && _buffer[i + 2] == '<') {
+	// A whole MSP v1 request with a valid checksum, the first frame the ESC configurators send:
+	// '$' 'M' '<' size cmd payload[size] checksum (XOR of size, cmd and payload)
+	static constexpr int MSP_OVERHEAD = 6;
+
+	for (int i = 0; i + MSP_OVERHEAD <= _bytes_read; i++) {
+		if (_buffer[i] != '$' || _buffer[i + 1] != 'M' || _buffer[i + 2] != '<') {
+			continue;
+		}
+
+		const int size = (uint8_t)_buffer[i + 3];
+
+		if (i + MSP_OVERHEAD + size > _bytes_read) {
+			continue;
+		}
+
+		uint8_t checksum = 0;
+
+		for (int j = i + 3; j < i + MSP_OVERHEAD - 1 + size; j++) {
+			checksum ^= (uint8_t)_buffer[j];
+		}
+
+		if (checksum == (uint8_t)_buffer[i + MSP_OVERHEAD - 1 + size]) {
 			PX4_INFO("%s: launching esc_4way", USB_DEVICE_PATH);
+			_msp_offset = i;
 			return true;
 		}
 	}
@@ -586,7 +606,22 @@ bool CdcAcmAutostart::start_nsh()
 // The server stops the output drivers itself at the first valid request
 bool CdcAcmAutostart::start_esc_4way()
 {
-	char *argv[] { (char *)"esc_4way", (char *)"start", (char *)"-d", (char *)USB_DEVICE_PATH, nullptr };
+	// The detected request was read from the port: hand it and what followed it to esc_4way
+	// as hex, so that the configurator's first request is answered
+	char request[2 * sizeof(_buffer) + 1] {};
+
+	for (int i = _msp_offset; i >= 0 && i < _bytes_read; i++) {
+		snprintf(&request[2 * (i - _msp_offset)], 3, "%02x", (uint8_t)_buffer[i]);
+	}
+
+	_msp_offset = -1;
+
+	char *argv[] { (char *)"esc_4way", (char *)"start", (char *)"-d", (char *)USB_DEVICE_PATH, (char *)"-r", request, nullptr };
+
+	if (request[0] == '\0') {
+		argv[4] = nullptr;
+	}
+
 	return execute_process(argv) > 0;
 }
 

@@ -44,7 +44,7 @@ If no output is assigned to a motor, ESC 1 is the first output, ESC 2 the second
    The flight controller reboots, so the USB connection drops.
    After that reboot the motor outputs work normally again and QGroundControl can connect.
 
-If you unplug the USB cable during a session, the flight controller also reboots.
+If you unplug the USB cable or close the configurator without disconnecting, the flight controller also reboots.
 Server mode lasts for a single boot: any reboot or power cycle, also in the middle of a session, returns the flight controller to normal operation.
 
 ## Alternative: Plug In and Connect
@@ -59,7 +59,7 @@ If [SYS_USB_AUTO](../advanced_config/parameter_reference.md#SYS_USB_AUTO) is set
 This only works while nothing else has claimed the USB port since it was plugged in.
 If QGroundControl connected first, unplug and replug the USB cable.
 
-Any program that sends an MSP request to the USB port first starts the ESC configuration server in this mode, and the motor outputs then stay off until the flight controller reboots.
+Any program that first sends a valid MSP request to the USB port starts the ESC configuration server in this mode, and the motor outputs then stay off until the flight controller reboots.
 
 ## Command Line Tools
 
