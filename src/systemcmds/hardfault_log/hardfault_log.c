@@ -107,6 +107,44 @@ static int genfault(int fault);
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+/**
+ * Write @p len bytes from a snprintf() result in @p buffer.
+ *
+ * snprintf() returns the length that *would* have been written, so a truncated
+ * format string returns a value larger than the buffer. Passing that straight
+ * to write() reads past the end of @p buffer, so clamp it to @p buffer_size.
+ * Returns the number of bytes written, or -EIO on a snprintf() error.
+ */
+static int write_formatted(int fd, const char *buffer, size_t buffer_size, int len)
+{
+	if (len < 0) {
+		return -EIO;
+	}
+
+	if ((size_t)len > buffer_size) {
+		len = (int)buffer_size;
+	}
+
+	return write(fd, buffer, len);
+}
+
+/**
+ * Append @p src to the NUL-terminated string in @p dst, never writing past
+ * @p dst_size bytes. strncat()'s third argument bounds how many bytes are taken
+ * from the source, not how much room is left in the destination, so
+ * `strncat(dst, src, sizeof(dst) - 1)` can overflow once dst already holds text.
+ */
+static void append_limited(char *dst, size_t dst_size, const char *src)
+{
+	size_t used = strlen(dst);
+
+	if (used + 1 >= dst_size) {
+		return;
+	}
+
+	strncat(dst, src, dst_size - used - 1);
+}
+
 /****************************************************************************
  * genfault
  ****************************************************************************/
@@ -322,7 +360,7 @@ static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name,
 	n +=  snprintf(&buffer[n], max - n, "  top:    0x%08" PRIx32 "\n", si->top);
 	n +=  snprintf(&buffer[n], max - n, "  sp:     0x%08" PRIx32 " %s\n", si->sp, (inValid ? "Invalid" : "Valid"));
 
-	if (n != write(fd, buffer, n)) {
+	if (n != write_formatted(fd, buffer, max, n)) {
 		return -EIO;
 	}
 
@@ -330,7 +368,7 @@ static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name,
 	n +=  snprintf(&buffer[n], max - n, "  bottom: 0x%08" PRIx32 "\n", sbot);
 	n +=  snprintf(&buffer[n], max - n, "  size:   0x%08" PRIx32 "\n",  si->size);
 
-	if (n != write(fd, buffer, n)) {
+	if (n != write_formatted(fd, buffer, max, n)) {
 		return -EIO;
 	}
 
@@ -349,13 +387,14 @@ static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name,
 			     si->size);
 	}
 
-	if (n != write(fd, buffer, n)) {
+	if (n != write_formatted(fd, buffer, max, n)) {
 		return -EIO;
 	}
 
 #endif
 	return OK;
 }
+
 
 /****************************************************************************
  * write_stack
@@ -370,6 +409,8 @@ static int read_stack(int fd, stack_word_t *words, int num)
 
 	return bytes;
 }
+
+
 static int  write_stack(bool inValid, int winsize, uint32_t wtopaddr,
 			uint32_t topaddr, uint32_t spaddr, uint32_t botaddr,
 			char *sp_name, char *buffer, int max, int infd, int outfd)
@@ -399,17 +440,17 @@ static int  write_stack(bool inValid, int winsize, uint32_t wtopaddr,
 				for (int i = 0; i < chunk; i++) {
 					if (wtopaddr == topaddr) {
 						strncpy(marker, "<-- ", sizeof(marker));
-						strncat(marker, sp_name, sizeof(marker) - 1);
-						strncat(marker, " top", sizeof(marker) - 1);
+						append_limited(marker, sizeof(marker), sp_name);
+						append_limited(marker, sizeof(marker), " top");
 
 					} else if (wtopaddr == spaddr) {
 						strncpy(marker, "<-- ", sizeof(marker));
-						strncat(marker, sp_name, sizeof(marker) - 1);
+						append_limited(marker, sizeof(marker), sp_name);
 
 					} else if (wtopaddr == botaddr) {
 						strncpy(marker, "<-- ", sizeof(marker));
-						strncat(marker, sp_name, sizeof(marker) - 1);
-						strncat(marker, " bottom", sizeof(marker) - 1);
+						append_limited(marker, sizeof(marker), sp_name);
+						append_limited(marker, sizeof(marker), " bottom");
 
 					} else {
 						marker[0] = '\0';
@@ -443,7 +484,7 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 			 regs[REG_R4],  regs[REG_R5],
 			 regs[REG_R6],  regs[REG_R7]);
 
-	if (n != write(fd, buffer, n)) {
+	if (n != write_formatted(fd, buffer, max, n)) {
 		return -EIO;
 	}
 
@@ -455,7 +496,7 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 		      regs[REG_R12], regs[REG_R13],
 		      regs[REG_R14], regs[REG_R15]);
 
-	if (n != write(fd, buffer, n)) {
+	if (n != write_formatted(fd, buffer, max, n)) {
 		return -EIO;
 	}
 
@@ -469,14 +510,14 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 		     getcontrol());
 #endif
 
-	if (n != write(fd, buffer, n)) {
+	if (n != write_formatted(fd, buffer, max, n)) {
 		return -EIO;
 	}
 
 #ifdef REG_EXC_RETURN
 	n = snprintf(buffer, max, " exe return:0x%08" PRIx32 "\n", regs[REG_EXC_RETURN]);
 
-	if (n != write(fd, buffer, n)) {
+	if (n != write_formatted(fd, buffer, max, n)) {
 		return -EIO;
 	}
 
@@ -505,7 +546,7 @@ static int write_fault_registers(fault_regs_s *fault_regs, char *buffer, int max
 			 fault_regs->mmfsr, fault_regs->bfsr, fault_regs->afsr);
 #endif
 
-	if (n != write(fd, buffer, n)) {
+	if (n != write_formatted(fd, buffer, max, n)) {
 		return -EIO;
 	}
 
@@ -523,7 +564,7 @@ static int write_registers_info(int fdout, info_s *pi, char *buffer, int sz)
 		ret = -EIO;
 		int n = snprintf(buffer, sz, " Processor registers: from 0x%08x\n", pi->current_regs);
 
-		if (n == write(fdout, buffer, n)) {
+		if (n == write_formatted(fdout, buffer, sz, n)) {
 			ret = write_registers(pi->regs, buffer, sz, fdout);
 		}
 	}
@@ -532,7 +573,7 @@ static int write_registers_info(int fdout, info_s *pi, char *buffer, int sz)
 		ret = -EIO;
 		int n = snprintf(buffer, sz, " Fault status registers: from NVIC\n");
 
-		if (n == write(fdout, buffer, n)) {
+		if (n == write_formatted(fdout, buffer, sz, n)) {
 			ret = write_fault_registers(&pi->fault_regs, buffer, sz, fdout);
 		}
 	}
@@ -586,7 +627,7 @@ static int write_dump_info(int fdout, info_s *info, dump_s *desc,
 	int n;
 	n = snprintf(buffer, sz, "System fault Occurred on: %s\n", fmtbuff);
 
-	if (n != write(fdout, buffer, n)) {
+	if (n != write_formatted(fdout, buffer, sz, n)) {
 		return -EIO;
 	}
 
@@ -597,7 +638,7 @@ static int write_dump_info(int fdout, info_s *info, dump_s *desc,
 		n = snprintf(buffer, sz, " Type:Assertion failed");
 	}
 
-	if (n != write(fdout, buffer, n)) {
+	if (n != write_formatted(fdout, buffer, sz, n)) {
 		return -EIO;
 	}
 
@@ -609,25 +650,25 @@ static int write_dump_info(int fdout, info_s *info, dump_s *desc,
 		     info->filename, info->lineno);
 #endif
 
-	if (n != write(fdout, buffer, n)) {
+	if (n != write_formatted(fdout, buffer, sz, n)) {
 		return -EIO;
 	}
 
 	n = snprintf(buffer, sz, " FW git-hash: %s\n", px4_firmware_version_string());
 
-	if (n != write(fdout, buffer, n)) {
+	if (n != write_formatted(fdout, buffer, sz, n)) {
 		return -EIO;
 	}
 
 	n = snprintf(buffer, sz, " Build datetime: %s %s\n", __DATE__, __TIME__);
 
-	if (n != write(fdout, buffer, n)) {
+	if (n != write_formatted(fdout, buffer, sz, n)) {
 		return -EIO;
 	}
 
 	n = snprintf(buffer, sz, " Build url: %s \n", px4_build_uri());
 
-	if (n != write(fdout, buffer, n)) {
+	if (n != write_formatted(fdout, buffer, sz, n)) {
 		return -EIO;
 	}
 
@@ -645,7 +686,7 @@ static int write_dump_time(char *caller, char *tag, int fdout,
 	format_fault_time(HEADER_TIME_FMT, ts, fmtbuff, sizeof(fmtbuff));
 	int n = snprintf(buffer, sz, "[%s] -- %s %s Fault Log --\n", caller, fmtbuff, tag);
 
-	if (n != write(fdout, buffer, n)) {
+	if (n != write_formatted(fdout, buffer, sz, n)) {
 		ret = -EIO;
 	}
 
