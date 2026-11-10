@@ -186,16 +186,16 @@ private:
 	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro filter reset")};
 	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro selection changed")};
 
-	DEFINE_PARAMETERS(
+	PARAMETERS(
 #if !defined(CONSTRAINED_FLASH)
-		(ParamInt<px4::params::IMU_GYRO_DNF_EN>) _param_imu_gyro_dnf_en,
-		(ParamInt<px4::params::IMU_GYRO_DNF_HMC>) _param_imu_gyro_dnf_hmc,
-		(ParamFloat<px4::params::IMU_GYRO_DNF_BW>) _param_imu_gyro_dnf_bw,
-		(ParamFloat<px4::params::IMU_GYRO_DNF_MIN>) _param_imu_gyro_dnf_min,
+		IMU_GYRO_DNF_EN,
+		IMU_GYRO_DNF_HMC,
+		IMU_GYRO_DNF_BW,
+		IMU_GYRO_DNF_MIN,
 #endif // !CONSTRAINED_FLASH
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
-		(ParamFloat<px4::params::IMU_DGYRO_CUTOFF>) _param_imu_dgyro_cutoff
+		IMU_GYRO_CUTOFF,
+		IMU_GYRO_RATEMAX,
+		IMU_DGYRO_CUTOFF
 	)
 };
 
@@ -203,7 +203,7 @@ private:
  * Compile time parameter lookup helpers
  *
  * Instanced parameters like IMU_GYRO_NF${i}_FRQ are generated from imu_gyro_parameters.yaml and can't be listed in
- * DEFINE_PARAMETERS() by index. These helpers search the generated px4::parameters list by name at compile time to get
+ * PARAMETERS() by index. These helpers search the generated px4::parameters list by name at compile time to get
  * the parameter handles and allow static_asserts that the number of instances in the yaml matches NUM_NOTCH_FILTERS.
  * Nothing of this is evaluated at runtime.
  */

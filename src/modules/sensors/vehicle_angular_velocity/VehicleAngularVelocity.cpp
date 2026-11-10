@@ -131,9 +131,9 @@ bool VehicleAngularVelocity::UpdateSampleRate()
 			_filter_sample_rate_hz = sample_rate_hz;
 			_update_sample_rate = false;
 
-			if (_param_imu_gyro_ratemax.get() > 0.f) {
+			if (_param.IMU_GYRO_RATEMAX > 0.f) {
 				// determine number of sensor samples that will get closest to the desired rate
-				const float configured_interval_us = 1e6f / _param_imu_gyro_ratemax.get();
+				const float configured_interval_us = 1e6f / _param.IMU_GYRO_RATEMAX;
 				const float publish_interval_us = 1e6f / publish_rate_hz;
 
 				const uint8_t samples = roundf(configured_interval_us / publish_interval_us);
@@ -169,7 +169,7 @@ void VehicleAngularVelocity::ResetFilters(const hrt_abstime &time_now_us)
 
 		for (int axis = 0; axis < 3; axis++) {
 			// angular velocity low pass
-			_lp_filter_velocity[axis].set_cutoff_frequency(_filter_sample_rate_hz, _param_imu_gyro_cutoff.get());
+			_lp_filter_velocity[axis].set_cutoff_frequency(_filter_sample_rate_hz, _param.IMU_GYRO_CUTOFF);
 			_lp_filter_velocity[axis].reset(angular_velocity_uncalibrated(axis));
 
 			// angular velocity notches
@@ -180,8 +180,8 @@ void VehicleAngularVelocity::ResetFilters(const hrt_abstime &time_now_us)
 			}
 
 			// angular acceleration low pass
-			if ((_param_imu_dgyro_cutoff.get() > 0.f)
-			    && (_lp_filter_acceleration[axis].setCutoffFreq(_filter_sample_rate_hz, _param_imu_dgyro_cutoff.get()))) {
+			if ((_param.IMU_DGYRO_CUTOFF > 0.f)
+			    && (_lp_filter_acceleration[axis].setCutoffFreq(_filter_sample_rate_hz, _param.IMU_DGYRO_CUTOFF))) {
 				_lp_filter_acceleration[axis].reset(angular_acceleration_uncalibrated(axis));
 
 			} else {
@@ -378,25 +378,25 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 		_calibration.ParametersUpdate();
 
 		// IMU_GYRO_RATEMAX
-		if (_param_imu_gyro_ratemax.get() <= 0) {
-			const int32_t imu_gyro_ratemax = _param_imu_gyro_ratemax.get();
-			_param_imu_gyro_ratemax.reset();
+		if (_param.IMU_GYRO_RATEMAX <= 0) {
+			const int32_t imu_gyro_ratemax = _param.IMU_GYRO_RATEMAX;
+			_param.reset<px4::params::IMU_GYRO_RATEMAX>();
 			PX4_WARN("IMU_GYRO_RATEMAX invalid (%" PRId32 "), resetting to default %" PRId32 ")", imu_gyro_ratemax,
-				 _param_imu_gyro_ratemax.get());
+				 _param.IMU_GYRO_RATEMAX);
 		}
 
 		// constrain IMU_GYRO_RATEMAX 50-10,000 Hz
-		const int32_t imu_gyro_ratemax = constrain(_param_imu_gyro_ratemax.get(), (int32_t)50, (int32_t)10'000);
+		const int32_t imu_gyro_ratemax = constrain(_param.IMU_GYRO_RATEMAX, (int32_t)50, (int32_t)10'000);
 
-		if (imu_gyro_ratemax != _param_imu_gyro_ratemax.get()) {
-			PX4_WARN("IMU_GYRO_RATEMAX updated %" PRId32 " -> %" PRIu32, _param_imu_gyro_ratemax.get(), imu_gyro_ratemax);
-			_param_imu_gyro_ratemax.set(imu_gyro_ratemax);
-			_param_imu_gyro_ratemax.commit_no_notification();
+		if (imu_gyro_ratemax != _param.IMU_GYRO_RATEMAX) {
+			PX4_WARN("IMU_GYRO_RATEMAX updated %" PRId32 " -> %" PRIu32, _param.IMU_GYRO_RATEMAX, imu_gyro_ratemax);
+			_param.IMU_GYRO_RATEMAX = imu_gyro_ratemax;
+			_param.commit_no_notification<px4::params::IMU_GYRO_RATEMAX>();
 		}
 
 		// gyro low pass cutoff frequency changed
 		for (auto &lp : _lp_filter_velocity) {
-			if (fabsf(lp.get_cutoff_freq() - _param_imu_gyro_cutoff.get()) > 0.01f) {
+			if (fabsf(lp.get_cutoff_freq() - _param.IMU_GYRO_CUTOFF) > 0.01f) {
 				_reset_filters = true;
 				break;
 			}
@@ -436,7 +436,7 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 
 		// gyro derivative low pass cutoff changed
 		for (auto &lp : _lp_filter_acceleration) {
-			if (fabsf(lp.getCutoffFreq() - _param_imu_dgyro_cutoff.get()) > 0.01f) {
+			if (fabsf(lp.getCutoffFreq() - _param.IMU_DGYRO_CUTOFF) > 0.01f) {
 				_reset_filters = true;
 				break;
 			}
@@ -444,9 +444,9 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 
 #if !defined(CONSTRAINED_FLASH)
 
-		if (_param_imu_gyro_dnf_en.get() & DynamicNotch::EscRpm) {
+		if (_param.IMU_GYRO_DNF_EN & DynamicNotch::EscRpm) {
 
-			const int32_t esc_rpm_harmonics = math::constrain(_param_imu_gyro_dnf_hmc.get(), (int32_t)1, (int32_t)10);
+			const int32_t esc_rpm_harmonics = math::constrain(_param.IMU_GYRO_DNF_HMC, (int32_t)1, (int32_t)10);
 
 			if (_dynamic_notch_filter_esc_rpm && (esc_rpm_harmonics != _esc_rpm_harmonics)) {
 				delete[] _dynamic_notch_filter_esc_rpm;
@@ -493,7 +493,7 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 			DisableDynamicNotchEscRpm();
 		}
 
-		if (_param_imu_gyro_dnf_en.get() & DynamicNotch::FFT) {
+		if (_param.IMU_GYRO_DNF_EN & DynamicNotch::FFT) {
 			if (_dynamic_notch_filter_fft_disable_perf == nullptr) {
 				_dynamic_notch_filter_fft_disable_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT disable");
 				_dynamic_notch_filter_fft_update_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT update");
@@ -577,7 +577,7 @@ void VehicleAngularVelocity::DisableDynamicNotchFFT()
 void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force)
 {
 #if !defined(CONSTRAINED_FLASH)
-	const bool enabled = _dynamic_notch_filter_esc_rpm && (_param_imu_gyro_dnf_en.get() & DynamicNotch::EscRpm);
+	const bool enabled = _dynamic_notch_filter_esc_rpm && (_param.IMU_GYRO_DNF_EN & DynamicNotch::EscRpm);
 
 	if (enabled && (_esc_status_sub.updated() || force)) {
 
@@ -587,8 +587,8 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(const hrt_abstime &time_no
 
 		if (_esc_status_sub.copy(&esc_status) && (time_now_us < esc_status.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 
-			const float bandwidth_hz = _param_imu_gyro_dnf_bw.get();
-			const float freq_min = math::max(_param_imu_gyro_dnf_min.get(), bandwidth_hz);
+			const float bandwidth_hz = _param.IMU_GYRO_DNF_BW;
+			const float freq_min = math::max(_param.IMU_GYRO_DNF_MIN, bandwidth_hz);
 
 			for (size_t esc = 0; esc < math::min(esc_status.esc_count, (uint8_t)MAX_NUM_ESCS); esc++) {
 				const esc_report_s &esc_report = esc_status.esc[esc];
@@ -674,7 +674,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(const hrt_abstime &time_no
 void VehicleAngularVelocity::UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force)
 {
 #if !defined(CONSTRAINED_FLASH)
-	const bool enabled = _param_imu_gyro_dnf_en.get() & DynamicNotch::FFT;
+	const bool enabled = _param.IMU_GYRO_DNF_EN & DynamicNotch::FFT;
 
 	if (enabled && (_sensor_gyro_fft_sub.updated() || force)) {
 
