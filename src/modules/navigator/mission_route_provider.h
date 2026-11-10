@@ -59,7 +59,12 @@ public:
 	virtual ~Provider() = default;
 
 	virtual int missionCount() const = 0;
-	virtual bool loadMissionItem(int index, mission_item_s &mission_item) const = 0;
+
+	/**
+	 * Borrow a mission item without copying it, or nullptr if it is unavailable.
+	 * It must stay valid and unchanged until the planning call returns; the planner never keeps it.
+	 */
+	virtual const mission_item_s *missionItem(int index) const = 0;
 	virtual int safePointCount() const = 0;
 	virtual bool loadSafePointItem(int index, mission_item_s &safe_point_item) const = 0;
 };

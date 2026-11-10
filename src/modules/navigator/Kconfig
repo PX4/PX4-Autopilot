@@ -89,6 +89,6 @@ config NAVIGATOR_SAFE_POINT_BATCH_SIZE
 		The minimum of 16 keeps planning fast by limiting the number of
 		passes. The maximum of 32 is the number of rally points that can be
 		stored, so they all fit in one batch.
-		Each slot uses 504 bytes of static RAM, plus 1.4 KB in total for
+		Each slot uses 312 bytes of static RAM, plus 1.4 KB in total for
 		geofence path checks. Only used when NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		is above 0.

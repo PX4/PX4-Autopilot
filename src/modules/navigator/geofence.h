@@ -120,7 +120,7 @@ public:
 	 * the subdivision budget are unavailable when polygon fences are loaded.
 	 *
 	 * @return true when results are available (true per clear path); false if unavailable or invalid.
-	 * On failure, results are false when the output buffer and count are valid.
+	 * On failure, results are false when the count is valid.
 	 */
 	bool checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results);
 	bool isReadyForPathChecks() const { return _path_check_ready; }
@@ -234,6 +234,7 @@ private:
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
 	bool _fence_loaded{false}; ///< Used by live point checks; may remain true while an update is pending.
 	bool _path_check_ready{false}; ///< Update succeeded with no newer request pending.
+	uint8_t _path_pieces[MAX_PATH_CHECKS] {}; ///< Pieces per path of the batch in checkPaths(), off the stack
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
 	hrt_abstime _fence_retry_time{0}; ///< Next retry of a failed load; zero when none is scheduled.
 	uint8_t _fence_load_failures{0}; ///< Consecutive failed load attempts.
@@ -306,7 +307,6 @@ private:
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;
-	bool readPathFencePoint(unsigned index, mission_fence_point_s &point);
 	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces, size_t num_paths,
 			       bool *results);
 	bool checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);

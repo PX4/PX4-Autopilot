@@ -9,7 +9,7 @@
 # The vehicle tries to track the course over ground, as with the fixed-wing course hold: vehicles
 # that steer by heading correct their heading by the estimated drift angle, mecanum rovers drive
 # along the course setpoint directly. There is no desired track, so a sideways offset is not
-# corrected. To follow a desired track, publish rover_position_setpoint instead.
+# corrected. To follow a desired track, publish surface_vehicle_position_setpoint instead.
 # The position controller follows whichever of the two was published most recently.
 
 uint64 timestamp # [us] Time since system start

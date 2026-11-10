@@ -47,6 +47,7 @@
 #include <px4_platform_common/log.h>
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
+#include <drivers/drv_sensor.h>             // to get the simulated sensor device types
 #include <lib/drivers/device/Device.hpp>
 
 using namespace math;
@@ -59,6 +60,13 @@ Sih::Sih() :
 	ModuleParams(nullptr)
 {
 	srand(1234); // initialize the random seed once before calling generate_wgn()
+
+	device::Device::DeviceId device_id{};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = 0;
+	device_id.devid_s.devtype = DRV_FLOW_DEVTYPE_SIM;
+	_optical_flow_device_id = device_id.devid;
 }
 
 Sih::~Sih()
@@ -74,10 +82,19 @@ void Sih::run()
 
 	parameters_updated();
 
+	if (_sih_optical_flow_en.get()) {
+		// Advertise before the simulated clock starts running: the sensors module brings up its
+		// optical flow pipeline when the topic first appears, and it only looks for it while
+		// updating its parameters. Advertising here makes it visible for the startup scan even
+		// though the first sample is only published once the control pipeline is alive.
+		_optical_flow_pub.advertise();
+	}
+
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
+	_optical_flow_time = task_start;
 	_ranging_beacon_time = task_start;
 	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
 					    static_cast<int32_t>(VehicleType::First),
@@ -224,10 +241,20 @@ void Sih::updateFailureConfig()
 			     == failure_injection::Mode::Off);
 	_distance_sensor_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, 1)
 				    == failure_injection::Mode::Off);
+	_optical_flow_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_OPTICAL_FLOW, 1)
+				 == failure_injection::Mode::Off);
 	_accel_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, 1)
 			  == failure_injection::Mode::Off);
 	_gyro_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, 1)
 			 == failure_injection::Mode::Off);
+
+	_stuck_motor_mask = 0;
+
+	for (int i = 0; i < NUM_ACTUATORS_MAX; i++) {
+		if (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1) == failure_injection::Mode::Stuck) {
+			_stuck_motor_mask |= 1u << i;
+		}
+	}
 }
 
 void Sih::sensor_step()
@@ -268,10 +295,28 @@ void Sih::sensor_step()
 	}
 
 	// distance sensor published at 50 Hz
-	if (now - _dist_snsr_time >= 20_ms
-	    && fabs(_distance_snsr_override) < 10000) {
+	if (_sih_distance_snsr_en.get() && now - _dist_snsr_time >= 20_ms) {
 		_dist_snsr_time = now;
 		send_dist_snsr(now);
+	}
+
+	// The optical flow is integrated every iteration and published at SIH_OF_RATE, but only
+	// once the control pipeline is alive. Publishing while the system is still starting up
+	// races with the sensors module bringing up its optical flow pipeline and deadlocks the
+	// simulation, as this thread is the one advancing the lockstep clock.
+	if (_sih_optical_flow_en.get()) {
+		if (_last_actuator_output_time > 0) {
+			accumulate_optical_flow(dt);
+
+			if (now - _optical_flow_time >= _optical_flow_interval_us) {
+				_optical_flow_time = now;
+				send_optical_flow(now);
+			}
+
+		} else {
+			// keep the integration interval aligned with the first publication
+			_optical_flow_time = now;
+		}
 	}
 
 	// ranging beacon published at 2 Hz (each beacon at 0.5 Hz)
@@ -359,8 +404,11 @@ void Sih::parameters_updated()
 	_distance_snsr_min = _sih_distance_snsr_min.get();
 	_distance_snsr_max = _sih_distance_snsr_max.get();
 	_distance_snsr_override = _sih_distance_snsr_override.get();
+	_distance_snsr_noise = _sih_distance_snsr_noise.get();
 	_px4_rangefinder.set_min_distance(_distance_snsr_min);
 	_px4_rangefinder.set_max_distance(_distance_snsr_max);
+
+	_optical_flow_interval_us = static_cast<hrt_abstime>(roundf(1e6f / math::max(_sih_optical_flow_rate.get(), 1.f)));
 
 	_T_TAU = _sih_thrust_tau.get();
 
@@ -379,8 +427,15 @@ void Sih::read_motors(const float dt)
 				_u[i] = actuators_out.output[i];
 
 			} else {
-				float u_sp = actuators_out.output[i];
-				_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				const int motor_index = motor_index_from_actuator(i);
+
+				if (motor_index >= 0 && (_stuck_motor_mask & (1u << motor_index))) {
+					_u[i] = 0.f; // rotor stuck: no thrust and no RPM, the ESC keeps reporting
+
+				} else {
+					float u_sp = actuators_out.output[i];
+					_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				}
 			}
 		}
 
@@ -397,13 +452,31 @@ uint8_t Sih::num_motors() const
 
 	case VehicleType::TailsitterVTOL: return NUM_DYN_THRUSTER; // motors at index 0..1, surfaces at 4..5
 
-	case VehicleType::StandardVTOL:   return 4;                // hover motors at 0..3; pusher at 7 excluded for simplicity
+	case VehicleType::StandardVTOL:   return 5;                // hover motors at 0..3, pusher at 7 (Motor5)
 
 	case VehicleType::FixedWing:      return 1;                // motor at index 3, surfaces at 0..2 are skipped
 
 	case VehicleType::RoverAckermann: return 1;
 
 	default:                          return 0;
+	}
+}
+
+int Sih::motor_index_from_actuator(int actuator_index) const
+{
+	switch (_vehicle) {
+	case VehicleType::FixedWing:      return actuator_index < 3 ? -1 : actuator_index - 3; // surfaces at 0..2
+
+	case VehicleType::TailsitterVTOL: return actuator_index > 3 ? -1 : actuator_index;     // surfaces after the motors
+
+	case VehicleType::StandardVTOL:
+		if (actuator_index < 4) { return actuator_index; } // hover motors
+
+		return actuator_index == 7 ? 4 : -1;              // pusher (Motor5) at 7, surfaces at 4..6
+
+	case VehicleType::RoverAckermann: return actuator_index == 0 ? -1 : actuator_index - 1; // steering at 0
+
+	default:                          return actuator_index;
 	}
 }
 
@@ -421,9 +494,7 @@ void Sih::publish_esc_status()
 	}
 
 	for (int i = 0; i < NUM_ACTUATORS_MAX && motor_idx < num_motors(); i++) {
-		if ((_vehicle == VehicleType::FixedWing && i < 3)
-		    || (_vehicle == VehicleType::TailsitterVTOL && i > 3)
-		    || (_vehicle == VehicleType::RoverAckermann && i == 0)) {
+		if (motor_index_from_actuator(i) < 0) {
 			continue; // control surface / steering channel, not a motor
 		}
 
@@ -740,13 +811,13 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro_noise;
 
 	if (false && _T_B.longerThan(FLT_EPSILON)) { // too much noise at least for the low update rate O.O
-		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
-		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
+		accel_noise = math::noiseGauss3f(0.5f, 1.7f, 1.4f);
+		gyro_noise = math::noiseGauss3f(0.14f, 0.07f, 0.03f);
 
 	} else {
 		// Lower noise when not armed
-		accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
-		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
+		accel_noise = math::noiseGauss3f(0.1f, 0.1f, 0.1f);
+		gyro_noise = math::noiseGauss3f(0.01f, 0.01f, 0.01f);
 	}
 
 	Vector3f specific_force_B = R_E2B * _specific_force_E;
@@ -782,11 +853,26 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 
 	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + generate_wgn() * 0.2f);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + math::generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
 	_airspeed_pub.publish(airspeed);
+}
+
+float Sih::ground_distance() const
+{
+	// the ground is assumed flat at the altitude of the simulation reference (SIH_LOC_H0)
+	const float cos_tilt = _q.dcm_z()(2);
+
+	if (cos_tilt < FLT_EPSILON) {
+		// the body down axis points away from the ground
+		return NAN;
+	}
+
+	// the fake ground lets the vehicle settle marginally below the reference altitude, clamp it
+	// so that a landed vehicle reads zero instead of dropping out of range
+	return math::max(-_lpos(2), 0.f) / cos_tilt;
 }
 
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
@@ -796,20 +882,127 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 	}
 
 	float current_distance;
+	int8_t signal_quality;
 
 	if (_distance_snsr_override >= 0.f) {
+		// forced reading, let the driver flag it if it falls outside of the configured range
 		current_distance = _distance_snsr_override;
+		signal_quality = -1;
 
 	} else {
-		current_distance = -_lpos(2) / _q.dcm_z()(2);
+		// the quality is decided on the true distance rather than on the noisy reading, so
+		// that a measurement sitting at a range limit does not flicker in and out of validity
+		const float true_distance = ground_distance();
 
-		if (current_distance > _distance_snsr_max) {
-			// this is based on lightware lw20 behaviour
-			current_distance = UINT16_MAX / 100.f;
+		if (!PX4_ISFINITE(true_distance) || true_distance > _distance_snsr_max) {
+			// nothing within reach, the sensor reports its saturated raw reading
+			current_distance = DISTSNSR_OUT_OF_RANGE;
+			signal_quality = 0;
+
+		} else if (true_distance < _distance_snsr_min) {
+			// closer than the minimum range: the reading saturates and cannot be trusted
+			current_distance = _distance_snsr_min;
+			signal_quality = 0;
+
+		} else {
+			current_distance = math::max(true_distance + generate_wgn() * _distance_snsr_noise, 0.f);
+
+			// the returned signal gets weaker as the target moves away
+			const float derate_start = DISTSNSR_QUALITY_DERATE * _distance_snsr_max;
+			const float derate_span = _distance_snsr_max - derate_start;
+
+			if (true_distance > derate_start && derate_span > FLT_EPSILON) {
+				const float derated = (true_distance - derate_start) / derate_span;
+				signal_quality = static_cast<int8_t>(constrain(roundf(100.f - 99.f * derated), 1.f, 100.f));
+
+			} else {
+				signal_quality = 100;
+			}
 		}
 	}
 
-	_px4_rangefinder.update(hrt_absolute_time(), current_distance);
+	_px4_rangefinder.update(time_now_us, current_distance, signal_quality);
+}
+
+void Sih::accumulate_optical_flow(const float dt)
+{
+	// An optical flow sensor integrates the angular displacement of the ground image over its
+	// integration interval. The sign convention of sensor_optical_flow is such that a positive
+	// value is produced by a right handed rotation of the sensor about the body axis, which
+	// gives the translation over the ground the opposite sign (see the flow observation model
+	// in the EKF).
+	const float distance = ground_distance();
+
+	if (!PX4_ISFINITE(distance) || distance > _sih_optical_flow_h_max.get()) {
+		// too high above the ground, or not looking at it: no image to track
+		_optical_flow_tracking = false;
+		_optical_flow_dt += dt;
+		return;
+	}
+
+	const Vector3f v_B = _q.rotateVectorInverse(_v_N); // ground relative velocity in body frame
+
+	// the flow produced by the translation over the ground scales with the inverse of the
+	// distance, which is kept bounded to stay well behaved when landed
+	const Vector2f translation_flow = Vector2f(-v_B(1), v_B(0)) / math::max(distance, FLOW_MIN_DISTANCE);
+	const Vector2f flow_rate = Vector2f(_w_B(0), _w_B(1)) + translation_flow;
+
+	if (flow_rate.norm() > FLOW_MAX_RATE) {
+		// the image moves too fast for the sensor to correlate two consecutive frames
+		_optical_flow_tracking = false;
+	}
+
+	_optical_flow_integral += flow_rate * dt;
+	_optical_flow_dt += dt;
+}
+
+void Sih::send_optical_flow(const hrt_abstime &time_now_us)
+{
+	Vector2f pixel_flow = _optical_flow_integral;
+	const float integration_time = _optical_flow_dt;
+	const bool tracking = _optical_flow_tracking;
+
+	// start a new integration interval
+	_optical_flow_integral.setZero();
+	_optical_flow_dt = 0.f;
+	_optical_flow_tracking = true;
+
+	if (_optical_flow_blocked || integration_time < FLT_EPSILON) {
+		return;
+	}
+
+	sensor_optical_flow_s flow{};
+	flow.timestamp_sample = time_now_us;
+	flow.device_id = _optical_flow_device_id;
+
+	if (tracking) {
+		// white noise on the flow rate estimate, integrated over the interval
+		pixel_flow += Vector2f(generate_wgn(), generate_wgn()) * (_sih_optical_flow_noise.get() * integration_time);
+		flow.quality = UINT8_MAX;
+
+	} else {
+		pixel_flow.setZero();
+		flow.quality = 0;
+	}
+
+	pixel_flow.copyTo(flow.pixel_flow);
+	flow.integration_timespan_us = static_cast<uint32_t>(roundf(integration_time * 1e6f));
+
+	// the sensor has neither a gyro nor a rangefinder: the flow module completes the sample
+	// with the vehicle gyro and the downward facing distance sensor
+	flow.delta_angle[0] = flow.delta_angle[1] = flow.delta_angle[2] = NAN;
+	flow.delta_angle_available = false;
+	flow.distance_m = NAN;
+	flow.distance_available = false;
+
+	flow.max_flow_rate = FLOW_MAX_RATE;
+	flow.min_ground_distance = 0.f;
+	flow.max_ground_distance = _sih_optical_flow_h_max.get();
+	flow.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
+	flow.error_count = 0;
+
+	flow.timestamp = hrt_absolute_time();
+	_optical_flow_pub.publish(flow);
 }
 
 void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
@@ -835,7 +1028,7 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 		const double true_range_m = delta_ecef.norm();
 
 		const float noise_std = _sih_ranging_beacon_noise.get();
-		const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
+		const float noise_m = (noise_std > 0.f) ? math::generate_wgn() * noise_std : 0.f;
 		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
 
 		ranging_beacon_s msg{};
@@ -934,40 +1127,6 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
-}
-
-float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
-{
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
-Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
-{
-	return Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
 }
 
 int Sih::print_status()

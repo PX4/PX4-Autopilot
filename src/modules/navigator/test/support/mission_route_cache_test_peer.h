@@ -70,8 +70,7 @@ public:
 
 	static bool missionLoadInProgress(const MissionRouteCache &cache)
 	{
-		return cache._full_mission_cache._mission.validation_pending
-		       && cache._full_mission_cache._mission_request.pending;
+		return missionLoading(cache) && cache._full_mission_cache._mission_request.pending;
 	}
 
 	static uint64_t missionLoadPerfEventCount(const MissionRouteCache &cache)
@@ -90,6 +89,19 @@ public:
 		if (cache._full_mission_cache._mission.retry.retry_at != 0) {
 			cache._full_mission_cache._mission.retry.retry_at = hrt_absolute_time();
 		}
+	}
+
+	// Receive the reply of the pending read without letting the cache consume it.
+	static bool receiveMissionRead(MissionRouteCache &cache)
+	{
+		return DatamanClientTestPeer::waitForOperation(cache._full_mission_cache._dataman_client_mission,
+				kDefaultCacheTestTimeoutUs);
+	}
+
+	static bool missionLoading(const MissionRouteCache &cache)
+	{
+		const auto &mission = cache._full_mission_cache._mission;
+		return mission.loadable && !mission.ready && !mission.retry.scheduled();
 	}
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
@@ -176,7 +188,7 @@ private:
 			return true;
 		}
 
-		if (cache._full_mission_cache._mission.validation_pending) {
+		if (missionLoading(cache)) {
 			cache.update(mission);
 			return true;
 		}

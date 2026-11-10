@@ -27756,7 +27756,7 @@ Specify USB MAVLink mode.
 - `9`: extvisionmin
 - `10`: gimbal
 - `11`: onboard_low_bandwidth
-- `12`: uavionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -28154,7 +28154,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Commander
 
-<div class="param-group" style="--param-count: 75">
+<div class="param-group" style="--param-count: 74">
 
 <div class="param">
 
@@ -28985,29 +28985,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### COM_FLTT_LOW_ACT (`INT32`) {#COM_FLTT_LOW_ACT}
-
-Remaining flight time low failsafe.
-
-Action the system takes when the remaining flight time is below
-the estimated time it takes to reach the return destination.
-
-
-**Values:**
-
-- `0`: None
-- `1`: Warning
-- `3`: Return
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  | 1 | 1 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### COM_FLT_TIME_MAX (`INT32`) {#COM_FLT_TIME_MAX}
 
 Maximum allowed flight time.
@@ -29142,16 +29119,21 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery failsafe mode.
 
-Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR
-for definition of battery states.
+Action when the battery drops below the critical (BAT_CRIT_THR) or emergency (BAT_EMERGEN_THR) level.
+
+Options 3 and 4 also engage Return mode when the remaining flight time is only just enough to return (distance-aware return, with the margin set by RTL_TIME_FACTOR and RTL_TIME_MARGIN).
+This needs a remaining flight time estimate, such as from BATn_CAPACITY or a smart battery.
+The other options only warn.
 
 
 **Values:**
 
 - `0`: Warning
 - `2`: Land mode
-- `3`: Return at critical level, land at emergency level
-- `4`: Return at critical level, terminate at emergency level
+- `3`: Distance-aware return, Critical level return, Emergency level land
+- `4`: Distance-aware return, Critical level return, Emergency level terminate
+- `5`: Critical level return, Emergency level land
+- `6`: Critical level return, Emergency level terminate
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31009,13 +30991,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 0 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31108,13 +31090,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 1 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31207,13 +31189,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 2 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -31306,13 +31288,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Auxiliary global position sensor 3 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -35684,7 +35666,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Altitude loss threshold for termination and parachute deployment.
 
-Maximum altitude loss below the setpoint allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
+Maximum altitude loss allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -42909,6 +42891,10 @@ MAVLink Mode for instance 0.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 
 
 **Values:**
@@ -42923,7 +42909,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -43173,6 +43159,10 @@ MAVLink Mode for instance 1.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 
 
 **Values:**
@@ -43187,7 +43177,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -43437,6 +43427,10 @@ MAVLink Mode for instance 2.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 
 
 **Values:**
@@ -43451,7 +43445,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 
@@ -44202,17 +44196,18 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Waypoint heading timeout.
 
-Time in seconds we wait on reaching target heading at a waypoint if it is forced
+Time from commanding a waypoint heading until a multicopter continues without reaching it,
+to not get stuck with low yaw authority.
 
-If set > 0 it will ignore the target heading for normal waypoint acceptance. If the
-waypoint forces the heading the timeout will matter. For example on VTOL forwards transition.
-Mainly useful for VTOLs that have less yaw authority and might not reach target
-yaw in wind. Disabled by default.
+A forced heading (e.g. before a VTOL transition) is never skipped: a mission fails instead,
+other modes keep waiting.
+VTOLs only wait for forced headings.
+0: don't wait, -1: wait indefinitely
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -1 | 20 | 1 | -1.0 | s | &nbsp;
+&nbsp; | -1 | 60 | 1 | 10.0 | s | &nbsp;
 
 </div>
 
@@ -54743,7 +54738,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 266">
+<div class="param-group" style="--param-count: 265">
 
 <div class="param">
 
@@ -55833,7 +55828,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### IMU_GYRO_NF0_BW (`FLOAT`) {#IMU_GYRO_NF0_BW}
 
-Notch filter bandwidth for gyro.
+Notch filter 0 bandwidth for gyro.
 
 The frequency width of the stop band for the 2nd order notch filter on the primary gyro.
 See "IMU_GYRO_NF0_FRQ" to activate the filter and to set the notch frequency.
@@ -55850,7 +55845,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### IMU_GYRO_NF0_FRQ (`FLOAT`) {#IMU_GYRO_NF0_FRQ}
 
-Notch filter frequency for gyro.
+Notch filter 0 frequency for gyro.
 
 The center frequency for the 2nd order notch filter on the primary gyro.
 This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
@@ -55888,7 +55883,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### IMU_GYRO_NF1_FRQ (`FLOAT`) {#IMU_GYRO_NF1_FRQ}
 
-Notch filter 2 frequency for gyro.
+Notch filter 1 frequency for gyro.
 
 The center frequency for the 2nd order notch filter on the primary gyro.
 This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
@@ -56038,18 +56033,6 @@ INA226 Power Monitor Shunt.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 1e-09 | 0.1 | 1e-09 | 0.0005 |  | &nbsp;
-
-</div>
-
-<div class="param">
-
-### INA228_CONFIG (`INT32`) {#INA228_CONFIG}
-
-INA228 Power Monitor Config.
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 65535 | 1 | 63779 |  | &nbsp;
 
 </div>
 
@@ -59837,14 +59820,15 @@ Models differ in range and FoV.
 
 **Values:**
 
-- `1`: TFMINI
+- `1`: TFMINI / TFMINI-S
 - `2`: ISTRA24
 - `3`: ISTRA24_100m
+- `4`: TFMINI Plus
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1 | 3 |  | 1 |  | &nbsp;
+&check; | 1 | 4 |  | 1 |  | &nbsp;
 
 </div>
 
@@ -61379,13 +61363,35 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Simulation In Hardware
 
-<div class="param-group" style="--param-count: 35">
+<div class="param-group" style="--param-count: 41">
+
+<div class="param">
+
+### SIH_DISTSNSR_EN (`INT32`) {#SIH_DISTSNSR_EN}
+
+Enable the simulated downward facing distance sensor.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 1 |  | &nbsp;
+
+</div>
 
 <div class="param">
 
 ### SIH_DISTSNSR_MAX (`FLOAT`) {#SIH_DISTSNSR_MAX}
 
 distance sensor maximum range.
+
+The signal quality degrades over the last 20% of the range. Beyond the maximum range
+the sensor reports a saturated reading with a zero signal quality.
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -61399,9 +61405,29 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 distance sensor minimum range.
 
+Readings closer than this saturate at the minimum range
+and are reported with a zero signal quality.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 | 10.0 | 0.01 | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_DISTSNSR_NOI (`FLOAT`) {#SIH_DISTSNSR_NOI}
+
+Distance sensor measurement noise standard deviation.
+
+Gaussian noise added to the simulated distance sensor measurements.
+Set to 0 to disable noise.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 10.0 |  | 0.01 | m | &nbsp;
 
 </div>
 
@@ -61411,7 +61437,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 if >= 0 the distance sensor measures will be overridden by this value.
 
-Absolute value superior to 10000 will disable distance sensor
+Set SIH_DISTSNSR_EN to 0 to disable the distance sensor.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -61818,6 +61844,76 @@ This value can be measured by weighting the quad on a scale.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 |  | 0.1 | 1.0 | kg | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_EN (`INT32`) {#SIH_OF_EN}
+
+Enable the simulated optical flow sensor.
+
+The simulated sensor reports the integrated flow only. The flow module completes the
+sample with the vehicle gyro and the downward facing distance sensor, which therefore
+has to be enabled as well (SIH_DISTSNSR_EN) for the flow to be usable by the estimator.
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_H_MAX (`FLOAT`) {#SIH_OF_H_MAX}
+
+Optical flow maximum ground distance.
+
+Above this distance to the ground the simulated sensor cannot track the ground image
+anymore and reports a zero quality.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 |  |  | 30.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_NOISE (`FLOAT`) {#SIH_OF_NOISE}
+
+Optical flow measurement noise standard deviation.
+
+Gaussian noise added to the simulated flow rate.
+Set to 0 to disable noise.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 5.0 |  | 0.05 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_RATE (`FLOAT`) {#SIH_OF_RATE}
+
+Optical flow publication rate.
+
+The simulated sensor integrates the flow over one publication interval.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 | 100.0 |  | 12.0 | Hz | &nbsp;
 
 </div>
 

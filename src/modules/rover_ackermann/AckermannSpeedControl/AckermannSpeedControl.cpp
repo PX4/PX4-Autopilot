@@ -35,10 +35,12 @@
 
 using namespace time_literals;
 
-AckermannSpeedControl::AckermannSpeedControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannSpeedControl::AckermannSpeedControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_speed_control", ORB_ID(vehicle_local_position))
 {
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_speed_status_pub.advertise();
+	_surface_vehicle_speed_status_pub.advertise();
 	updateParams();
 }
 
@@ -63,7 +65,8 @@ void AckermannSpeedControl::updateSpeedControl()
 
 	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
+	// Runs at the EKF2 output rate (EKF2_PREDICT_US up to 20 ms), allow for that plus jitter
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
 	// Throttle Setpoint
 	if (PX4_ISFINITE(_speed_setpoint)) {
@@ -79,15 +82,15 @@ void AckermannSpeedControl::updateSpeedControl()
 	}
 
 	// Publish speed controller status (logging only)
-	rover_speed_status_s rover_speed_status;
-	rover_speed_status.timestamp = _timestamp;
-	rover_speed_status.measured_speed_body_x = _vehicle_speed;
-	rover_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
-	rover_speed_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
-	rover_speed_status.measured_speed_body_y = NAN;
-	rover_speed_status.adjusted_speed_body_y_setpoint = NAN;
-	rover_speed_status.pid_throttle_body_y_integral = NAN;
-	_rover_speed_status_pub.publish(rover_speed_status);
+	surface_vehicle_speed_status_s surface_vehicle_speed_status;
+	surface_vehicle_speed_status.timestamp = _timestamp;
+	surface_vehicle_speed_status.measured_speed_body_x = _vehicle_speed;
+	surface_vehicle_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
+	surface_vehicle_speed_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
+	surface_vehicle_speed_status.measured_speed_body_y = NAN;
+	surface_vehicle_speed_status.adjusted_speed_body_y_setpoint = NAN;
+	surface_vehicle_speed_status.pid_throttle_body_y_integral = NAN;
+	_surface_vehicle_speed_status_pub.publish(surface_vehicle_speed_status);
 }
 
 void AckermannSpeedControl::updateSubscriptions()
@@ -107,10 +110,10 @@ void AckermannSpeedControl::updateSubscriptions()
 		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-	if (_rover_speed_setpoint_sub.updated()) {
-		rover_speed_setpoint_s rover_speed_setpoint;
-		_rover_speed_setpoint_sub.copy(&rover_speed_setpoint);
-		_speed_setpoint = rover_speed_setpoint.speed_body_x;
+	if (_surface_vehicle_speed_setpoint_sub.updated()) {
+		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint;
+		_surface_vehicle_speed_setpoint_sub.copy(&surface_vehicle_speed_setpoint);
+		_speed_setpoint = surface_vehicle_speed_setpoint.speed_body_x;
 	}
 }
 

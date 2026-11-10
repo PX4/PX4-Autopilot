@@ -41,15 +41,16 @@
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <math.h>
 
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
 #include <uORB/topics/surface_vehicle_course_setpoint.h>
-#include <uORB/topics/rover_speed_setpoint.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
+#include <uORB/topics/surface_vehicle_speed_setpoint.h>
+#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/position_controller_status.h>
@@ -60,7 +61,7 @@ using namespace matrix;
 /**
  * @brief Class for ackermann position control.
  */
-class AckermannPosControl : public ModuleParams
+class AckermannPosControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -71,7 +72,7 @@ public:
 	~AckermannPosControl() = default;
 
 	/**
-	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint or surfaceVehicleCourseSetpoint.
+	 * @brief Generate and publish surfaceVehicleSpeedSetpoint and surfaceVehicleAttitudeSetpoint from surfaceVehiclePositionSetpoint or surfaceVehicleCourseSetpoint.
 	 */
 	void updatePosControl();
 
@@ -93,6 +94,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updatePosControl(); }
+
 	/**
 	 * @brief Update uORB subscriptions used in position controller.
 	 */
@@ -101,13 +104,13 @@ private:
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
+	uORB::Subscription _surface_vehicle_position_setpoint_sub{ORB_ID(surface_vehicle_position_setpoint)};
 	uORB::Subscription _surface_vehicle_course_setpoint_sub{ORB_ID(surface_vehicle_course_setpoint)};
 	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
 
 	// uORB publications
-	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
-	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Publication<surface_vehicle_speed_setpoint_s> _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
+	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
 	uORB::Publication<pure_pursuit_status_s>     _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
 
 	// Variables

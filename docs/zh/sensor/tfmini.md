@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.7" />
 
-The Benewake [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html) and [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) are small, low-power time-of-flight LiDAR [rangefinders](../sensor/rangefinders.md) with a range of 0.1–12 m (PX4 uses 0.4–12 m) and a 100 Hz default update rate.
+The Benewake [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html) and [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) are small, low-power time-of-flight LiDAR [rangefinders](../sensor/rangefinders.md) with a range of 0.1–12 m and a 100 Hz default update rate.
 They connect to the flight controller using a serial port (UART).
 
 ![TFmini LiDAR](../../assets/hardware/sensors/tfmini/tfmini_hero.jpg)
@@ -12,14 +12,14 @@ They connect to the flight controller using a serial port (UART).
 | Model                                                                  | 范围                       | 接口定义 | `SENS_TFMINI_HW` value           |
 | ---------------------------------------------------------------------- | ------------------------ | ---- | -------------------------------- |
 | [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html)       | 0.1–12 m | UART | `1` (default) |
-| [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) | 0.1–12 m | UART | `1` (default) |
+| [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) | 0.1–12 m | UART | `4`                              |
 
-PX4 reports distances from 0.4 m to 12 m for both models.
+PX4 reports distances from 0.4 m to 12 m for the TFmini-S and from 0.1 m to 12 m for the TFmini Plus.
 
 ## Specifications {#specifications}
 
 - **Technology:** Time-of-flight, 850 nm infrared (VCSEL on the TFmini-S, LED on the TFmini Plus)
-- **Range:** 0.1–12 m at 90% reflectivity; 0.1–7 m (TFmini-S) or 0.1–4 m (TFmini Plus) at 10% reflectivity (PX4 uses 0.4–12 m)
+- **Range:** 0.1–12 m at 90% reflectivity; 0.1–7 m (TFmini-S) or 0.1–4 m (TFmini Plus) at 10% reflectivity
 - **Update rate:** 100 Hz by default, adjustable 1–1000 Hz
 - **Field of view:** 2° (TFmini-S), 3.6° (TFmini Plus)
 - **Accuracy:** ±6 cm below 6 m and ±1% from 6–12 m (TFmini-S); ±5 cm below 5 m and ±1% from 5–12 m (TFmini Plus)
@@ -44,7 +44,7 @@ PX4 reports distances from 0.4 m to 12 m for both models.
 
 Mount the sensor facing down: PX4 assumes a downward-facing sensor, and the orientation cannot be configured.
 
-Readings below 0.4 m are reported as out of range.
+Readings below the minimum range of the selected model (0.4 m for the TFmini-S, 0.1 m for the TFmini Plus) are reported as out of range.
 
 ### Pinouts {#pinouts}
 
@@ -114,7 +114,7 @@ The driver does not configure the sensor, so the sensor must be at its factory s
 If these have been changed, reset the sensor to its defaults as described in the Benewake user manual.
 
 [SENS_TFMINI_HW](../advanced_config/parameter_reference.md#SENS_TFMINI_HW) selects the model and sets the range limits PX4 reports.
-Leave it at its default `1` (`TFMINI`) for the TFmini-S and TFmini Plus.
+Set it to `1` (`TFMINI / TFMINI-S`) for the TFmini-S or `4` (`TFMINI Plus`) for the TFmini Plus.
 
 The configuration that is common to all rangefinders, such as the sensor position offsets used by the estimator, is covered in [Rangefinders > Configuration/Setup](../sensor/rangefinders.md#configuration).
 
@@ -132,7 +132,7 @@ You can observe the published measurements with:
 listener distance_sensor
 ```
 
-The sensor type is reported as laser, with minimum and maximum distances of 0.4 m and 12 m.
+The sensor type is reported as laser, with minimum and maximum distances of 0.4 m and 12 m for the TFmini-S, and 0.1 m and 12 m for the TFmini Plus.
 
 The measurements can also be viewed in the `DISTANCE_SENSOR` message in the _QGroundControl MAVLink Inspector_.
 For more information see [Rangefinders > Testing](../sensor/rangefinders.md#testing).

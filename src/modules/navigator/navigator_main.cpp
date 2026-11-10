@@ -47,7 +47,7 @@
 #include "navigator.h"
 
 #include <float.h>
-#include <sys/stat.h>
+#include <unistd.h>
 
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
@@ -236,9 +236,7 @@ void Navigator::run()
 {
 
 	/* Try to load the geofence file if it exists. */
-	struct stat buffer;
-
-	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
+	if (access(GEOFENCE_FILENAME, F_OK) == 0) {
 		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 	}
@@ -1335,7 +1333,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	desc.task_id = px4_task_spawn_cmd("navigator",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_NAVIGATION,
-					  PX4_STACK_ADJUSTED(2230),
+					  PX4_STACK_ADJUSTED(3584),
 					  (px4_main_t)&run_trampoline,
 					  (char *const *)argv);
 

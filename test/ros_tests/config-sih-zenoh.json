@@ -1,0 +1,14 @@
+{
+    "mode": "sitl",
+    "simulator": "sih",
+    "model_prefix": "sihsim_",
+    "tests":
+    [
+        {
+            "model": "quadx",
+            "vehicle": "quadx",
+            "test_filter": "ModesTest.*",
+            "timeout_min": 10
+        }
+    ]
+}

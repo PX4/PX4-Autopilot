@@ -68,6 +68,11 @@ MissionBlock::is_mission_item_reached_or_completed()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
+	// The first check after a reset represents when the item and its heading got commanded
+	if (_time_item_started == 0) {
+		_time_item_started = now;
+	}
+
 	// Handle indefinite waypoints and action commands
 	switch (_mission_item.nav_cmd) {
 
@@ -397,7 +402,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	update_precision_takeoff(now);
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
-	// Update the 'waypoint position reached' status (only for rotary wing flight)
+	// Update the 'waypoint yaw reached' status, only rotary wings wait for the heading
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -405,20 +410,25 @@ MissionBlock::is_mission_item_reached_or_completed()
 		    && _navigator->get_local_position()->heading_good_for_control) {
 
 			const float yaw_err = wrap_pi(_mission_item.yaw - _navigator->get_local_position()->heading);
+			const bool yaw_timed_out = (_navigator->get_yaw_timeout() >= 0.f) // negative disables the timeout
+						   && (now > _time_item_started + (hrt_abstime)(_navigator->get_yaw_timeout() * 1_s));
 
-			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
+			// Accept yaw if reached, VTOLs only care about forced headings
 			if (fabsf(yaw_err) < _navigator->get_yaw_threshold()
-			    || (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading)) {
+			    || (_navigator->get_vstatus()->is_vtol && !_mission_item.force_heading)) {
 
 				_waypoint_yaw_reached = true;
-			}
 
-			/* if heading needs to be reached, the timeout is enabled and we don't make it, abort mission */
-			if (!_waypoint_yaw_reached && _mission_item.force_heading &&
-			    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
-			    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
+			} else if (yaw_timed_out) {
+				if (!_mission_item.force_heading) {
+					// Never get stuck, e.g. when yaw authority is lost
+					_waypoint_yaw_reached = true;
 
-				_navigator->set_mission_failure_heading_timeout();
+				} else if (_navigator->get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+					// What follows relies on a forced heading (e.g. VTOL forward transition), abort the mission.
+					// Other modes keep waiting, no failsafe acts on a mission failure there.
+					_navigator->set_mission_failure_heading_timeout();
+				}
 			}
 
 		} else {
@@ -526,6 +536,7 @@ MissionBlock::reset_mission_item_reached()
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
 	_time_wp_reached = 0;
+	_time_item_started = 0;
 }
 
 void

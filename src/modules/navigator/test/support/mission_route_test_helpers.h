@@ -48,6 +48,7 @@
 #include "vector_mission_item_store.h"
 
 #include <lib/geo/geo.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 #include <vector>
 
@@ -73,13 +74,13 @@ public:
 
 	int missionCount() const override { return static_cast<int>(_mission_items.itemCount()); }
 
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override
+	const mission_item_s *missionItem(int index) const override
 	{
 		++_mission_load_count;
-		return _mission_items.loadItem(index, mission_item);
+		return _mission_items.item(index);
 	}
 
-	/** Number of loadMissionItem() calls, failed ones included. */
+	/** Number of missionItem() calls, failed ones included. */
 	int missionLoadCount() const { return _mission_load_count; }
 
 	int safePointCount() const override { return static_cast<int>(_safe_point_items.itemCount()); }
@@ -168,6 +169,10 @@ static inline mission_item_s makeDoJump(int16_t jump_target_index, uint16_t repe
 	return item;
 }
 
+static constexpr uint8_t kVtolUndefined{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
+static constexpr uint8_t kVtolMc{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
+static constexpr uint8_t kVtolFw{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW};
+
 static inline mission_item_s makeVtolTransitionItem(uint8_t target_state)
 {
 	mission_item_s item{};
@@ -222,6 +227,9 @@ using VectorProvider = navigator_test::VectorMissionRouteProvider;
 using navigator_test::kAltitudeTolerance;
 using navigator_test::kDistanceTolerance;
 using navigator_test::kLatLonToleranceDeg;
+using navigator_test::kVtolFw;
+using navigator_test::kVtolMc;
+using navigator_test::kVtolUndefined;
 using navigator_test::makeDoJump;
 using navigator_test::makeRouteProvider;
 using navigator_test::makeLandItem;

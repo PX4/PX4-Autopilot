@@ -231,6 +231,7 @@ protected:
 	bool _waypoint_yaw_reached{false};
 
 	hrt_abstime _time_wp_reached{0};
+	hrt_abstime _time_item_started{0}; ///< first reached check of the current item, i.e. when its heading got commanded
 
 	// Mission items that have a timeout to allow the payload e.g. gripper, winch, gimbal executing the command see item_has_timeout()
 	hrt_abstime _timestamp_command_timeout{0}; ///< Timestamp when the current item_has_timeout() command was started

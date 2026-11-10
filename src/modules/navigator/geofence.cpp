@@ -68,7 +68,8 @@ static constexpr unsigned kMaxPathPieces = 255;
 static constexpr double kHalfPi = M_PI / 2.0; // M_PI_2 is not available on every platform
 
 // Zero means the path cannot be approximated within the subdivision budget.
-static uint8_t pathPieces(const Geofence::PathCheck &path)
+// Not inlined: its double math would otherwise stay on the checkPaths() stack under checkPolygonPaths().
+static __attribute__((noinline)) uint8_t pathPieces(const Geofence::PathCheck &path)
 {
 	const float distance = get_distance_to_next_waypoint(path.start(0), path.start(1), path.end(0), path.end(1));
 	const double half_angle = static_cast<double>(distance) / (2.0 * CONSTANTS_RADIUS_OF_EARTH);
@@ -231,6 +232,8 @@ void Geofence::run()
 		if (_initiate_fence_updated || (_fence_retry_time != 0 && hrt_absolute_time() >= _fence_retry_time)) {
 			_initiate_fence_updated = false;
 			_fence_retry_time = 0;
+			// updateFence() clears it too, but may run on another thread (navigator fencefile).
+			_path_check_ready = false;
 			_dataman_state	= DatamanState::Read;
 			_publishStatus(geofence_status_s::GF_STATUS_LOADING);
 		}
@@ -656,11 +659,11 @@ bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altit
 
 bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results)
 {
-	if (!results || num_paths == 0 || num_paths > MAX_PATH_CHECKS) {
+	if (num_paths == 0 || num_paths > MAX_PATH_CHECKS) {
 		return false;
 	}
 
-	const bool success = paths && _path_check_ready && checkPaths(paths, num_paths, results);
+	const bool success = _path_check_ready && checkPaths(paths, num_paths, results);
 
 	if (!success) {
 		memset(results, 0, num_paths * sizeof(bool));
@@ -671,7 +674,6 @@ bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *re
 
 bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results)
 {
-	uint8_t pieces[MAX_PATH_CHECKS];
 	bool pieces_calculated = false;
 	const float max_home_distance = _navigator->home_global_position_valid() ? _param_gf_max_hor_dist.get() : 0.f;
 	const home_position_s &home = *_navigator->get_home_position();
@@ -708,9 +710,9 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 			if (!pieces_calculated) {
 				for (size_t i = 0; i < num_paths; ++i) {
-					pieces[i] = pathPieces(paths[i]);
+					_path_pieces[i] = pathPieces(paths[i]);
 
-					if (pieces[i] == 0) {
+					if (_path_pieces[i] == 0) {
 						return false;
 					}
 				}
@@ -718,7 +720,7 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 				pieces_calculated = true;
 			}
 
-			if (!checkPolygonPaths(polygon, paths, pieces, num_paths, results)) {
+			if (!checkPolygonPaths(polygon, paths, _path_pieces, num_paths, results)) {
 				return false;
 			}
 
@@ -732,22 +734,13 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 	return true;
 }
 
-bool Geofence::readPathFencePoint(unsigned index, mission_fence_point_s &point)
-{
-	return _readFencePoint(index, point) && _fencePointValid(point);
-}
-
+// The load validated every vertex, and the cache only changes while path checks are unavailable.
 bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces,
 				 size_t num_paths, bool *results)
 {
-	if (polygon.vertex_count < 3 || polygon.dataman_index + polygon.vertex_count > _dataman_cache.size()) {
-		return false;
-	}
-
 	mission_fence_point_s point{};
 
-	if (!readPathFencePoint(polygon.dataman_index, point)
-	    || point.nav_cmd != polygon.fence_type || point.vertex_count != polygon.vertex_count) {
+	if (!_readFencePoint(polygon.dataman_index, point)) {
 		return false;
 	}
 
@@ -759,16 +752,11 @@ bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *pa
 		matrix::Vector2d next = first;
 
 		if (v < polygon.vertex_count) {
-			if (!readPathFencePoint(polygon.dataman_index + v, point)
-			    || point.nav_cmd != polygon.fence_type || point.vertex_count != polygon.vertex_count) {
+			if (!_readFencePoint(polygon.dataman_index + v, point)) {
 				return false;
 			}
 
 			next = matrix::Vector2d {point.lat, point.lon};
-		}
-
-		if (fabs(next(1) - previous(1)) > 180.0) {
-			return false;
 		}
 
 		for (size_t i = 0; i < num_paths; ++i) {
@@ -788,8 +776,8 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 {
 	mission_fence_point_s point{};
 
-	if (!readPathFencePoint(polygon.dataman_index, point) || point.nav_cmd != polygon.fence_type
-	    || !PX4_ISFINITE(point.circle_radius) || point.circle_radius <= 0.f) {
+	// The load validated the center and radius.
+	if (!_readFencePoint(polygon.dataman_index, point)) {
 		return false;
 	}
 
