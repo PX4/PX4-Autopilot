@@ -17,7 +17,7 @@ Typical applications include:
 - **Bands:** L1 + L5
 - **Protocol:** NMEA 0183 V3.01 / V4.1 (GGA, GSA, GSV, RMC, VTG, GLL, ZDA, GRS, GST); AIROHA PAIR proprietary commands (not supported on PX4)
 - **Sensitivity:** High tracking sensitivity for operation in weak-signal environments; fast time to first fix (TTFF) under low-signal conditions
-- **Compass:** Built-in
+- **Compass:** Built-in (IST8310)
 - **Barometer:** Built-in (not used by PX4)
 - **Other:** Safety switch, buzzer and tri-colour LED (Pixhawk-compatible status indicators); backup power for hot-start performance
 - **Antenna:** Integrated dual-band patch antenna
@@ -32,7 +32,8 @@ Typical applications include:
 
 Order this module from:
 
-- [GlobalSat BD-100M](https://www.amazon.com/dp/B0HKZZRKZ9) GPS/GNSS
+- [GlobalSat BD-100M](https://www.amazon.com/dp/B0HKZZRKZ9) GPS/GNSS (option 1)
+- [GlobalSat BD-100M](https://www.gpscity.com/us-globalsat-bd-100m-dual-band-gnss-receiver-for-drone-and-autopilot) GPS/GNSS (option 2)
 
 ## Hardware Setup {#hardware_setup}
 
@@ -77,4 +78,5 @@ In the [QGroundControl MAVLink Console](../debug/mavlink_shell.md#qgroundcontrol
 ## Further Information {#further_information}
 
 - [GlobalSat BD-100M](https://www.globalsat.com.tw/en/product-285501/Dual-Band-GNSS-Receiver-for-Drone-and-Autopilot-BD-100M.html) (product page)
-- [BD-100M/BD-100K User Manual](https://www.globalsat.com.tw/files/BD-100MK_user_manual_V1.0_20260910.pdf)
+- [BD-100M/BD-100K User Manual](https://www.globalsat.com.tw/files/BD-100MK_user_manual_latest.pdf)
+- [BD-100M/BD-100K Hardware Data Sheet](https://www.globalsat.com.tw/files/BD-100M_Hardware_Data_Sheet_latest.pdf)
