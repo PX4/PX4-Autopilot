@@ -42,6 +42,7 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/module.h>
 
 #include <string.h>
@@ -73,7 +74,12 @@ class Esc4way : public ModuleBase
 public:
 	static Descriptor desc;
 
-	Esc4way(int fd, const char *device) : _fd(fd) { strncpy(_device, device, sizeof(_device) - 1); }
+	Esc4way(int fd, const char *device, const uint8_t *pending, size_t pending_len) : _fd(fd)
+	{
+		strncpy(_device, device, sizeof(_device) - 1);
+		_pending_len = pending_len < sizeof(_pending) ? pending_len : sizeof(_pending);
+		memcpy(_pending, pending, _pending_len);
+	}
 	~Esc4way() override;
 
 	static int task_spawn(int argc, char *argv[]);
@@ -86,6 +92,7 @@ public:
 
 private:
 	bool receive(uint8_t *buf, size_t len);
+	bool host_closed();
 	void reopen();
 	bool start_session();
 
@@ -103,6 +110,12 @@ private:
 	bool _fourway{false};		///< 4way mode (after MSP_SET_PASSTHROUGH or a 4way request)
 	bool _served{false};		///< at least one device command was run
 	bool _reboot{false};		///< session over: reboot to restore the outputs
+	bool _dtr_seen{false};		///< the host raised DTR, so it drops it when it closes the port
+	hrt_abstime _dtr_low_since{0};	///< when DTR dropped, 0 while it is raised
+
+	uint8_t _pending[80] {};	///< request bytes read by cdcacm_autostart, answered first
+	size_t _pending_len{0};
+	size_t _pending_pos{0};
 
 	EscBootloader _esc;		///< ESC of the last device command
 

@@ -125,6 +125,7 @@ private:
 
 	char _buffer[80] {};
 	int _bytes_read{0};
+	int _msp_offset{-1};	///< start of the MSP request found in _buffer, handed to esc_4way
 
 	uint32_t _reschedule_time{0};
 

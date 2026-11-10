@@ -62,11 +62,19 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/battery_status.h>
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+
+#if defined(CONFIG_CDCACM)
+#include <nuttx/usb/cdc.h>
+#include <nuttx/usb/cdcacm.h>
+#include <sys/ioctl.h>
+#endif // CONFIG_CDCACM
 
 extern "C" {
 #include <lib/crc/crc.h>
@@ -120,6 +128,7 @@ static constexpr uint32_t REBOOT_DELAY_US = 500000;	// lets the last reply drain
 static constexpr int RX_GAP_MS = 100;			// a longer gap inside a host frame drops it
 static constexpr uint32_t UART_RETRY_US = 10000;	// a pending bidirectional DShot capture completes well within this
 static constexpr uint32_t DISARM_POLL_US = 100000;
+static constexpr hrt_abstime DTR_CLOSED_US = 1000000;	// DTR low this long: the host closed the port
 static constexpr int32_t OUTPUT_FUNCTION_MOTOR1 = 101;	// PWM_*_FUNCn value of Motor1, Motor2 is 102, ...
 
 // MSP replies, byte-exact as the configurators parse them without bounds checks
@@ -257,6 +266,8 @@ void Esc4way::reopen()
 {
 	close(_fd);
 	_fd = -1;
+	_dtr_seen = false;
+	_dtr_low_since = 0;
 
 	do {
 		px4_usleep(200000);
@@ -269,6 +280,11 @@ void Esc4way::reopen()
 
 bool Esc4way::receive(uint8_t *buf, size_t len)
 {
+	while (len > 0 && _pending_pos < _pending_len) {
+		*buf++ = _pending[_pending_pos++];
+		len--;
+	}
+
 	while (len > 0) {
 		pollfd fds{_fd, POLLIN, 0};
 
@@ -301,6 +317,32 @@ bool Esc4way::receive(uint8_t *buf, size_t len)
 	return true;
 }
 
+// A USB host drops DTR when it closes the port, e.g. a configurator tab closed without Disconnect.
+// Only a drop that lasts, after DTR was seen raised in this session, counts: a host that never
+// raises it, or one that lowers it briefly, is not affected.
+bool Esc4way::host_closed()
+{
+#if defined(CONFIG_CDCACM)
+	int line = 0;
+
+	if (ioctl(_fd, CAIOC_GETCTRLLINE, (unsigned long)&line) == 0) {
+		if (line & CDCACM_UART_DTR) {
+			_dtr_seen = true;
+			_dtr_low_since = 0;
+
+		} else if (_dtr_seen) {
+			if (_dtr_low_since == 0) {
+				_dtr_low_since = hrt_absolute_time();
+			}
+
+			return hrt_elapsed_time(&_dtr_low_since) > DTR_CLOSED_US;
+		}
+	}
+
+#endif // CONFIG_CDCACM
+	return false;
+}
+
 // The ESC app enters its bootloader 2 s after its signal stops and the configurator allows two
 // 2 s InitFlash tries, so the outputs are stopped and the lines driven high at the first request.
 bool Esc4way::start_session()
@@ -310,7 +352,10 @@ bool Esc4way::start_session()
 			return false;
 		}
 
-		tcflush(_fd, TCIFLUSH);	// only the request that started the session is answered
+		// only the request that started the session is answered, and only this host's DTR counts
+		tcflush(_fd, TCIFLUSH);
+		_pending_len = 0;
+		_dtr_seen = false;
 		_uart = uart_begin() == 0;
 		_session = true;
 		PX4_INFO("ESC configuration session started%s", _uart ? ", outputs off until reboot" : " without ESC access");
@@ -321,7 +366,11 @@ bool Esc4way::start_session()
 
 void Esc4way::run()
 {
-	tcflush(_fd, TCIFLUSH);	// requests of an earlier host run are not answered
+	// Requests of an earlier host run are not answered. Bytes that cdcacm_autostart read belong to
+	// the current run, whose host is waiting for their reply.
+	if (_pending_len == 0) {
+		tcflush(_fd, TCIFLUSH);
+	}
 
 	while (!should_exit() && !_reboot) {
 		uint8_t c;
@@ -339,6 +388,11 @@ void Esc4way::run()
 			// again (never low) on a read once it has been quiet for a while. Only after a device
 			// command, so the read does not switch an untouched channel to receive.
 			bitbang_uart_read(_esc.channel, &c, 1, 1);
+		}
+
+		if (host_closed() && _session) {
+			PX4_INFO("host closed %s", _device);
+			_reboot = true;
 		}
 	}
 
@@ -735,14 +789,32 @@ int Esc4way::task_spawn(int argc, char *argv[])
 Esc4way *Esc4way::instantiate(int argc, char *argv[])
 {
 	const char *device = nullptr;
+	const char *request = "";
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:r:", &myoptind, &myoptarg)) != EOF) {
 		if (ch == 'd') {
 			device = myoptarg;
+
+		} else if (ch == 'r') {
+			request = myoptarg;
 		}
+	}
+
+	uint8_t pending[sizeof(_pending)];
+	size_t pending_len = 0;
+	const size_t hex_len = strlen(request);
+
+	for (size_t i = 0; i < hex_len; i += 2) {
+		if (hex_len % 2 != 0 || hex_len > 2 * sizeof(pending) || !isxdigit(request[i]) || !isxdigit(request[i + 1])) {
+			PX4_ERR("invalid request hex: %s", request);
+			return nullptr;
+		}
+
+		const char byte[3] {request[i], request[i + 1], '\0'};
+		pending[pending_len++] = strtoul(byte, nullptr, 16);
 	}
 
 	if (!device) {
@@ -798,7 +870,7 @@ Esc4way *Esc4way::instantiate(int argc, char *argv[])
 	board_get_px4_guid(guid);
 	memcpy(uid, guid + PX4_GUID_BYTE_LENGTH - sizeof(uid), sizeof(uid));	// the CPU unique id is at the end
 
-	return new Esc4way(fd, device);
+	return new Esc4way(fd, device, pending, pending_len);
 }
 
 int Esc4way::print_usage(const char *reason)
@@ -814,8 +886,8 @@ ESC configuration server for the BLHeli/AM32 ESC configurators (am32.ca, esc-con
 
 It answers MSP and the 4way interface on a serial device and runs the ESC bootloader protocol
 on the ESC signal pins. At the first valid request it stops the dshot and pwm_out drivers; the
-session ends with a reboot when the configurator disconnects or the serial device goes away.
-Requests are ignored while armed.
+session ends with a reboot when the configurator disconnects, the USB host closes the port or
+the serial device goes away. Requests are ignored while armed.
 
 Started by cdcacm_autostart on the USB port when `PASSTHRU_EN` is 2, or manually on any serial port.
 
@@ -826,6 +898,7 @@ $ esc_4way start -d /dev/ttyACM0
 	PRINT_MODULE_USAGE_NAME("esc_4way", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Serial device", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('r', nullptr, "<hex>", "Request bytes already read from the device, answered first", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
