@@ -17,9 +17,10 @@ simulation and Python tooling.
   Crowdin output regenerated from it; revert any change a sweep makes there.
 - **Navigation terms:** before writing or renaming anything about yaw,
   heading, course, track, bearing, cross-track or drift (code, uORB fields,
-  parameters, docs), read `docs/en/concept/navigation_terminology_advanced.md`
-  and follow its definitions, sign conventions and "Guidelines for
-  Contributors".
+  parameters, docs), read `docs/en/concept/navigation_terminology.md` and
+  follow its definitions. When naming code, uORB fields or parameters, also
+  follow "Guidelines for Contributors" in
+  `docs/en/concept/navigation_terminology_advanced.md`.
 - **Scoped guidance:** before editing or reviewing, read only the
   `.github/instructions/*.instructions.md` files whose `applyTo` patterns
   match the affected paths, plus any nested `AGENTS.md` along those paths.

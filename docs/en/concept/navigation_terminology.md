@@ -82,7 +82,7 @@ PX4 represents the course using:
 
 The course setpoint is the direction the vehicle _should_ move over the ground.
 PX4's path-following guidance calculates it from the [desired track](#track-and-desired-track): on the track it points along it, and off the track it points back towards it, so that the vehicle rejoins the track ahead.
-The [course](#course) follows the setpoint with a delay while the vehicle turns, and can differ from it in gusts, or when the wind is too strong for the vehicle to hold it.
+The actual [course](#course) almost always differs from the course setpoint, often substantially.
 
 <img src="../../assets/concepts/navigation/detail_course_setpoint.svg" alt="Course setpoint: angle from north to the commanded direction of motion, pointing back towards the desired track, with an illustrative future track that rejoins it" class="diagram-invert">
 
@@ -151,9 +151,10 @@ The two differ by the wind.
 
 ### Wind Direction
 
-Wind is reported by the direction it blows from: a wind "from 90°" blows from the east towards the west.
+Weather reports, aviation and marine navigation give the wind direction as the direction it blows from: a wind "from 90°" blows from the east towards the west.
 
-PX4 wind estimates are velocity vectors instead, which point where the air moves to.
+PX4 does not use this convention.
+PX4 wind estimates and the wind fields it sends over MAVLink are velocity vectors of the air relative to the ground, which point where the air moves to.
 A wind from the north therefore has a negative `windspeed_north` in PX4.
 
 PX4 represents the wind using:
