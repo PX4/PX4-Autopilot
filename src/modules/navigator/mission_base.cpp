@@ -1566,7 +1566,10 @@ void MissionBase::checkClimbRequired(int32_t mission_item_index)
 
 		const bool success = loadMissionItemFromCache(next_mission_item_index, mission);
 
-		const bool is_fw_and_takeoff = mission.nav_cmd == NAV_CMD_TAKEOFF
+		// mission is only populated when the cache read succeeded, so do not
+		// look at nav_cmd before checking it.
+		const bool is_fw_and_takeoff = success
+					       && mission.nav_cmd == NAV_CMD_TAKEOFF
 					       && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
 		// for FW when on a Takeoff item do not require climb before mission, as we need to keep course to takeoff item straight
