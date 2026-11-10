@@ -74,7 +74,13 @@ Order from [CyberCraft International Limited](https://int.woocoo.vip/detail).
 
 ![CyberX-v10 pinout diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_pinout.png)
 
+### Connectors {#connectors}
+
 ![CyberX-v10 per-connector tables](../../assets/flight_controller/cyberx_v10/cyberx_v10_connector.png)
+
+### Block Diagram {#block_diagram}
+
+![CyberX-v10 wiring diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_block_diagram.png)
 
 ## Power {#power}
 
@@ -183,7 +189,7 @@ The [CyberX-v10 Wiring Quick Start](../assembly/quick_start_cyberx_v10.md) provi
 
 ### Wiring Diagram {#wiring_diagram}
 
-![CyberX-v10 wiring diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_block_diagram.png)
+![CyberX-v10 wiring diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_wiring_diagram.png)
 
 ### Radio Control {#radio_control}
 
