@@ -50874,7 +50874,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Rover Manual Control
 
-<div class="param-group" style="--param-count: 1">
+<div class="param-group" style="--param-count: 2">
 
 <div class="param">
 
@@ -50889,6 +50889,29 @@ Scales the stick inputs that are mapped to motor commands in Manual Parking mode
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 1 | 0.01 | 0.3 | norm | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RO_STICK_MAP (`INT32`) {#RO_STICK_MAP}
+
+Stick mapping for the manual modes.
+
+Follows the RC transmitter modes 1-4 with the pitch stick driving forwards/backwards, the roll stick sideways and the yaw stick turning, assuming the RC channels are mapped as for a mode 2 transmitter. Ackermann and differential rovers ignore the sideways assignment. In the tank-style Manual Parking mode of differential and mecanum rovers only the sideways assignment applies.
+
+
+**Values:**
+
+- `1`: Mode 1: forward and turn on left stick, sideways on right stick
+- `2`: Mode 2: turn on left stick, forward and sideways on right stick
+- `3`: Mode 3: forward and sideways on left stick, turn on right stick
+- `4`: Mode 4: sideways on left stick, forward and turn on right stick
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 3 |  | &nbsp;
 
 </div>
 
