@@ -111,7 +111,7 @@ inline static param_t param_handle(px4::params p)
 // Fails the build if any parameter is not where the loader steps. It expands inside a
 // member function, where the class is complete and decltype(*this) names it. offsetof on
 // a class with virtual functions is only conditionally supported. GCC and Clang support
-// it but warn.
+// it but warn. GCC before 9 ignores these pragmas, so the build turns the warning off there.
 #define _CHECK_PARAMETER_LAYOUT(...) \
 	using _param_table_class = typename do_not_explicitly_use_this_namespace::param_table_class<decltype(*this)>::type; \
 	_Pragma("GCC diagnostic push") \
