@@ -117,12 +117,12 @@ private:
 	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 	bool _below_gnd_effect_hgt{false};	///< vehicle height above ground is below height where ground effect occurs
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
+	PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
-		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
-		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
-		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,
-		(ParamFloat<px4::params::LNDMC_ALT_GND>)    _param_lndmc_alt_gnd_effect
+		LNDMC_ROT_MAX,
+		LNDMC_XY_VEL_MAX,
+		LNDMC_Z_VEL_MAX,
+		LNDMC_ALT_GND
 	);
 };
 

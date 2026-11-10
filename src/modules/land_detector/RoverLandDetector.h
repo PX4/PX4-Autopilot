@@ -63,8 +63,8 @@ private:
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad
+	PARAMETERS(
+		NAV_ACC_RAD
 	)
 
 };

@@ -149,12 +149,12 @@ void MulticopterLandDetector::_update_params()
 	// 1.2 corresponds to the margin between the default parameters LNDMC_Z_VEL_MAX = MPC_LAND_CRWL / 1.2
 	const float lndmc_upper_threshold = math::min(_params.crawlSpeed, _params.landSpeed) / 1.2f;
 
-	if (_param_lndmc_z_vel_max.get() > lndmc_upper_threshold) {
+	if (_param.LNDMC_Z_VEL_MAX > lndmc_upper_threshold) {
 		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_CRWL or MPC_LAND_SPEED, updating %.3f -> %.3f",
-			(double)_param_lndmc_z_vel_max.get(), (double)(lndmc_upper_threshold));
+			(double)_param.LNDMC_Z_VEL_MAX, (double)(lndmc_upper_threshold));
 
-		_param_lndmc_z_vel_max.set(lndmc_upper_threshold);
-		_param_lndmc_z_vel_max.commit_no_notification();
+		_param.LNDMC_Z_VEL_MAX = lndmc_upper_threshold;
+		param_set_no_notification(param_handle(px4::params::LNDMC_Z_VEL_MAX), &_param.LNDMC_Z_VEL_MAX);
 	}
 }
 
@@ -178,7 +178,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		// vertical speed is often deteriorated when on the ground or due to propeller
 		// up/down throttling.
 
-		float vertical_velocity_threshold = _param_lndmc_z_vel_max.get();
+		float vertical_velocity_threshold = _param.LNDMC_Z_VEL_MAX;
 
 		if (_landed_hysteresis.get_state()) {
 			vertical_velocity_threshold *= 2.5f;
@@ -204,7 +204,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// Check if we are moving horizontally.
 	if (lpos_available && _vehicle_local_position.v_xy_valid) {
 		const Vector2f v_xy{_vehicle_local_position.vx, _vehicle_local_position.vy};
-		_horizontal_movement = v_xy.longerThan(_param_lndmc_xy_vel_max.get());
+		_horizontal_movement = v_xy.longerThan(_param.LNDMC_XY_VEL_MAX);
 
 	} else {
 		_horizontal_movement = false; // not known
@@ -212,8 +212,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	_land_detected.horizontal_movement |= _horizontal_movement;
 
-	if (lpos_available && _vehicle_local_position.dist_bottom_valid && _param_lndmc_alt_gnd_effect.get() > 0) {
-		_below_gnd_effect_hgt = _vehicle_local_position.dist_bottom < _param_lndmc_alt_gnd_effect.get();
+	if (lpos_available && _vehicle_local_position.dist_bottom_valid && _param.LNDMC_ALT_GND > 0) {
+		_below_gnd_effect_hgt = _vehicle_local_position.dist_bottom < _param.LNDMC_ALT_GND;
 
 	} else {
 		_below_gnd_effect_hgt = false;
@@ -249,7 +249,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 			// Setpoints can be NAN
 			_in_descend = PX4_ISFINITE(trajectory_setpoint.velocity[2])
-				      && (trajectory_setpoint.velocity[2] >= 1.1f * _param_lndmc_z_vel_max.get());
+				      && (trajectory_setpoint.velocity[2] >= 1.1f * _param.LNDMC_Z_VEL_MAX);
 		}
 
 		// ground contact requires commanded descent until landed
@@ -298,7 +298,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	_minimum_thrust_8s_hysteresis.set_state_and_update(minimum_thrust_now, now);
 
 	// Next look if vehicle is not rotating (do not consider yaw)
-	float max_rotation_threshold = math::radians(_param_lndmc_rot_max.get());
+	float max_rotation_threshold = math::radians(_param.LNDMC_ROT_MAX);
 
 	// Widen max rotation thresholds if either in landed state, thus making it harder
 	// to trigger a false positive !landed e.g. due to propeller throttling up/down.

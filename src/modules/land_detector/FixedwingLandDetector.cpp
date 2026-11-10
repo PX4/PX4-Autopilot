@@ -49,7 +49,7 @@ namespace land_detector
 FixedwingLandDetector::FixedwingLandDetector()
 {
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
-	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndfw_trig_time.get() * 1_s);
+	_landed_hysteresis.set_hysteresis_time_from(false, _param.LNDFW_TRIG_TIME * 1_s);
 }
 
 bool FixedwingLandDetector::_get_landed_state()
@@ -158,18 +158,18 @@ bool FixedwingLandDetector::_get_landed_state()
 		}
 
 		// make groundspeed threshold tighter if airspeed is invalid
-		const float vel_xy_max_threshold   = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
-						     _param_lndfw_vel_xy_max.get();
+		const float vel_xy_max_threshold   = airspeed_invalid ? 0.7f * _param.LNDFW_VEL_XY_MAX :
+						     _param.LNDFW_VEL_XY_MAX;
 
 		// only use the max rotational threshold if neither airspeed nor groundspeed can be used for landing detection
 		const float max_rotation_threshold = (!_vehicle_local_position.v_xy_valid
-						      && airspeed_invalid) ? math::radians(_param_lndfw_rot_max.get()) : INFINITY;
+						      && airspeed_invalid) ? math::radians(_param.LNDFW_ROT_MAX) : INFINITY;
 
 		// Crude land detector for fixedwing.
-		landDetected = _airspeed_filtered         < _param_lndfw_airspd.get()
+		landDetected = _airspeed_filtered         < _param.LNDFW_AIRSPD_MAX
 			       && _velocity_xy_filtered   < vel_xy_max_threshold
-			       && _velocity_z_filtered    < _param_lndfw_vel_z_max.get()
-			       && _xy_accel_filtered      < _param_lndfw_xyaccel_max.get()
+			       && _velocity_z_filtered    < _param.LNDFW_VEL_Z_MAX
+			       && _xy_accel_filtered      < _param.LNDFW_XYACC_MAX
 			       && _velocity_rot_filtered  < max_rotation_threshold;
 
 	} else {

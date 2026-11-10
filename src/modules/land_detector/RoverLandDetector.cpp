@@ -73,7 +73,7 @@ bool RoverLandDetector::_get_landed_state()
 		const float distance_to_curr_wp = get_distance_to_next_waypoint(vehicle_global_position.lat,
 						  vehicle_global_position.lon,
 						  position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
-		return distance_to_curr_wp < _param_nav_acc_rad.get() && !position_setpoint_triplet.next.valid;
+		return distance_to_curr_wp < _param.NAV_ACC_RAD && !position_setpoint_triplet.next.valid;
 
 	}
 
