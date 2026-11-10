@@ -2959,4 +2959,91 @@ TEST_F(RTLTest, MissionLandingReturnWithoutLandStartGoesAroundAnExclusionZoneAnd
 	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 }
 
+// WHY: the planner moved on to the next leg when a leg was issued, not when it was reached. Reloading the mission
+// items during a leg, as a mission upload or a current item change does, then dropped the leg being flown and the
+// vehicle flew straight to the next one.
+// WHAT: a mission upload during the first leg keeps that leg, and the second leg still comes after it.
+TEST_F(RTLTest, MissionLandingReturnKeepsItsGeofenceLegWhenTheMissionReloads)
+{
+	int32_t rtl_type = 1; // the mission landing before Home
+	float return_alt = 30.f;
+	ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
+	ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_alt), PX4_OK);
+	_rtl.updateParamsForTest();
+
+	// GIVEN: the Return of the test above, halfway along the first of its legs around the zone
+	const PositionYawSetpoint start = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 300.f, kAlt + return_alt);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL,
+			     vehicle_status_s::ARMING_STATE_ARMED);
+	publishLandDetected(false);
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, -500.f, 0.f, kAlt));
+	publishGlobalPosition(start);
+	primeNavigatorState();
+
+	ExclusionZoneForTest zone{};
+	GeofenceAvoidancePlanner &planner = _navigator.get_geofence_avoidance_planner();
+	planner.updateGraphFromGeofence(zone, _navigator.geofence_avoidance_margin());
+
+	mission_item_s waypoint = makeSafePointItem(start.lat, start.lon, start.alt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT);
+	mission_item_s land = makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND);
+	land.yaw = NAN;
+	waypoint.autocontinue = true;
+	land.autocontinue = true;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {waypoint, land});
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = 75;
+	mission.count = 2;
+	mission.land_start_index = 1; // the landing itself, there is no DO_LAND_START
+	mission.land_index = 1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	publishMission(mission);
+	setMissionResultValid(mission);
+
+	MissionRouteCache &mission_route_cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(mission_route_cache, mission,
+			[&] { return mission_route_cache.missionLandItemReady(); }));
+
+	_rtl.on_inactive();
+	_rtl.decideRtlTypeForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+
+	_rtl.run(true);
+	ASSERT_GE(planner.get_num_waypoints(), 2);
+	const matrix::Vector2d first_leg = planner.waypointAtIndex(0);
+	const matrix::Vector2d second_leg = planner.waypointAtIndex(1);
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	EXPECT_DOUBLE_EQ(current.lat, first_leg(0));
+	EXPECT_DOUBLE_EQ(current.lon, first_leg(1));
+
+	publishGlobalPosition((start.lat + current.lat) / 2., (start.lon + current.lon) / 2., current.alt);
+	primeNavigatorState();
+	_rtl.run(true);
+
+	// WHEN: the same mission is uploaded again, which stores it in the other dataman slot
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_1, {waypoint, land});
+	mission.timestamp = hrt_absolute_time();
+	mission.current_seq = 1; // the landing stays the current item
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+	publishMission(mission);
+	_rtl.run(true);
+
+	// THEN: Return still flies to the end of the first leg, and the second leg follows it, not the landing
+	EXPECT_TRUE(current.valid);
+	EXPECT_DOUBLE_EQ(current.lat, first_leg(0));
+	EXPECT_DOUBLE_EQ(current.lon, first_leg(1));
+
+	publishGlobalPosition(current.lat, current.lon, current.alt);
+	primeNavigatorState();
+	_rtl.run(true);
+	EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	EXPECT_DOUBLE_EQ(current.lat, second_leg(0));
+	EXPECT_DOUBLE_EQ(current.lon, second_leg(1));
+
+	// the dataman is shared by every case in this binary
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_1));
+}
+
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
