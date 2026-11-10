@@ -60,6 +60,7 @@
 #include <px4_platform_common/tasks.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/battery_status.h>
 
 #include <fcntl.h>
 #include <poll.h>
@@ -131,8 +132,6 @@ static constexpr char build_info[] = __DATE__ __TIME__;	// "Mmm dd yyyyhh:mm:ss"
 // arming flag count 26, arming disable flags (u32) with RX_FAILSAFE (bit 2): no motor test,
 // reboot required (esc-configurator reads it and fails the ESC read without it)
 static constexpr uint8_t status[22] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26, 1 << 2, 0, 0, 0, 0};
-// cells 4, capacity 0, 16.8 V (0.1 V), 0 mAh, 0 A, state ok, 16.80 V (0.01 V)
-static constexpr uint8_t battery_state[] {4, 0, 0, 168, 0, 0, 0, 0, 0, 0x90, 0x06};
 // 3D deadband low 1406, high 1514, neutral 1460
 static constexpr uint8_t motor_3d_config[] {0x7E, 0x05, 0xEA, 0x05, 0xB4, 0x05};
 // min throttle 1070, max throttle 2000, min command 1000, ESC count (set at start), poles 14, no 3D, no ESC sensor
@@ -156,7 +155,6 @@ static const struct {
 	{101, status, sizeof(status)},					// MSP_STATUS
 	{104, zeros, 16},						// MSP_MOTOR
 	{124, motor_3d_config, sizeof(motor_3d_config)},		// MSP_MOTOR_3D_CONFIG
-	{130, battery_state, sizeof(battery_state)},			// MSP_BATTERY_STATE
 	{131, motor_config, sizeof(motor_config)},			// MSP_MOTOR_CONFIG
 	{160, uid, sizeof(uid)},					// MSP_UID
 	{214, zeros, 0},						// MSP_SET_MOTOR: acked, motors are never driven
@@ -392,6 +390,20 @@ void Esc4way::handle_msp()
 	}
 
 	_fourway = cmd == 245;	// MSP_SET_PASSTHROUGH
+
+	if (cmd == 130) {	// MSP_BATTERY_STATE
+		// cells, capacity 0, voltage (0.1 V), drawn mAh 0, current 0, state ok, voltage (0.01 V); all zero
+		// without a battery. The configurators read all 11 bytes without a length check.
+		static uORB::Subscription battery_sub{ORB_ID(battery_status)};
+		battery_status_s b{};
+		battery_sub.copy(&b);
+		const uint16_t cv = b.connected ? (uint16_t)(b.voltage_v * 100.f) : 0;
+		const uint8_t battery[11] {b.connected ? b.cell_count : (uint8_t)0, 0, 0, (uint8_t)(cv > 2550 ? 255 : cv / 10),
+					   0, 0, 0, 0, 0, (uint8_t)cv, (uint8_t)(cv >> 8)
+					  };	// the 0.1 V byte saturates above 25.5 V
+		send_msp(cmd, battery, sizeof(battery));
+		return;
+	}
 
 	for (const auto &r : msp_replies) {
 		if (r.cmd == cmd) {
