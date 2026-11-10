@@ -19,7 +19,7 @@ Typical applications include:
 - **RTK:** Fast RTK fix and strong anti-multipath design
 - **Protocol:** NMEA 0183 V3.01 / V4.1 (GGA, GSA, GSV, RMC, VTG, GLL, ZDA, GRS, GST); AIROHA PAIR proprietary commands (not supported on PX4)
 - **Sensitivity:** High tracking sensitivity for operation in weak-signal environments; fast time to first fix (TTFF) under low-signal conditions
-- **Compass:** Built-in
+- **Compass:** Built-in (IST8310)
 - **Barometer:** Built-in (not used by PX4)
 - **Other:** Safety switch, buzzer and tri-colour LED (Pixhawk-compatible status indicators); backup power for hot-start performance
 - **Antenna:** Integrated dual-band patch antenna
@@ -81,4 +81,5 @@ For RTK, `fix_type` is `5` for an RTK float solution and `6` for RTK fixed.
 ## Further Information {#further_information}
 
 - [GlobalSat BD-100K](https://www.globalsat.com.tw/en/product-285502/Dual-Band-RTK-Receiver-for-Drone-and-Autopilot-BD-100K.html) (product page)
-- [BD-100M/BD-100K User Manual](https://www.globalsat.com.tw/files/BD-100MK_user_manual_V1.0_20260910.pdf)
+- [BD-100M/BD-100K User Manual](https://www.globalsat.com.tw/files/BD-100MK_user_manual_latest.pdf)
+- [BD-100M/BD-100K Hardware Data Sheet](https://www.globalsat.com.tw/files/BD-100K_Hardware_Data_Sheet_latest.pdf)
