@@ -632,6 +632,16 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		return;
 	}
 
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+
+	if ((msg->msgid == MAVLINK_MSG_ID_CAN_FRAME || msg->msgid == MAVLINK_MSG_ID_CANFD_FRAME
+	     || msg->msgid == MAVLINK_MSG_ID_CAN_FILTER_MODIFY)
+	    && target_is_us_or_broadcast(target_system_id, target_component_id)) {
+		return;
+	}
+
+#endif
+
 	// Avoid locking/iteration when there is no instance to forward to.
 	if (mavlink_instance_count.load() <= 1) {
 		return;
@@ -2943,6 +2953,9 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+		// after the streams, so a busy bus cannot starve them
+		handleCanForwardOutput();
+
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {
 			const int ret = _mavlink_ulog->handle_update(get_channel());
@@ -3135,6 +3148,21 @@ void Mavlink::handleSerialPassthroughOutput()
 		}
 	}
 
+#endif
+}
+
+void Mavlink::handleCanForwardOutput()
+{
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+
+	if (!_can_forward.isOwner()) {
+		_can_forward.dropFrames();
+		return;
+	}
+
+	lock_send();
+	_can_forward.sendToGcs(get_channel(), get_free_tx_buf());
+	unlock_send();
 #endif
 }
 

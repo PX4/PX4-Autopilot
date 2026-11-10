@@ -373,6 +373,13 @@ The `upload_skynode.sh` script with multiple `--ext-fw` flags is used to bundle 
 Another tool then checks which files were already uploaded using a local database and extracts just the relevant files to the PX4 firmware staging area.
 :::
 
+### Update over MAVLink
+
+A ground station can reach the DroneCAN bus through the flight controller's MAVLink link, without a separate CAN adapter.
+PX4 forwards CAN frames between one CAN bus and the requesting ground station using the MAVLink [MAV_CMD_CAN_FORWARD](https://mavlink.io/en/messages/common.html#MAV_CMD_CAN_FORWARD), [CAN_FRAME](https://mavlink.io/en/messages/common.html#CAN_FRAME) and [CAN_FILTER_MODIFY](https://mavlink.io/en/messages/common.html#CAN_FILTER_MODIFY) messages.
+
+The feature is part of the `uavcan` driver (`CONFIG_UAVCAN_CAN_FORWARD`) and is not included on boards with constrained flash.
+
 ## Troubleshooting
 
 **Q**: My DroneCAN devices aren't working.
