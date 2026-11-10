@@ -60,6 +60,9 @@ I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runt
 	param_get(param_find("BATMON_DRIVER_EN"), &batmon_en_param);
 
 	if (batmon_en_param == 0) {	// BATMON_DRIVER_EN is set to disabled. Do not start driver
+		// The SMBus instance above is not handed to a driver in this case, so
+		// release it before returning.
+		delete interface;
 		return nullptr;        // TODO: add option for autodetect I2C address
 	}
 
