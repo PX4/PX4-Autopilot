@@ -12,13 +12,15 @@ Remove the propellers before you connect a configurator.
 
 ## Supported Boards
 
-- [ARK FMU-v6X](../flight_controller/ark_v6x.md) (`ark_fmu-v6x`)
+- [AGAM FMU-v6XRT](../flight_controller/agam_v6xrt.md) (`agam_fmu-v6xrt`)
 - [ARK FMU-v6S](../flight_controller/ark_v6s.md) (`ark_fmu-v6s`)
-- [ARK Pi6X Flow](../flight_controller/ark_pi6x.md) (`ark_pi6x`)
-- [ARK FPV](../flight_controller/ark_fpv.md) (`ark_fpv`)
+- [ARK FMU-v6X](../flight_controller/ark_v6x.md) (`ark_fmu-v6x`)
 - [ARK FMU-v6X RT](../flight_controller/ark_v6xrt.md) (`ark_fmu-v6xrt`)
-- [Pixhawk 6X-RT](../flight_controller/pixhawk6x-rt.md) (`px4_fmu-v6xrt`)
+- [ARK FPV](../flight_controller/ark_fpv.md) (`ark_fpv`)
+- [ARK Pi6X Flow](../flight_controller/ark_pi6x.md) (`ark_pi6x`)
+- [NXP MR-NAVQ95](../flight_controller/nxp_mr_navq95.md) (`nxp_mr-navq95`)
 - `nxp_mr-tropic`
+- [Pixhawk 6X-RT](../flight_controller/pixhawk6x-rt.md) (`px4_fmu-v6xrt`)
 
 Other STM32F7/H7 and NXP i.MX RT boards can be added with a build configuration change, see [Enabling on Other Boards](#enabling-on-other-boards).
 
@@ -80,6 +82,21 @@ When the port sends MAVLink heartbeats, the tool first sets `PASSTHRU_EN` to `2`
 `--setup` does that switch without listening for heartbeats first.
 Use `-d` to select the serial device (default `/dev/ttyACM0`), `--target` for the ESC (default 0) and `--no-exit` to keep the session open.
 The tool needs `pymavlink` for the switch over MAVLink.
+
+### Using Another Serial Port
+
+The ESC configuration server does not have to run on the USB port.
+`esc_4way start -d <device>` starts it on any serial port, which is useful for boards without USB, or for a UART connected to a companion computer:
+
+```sh
+esc_4way start -d /dev/ttyS3
+```
+
+Use the device node of the port, for example `/dev/ttyS3` for a UART or `/dev/ttyACM0` for USB.
+The port must not be used by another module (for example MAVLink), so free it first.
+Then connect the host tool or configurator to the other end of that serial link, for example with `Tools/esc_4way.py -d <host serial device> info`.
+The server is started manually in this case, so `PASSTHRU_EN` and USB auto-detection are not involved.
+Stop it with `esc_4way stop`, or reboot the flight controller.
 
 ## USB Vendor ID
 
