@@ -1096,6 +1096,40 @@ TEST_F(FailsafeTest, FixedWingCannotRunFollowTargetOrOrbit)
 		  vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 }
 
+TEST_F(FailsafeTest, FixedWingMissionTakeoffWithoutPosition)
+{
+	// A fixed-wing takeoff can be flown without a position estimate, in Takeoff mode as well as
+	// during the takeoff item of a mission. Only once the takeoff is done does the mission need a position.
+	failsafe_flags_s fw_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_FIXED_WING, fw_flags);
+	fw_flags.local_position_invalid = true;
+	fw_flags.local_position_invalid_relaxed = true;
+	fw_flags.global_position_invalid = true;
+	fw_flags.global_position_invalid_relaxed = true;
+
+	Failsafe failsafe(nullptr);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.fw_mission_takeoff = true;
+	hrt_abstime time = 5_s;
+
+	// Advance past the COM_FAIL_ACT_T hold delay set in SetUp()
+	failsafe.update(time, state, false, false, fw_flags);
+	time += 6_s;
+	failsafe.update(time, state, false, false, fw_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Takeoff item done: the mission cannot continue without a position
+	state.fw_mission_takeoff = false;
+	failsafe.update(time, state, false, false, fw_flags);
+	time += 6_s;
+	failsafe.update(time, state, false, false, fw_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
+}
+
 TEST_F(FailsafeTest, GnssLostUsesGnssLossActParam)
 {
 	// Each param value is exercised on its own fresh Failsafe instance, to avoid

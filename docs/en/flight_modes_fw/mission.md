@@ -275,6 +275,9 @@ If possible, always make the vehicle takeoff into the wind.
 A fixed-wing mission requires a `Takeoff` mission item to takeoff; if however the vehicle is already flying when the mission is started the takeoff item will be treated as a normal waypoint.
 :::
 
+If the position estimate is lost during the takeoff, the vehicle continues the takeoff the same way as in [Takeoff mode](../flight_modes_fw/takeoff.md): it keeps climbing with wings level until the clearance altitude is reached.
+Only once the takeoff item is completed does the missing position trigger the failsafe (falling back to [Descend](../flight_modes_fw/descend.md) if no position is available).
+
 For more infomormation about takeoff behaviour and configuration see [Takeoff mode (FW)](../flight_modes_fw/takeoff.md).
 
 ## Mission Landing

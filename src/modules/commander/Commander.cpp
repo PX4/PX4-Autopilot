@@ -2555,6 +2555,12 @@ bool Commander::handleModeIntentionAndFailsafe()
 	state.vtol_in_transition_mode = _vehicle_status.in_transition_mode;
 	state.mission_finished = _mission_result_sub.get().finished;
 	state.user_intended_mode = _user_mode_intention.get();
+
+	_position_setpoint_triplet_sub.update();
+	const position_setpoint_s &current_setpoint = _position_setpoint_triplet_sub.get().current;
+	state.fw_mission_takeoff = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
+				   && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				   && current_setpoint.valid && current_setpoint.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 	state.vehicle_type = _vehicle_status.vehicle_type;
 
 	// There might have been a mode change request without changing the user intended mode.

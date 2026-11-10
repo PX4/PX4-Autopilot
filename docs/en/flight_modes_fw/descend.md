@@ -32,7 +32,7 @@ PX4 falls through to Descend mode whenever a failsafe needs to bring the vehicle
 For example:
 
 - Losing the position estimate while landing, e.g. GNSS and airspeed sensors fail during [Land](../flight_modes_fw/land.md): the vehicle keeps descending, but now open-loop as _Descend_.
-- Losing the position estimate in [Hold](../flight_modes_fw/hold.md), [Mission](../flight_modes_fw/mission.md) or [Return](../flight_modes_fw/return.md): with no position to hold, fly to, or return with, the failsafe escalates down to _Descend_.
+- Losing the position estimate in [Hold](../flight_modes_fw/hold.md), [Mission](../flight_modes_fw/mission.md) (after the takeoff item) or [Return](../flight_modes_fw/return.md): with no position to hold, fly to, or return with, the failsafe escalates down to _Descend_.
 - A Return or Land failsafe (from manual control loss, GCS/data link loss, low battery, geofence breach, …) triggered while no valid position estimate is available: Return and Land can't run, so it degrades to _Descend_.
 
 ### Exiting Descend
