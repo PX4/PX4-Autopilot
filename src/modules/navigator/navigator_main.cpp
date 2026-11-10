@@ -1295,9 +1295,16 @@ void Navigator::geofence_breach_check()
 				if (is_established_on_loiter(current)) {
 					loiter_center_lat = current.lat;
 					loiter_center_lon = current.lon;
+
+				} else if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+					   && (_geofence_result.geofence_max_dist_triggered || _geofence_result.geofence_custom_fence_triggered)) {
+					// A fixed-wing orbit centered at the breach point stays half outside the fence.
+					// Move the center inside so the whole circle clears the fence; keep the current position otherwise.
+					const float course = _local_pos.v_xy_valid ? atan2f(_local_pos.vy, _local_pos.vx) : NAN;
+					_geofence.findLoiterCenterInside(_global_pos.lat, _global_pos.lon, course, get_default_loiter_rad(),
+									 loiter_center_lat, loiter_center_lon);
 				}
 
-				// loiter at the current position; we no longer predict ahead of the vehicle
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
 				rep->current.timestamp = now;
 				rep->current.yaw = NAN;

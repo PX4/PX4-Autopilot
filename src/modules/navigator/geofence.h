@@ -154,6 +154,22 @@ public:
 	/** Check the polygons and circles only, without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
 
+	/**
+	 * Find a loiter center for a vehicle that breached a horizontal fence, such that the whole loiter circle
+	 * lies inside the polygons, circles and maximum distance from Home. Candidates lie kLoiterCenterOffsetRadii
+	 * loiter radii from the position: perpendicular to the closest fence boundary, back along the course,
+	 * then towards Home. The first candidate whose circle is clear wins.
+	 * Uses cached fence data only, like checkPathBatch().
+	 *
+	 * @param course ground course [rad], NAN if unknown
+	 * @return true if a clear center was found; center_lat and center_lon are only written then.
+	 * False if the position is horizontally inside, e.g. when only the altitude band was breached.
+	 */
+	bool findLoiterCenterInside(double lat, double lon, float course, float loiter_radius, double &center_lat,
+				    double &center_lon);
+
+	static constexpr float kLoiterCenterOffsetRadii = 2.f; ///< leaves one loiter radius between circle and boundary
+
 	bool valid();
 
 	/**
@@ -304,6 +320,17 @@ private:
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
+
+	/**
+	 * Bearing perpendicular to the horizontal fence boundary closest to a point: a polygon edge, a circle,
+	 * or the maximum distance from Home. Which of the two directions points inside is not resolved.
+	 * @return false if there is no boundary or the fence data is unavailable
+	 */
+	bool closestBoundaryNormal(double lat, double lon, float &bearing);
+
+	/** True if the circle lies inside every horizontal fence without touching a boundary. */
+	bool loiterCircleInside(double lat, double lon, float radius);
+
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;
 	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces, size_t num_paths,
