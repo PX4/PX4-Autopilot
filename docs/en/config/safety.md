@@ -214,6 +214,44 @@ The margin should be at least:
 
 Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
 
+### Fixed-Wing Hold After a Breach
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+When [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) is `Hold` and a fixed-wing vehicle breaches a horizontal fence, PX4 places the hold loiter inside the fence rather than at the breach point.
+A horizontal fence is the maximum distance from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST)) or a polygon or circle from a [Geofence Plan](../flying/geofence.md#geofence-plan).
+
+A loiter centred on the breach point would leave about half of every orbit outside the fence, for as long as the vehicle holds:
+
+![Loiter centred on the breach point: the half of the orbit past the fence is outside it, up to one loiter radius plus the detection delay](../../assets/flying/geofence_hold_fw_breach_point.svg)
+
+Instead, PX4 moves the loiter centre two loiter radii ([NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)) away from the position where the breach was detected.
+It tries the following directions in order, and uses the first one for which the whole loiter circle is inside every fence:
+
+1. Perpendicular to the closest fence boundary, in the direction that turns the vehicle back.
+1. Perpendicular to the closest fence boundary, in the other direction.
+1. Back along the vehicle's course.
+1. Towards Home.
+
+If no circle fits, for example because the fence is narrower than two loiter radii, the vehicle loiters around the position where the breach was detected.
+
+![Loiter centre moved two loiter radii inside, perpendicular to the fence: the orbit stays about one loiter radius inside, and only the turnaround after the breach crosses the fence](../../assets/flying/geofence_hold_fw_centre_inside.svg)
+
+The vehicle still has to turn around after the breach, so it flies past the fence by about one turn radius before it reaches the loiter circle.
+After that, the orbit stays about one loiter radius inside the fence.
+This is why the fixed-wing margin above is still needed.
+
+Moving perpendicular to the boundary keeps this clearance when the vehicle crosses the fence at a shallow angle.
+Moving back along the course would not:
+
+![Fence crossed at 20 degrees: the centre placed perpendicular to the fence keeps its circle clear, while a centre placed back along the course is only about 55 metres inside and its circle crosses the fence](../../assets/flying/geofence_hold_fw_shallow_crossing.svg)
+
+::: info
+The loiter centre is only moved after a horizontal breach.
+If only an altitude limit is breached, or the vehicle is already established on a loiter, the vehicle keeps loitering where it is.
+Multicopters always hold at the position where the breach was detected.
+:::
+
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
 
 :::tip
