@@ -39,6 +39,7 @@
 
 #include <gtest/gtest.h>
 #include <fcntl.h>
+#include <type_traits>
 #include <unistd.h>
 
 class ParameterTest : public ::testing::Test
@@ -142,4 +143,185 @@ TEST_F(ParameterTest, testImportTombstoneResets)
 	int32_t rev = 0;
 	ASSERT_EQ(0, param_get(param_handle(px4::params::RC1_REV), &rev));
 	EXPECT_EQ(-1, rev);
+}
+
+class PlainStructParams : public ModuleParams
+{
+public:
+	PlainStructParams() : ModuleParams(nullptr) {}
+
+	void update() { updateParams(); }
+
+	PARAMETERS(
+		CP_DIST,
+		SYS_AUTOSTART,
+		CP_GO_NO_DATA,
+		CP_DELAY
+	)
+};
+
+static_assert(std::is_same<decltype(PlainStructParams::ParameterValues::CP_DIST), float>::value, "float parameter");
+static_assert(std::is_same<decltype(PlainStructParams::ParameterValues::SYS_AUTOSTART), int32_t>::value,
+	      "int32 parameter");
+static_assert(std::is_same<decltype(PlainStructParams::ParameterValues::CP_GO_NO_DATA), int32_t>::value,
+	      "boolean parameter");
+
+static void setParam(px4::params param, float value)
+{
+	ASSERT_EQ(0, param_set(param_handle(param), &value));
+}
+
+static void setParam(px4::params param, int32_t value)
+{
+	ASSERT_EQ(0, param_set(param_handle(param), &value));
+}
+
+TEST_F(ParameterTest, plainStructLoadsAtConstruction)
+{
+	setParam(px4::params::CP_DIST, 3.5f);
+	setParam(px4::params::SYS_AUTOSTART, 4001);
+	setParam(px4::params::CP_GO_NO_DATA, 1);
+
+	PlainStructParams params;
+
+	EXPECT_FLOAT_EQ(3.5f, params._param.CP_DIST);
+	EXPECT_EQ(4001, params._param.SYS_AUTOSTART);
+	EXPECT_EQ(1, params._param.CP_GO_NO_DATA);
+	EXPECT_FLOAT_EQ(0.4f, params._param.CP_DELAY);
+
+	EXPECT_TRUE(param_used(param_handle(px4::params::CP_DELAY)));
+}
+
+TEST_F(ParameterTest, plainStructChangesOnlyOnUpdate)
+{
+	PlainStructParams params;
+
+	setParam(px4::params::CP_DIST, 7.f);
+	setParam(px4::params::SYS_AUTOSTART, 13000);
+	setParam(px4::params::CP_GO_NO_DATA, 1);
+	setParam(px4::params::CP_DELAY, 1.5f);
+
+	EXPECT_FLOAT_EQ(-1.f, params._param.CP_DIST);
+	EXPECT_EQ(0, params._param.SYS_AUTOSTART);
+	EXPECT_EQ(0, params._param.CP_GO_NO_DATA);
+	EXPECT_FLOAT_EQ(0.4f, params._param.CP_DELAY);
+
+	params.update();
+
+	EXPECT_FLOAT_EQ(7.f, params._param.CP_DIST);
+	EXPECT_EQ(13000, params._param.SYS_AUTOSTART);
+	EXPECT_EQ(1, params._param.CP_GO_NO_DATA);
+	EXPECT_FLOAT_EQ(1.5f, params._param.CP_DELAY);
+}
+
+TEST_F(ParameterTest, plainStructWritesBack)
+{
+	PlainStructParams params;
+
+	params._param.CP_DELAY = 2.f;
+	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DELAY), &params._param.CP_DELAY));
+
+	float stored = 0.f;
+	ASSERT_EQ(0, param_get(param_handle(px4::params::CP_DELAY), &stored));
+	EXPECT_FLOAT_EQ(2.f, stored);
+}
+
+class PlainStructParent : public ModuleParams
+{
+public:
+	PlainStructParent() : ModuleParams(nullptr) {}
+
+	void update() { updateParams(); }
+
+	PARAMETERS_CUSTOM_PARENT(ModuleParams,
+				 CP_DIST,
+				 CP_DELAY
+				)
+};
+
+class PlainStructChild : public PlainStructParent
+{
+public:
+	float parentDistance() const { return PlainStructParent::_param.CP_DIST; }
+
+	PARAMETERS_CUSTOM_PARENT(PlainStructParent,
+				 SYS_AUTOSTART
+				)
+};
+
+TEST_F(ParameterTest, plainStructChildUpdatesParent)
+{
+	PlainStructChild child;
+
+	EXPECT_FLOAT_EQ(-1.f, child.parentDistance());
+	EXPECT_EQ(0, child._param.SYS_AUTOSTART);
+
+	setParam(px4::params::CP_DIST, 9.f);
+	setParam(px4::params::SYS_AUTOSTART, 4001);
+	child.update();
+
+	EXPECT_FLOAT_EQ(9.f, child.parentDistance());
+	EXPECT_EQ(4001, child._param.SYS_AUTOSTART);
+}
+
+// A class tree can convert one class at a time
+class MemberParamsParent : public ModuleParams
+{
+public:
+	MemberParamsParent() : ModuleParams(nullptr) {}
+
+	void update() { updateParams(); }
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
+					(ParamFloat<px4::params::CP_DIST>) _param_cp_dist
+				       )
+};
+
+class PlainStructChildOfMemberParams : public MemberParamsParent
+{
+public:
+	float parentDistance() const { return _param_cp_dist.get(); }
+
+	PARAMETERS_CUSTOM_PARENT(MemberParamsParent,
+				 SYS_AUTOSTART
+				)
+};
+
+TEST_F(ParameterTest, plainStructChildOfMemberParams)
+{
+	PlainStructChildOfMemberParams child;
+
+	setParam(px4::params::CP_DIST, 9.f);
+	setParam(px4::params::SYS_AUTOSTART, 4001);
+	child.update();
+
+	EXPECT_FLOAT_EQ(9.f, child.parentDistance());
+	EXPECT_EQ(4001, child._param.SYS_AUTOSTART);
+}
+
+// Stands in for a library's parameter struct
+struct LibraryParameters {
+	uint8_t not_a_parameter{7};
+	float distance{0.f};
+	double also_not_a_parameter{1.0};
+	int32_t autostart{0};
+};
+
+TEST_F(ParameterTest, memberTableLoadsLibraryStruct)
+{
+	static constexpr px4::param_member_s table[] = {
+		PARAMETER_AT(CP_DIST, LibraryParameters, distance),
+		PARAMETER_AT(SYS_AUTOSTART, LibraryParameters, autostart),
+	};
+
+	setParam(px4::params::CP_DIST, 3.5f);
+	setParam(px4::params::SYS_AUTOSTART, 4001);
+
+	LibraryParameters library;
+	param_get_members(table, 2, &library, true);
+
+	EXPECT_FLOAT_EQ(3.5f, library.distance);
+	EXPECT_EQ(4001, library.autostart);
+	EXPECT_EQ(7, library.not_a_parameter);
+	EXPECT_DOUBLE_EQ(1.0, library.also_not_a_parameter);
 }

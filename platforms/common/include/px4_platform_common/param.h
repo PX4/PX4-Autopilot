@@ -42,6 +42,8 @@
 #include "param_macros.h"
 #include <float.h>
 #include <math.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include <parameters/px4_parameters.hpp>
 
@@ -54,7 +56,132 @@ inline static param_t param_handle(px4::params p)
 }
 
 
+/**
+ * PARAMETERS() declares the parameters of a class as a plain struct
+ *
+ *   PARAMETERS(
+ *           MC_ROLLRATE_P,
+ *           MC_BAT_SCALE_EN
+ *   )
+ *
+ * adds the member
+ *
+ *   struct { float MC_ROLLRATE_P; int32_t MC_BAT_SCALE_EN; } _param;
+ *
+ * and a static list of the parameters' handles. Each field has the type of the parameter's
+ * definition, where a boolean is an int32_t. param_get_values() fills the struct from the
+ * list, at construction and on every updateParams().
+ *
+ * Every field is a float or an int32_t, so all members of the struct have one size and one
+ * alignment. A static_assert on its size rules out padding, which puts field i at offset
+ * 4 * i. That is the address the loader writes.
+ *
+ * To write a parameter back, assign the field and store it with the C API:
+ *
+ *   _param.MC_ROLLRATE_P = 0.2f;
+ *   param_set(param_handle(px4::params::MC_ROLLRATE_P), &_param.MC_ROLLRATE_P);
+ *
+ * A class that derives from another class with parameters uses PARAMETERS_CUSTOM_PARENT()
+ * in both. Its own _param hides the parent's, so it reads a parent's field as
+ * Parent::_param.NAME.
+ */
+namespace px4
+{
 
+template<bool is_float>
+struct param_value {
+	using type = int32_t;
+};
+
+template<>
+struct param_value<true> {
+	using type = float;
+};
+
+/// The C++ type of a parameter's value, from its definition
+template<params p>
+using param_value_t = typename param_value<parameters_type[(int)p] == PARAM_TYPE_FLOAT>::type;
+
+} // namespace px4
+
+/**
+ * Load `count` parameters into consecutive 4-byte values starting at `values`.
+ * Implemented in module_params.cpp.
+ */
+__EXPORT void param_get_values(const param_t *handles, unsigned count, void *values, bool mark_used);
+
+#define _PARAMETER_FIELD(name) px4::param_value_t<px4::params::name> name;
+
+#define _PARAMETER_HANDLE(name) static_cast<param_t>(px4::params::name),
+
+#define _PARAMETER_COUNT (sizeof(_param_list) / sizeof(param_t))
+
+#define _DEFINE_PARAMETER_STRUCT(...) \
+	static constexpr param_t _param_list[] = {APPLY_ALL(_PARAMETER_HANDLE, __VA_ARGS__)}; \
+	struct ParameterValues { \
+		ParameterValues() { param_get_values(_param_list, _PARAMETER_COUNT, this, true); } \
+		APPLY_ALL(_PARAMETER_FIELD, __VA_ARGS__) \
+	} _param; \
+	static_assert(sizeof(ParameterValues) == _PARAMETER_COUNT * sizeof(float), "parameter struct has padding");
+
+// As with DEFINE_PARAMETERS(), the update method is final so that a class deriving from one
+// with parameters fails to build until both use PARAMETERS_CUSTOM_PARENT().
+#define PARAMETERS(...) \
+	_DEFINE_PARAMETER_STRUCT(__VA_ARGS__) \
+	protected: \
+	void updateParamsImpl() final { param_get_values(_param_list, _PARAMETER_COUNT, &_param, false); } \
+	private:
+
+#define PARAMETERS_CUSTOM_PARENT(parent_class, ...) \
+	_DEFINE_PARAMETER_STRUCT(__VA_ARGS__) \
+	protected: \
+	void updateParamsImpl() override { \
+		parent_class::updateParamsImpl(); \
+		param_get_values(_param_list, _PARAMETER_COUNT, &_param, false); \
+	} \
+	private:
+
+
+/**
+ * A parameter table for a struct that is defined elsewhere
+ *
+ * A library that must not depend on PX4 keeps its parameters in a struct of its own. A table
+ * of PARAMETER_AT() entries names the member each parameter loads into, and
+ * param_get_members() loads them all:
+ *
+ *   static constexpr px4::param_member_s _table[] = {
+ *           PARAMETER_AT(EKF2_GYR_NOISE, estimator::parameters, ekf2_gyr_noise),
+ *   };
+ *
+ * An entry builds only if the struct is standard-layout, which offsetof needs, and the member
+ * has the type of the parameter's definition.
+ */
+namespace px4
+{
+
+struct param_member_s {
+	param_t handle;
+	uint16_t offset;
+};
+
+template<params p, size_t offset, typename S>
+constexpr param_member_s param_member(param_value_t<p> S::*)
+{
+	static_assert(__is_standard_layout(S), "offsetof needs a standard-layout struct");
+	static_assert(offset <= UINT16_MAX, "member offset does not fit the table");
+	return {static_cast<param_t>(p), static_cast<uint16_t>(offset)};
+}
+
+} // namespace px4
+
+#define PARAMETER_AT(name, type, member) \
+	px4::param_member<px4::params::name, offsetof(type, member)>(&type::member)
+
+/**
+ * Load `count` parameters into the members of `object` that `table` names.
+ * Implemented in module_params.cpp.
+ */
+__EXPORT void param_get_members(const px4::param_member_s *table, unsigned count, void *object, bool mark_used);
 
 #define _DEFINE_SINGLE_PARAMETER(x) \
 	do_not_explicitly_use_this_namespace::PAIR(x);

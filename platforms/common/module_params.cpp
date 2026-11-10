@@ -33,6 +33,33 @@
 
 #include <px4_platform_common/module_params.h>
 
+static void load(param_t handle, void *value, bool mark_used)
+{
+	if (mark_used) {
+		param_get_mark_used(handle, value);
+
+	} else {
+		// the C function: the C++ param_get() wrapper needs the value's type
+		(param_get)(handle, value);
+	}
+}
+
+void param_get_values(const param_t *handles, unsigned count, void *values, bool mark_used)
+{
+	static_assert(sizeof(float) == 4 && sizeof(int32_t) == 4, "parameter values are 4 bytes");
+
+	for (unsigned i = 0; i < count; i++) {
+		load(handles[i], static_cast<uint8_t *>(values) + 4 * i, mark_used);
+	}
+}
+
+void param_get_members(const px4::param_member_s *table, unsigned count, void *object, bool mark_used)
+{
+	for (unsigned i = 0; i < count; i++) {
+		load(table[i].handle, static_cast<uint8_t *>(object) + table[i].offset, mark_used);
+	}
+}
+
 ModuleParams::ModuleParams(ModuleParams *parent)
 {
 	setParent(parent);
