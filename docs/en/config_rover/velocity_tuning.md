@@ -25,7 +25,7 @@ To tune the velocity controller configure the following [parameters](../advanced
    To further tune this parameter:
    1. Set [RO_SPEED_P](#RO_SPEED_P) and [RO_SPEED_I](#RO_SPEED_I) to zero.
       This way the speed is only controlled by the feed-forward term, which makes it easier to tune.
-   2. Put the rover in [Position mode](../flight_modes_rover/manual.md#position-mode) and then move the left stick of your controller up and/or down and hold it at a few different levels for a couple of seconds each.
+   2. Put the rover in [Position mode](../flight_modes_rover/manual.md#position-mode) and drive forwards and/or backwards with a few different stick inputs, holding each for a couple of seconds.
    3. Disarm the rover and from the flight log plot the `adjusted_speed_body_x_setpoint` and the `measured_speed_body_x` from the [SurfaceVehicleSpeedStatus](../msg_docs/SurfaceVehicleSpeedStatus.md) message over each other.
    4. If the actual speed of the rover is higher than the speed setpoint, increase [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED).
       If it is the other way around decrease the parameter and repeat until you are satisfied with the setpoint tracking.
@@ -56,7 +56,7 @@ To tune the velocity controller configure the following [parameters](../advanced
 
 These steps are only necessary if you are tuning/want to unlock the manual [Position mode](../flight_modes_rover/manual.md#position-mode). Otherwise, you can continue with [position tuning](position_tuning.md) where these same parameters will also be configured.
 
-1. [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN): When driving in a straight line (right stick centered) position mode leverages the same path following algorithm used in [auto modes](../flight_modes_rover/auto.md) called [pure pursuit](position_tuning.md#pure-pursuit-guidance-logic-info-only) to achieve the best possible straight line driving behaviour.
+1. [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN): When driving in a straight line (no turn input) position mode leverages the same path following algorithm used in [auto modes](../flight_modes_rover/auto.md) called [pure pursuit](position_tuning.md#pure-pursuit-guidance-logic-info-only) to achieve the best possible straight line driving behaviour.
    This parameter determines how aggressive the controller will steer towards the path.
 
    ::: tip

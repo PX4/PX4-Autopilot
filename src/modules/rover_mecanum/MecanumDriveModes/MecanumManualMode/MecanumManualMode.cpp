@@ -56,15 +56,17 @@ void MecanumManualMode::manual()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
 	surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
 	surface_vehicle_steering_setpoint.timestamp = hrt_absolute_time();
 	surface_vehicle_steering_setpoint.normalized_steering_setpoint = _param_rm_yaw_stk_gain.get() * math::superexpo<float>
-			(manual_control_setpoint.yaw, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+			(sticks.yaw, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 	_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-	rover_throttle_setpoint.throttle_body_y = manual_control_setpoint.roll;
+	rover_throttle_setpoint.throttle_body_x = sticks.forward;
+	rover_throttle_setpoint.throttle_body_y = sticks.lateral;
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 }
 
@@ -72,11 +74,13 @@ void MecanumManualMode::manualParking()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
 
 	const float max_throttle = _param_ro_park_thr_max.get();
 	const float throttle_left = max_throttle * manual_control_setpoint.throttle;
 	const float throttle_right = max_throttle * manual_control_setpoint.pitch;
-	const float throttle_lateral = max_throttle * manual_control_setpoint.roll;
+	const float throttle_lateral = max_throttle * sticks.lateral;
 
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
@@ -93,14 +97,16 @@ void MecanumManualMode::acro()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-	rover_throttle_setpoint.throttle_body_y = manual_control_setpoint.roll;
+	rover_throttle_setpoint.throttle_body_x = sticks.forward;
+	rover_throttle_setpoint.throttle_body_y = sticks.lateral;
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 	surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 	surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
-	surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(manual_control_setpoint.yaw,
+	surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(sticks.yaw,
 			_param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 	_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 }
@@ -116,20 +122,22 @@ void MecanumManualMode::stab()
 
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-	rover_throttle_setpoint.throttle_body_y = manual_control_setpoint.roll;
+	rover_throttle_setpoint.throttle_body_x = sticks.forward;
+	rover_throttle_setpoint.throttle_body_y = sticks.lateral;
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 
-	if (fabsf(manual_control_setpoint.yaw) > FLT_EPSILON) {
+	if (fabsf(sticks.yaw) > FLT_EPSILON) {
 		_stab_yaw_setpoint = NAN;
 
 		// Rate control
 		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 		surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
-					manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+					sticks.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
 		// Set uncontrolled setpoint invalid
@@ -167,15 +175,17 @@ void MecanumManualMode::position()
 
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
 
 	Vector3f velocity_setpoint_body{};
-	velocity_setpoint_body(0) = math::interpolate<float>(manual_control_setpoint.throttle,
+	velocity_setpoint_body(0) = math::interpolate<float>(sticks.forward,
 				    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
-	velocity_setpoint_body(1) = math::interpolate<float>(manual_control_setpoint.roll,
+	velocity_setpoint_body(1) = math::interpolate<float>(sticks.lateral,
 				    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
 	velocity_setpoint_body(2) = 0.f;
 
-	if (fabsf(manual_control_setpoint.yaw) > FLT_EPSILON || velocity_setpoint_body.norm() < FLT_EPSILON) {
+	if (fabsf(sticks.yaw) > FLT_EPSILON || velocity_setpoint_body.norm() < FLT_EPSILON) {
 		_pos_ctl_yaw_setpoint = NAN;
 
 		// Speed control
@@ -189,7 +199,7 @@ void MecanumManualMode::position()
 		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 		surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
-					manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+					sticks.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
 		// Set uncontrolled setpoints invalid

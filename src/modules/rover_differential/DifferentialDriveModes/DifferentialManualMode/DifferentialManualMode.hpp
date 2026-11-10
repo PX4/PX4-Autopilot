@@ -37,6 +37,7 @@
 #include <px4_platform_common/module_params.h>
 
 // Libraries
+#include <lib/rover_control/RoverControl.hpp>
 #include <math.h>
 #include <matrix/matrix/math.hpp>
 
@@ -135,6 +136,7 @@ private:
 		(ParamFloat<px4::params::RD_YAW_STK_GAIN>)  _param_rd_yaw_stk_gain,
 		(ParamFloat<px4::params::RO_PARK_THR_MAX>)  _param_ro_park_thr_max,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
+		(ParamInt<px4::params::RO_STICK_MAP>)       _param_ro_stick_map
 	)
 };
