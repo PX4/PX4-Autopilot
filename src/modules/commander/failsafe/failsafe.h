@@ -200,8 +200,6 @@ private:
 
 	const int _caller_id_mode_fallback{genCallerId()};
 	bool _last_state_mode_fallback{false};
-	const int _caller_id_mission_control_lost{genCallerId()};
-	bool _last_state_mission_control_lost{false};
 
 	const int _caller_id_battery_warning_low{genCallerId()}; ///< battery warning caller ID's: use different ID's as they have different actions
 	bool _last_state_battery_warning_low{false};
