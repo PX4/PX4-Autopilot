@@ -156,9 +156,9 @@ uint32_t version_tag_to_number(const char *tag)
 	}
 
 	if (buffer_counter == 3 || buffer_counter == 6) {
-		version_number = ((uint8_t)version[0] << 8 * 3) |
-				 ((uint8_t)version[1] << 8 * 2) |
-				 ((uint8_t)version[2] << 8 * 1) | firmware_type;
+		version_number = ((uint32_t)(uint8_t)version[0] << 8 * 3) |
+				 ((uint32_t)(uint8_t)version[1] << 8 * 2) |
+				 ((uint32_t)(uint8_t)version[2] << 8 * 1) | firmware_type;
 
 	} else {
 		version_number = 0;
@@ -265,9 +265,9 @@ uint32_t version_tag_to_vendor_version_number(const char *tag)
 	}
 
 	if (buffer_counter == 6) {
-		version_number = ((uint8_t)version[3] << 8 * 3) |
-				 ((uint8_t)version[4] << 8 * 2) |
-				 ((uint8_t)version[5] << 8 * 1) | firmware_type;
+		version_number = ((uint32_t)(uint8_t)version[3] << 8 * 3) |
+				 ((uint32_t)(uint8_t)version[4] << 8 * 2) |
+				 ((uint32_t)(uint8_t)version[5] << 8 * 1) | firmware_type;
 
 	} else if (buffer_counter == 3) {
 		version_number = firmware_type;
