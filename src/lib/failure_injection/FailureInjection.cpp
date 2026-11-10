@@ -35,6 +35,8 @@
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
+#include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
 #include <parameters/param.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_gnss.h>
@@ -160,6 +162,40 @@ bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &se
 		if (jamming_state != sensor_gnss_s::JAMMING_STATE_UNKNOWN) {
 			sensor_gnss.jamming_state = (uint8_t)jamming_state;
 		}
+	}
+
+	return true;
+}
+
+bool process_airspeed(const Config &config, uint8_t uorb_instance, differential_pressure_s &differential_pressure,
+		      AirspeedState &state)
+{
+	using namespace time_literals;
+
+	static constexpr float blockage_fraction = 0.7f; // max blockage (fully ramped)
+	static constexpr float blockage_rampup_time = 30_s; // time to reach max blockage, linear ramp
+
+	const Mode mode = config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, uorb_instance + 1);
+
+	if (mode != Mode::Wrong) {
+		state.blocked_timestamp = 0;
+	}
+
+	// Off and Stuck are message-agnostic; run them first so the Stuck cache keeps the
+	// unblocked sample.
+	if (!process(mode, differential_pressure, state.stuck)) {
+		return false;
+	}
+
+	if (mode == Mode::Wrong) {
+		// Simulate pitot blockage: start the ramp on the rising edge and keep it running.
+		if (state.blocked_timestamp == 0) {
+			state.blocked_timestamp = differential_pressure.timestamp;
+		}
+
+		const float blockage_scale = math::constrain(1.f - (differential_pressure.timestamp - state.blocked_timestamp) /
+					     blockage_rampup_time, 1.f - blockage_fraction, 1.f);
+		differential_pressure.differential_pressure_pa *= blockage_scale;
 	}
 
 	return true;

@@ -49,6 +49,7 @@
 #include <cstdint>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_injection.h>
 
@@ -218,6 +219,24 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
 bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &sensor_gnss,
 		  Stuck<sensor_gnss_s> &stuck);
 
+/** Per-consumer airspeed failure state: the last good sample for Stuck and the blockage start for Wrong. */
+struct AirspeedState {
+	Stuck<differential_pressure_s> stuck;
+	uint64_t blocked_timestamp{0};
+};
+
+/**
+ * Airspeed counterpart to process(): on FAILURE_UNIT_SENSOR_AIRSPEED for the sensor publishing on
+ * the given 0-based uORB instance, Off and Stuck behave as in the generic process() and Wrong
+ * simulates a pitot blockage, ramping the differential pressure down linearly from the onset of
+ * the failure (taken from differential_pressure.timestamp) to a fixed fraction of the true value.
+ *
+ * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
+ * @return false if the differential_pressure publication must be suppressed (Off), true otherwise.
+ */
+bool process_airspeed(const Config &config, uint8_t uorb_instance, differential_pressure_s &differential_pressure,
+		      AirspeedState &state);
+
 /**
  * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to a copy of
  * status (matched per ESC by actuator_function). Off zeroes the ESC's telemetry (keeping only
@@ -252,6 +271,9 @@ template<typename MsgT>
 struct Stuck {
 };
 
+struct AirspeedState {
+};
+
 template<typename MsgT>
 bool process(Mode, MsgT &, Stuck<MsgT> &) { return true; }
 
@@ -265,6 +287,8 @@ inline bool process(const Config &, uint8_t, uint8_t) { return true; }
 inline bool process_battery(const Config &, uint8_t, battery_status_s &) { return true; }
 
 inline bool process_gnss(const Config &, uint8_t, sensor_gnss_s &, Stuck<sensor_gnss_s> &) { return true; }
+
+inline bool process_airspeed(const Config &, uint8_t, differential_pressure_s &, AirspeedState &) { return true; }
 
 inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
 
