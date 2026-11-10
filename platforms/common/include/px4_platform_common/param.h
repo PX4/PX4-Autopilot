@@ -76,10 +76,10 @@ inline static param_t param_handle(px4::params p)
  * alignment. A static_assert on its size rules out padding, which puts field i at offset
  * 4 * i. That is the address the loader writes.
  *
- * To write a parameter back, assign the field and store it with the C API:
+ * To write a parameter back, assign the field and store it:
  *
  *   _param.MC_ROLLRATE_P = 0.2f;
- *   param_set(param_handle(px4::params::MC_ROLLRATE_P), &_param.MC_ROLLRATE_P);
+ *   _param.commit(_param.MC_ROLLRATE_P);
  *
  * A class that derives from another class with parameters uses PARAMETERS_CUSTOM_PARENT()
  * in both. Its own _param hides the parent's, so it reads a parent's field as
@@ -102,6 +102,64 @@ struct param_value<true> {
 template<params p>
 using param_value_t = typename param_value<parameters_type[(int)p] == PARAM_TYPE_FLOAT>::type;
 
+#define _PARAMETER_INLINE __attribute__((always_inline))
+
+/**
+ * Base of a PARAMETERS() struct, to store, reload or reset one of its fields
+ *
+ * A field's position in the struct is its position in `handles`, so a call names only the
+ * field. The methods that take one field are always inlined, which folds its handle to a
+ * constant at the call site.
+ */
+template<auto &handles>
+struct ParameterStruct {
+	/// The handle of `field`, or PARAM_INVALID if it is not a field of this struct
+	_PARAMETER_INLINE param_t handle(const void *field) const
+	{
+		const size_t index = (static_cast<const uint8_t *>(field) - reinterpret_cast<const uint8_t *>(this)) / sizeof(float);
+		return index < sizeof(handles) / sizeof(handles[0]) ? handles[index] : PARAM_INVALID;
+	}
+
+	/// Store a field to the parameter storage (@see param_set())
+	_PARAMETER_INLINE bool commit(const float &field) const { return param_set(handle(&field), &field) == 0; }
+	_PARAMETER_INLINE bool commit(const int32_t &field) const { return param_set(handle(&field), &field) == 0; }
+
+	/// Store a field to the parameter storage, w/o notifying the system (@see param_set_no_notification())
+	_PARAMETER_INLINE bool commit_no_notification(const float &field) const { return param_set_no_notification(handle(&field), &field) == 0; }
+	_PARAMETER_INLINE bool commit_no_notification(const int32_t &field) const { return param_set_no_notification(handle(&field), &field) == 0; }
+
+	/// Set a field and store it if the value is new. Returns true if the value changed.
+	bool commit_no_notification(float &field, float value) const
+	{
+		if (fabsf(value - field) > FLT_EPSILON) {
+			field = value;
+			commit_no_notification(field);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool commit_no_notification(int32_t &field, int32_t value) const
+	{
+		if (value != field) {
+			field = value;
+			commit_no_notification(field);
+			return true;
+		}
+
+		return false;
+	}
+
+	/// Reload a field from the parameter storage
+	_PARAMETER_INLINE bool update(float &field) const { return param_get(handle(&field), &field) == 0; }
+	_PARAMETER_INLINE bool update(int32_t &field) const { return param_get(handle(&field), &field) == 0; }
+
+	/// Reset a field's parameter to its default and reload it
+	_PARAMETER_INLINE void reset(float &field) const { param_reset_no_notification(handle(&field)); update(field); }
+	_PARAMETER_INLINE void reset(int32_t &field) const { param_reset_no_notification(handle(&field)); update(field); }
+};
+
 } // namespace px4
 
 /**
@@ -118,11 +176,12 @@ __EXPORT void param_get_values(const param_t *handles, unsigned count, void *val
 
 #define _DEFINE_PARAMETER_STRUCT(...) \
 	static constexpr param_t _param_list[] = {APPLY_ALL(_PARAMETER_HANDLE, __VA_ARGS__)}; \
-	struct ParameterValues { \
+	struct ParameterValues : px4::ParameterStruct<_param_list> { \
 		ParameterValues() { param_get_values(_param_list, _PARAMETER_COUNT, this, true); } \
 		APPLY_ALL(_PARAMETER_FIELD, __VA_ARGS__) \
 	} _param; \
-	static_assert(sizeof(ParameterValues) == _PARAMETER_COUNT * sizeof(float), "parameter struct has padding");
+	static_assert(__is_standard_layout(ParameterValues) && sizeof(ParameterValues) == _PARAMETER_COUNT * sizeof(float), \
+		      "parameter struct is not an array of values");
 
 // As with DEFINE_PARAMETERS(), the update method is final so that a class deriving from one
 // with parameters fails to build until both use PARAMETERS_CUSTOM_PARENT().

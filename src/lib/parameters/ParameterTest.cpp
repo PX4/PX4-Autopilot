@@ -218,12 +218,44 @@ TEST_F(ParameterTest, plainStructWritesBack)
 {
 	PlainStructParams params;
 
-	params._param.CP_DELAY = 2.f;
-	ASSERT_EQ(0, param_set(param_handle(px4::params::CP_DELAY), &params._param.CP_DELAY));
+	EXPECT_EQ(param_handle(px4::params::CP_DIST), params._param.handle(&params._param.CP_DIST));
+	EXPECT_EQ(param_handle(px4::params::CP_DELAY), params._param.handle(&params._param.CP_DELAY));
 
-	float stored = 0.f;
-	ASSERT_EQ(0, param_get(param_handle(px4::params::CP_DELAY), &stored));
-	EXPECT_FLOAT_EQ(2.f, stored);
+	// a float and an int32, stored with and without notification
+	params._param.CP_DELAY = 2.f;
+	EXPECT_TRUE(params._param.commit(params._param.CP_DELAY));
+	params._param.SYS_AUTOSTART = 4001;
+	EXPECT_TRUE(params._param.commit_no_notification(params._param.SYS_AUTOSTART));
+
+	float delay = 0.f;
+	ASSERT_EQ(0, param_get(param_handle(px4::params::CP_DELAY), &delay));
+	EXPECT_FLOAT_EQ(2.f, delay);
+	int32_t autostart = 0;
+	ASSERT_EQ(0, param_get(param_handle(px4::params::SYS_AUTOSTART), &autostart));
+	EXPECT_EQ(4001, autostart);
+
+	// set and store only a new value
+	EXPECT_FALSE(params._param.commit_no_notification(params._param.CP_DELAY, 2.f));
+	EXPECT_TRUE(params._param.commit_no_notification(params._param.CP_DELAY, 3.f));
+	EXPECT_FLOAT_EQ(3.f, params._param.CP_DELAY);
+	ASSERT_EQ(0, param_get(param_handle(px4::params::CP_DELAY), &delay));
+	EXPECT_FLOAT_EQ(3.f, delay);
+
+	// reload one field
+	setParam(px4::params::CP_DIST, 8.f);
+	EXPECT_TRUE(params._param.update(params._param.CP_DIST));
+	EXPECT_FLOAT_EQ(8.f, params._param.CP_DIST);
+	EXPECT_EQ(4001, params._param.SYS_AUTOSTART);
+
+	// back to the default
+	params._param.reset(params._param.CP_DIST);
+	EXPECT_FLOAT_EQ(-1.f, params._param.CP_DIST);
+	EXPECT_TRUE(param_value_is_default(param_handle(px4::params::CP_DIST)));
+
+	// a value that is not a field of the struct has no handle
+	float not_a_field = 1.f;
+	EXPECT_EQ(PARAM_INVALID, params._param.handle(&not_a_field));
+	EXPECT_FALSE(params._param.commit(not_a_field));
 }
 
 class PlainStructParent : public ModuleParams
