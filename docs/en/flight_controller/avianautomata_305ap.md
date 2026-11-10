@@ -30,8 +30,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Interfaces {#interfaces}
 
-- **PWM outputs:** 8, all supporting [DShot](../peripherals/dshot.md) and [bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry)
-- **Serial ports:** 7 (`TELEM 1`, `TELEM 2`, `GPS`, `RC IN`, `VTX`, the debug console on `VTX`, and USART1 on the `Motors` connector)
+- **PWM outputs:** 8, all supporting [DShot](../peripherals/dshot.md)
+- **Serial ports:** 7 (`TELEM 1`, `TELEM 2`, `GPS`, `RC IN`, `VTX`, the debug console on `VTX`, and ESC telemetry on the `Motors` connector)
 - **I2C buses:** 3 (I2C1 internal; I2C2 and I2C4 external, I2C4 on the `GPS` connector)
 - **SPI buses:** 4, of which SPI4 is external with 2 chip selects
 - **CAN buses:** 2 (FDCAN1, FDCAN2)
@@ -43,9 +43,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 2S-6S (approximately 7 V to 25.2 V)
+- **Input voltage:** 2S-6S (6.4 V to 25.2 V)
 - **Power monitoring:** 1 analog battery voltage input, plus an analog current sense input (no onboard current shunt)
-- **Power outputs:** regulated 5 V and 9 V
+- **Power outputs:** regulated 5 V and 9 V (9 V at battery voltage on 2S)
 
 ### Mechanical Data {#mechanical_data}
 
@@ -63,7 +63,7 @@ Order from the [Avian Automata store](https://www.avianautomata.com/products/305
 
 ## Pinouts {#pinouts}
 
-All connectors are JST-GH, except for the 12-pin `Motors` connector and the 3-pin `RC IN` connector.
+All connectors are JST-GH.
 Pin 1 is marked on each connector housing.
 
 ### Power (CN1)
@@ -149,11 +149,11 @@ This is a 6-pin port, not the 10-pin Pixhawk GPS port.
 | Pin | Signal   | MCU |
 | --- | -------- | --- |
 | 1   | +9V      |     |
-| 2   | UART TX  | PD5 |
-| 3   | UART RX  | PD6 |
-| 4   | GND      |     |
-| 5   | SBUS out | PD8 |
-| 6   | GND      |     |
+| 2   | GND      |     |
+| 3   | UART TX  | PD5 |
+| 4   | UART RX  | PD6 |
+| 5   | GND      |     |
+| 6   | SBUS out | PD8 |
 
 ### RC IN (U22)
 
@@ -174,6 +174,11 @@ There is no onboard current shunt.
 To measure current, connect an external sensor to the current sense pin on the `Motors` connector and set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V), which defaults to `0` (see [Amps per volt](../config/battery.md#current_divider)).
 See [Battery and Power Module Setup](../config/battery.md) for configuration.
 
+## Voltage Ratings {#voltage_ratings}
+
+- `Power` input: 2S-6S, 6.4 V to 25.2 V (35 V DC absolute maximum)
+- USB input: 5 V nominal (5.5 V recommended maximum, 6 V absolute maximum)
+
 ## PWM Outputs {#pwm_outputs}
 
 The 8 outputs are in 4 groups:
@@ -183,8 +188,8 @@ The 8 outputs are in 4 groups:
 - Outputs 5-6 in group 3 (TIM3)
 - Outputs 7-8 in group 4 (TIM4)
 
-All outputs support PWM, [DShot](../peripherals/dshot.md) and [bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-Outputs 1-2 default to DShot300 ([PWM_MAIN_TIM0](../advanced_config/parameter_reference.md#PWM_MAIN_TIM0) = `-4`).
+All outputs support PWM and [DShot](../peripherals/dshot.md), and default to DShot300 ([PWM_MAIN_TIM0](../advanced_config/parameter_reference.md#PWM_MAIN_TIM0) to `PWM_MAIN_TIM3` = `-4`).
+The firmware also supports [bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) on all outputs, but it hasn't yet been verified on this board.
 All outputs in a group must use the same protocol and rate.
 
 ## SD Card (Optional) {#sd_card}
@@ -197,7 +202,7 @@ For information about choosing and using an SD card see [SD Cards (Removable Mem
 
 | UART   | Device       | Port               | Connector              | Flow Control |
 | ------ | ------------ | ------------------ | ---------------------- | ------------ |
-| USART1 | `/dev/ttyS0` |                    | `Motors` (pin 3)       |              |
+| USART1 | `/dev/ttyS0` | ESC telemetry      | `Motors` (pin 3)       |              |
 | USART2 | `/dev/ttyS1` | `TELEM 3`          | `VTX`                  |              |
 | USART3 | `/dev/ttyS2` | Debug Console      | `VTX` (`SBUS out` pin) |              |
 | UART4  | `/dev/ttyS3` | `TELEM 1`          | `TELEM 1`              | Yes          |
@@ -205,7 +210,11 @@ For information about choosing and using an SD card see [SD Cards (Removable Mem
 | USART6 | `/dev/ttyS5` | `GPS 1`            | `GPS`                  |              |
 | UART7  | `/dev/ttyS6` | `TELEM 2`          | `TELEM 2`              | Yes          |
 
-ESC serial telemetry (`Motors` pin 3, USART1) is not supported by the default firmware.
+[ESC telemetry](../peripherals/dshot.md#esc-telemetry) from `Motors` pin 3 (USART1) is enabled by default, so leave [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) at `Disabled`.
+
+::: info
+The bootloader enables no UART, so firmware can only be flashed over USB.
+:::
 
 ## Assembly {#assembly}
 
@@ -214,7 +223,7 @@ ESC serial telemetry (`Motors` pin 3, USART1) is not supported by the default fi
 A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate.
 
-Connect the receiver to the 3-pin `RC IN` connector, a single-wire port on the FMU (UART5, `/dev/ttyS4`).
+Connect the receiver to the 3-pin JST-GH `RC IN` connector, a single-wire port on the FMU (UART5, `/dev/ttyS4`).
 
 - S.BUS, DSM, SUMD, ST24, [CRSF](../telemetry/crsf_telemetry.md) and GHST receivers are detected automatically, with no configuration ([RC_INPUT_PROTO](../advanced_config/parameter_reference.md#RC_INPUT_PROTO) = `Auto`).
 - PPM receivers are not supported, so PWM receivers can't be connected through a PPM encoder either.
@@ -252,7 +261,12 @@ DroneCAN is not enabled by default: set [UAVCAN_ENABLE](../advanced_config/param
 
 Connect the video transmitter to the 6-pin JST-GH `VTX` connector, which carries 9 V power, a UART (USART2) and the `SBUS out` pin.
 [MSP OSD](../peripherals/osd.md) runs on this UART (`TELEM 3`) by default, at 115200 baud ([MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) = `TELEM 3`, [SER_TEL3_BAUD](../advanced_config/parameter_reference.md#SER_TEL3_BAUD) = `115200`).
-The 9 V supply is only available when the board is powered from the battery.
+The 9 V rail is only available when the board is powered from the battery, and runs at battery voltage on 2S.
+
+::: warning
+Pin 6 (`SBUS out`) carries the PX4 System Console output.
+If your air unit's cable has an SBUS wire, leave it unconnected.
+:::
 
 ## Building Firmware {#building_firmware}
 
@@ -273,6 +287,8 @@ The board also has a rover build variant: `avianautomata_305ap_rover`.
 
 The FMU's [PX4 System Console](../debug/system_console.md) output is on USART3 TX (PD8) at 57600 baud, the `SBUS out` pin of the `VTX` connector.
 The port is transmit-only, so use the [MAVLink Shell](../debug/mavlink_shell.md) over USB for an interactive console.
+
+The [SWD interface](../debug/swd_debug.md) isn't brought out: its pins (PA13 and PA14) are used by the second IMU slot.
 
 ## Further Information {#further_information}
 
