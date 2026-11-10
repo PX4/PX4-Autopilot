@@ -330,7 +330,10 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 			if ((int)nread != block_size) {
 				PX4_ERR("Read error");
-				free(read_block);
+				/* read_block is block_alloc + 1 when the unaligned
+				 * offset is in use, so free the allocation, not the
+				 * pointer we read into. */
+				free(block_alloc);
 				return -1;
 			}
 
