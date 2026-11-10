@@ -14,7 +14,7 @@ This quick start guide shows how to power the [CyberX-v10](../flight_controller/
 The image below shows how to connect the most important sensors and peripherals.
 We'll go through each of these in detail in the following sections.
 
-![CyberX-v10 wiring diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_block_diagram.png)
+![CyberX-v10 wiring diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_wiring_diagram.png)
 
 | Port              | Function                                                                                                        |
 | :---------------- | :-------------------------------------------------------------------------------------------------------------- |
@@ -24,7 +24,7 @@ We'll go through each of these in detail in the following sections.
 | `SW+BUZ`          | Safety switch, safety LED and buzzer (usually from the GPS module)                                              |
 | `TEL1`, `TEL2`    | Telemetry radios or other MAVLink devices                                                                       |
 | `Uart5`           | General-purpose serial port (EXT2)                                                                              |
-| `Uart8`           | RC input for CRSF and GHST receivers                                                                            |
+| `Uart8`           | RC input for CRSF receivers                                                                                     |
 | `S.Bin`           | SBUS receiver (`SBUS_IN`) and RSSI input (`RSSI_IN`)                                                            |
 | `RCin`            | SBUS or PPM receiver (pin on the servo rail)                                                                    |
 | `I2C3`, `I2C4`    | I2C peripherals, such as an MS4525DO airspeed sensor                                                            |
@@ -60,10 +60,9 @@ The GPS/compass should be [mounted on the frame](../assembly/mount_gps_compass.m
 
 ::: info
 The safety switch is disabled by default, so it has no effect unless you enable it.
-To use it, set [CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY) to `0` (see [Finding/Updating Parameters](../advanced_config/parameters.md)).
+To use it, set [COM_SAFETY_MODE](../advanced_config/parameter_reference.md#COM_SAFETY_MODE) to `Physical safety switch only` or `Safety switch (physical or virtual via MAVLink)` and reboot (see [Finding/Updating Parameters](../advanced_config/parameters.md)).
 When enabled, PX4 will not let you arm the vehicle until you press and hold the safety switch for 1 second.
-You can press the safety switch again to enable safety and disarm the vehicle (this can be useful if, for whatever reason, you are unable to disarm the vehicle from your remote control or ground station).
-For more information see [Arming Sequence: Pre Arm Mode & Safety Button](../advanced_config/prearm_arm_disarm.md#arming-sequence-pre-arm-mode-safety-button).
+For more information see [Arming Sequence: Safety State](../advanced_config/prearm_arm_disarm.md#safety_state).
 :::
 
 ## Radio Control
@@ -74,7 +73,7 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
 - SBUS receivers connect to the `S.Bin` port or the `RCin` pin.
 - PPM receivers connect to the `RCin` pin.
-- CRSF and GHST receivers connect to the `Uart8` port, with the receiver's `TX` output on the `RX` pin.
+- CRSF receivers connect to the `Uart8` port, with the receiver's `TX` output on the `RX` pin.
 - Spektrum/DSM receivers are not supported.
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
@@ -85,7 +84,7 @@ The CyberX-v10 is supplied with a PMU Lite power module that supports 2S to 20S 
 The module has both an analog (ADC) and an I2C interface: connect its analog connector to `PWR1` and its I2C connector to `PWR2`.
 
 The CyberX-v10 is configured by default for an analog power monitor on `PWR1`, and an INA228 I2C power monitor on `PWR2` that reports voltage and current.
-The power module's VCC output must provide at least 3 A continuous current, and should default to 5.2 V.
+The power module's VCC output must provide at least 3 A continuous current, and should be 5.2 V.
 A lower voltage of 5 V is still acceptable but discouraged.
 
 ## Telemetry (Radio) System

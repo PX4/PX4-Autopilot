@@ -23,7 +23,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Processor {#processor}
 
 - **Main FMU processor:** [STM32H743IIK6](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html) (32 Bit Arm® Cortex®-M7, 480 MHz, 2 MB Flash, 1 MB RAM)
-- **IO processor:** PX4IO v2, on carriers that fit one.
+- **IO processor:** [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html) (PX4IO v2)
 
 ### Sensors {#sensors}
 
@@ -41,10 +41,10 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **CAN buses:** 2 (`CAN1`, `CAN2`)
 - **Ethernet:** 100 Mbps, with transformer
 - **USB:** Type-C
-- **RC input:** SBUS on `S.Bin`, SBUS or PPM on `RCin`, CRSF or GHST on `Uart8`
+- **RC input:** SBUS on `S.Bin`, SBUS or PPM on `RCin`, CRSF on `Uart8`
 - **RSSI input:** 1 analog/PWM
 - **Analog inputs:** 2 on the `ADC` port (3.3 V and 6.6 V)
-- **Power inputs:** 2 (`PWR1` ADC, `PWR2` I2C)
+- **Power inputs:** 2 (`PWR1` analog, `PWR2` I2C)
 - **Parameter storage:** FRAM (FM25V02A) on SPI5
 - **SD card:** microSD card slot
 - **Debug port:** 1 (`DEBUG`, FMU and IO debug)
@@ -80,7 +80,7 @@ Order from [CyberCraft International Limited](https://int.woocoo.vip/detail).
 
 ### Block Diagram {#block_diagram}
 
-![CyberX-v10 wiring diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_block_diagram.png)
+![CyberX-v10 block diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_block_diagram.png)
 
 ## Power {#power}
 
@@ -93,8 +93,8 @@ The servo rail must be [separately powered](../peripherals/pwm_escs_and_servo.md
 
 The board has connectors for two power monitors.
 
-- `PWR1` -- ADC
-- `PWR2` -- I2C
+- `PWR1` -- ADC (6-pin)
+- `PWR2` -- I2C (6-pin)
 
 The board is configured by default for an analog power monitor on `PWR1`.
 An INA228 I2C power monitor (address 0x40) on `PWR2` is also started by default.
@@ -107,23 +107,30 @@ See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to c
 
 ## Voltage Ratings {#voltage_ratings}
 
-CyberX-v10 has the following three power sources configuration:
+The CyberX-v10 has the following power configuration:
 
 - `PWR1`: One analog ADC channel for monitoring the main power input voltage.
 - `PWR2`: One I2C-based power monitoring IC that monitors the same physical power input and provides additional voltage/current measurements.
 - `USB`: USB power is provided for debugging and development purposes only.
 
 ::: info
-`PWR1` and `PWR2` are two independent monitoring methods for the same physical power source, rather than two separate power inputs.
+`PWR1` and `PWR2` monitor the same physical power source, by ADC and I2C respectively.
+They are not redundant power inputs.
 :::
 
 **Normal Operation Maximum Ratings**
 
 Under these conditions all power sources will be used in this order to power the system:
 
-1. `PWR1` and `PWR2` inputs (4.75 V to 5.5 V)
+1. `PWR1`/`PWR2` input (4.75 V to 5.5 V)
 2. `USB` input (4.75 V to 5.25 V)
-3. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0 V to 6 V undamaged)
+
+**Absolute Maximum Ratings**
+
+Under these conditions the system will not draw any power (will not be operational), but will remain intact.
+
+1. `PWR1`/`PWR2` input (0 V to 6 V undamaged)
+2. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0 V to 6 V undamaged)
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -137,9 +144,9 @@ The IO outputs `M1` to `M8`, and the FMU outputs `M15` and `M16`, do not support
 
 The 8 IO PWM outputs are in 3 groups:
 
-- Outputs `M1`, `M2` in group 1
-- Outputs `M3`, `M4` in group 2
-- Outputs `M5`, `M6`, `M7`, `M8` in group 3
+- Outputs `M1` and `M2` in group 1
+- Outputs `M3` and `M4` in group 2
+- Outputs `M5`, `M6`, `M7` and `M8` in group 3
 
 The 8 FMU PWM outputs are in 3 groups:
 
@@ -172,7 +179,7 @@ SD cards are used for [log files and for storing missions](../getting_started/px
 | UART4  | /dev/ttyS3 | `GPS2`             | No           |
 | UART5  | /dev/ttyS4 | `Uart5` (EXT2)     | No           |
 | USART6 | /dev/ttyS5 | PX4IO              | No           |
-| UART7  | /dev/ttyS6 | Debug (Reserved)   | No           |
+| UART7  | /dev/ttyS6 | Debug Console      | No           |
 | UART8  | /dev/ttyS7 | `Uart8` (RC input) | No           |
 
 ::: info
@@ -199,11 +206,11 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
 The board has two RC input paths:
 
-- `S.Bin` and `RCin` (on the servo rail) go to the [IO processor](../modules/modules_driver.md#px4io), which detects the protocol with no configuration.
+- `S.Bin` (4-pin) and `RCin` (on the servo rail) go to the [IO processor](../modules/modules_driver.md#px4io), which detects the protocol with no configuration.
   SBUS receivers connect to `S.Bin` or `RCin`, and PPM receivers connect to `RCin`.
-- `Uart8` goes to the FMU, where the [rc_input](../modules/modules_driver_radio_control.md#rc-input) driver detects the protocol with no configuration.
+- `Uart8` (4-pin) goes to the FMU, where the [rc_input](../modules/modules_driver_radio_control.md#rc-input) driver detects the protocol with no configuration.
   Use it for CRSF receivers, which the IO processor can't decode.
-  PX4 uses `Uart8`s `RX` pin as the receiver port and its `TX` pin as the transmit port.
+  `Uart8` is half-duplex on its `RX` pin: connect the receiver's `TX` output to it.
   [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) sets the port that `rc_input` uses, and defaults to `Radio Controller` (`Uart8`).
 
 Spektrum/DSM receivers are not supported.
@@ -250,7 +257,7 @@ No port is assigned by default.
 
 ::: tip
 From PX4 v2.0, most users will not need to build this firmware!
-It will be pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 Boards are shipped with the bootloader pre-installed, so you do not need to build or flash it yourself.
 :::
 
