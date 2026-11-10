@@ -35,7 +35,7 @@ These have been tested by the PX4 dev team, or which are popular within the PX4 
 | [CUAV NEO 3X GPS](../gps_compass/gps_cuav_neo_3x.md)              |     M9N     |          RM3100           |              ✓              |          ✘✓✓          | + Baro.                     |
 | [CubePilot Here2 GNSS GPS (M8N)][CubePilot Here2]                 |     M8N     |         ICM20948          |                             |           ✓           | Superseded by HERE3         |
 | [Emlid Reach M+](https://emlid.com/reach/)                        |      ✓      |             ✘             |                             |           ✘           | Supports PPK. RTK expected. |
-| [GlobalSat BD-100M GNSS](../gps_compass/gps_globalsat_bd_100m.md) |  MT-5365M   |          IST8310          |                             |           ✓           | + Baro                      |
+| [GlobalSat BD-100M GNSS](../gps_compass/gps_globalsat_bd_100m.md) |      ✓      |             ✓             |                             |           ✓           | + Baro                      |
 | [Holybro DroneCAN M8N GPS](../dronecan/holybro_m8n_gps.md)        |     M8N     |          BMM150           |              ✓              |           ✘           | + Baro                      |
 | [Holybro Micro M8N GPS][Hb Micro M8N]                             |     M8N     |          IST8310          |                             |           ✘           |                             |
 | [Holybro Nano Ublox M8 5883 GPS][hb_nano_m8_5883]                 |  UBX-M8030  |          QMC5883          |                             |           ✘           |                             |
