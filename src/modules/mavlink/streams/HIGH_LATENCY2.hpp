@@ -39,7 +39,7 @@
 #include <lib/matrix/matrix/math.hpp>
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
@@ -51,7 +51,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
@@ -139,7 +139,6 @@ private:
 			updated |= write_failure_detector_status(&msg);
 
 			// these topics are already updated in update_data() and thus we just copy them here
-			write_airspeed(&msg);
 			write_battery_status(&msg);
 			write_tecs_status(&msg);
 			write_vehicle_status(&msg);
@@ -247,21 +246,6 @@ private:
 		_last_reset_time = t;
 	}
 
-	bool write_airspeed(mavlink_high_latency2_t *msg)
-	{
-		airspeed_s airspeed;
-
-		if (_airspeed_sub.copy(&airspeed)) {
-			if (airspeed.confidence < 0.95f) { // the same threshold as for the commander
-				msg->failure_flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-
 	bool write_attitude_setpoint_if_updated(mavlink_high_latency2_t *msg)
 	{
 		vehicle_attitude_setpoint_s attitude_sp;
@@ -287,7 +271,8 @@ private:
 				updated = true;
 				_batteries[i].connected = battery.connected;
 
-				if (battery.warning > battery_status_s::WARNING_LOW) {
+				if (battery.warning > battery_status_s::WARNING_LOW
+				    && battery.warning != battery_status_s::WARNING_CHARGING) {
 					msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
 				}
 			}
@@ -441,6 +426,11 @@ private:
 				}
 
 				if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
+				    events::px4::enums::health_component_t::differential_pressure) {
+					msg->failure_flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
+				}
+
+				if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
 				    events::px4::enums::health_component_t::accel) {
 					msg->failure_flags |= HL_FAILURE_FLAG_3D_ACCEL;
 				}
@@ -532,7 +522,7 @@ private:
 		update_tecs_status();
 		update_battery_status();
 		update_local_position();
-		update_gps();
+		update_gnss();
 		update_vehicle_status();
 		update_wind();
 		update_vehicle_air_data();
@@ -540,10 +530,16 @@ private:
 
 	void update_airspeed()
 	{
-		airspeed_s airspeed;
+		airspeed_validated_s airspeed_validated;
 
-		if (_airspeed_sub.update(&airspeed)) {
-			_airspeed.add_value(airspeed.indicated_airspeed_m_s, _update_rate_filtered);
+		if (_airspeed_validated_sub.update(&airspeed_validated)) {
+			const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_1
+							  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_2
+							  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_3;
+
+			if (airspeed_from_sensor) {
+				_airspeed.add_value(airspeed_validated.calibrated_airspeed_m_s, _update_rate_filtered);
+			}
 		}
 	}
 
@@ -579,13 +575,13 @@ private:
 		}
 	}
 
-	void update_gps()
+	void update_gnss()
 	{
-		sensor_gps_s gps;
+		vehicle_gnss_s gnss;
 
-		if (_gps_sub.update(&gps)) {
-			_eph.add_value(gps.eph, _update_rate_filtered);
-			_epv.add_value(gps.epv, _update_rate_filtered);
+		if (_vehicle_gnss_sub.update(&gnss)) {
+			_eph.add_value(gnss.receiver.eph, _update_rate_filtered);
+			_epv.add_value(gnss.receiver.epv, _update_rate_filtered);
 		}
 	}
 
@@ -666,7 +662,7 @@ private:
 
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _vehicle_thrust_setpoint_1_sub{ORB_ID(vehicle_thrust_setpoint), 1};
-	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
@@ -675,7 +671,7 @@ private:
 	uORB::Subscription _geofence_sub{ORB_ID(geofence_result)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _gps_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};

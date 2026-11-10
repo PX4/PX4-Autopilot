@@ -51,7 +51,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>
@@ -104,6 +104,8 @@ private:
 	char _device[20] {}; ///< device / serial port path
 	bool _is_singlewire{false};
 	bool _armed{false};
+	vehicle_status_s _vehicle_status{};
+	bool _vehicle_status_updated{false};
 
 	static constexpr size_t RC_MAX_BUFFER_SIZE{64};
 	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
@@ -120,7 +122,7 @@ private:
 	int _next_type{0};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};

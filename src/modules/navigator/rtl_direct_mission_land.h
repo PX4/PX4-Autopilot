@@ -33,7 +33,7 @@
 /**
  * @file rtl_direct_mission_land.h
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>

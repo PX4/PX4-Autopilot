@@ -50,7 +50,7 @@ public:
 	~PpsTimeSync() = default;
 
 	void process_pps(const pps_capture_s &pps);
-	uint64_t correct_gps_timestamp(uint64_t gps_fc_timestamp, uint64_t gps_utc_timestamp);
+	uint64_t correct_gnss_timestamp(uint64_t gnss_fc_timestamp, uint64_t gnss_utc_timestamp);
 
 private:
 	bool is_valid() const;
@@ -60,7 +60,7 @@ private:
 	int64_t _time_offset{0};
 
 	static constexpr uint64_t kPpsStaleTimeoutUs = 5'000'000;
-	static constexpr int64_t kPpsMaxCorrectionUs = 300'000;	// max delay (max of SENS_GPS*_DELAY)
+	static constexpr int64_t kPpsMaxCorrectionUs = 300'000;	// max delay (max of SENS_GNSS*_DELAY)
 
 	bool _initialized{false};
 	bool _updated{false};

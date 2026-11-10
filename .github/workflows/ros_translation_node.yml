@@ -30,9 +30,9 @@ jobs:
       matrix:
         config:
           - ros_version: "humble"
-            image: ghcr.io/px4/px4-dev-ros2:main-humble@sha256:22477581e61d0fd3edff894e8a4b9615898f0534273d3745831a819bd1c5b5a4
+            image: ghcr.io/px4/px4-dev-ros2:main-humble@sha256:b9a4dc001d01a5ef6dd701fc42b36f1c4bb62b2047ce458177577fbd0a727653
           - ros_version: "jazzy"
-            image: ghcr.io/px4/px4-dev-ros2:main-jazzy@sha256:741c007bc5faadf41ef92258b0cdadf7dea5c84447afcb8545ea7c1ef42ffd71
+            image: ghcr.io/px4/px4-dev-ros2:main-jazzy@sha256:ad977ec1a3b3fadc1a68a34ec9f8bfd013f80a4236aaf4708c2eb031dc7f338f
     container:
       image: ${{ matrix.config.image }}
     steps:

@@ -24,10 +24,21 @@ export GZ_SIM_SERVER_CONFIG_PATH=$PX4_GZ_SERVER_CONFIG
 # gobject-introspection typelibs reference libs by bare basename,
 # which fails to resolve unless we add Homebrew's lib dir to the
 # fallback search path. Prepend so it beats any system-placed libs,
-# and preserve any existing value the user has set.
+# and preserve any existing value the user has set. With the Gazebo
+# environment from Tools/setup/macos/pixi.toml loaded, its lib dir goes
+# first, so a leftover Homebrew Gazebo is never loaded next to it.
 if [ "$(uname)" = "Darwin" ]; then
+	# Load the Gazebo environment from Tools/setup/macos/pixi.toml when the
+	# venv that normally loads it was not activated, so gz is on PATH.
+	if [ -z "$CONDA_PREFIX" ] && [ -f "@PX4_SOURCE_DIR@/.venv/bin/px4-gz-env.sh" ]; then
+		. "@PX4_SOURCE_DIR@/.venv/bin/px4-gz-env.sh"
+	fi
+
 	HOMEBREW_PREFIX=${HOMEBREW_PREFIX:-$(brew --prefix 2>/dev/null)}
 	if [ -n "$HOMEBREW_PREFIX" ]; then
 		export DYLD_FALLBACK_LIBRARY_PATH="$HOMEBREW_PREFIX/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
+	fi
+	if [ -n "$CONDA_PREFIX" ]; then
+		export DYLD_FALLBACK_LIBRARY_PATH="$CONDA_PREFIX/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
 	fi
 fi

@@ -85,6 +85,9 @@ FixedwingRateControl::parameters_update()
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
 
+	_gain_compression.setEnabled(_param_fw_gc_en.get());
+	_gain_compression.setCompressionGainMin(_param_fw_gc_gain_min.get());
+
 	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
 		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
 	}
@@ -127,14 +130,12 @@ FixedwingRateControl::vehicle_manual_poll()
 
 			} else {
 				// Manual/direct control, filled in FW-frame. Note that setpoints will get transformed to body frame prior publishing.
-				const float airspeed_scaling_sq = _airspeed_scaling * _airspeed_scaling;
-
 				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-								  _param_trim_roll.get() * airspeed_scaling_sq, -1.f, 1.f);
+								  _param_trim_roll.get(), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() +
-								  _param_trim_pitch.get() * airspeed_scaling_sq, -1.f, 1.f);
+								  _param_trim_pitch.get(), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-								  _param_trim_yaw.get() * airspeed_scaling_sq, -1.f, 1.f);
+								  _param_trim_yaw.get(), -1.f, 1.f);
 
 				_vehicle_thrust_setpoint.xyz[0] = math::constrain((_manual_control_setpoint.throttle + 1.f) * .5f, 0.f, 1.f);
 			}
@@ -171,7 +172,7 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 			_airspeed_filter_for_torque_scaling.reset(airspeed);
 
 		} else {
-			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, static_cast<uint64_t>(dt * 1e6f));
+			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, dt);
 		}
 
 	} else {
@@ -417,9 +418,9 @@ void FixedwingRateControl::Run()
 
 				float thrust_setpoint = _rates_sp.thrust_body[0];
 
-				// Stop motor if its setpoint is below 2%. This value was determined empirically (RC stick inaccuracy).
-				// Motor is stopped by setting the output to NAN (per definition).
-				if (PX4_ISFINITE(thrust_setpoint) && thrust_setpoint > 0.02f) {
+				// Zero thrust is passed through and maps to the motor's minimum output (PWM_MIN etc.).
+				// Motor is stopped by setting the output to NAN (per definition) if the setpoint is invalid.
+				if (PX4_ISFINITE(thrust_setpoint)) {
 					/* scale effort by battery status */
 					if (_param_fw_bat_scale_en.get()) {
 
@@ -518,6 +519,10 @@ void FixedwingRateControl::Run()
 				flaps_control = PX4_ISFINITE(_manual_control_setpoint.flaps) ? math::max(_manual_control_setpoint.flaps, 0.f) : 0.f;
 				break;
 
+			case 7:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux6) ? math::max(_manual_control_setpoint.aux6, 0.f) : 0.f;
+				break;
+
 
 			}
 
@@ -551,6 +556,14 @@ void FixedwingRateControl::Run()
 
 			case 5:
 				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux4) ? math::max(_manual_control_setpoint.aux4, 0.f) : 0.f;
+				break;
+
+			case 6:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux5) ? math::max(_manual_control_setpoint.aux5, 0.f) : 0.f;
+				break;
+
+			case 7:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux6) ? math::max(_manual_control_setpoint.aux6, 0.f) : 0.f;
 				break;
 			}
 

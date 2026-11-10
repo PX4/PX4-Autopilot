@@ -18,6 +18,10 @@ if DRIVERS_UAVCANNODE
         bool "Include beep command"
         default n
 
+    config UAVCANNODE_COMMAND_SHELL
+        bool "Include NSH shell access over DroneCAN"
+        default n
+
     config UAVCANNODE_ESC_RAW_COMMAND
         bool "Include ESC raw command"
         default n

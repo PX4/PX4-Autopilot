@@ -319,6 +319,10 @@ bson_decoder_next(bson_decoder_t decoder)
 			decoder->count_node_int64++;
 			break;
 
+		case BSON_nullptr:
+		case BSON_UNDEFINED:
+			break;
+
 		/* XXX currently not supporting other types */
 		default:
 			CODER_KILL(decoder, "unsupported node type");
@@ -528,9 +532,9 @@ bson_encoder_fini(bson_encoder_t encoder)
 		}
 	}
 
-	// record document size
-	debug("writing document size %" PRIi32, encoder->total_document_size);
-	const int32_t bson_doc_bytes = encoder->total_document_size;
+	// record document size; total_document_size only counts what went to a file
+	const int32_t bson_doc_bytes = (encoder->fd > -1) ? encoder->total_document_size : (int32_t)encoder->bufpos;
+	debug("writing document size %" PRIi32, bson_doc_bytes);
 
 	if (encoder->fd > -1) {
 		if ((lseek(encoder->fd, 0, SEEK_SET) != 0)
@@ -659,6 +663,19 @@ bson_encoder_append_binary(bson_encoder_t encoder, const char *name, bson_binary
 	    write_int8(encoder, subtype) ||
 	    write_x(encoder, data, size)) {
 		CODER_KILL(encoder, "write error on BSON_BINDATA");
+	}
+
+	return 0;
+}
+
+int
+bson_encoder_append_null(bson_encoder_t encoder, const char *name)
+{
+	CODER_CHECK(encoder);
+
+	if (write_int8(encoder, BSON_nullptr) ||
+	    write_name(encoder, name)) {
+		CODER_KILL(encoder, "write error on BSON_nullptr");
 	}
 
 	return 0;

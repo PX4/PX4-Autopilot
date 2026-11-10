@@ -34,8 +34,9 @@
 #ifndef GPS_RAW_INT_HPP
 #define GPS_RAW_INT_HPP
 
-#include <lib/gnss/SensorGpsSelector.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
+#include <uORB/topics/sensors_status_gnss.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 
 using namespace time_literals;
 
@@ -52,72 +53,97 @@ public:
 
 	unsigned get_size() override
 	{
-		return _sensor_gps_sub.advertised() ? (MAVLINK_MSG_ID_GPS_RAW_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _sensor_gnss_sub.advertised() ? (MAVLINK_MSG_ID_GPS_RAW_INT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
-	SensorGpsSelector _gps_selector{};
+	uORB::Subscription _sensor_gnss_sub{ORB_ID(sensor_gnss), 0};
+	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
+	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
+	int8_t _instance{-1}; ///< sensor_gnss instance to report, fixed by the sensors module
+	static constexpr int8_t kOrder{0}; ///< position of the reported receiver in sensors_status_gnss.order
 	hrt_abstime _last_send_ts {};
 	bool _yaw_capable{false}; ///< a heading has been reported at least once
 	static constexpr hrt_abstime kNoGpsSendInterval {1_s};
+	static constexpr hrt_abstime kHeadingTimeout {1_s};
 
 	bool send() override
 	{
-		const uint8_t primary = _gps_selector.primary_instance();
+		sensors_status_gnss_s status;
 
-		if (primary != _sensor_gps_sub.get_instance()) {
-			_sensor_gps_sub.ChangeInstance(primary);
+		if (_sensors_status_gnss_sub.update(&status)) {
+			_instance = -1;
+
+			for (int i = 0; i < sensors_status_gnss_s::MAX_RECEIVERS; i++) {
+				if (status.order[i] == kOrder) {
+					_instance = i;
+				}
+			}
 		}
 
-		sensor_gps_s gps;
+		if ((_instance >= 0) && (_instance != _sensor_gnss_sub.get_instance())) {
+			_sensor_gnss_sub.ChangeInstance(_instance);
+		}
+
+		sensor_gnss_s gnss;
 		mavlink_gps_raw_int_t msg{};
 		hrt_abstime now{};
 
 		// only report the primary receiver, never another instance's data
-		if ((_sensor_gps_sub.get_instance() == primary) && _sensor_gps_sub.update(&gps)) {
-			if (gps.time_utc_usec <= 0) {
-				msg.time_usec = gps.timestamp;
+		if ((_instance >= 0) && (_sensor_gnss_sub.get_instance() == _instance) && _sensor_gnss_sub.update(&gnss)) {
+			if (gnss.time_utc_usec <= 0) {
+				msg.time_usec = gnss.timestamp;
 
 			} else {
-				msg.time_usec = gps.time_utc_usec;
+				msg.time_usec = gnss.time_utc_usec;
 			}
 
-			msg.fix_type = gps.fix_type;
-			msg.lat = static_cast<int32_t>(round(gps.latitude_deg * 1e7));
-			msg.lon = static_cast<int32_t>(round(gps.longitude_deg * 1e7));
-			msg.alt = static_cast<int32_t>(round(gps.altitude_msl_m * 1e3)); // convert [m] to [mm]
-			msg.eph = gps.hdop * 100; // GPS HDOP horizontal dilution of position (unitless)
-			msg.epv = gps.vdop * 100; // GPS VDOP vertical dilution of position (unitless)
+			msg.fix_type = gnss.fix_type;
+			msg.lat = static_cast<int32_t>(round(gnss.latitude * 1e7));
+			msg.lon = static_cast<int32_t>(round(gnss.longitude * 1e7));
+			msg.alt = static_cast<int32_t>(round(gnss.altitude_msl * 1e3)); // convert [m] to [mm]
+			msg.eph = gnss.hdop * 100; // GPS HDOP horizontal dilution of position (unitless)
+			msg.epv = gnss.vdop * 100; // GPS VDOP vertical dilution of position (unitless)
 
-			if (PX4_ISFINITE(gps.vel_m_s) && (fabsf(gps.vel_m_s) >= 0.f)) {
-				msg.vel = gps.vel_m_s * 100.f; // cm/s
+			if (PX4_ISFINITE(gnss.ground_speed) && (fabsf(gnss.ground_speed) >= 0.f)) {
+				msg.vel = gnss.ground_speed * 100.f; // cm/s
 
 			} else {
 				msg.vel = UINT16_MAX; // If unknown, set to: UINT16_MAX
 			}
 
-			msg.cog = math::degrees(matrix::wrap_2pi(gps.cog_rad)) * 1e2f;
-			msg.satellites_visible = gps.satellites_used;
-			msg.alt_ellipsoid = static_cast<int32_t>(round(gps.altitude_ellipsoid_m * 1e3)); // convert [m] to [mm]
-			msg.h_acc = gps.eph * 1e3f;              // position uncertainty in mm
-			msg.v_acc = gps.epv * 1e3f;              // altitude uncertainty in mm
-			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm
+			msg.cog = math::degrees(matrix::wrap_2pi(gnss.course)) * 1e2f;
+			msg.satellites_visible = gnss.satellites_used;
+			msg.alt_ellipsoid = static_cast<int32_t>(round(gnss.altitude_ellipsoid * 1e3)); // convert [m] to [mm]
+			msg.h_acc = gnss.eph * 1e3f;              // position uncertainty in mm
+			msg.v_acc = gnss.epv * 1e3f;              // altitude uncertainty in mm
+			msg.vel_acc = gnss.speed_accuracy * 1e3f; // speed uncertainty in mm
 
-			if (PX4_ISFINITE(gps.heading)) {
+			// the body-frame heading is only known for the receiver that is the active heading source
+			vehicle_gnss_heading_s gnss_heading;
+			float heading = NAN;
+			float heading_accuracy = NAN;
+
+			if (_vehicle_gnss_heading_sub.copy(&gnss_heading)
+			    && (gnss_heading.device_id == gnss.device_id) && (hrt_elapsed_time(&gnss_heading.timestamp) < kHeadingTimeout)) {
+				heading = gnss_heading.heading;
+				heading_accuracy = gnss_heading.heading_accuracy;
+			}
+
+			if (PX4_ISFINITE(heading)) {
 				_yaw_capable = true;
 
-				if (fabsf(gps.heading) < FLT_EPSILON) {
+				if (fabsf(heading) < FLT_EPSILON) {
 					msg.yaw = 36000; // Use 36000 for north.
 
 				} else {
-					msg.yaw = math::degrees(matrix::wrap_2pi(gps.heading)) * 100.0f; // centidegrees
+					msg.yaw = math::degrees(matrix::wrap_2pi(heading)) * 100.0f; // centidegrees
 				}
 
-				if (PX4_ISFINITE(gps.heading_accuracy)) {
-					msg.hdg_acc = math::degrees(gps.heading_accuracy) * 1e5f; // Heading / track uncertainty in degE5
+				if (PX4_ISFINITE(heading_accuracy)) {
+					msg.hdg_acc = math::degrees(heading_accuracy) * 1e5f; // Heading / track uncertainty in degE5
 				}
 
 			} else if (_yaw_capable) {
@@ -127,7 +153,7 @@ private:
 			}
 
 			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
-			_last_send_ts = gps.timestamp;
+			_last_send_ts = gnss.timestamp;
 
 			return true;
 

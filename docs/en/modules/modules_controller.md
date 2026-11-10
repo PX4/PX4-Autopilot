@@ -1,5 +1,10 @@
 # Modules Reference: Controller
 
+::: info
+**This page is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4moduledoc/markdownout.py) from the source code** using the build command: `make module_documentation`.
+Do not edit it directly; fix the module documentation in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) source instead.
+:::
+
 ## airship_att_control
 
 Source: [modules/airship_att_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/airship_att_control)
@@ -267,7 +272,7 @@ Source: [modules/navigator](https://github.com/PX4/PX4-Autopilot/tree/main/src/m
 ### Description
 
 Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
-takeoff and RTL.
+takeoff and Return.
 It is also responsible for geofence violation checking.
 
 ### Implementation

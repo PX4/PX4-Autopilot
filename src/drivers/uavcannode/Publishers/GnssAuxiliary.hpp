@@ -40,7 +40,7 @@
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
 
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 namespace uavcannode
 {
@@ -53,7 +53,7 @@ class GnssAuxiliary :
 public:
 	GnssAuxiliary(px4::WorkItem *work_item, uavcan::INode &node) :
 		UavcanPublisherBase(uavcan::equipment::gnss::Auxiliary::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gps)),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gnss)),
 		uavcan::Publisher<uavcan::equipment::gnss::Auxiliary>(node)
 	{
 		this->setPriority(uavcan::TransferPriority::Default);
@@ -73,22 +73,22 @@ public:
 	{
 		using uavcan::equipment::gnss::Auxiliary;
 
-		// sensor_gps -> uavcan::equipment::gnss::Auxiliary
-		sensor_gps_s gps;
+		// sensor_gnss -> uavcan::equipment::gnss::Auxiliary
+		sensor_gnss_s sensor_gnss;
 
-		if (uORB::SubscriptionCallbackWorkItem::update(&gps)) {
+		if (uORB::SubscriptionCallbackWorkItem::update(&sensor_gnss)) {
 			uavcan::equipment::gnss::Auxiliary auxiliary{};
 
-			//auxiliary.gdop = gps.gdop;
-			//auxiliary.pdop = gps.pdop;
-			auxiliary.hdop = gps.hdop;
-			auxiliary.vdop = gps.vdop;
-			//auxiliary.tdop = gps.tdop;
-			//auxiliary.ndop = gps.ndop;
-			//auxiliary.edop = gps.edop;
+			//auxiliary.gdop = sensor_gnss.gdop;
+			//auxiliary.pdop = sensor_gnss.pdop;
+			auxiliary.hdop = sensor_gnss.hdop;
+			auxiliary.vdop = sensor_gnss.vdop;
+			//auxiliary.tdop = sensor_gnss.tdop;
+			//auxiliary.ndop = sensor_gnss.ndop;
+			//auxiliary.edop = sensor_gnss.edop;
 
-			auxiliary.sats_visible = gps.satellites_used;
-			auxiliary.sats_used = gps.satellites_used;
+			auxiliary.sats_visible = sensor_gnss.satellites_used;
+			auxiliary.sats_used = sensor_gnss.satellites_used;
 
 			uavcan::Publisher<uavcan::equipment::gnss::Auxiliary>::broadcast(auxiliary);
 

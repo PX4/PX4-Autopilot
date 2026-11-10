@@ -132,8 +132,7 @@ struct ulog_message_flag_bits_s {
   If a parser finds any of these bits set that isn't specified, it must refuse to parse the log.
 
 - `appended_offsets`: File offset (0-based) for appended data.
-  如果没有附加数据，则所有偏移量必须为零。
-  这可以用于消息中途暂停的情况下可靠的添加数据。
+  如果没有附加数据，则所有偏移量必须为零。这可以用于消息中途暂停的情况下可靠的添加数据。
   For example, crash dumps.
 
   附加数据的过程应该做到：

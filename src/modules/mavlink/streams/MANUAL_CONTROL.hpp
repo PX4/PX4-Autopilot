@@ -67,7 +67,7 @@ private:
 		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 			mavlink_manual_control_t msg{};
 
-			msg.target = mavlink_system.sysid;
+			msg.target = mavlink_msg_target_field(mavlink_system.sysid);
 			msg.x = manual_control_setpoint.pitch * 1000.f;
 			msg.y = manual_control_setpoint.roll * 1000.f;
 			// Convert from internal range [-1, 1] to [0, 1000]
@@ -116,7 +116,10 @@ private:
 				msg.aux6 = manual_control_setpoint.aux6 * 1000.f;
 			}
 
-			mavlink_msg_manual_control_send_struct(_mavlink->get_channel(), &msg);
+			// The target field is called "target" here, so mavlink_msg_send_struct_target() doesn't fit.
+			_mav_finalize_message_chan_send_target(_mavlink->get_channel(), MAVLINK_MSG_ID_MANUAL_CONTROL, (const char *)&msg,
+							       MAVLINK_MSG_ID_MANUAL_CONTROL_MIN_LEN, MAVLINK_MSG_ID_MANUAL_CONTROL_LEN,
+							       MAVLINK_MSG_ID_MANUAL_CONTROL_CRC, mavlink_system.sysid);
 
 			return true;
 		}

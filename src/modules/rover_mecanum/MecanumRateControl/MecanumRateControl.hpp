@@ -39,6 +39,7 @@
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
 #include <math.h>
@@ -46,15 +47,15 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_rate_setpoint.h>
+#include <uORB/topics/surface_vehicle_rate_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/rover_steering_setpoint.h>
-#include <uORB/topics/rover_rate_status.h>
+#include <uORB/topics/surface_vehicle_steering_setpoint.h>
+#include <uORB/topics/surface_vehicle_rate_status.h>
 
 /**
  * @brief Class for mecanum rate control.
  */
-class MecanumRateControl : public ModuleParams
+class MecanumRateControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -65,7 +66,7 @@ public:
 	~MecanumRateControl() = default;
 
 	/**
-	 * @brief Generate and publish roverSteeringSetpoint from roverRateSetpoint.
+	 * @brief Generate and publish surfaceVehicleSteeringSetpoint from surfaceVehicleRateSetpoint.
 	 */
 	void updateRateControl();
 
@@ -87,14 +88,16 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateRateControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
 
 	// uORB subscriptions
-	uORB::Subscription _rover_rate_setpoint_sub{ORB_ID(rover_rate_setpoint)};
+	uORB::Subscription _surface_vehicle_rate_setpoint_sub{ORB_ID(surface_vehicle_rate_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	// uORB publications
-	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
-	uORB::Publication<rover_rate_status_s>       _rover_rate_status_pub{ORB_ID(rover_rate_status)};
+	uORB::Publication<surface_vehicle_steering_setpoint_s> _surface_vehicle_steering_setpoint_pub{ORB_ID(surface_vehicle_steering_setpoint)};
+	uORB::Publication<surface_vehicle_rate_status_s>       _surface_vehicle_rate_status_pub{ORB_ID(surface_vehicle_rate_status)};
 
 	// Variables
 	hrt_abstime _timestamp{0};

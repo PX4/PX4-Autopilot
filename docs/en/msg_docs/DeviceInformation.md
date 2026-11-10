@@ -15,10 +15,10 @@ as well as tracking of the used firmware versions on the devices.
 
 | Name                                              | Type       | Unit [Frame] | Range/Enum                  | Description                                                                                          |
 | ------------------------------------------------- | ---------- | ------------ | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp               | `uint64`   |              |                             | time since system start (microseconds)                                                               |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`   | us           |                             | Time since system start                                                                              |
 | <a id="fld_device_type"></a>device_type           | `uint8`    |              | [DEVICE_TYPE](#DEVICE_TYPE) | Type of the device. Matches MAVLink DEVICE_TYPE enum                                                 |
 | <a id="fld_name"></a>name                         | `char[80]` |              |                             | Name of device e.g. DroneCAN node name                                                               |
-| <a id="fld_"></a>                                 | `uint32`   |              |                             | Unique device ID for the sensor. Does not change between power cycles. (Invalid: 0 if not available) |
+| <a id="fld_device_id"></a>device_id               | `uint32`   |              |                             | Unique device ID for the sensor. Does not change between power cycles. (Invalid: 0 if not available) |
 | <a id="fld_firmware_version"></a>firmware_version | `char[24]` |              |                             | Firmware version. (Invalid: empty if not available)                                                  |
 | <a id="fld_hardware_version"></a>hardware_version | `char[24]` |              |                             | Hardware version. (Invalid: empty if not available)                                                  |
 | <a id="fld_serial_number"></a>serial_number       | `char[33]` |              |                             | Device serial number or unique identifier. (Invalid: empty if not available)                         |
@@ -64,7 +64,7 @@ Used in field(s): [device_type](#fld_device_type)
 # Can be used to uniquely associate a device_id from a sensor topic with a physical device using serial number.
 # as well as tracking of the used firmware versions on the devices.
 
-uint64 timestamp  # time since system start (microseconds)
+uint64 timestamp # [us] Time since system start
 
 uint8 device_type  # [@enum DEVICE_TYPE] Type of the device. Matches MAVLink DEVICE_TYPE enum
 uint8 DEVICE_TYPE_GENERIC = 0                 # Generic/unknown sensor
@@ -91,10 +91,10 @@ uint8 DEVICE_TYPE_STEREO_CAMERA = 19          # stereo/depth camera
 
 char[80] name # Name of device e.g. DroneCAN node name
 
-uint32   device_id         # [-] [@invalid 0 if not available] Unique device ID for the sensor. Does not change between power cycles.
-char[24] firmware_version  # [-] [@invalid empty if not available] Firmware version.
-char[24] hardware_version  # [-] [@invalid empty if not available] Hardware version.
-char[33] serial_number     # [-] [@invalid empty if not available] Device serial number or unique identifier.
+uint32 device_id # [-] [@invalid 0 if not available] Unique device ID for the sensor. Does not change between power cycles.
+char[24] firmware_version # [-] [@invalid empty if not available] Firmware version.
+char[24] hardware_version # [-] [@invalid empty if not available] Hardware version.
+char[33] serial_number # [-] [@invalid empty if not available] Device serial number or unique identifier.
 ```
 
 :::

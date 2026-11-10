@@ -79,7 +79,7 @@ A per-test watchdog turns a hung board into a named failure instead of a stuck t
 
 ## Simulated Flight on the FMU (SIH)
 
-`sih/flight_mission.py` performs a complete hardware-in-the-loop flight without any host-side simulator: it switches the board to a [SIH airframe](../sim_sih/index.md) (`SYS_HITL=2`, physics computed on the autopilot), uploads a mission, arms through the NuttX shell, and asserts takeoff, waypoint progression, RTL, landing, and auto-disarm against per-phase timeouts.
+`sih/flight_mission.py` performs a complete hardware-in-the-loop flight without any host-side simulator: it switches the board to a [SIH airframe](../sim_sih/index.md) (`SYS_HITL=2`, physics computed on the autopilot), uploads a mission, arms through the NuttX shell, and asserts takeoff, waypoint progression, Return, landing, and auto-disarm against per-phase timeouts.
 It runs as the last test of the default bench suite and also works standalone.
 Because it arms the flight controller, the suite asks for explicit confirmation on a terminal (type `arm`), and non-interactive runs skip it unless `--allow-arming` is passed.
 It first probes the running firmware for the SIH module and records a skip, not a failure, when the build does not include it.

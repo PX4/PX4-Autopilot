@@ -33,7 +33,8 @@ import sys
 import threading
 import time
 
-from . import (DEFAULT_BAUD, MavlinkShell, is_serial_device, wait_reconnect)
+from . import (DEFAULT_BAUD, SHELL_OPEN_TIMEOUT, MavlinkShell,
+               is_serial_device, wait_reconnect)
 
 GITHUB_REPO = 'PX4/PX4-Autopilot'
 FLASH_TIMEOUT_S = 600.0
@@ -107,8 +108,8 @@ def board_identity(mav, timeout=15):
     output.
     """
     shell = MavlinkShell(mav)
-    if not shell.open(timeout=5):
-        return None, 'nsh shell did not respond within 5s'
+    if not shell.open():
+        return None, 'nsh shell did not respond within {:.0f}s'.format(SHELL_OPEN_TIMEOUT)
     try:
         out, timed_out = shell.run('ver all', timeout=timeout)
     finally:

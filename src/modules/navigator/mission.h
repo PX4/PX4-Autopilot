@@ -35,7 +35,7 @@
  *
  * Mission mode class that handles everything related to executing a mission.
  * This class gets included as one of the 'modes' in the Navigator, along with other
- * modes like RTL, Loiter, etc.
+ * modes like Return, Loiter, etc.
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
@@ -61,6 +61,7 @@ public:
 
 	virtual void on_inactive() override;
 	virtual void on_activation() override;
+	virtual void on_active() override;
 
 	/**
 	 * Set the current mission item.
@@ -80,6 +81,11 @@ public:
 private:
 
 	bool setNextMissionItem() override;
+
+	/**
+	 * Recheck the mission after a Home update while armed on the ground, before takeoff
+	 */
+	void recheckAfterHomeUpdateOnGround();
 
 	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff

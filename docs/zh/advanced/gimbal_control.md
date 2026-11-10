@@ -6,13 +6,10 @@
 
 PX4 包含了一个通用的挂载设备/云台的控制驱动，它含有多种输入输出方式。
 
-- 输入方式定义控制云台挂在的协议，该协议由 PX4 管理。
-  该输入方式可能是一个遥控器，一个可以发送 MAVLink 的地面站，或者两者 — 两种可以自动切换。
-- 输出方式定义了 PX4 如何与连接的云台通信。
-  推荐的协议是 MAVLink v2, 但您也可以直接连接到飞控的 PWM 输出端口。
+- 输入方式定义控制云台挂在的协议，该协议由 PX4 管理。该输入方式可能是一个遥控器，一个可以发送 MAVLink 的地面站，或者两者 — 两种可以自动切换。
+- 输出方式定义了 PX4 如何与连接的云台通信。推荐的协议是 MAVLink v2, 但您也可以直接连接到飞控的 PWM 输出端口。
 
-PX4 接收输入信号，并且将其路由/翻译后发送到输出。
-任何输入方式都可以被选择来驱动任何输出。
+PX4 接收输入信号，并且将其路由/翻译后发送到输出。任何输入方式都可以被选择来驱动任何输出。
 
 输入和输出都使用参数进行配置。
 The input is set using the parameter [MNT_MODE_IN](../advanced_config/parameter_reference.md#MNT_MODE_IN).
@@ -29,9 +26,16 @@ See [Fixed Attitude Gimbal](#fixed-attitude-gimbal) below.
 The output is set using the [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) parameter.
 By default the output is set to a PXM port (`AUX (0)`).
 If the [MAVLink Gimbal Protocol v2](https://mavlink.io/en/services/gimbal_v2.html) is supported by your gimbal, you should instead select `MAVLink gimbal protocol v2 (2)`.
+If the gimbal has its own gimbal manager, select `Forward to external gimbal manager (3)` instead (see [External Gimbal Manager](#external-gimbal-manager)).
+A second gimbal can be driven in parallel using [MNT_MODE_OUT2](../advanced_config/parameter_reference.md#MNT_MODE_OUT2) (see [Multiple Gimbal Support](#multiple-gimbal-support)).
 
 The full list of parameters for setting up the mount driver can be found in [Parameter Reference > Mount](../advanced_config/parameter_reference.md#mount).
 下面介绍了一些通用的云台相关设置。
+
+:::tip
+To debug a gimbal setup, use `gimbal status` in the MAVLink console to see the active inputs and outputs, and `gimbal test` to move the gimbal without any input.
+See [Driver Testing](#driver-testing).
+:::
 
 ## MAVLink 云台 (MNT_MODE_OUT=MAVLINK)
 
@@ -51,16 +55,27 @@ For example, if the `TELEM2` port on the flight controller is unused you can con
 - [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) to **Enabled** (Note strictly necessary as forwarding is enabled when `MAV_1_MODE` is set to Gimbal).
 - [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD) to manufacturer recommended baud rate.
 
+### External Gimbal Manager
+
+Some gimbals implement the gimbal _manager_ protocol themselves, rather than only the gimbal device protocol.
+A ground station controls such a gimbal directly, PX4 does not need to manage it.
+
+Set [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) to `Forward to external gimbal manager (3)` so that PX4 forwards onboard inputs (RC, ROI) to it as well.
+PX4 then acts as a client of that manager: it acquires control while there is onboard input and releases it afterwards, and the manager arbitrates between PX4 and the ground station.
+
+Connect the gimbal to a MAVLink instance in `Gimbal` (or `Onboard`) mode with forwarding enabled, as described [above](#mavlink-gimbal-mnt-mode-out-mavlink).
+Forwarding is required so that the ground station and the gimbal manager can see each other, and PX4 discovers the manager from the `GIMBAL_MANAGER_STATUS` it streams.
+
 ### 多云台支持
 
-PX4 可以自动为已连接的 PWM 云台或第一个在任何接口上检测到相同的系统 id 的 MAVLink 云台设备创建一个云台管理器。
-它不会自动为它检测到的其他MAVLink云台设备创建云台管理器。
+PX4 creates one gimbal manager, for the gimbal driven by `MNT_MODE_OUT`.
 
-You can support additional MAVLink gimbals provided that they:
+A second gimbal can be driven in parallel with the same inputs by setting [MNT_MODE_OUT2](../advanced_config/parameter_reference.md#MNT_MODE_OUT2) to a different output mode than `MNT_MODE_OUT`, e.g. a MAVLink gimbal (`2`) and a gimbal with an [external gimbal manager](#external-gimbal-manager) (`3`).
+
+Additional MAVLink gimbals that are not driven by PX4 are supported provided that they:
 
 - Implement the gimbal _manager_ protocol.
-- 在 MAVLink 网络上对地面站和 PX4 可见。
-  这可能需要在PX4、GCS和云台之间配置流量转接。
+- 在 MAVLink 网络上对地面站和 PX4 可见。这可能需要在PX4、GCS和云台之间配置流量转接。
 - Have a unique component id, and this component id must be in the range 7 - 255.
 
 ## 飞控 PWM 输出上的云台 (MNT_MODE_OUT=AUX)

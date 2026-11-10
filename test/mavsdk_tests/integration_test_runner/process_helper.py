@@ -6,6 +6,7 @@ import subprocess
 import shutil
 import threading
 import errno
+import sys
 from typing import Any, Dict, List, TextIO, Optional
 from .logger_helper import colorize, color
 
@@ -356,7 +357,7 @@ class GzclientRunner(Runner):
 
 class TestRunnerMavsdk(Runner):
     def __init__(self,
-                 workspace_dir: str,
+                 test_dir: str,
                  log_dir: str,
                  model: str,
                  case: str,
@@ -366,16 +367,20 @@ class TestRunnerMavsdk(Runner):
                  build_dir: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
-        self.cwd = workspace_dir
+        # pytest picks up pytest.ini and conftest.py from here, and the
+        # case is a node ID relative to it.
+        self.cwd = test_dir
         self.cmd = "nice"
         self.args = ["--18",
-                     os.path.join(
-                         workspace_dir,
-                         build_dir,
-                         "mavsdk_tests/mavsdk_tests"),
+                     sys.executable, "-m", "pytest",
+                     "-v",
+                     # Print output live instead of only on failure.
+                     "-s",
                      "--url", mavlink_connection,
                      "--speed-factor", str(speed_factor),
                      case]
+        self.env["PYTHONUNBUFFERED"] = "1"
+
 
 class TestRunnerRos(Runner):
     def __init__(self,

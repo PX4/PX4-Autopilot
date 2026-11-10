@@ -65,6 +65,11 @@ private:
 class GeofenceAvoidancePlannerTest : public ::testing::Test
 {
 public:
+	void SetUp() override
+	{
+		ASSERT_TRUE(_planner.init(geofence_utils::PlannerPolygons::kMaxNodesForAnyStorableFence));
+	}
+
 	GeofenceAvoidancePlanner _planner;
 };
 
@@ -96,6 +101,69 @@ TEST_F(GeofenceAvoidancePlannerTest, DirectPathNoFence)
 
 	ASSERT_EQ(num_waypoints, 0);
 	EXPECT_FALSE(_planner.needsStraightLineFallback());
+}
+
+namespace
+{
+// Exclusion zone between start and destination, see PathAroundExclusionZone.
+const matrix::Vector2<double> kExclusionStart(47.3559582, 8.5192064);
+const matrix::Vector2<double> kExclusionDestination(47.3546153, 8.5193195);
+const matrix::Vector2<double> kExclusionVertices[] = {
+	{47.3552420, 8.5192293},
+	{47.3555843, 8.5201174},
+	{47.3551382, 8.5209143},
+	{47.3550828, 8.5171901},
+};
+} // namespace
+
+TEST(GeofenceAvoidancePlannerInitTest, ZeroNodesDisablesPlanner)
+{
+	GeofenceAvoidancePlanner planner;
+	EXPECT_TRUE(planner.init(0));
+	EXPECT_FALSE(planner.enabled());
+
+	FakeGeofence fake(kExclusionVertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	planner.updateGraphFromGeofence(fake, 0.f);
+	planner.updateDestination(kExclusionDestination);
+
+	EXPECT_EQ(planner.updateStartAndFillPath(kExclusionStart), 0);
+	EXPECT_EQ(planner.status(), GeofenceAvoidancePlanner::Status::Disabled);
+	EXPECT_FALSE(planner.hasMore());
+	// Disabled on purpose, flying directly is not a fallback
+	EXPECT_FALSE(planner.needsStraightLineFallback());
+}
+
+TEST(GeofenceAvoidancePlannerInitTest, NodeBudgetTooSmallForFence)
+{
+	GeofenceAvoidancePlanner planner;
+	ASSERT_TRUE(planner.init(4)); // 4 fence vertices + destination slot needed
+	EXPECT_TRUE(planner.enabled());
+
+	FakeGeofence fake(kExclusionVertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	planner.updateGraphFromGeofence(fake, 0.f);
+	EXPECT_EQ(planner.status(), GeofenceAvoidancePlanner::Status::BudgetExceeded);
+	EXPECT_EQ(planner.maxNodes(), 4);
+	EXPECT_GT(planner.requiredNodes(), planner.maxNodes());
+
+	planner.updateDestination(kExclusionDestination);
+	EXPECT_EQ(planner.updateStartAndFillPath(kExclusionStart), 0);
+	EXPECT_TRUE(planner.needsStraightLineFallback());
+}
+
+TEST(GeofenceAvoidancePlannerInitTest, NodeBudgetClampedAndReinit)
+{
+	GeofenceAvoidancePlanner planner;
+	// Budgets above what any storable fence needs are clamped
+	EXPECT_TRUE(planner.init(geofence_utils::PlannerPolygons::kMaxNodesForAnyStorableFence + 1));
+	EXPECT_TRUE(planner.enabled());
+
+	// Re-init with a working budget plans around the zone
+	ASSERT_TRUE(planner.init(16));
+
+	FakeGeofence fake(kExclusionVertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	planner.updateGraphFromGeofence(fake, 0.f);
+	planner.updateDestination(kExclusionDestination);
+	EXPECT_EQ(planner.updateStartAndFillPath(kExclusionStart), 2);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
@@ -132,6 +200,127 @@ TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
 	const Vector2d last_wp = _planner.waypointAtIndex(num_waypoints - 1);
 	EXPECT_NEAR(last_wp(0), vertices[2](0), 1e-3);
 	EXPECT_NEAR(last_wp(1), vertices[2](1), 1e-3);
+}
+
+TEST_F(GeofenceAvoidancePlannerTest, RebuildingDifferentFenceRestoresOriginalPath)
+{
+	FakeGeofence original(kExclusionVertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	_planner.updateGraphFromGeofence(original, 0.f);
+	_planner.updateDestination(kExclusionDestination);
+	ASSERT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 2);
+	const matrix::Vector2d expected[] = {_planner.waypointAtIndex(0), _planner.waypointAtIndex(1)};
+
+	// Rebuild with a different graph and projection reference, away from the flight path.
+	matrix::Vector2d shifted[4];
+
+	for (int i = 0; i < 4; ++i) {
+		shifted[i] = kExclusionVertices[i] + matrix::Vector2d{0.01, 0.01};
+	}
+
+	FakeGeofence different(shifted, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	_planner.updateGraphFromGeofence(different, 0.f);
+	_planner.updateDestination(kExclusionDestination);
+	ASSERT_EQ(_planner.status(), GeofenceAvoidancePlanner::Status::Success);
+	ASSERT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 0);
+	EXPECT_FALSE(_planner.needsStraightLineFallback());
+
+	_planner.updateGraphFromGeofence(original, 0.f);
+	_planner.updateDestination(kExclusionDestination);
+	ASSERT_EQ(_planner.status(), GeofenceAvoidancePlanner::Status::Success);
+	ASSERT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 2);
+	EXPECT_FALSE(_planner.needsStraightLineFallback());
+
+	for (int i = 0; i < 2; ++i) {
+		EXPECT_DOUBLE_EQ(_planner.waypointAtIndex(i)(0), expected[i](0));
+		EXPECT_DOUBLE_EQ(_planner.waypointAtIndex(i)(1), expected[i](1));
+	}
+}
+
+TEST_F(GeofenceAvoidancePlannerTest, RebuildingAfterRejectedFenceRestoresOriginalPath)
+{
+	FakeGeofence original(kExclusionVertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	_planner.updateGraphFromGeofence(original, 0.f);
+	_planner.updateDestination(kExclusionDestination);
+	ASSERT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 2);
+	const matrix::Vector2d expected[] = {_planner.waypointAtIndex(0), _planner.waypointAtIndex(1)};
+
+	const matrix::Vector2d duplicate[] = {
+		kExclusionVertices[0], kExclusionVertices[1], kExclusionVertices[1], kExclusionVertices[3]
+	};
+	FakeGeofence invalid(duplicate, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	_planner.updateGraphFromGeofence(invalid, 0.f);
+	ASSERT_EQ(_planner.status(), GeofenceAvoidancePlanner::Status::Degenerate);
+	_planner.updateDestination(kExclusionDestination);
+	ASSERT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 0);
+	EXPECT_TRUE(_planner.needsStraightLineFallback());
+
+	_planner.updateGraphFromGeofence(original, 0.f);
+	_planner.updateDestination(kExclusionDestination);
+	ASSERT_EQ(_planner.status(), GeofenceAvoidancePlanner::Status::Success);
+	ASSERT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 2);
+	EXPECT_FALSE(_planner.needsStraightLineFallback());
+
+	for (int i = 0; i < 2; ++i) {
+		EXPECT_DOUBLE_EQ(_planner.waypointAtIndex(i)(0), expected[i](0));
+		EXPECT_DOUBLE_EQ(_planner.waypointAtIndex(i)(1), expected[i](1));
+	}
+}
+
+TEST_F(GeofenceAvoidancePlannerTest, PathAroundMaximumVertexPolygon)
+{
+	const matrix::Vector2d center{47.355, 8.519};
+	constexpr double radius_degrees = 0.001;
+	matrix::Vector2d vertices[DM_KEY_FENCE_POINTS_MAX];
+
+	for (int i = 0; i < DM_KEY_FENCE_POINTS_MAX; ++i) {
+		const double angle = 2.0 * M_PI * i / DM_KEY_FENCE_POINTS_MAX;
+		vertices[i] = center + matrix::Vector2d{radius_degrees * cos(angle), radius_degrees * sin(angle)};
+	}
+
+	FakeGeofence fence(vertices, DM_KEY_FENCE_POINTS_MAX, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	_planner.updateGraphFromGeofence(fence, 5.f);
+	ASSERT_EQ(_planner.status(), GeofenceAvoidancePlanner::Status::Success);
+
+	// The direct route between these points crosses the exclusion polygon.
+	const matrix::Vector2d start = center - matrix::Vector2d{2.0 * radius_degrees, 0.0};
+	const matrix::Vector2d destination = center + matrix::Vector2d{2.0 * radius_degrees, 0.0};
+	_planner.updateDestination(destination);
+	ASSERT_EQ(_planner.status(), GeofenceAvoidancePlanner::Status::Success);
+	EXPECT_GT(_planner.updateStartAndFillPath(start), 0);
+	EXPECT_FALSE(_planner.needsStraightLineFallback());
+}
+
+TEST_F(GeofenceAvoidancePlannerTest, OversizedPolygonRejectsPreviousPathAndAllowsRecovery)
+{
+	FakeGeofence original(kExclusionVertices, 4, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	_planner.updateGraphFromGeofence(original, 0.f);
+	_planner.updateDestination(kExclusionDestination);
+	ASSERT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 2);
+
+	constexpr int num_vertices = DM_KEY_FENCE_POINTS_MAX + 1;
+	const matrix::Vector2d center{47.355, 8.519};
+	constexpr double radius_degrees = 0.001;
+	matrix::Vector2d vertices[num_vertices];
+
+	for (int i = 0; i < num_vertices; ++i) {
+		const double angle = 2.0 * M_PI * i / num_vertices;
+		vertices[i] = center + matrix::Vector2d{radius_degrees * cos(angle), radius_degrees * sin(angle)};
+	}
+
+	FakeGeofence oversized(vertices, num_vertices, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	_planner.updateGraphFromGeofence(oversized, 0.f);
+	// The graph budget fits; the input exceeds the maximum storable polygon size.
+	ASSERT_LE(_planner.requiredNodes(), _planner.maxNodes());
+	ASSERT_EQ(_planner.status(), GeofenceAvoidancePlanner::Status::BudgetExceeded);
+	_planner.updateDestination(kExclusionDestination);
+	EXPECT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 0);
+	EXPECT_TRUE(_planner.needsStraightLineFallback());
+
+	_planner.updateGraphFromGeofence(original, 0.f);
+	_planner.updateDestination(kExclusionDestination);
+	ASSERT_EQ(_planner.status(), GeofenceAvoidancePlanner::Status::Success);
+	EXPECT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 2);
+	EXPECT_FALSE(_planner.needsStraightLineFallback());
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, PathInsideInclusionZone)

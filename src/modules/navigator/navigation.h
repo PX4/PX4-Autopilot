@@ -223,7 +223,7 @@ struct mission_fence_point_s {
 
 /**
  * @brief Position and yaw setpoint struct.
- * Used in RTL state machine.
+ * Used in Return state machine.
  *
  */
 struct PositionYawSetpoint {

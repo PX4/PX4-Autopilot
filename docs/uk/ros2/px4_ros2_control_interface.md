@@ -1,6 +1,6 @@
 # Інтерфейс керування PX4 ROS 2
 
-<Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.15" />
 
 :::warning
 Експериментальні налаштування
@@ -60,7 +60,7 @@ You are welcome to add and contribute missing classes.
 #### Виконавець Режимів
 
 Виконавець режимів - це необов'язковий компонент для розкладання режимів.
-Наприклад, виконавець режимів для індивідуальної доставки вантажу або режиму обстеження може спочатку ініціювати злет, потім переключитися на індивідуальний режим, і коли він завершиться, ініціювати повернення на базу (RTL).
+For example, the mode executor for a custom payload delivery or survey mode might first trigger a take-off, then switch to the custom mode, and when that completes trigger a Return.
 
 Зокрема, він має наступні властивості:
 
@@ -581,15 +581,15 @@ For ease of use we expose these valid combinations as new SetpointTypes.
 
 The RoverSetpointTypes exposed through the control interface are combinations of these setpoints that lead to a valid control input:
 
-| SetpointType                                                                                                                        | Положення                   | Speed                                            | Throttle                                         | Attitude                                         | Rate                                             | Steering                                         | Control Flags                                          |
-| ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------ |
-| [RoverPosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverPositionSetpointType.html#details)         | &check; | (&check;) | (&check;) | (&check;) | (&check;) | (&check;) | Position, Velocity, Attitude, Rate, Control Allocation |
-| [RoverSpeedAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedAttitudeSetpointType.html)       |                             | &check;                      | (&check;) | &check;                      | (&check;) | (&check;) | Velocity, Attitude, Rate, Control Allocation           |
-| [RoverSpeedRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedRateSetpointType.html)               |                             | &check;                      | (&check;) |                                                  | &check;                      | (&check;) | Velocity, Rate, Control Allocation                     |
-| [RoverSpeedSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedSteeringSetpointType.html)       |                             | &check;                      | (&check;) |                                                  |                                                  | &check;                      | Velocity, Control Allocation                           |
-| [RoverThrottleAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleAttitudeSetpointType.html) |                             |                                                  | &check;                      | &check;                      | (&check;) | (&check;) | Attitude, Rate, Control Allocation                     |
-| [RoverThrottleRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleRateSetpointType.html)         |                             |                                                  | &check;                      |                                                  | &check;                      | (&check;) | Rate, Control Allocation                               |
-| [RoverThrottleSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleSteeringSetpointType.html) |                             |                                                  | &check;                      |                                                  |                                                  | &check;                      | Control Allocation                                     |
+| SetpointType                                                                                                                         | Положення                   | Speed                                            | Throttle                                         | Attitude                                         | Rate                                             | Steering                                         | Control Flags                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------ |
+| [RoverPosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehiclePositionSetpointType.html#details) | &check; | (&check;) | (&check;) | (&check;) | (&check;) | (&check;) | Position, Velocity, Attitude, Rate, Control Allocation |
+| [RoverSpeedAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedAttitudeSetpointType.html)        |                             | &check;                      | (&check;) | &check;                      | (&check;) | (&check;) | Velocity, Attitude, Rate, Control Allocation           |
+| [RoverSpeedRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedRateSetpointType.html)                |                             | &check;                      | (&check;) |                                                  | &check;                      | (&check;) | Velocity, Rate, Control Allocation                     |
+| [RoverSpeedSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedSteeringSetpointType.html)        |                             | &check;                      | (&check;) |                                                  |                                                  | &check;                      | Velocity, Control Allocation                           |
+| [RoverThrottleAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleAttitudeSetpointType.html)  |                             |                                                  | &check;                      | &check;                      | (&check;) | (&check;) | Attitude, Rate, Control Allocation                     |
+| [RoverThrottleRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleRateSetpointType.html)          |                             |                                                  | &check;                      |                                                  | &check;                      | (&check;) | Rate, Control Allocation                               |
+| [RoverThrottleSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleSteeringSetpointType.html)  |                             |                                                  | &check;                      |                                                  |                                                  | &check;                      | Control Allocation                                     |
 
 &check; are the setpoints we publish, and (&check;) are generated internally by the PX4 rover modules according to the hierarchy above.
 
@@ -736,8 +736,8 @@ This makes it independent of startup ordering in case of multiple external modes
 
 ### Заміна внутрішнього режиму
 
-Зовнішній режим може замінити існуючий внутрішній режим, наприклад, режим Повернення (RTL).
-При цьому кожного разу, коли вибирається RTL (через користувача або ситуацію аварійного виклику), замість внутрішнього режиму використовується зовнішній. Внутрішній режим використовується лише як резервний випадок.
+An external mode can replace an existing internal mode, such as [Return](../flight_modes/return.md) mode.
+By doing so, whenever it gets selected (through the user or a failsafe situation), the external mode is used instead of the internal one.
 Внутрішній режим використовується лише як резервний випадок, коли зовнішній стає недоступним або відмовляє.
 
 Замінений режим можна встановити в налаштуваннях конструктора ModeBase:

@@ -15,7 +15,7 @@
 
 Користувачі можуть керувати переходом між цими станами, використовуючи [захисний перемикач](../getting_started/px4_basic_concepts.md#safety-switch) на транспортному засобі (за бажанням) _та_ перемикач/кнопку [озброєння](#arm_disarm_switch), [жест озброєння](#arm_disarm_gestures) або _команду MAVLink_ на наземному контролері:
 
-- _Захисний перемикач_ - це керування _на транспортному засобі_, яке повинно бути увімкнене перед озброєнням транспортного засобу, і яке може також запобігати передпуску (в залежності від конфігурації).
+- A _safety switch_ is a control _on the vehicle_ that must be engaged before the vehicle can be armed, and which may also prevent pre-arming (depending on the configuration).
   Зазвичай захисний перемикач інтегровано у блок GPS, але він також може бути окремим фізичним компонентом.
 
   Транспортний засіб, який озброєний, потенційно небезпечний.
@@ -27,7 +27,7 @@
 
 - Жест озброєння - це рух педалей _на пульті керування RC_, який може бути використаний як альтернатива перемикачу озброєння.
 
-- Команди MAVLink також можуть бути відправлені наземною станцією управління для озброєння/вимкнення транспортного засобу.
+- MAVLink commands can also be sent by a ground control station to pre-arm, arm, or disarm a vehicle.
 
 PX4 також автоматично вимикає транспортний засіб, якщо він не злітає протягом певного часу після озброєння, і якщо він не вимикається вручну після посадки.
 Це зменшує час, коли на землі знаходиться озброєний (і, отже, небезпечний) транспортний засіб.
@@ -93,6 +93,15 @@ The button should be held down for one second to arm (when disarmed) or disarm (
 | <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Час очікування для автоматичного відбрасування після приземлення. За замовчуванням: 2с (значення -1, щоб вимкнути). |
 | <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Час очікування для автоматичного відбрасування, якщо занадто повільно підйом. Default: 10s (-1 to disable).         |
 
+By default, the vehicle keeps safety off after disarming.
+If [COM_FORCE_SAFETY](#COM_FORCE_SAFETY) is set to `1`, safety is re-enabled on disarm, so it must be turned off again (by switch or MAVLink command, depending on [COM_SAFETY_MODE](#COM_SAFETY_MODE)) before the next arming.
+In modes that pre-arm when safety is turned off, this also exits the pre-armed state.
+This parameter has no effect when `COM_SAFETY_MODE` is set to `0`.
+
+| Parameter                                                                                                                                             | Опис                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_FORCE_SAFETY"></a>[COM_FORCE_SAFETY](../advanced_config/parameter_reference.md#COM_FORCE_SAFETY) | Re-enable safety when the vehicle disarms. Default: `0` (Disabled). |
+
 ## Auto-Arming on Boot
 
 The vehicle can be configured to arm automatically on boot once all preflight checks pass,
@@ -115,14 +124,14 @@ Ensure the vehicle is in a safe state before powering on.
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_ARM_ON_BOOT"></a>[COM_ARM_ON_BOOT](../advanced_config/parameter_reference.md#COM_ARM_ON_BOOT) | Arm automatically once preflight checks pass after boot. Default: `0` (Disabled). |
 
-## Pre-Arm Checks
+## Pre-Arm Checks {#prearm_checks}
 
 To reduce accidents, vehicles are only allowed to arm certain conditions are met (some of which are configurable).
 Армування заборонено у таких випадках:
 
 - Повітряне судно не перебуває у "здоровому" стані.
   Наприклад, воно не калібрується або має помилки датчиків.
-- Транспортний засіб має [захисний перемикач](../getting_started/px4_basic_concepts.md#safety-switch), який не був увімкнений.
+- The vehicle still has its [safety state](#safety_state) set to _ON_. This could for instance be a [safety switch](../getting_started/px4_basic_concepts.md#safety-switch) that has not been engaged.
 - The vehicle has a [remote ID](../peripherals/remote_id.md) that is unhealthy or otherwise not ready
 - VTOL-повітряне судно перебуває в режимі фіксованого крила ([by default(за замовчуванням)](../advanced_config/parameter_reference.md#CBRK_VTOLARMING)).
 - Поточний режим потребує належної глобальної позиційної оцінки, але повітряне судно не має блокування GPS.
@@ -133,7 +142,7 @@ The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Ar
 Зауважте, що внутрішньо PX4 перевіряє активацію на 10 Гц.
 Список невдалих перевірок зберігається, і якщо цей список змінюється, PX4 видає поточний список за допомогою [інтерфейсу подій](../concept/events_interface.md).
 Список також надсилається, коли GCS підключається.
-Пристрій керування (GCS) негайно знає статус передпускових перевірок як при вимкненні, так і при озброєнні.
+Effectively the GCS knows the status of pre-arm checks immediately, both when disarmed and armed.
 
 :::details
 Implementation notes for developers
@@ -147,108 +156,89 @@ QGC реалізація: [HealthAndArmingCheckReport.cc](https://github.com/mav
 
 PX4 також видає підмножину інформації перевірки постановки на охорону в повідомленні [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) (див. [MAV_SYS_STATUS_SENSOR](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_SENSOR)).
 
-## Послідовність: Режим попереднього озброєння & Кнопка безпеки
+## Arming Sequence: Safety State {#safety_state}
 
-Послідовність озброєння залежить від наявності _захисного перемикача_ і контролюється параметрами [COM_PREARM_MODE](#COM_PREARM_MODE) (Режим передпуску) та [CBRK_IO_SAFETY](#CBRK_IO_SAFETY) (Вимикач безпеки введення/виведення).
+The arming sequence depends on whether or not there is a _safety switch_, and is controlled by the parameter [COM_SAFETY_MODE](#COM_SAFETY_MODE). Changes to the parameter only take effect after a reboot.
 
-Параметр [COM_PREARM_MODE](#COM_PREARM_MODE) визначає, коли/якщо передпусковий режим увімкнено ("безпечні"/приводи без збільшення газу можуть рухатися):
+When disarmed (or pre-armed), the safety state can either be _ON_ (a.k.a. _SAFE_), or _OFF_ (a.k.a. _DANGEROUS_). When it is _ON_, arming will always be prevented. When it is _OFF_, the vehicle can be armed for as long as the [pre-arm checks](#prearm_checks) have passed.
 
-- _Вимкнено_: Режим передпуску відключено (немає етапу, коли тільки "безпечні"/приводи без збільшення газу увімкнені).
-- _Захисний перемикач_ (За замовчуванням): Режим передпуску увімкнено за допомогою захисного перемикача.
-  Якщо немає захисного перемикача, то режим передпуску не буде увімкнено.
-- _Завжди_: Режим передармування активований з моменту включення живлення.
+Additionally, the [COM_PREARM_MODE](#COM_PREARM_MODE) parameter defines when/if pre-arm mode is enabled ("safe"/non-throttling actuators are able to move):
 
-Якщо є засувка безпеки, то це буде передумовою для армування.
-Якщо немає захисного перемикача, то вимикач безпеки введення/виведення ([CBRK_IO_SAFETY](#CBRK_IO_SAFETY)) повинен бути активований, і озброєння буде залежати лише від команди озброєння.
+- `Disabled` (Default): Pre-arm mode disabled (there is no stage where only non-throttling actuators are enabled).
+- `When safety off`: Pre-arm mode is enabled when safety is turned off.
+- `Always`: Pre-arm mode is enabled from power up.
 
-Нижче наведено деталі початкових послідовностей для різних конфігурацій.
+The sections below detail the startup sequences for the different configurations of [COM_SAFETY_MODE](#COM_SAFETY_MODE) and [COM_PREARM_MODE](#COM_PREARM_MODE).
 
-### Default: COM_PREARM_MODE=Safety та Safety Switch
+### COM_SAFETY_MODE=Always off (Default) and COM_PREARM_MODE=Disabled (Default)
 
-За замовчуванням використовується захисний перемикач для передпуску.
-З режиму передпуску ви можете перейти до режиму озброєння, щоб активувати всі мотори/приводи.
-Це відповідає: [COM_PREARM_MODE=1](#COM_PREARM_MODE) (захисний перемикач) та [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (вимикач безпеки введення/виведення вимкнено).
-
-Типова послідовність запуску:
-
-1. Увімкнення живлення.
-   - Усі приводи заблоковано у беззбройному(вимкненому) положенні
-   - Неможливо озброїти(збурити).
-2. Перемикання безпеки натиснуто.
-   - Система зараз перевіряється перед збурюванням: актуатори без збурювання можуть рухатися (наприклад, елерони).
-   - Безпека системи відключена: можливість озброєння(збурення).
-3. Видається команда на озброєння(збурення).
-   - Система озброєна(збурена).
-   - Усі мотори та приводи можуть рухатися.
-
-### COM_PREARM_MODE=Disabled та Safety Switch
-
-Коли режим передпуску встановлено на _Вимкнено_, увімкнення захисного перемикача не розблоковує "безпечні" приводи, але дозволяє озброїти транспортний засіб.
-Це відповідає [COM_PREARM_MODE=0](#COM_PREARM_MODE) (Вимкнено) та [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (Вимикач безпеки введення/виведення вимкнений).
+The default configuration does not impose any additional safety measures. Arming is possible as soon as the rest of the system is ready.
 
 Послідовність запуску така:
 
 1. Увімкнення живлення.
    - Усі приводи заблоковано у беззбройному(вимкненому) положенні
-   - Неможливо озброїти(збурити).
-2. Перемикання безпеки натиснуто.
-   - _All actuators stay locked into disarmed position (same as disarmed)._
-   - Безпека системи відключена: можливість озброєння(збурення).
-3. Видається команда на озброєння(збурення).
-   - Система озброєна(збурена).
-   - Усі мотори та приводи можуть рухатися.
-
-### COM_PREARM_MODE=Always and Safety Switch
-
-Якщо для режиму попереднього озброєння встановлено значення _Always_, режим попереднього озброєння вмикається після ввімкнення.
-Для озброєння все ще потрібний захисний перемикач.
-Це відповідає [COM_PREARM_MODE=2](#COM_PREARM_MODE) (завжди) і [CBRK_IO_SAFETY=0](#CBRK_IO_SAFETY) (захисний автомат вводу-виводу вимкнено).
-
-Послідовність запуску така:
-
-1. Увімкнення живлення.
-   - Система зараз перевіряється перед збурюванням: актуатори без збурювання можуть рухатися (наприклад, елерони).
-   - Неможливо озброїти(збурити).
-2. Перемикання безпеки натиснуто.
-   - Безпека системи відключена: можливість озброєння(збурення).
-3. Видається команда на озброєння(збурення).
-   - Система озброєна(збурена).
-   - Усі мотори та приводи можуть рухатися.
-
-### COM_PREARM_MODE=Safety(Безпека) або вимкнено(Disabled) та без перемикача безпеки(No Safety Switch)
-
-Без захисного перемикача, коли `COM_PREARM_MODE` встановлено на _Захист(Safety)_ або _Вимкнено(Disabled)_, режим передпуску не може бути увімкнений (так само, як і вимкнено).
-Це відповідає [COM_PREARM_MODE=0 або 1](#COM_PREARM_MODE) (вимкнено/запобіжний перемикач) і [CBRK_IO_SAFETY=22027](#CBRK_IO_SAFETY) (ввімкнено захисний вимикач вводу-виводу).
-
-Послідовність запуску така:
-
-1. Увімкнення живлення.
-   - Усі приводи заблоковано у беззбройному(вимкненому) положенні
-   - Безпека системи відключена: можливість озброєння(збурення).
+   - System safety is off: Arming possible once the other pre-arm checks pass.
 2. Видається команда на озброєння(збурення).
    - Система озброєна(збурена).
    - Усі мотори та приводи можуть рухатися.
 
-### COM_PREARM_MODE=Завжди і без зміни безпеки
+### COM_SAFETY_MODE=Safety switch (physical or virtual via MAVLink) and COM_PREARM_MODE=When safety off
 
-Якщо для режиму попереднього озброєння встановлено значення _Always_, режим попереднього озброєння вмикається після ввімкнення.
-Це відповідає [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Завжди) та [CBRK_IO_SAFETY=22027](#CBRK_IO_SAFETY) (ввімкнено вимикач безпеки введення/виведення).
+This configuration lets you use either the safety switch or a MAVLink command [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE) to turn safety off. Note that sending the corresponding MAVLink command with SAFET&#x59;_&#x53;WITCH_STATE_SAFE also lets you turn safety back on, but the physical switch does \_not_ allow to go back to a safe state.
 
 Послідовність запуску така:
 
 1. Увімкнення живлення.
-   - Система зараз перевіряється перед збурюванням: актуатори без збурювання можуть рухатися (наприклад, елерони).
-   - Безпека системи відключена: можливість озброєння(збурення).
-2. Видається команда на озброєння(збурення).
+   - Усі приводи заблоковано у беззбройному(вимкненому) положенні
+   - Неможливо озброїти(збурити).
+2. Safety switch is pressed or a MAVLink command is received.
+   - System now pre-armed: non-throttling actuators can move (e.g. ailerons).
+   - System safety is off: Arming possible once the other pre-arm checks pass.
+3. Видається команда на озброєння(збурення).
+   - Система озброєна(збурена).
+   - Усі мотори та приводи можуть рухатися.
+
+### COM_SAFETY_MODE=Physical safety switch only and COM_PREARM_MODE=When safety off
+
+When safety mode is `Physical safety switch only`, you must press the safety switch to turn safety off. Note that pressing the safety switch again does _not_ allow to go back to a safe state.
+The MAVLink command is rejected.
+
+Послідовність запуску така:
+
+1. Увімкнення живлення.
+   - Усі приводи заблоковано у беззбройному(вимкненому) положенні
+   - Неможливо озброїти(збурити).
+2. Перемикання безпеки натиснуто.
+   - System now pre-armed: non-throttling actuators can move (e.g. ailerons).
+   - System safety is off: Arming possible once the other pre-arm checks pass.
+3. Видається команда на озброєння(збурення).
+   - Система озброєна(збурена).
+   - Усі мотори та приводи можуть рухатися.
+
+### COM_SAFETY_MODE=MAVLink only and COM_PREARM_MODE=When safety off
+
+When safety mode is `MAVLink only`, you must send a MAVLink command [MAV_CMD_DO_SET_SAFETY_SWITCH_STATE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_SAFETY_SWITCH_STATE) to turn safety off. Note that sending the corresponding MAVLink command with SAFETY_SWITCH_STATE_SAFE also lets you turn safety back on.
+Any physical safety switch is ignored.
+
+Послідовність запуску така:
+
+1. Увімкнення живлення.
+   - Усі приводи заблоковано у беззбройному(вимкненому) положенні
+   - Неможливо озброїти(збурити).
+2. A MAVLink command is received.
+   - System now pre-armed: non-throttling actuators can move (e.g. ailerons).
+   - System safety is off: Arming possible once the other pre-arm checks pass.
+3. Видається команда на озброєння(збурення).
    - Система озброєна(збурена).
    - Усі мотори та приводи можуть рухатися.
 
 ### Параметри
 
-| Parameter                                                                                                                                          | Опис                                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_PREARM_MODE"></a>[COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) | Умова для входу в режим передпуску. `0`: Disabled, `1`: Safety switch (prearm mode enabled by safety switch; if no switch present cannot be enabled), `2`: Always (prearm mode enabled from power up). Default: `1` (safety button). |
-| <a id="CBRK_IO_SAFETY"></a>[CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY)    | Вимикач безпеки для введення/виведення (I/O).                                                                                                                                                                                                                                                                                                                              |
+| Parameter                                                                                                                                          | Опис                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_SAFETY_MODE"></a>[COM_SAFETY_MODE](../advanced_config/parameter_reference.md#COM_SAFETY_MODE) | Condition to turn safety off. Vehicle arming is prevented for as long as safety is on. |
+| <a id="COM_PREARM_MODE"></a>[COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) | Condition to enter the prearmed state.                                                                 |
 
 <!-- Discussion:
 https://github.com/PX4/PX4-Autopilot/pull/12806#discussion_r318337567

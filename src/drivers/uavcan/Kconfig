@@ -29,6 +29,7 @@ if DRIVERS_UAVCAN
     config UAVCAN_REMOTEID_CONTROLLER
         bool "Include remote ID controller"
         default y
+        depends on MODULES_MAVLINK
 
     config UAVCAN_RGB_CONTROLLER
         bool "Include rgb controller"
@@ -99,9 +100,3 @@ depends on DRIVERS_UAVCAN || DRIVERS_UAVCANNODE
     default 2
     ---help---
         Interface count for UAVCANv0
-
-menuconfig BOARD_UAVCAN_PERIPHERALS
-depends on DRIVERS_UAVCAN
-    string "UAVCAN peripheral firmware"
-    help
-        list of UAVCAN peripheral firmware to build and embed

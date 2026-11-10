@@ -7,8 +7,8 @@
 The Clang address sanitizer can help to find alignment (bus) errors and other memory faults like segmentation faults. The command below sets the right compile options. 下面的命令设置了正确的编译选项。
 
 ```sh
-make clean # 仅需在常规编译后，第一次运行 address sanitizer 时使用
-PX4_ASAN=1 make px4_sitl jmavsim
+make clean # only required on first address sanitizer run after a normal build
+PX4_ASAN=1 make px4_sitl_sih sihsim_quadx
 ```
 
 ## Valgrind
@@ -26,8 +26,7 @@ sudo apt-get install valgrind
 SITL can be launched with and without debugger attached and with either jMAVSim or Gazebo as simulation backend. This results in the start options below:
 
 ```sh
-make px4_sitl_default   # 通过 cmake 配置
-make -C build/px4_sitl_default jmavsim___gdb
+make px4_sitl_default gazebo-classic___valgrind
 ```
 
 ## Launch Gazebo Classic SITL Without Debugger
@@ -37,7 +36,7 @@ By default SITL is launched without a debugger attached when using any simulator
 ```sh
 make px4_sitl_default gz
 make px4_sitl_default gazebo-classic
-make px4_sitl_default jmavsim
+make px4_sitl_sih sihsim_quadx
 ```
 
 For Gazebo Classic (only) you can also start the simulator with a debugger attached.

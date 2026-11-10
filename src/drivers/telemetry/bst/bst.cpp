@@ -49,7 +49,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <matrix/math.hpp>
@@ -125,7 +125,7 @@ private:
 
 	static constexpr unsigned		_interval{100_ms};
 
-	uORB::Subscription	_gps_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription	_vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription	_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_battery_sub{ORB_ID(battery_status)};
 
@@ -271,19 +271,19 @@ void BST::RunImpl()
 		send_packet(bst_batt);
 	}
 
-	if (_gps_sub.updated()) {
-		sensor_gps_s gps;
-		_gps_sub.copy(&gps);
+	if (_vehicle_gnss_sub.updated()) {
+		vehicle_gnss_s gnss;
+		_vehicle_gnss_sub.copy(&gnss);
 
-		if (gps.fix_type >= 3 && gps.eph < 50.0f) {
+		if (gnss.receiver.fix_type >= 3 && gnss.receiver.eph < 50.0f) {
 			BSTPacket<BSTGPSPosition> bst_gps = {};
 			bst_gps.type = 0x02;
-			bst_gps.payload.lat = swap_int32(static_cast<int32_t>(round(gps.latitude_deg * 1e7)));
-			bst_gps.payload.lon = swap_int32(static_cast<int32_t>(round(gps.longitude_deg * 1e7)));
-			bst_gps.payload.alt = swap_int16(static_cast<int16_t>(round(gps.altitude_msl_m)) + 1000);
-			bst_gps.payload.gs = swap_int16(gps.vel_m_s * 360.0f);
-			bst_gps.payload.heading = swap_int16(gps.cog_rad * 18000.0f / M_PI_F);
-			bst_gps.payload.sats = gps.satellites_used;
+			bst_gps.payload.lat = swap_int32(static_cast<int32_t>(round(gnss.receiver.latitude * 1e7)));
+			bst_gps.payload.lon = swap_int32(static_cast<int32_t>(round(gnss.receiver.longitude * 1e7)));
+			bst_gps.payload.alt = swap_int16(static_cast<int16_t>(round(gnss.receiver.altitude_msl)) + 1000);
+			bst_gps.payload.gs = swap_int16(gnss.receiver.ground_speed * 360.0f);
+			bst_gps.payload.heading = swap_int16(gnss.receiver.course * 18000.0f / M_PI_F);
+			bst_gps.payload.sats = gnss.receiver.satellites_used;
 
 			send_packet(bst_gps);
 		}

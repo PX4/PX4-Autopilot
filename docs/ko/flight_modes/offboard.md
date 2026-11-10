@@ -193,11 +193,11 @@ For fixed-wing offboard control, please refer to the [PX4 ROS 2 Interface Librar
 Rover modules must set the control mode using `OffboardControlMode` and use the appropriate messages to configure the corresponding setpoints.
 The approach is similar to other vehicle types, but the allowed control mode combinations and setpoints are different:
 
-| Category                                                                               | 사용법                     | Setpoints                                                                                                                                                                                                                                                                                                                                                                  |
-| -------------------------------------------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| (Recommended) [Rover Setpoints](#rover-setpoints)                   | General rover control   | [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md), [RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md), [RoverAttitudeSetpoint](../msg_docs/RoverAttitudeSetpoint.md), [RoverRateSetpoint](../msg_docs/RoverRateSetpoint.md), [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md), [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md) |
-| [Actuator Setpoints](#actuator-setpoints)                                              | Direct actuator control | [ActuatorMotors](../msg_docs/ActuatorMotors.md), [ActuatorServos](../msg_docs/ActuatorServos.md)                                                                                                                                                                                                                                                                           |
-| (Deprecated) [Trajectory Setpoint](#deprecated-trajectory-setpoint) | General vehicle control | [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                                                                                                                                                                                                                                                                                                                    |
+| Category                                                                               | 사용법                     | Setpoints                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (Recommended) [Rover Setpoints](#rover-setpoints)                   | General rover control   | [SurfaceVehiclePositionSetpoint](../msg_docs/SurfaceVehiclePositionSetpoint.md), [SurfaceVehicleSpeedSetpoint](../msg_docs/SurfaceVehicleSpeedSetpoint.md), [SurfaceVehicleAttitudeSetpoint](../msg_docs/SurfaceVehicleAttitudeSetpoint.md), [SurfaceVehicleRateSetpoint](../msg_docs/SurfaceVehicleRateSetpoint.md), [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md), [SurfaceVehicleSteeringSetpoint](../msg_docs/SurfaceVehicleSteeringSetpoint.md) |
+| [Actuator Setpoints](#actuator-setpoints)                                              | Direct actuator control | [ActuatorMotors](../msg_docs/ActuatorMotors.md), [ActuatorServos](../msg_docs/ActuatorServos.md)                                                                                                                                                                                                                                                                                                                                                                     |
+| (Deprecated) [Trajectory Setpoint](#deprecated-trajectory-setpoint) | General vehicle control | [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 #### Rover Setpoints
 
@@ -216,15 +216,15 @@ The following are all valid setpoint combinations and their respective control f
 Additionally, for some combinations we require certain setpoints to be published with `NAN` values so that the setpoints of interest are not overridden by the rover module (due to the hierarchy above).
 &check; are the relevant setpoints we publish, and &cross; are the setpoint that need to be published with `NAN` values.
 
-| Setpoint Combination | Control Flag                                                | [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md) | [RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md) | [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md) | [RoverAttitudeSetpoint](../msg_docs/RoverAttitudeSetpoint.md) | [RoverRateSetpoint](../msg_docs/RoverRateSetpoint.md) | [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md) |
-| -------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
-| Position             | position                                                    | &check;                                   |                                                         |                                                               |                                                               |                                                       |                                                               |
-| Speed + Attitude     | velocity                                                    |                                                               | &check;                             |                                                               | &check;                                   |                                                       |                                                               |
-| Speed + Rate         | velocity                                                    |                                                               | &check;                             |                                                               | &cross;                                   | &check;                           |                                                               |
-| Speed + Steering     | velocity                                                    |                                                               | &check;                             |                                                               | &cross;                                   | &cross;                           | &check;                                   |
-| Throttle + Attitude  | attitude                                                    |                                                               |                                                         | &check;                                   | &check;                                   |                                                       |                                                               |
-| Throttle + Rate      | body_rate                              |                                                               |                                                         | &check;                                   |                                                               | &check;                           |                                                               |
-| Throttle + Steering  | thrust_and_torque |                                                               |                                                         | &check;                                   |                                                               |                                                       | &check;                                   |
+| Setpoint Combination | Control Flag                                                | [SurfaceVehiclePositionSetpoint](../msg_docs/SurfaceVehiclePositionSetpoint.md) | [SurfaceVehicleSpeedSetpoint](../msg_docs/SurfaceVehicleSpeedSetpoint.md) | [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md) | [SurfaceVehicleAttitudeSetpoint](../msg_docs/SurfaceVehicleAttitudeSetpoint.md) | [SurfaceVehicleRateSetpoint](../msg_docs/SurfaceVehicleRateSetpoint.md) | [SurfaceVehicleSteeringSetpoint](../msg_docs/SurfaceVehicleSteeringSetpoint.md) |
+| -------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Position             | position                                                    | &check;                                                     |                                                                           |                                                               |                                                                                 |                                                                         |                                                                                 |
+| Speed + Attitude     | velocity                                                    |                                                                                 | &check;                                               |                                                               | &check;                                                     |                                                                         |                                                                                 |
+| Speed + Rate         | velocity                                                    |                                                                                 | &check;                                               |                                                               | &cross;                                                     | &check;                                             |                                                                                 |
+| Speed + Steering     | velocity                                                    |                                                                                 | &check;                                               |                                                               | &cross;                                                     | &cross;                                             | &check;                                                     |
+| Throttle + Attitude  | attitude                                                    |                                                                                 |                                                                           | &check;                                   | &check;                                                     |                                                                         |                                                                                 |
+| Throttle + Rate      | body_rate                              |                                                                                 |                                                                           | &check;                                   |                                                                                 | &check;                                             |                                                                                 |
+| Throttle + Steering  | thrust_and_torque |                                                                                 |                                                                           | &check;                                   |                                                                                 |                                                                         | &check;                                                     |
 
 :::info
 If you intend to use the rover setpoints, we recommend using the [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) instead since it simplifies the publishing of these setpoints.
@@ -237,7 +237,7 @@ In [OffboardControlMode](../msg_docs/OffboardControlMode.md) set `direct_actuato
 
 :::info
 This bypasses the rover modules including any limits on steering rates or accelerations and the inverse kinematics step.
-We recommend using [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md) and [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md) instead for low level control (see [Rover Setpoints](#rover-setpoints)).
+We recommend using [SurfaceVehicleSteeringSetpoint](../msg_docs/SurfaceVehicleSteeringSetpoint.md) and [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md) instead for low level control (see [Rover Setpoints](#rover-setpoints)).
 :::
 
 #### (Deprecated) Trajectory Setpoint
@@ -281,7 +281,7 @@ The following MAVLink messages and their particular fields and field values are 
 ### Copter/VTOL
 
 - [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
-  - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
+  - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_receiver.cpp (handle_message_set_position_target_local_ned) -->
     - Position setpoint (only `x`, `y`, `z`)
     - Velocity setpoint (only `vx`, `vy`, `vz`)
     - Acceleration setpoint (only `afx`, `afy`, `afz`)
@@ -290,8 +290,14 @@ The following MAVLink messages and their particular fields and field values are 
 
   - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) and [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
 
+    ::: info
+    `MAV_FRAME_BODY_NED` can only be used with velocity and acceleration setpoints, which are rotated from body to local frame using the vehicle heading.
+    Position setpoints are ignored (set to `NAN`) in this frame, because a position in a body-fixed frame is ambiguous; position setpoints must use `MAV_FRAME_LOCAL_NED`.
+
+:::
+
 - [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
-  - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
+  - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_receiver.cpp (handle_message_set_position_target_global_int) -->
     - Position setpoint (only `lat_int`, `lon_int`, `alt`)
 
     - Velocity setpoint (only `vx`, `vy`, `vz`)
@@ -311,12 +317,13 @@ The following MAVLink messages and their particular fields and field values are 
   - The following input combinations are supported:
     - Attitude/orientation (`SET_ATTITUDE_TARGET.q`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
     - Body rate (`SET_ATTITUDE_TARGET` `.body_roll_rate` ,`.body_pitch_rate`, `.body_yaw_rate`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
+  - A message with attitude enabled and a zero or non-finite `q` (norm below 0.001) is ignored as a whole and does not count as the offboard signal.
 
 ### Fixed-wing
 
 - [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
-  - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-    - Position setpoint (`x`, `y`, `z` only; velocity and acceleration setpoints are ignored).
+  - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_receiver.cpp (handle_message_set_position_target_local_ned) -->
+    - Position setpoint (`x`, `y`, `z`).
       - Specify the _type_ of the setpoint in `type_mask` (if these bits are not set the vehicle will fly in a flower-like pattern):
         ::: info
         Some of the _setpoint type_ values below are not part of the MAVLink standard for the `type_mask` field.
@@ -333,10 +340,17 @@ The following MAVLink messages and their particular fields and field values are 
         - 12288: Loiter setpoint (fly a circle centred on setpoint).
         - 16384: Idle setpoint (zero throttle, zero roll / pitch).
 
-  - PX4 supports the coordinate frames (`coordinate_frame` field): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) and [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
+    - Position setpoint with velocity setpoint (`x`, `y`, `z` with `vx`, `vy`).
+      The vehicle follows a path through the position, tangent to the direction of the horizontal velocity (the velocity magnitude and `vz` are not used).
+      If the acceleration setpoint (`afx`, `afy`, `afz`) is also set, its component normal to the velocity is used as the path curvature.
+
+    - Velocity-only and acceleration-only setpoints are not supported: without a position setpoint the fixed-wing position controller does not generate new setpoints.
+
+  - PX4 supports the coordinate frame (`coordinate_frame` field): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED).
+    [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED) is accepted, but position setpoints are ignored in this frame, and fixed-wing requires a position setpoint, so it cannot be used.
 
 - [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
-  - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
+  - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_receiver.cpp (handle_message_set_position_target_global_int) -->
     - Position setpoint (only `lat_int`, `lon_int`, `alt`)
       - Specify the _type_ of the setpoint in `type_mask` (if these bits are not set the vehicle will fly in a flower-like pattern):
 
@@ -352,12 +366,17 @@ The following MAVLink messages and their particular fields and field values are 
         - 12288: Loiter setpoint (fly a circle centred on setpoint).
         - 16384: Idle setpoint (zero throttle, zero roll / pitch).
 
+    - Position setpoint with velocity setpoint (`lat_int`, `lon_int`, `alt` with `vx`, `vy`), handled as for `SET_POSITION_TARGET_LOCAL_NED` above.
+
+    - Velocity-only and acceleration-only setpoints are not supported.
+
   - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_GLOBAL_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_INT), [MAV_FRAME_GLOBAL_RELATIVE_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_RELATIVE_ALT_INT), [MAV_FRAME_GLOBAL_TERRAIN_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_TERRAIN_ALT_INT).
 
 - [SET_ATTITUDE_TARGET](https://mavlink.io/en/messages/common.html#SET_ATTITUDE_TARGET)
   - The following input combinations are supported:
     - Attitude/orientation (`SET_ATTITUDE_TARGET.q`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
     - Body rate (`SET_ATTITUDE_TARGET` `.body_roll_rate` ,`.body_pitch_rate`, `.body_yaw_rate`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
+  - A message with attitude enabled and a zero or non-finite `q` (norm below 0.001) is ignored as a whole and does not count as the offboard signal.
 
 ### Rover
 

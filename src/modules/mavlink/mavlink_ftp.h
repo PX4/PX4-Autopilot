@@ -64,6 +64,21 @@ public:
 	/// Handle possible FTP message
 	void handle_message(const mavlink_message_t *msg);
 
+	/// True while a burst download is streaming out.
+	bool burst_active() const { return _session_info.stream_download; }
+
+	/// Framing overhead of one FTP reply, signature block included.
+	unsigned packet_overhead() const;
+
+	/// Reduce a requested payload to what the link carries in one piece.
+	unsigned radio_clamped_length(unsigned requested) const;
+
+	/// Burst payload to use for this link.
+	unsigned burst_data_length() const;
+
+	/// On-wire size of one burst packet on this link.
+	unsigned burst_wire_size() const;
+
 	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload.
 	/// This needs to be packed, because it's typecasted from mavlink_file_transfer_protocol_t.payload, which starts
 	/// at a 3 byte offset, causing an unaligned access to seq_number and offset
@@ -123,15 +138,15 @@ public:
 private:
 	char		*_data_as_cstring(PayloadHeader *payload);
 
-	void		_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint8_t target_system_id, uint8_t target_comp_id);
-	void		_reply(mavlink_file_transfer_protocol_t *ftp_req);
+	void		_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_system_id, uint8_t target_comp_id);
+	void		_reply(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_system_id);
 	int		_copy_file(const char *src_path, const char *dst_path, size_t length);
 
 	ErrorCode	_workList(PayloadHeader *payload, bool include_time = false);
 	void		_statDirent(const char *name, uint32_t &size, uint32_t &mtime);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
-	ErrorCode	_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id);
+	ErrorCode	_workBurst(PayloadHeader *payload, uint32_t target_system_id, uint8_t target_component_id);
 	ErrorCode	_workWrite(PayloadHeader *payload);
 	ErrorCode	_workTerminate(PayloadHeader *payload);
 	ErrorCode	_workReset(PayloadHeader *payload);
@@ -142,7 +157,7 @@ private:
 	ErrorCode	_workRename(PayloadHeader *payload);
 	ErrorCode	_workCalcFileCRC32(PayloadHeader *payload);
 
-	uint8_t _getServerSystemId(void);
+	uint32_t _getServerSystemId(void);
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
@@ -170,15 +185,29 @@ private:
 	/// @brief Maximum data size in RequestHeader::data
 	static const uint8_t	kMaxDataLength = MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(PayloadHeader);
 
+	/**
+	 * Largest MAVLink packet we will put on a link behind a telemetry radio.
+	 *
+	 * A SiK radio splits any packet larger than its max_data_packet_length
+	 * across several radio packets. It reassembles them correctly, but the
+	 * split costs air time and lowers the rate the link can carry, which is
+	 * what pushes a burst over the edge. That limit is 250 bytes without error
+	 * correction and 118 with it, and we cannot tell which from here, so take
+	 * the smaller. The payload that fits is derived from this, since the
+	 * framing overhead depends on whether signing is active.
+	 */
+	static const unsigned	kRadioMaxPacketLength = 118;
+
 	struct SessionInfo {
 		int		fd;
 		uint32_t	file_size;
 		bool		stream_download;
 		uint32_t	stream_offset;
 		uint16_t	stream_seq_number;
-		uint8_t		stream_target_system_id;
+		uint32_t	stream_target_system_id;
 		uint8_t         stream_target_component_id;
 		unsigned	stream_chunk_transmitted;
+		uint8_t		stream_size;            ///< payload size the client asked for, 0 = as much as fits
 		ParamPckFile	param;			///< virtual parameter file, open instead of fd
 	};
 	struct SessionInfo _session_info {};	///< Session info, fd=-1 for no active session
@@ -195,6 +224,9 @@ private:
 	char _work_buffer2[_work_buffer2_len];
 	hrt_abstime _last_work_buffer_access{0};
 
+	/// Paces the burst against the link budget.
+	hrt_abstime _last_burst_send{0};
+
 	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
 	// Path traversal via ".." is rejected by _validatePath().
 	static constexpr const char _root_dir[] = PX4_ROOTFSDIR;
@@ -208,6 +240,7 @@ private:
 	static constexpr const int _mav_log_dir_len = sizeof(_mav_log_dir) - 1;
 
 	bool _last_reply_valid = false;
+	uint32_t _last_reply_target_system{0}; ///< _last_reply only holds the 8-bit payload field
 	uint8_t _last_reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
 								      + sizeof(PayloadHeader) + sizeof(uint32_t)];
 

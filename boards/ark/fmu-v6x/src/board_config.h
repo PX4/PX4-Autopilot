@@ -245,15 +245,6 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
 
-#define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
-#define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
-#define GPIO_FMU_CH3                    /* PH11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN11)
-#define GPIO_FMU_CH4                    /* PH10 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN10)
-#define GPIO_FMU_CH5                    /* PD13 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_FMU_CH6                    /* PD14 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN14)
-#define GPIO_FMU_CH7                    /* PH6  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN6)
-#define GPIO_FMU_CH8                    /* PH9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN9)
-
 #define GPIO_FMU_CAP                    /* PE11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN11)
 #define GPIO_SPIX_SYNC                  /* PE9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
 
@@ -337,11 +328,11 @@
 #define GPIO_nSAFETY_SWITCH_LED_OUT_INIT   /* PD10 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTD|GPIO_PIN10)
 #define GPIO_nSAFETY_SWITCH_LED_OUT        /* PD10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
 
-/* Enable the FMU to control it if there is no px4io fixme:This should be BOARD_SAFETY_LED(__ontrue) */
+/* Enable the FMU to control it if there is no px4io */
 #define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT
 
 #define GPIO_SAFETY_SWITCH_IN              /* PF5 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTF|GPIO_PIN5)
-/* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
+/* Enable the FMU to use the switch if there is no px4io */
 #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
 
 /* Power switch controls ******************************************************/
@@ -459,14 +450,6 @@
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_PG6,                         \
 		GPIO_nARMED_INIT,                 \
-		GPIO_FMU_CH1,     	          \
-		GPIO_FMU_CH2,     	          \
-		GPIO_FMU_CH3,     	          \
-		GPIO_FMU_CH4,     	          \
-		GPIO_FMU_CH5,     	          \
-		GPIO_FMU_CH6,     	          \
-		GPIO_FMU_CH7,     	          \
-		GPIO_FMU_CH8,     	          \
 		GPIO_FMU_CAP,     	          \
 		GPIO_SPIX_SYNC                    \
 	}

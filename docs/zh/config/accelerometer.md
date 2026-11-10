@@ -1,7 +1,6 @@
 # 加速度计校准
 
-加速度计必须在首次使用或飞行控制器方向发生改变时进行校准。
-否则通常无需重新校准（除非在冬季使用时， 飞行控制器出厂时未进行温度校准[thermally calibrated](../advanced_config/sensor_thermal_calibration.md)）。
+加速度计必须在首次使用或飞行控制器方向发生改变时进行校准。否则通常无需重新校准（除非在冬季使用时， 飞行控制器出厂时未进行温度校准[thermally calibrated](../advanced_config/sensor_thermal_calibration.md)）。
 
 :::info
 加速度计校准不良通常会被飞行前检查和拒绝解锁提示所捕获（GQC 的警告信息通常显示为“加速度计零偏过高” 和 “一致性检查失败”）。

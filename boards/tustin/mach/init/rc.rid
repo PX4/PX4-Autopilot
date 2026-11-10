@@ -1,0 +1,3 @@
+#!/bin/sh
+# Use the first received serial-number Basic ID stored in the RID EEPROM.
+param set-default ODID_BID_SRC 1

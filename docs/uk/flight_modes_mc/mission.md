@@ -72,8 +72,7 @@ They may also be created by a MAVLink API such as [MAVSDK](../robotics/mavsdk.md
 6. Місія скине тільки тоді, коли транспортний засіб буде роззброєний або коли буде завантажена нова місія.
 
    :::tip
-   Щоб автоматично роззброїти транспортний засіб після посадки, у _QGroundControl_ перейдіть до [Налаштування Транспортного Засобу > Безпека](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), перейдіть до _Налаштувань Режиму Посадки_ та позначте прапорець _Роззброювати після_.
-   Введіть час очікування після посадки перед відброюванням транспортного засобу.
+   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Return & Land](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/return_land.html#landing) and set the _Touchdown_ disarm delay (a value of 0 or less disables it).
 
 :::
 
@@ -156,6 +155,10 @@ PX4 "приймає" наступні команди місії MAVLink у ре�
 - [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF)
 - [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT)
 - [MAV_CMD_DO_JUMP](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP)
+  - _Param1_ (sequence number) must refer to an earlier mission item.
+    A mission is rejected if a jump targets itself or a later item, even if its repeat count is 0.
+  - _Param2_ (repeat count) must be from 0 to 65535.
+    A mission with a negative or larger repeat count is rejected.
 - [MAV_CMD_NAV_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_ROI)
 - [MAV_CMD_DO_SET_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI)
 - [MAV_CMD_DO_SET_ROI_LOCATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_LOCATION)
@@ -224,6 +227,18 @@ If not provided, or if the feedback is lost, a mission command timeout can be us
 
 The timeout is set using the [MIS_COMMAND_TOUT](../advanced_config/parameter_reference.md#MIS_COMMAND_TOUT) parameter.
 This should be set to be a small amount greater than the time required for the longest long-running action in the mission to complete.
+
+## Waypoint Heading Timeout
+
+When a mission item sets a heading, the vehicle waits at the waypoint until it is within [MIS_YAW_ERR](../advanced_config/parameter_reference.md#MIS_YAW_ERR) of that heading before it moves on.
+So that a vehicle that cannot turn (for example, after a motor failure has taken away its yaw control) does not hover at the waypoint indefinitely, it continues without the heading once [MIS_YAW_TMT](../advanced_config/parameter_reference.md#MIS_YAW_TMT) has elapsed (default: 10 s).
+The time is counted from when the heading is commanded, which is usually when the vehicle starts flying towards the waypoint.
+If getting to the waypoint takes longer than `MIS_YAW_TMT`, the vehicle does not wait for the heading there at all.
+
+Some headings must be reached for the mission to continue safely, such as the alignment towards the next waypoint before a mission with camera triggering is resumed.
+If such a heading is not reached within `MIS_YAW_TMT`, the mission fails and the vehicle switches to [Return mode](../flight_modes_mc/return.md).
+
+Set `MIS_YAW_TMT` to 0 to never wait for a heading, or to -1 to always wait for it. <Badge type="tip" text="main (PX4 v2.0)" />
 
 ## Закруглені повороти: Траєкторія міжточкового маршруту
 

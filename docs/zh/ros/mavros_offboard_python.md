@@ -174,8 +174,7 @@ def state_cb(msg):
     current_state = msg
 ```
 
-我们构建了一个发布者来发布本地位置指令并请求客户端进行加解锁状态及控制模式的切换。
-请注意，对于您自己的系统，"mavros" 前缀可能不同，取决于节点启动文件中指定的名称。
+我们构建了一个发布者来发布本地位置指令并请求客户端进行加解锁状态及控制模式的切换。请注意，对于您自己的系统，"mavros" 前缀可能不同，取决于节点启动文件中指定的名称。
 
 ```py
 state_sub = rospy.Subscriber("mavros/state", State, callback = state_cb)
@@ -201,8 +200,7 @@ Here we set the publishing rate appropriately:
 rate = rospy.Rate(20)
 ```
 
-在发布任何消息之前，我们需要等待飞控和MAVROS建立连接。
-在收到心跳包之后，代码便会跳出这个循环。
+在发布任何消息之前，我们需要等待飞控和MAVROS建立连接。在收到心跳包之后，代码便会跳出这个循环。
 
 ```py
 # Wait for Flight Controller connection
