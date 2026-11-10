@@ -34,6 +34,8 @@
 px4_add_module(
 	MODULE modules__state_sharing
 	MAIN state_sharing
+	MODULE_CONFIG
+		module.yaml
 	COMPILE_FLAGS
 		# -DDEBUG_BUILD   # uncomment for PX4_DEBUG output
 		# -O0             # uncomment when debugging

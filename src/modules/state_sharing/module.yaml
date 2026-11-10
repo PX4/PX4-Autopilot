@@ -1,0 +1,50 @@
+module_name: state_sharing
+
+parameters:
+  - group: State Sharing
+    definitions:
+      SHARING_PERIOD:
+        description:
+          short: Period defined for the state sharing in seconds
+        type: float
+        unit: s
+        min: 0.01
+        max: 10.0
+        decimal: 2
+        default: 1.0
+
+      DELAY_START:
+        description:
+          short: Delay to begin the sharing after the start signal is received
+        type: float
+        unit: s
+        min: 0.0
+        max: 60.0
+        decimal: 2
+        default: 0.0
+
+      SHARING_FLAGS:
+        description:
+          short: State sharing telemetry data flags bitmask
+          long: |
+            Bitmask defining which telemetry fields are broadcast:
+            0: Global Position (lat, lon, alt)
+            1: NED ground velocity (vx, vy, vz)
+            2: Quaternion attitude (q)
+            3: NED ground acceleration (ax, ay, az)
+            4: Auxiliary field 1 (aux[0])
+            5: Auxiliary field 2 (aux[1])
+            6: Auxiliary field 3 (aux[2])
+            7: Auxiliary field 4 (aux[3])
+        type: bitmask
+        bit:
+          0: Global Position
+          1: Velocity
+          2: Attitude
+          3: Acceleration
+          4: Aux 1
+          5: Aux 2
+          6: Aux 3
+          7: Aux 4
+        default: 5
+

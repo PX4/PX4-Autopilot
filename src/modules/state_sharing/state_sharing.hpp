@@ -99,9 +99,11 @@ private:
 	StateSharing *_parent{nullptr};
 };
 
-class StateSharing : public ModuleBase<StateSharing>, public ModuleParams, public px4::ScheduledWorkItem
+class StateSharing : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	StateSharing();
 	~StateSharing() override;
 

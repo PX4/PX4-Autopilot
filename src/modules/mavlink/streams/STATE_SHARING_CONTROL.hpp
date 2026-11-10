@@ -16,11 +16,11 @@ public:
 	{
 		return MavlinkStreamStateSharingControl::get_name_static();
 	}
-	static const char *get_name_static()
+	static constexpr const char *get_name_static()
 	{
 		return "STATE_SHARING_CONTROL";
 	}
-	static uint16_t get_id_static()
+	static constexpr uint16_t get_id_static()
 	{
 		return MAVLINK_MSG_ID_STATE_SHARING_CONTROL;
 	}

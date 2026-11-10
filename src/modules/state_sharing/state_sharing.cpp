@@ -39,6 +39,8 @@ using namespace time_literals;
 
 constexpr int kNumRegisterTries = 3; ///< Number of tries for uORB callback registration
 
+ModuleBase::Descriptor StateSharing::desc{task_spawn, custom_command, print_usage};
+
 StateSharing::StateSharing() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::state_sharing),
@@ -136,7 +138,7 @@ void StateSharing::Run()
 	if (should_exit()) {
 		_publisher_state_sharing.stop();
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -354,8 +356,8 @@ int StateSharing::task_spawn(int argc, char *argv[])
 	}
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init(start_publishing)) {
 			return PX4_OK;
@@ -366,8 +368,8 @@ int StateSharing::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -382,18 +384,24 @@ int StateSharing::print_status()
 
 int StateSharing::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("not running");
 		return PX4_ERROR;
 	}
 
+	StateSharing *instance = static_cast<StateSharing *>(desc.object.load());
+
+	if (!instance) {
+		return PX4_ERROR;
+	}
+
 	if (!strcmp(argv[0], "start_publishing")) {
-		get_instance()->start_publisher();
+		instance->start_publisher();
 		return PX4_OK;
 	}
 
 	if (!strcmp(argv[0], "stop_publishing")) {
-		get_instance()->stop_publisher();
+		instance->stop_publisher();
 		return PX4_OK;
 	}
 
@@ -450,5 +458,5 @@ scripts, or ground control stations to start/stop state sharing or update parame
 
 extern "C" __EXPORT int state_sharing_main(int argc, char *argv[])
 {
-	return StateSharing::main(argc, argv);
+	return ModuleBase::main(StateSharing::desc, argc, argv);
 }
