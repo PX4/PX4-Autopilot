@@ -154,7 +154,7 @@ void MulticopterLandDetector::_update_params()
 			(double)_param.LNDMC_Z_VEL_MAX, (double)(lndmc_upper_threshold));
 
 		_param.LNDMC_Z_VEL_MAX = lndmc_upper_threshold;
-		param_set_no_notification(param_handle(px4::params::LNDMC_Z_VEL_MAX), &_param.LNDMC_Z_VEL_MAX);
+		_param.commit_no_notification(_param.LNDMC_Z_VEL_MAX);
 	}
 }
 
