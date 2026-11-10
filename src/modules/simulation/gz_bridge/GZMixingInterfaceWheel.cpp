@@ -67,7 +67,6 @@ bool GZMixingInterfaceWheel::init(const std::string &model_name)
 	pthread_mutex_init(&_node_mutex, nullptr);
 
 	_wheel_encoders_pub.advertise();
-	param_get(param_find("RO_WHEEL_RAD"), &_wheel_radius);
 
 	ScheduleNow();
 
