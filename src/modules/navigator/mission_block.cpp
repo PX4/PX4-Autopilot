@@ -819,7 +819,14 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 			break;
 
+		case NAV_CMD_LOITER_TIME_LIMIT:
+		case NAV_CMD_LOITER_UNLIMITED:
+
+			sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+			break;
+
 		default:
+			sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 			break;
 		}
 
