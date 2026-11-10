@@ -26,13 +26,14 @@ PteroSim demo:
 
 ## Supported Vehicles
 
-The free tier includes the **F450** multicopter, which is covered by the setup steps on this page:
+The setup steps on this page use the **F450** multicopter:
 
 | Vehicle | Type        | PX4 target                        |
 | ------- | ----------- | --------------------------------- |
 | F450    | Multicopter | `make px4_sitl_default none_iris` |
 
-Paid licenses also include fixed-wing, VTOL, and helicopter templates with PX4 SITL support.
+PteroSim also includes fixed-wing, VTOL, and tailsitter vehicles that fly with PX4 SITL.
+All vehicles are available on every license tier, including the free tier for non-commercial use.
 See [pterolabs.ai](https://pterolabs.ai/#pricing) for licensing details.
 
 ## Network Setup
