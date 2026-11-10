@@ -80,28 +80,28 @@ MulticopterRateControl::parameters_updated()
 	// rate control parameters
 	// The controller gain K is used to convert the parallel (P + I/s + sD) form
 	// to the ideal (K * [1 + 1/sTi + sTd]) form
-	const Vector3f rate_k = Vector3f(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
+	const Vector3f rate_k = Vector3f(_param.MC_ROLLRATE_K, _param.MC_PITCHRATE_K, _param.MC_YAWRATE_K);
 
 	_rate_control.setPidGains(
-		rate_k.emult(Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(), _param_mc_yawrate_p.get())),
-		rate_k.emult(Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(), _param_mc_yawrate_i.get())),
-		rate_k.emult(Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get())));
+		rate_k.emult(Vector3f(_param.MC_ROLLRATE_P, _param.MC_PITCHRATE_P, _param.MC_YAWRATE_P)),
+		rate_k.emult(Vector3f(_param.MC_ROLLRATE_I, _param.MC_PITCHRATE_I, _param.MC_YAWRATE_I)),
+		rate_k.emult(Vector3f(_param.MC_ROLLRATE_D, _param.MC_PITCHRATE_D, _param.MC_YAWRATE_D)));
 
 	_rate_control.setIntegratorLimit(
-		Vector3f(_param_mc_rr_int_lim.get(), _param_mc_pr_int_lim.get(), _param_mc_yr_int_lim.get()));
+		Vector3f(_param.MC_RR_INT_LIM, _param.MC_PR_INT_LIM, _param.MC_YR_INT_LIM));
 
 	_rate_control.setFeedForwardGain(
-		Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get()));
+		Vector3f(_param.MC_ROLLRATE_FF, _param.MC_PITCHRATE_FF, _param.MC_YAWRATE_FF));
 
-	_gain_compression.setEnabled(_param_mc_gc_en.get());
-	_gain_compression.setCompressionGainMin(_param_mc_gc_gain_min.get());
+	_gain_compression.setEnabled(_param.MC_GC_EN);
+	_gain_compression.setCompressionGainMin(_param.MC_GC_GAIN_MIN);
 
 
 	// manual rate control acro mode rate limits
-	_acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()),
-				  radians(_param_mc_acro_y_max.get()));
+	_acro_rate_max = Vector3f(radians(_param.MC_ACRO_R_MAX), radians(_param.MC_ACRO_P_MAX),
+				  radians(_param.MC_ACRO_Y_MAX));
 
-	_output_lpf_yaw.setCutoffFreq(_param_mc_yaw_tq_cutoff.get());
+	_output_lpf_yaw.setCutoffFreq(_param.MC_YAW_TQ_CUTOFF);
 }
 
 void
@@ -163,9 +163,9 @@ MulticopterRateControl::Run()
 			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 				// manual rates control - ACRO mode
 				const Vector3f man_rate_sp{
-					math::superexpo(manual_control_setpoint.roll, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(-manual_control_setpoint.pitch, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(manual_control_setpoint.yaw, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
+					math::superexpo(manual_control_setpoint.roll, _param.MC_ACRO_EXPO, _param.MC_ACRO_SUPEXPO),
+					math::superexpo(-manual_control_setpoint.pitch, _param.MC_ACRO_EXPO, _param.MC_ACRO_SUPEXPO),
+					math::superexpo(manual_control_setpoint.yaw, _param.MC_ACRO_EXPO_Y, _param.MC_ACRO_SUPEXPOY)};
 
 				_rates_setpoint = man_rate_sp.emult(_acro_rate_max);
 				_thrust_setpoint(2) = -(manual_control_setpoint.throttle + 1.f) * .5f;
@@ -251,7 +251,7 @@ MulticopterRateControl::Run()
 			vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
 
 			// scale setpoints by battery status if enabled
-			if (_param_mc_bat_scale_en.get()) {
+			if (_param.MC_BAT_SCALE_EN) {
 				if (_battery_status_sub.updated()) {
 					battery_status_s battery_status;
 

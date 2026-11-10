@@ -136,40 +136,40 @@ private:
 
 	AlphaFilter<float> _output_lpf_yaw;
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
-		(ParamFloat<px4::params::MC_ROLLRATE_I>) _param_mc_rollrate_i,
-		(ParamFloat<px4::params::MC_RR_INT_LIM>) _param_mc_rr_int_lim,
-		(ParamFloat<px4::params::MC_ROLLRATE_D>) _param_mc_rollrate_d,
-		(ParamFloat<px4::params::MC_ROLLRATE_FF>) _param_mc_rollrate_ff,
-		(ParamFloat<px4::params::MC_ROLLRATE_K>) _param_mc_rollrate_k,
+	PARAMETERS(
+		MC_ROLLRATE_P,
+		MC_ROLLRATE_I,
+		MC_RR_INT_LIM,
+		MC_ROLLRATE_D,
+		MC_ROLLRATE_FF,
+		MC_ROLLRATE_K,
 
-		(ParamFloat<px4::params::MC_PITCHRATE_P>) _param_mc_pitchrate_p,
-		(ParamFloat<px4::params::MC_PITCHRATE_I>) _param_mc_pitchrate_i,
-		(ParamFloat<px4::params::MC_PR_INT_LIM>) _param_mc_pr_int_lim,
-		(ParamFloat<px4::params::MC_PITCHRATE_D>) _param_mc_pitchrate_d,
-		(ParamFloat<px4::params::MC_PITCHRATE_FF>) _param_mc_pitchrate_ff,
-		(ParamFloat<px4::params::MC_PITCHRATE_K>) _param_mc_pitchrate_k,
+		MC_PITCHRATE_P,
+		MC_PITCHRATE_I,
+		MC_PR_INT_LIM,
+		MC_PITCHRATE_D,
+		MC_PITCHRATE_FF,
+		MC_PITCHRATE_K,
 
-		(ParamFloat<px4::params::MC_YAWRATE_P>) _param_mc_yawrate_p,
-		(ParamFloat<px4::params::MC_YAWRATE_I>) _param_mc_yawrate_i,
-		(ParamFloat<px4::params::MC_YR_INT_LIM>) _param_mc_yr_int_lim,
-		(ParamFloat<px4::params::MC_YAWRATE_D>) _param_mc_yawrate_d,
-		(ParamFloat<px4::params::MC_YAWRATE_FF>) _param_mc_yawrate_ff,
-		(ParamFloat<px4::params::MC_YAWRATE_K>) _param_mc_yawrate_k,
-		(ParamFloat<px4::params::MC_YAW_TQ_CUTOFF>) _param_mc_yaw_tq_cutoff,
+		MC_YAWRATE_P,
+		MC_YAWRATE_I,
+		MC_YR_INT_LIM,
+		MC_YAWRATE_D,
+		MC_YAWRATE_FF,
+		MC_YAWRATE_K,
+		MC_YAW_TQ_CUTOFF,
 
-		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _param_mc_acro_r_max,
-		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _param_mc_acro_p_max,
-		(ParamFloat<px4::params::MC_ACRO_Y_MAX>) _param_mc_acro_y_max,
-		(ParamFloat<px4::params::MC_ACRO_EXPO>) _param_mc_acro_expo,			/**< expo stick curve shape (roll & pitch) */
-		(ParamFloat<px4::params::MC_ACRO_EXPO_Y>) _param_mc_acro_expo_y,				/**< expo stick curve shape (yaw) */
-		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
-		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
+		MC_ACRO_R_MAX,
+		MC_ACRO_P_MAX,
+		MC_ACRO_Y_MAX,
+		MC_ACRO_EXPO,			/**< expo stick curve shape (roll & pitch) */
+		MC_ACRO_EXPO_Y,				/**< expo stick curve shape (yaw) */
+		MC_ACRO_SUPEXPO,		/**< superexpo stick curve shape (roll & pitch) */
+		MC_ACRO_SUPEXPOY,		/**< superexpo stick curve shape (yaw) */
 
-		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
+		MC_BAT_SCALE_EN,
 
-		(ParamBool<px4::params::MC_GC_EN>) _param_mc_gc_en,
-		(ParamFloat<px4::params::MC_GC_GAIN_MIN>) _param_mc_gc_gain_min
+		MC_GC_EN,
+		MC_GC_GAIN_MIN
 	)
 };
