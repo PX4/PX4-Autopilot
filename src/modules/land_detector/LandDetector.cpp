@@ -181,12 +181,12 @@ void LandDetector::Run()
 		uint32_t flight_time = (_total_flight_time >> 32) & 0xffffffff;
 
 		_param.LND_FLIGHT_T_HI = flight_time;
-		_param.commit_no_notification(_param.LND_FLIGHT_T_HI);
+		_param.commit_no_notification<px4::params::LND_FLIGHT_T_HI>();
 
 		flight_time = _total_flight_time & 0xffffffff;
 
 		_param.LND_FLIGHT_T_LO = flight_time;
-		_param.commit_no_notification(_param.LND_FLIGHT_T_LO);
+		_param.commit_no_notification<px4::params::LND_FLIGHT_T_LO>();
 	}
 
 	_previous_armed_state = _armed;

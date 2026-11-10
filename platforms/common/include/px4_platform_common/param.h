@@ -76,14 +76,17 @@ inline static param_t param_handle(px4::params p)
  * alignment. A static_assert on its size rules out padding, which puts field i at offset
  * 4 * i. That is the address the loader writes.
  *
- * To write a parameter back, assign the field and store it:
+ * To write a parameter back, assign the field and store it by naming the parameter:
  *
  *   _param.MC_ROLLRATE_P = 0.2f;
- *   _param.commit(_param.MC_ROLLRATE_P);
+ *   _param.commit<px4::params::MC_ROLLRATE_P>();
+ *
+ * Naming a parameter that the struct does not hold fails the build. ParameterAccess lists
+ * the other methods.
  *
  * A class that derives from another class with parameters uses PARAMETERS_CUSTOM_PARENT()
- * in both. Its own _param hides the parent's, so it reads a parent's field as
- * Parent::_param.NAME.
+ * in both. Its own _param hides the parent's, so it reaches a parent's parameter through
+ * Parent::_param.
  */
 namespace px4
 {
@@ -102,65 +105,102 @@ struct param_value<true> {
 template<params p>
 using param_value_t = typename param_value<parameters_type[(int)p] == PARAM_TYPE_FLOAT>::type;
 
-#define _PARAMETER_INLINE __attribute__((always_inline))
+/**
+ * Stores, reloads and resets single parameters of a class that holds their values
+ *
+ * Every method names the parameter, so a call cannot pair a handle with the value of another
+ * parameter. `Values` provides value<p>(), a pointer to the value of parameter p, which
+ * fails the build for a parameter it does not hold.
+ */
+template<typename Values>
+class ParameterAccess
+{
+public:
+	/// Store the value to the parameter storage (@see param_set())
+	template<params p>
+	bool commit() const { return param_set(param_handle(p), values().template value<p>()) == 0; }
+
+	/// Store the value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
+	template<params p>
+	bool commit_no_notification() const
+	{
+		return param_set_no_notification(param_handle(p), values().template value<p>()) == 0;
+	}
+
+	/// Set the value and store it w/o notification if it is new. Returns true if the value changed.
+	template<params p>
+	bool commit_no_notification(param_value_t<p> new_value)
+	{
+		param_value_t<p> *value = values().template value<p>();
+
+		if (differs(*value, new_value)) {
+			*value = new_value;
+			commit_no_notification<p>();
+			return true;
+		}
+
+		return false;
+	}
+
+	/// Reload the value from the parameter storage
+	template<params p>
+	bool update() { return param_get(param_handle(p), values().template value<p>()) == 0; }
+
+	/// Reset the parameter to its default and reload the value
+	template<params p>
+	void reset()
+	{
+		param_reset_no_notification(param_handle(p));
+		update<p>();
+	}
+
+private:
+	const Values &values() const { return static_cast<const Values &>(*this); }
+	Values &values() { return static_cast<Values &>(*this); }
+
+	static bool differs(float a, float b) { return fabsf(a - b) > FLT_EPSILON; }
+	static bool differs(int32_t a, int32_t b) { return a != b; }
+};
 
 /**
- * Base of a PARAMETERS() struct, to store, reload or reset one of its fields
- *
- * A field's position in the struct is its position in `handles`, so a call names only the
- * field. The methods that take one field are always inlined, which folds its handle to a
- * constant at the call site.
+ * Base of the struct that PARAMETERS() declares. A parameter's position in `handles` is the
+ * position of its field in the struct.
  */
 template<auto &handles>
-struct ParameterStruct {
-	/// The handle of `field`, or PARAM_INVALID if it is not a field of this struct
-	_PARAMETER_INLINE param_t handle(const void *field) const
+class ParameterStruct : public ParameterAccess<ParameterStruct<handles>>
+{
+	friend ParameterAccess<ParameterStruct<handles>>;
+
+	static constexpr int index(param_t handle)
 	{
-		const size_t index = (static_cast<const uint8_t *>(field) - reinterpret_cast<const uint8_t *>(this)) / sizeof(float);
-		return index < sizeof(handles) / sizeof(handles[0]) ? handles[index] : PARAM_INVALID;
-	}
-
-	/// Store a field to the parameter storage (@see param_set())
-	_PARAMETER_INLINE bool commit(const float &field) const { return param_set(handle(&field), &field) == 0; }
-	_PARAMETER_INLINE bool commit(const int32_t &field) const { return param_set(handle(&field), &field) == 0; }
-
-	/// Store a field to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	_PARAMETER_INLINE bool commit_no_notification(const float &field) const { return param_set_no_notification(handle(&field), &field) == 0; }
-	_PARAMETER_INLINE bool commit_no_notification(const int32_t &field) const { return param_set_no_notification(handle(&field), &field) == 0; }
-
-	/// Set a field and store it if the value is new. Returns true if the value changed.
-	bool commit_no_notification(float &field, float value) const
-	{
-		if (fabsf(value - field) > FLT_EPSILON) {
-			field = value;
-			commit_no_notification(field);
-			return true;
+		for (size_t i = 0; i < sizeof(handles) / sizeof(handles[0]); i++) {
+			if (handles[i] == handle) {
+				return i;
+			}
 		}
 
-		return false;
+		return -1;
 	}
 
-	bool commit_no_notification(int32_t &field, int32_t value) const
+	template<params p>
+	const param_value_t<p> *value() const
 	{
-		if (value != field) {
-			field = value;
-			commit_no_notification(field);
-			return true;
-		}
-
-		return false;
+		constexpr int field = index(static_cast<param_t>(p));
+		static_assert(field >= 0, "not a parameter of this struct");
+		return static_cast<const param_value_t<p> *>(static_cast<const void *>(this)) + field;
 	}
 
-	/// Reload a field from the parameter storage
-	_PARAMETER_INLINE bool update(float &field) const { return param_get(handle(&field), &field) == 0; }
-	_PARAMETER_INLINE bool update(int32_t &field) const { return param_get(handle(&field), &field) == 0; }
-
-	/// Reset a field's parameter to its default and reload it
-	_PARAMETER_INLINE void reset(float &field) const { param_reset_no_notification(handle(&field)); update(field); }
-	_PARAMETER_INLINE void reset(int32_t &field) const { param_reset_no_notification(handle(&field)); update(field); }
+	template<params p>
+	param_value_t<p> *value()
+	{
+		return const_cast<param_value_t<p> *>(static_cast<const ParameterStruct *>(this)->template value<p>());
+	}
 };
 
 } // namespace px4
+
+/// Load one parameter into `value`. Implemented in module_params.cpp.
+__EXPORT void param_get_value(param_t handle, void *value, bool mark_used);
 
 /**
  * Load `count` parameters into consecutive 4-byte values starting at `values`.
@@ -205,12 +245,17 @@ __EXPORT void param_get_values(const param_t *handles, unsigned count, void *val
  * A parameter table for a struct that is defined elsewhere
  *
  * A library that must not depend on PX4 keeps its parameters in a struct of its own. A table
- * of PARAMETER_AT() entries names the member each parameter loads into, and
- * param_get_members() loads them all:
+ * of PARAMETER_AT() entries names the member each parameter loads into. A ParameterMembers
+ * points at the struct, loads it, and stores single parameters as _param does:
  *
- *   static constexpr px4::param_member_s _table[] = {
+ *   static constexpr px4::ParameterMember<estimator::parameters> _table[] = {
  *           PARAMETER_AT(EKF2_GYR_NOISE, estimator::parameters, ekf2_gyr_noise),
  *   };
+ *
+ *   px4::ParameterMembers<_table> _params{&estimator_parameters};
+ *
+ *   _params->ekf2_gyr_noise = 0.1f;
+ *   _params.commit<px4::params::EKF2_GYR_NOISE>();
  *
  * An entry builds only if the struct is standard-layout, which offsetof needs, and the member
  * has the type of the parameter's definition.
@@ -218,29 +263,80 @@ __EXPORT void param_get_values(const param_t *handles, unsigned count, void *val
 namespace px4
 {
 
-struct param_member_s {
+/// The member of S that a parameter loads into
+template<typename S>
+struct ParameterMember {
 	param_t handle;
 	uint16_t offset;
 };
 
 template<params p, size_t offset, typename S>
-constexpr param_member_s param_member(param_value_t<p> S::*)
+constexpr ParameterMember<S> parameter_member(param_value_t<p> S::*)
 {
 	static_assert(__is_standard_layout(S), "offsetof needs a standard-layout struct");
 	static_assert(offset <= UINT16_MAX, "member offset does not fit the table");
 	return {static_cast<param_t>(p), static_cast<uint16_t>(offset)};
 }
 
+/// The struct that a table of ParameterMember entries is for
+template<typename S, size_t N>
+S parameter_member_struct(const ParameterMember<S> (&)[N]);
+
+/**
+ * Points at a struct and loads the parameters of `table` into its members, at construction
+ * and on update()
+ */
+template<auto &table>
+class ParameterMembers : public ParameterAccess<ParameterMembers<table>>
+{
+public:
+	using Struct = decltype(parameter_member_struct(table));
+
+	explicit ParameterMembers(Struct *object) : _object(object) { load(true); }
+
+	Struct *operator->() const { return _object; }
+
+	using ParameterAccess<ParameterMembers<table>>::update;
+
+	/// Reload every parameter of the table
+	void update() { load(false); }
+
+private:
+	friend ParameterAccess<ParameterMembers<table>>;
+
+	void load(bool mark_used) const
+	{
+		for (const ParameterMember<Struct> &member : table) {
+			param_get_value(member.handle, reinterpret_cast<uint8_t *>(_object) + member.offset, mark_used);
+		}
+	}
+
+	static constexpr int offset(param_t handle)
+	{
+		for (const ParameterMember<Struct> &member : table) {
+			if (member.handle == handle) {
+				return member.offset;
+			}
+		}
+
+		return -1;
+	}
+
+	template<params p>
+	param_value_t<p> *value() const
+	{
+		constexpr int member = offset(static_cast<param_t>(p));
+		static_assert(member >= 0, "not a parameter of this table");
+		return static_cast<param_value_t<p> *>(static_cast<void *>(reinterpret_cast<uint8_t *>(_object) + member));
+	}
+
+	Struct *_object;
+};
+
 } // namespace px4
 
 #define PARAMETER_AT(name, type, member) \
-	px4::param_member<px4::params::name, offsetof(type, member)>(&type::member)
-
-/**
- * Load `count` parameters into the members of `object` that `table` names.
- * Implemented in module_params.cpp.
- */
-__EXPORT void param_get_members(const px4::param_member_s *table, unsigned count, void *object, bool mark_used);
+	px4::parameter_member<px4::params::name, offsetof(type, member)>(&type::member)
 
 #define _DEFINE_SINGLE_PARAMETER(x) \
 	do_not_explicitly_use_this_namespace::PAIR(x);

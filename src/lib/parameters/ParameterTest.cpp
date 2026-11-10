@@ -218,14 +218,11 @@ TEST_F(ParameterTest, plainStructWritesBack)
 {
 	PlainStructParams params;
 
-	EXPECT_EQ(param_handle(px4::params::CP_DIST), params._param.handle(&params._param.CP_DIST));
-	EXPECT_EQ(param_handle(px4::params::CP_DELAY), params._param.handle(&params._param.CP_DELAY));
-
 	// a float and an int32, stored with and without notification
 	params._param.CP_DELAY = 2.f;
-	EXPECT_TRUE(params._param.commit(params._param.CP_DELAY));
+	EXPECT_TRUE(params._param.commit<px4::params::CP_DELAY>());
 	params._param.SYS_AUTOSTART = 4001;
-	EXPECT_TRUE(params._param.commit_no_notification(params._param.SYS_AUTOSTART));
+	EXPECT_TRUE(params._param.commit_no_notification<px4::params::SYS_AUTOSTART>());
 
 	float delay = 0.f;
 	ASSERT_EQ(0, param_get(param_handle(px4::params::CP_DELAY), &delay));
@@ -234,28 +231,32 @@ TEST_F(ParameterTest, plainStructWritesBack)
 	ASSERT_EQ(0, param_get(param_handle(px4::params::SYS_AUTOSTART), &autostart));
 	EXPECT_EQ(4001, autostart);
 
+	// the neighbouring fields are untouched
+	EXPECT_FLOAT_EQ(-1.f, params._param.CP_DIST);
+	EXPECT_EQ(0, params._param.CP_GO_NO_DATA);
+
 	// set and store only a new value
-	EXPECT_FALSE(params._param.commit_no_notification(params._param.CP_DELAY, 2.f));
-	EXPECT_TRUE(params._param.commit_no_notification(params._param.CP_DELAY, 3.f));
+	EXPECT_FALSE(params._param.commit_no_notification<px4::params::CP_DELAY>(2.f));
+	EXPECT_TRUE(params._param.commit_no_notification<px4::params::CP_DELAY>(3.f));
 	EXPECT_FLOAT_EQ(3.f, params._param.CP_DELAY);
 	ASSERT_EQ(0, param_get(param_handle(px4::params::CP_DELAY), &delay));
 	EXPECT_FLOAT_EQ(3.f, delay);
 
+	EXPECT_FALSE(params._param.commit_no_notification<px4::params::SYS_AUTOSTART>(4001));
+	EXPECT_TRUE(params._param.commit_no_notification<px4::params::SYS_AUTOSTART>(13000));
+	EXPECT_EQ(13000, params._param.SYS_AUTOSTART);
+
 	// reload one field
 	setParam(px4::params::CP_DIST, 8.f);
-	EXPECT_TRUE(params._param.update(params._param.CP_DIST));
+	setParam(px4::params::CP_DELAY, 5.f);
+	EXPECT_TRUE(params._param.update<px4::params::CP_DIST>());
 	EXPECT_FLOAT_EQ(8.f, params._param.CP_DIST);
-	EXPECT_EQ(4001, params._param.SYS_AUTOSTART);
+	EXPECT_FLOAT_EQ(3.f, params._param.CP_DELAY);
 
 	// back to the default
-	params._param.reset(params._param.CP_DIST);
+	params._param.reset<px4::params::CP_DIST>();
 	EXPECT_FLOAT_EQ(-1.f, params._param.CP_DIST);
 	EXPECT_TRUE(param_value_is_default(param_handle(px4::params::CP_DIST)));
-
-	// a value that is not a field of the struct has no handle
-	float not_a_field = 1.f;
-	EXPECT_EQ(PARAM_INVALID, params._param.handle(&not_a_field));
-	EXPECT_FALSE(params._param.commit(not_a_field));
 }
 
 class PlainStructParent : public ModuleParams
@@ -276,6 +277,12 @@ class PlainStructChild : public PlainStructParent
 public:
 	float parentDistance() const { return PlainStructParent::_param.CP_DIST; }
 
+	bool storeParentDistance(float distance)
+	{
+		PlainStructParent::_param.CP_DIST = distance;
+		return PlainStructParent::_param.commit<px4::params::CP_DIST>();
+	}
+
 	PARAMETERS_CUSTOM_PARENT(PlainStructParent,
 				 SYS_AUTOSTART
 				)
@@ -294,6 +301,12 @@ TEST_F(ParameterTest, plainStructChildUpdatesParent)
 
 	EXPECT_FLOAT_EQ(9.f, child.parentDistance());
 	EXPECT_EQ(4001, child._param.SYS_AUTOSTART);
+
+	// the child stores a parent's parameter through the parent's struct
+	EXPECT_TRUE(child.storeParentDistance(4.f));
+	float distance = 0.f;
+	ASSERT_EQ(0, param_get(param_handle(px4::params::CP_DIST), &distance));
+	EXPECT_FLOAT_EQ(4.f, distance);
 }
 
 // A class tree can convert one class at a time
@@ -341,7 +354,7 @@ struct LibraryParameters {
 
 TEST_F(ParameterTest, memberTableLoadsLibraryStruct)
 {
-	static constexpr px4::param_member_s table[] = {
+	static constexpr px4::ParameterMember<LibraryParameters> table[] = {
 		PARAMETER_AT(CP_DIST, LibraryParameters, distance),
 		PARAMETER_AT(SYS_AUTOSTART, LibraryParameters, autostart),
 	};
@@ -349,11 +362,37 @@ TEST_F(ParameterTest, memberTableLoadsLibraryStruct)
 	setParam(px4::params::CP_DIST, 3.5f);
 	setParam(px4::params::SYS_AUTOSTART, 4001);
 
+	// loads at construction
 	LibraryParameters library;
-	param_get_members(table, 2, &library, true);
+	px4::ParameterMembers<table> params{&library};
 
+	EXPECT_FLOAT_EQ(3.5f, params->distance);
+	EXPECT_EQ(4001, params->autostart);
+	EXPECT_EQ(7, params->not_a_parameter);
+	EXPECT_DOUBLE_EQ(1.0, params->also_not_a_parameter);
+	EXPECT_TRUE(param_used(param_handle(px4::params::CP_DIST)));
+
+	// changes only on update
+	setParam(px4::params::CP_DIST, 7.f);
+	setParam(px4::params::SYS_AUTOSTART, 13000);
 	EXPECT_FLOAT_EQ(3.5f, library.distance);
+	EXPECT_TRUE(params.update<px4::params::CP_DIST>());
+	EXPECT_FLOAT_EQ(7.f, library.distance);
 	EXPECT_EQ(4001, library.autostart);
-	EXPECT_EQ(7, library.not_a_parameter);
-	EXPECT_DOUBLE_EQ(1.0, library.also_not_a_parameter);
+	params.update();
+	EXPECT_EQ(13000, library.autostart);
+
+	// writes back
+	params->autostart = 4001;
+	EXPECT_TRUE(params.commit<px4::params::SYS_AUTOSTART>());
+	int32_t autostart = 0;
+	ASSERT_EQ(0, param_get(param_handle(px4::params::SYS_AUTOSTART), &autostart));
+	EXPECT_EQ(4001, autostart);
+
+	EXPECT_FALSE(params.commit_no_notification<px4::params::CP_DIST>(7.f));
+	EXPECT_TRUE(params.commit_no_notification<px4::params::CP_DIST>(2.f));
+	EXPECT_FLOAT_EQ(2.f, library.distance);
+
+	params.reset<px4::params::CP_DIST>();
+	EXPECT_FLOAT_EQ(-1.f, library.distance);
 }

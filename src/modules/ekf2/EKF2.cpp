@@ -98,15 +98,14 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_params(_ekf.getParamHandle()),
 	_fc(*_ekf.getFusionControlHandle())
 {
-	loadEkfParams(true);
+	updateSensorPositions();
 	initFusionControl();
 	AdvertiseTopics();
 }
 
-void EKF2::loadEkfParams(bool mark_used)
+// The estimator holds the sensor positions as vectors, which no single parameter loads into
+void EKF2::updateSensorPositions()
 {
-	param_get_members(_ekf_param_table, sizeof(_ekf_param_table) / sizeof(_ekf_param_table[0]), _params, mark_used);
-
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	_params->rng_pos_body = Vector3f(_param.EKF2_RNG_POS_X, _param.EKF2_RNG_POS_Y, _param.EKF2_RNG_POS_Z);
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -125,7 +124,8 @@ void EKF2::loadEkfParams(bool mark_used)
 void EKF2::updateParams()
 {
 	ModuleParams::updateParams();
-	loadEkfParams(false);
+	_params.update();
+	updateSensorPositions();
 }
 
 EKF2::~EKF2()
@@ -820,7 +820,7 @@ void EKF2::VerifyParams()
 				    "EKF2_MAG_TYPE invalid, resetting to default", _params->ekf2_mag_type);
 
 		_params->ekf2_mag_type = 0;
-		param_set(param_handle(px4::params::EKF2_MAG_TYPE), &_params->ekf2_mag_type);
+		_params.commit<px4::params::EKF2_MAG_TYPE>();
 	}
 
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -904,8 +904,7 @@ void EKF2::VerifyParams()
 		events::send<float, float>(events::ID("nf_delay_max_too_small"), events::Log::Warning,
 					   "EKF2_DELAY_MAX increased to {2}ms, please reboot", _params->ekf2_delay_max,
 					   delay_max);
-		_params->ekf2_delay_max = delay_max;
-		param_set_no_notification(param_handle(px4::params::EKF2_DELAY_MAX), &_params->ekf2_delay_max);
+		_params.commit_no_notification<px4::params::EKF2_DELAY_MAX>(delay_max);
 	}
 }
 
@@ -1008,7 +1007,7 @@ void EKF2::syncSensEnParam()
 	if (_fc.rngbcn.enabled) { sens_en |= SensEn::RNGBCN; }
 
 	_params->ekf2_sens_en = sens_en;
-	param_set_no_notification(param_handle(px4::params::EKF2_SENS_EN), &_params->ekf2_sens_en);
+	_params.commit_no_notification<px4::params::EKF2_SENS_EN>();
 }
 
 template <typename T>
@@ -2736,7 +2735,7 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 			if (vehicle_status.is_vtol_tailsitter && _params->ekf2_fuse_beta) {
 				PX4_WARN("Disable EKF beta fusion as unsupported for tailsitter");
 				_params->ekf2_fuse_beta = 0;
-				param_set_no_notification(param_handle(px4::params::EKF2_FUSE_BETA), &_params->ekf2_fuse_beta);
+				_params.commit_no_notification<px4::params::EKF2_FUSE_BETA>();
 			}
 
 #endif // CONFIG_EKF2_SIDESLIP
@@ -2892,11 +2891,11 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 		float declination_deg;
 
 		if (_ekf.get_mag_decl_deg(declination_deg)) {
-			param_get(param_handle(px4::params::EKF2_MAG_DECL), &_params->ekf2_mag_decl);
+			_params.update<px4::params::EKF2_MAG_DECL>();
 
 			if (PX4_ISFINITE(declination_deg) && (fabsf(declination_deg - _params->ekf2_mag_decl) > 0.1f)) {
 				_params->ekf2_mag_decl = declination_deg;
-				param_set_no_notification(param_handle(px4::params::EKF2_MAG_DECL), &_params->ekf2_mag_decl);
+				_params.commit_no_notification<px4::params::EKF2_MAG_DECL>();
 			}
 
 			_mag_decl_saved = true;

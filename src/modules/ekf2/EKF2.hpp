@@ -516,55 +516,8 @@ private:
 
 	Ekf _ekf;
 
-	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
-	FusionControl &_fc;
-
-	PARAMETERS(
-		EKF2_LOG_VERBOSE,
-		EKF2_POS_LOCK,
-
-#if defined(CONFIG_EKF2_AUXVEL)
-		EKF2_AVEL_EN,	///< fuse landing_target_pose relative velocity as auxiliary velocity
-#endif // CONFIG_EKF2_AUXVEL
-
-#if defined(CONFIG_EKF2_GNSS)
-		EKF2_GPS_YAW_RST,
-#endif // CONFIG_EKF2_GNSS
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-		EKF2_EV_NOISE_MD,	///< determine source of vision observation noise
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-		// sensor positions in body frame, which the estimator holds as vectors
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-		EKF2_RNG_POS_X,
-		EKF2_RNG_POS_Y,
-		EKF2_RNG_POS_Z,
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-		EKF2_EV_POS_X,
-		EKF2_EV_POS_Y,
-		EKF2_EV_POS_Z,
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		EKF2_OF_POS_X,
-		EKF2_OF_POS_Y,
-		EKF2_OF_POS_Z,
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-		EKF2_IMU_POS_X,
-		EKF2_IMU_POS_Y,
-		EKF2_IMU_POS_Z,
-
-		// output predictor filter time constants
-		EKF2_TAU_VEL,
-		EKF2_TAU_POS
-	)
-
-	// The estimator's parameters load straight into its own struct
-	static constexpr px4::param_member_s _ekf_param_table[] = {
+	// The parameters that load straight into the estimator's own struct
+	static constexpr px4::ParameterMember<parameters> _ekf_param_table[] = {
 		PARAMETER_AT(EKF2_PREDICT_US, parameters, ekf2_predict_us),
 		PARAMETER_AT(EKF2_DELAY_MAX, parameters, ekf2_delay_max),
 		PARAMETER_AT(EKF2_IMU_CTRL, parameters, ekf2_imu_ctrl),
@@ -741,7 +694,54 @@ private:
 		PARAMETER_AT(EKF2_GYR_B_LIM, parameters, ekf2_gyr_b_lim),	///< Gyro bias learning limit (rad/s)
 	};
 
-	void loadEkfParams(bool mark_used);
+	px4::ParameterMembers<_ekf_param_table> _params;	///< the estimator's parameter struct (located in _ekf class instance)
+	FusionControl &_fc;
+
+	PARAMETERS(
+		EKF2_LOG_VERBOSE,
+		EKF2_POS_LOCK,
+
+#if defined(CONFIG_EKF2_AUXVEL)
+		EKF2_AVEL_EN,	///< fuse landing_target_pose relative velocity as auxiliary velocity
+#endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_GNSS)
+		EKF2_GPS_YAW_RST,
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+		EKF2_EV_NOISE_MD,	///< determine source of vision observation noise
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+		// sensor positions in body frame, which the estimator holds as vectors
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+		EKF2_RNG_POS_X,
+		EKF2_RNG_POS_Y,
+		EKF2_RNG_POS_Z,
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+		EKF2_EV_POS_X,
+		EKF2_EV_POS_Y,
+		EKF2_EV_POS_Z,
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+		EKF2_OF_POS_X,
+		EKF2_OF_POS_Y,
+		EKF2_OF_POS_Z,
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+		EKF2_IMU_POS_X,
+		EKF2_IMU_POS_Y,
+		EKF2_IMU_POS_Z,
+
+		// output predictor filter time constants
+		EKF2_TAU_VEL,
+		EKF2_TAU_POS
+	)
+
+	void updateSensorPositions();
 	void updateParams() override;
 };
 #endif // !EKF2_HPP
