@@ -40,7 +40,7 @@ It also highlights devices that connect via the CAN bus, and those which support
 | [DATAGNSS GEM1305 RTK Receiver](../gps_compass/rtk_gps_gem1305.md)                                                 |       TAU951M        | IST8310  |            |                  ✘                  |     |
 | [Femtones MINI2 Receiver](../gps_compass/rtk_gps_fem_mini2.md)                                                     |     FB672, FB6A0     |    ✓     |            |                                     |     |
 | [Freefly RTK GPS](../gps_compass/rtk_gps_freefly.md)                                                               |         F9P          | IST8310  |            |                                     |     |
-| [GlobalSat BD-100K RTK GNSS](../gps_compass/rtk_gps_globalsat_bd_100k.md)                                          |       MT-5365A       | IST8310  |            |                                     |     |
+| [GlobalSat BD-100K RTK GNSS](../gps_compass/rtk_gps_globalsat_bd_100k.md)                                          |          ✓           |    ✓    |            |                                     |     |
 | [Holybro H-RTK ZED-F9P RTK Rover (DroneCAN variant)](../dronecan/holybro_h_rtk_zed_f9p_gps.md)                     |         F9P          |  RM3100  |     ✓      |             [Dual F9P]              |     |
 | [Holybro H-RTK ZED-F9P RTK Rover](https://holybro.com/collections/h-rtk-gps/products/h-rtk-zed-f9p-rover)          |         F9P          |  RM3100  |            |             [Dual F9P]              |     |
 | [Holybro H-RTK F9P Ultralight](https://holybro.com/products/h-rtk-f9p-ultralight)                                  |         F9P          | IST8310  |            |             [Dual F9P]              |     |
