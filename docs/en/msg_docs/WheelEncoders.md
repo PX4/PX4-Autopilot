@@ -21,19 +21,19 @@ rover's actuator configuration.
 Unused entries have counts_per_rev = 0.
 
 The WHEEL_DISTANCE stream supports a single publisher: with several instances (e.g. two Roboclaw
-controllers) they all fill the same slots and only the last updated instance is streamed.
+controllers) they all fill the same slots and only the most recently updated instance is streamed.
 
 **TOPICS:** wheel_encoders
 
 ## Fields
 
-| Name                                          | Type         | Unit [Frame] | Range/Enum | Description                                                                                                  |
-| --------------------------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| <a id="fld_timestamp"></a>timestamp           | `uint64`     |              |            | time since system start (microseconds)                                                                       |
-| <a id="fld_wheel_speed"></a>wheel_speed       | `float32[4]` | rad/s        |            | Wheel angular speed. Positive is forward rotation                                                            |
-| <a id="fld_wheel_angle"></a>wheel_angle       | `float32[4]` | rad          |            | Unwrapped wheel angle since boot, 2 _ pi _ encoder_counts / counts_per_rev                                   |
-| <a id="fld_counts_per_rev"></a>counts_per_rev | `uint32[4]`  | counts/rev   |            | Encoder counts per wheel revolution                                                                          |
-| <a id="fld_encoder_counts"></a>encoder_counts | `int64[4]`   |              |            | The wheel position, in encoder counts since boot. Positive is forward rotation, negative is reverse rotation |
+| Name                                          | Type         | Unit [Frame] | Range/Enum | Description                                                                                              |
+| --------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp           | `uint64`     | us           |            | Time since system start                                                                                  |
+| <a id="fld_wheel_speed"></a>wheel_speed       | `float32[4]` | rad/s        |            | Wheel angular speed. Positive is forward rotation.                                                       |
+| <a id="fld_wheel_angle"></a>wheel_angle       | `float32[4]` | rad          |            | Unwrapped wheel angle since boot, 2 _ pi _ encoder_counts / counts_per_rev                               |
+| <a id="fld_counts_per_rev"></a>counts_per_rev | `uint32[4]`  |              |            | Encoder counts per wheel revolution                                                                      |
+| <a id="fld_encoder_counts"></a>encoder_counts | `int64[4]`   |              |            | Wheel position in encoder counts since boot. Positive is forward rotation; negative is reverse rotation. |
 
 ## Source Message
 
@@ -58,13 +58,13 @@ controllers) they all fill the same slots and only the last updated instance is 
 # Unused entries have counts_per_rev = 0.
 #
 # The WHEEL_DISTANCE stream supports a single publisher: with several instances (e.g. two Roboclaw
-# controllers) they all fill the same slots and only the last updated instance is streamed.
+# controllers) they all fill the same slots and only the most recently updated instance is streamed.
 
-uint64 timestamp			# time since system start (microseconds)
-float32[4] wheel_speed # [rad/s] Wheel angular speed. Positive is forward rotation
+uint64 timestamp # [us] Time since system start
+float32[4] wheel_speed # [rad/s] Wheel angular speed. Positive is forward rotation.
 float32[4] wheel_angle # [rad] Unwrapped wheel angle since boot, 2 * pi * encoder_counts / counts_per_rev
-uint32[4] counts_per_rev # [counts/rev] Encoder counts per wheel revolution
-int64[4] encoder_counts # The wheel position, in encoder counts since boot. Positive is forward rotation, negative is reverse rotation
+uint32[4] counts_per_rev # [-] Encoder counts per wheel revolution
+int64[4] encoder_counts # [-] Wheel position in encoder counts since boot. Positive is forward rotation; negative is reverse rotation.
 ```
 
 :::
