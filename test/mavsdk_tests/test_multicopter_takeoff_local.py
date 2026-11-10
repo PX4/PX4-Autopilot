@@ -45,8 +45,6 @@ MODE_SETTLE_S = 5
 def test_takeoff_local_reaches_altitude_then_lands(tester_flow: AutopilotTesterFlow) -> None:
     tester = tester_flow
 
-
-    tester.wait_until_armable()
     # Sent before arming: makes Takeoff (local position only) the mode arming is checked
     # against, instead of whatever needs a global position by default.
     # z is NED (down-positive), so the target altitude is negative.
@@ -54,6 +52,7 @@ def test_takeoff_local_reaches_altitude_then_lands(tester_flow: AutopilotTesterF
         MAV_CMD_NAV_TAKEOFF_LOCAL,
         param5=LOITER_NORTH_M, param6=LOITER_EAST_M, param7=-TAKEOFF_ALTITUDE_M)
 
+    tester.wait_until_armable()
     tester.arm()
     tester.wait_until_altitude(TAKEOFF_ALTITUDE_M, 20)
 
