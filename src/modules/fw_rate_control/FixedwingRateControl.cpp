@@ -76,17 +76,17 @@ FixedwingRateControl::init()
 int
 FixedwingRateControl::parameters_update()
 {
-	const Vector3f rate_p = Vector3f(_param_fw_rr_p.get(), _param_fw_pr_p.get(), _param_fw_yr_p.get());
-	const Vector3f rate_i = Vector3f(_param_fw_rr_i.get(), _param_fw_pr_i.get(), _param_fw_yr_i.get());
-	const Vector3f rate_d = Vector3f(_param_fw_rr_d.get(), _param_fw_pr_d.get(), _param_fw_yr_d.get());
+	const Vector3f rate_p = Vector3f(_param.FW_RR_P, _param.FW_PR_P, _param.FW_YR_P);
+	const Vector3f rate_i = Vector3f(_param.FW_RR_I, _param.FW_PR_I, _param.FW_YR_I);
+	const Vector3f rate_d = Vector3f(_param.FW_RR_D, _param.FW_PR_D, _param.FW_YR_D);
 
 	_rate_control.setPidGains(rate_p, rate_i, rate_d);
 
 	_rate_control.setIntegratorLimit(
-		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
+		Vector3f(_param.FW_RR_IMAX, _param.FW_PR_IMAX, _param.FW_YR_IMAX));
 
-	_gain_compression.setEnabled(_param_fw_gc_en.get());
-	_gain_compression.setCompressionGainMin(_param_fw_gc_gain_min.get());
+	_gain_compression.setEnabled(_param.FW_GC_EN);
+	_gain_compression.setCompressionGainMin(_param.FW_GC_GAIN_MIN);
 
 	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
 		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
@@ -111,16 +111,16 @@ FixedwingRateControl::vehicle_manual_poll()
 
 				if (_vehicle_status.is_vtol_tailsitter && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 					// the rate_sp must always be published in body (hover) frame
-					_rates_sp.roll = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
-					_rates_sp.yaw = -_manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
+					_rates_sp.roll = _manual_control_setpoint.yaw * radians(_param.FW_ACRO_Z_MAX);
+					_rates_sp.yaw = -_manual_control_setpoint.roll * radians(_param.FW_ACRO_X_MAX);
 
 				} else {
-					_rates_sp.roll = _manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
-					_rates_sp.yaw = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
+					_rates_sp.roll = _manual_control_setpoint.roll * radians(_param.FW_ACRO_X_MAX);
+					_rates_sp.yaw = _manual_control_setpoint.yaw * radians(_param.FW_ACRO_Z_MAX);
 				}
 
 				_rates_sp.timestamp = hrt_absolute_time();
-				_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
+				_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param.FW_ACRO_Y_MAX);
 				_rates_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 				_rates_sp.thrust_body[1] = 0.f;
 				_rates_sp.thrust_body[2] = 0.f;
@@ -130,12 +130,12 @@ FixedwingRateControl::vehicle_manual_poll()
 
 			} else {
 				// Manual/direct control, filled in FW-frame. Note that setpoints will get transformed to body frame prior publishing.
-				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-								  _param_trim_roll.get(), -1.f, 1.f);
-				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() +
-								  _param_trim_pitch.get(), -1.f, 1.f);
-				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-								  _param_trim_yaw.get(), -1.f, 1.f);
+				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param.FW_MAN_R_SC +
+								  _param.TRIM_ROLL, -1.f, 1.f);
+				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param.FW_MAN_P_SC +
+								  _param.TRIM_PITCH, -1.f, 1.f);
+				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param.FW_MAN_Y_SC +
+								  _param.TRIM_YAW, -1.f, 1.f);
 
 				_vehicle_thrust_setpoint.xyz[0] = math::constrain((_manual_control_setpoint.throttle + 1.f) * .5f, 0.f, 1.f);
 			}
@@ -162,9 +162,9 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 				    && (hrt_elapsed_time(&_airspeed_validated_sub.get().timestamp) < 1_s);
 
 	// if no airspeed measurement is available out best guess is to use the trim airspeed
-	float airspeed = _param_fw_airspd_trim.get();
+	float airspeed = _param.FW_AIRSPD_TRIM;
 
-	if (_param_fw_use_airspd.get() && airspeed_valid) {
+	if (_param.FW_USE_AIRSPD && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
 
@@ -181,7 +181,7 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 		// than the stall airspeed
 		if (_vehicle_status.is_vtol && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		    && !_vehicle_status.in_transition_mode) {
-			airspeed = _param_fw_airspd_stall.get();
+			airspeed = _param.FW_AIRSPD_STALL;
 		}
 	}
 
@@ -194,10 +194,10 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 	 */
 
 
-	if (_param_fw_arsp_scale_en.get()) {
-		const float min_airspeed = math::max(_param_fw_airspd_stall.get(), 0.1f);
+	if (_param.FW_ARSP_SCALE_EN) {
+		const float min_airspeed = math::max(_param.FW_AIRSPD_STALL, 0.1f);
 		const float airspeed_constrained = math::max(airspeed, min_airspeed);
-		_airspeed_scaling = _param_fw_airspd_trim.get() / airspeed_constrained;
+		_airspeed_scaling = _param.FW_AIRSPD_TRIM / airspeed_constrained;
 
 	} else {
 		_airspeed_scaling = 1.0f;
@@ -348,27 +348,27 @@ void FixedwingRateControl::Run()
 			}
 
 			/* bi-linear interpolation over airspeed for actuator trim scheduling */
-			Vector3f trim(_param_trim_roll.get(), _param_trim_pitch.get(), _param_trim_yaw.get());
+			Vector3f trim(_param.TRIM_ROLL, _param.TRIM_PITCH, _param.TRIM_YAW);
 			trim *= _airspeed_scaling * _airspeed_scaling;
 
-			if (airspeed < _param_fw_airspd_trim.get()) {
-				trim(0) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
-						       _param_fw_dtrim_r_vmin.get(),
+			if (airspeed < _param.FW_AIRSPD_TRIM) {
+				trim(0) += interpolate(airspeed, _param.FW_AIRSPD_MIN, _param.FW_AIRSPD_TRIM,
+						       _param.FW_DTRIM_R_VMIN,
 						       0.0f);
-				trim(1) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
-						       _param_fw_dtrim_p_vmin.get(),
+				trim(1) += interpolate(airspeed, _param.FW_AIRSPD_MIN, _param.FW_AIRSPD_TRIM,
+						       _param.FW_DTRIM_P_VMIN,
 						       0.0f);
-				trim(2) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
-						       _param_fw_dtrim_y_vmin.get(),
+				trim(2) += interpolate(airspeed, _param.FW_AIRSPD_MIN, _param.FW_AIRSPD_TRIM,
+						       _param.FW_DTRIM_Y_VMIN,
 						       0.0f);
 
 			} else {
-				trim(0) += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-						       _param_fw_dtrim_r_vmax.get());
-				trim(1) += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-						       _param_fw_dtrim_p_vmax.get());
-				trim(2) += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-						       _param_fw_dtrim_y_vmax.get());
+				trim(0) += interpolate(airspeed, _param.FW_AIRSPD_TRIM, _param.FW_AIRSPD_MAX, 0.0f,
+						       _param.FW_DTRIM_R_VMAX);
+				trim(1) += interpolate(airspeed, _param.FW_AIRSPD_TRIM, _param.FW_AIRSPD_MAX, 0.0f,
+						       _param.FW_DTRIM_P_VMAX);
+				trim(2) += interpolate(airspeed, _param.FW_AIRSPD_TRIM, _param.FW_AIRSPD_MAX, 0.0f,
+						       _param.FW_DTRIM_Y_VMAX);
 			}
 
 			if (_vcontrol_mode.flag_control_rates_enabled) {
@@ -381,7 +381,7 @@ void FixedwingRateControl::Run()
 					body_rates_setpoint = Vector3f(-_rates_sp.yaw, _rates_sp.pitch, _rates_sp.roll);
 				}
 
-				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
+				const Vector3f gain_ff(_param.FW_RR_FF, _param.FW_PR_FF, _param.FW_YR_FF);
 
 				// Positive feedforward compensates aerodynamic damping and is scaled linearly with airspeed.
 				// Negative feedforward instead weights down the setpoint acting on the P gain (turning the
@@ -403,8 +403,8 @@ void FixedwingRateControl::Run()
 
 				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_EN is not set then don't rate-control yaw
 				if (!_vcontrol_mode.flag_control_attitude_enabled && _vcontrol_mode.flag_control_manual_enabled
-				    && !_param_fw_acro_yaw_en.get()) {
-					control_u(2) = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
+				    && !_param.FW_ACRO_YAW_EN) {
+					control_u(2) = _manual_control_setpoint.yaw * _param.FW_MAN_Y_SC;
 					_rate_control.resetIntegral(2);
 				}
 
@@ -422,7 +422,7 @@ void FixedwingRateControl::Run()
 				// Motor is stopped by setting the output to NAN (per definition) if the setpoint is invalid.
 				if (PX4_ISFINITE(thrust_setpoint)) {
 					/* scale effort by battery status */
-					if (_param_fw_bat_scale_en.get()) {
+					if (_param.FW_BAT_SCALE_EN) {
 
 						if (_battery_status_sub.updated()) {
 							battery_status_s battery_status{};
@@ -458,7 +458,7 @@ void FixedwingRateControl::Run()
 
 		// Add feed-forward from roll control output to yaw control output
 		// This can be used to counteract the adverse yaw effect when rolling the plane
-		_vehicle_torque_setpoint.xyz[2] = math::constrain(_vehicle_torque_setpoint.xyz[2] + _param_fw_rll_to_yaw_ff.get() *
+		_vehicle_torque_setpoint.xyz[2] = math::constrain(_vehicle_torque_setpoint.xyz[2] + _param.FW_RLL_TO_YAW_FF *
 						  _vehicle_torque_setpoint.xyz[0], -1.f, 1.f);
 
 		// Tailsitter: rotate back to body frame from airspeed frame
@@ -491,7 +491,7 @@ void FixedwingRateControl::Run()
 			// Flaps control
 			float flaps_control = 0.f; // default to no flaps
 
-			switch (_param_fw_flaps_man.get()) { 		// do not consider negative switch settings
+			switch (_param.FW_FLAPS_MAN) { 		// do not consider negative switch settings
 			case 0:
 				break;
 
@@ -534,7 +534,7 @@ void FixedwingRateControl::Run()
 			// Spoilers control
 			float spoilers_control = 0.f; // default to no spoilers
 
-			switch (_param_fw_spoilers_man.get()) {		// do not consider negative switch settings
+			switch (_param.FW_SPOILERS_MAN) {		// do not consider negative switch settings
 			case 0:
 				break;
 

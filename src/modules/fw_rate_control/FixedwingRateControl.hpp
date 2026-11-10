@@ -163,61 +163,61 @@ private:
 	param_t _handle_param_vt_fw_difthr_en{PARAM_INVALID};
 	int32_t _param_vt_fw_difthr_en{0};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::FW_ACRO_X_MAX>) _param_fw_acro_x_max,
-		(ParamFloat<px4::params::FW_ACRO_Y_MAX>) _param_fw_acro_y_max,
-		(ParamFloat<px4::params::FW_ACRO_Z_MAX>) _param_fw_acro_z_max,
-		(ParamInt<px4::params::FW_ACRO_YAW_EN>) _param_fw_acro_yaw_en,
+	PARAMETERS(
+		FW_ACRO_X_MAX,
+		FW_ACRO_Y_MAX,
+		FW_ACRO_Z_MAX,
+		FW_ACRO_YAW_EN,
 
-		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
-		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
-		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
-		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
+		FW_AIRSPD_MAX,
+		FW_AIRSPD_MIN,
+		FW_AIRSPD_STALL,
+		FW_AIRSPD_TRIM,
+		FW_USE_AIRSPD,
 
-		(ParamInt<px4::params::FW_ARSP_SCALE_EN>) _param_fw_arsp_scale_en,
+		FW_ARSP_SCALE_EN,
 
-		(ParamBool<px4::params::FW_BAT_SCALE_EN>) _param_fw_bat_scale_en,
+		FW_BAT_SCALE_EN,
 
-		(ParamFloat<px4::params::FW_DTRIM_P_VMAX>) _param_fw_dtrim_p_vmax,
-		(ParamFloat<px4::params::FW_DTRIM_P_VMIN>) _param_fw_dtrim_p_vmin,
-		(ParamFloat<px4::params::FW_DTRIM_R_VMAX>) _param_fw_dtrim_r_vmax,
-		(ParamFloat<px4::params::FW_DTRIM_R_VMIN>) _param_fw_dtrim_r_vmin,
-		(ParamFloat<px4::params::FW_DTRIM_Y_VMAX>) _param_fw_dtrim_y_vmax,
-		(ParamFloat<px4::params::FW_DTRIM_Y_VMIN>) _param_fw_dtrim_y_vmin,
+		FW_DTRIM_P_VMAX,
+		FW_DTRIM_P_VMIN,
+		FW_DTRIM_R_VMAX,
+		FW_DTRIM_R_VMIN,
+		FW_DTRIM_Y_VMAX,
+		FW_DTRIM_Y_VMIN,
 
-		(ParamBool<px4::params::FW_GC_EN>) _param_fw_gc_en,
-		(ParamFloat<px4::params::FW_GC_GAIN_MIN>) _param_fw_gc_gain_min,
+		FW_GC_EN,
+		FW_GC_GAIN_MIN,
 
-		(ParamFloat<px4::params::FW_MAN_P_SC>) _param_fw_man_p_sc,
-		(ParamFloat<px4::params::FW_MAN_R_SC>) _param_fw_man_r_sc,
-		(ParamFloat<px4::params::FW_MAN_Y_SC>) _param_fw_man_y_sc,
+		FW_MAN_P_SC,
+		FW_MAN_R_SC,
+		FW_MAN_Y_SC,
 
-		(ParamFloat<px4::params::FW_PR_FF>) _param_fw_pr_ff,
-		(ParamFloat<px4::params::FW_PR_I>) _param_fw_pr_i,
-		(ParamFloat<px4::params::FW_PR_IMAX>) _param_fw_pr_imax,
-		(ParamFloat<px4::params::FW_PR_P>) _param_fw_pr_p,
-		(ParamFloat<px4::params::FW_PR_D>) _param_fw_pr_d,
+		FW_PR_FF,
+		FW_PR_I,
+		FW_PR_IMAX,
+		FW_PR_P,
+		FW_PR_D,
 
-		(ParamFloat<px4::params::FW_RLL_TO_YAW_FF>) _param_fw_rll_to_yaw_ff,
-		(ParamFloat<px4::params::FW_RR_FF>) _param_fw_rr_ff,
-		(ParamFloat<px4::params::FW_RR_I>) _param_fw_rr_i,
-		(ParamFloat<px4::params::FW_RR_IMAX>) _param_fw_rr_imax,
-		(ParamFloat<px4::params::FW_RR_P>) _param_fw_rr_p,
-		(ParamFloat<px4::params::FW_RR_D>) _param_fw_rr_d,
+		FW_RLL_TO_YAW_FF,
+		FW_RR_FF,
+		FW_RR_I,
+		FW_RR_IMAX,
+		FW_RR_P,
+		FW_RR_D,
 
-		(ParamFloat<px4::params::FW_YR_FF>) _param_fw_yr_ff,
-		(ParamFloat<px4::params::FW_YR_I>) _param_fw_yr_i,
-		(ParamFloat<px4::params::FW_YR_IMAX>) _param_fw_yr_imax,
-		(ParamFloat<px4::params::FW_YR_P>) _param_fw_yr_p,
-		(ParamFloat<px4::params::FW_YR_D>) _param_fw_yr_d,
+		FW_YR_FF,
+		FW_YR_I,
+		FW_YR_IMAX,
+		FW_YR_P,
+		FW_YR_D,
 
-		(ParamFloat<px4::params::TRIM_PITCH>) _param_trim_pitch,
-		(ParamFloat<px4::params::TRIM_ROLL>) _param_trim_roll,
-		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw,
+		TRIM_PITCH,
+		TRIM_ROLL,
+		TRIM_YAW,
 
-		(ParamInt<px4::params::FW_SPOILERS_MAN>) _param_fw_spoilers_man,
-		(ParamInt<px4::params::FW_FLAPS_MAN>) _param_fw_flaps_man
+		FW_SPOILERS_MAN,
+		FW_FLAPS_MAN
 	)
 
 	RateControl _rate_control; ///< class for rate control calculations
