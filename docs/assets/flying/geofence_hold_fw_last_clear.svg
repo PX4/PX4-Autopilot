@@ -23,24 +23,22 @@ text{font-family:"JetBrains Mono","Menlo","Consolas","DejaVu Sans Mono",monospac
 <line class="fence" x1="400.0" y1="0" x2="400.0" y2="340"/>
 <text x="392.0" y="326" text-anchor="end">fence</text>
 <line class="track" x1="40" y1="170" x2="402" y2="170" marker-end="url(#at)"/>
-<circle class="orbit" cx="250.0" cy="170.0" r="80.0"/>
-<circle class="dok" cx="330.0" cy="170.0" r="3.5"/>
-<circle class="dok" cx="306.6" cy="226.6" r="3.5"/>
-<circle class="dok" cx="250.0" cy="250.0" r="3.5"/>
-<circle class="dok" cx="193.4" cy="226.6" r="3.5"/>
-<circle class="dok" cx="170.0" cy="170.0" r="3.5"/>
-<circle class="dok" cx="193.4" cy="113.4" r="3.5"/>
-<circle class="dok" cx="250.0" cy="90.0" r="3.5"/>
-<circle class="dok" cx="306.6" cy="113.4" r="3.5"/>
-<path class="turn" d="M410 170 A45 45 0 0 1 410 260 L262 250" marker-end="url(#aa)"/>
+<circle class="dim" cx="280.0" cy="170.0" r="120.0" stroke-dasharray="4 4"/>
+<circle class="orbit" cx="280.0" cy="170.0" r="80.0"/>
+<circle class="dok" cx="360.0" cy="170.0" r="3.5"/>
+<circle class="dok" cx="336.6" cy="226.6" r="3.5"/>
+<circle class="dok" cx="280.0" cy="250.0" r="3.5"/>
+<circle class="dok" cx="223.4" cy="226.6" r="3.5"/>
+<circle class="dok" cx="200.0" cy="170.0" r="3.5"/>
+<circle class="dok" cx="223.4" cy="113.4" r="3.5"/>
+<circle class="dok" cx="280.0" cy="90.0" r="3.5"/>
+<circle class="dok" cx="336.6" cy="113.4" r="3.5"/>
+<path class="turn" d="M410 170 A45 45 0 0 1 410 260 L290.0 252" marker-end="url(#aa)"/>
 <circle class="dt" cx="410" cy="170" r="5"/>
 <text x="420" y="160">breach detected</text>
-<path d="M244.0 164.0L256.0 176.0M256.0 164.0L244.0 176.0" stroke="#18211f" stroke-width="2"/>
-<text x="250.0" y="152" text-anchor="middle">new centre</text>
-<line class="dim" x1="250.0" y1="196" x2="410.0" y2="196" marker-start="url(#ad)" marker-end="url(#ad)"/><text x="290.0" y="214" text-anchor="middle" class="muted hi">2R ⟂ fence</text>
-<line class="dim" x1="330.0" y1="60" x2="400.0" y2="60" marker-start="url(#ad)" marker-end="url(#ad)"/><text x="365.0" y="50" text-anchor="middle" class="">≈ 70 m clear</text>
-<line class="dim" x1="330.0" y1="52" x2="330.0" y2="168" stroke-dasharray="2 3"/>
-<line class="dim" x1="400.0" y1="300" x2="455.0" y2="300" marker-start="url(#ad)" marker-end="url(#ad)"/><text x="0.0" y="0" text-anchor="middle" class=""></text>
-<line class="dim" x1="455" y1="215" x2="455" y2="308" stroke-dasharray="2 3"/>
-<text x="465" y="304">turnaround ≈ turn radius</text>
+<path d="M274.0 164.0L286.0 176.0M286.0 164.0L274.0 176.0" stroke="#18211f" stroke-width="2"/>
+<text x="280.0" y="152" text-anchor="middle" class="hi">last clear centre</text>
+<text x="166.0" y="62" class="muted hi">check circle 1.5R</text>
+<line class="dim" x1="360.0" y1="290" x2="400.0" y2="290" marker-start="url(#ad)" marker-end="url(#ad)"/><text x="352.0" y="294" text-anchor="end" class="hi">≈ 40 m clear</text>
+<line class="dim" x1="360.0" y1="180" x2="360.0" y2="298" stroke-dasharray="2 3"/>
 </svg>

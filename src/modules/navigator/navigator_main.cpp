@@ -1297,12 +1297,13 @@ void Navigator::geofence_breach_check()
 					loiter_center_lon = current.lon;
 
 				} else if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-					   && (_geofence_result.geofence_max_dist_triggered || _geofence_result.geofence_custom_fence_triggered)) {
+					   && (_geofence_result.geofence_max_dist_triggered || _geofence_result.geofence_custom_fence_triggered)
+					   && _gf_hold_center_reset_counter == _global_pos.lat_lon_reset_counter
+					   && _geofence.isLoiterCircleInside(_gf_hold_center_lat, _gf_hold_center_lon, get_default_loiter_rad())) {
 					// A fixed-wing orbit centered at the breach point stays half outside the fence.
-					// Move the center inside so the whole circle clears the fence; keep the current position otherwise.
-					const float course = _local_pos.v_xy_valid ? atan2f(_local_pos.vy, _local_pos.vx) : NAN;
-					_geofence.findLoiterCenterInside(_global_pos.lat, _global_pos.lon, course, get_default_loiter_rad(),
-									 loiter_center_lat, loiter_center_lon);
+					// Return to the last position known to fit a whole orbit; keep the current position otherwise.
+					loiter_center_lat = _gf_hold_center_lat;
+					loiter_center_lon = _gf_hold_center_lon;
 				}
 
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -1326,7 +1327,36 @@ void Navigator::geofence_breach_check()
 			_geofence_reposition_sent = false;
 		}
 
+		update_geofence_hold_center(breach, global_position_valid);
+
 		_geofence_result_pub.publish(_geofence_result);
+	}
+}
+
+void Navigator::update_geofence_hold_center(bool breach, bool global_position_valid)
+{
+	// A larger check radius keeps the stored center away from the fence, leaving room for the turn onto the orbit.
+	static constexpr float kHoldCenterCheckRadiusScale = 1.5f;
+
+	// A position reset shifts the estimate relative to the stored center, so it no longer marks where the vehicle was.
+	if (_vstatus.arming_state != vehicle_status_s::ARMING_STATE_ARMED
+	    || _vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	    || _gf_hold_center_reset_counter != _global_pos.lat_lon_reset_counter) {
+		_gf_hold_center_lat = NAN;
+		_gf_hold_center_lon = NAN;
+		_gf_hold_center_reset_counter = _global_pos.lat_lon_reset_counter;
+		return;
+	}
+
+	if (breach || _time_loitering_after_gf_breach > 0 || !global_position_valid
+	    || _geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_LOITER) {
+		return;
+	}
+
+	if (_geofence.isLoiterCircleInside(_global_pos.lat, _global_pos.lon,
+					   kHoldCenterCheckRadiusScale * get_default_loiter_rad())) {
+		_gf_hold_center_lat = _global_pos.lat;
+		_gf_hold_center_lon = _global_pos.lon;
 	}
 }
 
