@@ -35,6 +35,7 @@
  */
 
 #include <math.h>
+#include <stdio.h>
 #include "MessageDisplay.hpp"
 
 namespace msp_osd
@@ -111,23 +112,62 @@ void MessageDisplay::get(char *string, const uint32_t current_time)
 		// full_message = "Flight Mode: " + flight_mode_msg + " - ARMED: " + arming_msg + " - STATUS: " + status_msg + " - WARNING: " + warning_msg + "            ";
 
 		// reset and construct full message
-		strcpy(full_message, "");
-		strncat(full_message, flight_mode_msg, 3);	// first three characters of Flight Mode
-		strcat(full_message, "|");
-		strncat(full_message, arming_msg, 4);		// first four characters of Arming Message
-		strcat(full_message, "|");
-		strncat(full_message, heading_msg, 2);		// first two characters of Heading
+		//
+		// Append through one bounded helper. The previous version used unbounded
+		// strcat() for the separators and for the "   WARN: " prefix, and sized the
+		// warning field from a hard-coded count of the characters written before it
+		// (chars_used = 20). That only stayed inside the buffer because those
+		// literals happen to add up to at most 19 characters: growing any of them by
+		// one would have let the trailing blank loop run past the end of the array.
+		// Keeping the same field reserve but clamping it to the space actually left
+		// makes the bound depend on the real length instead of on that coincidence.
+		const int reserved = 20;	// same field reserve as the old chars_used
+		int offset = 0;
+
+		auto append = [&](const char *src, int max_len) {
+			if (offset >= (int)sizeof(full_message) || max_len <= 0) {
+				return;
+			}
+
+			const int n = snprintf(&full_message[offset], sizeof(full_message) - offset,
+					       "%.*s", max_len, src);
+
+			if (n > 0) {
+				offset += n;
+
+				if (offset >= (int)sizeof(full_message)) {
+					offset = sizeof(full_message) - 1;
+				}
+			}
+		};
+
+		full_message[0] = '\0';
+
+		append(flight_mode_msg, 3);	// first three characters of Flight Mode
+		append("|", 1);
+		append(arming_msg, 4);		// first four characters of Arming Message
+		append("|", 1);
+		append(heading_msg, 2);		// first two characters of Heading
 
 		// add a warning message, if it's not empty
 		if (strlen(warning_msg) != 0) {
 			// copy as much of warning message as we can fit
-			strcat(full_message, "   WARN: ");
-			const size_t chars_used {20};
-			strncat(full_message, warning_msg, MSG_BUFFER_SIZE - chars_used - FULL_MSG_LENGTH - 1);
+			append("   WARN: ", sizeof("   WARN: ") - 1);
+
+			int budget = (int)sizeof(full_message) - reserved - FULL_MSG_LENGTH - 1;
+			const int free_space = (int)sizeof(full_message) - offset - FULL_MSG_LENGTH - 1;
+
+			if (budget > free_space) {
+				budget = free_space;
+			}
+
+			if (budget > 0) {
+				append(warning_msg, budget);
+			}
 
 			// pad with one full length of terminal whitespace
 			for (unsigned i = 0; i != FULL_MSG_LENGTH; ++i) {
-				strcat(full_message, " ");
+				append(" ", 1);
 			}
 		}
 
