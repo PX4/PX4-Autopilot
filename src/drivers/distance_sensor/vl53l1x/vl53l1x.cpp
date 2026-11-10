@@ -285,10 +285,10 @@ void VL53L1X::print_status()
 
 int VL53L1X::probe()
 {
-	uint8_t ret, data;
+	uint8_t ret, data = 0;
 	ret = VL53L1_RdByte(1, &data);
 
-	if ((ret != PX4_OK) | (data != _device_id.devid_s.address)) {
+	if ((ret != PX4_OK) || (data != _device_id.devid_s.address)) {
 		return -EIO;
 	}
 
@@ -542,10 +542,15 @@ int8_t VL53L1X::VL53L1X_CheckForDataReady(uint8_t *isDataReady)
 
 int8_t VL53L1X::VL53L1X_GetInterruptPolarity(uint8_t *pInterruptPolarity)
 {
-	uint8_t Temp;
+	uint8_t Temp = 0;
 	int8_t status = 0;
 
 	status = VL53L1_RdByte(GPIO_HV_MUX__CTRL, &Temp);
+
+	if (status != PX4_OK) {
+		return status;
+	}
+
 	Temp = Temp & 0x10;
 	*pInterruptPolarity = !(Temp >> 4);
 	return status;
@@ -607,10 +612,15 @@ int8_t VL53L1X::VL53L1X_SetInterMeasurementInMs(uint32_t InterMeasMs)
 int8_t VL53L1X::VL53L1X_GetRangeStatus(uint8_t *rangeStatus)
 {
 	int8_t status = 0;
-	uint8_t RgSt;
+	uint8_t RgSt = 0;
 
 	*rangeStatus = 255;
 	status = VL53L1_RdByte(VL53L1_RESULT__RANGE_STATUS, &RgSt);
+
+	if (status != PX4_OK) {
+		return status;
+	}
+
 	RgSt = RgSt & 0x1F;
 
 	if (RgSt < 24) {
