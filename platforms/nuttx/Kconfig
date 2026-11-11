@@ -24,3 +24,18 @@ config BOARD_PWM_FREQ
 	default 1000000 if !ARCH_CHIP_S32K3XX
 	---help---
 		Board default PWM frequency
+
+config UART_BITBANG
+	bool
+	---help---
+		Half-duplex UART on the ESC signal pins (drv_bitbang_uart.h).
+		Selected by the drivers that use it.
+
+config UART_BITBANG_TIMER
+	int "Timer instance for bit-bang UART"
+	depends on UART_BITBANG
+	default 13
+	range 1 17
+	---help---
+		Timer instance to use for bit-bang UART timing mode.
+		Default TIM13.
