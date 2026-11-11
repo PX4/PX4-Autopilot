@@ -675,16 +675,23 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.param3 = cmd_mavlink.param3;
 	vcmd.param4 = cmd_mavlink.param4;
 
-	if (command_has_location(cmd_mavlink.command)
-	    || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
-		if (cmd_mavlink.frame == MAV_FRAME_LOCAL_NED
-		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_ENU
-		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
-		    || cmd_mavlink.frame == MAV_FRAME_BODY_NED        // superseded by BODY_FRD
-		    || cmd_mavlink.frame == MAV_FRAME_BODY_OFFSET_NED // superseded by BODY_FRD
-		    || cmd_mavlink.frame == MAV_FRAME_BODY_FRD
-		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FRD
-		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FLU) {
+	if (cmd_mavlink.x == INT32_MAX && cmd_mavlink.y == INT32_MAX) {
+		// INT32_MAX for x and y means to ignore it.
+		vcmd.param5 = (double)NAN;
+		vcmd.param6 = (double)NAN;
+
+	} else if (command_has_location(cmd_mavlink.command)
+		   || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
+		const bool local_frame = cmd_mavlink.frame == MAV_FRAME_LOCAL_NED
+					 || cmd_mavlink.frame == MAV_FRAME_LOCAL_ENU
+					 || cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
+					 || cmd_mavlink.frame == MAV_FRAME_BODY_NED        // superseded by BODY_FRD
+					 || cmd_mavlink.frame == MAV_FRAME_BODY_OFFSET_NED // superseded by BODY_FRD
+					 || cmd_mavlink.frame == MAV_FRAME_BODY_FRD
+					 || cmd_mavlink.frame == MAV_FRAME_LOCAL_FRD
+					 || cmd_mavlink.frame == MAV_FRAME_LOCAL_FLU;
+
+		if (local_frame) {
 			vcmd.param5 = ((double)cmd_mavlink.x) / 1e4;
 			vcmd.param6 = ((double)cmd_mavlink.y) / 1e4;
 
@@ -709,6 +716,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	}
 
 	vcmd.param7 = cmd_mavlink.z;
+	vcmd.frame = cmd_mavlink.frame;
 	vcmd.command = cmd_mavlink.command;
 	vcmd.target_system = mavlink_target_system(msg, cmd_mavlink.target_system);
 	vcmd.target_component = cmd_mavlink.target_component;

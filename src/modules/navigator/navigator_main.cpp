@@ -787,114 +787,103 @@ void Navigator::run()
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
-				position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
-				// store current position as previous position and goal as next
-				rep->previous.yaw = get_local_position()->heading;
-				rep->previous.lat = get_global_position()->lat;
-				rep->previous.lon = get_global_position()->lon;
-				rep->previous.alt = get_global_position()->alt;
+				const bool local_frame = (cmd.frame == vehicle_command_s::VEHICLE_FRAME_LOCAL_NED);
+
+				position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
 				rep->current.loiter_radius = get_default_loiter_rad();
 				rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 				rep->current.cruising_speed = -1.f; // reset to default
 
-				if (home_global_position_valid()) {
-
-					rep->previous.valid = true;
-					rep->previous.timestamp = hrt_absolute_time();
-
-				} else {
-					rep->previous.valid = false;
-				}
-
 				// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
 				// The yaw setpoint generation is handled by FlightTaskAuto.
 				rep->current.yaw = NAN;
 
-				const bool takeoff_position_valid = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
-								    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON);
-
-				// Fixed-wing: without a takeoff position, a finite yaw field is the course to continue on after the climbout.
-				// A takeoff position takes precedence, as many senders leave an unused yaw field at 0.
-				const bool hold_course = PX4_ISFINITE(cmd.param4) && !takeoff_position_valid
-							 && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-
-				if (takeoff_position_valid) {
-					rep->current.lat = cmd.param5;
-					rep->current.lon = cmd.param6;
-
-				} else {
-					// Use the current position for missing or zero-initialized coordinates
-					rep->current.lat = get_global_position()->lat;
-					rep->current.lon = get_global_position()->lon;
-
-				}
-
 				rep->current.alt = cmd.param7;
-
 				rep->current.valid = true;
 				rep->current.timestamp = hrt_absolute_time();
-
 				rep->next.valid = false;
 
-				// Fixed-wing: vehicle will takeoff towards these coordinates and establish on a loiter there
-				_takeoff.setLoiterPosition(hold_course ? matrix::Vector2d(static_cast<double>(NAN), static_cast<double>(NAN))
-							   : matrix::Vector2d(cmd.param5, cmd.param6));
-				_takeoff.setLoiterAltitudeAmsl(cmd.param7);
-				_takeoff.setHoldCourse(hold_course ? matrix::wrap_pi(math::radians(cmd.param4)) : NAN);
+				if (local_frame) {
+					// store current position as previous position and goal as next
+					rep->previous.yaw = get_local_position()->heading;
+					rep->previous.x = get_local_position()->x;
+					rep->previous.y = get_local_position()->y;
+					rep->previous.alt = get_local_position()->z;
+
+					if (local_position_valid()) {
+
+						rep->previous.valid = true;
+						rep->previous.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+						rep->previous.timestamp = hrt_absolute_time();
+
+					} else {
+						rep->previous.valid = false;
+					}
+
+					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+						rep->current.x = cmd.param5;
+						rep->current.y = cmd.param6;
+
+					} else {
+						// If one of them is non-finite set the current local position as target
+						rep->current.x = static_cast<double>(get_local_position()->x);
+						rep->current.y = static_cast<double>(get_local_position()->y);
+
+					}
+
+					rep->current.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+
+				} else {
+					// store current position as previous position and goal as next
+					rep->previous.yaw = get_local_position()->heading;
+					rep->previous.lat = get_global_position()->lat;
+					rep->previous.lon = get_global_position()->lon;
+					rep->previous.alt = get_global_position()->alt;
+
+					if (home_global_position_valid()) {
+
+						rep->previous.valid = true;
+						rep->previous.timestamp = hrt_absolute_time();
+
+					} else {
+						rep->previous.valid = false;
+					}
+
+					const bool takeoff_position_valid = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
+									    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON);
+
+					// Fixed-wing: without a takeoff position, a finite yaw field is the course to continue on after the climbout.
+					// A takeoff position takes precedence, as many senders leave an unused yaw field at 0.
+					const bool hold_course = PX4_ISFINITE(cmd.param4) && !takeoff_position_valid
+								 && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+					if (takeoff_position_valid) {
+						rep->current.lat = cmd.param5;
+						rep->current.lon = cmd.param6;
+
+					} else {
+						// Use the current position for missing or zero-initialized coordinates
+						rep->current.lat = get_global_position()->lat;
+						rep->current.lon = get_global_position()->lon;
+
+					}
+
+					// Reset explicitly: _takeoff_triplet is a persistent member, and a prior local-frame
+					// takeoff would otherwise leave this stale at FRAME_TYPE_LOCAL, which Takeoff::set_takeoff_position()
+					// uses to decide between AMSL and local-height takeoff altitude logic.
+					rep->current.frame = position_setpoint_s::FRAME_TYPE_GLOBAL;
+
+					// Fixed-wing: vehicle will takeoff towards these coordinates and establish on a loiter there
+					_takeoff.setLoiterPosition(hold_course ? matrix::Vector2d(static_cast<double>(NAN), static_cast<double>(NAN))
+								   : matrix::Vector2d(cmd.param5, cmd.param6));
+					_takeoff.setLoiterAltitudeAmsl(cmd.param7);
+					_takeoff.setHoldCourse(hold_course ? matrix::wrap_pi(math::radians(cmd.param4)) : NAN);
+				}
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
-
-			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL) {
-				position_setpoint_triplet_s *rep = get_takeoff_triplet();
-
-				// store current position as previous position and goal as next
-				rep->previous.yaw = get_local_position()->heading;
-				rep->previous.x = get_local_position()->x;
-				rep->previous.y = get_local_position()->y;
-				rep->previous.alt = get_local_position()->z;
-
-				rep->current.loiter_radius = get_default_loiter_rad();
-				rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
-				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
-				rep->current.cruising_speed = -1.f; // reset to default
-
-				if (local_position_valid()) {
-
-					rep->previous.valid = true;
-					rep->previous.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
-					rep->previous.timestamp = hrt_absolute_time();
-
-				} else {
-					rep->previous.valid = false;
-				}
-
-				// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
-				// The yaw setpoint generation is handled by FlightTaskAuto.
-				rep->current.yaw = NAN;
-
-				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
-					rep->current.x = cmd.param5;
-					rep->current.y = cmd.param6;
-
-				} else {
-					// If one of them is non-finite set the current global position as target
-					rep->current.x = static_cast<double>(get_local_position()->x);
-					rep->current.y = static_cast<double>(get_local_position()->y);
-
-				}
-
-				rep->current.alt = cmd.param7;
-
-				rep->current.valid = true;
-				rep->current.timestamp = hrt_absolute_time();
-				rep->current.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
-
-				rep->next.valid = false;
-
-				// CMD_NAV_TAKEOFF_LOCAL is acknowledged by commander
 
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 

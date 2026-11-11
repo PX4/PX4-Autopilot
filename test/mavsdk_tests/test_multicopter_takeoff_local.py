@@ -1,12 +1,16 @@
 """Local-frame takeoff on a GPS-less multicopter (sihsim_quadx_flow), commanded with
-VEHICLE_CMD_NAV_TAKEOFF_LOCAL, with no global position ever available.
+MAV_CMD_NAV_TAKEOFF in MAV_FRAME_LOCAL_NED, with no global position ever available.
+
+PX4 no longer has a dedicated local-frame takeoff command: a local-frame takeoff is requested by
+sending the ordinary MAV_CMD_NAV_TAKEOFF as a COMMAND_INT with frame = MAV_FRAME_LOCAL_NED,
+rather than by command id. VEHICLE_CMD_NAV_TAKEOFF_LOCAL still exists as a vehicle_command/MAVLink
+enum value, but PX4 no longer dispatches on it.
 
 Unlike test_multicopter_optical_flow.py, nothing here ever gives the estimator an origin (no
 SET_GPS_GLOBAL_ORIGIN), so the vehicle never gets a global position, not even a coarse one.
 Arming on this vehicle normally needs one (whatever mode is selected by default requires it), so
-the takeoff command is sent *before* arming: VEHICLE_CMD_NAV_TAKEOFF_LOCAL only needs a local
-position, and sending it first makes Takeoff (not the default mode) the one arming is checked
-against.
+the takeoff command is sent *before* arming: a local-frame takeoff only needs a local position,
+and sending it first makes Takeoff (not the default mode) the one arming is checked against.
 
 The takeoff's x/y is where the vehicle would loiter once the climb is done, not a horizontal
 target flown to during the climb itself (Takeoff only climbs; FlightTaskAuto only starts moving
@@ -16,11 +20,11 @@ to that Hold, which needs a global position this vehicle never has, so it must l
 holding where Takeoff left it (still above the takeoff point, not at x/y) instead of forcing a
 Hold it cannot execute and getting stuck failing to run it on every subsequent cycle.
 
-MAVSDK's own takeoff() always sends the global MAV_CMD_NAV_TAKEOFF, and PX4 only accepts
-MAV_CMD_NAV_TAKEOFF_LOCAL as a COMMAND_LONG (not as a COMMAND_INT), so the command is built and
-sent by hand here. wait_until_hovering() is skipped too: like is_armable, MAVSDK's landed_state
-(EXTENDED_SYS_STATE) does not reliably update without a global position, so altitude (a plain
-local NED reading) is what the climb is tracked by instead.
+MAVSDK's own takeoff() always sends a plain MAV_CMD_NAV_TAKEOFF with MAV_FRAME_GLOBAL_INT, so the
+command is built and sent by hand here instead, to set MAV_FRAME_LOCAL_NED. wait_until_hovering()
+is skipped too: like is_armable, MAVSDK's landed_state (EXTENDED_SYS_STATE) does not reliably
+update without a global position, so altitude (a plain local NED reading) is what the climb is
+tracked by instead.
 """
 
 import pytest
@@ -28,7 +32,12 @@ from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester_flow import AutopilotTesterFlow
 
-MAV_CMD_NAV_TAKEOFF_LOCAL = 24
+MAV_CMD_NAV_TAKEOFF = 22
+MAV_FRAME_LOCAL_NED = 1
+
+# mavlink_receiver.cpp scales a COMMAND_INT's int32 x/y by 1e4 in a local frame (1e7 is for
+# global lat/lon).
+LOCAL_FRAME_INT_SCALE = 1e4
 
 TAKEOFF_ALTITUDE_M = 10.0
 
@@ -48,9 +57,11 @@ def test_takeoff_local_reaches_altitude_then_lands(tester_flow: AutopilotTesterF
     # Sent before arming: makes Takeoff (local position only) the mode arming is checked
     # against, instead of whatever needs a global position by default.
     # z is NED (down-positive), so the target altitude is negative.
-    tester.send_command_long(
-        MAV_CMD_NAV_TAKEOFF_LOCAL,
-        param5=LOITER_NORTH_M, param6=LOITER_EAST_M, param7=-TAKEOFF_ALTITUDE_M)
+    tester.send_command_int(
+        MAV_CMD_NAV_TAKEOFF, frame=MAV_FRAME_LOCAL_NED,
+        x=round(LOITER_NORTH_M * LOCAL_FRAME_INT_SCALE),
+        y=round(LOITER_EAST_M * LOCAL_FRAME_INT_SCALE),
+        z=-TAKEOFF_ALTITUDE_M)
 
     tester.wait_until_armable()
     tester.arm()
