@@ -47,12 +47,7 @@
 #include <px4_platform_common/time.h>
 #include <systemlib/mavlink_log.h>
 
-#if defined(__PX4_DARWIN)
-#include <sys/param.h>
-#include <sys/mount.h>
-#else
-#include <sys/statfs.h>
-#endif
+#include <px4_platform_common/statfs.h>
 
 #define GPS_EPOCH_SECS ((time_t)1234567890ULL)
 
@@ -71,9 +66,9 @@ bool file_exist(const char *filename)
 
 bool get_free_space(const char *path, uint64_t *avail_bytes, uint64_t *total_bytes)
 {
-	struct statfs statfs_buf;
+	px4_statfs_t statfs_buf;
 
-	if (statfs(path, &statfs_buf) != 0) {
+	if (px4_statfs(path, &statfs_buf) != 0) {
 		return false;
 	}
 
@@ -298,7 +293,13 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 		}
 
 		// Build full path and delete the file
-		snprintf(oldest_file, sizeof(oldest_file), "%s/%s", oldest_dir, oldest_ulg);
+		const int path_len = snprintf(oldest_file, sizeof(oldest_file), "%s/%s", oldest_dir, oldest_ulg);
+
+		if (path_len < 0 || path_len >= (int)sizeof(oldest_file)) {
+			PX4_ERR("log path too long: %s/%s", oldest_dir, oldest_ulg);
+			break;
+		}
+
 		PX4_INFO("removing old log %s/%s", oldest_dir, oldest_ulg);
 
 		if (unlink(oldest_file) != 0) {
