@@ -59,6 +59,11 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
 
+#ifdef CONFIG_SERIALPASSTHROUGH_BITBANG
+#include <board_config.h>
+#include <lib/mixer_module/motor_outputs.hpp>
+#endif
+
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -116,7 +121,22 @@ void SerialPassthrough::run()
 #ifdef CONFIG_SERIALPASSTHROUGH_BITBANG
 
 		// --- Bitbang UART mode (motor signal pin) ---
-		if (bitbang_uart_init(_baudrate, true /* single_wire */) < 0) {
+		// Only the motor outputs are taken over: every ESC line is held high so that its ESC stays
+		// in the bootloader, and an output with another function keeps its driver
+		uint32_t motor_outputs = 0;
+
+		for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; i++) {
+			if (motor_index_of_output(i) >= 0) {
+				motor_outputs |= 1u << i;
+			}
+		}
+
+		if (motor_index_of_output(_esc_channel) < 0) {
+			PX4_ERR("output %d is not assigned to a motor", _esc_channel + 1);
+			return;
+		}
+
+		if (bitbang_uart_init(_baudrate, true /* single_wire */, motor_outputs) < 0) {
 			PX4_ERR("Failed to init bitbang_uart at %u baud", _baudrate);
 			return;
 		}
