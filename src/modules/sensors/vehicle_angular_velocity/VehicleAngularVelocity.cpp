@@ -271,11 +271,14 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 
 		if (_imu_instance >= 0) {
 			// always filter the same gyro, the selection only decides which instance publishes the median
-			device_id = uORB::SubscriptionData<sensor_gyro_s> {ORB_ID(sensor_gyro), (uint8_t)_imu_instance} .get().device_id;
+			const sensor_gyro_s gyro = uORB::SubscriptionData<sensor_gyro_s> {ORB_ID(sensor_gyro), (uint8_t)_imu_instance} .get();
 
-			if (device_id == 0) {
+			// wait quietly while this gyro is missing instead of reporting it on every retry
+			if ((gyro.device_id == 0) || (time_now_us > gyro.timestamp + 1_s)) {
 				return false;
 			}
+
+			device_id = gyro.device_id;
 		}
 
 		if ((_selected_sensor_device_id != device_id) || force) {
