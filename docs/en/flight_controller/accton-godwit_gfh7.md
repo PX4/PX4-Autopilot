@@ -142,7 +142,7 @@ The heater is off by default.
 To enable it, set [SENS_EN_THERMAL](../advanced_config/parameter_reference.md#SENS_EN_THERMAL) to `1` and reboot.
 The target temperature is set by [HEATER1_TEMP](../advanced_config/parameter_reference.md#HEATER1_TEMP), which this board sets to 45 °C.
 
-If you enable the heater, run the [accelerometer calibration](../config/accelerometer.md) only after `heater status` (in the [MAVLink Shell](../debug/mavlink_shell.md)) shows that the sensor temperature has reached the set temperature.
+If you enable the heater, run the [accelerometer calibration](../config/accelerometer.md) only after `heater status` (in the [MAVLink Shell](../debug/mavlink_shell.md)) shows that the sensor temperature has reached the target temperature.
 
 ## Serial Port Mapping {#serial_port_mapping}
 
