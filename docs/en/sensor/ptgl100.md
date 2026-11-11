@@ -5,6 +5,8 @@
 The [JRT PTGL-100](https://www.jrt-measure.com/) is a time-of-flight (ToF) laser [rangefinder](../sensor/rangefinders.md) operating at 905±5 nm, with a specified measurement range of 0.2–100 m (100 m against a 30% reflectance target) and a measurement rate of 100 Hz.
 It connects to the flight controller using a UART (serial) port.
 
+![JRT PTGL-100 module showing its two optical apertures](../../assets/hardware/sensors/ptgl100/ptgl100_hero.jpg)
+
 ::: info
 The driver is not included in the firmware for most boards.
 See [Firmware Support](#firmware_support) for how to check your board and add it.
@@ -31,11 +33,13 @@ The Flycore includes the driver in its default firmware.
 
 ## Where to Buy {#store}
 
-For PTGL-100 purchasing enquiries, contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com), the sales address listed in the manual.
+For PTGL-100 purchasing enquiries, contact Amovlab at [shudajun@amovauto.com](mailto:shudajun@amovauto.com) or JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com).
 
 ## Sensor Configuration {#sensor_configuration}
 
 PTGL-100 modules ship configured for 460800 baud, which is the rate the PX4 driver uses (8N1, no flow control).
+The 115200 baud factory-default value in manual §4.1 is incorrect.
+After purchase, the module can be reconfigured to 115200 baud under JRT's guidance, but it must be set to 460800 baud for use with this PX4 driver.
 The driver doesn't change the module's baud rate.
 To check or change a module's baud rate, contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) for instructions.
 
@@ -62,8 +66,11 @@ If the sensor is fitted behind a protective window, the manual (§3.4) recommend
 
 ### Wiring {#wiring}
 
-The manufacturer's packing list includes one module and one power cable.
-The module has a six-pin `HC-0.8-6PWT` connector (0.8 mm pitch), so an adapter cable is needed to connect it to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25 mm pitch JST-GH connectors).
+The manufacturer's packing list includes one module and one power/data cable.
+The supplied cable has six-pin connectors at both ends for the module's `HC-0.8-6PWT` interface (0.8 mm pitch), and carries power and UART TX/RX.
+It can be used as a module-side pigtail by adapting the flight-controller end to the required connector and pinout.
+An adapter cable is needed to connect to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25 mm pitch JST-GH connectors).
+For Flycore, use its board-specific `TELEM3` pinout shown below.
 
 The PTGL-100 can be connected to any unused serial port (UART), such as `TELEM2`, `TELEM3` or `GPS2`.
 UART signals use 3.3 V TTL levels.
@@ -89,7 +96,8 @@ For example, connect the module to the Flycore [`TELEM3`](../flight_controller/a
 
 Pin 6 (`EN`) must be connected to GND for normal operation.
 You must join module pins 1 and 6 to `TELEM3` pin 3 in the adapter cable.
-The `TELEM3` VCC and GND connections supply power to the module.
+The `TELEM3` VCC pin supplies 5 V, within the module's 3.3–5 V input range.
+This wiring, including `EN` connected to GND, has been tested on Flycore.
 
 Both TX and RX are required because PX4 sends the module a command to start continuous measurement.
 
