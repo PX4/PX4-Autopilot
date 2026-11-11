@@ -1009,11 +1009,26 @@ bool MissionBase::cameraWasTriggeringAtPause()
 		return false;
 	}
 
+	// Only the last camera trigger command before the paused item decides, so read backwards and stop at it.
+	// The items come from the route cache, which the caller checked: Mission's Dataman window would block
+	// on most of them.
+	const MissionRouteCache &route_cache = _navigator->get_mission_route_cache();
 	resetItemCache();
-	updateCachedItemsUpToIndex(_inactivation_index - 1);
+
+	for (int32_t index = _inactivation_index - 1; index >= 0 && _last_camera_trigger_item.nav_cmd == 0; --index) {
+		const mission_item_s *mission_item = route_cache.missionItem(index);
+
+		if (mission_item == nullptr) {
+			break;
+		}
+
+		cacheItem(*mission_item);
+	}
+
 	const bool camera_was_triggering = cameraWasTriggering();
 
-	// Leave the action cache empty (resetItemCache() keeps the speed item); on_activation() refills it past item 0.
+	// Leave the action cache empty: it was filled backwards, and on_activation() refills it.
+	// resetItemCache() keeps the speed item.
 	resetItemCache();
 	_last_speed_change_item = {};
 	return camera_was_triggering;

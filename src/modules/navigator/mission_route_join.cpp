@@ -66,8 +66,7 @@ bool Mission::trySetRouteJoinOnActivation()
 	    || !_is_current_planned_mission_item_valid
 	    || _land_detected_sub.get().landed
 	    || (_mission.count < 2)
-	    || (_mission.current_seq < 0)
-	    || cameraWasTriggeringAtPause()) {
+	    || (_mission.current_seq < 0)) {
 		return false;
 	}
 
@@ -84,6 +83,11 @@ bool Mission::trySetRouteJoinOnActivation()
 
 	if (!mission_route_cache.missionItemsReady(_mission)) {
 		return fall_back("route cache not ready");
+	}
+
+	// The camera survey rewind of MissionBase::on_activation() wins over the join.
+	if (cameraWasTriggeringAtPause()) {
+		return false;
 	}
 
 	const vehicle_global_position_s &global_position = _global_pos_sub.get();
