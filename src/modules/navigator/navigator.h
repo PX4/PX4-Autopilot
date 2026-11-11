@@ -508,7 +508,7 @@ private:
 	bool geofence_allows_position(const vehicle_global_position_s &pos);
 
 	/** True if a commanded target keeps clear of the geofence margin; tells the operator otherwise. */
-	bool geofence_margin_allows_target(const vehicle_command_s &cmd);
+	bool geofence_margin_allows_target(const vehicle_global_position_s &target);
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */

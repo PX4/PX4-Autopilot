@@ -417,7 +417,7 @@ void Navigator::run()
 
 				const bool fence_allows_position = geofence_allows_position(position_setpoint);
 
-				if (fence_allows_position && geofence_margin_allows_target(cmd)) {
+				if (fence_allows_position && geofence_margin_allows_target(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
@@ -701,7 +701,7 @@ void Navigator::run()
 
 				const bool fence_allows_position = geofence_allows_position(position_setpoint);
 
-				if (fence_allows_position && geofence_margin_allows_target(cmd)) {
+				if (fence_allows_position && geofence_margin_allows_target(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_radius = get_default_loiter_rad();
@@ -751,7 +751,7 @@ void Navigator::run()
 
 				const bool fence_allows_position = geofence_allows_position(position_setpoint);
 
-				if (fence_allows_position && geofence_margin_allows_target(cmd)) {
+				if (fence_allows_position && geofence_margin_allows_target(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_minor_radius = fabsf(get_default_loiter_rad());
@@ -1895,15 +1895,16 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	return true;
 }
 
-bool Navigator::geofence_margin_allows_target(const vehicle_command_s &cmd)
+bool Navigator::geofence_margin_allows_target(const vehicle_global_position_s &target)
 {
-	// A command without a position keeps the vehicle where it is.
+	// A command without a position targets the vehicle position, which keeps the vehicle where it is.
 	// Only the target itself is checked, not the path to it or a loiter around it.
 	const uint8_t action = _geofence.getMarginAction();
+	const bool keeps_position = fabs(target.lat - _global_pos.lat) < DBL_EPSILON
+				    && fabs(target.lon - _global_pos.lon) < DBL_EPSILON;
 
-	if (!PX4_ISFINITE(cmd.param5) || !PX4_ISFINITE(cmd.param6)
-	    || action == geofence_result_s::GF_ACTION_NONE || action == geofence_result_s::GF_ACTION_WARN
-	    || _geofence.isClearOfMargin(cmd.param5, cmd.param6)) {
+	if (keeps_position || action == geofence_result_s::GF_ACTION_NONE || action == geofence_result_s::GF_ACTION_WARN
+	    || _geofence.isClearOfMargin(target.lat, target.lon)) {
 		return true;
 	}
 
