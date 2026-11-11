@@ -71,6 +71,19 @@ void px4_log_error(const char *moduleName, const char *fmt, ...)
 
 __END_DECLS
 
+// friend of TerrainDem, gives the tests access to its private metadata
+class TerrainDemTest : public testing::Test
+{
+public:
+	static void registerTiffTags() { TerrainDem::registerTiffTags(); }
+	static constexpr unsigned kTiffTagGdalNodata = TerrainDem::kTiffTagGdalNodata;
+
+	static int epsg(const TerrainDem &dem) { return dem.epsg(); }
+	static int width(const TerrainDem &dem) { return dem.width(); }
+	static int height(const TerrainDem &dem) { return dem.height(); }
+	static float cellSizeM(const TerrainDem &dem) { return dem.cellSizeM(); }
+};
+
 namespace
 {
 
@@ -108,7 +121,7 @@ void writeSample(uint8_t *buffer, size_t index, const TiffSpec &spec, double val
 
 std::string writeTiff(const std::string &name, const TiffSpec &spec, const ValueFn &value)
 {
-	TerrainDem::registerTiffTags();
+	TerrainDemTest::registerTiffTags();
 
 	const std::string path = testing::TempDir() + name;
 	TIFF *tif = XTIFFOpen(path.c_str(), "w");
@@ -136,7 +149,7 @@ std::string writeTiff(const std::string &name, const TiffSpec &spec, const Value
 	}
 
 	if (spec.nodata) {
-		TIFFSetField(tif, TerrainDem::kTiffTagGdalNodata, spec.nodata);
+		TIFFSetField(tif, TerrainDemTest::kTiffTagGdalNodata, spec.nodata);
 	}
 
 	double tiepoint[6] = {0., 0., 0., spec.corner_x, spec.corner_y, 0.};
@@ -199,49 +212,48 @@ double ramp(uint32_t col, uint32_t row) { return 400. + 10. * col + 100. * row; 
 
 } // namespace
 
-TEST(TerrainDemTest, MissingFile)
+TEST_F(TerrainDemTest, MissingFile)
 {
-	TerrainDem dem;
-	EXPECT_FALSE(dem.load("/nonexistent/dem.tif"));
+	TerrainDem dem("/nonexistent/dem.tif");
 	EXPECT_FALSE(dem.loaded());
 }
 
-TEST(TerrainDemTest, GeographicFloat32)
+TEST_F(TerrainDemTest, GeographicFloat32)
 {
 	const TiffSpec spec{};
-	TerrainDem dem;
-	ASSERT_TRUE(dem.load(writeTiff("float32.tif", spec, ramp).c_str()));
-	EXPECT_EQ(dem.epsg(), 4326);
-	EXPECT_EQ(dem.width(), 3);
-	EXPECT_EQ(dem.height(), 3);
+	TerrainDem dem(writeTiff("float32.tif", spec, ramp).c_str());
+	ASSERT_TRUE(dem.loaded());
+	EXPECT_EQ(epsg(dem), 4326);
+	EXPECT_EQ(width(dem), 3);
+	EXPECT_EQ(height(dem), 3);
 
 	float alt = 0.f;
 
 	// cell centres
 	for (uint32_t row = 0; row < spec.height; row++) {
 		for (uint32_t col = 0; col < spec.width; col++) {
-			ASSERT_TRUE(dem.elevation(pixelLat(spec, row), pixelLon(spec, col), alt));
+			ASSERT_TRUE(dem.altitude(pixelLat(spec, row), pixelLon(spec, col), alt));
 			EXPECT_FLOAT_EQ(alt, ramp(col, row));
 		}
 	}
 
 	// bilinear between cell centres
-	ASSERT_TRUE(dem.elevation(pixelLat(spec, 0.5), pixelLon(spec, 1.25), alt));
+	ASSERT_TRUE(dem.altitude(pixelLat(spec, 0.5), pixelLon(spec, 1.25), alt));
 	EXPECT_NEAR(alt, 400. + 12.5 + 50., 1e-3);
 
 	// within the outer half cell the edge value is used
-	ASSERT_TRUE(dem.elevation(spec.corner_y - 0.001, spec.corner_x + 0.001, alt));
+	ASSERT_TRUE(dem.altitude(spec.corner_y - 0.001, spec.corner_x + 0.001, alt));
 	EXPECT_FLOAT_EQ(alt, ramp(0, 0));
 
 	// outside
-	EXPECT_FALSE(dem.elevation(spec.corner_y + 0.001, pixelLon(spec, 1), alt));
-	EXPECT_FALSE(dem.elevation(pixelLat(spec, 1), spec.corner_x + 0.031, alt));
-	EXPECT_FALSE(dem.elevation(NAN, NAN, alt));
+	EXPECT_FALSE(dem.altitude(spec.corner_y + 0.001, pixelLon(spec, 1), alt));
+	EXPECT_FALSE(dem.altitude(pixelLat(spec, 1), spec.corner_x + 0.031, alt));
+	EXPECT_FALSE(dem.altitude(NAN, NAN, alt));
 
-	EXPECT_NEAR(dem.cellSizeM(), 0.01 * 6371000. * M_PI / 180. * cos(46.985 * M_PI / 180.), 1.);
+	EXPECT_NEAR(cellSizeM(dem), 0.01 * 6371000. * M_PI / 180. * cos(46.985 * M_PI / 180.), 1.);
 }
 
-TEST(TerrainDemTest, Int16LzwTiled)
+TEST_F(TerrainDemTest, Int16LzwTiled)
 {
 	TiffSpec spec{};
 	spec.width = 21; // partial tiles
@@ -251,76 +263,75 @@ TEST(TerrainDemTest, Int16LzwTiled)
 	spec.compression = COMPRESSION_LZW;
 	spec.tile = 16;
 
-	TerrainDem dem;
-	ASSERT_TRUE(dem.load(writeTiff("int16_lzw_tiled.tif", spec, ramp).c_str()));
+	TerrainDem dem(writeTiff("int16_lzw_tiled.tif", spec, ramp).c_str());
+	ASSERT_TRUE(dem.loaded());
 
 	float alt = 0.f;
 	const uint32_t points[][2] = {{0, 0}, {15, 15}, {16, 16}, {20, 18}, {17, 3}};
 
 	for (const auto &p : points) {
-		ASSERT_TRUE(dem.elevation(pixelLat(spec, p[1]), pixelLon(spec, p[0]), alt));
+		ASSERT_TRUE(dem.altitude(pixelLat(spec, p[1]), pixelLon(spec, p[0]), alt));
 		EXPECT_FLOAT_EQ(alt, ramp(p[0], p[1]));
 	}
 
-	ASSERT_TRUE(dem.elevation(pixelLat(spec, 15.5), pixelLon(spec, 15.5), alt));
+	ASSERT_TRUE(dem.altitude(pixelLat(spec, 15.5), pixelLon(spec, 15.5), alt));
 	EXPECT_NEAR(alt, 400. + 155. + 1550., 1e-2);
 }
 
-TEST(TerrainDemTest, PixelIsPoint)
+TEST_F(TerrainDemTest, PixelIsPoint)
 {
 	TiffSpec spec{};
 	spec.pixel_is_point = true;
 
-	TerrainDem dem;
-	ASSERT_TRUE(dem.load(writeTiff("pixel_is_point.tif", spec, ramp).c_str()));
+	TerrainDem dem(writeTiff("pixel_is_point.tif", spec, ramp).c_str());
+	ASSERT_TRUE(dem.loaded());
 
 	// the tiepoint is the centre of pixel (0, 0)
 	float alt = 0.f;
-	ASSERT_TRUE(dem.elevation(spec.corner_y, spec.corner_x, alt));
+	ASSERT_TRUE(dem.altitude(spec.corner_y, spec.corner_x, alt));
 	EXPECT_FLOAT_EQ(alt, ramp(0, 0));
-	ASSERT_TRUE(dem.elevation(spec.corner_y - 2. * spec.scale_y, spec.corner_x + 2. * spec.scale_x, alt));
+	ASSERT_TRUE(dem.altitude(spec.corner_y - 2. * spec.scale_y, spec.corner_x + 2. * spec.scale_x, alt));
 	EXPECT_FLOAT_EQ(alt, ramp(2, 2));
 }
 
-TEST(TerrainDemTest, Nodata)
+TEST_F(TerrainDemTest, Nodata)
 {
 	TiffSpec spec{};
 	spec.width = 4;
 	spec.nodata = "-9999";
 
-	TerrainDem dem;
-	ASSERT_TRUE(dem.load(writeTiff("nodata.tif", spec, [](uint32_t col, uint32_t row) {
+	TerrainDem dem(writeTiff("nodata.tif", spec, [](uint32_t col, uint32_t row) {
 		return (col == 3 && row == 2) ? -9999. : ramp(col, row);
-	}).c_str()));
+	}).c_str());
+	ASSERT_TRUE(dem.loaded());
 
 	float alt = 0.f;
-	EXPECT_TRUE(dem.elevation(pixelLat(spec, 0.5), pixelLon(spec, 0.5), alt));
-	EXPECT_TRUE(dem.elevation(pixelLat(spec, 1), pixelLon(spec, 2), alt));
+	EXPECT_TRUE(dem.altitude(pixelLat(spec, 0.5), pixelLon(spec, 0.5), alt));
+	EXPECT_TRUE(dem.altitude(pixelLat(spec, 1), pixelLon(spec, 2), alt));
 	// interpolating with the nodata cell
-	EXPECT_FALSE(dem.elevation(pixelLat(spec, 1.5), pixelLon(spec, 2.5), alt));
-	EXPECT_FALSE(dem.elevation(pixelLat(spec, 2), pixelLon(spec, 3), alt));
+	EXPECT_FALSE(dem.altitude(pixelLat(spec, 1.5), pixelLon(spec, 2.5), alt));
+	EXPECT_FALSE(dem.altitude(pixelLat(spec, 2), pixelLon(spec, 3), alt));
 }
 
-TEST(TerrainDemTest, RejectsMultipleBands)
+TEST_F(TerrainDemTest, RejectsMultipleBands)
 {
 	TiffSpec spec{};
 	spec.bands = 3;
 
-	TerrainDem dem;
-	EXPECT_FALSE(dem.load(writeTiff("rgb.tif", spec, ramp).c_str()));
+	TerrainDem dem(writeTiff("rgb.tif", spec, ramp).c_str());
 	EXPECT_FALSE(dem.loaded());
 }
 
-TEST(TerrainDemTest, RejectsUserDefinedCrs)
+TEST_F(TerrainDemTest, RejectsUserDefinedCrs)
 {
 	TiffSpec spec{};
 	spec.epsg = KvUserDefined;
 
-	TerrainDem dem;
-	EXPECT_FALSE(dem.load(writeTiff("user_defined.tif", spec, ramp).c_str()));
+	TerrainDem dem(writeTiff("user_defined.tif", spec, ramp).c_str());
+	EXPECT_FALSE(dem.loaded());
 }
 
-TEST(TerrainDemTest, ProjectedUtm)
+TEST_F(TerrainDemTest, ProjectedUtm)
 {
 	// 1 km x 1 km at 10 m in UTM zone 32N (EPSG:32632) around Zurich, a plane rising towards north-east
 	TiffSpec spec{};
@@ -337,19 +348,19 @@ TEST(TerrainDemTest, ProjectedUtm)
 		return 500. + 0.1 * (easting - 465000.) + 0.05 * (northing - 5249000.);
 	};
 
-	TerrainDem dem;
-	ASSERT_TRUE(dem.load(writeTiff("utm.tif", spec, [&](uint32_t col, uint32_t row) {
+	TerrainDem dem(writeTiff("utm.tif", spec, [&](uint32_t col, uint32_t row) {
 		return plane(spec.corner_x + (col + 0.5) * spec.scale_x, spec.corner_y - (row + 0.5) * spec.scale_y);
-	}).c_str()));
+	}).c_str());
+	ASSERT_TRUE(dem.loaded());
 
-	EXPECT_EQ(dem.epsg(), 32632);
-	EXPECT_NEAR(dem.cellSizeM(), 10.f, 0.5f);
+	EXPECT_EQ(epsg(dem), 32632);
+	EXPECT_NEAR(cellSizeM(dem), 10.f, 0.5f);
 
 	// UTM 32N E 465500 N 5249500 (centre of the raster) is 47.3980425 N, 8.5427984 E (cs2cs EPSG:32632 EPSG:4326)
 	float alt = 0.f;
-	ASSERT_TRUE(dem.elevation(47.3980425, 8.5427984, alt));
+	ASSERT_TRUE(dem.altitude(47.3980425, 8.5427984, alt));
 	EXPECT_NEAR(alt, plane(465500., 5249500.), 0.5);
 
 	// outside the raster
-	EXPECT_FALSE(dem.elevation(47.40, 8.70, alt));
+	EXPECT_FALSE(dem.altitude(47.40, 8.70, alt));
 }

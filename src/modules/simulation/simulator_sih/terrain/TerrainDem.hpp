@@ -37,7 +37,7 @@
  *
  * The raster is read with libtiff/libgeotiff. A DEM in any CRS with an EPSG code is
  * resampled once at load time with PROJ onto a regular WGS84 lat/lon grid, so that
- * elevation() is a cheap bilinear lookup in the simulation loop.
+ * altitude() is a cheap bilinear lookup in the simulation loop.
  */
 
 #pragma once
@@ -50,7 +50,12 @@
 class TerrainDem : public TerrainBase
 {
 public:
-	/** DEM elevation, the default altitude outside the DEM */
+	/** load a single-band GeoTIFF DEM, check loaded() for the result (the reason of a failure is printed) */
+	explicit TerrainDem(const char *path) { load(path); }
+
+	bool loaded() const { return !_grid.data.empty(); }
+
+	/** DEM elevation interpolated bilinearly, the default altitude outside the DEM or next to a nodata cell */
 	bool altitude(double lat_deg, double lon_deg, float &alt) const override;
 
 	/** march along the ray, sampling each DEM cell at least twice */
@@ -59,19 +64,10 @@ public:
 
 	void printStatus() const override;
 
-	/**
-	 * Load a single-band GeoTIFF DEM.
-	 * @return false (and print the reason) if the file cannot be used
-	 */
+private:
+	friend class TerrainDemTest; // unit test, writes GeoTIFF files and checks the parsed metadata
+
 	bool load(const char *path);
-
-	/**
-	 * Terrain elevation [m AMSL] at a WGS84 position, interpolated bilinearly.
-	 * @return false outside the DEM or next to a nodata cell
-	 */
-	bool elevation(double lat_deg, double lon_deg, float &alt) const;
-
-	bool loaded() const { return !_grid.data.empty(); }
 
 	/** smallest grid spacing [m] */
 	float cellSizeM() const { return _cell_size_m; }
@@ -86,12 +82,11 @@ public:
 	double lonMin() const { return _grid.x0; }
 	double lonMax() const { return _grid.x0 + (_grid.width - 1) * _grid.dx; }
 
-	/** register the GDAL_NODATA TIFF tag with libtiff (done by load(), public for writing test files) */
+	/** register the GDAL_NODATA TIFF tag with libtiff */
 	static void registerTiffTags();
 
 	static constexpr unsigned kTiffTagGdalNodata = 42113;
 
-private:
 	// regular raster, value of cell (col, row) at x = x0 + col * dx, y = y0 + row * dy
 	struct Grid {
 		std::vector<float> data; // row-major, NAN for nodata

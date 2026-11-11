@@ -58,14 +58,12 @@ constexpr const char *kConvertHint =
 	"convert with: gdalwarp -t_srs EPSG:4326 -ot Float32 -co COMPRESS=LZW <in> <out.tif>";
 
 TIFFExtendProc parent_tag_extender = nullptr;
+const TIFFFieldInfo *custom_field_info = nullptr; // set by TerrainDem::registerTiffTags()
+int custom_field_count = 0;
 
 void tagExtender(TIFF *tif)
 {
-	static const TIFFFieldInfo field_info[] = {
-		{TerrainDem::kTiffTagGdalNodata, -1, -1, TIFF_ASCII, FIELD_CUSTOM, 1, 0, const_cast<char *>("GDALNoDataValue")},
-	};
-
-	TIFFMergeFieldInfo(tif, field_info, sizeof(field_info) / sizeof(field_info[0]));
+	TIFFMergeFieldInfo(tif, custom_field_info, custom_field_count);
 
 	if (parent_tag_extender) {
 		parent_tag_extender(tif);
@@ -132,10 +130,16 @@ bool sampleReader(uint16_t bits, uint16_t format, float ( *&read)(const uint8_t 
 
 void TerrainDem::registerTiffTags()
 {
+	static const TIFFFieldInfo field_info[] = {
+		{kTiffTagGdalNodata, -1, -1, TIFF_ASCII, FIELD_CUSTOM, 1, 0, const_cast<char *>("GDALNoDataValue")},
+	};
+
 	static bool registered = false;
 
 	if (!registered) {
 		registered = true;
+		custom_field_info = field_info;
+		custom_field_count = sizeof(field_info) / sizeof(field_info[0]);
 		parent_tag_extender = TIFFSetTagExtender(tagExtender);
 	}
 }
@@ -500,14 +504,9 @@ bool TerrainDem::resampleToWgs84(const Grid &src)
 	return true;
 }
 
-bool TerrainDem::elevation(double lat_deg, double lon_deg, float &alt) const
-{
-	return loaded() && _grid.sample(lon_deg, lat_deg, alt);
-}
-
 bool TerrainDem::altitude(double lat_deg, double lon_deg, float &alt) const
 {
-	if (elevation(lat_deg, lon_deg, alt)) {
+	if (loaded() && _grid.sample(lon_deg, lat_deg, alt)) {
 		return true;
 	}
 

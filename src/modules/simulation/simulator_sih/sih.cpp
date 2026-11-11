@@ -113,27 +113,6 @@ void Sih::run()
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
 
-	const bool terrain_supported = _vehicle == VehicleType::Quadcopter
-				       || _vehicle == VehicleType::Hexacopter
-				       || _vehicle == VehicleType::FixedWing
-				       || _vehicle == VehicleType::TailsitterVTOL
-				       || _vehicle == VehicleType::StandardVTOL;
-
-	// _terrain is the terrain model loaded at start, if any
-	if (!_terrain || !terrain_supported) {
-		if (_terrain) {
-			PX4_WARN("terrain is not supported for SIH_VEHICLE_TYPE %" PRId32 ", using flat ground", _sih_vtype.get());
-			delete _terrain;
-		}
-
-		_terrain = new TerrainFlat();
-
-		if (!_terrain) {
-			PX4_ERR("terrain alloc failed");
-			return;
-		}
-	}
-
 	parameters_updated();
 
 	if (_sih_optical_flow_en.get()) {
@@ -1416,26 +1395,8 @@ int Sih::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
-TerrainBase *Sih::load_terrain(const char *path)
+TerrainBase *Sih::load_terrain(int argc, char *argv[])
 {
-#if defined(SIH_TERRAIN_DEM)
-	TerrainDem *dem = new TerrainDem();
-
-	if (dem && !dem->load(path)) {
-		delete dem;
-		dem = nullptr;
-	}
-
-	return dem;
-#else
-	PX4_ERR("terrain not supported, PX4 was built without libtiff, libgeotiff or PROJ");
-	return nullptr;
-#endif
-}
-
-int Sih::task_spawn(int argc, char *argv[])
-{
-#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
@@ -1449,20 +1410,59 @@ int Sih::task_spawn(int argc, char *argv[])
 
 		default:
 			print_usage("unrecognized flag");
-			return -1;
+			return nullptr;
 		}
 	}
+
+	TerrainBase *terrain = nullptr;
 
 	if (terrain_path) {
-		// load here rather than in the SIH task, which has a small stack, and to fail the start command on error
-		_terrain_loaded = load_terrain(terrain_path);
+#if defined(SIH_TERRAIN_DEM)
+		int32_t vehicle_type = 0;
+		param_get(param_find("SIH_VEHICLE_TYPE"), &vehicle_type);
+		const VehicleType vehicle = static_cast<VehicleType>(vehicle_type);
 
-		if (!_terrain_loaded) {
-			return -1;
+		if (vehicle != VehicleType::Quadcopter
+		    && vehicle != VehicleType::Hexacopter
+		    && vehicle != VehicleType::FixedWing
+		    && vehicle != VehicleType::TailsitterVTOL
+		    && vehicle != VehicleType::StandardVTOL) {
+			PX4_WARN("terrain is not supported for SIH_VEHICLE_TYPE %" PRId32 ", using flat ground", vehicle_type);
+			terrain = new TerrainFlat();
 		}
+		else {
+			TerrainDem *dem = new TerrainDem(terrain_path);
+
+			if (dem && !dem->loaded()) {
+				delete dem;
+				return nullptr;
+			}
+
+			terrain = dem;
+		}
+#else
+		PX4_ERR("terrain not supported, PX4 was built without libtiff, libgeotiff or PROJ");
+		return nullptr;
+#endif
+
+	} else {
+		terrain = new TerrainFlat();
 	}
 
-#endif // CONFIG_ARCH_BOARD_PX4_SITL
+	if (!terrain) {
+		PX4_ERR("terrain alloc failed");
+	}
+
+	return terrain;
+}
+
+int Sih::task_spawn(int argc, char *argv[])
+{
+	_terrain_loaded = load_terrain(argc, argv);
+
+	if (!_terrain_loaded) {
+		return -1;
+	}
 
 	desc.task_id = px4_task_spawn_cmd("sih",
 					  SCHED_DEFAULT,

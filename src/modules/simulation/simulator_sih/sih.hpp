@@ -256,11 +256,12 @@ private:
 	// body down axis does not point at the ground or nothing is hit within max_distance
 	float ground_distance(float max_distance) const;
 
-	// load a terrain model file, nullptr (and print the reason) on error
-	static TerrainBase *load_terrain(const char *path);
+	// terrain from the start arguments: the -t DEM if supported by the vehicle, flat otherwise
+	// nullptr (and print the reason) on error
+	static TerrainBase *load_terrain(int argc, char *argv[]);
 
 	static inline TerrainBase *_terrain_loaded{nullptr}; // loaded by task_spawn(), handed over to the instance
-	TerrainBase *_terrain{nullptr}; // owned, terrain in use, set by run()
+	TerrainBase *_terrain{nullptr}; // owned, terrain in use, never null once instantiated
 	bool _terrain_outside{false}; // vehicle outside the terrain data
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
