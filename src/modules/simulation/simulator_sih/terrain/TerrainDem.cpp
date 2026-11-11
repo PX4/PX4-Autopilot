@@ -33,6 +33,7 @@
 
 #include "TerrainDem.hpp"
 
+#include <lib/geo/geo.h>
 #include <px4_platform_common/log.h>
 
 #include <geotiff.h>
@@ -368,9 +369,7 @@ bool TerrainDem::load(const char *path)
 		return false;
 	}
 
-	PX4_INFO("terrain: loaded %s (EPSG:%d), %dx%d cells of %.1f m, lat [%.5f, %.5f] lon [%.5f, %.5f]",
-		 path, _epsg, _grid.width, _grid.height, static_cast<double>(_cell_size_m),
-		 latMin(), latMax(), lonMin(), lonMax());
+	printStatus();
 
 	return true;
 }
@@ -504,4 +503,64 @@ bool TerrainDem::resampleToWgs84(const Grid &src)
 bool TerrainDem::elevation(double lat_deg, double lon_deg, float &alt) const
 {
 	return loaded() && _grid.sample(lon_deg, lat_deg, alt);
+}
+
+bool TerrainDem::altitude(double lat_deg, double lon_deg, float &alt) const
+{
+	if (elevation(lat_deg, lon_deg, alt)) {
+		return true;
+	}
+
+	alt = _default_alt;
+	return false;
+}
+
+float TerrainDem::rayDistance(double lat_deg, double lon_deg, float alt, const matrix::Vector3f &dir_ned,
+			      float max_distance) const
+{
+	if (dir_ned(2) <= 0.f) {
+		return NAN;
+	}
+
+	float ground_alt;
+	altitude(lat_deg, lon_deg, ground_alt);
+	float prev_height = alt - ground_alt; // height above the terrain along the ray
+
+	if (prev_height <= 0.f) {
+		return 0.f;
+	}
+
+	MapProjection ref{lat_deg, lon_deg};
+
+	// sample each DEM cell at least twice, the bilinear terrain is then followed within centimetres
+	static constexpr float STEPS_PER_CELL = 2.f;
+	static constexpr float MAX_STEP = 1.f; // [m]
+	const float step = std::min(_cell_size_m / STEPS_PER_CELL, MAX_STEP);
+	float prev_distance = 0.f;
+
+	for (float distance = step; distance < max_distance + step; distance += step) {
+		const matrix::Vector3f point = dir_ned * distance;
+		double lat;
+		double lon;
+		ref.reproject(point(0), point(1), lat, lon);
+		altitude(lat, lon, ground_alt);
+		const float height = (alt - point(2)) - ground_alt;
+
+		if (height <= 0.f) {
+			// interpolate the crossing between the last two samples
+			return prev_distance + (distance - prev_distance) * prev_height / (prev_height - height);
+		}
+
+		prev_distance = distance;
+		prev_height = height;
+	}
+
+	return NAN;
+}
+
+void TerrainDem::printStatus() const
+{
+	PX4_INFO("terrain: %s", path());
+	PX4_INFO("terrain: EPSG:%d, %dx%d cells of %.1f m", epsg(), width(), height(), (double)_cell_size_m);
+	PX4_INFO("terrain: lat [%.5f, %.5f] lon [%.5f, %.5f]", latMin(), latMax(), lonMin(), lonMax());
 }

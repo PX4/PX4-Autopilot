@@ -61,14 +61,14 @@ if(${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL} STREQUAL "px4_sitl")
 
 		px4_add_library(sih_terrain terrain/TerrainDem.cpp)
 		target_include_directories(sih_terrain PRIVATE ${GEOTIFF_INCLUDE_DIR})
-		target_link_libraries(sih_terrain PRIVATE ${GEOTIFF_LIBRARY} TIFF::TIFF PROJ::proj)
+		target_link_libraries(sih_terrain PRIVATE ${GEOTIFF_LIBRARY} TIFF::TIFF PROJ::proj geo)
 
 		target_link_libraries(modules__simulation__simulator_sih PRIVATE sih_terrain)
 		target_compile_definitions(modules__simulation__simulator_sih PRIVATE SIH_TERRAIN_DEM)
 
 		px4_add_unit_gtest(SRC terrain/TerrainDemTest.cpp
 			INCLUDES ${GEOTIFF_INCLUDE_DIR}
-			LINKLIBS sih_terrain ${GEOTIFF_LIBRARY} TIFF::TIFF
+			LINKLIBS sih_terrain geo ${GEOTIFF_LIBRARY} TIFF::TIFF
 		)
 
 	else()

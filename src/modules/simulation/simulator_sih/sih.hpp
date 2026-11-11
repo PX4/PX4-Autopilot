@@ -92,11 +92,7 @@
 #include <sys/time.h>
 #endif
 
-#if defined(SIH_TERRAIN_DEM)
-#include <memory>
-
-#include "terrain/TerrainDem.hpp"
-#endif
+#include "terrain/TerrainFlat.hpp"
 
 using namespace time_literals;
 
@@ -226,10 +222,6 @@ private:
 	void send_optical_flow(const hrt_abstime &time_now_us);
 	void send_ranging_beacon(const hrt_abstime &time_now_us);
 
-	// distance from the vehicle to the ground measured along the body down axis, NAN if the
-	// body down axis does not point at the ground anymore
-	float ground_distance() const;
-
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
@@ -259,18 +251,17 @@ private:
 	float _orient_yaw{0.f};	// heading kept while posing
 #endif // __PX4_POSIX
 
-	// ground altitude [m AMSL] at a position, flat at the origin altitude unless a DEM is in use
-	float terrain_alt(double lat_deg, double lon_deg, bool *in_dem = nullptr) const;
 	void update_ground_alt();
+	// distance from the vehicle to the terrain measured along the body down axis, NAN if the
+	// body down axis does not point at the ground or nothing is hit within max_distance
+	float ground_distance(float max_distance) const;
 
-#if defined(SIH_TERRAIN_DEM)
-	bool terrain_active() const;
-	float terrain_ray_distance() const;
+	// load a terrain model file, nullptr (and print the reason) on error
+	static TerrainBase *load_terrain(const char *path);
 
-	static inline std::unique_ptr<TerrainDem> _terrain_dem_loaded; // loaded by task_spawn(), handed over to the instance
-	std::unique_ptr<TerrainDem> _terrain_dem;
-	bool _terrain_outside_warned{false};
-#endif
+	static inline TerrainBase *_terrain_loaded{nullptr}; // loaded by task_spawn(), handed over to the instance
+	TerrainBase *_terrain{nullptr}; // owned, terrain in use, set by run()
+	bool _terrain_outside{false}; // vehicle outside the terrain data
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();

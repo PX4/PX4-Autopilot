@@ -42,12 +42,23 @@
 
 #pragma once
 
+#include "TerrainBase.hpp"
+
 #include <string>
 #include <vector>
 
-class TerrainDem
+class TerrainDem : public TerrainBase
 {
 public:
+	/** DEM elevation, the default altitude outside the DEM */
+	bool altitude(double lat_deg, double lon_deg, float &alt) const override;
+
+	/** march along the ray, sampling each DEM cell at least twice */
+	float rayDistance(double lat_deg, double lon_deg, float alt, const matrix::Vector3f &dir_ned,
+			  float max_distance) const override;
+
+	void printStatus() const override;
+
 	/**
 	 * Load a single-band GeoTIFF DEM.
 	 * @return false (and print the reason) if the file cannot be used
