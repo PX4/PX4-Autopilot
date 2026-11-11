@@ -46,7 +46,6 @@ inline bool mission_item_contains_position(const mission_item_s &item)
 	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
 	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 	       item.nav_cmd == NAV_CMD_LAND ||
-	       item.nav_cmd == NAV_CMD_TAKEOFF_LOCAL ||
 	       item.nav_cmd == NAV_CMD_TAKEOFF ||
 	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
 	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
