@@ -557,7 +557,8 @@ private:
 	 * @brief Climb angle that realises a specific energy balance rate.
 	 *
 	 * The balance rate depends on the throttle as well as on the climb angle, SEB rate = 2 g V gamma - STE rate,
-	 * so the total energy rate the throttle flies has to be added back: gamma = (SEB rate + STE rate) / (2 g V).
+	 * so the total energy rate the throttle flies has to be added back. With the speed weight w the balance rate is
+	 * SEB rate = 2 g V gamma - w STE rate, so gamma = (SEB rate + w STE rate) / (2 g V).
 	 * For a balance rate increment at unchanged throttle pass a zero total energy rate.
 	 *
 	 * Uses the filtered true airspeed, which is trim airspeed without a valid measurement, floored at the minimum
@@ -565,11 +566,21 @@ private:
 	 *
 	 * @param seb_rate is the specific energy balance rate to realise in [m²/s³].
 	 * @param ste_rate is the specific total energy rate the throttle flies in [m²/s³].
+	 * @param speed_weight is the speed weight w of the balance rate, the kinetic energy weighting [0, 2].
 	 * @param input is the current input measurement of the UAS.
 	 * @param param is the control parameters.
 	 * @return climb angle in [rad].
 	 */
-	static float _sebRateToClimbAngle(float seb_rate, float ste_rate, const Input &input, const Param &param);
+	static float _sebRateToClimbAngle(float seb_rate, float ste_rate, float speed_weight, const Input &input,
+					  const Param &param);
+
+	/**
+	 * @brief Specific total energy rate the pitch assumes the throttle flies.
+	 *
+	 * @param pitch_specific_energy_rates is the specific energy rates of the pitch loop.
+	 * @return specific total energy rate in [m²/s³].
+	 */
+	static float _calcPitchControlSteRate(const SpecificEnergyRates &pitch_specific_energy_rates);
 
 	/**
 	 * @brief Calculate the pitch control output function.
@@ -577,11 +588,12 @@ private:
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
 	 * @param ste_rate_setpoint is the specific total energy rate setpoint the throttle flies in [m²/s³].
+	 * @param weight is the speed and altitude weighting of the balance rate.
 	 * @param param is the control parameters.
 	 * @return absolute pitch setpoint [rad].
 	 */
 	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float ste_rate_setpoint,
-				      const Param &param) const;
+				      const SpecificEnergyWeighting &weight, const Param &param) const;
 
 	/**
 	 * @brief Update controlled throttle setpoint.
