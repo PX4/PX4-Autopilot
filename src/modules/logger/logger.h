@@ -226,6 +226,14 @@ private:
 	 */
 	int get_log_file_name(LogType type, char *file_name, size_t file_name_size, bool notify);
 
+	/**
+	 * Point the sensor_gyro_fifo/sensor_accel_fifo subscriptions to the instance of the currently selected IMU
+	 */
+	void select_imu_fifo_instances();
+
+	template<typename T>
+	void select_fifo_instance(const orb_metadata *topic, uint32_t device_id);
+
 	void start_log_file(LogType type);
 
 	void stop_log_file(LogType type);

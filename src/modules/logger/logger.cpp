@@ -52,6 +52,9 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_accel_fifo.h>
+#include <uORB/topics/sensor_gyro_fifo.h>
+#include <uORB/topics/sensor_selection.h>
 
 #include <containers/Bitset.hpp>
 #include <drivers/drv_hrt.h>
@@ -1476,11 +1479,62 @@ void Logger::setReplayFile(const char *file_name)
 	_replay_file_name = strdup(file_name);
 }
 
+void Logger::select_imu_fifo_instances()
+{
+	if (_writer.is_started(LogType::Full) || _writer.is_started(LogType::Mission)) {
+		// keep the instance for the duration of a log
+		return;
+	}
+
+	sensor_selection_s sensor_selection;
+
+	if (uORB::Subscription{ORB_ID(sensor_selection)}.copy(&sensor_selection)) {
+		select_fifo_instance<sensor_gyro_fifo_s>(ORB_ID(sensor_gyro_fifo), sensor_selection.gyro_device_id);
+		select_fifo_instance<sensor_accel_fifo_s>(ORB_ID(sensor_accel_fifo), sensor_selection.accel_device_id);
+	}
+}
+
+template<typename T>
+void Logger::select_fifo_instance(const orb_metadata *topic, uint32_t device_id)
+{
+	if (device_id == 0) {
+		return;
+	}
+
+	LoggerSubscription *fifo_sub = nullptr;
+
+	for (int i = 0; i < _num_subscriptions; ++i) {
+		if (_subscriptions[i].get_topic() == topic) {
+			if (fifo_sub) {
+				// multiple instances are explicitly logged, leave them as configured
+				return;
+			}
+
+			fifo_sub = &_subscriptions[i];
+		}
+	}
+
+	if (!fifo_sub) {
+		return;
+	}
+
+	for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; ++instance) {
+		T fifo;
+
+		if (uORB::Subscription{topic, instance}.copy(&fifo) && (fifo.device_id == device_id)) {
+			fifo_sub->ChangeInstance(instance);
+			return;
+		}
+	}
+}
+
 void Logger::start_log_file(LogType type)
 {
 	if (_writer.is_started(type, LogWriter::BackendFile) || (_writer.backend() & LogWriter::BackendFile) == 0) {
 		return;
 	}
+
+	select_imu_fifo_instances();
 
 	if (type == LogType::Full) {
 		int32_t max_size_mib = _param_sdlog_max_size.get();
@@ -1585,6 +1639,8 @@ void Logger::start_log_mavlink()
 	if (!can_start_mavlink_log()) {
 		return;
 	}
+
+	select_imu_fifo_instances();
 
 	// mavlink log does not work in combination with lockstep, it leads to dead-locks
 	px4_lockstep_unregister_component(_lockstep_component);
