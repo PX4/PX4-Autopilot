@@ -118,14 +118,7 @@ parameters:
       description:
         short: Impact detection threshold
         long: |-
-          Specific force (averaged over ~20 ms) above which an impact is reported while airborne. Multicopter only.
-
-          The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
-          which sets outputs to their failsafe values.
-          On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
-          which disarms motors but does not set outputs to failsafe values.
-
-          Set to 0 to disable.
+          Specific force above which an impact is detected in flight. Multicopter only. Set to 0 to disable.
       type: float
       default: 0.0
       min: 0.0
