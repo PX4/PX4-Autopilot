@@ -176,11 +176,6 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 make droneer_x6_default
 ```
 
-## Supported Platforms / Airframes
-
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Further Information {#further_information}
 
 - [Droneer](https://www.droneer.com)
