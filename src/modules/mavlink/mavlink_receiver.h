@@ -296,7 +296,8 @@ private:
 		Ok,           ///< valid, handle and forward
 		ForwardOnly,  ///< not in our dialect, can't be handled but can be forwarded
 		BadSignature, ///< signature missing or not valid with our key, drop
-		Invalid,      ///< bad CRC, drop
+		BadCrc,       ///< known message with a bad CRC, drop
+		Invalid,      ///< unknown MAVLink 1 message, can be neither checked nor forwarded, drop
 	};
 
 	FrameCheck check_frame(uint8_t framing, const mavlink_message_t &message);
@@ -360,6 +361,7 @@ private:
 	uint64_t _total_lost_counter{0};                                ///< Total messages lost during transmission.
 	uint32_t _unknown_message_counter{0};                           ///< Messages not in our dialect
 	uint32_t _bad_signature_counter{0};                             ///< Messages with missing or invalid signature
+	uint32_t _bad_crc_counter{0};                                   ///< Known messages dropped for a bad CRC
 
 	uint8_t _mavlink_status_last_buffer_overrun{0};
 	uint8_t _mavlink_status_last_parse_error{0};
