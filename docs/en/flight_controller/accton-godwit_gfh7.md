@@ -240,7 +240,7 @@ DroneCAN is disabled by default: enable it by setting [UAVCAN_ENABLE](../advance
 
 The board has an [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) co-processor (AT7456-compatible), which is enabled by default in NTSC mode.
 Connect the camera to `VIDEO-IN` and the analog video transmitter to `A-VTX`.
-PX4 doesn't use the TX pin on the `A-VTX` connector, so VTX control (SmartAudio/Tramp) is not supported on this board.
+PX4 doesn't use the TX pin on the `A-VTX` connector, so [VTX control](../vtx/index.md) (SmartAudio/Tramp) is not supported on this board.
 Set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `2` for PAL, or `0` to disable the OSD, and reboot.
 
 For a digital video transmitter on the `D-VTX` connector, set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `TELEM 3` to enable [MSP OSD](../peripherals/osd.md#msp-osd).
