@@ -289,6 +289,8 @@ void Navigator::run()
 			continue;
 		}
 
+		perf_begin(_loop_perf);
+
 		const bool navigator_input_updated = (fds[0].revents & POLLIN)
 						     || (fds[1].revents & POLLIN)
 						     || (fds[2].revents & POLLIN);
@@ -296,7 +298,6 @@ void Navigator::run()
 		const bool run_navigator_update = navigator_input_updated || minimum_update_due;
 
 		if (run_navigator_update) {
-			perf_begin(_loop_perf);
 			last_navigator_update = hrt_absolute_time();
 			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
@@ -320,6 +321,7 @@ void Navigator::run()
 
 		// Cache-only wakeups advance the load without running Navigator at Dataman rate.
 		if (!run_navigator_update) {
+			perf_end(_loop_perf);
 			continue;
 		}
 
