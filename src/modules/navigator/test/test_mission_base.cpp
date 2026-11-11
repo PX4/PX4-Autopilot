@@ -192,9 +192,22 @@ public:
 		_waypoint_yaw_reached = reached;
 	}
 
+	/** An upload (new mission id) or an external sequence change (new current item), as they arrive on the topic. */
 	void processMissionSourceChange(bool items_changed = true)
 	{
-		onMissionUpdate(items_changed);
+		mission_s mission = _mission;
+		mission.timestamp = hrt_absolute_time();
+
+		if (items_changed) {
+			++mission.mission_id;
+
+		} else {
+			++mission.current_seq;
+		}
+
+		uORB::Publication<mission_s> mission_pub{ORB_ID(mission)};
+		mission_pub.publish(mission);
+		updateMavlinkMission();
 	}
 
 	bool joinWorkItemActive() const

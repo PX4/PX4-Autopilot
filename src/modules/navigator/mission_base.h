@@ -341,9 +341,6 @@ protected:
 	 */
 	void check_mission_valid(bool forced = false);
 
-	/** Handle changes to mission contents or the externally selected sequence. */
-	void onMissionUpdate(bool has_mission_items_changed);
-
 	/**
 	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
 	 */

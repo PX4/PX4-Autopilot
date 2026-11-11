@@ -111,50 +111,44 @@ void MissionBase::updateMavlinkMission()
 
 	_mission = new_mission;
 
-	if (geofence_changed && _mission_check_state == MissionCheckState::Complete) {
-		// Recheck against the new fence. A deferred check stays forced.
-		_mission_check_state = MissionCheckState::Unchecked;
-	}
-
-	/* Relevant mission items updated externally*/
-	if (mission_data_changed) {
-		onMissionUpdate(mission_items_changed);
-	}
-
-	_is_current_planned_mission_item_valid = isMissionValid();
-}
-
-void MissionBase::onMissionUpdate(bool has_mission_items_changed)
-{
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	// A replacement mission or an external sequence change invalidates the join and the flown jump edge.
-	// Runs before resetVtolTransition(), which would hide a join transition.
-	resetJoinRouteState();
-	_active_jump_anchor = {};
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-	resetVtolTransition();
-
-	if (has_mission_items_changed) {
+	if (mission_items_changed) {
 		_dataman_cache.invalidate();
 		_load_mission_index = -1;
 
 		// New contents replace any pending check request.
 		_mission_check_state = MissionCheckState::Unchecked;
 		check_mission_valid();
+
+	} else if (geofence_changed && _mission_check_state == MissionCheckState::Complete) {
+		// Recheck against the new fence. A deferred check stays forced.
+		_mission_check_state = MissionCheckState::Unchecked;
 	}
 
-	if (isActive()) {
-		_mission_has_been_activated = true;
-		_navigator->reset_triplets();
-		update_mission();
-		set_mission_items();
+	/* Relevant mission items updated externally*/
+	if (mission_data_changed) {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		// A replacement mission or an external sequence change invalidates the join and the flown jump edge.
+		// Runs before resetVtolTransition(), which would hide a join transition.
+		resetJoinRouteState();
+		_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+		resetVtolTransition();
 
-	} else if (has_mission_items_changed) {
-		_mission_has_been_activated = false;
+		if (isActive()) {
+			_mission_has_been_activated = true;
+			_navigator->reset_triplets();
+			update_mission();
+			set_mission_items();
+
+		} else if (mission_items_changed) {
+			_mission_has_been_activated = false;
+		}
+
+		// reset as when we update mission we don't want to proceed at previous index
+		_inactivation_index = -1;
 	}
 
-	// reset as when we update mission we don't want to proceed at previous index
-	_inactivation_index = -1;
+	_is_current_planned_mission_item_valid = isMissionValid();
 }
 
 void
@@ -486,7 +480,7 @@ void MissionBase::update_mission()
 		/* reset work item if new mission has been accepted, restarting the item and its VTOL transition */
 		bool keep_work_item = false;
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-		// The join is armed before activation reaches update_mission(); onMissionUpdate() clears it on a real change.
+		// The join is armed before activation reaches update_mission(); updateMavlinkMission() clears it on a real change.
 		// Join and route Return transitions cannot be restarted, so they keep running through a feasibility refresh.
 		keep_work_item = _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
 				 || _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN
