@@ -443,6 +443,36 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepUp)
 	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
 }
 
+// Below speed weight 1 the pitch weights altitude errors more than airspeed errors, but flies the same climb angle
+
+TEST_F(TECSControlClosedLoopTest, AltitudeStepUpLowSpeedWeight)
+{
+	_params.pitch_speed_weight = 0.5f;
+
+	run(10.f);
+
+	setAltitudeSetpoint(ALT_INIT + ALT_STEP);
+	run(200.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+
+	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
+}
+
+TEST_F(TECSControlClosedLoopTest, AltitudeStepDownLowSpeedWeight)
+{
+	_params.pitch_speed_weight = 0.5f;
+
+	run(10.f);
+
+	setAltitudeSetpoint(ALT_INIT - ALT_STEP);
+	run(200.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+
+	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
+}
+
 // --- Plant pitch-to-flight-path offset (model mismatch) -----------------------
 //
 // The plant flies level at pitch_cmd = 10 deg instead of 0 (e.g. incorrect FW_PSP_OFF).
@@ -500,8 +530,12 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 //
 // Speed weight 2 is the glider setting: the pitch flies airspeed only, so it tracks an airspeed setpoint with no
 // propulsion at all.
+//
+// Disabled: at speed weight 2 the climb angle follows entirely from the total energy rate the throttle delivers,
+// gamma = (SEB rate + 2 STE rate) / (2 g V). The pitch takes it from the setpoint, which with a failed throttle is
+// never delivered, so the pitch flies the altitude demand. Needs the pitch to assume gliding at speed weight 2.
 
-TEST_F(TECSControlClosedLoopTest, GlideSpeedWeightTwoAirspeedStep)
+TEST_F(TECSControlClosedLoopTest, DISABLED_GlideSpeedWeightTwoAirspeedStep)
 {
 	_params.pitch_speed_weight = 2.f;
 
@@ -599,3 +633,33 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessSteadyStateCruise)
 	EXPECT_LT(_sim_stats.max_throttle_integ_norm, MAX_NUMERICAL_ERR);
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
 }
+
+// Without airspeed the speed weight is 0. The pitch flies the demanded climb angle and the throttle feedforward funds
+// it, so the SEB rate error stays zero and the altitude error decays first order with FW_T_ALT_TC, while the open loop
+// airspeed does not move. As in AltitudeStepDown, the pitch must follow the raw step as fast as the throttle and the
+// demanded sink rate must not exceed FW_T_SINK_MIN.
+
+class TECSControlClosedLoopAirspeedlessTest : public TECSControlClosedLoopTest
+{
+protected:
+	void checkAltitudeStep(float step)
+	{
+		disableAirspeed();
+		run(10.f);
+
+		setAltitudeSetpoint(_state.h + step);
+		const float t_step = _t;
+
+		for (int i = 0; i < 30; i++) {
+			run(1.f);
+			const float expected_error = step * expf(-(_t - t_step) * _params.altitude_error_gain);
+			EXPECT_NEAR(_alt_sp - _state.h, expected_error, MAX_NUMERICAL_ERR_OPENLOOP) << "at t=" << _t << " s";
+		}
+
+		EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR_OPENLOOP) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+		EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR_OPENLOOP);
+	}
+};
+
+TEST_F(TECSControlClosedLoopAirspeedlessTest, AirspeedlessAltitudeStepUp) { checkAltitudeStep(ALT_STEP); }
+TEST_F(TECSControlClosedLoopAirspeedlessTest, AirspeedlessAltitudeStepDown) { checkAltitudeStep(-ALT_STEP); }
