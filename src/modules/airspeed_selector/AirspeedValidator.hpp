@@ -43,6 +43,7 @@
 #include <uORB/topics/airspeed_wind.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/mathlib/math/filter/FilteredDerivative.hpp>
+#include <lib/geo/geo.h>
 
 
 using matrix::Dcmf;
@@ -68,6 +69,10 @@ struct airspeed_validator_update_data {
 	float vel_test_ratio;
 	float hdg_test_ratio;
 	bool in_fixed_wing_flight;
+	bool in_transition_to_fw;
+	float lift_thrust_z; ///< normalized lift motor thrust setpoint along body z (FRD, negative up)
+	float hover_thrust;
+	bool hover_thrust_valid;
 	float fixed_wing_throttle_filtered;
 	float fixed_wing_tecs_throttle_trim;
 	uint64_t tecs_timestamp;
@@ -119,6 +124,9 @@ public:
 	void set_enable_innovation_check(bool enable) { _innovation_check_enabled = enable; }
 	void set_enable_load_factor_check(bool enable) { _load_factor_check_enabled = enable; }
 	void set_enable_first_principle_check(bool enable) { _first_principle_check_enabled = enable; }
+	void set_enable_transition_lift_check(bool enable) { _transition_lift_check_enabled = enable; }
+	void set_transition_lift_vref(float vref) { _transition_lift_vref = vref; }
+	void set_transition_lift_ratio(float ratio) { _transition_lift_ratio = ratio; }
 	void set_psp_off_param(float psp_off_param) { _param_psp_off = psp_off_param; }
 	void set_throttle_max_param(float throttle_max_param) { _param_throttle_max = throttle_max_param; }
 	void set_fp_t_window(float t_window) { _aspd_fp_t_window = t_window; }
@@ -132,6 +140,7 @@ private:
 	bool _innovation_check_enabled{false};
 	bool _load_factor_check_enabled{false};
 	bool _first_principle_check_enabled{false};
+	bool _transition_lift_check_enabled{false};
 
 	// airspeed scale validity check
 	static constexpr int SCALE_CHECK_SAMPLES = 12; ///< take samples from 12 segments (every 360/12=30°)
@@ -179,6 +188,18 @@ private:
 	float _param_psp_off{0.0f}; ///< parameter pitch in level flight [rad]
 	float _param_throttle_max{0.0f}; ///< parameter maximum throttle value
 
+	// transition lift check
+	static constexpr float kTransitionLiftFilterTimeConstant{0.5f}; ///< [s] same time constant on both sides of the comparison
+	static constexpr float kTransitionLiftMinWingLoad{0.3f}; ///< wing load fraction below which the estimate is too noisy
+	static constexpr float kTransitionLiftMinHoverThrust{0.05f}; ///< hover thrust below which the estimate is not usable
+	bool _transition_lift_check_failed{false}; ///< transition lift check has detected failure
+	float _transition_lift_vref{0.f}; ///< [m/s] CAS at which the wing alone carries the weight during a front transition
+	float _transition_lift_ratio{0.7f}; ///< check fails if measured CAS is below this fraction of the expected CAS
+	bool _in_transition_to_fw_prev{false};
+	hrt_abstime _time_last_transition_lift_check{0};
+	AlphaFilter<float> _wing_load_fraction_filtered{kTransitionLiftFilterTimeConstant};
+	AlphaFilter<float> _CAS_transition_filtered{kTransitionLiftFilterTimeConstant};
+
 	// states of airspeed valid declaration
 	bool _airspeed_valid{true}; ///< airspeed valid (pitot or groundspeed-windspeed)
 	float _checks_fail_delay{2.f}; ///< delay for airspeed invalid declaration after single check failure (Sec)
@@ -208,6 +229,8 @@ private:
 	void check_load_factor(float accel_z);
 	void check_first_principle(const uint64_t timestamp, const float throttle, const float throttle_trim,
 				   const uint64_t tecs_timestamp, const Quatf &att_q);
+	void check_transition_lift(const uint64_t timestamp, const bool in_transition_to_fw, const float accel_z,
+				   const float lift_thrust_z, const float hover_thrust, const bool hover_thrust_valid);
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();
 	void reset_CAS_scale_check();
