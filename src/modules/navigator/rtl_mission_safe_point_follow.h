@@ -48,7 +48,6 @@
 #include "mission_route_types.h"
 #include "rtl_base.h"
 #include <lib/rtl/rtl_time_estimator.h>
-#include <uORB/topics/vtol_vehicle_status.h>
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 class RtlMissionSafePointFollow : public RtlBase
@@ -122,7 +121,6 @@ private:
 	/** @brief Prepare join and route transition items; a route transition aligns where the vehicle is. */
 	void prepareVtolTransitionItem(bool aligning) override;
 	bool routeReturnTransitionActive() const override;
-	bool frontTransitionInhibited() const override;
 	mission_route::VtolTransitionAction allowedRouteTransition(mission_route::VtolTransitionAction action) const;
 	/**
 	 * Fill _vtol_states with the VTOL state of the leg ending at each mission index, in two passes: the rule of
@@ -166,7 +164,6 @@ private:
 	bool landingAbortMovesMissionIndex() const override { return goalIsMissionLanding(); }
 
 	mission_route::RtlRoutePlan _plan{};
-	uORB::SubscriptionData<vtol_vehicle_status_s> _vtol_status_sub{ORB_ID(vtol_vehicle_status)};
 	mission_item_s _goal_mission_land_item{};
 	bool _goal_mission_land_item_valid{false};
 	Progress _state{};

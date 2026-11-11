@@ -49,6 +49,7 @@
 #include "navigator.h"
 
 #include <mathlib/mathlib.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 RtlMissionSafePointFollow::RtlMissionSafePointFollow(Navigator *navigator, mission_s mission) :
 	// Route-safe-point RTL already reads mission geometry from MissionRouteCache, so
@@ -213,7 +214,6 @@ void RtlMissionSafePointFollow::on_inactivation()
 void RtlMissionSafePointFollow::on_activation()
 {
 	_vehicle_status_sub.update();
-	_vtol_status_sub.update();
 	_land_detected_sub.update();
 
 	resetExecutorProgress();
@@ -279,15 +279,11 @@ void RtlMissionSafePointFollow::on_activation()
 	MissionBase::on_activation();
 }
 
-bool RtlMissionSafePointFollow::frontTransitionInhibited() const
-{
-	return _vehicle_status_sub.get().is_vtol && _vtol_status_sub.get().fixed_wing_system_failure;
-}
-
 mission_route::VtolTransitionAction RtlMissionSafePointFollow::allowedRouteTransition(
 	mission_route::VtolTransitionAction action) const
 {
-	return frontTransitionInhibited() && action == mission_route::VtolTransitionAction::kFrontTransition
+	// After a quadchute Navigator commands no front transition: the route goes on in multicopter mode.
+	return action == mission_route::VtolTransitionAction::kFrontTransition && _navigator->front_transition_inhibited()
 	       ? mission_route::VtolTransitionAction::kNone : action;
 }
 
@@ -403,8 +399,6 @@ mission_route::VtolTransitionAction RtlMissionSafePointFollow::vtolTransitionAct
 
 void RtlMissionSafePointFollow::on_active()
 {
-	_vtol_status_sub.update();
-
 	MissionBase::on_active();
 
 	// MissionBase ends only after an autocontinue landing; report Return complete as direct RTL does.
@@ -856,7 +850,6 @@ rtl_time_estimate_s RtlMissionSafePointFollow::calc_rtl_time_estimate()
 {
 	// A newly configured executor may be queried before its first inactive cycle.
 	_vehicle_status_sub.update();
-	_vtol_status_sub.update();
 	_rtl_time_estimator.update();
 	_rtl_time_estimator.reset();
 
@@ -885,7 +878,7 @@ void RtlMissionSafePointFollow::addRemainingLegsToTimeEstimate(const vehicle_glo
 	uint8_t current_vehicle_type = vehicleInFwLikeState(_vehicle_status_sub.get())
 				       ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING : _vehicle_status_sub.get().vehicle_type;
 
-	if (frontTransitionInhibited()) {
+	if (_navigator->front_transition_inhibited()) {
 		current_vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 	}
 

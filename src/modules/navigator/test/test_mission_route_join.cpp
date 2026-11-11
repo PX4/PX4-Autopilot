@@ -51,6 +51,7 @@
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
 #include "support/navigator_dataman_test.h"
+#include "support/navigator_test_peer.h"
 
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
@@ -513,7 +514,7 @@ protected:
 	}
 
 	mission_s _mission_state{};
-	Navigator _navigator{};
+	MissionBaseTestNavigator _navigator{};
 	DatamanClient _dataman_client{};
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)};
 	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
@@ -1545,6 +1546,81 @@ TEST_P(MissionRouteJoinTransitionTest, MissionSmartRejoinAlignsHeadingBeforeFron
 }
 
 INSTANTIATE_TEST_SUITE_P(WithAndWithoutBackTransition, MissionRouteJoinTransitionTest, ::testing::Bool());
+
+// WHY: After a quadchute the next front transition would likely fail too, as for a mission transition item.
+// WHAT: The rejoin flies its branch-in waypoint, then goes on in multicopter mode without the front transition,
+// whether the quadchute happens before the branch-in waypoint (false) or during the alignment (true).
+class MissionRouteJoinQuadchuteTest : public MissionRouteJoinTest, public ::testing::WithParamInterface<bool> {};
+
+TEST_P(MissionRouteJoinQuadchuteTest, RejoinSkipsItsFrontTransition)
+{
+	const bool during_alignment = GetParam();
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+
+	const std::vector<mission_item_s> mission_items = {
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kAlt + 20.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 20.f),
+	};
+
+	const mission_s mission_state = publishMissionItems(mission_items, 32, 2);
+	const mission_route::Position beside_first_leg = makePositionFromOffset(kBaseLat, kBaseLon, 60.f, 15.f, kAlt + 5.f);
+
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	publishGlobalPosition(beside_first_leg);
+	publishLocalPosition(0.f, 5.f, 0.f);
+	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt - 20.f));
+	primeNavigatorState();
+
+	updateRouteCacheUntilReady(mission_state);
+	mission.on_inactive();
+	markMissionResultValid();
+	// Waypoint 2 reached, then back in hover beside the first leg.
+	startReachAndPause(mission, beside_first_leg);
+
+	_navigator.setFrontTransitionInhibited(!during_alignment);
+	mission.on_activation();
+	ASSERT_EQ(mission.joinTransitionActionForTest(), MissionTestPeer::VtolTransitionAction::kFrontTransition);
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+
+	uORB::Subscription vehicle_command_sub{ORB_ID(vehicle_command)};
+	vehicle_command_s command{};
+
+	while (vehicle_command_sub.update(&command)) {}
+
+	// At the branch-in waypoint, facing away from the next mission waypoint.
+	const int32_t target_index = mission.currentSequenceForTest();
+	const mission_route::Position join_projection = mission.joinContextForTest().projection;
+	const float target_bearing = get_bearing_to_next_waypoint(join_projection.lat, join_projection.lon,
+				     mission_items[target_index].lat, mission_items[target_index].lon);
+	publishGlobalPosition(join_projection);
+	publishLocalPosition(matrix::wrap_pi(target_bearing + M_PI_F / 2.f));
+	primeNavigatorState();
+	mission.on_active();
+
+	if (during_alignment) {
+		ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+		_navigator.setFrontTransitionInhibited(true);
+		mission.on_active();
+		mission.on_active();
+	}
+
+	// On to the mission waypoint as a multicopter, without a transition command.
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	EXPECT_FALSE(mission.joinContextForTest().valid());
+	EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, mission_items[target_index].lat);
+	EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, mission_items[target_index].lon);
+
+	while (vehicle_command_sub.update(&command)) {
+		EXPECT_NE(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(BeforeAndDuringAlignment, MissionRouteJoinQuadchuteTest, ::testing::Bool());
 
 TEST_F(MissionRouteJoinTest, ExhaustedJumpRejoinResumesNominalExecutionWithoutAnotherRepeat)
 {

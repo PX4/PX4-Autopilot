@@ -99,6 +99,7 @@ When a VTOL rejoin requires a front transition, the vehicle follows this sequenc
 Back-transition completion starts the alignment step even if the vehicle has drifted outside the branch-in acceptance radius.
 The vehicle must still reach the alignment position before starting the front transition.
 These temporary steps do not mark the next uploaded mission waypoint as reached.
+After a [quad-chute](../config/safety.md#quad-chute-failsafe) the rejoin skips this front transition and the mission continues in multicopter mode, as it does at a front transition item.
 
 ### Route-Following Return {#route-following-return}
 

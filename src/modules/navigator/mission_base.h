@@ -152,8 +152,6 @@ protected:
 	virtual void prepareVtolTransitionItem(bool aligning) = 0;
 	bool vtolTransitionActive() const { return _vtol_transition.command.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION; }
 	void resetVtolTransition() { _vtol_transition = {}; }
-	/** After a quadchute no front transition is commanded; the route follower reads its own VTOL status. */
-	MISSION_ROUTE_HOOK bool frontTransitionInhibited() const;
 	/** A route Return transition completes in its mode without a command and is kept through a feasibility refresh. */
 	MISSION_ROUTE_HOOK bool routeReturnTransitionActive() const { return false; }
 	/** Synthetic helper work items must not report an uploaded item reached. */

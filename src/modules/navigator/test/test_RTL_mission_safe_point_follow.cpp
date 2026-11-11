@@ -48,6 +48,7 @@
 #include "rtl_mission_safe_point_follow.h"
 #include "support/mission_route_test_helpers.h"
 #include "support/navigator_dataman_test.h"
+#include "support/navigator_test_peer.h"
 
 #include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
@@ -197,16 +198,6 @@ public:
 
 	void setJoinTransitionForTest() { setupJoinRoute(_plan.join_position, false, VtolTransitionAction::kFrontTransition); }
 
-	void setVtolFailureForTest(bool failed)
-	{
-		vtol_vehicle_status_s status{};
-		status.timestamp = hrt_absolute_time();
-		status.fixed_wing_system_failure = failed;
-		uORB::Publication<vtol_vehicle_status_s> publisher{ORB_ID(vtol_vehicle_status)};
-		publisher.publish(status);
-		_vtol_status_sub.update();
-	}
-
 	void setVehicleStatusForTest(bool is_vtol, bool is_fixed_wing, bool in_transition_to_fw, bool in_back_transition = false)
 	{
 		vehicle_status_s status{};
@@ -321,7 +312,6 @@ protected:
 	{
 		executor.setVehicleStatusForTest(false, false, false);
 		executor.setLandedForTest(false);
-		executor.setVtolFailureForTest(false);
 	}
 };
 
@@ -329,14 +319,13 @@ protected:
 class RtlMissionSafePointFollowNavigatorTest : public NavigatorDatamanTestBase
 {
 protected:
-	Navigator navigator{};
+	MissionBaseTestNavigator navigator{};
 	RtlMissionSafePointFollowTestPeer follower{&navigator};
 
 	void SetUp() override
 	{
 		follower.setVehicleStatusForTest(false, false, false);
 		follower.setLandedForTest(false);
-		follower.setVtolFailureForTest(false);
 	}
 
 	float flightTime(float horizontal_m, float descent_m, bool fixed_wing = false)
@@ -1152,7 +1141,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, PrefixLegExecutionUsesModeBeforeF
 			follower.prepareActiveMissionForTest(73, current_index);
 			follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::FollowRoute);
 			follower.setSafePointSelectionForTest(reverse, -1);
-			follower.setVtolFailureForTest(false);
+			navigator.setFrontTransitionInhibited(false);
 			follower.setVehicleStatusForTest(true, !prefix_fixed_wing, false);
 			follower.setGlobalPositionForTest({items[vehicle_index].lat, items[vehicle_index].lon, kAlt});
 			uORB::Subscription command_sub{ORB_ID(vehicle_command)};
@@ -1252,9 +1241,9 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, VtolForecastUsesEachRouteLegModeA
 	const auto forward_estimate = follower.calc_rtl_time_estimate();
 	ASSERT_TRUE(forward_estimate.valid);
 	EXPECT_NEAR(forward_estimate.time_estimate, flightTime(100.f, 0.f, true) + flightTime(150.f, 100.f), 0.03f);
-	follower.setVtolFailureForTest(true);
+	navigator.setFrontTransitionInhibited(true);
 	EXPECT_NEAR(follower.calc_rtl_time_estimate().time_estimate, flightTime(250.f, 100.f), 0.03f);
-	follower.setVtolFailureForTest(false);
+	navigator.setFrontTransitionInhibited(false);
 
 	plan.direction_reversed = true;
 	plan.first_mission_item_index = 4;
@@ -1267,9 +1256,9 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, VtolForecastUsesEachRouteLegModeA
 	const auto reverse_estimate = follower.calc_rtl_time_estimate();
 	ASSERT_TRUE(reverse_estimate.valid);
 	EXPECT_NEAR(reverse_estimate.time_estimate, flightTime(150.f, 30.f) + flightTime(150.f, 70.f, true), 0.03f);
-	follower.setVtolFailureForTest(true);
+	navigator.setFrontTransitionInhibited(true);
 	EXPECT_NEAR(follower.calc_rtl_time_estimate().time_estimate, flightTime(300.f, 100.f), 0.03f);
-	follower.setVtolFailureForTest(false);
+	navigator.setFrontTransitionInhibited(false);
 
 	follower.setStageForTest(RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 	follower.setVehicleStatusForTest(true, true, false);
@@ -1393,7 +1382,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, FwFailureReleasesPendingTransitio
 	plan.vtol_transition_action = mission_route::VtolTransitionAction::kFrontTransition;
 	follower.setVehicleStatusForTest(true, false, false);
 	follower.setGlobalPositionForTest({kBaseLat, kBaseLon, kAlt});
-	follower.setVtolFailureForTest(true);
+	navigator.setFrontTransitionInhibited(true);
 	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
 	vehicle_command_s command{};
 
@@ -1424,7 +1413,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, FwFailureReleasesPendingTransitio
 		follower.configurePlanForTest(plan);
 		follower.prepareActiveMissionForTest(71, 2);
 		follower.setStageForTest(Stage::FollowRoute);
-		follower.setVtolFailureForTest(false);
+		navigator.setFrontTransitionInhibited(false);
 		follower.setVehicleStatusForTest(true, false, false,
 						 work == WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
 		follower.setGlobalPositionForTest(work == WorkItem::WORK_ITEM_TYPE_JOIN_ROUTE
@@ -1443,7 +1432,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, FwFailureReleasesPendingTransitio
 		}
 
 		ASSERT_EQ(follower.workItemForTest(), work);
-		follower.setVtolFailureForTest(true);
+		navigator.setFrontTransitionInhibited(true);
 
 		while (command_sub.update(&command)) {}
 
@@ -1468,7 +1457,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, FwFailureReleasesPendingTransitio
 			follower.configurePlanForTest(plan);
 			follower.prepareActiveMissionForTest(72, 2);
 			follower.setStageForTest(Stage::FollowRoute);
-			follower.setVtolFailureForTest(false);
+			navigator.setFrontTransitionInhibited(false);
 			follower.setVehicleStatusForTest(true, false, false, work == WorkItem::WORK_ITEM_TYPE_WAIT_FOR_BACK_TRANSITION);
 			follower.setGlobalPositionForTest({items[2].lat, items[2].lon, kAlt});
 
@@ -1486,7 +1475,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, FwFailureReleasesPendingTransitio
 			}
 
 			ASSERT_EQ(follower.workItemForTest(), work);
-			follower.setVtolFailureForTest(true);
+			navigator.setFrontTransitionInhibited(true);
 
 			while (command_sub.update(&command)) {}
 
@@ -1498,7 +1487,7 @@ TEST_F(RtlMissionSafePointFollowNavigatorTest, FwFailureReleasesPendingTransitio
 		}
 	}
 
-	follower.setVtolFailureForTest(false);
+	navigator.setFrontTransitionInhibited(false);
 }
 
 class RtlMissionSafePointFollowLoiterEstimateTest : public RtlMissionSafePointFollowNavigatorTest,
@@ -2002,14 +1991,13 @@ protected:
 		~ForcedVtolDisabled() { param_reset_no_notification(param_find("NAV_FORCE_VT")); }
 	} forced_vtol_disabled{};
 
-	Navigator navigator{};
+	MissionBaseTestNavigator navigator{};
 	RtlMissionSafePointFollowTestPeer follower{&navigator};
 
 	void SetUp() override
 	{
 		follower.setVehicleStatusForTest(true, true, false);
 		follower.setLandedForTest(false);
-		follower.setVtolFailureForTest(false);
 	}
 };
 

@@ -860,11 +860,6 @@ void MissionBase::startVtolTransition(const mission_item_s &command, const missi
 	}
 }
 
-bool MissionBase::frontTransitionInhibited() const
-{
-	return _navigator->front_transition_inhibited();
-}
-
 bool MissionBase::updateVtolTransition()
 {
 	const vehicle_status_s &status = _vehicle_status_sub.get();
@@ -879,7 +874,7 @@ bool MissionBase::updateVtolTransition()
 	const bool uploaded_item = _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_DEFAULT
 				   && !routeReturnTransitionActive();
 
-	const bool front_transition_skipped = front_transition && frontTransitionInhibited();
+	const bool front_transition_skipped = front_transition && _navigator->front_transition_inhibited();
 
 	// Already in the commanded mode: no command. A VTOL takeoff keeps TRANSITION_AFTER_TAKEOFF and flies its waypoint.
 	// After a quadchute a front transition is skipped and the item completes in multicopter mode.
@@ -1142,7 +1137,8 @@ bool MissionBase::joinRouteTransitionStillRequired() const
 						   ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING : vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	return !_land_detected_sub.get().landed && !mode_complete
 	       && _route_join_context.transition_action != VtolTransitionAction::kNone
-	       && !(_route_join_context.transition_action == VtolTransitionAction::kFrontTransition && frontTransitionInhibited());
+	       && !(_route_join_context.transition_action == VtolTransitionAction::kFrontTransition
+		    && _navigator->front_transition_inhibited());
 }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 

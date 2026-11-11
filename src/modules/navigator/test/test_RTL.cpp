@@ -76,6 +76,7 @@
 #include "support/geofence_test_helpers.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
+#include "support/navigator_test_peer.h"
 #include "support/vector_mission_item_store.h"
 
 /* EVENT
@@ -400,7 +401,7 @@ protected:
 		return *client;
 	}
 
-	Navigator _navigator{};
+	MissionBaseTestNavigator _navigator{};
 	RTLTestPeer _rtl{&_navigator};
 
 	void SetUp() override
@@ -2202,18 +2203,12 @@ TEST_P(RtlVtolActivationTest, KeepsRouteAfterVtolFailure)
 	EXPECT_EQ(_rtl.routePlanForTest().vtol_transition_action, mission_route::VtolTransitionAction::kNone);
 
 	// Quadchute changes the flight mode, not the selected return route.
-	uORB::Publication<vtol_vehicle_status_s> vtol_pub{ORB_ID(vtol_vehicle_status)};
-	vtol_vehicle_status_s vtol_status{};
-	vtol_status.timestamp = hrt_absolute_time();
-	vtol_status.fixed_wing_system_failure = true;
-	vtol_pub.publish(vtol_status);
+	_navigator.setFrontTransitionInhibited(true);
 	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 	ASSERT_TRUE(status_sub.copy(_navigator.get_vstatus()));
 	_rtl.on_active();
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 	EXPECT_TRUE(_rtl.routePlanSourceStillValidForTest());
-	vtol_status.fixed_wing_system_failure = false;
-	vtol_pub.publish(vtol_status);
 }
 
 INSTANTIATE_TEST_SUITE_P(VtolModes, RtlVtolActivationTest,

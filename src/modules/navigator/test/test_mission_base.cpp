@@ -50,6 +50,7 @@
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
 #include "support/navigator_dataman_test.h"
+#include "support/navigator_test_peer.h"
 #include "support/vector_mission_item_store.h"
 
 #include <initializer_list>
@@ -271,13 +272,6 @@ class IgnoreDoJumpMissionBaseTraversalTest : public NavigatorDatamanTestBase
 {
 protected:
 	IgnoreDoJumpMissionBaseTestPeer mission_base{};
-};
-
-class MissionBaseTestNavigator : public Navigator
-{
-public:
-	using Navigator::updateParams;
-	void setFrontTransitionInhibited(bool inhibited) { _front_transition_inhibited = inhibited; }
 };
 
 class MissionBaseFeasibilityTest : public NavigatorDatamanTestBase
