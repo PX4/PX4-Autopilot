@@ -22671,12 +22671,12 @@ Accelerometer noise for covariance prediction.
 
 Auxiliary global position sensor 0 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -22706,9 +22706,9 @@ Auxiliary global position sensor 0 ID.
 
 Sensor ID for slot 0. Set to 0 to disable this slot.
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 255      |           | 0       |      | &nbsp;    |
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 255      |           | 0       |      | &nbsp;    |
 
 ### EKF2_AGP0_MODE (`INT32`) {#EKF2_AGP0_MODE}
 
@@ -22739,12 +22739,12 @@ Used to lower bound or replace the uncertainty included in the message
 
 Auxiliary global position sensor 1 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -22774,9 +22774,9 @@ Auxiliary global position sensor 1 ID.
 
 Sensor ID for slot 1. Set to 0 to disable this slot.
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 255      |           | 0       |      | &nbsp;    |
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 255      |           | 0       |      | &nbsp;    |
 
 ### EKF2_AGP1_MODE (`INT32`) {#EKF2_AGP1_MODE}
 
@@ -22807,12 +22807,12 @@ Used to lower bound or replace the uncertainty included in the message
 
 Auxiliary global position sensor 2 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -22842,9 +22842,9 @@ Auxiliary global position sensor 2 ID.
 
 Sensor ID for slot 2. Set to 0 to disable this slot.
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 255      |           | 0       |      | &nbsp;    |
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 255      |           | 0       |      | &nbsp;    |
 
 ### EKF2_AGP2_MODE (`INT32`) {#EKF2_AGP2_MODE}
 
@@ -22875,12 +22875,12 @@ Used to lower bound or replace the uncertainty included in the message
 
 Auxiliary global position sensor 3 aiding.
 
-Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+Set bit 0 to enable the horizontal position fusion. Bit 1 is reserved for vertical position fusion, which is not implemented: the altitude is not fused, it only takes part when the global origin is first set from this source.
 
 **Bitmask:**
 
 - `0`: Horizontal position
-- `1`: Vertical position
+- `1`: Vertical position (reserved, not implemented)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -22910,9 +22910,9 @@ Auxiliary global position sensor 3 ID.
 
 Sensor ID for slot 3. Set to 0 to disable this slot.
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 255      |           | 0       |      | &nbsp;    |
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 255      |           | 0       |      | &nbsp;    |
 
 ### EKF2_AGP3_MODE (`INT32`) {#EKF2_AGP3_MODE}
 
