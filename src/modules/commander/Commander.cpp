@@ -165,7 +165,8 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 #ifndef CONSTRAINED_FLASH
 static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
 				 const float param3 = NAN,  const float param4 = NAN, const double param5 = static_cast<double>(NAN),
-				 const double param6 = static_cast<double>(NAN), const float param7 = NAN)
+				 const double param6 = static_cast<double>(NAN), const float param7 = NAN,
+				 const uint8_t frame = vehicle_command_s::VEHICLE_FRAME_GLOBAL)
 {
 	vehicle_command_s vcmd{};
 	vcmd.command = cmd;
@@ -176,6 +177,7 @@ static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, c
 	vcmd.param5 = param5;
 	vcmd.param6 = param6;
 	vcmd.param7 = param7;
+	vcmd.frame = frame;
 
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 	vcmd.source_system = vehicle_status_sub.get().system_id;
@@ -445,11 +447,13 @@ int Commander::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[0], "takeoff_local")) {
-		// switch to takeoff mode and arm
+		// switch to takeoff mode and arm, in a local frame (no global position required)
 		uORB::SubscriptionData<vehicle_command_ack_s> vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
-		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL);
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF, NAN, NAN, NAN, NAN,
+				     static_cast<double>(NAN), static_cast<double>(NAN), NAN,
+				     vehicle_command_s::VEHICLE_FRAME_LOCAL_NED);
 
-		if (wait_for_vehicle_command_reply(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL, vehicle_command_ack_sub)) {
+		if (wait_for_vehicle_command_reply(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF, vehicle_command_ack_sub)) {
 			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
 					     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
 					     0.f);
@@ -1227,15 +1231,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF:
-	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL: {
+	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
 			/* ok, home set, use it to take off */
 			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, getSourceFromCommand(cmd))) {
 				// fixed-wing: course to continue on after the climbout, unless a takeoff position is set (as in Navigator)
 				const bool takeoff_position_valid = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
 								    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON);
 				_takeoff_hold_course = PX4_ISFINITE(cmd.param4) && !takeoff_position_valid;
-				_takeoff_is_local_frame = cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF_LOCAL;
+				_takeoff_is_local_frame = (cmd.frame == vehicle_command_s::VEHICLE_FRAME_LOCAL_NED);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {

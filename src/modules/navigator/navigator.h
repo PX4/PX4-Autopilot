@@ -89,6 +89,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
+#include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/transponder_report.h>
