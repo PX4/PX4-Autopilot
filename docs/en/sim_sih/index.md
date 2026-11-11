@@ -31,14 +31,14 @@ Two modes are supported:
 
 The following vehicle types are supported:
 
-| Vehicle                                                         | Make Target                                | Status       |
-| --------------------------------------------------------------- | ------------------------------------------ | ------------ |
-| Quadrotor X <Badge type="tip" text="PX4 v1.9" />                | `make px4_sitl_sih sihsim_quadx`           | Stable       |
-| Hexarotor X <Badge type="tip" text="PX4 v1.16" />               | `make px4_sitl_sih sihsim_hex`             | Experimental |
-| Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />     | `make px4_sitl_sih sihsim_airplane`        | Experimental |
-| Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />           | `make px4_sitl_sih sihsim_xvert`           | Experimental |
-| Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" /> | `make px4_sitl_sih sihsim_standard_vtol`   | Experimental |
-| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />           | `make px4_sitl_sih sihsim_rover_ackermann` | Experimental |
+| Vehicle                                                              | Make Target                                   | Status       |
+| -------------------------------------------------------------------- | --------------------------------------------- | ------------ |
+| Quadrotor X <Badge type="tip" text="PX4 v1.9" />                     | `make px4_sitl_sih sihsim_quadx`              | Stable       |
+| Hexarotor X <Badge type="tip" text="PX4 v1.16" />                    | `make px4_sitl_sih sihsim_hex`                | Experimental |
+| Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />          | `make px4_sitl_sih sihsim_airplane`           | Experimental |
+| Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />                | `make px4_sitl_sih sihsim_xvert`              | Experimental |
+| Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" />      | `make px4_sitl_sih sihsim_standard_vtol`      | Experimental |
+| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />                | `make px4_sitl_sih sihsim_rover_ackermann`    | Experimental |
 | Quadrotor X with optical flow <Badge type="tip" text="PX4 v2.0" />   | `make px4_sitl_sih sihsim_quadx_flow`         | Experimental |
 | Standard VTOL with optical flow <Badge type="tip" text="PX4 v2.0" /> | `make px4_sitl_sih sihsim_standard_vtol_flow` | Experimental |
 

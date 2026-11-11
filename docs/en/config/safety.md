@@ -379,6 +379,9 @@ The parachute health failsafe is triggered when a [MAVLink parachute](../periphe
 Failsafe for when a VTOL vehicle can no longer fly in fixed-wing mode, perhaps due to the failure of a pusher motor, airspeed sensor, or control surface.
 If the failsafe is triggered, the vehicle will immediately switch to multicopter mode and execute the action defined in parameter [COM_QC_ACT](#COM_QC_ACT).
 
+After a quad-chute, Mission and VTOL Takeoff mode no longer command forward transitions, as the next one would likely fail too: they skip them and fly on in multicopter mode, which has much less range.
+A forward transition commanded by the pilot or ground station allows them again; otherwise this lasts until the vehicle is rebooted.
+
 ::: info
 The quad-chute can also be triggered by sending a MAVLINK [MAV_CMD_DO_VTOL_TRANSITION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_VTOL_TRANSITION) message with `param2` set to `1`.
 :::

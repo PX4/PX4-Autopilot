@@ -137,6 +137,11 @@ private:
 	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
 
 	/**
+	 * @brief Smallest remaining time [s] of the connected batteries, NAN if none reports one.
+	 */
+	float worstBatteryTimeRemaining();
+
+	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
 	 *
 	 */
