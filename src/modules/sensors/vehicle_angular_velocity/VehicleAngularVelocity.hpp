@@ -109,12 +109,7 @@ private:
 	uORB::Publication<vehicle_angular_velocity_s>     _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 	uORB::PublicationMulti<vehicle_angular_velocity_s> _vehicle_angular_velocity_imu_pub{ORB_ID(vehicle_angular_velocity_imu)};
 
-	uORB::Subscription _vehicle_angular_velocity_imu_sub[MAX_SENSOR_COUNT] {
-		{ORB_ID(vehicle_angular_velocity_imu), 0},
-		{ORB_ID(vehicle_angular_velocity_imu), 1},
-		{ORB_ID(vehicle_angular_velocity_imu), 2},
-		{ORB_ID(vehicle_angular_velocity_imu), 3}
-	};
+	uORB::SubscriptionMultiArray<vehicle_angular_velocity_s, MAX_SENSOR_COUNT> _vehicle_angular_velocity_imu_subs{ORB_ID::vehicle_angular_velocity_imu};
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};

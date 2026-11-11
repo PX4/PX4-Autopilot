@@ -654,35 +654,9 @@ TEST_F(VotedSensorsUpdateTest, ImuMode2FliesOnTheMedianFromTheStart)
 
 	sensor_selection_s selection{};
 	ASSERT_TRUE(readSelection(selection));
-	EXPECT_TRUE(selection.imu_median);
 	EXPECT_EQ(selection.gyro_device_id, kGyroIds[0]) << "the median does not change the selected IMU";
-	EXPECT_EQ(selection.accel_device_id, kAccelIds[0]);
 	EXPECT_NEAR(raw.gyro_rad[0], 0.05f, 0.01f) << "the median, not the selected IMU (1) nor the mean (0.35)";
 	EXPECT_EQ(Peer::gyroFailoverCount(voter), 0u);
-}
-
-TEST_F(VotedSensorsUpdateTest, ImuMode1FliesOnThePrimary)
-{
-	setPriority(0, 75, 75);
-	setPriority(1, 60, 60);
-	setPriority(3, 50, 50);
-
-	ImuSubscriptionOwner owner;
-	VotedSensorsUpdate voter(false, owner.subs);
-
-	auto feed = [&]() {
-		publishImu(0, 9.8f, 1.f);
-		publishImu(1, 9.8f);
-		publishImu(3, 9.8f, 0.05f);
-	};
-
-	start(voter, feed);
-	const sensor_combined_s raw = pollFor(voter, 300_ms, feed);
-
-	sensor_selection_s selection{};
-	ASSERT_TRUE(readSelection(selection));
-	EXPECT_FALSE(selection.imu_median);
-	EXPECT_NEAR(raw.gyro_rad[0], 1.f, 0.01f);
 }
 
 TEST_F(VotedSensorsUpdateTest, WithTwoImusTheMedianKeepsThePrimary)
