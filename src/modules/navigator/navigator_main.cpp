@@ -1276,7 +1276,9 @@ void Navigator::geofence_breach_check()
 			_geofence_result.geofence_max_alt_triggered |= !_geofence.isBelowMaxAltitude(current_altitude);
 			_geofence_result.geofence_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(current_latitude,
 					current_longitude, current_altitude);
-			_geofence_result.geofence_margin_triggered |= margin_triggered;
+			// Kept like a breach, but not once the margin is switched off.
+			_geofence_result.geofence_margin_triggered = margin_triggered || (_geofence_result.geofence_margin_triggered
+					&& _geofence.getMarginAction() != geofence_result_s::GF_ACTION_NONE);
 
 		} else {
 			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,

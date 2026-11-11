@@ -325,6 +325,22 @@ TEST_F(GeofenceMarginTest, StaysTriggeredWhileHolding)
 	EXPECT_GT(reposition().timestamp, first_hold);
 }
 
+// A margin that is switched off while the vehicle holds releases its trigger with it.
+TEST_F(GeofenceMarginTest, DisablingTheMarginWhileHoldingReleasesIt)
+{
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+	setParam("GF_MARGIN", kMargin);
+
+	ASSERT_TRUE(checkAt(0.f, 420.f).geofence_margin_triggered);
+	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+	ASSERT_TRUE(checkAt(0.f, 420.f).geofence_margin_triggered);
+
+	setParam("GF_MARGIN", 0.f);
+	const geofence_result_s disabled = checkAt(0.f, 420.f);
+	EXPECT_EQ(disabled.geofence_margin_action, geofence_result_s::GF_ACTION_NONE);
+	EXPECT_FALSE(disabled.geofence_margin_triggered);
+}
+
 TEST_F(GeofenceMarginTest, DisabledMarginIsClearEverywhere)
 {
 	ASSERT_TRUE(loadFence(inclusionSquare()));
