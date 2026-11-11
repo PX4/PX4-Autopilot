@@ -818,9 +818,10 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 				// The yaw setpoint generation is handled by FlightTaskAuto.
 				sp->yaw = NAN;
 			}
+
+			break;
 		}
 
-		break;
 
 	case NAV_CMD_LAND:
 	case NAV_CMD_VTOL_LAND:
