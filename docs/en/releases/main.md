@@ -116,6 +116,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   ([PX4-Autopilot#28782: feat(tools): add mavlink_serial_bridge.py reference bridge application](https://github.com/PX4/PX4-Autopilot/pull/28782))
 - [Agam FloRange](../dronecan/agam_florange.md): new DroneCAN optical flow, distance sensor and IMU module (PAA3905, AFBR-S50LV85D, ICM-42688-P). ([PX4-Autopilot#28901](https://github.com/PX4/PX4-Autopilot/pull/28901))
 - [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md): new FMUv6X-RT flight controller (NXP i.MX RT1176) with triple-redundant IMUs and 100BASE-T1 Ethernet. ([PX4-Autopilot#28285](https://github.com/PX4/PX4-Autopilot/pull/28285))
+- [Syro V6X](../flight_controller/syro_v6x.md): new FMUv6X-based flight controller (STM32H753) with two ICM-45686 IMUs, a BMI088 IMU, two BMP581 barometers and a BMM350 magnetometer.
 - [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md): new i.MX 95 flight controller with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores. ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
 
 ### Common

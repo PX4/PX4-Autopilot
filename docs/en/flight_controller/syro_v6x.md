@@ -43,43 +43,242 @@ This flight controller is intended for inclusion in the [manufacturer supported]
   - **RC input:** Yes, on the PX4IO
   - **USB:** Yes
 - **Other**
-  - IMU heater output <!-- TODO(Syro): confirm the heater is fitted; the heater GPIO (PB10) is inherited from the FMUv6X design. -->
+  - IMU heater, enabled by default
   - Buzzer and safety switch on `GPS1`
 - **Electrical data**
-  <!-- TODO(Syro): input voltage range and maximum current of the power module inputs and USB, and the servo rail voltage range. -->
+  - **Power inputs (`POWER1`, `POWER2`, USB):** 5 V nominal, valid from 3.81 V to 5.85 V
+  - **Servo rail:** must be powered externally, and does not power the flight controller
 - **Mechanical data**
   <!-- TODO(Syro): dimensions, weight and mounting-hole pattern of the module and the baseboard. -->
 
 ## Where to Buy {#store}
 
-<!-- TODO(Syro): add the store link and a manufacturer contact (website or support email). -->
+- [Syro Robotics](https://syrorobotics.com/)
 
 ## Connections
 
-<!-- TODO(Syro): list every physical connector exactly as labelled on the board, with the connector type (e.g. JST GH 1.25 mm, CLIK-Mate 2.0 mm), and say whether the pinouts follow the Pixhawk Connector Standard (DS-009). The firmware defines these ports:
-- POWER1 and POWER2 (digital power modules)
-- USB
-- TELEM1, TELEM2, TELEM3
-- GPS1 (with safety switch and buzzer), GPS2
-- UART4 & I2C
-- CAN1, CAN2
-- Ethernet
-- SPI6 (external SPI)
-- RC IN (PX4IO), and DSM if fitted
-- MAIN 1-8 (PX4IO) and AUX 1-8 (FMU) PWM outputs, servo rail input
-- ADC / IO (analog inputs, capture input)
-- FMU debug and IO debug
-- microSD card slot -->
+![Syro V6X ports: TELEM1, TELEM2, TELEM3, UART4 & I2C, Ethernet and debug](../../assets/flight_controller/syro_v6x/syro_v6x_ports_telem.svg)
+
+![Syro V6X ports: CAN1, CAN2, USB, ADIO and I2C](../../assets/flight_controller/syro_v6x/syro_v6x_ports_can.svg)
+
+![Syro V6X ports: GPS1, GPS2, SBUS IN, PPM IN, SBUS OUT and SPI](../../assets/flight_controller/syro_v6x/syro_v6x_ports_gps.svg)
+
+![Syro V6X ports: MAIN and AUX outputs](../../assets/flight_controller/syro_v6x/syro_v6x_ports_pwm.svg)
+
+![Syro V6X ports: POWER1 and POWER2](../../assets/flight_controller/syro_v6x/syro_v6x_ports_power.svg)
+
+| Port                         | Connector                           |
+| ---------------------------- | ----------------------------------- |
+| `TELEM1`, `TELEM2`, `TELEM3` | 6-pin JST GH                        |
+| `GPS1`                       | 10-pin JST GH                       |
+| `GPS2`                       | 6-pin JST GH                        |
+| `UART4 & I2C`                  | 7-pin JST GH                        |
+| `I2C`                        | 4-pin JST GH                        |
+| `CAN1`, `CAN2`               | 4-pin JST GH                        |
+| `POWER1`, `POWER2`           | 6-pin Molex Micro-Lock Plus         |
+| `ADIO`                       | 8-pin JST GH                        |
+| `SPI`                        | 11-pin JST GH                       |
+| `SBUS IN`                    | 5-pin JST GH                        |
+| `PPM IN`                     | 3-pin JST GH                        |
+| `SBUS OUT`                   | 3-pin JST GH                        |
+| `FMU DEBUGGER`               | 10-pin JST SH                       |
+| `IO DEBUGGER`                | 10-pin JST SH                       |
+| `ETHERNET`                   | 4-pin JST GH                        |
+| `USB`                        | 4-pin JST GH                        |
+| `USB-C`                      | USB Type-C                          |
+| `MAIN` 1-8, `AUX` 1-8        | 3-pin servo headers (`-`, `+`, `S`) |
 
 ## Pinouts
 
-<!-- TODO(Syro): add a pin table for every connector (pin, signal, voltage), a pin 1 orientation image, and a connector layout image.
-The board support guide requires a public pinout mapping PX4 pin definitions to the microcontroller pins and physical connectors. -->
+### TELEM1, TELEM2, TELEM3
+
+| Pin | Signal | TELEM1 (UART7) | TELEM2 (UART5) | TELEM3 (USART2) |
+| --- | ------ | -------------- | -------------- | --------------- |
+| 1   | 5V     |                |                |                 |
+| 2   | TX     | PE8            | PC12           | PD5             |
+| 3   | RX     | PF6            | PD2            | PA3             |
+| 4   | CTS    | PE10           | PC9            | PD3             |
+| 5   | RTS    | PF8            | PC8            | PD4             |
+| 6   | GND    |                |                |                 |
+
+### GPS1
+
+| Pin | Signal            | MCU pin      |
+| --- | ----------------- | ------------ |
+| 1   | 5V                |              |
+| 2   | TX                | PB6 (USART1) |
+| 3   | RX                | PB7 (USART1) |
+| 4   | SCL               | PB8 (I2C1)   |
+| 5   | SDA               | PB9 (I2C1)   |
+| 6   | Safety switch     | PF5          |
+| 7   | Safety switch LED | PD10         |
+| 8   | 3.3V              |              |
+| 9   | Buzzer            | PF9          |
+| 10  | GND               |              |
+
+### GPS2
+
+| Pin | Signal | MCU pin     |
+| --- | ------ | ----------- |
+| 1   | 5V     |             |
+| 2   | TX     | PE1 (UART8) |
+| 3   | RX     | PE0 (UART8) |
+| 4   | SCL    | PF1 (I2C2)  |
+| 5   | SDA    | PF0 (I2C2)  |
+| 6   | GND    |             |
+
+### UART4 & I2C
+
+| Pin | Signal    | MCU pin      |
+| --- | --------- | ------------ |
+| 1   | 5V        |              |
+| 2   | TX        | PH13 (UART4) |
+| 3   | RX        | PH14 (UART4) |
+| 4   | SCL       | PA8 (I2C3)   |
+| 5   | SDA       | PH8 (I2C3)   |
+| 6   | NFC_GPIO  | PC0          |
+| 7   | GND       |              |
+
+### I2C
+
+| Pin | Signal | MCU pin    |
+| --- | ------ | ---------- |
+| 1   | 5V     |            |
+| 2   | SCL    | PA8 (I2C3) |
+| 3   | SDA    | PH8 (I2C3) |
+| 4   | GND    |            |
+
+### CAN1, CAN2
+
+| Pin | Signal |
+| --- | ------ |
+| 1   | 5V     |
+| 2   | CAN_H  |
+| 3   | CAN_L  |
+| 4   | GND    |
+
+### POWER1, POWER2
+
+| Pin | Signal | POWER1     | POWER2     |
+| --- | ------ | ---------- | ---------- |
+| 1   | 5V     |            |            |
+| 2   | 5V     |            |            |
+| 3   | SCL    | PB8 (I2C1) | PF1 (I2C2) |
+| 4   | SDA    | PB9 (I2C1) | PF0 (I2C2) |
+| 5   | GND    |            |            |
+| 6   | GND    |            |            |
+
+### ADIO
+
+| Pin | Signal             | MCU pin |
+| --- | ------------------ | ------- |
+| 1   | 5V                 |         |
+| 2   | FMU_CAP1           | PE11    |
+| 3   | FMU_BOOTLOADER     |         |
+| 4   | FMU_RST_REQ        |         |
+| 5   | nARMED             | PE6     |
+| 6   | ADC1_3V3 (3.3 V range) | PC3 |
+| 7   | ADC1_6V6 (6.6 V range) | PC2 |
+| 8   | GND                |         |
+
+### SPI
+
+| Pin | Signal | MCU pin     |
+| --- | ------ | ----------- |
+| 1   | 5V     |             |
+| 2   | SCK    | PB3 (SPI6)  |
+| 3   | MISO   | PA6 (SPI6)  |
+| 4   | MOSI   | PG14 (SPI6) |
+| 5   | CS1    | PI10        |
+| 6   | CS2    | PA15        |
+| 7   | nSYNC  | PE9         |
+| 8   | DRDY1  | PD11        |
+| 9   | DRDY2  | PD12        |
+| 10  | nRESET | PF10        |
+| 11  | GND    |             |
+
+### SBUS IN
+
+| Pin | Signal           |
+| --- | ---------------- |
+| 1   | 5V               |
+| 2   | SBUS / DSM input |
+| 3   | RSSI input       |
+| 4   | 3.3V (Spektrum)  |
+| 5   | GND              |
+
+### PPM IN
+
+| Pin | Signal |
+| --- | ------ |
+| 1   | 5V     |
+| 2   | PPM IN |
+| 3   | GND    |
+
+### SBUS OUT
+
+| Pin | Signal        |
+| --- | ------------- |
+| 1   | Not connected |
+| 2   | SBUS OUT      |
+| 3   | GND           |
+
+### ETHERNET
+
+| Pin | Signal |
+| --- | ------ |
+| 1   | RX-    |
+| 2   | RX+    |
+| 3   | TX-    |
+| 4   | TX+    |
+
+### USB
+
+| Pin | Signal |
+| --- | ------ |
+| 1   | VBUS   |
+| 2   | D-     |
+| 3   | D+     |
+| 4   | GND    |
+
+### MAIN, AUX
+
+Viewed from the connector side, the left block of eight (`IO`) is `MAIN` 1-8 and the right block (`FMU`) is `AUX` 1-8.
+The rows are, from top to bottom, ground (`-`), power (`+`) and signal (`S`).
+
+### FMU DEBUGGER
+
+| Pin | Signal    | MCU pin      |
+| --- | --------- | ------------ |
+| 1   | 3.3V      |              |
+| 2   | Console TX | PD8 (USART3) |
+| 3   | Console RX | PD9 (USART3) |
+| 4   | SWDIO     | PA13         |
+| 5   | SWCLK     | PA14         |
+| 6   | SPI6_SCK  | PB3          |
+| 7   | NFC_GPIO  | PC0          |
+| 8   | PH11      | PH11         |
+| 9   | nRST      |              |
+| 10  | GND       |              |
+
+### IO DEBUGGER
+
+| Pin | Signal         |
+| --- | -------------- |
+| 1   | 3.3V           |
+| 2   | IO USART1 TX   |
+| 3   | Not connected  |
+| 4   | IO SWDIO       |
+| 5   | IO SWCLK       |
+| 6   | IO SWO         |
+| 7   | IO spare GPIO1 |
+| 8   | IO spare GPIO2 |
+| 9   | IO nRST        |
+| 10  | GND            |
 
 ## Block Diagram
 
-<!-- TODO(Syro): add a block diagram or schematic of the main parts (processors, sensors, power supply and power path).
-It must be detailed enough to understand the boot order and software requirements. -->
+![Syro V6X block diagram](../../assets/flight_controller/syro_v6x/syro_v6x_block_diagram.svg)
 
 ## Serial Port Mapping
 
@@ -106,7 +305,7 @@ When flashing firmware over a UART with [`px4_uploader.py`](https://github.com/P
 | ---- | -------- | ---------------------------------------------------------------------- |
 | I2C1 | External | `GPS1` (compass), `POWER1` (power monitor)                             |
 | I2C2 | External | `GPS2`, `POWER2` (power monitor), onboard BMP581 barometer (`0x46`)    |
-| I2C3 | External | `UART4 & I2C`, baseboard EEPROM (`0x51`)                               |
+| I2C3 | External | `UART4 & I2C`, `I2C`, baseboard EEPROM (`0x51`)                        |
 | I2C4 | Internal | BMM350 magnetometer, BMP581 barometer (`0x47`), module EEPROM (`0x50`) |
 
 Do not connect external devices that use address `0x46` to I2C2, or address `0x51` to I2C3, as these addresses are used by onboard devices.
@@ -120,11 +319,13 @@ PX4 supports INA226, INA228 and INA238 based digital power modules on these inpu
 Enable the matching driver with [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226), [SENS_EN_INA228](../advanced_config/parameter_reference.md#SENS_EN_INA228) or [SENS_EN_INA238](../advanced_config/parameter_reference.md#SENS_EN_INA238).
 If none of these parameters is set, PX4 tries to detect a supported power monitor automatically.
 
-<!-- TODO(Syro): input voltage limits, typical power consumption, and the voltage rating of the servo rail. -->
+The power inputs are 5 V nominal.
+The power path selector treats an input as valid between 3.81 V (undervoltage threshold) and 5.85 V (overvoltage threshold), and disconnects an input outside this range.
 
 ::: warning
 The PWM output ports are not powered by the power module inputs.
 The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
+The output rail does not power the flight controller.
 This is generally true for VTOL and fixed-wing vehicles, but not necessarily true for multicopters.
 :::
 
@@ -140,8 +341,6 @@ The RC input is connected to the PX4IO coprocessor.
 For PPM and S.Bus receivers, a single signal wire carries all channels.
 If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a PPM encoder.
 For more information, see [RC receivers](../getting_started/rc_transmitter_receiver.md).
-
-<!-- TODO(Syro): list the RC protocols supported on the RC IN connector, and whether a DSM connector is fitted. -->
 
 ## GPS & Compass {#gps_compass}
 
@@ -195,7 +394,9 @@ The board has a microSD card slot, used for flight logs.
 
 The PX4 system console runs on `USART3` at 57600 baud.
 
-<!-- TODO(Syro): name the debug connector(s) for the FMU and the PX4IO, their connector type and pinout, and whether SWD is available. -->
+The console and the SWD interface of the FMU are on the `FMU DEBUGGER` connector.
+The SWD interface of the PX4IO is on the `IO DEBUGGER` connector.
+Both are 10-pin JST SH connectors, see [Pinouts](#pinouts) for the pin assignment.
 
 ## Hardware Identification {#hardware_id}
 
@@ -242,11 +443,6 @@ make syro_fmuv6x_bootloader
 - **Board ID:** 110 (`boards/syro/fmuv6x/firmware.prototype`)
 - **USB VID/PID:** `0x3643` / `0x0001`
 - **Bootloader USB product string:** `Syro BL FMU v6X`
-
-## Supported Platforms / Airframes
-
-Any multicopter, airplane, VTOL, rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
 ## Maintenance
 
