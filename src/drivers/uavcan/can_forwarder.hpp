@@ -113,7 +113,7 @@ public:
 	explicit CanForwarder(px4::WorkItem *work_item) : _tx_sub{work_item, ORB_ID(can_forward_tx)} {}
 	~CanForwarder() { deinit(); }
 
-	void init(ForwardingCanDriver *driver);
+	void init(ForwardingCanDriver *driver, bool config_only);
 	void deinit();
 
 	/// call before the node spins
@@ -123,6 +123,10 @@ public:
 	void publish(hrt_abstime now);
 
 	bool active() const { return _bus >= 0; }
+
+	/// the GCS updates a node's firmware through the tunnel; without frames for the keepalive timeout the session ends
+	/// too, and the update cannot continue
+	bool firmwareUpdating(hrt_abstime now) const { return _last_update_frame != 0 && now < _last_update_frame + KeepaliveTimeout; }
 	void printStatus() const;
 
 	bool allowInject(uint8_t bus) const { return _bus == bus && !_armed; }
@@ -131,6 +135,7 @@ public:
 private:
 	void handleCommand(const vehicle_command_s &cmd, hrt_abstime now);
 	void pushFramesToBus(hrt_abstime now, uavcan::CanIOManager &canio);
+	bool nextTxBatch();
 	void flushRx(hrt_abstime now);
 
 	ForwardingCanDriver *_driver{nullptr};
@@ -138,6 +143,7 @@ private:
 	int8_t _bus{-1};
 	hrt_abstime _last_keepalive{0};
 	bool _armed{false};
+	bool _config_only{true};
 	can_forward::Filter _filter;
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
@@ -147,12 +153,17 @@ private:
 	uORB::Publication<can_forward_frames_s> _rx_pub{ORB_ID(can_forward_rx)};
 	uORB::Publication<vehicle_command_ack_s> _ack_pub{ORB_ID(vehicle_command_ack)};
 
+	hrt_abstime _last_update_frame{0};
+	orb_advert_t _mavlink_log_pub{nullptr};
+
 	can_forward_frames_s _rx_batch{};
 	can_forward_frames_s _tx_batch{};
 	uint8_t _tx_index{0};
 	bool _tx_pending{false};
+	bool _tx_seen{false};
 
 	uint32_t _frames_to_gcs{0};
 	uint32_t _frames_from_gcs{0};
 	uint32_t _dropped_from_gcs{0};
+	uint32_t _lost_from_gcs{0}; ///< batches overwritten in the uORB queue
 };

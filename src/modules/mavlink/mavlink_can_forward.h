@@ -65,6 +65,7 @@ public:
 	void flushToBus();
 
 	bool isOwner() const { return _owner.load() == this; }
+	uint32_t lostBatches() const { return _rx_lost; }
 
 	// main thread
 	void dropFrames();
@@ -75,6 +76,7 @@ public:
 private:
 	static uint64_t client(uint32_t sysid, uint8_t compid) { return (uint64_t(sysid) << 8) | compid; }
 	void queueFrame(uint8_t bus, uint32_t id, uint8_t len, const uint8_t *data);
+	bool nextRxBatch(); ///< main thread
 
 	static px4::atomic<MavlinkCanForward *> _owner;
 	px4::atomic<uint64_t> _client{0}; ///< sysid << 8 | compid
@@ -89,4 +91,6 @@ private:
 	can_forward_frames_s _rx_batch{};
 	uint8_t _rx_index{0};
 	bool _rx_pending{false};
+	bool _rx_seen{false};
+	uint32_t _rx_lost{0}; ///< batches overwritten in the uORB queue, e.g. on a saturated link
 };

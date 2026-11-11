@@ -37,6 +37,57 @@
 #include <math.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
+#include <systemlib/mavlink_log.h>
+#include <uavcan/protocol/GetNodeInfo.hpp>
+#include <uavcan/protocol/NodeStatus.hpp>
+#include <uavcan/protocol/RestartNode.hpp>
+#include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
+#include <uavcan/protocol/file/GetInfo.hpp>
+#include <uavcan/protocol/file/Read.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
+
+// frames a ground station may send in configuration only mode (node info, parameters, restart, firmware update): no commands
+static bool isConfigurationFrame(uint32_t can_id)
+{
+	const uint32_t id = can_id & can_forward::CanMaskExtId;
+
+	if (!(can_id & can_forward::CanFlagEff) || (id & 0x7FU) == 0) {
+		return false;
+	}
+
+	if (id & 0x80U) {
+		switch (static_cast<uint8_t>(id >> 16)) {
+		case uavcan::protocol::GetNodeInfo::DefaultDataTypeID:
+		case uavcan::protocol::RestartNode::DefaultDataTypeID:
+		case uavcan::protocol::param::ExecuteOpcode::DefaultDataTypeID:
+		case uavcan::protocol::param::GetSet::DefaultDataTypeID:
+		case uavcan::protocol::file::BeginFirmwareUpdate::DefaultDataTypeID:
+		case uavcan::protocol::file::GetInfo::DefaultDataTypeID:
+		case uavcan::protocol::file::Read::DefaultDataTypeID:
+			return true;
+
+		default:
+			return false;
+		}
+	}
+
+	return static_cast<uint16_t>(id >> 8) == uavcan::protocol::NodeStatus::DefaultDataTypeID;
+}
+
+// BeginFirmwareUpdate, and the file.Read responses the node pulls the image with
+static bool isFirmwareUpdateFrame(uint32_t can_id)
+{
+	const uint32_t id = can_id & can_forward::CanMaskExtId;
+
+	if (!(can_id & can_forward::CanFlagEff) || !(id & 0x80U)) {
+		return false;
+	}
+
+	const uint8_t type = static_cast<uint8_t>(id >> 16);
+	return type == uavcan::protocol::file::BeginFirmwareUpdate::DefaultDataTypeID
+	       || type == uavcan::protocol::file::Read::DefaultDataTypeID;
+}
 
 ForwardingCanDriver::ForwardingCanDriver(uavcan::ICanDriver &inner) : _inner(inner)
 {
@@ -92,9 +143,10 @@ int16_t ForwardingCanDriver::Iface::receive(uavcan::CanFrame &out_frame, uavcan:
 	return res;
 }
 
-void CanForwarder::init(ForwardingCanDriver *driver)
+void CanForwarder::init(ForwardingCanDriver *driver, bool config_only)
 {
 	_driver = driver;
+	_config_only = config_only;
 
 	if (_driver != nullptr) {
 		_driver->setForwarder(this);
@@ -170,15 +222,15 @@ void CanForwarder::handleCommand(const vehicle_command_s &cmd, hrt_abstime now)
 
 	if (bus == 0) {
 		if (active()) {
-			PX4_INFO("CAN forwarding stopped");
+			mavlink_log_info(&_mavlink_log_pub, "CAN forwarding stopped");
 		}
 
 		_bus = -1;
 		ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-	} else if (bus > 0 && bus <= _driver->getNumIfaces() && _driver->getIface(bus - 1) != nullptr) {
+	} else if (_driver != nullptr && bus > 0 && bus <= _driver->getNumIfaces() && _driver->getIface(bus - 1) != nullptr) {
 		if (_bus != bus - 1) {
-			PX4_INFO("CAN forwarding on CAN%d to %" PRIu32 "/%u", bus, cmd.source_system, unsigned(cmd.source_component));
+			mavlink_log_info(&_mavlink_log_pub, "CAN forwarding active on CAN%d", bus);
 			_bus = bus - 1;
 			_filter.clear();
 		}
@@ -193,16 +245,6 @@ void CanForwarder::handleCommand(const vehicle_command_s &cmd, hrt_abstime now)
 
 void CanForwarder::update(hrt_abstime now, uavcan::CanIOManager &canio)
 {
-	if (_driver == nullptr) {
-		return;
-	}
-
-	actuator_armed_s armed;
-
-	if (_armed_sub.update(&armed)) {
-		_armed = armed.armed || armed.prearmed;
-	}
-
 	vehicle_command_s cmd;
 
 	while (_vcmd_sub.update(&cmd)) {
@@ -211,8 +253,18 @@ void CanForwarder::update(hrt_abstime now, uavcan::CanIOManager &canio)
 		}
 	}
 
+	if (_driver == nullptr) {
+		return;
+	}
+
+	actuator_armed_s armed;
+
+	if (_armed_sub.update(&armed)) {
+		_armed = armed.armed;
+	}
+
 	if (active() && now > _last_keepalive + KeepaliveTimeout) {
-		PX4_INFO("CAN forwarding timed out");
+		mavlink_log_info(&_mavlink_log_pub, "CAN forwarding timed out");
 		_bus = -1;
 	}
 
@@ -227,20 +279,29 @@ void CanForwarder::update(hrt_abstime now, uavcan::CanIOManager &canio)
 	pushFramesToBus(now, canio);
 }
 
+bool CanForwarder::nextTxBatch()
+{
+	const unsigned last_generation = _tx_sub.get_last_generation();
+
+	if (!_tx_sub.update(&_tx_batch)) {
+		return false;
+	}
+
+	if (_tx_seen) {
+		_lost_from_gcs += _tx_sub.get_last_generation() - last_generation - 1;
+	}
+
+	_tx_seen = true;
+	_tx_index = 0;
+	_tx_pending = true;
+	return true;
+}
+
 void CanForwarder::pushFramesToBus(hrt_abstime now, uavcan::CanIOManager &canio)
 {
 	uint8_t sent = 0;
 
-	while (true) {
-		if (!_tx_pending) {
-			if (!_tx_sub.update(&_tx_batch)) {
-				return;
-			}
-
-			_tx_index = 0;
-			_tx_pending = true;
-		}
-
+	while (_tx_pending || nextTxBatch()) {
 		const uint8_t count = math::min(_tx_batch.count, can_forward_frames_s::MAX_FRAMES);
 		const uint8_t bus = _tx_batch.bus;
 
@@ -257,10 +318,21 @@ void CanForwarder::pushFramesToBus(hrt_abstime now, uavcan::CanIOManager &canio)
 				return;
 			}
 
+			if (_config_only && !isConfigurationFrame(_tx_batch.id[_tx_index])) {
+				_tx_index++;
+				_dropped_from_gcs++;
+				continue;
+			}
+
 			const uint8_t len = math::min(_tx_batch.len[_tx_index], can_forward::CanMaxDataLen);
 			const uavcan::CanFrame frame(_tx_batch.id[_tx_index], &_tx_batch.data[_tx_index * 8], len);
 			(void)canio.send(frame, uavcan::MonotonicTime::fromUSec(now + TxDeadline), uavcan::MonotonicTime(),
 					 static_cast<uint8_t>(1U << bus), uavcan::CanTxQueue::Persistent, ForwardingCanDriver::CanIOFlagForwarded);
+
+			if (isFirmwareUpdateFrame(_tx_batch.id[_tx_index])) {
+				_last_update_frame = now;
+			}
+
 			_tx_index++;
 			_frames_from_gcs++;
 			sent++;
@@ -272,13 +344,21 @@ void CanForwarder::pushFramesToBus(hrt_abstime now, uavcan::CanIOManager &canio)
 
 void CanForwarder::printStatus() const
 {
-	if (active()) {
-		printf("CAN forwarding over MAVLink: CAN%d%s\n", _bus + 1, _armed ? " (armed, monitor only)" : "");
-
-	} else {
-		printf("CAN forwarding over MAVLink: idle\n");
+	if (_driver == nullptr) {
+		printf("CAN forwarding over MAVLink: disabled (UAVCAN_CAN_FWD)\n");
+		return;
 	}
 
-	printf("\tto GCS: %" PRIu32 ", from GCS: %" PRIu32 ", dropped from GCS: %" PRIu32 ", filter IDs: %u\n",
-	       _frames_to_gcs, _frames_from_gcs, _dropped_from_gcs, unsigned(_filter.size()));
+	if (active()) {
+		printf("CAN forwarding over MAVLink: CAN%d%s", _bus + 1, _armed ? " (armed, monitor only)" : "");
+
+	} else {
+		printf("CAN forwarding over MAVLink: idle");
+	}
+
+	printf("%s\n", _config_only ? " (configuration only)" : "");
+	printf("\tfirmware update: %s\n", firmwareUpdating(hrt_absolute_time()) ? "in progress" : "none");
+
+	printf("\tto GCS: %" PRIu32 ", from GCS: %" PRIu32 ", dropped from GCS: %" PRIu32 ", lost batches from GCS: %" PRIu32
+	       ", filter IDs: %u\n", _frames_to_gcs, _frames_from_gcs, _dropped_from_gcs, _lost_from_gcs, unsigned(_filter.size()));
 }

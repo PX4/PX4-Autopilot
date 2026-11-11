@@ -447,7 +447,17 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
 
-	if (can_forward_driver == nullptr) {
+	const param_t can_fwd_handle = param_find("UAVCAN_CAN_FWD");
+	int32_t can_fwd = 0;
+	(void)param_get(can_fwd_handle, &can_fwd);
+
+	// forwarding for this boot only: remove to keep UAVCAN_CAN_FWD across reboots
+	if (can_fwd != 0) {
+		const int32_t off = 0;
+		(void)param_set(can_fwd_handle, &off);
+	}
+
+	if (can_fwd != 0 && can_forward_driver == nullptr) {
 		can_forward_driver = new ForwardingCanDriver(can->driver);
 	}
 
@@ -468,7 +478,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
-	_instance->_can_forwarder.init(can_forward_driver);
+	_instance->_can_forwarder.init(can_forward_driver, can_fwd == 1);
 #endif
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
@@ -866,16 +876,17 @@ UavcanNode::Run()
 
 	publish_node_statuses();
 
-	if (_servers != nullptr) {
-		const bool pending = _servers->hasPendingFirmwareUpdates();
+	bool pending = _servers != nullptr && _servers->hasPendingFirmwareUpdates();
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	pending = pending || _can_forwarder.firmwareUpdating(hrt_absolute_time());
+#endif
 
-		if (pending != _fw_update_pending_last) {
-			_fw_update_pending_last = pending;
-			uavcan_firmware_update_s fw_update{};
-			fw_update.timestamp = hrt_absolute_time();
-			fw_update.pending_updates = pending;
-			_fw_update_pub.publish(fw_update);
-		}
+	if (pending != _fw_update_pending_last) {
+		_fw_update_pending_last = pending;
+		uavcan_firmware_update_s fw_update{};
+		fw_update.timestamp = hrt_absolute_time();
+		fw_update.pending_updates = pending;
+		_fw_update_pub.publish(fw_update);
 	}
 
 	// check for parameter updates

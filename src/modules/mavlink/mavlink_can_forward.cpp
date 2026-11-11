@@ -136,7 +136,27 @@ void MavlinkCanForward::dropFrames()
 {
 	_rx_pending = false;
 
-	while (_rx_sub.update(&_rx_batch)) {}
+	while (_rx_sub.update(&_rx_batch)) {
+		_rx_seen = true;
+	}
+}
+
+bool MavlinkCanForward::nextRxBatch()
+{
+	const unsigned last_generation = _rx_sub.get_last_generation();
+
+	if (!_rx_sub.update(&_rx_batch)) {
+		return false;
+	}
+
+	if (_rx_seen) {
+		_rx_lost += _rx_sub.get_last_generation() - last_generation - 1;
+	}
+
+	_rx_seen = true;
+	_rx_index = 0;
+	_rx_pending = true;
+	return true;
 }
 
 void MavlinkCanForward::sendToGcs(mavlink_channel_t channel, unsigned free_tx_buf)
@@ -145,12 +165,7 @@ void MavlinkCanForward::sendToGcs(mavlink_channel_t channel, unsigned free_tx_bu
 
 	const uint64_t requester = _client.load();
 
-	while (_rx_pending || _rx_sub.update(&_rx_batch)) {
-		if (!_rx_pending) {
-			_rx_index = 0;
-			_rx_pending = true;
-		}
-
+	while (_rx_pending || nextRxBatch()) {
 		const uint8_t count = math::min(_rx_batch.count, can_forward_frames_s::MAX_FRAMES);
 
 		for (; _rx_index < count; _rx_index++) {

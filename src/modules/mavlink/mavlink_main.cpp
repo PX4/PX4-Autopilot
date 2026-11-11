@@ -3682,6 +3682,14 @@ Mavlink::display_status()
 	}
 
 	printf("\tForwarding: %s\n", get_forwarding_on() ? "On" : "Off");
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+
+	if (_can_forward.isOwner()) {
+		printf("\tCAN forwarding to GCS, lost batches: %" PRIu32 "\n", _can_forward.lostBatches());
+	}
+
+#endif
 	printf("\tMAVLink version: %" PRId8 "\n", _protocol_version.load());
 
 	printf("\ttransport protocol: ");
