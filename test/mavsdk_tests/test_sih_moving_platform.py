@@ -7,10 +7,6 @@ from takeoff_checks import check_takeoff
 
 TAKEOFF_ALTITUDE_M = 5.0
 
-# TODO: remove once the takeoff handles a moving platform. Until then the takeoff from a moving
-# platform must fail the takeoff checks, so the fix has to remove this.
-EXPECTED_TO_FAIL = True
-
 
 @pytest.mark.moving_platform
 def test_takeoff_from_moving_platform(
@@ -35,10 +31,4 @@ def test_takeoff_from_moving_platform(
     # on the moving platform.
 
     failures = check_takeoff(recording, platform_ne, tester.drag_per_kg())
-
-    if EXPECTED_TO_FAIL:
-        if not failures:
-            pytest.fail("The takeoff from a moving platform passes now, remove EXPECTED_TO_FAIL")
-        pytest.xfail("Known takeoff problems on a moving platform: " + "; ".join(failures))
-
     assert not failures, "; ".join(failures)
