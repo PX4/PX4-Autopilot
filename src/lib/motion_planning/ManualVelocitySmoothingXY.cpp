@@ -56,26 +56,16 @@ void ManualVelocitySmoothingXY::resetPositionLock()
 
 void ManualVelocitySmoothingXY::update(float dt, const Vector2f &velocity_target)
 {
-	// Update state
-	updateTrajectories(dt);
-
 	// Lock or unlock position
 	// Has to be done before _updateTrajDurations()
 	checkPositionLock(velocity_target);
 
 	// Update durations and sync XY
 	updateTrajDurations(velocity_target);
-}
 
-void ManualVelocitySmoothingXY::updateTrajectories(float dt)
-{
+	// Integrate along the plan
 	for (int i = 0; i < 2; ++i) {
 		_trajectory[i].updateTraj(dt);
-
-		_state.j(i) = _trajectory[i].getCurrentJerk();
-		_state.a(i) = _trajectory[i].getCurrentAcceleration();
-		_state.v(i) = _trajectory[i].getCurrentVelocity();
-		_state.x(i) = _trajectory[i].getCurrentPosition();
 	}
 }
 
@@ -98,12 +88,12 @@ void ManualVelocitySmoothingXY::checkPositionLock(const Vector2f &velocity_targe
 	 * This is why the previous input of the velocity controller
 	 * is used to set current velocity of the trajectory.
 	 */
-	if (_state.v.length() < 0.1f &&
-	    _state.a.length() < .2f &&
+	if (getCurrentVelocity().length() < 0.1f &&
+	    getCurrentAcceleration().length() < .2f &&
 	    velocity_target.length() <= FLT_EPSILON) {
 		// Lock position
 		_position_lock_active = true;
-		_position_setpoint_locked = _state.x;
+		_position_setpoint_locked = Vector2f(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
 
 	} else {
 		// Unlock position
@@ -111,7 +101,6 @@ void ManualVelocitySmoothingXY::checkPositionLock(const Vector2f &velocity_targe
 			// Start the trajectory at the current velocity setpoint
 			_trajectory[0].setCurrentVelocity(_velocity_setpoint_feedback(0));
 			_trajectory[1].setCurrentVelocity(_velocity_setpoint_feedback(1));
-			_state.v = _velocity_setpoint_feedback;
 			resetPositionLock();
 		}
 

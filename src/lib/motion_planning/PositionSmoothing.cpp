@@ -337,6 +337,13 @@ void PositionSmoothing::_generateTrajectory(
 		time_stretch_z = 1.f - math::constrain(fabsf(drone_to_traj_z) / _max_allowed_vertical_error, 0.f, 1.f);
 	}
 
+	// Plan from the current state before integrating along the plan
+	for (int i = 0; i < 3; ++i) {
+		_trajectory[i].updateDurations(velocity_setpoint(i));
+	}
+
+	VelocitySmoothing::timeSynchronization(_trajectory, 3);
+
 	// Axis 0,1 (XY) get the horizontal stretch; axis 2 (Z) gets the vertical stretch.
 	const float axis_stretch[3] = { time_stretch_xy, time_stretch_xy, time_stretch_z };
 
@@ -347,10 +354,4 @@ void PositionSmoothing::_generateTrajectory(
 		out_setpoints.velocity(i) = _trajectory[i].getCurrentVelocity();
 		out_setpoints.position(i) = _trajectory[i].getCurrentPosition();
 	}
-
-	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].updateDurations(velocity_setpoint(i));
-	}
-
-	VelocitySmoothing::timeSynchronization(_trajectory, 3);
 }
