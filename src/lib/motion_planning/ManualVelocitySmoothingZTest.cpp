@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,68 +37,24 @@
  */
 
 #include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
 
-#include <motion_planning/ManualVelocitySmoothingXY.hpp>
+#include <motion_planning/ManualVelocitySmoothingZ.hpp>
 
-using namespace matrix;
-
-class ManualVelocitySmoothingXYTest : public ::testing::Test
-{
-public:
-	ManualVelocitySmoothingXY _smoothing;
-};
-
-
-TEST_F(ManualVelocitySmoothingXYTest, setGet)
-{
-	// GIVEN: Some max values
-	_smoothing.setMaxJerk(11.f);
-	_smoothing.setMaxAccel(7.f);
-	_smoothing.setMaxVel(5.f);
-
-	// THEN: We should be able to get them back
-	EXPECT_FLOAT_EQ(_smoothing.getMaxJerk(), 11.f);
-	EXPECT_FLOAT_EQ(_smoothing.getMaxAccel(), 7.f);
-	EXPECT_FLOAT_EQ(_smoothing.getMaxVel(), 5.f);
-}
-
-TEST_F(ManualVelocitySmoothingXYTest, getCurrentState)
-{
-	// GIVEN: the initial conditions
-	Vector2f v0(11.f, 13.f);
-	_smoothing.setCurrentVelocity(v0);
-
-	// WHEN: we get the current state
-	Vector3f j_end;
-	Vector3f a_end;
-	Vector3f v_end;
-	Vector3f x_end;
-	j_end.xy() = _smoothing.getCurrentJerk();
-	a_end.xy() = _smoothing.getCurrentAcceleration();
-	v_end.xy() = _smoothing.getCurrentVelocity();
-	x_end.xy() = _smoothing.getCurrentPosition();
-
-	// THEN: the returned values should match the input
-	EXPECT_EQ(j_end, Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(a_end, Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(v_end, Vector3f(11.f, 13.f, 0.f));
-	EXPECT_EQ(x_end, Vector3f(0.f, 0.f, 0.f));
-}
-
-TEST_F(ManualVelocitySmoothingXYTest, positionLockAfterReset)
+TEST(ManualVelocitySmoothingZTest, positionLockAfterReset)
 {
 	// GIVEN: A standing still trajectory reset away from the origin
-	_smoothing.setMaxJerk(4.f);
-	_smoothing.setMaxAccel(3.f);
-	_smoothing.setMaxVel(5.f);
-	const Vector2f position(10.f, -5.f);
-	_smoothing.reset(Vector2f(), Vector2f(), position);
+	ManualVelocitySmoothingZ smoothing;
+	smoothing.setMaxJerk(4.f);
+	smoothing.setMaxAccelUp(3.f);
+	smoothing.setMaxAccelDown(3.f);
+	smoothing.setMaxVelUp(3.f);
+	smoothing.setMaxVelDown(3.f);
+	const float position = -10.f;
+	smoothing.reset(0.f, 0.f, position);
 
 	// WHEN: It's updated without any velocity target
-	_smoothing.update(0.02f, Vector2f());
+	smoothing.update(0.02f, 0.f);
 
 	// THEN: The position gets locked where it was reset to
-	EXPECT_FLOAT_EQ(_smoothing.getCurrentPosition()(0), position(0));
-	EXPECT_FLOAT_EQ(_smoothing.getCurrentPosition()(1), position(1));
+	EXPECT_FLOAT_EQ(smoothing.getCurrentPosition(), position);
 }
