@@ -126,7 +126,6 @@ static constexpr uint32_t BL_READ_TIMEOUT_US = 500000;
 static constexpr uint32_t SESSION_CONNECT_US = 1500000;	// inside the configurator's 2 s per InitFlash try
 static constexpr uint32_t REBOOT_DELAY_US = 500000;	// lets the last reply drain before the USB drops
 static constexpr int RX_GAP_MS = 100;			// a longer gap inside a host frame drops it
-static constexpr uint32_t UART_RETRY_US = 10000;	// a pending bidirectional DShot capture completes well within this
 static constexpr uint32_t DISARM_POLL_US = 100000;
 static constexpr hrt_abstime DTR_CLOSED_US = 1000000;	// DTR low this long: the host closed the port
 static constexpr int32_t OUTPUT_FUNCTION_MOTOR1 = 101;	// PWM_*_FUNCn value of Motor1, Motor2 is 102, ...
@@ -213,13 +212,6 @@ static int uart_begin()
 #endif
 		(void)stop;
 		ret = bitbang_uart_init(19200, true);
-
-		// A bidirectional DShot capture completion that was already scheduled can claim a pin again
-		// right after the stop
-		if (ret == -EBUSY) {
-			px4_usleep(UART_RETRY_US);
-			ret = bitbang_uart_init(19200, true);
-		}
 	}
 
 	if (ret != 0) {
