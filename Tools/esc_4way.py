@@ -677,8 +677,11 @@ def run_command(fd, args):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__.split('\n')[0],
-                                     formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
+    # -h prints the usage and the command list itself: only the docstring's intro (description)
+    # and closing notes (epilog) are added, not its usage line and command table
+    paragraphs = __doc__.strip().split('\n\n')
+    parser = argparse.ArgumentParser(description='\n\n'.join(paragraphs[:2]),
+                                     formatter_class=argparse.RawDescriptionHelpFormatter, epilog=paragraphs[-1])
     # the common options are accepted before and after the command
     common = argparse.ArgumentParser(add_help=False)
     for p, default in ((parser, None), (common, argparse.SUPPRESS)):
@@ -688,30 +691,33 @@ def main(argv=None):
                        help='set SYS_USB_AUTO=1 and reboot over MAVLink without listening for heartbeats first')
         p.add_argument('--no-exit', action='store_true', default=default or False,
                        help='leave the session open (no InterfaceExit, no reboot)')
-    sub = parser.add_subparsers(dest='command', required=True)
-    c = sub.add_parser('check', parents=[common], help='protocol self-check')
+    sub = parser.add_subparsers(dest='command')
+    c = sub.add_parser('check', parents=[common], help='[--no-esc] [--variant V] [--toggle-direction] - protocol self-check')
     c.add_argument('dev', nargs='?', help='serial device path (same as -d)')
     c.add_argument('--variant', default='PX4 ', help='expected 4-byte MSP_FC_VARIANT (default %(default)r)')
     c.add_argument('--toggle-direction', action='store_true',
                    help='flip the AM32 motor direction setting, verify, then restore it')
     c.add_argument('--no-esc', action='store_true', help='skip DeviceInitFlash and DeviceRead')
     sub.add_parser('info', parents=[common], help='ESC signature, MCU and flash layout')
-    c = sub.add_parser('read', parents=[common], help='raw flash read')
+    c = sub.add_parser('read', parents=[common], help='ADDR LEN [-o F] - raw flash read')
     c.add_argument('addr', type=lambda v: int(v, 0), help='byte offset from the flash start')
     c.add_argument('len', type=lambda v: int(v, 0))
     c.add_argument('-o', '--output', help='output file (hex on the console if omitted)')
-    c = sub.add_parser('write', parents=[common], help='raw flash write')
+    c = sub.add_parser('write', parents=[common], help='ADDR FILE - raw flash write')
     c.add_argument('addr', type=lambda v: int(v, 0), help='byte offset from the flash start')
     c.add_argument('file')
-    sub.add_parser('dump', parents=[common], help='whole flash to a file').add_argument('file')
-    c = sub.add_parser('flash', parents=[common], help='AM32 firmware, Intel hex or bin')
+    sub.add_parser('dump', parents=[common], help='FILE - whole flash to a file').add_argument('file')
+    c = sub.add_parser('flash', parents=[common], help='FILE [--force] - AM32 firmware, Intel hex or bin')
     c.add_argument('file')
     c.add_argument('--force', action='store_true', help='flash an image whose firmware name differs from the ESC\'s')
     sub.add_parser('settings', parents=[common], help='AM32 settings, raw and decoded')
-    c = sub.add_parser('direction', parents=[common], help='AM32 motor direction')
+    c = sub.add_parser('direction', parents=[common], help='set 0|1 or toggle - AM32 motor direction')
     c.add_argument('action', choices=['set', 'toggle'])
     c.add_argument('value', nargs='?', type=int, choices=[0, 1])
     args = parser.parse_args(argv)
+    if not args.command:  # no command: show the help instead of an error
+        parser.print_help()
+        return 0
     if args.command == 'direction' and (args.action == 'set') != (args.value is not None):
         parser.error('direction set takes 0 or 1, toggle takes no value')
     device = getattr(args, 'dev', None) or args.device
