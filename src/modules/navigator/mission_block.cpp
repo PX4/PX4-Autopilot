@@ -187,8 +187,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
 				_navigator->get_default_loiter_rad();
 
-		if (_mission_item.nav_cmd != NAV_CMD_TAKEOFF_LOCAL) {
-			// _mission_item.lat/lon alias the local x/y fields for NAV_CMD_TAKEOFF_LOCAL and are not valid WGS84 coordinates.
+		if (_mission_item.frame != NAV_FRAME::NAV_FRAME_LOCAL_NED) {
+			// _mission_item.lat/lon alias the local x/y fields for a local-frame item and are not valid WGS84 coordinates.
 			// add more commands which doesn't depend on global navigation here, so that these are not computed each loop
 			dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
 					_navigator->get_global_position()->lat,
@@ -201,6 +201,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 			Takeoff for  Multirotor and VTOL(MC) in Global coordinates
 		*/
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
+		    && _mission_item.frame != NAV_FRAME::NAV_FRAME_LOCAL_NED
 		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			/* We want to avoid the edge case where the acceptance radius is bigger or equal than
@@ -229,7 +230,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 				Takeoff for  Multirotor  in Local coordinates
 			*/
 
-		} else if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF_LOCAL)
+		} else if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF)
+			   && (_mission_item.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED)
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			const float takeoff_height = _mission_item.altitude;
@@ -720,7 +722,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 			break;
 
-		case NAV_CMD_TAKEOFF_LOCAL:
+		case NAV_CMD_TAKEOFF:
 
 			// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
 			if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
@@ -958,7 +960,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 void
 MissionBlock::set_local_takeoff_item(struct mission_item_s *item, float local_altitude)
 {
-	item->nav_cmd = NAV_CMD_TAKEOFF_LOCAL;
+	item->nav_cmd = NAV_CMD_TAKEOFF;
 
 	/* use current position */
 	item->frame = NAV_FRAME::NAV_FRAME_LOCAL_NED;
@@ -1309,8 +1311,10 @@ MissionBlock::update_precision_takeoff(const hrt_abstime now)
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	// Vertical takeoffs only
-	const bool takeoff_item = _mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF;
+	// Vertical takeoffs only. Excludes a local-frame takeoff: the correction below is written into
+	// _mission_item.lat/lon, which alias the local x/y fields for a local-frame item.
+	const bool takeoff_item = (_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
+				  && _mission_item.frame != NAV_FRAME::NAV_FRAME_LOCAL_NED;
 	const bool vertical_takeoff = takeoff_item
 				      && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 				      && pos_sp_triplet->current.valid

@@ -34,9 +34,9 @@
 /**
  * @file test_mission_block_takeoff_local.cpp
  *
- * NAV_CMD_TAKEOFF_LOCAL position-reached check and the post-takeoff loiter handoff, for a
- * multicopter taking off in the local frame (e.g. without a global position, as with optical
- * flow only).
+ * NAV_CMD_TAKEOFF position-reached check for a local-frame (NAV_FRAME_LOCAL_NED) item, and the
+ * post-takeoff loiter handoff, for a multicopter taking off in the local frame (e.g. without a
+ * global position, as with optical flow only).
  */
 
 #include <gtest/gtest.h>
@@ -99,7 +99,8 @@ protected:
 
 		mission_item_s &item = _block.item();
 		item = {};
-		item.nav_cmd = NAV_CMD_TAKEOFF_LOCAL;
+		item.nav_cmd = NAV_CMD_TAKEOFF;
+		item.frame = NAV_FRAME::NAV_FRAME_LOCAL_NED;
 		item.altitude = kTakeoffHeight;
 		item.yaw = NAN; // set_local_takeoff_item() leaves the heading to the flight task
 		_block.reset();
