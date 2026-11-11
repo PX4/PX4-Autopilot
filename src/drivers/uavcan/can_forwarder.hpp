@@ -113,7 +113,7 @@ public:
 	explicit CanForwarder(px4::WorkItem *work_item) : _tx_sub{work_item, ORB_ID(can_forward_tx)} {}
 	~CanForwarder() { deinit(); }
 
-	void init(ForwardingCanDriver *driver);
+	void init(ForwardingCanDriver *driver, bool config_only);
 	void deinit();
 
 	/// call before the node spins
@@ -138,6 +138,7 @@ private:
 	int8_t _bus{-1};
 	hrt_abstime _last_keepalive{0};
 	bool _armed{false};
+	bool _config_only{true};
 	can_forward::Filter _filter;
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};

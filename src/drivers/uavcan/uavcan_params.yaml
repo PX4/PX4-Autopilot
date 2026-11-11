@@ -124,6 +124,24 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
+    UAVCAN_CAN_FWD:
+      description:
+        short: CAN forwarding over MAVLink
+        long: |-
+          Allow forwarding CAN messages over MAVLink.
+          Configuration only lets the ground station configure and update nodes: read node
+          info, read and write parameters, restart nodes and update their firmware.
+          Applies to the next boot only: it is reset to 0 at startup, so the following
+          reboot returns to normal operation.
+      type: enum
+      values:
+        0: Disabled
+        1: Configuration only
+        2: Unrestricted
+      default: 0
+      min: 0
+      max: 2
+      reboot_required: true
     UAVCAN_PUB_RTCM:
       description:
         short: publish RTCM stream
