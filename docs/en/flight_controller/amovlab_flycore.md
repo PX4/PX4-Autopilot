@@ -122,12 +122,12 @@ Pin 1 starts from the right side of the connector, as shown below:
 
 ### TELEM3 Port
 
-| Pin | Signal |
-| --- | ------ |
-| 1   | RX     |
-| 2   | TX     |
-| 3   | GND    |
-| 4   | VCC    |
+| Pin | Signal    |
+| --- | --------- |
+| 1   | RX        |
+| 2   | TX        |
+| 3   | GND       |
+| 4   | VCC (5 V) |
 
 ### I2C1 Port
 
