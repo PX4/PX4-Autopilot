@@ -89,3 +89,207 @@ parameters:
             max: 400
             num_instances: 12
             instance_start: 1
+
+    - group: Turtle Recovery
+      definitions:
+        TRTL_EN:
+            description:
+                short: "Enable Quad-X turtle recovery"
+                long: |
+                    Enable only after mapping and verifying the ESC profile. Controls recovery entry; disabling does not cancel direction restoration. Fresh switch-OFF qualification is required between recovery attempts. This feature intentionally permits motor output while disarmed.
+            type: int32
+            min: 0
+            max: 1
+            default: 0
+        TRTL_ESC:
+            description:
+                short: "Verified temporary-direction ESC profile"
+                long: |
+                    Set 1 only for verified temporary relative DShot 21 reverse and 20 normal support. Opts these outputs into startup restoration even when TRTL_EN is disabled. No ESC settings are saved. Changing this profile or motor assignments requires a complete FC and ESC power cycle.
+            type: int32
+            min: 0
+            max: 1
+            default: 0
+            reboot_required: true
+        TRTL_CH:
+            description:
+                short: "Turtle receiver channel"
+                long: |
+                    One-based calibrated channel from the PX4 RC input pipeline. It must not share roll, pitch, yaw, throttle, arm, kill, flight mode, parameter tuning or other critical functions. Generic AUX sharing is allowed. Joystick MANUAL_CONTROL is not supported.
+            type: int32
+            min: 1
+            max: 18
+            default: 9
+        TRTL_POL:
+            description:
+                short: "Turtle switch polarity"
+                long: |
+                    After applying polarity, ON is above 0.7 and OFF is below -0.3; center stops recovery but does not reset the switch handshake.
+            type: enum
+            values:
+                -1: Low is ON
+                1: High is ON
+            default: 1
+        TRTL_ANGLE:
+            description:
+                short: "Minimum tilt to START recovery"
+                long: |
+                    Degrees away from upright. Entry needs a fresh OFF to ON request followed by a hold. 85 allows a nominal 90-degree side-on start. Must be at least EXIT plus 10 degrees.
+            type: int32
+            min: 60
+            max: 175
+            default: 120
+            unit: "deg"
+        TRTL_EXIT:
+            description:
+                short: "Tilt at which recovery STOPS"
+                long: |
+                    Separate threshold from ANGLE. Once started, a flip can continue through the entry angle until it reaches this near-upright tilt or another stop condition. Must be at least 10 degrees below ANGLE.
+            type: int32
+            min: 5
+            max: 80
+            default: 35
+            unit: "deg"
+        TRTL_MIN:
+            description:
+                short: "Starting recovery motor command"
+                long: |
+                    PX4 non-stop DShot command units, not measured RPM, thrust or percent power. Must not exceed MAX. Tune for the motor starting behaviour and reverse thrust of the installed propulsion system.
+            type: int32
+            min: 1
+            max: 1999
+            default: 850
+        TRTL_MAX:
+            description:
+                short: "Maximum recovery motor command"
+                long: |
+                    PX4 DShot command units. Full stick reaches this target in proportional mode. Verify reverse thrust, motor start, current and heating for the actual propulsion system.
+            type: int32
+            min: 1
+            max: 1999
+            default: 1500
+        TRTL_RAMP:
+            description:
+                short: "Recovery upward ramp time"
+                long: |
+                    Ramps the output cap from MIN to MAX. Reset when the selected motor set changes or the stick is centered. Must not exceed TIME. Zero disables the ramp.
+            type: int32
+            min: 0
+            max: 1500
+            default: 250
+            unit: "ms"
+        TRTL_TIME:
+            description:
+                short: "Maximum DRIVE phase duration"
+                long: |
+                    Starts when the motor-driving phase begins, not during reverse or settling. Motor stopping and restore phases have a separate derived transaction budget.
+            type: int32
+            min: 100
+            max: 3000
+            default: 1000
+            unit: "ms"
+        TRTL_PRE:
+            description:
+                short: "Stop time before reverse commands"
+                long: |
+                    Time spent transmitting stop before temporary reversal. Choose from measured coast-down on the actual motor and propeller.
+            type: int32
+            min: 100
+            max: 5000
+            default: 800
+            unit: "ms"
+        TRTL_POST:
+            description:
+                short: "Stop time before restore commands"
+                long: |
+                    Time spent transmitting stop before normal-direction restore. Increase for slower-stopping propulsion.
+            type: int32
+            min: 200
+            max: 5000
+            default: 1000
+            unit: "ms"
+        TRTL_SETTLE:
+            description:
+                short: "Stop time after reversal commands"
+                long: |
+                    Stopped interval after a reverse command train, before drive.
+            type: int32
+            min: 100
+            max: 1000
+            default: 200
+            unit: "ms"
+        TRTL_COOL:
+            description:
+                short: "Cooldown after restore commands"
+                long: |
+                    Stopped interval after restore, before requiring switch OFF for release.
+            type: int32
+            min: 100
+            max: 2000
+            default: 300
+            unit: "ms"
+        TRTL_DB:
+            description:
+                short: "Recovery roll/pitch deadband"
+                long: |
+                    Percent of normalized roll or pitch. Diagonal deflection selects a single corner; axis-only input selects a pair.
+            type: int32
+            min: 5
+            max: 60
+            default: 20
+            unit: "%"
+        TRTL_PWR:
+            description:
+                short: "Use proportional stick power"
+                long: |
+                    1 maps stick magnitude above deadband to MIN..MAX with the ramp cap. 0 retains a timed ramp to MAX regardless of stick magnitude.
+            type: int32
+            min: 0
+            max: 1
+            default: 1
+        TRTL_HOLD:
+            description:
+                short: "Deliberate activation hold"
+                long: |
+                    Continuous eligibility after a fresh OFF-to-ON request while disarmed. Switch OFF for at least 300 ms is required between attempts and after RC loss.
+            type: int32
+            min: 100
+            max: 1000
+            default: 400
+            unit: "ms"
+        TRTL_FL:
+            description:
+                short: "Front-left logical motor"
+                long: |
+                    PX4 logical Motor 1..4 at the front-left corner, looking down with the quad upright and nose forward. Not a connector number. All four must be distinct; 0 is unconfigured. Allocation positions and axes must agree.
+            type: int32
+            min: 0
+            max: 4
+            default: 0
+        TRTL_FR:
+            description:
+                short: "Front-right logical motor"
+                long: |
+                    PX4 logical Motor 1..4 at the front-right corner, looking down with the quad upright and nose forward. Not a connector number. All four must be distinct; 0 is unconfigured. Allocation positions and axes must agree.
+            type: int32
+            min: 0
+            max: 4
+            default: 0
+        TRTL_RL:
+            description:
+                short: "Rear-left logical motor"
+                long: |
+                    PX4 logical Motor 1..4 at the rear-left corner, looking down with the quad upright and nose forward. Not a connector number. All four must be distinct; 0 is unconfigured. Allocation positions and axes must agree.
+            type: int32
+            min: 0
+            max: 4
+            default: 0
+        TRTL_RR:
+            description:
+                short: "Rear-right logical motor"
+                long: |
+                    PX4 logical Motor 1..4 at the rear-right corner, looking down with the quad upright and nose forward. Not a connector number. All four must be distinct; 0 is unconfigured. Allocation positions and axes must agree.
+            type: int32
+            min: 0
+            max: 4
+            default: 0

@@ -53,6 +53,14 @@ The ESCs should initialize and the motors turn in the correct directions.
 Commands can be sent to the ESC via the [MAVLink shell](../debug/mavlink_shell.md).
 See the [`dshot` module](../modules/modules_driver.md#dshot) for a full reference of the supported commands.
 
+## Turtle Recovery
+
+[Quad-X Turtle Recovery](../advanced_config/turtle_recovery.md) uses temporary DShot direction commands to turn an overturned aircraft upright under pilot control.
+It requires compatible ESC firmware, verified motor mapping and configuration of the `TRTL_*` parameters.
+With `TRTL_ESC=1`, the DShot driver restores normal motor direction at startup, including when recovery is disabled.
+Normal and actuator-test throttle remain blocked until restoration completes.
+See the recovery guide for configuration, operation and power-cycle requirements.
+
 ## ESC Telemetry
 
 Some ESCs are capable of sending telemetry back to the flight controller through a UART RX port.
