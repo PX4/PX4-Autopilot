@@ -70,7 +70,6 @@ private:
 	 * they need to idle otherwise they need too much time to spin up for mc mode.
 	 */
 
-
 	uORB::Publication<tiltrotor_extra_controls_s>	_tiltrotor_extra_controls_pub{ORB_ID(tiltrotor_extra_controls)};
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
@@ -85,6 +84,9 @@ private:
 	bool isFrontTransitionCompletedBase() override;
 	bool isFrontTransitionCompleted() override;
 	bool isBackTransitionCompleted() override;
+	// switch to fixed-wing at once only while the rotors are still tilted forward enough for the wing. Once they are
+	// coming back, restart the front transition from the current tilt instead of handing the fixed-wing controller
+	// a vehicle with the rotors near vertical
 	bool canSwitchToFixedWingDuringBackTransition() override { return _tilt_control >= _param_vt_tilt_trans.get(); }
 	void onTransitionStart() override { _front_transition_phase_2 = false; }
 

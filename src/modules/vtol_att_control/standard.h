@@ -64,9 +64,6 @@ public:
 	void blendPitchAfterFrontTransition(float scale) override;
 
 private:
-
-
-
 	float _pusher_throttle{0.0f};
 	float _airspeed_trans_blend_margin{0.0f};
 	hrt_abstime _last_time_pusher_transition_update{0};

@@ -72,8 +72,6 @@ public:
 	void blendThrottleBeginningBackTransition(float scale);
 
 private:
-
-
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
 
 	matrix::Quatf _q_trans_start;
@@ -86,7 +84,6 @@ private:
 
 	bool isFrontTransitionCompletedBase() override;
 	bool isBackTransitionCompleted() override;
-	bool canSwitchToFixedWingDuringBackTransition() override { return false; }
 	void onTransitionStart() override { _flag_was_in_trans_mode = false; }
 	void onQuadchute() override;
 	bool isPitchExceeded() override;
