@@ -255,7 +255,13 @@ function(px4_os_add_flags)
 
 	include_directories(platforms/posix/include)
 
-	if ("${PX4_BOARD}" MATCHES "sitl")
+	if (CMAKE_SYSTEM_NAME STREQUAL "QNX")
+		add_definitions(
+			-D__PX4_QNX
+			-D_QNX_SOURCE
+			)
+
+	elseif ("${PX4_BOARD}" MATCHES "sitl")
 
 		if(UNIX AND APPLE)
 			add_definitions(-D__PX4_DARWIN)
