@@ -118,6 +118,7 @@ static constexpr uint8_t BL_KEEP_ALIVE = 0xFD;
 static constexpr uint8_t BL_SET_BUFFER = 0xFE;
 static constexpr uint8_t BL_SET_ADDRESS = 0xFF;
 static constexpr uint8_t BL_ACK_OK = 0x30;
+static constexpr uint8_t BL_ACK_BAD_COMMAND = 0xC1;
 static constexpr uint32_t BL_NO_ACK_US = 2000;
 static constexpr uint32_t BL_ACK_TIMEOUT_US = 50000;
 static constexpr uint32_t BL_PROG_TIMEOUT_US = 1000000;
@@ -736,8 +737,8 @@ bool EscBootloader::write(uint8_t cmd, uint16_t addr, uint8_t *data, size_t n)
 	uint8_t set_buffer[6] {BL_SET_BUFFER, 0, (uint8_t)(n >> 8), (uint8_t)(n & 0xFF)};
 	uint8_t prog[4] {cmd, 1};
 
-	// SET_BUFFER is not answered: wait briefly and drain a stray byte. The payload is acked.
-	return set_address(addr) && send(set_buffer, 4) && (ack(BL_NO_ACK_US), true)
+	// SET_BUFFER is only answered to reject it. The payload is acked.
+	return set_address(addr) && send(set_buffer, 4) && ack(BL_NO_ACK_US) < 0
 	       && send(data, n) && ack(BL_ACK_TIMEOUT_US) == BL_ACK_OK
 	       && send(prog, 2) && ack(BL_PROG_TIMEOUT_US) == BL_ACK_OK;
 }
@@ -754,11 +755,11 @@ bool EscBootloader::run()
 	return send(frame, 2);
 }
 
-// The bootloader answers the keep alive with a bad command ack
+// The bootloader has no keep alive command: its bad command ack is the sign of life
 bool EscBootloader::keep_alive()
 {
 	uint8_t frame[4] {BL_KEEP_ALIVE, 0};
-	return send(frame, 2) && ack(BL_ACK_TIMEOUT_US) >= 0;
+	return send(frame, 2) && ack(BL_ACK_TIMEOUT_US) == BL_ACK_BAD_COMMAND;
 }
 
 int Esc4way::run_trampoline(int argc, char *argv[])
