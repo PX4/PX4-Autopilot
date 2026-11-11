@@ -84,6 +84,11 @@ void WorkerThread::startTask(Request request)
 
 	/* low priority */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 50;
+#if defined(__PX4_QNX)
+	// QNX threads inherit the creator's scheduling unless told otherwise
+	(void)pthread_attr_setinheritsched(&low_prio_attr, PTHREAD_EXPLICIT_SCHED);
+	(void)pthread_attr_setschedpolicy(&low_prio_attr, SCHED_FIFO);
+#endif
 	pthread_attr_setschedparam(&low_prio_attr, &param);
 
 	int ret = pthread_create(&_thread_handle, &low_prio_attr, &threadEntryTrampoline, this);

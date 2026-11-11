@@ -289,6 +289,11 @@ int LogWriterFile::thread_start()
 	sched_param param;
 	/* low priority, as this is expensive disk I/O */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
+#if defined(__PX4_QNX)
+	// QNX threads inherit the creator's scheduling unless told otherwise
+	(void)pthread_attr_setinheritsched(&thr_attr, PTHREAD_EXPLICIT_SCHED);
+	(void)pthread_attr_setschedpolicy(&thr_attr, SCHED_FIFO);
+#endif
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
 #ifdef CONFIG_FS_LITTLEFS
