@@ -111,9 +111,17 @@ public:
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
 	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos,
-			    bool destination_is_current_position = false);
+			    bool destination_is_current_position = false, bool route_stop = false);
 
 	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
+
+	/** The hold without a route may resume the route; it never lands on its own. */
+	bool canResumeRoute()
+	{
+		return isActive() && _route_stop
+		       && (_rtl_state == RTLState::CLIMBING || _rtl_state == RTLState::MOVE_TO_LOITER
+			   || _rtl_state == RTLState::LOITER_DOWN || _rtl_state == RTLState::LOITER_HOLD);
+	}
 
 private:
 	/**
@@ -171,14 +179,25 @@ private:
 	 */
 	bool geofenceAvoidanceActive() const;
 
-	/** RTL_LAND_DELAY, or indefinite where a pure fixed-wing cannot land. */
+	/** RTL_LAND_DELAY, or indefinite for the stop without a route or where a pure fixed-wing cannot land. */
 	float landDelay() const;
+
+	/** The stop of route-following Return without a route, which only exists with the mission route cache. */
+	bool isRouteStop() const
+	{
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		return _route_stop;
+#else
+		return false;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+	}
 
 	void setLoiterPosition();
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
 	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
+	bool _route_stop{false}; ///< The stop of route-following Return without a route.
 	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;
 

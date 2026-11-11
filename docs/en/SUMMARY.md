@@ -492,6 +492,7 @@
       - [Navigation Terminology (Advanced)](concept/navigation_terminology_advanced.md)
     - [Flight Modes](concept/flight_modes.md)
     - [Flight Tasks](concept/flight_tasks.md)
+    - [Mission Route Planning](concept/mission_route_planning.md)
     - [Control Allocation](concept/control_allocation.md)
     - [PWM limit state machine](concept/pwm_limit.md)
     - [System Startup](concept/system_startup.md)

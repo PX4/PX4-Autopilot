@@ -46,6 +46,7 @@
 #include "mission_route_cache.h"
 #include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
+#include "rtl_mission_safe_point_follow.h"
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
@@ -61,6 +62,7 @@ static constexpr int RTL_TYPE_DIRECT_WITH_MISSION_LAND = 3;
 static constexpr int RTL_TYPE_MISSION_FAST_OR_REVERSE = 4;
 static constexpr int RTL_TYPE_SAFE_POINT_DIRECT = 5;
 static constexpr int RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT = 6;
+static constexpr int RTL_TYPE_ROUTE_SAFE_POINT = 7;
 static constexpr hrt_abstime RTL_REPLAN_INTERVAL{2_s};
 static constexpr uint8_t RTL_STATUS_NO_SAFE_POINT{UINT8_MAX};
 static_assert(DM_KEY_SAFE_POINTS_MAX < RTL_STATUS_NO_SAFE_POINT,
@@ -73,6 +75,14 @@ RTL::RTL(Navigator *navigator) :
 	_rtl_direct(navigator)
 {
 	_rtl_direct.initialize();
+}
+
+RTL::~RTL()
+{
+	stopAndDeleteRtlMissionType();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	perf_free(_route_evaluate_perf);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
 
 void RTL::on_inactive()
@@ -150,8 +160,12 @@ void RTL::on_activation()
 
 	_init_failure_reported = RtlType::NONE;
 	setRtlTypeAndDestination();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	reportNoRoute();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
-	if (_init_failure_reported != RtlType::NONE) {
+	// Without its follower, route Return stops here instead, and reportNoRoute() says so.
+	if ((_init_failure_reported != RtlType::NONE) && (_init_failure_reported != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)) {
 		// The executor allocation failed: tell the pilot this Return flies directly.
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: cannot follow the mission; flying directly\t");
 		events::send(events::ID("rtl_mission_executor_failed"), {events::Log::Critical, events::LogInternal::Error},
@@ -178,6 +192,37 @@ void RTL::on_active()
 	_home_pos_sub.update();
 	_wind_sub.update();
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// Replan when the route source changes, unless the arrival or landing has started.
+	// While rally points or the fence reload, the same mission keeps its route until they are ready.
+	const bool mission_matches = _route_safe_point.missionMatches(_mission_sub.get());
+	const Geofence &geofence = _navigator->get_geofence();
+	const bool fence_load_failed = !geofence.isReadyForPathChecks() && !geofence.isFenceUpdatePending();
+
+	if (_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_follower && !_route_follower->isLanding()
+	    && (!mission_matches || fence_load_failed
+		|| (_route_safe_point.inputsReady(_mission_sub.get()) && !_route_safe_point.sourceMatches(_mission_sub.get())))) {
+		// The same mission keeps the flown jump edge for the replan.
+		if (mission_matches) {
+			_route_safe_point.setActiveJumpAnchor(_route_follower->activeJumpAnchor());
+		}
+
+		stopAndDeleteRtlMissionType();
+		setRtlTypeAndDestination();
+
+		// Executors selected mid-Return follow the same climb rule as at activation.
+		_rtl_direct.setReturnAltMin(_enforce_rtl_alt);
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
+		}
+
+		reportNoRoute();
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	runExecutors();
 
 	// Keep publishing remaining time estimates every 2 seconds
@@ -185,6 +230,30 @@ void RTL::on_active()
 
 	if ((now - _destination_check_time) > RTL_REPLAN_INTERVAL) {
 		_destination_check_time = now;
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		const bool route_return = _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT;
+
+		if (route_return && _rtl_type == RtlType::RTL_DIRECT && _rtl_direct.canResumeRoute()
+		    && !_navigator->get_land_detected()->landed) {
+			retryRouteSafePoint();
+
+		} else {
+			// Nothing retries any more: a loading notice still owes the report of the missing route.
+			if (_route_loading_since != 0) {
+				_route_safe_point.reportRouteUnavailable();
+				_route_loading_since = 0;
+			}
+
+			if (route_return) {
+				// Keep the status recent: commander checks the route again as soon as Return is left.
+				publishRtlStatus(_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
+						 ? routeSafePointIndex() : RTL_STATUS_NO_SAFE_POINT);
+			}
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		publishRemainingTimeEstimate();
 	}
 }
@@ -216,14 +285,88 @@ void RTL::runExecutors()
 	}
 }
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+RtlRouteSafePoint::Evaluation RTL::evaluateRouteSafePoint()
+{
+	perf_begin(_route_evaluate_perf);
+	const auto evaluation = _route_safe_point.evaluate(_mission_sub.get(), _vehicle_status_sub.get(),
+				_global_pos_sub.get(), _home_pos_sub.get(), _wind_sub.get(),
+				hasValidMission(), isActive(), _param_rtl_appr_force.get() == 1);
+	perf_end(_route_evaluate_perf);
+	_home_has_land_approach = evaluation.home_has_land_approach;
+	_one_rally_point_has_land_approach = evaluation.any_safe_point_has_land_approach;
+	return evaluation;
+}
+
+void RTL::retryRouteSafePoint()
+{
+	// Uploaded inputs load within seconds; a notice that waits longer than this reports the missing route.
+	static constexpr hrt_abstime kRouteLoadingTimeout{10_s};
+
+	const auto evaluation = evaluateRouteSafePoint();
+
+	// An allocation failure must not shift the hold or change its altitude either.
+	if (!evaluation.success
+	    || ((_route_follower == nullptr || evaluation.executor_source_changed)
+		&& !initRtlMissionType(RtlType::RTL_MISSION_SAFE_POINT_FOLLOW))) {
+		if (_route_loading_since != 0
+		    && (!_route_safe_point.inputsPending(_mission_sub.get(), _vehicle_status_sub.get())
+			|| hrt_elapsed_time(&_route_loading_since) > kRouteLoadingTimeout)) {
+			_route_safe_point.reportRouteUnavailable();
+			_route_loading_since = 0;
+		}
+
+		publishRtlStatus(RTL_STATUS_NO_SAFE_POINT);
+		return;
+	}
+
+	_route_loading_since = 0;
+	const auto &plan = _route_safe_point.plan();
+	_route_follower->configureRoute(plan, _route_safe_point.goalLandApproach());
+	_rtl_direct.run(false);
+	_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
+	// Publish the executor type before its first VTOL transition command.
+	publishRtlStatus(routeSafePointIndex());
+	_route_safe_point.reportRouteResumed();
+	_route_follower->run(true);
+}
+
+uint8_t RTL::routeSafePointIndex() const
+{
+	const mission_route::RtlRoutePlan &plan = _route_safe_point.plan();
+	return plan.goal_type == mission_route::GoalType::kSafePoint
+	       ? static_cast<uint8_t>(plan.safe_point_index) : RTL_STATUS_NO_SAFE_POINT;
+}
+
+void RTL::reportNoRoute()
+{
+	_route_loading_since = 0;
+
+	if (_param_rtl_type.get() != RTL_TYPE_ROUTE_SAFE_POINT || _rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+		return;
+	}
+
+	// An upload that still loads usually ends in a route within seconds: do not raise the alarm for it.
+	// retryRouteSafePoint() reports the missing route if none is found once the inputs are loaded.
+	if (_route_safe_point.inputsPending(_mission_sub.get(), _vehicle_status_sub.get())) {
+		_route_safe_point.reportRouteInputsLoading();
+		_route_loading_since = hrt_absolute_time();
+
+	} else {
+		_route_safe_point.reportRouteUnavailable();
+	}
+}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 void RTL::setRtlTypeAndDestination()
 {
 	uint8_t safe_point_index = RTL_STATUS_NO_SAFE_POINT;
 	RtlType new_rtl_type{RtlType::RTL_DIRECT};
-	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
 	// init destination with Home (used also with Type 2 and 4 as backup)
 	DestinationType destination_type = DestinationType::DESTINATION_TYPE_HOME;
+	bool route_stop = false;
 	PositionYawSetpoint destination;
 	destination.lat = _home_pos_sub.get().lat;
 	destination.lon = _home_pos_sub.get().lon;
@@ -238,6 +381,10 @@ void RTL::setRtlTypeAndDestination()
 	// Not every type looks for approaches: report only those this evaluation finds.
 	_home_has_land_approach = false;
 	_one_rally_point_has_land_approach = false;
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	RtlRouteSafePoint::Evaluation route_evaluation {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	if (_param_rtl_type.get() == RTL_TYPE_MISSION_FAST) {
 		if (hasMissionLandStart()) {
@@ -263,11 +410,30 @@ void RTL::setRtlTypeAndDestination()
 			new_rtl_type = RtlType::RTL_DIRECT;
 		}
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	} else if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT) {
+		route_evaluation = evaluateRouteSafePoint();
+
+		if (route_evaluation.success) {
+			const mission_route::RtlRoutePlan &plan = _route_safe_point.plan();
+			new_rtl_type = RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
+			destination = {plan.goal_position.lat, plan.goal_position.lon, plan.goal_position.alt, NAN};
+			safe_point_index = routeSafePointIndex();
+
+		} else {
+			// Without a route, hold at the current location instead of returning directly to a destination.
+			setCurrentPositionAsDestination(destination);
+			route_stop = true;
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	} else if (_param_rtl_type.get() == RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT) {
 
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
-		_home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(mission_route_cache, destination,
-					  _home_pos_sub.get().alt);
+		_home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(_navigator->get_mission_route_cache(),
+					  destination, _home_pos_sub.get().alt);
 #endif
 
 		// Set _rtl_direct with the home destination so calc_rtl_time_estimate() can check its reachability
@@ -318,13 +484,60 @@ void RTL::setRtlTypeAndDestination()
 		}
 	}
 
-	const float rtl_alt = computeReturnAltitude(destination);
+	auto configure_direct_rtl = [&]() {
+		landing_loiter.lat = destination.lat;
+		landing_loiter.lon = destination.lon;
+		landing_loiter.height_m = NAN;
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+
+		// A missing route stops here, even when this position is near a rally point with an approach.
+		if (new_rtl_type == RtlType::RTL_DIRECT && !route_stop) {
+			const loiter_point_s landing_approach = selectLandingApproach(destination);
+
+			if (landing_approach.isValid()) {
+				landing_loiter = landing_approach;
+			}
+		}
+
+#endif
+
+		const float direct_rtl_alt = computeReturnAltitude(destination);
+		_rtl_direct.setRtlAlt(direct_rtl_alt);
+		_rtl_direct.setRtlPosition(destination, landing_loiter,
+					   route_stop || destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION, route_stop);
+		return direct_rtl_alt;
+	};
+
+	float rtl_alt = configure_direct_rtl();
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// Stopping here needs no return climb.
+	const auto keep_altitude = [&]() {
+		rtl_alt = _global_pos_sub.get().alt;
+		_rtl_direct.setRtlAlt(rtl_alt);
+	};
+
+	if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && !route_evaluation.success) {
+		keep_altitude();
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	const bool new_type_is_mission_based = (new_rtl_type == RtlType::RTL_MISSION_FAST)
 					       || (new_rtl_type == RtlType::RTL_MISSION_FAST_REVERSE)
-					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND);
+					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND)
+					       || (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 
-	const bool should_init_mission_type = new_type_is_mission_based && (_rtl_type != new_rtl_type);
+	bool should_init_mission_type = new_type_is_mission_based && (_rtl_type != new_rtl_type);
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+		// Reuse the follower kept while the route was unavailable, unless its source changed.
+		should_init_mission_type = _route_follower == nullptr || route_evaluation.executor_source_changed;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	if (should_init_mission_type && !initRtlMissionType(new_rtl_type)) {
 		// Retried at every evaluation, every 2 s while inactive:
@@ -334,10 +547,32 @@ void RTL::setRtlTypeAndDestination()
 			_init_failure_reported = new_rtl_type;
 		}
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		const bool route_follower_failed = new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW;
+
+		if (route_follower_failed) {
+			// The direct executor was given the route goal, which is no direct destination.
+			setCurrentPositionAsDestination(destination);
+			route_stop = true;
+			safe_point_index = RTL_STATUS_NO_SAFE_POINT;
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 		// Without an executor, return directly to the destination of the selected type.
 		new_rtl_type = RtlType::RTL_DIRECT;
+		rtl_alt = configure_direct_rtl();
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		if (route_follower_failed) {
+			keep_altitude();
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	} else if (should_init_mission_type) {
+		// A later failure of the same type is logged again.
 		_init_failure_reported = RtlType::NONE;
 	}
 
@@ -346,21 +581,14 @@ void RTL::setRtlTypeAndDestination()
 		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 	}
 
-	if (new_rtl_type == RtlType::RTL_DIRECT) {
-#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
-		landing_loiter = selectLandingApproach(destination);
-#endif
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
-		if (!landing_loiter.isValid()) {
-			landing_loiter.lat = destination.lat;
-			landing_loiter.lon = destination.lon;
-			landing_loiter.height_m = NAN;
-		}
+	if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW && _route_follower) {
+		// Configure the new or reused follower before it estimates or flies.
+		_route_follower->configureRoute(_route_safe_point.plan(), _route_safe_point.goalLandApproach());
 	}
 
-	_rtl_direct.setRtlAlt(rtl_alt);
-	_rtl_direct.setRtlPosition(destination, landing_loiter,
-				   destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	_rtl_type = new_rtl_type;
 
@@ -393,7 +621,12 @@ void RTL::setRtlTypeAndDestination()
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-	// Publish rtl status
+	publishRtlStatus(safe_point_index);
+}
+
+void RTL::publishRtlStatus(uint8_t safe_point_index)
+{
+	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 	rtl_status_s rtl_status{};
 	rtl_status.safe_points_id = mission_route_cache.safePointsId();
 	rtl_status.is_evaluation_pending = !mission_route_cache.safePointsReady()
@@ -401,6 +634,10 @@ void RTL::setRtlTypeAndDestination()
 	rtl_status.has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
 	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);
 	rtl_status.safe_point_index = safe_point_index;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	rtl_status.is_evaluation_pending |= _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT
+					    && _route_safe_point.inputsPending(_mission_sub.get(), _vehicle_status_sub.get());
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	rtl_status.timestamp = hrt_absolute_time();
 	_rtl_status_pub.publish(rtl_status);
 }
@@ -506,13 +743,21 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 
 void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index)
 {
+	// Route-following Return falls back to the type 3 selection, also on boards built without it.
+	// findClosestSafePoint() only distinguishes types 5 and 6, so it needs no mapping.
+	int32_t rtl_type = _param_rtl_type.get();
+
+	if (rtl_type == RTL_TYPE_ROUTE_SAFE_POINT) {
+		rtl_type = RTL_TYPE_DIRECT_WITH_MISSION_LAND;
+	}
+
 	const bool vtol_in_rw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 	float min_dist = FLT_MAX;
 
-	if (_param_rtl_type.get() != RTL_TYPE_SAFE_POINT_DIRECT) {
+	if (rtl_type != RTL_TYPE_SAFE_POINT_DIRECT) {
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 		const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 					     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
@@ -520,7 +765,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 					  _home_pos_sub.get().alt);
 #endif
 
-		const bool prioritize_safe_points_over_home = ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode);
+		const bool prioritize_safe_points_over_home = (rtl_type == 1) && !vtol_in_rw_mode;
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 		const bool required_approach_missing_for_home = (vtol_in_fw_mode && (_param_rtl_appr_force.get() == 1) && !_home_has_land_approach);
 #else
@@ -536,7 +781,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		}
 
 		// Mission landing
-		if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == RTL_TYPE_DIRECT_WITH_MISSION_LAND)
+		if (((rtl_type == 1) || (rtl_type == RTL_TYPE_DIRECT_WITH_MISSION_LAND)
 		     || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON)) && hasMissionLandStart()) {
 			mission_item_s land_mission_item;
 			int32_t land_index = -1;
@@ -572,7 +817,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 				const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
 
 				if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
-					if (_param_rtl_type.get() != 0) {
+					if (rtl_type != 0) {
 						min_dist = dist;
 
 					} else {
@@ -594,13 +839,18 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		destination = safe_point;
 		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 
-	} else if (_param_rtl_type.get() == RTL_TYPE_SAFE_POINT_DIRECT) {
+	} else if (rtl_type == RTL_TYPE_SAFE_POINT_DIRECT) {
 		// for RTL_TYPE=5: if no rally point is found fallback to current position
-		destination.alt = _global_pos_sub.get().alt;
-		destination.lat = _global_pos_sub.get().lat;
-		destination.lon = _global_pos_sub.get().lon;
+		setCurrentPositionAsDestination(destination);
 		destination_type = DestinationType::DESTINATION_TYPE_CURRENT_POSITION;
 	}
+}
+
+void RTL::setCurrentPositionAsDestination(PositionYawSetpoint &destination) const
+{
+	destination.lat = _global_pos_sub.get().lat;
+	destination.lon = _global_pos_sub.get().lon;
+	destination.alt = _global_pos_sub.get().alt;
 }
 
 void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const
@@ -655,12 +905,9 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 
 bool RTL::initRtlMissionType(RtlType new_rtl_type)
 {
-	if (_rtl_mission_type_handle) {
-		delete _rtl_mission_type_handle;
-		_rtl_mission_type_handle = nullptr;
-	}
+	stopAndDeleteRtlMissionType();
 
-	mission_s new_mission = _mission_sub.get();
+	const mission_s new_mission = _mission_sub.get();
 
 	switch (new_rtl_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
@@ -691,11 +938,37 @@ bool RTL::initRtlMissionType(RtlType new_rtl_type)
 
 		break;
 
+	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		_route_follower = new RtlMissionSafePointFollow(_navigator, new_mission);
+		_rtl_mission_type_handle = _route_follower;
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->initialize();
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+		break;
+
 	default:
 		break;
 	}
 
 	return _rtl_mission_type_handle != nullptr;
+}
+
+void RTL::stopAndDeleteRtlMissionType()
+{
+	if (_rtl_mission_type_handle == nullptr) {
+		return;
+	}
+
+	_rtl_mission_type_handle->run(false);
+	delete _rtl_mission_type_handle;
+	_rtl_mission_type_handle = nullptr;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	_route_follower = nullptr;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
 
 void RTL::parameters_update()

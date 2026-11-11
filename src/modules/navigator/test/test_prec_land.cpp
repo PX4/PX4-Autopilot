@@ -76,6 +76,7 @@ public:
 
 	void setActiveMissionItems() override {}
 	bool setNextMissionItem() override { return false; }
+	void prepareVtolTransitionItem(bool aligning) override { (void)aligning; }
 
 	// returns true once the precision land work item started
 	bool runLandItem(const mission_item_s &land_item)

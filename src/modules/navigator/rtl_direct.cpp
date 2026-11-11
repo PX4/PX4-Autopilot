@@ -151,7 +151,7 @@ void RtlDirect::on_inactive()
 }
 
 void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const loiter_point_s &loiter_pos,
-			       bool destination_is_current_position)
+			       bool destination_is_current_position, bool route_stop)
 {
 	parameters_update();
 
@@ -159,6 +159,7 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 	if (!isActive()) {
 		_destination = rtl_position;
 		_destination_is_current_position = destination_is_current_position;
+		_route_stop = route_stop;
 		_force_heading = false;
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
@@ -183,7 +184,7 @@ bool RtlDirect::geofenceAvoidanceActive() const
 void RtlDirect::_updateRtlState()
 {
 	// RTL_LAND_DELAY > 0 -> wait seconds, < 0 wait indefinitely
-	const bool wait_at_rtl_descend_alt = fabsf(_param_rtl_land_delay.get()) > FLT_EPSILON;
+	const bool wait_at_rtl_descend_alt = fabsf(landDelay()) > FLT_EPSILON;
 	const bool is_multicopter = (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
 	RTLState new_state{RTLState::IDLE};
@@ -414,8 +415,11 @@ void RtlDirect::set_rtl_item()
 			setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, landDelay(), _land_approach.loiter_radius_m);
 
 			if (landDelay() < -FLT_EPSILON) {
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: completed, loitering\t");
-				events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "Return: completed, loitering");
+				// RTL already reported the hold of a stop without a route.
+				if (!isRouteStop()) {
+					mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: completed, loitering\t");
+					events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "Return: completed, loitering");
+				}
 
 			} else {
 				/* Set the altitude tracking to best effort but not strictly enforce it */
@@ -701,6 +705,11 @@ void RtlDirect::parameters_update()
 
 float RtlDirect::landDelay() const
 {
+	// The stop without a route holds until the route is found or another mode is selected.
+	if (isRouteStop()) {
+		return -1.f;
+	}
+
 	// The current airborne altitude is not a landing altitude. MC and VTOL can descend until touchdown,
 	// but a fixed-wing landing would use this altitude to trigger the flare and idle the throttle in flight.
 	if (_destination_is_current_position && !_vehicle_status_sub.get().is_vtol

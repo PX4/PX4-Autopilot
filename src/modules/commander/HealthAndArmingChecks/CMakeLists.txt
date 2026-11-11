@@ -79,6 +79,10 @@ if(CONFIG_NAVIGATOR_ADSB)
 	list(APPEND health_and_arming_checks_srcs checks/daaCheck.cpp)
 endif()
 
+if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
+	list(APPEND health_and_arming_checks_srcs checks/rallyPointRouteCheck.cpp)
+endif()
+
 px4_add_library(health_and_arming_checks ${health_and_arming_checks_srcs})
 
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/esc_check_params.yaml)
@@ -93,5 +97,6 @@ px4_add_functional_gtest(SRC gnssRedundancyChecksTest.cpp LINKLIBS health_and_ar
 px4_add_functional_gtest(SRC estimatorChecksTest.cpp LINKLIBS health_and_arming_checks mode_util)
 px4_add_functional_gtest(SRC escChecksTest.cpp LINKLIBS health_and_arming_checks mode_util)
 px4_add_functional_gtest(SRC batteryChecksTest.cpp LINKLIBS health_and_arming_checks mode_util)
+px4_add_functional_gtest(SRC rallyPointCheckTest.cpp LINKLIBS health_and_arming_checks mode_util)
 
 px4_add_functional_gtest(SRC trafficAvoidanceCheckTest.cpp LINKLIBS health_and_arming_checks mode_util)
