@@ -31,34 +31,22 @@ The configurator numbers the ESCs by motor: ESC 1 is the output assigned to Moto
 
 ## Configure the ESCs
 
-1. Connect the flight controller to QGroundControl and set the parameter [PASSTHRU_EN](../advanced_config/parameter_reference.md#PASSTHRU_EN) to `2` (_USB ESC configuration server_).
-1. Reboot the flight controller.
-   On this boot the motor outputs stay off and the USB port is used by the ESC configuration server instead of MAVLink, so QGroundControl will not connect.
-   `PASSTHRU_EN` resets itself to `0` during this boot.
-1. Power the ESCs (connect the battery).
-1. Close QGroundControl (or any other program that holds the USB port), then open [am32.ca](https://am32.ca) or [esc-configurator.com](https://esc-configurator.com) in a browser that supports WebSerial (Chrome or Edge).
+1. Set the parameter [SYS_USB_AUTO](../advanced_config/parameter_reference.md#SYS_USB_AUTO) to `1` (_Auto-detect_) and reboot the flight controller.
+1. Plug in the USB cable and power the ESCs (connect the battery).
+1. Before any other program opens the USB port, open [am32.ca](https://am32.ca) or [esc-configurator.com](https://esc-configurator.com) in a browser that supports WebSerial (Chrome or Edge).
 1. Click **Connect** and select the flight controller's USB port.
+   The flight controller recognises the configurator and starts the ESC configuration server; the motor outputs are switched off at that moment.
 1. Read, change and write the ESC settings, or flash new ESC firmware.
 1. Click **Disconnect** when you are done.
    The flight controller reboots, so the USB connection drops.
-   After that reboot the motor outputs work normally again and QGroundControl can connect.
+   After that reboot the motor outputs work normally again.
+
+The USB port is given to the first program that talks to it after it is plugged in.
+If _QGroundControl_ connected first, unplug and replug the USB cable or reboot the flight controller.
 
 If you unplug the USB cable or close the configurator without disconnecting, the flight controller also reboots.
-Server mode lasts for a single boot: any reboot or power cycle, also in the middle of a session, returns the flight controller to normal operation.
 
-## Alternative: Plug In and Connect
-
-If [SYS_USB_AUTO](../advanced_config/parameter_reference.md#SYS_USB_AUTO) is set to `1` (auto-detect), you do not need to set `PASSTHRU_EN`:
-
-1. Plug in the USB cable and power the ESCs.
-1. Before any other program opens the USB port, open the configurator and click **Connect**.
-   The flight controller recognises the configurator and starts the ESC configuration server; the motor outputs are switched off at that moment.
-1. Click **Disconnect** when you are done; the flight controller reboots as above.
-
-This only works while nothing else has claimed the USB port since it was plugged in.
-If QGroundControl connected first, unplug and replug the USB cable.
-
-Any program that first sends a valid MSP request to the USB port starts the ESC configuration server in this mode, and the motor outputs then stay off until the flight controller reboots.
+Any program that first sends a valid MSP request to the USB port starts the ESC configuration server, and the motor outputs then stay off until the flight controller reboots.
 
 ## Command Line Tools
 
@@ -77,8 +65,9 @@ Tools/esc_4way.py write 0xF800 settings.bin
 Tools/esc_4way.py check /dev/ttyACM0                 # protocol self-check
 ```
 
-When the port sends MAVLink heartbeats, the tool first sets `PASSTHRU_EN` to `2` over MAVLink and reboots the flight controller into the ESC configuration server, and waits for MAVLink to return after the session ends.
-`--setup` does that switch without listening for heartbeats first.
+When the port sends MAVLink heartbeats, the tool first sets `SYS_USB_AUTO` to `1` over MAVLink and reboots the flight controller, which frees the port for the ESC configuration server.
+The parameter stays set.
+`--setup` does that without listening for heartbeats first.
 Use `-d` to select the serial device (default `/dev/ttyACM0`), `--target` for the ESC (default 0) and `--no-exit` to keep the session open.
 The tool needs `pymavlink` for the switch over MAVLink.
 
@@ -94,7 +83,7 @@ esc_4way start -d /dev/ttyS3
 Use the device node of the port, for example `/dev/ttyS3` for a UART or `/dev/ttyACM0` for USB.
 The port must not be used by another module (for example MAVLink), so free it first.
 Then connect the host tool or configurator to the other end of that serial link, for example with `Tools/esc_4way.py -d <host serial device> info`.
-The server is started manually in this case, so `PASSTHRU_EN` and USB auto-detection are not involved.
+The server is started manually in this case, so USB auto-detection is not involved.
 Stop it with `esc_4way stop`, or reboot the flight controller.
 
 ## USB Vendor ID
@@ -114,7 +103,7 @@ CONFIG_SERIALPASSTHROUGH_BITBANG=y
 CONFIG_DRIVERS_ESC_4WAY=y
 ```
 
-`PASSTHRU_EN=2` and USB auto-detection need the board's USB port to be managed by `cdcacm_autostart` (`CONFIG_DRIVERS_CDCACM_AUTOSTART=y`); without it, start the server manually with `esc_4way start -d <device>`.
+USB auto-detection needs the board's USB port to be managed by `cdcacm_autostart` (`CONFIG_DRIVERS_CDCACM_AUTOSTART=y`); without it, start the server manually with `esc_4way start -d <device>`.
 
 On STM32 boards the UART bit timing comes from a spare hardware timer, `CONFIG_UART_BITBANG_TIMER` (default `13`).
 That timer must be enabled in the board's NuttX configuration (`CONFIG_STM32H7_TIM13=y` or `CONFIG_STM32F7_TIM13=y` in `nuttx-config/nsh/defconfig`), and nothing else on the board may use it: not the HRT, the tone alarm, an LED, or a PWM/DShot output timer.

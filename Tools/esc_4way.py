@@ -34,7 +34,7 @@
 
 """ESC configuration over a flight controller's MSP + 4way interface.
 
-Talks to the PX4 esc_4way server (USB port after PASSTHRU_EN=2), any other
+Talks to the PX4 esc_4way server (USB port with SYS_USB_AUTO=1) or any other
 MSP + 4way flight controller.
 
     Tools/esc_4way.py [--setup] [--no-exit] [-d DEVICE] [--target N] COMMAND
@@ -49,10 +49,10 @@ MSP + 4way flight controller.
     settings              AM32 settings block, raw and decoded
     direction set 0|1     AM32 motor direction (or: direction toggle)
 
-A port that sends MAVLink heartbeats is switched to the ESC configuration
-server first (PASSTHRU_EN=2 and a reboot, needs pymavlink), and the tool waits
-for MAVLink to come back after the session; --setup does that switch without
-listening for heartbeats first. --no-exit leaves the session open: the port then
+A port that sends MAVLink heartbeats is first freed for the ESC configuration
+server: the tool sets SYS_USB_AUTO=1, which stays set, and reboots the board
+(needs pymavlink); --setup does that without listening for heartbeats first.
+--no-exit leaves the session open: the port then
 keeps DTR raised after it is closed, also for other programs, until a run without
 --no-exit or the board's next reboot. Exit code 0 on success.
 
@@ -381,7 +381,7 @@ def run(fd, no_esc, variant, target, toggle_direction=False):
     step('InterfaceExit')
 
 
-# MAVLink entry and exit (PX4 only)
+# MAVLink entry (PX4 only)
 
 def _wait_port(path, timeout=30):
     """Wait for a serial device to drop and come back (a reboot); returns its current path.
@@ -449,43 +449,35 @@ def _after_reboot(path, timeout, baud):
                 raise CheckFailed(f'{path}: {e}')
 
 
-def mavlink_esc_mode(path, enter=True, baud=115200):
-    """Move a PX4 board on a MAVLink serial port into or out of the ESC configuration server.
+def mavlink_esc_mode(path, baud=115200):
+    """Free the MAVLink USB port of a PX4 board for the ESC configuration server.
 
-    enter=True: PASSTHRU_EN=2, wait for its echo and the parameter autosave, reboot, wait for
-    the port to return and confirm it is quiet (no heartbeat for 3 s). Returns the port path.
-    enter=False: after InterfaceExit of a served session the board reboots; wait for the port and
-    its heartbeat (normal MAVLink mode). Returns the port path.
+    SYS_USB_AUTO=1 (the port then starts whatever talks to it first, and stays that way), wait for
+    its echo and the parameter autosave, reboot, wait for the port to return and confirm it is
+    quiet (no heartbeat for 3 s). Returns the port path.
     """
     mavutil = _mavutil()
-
-    if not enter:
-        path, hb = _after_reboot(path, 30, baud)
-        check(hb, f'{path}: no heartbeat after the session')
-        print(f'MAVLink heartbeat on {path} (sysid {hb.get_srcSystem()}): normal mode restored')
-        return path
-
     mav = mavutil.mavlink_connection(path, baud=baud)
     hb = _heartbeat(mav, 3)
     if hb is None:
         mav.close()
-        print(f'{path}: no heartbeat, assuming the ESC configuration server is already running')
+        print(f'{path}: no heartbeat, assuming the port already waits for its first program')
         return path
 
     mav.target_system, mav.target_component = hb.get_srcSystem(), hb.get_srcComponent()
-    print('Setting PASSTHRU_EN=2')
-    mav.mav.param_set_send(mav.target_system, mav.target_component, b'PASSTHRU_EN',
-                           struct.unpack('<f', struct.pack('<i', 2))[0], mavutil.mavlink.MAV_PARAM_TYPE_INT32)
+    print('Setting SYS_USB_AUTO=1 (stays set)')
+    mav.mav.param_set_send(mav.target_system, mav.target_component, b'SYS_USB_AUTO',
+                           struct.unpack('<f', struct.pack('<i', 1))[0], mavutil.mavlink.MAV_PARAM_TYPE_INT32)
     deadline = time.monotonic() + 3
     while time.monotonic() < deadline:
         msg = mav.recv_match(type='PARAM_VALUE', blocking=True, timeout=deadline - time.monotonic())
-        if msg and msg.param_id == 'PASSTHRU_EN':
-            check(struct.unpack('<i', struct.pack('<f', msg.param_value))[0] == 2,
-                  f'PASSTHRU_EN echo {msg.param_value}')
+        if msg and msg.param_id == 'SYS_USB_AUTO':
+            check(struct.unpack('<i', struct.pack('<f', msg.param_value))[0] == 1,
+                  f'SYS_USB_AUTO echo {msg.param_value}')
             break
     else:
         mav.close()
-        raise CheckFailed('no PARAM_VALUE echo for PASSTHRU_EN')
+        raise CheckFailed('no PARAM_VALUE echo for SYS_USB_AUTO')
     time.sleep(3)  # parameter autosave
     print('Rebooting')
     for _ in range(5):  # commander may reject it briefly, e.g. right after boot
@@ -502,8 +494,8 @@ def mavlink_esc_mode(path, enter=True, baud=115200):
         raise CheckFailed('reboot not accepted')
     mav.close()
     path, hb = _after_reboot(path, 3, baud)
-    check(hb is None, f'{path}: still sending MAVLink heartbeats, server not started')
-    print(f'{path}: quiet for 3 s, ESC configuration server assumed')
+    check(hb is None, f'{path}: still sending MAVLink heartbeats')
+    print(f'{path}: quiet for 3 s, waiting for its first program')
     return path
 
 
@@ -693,7 +685,7 @@ def main(argv=None):
         p.add_argument('-d', '--device', default=default or '/dev/ttyACM0', help='serial device (default /dev/ttyACM0)')
         p.add_argument('--target', type=int, default=default or 0, help='ESC channel (default 0)')
         p.add_argument('--setup', action='store_true', default=default or False,
-                       help='switch to the ESC configuration server over MAVLink without listening for heartbeats first')
+                       help='set SYS_USB_AUTO=1 and reboot over MAVLink without listening for heartbeats first')
         p.add_argument('--no-exit', action='store_true', default=default or False,
                        help='leave the session open (no InterfaceExit, no reboot)')
     sub = parser.add_subparsers(dest='command', required=True)
@@ -731,7 +723,7 @@ def main(argv=None):
             setup = mavlink_heartbeat_seen(seen)
             if setup:
                 os.close(fd)
-                print(f'{device}: MAVLink heartbeats, switching to the ESC configuration server')
+                print(f'{device}: MAVLink heartbeats, freeing the port for the ESC configuration server')
         if setup:
             device = mavlink_esc_mode(device)
             fd = open_serial(device, keep_dtr=args.no_exit)[0]
@@ -761,16 +753,10 @@ def main(argv=None):
     finally:
         os.close(fd)
     # a session ends in a reboot after InterfaceExit or, on USB, when the port closes
-    if exited and not setup:
+    if exited:
         _wait_gone(device)  # a next run must not open the port of a board that is rebooting
     if status:
         return status
-    if setup and not args.no_exit:
-        try:
-            mavlink_esc_mode(device, enter=False)
-        except CheckFailed as e:
-            print(f'FAIL: {e}')
-            return 1
     print('PASS' if args.command == 'check' else 'done')
     return 0
 

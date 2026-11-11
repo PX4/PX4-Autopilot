@@ -92,13 +92,6 @@ int CdcAcmAutostart::Start()
 	PX4_INFO("Starting CDC/ACM autostart");
 	UpdateParams(true);
 
-#if defined(CONFIG_DRIVERS_ESC_4WAY)
-	// Read before rcS resets PASSTHRU_EN for the next boot
-	int32_t passthru_en = 0;
-	param_get(param_find("PASSTHRU_EN"), &passthru_en);
-	_esc_4way = (passthru_en == 2);
-#endif
-
 	ScheduleNow();
 
 	return PX4_OK;
@@ -228,8 +221,7 @@ void CdcAcmAutostart::state_connecting()
 	// /dev/ttyACM0 immediately, but open() returns -ENOTCONN until the host has
 	// enumerated. mavlink exits if its own open retries run out, so only spawn it
 	// once the port is known to be openable, then release the probe.
-	// PASSTHRU_EN=2 starts the ESC configuration server the same way, instead of MAVLink.
-	if (_sys_usb_auto.get() == 2 || _esc_4way) {
+	if (_sys_usb_auto.get() == 2) {
 		if (_ttyacm_fd < 0) {
 			_ttyacm_fd = px4_open(USB_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 		}
@@ -240,11 +232,11 @@ void CdcAcmAutostart::state_connecting()
 		}
 
 		close_ttyacm();
-		PX4_INFO("Starting %s on %s", _esc_4way ? "esc_4way" : "mavlink", USB_DEVICE_PATH);
+		PX4_INFO("Starting mavlink on %s (SYS_USB_AUTO=2)", USB_DEVICE_PATH);
 
-		if (_esc_4way ? start_esc_4way() : start_mavlink()) {
+		if (start_mavlink()) {
 			_state = UsbAutoStartState::connected;
-			_active_protocol = _esc_4way ? UsbProtocol::esc_4way : UsbProtocol::mavlink;
+			_active_protocol = UsbProtocol::mavlink;
 
 		} else {
 			_state = UsbAutoStartState::disconnecting;
@@ -603,6 +595,7 @@ bool CdcAcmAutostart::start_nsh()
 	return execute_process(argv) > 0;
 }
 
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
 // The server stops the output drivers itself at the first valid request
 bool CdcAcmAutostart::start_esc_4way()
 {
@@ -618,12 +611,9 @@ bool CdcAcmAutostart::start_esc_4way()
 
 	char *argv[] { (char *)"esc_4way", (char *)"start", (char *)"-d", (char *)USB_DEVICE_PATH, (char *)"-r", request, nullptr };
 
-	if (request[0] == '\0') {
-		argv[4] = nullptr;
-	}
-
 	return execute_process(argv) > 0;
 }
+#endif
 
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 bool CdcAcmAutostart::start_ublox_serial_passthru(speed_t baudrate)
