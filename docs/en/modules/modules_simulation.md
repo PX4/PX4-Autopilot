@@ -27,12 +27,38 @@ Quaternion representation is used for the attitude.
 Forward Euler is used for integration.
 Most of the variables are declared global in the .hpp file to avoid stack overflow.
 
+### Examples
+
+Pose the vehicle on the ground for accel and mag calibration (SITL only), sides named as the calibration names them.
+With `rotate` it turns about the vertical with a tilt swing, as the mag calibration asks for:
+
+```
+simulator_sih orient left rotate
+```
+
+Each side in turn: 10 s still, then 10 s rotating, then level. This completes either calibration.
+
+```
+simulator_sih orient all
+```
+
+Level the vehicle and resume the flight dynamics:
+
+```
+simulator_sih orient off
+```
+
 ### Usage {#simulator_sih_usage}
 
 ```
 simulator_sih <command> [arguments...]
  Commands:
    start
+
+   orient        Pose the vehicle on the ground for calibration
+     down|up|front|back|left|right|all|off Side facing down, every side in turn,
+                 or level
+     [rotate]    Rotate about the vertical
 
    stop
 
