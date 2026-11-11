@@ -60,9 +60,10 @@ DShot::~DShot()
 	// make sure outputs are off
 	up_dshot_arm(false);
 
-	// release the pins for other users (e.g. the ESC configuration UART)
+	// release the pins for other users (e.g. the ESC configuration UART); a motor output that
+	// up_dshot_init() could not claim belongs to another driver
 	for (unsigned i = 0; i < 32; i++) {
-		if (_output_mask & (1u << i)) {
+		if (_claimed_mask & (1u << i)) {
 			io_timer_unallocate_channel(i);
 		}
 	}
@@ -1083,13 +1084,16 @@ void DShot::mixerChanged()
 		_bdshot_motor_mask = new_bdshot_motor_mask;
 		PX4_DEBUG("Motor mask: 0x%" PRIx32 ", BDShot motor mask: 0x%" PRIx32, _motor_mask, _bdshot_motor_mask);
 
-		if (up_dshot_init(_output_mask, _bdshot_output_mask, _dshot_frequency, _bdshot_edt_enabled) < 0) {
-			// Nothing was claimed, so the destructor must not release these outputs
+		const int claimed_mask = up_dshot_init(_output_mask, _bdshot_output_mask, _dshot_frequency, _bdshot_edt_enabled);
+
+		if (claimed_mask < 0) {
 			_output_mask = 0;
 			_motor_mask = 0;
 			_motor_count = 0;
 			return;
 		}
+
+		_claimed_mask = claimed_mask;
 
 		up_dshot_arm(true);
 		_hardware_initialized = true;
