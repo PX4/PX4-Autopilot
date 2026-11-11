@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_mecanum_speed_control", ORB_ID(vehicle_local_position))
 {
 	_rover_throttle_setpoint_pub.advertise();
 	_surface_vehicle_speed_status_pub.advertise();
@@ -65,7 +67,8 @@ void MecanumSpeedControl::updateSpeedControl()
 {
 	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
+	// Runs at the EKF2 output rate (EKF2_PREDICT_US up to 20 ms), allow for that plus jitter
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
 	updateSubscriptions();
 

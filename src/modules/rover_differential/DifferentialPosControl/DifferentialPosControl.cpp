@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) : ModuleParams(parent)
+DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_differential_pos_control", ORB_ID(vehicle_local_position))
 {
 	_pure_pursuit_status_pub.advertise();
 	_surface_vehicle_speed_setpoint_pub.advertise();

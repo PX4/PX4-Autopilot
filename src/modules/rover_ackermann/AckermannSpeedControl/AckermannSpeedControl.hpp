@@ -39,6 +39,7 @@
 
 // Library includes
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <matrix/matrix/math.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -58,7 +59,7 @@ using namespace matrix;
 /**
  * @brief Class for ackermann speed control.
  */
-class AckermannSpeedControl : public ModuleParams
+class AckermannSpeedControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -91,6 +92,9 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateSpeedControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
+
 	/**
 	 * @brief Update uORB subscriptions used in speed controller.
 	 */

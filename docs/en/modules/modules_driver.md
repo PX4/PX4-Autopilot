@@ -1,5 +1,10 @@
 # Modules Reference: Driver
 
+::: info
+**This page is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4moduledoc/markdownout.py) from the source code** using the build command: `make module_documentation`.
+Do not edit it directly; fix the module documentation in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) source instead.
+:::
+
 Subcategories:
 
 - [Adc](modules_driver_adc.md)
@@ -1130,7 +1135,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
 
 ### Usage {#rgbled_usage}
 
@@ -1147,9 +1152,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 

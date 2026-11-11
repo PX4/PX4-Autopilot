@@ -39,6 +39,7 @@
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <math.h>
@@ -55,7 +56,7 @@
 /**
  * @brief Class for differential attitude control.
  */
-class DifferentialAttControl : public ModuleParams
+class DifferentialAttControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -88,6 +89,9 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateAttControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
+
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _surface_vehicle_attitude_setpoint_sub{ORB_ID(surface_vehicle_attitude_setpoint)};

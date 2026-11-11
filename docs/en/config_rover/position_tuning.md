@@ -48,7 +48,7 @@ The [pure pursuit](#pure-pursuit-guidance-logic-info-only) algorithm is used to 
 
 The following parameters are used to tune the algorithm:
 
-1. [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN): When driving in a straight line (right stick centered) position mode leverages the same path following algorithm used in [auto modes](../flight_modes_rover/auto.md) called [pure pursuit](#pure-pursuit-guidance-logic-info-only) to achieve the best possible straight line driving behaviour.
+1. [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN): When driving in a straight line (no turn input) position mode leverages the same path following algorithm used in [auto modes](../flight_modes_rover/auto.md) called [pure pursuit](#pure-pursuit-guidance-logic-info-only) to achieve the best possible straight line driving behaviour.
    This parameter determines how aggressive the controller will steer towards the path.
 
    ::: tip

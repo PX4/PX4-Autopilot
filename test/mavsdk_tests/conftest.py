@@ -3,11 +3,13 @@ from typing import Iterator, Optional, Type, TypeVar
 import pytest
 
 # Show the values in failed asserts inside the testers, not just in tests.
-pytest.register_assert_rewrite("autopilot_tester", "autopilot_tester_follow_me",
+pytest.register_assert_rewrite("autopilot_tester", "autopilot_tester_flow",
+                               "autopilot_tester_follow_me",
                                "autopilot_tester_loiter", "autopilot_tester_rtl",
                                "autopilot_tester_vision_target")
 
 from autopilot_tester import AutopilotTester  # noqa: E402
+from autopilot_tester_flow import AutopilotTesterFlow  # noqa: E402
 from autopilot_tester_follow_me import AutopilotTesterFollowMe  # noqa: E402
 from autopilot_tester_loiter import AutopilotTesterLoiter  # noqa: E402
 from autopilot_tester_rtl import AutopilotTesterRtl  # noqa: E402
@@ -55,6 +57,12 @@ def tester_rtl(request: pytest.FixtureRequest) -> Iterator[AutopilotTesterRtl]:
 def tester_loiter(request: pytest.FixtureRequest) -> Iterator[AutopilotTesterLoiter]:
     """A tester for fixed-wing loiter, reposition and figure eight, connected to the vehicle."""
     yield from connected_tester(request, AutopilotTesterLoiter)
+
+
+@pytest.fixture
+def tester_flow(request: pytest.FixtureRequest) -> Iterator[AutopilotTesterFlow]:
+    """A tester for optical flow aided navigation, connected to the vehicle."""
+    yield from connected_tester(request, AutopilotTesterFlow)
 
 
 @pytest.fixture

@@ -122,25 +122,15 @@ void RTL::publishRemainingTimeEstimate()
 	estimated_time.valid = false;
 
 	if (_navigator->home_global_position_valid() && global_position_recently_updated) {
-		switch (_rtl_type) {
-		case RtlType::RTL_DIRECT:
+		if (_rtl_type == RtlType::RTL_DIRECT) {
 			estimated_time = _rtl_direct.calc_rtl_time_estimate();
-			break;
 
-		case RtlType::RTL_DIRECT_MISSION_LAND:
-		case RtlType::RTL_MISSION_FAST:
-		case RtlType::RTL_MISSION_FAST_REVERSE:
-			if (_rtl_mission_type_handle) {
-				estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
-			}
-
-			break;
-
-		default:
-			break;
+		} else if (_rtl_mission_type_handle) {
+			estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
 		}
 	}
 
+	estimated_time.timestamp = hrt_absolute_time();
 	_rtl_time_estimate_pub.publish(estimated_time);
 }
 
@@ -168,36 +158,14 @@ void RTL::on_activation()
 			     "Return: cannot follow the mission; flying directly");
 	}
 
-	switch (_rtl_type) {
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-		[[fallthrough]];
-
-	case RtlType::RTL_MISSION_FAST:
-		[[fallthrough]];
-
-	case RtlType::RTL_MISSION_FAST_REVERSE:
-		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
-			_rtl_mission_type_handle->run(true);
-		}
-
-		_rtl_direct.run(false);
-
-		break;
-
-	case RtlType::RTL_DIRECT:
+	if (_rtl_type == RtlType::RTL_DIRECT) {
 		_rtl_direct.setReturnAltMin(_enforce_rtl_alt);
-		_rtl_direct.run(true);
 
-		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->run(false);
-		}
-
-		break;
-
-	default:
-		break;
+	} else if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
 	}
+
+	runExecutors();
 
 	_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
 }
@@ -210,33 +178,7 @@ void RTL::on_active()
 	_home_pos_sub.update();
 	_wind_sub.update();
 
-	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST:
-		[[fallthrough]];
-
-	case RtlType::RTL_MISSION_FAST_REVERSE:
-		[[fallthrough]];
-
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->run(true);
-		}
-
-		_rtl_direct.run(false);
-		break;
-
-	case RtlType::RTL_DIRECT:
-		_rtl_direct.run(true);
-
-		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->run(false);
-		}
-
-		break;
-
-	default:
-		break;
-	}
+	runExecutors();
 
 	// Keep publishing remaining time estimates every 2 seconds
 	hrt_abstime now{hrt_absolute_time()};
@@ -249,27 +191,29 @@ void RTL::on_active()
 
 bool RTL::isLanding()
 {
-	bool is_landing{false};
-
-	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST:
-	case RtlType::RTL_MISSION_FAST_REVERSE:
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-		if (_rtl_mission_type_handle) {
-			is_landing = _rtl_mission_type_handle->isLanding();
-		}
-
-		break;
-
-	case RtlType::RTL_DIRECT:
-		is_landing = _rtl_direct.isLanding();
-		break;
-
-	default:
-		break;
+	if (_rtl_type == RtlType::RTL_DIRECT) {
+		return _rtl_direct.isLanding();
 	}
 
-	return is_landing;
+	return _rtl_mission_type_handle && _rtl_mission_type_handle->isLanding();
+}
+
+void RTL::runExecutors()
+{
+	if (_rtl_type == RtlType::RTL_DIRECT) {
+		_rtl_direct.run(true);
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->run(false);
+		}
+
+	} else {
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->run(true);
+		}
+
+		_rtl_direct.run(false);
+	}
 }
 
 void RTL::setRtlTypeAndDestination()
@@ -333,23 +277,7 @@ void RTL::setRtlTypeAndDestination()
 
 		const rtl_time_estimate_s time_to_home = _rtl_direct.calc_rtl_time_estimate();
 
-		// Take the worst (smallest) remaining time across all connected batteries, matching the
-		// battery_low_remaining_time failsafe check in BatteryChecks::rtlEstimateCheck()
-		float worst_battery_time_s{NAN};
-
-		for (auto &battery_sub : _battery_status_subs) {
-			battery_status_s battery;
-
-			if (!battery_sub.copy(&battery)) {
-				continue;
-			}
-
-			if (battery.connected
-			    && PX4_ISFINITE(battery.time_remaining_s)
-			    && (!PX4_ISFINITE(worst_battery_time_s) || (battery.time_remaining_s < worst_battery_time_s))) {
-				worst_battery_time_s = battery.time_remaining_s;
-			}
-		}
+		const float worst_battery_time_s = worstBatteryTimeRemaining();
 
 		const bool home_within_reach = time_to_home.valid
 					       && PX4_ISFINITE(worst_battery_time_s)
@@ -398,7 +326,7 @@ void RTL::setRtlTypeAndDestination()
 
 	const bool should_init_mission_type = new_type_is_mission_based && (_rtl_type != new_rtl_type);
 
-	if (should_init_mission_type && !initRtlMissionType(new_rtl_type, rtl_alt)) {
+	if (should_init_mission_type && !initRtlMissionType(new_rtl_type)) {
 		// Retried at every evaluation, every 2 s while inactive:
 		// log a failing type once until an init succeeds or Return activates.
 		if (_init_failure_reported != new_rtl_type) {
@@ -411,6 +339,11 @@ void RTL::setRtlTypeAndDestination()
 
 	} else if (should_init_mission_type) {
 		_init_failure_reported = RtlType::NONE;
+	}
+
+	if (new_type_is_mission_based && _rtl_mission_type_handle && !_rtl_mission_type_handle->isActive()) {
+		// A new or kept executor takes the latest altitude at every evaluation until Return starts it.
+		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 	}
 
 	if (new_rtl_type == RtlType::RTL_DIRECT) {
@@ -450,7 +383,7 @@ void RTL::setRtlTypeAndDestination()
 		planner.updateDestination(planner_destination);
 	}
 
-	const vehicle_global_position_s gpos = _global_pos_sub.get();
+	const vehicle_global_position_s &gpos = _global_pos_sub.get();
 
 	const bool gpos_recent = gpos.timestamp > 0 && hrt_elapsed_time(&gpos.timestamp) < 10_s;
 
@@ -470,6 +403,31 @@ void RTL::setRtlTypeAndDestination()
 	rtl_status.safe_point_index = safe_point_index;
 	rtl_status.timestamp = hrt_absolute_time();
 	_rtl_status_pub.publish(rtl_status);
+}
+
+// Keep out of setRtlTypeAndDestination(): inlined, the battery_status_s copy would stay
+// on its stack while it selects the destination.
+float RTL::worstBatteryTimeRemaining()
+{
+	// Take the worst (smallest) remaining time across all connected batteries, matching the
+	// battery_low_remaining_time failsafe check in BatteryChecks::rtlEstimateCheck()
+	float worst_battery_time_s{NAN};
+
+	for (auto &battery_sub : _battery_status_subs) {
+		battery_status_s battery;
+
+		if (!battery_sub.copy(&battery)) {
+			continue;
+		}
+
+		if (battery.connected
+		    && PX4_ISFINITE(battery.time_remaining_s)
+		    && (!PX4_ISFINITE(worst_battery_time_s) || (battery.time_remaining_s < worst_battery_time_s))) {
+			worst_battery_time_s = battery.time_remaining_s;
+		}
+	}
+
+	return worst_battery_time_s;
 }
 
 PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_point_index)
@@ -695,7 +653,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 	}
 }
 
-bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
+bool RTL::initRtlMissionType(RtlType new_rtl_type)
 {
 	if (_rtl_mission_type_handle) {
 		delete _rtl_mission_type_handle;
@@ -709,7 +667,6 @@ bool RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 		_rtl_mission_type_handle = new RtlDirectMissionLand(_navigator, new_mission);
 
 		if (_rtl_mission_type_handle) {
-			_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 			_rtl_mission_type_handle->initialize();
 		}
 
