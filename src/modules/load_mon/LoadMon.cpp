@@ -33,6 +33,10 @@
 
 #include "LoadMon.hpp"
 
+#if defined(__PX4_QNX)
+#include <unistd.h>
+#endif
+
 #if defined(__PX4_NUTTX)
 // if free stack space falls below this, print a warning
 #if defined(CONFIG_ARMV7M_STACKCHECK)
@@ -125,7 +129,7 @@ void LoadMon::Run()
 
 void LoadMon::cpuload()
 {
-#if defined(__PX4_LINUX)
+#if defined(__PX4_LINUX) || defined(__PX4_QNX)
 	tms spent_time_stamp_struct;
 	clock_t total_time_stamp = times(&spent_time_stamp_struct);
 	clock_t spent_time_stamp = spent_time_stamp_struct.tms_utime + spent_time_stamp_struct.tms_stime;
@@ -227,6 +231,22 @@ void LoadMon::cpuload()
 	}
 
 	cpuload.load = interval_spent_time / interval;
+#elif defined(__PX4_QNX)
+	// RAM: whole-system usage from total and available physical pages.
+	// -1 means not available.
+	const long phys_pages = sysconf(_SC_PHYS_PAGES);
+	const long avail_pages = sysconf(_SC_AVPHYS_PAGES);
+
+	if (phys_pages > 0 && avail_pages >= 0 && avail_pages <= phys_pages) {
+		cpuload.ram_usage = (float)(phys_pages - avail_pages) / (float)phys_pages;
+
+	} else {
+		cpuload.ram_usage = -1;
+	}
+
+	// CPU: this process's user + system time over wall time (same as Linux).
+	// On a multi-core target this is the load of PX4 summed over all cores.
+	cpuload.load = interval_spent_time / interval;
 #elif defined(__PX4_NUTTX)
 	// get ram usage
 	struct mallinfo mem = mallinfo();
@@ -241,7 +261,7 @@ void LoadMon::cpuload()
 	_cpuload_pub.publish(cpuload);
 
 	// store for next iteration
-#if defined(__PX4_LINUX)
+#if defined(__PX4_LINUX) || defined(__PX4_QNX)
 	_last_total_time_stamp = total_time_stamp;
 	_last_spent_time_stamp = spent_time_stamp;
 #elif defined(__PX4_NUTTX)
