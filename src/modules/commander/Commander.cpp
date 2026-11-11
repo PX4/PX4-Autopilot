@@ -1447,7 +1447,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			if (_worker_thread.isBusy()
 			    && (int)(cmd.param1) == 0 && (int)(cmd.param2) == 0 && (int)(cmd.param3) == 0
-			    && (int)(cmd.param4) == 0 && (int)(cmd.param5) == 0 && (int)(cmd.param6) == 0) {
+			    && (int)(cmd.param4) == 0 && (int)(cmd.param5) == 0 && (int)(cmd.param6) == 0
+			    && (int)(cmd.param7) == 0) {
 				// cancel: the running calibration acks it once it has stopped
 				calibrate_cancel_request(cmd);
 
