@@ -65,11 +65,10 @@ bool GotoControl::checkForSetpoint(const hrt_abstime &now, const bool enabled)
 	return need_to_run;
 }
 
-void GotoControl::update(const float dt, const Vector3f &position, const Vector3f &velocity, const Vector3f &acceleration,
-			 const float heading)
+void GotoControl::update(const float dt, const Vector3f &position, const Vector3f &velocity, const float heading)
 {
 	if (!_is_initialized) {
-		resetPositionSmoother(position, velocity, acceleration);
+		resetPositionSmoother(position, velocity);
 		resetHeadingSmoother(heading);
 		_is_initialized = true;
 	}
@@ -89,7 +88,7 @@ void GotoControl::update(const float dt, const Vector3f &position, const Vector3
 	}
 
 	if (_need_smoother_reset) {
-		resetPositionSmoother(position, velocity, acceleration);
+		resetPositionSmoother(position, velocity);
 	}
 
 	setPositionSmootherLimits(_goto_setpoint);
@@ -140,7 +139,7 @@ void GotoControl::update(const float dt, const Vector3f &position, const Vector3
 	_vehicle_constraints_pub.publish(vehicle_constraints);
 }
 
-void GotoControl::resetPositionSmoother(const Vector3f &position, const Vector3f &velocity, const Vector3f &acceleration)
+void GotoControl::resetPositionSmoother(const Vector3f &position, const Vector3f &velocity)
 {
 	if (!position.isAllFinite()) {
 		// TODO: error messaging
@@ -148,7 +147,7 @@ void GotoControl::resetPositionSmoother(const Vector3f &position, const Vector3f
 		return;
 	}
 
-	_position_smoothing.reset(acceleration, velocity, position);
+	_position_smoothing.reset(Vector3f(0.f, 0.f, 0.f), velocity, position);
 
 	_need_smoother_reset = false;
 }

@@ -438,7 +438,7 @@ void MulticopterPositionControl::Run()
 						  && !_trajectory_setpoint_sub.updated();
 
 		if (_goto_control.checkForSetpoint(vehicle_local_position.timestamp_sample, goto_setpoint_enable)) {
-			_goto_control.update(dt, states.position, states.velocity, states.acceleration, states.yaw);
+			_goto_control.update(dt, states.position, states.velocity, states.yaw);
 		}
 
 		_trajectory_setpoint_sub.update(&_setpoint);

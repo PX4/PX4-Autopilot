@@ -62,13 +62,12 @@ public:
 	bool checkForSetpoint(const hrt_abstime &now, const bool enabled);
 
 	/**
-	 * @brief resets the position smoother at the current position with zero velocity and acceleration.
+	 * @brief resets the position smoother at the current position and velocity with zero acceleration.
 	 *
 	 * @param position [m] vehicle position state NED local frame
 	 * @param velocity [m/s] vehicle velocity state
-	 * @param acceleration [m/s^2] vehicle acceleration state
 	 */
-	void resetPositionSmoother(const matrix::Vector3f &position, const matrix::Vector3f &velocity, const matrix::Vector3f &acceleration);
+	void resetPositionSmoother(const matrix::Vector3f &position, const matrix::Vector3f &velocity);
 
 	/**
 	 * @brief resets the heading smoother at the current heading with zero heading rate and acceleration.
@@ -84,13 +83,11 @@ public:
 	 * @param[in] dt [s] time since last control update
 	 * @param[in] position [m] vehicle position state NED local frame
 	 * @param[in] velocity [m/s] vehicle velocity state
-	 * @param[in] acceleration [m/s^2] vehicle acceleration state
 	 * @param[in] heading [rad] (from North) vehicle heading
 	 * @param[in] goto_setpoint struct containing current go-to setpoints
 	 * @param[out] trajectory_setpoint struct containing trajectory (tracking) setpoints
 	 */
-	void update(const float dt, const matrix::Vector3f &position, const matrix::Vector3f &velocity, const matrix::Vector3f &acceleration,
-		    const float heading);
+	void update(const float dt, const matrix::Vector3f &position, const matrix::Vector3f &velocity, const float heading);
 
 	void ekfResetHandlerPosition(const matrix::Vector3f &position) { _position_smoothing.forceSetPosition(position); }
 	void ekfResetHandlerVelocity(const matrix::Vector3f &velocity) { _position_smoothing.forceSetVelocity(velocity); }

@@ -66,8 +66,8 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 		// If the velocity setpoint is unknown, set to the current velocity
 		if (!PX4_ISFINITE(vel_prev(i))) { vel_prev(i) = _velocity(i); }
 
-		// If accel setpoint unknown, set to the current accel
-		if (!PX4_ISFINITE(accel_prev(i))) { accel_prev(i) = _acceleration(i); }
+		// If previous acceleration is unknown, start without acceleration
+		if (!PX4_ISFINITE(accel_prev(i))) { accel_prev(i) = 0.f; }
 	}
 
 	_position_smoothing.reset(accel_prev, vel_prev, pos_prev);

@@ -53,8 +53,8 @@ bool FlightTaskManualAltitudeSmoothVel::activate(const trajectory_setpoint_s &la
 	// If the velocity setpoint is unknown, set to the current velocity
 	float vz_sp_last = PX4_ISFINITE(last_setpoint.velocity[2]) ? last_setpoint.velocity[2] : _velocity(2);
 
-	// If accel setpoint unknown, set to the current accel
-	float az_sp_last = PX4_ISFINITE(last_setpoint.acceleration[2]) ? last_setpoint.acceleration[2] : _acceleration(2);
+	// If the acceleration setpoint is unknown, start without acceleration
+	float az_sp_last = PX4_ISFINITE(last_setpoint.acceleration[2]) ? last_setpoint.acceleration[2] : 0.f;
 
 	_smoothing.reset(az_sp_last, vz_sp_last, z_sp_last);
 
