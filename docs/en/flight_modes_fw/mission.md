@@ -155,7 +155,9 @@ Mission Items:
     A mission with a negative or larger repeat count is rejected.
   - Up to 9 `DO_JUMP` items in a row are supported: with more, the mission ends there once the first 9 have used up their repeats.
 - [MAV_CMD_NAV_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_ROI)
+  - `MAV_ROI_LOCATION` (_Param1_ = 3) is not supported (rejected): use `MAV_CMD_DO_SET_ROI_LOCATION`.
 - [MAV_CMD_DO_SET_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI)
+  - `MAV_ROI_LOCATION` (_Param1_ = 3) is not supported (rejected): use `MAV_CMD_DO_SET_ROI_LOCATION`.
 - [MAV_CMD_DO_SET_ROI_LOCATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_LOCATION)
 - [MAV_CMD_DO_SET_ROI_WPNEXT_OFFSET](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_WPNEXT_OFFSET)
 - [MAV_CMD_DO_SET_ROI_NONE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_NONE)
