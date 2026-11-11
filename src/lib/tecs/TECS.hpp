@@ -577,10 +577,13 @@ private:
 	/**
 	 * @brief Specific total energy rate the pitch assumes the throttle flies.
 	 *
+	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param pitch_specific_energy_rates is the specific energy rates of the pitch loop.
+	 * @param param is the control parameters.
 	 * @return specific total energy rate in [m²/s³].
 	 */
-	static float _calcPitchControlSteRate(const SpecificEnergyRates &pitch_specific_energy_rates);
+	float _calcPitchControlSteRate(const STERateLimit &limit, const SpecificEnergyRates &pitch_specific_energy_rates,
+				       const Param &param) const;
 
 	/**
 	 * @brief Calculate the pitch control output function.

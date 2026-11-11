@@ -245,8 +245,8 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 			specific_energy_rate, param, flag, weight)};
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, pitch_specific_energy_rate)};
 
-	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, _calcPitchControlSteRate(pitch_specific_energy_rate),
-			  weight, param);
+	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate,
+			  _calcPitchControlSteRate(limit, pitch_specific_energy_rate, param), weight, param);
 
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rate, param)};
 	resetIfFinite(_ste_rate_error_filter, _getControlError(ste_rate), 0.f);
@@ -460,8 +460,8 @@ void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const In
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, pitch_specific_energy_rates)};
 
 	_calcPitchControlUpdate(dt, input, seb_rate, param);
-	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, _calcPitchControlSteRate(pitch_specific_energy_rates),
-				   weight, param)};
+	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate,
+				   _calcPitchControlSteRate(limit, pitch_specific_energy_rates, param), weight, param)};
 
 	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
 	// NOTE: at zero airspeed, the pitch increment is unbounded
@@ -565,12 +565,22 @@ float TECSControl::_sebRateToClimbAngle(float seb_rate, float ste_rate, float sp
 	return (seb_rate + speed_weight * ste_rate) / (2.f * tas * CONSTANTS_ONE_G);
 }
 
-float TECSControl::_calcPitchControlSteRate(const SpecificEnergyRates &pitch_specific_energy_rates)
+float TECSControl::_calcPitchControlSteRate(const STERateLimit &limit,
+		const SpecificEnergyRates &pitch_specific_energy_rates, const Param &param) const
 {
 	// The total energy rate of the pair the pitch balances, not the throttle's setpoint: with the airspeed setpoint
 	// capped for the pitch between trim and the setpoint, the throttle's acceleration demand above trim is not the
 	// pitch's to fly. With the throttle's setpoint the pitch would pitch up by the weighted acceleration demand there.
-	return pitch_specific_energy_rates.spe_rate.setpoint + pitch_specific_energy_rates.ske_rate.setpoint;
+	const float ste_rate_pair = pitch_specific_energy_rates.spe_rate.setpoint
+				    + pitch_specific_energy_rates.ske_rate.setpoint;
+
+	// Fast descend and underspeed raise the speed weight towards 2, where the pitch flies airspeed only and its climb
+	// angle follows from the total energy rate alone. It must then be the one the throttle delivers, not the altitude
+	// demand of the setpoint: fast descend holds the throttle at its minimum, and in underspeed the pitch must not rely
+	// on the maximum throttle it commands (failed engine, throttle still slewing up, less excess power near stall).
+	// Assume gliding, the minimum total energy rate, in both. If the throttle does deliver in underspeed, the
+	// airspeed recovers faster.
+	return lerp(ste_rate_pair, limit.STE_rate_min, constrain(max(param.fast_descend, _ratio_undersped), 0.f, 1.f));
 }
 
 float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float ste_rate_setpoint,
