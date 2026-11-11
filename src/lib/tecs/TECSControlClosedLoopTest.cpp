@@ -594,6 +594,85 @@ TEST_F(TECSControlClosedLoopTest, AirspeedStepDownDefaultTuning)
 	EXPECT_LT(_sim_stats.max_altitude_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
 }
 
+// --- Speed weight with unequal time constants -----------------------------------
+//
+// With the pitch and throttle consistent, the speed weight only sets which error the pitch feedback weights, not the
+// closed loop: an airspeed error decays with FW_T_TAS_TC and an altitude error with FW_T_ALT_TC, without coupling,
+// for any speed weight and any combination of the two time constants.
+
+struct WeightAndTimeConstants {
+	float speed_weight;
+	float altitude_time_const;
+	float airspeed_time_const;
+};
+
+class TECSControlClosedLoopWeightTest : public TECSControlClosedLoopTest,
+	public ::testing::WithParamInterface<WeightAndTimeConstants>
+{
+protected:
+	void SetUp() override
+	{
+		_params.pitch_speed_weight = GetParam().speed_weight;
+		_params.altitude_error_gain = 1.f / GetParam().altitude_time_const;
+		_params.airspeed_error_gain = 1.f / GetParam().airspeed_time_const;
+	}
+
+	void checkAirspeedStep(float step)
+	{
+		run(10.f);
+		setAirspeedSetpoint(_params.equivalent_airspeed_trim + step);
+		resetSimStats();
+
+		// First-order response with FW_T_TAS_TC, up to a small discretisation error
+		const float t_step = _t;
+
+		for (int i = 0; i < 10; i++) {
+			run(2.0f);
+			const float expected_error = step * expf(-(_t - t_step) * _params.airspeed_error_gain);
+			EXPECT_NEAR(_V_sp - _state.V, expected_error, MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+		}
+
+		// Altitude holds to numerical precision
+		EXPECT_LT(_sim_stats.max_altitude_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
+	}
+
+	// Steps in the direction of `sign`, as large as possible without saturating the climb or sink rate at this
+	// altitude time constant (see ALT_STEP)
+	void checkAltitudeStep(float sign)
+	{
+		const float step = sign * math::min(_params.min_sink_rate, _params.max_climb_rate) / _params.altitude_error_gain;
+
+		run(10.f);
+		setAltitudeSetpoint(ALT_INIT + step);
+		resetSimStats();
+		run(200.f);
+
+		// Airspeed holds to numerical precision, the altitude converges
+		EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+		EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
+	}
+};
+
+TEST_P(TECSControlClosedLoopWeightTest, AirspeedStepUp) { checkAirspeedStep(AIRSPEED_STEP); }
+TEST_P(TECSControlClosedLoopWeightTest, AirspeedStepDown) { checkAirspeedStep(-AIRSPEED_STEP); }
+TEST_P(TECSControlClosedLoopWeightTest, AltitudeStepUp) { checkAltitudeStep(1.f); }
+TEST_P(TECSControlClosedLoopWeightTest, AltitudeStepDown) { checkAltitudeStep(-1.f); }
+
+INSTANTIATE_TEST_SUITE_P(SpeedWeightAndTimeConstants, TECSControlClosedLoopWeightTest, ::testing::Values(
+				 WeightAndTimeConstants{1.0f, 5.f, 2.5f},
+				 WeightAndTimeConstants{1.0f, 3.f, 6.f},
+				 WeightAndTimeConstants{1.8f, 5.f, 5.f},
+				 WeightAndTimeConstants{1.8f, 5.f, 2.5f},
+				 WeightAndTimeConstants{1.8f, 3.f, 6.f},
+				 WeightAndTimeConstants{0.5f, 5.f, 2.5f},
+				 WeightAndTimeConstants{0.5f, 3.f, 6.f}),
+			 [](const ::testing::TestParamInfo<WeightAndTimeConstants> &param_info)
+{
+	auto name = [](float value) { return std::to_string(static_cast<int>(value * 10.f + 0.5f)); };
+	return "Weight" + name(param_info.param.speed_weight) + "_AltTc" + name(param_info.param.altitude_time_const)
+	       + "_TasTc" + name(param_info.param.airspeed_time_const);
+});
+
 TEST_F(TECSControlClosedLoopTest, FastDescend)
 {
 	// The decision whether or not fast descend runs happens in the outer
