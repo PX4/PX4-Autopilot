@@ -168,9 +168,8 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, co
 }
 
 // Boundary contact counts, so a circle touches the edge when the distance is at most its radius.
-// Always inlined: a call would add a stack frame under checkPolygonPaths().
-static inline __attribute__((always_inline)) bool circleTouchesEdge(const matrix::Vector2d &center, float circle_radius,
-		const matrix::Vector2d &edge_start, const matrix::Vector2d &edge_end)
+static bool circleTouchesEdge(const matrix::Vector2d &center, float circle_radius, const matrix::Vector2d &edge_start,
+			      const matrix::Vector2d &edge_end)
 {
 	const double radius = static_cast<double>(circle_radius);
 	// Fixed metre-per-degree scales keep the edge straight in a frame centred on the circle. The longitude
