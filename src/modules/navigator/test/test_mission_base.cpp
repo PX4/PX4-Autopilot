@@ -418,6 +418,27 @@ TEST_F(MissionBaseFeasibilityTest, SecondCheckerReusesVerdictAfterFenceReload)
 	EXPECT_TRUE(_navigator.get_mission_result()->valid);
 }
 
+// WHY: Return's mission handles share the verdict of Mission, and they run while the mission is being flown.
+// A recheck there would reject the mission in flight and reset its progress.
+// WHAT: a checker other than Mission keeps the verdict when GF_MARGIN changes.
+TEST_F(MissionBaseFeasibilityTest, MarginChangeDoesNotRecheckInOtherCheckers)
+{
+	// GIVEN: a checked mission, and a margin set afterwards
+	_mission_base.on_inactive();
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	const float margin = 50.f;
+	ASSERT_EQ(param_set(param_find("GF_MARGIN"), &margin), PX4_OK);
+	_navigator.updateParams();
+
+	// WHEN: storage changes without changing IDs, which only a recheck would see
+	ASSERT_TRUE(writeWaypoint(200.f));
+	_mission_base.on_inactive();
+
+	// THEN: the verdict is kept
+	EXPECT_TRUE(_mission_base.missionChecked());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
 TEST_F(MissionBaseFeasibilityTest, NewMissionCannotReuseVerdictWhileFenceLoads)
 {
 	_mission_base.on_inactive();
@@ -1035,6 +1056,83 @@ TEST_F(MissionHomeUpdateTest, HomeUpdatesAfterTakeoffKeepTheVerdict)
 	_mission.run(true);
 	EXPECT_FALSE(checkedWithCurrentHome());
 	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
+// WHY: the mission check includes the geofence margin, and a parameter change is not part of the cached verdict.
+// WHAT: the inactive Mission checks the mission again when GF_MARGIN changes.
+TEST_F(MissionHomeUpdateTest, MarginChangeRechecksTheInactiveMission)
+{
+	// WHEN: the margin becomes wider than the 100 m fence
+	float margin = 150.f;
+	ASSERT_EQ(param_set(param_find("GF_MARGIN"), &margin), PX4_OK);
+	_navigator.updateParams();
+	_mission.run(false);
+
+	// THEN: the mission is rejected
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+
+	// WHEN: the margin is disabled again
+	margin = 0.f;
+	ASSERT_EQ(param_set(param_find("GF_MARGIN"), &margin), PX4_OK);
+	_navigator.updateParams();
+	_mission.run(false);
+
+	// THEN: the mission is valid again
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
+// WHY: Return can be flying the mission while Mission is inactive.
+// WHAT: a margin change keeps the verdict during Return; the mission is rechecked once Return is left.
+TEST_F(MissionHomeUpdateTest, MarginChangeKeepsTheVerdictDuringReturn)
+{
+	// GIVEN: armed in Return
+	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(false);
+
+	// WHEN: the margin becomes wider than the 100 m fence
+	const float margin = 150.f;
+	ASSERT_EQ(param_set(param_find("GF_MARGIN"), &margin), PX4_OK);
+	_navigator.updateParams();
+	_mission.run(false);
+
+	// THEN: the verdict is kept
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+
+	// WHEN: Return is left
+	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(false);
+
+	// THEN: the mission is rechecked and rejected
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+}
+
+// WHY: a recheck of the Mission being flown reloads its items, and a rejected mission makes Commander fail over
+// out of Mission. The margin failsafe still acts in flight.
+// WHAT: a margin change keeps the verdict of the active Mission; the mission is rechecked once it is inactive.
+TEST_F(MissionHomeUpdateTest, MarginChangeKeepsTheVerdictOfTheActiveMission)
+{
+	// GIVEN: armed in Mission
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(true);
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+
+	// WHEN: the margin becomes wider than the 100 m fence
+	const float margin = 150.f;
+	ASSERT_EQ(param_set(param_find("GF_MARGIN"), &margin), PX4_OK);
+	_navigator.updateParams();
+	_mission.run(true);
+
+	// THEN: the active Mission keeps its verdict
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+
+	// WHEN: Mission is left, and runs its first inactive cycle
+	_mission.run(false);
+	_mission.run(false);
+
+	// THEN: the mission is rechecked and rejected
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0

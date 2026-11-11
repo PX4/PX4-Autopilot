@@ -49,6 +49,11 @@ In summary:
 1. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.
 1. Set the breach action in the [Geofence Failsafe](../config/safety.md#geofence-failsafe).
 
+::: tip
+A geofence action is only triggered once the vehicle has breached the geofence.
+To act before that, with a separate action, set a [Geofence Margin](../config/safety.md#geofence-margin).
+:::
+
 ::: info
 Any geofence that does not include the Home position will be rejected by the flight controller and not uploaded.
 If the vehicle is flying, also any geofence that would immediately get breached after the upload is rejected.

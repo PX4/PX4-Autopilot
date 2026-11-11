@@ -40,6 +40,7 @@ px4_add_functional_gtest(SRC test_mission_block_yaw.cpp LINKLIBS modules__naviga
 px4_add_functional_gtest(SRC test_prec_land.cpp LINKLIBS modules__navigator modules__dataman)
 px4_add_functional_gtest(SRC test_geofence_paths.cpp LINKLIBS modules__navigator modules__dataman)
 px4_add_functional_gtest(SRC test_geofence_circle.cpp LINKLIBS modules__navigator modules__dataman)
+px4_add_functional_gtest(SRC test_geofence_margin.cpp LINKLIBS modules__navigator modules__dataman)
 if(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 	px4_add_functional_gtest(SRC test_mission_feasibility_geofence.cpp LINKLIBS modules__navigator modules__dataman)
 endif()

@@ -1184,3 +1184,142 @@ TEST_F(FailsafeTest, BatteryFailsafeUsesLowBatActParam)
 	EXPECT_EQ(selectedActionFor(4, kEmergency, false), FailsafeBase::Action::Terminate);
 	EXPECT_EQ(selectedActionFor(6, kEmergency, false), FailsafeBase::Action::Terminate);
 }
+
+TEST_F(FailsafeTest, GeofenceMarginUsesMarginActParam)
+{
+	// Each param value is exercised on its own fresh Failsafe instance, to avoid
+	// action hysteresis/clear-conditions from one value leaking into the next.
+	auto selectedActionFor = [](int32_t gf_margin_act) {
+		param_set(param_handle(px4::params::GF_MARGIN_ACT), &gf_margin_act);
+
+		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
+		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+		Failsafe failsafe(nullptr);
+
+		failsafe_flags_s failsafe_flags{};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+		failsafe_flags.geofence_near = true;
+
+		FailsafeBase::State state{};
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		failsafe.update(5_s, state, false, false, failsafe_flags);
+		return failsafe.selectedAction();
+	};
+
+	EXPECT_EQ(selectedActionFor(1), FailsafeBase::Action::Warn); // Warning
+	EXPECT_EQ(selectedActionFor(2), FailsafeBase::Action::Hold); // Hold mode
+	EXPECT_EQ(selectedActionFor(3), FailsafeBase::Action::RTL); // Return mode
+	EXPECT_EQ(selectedActionFor(5), FailsafeBase::Action::Land); // Land mode
+	// GF_ACTION values the margin does not offer only warn: the margin never terminates
+	EXPECT_EQ(selectedActionFor(0), FailsafeBase::Action::Warn); // None
+	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Warn); // Terminate
+
+	param_reset(param_handle(px4::params::GF_MARGIN_ACT));
+}
+
+TEST_F(FailsafeTest, GeofenceBreachOverridesMarginAction)
+{
+	// The margin holds first, the fence itself terminates
+	int32_t gf_margin_act = 2;
+	int32_t gf_action = 4;
+	param_set(param_handle(px4::params::GF_MARGIN_ACT), &gf_margin_act);
+	param_set(param_handle(px4::params::GF_ACTION), &gf_action);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_FIXED_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Inside the margin -> Hold
+	time += 10_ms;
+	failsafe_flags.geofence_near = true;
+	uint8_t updated_user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	EXPECT_EQ(FailsafeBase::modeFromAction(failsafe.selectedAction(), updated_user_intended_mode),
+		  vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+
+	// The hold still crosses the fence -> Terminate
+	time += 10_ms;
+	failsafe_flags.geofence_breached = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+
+	param_reset(param_handle(px4::params::GF_MARGIN_ACT));
+	param_reset(param_handle(px4::params::GF_ACTION));
+}
+
+TEST_F(FailsafeTest, GeofenceMarginHoldIsLeftByModeSwitch)
+{
+	int32_t gf_margin_act = 2;
+	param_set(param_handle(px4::params::GF_MARGIN_ACT), &gf_margin_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Inside the margin -> Hold
+	time += 10_ms;
+	failsafe_flags.geofence_near = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Stick movement -> must be denied, like for a geofence breach
+	time += 10_ms;
+	failsafe.update(time, state, false, true, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	ASSERT_FALSE(failsafe.userTakeoverActive());
+
+	// Mode switch -> user takeover
+	time += 10_ms;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	uint8_t updated_user_intended_mode = failsafe.update(time, state, true, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intended_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+	ASSERT_TRUE(failsafe.userTakeoverActive());
+
+	// Still inside the margin -> nothing triggers again
+	time += 1_s;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+
+	// The margin is left -> the failsafe clears
+	time += 10_ms;
+	failsafe_flags.geofence_near = false;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_FALSE(failsafe.userTakeoverActive());
+
+	// Entering it again -> Hold again
+	time += 10_ms;
+	failsafe_flags.geofence_near = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	param_reset(param_handle(px4::params::GF_MARGIN_ACT));
+}

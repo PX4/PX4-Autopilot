@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" width="760" height="400" role="img" aria-labelledby="title desc">
+  <title id="title">Geofence margin</title>
+  <desc id="desc">A fixed-wing vehicle flies towards a geofence with a 150 m margin. The margin action Hold is triggered where it reaches the margin, and the vehicle loiters around that position with a radius of 80 m, which leaves 70 m to the geofence. Drawn to scale.</desc>
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; fill: #1f2a2e; }
+    .small { font-size: 12px; fill: #51606a; }
+    .zone { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; fill: #51606a; }
+    .inside { fill: #eaf3ee; }
+    .margin { fill: #fdf0cf; }
+    .outside { fill: #f6dedb; }
+    .fence { stroke: #b23a2c; stroke-width: 3; }
+    .edge { stroke: #b7791f; stroke-width: 2; stroke-dasharray: 8 5; }
+    .track { stroke: #33547d; stroke-width: 2.5; fill: none; }
+    .orbit { stroke: #2f7d55; stroke-width: 2.5; fill: none; }
+    .dim { stroke: #51606a; stroke-width: 1; fill: none; }
+    .dot { fill: #b7791f; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#51606a"/>
+    </marker>
+    <marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#33547d"/>
+    </marker>
+  </defs>
+
+  <!-- 1.6 px per metre: margin 150 m = 240 px, loiter radius 80 m = 128 px -->
+  <rect class="inside" x="0" y="0" width="330" height="400"/>
+  <rect class="margin" x="330" y="0" width="240" height="400"/>
+  <rect class="outside" x="570" y="0" width="190" height="400"/>
+  <line class="edge" x1="330" y1="0" x2="330" y2="400"/>
+  <line class="fence" x1="570" y1="0" x2="570" y2="400"/>
+
+  <text class="zone" x="16" y="26">ALLOWED AREA</text>
+  <text class="zone" x="346" y="26">GEOFENCE MARGIN</text>
+  <text class="zone" x="586" y="26">OUTSIDE</text>
+
+  <!-- margin width -->
+  <line class="dim" x1="332" y1="52" x2="568" y2="52" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="450" y="46" text-anchor="middle">GF_MARGIN = 150 m</text>
+
+  <!-- hold loiter around the trigger position -->
+  <circle class="orbit" cx="330" cy="215" r="128"/>
+  <path class="track" d="M 24 215 L 330 215" marker-end="url(#head)"/>
+  <path class="track" d="M 330 215 Q 494 215 430 135" stroke-dasharray="6 4"/>
+  <circle class="dot" cx="330" cy="215" r="6"/>
+
+  <text x="40" y="203">Flight path</text>
+  <text x="344" y="241">Margin action</text>
+  <text x="344" y="259">Hold triggered</text>
+  <text x="318" y="372" text-anchor="end">Hold loiter, NAV_LOITER_RAD = 80 m</text>
+
+  <!-- distance left to the fence -->
+  <line class="dim" x1="460" y1="215" x2="568" y2="215" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="514" y="207" text-anchor="middle">70 m</text>
+
+  <text x="586" y="207">Geofence</text>
+  <text class="small" x="586" y="224">GF_ACTION if breached</text>
+</svg>

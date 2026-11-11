@@ -1009,6 +1009,29 @@ bool Geofence::isCircleInside(double lat, double lon, float radius)
 	return true;
 }
 
+uint8_t Geofence::getMarginAction() const
+{
+	if (getMargin() <= FLT_EPSILON) {
+		return geofence_result_s::GF_ACTION_NONE;
+	}
+
+	switch (_param_gf_margin_act.get()) {
+	case geofence_result_s::GF_ACTION_LOITER:
+	case geofence_result_s::GF_ACTION_RTL:
+	case geofence_result_s::GF_ACTION_LAND:
+		return static_cast<uint8_t>(_param_gf_margin_act.get());
+
+	default:
+		return geofence_result_s::GF_ACTION_WARN;
+	}
+}
+
+bool Geofence::isClearOfMargin(double lat, double lon)
+{
+	const float margin = getMargin();
+	return margin <= FLT_EPSILON || isCircleInside(lat, lon, margin);
+}
+
 bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
 {
 	bool checksPass = true;
@@ -1303,7 +1326,8 @@ bool Geofence::isHomeRequired()
 {
 	bool max_horizontal_enabled = (_param_gf_max_hor_dist.get() > FLT_EPSILON);
 	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON);
-	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
+	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL)
+				   || (getMarginAction() == geofence_result_s::GF_ACTION_RTL);
 
 	return max_horizontal_enabled || max_vertical_enabled || geofence_action_rtl;
 }

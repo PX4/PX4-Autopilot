@@ -90,6 +90,7 @@ private:
 	void logGeofencePathBreach(const GeofencePathBatch &batch, size_t index);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	bool readSyncMissionItem(const mission_s &mission, size_t index, mission_item_s &item);
+	void logGeofenceMarginViolation(size_t mission_item);
 	void logGeofenceUnavailable();
 	void logDatamanReadFailure(const size_t mission_item, const uint8_t dataman_id);
 

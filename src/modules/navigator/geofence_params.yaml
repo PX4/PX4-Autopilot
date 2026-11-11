@@ -57,3 +57,29 @@ parameters:
       min: 0
       max: 10000
       increment: 1
+    GF_MARGIN:
+      description:
+        short: Geofence margin
+        long: Horizontal distance from a geofence (polygon, circle or GF_MAX_HOR_DIST)
+          within which GF_MARGIN_ACT is triggered and arming is denied.
+          Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0
+      max: 10000
+      increment: 1
+    GF_MARGIN_ACT:
+      description:
+        short: Geofence margin action
+        long: Only used when GF_MARGIN is above 0.
+          GF_ACTION still applies when the geofence itself is breached.
+      type: enum
+      values:
+        1: Warning
+        2: Hold mode
+        3: Return mode
+        5: Land mode
+      default: 2
+      min: 1
+      max: 5

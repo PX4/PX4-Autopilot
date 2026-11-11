@@ -46,6 +46,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 					    geofence_result.geofence_custom_fence_triggered;
 
 	reporter.failsafeFlags().geofence_breached = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
+	reporter.failsafeFlags().geofence_near = geofence_result.geofence_margin_triggered;
 
 	if (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered) {
 
@@ -98,12 +99,35 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL
+	// Outside a horizontal fence the vehicle is inside its margin too: the breach reported above covers it.
+	const bool horizontal_breach_reported = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE
+						&& (geofence_result.geofence_max_dist_triggered || geofence_result.geofence_custom_fence_triggered);
+
+	if (geofence_result.geofence_margin_triggered && !horizontal_breach_reported) {
+		/* EVENT
+		 * @description
+		 * The vehicle is closer to a geofence than the geofence margin allows.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>GF_MARGIN</param> and <param>GF_MARGIN_ACT</param> parameters.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+					    events::ID("check_gf_violation_margin"),
+					    events::Log::Error, "Geofence margin violation: too close to the geofence");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence margin: too close to the geofence");
+		}
+	}
+
+	if ((geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL
+	     || geofence_result.geofence_margin_action == geofence_result_s::GF_ACTION_RTL)
 	    && reporter.failsafeFlags().home_position_invalid) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * This check can be configured via <param>GF_ACTION</param> parameter.
+		 * This check can be configured via <param>GF_ACTION</param> and <param>GF_MARGIN_ACT</param> parameters.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_gf_no_home"),

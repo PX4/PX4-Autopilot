@@ -191,6 +191,15 @@ public:
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
+	/** Horizontal distance to keep from the fences (GF_MARGIN), zero when the margin is disabled. */
+	float getMargin() const { return math::max(_param_gf_margin.get(), 0.f); }
+
+	/** GF_MARGIN_ACT as a GF_ACTION value: None when the margin is disabled, Warning for values it does not offer. */
+	uint8_t getMarginAction() const;
+
+	/** True if the margin is disabled, or a circle of GF_MARGIN around the position is inside, see isCircleInside(). */
+	bool isClearOfMargin(double lat, double lon);
+
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 
 	bool isHomeRequired();
@@ -353,6 +362,8 @@ private:
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
+		(ParamFloat<px4::params::GF_MARGIN>)       _param_gf_margin,
+		(ParamInt<px4::params::GF_MARGIN_ACT>)     _param_gf_margin_act
 	)
 };

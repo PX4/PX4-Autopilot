@@ -851,6 +851,7 @@ MissionBase::check_mission_valid(bool forced)
 		}
 	}
 
+	_checked_geofence_margin = geofence.getMargin();
 	_mission_check_state = MissionCheckState::Complete;
 }
 
