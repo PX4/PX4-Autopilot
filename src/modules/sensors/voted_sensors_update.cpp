@@ -80,14 +80,6 @@ void VotedSensorsUpdate::parametersUpdate(bool armed)
 	// the voter's own parameters are not read in flight, the priorities below are
 	if (!armed) {
 		updateParams();
-
-		// SENS_IMU_MODE 2 flies on the IMU median from the start, it never switches in flight
-		const bool imu_median = (_param_sens_imu_mode.get() == 2);
-
-		if (_selection.imu_median != imu_median) {
-			_selection.imu_median = imu_median;
-			_selection_changed = true;
-		}
 	}
 
 	// run through all IMUs
@@ -279,26 +271,22 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 		raw.gyro_clipping             = _last_sensor_data[gyro_best_index].gyro_clipping;
 		raw.gyro_calibration_count    = _last_sensor_data[gyro_best_index].gyro_calibration_count;
 
-		if (_selection.imu_median) {
+		if (_param_sens_imu_mode.get() == 2) {
 			// EKF2 gets the median of the same IMUs the rate controller flies on
-			math::MedianFilter<float, 3> accel_median[3], gyro_median[3];
+			const sensor_combined_s *imu[3];
 			int count = 0;
 
 			for (int i = 0; (i < MAX_SENSOR_COUNT) && (count < 3); i++) {
 				if (imuEnabled(i) && (_accel_device_id[i] != 0)
 				    && (raw.timestamp < _last_sensor_data[i].timestamp + IMU_MEDIAN_SAMPLE_TIMEOUT_US)) {
-					for (int axis = 0; axis < 3; axis++) {
-						accel_median[axis].insert(_last_sensor_data[i].accelerometer_m_s2[axis]);
-						gyro_median[axis].insert(_last_sensor_data[i].gyro_rad[axis]);
-					}
-
-					count++;
+					imu[count++] = &_last_sensor_data[i];
 				}
 			}
 
-			for (int axis = 0; (count == 3) && (axis < 3); axis++) {
-				raw.accelerometer_m_s2[axis] = accel_median[axis].median();
-				raw.gyro_rad[axis] = gyro_median[axis].median();
+			if (count == 3) {
+				median3(Vector3f{imu[0]->accelerometer_m_s2}, Vector3f{imu[1]->accelerometer_m_s2},
+					Vector3f{imu[2]->accelerometer_m_s2}).copyTo(raw.accelerometer_m_s2);
+				median3(Vector3f{imu[0]->gyro_rad}, Vector3f{imu[1]->gyro_rad}, Vector3f{imu[2]->gyro_rad}).copyTo(raw.gyro_rad);
 			}
 		}
 
@@ -492,6 +480,7 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 			status.gyro_priority[i] = _gyro.voter.get_sensor_priority(i);
 		}
 	}
+
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_imu_pub.publish(status);

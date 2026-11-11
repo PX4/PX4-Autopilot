@@ -34,9 +34,9 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <lib/mathlib/math/filter/MedianFilter.hpp>
+#include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 
 namespace sensors
 {
@@ -44,6 +44,18 @@ namespace sensors
 // an enabled IMU takes part in the median while its latest sample is at most this much older than the selected one,
 // a few sample periods at the slowest IMU publication rate
 static constexpr hrt_abstime IMU_MEDIAN_SAMPLE_TIMEOUT_US = 20'000;
+
+// per-axis median of three samples
+inline matrix::Vector3f median3(const matrix::Vector3f &a, const matrix::Vector3f &b, const matrix::Vector3f &c)
+{
+	matrix::Vector3f median;
+
+	for (int axis = 0; axis < 3; axis++) {
+		median(axis) = math::max(math::min(a(axis), b(axis)), math::min(math::max(a(axis), b(axis)), c(axis)));
+	}
+
+	return median;
+}
 
 /**
  * Per-axis median of the latest calibrated sample of three IMUs, the selected one included,
@@ -53,7 +65,7 @@ template<typename Sample, typename Calibration>
 class SensorMedian
 {
 public:
-	explicit SensorMedian(ORB_ID meta) : _sensor_sub{{meta, 0}, {meta, 1}, {meta, 2}, {meta, 3}} {}
+	explicit SensorMedian(ORB_ID meta) : _sensor_sub{meta} {}
 
 	void ParametersUpdate()
 	{
@@ -69,20 +81,10 @@ public:
 	 */
 	matrix::Vector3f Apply(const Sample &selected, const matrix::Vector3f &corrected)
 	{
-		math::MedianFilter<float, 3> median[3];
+		matrix::Vector3f others[2];
 		int count = 0;
 
-		auto insert = [&](const matrix::Vector3f & sample) {
-			for (int axis = 0; axis < 3; axis++) {
-				median[axis].insert(sample(axis));
-			}
-
-			count++;
-		};
-
-		insert(corrected);
-
-		for (int i = 0; (i < MAX_SENSOR_COUNT) && (count < 3); i++) {
+		for (int i = 0; (i < MAX_SENSOR_COUNT) && (count < 2); i++) {
 			Sample sample;
 
 			if (_sensor_sub[i].copy(&sample) && (sample.device_id != selected.device_id)
@@ -94,18 +96,18 @@ public:
 
 				if (_calibration[i].enabled()) {
 					_calibration[i].SensorCorrectionsUpdate();
-					insert(_calibration[i].Correct(matrix::Vector3f{sample.x, sample.y, sample.z}));
+					others[count++] = _calibration[i].Correct(matrix::Vector3f{sample.x, sample.y, sample.z});
 				}
 			}
 		}
 
-		return (count == 3) ? matrix::Vector3f{median[0].median(), median[1].median(), median[2].median()} : corrected;
+		return (count == 2) ? median3(corrected, others[0], others[1]) : corrected;
 	}
 
 private:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
-	uORB::Subscription _sensor_sub[MAX_SENSOR_COUNT];
+	uORB::SubscriptionMultiArray<Sample, MAX_SENSOR_COUNT> _sensor_sub;
 	Calibration _calibration[MAX_SENSOR_COUNT] {};
 };
 

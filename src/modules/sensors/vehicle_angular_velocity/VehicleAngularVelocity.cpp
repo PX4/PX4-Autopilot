@@ -1003,17 +1003,15 @@ void VehicleAngularVelocity::ApplyImuMedian(const hrt_abstime &timestamp_sample,
 	int count = 0;
 
 	for (int i = 0; (i < MAX_SENSOR_COUNT) && (count < 2); i++) {
-		if ((i != _vehicle_angular_velocity_imu_pub.get_instance()) && _vehicle_angular_velocity_imu_sub[i].copy(&imu[count])
+		if ((i != _vehicle_angular_velocity_imu_pub.get_instance()) && _vehicle_angular_velocity_imu_subs[i].copy(&imu[count])
 		    && (timestamp_sample < imu[count].timestamp_sample + IMU_MEDIAN_SAMPLE_TIMEOUT_US)) {
 			count++;
 		}
 	}
 
-	auto median = [](float a, float b, float c) { return math::max(math::min(a, b), math::min(math::max(a, b), c)); };
-
-	for (int axis = 0; (count == 2) && (axis < 3); axis++) {
-		xyz(axis) = median(xyz(axis), imu[0].xyz[axis], imu[1].xyz[axis]);
-		xyz_derivative(axis) = median(xyz_derivative(axis), imu[0].xyz_derivative[axis], imu[1].xyz_derivative[axis]);
+	if (count == 2) {
+		xyz = median3(xyz, Vector3f{imu[0].xyz}, Vector3f{imu[1].xyz});
+		xyz_derivative = median3(xyz_derivative, Vector3f{imu[0].xyz_derivative}, Vector3f{imu[1].xyz_derivative});
 	}
 }
 

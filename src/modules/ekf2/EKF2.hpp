@@ -292,7 +292,6 @@ private:
 
 	uint32_t _device_id_accel{0};
 	uint32_t _device_id_gyro{0};
-	bool _imu_median{false};
 
 	Vector3f _last_accel_bias_published{};
 	Vector3f _last_gyro_bias_published{};

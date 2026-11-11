@@ -158,7 +158,6 @@ bool VehicleAcceleration::SensorSelectionUpdate(bool force)
 	if (_sensor_selection_sub.updated() || (_calibration.device_id() == 0) || force) {
 		sensor_selection_s sensor_selection{};
 		_sensor_selection_sub.copy(&sensor_selection);
-		_imu_median = sensor_selection.imu_median;
 
 		if ((sensor_selection.accel_device_id != 0) && (_calibration.device_id() != sensor_selection.accel_device_id)) {
 			for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
@@ -244,11 +243,12 @@ void VehicleAcceleration::Run()
 		if (accel_raw.isAllFinite()) {
 			// Apply calibration and filter
 			//  - calibration offsets, scale factors, and thermal scale (if available)
-			//  - median of all IMUs (if switched to)
+			//  - median of all IMUs (SENS_IMU_MODE 2)
 			//  - estimated in run bias (if available)
 			//  - biquad low-pass filter
 			const Vector3f accel_calibrated = _calibration.Correct(accel_raw);
-			const Vector3f accel_corrected = (_imu_median ? _median.Apply(sensor_data, accel_calibrated) : accel_calibrated) - _bias;
+			const Vector3f accel_corrected = ((_param_sens_imu_mode.get() == 2) ? _median.Apply(sensor_data,
+							  accel_calibrated) : accel_calibrated) - _bias;
 			const Vector3f accel_filtered = _lp_filter.apply(accel_corrected);
 
 			_acceleration_prev = accel_corrected;

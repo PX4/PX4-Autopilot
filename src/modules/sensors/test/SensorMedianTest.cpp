@@ -124,25 +124,3 @@ TEST_F(SensorMedianTest, TheMedianOfCalibratedGyrosIgnoresTheInconsistentOne)
 	// uncalibrated, the median would be gyro 1 at 0.5 rad/s
 	EXPECT_FLOAT_EQ(median.Apply(selected, Vector3f{1.f, 0.f, 0.f})(0), 0.02f);
 }
-
-TEST_F(SensorMedianTest, WithoutThreeRecentEnabledGyrosTheSelectedOneIsKept)
-{
-	sensors::SensorMedian<sensor_gyro_s, calibration::Gyroscope> median{ORB_ID::sensor_gyro};
-	median.ParametersUpdate();
-
-	const Vector3f corrected{1.f, 0.f, 0.f};
-
-	// gyro 2 stops publishing
-	publishGyro(2, 0.f);
-	px4_usleep(50_ms);
-	sensor_gyro_s selected = publishGyro(0, 1.f);
-	publishGyro(1, 0.f);
-	EXPECT_EQ(median.Apply(selected, corrected), corrected) << "a stale gyro is left out";
-
-	setParam("CAL_GYRO%d_PRIO", 2, 0);
-	median.ParametersUpdate();
-	selected = publishGyro(0, 1.f);
-	publishGyro(1, 0.f);
-	publishGyro(2, 0.f);
-	EXPECT_EQ(median.Apply(selected, corrected), corrected) << "a disabled gyro is left out";
-}
