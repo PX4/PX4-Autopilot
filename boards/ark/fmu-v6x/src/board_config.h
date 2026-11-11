@@ -214,10 +214,11 @@
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "ARKV6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
 //                 Base/FMUM
-#define ARKV6X_0   HW_FMUM_ID(0x0) // ARKV6X,     Sensor Set  Rev 0
-#define ARKV6X_1   HW_FMUM_ID(0x1) // ARKV6X,     Sensor Set  Rev 1
+#define ARKV6X_0   HW_FMUM_ID(0x0) // ARKV6X,     IIM-42652, 2x ICM-42688-P
+#define ARKV6X_1   HW_FMUM_ID(0x1) // ARKV6X,     3x IIM-42653
+#define ARKV6X_2   HW_FMUM_ID(0x2) // ARKV6X,     3x LSM6DSV32X
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
