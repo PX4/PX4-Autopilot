@@ -122,10 +122,6 @@ private:
 	 */
 	void _respectGroundSlowdown();
 
-	void setGearAccordingToSwitch();
-
-	bool _updateYawCorrection();
-
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 
 	float _min_distance_to_ground{(float)(-INFINITY)}; /**< min distance to ground constraint */

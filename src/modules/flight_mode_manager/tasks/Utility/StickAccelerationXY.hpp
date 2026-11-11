@@ -67,7 +67,6 @@ public:
 
 	// Assuming the velocity constraint resets in every loop and update constraint if new value is lower
 	void setVelocityConstraint(float vel);
-	float getVelocityConstraint() { return _velocity_slew_rate_xy.getState(); };
 
 private:
 	CollisionPrevention _collision_prevention{this};

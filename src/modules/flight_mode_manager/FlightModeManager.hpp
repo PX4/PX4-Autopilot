@@ -103,11 +103,6 @@ private:
 	FlightTaskError switchTask(int new_task_index);
 
 	/**
-	 * Call this method to get the description of a task error.
-	 */
-	const char *errorToString(const FlightTaskError error);
-
-	/**
 	 * Check if any task is active
 	 * @return true if a task is active, false if not
 	 */
