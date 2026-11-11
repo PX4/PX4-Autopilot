@@ -1505,17 +1505,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int
 
 		case MAV_CMD_NAV_ROI:
 		case MAV_CMD_DO_SET_ROI:
-			if ((int)mavlink_mission_item->param1 == MAV_ROI_LOCATION) {
-				mission_item->nav_cmd = NAV_CMD_DO_SET_ROI;
-				mission_item->params[0] = MAV_ROI_LOCATION;
-
-				mission_item->params[6] = mavlink_mission_item->z;
-
-			} else if ((int)mavlink_mission_item->param1 == MAV_ROI_NONE) {
+			if ((int)mavlink_mission_item->param1 == MAV_ROI_NONE) {
 				mission_item->nav_cmd = NAV_CMD_DO_SET_ROI;
 				mission_item->params[0] = MAV_ROI_NONE;
 
 			} else {
+				// MAV_ROI_LOCATION is not supported: use MAV_CMD_DO_SET_ROI_LOCATION.
 				return MAV_MISSION_INVALID_PARAM1;
 			}
 

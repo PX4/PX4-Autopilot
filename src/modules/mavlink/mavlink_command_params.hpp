@@ -87,7 +87,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{   21, 0x7B, 0x7B }, // NAV_LAND:                    p1:abort_alt,p2:precision,p4:yaw; p5-7:lat/lon/alt
 	{   22, 0x78, 0x78 }, // NAV_TAKEOFF:                 p4:yaw; p5-7:lat/lon/alt (FW/VTOL also get p1 via override)
 	{   31, 0x7B, 0x7B }, // NAV_LOITER_TO_ALT:           p1:hdg,p2:radius,p4:xtrack; p5-7:lat/lon/alt
-	{   80, 0x77, 0x77 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
+	{   80, 0x07, 0x07 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx (MAV_ROI_LOCATION unsupported: use DO_SET_ROI_LOCATION)
 	{   84, 0x78, 0x7B }, // NAV_VTOL_TAKEOFF:            mission:p4:yaw only (p3 unused by mission_block); cmd:p1:loiter_height,p2:transition_dir_flag,p4:yaw (p3 unused); p5-7:lat/lon/alt
 	{   85, 0x7C, 0x7F }, // NAV_VTOL_LAND:               mission:p3:approach_alt (QGC sets it; unused by mission_block),p4:yaw; cmd:p1:options,p2:approach_hdg,p3:loiter_r,p4:yaw; p5-7:lat/lon/alt
 	{   93, 0x0F, 0x0F }, // NAV_DELAY:                   p1:delay,p2:hour,p3:min,p4:sec
@@ -101,7 +101,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  195, 0x70, 0x71 }, // DO_SET_ROI_LOCATION:         mission:p5-7:lat/lon/alt; cmd:p1:gimbal,p5-7:lat/lon/alt
 	{  196, 0x01, 0x01 }, // DO_SET_ROI_WPNEXT_OFFSET:   p1:gimbal_id
 	{  197, 0x01, 0x01 }, // DO_SET_ROI_NONE:             p1:gimbal_id
-	{  201, 0x07, 0x07 }, // DO_SET_ROI:                  p1:mode,p2:wp_idx,p3:roi_idx
+	{  201, 0x07, 0x07 }, // DO_SET_ROI:                  p1:mode,p2:wp_idx,p3:roi_idx (MAV_ROI_LOCATION unsupported: use DO_SET_ROI_LOCATION)
 	{  206, 0x0F, 0x0F }, // DO_SET_CAM_TRIGG_DIST:       p1:dist,p2:shutter,p3:trigger,p4:camera_id
 	{  211, 0x03, 0x03 }, // DO_GRIPPER:                  p1:id,p2:action
 	{  212, 0x03, 0x03 }, // DO_AUTOTUNE_ENABLE:          p1:enable,p2:axis
