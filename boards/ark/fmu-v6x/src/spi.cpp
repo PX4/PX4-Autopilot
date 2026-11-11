@@ -92,10 +92,6 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		initSPIBus(SPI::Bus::SPI3, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM6DSV, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin6}),
 		}, {GPIO::PortE, GPIO::Pin7}),
-		//  initSPIBus(SPI::Bus::SPI4, {
-		//    // no devices
-		// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS_EN from board_config.h
-		//  }, {GPIO::PortG, GPIO::Pin8}),
 		initSPIBus(SPI::Bus::SPI5, {
 			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
 		}),
