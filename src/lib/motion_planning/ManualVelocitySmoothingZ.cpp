@@ -51,9 +51,6 @@ void ManualVelocitySmoothingZ::resetPositionLock()
 
 void ManualVelocitySmoothingZ::update(float dt, float velocity_target)
 {
-	// Update state
-	updateTrajectories(dt);
-
 	// Set max accel/vel/jerk
 	// Has to be done before _updateTrajDurations()
 	updateTrajConstraints(velocity_target);
@@ -64,16 +61,9 @@ void ManualVelocitySmoothingZ::update(float dt, float velocity_target)
 
 	// Update durations
 	_trajectory.updateDurations(velocity_target);
-}
 
-void ManualVelocitySmoothingZ::updateTrajectories(float dt)
-{
+	// Integrate along the plan
 	_trajectory.updateTraj(dt);
-
-	_state.j = _trajectory.getCurrentJerk();
-	_state.a = _trajectory.getCurrentAcceleration();
-	_state.v = _trajectory.getCurrentVelocity();
-	_state.x = _trajectory.getCurrentPosition();
 }
 
 void ManualVelocitySmoothingZ::updateTrajConstraints(float velocity_target)
@@ -98,19 +88,18 @@ void ManualVelocitySmoothingZ::checkPositionLock(float velocity_target)
 	 * This is why the previous input of the velocity controller
 	 * is used to set current velocity of the trajectory.
 	 */
-	if (fabsf(_state.v) < 0.1f &&
-	    fabsf(_state.a) < .2f &&
+	if (fabsf(getCurrentVelocity()) < 0.1f &&
+	    fabsf(getCurrentAcceleration()) < .2f &&
 	    fabsf(velocity_target) <= FLT_EPSILON) {
 		// Lock position
 		_position_lock_active = true;
-		_position_setpoint_locked = _state.x;
+		_position_setpoint_locked = _trajectory.getCurrentPosition();
 
 	} else {
 		// Unlock position
 		if (_position_lock_active) {
 			// Start the trajectory at the current velocity setpoint
 			_trajectory.setCurrentVelocity(_velocity_setpoint_feedback);
-			_state.v = _velocity_setpoint_feedback;
 			resetPositionLock();
 		}
 

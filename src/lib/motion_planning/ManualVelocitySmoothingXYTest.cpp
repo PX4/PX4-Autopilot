@@ -85,3 +85,20 @@ TEST_F(ManualVelocitySmoothingXYTest, getCurrentState)
 	EXPECT_EQ(v_end, Vector3f(11.f, 13.f, 0.f));
 	EXPECT_EQ(x_end, Vector3f(0.f, 0.f, 0.f));
 }
+
+TEST_F(ManualVelocitySmoothingXYTest, positionLockAfterReset)
+{
+	// GIVEN: A standing still trajectory reset away from the origin
+	_smoothing.setMaxJerk(4.f);
+	_smoothing.setMaxAccel(3.f);
+	_smoothing.setMaxVel(5.f);
+	const Vector2f position(10.f, -5.f);
+	_smoothing.reset(Vector2f(), Vector2f(), position);
+
+	// WHEN: It's updated without any velocity target
+	_smoothing.update(0.02f, Vector2f());
+
+	// THEN: The position gets locked where it was reset to
+	EXPECT_FLOAT_EQ(_smoothing.getCurrentPosition()(0), position(0));
+	EXPECT_FLOAT_EQ(_smoothing.getCurrentPosition()(1), position(1));
+}

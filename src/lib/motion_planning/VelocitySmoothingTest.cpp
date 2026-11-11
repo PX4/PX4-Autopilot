@@ -60,6 +60,37 @@ TEST(VelocitySmoothingBasicTest, AllZeroCase)
 	EXPECT_FLOAT_EQ(trajectory.getCurrentPosition(), 0.f);
 }
 
+TEST(VelocitySmoothingBasicTest, ResetContinuesAcceleration)
+{
+	// GIVEN: A trajectory that was planned before and is then reset to an accelerating state
+	VelocitySmoothing trajectory;
+	trajectory.setMaxJerk(4.f);
+	trajectory.setMaxAccel(3.f);
+	trajectory.setMaxVel(12.f);
+	trajectory.updateDurations(5.f);
+	trajectory.updateTraj(0.5f);
+	trajectory.reset(-2.f, 1.f, 0.f);
+
+	// WHEN: We plan towards a still standing vehicle and integrate one step
+	const float dt = 0.02f;
+	trajectory.updateDurations(0.f);
+	trajectory.updateTraj(dt);
+
+	// THEN: The acceleration only changed within the jerk limit
+	EXPECT_NEAR(trajectory.getCurrentAcceleration(), -2.f, 4.f * dt + 1e-5f);
+	EXPECT_NEAR(trajectory.getCurrentVelocity(), 1.f - 2.f * dt, 4.f * dt * dt);
+
+	// AND WHEN: It runs to the end
+	for (int i = 0; i < 200; i++) {
+		trajectory.updateDurations(0.f);
+		trajectory.updateTraj(dt);
+	}
+
+	// THEN: It ends up without acceleration
+	EXPECT_NEAR(trajectory.getCurrentAcceleration(), 0.f, 1e-3f);
+	EXPECT_NEAR(trajectory.getCurrentVelocity(), 0.f, 1e-3f);
+}
+
 TEST(VelocitySmoothingBasicTest, DivisionByZeroComputeT1)
 {
 	// GIVEN: A try to trigger division by zero in computeT1()

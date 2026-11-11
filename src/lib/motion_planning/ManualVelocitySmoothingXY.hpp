@@ -76,20 +76,18 @@ public:
 	}
 	float getMaxVel() const { return _trajectory[0].getMaxVel(); }
 
-	Vector2f getCurrentJerk() const { return _state.j; }
-	Vector2f getCurrentAcceleration() const { return _state.a; }
+	Vector2f getCurrentJerk() const { return {_trajectory[0].getCurrentJerk(), _trajectory[1].getCurrentJerk()}; }
+	Vector2f getCurrentAcceleration() const { return {_trajectory[0].getCurrentAcceleration(), _trajectory[1].getCurrentAcceleration()}; }
 
 	void setCurrentVelocity(const Vector2f &vel)
 	{
-		_state.v = vel;
 		_trajectory[0].setCurrentVelocity(vel(0));
 		_trajectory[1].setCurrentVelocity(vel(1));
 	}
-	Vector2f getCurrentVelocity() const { return _state.v; }
+	Vector2f getCurrentVelocity() const { return {_trajectory[0].getCurrentVelocity(), _trajectory[1].getCurrentVelocity()}; }
 
 	void setCurrentPosition(const Vector2f &pos)
 	{
-		_state.x = pos;
 		_trajectory[0].setCurrentPosition(pos(0));
 		_trajectory[1].setCurrentPosition(pos(1));
 		_position_estimate = pos;
@@ -104,7 +102,6 @@ public:
 
 private:
 	void resetPositionLock();
-	void updateTrajectories(float dt);
 	void checkPositionLock(const Vector2f &velocity_target);
 	void updateTrajDurations(const Vector2f &velocity_target);
 
@@ -116,11 +113,4 @@ private:
 
 	Vector2f _velocity_setpoint_feedback{};
 	Vector2f _position_estimate{};
-
-	struct {
-		Vector2f j;
-		Vector2f a;
-		Vector2f v;
-		Vector2f x;
-	} _state{};
 };
