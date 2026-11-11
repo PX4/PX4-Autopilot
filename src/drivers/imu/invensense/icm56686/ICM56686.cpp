@@ -619,13 +619,17 @@ bool ICM56686::IregSetAndClearBits(const uint16_t reg, const uint8_t set_bits, c
 
 uint16_t ICM56686::FIFOReadCount()
 {
-	uint8_t fifo_count[3] {
-		static_cast<uint8_t>(static_cast<uint8_t>(Register::BANK_0::FIFO_COUNT_0) | DIR_READ), 0, 0
-	};
+	uint8_t fifo_count[3] {};
 
-	if (transfer(fifo_count, fifo_count, sizeof(fifo_count)) != PX4_OK) {
-		perf_count(_bad_transfer_perf);
-		return 0;
+	// ICM-456xx errata AN-000364 (2.2): the first FIFO_COUNT read can return a stale value, use the
+	// second one (same as the ICM-45686 driver and the TDK reference driver).
+	for (int i = 0; i < 2; i++) {
+		fifo_count[0] = static_cast<uint8_t>(static_cast<uint8_t>(Register::BANK_0::FIFO_COUNT_0) | DIR_READ);
+
+		if (transfer(fifo_count, fifo_count, sizeof(fifo_count)) != PX4_OK) {
+			perf_count(_bad_transfer_perf);
+			return 0;
+		}
 	}
 
 	// FIFO_COUNT_0 is documented as FIFO_DATA_CNT[15:8] and FIFO_COUNT_1 as [7:0], but the
