@@ -1,7 +1,8 @@
 menuconfig DRIVERS_ESC_4WAY
 	bool "esc_4way (MSP and 4way ESC configuration server over USB or a serial port)"
 	default n
-	depends on SERIALPASSTHROUGH_BITBANG
+	depends on PLATFORM_NUTTX
+	select UART_BITBANG
 	---help---
 		Serves the BLHeli/AM32 4way interface protocol to ESC configurators
 		(am32.ca, esc-configurator.com) through the flight controller: MSP on

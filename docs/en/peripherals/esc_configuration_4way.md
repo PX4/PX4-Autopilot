@@ -95,11 +95,9 @@ esc-configurator.com has an override for this and shows the port regardless of i
 
 The ESC configuration server drives the ESC signal pins as a half-duplex UART.
 That backend exists for STM32F7/H7 boards and for the NXP i.MX RT1064/RT1176 and i.MX95 boards.
-To enable the server, add these keys to the board's `default.px4board`:
+To enable the server, add this key to the board's `default.px4board`:
 
 ```text
-CONFIG_DRIVERS_SERIALPASSTHROUGH=y
-CONFIG_SERIALPASSTHROUGH_BITBANG=y
 CONFIG_DRIVERS_ESC_4WAY=y
 ```
 
