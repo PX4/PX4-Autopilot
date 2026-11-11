@@ -81,22 +81,9 @@ On this hardware, there is a [default serial port mapping](../peripherals/serial
 - [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) = `0` (normal/GCS)
 - [MAV_2_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_2_RADIO_CTL) = `0`
 - [MAV_2_RATE](../advanced_config/parameter_reference.md#MAV_2_RATE) = `100000`
-- [MAV_2_REMOTE_IP](../advanced_config/parameter_reference.md#MAV_2_REMOTE_IP) = `0` (auto-discover partner, see below)
+- [MAV_2_REMOTE_IP](../advanced_config/parameter_reference.md#MAV_2_REMOTE_IP) = `0` (auto-discover partner, see [MAVLink Partner Address](../advanced_config/ethernet_setup.md#partner_address))
 - [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT)= `14550` (GCS)
 - [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) = `14550` (GCS)
-
-By default PX4 learns its MAVLink partner's address from the first UDP packet it receives on [MAV_X_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT), and sends replies to that address on [MAV_X_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT).
-This works well when the peer connects to PX4 first, but not if PX4 needs to initiate the connection to a peer with a known, fixed address (for example a companion computer that never sends the first packet).
-
-For that case, set [MAV_X_REMOTE_IP](../advanced_config/parameter_reference.md#MAV_2_REMOTE_IP) to the partner's address, encoded as a 32-bit integer with the first octet in the most significant byte (for example `192.168.1.2` is `-1062731518`).
-This pins the instance's target address for the lifetime of the MAVLink task and disables auto-discovery.
-Set it back to `0` (the default) to restore auto-discovery.
-
-::: tip
-The startup script applies this by passing the parameter to the `mavlink start` command's `-t` option as `-t p:MAV_X_REMOTE_IP`.
-If you start a MAVLink instance manually from the console instead, `-t` accepts either form: a literal address (`-t 192.168.1.2`) or a reference to the parameter (`-t p:MAV_2_REMOTE_IP`).
-See the [mavlink module reference](../modules/modules_communication.md#mavlink_usage) for the full command usage.
-:::
 
 For more information see: [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md)
 
