@@ -423,7 +423,7 @@ The relevant parameters are shown below:
 <Badge type="tip" text="MC only" />
 
 The failure detector can be configured to trigger if a multicopter hits the ground or an obstacle while airborne.
-An impact is detected when the specific force measured by the IMU, averaged over about 20 ms, exceeds [FD_IMPACT_THR](#FD_IMPACT_THR).
+An impact is detected when the specific force measured by the IMU, low-pass filtered with a 20 ms time constant, exceeds [FD_IMPACT_THR](#FD_IMPACT_THR).
 This is a larger force than the rotors can produce, so it can only come from a collision.
 
 An impact is handled like the [attitude trigger](#attitude-trigger):

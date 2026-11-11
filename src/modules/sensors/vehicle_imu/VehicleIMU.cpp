@@ -568,8 +568,8 @@ bool VehicleIMU::Publish()
 			const float accel_dt_s = 1.e-6f * imu.delta_velocity_dt;
 			const Vector3f acceleration{_accel_calibration.Correct(delta_velocity / accel_dt_s)};
 			UpdateAccelVibrationMetrics(acceleration);
+			UpdateAccelImpactMetric(acceleration, accel_dt_s);
 			const Vector3f delta_velocity_corrected{acceleration * accel_dt_s};
-			UpdateAccelImpactMetric(delta_velocity_corrected, imu.delta_velocity_dt);
 
 			// vehicle_imu_status
 			//  publish before vehicle_imu so that error counts are available synchronously if needed
@@ -759,38 +759,13 @@ void VehicleIMU::UpdateAccelVibrationMetrics(const Vector3f &acceleration)
 	_acceleration_prev = acceleration;
 }
 
-void VehicleIMU::UpdateAccelImpactMetric(const Vector3f &delta_velocity, uint32_t dt_us)
+void VehicleIMU::UpdateAccelImpactMetric(const Vector3f &acceleration, float dt_s)
 {
-	// Impact metric = norm of the mean specific force over a sliding window of ~kAccelImpactWindowUs.
-	// Averaging over the window rejects vibration (which averages out) and single sample glitches, while an
-	// impact (velocity change the rotors cannot produce) shows up as a large sustained mean.
-	const uint8_t samples = math::constrain((int)roundf((float)kAccelImpactWindowUs / math::max(
-			_imu_integration_interval_us, (uint32_t)1)), 1, (int)kAccelImpactBufferSize);
-
-	if (samples != _accel_impact_samples) {
-		// window size changed (IMU_INTEG_RATE), restart
-		for (auto &sample : _accel_impact_buffer) {
-			sample = DeltaVelocitySample{};
-		}
-
-		_accel_impact_dv_sum.zero();
-		_accel_impact_dt_sum = 0;
-		_accel_impact_index = 0;
-		_accel_impact_samples = samples;
-	}
-
-	// replace the oldest sample in the ring buffer and keep the running sums
-	DeltaVelocitySample &oldest = _accel_impact_buffer[_accel_impact_index];
-	_accel_impact_dv_sum += delta_velocity - oldest.delta_velocity;
-	_accel_impact_dt_sum = _accel_impact_dt_sum + dt_us - oldest.dt_us;
-	oldest.delta_velocity = delta_velocity;
-	oldest.dt_us = dt_us;
-	_accel_impact_index = (_accel_impact_index + 1) % _accel_impact_samples;
-
-	if (_accel_impact_dt_sum > 0) {
-		const float mean_specific_force = _accel_impact_dv_sum.norm() / (1.e-6f * _accel_impact_dt_sum);
-		_status.accel_impact_metric = math::max(_status.accel_impact_metric, mean_specific_force);
-	}
+	// Impact metric = norm of the low-pass filtered specific force.
+	// Filtering the vector before taking the norm rejects vibration (which averages out) and single sample glitches,
+	// while an impact (velocity change the rotors cannot produce) shows up as a large sustained value.
+	const float specific_force = _accel_impact_lpf.update(acceleration, dt_s).norm();
+	_status.accel_impact_metric = math::max(_status.accel_impact_metric, specific_force);
 }
 
 void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &angular_velocity)
