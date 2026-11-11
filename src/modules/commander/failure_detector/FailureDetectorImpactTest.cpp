@@ -35,15 +35,12 @@
 
 #include "FailureDetector.hpp"
 
-#include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
 // to run: make tests TESTFILTER=FailureDetectorImpactTest
-
-using namespace time_literals;
 
 // Expose the parameter refresh of the failure detector to the test
 class TestFailureDetector : public FailureDetector
@@ -62,9 +59,7 @@ public:
 	{
 		param_control_autosave(false);
 
-		// FD_IMPACT_THR = 80 m/s^2, FD_IMPACT_T = 0s
 		setImpactThreshold(80.f);
-		setCrashTime(0.f);
 
 		sensor_selection_s selection{};
 		selection.timestamp = hrt_absolute_time();
@@ -79,19 +74,8 @@ public:
 		_fd.updateParams();
 	}
 
-	void setCrashTime(float time_s)
-	{
-		param_t param = param_handle(px4::params::FD_IMPACT_T);
-		param_set(param, &time_s);
-		_fd.updateParams();
-	}
-
 	// Publish the IMU status and land detector state, then run the detector
-	// moving: all land detector movement checks report movement
-	// translating: only the velocity based checks (vertical, horizontal) report movement
-	// report_time_offset: added to the land detector report timestamp, emulates a report covering a later time
-	void update(float impact_metric, bool armed = true, bool landed = false, bool moving = false,
-		    bool translating = false, hrt_abstime report_time_offset = 0)
+	void update(float impact_metric, bool armed = true, bool landed = false)
 	{
 		vehicle_imu_status_s imu_status{};
 		imu_status.timestamp = hrt_absolute_time();
@@ -100,11 +84,8 @@ public:
 		_imu_status_pub.publish(imu_status);
 
 		vehicle_land_detected_s land_detected{};
-		land_detected.timestamp = hrt_absolute_time() + report_time_offset;
+		land_detected.timestamp = hrt_absolute_time();
 		land_detected.landed = landed;
-		land_detected.vertical_movement = moving || translating;
-		land_detected.horizontal_movement = moving || translating;
-		land_detected.rotational_movement = moving;
 		_land_detected_pub.publish(land_detected);
 
 		vehicle_status_s status{};
@@ -117,8 +98,6 @@ public:
 	}
 
 	bool impact() const { return _fd.getStatus().flags.impact; }
-
-	bool crash() const { return _fd.getStatus().flags.crash; }
 
 private:
 	TestFailureDetector _fd{nullptr};
@@ -134,157 +113,40 @@ TEST_F(FailureDetectorImpactTest, NoTriggerWhenDisabled)
 
 	update(150.f);
 	EXPECT_FALSE(impact());
-	EXPECT_FALSE(crash());
 }
 
 TEST_F(FailureDetectorImpactTest, NoTriggerBelowThreshold)
 {
 	update(50.f);
 	EXPECT_FALSE(impact());
-	EXPECT_FALSE(crash());
 }
 
 TEST_F(FailureDetectorImpactTest, NoTriggerWhenLanded)
 {
 	update(150.f, true, true);
 	EXPECT_FALSE(impact());
-	EXPECT_FALSE(crash());
 }
 
 TEST_F(FailureDetectorImpactTest, NoTriggerWhenDisarmed)
 {
 	update(150.f, false);
 	EXPECT_FALSE(impact());
-	EXPECT_FALSE(crash());
 }
 
 TEST_F(FailureDetectorImpactTest, ImpactLatchedUntilDisarm)
 {
-	// impact while flying, the vehicle keeps moving afterwards (e.g. hit a branch and recovered)
-	update(150.f, true, false, true);
+	update(150.f);
 	EXPECT_TRUE(impact());
-	EXPECT_FALSE(crash());
 
-	// metric back to normal: impact stays latched, no crash while moving
-	update(10.f, true, false, true);
+	// metric back to normal: impact stays latched
+	update(10.f);
 	EXPECT_TRUE(impact());
-	EXPECT_FALSE(crash());
+
+	// landing does not clear it either
+	update(10.f, true, true);
+	EXPECT_TRUE(impact());
 
 	// disarm resets
 	update(10.f, false);
 	EXPECT_FALSE(impact());
-	EXPECT_FALSE(crash());
-}
-
-TEST_F(FailureDetectorImpactTest, CrashWhenNotMovingAfterImpact)
-{
-	update(150.f);
-	EXPECT_TRUE(impact());
-	EXPECT_FALSE(crash()); // the land detector report was published before the impact
-
-	px4_usleep(1000);
-	update(10.f);
-	EXPECT_TRUE(crash()); // FD_IMPACT_T = 0: first report after the impact without movement
-
-	// crash stays latched even if movement is seen again
-	update(10.f, true, false, true);
-	EXPECT_TRUE(crash());
-
-	// until disarm
-	update(10.f, false);
-	EXPECT_FALSE(impact());
-	EXPECT_FALSE(crash());
-}
-
-TEST_F(FailureDetectorImpactTest, NoCrashWhenLandedAfterImpact)
-{
-	// hard landing: impact followed by the land detector declaring landed
-	update(150.f, true, false, true);
-	EXPECT_TRUE(impact());
-
-	update(10.f, true, true, false);
-	EXPECT_FALSE(crash());
-}
-
-TEST_F(FailureDetectorImpactTest, CrashRequiresNoMovementForConfiguredTime)
-{
-	setCrashTime(0.2f);
-
-	update(150.f);
-	EXPECT_TRUE(impact());
-	EXPECT_FALSE(crash());
-
-	px4_usleep(100000);
-	update(10.f);
-	EXPECT_FALSE(crash());
-
-	px4_usleep(150000);
-	update(10.f);
-	EXPECT_TRUE(crash());
-}
-
-TEST_F(FailureDetectorImpactTest, MovementResetsCrashTimer)
-{
-	setCrashTime(0.2f);
-
-	update(150.f);
-	EXPECT_TRUE(impact());
-
-	px4_usleep(150000);
-	update(10.f, true, false, true); // movement resets the timer
-	EXPECT_FALSE(crash());
-
-	update(10.f); // timer restarts here
-	EXPECT_FALSE(crash());
-
-	px4_usleep(100000);
-	update(10.f);
-	EXPECT_FALSE(crash()); // only 100ms without movement
-
-	px4_usleep(150000);
-	update(10.f);
-	EXPECT_TRUE(crash()); // 250ms without movement
-}
-
-TEST_F(FailureDetectorImpactTest, CrashIgnoresVelocityMovement)
-{
-	// after a hard impact the EKF velocity can stay wrong for a long time: only rotation counts as movement
-	update(150.f);
-	EXPECT_TRUE(impact());
-
-	px4_usleep(1000);
-	update(10.f, true, false, false, true); // vertical and horizontal movement reported, no rotation
-	EXPECT_TRUE(crash());
-}
-
-TEST_F(FailureDetectorImpactTest, NewImpactRestartsCrashTimer)
-{
-	setCrashTime(0.2f);
-
-	update(150.f); // first impact, e.g. hitting an obstacle
-	EXPECT_TRUE(impact());
-
-	px4_usleep(150000);
-	update(150.f); // second impact, e.g. hitting the ground: the time without rotation restarts
-	EXPECT_FALSE(crash());
-
-	px4_usleep(100000);
-	update(10.f);
-	EXPECT_FALSE(crash()); // only 100ms since the latest impact
-
-	px4_usleep(150000);
-	update(10.f);
-	EXPECT_TRUE(crash()); // 250ms since the latest impact
-}
-
-TEST_F(FailureDetectorImpactTest, NoCrashWhenStoppingLongAfterImpact)
-{
-	// impact while flying, the vehicle keeps flying afterwards
-	update(150.f, true, false, true);
-	EXPECT_TRUE(impact());
-
-	// it stops rotating long after the impact (e.g. hovers): report covering 30s after the impact, not a crash
-	update(10.f, true, false, false, false, 30_s);
-	EXPECT_TRUE(impact());
-	EXPECT_FALSE(crash());
 }

@@ -43,11 +43,6 @@
 
 using namespace time_literals;
 
-// Time after the latest impact within which a crash can be reported (the time without rotation must end in it).
-// FD_IMPACT_T is limited to 5 s, which leaves at least 5 s for the vehicle to come to rest
-// (rotation stopped within 3 s after the impact in flight tests, plus the ~1 Hz land detector reports).
-static constexpr hrt_abstime kCrashCheckWindow{10_s};
-
 FailureDetector::FailureDetector(ModuleParams *parent) :
 	ModuleParams(parent)
 {
@@ -89,7 +84,6 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 
 	} else {
 		_failure_detector_status.flags.impact = false;
-		_failure_detector_status.flags.crash = false;
 	}
 
 	return _failure_detector_status.value != status_prev.value;
@@ -109,7 +103,6 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	failure_detector_status.fd_imbalanced_prop = _failure_detector_status.flags.imbalanced_prop;
 	failure_detector_status.fd_motor = (motor_failure_mask != 0) || (injected_motor_failure_mask != 0);
 	failure_detector_status.fd_impact = _failure_detector_status.flags.impact;
-	failure_detector_status.fd_crash = _failure_detector_status.flags.crash;
 	failure_detector_status.imbalanced_prop_metric = _imbalanced_prop_lpf.getState();
 	failure_detector_status.impact_metric = _impact_metric_peak;
 	_impact_metric_peak = 0.f;
@@ -293,19 +286,14 @@ void FailureDetector::updateImbalancedPropStatus()
 
 void FailureDetector::updateImpactStatus(const vehicle_status_s &vehicle_status)
 {
-	const hrt_abstime now = hrt_absolute_time();
-
 	if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-		// Both flags are latched while armed and reset on disarm
+		// Latched while armed, reset on disarm
 		_failure_detector_status.flags.impact = false;
-		_failure_detector_status.flags.crash = false;
 		return;
 	}
 
 	if (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		// Multicopter only: the movement flags are only provided by the multicopter land detector.
-		// Latched flags are kept (e.g. VTOL transition), the time without movement restarts.
-		_crash_no_movement_start = now;
+		// Multicopter only, a latched impact is kept (e.g. VTOL transition)
 		return;
 	}
 
@@ -319,33 +307,8 @@ void FailureDetector::updateImpactStatus(const vehicle_status_s &vehicle_status)
 	if (copySelectedImuStatus(imu_status)) {
 		_impact_metric_peak = math::max(_impact_metric_peak, imu_status.accel_impact_metric);
 
-		// Every impact restarts the crash check, e.g. hitting an obstacle and then the ground
 		if (!land_detected.landed && (imu_status.accel_impact_metric > _param_fd_impact_thr.get())) {
 			_failure_detector_status.flags.impact = true;
-			_impact_last_time = now;
-			_crash_no_movement_start = now;
-		}
-	}
-
-	// Crash: after an impact the vehicle stops rotating for FD_IMPACT_T seconds while not detected as landed.
-	// Only the land detector's rotation check (LNDMC_ROT_MAX, gyro based) is used: the vertical and horizontal
-	// checks rely on the EKF velocity, which can stay wrong for many seconds after a hard impact (accelerometer
-	// clipping), so a vehicle at rest would keep being reported as moving.
-	// The flag is true if any rotation was seen since the previous vehicle_land_detected publication (~1 Hz).
-	// The time without rotation is therefore measured with the report timestamps: reports published before
-	// the impact are ignored and a report only confirms the time it covers.
-	// Only reports up to kCrashCheckWindow after the latest impact are used: a vehicle still moving then has
-	// recovered and is not reported as crashed when it stops later, e.g. to hover.
-	if (_failure_detector_status.flags.impact) {
-		const hrt_abstime crash_trigger_time = (hrt_abstime)(1_s * _param_fd_impact_ttri.get());
-
-		if (land_detected.timestamp < _impact_last_time + kCrashCheckWindow) {
-			if (land_detected.rotational_movement || land_detected.landed) {
-				_crash_no_movement_start = math::max(_crash_no_movement_start, land_detected.timestamp);
-
-			} else if (land_detected.timestamp > _crash_no_movement_start + crash_trigger_time) {
-				_failure_detector_status.flags.crash = true;
-			}
 		}
 	}
 }

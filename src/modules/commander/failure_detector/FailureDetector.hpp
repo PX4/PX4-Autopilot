@@ -77,7 +77,6 @@ union failure_detector_status_u {
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
 		uint16_t impact : 1;
-		uint16_t crash : 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -122,8 +121,6 @@ private:
 	hrt_abstime _imu_status_timestamp_prev{0};
 
 	float _impact_metric_peak{0.f}; // peak of the impact metric since the last status publication
-	hrt_abstime _impact_last_time{0}; // time of the latest impact, restarts the crash check
-	hrt_abstime _crash_no_movement_start{0}; // start of the time without rotation after an impact
 
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -149,7 +146,6 @@ private:
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
 		(ParamFloat<px4::params::FD_ALT_LOSS>) _param_fd_alt_loss,
 		(ParamFloat<px4::params::FD_ALT_LOSS_T>) _param_fd_alt_loss_ttri,
-		(ParamFloat<px4::params::FD_IMPACT_THR>) _param_fd_impact_thr,
-		(ParamFloat<px4::params::FD_IMPACT_T>) _param_fd_impact_ttri
+		(ParamFloat<px4::params::FD_IMPACT_THR>) _param_fd_impact_thr
 	)
 };
