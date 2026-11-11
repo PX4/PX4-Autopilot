@@ -69,6 +69,8 @@ When the port sends MAVLink heartbeats, the tool first sets `SYS_USB_AUTO` to `1
 The parameter stays set.
 `--setup` does that without listening for heartbeats first.
 Use `-d` to select the serial device (default `/dev/ttyACM0`), `--target` for the ESC (default 0) and `--no-exit` to keep the session open.
+The flight controller reboots after a run without `--no-exit`.
+A run started during that reboot waits for the port when `-d` is its `/dev/serial/by-id/` name.
 The tool needs `pymavlink` for the switch over MAVLink.
 
 ### Using Another Serial Port

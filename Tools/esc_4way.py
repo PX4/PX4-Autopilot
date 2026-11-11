@@ -54,7 +54,9 @@ server: the tool sets SYS_USB_AUTO=1, which stays set, and reboots the board
 (needs pymavlink); --setup does that without listening for heartbeats first.
 --no-exit leaves the session open: the port then
 keeps DTR raised after it is closed, also for other programs, until a run without
---no-exit or the board's next reboot. Exit code 0 on success.
+--no-exit or the board's next reboot. The board reboots after a session. A run
+started meanwhile waits for the port when -d is its /dev/serial/by-id name, which
+the bootloader's port does not share. Exit code 0 on success.
 
 """
 
@@ -69,6 +71,7 @@ import time
 import tty
 
 TIMEOUT = 2.0  # seconds per exchange
+REBOOT_TIMEOUT = 15  # seconds for a board that reboots after its session to bring its port back
 
 # MSP v1 command ids
 MSP_API_VERSION = 1
@@ -289,7 +292,7 @@ def init_flash(fd, target, passthrough_t):
     return data
 
 
-def run(fd, no_esc, variant, target, toggle_direction=False):
+def run(fd, no_esc, variant, target, toggle_direction=False, no_exit=False):
     def step(name, value=''):
         print(f'  ok  {name} {value}'.rstrip())
 
@@ -377,11 +380,17 @@ def run(fd, no_esc, variant, target, toggle_direction=False):
                 check(again[:2] + again[3:] == block[:2] + block[3:], f'{name}: read back {again.hex()} != {block.hex()}')
                 step(f'DeviceWrite {name}', f'direction {again[AM32_MOTOR_DIRECTION]}, bytes 0..24: {again[:25].hex(" ")}')
 
-    fourway(fd, EXIT)
-    step('InterfaceExit')
+    if not no_exit:
+        fourway(fd, EXIT)
+        step('InterfaceExit')
 
 
 # MAVLink entry (PX4 only)
+
+# These names carry the USB product string, which a board's bootloader and application normally
+# do not share, while both can be /dev/ttyACM0
+SERIAL_BY_ID = '/dev/serial/by-id'
+
 
 def _wait_port(path, timeout=30):
     """Wait for a serial device to drop and come back (a reboot); returns its current path.
@@ -389,10 +398,9 @@ def _wait_port(path, timeout=30):
     Follows the /dev/serial/by-id name when there is one: a bootloader that enumerates in between
     under another name is not mistaken for the application.
     """
-    by_id = '/dev/serial/by-id'
-    names = sorted(os.listdir(by_id)) if os.path.isdir(by_id) else []
-    port = next((os.path.join(by_id, n) for n in names
-                 if os.path.realpath(os.path.join(by_id, n)) == os.path.realpath(path)), path)
+    names = sorted(os.listdir(SERIAL_BY_ID)) if os.path.isdir(SERIAL_BY_ID) else []
+    port = next((os.path.join(SERIAL_BY_ID, n) for n in names
+                 if os.path.realpath(os.path.join(SERIAL_BY_ID, n)) == os.path.realpath(path)), path)
     deadline = time.monotonic() + 10
     while os.path.exists(port) and time.monotonic() < deadline:
         time.sleep(0.1)
@@ -724,6 +732,11 @@ def main(argv=None):
 
     setup = args.setup
     try:
+        # The board of an earlier run is still rebooting. Only a by-id name is waited for: under
+        # another name the port that appears first can be the bootloader's.
+        if os.path.dirname(device) == SERIAL_BY_ID and not os.path.exists(device):
+            print(f'{device}: waiting for the port')
+            _wait_port(device, timeout=REBOOT_TIMEOUT)
         if not setup:
             fd, seen = open_serial(device, keep_dtr=args.no_exit)
             setup = mavlink_heartbeat_seen(seen)
@@ -739,8 +752,8 @@ def main(argv=None):
     status, exited = 0, False
     try:
         if args.command == 'check':
-            run(fd, args.no_esc, args.variant.encode(), args.target, args.toggle_direction)
-            exited = True  # the check ends with InterfaceExit
+            run(fd, args.no_esc, args.variant.encode(), args.target, args.toggle_direction, args.no_exit)
+            exited = not args.no_exit
         else:
             run_command(fd, args)
             if not args.no_exit:
