@@ -474,7 +474,7 @@ See [Safe-Point Batching](#safe-point-batching) for the rally-point batch config
 Its default is `16` (`32` on testing builds), with a supported range of `16` to `32`.
 More rally points than fit in one batch require additional scans, increasing planning time.
 The minimum of `16` limits repeated route scans.
-Increasing the batch size reduces the number of scans but uses more static RAM: 504 bytes per rally point (16.1 KB at 32), plus 1.4 KB for the geofence checks.
+Increasing the batch size reduces the number of scans but uses more static RAM: 312 bytes per rally point (10 KB at 32), plus 1.4 KB for the geofence checks.
 
 The upper limit comes from `DM_KEY_SAFE_POINTS_MAX`, the compile-time capacity of `32` rally-list items defined in `src/modules/dataman/dataman.h`.
 Optional approach or loiter items also use these slots.
