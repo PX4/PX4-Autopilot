@@ -183,7 +183,8 @@ While Return is the selected mode, a failsafe that interrupts it keeps its own a
 If Return starts or continues without a route, it holds at the current location and altitude until a route is found or another mode is selected.
 There is no return-altitude climb, and [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY) does not apply: the vehicle never lands there on its own.
 Multicopters and VTOLs in hover hold position; fixed-wing vehicles and VTOLs in fixed-wing mode circle, and an active front transition is cancelled.
-A critical message reports the loss of the route.
+A critical message reports the missing route.
+While uploaded mission, rally point or geofence data are still loading, Return first reports only that it is loading mission data: the critical message follows if no route is found once they are loaded, or after ten seconds.
 While airborne, Return retries route planning from the current position every two seconds, also while uploaded data are loading.
 A successful retry resumes route following automatically; a failed retry keeps the original hold position and altitude.
 Retries stop once the vehicle touches down.

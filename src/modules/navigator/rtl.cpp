@@ -233,12 +233,20 @@ void RTL::on_active()
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
-		if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT) {
-			if (_rtl_type == RtlType::RTL_DIRECT && _rtl_direct.canResumeRoute()
-			    && !_navigator->get_land_detected()->landed) {
-				retryRouteSafePoint();
+		const bool route_return = _param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT;
 
-			} else {
+		if (route_return && _rtl_type == RtlType::RTL_DIRECT && _rtl_direct.canResumeRoute()
+		    && !_navigator->get_land_detected()->landed) {
+			retryRouteSafePoint();
+
+		} else {
+			// Nothing retries any more: a loading notice still owes the report of the missing route.
+			if (_route_loading_since != 0) {
+				_route_safe_point.reportRouteUnavailable();
+				_route_loading_since = 0;
+			}
+
+			if (route_return) {
 				// Keep the status recent: commander checks the route again as soon as Return is left.
 				publishRtlStatus(_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW
 						 ? routeSafePointIndex() : RTL_STATUS_NO_SAFE_POINT);
@@ -292,20 +300,27 @@ RtlRouteSafePoint::Evaluation RTL::evaluateRouteSafePoint()
 
 void RTL::retryRouteSafePoint()
 {
+	// Uploaded inputs load within seconds; a notice that waits longer than this reports the missing route.
+	static constexpr hrt_abstime kRouteLoadingTimeout{10_s};
+
 	const auto evaluation = evaluateRouteSafePoint();
 
-	if (!evaluation.success) {
+	// An allocation failure must not shift the hold or change its altitude either.
+	if (!evaluation.success
+	    || ((_route_follower == nullptr || evaluation.executor_source_changed)
+		&& !initRtlMissionType(RtlType::RTL_MISSION_SAFE_POINT_FOLLOW))) {
+		if (_route_loading_since != 0
+		    && (!_route_safe_point.inputsPending(_mission_sub.get(), _vehicle_status_sub.get())
+			|| hrt_elapsed_time(&_route_loading_since) > kRouteLoadingTimeout)) {
+			_route_safe_point.reportRouteUnavailable();
+			_route_loading_since = 0;
+		}
+
 		publishRtlStatus(RTL_STATUS_NO_SAFE_POINT);
 		return;
 	}
 
-	if ((_route_follower == nullptr || evaluation.executor_source_changed)
-	    && !initRtlMissionType(RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)) {
-		// Allocation failure must not shift the hold or change its altitude.
-		publishRtlStatus(RTL_STATUS_NO_SAFE_POINT);
-		return;
-	}
-
+	_route_loading_since = 0;
 	const auto &plan = _route_safe_point.plan();
 	_route_follower->configureRoute(plan, _route_safe_point.goalLandApproach());
 	_rtl_direct.run(false);
@@ -323,9 +338,21 @@ uint8_t RTL::routeSafePointIndex() const
 	       ? static_cast<uint8_t>(plan.safe_point_index) : RTL_STATUS_NO_SAFE_POINT;
 }
 
-void RTL::reportNoRoute() const
+void RTL::reportNoRoute()
 {
-	if (_param_rtl_type.get() == RTL_TYPE_ROUTE_SAFE_POINT && _rtl_type != RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+	_route_loading_since = 0;
+
+	if (_param_rtl_type.get() != RTL_TYPE_ROUTE_SAFE_POINT || _rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+		return;
+	}
+
+	// An upload that still loads usually ends in a route within seconds: do not raise the alarm for it.
+	// retryRouteSafePoint() reports the missing route if none is found once the inputs are loaded.
+	if (_route_safe_point.inputsPending(_mission_sub.get(), _vehicle_status_sub.get())) {
+		_route_safe_point.reportRouteInputsLoading();
+		_route_loading_since = hrt_absolute_time();
+
+	} else {
 		_route_safe_point.reportRouteUnavailable();
 	}
 }

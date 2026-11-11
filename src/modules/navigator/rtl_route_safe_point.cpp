@@ -182,6 +182,12 @@ void RtlRouteSafePoint::reportRouteUnavailable() const
 		     "Return: no mission route, holding here");
 }
 
+void RtlRouteSafePoint::reportRouteInputsLoading() const
+{
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: loading mission data, holding here\t");
+	events::send(events::ID("rtl_route_loading"), events::Log::Info, "Return: loading mission data, holding here");
+}
+
 void RtlRouteSafePoint::reportRouteResumed() const
 {
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: mission route found, resuming\t");

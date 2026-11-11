@@ -97,6 +97,8 @@ public:
 
 	/** Messages of the stop without a route; their events only ship on boards built with the mission cache. */
 	void reportRouteUnavailable() const;
+	/** The stop while inputsPending(): an upload that still loads usually ends in a route. */
+	void reportRouteInputsLoading() const;
 	void reportRouteResumed() const;
 
 	mission_route::ActiveJumpAnchor activeJumpAnchor() const;

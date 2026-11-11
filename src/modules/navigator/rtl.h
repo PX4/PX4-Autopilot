@@ -127,8 +127,8 @@ private:
 	void retryRouteSafePoint();
 	/** rtl_status safe point index of the planned route. */
 	uint8_t routeSafePointIndex() const;
-	/** Warn when RTL_TYPE 7 has no route and stops at the current position. */
-	void reportNoRoute() const;
+	/** Report that RTL_TYPE 7 has no route and stops at the current position: critical, unless its inputs still load. */
+	void reportNoRoute();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	void setRtlTypeAndDestination();
@@ -204,6 +204,7 @@ private:
 	RtlMissionSafePointFollow *_route_follower {nullptr}; ///< Same executor; lifetime owned through _rtl_mission_type_handle.
 	RtlRouteSafePoint _route_safe_point{this, _navigator};
 	perf_counter_t _route_evaluate_perf{perf_alloc(PC_ELAPSED, "navigator: rtl route evaluate")};
+	hrt_abstime _route_loading_since{0}; ///< Time of a loading notice that still owes the missing route report, else 0.
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	RtlType _rtl_type {RtlType::RTL_DIRECT};
 	RtlType _init_failure_reported{RtlType::NONE}; ///< Logged failing executor type, reset by a successful init or activation.

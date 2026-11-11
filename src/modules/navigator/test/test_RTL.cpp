@@ -313,6 +313,8 @@ public:
 
 	void expireDestinationCheckForTest() { _destination_check_time = hrt_absolute_time() - 3'000'000; }
 	void postponeDestinationCheckForTest() { _destination_check_time = hrt_absolute_time(); }
+	// as if the loading notice of the stop had been given 11 s ago
+	void ageRouteLoadingNoticeForTest() { _route_loading_since = hrt_absolute_time() - 11'000'000; }
 
 	void replaceMissionExecutorForTest(RtlBase *executor, RtlType rtl_type)
 	{
@@ -1819,6 +1821,7 @@ TEST_F(RTLTest, RouteReturnResumesFromIndefiniteHoldAfterValidation)
 	primeNavigatorState();
 	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
 	navigator_test::EventRecorder events;
+	navigator_test::EventRecorder alarms;
 	_rtl.evaluateInactiveRouteSafePointReturnForTest();
 	ASSERT_TRUE(_rtl.routePlanForTest().valid());
 
@@ -1826,7 +1829,7 @@ TEST_F(RTLTest, RouteReturnResumesFromIndefiniteHoldAfterValidation)
 	_navigator.get_mission_result()->mission_id = mission.mission_id + 1;
 	_rtl.activateRouteSafePointReturnForTest();
 	expectStoppedAt(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 50.f, 5.f, kAlt + 50.f));
-	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
+	EXPECT_TRUE(events.sent(events::ID("rtl_route_loading")));
 	ASSERT_TRUE(rtl_status_sub.update());
 	EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
 	EXPECT_EQ(rtl_status_sub.get().safe_point_index, UINT8_MAX);
@@ -1848,7 +1851,8 @@ TEST_F(RTLTest, RouteReturnResumesFromIndefiniteHoldAfterValidation)
 	ASSERT_NE(_rtl.missionExecutorForTest(), nullptr);
 	EXPECT_TRUE(_rtl.missionExecutorForTest()->isActive());
 	EXPECT_FALSE(_rtl.directActiveForTest());
-	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
+	// The inputs were only pending: the missing route was never reported as critical.
+	EXPECT_FALSE(alarms.sent(events::ID("rtl_route_unavailable")));
 }
 
 // Keep the status recent: commander checks the route again as soon as Return is left.
@@ -1961,10 +1965,13 @@ TEST_F(RTLTest, RouteReturnStopsAfterFenceReplacementFailsPermanently)
 	setMissionResultValid(mission);
 	_navigator.get_mission_result()->valid = false;
 	uORB::SubscriptionData<rtl_status_s> status_sub{ORB_ID(rtl_status)};
+	navigator_test::EventRecorder alarms;
 	_rtl.run(true);
 	expectStoppedAt(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
 	ASSERT_TRUE(status_sub.update());
 	EXPECT_FALSE(status_sub.get().is_evaluation_pending);
+	// Nothing is loading any more, so the missing route is reported as critical at once.
+	EXPECT_TRUE(alarms.sent(events::ID("rtl_route_unavailable")));
 }
 
 // Unavailable path checks leave Return without a route; it stops at the vehicle position.
@@ -1974,12 +1981,14 @@ TEST_F(RTLTest, RouteReturnWithoutPathChecksStopsHere)
 	// Every path check is unavailable: it reads past the cached polygon.
 	GeofenceTestPeer::setVertexCount(_navigator.get_geofence(), 5);
 	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+	navigator_test::EventRecorder alarms;
 
 	_rtl.activateRouteSafePointReturnForTest();
 	expectStoppedAt(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
 	ASSERT_TRUE(rtl_status_sub.update());
 	EXPECT_EQ(rtl_status_sub.get().safe_point_index, UINT8_MAX);
 	EXPECT_FALSE(rtl_status_sub.get().is_evaluation_pending);
+	EXPECT_TRUE(alarms.sent(events::ID("rtl_route_unavailable")));
 }
 
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
@@ -2052,10 +2061,11 @@ TEST_F(RTLTest, RouteReturnResumesAfterCacheLoads)
 	primeNavigatorState();
 	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
 	navigator_test::EventRecorder events;
+	navigator_test::EventRecorder alarms;
 
 	_rtl.activateRouteSafePointReturnForTest();
 	expectStoppedAt(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt));
-	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
+	EXPECT_TRUE(events.sent(events::ID("rtl_route_loading")));
 	ASSERT_TRUE(rtl_status_sub.update());
 	EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT);
 	EXPECT_EQ(rtl_status_sub.get().safe_point_index, UINT8_MAX);
@@ -2073,7 +2083,7 @@ TEST_F(RTLTest, RouteReturnResumesAfterCacheLoads)
 	ASSERT_TRUE(rtl_status_sub.update());
 	EXPECT_EQ(rtl_status_sub.get().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
 	EXPECT_FALSE(rtl_status_sub.get().is_evaluation_pending);
-	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
+	EXPECT_FALSE(alarms.sent(events::ID("rtl_route_unavailable")));
 }
 
 TEST_F(RTLTest, RouteReturnRetriesRejectedGeometryAfterVehicleMoves)
@@ -2405,7 +2415,7 @@ TEST_F(RTLTest, MissionReplacementMidReturnStopsThenResumesReplacement)
 	uORB::SubscriptionData<navigator_mission_item_s> item_sub{ORB_ID(navigator_mission_item)};
 	_rtl.run(true);
 	expectStoppedAt(start);
-	EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
+	EXPECT_TRUE(events.sent(events::ID("rtl_route_loading")));
 
 	// The enforced climb targets the current altitude.
 	ASSERT_TRUE(item_sub.update());
@@ -2437,11 +2447,15 @@ TEST_F(RTLTest, MissionUploadMidReturnHoldsUntilTheReplacementLoads)
 	_rtl.activateRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 
+	navigator_test::EventRecorder notices;
+	navigator_test::EventRecorder alarms;
 	const mission_s replacement = startMissionReplacement(mission);
 	uORB::SubscriptionData<navigator_mission_item_s> item_sub{ORB_ID(navigator_mission_item)};
 	uORB::SubscriptionData<rtl_status_s> status_sub{ORB_ID(rtl_status)};
 	_rtl.run(true);
 	expectStoppedAt(start);
+	// The upload still loads: an information, not the critical report of a missing route.
+	EXPECT_TRUE(notices.sent(events::ID("rtl_route_loading")));
 
 	// Loading and validation take seconds in flight; the retries fail meanwhile.
 	for (unsigned cycle = 0; cycle < 10; ++cycle) {
@@ -2450,6 +2464,7 @@ TEST_F(RTLTest, MissionUploadMidReturnHoldsUntilTheReplacementLoads)
 	}
 
 	expectStoppedAt(start);
+	EXPECT_FALSE(alarms.sent(events::ID("rtl_route_unavailable")));
 	ASSERT_TRUE(item_sub.update());
 	EXPECT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
 	ASSERT_TRUE(status_sub.update());
@@ -2470,6 +2485,34 @@ TEST_F(RTLTest, MissionUploadMidReturnHoldsUntilTheReplacementLoads)
 	EXPECT_TRUE(events.sent(events::ID("rtl_route_resumed")));
 }
 
+// A load that takes too long must not leave the hold with an information only.
+TEST_F(RTLTest, LoadingNoticeReportsTheMissingRouteAfterItsTimeout)
+{
+	const mission_s mission = prepareStraightRouteScenario();
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishLandDetected(false);
+	primeNavigatorState();
+	_rtl.activateRouteSafePointReturnForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+
+	navigator_test::EventRecorder notices;
+	navigator_test::EventRecorder alarms;
+	startMissionReplacement(mission);
+	_rtl.run(true);
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	EXPECT_TRUE(notices.sent(events::ID("rtl_route_loading")));
+
+	// The replacement never loads here.
+	flyReturnCycles(2);
+	EXPECT_FALSE(alarms.sent(events::ID("rtl_route_unavailable")));
+	_rtl.ageRouteLoadingNoticeForTest();
+	flyReturnCycles(1);
+	EXPECT_TRUE(alarms.sent(events::ID("rtl_route_unavailable")));
+	flyReturnCycles(2);
+	EXPECT_FALSE(alarms.sent(events::ID("rtl_route_unavailable")));
+	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+}
+
 // A replacement that loads and still gives no route keeps the stop holding.
 TEST_F(RTLTest, FailedRetryWithReadyInputsKeepsHolding)
 {
@@ -2480,11 +2523,13 @@ TEST_F(RTLTest, FailedRetryWithReadyInputsKeepsHolding)
 	_rtl.activateRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
 
+	navigator_test::EventRecorder alarms;
 	const mission_s replacement = startMissionReplacement(mission);
 	uORB::SubscriptionData<navigator_mission_item_s> item_sub{ORB_ID(navigator_mission_item)};
 	flyReturnCycles(5);
 	ASSERT_TRUE(item_sub.update());
 	ASSERT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
+	EXPECT_FALSE(alarms.sent(events::ID("rtl_route_unavailable")));
 
 	// The replacement fails validation, so no route will come.
 	MissionRouteCache &cache = _navigator.get_mission_route_cache();
@@ -2493,7 +2538,11 @@ TEST_F(RTLTest, FailedRetryWithReadyInputsKeepsHolding)
 	}));
 	setMissionResultValid(replacement);
 	_navigator.get_mission_result()->valid = false;
-	flyReturnCycles(3);
+	// The first retry with loaded inputs reports the missing route, the next ones stay quiet.
+	flyReturnCycles(1);
+	EXPECT_TRUE(alarms.sent(events::ID("rtl_route_unavailable")));
+	flyReturnCycles(2);
+	EXPECT_FALSE(alarms.sent(events::ID("rtl_route_unavailable")));
 	EXPECT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
 	EXPECT_FALSE(item_sub.update());
 	EXPECT_NE(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
@@ -2753,16 +2802,23 @@ TEST_F(RTLTest, RtlTypeChangeDuringTheStopKeepsHolding)
 	primeNavigatorState();
 	_rtl.activateRouteSafePointReturnForTest();
 	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_MISSION_SAFE_POINT_FOLLOW);
+	navigator_test::EventRecorder alarms;
 	startMissionReplacement(mission);
 	uORB::SubscriptionData<navigator_mission_item_s> item_sub{ORB_ID(navigator_mission_item)};
 	flyReturnCycles(3);
 	ASSERT_TRUE(item_sub.update());
 	ASSERT_EQ(item_sub.get().nav_cmd, NAV_CMD_LOITER_UNLIMITED);
+	// The replacement still loads: so far only the loading notice was given.
+	EXPECT_FALSE(alarms.sent(events::ID("rtl_route_unavailable")));
 
 	int32_t rtl_type = 1;
 	ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
 	_rtl.updateParamsForTest();
-	flyReturnCycles(3);
+	flyReturnCycles(1);
+	// No retry will find a route now, so the hold reports the missing route, once.
+	EXPECT_TRUE(alarms.sent(events::ID("rtl_route_unavailable")));
+	flyReturnCycles(2);
+	EXPECT_FALSE(alarms.sent(events::ID("rtl_route_unavailable")));
 	EXPECT_FALSE(item_sub.update());
 	EXPECT_NE(_navigator.get_position_setpoint_triplet()->current.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 }
