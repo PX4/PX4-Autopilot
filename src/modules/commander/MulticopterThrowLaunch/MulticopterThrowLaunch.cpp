@@ -50,7 +50,7 @@ void MulticopterThrowLaunch::update(const bool armed)
 		}
 
 		if (!armed && _throw_launch_state != ThrowLaunchState::IDLE) {
-			events::send(events::ID("mc_throw_launch_not_ready"), events::Log::Critical, "Disarmed, don't throw");
+			events::send(events::ID("mc_throw_launch_not_ready"), events::Log::Critical, "Motors disarmed, don't throw");
 			_throw_launch_state = ThrowLaunchState::IDLE;
 		}
 

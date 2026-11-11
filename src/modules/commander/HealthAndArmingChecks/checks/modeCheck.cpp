@@ -43,7 +43,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 			*/
 			reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_prevent_arming, health_component_t::system,
 						    events::ID("check_modes_cannot_takeoff"),
-						    events::Log::Info, "Mode not suitable for arming");
+						    events::Log::Info, "Mode not suitable for motor arming");
 		}
 	}
 

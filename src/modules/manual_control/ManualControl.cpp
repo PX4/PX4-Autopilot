@@ -376,12 +376,12 @@ void ManualControl::updateParams()
 				_param_man_arm_gesture.commit();
 
 				orb_advert_t mavlink_log_pub = nullptr;
-				mavlink_log_critical(&mavlink_log_pub, "Arm stick gesture disabled if arm switch in use\t")
+				mavlink_log_critical(&mavlink_log_pub, "Motor arm stick gesture disabled if motor arm switch in use\t")
 				/* EVENT
 				* @description <param>MAN_ARM_GESTURE</param> is now set to disable arm/disarm stick gesture.
 				*/
 				events::send(events::ID("stick_gesture_disabled_by_arm_switch"), {events::Log::Info, events::LogInternal::Disabled},
-					     "Arm stick gesture disabled if arm switch in use");
+					     "Motor arm stick gesture disabled if motor arm switch in use");
 			}
 		}
 
@@ -398,12 +398,12 @@ void ManualControl::updateParams()
 					param_set(param_mc_airmode, &airmode);
 
 					orb_advert_t mavlink_log_pub = nullptr;
-					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires disabling the stick arm gesture\t")
+					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires disabling the motor arm stick gesture\t")
 					/* EVENT
 					* @description <param>MC_AIRMODE</param> is now set to roll/pitch airmode.
 					*/
 					events::send(events::ID("commander_airmode_requires_no_arm_gesture"), {events::Log::Error, events::LogInternal::Disabled},
-						     "Yaw Airmode requires disabling the stick arm gesture");
+						     "Yaw Airmode requires disabling the motor arm stick gesture");
 				}
 			}
 		}

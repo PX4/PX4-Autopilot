@@ -675,9 +675,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	    || _vehicle_status.rc_calibration_in_progress
 	    || _actuator_armed.in_esc_calibration_mode) {
 
-		mavlink_log_critical(&_mavlink_log_pub, "Arming denied: calibrating\t");
+		mavlink_log_critical(&_mavlink_log_pub, "Motor arming denied: calibrating\t");
 		events::send(events::ID("commander_arm_denied_calibrating"), {events::Log::Critical, events::LogInternal::Info},
-			     "Arming denied: calibrating");
+			     "Motor arming denied: calibrating");
 		tune_negative(true);
 		return TRANSITION_DENIED;
 	}
@@ -709,9 +709,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				}
 
 				if (!throttle_safe) {
-					mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle not in safe position\t");
+					mavlink_log_critical(&_mavlink_log_pub, "Motor arming denied: throttle not in safe position\t");
 					events::send(events::ID("commander_arm_denied_throttle_unsafe"), {events::Log::Critical, events::LogInternal::Info},
-						     "Arming denied: throttle not in safe position");
+						     "Motor arming denied: throttle not in safe position");
 					tune_negative(true);
 					return TRANSITION_DENIED;
 				}
@@ -722,12 +722,12 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 		if (!_health_and_arming_checks.canArm(_vehicle_status.nav_state)) {
 			tune_negative(true);
-			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Resolve system health failures first\t");
+			mavlink_log_critical(&_mavlink_log_pub, "Motor arming denied: Resolve system health failures first\t");
 			/* EVENT
 			 * @type append_health_and_arming_messages
 			 */
 			events::send<uint32_t>(events::ID("commander_arm_denied_resolve_failures"), {events::Log::Critical, events::LogInternal::Info},
-					       "Arming denied: Resolve system health failures first", get_px4_custom_mode(_vehicle_status.nav_state).data);
+					       "Motor arming denied: Resolve system health failures first", get_px4_custom_mode(_vehicle_status.nav_state).data);
 			return TRANSITION_DENIED;
 		}
 	}
@@ -745,9 +745,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	_vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
 	_vehicle_status.latest_arming_reason = (uint8_t)calling_reason;
 
-	mavlink_log_info(&_mavlink_log_pub, "Armed by %s\t", arm_disarm_reason_str(calling_reason));
+	mavlink_log_info(&_mavlink_log_pub, "Motors armed by %s\t", arm_disarm_reason_str(calling_reason));
 	events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_armed_by"), events::Log::Info,
-			"Armed by {1}", calling_reason);
+			"Motors armed by {1}", calling_reason);
 
 	_status_changed = true;
 
@@ -772,10 +772,10 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 
 		if (!landed && !(mc_manual_thrust_mode && commanded_by_rc)) {
 			if (calling_reason != arm_disarm_reason_t::stick_gesture) {
-				mavlink_log_critical(&_mavlink_log_pub, "Disarming denied: not landed\t");
+				mavlink_log_critical(&_mavlink_log_pub, "Motor disarming denied: not landed\t");
 				events::send(events::ID("commander_disarm_denied_not_landed"),
 				{events::Log::Critical, events::LogInternal::Info},
-				"Disarming denied: not landed");
+				"Motor disarming denied: not landed");
 			}
 
 			return TRANSITION_DENIED;
@@ -793,9 +793,9 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 
 	_user_mode_intention.onDisarm();
 
-	mavlink_log_info(&_mavlink_log_pub, "Disarmed by %s\t", arm_disarm_reason_str(calling_reason));
+	mavlink_log_info(&_mavlink_log_pub, "Motors disarmed by %s\t", arm_disarm_reason_str(calling_reason));
 	events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_disarmed_by"), events::Log::Info,
-			"Disarmed by {1}", calling_reason);
+			"Motors disarmed by {1}", calling_reason);
 
 	if (_param_com_force_safety.get()) {
 		_safety.activateSafety();

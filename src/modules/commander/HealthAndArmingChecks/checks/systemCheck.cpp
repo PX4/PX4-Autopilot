@@ -173,7 +173,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			/* EVENT
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_arm_auth_failed"),
-						    events::Log::Error, "Arm authorization denied");
+						    events::Log::Error, "Motor arm authorization denied");
 		}
 	}
 

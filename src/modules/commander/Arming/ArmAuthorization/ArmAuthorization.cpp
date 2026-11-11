@@ -140,7 +140,7 @@ static uint8_t _auth_method_arm_req_check()
 	case ARM_AUTH_WAITING_AUTH:
 	case ARM_AUTH_WAITING_AUTH_WITH_ACK:
 		state = ARM_AUTH_IDLE;
-		mavlink_log_critical(mavlink_log_pub, "Arm auth: No response");
+		mavlink_log_critical(mavlink_log_pub, "Motor arm auth: No response");
 		break;
 
 	default:
@@ -177,7 +177,7 @@ static uint8_t _auth_method_two_arm_check()
 	auth_timeout = now + _param_com_arm_auth_timout;
 	state = ARM_AUTH_WAITING_AUTH;
 
-	mavlink_log_info(mavlink_log_pub, "Arm auth: Requesting authorization...");
+	mavlink_log_info(mavlink_log_pub, "Motor arm auth: Requesting authorization...");
 
 	return vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 }
@@ -238,14 +238,14 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 
 		case vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED:
 			mavlink_log_info(mavlink_log_pub,
-					 "Arm auth: Authorized for the next %" PRId32 " seconds",
+					 "Motor arm auth: Authorized for the next %" PRId32 " seconds",
 					 command_ack.result_param2);
 			state = ARM_AUTH_MISSION_APPROVED;
 			auth_timeout = command_ack.timestamp + (command_ack.result_param2 * 1000000);
 			return;
 
 		case vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
-			mavlink_log_critical(mavlink_log_pub, "Arm auth: Temporarily rejected");
+			mavlink_log_critical(mavlink_log_pub, "Motor arm auth: Temporarily rejected");
 			state = ARM_AUTH_IDLE;
 			return;
 
@@ -257,25 +257,25 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 				break;
 
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_INVALID_WAYPOINT:
-				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied, waypoint %" PRId32 " have a invalid value",
+				mavlink_log_critical(mavlink_log_pub, "Motor arm auth: Denied, waypoint %" PRId32 " have a invalid value",
 						     command_ack.result_param2);
 				break;
 
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_TIMEOUT:
-				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied by timeout in authorizer");
+				mavlink_log_critical(mavlink_log_pub, "Motor arm auth: Denied by timeout in authorizer");
 				break;
 
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_AIRSPACE_IN_USE:
-				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied because airspace is in use");
+				mavlink_log_critical(mavlink_log_pub, "Motor arm auth: Denied because airspace is in use");
 				break;
 
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_BAD_WEATHER:
-				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied because of bad weather");
+				mavlink_log_critical(mavlink_log_pub, "Motor arm auth: Denied because of bad weather");
 				break;
 
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_GENERIC:
 			default:
-				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied");
+				mavlink_log_critical(mavlink_log_pub, "Motor arm auth: Denied");
 			}
 
 			state = ARM_AUTH_IDLE;
@@ -284,7 +284,7 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 	}
 
 	if (now > auth_timeout) {
-		mavlink_log_critical(mavlink_log_pub, "Arm auth: No response");
+		mavlink_log_critical(mavlink_log_pub, "Motor arm auth: No response");
 		state = ARM_AUTH_IDLE;
 	}
 }

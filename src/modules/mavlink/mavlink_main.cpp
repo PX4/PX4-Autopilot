@@ -1241,7 +1241,7 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 
 		if (vehicle_status_sub.copy(&vehicle_status)
 		    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-			send_statustext_critical("MAVLink signing: rejected while armed");
+			send_statustext_critical("MAVLink signing: rejected while motors armed");
 			return;
 		}
 

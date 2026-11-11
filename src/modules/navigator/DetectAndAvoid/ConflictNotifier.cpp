@@ -392,7 +392,7 @@ void ConflictNotifier::notify_action_on_ground(const NotifyLandedActCause cause)
 		break;
 
 	case NotifyLandedActCause::kConflictAndDisarmed:
-		blocked_action = "arm";
+		blocked_action = "arm motors";
 		log_level = events::Log::Warning;
 		break;
 
