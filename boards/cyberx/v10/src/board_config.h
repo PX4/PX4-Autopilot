@@ -313,11 +313,7 @@
 
 /* RC Serial port */
 #define RC_SERIAL_PORT                     "/dev/ttyS7"
-/* Some RC protocols are bi-directional, therefore we need a half-duplex UART */
-#define RC_SERIAL_SINGLEWIRE
-/* The STM32 UART by default wires half-duplex mode to the TX pin, but our
- * signal in routed to the RX pin, so we need to swap the pins */
-#define RC_SERIAL_SWAP_RXTX
+#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                   1

@@ -210,10 +210,10 @@ The board has two RC input paths:
   SBUS receivers connect to `S.Bin` or `RCin`, and PPM receivers connect to `RCin`.
 - `Uart8` (4-pin) goes to the FMU, where the [rc_input](../modules/modules_driver_radio_control.md#rc-input) driver detects the protocol with no configuration.
   Use it for CRSF receivers, which the IO processor can't decode.
-  `Uart8` is half-duplex on its `RX` pin: connect the receiver's `TX` output to it.
+  `Uart8` is a full-duplex serial port.
   [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) sets the port that `rc_input` uses, and defaults to `Radio Controller` (`Uart8`).
 
-Spektrum/DSM receivers are not supported.
+Spektrum/DSM receivers can't be bound from PX4.
 
 If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#connecting-receivers).
 
