@@ -45,6 +45,7 @@
 #include "mission.h"
 #include "mission_base.h"
 #include "navigator.h"
+#include "vtol_takeoff.h"
 #include "support/geofence_test_helpers.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
@@ -63,8 +64,11 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 class MissionBaseTestPeer : public MissionBase
 {

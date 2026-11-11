@@ -100,6 +100,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
 
@@ -371,6 +372,7 @@ public:
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
 private:
+	friend class MissionBaseTestNavigator;
 
 	orb_sub_t _local_pos_sub{ORB_SUB_INVALID};
 	orb_sub_t _mission_sub{ORB_SUB_INVALID};

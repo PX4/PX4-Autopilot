@@ -860,6 +860,11 @@ void MissionBase::startVtolTransition(const mission_item_s &command, const missi
 	}
 }
 
+bool MissionBase::frontTransitionInhibited() const
+{
+	return _navigator->front_transition_inhibited();
+}
+
 bool MissionBase::updateVtolTransition()
 {
 	const vehicle_status_s &status = _vehicle_status_sub.get();
@@ -874,8 +879,15 @@ bool MissionBase::updateVtolTransition()
 	const bool uploaded_item = _vtol_transition.completion_work == WorkItemType::WORK_ITEM_TYPE_DEFAULT
 				   && !routeReturnTransitionActive();
 
+	const bool front_transition_skipped = front_transition && frontTransitionInhibited();
+
 	// Already in the commanded mode: no command. A VTOL takeoff keeps TRANSITION_AFTER_TAKEOFF and flies its waypoint.
-	if ((in_commanded_mode && !uploaded_item) || (front_transition && frontTransitionInhibited())) {
+	// After a quadchute a front transition is skipped and the item completes in multicopter mode.
+	if ((in_commanded_mode && !uploaded_item) || front_transition_skipped) {
+		if (front_transition_skipped && !in_commanded_mode && !command_issued) {
+			send_front_transition_skipped();
+		}
+
 		_mission_item = _vtol_transition.command;
 		_work_item_type = _vtol_transition.completion_work;
 		return true;
