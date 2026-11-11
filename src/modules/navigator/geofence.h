@@ -154,6 +154,15 @@ public:
 	/** Check the polygons and circles only, without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
 
+	/**
+	 * True if a circle lies inside the polygons, circles and maximum distance from Home without touching
+	 * a boundary. Altitude limits are not checked.
+	 * Uses the loaded fence like the point checks, so it also answers while a fence update is pending.
+	 *
+	 * @param radius Circle radius in metres; zero checks the center only.
+	 */
+	bool isCircleInside(double lat, double lon, float radius);
+
 	bool valid();
 
 	/**
@@ -305,6 +314,10 @@ private:
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
+
+	/** True if a circle keeps its whole radius within the maximum distance from Home, or the limit is not active. */
+	bool isCircleCloserThanMaxDistToHome(double lat, double lon, float radius);
+
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;
 	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces, size_t num_paths,
