@@ -877,7 +877,8 @@ on the outputs assigned to motors. At the first valid request it stops the dshot
 session ends with a reboot when the configurator disconnects, the USB host closes the port or
 the serial device goes away. Requests are ignored while armed.
 
-Started by cdcacm_autostart on the USB port when `PASSTHRU_EN` is 2, or manually on any serial port.
+Started by cdcacm_autostart on the USB port when `SYS_USB_AUTO` is 1 and an ESC configurator
+connects first, or manually on any serial port.
 
 ### Examples
 $ esc_4way start -d /dev/ttyACM0

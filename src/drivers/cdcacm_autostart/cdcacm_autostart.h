@@ -107,7 +107,9 @@ private:
 	bool start_mavlink();
 	void stop_mavlink();
 	bool start_nsh();
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
 	bool start_esc_4way();
+#endif
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 	bool start_ublox_serial_passthru(speed_t baudrate);
 #endif
@@ -120,12 +122,13 @@ private:
 	UsbProtocol _active_protocol{UsbProtocol::none};
 	bool _vbus_present{false};
 	bool _vbus_present_prev{false};
-	bool _esc_4way{false};	///< PASSTHRU_EN=2 at boot: ESC configuration server instead of MAVLink
 	int _ttyacm_fd{-1};
 
 	char _buffer[80] {};
 	int _bytes_read{0};
-	int _msp_offset{-1};	///< start of the MSP request found in _buffer, handed to esc_4way
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+	int _msp_offset {-1};	///< start of the MSP request found in _buffer, handed to esc_4way
+#endif
 
 	uint32_t _reschedule_time{0};
 
