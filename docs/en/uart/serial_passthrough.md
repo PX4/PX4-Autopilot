@@ -58,6 +58,7 @@ This is useful for communicating with ESCs that expose a UART telemetry or confi
 The ESC signal pin is driven as a 19200 baud half-duplex UART.
 This is supported on STM32F7/H7 boards and on the NXP i.MX RT1064/RT1176 and i.MX95 boards: `px4_fmu-v6xrt`, `ark_fmu-v6xrt`, `nxp_mr-tropic` and `nxp_mr-navq95`.
 Only one ESC channel can be active at a time.
+The channel's output must be assigned to a motor in [Actuator Configuration](../config/actuators.md).
 
 Bitbang UART support requires that both `CONFIG_DRIVERS_SERIALPASSTHROUGH=y` and `CONFIG_SERIALPASSTHROUGH_BITBANG=y` are set before building (STM32 boards also use `CONFIG_UART_BITBANG_TIMER`, default `TIM13`; that timer must be enabled in the board's NuttX `defconfig`, for example `CONFIG_STM32H7_TIM13=y`, and must not be used by anything else on the board).
 The `PASSTHRU_EN` parameter must be set to `1` and the device rebooted in order to enable this mode.

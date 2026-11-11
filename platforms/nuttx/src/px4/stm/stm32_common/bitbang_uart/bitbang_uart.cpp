@@ -39,9 +39,9 @@
  * listening, then samples or transmits once per bit. The timer stops while parked. Interrupt
  * latency limits reliable operation to 19200 baud.
  *
- * Same contract as the NXP FlexIO backend: init claims every ESC pin through io_timer (dshot and
- * pwm_out cannot take them, and init fails with -EBUSY while they own one) and drives all of them
- * high. Only the active channel ever listens; every other line, and a line that has received
+ * Same contract as the NXP FlexIO backend: init claims the given ESC pins through io_timer (dshot
+ * and pwm_out cannot take them, and init fails with -EBUSY while they own one) and drives all of
+ * them high. Only the active channel ever listens; every other line, and a line that has received
  * nothing for RX_IDLE_US, stays driven high, because the AM32 bootloader's boot check pulls the
  * line down and leaves the bootloader if it reads low.
  */
@@ -354,7 +354,7 @@ static void release_channels()
 	uart.channel_mask = 0;
 }
 
-int bitbang_uart_init(uint32_t baudrate, bool single_wire)
+int bitbang_uart_init(uint32_t baudrate, bool single_wire, uint32_t channel_mask)
 {
 	irqstate_t flags = px4_enter_critical_section();
 
@@ -378,7 +378,7 @@ int bitbang_uart_init(uint32_t baudrate, bool single_wire)
 	}
 
 	for (uint8_t ch = 0; ch < MAX_UART_CHANNELS; ch++) {
-		if (io_timer_channel_get_gpio_output(ch) != 0) {
+		if ((channel_mask & (1u << ch)) && io_timer_channel_get_gpio_output(ch) != 0) {
 			if (io_timer_allocate_channel(ch, IOTimerChanMode_Other) != 0) {
 				release_channels();
 				px4_leave_critical_section(flags);
@@ -387,6 +387,11 @@ int bitbang_uart_init(uint32_t baudrate, bool single_wire)
 
 			uart.channel_mask |= 1u << ch;
 		}
+	}
+
+	if (uart.channel_mask == 0) {
+		px4_leave_critical_section(flags);
+		return -EINVAL;
 	}
 
 	// Claims must all succeed before touching the shared timer or any output pin.

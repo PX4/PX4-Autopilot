@@ -25,10 +25,9 @@ Remove the propellers before you connect a configurator.
 Other STM32F7/H7 and NXP i.MX RT boards can be added with a build configuration change, see [Enabling on Other Boards](#enabling-on-other-boards).
 
 Only ESCs connected to the flight controller's own motor outputs can be configured; outputs on an I/O board (PX4IO) are not supported.
-The server needs all of the first eight of these outputs: if one of them is used for camera capture, camera trigger or another input/output function that is not a motor or servo, the ESCs cannot be reached.
+The server only uses outputs that are assigned to a motor in [Actuator Configuration](../config/actuators.md), among the first eight outputs.
 
-The configurator numbers the ESCs by motor: ESC 1 is the output assigned to Motor 1 in [Actuator Configuration](../config/actuators.md), ESC 2 is Motor 2, and so on.
-If no output is assigned to a motor, ESC 1 is the first output, ESC 2 the second, and so on.
+The configurator numbers the ESCs by motor: ESC 1 is the output assigned to Motor 1, ESC 2 is Motor 2, and so on.
 
 ## Configure the ESCs
 

@@ -332,7 +332,7 @@ static void release(uint32_t mask)
 	}
 }
 
-int bitbang_uart_init(uint32_t baudrate, bool single_wire)
+int bitbang_uart_init(uint32_t baudrate, bool single_wire, uint32_t channel_mask)
 {
 	struct flexio_uart_s *s = calloc(1, sizeof(*s));
 
@@ -362,12 +362,12 @@ int bitbang_uart_init(uint32_t baudrate, bool single_wire)
 		return -EBUSY;
 	}
 
-	/* Claim every pin with a FlexIO function and refuse pins another driver owns (dshot, pwm_out,
-	 * capture); the claim keeps a later dshot or pwm_out start off these pins */
+	/* Claim the requested pins that have a FlexIO function and refuse pins another driver owns
+	 * (dshot, pwm_out, capture); the claim keeps a later dshot or pwm_out start off these pins */
 	uint32_t mask = 0;
 
 	for (uint32_t ch = 0; ch < MAX_CHANNELS; ch++) {
-		if (!flexio_pin_unused(&timer_io_channels[ch].dshot)) {
+		if ((channel_mask & (1u << ch)) && !flexio_pin_unused(&timer_io_channels[ch].dshot)) {
 			if (io_timer_allocate_channel(ch, IOTimerChanMode_Other) != 0) {
 				release(mask);
 				_s = NULL;
@@ -377,6 +377,12 @@ int bitbang_uart_init(uint32_t baudrate, bool single_wire)
 
 			mask |= 1u << ch;
 		}
+	}
+
+	if (mask == 0) {
+		_s = NULL;
+		free(s);
+		return -EINVAL;
 	}
 
 	flexio_clock_enable();

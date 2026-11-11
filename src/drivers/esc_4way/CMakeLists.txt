@@ -31,20 +31,13 @@
 #
 ############################################################################
 
-set(PARAM_PREFIX PWM_MAIN)
-
-if(CONFIG_BOARD_IO)
-	set(PARAM_PREFIX PWM_AUX)
-endif()
-
 px4_add_module(
 	MODULE drivers__esc_4way
 	MAIN esc_4way
-	COMPILE_FLAGS
-		-DPARAM_PREFIX="${PARAM_PREFIX}"
 	SRCS
 		esc_4way.cpp
 	DEPENDS
 		arch_bitbang_uart
 		crc
+		output_functions_header
 	)

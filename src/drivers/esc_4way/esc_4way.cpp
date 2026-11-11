@@ -53,7 +53,7 @@
 #include <board_config.h>
 #include <drivers/drv_bitbang_uart.h>
 #include <drivers/drv_hrt.h>
-#include <parameters/param.h>
+#include <lib/mixer_module/motor_outputs.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/shutdown.h>
@@ -128,7 +128,6 @@ static constexpr uint32_t REBOOT_DELAY_US = 500000;	// lets the last reply drain
 static constexpr int RX_GAP_MS = 100;			// a longer gap inside a host frame drops it
 static constexpr uint32_t DISARM_POLL_US = 100000;
 static constexpr hrt_abstime DTR_CLOSED_US = 1000000;	// DTR low this long: the host closed the port
-static constexpr int32_t OUTPUT_FUNCTION_MOTOR1 = 101;	// PWM_*_FUNCn value of Motor1, Motor2 is 102, ...
 
 // MSP replies, byte-exact as the configurators parse them without bounds checks
 static constexpr uint8_t api_version[] {0, 1, 42};
@@ -147,6 +146,7 @@ static uint8_t motor_config[] {0x2E, 0x04, 0xD0, 0x07, 0xE8, 0x03, 0, 14, 0, 0};
 static uint8_t uid[12];	// the CPU unique id, set at start
 static constexpr uint8_t NO_OUTPUT = 0xFF;
 static uint8_t esc_output[MOTOR_COUNT];	// 4way ESC index -> output channel, set at start
+static uint32_t esc_pins;	// the output channels in esc_output, set at start
 static constexpr uint8_t zeros[16] {};
 
 static const struct {
@@ -193,10 +193,15 @@ static bool armed()
 	return armed.armed;
 }
 
-// Starts the ESC pin UART, stopping dshot and pwm_out first when they own the ESC pins
+// Starts the ESC pin UART on the motor outputs, stopping dshot and pwm_out first when they own them
 static int uart_begin()
 {
-	int ret = bitbang_uart_init(19200, true);
+	if (esc_pins == 0) {
+		PX4_ERR("no output is assigned to a motor");
+		return -ENODEV;
+	}
+
+	int ret = bitbang_uart_init(19200, true, esc_pins);
 
 	if (ret == -EBUSY) {
 		char stop[] = "stop";
@@ -211,7 +216,7 @@ static int uart_begin()
 		pwm_out_main(2, pwm_out_argv);
 #endif
 		(void)stop;
-		ret = bitbang_uart_init(19200, true);
+		ret = bitbang_uart_init(19200, true, esc_pins);
 	}
 
 	if (ret != 0) {
@@ -827,33 +832,23 @@ Esc4way *Esc4way::instantiate(int argc, char *argv[])
 	}
 
 	// The configurators number ESCs like Betaflight's motors: ESC n is the output mapped to Motor n+1,
-	// and the ESC count is the highest mapped motor. Without any motor mapped,
-	// ESC n is output n.
+	// and the ESC count is the highest mapped motor. Only these outputs are taken over, so an output
+	// with another function keeps its driver and without a mapped motor there is no ESC to reach.
 	uint8_t count = 0;
+	esc_pins = 0;
 	memset(esc_output, NO_OUTPUT, sizeof(esc_output));
 
 	for (int i = 0; i < MOTOR_COUNT; i++) {
-		char name[17];
-		snprintf(name, sizeof(name), PARAM_PREFIX "_FUNC%d", i + 1);
-		int32_t func = 0;
-		param_get(param_find(name), &func);
-		const int motor = func - OUTPUT_FUNCTION_MOTOR1;
+		const int motor = motor_index_of_output(i);
 
 		if (motor >= 0 && motor < MOTOR_COUNT && esc_output[motor] == NO_OUTPUT) {
 			esc_output[motor] = i;
+			esc_pins |= 1u << i;
 
 			if (motor + 1 > count) {
 				count = motor + 1;
 			}
 		}
-	}
-
-	if (count == 0) {
-		for (int i = 0; i < MOTOR_COUNT; i++) {
-			esc_output[i] = i;
-		}
-
-		count = MOTOR_COUNT;
 	}
 
 	motor_config[6] = count;
@@ -877,7 +872,7 @@ int Esc4way::print_usage(const char *reason)
 ESC configuration server for the BLHeli/AM32 ESC configurators (am32.ca, esc-configurator.com).
 
 It answers MSP and the 4way interface on a serial device and runs the ESC bootloader protocol
-on the ESC signal pins. At the first valid request it stops the dshot and pwm_out drivers; the
+on the outputs assigned to motors. At the first valid request it stops the dshot and pwm_out drivers; the
 session ends with a reboot when the configurator disconnects, the USB host closes the port or
 the serial device goes away. Requests are ignored while armed.
 
