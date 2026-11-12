@@ -1374,6 +1374,7 @@ int Sih::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
+#if defined(__PX4_POSIX)
 bool Sih::load_terrain(int argc, char *argv[])
 {
 	_terrain = Terrain{};
@@ -1414,12 +1415,17 @@ bool Sih::load_terrain(int argc, char *argv[])
 
 	return _terrain.load(terrain_path);
 }
+#endif // __PX4_POSIX
 
 int Sih::task_spawn(int argc, char *argv[])
 {
+#if defined(__PX4_POSIX)
+
 	if (!load_terrain(argc, argv)) {
 		return -1;
 	}
+
+#endif
 
 	desc.task_id = px4_task_spawn_cmd("sih",
 					  SCHED_DEFAULT,
@@ -1534,11 +1540,11 @@ $ simulator_sih orient off
     PRINT_MODULE_USAGE_NAME("simulator_sih", "simulation");
     PRINT_MODULE_USAGE_COMMAND("start");
 #if defined(__PX4_POSIX)
+    PRINT_MODULE_USAGE_PARAM_STRING('t', nullptr, "<file>", "Terrain elevation GeoTIFF (DEM), SITL only", true);
     PRINT_MODULE_USAGE_COMMAND_DESCR("orient", "Pose the vehicle on the ground for calibration");
     PRINT_MODULE_USAGE_ARG("down|up|front|back|left|right|all|off", "Side facing down, every side in turn, or level", false);
     PRINT_MODULE_USAGE_ARG("rotate", "Rotate about the vertical", true);
 #endif // __PX4_POSIX
-    PRINT_MODULE_USAGE_PARAM_STRING('t', nullptr, "<file>", "Terrain elevation GeoTIFF (DEM), SITL only", true);
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
