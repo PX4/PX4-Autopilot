@@ -109,6 +109,10 @@ private:
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
 
+	// loose on purpose, the median already bounds the fault: several times the preflight limits (COM_ARM_IMU_xxx)
+	static constexpr float ACCEL_OUTLIER_LIMIT = 2.f; // m/s^2
+	static constexpr float GYRO_OUTLIER_LIMIT = 0.5f; // rad/s
+
 	struct SensorData {
 		SensorData() = delete;
 		explicit SensorData(ORB_ID meta) : subscription{{meta, 0}, {meta, 1}, {meta, 2}, {meta, 3}} {}
@@ -116,6 +120,7 @@ private:
 		uORB::Subscription subscription[MAX_SENSOR_COUNT]; /**< raw sensor data subscription */
 		DataValidatorGroup voter{1};
 		unsigned int last_failover_count{0};
+		uint8_t outlier_reported{0}; /**< bitmask of the IMUs already reported as the outlier */
 		int32_t priority[MAX_SENSOR_COUNT] {};
 		int32_t priority_configured[MAX_SENSOR_COUNT] {};
 		uint8_t last_best_vote{0}; /**< index of the latest best vote */
@@ -148,6 +153,10 @@ private:
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, events::px4::enums::sensor_type_t sensor_type);
+
+	// SENS_IMU_MODE 2 outvotes a faulty IMU silently: report once the IMU furthest from the others
+	void checkOutlier(SensorData &sensor, const uint32_t device_ids[MAX_SENSOR_COUNT],
+			  const float inconsistency[MAX_SENSOR_COUNT], float limit, events::px4::enums::sensor_type_t sensor_type);
 
 	// VehicleIMU publishes an IMU only while both of its sensors are enabled, so disabling
 	// either one takes the whole IMU out of the vote

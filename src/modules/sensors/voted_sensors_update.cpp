@@ -402,6 +402,37 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 	return false;
 }
 
+void VotedSensorsUpdate::checkOutlier(SensorData &sensor, const uint32_t device_ids[MAX_SENSOR_COUNT],
+				      const float inconsistency[MAX_SENSOR_COUNT], float limit, events::px4::enums::sensor_type_t sensor_type)
+{
+	int count = 0;
+	uint8_t worst = 0;
+
+	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+		if (device_ids[i] != 0) {
+			count++;
+
+			if (inconsistency[i] > inconsistency[worst]) {
+				worst = i;
+			}
+		}
+	}
+
+	// two IMUs are equally far from their mean, which names neither
+	if ((count >= 3) && (inconsistency[worst] > limit) && !(sensor.outlier_reported & (1u << worst))) {
+		sensor.outlier_reported |= (1u << worst);
+
+		/* EVENT
+		 * @description
+		 * The sensor disagrees with the other IMUs and is outvoted by their median.
+		 * A fault of a second IMU can no longer be outvoted: land and check the system.
+		 */
+		events::send<events::px4::enums::sensor_type_t, uint8_t>(
+			events::ID("sensor_imu_outlier"), events::Log::Warning, "{1} sensor #{2} outvoted by the other IMUs", sensor_type,
+			worst);
+	}
+}
+
 void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max)
 {
 	bool added = false;
@@ -481,6 +512,12 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 		}
 	}
 
+	if (_param_sens_imu_mode.get() == 2) {
+		checkOutlier(_accel, status.accel_device_ids, status.accel_inconsistency_m_s_s, ACCEL_OUTLIER_LIMIT,
+			     events::px4::enums::sensor_type_t::accel);
+		checkOutlier(_gyro, status.gyro_device_ids, status.gyro_inconsistency_rad_s, GYRO_OUTLIER_LIMIT,
+			     events::px4::enums::sensor_type_t::gyro);
+	}
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_imu_pub.publish(status);
