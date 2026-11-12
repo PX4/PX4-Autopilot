@@ -71,10 +71,13 @@ void Standard::update_vtol_state()
 
 	float mc_weight = _mc_roll_weight;
 
-	if (_vtol_vehicle_status->fixed_wing_system_failure) {
+	if (_attc->is_quadchute_active()) {
 		// Failsafe event, engage mc motors immediately
+		if (_vtol_mode != vtol_mode::MC_MODE || _attc->is_fixed_wing_system_failure()) {
+			_pusher_throttle = 0.0f; // a commanded quad-chute keeps pusher assist once in multicopter mode
+		}
+
 		_vtol_mode = vtol_mode::MC_MODE;
-		_pusher_throttle = 0.0f;
 
 	} else if (!_attc->is_fixed_wing_requested()) {
 

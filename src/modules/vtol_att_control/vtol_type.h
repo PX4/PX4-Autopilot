@@ -282,7 +282,6 @@ protected:
 	struct vehicle_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
-	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
 	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_mc;
 	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_fw;
 	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_mc;

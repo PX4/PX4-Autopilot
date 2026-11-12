@@ -123,6 +123,11 @@ public:
 
 	void reset_immediate_transition() {_immediate_transition = false;}
 
+	/** Any quad-chute forces multicopter until the next front transition command or, if commanded, until disarm */
+	bool is_quadchute_active() const { return _quadchute_reason != QuadchuteReason::None; }
+	/** Only a detected quad-chute is a fixed-wing failure, not a commanded one */
+	bool is_fixed_wing_system_failure() const { return is_quadchute_active() && _quadchute_reason != QuadchuteReason::ExternalCommand; }
+
 	float getAirDensity() const { return _air_density; }
 
 	struct vehicle_torque_setpoint_s		*get_vehicle_torque_setpoint_virtual_mc() {return &_vehicle_torque_setpoint_virtual_mc;}
@@ -144,7 +149,6 @@ public:
 	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_1() {return &_torque_setpoint_1;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_0() {return &_thrust_setpoint_0;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
-	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
 
 	float get_home_position_z() { return _home_position_z; }
 	float get_calibrated_airspeed() { return _calibrated_airspeed; }
@@ -224,6 +228,7 @@ private:
 	 * to waste energy when gliding. */
 	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
 	bool		_immediate_transition{false};
+	QuadchuteReason	_quadchute_reason{QuadchuteReason::None};
 
 	uint8_t _nav_state_prev;
 
