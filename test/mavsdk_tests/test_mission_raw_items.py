@@ -66,8 +66,9 @@ def test_mission_set_actuator_scaling(tester: AutopilotTester) -> None:
 
 
 @pytest.mark.multicopter
-def test_mission_global_frame_arm_disarm_accepted(tester: AutopilotTester) -> None:
-    """COMPONENT_ARM_DISARM is accepted in a global frame too, not only in MAV_FRAME_MISSION.
+def test_mission_global_frame_arm_disarm(tester: AutopilotTester) -> None:
+    """COMPONENT_ARM_DISARM is accepted in a global frame too, not only in MAV_FRAME_MISSION,
+    and downloads with its params (a dropped param1 would turn "arm" into "disarm").
 
     upload_mission_raw() raises if the vehicle rejects the mission.
     """
@@ -81,3 +82,9 @@ def test_mission_global_frame_arm_disarm_accepted(tester: AutopilotTester) -> No
         arm,
         _global_item(tester, 2, MAV_CMD_NAV_LAND, 0.0, 0.0, 0.0),
     ])
+
+    downloaded = tester.download_mission_raw()[1]
+    assert downloaded.command == MAV_CMD_COMPONENT_ARM_DISARM
+    assert downloaded.param1 == 1.0, "param1 downloaded as {}".format(downloaded.param1)
+    assert (downloaded.x, downloaded.y) == (INT32_MAX, INT32_MAX), \
+        "x/y downloaded as {}/{}".format(downloaded.x, downloaded.y)
