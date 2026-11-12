@@ -193,7 +193,7 @@ private:
 	static constexpr float kTransitionLiftMinWingLoad{0.3f}; ///< wing load fraction below which the estimate is too noisy
 	static constexpr float kTransitionLiftMinHoverThrust{0.05f}; ///< hover thrust below which the estimate is not usable
 	bool _transition_lift_check_failed{false}; ///< transition lift check has detected failure
-	float _transition_lift_vref{0.f}; ///< [m/s] CAS at which the wing alone carries the weight during a front transition
+	float _transition_lift_vref{0.f}; ///< [m/s] CAS at which the wing alone carries the weight at transition pitch (weight-scaled trim airspeed)
 	float _transition_lift_ratio{0.7f}; ///< check fails if measured CAS is below this fraction of the expected CAS
 	bool _in_transition_to_fw_prev{false};
 	hrt_abstime _time_last_transition_lift_check{0};

@@ -87,7 +87,7 @@ parameters:
         2: Innovation check (see ASPD_FS_INNOV)
         3: Load factor check (triggers if measurement is below stall speed)
         4: First principle check (airspeed change vs. throttle and pitch)
-        5: Transition lift check (airspeed vs. wing lift in VTOL front transition, see ASPD_TR_VREF)
+        5: Transition lift check (airspeed vs. wing lift in VTOL front transition, uses FW_AIRSPD_TRIM and FW_PSP_OFF)
       default: 7
       min: 0
       max: 63
@@ -172,16 +172,6 @@ parameters:
       default: 2.0
       unit: s
       min: 0
-      decimal: 1
-    ASPD_TR_VREF:
-      description:
-        short: Transition lift check reference airspeed
-        long: Calibrated airspeed at which the wing alone carries the vehicle weight during a VTOL front transition. Measure it at WEIGHT_BASE on healthy transitions as the calibrated airspeed divided by the square root of the share of the weight carried by the wing. It is scaled by the square root of the weight ratio (WEIGHT_GROSS / WEIGHT_BASE) if both are set. For VTOLs with separate lift motors only. Set to 0 to disable. Only used when ASPD_DO_CHECKS bit 5 is enabled.
-      type: float
-      default: 0.0
-      unit: m/s
-      min: 0.0
-      max: 100.0
       decimal: 1
     ASPD_TR_RATIO:
       description:

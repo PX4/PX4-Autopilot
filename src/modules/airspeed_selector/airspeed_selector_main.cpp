@@ -250,7 +250,6 @@ private:
 
 		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_wind_sigma_max_synth_tas,
 		(ParamFloat<px4::params::ASPD_FP_T_WINDOW>) _aspd_fp_t_window,
-		(ParamFloat<px4::params::ASPD_TR_VREF>) _param_aspd_tr_vref,
 		(ParamFloat<px4::params::ASPD_TR_RATIO>) _param_aspd_tr_ratio,
 
 		// external parameters
@@ -573,7 +572,9 @@ void AirspeedModule::update_params()
 {
 	updateParams();
 
-	// ASPD_TR_VREF is defined at WEIGHT_BASE, the lift-equivalent airspeed scales with sqrt(weight).
+	// Transition lift check reference: the front transition ends at FW_PSP_OFF, the level flight pitch at
+	// FW_AIRSPD_TRIM, so the wing carries the full weight at trim airspeed. FW_AIRSPD_TRIM is defined at
+	// WEIGHT_BASE, the lift-equivalent airspeed scales with sqrt(weight).
 	// The weight parameters are looked up by handle since they only exist on builds with the FW performance model.
 	float weight_ratio = 1.f;
 	float weight_base = 0.f;
@@ -586,7 +587,7 @@ void AirspeedModule::update_params()
 		weight_ratio = math::constrain(weight_gross / weight_base, 0.5f, 2.f);
 	}
 
-	const float transition_lift_vref = _param_aspd_tr_vref.get() * sqrtf(weight_ratio);
+	const float transition_lift_vref = _param_fw_airspd_trim.get() * sqrtf(weight_ratio);
 
 	if (_param_handle_pitch_sp_offset != PARAM_INVALID) {
 		param_get(_param_handle_pitch_sp_offset, &_param_pitch_sp_offset);
