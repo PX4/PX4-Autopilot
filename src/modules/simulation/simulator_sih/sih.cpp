@@ -96,12 +96,18 @@ Sih::~Sih()
 {
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
+	_terrain = Terrain{}; // free the DEM
 }
 
 void Sih::run()
 {
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
+
+	// the vehicle type is needed by parameters_updated() to place the vehicle on the terrain
+	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
+					    static_cast<int32_t>(VehicleType::First),
+					    static_cast<int32_t>(VehicleType::Last)));
 
 	parameters_updated();
 
@@ -119,9 +125,6 @@ void Sih::run()
 	_dist_snsr_time = task_start;
 	_optical_flow_time = task_start;
 	_ranging_beacon_time = task_start;
-	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
-					    static_cast<int32_t>(VehicleType::First),
-					    static_cast<int32_t>(VehicleType::Last)));
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	lockstep_loop();
@@ -408,13 +411,19 @@ void Sih::parameters_updated()
 	if (!_lpos_ref.isInitialized()
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_lpos_ref_alt - _sih_h0.get()) > FLT_EPSILON)) {
-		_lpos_ref.initReference(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()));
-		_lpos_ref_alt = _sih_h0.get();
+	    || (fabsf(_terrain.defaultAltitude() - _sih_h0.get()) > FLT_EPSILON)) {
+		const double lat0 = static_cast<double>(_sih_lat0.get());
+		const double lon0 = static_cast<double>(_sih_lon0.get());
+		_lpos_ref.initReference(lat0, lon0);
+
+		// start on the ground: flat at SIH_LOC_H0, or on the terrain model
+		_terrain.setDefaultAltitude(_sih_h0.get());
+		_lpos_ref_alt = _terrain.vehicleGroundAltitude(lat0, lon0);
+		_ground_alt = _lpos_ref_alt;
 
 		// Reset earth position, velocity and attitude
-		_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
-		_lla.setLongitudeDeg(static_cast<double>(_sih_lon0.get()));
+		_lla.setLatitudeDeg(lat0);
+		_lla.setLongitudeDeg(lon0);
 		_lla.setAltitude(_lpos_ref_alt);
 		_p_E = _lla.toEcef();
 
@@ -755,7 +764,7 @@ void Sih::equations_of_motion(const float dt)
 	const float force_down = Vector3f(_R_N2E.transpose() * sum_of_forces_E)(2);
 	Vector3f ground_force_E;
 
-	if ((_lla.altitude() - _lpos_ref_alt) < 0.f && force_down > 0.f) {
+	if (_lla.altitude() < _ground_alt && force_down > 0.f) {
 		if (_vehicle == VehicleType::Quadcopter
 		    || _vehicle == VehicleType::Hexacopter
 		    || _vehicle == VehicleType::TailsitterVTOL
@@ -814,6 +823,23 @@ void Sih::equations_of_motion(const float dt)
 	_w_B = constrain(_w_B + w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 
 	ecefToNed();
+
+	// ground below the new position, for the next contact check and the sensors
+	_ground_alt = _terrain.vehicleGroundAltitude(_lla.latitude_deg(), _lla.longitude_deg());
+
+	// the ground force only stops the vertical motion, keep the vehicle from sinking into rising terrain
+	static constexpr float MAX_PENETRATION = 0.05f; // [m]
+
+	if (_lla.altitude() < _ground_alt - MAX_PENETRATION) {
+		_lla.setAltitude(_ground_alt - MAX_PENETRATION);
+		_p_E = _lla.toEcef();
+
+		if (_v_N(2) > 0.f) {
+			_v_N(2) = 0.f;
+			_v_E = _R_N2E * _v_N;
+			_v_apparent_N = _v_N + _v_wind_N;
+		}
+	}
 
 	_lpos_ref.project(_lla.latitude_deg(), _lla.longitude_deg(), _lpos(0), _lpos(1));
 	_lpos(2) = -(_lla.altitude() - _lpos_ref_alt);
@@ -933,6 +959,11 @@ void Sih::orient_step(const hrt_abstime &now, const float dt)
 }
 #endif // __PX4_POSIX
 
+float Sih::ground_distance(float max_distance) const
+{
+	return _terrain.rayDistance(_lla.latitude_deg(), _lla.longitude_deg(), _lla.altitude(), _q.dcm_z(), max_distance);
+}
+
 void Sih::ecefToNed()
 {
 	_lla = LatLonAlt::fromEcef(_p_E);
@@ -1009,21 +1040,6 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	_airspeed_pub.publish(airspeed);
 }
 
-float Sih::ground_distance() const
-{
-	// the ground is assumed flat at the altitude of the simulation reference (SIH_LOC_H0)
-	const float cos_tilt = _q.dcm_z()(2);
-
-	if (cos_tilt < FLT_EPSILON) {
-		// the body down axis points away from the ground
-		return NAN;
-	}
-
-	// the fake ground lets the vehicle settle marginally below the reference altitude, clamp it
-	// so that a landed vehicle reads zero instead of dropping out of range
-	return math::max(-_lpos(2), 0.f) / cos_tilt;
-}
-
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
 	if (_distance_sensor_blocked) {
@@ -1041,7 +1057,7 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 	} else {
 		// the quality is decided on the true distance rather than on the noisy reading, so
 		// that a measurement sitting at a range limit does not flicker in and out of validity
-		const float true_distance = ground_distance();
+		const float true_distance = ground_distance(_distance_snsr_max);
 
 		if (!PX4_ISFINITE(true_distance) || true_distance > _distance_snsr_max) {
 			// nothing within reach, the sensor reports its saturated raw reading
@@ -1080,7 +1096,7 @@ void Sih::accumulate_optical_flow(const float dt)
 	// value is produced by a right handed rotation of the sensor about the body axis, which
 	// gives the translation over the ground the opposite sign (see the flow observation model
 	// in the EKF).
-	const float distance = ground_distance();
+	const float distance = ground_distance(_sih_optical_flow_h_max.get());
 
 	if (!PX4_ISFINITE(distance) || distance > _sih_optical_flow_h_max.get()) {
 		// too high above the ground, or not looking at it: no image to track
@@ -1260,6 +1276,8 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		local_position.heading_good_for_control = true;
 		local_position.unaided_heading = NAN;
 
+		local_position.dist_bottom = _lla.altitude() - _ground_alt;
+
 		local_position.timestamp = hrt_absolute_time();
 		_local_position_ground_truth_pub.publish(local_position);
 	}
@@ -1272,7 +1290,7 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		global_position.lon = _lla.longitude_deg();
 		global_position.alt = _lla.altitude();
 		global_position.alt_ellipsoid = global_position.alt;
-		global_position.terrain_alt = -_lpos(2);
+		global_position.terrain_alt = _ground_alt;
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
@@ -1313,6 +1331,9 @@ int Sih::print_status()
 		PX4_INFO("Rover Ackermann");
 	}
 
+	_terrain.printStatus();
+
+	PX4_INFO("ground altitude: %.2f m", (double)_ground_alt);
 	PX4_INFO("vehicle landed: %d", _grounded);
 
 #if defined(__PX4_POSIX)
@@ -1353,8 +1374,53 @@ int Sih::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
+bool Sih::load_terrain(int argc, char *argv[])
+{
+	_terrain = Terrain{};
+
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+	const char *terrain_path = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "t:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 't':
+			terrain_path = myoptarg;
+			break;
+
+		default:
+			print_usage("unrecognized flag");
+			return false;
+		}
+	}
+
+	if (!terrain_path) {
+		return true;
+	}
+
+	int32_t vehicle_type = 0;
+	param_get(param_find("SIH_VEHICLE_TYPE"), &vehicle_type);
+	const VehicleType vehicle = static_cast<VehicleType>(vehicle_type);
+
+	if (vehicle != VehicleType::Quadcopter
+	    && vehicle != VehicleType::Hexacopter
+	    && vehicle != VehicleType::FixedWing
+	    && vehicle != VehicleType::TailsitterVTOL
+	    && vehicle != VehicleType::StandardVTOL) {
+		PX4_ERR("terrain is not supported for SIH_VEHICLE_TYPE %" PRId32, vehicle_type);
+		return false;
+	}
+
+	return _terrain.load(terrain_path);
+}
+
 int Sih::task_spawn(int argc, char *argv[])
 {
+	if (!load_terrain(argc, argv)) {
+		return -1;
+	}
+
 	desc.task_id = px4_task_spawn_cmd("sih",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
@@ -1472,6 +1538,7 @@ $ simulator_sih orient off
     PRINT_MODULE_USAGE_ARG("down|up|front|back|left|right|all|off", "Side facing down, every side in turn, or level", false);
     PRINT_MODULE_USAGE_ARG("rotate", "Rotate about the vertical", true);
 #endif // __PX4_POSIX
+    PRINT_MODULE_USAGE_PARAM_STRING('t', nullptr, "<file>", "Terrain elevation GeoTIFF (DEM), SITL only", true);
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;

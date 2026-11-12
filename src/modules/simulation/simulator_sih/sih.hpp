@@ -92,6 +92,8 @@
 #include <sys/time.h>
 #endif
 
+#include "terrain/Terrain.hpp"
+
 using namespace time_literals;
 
 class Sih : public ModuleBase, public ModuleParams
@@ -220,10 +222,6 @@ private:
 	void send_optical_flow(const hrt_abstime &time_now_us);
 	void send_ranging_beacon(const hrt_abstime &time_now_us);
 
-	// distance from the vehicle to the ground measured along the body down axis, NAN if the
-	// body down axis does not point at the ground anymore
-	float ground_distance() const;
-
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
@@ -252,6 +250,16 @@ private:
 	hrt_abstime _orient_start{0};
 	float _orient_yaw{0.f};	// heading kept while posing
 #endif // __PX4_POSIX
+
+	// distance from the vehicle to the terrain measured along the body down axis, NAN if the
+	// body down axis does not point at the ground or nothing is hit within max_distance
+	float ground_distance(float max_distance) const;
+
+	// terrain from the start arguments: the -t DEM, flat without it
+	// false (and print the reason) on error or if the vehicle type does not support terrain
+	static bool load_terrain(int argc, char *argv[]);
+
+	static inline Terrain _terrain{}; // loaded by task_spawn(), the SIH task stack is too small for the terrain libraries
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
@@ -355,6 +363,7 @@ private:
 	// parameters
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
+	float _ground_alt{0.f};  // ground altitude below the vehicle [m AMSL]
 	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU, _F_T_MAX, _F_Q_MAX;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
