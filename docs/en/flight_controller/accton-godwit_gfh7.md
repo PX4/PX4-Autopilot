@@ -54,7 +54,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **Input voltage:** Up to 12S LiPo
 - **Current draw:** 110 mA at 5 V (static), plus about 67 mA (0.33 W, calculated) with the IMU heater on
-- **BEC output:** 5 V/3 A and 12 V/3 A (supports power-saving mode)
+- **BEC output:** 5 V/3 A and 12 V/3 A (12 V output [switchable](#power))
 - **Power monitoring:** analog battery voltage and current
 
 ### Mechanical Data {#mechanical_data}
@@ -161,6 +161,10 @@ It reads [ESC telemetry](../peripherals/dshot.md#esc-telemetry) from the `ESC` c
 
 No ports have flow control.
 
+::: info
+The bootloader enables only UART7 (the `TELEM` connector), so `TELEM` is the only serial port [px4_uploader.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4_uploader.py) can flash firmware over.
+:::
+
 ## Interface Summary {#interface_summary}
 
 | Interface         | Function                                        |
@@ -204,8 +208,9 @@ The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
   The `SBUS` pin on the `D-VTX` connector shares the `UART5_RX` line, for digital video systems that output S.BUS.
   The TX pin on the `A-VTX` connector shares the `UART5_TX` line, but PX4 doesn't use this pin.
 
-The other built-in protocols, DSM and GHST, are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to, and `RC_CRSF_PRT_CFG` to `Disabled`.
+The other built-in protocols, DSM and GHST (TBS Ghost), are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to, and `RC_CRSF_PRT_CFG` to `Disabled`.
 DSM receivers can't be bound from PX4 or _QGroundControl_ on this board, so bind the receiver using its own bind procedure.
+The `ELRS` and `SBUS` connectors supply 5 V, so power a 3.3 V DSM receiver from a separate 3.3 V supply.
 Only one protocol can be active on a port.
 PPM receivers are not supported, so PWM receivers can't be used either, even with a PPM encoder.
 
@@ -277,7 +282,7 @@ The `R V G C D` pad group is the [SWD interface](../debug/swd_debug.md) of the S
 | `C` | FMU_SWCLK | 3.3 V   |
 | `D` | FMU_SWDIO | 3.3 V   |
 
-The `R C D G V` pad group is the OSD co-processor's (STM32G431) SWD interface, which PX4 doesn't use:
+The `R C D G V` pad group is the SWD interface of the OSD co-processor (STM32G431), which PX4 doesn't use:
 
 | Pad | Signal     | Voltage |
 | --- | ---------- | ------- |
