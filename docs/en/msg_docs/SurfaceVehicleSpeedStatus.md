@@ -10,15 +10,15 @@ Surface Vehicle Speed Status.
 
 ## Fields
 
-| Name                                                                          | Type      | Unit [Frame] | Range/Enum                          | Description                                                                                                                     |
-| ----------------------------------------------------------------------------- | --------- | ------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp                                           | `uint64`  | us           |                                     | Time since system start                                                                                                         |
-| <a id="fld_measured_speed_body_x"></a>measured_speed_body_x                   | `float32` | m/s [Body]   | [-inf (Backwards) : inf (Forwards)] | Measured speed in body x direction                                                                                              |
-| <a id="fld_adjusted_speed_body_x_setpoint"></a>adjusted_speed_body_x_setpoint | `float32` | m/s [Body]   | [-inf (Backwards) : inf (Forwards)] | Speed setpoint in body x direction that is being tracked (Applied slew rates)                                                   |
-| <a id="fld_pid_throttle_body_x_integral"></a>pid_throttle_body_x_integral     | `float32` |              | [-1 : 1]                            | Integral of the PID for the closed loop controller of the speed in body x direction                                             |
-| <a id="fld_measured_speed_body_y"></a>measured_speed_body_y                   | `float32` | m/s [Body]   | [-inf (Left) : inf (Right)]         | Mecanum only: Measured speed in body y direction (Invalid: NaN If not mecanum)                                                  |
-| <a id="fld_adjusted_speed_body_y_setpoint"></a>adjusted_speed_body_y_setpoint | `float32` | m/s [Body]   | [-inf (Left) : inf (Right)]         | Mecanum only: Speed setpoint in body y direction that is being tracked (Applied slew rates) (Invalid: NaN If not mecanum)       |
-| <a id="fld_pid_throttle_body_y_integral"></a>pid_throttle_body_y_integral     | `float32` |              | [-1 : 1]                            | Mecanum only: Integral of the PID for the closed loop controller of the speed in body y direction (Invalid: NaN If not mecanum) |
+| Name                                                                          | Type      | Unit [Frame] | Range/Enum                          | Description                                                                                                                                              |
+| ----------------------------------------------------------------------------- | --------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                           | `uint64`  | us           |                                     | Time since system start                                                                                                                                  |
+| <a id="fld_measured_speed_body_x"></a>measured_speed_body_x                   | `float32` | m/s [Body]   | [-inf (Backwards) : inf (Forwards)] | Measured speed in body x direction                                                                                                                       |
+| <a id="fld_adjusted_speed_body_x_setpoint"></a>adjusted_speed_body_x_setpoint | `float32` | m/s [Body]   | [-inf (Backwards) : inf (Forwards)] | Speed setpoint in body x direction that is being tracked (Applied slew rates)                                                                            |
+| <a id="fld_pid_throttle_body_x_integral"></a>pid_throttle_body_x_integral     | `float32` |              | [-1 : 1]                            | Integral of the PID for the closed loop controller of the speed in body x direction                                                                      |
+| <a id="fld_measured_speed_body_y"></a>measured_speed_body_y                   | `float32` | m/s [Body]   | [-inf (Left) : inf (Right)]         | Omnidirectional vehicles only: Measured speed in body y direction (Invalid: NaN If not omnidirectional)                                                  |
+| <a id="fld_adjusted_speed_body_y_setpoint"></a>adjusted_speed_body_y_setpoint | `float32` | m/s [Body]   | [-inf (Left) : inf (Right)]         | Omnidirectional vehicles only: Speed setpoint in body y direction that is being tracked (Applied slew rates) (Invalid: NaN If not omnidirectional)       |
+| <a id="fld_pid_throttle_body_y_integral"></a>pid_throttle_body_y_integral     | `float32` |              | [-1 : 1]                            | Omnidirectional vehicles only: Integral of the PID for the closed loop controller of the speed in body y direction (Invalid: NaN If not omnidirectional) |
 
 ## Source Message
 
@@ -33,9 +33,9 @@ uint64 timestamp                        # [us] Time since system start
 float32 measured_speed_body_x           # [m/s] [@range -inf (Backwards), inf (Forwards)] [@frame Body] Measured speed in body x direction
 float32 adjusted_speed_body_x_setpoint  # [m/s] [@range -inf (Backwards), inf (Forwards)] [@frame Body] Speed setpoint in body x direction that is being tracked (Applied slew rates)
 float32 pid_throttle_body_x_integral    # [-] [@range -1, 1] Integral of the PID for the closed loop controller of the speed in body x direction
-float32 measured_speed_body_y           # [m/s] [@range -inf (Left), inf (Right)] [@frame Body] [@invalid NaN If not mecanum] Mecanum only: Measured speed in body y direction
-float32 adjusted_speed_body_y_setpoint  # [m/s] [@range -inf (Left), inf (Right)] [@frame Body] [@invalid NaN If not mecanum] Mecanum only: Speed setpoint in body y direction that is being tracked (Applied slew rates)
-float32 pid_throttle_body_y_integral    # [-] [@range -1, 1] [@invalid NaN If not mecanum] Mecanum only: Integral of the PID for the closed loop controller of the speed in body y direction
+float32 measured_speed_body_y           # [m/s] [@range -inf (Left), inf (Right)] [@frame Body] [@invalid NaN If not omnidirectional] Omnidirectional vehicles only: Measured speed in body y direction
+float32 adjusted_speed_body_y_setpoint  # [m/s] [@range -inf (Left), inf (Right)] [@frame Body] [@invalid NaN If not omnidirectional] Omnidirectional vehicles only: Speed setpoint in body y direction that is being tracked (Applied slew rates)
+float32 pid_throttle_body_y_integral    # [-] [@range -1, 1] [@invalid NaN If not omnidirectional] Omnidirectional vehicles only: Integral of the PID for the closed loop controller of the speed in body y direction
 ```
 
 :::
