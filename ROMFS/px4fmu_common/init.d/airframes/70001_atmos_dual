@@ -29,8 +29,7 @@ param set-default UXRCE_DDS_AG_IP -1062731775
 param set-default UXRCE_DDS_CFG 1000
 
 # disable attitude failure detection
-param set-default FD_FAIL_P 0
-param set-default FD_FAIL_R 0
+param set-default FD_FAIL_R -1
 
 # Disable magnetometer fusion in EKF2
 param set-default EKF2_MAG_TYPE 5
