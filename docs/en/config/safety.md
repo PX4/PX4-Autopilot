@@ -446,16 +446,14 @@ The reference altitude depends on what the vehicle is commanded to do:
 
 ### Attitude Trigger
 
-The failure detector can be configured to trigger if the vehicle attitude exceeds predefined pitch and roll values for longer than a specified time.
+The failure detector can be configured to trigger if the vehicle tilt (the angle between the vehicle's vertical axis and the vertical, in any direction) exceeds a predefined value for longer than a specified time.
 
 The relevant parameters are shown below:
 
 | Parameter                                                                                                | Description                                                                                                                      |
 | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="CBRK_FLIGHTTERM"></a>[CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Flight termination circuit breaker. Unset from 121212 (default) to enable flight termination due to FailureDetector or FMU loss. |
-| <a id="FD_FAIL_P"></a>[FD_FAIL_P](../advanced_config/parameter_reference.md#FD_FAIL_P)                   | Maximum allowed pitch (in degrees).                                                                                              |
-| <a id="FD_FAIL_R"></a>[FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R)                   | Maximum allowed roll (in degrees).                                                                                               |
-| <a id="FD_FAIL_P_TTRI"></a>[FD_FAIL_P_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_P_TTRI)    | Time to exceed [FD_FAIL_P](#FD_FAIL_P) for failure detection (default 0.3s).                                                     |
+| <a id="FD_FAIL_R"></a>[FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R)                   | Maximum allowed tilt (in degrees).                                                                                               |
 | <a id="FD_FAIL_R_TTRI"></a>[FD_FAIL_R_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_R_TTRI)    | Time to exceed [FD_FAIL_R](#FD_FAIL_R) for failure detection (default 0.3s).                                                     |
 
 ### Motor Failure Trigger

@@ -299,9 +299,7 @@ param set-default RTL_DESCEND_ALT 150
 param set-default RTL_MIN_DIST 50
 
 param set-default FD_FAIL_R 85
-param set-default FD_FAIL_P 85
-param set-default FD_FAIL_R_TTRI 1.0
-param set-default FD_FAIL_P_TTRI 1.0
+param set-default FD_FAIL_R_TTRI 1
 param set-default WV_EN 0
 
 ################################################################################
