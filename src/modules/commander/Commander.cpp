@@ -1155,8 +1155,16 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_HOME: {
-			if (_param_com_home_en.get()) {
-				bool use_current = cmd.param1 > 0.5f;
+			if (!_param_com_home_en.get()) {
+				// COM_HOME_EN disabled
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+
+			} else if (!(fabsf(cmd.param1) < FLT_EPSILON) && !(fabsf(cmd.param1 - 1.f) < FLT_EPSILON)) {
+				// param1 is a MAV_BOOL: 1 uses the current position, 0 the specified location
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+
+			} else {
+				const bool use_current = fabsf(cmd.param1 - 1.f) < FLT_EPSILON;
 
 				if (use_current) {
 					/* use current position */
@@ -1192,10 +1200,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 					}
 				}
-
-			} else {
-				// COM_HOME_EN disabled
-				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			}
 		}
 		break;
