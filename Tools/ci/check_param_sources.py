@@ -3,7 +3,7 @@
 
 `make parameters_metadata` (cmake/metadata.cmake) builds the full parameter
 reference from:
-- every yaml file under src/, except the ones listed in
+- every .yaml file under src/, except the ones listed in
   cmake/metadata_param_excludes.txt, and
 - the .c and .h files in the directories that `find src -maxdepth 4`
   lists (px_process_params.py does not recurse into subdirectories).
@@ -96,10 +96,11 @@ def find_problems(files: Iterable[str],
                 continue
             if not YAML_PARAM_RE.search(read_text(path)):
                 continue
-            if not path.startswith("src/"):
+            # file(GLOB_RECURSE ... src/*.yaml) reads only .yaml under src/
+            if not (path.startswith("src/") and path.endswith(".yaml")):
                 problems.append(
-                    f"{path} defines parameters, but only yaml files "
-                    f"under src/ are read: move it, or add it to "
+                    f"{path} defines parameters, but only .yaml files "
+                    f"under src/ are read: move or rename it, or add it to "
                     f"{EXCLUDES_FILE} with the reason")
         elif is_c_source(path):
             if c_file_is_scanned(path):

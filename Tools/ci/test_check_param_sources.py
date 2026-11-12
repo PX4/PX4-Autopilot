@@ -39,6 +39,14 @@ class FindProblemsTest(unittest.TestCase):
         self.assertIn("boards/v/b/x/parameters.yaml", problems[0])
         self.assertEqual(check(files, ["boards/v/b/x/parameters.yaml"]), [])
 
+    def test_yml_under_src_is_not_read(self) -> None:
+        files = {"src/modules/a/module.yml": PARAM_YAML}
+        problems = check(files, [])
+        self.assertEqual(len(problems), 1)
+        self.assertIn("src/modules/a/module.yml", problems[0])
+        self.assertIn("only .yaml files", problems[0])
+        self.assertEqual(check(files, ["src/modules/a/module.yml"]), [])
+
     def test_yaml_without_parameters_is_ignored(self) -> None:
         self.assertEqual(check({"boards/v/b/topics.yaml": OTHER_YAML}, []),
                          [])
