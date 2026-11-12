@@ -59,6 +59,8 @@ simulator_sih <command> [arguments...]
      down|up|front|back|left|right|all|off Side facing down, every side in turn,
                  or level
      [rotate]    Rotate about the vertical
+     [-t <val>]  Terrain elevation GeoTIFF (DEM), SITL only
+                 values: <file>
 
    stop
 
