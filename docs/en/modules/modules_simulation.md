@@ -54,13 +54,13 @@ simulator_sih orient off
 simulator_sih <command> [arguments...]
  Commands:
    start
+     [-t <val>]  Terrain elevation GeoTIFF (DEM), SITL only
+                 values: <file>
 
    orient        Pose the vehicle on the ground for calibration
      down|up|front|back|left|right|all|off Side facing down, every side in turn,
                  or level
      [rotate]    Rotate about the vertical
-     [-t <val>]  Terrain elevation GeoTIFF (DEM), SITL only
-                 values: <file>
 
    stop
 
