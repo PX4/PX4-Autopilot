@@ -39,7 +39,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Hardware Support
 
-- TBD
+- **[New Hardware]** new board support Droneer_x6 ([PX4-Autopilot#27745](https://github.com/PX4/PX4-Autopilot/pull/27745))
 
 ### Common
 

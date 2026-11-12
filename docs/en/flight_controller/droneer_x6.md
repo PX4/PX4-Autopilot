@@ -66,7 +66,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-Order from [Droneer](https://droneer.com/pixhawk-6x-flight-controller/).
+Order from [Droneer](https://droneer.com/6x-flight-controller/).
 
 ## Pinouts {#pinouts}
 
