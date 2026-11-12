@@ -87,17 +87,12 @@ bool FlightTaskAutoFollowTarget::activate(const trajectory_setpoint_s &last_setp
 	_orbit_angle_traj_generator.reset(0.f, 0.f, 0.f);
 
 	// Save the home position z value to enable relative altitude setpoints to arming position (home) altitude
-	if (_sub_home_position.get().valid_alt) {
-		_home_position_z = _sub_home_position.get().z;
+	_home_position_z = _sub_home_position.get().z;
 
-		// home z is taken to be in the current frame, the first update records which one that is
-		_ref_alt = NAN;
-		_ref_timestamp = 0;
-		_vehicle_z_last = NAN;
-
-	} else {
-		ret = false; // Don't activate Follow Target task if home position is not valid
-	}
+	// home z is taken to be in the current frame, the first update records which one that is
+	_ref_alt = NAN;
+	_ref_timestamp = 0;
+	_vehicle_z_last = NAN;
 
 	return ret;
 }

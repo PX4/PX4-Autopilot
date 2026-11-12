@@ -41,13 +41,6 @@
 
 using namespace matrix;
 
-bool FlightTaskManualPosition::updateInitialize()
-{
-	bool ret = FlightTaskManualAltitude::updateInitialize();
-	// require valid position / velocity in xy
-	return ret && Vector2f(_position).isAllFinite() && Vector2f(_velocity).isAllFinite();
-}
-
 bool FlightTaskManualPosition::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	// all requirements from altitude-mode still have to hold
@@ -57,8 +50,6 @@ bool FlightTaskManualPosition::activate(const trajectory_setpoint_s &last_setpoi
 	_position_setpoint(1) = _position(1);
 	_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
 
-	// for position-controlled mode, we need a valid position and velocity state
-	// in NE-direction
 	return ret;
 }
 

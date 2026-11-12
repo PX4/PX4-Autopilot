@@ -75,3 +75,19 @@ int FlightModeManager::_initTask(FlightTaskIndex task_index)
 	_current_task.index = task_index;
 	return 0;
 }
+
+uint8_t FlightModeManager::_requiredInputs(FlightTaskIndex task_index)
+{
+	switch (task_index) {
+@# loop through all requested tasks
+@[if tasks]@
+@[for task in tasks]@
+	case FlightTaskIndex::@(task):
+		return FlightTask@(task)::kRequiredInputs;
+
+@[end for]@
+@[end if]@
+	default:
+		return 0;
+	}
+}
