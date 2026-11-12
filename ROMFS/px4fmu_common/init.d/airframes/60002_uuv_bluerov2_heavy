@@ -50,8 +50,7 @@ param set-default GF_ACTION 1
 param set-default NAV_RCL_ACT 1
 
 # disable attitude failure detection
-param set-default FD_FAIL_P 0
-param set-default FD_FAIL_R 0
+param set-default FD_FAIL_R -1
 
 param set-default CA_ROTOR_COUNT 8
 param set-default CA_R_REV 255

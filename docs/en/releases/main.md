@@ -88,6 +88,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   In flight the primary receiver is now also left when it has failed the strict checks for 10 s while the other receiver passed them. ([PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
 - **Re-check the motor failure trigger thresholds.**
   `MOTFAIL_OFF` and `MOTFAIL_TIME` are replaced by a separate band and trigger time per direction ([MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME) and [MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](../advanced_config/parameter_reference.md#MOTFAIL_UND_TIME)), and are not migrated: the new parameters start at their defaults. The check now compares a low-pass filtered current residual instead of the instantaneous value, so the thresholds are worth re-deriving: see [Motor Failure Detection > Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
+- **The failure detector attitude trigger checks tilt instead of roll and pitch separately.**
+  [FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R) is now the maximum tilt angle (the angle between the vehicle's vertical axis and the vertical, in any direction) and [FD_FAIL_R_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_R_TTRI) the time it has to be exceeded.
+  `FD_FAIL_P` and `FD_FAIL_P_TTRI` have been removed and are not migrated: a combined roll and pitch now triggers earlier than either did alone (e.g. 45° roll with 45° pitch is 60° tilt).
+  If you had set `FD_FAIL_P` below `FD_FAIL_R`, or set only `FD_FAIL_P` to 0 to disable the check, set `FD_FAIL_R` accordingly.
+  The check is now disabled with `FD_FAIL_R` set to -1; 0 still disables it.
+  The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
 
 ## Other changes
 

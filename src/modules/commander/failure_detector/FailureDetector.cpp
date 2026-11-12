@@ -65,8 +65,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		}
 
 	} else {
-		_failure_detector_status.flags.roll = false;
-		_failure_detector_status.flags.pitch = false;
+		_failure_detector_status.flags.tilt = false;
 		_failure_detector_status.flags.alt = false;
 		_failure_detector_status.flags.ext = false;
 		// Reset altitude loss state so it reinitialises cleanly when altitude control re-engages.
@@ -86,8 +85,7 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	const uint16_t injected_motor_failure_mask = _injected_motor_masks.failure_mask;
 
 	failure_detector_status_s failure_detector_status{};
-	failure_detector_status.fd_roll = _failure_detector_status.flags.roll;
-	failure_detector_status.fd_pitch = _failure_detector_status.flags.pitch;
+	failure_detector_status.fd_tilt = _failure_detector_status.flags.tilt;
 	failure_detector_status.fd_alt = _failure_detector_status.flags.alt;
 	failure_detector_status.fd_ext = _failure_detector_status.flags.ext;
 	failure_detector_status.fd_arm_escs = esc_arm_status || (motor_failure_mask != 0);
@@ -107,45 +105,31 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 
 	if (_vehicle_attitude_sub.update(&attitude)) {
 
-		const matrix::Eulerf euler(matrix::Quatf(attitude.q));
-		float roll(euler.phi());
-		float pitch(euler.theta());
+		matrix::Quatf q(attitude.q);
+		bool check_tilt = true;
 
 		// special handling for tailsitter
 		if (vehicle_status.is_vtol_tailsitter) {
 			if (vehicle_status.in_transition_mode) {
 				// disable attitude check during tailsitter transition
-				roll = 0.f;
-				pitch = 0.f;
+				check_tilt = false;
 
 			} else if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				// in FW flight rotate the attitude by 90° around pitch (level FW flight = 0° pitch)
-				const matrix::Eulerf euler_rotated = matrix::Eulerf(matrix::Quatf(attitude.q) * matrix::Quatf(matrix::Eulerf(0.f,
-								     M_PI_2_F, 0.f)));
-				roll = euler_rotated.phi();
-				pitch = euler_rotated.theta();
+				// in FW flight rotate the attitude by 90° around pitch (level FW flight = 0° tilt)
+				q = q * matrix::Quatf(matrix::Eulerf(0.f, M_PI_2_F, 0.f));
 			}
 		}
 
-		const float max_roll_deg = _param_fd_fail_r.get();
-		const float max_pitch_deg = _param_fd_fail_p.get();
-		const float max_roll(fabsf(math::radians(max_roll_deg)));
-		const float max_pitch(fabsf(math::radians(max_pitch_deg)));
+		// angle between body z-axis and world z-axis
+		const float tilt = acosf(math::constrain(q.dcm_z()(2), -1.f, 1.f));
+		// -1 disables, 0 as well for backwards compatibility
+		const int max_tilt_deg = _param_fd_fail_r.get();
+		const bool tilt_status = check_tilt && (max_tilt_deg > 0)
+					 && (tilt > math::radians(static_cast<float>(max_tilt_deg)));
 
-		const bool roll_status = (max_roll > FLT_EPSILON) && (fabsf(roll) > max_roll);
-		const bool pitch_status = (max_pitch > FLT_EPSILON) && (fabsf(pitch) > max_pitch);
-
-		hrt_abstime now = hrt_absolute_time();
-
-		// Update hysteresis
-		_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
-		_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_p_ttri.get()));
-		_roll_failure_hysteresis.set_state_and_update(roll_status, now);
-		_pitch_failure_hysteresis.set_state_and_update(pitch_status, now);
-
-		// Update status
-		_failure_detector_status.flags.roll = _roll_failure_hysteresis.get_state();
-		_failure_detector_status.flags.pitch = _pitch_failure_hysteresis.get_state();
+		_tilt_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
+		_tilt_failure_hysteresis.set_state_and_update(tilt_status, hrt_absolute_time());
+		_failure_detector_status.flags.tilt = _tilt_failure_hysteresis.get_state();
 	}
 }
 
