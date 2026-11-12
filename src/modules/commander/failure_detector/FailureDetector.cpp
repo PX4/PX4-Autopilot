@@ -131,7 +131,7 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 					 && (tilt_error > math::radians(static_cast<float>(max_tilt_error_deg)));
 
 		_tilt_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
-		_tilt_failure_hysteresis.set_state_and_update(tilt_status, hrt_absolute_time());
+		_tilt_failure_hysteresis.set_state_and_update(tilt_status, attitude.timestamp);
 		_failure_detector_status.flags.tilt = _tilt_failure_hysteresis.get_state();
 	}
 }
