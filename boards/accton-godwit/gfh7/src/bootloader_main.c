@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2026 CBUnmanned Ltd. All rights reserved.
+ *   Copyright (C) 2026 Accton Technology Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
