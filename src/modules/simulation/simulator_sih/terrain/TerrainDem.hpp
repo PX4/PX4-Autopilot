@@ -56,7 +56,7 @@ public:
 	explicit TerrainDem(const char *path) { load(path); }
 
 	/** load a single-band GeoTIFF DEM, @return false (the reason is printed) on error */
-	bool load(const char *path) override;
+	bool load(const char *path);
 
 	bool loaded() const { return !_grid.data.empty(); }
 

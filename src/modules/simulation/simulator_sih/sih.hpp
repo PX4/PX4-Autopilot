@@ -92,7 +92,13 @@
 #include <sys/time.h>
 #endif
 
-#include "terrain/Terrain.hpp"
+#if defined(SIH_TERRAIN_DEM)
+#include "terrain/TerrainDem.hpp"
+using Terrain = TerrainDem;
+#else
+#include "terrain/TerrainFlat.hpp"
+using Terrain = TerrainFlat;
+#endif
 
 using namespace time_literals;
 
@@ -255,9 +261,11 @@ private:
 	// body down axis does not point at the ground or nothing is hit within max_distance
 	float ground_distance(float max_distance) const;
 
+#if defined(__PX4_POSIX)
 	// terrain from the start arguments: the -t DEM, flat without it
 	// false (and print the reason) on error or if the vehicle type does not support terrain
 	static bool load_terrain(int argc, char *argv[]);
+#endif
 
 	static inline Terrain _terrain{}; // loaded by task_spawn(), the SIH task stack is too small for the terrain libraries
 

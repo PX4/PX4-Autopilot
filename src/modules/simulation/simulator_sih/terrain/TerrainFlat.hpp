@@ -50,7 +50,7 @@ public:
 	virtual ~TerrainFlat() = default;
 
 	/** load terrain data from a file, flat terrain has none, @return false (the reason is printed) */
-	virtual bool load(const char *path)
+	bool load(const char *path)
 	{
 		PX4_ERR("terrain: cannot load %s, PX4 was built without terrain DEM support", path);
 		return false;
