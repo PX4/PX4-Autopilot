@@ -20,5 +20,7 @@ parameters:
                 6: Left facing
                 24: Upward facing
                 25: Downward facing
+            min: 0
+            max: 25
             default: 25
             reboot_required: true

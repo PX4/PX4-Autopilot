@@ -5,7 +5,7 @@
 The [JRT PTGL-100](https://www.jrt-measure.com/) is a time-of-flight (ToF) laser [rangefinder](../sensor/rangefinders.md) operating at 905±5 nm, with a specified measurement range of 0.2–100 m (100 m against a 30% reflectance target) and a measurement rate of 100 Hz.
 It connects to the flight controller using a UART (serial) port.
 
-![JRT PTGL-100 module showing its two optical apertures](../../assets/hardware/sensors/ptgl100/ptgl100_hero.jpg)
+![JRT PTGL-100 module showing its two optical apertures](../../assets/hardware/sensors/ptgl100/ptgl100_hero.webp)
 
 ::: info
 The driver is not included in the firmware for most boards.
@@ -38,7 +38,7 @@ For PTGL-100 purchasing enquiries, contact Amovlab at [shudajun@amovauto.com](ma
 ## Sensor Configuration {#sensor_configuration}
 
 PTGL-100 modules ship configured for 460800 baud, which is the rate the PX4 driver uses (8N1, no flow control).
-The 115200 baud factory-default value in manual §4.1 is incorrect.
+The 115200 baud factory default given in the [PTGL-100 manual](#further_information) (§4.1) is incorrect.
 After purchase, the module can be reconfigured to 115200 baud under JRT's guidance, but it must be set to 460800 baud for use with this PX4 driver.
 The driver doesn't change the module's baud rate.
 To check or change a module's baud rate, contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) for instructions.
@@ -55,6 +55,9 @@ If the sensor is fitted behind a protective window, the manual (§3.4) recommend
 
 ### Pinouts {#pinouts}
 
+The module has a six-pin `HC-0.8-6PWT` connector (0.8 mm pitch).
+An adapter cable is needed to connect to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25 mm pitch JST-GH connectors).
+
 | Pin | Signal | Description                                               |
 | --- | ------ | --------------------------------------------------------- |
 | 1   | GND    | Ground                                                    |
@@ -67,14 +70,11 @@ If the sensor is fitted behind a protective window, the manual (§3.4) recommend
 ### Wiring {#wiring}
 
 The manufacturer's packing list includes one module and one power/data cable.
-The supplied cable has six-pin connectors at both ends for the module's `HC-0.8-6PWT` interface (0.8 mm pitch), and carries power and UART TX/RX.
+The supplied cable has six-pin connectors at both ends for the module's `HC-0.8-6PWT` interface, and carries power and UART TX/RX.
 It can be used as a module-side pigtail by adapting the flight-controller end to the required connector and pinout.
-An adapter cable is needed to connect to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25 mm pitch JST-GH connectors).
-For Flycore, use its board-specific `TELEM3` pinout shown below.
 
 The PTGL-100 can be connected to any unused serial port (UART), such as `TELEM2`, `TELEM3` or `GPS2`.
 UART signals use 3.3 V TTL levels.
-The module requires a 3.3–5 V supply and draws up to 0.45 W at 3.3 V and 25 °C (0.56 W at 60 °C).
 
 | Module Pin | Module Signal | Connect To                |
 | ---------- | ------------- | ------------------------- |
@@ -105,13 +105,13 @@ Both TX and RX are required because PX4 sends the module a command to start cont
 
 The rangefinder is supported by the [ptgl100](../modules/modules_driver_distance_sensor.md#ptgl100) driver, which is built into firmware by the [board configuration](../hardware/porting_guide_config.md) key `CONFIG_DRIVERS_DISTANCE_SENSOR_PTGL100=y`.
 The driver is not part of the common set of rangefinder drivers (`CONFIG_COMMON_DISTANCE_SENSOR`), so it is only present in the firmware for boards that set this key.
-At the time of writing these are: [Amovlab Flycore](../flight_controller/amovlab_flycore.md).
+At the time of writing, this is the [Amovlab Flycore](../flight_controller/amovlab_flycore.md).
 
 To check your board, look for the key in its configuration file, `boards/<vendor>/<board>/default.px4board`, or check whether [SENS_PTGL100_CFG](../advanced_config/parameter_reference.md#SENS_PTGL100_CFG) is listed in _QGroundControl_ (parameters are only shown for drivers that are in the firmware).
 
 If the driver is missing, add the key to the board's `default.px4board` file, or enable it in [`boardconfig`](../hardware/porting_guide_config.md#px4-menuconfig-setup) under **Drivers > Distance sensors**, and then [build and upload the firmware](../dev_setup/building_px4.md).
 
-The driver does not start until it is enabled using the parameters in [PX4 Configuration](#px4_configuration).
+The driver does not start until [SENS_PTGL100_CFG](../advanced_config/parameter_reference.md#SENS_PTGL100_CFG) is set (see [PX4 Configuration](#px4_configuration)).
 
 ## PX4 Configuration {#px4_configuration}
 
@@ -124,7 +124,7 @@ For example, select `TELEM 3` (`103`) for a module connected to the Flycore `TEL
 There is no need to set the baud rate for the port (460800), as this is configured by the driver.
 By default, the port is `Disabled` (`0`) and the orientation is `Downward facing` (`25`).
 
-If the parameter is not available in _QGroundControl_ then the driver is not in the firmware: see [Firmware Support](#firmware_support).
+If `SENS_PTGL100_CFG` is not available in _QGroundControl_, the driver is not in the firmware: see [Firmware Support](#firmware_support).
 
 The configuration that is common to all rangefinders, such as the sensor position offsets used by the estimator, is covered in [Rangefinders > Configuration/Setup](../sensor/rangefinders.md#configuration).
 
@@ -194,10 +194,10 @@ It uses a pseudo-terminal in a temporary directory and does not require a connec
 
 ### Protocol
 
-The driver uses the `0x68` (single) and `0x69` (continuous) measurement commands, and rejects measurement replies that use the `0x88`/`0x89` commands.
+The driver sends the `0x69` (continuous measurement) and `0x8E` (stop) commands, accepts `0x68`/`0x69` measurement replies, and rejects replies that use `0x88`/`0x89`.
 For the frame format and checksums, request the PTGL-100 User and Maintenance Manual from JRT (see [Further Information](#further_information)).
 
 ## Further Information {#further_information}
 
-- [ptgl100 driver](../modules/modules_driver_distance_sensor.md#ptgl100) (module reference)
+- [Modules Reference: Distance Sensor (Driver): ptgl100](../modules/modules_driver_distance_sensor.md#ptgl100)
 - Contact [JRT](https://www.jrt-measure.com/) at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) to obtain the latest PTGL-100 User and Maintenance Manual (Chinese).
