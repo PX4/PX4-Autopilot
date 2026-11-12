@@ -63,6 +63,23 @@
 
 using matrix::wrap_2pi;
 
+namespace
+{
+
+// DO_SET_ACTUATOR param5/param6 (actuator 5 and 6, -1..1) are scaled by 1e7 in the int32 x/y fields.
+constexpr double ACTUATOR_SET_INT_SCALE = 1e7;
+
+int32_t actuator_set_param_to_int(double value)
+{
+	if (!PX4_ISFINITE(value)) {
+		return INT32_MAX; // "param not used"
+	}
+
+	return static_cast<int32_t>(round(value * ACTUATOR_SET_INT_SCALE));
+}
+
+} // namespace
+
 dm_item_t MavlinkMissionManager::_mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 dm_item_t MavlinkMissionManager::_safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
 dm_item_t MavlinkMissionManager::_fence_dataman_id = DM_KEY_FENCE_POINTS_0;
@@ -1676,10 +1693,19 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 		case MAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 		case MAV_CMD_DO_SET_ROI_NONE:
-		case MAV_CMD_DO_SET_ACTUATOR:
 		case MAV_CMD_DO_AUTOTUNE_ENABLE:
 		case MAV_CMD_COMPONENT_ARM_DISARM:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			break;
+
+		case MAV_CMD_DO_SET_ACTUATOR:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			// Actuator 5 and 6 are floats (-1..1) carried in the int32 x/y fields, scaled by 1e7
+			// (same as COMMAND_INT). An unset value becomes NaN, which leaves the actuator unchanged.
+			mission_item->params[4] = mavlink_cmd_params::int_param_is_unset(mavlink_mission_item->x) ? (double)NAN :
+						  mavlink_mission_item->x / ACTUATOR_SET_INT_SCALE;
+			mission_item->params[5] = mavlink_cmd_params::int_param_is_unset(mavlink_mission_item->y) ? (double)NAN :
+						  mavlink_mission_item->y / ACTUATOR_SET_INT_SCALE;
 			break;
 
 		case MAV_CMD_CONDITION_DELAY:
@@ -1728,8 +1754,15 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		mavlink_mission_item->param3 = mission_item->params[2];
 		mavlink_mission_item->param4 = mission_item->params[3];
 
-		mavlink_mission_item->x = round(mission_item->params[4]);
-		mavlink_mission_item->y = round(mission_item->params[5]);
+		if (mission_item->nav_cmd == NAV_CMD_DO_SET_ACTUATOR) {
+			mavlink_mission_item->x = actuator_set_param_to_int(static_cast<double>(mission_item->params[4]));
+			mavlink_mission_item->y = actuator_set_param_to_int(static_cast<double>(mission_item->params[5]));
+
+		} else {
+			mavlink_mission_item->x = round(mission_item->params[4]);
+			mavlink_mission_item->y = round(mission_item->params[5]);
+		}
+
 		mavlink_mission_item->z = mission_item->params[6];
 
 		switch (mavlink_mission_item->command) {
@@ -1761,6 +1794,9 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_SET_CAMERA_ZOOM:
 		case NAV_CMD_SET_CAMERA_FOCUS:
 		case NAV_CMD_DO_VTOL_TRANSITION:
+		case NAV_CMD_DO_SET_ACTUATOR:
+		case NAV_CMD_COMPONENT_ARM_DISARM:
+		case NAV_CMD_DO_AUTOTUNE_ENABLE:
 			break;
 
 		default:
