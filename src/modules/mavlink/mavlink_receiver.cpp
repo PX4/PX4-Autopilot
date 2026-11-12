@@ -214,7 +214,12 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
-		handle_message_distance_sensor(msg);
+
+		// The peer streams its ranges back on this link, ours among them, and the stream would send them out again
+		if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_DISTANCE_SENSOR) {
+			handle_message_distance_sensor(msg);
+		}
+
 		break;
 
 	case MAVLINK_MSG_ID_FOLLOW_TARGET:
@@ -1809,6 +1814,16 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		const bool thrust = !(type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE);
 		const bool has_thrust = thrust || thrust_body;
 
+		const matrix::Quatf q{attitude_target.q};
+		const float q_norm = q.norm();
+
+		if (attitude && (!PX4_ISFINITE(q_norm) || (q_norm < 1e-3f))) {
+			// Drop the whole message, including the offboard heartbeat, so the offboard loss failsafe
+			// still triggers if a companion only sends unusable attitudes.
+			// Keep in sync with the check in AttitudeControl::setAttitudeSetpoint().
+			return;
+		}
+
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
 
@@ -1823,7 +1838,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		if (attitude && has_thrust) {
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 
-			const matrix::Quatf q{attitude_target.q};
 			q.copyTo(attitude_setpoint.q_d);
 
 			// TODO: review use case

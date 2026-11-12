@@ -62,10 +62,20 @@ void AttitudeControl::setRefModelFrequency(float omega_n)
 	_kq      = _omega_n * _omega_n;
 }
 
-void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
+bool AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_setpoint, const float dt)
 {
-	Quatf qd_normalized = qd;
-	qd_normalized.normalize();
+	// The reference model integrates from its previous state, so a single invalid setpoint would make
+	// it NaN until reboot. Keep tracking the last valid reference instead.
+	// A zero, non-finite or overflowing quaternion has no attitude: normalizing it gives NaN or zero.
+	// Keep in sync with handle_message_set_attitude_target() in mavlink_receiver.cpp, which drops
+	// these messages so they do not keep offboard alive.
+	const float qd_norm = qd.norm();
+
+	if (!PX4_ISFINITE(qd_norm) || (qd_norm < 1e-3f)) {
+		return false;
+	}
+
+	const Quatf qd_normalized = qd / qd_norm;
 
 	if (_ref_initialized && dt > 0.f) {
 		propagateReferenceModel(qd_normalized, yawspeed_setpoint, dt);
@@ -77,6 +87,8 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		_omega_command.zero();
 		_ref_initialized = true;
 	}
+
+	return true;
 }
 
 void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)
