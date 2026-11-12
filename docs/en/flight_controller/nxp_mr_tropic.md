@@ -45,7 +45,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Serial ports:** 5 (`GPS`, `TELEM1`, `TELEM2`, `AUX`, `RC`), plus the debug console and an ESC telemetry input; `TELEM1` and `TELEM2` have full flow control
 - **I2C buses:** 3 (I2C4 internal; I2C1 and I2C3 external), with 1 external port (`I2C`) for additional sensors and payloads
 - **SPI buses:** 2 internal (SPI3, SPI4), plus 1 external (`SPI (OSD)`) with 1 chip select line, 1 data-ready line and 1 reset line, not used by the default firmware
-- **CAN buses:** 1 (CAN FD, NXP TJA1462ATK transceiver, 120 Ω termination resistor on board)
+- **CAN buses:** 1 (CAN FD capable, currently configured as classic CAN, NXP TJA1462ATK transceiver, 120 Ω termination resistor on board)
 - **Ethernet:** 100BASE-T1, 100 Mbps, for transformerless applications and high-speed communication with mission computers (NXP TJA1103 PHY)
 - **USB:** USB-C, high speed (480 Mbps)
 - **RC input:** Yes, dedicated input for [CRSF/ELRS](../telemetry/crsf_telemetry.md)
@@ -57,12 +57,12 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Input voltage:** 5.5 V maximum
 - **USB power input:** 5 V
 - **Current draw:** typically 0.25–0.35 A at 5 V
-- **Power monitoring:** 1 digital input on `POWER` (INA226, INA228 or INA238, detected automatically); no analog input
+- **Power monitoring:** 1 digital input on `POWER` (Any power module with an INA226 at address `0x41`, or an INA228 or INA238 at `0x45`, is detected automatically.); no analog input
 
 ### Mechanical Data {#mechanical_data}
 
-- **Dimensions:** 46 x 45 x 1.57 mm (standard baseboard)
-- **Weight:** 12 g (standard baseboard)
+- **Dimensions:** 46 x 45 x 1.57 mm
+- **Weight:** 12 g
 - **Operating and storage temperature:** 0–85 °C
 
 ## Pinouts {#pinouts}
@@ -104,13 +104,13 @@ The schematic is [SPF-94468_F.pdf](https://github.com/NXP-Robotics/MR-VMU-TROPIC
 
 ## Power {#power}
 
-The board has two power rails: **POWER1** and **USB**.
-The **POWER1** rail is supplied via the `J2` connector (the 6-circuit [2.00 mm pitch CLIK-Mate wire-to-board PCB receptacle](https://www.molex.com/en-us/products/part-detail/5024430670)) and directly powers the following ports: `I2C` (`J10`), `GPS` (`J4`), `AUX` (`J7`), `CAN` (`J5`), `TELEM1` (`J8`), `TELEM2` (`J9`), `RC` (`J11`) and `SPI (OSD)` (`J6`).
+The board has two power rails: **POWER** and **USB**.
+The **POWER** rail is supplied via the `J2` connector (the 6-circuit [2.00 mm pitch CLIK-Mate wire-to-board PCB receptacle](https://www.molex.com/en-us/products/part-detail/5024430670)) and directly powers the following ports: `I2C` (`J10`), `GPS` (`J4`), `AUX` (`J7`), `CAN` (`J5`), `TELEM1` (`J8`), `TELEM2` (`J9`), `RC` (`J11`) and `SPI (OSD)` (`J6`).
 
 ::: warning
 Feed only 5 V into `POWER` (`J2`): there is no regulator behind this connector, and a higher voltage damages the board.
 Every other 5 V pin on the board is an output: never feed power into it.
-Any device connected to the ports listed above must be compatible with the **POWER1** voltage rail.
+Any device connected to the ports listed above must be compatible with the **POWER** voltage rail.
 :::
 
 Battery monitoring is digital, over I2C (I2C3 on the `POWER` port).
@@ -130,14 +130,14 @@ See [Battery and Power Module Setup](../config/battery.md) for configuration.
 | Rail       | Minimum | Maximum |
 | ---------- | ------- | ------- |
 | **USB**    | 4.5 V   | 5.5 V   |
-| **POWER1** | 4.9 V   | 5.5 V   |
+| **POWER**  | 4.9 V   | 5.5 V   |
 
 ### Absolute Maximum Ratings
 
 | Rail       | Minimum | Maximum |
 | ---------- | ------- | ------- |
 | **USB**    | 0 V     | 6 V     |
-| **POWER1** | 0 V     | 6 V     |
+| **POWER**  | 0 V     | 6 V     |
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -202,6 +202,7 @@ The default firmware also includes DSM, GHST and S.BUS drivers.
 To use one of these protocols, set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to `Disabled`, and then set [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) or [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller`.
 Only one protocol can be active on a port.
 
+DSM binding is not supported - receivers must be already bound.
 PPM receivers are not supported, because `RC` is a serial port.
 PWM receivers, which need a PPM encoder, can't be used either.
 
