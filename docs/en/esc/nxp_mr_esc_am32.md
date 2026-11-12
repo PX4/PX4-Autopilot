@@ -16,6 +16,20 @@ Order this module from:
 
 - [NXP MR-ESC-AM32](https://www.nxp.com/part/MR-ESC-AM32)
 
+## Hardware Specifications
+
+- Battery Voltage: 2-6s
+  - 5.5V Minimum
+  - 24V Maximum
+- Current Rating:  25 A continuous current, 50A peak current
+- Input Protocols (auto-detected)
+  - DShot
+  - Bidirectional DShot
+  - PWM
+- 6 Pin JST-SH Debug
+- Dimensions
+  - Size: approx. 42mm x 24mm
+
 ## Hardware Setup
 
 ### Wiring
