@@ -82,8 +82,8 @@ void MecanumOffboardMode::offboardControl()
 		const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
 		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 		surface_vehicle_speed_setpoint.timestamp = timestamp;
-		surface_vehicle_speed_setpoint.speed_body_x = velocity_in_body_frame(0);
-		surface_vehicle_speed_setpoint.speed_body_y = velocity_in_body_frame(1);
+		surface_vehicle_speed_setpoint.x = velocity_in_body_frame(0);
+		surface_vehicle_speed_setpoint.y = velocity_in_body_frame(1);
 		_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 		surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
 		surface_vehicle_attitude_setpoint.timestamp = timestamp;

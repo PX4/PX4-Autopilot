@@ -39,7 +39,7 @@ AckermannSpeedControl::AckermannSpeedControl(ModuleParams *parent) :
 	ModuleParams(parent),
 	RoverControllerWorkItem("rover_ackermann_speed_control", ORB_ID(vehicle_local_position))
 {
-	_rover_throttle_setpoint_pub.advertise();
+	_surface_vehicle_throttle_setpoint_pub.advertise();
 	_surface_vehicle_speed_status_pub.advertise();
 	updateParams();
 }
@@ -72,13 +72,13 @@ void AckermannSpeedControl::updateSpeedControl()
 	if (PX4_ISFINITE(_speed_setpoint)) {
 		const float speed_setpoint = math::constrain(_speed_setpoint, -_param_ro_speed_limit.get(),
 					     _param_ro_speed_limit.get());
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		rover_throttle_setpoint.timestamp = _timestamp;
-		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
-				speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-				_param_ro_max_thr_speed.get(), dt);
-		rover_throttle_setpoint.throttle_body_y = NAN;
-		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+		surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
+		surface_vehicle_throttle_setpoint.timestamp = _timestamp;
+		surface_vehicle_throttle_setpoint.x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
+						      speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+						      _param_ro_max_thr_speed.get(), dt);
+		surface_vehicle_throttle_setpoint.y = NAN;
+		_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
 	}
 
 	// Publish speed controller status (logging only)
@@ -113,7 +113,7 @@ void AckermannSpeedControl::updateSubscriptions()
 	if (_surface_vehicle_speed_setpoint_sub.updated()) {
 		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint;
 		_surface_vehicle_speed_setpoint_sub.copy(&surface_vehicle_speed_setpoint);
-		_speed_setpoint = surface_vehicle_speed_setpoint.speed_body_x;
+		_speed_setpoint = surface_vehicle_speed_setpoint.x;
 	}
 }
 

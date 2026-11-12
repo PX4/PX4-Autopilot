@@ -39,7 +39,7 @@ DifferentialSpeedControl::DifferentialSpeedControl(ModuleParams *parent) :
 	ModuleParams(parent),
 	RoverControllerWorkItem("rover_differential_speed_control", ORB_ID(vehicle_local_position))
 {
-	_rover_throttle_setpoint_pub.advertise();
+	_surface_vehicle_throttle_setpoint_pub.advertise();
 	_surface_vehicle_speed_status_pub.advertise();
 	updateParams();
 }
@@ -71,13 +71,13 @@ void DifferentialSpeedControl::updateSpeedControl()
 	// Throttle Setpoint
 	if (PX4_ISFINITE(_speed_setpoint)) {
 		const float speed_setpoint = calcSpeedSetpoint();
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		rover_throttle_setpoint.timestamp = _timestamp;
-		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
-				speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-				_param_ro_max_thr_speed.get(), dt);
-		rover_throttle_setpoint.throttle_body_y = 0.f;
-		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+		surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
+		surface_vehicle_throttle_setpoint.timestamp = _timestamp;
+		surface_vehicle_throttle_setpoint.x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
+						      speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+						      _param_ro_max_thr_speed.get(), dt);
+		surface_vehicle_throttle_setpoint.y = 0.f;
+		_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
 	}
 
 	// Publish speed controller status (logging only)
@@ -112,7 +112,7 @@ void DifferentialSpeedControl::updateSubscriptions()
 	if (_surface_vehicle_speed_setpoint_sub.updated()) {
 		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint;
 		_surface_vehicle_speed_setpoint_sub.copy(&surface_vehicle_speed_setpoint);
-		_speed_setpoint = surface_vehicle_speed_setpoint.speed_body_x;
+		_speed_setpoint = surface_vehicle_speed_setpoint.x;
 	}
 
 }

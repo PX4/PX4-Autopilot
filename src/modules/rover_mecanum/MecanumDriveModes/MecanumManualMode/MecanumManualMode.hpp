@@ -47,7 +47,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/surface_vehicle_throttle_setpoint.h>
 #include <uORB/topics/surface_vehicle_steering_setpoint.h>
 #include <uORB/topics/surface_vehicle_rate_setpoint.h>
 #include <uORB/topics/surface_vehicle_attitude_setpoint.h>
@@ -114,7 +114,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// uORB publications
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<surface_vehicle_throttle_setpoint_s> _surface_vehicle_throttle_setpoint_pub{ORB_ID(surface_vehicle_throttle_setpoint)};
 	uORB::Publication<surface_vehicle_steering_setpoint_s> _surface_vehicle_steering_setpoint_pub{ORB_ID(surface_vehicle_steering_setpoint)};
 	uORB::Publication<surface_vehicle_rate_setpoint_s>     _surface_vehicle_rate_setpoint_pub{ORB_ID(surface_vehicle_rate_setpoint)};
 	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};

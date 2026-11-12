@@ -10,11 +10,11 @@ Surface Vehicle Speed Setpoint.
 
 ## Fields
 
-| Name                                      | Type      | Unit [Frame] | Range/Enum                          | Description                                                                    |
-| ----------------------------------------- | --------- | ------------ | ----------------------------------- | ------------------------------------------------------------------------------ |
-| <a id="fld_timestamp"></a>timestamp       | `uint64`  | us           |                                     | Time since system start                                                        |
-| <a id="fld_speed_body_x"></a>speed_body_x | `float32` | m/s [Body]   | [-inf (Backwards) : inf (Forwards)] | Speed setpoint in body x direction                                             |
-| <a id="fld_speed_body_y"></a>speed_body_y | `float32` | m/s [Body]   | [-inf (Left) : inf (Right)]         | Mecanum only: Speed setpoint in body y direction (Invalid: NaN If not mecanum) |
+| Name                                | Type      | Unit [Frame] | Range/Enum                          | Description                                                                      |
+| ----------------------------------- | --------- | ------------ | ----------------------------------- | -------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`  | us           |                                     | Time since system start                                                          |
+| <a id="fld_x"></a>x                 | `float32` | m/s [Body]   | [-inf (Backwards) : inf (Forwards)] | Speed setpoint along the body X axis                                             |
+| <a id="fld_y"></a>y                 | `float32` | m/s [Body]   | [-inf (Left) : inf (Right)]         | Mecanum only: Speed setpoint along the body Y axis (Invalid: NaN If not mecanum) |
 
 ## Source Message
 
@@ -25,9 +25,9 @@ Surface Vehicle Speed Setpoint.
 ```c
 # Surface Vehicle Speed Setpoint
 
-uint64 timestamp      # [us] Time since system start
-float32 speed_body_x  # [m/s] [@range -inf (Backwards), inf (Forwards)] [@frame Body] Speed setpoint in body x direction
-float32 speed_body_y  # [m/s] [@range -inf (Left), inf (Right)] [@frame Body] [@invalid NaN If not mecanum] Mecanum only: Speed setpoint in body y direction
+uint64 timestamp  # [us] Time since system start
+float32 x         # [m/s] [@range -inf (Backwards), inf (Forwards)] [@frame Body] Speed setpoint along the body X axis
+float32 y         # [m/s] [@range -inf (Left), inf (Right)] [@frame Body] [@invalid NaN If not mecanum] Mecanum only: Speed setpoint along the body Y axis
 ```
 
 :::

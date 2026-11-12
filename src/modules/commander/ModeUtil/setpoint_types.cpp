@@ -119,20 +119,20 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverThrottleAttitude:
+	case SetpointType::SurfaceVehicleThrottleAttitude:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverThrottleRate:
+	case SetpointType::SurfaceVehicleThrottleRate:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverThrottleSteering:
+	case SetpointType::SurfaceVehicleThrottleSteering:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
@@ -196,9 +196,9 @@ SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehic
 	case SetpointType::SurfaceVehicleSpeedAttitude:
 	case SetpointType::SurfaceVehicleSpeedRate:
 	case SetpointType::SurfaceVehicleSpeedSteering:
-	case SetpointType::RoverThrottleAttitude:
-	case SetpointType::RoverThrottleRate:
-	case SetpointType::RoverThrottleSteering:
+	case SetpointType::SurfaceVehicleThrottleAttitude:
+	case SetpointType::SurfaceVehicleThrottleRate:
+	case SetpointType::SurfaceVehicleThrottleSteering:
 		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 			return SetpointTypeResult::Success;
 		}

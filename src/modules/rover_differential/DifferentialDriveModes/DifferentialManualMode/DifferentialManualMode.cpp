@@ -38,7 +38,7 @@ using namespace time_literals;
 DifferentialManualMode::DifferentialManualMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
-	_rover_throttle_setpoint_pub.advertise();
+	_surface_vehicle_throttle_setpoint_pub.advertise();
 	_surface_vehicle_steering_setpoint_pub.advertise();
 	_surface_vehicle_rate_setpoint_pub.advertise();
 	_surface_vehicle_attitude_setpoint_pub.advertise();
@@ -63,11 +63,11 @@ void DifferentialManualMode::manual()
 	surface_vehicle_steering_setpoint.normalized_steering_setpoint = _param_rd_yaw_stk_gain.get() * math::superexpo<float>
 			(sticks.yaw, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 	_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = sticks.forward;
-	rover_throttle_setpoint.throttle_body_y = 0.f;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
+	surface_vehicle_throttle_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_throttle_setpoint.x = sticks.forward;
+	surface_vehicle_throttle_setpoint.y = 0.f;
+	_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
 }
 
 void DifferentialManualMode::manualParking()
@@ -79,11 +79,11 @@ void DifferentialManualMode::manualParking()
 	const float throttle_left = max_throttle * manual_control_setpoint.throttle;
 	const float throttle_right = max_throttle * manual_control_setpoint.pitch;
 
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = (throttle_left + throttle_right) / 2.f;
-	rover_throttle_setpoint.throttle_body_y = 0.f;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
+	surface_vehicle_throttle_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_throttle_setpoint.x = (throttle_left + throttle_right) / 2.f;
+	surface_vehicle_throttle_setpoint.y = 0.f;
+	_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
 	surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
 	surface_vehicle_steering_setpoint.timestamp = hrt_absolute_time();
 	surface_vehicle_steering_setpoint.normalized_steering_setpoint = (throttle_left - throttle_right) / 2.f;
@@ -96,11 +96,11 @@ void DifferentialManualMode::acro()
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
 			_param_ro_stick_map.get());
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = sticks.forward;
-	rover_throttle_setpoint.throttle_body_y = 0.f;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
+	surface_vehicle_throttle_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_throttle_setpoint.x = sticks.forward;
+	surface_vehicle_throttle_setpoint.y = 0.f;
+	_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
 	surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 	surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 	surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(sticks.yaw,
@@ -121,14 +121,14 @@ void DifferentialManualMode::stab()
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
 			_param_ro_stick_map.get());
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = sticks.forward;
-	rover_throttle_setpoint.throttle_body_y = 0.f;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
+	surface_vehicle_throttle_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_throttle_setpoint.x = sticks.forward;
+	surface_vehicle_throttle_setpoint.y = 0.f;
+	_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
 
 	if (fabsf(sticks.yaw) > FLT_EPSILON
-	    || fabsf(rover_throttle_setpoint.throttle_body_x) < FLT_EPSILON) {
+	    || fabsf(surface_vehicle_throttle_setpoint.x) < FLT_EPSILON) {
 		_stab_yaw_setpoint = NAN;
 
 		// Rate control
@@ -186,7 +186,7 @@ void DifferentialManualMode::position()
 		// Speed control
 		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 		surface_vehicle_speed_setpoint.timestamp = hrt_absolute_time();
-		surface_vehicle_speed_setpoint.speed_body_x = speed_setpoint;
+		surface_vehicle_speed_setpoint.x = speed_setpoint;
 		_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 		// Rate control
