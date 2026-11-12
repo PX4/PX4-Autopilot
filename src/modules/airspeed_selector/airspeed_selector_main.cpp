@@ -47,7 +47,6 @@
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
-#include <lib/fw_performance_model/PerformanceModel.hpp>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -160,7 +159,6 @@ private:
 	int32_t _number_of_airspeed_sensors{0}; /**<  number of airspeed sensors in use (detected during initialization)*/
 	int32_t _prev_number_of_airspeed_sensors{0}; /**<  number of airspeed sensors in previous loop (to detect a new added sensor)*/
 	AirspeedValidator _airspeed_validator[MAX_NUM_AIRSPEED_SENSORS] {}; /**< airspeedValidator instances (one for each sensor) */
-	PerformanceModel _performance_model; /**< used for the weight ratio (WEIGHT_GROSS / WEIGHT_BASE) */
 
 	matrix::Quatf _q_att;
 	hrt_abstime _time_now_usec{0};
@@ -228,6 +226,8 @@ private:
 	float _param_pitch_sp_offset{0.0f};
 	param_t _param_handle_fw_thr_max{PARAM_INVALID};
 	float _param_fw_thr_max{0.0f};
+	param_t _param_handle_weight_base{PARAM_INVALID};
+	param_t _param_handle_weight_gross{PARAM_INVALID};
 
 	AlphaFilter<float> _throttle_filtered{_kThrottleFilterTimeConstant};
 	uint64_t _t_last_throttle_fw{0};
@@ -282,6 +282,8 @@ AirspeedModule::AirspeedModule():
 {
 	_param_handle_pitch_sp_offset = param_find("FW_PSP_OFF");
 	_param_handle_fw_thr_max = param_find("FW_THR_MAX");
+	_param_handle_weight_base = param_find("WEIGHT_BASE");
+	_param_handle_weight_gross = param_find("WEIGHT_GROSS");
 	// initialise parameters
 	update_params();
 
@@ -570,10 +572,21 @@ AirspeedModule::Run()
 void AirspeedModule::update_params()
 {
 	updateParams();
-	_performance_model.updateParameters();
 
-	// ASPD_TR_VREF is defined at WEIGHT_BASE, the lift-equivalent airspeed scales with sqrt(weight)
-	const float transition_lift_vref = _param_aspd_tr_vref.get() * sqrtf(_performance_model.getWeightRatio());
+	// ASPD_TR_VREF is defined at WEIGHT_BASE, the lift-equivalent airspeed scales with sqrt(weight).
+	// The weight parameters are looked up by handle since they only exist on builds with the FW performance model.
+	float weight_ratio = 1.f;
+	float weight_base = 0.f;
+	float weight_gross = 0.f;
+
+	if (_param_handle_weight_base != PARAM_INVALID && _param_handle_weight_gross != PARAM_INVALID
+	    && param_get(_param_handle_weight_base, &weight_base) == PX4_OK
+	    && param_get(_param_handle_weight_gross, &weight_gross) == PX4_OK
+	    && weight_base > FLT_EPSILON && weight_gross > FLT_EPSILON) {
+		weight_ratio = math::constrain(weight_gross / weight_base, 0.5f, 2.f);
+	}
+
+	const float transition_lift_vref = _param_aspd_tr_vref.get() * sqrtf(weight_ratio);
 
 	if (_param_handle_pitch_sp_offset != PARAM_INVALID) {
 		param_get(_param_handle_pitch_sp_offset, &_param_pitch_sp_offset);
