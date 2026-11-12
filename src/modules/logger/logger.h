@@ -79,6 +79,7 @@ struct LoggerSubscription : public uORB::SubscriptionInterval {
 	{}
 
 	uint8_t msg_id{MSG_ID_INVALID};
+	bool enabled{true}; ///< if false, the topic is not written to the log
 };
 
 class Logger : public ModuleBase, public ModuleParams
@@ -232,7 +233,7 @@ private:
 	void select_imu_fifo_instances();
 
 	template<typename T>
-	void select_fifo_instance(const orb_metadata *topic, uint32_t device_id);
+	void select_fifo_instance(int sub_idx, uint32_t device_id);
 
 	void start_log_file(LogType type);
 
@@ -379,6 +380,8 @@ private:
 
 	LoggerSubscription	 			*_subscriptions{nullptr}; ///< all subscriptions for full & mission log (in front)
 	int						_num_subscriptions{0};
+	int						_gyro_fifo_sub_idx{-1}; ///< sensor_gyro_fifo subscription added by the logging profile
+	int						_accel_fifo_sub_idx{-1}; ///< sensor_accel_fifo subscription added by the logging profile
 	MissionSubscription 				_mission_subscriptions[MAX_MISSION_TOPICS_NUM] {}; ///< additional data for mission subscriptions
 	int						_num_mission_subs{0};
 	LoggerSubscription				_event_subscription; ///< Subscription for the event topic (handled separately)

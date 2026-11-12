@@ -459,6 +459,10 @@ bool Logger::copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe)
 {
 	LoggerSubscription &sub = _subscriptions[sub_idx];
 
+	if (!sub.enabled) {
+		return false;
+	}
+
 	bool updated = false;
 
 	if (sub.valid()) {
@@ -558,6 +562,8 @@ bool Logger::initialize_topics()
 
 	delete[](_subscriptions);
 	_subscriptions = nullptr;
+	_gyro_fifo_sub_idx = -1;
+	_accel_fifo_sub_idx = -1;
 
 	if (logged_topics.subscriptions().count > 0) {
 		_subscriptions = new LoggerSubscription[logged_topics.subscriptions().count];
@@ -571,6 +577,15 @@ bool Logger::initialize_topics()
 			const LoggedTopics::RequestedSubscription &sub = logged_topics.subscriptions().sub[i];
 			_subscriptions[i] = LoggerSubscription(sub.id, sub.interval_ms, sub.instance);
 			_subscriptions[i].subscribe();
+
+			if (sub.use_selected_imu_instance) {
+				if (sub.id == ORB_ID::sensor_gyro_fifo) {
+					_gyro_fifo_sub_idx = i;
+
+				} else if (sub.id == ORB_ID::sensor_accel_fifo) {
+					_accel_fifo_sub_idx = i;
+				}
+			}
 		}
 	}
 
@@ -1486,44 +1501,49 @@ void Logger::select_imu_fifo_instances()
 		return;
 	}
 
-	sensor_selection_s sensor_selection;
+	sensor_selection_s sensor_selection{};
+	uORB::Subscription{ORB_ID(sensor_selection)}.copy(&sensor_selection);
 
-	if (uORB::Subscription{ORB_ID(sensor_selection)}.copy(&sensor_selection)) {
-		select_fifo_instance<sensor_gyro_fifo_s>(ORB_ID(sensor_gyro_fifo), sensor_selection.gyro_device_id);
-		select_fifo_instance<sensor_accel_fifo_s>(ORB_ID(sensor_accel_fifo), sensor_selection.accel_device_id);
-	}
+	select_fifo_instance<sensor_gyro_fifo_s>(_gyro_fifo_sub_idx, sensor_selection.gyro_device_id);
+	select_fifo_instance<sensor_accel_fifo_s>(_accel_fifo_sub_idx, sensor_selection.accel_device_id);
 }
 
 template<typename T>
-void Logger::select_fifo_instance(const orb_metadata *topic, uint32_t device_id)
+void Logger::select_fifo_instance(int sub_idx, uint32_t device_id)
 {
-	if (device_id == 0) {
+	if (sub_idx < 0) {
+		// not enabled in the logging profile
 		return;
 	}
 
-	LoggerSubscription *fifo_sub = nullptr;
+	LoggerSubscription &fifo_sub = _subscriptions[sub_idx];
+	const orb_metadata *topic = fifo_sub.get_topic();
 
-	for (int i = 0; i < _num_subscriptions; ++i) {
-		if (_subscriptions[i].get_topic() == topic) {
-			if (fifo_sub) {
-				// multiple instances are explicitly logged, leave them as configured
-				return;
-			}
+	bool found = false;
 
-			fifo_sub = &_subscriptions[i];
-		}
-	}
-
-	if (!fifo_sub) {
-		return;
-	}
-
-	for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; ++instance) {
+	// without a selection (device_id 0) there is nothing to match
+	for (uint8_t instance = 0; (device_id != 0) && (instance < ORB_MULTI_MAX_INSTANCES); ++instance) {
 		T fifo;
 
 		if (uORB::Subscription{topic, instance}.copy(&fifo) && (fifo.device_id == device_id)) {
-			fifo_sub->ChangeInstance(instance);
-			return;
+			found = fifo_sub.ChangeInstance(instance);
+			break;
+		}
+	}
+
+	if (!found) {
+		// log nothing if no IMU is selected yet or it does not publish FIFO data
+		fifo_sub.enabled = false;
+		return;
+	}
+
+	// do not log an instance twice if it is also requested through logger_topics.txt
+	fifo_sub.enabled = true;
+
+	for (int i = 0; i < _num_subscriptions; ++i) {
+		if (i != sub_idx && _subscriptions[i].get_topic() == topic
+		    && _subscriptions[i].get_instance() == fifo_sub.get_instance()) {
+			fifo_sub.enabled = false;
 		}
 	}
 }
@@ -1995,7 +2015,7 @@ void Logger::write_all_add_logged_msg(LogType type)
 	for (int i = 0; i < sub_count; ++i) {
 		LoggerSubscription &sub = _subscriptions[i];
 
-		if (sub.valid()) {
+		if (sub.valid() && sub.enabled) {
 			write_add_logged_msg(type, sub);
 			added_subscriptions = true;
 		}
