@@ -20,27 +20,27 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- **Main FMU processor:** STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2 MB flash, 1 MB RAM)
-- **IO processor:** STM32F103 (32-bit Arm® Cortex®-M3, 72 MHz, 20 KB SRAM)
+- **Main FMU processor:** STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2 MB flash, 1 MB RAM)  [STM32H753](https://www.st.com/en/microcontrollers-microprocessors/stm32h753vi.html)
+- **IO processor:** STM32F103 (32-bit Arm® Cortex®-M3, 72 MHz, 20 KB SRAM) [STM32H103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103)
 
 ### Sensors {#sensors}
 
-- **IMU:** 3x ICM-45686 (SPI1, SPI2, SPI3): IMU2 and IMU3 with vibration isolation, IMU1(spi1) without
-- **Barometer:** 2x ICP-20100 (one on I2C4)
-- **Magnetometer:** RM3100 (I2C4)
-- **Heater:** 1 W, keeps the sensors warm in extreme conditions
+- **IMU:** 3x ICM-45686 (SPI1, SPI2, SPI3): SPI2 and SPI3 with vibration isolation, SPI1 without [ICM-45686](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686)
+- **Barometer:** 2x ICP-20100 (I2C4 and I2C2 bus) [ICP-20100](https://www.invensense.tdk.com/en-us/products/smartpressure/icp-20100)
+- **Magnetometer:** RM3100 (I2C4) [RM3100](https://www.pnisensor.com/rm3100/)
+- **Heater:** 1W,One sensor heater controlled by the PX4 heater driver through GPIO PB10. It is enabled by setting `SENS_EN_THERMAL` to `1`.
 
 ### Interfaces {#interfaces}
 
 - **PWM outputs:** 16: 8 FMU outputs (`AUX`) and 8 PX4IO outputs (`MAIN`)
-- **Serial ports:** 8 (`GPS & SAFETY`, `GPS 2`, `TELEM 1`, `TELEM 2`, `TELEM 3`, `UART4&I2C`, PX4IO/RC)
-  - `TELEM 2` and `TELEM 3` have full flow control,`TELEM 1` supports TX/RX without RTS/CTS.
+- **Serial ports:** 8 (`GPS & SAFETY`, `GPS 2`, `TELEM 1`, `TELEM 2`, `TELEM 3`, `UART4&I2C`, PX4IO/RC, Debug Console)
+  - `TELEM 2` and `TELEM 3` have full flow control; `TELEM 1` supports TX/RX without RTS/CTS.
   - `UART4&I2C` carries a serial port and an I2C bus
 - **GPS ports:** 2
   - `GPS & SAFETY` (GPS1): full GPS port with safety switch
   - `GPS 2`: basic GPS port with I2C
 - **I2C buses:** 4 (I2C4 internal; I2C1 on `GPS & SAFETY`, I2C2 on `GPS 2`, I2C3 on `UART4&I2C`)
-- **SPI buses:** 5, of which SPI6 is external (`SPI`) with 2 chip select lines, 2 data-ready lines, 1 SPI SYNC line, and 1 SPI reset line on `AD&IO`
+- **SPI buses:** 5, of which SPI6 is external (`SPI`) with 2 chip select lines, 2 data-ready lines and 1 SPI SYNC line; its reset line on `AD&IO`
 - **CAN buses:** 2 (`CAN 1`, `CAN 2`), each with individual silent control or ESC RX-MUX control
 - **Ethernet:** 100 Mbps, transformerless (`ETH`)
 - **USB:** 2 ports: USB Type-C (`TYPE-C`) and JST GH1.25 (`USB`)
@@ -61,7 +61,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Mechanical Data {#mechanical_data}
 
-- **Weight:** 89 g(module + baseboard)
+- **Weight:** 89 g (module + baseboard)
+- **Dimensions:** 84.6 x 39.6 x 32.7 mm
 - **Form factor:** [Pixhawk Autopilot Bus (PAB)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
 - **Operating and storage temperature:** -20 to 85 °C
 
@@ -71,7 +72,7 @@ Order from [Droneer](https://www.droneer.com).
 
 ## Pinouts {#pinouts}
 
-![Droneer X6 Pinout](../../assets/flight_controller/droneer_x6/droneerx6_pinout.png)
+![Droneer X6 Pinout](../../assets/flight_controller/droneer_x6/droneerx6_pinout.svg)
 
 ## Power {#power}
 
@@ -98,11 +99,11 @@ The 8 `AUX` outputs are in 3 groups:
 
 - Outputs `AUX` 1-4 in group1
 - Outputs `AUX` 5-6 in group2
-- Outputs `AUX` 7-8 in group3 (TIM12 has no DMA, so these support PWM protocols only)
+- Outputs `AUX` 7-8 in group3
 
 All outputs within the same group must use the same output protocol and rate.
 
-`FMU_CAP1` (Timer1) on the `AD&IO` port is a capture channel.
+`FMU_CAP1` (TIM1) on the `AD&IO` port is a capture channel.
 
 The PWM signal level is 3.3 V by default.
 Set the `PWM_VOLT_SEL` parameter to `1` for 5 V, then reboot.
@@ -110,12 +111,12 @@ Set the `PWM_VOLT_SEL` parameter to `1` for 5 V, then reboot.
 ## Ethernet {#ethernet}
 
 The `ETH` port provides 100 Mbps transformerless Ethernet.
-By default MAVLink instance 2 runs on Ethernet, broadcasting on UDP port 14550.
+By default [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) 2 runs on Ethernet, broadcasting on UDP port 14550.
 See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md).
 
 ## SD Card (Optional) {#sd_card}
 
-The flight controller has a microSD card slot.
+The flight controller has a microSD card slot.it on the module's end face, beside TYPE-C.
 See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
 
 ## Serial Port Mapping {#serial_port_mapping}
@@ -124,30 +125,47 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 | ------ | ---------- | --------------------- | ------------ |
 | USART1 | /dev/ttyS0 | `GPS & SAFETY` (GPS1) | No           |
 | USART2 | /dev/ttyS1 | `TELEM 3`             | Yes          |
-| USART3 | /dev/ttyS2 | not user-accessible   | No           |
+| USART3 | /dev/ttyS2 | Debug Console (not user-accessible) | No |
 | UART4  | /dev/ttyS3 | `UART4&I2C`           | No           |
 | UART5  | /dev/ttyS4 | `TELEM 2`             | Yes          |
 | USART6 | /dev/ttyS5 | PX4IO/RC              | No           |
 | UART7  | /dev/ttyS6 | `TELEM 1`             | No           |
 | UART8  | /dev/ttyS7 | `GPS 2`               | No           |
 
+::: info
+The bootloader enables only `UART5` (`TELEM 2`), so connect to `TELEM 2` to flash firmware over a UART.
+:::
+
 ## Assembly {#assembly}
 
 ### Radio Control {#radio_control}
 
-A remote control (RC) radio system is needed only if you want to fly the vehicle manually.
-See [Radio Control Systems](../getting_started/rc_transmitter_receiver.md) for how to choose one.
+A remote control (RC) radio system is required only
+if you want to fly the vehicle manually.
 
-- `SBUS RC` connects to the PX4IO, which detects the [protocols it supports](../modules/modules_driver.md#px4io) automatically (PPM, S.BUS and S.BUS2, Spektrum DSM/DSM2/DSM-X, Yuneec ST24 and Graupner SUMD).
-  It also has an RSSI input (`IO_RSSI_IN`).
-- CRSF and GHST receivers can't be decoded by the PX4IO.
-  Connect them to a free FMU serial port, such as `TELEM 2`, and set [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) to that port.
-  Only one RC port can be active on the FMU.
+See [Radio Control Systems](../getting_started/rc_transmitter_receiver.md)
+for more information.
+
+- `SBUS RC` connects to the PX4IO, which detects the [protocols it supports](../modules/modules_driver.md#px4io) automatically.
+
+- The port also provides an RSSI input (`IO_RSSI_IN`) and a switched 3.3 V supply for Spektrum/DSM receivers.
+
+- [CRSF](../telemetry/crsf_telemetry.md) and GHST receivers cannot be decoded by the PX4IO. Connect them to a free FMU serial port, such as `TELEM 2`, and configure
+  [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) accordingly.
+
+- Only one FMU RC serial port can be active at a time.
+
+- PWM receivers with individual channel wires require a [PPM encoder](../getting_started/rc_transmitter_receiver.md).
+
+- The separate `PPM` connector is connected to the FMU (PI5/TIM8_CH1), but is not supported by the default firmware when PX4IO is running.
+For PPM-Sum receivers, use the `SBUS RC` input, which is decoded by the PX4IO.
 
 ### GPS & Compass {#gps_compass}
 
 - `GPS & SAFETY` (GPS1): USART1, I2C1, safety switch input (`SAFETY_IN`) and safety LED (`LED_SAFETY`).
 - `GPS 2`: UART8 and I2C2.
+- The safety switch is enabled by default.
+  To disable the safety switch check, set [CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY) to `22027`.
 
 The flight controller has an onboard RM3100 magnetometer.
 See [Mounting a GPS/Compass](../assembly/mount_gps_compass.md).
@@ -160,7 +178,8 @@ See [Mounting a GPS/Compass](../assembly/mount_gps_compass.md).
 ### CAN {#can}
 
 `CAN 1` and `CAN 2` connect [DroneCAN](../dronecan/index.md) peripherals.
-`POWER 1` and `POWER 2` also carry CAN1 and CAN2.
+`POWER 1` and `POWER 2` provide 5 V power and CAN connectivity for compatible DroneCAN power modules.
+Battery voltage and current information are received through DroneCAN from compatible digital power modules.
 DroneCAN is disabled by default: enable it with [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE).
 
 ## Building Firmware {#building_firmware}
@@ -178,6 +197,6 @@ make droneer_x6_default
 
 ## Further Information {#further_information}
 
-- [Droneer](https://www.droneer.com)
+- [Droneer](https://droneer.com)
 - [Pixhawk Autopilot FMUv6X Standard (DS-012)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)
 - [Pixhawk Autopilot Bus Standard (DS-010)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
