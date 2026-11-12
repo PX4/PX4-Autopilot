@@ -97,6 +97,30 @@ target_include_directories(mavlink_c
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
 )
 
+# The handlers and streams modules add with px4_add_mavlink_extension(), as two headers the
+# receiver and the stream list include; a later registration would go unseen, so it fails.
+get_property(mavlink_extension_handler_headers GLOBAL PROPERTY PX4_MAVLINK_EXTENSION_HANDLER_HEADERS)
+get_property(mavlink_extension_handlers GLOBAL PROPERTY PX4_MAVLINK_EXTENSION_HANDLERS)
+get_property(mavlink_extension_stream_headers GLOBAL PROPERTY PX4_MAVLINK_EXTENSION_STREAM_HEADERS)
+get_property(mavlink_extension_streams GLOBAL PROPERTY PX4_MAVLINK_EXTENSION_STREAMS)
+get_property(mavlink_extension_srcs GLOBAL PROPERTY PX4_MAVLINK_EXTENSION_SRCS)
+get_property(mavlink_extension_includes GLOBAL PROPERTY PX4_MAVLINK_EXTENSION_INCLUDES)
+set_property(GLOBAL PROPERTY PX4_MAVLINK_EXTENSIONS_CONFIGURED TRUE)
+
+foreach(kind handler stream)
+	set(MAVLINK_EXTENSION_INCLUDES "")
+	foreach(header ${mavlink_extension_${kind}_headers})
+		string(APPEND MAVLINK_EXTENSION_INCLUDES "#include \"${header}\"\n")
+	endforeach()
+	set(MAVLINK_EXTENSION_LIST "")
+	set(index 0)
+	foreach(class ${mavlink_extension_${kind}s})
+		string(APPEND MAVLINK_EXTENSION_LIST " X(${class}, ${index})")
+		math(EXPR index "${index} + 1")
+	endforeach()
+	configure_file(mavlink_extension_${kind}s.h.in ${CMAKE_CURRENT_BINARY_DIR}/mavlink_extension_${kind}s.h @ONLY)
+endforeach()
+
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
@@ -125,6 +149,11 @@ px4_add_module(
 		MavlinkStatustextHandler.cpp
 		open_drone_id_translations.cpp
 		tune_publisher.cpp
+		${mavlink_extension_srcs}
+	INCLUDES
+		${CMAKE_CURRENT_SOURCE_DIR} # for the sources of extensions
+		${CMAKE_CURRENT_BINARY_DIR}
+		${mavlink_extension_includes}
 	MODULE_CONFIG
 		module.yaml
 		mavlink_params.yaml
