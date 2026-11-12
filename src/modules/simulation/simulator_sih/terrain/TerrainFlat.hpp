@@ -33,29 +33,61 @@
 
 /**
  * @file TerrainFlat.hpp
- * Flat terrain at the default altitude.
+ * Flat terrain at the default altitude, the base of every SIH terrain model.
  */
 
 #pragma once
 
-#include "TerrainBase.hpp"
-
 #include <float.h>
 #include <math.h>
 
+#include <matrix/matrix/math.hpp>
 #include <px4_platform_common/log.h>
 
-class TerrainFlat : public TerrainBase
+class TerrainFlat
 {
 public:
-	bool altitude(double lat_deg, double lon_deg, float &alt) const override
+	virtual ~TerrainFlat() = default;
+
+	/** load terrain data from a file, flat terrain has none, @return false (the reason is printed) */
+	virtual bool load(const char *path)
+	{
+		PX4_ERR("terrain: cannot load %s, PX4 was built without terrain DEM support", path);
+		return false;
+	}
+
+	/** flat ground altitude [m AMSL], also used where the terrain model has no data */
+	void setDefaultAltitude(float alt) { _default_alt = alt; }
+	float defaultAltitude() const { return _default_alt; }
+
+	/**
+	 * Terrain altitude [m AMSL] at a WGS84 position.
+	 * @return false outside the terrain data, alt is then the default altitude
+	 */
+	virtual bool altitude(double lat_deg, double lon_deg, float &alt) const
 	{
 		alt = _default_alt;
 		return true;
 	}
 
-	float rayDistance(double lat_deg, double lon_deg, float alt, const matrix::Vector3f &dir_ned,
-			  float max_distance) const override
+	/**
+	 * Terrain altitude [m AMSL] below the vehicle at a WGS84 position, unlike altitude() it
+	 * keeps track of the vehicle leaving and reentering the terrain data.
+	 */
+	virtual float vehicleGroundAltitude(double lat_deg, double lon_deg)
+	{
+		return _default_alt;
+	}
+
+	/**
+	 * Distance [m] from a WGS84 position along a direction to the terrain.
+	 * @param alt altitude of the start point [m AMSL]
+	 * @param dir_ned unit vector in the local NED frame
+	 * @param max_distance search range [m], a result above it may be returned
+	 * @return NAN if the ray does not hit the terrain within max_distance
+	 */
+	virtual float rayDistance(double lat_deg, double lon_deg, float alt, const matrix::Vector3f &dir_ned,
+				  float max_distance) const
 	{
 		const float cos_tilt = dir_ned(2);
 
@@ -70,8 +102,11 @@ public:
 		return (height > 0.f ? height : 0.f) / cos_tilt;
 	}
 
-	void printStatus() const override
+	virtual void printStatus() const
 	{
 		PX4_INFO("terrain: flat at %.2f m", (double)_default_alt);
 	}
+
+protected:
+	float _default_alt{0.f};
 };

@@ -92,7 +92,7 @@
 #include <sys/time.h>
 #endif
 
-#include "terrain/TerrainFlat.hpp"
+#include "terrain/Terrain.hpp"
 
 using namespace time_literals;
 
@@ -251,18 +251,15 @@ private:
 	float _orient_yaw{0.f};	// heading kept while posing
 #endif // __PX4_POSIX
 
-	void update_ground_alt();
 	// distance from the vehicle to the terrain measured along the body down axis, NAN if the
 	// body down axis does not point at the ground or nothing is hit within max_distance
 	float ground_distance(float max_distance) const;
 
-	// terrain from the start arguments: the -t DEM if supported by the vehicle, flat otherwise
-	// nullptr (and print the reason) on error
-	static TerrainBase *load_terrain(int argc, char *argv[]);
+	// terrain from the start arguments: the -t DEM, flat without it
+	// false (and print the reason) on error or if the vehicle type does not support terrain
+	static bool load_terrain(int argc, char *argv[]);
 
-	static inline TerrainBase *_terrain_loaded{nullptr}; // loaded by task_spawn(), handed over to the instance
-	TerrainBase *_terrain{nullptr}; // owned, terrain in use, never null once instantiated
-	bool _terrain_outside{false}; // vehicle outside the terrain data
+	static inline Terrain _terrain{}; // loaded by task_spawn(), the SIH task stack is too small for the terrain libraries
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
@@ -366,7 +363,6 @@ private:
 	// parameters
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
-	float _h0_applied{0.f};  // SIH_LOC_H0 used for the current origin
 	float _ground_alt{0.f};  // ground altitude below the vehicle [m AMSL]
 	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU, _F_T_MAX, _F_Q_MAX;
 	matrix::Matrix3f _I;    // vehicle inertia matrix

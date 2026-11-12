@@ -506,7 +506,11 @@ bool TerrainDem::resampleToWgs84(const Grid &src)
 
 bool TerrainDem::altitude(double lat_deg, double lon_deg, float &alt) const
 {
-	if (loaded() && _grid.sample(lon_deg, lat_deg, alt)) {
+	if (!loaded()) {
+		return TerrainFlat::altitude(lat_deg, lon_deg, alt);
+	}
+
+	if (_grid.sample(lon_deg, lat_deg, alt)) {
 		return true;
 	}
 
@@ -514,9 +518,29 @@ bool TerrainDem::altitude(double lat_deg, double lon_deg, float &alt) const
 	return false;
 }
 
+float TerrainDem::vehicleGroundAltitude(double lat_deg, double lon_deg)
+{
+	float alt;
+	const bool inside = altitude(lat_deg, lon_deg, alt);
+
+	if (!inside && !_vehicle_outside) {
+		PX4_WARN("terrain: vehicle outside the DEM, using flat ground at %.1f m", (double)_default_alt);
+
+	} else if (inside && _vehicle_outside) {
+		PX4_INFO("terrain: vehicle back inside the DEM");
+	}
+
+	_vehicle_outside = !inside;
+	return alt;
+}
+
 float TerrainDem::rayDistance(double lat_deg, double lon_deg, float alt, const matrix::Vector3f &dir_ned,
 			      float max_distance) const
 {
+	if (!loaded()) {
+		return TerrainFlat::rayDistance(lat_deg, lon_deg, alt, dir_ned, max_distance);
+	}
+
 	if (dir_ned(2) <= 0.f) {
 		return NAN;
 	}
@@ -559,7 +583,16 @@ float TerrainDem::rayDistance(double lat_deg, double lon_deg, float alt, const m
 
 void TerrainDem::printStatus() const
 {
+	if (!loaded()) {
+		TerrainFlat::printStatus();
+		return;
+	}
+
 	PX4_INFO("terrain: %s", path());
 	PX4_INFO("terrain: EPSG:%d, %dx%d cells of %.1f m", epsg(), width(), height(), (double)_cell_size_m);
 	PX4_INFO("terrain: lat [%.5f, %.5f] lon [%.5f, %.5f]", latMin(), latMax(), lonMin(), lonMax());
+
+	if (_vehicle_outside) {
+		PX4_INFO("terrain: vehicle outside the DEM");
+	}
 }

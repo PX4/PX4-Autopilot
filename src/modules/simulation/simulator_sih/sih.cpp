@@ -50,10 +50,6 @@
 #include <drivers/drv_sensor.h>             // to get the simulated sensor device types
 #include <lib/drivers/device/Device.hpp>
 
-#if defined(SIH_TERRAIN_DEM)
-#include "terrain/TerrainDem.hpp"
-#endif
-
 using namespace math;
 using namespace matrix;
 using namespace time_literals;
@@ -100,7 +96,7 @@ Sih::~Sih()
 {
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
-	delete _terrain;
+	_terrain = Terrain{}; // free the DEM
 }
 
 void Sih::run()
@@ -415,18 +411,19 @@ void Sih::parameters_updated()
 	if (!_lpos_ref.isInitialized()
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_h0_applied - _sih_h0.get()) > FLT_EPSILON)) {
-		_lpos_ref.initReference(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()));
-		_h0_applied = _sih_h0.get();
+	    || (fabsf(_terrain.defaultAltitude() - _sih_h0.get()) > FLT_EPSILON)) {
+		const double lat0 = static_cast<double>(_sih_lat0.get());
+		const double lon0 = static_cast<double>(_sih_lon0.get());
+		_lpos_ref.initReference(lat0, lon0);
 
 		// start on the ground: flat at SIH_LOC_H0, or on the terrain model
-		_terrain->setDefaultAltitude(_h0_applied);
-		_terrain->altitude(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()), _lpos_ref_alt);
+		_terrain.setDefaultAltitude(_sih_h0.get());
+		_lpos_ref_alt = _terrain.vehicleGroundAltitude(lat0, lon0);
 		_ground_alt = _lpos_ref_alt;
 
 		// Reset earth position, velocity and attitude
-		_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
-		_lla.setLongitudeDeg(static_cast<double>(_sih_lon0.get()));
+		_lla.setLatitudeDeg(lat0);
+		_lla.setLongitudeDeg(lon0);
 		_lla.setAltitude(_lpos_ref_alt);
 		_p_E = _lla.toEcef();
 
@@ -826,7 +823,9 @@ void Sih::equations_of_motion(const float dt)
 	_w_B = constrain(_w_B + w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 
 	ecefToNed();
-	update_ground_alt(); // ground below the new position, for the next contact check and the sensors
+
+	// ground below the new position, for the next contact check and the sensors
+	_ground_alt = _terrain.vehicleGroundAltitude(_lla.latitude_deg(), _lla.longitude_deg());
 
 	// the ground force only stops the vertical motion, keep the vehicle from sinking into rising terrain
 	static constexpr float MAX_PENETRATION = 0.05f; // [m]
@@ -960,23 +959,9 @@ void Sih::orient_step(const hrt_abstime &now, const float dt)
 }
 #endif // __PX4_POSIX
 
-void Sih::update_ground_alt()
-{
-	const bool inside = _terrain->altitude(_lla.latitude_deg(), _lla.longitude_deg(), _ground_alt);
-
-	if (!inside && !_terrain_outside) {
-		PX4_WARN("outside the terrain data, using flat ground at SIH_LOC_H0 (%.1f m)", (double)_h0_applied);
-
-	} else if (inside && _terrain_outside) {
-		PX4_INFO("back inside the terrain data");
-	}
-
-	_terrain_outside = !inside;
-}
-
 float Sih::ground_distance(float max_distance) const
 {
-	return _terrain->rayDistance(_lla.latitude_deg(), _lla.longitude_deg(), _lla.altitude(), _q.dcm_z(), max_distance);
+	return _terrain.rayDistance(_lla.latitude_deg(), _lla.longitude_deg(), _lla.altitude(), _q.dcm_z(), max_distance);
 }
 
 void Sih::ecefToNed()
@@ -1346,13 +1331,7 @@ int Sih::print_status()
 		PX4_INFO("Rover Ackermann");
 	}
 
-	if (_terrain) {
-		_terrain->printStatus();
-	}
-
-	if (_terrain_outside) {
-		PX4_INFO("terrain: vehicle outside the terrain data");
-	}
+	_terrain.printStatus();
 
 	PX4_INFO("ground altitude: %.2f m", (double)_ground_alt);
 	PX4_INFO("vehicle landed: %d", _grounded);
@@ -1395,8 +1374,10 @@ int Sih::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
-TerrainBase *Sih::load_terrain(int argc, char *argv[])
+bool Sih::load_terrain(int argc, char *argv[])
 {
+	_terrain = Terrain{};
+
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
@@ -1410,57 +1391,33 @@ TerrainBase *Sih::load_terrain(int argc, char *argv[])
 
 		default:
 			print_usage("unrecognized flag");
-			return nullptr;
+			return false;
 		}
 	}
 
-	TerrainBase *terrain = nullptr;
-
-	if (terrain_path) {
-#if defined(SIH_TERRAIN_DEM)
-		int32_t vehicle_type = 0;
-		param_get(param_find("SIH_VEHICLE_TYPE"), &vehicle_type);
-		const VehicleType vehicle = static_cast<VehicleType>(vehicle_type);
-
-		if (vehicle != VehicleType::Quadcopter
-		    && vehicle != VehicleType::Hexacopter
-		    && vehicle != VehicleType::FixedWing
-		    && vehicle != VehicleType::TailsitterVTOL
-		    && vehicle != VehicleType::StandardVTOL) {
-			PX4_WARN("terrain is not supported for SIH_VEHICLE_TYPE %" PRId32 ", using flat ground", vehicle_type);
-			terrain = new TerrainFlat();
-		}
-		else {
-			TerrainDem *dem = new TerrainDem(terrain_path);
-
-			if (dem && !dem->loaded()) {
-				delete dem;
-				return nullptr;
-			}
-
-			terrain = dem;
-		}
-#else
-		PX4_ERR("terrain not supported, PX4 was built without libtiff, libgeotiff or PROJ");
-		return nullptr;
-#endif
-
-	} else {
-		terrain = new TerrainFlat();
+	if (!terrain_path) {
+		return true;
 	}
 
-	if (!terrain) {
-		PX4_ERR("terrain alloc failed");
+	int32_t vehicle_type = 0;
+	param_get(param_find("SIH_VEHICLE_TYPE"), &vehicle_type);
+	const VehicleType vehicle = static_cast<VehicleType>(vehicle_type);
+
+	if (vehicle != VehicleType::Quadcopter
+	    && vehicle != VehicleType::Hexacopter
+	    && vehicle != VehicleType::FixedWing
+	    && vehicle != VehicleType::TailsitterVTOL
+	    && vehicle != VehicleType::StandardVTOL) {
+		PX4_ERR("terrain is not supported for SIH_VEHICLE_TYPE %" PRId32, vehicle_type);
+		return false;
 	}
 
-	return terrain;
+	return _terrain.load(terrain_path);
 }
 
 int Sih::task_spawn(int argc, char *argv[])
 {
-	_terrain_loaded = load_terrain(argc, argv);
-
-	if (!_terrain_loaded) {
+	if (!load_terrain(argc, argv)) {
 		return -1;
 	}
 
@@ -1472,11 +1429,8 @@ int Sih::task_spawn(int argc, char *argv[])
 					  (char *const *)argv);
 
 	if (desc.task_id < 0) {
-		const int err = errno;
 		desc.task_id = -1;
-		delete _terrain_loaded;
-		_terrain_loaded = nullptr;
-		return -err;
+		return -errno;
 	}
 
 	return 0;
@@ -1489,15 +1443,6 @@ Sih *Sih::instantiate(int argc, char *argv[])
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 	}
-
-	if (instance) {
-		instance->_terrain = _terrain_loaded;
-
-	} else {
-		delete _terrain_loaded;
-	}
-
-	_terrain_loaded = nullptr;
 
 	return instance;
 }

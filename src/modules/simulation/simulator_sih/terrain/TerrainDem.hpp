@@ -37,26 +37,34 @@
  *
  * The raster is read with libtiff/libgeotiff. A DEM in any CRS with an EPSG code is
  * resampled once at load time with PROJ onto a regular WGS84 lat/lon grid, so that
- * altitude() is a cheap bilinear lookup in the simulation loop.
+ * altitude() is a cheap bilinear lookup in the simulation loop. Until a DEM is loaded the terrain is flat.
  */
 
 #pragma once
 
-#include "TerrainBase.hpp"
+#include "TerrainFlat.hpp"
 
 #include <string>
 #include <vector>
 
-class TerrainDem : public TerrainBase
+class TerrainDem : public TerrainFlat
 {
 public:
+	TerrainDem() = default;
+
 	/** load a single-band GeoTIFF DEM, check loaded() for the result (the reason of a failure is printed) */
 	explicit TerrainDem(const char *path) { load(path); }
+
+	/** load a single-band GeoTIFF DEM, @return false (the reason is printed) on error */
+	bool load(const char *path) override;
 
 	bool loaded() const { return !_grid.data.empty(); }
 
 	/** DEM elevation interpolated bilinearly, the default altitude outside the DEM or next to a nodata cell */
 	bool altitude(double lat_deg, double lon_deg, float &alt) const override;
+
+	/** the DEM elevation, warns when the vehicle leaves the DEM */
+	float vehicleGroundAltitude(double lat_deg, double lon_deg) override;
 
 	/** march along the ray, sampling each DEM cell at least twice */
 	float rayDistance(double lat_deg, double lon_deg, float alt, const matrix::Vector3f &dir_ned,
@@ -66,8 +74,6 @@ public:
 
 private:
 	friend class TerrainDemTest; // unit test, writes GeoTIFF files and checks the parsed metadata
-
-	bool load(const char *path);
 
 	/** smallest grid spacing [m] */
 	float cellSizeM() const { return _cell_size_m; }
@@ -104,6 +110,7 @@ private:
 
 	Grid _grid{}; // x: longitude [deg], y: latitude [deg], dy < 0 (row 0 is the northern edge)
 	float _cell_size_m{0.f};
+	bool _vehicle_outside{false};
 	int _epsg{0};
 	std::string _path;
 };

@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#define MODULE_NAME "TerrainDemTest"
+
 #include <gtest/gtest.h>
 
 #include "TerrainDem.hpp"
@@ -47,8 +49,8 @@
 #include <string>
 #include <vector>
 
-// TerrainDem logs with PX4_INFO/PX4_ERR, satisfying them from px4_platform drags uORB and the
-// POSIX daemon into this host unit test
+// TerrainDem logs with PX4_INFO/PX4_WARN/PX4_ERR, satisfying them from px4_platform drags uORB and
+// the POSIX daemon into this host unit test
 __BEGIN_DECLS
 
 void px4_log_info(const char *moduleName, const char *fmt, ...)
@@ -58,6 +60,15 @@ void px4_log_info(const char *moduleName, const char *fmt, ...)
 	vfprintf(stdout, fmt, args);
 	va_end(args);
 	fputc('\n', stdout);
+}
+
+void px4_log_warn(const char *moduleName, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vfprintf(stderr, fmt, args);
+	va_end(args);
+	fputc('\n', stderr);
 }
 
 void px4_log_error(const char *moduleName, const char *fmt, ...)
@@ -251,6 +262,23 @@ TEST_F(TerrainDemTest, GeographicFloat32)
 	EXPECT_FALSE(dem.altitude(NAN, NAN, alt));
 
 	EXPECT_NEAR(cellSizeM(dem), 0.01 * 6371000. * M_PI / 180. * cos(46.985 * M_PI / 180.), 1.);
+}
+
+TEST_F(TerrainDemTest, VehicleGroundAltitude)
+{
+	const TiffSpec spec{};
+	TerrainDem dem;
+	dem.setDefaultAltitude(123.f);
+
+	// flat until a DEM is loaded
+	EXPECT_FLOAT_EQ(dem.vehicleGroundAltitude(pixelLat(spec, 1), pixelLon(spec, 1)), 123.f);
+
+	ASSERT_TRUE(dem.load(writeTiff("vehicle.tif", spec, ramp).c_str()));
+	EXPECT_FLOAT_EQ(dem.vehicleGroundAltitude(pixelLat(spec, 1), pixelLon(spec, 1)), ramp(1, 1));
+
+	// outside the DEM the ground is flat at the default altitude, and back on the DEM when reentering
+	EXPECT_FLOAT_EQ(dem.vehicleGroundAltitude(spec.corner_y + 0.001, pixelLon(spec, 1)), 123.f);
+	EXPECT_FLOAT_EQ(dem.vehicleGroundAltitude(pixelLat(spec, 2), pixelLon(spec, 0)), ramp(0, 2));
 }
 
 TEST_F(TerrainDemTest, Int16LzwTiled)

@@ -184,7 +184,7 @@ The terrain is then used for:
 - The `dist_bottom` field of the `vehicle_local_position_groundtruth` topic.
 
 Outside the area covered by the DEM, or over cells without data, the ground is flat at `SIH_LOC_H0` and a warning is printed.
-Terrain is supported for multicopters, VTOLs and fixed-wing vehicles; Ackermann rovers (and possibly other vehicles added in future) ignore it and keep flat ground.
+Terrain is supported for multicopters, VTOLs and fixed-wing vehicles; with any other vehicle type (such as Ackermann rovers), setting `PX4_SIH_TERRAIN` stops SIH from starting with an error.
 `simulator_sih status` shows the loaded DEM and whether the vehicle is inside it.
 
 The DEM must be a single-band GeoTIFF whose coordinate reference system has an [EPSG code](https://epsg.io/), either geographic (such as WGS84, `EPSG:4326`) or projected (such as UTM or the Swiss `EPSG:2056`).

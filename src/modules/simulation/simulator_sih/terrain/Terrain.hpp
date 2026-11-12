@@ -32,40 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file TerrainBase.hpp
- * Terrain model interface for SIH: ground altitude and ray casting against the terrain.
+ * @file Terrain.hpp
+ * Terrain model used by SIH: the GeoTIFF DEM when PX4 is built with its libraries, flat otherwise.
  */
 
 #pragma once
 
-#include <matrix/matrix/math.hpp>
-
-class TerrainBase
-{
-public:
-	virtual ~TerrainBase() = default;
-
-	/** flat ground altitude [m AMSL], also used where the terrain model has no data */
-	void setDefaultAltitude(float alt) { _default_alt = alt; }
-
-	/**
-	 * Terrain altitude [m AMSL] at a WGS84 position.
-	 * @return false outside the terrain data, alt is then the default altitude
-	 */
-	virtual bool altitude(double lat_deg, double lon_deg, float &alt) const = 0;
-
-	/**
-	 * Distance [m] from a WGS84 position along a direction to the terrain.
-	 * @param alt altitude of the start point [m AMSL]
-	 * @param dir_ned unit vector in the local NED frame
-	 * @param max_distance search range [m], a result above it may be returned
-	 * @return NAN if the ray does not hit the terrain within max_distance
-	 */
-	virtual float rayDistance(double lat_deg, double lon_deg, float alt, const matrix::Vector3f &dir_ned,
-				  float max_distance) const = 0;
-
-	virtual void printStatus() const = 0;
-
-protected:
-	float _default_alt{0.f};
-};
+#if defined(SIH_TERRAIN_DEM)
+#include "TerrainDem.hpp"
+using Terrain = TerrainDem;
+#else
+#include "TerrainFlat.hpp"
+using Terrain = TerrainFlat;
+#endif
