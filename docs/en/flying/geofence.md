@@ -51,7 +51,7 @@ In summary:
 
 ::: tip
 A geofence action is only triggered once the vehicle has breached the geofence.
-To act before that, with a separate action, set a [Geofence Margin](../config/safety.md#geofence-margin).
+To act before that set a [Geofence Margin](../config/safety.md#geofence-margin) with an appropriate action.
 :::
 
 ::: info
