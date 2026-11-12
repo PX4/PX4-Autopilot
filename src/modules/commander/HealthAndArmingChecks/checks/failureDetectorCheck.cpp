@@ -47,7 +47,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 	if (report_attitude_failure && fd_status.fd_tilt) {
 		/* EVENT
 		 * @description
-		 * The vehicle exceeded the maximum configured tilt angle.
+		 * The vehicle tilt deviated from the attitude setpoint, by more than the configured angle.
 		 *
 		 * <profile name="dev">
 		 * This check can be configured via <param>FD_FAIL_R</param> parameter.
