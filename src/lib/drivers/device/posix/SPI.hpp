@@ -67,7 +67,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on SPI
  */
-class __EXPORT SPI : public CDev
+class __EXPORT SPI : public Device
 {
 public:
 	// no copy, assignment, move, move assignment

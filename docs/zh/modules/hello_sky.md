@@ -1,7 +1,6 @@
 # 搭建你的第一个应用（Hello Shy）
 
-本文主要说明如何创建并运行你的第一个板载应用程序。
-它涵盖了 PX4 应用程序开发所需的所有基本概念和 API。
+本文主要说明如何创建并运行你的第一个板载应用程序。它涵盖了 PX4 应用程序开发所需的所有基本概念和 API。
 
 :::info
 For simplicity, more advanced features like start/stop functionality and command-line arguments are omitted.
@@ -185,8 +184,7 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 
 ## 编译应用程序/固件
 
-应用程序的编写至此完成。
-为了运行它，您首先需要确保它是作为 PX4 的一部分构建的。
+应用程序的编写至此完成。为了运行它，您首先需要确保它是作为 PX4 的一部分构建的。
 Applications are added to the build/firmware in the appropriate board-level _px4board_ file for your target:
 
 - PX4 SITL (Simulator): [PX4-Autopilot/boards/px4/sitl/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/sitl/default.px4board)

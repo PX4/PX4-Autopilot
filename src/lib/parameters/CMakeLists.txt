@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-add_compile_options(${MAX_CUSTOM_OPT_LEVEL})
-
 if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")
 endif()
@@ -62,6 +60,11 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 	list(REMOVE_DUPLICATES module_config_files)
 endif()
 
+# Keep the opt-in identity parameter out of builds that scan all module YAMLs.
+if(NOT CONFIG_BOARD_HAS_RID_EEPROM)
+	list(REMOVE_ITEM module_config_files ${PX4_SOURCE_DIR}/src/lib/open_drone_id/odid_params.yaml)
+endif()
+
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
 set(generated_serial_params_file ${generated_params_dir}/serial_params.c)
 set(generated_module_params_file ${generated_params_dir}/module_params.c)
@@ -76,6 +79,12 @@ if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
 
+# boards without a timer_config.cpp (SITL and other posix boards) have no PWM output groups
+set(board_timer_config_dep)
+if(EXISTS ${PX4_BOARD_DIR}/src/timer_config.cpp)
+	set(board_timer_config_dep ${PX4_BOARD_DIR}/src/timer_config.cpp)
+endif()
+
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
@@ -87,6 +96,7 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		--params-file ${generated_module_params_file}
 		${added_arguments} ${board_with_io_arg}
 		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
+		--board-config ${BOARD_CONFIG}
 		--config-files ${module_config_files}
 		--board ${PX4_BOARD}
 		#--verbose
@@ -95,6 +105,9 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		${jinja_templates}
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
+		${PX4_SOURCE_DIR}/Tools/module_config/output_groups_from_timer_config.py
+		${board_timer_config_dep}
+		${PX4_BINARY_DIR}/px4_boardconfig.h
 	COMMENT "Generating serial_params.c"
 )
 

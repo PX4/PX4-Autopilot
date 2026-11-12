@@ -102,8 +102,7 @@ private:
 		true
 	};
 
-	float param_pwm_freq, previous_pwm_freq;
-	float param_schd_rate, previous_schd_rate;
+	float param_pwm_freq{50.f}, previous_pwm_freq{0.f};
 	bool param_update_failed = false;
 	uint32_t param_duty_mode;
 
@@ -218,9 +217,8 @@ void PCA9685Wrapper::Run()
 
 			if (ret == PX4_OK) {
 				previous_pwm_freq = param_pwm_freq;
-				previous_schd_rate = param_schd_rate;
 				_state = STATE::RUNNING;
-				ScheduleOnInterval(1000000 / param_schd_rate, 0);
+				ScheduleOnInterval(1000000 / param_pwm_freq, 0);
 
 			} else {
 				perf_count(_comms_errors);
@@ -253,11 +251,9 @@ void PCA9685Wrapper::Run()
 					ret |= pca9685->wake();
 
 					if (ret == PX4_OK) {
-						// update of PWM freq will always trigger scheduling change
 						param_update_failed = false;
-						previous_schd_rate = param_schd_rate;
 						previous_pwm_freq = param_pwm_freq;
-						ScheduleOnInterval(1000000 / param_schd_rate, 0);
+						ScheduleOnInterval(1000000 / param_pwm_freq, 0);
 
 					} else {
 						param_update_failed = true;
@@ -265,12 +261,6 @@ void PCA9685Wrapper::Run()
 						ScheduleDelayed(20_ms);
 						break;
 					}
-
-				} else if ((float)fabs(previous_schd_rate - param_schd_rate) > 0.01f) {
-					// case when PWM freq not changed but scheduling rate does
-					previous_schd_rate = param_schd_rate;
-					ScheduleClear();
-					ScheduleOnInterval(1000000 / param_schd_rate, 1000000 / param_schd_rate);
 				}
 			}
 
@@ -407,14 +397,8 @@ int PCA9685Wrapper::task_spawn(int argc, char **argv) {
 void PCA9685Wrapper::updateParams() {
     ModuleParams::updateParams();
 
-    param_t param = param_find("PCA9685_SCHD_HZ");
-    if (param != PARAM_INVALID) {
-        param_get(param, &param_schd_rate);
-    } else {
-        PX4_ERR("param PCA9685_SCHD_HZ not found");
-    }
-
-    param = param_find("PCA9685_PWM_FREQ");
+    // sets both the PWM frequency of the chip and the rate we push new values at
+    param_t param = param_find("PCA9685_PWM_FREQ");
     if (param != PARAM_INVALID) {
         param_get(param, &param_pwm_freq);
     } else {

@@ -10,6 +10,5 @@ Flight modes provide autopilot support to make it easier to manually fly the veh
 - [Drive Modes (Rover)](../flight_modes_rover/index.md)
 
 :::info
-本节中的模式子主题包含所有机体共有的信息，但可能与正常/默认设置无关。
-一般来说，你应该首先看到特定机体的章节，并在关联导航到这些通用的章节。
+本节中的模式子主题包含所有机体共有的信息，但可能与正常/默认设置无关。一般来说，你应该首先看到特定机体的章节，并在关联导航到这些通用的章节。
 :::

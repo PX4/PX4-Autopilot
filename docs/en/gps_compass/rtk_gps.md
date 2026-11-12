@@ -58,7 +58,7 @@ It also highlights devices that connect via the CAN bus, and those which support
 | [Septentrio mosaic-go](../gps_compass/septentrio_mosaic-go.md)                                                     | mosaic X5 / mosaic H |    ✓     |            |      [Septentrio Dual Antenna]      |  ✓  |
 | [SIRIUS RTK GNSS ROVER (F9P)](https://store-drotek.com/911-sirius-rtk-gnss-rover-f9p.html)                         |         F9P          |    ✓     |            |             [Dual F9P]              |     |
 | [SparkFun GPS-RTK2 Board - ZED-F9P](https://www.sparkfun.com/sparkfun-gps-rtk2-board-zed-f9p-qwiic-gps-15136.html) |         F9P          |    ✓     |            |             [Dual F9P]              |     |
-| [Trimble MB-Two](../gps_compass/rtk_gps_trimble_mb_two.md)                                                         |         F9P          |    ✓     |            |                  ✓                  |     |
+| [Trimble MB-Two](../gps_compass/rtk_gps_trimble_mb_two.md)                                                         |         F9P          |    ✓     |            |                                     |     |
 
 <!-- links used in above table -->
 
@@ -165,21 +165,28 @@ GPS can be used as a source for yaw fusion when using a single device with two a
 Using GPS as a heading source has the benefit that yaw calculations are not impacted by magnetic interference.
 
 Both approaches work comparing the time taken for a GNSS signal to reach two separated antennas.
-The minimum distance between antenna depends on the device but is of the order of 50 cm (check manufacturer documentation).
+Antennas should be at least 30 cm apart (check the manufacturer's documentation).
 
-The devices that can be used are listed in this way are listed in the **GPS Yaw** column of the table above, such as [Septentrio AsteRx-m3 Pro](../gps_compass/septentrio_asterx-rib.md), [Holybro H-RTK Unicore UM982 GPS](../gps_compass/rtk_gps_holybro_unicore_um982.md), and [Trimble MB-Two](../gps_compass/rtk_gps_trimble_mb_two.md).
+The devices that can be used in this way are listed in the **GPS Yaw** column of the table above, such as [Septentrio AsteRx-m3 Pro](../gps_compass/septentrio_asterx-rib.md) and [Holybro H-RTK Unicore UM982 GPS](../gps_compass/rtk_gps_holybro_unicore_um982.md).
 The links in the table take you to the device-specific PX4 configuration.
 
-Generally when using a GNSS as a source of yaw information you will need to configure the following parameters:
+The heading is the bearing of the _baseline_, the vector from one antenna to the other.
+PX4 derives the baseline in the body frame (as shown [here][fc_orientation]) from the antenna positions, and uses a heading only when the length of the baseline the receiver reports is within 20% of it.
+Configure the slot of the receiver that reports the heading, matched by [SENS_GNSSn_ID][SENS_GNSSn_ID]:
 
-| Parameter                        | Setting                                                                                                                                                     |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [GPS_YAW_OFFSET][GPS_YAW_OFFSET] | The angle made by the _baseline_ (the line between the two GPS antennas) relative to the vehicle x-axis (front/back axis, as shown [here][fc_orientation]). |
-| [EKF2_GPS_CTRL][EKF2_GPS_CTRL]   | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).                                                                       |
+| Parameter                              | Setting                                                                                                                                                                       |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SENS_GNSSn_HDG][SENS_GNSSn_HDG]       | `Moving base rover` for the rover of two receivers (the baseline runs from the moving base's antenna to the rover's), `Dual antenna` for a single receiver with two antennas. |
+| [SENS_GNSSn_OFFX/Y/Z][SENS_GNSSn_OFFX] | Antenna position of each receiver, the main antenna's for a receiver with two antennas. With `Moving base rover`, both receivers' slots must be set.                          |
+| [SENS_GNSSn_AUXX/Y/Z][SENS_GNSSn_AUXX] | With `Dual antenna`: position of the auxiliary antenna (see the device page for which antenna is which).                                                                      |
+| [EKF2_GPS_CTRL][EKF2_GPS_CTRL]         | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).                                                                                         |
 
 <!-- links used in table above -->
 
-[GPS_YAW_OFFSET]: ../advanced_config/parameter_reference.md#GPS_YAW_OFFSET
+[SENS_GNSSn_HDG]: ../advanced_config/parameter_reference.md#SENS_GNSS0_HDG
+[SENS_GNSSn_OFFX]: ../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX
+[SENS_GNSSn_AUXX]: ../advanced_config/parameter_reference.md#SENS_GNSS0_AUXX
+[SENS_GNSSn_ID]: ../advanced_config/parameter_reference.md#SENS_GNSS0_ID
 [EKF2_GPS_CTRL]: ../advanced_config/parameter_reference.md#EKF2_GPS_CTRL
 [fc_orientation]: ../config/flight_controller_orientation.md#calculating-orientation
 

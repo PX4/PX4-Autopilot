@@ -22,8 +22,17 @@ Artifact contract (directory passed on the command line):
       "marker":     "<!-- pr-review-poster:clang-tidy -->",   (required, printable ASCII)
       "event":      "COMMENT",                                 (required, "COMMENT" only)
       "commit_sha": "0123456789abcdef0123456789abcdef01234567",(required, 40 hex chars)
-      "summary":    "Optional review body text"                (optional)
+      "summary":    "Optional review body text",               (optional)
+      "post_without_comments": false,                          (optional bool)
+      "supersede_previous":    false                           (optional bool)
     }
+
+  post_without_comments: post the summary as a review even when there are
+  no comments (default: post nothing). Requires a non-empty summary.
+  supersede_previous: GitHub cannot dismiss COMMENT reviews, so replace the
+  body of this producer's earlier COMMENT reviews with a "superseded" note,
+  keeping the old text collapsed (default: leave them). Both default to
+  false, the behaviour existing producers such as clang-tidy rely on.
 
   comments.json
     JSON array of line-anchored review comment objects:
@@ -210,6 +219,13 @@ def validate_manifest(directory):
     if not isinstance(summary, str):
         _fail('summary must be a string if present')
 
+    # Opt-in behaviours. Both default to False, which is the original
+    # behaviour existing producers (clang-tidy) rely on.
+    post_without_comments = _optional_bool(manifest, 'post_without_comments')
+    supersede_previous = _optional_bool(manifest, 'supersede_previous')
+    if post_without_comments and not summary.strip():
+        _fail('post_without_comments requires a non-empty summary')
+
     try:
         with open(comments_path, 'r', encoding='utf-8') as f:
             comments = json.load(f)
@@ -229,7 +245,16 @@ def validate_manifest(directory):
         'commit_sha': commit_sha,
         'summary': summary,
         'comments': comments,
+        'post_without_comments': post_without_comments,
+        'supersede_previous': supersede_previous,
     }
+
+
+def _optional_bool(manifest, key):
+    value = manifest.get(key, False)
+    if not isinstance(value, bool):
+        _fail('{} must be true or false if present'.format(key))
+    return value
 
 
 # ---------------------------------------------------------------------------
@@ -300,6 +325,56 @@ def dismiss_stale_reviews(client, repo, pr_number, marker):
     return failed_dismissals
 
 
+SUPERSEDED_TAG = '<!-- pr-review-poster:superseded -->'
+SUPERSEDED_MAX_OLD_BYTES = 50000
+
+
+def superseded_body(marker, old_body):
+    """Replacement body for an older COMMENT review from the same producer.
+
+    Keeps the marker (so the review is still recognisably ours) and the old
+    text, collapsed, so nothing a human may have replied to disappears.
+    """
+    old = old_body.replace(marker, '').strip()
+    old = old.encode('utf-8')[:SUPERSEDED_MAX_OLD_BYTES].decode(
+        'utf-8', 'ignore')
+    return '\n'.join([
+        marker, SUPERSEDED_TAG, '',
+        '**Superseded** by a newer review from the same check on this pull '
+        'request. Its inline comments may refer to an older commit.', '',
+        '<details><summary>Previous review</summary>', '', old, '',
+        '</details>'])
+
+
+def supersede_comment_reviews(client, repo, pr_number, marker):
+    """Mark earlier COMMENT reviews from this producer as superseded.
+
+    GitHub cannot dismiss a COMMENT review, so opted-in producers edit the
+    old review's body instead. Same ownership filter as dismissal: author
+    is github-actions[bot] AND the body contains the marker. Returns the
+    number of reviews edited.
+    """
+    edited = 0
+    path = 'repos/{}/pulls/{}/reviews'.format(repo, pr_number)
+    for review in client.paginated(path):
+        user = review.get('user') or {}
+        body = review.get('body') or ''
+        if user.get('login') != BOT_LOGIN or marker not in body:
+            continue
+        if review.get('state') != 'COMMENTED' or SUPERSEDED_TAG in body:
+            continue
+        review_id = review.get('id')
+        print('Marking earlier review {} as superseded'.format(review_id))
+        try:
+            client.request('PUT', '{}/{}'.format(path, review_id),
+                           json_body={'body': superseded_body(marker, body)})
+            edited += 1
+        except RuntimeError as e:
+            print('warning: failed to supersede review {}: {}'.format(
+                review_id, e), file=sys.stderr)
+    return edited
+
+
 # ---------------------------------------------------------------------------
 # Review posting
 # ---------------------------------------------------------------------------
@@ -341,14 +416,17 @@ def _comment_to_api(entry):
 
 
 def post_review(client, repo, pr_number, marker, event, commit_sha, summary,
-                comments):
+                comments, allow_empty=False):
     """Post one or more reviews containing the validated comments.
 
     Comments are split into COMMENTS_PER_REVIEW-sized chunks. Each chunk
     becomes its own review POST. A failed chunk logs a warning and the
-    loop continues to the next chunk.
+    loop continues to the next chunk. With allow_empty (opt-in), a review
+    with no comments is still posted, carrying only the summary.
     """
     chunks = list(_chunk(comments, COMMENTS_PER_REVIEW))
+    if not chunks and allow_empty:
+        chunks = [[]]
     total = len(chunks)
     if total == 0:
         print('No comments to post; skipping review creation.')
@@ -409,8 +487,9 @@ def cmd_post(args):
     result = validate_manifest(args.directory)
 
     # Empty comment lists short-circuit silently. A producer that ran but
-    # found nothing to flag should not generate noise on the PR.
-    if len(result['comments']) == 0:
+    # found nothing to flag should not generate noise on the PR, unless it
+    # opted in to posting its summary on its own.
+    if len(result['comments']) == 0 and not result['post_without_comments']:
         print('No comments in artifact; nothing to post.')
         return 0
 
@@ -436,6 +515,14 @@ def cmd_post(args):
             print('{} prior review(s) could not be dismissed (likely '
                   'branch protection).'.format(undismissed))
 
+        if result['supersede_previous']:
+            supersede_comment_reviews(
+                client=client,
+                repo=repo,
+                pr_number=result['pr_number'],
+                marker=result['marker'],
+            )
+
         post_review(
             client=client,
             repo=repo,
@@ -445,6 +532,7 @@ def cmd_post(args):
             commit_sha=result['commit_sha'],
             summary=result['summary'],
             comments=result['comments'],
+            allow_empty=result['post_without_comments'],
         )
     except RuntimeError as e:
         _fail(str(e))

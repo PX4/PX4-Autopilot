@@ -39,6 +39,33 @@ import pathlib
 import sys
 
 from rosidl_adapter.msg import convert_msg_to_idl
+from rosidl_adapter.parser import parse_message_string
+from rosidl_adapter.resource import expand_template
+
+
+def write_idlc_idl(package_dir, package_name, input_file, output_dir):
+    """Write the IDL that CycloneDDS idlc compiles.
+
+    uORB field names such as 'sequence' or 'string' are IDL keywords, which
+    idlc rejects. A leading underscore escapes an IDL identifier and idlc strips
+    it again, so the generated C names stay unchanged. Escaping every name means
+    no keyword list has to track idlc. rosidl_parser rejects escaped names, so
+    the RIHS01 hash keeps using the plain IDL from convert_msg_to_idl.
+    """
+    content = (package_dir / input_file).read_text(encoding='utf-8')
+    msg = parse_message_string(package_name, input_file.stem, content)
+
+    for member in msg.fields + msg.constants:
+        member.name = f'_{member.name}'
+
+    data = {
+        'pkg_name': package_name,
+        'relative_input_file': input_file.as_posix(),
+        'msg': msg,
+    }
+    expand_template('msg.idl.em', data, output_dir / input_file.with_suffix('.idl').name,
+                    encoding='iso-8859-1')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -46,6 +73,9 @@ if __name__ == '__main__':
     parser.add_argument(
         'interface_files', nargs='+',
         help='The interface files to convert')
+    parser.add_argument(
+        '--idlc-output-dir', type=pathlib.Path, required=True,
+        help='Directory for the keyword-escaped IDL compiled by idlc')
     args = parser.parse_args(sys.argv[1:])
 
     # convert_msg_to_idl prints a Reading/Writing line per file. Filter those
@@ -64,10 +94,10 @@ if __name__ == '__main__':
         for interface_file in args.interface_files:
             interface_file = pathlib.Path(interface_file)
             package_dir = interface_file.parent.absolute()
+            input_file = interface_file.absolute().relative_to(package_dir)
 
             convert_msg_to_idl(
-                package_dir, 'px4_msgs',
-                interface_file.absolute().relative_to(package_dir),
-                interface_file.parent)
+                package_dir, 'px4_msgs', input_file, interface_file.parent)
+            write_idlc_idl(package_dir, 'px4_msgs', input_file, args.idlc_output_dir)
     finally:
         builtins.print = real_print

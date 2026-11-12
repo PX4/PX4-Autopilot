@@ -1,6 +1,6 @@
 # Автогиро Каркаси
 
-<LinkedBadge type="warning" text="Experimental" url="../airframes/#experimental-vehicles"/>
+[<Badge type="warning" text="Experimental"/>](../airframes/index.md#experimental-vehicles)
 
 :::warning
 Support for autogyro frames is [experimental](../airframes/index.md#experimental-vehicles).

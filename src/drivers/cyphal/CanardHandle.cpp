@@ -33,8 +33,7 @@
 
 #include "CanardHandle.hpp"
 
-#include <net/if.h>
-#include <sys/ioctl.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <px4_platform_common/log.h>
@@ -62,7 +61,7 @@ static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree
 
 CanardHandle::CanardHandle(uint32_t node_id, const size_t capacity, const size_t mtu_bytes)
 {
-	_cyphal_heap = memalign(O1HEAP_ALIGNMENT, HeapSize);
+	_cyphal_heap = aligned_alloc(O1HEAP_ALIGNMENT, HeapSize);
 	cyphal_allocator = o1heapInit(_cyphal_heap, HeapSize, nullptr, nullptr);
 
 	if (cyphal_allocator == nullptr) {
@@ -87,11 +86,13 @@ CanardHandle::CanardHandle(uint32_t node_id, const size_t capacity, const size_t
 
 CanardHandle::~CanardHandle()
 {
-	_can_interface->close();
-	delete _can_interface;
-	_can_interface = nullptr;
+	if (_can_interface) {
+		_can_interface->close();
+		delete _can_interface;
+		_can_interface = nullptr;
+	}
 
-	delete static_cast<uint8_t *>(_cyphal_heap);
+	free(_cyphal_heap);
 	_cyphal_heap = nullptr;
 
 }

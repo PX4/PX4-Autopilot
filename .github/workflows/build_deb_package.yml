@@ -2,9 +2,9 @@ name: SITL Packages and Containers
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
-  pull_request:
-    paths:
+    paths: &container_paths
       - 'cmake/package.cmake'
       - 'platforms/posix/CMakeLists.txt'
       - 'Tools/packaging/**'
@@ -14,6 +14,12 @@ on:
       - 'boards/px4/sitl/sih.px4board'
       - '.github/workflows/build_deb_package.yml'
       - '.github/actions/build-deb/**'
+  pull_request:
+    paths: *container_paths
+  schedule:
+    # RunsOn deletes cache files 10 days after they are saved, even if still
+    # in use. Rebuild main weekly so pull requests always have a cache to reuse.
+    - cron: '0 6 * * 1'
   workflow_dispatch:
     inputs:
       deploy_containers:
@@ -176,7 +182,9 @@ jobs:
         with:
           path: ros-ccache
           key: ros-ccache-${{ matrix.arch }}-${{ matrix.image }}-${{ github.sha }}
-          restore-keys: ros-ccache-${{ matrix.arch }}-
+          restore-keys: |
+            ros-ccache-${{ matrix.arch }}-${{ matrix.image }}-
+            ros-ccache-${{ matrix.arch }}-
 
       - name: Reuse compiler cache across image layers
         uses: reproducible-containers/buildkit-cache-dance@v3

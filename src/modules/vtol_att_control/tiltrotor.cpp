@@ -67,7 +67,7 @@ void Tiltrotor::update_vtol_state()
 	 * forward completely. For the backtransition the motors simply rotate back.
 	*/
 
-	if (_vtol_vehicle_status->fixed_wing_system_failure) {
+	if (_attc->is_quadchute_active()) {
 		// Failsafe event, switch to MC mode immediately
 		_vtol_mode = vtol_mode::MC_MODE;
 
@@ -150,8 +150,18 @@ void Tiltrotor::update_vtol_state()
 			break;
 
 		case vtol_mode::TRANSITION_BACK:
-			// failsafe into fixed wing mode
-			_vtol_mode = vtol_mode::FW_MODE;
+
+			// while the rotors are still tilted forward enough for the wing, finish as before
+			if (_tilt_control >= _param_vt_tilt_trans.get()) {
+				_vtol_mode = vtol_mode::FW_MODE;
+
+			} else {
+				// the rotors are already coming back. Restart the front transition from the current tilt
+				// instead of handing the fixed-wing controller a vehicle with the rotors near vertical
+				resetTransitionStates();
+				_vtol_mode = vtol_mode::TRANSITION_FRONT_P1;
+			}
+
 			break;
 		}
 	}
@@ -247,9 +257,12 @@ void Tiltrotor::update_transition_state()
 			_tilt_control = math::max(_tilt_control, ramped_up_tilt);
 		}
 
-		// at low speeds give full weight to MC
+		// at low speeds give full weight to MC. A back transition zeroes the pitch and throttle weights
+		// while the rotors rotate, so a restarted front transition sets pitch and ramps the throttle back
 		_mc_roll_weight = 1.0f;
+		_mc_pitch_weight = 1.0f;
 		_mc_yaw_weight = 1.0f;
+		_mc_throttle_weight = math::min(_mc_throttle_weight + _transition_dt / BACKTRANS_THROTTLE_UPRAMP_DUR_S, 1.0f);
 
 		const float airspeed_trans_blend_margin = getTransitionAirspeed() - getBlendAirspeed();
 

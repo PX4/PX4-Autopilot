@@ -246,3 +246,101 @@ TEST_F(PositionSmoothingTest, doesNotDriftPastUnreachedWaypoint)
 	// Without the fix the look-ahead marches down the extended leg and this grows unbounded.
 	EXPECT_LT(max_distance_past_target, 10.f) << "Vehicle drifted too far past the unreached waypoint\n";
 }
+
+class PositionSmoothingStraightLegTest : public ::testing::Test
+{
+public:
+	// A descending leg: 100 m horizontal, 50 m down (NED), 6 m/s XY, 1.5 m/s Z
+	static constexpr float XY_SPEED = 6.f;
+	static constexpr float Z_SPEED = 1.5f;
+	const Vector3f START{0.f, 0.f, 0.f};
+	const Vector3f TARGET{100.f, 0.f, 50.f};
+
+	PositionSmoothing _position_smoothing;
+
+	PositionSmoothingStraightLegTest()
+	{
+		_position_smoothing.setMaxJerk(MAX_JERK);
+		_position_smoothing.setMaxAcceleration({MAX_ACCELERATION, MAX_ACCELERATION, MAX_ACCELERATION});
+		_position_smoothing.setMaxVelocity({XY_SPEED, XY_SPEED, Z_SPEED});
+		_position_smoothing.setMaxAllowedHorizontalError(MAX_ALLOWED_HOR_ERR);
+		_position_smoothing.setVerticalAcceptanceRadius(VERTICAL_ACCEPTANCE_RADIUS);
+		_position_smoothing.setCruiseSpeed(XY_SPEED);
+		_position_smoothing.setHorizontalTrajectoryGain(HORIZONTAL_TRAJECTORY_GAIN);
+		_position_smoothing.setTargetAcceptanceRadius(TARGET_ACCEPTANCE_RADIUS);
+
+		_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, START);
+	}
+
+	PositionSmoothing::PositionSmoothingSetpoints firstSetpoint()
+	{
+		Vector3f waypoints[3] = {START, TARGET, TARGET};
+		PositionSmoothing::PositionSmoothingSetpoints out;
+		_position_smoothing.generateSetpoints(START, waypoints, Vector3f{0.f, 0.f, 0.f}, 0.02f, false, out);
+		return out;
+	}
+
+	// Fly the leg and return the largest vertical distance from the straight line
+	float flyLegMaxAltitudeError()
+	{
+		Vector3f waypoints[3] = {START, TARGET, TARGET};
+		Vector3f position = START;
+		PositionSmoothing::PositionSmoothingSetpoints out;
+		const float slope = (TARGET(2) - START(2)) / (TARGET - START).xy().norm();
+		float max_error = 0.f;
+
+		for (int i = 0; i < 5000 && (TARGET - position).norm() > 0.1f; i++) {
+			_position_smoothing.generateSetpoints(position, waypoints, Vector3f{0.f, 0.f, 0.f}, 0.02f, false, out);
+			position = out.position;
+			const float z_on_line = START(2) + slope * (position - START).xy().norm();
+			max_error = fmaxf(max_error, fabsf(position(2) - z_on_line));
+		}
+
+		EXPECT_LT((TARGET - position).norm(), 0.1f) << "Did not reach the target\n";
+		return max_error;
+	}
+};
+
+TEST_F(PositionSmoothingStraightLegTest, velocityPointsAlongTheLeg)
+{
+	const Vector3f vel = firstSetpoint().unsmoothed_velocity;
+
+	// Parallel to the leg: vz / |vxy| equals the leg slope, the slower Z axis limits XY
+	EXPECT_NEAR(vel(2) / vel.xy().norm(), 0.5f, 1e-3f);
+	EXPECT_NEAR(vel(2), Z_SPEED, 1e-3f);
+	EXPECT_NEAR(vel.xy().norm(), 2.f * Z_SPEED, 1e-3f);
+}
+
+TEST_F(PositionSmoothingStraightLegTest, fliesAStraightLeg)
+{
+	EXPECT_LT(flyLegMaxAltitudeError(), 1.f);
+}
+
+TEST_F(PositionSmoothingTest, resetContinuesAcceleration)
+{
+	// GIVEN: A trajectory reset while braking horizontally and climbing
+	const Vector3f acceleration(-2.5f, 0.f, 0.f);
+	const Vector3f velocity(2.f, 0.f, -1.f);
+	const Vector3f position(0.f, 0.f, -2.f);
+	_position_smoothing.reset(acceleration, velocity, position);
+
+	// WHEN: Only an altitude is targeted and the horizontal velocity has to go to zero
+	const float dt = 0.02f;
+	PositionSmoothing::PositionSmoothingSetpoints out;
+	_position_smoothing.generateSetpoints(position, Vector3f(NAN, NAN, -10.f), Vector3f(0.f, 0.f, NAN), dt, false,
+					      out);
+
+	// THEN: The braking continues instead of restarting from zero acceleration
+	EXPECT_NEAR(out.acceleration(0), acceleration(0), MAX_JERK * dt + 1e-4f);
+	EXPECT_NEAR(out.velocity(0), velocity(0) + acceleration(0) * dt, MAX_JERK * dt * dt);
+
+	// AND WHEN: It continues
+	for (int i = 0; i < 10; i++) {
+		const Vector3f previous_acceleration = out.acceleration;
+		_position_smoothing.generateSetpoints(out.position, Vector3f(NAN, NAN, -10.f), Vector3f(0.f, 0.f, NAN), dt,
+						      false, out);
+
+		// THEN: The acceleration only changes within the jerk limit
+		EXPECT_LE(fabsf(out.acceleration(0) - previous_acceleration(0)), MAX_JERK * dt + 1e-4f);
+	}
+}

@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="645" viewBox="0 0 980 645" font-family="Helvetica, Arial, sans-serif">
+  <title>Agam FloRange block diagram</title>
+  <defs>
+    <!-- data/control: solid arrowhead -->
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4a5563"/>
+    </marker>
+    <!-- power: open chevron -->
+    <marker id="p5" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M1,1 L9,5 L1,9" fill="none" stroke="#d32f2f" stroke-width="1.8"/>
+    </marker>
+    <marker id="p33" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M1,1 L9,5 L1,9" fill="none" stroke="#ef6c00" stroke-width="1.8"/>
+    </marker>
+    <marker id="p2" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M1,1 L9,5 L1,9" fill="none" stroke="#e0b000" stroke-width="1.8"/>
+    </marker>
+    <style>
+      .box { fill: #ffffff; stroke: #4a5563; stroke-width: 1.5; }
+      .mcu { fill: #e8eef8; stroke: #2f5597; stroke-width: 2; }
+      .sensor { fill: #eef6ee; stroke: #3f7d3f; stroke-width: 1.5; }
+      .conn { fill: #f4f4f4; stroke: #4a5563; stroke-width: 1.5; }
+      .pwr { fill: #fbf8f3; stroke: #7a6a58; stroke-width: 1.5; }
+      .title { font-size: 21px; font-weight: bold; fill: #1f2933; }
+      .name { font-size: 15px; font-weight: bold; fill: #1f2933; text-anchor: middle; }
+      .sub { font-size: 12.5px; fill: #3e4c59; text-anchor: middle; }
+      .line { stroke: #4a5563; stroke-width: 1.6; fill: none; }
+      .v5 { stroke: #d32f2f; stroke-width: 2.4; fill: none; }
+      .v33 { stroke: #ef6c00; stroke-width: 2.4; fill: none; }
+      .v2 { stroke: #e0b000; stroke-width: 2.4; fill: none; }
+      .lbl { font-size: 12px; fill: #3e4c59; }
+      .l5 { font-size: 12px; font-weight: bold; fill: #c62828; }
+      .l33 { font-size: 12px; font-weight: bold; fill: #e65100; }
+      .l2 { font-size: 12px; font-weight: bold; fill: #b38b00; }
+    </style>
+  </defs>
+  <rect width="980" height="645" fill="#ffffff"/>
+  <text class="title" x="30" y="32">Agam FloRange</text>
+  <g transform="translate(0,45)">
+
+  <!-- 5 V from the CAN connector: SMPS, IR LED, ToF sensor -->
+  <path class="v5" d="M105,200 V15 H955 V445 H930" marker-end="url(#p5)"/>
+  <text class="l5" x="925" y="11">5 V</text>
+  <path class="v5" d="M955,245 H890" marker-end="url(#p5)"/>
+  <circle cx="955" cy="245" r="3.5" fill="#d32f2f"/>
+  <path class="v5" d="M105,60 H240" marker-end="url(#p5)"/>
+  <circle cx="105" cy="60" r="3.5" fill="#d32f2f"/>
+  <text class="l5" x="112" y="52">5 V</text>
+
+  <rect class="pwr" x="240" y="30" width="150" height="60" rx="6"/>
+  <text class="name" x="315" y="56">SMPS</text>
+  <text class="sub" x="315" y="75">5 V to 3.3 V</text>
+
+  <!-- 3.3 V: MCU, IMU, LDO -->
+  <path class="v33" d="M390,60 H720" marker-end="url(#p33)"/>
+  <text class="l33" x="400" y="52">3.3 V</text>
+  <path class="v33" d="M540,60 V130" marker-end="url(#p33)"/>
+  <circle cx="540" cy="60" r="3.5" fill="#ef6c00"/>
+  <path class="v33" d="M700,60 V158 A7,7 0 0 1 700,172 V315 H720" marker-end="url(#p33)"/>
+  <circle cx="700" cy="60" r="3.5" fill="#ef6c00"/>
+
+  <rect class="pwr" x="720" y="30" width="210" height="60" rx="6"/>
+  <text class="name" x="825" y="56">LDO</text>
+  <text class="sub" x="825" y="75">3.3 V to 2 V</text>
+
+  <!-- 2 V: flow sensor -->
+  <path class="v2" d="M825,90 V130" marker-end="url(#p2)"/>
+  <text class="l2" x="832" y="115">2 V</text>
+
+  <!-- CAN -->
+  <rect class="conn" x="30" y="200" width="150" height="70" rx="6"/>
+  <text class="name" x="105" y="230">CAN connector</text>
+  <text class="sub" x="105" y="250">JST GH 4-pin</text>
+
+  <rect class="box" x="240" y="200" width="150" height="70" rx="6"/>
+  <text class="name" x="315" y="240">CAN transceiver</text>
+  <path class="line" d="M180,235 H240" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="lbl" x="185" y="193">CAN_H/CAN_L</text>
+  <path class="line" d="M390,235 H450" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="lbl" x="405" y="227">CAN</text>
+
+  <rect class="box" x="240" y="300" width="150" height="50" rx="6"/>
+  <text class="name" x="315" y="322">Bus termination</text>
+  <text class="sub" x="315" y="340">switchable</text>
+  <path class="line" d="M210,235 V325 H240"/>
+  <circle cx="210" cy="235" r="3" fill="#4a5563"/>
+  <path class="line" d="M450,325 H390" marker-end="url(#a)"/>
+  <text class="lbl" x="400" y="317">enable</text>
+
+  <!-- Debug -->
+  <rect class="conn" x="30" y="410" width="150" height="70" rx="6"/>
+  <text class="name" x="105" y="440">Debug connector</text>
+  <text class="sub" x="105" y="460">JST SH 6-pin</text>
+  <path class="line" d="M180,445 H450" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="lbl" x="245" y="437">SWD, console UART</text>
+
+  <!-- MCU -->
+  <rect class="mcu" x="450" y="130" width="180" height="350" rx="8"/>
+  <text class="name" x="540" y="300">STM32F412CE</text>
+  <text class="sub" x="540" y="320">MCU</text>
+
+  <!-- Status LEDs -->
+  <rect class="box" x="400" y="505" width="280" height="82" rx="6"/>
+  <text class="name" x="540" y="526">Status LEDs</text>
+  <text class="sub" x="540" y="545">Blue: normal operation</text>
+  <text class="sub" x="540" y="562">Red: error, or no node ID allocated</text>
+  <text class="sub" x="540" y="579">Blue and red: firmware update</text>
+  <path class="line" d="M540,480 V505" marker-end="url(#a)"/>
+
+  <!-- SPI: flow sensor and IMU share one bus -->
+  <path class="line" d="M630,165 H720" marker-start="url(#a)" marker-end="url(#a)"/>
+  <path class="line" d="M680,165 V350 H720" marker-end="url(#a)"/>
+  <circle cx="680" cy="165" r="3" fill="#4a5563"/>
+  <text class="lbl" x="642" y="157">SPI</text>
+
+  <rect class="sensor" x="720" y="130" width="210" height="70" rx="6"/>
+  <text class="name" x="825" y="160">PAA3905E1</text>
+  <text class="sub" x="825" y="180">Optical flow sensor</text>
+
+  <rect class="box" x="760" y="225" width="130" height="40" rx="6"/>
+  <text class="name" x="825" y="250">IR LED</text>
+  <path class="line" d="M825,200 V225" marker-end="url(#a)"/>
+
+  <rect class="sensor" x="720" y="300" width="210" height="70" rx="6"/>
+  <text class="name" x="825" y="330">ICM-42688-P</text>
+  <text class="sub" x="825" y="350">6-axis IMU</text>
+
+  <!-- SPI: distance sensor on its own bus -->
+  <rect class="sensor" x="720" y="410" width="210" height="70" rx="6"/>
+  <text class="name" x="825" y="440">AFBR-S50LV85D</text>
+  <text class="sub" x="825" y="460">Time-of-flight distance sensor</text>
+  <path class="line" d="M630,445 H720" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="lbl" x="645" y="437">SPI</text>
+
+  <!-- Legend -->
+  <path class="line" d="M40,530 H90" marker-end="url(#a)"/>
+  <text class="lbl" x="100" y="534">Data, control</text>
+  <path class="v5" d="M40,562 H80" marker-end="url(#p5)"/>
+  <text class="l5" x="88" y="566">5 V</text>
+  <path class="v33" d="M130,562 H170" marker-end="url(#p33)"/>
+  <text class="l33" x="178" y="566">3.3 V</text>
+  <path class="v2" d="M230,562 H270" marker-end="url(#p2)"/>
+  <text class="l2" x="278" y="566">2 V</text>
+  </g>
+</svg>

@@ -49,6 +49,7 @@ This category includes boards that are not fully compliant with the pixhawk stan
 - [ModalAI VOXL 2](../flight_controller/modalai_voxl_2.md)
 - [mRo Control Zero](../flight_controller/mro_control_zero_f7.md)
 - [NWBlue Pro H757](../flight_controller/nwblue_pro-h757.md)
+- [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md)
 - [Radiolink PIX6](../flight_controller/radiolink_pix6.md)
 - [Sky-Drones AIRLink](../flight_controller/airlink.md)
 - [SPRacing SPRacingH7EXTREME](../flight_controller/spracingh7extreme.md)
@@ -56,4 +57,5 @@ This category includes boards that are not fully compliant with the pixhawk stan
 - [ThePeach FCC-K1](../flight_controller/thepeach_k1.md)
 - [ThePeach FCC-R1](../flight_controller/thepeach_r1.md)
 - [X-MAV AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md)
+- [ZenFC H743](../flight_controller/zenfc_h743.md)
 - [SIYI-UniFC-6-PICO](../flight_controller/siyi-unifc-6-pico.md)

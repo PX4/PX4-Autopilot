@@ -193,7 +193,7 @@ void Ekf::fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_
 
 			aid_src.innovation[index] = Vector3f(_R_to_earth.transpose().row(index)) * _state.vel - measurement(index);
 
-			VectorState Kfusion = P * H[index] / aid_src.innovation_variance[index];
+			VectorState Kfusion = computeKalmanGain(H[index], aid_src.innovation_variance[index]);
 			measurementUpdate(Kfusion, H[index], aid_src.observation_variance[index], aid_src.innovation[index]);
 		}
 

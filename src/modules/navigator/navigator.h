@@ -95,11 +95,12 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
 
@@ -248,7 +249,7 @@ public:
 	 *
 	 * True only if the setpoint is a valid ORBIT-pattern loiter and the vehicle is within
 	 * one acceptance radius of the loiter circle. Used to decide whether a Hold/pause,
-	 * geofence loiter or RTL climb should continue the existing orbit instead of
+	 * geofence loiter or return climb should continue the existing orbit instead of
 	 * re-centering it on the current position.
 	 *
 	 * @param sp the loiter setpoint to test against
@@ -321,7 +322,7 @@ public:
 
 	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }
 
-	// RTL
+	// Return
 	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
 	bool abort_landing();
@@ -339,6 +340,12 @@ public:
 	float get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 
 	bool force_vtol();
+
+	/**
+	 * After a quadchute the next front transition would likely fail too, so navigator does not command one.
+	 * The quadchute stays latched until a front transition is commanded (e.g. by the pilot) or the vehicle reboots.
+	 */
+	bool front_transition_inhibited() const { return _front_transition_inhibited; }
 
 	void acquire_gimbal_control();
 	void release_gimbal_control();
@@ -365,6 +372,7 @@ public:
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
 private:
+	friend class MissionBaseTestNavigator;
 
 	orb_sub_t _local_pos_sub{ORB_SUB_INVALID};
 	orb_sub_t _mission_sub{ORB_SUB_INVALID};
@@ -377,12 +385,13 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
-	uORB::Subscription _gps_pos_sub{ORB_ID(vehicle_gps_position)};		/**< gps position subscription */
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};		/**< gps position subscription */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _fw_takeoff_status_sub{ORB_ID(fixed_wing_takeoff_status)};	/**< fixed-wing takeoff status subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
+	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
@@ -397,13 +406,14 @@ private:
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
 
 	// Subscriptions
-	home_position_s					_home_pos{};		/**< home position for RTL */
+	home_position_s					_home_pos{};		/**< home position for Return */
 	mission_result_s				_mission_result{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
-	sensor_gps_s				_gps_pos{};		/**< gps position */
+	vehicle_gnss_s				_vehicle_gnss{};	/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
+	bool _front_transition_inhibited{false};
 
 	// Publications
 	geofence_result_s				_geofence_result{};
@@ -421,7 +431,7 @@ private:
 	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< RTL/auto path planner that routes around fences (visibility graph + Dijkstra) */
+	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return path planner that routes around fences (visibility graph + Dijkstra) */
 	float _last_geofence_avoidance_margin{NAN}; /**< margin used for the last polygon rebuild; rebuild when it changes */
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
@@ -446,7 +456,7 @@ private:
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	PrecTakeoff	_prec_takeoff;			/**< keeps vertical takeoffs over the landing target */
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-	RTL 		_rtl;				/**< class that handles RTL */
+	RTL 		_rtl;				/**< class that handles Return */
 	Course		_course;			/**< class that handles course */
 #if CONFIG_NAVIGATOR_ADSB
 	DetectAndAvoid _detect_and_avoid;
@@ -506,7 +516,7 @@ private:
 		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
 		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
 		(ParamFloat<px4::params::NAV_MIN_GND_DIST>)
-		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and RTL)*/
+		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and Return)*/
 
 		// non-navigator parameters: Mission (MIS_*)
 		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>)    _param_mis_takeoff_alt,

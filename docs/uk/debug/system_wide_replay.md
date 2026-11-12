@@ -48,7 +48,7 @@ For an example, see [SensorCombined.msg](https://github.com/PX4/PX4-Autopilot/bl
   So, for replaying `ekf2`, the rules file should look like this:
 
   ```sh
-  restrict_topics: sensor_combined, vehicle_gps_position, vehicle_land_detected
+  restrict_topics: sensor_combined, vehicle_gnss, vehicle_land_detected
   module: replay
   ignore_others: true
   ```
@@ -63,7 +63,7 @@ For an example, see [SensorCombined.msg](https://github.com/PX4/PX4-Autopilot/bl
 - Почніть відтворення:
 
   ```sh
-  make px4_sitl_default jmavsim
+  make px4_sitl_default none_iris
   ```
 
   Це автоматично відкриє файл журналу, застосує параметри та почне відтворення.

@@ -64,7 +64,7 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 
 bool FlightTaskManualAcceleration::update()
 {
-	const vehicle_local_position_s vehicle_local_pos = _sub_vehicle_local_position.get();
+	const vehicle_local_position_s &vehicle_local_pos = _sub_vehicle_local_position.get();
 	setMaxDistanceToGround(vehicle_local_pos.hagl_max_xy);
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
 

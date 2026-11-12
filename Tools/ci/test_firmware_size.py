@@ -7,8 +7,9 @@ import sys
 import tempfile
 import unittest
 
-from firmware_size import format_change, memory_usage, summarize
+from firmware_size import format_change, memory_capacity, memory_usage, summarize
 
+CAPACITY = {"flash": 1008 * 1024, "ram": 256 * 1024}
 
 class FirmwareSizeTest(unittest.TestCase):
     def setUp(self):
@@ -68,6 +69,7 @@ SECTIONS
             "arm-none-eabi-objcopy", "-O", "binary", str(elf), str(binary)
         ], check=True)
         self.assertEqual(usage["flash"], binary.stat().st_size)
+        self.assertEqual(usage.pop("image_start"), 0x08008000)
         return usage
 
     def test_bss_and_reserved_buffers_only_use_ram(self):
@@ -102,18 +104,38 @@ SECTIONS
             {"flash": 64, "ram": 80},
         )
 
+    def test_capacity_from_linker_regions(self):
+        # The flash alias is neither the image's region nor RAM.
+        self.linker.write_text(self.linker.read_text().replace(
+            "MEMORY\n{", "MEMORY\n{\n    FLASH_ITCM (rx) : ORIGIN = 0x00208000, LENGTH = 2016K /* alias */"
+        ))
+        self.assertEqual(memory_capacity(self.linker, 0x08008000),
+                         {"flash": 2016 * 1024, "ram": (16 + 368 + 64) * 1024})
+
+    def test_capacity_fails_loudly(self):
+        with self.assertRaisesRegex(ValueError, "no single region"):
+            memory_capacity(self.linker, 0x09000000)
+        self.linker.write_text(self.linker.read_text().replace("LENGTH = 2016K", "LENGTH = 2M - 32K"))
+        with self.assertRaisesRegex(ValueError, "cannot read"):
+            memory_capacity(self.linker, 0x08008000)
+
     def test_opposing_changes_do_not_cancel_comment(self):
-        result = summarize({"flash": 1024, "ram": 1024}, {"flash": 1088, "ram": 960})
+        result = summarize({"flash": 1024, "ram": 1024}, {"flash": 1088, "ram": 960}, CAPACITY)
         self.assertTrue(result["changed"])
         self.assertEqual(result["flash"], "+64 B (+6.25%)")
         self.assertEqual(result["ram"], "-64 B (-6.25%)")
-        self.assertFalse(summarize({"flash": 1, "ram": 0}, {"flash": 1, "ram": 0})["changed"])
+        self.assertFalse(summarize({"flash": 1, "ram": 0}, {"flash": 1, "ram": 0}, CAPACITY)["changed"])
         self.assertEqual(format_change(0, 4488), "🔴 +4,488 B (n/a)")
+
+    def test_usage_is_the_change_against_capacity(self):
+        result = summarize({"flash": 1024, "ram": 1024}, {"flash": 1032192, "ram": 3840}, CAPACITY)
+        self.assertEqual(result["flash_used"], "100.00%")
+        self.assertEqual(result["ram_used"], "1.46%")
 
     def test_small_deltas_are_not_reported(self):
         before = {"flash": 1000, "ram": 1000}
-        self.assertFalse(summarize(before, {"flash": 992, "ram": 1029})["changed"])
-        self.assertTrue(summarize(before, {"flash": 970, "ram": 1000})["changed"])
+        self.assertFalse(summarize(before, {"flash": 992, "ram": 1029}, CAPACITY)["changed"])
+        self.assertTrue(summarize(before, {"flash": 970, "ram": 1000}, CAPACITY)["changed"])
 
     def test_change_indicator(self):
         for delta, expected in ((1001, "🔴 "), (1000, "🟡 "), (101, "🟡 "), (100, ""),
@@ -127,10 +149,11 @@ SECTIONS
         after = self.build("after", bss=96)
         output = subprocess.check_output([
             sys.executable, str(Path(__file__).with_name("firmware_size.py").resolve()),
-            "--before", str(before), "--after", str(after),
+            "--before", str(before), "--after", str(after), "--linker-script", str(self.linker),
         ], cwd=self.root, text=True)
         self.assertEqual(json.loads(output), {
-            "flash": "+0 B (+0.00%)", "ram": "+64 B (+80.00%)", "changed": True,
+            "flash": "+0 B (+0.00%)", "flash_used": "0.00%",
+            "ram": "+64 B (+80.00%)", "ram_used": "0.03%", "changed": True,
         })
 
 

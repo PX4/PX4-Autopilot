@@ -136,7 +136,7 @@ The sbgECom driver always publishes the unit's data to the following uORB topics
 
 if configured as a GNSS, publishes:
 
-- [sensor_gps](../msg_docs/SensorGps.md)
+- [sensor_gnss](../msg_docs/SensorGnss.md)
 
 and, if configured as an INS, publishes:
 

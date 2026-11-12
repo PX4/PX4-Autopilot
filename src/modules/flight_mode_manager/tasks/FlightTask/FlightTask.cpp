@@ -12,7 +12,6 @@ bool FlightTask::activate(const trajectory_setpoint_s &last_setpoint)
 	_resetSetpoints();
 	_setDefaultConstraints();
 	initEkfResetCounters();
-	_time_stamp_activate = hrt_absolute_time();
 	_gear = empty_landing_gear_default_keep;
 	return true;
 }
@@ -22,6 +21,8 @@ void FlightTask::reActivate()
 	// Preserve vertical velocity while on the ground to allow descending by stick for reliable land detection
 	trajectory_setpoint_s setpoint_preserve_vertical{empty_trajectory_setpoint};
 	setpoint_preserve_vertical.velocity[2] = _velocity_setpoint(2);
+	// Start from zero acceleration to make sure no accelration measurement driven by vibration gets used on the ground
+	matrix::Vector3f(0.f, 0.f, 0.f).copyTo(setpoint_preserve_vertical.acceleration);
 	activate(setpoint_preserve_vertical);
 }
 
@@ -195,11 +196,9 @@ void FlightTask::_evaluateVehicleLocalPositionSetpoint()
 		// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
 		_velocity_setpoint_feedback = matrix::Vector3f(vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy,
 					      vehicle_local_position_setpoint.vz);
-		_acceleration_setpoint_feedback = matrix::Vector3f(vehicle_local_position_setpoint.acceleration);
 
 	} else {
 		_velocity_setpoint_feedback.setAll(NAN);
-		_acceleration_setpoint_feedback.setAll(NAN);
 	}
 }
 

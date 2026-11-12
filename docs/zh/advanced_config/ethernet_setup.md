@@ -2,8 +2,7 @@
 
 以太网连接提供了一种快速、可靠和灵活的通信选择，可替代使用USB或其他串行连接。
 
-它可以用于连接地面站、机载计算机和其他MAVLink系统。
-特别建议使用它连接到"原生"使用以太网的系统——例如IP数传。
+它可以用于连接地面站、机载计算机和其他MAVLink系统。特别建议使用它连接到"原生"使用以太网的系统——例如IP数传。
 
 本主题涵盖:
 
@@ -38,8 +37,7 @@ PX4 supports Ethernet connectivity on [Pixhawk 5X-standard](https://github.com/p
 
 ## 设置以太网网络
 
-要通过以太网连接系统，您需要将它们连接到同一个网络，以便每个系统有一个唯一的IP地址并且可以找到其他系统。
-可以使用DHCP服务器来分配地址，或者通过手动配置网络上每个系统的地址来完成。
+要通过以太网连接系统，您需要将它们连接到同一个网络，以便每个系统有一个唯一的IP地址并且可以找到其他系统。可以使用DHCP服务器来分配地址，或者通过手动配置网络上每个系统的地址来完成。
 
 我们不能提供一个确保可以在您的本地网络中工作的“开箱即用配置”。
 Therefore as an example of the kind of configuration you might do, below we show how to set up the systems on an IP network with static addresses in the range `10.41.10.Xxx`, where PX4 has a statically allocated address `10.41.10.2` (PX4-default) and the computer has address `10.41.10.1`.

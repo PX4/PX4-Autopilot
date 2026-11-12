@@ -108,7 +108,7 @@ antenna setup, you will need to set the layout as accurately as possible in the 
    Для найкращої точності спробуйте максимізувати відстань між антенами та уникайте значних висотних відмінностей між ЛАР антенами.
 2. На практиці дві антени ARPs можуть не бути розташовані на однаковій висоті в рамі транспортного засобу, або базова лінія головна-допоміжна1 може не бути абсолютно паралельною або перпендикулярною до поздовжньої вісі транспортного засобу.
    Це призводить до зміщень у обчислених кутах нахилу.
-   These can be compensated for with the heading parameters provided by the Septentrio driver in PX4.
+   PX4 compensates for these from the antenna positions (see [GNSS-Based Heading](../gps_compass/septentrio.md#gnss-based-heading)).
 
 :::info
 For optimal heading results, the two antennas should be separated by at least 30cm / 11.8 in (ideally 50cm / 19.7in or more).

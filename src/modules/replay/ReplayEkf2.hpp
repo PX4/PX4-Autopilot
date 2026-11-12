@@ -141,7 +141,8 @@ private:
 	uint16_t _vehicle_local_position_groundtruth_msg_id = msg_id_invalid;
 	uint16_t _vehicle_global_position_groundtruth_msg_id = msg_id_invalid;
 	uint16_t _vehicle_attitude_groundtruth_msg_id = msg_id_invalid;
-	uint16_t _vehicle_gps_position_msg_id = msg_id_invalid;
+	uint16_t _vehicle_gnss_msg_id = msg_id_invalid;
+	uint16_t _vehicle_gnss_heading_msg_id = msg_id_invalid;
 	uint16_t _vehicle_land_detected_msg_id = msg_id_invalid;
 	uint16_t _vehicle_status_msg_id = msg_id_invalid;
 	uint16_t _sensor_selection_msg_id = msg_id_invalid;

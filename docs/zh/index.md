@@ -13,8 +13,7 @@ PX4 is an open-source autopilot for drones and autonomous vehicles. It runs on m
 
 :::warning
 
-本指南适用于_development_ version of PX4 (`main` 分支)。
-使用 **版本** 选择器查找当前的 _稳定_ 版本。
+本指南适用于_development_ version of PX4 (`main` 分支)。使用 **版本** 选择器查找当前的 _稳定_ 版本。
 
 自稳定版本发布以来的已记录变更，收录在不断更新的(releases/main.md ) 中。
 :::
@@ -53,6 +52,11 @@ The [Hardware Selection & Setup](hardware/drone_parts.md) section covers flight 
 
 Read [Operations](config/operations.md) to understand safety features and failsafe behavior before your first flight. Then see [Basic Flying (Multicopter)](flying/basic_flying_mc.md) or the equivalent for your frame type.
 
+## Security
+
+Securing a deployment is the integrator's responsibility — PX4 ships with every control interface unauthenticated, unsigned, and unencrypted!
+The [Security](security/index.md) section collects the hardening documentation, and links to the [security policy](https://github.com/PX4/PX4-Autopilot/blob/main/SECURITY.md) for reporting a vulnerability.
+
 ## 技术支持
 
 Get help on the [discussion forums](https://discuss.px4.io/) or [Discord](https://discord.com/invite/dronecode). See the [Support](contribute/support.md) page for diagnosing problems, reporting bugs, and joining the [weekly dev call](contribute/dev_call.md).
@@ -69,14 +73,11 @@ See the [Contributing](contribute/index.md) section for code, [documentation](co
 
 ## 许可证
 
-PX4 代码可依据宽松的 [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause) 免费使用和修改。
-此文档已使用 [CC BY 4.0]授权。(https://creativecommons.org/licenses/by/4.0/)。
-详情见： [Licences](contribute/licenses.md)。
+PX4 代码可依据宽松的 [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause) 免费使用和修改。此文档已使用 [CC BY 4.0]授权。(https://creativecommons.org/licenses/by/4.0/)。详情见： [Licences](contribute/licenses.md)。
 
 ## 日历和活动
 
-_Dronecode 日历_ 展示了面向平台用户和开发者的重要社区活动。
-选择以下链接将其显示在您所在的时区日历中(并将其添加到您自己的日历中)：
+_Dronecode 日历_ 展示了面向平台用户和开发者的重要社区活动。选择以下链接将其显示在您所在的时区日历中(并将其添加到您自己的日历中)：
 
 - [Switzerland – Zurich](https://calendar.google.com/calendar/embed?src=linuxfoundation.org_g21tvam24m7pm7jhev01bvlqh8%40group.calendar.google.com&ctz=Europe%2FZurich)
 - [Pacific Time – Tijuana](https://calendar.google.com/calendar/embed?src=linuxfoundation.org_g21tvam24m7pm7jhev01bvlqh8%40group.calendar.google.com&ctz=America%2FTijuana)

@@ -32,6 +32,7 @@ PX4 виконує деякі базові перевірки, щоб визна
 Наприклад, чи достатньо близько місія до апарату, чи буде місія конфліктувати з геозоною, або чи потрібен патерн посадки для місії, але він відсутній.
 
 Перевірки виконуються під час завантаження місії та безпосередньо перед її запуском.
+They are run again after arming, before takeoff, if the Home position was set since the last check.
 Якщо будь-яка з перевірок не пройде успішно, користувач отримує повідомлення, і почати місію неможливо.
 
 For more detail on the checks and possible actions, see: [Mission Mode (FW) > Mission Feasibility Checks](../flight_modes_fw/mission.md#mission-feasibility-checks) and [Mission Mode (MC) > Mission Feasibility Checks](../flight_modes_mc/mission.md#mission-feasibility-checks).

@@ -834,15 +834,15 @@ void IridiumSBD::write_at(const char *command)
 
 satcom_result_code IridiumSBD::read_at_command(int16_t timeout)
 {
-	return read_at(_rx_command_buf, &_rx_command_len, timeout);
+	return read_at(_rx_command_buf, sizeof(_rx_command_buf), &_rx_command_len, timeout);
 }
 
 satcom_result_code IridiumSBD::read_at_msg(int16_t timeout)
 {
-	return read_at(_rx_msg_buf, &_rx_msg_end_idx, timeout);
+	return read_at(_rx_msg_buf, sizeof(_rx_msg_buf), &_rx_msg_end_idx, timeout);
 }
 
-satcom_result_code IridiumSBD::read_at(uint8_t *rx_buf, int *rx_len, int16_t timeout)
+satcom_result_code IridiumSBD::read_at(uint8_t *rx_buf, size_t rx_buf_size, int *rx_len, int16_t timeout)
 {
 	struct pollfd fds[1];
 	fds[0].fd = _uart_fd;
@@ -861,9 +861,15 @@ satcom_result_code IridiumSBD::read_at(uint8_t *rx_buf, int *rx_len, int16_t tim
 					continue;
 				}
 
+				// keep one byte for the terminator written on OK
+				if (rx_buf_pos >= (int)rx_buf_size - 1) {
+					PX4_WARN("response does not fit in %zu bytes", rx_buf_size);
+					return SATCOM_RESULT_ERROR;
+				}
+
 				rx_buf[rx_buf_pos++] = buf;
 
-				if (rx_buf[rx_buf_pos - 1] == '\n' && rx_buf[rx_buf_pos - 2] == '\r') {
+				if (rx_buf_pos >= 2 && rx_buf[rx_buf_pos - 1] == '\n' && rx_buf[rx_buf_pos - 2] == '\r') {
 					// found the \r\n delimiter
 					if (rx_buf_pos == last_rn_idx + 2) {
 						//if (verbose) { PX4_INFO("second in a row, ignore it");}

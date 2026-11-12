@@ -25,7 +25,7 @@ Recommended digital airspeed sensors include:
     - [RCDrone Digital AirSpeed sensor ASPD-DLVR](https://rcdrone.top/products/matek-mateksys-digital-airspeed-sensor-aspd-dlvr)
   - DroneCAN interface
     - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
-    - [RaccoonLab Cyphal/CAN and DroneCAN Airspeed Sensor - MS4525DO](https://raccoonlab.co/tproduct/360882105-652259850171-cyphal-and-dronecan-airspeed-v2)
+    - [RaccoonLab Cyphal/CAN and DroneCAN Airspeed Sensor - MS4525DO](https://docs.raccoonlab.co/guide/airspeed/)
     - [Avionics Anonymous Air Data Computer with OAT probe](https://www.tindie.com/products/avionicsanonymous/uavcan-air-data-computer-airspeed-sensor/)
     - [UAV-DEV GmbH DroneCAN Airspeed and Barometer Sensor - AUAV](https://wiki.uav-dev.com/en/product/airspeed/auav)
 - Based on [Venturi effect](https://en.wikipedia.org/wiki/Venturi_effect)
@@ -48,20 +48,49 @@ You should also check [ASPD_PRIMARY](../advanced_config/parameter_reference.md#A
 
 ### Multiple Airspeed Sensors
 
+<Badge type="tip" text="main (PX4 v2.0)" /> <Badge type="tip" text="Experimental" />
+
 :::warning Experimental
 Using multiple airspeed sensors is experimental.
 :::
 
-If you have multiple airspeed sensors then you can select which sensor is _preferred_ as the primary source using [ASPD_PRIMARY](../advanced_config/parameter_reference.md#ASPD_PRIMARY), where `1`, `2` and `3` reflect the order in which the airspeed sensors were started:
+PX4 supports up to three airspeed sensors.
+Each sensor is converted to airspeed independently, keeps its own zero-offset calibration, and is validated separately, so the selector can fall back to a healthy sensor if one fails in flight.
 
-- `0`: Synthetic airspeed estimation (groundspeed minus windspeed)
-- `1`: First airspeed sensor started (default)
-- `2`: Second airspeed sensor started
-- `3`: Third airspeed sensor started
+#### Selecting the Primary Sensor
 
-The airspeed selector validates the indicated sensor _first_ and only falls back to other sensors if the indicated sensor fails airspeed checks ([ASPD_DO_CHECKS](../advanced_config/parameter_reference.md#ASPD_DO_CHECKS) is used to configure the checks).
+[ASPD_PRIMARY](../advanced_config/parameter_reference.md#ASPD_PRIMARY) selects the source that is _preferred_:
+
+- `0`: Groundspeed minus windspeed
+- `1`: Airspeed sensor 1 (default)
+- `2`: Airspeed sensor 2
+- `3`: Airspeed sensor 3
+- `4`: Thrust-based (synthetic) airspeed
+
+The sensor numbers `1`, `2` and `3` refer to the **calibration entry** the sensor owns (recorded in `CAL_DPRES{n-1}_ID`).
+
+::: tip
+Calibrate every sensor before relying on `ASPD_PRIMARY`.
+:::
+
+#### Failover
+
+The preferred sensor is used while it passes the airspeed checks ([ASPD_DO_CHECKS](../advanced_config/parameter_reference.md#ASPD_DO_CHECKS) configures which checks run).
+If it fails, the selector switches to another valid sensor, preferring the configured primary.
+
+[ASPD_FALLBACK](../advanced_config/parameter_reference.md#ASPD_FALLBACK) controls what happens when _no_ sensor is usable: stay without airspeed, fall back to groundspeed minus windspeed, or fall back to thrust-based airspeed.
+
+::: warning
+By default a sensor that fails its checks stays failed until the next reboot ([ASPD_FS_T_START](../advanced_config/parameter_reference.md#ASPD_FS_T_START) is `-1`).
+Set it to a positive number of seconds to allow a recovered sensor to be used again in the same flight.
+:::
 
 The selected sensor is then used to [supply data to the estimator (EKF2)](../advanced_config/tuning_the_ecl_ekf.md#airspeed) and the controllers.
+
+#### Per-Sensor Calibration
+
+Each sensor stores its own zero offset in `CAL_DPRES{n}_OFF`, linked to the sensor's device ID in `CAL_DPRES{n}_ID`.
+A single [airspeed calibration](../config/airspeed.md) calibrates every connected sensor.
 
 ### Sensor-specific Configuration
 
@@ -76,10 +105,13 @@ The specific configuration for sensors that do not have a separate page is liste
 
 Airspeed sensors should be calibrated by following the instructions: [Basic Configuration > Airspeed](../config/airspeed.md).
 
+## Validation
+
 For more advanced validation, configuration and debugging see [Airspeed Validation](../advanced_config/airspeed_validation.md).
 
 ## See Also
 
+- [Airspeed Scale Handling](../config_fw/airspeed_scale_handling)
 - [Using PX4's Navigation Filter (EKF2) > Airspeed](../advanced_config/tuning_the_ecl_ekf.md#airspeed)
 - [Airspeed drivers](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure) (source code)
 - [VTOL Without an Airspeed Sensor](../config_vtol/vtol_without_airspeed_sensor.md)

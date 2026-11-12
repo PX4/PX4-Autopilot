@@ -35,10 +35,12 @@
 
 using namespace time_literals;
 
-MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_mecanum_speed_control", ORB_ID(vehicle_local_position))
 {
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_speed_status_pub.advertise();
+	_surface_vehicle_speed_status_pub.advertise();
 	updateParams();
 }
 
@@ -65,7 +67,8 @@ void MecanumSpeedControl::updateSpeedControl()
 {
 	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
+	// Runs at the EKF2 output rate (EKF2_PREDICT_US up to 20 ms), allow for that plus jitter
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
 	updateSubscriptions();
 
@@ -86,15 +89,15 @@ void MecanumSpeedControl::updateSpeedControl()
 	}
 
 	// Publish position controller status (logging only)
-	rover_speed_status_s rover_speed_status;
-	rover_speed_status.timestamp = _timestamp;
-	rover_speed_status.measured_speed_body_x = _vehicle_speed_body_x;
-	rover_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_x_setpoint.getState();
-	rover_speed_status.measured_speed_body_y = _vehicle_speed_body_y;
-	rover_speed_status.adjusted_speed_body_y_setpoint = _adjusted_speed_y_setpoint.getState();
-	rover_speed_status.pid_throttle_body_x_integral = _pid_speed_x.getIntegral();
-	rover_speed_status.pid_throttle_body_y_integral = _pid_speed_y.getIntegral();
-	_rover_speed_status_pub.publish(rover_speed_status);
+	surface_vehicle_speed_status_s surface_vehicle_speed_status;
+	surface_vehicle_speed_status.timestamp = _timestamp;
+	surface_vehicle_speed_status.measured_speed_body_x = _vehicle_speed_body_x;
+	surface_vehicle_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_x_setpoint.getState();
+	surface_vehicle_speed_status.measured_speed_body_y = _vehicle_speed_body_y;
+	surface_vehicle_speed_status.adjusted_speed_body_y_setpoint = _adjusted_speed_y_setpoint.getState();
+	surface_vehicle_speed_status.pid_throttle_body_x_integral = _pid_speed_x.getIntegral();
+	surface_vehicle_speed_status.pid_throttle_body_y_integral = _pid_speed_y.getIntegral();
+	_surface_vehicle_speed_status_pub.publish(surface_vehicle_speed_status);
 }
 
 void MecanumSpeedControl::updateSubscriptions()
@@ -115,20 +118,20 @@ void MecanumSpeedControl::updateSubscriptions()
 		_vehicle_speed_body_y = fabsf(velocity_in_body_frame(1)) > _param_ro_speed_th.get() ? velocity_in_body_frame(1) : 0.f;
 	}
 
-	if (_rover_speed_setpoint_sub.updated()) {
-		rover_speed_setpoint_s rover_speed_setpoint;
-		_rover_speed_setpoint_sub.copy(&rover_speed_setpoint);
-		_speed_x_setpoint = rover_speed_setpoint.speed_body_x;
-		_speed_y_setpoint = rover_speed_setpoint.speed_body_y;
+	if (_surface_vehicle_speed_setpoint_sub.updated()) {
+		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint;
+		_surface_vehicle_speed_setpoint_sub.copy(&surface_vehicle_speed_setpoint);
+		_speed_x_setpoint = surface_vehicle_speed_setpoint.speed_body_x;
+		_speed_y_setpoint = surface_vehicle_speed_setpoint.speed_body_y;
 	}
 }
 
 Vector2f MecanumSpeedControl::calcSpeedSetpoint()
 {
-	if (_rover_steering_setpoint_sub.updated()) {
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-		_normalized_speed_diff = rover_steering_setpoint.normalized_steering_setpoint;
+	if (_surface_vehicle_steering_setpoint_sub.updated()) {
+		surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
+		_surface_vehicle_steering_setpoint_sub.copy(&surface_vehicle_steering_setpoint);
+		_normalized_speed_diff = surface_vehicle_steering_setpoint.normalized_steering_setpoint;
 	}
 
 	Vector2f speed_setpoint = Vector2f(_speed_x_setpoint, _speed_y_setpoint);

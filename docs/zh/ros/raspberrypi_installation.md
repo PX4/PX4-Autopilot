@@ -9,7 +9,7 @@
 
 ## 安装
 
-Follow [this guide](https://wiki.ros.org/ROSberryPi/Installing%20ROS%20Indigo%20on%20Raspberry%20Pi) for the actual installation of ROS Indigo. 注意：安装 "ROS-Comm" 变体。 桌面变体太臃肿了。
+Follow [this guide](https://wiki.ros.org/ROSberryPi/Installing%20ROS%20Indigo%20on%20Raspberry%20Pi) for the actual installation of ROS Indigo. 注意：安装 "ROS-Comm" 变体。桌面变体太臃肿了。
 
 ### 安装程序包时出错
 

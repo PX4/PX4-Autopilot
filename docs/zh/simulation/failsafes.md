@@ -2,8 +2,7 @@
 
 [Failsafes](../config/safety.md) define the safe limits/conditions under which you can safely use PX4, and the action that will be performed if a failsafe is triggered (for example, landing, holding position, or returning to a specified point).
 
-在 SITL 中，默认情况下会禁用某一些故障，以便方便模拟使用。
-本主题说明如何在实际世界中尝试 SITL 仿真之前测试安全关键行为。
+在 SITL 中，默认情况下会禁用某一些故障，以便方便模拟使用。本主题说明如何在实际世界中尝试 SITL 仿真之前测试安全关键行为。
 
 :::info
 You can also test failsafes using [HITL simulation](../simulation/hitl.md).
@@ -84,6 +83,6 @@ failure gps ok
 ```
 
 :::tip
-To test the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) you can simulate a second GPS receiver: set the antenna-offset parameter [SENS_GPS1_OFFX](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX) or [SENS_GPS1_OFFY](../advanced_config/parameter_reference.md#SENS_GPS1_OFFY) to a non-zero value, and the simulator publishes a second `sensor_gps` instance offset by that distance (in metres).
+To test the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) you can simulate a second GPS receiver: set the antenna-offset parameter [SENS_GNSS1_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX) or [SENS_GNSS1_OFFY](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFY) to a non-zero value, and the simulator publishes a second `sensor_gnss` instance offset by that distance (in metres).
 You can then fail an individual receiver with the `-i` flag (`-i 0` = all instances, `-i 1` = first GPS, `-i 2` = second), for example `failure gps wrong -i 2`.
 :::

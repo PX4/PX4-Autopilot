@@ -1,29 +1,34 @@
 # Joystick Setup
 
-A [computer joystick](https://en.wikipedia.org/wiki/Joystick) or gamepad connected through _QGroundControl_ can be used to manually control the vehicle (_instead_ of using an [RC Transmitter](../config/radio.md)).
+A [computer joystick](https://en.wikipedia.org/wiki/Joystick) or [gamepad](https://en.wikipedia.org/wiki/Gamepad) connected to a device running _QGroundControl_ (QGC) can be used to manually control a vehicle (instead/as well as an [RC Transmitter](../config/radio.md))
 
-This approach may be used by manual control units that have an integrated ground control station (like the _UAVComponents_ [MicroNav](https://www.uxvtechnologies.com/ground-control-stations/micronav) shown below).
-Joysticks are also commonly used to allow developers to fly the vehicle in simulation.
+This approach sends Joystick movements and button presses encoded as MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages over the telemetry link, which provides a simpler and (usually) less expensive setup than using a separate [RC Transmitter](../config/radio.md).
 
-![Joystick MicroNav](../../assets/peripherals/joystick/micronav.jpg)
+Joysticks are often used in [Integrated Ground Control Stations](../config/integrated_gcs.md) and are recommended for flying the vehicle in simulation.
 
-:::tip
-[Radio Setup](../config/radio.md) is not required if using only a joystick (because a joystick is not an RC controller)!
-:::
+![Gamepad connected to a computer running QGroundControl, which communicates with a PX4 vehicle over a telemetry radio link](../../assets/peripherals/joystick/joystick_computer_setup_visual.png)
 
-::: info
-_QGroundControl_ uses the cross-platform [SDL2](https://www.libsdl.org/index.php) library to convert joystick movements to MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages, which are then sent to PX4 over the telemetry channel.
-In consequence, a joystick-based controller system requires a reliable high bandwidth telemetry channel to ensure that the vehicle is responsive to joystick movements.
+::: tip
+A joystick-based controller system requires a reliable, high-bandwidth telemetry link to ensure that the vehicle is responsive to joystick movements.
+[RC Transmitters](../config/radio.md) are preferred for vehicle bring-up and in other situations where very low latency is required.
 :::
 
 ## Enabling PX4 Joystick Support
 
 Information about how to set up a joystick is covered in: [QGroundControl > Joystick Setup](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/joystick.html).
 
-In summary:
+::: tip
+[Radio Setup](../config/radio.md) is not required when using only a joystick.
+:::
 
-- Open _QGroundControl_
-- [Enable a `COM_RC_IN_MODE` mode that allows Joystick](../config/manual_control.md#px4-configuration).
-  The default `RC or MAVLink keep first` should work if you plan to only have a Joystick connected.
-- Connect the joystick
-- Configure the connected joystick in: **Vehicle Setup > Joystick**.
+Note:
+
+- If you have multiple Joysticks and/or also have an RC Controller, set [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) as described in [Manual Control > PX4 Configuration](../config/manual_control.md#px4-configuration).
+- Manual control and telemetry share one link so you should set [Manual Control Loss](../config/safety.md#manual-control-loss-failsafe) and [Data Link Loss](../config/safety.md#data-link-loss-failsafe) failsafe actions consistently.
+
+## Developer Information
+
+QGC uses the cross-platform [SDL](https://www.libsdl.org/) library to convert joystick movements to MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages, which are then sent to PX4 over the telemetry link.
+PX4 also defines fixed meanings to some of the `MANUAL_CONTROL` button values, and these are mapped to user-selected functions by the ground station.
+
+Other ground stations and MAVLink APIs may use different methods to map joystick controls to `MANUAL_CONTROL` messages.

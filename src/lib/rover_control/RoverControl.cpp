@@ -35,6 +35,35 @@
 using namespace matrix;
 namespace RoverControl
 {
+ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map)
+{
+	// Transmitter modes 1-4 with pitch -> forward, roll -> lateral, yaw -> yaw.
+	// manual_control_setpoint reports the stick positions of a mode 2 transmitter:
+	// throttle = left vertical, yaw = left horizontal, pitch = right vertical, roll = right horizontal.
+	switch (static_cast<StickMapping>(stick_map)) {
+	case StickMapping::Mode1:
+		// Left: Forward & Yaw
+		// Right: Lateral
+		return {manual_control_setpoint.throttle, manual_control_setpoint.roll, manual_control_setpoint.yaw};
+
+	case StickMapping::Mode2:
+		// Left: Yaw
+		// Right: Forward & Lateral
+		return {manual_control_setpoint.pitch, manual_control_setpoint.roll, manual_control_setpoint.yaw};
+
+	case StickMapping::Mode3:
+	default:
+		// Left: Forward & Lateral
+		// Right: Yaw
+		return {manual_control_setpoint.throttle, manual_control_setpoint.yaw, manual_control_setpoint.roll};
+
+	case StickMapping::Mode4:
+		// Left: Lateral
+		// Right: Forward & Yaw
+		return {manual_control_setpoint.pitch, manual_control_setpoint.yaw, manual_control_setpoint.roll};
+	}
+}
+
 float throttleControl(SlewRate<float> &motor_setpoint, const float throttle_setpoint,
 		      const float current_motor_setpoint, const float max_accel, const float max_decel, const float max_thr_spd,
 		      const float dt)
@@ -263,6 +292,35 @@ float calcWaypointTransitionAngle(Vector2f &prev_wp_ned, Vector2f &curr_wp_ned, 
 	float cosin = curr_to_prev_wp_ned.unit_or_zero() * curr_to_next_wp_ned.unit_or_zero();
 	cosin = math::constrain<float>(cosin, -1.f, 1.f); // Protect against float precision problem
 	return acosf(cosin);
+}
+
+void DriftAngleEstimator::update(const vehicle_local_position_s &vehicle_local_position)
+{
+	if (!vehicle_local_position.v_xy_valid || !PX4_ISFINITE(vehicle_local_position.heading)) {
+		return;
+	}
+
+	const float heading = vehicle_local_position.heading;
+	const float forward_speed = vehicle_local_position.vx * cosf(heading) + vehicle_local_position.vy * sinf(heading);
+	const float lateral_speed = -vehicle_local_position.vx * sinf(heading) + vehicle_local_position.vy * cosf(heading);
+
+	// The direction of a slow or backwards velocity says nothing about the drift angle while driving along the course
+	if (forward_speed < math::max(MIN_SPEED, EVH_FACTOR * vehicle_local_position.evh)) {
+		return;
+	}
+
+	const float drift_angle = math::constrain(atan2f(lateral_speed, forward_speed), -MAX_DRIFT_ANGLE, MAX_DRIFT_ANGLE);
+
+	if (!_valid) {
+		_filter.reset(drift_angle);
+		_valid = true;
+
+	} else {
+		// After a pause in the estimation the stale estimate is filtered towards the new one rather than replaced
+		_filter.update(drift_angle, math::min(vehicle_local_position.timestamp - _timestamp, MAX_DT_US));
+	}
+
+	_timestamp = vehicle_local_position.timestamp;
 }
 
 } // RoverControl

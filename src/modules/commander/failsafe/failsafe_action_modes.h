@@ -49,7 +49,7 @@ enum class FailsafeMode : int32_t {
 	Disabled = 0,
 	Warning = 1, // arming allowed, in-flight warning
 	Error = 2, // arming blocked, in-flight warning
-	Return = 3, // arming blocked, in-flight RTL
+	Return = 3, // arming blocked, in-flight Return
 	Land = 4, // arming blocked, in-flight Land
 };
 

@@ -13,8 +13,7 @@ All PX4 [airframes](../airframes/index.md) share a single codebase (this include
 
 ## 顶层软件架构
 
-下面的架构图对 PX4 的各个积木模块以及各模块之间的联系进行了一个详细的概述。
-图的上半部分包括了中间件模块，而下半部分展示的则是飞行控制栈的组件。
+下面的架构图对 PX4 的各个积木模块以及各模块之间的联系进行了一个详细的概述。图的上半部分包括了中间件模块，而下半部分展示的则是飞行控制栈的组件。
 
 ![PX4 Architecture](../../assets/diagrams/PX4_Architecture.svg)
 

@@ -38,6 +38,9 @@
 
 #include <gtest/gtest.h>
 #include "RoverControl.hpp"
+#include <drivers/drv_hrt.h>
+
+using namespace time_literals;
 
 TEST(calcWaypointTransitionAngle, invalidInputs)
 {
@@ -112,4 +115,114 @@ TEST(calcWaypointTransitionAngle, validInputs)
 	next_wp_ned = Vector2f(10.f, 0.f);
 	const float angle6 = RoverControl::calcWaypointTransitionAngle(prev_wp_ned, curr_wp_ned, next_wp_ned);
 	EXPECT_FALSE(PX4_ISFINITE(angle6));
+}
+
+static vehicle_local_position_s localPosition(const float vx, const float vy, const float heading,
+		const hrt_abstime timestamp)
+{
+	vehicle_local_position_s vehicle_local_position{};
+	vehicle_local_position.timestamp = timestamp;
+	vehicle_local_position.v_xy_valid = true;
+	vehicle_local_position.vx = vx;
+	vehicle_local_position.vy = vy;
+	vehicle_local_position.heading = heading;
+	vehicle_local_position.evh = 0.1f;
+	return vehicle_local_position;
+}
+
+TEST(DriftAngleEstimator, zeroUntilEstimated)
+{
+	RoverControl::DriftAngleEstimator drift_angle_estimator;
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+
+	// Too slow, backwards, without velocity or without heading the velocity direction says nothing about the drift
+	drift_angle_estimator.update(localPosition(0.3f, 0.1f, 0.f, 1_s));
+	drift_angle_estimator.update(localPosition(-2.f, 0.5f, 0.f, 2_s));
+	vehicle_local_position_s no_velocity = localPosition(2.f, 0.5f, 0.f, 3_s);
+	no_velocity.v_xy_valid = false;
+	drift_angle_estimator.update(no_velocity);
+	drift_angle_estimator.update(localPosition(2.f, 0.5f, NAN, 4_s));
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+
+	// Forward speed below the velocity uncertainty
+	vehicle_local_position_s uncertain = localPosition(2.f, 0.5f, 0.f, 5_s);
+	uncertain.evh = 1.f;
+	drift_angle_estimator.update(uncertain);
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+}
+
+TEST(DriftAngleEstimator, angleFromHeadingToCourse)
+{
+	RoverControl::DriftAngleEstimator drift_angle_estimator;
+
+	// Heading north, moving north with a drift to the east: the course is to the right of the heading
+	drift_angle_estimator.update(localPosition(2.f, 0.2f, 0.f, 1_s));
+	EXPECT_NEAR(drift_angle_estimator.getDriftAngle(), atan2f(0.2f, 2.f), 1e-5f);
+
+	// The same drift relative to a heading east
+	RoverControl::DriftAngleEstimator rotated;
+	rotated.update(localPosition(-0.2f, 2.f, M_PI_2_F, 1_s));
+	EXPECT_NEAR(rotated.getDriftAngle(), atan2f(0.2f, 2.f), 1e-5f);
+
+	// Limited
+	RoverControl::DriftAngleEstimator limited;
+	limited.update(localPosition(1.f, 5.f, 0.f, 1_s));
+	EXPECT_FLOAT_EQ(limited.getDriftAngle(), RoverControl::DriftAngleEstimator::MAX_DRIFT_ANGLE);
+}
+
+TEST(DriftAngleEstimator, filteredAndReset)
+{
+	RoverControl::DriftAngleEstimator drift_angle_estimator;
+	drift_angle_estimator.update(localPosition(2.f, 0.f, 0.f, 1_s));
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+
+	// A new drift is approached, not jumped to
+	hrt_abstime timestamp = 1_s;
+
+	for (int i = 0; i < 10; i++) {
+		timestamp += 10_ms;
+		drift_angle_estimator.update(localPosition(2.f, 0.4f, 0.f, timestamp));
+	}
+
+	const float drift_angle = atan2f(0.4f, 2.f);
+	EXPECT_GT(drift_angle_estimator.getDriftAngle(), 0.f);
+	EXPECT_LT(drift_angle_estimator.getDriftAngle(), drift_angle);
+
+	for (int i = 0; i < 1000; i++) {
+		timestamp += 10_ms;
+		drift_angle_estimator.update(localPosition(2.f, 0.4f, 0.f, timestamp));
+	}
+
+	EXPECT_NEAR(drift_angle_estimator.getDriftAngle(), drift_angle, 1e-3f);
+
+	drift_angle_estimator.reset();
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+}
+
+TEST(mapSticks, mappings)
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.throttle = 0.1f;
+	manual_control_setpoint.yaw = 0.2f;
+	manual_control_setpoint.pitch = 0.3f;
+	manual_control_setpoint.roll = 0.4f;
+
+	const auto expectSticks = [&](int32_t stick_map, float forward, float lateral, float yaw) {
+		const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint, stick_map);
+		EXPECT_FLOAT_EQ(sticks.forward, forward);
+		EXPECT_FLOAT_EQ(sticks.lateral, lateral);
+		EXPECT_FLOAT_EQ(sticks.yaw, yaw);
+	};
+
+	// Sticks of a mode 2 transmitter: throttle = left vertical, yaw = left horizontal,
+	// pitch = right vertical, roll = right horizontal
+	expectSticks(1, 0.1f, 0.4f, 0.2f); // Left: forward & yaw, right: lateral
+	expectSticks(2, 0.3f, 0.4f, 0.2f); // Left: yaw, right: forward & lateral
+	expectSticks(3, 0.1f, 0.2f, 0.4f); // Left: forward & lateral, right: yaw
+	expectSticks(4, 0.3f, 0.2f, 0.4f); // Left: lateral, right: forward & yaw
+
+	// Out of range values fall back to the default mapping (mode 3)
+	expectSticks(-1, 0.1f, 0.2f, 0.4f);
+	expectSticks(0, 0.1f, 0.2f, 0.4f);
+	expectSticks(5, 0.1f, 0.2f, 0.4f);
 }

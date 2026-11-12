@@ -49,6 +49,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -100,9 +101,14 @@ private:
 	void generateSetpoints();
 
 	/**
-	 * @brief Update the active controllers.
+	 * @brief Enable the controllers the active control mode needs.
+	 *
+	 * Each controller runs on its own trigger topic, see the controller classes, and only the enabled ones are woken by it.
+	 * They share this module's work queue, so enabling and resetting them here never overlaps with their Run().
+	 *
+	 * @param enabled false disables all controllers
 	 */
-	void updateControllers();
+	void enableControllers(bool enabled);
 
 	/**
 	 * @brief Check proper parameter setup for the controllers
@@ -122,6 +128,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
@@ -137,5 +144,7 @@ private:
 
 	// Variables
 	bool _sanity_checks_passed{true}; // True if checks for all active controllers pass
+	uint8_t _nav_state{vehicle_status_s::NAVIGATION_STATE_MAX}; // Active mode, to detect mode changes
 	bool _was_armed{false}; // True if the vehicle was armed before the last reset
+	bool _controller_registration_failed{false}; // True while a controller trigger callback is not registered
 };

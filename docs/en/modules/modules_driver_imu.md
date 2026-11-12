@@ -1,5 +1,10 @@
 # Modules Reference: Imu (Driver)
 
+::: info
+**This page is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4moduledoc/markdownout.py) from the source code** using the build command: `make module_documentation`.
+Do not edit it directly; fix the module documentation in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) source instead.
+:::
+
 ## adis16448
 
 Source: [drivers/imu/analog_devices/adis16448](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis16448)
@@ -778,6 +783,34 @@ icm45686 <command> [arguments...]
    status        print status info
 ```
 
+## icm56686
+
+Source: [drivers/imu/invensense/icm56686](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm56686)
+
+### Usage {#icm56686_usage}
+
+```
+icm56686 <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-R <val>]  Rotation
+                 default: 0
+     [-2]        Route the FIFO interrupt to INT2 instead of INT1
+
+   stop
+
+   status        print status info
+```
+
 ## iim20670
 
 Source: [drivers/imu/invensense/iim20670](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/iim20670)
@@ -1102,6 +1135,33 @@ Source: [drivers/imu/murata/sch16t](https://github.com/PX4/PX4-Autopilot/tree/ma
 
 ```
 sch16t <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-R <val>]  Rotation
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
+## zeroone_sch16t
+
+Source: [drivers/imu/murata/zeroone_sch16t](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/murata/zeroone_sch16t)
+
+### Usage {#zeroone_sch16t_usage}
+
+```
+zeroone_sch16t <command> [arguments...]
  Commands:
    start
      [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is

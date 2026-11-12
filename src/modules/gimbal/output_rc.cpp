@@ -65,6 +65,11 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 	// so we should not act as a gimbal device (and hence not advertise a gimbal manager).
 	if (_gimbal_output_functions_assigned) {
 		_stream_device_attitude_status();
+
+		// A MAVLink v2 output takes the first gimbal_device_information it receives as its device.
+		if (_parameters.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V2 && _parameters.mnt_mode_out2 != MNT_MODE_OUT_MAVLINK_V2) {
+			_publish_device_information();
+		}
 	}
 
 	// If the output is RC, then we signal this by referring to compid 1.
@@ -84,6 +89,10 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 void OutputRC::_check_gimbal_output_functions_assigned()
 {
 	_gimbal_output_functions_assigned = false;
+
+	for (int i = 0; i < 3; ++i) {
+		_axis_actuated[i] = false;
+	}
 
 	for (unsigned i = 0; i < param_count(); ++i) {
 		const param_t param = param_for_index(i);
@@ -116,9 +125,66 @@ void OutputRC::_check_gimbal_output_functions_assigned()
 
 		if (function >= (int32_t)OutputFunction::Gimbal_Roll && function <= (int32_t)OutputFunction::Gimbal_Yaw) {
 			_gimbal_output_functions_assigned = true;
-			return;
+			_axis_actuated[function - (int32_t)OutputFunction::Gimbal_Roll] = true;
 		}
 	}
+
+	// gimbal_controls may still be consumed without an output function, so keep driving every axis.
+	if (!_gimbal_output_functions_assigned) {
+		for (int i = 0; i < 3; ++i) {
+			_axis_actuated[i] = true;
+		}
+	}
+}
+
+void OutputRC::_publish_device_information()
+{
+	// Acting as the gimbal device, answer GIMBAL_DEVICE_INFORMATION requests like a MAVLink gimbal would.
+	// Called every gimbal loop; publish only when the limits change to avoid republishing static data.
+	const float roll_max = math::radians(_parameters.mnt_range_roll * 0.5f);
+	const float pitch_min = math::radians(_parameters.mnt_min_pitch);
+	const float pitch_max = math::radians(_parameters.mnt_max_pitch);
+	const float yaw_max = math::radians(_parameters.mnt_range_yaw * 0.5f);
+
+	if (_device_information.timestamp != 0
+	    && matrix::isEqualF(roll_max, _device_information.roll_max)
+	    && matrix::isEqualF(pitch_min, _device_information.pitch_min)
+	    && matrix::isEqualF(pitch_max, _device_information.pitch_max)
+	    && matrix::isEqualF(yaw_max, _device_information.yaw_max)) {
+		return;
+	}
+
+	gimbal_device_information_s &info = _device_information;
+	info = {};
+	strncpy((char *)info.vendor_name, "PX4", sizeof(info.vendor_name) - 1);
+	strncpy((char *)info.model_name, "AUX output gimbal", sizeof(info.model_name) - 1);
+
+	info.cap_flags = gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL;
+
+	if (_axis_actuated[0]) {
+		info.cap_flags |= gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS
+				  | gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_LOCK;
+	}
+
+	if (_axis_actuated[1]) {
+		info.cap_flags |= gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS
+				  | gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_LOCK;
+	}
+
+	if (_axis_actuated[2]) {
+		info.cap_flags |= gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS
+				  | gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_LOCK;
+	}
+
+	info.roll_min = -roll_max;
+	info.roll_max = roll_max;
+	info.pitch_min = pitch_min;
+	info.pitch_max = pitch_max;
+	info.yaw_min = -yaw_max;
+	info.yaw_max = yaw_max;
+	info.gimbal_device_id = 1;
+	info.timestamp = hrt_absolute_time();
+	_device_information_pub.publish(info);
 }
 
 float OutputRC::anglesMappedToOutput(const uint8_t index)
@@ -182,6 +248,12 @@ void OutputRC::_stream_device_attitude_status()
 	matrix::Quatf q;
 
 	switch (_parameters.mnt_do_stab) {
+	case MntDoStabilize::DISABLED: {
+			attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
+			q = matrix::Quatf(matrix::Eulerf(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]));
+			break;
+		}
+
 	case MntDoStabilize::PITCH_LOCK: {
 			// Report device attitude in relative frame as external apps are dependent
 			attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;

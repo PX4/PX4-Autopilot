@@ -95,6 +95,12 @@ extern "C" __EXPORT int top_main(int argc, char *argv[])
 			fds.events = POLLIN;
 			ret = poll(&fds, 1, 0);
 
+			if ((ret < 0) || (fds.revents & POLLNVAL)) {
+				// no input to stop on, as from a shell without a terminal
+				cpuload_monitor_stop();
+				return 0;
+			}
+
 			if (ret > 0) {
 
 				ret = read(0, &c, 1);

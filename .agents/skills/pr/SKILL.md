@@ -23,8 +23,8 @@ footers. Disclose AI assistance as the last line of the PR body, italicized:
    bumps, docs, ROMFS). Build with the `build-px4-linux` or `build-px4-macos`
    skill. Fix any build errors before opening the PR.
 4. PR **title:** `type(scope): description` — under 72 chars, covers the
-   overall change across all commits. This becomes the squash-merge commit
-   message.
+   overall change across all commits. If a maintainer squash-merges the PR,
+   this becomes the commit message.
 5. PR **body:** as short as it can be while still landing the point — a
    reviewer should take it in at a glance, and a long description is one
    nobody reads. Sections, in order: `## Summary`, `## Problem`,

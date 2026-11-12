@@ -67,7 +67,6 @@ public:
 
 	// Assuming the velocity constraint resets in every loop and update constraint if new value is lower
 	void setVelocityConstraint(float vel);
-	float getVelocityConstraint() { return _velocity_slew_rate_xy.getState(); };
 
 private:
 	CollisionPrevention _collision_prevention{this};
@@ -79,6 +78,7 @@ private:
 	void lockPosition(const matrix::Vector3f &pos, const matrix::Vector2f &vel_sp_feedback, const float dt);
 
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
+	float _acceleration_tilt_max{0.f}; ///< acceleration limit of the last published takeoff tilt limit
 
 	SlewRate<float> _acceleration_slew_rate_x;
 	SlewRate<float> _acceleration_slew_rate_y;

@@ -35,6 +35,7 @@
 
 #include "failsafe.h"
 #include "failsafe_action_modes.h"
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_status.h>
 #include "../ModeUtil/mode_requirements.hpp"
 
@@ -121,7 +122,7 @@ TEST_F(FailsafeTest, General)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
-	// manual control lost -> Hold, then RTL
+	// manual control lost -> Hold, then Return
 	time += 10_ms;
 	failsafe_flags.manual_control_signal_lost = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
@@ -139,14 +140,14 @@ TEST_F(FailsafeTest, General)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
 
-	// DL link regained -> RTL (manual control still lost)
+	// DL link regained -> Return (manual control still lost)
 	time += 10_ms;
 	failsafe_flags.gcs_connection_lost = false;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 
-	// Manual control lost cleared -> keep RTL
+	// Manual control lost cleared -> keep Return
 	time += 10_ms;
 	failsafe_flags.manual_control_signal_lost = false;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
@@ -232,7 +233,7 @@ TEST_F(FailsafeTest, TakeoverDenied)
 
 	uint8_t updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 
-	// Wind limit exceeded -> RTL w/o delay and denying takeover
+	// Wind limit exceeded -> Return w/o delay and denying takeover
 	time += 10_ms;
 	failsafe_flags.wind_limit_exceeded = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
@@ -292,7 +293,7 @@ TEST_F(FailsafeTest, CanTakeoverDegradedFailsafe)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
 
-	// Delay over -> RTL
+	// Delay over -> Return
 	time += 5_s;
 	failsafe_flags.battery_low_remaining_time = true;
 	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
@@ -371,7 +372,7 @@ TEST_F(FailsafeTest, NoneActionDoesNotRestrictUserTakeover)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
 
-	// Delay over -> RTL
+	// Delay over -> Return
 	time += 5_s;
 	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
@@ -424,7 +425,7 @@ TEST_F(FailsafeTest, OrbitAfterFailsafeExplicitCommandAllowed)
 
 	uint8_t updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
 
-	// Wind limit exceeded -> RTL
+	// Wind limit exceeded -> Return
 	time += 10_ms;
 	failsafe_flags.wind_limit_exceeded = true;
 	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
@@ -455,7 +456,7 @@ TEST_F(FailsafeTest, OrbitAutoresumeAfterFailsafeDowngradedToLoiter)
 
 	failsafe.update(time, state, false, false, failsafe_flags);
 
-	// Wind limit exceeded -> eventually RTL; Orbit is downgraded to Loiter at failsafe entry.
+	// Wind limit exceeded -> eventually Return; Orbit is downgraded to Loiter at failsafe entry.
 	// Simulate Commander feeding the returned mode back as user_intended_mode each cycle.
 	time += 10_ms;
 	failsafe_flags.wind_limit_exceeded = true;
@@ -640,7 +641,7 @@ TEST_F(FailsafeTest, SkipFailsafe)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
-	// Manual control lost while in RTL -> stay in RTL and only warn
+	// Manual control lost while in Return -> stay in Return and only warn
 	failsafe_flags.manual_control_signal_lost = true;
 
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
@@ -735,6 +736,98 @@ TEST_F(FailsafeTest, FallbackAltitudeUsesNavRclActParam)
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
 }
 
+// Offboard loss without manual control falls back to a manual mode, and the fallback is replaced by the NAV_RCL_ACT
+// action. "Hold mode (no failsafe)" maps to no action, which left the vehicle in Offboard flying its last setpoint.
+TEST_F(FailsafeTest, OffboardLossWithoutManualControlHoldsForHoldNoFailsafe)
+{
+	int nav_rcl_act = 7;
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+	failsafe_flags.manual_control_signal_lost = true;
+
+	FailsafeBase::State state{};
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	// Armed in Offboard without manual control, the companion computer is the only control source.
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	state.armed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// The companion computer stops. Position mode cannot be flown without manual control, so Hold it is.
+	failsafe_flags.offboard_control_signal_lost = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+}
+
+// The same with a NAV_RCL_ACT value outside the list, which maps to no action as well.
+TEST_F(FailsafeTest, OffboardLossWithoutManualControlHoldsForUnlistedNavRclAct)
+{
+	int nav_rcl_act = 0;
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+	failsafe_flags.manual_control_signal_lost = true;
+
+	FailsafeBase::State state{};
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	state.armed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	failsafe_flags.offboard_control_signal_lost = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+}
+
+// With manual control available the Offboard loss fallback is untouched and goes to Position mode.
+TEST_F(FailsafeTest, OffboardLossWithManualControlFallsBackToPosition)
+{
+	int nav_rcl_act = 7;
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	state.armed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	failsafe_flags.offboard_control_signal_lost = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::FallbackPosCtrl);
+}
+
 TEST_F(FailsafeTest, TrafficAvoidanceUnhealthyUsesTrafficAvoidActParam)
 {
 	// Each param value is exercised on its own fresh Failsafe instance, to avoid
@@ -744,7 +837,7 @@ TEST_F(FailsafeTest, TrafficAvoidanceUnhealthyUsesTrafficAvoidActParam)
 		param_set(param_handle(px4::params::COM_TRAFF_AVOID), &com_traff_avoid);
 
 		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
-		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		// triggered Return/Land is selected immediately instead of Hold-then-Return/Land.
 		float com_fail_act_t = 0.f;
 		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
 
@@ -797,7 +890,7 @@ TEST_F(FailsafeTest, FallbackStabilizedRequiresManualControl)
 	failsafe_flags.local_altitude_invalid = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
-	// checkModeFallback returns RTL from NAV_RCL_ACT. The framework then cascades RTL -> Land -> Descend
+	// checkModeFallback returns Return from NAV_RCL_ACT. The framework then cascades Return -> Land -> Descend
 	// because local altitude loss blocks both AUTO_RTL and AUTO_LAND.
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
 }
@@ -935,4 +1028,159 @@ TEST_F(FailsafeTest, NoNotificationForDisabledFailsafe)
 
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 	EXPECT_EQ(notifications, notifications_before);
+}
+
+TEST_F(FailsafeTest, RoverUnsupportedDescendToDisarm)
+{
+	FailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
+	hrt_abstime time = 3847124342;
+	bool stick_override_request = false;
+
+	// 1. Simulate a Rover by marking Descend as unsupported
+	failsafe_flags.mode_not_supported |= (1u << vehicle_status_s::NAVIGATION_STATE_DESCEND);
+
+	// 2. Trigger a failure that normally cascades to Hold, then Descend
+	failsafe_flags.mission_failure = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+
+	time += 10_ms;
+	failsafe.update(time, state, false, stick_override_request, failsafe_flags);
+
+	// 3. Advance time past the Hold delay (3+ seconds) to trigger the Descend fallback
+	time += 6_s;
+	failsafe.update(time, state, false, stick_override_request, failsafe_flags);
+
+	// 4. Verify that because Descend is unsupported, the action safely diverted to Disarm
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Disarm);
+}
+
+TEST_F(FailsafeTest, FixedWingCannotRunFollowTargetOrOrbit)
+{
+	// Follow Target and Orbit only exist as multicopter flight tasks, and both clear
+	// flag_control_auto_enabled.
+	failsafe_flags_s fw_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_FIXED_WING, fw_flags);
+	EXPECT_TRUE(fw_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET));
+	EXPECT_TRUE(fw_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT));
+
+	// Both stay available for multicopters, including a VTOL in hover
+	failsafe_flags_s mc_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, mc_flags);
+	EXPECT_FALSE(mc_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET));
+	EXPECT_FALSE(mc_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT));
+
+	// A vehicle that ends up in Follow Target as a fixed-wing gets taken out of it
+	Failsafe failsafe(nullptr);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, fw_flags);
+
+	// Advance past the COM_FAIL_ACT_T hold delay set in SetUp()
+	time += 6_s;
+	const uint8_t updated_user_intended_mode = failsafe.update(time, state, false, false, fw_flags);
+
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+	// The user intention stays on Follow Target, but the mode actually flown is RTL
+	EXPECT_EQ(FailsafeBase::modeFromAction(failsafe.selectedAction(), updated_user_intended_mode),
+		  vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+}
+
+TEST_F(FailsafeTest, GnssLostUsesGnssLossActParam)
+{
+	// Each param value is exercised on its own fresh Failsafe instance, to avoid
+	// action hysteresis/clear-conditions from one value leaking into the next.
+	auto selectedActionFor = [](int32_t com_gnssloss_act) {
+		param_set(param_handle(px4::params::COM_GNSSLOSS_ACT), &com_gnssloss_act);
+
+		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
+		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+		Failsafe failsafe(nullptr);
+
+		failsafe_flags_s failsafe_flags{};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+		failsafe_flags.gnss_lost = true;
+
+		FailsafeBase::State state{};
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		failsafe.update(5_s, state, false, false, failsafe_flags);
+		return failsafe.selectedAction();
+	};
+
+	EXPECT_EQ(selectedActionFor(0), FailsafeBase::Action::Warn); // Warning
+	EXPECT_EQ(selectedActionFor(1), FailsafeBase::Action::RTL); // Return
+	EXPECT_EQ(selectedActionFor(2), FailsafeBase::Action::Land); // Land
+	EXPECT_EQ(selectedActionFor(3), FailsafeBase::Action::Terminate); // Terminate
+	// "Warning, block arming" only differs from Warning on the ground, in flight both just warn
+	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Warn); // Warning, block arming
+}
+
+TEST_F(FailsafeTest, BatteryFailsafeUsesLowBatActParam)
+{
+	// Each param value is exercised on its own fresh Failsafe instance, to avoid
+	// action hysteresis/clear-conditions from one value leaking into the next.
+	auto selectedActionFor = [](int32_t com_low_bat_act, uint8_t battery_warning, bool remaining_flight_time_low) {
+		param_set(param_handle(px4::params::COM_LOW_BAT_ACT), &com_low_bat_act);
+
+		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
+		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+		Failsafe failsafe(nullptr);
+
+		failsafe_flags_s failsafe_flags{};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+		FailsafeBase::State state{};
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		// Arm without battery warning, a battery warning that is already present at arming only warns
+		failsafe.update(5_s, state, false, false, failsafe_flags);
+
+		failsafe_flags.battery_warning = battery_warning;
+		failsafe_flags.battery_low_remaining_time = remaining_flight_time_low;
+		failsafe.update(5_s + 10_ms, state, false, false, failsafe_flags);
+		return failsafe.selectedAction();
+	};
+
+	static constexpr uint8_t kNone = battery_status_s::WARNING_NONE;
+	static constexpr uint8_t kCritical = battery_status_s::WARNING_CRITICAL;
+	static constexpr uint8_t kEmergency = battery_status_s::WARNING_EMERGENCY;
+
+	// Remaining flight time low: only the distance-aware return options return, all others warn
+	EXPECT_EQ(selectedActionFor(0, kNone, true), FailsafeBase::Action::Warn); // Warning
+	EXPECT_EQ(selectedActionFor(2, kNone, true), FailsafeBase::Action::Warn); // Land mode
+	// Distance-aware return, Critical level return, Emergency level land
+	EXPECT_EQ(selectedActionFor(3, kNone, true), FailsafeBase::Action::RTL);
+	// Distance-aware return, Critical level return, Emergency level terminate
+	EXPECT_EQ(selectedActionFor(4, kNone, true), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(5, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level land
+	EXPECT_EQ(selectedActionFor(6, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level terminate
+
+	// Battery levels: the options without distance-aware return act like the ones with it
+	EXPECT_EQ(selectedActionFor(3, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(5, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(4, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(6, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(3, kEmergency, false), FailsafeBase::Action::Land);
+	EXPECT_EQ(selectedActionFor(5, kEmergency, false), FailsafeBase::Action::Land);
+	EXPECT_EQ(selectedActionFor(4, kEmergency, false), FailsafeBase::Action::Terminate);
+	EXPECT_EQ(selectedActionFor(6, kEmergency, false), FailsafeBase::Action::Terminate);
 }
