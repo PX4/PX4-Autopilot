@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#include <math.h>
+
 #include <gtest/gtest.h>
 #include "CollisionPrevention.hpp"
 
@@ -69,6 +71,10 @@ public:
 					 float vehicle_yaw_angle_rad)
 	{
 		_adaptSetpointDirection(setpoint_dir, setpoint_index, vehicle_yaw_angle_rad);
+	}
+	int test_guidanceBins(float guidance_angle_deg)
+	{
+		return guidanceBins(guidance_angle_deg);
 	}
 	bool test_enterData(int map_index, float sensor_range, float sensor_reading)
 	{
@@ -1220,6 +1226,26 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_flat_minimum)
 	EXPECT_EQ(sp_index, 2);
 	EXPECT_FLOAT_EQ(setpoint_dir(0), 0.98480773f);
 	EXPECT_FLOAT_EQ(setpoint_dir(1), 0.17364818f);
+}
+
+TEST_F(CollisionPreventionTest, guidanceBinsWithinParameterRange)
+{
+	// GIVEN: the CP_GUIDE_ANG parameter, declared with min 0 and max 90 in
+	// collisionprevention_params.yaml, but not range-checked when it is set
+	TestCollisionPrevention cp;
+
+	// WHEN/THEN: values inside the declared range are converted to bins as before
+	EXPECT_EQ(cp.test_guidanceBins(30.f), 6);
+	EXPECT_EQ(cp.test_guidanceBins(90.f), 18);
+	EXPECT_EQ(cp.test_guidanceBins(0.f), 0);
+
+	// WHEN/THEN: out-of-range values are clamped instead of unbounded the guidance loop
+	EXPECT_EQ(cp.test_guidanceBins(1e9f), 18);
+	EXPECT_EQ(cp.test_guidanceBins(-10.f), 0);
+
+	// WHEN/THEN: a non-finite value falls back to no guidance
+	EXPECT_EQ(cp.test_guidanceBins(NAN), 0);
+	EXPECT_EQ(cp.test_guidanceBins(INFINITY), 0);
 }
 
 TEST_F(CollisionPreventionTest, overlappingSensors)
