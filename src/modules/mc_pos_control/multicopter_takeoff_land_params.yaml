@@ -87,7 +87,7 @@ parameters:
         2: Landing waypoint
         3: Home
         4: AMSL
-      default: 15
+      default: 25
       min: 0
       max: 31
     MPC_LAND_SPEED:
