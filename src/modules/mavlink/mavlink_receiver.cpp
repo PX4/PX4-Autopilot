@@ -713,6 +713,35 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.confirmation = false;
 	vcmd.from_external = true;
 
+	// The frame is not passed on to Commander, which takes the DO_SET_HOME altitude as AMSL.
+	// The frame only matters if the location is given (param1 MAV_BOOL_FALSE), not when the
+	// current position is used (MAV_BOOL_TRUE). Other param1 values are denied by Commander.
+	if (cmd_mavlink.command == MAV_CMD_DO_SET_HOME && fabsf(cmd_mavlink.param1) < FLT_EPSILON
+	    && evaluate_target_ok(vcmd.command, vcmd.target_system, vcmd.target_component)) {
+		if (cmd_mavlink.frame == MAV_FRAME_GLOBAL || cmd_mavlink.frame == MAV_FRAME_GLOBAL_INT) {
+			// already AMSL
+
+		} else if (cmd_mavlink.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT
+			   || cmd_mavlink.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+			home_position_s home_position{};
+			_home_position_sub.copy(&home_position);
+
+			if (!home_position.valid_alt) {
+				// the altitude is relative to a home that is not set yet
+				acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+					    vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+				return;
+			}
+
+			vcmd.param7 = home_position.alt + cmd_mavlink.z;
+
+		} else {
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+				    vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED_MAV_FRAME);
+			return;
+		}
+	}
+
 	handle_message_command_both(msg, vcmd);
 }
 
