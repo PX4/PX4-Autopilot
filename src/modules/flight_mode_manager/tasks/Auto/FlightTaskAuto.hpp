@@ -117,8 +117,18 @@ protected:
 	/** true once airborne for MIS_TKO_PREC_DLY and navigator has adjusted the takeoff setpoint using a valid target */
 	bool _followPrecisionTakeoffTarget() const;
 
+	/** Bits of MPC_LAND_GND_SRC */
+	enum LandGroundSource : int32_t {
+		None = 0,
+		DistanceSensor = (1 << 0),
+		LandingTarget = (1 << 1),
+		LandingWaypoint = (1 << 2),
+		Home = (1 << 3),
+		Amsl = (1 << 4)
+	};
+
 	void _prepareLandSetpoints();
-	void _evaluateDistanceToLandingPoint(); /**< Uses the landing target or waypoint altitude as ground reference if no distance sensor */
+	void _evaluateDistanceToLandingPoint(); /**< Selects the landing ground reference from the sources enabled in MPC_LAND_GND_SRC */
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 
 	void updateParams() override; /**< See ModuleParam class */
@@ -180,6 +190,7 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
 					(ParamFloat<px4::params::MPC_LAND_ALT3>) _param_mpc_land_alt3,
+					(ParamInt<px4::params::MPC_LAND_GND_SRC>) _param_mpc_land_gnd_src,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
@@ -208,6 +219,8 @@ private:
 	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 
 	matrix::Vector3f _initial_land_position;
+
+	LandGroundSource _dist_to_ground_src{LandGroundSource::None}; /**< Source of _dist_to_ground during auto landing */
 
 	void _smoothYaw(); /**< Smoothen the yaw setpoint. */
 	bool _evaluatePositionSetpointTriplet();

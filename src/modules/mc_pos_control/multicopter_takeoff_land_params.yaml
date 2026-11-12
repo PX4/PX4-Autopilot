@@ -53,14 +53,43 @@ parameters:
       description:
         short: Altitude for 3. step of slow landing
         long: |-
-          If a valid distance sensor measurement to the ground is available,
-          limit descending velocity to "MPC_LAND_CRWL" below this altitude.
+          If a valid distance sensor measurement to the ground is available
+          and enabled in MPC_LAND_GND_SRC, limit descending velocity to "MPC_LAND_CRWL" below this altitude.
       type: float
       default: 1.0
       unit: m
       min: 0
       max: 122
       decimal: 1
+    MPC_LAND_GND_SRC:
+      description:
+        short: Ground height sources for auto landing
+        long: |-
+          Bitmask of the sources used to estimate the height above ground during
+          automatic landing, which drives the slowdown (MPC_LAND_ALT1, MPC_LAND_ALT2,
+          MPC_LAND_ALT3). Enabled sources are used in the order of the bits, the first
+          valid one wins. If no enabled source is valid, the vehicle descends at
+          MPC_LAND_SPEED for the whole landing.
+
+          Bit 0 - Distance sensor: also required for the crawl below MPC_LAND_ALT3.
+
+          Bit 1 - Landing target: absolute position of the precision landing target.
+
+          Bit 2 - Landing waypoint: altitude of the landing waypoint in Mission and Return.
+
+          Bit 3 - Home: assumes the ground is at the home altitude.
+
+          Bit 4 - AMSL: assumes the ground is at mean sea level.
+      type: bitmask
+      bit:
+        0: Distance sensor
+        1: Landing target
+        2: Landing waypoint
+        3: Home
+        4: AMSL
+      default: 15
+      min: 0
+      max: 31
     MPC_LAND_SPEED:
       description:
         short: Landing descend rate
@@ -72,7 +101,7 @@ parameters:
     MPC_LAND_CRWL:
       description:
         short: Land crawl descend rate
-        long: Used below MPC_LAND_ALT3 if distance sensor data is availabe.
+        long: Used below MPC_LAND_ALT3 if distance sensor data is available and enabled in MPC_LAND_GND_SRC.
       type: float
       default: 0.3
       unit: m/s
