@@ -66,6 +66,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 
 	} else {
 		_failure_detector_status.flags.tilt = false;
+		_tilt_failure_hysteresis.set_state_and_update(false, hrt_absolute_time());
 		_failure_detector_status.flags.alt = false;
 		_failure_detector_status.flags.ext = false;
 		// Reset altitude loss state so it reinitialises cleanly when altitude control re-engages.
@@ -106,26 +107,28 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 	if (_vehicle_attitude_sub.update(&attitude)) {
 
 		matrix::Quatf q(attitude.q);
-		bool check_tilt = true;
 
-		// special handling for tailsitter
-		if (vehicle_status.is_vtol_tailsitter) {
-			if (vehicle_status.in_transition_mode) {
-				// disable attitude check during tailsitter transition
-				check_tilt = false;
-
-			} else if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				// in FW flight rotate the attitude by 90° around pitch (level FW flight = 0° tilt)
-				q = q * matrix::Quatf(matrix::Eulerf(0.f, M_PI_2_F, 0.f));
-			}
+		if (vehicle_status.is_vtol_tailsitter && !vehicle_status.in_transition_mode
+		    && vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			// tailsitter FW attitude setpoints are in the FW frame, rotated by 90° around pitch
+			q = q * matrix::Quatf(matrix::Eulerf(0.f, M_PI_2_F, 0.f));
 		}
 
-		// angle between body z-axis and world z-axis
-		const float tilt = acosf(math::constrain(q.dcm_z()(2), -1.f, 1.f));
+		vehicle_attitude_setpoint_s attitude_setpoint{};
+		_vehicle_attitude_setpoint_sub.copy(&attitude_setpoint);
+		// level unless there is a recent attitude setpoint, e.g. on rovers
+		matrix::Vector3f z_setpoint(0.f, 0.f, 1.f);
+
+		if (attitude.timestamp < attitude_setpoint.timestamp + 500_ms) {
+			z_setpoint = matrix::Quatf(attitude_setpoint.q_d).dcm_z();
+		}
+
+		// angle between body z-axis and setpoint z-axis
+		const float tilt_error = acosf(math::constrain(q.dcm_z().dot(z_setpoint), -1.f, 1.f));
 		// -1 disables, 0 as well for backwards compatibility
-		const int max_tilt_deg = _param_fd_fail_r.get();
-		const bool tilt_status = check_tilt && (max_tilt_deg > 0)
-					 && (tilt > math::radians(static_cast<float>(max_tilt_deg)));
+		const int max_tilt_error_deg = _param_fd_fail_r.get();
+		const bool tilt_status = (max_tilt_error_deg > 0)
+					 && (tilt_error > math::radians(static_cast<float>(max_tilt_error_deg)));
 
 		_tilt_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
 		_tilt_failure_hysteresis.set_state_and_update(tilt_status, hrt_absolute_time());
