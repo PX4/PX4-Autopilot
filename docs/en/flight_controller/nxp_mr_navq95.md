@@ -8,7 +8,10 @@ Contact the [manufacturer](https://www.nxp.com) for hardware support or complian
 :::
 
 ::: info
-NavQ95 is a reference design and not an end product. NXP provides small quantities, the complete opensource [hardware design package](https://github.com/NXP-Robotics/MR-NAVQ95) and will sell small quantities via NXP.com and through electronics distributors worldwide. The intention is to provide a complete tested, validated, and flown reference set of hardware that a manufacturer can copy or modify as they wish and have manufactuered at their preferred contract manufacturer. Contact your local NXP representative for more information.
+The MR-NavQ95 is a reference design and not an end product.
+NXP provides the complete open-source [hardware design package](https://github.com/NXP-Robotics/MR-NAVQ95) and sells small quantities through NXP.com and electronics distributors worldwide.
+The intention is to provide a complete, tested, validated and flown reference set of hardware that a manufacturer can copy or modify as they wish and have manufactured at their preferred contract manufacturer.
+Contact your local NXP representative for more information.
 :::
 
 The [MR-NavQ95](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/overview.html) is a vehicle computer reference design from NXP Mobile Robotics, built around the NXP i.MX 95.
@@ -17,7 +20,7 @@ The two sides talk over RPMsg: PX4 keeps its parameters, dataman and logs on a f
 The main board carries the i.MX 95 and the ICM-45686, BMM350 and BMP581 sensors.
 The NAVQ95-IO expansion board (the "IO board") carries the BMI088, the USB console, and the CAN, PWM, GPS, TELEM and I2C connectors.
 
-![MR-NavQ95 Overview](../../assets/flight_controller/nxp_mr_navq95/mr-navq95-block-diagram.svg)
+![MR-NavQ95 block diagram](../../assets/flight_controller/nxp_mr_navq95/mr_navq95_block_diagram.svg)
 
 Because the i.MX 95 is an applications processor, the Linux side is a full companion computer rather than just a storage and telemetry bridge.
 It brings the parts of a mobile robotics stack that do not belong on a flight controller:
@@ -62,8 +65,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Interfaces {#interfaces}
 
 - **PWM outputs:** 8 FMU outputs (7 when `GPIO_IO23` is configured as the buzzer or left unused), all [DShot](../peripherals/dshot.md) capable, including bidirectional DShot 300 and 600
-- **Serial ports:** 3 (`J8 GPS1`, `J6 TELEM1` with flow control, RC on the main board `J2 CONSOLE`), plus RPMsg virtual ports to Linux (shell, two MAVLink links)
-- **I2C buses:** 2 (I2C1 internal, `J7 I2C6` external)
+- **Serial ports:** 3 (`GPS1` on IO board `J8 GPS`, `TELEM1` on IO board `J6 TELEM` with flow control, RC on the main board `J2 CONSOLE`), plus RPMsg virtual ports to Linux (shell, two MAVLink links)
+- **I2C buses:** 2 (I2C1 internal, I2C6 external on IO board `J7 I2C`)
 - **SPI buses:** 2, both internal
 - **CAN buses:** 2 CAN FD buses for PX4, DroneCAN capable (IO board `J4 CAN2` and `J3 CAN3`).
   A third (IO board `J5 CAN1`) belongs to Linux.
@@ -88,18 +91,18 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-The board can be bought from NXP via [MR-NAVQ95](https://www.nxp.com/design/design-center/development-boards-and-designs/MR-NAVQ95).
+The board can be bought from NXP as [MR-NAVQ95-KIT](https://www.nxp.com/design/design-center/development-boards-and-designs/MR-NAVQ95).
 
 ## Pinouts {#pinouts}
 
-![MR-NavQ95 top view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_top.jpg)
+![MR-NavQ95 top view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_top.webp)
 
-![MR-NavQ95 side view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_side.jpg)
+![MR-NavQ95 side view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_side.webp)
 
-![MR-NavQ95 bottom view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_bottom.jpg)
+![MR-NavQ95 bottom view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_bottom.webp)
 
 Hardware details, schematics and the pinout of every connector are in the [MR-NAVQ95 hardware reference](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/hardware.html#mr-navq95-hardware-reference).
-The [connector index](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/hardware.html#connector-index) has a drawing and a pin table for each connector.
+The [connector index](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/hardware.html#connector-index) has a pinout drawing for each connector.
 
 The TELEM, GPS, I2C and CAN connectors follow the [Dronecode DS-009 connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 The main board `J2 CONSOLE` header has its own pin order: pins 4 and 5 carry the RC UART (see [Radio Control](#radio_control)).
@@ -245,8 +248,6 @@ It provides the RPMsg links PX4 depends on:
 PX4 has no local storage.
 `/fs/rpmsg` on the PX4 side is an RPMsg filesystem (rpmsgfs) served by Linux, and it holds the parameters, dataman and the flight logs.
 
-
-
 ### MAVLink and QGroundControl
 
 There is no telemetry radio in the path by default: the MAVLink link leaves the board over the network.
@@ -288,9 +289,10 @@ The PX4 topics then appear in ROS 2 on the board, as described in the [ROS 2 Use
 
 ## Building Firmware {#building_firmware}
 
-
 ::: warning
-The target on PX4 main is currently under development. For a stable version you could flash a tested and verified image based on PX4 1.17 from the following page: [Installing and configuring software tools](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/installing-software-tools.html#installing-and-configuring-software-tools). Make sure to use both the Linux and PX4 images from this page and not use the image from [imx-manifest-navq95](https://github.com/NXP-Robotics/imx-manifest-navq95).
+Support for this board in PX4 `main` is under development.
+For a stable version, flash NXP's tested image based on PX4 v1.17, following [Installing and configuring software tools](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/installing-software-tools.html#installing-and-configuring-software-tools).
+Use both the Linux and PX4 images from that page, rather than a Linux image built from [imx-manifest-navq95](https://github.com/NXP-Robotics/imx-manifest-navq95).
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
@@ -375,7 +377,7 @@ pyocd reset -t mimx95_cm33 -f 20M
 The PX4 [system console](../debug/system_console.md) is `/dev/ttynsh` on the Linux side.
 An NSH shell that does not need Linux can run on LPUART2 (IO board `J1 CONSOLE` or main board `J2 CONSOLE`) instead of the RC input; see [Serial Port Mapping](#serial_port_mapping).
 
-The [SWD interface](../debug/swd_debug.md) is on the main board `J7 DEBUG` connector, a standard Arm Cortex 10-pin header (2x5, 1.27 mm), for an external debug probe (J-Link, CMSIS-DAP or any probe _pyOCD_ supports; see the `J7` card in the [MR-NAVQ95 repository](https://github.com/NXP-Robotics/MR-NAVQ95#connector-index)).
+The [SWD interface](../debug/swd_debug.md) is on the main board `J7 DEBUG` connector, a standard Arm Cortex 10-pin header (2x5, 1.27 mm), for an external debug probe (J-Link, CMSIS-DAP or any probe _pyOCD_ supports; see the [`J7` pinout](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/hardware.html#main-j7-debug)).
 It is not a Pixhawk Debug Full or Debug Mini connector.
 VTref is 1.8 V, so the probe must support 1.8 V targets.
 nRESET is connected through a diode, so the probe can only pull it low.
