@@ -49,6 +49,7 @@
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
 #include <drivers/drv_sensor.h>             // to get the simulated sensor device types
 #include <lib/drivers/device/Device.hpp>
+#include <lib/terrain_sim/terrain_sim.h>
 
 using namespace math;
 using namespace matrix;
@@ -408,17 +409,50 @@ void Sih::parameters_updated()
 		}
 	}
 
+	// the ground in force: flat at the reference altitude, the elevation data from the file given with -t, or the
+	// synthetic terrain from the seed with the newest row of rules, zero at home so the vehicle spawns on the ground
+	const int32_t mode = _sih_terr_mode.get();
+	terrain_sim::set_formula(terrain_sim::kFormula, _sih_terr_seed.get(), mode == TERR_MODE_SYNTHETIC);
+	_ground = &_flat;
+
+	if (mode == TERR_MODE_SYNTHETIC) {
+		_ground = &_synthetic;
+
+	} else if (mode == TERR_MODE_DEM) {
+#if defined(SIH_TERRAIN_DEM)
+
+		if (_terrain.loaded()) {
+			_ground = &_terrain;
+
+		} else {
+			PX4_WARN("SIH_TERR_MODE 1 needs a terrain file, start sih with -t <file>, flat ground used");
+		}
+
+#else
+		PX4_WARN("SIH_TERR_MODE 1 needs the DEM terrain, not in this build, flat ground used");
+#endif
+	}
+
+#if defined(SIH_TERRAIN_DEM)
+
+	if (_terrain.loaded() && mode != TERR_MODE_DEM) {
+		PX4_INFO("terrain file loaded, SIH_TERR_MODE 1 selects it");
+	}
+
+#endif
+
 	if (!_lpos_ref.isInitialized()
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_terrain.defaultAltitude() - _sih_h0.get()) > FLT_EPSILON)) {
+	    || (fabsf(_ground->defaultAltitude() - _sih_h0.get()) > FLT_EPSILON)) {
 		const double lat0 = static_cast<double>(_sih_lat0.get());
 		const double lon0 = static_cast<double>(_sih_lon0.get());
 		_lpos_ref.initReference(lat0, lon0);
+		_synthetic.setReference(lat0, lon0);
 
 		// start on the ground: flat at SIH_LOC_H0, or on the terrain model
-		_terrain.setDefaultAltitude(_sih_h0.get());
-		_lpos_ref_alt = _terrain.vehicleGroundAltitude(lat0, lon0);
+		_ground->setDefaultAltitude(_sih_h0.get());
+		_lpos_ref_alt = _ground->vehicleGroundAltitude(lat0, lon0);
 		_ground_alt = _lpos_ref_alt;
 
 		// Reset earth position, velocity and attitude
@@ -825,7 +859,7 @@ void Sih::equations_of_motion(const float dt)
 	ecefToNed();
 
 	// ground below the new position, for the next contact check and the sensors
-	_ground_alt = _terrain.vehicleGroundAltitude(_lla.latitude_deg(), _lla.longitude_deg());
+	_ground_alt = _ground->vehicleGroundAltitude(_lla.latitude_deg(), _lla.longitude_deg());
 
 	// the ground force only stops the vertical motion, keep the vehicle from sinking into rising terrain
 	static constexpr float MAX_PENETRATION = 0.05f; // [m]
@@ -961,7 +995,7 @@ void Sih::orient_step(const hrt_abstime &now, const float dt)
 
 float Sih::ground_distance(float max_distance) const
 {
-	return _terrain.rayDistance(_lla.latitude_deg(), _lla.longitude_deg(), _lla.altitude(), _q.dcm_z(), max_distance);
+	return _ground->rayDistance(_lla.latitude_deg(), _lla.longitude_deg(), _lla.altitude(), _q.dcm_z(), max_distance);
 }
 
 void Sih::ecefToNed()
@@ -1331,7 +1365,7 @@ int Sih::print_status()
 		PX4_INFO("Rover Ackermann");
 	}
 
-	_terrain.printStatus();
+	_ground->printStatus();
 
 	PX4_INFO("ground altitude: %.2f m", (double)_ground_alt);
 	PX4_INFO("vehicle landed: %d", _grounded);

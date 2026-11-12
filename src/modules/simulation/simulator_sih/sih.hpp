@@ -88,6 +88,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/ranging_beacon.h>
 
+#include "terrain/TerrainSynthetic.hpp"
+
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <sys/time.h>
 #endif
@@ -260,6 +262,9 @@ private:
 	static bool load_terrain(int argc, char *argv[]);
 
 	static inline Terrain _terrain{}; // loaded by task_spawn(), the SIH task stack is too small for the terrain libraries
+	static inline TerrainSynthetic _synthetic{}; // terrain from SIH_TERR_SEED
+	static inline TerrainFlat _flat{}; // flat ground at the reference altitude
+	TerrainFlat *_ground{&_flat}; // the ground in force, chosen by SIH_TERR_MODE: flat, the elevation data from the file, or the synthetic terrain
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
@@ -374,6 +379,10 @@ private:
 	esc_status_s _esc_status{};
 
 	// parameters defined in sih_params.c
+	static constexpr int32_t TERR_MODE_FLAT = 0;      // SIH_TERR_MODE values
+	static constexpr int32_t TERR_MODE_DEM = 1;       // terrain from the elevation data file given with -t
+	static constexpr int32_t TERR_MODE_SYNTHETIC = 2; // synthetic terrain from SIH_TERR_SEED
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,
 		(ParamInt<px4::params::IMU_INTEG_RATE>) _imu_integration_rate,
@@ -403,6 +412,8 @@ private:
 		(ParamFloat<px4::params::SIH_OF_RATE>) _sih_optical_flow_rate,
 		(ParamFloat<px4::params::SIH_OF_NOISE>) _sih_optical_flow_noise,
 		(ParamFloat<px4::params::SIH_OF_H_MAX>) _sih_optical_flow_h_max,
+		(ParamInt<px4::params::SIH_TERR_MODE>) _sih_terr_mode,
+		(ParamInt<px4::params::SIH_TERR_SEED>) _sih_terr_seed,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
 		// forward propeller
 		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,
