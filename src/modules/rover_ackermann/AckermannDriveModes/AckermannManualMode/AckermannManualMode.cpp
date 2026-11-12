@@ -38,7 +38,7 @@ using namespace time_literals;
 AckermannManualMode::AckermannManualMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
-	_surface_vehicle_throttle_setpoint_pub.advertise();
+	_surface_vehicle_thrust_setpoint_pub.advertise();
 	_surface_vehicle_steering_setpoint_pub.advertise();
 	_surface_vehicle_rate_setpoint_pub.advertise();
 	_surface_vehicle_attitude_setpoint_pub.advertise();
@@ -62,11 +62,11 @@ void AckermannManualMode::manual()
 	surface_vehicle_steering_setpoint.timestamp = hrt_absolute_time();
 	surface_vehicle_steering_setpoint.normalized_steering_setpoint = sticks.yaw;
 	_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
-	surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
-	surface_vehicle_throttle_setpoint.timestamp = hrt_absolute_time();
-	surface_vehicle_throttle_setpoint.x = sticks.forward;
-	surface_vehicle_throttle_setpoint.y = 0.f;
-	_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
+	surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+	surface_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_thrust_setpoint.x = sticks.forward;
+	surface_vehicle_thrust_setpoint.y = 0.f;
+	_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 }
 
 void AckermannManualMode::manualParking()
@@ -81,11 +81,11 @@ void AckermannManualMode::manualParking()
 	_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
 
 	const float max_throttle = _param_ro_park_thr_max.get();
-	surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
-	surface_vehicle_throttle_setpoint.timestamp = hrt_absolute_time();
-	surface_vehicle_throttle_setpoint.x = max_throttle * sticks.forward;
-	surface_vehicle_throttle_setpoint.y = 0.f;
-	_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
+	surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+	surface_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_thrust_setpoint.x = max_throttle * sticks.forward;
+	surface_vehicle_thrust_setpoint.y = 0.f;
+	_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 }
 
 void AckermannManualMode::acro()
@@ -94,11 +94,11 @@ void AckermannManualMode::acro()
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
 			_param_ro_stick_map.get());
-	surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
-	surface_vehicle_throttle_setpoint.timestamp = hrt_absolute_time();
-	surface_vehicle_throttle_setpoint.x = sticks.forward;
-	surface_vehicle_throttle_setpoint.y = 0.f;
-	_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
+	surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+	surface_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_thrust_setpoint.x = sticks.forward;
+	surface_vehicle_thrust_setpoint.y = 0.f;
+	_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 	surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 	surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 	surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(sticks.forward) * _max_yaw_rate *
@@ -120,14 +120,14 @@ void AckermannManualMode::stab()
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
 			_param_ro_stick_map.get());
-	surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
-	surface_vehicle_throttle_setpoint.timestamp = hrt_absolute_time();
-	surface_vehicle_throttle_setpoint.x = sticks.forward;
-	surface_vehicle_throttle_setpoint.y = 0.f;
-	_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
+	surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+	surface_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_thrust_setpoint.x = sticks.forward;
+	surface_vehicle_thrust_setpoint.y = 0.f;
+	_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 
 	if (fabsf(sticks.yaw) > FLT_EPSILON
-	    || fabsf(surface_vehicle_throttle_setpoint.x) < FLT_EPSILON) {
+	    || fabsf(surface_vehicle_thrust_setpoint.x) < FLT_EPSILON) {
 		_stab_yaw_setpoint = NAN;
 
 		// Rate control

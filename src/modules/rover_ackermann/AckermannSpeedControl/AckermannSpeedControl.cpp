@@ -39,7 +39,7 @@ AckermannSpeedControl::AckermannSpeedControl(ModuleParams *parent) :
 	ModuleParams(parent),
 	RoverControllerWorkItem("rover_ackermann_speed_control", ORB_ID(vehicle_local_position))
 {
-	_surface_vehicle_throttle_setpoint_pub.advertise();
+	_surface_vehicle_thrust_setpoint_pub.advertise();
 	_surface_vehicle_speed_status_pub.advertise();
 	updateParams();
 }
@@ -68,17 +68,17 @@ void AckermannSpeedControl::updateSpeedControl()
 	// Runs at the EKF2 output rate (EKF2_PREDICT_US up to 20 ms), allow for that plus jitter
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
-	// Throttle Setpoint
+	// Thrust setpoint
 	if (PX4_ISFINITE(_speed_setpoint)) {
 		const float speed_setpoint = math::constrain(_speed_setpoint, -_param_ro_speed_limit.get(),
 					     _param_ro_speed_limit.get());
-		surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
-		surface_vehicle_throttle_setpoint.timestamp = _timestamp;
-		surface_vehicle_throttle_setpoint.x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
-						      speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-						      _param_ro_max_thr_speed.get(), dt);
-		surface_vehicle_throttle_setpoint.y = NAN;
-		_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
+		surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+		surface_vehicle_thrust_setpoint.timestamp = _timestamp;
+		surface_vehicle_thrust_setpoint.x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
+						    speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+						    _param_ro_max_thr_speed.get(), dt);
+		surface_vehicle_thrust_setpoint.y = NAN;
+		_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 	}
 
 	// Publish speed controller status (logging only)

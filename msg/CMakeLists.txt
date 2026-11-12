@@ -223,7 +223,7 @@ set(msg_files
 	SurfaceVehicleSpeedSetpoint.msg
 	SurfaceVehicleSpeedStatus.msg
 	SurfaceVehicleSteeringSetpoint.msg
-	SurfaceVehicleThrottleSetpoint.msg
+	SurfaceVehicleThrustSetpoint.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg

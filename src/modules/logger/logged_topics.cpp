@@ -130,7 +130,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("surface_vehicle_speed_setpoint", 100);
 	add_optional_topic("surface_vehicle_speed_status", 100);
 	add_optional_topic("surface_vehicle_steering_setpoint", 100);
-	add_optional_topic("surface_vehicle_throttle_setpoint", 100);
+	add_optional_topic("surface_vehicle_thrust_setpoint", 100);
 	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
 	add_optional_topic("tecs_status", 200);

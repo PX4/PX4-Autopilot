@@ -799,7 +799,7 @@
         - [SurfaceVehicleSpeedSetpoint](msg_docs/SurfaceVehicleSpeedSetpoint.md)
         - [SurfaceVehicleSpeedStatus](msg_docs/SurfaceVehicleSpeedStatus.md)
         - [SurfaceVehicleSteeringSetpoint](msg_docs/SurfaceVehicleSteeringSetpoint.md)
-        - [SurfaceVehicleThrottleSetpoint](msg_docs/SurfaceVehicleThrottleSetpoint.md)
+        - [SurfaceVehicleThrustSetpoint](msg_docs/SurfaceVehicleThrustSetpoint.md)
         - [SystemPower](msg_docs/SystemPower.md)
         - [TakeoffStatus](msg_docs/TakeoffStatus.md)
         - [TargetGnss](msg_docs/TargetGnss.md)
