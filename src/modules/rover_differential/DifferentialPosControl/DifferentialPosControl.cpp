@@ -94,6 +94,11 @@ void DifferentialPosControl::updatePosControl()
 				_pure_pursuit_status_pub.publish(pure_pursuit_status);
 			}
 
+			// Driving in reverse, the rover points away from its direction of travel
+			if (speed_setpoint < -FLT_EPSILON) {
+				yaw_setpoint = matrix::wrap_pi(yaw_setpoint + M_PI_F);
+			}
+
 			const float heading_error = matrix::wrap_pi(yaw_setpoint - _vehicle_yaw);
 
 			if (_current_state == DrivingState::DRIVING && fabsf(heading_error) > _param_rd_trans_drv_trn.get()) {
@@ -120,8 +125,7 @@ void DifferentialPosControl::updatePosControl()
 			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 			surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
 			surface_vehicle_attitude_setpoint.timestamp = timestamp;
-			surface_vehicle_attitude_setpoint.yaw_setpoint = speed_setpoint > -FLT_EPSILON ? yaw_setpoint : matrix::wrap_pi(
-						yaw_setpoint + M_PI_F);
+			surface_vehicle_attitude_setpoint.yaw_setpoint = yaw_setpoint;
 			_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
 
 		}  else {
