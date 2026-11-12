@@ -78,8 +78,8 @@ If your threat model includes physical access, secure the SD card slot and debug
   Message signing provides authentication and integrity, but messages are sent in plaintext.
   An eavesdropper can read telemetry and commands but cannot forge them.
 - **Allowlisted messages**:
-  A small set of [safety-critical messages](message_signing.md#unsigned-message-allowlist) (`HEARTBEAT`, `RADIO_STATUS`, `ADSB_VEHICLE`, `COLLISION`) are always accepted unsigned on all links.
-  An attacker could spoof these specific messages.
+  A small set of [safety-critical messages](message_signing.md#unsigned-message-allowlist) is accepted unsigned: `HEARTBEAT` and `RADIO_STATUS` on all links, and `ADSB_VEHICLE` and `COLLISION` only on links in `ADS-B/Traffic (uAvionix)` mode.
+  An attacker could spoof these specific messages where they are accepted.
 - **Key management**:
   There is no automatic key rotation.
   Keys must be reprovisioned manually via a signed `SETUP_SIGNING` message.
