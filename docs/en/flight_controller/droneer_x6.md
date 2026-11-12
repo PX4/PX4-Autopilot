@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://droneer.com/) for hardware support or compliance issues.
 :::
 
-The Droneer X6 is a flight controller manufactured by Droneer.
+The [Droneer X6](https://droneer.com/6x-flight-controller/) is a flight controller manufactured by Droneer.
 It is based on the open-source [Pixhawk FMUv6X](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf) reference design and the [Pixhawk Autopilot Bus](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf) specification.
 
 ![Droneer X6](../../assets/flight_controller/droneer_x6/droneerx6_v1.jpg)
@@ -45,7 +45,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Ethernet:** 100 Mbps, transformerless (`ETH`)
 - **USB:** 2 ports: USB Type-C (`TYPE-C`) and JST GH1.25 (`USB`)
 - **RC input:** `SBUS RC` (PX4IO) for Spektrum/DSM and S.Bus receivers, with analog/PWM RSSI input; `PPM` (FMU, unused by default). S.Bus output on `SBUS OUT`
-- **AD & IO port:** `AD&IO`, with 2 additional analog inputs (3.3 V and 6.6 V) and 1 PWM/capture input
+- **AD & IO port:** `AD&IO`, with 2 additional analog inputs (3.3 V and 6.6 V), `AUX` 7-8 and 1 capture input (`FMU_CAP1`)
 - **Power inputs:** 2 DroneCAN power inputs (`POWER 1`, `POWER 2`)
 - **Parameter storage:** FRAM (FM25V02A)
 - **SD card:** MicroSD slot
@@ -60,7 +60,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Mechanical Data {#mechanical_data}
 
 - **Weight:** 89 g (module + baseboard)
-- **Dimensions:** 84.6 x 39.6 x 32.7 mm
+- **Dimensions:** 84.6 x 39.6 x 32.8 mm
 - **Form factor:** [Pixhawk Autopilot Bus (PAB)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
 - **Operating and storage temperature:** -20 to 85 °C
 
@@ -74,7 +74,8 @@ Order from [Droneer](https://droneer.com/6x-flight-controller/).
 
 ## Power {#power}
 
-`POWER 1` and `POWER 2` are DroneCAN power inputs: each carries 5 V and a CAN bus (CAN1 on `POWER 1`, CAN2 on `POWER 2`). 'POWER 1' has higher priority.
+`POWER 1` and `POWER 2` are DroneCAN power inputs: each carries 5 V and a CAN bus (CAN1 on `POWER 1`, CAN2 on `POWER 2`).
+`POWER 1` has higher priority.
 Battery voltage and current are read from DroneCAN power modules.
 DroneCAN is disabled by default (see [CAN](#can)).
 
@@ -102,7 +103,7 @@ The 8 `AUX` outputs are in 3 groups:
 
 All outputs within the same group must use the same output protocol and rate.
 
-`FMU_CAP1` (PE11/TIM1_CH2) on the `AD&IO` port is configured as a capture input in the default firmware, not a ninth PWM output.
+`FMU_CAP1` (`TIM1_CH2`) on the `AD&IO` port is a capture input.
 
 The PWM signal level is 3.3 V by default.
 Set the `PWM_VOLT_SEL` parameter to `1` for 5 V, then reboot.
@@ -187,6 +188,6 @@ make droneer_x6_default
 
 ## Further Information {#further_information}
 
-- [Droneer](https://droneer.com/)
+- [Droneer X6 product page](https://droneer.com/6x-flight-controller/)
 - [Pixhawk Autopilot FMUv6X Standard (DS-012)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)
 - [Pixhawk Autopilot Bus Standard (DS-010)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)

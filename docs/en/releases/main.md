@@ -39,7 +39,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Hardware Support
 
-- **[New Hardware]** new board support Droneer_x6 ([PX4-Autopilot#27745](https://github.com/PX4/PX4-Autopilot/pull/27745))
+- [Droneer X6](../flight_controller/droneer_x6.md): Pixhawk FMUv6X-based flight controller (STM32H753) with triple ICM-45686 IMUs, dual ICP-20100 barometers, and an RM3100 compass. ([PX4-Autopilot#27745](https://github.com/PX4/PX4-Autopilot/pull/27745))
 
 ### Common
 
