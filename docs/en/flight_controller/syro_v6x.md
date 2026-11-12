@@ -72,7 +72,7 @@ This flight controller is intended for inclusion in the [manufacturer supported]
 | `TELEM1`, `TELEM2`, `TELEM3` | 6-pin JST GH                        |
 | `GPS1`                       | 10-pin JST GH                       |
 | `GPS2`                       | 6-pin JST GH                        |
-| `UART4 & I2C`                  | 7-pin JST GH                        |
+| `UART4 & I2C`                | 7-pin JST GH                        |
 | `I2C`                        | 4-pin JST GH                        |
 | `CAN1`, `CAN2`               | 4-pin JST GH                        |
 | `POWER1`, `POWER2`           | 6-pin Molex Micro-Lock Plus         |
@@ -170,16 +170,16 @@ This flight controller is intended for inclusion in the [manufacturer supported]
 
 ### ADIO
 
-| Pin | Signal             | MCU pin |
-| --- | ------------------ | ------- |
-| 1   | 5V                 |         |
-| 2   | FMU_CAP1           | PE11    |
-| 3   | FMU_BOOTLOADER     |         |
-| 4   | FMU_RST_REQ        |         |
-| 5   | nARMED             | PE6     |
-| 6   | ADC1_3V3 (3.3 V range) | PC3 |
-| 7   | ADC1_6V6 (6.6 V range) | PC2 |
-| 8   | GND                |         |
+| Pin | Signal                 | MCU pin |
+| --- | ---------------------- | ------- |
+| 1   | 5V                     |         |
+| 2   | FMU_CAP1               | PE11    |
+| 3   | FMU_BOOTLOADER         |         |
+| 4   | FMU_RST_REQ            |         |
+| 5   | nARMED                 | PE6     |
+| 6   | ADC1_3V3 (3.3 V range) | PC3     |
+| 7   | ADC1_6V6 (6.6 V range) | PC2     |
+| 8   | GND                    |         |
 
 ### SPI
 
@@ -248,18 +248,18 @@ The rows are, from top to bottom, ground (`-`), power (`+`) and signal (`S`).
 
 ### FMU DEBUGGER
 
-| Pin | Signal    | MCU pin      |
-| --- | --------- | ------------ |
-| 1   | 3.3V      |              |
+| Pin | Signal     | MCU pin      |
+| --- | ---------- | ------------ |
+| 1   | 3.3V       |              |
 | 2   | Console TX | PD8 (USART3) |
 | 3   | Console RX | PD9 (USART3) |
-| 4   | SWDIO     | PA13         |
-| 5   | SWCLK     | PA14         |
-| 6   | SPI6_SCK  | PB3          |
-| 7   | NFC_GPIO  | PC0          |
-| 8   | PH11      | PH11         |
-| 9   | nRST      |              |
-| 10  | GND       |              |
+| 4   | SWDIO      | PA13         |
+| 5   | SWCLK      | PA14         |
+| 6   | SPI6_SCK   | PB3          |
+| 7   | NFC_GPIO   | PC0          |
+| 8   | PH11       | PH11         |
+| 9   | nRST       |              |
+| 10  | GND        |              |
 
 ### IO DEBUGGER
 
