@@ -53,10 +53,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 5 V (5.7 V maximum)
+- **Nominal input voltage:** 5 V
 - **USB power input:** 4.75-5.25 V
-- **Servo rail input:** 0-9.9 V
-- **Current draw:** 500 mA (300 mA main system, 200 mA heater)
 - **Output current limits:** `TELEM 1` and `GPS 2` combined: 1.5 A; all other ports combined: 1.5 A
 
 ### Mechanical Data {#mechanical_data}
@@ -68,7 +66,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-Order from [Droneer](https://droneer.com/).
+Order from [Droneer](https://droneer.com/pixhawk-6x-flight-controller/).
 
 ## Pinouts {#pinouts}
 
@@ -76,7 +74,7 @@ Order from [Droneer](https://droneer.com/).
 
 ## Power {#power}
 
-`POWER 1` and `POWER 2` are DroneCAN power inputs: each carries 5 V and a CAN bus (CAN1 on `POWER 1`, CAN2 on `POWER 2`).
+`POWER 1` and `POWER 2` are DroneCAN power inputs: each carries 5 V and a CAN bus (CAN1 on `POWER 1`, CAN2 on `POWER 2`). 'POWER 1' has higher priority.
 Battery voltage and current are read from DroneCAN power modules.
 DroneCAN is disabled by default (see [CAN](#can)).
 
@@ -104,7 +102,7 @@ The 8 `AUX` outputs are in 3 groups:
 
 All outputs within the same group must use the same output protocol and rate.
 
-`FMU_CAP1` (TIM1) on the `AD&IO` port is a capture channel.
+`FMU_CAP1` (PE11/TIM1_CH2) on the `AD&IO` port is configured as a capture input in the default firmware, not a ninth PWM output.
 
 The PWM signal level is 3.3 V by default.
 Set the `PWM_VOLT_SEL` parameter to `1` for 5 V, then reboot.
@@ -145,7 +143,7 @@ A remote control (RC) radio system is required only if you want to fly the vehic
 See [Radio Control Systems](../getting_started/rc_transmitter_receiver.md) for more information.
 
 - `SBUS RC` connects to the PX4IO, which detects the [protocols it supports](../modules/modules_driver.md#px4io) automatically.
-- The port also provides an RSSI input (`IO_RSSI_IN`) and a switched 3.3 V supply for Spektrum/DSM receivers.
+- The port also provides an RSSI input (`IO_RSSI_IN`).
 - [CRSF](../telemetry/crsf_telemetry.md) and GHST receivers cannot be decoded by the PX4IO.
   Connect them to a free FMU serial port, such as `TELEM 2`, and set [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) to that port.
 - Only one FMU RC serial port can be active at a time.
