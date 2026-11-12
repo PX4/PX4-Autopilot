@@ -203,6 +203,50 @@ TEST_F(VelocitySmoothingTest, testTimeSynchronizationSameDelta)
 	EXPECT_FLOAT_EQ(_trajectories[2].getT3(), 0.f);
 }
 
+TEST_F(VelocitySmoothingTest, testTimeSynchronizationExcessAcceleration)
+{
+	// GIVEN: multicopter auto constraints
+	setConstraints(4.f, 3.f, 100.f);
+
+	// AND: Y already accelerates harder than it needs to, to change its velocity in the time X needs
+	Vector3f a0(0.f, -1.5f, 0.f);
+	Vector3f v0(6.5f, -1.5f, 0.f);
+	Vector3f x0(0.f, 0.f, 0.f);
+	setInitialConditions(a0, v0, x0);
+
+	// WHEN: the XY trajectories are time synchronized towards a fast velocity setpoint
+	const Vector3f velocity_setpoints(60.f, -20.f, 0.f);
+
+	for (int i = 0; i < 3; i++) {
+		_trajectories[i].updateDurations(velocity_setpoints(i));
+	}
+
+	VelocitySmoothing::timeSynchronization(_trajectories, 2);
+	const float t123 = _trajectories[0].getTotalTime();
+	EXPECT_FLOAT_EQ(_trajectories[1].getTotalTime(), t123);
+
+	// THEN: Y starts by lowering its acceleration instead of holding it
+	const float dt = 0.01f;
+	_trajectories[0].updateTraj(dt);
+	_trajectories[1].updateTraj(dt);
+	EXPECT_GT(_trajectories[1].getCurrentJerk(), 0.f);
+
+	// AND: Y never overshoots its velocity setpoint and arrives together with X
+	for (float t = dt; t < t123; t += dt) {
+		_trajectories[0].updateTraj(dt);
+		_trajectories[1].updateTraj(dt);
+		EXPECT_GE(_trajectories[1].getCurrentVelocity(), velocity_setpoints(1) - 0.01f);
+	}
+
+	_trajectories[0].updateTraj(dt);
+	_trajectories[1].updateTraj(dt);
+
+	for (int i = 0; i < 2; i++) {
+		EXPECT_NEAR(_trajectories[i].getCurrentVelocity(), velocity_setpoints(i), 0.05f);
+		EXPECT_NEAR(_trajectories[i].getCurrentAcceleration(), 0.f, 0.05f);
+	}
+}
+
 TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 {
 	// GIVEN: A set of constraints

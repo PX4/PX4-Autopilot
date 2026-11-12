@@ -64,10 +64,8 @@ void PositionSmoothing::_generateSetpoints(
 
 bool PositionSmoothing::_isTurning(const Vector3f &target) const
 {
-	const Vector2f vel_traj(_trajectory[0].getCurrentVelocity(),
-				_trajectory[1].getCurrentVelocity());
-	const Vector2f pos_traj(_trajectory[0].getCurrentPosition(),
-				_trajectory[1].getCurrentPosition());
+	const Vector2f vel_traj = _trajectory_xy.getCurrentVelocity();
+	const Vector2f pos_traj = _trajectory_xy.getCurrentPosition();
 	const Vector2f target_xy(target);
 	const Vector2f u_vel_traj = vel_traj.unit_or_zero();
 	const Vector2f pos_to_target = Vector2f(target_xy - pos_traj);
@@ -84,15 +82,13 @@ bool PositionSmoothing::_isTurning(const Vector3f &target) const
 
 float PositionSmoothing::_getMaxXYSpeed(const Vector3f(&waypoints)[3]) const
 {
-	Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
-			  _trajectory[1].getCurrentPosition(),
-			  _trajectory[2].getCurrentPosition());
+	const Vector3f pos_traj = getCurrentPosition();
 
 	math::trajectory::VehicleDynamicLimits config;
 	config.z_accept_rad = _vertical_acceptance_radius;
 	config.xy_accept_rad = _target_acceptance_radius;
-	config.max_acc_xy = _trajectory[0].getMaxAccel();
-	config.max_jerk = _trajectory[0].getMaxJerk();
+	config.max_acc_xy = _trajectory_xy.getMaxAccel();
+	config.max_jerk = _trajectory_xy.getMaxJerk();
 	config.max_speed_xy = _cruise_speed;
 	config.max_acc_xy_radius_scale = _horizontal_trajectory_gain;
 
@@ -106,10 +102,7 @@ float PositionSmoothing::_getMaxXYSpeed(const Vector3f(&waypoints)[3]) const
 
 float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 {
-	const Vector3f &start_position = {_trajectory[0].getCurrentPosition(),
-					  _trajectory[1].getCurrentPosition(),
-					  _trajectory[2].getCurrentPosition()
-					 };
+	const Vector3f start_position = getCurrentPosition();
 	const Vector3f &target = waypoints[1];
 	const Vector3f &next_target = waypoints[2];
 
@@ -127,15 +120,15 @@ float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 		const float alpha = acosf(cos_alpha);
 
 		const float safe_alpha = math::constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
-		float accel_tmp = _trajectory[2].getMaxAccel();
+		float accel_tmp = _trajectory_z.getMaxAccel();
 		float max_speed_in_turn = math::trajectory::computeMaxSpeedInWaypoint(safe_alpha, accel_tmp,
 					  _vertical_acceptance_radius);
-		arrival_z_speed = math::min(max_speed_in_turn, _trajectory[2].getMaxVel());
+		arrival_z_speed = math::min(max_speed_in_turn, _trajectory_z.getMaxVel());
 	}
 
 	const float distance_start_target = fabs(target(2) - start_position(2));
-	float max_speed = math::min(_trajectory[2].getMaxVel(), math::trajectory::computeMaxSpeedFromDistance(
-					    _trajectory[2].getMaxJerk(), _trajectory[2].getMaxAccel(),
+	float max_speed = math::min(_trajectory_z.getMaxVel(), math::trajectory::computeMaxSpeedFromDistance(
+					    _trajectory_z.getMaxJerk(), _trajectory_z.getMaxAccel(),
 					    distance_start_target, arrival_z_speed));
 
 	return max_speed;
@@ -155,8 +148,7 @@ const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, co
 
 const Vector3f PositionSmoothing::_getL1Point(const Vector3f &position, const Vector3f(&waypoints)[3]) const
 {
-	const Vector3f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition(),
-				_trajectory[2].getCurrentPosition());
+	const Vector3f pos_traj = getCurrentPosition();
 	const Vector3f prev_to_target = waypoints[1] - waypoints[0];
 	const float leg_length = prev_to_target.length();
 	const Vector3f u_prev_to_target = (leg_length > FLT_EPSILON) ? prev_to_target / leg_length : Vector3f();
@@ -203,9 +195,7 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 
 	if (xy_target_valid && z_target_valid) {
 		// Use 3D position setpoint to generate a 3D velocity setpoint
-		Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
-				  _trajectory[1].getCurrentPosition(),
-				  _trajectory[2].getCurrentPosition());
+		const Vector3f pos_traj = getCurrentPosition();
 		const Vector3f crossing_point = is_single_waypoint ? target : _getCrossingPoint(position, waypoints);
 		const Vector3f u_pos_traj_to_dest{(crossing_point - pos_traj).unit_or_zero()};
 
@@ -241,7 +231,7 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 		// Use 2D position setpoint to generate a 2D velocity setpoint
 
 		// Get various path specific vectors
-		Vector2f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
+		const Vector2f pos_traj = _trajectory_xy.getCurrentPosition();
 		Vector2f crossing_point = is_single_waypoint ? Vector2f(target) : Vector2f(_getCrossingPoint(position, waypoints));
 		Vector2f pos_traj_to_dest_xy = crossing_point - pos_traj;
 		Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
@@ -272,7 +262,7 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 	else if (z_target_valid) {
 		// Use Z position setpoint to generate a Z velocity setpoint
 
-		const float z_dir = matrix::sign(target(2) - _trajectory[2].getCurrentPosition());
+		const float z_dir = matrix::sign(target(2) - _trajectory_z.getCurrentPosition());
 		const float vel_sp_z = z_dir * _getMaxZSpeed(waypoints);
 
 		// If available, use the existing velocity as a feedforward, otherwise replace it
@@ -307,9 +297,9 @@ void PositionSmoothing::_generateTrajectory(
 	 * horizontal progress shouldn't freeze the climb profile. The Z check exists to keep the
 	 * commanded altitude from walking away from the drone when the alt setpoint is jittering.
 	 */
-	Vector2f position_trajectory_xy(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
+	Vector2f position_trajectory_xy = _trajectory_xy.getCurrentPosition();
 	Vector2f position_xy(position);
-	Vector2f vel_traj_xy(_trajectory[0].getCurrentVelocity(), _trajectory[1].getCurrentVelocity());
+	Vector2f vel_traj_xy = _trajectory_xy.getCurrentVelocity();
 	Vector2f drone_to_trajectory_xy(position_trajectory_xy - position_xy);
 	float position_error_xy = drone_to_trajectory_xy.length();
 
@@ -329,28 +319,33 @@ void PositionSmoothing::_generateTrajectory(
 	// drone AND moving further away from it. Reversing trajectories (virtual coming back toward
 	// the drone) are left alone so we can recover without artificially slowing down.
 	float time_stretch_z = 1.f;
-	const float drone_to_traj_z = _trajectory[2].getCurrentPosition() - position(2);
-	const float vel_traj_z = _trajectory[2].getCurrentVelocity();
+	const float drone_to_traj_z = _trajectory_z.getCurrentPosition() - position(2);
+	const float vel_traj_z = _trajectory_z.getCurrentVelocity();
 
 	if ((_max_allowed_vertical_error > FLT_EPSILON)
 	    && drone_to_traj_z * vel_traj_z >= 0.f) {
 		time_stretch_z = 1.f - math::constrain(fabsf(drone_to_traj_z) / _max_allowed_vertical_error, 0.f, 1.f);
 	}
 
-	// Axis 0,1 (XY) get the horizontal stretch; axis 2 (Z) gets the vertical stretch.
-	const float axis_stretch[3] = { time_stretch_xy, time_stretch_xy, time_stretch_z };
+	// XY gets the horizontal stretch; Z gets the vertical stretch.
+	_trajectory_xy.updateTraj(delta_time, time_stretch_xy);
+	_trajectory_z.updateTraj(delta_time, time_stretch_z);
+	out_setpoints.jerk = getCurrentJerk();
+	out_setpoints.acceleration = getCurrentAcceleration();
+	out_setpoints.velocity = getCurrentVelocity();
+	out_setpoints.position = getCurrentPosition();
 
-	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].updateTraj(delta_time, axis_stretch[i]);
-		out_setpoints.jerk(i) = _trajectory[i].getCurrentJerk();
-		out_setpoints.acceleration(i) = _trajectory[i].getCurrentAcceleration();
-		out_setpoints.velocity(i) = _trajectory[i].getCurrentVelocity();
-		out_setpoints.position(i) = _trajectory[i].getCurrentPosition();
+	_trajectory_xy.updateDurations(velocity_setpoint.xy());
+	_trajectory_z.updateDurations(velocity_setpoint(2));
+
+	// Time synchronization: the faster of the horizontal and the vertical trajectory is stretched to the slower one
+	const float total_time_xy = _trajectory_xy.getTotalTime();
+	const float total_time_z = _trajectory_z.getTotalTime();
+
+	if (total_time_xy > total_time_z + FLT_EPSILON) {
+		_trajectory_z.updateDurationsGivenTotalTime(total_time_xy);
+
+	} else if (total_time_z > total_time_xy + FLT_EPSILON) {
+		_trajectory_xy.updateDurationsGivenTotalTime(total_time_z);
 	}
-
-	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].updateDurations(velocity_setpoint(i));
-	}
-
-	VelocitySmoothing::timeSynchronization(_trajectory, 3);
 }

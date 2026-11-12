@@ -35,6 +35,8 @@
 
 #include <cmath>
 #include <motion_planning/VelocitySmoothing.hpp>
+#include <motion_planning/VelocitySmoothing2D.hpp>
+#include <mathlib/mathlib.h>
 
 #include <matrix/matrix/math.hpp>
 #include <px4_defines.h>
@@ -125,9 +127,16 @@ public:
 	 */
 	void reset(const Vector3f &acceleration, const Vector3f &velocity, const Vector3f &position)
 	{
-		for (size_t i = 0; i < 3; i++) {
-			_trajectory[i].reset(acceleration(i), velocity(i), position(i));
-		}
+		_trajectory_xy.reset(acceleration.xy(), velocity.xy(), position.xy());
+		_trajectory_z.reset(acceleration(2), velocity(2), position(2));
+	}
+
+	/**
+	 * @return Vector3f Current trajectory jerk
+	 */
+	inline Vector3f getCurrentJerk() const
+	{
+		return {_trajectory_xy.getCurrentJerk()(0), _trajectory_xy.getCurrentJerk()(1), _trajectory_z.getCurrentJerk()};
 	}
 
 	/**
@@ -135,7 +144,7 @@ public:
 	 */
 	inline float getCurrentAccelerationX() const
 	{
-		return _trajectory[0].getCurrentAcceleration();
+		return _trajectory_xy.getCurrentAcceleration()(0);
 	}
 
 	/**
@@ -143,7 +152,7 @@ public:
 	 */
 	inline float getCurrentAccelerationY() const
 	{
-		return _trajectory[1].getCurrentAcceleration();
+		return _trajectory_xy.getCurrentAcceleration()(1);
 	}
 
 	/**
@@ -151,7 +160,7 @@ public:
 	 */
 	inline float getCurrentAccelerationZ() const
 	{
-		return _trajectory[2].getCurrentAcceleration();
+		return _trajectory_z.getCurrentAcceleration();
 	}
 
 	/**
@@ -175,7 +184,7 @@ public:
 	 */
 	inline float getCurrentVelocityX() const
 	{
-		return _trajectory[0].getCurrentVelocity();
+		return _trajectory_xy.getCurrentVelocity()(0);
 	}
 
 	/**
@@ -183,7 +192,7 @@ public:
 	 */
 	inline float getCurrentVelocityY() const
 	{
-		return _trajectory[1].getCurrentVelocity();
+		return _trajectory_xy.getCurrentVelocity()(1);
 	}
 
 	/**
@@ -191,7 +200,7 @@ public:
 	 */
 	inline float getCurrentVelocityZ() const
 	{
-		return _trajectory[2].getCurrentVelocity();
+		return _trajectory_z.getCurrentVelocity();
 	}
 
 	/**
@@ -215,7 +224,7 @@ public:
 	 */
 	inline float getCurrentPositionX() const
 	{
-		return _trajectory[0].getCurrentPosition();
+		return _trajectory_xy.getCurrentPosition()(0);
 	}
 
 	/**
@@ -223,7 +232,7 @@ public:
 	 */
 	inline float getCurrentPositionY() const
 	{
-		return _trajectory[1].getCurrentPosition();
+		return _trajectory_xy.getCurrentPosition()(1);
 	}
 
 	/**
@@ -231,7 +240,7 @@ public:
 	 */
 	inline float getCurrentPositionZ() const
 	{
-		return _trajectory[2].getCurrentPosition();
+		return _trajectory_z.getCurrentPosition();
 	}
 
 	/**
@@ -247,8 +256,7 @@ public:
 	 */
 	inline void setMaxJerkXY(float jerk)
 	{
-		_trajectory[0].setMaxJerk(jerk);
-		_trajectory[1].setMaxJerk(jerk);
+		_trajectory_xy.setMaxJerk(jerk);
 	}
 
 	/**
@@ -256,7 +264,7 @@ public:
 	 */
 	inline void setMaxJerkZ(float jerk)
 	{
-		_trajectory[2].setMaxJerk(jerk);
+		_trajectory_z.setMaxJerk(jerk);
 	}
 
 	/**
@@ -264,9 +272,8 @@ public:
 	 */
 	inline void setMaxJerk(const float jerk)
 	{
-		_trajectory[0].setMaxJerk(jerk);
-		_trajectory[1].setMaxJerk(jerk);
-		_trajectory[2].setMaxJerk(jerk);
+		_trajectory_xy.setMaxJerk(jerk);
+		_trajectory_z.setMaxJerk(jerk);
 	}
 
 	/**
@@ -274,8 +281,7 @@ public:
 	 */
 	inline void setMaxAccelerationXY(float accel)
 	{
-		_trajectory[0].setMaxAccel(accel);
-		_trajectory[1].setMaxAccel(accel);
+		_trajectory_xy.setMaxAccel(accel);
 	}
 
 	/**
@@ -283,7 +289,7 @@ public:
 	 */
 	inline void setMaxAccelerationZ(float accel)
 	{
-		_trajectory[2].setMaxAccel(accel);
+		_trajectory_z.setMaxAccel(accel);
 	}
 
 	/**
@@ -291,9 +297,8 @@ public:
 	 */
 	inline void setMaxAcceleration(const Vector3f &accel)
 	{
-		_trajectory[0].setMaxAccel(accel(0));
-		_trajectory[1].setMaxAccel(accel(1));
-		_trajectory[2].setMaxAccel(accel(2));
+		_trajectory_xy.setMaxAccel(math::min(accel(0), accel(1)));
+		_trajectory_z.setMaxAccel(accel(2));
 	}
 
 	/**
@@ -301,8 +306,7 @@ public:
 	 */
 	inline void setMaxVelocityXY(float vel)
 	{
-		_trajectory[0].setMaxVel(vel);
-		_trajectory[1].setMaxVel(vel);
+		_trajectory_xy.setMaxVel(vel);
 	}
 
 	/**
@@ -310,7 +314,7 @@ public:
 	 */
 	inline void setMaxVelocityZ(float vel)
 	{
-		_trajectory[2].setMaxVel(vel);
+		_trajectory_z.setMaxVel(vel);
 	}
 
 	/**
@@ -318,9 +322,8 @@ public:
 	 */
 	inline void setMaxVelocity(const Vector3f &vel)
 	{
-		_trajectory[0].setMaxVel(vel(0));
-		_trajectory[1].setMaxVel(vel(1));
-		_trajectory[2].setMaxVel(vel(2));
+		_trajectory_xy.setMaxVel(math::min(vel(0), vel(1)));
+		_trajectory_z.setMaxVel(vel(2));
 	}
 
 	/**
@@ -382,10 +385,12 @@ public:
 	 */
 	void forceSetPosition(const Vector3f &position)
 	{
-		for (size_t i = 0; i < 3; i++) {
-			if (PX4_ISFINITE(position(i))) {
-				_trajectory[i].setCurrentPosition(position(i));
-			}
+		if (Vector2f(position).isAllFinite()) {
+			_trajectory_xy.setCurrentPosition(position.xy());
+		}
+
+		if (PX4_ISFINITE(position(2))) {
+			_trajectory_z.setCurrentPosition(position(2));
 		}
 	}
 
@@ -397,10 +402,12 @@ public:
 	 */
 	void forceSetVelocity(const Vector3f &velocity)
 	{
-		for (size_t i = 0; i < 3; i++) {
-			if (PX4_ISFINITE(velocity(i))) {
-				_trajectory[i].setCurrentVelocity(velocity(i));
-			}
+		if (Vector2f(velocity).isAllFinite()) {
+			_trajectory_xy.setCurrentVelocity(velocity.xy());
+		}
+
+		if (PX4_ISFINITE(velocity(2))) {
+			_trajectory_z.setCurrentVelocity(velocity(2));
 		}
 	}
 
@@ -412,10 +419,12 @@ public:
 	 */
 	void forceSetAcceleration(const Vector3f &acceleration)
 	{
-		for (size_t i = 0; i < 3; i++) {
-			if (PX4_ISFINITE(acceleration(i))) {
-				_trajectory[i].setCurrentAcceleration(acceleration(i));
-			}
+		if (Vector2f(acceleration).isAllFinite()) {
+			_trajectory_xy.setCurrentAcceleration(acceleration.xy());
+		}
+
+		if (PX4_ISFINITE(acceleration(2))) {
+			_trajectory_z.setCurrentAcceleration(acceleration(2));
 		}
 	}
 
@@ -431,7 +440,8 @@ private:
 
 
 	/* Internal state */
-	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
+	VelocitySmoothing2D _trajectory_xy; ///< Horizontal trajectory
+	VelocitySmoothing _trajectory_z; ///< Vertical trajectory
 	float _max_speed_previous{0.f};
 
 	/* Internal functions */

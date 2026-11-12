@@ -37,11 +37,13 @@ px4_add_library(motion_planning
 	ManualVelocitySmoothingZ.cpp
 	PositionSmoothing.cpp
 	VelocitySmoothing.cpp
+	VelocitySmoothing2D.cpp
 )
 
 target_include_directories(motion_planning PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_unit_gtest(SRC VelocitySmoothingTest.cpp LINKLIBS motion_planning)
+px4_add_unit_gtest(SRC VelocitySmoothing2DTest.cpp LINKLIBS motion_planning)
 px4_add_unit_gtest(SRC PositionSmoothingTest.cpp LINKLIBS motion_planning)
 px4_add_unit_gtest(SRC HeadingSmoothingTest.cpp LINKLIBS motion_planning)
 px4_add_unit_gtest(SRC ManualVelocitySmoothingXYTest.cpp LINKLIBS motion_planning)

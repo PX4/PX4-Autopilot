@@ -121,6 +121,12 @@ public:
 	 */
 	static void timeSynchronization(VelocitySmoothing *traj, int n_traj);
 
+	/**
+	 * Compute T1, T2, T3 depending on the current state and velocity setpoint.
+	 * @param T123 desired total time of the trajectory
+	 */
+	void updateDurationsGivenTotalTime(float T123);
+
 private:
 
 	/**
@@ -128,12 +134,6 @@ private:
 	 * Minimize the total time of the trajectory
 	 */
 	void updateDurationsMinimizeTotalTime();
-
-	/**
-	 * Compute T1, T2, T3 depending on the current state and velocity setpoint.
-	 * @param T123 desired total time of the trajectory
-	 */
-	void updateDurationsGivenTotalTime(float T123);
 
 	/**
 	 * Compute the direction of the jerk to be applied in order to drive the current state
@@ -199,7 +199,8 @@ private:
 
 	/* State (previous setpoints) */
 	Trajectory _state{};
-	int _direction{0};
+	int _direction{0}; ///< Jerk sign of the T1 phase
+	int _direction_T3{0}; ///< Jerk sign of the T3 phase
 
 	/* Initial conditions */
 	Trajectory _state_init{};
