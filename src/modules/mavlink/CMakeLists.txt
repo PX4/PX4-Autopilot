@@ -97,6 +97,16 @@ target_include_directories(mavlink_c
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
 )
 
+if(CONFIG_MAVLINK_EXTENSION_EXAMPLE)
+	px4_add_mavlink_extension(
+		HANDLER_HEADER extension_example/MavlinkExtensionExampleHandler.hpp
+		HANDLERS MavlinkExtensionExampleHandler
+		STREAM_HEADER extension_example/MavlinkStreamExtensionExample.hpp
+		STREAMS MavlinkStreamExtensionExample
+		SRCS extension_example/MavlinkExtensionExampleHandler.cpp
+		)
+endif()
+
 # The handlers and streams modules add with px4_add_mavlink_extension(), as two headers the
 # receiver and the stream list include; a later registration would go unseen, so it fails.
 get_property(mavlink_extension_handler_headers GLOBAL PROPERTY PX4_MAVLINK_EXTENSION_HANDLER_HEADERS)
