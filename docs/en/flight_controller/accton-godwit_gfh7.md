@@ -42,7 +42,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **SPI buses:** 3, all internal (both IMUs and the OSD)
 - **CAN buses:** 1
 - **Ethernet:** RMII and pulse-per-second (PPS) signals on a connector (reserved for future use; not enabled in PX4)
-- **USB:** USB Type-C, with [DFU](../advanced_config/bootloader_update_from_betaflight.md#dfu-mode) button
+- **USB:** USB Type-C, with `BOOT` button for [DFU mode](../advanced_config/bootloader_update_from_betaflight.md#dfu-mode)
 - **RC input:** Yes (serial, on the `SBUS` and `ELRS` connectors)
 - **Parameter storage:** processor flash
 - **SD card:** microSD slot
@@ -55,7 +55,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Input voltage:** Up to 12S LiPo
 - **Current draw:** 110 mA at 5 V (static), plus about 67 mA (0.33 W, calculated) with the IMU heater on
 - **BEC output:** 5 V/3 A and 12 V/3 A (12 V output [switchable](#power))
-- **Power monitoring:** analog battery voltage and current
+- **Power monitoring:** 1 battery, analog voltage and current (current needs [setup](#power))
 
 ### Mechanical Data {#mechanical_data}
 
@@ -72,6 +72,20 @@ Product information and availability are provided on the [Accton-IoT Godwit G-FH
 Refer to the [Godwit G-FH7 product page](https://www.accton-iot.com/godwit/g-fh7.html) and the [Godwit G-FH7 datasheet](https://www.accton-iot.com/godwit/assets/doc/DS-Godwit%20FPV%20G-FH7.pdf) for the latest board information and interface definition.
 
 ![G-FH7 Pin Definition](../../assets/flight_controller/accton-godwit_gfh7/pin_definition.png "Accton Godwit G-FH7 Pin Definition")
+
+### Interface Summary {#interface_summary}
+
+| Interface         | Function                                        |
+| ----------------- | ----------------------------------------------- |
+| `ESC` / `Ext ESC` | Connect the ESC and motor system.               |
+| `GPS`             | Connect a GPS module.                           |
+| `SBUS` / `ELRS`   | Connect an RC receiver.                         |
+| `TELEM`           | Connect a telemetry radio or MAVLink device.    |
+| `CAN`             | Connect CAN peripherals.                        |
+| `I2C`             | Connect external I2C sensors.                   |
+| `BZ`              | Connect an external active buzzer.              |
+| `VIDEO-IN`        | Connect an analog camera.                       |
+| `A-VTX` / `D-VTX` | Connect an analog or digital video transmitter. |
 
 ### Block Diagram {#block_diagram}
 
@@ -165,20 +179,6 @@ No ports have flow control.
 The bootloader enables only UART7 (the `TELEM` connector), so `TELEM` is the only serial port [px4_uploader.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4_uploader.py) can flash firmware over.
 :::
 
-## Interface Summary {#interface_summary}
-
-| Interface         | Function                                        |
-| ----------------- | ----------------------------------------------- |
-| `ESC` / `Ext ESC` | Connect the ESC and motor system.               |
-| `GPS`             | Connect a GPS module.                           |
-| `SBUS` / `ELRS`   | Connect an RC receiver.                         |
-| `TELEM`           | Connect a telemetry radio or MAVLink device.    |
-| `CAN`             | Connect CAN peripherals.                        |
-| `I2C`             | Connect external I2C sensors.                   |
-| `BZ`              | Connect an external active buzzer.              |
-| `VIDEO-IN`        | Connect an analog camera.                       |
-| `A-VTX` / `D-VTX` | Connect an analog or digital video transmitter. |
-
 ## Assembly {#assembly}
 
 ### Wiring Diagrams {#wiring_diagram}
@@ -189,7 +189,7 @@ Refer to the [Godwit G-FH7 product page](https://www.accton-iot.com/godwit/g-fh7
 
 ![Godwit G-FH7 Wiring (2 of 2)](../../assets/flight_controller/accton-godwit_gfh7/wiring_2.png "Accton Godwit G-FH7 Wiring (2 of 2)")
 
-The diagram below shows how to connect the ESC and motors to the `ESC` and `Ext ESC` connectors.
+The diagram below shows how to connect a 4-in-1 ESC and its motors to the `ESC` connector.
 
 ![Godwit G-FH7 Motor/ESC Wiring](../../assets/flight_controller/accton-godwit_gfh7/motor_esc_wiring.png "Accton Godwit G-FH7 Motor/ESC Wiring")
 
