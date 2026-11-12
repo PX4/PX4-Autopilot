@@ -854,14 +854,16 @@ INSTANTIATE_TEST_SUITE_P(MissionEnds, MissionGeofenceEndLoiterTest, ::testing::V
 	return test_info.param.name;
 });
 
-// The geofence margin (GF_MARGIN) in the mission check: waypoints and loiter circles must keep it clear.
-class MissionGeofenceMarginTest : public MissionGeofenceLoiterTest
+// Both fence levels use the existing waypoint, leg and loiter feasibility checks.
+class MissionPreGeofenceTest : public MissionGeofenceLoiterTest
 {
 protected:
-	void setMargin(float margin)
+	FencePoints bothFences() const
 	{
-		ASSERT_EQ(param_set(param_find("GF_MARGIN"), &margin), PX4_OK);
-		_navigator.updateParams();
+		FencePoints points = inclusionSquare();
+		const FencePoints pre = polygon(true, {{-900.f, -900.f}, {900.f, -900.f}, {900.f, 900.f}, {-900.f, 900.f}}, FenceLevel::Pre);
+		points.insert(points.end(), pre.begin(), pre.end());
+		return points;
 	}
 
 	void setDefaultLoiterRadius(float radius)
@@ -869,97 +871,47 @@ protected:
 		ASSERT_EQ(param_set(param_find("NAV_LOITER_RAD"), &radius), PX4_OK);
 		_navigator.updateParams();
 	}
-
-	void expectMarginViolation(int16_t waypoint_index)
-	{
-		const std::string message = "Geofence margin violation for waypoint " + std::to_string(waypoint_index);
-		EXPECT_TRUE(logContains(message.c_str()));
-		EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_margin_violation"), waypoint_index));
-	}
 };
 
-TEST_F(MissionGeofenceMarginTest, WaypointInsideTheMarginIsRejected)
+TEST_F(MissionPreGeofenceTest, WaypointsMustSatisfyBothLevels)
 {
-	ASSERT_TRUE(loadFence(inclusionSquare()));
-	setMargin(100.f);
-
-	// 150 m from the eastern edge keeps the margin clear, 50 m does not.
+	ASSERT_TRUE(loadFence(bothFences()));
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 850.f})}));
 	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 950.f})}));
-	expectMarginViolation(2);
-
-	// The first position is checked like the others.
 	EXPECT_FALSE(missionFeasible({waypoint({0.f, 950.f}), waypoint({0.f, 0.f})}));
-	expectMarginViolation(1);
-}
-
-TEST_F(MissionGeofenceMarginTest, DisabledMarginAcceptsWaypointsNearTheFence)
-{
 	ASSERT_TRUE(loadFence(inclusionSquare()));
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 950.f})}));
 }
 
-TEST_F(MissionGeofenceMarginTest, AppliesAroundExclusionsAndToTheDistanceFromHome)
-{
-	// The exclusion spans 250 m to 350 m east.
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	setMargin(100.f);
-	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 100.f})}));
-	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 200.f})}));
-	expectMarginViolation(2);
-
-	const float maximum = 500.f;
-	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum), PX4_OK);
-	_navigator.updateParams();
-	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({-350.f, 0.f})}));
-	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), waypoint({-450.f, 0.f})}));
-	expectMarginViolation(2);
-}
-
-TEST_F(MissionGeofenceMarginTest, LoiterCircleKeepsTheMarginClear)
+TEST_F(MissionPreGeofenceTest, LoiterCircleMustSatisfyPreGeofence)
 {
 	ASSERT_TRUE(configureVehicle());
 	setDefaultLoiterRadius(40.f);
-	ASSERT_TRUE(loadFence(inclusionSquare()));
-	setMargin(100.f);
-
-	// A 40 m loiter needs 140 m to the eastern edge: 150 m fits, 130 m does not although the waypoint alone would.
+	ASSERT_TRUE(loadFence(bothFences()));
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), loiter(850.f, 40.f), waypoint({0.f, 0.f})}));
 	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), loiter(870.f, 40.f), waypoint({0.f, 0.f})}));
-	expectMarginViolation(2);
 }
 
-TEST_F(MissionGeofenceMarginTest, EndOfMissionLoiterKeepsTheMarginClear)
+TEST_F(MissionPreGeofenceTest, EndOfMissionLoiterMustSatisfyPreGeofence)
 {
 	ASSERT_TRUE(configureVehicle());
 	setDefaultLoiterRadius(40.f);
-	ASSERT_TRUE(loadFence(inclusionSquare()));
-	setMargin(100.f);
-
-	// A fixed-wing ends the mission in a 40 m loiter at its last waypoint.
+	ASSERT_TRUE(loadFence(bothFences()));
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 850.f})}));
 	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 870.f})}));
-	expectMarginViolation(2);
-
-	// A multicopter stops at the waypoint.
 	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 870.f})}));
 }
 
-// A leg that crosses the fence is still reported as a breach of the fence, not of its margin.
-TEST_F(MissionGeofenceMarginTest, LegAcrossTheFenceIsReportedAsABreach)
+TEST_F(MissionPreGeofenceTest, LegCrossingOnlyPreGeofenceIsRejected)
 {
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	setMargin(100.f);
-	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 600.f})}));
+	FencePoints points = exclusionSquare();
+	const FencePoints pre = polygon(false, {{-150.f, 150.f}, {150.f, 150.f}, {150.f, 450.f}, {-150.f, 450.f}}, FenceLevel::Pre);
+	points.insert(points.end(), pre.begin(), pre.end());
+	ASSERT_TRUE(loadFence(points));
+	// Both endpoints are valid and the leg clears the hard exclusion by 30 m.
+	EXPECT_FALSE(missionFeasible({waypoint({80.f, 0.f}), waypoint({80.f, 600.f})}));
 	expectPathViolation(2);
-}
-
-// Only waypoints and loiter circles are checked against the margin for now, not the legs between them.
-TEST_F(MissionGeofenceMarginTest, LegThroughTheMarginIsAccepted)
-{
 	ASSERT_TRUE(loadFence(exclusionSquare()));
-	setMargin(100.f);
-	// The leg passes 30 m north of the exclusion; both waypoints are 250 m away from it.
 	EXPECT_TRUE(missionFeasible({waypoint({80.f, 0.f}), waypoint({80.f, 600.f})}));
 }

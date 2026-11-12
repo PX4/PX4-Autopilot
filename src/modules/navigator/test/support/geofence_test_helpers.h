@@ -147,7 +147,8 @@ protected:
 		return {position(start(0), start(1)), position(end(0), end(1))};
 	}
 
-	FencePoints polygon(bool inclusion, std::initializer_list<matrix::Vector2f> vertices) const
+	FencePoints polygon(bool inclusion, std::initializer_list<matrix::Vector2f> vertices,
+			    FenceLevel fence_level = FenceLevel::Hard) const
 	{
 		FencePoints points;
 
@@ -156,6 +157,7 @@ protected:
 			mission_fence_point_s point{};
 			point.nav_cmd = inclusion ? NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION : NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
 			point.frame = NAV_FRAME_GLOBAL;
+			point.fence_level = fence_level;
 			point.lat = coordinate(0);
 			point.lon = coordinate(1);
 			point.vertex_count = static_cast<uint16_t>(vertices.size());
@@ -171,12 +173,14 @@ protected:
 		return polygon(false, {{-50.f, 250.f}, {50.f, 250.f}, {50.f, 350.f}, {-50.f, 350.f}});
 	}
 
-	FencePoints circle(bool inclusion, const matrix::Vector2f &centre, float radius) const
+	FencePoints circle(bool inclusion, const matrix::Vector2f &centre, float radius,
+			   FenceLevel fence_level = FenceLevel::Hard) const
 	{
 		const auto coordinate = position(centre(0), centre(1));
 		mission_fence_point_s point{};
 		point.nav_cmd = inclusion ? NAV_CMD_FENCE_CIRCLE_INCLUSION : NAV_CMD_FENCE_CIRCLE_EXCLUSION;
 		point.frame = NAV_FRAME_GLOBAL;
+		point.fence_level = fence_level;
 		point.lat = coordinate(0);
 		point.lon = coordinate(1);
 		point.circle_radius = radius;

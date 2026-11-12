@@ -445,7 +445,6 @@ protected:
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
 	MissionCheckState _mission_check_state{MissionCheckState::Unchecked};
-	float _checked_geofence_margin{0.f};			/**< GF_MARGIN used by the last mission check */
 	bool _system_disarmed_while_inactive{false};		/**< Flag indicating if the system has been disarmed while mission is inactive*/
 	mission_s _mission;					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */

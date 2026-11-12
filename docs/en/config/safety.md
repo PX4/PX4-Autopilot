@@ -207,7 +207,7 @@ In its simplest form, the perimeter is set up as a cylinder centered around the 
 If the vehicle moves outside the radius or above the altitude the specified _Failsafe Action_ will trigger.
 
 Note that the failsafe action will only trigger once the vehicle has already breached the geofence.
-If a boundary must not be crossed, for safety or legal reasons, enable the [Geofence Margin](#geofence-margin).
+If a boundary must not be crossed, for safety or legal reasons, configure a [Pre-Geofence](#pre-geofence).
 It triggers its own action, for example `Hold`, before the vehicle reaches the geofence.
 
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
@@ -236,64 +236,49 @@ The following settings also apply, but are not displayed in the QGC UI.
 | <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | Set whether position source is estimated global position or direct from the GPS device. |
 | <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Enables/Disables flight termination action (disabled by default).                       |
 
-### Geofence Margin
+### Pre-Geofence
 
 <Badge type="tip" text="main (PX4 v2.0)" />
 
-The geofence margin triggers a separate action when the vehicle gets too close to a geofence, before it breaches it.
-The geofence keeps its own action, so a vehicle can for example hold at the margin and only terminate if it still crosses the geofence.
+The pre-geofence triggers a separate action when the vehicle leaves its allowed area, before it breaches the geofence.
+The geofence keeps its own action, so a vehicle can for example hold at the pre-geofence and only terminate if it still crosses the geofence.
 
-The margin is disabled by default.
-It is enabled by setting the distance from the geofence at which the vehicle should react:
+Draw the pre-geofence as inclusion and exclusion polygons and circles in the [Geofence Plan](../flying/geofence.md#geofence-plan).
+The vehicle must stay inside every inclusion area and outside every exclusion area.
 
-| Setting       | Parameter                                                                | Description                                                                                         |
-| ------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Margin        | [GF_MARGIN](../advanced_config/parameter_reference.md#GF_MARGIN)         | Horizontal distance from a geofence within which the margin action is triggered. Disabled if 0.     |
-| Margin action | [GF_MARGIN_ACT](../advanced_config/parameter_reference.md#GF_MARGIN_ACT) | Warning, Hold mode (default), Return mode, Land mode. Only used when `GF_MARGIN` is greater than 0. |
+| Setting             | Parameter                                                                | Description                                                                                                |
+| ------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Pre-geofence action | [GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION) | Warning, Hold mode (default), Return mode, or Land mode. Disabled when no pre-geofence areas are uploaded. |
 
-The margin applies to all horizontal limits: the inclusion and exclusion polygons and circles of a [Geofence Plan](../flying/geofence.md#geofence-plan), and the maximum distance from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST)).
-Around an exclusion area the margin lies outside the area.
-Altitude limits have no margin.
+The pre-geofence applies at all altitudes and in both VTOL flight phases.
+The maximum distance and altitude from Home remain geofence limits with [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION).
 
-![A geofence with a 150 m margin: a fixed-wing vehicle reaches the margin, the margin action Hold is triggered, and the vehicle loiters around that position with an 80 m radius, 70 m inside the geofence](../../assets/config/safety/geofence_margin.svg)
+![Geofence and pre-geofence inclusion polygons with nested exclusion circles](../../assets/config/safety/pre_geofence.svg)
 
-While the vehicle is closer to a geofence than the margin:
+When the vehicle breaches the pre-geofence:
 
-- The margin action is triggered, in all flight modes.
-  With `Hold` the vehicle holds where it reached the margin, in the same way as after a geofence breach (a fixed-wing vehicle loiters around that position).
+- Its action is triggered in all flight modes.
+  With `Hold`, the vehicle holds at the trigger position or continues an established loiter (a fixed-wing vehicle flies a loiter circle).
   Switch to another mode to take over.
-  The action is triggered again each time the vehicle enters the margin, so a path that leads into the margin triggers it again.
-  Only a vehicle that is still inside the margin when you take over can fly on without a new action, until it has left the margin.
+  The action triggers again if the vehicle returns inside the pre-geofence and breaches it again.
 - Arming is denied.
-- If the vehicle breaches the geofence anyway, [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) is triggered as well, and the more severe of the two actions is taken.
+- If the geofence is also breached, `GF_ACTION` is triggered and the more severe action is taken.
 
-PX4 also keeps the vehicle out of the margin where it knows the destination in advance:
+PX4 also checks planned destinations:
 
-- A mission is rejected if a waypoint lies inside the margin.
-  On flight controllers that [check the mission flight path](#mission-feasibility-checks) against the geofence, it is also rejected if a fixed-wing loiter circle reaches into the margin.
-- The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)), and the centre of a fixed-wing orbit or figure-eight, is refused if it lies inside the margin (unless the margin action is `Warning`).
-- [Return mode](../flight_modes/return.md#geofence_awareness) adds the margin to the distance that its route keeps from geofences.
+- A mission is rejected if a waypoint breaches the pre-geofence.
+  On flight controllers that [check the mission flight path](#mission-feasibility-checks), mission legs and fixed-wing loiter circles are checked as well.
+- The target of a _Go to location_ command, and the centre of a fixed-wing orbit or figure-eight, is refused if it breaches the pre-geofence (unless its action is `Warning`).
+  Commands that keep the current horizontal position remain available.
+  Only the target is checked, not the path or its loiter circle.
+- [Geofence-aware Return](../flight_modes/return.md#geofence_awareness) uses both fences when planning its route.
 
-The margin has to cover the distance that the vehicle needs to stop or turn around.
-It should be at least:
-
-- **Fixed-Wing**: The loiter radius [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD).
-- **Multicopter**: The stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)).
-- **VTOL**: The fixed-wing value, because the same margin is used in both flight phases.
-
-Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
-
-Everything the vehicle is meant to do has to stay out of the margin, including takeoff and landing.
-Draw the geofence at least the margin larger than the area that you plan to fly in.
+Leave enough space between the pre-geofence and geofence to stop or turn, accounting for wind, position uncertainty, control delay and the fixed-wing loiter radius.
+Takeoff, landing, Home and rally points should lie within both fences.
+PX4 does not check that the pre-geofence is entirely within the geofence.
 
 ::: info
-The following are not checked against the margin yet:
-
-- The legs between mission waypoints.
-  A leg that crosses the margin between two waypoints outside it is accepted, and the margin action is triggered in flight.
-- The path to a _Go to location_ target, and the loiter circle that a fixed-wing vehicle flies around it.
-  Only the target itself is checked.
-
+Pre-geofence planning requires a ground station that supports pre-geofence areas.
 :::
 
 ## Position Estimation Failsafes

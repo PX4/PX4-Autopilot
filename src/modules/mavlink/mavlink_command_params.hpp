@@ -121,10 +121,10 @@ static constexpr Entry SupportedCommandParams[] = {
 	{ 3000, 0x03, 0x03 }, // DO_VTOL_TRANSITION:          p1:state,p2:force_immediate
 	{ 4501, 0x73, 0x00 }, // CONDITION_GATE:              p1:geometry,p2:use_altitude; p5-7:lat/lon/alt
 	{ 5000, 0x70, 0x00 }, // NAV_FENCE_RETURN_POINT:      mission:p5-7:lat/lon/alt; cmd:none
-	{ 5001, 0x31, 0x01 }, // NAV_FENCE_POLYGON_VERTEX_INCLUSION: p1:vertex_count; mission:p5-6:lat/lon
-	{ 5002, 0x31, 0x01 }, // NAV_FENCE_POLYGON_VERTEX_EXCLUSION: p1:vertex_count; mission:p5-6:lat/lon
-	{ 5003, 0x31, 0x01 }, // NAV_FENCE_CIRCLE_INCLUSION:  p1:radius; mission:p5-6:lat/lon
-	{ 5004, 0x31, 0x01 }, // NAV_FENCE_CIRCLE_EXCLUSION:  p1:radius; mission:p5-6:lat/lon
+	{ 5001, 0x35, 0x01 }, // NAV_FENCE_POLYGON_VERTEX_INCLUSION: p1:vertex_count,p3:fence_level; mission:p5-6:lat/lon
+	{ 5002, 0x35, 0x01 }, // NAV_FENCE_POLYGON_VERTEX_EXCLUSION: p1:vertex_count,p3:fence_level; mission:p5-6:lat/lon
+	{ 5003, 0x35, 0x01 }, // NAV_FENCE_CIRCLE_INCLUSION:  p1:radius,p3:fence_level; mission:p5-6:lat/lon
+	{ 5004, 0x35, 0x01 }, // NAV_FENCE_CIRCLE_EXCLUSION:  p1:radius,p3:fence_level; mission:p5-6:lat/lon
 	{ 5100, 0x70, 0x00 }, // NAV_RALLY_POINT:             mission:p5-7:lat/lon/alt; cmd:none
 	{42600, 0x0F, 0x0F }, // DO_WINCH:                    p1-p4 all used
 };

@@ -429,7 +429,7 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	hrt_abstime _last_geofence_check{0};
 	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
-	bool _geofence_margin_reposition_sent{false};	/**< same for the current stay inside the geofence margin */
+	bool _pre_geofence_reposition_sent{false};	/**< same for the current pre-geofence breach */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return path planner that routes around fences (visibility graph + Dijkstra) */
@@ -507,8 +507,8 @@ private:
 
 	bool geofence_allows_position(const vehicle_global_position_s &pos);
 
-	/** True if a commanded target keeps clear of the geofence margin; tells the operator otherwise. */
-	bool geofence_margin_allows_target(const vehicle_global_position_s &target);
+	/** True if a commanded target satisfies the pre-geofence; tells the operator otherwise. */
+	bool pre_geofence_allows_target(const vehicle_global_position_s &target);
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */

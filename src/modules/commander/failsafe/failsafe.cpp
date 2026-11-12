@@ -133,7 +133,7 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 }
 
 
-FailsafeBase::ActionOptions Failsafe::fromGfMarginActParam(int param_value)
+FailsafeBase::ActionOptions Failsafe::fromPreGeofenceActionParam(int param_value)
 {
 	switch (geofence_violation_action(param_value)) {
 	case geofence_violation_action::Hold_mode:
@@ -142,7 +142,7 @@ FailsafeBase::ActionOptions Failsafe::fromGfMarginActParam(int param_value)
 		return fromGfActParam(param_value);
 
 	default:
-		// The margin does not offer None or Terminate.
+		// The pre-geofence does not offer None or Terminate.
 		return ActionOptions(Action::Warn);
 	}
 }
@@ -672,7 +672,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	CHECK_FAILSAFE(status_flags, geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
-	CHECK_FAILSAFE(status_flags, geofence_near, fromGfMarginActParam(_param_gf_margin_act.get()).cannotBeDeferred());
+	CHECK_FAILSAFE(status_flags, pre_geofence, fromPreGeofenceActionParam(_param_gf_pre_action.get()).cannotBeDeferred());
 
 	const hrt_abstime spoolup = static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s);
 

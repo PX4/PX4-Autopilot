@@ -44,6 +44,21 @@ These services are known to be supported in some form:
 - [Traffic Management (UTM/ADS-B)](https://mavlink.io/en/services/traffic_management.html)
 - [Arm Authorization Protocol](https://mavlink.io/en/services/arm_authorization.html)
 
+## Geofence Levels
+
+Geofence and [pre-geofence](../config/safety.md#pre-geofence) areas use the Mission Protocol with `MAV_MISSION_TYPE_FENCE`.
+Parameter 3 of the polygon and circle inclusion/exclusion commands (5001–5004) selects the level: `0` for geofence, `1` for pre-geofence.
+Other values are rejected, and all vertices of a polygon must have the same level.
+Each level supports 64 points, counting one per polygon vertex or circle.
+
+QGroundControl integration requires:
+
+- A level selector and distinct display for each polygon and circle.
+- Preserving parameter 3 on upload and download, including every polygon vertex.
+- Saving the level in the plan file; older plans without a level default to zero.
+
+Interoperability requires matching MAVLink command definitions and ground station support.
+
 ## Unsupported
 
 These services are not supported/used by PX4:

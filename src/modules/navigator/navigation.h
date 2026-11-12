@@ -43,6 +43,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -201,6 +202,14 @@ struct mission_stats_entry_s {
 	uint8_t padding[1];
 };
 
+enum class FenceLevel : uint8_t {
+	Hard = 0,
+	Pre = 1
+};
+
+static constexpr size_t kMinFencePolygonVertices = 3;
+static constexpr size_t kMaxFencePointsPerLevel = 64;
+
 /**
  * Geofence vertex point.
  * Corresponds to the DM_KEY_FENCE_POINTS_0 dataman item
@@ -218,8 +227,13 @@ struct mission_fence_point_s {
 	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
 	uint8_t frame;					/**< MAV_FRAME */
 
-	uint8_t _padding0[5];				/**< padding struct size to alignment boundary  */
+	FenceLevel fence_level;				/**< hard geofence or pre-geofence */
+
+	uint8_t _padding0[4];				/**< padding struct size to alignment boundary  */
 };
+
+static_assert(sizeof(mission_fence_point_s) == 32, "Fence storage size must stay unchanged");
+static_assert(offsetof(mission_fence_point_s, fence_level) == 27, "Fence level occupies the first padding byte");
 
 /**
  * @brief Position and yaw setpoint struct.

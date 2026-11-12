@@ -68,7 +68,7 @@ protected:
 		return found;
 	}
 
-	// A polygon that fills the fence storage, centred like exclusionSquare().
+	// A polygon centred like exclusionSquare().
 	FencePoints exclusionRing(size_t vertices) const
 	{
 		FencePoints points;
@@ -86,6 +86,19 @@ protected:
 		}
 
 		return points;
+	}
+
+	FencePoints fullFence() const
+	{
+		FencePoints hard = exclusionRing(kMaxFencePointsPerLevel);
+		FencePoints pre = hard;
+
+		for (auto &point : pre) {
+			point.fence_level = FenceLevel::Pre;
+		}
+
+		hard.insert(hard.end(), pre.begin(), pre.end());
+		return hard;
 	}
 
 	// Fail the metadata read of the next load attempt and return once the fence waits again.
@@ -272,7 +285,7 @@ INSTANTIATE_TEST_SUITE_P(InvalidRadii, InvalidGeofenceRadiusTest, ::testing::Val
 
 TEST_F(GeofenceTest, FullBatchMatchesIndividualChecks)
 {
-	ASSERT_TRUE(loadFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX)));
+	ASSERT_TRUE(loadFence(exclusionRing(kMaxFencePointsPerLevel)));
 	std::array<Geofence::PathCheck, Geofence::MAX_PATH_CHECKS> paths;
 	std::array<bool, Geofence::MAX_PATH_CHECKS> clear{};
 
@@ -632,7 +645,7 @@ TEST_F(GeofenceTest, FailedVertexReadClearsTheFenceUntilStorageRecovers)
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	// The metadata claims one vertex more than the storage holds, so the dataman rejects that
 	// cache slot and the load fails after the vertices were requested.
-	ASSERT_TRUE(loadFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX), geofence_status_s::GF_STATUS_FAILED, 1));
+	ASSERT_TRUE(loadFence(fullFence(), geofence_status_s::GF_STATUS_FAILED, 1));
 	EXPECT_TRUE(_fence.isEmpty());
 	EXPECT_TRUE(_fence.isFenceUpdatePending());
 	// A fragment is never kept, so point checks fail open while the retries run.
@@ -661,7 +674,7 @@ TEST_F(GeofenceTest, FailedVertexReadClearsTheFenceUntilStorageRecovers)
 
 TEST_F(GeofenceTest, InactiveFenceIsReportedEvenIfARetryRecovers)
 {
-	ASSERT_TRUE(loadFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX), geofence_status_s::GF_STATUS_FAILED, 1));
+	ASSERT_TRUE(loadFence(fullFence(), geofence_status_s::GF_STATUS_FAILED, 1));
 	EXPECT_TRUE(logContains("Geofence load failed, fence is not active"));
 	// The storage is repaired without a new request; the scheduled retry picks it up.
 	ASSERT_TRUE(storeFence(exclusionSquare()));
@@ -677,7 +690,7 @@ TEST_F(GeofenceTest, RetryThatDropsThePreviousFenceIsReported)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	// The next fence claims one vertex more than the storage holds.
-	ASSERT_TRUE(storeFence(exclusionRing(DM_KEY_FENCE_POINTS_MAX), 1));
+	ASSERT_TRUE(storeFence(fullFence(), 1));
 	_fence.updateFence();
 	ASSERT_TRUE(failFenceMetadataRead());
 	EXPECT_TRUE(logContains("Geofence update failed, previous fence still active"));

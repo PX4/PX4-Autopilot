@@ -210,7 +210,7 @@ The vehicle:
 
 <Badge type="tip" text="main (PX4 v1.20)" />
 
-For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any geofence.
+For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any geofence or [pre-geofence](../config/safety.md#pre-geofence).
 Planning is purely horizontal: the altitude profile is unaffected, and only the lateral path is adjusted to avoid the fence.
 If no geofence is set, the vehicle flies a direct path to the destination.
 
@@ -269,7 +269,6 @@ The figures below show an exclusion zone and an inclusion zone.
 - The safety margin in the [Shortest-path Calculation](#shortest-path-calculation) above may not be appropriate for all vehicles.
   It is derived from [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD) for fixed-wing and VTOL vehicles, and from twice [NAV_ACC_RAD](../advanced_config/parameter_reference.md#NAV_ACC_RAD) for multicopters.
   It is not directly configurable.
-  If a [geofence margin](../config/safety.md#geofence-margin) is set, [GF_MARGIN](../advanced_config/parameter_reference.md#GF_MARGIN) is added to it, so that the return path does not trigger the margin action.
 
 ### Geofence Awareness Messages
 

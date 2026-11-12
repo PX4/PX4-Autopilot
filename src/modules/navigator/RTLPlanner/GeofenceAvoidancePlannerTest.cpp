@@ -270,14 +270,14 @@ TEST_F(GeofenceAvoidancePlannerTest, PathAroundMaximumVertexPolygon)
 {
 	const matrix::Vector2d center{47.355, 8.519};
 	constexpr double radius_degrees = 0.001;
-	matrix::Vector2d vertices[DM_KEY_FENCE_POINTS_MAX];
+	matrix::Vector2d vertices[kMaxFencePointsPerLevel];
 
-	for (int i = 0; i < DM_KEY_FENCE_POINTS_MAX; ++i) {
-		const double angle = 2.0 * M_PI * i / DM_KEY_FENCE_POINTS_MAX;
+	for (size_t i = 0; i < kMaxFencePointsPerLevel; ++i) {
+		const double angle = 2.0 * M_PI * i / kMaxFencePointsPerLevel;
 		vertices[i] = center + matrix::Vector2d{radius_degrees * cos(angle), radius_degrees * sin(angle)};
 	}
 
-	FakeGeofence fence(vertices, DM_KEY_FENCE_POINTS_MAX, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
+	FakeGeofence fence(vertices, kMaxFencePointsPerLevel, NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION);
 	_planner.updateGraphFromGeofence(fence, 5.f);
 	ASSERT_EQ(_planner.status(), GeofenceAvoidancePlanner::Status::Success);
 
@@ -297,7 +297,7 @@ TEST_F(GeofenceAvoidancePlannerTest, OversizedPolygonRejectsPreviousPathAndAllow
 	_planner.updateDestination(kExclusionDestination);
 	ASSERT_EQ(_planner.updateStartAndFillPath(kExclusionStart), 2);
 
-	constexpr int num_vertices = DM_KEY_FENCE_POINTS_MAX + 1;
+	constexpr int num_vertices = kMaxFencePointsPerLevel + 1;
 	const matrix::Vector2d center{47.355, 8.519};
 	constexpr double radius_degrees = 0.001;
 	matrix::Vector2d vertices[num_vertices];

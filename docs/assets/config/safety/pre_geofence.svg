@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" width="760" height="400" role="img" aria-labelledby="title desc">
+  <title id="title">Geofence and pre-geofence</title>
+  <desc id="desc">A dashed pre-geofence inclusion polygon lies inside a solid geofence polygon. A larger dashed pre-geofence exclusion circle surrounds a smaller solid geofence exclusion circle. Green marks the area inside both fences. Crossing a dashed boundary triggers GF_PRE_ACTION; crossing a solid boundary triggers GF_ACTION.</desc>
+  <style>
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 16px; fill: #24313b; }
+    .hard { stroke: #b23a2c; stroke-width: 3; }
+    .pre { stroke: #a86b14; stroke-width: 3; stroke-dasharray: 9 5; }
+  </style>
+  <rect width="760" height="400" fill="#fff"/>
+  <rect x="25" y="20" width="710" height="340" rx="8" fill="#f6dedb"/>
+  <rect x="50" y="40" width="660" height="300" fill="#fdf0cf" class="hard"/>
+  <path d="M 90 80 H 370 L 420 120 H 655 V 290 H 90 Z" fill="#eaf3ee" class="pre"/>
+  <circle cx="490" cy="215" r="55" fill="#fdf0cf" class="pre"/>
+  <circle cx="490" cy="215" r="25" fill="#f6dedb" class="hard"/>
+  <line x1="65" y1="383" x2="105" y2="383" class="hard"/>
+  <text x="115" y="388">Geofence · GF_ACTION</text>
+  <line x1="385" y1="383" x2="425" y2="383" class="pre"/>
+  <text x="435" y="388">Pre-geofence · GF_PRE_ACTION</text>
+</svg>

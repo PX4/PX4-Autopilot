@@ -91,7 +91,7 @@ public:
 
 	/**
 	 * Check if a 3D point passes the Geofence test.
-	 * Checks max distance, max altitude, inside polygon or circle.
+	 * Checks max distance, max altitude, and both hard and pre-geofence polygons and circles.
 	 * In addition to checkPolygons(), this takes all additional parameters into account.
 	 *
 	 * @return false for a geofence violation
@@ -107,7 +107,7 @@ public:
 	};
 
 	/**
-	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences.
+	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against both levels of horizontal fences.
 	 * Circles are also checked against the maximum distance from Home.
 	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
 	 * a fixed-wing waypoint turned into a loiter to reach its altitude cannot be predicted here.
@@ -149,19 +149,14 @@ public:
 	/** Check the altitude band from a loaded fence file, if configured. */
 	bool isWithinAltitudeBand(float altitude);
 
+	/** Check hard geofence polygons and circles, including the fence-file altitude band. */
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
-	/** Check the polygons and circles only, without the altitude band. */
+	/** Check both levels of polygons and circles, without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
 
-	/**
-	 * True if a circle lies inside the polygons, circles and maximum distance from Home without touching
-	 * a boundary. Altitude limits are not checked.
-	 * Uses the loaded fence like the point checks, so it also answers while a fence update is pending.
-	 *
-	 * @param radius Circle radius in metres; zero checks the center only.
-	 */
-	bool isCircleInside(double lat, double lon, float radius);
+	/** Check only the horizontal pre-geofences; true when none are loaded. */
+	bool isInsidePreGeofence(double lat, double lon);
 
 	bool valid();
 
@@ -186,19 +181,16 @@ public:
 	 */
 	int loadFromFile(const char *filename);
 
-	bool isEmpty() { return (!_fence_loaded || (_num_polygons == 0)); }
+	bool isEmpty() const { return (!_fence_loaded || (_num_polygons == 0)); }
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
-	/** Horizontal distance to keep from the fences (GF_MARGIN), zero when the margin is disabled. */
-	float getMargin() const { return math::max(_param_gf_margin.get(), 0.f); }
+	/** True when a pre-geofence is configured, retaining the previous configuration during a replacement load. */
+	bool hasPreGeofence() const;
 
-	/** GF_MARGIN_ACT as a GF_ACTION value: None when the margin is disabled, Warning for values it does not offer. */
-	uint8_t getMarginAction() const;
-
-	/** True if the margin is disabled, or a circle of GF_MARGIN around the position is inside, see isCircleInside(). */
-	bool isClearOfMargin(double lat, double lon);
+	/** GF_PRE_ACTION as a GF_ACTION value; None without pre-geofences, Warning for unsupported values. */
+	uint8_t getPreGeofenceAction() const;
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 
@@ -324,8 +316,8 @@ private:
 
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
 
-	/** True if a circle keeps its whole radius within the maximum distance from Home, or the limit is not active. */
-	bool isCircleCloserThanMaxDistToHome(double lat, double lon, float radius);
+	enum class FenceSelection : uint8_t { All, Hard, Pre };
+	bool isInsideHorizontalFences(double lat, double lon, float altitude, FenceSelection selection);
 
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;
@@ -363,7 +355,6 @@ private:
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
-		(ParamFloat<px4::params::GF_MARGIN>)       _param_gf_margin,
-		(ParamInt<px4::params::GF_MARGIN_ACT>)     _param_gf_margin_act
+		(ParamInt<px4::params::GF_PRE_ACTION>)     _param_gf_pre_action
 	)
 };

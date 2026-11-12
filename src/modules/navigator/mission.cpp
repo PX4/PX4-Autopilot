@@ -77,7 +77,6 @@ Mission::on_inactive()
 	_vehicle_status_sub.update();
 	_land_detected_sub.update();
 	recheckAfterHomeUpdateOnGround();
-	recheckAfterMarginChange();
 
 	if (_need_mission_save && _vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 		save_mission_state();
@@ -124,18 +123,6 @@ Mission::recheckAfterHomeUpdateOnGround()
 	}
 }
 
-
-void
-Mission::recheckAfterMarginChange()
-{
-	// The mission was checked against the geofence margin (GF_MARGIN): check it again after the margin changed.
-	// A mission being flown keeps its verdict, like after a Home update. Return may be flying it too.
-	if ((_mission_check_state == MissionCheckState::Complete)
-	    && (_vehicle_status_sub.get().nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)
-	    && (fabsf(_navigator->get_geofence().getMargin() - _checked_geofence_margin) > FLT_EPSILON)) {
-		_mission_check_state = MissionCheckState::Deferred;
-	}
-}
 
 bool
 Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)

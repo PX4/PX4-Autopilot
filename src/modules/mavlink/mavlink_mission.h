@@ -144,6 +144,12 @@ private:
 	uint32_t		_transfer_current_crc32{0};		///< Current CRC32 checksum of current transmission
 	uint16_t		_transfer_seq{0};			///< Item sequence in current transmission
 
+	uint16_t		_fence_polygon_vertices_remaining{0};		///< Vertices still expected in the current polygon
+	uint16_t		_fence_polygon_vertex_count{0};			///< Vertex count declared by the polygon first vertex
+	uint16_t		_fence_polygon_command{0};		///< Inclusion or exclusion command of the polygon
+	FenceLevel		_fence_polygon_level{FenceLevel::Hard};	///< Level shared by every vertex of the polygon
+	uint8_t			_fence_level_point_count[2] {};			///< Points received at each fence level
+
 	int32_t			_transfer_current_seq{-1};		///< Current item ID for current transmission (-1 means not initialized)
 
 	uint32_t		_transfer_partner_sysid{0};		///< Partner system ID for current transmission
@@ -254,6 +260,9 @@ private:
 
 	void handle_mission_item_float(const mavlink_message_t *msg);
 	void handle_mission_item(const mavlink_message_t *msg);
+
+	/** Check the command, vertex count and level shared by a polygon's vertices. */
+	int validate_fence_item(const struct mission_item_s &item, uint16_t sequence);
 
 	void handle_mission_clear_all(const mavlink_message_t *msg);
 

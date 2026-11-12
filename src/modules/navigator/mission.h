@@ -87,9 +87,6 @@ private:
 	 */
 	void recheckAfterHomeUpdateOnGround();
 
-	/** Request a mission check when GF_MARGIN changed since the last one, unless the mission may be being flown. */
-	void recheckAfterMarginChange();
-
 	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff
 	 */

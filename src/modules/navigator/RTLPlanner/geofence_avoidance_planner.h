@@ -203,7 +203,7 @@ private:
 	perf_counter_t _lookup_path_perf{perf_alloc(PC_ELAPSED, "rtl_planner: lookup path")};
 
 	// Scratch storage for the vertices of the polygon being added, off the stack
-	matrix::Vector2f _vertices_in[DM_KEY_FENCE_POINTS_MAX];
+	matrix::Vector2f _vertices_in[kMaxFencePointsPerLevel];
 
 	// Sets _status on failure (matching planPath); returns false to abort the build.
 	bool updatePolygonsFromGeofence(GeofenceInterface &geofence, float margin);

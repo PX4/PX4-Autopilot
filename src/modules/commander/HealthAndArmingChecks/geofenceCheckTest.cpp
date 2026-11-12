@@ -77,60 +77,75 @@ public:
 	uORB::Publication<geofence_result_s> _geofence_result_pub{ORB_ID(geofence_result)};
 };
 
-TEST_F(GeofenceChecksTest, InsideTheFenceCanArm)
-{
-	runCheck(resultWithAction(geofence_result_s::GF_ACTION_TERMINATE));
-	EXPECT_FALSE(_failsafe_flags.geofence_breached);
-	EXPECT_FALSE(_failsafe_flags.geofence_near);
-	EXPECT_TRUE(_can_arm_all_modes);
-}
-
-// Inside the margin the vehicle is still inside the fence: only the margin flag is set, and arming is denied.
-TEST_F(GeofenceChecksTest, MarginSetsItsOwnFlagAndDeniesArming)
+// A pre-geofence violation sets its own flag and denies arming before the hard fence is breached.
+TEST_F(GeofenceChecksTest, PreGeofenceSetsItsOwnFlagAndDeniesArming)
 {
 	geofence_result_s result = resultWithAction(geofence_result_s::GF_ACTION_TERMINATE);
-	result.geofence_margin_triggered = true;
+	result.pre_geofence_action = geofence_result_s::GF_ACTION_LOITER;
 	runCheck(result);
 	EXPECT_FALSE(_failsafe_flags.geofence_breached);
-	EXPECT_TRUE(_failsafe_flags.geofence_near);
+	EXPECT_FALSE(_failsafe_flags.pre_geofence);
+	EXPECT_TRUE(_can_arm_all_modes);
+
+	result.pre_geofence_breached = true;
+	runCheck(result);
+	EXPECT_FALSE(_failsafe_flags.geofence_breached);
+	EXPECT_TRUE(_failsafe_flags.pre_geofence);
 	EXPECT_FALSE(_can_arm_all_modes);
 }
 
-// The margin does not depend on GF_ACTION.
-TEST_F(GeofenceChecksTest, MarginWorksWithoutAGeofenceAction)
+// The pre-geofence does not depend on GF_ACTION.
+TEST_F(GeofenceChecksTest, PreGeofenceWorksWithoutAGeofenceAction)
 {
 	geofence_result_s result = resultWithAction(geofence_result_s::GF_ACTION_NONE);
-	result.geofence_margin_triggered = true;
+	result.pre_geofence_action = geofence_result_s::GF_ACTION_LOITER;
+	result.pre_geofence_breached = true;
 	result.geofence_custom_fence_triggered = true;
 	runCheck(result);
 	EXPECT_FALSE(_failsafe_flags.geofence_breached);
-	EXPECT_TRUE(_failsafe_flags.geofence_near);
+	EXPECT_TRUE(_failsafe_flags.pre_geofence);
 	EXPECT_FALSE(_can_arm_all_modes);
 }
 
-// Outside the fence both flags are set, so that the more severe of the two actions is taken.
-TEST_F(GeofenceChecksTest, BreachSetsBothFlags)
+TEST_F(GeofenceChecksTest, HardAndPreGeofenceBreachesSetIndependentFlags)
 {
 	geofence_result_s result = resultWithAction(geofence_result_s::GF_ACTION_TERMINATE);
-	result.geofence_margin_triggered = true;
+	result.pre_geofence_action = geofence_result_s::GF_ACTION_LOITER;
 	result.geofence_custom_fence_triggered = true;
 	runCheck(result);
 	EXPECT_TRUE(_failsafe_flags.geofence_breached);
-	EXPECT_TRUE(_failsafe_flags.geofence_near);
+	EXPECT_FALSE(_failsafe_flags.pre_geofence);
+	EXPECT_FALSE(_can_arm_all_modes);
+
+	result.pre_geofence_breached = true;
+	runCheck(result);
+	EXPECT_TRUE(_failsafe_flags.geofence_breached);
+	EXPECT_TRUE(_failsafe_flags.pre_geofence);
 	EXPECT_FALSE(_can_arm_all_modes);
 }
 
-// Like GF_ACTION, a margin action Return needs a valid Home to arm.
-TEST_F(GeofenceChecksTest, MarginReturnNeedsAValidHome)
+// A loaded pre-geofence with a Return action needs a valid Home to arm.
+TEST_F(GeofenceChecksTest, PreGeofenceReturnNeedsAValidHome)
 {
 	geofence_result_s result = resultWithAction(geofence_result_s::GF_ACTION_LOITER);
-	result.geofence_margin_action = geofence_result_s::GF_ACTION_RTL;
+	result.pre_geofence_action = geofence_result_s::GF_ACTION_RTL;
 	runCheck(result);
 	EXPECT_TRUE(_can_arm_all_modes);
 	runCheck(result, true);
 	EXPECT_FALSE(_can_arm_all_modes);
 
-	result.geofence_margin_action = geofence_result_s::GF_ACTION_LOITER;
+	result.pre_geofence_action = geofence_result_s::GF_ACTION_LOITER;
 	runCheck(result, true);
+	EXPECT_TRUE(_can_arm_all_modes);
+}
+
+// No pre-geofence means no action, even if an old trigger remains in a received result.
+TEST_F(GeofenceChecksTest, AbsentPreGeofenceIgnoresStaleTrigger)
+{
+	geofence_result_s result = resultWithAction(geofence_result_s::GF_ACTION_NONE);
+	result.pre_geofence_breached = true;
+	runCheck(result, true);
+	EXPECT_FALSE(_failsafe_flags.geofence_breached);
+	EXPECT_FALSE(_failsafe_flags.pre_geofence);
 	EXPECT_TRUE(_can_arm_all_modes);
 }

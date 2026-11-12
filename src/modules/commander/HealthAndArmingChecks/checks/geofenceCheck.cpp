@@ -46,7 +46,9 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 					    geofence_result.geofence_custom_fence_triggered;
 
 	reporter.failsafeFlags().geofence_breached = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
-	reporter.failsafeFlags().geofence_near = geofence_result.geofence_margin_triggered;
+	const bool pre_geofence_breached = geofence_result.pre_geofence_action != geofence_result_s::GF_ACTION_NONE
+					   && geofence_result.pre_geofence_breached;
+	reporter.failsafeFlags().pre_geofence = pre_geofence_breached;
 
 	if (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered) {
 
@@ -99,35 +101,35 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	// Outside a horizontal fence the vehicle is inside its margin too: the breach reported above covers it.
+	// Avoid a duplicate violation report when a horizontal hard-fence breach is already reported.
 	const bool horizontal_breach_reported = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE
 						&& (geofence_result.geofence_max_dist_triggered || geofence_result.geofence_custom_fence_triggered);
 
-	if (geofence_result.geofence_margin_triggered && !horizontal_breach_reported) {
+	if (pre_geofence_breached && !horizontal_breach_reported) {
 		/* EVENT
 		 * @description
-		 * The vehicle is closer to a geofence than the geofence margin allows.
+		 * The vehicle has breached the operator-drawn pre-geofence.
 		 *
 		 * <profile name="dev">
-		 * This check can be configured via <param>GF_MARGIN</param> and <param>GF_MARGIN_ACT</param> parameters.
+		 * The pre-geofence action is configured via <param>GF_PRE_ACTION</param>.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
-					    events::ID("check_gf_violation_margin"),
-					    events::Log::Error, "Geofence margin violation: too close to the geofence");
+					    events::ID("check_pre_geofence_violation"),
+					    events::Log::Error, "Pre-geofence violation");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence margin: too close to the geofence");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Pre-geofence violation");
 		}
 	}
 
 	if ((geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL
-	     || geofence_result.geofence_margin_action == geofence_result_s::GF_ACTION_RTL)
+	     || geofence_result.pre_geofence_action == geofence_result_s::GF_ACTION_RTL)
 	    && reporter.failsafeFlags().home_position_invalid) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * This check can be configured via <param>GF_ACTION</param> and <param>GF_MARGIN_ACT</param> parameters.
+		 * This check can be configured via <param>GF_ACTION</param> and <param>GF_PRE_ACTION</param> parameters.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_gf_no_home"),
