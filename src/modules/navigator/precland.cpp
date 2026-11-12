@@ -652,8 +652,28 @@ void PrecLand::update_map_reference()
 		return;
 	}
 
+	// Cached landing_target_pose x_abs/y_abs are in the previous local frame. While the target
+	// is out of view we keep approaching that last known position, so re-express it through
+	// lat/lon into the new origin (prec_takeoff rejects poses older than the origin instead).
+	double target_lat = 0.;
+	double target_lon = 0.;
+	const bool reexpress_target = _map_ref.isInitialized()
+				      && _target_pose.abs_pos_valid
+				      && PX4_ISFINITE(_target_pose.x_abs)
+				      && PX4_ISFINITE(_target_pose.y_abs);
+
+	if (reexpress_target) {
+		_map_ref.reproject(_target_pose.x_abs, _target_pose.y_abs, target_lat, target_lon);
+	}
+
 	_map_ref.initReference(vehicle_local_position->ref_lat, vehicle_local_position->ref_lon,
 			       vehicle_local_position->ref_timestamp);
+
+	if (reexpress_target) {
+		const matrix::Vector2f target_xy = _map_ref.project(target_lat, target_lon);
+		_target_pose.x_abs = target_xy(0);
+		_target_pose.y_abs = target_xy(1);
+	}
 
 	// Re-seed the slew rate limiter from the current triplet, expressed in the new frame.
 	_last_slewrate_time = 0;
