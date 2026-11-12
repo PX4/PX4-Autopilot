@@ -8,7 +8,13 @@ if mft query -q -k MFT -s MFT_PM2 -v 0
 then
 	set HAVE_PM2 no
 fi
-
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
 
 icm45686 -s -b 2 -R 2 start
 icm45686 -s -b 3 -R 2 start
@@ -22,12 +28,10 @@ rm3100 -I -b 4 start
 ist8310 -X -b 1 -R 10 start
 
 
-
-icp201xx -I -b 2 -a 0x63 start
 icp201xx -I -b 4 -a 0x63 start
+icp201xx -X -b 2 -a 0x63 start
 # Possible internal Baro
 
-icp201xx -X start
 
 
 unset HAVE_PM2
