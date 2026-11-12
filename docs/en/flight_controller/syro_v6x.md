@@ -45,7 +45,6 @@ This flight controller is intended for inclusion in the [manufacturer supported]
 - **Other**
   - IMU heater, enabled by default.
     It heats the ICM-45686 on SPI2, the BMI088, the BMP581 on I2C4 and the BMM350.
-    The ICM-45686 on SPI1 and the BMP581 on I2C2 are not heated.
   - Buzzer and safety switch on `GPS1`
 - **Electrical data**
   - **Power inputs (`POWER1`, `POWER2`, USB):** 5 V nominal, valid from 3.81 V to 5.85 V
