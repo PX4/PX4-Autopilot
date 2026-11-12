@@ -31,7 +31,7 @@ jobs:
 
     - name: Install tools
       run: |
-        pip install mypy types-requests types-PyYAML flake8 pyyaml
+        pip install mypy types-requests types-PyYAML flake8 pyyaml "empy>=3.3,<4"
         pip install -r Tools/setup/test-requirements.txt
 
     - name: Check MAVSDK test scripts with mypy
@@ -58,6 +58,11 @@ jobs:
       run: |
         flake8 Tools/ros2/*.py
         python3 -m unittest discover -s Tools/ros2 -p 'test_*.py'
+
+    - name: Check the uXRCE-DDS topic generator
+      run: |
+        flake8 src/modules/uxrce_dds_client/test_generate_dds_topics.py
+        python3 -m unittest discover -s src/modules/uxrce_dds_client -p 'test_*.py' -v
 
     - name: Test submodule check
       run: python3 -m unittest discover -s Tools -p 'test_check_submodules.py' -v
