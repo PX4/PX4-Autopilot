@@ -398,7 +398,7 @@
                             "description": "Signal jammed"
                         },
                         "4096": {
-                            "name": "posvel",
+                            "name": "hposvel",
                             "description": "Horizontal position inconsistent with velocity"
                         }
                     }
