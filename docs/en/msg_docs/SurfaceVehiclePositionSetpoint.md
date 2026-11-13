@@ -6,9 +6,9 @@ pageClass: is-wide-page
 
 Surface Vehicle Position Setpoint.
 
-Position setpoint consumed by the rover position controllers (AckermannPosControl,
-DifferentialPosControl, MecanumPosControl), which turn it into surface_vehicle_speed_setpoint
-and surface_vehicle_attitude_setpoint.
+Position setpoint consumed by the position controllers of rover_ackermann, rover_differential
+and rover_mecanum, which turn it into surface_vehicle_speed_setpoint and
+surface_vehicle_attitude_setpoint.
 Published by the manual (position), auto and offboard drive modes of rover_ackermann,
 rover_differential and rover_mecanum, and can be sent from ROS 2 over uXRCE-DDS
 (/fmu/in/surface_vehicle_position_setpoint).
@@ -38,9 +38,9 @@ of the two was published most recently.
 ```c
 # Surface Vehicle Position Setpoint
 #
-# Position setpoint consumed by the rover position controllers (AckermannPosControl,
-# DifferentialPosControl, MecanumPosControl), which turn it into surface_vehicle_speed_setpoint
-# and surface_vehicle_attitude_setpoint.
+# Position setpoint consumed by the position controllers of rover_ackermann, rover_differential
+# and rover_mecanum, which turn it into surface_vehicle_speed_setpoint and
+# surface_vehicle_attitude_setpoint.
 # Published by the manual (position), auto and offboard drive modes of rover_ackermann,
 # rover_differential and rover_mecanum, and can be sent from ROS 2 over uXRCE-DDS
 # (/fmu/in/surface_vehicle_position_setpoint).

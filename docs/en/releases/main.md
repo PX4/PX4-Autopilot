@@ -208,4 +208,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### ROS 2
 
-- TBD
+- `rover_throttle_setpoint` is now `surface_vehicle_thrust_setpoint` ([SurfaceVehicleThrustSetpoint](../msg_docs/SurfaceVehicleThrustSetpoint.md)), and `SetpointConfig.TYPE_ROVER_THROTTLE_*` is now `TYPE_SURFACE_VEHICLE_THRUST_*`.
+  The `throttle_body_x/y` and `speed_body_x/y` fields of the thrust and speed setpoints are now `x` and `y`, and the PX4 ROS 2 Interface Library rover setpoint types are now `SurfaceVehicle*SetpointType`.
+  ROS 2 applications must publish to `/fmu/in/surface_vehicle_thrust_setpoint` instead of `/fmu/in/rover_throttle_setpoint`. ([PX4-Autopilot#29777](https://github.com/PX4/PX4-Autopilot/pull/29777))

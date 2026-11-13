@@ -349,7 +349,7 @@ The following sections provide a list of supported setpoint types:
 - [MulticopterGotoSetpointType](#go-to-setpoint-multicoptergotosetpointtype): <Badge type="warning" text="MC only" /> Smooth position and (optionally) heading control
 - [FwLateralLongitudinalSetpointType](#fw-lateral-longitudinal-setpoint): <Badge type="warning" text="FW only" /> <Badge type="tip" text="PX4 v1.17" /> Direct control of lateral and longitudinal fixed wing dynamics
 - [DirectActuatorsSetpointType](#direct-actuator-control-setpoint-directactuatorssetpointtype): Direct control of motors and flight surface servo setpoints
-- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="PX4 v1.17" /> Direct access to rover control setpoints (Position, Speed, Attitude, Rate, Thrust and Steering).
+- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="PX4 v1.17" /> Direct access to rover control setpoints (position, speed, attitude, rate, thrust and steering).
 
 :::tip
 The other setpoint types are currently experimental, and can be found in: [px4_ros2/control/setpoint_types/experimental](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/experimental).
@@ -568,13 +568,13 @@ The rover modules use a hierarchical structure to propagate setpoints:
 The "highest" setpoint that is provided will be used within the PX4 rover modules to generate the setpoints that are below it (Overriding them!).
 With this hierarchy there are clear rules for providing a valid control input:
 
-- Provide a position setpoint, **or**
-- One of the setpoints on the "left" (speed **or** thrust) **and** one of the setpoints on the "right" (attitude, rate **or** steering). All combinations of "left" and "right" setpoints are valid.
+- Provide a position setpoint, or
+- One of the setpoints on the "left" (speed or thrust) and one of the setpoints on the "right" (attitude, rate or steering). All combinations of "left" and "right" setpoints are valid.
 
 For ease of use we expose these valid combinations as new SetpointTypes.
 :::
 
-The RoverSetpointTypes exposed through the control interface are combinations of these setpoints that lead to a valid control input:
+The SetpointTypes exposed through the control interface are combinations of these setpoints that lead to a valid control input:
 
 | SetpointType                                                                                                                                      | Position | Speed     | Thrust    | Attitude  | Rate      | Steering  | Control Flags                                          |
 | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------- | --------- | --------- | --------- | --------- | ------------------------------------------------------ |
@@ -588,7 +588,12 @@ The RoverSetpointTypes exposed through the control interface are combinations of
 
 &check; are the setpoints we publish, and (&check;) are generated internally by the PX4 rover modules according to the hierarchy above.
 
-An example for a rover specific drive mode using the `SurfaceVehicleSpeedRateSetpointType` is provided [here](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/rover_velocity).
+::: info
+In PX4 v1.17 and v1.18 these setpoint types are named `Rover*SetpointType` (for example `RoverSpeedRateSetpointType`).
+The `SurfaceVehicle*SetpointType` names are only available in later PX4 versions, together with a matching version of the PX4 ROS 2 Interface Library.
+:::
+
+An example of a rover-specific drive mode using the `SurfaceVehicleSpeedRateSetpointType` is provided [here](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/rover_velocity).
 
 ### Controlling a VTOL
 

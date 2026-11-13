@@ -85,10 +85,10 @@ void DifferentialSpeedControl::updateSpeedControl()
 	surface_vehicle_speed_status.timestamp = _timestamp;
 	surface_vehicle_speed_status.measured_speed_body_x = _vehicle_speed;
 	surface_vehicle_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
-	surface_vehicle_speed_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
+	surface_vehicle_speed_status.pid_thrust_body_x_integral = _pid_speed.getIntegral();
 	surface_vehicle_speed_status.measured_speed_body_y = NAN;
 	surface_vehicle_speed_status.adjusted_speed_body_y_setpoint = NAN;
-	surface_vehicle_speed_status.pid_throttle_body_y_integral = NAN;
+	surface_vehicle_speed_status.pid_thrust_body_y_integral = NAN;
 	_surface_vehicle_speed_status_pub.publish(surface_vehicle_speed_status);
 }
 

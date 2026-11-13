@@ -205,8 +205,8 @@ The rover modules use a hierarchical structure to propagate setpoints:
 The "highest" setpoint that is provided will be used within the PX4 rover modules to generate the setpoints that are below it (overriding them!).
 With this hierarchy there are clear rules for providing a valid control input:
 
-- Provide a position setpoint **or**
-- One of the setpoints on the "left" (speed **or** thrust) **and** one of the setpoints on the "right" (attitude, rate **or** steering).
+- Provide a position setpoint, or
+- One of the setpoints on the "left" (speed or thrust) and one of the setpoints on the "right" (attitude, rate or steering).
   All combinations of "left" and "right" setpoints are valid.
 
 The following are all valid setpoint combinations and their respective control flags that must be set through [OffboardControlMode](../msg_docs/OffboardControlMode.md) (set all others to _false_).
@@ -234,7 +234,7 @@ In [OffboardControlMode](../msg_docs/OffboardControlMode.md) set `direct_actuato
 
 ::: info
 This bypasses the rover modules including any limits on steering rates or accelerations and the inverse kinematics step.
-We recommend using [SurfaceVehicleSteeringSetpoint](../msg_docs/SurfaceVehicleSteeringSetpoint.md) and [SurfaceVehicleThrustSetpoint](../msg_docs/SurfaceVehicleThrustSetpoint.md) instead for low level control (see [Rover Setpoints](#rover-setpoints)).
+We recommend using [SurfaceVehicleSteeringSetpoint](../msg_docs/SurfaceVehicleSteeringSetpoint.md) and [SurfaceVehicleThrustSetpoint](../msg_docs/SurfaceVehicleThrustSetpoint.md) instead for low-level control (see [Rover Setpoints](#rover-setpoints)).
 :::
 
 #### (Deprecated) Trajectory Setpoint
