@@ -24,7 +24,7 @@ import px4bench
 from px4bench import Reporter, MavlinkShell, add_connection_args, connect
 from px4bench import ftp as bench_ftp
 from px4bench import missions
-from px4bench.ftp import LOG_ROOT, ULOG_MAGIC7
+from px4bench.ftp import ULOG_MAGIC7
 from px4bench.missions import BASE_LAT, BASE_LON, Item
 from px4bench.params import (drain_param_values, read_param, set_param_int32,
                              wait_param_echo)
@@ -313,12 +313,13 @@ def download_flight_log(report, mav, report_dir):
     try:
         ftp = mavftp.MAVFTP(mav, target_system=mav.target_system,
                             target_component=mav.target_component)
-        dirs = [e.name for e in bench_ftp.ftp_list(ftp, LOG_ROOT)
+        log_root, entries = bench_ftp.find_log_root(ftp)
+        dirs = [e.name for e in entries
                 if e.is_dir and not e.name.startswith('.')]
         if not dirs:
             report.fail('flight_log', 'no log directories on SD')
             return
-        log_dir = '{}/{}'.format(LOG_ROOT, sorted(dirs)[-1])
+        log_dir = '{}/{}'.format(log_root, sorted(dirs)[-1])
         ulogs = sorted(e.name for e in bench_ftp.ftp_list(ftp, log_dir)
                        if e.name.endswith('.ulg'))
         if not ulogs:
