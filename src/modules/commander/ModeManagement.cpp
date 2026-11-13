@@ -413,7 +413,7 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 	}
 }
 
-void ModeManagement::update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
+void ModeManagement::update(uint8_t vehicle_type, bool is_vtol, bool armed, bool landed, uint8_t user_intended_nav_state,
 			    uint8_t nav_state, hrt_abstime now, UpdateRequest &update_request)
 {
 	_external_checks.update();
@@ -459,6 +459,7 @@ void ModeManagement::update(uint8_t vehicle_type, bool is_vtol, bool armed, uint
 	}
 
 	update_request.control_setpoint_update = checkConfigControlSetpointUpdates(vehicle_type, is_vtol);
+	checkSetpointTimeout(armed, landed, user_intended_nav_state, nav_state, now, update_request);
 	checkConfigOverrides();
 }
 
@@ -496,6 +497,20 @@ uint8_t ModeManagement::getNavStateReplacementIfValid(uint8_t nav_state, bool re
 						mode.unresponsive_reported = true;
 						events::send(events::ID("commander_mode_fallback_internal"), events::Log::Critical,
 							     "External mode is unresponsive, falling back to internal");
+					}
+
+					return nav_state;
+
+				} else if (_external_checks.hasSetpointTimeout(mode.arming_check_registration_id)) {
+					if (!mode.setpoint_timeout_reported && report_error) {
+						mode.setpoint_timeout_reported = true;
+						/* EVENT
+						 * @description
+						 * The mode did not send a setpoint within the timeout it configured. The internal mode is used
+						 * until another mode is selected or the vehicle disarms.
+						 */
+						events::send(events::ID("commander_mode_fallback_internal_setpoints"), events::Log::Critical,
+							     "External mode stopped sending setpoints, falling back to internal");
 					}
 
 					return nav_state;
@@ -686,6 +701,7 @@ bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type, boo
 				if (setpoint_config.should_apply) {
 					mode.current_setpoint_type = setpoint_type;
 					mode.setpoint_timeout_ms = setpoint_config.timeout_ms;
+					_setpoint_configs_applied |= 1u << setpoint_config.source_id; // restarts the setpoint timeout
 					had_update = true;
 				}
 			}
@@ -705,6 +721,91 @@ bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type, boo
 	}
 
 	return had_update;
+}
+
+void ModeManagement::checkSetpointTimeout(bool armed, bool landed, uint8_t user_intended_nav_state, uint8_t nav_state,
+		hrt_abstime now, UpdateRequest &update_request)
+{
+	const uint32_t setpoint_configs_applied = _setpoint_configs_applied;
+	_setpoint_configs_applied = 0;
+
+	// A replacement mode is selected through the mode it replaces, which is also the user intention once it is flagged
+	const uint8_t user_intention = getReplacedModeIfAny(user_intended_nav_state);
+
+	// Keep timed out modes flagged until the user selects another mode or the vehicle disarms, also if a failsafe
+	// selected the mode. Clearing the flag when the failsafe switches away would switch straight back into the mode,
+	// which does not publish setpoints while inactive.
+	if (_setpoint_timeout_user_intention != NAV_STATE_NONE
+	    && (!armed || user_intention != _setpoint_timeout_user_intention)) {
+		for (int i = Modes::FIRST_EXTERNAL_NAV_STATE; i <= Modes::LAST_EXTERNAL_NAV_STATE; ++i) {
+			if (_modes.valid(i)) {
+				_external_checks.setSetpointTimeout(_modes.mode(i).arming_check_registration_id, false);
+			}
+		}
+
+		_setpoint_timeout_user_intention = NAV_STATE_NONE;
+		update_request.setpoint_timeout_changed = true;
+	}
+
+	// Follow the setpoints of the selected external mode if it configured a timeout, also while disarmed, so that a
+	// setpoint the mode sends right after the arming counts, even if it arrives before the first armed update
+	if (!_modes.valid(nav_state)) {
+		_setpoint_watch_nav_state = NAV_STATE_NONE;
+		return;
+	}
+
+	Modes::Mode &mode = _modes.mode(nav_state);
+
+	if (mode.setpoint_timeout_ms == 0 || _external_checks.hasSetpointTimeout(mode.arming_check_registration_id)) {
+		_setpoint_watch_nav_state = NAV_STATE_NONE;
+		return;
+	}
+
+	const bool new_config = (setpoint_configs_applied & (1u << nav_state)) != 0;
+
+	if (_setpoint_watch_nav_state != nav_state || new_config) {
+		// Only samples published from now on count, also if the previous mode published on the same topics
+		mode_util::SetpointTopics topics;
+		mode_util::getSetpointTopics(mode.current_setpoint_type, topics);
+		_setpoint_subs[0].setTopic(topics[0]);
+		_setpoint_subs[1].setTopic(topics[1]);
+		_setpoint_watch_nav_state = nav_state;
+
+		// A new configuration starts the timeout. If instead the mode got activated with a configuration from before,
+		// the mode first has to react, so the timeout starts with its first setpoint.
+		_last_setpoint_time = new_config ? now : 0;
+	}
+
+	// A sample on any of the topics counts (servos are optional, for example)
+	bool got_setpoint = false;
+
+	for (SetpointSubscription &setpoint_sub : _setpoint_subs) {
+		if (setpoint_sub.consumeUpdates()) {
+			got_setpoint = true;
+		}
+	}
+
+	if (!armed) {
+		// Nothing runs while disarmed. After the arming the timeout starts with the first setpoint, which can be one
+		// that arrived between the arming and the first armed update.
+		_last_setpoint_time = 0;
+		return;
+	}
+
+	// The timeout only runs while the vehicle is not landed, so a mode that stops sending setpoints after landing is
+	// left to the auto-disarm. While landed the time is held, so the timeout runs from the moment the vehicle is no
+	// longer landed. A mode that did not send its first setpoint yet is still waited for.
+	if (got_setpoint || (landed && _last_setpoint_time != 0)) {
+		_last_setpoint_time = now;
+
+	} else if (_last_setpoint_time != 0 && now > _last_setpoint_time + mode.setpoint_timeout_ms * 1_ms) {
+		// The mode cannot run anymore, so the same fallback as for an unresponsive mode takes over
+		_external_checks.setSetpointTimeout(mode.arming_check_registration_id, true);
+		_setpoint_timeout_user_intention = user_intention;
+		mode.setpoint_timeout_reported = false;
+		_setpoint_watch_nav_state = NAV_STATE_NONE;
+		update_request.setpoint_timeout_changed = true;
+	}
 }
 
 void ModeManagement::checkConfigOverrides()

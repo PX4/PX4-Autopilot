@@ -96,6 +96,7 @@ public:
 		bool valid{false};
 		uint8_t replaces_nav_state{REPLACES_NAV_STATE_NONE};
 		bool unresponsive_reported{false};
+		bool setpoint_timeout_reported{false};
 		int arming_check_registration_id{-1};
 		int mode_executor_registration_id{-1};
 		bool request_offboard_setpoints{false};
@@ -134,10 +135,11 @@ public:
 		bool change_user_intended_nav_state{false};
 		uint8_t user_intended_nav_state{};
 		bool control_setpoint_update{false};
+		bool setpoint_timeout_changed{false};
 	};
 
-	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state, uint8_t nav_state,
-		    hrt_abstime now, UpdateRequest &update_request);
+	void update(uint8_t vehicle_type, bool is_vtol, bool armed, bool landed, uint8_t user_intended_nav_state,
+		    uint8_t nav_state, hrt_abstime now, UpdateRequest &update_request);
 	void setFailsafeState(bool failsafe_action_active)
 	{
 		_failsafe_action_active = failsafe_action_active;
@@ -173,7 +175,42 @@ public:
 	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
 
 private:
+	/**
+	 * Subscription that only tracks whether new samples got published, without copying them
+	 */
+	class SetpointSubscription : public uORB::Subscription
+	{
+	public:
+		/**
+		 * Change the topic. Only samples published after this call count as updates.
+		 */
+		void setTopic(ORB_ID id)
+		{
+			unsubscribe();
+			_orb_id = id;
+			consumeUpdates();
+		}
+
+		/**
+		 * @return true if a sample got published since the last call
+		 */
+		bool consumeUpdates()
+		{
+			if (!subscribe()) {
+				return false;
+			}
+
+			const unsigned num_updates = uORB::Manager::updates_available(_node, _last_generation);
+			_last_generation += num_updates;
+			return num_updates > 0;
+		}
+	};
+
+	static constexpr uint8_t NAV_STATE_NONE = 0xff;
+
 	bool checkConfigControlSetpointUpdates(uint8_t vehicle_type, bool is_vtol);
+	void checkSetpointTimeout(bool armed, bool landed, uint8_t user_intended_nav_state, uint8_t nav_state,
+				  hrt_abstime now, UpdateRequest &update_request);
 	void checkNewRegistrations(UpdateRequest &update_request);
 	void checkUnregistrations(uint8_t user_intended_nav_state, UpdateRequest &update_request);
 	void checkConfigOverrides();
@@ -200,6 +237,12 @@ private:
 	bool _invalid_mode_printed{false};
 
 	uint8_t _last_served_nav_state{0xff};
+
+	SetpointSubscription _setpoint_subs[2];
+	uint8_t _setpoint_watch_nav_state{NAV_STATE_NONE}; ///< selected mode whose setpoints are watched, also while disarmed
+	hrt_abstime _last_setpoint_time{0}; ///< time of the last setpoint (now while landed), 0 while waiting for the first one
+	uint32_t _setpoint_configs_applied{0}; ///< bit per nav_state with a setpoint configuration applied since the last check
+	uint8_t _setpoint_timeout_user_intention{NAV_STATE_NONE}; ///< user intention when modes got flagged for a setpoint timeout
 };
 
 #else /* CONSTRAINED_FLASH */
@@ -214,10 +257,11 @@ public:
 		bool change_user_intended_nav_state{false};
 		uint8_t user_intended_nav_state{};
 		bool control_setpoint_update{false};
+		bool setpoint_timeout_changed{false};
 	};
 
-	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state, uint8_t nav_state,
-		    hrt_abstime now, UpdateRequest &update_request) {}
+	void update(uint8_t vehicle_type, bool is_vtol, bool armed, bool landed, uint8_t user_intended_nav_state,
+		    uint8_t nav_state, hrt_abstime now, UpdateRequest &update_request) {}
 	void setFailsafeState(bool failsafe_action_active) {}
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }
