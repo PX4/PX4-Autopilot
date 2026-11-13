@@ -36,7 +36,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 ::: info
 
 - `gps off | stuck | wrong` on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
-- `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
+- `airspeed off | stuck | wrong` on Gazebo (Gz): applied to the differential pressure data from the simulator's own sensor as well as to the simulated-airspeed module ([SIM_GZ_EN_ASPD](../advanced_config/parameter_reference.md#SIM_GZ_EN_ASPD) `0`).
 - `vio off | stuck` on Gazebo (Gz): applied to the external-vision odometry that the bridge publishes from the model's odometry topic (for example `x500_vision`); `stuck` keeps publishing the last good sample with fresh timestamps.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
