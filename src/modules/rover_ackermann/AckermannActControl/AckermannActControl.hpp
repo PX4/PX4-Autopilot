@@ -49,7 +49,7 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/surface_vehicle_steering_setpoint.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/surface_vehicle_thrust_setpoint.h>
 
 /**
  * @brief Class for ackermann actuator control.
@@ -65,7 +65,7 @@ public:
 	~AckermannActControl() = default;
 
 	/**
-	 * @brief Generate and publish actuatorMotors/actuatorServos setpoints from roverThrottleSetpoint/surfaceVehicleSteeringSetpoint.
+	 * @brief Generate and publish actuatorMotors/actuatorServos setpoints from surfaceVehicleThrustSetpoint/surfaceVehicleSteeringSetpoint.
 	 */
 	void updateActControl();
 
@@ -88,7 +88,7 @@ private:
 	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_servos)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	uORB::Subscription _surface_vehicle_steering_setpoint_sub{ORB_ID(surface_vehicle_steering_setpoint)};
-	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Subscription _surface_vehicle_thrust_setpoint_sub{ORB_ID(surface_vehicle_thrust_setpoint)};
 
 	// uORB publications
 	uORB::Publication<actuator_motors_s> 	     _actuator_motors_pub{ORB_ID(actuator_motors)};
