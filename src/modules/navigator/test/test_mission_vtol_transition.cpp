@@ -214,6 +214,7 @@ protected:
 		status.in_transition_mode = in_transition_to_fw || in_back_transition;
 		status.in_transition_to_fw = in_transition_to_fw;
 		status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
+		status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 		_vehicle_status_pub.publish(status);
 		_vehicle_status = status;
 		primeNavigatorState();
