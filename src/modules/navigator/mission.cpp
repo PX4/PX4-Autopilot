@@ -75,6 +75,12 @@ void
 Mission::on_inactive()
 {
 	_vehicle_status_sub.update();
+
+	// Do not replay a transition that completed while Mission was paused.
+	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		_front_transition_index = -1;
+	}
+
 	_land_detected_sub.update();
 	recheckAfterHomeUpdateOnGround();
 
@@ -83,6 +89,19 @@ Mission::on_inactive()
 	}
 
 	MissionBase::on_inactive();
+}
+
+void
+Mission::on_inactivation()
+{
+	// The first inactive cycle does not call on_inactive().
+	_vehicle_status_sub.update();
+
+	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		_front_transition_index = -1;
+	}
+
+	MissionBase::on_inactivation();
 }
 
 void
