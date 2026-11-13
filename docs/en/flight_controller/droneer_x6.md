@@ -55,7 +55,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **Nominal input voltage:** 5 V
 - **'POWER 1', 'POWER 2', USB power input:** 4.75-5.25 V
-- **Servo Rail Input:** 0\~9.9V
+- **Servo Rail Input:** 0\~9.9V  must be separately powered
 - **Output current limits:** all ports combined: 1.5 A
 
 ### Mechanical Data {#mechanical_data}
@@ -74,6 +74,7 @@ Order from [Droneer](https://droneer.com/x6-smart-controller/).
 ## Pinouts {#pinouts}
 
 <img src="../../assets/flight_controller/droneer_x6/droneerx6_pinout.svg" alt="Droneer X6 Pinout" class="diagram-invert">
+![Droneer X6 block diagram](../../assets/flight_controller/droneer_x6/droneerx6_bd.png)
 
 ## Power {#power}
 
@@ -191,6 +192,6 @@ make droneer_x6_default
 
 ## Further Information {#further_information}
 
-- [Droneer X6 product page](https://droneer.com/6x-flight-controller/)
+- [Droneer X6 product page](https://droneer.com/x6-smart-controller/)
 - [Pixhawk Autopilot FMUv6X Standard (DS-012)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)
 - [Pixhawk Autopilot Bus Standard (DS-010)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
