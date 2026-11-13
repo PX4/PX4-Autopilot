@@ -123,18 +123,15 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case SetpointType::SurfaceVehicleThrustRate:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case SetpointType::SurfaceVehicleThrustSteering:
 		control_mode.flag_control_allocation_enabled = true;
-		control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case SetpointType::Trajectory_6dof:
