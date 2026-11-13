@@ -127,6 +127,9 @@ This is a 6-pin port, not the 10-pin Pixhawk GPS port.
 | 6   | CS2       | PC14 |
 | 7   | GND       |      |
 
+The firmware includes the [MS5611](../modules/modules_driver_baro.md#ms5611) barometer and [PMW3901](../sensor/pmw3901.md) optical flow drivers for sensors on this port, but doesn't start them.
+To use one, start it from [extras.txt](../concept/system_startup.md#starting-additional-applications-extras-txt) on the SD card, for example `ms5611 -S -b 1 -c 2 start` for an MS5611 on `CS2`.
+
 ### Motors (U21)
 
 | Pin | Signal        | MCU  | Timer    |
@@ -173,6 +176,8 @@ The board measures battery voltage with a 10k/1k divider ([BAT1_V_DIV](../advanc
 There is no onboard current shunt.
 To measure current, connect an external sensor to the current sense pin on the `Motors` connector and set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V), which defaults to `0` (see [Amps per volt](../config/battery.md#current_divider)).
 See [Battery and Power Module Setup](../config/battery.md) for configuration.
+
+The board can't sense its 5 V rail or detect USB VBUS, so the arming power-supply check is disabled ([CBRK_SUPPLY_CHK](../advanced_config/parameter_reference.md#CBRK_SUPPLY_CHK) defaults to `894281`).
 
 ## Voltage Ratings {#voltage_ratings}
 
