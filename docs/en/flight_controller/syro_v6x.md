@@ -49,7 +49,8 @@ This flight controller is intended for inclusion in the [manufacturer supported]
   - **Power inputs (`POWER1`, `POWER2`, USB):** 5 V nominal, valid from 3.81 V to 5.85 V
   - **Servo rail:** must be powered externally, and does not power the flight controller
 - **Mechanical data**
-  <!-- TODO(Syro): dimensions, weight and mounting-hole pattern of the module and the baseboard. -->
+  - **Dimensions (with case):** 97.6 mm x 51.6 mm x 25.18 mm
+  <!-- TODO(Syro): weight. -->
 
 ## Where to Buy {#store}
 
@@ -243,7 +244,8 @@ This flight controller is intended for inclusion in the [manufacturer supported]
 
 ### MAIN, AUX
 
-Viewed from the connector side, the left block of eight (`IO`) is `MAIN` 1-8 and the right block (`FMU`) is `AUX` 1-8.
+Viewed from the connector side, the left block of eight (`FMU`) is `AUX` 1-8 and the right block (`IO`) is `MAIN` 1-8.
+In each block, output 1 is on the right and output 8 on the left.
 The rows are, from top to bottom, ground (`-`), power (`+`) and signal (`S`).
 
 ### FMU DEBUGGER
