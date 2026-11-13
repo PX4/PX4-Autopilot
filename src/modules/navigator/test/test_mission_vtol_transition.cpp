@@ -966,3 +966,49 @@ TEST_F(MissionVtolTransitionTest, ResumeAfterStoppedFrontTransitionRestartsTheTr
 	mission.run(true);
 	EXPECT_EQ(mission.currentSequenceForTest(), 2);
 }
+
+class MissionVtolTransitionResumeTest : public MissionVtolTransitionTest, public ::testing::WithParamInterface<bool> {};
+
+TEST_P(MissionVtolTransitionResumeTest, CompletedFrontTransitionKeepsTheWaypoint)
+{
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto target = waypointAt(0.f, 300.f);
+	const float heading = get_bearing_to_next_waypoint(position.lat, position.lon, target.lat, target.lon);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	prepareExecution(mission, {waypointAt(0.f, 0.f), front_transition, target, waypointAt(0.f, 600.f)});
+	mission.run(true);
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	publishLocalPosition(heading);
+	mission.on_active();
+	ASSERT_EQ(countTransitionCommands(), 1);
+
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 2);
+
+	// Complete either on the first inactive cycle or after Mission is already paused.
+	if (!GetParam()) {
+		mission.run(false);
+	}
+
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	mission.run(false);
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	mission.run(false);
+
+	// The transition completed successfully, so resuming must not replay its item.
+	mission.run(true);
+	mission.run(true);
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+	EXPECT_EQ(countTransitionCommands(), 0);
+}
+
+INSTANTIATE_TEST_SUITE_P(Completion, MissionVtolTransitionResumeTest, ::testing::Bool(),
+			 [](const ::testing::TestParamInfo<bool> &test_info)
+{
+	return test_info.param ? "OnPause" : "WhilePaused";
+});

@@ -60,6 +60,7 @@ public:
 	~Mission() = default;
 
 	virtual void on_inactive() override;
+	virtual void on_inactivation() override;
 	virtual void on_activation() override;
 	virtual void on_active() override;
 
