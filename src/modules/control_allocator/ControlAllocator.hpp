@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
+#include <uORB/topics/hover_thrust_estimate.h>
 
 class ControlAllocator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -147,6 +148,11 @@ private:
 	void computeOppositeMotors();
 
 	void publish_control_allocator_status(int matrix_index);
+
+	/**
+	 * Re-evaluate the roll and pitch authority ratio of a handled motor failure with a new hover thrust estimate
+	 */
+	void update_roll_pitch_authority_ratio();
 
 	void check_allocation_health(int matrix_index);
 
@@ -220,6 +226,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
+	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 
 	matrix::Vector3f _torque_sp;
 	matrix::Vector3f _thrust_sp;
@@ -234,6 +241,10 @@ private:
 	// control authority after a motor failure.
 	uint16_t _runtime_reversible_bitmask{0}; // motors made reversible at runtime because of failure event
 	int8_t _opposite_motor[MAX_NUM_MOTORS]; // per-motor index of geometric opposite; -1 if none
+
+	// Roll and pitch margin around hover after handled motor failure relative to before.
+	float _roll_pitch_authority_ratio{1.f};
+	matrix::Vector2f _roll_pitch_margin_before_failure; ///< reference of the ratio, zero while no failure is handled
 
 	ActuatorGroupPreflightCheck _actuator_group_preflight_check;
 

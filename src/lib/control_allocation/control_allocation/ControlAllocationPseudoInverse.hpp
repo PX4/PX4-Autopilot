@@ -60,6 +60,20 @@ public:
 	void setMetricAllocation(bool metric_allocation) { _metric_allocation = metric_allocation; }
 
 	/**
+	 * Roll and pitch control that can be added to a thrust-only allocation before an actuator reaches a limit.
+	 *
+	 * @return (roll, pitch) margin in control units, 0 if the axis has no actuator or thrust alone saturates one
+	 */
+	matrix::Vector2f rollPitchMargin(float thrust_z_setpoint);
+
+	/**
+	 * Roll and pitch margin relative to a reference configuration with the same control normalization
+	 *
+	 * @return smaller of the two axis ratios in [0, 1], an axis without margin in the reference does not count
+	 */
+	static float rollPitchAuthorityRatio(const matrix::Vector2f &margin, const matrix::Vector2f &reference);
+
+	/**
 	 * Zero the rows of axes that are (nearly) dependent on higher-priority axes
 	 * (thrust z, roll, pitch, thrust x, thrust y, yaw), making them explicitly unachievable
 	 * instead of inverting a near-singular matrix.

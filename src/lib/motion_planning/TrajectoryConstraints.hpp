@@ -174,5 +174,51 @@ inline void clampToZNorm(Vector3f &target, float max_z_norm, float accuracy = FL
 	}
 }
 
+/*
+ * Reduce a horizontal speed for roll and pitch control authority lost to a motor failure.
+ * The speed is scaled by 1 minus the gain times the lost fraction of authority, without ever
+ * going below the minimum speed or raising the commanded speed.
+ *
+ * @param speed commanded speed [m/s]
+ * @param authority_ratio remaining fraction of the control authority [0, 1]
+ * @param gain speed fraction removed per lost fraction of authority, 0 disables the reduction
+ * @param speed_min speed the reduction does not go below [m/s]
+ */
+inline float reduceSpeedForControlAuthority(float speed, float authority_ratio, float gain, float speed_min)
+{
+	if (!PX4_ISFINITE(speed) || !PX4_ISFINITE(authority_ratio) || !PX4_ISFINITE(speed_min) || !(gain > 0.f)) {
+		return speed;
+	}
+
+	const float authority_lost = 1.f - math::constrain(authority_ratio, 0.f, 1.f);
+	const float scale = math::max(1.f - gain * authority_lost, 0.f);
+	return math::min(speed, math::max(speed * scale, speed_min));
+}
+
+/*
+ * Control authority ratio that is kept for the whole duration of Return, such that the speed the
+ * return was planned with is the one flown. It is kept constant only during Return mode.
+ * A motor failure that is handled during Return does not affect the held authority ratio.
+ */
+class ReturnHeldAuthorityRatio
+{
+public:
+	float update(float authority_ratio, bool in_return)
+	{
+		const bool new_failure = (_ratio >= 1.f) && (authority_ratio < 1.f);
+
+		if (!in_return || !_in_return || new_failure) {
+			_ratio = authority_ratio;
+		}
+
+		_in_return = in_return;
+		return _ratio;
+	}
+
+private:
+	float _ratio{1.f};
+	bool _in_return{false};
+};
+
 }
 }

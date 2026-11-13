@@ -41,10 +41,12 @@
 #ifndef RTL_TIME_ESTIMATOR_H_
 #define RTL_TIME_ESTIMATOR_H_
 
+#include <lib/motion_planning/TrajectoryConstraints.hpp>
 #include <px4_platform_common/module_params.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/vehicle_status.h>
@@ -131,10 +133,15 @@ private:
 	param_t 	_param_fw_airspeed_trim{PARAM_INVALID}; /**< FW cruise airspeed parameter */
 	param_t 	_param_fw_gnd_spd_min{PARAM_INVALID}; /**< FW min groundspeed parameter */
 	param_t 	_param_mpc_xy_cruise{PARAM_INVALID};  	/**< MC horizontal cruise speed parameter */
+	param_t 	_param_mpc_derate_gain{PARAM_INVALID};  /**< MC speed reduction gain for lost control authority */
+	param_t 	_param_mpc_derate_vmin{PARAM_INVALID};  /**< MC minimum speed when reduced for lost control authority */
 	param_t 	_param_rover_cruise_speed{PARAM_INVALID}; /**< Rover cruise speed parameter */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s}; /**< Parameter update topic */
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};		/**< wind topic */
+	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	math::trajectory::ReturnHeldAuthorityRatio _authority_ratio;
 };
 
 #endif /* RTL_TIME_ESTIMATOR_H_ */
