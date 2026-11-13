@@ -45,6 +45,10 @@
 #include <sys/utsname.h>
 #endif
 
+#if defined(__PX4_ZEPHYR)
+#include <zephyr/version.h>
+#endif
+
 // dev >= 0
 // alpha >= 64
 // beta >= 128
@@ -322,6 +326,8 @@ uint32_t px4_os_version(void)
 
 #elif defined(__PX4_NUTTX)
 	return version_tag_to_number(NUTTX_GIT_TAG_STR);
+#elif defined(__PX4_ZEPHYR)
+	return version_tag_to_number(KERNEL_VERSION_STRING);
 #else
 # error "px4_os_version not implemented for current OS"
 #endif
@@ -331,6 +337,8 @@ const char *px4_os_version_string(void)
 {
 #if defined(__PX4_NUTTX)
 	return NUTTX_GIT_VERSION_STR;
+#elif defined(__PX4_ZEPHYR)
+	return STRINGIFY(BUILD_VERSION);
 #else
 	return NULL;
 #endif
@@ -348,6 +356,8 @@ const char *px4_os_name(void)
 	return "NuttX";
 #elif defined(__PX4_CYGWIN)
 	return "Cygwin";
+#elif defined(__PX4_ZEPHYR)
+	return "Zephyr";
 #else
 # error "px4_os_name not implemented for current OS"
 #endif

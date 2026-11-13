@@ -60,9 +60,9 @@ WorkQueue::WorkQueue(const wq_config_t &config) :
 	pthread_setname_np(pthread_self(), _config.name);
 #endif
 
-#ifndef __PX4_NUTTX
+#if !defined(__PX4_NUTTX) && !defined(__PX4_ZEPHYR)
 	px4_sem_init(&_qlock, 0, 1);
-#endif /* __PX4_NUTTX */
+#endif
 
 	px4_sem_init(&_process_lock, 0, 0);
 	px4_sem_setprotocol(&_process_lock, SEM_PRIO_NONE);
@@ -83,9 +83,9 @@ WorkQueue::~WorkQueue()
 	px4_sem_destroy(&_process_lock);
 	work_unlock();
 
-#ifndef __PX4_NUTTX
+#if !defined(__PX4_NUTTX) && !defined(__PX4_ZEPHYR)
 	px4_sem_destroy(&_qlock);
-#endif /* __PX4_NUTTX */
+#endif
 }
 
 bool WorkQueue::Attach(WorkItem *item)

@@ -51,9 +51,9 @@
 #include <nshlib/nshlib.h>
 #endif /* __PX4_NUTTX */
 
-#ifdef __PX4_POSIX
+#if defined(__PX4_POSIX) && !defined(__PX4_ZEPHYR)
 #include "../../../platforms/posix/src/px4/common/px4_daemon/pxh.h"
-#endif /* __PX4_POSIX */
+#endif
 
 #ifdef __PX4_CYGWIN
 #include <asm/socket.h>
@@ -79,10 +79,7 @@ MavlinkShell::~MavlinkShell()
 int MavlinkShell::start()
 {
 	//this currently only works for NuttX & POSIX
-#if !defined(__PX4_NUTTX) && !defined(__PX4_POSIX)
-	return -1;
-#endif
-
+#if defined(__PX4_NUTTX) || (defined(__PX4_POSIX) && !defined(__PX4_ZEPHYR))
 	PX4_INFO("Starting mavlink shell");
 
 	int p1[2], p2[2];
@@ -182,6 +179,9 @@ int MavlinkShell::start()
 #endif /* __PX4_NUTTX */
 
 	return ret;
+#else
+	return -1;
+#endif
 }
 
 int MavlinkShell::shell_start_thread(int argc, char *argv[])
@@ -198,7 +198,7 @@ int MavlinkShell::shell_start_thread(int argc, char *argv[])
 
 #endif /* __PX4_NUTTX */
 
-#ifdef __PX4_POSIX
+#if defined(__PX4_POSIX) && !defined(__PX4_ZEPHYR)
 
 	if (argc != 3) {
 		PX4_ERR("Mavlink shell bug");

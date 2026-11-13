@@ -1,0 +1,7 @@
+empy>=3.3,<4
+jinja2>=2.8
+jsonschema
+kconfiglib
+packaging
+pyros-genmsg
+pyyaml

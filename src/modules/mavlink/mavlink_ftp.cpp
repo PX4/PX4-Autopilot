@@ -46,6 +46,7 @@
 #include <errno.h>
 #include <cstring>
 
+#include "mavlink_dirent.h"
 #include "mavlink_ftp.h"
 #include "mavlink_main.h"
 
@@ -562,7 +563,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 		char direntType;
 
 		// Determine the directory entry type
-		switch (result->d_type) {
+		switch (mavlink_dirent_type(_work_buffer1, result)) {
 #ifdef __PX4_NUTTX
 
 		case DTYPE_FILE: {
