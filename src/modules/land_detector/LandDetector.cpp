@@ -136,7 +136,20 @@ void LandDetector::Run()
 		}
 	}
 
-	_vehicle_local_position_sub.update(&_vehicle_local_position);
+	if (_vehicle_local_position_sub.update(&_vehicle_local_position)) {
+		// Catches constant velocity motion where the acceleration and vibration checks would fail.
+		static constexpr float kAidedVelocityMax = 1.f;
+		static constexpr float kAidedVelocityStdDevMax = 5.f;
+
+		const matrix::Vector2f velocity_xy{_vehicle_local_position.vx, _vehicle_local_position.vy};
+		const float velocity_threshold = math::max(kAidedVelocityMax, kAidedVelocityStdDevMax * _vehicle_local_position.evh);
+
+		if (_vehicle_local_position.v_xy_valid && !_vehicle_local_position.dead_reckoning
+		    && velocity_xy.longerThan(velocity_threshold)) {
+			_time_last_move_detect_us = _vehicle_local_position.timestamp_sample;
+		}
+	}
+
 	_vehicle_status_sub.update(&_vehicle_status);
 
 	_update_topics();
