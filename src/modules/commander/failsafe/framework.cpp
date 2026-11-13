@@ -86,6 +86,10 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 	SelectedActionState action_state{};
 	getSelectedAction(state, status_flags, user_intended_mode_updated, rc_sticks_takeover_request, action_state);
 
+	if (action_state.action <= Action::Warn && !action_state.failsafe_deferred) {
+		_current_delay = 0; // nothing left to delay, so that the next failure gets the full delay again
+	}
+
 	updateStartDelay(time_us - _last_update, action_state.delayed_action != Action::None);
 	updateFailsafeDeferState(time_us, action_state.failsafe_deferred);
 
