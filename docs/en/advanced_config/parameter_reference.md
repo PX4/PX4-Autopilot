@@ -35824,7 +35824,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Failure Injection
 
-<div class="param-group" style="--param-count: 8">
+<div class="param-group" style="--param-count: 14">
 
 <div class="param">
 
@@ -35845,6 +35845,51 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_BIAS (`FLOAT`) {#SYS_FAIL_A_BIAS}
+
+Accel bias failure injection offset.
+
+Constant offset added to every axis while an accel 'wrong' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.2 | m/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_DRIFT (`FLOAT`) {#SYS_FAIL_A_DRIFT}
+
+Accel drift failure injection rate.
+
+Rate at which the offset added to every axis grows while an accel 'drift' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.005 | m/s^3 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_NOISE (`FLOAT`) {#SYS_FAIL_A_NOISE}
+
+Accel noise failure injection magnitude.
+
+Amplitude of the uniform noise added to every axis while an accel 'garbage' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  |  | 1.0 | m/s^2 | &nbsp;
 
 </div>
 
@@ -35930,6 +35975,51 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### SYS_FAIL_G_BIAS (`FLOAT`) {#SYS_FAIL_G_BIAS}
+
+Gyro bias failure injection offset.
+
+Constant offset added to every axis while a gyro 'wrong' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.01 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_G_DRIFT (`FLOAT`) {#SYS_FAIL_G_DRIFT}
+
+Gyro drift failure injection rate.
+
+Rate at which the offset added to every axis grows while a gyro 'drift' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.001 | rad/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_G_NOISE (`FLOAT`) {#SYS_FAIL_G_NOISE}
+
+Gyro noise failure injection magnitude.
+
+Amplitude of the uniform noise added to every axis while a gyro 'garbage' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  |  | 0.05 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
 
 Instances failed by the RC switch.
@@ -35984,6 +36074,7 @@ unsupported (unit, type) pairs are ignored.
 - `5`: Slow
 - `6`: Delayed
 - `7`: Intermittent
+- `8`: Drift
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
