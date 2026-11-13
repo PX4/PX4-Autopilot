@@ -116,7 +116,37 @@ private:
 	 */
 	bool reverseIsFurther() const;
 
+	/** Where Return goes and which executor flies there. */
+	struct ReturnSelection {
+		RtlType executor{RtlType::RTL_DIRECT};
+		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
+		PositionYawSetpoint destination{};
+		uint8_t safe_point_index{UINT8_MAX}; ///< UINT8_MAX if no rally point was chosen
+		bool home_has_land_approach{false}; ///< Home has a VTOL land approach, for the types that look
+		bool rally_point_has_land_approach{false}; ///< A rally point searched for this selection has one
+	};
+
+	/** Selects the destination of the current RTL_TYPE, then applies it. */
 	void setRtlTypeAndDestination();
+
+	/** Starts at Home, then lets the policy of the current RTL_TYPE change the selection. */
+	ReturnSelection selectReturn();
+	/** RTL_TYPE 0, 1 and 3: the closest allowed of Home, the mission landing and the rally points. */
+	void selectClosest(int32_t rtl_type, ReturnSelection &selection);
+	/** RTL_TYPE 2 and 4: follow the mission, or go to Home without a valid mission. */
+	void selectMissionPath(ReturnSelection &selection) const;
+	/** RTL_TYPE 5: the closest rally point, or the current position. */
+	void selectSafePoint(ReturnSelection &selection);
+	/** RTL_TYPE 6: Home if the battery reaches it, else the closest rally point. */
+	void selectHomeIfReachable(ReturnSelection &selection);
+
+	/** Creates and configures the executor, updates the avoidance planner and publishes rtl_status. */
+	void applyReturn(const ReturnSelection &selection);
+
+	PositionYawSetpoint homeDestination() const;
+
+	/** Configures RtlDirect for Home to estimate it; applyReturn() then configures the selected destination. */
+	rtl_time_estimate_s estimateTimeToHome();
 
 	/**
 	 * @brief Publish the remaining time estimate to go to the Return landing point.
@@ -125,16 +155,13 @@ private:
 	void publishRemainingTimeEstimate();
 
 	/**
-	 * @brief Find return destination.
+	 * @brief Find the closest rally point within min_dist
 	 *
+	 * @param[in] skip_near_home ignore rally points within 10 m of Home
+	 * @param[out] has_land_approach a rally point looked at has a VTOL land approach
 	 */
-	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
-
-	/**
-	 * @brief Find return destination if only safe points are considered
-	 *
-	 */
-	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
+	PositionYawSetpoint findClosestSafePoint(float min_dist, bool skip_near_home, uint8_t &safe_point_index,
+			bool &has_land_approach);
 
 	/**
 	 * @brief Smallest remaining time [s] of the connected batteries, NAN if none reports one.
@@ -187,9 +214,6 @@ private:
 	int32_t _mission_land_failure_index{-1};
 	uint8_t _mission_land_failure_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
 	bool _mission_land_failure_reported{false};
-
-	bool _home_has_land_approach{false};           ///< Flag if the home position has a land approach defined
-	bool _one_rally_point_has_land_approach{false}; ///< Flag if a rally point has a land approach defined
 
 	RtlDirect _rtl_direct;
 
