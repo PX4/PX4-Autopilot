@@ -208,6 +208,8 @@ enum class FenceLevel : uint8_t {
 };
 
 static constexpr uint16_t kMinFencePolygonVertices = 3;
+// Keep the existing 64-point geofence limit and give the pre-geofence the same allowance.
+// This also keeps individual polygons within the planner's existing 64-vertex input buffer.
 static constexpr uint16_t kMaxFencePointsPerLevel = 64;
 
 /**

@@ -486,6 +486,7 @@ Geofence::LoadResult Geofence::_updateFence()
 					return validity;
 				}
 
+				// Apply the upload's per-level limit to stored fences too.
 				uint16_t &level_points = points_per_level[static_cast<unsigned>(mission_fence_point.fence_level)];
 				level_points += is_circle_area ? 1 : mission_fence_point.vertex_count;
 
@@ -897,19 +898,7 @@ bool Geofence::isWithinAltitudeBand(float altitude)
 
 bool Geofence::isInsidePreGeofence(double lat, double lon)
 {
-	if (isEmpty()) {
-		return true;
-	}
-
-	bool inside = true;
-
-	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
-		if (_polygons[polygon_index].fence_level == FenceLevel::Pre) {
-			inside &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, 0.f);
-		}
-	}
-
-	return inside;
+	return isInsideFenceLevel(lat, lon, 0.f, FenceLevel::Pre);
 }
 
 bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
@@ -925,10 +914,19 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	}
 
 	/* Horizontal check: the geofence polygons & circles, the pre-geofence has its own check */
+	return isInsideFenceLevel(lat, lon, altitude, FenceLevel::Hard);
+}
+
+bool Geofence::isInsideFenceLevel(double lat, double lon, float altitude, FenceLevel level)
+{
+	if (isEmpty()) {
+		return true;
+	}
+
 	bool inside = true;
 
 	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
-		if (_polygons[polygon_index].fence_level == FenceLevel::Hard) {
+		if (_polygons[polygon_index].fence_level == level) {
 			inside &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
 		}
 	}

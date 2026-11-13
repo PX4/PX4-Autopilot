@@ -319,6 +319,8 @@ private:
 			       bool *results);
 	bool checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
 
+	bool isInsideFenceLevel(double lat, double lon, float altitude, FenceLevel level);
+
 	/**
 	 * Check if a single point is within a polygon or circle
 	 * @return true if within polygon or circle
