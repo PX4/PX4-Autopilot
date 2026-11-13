@@ -39,7 +39,7 @@ For PTGL-100 purchasing enquiries, contact Amovlab at [shudajun@amovauto.com](ma
 
 PTGL-100 modules ship configured for 460800 baud, which is the rate the PX4 driver uses (8N1, no flow control).
 The 115200 baud factory default given in the [PTGL-100 manual](#further_information) (§4.1) is incorrect.
-After purchase, the module can be reconfigured to 115200 baud under JRT's guidance, but it must be set to 460800 baud for use with this PX4 driver.
+After purchase, the module's baud rate can be changed under JRT's guidance, but it must be set to 460800 baud for use with this PX4 driver.
 The driver doesn't change the module's baud rate.
 To check or change a module's baud rate, contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) for instructions.
 
@@ -50,13 +50,24 @@ To check or change a module's baud rate, contact JRT at [sales@jrt-measure.com](
 The driver assumes the sensor is mounted facing downward.
 For any other direction, set [SENS_PTGL100_ROT](../advanced_config/parameter_reference.md#SENS_PTGL100_ROT) (see [PX4 Configuration](#px4_configuration)).
 
-Keep glass and mirror-like surfaces out of the sensor's blind zone, and don't mount it facing another laser rangefinder at close range.
+The manufacturer's manual states that the sensor should not be used in direct sunlight.
+Contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) for guidance on outdoor use and any questions about this restriction.
+
+Keep glass and mirror-like surfaces out of the sensor's blind zone (closer than 0.2 m), and don't mount it facing another laser rangefinder at close range.
 If the sensor is fitted behind a protective window, the manual (§3.4) recommends H-K9L or fused-silica glass, 2–4 mm thick, with an 855–955 nm anti-reflection coating and an air gap of less than 0.5 mm to the sensor.
 
 ### Pinouts {#pinouts}
 
 The module has a six-pin `HC-0.8-6PWT` connector (0.8 mm pitch).
 An adapter cable is needed to connect to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25 mm pitch JST-GH connectors).
+
+On the module socket, pin 1 (`GND`) is at the end of the contact row furthest from the two optical apertures.
+The pins are numbered 1–6 towards the optical apertures, with pin 6 (`EN`) nearest them.
+This numbering refers to the socket on the module; check the corresponding contacts when adapting the supplied cable.
+
+![JRT PTGL-100 module socket with pins numbered 1 to 6 towards the optical apertures](../../assets/hardware/sensors/ptgl100/ptgl100_pinout.png)
+
+Connector drawing reproduced with permission from JRT.
 
 | Pin | Signal | Description                                               |
 | --- | ------ | --------------------------------------------------------- |
@@ -70,7 +81,7 @@ An adapter cable is needed to connect to flight controllers that follow the [Pix
 ### Wiring {#wiring}
 
 The manufacturer's packing list includes one module and one power/data cable.
-The supplied cable has six-pin connectors at both ends for the module's `HC-0.8-6PWT` interface, and carries power and UART TX/RX.
+The supplied cable has six-pin connectors at both ends for the module's `HC-0.8-6PWT` interface, and carries power, UART TX/RX and `EN` (pin 6).
 It can be used as a module-side pigtail by adapting the flight-controller end to the required connector and pinout.
 
 The PTGL-100 can be connected to any unused serial port (UART), such as `TELEM2`, `TELEM3` or `GPS2`.
@@ -171,26 +182,6 @@ ptgl100 stop
 
 The device name above corresponds to the Flycore `TELEM3` port.
 When stopped, the driver attempts to send the stop measurement command before closing the UART.
-
-### Validation
-
-Build the firmware, then configure and run the driver-specific SITL tests with a current CMake installation:
-
-```sh
-make amovlab_flycore_default
-cmake -S . -B build/px4_sitl_test -G Ninja -DCONFIG=px4_sitl_test -DTESTFILTER=PTGL100Parser
-cmake --build build/px4_sitl_test --target px4 unit-PTGL100Parser
-ctest --test-dir build/px4_sitl_test -R '^unit-PTGL100Parser$' --output-on-failure
-```
-
-Run the virtual UART integration test against the SITL test executable:
-
-```sh
-python3 src/drivers/distance_sensor/ptgl100/test_ptgl100.py --px4 build/px4_sitl_test/bin/px4
-```
-
-The integration test requires `pexpect`, `pymavlink`, and `pyulog`.
-It uses a pseudo-terminal in a temporary directory and does not require a connected sensor or flight controller.
 
 ### Protocol
 
