@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# 305AP board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+rgbled_gpio start
+
+# SPI1 BMP581 baro
+bmp581 -s start
+
+# SPI2 IMU1 - LSM6DSV primary, ICM-45686 fallback (ROTATION_YAW_90: pin 1 top-left, chip X=right, chip Y=forward)
+if ! lsm6dsv -b 2 -s -R 2 start
+then
+	icm45686 -b 2 -s -R 2 start
+fi
+
+# SPI3 IMU2 - LSM6DSV primary, ICM-45686 fallback (ROTATION_YAW_90: pin 1 top-left, chip X=right, chip Y=forward)
+if ! lsm6dsv -b 3 -s -R 2 start
+then
+	icm45686 -b 3 -s -R 2 start
+fi
+
+# I2C1 MMC5983MA magnetometer (ROTATION_YAW_90: pin 1 bottom-left, chip X=right, chip Y=forward, chip Z=down)
+mmc5983ma -I -R 2 start
