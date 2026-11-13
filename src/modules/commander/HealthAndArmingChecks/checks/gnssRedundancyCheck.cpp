@@ -35,13 +35,12 @@
 #include <lib/geo/geo.h>
 
 using namespace matrix;
-using namespace time_literals;
 
 GnssRedundancyChecks::GnssRedundancyChecks()
 	: _param_ekf2_gps_p_noise_handle(param_find("EKF2_GPS_P_NOISE"))
 {
-	_divergence_hysteresis.set_hysteresis_time_from(false, 2_s);
-	_divergence_hysteresis.set_hysteresis_time_from(true, 2_s);
+	_divergence_hysteresis.set_hysteresis_time_from(false, DIVERGENCE_HYSTERESIS);
+	_divergence_hysteresis.set_hysteresis_time_from(true, DIVERGENCE_HYSTERESIS);
 }
 
 void GnssRedundancyChecks::checkAndReport(const Context &context, Report &reporter)
@@ -52,14 +51,14 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	sensor_gnss_s healthy_gnss[GPS_MAX_INSTANCES] {};
 
 	sensors_status_gnss_s status{};
-	const bool status_valid = _sensors_status_gnss_sub.copy(&status) && (hrt_elapsed_time(&status.timestamp) < 1_s);
+	const bool status_valid = _sensors_status_gnss_sub.copy(&status) && (hrt_elapsed_time(&status.timestamp) < GPS_DATA_TIMEOUT);
 
 	for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
 		sensor_gnss_s gnss{};
 
 		if (_sensor_gnss_sub[i].copy(&gnss)
 		    && (gnss.device_id != 0)
-		    && (hrt_elapsed_time(&gnss.timestamp) < 1_s)) {
+		    && (hrt_elapsed_time(&gnss.timestamp) < GPS_DATA_TIMEOUT)) {
 			gps_online[i] = true;
 
 			// The sensors module indexes its status by the same sensor_gnss instance
@@ -113,7 +112,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 
 	// In flight, loss of redundancy has to persist for 2s while another receiver is still healthy.
 	// Pre-arm failures and loss of all healthy receivers remain immediate. Recovery resets the timer.
-	const hrt_abstime loss_delay = (context.isArmed() && healthy_count > 0) ? 2_s : 0_s;
+	const hrt_abstime loss_delay = (context.isArmed() && healthy_count > 0) ? REDUNDANCY_LOSS_HYSTERESIS : 0_s;
 	_loss_hysteresis.set_hysteresis_time_from(false, loss_delay);
 	_loss_hysteresis.set_state_and_update(below_required, hrt_absolute_time());
 
