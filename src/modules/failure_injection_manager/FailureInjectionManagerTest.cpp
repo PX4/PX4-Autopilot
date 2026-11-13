@@ -58,6 +58,7 @@ constexpr uint8_t STUCK   = failure_injection_s::FAILURE_TYPE_STUCK;
 constexpr uint8_t WRONG   = failure_injection_s::FAILURE_TYPE_WRONG;
 constexpr uint8_t GARBAGE = failure_injection_s::FAILURE_TYPE_GARBAGE;
 constexpr uint8_t DRIFT   = failure_injection_s::FAILURE_TYPE_DRIFT;
+constexpr uint8_t SLOW    = failure_injection_s::FAILURE_TYPE_SLOW;
 
 } // namespace
 
@@ -65,7 +66,9 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 {
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, STUCK));
-	EXPECT_FALSE(FailureTable::isSupported(GYRO, WRONG));   // no gyro WRONG today
+	EXPECT_TRUE(FailureTable::isSupported(GYRO, WRONG));    // IMU bias
+	EXPECT_TRUE(FailureTable::isSupported(GYRO, GARBAGE));  // IMU noise
+	EXPECT_TRUE(FailureTable::isSupported(GYRO, DRIFT));    // IMU drift
 	EXPECT_TRUE(FailureTable::isSupported(GPS, WRONG));
 	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));   // detected motor failure
 	EXPECT_TRUE(FailureTable::isSupported(MOTOR, WRONG)); // undetected motor failure
@@ -73,7 +76,7 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(ESC, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(ESC, WRONG));   // ESC: offline or wrong telemetry
 	EXPECT_FALSE(FailureTable::isSupported(ESC, STUCK));   // no frozen-telemetry (stuck) support
-	EXPECT_FALSE(FailureTable::isSupported(GYRO, GARBAGE)); // GARBAGE unimplemented
+	EXPECT_FALSE(FailureTable::isSupported(GYRO, SLOW));    // SLOW unimplemented
 	// Distance sensor (rangefinder) supports OFF/STUCK on hardware, but not WRONG.
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
@@ -138,7 +141,7 @@ TEST(FailureTable, TrafficOkClearsOffEntry)
 TEST(FailureTable, UnsupportedIsRejectedWithoutChange)
 {
 	FailureTable table;
-	EXPECT_EQ(table.inject(GYRO, WRONG, 0), AckResult::Unsupported);
+	EXPECT_EQ(table.inject(GYRO, SLOW, 0), AckResult::Unsupported);
 	EXPECT_FALSE(table.changed());
 	EXPECT_EQ(table.count(), 0);
 }
@@ -291,7 +294,7 @@ TEST(FailureTable, InjectMaskZeroIsAcceptedNoOp)
 TEST(FailureTable, InjectMaskUnsupportedIsRejected)
 {
 	FailureTable table;
-	EXPECT_EQ(table.injectMask(GYRO, WRONG, 0x1), AckResult::Unsupported);
+	EXPECT_EQ(table.injectMask(GYRO, SLOW, 0x1), AckResult::Unsupported);
 	EXPECT_EQ(table.count(), 0);
 }
 

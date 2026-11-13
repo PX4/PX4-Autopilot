@@ -1,3 +1,6 @@
+import statistics
+from typing import List
+
 import pytest
 from mavsdk.plugins.failure import FailureResult, FailureType, FailureUnit  # type: ignore
 from mavsdk.plugins.offboard import PositionNedYaw  # type: ignore
@@ -9,6 +12,10 @@ ALTITUDE_TOLERANCE_M = 1.0
 HOVER_SPEED_TOLERANCE_M_S = 1.0
 NUM_MOTORS = 6
 MOTOR_INSTANCE = 1  # 1-based
+
+IMU_INSTANCE = 1  # 1-based, SIH has a single IMU
+IMU_FAILURE_DURATION_S = 20
+IMU_WINDOW_S = 3
 
 
 @pytest.mark.multicopter
@@ -102,5 +109,69 @@ def test_return_lands_with_failed_motor_and_heading_off(tester: AutopilotTester)
     tester.sleep_for(5)
     tester.ensure_motors_stopped(0b1001, NUM_MOTORS)
 
+    tester.execute_rtl()
+    tester.wait_until_disarmed(180)
+
+
+def take_off_and_hover(tester: AutopilotTester) -> None:
+    tester.set_takeoff_altitude(FLIGHT_ALTITUDE_M)
+    # Necessary for the takeoff altitude to be applied properly.
+    tester.sleep_for(1)
+
+    tester.arm()
+    tester.takeoff()
+    tester.wait_until_hovering()
+    tester.wait_until_altitude(FLIGHT_ALTITUDE_M, 30)
+    tester.wait_until_speed_lower_than(HOVER_SPEED_TOLERANCE_M_S, 30)
+    # Both waits pass while the vehicle is still slowing down at the top of the climb. Let it
+    # settle, so the altitude reference for the failure is the hover altitude, not mid-climb.
+    tester.sleep_for(5)
+
+
+def imu_std(tester: AutopilotTester, unit: FailureUnit) -> List[float]:
+    """Per-axis standard deviation of the IMU data over IMU_WINDOW_S."""
+    samples = tester.record_scaled_imu(IMU_WINDOW_S)
+    if unit == FailureUnit.SENSOR_GYRO:
+        axes = [(s.angular_velocity_frd.forward_rad_s, s.angular_velocity_frd.right_rad_s,
+                 s.angular_velocity_frd.down_rad_s) for s in samples]
+    else:
+        axes = [(s.acceleration_frd.forward_m_s2, s.acceleration_frd.right_m_s2,
+                 s.acceleration_frd.down_m_s2) for s in samples]
+    return [statistics.pstdev(axis) for axis in zip(*axes)]
+
+
+@pytest.mark.imu_failure_injection
+@pytest.mark.parametrize("unit", [pytest.param(FailureUnit.SENSOR_GYRO, id="gyro"),
+                                  pytest.param(FailureUnit.SENSOR_ACCEL, id="accel")])
+def test_hold_altitude_through_imu_failure(tester: AutopilotTester, unit: FailureUnit) -> None:
+    """IMU bias, noise and drift (`failure gyro|accel wrong|garbage|drift`) in turn, with the
+    default SYS_FAIL_{G,A}_* magnitudes: the vehicle must hold altitude throughout.
+
+    The noise is also checked in the IMU data, which shows that the injection reaches it. Bias
+    and drift are not: the controllers react to them and partly hide them in flight."""
+    tester.wait_until_ready()
+    take_off_and_hover(tester)
+    tester.start_checking_altitude(ALTITUDE_TOLERANCE_M)
+
+    healthy = imu_std(tester, unit)
+    tester.inject_failure(unit, FailureType.GARBAGE, IMU_INSTANCE)
+    noisy = imu_std(tester, unit)
+    tester.inject_failure(unit, FailureType.OK, IMU_INSTANCE)
+    cleared = imu_std(tester, unit)
+    for axis in range(3):
+        assert noisy[axis] > 2 * healthy[axis] > cleared[axis], \
+            "Axis {}: std healthy {:.4f}, noisy {:.4f}, cleared {:.4f}".format(
+                axis, healthy[axis], noisy[axis], cleared[axis])
+
+    tester.inject_failure(unit, FailureType.WRONG, IMU_INSTANCE)
+    tester.sleep_for(IMU_FAILURE_DURATION_S)
+    tester.inject_failure(unit, FailureType.OK, IMU_INSTANCE)
+
+    tester.inject_failure(unit, FailureType.DRIFT, IMU_INSTANCE)
+    tester.sleep_for(IMU_FAILURE_DURATION_S)
+    tester.inject_failure(unit, FailureType.OK, IMU_INSTANCE)
+    tester.sleep_for(5)
+
+    tester.stop_checking_altitude()
     tester.execute_rtl()
     tester.wait_until_disarmed(180)
