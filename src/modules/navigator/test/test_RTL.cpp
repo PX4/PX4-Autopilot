@@ -386,7 +386,8 @@ protected:
 		param_control_autosave(true);
 	}
 
-	void loadSafePointsIntoRouteCache(const std::vector<mission_item_s> &items)
+	// Also loads the land item of a mission with a landing, which Return reads when it selects.
+	void loadSafePointsIntoRouteCache(const std::vector<mission_item_s> &items, mission_s mission = {})
 	{
 		for (size_t i = 0; i < items.size(); ++i) {
 			mission_item_s copy = items[i];
@@ -401,15 +402,15 @@ protected:
 		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
 						      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
 
-		mission_s mission{};
 		mission.timestamp = hrt_absolute_time();
 		mission.safe_points_id = ++_safe_points_id;
 		mission.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+		const bool has_land_item = mission.land_index >= 0 && mission.land_index < mission.count;
 
 		MissionRouteCache &mission_route_cache = _navigator.get_mission_route_cache();
 		ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(mission_route_cache, mission,
-				[&] { return mission_route_cache.safePointsReady(); }))
-				<< "test safe points did not load";
+				[&] { return mission_route_cache.safePointsReady() && (!has_land_item || mission_route_cache.missionLandItemReady()); }))
+				<< "the route cache did not load";
 	}
 
 	void publishHomePosition(const PositionYawSetpoint &position, uint32_t update_count = 0)
@@ -710,6 +711,262 @@ TEST_F(RTLTest, DirectMissionLandKeepsVtolInMulticopterMode)
 
 	EXPECT_EQ(direct_mission_land.activeNavCommand(), NAV_CMD_DO_LAND_START);
 }
+
+namespace
+{
+
+enum ReturnVehicle : uint8_t { kMulticopter, kVtolInHover, kVtolInFixedWing };
+enum ReturnGoal : uint8_t { kHome, kRallyPoint, kRallyPointApproach, kHere, kExecutorOnly };
+
+constexpr uint8_t kDirect = rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT;
+constexpr uint8_t kMissionLand = rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND;
+constexpr uint8_t kFollow = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION;
+constexpr uint8_t kReverse = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE;
+
+// Positions are meters north of the vehicle; NAN leaves the item out.
+struct ReturnSelectionCase {
+	const char *test_name;
+	int32_t rtl_type;
+	ReturnVehicle vehicle;
+	float home_north_m;
+	float rally_north_m;
+	bool mission;
+	float land_north_m;
+	int32_t current_seq;
+	float battery_remaining_s;
+	int32_t approach_force;
+	uint8_t executor;
+	ReturnGoal goal;
+};
+
+} // namespace
+
+class RTLSelectionTest : public RTLTest, public ::testing::WithParamInterface<ReturnSelectionCase>
+{
+protected:
+	void TearDown() override
+	{
+		for (orb_advert_t &battery_pub : _battery_pubs) {
+			if (battery_pub != nullptr) {
+				orb_unadvertise(battery_pub);
+				battery_pub = nullptr;
+			}
+		}
+
+		// the dataman is shared by every case in this binary
+		EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
+		RTLTest::TearDown();
+	}
+
+	orb_advert_t _battery_pubs[2] {};
+};
+
+// WHY: each RTL_TYPE chooses between Home, rally points and the mission landing in its own way.
+// WHAT: cases for each RTL_TYPE and for what tells types 0, 1 and 3 apart. Return starts 100 m above the
+// scene, so its first setpoint is the destination.
+TEST_P(RTLSelectionTest, ReturnTypeChoosesItsDestination)
+{
+	const ReturnSelectionCase &c = GetParam();
+	const auto north = [](float north_m, float alt) { return makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, north_m, 0.f, alt); };
+	// Types 2 and 4 follow the mission; the others only read its landing, from the route cache.
+	const bool mission_path = c.rtl_type == 2 || c.rtl_type == 4;
+
+	int32_t rtl_type = c.rtl_type;
+	int32_t approach_force = c.approach_force;
+	ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
+	ASSERT_EQ(param_set(param_find("RTL_APPR_FORCE"), &approach_force), PX4_OK);
+	_rtl.updateParamsForTest();
+
+	publishVehicleStatus(c.vehicle != kMulticopter, c.vehicle == kVtolInFixedWing ?
+			     vehicle_status_s::VEHICLE_TYPE_FIXED_WING : vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt + 100.f);
+	publishLandDetected(false);
+	const PositionYawSetpoint home = north(c.home_north_m, kAlt);
+	publishHomePosition(home);
+
+	// GIVEN: the mission, the rally point and the battery of the case
+	mission_s mission{};
+	mission.land_start_index = -1;
+	mission.land_index = -1;
+
+	if (c.mission) {
+		std::vector<mission_item_s> items;
+
+		if (mission_path) {
+			for (float north_m : {100.f, 150.f, 200.f}) {
+				const PositionYawSetpoint waypoint = north(north_m, kAlt + 50.f);
+				items.push_back(makeSafePointItem(waypoint.lat, waypoint.lon, waypoint.alt, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT));
+			}
+		}
+
+		if (PX4_ISFINITE(c.land_north_m)) {
+			const PositionYawSetpoint land = north(c.land_north_m, kAlt);
+			mission.land_start_index = static_cast<int32_t>(items.size());
+			items.push_back(makeSafePointItem(0., 0., 0.f, NAV_FRAME_GLOBAL, NAV_CMD_DO_LAND_START));
+			mission.land_index = static_cast<int32_t>(items.size());
+			items.push_back(makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND));
+		}
+
+		for (mission_item_s &item : items) {
+			item.autocontinue = true;
+		}
+
+		writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, items);
+		mission.timestamp = hrt_absolute_time();
+		mission.mission_id = 61;
+		mission.count = static_cast<uint16_t>(items.size());
+		mission.current_seq = c.current_seq;
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		setMissionResultValid(mission);
+	}
+
+	std::vector<mission_item_s> rally_points;
+
+	if (PX4_ISFINITE(c.rally_north_m)) {
+		const PositionYawSetpoint rally_point = north(c.rally_north_m, kAlt);
+		rally_points.push_back(makeSafePointItem(rally_point.lat, rally_point.lon, kAlt, NAV_FRAME_GLOBAL));
+
+		if (c.vehicle == kVtolInFixedWing) {
+			// with RTL_APPR_FORCE, a VTOL in fixed-wing flight only takes a rally point with a landing approach
+			const PositionYawSetpoint approach = north(c.rally_north_m + 50.f, kAlt + 20.f);
+			rally_points.push_back(makeLandApproachItem(approach.lat, approach.lon, approach.alt, kApproachRadius));
+		}
+	}
+
+	// Loading a mission into the cache takes a while, and the mission path types do not need it there.
+	loadSafePointsIntoRouteCache(rally_points, mission_path ? mission_s{} : mission);
+	publishMission(mission);
+
+	if (c.rtl_type == 6) {
+		// Type 6 judges Home by the battery that runs out first, here the second of two.
+		const float time_remaining_s[2] {PX4_ISFINITE(c.battery_remaining_s) ? 3600.f : NAN, c.battery_remaining_s};
+
+		for (int i = 0; i < 2; ++i) {
+			battery_status_s battery{};
+			battery.timestamp = hrt_absolute_time();
+			battery.connected = true;
+			battery.time_remaining_s = time_remaining_s[i];
+			int instance = 0;
+			_battery_pubs[i] = orb_advertise_multi(ORB_ID(battery_status), &battery, &instance);
+		}
+	}
+
+	// WHEN: Return is inactive for a cycle, then activates
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+	_rtl.run(false);
+	_rtl.run(true);
+
+	// THEN: it reports its executor and rally point, and a direct Return flies to the destination first
+	ASSERT_TRUE(rtl_status_sub.update());
+	EXPECT_EQ(rtl_status_sub.get().rtl_type, c.executor);
+	EXPECT_EQ(rtl_status_sub.get().safe_point_index, (c.goal == kRallyPoint || c.goal == kRallyPointApproach) ? 0 : UINT8_MAX);
+
+	if (c.goal != kExecutorOnly) {
+		const float expected_north_m = c.goal == kHome ? c.home_north_m : c.goal == kRallyPoint ? c.rally_north_m
+					       : c.goal == kRallyPointApproach ? c.rally_north_m + 50.f : 0.f;
+		const PositionYawSetpoint expected = north(expected_north_m, kAlt);
+		const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+		ASSERT_TRUE(current.valid);
+		EXPECT_NEAR(current.lat, expected.lat, 1e-7);
+		EXPECT_NEAR(current.lon, expected.lon, 1e-7);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(
+	RTL,
+	RTLSelectionTest,
+	::testing::Values(
+		// name, RTL_TYPE, vehicle, Home, rally point, mission, its landing, its current item, battery s, RTL_APPR_FORCE, executor, goal
+		ReturnSelectionCase{"Type0IgnoresCloserMissionLanding", 0, kMulticopter, -100.f, 300.f, true, 50.f, 0, NAN, 0, kDirect, kHome},
+		ReturnSelectionCase{"Type0ClosestIsRallyPoint", 0, kMulticopter, -300.f, 100.f, false, NAN, 0, NAN, 0, kDirect, kRallyPoint},
+		ReturnSelectionCase{"Type0IgnoresRallyPointNearHome", 0, kMulticopter, -300.f, -291.f, false, NAN, 0, NAN, 0, kDirect, kHome},
+		ReturnSelectionCase{"Type0VtolWithoutHomeApproachUsesMissionLanding", 0, kVtolInFixedWing, -100.f, NAN, true, 300.f, 0, NAN, 1, kMissionLand, kExecutorOnly},
+		ReturnSelectionCase{"Type0VtolWithHomeApproachIgnoresMissionLanding", 0, kVtolInFixedWing, -100.f, -100.f, true, 50.f, 0, NAN, 1, kDirect, kExecutorOnly},
+		ReturnSelectionCase{"Type0VtolPrefersRallyPointToLastResortLanding", 0, kVtolInFixedWing, -100.f, 300.f, true, 100.f, 0, NAN, 1, kDirect, kRallyPointApproach},
+		ReturnSelectionCase{"Type1PrefersRallyPoint", 1, kMulticopter, -100.f, 300.f, false, NAN, 0, NAN, 0, kDirect, kRallyPoint},
+		ReturnSelectionCase{"Type1PrefersMissionLandingToCloserHome", 1, kMulticopter, -100.f, 300.f, true, 200.f, 0, NAN, 0, kMissionLand, kExecutorOnly},
+		ReturnSelectionCase{"Type1VtolInHoverTakesCloserHome", 1, kVtolInHover, -100.f, 300.f, false, NAN, 0, NAN, 0, kDirect, kHome},
+		ReturnSelectionCase{"Type2FollowsMissionToItsLanding", 2, kMulticopter, -100.f, NAN, true, 300.f, 0, NAN, 0, kFollow, kExecutorOnly},
+		ReturnSelectionCase{"Type2ReversesMissionWithoutLanding", 2, kMulticopter, -100.f, NAN, true, NAN, 0, NAN, 0, kReverse, kExecutorOnly},
+		ReturnSelectionCase{"Type2WithoutMissionGoesHome", 2, kMulticopter, -100.f, NAN, false, NAN, 0, NAN, 0, kDirect, kHome},
+		ReturnSelectionCase{"Type3ClosestIsMissionLanding", 3, kMulticopter, -200.f, 300.f, true, 100.f, 0, NAN, 0, kMissionLand, kExecutorOnly},
+		ReturnSelectionCase{"Type3TakesCloserHome", 3, kMulticopter, -100.f, 300.f, true, 200.f, 0, NAN, 0, kDirect, kHome},
+		ReturnSelectionCase{"Type4FollowsShorterWayToLanding", 4, kMulticopter, -100.f, NAN, true, 300.f, 2, NAN, 0, kFollow, kExecutorOnly},
+		ReturnSelectionCase{"Type4ReversesShorterWayToStart", 4, kMulticopter, -100.f, NAN, true, 300.f, 1, NAN, 0, kReverse, kExecutorOnly},
+		ReturnSelectionCase{"Type5IgnoresCloserHome", 5, kMulticopter, -100.f, 300.f, false, NAN, 0, NAN, 0, kDirect, kRallyPoint},
+		ReturnSelectionCase{"Type5KeepsRallyPointNearHome", 5, kMulticopter, -300.f, -291.f, false, NAN, 0, NAN, 0, kDirect, kRallyPoint},
+		ReturnSelectionCase{"Type5WithoutRallyPointStaysHere", 5, kMulticopter, -100.f, NAN, false, NAN, 0, NAN, 0, kDirect, kHere},
+		ReturnSelectionCase{"Type6GoesHomeWithinBattery", 6, kMulticopter, -300.f, 100.f, false, NAN, 0, 3600.f, 0, kDirect, kHome},
+		ReturnSelectionCase{"Type6TakesRallyPointBeyondBattery", 6, kMulticopter, -300.f, -309.f, false, NAN, 0, 1.f, 0, kDirect, kRallyPoint},
+		ReturnSelectionCase{"Type6WithoutRallyPointGoesHomeBeyondBattery", 6, kMulticopter, -100.f, NAN, false, NAN, 0, 1.f, 0, kDirect, kHome},
+		ReturnSelectionCase{"Type6WithoutBatteryEstimateTakesClosest", 6, kMulticopter, -300.f, 100.f, false, NAN, 0, NAN, 0, kDirect, kRallyPoint},
+		ReturnSelectionCase{"Type6WithoutBatteryEstimateGoesHomeWhenCloser", 6, kMulticopter, -100.f, 300.f, false, NAN, 0, NAN, 0, kDirect, kHome}),
+	[](const ::testing::TestParamInfo<RTLSelectionTest::ParamType> &param_info)
+{
+	return std::string(param_info.param.test_name);
+});
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+// WHY: the mission check reads rtl_status.has_vtol_approach for the Return type in use.
+// WHAT: RTL_TYPE 6 going Home reports Home's approach, with no rally point searched.
+TEST_F(RTLTest, Type6ReportsTheApproachAtHome)
+{
+	const ApproachGeometry geometry = makeApproachGeometry();
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt + 100.f);
+	publishLandDetected(false);
+	publishHomePosition(geometry.land);
+	loadSafePointsIntoRouteCache({
+		makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+	});
+	battery_status_s battery{};
+	battery.timestamp = hrt_absolute_time();
+	battery.connected = true;
+	battery.time_remaining_s = 3600.f;
+	orb_advert_t battery_pub = orb_advertise(ORB_ID(battery_status), &battery);
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+
+	_rtl.evaluateReturnTypeForTest(6);
+
+	EXPECT_TRUE(rtl_status_sub.update());
+	EXPECT_EQ(rtl_status_sub.get().safe_point_index, UINT8_MAX);
+	EXPECT_TRUE(rtl_status_sub.get().has_vtol_approach);
+	orb_unadvertise(battery_pub);
+}
+
+// WHY: the mission check reads rtl_status.has_vtol_approach for the Return type in use.
+// WHAT: RTL_TYPE 5, and 6 beyond the battery, report the approach of the rally point they choose.
+TEST_F(RTLTest, Types5And6ReportTheApproachAtTheRallyPoint)
+{
+	const ApproachGeometry geometry = makeApproachGeometry();
+	publishVehicleStatus(true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt + 100.f);
+	publishLandDetected(false);
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
+	loadSafePointsIntoRouteCache({
+		makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
+		makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
+	});
+	battery_status_s battery{};
+	battery.timestamp = hrt_absolute_time();
+	battery.connected = true;
+	battery.time_remaining_s = 1.f;
+	orb_advert_t battery_pub = orb_advertise(ORB_ID(battery_status), &battery);
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+
+	for (const int32_t rtl_type : {5, 6}) {
+		SCOPED_TRACE(::testing::Message() << "RTL_TYPE=" << rtl_type);
+		_rtl.evaluateReturnTypeForTest(rtl_type);
+
+		EXPECT_TRUE(rtl_status_sub.update());
+		EXPECT_EQ(rtl_status_sub.get().safe_point_index, 0);
+		EXPECT_TRUE(rtl_status_sub.get().has_vtol_approach);
+	}
+
+	orb_unadvertise(battery_pub);
+}
+#endif
 
 class RTLClimbUpdateTest : public RTLTest, public ::testing::WithParamInterface<std::tuple<bool, uint8_t>> {};
 
