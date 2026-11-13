@@ -54,8 +54,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Electrical Data {#electrical_data}
 
 - **Nominal input voltage:** 5 V
-- **USB power input:** 4.75-5.25 V
-- **Output current limits:** `TELEM 1` and `GPS 2` combined: 1.5 A; all other ports combined: 1.5 A
+- **'POWER 1', 'POWER 2', USB power input:** 4.75-5.25 V
+- **Servo Rail Input:** 0\~9.9V
+- **Output current limits:** all ports combined: 1.5 A
 
 ### Mechanical Data {#mechanical_data}
 
@@ -63,10 +64,12 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Dimensions:** 84.6 x 39.6 x 32.8 mm
 - **Form factor:** [Pixhawk Autopilot Bus (PAB)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
 - **Operating and storage temperature:** -20 to 85 °C
+![Droneer X6 dimensions: top view](../../assets/flight_controller/droneer_x6/droneerx6_size2.png)
+![Droneer X6 dimensions: side view](../../assets/flight_controller/droneer_x6/droneerx6_size1.png)
 
 ## Where to Buy {#store}
 
-Order from [Droneer](https://droneer.com/6x-flight-controller/).
+Order from [Droneer](https://droneer.com/x6-smart-controller/).
 
 ## Pinouts {#pinouts}
 
