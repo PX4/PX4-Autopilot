@@ -32,9 +32,6 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <cstdio>
-#include <cstdlib>
-#include <unistd.h>
 
 #include "support/geofence_test_helpers.h"
 
@@ -265,7 +262,7 @@ TEST_F(PreGeofenceTest, RejectsUnknownLevelAndMixedPolygonLevels)
 	EXPECT_FALSE(_fence.hasPreGeofence());
 }
 
-TEST_F(PreGeofenceTest, EachLevelCanUseItsFullPointAllowance)
+TEST_F(PreGeofenceTest, BothLevelsCanUseTheirFullPointQuota)
 {
 	FencePoints points;
 
@@ -288,65 +285,59 @@ TEST_F(PreGeofenceTest, EachLevelCanUseItsFullPointAllowance)
 	EXPECT_FALSE(clear);
 }
 
-TEST_F(PreGeofenceTest, RejectsEitherLevelExceedingItsPointAllowance)
+TEST_F(PreGeofenceTest, RejectsTooManyPointsAtEitherLevel)
 {
 	for (const FenceLevel level : {FenceLevel::Hard, FenceLevel::Pre}) {
-		const FencePoints area = circle(false, {0.f, 300.f}, 50.f, level);
+		const FencePoints area = circle(false, {0.f, 300.f}, 100.f, level);
 		const FencePoints points(kMaxFencePointsPerLevel + 1, area.front());
+		ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
+		EXPECT_TRUE(_fence.isEmpty());
+		EXPECT_FALSE(_fence.isFenceUpdatePending());
+	}
+}
+
+TEST_F(PreGeofenceTest, PolygonsAndCirclesShareTheLevelPointQuota)
+{
+	for (const FenceLevel level : {FenceLevel::Hard, FenceLevel::Pre}) {
+		FencePoints points = inclusionSquare(500.f, level);
+		const FencePoints area = circle(false, {0.f, 300.f}, 100.f, level);
+		points.insert(points.end(), kMaxFencePointsPerLevel - points.size(), area.front());
+		ASSERT_TRUE(loadFence(points));
+		points.push_back(area.front());
 		ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
 		EXPECT_TRUE(_fence.isEmpty());
 	}
 }
 
-TEST_F(PreGeofenceTest, FenceFileKeepsTheHardFencePointLimit)
+TEST_F(PreGeofenceTest, RejectsPolygonLargerThanOneLevelQuota)
 {
-	for (const size_t count : {kMaxFencePointsPerLevel, kMaxFencePointsPerLevel + 1}) {
-		char filename[] = "/tmp/px4_pre_geofence_XXXXXX";
-		const int fd = mkstemp(filename);
-		ASSERT_GE(fd, 0);
-		FILE *file = fdopen(fd, "w");
-		ASSERT_NE(file, nullptr);
-		fprintf(file, "-1000 10000\n");
+	constexpr unsigned vertex_count = kMaxFencePointsPerLevel + 1;
+	FencePoints points;
 
-		for (size_t i = 0; i < count; ++i) {
-			const double angle = 2.0 * M_PI * i / count;
-			const auto vertex = position(static_cast<float>(100.0 * cos(angle)), static_cast<float>(100.0 * sin(angle)));
-			fprintf(file, "%.9f %.9f\n", vertex(0), vertex(1));
+	for (unsigned i = 0; i < vertex_count; ++i) {
+		const double angle = 2.0 * M_PI * i / vertex_count;
+		const auto coordinate = position(static_cast<float>(500.0 * cos(angle)), static_cast<float>(500.0 * sin(angle)));
+		mission_fence_point_s point{};
+		point.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION;
+		point.frame = NAV_FRAME_GLOBAL;
+		point.lat = coordinate(0);
+		point.lon = coordinate(1);
+		point.vertex_count = vertex_count;
+		points.push_back(point);
+	}
+
+	for (const FenceLevel level : {FenceLevel::Hard, FenceLevel::Pre}) {
+		for (auto &point : points) {
+			point.fence_level = level;
 		}
 
-		fclose(file);
-		const int result = _fence.loadFromFile(filename);
-		unlink(filename);
-		EXPECT_EQ(result, count == kMaxFencePointsPerLevel ? PX4_OK : PX4_ERROR);
-
-		mission_stats_entry_s stats{};
-		ASSERT_TRUE(_dataman_client.readSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
-		EXPECT_EQ(stats.num_items, kMaxFencePointsPerLevel);
+		ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
+		EXPECT_TRUE(_fence.isEmpty());
 	}
 }
 
-TEST_F(PreGeofenceTest, MetadataReadFailurePreservesLoadedPreGeofence)
-{
-	ASSERT_TRUE(loadFence(inclusionSquare(300.f, FenceLevel::Pre)));
-	_fence.updateFence();
-	EXPECT_TRUE(_fence.hasPreGeofence());
-	EXPECT_FALSE(insidePre(0.f, 400.f));
-	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_LOITER);
-	_fence.run(); // start the update
-	_fence.run(); // send the metadata read
-	ASSERT_TRUE(GeofenceTestPeer::failPendingRead(_fence));
-	_fence.run(); // enter the error state
-	_fence.run(); // return to waiting
-	EXPECT_TRUE(_fence.hasPreGeofence());
-	EXPECT_FALSE(insidePre(0.f, 400.f));
-	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_LOITER);
-	EXPECT_TRUE(_fence.isFenceUpdatePending());
-	GeofenceTestPeer::expireRetryDelay(_fence);
-	ASSERT_TRUE(waitForFence());
-	EXPECT_FALSE(insidePre(0.f, 400.f));
-}
-
-TEST_F(PreGeofenceTest, PreActionRemainsConfiguredUntilReplacementFinishes)
+// The action must not drop out for the moment in which the fence is empty during an update.
+TEST_F(PreGeofenceTest, PreActionStaysWhileANewFenceLoads)
 {
 	ASSERT_TRUE(loadFence(inclusionSquare(300.f, FenceLevel::Pre)));
 	ASSERT_TRUE(storeFence({}));

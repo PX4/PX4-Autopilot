@@ -7,14 +7,14 @@
 struct PolygonInfo {
 	uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
 	uint8_t dataman_index;
-	FenceLevel fence_level{FenceLevel::Hard}; ///< hard boundary or pre-geofence; both constrain planned paths
+	FenceLevel fence_level{FenceLevel::Hard}; ///< geofence or pre-geofence
 	union {
 		uint16_t vertex_count;
 		float circle_radius;
 	};
 };
 
-static_assert(sizeof(PolygonInfo) == 8, "Keep the loaded geofence descriptor compact");
+static_assert(sizeof(PolygonInfo) == 8, "Keep geofence area descriptors compact");
 
 class GeofenceInterface
 {

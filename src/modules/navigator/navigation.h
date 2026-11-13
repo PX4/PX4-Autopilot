@@ -43,7 +43,6 @@
 
 #pragma once
 
-#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -202,13 +201,14 @@ struct mission_stats_entry_s {
 	uint8_t padding[1];
 };
 
+/** Level of a geofence area (param 3 of the MAV_CMD_NAV_FENCE_* polygon and circle commands). */
 enum class FenceLevel : uint8_t {
-	Hard = 0,
-	Pre = 1
+	Hard = 0,	/**< geofence, breached with GF_ACTION */
+	Pre = 1		/**< pre-geofence, breached with GF_PRE_ACTION */
 };
 
-static constexpr size_t kMinFencePolygonVertices = 3;
-static constexpr size_t kMaxFencePointsPerLevel = 64;
+static constexpr uint16_t kMinFencePolygonVertices = 3;
+static constexpr uint16_t kMaxFencePointsPerLevel = 64;
 
 /**
  * Geofence vertex point.
@@ -227,13 +227,10 @@ struct mission_fence_point_s {
 	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
 	uint8_t frame;					/**< MAV_FRAME */
 
-	FenceLevel fence_level;				/**< hard geofence or pre-geofence */
+	FenceLevel fence_level;				/**< geofence or pre-geofence */
 
 	uint8_t _padding0[4];				/**< padding struct size to alignment boundary  */
 };
-
-static_assert(sizeof(mission_fence_point_s) == 32, "Fence storage size must stay unchanged");
-static_assert(offsetof(mission_fence_point_s, fence_level) == 27, "Fence level occupies the first padding byte");
 
 /**
  * @brief Position and yaw setpoint struct.

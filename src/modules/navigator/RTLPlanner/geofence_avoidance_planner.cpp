@@ -163,8 +163,7 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 	}
 
 	if (_required_nodes > _max_nodes) {
-		// Fence larger than the configured node budget. With a budget
-		// >= kMaxNodesForAnyStorableFence this cannot happen.
+		// Fence larger than the configured node budget.
 		_polygons_healthy = false;
 		_status = Status::BudgetExceeded;
 		return;

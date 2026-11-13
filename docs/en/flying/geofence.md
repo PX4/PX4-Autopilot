@@ -46,13 +46,13 @@ In summary:
      Additional vertices are created by clicking halfway along the lines between existing markers.
 1. Use the _Geofence Editor_ to set a fence as an inclusion or exclusion, and to select a fence to edit (**Edit** radio button) or Delete (**Del** button).
 1. Add the remaining fences.
-   The geofence and pre-geofence each support up to 64 points; each polygon vertex or circle uses one point.
+   The geofence and [pre-geofence](../config/safety.md#pre-geofence) each support up to 64 points: a polygon uses one point for each vertex and a circle uses one point.
 1. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.
 1. Set the breach action in the [Geofence Failsafe](../config/safety.md#geofence-failsafe).
 
 ::: tip
 A geofence action is only triggered once the vehicle has breached the geofence.
-To act before that, draw a [Pre-Geofence](../config/safety.md#pre-geofence) and select an appropriate action.
+To act before that add a [Pre-Geofence](../config/safety.md#pre-geofence) with an appropriate action.
 :::
 
 ::: info
@@ -61,5 +61,5 @@ If the vehicle is flying, also any geofence that would immediately get breached 
 :::
 
 ::: info
-PX4 implements the MAVLink [Mission microservice](https://mavlink.io/en/services/mission.html), including [geofence levels](../mavlink/protocols.md#geofence-levels) for ground station integration.
+PX4 implements the MAVLink [Mission microservice](https://mavlink.io/en/services/mission.html), which includes support for GeoFences.
 :::

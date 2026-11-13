@@ -1004,7 +1004,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 
 			_state = MAVLINK_WPM_STATE_GETLIST;
 			_transfer_seq = 0;
-			_fence_polygon_vertices_remaining = 0;
+			_fence_polygon = {};
 			_fence_level_point_count[0] = 0;
 			_fence_level_point_count[1] = 0;
 			_transfer_count = wpc.count;
@@ -1208,27 +1208,55 @@ MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 				break;
 
 			case MAV_MISSION_TYPE_FENCE: { // Write a geofence point
+					const bool is_polygon = mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION
+								|| mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION;
+					const bool is_circle = mission_item.nav_cmd == MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION
+							       || mission_item.nav_cmd == MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION;
 					mission_fence_point_s mission_fence_point{};
 					mission_fence_point.nav_cmd = mission_item.nav_cmd;
 					mission_fence_point.lat = mission_item.lat;
 					mission_fence_point.lon = mission_item.lon;
 					mission_fence_point.alt = mission_item.altitude;
+					mission_fence_point.frame = mission_item.frame;
+					mission_fence_point.fence_level = (is_polygon || is_circle) && mission_item.params[2] > 0.5f
+									  ? FenceLevel::Pre : FenceLevel::Hard;
+					auto &polygon = _fence_polygon;
+					auto &point_count = _fence_level_point_count[static_cast<uint8_t>(mission_fence_point.fence_level)];
 
-					ret = validate_fence_item(mission_item, wp.seq);
-					check_failed = ret != MAV_MISSION_ACCEPTED;
+					if (!is_polygon && !is_circle && mission_item.nav_cmd != MAV_CMD_NAV_FENCE_RETURN_POINT) {
+						ret = MAV_MISSION_UNSUPPORTED;
 
-					if (mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
-					    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
-						mission_fence_point.vertex_count = mission_item.vertex_count;
+					} else if (polygon.remaining && mission_item.nav_cmd != polygon.command) {
+						ret = MAV_MISSION_INVALID;
 
-					} else {
-						mission_fence_point.circle_radius = mission_item.circle_radius;
+					} else if (is_polygon && (mission_item.vertex_count < kMinFencePolygonVertices
+								  || (polygon.remaining ? mission_item.vertex_count != polygon.vertex_count :
+								      mission_item.vertex_count > _transfer_count - wp.seq))) {
+						ret = MAV_MISSION_INVALID_PARAM1;
+
+					} else if (polygon.remaining && mission_fence_point.fence_level != polygon.level) {
+						ret = MAV_MISSION_INVALID_PARAM3;
+
+					} else if (point_count >= kMaxFencePointsPerLevel) {
+						ret = MAV_MISSION_NO_SPACE;
 					}
 
-					mission_fence_point.frame = mission_item.frame;
+					check_failed = ret != MAV_MISSION_ACCEPTED;
 
 					if (!check_failed) {
-						mission_fence_point.fence_level = static_cast<FenceLevel>(mission_item.params[2]);
+						if (is_polygon) {
+							if (!polygon.remaining) {
+								polygon = {mission_item.vertex_count, mission_item.vertex_count, mission_item.nav_cmd, mission_fence_point.fence_level};
+							}
+
+							--polygon.remaining;
+							mission_fence_point.vertex_count = mission_item.vertex_count;
+
+						} else {
+							mission_fence_point.circle_radius = mission_item.circle_radius;
+						}
+
+						++point_count;
 						write_failed = !_dataman_client.writeSync(_transfer_dataman_id, wp.seq,
 								reinterpret_cast<uint8_t *>(&mission_fence_point), sizeof(mission_fence_point_s));
 					}
@@ -1417,50 +1445,13 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 	}
 }
 
-int MavlinkMissionManager::validate_fence_item(const mission_item_s &item, uint16_t sequence)
+// Param 3 of the fence polygon and circle commands is the fence level: 0 or not set for the geofence,
+// 1 for the pre-geofence. Other values are invalid.
+static bool fence_level_from_param(float param3, float &level)
 {
-	const bool is_polygon = item.nav_cmd == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION
-				|| item.nav_cmd == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
-	const bool is_circle = item.nav_cmd == NAV_CMD_FENCE_CIRCLE_INCLUSION
-			       || item.nav_cmd == NAV_CMD_FENCE_CIRCLE_EXCLUSION;
-	const bool continues_polygon = _fence_polygon_vertices_remaining != 0;
-	const FenceLevel fence_level = is_polygon || is_circle ? static_cast<FenceLevel>(item.params[2]) : FenceLevel::Hard;
-	MAV_MISSION_RESULT result = MAV_MISSION_ACCEPTED;
-
-	if (!is_polygon && !is_circle && item.nav_cmd != NAV_CMD_FENCE_RETURN_POINT) {
-		result = MAV_MISSION_UNSUPPORTED;
-
-	} else if (continues_polygon && item.nav_cmd != _fence_polygon_command) {
-		result = MAV_MISSION_INVALID;
-
-	} else if (is_polygon && !continues_polygon && item.vertex_count > _transfer_count - sequence) {
-		result = MAV_MISSION_INVALID_PARAM1;
-
-	} else if (continues_polygon && item.vertex_count != _fence_polygon_vertex_count) {
-		result = MAV_MISSION_INVALID_PARAM1;
-
-	} else if (continues_polygon && fence_level != _fence_polygon_level) {
-		result = MAV_MISSION_INVALID_PARAM3;
-
-	} else if (_fence_level_point_count[static_cast<uint8_t>(fence_level)] >= kMaxFencePointsPerLevel) {
-		result = MAV_MISSION_NO_SPACE;
-
-	} else {
-		if (is_polygon && !continues_polygon) {
-			_fence_polygon_vertex_count = item.vertex_count;
-			_fence_polygon_vertices_remaining = item.vertex_count;
-			_fence_polygon_command = item.nav_cmd;
-			_fence_polygon_level = fence_level;
-		}
-
-		if (is_polygon) {
-			--_fence_polygon_vertices_remaining;
-		}
-
-		++_fence_level_point_count[static_cast<uint8_t>(fence_level)];
-	}
-
-	return result;
+	const bool pre_geofence = fabsf(param3 - 1.f) < FLT_EPSILON;
+	level = pre_geofence ? 1.f : 0.f;
+	return pre_geofence || mavlink_cmd_params::param_is_unset(param3);
 }
 
 int
@@ -1591,35 +1582,32 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int
 			break;
 
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
-		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
+		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION: {
+				if (!fence_level_from_param(mavlink_mission_item->param3, mission_item->params[2])) {
+					return MAV_MISSION_INVALID_PARAM3;
+				}
+
+				// Preserve rounding, but validate before converting an untrusted float to an integer.
+				const float vertex_count = mavlink_mission_item->param1 + 0.5f;
+
+				if (!PX4_ISFINITE(vertex_count) || vertex_count < kMinFencePolygonVertices
+				    || vertex_count >= kMaxFencePointsPerLevel + 1.f) {
+					return MAV_MISSION_INVALID_PARAM1;
+				}
+
+				mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+				mission_item->vertex_count = static_cast<uint16_t>(vertex_count);
+			}
+			break;
+
 		case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
 		case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:
-
-			// Check the range before casting, then reject fractional levels without rounding them.
-			if (!(mavlink_mission_item->param3 >= static_cast<float>(FenceLevel::Hard)
-			      && mavlink_mission_item->param3 <= static_cast<float>(FenceLevel::Pre))
-			    || mavlink_mission_item->param3 > static_cast<uint8_t>(mavlink_mission_item->param3)) {
+			if (!fence_level_from_param(mavlink_mission_item->param3, mission_item->params[2])) {
 				return MAV_MISSION_INVALID_PARAM3;
 			}
 
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
-			mission_item->params[2] = mavlink_mission_item->param3;
-
-			if (mavlink_mission_item->command == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION
-			    || mavlink_mission_item->command == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
-				const float vertex_count = mavlink_mission_item->param1;
-
-				if (!(vertex_count >= kMinFencePolygonVertices && vertex_count <= kMaxFencePointsPerLevel)
-				    || vertex_count > static_cast<uint16_t>(vertex_count)) {
-					return MAV_MISSION_INVALID_PARAM1;
-				}
-
-				mission_item->vertex_count = static_cast<uint16_t>(vertex_count);
-
-			} else {
-				mission_item->circle_radius = mavlink_mission_item->param1;
-			}
-
+			mission_item->circle_radius = mavlink_mission_item->param1;
 			break;
 
 		case MAV_CMD_NAV_RALLY_POINT:

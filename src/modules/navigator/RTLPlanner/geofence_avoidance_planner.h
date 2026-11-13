@@ -80,7 +80,7 @@ public:
 		DijkstraFailed,              // Dijkstra solve exited due to invalid input data.
 		DestinationInvalid,          // Destination lat/lon non-finite, out of [-90,90]/[-180,180], or out of fixed-point range (internal).
 		DestinationBreachesGeofence, // Destination breaches geofence
-		BudgetExceeded,              // Node/polygon storage budget exceeded (node budget below kMaxNodesForAnyStorableFence).
+		BudgetExceeded,              // Node, area, or input vertex capacity exceeded.
 		OutOfRange,                  // A zone's vertex/extent fell outside the usable fixed-point range.
 		Degenerate,                  // A zone was degenerate (< 3 vertices, self-intersecting, antiparallel/zero-length edge, empty circle, negative margin).
 	};

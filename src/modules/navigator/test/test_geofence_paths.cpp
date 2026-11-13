@@ -69,7 +69,7 @@ protected:
 	}
 
 	// A polygon centred like exclusionSquare().
-	FencePoints exclusionRing(size_t vertices) const
+	FencePoints exclusionRing(size_t vertices, FenceLevel level = FenceLevel::Hard) const
 	{
 		FencePoints points;
 
@@ -79,6 +79,7 @@ protected:
 			mission_fence_point_s point{};
 			point.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
 			point.frame = NAV_FRAME_GLOBAL;
+			point.fence_level = level;
 			point.lat = coordinate(0);
 			point.lon = coordinate(1);
 			point.vertex_count = static_cast<uint16_t>(vertices);
@@ -90,15 +91,10 @@ protected:
 
 	FencePoints fullFence() const
 	{
-		FencePoints hard = exclusionRing(kMaxFencePointsPerLevel);
-		FencePoints pre = hard;
-
-		for (auto &point : pre) {
-			point.fence_level = FenceLevel::Pre;
-		}
-
-		hard.insert(hard.end(), pre.begin(), pre.end());
-		return hard;
+		FencePoints points = exclusionRing(kMaxFencePointsPerLevel);
+		const FencePoints pre = exclusionRing(kMaxFencePointsPerLevel, FenceLevel::Pre);
+		points.insert(points.end(), pre.begin(), pre.end());
+		return points;
 	}
 
 	// Fail the metadata read of the next load attempt and return once the fence waits again.
@@ -285,11 +281,11 @@ INSTANTIATE_TEST_SUITE_P(InvalidRadii, InvalidGeofenceRadiusTest, ::testing::Val
 
 TEST_F(GeofenceTest, FullBatchMatchesIndividualChecks)
 {
-	ASSERT_TRUE(loadFence(exclusionRing(kMaxFencePointsPerLevel)));
+	ASSERT_TRUE(loadFence(fullFence()));
 	std::array<Geofence::PathCheck, Geofence::MAX_PATH_CHECKS> paths;
 	std::array<bool, Geofence::MAX_PATH_CHECKS> clear{};
 
-	// Alternate between crossing the full-size polygon and passing 10 m north of it.
+	// Alternate between crossing both maximum-size polygons and passing 10 m north of them.
 	for (size_t i = 0; i < paths.size(); ++i) {
 		const float north = i % 2 == 0 ? 0.f : 60.f;
 		paths[i] = path({north, 100.f}, {north, 500.f});
@@ -394,6 +390,47 @@ TEST_P(GeofenceFileTest, ImportedFenceAndSubsequentRefreshBecomeReady)
 	ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
 	EXPECT_TRUE(clear[0]);
 	EXPECT_FALSE(clear[1]);
+}
+
+TEST_P(GeofenceFileTest, ImportAcceptsOneLevelQuotaAndRejectsTheNextVertex)
+{
+	const int fd = mkstemp(_filename);
+	ASSERT_GE(fd, 0);
+	FILE *file = fdopen(fd, "w");
+	ASSERT_NE(file, nullptr);
+	ASSERT_GT(fprintf(file, "0 1000\n"), 0);
+
+	for (unsigned i = 0; i < kMaxFencePointsPerLevel; ++i) {
+		const double angle = 2.0 * M_PI * i / kMaxFencePointsPerLevel;
+		const auto coordinate = position(static_cast<float>(500.0 * cos(angle)), static_cast<float>(500.0 * sin(angle)));
+		EXPECT_GT(fprintf(file, "%.15f %.15f\n", coordinate(0), coordinate(1)), 0);
+	}
+
+	ASSERT_EQ(fclose(file), 0);
+	mission_stats_entry_s stats{};
+	stats.dataman_id = GetParam();
+	stats.opaque_id = ++runtime().next_fence_id;
+	ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0,
+					      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+	ASSERT_EQ(_fence.loadFromFile(_filename), PX4_OK);
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_FENCE_POINTS_STATE, 0,
+					     reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+	ASSERT_EQ(stats.num_items, kMaxFencePointsPerLevel);
+	_fence_id = stats.opaque_id;
+	ASSERT_TRUE(waitForFence());
+	EXPECT_FALSE(_fence.hasPreGeofence());
+
+	file = fopen(_filename, "a");
+	ASSERT_NE(file, nullptr);
+	EXPECT_GT(fprintf(file, "47.0 8.0\n"), 0);
+	ASSERT_EQ(fclose(file), 0);
+	EXPECT_EQ(_fence.loadFromFile(_filename), PX4_ERROR);
+	mission_stats_entry_s after{};
+	ASSERT_TRUE(_dataman_client.readSync(DM_KEY_FENCE_POINTS_STATE, 0,
+					     reinterpret_cast<uint8_t *>(&after), sizeof(after)));
+	EXPECT_EQ(after.num_items, stats.num_items);
+	EXPECT_EQ(after.dataman_id, stats.dataman_id);
+	EXPECT_EQ(after.opaque_id, stats.opaque_id);
 }
 
 INSTANTIATE_TEST_SUITE_P(StoredBanks, GeofenceFileTest,

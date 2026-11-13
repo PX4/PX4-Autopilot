@@ -46,9 +46,8 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 					    geofence_result.geofence_custom_fence_triggered;
 
 	reporter.failsafeFlags().geofence_breached = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
-	const bool pre_geofence_breached = geofence_result.pre_geofence_action != geofence_result_s::GF_ACTION_NONE
-					   && geofence_result.pre_geofence_breached;
-	reporter.failsafeFlags().pre_geofence = pre_geofence_breached;
+	reporter.failsafeFlags().pre_geofence = geofence_result.pre_geofence_action != geofence_result_s::GF_ACTION_NONE
+						&& geofence_result.pre_geofence_breached;
 
 	if (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered) {
 
@@ -101,21 +100,15 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	// Avoid a duplicate violation report when a horizontal hard-fence breach is already reported.
-	const bool horizontal_breach_reported = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE
-						&& (geofence_result.geofence_max_dist_triggered || geofence_result.geofence_custom_fence_triggered);
-
-	if (pre_geofence_breached && !horizontal_breach_reported) {
+	if (reporter.failsafeFlags().pre_geofence) {
 		/* EVENT
 		 * @description
-		 * The vehicle has breached the operator-drawn pre-geofence.
-		 *
 		 * <profile name="dev">
-		 * The pre-geofence action is configured via <param>GF_PRE_ACTION</param>.
+		 * This check can be configured via <param>GF_PRE_ACTION</param> parameter.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
-					    events::ID("check_pre_geofence_violation"),
+					    events::ID("check_gf_violation_pre_gf"),
 					    events::Log::Error, "Pre-geofence violation");
 
 		if (reporter.mavlink_log_pub()) {

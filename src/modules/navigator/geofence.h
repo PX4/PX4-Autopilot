@@ -91,7 +91,7 @@ public:
 
 	/**
 	 * Check if a 3D point passes the Geofence test.
-	 * Checks max distance, max altitude, and both hard and pre-geofence polygons and circles.
+	 * Checks max distance, max altitude, inside the polygons and circles of the geofence and the pre-geofence.
 	 * In addition to checkPolygons(), this takes all additional parameters into account.
 	 *
 	 * @return false for a geofence violation
@@ -107,7 +107,7 @@ public:
 	};
 
 	/**
-	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against both levels of horizontal fences.
+	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences (both levels).
 	 * Circles are also checked against the maximum distance from Home.
 	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
 	 * a fixed-wing waypoint turned into a loiter to reach its altitude cannot be predicted here.
@@ -149,14 +149,14 @@ public:
 	/** Check the altitude band from a loaded fence file, if configured. */
 	bool isWithinAltitudeBand(float altitude);
 
-	/** Check hard geofence polygons and circles, including the fence-file altitude band. */
+	/** Check the polygons and circles of the geofence and the fence-file altitude band, not the pre-geofence. */
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
-	/** Check both levels of polygons and circles, without the altitude band. */
+	/** Check the polygons and circles only (both levels), without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
 
-	/** Check only the horizontal pre-geofences; true when none are loaded. */
-	bool isInsidePreGeofence(double lat, double lon);
+	/** Check the polygons and circles of the pre-geofence only. True if it has none. */
+	bool isInsidePreGeofence(double lat, double lon) { return isInsideFenceLevel(lat, lon, 0.f, FenceLevel::Pre); }
 
 	bool valid();
 
@@ -181,15 +181,15 @@ public:
 	 */
 	int loadFromFile(const char *filename);
 
-	bool isEmpty() const { return (!_fence_loaded || (_num_polygons == 0)); }
+	bool isEmpty() { return (!_fence_loaded || (_num_polygons == 0)); }
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
-	/** True when a pre-geofence is configured, retaining the previous configuration during a replacement load. */
+	/** True if the loaded fence has a pre-geofence area. */
 	bool hasPreGeofence() const;
 
-	/** GF_PRE_ACTION as a GF_ACTION value; None without pre-geofences, Warning for unsupported values. */
+	/** GF_PRE_ACTION as a GF_ACTION value: None without a pre-geofence, Warning for values it does not offer. */
 	uint8_t getPreGeofenceAction() const;
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
@@ -316,8 +316,8 @@ private:
 
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
 
-	enum class FenceSelection : uint8_t { All, Hard, Pre };
-	bool isInsideHorizontalFences(double lat, double lon, float altitude, FenceSelection selection);
+	/** Check the polygons and circles of one fence level. */
+	bool isInsideFenceLevel(double lat, double lon, float altitude, FenceLevel level);
 
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;

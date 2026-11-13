@@ -1277,9 +1277,6 @@ void Navigator::geofence_breach_check()
 			return;
 		}
 
-		// Each level checks its own areas; the pre-geofence does not include the Home limits.
-		const bool pre_geofence_breached = !_geofence.isInsidePreGeofence(current_latitude, current_longitude);
-
 		if (_time_loitering_after_gf_breach > 0) {
 			// while loitering after a breach, only allow new triggers to be set, never cleared.
 			// Prevents the reposition center from walking outward when the vehicle hovers at the fence boundary.
@@ -1288,9 +1285,7 @@ void Navigator::geofence_breach_check()
 			_geofence_result.geofence_max_alt_triggered |= !_geofence.isBelowMaxAltitude(current_altitude);
 			_geofence_result.geofence_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(current_latitude,
 					current_longitude, current_altitude);
-			// Keep the Hold latched while its pre-geofence is loaded.
-			_geofence_result.pre_geofence_breached = pre_geofence_breached || (_geofence_result.pre_geofence_breached
-					&& pre_geofence_action != geofence_result_s::GF_ACTION_NONE);
+			_geofence_result.pre_geofence_breached |= !_geofence.isInsidePreGeofence(current_latitude, current_longitude);
 
 		} else {
 			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,
@@ -1298,7 +1293,7 @@ void Navigator::geofence_breach_check()
 			_geofence_result.geofence_max_alt_triggered = !_geofence.isBelowMaxAltitude(current_altitude);
 			_geofence_result.geofence_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(current_latitude,
 					current_longitude, current_altitude);
-			_geofence_result.pre_geofence_breached = pre_geofence_breached;
+			_geofence_result.pre_geofence_breached = !_geofence.isInsidePreGeofence(current_latitude, current_longitude);
 		}
 
 		const auto now = hrt_absolute_time();
@@ -1309,18 +1304,20 @@ void Navigator::geofence_breach_check()
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
 		_geofence_result.pre_geofence_action = pre_geofence_action;
 
-		const bool geofence_breached = _geofence_result.geofence_max_dist_triggered
-					       || _geofence_result.geofence_max_alt_triggered
-					       || _geofence_result.geofence_custom_fence_triggered;
+		const bool breach = _geofence_result.geofence_max_dist_triggered
+				    || _geofence_result.geofence_max_alt_triggered
+				    || _geofence_result.geofence_custom_fence_triggered;
 
-		const bool geofence_hold = geofence_breached && _geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER;
+		// Hold is the only action Navigator takes part in: it sets where to hold. Each level asks for it once
+		// per breach, so a pilot who took over outside the pre-geofence is still held at the geofence.
+		const bool geofence_hold = breach && _geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER;
 		const bool pre_geofence_hold = _geofence_result.pre_geofence_breached
-					       && pre_geofence_action == geofence_result_s::GF_ACTION_LOITER;
+					       && _geofence_result.pre_geofence_action == geofence_result_s::GF_ACTION_LOITER;
 
 		if (((geofence_hold && !_geofence_reposition_sent) || (pre_geofence_hold && !_pre_geofence_reposition_sent))
 		    && global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
-			// Keep an existing pre-geofence Hold at its original position if the hard fence is breached later.
+			// A vehicle already holding at the pre-geofence is not moved out to where it breaches the geofence.
 			if (_time_loitering_after_gf_breach == 0) {
 
 				const position_setpoint_s current = get_position_setpoint_triplet()->current;
@@ -1354,7 +1351,7 @@ void Navigator::geofence_breach_check()
 			_pre_geofence_reposition_sent |= pre_geofence_hold;
 		}
 
-		if (!geofence_breached) {
+		if (!breach) {
 			_geofence_reposition_sent = false;
 		}
 
@@ -1900,6 +1897,8 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
 
 		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon) && PX4_ISFINITE(pos.alt)) {
+			// Not checkPointAgainstAllGeofences(): it includes the pre-geofence, which GF_ACTION does not
+			// control. pre_geofence_allows_target() checks it under its own action.
 			return _geofence.isCloserThanMaxDistToHome(pos.lat, pos.lon, pos.alt)
 			       && _geofence.isBelowMaxAltitude(pos.alt)
 			       && _geofence.isInsidePolygonOrCircle(pos.lat, pos.lon, pos.alt);
@@ -1922,9 +1921,9 @@ bool Navigator::pre_geofence_allows_target(const vehicle_global_position_s &targ
 		return true;
 	}
 
-	mavlink_log_critical(&_mavlink_log_pub, "Target breaches the pre-geofence\t");
-	events::send(events::ID("navigator_target_breaches_pre_geofence"), {events::Log::Error, events::LogInternal::Info},
-		     "Target breaches the pre-geofence");
+	mavlink_log_critical(&_mavlink_log_pub, "Target is outside the pre-geofence\t");
+	events::send(events::ID("navigator_target_outside_pre_geofence"), {events::Log::Error, events::LogInternal::Info},
+		     "Target is outside the pre-geofence");
 	return false;
 }
 
@@ -1932,7 +1931,8 @@ bool Navigator::pre_geofence_allows_target(const vehicle_global_position_s &targ
 float Navigator::geofence_avoidance_margin() const
 {
 	// These margins should be above the horizontal tracking error that can be expected for each vehicle type.
-	// Both fence levels use the same tracking allowance.
+	// If re-using the enlarged polygons for a predictive geofence failsafe feature, additionally ensure
+	// that the margin is large enough to turn around / stop / carry out the desired failsafe action in time.
 
 	if (_vstatus.is_vtol || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 

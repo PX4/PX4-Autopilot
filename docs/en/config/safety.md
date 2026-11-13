@@ -240,45 +240,75 @@ The following settings also apply, but are not displayed in the QGC UI.
 
 <Badge type="tip" text="main (PX4 v2.0)" />
 
-The pre-geofence triggers a separate action when the vehicle leaves its allowed area, before it breaches the geofence.
-The geofence keeps its own action, so a vehicle can for example hold at the pre-geofence and only terminate if it still crosses the geofence.
+A pre-geofence is a second boundary, drawn inside the geofence, that has its own failsafe action.
+The vehicle reaches it first, so it can for example hold at the pre-geofence, and only terminate if it still crosses the geofence.
 
-Draw the pre-geofence as inclusion and exclusion polygons and circles in the [Geofence Plan](../flying/geofence.md#geofence-plan).
-The vehicle must stay inside every inclusion area and outside every exclusion area.
+Use it where the geofence must not be crossed, or where the geofence action has to be severe.
+For example, under the [SORA](http://jarus-rpas.org/wp-content/uploads/2024/06/SORA-v2.5-Main-Body-Release-JAR_doc_25.pdf) framework, which many countries use to approve complex operations, leaving the contingency volume typically requires the flight to be terminated.
+The contingency volume is then drawn as the geofence, and the flight geography inside it as the pre-geofence.
 
-| Setting             | Parameter                                                                | Description                                                                                                |
-| ------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| Pre-geofence action | [GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION) | Warning, Hold mode (default), Return mode, or Land mode. Disabled when no pre-geofence areas are uploaded. |
+![Top view of a geofence with a pre-geofence drawn inside it: a fixed-wing vehicle that leaves the pre-geofence holds and loiters there, instead of flying on and breaching the geofence](../../assets/config/safety/pre_geofence.svg)
 
-The pre-geofence applies at all altitudes and in both VTOL flight phases.
-The maximum distance and altitude from Home remain geofence limits with [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION).
+#### Pre-Geofence Setup
 
-![Geofence and pre-geofence inclusion polygons with nested exclusion circles](../../assets/config/safety/pre_geofence.svg)
+1. Draw the pre-geofence in the ground station and upload it together with the [Geofence Plan](../flying/geofence.md#geofence-plan).
+   Like the geofence, it is made of inclusion and exclusion polygons and circles: the vehicle has to stay inside every inclusion area and outside every exclusion area.
+1. Set the pre-geofence action.
+   It is only used when the uploaded plan contains pre-geofence areas.
 
-When the vehicle breaches the pre-geofence:
+   | Setting             | Parameter                                                                | Description                                              |
+   | ------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
+   | Pre-geofence action | [GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION) | Warning, Hold mode (default), Return mode, or Land mode. |
 
-- Its action is triggered in all flight modes.
-  With `Hold`, the vehicle holds at the trigger position or continues an established loiter (a fixed-wing vehicle flies a loiter circle).
+1. Set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to an action that is at least as severe.
+   If both fences are breached, the more severe of the two actions is taken.
+
+Leave enough room between the pre-geofence and the geofence for the vehicle to stop or turn around.
+The gap should be at least:
+
+- Fixed-wing: The loiter radius ([NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)).
+- Multicopter: The nominal stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR](../advanced_config/parameter_reference.md#MPC_ACC_HOR)).
+  Allow additional distance for the acceleration ramp ([MPC_JERK_AUTO](../advanced_config/parameter_reference.md#MPC_JERK_AUTO)).
+- VTOL: The value for the flight phase in that part of the area.
+
+Use a gap above these nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
+
+::: warning
+The ground station must support pre-geofence areas (see [MAVLink support](../mavlink/protocols.md#pre_geofence)).
+A ground station without support uploads every area as a geofence area.
+If it downloads a plan with a pre-geofence and uploads it again, the pre-geofence areas come back as geofence areas, and `GF_ACTION` is triggered where the pre-geofence action was planned.
+:::
+
+#### Pre-Geofence Behaviour
+
+When the vehicle leaves the pre-geofence (it leaves an inclusion area or enters an exclusion area):
+
+- The pre-geofence action is triggered, in all flight modes.
+  With `Hold` the vehicle holds where it left the pre-geofence, in the same way as after a geofence breach (a fixed-wing vehicle loiters around that position).
+  If already established on a loiter, it keeps the existing loiter centre.
   Switch to another mode to take over.
-  The action triggers again if the vehicle returns inside the pre-geofence and breaches it again.
+  The action is triggered again the next time the vehicle leaves the pre-geofence.
 - Arming is denied.
-- If the geofence is also breached, `GF_ACTION` is triggered and the more severe action is taken.
+- If the vehicle breaches the geofence as well, `GF_ACTION` is triggered too, and the more severe of the two actions is taken.
+  This also applies after you have taken over.
 
-PX4 also checks planned destinations:
+PX4 also keeps planned flight inside the pre-geofence:
 
-- A mission is rejected if a waypoint breaches the pre-geofence.
-  On flight controllers that [check the mission flight path](#mission-feasibility-checks), mission legs and fixed-wing loiter circles are checked as well.
-- The target of a _Go to location_ command, and the centre of a fixed-wing orbit or figure-eight, is refused if it breaches the pre-geofence (unless its action is `Warning`).
-  Commands that keep the current horizontal position remain available.
-  Only the target is checked, not the path or its loiter circle.
-- [Geofence-aware Return](../flight_modes/return.md#geofence_awareness) uses both fences when planning its route.
-
-Leave enough space between the pre-geofence and geofence to stop or turn, accounting for wind, position uncertainty, control delay and the fixed-wing loiter radius.
-Takeoff, landing, Home and rally points should lie within both fences.
-PX4 does not check that the pre-geofence is entirely within the geofence.
+- A mission is rejected if a waypoint lies outside the pre-geofence.
+  On flight controllers that [check the mission flight path](#mission-feasibility-checks) against the geofence, it is also rejected if a leg between waypoints or a fixed-wing loiter circle crosses the pre-geofence.
+- The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)), and the centre of a fixed-wing orbit or figure-eight, is refused if it lies outside the pre-geofence (unless the action is `Warning`).
+  Only the target is checked, not the path to it or the loiter circle around it.
+- [Return mode](../flight_modes/return.md#geofence_awareness) plans its route inside the pre-geofence as well.
 
 ::: info
-Pre-geofence planning requires a ground station that supports pre-geofence areas.
+
+- The pre-geofence only consists of the areas drawn in the plan.
+  The maximum distance and altitude from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST), [GF_MAX_VER_DIST](../advanced_config/parameter_reference.md#GF_MAX_VER_DIST)) belong to the geofence, and the pre-geofence has no altitude limit.
+- PX4 does not check that the pre-geofence lies inside the geofence.
+- Like a geofence area, a pre-geofence area is rejected if it does not contain the Home position, or the vehicle while it is flying.
+- Rally points are not checked against the pre-geofence.
+  Keep them and Home well inside it: [Return mode](../flight_modes/return.md#geofence-limitations) flies directly to a destination that it cannot reach inside both fences.
+
 :::
 
 ## Position Estimation Failsafes

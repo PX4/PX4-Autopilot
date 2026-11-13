@@ -1260,6 +1260,54 @@ TEST_F(FailsafeTest, GeofenceBreachOverridesPreGeofenceAction)
 	param_reset(param_handle(px4::params::GF_ACTION));
 }
 
+// Taking over after the pre-geofence action must not disable the geofence action.
+TEST_F(FailsafeTest, GeofenceBreachEndsPreGeofenceTakeover)
+{
+	int32_t gf_pre_action = 2; // Hold mode
+	int32_t gf_action = 5; // Land mode
+	float com_fail_act_t = 0.f; // no Hold delay before Land
+	param_set(param_handle(px4::params::GF_PRE_ACTION), &gf_pre_action);
+	param_set(param_handle(px4::params::GF_ACTION), &gf_action);
+	param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Pre-geofence breached -> Hold
+	time += 10_ms;
+	failsafe_flags.pre_geofence = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Mode switch -> user takeover
+	time += 10_ms;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	failsafe.update(time, state, true, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+	ASSERT_TRUE(failsafe.userTakeoverActive());
+
+	// The pilot flies on and breaches the geofence -> Land
+	time += 1_s;
+	failsafe_flags.geofence_breached = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Land);
+	EXPECT_FALSE(failsafe.userTakeoverActive());
+
+	param_reset(param_handle(px4::params::GF_PRE_ACTION));
+	param_reset(param_handle(px4::params::GF_ACTION));
+}
+
 TEST_F(FailsafeTest, PreGeofenceHoldIsLeftByModeSwitch)
 {
 	int32_t gf_pre_action = 2;

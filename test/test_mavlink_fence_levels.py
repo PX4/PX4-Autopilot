@@ -135,29 +135,41 @@ def run_tests(protocol):
             items = shape(command, level)
             round_trip(f"command {command}, level {level}", items)
             mixed.extend(items)
-    round_trip("mixed hard/pre polygons and circles", mixed)
+    round_trip("mixed geofence and pre-geofence polygons and circles", mixed)
 
-    # All four commands share the level parser; exercise invalid values once.
-    for level in (math.nan, math.inf, -math.inf, -1.0, 0.5, 1.5, 2.0, 256.0):
-        reject(f"invalid level {level}", shape(polygon_inclusion, level),
-               mavutil.mavlink.MAV_MISSION_INVALID_PARAM3, mixed)
+    # A level that is not set (NaN) is the geofence, as before fence levels existed.
+    for command in (polygon_inclusion, circle_exclusion):
+        check(f"command {command}, level not set: upload", protocol.upload(shape(command, math.nan)), accepted)
+        check(f"command {command}, level not set: stored as geofence", protocol.download(), shape(command, 0.0))
+    round_trip("mixed plan again", mixed)
+
+    # Only the levels 0 and 1 exist. A rejected upload leaves the active plan untouched.
+    for command in (polygon_inclusion, circle_exclusion):
+        for level in (math.inf, -math.inf, -1.0, 0.5, 1.5, 2.0, 256.0):
+            reject(f"command {command}, invalid level {level}", shape(command, level),
+                   mavutil.mavlink.MAV_MISSION_INVALID_PARAM3, mixed)
 
     for command in (polygon_inclusion, polygon_exclusion):
         for first, second in ((0.0, 1.0), (1.0, 0.0)):
             items = shape(command, first)
             items[1] = replace(items[1], level=second)
-            reject(f"command {command}, polygon level changes {first} to {second}", items,
+            reject(f"command {command}, polygon changes level {first} to {second}", items,
                    mavutil.mavlink.MAV_MISSION_INVALID_PARAM3, mixed)
 
-    # A rejected partial polygon must not leak its state into the next transfer.
+    # A new transfer resets the partial polygon left by a rejection.
     legacy = shape(polygon_inclusion, 0.0)
     round_trip("legacy upload after a rejected polygon", legacy)
     reject("polygon longer than the upload", [replace(item, param1=4.0) for item in legacy],
            mavutil.mavlink.MAV_MISSION_INVALID_PARAM1, legacy)
-
-    for count in (math.nan, math.inf, -1.0, 2.0, 3.5, 65.0):
+    for count in (math.nan, math.inf, -math.inf, -1.0, 2.0, 64.5, 65.0, 65536.0):
         reject(f"invalid polygon vertex count {count}", [replace(item, param1=count) for item in legacy],
                mavutil.mavlink.MAV_MISSION_INVALID_PARAM1, legacy)
+
+    # Keep the existing nearest-integer interpretation of finite vertex counts.
+    for count in (2.5, 3.4):
+        check(f"rounded vertex count {count}: upload",
+              protocol.upload([replace(item, param1=count) for item in legacy]), accepted)
+        check(f"rounded vertex count {count}: stored as 3", protocol.download(), legacy)
 
     for changed, expected in (
         (replace(legacy[1], command=polygon_exclusion), mavutil.mavlink.MAV_MISSION_INVALID),
@@ -166,23 +178,32 @@ def run_tests(protocol):
     ):
         reject("inconsistent polygon vertex", [legacy[0], changed, legacy[2]], expected, legacy)
 
-    # Each level has its own 64-item allowance; every polygon vertex consumes one item.
+    return_point = FenceItem(mavutil.mavlink.MAV_CMD_NAV_FENCE_RETURN_POINT, 0.0, 0.0, 473977420, 85456060)
+    reject("non-fence command", [replace(return_point, command=mavutil.mavlink.MAV_CMD_NAV_WAYPOINT)],
+           mavutil.mavlink.MAV_MISSION_UNSUPPORTED, legacy)
+
+    # Each polygon vertex and circle consumes one of the level's 64 points.
     for level in (0.0, 1.0):
         single_level = shape(circle_exclusion, level) * 64
-        round_trip(f"64 items at level {level}", single_level)
-        reject(f"65 items at level {level}", single_level + single_level[:1],
+        round_trip(f"64 points at level {level}", single_level)
+        reject(f"65 points at level {level}", single_level + single_level[:1],
                mavutil.mavlink.MAV_MISSION_NO_SPACE, single_level)
         reject(f"polygon exceeds remaining level {level} allowance",
                single_level[:-2] + shape(polygon_inclusion, level),
                mavutil.mavlink.MAV_MISSION_NO_SPACE, single_level)
 
+    hard_points = shape(circle_exclusion, 0.0) * 63
+    round_trip("legacy return point uses hard quota", hard_points + [return_point])
+    reject("legacy return point exceeds hard quota", hard_points + hard_points[:1] + [return_point],
+           mavutil.mavlink.MAV_MISSION_NO_SPACE, hard_points + [return_point])
+
     maximum = [shape(circle_exclusion, float(index % 2))[0] for index in range(128)]
-    round_trip("64 items at each level", maximum)
+    round_trip("64 points at each level", maximum)
     for level in (0.0, 1.0):
         unbalanced = shape(circle_exclusion, level) * 65 + shape(circle_exclusion, 1.0 - level) * 63
         reject(f"128 items with 65 at level {level}", unbalanced,
                mavutil.mavlink.MAV_MISSION_NO_SPACE, maximum)
-    reject("129 total fence items", maximum + maximum[:1], mavutil.mavlink.MAV_MISSION_NO_SPACE, maximum)
+    reject("129 items", maximum + maximum[:1], mavutil.mavlink.MAV_MISSION_NO_SPACE, maximum)
     round_trip("clear both levels", [])
     print(f"{checks} checks passed")
 

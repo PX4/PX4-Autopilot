@@ -229,12 +229,9 @@ public:
 	static constexpr int kMaxPolygons = 16;
 	static constexpr int kCircleApproxVertices = 8;
 
-	// Conservative node bound for a stored fence that fits kMaxPolygons, ignoring the level split:
-	//  - kMaxPolygons-1 circles (most nodes per dataman item)
-	//  - one remaining polygon using all remaining fence points, with max amount of split vertices
-	//  - 1 destination slot
-	// If the allocated node capacity >= kMaxNodesForAnyStorableFence, we always have enough space.
-	// Otherwise we may fail with AddResult::BudgetExceeded.
+	// Conservative node bound for stored fences within the separate kMaxPolygons area limit:
+	// kMaxPolygons-1 circles, all remaining records as polygon vertices, and one destination.
+	// More areas still fail with AddResult::BudgetExceeded regardless of node capacity.
 	static constexpr int kMaxNodesForAnyStorableFence =
 		(kMaxPolygons - 1) * kCircleApproxVertices
 		+ maxVerticesAfterSplitting(DM_KEY_FENCE_POINTS_MAX - (kMaxPolygons - 1))

@@ -1,19 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" width="760" height="400" role="img" aria-labelledby="title desc">
-  <title id="title">Geofence and pre-geofence</title>
-  <desc id="desc">A dashed pre-geofence inclusion polygon lies inside a solid geofence polygon. A larger dashed pre-geofence exclusion circle surrounds a smaller solid geofence exclusion circle. Green marks the area inside both fences. Crossing a dashed boundary triggers GF_PRE_ACTION; crossing a solid boundary triggers GF_ACTION.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" width="760" height="420" role="img" aria-labelledby="title desc">
+  <title id="title">Pre-geofence and geofence</title>
+  <desc id="desc">Top view of a geofence, drawn as a solid line, with a pre-geofence drawn as a dashed line inside it. The gap between the two is narrow around Home and wide on the cruise side. A fixed-wing vehicle flies from Home towards the boundary. Where it leaves the pre-geofence the pre-geofence action Hold is triggered, and the vehicle loiters around that position without reaching the geofence. Without the pre-geofence it would have flown on and breached the geofence, which triggers GF_ACTION. An exclusion area inside the fence is surrounded by a larger pre-geofence exclusion area.</desc>
   <style>
-    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 16px; fill: #24313b; }
-    .hard { stroke: #b23a2c; stroke-width: 3; }
-    .pre { stroke: #a86b14; stroke-width: 3; stroke-dasharray: 9 5; }
+    text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; fill: #1f2a2e; }
+    .small { font-size: 12px; fill: #51606a; }
+    .hard-text { fill: #8f2b20; font-weight: 600; }
+    .pre-text { fill: #7a4d0c; font-weight: 600; }
+    .outside { fill: #f6dedb; }
+    .buffer { fill: #fdf0cf; }
+    .inside { fill: #eaf3ee; }
+    .hard { stroke: #b23a2c; stroke-width: 3; stroke-linejoin: round; }
+    .pre { stroke: #b7791f; stroke-width: 2.5; stroke-dasharray: 9 5; stroke-linejoin: round; }
+    .track { stroke: #33547d; stroke-width: 2.5; fill: none; }
+    .avoided { stroke: #33547d; stroke-width: 2; stroke-dasharray: 3 5; fill: none; opacity: 0.75; }
+    .orbit { stroke: #2f7d55; stroke-width: 2.5; fill: none; }
+    .trigger { fill: #b7791f; stroke: #fff; stroke-width: 1.5; }
+    .breach { stroke: #b23a2c; stroke-width: 3; stroke-linecap: round; }
+    .home { fill: #33547d; }
   </style>
-  <rect width="760" height="400" fill="#fff"/>
-  <rect x="25" y="20" width="710" height="340" rx="8" fill="#f6dedb"/>
-  <rect x="50" y="40" width="660" height="300" fill="#fdf0cf" class="hard"/>
-  <path d="M 90 80 H 370 L 420 120 H 655 V 290 H 90 Z" fill="#eaf3ee" class="pre"/>
-  <circle cx="490" cy="215" r="55" fill="#fdf0cf" class="pre"/>
-  <circle cx="490" cy="215" r="25" fill="#f6dedb" class="hard"/>
-  <line x1="65" y1="383" x2="105" y2="383" class="hard"/>
-  <text x="115" y="388">Geofence · GF_ACTION</text>
-  <line x1="385" y1="383" x2="425" y2="383" class="pre"/>
-  <text x="435" y="388">Pre-geofence · GF_PRE_ACTION</text>
+  <defs>
+    <marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#33547d"/>
+    </marker>
+  </defs>
+
+  <!-- outside, then the geofence with the buffer colour, then the pre-geofence with the allowed area -->
+  <rect class="outside" width="760" height="420"/>
+  <path class="hard buffer" d="M 30 62 L 470 40 L 640 96 L 640 322 L 45 340 Z"/>
+  <path class="pre inside" d="M 50 82 L 456 62 L 540 112 L 540 304 L 64 320 Z"/>
+
+  <!-- exclusion area: the pre-geofence exclusion surrounds the geofence exclusion -->
+  <circle class="pre buffer" cx="236" cy="170" r="56"/>
+  <circle class="hard outside" cx="236" cy="170" r="24"/>
+
+  <!-- flight from Home, Hold where the vehicle leaves the pre-geofence -->
+  <path class="avoided" d="M 540 232 L 652 232"/>
+  <path class="track" d="M 108 282 C 240 306 400 232 536 232" marker-end="url(#head)"/>
+  <circle class="orbit" cx="540" cy="232" r="62"/>
+  <circle class="home" cx="108" cy="282" r="6"/>
+  <circle class="trigger" cx="540" cy="232" r="6"/>
+  <path class="breach" d="M 633 225 L 647 239 M 647 225 L 633 239"/>
+
+  <text class="hard-text" x="36" y="34">Geofence</text>
+  <text class="pre-text" x="62" y="106">Pre-geofence</text>
+  <text class="small" x="236" y="248" text-anchor="middle">Exclusion areas</text>
+  <text x="96" y="304">Home</text>
+
+  <text x="528" y="140" text-anchor="end">Leaves the pre-geofence: Hold</text>
+  <text class="small" x="528" y="158" text-anchor="end">(fixed-wing: loiter around this position)</text>
+
+  <text x="660" y="196">Without the</text>
+  <text x="660" y="213">pre-geofence:</text>
+  <text x="660" y="262">breach,</text>
+  <text x="660" y="279">GF_ACTION</text>
+
+  <!-- legend -->
+  <line class="hard" x1="45" y1="388" x2="85" y2="388"/>
+  <text x="95" y="393">Geofence (GF_ACTION)</text>
+  <line class="pre" x1="330" y1="388" x2="370" y2="388"/>
+  <text x="380" y="393">Pre-geofence (GF_PRE_ACTION)</text>
 </svg>
