@@ -273,7 +273,7 @@ parameters:
         short: Distance sensor measurement noise standard deviation
         long: |-
           Gaussian noise added to the simulated distance sensor measurements.
-          Set to 0 to disable noise.
+          A square law in the range, 0.10 m at 25 m, adds to it. Set to 0 to remove the floor.
       type: float
       default: 0.01
       unit: m
@@ -325,6 +325,30 @@ parameters:
       unit: m
       min: 1.0
       decimal: 1
+    SIH_TERR_MODE:
+      description:
+        short: Terrain under the vehicle
+        long: |-
+          0 is flat ground at the reference altitude. 1 is terrain from the
+          elevation data file given to sih with -t, SITL only, flat ground with
+          a warning when no file was given. 2 is synthetic terrain placed by
+          SIH_TERR_SEED. The shape of the synthetic terrain, 5 m high with a
+          200 m wavelength over six octaves, is constants in the terrain library
+          and not parameters. The ground contact and the downward distance
+          sensor read the same surface. The synthetic terrain is zero at home,
+          so the vehicle spawns on the ground.
+      type: enum
+      values:
+        0: Flat ground
+        1: Terrain from elevation data
+        2: Synthetic terrain
+      default: 0
+    SIH_TERR_SEED:
+      description:
+        short: Terrain seed
+        long: The same seed gives the same terrain on every boot.
+      type: int32
+      default: 0
     SIH_T_TAU:
       description:
         short: thruster time constant tau
