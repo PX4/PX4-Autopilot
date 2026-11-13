@@ -507,7 +507,7 @@ private:
 
 	bool geofence_allows_position(const vehicle_global_position_s &pos);
 
-	/** True if a commanded target satisfies the pre-geofence; tells the operator otherwise. */
+	/** True if the pre-geofence permits the commanded target. */
 	bool pre_geofence_allows_target(const vehicle_global_position_s &target);
 
 	DEFINE_PARAMETERS(

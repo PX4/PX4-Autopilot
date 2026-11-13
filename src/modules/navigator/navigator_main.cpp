@@ -558,6 +558,11 @@ void Navigator::run()
 					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence\t");
 					events::send(events::ID("navigator_reposition_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 						     "Reposition is outside geofence");
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside the pre-geofence\t");
+					events::send(events::ID("navigator_reposition_outside_pre_geofence"), {events::Log::Error, events::LogInternal::Info},
+						     "Reposition is outside the pre-geofence");
 				}
 
 				// CMD_DO_REPOSITION is acknowledged by commander
@@ -734,6 +739,11 @@ void Navigator::run()
 
 				} else if (!fence_allows_position) {
 					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside geofence");
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside the pre-geofence\t");
+					events::send(events::ID("navigator_orbit_outside_pre_geofence"), {events::Log::Error, events::LogInternal::Info},
+						     "Orbit is outside the pre-geofence");
 				}
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_FIGUREEIGHT &&
@@ -788,6 +798,11 @@ void Navigator::run()
 
 				} else if (!fence_allows_position) {
 					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside geofence");
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside the pre-geofence\t");
+					events::send(events::ID("navigator_figure_eight_outside_pre_geofence"), {events::Log::Error, events::LogInternal::Info},
+						     "Figure 8 is outside the pre-geofence");
 				}
 
 #endif // CONFIG_FIGURE_OF_EIGHT
@@ -1917,15 +1932,8 @@ bool Navigator::pre_geofence_allows_target(const vehicle_global_position_s &targ
 	const bool keeps_position = fabs(target.lat - _global_pos.lat) < DBL_EPSILON
 				    && fabs(target.lon - _global_pos.lon) < DBL_EPSILON;
 
-	if (keeps_position || action == geofence_result_s::GF_ACTION_NONE || action == geofence_result_s::GF_ACTION_WARN
-	    || _geofence.isInsidePreGeofence(target.lat, target.lon)) {
-		return true;
-	}
-
-	mavlink_log_critical(&_mavlink_log_pub, "Target is outside the pre-geofence\t");
-	events::send(events::ID("navigator_target_outside_pre_geofence"), {events::Log::Error, events::LogInternal::Info},
-		     "Target is outside the pre-geofence");
-	return false;
+	return keeps_position || action == geofence_result_s::GF_ACTION_NONE || action == geofence_result_s::GF_ACTION_WARN
+	       || _geofence.isInsidePreGeofence(target.lat, target.lon);
 }
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
