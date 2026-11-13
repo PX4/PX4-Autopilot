@@ -404,7 +404,10 @@ void FailsafeBase::removeAction(ActionOptions &action) const
 	// clear_condition to avoid triggering a failsafe after deferring is disabled.
 	const bool remove_while_deferring = _defer_failsafes && action.can_be_deferred;
 
-	if (action.clear_condition == ClearCondition::WhenConditionClears || remove_while_deferring) {
+	// The action did not start yet (still in the delayed Hold), so recovering is allowed
+	const bool remove_during_delay = action.clear_during_delay && _current_delay > 0;
+
+	if (action.clear_condition == ClearCondition::WhenConditionClears || remove_while_deferring || remove_during_delay) {
 		// Remove action
 		PX4_DEBUG("Caller %i: state changed to valid, removing action", action.id);
 		action.setInvalid();

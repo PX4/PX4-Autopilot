@@ -1184,3 +1184,51 @@ TEST_F(FailsafeTest, BatteryFailsafeUsesLowBatActParam)
 	EXPECT_EQ(selectedActionFor(4, kEmergency, false), FailsafeBase::Action::Terminate);
 	EXPECT_EQ(selectedActionFor(6, kEmergency, false), FailsafeBase::Action::Terminate);
 }
+
+TEST_F(FailsafeTest, GnssLostRecoversDuringHoldDelay)
+{
+	int32_t com_gnssloss_act = 1; // Return
+	param_set(param_handle(px4::params::COM_GNSSLOSS_ACT), &com_gnssloss_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// GNSS lost -> Hold
+	time += 10_ms;
+	failsafe_flags.gnss_lost = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Recovers during the Hold delay -> back to the mission
+	time += 300_ms;
+	failsafe_flags.gnss_lost = false;
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+
+	// Lost for longer than the Hold delay -> RTL
+	time += 20_s;
+	failsafe_flags.gnss_lost = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	time += 6_s;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Recovering now does not abort the RTL
+	time += 10_ms;
+	failsafe_flags.gnss_lost = false;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
