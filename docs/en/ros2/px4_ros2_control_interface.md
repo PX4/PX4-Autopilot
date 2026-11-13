@@ -692,6 +692,12 @@ Specifically, setting a flag has the following consequences in PX4, if the condi
 - when armed and the mode is selected, the relevant failsafe is triggered (e.g. RC loss for the manual control requirement).
   Check the [safety page](../config/safety.md) for how to configure failsafe behavior.
   A failsafe is also triggered when the mode crashes or becomes unresponsive while it is selected.
+  If the mode sets a setpoint timeout (`timeout_ms` in [SetpointConfig](../msg_docs/SetpointConfig.md)), the same happens when it sends no setpoint for longer than that while the vehicle is armed and not landed.
+  The mode can then only be selected again after another mode was selected or the vehicle disarmed.
+  A mode that stops sending setpoints while it stays selected, for example after it completed and until the next mode takes over, has to set the timeout back to 0 first.
+  On a fixed-wing vehicle this includes the rollout, as the vehicle only counts as landed after it.
+  The timeout comes with the setpoint configuration the mode sends once it is active, so a mode that is already stuck when it gets selected is not caught by it.
+  Choose a timeout of several setpoint periods, as the link to the companion computer adds jitter.
 
 This is the corresponding flow diagram for the manual control flag:
 
@@ -740,7 +746,7 @@ This makes it independent of startup ordering in case of multiple external modes
 
 An external mode can replace an existing internal mode, such as [Return](../flight_modes/return.md) mode.
 By doing so, whenever it gets selected (through the user or a failsafe situation), the external mode is used instead of the internal one.
-The internal one is only used as a fallback when the external one becomes unresponsive or crashes.
+The internal one is only used as a fallback when the external one becomes unresponsive or crashes, or stops sending setpoints within its setpoint timeout.
 
 The replacement mode can be set in the settings of the `ModeBase` constructor:
 
