@@ -216,6 +216,8 @@ protected:
 	const failsafe_flags_s &lastStatusFlags() const { return _last_status_flags; }
 
 	bool checkFailsafe(int caller_id, bool last_state_failure, bool cur_state_failure, const ActionOptions &options);
+	/** Discard one action even if its normal clear condition has not been met. */
+	void discardFailsafe(int caller_id);
 
 	virtual void getSelectedAction(const State &state, const failsafe_flags_s &status_flags,
 				       bool user_intended_mode_updated,

@@ -61,8 +61,7 @@ parameters:
       description:
         short: Pre-geofence action
         long: Only used when the uploaded fence contains pre-geofence areas.
-          GF_ACTION still applies to the geofence.
-          If both are breached, the more severe action is taken.
+          GF_ACTION takes precedence when the geofence is breached and its action is enabled.
       type: enum
       values:
         1: Warning

@@ -418,7 +418,7 @@ TEST_P(GeofenceFileTest, ImportAcceptsOneLevelQuotaAndRejectsTheNextVertex)
 	ASSERT_EQ(stats.num_items, kMaxFencePointsPerLevel);
 	_fence_id = stats.opaque_id;
 	ASSERT_TRUE(waitForFence());
-	EXPECT_FALSE(_fence.hasPreGeofence());
+	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
 
 	file = fopen(_filename, "a");
 	ASSERT_NE(file, nullptr);

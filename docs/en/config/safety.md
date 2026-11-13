@@ -260,8 +260,9 @@ The contingency volume is then drawn as the geofence, and the flight geography i
    | ------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
    | Pre-geofence action | [GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION) | Warning, Hold mode (default), Return mode, or Land mode. |
 
-1. Set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to an action that is at least as severe.
-   If both fences are breached, the more severe of the two actions is taken.
+1. Set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) for the geofence.
+   If both fences are breached, this action takes precedence over the pre-geofence action.
+   Setting it to `None` leaves the pre-geofence action active.
 
 Leave enough room between the pre-geofence and the geofence for the vehicle to stop or turn around.
 The gap should be at least:
@@ -289,7 +290,7 @@ When the vehicle leaves the pre-geofence (it leaves an inclusion area or enters 
   Switch to another mode to take over.
   The action is triggered again the next time the vehicle leaves the pre-geofence.
 - Arming is denied.
-- If the vehicle breaches the geofence as well, `GF_ACTION` is triggered too, and the more severe of the two actions is taken.
+- If the vehicle breaches the geofence as well, an enabled `GF_ACTION` replaces the pre-geofence action.
   This also applies after you have taken over.
 
 PX4 also keeps planned flight inside the pre-geofence:

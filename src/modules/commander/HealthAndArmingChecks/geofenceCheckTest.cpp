@@ -87,7 +87,7 @@ TEST_F(GeofenceChecksTest, PreGeofenceSetsItsOwnFlagAndDeniesArming)
 	EXPECT_FALSE(_failsafe_flags.pre_geofence);
 	EXPECT_TRUE(_can_arm_all_modes);
 
-	result.pre_geofence_breached = true;
+	result.pre_geofence_triggered = true;
 	runCheck(result);
 	EXPECT_FALSE(_failsafe_flags.geofence_breached);
 	EXPECT_TRUE(_failsafe_flags.pre_geofence);
@@ -99,7 +99,7 @@ TEST_F(GeofenceChecksTest, PreGeofenceWorksWithoutAGeofenceAction)
 {
 	geofence_result_s result = resultWithAction(geofence_result_s::GF_ACTION_NONE);
 	result.pre_geofence_action = geofence_result_s::GF_ACTION_LOITER;
-	result.pre_geofence_breached = true;
+	result.pre_geofence_triggered = true;
 	result.geofence_custom_fence_triggered = true;
 	runCheck(result);
 	EXPECT_FALSE(_failsafe_flags.geofence_breached);
@@ -117,7 +117,7 @@ TEST_F(GeofenceChecksTest, HardAndPreGeofenceBreachesSetIndependentFlags)
 	EXPECT_FALSE(_failsafe_flags.pre_geofence);
 	EXPECT_FALSE(_can_arm_all_modes);
 
-	result.pre_geofence_breached = true;
+	result.pre_geofence_triggered = true;
 	runCheck(result);
 	EXPECT_TRUE(_failsafe_flags.geofence_breached);
 	EXPECT_TRUE(_failsafe_flags.pre_geofence);
@@ -143,7 +143,7 @@ TEST_F(GeofenceChecksTest, PreGeofenceReturnNeedsAValidHome)
 TEST_F(GeofenceChecksTest, AbsentPreGeofenceIgnoresStaleTrigger)
 {
 	geofence_result_s result = resultWithAction(geofence_result_s::GF_ACTION_NONE);
-	result.pre_geofence_breached = true;
+	result.pre_geofence_triggered = true;
 	runCheck(result, true);
 	EXPECT_FALSE(_failsafe_flags.geofence_breached);
 	EXPECT_FALSE(_failsafe_flags.pre_geofence);

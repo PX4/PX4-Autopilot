@@ -141,13 +141,13 @@ TEST_F(PreGeofenceBreachTest, HardFenceHoldWithoutPreGeofenceIsUnchanged)
 
 	const geofence_result_s inside = checkAt(0.f, 490.f);
 	EXPECT_FALSE(hardFenceBreached(inside));
-	EXPECT_FALSE(inside.pre_geofence_breached);
+	EXPECT_FALSE(inside.pre_geofence_triggered);
 	EXPECT_EQ(inside.pre_geofence_action, geofence_result_s::GF_ACTION_NONE);
 	EXPECT_FALSE(reposition().valid);
 
 	const geofence_result_s outside = checkAt(0.f, 510.f);
 	ASSERT_TRUE(hardFenceBreached(outside));
-	EXPECT_FALSE(outside.pre_geofence_breached);
+	EXPECT_FALSE(outside.pre_geofence_triggered);
 	ASSERT_TRUE(reposition().valid);
 	const hrt_abstime first_hold = reposition().timestamp;
 	const matrix::Vector2d breach = position(0.f, 510.f);
@@ -173,21 +173,21 @@ TEST_F(PreGeofenceBreachTest, TriggersAtEachDrawnPreGeofenceArea)
 	points.insert(points.end(), pre_exclusion.begin(), pre_exclusion.end());
 	ASSERT_TRUE(loadFence(points));
 
-	EXPECT_FALSE(checkAt(0.f, 0.f).pre_geofence_breached);
+	EXPECT_FALSE(checkAt(0.f, 0.f).pre_geofence_triggered);
 
 	// Outside the drawn pre-geofence inclusion, but inside the hard inclusion.
 	const geofence_result_s outside_pre_inclusion = checkAt(420.f, 0.f);
-	EXPECT_TRUE(outside_pre_inclusion.pre_geofence_breached);
+	EXPECT_TRUE(outside_pre_inclusion.pre_geofence_triggered);
 	EXPECT_FALSE(hardFenceBreached(outside_pre_inclusion));
 
 	// Inside the pre-geofence exclusion, but outside the hard exclusion.
 	const geofence_result_s inside_pre_exclusion = checkAt(0.f, 190.f);
-	EXPECT_TRUE(inside_pre_exclusion.pre_geofence_breached);
+	EXPECT_TRUE(inside_pre_exclusion.pre_geofence_triggered);
 	EXPECT_FALSE(hardFenceBreached(inside_pre_exclusion));
 
 	// This position breaches both drawn inclusion boundaries.
 	const geofence_result_s outside = checkAt(510.f, 0.f);
-	EXPECT_TRUE(outside.pre_geofence_breached);
+	EXPECT_TRUE(outside.pre_geofence_triggered);
 	EXPECT_TRUE(outside.geofence_custom_fence_triggered);
 }
 
@@ -195,10 +195,10 @@ TEST_F(PreGeofenceBreachTest, HomeDistanceRemainsAHardLimit)
 {
 	setParam("GF_MAX_HOR_DIST", 500.f);
 	ASSERT_TRUE(loadFence({}));
-	EXPECT_FALSE(checkAt(420.f, 0.f).pre_geofence_breached);
+	EXPECT_FALSE(checkAt(420.f, 0.f).pre_geofence_triggered);
 	const geofence_result_s outside = checkAt(510.f, 0.f);
 	EXPECT_TRUE(outside.geofence_max_dist_triggered);
-	EXPECT_FALSE(outside.pre_geofence_breached);
+	EXPECT_FALSE(outside.pre_geofence_triggered);
 }
 
 TEST_F(PreGeofenceBreachTest, AltitudeLimitsRemainHardLimits)
@@ -207,10 +207,10 @@ TEST_F(PreGeofenceBreachTest, AltitudeLimitsRemainHardLimits)
 	ASSERT_TRUE(loadFence(bothFences()));
 
 	// 5 m below the maximum altitude, then above it.
-	EXPECT_FALSE(checkAt(0.f, 0.f, 495.f).pre_geofence_breached);
+	EXPECT_FALSE(checkAt(0.f, 0.f, 495.f).pre_geofence_triggered);
 	const geofence_result_s above = checkAt(0.f, 0.f, 510.f);
 	EXPECT_TRUE(above.geofence_max_alt_triggered);
-	EXPECT_FALSE(above.pre_geofence_breached);
+	EXPECT_FALSE(above.pre_geofence_triggered);
 }
 
 TEST_F(PreGeofenceBreachTest, HoldLoitersAtTheTriggerPosition)
@@ -220,7 +220,7 @@ TEST_F(PreGeofenceBreachTest, HoldLoitersAtTheTriggerPosition)
 	checkAt(0.f, 0.f);
 	EXPECT_FALSE(reposition().valid);
 
-	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	ASSERT_TRUE(reposition().valid);
 	EXPECT_EQ(reposition().type, position_setpoint_s::SETPOINT_TYPE_LOITER);
 	const matrix::Vector2d trigger = position(0.f, 420.f);
@@ -234,7 +234,7 @@ TEST_F(PreGeofenceBreachTest, HoldNeedsAnArmedVehicle)
 	ASSERT_TRUE(loadFence(bothFences()));
 	_navigator.get_vstatus()->arming_state = vehicle_status_s::ARMING_STATE_DISARMED;
 
-	EXPECT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	EXPECT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	EXPECT_FALSE(reposition().valid);
 }
 
@@ -246,9 +246,28 @@ TEST_F(PreGeofenceBreachTest, OtherActionsDoNotReposition)
 		SCOPED_TRACE(action);
 		setParam("GF_PRE_ACTION", action);
 		checkAt(0.f, 0.f);
-		EXPECT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+		EXPECT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 		EXPECT_FALSE(reposition().valid);
 	}
+}
+
+TEST_F(PreGeofenceBreachTest, HardFenceActionSuppressesPreGeofenceHold)
+{
+	ASSERT_TRUE(loadFence(bothFences()));
+
+	for (const int32_t action : {geofence_result_s::GF_ACTION_WARN, geofence_result_s::GF_ACTION_LAND}) {
+		SCOPED_TRACE(action);
+		setParam("GF_ACTION", action);
+		const geofence_result_s result = checkAt(0.f, 510.f);
+		EXPECT_TRUE(hardFenceBreached(result));
+		EXPECT_TRUE(result.pre_geofence_triggered);
+		EXPECT_FALSE(reposition().valid);
+	}
+
+	// Disabling the hard-fence action leaves the pre-geofence Hold available.
+	setParam("GF_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_NONE));
+	EXPECT_TRUE(checkAt(0.f, 510.f).pre_geofence_triggered);
+	EXPECT_TRUE(reposition().valid);
 }
 
 // The hard fence still gets its Hold when the pre-geofence only warns.
@@ -257,7 +276,7 @@ TEST_F(PreGeofenceBreachTest, HardFenceHoldStillRepositionsAfterPreGeofenceWarni
 	ASSERT_TRUE(loadFence(bothFences()));
 	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
 
-	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	ASSERT_FALSE(reposition().valid);
 
 	ASSERT_TRUE(hardFenceBreached(checkAt(0.f, 510.f)));
@@ -271,13 +290,13 @@ TEST_F(PreGeofenceBreachTest, HardFenceHoldRepositionsAfterTakeoverOutsidePreGeo
 {
 	ASSERT_TRUE(loadFence(bothFences()));
 
-	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	const hrt_abstime pre_geofence_hold_time = reposition().timestamp;
 	ASSERT_NE(pre_geofence_hold_time, hrt_abstime{0});
 
 	// Taking over leaves Hold; remaining outside the pre-geofence starts no new Hold.
 	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
-	ASSERT_TRUE(checkAt(0.f, 440.f).pre_geofence_breached);
+	ASSERT_TRUE(checkAt(0.f, 440.f).pre_geofence_triggered);
 	ASSERT_EQ(reposition().timestamp, pre_geofence_hold_time);
 
 	ASSERT_TRUE(hardFenceBreached(checkAt(0.f, 510.f)));
@@ -295,7 +314,7 @@ TEST_F(PreGeofenceBreachTest, PreGeofenceHoldIsNotMovedByHardBreach)
 {
 	ASSERT_TRUE(loadFence(bothFences()));
 
-	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	ASSERT_TRUE(reposition().valid);
 	const position_setpoint_s hold = reposition();
 	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
@@ -310,18 +329,18 @@ TEST_F(PreGeofenceBreachTest, StaysTriggeredWhileHolding)
 {
 	ASSERT_TRUE(loadFence(bothFences()));
 
-	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	const hrt_abstime first_hold = reposition().timestamp;
 	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
-	EXPECT_TRUE(checkAt(0.f, 300.f).pre_geofence_breached);
-	EXPECT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	EXPECT_TRUE(checkAt(0.f, 300.f).pre_geofence_triggered);
+	EXPECT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	EXPECT_EQ(reposition().timestamp, first_hold);
 
 	// Leaving Hold releases it, and the next entry holds again.
 	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-	EXPECT_FALSE(checkAt(0.f, 300.f).pre_geofence_breached);
-	EXPECT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	EXPECT_FALSE(checkAt(0.f, 300.f).pre_geofence_triggered);
+	EXPECT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	EXPECT_GT(reposition().timestamp, first_hold);
 }
 
@@ -330,17 +349,17 @@ TEST_F(PreGeofenceBreachTest, RemovingPreGeofenceWhileHoldingReleasesItsFlag)
 {
 	ASSERT_TRUE(loadFence(bothFences()));
 
-	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 	const geofence_result_s before_removal = checkAt(0.f, 510.f);
-	ASSERT_TRUE(before_removal.pre_geofence_breached);
+	ASSERT_TRUE(before_removal.pre_geofence_triggered);
 	ASSERT_TRUE(hardFenceBreached(before_removal));
 	const position_setpoint_s hold = reposition();
 
 	ASSERT_TRUE(loadFence(inclusionSquare()));
 	const geofence_result_s after_removal = checkAt(0.f, 420.f);
 	EXPECT_EQ(after_removal.pre_geofence_action, geofence_result_s::GF_ACTION_NONE);
-	EXPECT_FALSE(after_removal.pre_geofence_breached);
+	EXPECT_FALSE(after_removal.pre_geofence_triggered);
 	EXPECT_TRUE(after_removal.geofence_custom_fence_triggered);
 	EXPECT_EQ(after_removal.geofence_action, before_removal.geofence_action);
 	EXPECT_EQ(reposition().timestamp, hold.timestamp);
@@ -352,7 +371,7 @@ TEST_F(PreGeofenceBreachTest, RemovingPreGeofenceWhileHoldingReleasesItsFlag)
 TEST_F(PreGeofenceBreachTest, RemovalClearsPreGeofenceWithoutAValidPosition)
 {
 	ASSERT_TRUE(loadFence(bothFences()));
-	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 	const position_setpoint_s hold = reposition();
 	ASSERT_TRUE(loadFence(inclusionSquare()));
@@ -361,7 +380,7 @@ TEST_F(PreGeofenceBreachTest, RemovalClearsPreGeofenceWithoutAValidPosition)
 	_navigator.geofence_breach_check();
 	geofence_result_s result{};
 	ASSERT_TRUE(_result_sub.update(&result));
-	EXPECT_FALSE(result.pre_geofence_breached);
+	EXPECT_FALSE(result.pre_geofence_triggered);
 	EXPECT_EQ(result.pre_geofence_action, geofence_result_s::GF_ACTION_NONE);
 	EXPECT_EQ(reposition().timestamp, hold.timestamp);
 	EXPECT_DOUBLE_EQ(reposition().lat, hold.lat);
@@ -371,11 +390,11 @@ TEST_F(PreGeofenceBreachTest, RemovalClearsPreGeofenceWithoutAValidPosition)
 TEST_F(PreGeofenceBreachTest, ReaddingPreGeofenceDoesNotRestoreRemovedBreach)
 {
 	ASSERT_TRUE(loadFence(bothFences()));
-	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_breached);
+	ASSERT_TRUE(checkAt(0.f, 420.f).pre_geofence_triggered);
 	_navigator.get_vstatus()->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 	const position_setpoint_s hold = reposition();
 	ASSERT_TRUE(loadFence(inclusionSquare()));
-	ASSERT_FALSE(checkAt(0.f, 420.f).pre_geofence_breached);
+	ASSERT_FALSE(checkAt(0.f, 420.f).pre_geofence_triggered);
 
 	// The new area contains the vehicle. Its Land action must not inherit the removed area's breach.
 	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LAND));
@@ -385,7 +404,7 @@ TEST_F(PreGeofenceBreachTest, ReaddingPreGeofenceDoesNotRestoreRemovedBreach)
 	ASSERT_TRUE(loadFence(replacement));
 	const geofence_result_s after_readding = checkAt(0.f, 420.f);
 	EXPECT_EQ(after_readding.pre_geofence_action, geofence_result_s::GF_ACTION_LAND);
-	EXPECT_FALSE(after_readding.pre_geofence_breached);
+	EXPECT_FALSE(after_readding.pre_geofence_triggered);
 	EXPECT_EQ(reposition().timestamp, hold.timestamp);
 }
 

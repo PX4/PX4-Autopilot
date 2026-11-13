@@ -156,7 +156,7 @@ public:
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
 
 	/** Check the polygons and circles of the pre-geofence only. True if it has none. */
-	bool isInsidePreGeofence(double lat, double lon) { return isInsideFenceLevel(lat, lon, 0.f, FenceLevel::Pre); }
+	bool isInsidePreGeofence(double lat, double lon);
 
 	bool valid();
 
@@ -185,9 +185,6 @@ public:
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
-
-	/** True if the loaded fence has a pre-geofence area. */
-	bool hasPreGeofence() const;
 
 	/** GF_PRE_ACTION as a GF_ACTION value: None without a pre-geofence, Warning for values it does not offer. */
 	uint8_t getPreGeofenceAction() const;
@@ -315,9 +312,6 @@ private:
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
-
-	/** Check the polygons and circles of one fence level. */
-	bool isInsideFenceLevel(double lat, double lon, float altitude, FenceLevel level);
 
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;

@@ -895,7 +895,7 @@ bool Geofence::isWithinAltitudeBand(float altitude)
 	return true;
 }
 
-bool Geofence::isInsideFenceLevel(double lat, double lon, float altitude, FenceLevel level)
+bool Geofence::isInsidePreGeofence(double lat, double lon)
 {
 	if (isEmpty()) {
 		return true;
@@ -904,8 +904,8 @@ bool Geofence::isInsideFenceLevel(double lat, double lon, float altitude, FenceL
 	bool inside = true;
 
 	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
-		if (_polygons[polygon_index].fence_level == level) {
-			inside &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
+		if (_polygons[polygon_index].fence_level == FenceLevel::Pre) {
+			inside &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, 0.f);
 		}
 	}
 
@@ -925,7 +925,15 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	}
 
 	/* Horizontal check: the geofence polygons & circles, the pre-geofence has its own check */
-	return isInsideFenceLevel(lat, lon, altitude, FenceLevel::Hard);
+	bool inside = true;
+
+	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
+		if (_polygons[polygon_index].fence_level == FenceLevel::Hard) {
+			inside &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
+		}
+	}
+
+	return inside;
 }
 
 bool Geofence::isInsideHorizontalFences(double lat, double lon, float altitude)
@@ -943,33 +951,24 @@ bool Geofence::isInsideHorizontalFences(double lat, double lon, float altitude)
 	return inside;
 }
 
-bool Geofence::hasPreGeofence() const
+uint8_t Geofence::getPreGeofenceAction() const
 {
 	// Not isEmpty(): the loaded areas stay in place while a new fence loads.
 	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
 		if (_polygons[polygon_index].fence_level == FenceLevel::Pre) {
-			return true;
+			switch (_param_gf_pre_action.get()) {
+			case geofence_result_s::GF_ACTION_LOITER:
+			case geofence_result_s::GF_ACTION_RTL:
+			case geofence_result_s::GF_ACTION_LAND:
+				return static_cast<uint8_t>(_param_gf_pre_action.get());
+
+			default:
+				return geofence_result_s::GF_ACTION_WARN;
+			}
 		}
 	}
 
-	return false;
-}
-
-uint8_t Geofence::getPreGeofenceAction() const
-{
-	if (!hasPreGeofence()) {
-		return geofence_result_s::GF_ACTION_NONE;
-	}
-
-	switch (_param_gf_pre_action.get()) {
-	case geofence_result_s::GF_ACTION_LOITER:
-	case geofence_result_s::GF_ACTION_RTL:
-	case geofence_result_s::GF_ACTION_LAND:
-		return static_cast<uint8_t>(_param_gf_pre_action.get());
-
-	default:
-		return geofence_result_s::GF_ACTION_WARN;
-	}
+	return geofence_result_s::GF_ACTION_NONE;
 }
 
 bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)

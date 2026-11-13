@@ -119,7 +119,7 @@ TEST_P(PreGeofenceShapeTest, PointChecksSelectTheRequestedFenceLevels)
 	}
 
 	ASSERT_TRUE(loadFence(points));
-	EXPECT_TRUE(_fence.hasPreGeofence());
+	EXPECT_NE(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
 	GeofenceInterface &interface = _fence;
 	ASSERT_EQ(interface.getNumPolygons(), 2);
 	EXPECT_EQ(interface.getPolygonInfoByIndex(0).fence_level, FenceLevel::Hard);
@@ -154,7 +154,6 @@ INSTANTIATE_TEST_SUITE_P(Shapes, PreGeofenceShapeTest, ::testing::Values(
 TEST_F(PreGeofenceTest, HardOnlyFenceHasNoPreAction)
 {
 	ASSERT_TRUE(loadFence(inclusionSquare(500.f)));
-	EXPECT_FALSE(_fence.hasPreGeofence());
 	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
 	EXPECT_FALSE(insideHard(0.f, 600.f));
 	EXPECT_TRUE(insidePre(0.f, 600.f));
@@ -181,7 +180,6 @@ TEST_F(PreGeofenceTest, PreActionAppliesOnlyWhilePreAreasAreLoaded)
 	}
 
 	ASSERT_TRUE(loadFence({}));
-	EXPECT_FALSE(_fence.hasPreGeofence());
 	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
 }
 
@@ -256,10 +254,10 @@ TEST_F(PreGeofenceTest, RejectsUnknownLevelAndMixedPolygonLevels)
 	points[1].fence_level = FenceLevel::Hard;
 	ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
 	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_FALSE(_fence.hasPreGeofence());
+	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
 	ASSERT_TRUE(loadFence(circle(true, {0.f, 0.f}, 300.f, static_cast<FenceLevel>(2)), geofence_status_s::GF_STATUS_FAILED));
 	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_FALSE(_fence.hasPreGeofence());
+	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
 }
 
 TEST_F(PreGeofenceTest, BothLevelsCanUseTheirFullPointQuota)
@@ -348,10 +346,8 @@ TEST_F(PreGeofenceTest, PreActionStaysWhileANewFenceLoads)
 	_fence.run(); // adopt the new ID and invalidate the data cache
 	EXPECT_TRUE(_fence.isFenceUpdatePending());
 	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_TRUE(_fence.hasPreGeofence());
 	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_LOITER);
 	ASSERT_TRUE(waitForFence());
-	EXPECT_FALSE(_fence.hasPreGeofence());
 	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
 }
 
@@ -362,12 +358,12 @@ TEST_F(PreGeofenceTest, PreAreaMustContainHomeAndAirborneVehicle)
 	_navigator.updateParams();
 	// A pre area that excludes Home is discarded even when the hard action is disabled.
 	ASSERT_TRUE(loadFence(circle(false, {0.f, 0.f}, 100.f, FenceLevel::Pre)));
-	EXPECT_FALSE(_fence.hasPreGeofence());
+	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
 
 	const auto current = position(0.f, 400.f);
 	_navigator.get_global_position()->lat = current(0);
 	_navigator.get_global_position()->lon = current(1);
 	_navigator.get_land_detected()->landed = false;
 	ASSERT_TRUE(loadFence(inclusionSquare(300.f, FenceLevel::Pre)));
-	EXPECT_FALSE(_fence.hasPreGeofence());
+	EXPECT_EQ(_fence.getPreGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
 }

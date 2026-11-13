@@ -119,6 +119,7 @@ static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
 };
 
 /* increment this define whenever a binary incompatible change is performed */
+// Fence levels reuse old uninitialised padding; the larger banks also move following items.
 #define DM_COMPAT_VERSION	6ULL
 
 #define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \

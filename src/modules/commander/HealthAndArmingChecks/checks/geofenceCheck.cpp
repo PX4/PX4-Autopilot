@@ -47,7 +47,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 
 	reporter.failsafeFlags().geofence_breached = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
 	reporter.failsafeFlags().pre_geofence = geofence_result.pre_geofence_action != geofence_result_s::GF_ACTION_NONE
-						&& geofence_result.pre_geofence_breached;
+						&& geofence_result.pre_geofence_triggered;
 
 	if (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered) {
 

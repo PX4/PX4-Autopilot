@@ -1245,9 +1245,9 @@ void Navigator::geofence_breach_check()
 
 		// Removing the pre-geofence must release its flag even when no position sample is available.
 		if (pre_geofence_action == geofence_result_s::GF_ACTION_NONE
-		    && (_geofence_result.pre_geofence_breached
+		    && (_geofence_result.pre_geofence_triggered
 			|| _geofence_result.pre_geofence_action != geofence_result_s::GF_ACTION_NONE)) {
-			_geofence_result.pre_geofence_breached = false;
+			_geofence_result.pre_geofence_triggered = false;
 			_geofence_result.pre_geofence_action = geofence_result_s::GF_ACTION_NONE;
 			_pre_geofence_reposition_sent = false;
 			_geofence_result.timestamp = hrt_absolute_time();
@@ -1285,7 +1285,7 @@ void Navigator::geofence_breach_check()
 			_geofence_result.geofence_max_alt_triggered |= !_geofence.isBelowMaxAltitude(current_altitude);
 			_geofence_result.geofence_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(current_latitude,
 					current_longitude, current_altitude);
-			_geofence_result.pre_geofence_breached |= !_geofence.isInsidePreGeofence(current_latitude, current_longitude);
+			_geofence_result.pre_geofence_triggered |= !_geofence.isInsidePreGeofence(current_latitude, current_longitude);
 
 		} else {
 			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,
@@ -1293,7 +1293,7 @@ void Navigator::geofence_breach_check()
 			_geofence_result.geofence_max_alt_triggered = !_geofence.isBelowMaxAltitude(current_altitude);
 			_geofence_result.geofence_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(current_latitude,
 					current_longitude, current_altitude);
-			_geofence_result.pre_geofence_breached = !_geofence.isInsidePreGeofence(current_latitude, current_longitude);
+			_geofence_result.pre_geofence_triggered = !_geofence.isInsidePreGeofence(current_latitude, current_longitude);
 		}
 
 		const auto now = hrt_absolute_time();
@@ -1311,7 +1311,8 @@ void Navigator::geofence_breach_check()
 		// Hold is the only action Navigator takes part in: it sets where to hold. Each level asks for it once
 		// per breach, so a pilot who took over outside the pre-geofence is still held at the geofence.
 		const bool geofence_hold = breach && _geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER;
-		const bool pre_geofence_hold = _geofence_result.pre_geofence_breached
+		const bool geofence_action_active = breach && _geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
+		const bool pre_geofence_hold = !geofence_action_active && _geofence_result.pre_geofence_triggered
 					       && _geofence_result.pre_geofence_action == geofence_result_s::GF_ACTION_LOITER;
 
 		if (((geofence_hold && !_geofence_reposition_sent) || (pre_geofence_hold && !_pre_geofence_reposition_sent))
@@ -1355,7 +1356,7 @@ void Navigator::geofence_breach_check()
 			_geofence_reposition_sent = false;
 		}
 
-		if (!_geofence_result.pre_geofence_breached) {
+		if (!_geofence_result.pre_geofence_triggered) {
 			_pre_geofence_reposition_sent = false;
 		}
 
