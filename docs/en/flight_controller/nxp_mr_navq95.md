@@ -14,11 +14,13 @@ The intention is to provide a complete, tested, validated and flown reference se
 Contact your local NXP representative for more information.
 :::
 
-The [MR-NavQ95](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/overview.html) is a vehicle computer reference design from NXP Mobile Robotics, built around the NXP i.MX 95.
+The [MR-NavQ95](https://www.nxp.com/design/design-center/development-boards-and-designs/MR-NAVQ95) is a vehicle computer reference design from NXP Mobile Robotics, built around the NXP i.MX 95.
 Linux runs on the Cortex-A55 cores, and PX4 runs on the Cortex-M7 real-time core, started by MCUboot from the on-board octal NOR flash.
 The two sides talk over RPMsg: PX4 keeps its parameters, dataman and logs on a filesystem served by Linux, and exposes its shell and two MAVLink links as virtual ttys on the Linux side.
 The main board carries the i.MX 95 and the ICM-45686, BMM350 and BMP581 sensors.
 The NAVQ95-IO expansion board (the "IO board") carries the BMI088, the USB console, and the CAN, PWM, GPS, TELEM and I2C connectors.
+
+![MR.NAVQ95](../../assets/flight_controller/nxp_mr_navq95/navq95.webp)
 
 ![MR-NavQ95 block diagram](../../assets/flight_controller/nxp_mr_navq95/mr_navq95_block_diagram.svg)
 
@@ -247,6 +249,8 @@ It provides the RPMsg links PX4 depends on:
 
 PX4 has no local storage.
 `/fs/rpmsg` on the PX4 side is an RPMsg filesystem (rpmsgfs) served by Linux, and it holds the parameters, dataman and the flight logs.
+
+PX4 can only read and write its parameters once Linux has booted and the rpmsgfs server is running.
 
 ### MAVLink and QGroundControl
 
