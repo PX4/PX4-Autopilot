@@ -126,6 +126,9 @@ parameters:
           when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
           with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
           The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
+          In flight, loss of redundancy must persist for 2 seconds while another receiver
+          remains healthy. Receiver-loss warnings, pre-arm checks, and loss of all healthy
+          receivers are immediate. Recovery resets the loss persistence timer.
           Any value above Warning also blocks arming.
       type: enum
       values:

@@ -50,12 +50,16 @@ public:
 
 private:
 	static constexpr int GPS_MAX_INSTANCES = 2;
+	static constexpr hrt_abstime GPS_DATA_TIMEOUT = 1_s; // a receiver without data for this long is offline
+	static constexpr hrt_abstime DIVERGENCE_HYSTERESIS = 2_s; // time to report a disagreement and time to clear it
+	static constexpr hrt_abstime REDUNDANCY_LOSS_HYSTERESIS = 2_s; // time to report a lost receiver in flight while another is still healthy
 	static_assert(GPS_MAX_INSTANCES <= (int)(sizeof(sensors_status_gnss_s::device_ids) / sizeof(
 				sensors_status_gnss_s::device_ids[0])), "sensors_status_gnss has too few receiver entries");
 	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_INSTANCES> _sensor_gnss_sub{ORB_ID::sensor_gnss};
 	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
 
 	uint8_t _peak_healthy_count{0};
+	systemlib::Hysteresis _loss_hysteresis;
 	systemlib::Hysteresis _divergence_hysteresis;
 
 	const param_t _param_ekf2_gps_p_noise_handle;
