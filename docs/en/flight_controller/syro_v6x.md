@@ -10,8 +10,7 @@ Contact the [manufacturer](#store) for hardware support or compliance issues.
 The Syro V6X is a flight controller based on the FMUv6X reference design, with its own sensor set and PX4 board target.
 It consists of a flight controller module with the STM32H753 main processor and sensors, and a baseboard that carries the PX4IO coprocessor, the Ethernet PHY and the external connectors.
 
-<!-- TODO(Syro): add a product photo, stored under docs/assets/flight_controller/syro_v6x/, e.g.
-![Syro V6X flight controller](../../assets/flight_controller/syro_v6x/syro_v6x_top.png) -->
+<!-- TODO(Syro): add a product photo, stored under docs/assets/flight_controller/syro_v6x/. -->
 
 ::: info
 This flight controller is intended for inclusion in the [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md) board list.
