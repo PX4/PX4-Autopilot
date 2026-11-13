@@ -63,6 +63,8 @@ static constexpr double DIVERGING_FAR_LAT = BASE_LAT + 4.5e-5; // ~5.0m north
 
 // Divergence has to be sustained for the 2s hysteresis time before it is reported.
 static constexpr useconds_t HYSTERESIS_WAIT_US = 2100000;
+// In flight, loss of redundancy has to persist for 2s, allow a small margin when waiting for it.
+static constexpr useconds_t GNSS_LOSS_WAIT_US = 2100000;
 
 class GnssRedundancyChecksTest : public ::testing::Test
 {
@@ -295,6 +297,154 @@ TEST_F(GnssRedundancyChecksTest, BelowRequiredWarningDoesNotBlockArming)
 	EXPECT_TRUE(_failsafe_flags.gnss_lost);
 	EXPECT_TRUE(_health_warning_gps);
 	EXPECT_TRUE(_can_arm_all_modes);
+}
+
+// A brief no-fix report must not latch the Return action while the other receiver stays healthy.
+// A plain 3D fix is sufficient, RTK is not required to reset the timer.
+TEST_F(GnssRedundancyChecksTest, BelowRequiredInFlightShortFixLossIgnored)
+{
+	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+	setGnssLossAct(1); // Return
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON));
+	runCheck(true);
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 0));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+	EXPECT_TRUE(_health_warning_gps); // warn immediately during the persistence window
+
+	px4_usleep(300000);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 3));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+	EXPECT_FALSE(_health_warning_gps);
+
+	px4_usleep(GNSS_LOSS_WAIT_US);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+}
+
+// RTK float counts as healthy. With the other receiver at 2D, the loss has to persist for 2s.
+TEST_F(GnssRedundancyChecksTest, BelowRequiredInFlightLossHasToPersist)
+{
+	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+	setGnssLossAct(1); // Return
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON, 0.02f, 5));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 2));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+
+	px4_usleep(1500000);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON, 0.02f, 5));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 2));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost); // 1.5s is still below the 2s persistence requirement
+
+	px4_usleep(600000);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON, 0.02f, 5));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 2));
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+	EXPECT_TRUE(_health_warning_gps);
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+	EXPECT_FALSE(_health_warning_gps);
+}
+
+// Separate short losses must not accumulate into a sustained loss.
+TEST_F(GnssRedundancyChecksTest, BelowRequiredInFlightRecoveryRestartsPersistence)
+{
+	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+	setGnssLossAct(1); // Return
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 0));
+	runCheck(true);
+	px4_usleep(1200000);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON));
+	runCheck(true);
+
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 0));
+	runCheck(true);
+	px4_usleep(1200000);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 0));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost); // 2.4s total, but only 1.2s continuous
+
+	px4_usleep(900000);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 0));
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+}
+
+// A missing receiver follows the same persistence path as an online receiver that fails its checks.
+TEST_F(GnssRedundancyChecksTest, BelowRequiredInFlightOfflineReceiverDebounced)
+{
+	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+	setGnssLossAct(1); // Return
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+	EXPECT_TRUE(_health_warning_gps);
+
+	px4_usleep(GNSS_LOSS_WAIT_US);
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+}
+
+// Losing the last healthy receiver bypasses an already pending redundancy-loss timer.
+TEST_F(GnssRedundancyChecksTest, BelowRequiredInFlightAllFixesLostImmediate)
+{
+	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+	setGnssLossAct(1); // Return
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	publishGnss(1, makeGnss(AGREEING_LAT, BASE_LON, 0.02f, 0));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON, 0.02f, 0));
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+}
+
+// A single-receiver installation still reports loss of its only fix immediately.
+TEST_F(GnssRedundancyChecksTest, BelowRequiredInFlightOnlyReceiverLostImmediate)
+{
+	int required = 1;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+	setGnssLossAct(1); // Return
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON, 0.02f, 0));
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+}
+
+// Disarming must immediately enforce the pre-arm requirement, even with a pending flight timer.
+TEST_F(GnssRedundancyChecksTest, BelowRequiredDisarmDuringPersistenceBlocksArming)
+{
+	int required = 2;   param_set(param_find("SYS_HAS_NUM_GNSS"), &required);
+	setGnssLossAct(1); // Return
+
+	publishGnss(0, makeGnss(BASE_LAT, BASE_LON));
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.gnss_lost);
+
+	runCheck();
+	EXPECT_TRUE(_failsafe_flags.gnss_lost);
+	EXPECT_FALSE(_can_arm_all_modes);
 }
 
 // After seeing two fixed receivers, losing one emits a health warning

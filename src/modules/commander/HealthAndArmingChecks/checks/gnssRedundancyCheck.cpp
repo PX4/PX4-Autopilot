@@ -111,11 +111,17 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	const bool below_required = (_param_sys_has_num_gnss.get() > 0) && (healthy_count < _param_sys_has_num_gnss.get());
 	const bool dropped_below_peak = (_peak_healthy_count > 1) && (healthy_count < _peak_healthy_count);
 
+	// In flight, loss of redundancy has to persist for 2s while another receiver is still healthy.
+	// Pre-arm failures and loss of all healthy receivers remain immediate. Recovery resets the timer.
+	const hrt_abstime loss_delay = (context.isArmed() && healthy_count > 0) ? 2_s : 0_s;
+	_loss_hysteresis.set_hysteresis_time_from(false, loss_delay);
+	_loss_hysteresis.set_state_and_update(below_required, hrt_absolute_time());
+
 	// Divergence triggers the failsafe only when the operator explicitly expects two
 	// receivers (SYS_HAS_NUM_GNSS >= 2); otherwise it remains a warning.
 	const bool divergence_triggers_failsafe = _divergence_hysteresis.get_state() && (_param_sys_has_num_gnss.get() >= 2);
 
-	reporter.failsafeFlags().gnss_lost = below_required || divergence_triggers_failsafe;
+	reporter.failsafeFlags().gnss_lost = _loss_hysteresis.get_state() || divergence_triggers_failsafe;
 	const bool block_arming = reporter.failsafeFlags().gnss_lost && (_param_com_gnssloss_act.get() > 0);
 	const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
 	const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;

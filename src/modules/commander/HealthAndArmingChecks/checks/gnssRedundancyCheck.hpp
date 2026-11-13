@@ -56,6 +56,7 @@ private:
 	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
 
 	uint8_t _peak_healthy_count{0};
+	systemlib::Hysteresis _loss_hysteresis;
 	systemlib::Hysteresis _divergence_hysteresis;
 
 	const param_t _param_ekf2_gps_p_noise_handle;
